@@ -33,6 +33,8 @@ static struct ubi_device *ubi;
 static char buffer[80];
 static int ubi_initialized;
 
+int ubi_silent = 0;
+
 struct selected_dev {
 	char part_name[80];
 	int selected;
@@ -440,6 +442,17 @@ static int do_ubi(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
 	if (argc < 2)
 		return CMD_RET_USAGE;
 
+	if (strncmp(argv[1], "silent", 6) == 0) {
+		if (argc != 3) {
+			printf("Please see usage\n");
+			return 1;
+		}
+
+		ubi_silent = simple_strtoul(argv[2], NULL, 10) ? 1 : 0;
+
+		return 0;
+	}
+
 	if (mtdparts_init() != 0) {
 		printf("Error initializing mtdparts!\n");
 		return 1;
@@ -566,8 +579,24 @@ static int do_ubi(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
 
 	if (strncmp(argv[1], "remove", 6) == 0) {
 		/* E.g., remove volume */
-		if (argc == 3)
-			return ubi_remove_vol(argv[2]);
+		if (argc == 3) {
+			if (strncmp(argv[2], "all", 3) == 0) {
+				int i;
+
+				for (i = 0; i < ubi->vtbl_slots; i++) {
+					if (ubi->volumes[i]) {
+						ubi_remove_vol(ubi->volumes[i]->name);
+					}
+				}
+				printf("All volumes removed\n");
+
+				return 0;
+			}
+			else
+			{
+				return ubi_remove_vol(argv[2]);
+			}
+		}
 	}
 
 	if (strncmp(argv[1], "write", 5) == 0) {
