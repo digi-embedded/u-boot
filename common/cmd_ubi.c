@@ -425,6 +425,7 @@ static int ubi_dev_scan(struct mtd_info *info, char *ubidev,
 	err = ubi_init();
 	if (err) {
 		del_mtd_partitions(info);
+		ubi_exit();
 		return -err;
 	}
 
