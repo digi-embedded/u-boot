@@ -392,6 +392,231 @@ static int ubi_volume_read(char *volume, char *buf, size_t size)
 	return err;
 }
 
+#ifdef CONFIG_CMD_BSP
+extern void MemDump(const void* pvBase, loff_t iOffset, size_t iLen);
+extern loff_t MemCmp(const void* pvS1, const void* pvS2, size_t iSize);
+extern void PrintProgress(int iPercentage, int iThrottle, const char* szFmt, ...);
+/* TODO, generalize (share) code with other functions like ubi_volume_read */
+int ubi_volume_verify(char *volume, char *buf, loff_t offset, size_t size, char skipUpdFlagCheck)
+{
+	int err, lnum, len, tbuf_size, i = 0;
+	loff_t off, offDiff, offPercent;
+	void *tbuf;
+	unsigned char *rbuf;
+	struct ubi_volume *vol = NULL;
+	int total_size = size;
+
+	for (i = 0; i < ubi->vtbl_slots; i++) {
+		vol = ubi->volumes[i];
+		if (vol && !strcmp(vol->name, volume)) {
+			if (!ubi_silent) {
+				printf("Volume %s found at volume id %d\n",
+					volume, vol->vol_id);
+			}
+			break;
+		}
+	}
+	if (i == ubi->vtbl_slots) {
+		printf("%s volume not found\n", volume);
+		return -ENODEV;
+	}
+
+	if (!ubi_silent) {
+		printf("Comparing %i bytes from volume %d, offset %x with %x(buf address)\n",
+			(int) size, vol->vol_id, (unsigned int)offset, (unsigned)buf);
+	}
+
+	if (!skipUpdFlagCheck) {
+		if (vol->updating) {
+			printf("updating");
+			return -EBUSY;
+		}
+		if (vol->upd_marker) {
+			printf("damaged volume, update marker is set");
+			return -EBADF;
+		}
+	}
+	if (offset == vol->used_bytes)
+		return 0;
+
+	if (size == 0) {
+		if (!ubi_silent) {
+			printf("Read [%lu] bytes\n", (unsigned long) vol->used_bytes);
+		}
+		size = vol->used_bytes;
+	}
+
+	if (size + offset > vol->used_bytes) {
+		printf("Image size (%d) is larger than volume size (%lld)\n",
+		       (unsigned int)size, vol->used_bytes);
+		return 0;
+	}
+
+	if (vol->corrupted)
+		printf("read from corrupted volume %d", vol->vol_id);
+
+	tbuf_size = vol->usable_leb_size;
+	if (size < tbuf_size)
+		tbuf_size = ALIGN(size, ubi->min_io_size);
+	tbuf = malloc(tbuf_size);
+	if (!tbuf) {
+		printf("NO MEM\n");
+		return -ENOMEM;
+	}
+
+	rbuf = (unsigned char *)buf;
+
+	/* Calculate offsets */
+	lnum = lldiv(offset, vol->usable_leb_size);
+	off = llmod(offset, vol->usable_leb_size);
+	offPercent = 0;
+
+	do {
+		if (ctrlc() || had_ctrlc()) {
+			err = -EINTR;
+			goto error;
+		}
+
+		if (!ubi_silent) {
+			PrintProgress(lldiv((offPercent * 100), total_size), 10, "Verifying: ");
+		}
+
+		/* Get read length */
+		len = size > tbuf_size ? tbuf_size : size;
+
+		/* Read to the temporary buffer */
+		err = ubi_eba_read_leb(ubi, vol, lnum, tbuf, off, len, 0);
+		if (err) {
+			printf("read err %x\n", err);
+			break;
+		}
+		/* Compare temporary buffer's content with the original data */
+		offDiff = MemCmp(rbuf, tbuf, len);
+		if (offDiff != -1) {
+			printf("Compare error at offset 0x%08x\n",
+			       (unsigned int)(off + offDiff));
+			printf("Original:\n");
+			MemDump(rbuf, offDiff, 64);
+			printf("Flash:\n");
+			MemDump(tbuf, offDiff, 64);
+			err = -EIO;
+			goto error;
+		}
+
+		offPercent += len;
+		off = 0;
+		lnum += 1;
+		size -= len;
+		rbuf += len;
+	} while (size);
+
+	if (!ubi_silent) {
+		PrintProgress(100, 10, "Verifying: ");
+		printf("\nOK\n");
+	}
+
+error:
+	free(tbuf);
+	return err ? err : 0;
+}
+
+int ubi_volume_get_leb_size(char *volume)
+{
+	int i = 0;
+	struct ubi_volume *vol = NULL;
+
+	for (i = 0; i < ubi->vtbl_slots; i++) {
+		vol = ubi->volumes[i];
+		if (vol && !strcmp(vol->name, volume)) {
+			if (!ubi_silent) {
+				printf("Volume %s found at volume id %d\n",
+					volume, vol->vol_id);
+			}
+			break;
+		}
+	}
+	if (i == ubi->vtbl_slots) {
+		printf("%s volume not found\n", volume);
+		return -ENODEV;
+	}
+
+	return vol->usable_leb_size;
+}
+
+int ubi_volume_off_write(char *volume, void *buf, size_t size, int isFirstPart, int isLastPart)
+{
+	int i = 0, err = -1;
+	int rsvd_bytes = 0;
+	struct ubi_volume *vol = NULL;
+	loff_t offset;
+
+	for (i = 0; i < ubi->vtbl_slots; i++) {
+		vol = ubi->volumes[i];
+		if (vol && !strcmp(vol->name, volume)) {
+			if (!ubi_silent) {
+				printf("Volume %s found at volume id %d\n",
+					volume, vol->vol_id);
+			}
+			break;
+		}
+	}
+	if (i == ubi->vtbl_slots) {
+		printf("%s volume not found\n", volume);
+		return -ENODEV;
+	}
+
+	if (!isFirstPart) {
+		offset = vol->upd_received;
+	}
+	else {
+		offset = 0;
+	}
+
+	rsvd_bytes = vol->reserved_pebs * (ubi->leb_size - vol->data_pad);
+	if (size < 0 || (offset + size) > rsvd_bytes) {
+		printf("rsvd_bytes=%d vol->reserved_pebs=%d ubi->leb_size=%d\n",
+		     rsvd_bytes, vol->reserved_pebs, ubi->leb_size);
+		printf("vol->data_pad=%d\n", vol->data_pad);
+		printf("Size > volume size !!\n");
+		return 1;
+	}
+
+	/* Start ubi partition update */
+	if (isFirstPart) {
+		if (isLastPart) {
+			err = ubi_start_update(ubi, vol, size);
+		}
+		else {
+			/* Hack the ubi update start function. Set the size a little bit larger,
+			 * so the ubi_more_update_data() function will wait for more data, and
+			 * doesn't close the writing */
+			err = ubi_start_update(ubi, vol, size + 1);
+		}
+		if (err < 0) {
+			printf("Cannot start volume update\n");
+			return err;
+		}
+	}
+	else {
+		/* Increment remaining data counter */
+		vol->upd_bytes += size;
+
+		if (isLastPart) {
+			vol->upd_bytes -= 1;
+		}
+	}
+
+	/* Write data */
+	err = ubi_more_update_data(ubi, vol, buf, size);
+	if (err < 0) {
+		printf("Couldnt or partially wrote data \n");
+		return err;
+	}
+
+	return 0;
+}
+#endif /* CONFIG_CMD_BSP */
+
 static int ubi_dev_scan(struct mtd_info *info, char *ubidev,
 		const char *vid_header_offset)
 {

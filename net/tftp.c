@@ -245,6 +245,9 @@ store_block_to_flash (void)
 	ulong offset = uiBlocksWrittenToFlash * iFlashEraseSize;
 	ulong tempRamOff = 0;
 	int iRes = 0, i;
+#if defined(CONFIG_CMD_UBI)
+        char szCmd[ 80 ] = "";
+#endif
 
 	for(i = 0; i < FLASH_SECTORS_BUFFERED_IN_RAM; i++){
 #if defined(CONFIG_CMD_UBI)
