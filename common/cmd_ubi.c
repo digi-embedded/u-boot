@@ -448,7 +448,7 @@ int ubi_volume_verify(char *volume, char *buf, loff_t offset, size_t size, char 
 
 	if (size + offset > vol->used_bytes) {
 		printf("Image size (%d) is larger than volume size (%lld)\n",
-		       (unsigned int)size + offset, vol->used_bytes);
+		       (unsigned int)(size + offset), vol->used_bytes);
 		return -EFBIG;
 	}
 
