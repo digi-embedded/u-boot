@@ -615,6 +615,31 @@ int ubi_volume_off_write(char *volume, void *buf, size_t size, int isFirstPart, 
 
 	return 0;
 }
+
+int ubi_volume_off_write_break(char *volume)
+{
+	int i = 0, err = 0;
+	struct ubi_volume *vol = NULL;
+
+	for (i = 0; i < ubi->vtbl_slots; i++) {
+		vol = ubi->volumes[i];
+		if (vol && !strcmp(vol->name, volume)) {
+			if (!ubi_silent) {
+				printf("Volume %s found at volume id %d\n",
+					volume, vol->vol_id);
+			}
+			break;
+		}
+	}
+	if (i == ubi->vtbl_slots) {
+		printf("%s volume not found\n", volume);
+		return -ENODEV;
+	}
+
+	err = ubi_break_update(ubi, vol);
+
+	return err;
+}
 #endif /* CONFIG_CMD_BSP */
 
 static int ubi_dev_scan(struct mtd_info *info, char *ubidev,
