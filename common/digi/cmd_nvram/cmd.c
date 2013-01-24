@@ -22,7 +22,6 @@
 #ifdef CONFIG_CMD_BSP
 
 #include <command.h>
-#include <dvt.h>
 
 #include "nvram.h"
 #include "env.h"
@@ -34,8 +33,6 @@ static int do_nvram( cmd_tbl_t* cmdtp, int flag, int argc, char* argv[] )
 {
         if( !CW( NvCmdLine( argc - 1, (const char**) &argv[ 1 ] ) ) )
                 return 1;
-
-        CE( !DVTError() );
 
         if( ( argc > 1 ) &&
             ( !strcmp( "set", argv[ 1 ] ) ||

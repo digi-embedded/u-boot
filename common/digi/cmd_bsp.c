@@ -35,19 +35,11 @@
 #endif
 #include <jffs2/jffs2.h>
 #include <net.h>                /* DHCP */
-#include <dvt.h>                /* DVTHadError */
 #include <u-boot/zlib.h>        /* inflate */
-#if defined(CONFIG_CC9M2443) || defined(CONFIG_CCW9M2443)
- #include <asm/arch/gpio.h>
-#endif
-#if defined(CONFIG_NS9360)
- #include <usb.h>	/* usb_stop */
-#endif
 
 #include "cmd_bsp.h"
 #include "cmd_video.h"
 #include "env.h"
-#include "fpga_checkbitstream.h"
 #include "nvram.h"
 #include "partition.h"          /* MtdGetEraseSize */
 #include "mtd.h"
@@ -996,8 +988,6 @@ _getpart:
 		}
 	}
 
-        CE( !DVTError() );
-
         /* prepare for booting operating system */
         switch( eOSType ) {
 		case NVOS_LINUX:
@@ -1611,8 +1601,6 @@ static int do_digi_update( cmd_tbl_t* cmdtp, int flag, int argc, char* argv[] )
 			sprintf( szCmd, "tftp 0x%x %s", iLoadAddr, szImg );
 			CEN( RunCmd( szCmd ) );
 
-			CE( !DVTError() );
-
 			/* should be set by download tool */
 			CE( GetIntFromEnvVar( &iFileSize, "filesize", 0 ) );
 
@@ -1663,8 +1651,6 @@ static int do_digi_update( cmd_tbl_t* cmdtp, int flag, int argc, char* argv[] )
 				      kdevpart,
 				      kfs));
 	}
-
-        CE( !DVTError() );
 
         /* should be set by download tool */
         CE( GetIntFromEnvVar( &iFileSize, "filesize", 0 ) );
@@ -2110,8 +2096,6 @@ static int do_digi_verify( cmd_tbl_t* cmdtp, int flag, int argc, char* argv[] )
 				      kdevpart,
 				      kfs));
 	}
-
-        CE( !DVTError() );
 
         /* should be set by download tool */
         CE( GetIntFromEnvVar( &iFileSize, "filesize", 0 ) );

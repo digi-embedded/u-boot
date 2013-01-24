@@ -16,8 +16,6 @@
 
 #include <common.h>
 
-#include <dvt.h>                /* DVTIsEnabled */
-
 #include "mtd.h"
 #include "nvram_types.h"        /* CLEAR */
 
