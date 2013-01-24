@@ -49,7 +49,7 @@ int MtdRead( int iChip, uint64_t ullOffs, size_t iLength, void* pvBuf )
         iRes = !pChip->read( pChip, ullOffs, iLength, &iRetBlock, pvBuf );
 #else
         flash_info_t* pChip = &flash_info[ iChip ];
-        memcpy32( pvBuf, ((const char*) pChip->start[ 0 ] ) + ullOffs, iLength );
+        memcpy( pvBuf, ((const char*) pChip->start[ 0 ] ) + ullOffs, iLength );
         iRes = 1;
 #endif
 

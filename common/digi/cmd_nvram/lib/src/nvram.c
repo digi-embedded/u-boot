@@ -932,7 +932,7 @@ int NvOSCfgGet( nv_os_type_e eType, void* pvBuf, size_t iMaxSize,
         CE_SET_ERROR( ( xCfg.uiSize <= iMaxSize ), NVE_NO_SPACE );
         *piSize = xCfg.uiSize;
 
-        memcpy32( pvBuf, (char*) l_pvWorkcopy + xCfg.uiStart, xCfg.uiSize );
+        memcpy( pvBuf, (char*) l_pvWorkcopy + xCfg.uiStart, xCfg.uiSize );
         *piSize = xCfg.uiSize;
 
         return 1;
@@ -950,7 +950,7 @@ int NvOSCfgSet( nv_os_type_e eType, const void*  pvBuf,  size_t iSize )
         CE( NvOSCfgFind( &xCfg, eType ) );
         CE_SET_ERROR( ( xCfg.uiSize >= iSize ), NVE_NO_SPACE );
 
-        memcpy32( (char*) l_pvWorkcopy + xCfg.uiStart, pvBuf, iSize );
+        memcpy( (char*) l_pvWorkcopy + xCfg.uiStart, pvBuf, iSize );
 
         return 1;
 
@@ -1256,7 +1256,7 @@ static int NvPrivImagesRead( void )
         g_xInfo.bFlashOriginalGood = iRes;
         if( iRes )
                 /* everything ok, copy it */
-                memcpy32( l_pvWorkcopy, l_pvFlashInput, l_iEraseSize );
+                memcpy( l_pvWorkcopy, l_pvFlashInput, l_iEraseSize );
 
 
         if( iRes )
@@ -1269,7 +1269,7 @@ static int NvPrivImagesRead( void )
         g_xInfo.bFlashMirrorGood = iRes;
         if( iRes && !g_xInfo.bFlashOriginalGood )
                 /* everything ok and we don't have a workcopy yet */
-                memcpy32( l_pvWorkcopy, l_pvFlashInput, l_iEraseSize );
+                memcpy( l_pvWorkcopy, l_pvFlashInput, l_iEraseSize );
 
         if( iRes )
                 iRes = NvPrivCriticalRead( &axCritical[ NVCL_MIRROR ],
@@ -1329,7 +1329,7 @@ static int NvPrivCriticalRead(
         CLEAR( *pParamCrit );
 
         /* take it from our flash copy */
-        memcpy32( pParamCrit, (char*) l_pvFlashInput + sizeof( nv_os_meta_t ),
+        memcpy( pParamCrit, (char*) l_pvFlashInput + sizeof( nv_os_meta_t ),
                   sizeof( *pParamCrit ) );
 
         /* verify checksum */

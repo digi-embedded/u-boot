@@ -44,7 +44,6 @@ extern /*@null@*/ /*@only@*/ char *strdup (char *s) /*@*/ ;
 # endif  /* S_SPLINT_S */
 
 # define strnicmp(a,b,c)	strncasecmp(a,b,c)
-# define memcpy32(a,b,c)	memcpy(a,b,c)
 
 #elif defined(UBOOT)
 # include <common.h>            /* panic */
