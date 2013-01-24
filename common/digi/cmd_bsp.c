@@ -186,7 +186,6 @@ static int GetDHCPEnabled( char* pcEnabled );
 static int DoDHCP( void );
 static int check_image_header(ulong img_addr);
 static int VerifyCRC( uchar *addr, ulong len, ulong crc );
-int gunzip_chunk(void *dst, unsigned char *src, size_t iSize);
 int findpart_tableentry(  const part_t **ppPart,
 	const nv_param_part_t *pPartEntry,
         int            iCount );
@@ -198,9 +197,6 @@ extern unsigned int get_preset_lpj(void);
 #ifdef CONFIG_BOARD_SETUP_BEFORE_OS
 extern void board_setup_before_os_jump(nv_os_type_e eOSType, image_source_e eType);
 #endif
-
-extern void *zalloc(void *x, unsigned items, unsigned size);
-extern void zfree(void *x, void *addr, unsigned nb);
 
 extern int NetSilent;		/* Whether to silence the net commands output */
 extern ulong TftpRRQTimeoutMSecs;
@@ -2553,107 +2549,6 @@ static int check_image_header(ulong img_addr)
 
 	return 1;
 }
-
-#define GUNZIP_CHUNK	0x20000
-/*! \brief Reads iSize bytes from pvBuf of flash partition with on-the-fly decompression*/
-/*!
- * \param iSize if 0, the whole partition is read.
- * \return 0 on failure otherwise 1
- *
- * It is assumed that a U-Boot header is at the start of the partition
- * as it contains the information that the image is zipped.
- * That is not checked but skipped automatically
-*/
-int gunzip_chunk(void *dst, unsigned char *src, size_t iSize)
-{
-	size_t   iSizeLeft;
-	unsigned char *gzip_src = src;
-	unsigned char *gzip_end = src + iSize;
-	z_stream xStream;
-        size_t   iRead     = 0;
-        char     bGzipInit = 0;
-        int      iZipRes   = Z_STREAM_END;
-
-        iSizeLeft = iSize;
-
-        CLEAR( xStream );
-
-        while( iSizeLeft && ( gzip_src < gzip_end ) ) {
-                size_t iBytesToRead = min( iSizeLeft, GUNZIP_CHUNK );
-
-                if( ctrlc() || had_ctrlc() )
-                        goto error;
-
-                PrintProgress(lldiv((iRead * 100), iSize), 10, "Unzipping:");
-
-                if( !bGzipInit ) {
-                        /* see common/cmd_bootm:gunzip */
-                        int i, flags;
-
-                        /* skip header */
-                        i     = 10;
-                        flags = gzip_src[3];
-                        if( ( DEFLATED != gzip_src[2] ) || (flags & RESERVED) ) {
-                                eprintf( "Error: Bad gzipped data\n" );
-                                goto error;
-                        }
-                        if( flags & EXTRA_FIELD )
-                                i = 12 + gzip_src[ 10 ] + ( gzip_src [ 11 ] << 8 );
-                        if( flags & ORIG_NAME )
-                                i += strlen( (char*) &gzip_src[ i ] ) + 1;
-                        if( flags & COMMENT )
-                                i += strlen( (char*) &gzip_src[ i ] ) + 1;
-                        if( flags & HEAD_CRC )
-                                i += 2;
-
-                        xStream.zalloc = zalloc;
-                        xStream.zfree = zfree;
-                        xStream.outcb = Z_NULL;
-
-                        iZipRes = inflateInit2( &xStream, -MAX_WBITS );
-                        if( Z_OK != iZipRes ) {
-                                eprintf( "Error: inflateInit2() returned %d\n", iZipRes );
-                                goto error;
-                        }
-                        xStream.avail_in  = iBytesToRead - i;
-                        xStream.next_in   = gzip_src + i;
-                        xStream.next_out  = dst;
-                        xStream.avail_out = 0x7fffffff;
-
-                        bGzipInit = 1;
-                } else {
-                        xStream.next_in   = gzip_src;
-                        xStream.avail_in  = iBytesToRead;
-                }
-
-                /* decompress */
-                iZipRes = inflate( &xStream, Z_FULL_FLUSH );
-                if( ( Z_OK != iZipRes ) && ( Z_STREAM_END != iZipRes ) ) {
-                        eprintf( "Error: inflate() returned %d\n", iZipRes );
-                        goto error;
-                }
-
-                /* update compressed statistics */
-                iSizeLeft -= iBytesToRead;
-                iRead     += iBytesToRead;
-                gzip_src  += iBytesToRead;
-        } /* while( iSizeLeft */
-
-        printf( "\rUnzipping:   %s                                \n",
-                ( Z_STREAM_END == iZipRes ) ? "complete" : "failed" );
-
-        inflateEnd( &xStream );
-
-        return 1;
-
-error:
-        if( bGzipInit )
-                inflateEnd( &xStream );
-
-        printf( "\n" ERROR "Read failed at addr @ %p\n", gzip_src );
-        return 0;
-}
-
 
 #if defined(CONFIG_SOURCE) && defined(CONFIG_AUTOLOAD_BOOTSCRIPT)
 void run_auto_script(void)

@@ -54,10 +54,6 @@ typedef struct cmd_info {
 #define COMMENT		0x10
 #define RESERVED	0xe0
 
-#define DEFLATED	8
-extern void *zalloc(void *x, unsigned items, unsigned size);
-extern void zfree(void *x, void *addr, unsigned nb);
-
 /* ********** local functions ********** */
 
 static int  PartCmdAppend( const struct cmd_info* pCmdInfo );
