@@ -18,5 +18,6 @@
 #define __DIGI_HELPER_H
 
 extern int WaitForYesPressed( const char* szWhat, const char* szWhere );
+extern int long get_input(const char *cp);
 
 #endif  /* __DIGI_HELPER_H */
