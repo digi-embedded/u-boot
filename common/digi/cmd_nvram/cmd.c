@@ -48,9 +48,6 @@ static int do_nvram( cmd_tbl_t* cmdtp, int flag, int argc, char* argv[] )
 	}
         /* called from U-Boot */
         return 0;
-
-error:
-        return 1;
 }
 
 /***********************************************************************

@@ -152,7 +152,9 @@ typedef struct environment_s {
 extern env_t environment;
 #endif /* ENV_IS_EMBEDDED */
 
+#ifndef CONFIG_ENV_IS_IN_DIGI_NVRAM
 extern const unsigned char default_environment[];
+#endif
 extern env_t *env_ptr;
 
 extern void env_relocate_spec(void);

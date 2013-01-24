@@ -31,6 +31,7 @@
 #include <search.h>
 #include <errno.h>
 #include <malloc.h>
+#include "../digi/cmd_nvram/mtd.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -38,6 +39,8 @@ DECLARE_GLOBAL_DATA_PTR;
  * Default settings to be used when no valid environment is found
  */
 #include <env_default.h>
+
+size_t nvram_part_size;
 
 struct hsearch_data env_htab = {
 	.change_ok = env_flags_validate,
@@ -192,6 +195,22 @@ int env_import(const char *buf, int check)
 
 void env_relocate(void)
 {
+#if defined(CONFIG_CMD_NAND) && defined(CONFIG_CMD_BSP)
+	/* Dynamic calculation of NVRAM partition size. */
+	nvram_part_size = MtdGetEraseSize(0, PART_UBOOT_SIZE);
+	while (nvram_part_size < CONFIG_ENV_SIZE)
+		nvram_part_size += MtdGetEraseSize(0, PART_UBOOT_SIZE + nvram_part_size);
+
+	/* space for NVRAM backup */
+	nvram_part_size += MtdGetEraseSize(0, PART_UBOOT_SIZE + nvram_part_size);
+	while (nvram_part_size < 2 * CONFIG_ENV_SIZE)
+		nvram_part_size += MtdGetEraseSize(0, PART_UBOOT_SIZE + nvram_part_size);
+
+	/* double NVRAM partition size to handle bad blcoks */
+	nvram_part_size += nvram_part_size;
+#endif
+
+
 #if defined(CONFIG_NEEDS_MANUAL_RELOC)
 	env_reloc();
 	env_htab.change_ok += gd->reloc_off;

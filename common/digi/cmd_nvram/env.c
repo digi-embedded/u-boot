@@ -75,8 +75,8 @@ char g_bOptDetailed = 0;
 /* ********** extern stuff **********/
 
 extern env_t* env_ptr;          /* common/env_<nand/eeprom>.c */
-extern int _do_setenv( int flag, int argc, char *argv[] );  /* common/cmd_nvedit.c */
-extern int _do_orig_setenv (int flag, int argc, char *argv[]);
+extern int _do_env_set( int flag, int argc, char *argv[] );  /* common/cmd_nvedit.c */
+extern int _do_orig_env_set (int flag, int argc, char *argv[]);
 
 /* ********** local functions **********/
 
@@ -108,7 +108,7 @@ static const env_param_t l_axParam[] = {
 
 
 /* ********** global functions **********/
-int _do_setenv( int flag, int argc, char* argv[] )
+int _do_env_set( int flag, int argc, char* argv[] )
 {
         int iRes = 1;
         const env_param_t* pParam;
@@ -135,7 +135,7 @@ int _do_setenv( int flag, int argc, char* argv[] )
         } /* if( argc >= 2 ) */
 
         if( iRes )
-                iRes = ( _do_orig_setenv( flag, argc, argv ) >= 0 );
+                iRes = ( _do_orig_env_set( flag, argc, argv ) >= 0 );
 
         return ( iRes ? 0 : -1 );
 }
@@ -152,7 +152,7 @@ int saveenv( void )
                 DEBUG( "Removing from U-Boot NVRAM %s\n",
                          argvSetEnv[ 1 ] );
                 /* ignore if it works or not */
-                _do_orig_setenv( 0, ARRAY_SIZE( argvSetEnv ), argvSetEnv );
+                _do_orig_env_set( 0, ARRAY_SIZE( argvSetEnv ), argvSetEnv );
         }
 
         iRes = CW( NvOSCfgSet( NVOS_UBOOT, env_ptr, CONFIG_ENV_SIZE ) );
@@ -209,7 +209,7 @@ int NvEnvUpdateFromNVRAM( void )
                 DEBUG( "Adding to U-Boot from NVRAM %s=%s\n",
                        argvSetEnv[ 1 ], argvSetEnv[ 2 ] );
 
-                _do_orig_setenv( 0, ARRAY_SIZE( argvSetEnv ), argvSetEnv );
+                _do_orig_env_set( 0, ARRAY_SIZE( argvSetEnv ), argvSetEnv );
         }
 
 #if defined(CONFIG_CMD_UBI)

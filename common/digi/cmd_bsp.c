@@ -224,6 +224,7 @@ extern uint64_t iPartitionSize;
 extern const struct nv_param_part* pPartToWrite;	/* pointer to partition */
 #endif /* CONFIG_TFTP_UPDATE_ONTHEFLY */
 
+extern void netboot_update_env (void);
 
 /* ********** local variables ********** */
 

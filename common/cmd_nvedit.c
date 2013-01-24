@@ -59,12 +59,13 @@ DECLARE_GLOBAL_DATA_PTR;
 	!defined(CONFIG_ENV_IS_IN_FAT)		&& \
 	!defined(CONFIG_ENV_IS_IN_NAND)		&& \
 	!defined(CONFIG_ENV_IS_IN_NVRAM)	&& \
+	!defined(CONFIG_ENV_IS_IN_DIGI_NVRAM)	&& \
 	!defined(CONFIG_ENV_IS_IN_ONENAND)	&& \
 	!defined(CONFIG_ENV_IS_IN_SPI_FLASH)	&& \
 	!defined(CONFIG_ENV_IS_IN_REMOTE)	&& \
 	!defined(CONFIG_ENV_IS_NOWHERE)
 # error Define one of CONFIG_ENV_IS_IN_{EEPROM|FLASH|DATAFLASH|ONENAND|\
-SPI_FLASH|NVRAM|MMC|FAT|REMOTE} or CONFIG_ENV_IS_NOWHERE
+SPI_FLASH|NVRAM|DIGI_NVRAM|MMC|FAT|REMOTE} or CONFIG_ENV_IS_NOWHERE
 #endif
 
 /*
@@ -195,7 +196,12 @@ static int do_env_grep(cmd_tbl_t *cmdtp, int flag,
  * Set a new environment variable,
  * or replace or delete an existing one.
  */
-static int _do_env_set(int flag, int argc, char * const argv[])
+#if defined(CONFIG_ENV_OVERRIDE) && defined(CONFIG_ENV_IS_IN_DIGI_NVRAM)
+extern int _do_env_set(int flag, int argc, char * const argv[]);
+int _do_orig_env_set(int flag, int argc, char * const argv[])
+#else
+int _do_env_set(int flag, int argc, char * const argv[])
+#endif
 {
 	int   i, len;
 	char  *name, *value, *s;

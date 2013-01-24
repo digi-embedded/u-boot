@@ -129,7 +129,7 @@ U_BOOT_CMD(
 );
 #endif
 
-static void netboot_update_env(void)
+extern void netboot_update_env(void)
 {
 	char tmp[22];
 
