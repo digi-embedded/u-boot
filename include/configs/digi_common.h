@@ -26,7 +26,6 @@
 /* may undefine settings */
 
 #include <digi_version.h>
-#include <configs/parse_user_definitions.h>
 
 /* stuff that may be undefined in userconfig.h */
 
@@ -106,7 +105,7 @@
 /* NVRAM */
 
 #define CONFIG_ENV_IS_IN_DIGI_NVRAM
-#define CONFIG_ENV_SIZE		0x00002000 /* some space for U-Boot */
+#define CONFIG_ENV_SIZE		(16 * 1024)
 
 
 /*-----------------------------------------------------------------------
@@ -115,11 +114,6 @@
  * The stack sizes are set up in start.S using the settings below
  */
 #define CONFIG_STACKSIZE	(128*1024)	/* regular stack */
-/*
- * Size of malloc() pool
- */
-#define CONFIG_SYS_MALLOC_LEN		(768*1024)  /*  we need 2 erase blocks with at
-						     *  max 128kB for NVRAM compares */
 #define CONFIG_SYS_GBL_DATA_SIZE	256     /* size in bytes reserved for initial data */
 
 /* ********** misc stuff ********** */

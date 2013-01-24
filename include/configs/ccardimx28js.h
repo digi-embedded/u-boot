@@ -19,6 +19,8 @@
 #ifndef __CCARDIMX28JS_CONFIG_H__
 #define __CCARDIMX28JS_CONFIG_H__
 
+#include "digi_common.h"		/* Load Digi common stuff... */
+
 /*
  * SoC configurations
  */
@@ -34,6 +36,15 @@
 #define CONFIG_SYS_NO_FLASH
 #define CONFIG_BOARD_EARLY_INIT_F
 #define CONFIG_ARCH_MISC_INIT
+
+/*
+ * Digi custom
+ */
+#define CONFIG_MODULE_NAME		"ccardimx28"
+#define CONFIG_MODULE_NAME_UPPERCASE	"CCARDIMX28"
+#define CONFIG_MODULE_STRING		"ConnectCard for i.MX28"
+#define PLATFORM			"js"
+#define CONFIG_PLATFORM_NAME		CONFIG_MODULE_NAME PLATFORM
 
 /*
  * SPL
@@ -53,16 +64,11 @@
 #define CONFIG_DISPLAY_CPUINFO
 #define CONFIG_DOS_PARTITION
 
-#define CONFIG_CMD_CACHE
-#define CONFIG_CMD_DATE
-#define CONFIG_CMD_DHCP
 #define CONFIG_CMD_FAT
 #define CONFIG_CMD_GPIO
-#define CONFIG_CMD_MII
 #define CONFIG_CMD_MMC
 #define CONFIG_CMD_NET
 #define CONFIG_CMD_NFS
-#define CONFIG_CMD_PING
 #define CONFIG_CMD_SETEXPR
 #define CONFIG_CMD_SF
 #define CONFIG_CMD_SPI
@@ -101,14 +107,7 @@
 /*
  * U-Boot general configurations
  */
-#define CONFIG_SYS_LONGHELP
 #define CONFIG_SYS_PROMPT	"CCARDIMX28JS U-Boot > "
-#define CONFIG_SYS_CBSIZE	1024		/* Console I/O buffer size */
-#define CONFIG_SYS_PBSIZE	\
-	(CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
-						/* Print buffer size */
-#define CONFIG_SYS_MAXARGS	32		/* Max number of command args */
-#define CONFIG_SYS_BARGSIZE	CONFIG_SYS_CBSIZE
 						/* Boot argument buffer size */
 #define CONFIG_VERSION_VARIABLE	/* U-BOOT version */
 #define CONFIG_AUTO_COMPLETE		/* Command auto complete */
@@ -123,6 +122,10 @@
 #define CONFIG_PL01x_PORTS		{ (void *)MXS_UARTDBG_BASE }
 #define CONFIG_CONS_INDEX		0
 #define CONFIG_BAUDRATE			115200	/* Default baud rate */
+#define CONFIG_UARTDBG_CONSOLE		"ttyAM"
+
+#define CONFIG_CONSOLE			CONFIG_UARTDBG_CONSOLE
+#define CONFIG_CONS_INDEX		0
 
 /*
  * DMA
@@ -132,7 +135,6 @@
 /*
  * MMC Driver
  */
-#define CONFIG_ENV_IS_IN_MMC
 #ifdef CONFIG_ENV_IS_IN_MMC
  #define CONFIG_ENV_OFFSET	(256 * 1024)
  #define CONFIG_ENV_SIZE	(16 * 1024)
@@ -149,11 +151,16 @@
 /*
  * NAND Driver
  */
+#define CONFIG_CMD_NAND
 #ifdef CONFIG_CMD_NAND
 #define CONFIG_NAND_MXS
 #define CONFIG_SYS_MAX_NAND_DEVICE	1
 #define CONFIG_SYS_NAND_BASE		0x60000000
 #define CONFIG_SYS_NAND_5_ADDR_CYCLE
+#define PART_NVRAM_SIZE        	0x00040000	/* nvram 256 kb because 2k pagesize nands */
+#define PART_UBOOT_SIZE	       	0x00300000	/* 3 MB */
+#define PART_KERNEL_SIZE       	0x00500000	/* 5 MB */
+#define PART_ROOTFS_SIZE       	0x07300000	/* 115 MB */
 #endif
 
 /*
@@ -236,9 +243,6 @@
 /*
  * Boot Linux
  */
-#define CONFIG_CMDLINE_TAG
-#define CONFIG_SETUP_MEMORY_TAGS
-#define CONFIG_BOOTDELAY	3
 #define CONFIG_BOOTFILE	"uImage"
 #define CONFIG_LOADADDR	0x42000000
 #define CONFIG_SYS_LOAD_ADDR	CONFIG_LOADADDR
