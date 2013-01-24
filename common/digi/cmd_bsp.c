@@ -174,7 +174,6 @@ static int WhatPart(
 	nv_os_type_e *os_type,
 	int count);
 static const image_source_t* WhatImageSource( const char* szSrc );
-static int IsWinCEArg(const char* szSrc);
 static int RunCmd( const char* szCmd );
 static int GetIntFromEnvVar( /*@out@*/ int* piVal, const char* szVar,
                              char bSilent );
@@ -294,22 +293,11 @@ static const env_default_t l_axEnvDynamic[] = {
 #ifdef VIDEO_DISPLAY_2
         { VIDEO2_VAR,      VIDEO_DISPLAY_2                     },
 #endif
-
-#ifdef CONFIG_MODULE_NAME_WCE
-	{ "wceloadaddr",   MK_STR( CONFIG_WCE_LOAD_ADDR )     },
-        { "wimg",        "wce-"CONFIG_MODULE_NAME_WCE      },
-        { "wzimg",       "wcez-"CONFIG_MODULE_NAME_WCE     },
-#endif
 };
 
 static const part_t l_axPart[] = {
         { NVOS_LINUX, "linux",  "kimg",   NVPT_LINUX,      .bForBoot = 1 },
         { NVOS_ANDROID, "android",  "aimg",   NVPT_LINUX,      .bForBoot = 1 },
-#ifdef CONFIG_MODULE_NAME_WCE
-        { NVOS_EBOOT, "eboot",  "eimg",   NVPT_EBOOT,      .bForBoot = 1 },
-        { NVOS_WINCE, "wce",    "wimg",   NVPT_WINCE,      .bForBoot = 1 },
-        { NVOS_WINCE, "wcez",   "wzimg",  NVPT_WINCE,      .bCRC32Appended = 1 },
-#endif
 
 #ifdef CONFIG_IS_NETSILICON
 # ifdef PART_NETOS_LOADER_SIZE
@@ -351,21 +339,6 @@ static const image_source_t l_axImgSrc[] = {
 };
 #undef MK
 
-/* struct for wce bootargs */
-const static struct {
-	char* arg;
-	int   val;
-} wce_args[] = {
-	{ "kitl_ttyS0",		0x01000000 },
-	{ "kitl_ttyS1",		0x02000000 },
-	{ "kitl_ttyUSB",	0x03000000 },
-	{ "kitl_ethUSB",	0x04000000 },
-	{ "kitl_eth",		0x05000000 },
-	{ "cleanhive",		0x00010000 },
-	{ "cleanboot",		0x00000100 },
-	{ "formatpart",		0x00000001 },
-};
-
 /* ********** local functions ********** */
 
 #if defined(CONFIG_CMD_UBI)
@@ -404,112 +377,6 @@ static size_t GetPageSize( const nv_param_part_t* pPart )
 #endif
 
         return iPageSize;
-}
-
-static int SetBootargs( int argc, char* args[] )
-{
-	int i, index = 0;
-	/* default clean boot */
-	int commands = 0x00000100;
-	bd_t *bdinfo;
-	const char *s;
-
-	if(argc > 3) {
-		for( i=3; i < argc; i++ )
-			for( index = 0; index < ARRAY_SIZE( wce_args); index++ )
-				if( !strcmp( args[i], wce_args[index].arg ) )
-					commands |= wce_args[index].val;
-	}
-
-#if defined(CONFIG_MXC_NAND_SWAP_BI)
-	commands |= 0x00000002;
-#endif
-
-	/* Apend dinamyc variables to standard environment before booting */
-	if ((s = getenv("console")) == NULL) {
-		if ((s = GetEnvVar("console", 1)) == NULL)
-			printf("*** ERROR: console variable not defined!!\n");
-		else
-			setenv("console", (char *)s);
-	}
-#ifdef CONFIG_DISPLAY1_ENABLE
-	if ((s = getenv(VIDEO_VAR)) == NULL) {
-		if ((s = GetEnvVar(VIDEO_VAR, 1)) == NULL)
-			printf("*** ERROR: video variable not defined!!\n");
-		else
-			setenv(VIDEO_VAR, (char *)s);
-	}
-#endif
-#ifdef CONFIG_DISPLAY2_ENABLE
-	if ((s = getenv(VIDEO2_VAR)) == NULL) {
-		if ((s = GetEnvVar(VIDEO2_VAR, 1)) != NULL)
-			setenv(VIDEO2_VAR, (char *)s);
-	}
-#endif
-#ifdef CONFIG_DISPLAY_LVDS_ENABLE
-	if ((s = getenv(LDB_VAR)) == NULL) {
-		if ((s = GetEnvVar(LDB_VAR, 1)) != NULL)
-			setenv(LDB_VAR, (char *)s);
-	}
-#endif
-#if defined(CONFIG_DISPLAY1_ENABLE) && defined(CONFIG_DISPLAY2_ENABLE)
-	if ((s = getenv(FBPRIMARY_VAR)) == NULL) {
-		if ((s = GetEnvVar(FBPRIMARY_VAR, 1)) != NULL)
-			setenv(FBPRIMARY_VAR, (char *)s);
-	}
-#endif
-	/* Copy the environment to the location where WCE expects to find it... */
-	memcpy((uint8_t *)gd->bd->nvram_addr + NV_RESERVED_CRITICAL_SIZE,
-	       (uint8_t *)gd->env_addr,
-	       CONFIG_ENV_SIZE);
-
-	/* When booting Windows CE, copy the board data to the boot_params area */
-	memcpy((int*)gd->bd->bi_boot_params, gd->bd, sizeof(bd_t));
-	/* And pass also the special Windows CE bootargs, using the bi_boot_params field */
-	bdinfo = (bd_t *) gd->bd->bi_boot_params;
-	bdinfo->bi_boot_params = commands;
-
-	return 0;
-}
-
-static int do_wce_boot(image_header_t *pHeader, int iLoadAddr, int iLoadAddrZipped, int iSize)
-{
-	int (*bootCE)(void);
-	int iLoad;
-
-	if (pHeader != NULL) {
-		iLoad = ntohl(pHeader->ih_load);
-		if (pHeader->ih_comp == IH_COMP_GZIP)
-			CE(gunzip_chunk((void *)iLoad,
-					(uchar *)(iLoadAddrZipped + sizeof(image_header_t)),
-					ntohl(pHeader->ih_size)));
-		else  if ((iLoadAddr + sizeof(image_header_t)) != ntohl(pHeader->ih_load))
-			memcpy((void *)iLoad,
-			       (uchar *)(iLoadAddrZipped + sizeof(image_header_t)),
-			       ntohl(pHeader->ih_size));
-	} else {
-#ifdef CONFIG_DBOOT_LECAGY_WINCE_IMAGES
-		iLoad = iLoadAddr;
-		memcpy((void *)iLoad, (uchar *)iLoadAddrZipped, iSize);
-#else
-		goto error;
-#endif
-	}
-
-	bootCE = (int (*)(void))iLoad;
-
-	/* maybe an OS (e.g. WinCE) checks the Workcopys CRC32 */
-	NvWorkcopyUpdateCRC32();
-
-	printf("Windows CE will be booted now\n");
-
-	/* Disable interrupts, mmu, flush caches... */
-	cleanup_before_linux();
-
-	return bootCE();
-error:
-	puts("*** Error booting wce, aborting\n");
-	return 1;
 }
 
 static int do_image_load(int iLoadAddr, image_source_e source,
@@ -731,9 +598,9 @@ _getpart:
 	else
 	{
 		/* Check if this is a WinCE argument... if not, has to be the boot image filename */
-		if (argc == 4 && (!((eOSType == NVOS_WINCE) && (IsWinCEArg(argv[3]) != -1))))
+		if (argc == 4)
 			szTmp = argv[3];
-		else if (argc == 6 && (!((eOSType == NVOS_WINCE) && (IsWinCEArg(argv[5]) != -1))))
+		else if (argc == 6)
 			szTmp = argv[5];
 		else if( NULL != pPart ) {
 			/* not present, but we have a partition definition */
@@ -759,15 +626,6 @@ _getpart:
 			break;
 		case NVOS_ANDROID:
 			CE( GetIntFromEnvVar( &iLoadAddr, "androidloadaddr", 0 ) );
-			break;
-		case NVOS_WINCE:
-			CE( GetIntFromEnvVar( &iLoadAddr, "wceloadaddr", 0 ) );
-			break;
-		case NVOS_EBOOT:
-			CE( GetIntFromEnvVar( &iLoadAddr, "ebootaddr", 0 ) );
-			break;
-		case NVOS_NETOS:
-			CE( GetIntFromEnvVar( &iLoadAddr, "netosloadaddr", 0 ) );
 			break;
 		default:
 			(void) GetIntFromEnvVar( &iLoadAddr, "loadaddr", 1 );
@@ -1194,15 +1052,8 @@ _getpart:
 		printf("Booting partition '%s'\n", pBootPart->szName);
 
 	/* boot operating system */
-	switch( eOSType ) {
-		case NVOS_WINCE:
-		case NVOS_EBOOT:
-			SetBootargs( argc, argv );
-			return do_wce_boot(pHeader, iLoad, iLoadAddr, iSize);
-		default:
-			/* Run bootm command */
-			return !RunCmd( szCmd );
-	}
+	/* Run bootm command */
+	return !RunCmd( szCmd );
 
 usage:
         printf( "Usage:\n%s\n%s\n", cmdtp->usage, cmdtp->help );
@@ -1481,15 +1332,6 @@ static int do_digi_update( cmd_tbl_t* cmdtp, int flag, int argc, char* argv[] )
             case NVOS_ANDROID:
 		CE( GetIntFromEnvVar( &iLoadAddr, "androidloadaddr", 0 ) );
 		break;
-            case NVOS_WINCE:
-                CE( GetIntFromEnvVar( &iLoadAddr, "wceloadaddr", 0 ) );
-                break;
-            case NVOS_EBOOT:
-                CE( GetIntFromEnvVar( &iLoadAddr, "ebootaddr", 0 ) );
-                break;
-            case NVOS_NETOS:
-                CE( GetIntFromEnvVar( &iLoadAddr, "netosloadaddr", 0 ) );
-                break;
             default:
                 (void) GetIntFromEnvVar( &iLoadAddr, "loadaddr", 1 );
         }
@@ -2024,15 +1866,6 @@ static int do_digi_verify( cmd_tbl_t* cmdtp, int flag, int argc, char* argv[] )
             case NVOS_ANDROID:
 		CE( GetIntFromEnvVar( &iLoadAddr, "androidloadaddr", 0 ) );
 		break;
-            case NVOS_WINCE:
-                CE( GetIntFromEnvVar( &iLoadAddr, "wceloadaddr", 0 ) );
-                break;
-            case NVOS_EBOOT:
-                CE( GetIntFromEnvVar( &iLoadAddr, "ebootaddr", 0 ) );
-                break;
-            case NVOS_NETOS:
-                CE( GetIntFromEnvVar( &iLoadAddr, "netosloadaddr", 0 ) );
-                break;
             default:
                 (void) GetIntFromEnvVar( &iLoadAddr, "loadaddr", 1 );
         }
@@ -2447,18 +2280,6 @@ static const image_source_t* WhatImageSource( const char* szSrc )
         } /* !while */
 
         return NULL;
-}
-
-static int IsWinCEArg(const char* szSrc)
-{
-	int i = 0;
-
-	while (i < ARRAY_SIZE(wce_args)) {
-		if (!strcmp(szSrc, wce_args[i].arg))
-			return i;
-		i++;
-	}
-	return -1;
 }
 
 /*! \brief Runs command and prints error on failure */
@@ -3008,7 +2829,7 @@ U_BOOT_CMD(
 	" Description: Boots <os> via <source>\n"
 	" Arguments:\n"
 	"   - os:           a partition name or one of the reserved names: \n"
-	"                   linux|android|wce|netos|eboot\n"
+	"                   linux|android\n"
 	"   - [source]:     tftp (default)|flash|nfs|usb|mmc|hsmmc|sata|ram\n"
 	"   - [extra-args]: extra arguments depending on 'source'\n"
 	"\n"
@@ -3027,12 +2848,6 @@ U_BOOT_CMD(
 	"       - initrd_address: address of initrd image (default: loadaddr_initrd)\n"
 	"       - initrd_max_size: max. allowed ramdisk size (in kB) to pass to the kernel (default: kernel default)\n"
 	"\n"
-	"If <os> is 'wce' the following bootargs are possible:\n"
-/* hide for user */
-/*	"    ktil_ttyS0,kitl_ttyS1, kitl_ttyUSB, kitl_ethUSB, kitl_eth\n"
-	"    cleanhive, cleanboot, formatpart\n"
-*/
-	"    cleanhive\n"
 );
 
 U_BOOT_CMD(
@@ -3042,7 +2857,7 @@ U_BOOT_CMD(
 	" Description: updates flash <partition> via <source>\n"
 	" Arguments:\n"
 	"   - partition:    a partition name or one of the reserved names: \n"
-	"                   uboot|linux|android|rootfs|userfs|androidfs|eboot|wce|wcez|netos|netos_loader|splash\n"
+	"                   uboot|linux|android|rootfs|userfs|androidfs|splash\n"
 	"   - [source]:     tftp (default)|nfs|usb|mmc|hsmmc|sata|ram\n"
 	"   - [extra-args]: extra arguments depending on 'source'\n"
 	"\n"
@@ -3066,7 +2881,7 @@ U_BOOT_CMD(
 	" Description: verifies firmware in flash <partition> against file loaded from <source>\n"
 	" Arguments:\n"
 	"   - partition:    a partition name or one of the reserved names: \n"
-	"                   uboot|linux|android|rootfs|userfs|androidfs|eboot|wce|wcez|netos|netos_loader|splash\n"
+	"                   uboot|linux|android|rootfs|userfs|androidfs|splash\n"
 	"   - [source]:     tftp (default)|nfs|usb|mmc|hsmmc|sata|ram\n"
 	"   - [extra-args]: extra arguments depending on 'source'\n"
 	"\n"

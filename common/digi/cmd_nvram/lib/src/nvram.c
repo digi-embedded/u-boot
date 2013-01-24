@@ -152,10 +152,6 @@ static char        l_bOutputEnabled = 1;
 static size_t      l_iEraseSize     = 0;
 static nv_os_meta_t* l_pWorkcopyOSMeta = NULL;
 
-#ifdef WINCE
-# define strnicmp( s1, s2, len ) _strnicmp( s1, s2, len )
-#endif  /* WINCE */
-
 /* ********** global functions ********** */
 
 /*! \brief initializes the NVRAM library */
