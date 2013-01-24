@@ -40,7 +40,7 @@ COBJS-y	= cmd_bsp.o \
 	  cmd_nvram/lib/src/nvram.o cmd_nvram/lib/src/nvram_cmdline.o \
 	  cmd_nvram/cmd.o cmd_nvram/nvram_priv_uboot.o cmd_nvram/env.o \
 	  cmd_nvram/partition.o \
-	  vscanf.o atoi.o safe_strcat.o
+	  vscanf.o atoi.o safe_strcat.o helper.o
 COBJS-$(CONFIG_CMD_BOOTSTREAM) += cmd_bootstream/ncb.o \
 			cmd_bootstream/cmd_bootstream.o
 COBJS-$(CONFIG_MXS_OTP) += cmd_mxsotp.o
@@ -60,7 +60,7 @@ CPPFLAGS += $(CFLAGS-y)
 all:	$(LIB)
 
 $(LIB): $(obj).depend $(OBJS)
-	$(AR) $(ARFLAGS) $@ $(OBJS)
+	$(call cmd_link_o_target, $(OBJS))
 
 #########################################################################
 

@@ -225,6 +225,12 @@ COBJS-y += image.o
 COBJS-y += memsize.o
 COBJS-y += stdio.o
 
+# digi
+DIGI_DIR = $(TOPDIR)/common/digi
+CFLAGS += -I $(DIGI_DIR) -I $(DIGI_DIR)/cmd_nvram/lib/include \
+	                    -I $(DIGI_DIR)/cmd_nvram -DUBOOT
+CPPFLAGS += -I $(DIGI_DIR) -I $(DIGI_DIR)/cmd_nvram/lib/include \
+	                        -I $(DIGI_DIR)/cmd_nvram -DUBOOT
 
 COBJS	:= $(sort $(COBJS-y))
 XCOBJS	:= $(sort $(XCOBJS-y))
