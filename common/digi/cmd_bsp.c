@@ -135,9 +135,9 @@ typedef struct {
 
 /* ********** local functions ********** */
 
-static int do_digi_dboot( cmd_tbl_t* cmdtp, int flag, int argc, char* argv[] );
-static int do_digi_update( cmd_tbl_t* cmdtp, int flag, int argc, char* argv[] );
-static int do_digi_verify( cmd_tbl_t* cmdtp, int flag, int argc, char* argv[] );
+static int do_digi_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[]);
+static int do_digi_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[]);
+static int do_digi_verify(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[]);
 #if defined(CONFIG_CMD_UBI)
 extern int ubi_volume_verify(char *volume, char *buf, loff_t offset, size_t size, char skipUpdFlagCheck);
 extern int ubi_volume_get_leb_size(char *volume);
@@ -406,7 +406,7 @@ static int do_image_load(int iLoadAddr, image_source_e source,
 	return RunCmd(cmd);
 }
 
-static int do_digi_dboot( cmd_tbl_t* cmdtp, int flag, int argc, char* argv[] )
+static int do_digi_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 {
         int iLoadAddr = -1, iLoadAddrInitRD = 0, iLoad;
         const part_t* pPart = NULL;
@@ -1166,7 +1166,7 @@ error:
 	return 0;
 }
 
-static int do_digi_update( cmd_tbl_t* cmdtp, int flag, int argc, char* argv[] )
+static int do_digi_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 {
         int iLoadAddr  = -1;
 #ifdef CONFIG_TFTP_UPDATE_ONTHEFLY
@@ -1796,7 +1796,7 @@ error:
         return 1;
 }
 
-static int do_digi_verify( cmd_tbl_t* cmdtp, int flag, int argc, char* argv[] )
+static int do_digi_verify(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 {
         int iLoadAddr  = -1;
         const image_source_t* pImgSrc = NULL;
@@ -2118,7 +2118,7 @@ error:
 }
 #endif  /* CONFIG_CMD_NAND */
 
-static int do_envreset( cmd_tbl_t* cmdtp, int flag, int argc, char* argv[] )
+static int do_envreset(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 {
 	switch( argc ) {
 		case 1:
@@ -2136,7 +2136,7 @@ static int do_envreset( cmd_tbl_t* cmdtp, int flag, int argc, char* argv[] )
         return saveenv();
 }
 
-static int do_printenv_dynamic( cmd_tbl_t* cmdtp, int flag, int argc, char* argv[] )
+static int do_printenv_dynamic(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 {
         int i;
 
@@ -2148,7 +2148,7 @@ static int do_printenv_dynamic( cmd_tbl_t* cmdtp, int flag, int argc, char* argv
         return 0;
 }
 
-static int do_erase_pt( cmd_tbl_t* cmdtp, int flag, int argc, char* argv[] )
+static int do_erase_pt(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 {
         const nv_param_part_t* pPartEntry = NULL;
         const part_t* pPart               = NULL;

@@ -29,7 +29,7 @@
 
 extern void set_mac_from_env( void );
 
-static int do_nvram( cmd_tbl_t* cmdtp, int flag, int argc, char* argv[] )
+static int do_nvram(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 {
         if( !CW( NvCmdLine( argc - 1, (const char**) &argv[ 1 ] ) ) )
                 return 1;
@@ -56,7 +56,7 @@ static int do_nvram( cmd_tbl_t* cmdtp, int flag, int argc, char* argv[] )
  * !Descr:    handles the partition command
  ***********************************************************************/
 
-static int do_partition( cmd_tbl_t* cmdtp, int flag, int argc, char* argv[] )
+static int do_partition(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 {
         int iRes = 0;
 
