@@ -14,6 +14,12 @@
 #ifdef CONFIG_SYS_DIRECT_FLASH_TFTP
 #include <flash.h>
 #endif
+#ifdef CONFIG_TFTP_UPDATE_ONTHEFLY
+# include "../common/digi/cmd_bsp.h"          	/* shares 6 variables with tftp_direct_to_flash */
+# include "../common/digi/cmd_nvram/partition.h"	/* used for PartWrite() , PartVerify() */
+# define UBOOT
+# include "../common/digi/cmd_nvram/lib/include/nvram.h"
+#endif /* CONFIG_TFTP_UPDATE_ONTHEFLY */
 
 /* Well known TFTP port # */
 #define WELL_KNOWN_PORT	69
@@ -41,6 +47,9 @@
 static ulong TftpTimeoutMSecs = TIMEOUT;
 static int TftpTimeoutCountMax = TIMEOUT_COUNT;
 static ulong time_start;   /* Record time we started tftp */
+extern int NetSilent;		/* Whether to silence the net commands output */
+extern int DownloadingAutoScript;	/* To know if we are trying to download the autoscript */
+int TftpErrorCount;		/* The number of erroneous tries */
 
 /*
  * These globals govern the timeout behavior when attempting a connection to a
@@ -53,6 +62,27 @@ static ulong time_start;   /* Record time we started tftp */
  */
 ulong TftpRRQTimeoutMSecs = TIMEOUT;
 int TftpRRQTimeoutCountMax = TIMEOUT_COUNT;
+
+#ifdef CONFIG_TFTP_UPDATE_ONTHEFLY
+char bTftpToFlashStatus = 0;			/* Signaling flags */
+size_t iFlashEraseSize = 0;			/* for TftpHandler; set by cmd_bsp.c */
+size_t iFlashPageSize = 0;			/* for TftpHandler; set by cmd_bsp.c */
+uint64_t iPartitionStartAdress = 0;		/* Start address of partition to flash; set by cmd_bsp.c */
+uint64_t iPartitionSize = 0;			/* Size of partition to flash; set by cmd_bsp.c */
+const struct nv_param_part* pPartToWrite;	/* Partition to flash; set by cmd_bsp.c */
+uint uiBlocksWrittenToFlash = 0;
+ulong ulRamOffset = 0;
+ulong ulLastRamAddressWritten = 0;
+ulong ulBytesCounter = 0;
+
+#if defined(CONFIG_CMD_UBI)
+extern int ubi_volume_off_write(char *volume, void *buf, size_t size, int isFirstPart, int isLastPart);
+extern int ubi_volume_verify(char *volume, char *buf, loff_t offset, size_t size, char skipUpdFlagCheck);
+#endif
+
+#define FLASH_SECTORS_BUFFERED_IN_RAM	3	/* define # of flash sectors that are buffered before
+						 * writing to flash */
+#endif /* CONFIG_TFTP_UPDATE_ONTHEFLY */
 
 enum {
 	TFTP_ERR_UNDEFINED           = 0,
@@ -195,6 +225,128 @@ store_block(int block, uchar *src, unsigned len)
 		NetBootFileXferSize = newsize;
 }
 
+#ifdef CONFIG_TFTP_UPDATE_ONTHEFLY
+static __inline__ void
+store_block_to_ram (ulong ramAddress, uchar * src, unsigned len)
+{
+	/* count received bytes here to calculate FileSize later */
+	ulBytesCounter += len;
+
+	/*copy TftpBlock into RAM buffer*/
+	(void)memcpy( (void *)(ramAddress), src, len );
+
+	if( NetBootFileXferSize < ulBytesCounter)
+		NetBootFileXferSize = ulBytesCounter;
+}
+
+static __inline__ void
+store_block_to_flash (void)
+{
+	ulong offset = uiBlocksWrittenToFlash * iFlashEraseSize;
+	ulong tempRamOff = 0;
+	int iRes = 0, i;
+
+	for(i = 0; i < FLASH_SECTORS_BUFFERED_IN_RAM; i++){
+#if defined(CONFIG_CMD_UBI)
+		if (bTftpToFlashStatus & B_PARTITION_IS_UBIFS) {
+			iRes = !ubi_volume_off_write((char *)pPartToWrite->szName, (void *)(load_addr + tempRamOff),
+					     iFlashEraseSize, uiBlocksWrittenToFlash == 0, 0);
+			if (iRes) {
+				iRes = !ubi_volume_verify((char *)pPartToWrite->szName, (char *)(load_addr + tempRamOff),
+							 offset, iFlashEraseSize, 1);
+			}
+		}
+		else
+#endif
+		{
+			if( PartHasBadBlock( pPartToWrite, iPartitionStartAdress + (uint64_t)offset) ){
+				/* skip the bad blocks here, not in PartWrite()
+				* because we need to write block after block
+				* and need to know if we skiped a block for the next loop */
+				offset += iFlashEraseSize;
+				uiBlocksWrittenToFlash++;
+			}
+
+			/* Write RAM buffer to partition and verify it */
+			iRes = PartWrite( pPartToWrite, iPartitionStartAdress + (uint64_t)offset,
+					(void *)(load_addr + tempRamOff), iFlashEraseSize, 1);
+			iRes = PartVerify(pPartToWrite, iPartitionStartAdress + (uint64_t)offset,
+					(void *)(load_addr + tempRamOff), iFlashEraseSize, 1);
+		}
+		if(!iRes)
+			goto error;
+
+		offset += iFlashEraseSize;
+		tempRamOff += iFlashEraseSize;
+		uiBlocksWrittenToFlash++;
+	}
+
+	/* calculate buffer offset (bytes that were received but don't fit into flash sector anymore)*/
+	ulRamOffset = ulLastRamAddressWritten - (uint)iFlashEraseSize * FLASH_SECTORS_BUFFERED_IN_RAM ;
+	/* then copy them to the start of buffer to flash them in the next loop */
+	(void)memcpy( (void *)load_addr,
+			(void *)(load_addr + (iFlashEraseSize * FLASH_SECTORS_BUFFERED_IN_RAM)),
+			(ulRamOffset - load_addr) );
+
+	/* finally remember the last address of RAM buffer */
+	ulLastRamAddressWritten = ulRamOffset;
+
+	return;
+error:
+	bTftpToFlashStatus |= B_ERROR_DURING_FLASH;
+}
+
+
+static __inline__ void
+store_last_block_to_flash (void)
+{
+	/* we received the last Tftp package, now handle it */
+	ulong offset = uiBlocksWrittenToFlash * iFlashEraseSize;
+	int iRes = 0;
+
+#if defined(CONFIG_CMD_UBI)
+	if (bTftpToFlashStatus & B_PARTITION_IS_UBIFS) {
+		size_t size = ulLastRamAddressWritten - load_addr;
+
+		iRes = !ubi_volume_off_write((char *)pPartToWrite->szName, (void *)load_addr,
+					    ulLastRamAddressWritten - load_addr, uiBlocksWrittenToFlash == 0, 1);
+		if (iRes && (size != 0)) {
+			iRes = !ubi_volume_verify((char *)pPartToWrite->szName, (char *)load_addr,
+						 offset, size, 1);
+		}
+	}
+	else
+#endif
+	{
+		/* do the padding in the RAM buffer */
+		int iFreeBytesInBlock = iFlashPageSize - ( (ulLastRamAddressWritten - load_addr) % iFlashPageSize);
+		if( iFreeBytesInBlock > 0 ){
+			if( (bTftpToFlashStatus & B_PARTITION_IS_JFFS2) == B_PARTITION_IS_JFFS2 )
+				memset( (void *) ulLastRamAddressWritten, 0x0, iFreeBytesInBlock);
+			else
+				memset( (void *) ulLastRamAddressWritten, 0xff, iFreeBytesInBlock);
+			ulLastRamAddressWritten += iFreeBytesInBlock;
+		}
+
+		/* then write the last bytes to flash and verify */
+		iRes = PartWrite(pPartToWrite, iPartitionStartAdress + (uint64_t)offset,
+				(void *)load_addr, ulLastRamAddressWritten - load_addr, 1 );
+		iRes = PartVerify(pPartToWrite, iPartitionStartAdress + (uint64_t)offset,
+				(void *)load_addr, ulLastRamAddressWritten - load_addr, 1 );
+	}
+	if(!iRes)
+		goto error;
+
+	printf( "\nWriting blocks:   complete                                      " );
+	printf( "\nVerifying blocks: complete                                      " );
+
+	return;
+
+error:
+	bTftpToFlashStatus |= B_ERROR_DURING_FLASH;
+}
+#endif /* CONFIG_TFTP_UPDATE_ONTHEFLY */
+
 /* Clear our state ready for a new transfer */
 static void new_transfer(void)
 {
@@ -306,9 +458,22 @@ static void tftp_complete(void)
 		print_size(NetBootFileXferSize /
 			time_start * 1000, "/s");
 	}
+#ifdef CONFIG_TFTP_UPDATE_ONTHEFLY
+			if( (bTftpToFlashStatus & B_WRITE_IMG_TO_FLASH) == B_WRITE_IMG_TO_FLASH ){
+				/* TFTP transfer complete, write last received TftpBlocks to flash */
+				store_last_block_to_flash();
+				/* and reset counters and flags */
+				ulLastRamAddressWritten = 0;
+				uiBlocksWrittenToFlash = 0;
+				ulBytesCounter = 0;
+				ulRamOffset = 0;
+				bTftpToFlashStatus &= ~B_PARTITION_IS_JFFS2;
+			}
+#endif /* CONFIG_TFTP_UPDATE_ONTHEFLY */
 	puts("\ndone\n");
 	net_set_state(NETLOOP_SUCCESS);
 }
+
 
 static void
 TftpSend(void)
@@ -594,9 +759,49 @@ TftpHandler(uchar *pkt, unsigned dest, IPaddr_t sip, unsigned src,
 
 		TftpLastBlock = TftpBlock;
 		TftpTimeoutCountMax = TIMEOUT_COUNT;
+		TftpTimeoutCount = 0;	/* Force timeouts to be consecutive */
 		NetSetTimeout(TftpTimeoutMSecs, TftpTimeout);
 
-		store_block(TftpBlock - 1, pkt + 2, len);
+#ifdef CONFIG_TFTP_UPDATE_ONTHEFLY
+		if( (bTftpToFlashStatus & B_WRITE_IMG_TO_FLASH) == B_WRITE_IMG_TO_FLASH ){
+			/* new TFTP on-the-fly update function:
+			 * buffer image in RAM and write it directly to flash */
+
+			if(ulLastRamAddressWritten == 0)
+				ulLastRamAddressWritten = load_addr;
+
+			/* capture packets, buffer it into RAM and remember last RAM address*/
+			store_block_to_ram(ulLastRamAddressWritten, pkt + 2, len);
+			ulLastRamAddressWritten += len;
+
+			if( (load_addr + iFlashEraseSize * FLASH_SECTORS_BUFFERED_IN_RAM) <= ulLastRamAddressWritten){
+				/* we received enough packets to write in a flash sector,
+				 * so do it unless the partition is full*/
+				if( iPartitionSize < (TftpBlkSize * TftpBlock) ){
+					printf("\nERROR: Image does not fit into partition!");
+					bTftpToFlashStatus &= ~B_WRITE_IMG_TO_FLASH;
+					net_set_state(NETLOOP_FAIL);
+					return;
+				}
+				store_block_to_flash();
+
+				if( (bTftpToFlashStatus & B_ERROR_DURING_FLASH) == B_ERROR_DURING_FLASH ){
+					printf("\nERROR: occurred during update of partition at RAM address 0x%lx.\n", ulLastRamAddressWritten);
+					ulLastRamAddressWritten = 0;
+					uiBlocksWrittenToFlash = 0;
+					ulBytesCounter = 0;
+					bTftpToFlashStatus &= ~B_PARTITION_IS_JFFS2;
+					bTftpToFlashStatus &= ~B_WRITE_IMG_TO_FLASH;
+					net_set_state(NETLOOP_FAIL);
+					return;
+				}
+			}
+		} else
+#endif /* CONFIG_TFTP_UPDATE_ONTHEFLY */
+		{
+			/* standard TFTP function: write image to RAM */
+			store_block (TftpBlock - 1, pkt + 2, len);
+		}
 
 		/*
 		 *	Acknowledge the block just received, which will prompt
@@ -659,7 +864,21 @@ TftpHandler(uchar *pkt, unsigned dest, IPaddr_t sip, unsigned src,
 		case TFTP_ERR_UNKNOWN_TRANSFER_ID:
 		case TFTP_ERR_FILE_ALREADY_EXISTS:
 		default:
+#if defined(CONFIG_TFTP_RETRIES_ON_ERROR)
+			if (++TftpErrorCount > CONFIG_TFTP_RETRIES_ON_ERROR) {
+				puts("\nRetry count exceeded; aborting\n");
+				/* Do not halt here... it causes problems on some platforms
+				 * eth_halt();
+				 */
+				net_set_state(NETLOOP_FAIL);
+				break;
+			}
+			printf("Starting again (try %d of %d)\n\n",
+			TftpErrorCount, CONFIG_TFTP_RETRIES_ON_ERROR);
+#else
 			puts("Starting again\n\n");
+#endif
+
 #ifdef CONFIG_MCAST_TFTP
 			mcast_cleanup();
 #endif
@@ -675,6 +894,19 @@ static void
 TftpTimeout(void)
 {
 	if (++TftpTimeoutCount > TftpTimeoutCountMax) {
+#if defined(CONFIG_CMD_AUTOSCRIPT) &&		\
+    defined(CONFIG_AUTOLOAD_BOOTSCRIPT) &&	\
+    defined(CONFIG_TFTP_RETRIES_ON_ERROR)
+		if (DownloadingAutoScript) {
+			if (++TftpErrorCount > CONFIG_TFTP_RETRIES_ON_ERROR) {
+				printf ("\nRetry count exceeded; aborting\n");
+				net_set_state(NETLOOP_FAIL);;
+				return;
+			}
+			printf("Starting again (try %d of %d)\n\n",
+				TftpErrorCount, CONFIG_TFTP_RETRIES_ON_ERROR);
+		}
+#endif
 		restart("Retry count exceeded");
 	} else {
 		puts("T ");
@@ -775,7 +1007,17 @@ void TftpStart(enum proto_t protocol)
 		TftpState = STATE_SEND_WRQ;
 		new_transfer();
 	} else
-#endif
+#elif defined(CONFIG_TFTP_UPDATE_ONTHEFLY)
+	if( (bTftpToFlashStatus & B_WRITE_IMG_TO_FLASH) == B_WRITE_IMG_TO_FLASH ){
+		ulLastRamAddressWritten = 0;
+		uiBlocksWrittenToFlash = 0;
+		ulBytesCounter = 0;
+		ulRamOffset = 0;
+
+		printf("Loading and updating on-the-fly: \n\t");
+	}
+	else
+#endif /* CONFIG_TFTP_UPDATE_ONTHEFLY */
 	{
 		printf("Load address: 0x%lx\n", load_addr);
 		puts("Loading: *\b");
