@@ -43,8 +43,6 @@ typedef uint64_t loff_t;
 extern /*@null@*/ /*@only@*/ char *strdup (char *s) /*@*/ ;
 # endif  /* S_SPLINT_S */
 
-# define strnicmp(a,b,c)	strncasecmp(a,b,c)
-
 #elif defined(UBOOT)
 # include <common.h>            /* panic */
 # include <linux/types.h>       /* loff_t */

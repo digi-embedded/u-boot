@@ -1190,12 +1190,12 @@ int NvToSize64( /*@out@*/ uint64_t* pullVal, const char* szVal )
                                 szUnit++;
 
                         if( ( 1 == iNum ) ||
-                            !strnicmp( "MiB", szUnit, 3 ) ||
-                            !strnicmp( "M",   szUnit, 1 ) )
+                            !strncmp( "MiB", szUnit, 3 ) ||
+                            !strncmp( "M",   szUnit, 1 ) )
                                 /* decimal number without unit means MiB */
                                 iFac = 1024*1024;
-                        else if( !strnicmp( "KiB", szUnit, 3 ) ||
-                                 !strnicmp( "K",   szUnit, 1 ) )
+                        else if( !strncmp( "KiB", szUnit, 3 ) ||
+                                 !strncmp( "K",   szUnit, 1 ) )
                                 iFac = 1024;
                         else
                                 iRes = 0;
