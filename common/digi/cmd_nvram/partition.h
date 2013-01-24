@@ -27,10 +27,6 @@ extern int PartRead(
         void* pvBuf,
         size_t iSize,
         char bSilent );
-extern int PartReadAndDecompress(
-        const struct nv_param_part* pPart,
-        void* pvBuf,
-        size_t iSize);
 extern int PartHasBadBlock(
 	const struct nv_param_part* pPart,
 	uint64_t ullStartAddress);
