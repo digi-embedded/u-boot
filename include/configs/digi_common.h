@@ -138,8 +138,6 @@
 /* stuff for DVTs and special information */
 
 #define CONFIG_DVT_PROVIDED
-//#define CONFIG_MTD_DEBUG
-//#define CONFIG_MTD_DEBUG_VERBOSE 1
 
 /* compilation */
 
