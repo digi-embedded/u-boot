@@ -16,6 +16,7 @@
  */
 
 #include <common.h>
+#include <errno.h>
 
 #ifdef CONFIG_CMD_NAND
 # include <nand.h>
@@ -145,6 +146,9 @@ int saveenv( void )
         int iRes;
         int i;
         char* argvSetEnv[ 4 ] = { "setenv", NULL, NULL };
+	ALLOC_CACHE_ALIGN_BUFFER(env_t, env_new, 1);
+	ssize_t	len;
+	char	*res;
 
         /* remove environment variables used by us */
         for( i = 0; i < ARRAY_SIZE( l_axParam ); i++ ) {
@@ -155,13 +159,26 @@ int saveenv( void )
                 _do_orig_env_set( 0, ARRAY_SIZE( argvSetEnv ), argvSetEnv );
         }
 
-        iRes = CW( NvOSCfgSet( NVOS_UBOOT, env_ptr, CONFIG_ENV_SIZE ) );
+	/* Export/Check U-Boot environment before saving
+	 * (includes environment CRC calculation). */
+	res = (char *)&env_new->data;
+	len = hexport_r(&env_htab, '\0', &res, ENV_SIZE, 0, NULL);
+	if (len < 0) {
+		error("Cannot export environment: errno = %d\n", errno);
+		goto error;
+	}
+	env_new->crc = crc32(0, &env_new->data[0], ENV_SIZE);
+
+	iRes = CW( NvOSCfgSet( NVOS_UBOOT, env_new, CONFIG_ENV_SIZE ) );
         if( iRes )
                 iRes &= CW( NvSave() );
 
         CW( NvEnvUpdateFromNVRAM() );
 
         return ( iRes ? 0 : -1 );
+
+error:
+	return -1;
 }
 
 /*! \brief adds the NVRAM variables to U-Boot Environment variables */
@@ -357,9 +374,11 @@ void env_relocate_spec( void )
 	if( !iRes || ( CONFIG_ENV_SIZE != iSize ) ||
             ( crc32( 0, env_ptr->data, ENV_SIZE ) != env_ptr->crc ) ) {
                 puts ("*** Warning - bad CRC or NAND, using default environment\n\n");
+                env_import((char *)env_ptr, 0);	/* create hash table */
                 NvEnvUseDefault();
         } else {
                 gd->env_valid = 1;
+                env_import((char *)env_ptr, 1);	/* create hash table */
                 CW( NvEnvUpdateFromNVRAM() );
         }
 #endif /* CONFIG_UBOOT_IGNORE_NVRAM_ENV */
