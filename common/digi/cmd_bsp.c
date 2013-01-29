@@ -2129,9 +2129,7 @@ static int do_envreset(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[]
 		return -1;
 	}
 
-	printf( "Environment will be set to Default now!\n" );
-
-        NvEnvUseDefault();
+        NvEnvUseDefault("Environment will be set to Default now!\n");
 
         return saveenv();
 }

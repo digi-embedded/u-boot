@@ -365,17 +365,15 @@ void env_relocate_spec( void )
         }
 
 #ifdef CONFIG_UBOOT_IGNORE_NVRAM_ENV
-        puts("*** Warning - ignoring environment in NVRAM, using default environment\n\n");
-        NvEnvUseDefault();
+        NvEnvUseDefault("*** Warning - ignoring environment in NVRAM, using default environment\n\n");
 #else
         if( iRes )
                 iRes = CW( NvOSCfgGet( NVOS_UBOOT, env_ptr, CONFIG_ENV_SIZE, &iSize ) );
 
 	if( !iRes || ( CONFIG_ENV_SIZE != iSize ) ||
             ( crc32( 0, env_ptr->data, ENV_SIZE ) != env_ptr->crc ) ) {
-                puts ("*** Warning - bad CRC or NAND, using default environment\n\n");
                 env_import((char *)env_ptr, 0);	/* create hash table */
-                NvEnvUseDefault();
+                NvEnvUseDefault("*** Warning - bad CRC or NAND, using default environment\n\n");
         } else {
                 gd->env_valid = 1;
                 env_import((char *)env_ptr, 1);	/* create hash table */
@@ -413,17 +411,10 @@ void env_relocate_spec( void )
 #endif
 }
 
-void NvEnvUseDefault( void )
+void NvEnvUseDefault(const char *s)
 {
-	memset( env_ptr, 0, sizeof(env_t) );
-	memcpy( env_ptr->data,
-                default_environment,
-                CONFIG_ENV_SIZE );
-
-	env_ptr->crc = crc32( 0, env_ptr->data, CONFIG_ENV_SIZE );
-	gd->env_valid = 1;
-
-        CW( NvEnvUpdateFromNVRAM() );
+	set_default_env(s);
+	CW(NvEnvUpdateFromNVRAM());
 }
 
 void NvEnvPrintError( const char* szFormat, ... )

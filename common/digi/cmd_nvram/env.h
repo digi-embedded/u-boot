@@ -38,7 +38,7 @@ struct nv_param_part;
 
 extern int NvEnvUpdateFromNVRAM( void );
 extern int NvEnvGetFirstJFFS2Part( struct part_info* pPartInfo );
-extern void NvEnvUseDefault( void );
+extern void NvEnvUseDefault(const char *s);
 extern void NvEnvPrintError( const char* szFormat, ... );
 extern int NvEnvUpdateLCDConfig(void);
 
