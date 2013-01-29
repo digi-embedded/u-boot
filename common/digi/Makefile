@@ -42,7 +42,8 @@ COBJS-y	= cmd_bsp.o \
 	  cmd_nvram/partition.o \
 	  vscanf.o atoi.o safe_strcat.o helper.o
 COBJS-$(CONFIG_CMD_BOOTSTREAM) += cmd_bootstream/ncb.o \
-			cmd_bootstream/cmd_bootstream.o
+			cmd_bootstream/cmd_bootstream.o \
+			cmd_bootstream/mxsboot.o
 COBJS-$(CONFIG_MXS_OTP) += cmd_mxsotp.o
 
 COBJS	:= $(sort $(COBJS-y))

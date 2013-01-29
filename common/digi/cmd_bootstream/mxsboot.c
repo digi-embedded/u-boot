@@ -23,12 +23,7 @@
  * MA 02111-1307 USA
  */
 
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-
-#include "compiler.h"
+#include <common.h>
 
 /*
  * Default BCB layout.
@@ -212,20 +207,21 @@ static inline uint32_t mx28_nand_get_mark_offset(uint32_t page_data_size,
 	return block_mark_bit_offset;
 }
 
-static inline uint32_t mx28_nand_mark_byte_offset(void)
+inline uint32_t mx28_nand_mark_byte_offset(void)
 {
 	uint32_t ecc_strength;
 	ecc_strength = mx28_nand_get_ecc_strength(nand_writesize, nand_oobsize);
 	return mx28_nand_get_mark_offset(nand_writesize, ecc_strength) >> 3;
 }
 
-static inline uint32_t mx28_nand_mark_bit_offset(void)
+inline uint32_t mx28_nand_mark_bit_offset(void)
 {
 	uint32_t ecc_strength;
 	ecc_strength = mx28_nand_get_ecc_strength(nand_writesize, nand_oobsize);
 	return mx28_nand_get_mark_offset(nand_writesize, ecc_strength) & 0x7;
 }
 
+#if 0
 static uint32_t mx28_nand_block_csum(uint8_t *block, uint32_t size)
 {
 	uint32_t csum = 0;
@@ -685,3 +681,4 @@ err2:
 err1:
 	return ret;
 }
+#endif

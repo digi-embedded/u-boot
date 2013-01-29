@@ -25,6 +25,9 @@
 #include "cmd_bootstream.h"
 #include "BootControlBlocks.h"
 
+extern uint32_t mx28_nand_mark_byte_offset(void);
+extern uint32_t mx28_nand_mark_bit_offset(void);
+
 const struct mtd_config default_mtd_config = {
 	.chip_count = 1,
 	.chip_0_offset = 0,
@@ -201,8 +204,8 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
 #else
 	fcb->FCB_Block.m_u32DBBTSearchAreaStartAddress = 0;
 #endif
-	fcb->FCB_Block.m_u32BadBlockMarkerByte         = gpmi_info->m_u32BlkMarkByteOfs;
-	fcb->FCB_Block.m_u32BadBlockMarkerStartBit     = gpmi_info->m_u32BlkMarkBitStart;
+	fcb->FCB_Block.m_u32BadBlockMarkerByte         = mx28_nand_mark_byte_offset();
+	fcb->FCB_Block.m_u32BadBlockMarkerStartBit     = mx28_nand_mark_bit_offset();
 	fcb->FCB_Block.m_u32BBMarkerPhysicalOffset     = mtd->writesize;
 
 	//----------------------------------------------------------------------
