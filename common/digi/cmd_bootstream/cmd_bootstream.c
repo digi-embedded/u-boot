@@ -22,9 +22,6 @@
 #include "partition.h"          /* MtdGetEraseSize */
 #include "mtd.h"
 #include "nand_device_info.h"
-#ifdef CONFIG_MX28
-#include "gpmi_nfc_gpmi.h"
-#endif
 #include "cmd_bootstream.h"
 #include "BootControlBlocks.h"
 
@@ -61,7 +58,9 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
 #ifdef CONFIG_MX28
 	unsigned int  stride_size_in_bytes;
 	unsigned int  search_area_size_in_bytes;
+#ifdef CONFIG_USE_NAND_DBBT
 	unsigned int  search_area_size_in_pages;
+#endif
 	unsigned int  max_boot_stream_size_in_bytes;
 	unsigned int  boot_stream_size_in_pages;
 	unsigned int  boot_stream1_pos;
@@ -77,8 +76,9 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
 
 	stride_size_in_bytes = PAGES_PER_STRIDE * mtd->writesize;
 	search_area_size_in_bytes = (1 << cfg->search_exponent) * stride_size_in_bytes;
+#ifdef CONFIG_USE_NAND_DBBT
 	search_area_size_in_pages = (1 << cfg->search_exponent) * PAGES_PER_STRIDE;
-
+#endif
 	//----------------------------------------------------------------------
 	// Check if the target MTD is too small to even contain the necessary
 	// search areas.
@@ -230,7 +230,6 @@ int v2_rom_mtd_init(struct mtd_info *mtd,
 {
 	unsigned int  stride_size_in_bytes;
 	unsigned int  search_area_size_in_bytes;
-	unsigned int  search_area_size_in_pages;
 	unsigned int  max_boot_stream_size_in_bytes;
 	unsigned int  boot_stream_size_in_pages;
 	unsigned int  boot_stream1_pos;
@@ -241,6 +240,7 @@ int v2_rom_mtd_init(struct mtd_info *mtd,
 	struct mtd_part *mp;
 	int j, k , thisbad, badmax,currbad;
 	BadBlockTableNand_t *bbtn;
+	unsigned int  search_area_size_in_pages;
 #endif
 
 	//----------------------------------------------------------------------
@@ -249,8 +249,9 @@ int v2_rom_mtd_init(struct mtd_info *mtd,
 
 	stride_size_in_bytes = mtd->erasesize;
 	search_area_size_in_bytes = 4 * stride_size_in_bytes;
+#ifdef CONFIG_USE_NAND_DBBT
 	search_area_size_in_pages = search_area_size_in_bytes / mtd->writesize;
-
+#endif
 	//----------------------------------------------------------------------
 	// Check if the target MTD is too small to even contain the necessary
 	// search areas.
@@ -624,7 +625,7 @@ int v1_rom_mtd_commit_structures(struct mtd_info *mtd,
 				 unsigned int boot_stream_size_in_bytes)
 {
 	int startpage, start, size;
-	unsigned int search_area_size_in_bytes, stride_size_in_bytes;
+//	unsigned int search_area_size_in_bytes, stride_size_in_bytes;
 	int i, r, chunk;
 	loff_t ofs, end;
 	int chip = 0;
@@ -640,8 +641,8 @@ int v1_rom_mtd_commit_structures(struct mtd_info *mtd,
 	// Compute some important facts about geometry.
 	//----------------------------------------------------------------------
 
-	stride_size_in_bytes = PAGES_PER_STRIDE * mtd->writesize;
-	search_area_size_in_bytes = (1 << cfg->search_exponent) * stride_size_in_bytes;
+//	stride_size_in_bytes = PAGES_PER_STRIDE * mtd->writesize;
+//	search_area_size_in_bytes = (1 << cfg->search_exponent) * stride_size_in_bytes;
 
 	//----------------------------------------------------------------------
 	// Construct the ECC decorations and such for the FCB.
@@ -806,7 +807,9 @@ int v2_rom_mtd_commit_structures(struct mtd_info *mtd,
 		 unsigned int boot_stream_size_in_bytes)
 {
 	int startpage, start, size;
+#ifdef CONFIG_USE_NAND_DBBT
 	unsigned int search_area_size_in_bytes, stride_size_in_bytes;
+#endif
 	int i, r, chunk;
 	loff_t ofs, end;
 	int chip = 0;
@@ -821,10 +824,10 @@ int v2_rom_mtd_commit_structures(struct mtd_info *mtd,
 	//----------------------------------------------------------------------
 	// Compute some important facts about geometry.
 	//----------------------------------------------------------------------
-
+#ifdef CONFIG_USE_NAND_DBBT
 	stride_size_in_bytes = mtd->erasesize;
 	search_area_size_in_bytes = 4 * stride_size_in_bytes;
-
+#endif
 	//----------------------------------------------------------------------
 	// Construct the ECC decorations and such for the FCB.
 	//----------------------------------------------------------------------
