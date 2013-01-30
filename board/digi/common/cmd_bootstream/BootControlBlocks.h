@@ -305,12 +305,12 @@ typedef struct {
 			uint32_t        m_u32BadBlockMarkerStartBit;    //!< For BCH ECC sizes other than 8 and 16 the bad block marker does not start
 									//!< at 0th bit of m_u32BadBlockMarkerByte. This field is used to get to the
 									//!< start bit of bad block marker byte with in m_u32BadBlockMarkerByte.
-        		uint32_t        m_u32BBMarkerPhysicalOffset;    //!< FCB value that gives byte offset for bad block marker on physical NAND page.
+			uint32_t        m_u32BBMarkerPhysicalOffset;    //!< FCB value that gives byte offset for bad block marker on physical NAND page.
 			uint32_t	m_u32BCHType;
 			FCB_ROM_NAND_TM_Timing_t m_NANDTMTiming;
 			uint32_t	m_u32DISBBM;	/* the flag to enable (1)/disable(0) bi swap */
 			uint32_t	m_u32BBMarkerPhysicalOffsetInSpareData; /* The swap position of main area in spare area */
-        	} FCB_Block;
+		} FCB_Block;
 		union {
 			struct {
 				uint32_t	m_u32NumberBB;		//!< # Bad Blocks stored in this table for NAND0.

@@ -9,7 +9,7 @@
  * Wirzenius wrote this portably, Torvalds fucked it up :-)
  */
 
-/* 
+/*
  * Fri Jul 13 2001 Crutcher Dunnavant <crutcher+kernel@datastacks.com>
  * - changed to provide snprintf and vsnprintf functions
  * So Feb  1 16:51:32 CET 2004 Juergen Quade <quade@hsnr.de>
@@ -77,7 +77,7 @@ int vsscanf(const char * buf, const char * fmt, va_list args)
 		if (!*fmt)
 			break;
 		++fmt;
-		
+
 		/* skip this conversion.
 		 * advance both strings to next white space
 		 */
@@ -166,7 +166,7 @@ int vsscanf(const char * buf, const char * fmt, va_list args)
 			break;
 		case '%':
 			/* looking for '%' in str */
-			if (*str++ != '%') 
+			if (*str++ != '%')
 				return num;
 			continue;
 		default:

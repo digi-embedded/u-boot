@@ -333,14 +333,14 @@ int PartWrite(
 
                 if( !MtdBlockIsBad( iChip, ullAddr ) ) {
 
-                	if (!bOnTheFly) {
+			if (!bOnTheFly) {
 				if( iSize >> 8 )
 					PrintProgress((((iWritten >> 8) * 100) / (iSize >> 8)),
 							iThrottle, "Writing:");
 				else
 					PrintProgress(((iWritten  * 100) / iSize),
 							iThrottle, "Writing:");
-                	} /* if( !bOnTheFly )*/
+			} /* if( !bOnTheFly )*/
 
                         if ((!MtdWrite( iChip, ullAddr, iBytesToWrite, pvBuf )) &&
 				(!MtdRewrite(iChip, ullAddr, iBytesToWrite, pvBuf)))
@@ -357,7 +357,7 @@ int PartWrite(
 
         /* OnTheFly we handle our serial output in tftp.c */
         if( !bOnTheFly )
-        	printf( "\rWriting:   complete                                      \n" );
+		printf( "\rWriting:   complete                                      \n" );
 
         if( iSizeLeft ) {
                 printf( "\n" ERROR "Partition was too small\n" );
@@ -432,7 +432,7 @@ int PartVerify(
 
         /* OnTheFly we handle our serial output in tftp.c */
         if( !bOnTheFly )
-        	printf( "\rVerifying: complete                                      \n" );
+		printf( "\rVerifying: complete                                      \n" );
 
         if( iSizeLeft ) {
                 printf( "\n" ERROR "Partition was too small\n" );

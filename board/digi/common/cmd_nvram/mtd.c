@@ -372,8 +372,8 @@ void MemDump( const void* pvBase, loff_t iOffset, size_t iLen )
 	int i;
 
 	for( i = 0; i < iLen; i += COLUMN_COUNT ) {
-        	/* print one row */
-        	int j, iRowLen;
+		/* print one row */
+		int j, iRowLen;
 
                 if( ( i + COLUMN_COUNT ) <= iLen )
                         iRowLen = COLUMN_COUNT;

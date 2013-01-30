@@ -11,7 +11,7 @@
 /*
  *  !Revision:   $Revision$
  *  !Author:     Markus Pietrek
- *  !Descr:      Provides interface for NAND and NOR 
+ *  !Descr:      Provides interface for NAND and NOR
 */
 
 #ifndef _MTD_H

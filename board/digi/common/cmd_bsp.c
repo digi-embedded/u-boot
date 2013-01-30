@@ -672,12 +672,12 @@ _getpart:
 		SAFE_STRCAT(loadcmd, "usb ");
 		break;
 	case IS_MMC:
-  		sprintf(tmp, "mmc rescan %d", dev);
+		sprintf(tmp, "mmc rescan %d", dev);
 		CE(RunCmd(tmp));
 		SAFE_STRCAT(loadcmd, "mmc ");
 		break;
 	case IS_HSMMC:
-  		sprintf(tmp, "mmc rescan %d", dev);
+		sprintf(tmp, "mmc rescan %d", dev);
 		CE(RunCmd(tmp));
 		SAFE_STRCAT(loadcmd, "hsmmc ");
 		break;
@@ -1188,8 +1188,8 @@ static int do_digi_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const arg
         if (!strcmp(szUpdateOnTheFly, "on") ||
             !strcmp(szUpdateOnTheFly, "yes") ||
             !strcmp(szUpdateOnTheFly, "1")) {
-        	/* Signaling flag (also for for tftp.c) to write directly to flash */
-        	bTftpToFlashStatus |= B_WRITE_IMG_TO_FLASH;
+		/* Signaling flag (also for for tftp.c) to write directly to flash */
+		bTftpToFlashStatus |= B_WRITE_IMG_TO_FLASH;
         }
         else if (!strcmp(szUpdateOnTheFly, "off") ||
             !strcmp(szUpdateOnTheFly, "no") ||
@@ -2384,7 +2384,7 @@ const char* GetEnvVar( const char* szVar, char bSilent )
 			szTmp = szTmpBuf;
 #endif
 		} else {
- 			int i = 0;
+			int i = 0;
 
 			while( i < ARRAY_SIZE( l_axEnvDynamic ) ) {
 				if( !strcmp( l_axEnvDynamic[ i ].szEnvVar, szVar ) ) {

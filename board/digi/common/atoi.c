@@ -9,7 +9,7 @@
  *  the Free Software Foundation.
 */
 /*
- *  !Revision:   $Revision$: 
+ *  !Revision:   $Revision$:
  *  !Author:     Markus Pietrek
  *  !Descr:      Provides atoi and similar
 */

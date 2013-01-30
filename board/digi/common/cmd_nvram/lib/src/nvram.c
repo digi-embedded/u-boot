@@ -1747,7 +1747,7 @@ int NvPrivWCDSaveInFlash( wcd_data_t *pWCal )
 			if( !MtdErase( 0, l_iFlashSize - (xStatus.iEraseSize * j),
 			    xStatus.iEraseSize ) ) {
 				char szErr[ 64 ];
-		      		sprintf( szErr, "Flash Erase @ 0x%08qx, length = %i",
+				sprintf( szErr, "Flash Erase @ 0x%08qx, length = %i",
 				         l_iFlashSize - (xStatus.iEraseSize * j),
 					 xStatus.iEraseSize );
 				goto error;
