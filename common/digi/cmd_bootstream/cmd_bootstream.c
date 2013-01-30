@@ -71,7 +71,6 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
 	BCB_ROM_BootBlockStruct_t  *fcb;
 	BCB_ROM_BootBlockStruct_t  *dbbt;
 	struct nand_chip *chip = mtd->priv;
-	struct gpmi_nfc_info *gpmi_info = chip->priv;
 
 	//----------------------------------------------------------------------
 	// Compute the geometry of a search area.
