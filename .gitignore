@@ -5,7 +5,6 @@
 #
 # Normal rules
 #
-
 *.rej
 *.orig
 *.a
@@ -44,6 +43,7 @@
 /u-boot.sb
 /u-boot.geany
 /include/u-boot.lst
+/u-boot.nand
 
 #
 # Generated files
@@ -78,3 +78,9 @@ cscope.*
 
 # spl ais files
 /spl/*.ais
+
+# Digi
+*.sb
+
+# Eclipse
+.project
