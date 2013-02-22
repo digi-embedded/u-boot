@@ -29,6 +29,7 @@
 #include "env.h"                /* CW */
 #include "mtd.h"
 #include "partition.h"
+#include "vscanf.h"            /* vscanf/scanf */
 
 /* ********** defines ********** */
 

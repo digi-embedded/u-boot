@@ -15,10 +15,10 @@
 #include <flash.h>
 #endif
 #ifdef CONFIG_TFTP_UPDATE_ONTHEFLY
-# include "../common/digi/cmd_bsp.h"          	/* shares 6 variables with tftp_direct_to_flash */
-# include "../common/digi/cmd_nvram/partition.h"	/* used for PartWrite() , PartVerify() */
+# include "../board/digi/common/cmd_bsp.h"          	/* shares 6 variables with tftp_direct_to_flash */
+# include "../board/digi/common/cmd_nvram/partition.h"	/* used for PartWrite() , PartVerify() */
 # define UBOOT
-# include "../common/digi/cmd_nvram/lib/include/nvram.h"
+# include "../board/digi/common/cmd_nvram/lib/include/nvram.h"
 #endif /* CONFIG_TFTP_UPDATE_ONTHEFLY */
 
 /* Well known TFTP port # */

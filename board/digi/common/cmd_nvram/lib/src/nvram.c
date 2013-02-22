@@ -17,6 +17,10 @@
 #include "nvram.h"
 #include "nvram_priv.h"
 #include "nvram_version.h"
+#if defined(UBOOT)
+# include "vscanf.h"            /* vscanf/scanf */
+# include "atoi.h"              /* atoi */
+#endif
 
 #define NV_RESERVED_CRITICAL_SIZE 2048
 

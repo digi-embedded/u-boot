@@ -31,7 +31,9 @@
 #include <search.h>
 #include <errno.h>
 #include <malloc.h>
-#include "../digi/cmd_nvram/mtd.h"
+#ifdef CONFIG_CMD_BSP
+#include "../board/digi/common/cmd_nvram/mtd.h"
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -40,7 +42,9 @@ DECLARE_GLOBAL_DATA_PTR;
  */
 #include <env_default.h>
 
+#ifdef CONFIG_CMD_BSP
 size_t nvram_part_size;
+#endif
 
 struct hsearch_data env_htab = {
 	.change_ok = env_flags_validate,

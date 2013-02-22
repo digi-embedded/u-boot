@@ -50,8 +50,6 @@ extern /*@null@*/ /*@only@*/ char *strdup (char *s) /*@*/ ;
 # include <malloc.h>            /* malloc */
 # include <linux/ctype.h>	/* isalnum */
 
-# include "../common/digi/vscanf.h"            /* vscanf/scanf */
-# include "../common/digi/atoi.h"              /* atoi */
 # define PRINTF_QUAD "ll"
 # define CMD_NAME "intnvram"
 # define ASSERT( expr ) \
