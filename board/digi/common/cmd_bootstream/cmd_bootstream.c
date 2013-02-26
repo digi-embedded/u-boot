@@ -70,7 +70,6 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
 	unsigned int  boot_stream2_pos;
 	BCB_ROM_BootBlockStruct_t  *fcb;
 	BCB_ROM_BootBlockStruct_t  *dbbt;
-	struct nand_chip *chip = mtd->priv;
 
 	//----------------------------------------------------------------------
 	// Compute the geometry of a search area.
