@@ -178,7 +178,7 @@ static void mxs_mem_setup_vdda(void)
 		&power_regs->hw_power_vddactrl);
 }
 
-uint32_t mxs_mem_get_size(void)
+uint32_t __mxs_mem_get_size(void)
 {
 	uint32_t sz, da;
 	uint32_t *vt = (uint32_t *)0x20;
@@ -196,6 +196,9 @@ uint32_t mxs_mem_get_size(void)
 
 	return sz;
 }
+uint32_t mxs_mem_get_size(void)
+	__attribute__((weak, alias("__mxs_mem_get_size")));
+
 
 void mxs_mem_init(void)
 {
