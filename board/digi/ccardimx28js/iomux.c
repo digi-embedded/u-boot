@@ -33,8 +33,12 @@
 
 const iomux_cfg_t iomux_setup[] = {
 	/* DUART */
-	MX28_PAD_PWM0__DUART_RX,
-	MX28_PAD_PWM1__DUART_TX,
+	/* Unconfigure BOOT ROM default DUART */
+	MX28_PAD_PWM0__GPIO_3_16,
+	MX28_PAD_PWM1__GPIO_3_17,
+	/* Configure ccardimx28 DUART */
+	MX28_PAD_I2C0_SCL__DUART_RX,
+	MX28_PAD_I2C0_SDA__DUART_TX,
 
 	/* MMC0 */
 	MX28_PAD_SSP0_DATA0__SSP0_D0 | MUX_CONFIG_SSP0,
@@ -159,9 +163,6 @@ const iomux_cfg_t iomux_setup[] = {
 	MX28_PAD_SSP2_MISO__SSP2_D0 | MUX_CONFIG_SSP2,
 	MX28_PAD_SSP2_SS0__SSP2_D3 |
 		(MXS_PAD_3V3 | MXS_PAD_8MA | MXS_PAD_PULLUP),
-	/* I2C */
-	MX28_PAD_I2C0_SCL__I2C0_SCL,
-	MX28_PAD_I2C0_SDA__I2C0_SDA,
 };
 
 #define HW_DRAM_CTL29	(0x74 >> 2)
