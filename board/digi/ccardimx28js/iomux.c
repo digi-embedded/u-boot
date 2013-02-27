@@ -165,18 +165,42 @@ const iomux_cfg_t iomux_setup[] = {
 		(MXS_PAD_3V3 | MXS_PAD_8MA | MXS_PAD_PULLUP),
 };
 
-#define HW_DRAM_CTL29	(0x74 >> 2)
-#define CS_MAP		0xf
-#define COLUMN_SIZE	0x2
-#define ADDR_PINS	0x1
-#define APREBIT		0xa
-
-#define HW_DRAM_CTL29_CONFIG	(CS_MAP << 24 | COLUMN_SIZE << 16 | \
-					ADDR_PINS << 8 | APREBIT)
-
 void mxs_adjust_memory_params(uint32_t *dram_vals)
 {
-	dram_vals[HW_DRAM_CTL29] = HW_DRAM_CTL29_CONFIG;
+	dram_vals[29] = 0x0102010a;
+	dram_vals[37] = 0x07080403;
+	dram_vals[38] = 0x06005303;
+	dram_vals[40] = 0x0200a0c1;
+	dram_vals[41] = 0x0002030c;
+	dram_vals[42] = 0x00384309;
+	dram_vals[43] = 0x03160322;
+	dram_vals[44] = 0x02040203;
+	dram_vals[45] = 0x00c80018;
+	dram_vals[67] = 0x01000102;
+	dram_vals[71] = 0xf4004a27;
+	dram_vals[72] = 0xf4004a27;
+	dram_vals[73] = 0x00000000;
+	dram_vals[74] = 0x00000000;
+	dram_vals[75] = 0x07400300;
+	dram_vals[76] = 0x07400300;
+	dram_vals[77] = 0x00000000;
+	dram_vals[78] = 0x00000000;
+	dram_vals[79] = 0x00000005;
+	dram_vals[83] = 0x00000000;
+	dram_vals[84] = 0x00000001;
+	dram_vals[89] = 0x00000000;
+	dram_vals[90] = 0x00000000;
+	dram_vals[93] = 0x00000000;
+	dram_vals[94] = 0x00000000;
+	dram_vals[163] = 0x00030404;
+	dram_vals[164] = 0x00000002;
+	dram_vals[177] = 0x02030101;
+	dram_vals[181] = 0x00000442;
+	dram_vals[182] = 0x00000000;
+	dram_vals[183] = 0x00000004;
+	dram_vals[184] = 0x00000000;
+	dram_vals[185] = 0x00000080;
+	dram_vals[189] = 0xffffffff;
 }
 
 void board_init_ll(void)
