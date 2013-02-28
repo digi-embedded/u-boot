@@ -1229,17 +1229,16 @@ static int do_digi_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const arg
         bTftpToFlashStatus = 0;
         /* Check if update should be on the fly */
         szUpdateOnTheFly = GetEnvVar( "otf-update", 1 );
-        if (!strcmp(szUpdateOnTheFly, "on") ||
-            !strcmp(szUpdateOnTheFly, "yes") ||
-            !strcmp(szUpdateOnTheFly, "1")) {
-		/* Signaling flag (also for for tftp.c) to write directly to flash */
-		bTftpToFlashStatus |= B_WRITE_IMG_TO_FLASH;
-        }
-        else if (!strcmp(szUpdateOnTheFly, "off") ||
+        if (!strcmp(szUpdateOnTheFly, "off") ||
             !strcmp(szUpdateOnTheFly, "no") ||
             !strcmp(szUpdateOnTheFly, "0")) {
 		/* Manually forced to disabled */
 		otf_disabled = 1;
+        }
+        else {
+		/* Signaling flag (also for for tftp.c) to write directly
+		 * to flash */
+		bTftpToFlashStatus |= B_WRITE_IMG_TO_FLASH;
 	}
 #endif
 
