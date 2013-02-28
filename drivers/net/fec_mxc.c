@@ -394,12 +394,8 @@ static int fec_set_hwaddr(struct eth_device *dev)
 
 static void fec_eth_phy_config(struct eth_device *dev)
 {
-	struct fec_priv *fec = (struct fec_priv *)dev->priv;
-	unsigned int oui, phy_id;
-	unsigned char model;
-	unsigned char rev;
-
 #ifdef CONFIG_PHYLIB
+	struct fec_priv *fec = (struct fec_priv *)dev->priv;
 	struct phy_device *phydev;
 
 	phydev = phy_connect(fec->bus, fec->phy_id, dev,
@@ -410,18 +406,27 @@ static void fec_eth_phy_config(struct eth_device *dev)
 	}
 #endif
 
-	if (!miiphy_info(dev->name, fec->phy_id, &oui, &model, &rev)) {
-		phy_id = (oui << 10) | (model << 4);
-		/* Configure Micrel KSZ8021RNL PHY Control 2 for 50MHz */
-		if (PHY_ID_KSZ80x1RNL == phy_id &&
-		    50000000 == CONFIG_PHY_CLOCK) {
-			miiphy_write (dev->name,
-				      fec->phy_id,
-				      KSZ80x1_PHY_CTRL2,
-				      HP_AUTO_MDI | ENABLE_JABBER_COUNTER |
-				      RMII_50MHZ_CLOCK);
+#ifdef CONFIG_PHY_CLOCK
+	{
+		unsigned int oui, phy_id;
+		unsigned char model;
+		unsigned char rev;
+		struct fec_priv *fec = (struct fec_priv *)dev->priv;
+
+		if (!miiphy_info(dev->name, fec->phy_id, &oui, &model, &rev)) {
+			phy_id = (oui << 10) | (model << 4);
+			/* Configure Micrel KSZ8021RNL PHY Control 2 for 50MHz */
+			if (PHY_ID_KSZ80x1RNL == phy_id &&
+			    50000000 == CONFIG_PHY_CLOCK) {
+				miiphy_write (dev->name,
+					      fec->phy_id,
+					      KSZ80x1_PHY_CTRL2,
+					      HP_AUTO_MDI | ENABLE_JABBER_COUNTER |
+					      RMII_50MHZ_CLOCK);
+			}
 		}
 	}
+#endif
 }
 
 /*
