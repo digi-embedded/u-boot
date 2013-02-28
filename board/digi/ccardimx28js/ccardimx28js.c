@@ -107,17 +107,17 @@ int board_eth_init(bd_t *bis)
 
 	ret = cpu_eth_init(bis);
 
-	/* MX28EVK uses ENET_CLK PAD to drive FEC clock */
+	/* ccardimx28 uses ENET_CLK PAD to drive FEC clock */
 	writel(CLKCTRL_ENET_TIME_SEL_RMII_CLK | CLKCTRL_ENET_CLK_OUT_EN,
 					&clkctrl_regs->hw_clkctrl_enet);
 
-	/* Power-on FECs */
-	gpio_direction_output(MX28_PAD_SSP1_DATA3__GPIO_2_15, 0);
-
 	/* Reset FEC PHYs */
-	gpio_direction_output(MX28_PAD_ENET0_RX_CLK__GPIO_4_13, 0);
-	udelay(200);
-	gpio_set_value(MX28_PAD_ENET0_RX_CLK__GPIO_4_13, 1);
+	gpio_direction_output(MX28_PAD_PWM4__GPIO_3_29, 0);
+	udelay(10300);  // from datasheet: tvr + tsr
+	gpio_set_value(MX28_PAD_PWM4__GPIO_3_29, 1);
+	/* Ensure recommended delay of 100us in PHY datasheet is met before
+	 * accessing the MDIO interface */
+	udelay(100);
 
 	ret = fecmxc_initialize_multi(bis, 0, 0, MXS_ENET0_BASE);
 	if (ret) {
