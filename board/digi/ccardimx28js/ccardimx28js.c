@@ -42,6 +42,13 @@ DECLARE_GLOBAL_DATA_PTR;
  */
 int board_early_init_f(void)
 {
+	/* Pull LCD_RS gpio down to enable FET that blocks 3V3 and 1V8
+	 * power regulators on module
+	 */
+	mxs_iomux_setup_pad(MX28_PAD_LCD_RS__GPIO_1_26 |
+			MXS_PAD_4MA | MXS_PAD_3V3 | MXS_PAD_PULLUP);
+	gpio_direction_output(MX28_PAD_LCD_RS__GPIO_1_26, 0);
+
 	/* IO0 clock at 480MHz */
 	mx28_set_ioclk(MXC_IOCLK0, 480000);
 	/* IO1 clock at 480MHz */
