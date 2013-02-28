@@ -319,6 +319,7 @@ void imx_get_mac_from_fuse(int dev_id, unsigned char *mac)
 void imx_get_mac_from_fuse(int dev_id, unsigned char *mac)
 {
 	memset(mac, 0, 6);
+	mx28_adjust_mac(dev_id, mac);
 }
 #endif
 

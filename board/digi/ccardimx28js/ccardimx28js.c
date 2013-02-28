@@ -34,6 +34,7 @@
 #include <miiphy.h>
 #include <netdev.h>
 #include <errno.h>
+#include "../common/cmd_nvram/lib/include/nvram.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -144,6 +145,30 @@ int board_eth_init(bd_t *bis)
 	}
 
 	return ret;
+}
+
+void mx28_adjust_mac(int dev_id, unsigned char *mac)
+{
+	nv_critical_t *pNvram;
+
+	/* Get MAC from Digi NVRAM */
+	if (!NvCriticalGet(&pNvram))
+		return;
+
+	if (0 == dev_id) {
+		/* 1st wired MAC (ENET0) */
+		memcpy(mac, &pNvram->s.p.xID.axMAC[0], 6);
+	}
+	else if (1 == dev_id) {
+		/* 2nd wired MAC (ENET1) corresponds to ethaddr3
+		 * because ethaddr2 is for the wireless.
+		 * ethaddr3 is a field out of xID which originally
+		 * only had space for two interfaces (wired and wireless)
+		 */
+		memcpy(mac, &pNvram->s.p.eth1addr, 6);
+	}
+
+	return;
 }
 
 #endif
