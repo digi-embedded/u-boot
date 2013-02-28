@@ -191,6 +191,7 @@
 #define CONFIG_MII
 #define CONFIG_FEC_XCV_TYPE	RMII
 #define CONFIG_MX28_FEC_MAC_IN_OCOTP
+#define CONFIG_PHY_CLOCK	50000000	/* 50MHz */
 #endif
 
 /*
