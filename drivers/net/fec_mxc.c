@@ -20,12 +20,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  * MA 02111-1307 USA
  */
-
 #include <common.h>
 #include <malloc.h>
 #include <net.h>
 #include <miiphy.h>
 #include "fec_mxc.h"
+#include "ksz80x1rnl.h"
 
 #include <asm/arch/clock.h>
 #include <asm/arch/imx-regs.h>
@@ -394,8 +394,12 @@ static int fec_set_hwaddr(struct eth_device *dev)
 
 static void fec_eth_phy_config(struct eth_device *dev)
 {
-#ifdef CONFIG_PHYLIB
 	struct fec_priv *fec = (struct fec_priv *)dev->priv;
+	unsigned int oui, phy_id;
+	unsigned char model;
+	unsigned char rev;
+
+#ifdef CONFIG_PHYLIB
 	struct phy_device *phydev;
 
 	phydev = phy_connect(fec->bus, fec->phy_id, dev,
@@ -405,6 +409,18 @@ static void fec_eth_phy_config(struct eth_device *dev)
 		phy_config(phydev);
 	}
 #endif
+
+	if (!miiphy_info(dev->name, fec->phy_id, &oui, &model, &rev)) {
+		phy_id = (oui << 10) | (model << 4);
+		/* Configure Micrel KSZ8021RNL PHY Control 2 for 50MHz */
+		if (PHY_ID_KSZ80x1RNL == phy_id) {
+			miiphy_write (dev->name,
+				      fec->phy_id,
+				      KSZ80x1_PHY_CTRL2,
+				      HP_AUTO_MDI | ENABLE_JABBER_COUNTER |
+				      RMII_50MHZ_CLOCK);
+		}
+	}
 }
 
 /*
