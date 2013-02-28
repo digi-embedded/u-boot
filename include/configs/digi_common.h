@@ -22,21 +22,15 @@
 #define XMK_STR(x)	#x
 #define MK_STR(x)	XMK_STR(x)
 
-
 /* may undefine settings */
-
 #include <digi_version.h>
 
 /* stuff that may be undefined in userconfig.h */
-
 /* ********** user key configuration ********** */
-
 #ifndef CONFIG_UBOOT_DISABLE_USER_KEYS
 # define CONFIG_USER_KEY
 #endif
-
 /* ********** console configuration ********** */
-
 #ifdef CONFIG_SILENT_CONSOLE
 # define CFG_SET_SILENT		"yes"
 #else
@@ -57,12 +51,6 @@
 /* define for developing */
 #undef	CONFIG_SKIP_LOWLEVEL_INIT
 
-/* ********** Booting ********** */
-
-#ifndef CONFIG_BOOTDELAY
-# define CONFIG_BOOTDELAY		4
-#endif  /* CONFIG_BOOTDELAY */
-
 /* ********** Rootfs *********** */
 /* Delay before trying to mount the rootfs from a media */
 #define ROOTFS_DELAY		10
@@ -71,26 +59,11 @@
 # define CONFIG_ZERO_BOOTDELAY_CHECK	/* check for keypress on bootdelay==0 */
 #endif  /* CONFIG_ZERO_BOOTDELAY_CHECK */
 
-/* ********** Default Commands supported ********** */
-#define CONFIG_CMD_CACHE		1
-#define	CONFIG_CMD_BSP			1
-#define	CONFIG_CMD_SNTP			1
-#define CONFIG_CMD_MII			1
-#define CONFIG_CMD_PING			1
-#define CONFIG_CMD_DHCP			1
-#define CONFIG_CMD_DATE			1
-
-#define	CONFIG_DIGI_CMD			1		/* enables DIGI board specific commands */
-
 /* ********** network ********** */
 #ifndef CONFIG_TFTP_RETRIES_ON_ERROR
 # define CONFIG_TFTP_RETRIES_ON_ERROR	5
 #endif
 #define CONFIG_TFTP_UPDATE_ONTHEFLY	/* support to tftp and update on-the-fly */
-
-#define CONFIG_CMDLINE_TAG	1 /* passing of ATAGs */
-#define CONFIG_INITRD_TAG	1
-#define CONFIG_SETUP_MEMORY_TAGS 1
 
 /* ********** usb/mmc ********** */
 #define DEFAULT_KERNEL_FS		"fat"
@@ -103,10 +76,8 @@
 #define SPI_LOADER_SIZE		8192
 
 /* NVRAM */
-
 #define CONFIG_ENV_IS_IN_DIGI_NVRAM
 #define CONFIG_ENV_SIZE		(16 * 1024)
-
 
 /*-----------------------------------------------------------------------
  * Stack sizes
@@ -122,13 +93,6 @@
 #define CONFIG_ENV_OVERRIDE
 #define CONFIG_ENV_OVERWRITE
 
-#define	CONFIG_SYS_LONGHELP				/* undef to save memory */
-#define CONFIG_SYS_CBSIZE	2048			/* Console I/O Buffer Size */
-#define CONFIG_SYS_PBSIZE	 (CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
-#define CONFIG_SYS_MAXARGS	32			/* max number of command args */
-#define CONFIG_SYS_BARGSIZE	CONFIG_SYS_CBSIZE	/* Boot Argument Buffer Size */
-
-
 /* valid baudrates */
 #define CONFIG_SYS_BAUDRATE_TABLE	{9600, 19200, 38400, 57600, 115200}
 
@@ -136,11 +100,9 @@
 #define CFG_CONSOLE_INFO_QUIET
 
 /* stuff for DVTs and special information */
-
 #define CONFIG_DVT_PROVIDED
 
 /* compilation */
-
 #define CONFIG_SYS_64BIT_VSPRINTF      /* we need if for NVRAM */
 #define CONFIG_SYS_64BIT_STRTOUL       /* we need if for NVRAM */
 

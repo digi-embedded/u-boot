@@ -45,8 +45,9 @@
 #define CONFIG_MODULE_STRING		"ConnectCard for i.MX28"
 #define PLATFORM			"js"
 #define CONFIG_PLATFORM_NAME		CONFIG_MODULE_NAME PLATFORM
-#define CONFIG_CMD_BOOTSTREAM		1
+#define CONFIG_CMD_BOOTSTREAM
 #define CONFIG_HAB_ENABLED
+#define	CONFIG_CMD_BSP
 
 /*
  * SPL
@@ -67,17 +68,23 @@
 #define CONFIG_DISPLAY_CPUINFO
 #define CONFIG_DOS_PARTITION
 
+#define CONFIG_CMD_CACHE
+#define CONFIG_CMD_DATE
+#define CONFIG_CMD_DHCP
 #define CONFIG_CMD_FAT
 #define CONFIG_CMD_GPIO
+#define CONFIG_CMD_MII
 #define CONFIG_CMD_MMC
 #define CONFIG_CMD_NET
 #define CONFIG_CMD_NFS
+#define CONFIG_CMD_PING
 #define CONFIG_CMD_SETEXPR
 #define CONFIG_CMD_SF
 #define CONFIG_CMD_SPI
 #define CONFIG_CMD_USB
 #define CONFIG_CMD_BOOTZ
 #define CONFIG_CMD_I2C
+#define	CONFIG_CMD_SNTP
 
 /*
  * Memory configurations
@@ -110,8 +117,15 @@
 /*
  * U-Boot general configurations
  */
+#define	CONFIG_SYS_LONGHELP
 #define CONFIG_SYS_PROMPT	"CCARDIMX28JS U-Boot > "
-						/* Boot argument buffer size */
+#define CONFIG_SYS_CBSIZE	2048			/* Console I/O Buffer Size */
+#define CONFIG_SYS_PBSIZE	\
+	(CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
+						/* Print buffer size */
+#define CONFIG_SYS_MAXARGS	32		/* Max number of command args */
+#define CONFIG_SYS_BARGSIZE	CONFIG_SYS_CBSIZE
+						/* Boot Argument Buffer Size */
 #define CONFIG_VERSION_VARIABLE	/* U-BOOT version */
 #define CONFIG_AUTO_COMPLETE		/* Command auto complete */
 #define CONFIG_CMDLINE_EDITING		/* Command history etc */
@@ -246,6 +260,10 @@
 /*
  * Boot Linux
  */
+#define CONFIG_CMDLINE_TAG
+#define CONFIG_SETUP_MEMORY_TAGS
+#define CONFIG_INITRD_TAG
+#define CONFIG_BOOTDELAY	4
 #define CONFIG_BOOTFILE	"uImage"
 #define CONFIG_LOADADDR	0x42000000
 #define CONFIG_SYS_LOAD_ADDR	CONFIG_LOADADDR

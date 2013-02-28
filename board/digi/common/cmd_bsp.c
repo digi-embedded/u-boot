@@ -25,7 +25,7 @@
 #include <image.h>
 #include <linux/time.h>
 #include <rtc.h>
-#if CONFIG_CMD_BSP
+#ifdef CONFIG_CMD_BSP
 #include <command.h>
 #ifdef CONFIG_CMD_NAND
 # include <nand.h>
