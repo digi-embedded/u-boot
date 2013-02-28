@@ -76,15 +76,6 @@ int board_init(void)
 }
 
 #ifdef	CONFIG_CMD_MMC
-static int mx28evk_mmc_wp(int id)
-{
-	if (id != 0) {
-		printf("MXS MMC: Invalid card selected (card id = %d)\n", id);
-		return 1;
-	}
-
-	return gpio_get_value(MX28_PAD_SSP1_SCK__GPIO_2_12);
-}
 
 int board_mmc_init(bd_t *bis)
 {
@@ -94,7 +85,7 @@ int board_mmc_init(bd_t *bis)
 	/* Configure MMC0 Power Enable */
 	gpio_direction_output(MX28_PAD_PWM3__GPIO_3_28, 0);
 
-	return mxsmmc_initialize(bis, 0, mx28evk_mmc_wp);
+	return mxsmmc_initialize(bis, 0, NULL);
 }
 #endif
 
