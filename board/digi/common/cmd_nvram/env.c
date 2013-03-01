@@ -344,6 +344,12 @@ int env_init( void )
 	return (0);
 }
 
+static void env_reset(const char *str)
+{
+	env_import((char *)env_ptr, 0);        /* create hash table */
+	NvEnvUseDefault(str);
+}
+
 void env_relocate_spec( void )
 {
         size_t iSize;
@@ -370,19 +376,48 @@ void env_relocate_spec( void )
         }
 
 #ifdef CONFIG_UBOOT_IGNORE_NVRAM_ENV
-        NvEnvUseDefault("*** Warning - ignoring environment in NVRAM, using default environment\n\n");
+        env_reset("*** Warning - ignoring environment in NVRAM, using default environment\n\n");
 #else
-        if( iRes )
-                iRes = CW( NvOSCfgGet( NVOS_UBOOT, env_ptr, CONFIG_ENV_SIZE, &iSize ) );
+	if(!iRes)
+		env_reset("*** Warning - bad CRC or NAND, using default environment\n\n");
 
-	if( !iRes || ( CONFIG_ENV_SIZE != iSize ) ||
-            ( crc32( 0, env_ptr->data, ENV_SIZE ) != env_ptr->crc ) ) {
-                env_import((char *)env_ptr, 0);	/* create hash table */
-                NvEnvUseDefault("*** Warning - bad CRC or NAND, using default environment\n\n");
-        } else {
-                gd->env_valid = 1;
-                env_import((char *)env_ptr, 1);	/* create hash table */
-                CW( NvEnvUpdateFromNVRAM() );
+	if (!CW(NvOSCfgGet(NVOS_UBOOT, env_ptr, CONFIG_ENV_SIZE, &iSize)))
+		env_reset("*** Warning - bad CRC or NAND, using default environment\n\n");
+
+        if (CONFIG_ENV_SIZE != iSize) {
+		/* If U-Boot has a built-in CONFIG_ENV_SIZE that doesn't match
+		 * the size of the environment saved in NVRAM (typically when
+		 * using a new U-Boot on a module with old-U-Boot NVRAM), we
+		 * want to modify the U-Boot env partition in NVRAM (always the
+		 * last entry) with the new built-in size.
+		 */
+		printf("*** Warning - U-Boot ENV size in NVRAM is 0x%x but should be 0x%x. Resizing...\n",
+				iSize, CONFIG_ENV_SIZE);
+		if (!NvOSCfgAdd(NVOS_UBOOT, CONFIG_ENV_SIZE))
+			env_reset("*** Warning - Failed to resize. Using default environment\n\n");
+		if (crc32(0, env_ptr->data, iSize - ENV_HEADER_SIZE) == env_ptr->crc) {
+			/* If CRC calculated over previous partition size
+			 * matches the one in NVRAM, we want to preserve the
+			 * data, so we recalculate the CRC over the new partition
+			 * size and save it in the RAM copy of the environment.
+			 */
+			env_ptr->crc = crc32(0, env_ptr->data, ENV_SIZE);
+			gd->env_valid = 1;
+			env_import((char *)env_ptr, 1);	/* create hash table */
+			CW( NvEnvUpdateFromNVRAM() );
+		}
+		else {
+			env_reset("*** Warning - bad CRC, using default environment\n\n");
+		}
+        }
+        else {
+		if(crc32(0, env_ptr->data, ENV_SIZE) != env_ptr->crc) {
+			env_reset("*** Warning - bad CRC or NAND, using default environment\n\n");
+		} else {
+			gd->env_valid = 1;
+			env_import((char *)env_ptr, 1);	/* create hash table */
+			CW( NvEnvUpdateFromNVRAM() );
+		}
         }
 #endif /* CONFIG_UBOOT_IGNORE_NVRAM_ENV */
 
