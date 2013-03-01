@@ -351,6 +351,11 @@ void env_relocate_spec( void )
         int iRes = 1;
         nv_repair_e eMode = NVR_AUTO;
 
+	/*
+	 * We must allocate a buffer for the environment
+	 */
+        env_ptr = (env_t *)malloc(CONFIG_ENV_SIZE);
+
 #ifdef CONFIG_DOWNLOAD_BY_DEBUGGER
         /* if debugger is used, we always want to use defaults, e.g. ops */
         eMode = NVR_IGNORE;
