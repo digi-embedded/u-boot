@@ -1,11 +1,9 @@
 /*
- * Freescale MX28EVK board
+ * Digi ConnectCard for i.MX28 board
  *
- * (C) Copyright 2011 Freescale Semiconductor, Inc.
+ * Copyright (C) 2013 Digi International Inc.
  *
- * Author: Fabio Estevam <fabio.estevam@freescale.com>
- *
- * Based on m28evk.c:
+ * Based on mx28evk.c:
  * Copyright (C) 2011 Marek Vasut <marek.vasut@gmail.com>
  * on behalf of DENX Software Engineering GmbH
  *

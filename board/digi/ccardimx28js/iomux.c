@@ -1,6 +1,9 @@
 /*
- * Freescale MX28EVK IOMUX setup
+ * Digi ConnectCard for i.MX28 IOMUX setup
  *
+ * Copyright (C) 2013 Digi International Inc.
+ *
+ * Based on mx28evk.c:
  * Copyright (C) 2011 Marek Vasut <marek.vasut@gmail.com>
  * on behalf of DENX Software Engineering GmbH
  *
