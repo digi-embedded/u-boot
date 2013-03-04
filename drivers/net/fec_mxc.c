@@ -78,6 +78,8 @@ struct nbuf {
 	uint8_t head[16];	/**< MAC header(6 + 6 + 2) + 2(aligned) */
 };
 
+unsigned int phy_id;
+
 #ifdef CONFIG_FEC_MXC_SWAP_PACKET
 static void swap_packet(uint32_t *packet, int length)
 {
@@ -413,7 +415,7 @@ static void fec_eth_phy_config(struct eth_device *dev)
 #endif
 
 	{
-		unsigned int oui, phy_id;
+		unsigned int oui;
 		unsigned char model;
 		unsigned char rev;
 		unsigned short val;
@@ -683,7 +685,7 @@ static int fec_init(struct eth_device *dev, bd_t* bd)
 	writel((uint32_t)fec->rbd_base, &fec->eth->erdsr);
 
 #ifndef CONFIG_PHYLIB
-	if (fec->xcv_type != SEVENWIRE)
+	if (fec->xcv_type != SEVENWIRE && PHY_ID_KSZ80x1RNL != phy_id)
 		miiphy_restart_aneg(dev);
 #endif
 	fec_open(dev);
