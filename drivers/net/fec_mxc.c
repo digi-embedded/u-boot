@@ -410,6 +410,7 @@ static void fec_eth_phy_config(struct eth_device *dev)
 		unsigned int oui, phy_id;
 		unsigned char model;
 		unsigned char rev;
+		unsigned short val;
 		struct fec_priv *fec = (struct fec_priv *)dev->priv;
 
 		if (!miiphy_info(dev->name, fec->phy_id, &oui, &model, &rev)) {
@@ -425,6 +426,21 @@ static void fec_eth_phy_config(struct eth_device *dev)
 						      RMII_50MHZ_CLOCK);
 				}
 #endif
+				/* Set bit 9 of register 0x16 (undocumented) to work
+				 * around Micrel PHY bug that causes the second PHY, with
+				 * address=3, to also respond to reads/writes addressed
+				 * to the first PHY, which has address=0.
+				 * The setting of this bit for platforms having only
+				 * one PHY at address 0 is harmless.
+				 */
+				if (!miiphy_read(dev->name, fec->phy_id,
+						 KSZ80x1_OPMODE_STRAPOV,
+						 &val)) {
+					miiphy_write (dev->name,
+						      fec->phy_id,
+						      KSZ80x1_OPMODE_STRAPOV,
+						      val | (1 << 9));
+				}
 			}
 		}
 	}
