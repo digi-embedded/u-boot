@@ -72,6 +72,7 @@
 #define CONFIG_CMD_DATE
 #define CONFIG_CMD_DHCP
 #define CONFIG_CMD_FAT
+#define CONFIG_CMD_EXT2
 #define CONFIG_CMD_GPIO
 #define CONFIG_CMD_MII
 #define CONFIG_CMD_MMC
@@ -163,6 +164,7 @@
 #define CONFIG_GENERIC_MMC
 #define CONFIG_MMC_BOUNCE_BUFFER
 #define CONFIG_MXS_MMC
+#define CONFIG_MMC_NO_CARDDETECT
 #endif
 
 /*

@@ -167,11 +167,13 @@ mxsmmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 		return TIMEOUT;
 	}
 
+#ifndef CONFIG_MMC_NO_CARDDETECT
 	/* See if card is present */
 	if (readl(&ssp_regs->hw_ssp_status) & SSP_STATUS_CARD_DETECT) {
 		printf("MMC%d: No card detected!\n", mmc->block_dev.dev);
 		return NO_CARD_ERR;
 	}
+#endif
 
 	/* Start building CTRL0 contents */
 	ctrl0 = priv->buswidth;
