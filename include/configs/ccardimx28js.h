@@ -48,6 +48,8 @@
 #define CONFIG_CMD_BOOTSTREAM
 #define CONFIG_HAB_ENABLED
 #define	CONFIG_CMD_BSP
+#define CONFIG_IDENT_STRING             " - GCC " __VERSION__ "\nfor " \
+                                        CONFIG_MODULE_STRING
 
 /*
  * SPL

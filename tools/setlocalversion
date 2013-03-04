@@ -31,6 +31,10 @@ scm_version()
 	local short
 	short=false
 
+	# Get Digi version
+	dub_ver="$(sed -ne 's/^.*define[[:blank:]]\+VERSION_TAG[^\"]\+\"\([^\"]\+\)\".*$/\1/g;T;p' \
+		include/digi_version.h | tr '[:upper:]' '[:lower:]')"
+
 	cd "$srctree"
 	if test -e .scmversion; then
 		cat .scmversion
@@ -43,25 +47,19 @@ scm_version()
 	# Check for git and a git repo.
 	if test -e .git && head=`git rev-parse --verify --short HEAD 2>/dev/null`; then
 
-		# If we are at a tagged commit (like "v2.6.30-rc6"), we ignore
-		# it, because this version is defined in the top level Makefile.
-		if [ -z "`git describe --exact-match 2>/dev/null`" ]; then
-
+		# Do we have a DUB tag?
+		if dub_tag="$(git describe --exact-match --match 'DUB-*' 2>/dev/null)"; then
+			# DUB tag
+			printf ' - %s' ${dub_tag}
+		else
 			# If only the short version is requested, don't bother
 			# running further git commands
 			if $short; then
 				echo "+"
 				return
 			fi
-			# If we are past a tagged commit (like
-			# "v2.6.30-rc5-302-g72357d5"), we pretty print it.
-			if atag="`git describe 2>/dev/null`"; then
-				echo "$atag" | awk -F- '{printf("-%05d-%s", $(NF-1),$(NF))}'
-
-			# If we don't have a tag at all we print -g{commitish}.
-			else
-				printf '%s%s' -g $head
-			fi
+			dub_sha1="$(git describe | awk -F- '{printf("%s", $(NF))}')"
+			printf ' - %s-%s' ${dub_ver} ${dub_sha1}
 		fi
 
 		# Is this git on svn?
@@ -80,6 +78,8 @@ scm_version()
 
 		# All done with git
 		return
+	else
+		printf " - %s" ${dub_ver}
 	fi
 
 	# Check for mercurial and a mercurial repo.
