@@ -137,12 +137,18 @@ static int fec_mdio_read(struct ethernet_regs *eth, uint8_t phyAddr,
 
 static void fec_mii_setspeed(struct fec_priv *fec)
 {
+	uint32_t mscr;
 	/*
 	 * Set MII_SPEED = (1/(mii_speed * 2)) * System Clock
 	 * and do not drop the Preamble.
 	 */
-	writel((((imx_get_fecclk() / 1000000) + 2) / 5) << 1,
-			&fec->eth->mii_speed);
+	mscr = (((imx_get_fecclk() / 1000000) + 2) / 5) << 1;
+#ifdef CONFIG_MX28
+	/* Configure MDIO hold time of 10ns
+	 * holdtime = clk/100MHz */
+	mscr |= (imx_get_fecclk() / 100000000) << 8;
+#endif
+	writel(mscr, &fec->eth->mii_speed);
 	debug("%s: mii_speed %08x\n", __func__, readl(&fec->eth->mii_speed));
 }
 
