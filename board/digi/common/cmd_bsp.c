@@ -246,6 +246,8 @@ static const env_default_t l_axEnvDynamic[] = {
 	{ "hostname",	CONFIG_MODULE_NAME_UPPERCASE "-000000" },
 	{ "ip",          "ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}:eth0:off" },
 	{ "loadaddr",    MK_STR( CONFIG_LOADADDR )           },
+	{ "fdtaddr",    MK_STR( CONFIG_FDTLOADADDR )           },
+	{ "fdtfile",    "imx28-" CONFIG_PLATFORM_NAME ".dtb" },
 	{ "loadaddr_initrd",    MK_STR( CONFIG_INITRD_LOAD_ADDR )           },
         { "kimg",        CONFIG_LINUX_IMAGE_NAME           },
         { NPATH,         "/exports/nfsroot-"CONFIG_PLATFORM_NAME },
@@ -409,6 +411,7 @@ static int do_image_load(int iLoadAddr, image_source_e source,
 static int do_digi_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 {
         int iLoadAddr = -1, iLoadAddrInitRD = 0, iLoad;
+        int iLoadAddrFdt = -1;
         const part_t* pPart = NULL;
         const char*   szTmp           = NULL;
         const image_source_t* pImgSrc = NULL;
@@ -416,6 +419,7 @@ static int do_digi_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv
         const nv_param_part_t* pBootPart = NULL;
 	char szCmd[ PATH_MAXLEN ]  = "";
 	char szImg[ PATH_MAXLEN ]  = "";
+	char szImgFdt[ PATH_MAXLEN ]  = "";
         char bIsNFSRoot   = 0;
         char bDHCPEnabled = 0;
 	char bGotBootImage = 0;
@@ -426,6 +430,7 @@ static int do_digi_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv
 	int dev = 0, ret, verify, iSize;
 	image_header_t *pHeader;
 	int nth_part = 0;	/* partition number to look from on WhatPart() calls */
+	int hasfdt = 0;
 #ifdef CONFIG_DUAL_BOOT
 	int max_attempts = CONFIG_DUAL_BOOT_RETRIES;
 	int i;
@@ -576,11 +581,9 @@ _getpart:
         }
 
         /* determine file to boot */
-	if ( pImgSrc->eType == IS_RAM )
-	{
+        if (IS_RAM == pImgSrc->eType) {
 		/* command contains a download address */
-		if ( (argc >= 4) && (argc <= 6) )
-		{
+		if (argc >= 4) {
 			iLoadAddr = get_input(argv[3]);
 			if( iLoadAddr == -1 )
 			{
@@ -590,23 +593,34 @@ _getpart:
 		}
 		else if ( argc != 3 )
 			goto usage;
+        }
+        else if ((IS_USB == pImgSrc->eType ||
+		  IS_MMC == pImgSrc->eType ||
+		  IS_HSMMC == pImgSrc->eType ||
+		  IS_SATA == pImgSrc->eType) && (argc >= 6)) {
+			SAFE_STRCAT(szImg, argv[5]);	/* kernel image filename */
+			if (argc >= 7)
+				SAFE_STRCAT(szImgFdt, argv[6]);	/* DTB image filename */
+        }
+	else if ((IS_TFTP == pImgSrc->eType ||
+		  IS_NFS  == pImgSrc->eType) && (argc >= 4)) {
+			SAFE_STRCAT(szImg, argv[3]);	/* kernel image filename */
+			if (argc >= 5)
+				SAFE_STRCAT(szImgFdt, argv[4]);	/* DTB image filename */
 	}
-	else
-	{
-		/* Check if this is a WinCE argument... if not, has to be the boot image filename */
-		if (argc == 4)
-			szTmp = argv[3];
-		else if (argc == 6)
-			szTmp = argv[5];
-		else if( NULL != pPart ) {
-			/* not present, but we have a partition definition */
+	else {
+		if( NULL != pPart ) {
+			/* filename not present, but we have a partition definition */
 			szTmp = GetEnvVar( pPart->szEnvVar, 0 );
 			CE( NULL != szTmp );
 		} else {
-			eprintf( "Require filename\n" );
+			eprintf( "Filename required\n" );
 			goto error;
 		}
-		SAFE_STRCAT(szImg, szTmp);
+		SAFE_STRCAT(szImg, szTmp);	/* kernel image filename */
+		szTmp = GetEnvVar("fdtfile", 0);
+		if (NULL != szTmp)
+			SAFE_STRCAT(szImgFdt, szTmp);	/* DTB image filename */
 	}
 
         CE( GetDHCPEnabled( &bDHCPEnabled ) );
@@ -619,9 +633,11 @@ _getpart:
 		switch( eOSType ) {
 		case NVOS_LINUX:
 			CE( GetIntFromEnvVar( &iLoadAddr, "linuxloadaddr", 0 ) );
+			GetIntFromEnvVar(&iLoadAddrFdt, "fdtaddr", 0);
 			break;
 		case NVOS_ANDROID:
 			CE( GetIntFromEnvVar( &iLoadAddr, "androidloadaddr", 0 ) );
+			GetIntFromEnvVar(&iLoadAddrFdt, "fdtaddr", 0);
 			break;
 		default:
 			(void) GetIntFromEnvVar( &iLoadAddr, "loadaddr", 1 );
@@ -742,6 +758,26 @@ _getpart:
 				bGotBootImage = verify ? VerifyCRC((uchar*)(iLoad + sizeof(image_header_t)),
 						ntohl(pHeader->ih_size), ntohl(pHeader->ih_dcrc)) : 1;
 			}
+		}
+	}
+
+	/* Try to load Device Tree Blob file */
+	if (NVOS_LINUX == eOSType ||
+	    NVOS_ANDROID == eOSType) {
+		int fdtsize = 0;
+
+		/* Size parameter is only needed for FLASH media.
+		 * A DTB file is usually small, so let's read a fixed
+		 * amount of bytes (64KB) just to be safe.
+		 */
+		if (IS_FLASH == pImgSrc->eType)
+			fdtsize = 128 * 1024;
+		if (strcmp(szImgFdt, "")) {
+			ret = do_image_load(iLoadAddrFdt, pImgSrc->eType,
+					    loadcmd, kdevpart, szImgFdt, fdtsize,
+					    pBootPart);
+			if (ret)
+				hasfdt = 1;
 		}
 	}
 
@@ -1013,10 +1049,18 @@ _getpart:
 			SAFE_STRCAT(szBootargs, GetEnvVar("std_bootarg", 0 ));
 
 			CE( RunCmd( szBootargs ) );
-			if(iLoadAddrInitRD)
-				sprintf( szCmd, "bootm 0x%x 0x%x", iLoad, iLoadAddrInitRD);
-			else
-				sprintf( szCmd, "bootm 0x%x", iLoad);
+			if(iLoadAddrInitRD) {
+				if (hasfdt && iLoadAddrFdt != -1)
+					sprintf( szCmd, "bootm 0x%x 0x%x 0x%x", iLoad, iLoadAddrInitRD, iLoadAddrFdt);
+				else
+					sprintf( szCmd, "bootm 0x%x 0x%x", iLoad, iLoadAddrInitRD);
+			}
+			else{
+				if (hasfdt && iLoadAddrFdt != -1)
+					sprintf( szCmd, "bootm 0x%x - 0x%x", iLoad, iLoadAddrFdt);
+				else
+					sprintf( szCmd, "bootm 0x%x", iLoad);
+			}
 			break;
 		}
 
@@ -2716,7 +2760,7 @@ void setup_before_os_jump(nv_os_type_e eOSType, image_source_e eType)
 #endif
 
 U_BOOT_CMD(
-	dboot,	8,	0,	do_digi_dboot,
+	dboot,	9,	0,	do_digi_dboot,
 	"Digi modules boot commands",
 	"<os> [source] [extra-args...]\n"
 	" Description: Boots <os> via <source>\n"
@@ -2726,20 +2770,23 @@ U_BOOT_CMD(
 	"   - [source]:     tftp (default)|flash|nfs|usb|mmc|hsmmc|sata|ram\n"
 	"   - [extra-args]: extra arguments depending on 'source'\n"
 	"\n"
-	"      source=tftp|nfs -> [filename]\n"
-	"       - filename: file to transfer (required if using a partition name)\n"
+	"      source=tftp|nfs -> [filename] [fdtfilename]\n"
+	"       - filename: kernel file to transfer (required if using a partition name)\n"
+	"       - fdtfilename: DTB file to transfer\n"
 	"\n"
-	"      source=usb|mmc|hsmmc|sata -> [device:part filesystem] [filename] [rootfspart]\n"
+	"      source=usb|mmc|hsmmc|sata -> [device:part filesystem] [filename] [rootfspart] [fdtfilename]\n"
 	"       - device:part: number of device and partition\n"
 	"       - filesystem: fat|vfat|ext2|ext3\n"
-	"       - filename: file to transfer\n"
+	"       - filename: kernel file to transfer\n"
 	"       - rootfspart: root parameter to pass to the kernel command line.\n"
 	"                     If omitted uses the one at variable usb_rpart|mmc_rpart|sata_rpart.\n"
+	"       - fdtfilename: DTB file to transfer\n"
 	"\n"
-	"      source=ram -> [image_address] [initrd_address] [initrd_max_size]\n"
-	"       - image_address: address of image in RAM (default: linuxloadaddr, netosloadaddr, etc)\n"
+	"      source=ram -> [image_address] [initrd_address] [initrd_max_size] [fdt_address]\n"
+	"       - image_address: address of kernel image in RAM (default: linuxloadaddr, netosloadaddr, etc)\n"
 	"       - initrd_address: address of initrd image (default: loadaddr_initrd)\n"
 	"       - initrd_max_size: max. allowed ramdisk size (in kB) to pass to the kernel (default: kernel default)\n"
+	"       - fdt_address: address of DTB image in RAM\n"
 	"\n"
 );
 
