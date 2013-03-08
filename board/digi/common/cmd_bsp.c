@@ -274,7 +274,7 @@ static const env_default_t l_axEnvDynamic[] = {
 	{ "rootdelay",	MK_STR(ROOTFS_DELAY)		},
 #endif
 	{ SMTD,          ""                                },
-	{ SNFS,          "root=nfs nfsroot=${serverip}:"   },
+	{ SNFS,          "root=/dev/nfs nfsroot=${serverip}:"   },
 #ifdef CONFIG_UBOOT_SPLASH
         { "simg",        "splash.bmp"                      },
 #endif
