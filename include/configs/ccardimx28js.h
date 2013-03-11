@@ -182,6 +182,7 @@
 #define PART_UBOOT_SIZE	       	0x00300000	/* 3 MB */
 #define PART_KERNEL_SIZE       	0x00500000	/* 5 MB */
 #define PART_ROOTFS_SIZE       	0x07300000	/* 115 MB */
+#define CONFIG_FLASH_DRIVER_NAME	"gpmi-nand"
 #endif
 
 /*
