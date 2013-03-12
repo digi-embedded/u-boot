@@ -265,6 +265,18 @@
 #endif
 #endif
 
+/**
+ * UBI
+ */
+#define CONFIG_CMD_UBI		1
+
+#ifdef CONFIG_CMD_UBI
+# define CONFIG_CMD_MTDPARTS	1
+# define CONFIG_MTD_PARTITIONS	1
+# define CONFIG_MTD_DEVICE	1
+# define CONFIG_RBTREE		1
+#endif
+
 /*
  * Boot Linux
  */
