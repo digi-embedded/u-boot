@@ -183,6 +183,8 @@
 #define PART_KERNEL_SIZE       	0x00500000	/* 5 MB */
 #define PART_ROOTFS_SIZE       	0x07300000	/* 115 MB */
 #define CONFIG_FLASH_DRIVER_NAME	"gpmi-nand"
+#define CONFIG_NAND_OBB_ATOMIC	/* OOB area must be access in an atomic
+				 * operation in combination with normal data. */
 #endif
 
 /*
