@@ -29,7 +29,7 @@
 #define DEV_TYPE_NOR		3
 
 /* Private own data */
-static struct ubi_device *ubi;
+struct ubi_device *ubi;
 static char buffer[80];
 static int ubi_initialized;
 
