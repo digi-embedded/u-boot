@@ -198,6 +198,7 @@
 #define CONFIG_MII
 #define CONFIG_FEC_XCV_TYPE	RMII
 #define CONFIG_PHY_CLOCK	50000000	/* 50MHz */
+#define CONFIG_FEC1_INIT_ONLY_MAC
 #endif
 
 /*

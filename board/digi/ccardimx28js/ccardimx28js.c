@@ -130,11 +130,13 @@ int board_eth_init(bd_t *bis)
 		return -EINVAL;
 	}
 
+#ifndef CONFIG_FEC1_INIT_ONLY_MAC
 	dev = eth_get_dev_by_name("FEC1");
 	if (!dev) {
 		puts("FEC MXS: Unable to get FEC1 device entry\n");
 		return -EINVAL;
 	}
+#endif
 
 	return ret;
 }

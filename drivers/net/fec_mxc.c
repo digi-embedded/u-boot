@@ -978,6 +978,15 @@ static int fec_probe(bd_t *bd, int dev_id, int phy_id, uint32_t base_addr)
 		ret = -ENOMEM;
 		goto err1;
 	}
+#ifdef CONFIG_FEC1_INIT_ONLY_MAC
+	if (1 == dev_id) {
+		if (fec_get_hwaddr(edev, dev_id, ethaddr) == 0) {
+			debug("got MAC%d address from fuse: %pM\n", dev_id, ethaddr);
+			memcpy(edev->enetaddr, ethaddr, 6);
+		}
+		return 0;
+	}
+#endif
 
 	fec = (struct fec_priv *)malloc(sizeof(struct fec_priv));
 	if (!fec) {
