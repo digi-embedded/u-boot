@@ -443,7 +443,7 @@ static int do_digi_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv
 	int initrdSize = 0;
 
         if( ( argc < 2 ) || ( argc > 8 ) )
-                goto usage;
+                return CMD_RET_USAGE;
 
         clear_ctrlc();
 
@@ -456,7 +456,7 @@ static int do_digi_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv
                 pImgSrc = &l_axImgSrc[ IS_TFTP ];
 
         if( NULL == pImgSrc )
-                goto usage;
+                return CMD_RET_USAGE;
 
 #ifdef CONFIG_DUAL_BOOT
 _getpart:
@@ -592,7 +592,7 @@ _getpart:
 			}
 		}
 		else if ( argc != 3 )
-			goto usage;
+			return CMD_RET_USAGE;
         }
         else if ((IS_USB == pImgSrc->eType ||
 		  IS_MMC == pImgSrc->eType ||
@@ -1095,10 +1095,6 @@ _getpart:
 	/* Run bootm command */
 	return !RunCmd( szCmd );
 
-usage:
-        printf( "Usage:\n%s\n%s\n", cmdtp->usage, cmdtp->help );
-        return 1;
-
 error:
 #ifdef CONFIG_DUAL_BOOT
 	/* In case of error during dual boot, save dual_boot data and start the watchdog */
@@ -1262,7 +1258,7 @@ static int do_digi_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const arg
 	long sizeTmp;
 
         if( ( argc < 2 ) || ( argc > 6 ) )
-                goto usage;
+                return CMD_RET_USAGE;
 
         clear_ctrlc();
 
@@ -1272,7 +1268,7 @@ static int do_digi_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const arg
                 pImgSrc = &l_axImgSrc[ IS_TFTP ];
 
         if( NULL == pImgSrc )
-                goto usage;
+                return CMD_RET_USAGE;
 
 #ifdef CONFIG_DUAL_BOOT
         DualBootReset(&dualb);
@@ -1817,9 +1813,6 @@ success:
 	}
         return 0;
 
-usage:
-        printf( "Usage:\n%s\n%s\n", cmdtp->usage, cmdtp->help );
-
 error:
 	if( ( NULL != pPartEntry ) &&
             ( pPartEntry->flags.bFixed || pPartEntry->flags.bReadOnly ) )
@@ -1862,7 +1855,7 @@ static int do_digi_verify(cmd_tbl_t* cmdtp, int flag, int argc, char * const arg
 	long sizeTmp;
 
         if( ( argc < 2 ) || ( argc > 6 ) )
-                goto usage;
+                return CMD_RET_USAGE;
 
         clear_ctrlc();
 
@@ -1872,7 +1865,7 @@ static int do_digi_verify(cmd_tbl_t* cmdtp, int flag, int argc, char * const arg
                 pImgSrc = &l_axImgSrc[ IS_TFTP ];
 
         if( NULL == pImgSrc )
-                goto usage;
+                return CMD_RET_USAGE;
 
         /* find the partition to verify */
         CE( WhatPart( argv[ 1 ], 0, &pPart, &pPartEntry, 1, &eOSType, nth_part ) );
@@ -2064,9 +2057,6 @@ static int do_digi_verify(cmd_tbl_t* cmdtp, int flag, int argc, char * const arg
 	printf( "Verify successful\n" );
         return 0;
 
-usage:
-        printf( "Usage:\n%s\n%s\n", cmdtp->usage, cmdtp->help );
-
 error:
         return 1;
 }
@@ -2196,7 +2186,7 @@ static int do_erase_pt(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[]
 	int nth_part = 0;	/* partition number to look from on WhatPart() calls */
 
         if( argc != 2 )
-                goto usage;
+                return CMD_RET_USAGE;
 
         clear_ctrlc();
 
@@ -2221,9 +2211,6 @@ static int do_erase_pt(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[]
                 CE( PartProtect( pPartEntry, 1 ) );
 
         return 0;
-
-usage:
-        printf( "Usage:\n%s\n%s\n", cmdtp->usage, cmdtp->help );
 
 error:
         return 1;

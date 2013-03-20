@@ -52,7 +52,7 @@ int do_otp(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	unsigned long data = 0;
 
 	if (argc < 2 || argc > 5)
-		goto usage;
+		return CMD_RET_USAGE;
 
 	if (strcmp(argv[1], "dump") == 0) {
 		if (open_otp_bank())
@@ -62,7 +62,7 @@ int do_otp(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	}
 	else if (strcmp(argv[1], "read") == 0) {
 		if (argc < 3)
-			goto usage;
+			return CMD_RET_USAGE;
 #ifdef CONFIG_PLATFORM_HAS_HWID
 		if (!strcmp(argv[2], "hwid")) {
 			/* Read hwid */
@@ -100,7 +100,7 @@ int do_otp(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			if (addr >= MAX_OTP_REGS) {
 				printf("Invalid address. Address must be in the range [0..0x%x]\n",
 					MAX_OTP_REGS - 1);
-				goto usage;
+				return CMD_RET_USAGE;
 			}
 			if (argc == 4)
 				count = (unsigned char)simple_strtol(argv[3], NULL, 16);
@@ -116,7 +116,7 @@ int do_otp(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	else if (strcmp(argv[1], "blow") == 0) {
 		if (argc != 4) {
 			printf("Invalid number of arguments\n");
-			goto usage;
+			return CMD_RET_USAGE;
 		}
 #ifdef CONFIG_PLATFORM_HAS_HWID
 		if(!strcmp(argv[2], "hwid")) {
@@ -141,7 +141,7 @@ int do_otp(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			if (addr >= MAX_OTP_REGS) {
 				printf("Invalid address. Address must be in the range [0..0x%x]\n",
 					MAX_OTP_REGS - 1);
-				goto usage;
+				return CMD_RET_USAGE;
 			}
 			data = simple_strtol(argv[3], NULL, 16);
 			if (blow_otp_reg(addr, data))
@@ -151,25 +151,22 @@ int do_otp(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	else if (strcmp(argv[1], "lock") == 0) {
 		if (argc != 3) {
 			printf("Invalid number of arguments\n");
-			goto usage;
+			return CMD_RET_USAGE;
 		}
 		addr = (unsigned char)simple_strtol(argv[2], NULL, 16);
 		if (addr >= MAX_OTP_REGS) {
 			printf("Invalid address. Address must be in the range [0..0x%x]\n",
 				MAX_OTP_REGS - 1);
-			goto usage;
+			return CMD_RET_USAGE;
 		}
 		if (lock_otp_reg(addr))
 			goto errotp;
 	}
 	else
-		goto usage;
+		return CMD_RET_USAGE;
 
 	return 0;
-usage:
-	printf("Invalid parameters!\n");
-	cmd_usage(cmdtp);
-	return 1;
+
 errotp:
 	printf("Error accessing OTP bits\n");
 	return 1;

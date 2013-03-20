@@ -79,7 +79,7 @@ static int do_partition(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[
                         setenv( "mtdroot", szMtdRoot );
                 }
         } else
-                printf( "Usage:\n%s\n", cmdtp->usage );
+                return CMD_RET_USAGE;
 
         return !iRes;
 }
