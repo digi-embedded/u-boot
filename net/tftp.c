@@ -1007,20 +1007,23 @@ void TftpStart(enum proto_t protocol)
 		TftpState = STATE_SEND_WRQ;
 		new_transfer();
 	} else
-#elif defined(CONFIG_TFTP_UPDATE_ONTHEFLY)
-	if( (bTftpToFlashStatus & B_WRITE_IMG_TO_FLASH) == B_WRITE_IMG_TO_FLASH ){
-		ulLastRamAddressWritten = 0;
-		uiBlocksWrittenToFlash = 0;
-		ulBytesCounter = 0;
-		ulRamOffset = 0;
-
-		printf("Loading and updating on-the-fly: \n\t");
-	}
-	else
-#endif /* CONFIG_TFTP_UPDATE_ONTHEFLY */
+#endif
 	{
 		printf("Load address: 0x%lx\n", load_addr);
-		puts("Loading: *\b");
+#if defined(CONFIG_TFTP_UPDATE_ONTHEFLY)
+		if( (bTftpToFlashStatus & B_WRITE_IMG_TO_FLASH) == B_WRITE_IMG_TO_FLASH ){
+			ulLastRamAddressWritten = 0;
+			uiBlocksWrittenToFlash = 0;
+			ulBytesCounter = 0;
+			ulRamOffset = 0;
+
+			printf("Loading and updating on-the-fly: \n\t");
+		}
+		else
+#endif /* CONFIG_TFTP_UPDATE_ONTHEFLY */
+		{
+			puts("Loading: *\b");
+		}
 		TftpState = STATE_SEND_RRQ;
 	}
 
