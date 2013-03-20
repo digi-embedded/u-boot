@@ -268,13 +268,13 @@
 /**
  * UBI
  */
-#define CONFIG_CMD_UBI		1
+#define CONFIG_CMD_UBI
 
 #ifdef CONFIG_CMD_UBI
-# define CONFIG_CMD_MTDPARTS	1
-# define CONFIG_MTD_PARTITIONS	1
-# define CONFIG_MTD_DEVICE	1
-# define CONFIG_RBTREE		1
+# define CONFIG_CMD_MTDPARTS
+# define CONFIG_MTD_PARTITIONS
+# define CONFIG_MTD_DEVICE
+# define CONFIG_RBTREE
 #endif
 
 /*
