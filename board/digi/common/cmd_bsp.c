@@ -2069,7 +2069,7 @@ static int RecreateUBIVolume ( const nv_param_part_t* pPartEntry )
 
 	/* Select UBI partition */
 	sprintf( szCmd, "ubi part %s", pPartEntry->szName );
-	if ( RunCmd( szCmd ) <= 0 ) {
+	if (!RunCmd(szCmd)) {
 		printf( "\nErasing UBI partition\n" );
 		/* Erase partition sectors, and try again */
 		CE( PartErase( pPartEntry ) );
@@ -2315,7 +2315,7 @@ static int RunCmd( const char* szCmd )
 
         clear_ctrlc();
 
-        iRes = ( run_command( szCmd, 0 ) >= 0 );
+        iRes = (run_command(szCmd, 0) == 0);
 
 	if( ctrlc() || had_ctrlc() )
                 iRes = 0;
