@@ -578,7 +578,7 @@ int ubi_volume_off_write(char *volume, void *buf, size_t size, int isFirstPart, 
 		     rsvd_bytes, vol->reserved_pebs, ubi->leb_size);
 		printf("vol->data_pad=%d\n", vol->data_pad);
 		printf("Size > volume size !!\n");
-		return 1;
+		return -1;
 	}
 
 	/* Start ubi partition update */
