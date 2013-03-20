@@ -1829,7 +1829,13 @@ error:
 		RunCmd(szCmd);
 	}
 #endif /* CONFIG_CMD_UBI */
-        return 1;
+
+#ifdef CONFIG_TFTP_UPDATE_ONTHEFLY
+	/* Reset OTF update flag */
+	bTftpToFlashStatus = 0;
+#endif
+
+	return 1;
 }
 
 static int do_digi_verify(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
