@@ -92,6 +92,9 @@
 #include <common.h>        /* readline */
 #include <hush.h>
 #include <command.h>        /* find_cmd */
+#if defined(CONFIG_CMD_BSP) && defined(CONFIG_DIGI_CMD)
+#include "../board/digi/common/cmd_bsp.h"	/* GetEnvVar */
+#endif
 #ifndef CONFIG_SYS_PROMPT_HUSH_PS2
 #define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
 #endif
@@ -2769,7 +2772,12 @@ static char *lookup_param(char *src)
 		}
 	}
 
+#if defined(CONFIG_CMD_BSP) && defined(CONFIG_DIGI_CMD)
+	/* GetEnvVar also returns static and dynamic variables */
+	p = (char*)GetEnvVar(src, 1);
+#else
 	p = getenv(src);
+#endif
 	if (!p)
 		p = get_local_var(src);
 
