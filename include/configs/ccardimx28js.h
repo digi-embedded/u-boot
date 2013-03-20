@@ -182,6 +182,7 @@
 #define PART_NVRAM_SIZE        	0x00040000	/* nvram 256 kb because 2k pagesize nands */
 #define PART_UBOOT_SIZE	       	0x00300000	/* 3 MB */
 #define PART_KERNEL_SIZE       	0x00500000	/* 5 MB */
+#define PART_FDT_SIZE       	0x00080000	/* 512 KiB */
 #define PART_ROOTFS_SIZE       	0x07300000	/* 115 MB */
 #define CONFIG_FLASH_DRIVER_NAME	"gpmi-nand"
 #define CONFIG_NAND_OBB_ATOMIC	/* OOB area must be access in an atomic
@@ -287,8 +288,8 @@
 #define CONFIG_BOOTDELAY	4
 #define CONFIG_BOOTFILE		"uImage"
 #define CONFIG_LOADADDR		0x42000000
-#define CONFIG_FDTLOADADDR	0x41000000
-#define CONFIG_FDTFILE		"imx28-" MK_STR(CONFIG_PLATFORM_NAME) ".dtb"
+#define CONFIG_FDT_LOADADDR	0x41000000
+#define CONFIG_FDTFILE		"imx28-" CONFIG_PLATFORM_NAME ".dtb"
 #define CONFIG_SYS_LOAD_ADDR	CONFIG_LOADADDR
 #define CONFIG_OF_LIBFDT
 
@@ -338,8 +339,7 @@
 	"uimage=uImage\0" \
 	"console_fsl=ttyAM0\0" \
 	"console_mainline=ttyAMA0\0" \
-	"ftd_file=imx28-evk.dtb\0" \
-	"ftd_addr=0x41000000\0" \
+	"fdtaddr=" MK_STR(CONFIG_FDT_LOADADDR) "\0" \
 	"mmcdev=0\0" \
 	"mmcpart=2\0" \
 	"mmcroot=/dev/mmcblk0p3 rw\0" \
@@ -354,8 +354,8 @@
 	"loaduimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uimage}\0" \
 	"mmcboot=echo Booting from mmc ...; " \
 		"run mmcargs; "	\
-		"if fatload mmc ${mmcdev}:${mmcpart} ${ftd_addr} ${ftd_file}; then " \
-			"bootm ${loadaddr} - ${ftd_addr}; " \
+		"if fatload mmc ${mmcdev}:${mmcpart} ${fdtaddr} ${fdtimg}; then " \
+			"bootm ${loadaddr} - ${fdtaddr}; " \
 		"else " \
 			"bootm; " \
 		"fi;\0" \
@@ -365,8 +365,8 @@
 	"netboot=echo Booting from net ...; " \
 		"run netargs; "	\
 		"dhcp ${uimage}; " \
-		"if dhcp ${ftd_addr} ${ftd_file}; then " \
-			"bootm ${loadaddr} - ${ftd_addr}; " \
+		"if dhcp ${fdtaddr} ${fdtimg}; then " \
+			"bootm ${loadaddr} - ${fdtaddr}; " \
 		"else " \
 			"bootm; " \
 		"fi;\0"

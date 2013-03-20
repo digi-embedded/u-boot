@@ -112,6 +112,7 @@ static const cmd_info_t l_axCmdGlobal[] = {
         { .cKey = key, .szDescr = descr, .pfFunc = PartCmdPTSelect, .iInfo = info }
 static cmd_info_t l_axCmdPartType[] = {
         MK( 'b', NULL, NVPT_BOOTSTREAM ),
+        MK( 'd', NULL, NVPT_FDT ),
         MK( 'e', NULL, NVPT_EBOOT ),
         MK( 'f', NULL, NVPT_FILESYSTEM ),
         MK( 'l', NULL, NVPT_LINUX ),
@@ -1691,6 +1692,9 @@ int is_system_partition(const struct nv_param_part *pPart)
 		break;
 	case NVPT_FILESYSTEM:
 		strcpy(partname, PART_NAME_ROOTFS);
+		break;
+	case NVPT_FDT:
+		strcpy(partname, PART_NAME_FDT);
 		break;
 	default:
 		return 0;

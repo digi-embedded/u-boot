@@ -43,6 +43,7 @@ extern "C" {
 #define PART_NAME_WINCE		"Kernel"
 #define PART_NAME_NETOS		"NET+OS-Kernel"
 #define PART_NAME_ROOTFS	"RootFS"
+#define PART_NAME_FDT		"FDT"
 
 /* ********** typedefs ********** */
 
@@ -74,6 +75,7 @@ typedef enum {
         NVOS_DUAL_BOOT,		/*! Dual boot parameters */
         NVOS_PROD_INFO,		/*! Product info parameters */
 	NVOS_LCD_CONFIG,	/*! LCD configuration */
+	NVOS_FDT,		/*! Flattened Device Tree */
 	NVOS_LAST               /*! for defining array sizes for nv_os_type_e */
 } nv_os_type_e;
 
@@ -98,6 +100,7 @@ typedef enum {
         NVPT_RESCUE_FILESYSTEM, /*! Rescue rootfs or initrd: DEPRECATED DO NOT USE! */
         NVPT_RESCUE_WINCE,      /*! Rescue WinCE kernel: DEPRECATED DO NOT USE! */
         NVPT_BOOTSTREAM,	/*! Bootstream partition */
+        NVPT_FDT,		/*! Flattened Device Tree partition */
         NVPT_LAST               /*! for defining array sizes for nv_part_type_e  */
 } nv_part_type_e;
 

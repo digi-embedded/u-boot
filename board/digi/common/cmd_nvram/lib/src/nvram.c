@@ -97,6 +97,7 @@ static const char* l_aszPartTypes[] = {
         MK( NVPT_RESCUE_FILESYSTEM, "Rescue-Filesystem" ), /* deprecated */
         MK( NVPT_RESCUE_WINCE, "Rescue-WinCE-Kernel" ), /* deprecated */
         MK( NVPT_BOOTSTREAM, "Bootstream" ),
+        MK( NVPT_FDT, "Device Tree" ),
 };
 
 static const char* l_aszFSTypes[] = {
@@ -131,6 +132,7 @@ static const char* l_aszOSTypes[] = {
 	MK( NVOS_DUAL_BOOT, "Dual-Boot"  ),
 	MK( NVOS_PROD_INFO, "Product-Info"  ),
 	MK( NVOS_LCD_CONFIG, "LCD-Config"  ),
+	MK( NVOS_FDT, "Device-Tree"  ),
 };
 #undef MK
 

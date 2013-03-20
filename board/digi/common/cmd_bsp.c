@@ -246,8 +246,8 @@ static const env_default_t l_axEnvDynamic[] = {
 	{ "hostname",	CONFIG_MODULE_NAME_UPPERCASE "-000000" },
 	{ "ip",          "ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}:eth0:off" },
 	{ "loadaddr",    MK_STR( CONFIG_LOADADDR )           },
-	{ "fdtaddr",    MK_STR( CONFIG_FDTLOADADDR )           },
-	{ "fdtfile",    "imx28-" CONFIG_PLATFORM_NAME ".dtb" },
+	{ "fdtaddr",    MK_STR( CONFIG_FDT_LOADADDR )           },
+	{ "fdtimg",    CONFIG_FDTFILE },
 	{ "loadaddr_initrd",    MK_STR( CONFIG_INITRD_LOAD_ADDR )           },
         { "kimg",        CONFIG_LINUX_IMAGE_NAME           },
         { NPATH,         "/exports/nfsroot-"CONFIG_PLATFORM_NAME },
@@ -321,6 +321,7 @@ static const part_t l_axPart[] = {
         { NVOS_NONE,  "rootfs", RIMG,     NVPT_FILESYSTEM, .bRootFS = 1  },
         { NVOS_ANDROID,  "androidfs", ARIMG, NVPT_FILESYSTEM, .bRootFS = 1  },
         { NVOS_NONE,  "userfs", USRIMG,   NVPT_FILESYSTEM,               },
+	{ NVOS_FDT,  "fdt", "fdtimg",   NVPT_FDT,               },
 };
 
 /* use MK because we later use l_axImgSrc[ IS_FLASH ] */
@@ -618,7 +619,7 @@ _getpart:
 			goto error;
 		}
 		SAFE_STRCAT(szImg, szTmp);	/* kernel image filename */
-		szTmp = GetEnvVar("fdtfile", 0);
+		szTmp = GetEnvVar("fdtimg", 0);
 		if (NULL != szTmp)
 			SAFE_STRCAT(szImgFdt, szTmp);	/* DTB image filename */
 	}
@@ -2789,7 +2790,7 @@ U_BOOT_CMD(
 	" Description: updates flash <partition> via <source>\n"
 	" Arguments:\n"
 	"   - partition:    a partition name or one of the reserved names: \n"
-	"                   uboot|linux|android|rootfs|userfs|androidfs|splash\n"
+	"                   uboot|linux|android|rootfs|userfs|androidfs|splash|fdt\n"
 	"   - [source]:     tftp (default)|nfs|usb|mmc|hsmmc|sata|ram\n"
 	"   - [extra-args]: extra arguments depending on 'source'\n"
 	"\n"
@@ -2813,7 +2814,7 @@ U_BOOT_CMD(
 	" Description: verifies firmware in flash <partition> against file loaded from <source>\n"
 	" Arguments:\n"
 	"   - partition:    a partition name or one of the reserved names: \n"
-	"                   uboot|linux|android|rootfs|userfs|androidfs|splash\n"
+	"                   uboot|linux|android|rootfs|userfs|androidfs|splash|fdt\n"
 	"   - [source]:     tftp (default)|nfs|usb|mmc|hsmmc|sata|ram\n"
 	"   - [extra-args]: extra arguments depending on 'source'\n"
 	"\n"

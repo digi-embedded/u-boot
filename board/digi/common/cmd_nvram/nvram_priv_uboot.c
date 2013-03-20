@@ -289,11 +289,23 @@ int NvPrivOSCriticalPartReset(
 				if (i > 0) {
 					if (MtdSize(0) <
 					    (sizeof_partsbelow(axPartitionTable, part + 1) +
-					     PART_KERNEL_SIZE + rootfs_part_size)) {
+					     PART_KERNEL_SIZE + PART_FDT_SIZE + rootfs_part_size)) {
 						printf("ERROR: Not enough space in flash for dual boot partitions\n");
 						break;
 					}
 				}
+				/* Device Tree */
+				part++;
+				if (1 == sys_parts)
+					strcpy(axPartitionTable[part].szName, PART_NAME_FDT);
+				else
+					sprintf(axPartitionTable[part].szName, PART_NAME_FDT "%d", i);
+				axPartitionTable[part].eType = NVPT_FDT;
+				axPartitionTable[part].flags.bFixed = 0;
+				axPartitionTable[part].ullStart = sizeof_partsbelow(axPartitionTable, part);
+				axPartitionTable[part].ullSize  = PART_FDT_SIZE;
+				modified_parts[part] = 1;
+
 				/* Kernel */
 				part++;
 				if (1 == sys_parts)
@@ -305,6 +317,7 @@ int NvPrivOSCriticalPartReset(
 				axPartitionTable[part].ullStart = sizeof_partsbelow(axPartitionTable, part);
 				axPartitionTable[part].ullSize  = PART_KERNEL_SIZE;
 				modified_parts[part] = 1;
+
 				/* Rootfs */
 				part++;
 				if (1 == sys_parts)
