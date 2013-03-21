@@ -247,7 +247,7 @@ static const env_default_t l_axEnvDynamic[] = {
 	{ "ip",          "ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}:eth0:off" },
 	{ "loadaddr",    MK_STR( CONFIG_LOADADDR )           },
 	{ "fdtaddr",    MK_STR( CONFIG_FDT_LOADADDR )           },
-	{ "fdtimg",    CONFIG_FDTFILE },
+	{ "fdtimg",    CONFIG_FDT_FILE },
 	{ "loadaddr_initrd",    MK_STR( CONFIG_INITRD_LOAD_ADDR )           },
         { "kimg",        CONFIG_LINUX_IMAGE_NAME           },
         { NPATH,         "/exports/nfsroot-"CONFIG_PLATFORM_NAME },
@@ -418,6 +418,7 @@ static int do_digi_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv
         const image_source_t* pImgSrc = NULL;
         const nv_param_part_t* pPartEntry = NULL, *pPartRootfs = NULL;
         const nv_param_part_t* pBootPart = NULL;
+        const nv_param_part_t* pDeviceTreePart = NULL;
 	char szCmd[ PATH_MAXLEN ]  = "";
 	char szImg[ PATH_MAXLEN ]  = "";
 	char szImgFdt[ PATH_MAXLEN ]  = "";
@@ -619,9 +620,6 @@ _getpart:
 			goto error;
 		}
 		SAFE_STRCAT(szImg, szTmp);	/* kernel image filename */
-		szTmp = GetEnvVar("fdtimg", 0);
-		if (NULL != szTmp)
-			SAFE_STRCAT(szImgFdt, szTmp);	/* DTB image filename */
 	}
 
         CE( GetDHCPEnabled( &bDHCPEnabled ) );
@@ -763,23 +761,43 @@ _getpart:
 	}
 
 	/* Try to load Device Tree Blob file */
-	if (NVOS_LINUX == eOSType ||
-	    NVOS_ANDROID == eOSType) {
-		int fdtsize = 0;
-
-		/* Size parameter is only needed for FLASH media.
-		 * A DTB file is usually small, so let's read a fixed
-		 * amount of bytes (64KB) just to be safe.
-		 */
-		if (IS_FLASH == pImgSrc->eType)
-			fdtsize = 128 * 1024;
-		if (strcmp(szImgFdt, "")) {
+	if (NVOS_LINUX == eOSType || NVOS_ANDROID == eOSType) {
+		switch(pImgSrc->eType) {
+		case IS_FLASH:
+			/* Determine DeviceTree partition */
+			CE(WhatPart("fdt", 0, &pPart, &pDeviceTreePart, 0, NULL, 0));
+			if (NULL == pDeviceTreePart) {
+				printf("No Device Tree partition found\n");
+				goto error;
+			}
+			/* Size parameter is only needed for FLASH media.
+			 * A DTB file is usually small, so let's read a
+			 * big enough amount of bytes.
+			 */
 			ret = do_image_load(iLoadAddrFdt, pImgSrc->eType,
-					    loadcmd, kdevpart, szImgFdt, fdtsize,
-					    pBootPart);
-			if (ret)
-				hasfdt = 1;
+					    NULL, NULL, NULL,
+					    CONFIG_FDT_MAXSIZE,
+					    pDeviceTreePart);
+			break;
+		case IS_RAM:
+			/* do nothing. FDT is already in RAM */
+			ret = 1;
+			break;
+		default:
+			/* Device Tree blob in external media */
+			szTmp = GetEnvVar("fdtimg", 0);
+			if (NULL != szTmp) {
+				/* DTB image filename */
+				SAFE_STRCAT(szImgFdt, szTmp);
+				/* Don't need to provide file size */
+				ret = do_image_load(iLoadAddrFdt, pImgSrc->eType,
+						    loadcmd, kdevpart, szImgFdt,
+						    0, pDeviceTreePart);
+			}
+			break;
 		}
+		if (ret)
+			hasfdt = 1;	/* DTB is now available in RAM */
 	}
 
 	if (!bGotBootImage) {
