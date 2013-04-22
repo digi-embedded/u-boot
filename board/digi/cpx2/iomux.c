@@ -1,11 +1,10 @@
 /*
- * Digi ConnectCard for i.MX28 IOMUX setup
+ * Digi ConnectPort X2 IOMUX setup
  *
  * Copyright (C) 2013 Digi International Inc.
  *
- * Based on mx28evk.c:
- * Copyright (C) 2011 Marek Vasut <marek.vasut@gmail.com>
- * on behalf of DENX Software Engineering GmbH
+ * Based on ccardimx28.c:
+ * Copyright (C) 2013 Digi International
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -27,35 +26,6 @@
 #include <asm/arch/iomux-mx28.h>
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/sys_proto.h>
-
-struct ccardxmx28_ident {
-        const int       sdram;
-        const int       flash;
-        const char      *id_string;
-};
-
-/**
- * To add new valid variant ID, append new lines in this array with its configuration
- */
-struct ccardxmx28_ident ccardxmx28_id[] = {
-/* 0x00 */	        	{         0,     0, "Unknown"},
-/* 0x01 */	        	{         0,     0, "Not supported"},
-/* 0x02 - 55001667-01 */	{0x10000000,   256, "i.MX287, 2 Eth, 1 USB, Wireless, BT, LCD, JTAG, 1-wire"},
-/* 0x03 - 55001668-01 */	{0x10000000,   256, "i.MX287, 2 Eth, 1 USB, Wireless, BT, LCD, JTAG"},
-/* 0x04 - 55001669-01 */	{ 0x8000000,   128, "i.MX287, 1 Eth, 2 USB, Wireless, BT, LCD, JTAG"},
-/* 0x05 - 55001674-01 */	{ 0x8000000,   128, "i.MX287, 1 Eth, 2 USB, LCD, JTAG"},
-/* 0x06 - 55001670-01 */	{ 0x8000000,   128, "i.MX280, 2 USB, Wireless"},
-/* 0x07 - 55001671-01 */	{ 0x8000000,   128, "i.MX280, 1 Eth, 2 USB, Wireless, JTAG"},
-/* 0x08 - 55001672-01 */	{ 0x8000000,   128, "i.MX280, 1 Eth, 2 USB, Wireless"},
-/* 0x09 - 55001673-01 */	{ 0x8000000,   128, "i.MX280, 1 Eth, 2 USB"},
-/* SPR variants */
-/* 0x0a - 55001671-02 */	{ 0x8000000,   128, "i.MX283, 1 Eth, 2 USB, Wireless, LCD, JTAG"},
-/* 0x0b - 55001671-03 */	{ 0x8000000,   128, "i.MX283, 1 Eth, 2 USB, LCD, JTAG"},
-/* 0x0c - 55001674-02 */	{ 0x8000000,   128, "i.MX287, 2 Eth, 1 USB, LCD, JTAG"},
-/* 0x0d - 55001674-03 */	{ 0x8000000,   128, "i.MX287, 1 Eth, 2 USB, LCD, JTAG"},
-/* 0x0a */			{         0,     0, "Reserved for future use"},
-/* 0x0b */			{         0,     0, "Reserved for future use"},
-};
 
 #define	MUX_CONFIG_SSP0	(MXS_PAD_3V3 | MXS_PAD_8MA | MXS_PAD_PULLUP)
 #define	MUX_CONFIG_GPMI	(MXS_PAD_1V8 | MXS_PAD_4MA | MXS_PAD_NOPULL)

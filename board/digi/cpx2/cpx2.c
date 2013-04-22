@@ -1,11 +1,10 @@
 /*
- * Digi ConnectCard for i.MX28 board
+ * Digi ConnectPort X2
  *
  * Copyright (C) 2013 Digi International Inc.
  *
- * Based on mx28evk.c:
- * Copyright (C) 2011 Marek Vasut <marek.vasut@gmail.com>
- * on behalf of DENX Software Engineering GmbH
+ * Based on ccardimx28.c:
+ * Copyright (C) 2013 Digi International
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -100,7 +99,7 @@ int board_eth_init(bd_t *bis)
 
 	ret = cpu_eth_init(bis);
 
-	/* ccardimx28 uses ENET_CLK PAD to drive FEC clock */
+	/* cpx2 uses ENET_CLK PAD to drive FEC clock */
 	writel(CLKCTRL_ENET_TIME_SEL_RMII_CLK | CLKCTRL_ENET_CLK_OUT_EN,
 					&clkctrl_regs->hw_clkctrl_enet);
 

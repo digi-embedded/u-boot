@@ -26,7 +26,7 @@ include $(TOPDIR)/config.mk
 LIB	= $(obj)lib$(BOARD).o
 
 ifndef	CONFIG_SPL_BUILD
-COBJS	:= ccardimx28js.o
+COBJS	:= cpx2.o
 else
 COBJS	:= iomux.o
 endif

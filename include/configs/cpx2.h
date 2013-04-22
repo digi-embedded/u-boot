@@ -16,8 +16,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
  * GNU General Public License for more details.
  */
-#ifndef __CCARDIMX28JS_CONFIG_H__
-#define __CCARDIMX28JS_CONFIG_H__
+#ifndef __CPX2_CONFIG_H__
+#define __CPX2_CONFIG_H__
 
 #include "digi_common.h"		/* Load Digi common stuff... */
 
@@ -29,7 +29,7 @@
 #define CONFIG_MXS_GPIO			/* GPIO control */
 #define CONFIG_SYS_HZ		1000		/* Ticks per second */
 
-#define CONFIG_MACH_TYPE	MACH_TYPE_MX28EVK
+#define CONFIG_MACH_TYPE	MACH_TYPE_CPX2
 
 #include <asm/arch/regs-base.h>
 
@@ -40,11 +40,10 @@
 /*
  * Digi custom
  */
-#define CONFIG_MODULE_NAME		"ccardimx28"
-#define CONFIG_MODULE_NAME_UPPERCASE	"CCARDIMX28"
-#define CONFIG_MODULE_STRING		"ConnectCard for i.MX28"
-#define PLATFORM			"js"
-#define CONFIG_PLATFORM_NAME		CONFIG_MODULE_NAME PLATFORM
+#define CONFIG_MODULE_NAME		"cpx2"
+#define CONFIG_MODULE_NAME_UPPERCASE	"CPX2"
+#define CONFIG_MODULE_STRING		"ConnectPort X2"
+#define CONFIG_PLATFORM_NAME		CONFIG_MODULE_NAME
 #define CONFIG_CMD_BOOTSTREAM
 #define CONFIG_HAB_ENABLED
 #define	CONFIG_CMD_BSP
@@ -122,7 +121,7 @@
  * U-Boot general configurations
  */
 #define	CONFIG_SYS_LONGHELP
-#define CONFIG_SYS_PROMPT	"CCARDIMX28JS U-Boot > "
+#define CONFIG_SYS_PROMPT	"CPX2 U-Boot > "
 #define CONFIG_SYS_CBSIZE	2048			/* Console I/O Buffer Size */
 #define CONFIG_SYS_PBSIZE	\
 	(CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
@@ -384,4 +383,4 @@
 		"fi; " \
 	"else run netboot; fi"
 
-#endif /* __CCARDIMX28JS_CONFIG_H__ */
+#endif /* __CPX2_CONFIG_H__ */
