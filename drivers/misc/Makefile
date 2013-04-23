@@ -31,6 +31,7 @@ COBJS-$(CONFIG_CBMEM_CONSOLE) += cbmem_console.o
 COBJS-$(CONFIG_FSL_IIM) += fsl_iim.o
 COBJS-$(CONFIG_GPIO_LED) += gpio_led.o
 COBJS-$(CONFIG_FSL_MC9SDZ60) += mc9sdz60.o
+COBJS-$(CONFIG_MXC_OCOTP) += mxc_ocotp.o
 COBJS-$(CONFIG_MXS_OTP) += mxs_otp.o
 COBJS-$(CONFIG_NS87308) += ns87308.o
 COBJS-$(CONFIG_PDSP188x) += pdsp188x.o
