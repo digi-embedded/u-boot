@@ -113,9 +113,10 @@ static void mxs_mem_init_clock(void)
 	writeb(CLKCTRL_FRAC_CLKGATE,
 		&clkctrl_regs->hw_clkctrl_frac0_set[CLKCTRL_FRAC0_EMI]);
 
-	/* Set fractional divider for ref_emi to 480 * 18 / 21 = 411MHz */
-	writeb(CLKCTRL_FRAC_CLKGATE | (21 & CLKCTRL_FRAC_FRAC_MASK),
-		&clkctrl_regs->hw_clkctrl_frac0[CLKCTRL_FRAC0_EMI]);
+	/* Set fractional divider for ref_emi to 480 * 18 / EMI_FRAC */
+	writeb(CLKCTRL_FRAC_CLKGATE |
+	       (EMI_FRAC(CONFIG_CPU_FREQ) & CLKCTRL_FRAC_FRAC_MASK),
+	       &clkctrl_regs->hw_clkctrl_frac0[CLKCTRL_FRAC0_EMI]);
 
 	/* Ungate EMI clock */
 	writeb(CLKCTRL_FRAC_CLKGATE,
@@ -123,8 +124,8 @@ static void mxs_mem_init_clock(void)
 
 	early_delay(11000);
 
-	/* Set EMI clock divider for EMI clock to 411 / 2 = 205MHz */
-	writel((2 << CLKCTRL_EMI_DIV_EMI_OFFSET) |
+	/* Set EMI clock divider for EMI clock to 411 / EMI_DIV */
+	writel((EMI_DIV(CONFIG_CPU_FREQ) << CLKCTRL_EMI_DIV_EMI_OFFSET) |
 		(1 << CLKCTRL_EMI_DIV_XTAL_OFFSET),
 		&clkctrl_regs->hw_clkctrl_emi);
 
@@ -140,25 +141,25 @@ static void mxs_mem_setup_cpu_and_hbus(void)
 	struct mxs_clkctrl_regs *clkctrl_regs =
 		(struct mxs_clkctrl_regs *)MXS_CLKCTRL_BASE;
 
-	/* Set fractional divider for ref_cpu to 480 * 18 / 19 = 454MHz
+	/* Set fractional divider for ref_cpu to 480 * 18 / CPU_FRAC
 	 * and ungate CPU clock */
-	writeb(19 & CLKCTRL_FRAC_FRAC_MASK,
+	writeb(CPU_FRAC(CONFIG_CPU_FREQ) & CLKCTRL_FRAC_FRAC_MASK,
 		(uint8_t *)&clkctrl_regs->hw_clkctrl_frac0[CLKCTRL_FRAC0_CPU]);
 
 	/* Set CPU bypass */
 	writel(CLKCTRL_CLKSEQ_BYPASS_CPU,
 		&clkctrl_regs->hw_clkctrl_clkseq_set);
 
-	/* HBUS = 151MHz */
+	/* HBUS */
 	writel(CLKCTRL_HBUS_DIV_MASK, &clkctrl_regs->hw_clkctrl_hbus_set);
-	writel(((~3) << CLKCTRL_HBUS_DIV_OFFSET) & CLKCTRL_HBUS_DIV_MASK,
-		&clkctrl_regs->hw_clkctrl_hbus_clr);
+	writel(((~HBUS_DIV(CONFIG_CPU_FREQ)) << CLKCTRL_HBUS_DIV_OFFSET) &
+		CLKCTRL_HBUS_DIV_MASK, &clkctrl_regs->hw_clkctrl_hbus_clr);
 
 	early_delay(10000);
 
-	/* CPU clock divider = 1 */
+	/* CPU clock divider */
 	clrsetbits_le32(&clkctrl_regs->hw_clkctrl_cpu,
-			CLKCTRL_CPU_DIV_CPU_MASK, 1);
+			CLKCTRL_CPU_DIV_CPU_MASK, CPU_DIV(CONFIG_CPU_FREQ));
 
 	/* Disable CPU bypass */
 	writel(CLKCTRL_CLKSEQ_BYPASS_CPU,
