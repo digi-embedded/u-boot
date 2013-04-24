@@ -97,7 +97,6 @@
 #define CONFIG_CMD_SPI
 #define CONFIG_CMD_USB
 #define CONFIG_CMD_BOOTZ
-#define CONFIG_CMD_I2C
 #define	CONFIG_CMD_SNTP
 
 /*
