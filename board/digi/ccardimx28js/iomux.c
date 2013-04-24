@@ -222,28 +222,25 @@ void mxs_adjust_memory_params(uint32_t *dram_vals)
 		/* 256 SDRAM (MT47H128M16-25E, assume default) */
 		dram_vals[29] = 0x0102010a;	// Enable CS0; 10 bit col addr, 14 addr pins, auto precharge=A10
 	}
-	dram_vals[37] = 0x07080403;	// CASLAT_LIN_GATE=7 CASLAT_LIN=8 CASLAT=4 WRLAT=3 (could potentially use: CASLAT_LIN_GATE=6, 6, 3, 2)
+	//dram_vals[37] = 0x07080403;	// CASLAT_LIN_GATE=7 CASLAT_LIN=8 CASLAT=4 WRLAT=3 (could potentially use: CASLAT_LIN_GATE=6, 6, 3, 2)
 
 	/* EMI freq = 205.71 MHz, cycle=4.861ns */
 	dram_vals[38] = 0x06005303;	// tDAL=tWR+tRP=15ns+12.5ns=27.5ns/4.86ns=6, CPD=400ns/4.86ns=83 (0x53), TCKE=3
 	dram_vals[39] = 0x0a0000c8;	// tFAW=45ns/4.86ns=10, DLL reset recovery (lock) time = 200 cycles
 	dram_vals[40] = 0x0200a0c1;	// TMRD=2, TINIT=200us/4.86ns=41153=0xa0c1 - see init timing diagram (note 3)
-	dram_vals[41] = 0x0002030c;	// TPDEX=tXP=2, tRCD=12.5ns/4.86ns=3, tRC=55/4.86ns=12
+	//dram_vals[41] = 0x0002030c;	// TPDEX=tXP=2, tRCD=12.5ns/4.86ns=3, tRC=55/4.86ns=12
 	dram_vals[42] = 0x00384309;	// TRAS_max=floor(70000ns/4.86ns)=14403=0x3843, TRAS_min=40ns/4.86ns=9
 	dram_vals[43] = 0x03160322;	// tRP=12.5ns/4.86ns=3, tRFC(512Mb)=105ns/4.86ns=22=0x16, tREFIit=floor(3900ns/4.86ns)=802=0x322 (32ms refresh)
 	dram_vals[44] = 0x02040203;	// tWTR=7.5ns/4.86ns=2, tWR=15ns/4.86ns=4 tRTP=7.5ns/4.86ns=2 tRRD(x16)=10ns/4.86ns=3
 	dram_vals[45] = 0x00c80018;	// TSXR=tXSRDmin=200, TXSNR=tXSNR=tRFC(512Mb)+10ns=115ns/4.86ns=24
 
 	dram_vals[67] = 0x01000102;	// Enable CS0 clock only
-	dram_vals[71] = 0xf4004a27;	// EVK   value - disable termination (among other things)
-	dram_vals[72] = 0xf4004a27;	// EVK   value - disable termination (among other things)
 	dram_vals[73] = 0x00000000;
 	dram_vals[74] = 0x00000000;
 	dram_vals[75] = 0x07400300;	// EVK   value - bit 22 is usually set by FSL, but not in...
 	dram_vals[76] = 0x07400300;	//   ...200Mhz case; assume a typo and correct it
 	dram_vals[77] = 0x00000000;
 	dram_vals[78] = 0x00000000;
-	dram_vals[79] = 0x00000005;
 	dram_vals[83] = 0x00000000;	// Disable CS0 ODT during reads
 	dram_vals[84] = 0x00000001;	// Enable  CS0 ODT during writes to CS0
 	dram_vals[89] = 0x00000000;
@@ -260,7 +257,6 @@ void mxs_adjust_memory_params(uint32_t *dram_vals)
 	dram_vals[183] = 0x00000004;	// MR1 settings for CS0: 75ohm ODT nominal, Full drive strength
 	dram_vals[184] = 0x00000000;	// MR2 settings for CS0: 2x self-refresh timing (Tcase > 85C) (to give us more temp margin)
 	dram_vals[185] = 0x00000080;	// MR3 settings for CS0:
-	dram_vals[189] = 0xffffffff;
 }
 
 void board_init_ll(void)
