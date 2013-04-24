@@ -29,7 +29,7 @@
 #define CONFIG_MXS_GPIO			/* GPIO control */
 #define CONFIG_SYS_HZ		1000		/* Ticks per second */
 
-#define CONFIG_MACH_TYPE	MACH_TYPE_MX28EVK
+#define CONFIG_MACH_TYPE	MACH_TYPE_CCARDWMX28JS
 
 #include <asm/arch/regs-base.h>
 

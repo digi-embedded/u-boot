@@ -1106,6 +1106,10 @@ extern unsigned int __machine_arch_type;
 #define MACH_TYPE_ATDGP318             3494
 #define MACH_TYPE_OMAP5_SEVM           3777
 #define MACH_TYPE_ARMADILLO_800EVA     3863
+#define MACH_TYPE_CCARDWMX28           3893
+#define MACH_TYPE_CCARDMX28            3894
+#define MACH_TYPE_CCARDWMX28JS         3917
+#define MACH_TYPE_CCARDMX28JS          3918
 #define MACH_TYPE_KZM9G                4140
 
 #ifdef CONFIG_ARCH_EBSA110
@@ -14246,6 +14250,54 @@ extern unsigned int __machine_arch_type;
 # define machine_is_kzm9g()	(machine_arch_type == MACH_TYPE_KZM9G)
 #else
 # define machine_is_kzm9g()	(0)
+#endif
+
+#ifdef CONFIG_MACH_CCARDWMX28
+# ifdef machine_arch_type
+#  undef machine_arch_type
+#  define machine_arch_type	__machine_arch_type
+# else
+#  define machine_arch_type	MACH_TYPE_CCARDWMX28
+# endif
+# define machine_is_ccardwmx28()	(machine_arch_type == MACH_TYPE_CCARDWMX28)
+#else
+# define machine_is_ccardwmx28()	(0)
+#endif
+
+#ifdef CONFIG_MACH_CCARDMX28
+# ifdef machine_arch_type
+#  undef machine_arch_type
+#  define machine_arch_type	__machine_arch_type
+# else
+#  define machine_arch_type	MACH_TYPE_CCARDMX28
+# endif
+# define machine_is_ccardmx28()	(machine_arch_type == MACH_TYPE_CCARDMX28)
+#else
+# define machine_is_ccardmx28()	(0)
+#endif
+
+#ifdef CONFIG_MACH_CCARDWMX28JS
+# ifdef machine_arch_type
+#  undef machine_arch_type
+#  define machine_arch_type	__machine_arch_type
+# else
+#  define machine_arch_type	MACH_TYPE_CCARDWMX28JS
+# endif
+# define machine_is_ccardwmx28js()	(machine_arch_type == MACH_TYPE_CCARDWMX28JS)
+#else
+# define machine_is_ccardwmx28js()	(0)
+#endif
+
+#ifdef CONFIG_MACH_CCARDMX28JS
+# ifdef machine_arch_type
+#  undef machine_arch_type
+#  define machine_arch_type	__machine_arch_type
+# else
+#  define machine_arch_type	MACH_TYPE_CCARDMX28JS
+# endif
+# define machine_is_ccardmx28js()	(machine_arch_type == MACH_TYPE_CCARDMX28JS)
+#else
+# define machine_is_ccardmx28js()	(0)
 #endif
 
 /*
