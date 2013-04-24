@@ -69,6 +69,11 @@
 #define CONFIG_CPU_FREQ		360
 
 /*
+ * Power configuration
+ */
+#define CONFIG_NO_BATTERY
+
+/*
  * U-Boot Commands
  */
 #include <config_cmd_default.h>

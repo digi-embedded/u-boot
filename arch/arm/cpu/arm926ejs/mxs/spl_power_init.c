@@ -217,10 +217,16 @@ static void mxs_power_init_4p2_params(void)
 		POWER_5VCTRL_HEADROOM_ADJ_MASK,
 		0x4 << POWER_5VCTRL_HEADROOM_ADJ_OFFSET);
 
+#ifdef CONFIG_NO_BATTERY
+	clrsetbits_le32(&power_regs->hw_power_dcdc4p2,
+		POWER_DCDC4P2_DROPOUT_CTRL_MASK,
+		POWER_DCDC4P2_DROPOUT_CTRL_100MV);
+#else
 	clrsetbits_le32(&power_regs->hw_power_dcdc4p2,
 		POWER_DCDC4P2_DROPOUT_CTRL_MASK,
 		POWER_DCDC4P2_DROPOUT_CTRL_100MV |
 		POWER_DCDC4P2_DROPOUT_CTRL_SRC_SEL);
+#endif
 
 	clrsetbits_le32(&power_regs->hw_power_5vctrl,
 		POWER_5VCTRL_CHARGE_4P2_ILIMIT_MASK,
