@@ -148,24 +148,7 @@ const iomux_cfg_t iomux_setup[] = {
 
 uint32_t mxs_mem_get_size(void)
 {
-	struct mxs_ocotp_regs *ocotp_regs =
-		(struct mxs_ocotp_regs *)MXS_OCOTP_BASE;
-	unsigned char variant;
-	unsigned long retries = 100000;
-
-	/* Open OTP banks */
-	writel(OCOTP_CTRL_RD_BANK_OPEN, &ocotp_regs->hw_ocotp_ctrl_set);
-	while((OCOTP_CTRL_BUSY & readl(&ocotp_regs->hw_ocotp_ctrl)) &&
-		retries++);
-
-	/* Read variant from HW_OCOTP_CUST1[15..8] */
-	variant = (readl(&ocotp_regs->hw_ocotp_cust1) >> 8) & 0xff;
-
-	/* Close OTP banks */
-	writel(OCOTP_CTRL_RD_BANK_OPEN, &ocotp_regs->hw_ocotp_ctrl_clr);
-
-	/* return DRAM size of variant */
-        return (ccardxmx28_id[variant].sdram);
+	return 0x04000000;	/* 64 MiB */
 }
 
 void mxs_adjust_memory_params(uint32_t *dram_vals)
