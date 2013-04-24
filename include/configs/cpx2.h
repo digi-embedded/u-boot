@@ -64,6 +64,11 @@
 #define CONFIG_SPL_SERIAL_SUPPORT
 
 /*
+ * CPU frequency configuration (determines EMI/HBUS frequencies)
+ */
+#define CONFIG_CPU_FREQ		360
+
+/*
  * U-Boot Commands
  */
 #include <config_cmd_default.h>
