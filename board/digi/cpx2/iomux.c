@@ -153,16 +153,10 @@ uint32_t mxs_mem_get_size(void)
 
 void mxs_adjust_memory_params(uint32_t *dram_vals)
 {
-	uint32_t dram_size = mxs_mem_get_size();
+	/* 128 SDRAM (MT47H64M16-25E) */
+	dram_vals[29] = 0x0102020a;	// Enable CS0; 10 bit col addr, 13 addr pins, auto precharge=A10
 
-	if (0x8000000 == dram_size) {
-		/* 128 SDRAM (MT47H64M16-25E) */
-		dram_vals[29] = 0x0102020a;	// Enable CS0; 10 bit col addr, 13 addr pins, auto precharge=A10
-	}
-	else {
-		/* 256 SDRAM (MT47H128M16-25E, assume default) */
-		dram_vals[29] = 0x0102010a;	// Enable CS0; 10 bit col addr, 14 addr pins, auto precharge=A10
-	}
+	dram_vals[31] = 0x00000101;	// 4 bank mode
 	dram_vals[37] = 0x07080403;	// CASLAT_LIN_GATE=7 CASLAT_LIN=8 CASLAT=4 WRLAT=3 (could potentially use: CASLAT_LIN_GATE=6, 6, 3, 2)
 
 	/* EMI freq = 205.71 MHz, cycle=4.861ns */
@@ -187,19 +181,14 @@ void mxs_adjust_memory_params(uint32_t *dram_vals)
 	dram_vals[79] = 0x00000005;
 	dram_vals[83] = 0x00000000;	// Disable CS0 ODT during reads
 	dram_vals[84] = 0x00000001;	// Enable  CS0 ODT during writes to CS0
-	dram_vals[89] = 0x00000000;
-	dram_vals[90] = 0x00000000;
-	dram_vals[93] = 0x00000000;
-	dram_vals[94] = 0x00000000;
+
 	dram_vals[163] = 0x00030404;
 	dram_vals[164] = 0x00000002;	// TMOD=tMRD=2 cycles
 
 	dram_vals[177] = 0x02030101;	// TCCD=2, TRPA=tRPA(<1Gb)=12.5ns/4.86ns=3, CKSRX/CKSRE=1 (see pg 115, note 1)
 	dram_vals[181] = 0x00000442;	// MR0 settings for CS0: WR=3, CASLat=4, Sequential, BurstLength=4
 
-	dram_vals[182] = 0x00000000;
 	dram_vals[183] = 0x00000004;	// MR1 settings for CS0: 75ohm ODT nominal, Full drive strength
-	dram_vals[184] = 0x00000000;	// MR2 settings for CS0: 2x self-refresh timing (Tcase > 85C) (to give us more temp margin)
 	dram_vals[185] = 0x00000080;	// MR3 settings for CS0:
 	dram_vals[189] = 0xffffffff;
 }
