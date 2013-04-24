@@ -72,6 +72,7 @@
  * Power configuration
  */
 #define CONFIG_NO_BATTERY
+#define CONFIG_NO_PSWITCH
 
 /*
  * U-Boot Commands
