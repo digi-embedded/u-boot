@@ -153,40 +153,64 @@ uint32_t mxs_mem_get_size(void)
 
 void mxs_adjust_memory_params(uint32_t *dram_vals)
 {
-	/* 128 SDRAM (MT47H64M16-25E) */
-	dram_vals[29] = 0x0102020a;	// Enable CS0; 10 bit col addr, 13 addr pins, auto precharge=A10
+	/* 64 MiB SDRAM (MT47H64M16-25E) */
 
-	dram_vals[31] = 0x00000101;	// 4 bank mode
-	//dram_vals[37] = 0x07080403;	// CASLAT_LIN_GATE=7 CASLAT_LIN=8 CASLAT=4 WRLAT=3 (could potentially use: CASLAT_LIN_GATE=6, 6, 3, 2)
+	/* Enable CS0; 10 bit col addr, 13 addr pins, auto precharge=A10 */
+	dram_vals[29] = 0x0102020a;
 
-	/* EMI freq = 205.71 MHz, cycle=4.861ns */
-	dram_vals[38] = 0x06005303;	// tDAL=tWR+tRP=15ns+12.5ns=27.5ns/4.86ns=6, CPD=400ns/4.86ns=83 (0x53), TCKE=3
-	dram_vals[39] = 0x0a0000c8;	// tFAW=45ns/4.86ns=10, DLL reset recovery (lock) time = 200 cycles
-	dram_vals[40] = 0x0200a0c1;	// TMRD=2, TINIT=200us/4.86ns=41153=0xa0c1 - see init timing diagram (note 3)
-	//dram_vals[41] = 0x0002030c;	// TPDEX=tXP=2, tRCD=12.5ns/4.86ns=3, tRC=55/4.86ns=12
-	dram_vals[42] = 0x00384309;	// TRAS_max=floor(70000ns/4.86ns)=14403=0x3843, TRAS_min=40ns/4.86ns=9
-	dram_vals[43] = 0x03160322;	// tRP=12.5ns/4.86ns=3, tRFC(512Mb)=105ns/4.86ns=22=0x16, tREFIit=floor(3900ns/4.86ns)=802=0x322 (32ms refresh)
-	dram_vals[44] = 0x02040203;	// tWTR=7.5ns/4.86ns=2, tWR=15ns/4.86ns=4 tRTP=7.5ns/4.86ns=2 tRRD(x16)=10ns/4.86ns=3
-	dram_vals[45] = 0x00c80018;	// TSXR=tXSRDmin=200, TXSNR=tXSNR=tRFC(512Mb)+10ns=115ns/4.86ns=24
+	dram_vals[31] = 0x00000101;	/* 4 bank mode */
 
-	dram_vals[67] = 0x01000102;	// Enable CS0 clock only
+	/* EMI freq = 130.9 MHz, cycle=7.638ns */
+	/* tDAL=tWR+tRP=15ns+12.5ns=27.5ns/7.638ns=0x4, CPD=400ns/7.638ns=0x35,
+	 * TCKE=3 */
+	dram_vals[38] = 0x04003503;
+	/* tFAW=45ns/7.638ns=0x6, DLL reset recovery (lock) time = 200 cycles */
+	dram_vals[39] = 0x060000c8;
+	/* TMRD=2, TINIT=200us/7.638ns=0x6646 - see init timing diagram
+	 * (note 3) */
+	dram_vals[40] = 0x02006646;
+	/* TPDEX=tXP=2, tRCD=15ns/7.638ns=2, tRC=57.5/7.638ns=0x8 */
+	dram_vals[41] = 0x00020208;
+	/* TRAS_max=floor(70000ns/7.638ns)=0x23CB, TRAS_min=40ns/7.638ns=0x6 */
+	dram_vals[42] = 0x0023cb06;
+	/* tRP=12.5ns/7.638ns=2, tRFC(512Mb)=105ns/7.638ns=0x0E,
+	 * tREFIit=floor(3900ns/7.638ns)=0x1FE (32ms refresh) */
+	dram_vals[43] = 0x020e01fe;
+	/* tWTR=7.5ns/7.638ns=1 -> 2 (min. 2), tWR=15ns/7.638ns=2
+	 * tRTP=7.5ns/7.638ns=1 -> 2 (min. 2) tRRD(x16)=10ns/7.638ns=2 */
+	dram_vals[44] = 0x02020202;
+	/* TSXR=tXSRDmin=200, TXSNR=tXSNR=tRFC(512Mb)+10ns=115ns/7.638ns=0x10 */
+	dram_vals[45] = 0x00c80010;
+
+	dram_vals[66] = 0x00000409;	/* EVK   value */
+	dram_vals[67] = 0x01000102;	/* Enable CS0 clock only */
+	dram_vals[68] = 0x04090409;	/* EVK   value */
+	dram_vals[70] = 0x00020006;	/* EVK   value */
 	dram_vals[73] = 0x00000000;
 	dram_vals[74] = 0x00000000;
-	dram_vals[75] = 0x07400300;	// EVK   value - bit 22 is usually set by FSL, but not in...
-	dram_vals[76] = 0x07400300;	//   ...200Mhz case; assume a typo and correct it
+	/* EVK   value - bit 22 is usually set by FSL, but not in 200Mhz case;
+	 * assume a typo and correct it */
+	dram_vals[75] = 0x07400300;
+	dram_vals[76] = 0x07400300;
 	dram_vals[77] = 0x00000000;
 	dram_vals[78] = 0x00000000;
-	dram_vals[83] = 0x00000000;	// Disable CS0 ODT during reads
-	dram_vals[84] = 0x00000001;	// Enable  CS0 ODT during writes to CS0
+	dram_vals[83] = 0x00000000;	/* Disable CS0 ODT during reads */
+	/* Enable  CS0 ODT during writes to CS0 */
+	dram_vals[84] = 0x00000001;
 
-	dram_vals[163] = 0x00030404;
-	dram_vals[164] = 0x00000002;	// TMOD=tMRD=2 cycles
+	dram_vals[164] = 0x00000002;	/* TMOD=tMRD=2 cycles */
 
-	dram_vals[177] = 0x02030101;	// TCCD=2, TRPA=tRPA(<1Gb)=12.5ns/4.86ns=3, CKSRX/CKSRE=1 (see pg 115, note 1)
-	dram_vals[181] = 0x00000442;	// MR0 settings for CS0: WR=3, CASLat=4, Sequential, BurstLength=4
-
-	dram_vals[183] = 0x00000004;	// MR1 settings for CS0: 75ohm ODT nominal, Full drive strength
-	dram_vals[185] = 0x00000080;	// MR3 settings for CS0:
+	/* TCCD=2, TRPA=tRPA(<1Gb)=12.5ns/7.638ns=2, CKSRX/CKSRE=1
+	 * (see pg 115, note 1) */
+	dram_vals[177] = 0x02020101;
+	dram_vals[179] = 0x00040900;	/* EVK   value (may be read-only?) */
+	dram_vals[180] = 0x04090409;	/* EVK   value (may be read-only?) */
+	/* MR0 settings for CS0: WR=2 (15ns/7.638ns=2), CASLat=4,
+	 * Sequential, BurstLength=4 */
+	dram_vals[181] = 0x00000242;
+	/* MR1 settings for CS0: 75ohm ODT nominal, Full drive strength */
+	dram_vals[183] = 0x00000004;
+	dram_vals[185] = 0x00000080;	/* MR3 settings for CS0: */
 }
 
 void board_init_ll(void)
