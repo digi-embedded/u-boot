@@ -3123,6 +3123,16 @@ int generate_dynamic_vars(void)
 	return ret;
 }
 
+void generate_prompt(void)
+{
+	extern char sys_prompt[];
+	char temp[PATH_MAXLEN];
+
+	sprintf(temp, "%s %s ", convert2upper(modulename),
+		CONFIG_PROMPT_SEPARATOR);
+	strncpy(sys_prompt, temp, CONFIG_PROMPT_MAXLEN);
+}
+
 /* This is a function that is called early after doing the low
  * level initialization of the hardware. It is a place holder for
  * executing common initialization code for all Digi platforms
@@ -3132,6 +3142,7 @@ int bsp_init(void)
 	int ret = 0;
 
 	generate_platformname();
+	generate_prompt();
 	ret = generate_dynamic_vars();
 
 	return ret;

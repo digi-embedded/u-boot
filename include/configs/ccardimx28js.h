@@ -44,7 +44,6 @@
 #define MODULENAME_PREFIX		"ccard"
 #define MODULENAME_SUFFIX		"mx28"
 #define CONFIG_MODULE_STRING		"ConnectCard for i.MX28"
-#define CONFIG_SYS_PROMPT		"CCARDIMX28 # "
 #define PLATFORM			"js"
 
 #define CONFIG_CMD_BOOTSTREAM
@@ -134,12 +133,6 @@
  */
 #define	CONFIG_SYS_LONGHELP
 #define CONFIG_SYS_CBSIZE	2048			/* Console I/O Buffer Size */
-#define CONFIG_SYS_PBSIZE	\
-	(CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
-						/* Print buffer size */
-#define CONFIG_SYS_MAXARGS	32		/* Max number of command args */
-#define CONFIG_SYS_BARGSIZE	CONFIG_SYS_CBSIZE
-						/* Boot Argument Buffer Size */
 #define CONFIG_VERSION_VARIABLE	/* U-BOOT version */
 #define CONFIG_AUTO_COMPLETE		/* Command auto complete */
 #define CONFIG_CMDLINE_EDITING		/* Command history etc */

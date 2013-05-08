@@ -195,6 +195,8 @@ typedef void (interrupt_handler_t)(void *);
 # endif
 #endif
 
+#define CONFIG_PROMPT_MAXLEN		50
+
 /*
  * General Purpose Utilities
  */

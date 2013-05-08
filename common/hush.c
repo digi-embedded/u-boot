@@ -1009,6 +1009,7 @@ static void get_user_input(struct in_str *i)
 #else
 	int n;
 	static char the_command[CONFIG_SYS_CBSIZE];
+	extern char sys_prompt[];
 
 #ifdef CONFIG_BOOT_RETRY_TIME
 #  ifndef CONFIG_RESET_TO_RETRY
@@ -1018,7 +1019,7 @@ static void get_user_input(struct in_str *i)
 #endif
 	i->__promptme = 1;
 	if (i->promptmode == 1) {
-		n = readline(CONFIG_SYS_PROMPT);
+		n = readline(sys_prompt);
 	} else {
 		n = readline(CONFIG_SYS_PROMPT_HUSH_PS2);
 	}

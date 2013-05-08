@@ -344,8 +344,9 @@ int cmd_auto_complete(const char *const prompt, char *buf, int *np, int *colp)
 	int i, j, k, len, seplen, argc;
 	int cnt;
 	char last_char;
+	extern char sys_prompt[];
 
-	if (strcmp(prompt, CONFIG_SYS_PROMPT) != 0)
+	if (strcmp(prompt, sys_prompt) != 0)
 		return 0;	/* not in normal console */
 
 	cnt = strlen(buf);
