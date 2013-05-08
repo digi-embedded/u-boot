@@ -18,29 +18,6 @@
 #ifndef __DIGI_COMMON_POST_H
 #define __DIGI_COMMON_POST_H
 
-/* Default 'uimg' value */
-#ifndef CONFIG_UBOOT_IMAGE_NAME
-#ifdef CONFIG_CMD_BOOTSTREAM
-# ifdef CONFIG_HAB_ENABLED
-#  define CONFIG_UBOOT_IMAGE_NAME "u-boot-"CONFIG_PLATFORM_NAME"-ivt.sb"
-# else
-#  define CONFIG_UBOOT_IMAGE_NAME "u-boot-"CONFIG_PLATFORM_NAME".sb"
-# endif
-#elif defined(CONFIG_CCXMX5_SDRAM_128MB)
-# define CONFIG_UBOOT_IMAGE_NAME "u-boot-"CONFIG_PLATFORM_NAME"_128sdram.bin"
-#else
-# define CONFIG_UBOOT_IMAGE_NAME "u-boot-"CONFIG_PLATFORM_NAME".bin"
-#endif
-#endif /* CONFIG_UBOOT_IMAGE_NAME */
-
-#ifndef CONFIG_LINUX_IMAGE_NAME
-# define CONFIG_LINUX_IMAGE_NAME	"uImage-"CONFIG_PLATFORM_NAME
-#endif
-
-#ifndef CONFIG_ANDROID_IMAGE_NAME
-# define CONFIG_ANDROID_IMAGE_NAME	"uImage-android-"CONFIG_PLATFORM_NAME
-#endif
-
 /* ********** stack sizes ********** */
 #ifdef CONFIG_USE_IRQ
 # define CONFIG_STACKSIZE_IRQ	(4*1024)	/* IRQ stack */

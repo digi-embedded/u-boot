@@ -51,6 +51,13 @@
 /* define for developing */
 #undef	CONFIG_SKIP_LOWLEVEL_INIT
 
+#define PLATFORMNAME_MAXLEN	30	/* Max length of module and
+					 * platform name */
+#define MAX_DYNVARS		100	/* Max number of dynamic variables */
+
+/* ********** Prompt *********** */
+#define CONFIG_PROMPT_SEPARATOR		"#"
+
 /* ********** Rootfs *********** */
 /* Delay before trying to mount the rootfs from a media */
 #define ROOTFS_DELAY		10

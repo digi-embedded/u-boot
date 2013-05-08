@@ -627,6 +627,11 @@ void board_init_r(gd_t *id, ulong dest_addr)
 	get_module_hw_id();
 #endif
 
+#if defined(CONFIG_CMD_BSP)
+       if (bsp_init())             /* initialize common Digi BSP stuff */
+	       printf("Error during BSP initialization!\n");
+#endif
+
 #if defined(CONFIG_CMD_PCI) || defined(CONFIG_PCI)
 	arm_pci_init();
 #endif

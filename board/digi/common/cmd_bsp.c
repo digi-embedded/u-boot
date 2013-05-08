@@ -129,8 +129,8 @@ typedef struct {
 } part_t;
 
 typedef struct {
-        const char*    szEnvVar;
-        const char*    szEnvDflt;
+	char* szEnvVar;
+	char* szEnvDflt;
 } env_default_t;
 
 typedef struct {
@@ -232,75 +232,10 @@ extern void netboot_update_env (void);
 
 /* ********** local variables ********** */
 
-static const env_default_t l_axEnvDynamic[] = {
-	{ CONSOLE,       NULL                         	   },  /* auto-generated */
-	{ "androidloadaddr", MK_STR( CONFIG_ANDROID_LOAD_ADDR )  },
-        { "aimg",        CONFIG_ANDROID_IMAGE_NAME           },
-#ifdef CONFIG_DUAL_BOOT
-        { "dualb_retries", MK_STR(CONFIG_DUAL_BOOT_RETRIES) },
-#ifdef CONFIG_DUAL_BOOT_WDT_ENABLE
-        { "dualb_wdt_timeout", MK_STR(CONFIG_DUAL_BOOT_WDT_TIMEOUT) },
-#endif /* CONFIG_DUAL_BOOT_WDT_ENABLE */
-#endif /* CONFIG_DUAL_BOOT */
-#ifdef CONFIG_MODULE_NAME_WCE
-	{ "ebootaddr",   MK_STR( CONFIG_LOADADDR )           },
-        { "eimg",        "eboot-"CONFIG_MODULE_NAME_WCE    },
-#endif
-#ifdef CONFIG_FPGA_SIZE
-        { "fimg",        "wifi.biu"                        },
-#endif
-#ifdef CONFIG_CMD_SATA
-	{ "sata_rpart",	DEFAULT_ROOTFS_SATA_PART		},
-#endif
-	{ "hostname",	CONFIG_MODULE_NAME_UPPERCASE "-000000" },
-	{ "ip",          "ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}:eth0:off" },
-	{ "loadaddr",    MK_STR( CONFIG_LOADADDR )           },
-	{ "fdtaddr",    MK_STR( CONFIG_FDT_LOADADDR )           },
-	{ "fdtimg",    CONFIG_FDT_FILE },
-	{ "loadaddr_initrd",    MK_STR( CONFIG_INITRD_LOAD_ADDR )           },
-        { "kimg",        CONFIG_LINUX_IMAGE_NAME           },
-        { NPATH,         "/exports/nfsroot-"CONFIG_PLATFORM_NAME },
-	{ "linuxloadaddr", MK_STR( CONFIG_LOADADDR )           },
-	{ "loadzipaddr", MK_STR( CONFIG_ZIP_LOAD_ADDR )         },
-#ifdef CONFIG_AUTOLOAD_BOOTSCRIPT
-	{ "loadbootsc",	"yes" },
-	{ "bootscript", CONFIG_PLATFORM_NAME"-bootscript" },
-#endif
-#ifdef CONFIG_CMD_MMC
-	{ "mmc_rpart",	DEFAULT_ROOTFS_MMC_PART		},
-#endif
-	{ "netosloadaddr", MK_STR( CONFIG_NETOS_LOAD_ADDR )   },
-#ifdef CONFIG_IS_NETSILICON
-        /* NET+OS exists only for these platforms */
-        { "nimg",        "image-"CONFIG_MODULE_NAME_NETOS".bin"},
-# ifdef PART_NETOS_LOADER_SIZE
-        { "nloader",     "rom-"CONFIG_MODULE_NAME_NETOS".bin"},
-# endif
-#endif  /* CONFIG_IS_NETSILICON */
-        { RIMG,          NULL                              }, /* auto-generated */
-        { ARIMG,         NULL                              }, /* auto-generated */
-#if defined(CONFIG_CMD_USB) || defined(CONFIG_CMD_MMC)
-	{ "rootdelay",	MK_STR(ROOTFS_DELAY)		},
-#endif
-	{ SMTD,          ""                                },
-	{ SNFS,          "root=/dev/nfs nfsroot=${serverip}:"   },
-#ifdef CONFIG_UBOOT_SPLASH
-        { "simg",        "splash.bmp"                      },
-#endif
-        { "std_bootarg", ""                                },
-        { "uimg",        CONFIG_UBOOT_IMAGE_NAME           },
-        { USRIMG,        NULL                              }, /* auto-generated */
-#ifdef CONFIG_CMD_USB
-	{ "usb_rpart",	DEFAULT_ROOTFS_USB_PART		},
-#endif
-#ifdef VIDEO_DISPLAY
-        { VIDEO_VAR,       VIDEO_DISPLAY                     },
-        { FBPRIMARY_VAR,   VIDEO_VAR                         },
-#endif
-#ifdef VIDEO_DISPLAY_2
-        { VIDEO2_VAR,      VIDEO_DISPLAY_2                     },
-#endif
-};
+static char modulename[PLATFORMNAME_MAXLEN];
+static char platformname[PLATFORMNAME_MAXLEN];
+static int dynvars = 0;
+static env_default_t l_axEnvDynamic[MAX_DYNVARS];	/* Dynamic variables */
 
 static const part_t l_axPart[] = {
         { NVOS_LINUX, "linux",  "kimg",   NVPT_LINUX,      .bForBoot = 1 },
@@ -348,6 +283,19 @@ static const image_source_t l_axImgSrc[] = {
 #undef MK
 
 /* ********** local functions ********** */
+
+/* Converts a null terminated string to upper case */
+static char *convert2upper(char *str)
+{
+	char *newstr, *p;
+
+	p = newstr = strdup(str);
+	do {
+		*p = toupper(*p);
+	}while (*p++);
+
+	return newstr;
+}
 
 #if defined(CONFIG_CMD_UBI)
 static int is_ubi(char *filename)
@@ -1069,7 +1017,7 @@ _getpart:
 				char console[20];
 
 				SAFE_STRCAT(szBootargs, " androidboot.hardware=");
-				SAFE_STRCAT(szBootargs, CONFIG_PLATFORM_NAME);
+				SAFE_STRCAT(szBootargs, platformname);
 				/* Get console out of the console variable, by searching for the
 				* platform console name pattern
 				*/
@@ -2227,7 +2175,7 @@ static int do_printenv_dynamic(cmd_tbl_t* cmdtp, int flag, int argc, char * cons
 {
         int i;
 
-        for( i = 0; i < ARRAY_SIZE( l_axEnvDynamic ); i++ ) {
+        for (i = 0; i < dynvars; i++) {
                 const char* szVar = l_axEnvDynamic[ i ].szEnvVar;
                 printf( "%s=%s\n", szVar,  GetEnvVar( szVar, 0 ) );
         }
@@ -2440,18 +2388,13 @@ const char* GetEnvVar( const char* szVar, char bSilent )
 						break;
 				}
 				if (!strcmp(szVar, ARIMG))
-					sprintf(rootfsbasename, "android-%s", CONFIG_PLATFORM_NAME);
-				else {
-#ifdef CONFIG_IMAGE_JFFS2_BASENAME
-					sprintf(rootfsbasename, "%s", CONFIG_IMAGE_JFFS2_BASENAME);
-#else
-					sprintf(rootfsbasename, "rootfs-%s", CONFIG_PLATFORM_NAME);
-#endif
-				}
+					sprintf(rootfsbasename, "android-%s", platformname);
+				else
+					sprintf(rootfsbasename, "rootfs-%s", platformname);
 				sprintf( szTmpBuf, "%s%s.%s", rootfsbasename, sEraseSize, ending );
 			} else
 				sprintf( szTmpBuf, "userfs-%s-%i.jffs2",
-						CONFIG_PLATFORM_NAME, iEraseSize / 1024 );
+						platformname, iEraseSize / 1024 );
 			szTmp = szTmpBuf;
 		} else if( !strcmp( szVar, CONSOLE ) ) {
 			char *baudrate;
@@ -2472,7 +2415,7 @@ const char* GetEnvVar( const char* szVar, char bSilent )
 		} else {
 			int i = 0;
 
-			while( i < ARRAY_SIZE( l_axEnvDynamic ) ) {
+			while (i < dynvars) {
 				if( !strcmp( l_axEnvDynamic[ i ].szEnvVar, szVar ) ) {
 					szTmp = l_axEnvDynamic[ i ].szEnvDflt;
 					break;
@@ -2958,32 +2901,6 @@ void dualb_nosystem_panic(void)
 
 #endif /* CONFIG_DUAL_BOOT */
 
-static void generate_hostname(void)
-{
-	int i = 0;
-	unsigned char enetaddr[6];
-
-	while (i < ARRAY_SIZE(l_axEnvDynamic)) {
-		if( !strcmp(l_axEnvDynamic[i].szEnvVar, "hostname")) {
-			/* hostname dynamic var default value
-			 * cannot be determined statically.
-			 * Generate hostname out of module name and last
-			 * three bytes of MAC address
-			 */
-			eth_getenv_enetaddr("ethaddr", enetaddr);
-			sprintf((char *)l_axEnvDynamic[i].szEnvDflt,
-				"%s-%02X%02X%02X",
-				CONFIG_MODULE_NAME_UPPERCASE,
-				enetaddr[3], enetaddr[4], enetaddr[5]);
-			/* set variable so that the next saveenv
-			 * saves it in NVRAM.
-			 */
-			setenv("hostname", (char *)l_axEnvDynamic[i].szEnvDflt);
-		}
-		i++;
-	} /* while */
-}
-
 static int uses_capacitive_touch(const char *video)
 {
 	/* List capacitive touchscreen LCD displays */
@@ -3030,15 +2947,194 @@ static int append_calibration(void)
 
 /* ********** global functions ********** */
 
+int create_dynvar(char *name, char *value)
+{
+	/* All variables (names and values) must be allocated */
+
+	/* Name */
+	l_axEnvDynamic[dynvars].szEnvVar = (char *)malloc(strlen(name) + 1);
+	if (NULL == l_axEnvDynamic[dynvars].szEnvVar)
+		return 1;
+	strcpy(l_axEnvDynamic[dynvars].szEnvVar, name);
+
+	/* Value */
+	l_axEnvDynamic[dynvars].szEnvDflt = (char *)malloc(strlen(value) + 1);
+	if (NULL == l_axEnvDynamic[dynvars].szEnvDflt)
+		return 1;
+	strcpy(l_axEnvDynamic[dynvars].szEnvDflt, value);
+
+	dynvars++;
+	return 0;
+}
+
+/*
+ * This function generates the module name.
+ * By default it will use new name 'ccimx51'. If the variable
+ * 'legacynames' exists and is 'yes', it will use 'ccmx51' or 'ccwmx51' based
+ * on the hwid.
+ * If the variable does not exist, but the config option
+ * CONFIG_LEGACY_PLATFORM_NAMES is enabled, it will use legacy names.
+ */
+void generate_modulename(void)
+{
+	const char *s = getenv("legacynames");
+	int legacynames = 0;
+
+#ifdef CONFIG_LEGACY_PLATFORM_NAMES
+	if (NULL == s)
+		legacynames = 1;
+#endif
+	if (NULL != s) {
+		if (!strcmp(s, "on") || !strcmp(s, "yes") || !strcmp(s, "1"))
+			legacynames = 1;
+	}
+
+	strncpy(modulename, MODULENAME_PREFIX, PLATFORMNAME_MAXLEN);
+	if (legacynames) {
+		if (MACH_TYPE_CCWMX53JS == gd->bd->bi_arch_number)
+			SAFE_STRCAT(modulename, "w");
+	}
+	else
+		SAFE_STRCAT(modulename, "i");
+	SAFE_STRCAT(modulename, MODULENAME_SUFFIX);
+}
+
+/*
+ * This function generates the platform name by appending the constant
+ * PLATFORM (typically 'js') to the module name.
+ */
+void generate_platformname(void)
+{
+	char temp[PATH_MAXLEN];
+
+	generate_modulename();
+	sprintf(temp, "%s%s", modulename, PLATFORM);
+	strncpy(platformname, temp, PLATFORMNAME_MAXLEN);
+}
+
+/* This function generates the contents of dynamic variables */
+int generate_dynamic_vars(void)
+{
+	int ret = 0;
+	char temp[PATH_MAXLEN];
+	unsigned char enetaddr[6];
+
+	ret |= create_dynvar("androidloadaddr",
+			     MK_STR(CONFIG_ANDROID_LOAD_ADDR));
+
+	sprintf(temp, "uImage-android-%s", platformname);
+	ret |= create_dynvar("aimg", temp);
+#ifdef CONFIG_DUAL_BOOT
+	ret |= create_dynvar("dualb_retries", MK_STR(CONFIG_DUAL_BOOT_RETRIES));
+#ifdef CONFIG_DUAL_BOOT_WDT_ENABLE
+	ret |= create_dynvar("dualb_wdt_timeout",
+			     MK_STR(CONFIG_DUAL_BOOT_WDT_TIMEOUT));
+#endif /* CONFIG_DUAL_BOOT_WDT_ENABLE */
+#endif /* CONFIG_DUAL_BOOT */
+#ifdef CONFIG_MODULE_NAME_WCE
+	ret |= create_dynvar("ebootaddr", MK_STR(CONFIG_LOADADDR));
+	ret |= create_dynvar("eimg", "eboot-"CONFIG_MODULE_NAME_WCE);
+#endif
+#ifdef CONFIG_CMD_SATA
+	ret |= create_dynvar("sata_rpart", DEFAULT_ROOTFS_SATA_PART);
+#endif
+
+	/* Generate hostname out of module name and last
+	 * three bytes of MAC address
+	 */
+	eth_getenv_enetaddr("ethaddr", enetaddr);
+	sprintf(temp, "%s-%02X%02X%02X", convert2upper(modulename),
+		enetaddr[3], enetaddr[4], enetaddr[5]);
+	ret |= create_dynvar("hostname",temp);
+
+	ret |= create_dynvar("ip", "ip=${ipaddr}:${serverip}:${gatewayip}:" \
+			     "${netmask}:${hostname}:eth0:off");
+	ret |= create_dynvar("loadaddr", MK_STR(CONFIG_LOADADDR));
+	ret |= create_dynvar("loadaddr_initrd",
+			     MK_STR(CONFIG_INITRD_LOAD_ADDR));
+
+	sprintf(temp, "uImage-%s", platformname);
+	ret |= create_dynvar("kimg", temp);
+
+	sprintf(temp, "/exports/nfsroot-%s", platformname);
+	ret |= create_dynvar(NPATH, temp);
+
+	ret |= create_dynvar("linuxloadaddr", MK_STR(CONFIG_LOADADDR));
+#ifdef CONFIG_AUTOLOAD_BOOTSCRIPT
+	ret |= create_dynvar("loadbootsc", "yes");
+
+	sprintf(temp, "%s-bootscript", platformname);
+	ret |= create_dynvar("bootscript", temp);
+#endif
+#ifdef CONFIG_CMD_MMC
+	ret |= create_dynvar("mmc_rpart",	DEFAULT_ROOTFS_MMC_PART);
+#endif
+#if defined(CONFIG_CMD_USB) || defined(CONFIG_CMD_MMC)
+	ret |= create_dynvar("rootdelay", MK_STR(ROOTFS_DELAY));
+#endif
+	ret |= create_dynvar(SMTD, "");
+	ret |= create_dynvar(SNFS, "root=/dev/nfs nfsroot=${serverip}:");
+#ifdef CONFIG_UBOOT_SPLASH
+	ret |= create_dynvar("simg", "splash.bmp");
+#endif
+	ret |= create_dynvar("std_bootarg", "");
+
+	/* U-Boot file name */
+#ifdef CONFIG_UBOOT_IMAGE_NAME
+	strcpy(temp, CONFIG_UBOOT_IMAGE_NAME);		/* custom name */
+#else
+	sprintf(temp, "u-boot-%s", platformname);
+#if defined(CONFIG_CCIMX5_SDRAM_128MB) || defined(CONFIG_CPX2_SDRAM_128MB)
+	SAFE_STRCAT(temp, "_128sdram");
+#endif
+#ifdef CONFIG_CMD_BOOTSTREAM
+#ifdef CONFIG_HAB_ENABLED
+	SAFE_STRCAT(temp, "-ivt");
+#endif
+	SAFE_STRCAT(temp, ".sb");
+#else
+	SAFE_STRCAT(temp, ".bin");
+#endif /* CONFIG_CMD_BOOTSTREAM */
+#endif /* CONFIG_UBOOT_IMAGE_NAME */
+	ret |= create_dynvar("uimg", temp);
+
+#ifdef CONFIG_CMD_USB
+	ret |= create_dynvar("usb_rpart", DEFAULT_ROOTFS_USB_PART);
+#endif
+#ifdef VIDEO_DISPLAY
+	ret |= create_dynvar(VIDEO_VAR, VIDEO_DISPLAY);
+	ret |= create_dynvar(FBPRIMARY_VAR, VIDEO_VAR);
+#endif
+#ifdef VIDEO_DISPLAY_2
+	ret |= create_dynvar(VIDEO2_VAR, VIDEO_DISPLAY_2);
+#endif
+#ifdef CONFIG_MODULE_NAME_WCE
+	ret |= create_dynvar("wceloadaddr",  MK_STR(CONFIG_WCE_LOAD_ADDR));
+	ret |= create_dynvar("wimg", "wce-"CONFIG_MODULE_NAME_WCE);
+	ret |= create_dynvar("wzimg", "wcez-"CONFIG_MODULE_NAME_WCE);
+#endif
+
+	/* Device Tree */
+	ret |= create_dynvar("fdtaddr", MK_STR(CONFIG_FDT_LOADADDR));
+	sprintf(temp, "%s%s%s", CONFIG_FDT_PREFIX, platformname,
+		CONFIG_FDT_SUFFIX);
+	ret |= create_dynvar("fdtimg", temp);
+
+	return ret;
+}
+
 /* This is a function that is called early after doing the low
  * level initialization of the hardware. It is a place holder for
  * executing common initialization code for all Digi platforms
  */
 int bsp_init(void)
 {
-       generate_hostname();
+	int ret = 0;
 
-       return 0;
+	generate_platformname();
+	ret = generate_dynamic_vars();
+
+	return ret;
 }
 
 #endif	/* CONFIG_CMD_BSP */
