@@ -41,9 +41,7 @@
  * Digi custom
  */
 #define CONFIG_MODULE_NAME		"cpx2"
-#define CONFIG_MODULE_NAME_UPPERCASE	"CPX2"
 #define CONFIG_MODULE_STRING		"ConnectPort X2"
-#define CONFIG_PLATFORM_NAME		CONFIG_MODULE_NAME
 #define CONFIG_CMD_BOOTSTREAM
 #define CONFIG_HAB_ENABLED
 #define	CONFIG_CMD_BSP
@@ -131,13 +129,7 @@
  * U-Boot general configurations
  */
 #define	CONFIG_SYS_LONGHELP
-#define CONFIG_SYS_PROMPT	"CPX2 U-Boot > "
 #define CONFIG_SYS_CBSIZE	2048			/* Console I/O Buffer Size */
-#define CONFIG_SYS_PBSIZE	\
-	(CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
-						/* Print buffer size */
-#define CONFIG_SYS_MAXARGS	32		/* Max number of command args */
-#define CONFIG_SYS_BARGSIZE	CONFIG_SYS_CBSIZE
 						/* Boot Argument Buffer Size */
 #define CONFIG_VERSION_VARIABLE	/* U-BOOT version */
 #define CONFIG_AUTO_COMPLETE		/* Command auto complete */

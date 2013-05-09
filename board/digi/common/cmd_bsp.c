@@ -2977,6 +2977,7 @@ int create_dynvar(char *name, char *value)
  */
 void generate_modulename(void)
 {
+#ifdef MODULE_COMPOSED_NAME
 	const char *s = getenv("legacynames");
 	int legacynames = 0;
 
@@ -2991,25 +2992,31 @@ void generate_modulename(void)
 
 	strncpy(modulename, MODULENAME_PREFIX, PLATFORMNAME_MAXLEN);
 	if (legacynames) {
-		if (MACH_TYPE_CCWMX53JS == gd->bd->bi_arch_number)
+		if (MACH_TYPE_CCWMX53JS == gd->bd->bi_arch_number ||
+		    MACH_TYPE_CCWMX51JS == gd->bd->bi_arch_number ||
+		    MACH_TYPE_CCARDWMX28JS == gd->bd->bi_arch_number)
 			SAFE_STRCAT(modulename, "w");
 	}
 	else
 		SAFE_STRCAT(modulename, "i");
 	SAFE_STRCAT(modulename, MODULENAME_SUFFIX);
+#else
+	strncpy(modulename, CONFIG_MODULE_NAME, PLATFORMNAME_MAXLEN);
+#endif /* MODULE_COMPOSED_NAME */
 }
 
 /*
  * This function generates the platform name by appending the constant
- * PLATFORM (typically 'js') to the module name.
+ * PLATFORM (typically 'js') to the module name on platforms with composed
+ * names.
  */
 void generate_platformname(void)
 {
-	char temp[PATH_MAXLEN];
-
 	generate_modulename();
-	sprintf(temp, "%s%s", modulename, PLATFORM);
-	strncpy(platformname, temp, PLATFORMNAME_MAXLEN);
+	strncpy(platformname, modulename, PLATFORMNAME_MAXLEN);
+#ifdef MODULE_COMPOSED_NAME
+	SAFE_STRCAT(platformname, PLATFORM);
+#endif
 }
 
 /* This function generates the contents of dynamic variables */

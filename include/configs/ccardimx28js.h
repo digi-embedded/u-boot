@@ -41,6 +41,8 @@
 /*
  * Digi custom
  */
+#define MODULE_COMPOSED_NAME		/* module name composed by parts:
+					 * prefix + ... + suffix + platform */
 #define MODULENAME_PREFIX		"ccard"
 #define MODULENAME_SUFFIX		"mx28"
 #define CONFIG_MODULE_STRING		"ConnectCard for i.MX28"
