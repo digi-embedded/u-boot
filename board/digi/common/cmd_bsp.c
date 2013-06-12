@@ -165,6 +165,7 @@ extern void dualb_increment_bootattempts(void);
 extern int dualb_get_bootattempts(void);
 extern void dualb_reset_bootattempts(void);
 extern void dualb_nosystem_panic(void);
+extern int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);		/* for do_reset() prototype */
 int dualb_save(void);
 int dualb_toggle(void);
 static void start_wdt(void);
@@ -783,13 +784,47 @@ _getpart:
 #ifndef CONFIG_DBOOT_LECAGY_WINCE_IMAGES
 		eprintf("incorrect image (no header or corrupted)\n");
 #ifdef CONFIG_DUAL_BOOT
-		if (dualb_toggle()) {
-			/* Call per platform hook when no system is bootable */
-			dualb_nosystem_panic();
-			dualb_skip = 1;
-			goto error;
+		/* Invalid system. To account for potential transient
+		 * NAND read problems, increment the bootattempts counter and
+		 * reset the board before trying the alternate system.
+		 * One iteration before reaching the retries limit, switch to
+		 * the alternate partition or else call the panic hook.
+		 */
+		dualb_increment_bootattempts();
+		if (dualb_get_bootattempts() < max_attempts) {
+			DUALB_PRINT("Bad image read (%d/%d).\n",
+				    dualb_get_bootattempts(), max_attempts);
+			DUALB_PRINT("Reset board to account for potential "
+				    "transient read error...\n");
+			do_reset(NULL, 0, 0, NULL);
 		}
-		/* Succesfully toggled to alternate partition */
+		else {
+			/* Try alternate system
+			 * if there is one available. Otherwise, call the panic
+			 * action hook or reset the counter and keep booting this
+			 * system FOREVER */
+			if (dualb_data->avail[!dualb_data->boot_part]) {
+				DUALB_PRINT("Trying alternate system...\n");
+				if (dualb_toggle()) {
+					/* Call per platform hook when no system is bootable */
+					dualb_nosystem_panic();
+					dualb_skip = 1;
+					goto error;
+				}
+			}
+			else {
+#ifdef CONFIG_DUAL_BOOT_RETRY_FOREVER
+				DUALB_PRINT("No alternate system available. Keep trying this one...\n");
+#else
+				dualb_nosystem_panic();
+				dualb_skip = 1;
+				goto error;
+#endif /* CONFIG_DUAL_BOOT_RETRY_FOREVER */
+			}
+		}
+
+		/* Successfully toggled to alternate partition
+		 * (or keep booting the current one forever) */
 		dualb_reset_bootattempts();
 		goto _getpart;
 #endif
