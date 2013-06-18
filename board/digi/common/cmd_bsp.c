@@ -589,11 +589,8 @@ _getpart:
 	{
 		switch( eOSType ) {
 		case NVOS_LINUX:
-			CE( GetIntFromEnvVar( &iLoadAddr, "linuxloadaddr", 0 ) );
-			GetIntFromEnvVar(&iLoadAddrFdt, "fdtaddr", 0);
-			break;
 		case NVOS_ANDROID:
-			CE( GetIntFromEnvVar( &iLoadAddr, "androidloadaddr", 0 ) );
+			CE(GetIntFromEnvVar(&iLoadAddr, "loadaddr", 0));
 			GetIntFromEnvVar(&iLoadAddrFdt, "fdtaddr", 0);
 			break;
 		default:
@@ -1396,10 +1393,8 @@ static int do_digi_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const arg
         /* user input processed, determine addresses */
         switch( eOSType ) {
             case NVOS_LINUX:
-                CE( GetIntFromEnvVar( &iLoadAddr, "linuxloadaddr", 0 ) );
-                break;
             case NVOS_ANDROID:
-		CE( GetIntFromEnvVar( &iLoadAddr, "androidloadaddr", 0 ) );
+                CE(GetIntFromEnvVar(&iLoadAddr, "loadaddr", 0));
 		break;
             default:
                 (void) GetIntFromEnvVar( &iLoadAddr, "loadaddr", 1 );
@@ -1933,10 +1928,8 @@ static int do_digi_verify(cmd_tbl_t* cmdtp, int flag, int argc, char * const arg
         /* user input processed, determine addresses */
         switch( eOSType ) {
             case NVOS_LINUX:
-                CE( GetIntFromEnvVar( &iLoadAddr, "linuxloadaddr", 0 ) );
-                break;
             case NVOS_ANDROID:
-		CE( GetIntFromEnvVar( &iLoadAddr, "androidloadaddr", 0 ) );
+                CE(GetIntFromEnvVar(&iLoadAddr, "loadaddr", 0));
 		break;
             default:
                 (void) GetIntFromEnvVar( &iLoadAddr, "loadaddr", 1 );
@@ -2804,7 +2797,7 @@ U_BOOT_CMD(
 	"       - fdtfilename: DTB file to transfer\n"
 	"\n"
 	"      source=ram -> [image_address] [initrd_address] [initrd_max_size] [fdt_address]\n"
-	"       - image_address: address of kernel image in RAM (default: linuxloadaddr, netosloadaddr, etc)\n"
+	"       - image_address: address of image in RAM\n"
 	"       - initrd_address: address of initrd image (default: loadaddr_initrd)\n"
 	"       - initrd_max_size: max. allowed ramdisk size (in kB) to pass to the kernel (default: kernel default)\n"
 	"       - fdt_address: address of DTB image in RAM\n"
@@ -3062,9 +3055,6 @@ int generate_dynamic_vars(void)
 	char temp[PATH_MAXLEN];
 	unsigned char enetaddr[6];
 
-	ret |= create_dynvar("androidloadaddr",
-			     MK_STR(CONFIG_ANDROID_LOAD_ADDR));
-
 	sprintf(temp, "uImage-android-%s", platformname);
 	ret |= create_dynvar("aimg", temp);
 #ifdef CONFIG_DUAL_BOOT
@@ -3092,7 +3082,6 @@ int generate_dynamic_vars(void)
 
 	ret |= create_dynvar("ip", "ip=${ipaddr}:${serverip}:${gatewayip}:" \
 			     "${netmask}:${hostname}:eth0:off");
-	ret |= create_dynvar("loadaddr", MK_STR(CONFIG_LOADADDR));
 	ret |= create_dynvar("loadaddr_initrd",
 			     MK_STR(CONFIG_INITRD_LOAD_ADDR));
 
@@ -3102,7 +3091,6 @@ int generate_dynamic_vars(void)
 	sprintf(temp, "/exports/nfsroot-%s", platformname);
 	ret |= create_dynvar(NPATH, temp);
 
-	ret |= create_dynvar("linuxloadaddr", MK_STR(CONFIG_LOADADDR));
 #ifdef CONFIG_AUTOLOAD_BOOTSCRIPT
 	ret |= create_dynvar("loadbootsc", "yes");
 
