@@ -230,6 +230,7 @@ extern const struct nv_param_part* pPartToWrite;	/* pointer to partition */
 #endif /* CONFIG_TFTP_UPDATE_ONTHEFLY */
 
 extern void netboot_update_env (void);
+extern unsigned int get_tftp_available_ram(unsigned int loadaddr);
 
 /* ********** local variables ********** */
 
@@ -1430,18 +1431,25 @@ static int do_digi_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const arg
 
 #ifdef CONFIG_TFTP_UPDATE_ONTHEFLY
 	if (IS_TFTP == pImgSrc->eType) {
-		/* If updating an Android rootfs turn on on-the-fly update by default
+		/* If updating a partition that is larger than the available
+		 * RAM for a TFTP transfer turn on on-the-fly update by default
 		 * unless manually forced to disabled.
-		 * The reason is that Android rootfs files are typically very big (over 64MB)
-		 * and the transfer to RAM could overwrite U-Boot or exceed the available
-		 * RAM memory.
+		 * The reason is that the expected size of the firmware image
+		 * (notice the size is unknown until the TFTP transfer
+		 * completes) would not fit into RAM and could overwrite U-Boot
+		 * or exceed the available RAM memory.
 		 */
-		if (((bTftpToFlashStatus & B_WRITE_IMG_TO_FLASH) != B_WRITE_IMG_TO_FLASH) &&
-		    (NVOS_ANDROID == eOSType) && (pPart->ePartType == NVPT_FILESYSTEM) &&
-		    !otf_disabled) {
-			printf("Activating on-the-fly TFTP update due to probable big file\n");
+		unsigned int avail = get_tftp_available_ram(iLoadAddr);
+		unsigned int part_size = (unsigned int)PartSize(pPartEntry);
+
+		if (part_size > avail && !otf_disabled) {
+			printf("Partition to update is larger than the RAM "
+			       "available to do TFTP transfers (%d MiB).\n",
+			       avail / (1024 * 1024));
+			printf("Activating On-the-fly update mechanism.\n");
 			bTftpToFlashStatus |= B_WRITE_IMG_TO_FLASH;
 		}
+
 		/* If updating U-Boot turn off on-the-fly update by default.
 		 * The reason is that U-Boot is a critical partition and using OTF mechanism
 		 * would first erase it before transferring the image. In case of a network
@@ -3180,4 +3188,14 @@ int bsp_init(void)
 	return ret;
 }
 
+unsigned int get_total_ram(void)
+{
+	int i;
+	unsigned long val = 0;
+
+	for (i=0; i < CONFIG_NR_DRAM_BANKS; i++)
+		val += gd->bd->bi_dram[i].size;
+
+	return val;
+}
 #endif	/* CONFIG_CMD_BSP */

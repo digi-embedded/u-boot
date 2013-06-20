@@ -47,6 +47,8 @@ DECLARE_GLOBAL_DATA_PTR;
 struct ccardimx28_hwid mod_hwid;
 static u8 hwid[CONFIG_HWID_LENGTH];
 
+extern unsigned int get_total_ram(void);
+
 /*
  * Functions
  */
@@ -415,3 +417,16 @@ int board_late_init(void)
 	return 0;
 }
 #endif /* CONFIG_BOARD_LATE_INIT */
+
+/*
+ * This function returns the size of available RAM for doing a TFTP transfer.
+ * This size depends on:
+ *   - The total RAM available
+ *   - The loadaddr
+ * U-Boot is assumed to be loaded at a very low address (below loadaddr) so
+ * it is not a variable in this calculation
+ */
+unsigned int get_tftp_available_ram(unsigned int loadaddr)
+{
+	return loadaddr - gd->bd->bi_dram[0].size;
+}
