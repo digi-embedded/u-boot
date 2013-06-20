@@ -1393,15 +1393,8 @@ static int do_digi_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const arg
 		printf( "UBI volume ready\n\n" );
 	}
 #endif
-        /* user input processed, determine addresses */
-        switch( eOSType ) {
-            case NVOS_LINUX:
-            case NVOS_ANDROID:
-                CE(GetIntFromEnvVar(&iLoadAddr, "loadaddr", 0));
-		break;
-            default:
-                (void) GetIntFromEnvVar( &iLoadAddr, "loadaddr", 1 );
-        }
+        /* user input processed, determine load addresses */
+	CE(GetIntFromEnvVar(&iLoadAddr, "loadaddr", 0));
 
         /* we require it being set from download tool */
         setenv( "filesize", "" );
@@ -1935,15 +1928,8 @@ static int do_digi_verify(cmd_tbl_t* cmdtp, int flag, int argc, char * const arg
 
         CE( GetDHCPEnabled( &bDHCPEnabled ) );
 
-        /* user input processed, determine addresses */
-        switch( eOSType ) {
-            case NVOS_LINUX:
-            case NVOS_ANDROID:
-                CE(GetIntFromEnvVar(&iLoadAddr, "loadaddr", 0));
-		break;
-            default:
-                (void) GetIntFromEnvVar( &iLoadAddr, "loadaddr", 1 );
-        }
+        /* user input processed, determine load addresses */
+	CE(GetIntFromEnvVar(&iLoadAddr, "loadaddr", 0));
 
         /* we require it being set from download tool */
         setenv( "filesize", "" );
