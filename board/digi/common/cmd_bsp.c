@@ -3082,8 +3082,14 @@ int generate_dynamic_vars(void)
 
 	ret |= create_dynvar("ip", "ip=${ipaddr}:${serverip}:${gatewayip}:" \
 			     "${netmask}:${hostname}:eth0:off");
-	ret |= create_dynvar("loadaddr_initrd",
-			     MK_STR(CONFIG_INITRD_LOAD_ADDR));
+
+	/* Calculate loadaddr basing on available RAM */
+	sprintf(temp, "0x%x", CONFIG_LOADADDR);
+	ret |= create_dynvar("loadaddr", temp);
+
+	/* Calculate loadaddr_initrd as an offset to loadaddr */
+	sprintf(temp, "0x%x", CONFIG_LOADADDR +	CONFIG_INITRD_LOADADDR_OFFSET);
+	ret |= create_dynvar("loadaddr_initrd", temp);
 
 	sprintf(temp, "uImage-%s", platformname);
 	ret |= create_dynvar("kimg", temp);
@@ -3138,11 +3144,6 @@ int generate_dynamic_vars(void)
 #endif
 #ifdef VIDEO_DISPLAY_2
 	ret |= create_dynvar(VIDEO2_VAR, VIDEO_DISPLAY_2);
-#endif
-#ifdef CONFIG_MODULE_NAME_WCE
-	ret |= create_dynvar("wceloadaddr",  MK_STR(CONFIG_WCE_LOAD_ADDR));
-	ret |= create_dynvar("wimg", "wce-"CONFIG_MODULE_NAME_WCE);
-	ret |= create_dynvar("wzimg", "wcez-"CONFIG_MODULE_NAME_WCE);
 #endif
 
 	/* Device Tree */

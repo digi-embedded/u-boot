@@ -210,4 +210,3 @@ int board_update_dt(void)
 	return 0;
 }
 #endif /* CONFIG_OF_LIBFDT */
-

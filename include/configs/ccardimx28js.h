@@ -295,8 +295,14 @@
 #define CONFIG_INITRD_TAG
 #define CONFIG_BOOTDELAY	4
 #define CONFIG_BOOTFILE		"uImage"
-#define CONFIG_LOADADDR		0x42000000
-#define CONFIG_FDT_LOADADDR	0x41000000
+#define CONFIG_FDT_LOADADDR	0x40700000
+#define CONFIG_LOADADDR		0x40800000
+/* NOTE: Digi BSP Will adjust 'loadaddr' depending on the
+ * available RAM memory of the platform to
+ * allow transfers of large files to RAM */
+#define CONFIG_INITRD_LOADADDR_OFFSET	0x800000 /* Address where to put the
+						  * the initrd: 8MiB after the
+						  * kernel load address */
 #define CONFIG_FDT_PREFIX	"imx28-"
 #define CONFIG_FDT_SUFFIX	".dtb"
 #define CONFIG_FDT_MAXSIZE	128 * 1024	/* 128 KiB */
