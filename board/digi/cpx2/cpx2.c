@@ -35,6 +35,8 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+extern unsigned int get_total_ram(void);
+
 /*
  * Functions
  */
@@ -210,3 +212,16 @@ int board_update_dt(void)
 	return 0;
 }
 #endif /* CONFIG_OF_LIBFDT */
+
+/*
+ * This function returns the size of available RAM for doing a TFTP transfer.
+ * This size depends on:
+ *   - The total RAM available
+ *   - The loadaddr
+ * U-Boot is assumed to be loaded at a very low address (below loadaddr) so
+ * it is not a variable in this calculation
+ */
+unsigned int get_tftp_available_ram(unsigned int loadaddr)
+{
+	return loadaddr - gd->bd->bi_dram[0].size;
+}
