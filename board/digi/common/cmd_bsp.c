@@ -2484,6 +2484,9 @@ static int AppendPadding( const nv_param_part_t* pPart, void* pvImage,
         if( !iPageSize )
                 return 0;
 
+	if (*piFileSize % iPageSize == 0)
+		return 1;	/* image file is already aligned to page */
+
         iBytesFreeInBlock = iPageSize - (*piFileSize % iPageSize);
 
         if( ( NVPT_FILESYSTEM == pPart->eType ) &&
