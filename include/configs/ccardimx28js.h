@@ -127,7 +127,7 @@
  * U-Boot general configurations
  */
 #define	CONFIG_SYS_LONGHELP
-#define CONFIG_SYS_PROMPT	"CCARDIMX28JS U-Boot > "
+#define CONFIG_SYS_PROMPT	"CCARDIMX28 # "
 #define CONFIG_SYS_CBSIZE	2048			/* Console I/O Buffer Size */
 #define CONFIG_SYS_PBSIZE	\
 	(CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
