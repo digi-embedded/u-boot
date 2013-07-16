@@ -22,6 +22,7 @@
 #
 
 include $(TOPDIR)/config.mk
+include $(TOPDIR)/board/$(VENDOR)/config.mk
 
 $(shell mkdir -p $(obj)cmd_nvram/lib/src)
 $(if $(CONFIG_CMD_BOOTSTREAM), $(shell mkdir -p $(obj)cmd_bootstream))
@@ -51,18 +52,6 @@ COBJS-$(CONFIG_MXS_OTP) += cmd_mxsotp.o
 COBJS	:= $(sort $(COBJS-y))
 SRCS	:= $(AOBJS:.o=.S) $(COBJS:.o=.c)
 OBJS	:= $(addprefix $(obj),$(AOBJS) $(COBJS))
-
-CFLAGS-y += -I $(TOPDIR)/board/$(VENDOR)/common \
-	    -I $(TOPDIR)/board/$(VENDOR)/common/cmd_nvram/lib/include \
-	    -I $(TOPDIR)/board/$(VENDOR)/common/cmd_nvram \
-	    -DUBOOT
-CFLAGS-$(CONFIG_CMD_BOOTSTREAM) += -I $(TOPDIR)/drivers/mtd/nand/ \
-				   -I $(TOPDIR)/board/$(VENDOR)/common/cmd_bootstream
-
-CFLAGS += $(CFLAGS-y)
-CPPFLAGS += $(CFLAGS-y)
-
-all:	$(LIB)
 
 $(LIB): $(obj).depend $(OBJS)
 	$(call cmd_link_o_target, $(OBJS))
