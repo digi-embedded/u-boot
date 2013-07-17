@@ -785,15 +785,19 @@ _getpart:
 			break;
 		default:
 			/* Device Tree blob in external media */
-			szTmp = GetEnvVar("fdtimg", 0);
-			if (NULL != szTmp) {
-				/* DTB image filename */
-				SAFE_STRCAT(szImgFdt, szTmp);
-				/* Don't need to provide file size */
-				ret = do_image_load(iLoadAddrFdt, pImgSrc->eType,
-						    loadcmd, kdevpart, szImgFdt,
-						    0, pDeviceTreePart);
+			if (!strcmp(szImgFdt, "")) {
+				/* Use default filename if none provided */
+				szTmp = GetEnvVar("fdtimg", 0);
+				if (NULL != szTmp)
+					/* DTB image filename */
+					SAFE_STRCAT(szImgFdt, szTmp);
+				else
+					goto error;
 			}
+			/* Don't need to provide file size */
+			ret = do_image_load(iLoadAddrFdt, pImgSrc->eType,
+					    loadcmd, kdevpart, szImgFdt,
+					    0, pDeviceTreePart);
 			break;
 		}
 		if (ret)
