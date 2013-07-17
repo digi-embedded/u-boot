@@ -198,7 +198,14 @@ uint32_t mxs_mem_get_size(void)
 	/* Close OTP banks */
 	writel(OCOTP_CTRL_RD_BANK_OPEN, &ocotp_regs->hw_ocotp_ctrl_clr);
 
-	/* return DRAM size of variant */
+	/*
+	 * Return DRAM size of variant (default to 256MiB if invalid
+	 * variant detected on OTP bits)
+	 */
+	if (variant > ARRAY_SIZE(ccardxmx28_id) ||
+	    ccardxmx28_id[variant].sdram == 0)
+		return 0x10000000;
+
         return (ccardxmx28_id[variant].sdram);
 }
 
