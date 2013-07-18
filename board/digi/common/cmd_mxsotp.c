@@ -44,7 +44,7 @@ void parse_hwid(const char *str, u8 *hwid)
 }
 #endif
 
-int do_otp(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+static int do_otp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int i;
 	unsigned char addr = 0;
@@ -182,7 +182,9 @@ U_BOOT_CMD(otp, 4, 0, do_otp,
 	"otp read hwid                           - Read hwid value\n"
 #endif
 	"otp blow <addr> <value>                 - Blow OTP register at 'addr' with 'value'\n"
+#ifdef CONFIG_PLATFORM_HAS_HWID
 	"otp blow hwid ##:##:##:##:##:##:##:##   - Blow hwid value\n"
+#endif
 	"otp lock <addr>                         - Lock register at 'addr'\n"
 );
 

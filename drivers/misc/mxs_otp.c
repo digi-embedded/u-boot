@@ -23,108 +23,129 @@
 #include <command.h>
 #include <asm/io.h>
 #include <asm/mxs_otp.h>
+#include <asm/arch/regs-clkctrl-mx28.h>
+#include <asm/arch/regs-digctl.h>
 #include <asm/arch/regs-ocotp.h>
-#include <asm/arch/regs-clkctrl.h>
-#include <asm/arch/regs-power.h>
+#include <asm/arch/regs-power-mx28.h>
 
 #ifdef CONFIG_MXS_OTP
 
-#define HW_DIGCTL_MICROSECONDS	0x0c0
+#define MXS_OCOTP_MAX_TIMEOUT	1000000
 
 /* Global vars */
 unsigned int original_power_vddioctrl;
 
 /* Functions */
+extern int mxs_wait_mask_clr(struct mxs_register_32 *reg,
+			     uint32_t mask, unsigned int timeout);
+
 int open_otp_bank(void)
 {
-	unsigned long retries = 100000;
+	struct mxs_ocotp_regs *ocotp_regs =
+		(struct mxs_ocotp_regs *)MXS_OCOTP_BASE;
 
-	REG_SET(REGS_OCOTP_BASE, HW_OCOTP_CTRL, BM_OCOTP_CTRL_RD_BANK_OPEN);
-	while((BM_OCOTP_CTRL_BUSY & REG_RD(REGS_OCOTP_BASE, HW_OCOTP_CTRL)) &&
-	      retries--)
-		udelay(10);
-
-	if (retries)
-		return 0;
-	else
+	writel(OCOTP_CTRL_RD_BANK_OPEN, &ocotp_regs->hw_ocotp_ctrl_set);
+	if (mxs_wait_mask_clr(&ocotp_regs->hw_ocotp_ctrl_reg, OCOTP_CTRL_BUSY,
+				MXS_OCOTP_MAX_TIMEOUT)) {
+		printf("MXS OTP: Can't open OCOTP bank\n");
 		return 1;
+	}
+
+	return 0;
 }
 
 void close_otp_bank(void)
 {
-	REG_CLR(REGS_OCOTP_BASE, HW_OCOTP_CTRL, BM_OCOTP_CTRL_RD_BANK_OPEN);
+	struct mxs_ocotp_regs *ocotp_regs =
+		(struct mxs_ocotp_regs *)MXS_OCOTP_BASE;
+
+	writel(OCOTP_CTRL_RD_BANK_OPEN, &ocotp_regs->hw_ocotp_ctrl_clr);
 }
 
 void dump_otp_regs(void)
 {
+	struct mxs_ocotp_regs *ocotp_regs =
+		(struct mxs_ocotp_regs *)MXS_OCOTP_BASE;
 	int i;
 
 	printf("HW_OTP_CUSTn\n");
 	for (i=0; i < 4; i++)
 		printf("  HW_OTP_CUST%d: 0x%08x\n", i,
-			REG_RD(REGS_OCOTP_BASE, HW_OCOTP_CUSTn(i)));
+			readl(&ocotp_regs->hw_ocotp_cust0_reg + i));
 	printf("HW_OTP_CRYPTOn\n");
 	for (i=0; i < 4; i++)
 		printf("  HW_OTP_CRYPTO%d: 0x%08x\n", i,
-			REG_RD(REGS_OCOTP_BASE, HW_OCOTP_CRYPTOn(i)));
+			readl(&ocotp_regs->hw_ocotp_crypto0_reg + i));
 	printf("HW_OCOTP_HWCAPn\n");
 	for (i=0; i < 6; i++)
 		printf("  HW_OCOTP_HWCAPn%d: 0x%08x\n", i,
-			REG_RD(REGS_OCOTP_BASE, HW_OCOTP_HWCAPn(i)));
+			readl(&ocotp_regs->hw_ocotp_hwcap0_reg + i));
 	printf("HW_OCOTP_SWCAP: 0x%08x\n",
-		REG_RD(REGS_OCOTP_BASE, HW_OCOTP_SWCAP));
+		readl(&ocotp_regs->hw_ocotp_swcap_reg));
 	printf("HW_OCOTP_CUSTCAP: 0x%08x\n",
-		REG_RD(REGS_OCOTP_BASE, HW_OCOTP_CUSTCAP));
+		readl(&ocotp_regs->hw_ocotp_custcap_reg));
 	printf("HW_OCOTP_LOCK: 0x%08x\n",
-		REG_RD(REGS_OCOTP_BASE, HW_OCOTP_LOCK));
+		readl(&ocotp_regs->hw_ocotp_lock_reg));
 	printf("HW_OCOTP_OPSn\n");
 	for (i=0; i < 7; i++)
 		printf("  HW_OCOTP_OPSn%d: 0x%08x\n", i,
-			REG_RD(REGS_OCOTP_BASE, HW_OCOTP_OPSn(i)));
+			readl(&ocotp_regs->hw_ocotp_ops0_reg + i));
 	printf("HW_OCOTP_ROMn\n");
 	for (i=0; i < 8; i++)
 		printf("  HW_OCOTP_ROMn%d: 0x%08x\n", i,
-			REG_RD(REGS_OCOTP_BASE, HW_OCOTP_ROMn(i)));
+			readl(&ocotp_regs->hw_ocotp_rom0_reg + i));
 	printf("HW_OCOTP_SRKn\n");
 	for (i=0; i < 8; i++)
 		printf("  HW_OCOTP_SRKn%d: 0x%08x\n", i,
-			REG_RD(REGS_OCOTP_BASE, HW_OCOTP_SRKn(i)));
+			readl(&ocotp_regs->hw_ocotp_srk0_reg + i));
 }
 
 unsigned int read_otp_reg(unsigned int addr)
 {
-	/* Each register address is separated 16 bytes from the next one */
-	return(REG_RD(REGS_OCOTP_BASE, HW_OCOTP_CUSTn(0) + (16 * addr)));
+	struct mxs_ocotp_regs *ocotp_regs =
+		(struct mxs_ocotp_regs *)MXS_OCOTP_BASE;
+
+	return(readl(&ocotp_regs->hw_ocotp_cust0_reg + addr));
 }
 
 static void exit_otp_blow(void)
 {
+	struct mxs_power_regs *power_regs =
+		(struct mxs_power_regs *)MXS_POWER_BASE;
+	struct mxs_clkctrl_regs *clkctrl_regs =
+		(struct mxs_clkctrl_regs *)MXS_CLKCTRL_BASE;
+
 	/* Restore VDDIO voltage */
-	REG_WR(REGS_POWER_BASE, HW_POWER_VDDIOCTRL, original_power_vddioctrl);
+	writel(original_power_vddioctrl, &power_regs->hw_power_vddioctrl);
 	/* Restore HCLK frequency by clearing CPU bypass */
-	REG_CLR(REGS_CLKCTRL_BASE, HW_CLKCTRL_CLKSEQ, BM_CLKCTRL_CLKSEQ_BYPASS_CPU);
+	writel(CLKCTRL_CLKSEQ_BYPASS_CPU, &clkctrl_regs->hw_clkctrl_clkseq_clr);
 }
 
 static int prepare_otp_blow(void)
 {
-	unsigned int retries = 1000;
-	unsigned int ocotp_ctrl;
+	struct mxs_power_regs *power_regs =
+		(struct mxs_power_regs *)MXS_POWER_BASE;
+	struct mxs_clkctrl_regs *clkctrl_regs =
+		(struct mxs_clkctrl_regs *)MXS_CLKCTRL_BASE;
+	struct mxs_ocotp_regs *ocotp_regs =
+		(struct mxs_ocotp_regs *)MXS_OCOTP_BASE;
 
 	/* Lower HCLK frequency to 24MHz by activating
 	 * CPU clock bypass */
-	REG_SET(REGS_CLKCTRL_BASE, HW_CLKCTRL_CLKSEQ, BM_CLKCTRL_CLKSEQ_BYPASS_CPU);
+	writel(CLKCTRL_CLKSEQ_BYPASS_CPU, &clkctrl_regs->hw_clkctrl_clkseq_set);
 
 	/* Set VDDIO voltage to 2.8V by clearing TRG */
-	original_power_vddioctrl = REG_RD(REGS_POWER_BASE, HW_POWER_VDDIOCTRL);
-	REG_WR(REGS_POWER_BASE, HW_POWER_VDDIOCTRL, original_power_vddioctrl & ~BM_POWER_VDDIOCTRL_TRG);
+	original_power_vddioctrl = readl(&power_regs->hw_power_vddioctrl);
+	writel(original_power_vddioctrl & ~POWER_VDDIOCTRL_TRG_MASK,
+	       &power_regs->hw_power_vddioctrl);
 
 	/* Check that HW_OCOTP_CTRL_BUSY and HW_OCOTP_CTRL_ERROR are clear */
-	while(((ocotp_ctrl = REG_RD(REGS_OCOTP_BASE, HW_OCOTP_CTRL)) &
-	      (BM_OCOTP_CTRL_ERROR | BM_OCOTP_CTRL_BUSY)) && retries--)
-		udelay(100);
-	if (!retries) {
+	if (mxs_wait_mask_clr(&ocotp_regs->hw_ocotp_ctrl_reg,
+			      OCOTP_CTRL_ERROR | OCOTP_CTRL_BUSY,
+			      MXS_OCOTP_MAX_TIMEOUT)) {
+		printf("MXS OTP: failed to prepare OTP bank\n");
 		exit_otp_blow();
-		return -1;
+		return 1;
 	}
 
 	return 0;
@@ -132,16 +153,17 @@ static int prepare_otp_blow(void)
 
 static int write_otp_data(unsigned int addr, unsigned int data)
 {
-	unsigned int ocotp_ctrl;
-	unsigned int retries = 1000;
+	struct mxs_ocotp_regs *ocotp_regs =
+		(struct mxs_ocotp_regs *)MXS_OCOTP_BASE;
+	struct mxs_digctl_regs *digctl_regs =
+		(struct mxs_digctl_regs *)MXS_DIGCTL_BASE;
 	unsigned int start_usec, end_usec;
 
 	/* Write requested address and unlock code */
-	ocotp_ctrl = REG_RD(REGS_OCOTP_BASE, HW_OCOTP_CTRL);
-	ocotp_ctrl &= ~(BM_OCOTP_CTRL_WR_UNLOCK | BM_OCOTP_CTRL_ADDR);
-	ocotp_ctrl |= BF_OCOTP_CTRL_WR_UNLOCK(BV_OCOTP_CTRL_WR_UNLOCK__KEY);
-	ocotp_ctrl |= BF_OCOTP_CTRL_ADDR(addr);
-	REG_WR(REGS_OCOTP_BASE, HW_OCOTP_CTRL, ocotp_ctrl);
+	writel(OCOTP_CTRL_WR_UNLOCK_MASK | OCOTP_CTRL_ADDR_MASK,
+	       &ocotp_regs->hw_ocotp_ctrl_clr);
+	writel(OCOTP_CTRL_WR_UNLOCK_KEY | (addr << OCOTP_CTRL_ADDR_OFFSET),
+	       &ocotp_regs->hw_ocotp_ctrl_set);
 
 	/* Program the blow OTP data */
 #ifdef CONFIG_EMULATE_OTP_BLOW
@@ -149,19 +171,19 @@ static int write_otp_data(unsigned int addr, unsigned int data)
 	printf("Emulating OTP blow of data 0x%08x at addr 0x%02x\n", data, addr);
 	data = 0;
 #endif
-	REG_WR(REGS_OCOTP_BASE, HW_OCOTP_DATA, data);
+	writel(data, &ocotp_regs->hw_ocotp_data);
 
 	/* Wait for BUSY to be cleared by controller */
-	while(((ocotp_ctrl = REG_RD(REGS_OCOTP_BASE, HW_OCOTP_CTRL)) &
-	      BM_OCOTP_CTRL_BUSY) && retries--)
-		udelay(100);
-	if (!retries)
-		return -1;
+	if (mxs_wait_mask_clr(&ocotp_regs->hw_ocotp_ctrl_reg, OCOTP_CTRL_BUSY,
+				MXS_OCOTP_MAX_TIMEOUT)) {
+		printf("MXS OTP: Failed to blow OCOTP bank\n");
+		return 1;
+	}
 
 	/* Wait 2 usec write postamble before allowing any further OTP access */
-	start_usec = REG_RD(REGS_DIGCTL_BASE, HW_DIGCTL_MICROSECONDS);
+	start_usec = readl(&digctl_regs->hw_digctl_microseconds_reg);
 	do {
-		end_usec = REG_RD(REGS_DIGCTL_BASE, HW_DIGCTL_MICROSECONDS);
+		end_usec = readl(&digctl_regs->hw_digctl_microseconds_reg);
 	}while(end_usec - start_usec < 2);
 
 	return 0;
@@ -181,30 +203,73 @@ int blow_otp_reg(unsigned int addr, unsigned int data)
 	return ret;
 }
 
+enum {
+	OTPREG_ADDR_CUST0,
+	OTPREG_ADDR_CUST1,
+	OTPREG_ADDR_CUST2,
+	OTPREG_ADDR_CUST3,
+	OTPREG_ADDR_CRYPTO0,
+	OTPREG_ADDR_CRYPTO1,
+	OTPREG_ADDR_CRYPTO2,
+	OTPREG_ADDR_CRYPTO3,
+	OTPREG_ADDR_HWCAP0,
+	OTPREG_ADDR_HWCAP1,
+	OTPREG_ADDR_HWCAP2,
+	OTPREG_ADDR_HWCAP3,
+	OTPREG_ADDR_HWCAP4,
+	OTPREG_ADDR_HWCAP5,
+	OTPREG_ADDR_SWCAP,
+	OTPREG_ADDR_CUSTCAP,
+	OTPREG_ADDR_LOCK,
+	OTPREG_ADDR_OPS0,
+	OTPREG_ADDR_OPS1,
+	OTPREG_ADDR_OPS2,
+	OTPREG_ADDR_OPS3,
+	OTPREG_ADDR_OPS4,
+	OTPREG_ADDR_OPS5,
+	OTPREG_ADDR_OPS6,
+	OTPREG_ADDR_ROM0,
+	OTPREG_ADDR_ROM1,
+	OTPREG_ADDR_ROM2,
+	OTPREG_ADDR_ROM3,
+	OTPREG_ADDR_ROM4,
+	OTPREG_ADDR_ROM5,
+	OTPREG_ADDR_ROM6,
+	OTPREG_ADDR_ROM7,
+	OTPREG_ADDR_SRK0,
+	OTPREG_ADDR_SRK1,
+	OTPREG_ADDR_SRK2,
+	OTPREG_ADDR_SRK3,
+	OTPREG_ADDR_SRK4,
+	OTPREG_ADDR_SRK5,
+	OTPREG_ADDR_SRK6,
+	OTPREG_ADDR_SRK7,
+};
+
 int lock_otp_reg(unsigned int addr)
 {
 	unsigned int mask;
 
 	if (addr <= OTPREG_ADDR_CUST3)
-		mask = BM_OCOTP_LOCK_CUST0 << addr;
+		mask = OCOTP_LOCK_CUST0 << addr;
 	else if (addr >= OTPREG_ADDR_CRYPTO0 && addr <= OTPREG_ADDR_CRYPTO3)
-		mask = BM_OCOTP_LOCK_CRYPTOKEY;
+		mask = OCOTP_LOCK_CRYPTOKEY;
 	else if (addr >= OTPREG_ADDR_HWCAP0 && addr <= OTPREG_ADDR_SWCAP)
-		mask = BM_OCOTP_LOCK_HWSW;
+		mask = OCOTP_LOCK_HWSW;
 	else if (addr == OTPREG_ADDR_CUSTCAP)
-		mask = BM_OCOTP_LOCK_CUSTCAP;
+		mask = OCOTP_LOCK_CUSTCAP;
 	else if (addr >= OTPREG_ADDR_OPS0 && addr <= OTPREG_ADDR_OPS3)
-		mask = BM_OCOTP_LOCK_OPS;
+		mask = OCOTP_LOCK_OPS;
 	else if (addr == OTPREG_ADDR_OPS4)
-		mask = BM_OCOTP_LOCK_UN0;
+		mask = OCOTP_LOCK_UN0;
 	else if (addr == OTPREG_ADDR_OPS5)
-		mask = BM_OCOTP_LOCK_UN1;
+		mask = OCOTP_LOCK_UN1;
 	else if (addr == OTPREG_ADDR_OPS6)
-		mask = BM_OCOTP_LOCK_UN2;
+		mask = OCOTP_LOCK_UN2;
 	else if (addr >= OTPREG_ADDR_ROM0 && addr <= OTPREG_ADDR_ROM7)
-		mask = BM_OCOTP_LOCK_ROM0 << (addr - OTPREG_ADDR_ROM0);
+		mask = OCOTP_LOCK_ROM0 << (addr - OTPREG_ADDR_ROM0);
 	else if (addr >= OTPREG_ADDR_SRK0 && addr <= OTPREG_ADDR_SRK7)
-		mask = BM_OCOTP_LOCK_SRK;
+		mask = OCOTP_LOCK_SRK;
 	else
 		return -1;
 
