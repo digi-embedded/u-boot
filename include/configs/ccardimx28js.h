@@ -52,6 +52,8 @@
                                         CONFIG_MODULE_STRING
 #define CONFIG_DIGI_CMD
 #define CONFIG_MXS_OTP
+#define CONFIG_PLATFORM_HAS_HWID
+#define CONFIG_HWID_LENGTH		8
 
 /*
  * SPL
