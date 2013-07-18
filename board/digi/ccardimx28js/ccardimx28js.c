@@ -91,6 +91,40 @@ int board_mmc_init(bd_t *bis)
 
 #ifdef	CONFIG_CMD_NET
 
+#define KSZ80x1_OPMODE_STRAPOV		0x16
+
+#define MII_PHY_CTRL2			0x1f
+#define HP_AUTO_MDI			(1 << 15)
+#define ENABLE_JABBER_COUNTER		(1 << 8)
+#define RMII_50MHZ_CLOCK		(1 << 7)
+
+int fecmxc_mii_postcall(int phy)
+{
+	unsigned short val;
+
+	if (phy == 0)
+		miiphy_write("FEC0", phy, MII_PHY_CTRL2,
+			     HP_AUTO_MDI | ENABLE_JABBER_COUNTER |
+			     RMII_50MHZ_CLOCK);
+	if (phy == 3) {
+		miiphy_write("FEC1", phy, MII_PHY_CTRL2,
+			     HP_AUTO_MDI | ENABLE_JABBER_COUNTER |
+			     RMII_50MHZ_CLOCK);
+		/*
+		 * Set bit 9 of register 0x16 (undocumented) to work
+		 * around Micrel PHY bug that causes the second PHY, with
+		 * address=3, to also respond to reads/writes addressed
+		 * to the first PHY, which has address=0.
+		 * The setting of this bit for platforms having only
+		 * one PHY at address 0 is harmless.
+		 */
+		if (!miiphy_read("FEC1", phy, KSZ80x1_OPMODE_STRAPOV, &val))
+			miiphy_write("FEC1", phy, KSZ80x1_OPMODE_STRAPOV,
+				     (1 << 9));
+	}
+	return 0;
+}
+
 int board_eth_init(bd_t *bis)
 {
 	struct mxs_clkctrl_regs *clkctrl_regs =
@@ -129,12 +163,23 @@ int board_eth_init(bd_t *bis)
 		puts("FEC MXS: Unable to get FEC0 device entry\n");
 		return -EINVAL;
 	}
+	ret = fecmxc_register_mii_postcall(dev, fecmxc_mii_postcall);
+	if (ret) {
+		printf("FEC MXS: Unable to register FEC0 mii postcall\n");
+		return ret;
+	}
 
 #ifndef CONFIG_FEC1_INIT_ONLY_MAC
 	dev = eth_get_dev_by_name("FEC1");
 	if (!dev) {
 		puts("FEC MXS: Unable to get FEC1 device entry\n");
 		return -EINVAL;
+	}
+
+	ret = fecmxc_register_mii_postcall(dev, fecmxc_mii_postcall);
+	if (ret) {
+		printf("FEC MXS: Unable to register FEC1 mii postcall\n");
+		return ret;
 	}
 #endif
 
