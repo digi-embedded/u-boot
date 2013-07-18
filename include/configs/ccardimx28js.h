@@ -51,6 +51,7 @@
 #define CONFIG_IDENT_STRING             " - GCC " __VERSION__ "\nfor " \
                                         CONFIG_MODULE_STRING
 #define CONFIG_DIGI_CMD
+#define CONFIG_MXS_OTP
 
 /*
  * SPL
