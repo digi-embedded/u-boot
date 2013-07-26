@@ -24,6 +24,7 @@
 #include <common.h>
 #include <asm/gpio.h>
 #include <asm/io.h>
+#include <asm/mxs_otp.h>
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/iomux-mx28.h>
 #include <asm/arch/clock.h>
@@ -33,8 +34,12 @@
 #include <netdev.h>
 #include <errno.h>
 #include "../common/cmd_nvram/lib/include/nvram.h"
+#include "board-ccardimx28.h"
 
 DECLARE_GLOBAL_DATA_PTR;
+
+struct ccardimx28_hwid mod_hwid;
+static u8 hwid[CONFIG_HWID_LENGTH];
 
 /*
  * Functions
@@ -211,3 +216,75 @@ void mx28_adjust_mac(int dev_id, unsigned char *mac)
 }
 
 #endif
+
+#if defined(CONFIG_PLATFORM_HAS_HWID)
+static int is_valid_hw_id(u8 variant)
+{
+	if (variant < ARRAY_SIZE(ccardimx28_id))
+		if (ccardimx28_id[variant].sdram != 0)
+			return 1;
+
+	return 0;
+}
+
+int array_to_hwid(u8 *hwid)
+{
+	/*
+	 *       | 31..           HWOTP_CUST1            ..0 | 31..          HWOTP_CUST0             ..0 |
+	 *       +----------+----------+----------+----------+----------+----------+----------+----------+
+	 * HWID: |    --    | TF (loc) | variant  | HV |Cert |   Year   | Mon |     Serial Number        |
+	 *       +----------+----------+----------+----------+----------+----------+----------+----------+
+	 * Byte: 0          1          2          3          4          5          6          7
+	 */
+	if (!is_valid_hw_id(hwid[2]))
+		return -EINVAL;
+
+	mod_hwid.tf = hwid[1];
+	mod_hwid.variant = hwid[2];
+	mod_hwid.hv = (hwid[3] & 0xf0) >> 4;
+	mod_hwid.cert = hwid[3] & 0xf;
+	mod_hwid.year = hwid[4];
+	mod_hwid.month = (hwid[5] & 0xf0) >> 4;
+	mod_hwid.sn = ((hwid[5] & 0xf) << 16) | (hwid[6] << 8) | hwid[7];
+
+	return  0;
+}
+
+int get_module_hw_id(void)
+{
+	nv_critical_t *pNVRAM;
+
+	memset(&mod_hwid, 0, sizeof(struct ccardimx28_hwid));
+	memset(hwid, 0, ARRAY_SIZE(hwid));
+
+	/* nvram settings override fuse hwid */
+	if (NvCriticalGet(&pNVRAM)) {
+		const nv_param_module_id_t *pModule = &pNVRAM->s.p.xID;
+
+		if (!array_to_hwid((u8 *)&pModule->szProductType)) {
+			/* Set global hwid with value in NVRAM */
+			memcpy(hwid, (u8 *)&pModule->szProductType, CONFIG_HWID_LENGTH);
+			return 0;
+		}
+	}
+
+	/* Use fuses if no valid hwid was set in the nvram */
+	if (!read_otp_hwid(hwid))
+		array_to_hwid(hwid);
+
+	/* returning something != 0 will halt the boot process */
+	return 0;
+}
+
+void NvPrintHwID(void)
+{
+	get_module_hw_id();
+	printf("    TF (location): 0x%02x\n", mod_hwid.tf);
+	printf("    Variant:       0x%02x\n", mod_hwid.variant);
+	printf("    HW Version:    %d\n", mod_hwid.hv);
+	printf("    Cert:          0x%x\n", mod_hwid.cert);
+	printf("    Year:          20%02d\n", mod_hwid.year);
+	printf("    Month:         %02d\n", mod_hwid.month);
+	printf("    S/N:           %d\n", mod_hwid.sn);
+}
+#endif /* CONFIG_PLATFORM_HAS_HWID */
