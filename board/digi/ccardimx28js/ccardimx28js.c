@@ -288,3 +288,12 @@ void NvPrintHwID(void)
 	printf("    S/N:           %d\n", mod_hwid.sn);
 }
 #endif /* CONFIG_PLATFORM_HAS_HWID */
+#if defined(CONFIG_OF_LIBFDT)
+/*
+ * Platform function to modify the FDT as needed
+ */
+int board_update_dt(void)
+{
+	return 0;
+}
+#endif /* CONFIG_OF_LIBFDT */

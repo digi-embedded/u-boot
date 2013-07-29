@@ -36,6 +36,11 @@
 #include <jffs2/jffs2.h>
 #include <net.h>                /* DHCP */
 #include <u-boot/zlib.h>        /* inflate */
+#if defined(CONFIG_OF_LIBFDT)
+#include <fdt.h>
+#include <libfdt.h>
+#include <fdt_support.h>
+#endif /* CONFIG_OF_LIBFDT */
 
 #include "cmd_bsp.h"
 #include "cmd_video.h"
@@ -164,6 +169,10 @@ int dualb_save(void);
 int dualb_toggle(void);
 static void start_wdt(void);
 #endif /* CONFIG_DUAL_BOOT */
+
+#if defined(CONFIG_OF_LIBFDT)
+extern int board_update_dt(void);
+#endif /* CONFIG_OF_LIBFDT */
 
 static int append_calibration(void);
 static int WhatPart(
@@ -800,8 +809,26 @@ _getpart:
 					    0, pDeviceTreePart);
 			break;
 		}
-		if (ret)
+		if (ret) {
 			hasfdt = 1;	/* DTB is now available in RAM */
+#if defined(CONFIG_OF_LIBFDT)
+			/*
+			 * The following command will set the working FDT addr
+			 * and set its size to a value large enough that it
+			 * allows us to introduce some modifications.
+			 */
+			sprintf(tmp, "fdt addr %x %x", iLoadAddrFdt,
+				CONFIG_FDT_MAX_SIZE);
+			if (RunCmd(tmp)) {
+				if (board_update_dt())
+					eprintf("Could not register HWID on "
+						"the FDT\n");
+			}
+			else {
+				eprintf("Could not update the Device Tree!\n");
+			}
+#endif /* CONFIG_OF_LIBFDT */
+		}
 	}
 
 	if (!bGotBootImage) {

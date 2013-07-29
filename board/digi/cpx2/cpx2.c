@@ -199,5 +199,15 @@ void mx28_adjust_mac(int dev_id, unsigned char *mac)
 
 	return;
 }
+#endif /* CONFIG_CMD_NET */
 
-#endif
+#if defined(CONFIG_OF_LIBFDT)
+/*
+ * Platform function to modify the FDT as needed
+ */
+int board_update_dt(void)
+{
+	return 0;
+}
+#endif /* CONFIG_OF_LIBFDT */
+

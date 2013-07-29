@@ -106,6 +106,9 @@
 #define CONFIG_SYS_64BIT_VSPRINTF      /* we need if for NVRAM */
 #define CONFIG_SYS_64BIT_STRTOUL       /* we need if for NVRAM */
 
+/* device tree */
+#define CONFIG_FDT_MAX_SIZE	(128 * 1024)
+
 #ifndef __ASSEMBLY__		/* put C only stuff in this section */
 /* macros */
 #define VIDEO_MENU_OPTION(text, hook, param)	\
