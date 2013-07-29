@@ -36,6 +36,12 @@
 #include "../common/cmd_nvram/lib/include/nvram.h"
 #include "board-ccardimx28.h"
 
+#if defined(CONFIG_OF_LIBFDT)
+#include <fdt.h>
+#include <libfdt.h>
+#include <fdt_support.h>
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 struct ccardimx28_hwid mod_hwid;
@@ -288,12 +294,53 @@ void NvPrintHwID(void)
 	printf("    S/N:           %d\n", mod_hwid.sn);
 }
 #endif /* CONFIG_PLATFORM_HAS_HWID */
+
 #if defined(CONFIG_OF_LIBFDT)
 /*
  * Platform function to modify the FDT as needed
  */
 int board_update_dt(void)
 {
+#if defined(CONFIG_PLATFORM_HAS_HWID)
+	const char *propnames[] = {
+		"digi,hwid,tf",
+		"digi,hwid,variant",
+		"digi,hwid,hv",
+		"digi,hwid,cert",
+		"digi,hwid,year",
+		"digi,hwid,month",
+		"digi,hwid,sn",
+	};
+	char str[20];
+	char cmd[200];
+	int i;
+
+	get_module_hw_id();
+	/* Register the HWID as main node properties in the FDT */
+	for (i = 0; i < ARRAY_SIZE(propnames); i++) {
+		/* Convert HWID fields to strings */
+		if (!strcmp("digi,hwid,tf", propnames[i]))
+			sprintf(str, "0x%02x", mod_hwid.tf);
+		else if (!strcmp("digi,hwid,variant", propnames[i]))
+			sprintf(str, "0x%02x", mod_hwid.variant);
+		else if (!strcmp("digi,hwid,hv", propnames[i]))
+			sprintf(str, "0x%x", mod_hwid.hv);
+		else if (!strcmp("digi,hwid,cert", propnames[i]))
+			sprintf(str, "0x%x", mod_hwid.cert);
+		else if (!strcmp("digi,hwid,year", propnames[i]))
+			sprintf(str, "20%02d", mod_hwid.year);
+		else if (!strcmp("digi,hwid,month", propnames[i]))
+			sprintf(str, "%02d", mod_hwid.month);
+		else if (!strcmp("digi,hwid,sn", propnames[i]))
+			sprintf(str, "%d", mod_hwid.sn);
+		else
+			continue;
+		sprintf(cmd, "fdt set / %s %s", propnames[i], str);
+		if (run_command(cmd, 0))
+			return -1;
+	}
+#endif /* CONFIG_PLATFORM_HAS_HWID */
+
 	return 0;
 }
 #endif /* CONFIG_OF_LIBFDT */
