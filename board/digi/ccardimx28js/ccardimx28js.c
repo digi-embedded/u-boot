@@ -52,13 +52,6 @@ static u8 hwid[CONFIG_HWID_LENGTH];
  */
 int board_early_init_f(void)
 {
-	/* Pull LCD_RS gpio down to enable FET that blocks 3V3 and 1V8
-	 * power regulators on module
-	 */
-	mxs_iomux_setup_pad(MX28_PAD_LCD_RS__GPIO_1_26 |
-			MXS_PAD_4MA | MXS_PAD_3V3 | MXS_PAD_PULLUP);
-	gpio_direction_output(MX28_PAD_LCD_RS__GPIO_1_26, 0);
-
 	/* IO0 clock at 480MHz */
 	mx28_set_ioclk(MXC_IOCLK0, 480000);
 	/* IO1 clock at 480MHz */
@@ -342,3 +335,25 @@ int board_update_dt(void)
 	return 0;
 }
 #endif /* CONFIG_OF_LIBFDT */
+
+#ifdef CONFIG_BOARD_LATE_INIT
+int board_late_init(void)
+{
+	int fet_active = 1;	/* default polarity */
+
+	/* On modules newer than V1, a FET is blocking the 3V3 supply.
+	 * To have this voltage enabled to the module LCD_RS
+	 * must be driven low on modules V2..V5 and driven high on modules V6.
+	 * On V1 modules this line is not used so the code is harmless.
+	 * On modules with blank OTP, a V6 is considered by default.
+	 */
+	if (mod_hwid.hv > 0 && mod_hwid.hv < 6)
+		fet_active = 0;	/* active low */
+	/* First set value to avoid glitches */
+	gpio_direction_output(MX28_PAD_LCD_RS__GPIO_1_26, fet_active);
+	mxs_iomux_setup_pad(MX28_PAD_LCD_RS__GPIO_1_26 |
+			MXS_PAD_4MA | MXS_PAD_3V3 | MXS_PAD_PULLUP);
+
+	return 0;
+}
+#endif /* CONFIG_BOARD_LATE_INIT */
