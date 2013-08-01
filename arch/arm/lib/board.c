@@ -67,6 +67,10 @@ extern int  AT91F_DataflashInit(void);
 extern void dataflash_print_info(void);
 #endif
 
+#ifdef CONFIG_PLATFORM_HAS_HWID
+extern int get_module_hw_id(void);
+#endif
+
 #if defined(CONFIG_HARD_I2C) || \
     defined(CONFIG_SOFT_I2C)
 #include <i2c.h>
@@ -613,6 +617,10 @@ void board_init_r(gd_t *id, ulong dest_addr)
 		env_relocate();
 	else
 		set_default_env(NULL);
+
+#if defined(CONFIG_PLATFORM_HAS_HWID)
+	get_module_hw_id();
+#endif
 
 #if defined(CONFIG_CMD_PCI) || defined(CONFIG_PCI)
 	arm_pci_init();

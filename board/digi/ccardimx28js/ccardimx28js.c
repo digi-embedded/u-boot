@@ -284,7 +284,6 @@ int get_module_hw_id(void)
 
 void NvPrintHwID(void)
 {
-	get_module_hw_id();
 	printf("    TF (location): 0x%02x\n", mod_hwid.tf);
 	printf("    Variant:       0x%02x\n", mod_hwid.variant);
 	printf("    HW Version:    %d\n", mod_hwid.hv);
@@ -315,7 +314,6 @@ int board_update_dt(void)
 	char cmd[200];
 	int i;
 
-	get_module_hw_id();
 	/* Register the HWID as main node properties in the FDT */
 	for (i = 0; i < ARRAY_SIZE(propnames); i++) {
 		/* Convert HWID fields to strings */
