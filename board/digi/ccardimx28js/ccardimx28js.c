@@ -72,6 +72,51 @@ int board_early_init_f(void)
 	return 0;
 }
 
+#ifdef CONFIG_USER_KEY
+static void setup_user_keys(void)
+{
+	/* Configure iomux */
+	mxs_iomux_setup_pad(USER_KEY1_GPIO | MXS_PAD_4MA | MXS_PAD_3V3 |
+			    MXS_PAD_PULLUP);
+	mxs_iomux_setup_pad(USER_KEY2_GPIO | MXS_PAD_4MA | MXS_PAD_3V3 |
+			    MXS_PAD_PULLUP);
+	/* Configure direction as input */
+	gpio_direction_input(USER_KEY1_GPIO);
+	gpio_direction_input(USER_KEY2_GPIO);
+}
+
+static void run_user_keys(void)
+{
+	char cmd[60];
+
+	if ((gpio_get_value(USER_KEY1_GPIO) == 0) &&
+	    (gpio_get_value(USER_KEY2_GPIO) == 0)) {
+		printf("\nUser Key 1 and 2 pressed\n");
+		if (getenv("key12") != NULL) {
+			sprintf(cmd, "run key12");
+			run_command(cmd, 0);
+			return;
+		}
+	}
+
+	if (gpio_get_value(USER_KEY1_GPIO) == 0) {
+		printf("\nUser Key 1 pressed\n");
+		if (getenv("key1") != NULL) {
+			sprintf(cmd, "run key1");
+			run_command(cmd, 0);
+		}
+	}
+
+	if (gpio_get_value(USER_KEY2_GPIO) == 0) {
+		printf("\nUser Key 2 pressed\n");
+		if (getenv("key2") != NULL) {
+			sprintf(cmd, "run key2");
+			run_command(cmd, 0);
+		}
+	}
+}
+#endif /* CONFIG_USER_KEY */
+
 int dram_init(void)
 {
 	return mxs_dram_init();
@@ -82,11 +127,24 @@ int board_init(void)
 	/* Adress of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM_1 + 0x100;
 
+#ifdef CONFIG_USER_KEY
+	setup_user_keys();
+#endif
+
 	return 0;
 }
 
-#ifdef	CONFIG_CMD_MMC
+#ifdef CONFIG_BOARD_BEFORE_MLOOP_INIT
+int board_before_mloop_init (void)
+{
+#ifdef CONFIG_USER_KEY
+	run_user_keys();
+#endif
+	return 0;
+}
+#endif /* CONFIG_BOARD_BEFORE_MLOOP_INIT */
 
+#ifdef	CONFIG_CMD_MMC
 int board_mmc_init(bd_t *bis)
 {
 	return mxsmmc_initialize(bis, 0, NULL);

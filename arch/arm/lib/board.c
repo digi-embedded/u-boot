@@ -71,6 +71,11 @@ extern void dataflash_print_info(void);
 extern int get_module_hw_id(void);
 #endif
 
+#ifdef CONFIG_BOARD_BEFORE_MLOOP_INIT
+extern int board_before_mloop_init(void);
+#endif
+
+
 #if defined(CONFIG_HARD_I2C) || \
     defined(CONFIG_SOFT_I2C)
 #include <i2c.h>
@@ -704,6 +709,10 @@ void board_init_r(gd_t *id, ulong dest_addr)
 		sprintf((char *)memsz, "%ldk", (gd->ram_size / 1024) - pram);
 		setenv("mem", (char *)memsz);
 	}
+#endif
+
+#ifdef CONFIG_BOARD_BEFORE_MLOOP_INIT
+	board_before_mloop_init();
 #endif
 
 	/* main_loop() can return to retry autoboot, if so just run it again. */
