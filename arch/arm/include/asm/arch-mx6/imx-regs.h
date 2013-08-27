@@ -401,6 +401,25 @@ struct ocotp_regs {
 	} bank[16];
 };
 
+struct fuse_bank0_regs {
+	u32     lock;
+	u32     rsvd0[3];
+	u32	cfg0;
+	u32     rsvd1[3];
+	u32	cfg1;
+	u32     rsvd2[3];
+	u32	cfg2;
+	u32     rsvd3[3];
+	u32	cfg3;
+	u32     rsvd4[3];
+	u32	cfg4;
+	u32     rsvd5[3];
+	u32	cfg5;
+	u32     rsvd6[3];
+	u32	cfg6;
+	u32     rsvd7[3];
+};
+
 struct fuse_bank1_regs {
 	u32     mem[0x18];
 	u32	ana1;
