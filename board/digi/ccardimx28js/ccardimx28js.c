@@ -406,6 +406,23 @@ void fdt_fixup_bluetooth_mac(void *fdt)
 	}
 }
 
+void fdt_fixup_wireless_mac(void *fdt)
+{
+	char *tmp, *end;
+	unsigned char mac_addr[6];
+	int i;
+
+	if ((tmp = getenv("wlanaddr")) != NULL) {
+		for (i = 0; i < 6; i++) {
+			mac_addr[i] = tmp ? simple_strtoul(tmp, &end, 16) : 0;
+			if (tmp)
+				tmp = (*end) ? end+1 : end;
+		}
+		do_fixup_by_path(fdt, "/wireless", "mac-address",
+				 &mac_addr, 6, 1);
+	}
+}
+
 #if defined(CONFIG_OF_BOARD_SETUP)
 /*
  * Platform function to modify the FDT as needed
@@ -417,6 +434,7 @@ void ft_board_setup(void *blob, bd_t *bd)
 #endif /* CONFIG_PLATFORM_HAS_HWID */
 
 	fdt_fixup_bluetooth_mac(blob);
+	fdt_fixup_wireless_mac(blob);
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
 
