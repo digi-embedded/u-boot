@@ -203,16 +203,6 @@ void mx28_adjust_mac(int dev_id, unsigned char *mac)
 }
 #endif /* CONFIG_CMD_NET */
 
-#if defined(CONFIG_OF_LIBFDT)
-/*
- * Platform function to modify the FDT as needed
- */
-int board_update_dt(void)
-{
-	return 0;
-}
-#endif /* CONFIG_OF_LIBFDT */
-
 /*
  * This function returns the size of available RAM for doing a TFTP transfer.
  * This size depends on:

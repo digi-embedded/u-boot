@@ -350,15 +350,9 @@ int variant_has_wireless(void)
 {
 	return ccardimx28_id[mod_hwid.variant].has_wireless;
 }
-#endif /* CONFIG_PLATFORM_HAS_HWID */
 
-#if defined(CONFIG_OF_LIBFDT)
-/*
- * Platform function to modify the FDT as needed
- */
-int board_update_dt(void)
+void fdt_fixup_hwid(void *fdt)
 {
-#if defined(CONFIG_PLATFORM_HAS_HWID)
 	const char *propnames[] = {
 		"digi,hwid,tf",
 		"digi,hwid,variant",
@@ -369,7 +363,6 @@ int board_update_dt(void)
 		"digi,hwid,sn",
 	};
 	char str[20];
-	char cmd[200];
 	int i;
 
 	/* Register the HWID as main node properties in the FDT */
@@ -391,15 +384,22 @@ int board_update_dt(void)
 			sprintf(str, "%d", mod_hwid.sn);
 		else
 			continue;
-		sprintf(cmd, "fdt set / %s %s", propnames[i], str);
-		if (run_command(cmd, 0))
-			return -1;
+		do_fixup_by_path(fdt, "/", propnames[i], str, strlen(str), 1);
 	}
+}
 #endif /* CONFIG_PLATFORM_HAS_HWID */
 
-	return 0;
+#if defined(CONFIG_OF_BOARD_SETUP)
+/*
+ * Platform function to modify the FDT as needed
+ */
+void ft_board_setup(void *blob, bd_t *bd)
+{
+#if defined(CONFIG_PLATFORM_HAS_HWID)
+	fdt_fixup_hwid(blob);
+#endif /* CONFIG_PLATFORM_HAS_HWID */
 }
-#endif /* CONFIG_OF_LIBFDT */
+#endif /* CONFIG_OF_BOARD_SETUP */
 
 #ifdef CONFIG_BOARD_LATE_INIT
 int board_late_init(void)
