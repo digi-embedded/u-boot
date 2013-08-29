@@ -175,6 +175,8 @@ static void start_wdt(void);
 extern int board_update_dt(void);
 #endif /* CONFIG_OF_LIBFDT */
 
+extern int variant_has_wireless(void);
+
 static int append_calibration(void);
 static int WhatPart(
         const char* szPart, char bForBoot,
@@ -3029,9 +3031,7 @@ void generate_modulename(void)
 
 	strncpy(modulename, MODULENAME_PREFIX, PLATFORMNAME_MAXLEN);
 	if (legacynames) {
-		if (MACH_TYPE_CCWMX53JS == gd->bd->bi_arch_number ||
-		    MACH_TYPE_CCWMX51JS == gd->bd->bi_arch_number ||
-		    MACH_TYPE_CCARDWMX28JS == gd->bd->bi_arch_number)
+		if (variant_has_wireless())
 			SAFE_STRCAT(modulename, "w");
 	}
 	else

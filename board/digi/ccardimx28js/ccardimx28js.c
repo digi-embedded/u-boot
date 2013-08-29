@@ -345,6 +345,11 @@ void NvPrintHwID(void)
 	printf("    Month:         %02d\n", mod_hwid.month);
 	printf("    S/N:           %d\n", mod_hwid.sn);
 }
+
+int variant_has_wireless(void)
+{
+	return ccardimx28_id[mod_hwid.variant].has_wireless;
+}
 #endif /* CONFIG_PLATFORM_HAS_HWID */
 
 #if defined(CONFIG_OF_LIBFDT)
