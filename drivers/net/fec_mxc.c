@@ -828,7 +828,10 @@ static int fec_recv(struct eth_device *dev)
 	uint16_t bd_status;
 	uint32_t addr, size, end;
 	int i;
-	uchar buff[FEC_MAX_PKT_SIZE] __aligned(ARCH_DMA_MINALIGN);
+	/* Don't place this variable on the stack, because older GCC version
+	 * doesn't handle alignement on stack well.
+	 */
+	static uchar buff[FEC_MAX_PKT_SIZE] __aligned(ARCH_DMA_MINALIGN);
 
 	/*
 	 * Check if any critical events have happened
