@@ -5,7 +5,7 @@
  * (C) Copyright 2001 Sysgo Real-Time Solutions, GmbH <www.elinos.com>
  * Andreas Heppel <aheppel@sysgo.de>
  *
- * Copyright 2011 Freescale Semiconductor, Inc.
+ * Copyright 2011-2013 Freescale Semiconductor, Inc.
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -63,9 +63,11 @@ DECLARE_GLOBAL_DATA_PTR;
 	!defined(CONFIG_ENV_IS_IN_ONENAND)	&& \
 	!defined(CONFIG_ENV_IS_IN_SPI_FLASH)	&& \
 	!defined(CONFIG_ENV_IS_IN_REMOTE)	&& \
+	!defined(CONFIG_ENV_IS_IN_UBI)		&& \
+	!defined(CONFIG_ENV_IS_IN_SATA)		&& \
 	!defined(CONFIG_ENV_IS_NOWHERE)
 # error Define one of CONFIG_ENV_IS_IN_{EEPROM|FLASH|DATAFLASH|ONENAND|\
-SPI_FLASH|NVRAM|DIGI_NVRAM|MMC|FAT|REMOTE} or CONFIG_ENV_IS_NOWHERE
+SPI_FLASH|NVRAM|DIGI_NVRAM|MMC|FAT|REMOTE|UBI|SATA} or CONFIG_ENV_IS_NOWHERE
 #endif
 
 /*
@@ -96,7 +98,7 @@ int get_env_id(void)
 static int env_print(char *name, int flag)
 {
 	char *res = NULL;
-	size_t len;
+	ssize_t len;
 
 	if (name) {		/* print a single name */
 		ENTRY e, *ep;
@@ -120,6 +122,7 @@ static int env_print(char *name, int flag)
 	}
 
 	/* should never happen */
+	printf("## Error: cannot export environment\n");
 	return 0;
 }
 
@@ -279,6 +282,10 @@ int setenv(const char *varname, const char *varvalue)
 {
 	const char * const argv[4] = { "setenv", varname, varvalue, NULL };
 
+	/* before import into hashtable */
+	if (!(gd->flags & GD_FLG_ENV_READY))
+		return 1;
+
 	if (varvalue == NULL || varvalue[0] == '\0')
 		return _do_env_set(0, 2, (char * const *)argv);
 	else
@@ -301,17 +308,17 @@ int setenv_ulong(const char *varname, ulong value)
 }
 
 /**
- * Set an environment variable to an address in hex
+ * Set an environment variable to an value in hex
  *
  * @param varname	Environmet variable to set
- * @param addr		Value to set it to
+ * @param value		Value to set it to
  * @return 0 if ok, 1 on error
  */
-int setenv_addr(const char *varname, const void *addr)
+int setenv_hex(const char *varname, ulong value)
 {
 	char str[17];
 
-	sprintf(str, "%lx", (uintptr_t)addr);
+	sprintf(str, "%lx", value);
 	return setenv(varname, str);
 }
 
@@ -331,41 +338,50 @@ static int do_env_set(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 int do_env_ask(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	char message[CONFIG_SYS_CBSIZE];
-	int size = CONFIG_SYS_CBSIZE - 1;
-	int i, len, pos;
+	int i, len, pos, size;
 	char *local_args[4];
+	char *endptr;
 
 	local_args[0] = argv[0];
 	local_args[1] = argv[1];
 	local_args[2] = NULL;
 	local_args[3] = NULL;
 
-	/* Check the syntax */
-	switch (argc) {
-	case 1:
+	/*
+	 * Check the syntax:
+	 *
+	 * env_ask envname [message1 ...] [size]
+	 */
+	if (argc == 1)
 		return CMD_RET_USAGE;
 
-	case 2:		/* env_ask envname */
-		sprintf(message, "Please enter '%s':", argv[1]);
-		break;
+	/*
+	 * We test the last argument if it can be converted
+	 * into a decimal number.  If yes, we assume it's
+	 * the size.  Otherwise we echo it as part of the
+	 * message.
+	 */
+	i = simple_strtoul(argv[argc - 1], &endptr, 10);
+	if (*endptr != '\0') {			/* no size */
+		size = CONFIG_SYS_CBSIZE - 1;
+	} else {				/* size given */
+		size = i;
+		--argc;
+	}
 
-	case 3:		/* env_ask envname size */
-		sprintf(message, "Please enter '%s':", argv[1]);
-		size = simple_strtoul(argv[2], NULL, 10);
-		break;
-
-	default:	/* env_ask envname message1 ... messagen size */
-		for (i = 2, pos = 0; i < argc - 1; i++) {
+	if (argc <= 2) {
+		sprintf(message, "Please enter '%s': ", argv[1]);
+	} else {
+		/* env_ask envname message1 ... messagen [size] */
+		for (i = 2, pos = 0; i < argc; i++) {
 			if (pos)
 				message[pos++] = ' ';
 
 			strcpy(message + pos, argv[i]);
 			pos += strlen(argv[i]);
 		}
-
+		message[pos++] = ' ';
 		message[pos] = '\0';
-		size = simple_strtoul(argv[argc - 1], NULL, 10);
-		break;
 	}
 
 	if (size >= CONFIG_SYS_CBSIZE)
@@ -558,7 +574,8 @@ static int do_env_edit(cmd_tbl_t *cmdtp, int flag, int argc,
 	else
 		buffer[0] = '\0';
 
-	readline_into_buffer("edit: ", buffer, 0);
+	if (readline_into_buffer("edit: ", buffer, 0) < 0)
+		return 1;
 
 	return setenv(argv[1], buffer);
 }
@@ -897,8 +914,7 @@ NXTARG:		;
 		envp->flags = ACTIVE_FLAG;
 #endif
 	}
-	sprintf(buf, "%zX", (size_t)(len + offsetof(env_t, data)));
-	setenv("filesize", buf);
+	setenv_hex("filesize", len + offsetof(env_t, data));
 
 	return 0;
 
@@ -1174,14 +1190,7 @@ U_BOOT_CMD(
 	askenv,	CONFIG_SYS_MAXARGS,	1,	do_env_ask,
 	"get environment variables from stdin",
 	"name [message] [size]\n"
-	"    - get environment variable 'name' from stdin (max 'size' chars)\n"
-	"askenv name\n"
-	"    - get environment variable 'name' from stdin\n"
-	"askenv name size\n"
-	"    - get environment variable 'name' from stdin (max 'size' chars)\n"
-	"askenv name [message] size\n"
-	"    - display 'message' string and get environment variable 'name'"
-	"from stdin (max 'size' chars)"
+	"    - get environment variable 'name' from stdin (max 'size' chars)"
 );
 #endif
 

@@ -27,6 +27,8 @@
 #include <config.h>
 #include <asm/io.h>
 #include <asm/arch/imx-regs.h>
+#include <asm/arch/sys_proto.h>
+#include <linux/compiler.h>
 
 #include "mxs_init.h"
 
@@ -35,64 +37,78 @@ static uint32_t dram_vals[] = {
  * i.MX28 DDR2 at 200MHz
  */
 #if defined(CONFIG_MX28)
-/*0*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*4*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*8*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*12*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*16*/	0x00000000, 0x00000100, 0x00000000, 0x00000000,
-/*20*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*24*/	0x00000000, 0x00000000, 0x00010101, 0x01010101,
-/*28*/	0x000f0f01, 0x0f02020a, 0x00000000, 0x00010101,
-/*32*/	0x00000100, 0x00000100, 0x00000000, 0x00000002,
-/*36*/	0x01010000, 0x07080403, 0x06005003, 0x0a0000c8,
-/*40*/	0x02009c40, 0x0002030c, 0x0036a609, 0x031a0612,
-/*44*/	0x02030202, 0x00c8001c, 0x00000000, 0x00000000,
-/*48*/	0x00012100, 0xffff0303, 0x00012100, 0xffff0303,
-/*52*/	0x00012100, 0xffff0303, 0x00012100, 0xffff0303,
-/*56*/	0x00000003, 0x00000000, 0x00000000, 0x00000000,
-/*60*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*64*/	0x00000000, 0x00000000, 0x00000612, 0x01000F02,
-/*68*/	0x06120612, 0x00000200, 0x00020007, 0xf4004a27,
-/*72*/	0xf4004a27, 0xf4004a27, 0xf4004a27, 0x07000300,
-/*76*/	0x07000300, 0x07400300, 0x07400300, 0x00000005,
-/*80*/	0x00000000, 0x00000000, 0x01000000, 0x01020408,
-/*84*/	0x08040201, 0x000f1133, 0x00000000, 0x00001f04,
-/*88*/	0x00001f04, 0x00001f04, 0x00001f04, 0x00001f04,
-/*92*/	0x00001f04, 0x00001f04, 0x00001f04, 0x00000000,
-/*96*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*100*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*104*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*108*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*112*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*116*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*120*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*124*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*128*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*132*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*136*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*140*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*144*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*148*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*152*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*156*/	0x00000000, 0x00000000, 0x00000000, 0x00000000,
-/*160*/	0x00000000, 0x00000000, 0x00010000, 0x00030404,
-/*164*/	0x00000003, 0x00000000, 0x00000000, 0x00000000,
-/*168*/	0x00000000, 0x00000000, 0x00000000, 0x01010000,
-/*172*/	0x01000000, 0x03030000, 0x00010303, 0x01020202,
-/*176*/	0x00000000, 0x02040303, 0x21002103, 0x00061200,
-/*180*/	0x06120612, 0x04420442, 0x04420442, 0x00040004,
-/*184*/	0x00040004, 0x00000000, 0x00000000, 0x00000000,
-/*188*/	0x00000000, 0xffffffff
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000100, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00010101, 0x01010101,
+	0x000f0f01, 0x0f02020a, 0x00000000, 0x00010101,
+	0x00000100, 0x00000100, 0x00000000, 0x00000002,
+	0x01010000, 0x07080403, 0x06005003, 0x0a0000c8,
+	0x02009c40, 0x0002030c, 0x0036a609, 0x031a0612,
+	0x02030202, 0x00c8001c, 0x00000000, 0x00000000,
+	0x00012100, 0xffff0303, 0x00012100, 0xffff0303,
+	0x00012100, 0xffff0303, 0x00012100, 0xffff0303,
+	0x00000003, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000612, 0x01000F02,
+	0x06120612, 0x00000200, 0x00020007, 0xf4004a27,
+	0xf4004a27, 0xf4004a27, 0xf4004a27, 0x07000300,
+	0x07000300, 0x07400300, 0x07400300, 0x00000005,
+	0x00000000, 0x00000000, 0x01000000, 0x01020408,
+	0x08040201, 0x000f1133, 0x00000000, 0x00001f04,
+	0x00001f04, 0x00001f04, 0x00001f04, 0x00001f04,
+	0x00001f04, 0x00001f04, 0x00001f04, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00010000, 0x00030404,
+	0x00000003, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x01010000,
+	0x01000000, 0x03030000, 0x00010303, 0x01020202,
+	0x00000000, 0x02040303, 0x21002103, 0x00061200,
+	0x06120612, 0x04420442, 0x04420442, 0x00040004,
+	0x00040004, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0xffffffff
+
+/*
+ * i.MX23 DDR at 133MHz
+ */
+#elif defined(CONFIG_MX23)
+	0x01010001, 0x00010100, 0x01000101, 0x00000001,
+	0x00000101, 0x00000000, 0x00010000, 0x01000001,
+	0x00000000, 0x00000001, 0x07000200, 0x00070202,
+	0x02020000, 0x04040a01, 0x00000201, 0x02040000,
+	0x02000000, 0x19000f08, 0x0d0d0000, 0x02021313,
+	0x02061521, 0x0000000a, 0x00080008, 0x00200020,
+	0x00200020, 0x00200020, 0x000003f7, 0x00000000,
+	0x00000000, 0x00000020, 0x00000020, 0x00c80000,
+	0x000a23cd, 0x000000c8, 0x00006665, 0x00000000,
+	0x00000101, 0x00040001, 0x00000000, 0x00000000,
+	0x00010000
 #else
 #error Unsupported memory initialization
 #endif
 };
 
-void __mxs_adjust_memory_params(uint32_t *dram_vals)
+__weak void mxs_adjust_memory_params(uint32_t *dram_vals)
 {
 }
-void mxs_adjust_memory_params(uint32_t *dram_vals)
-	__attribute__((weak, alias("__mxs_adjust_memory_params")));
 
 static void initialize_dram_values(void)
 {
@@ -102,21 +118,35 @@ static void initialize_dram_values(void)
 
 	for (i = 0; i < ARRAY_SIZE(dram_vals); i++)
 		writel(dram_vals[i], MXS_DRAM_BASE + (4 * i));
+
+#ifdef CONFIG_MX23
+	/*
+	 * Enable tRAS lockout in HW_DRAM_CTL08 ; it must be the last
+	 * element to be set
+	 */
+	writel((1 << 24), MXS_DRAM_BASE + (4 * 8));
+#endif
 }
 
 static void mxs_mem_init_clock(void)
 {
 	struct mxs_clkctrl_regs *clkctrl_regs =
 		(struct mxs_clkctrl_regs *)MXS_CLKCTRL_BASE;
+#if defined(CONFIG_MX23)
+	/* Fractional divider for ref_emi is 33 ; 480 * 18 / 33 = 266MHz */
+	const unsigned char divider = 33;
+#elif defined(CONFIG_MX28)
+	/* Fractional divider for ref_emi is 411MHz / EMI_FRAC */
+	const unsigned char divider = EMI_FRAC(CONFIG_CPU_FREQ);
+#endif
 
 	/* Gate EMI clock */
 	writeb(CLKCTRL_FRAC_CLKGATE,
 		&clkctrl_regs->hw_clkctrl_frac0_set[CLKCTRL_FRAC0_EMI]);
 
-	/* Set fractional divider for ref_emi to 480 * 18 / EMI_FRAC */
-	writeb(CLKCTRL_FRAC_CLKGATE |
-	       (EMI_FRAC(CONFIG_CPU_FREQ) & CLKCTRL_FRAC_FRAC_MASK),
-	       &clkctrl_regs->hw_clkctrl_frac0[CLKCTRL_FRAC0_EMI]);
+	/* Set fractional divider for ref_emi */
+	writeb(CLKCTRL_FRAC_CLKGATE | (divider & CLKCTRL_FRAC_FRAC_MASK),
+		&clkctrl_regs->hw_clkctrl_frac0[CLKCTRL_FRAC0_EMI]);
 
 	/* Ungate EMI clock */
 	writeb(CLKCTRL_FRAC_CLKGATE,
@@ -201,26 +231,73 @@ uint32_t mxs_mem_get_size(void)
 	__attribute__((weak, alias("__mxs_mem_get_size")));
 
 
-void mxs_mem_init(void)
+#ifdef CONFIG_MX23
+static void mx23_mem_setup_vddmem(void)
 {
-	struct mxs_clkctrl_regs *clkctrl_regs =
-		(struct mxs_clkctrl_regs *)MXS_CLKCTRL_BASE;
+	struct mxs_power_regs *power_regs =
+		(struct mxs_power_regs *)MXS_POWER_BASE;
+
+	writel((0x10 << POWER_VDDMEMCTRL_TRG_OFFSET) |
+		POWER_VDDMEMCTRL_ENABLE_ILIMIT |
+		POWER_VDDMEMCTRL_ENABLE_LINREG |
+		POWER_VDDMEMCTRL_PULLDOWN_ACTIVE,
+		&power_regs->hw_power_vddmemctrl);
+
+	early_delay(10000);
+
+	writel((0x10 << POWER_VDDMEMCTRL_TRG_OFFSET) |
+		POWER_VDDMEMCTRL_ENABLE_LINREG,
+		&power_regs->hw_power_vddmemctrl);
+}
+
+static void mx23_mem_init(void)
+{
+	/*
+	 * Reset/ungate the EMI block. This is essential, otherwise the system
+	 * suffers from memory instability. This thing is mx23 specific and is
+	 * no longer present on mx28.
+	 */
+	mxs_reset_block((struct mxs_register_32 *)MXS_EMI_BASE);
+
+	mx23_mem_setup_vddmem();
+
+	/*
+	 * Configure the DRAM registers
+	 */
+
+	/* Clear START and SREFRESH bit from DRAM_CTL8 */
+	clrbits_le32(MXS_DRAM_BASE + 0x20, (1 << 16) | (1 << 8));
+
+	initialize_dram_values();
+
+	/* Set START bit in DRAM_CTL16 */
+	setbits_le32(MXS_DRAM_BASE + 0x20, 1 << 16);
+
+	clrbits_le32(MXS_DRAM_BASE + 0x40, 1 << 17);
+	early_delay(20000);
+
+	/* Adjust EMI port priority. */
+	clrsetbits_le32(0x80020000, 0x1f << 16, 0x8);
+	early_delay(20000);
+
+	setbits_le32(MXS_DRAM_BASE + 0x40, 1 << 19);
+	setbits_le32(MXS_DRAM_BASE + 0x40, 1 << 11);
+
+	/* Wait for bit 10 (DRAM init complete) in DRAM_CTL18 */
+	while (!(readl(MXS_DRAM_BASE + 0x48) & (1 << 10)))
+		;
+}
+#endif
+
+#ifdef CONFIG_MX28
+static void mx28_mem_init(void)
+{
 	struct mxs_pinctrl_regs *pinctrl_regs =
 		(struct mxs_pinctrl_regs *)MXS_PINCTRL_BASE;
 
 	/* Set DDR2 mode */
 	writel(PINCTRL_EMI_DS_CTRL_DDR_MODE_DDR2,
 		&pinctrl_regs->hw_pinctrl_emi_ds_ctrl_set);
-
-	/* Power up PLL0 */
-	writel(CLKCTRL_PLL0CTRL0_POWER,
-		&clkctrl_regs->hw_clkctrl_pll0ctrl0_set);
-
-	early_delay(11000);
-
-	mxs_mem_init_clock();
-
-	mxs_mem_setup_vdda();
 
 	/*
 	 * Configure the DRAM registers
@@ -240,6 +317,22 @@ void mxs_mem_init(void)
 	/* Wait for bit 20 (DRAM init complete) in DRAM_CTL58 */
 	while (!(readl(MXS_DRAM_BASE + 0xe8) & (1 << 20)))
 		;
+}
+#endif
+
+void mxs_mem_init(void)
+{
+	early_delay(11000);
+
+	mxs_mem_init_clock();
+
+	mxs_mem_setup_vdda();
+
+#if defined(CONFIG_MX23)
+	mx23_mem_init();
+#elif defined(CONFIG_MX28)
+	mx28_mem_init();
+#endif
 
 	early_delay(10000);
 

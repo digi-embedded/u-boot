@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 Freescale Semiconductor, Inc. All Rights Reserved.
+ * Copyright (C) 2011-2013 Freescale Semiconductor, Inc. All Rights Reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +37,10 @@
 #define GPU_2D_ARB_END_ADDR             0x00137FFF
 #define DTCP_ARB_BASE_ADDR              0x00138000
 #define DTCP_ARB_END_ADDR               0x0013BFFF
+
+#define MXS_APBH_BASE			APBH_DMA_ARB_BASE_ADDR
+#define MXS_GPMI_BASE			(APBH_DMA_ARB_BASE_ADDR + 0x02000)
+#define MXS_BCH_BASE			(APBH_DMA_ARB_BASE_ADDR + 0x04000)
 
 /* GPV - PL301 configuration ports */
 #define GPV2_BASE_ADDR			0x00200000
@@ -346,6 +350,7 @@ struct cspi_regs {
 #define MXC_CSPICTRL_EN		(1 << 0)
 #define MXC_CSPICTRL_MODE	(1 << 1)
 #define MXC_CSPICTRL_XCH	(1 << 2)
+#define MXC_CSPICTRL_MODE_MASK (0xf << 4)
 #define MXC_CSPICTRL_CHIPSELECT(x)	(((x) & 0x3) << 12)
 #define MXC_CSPICTRL_BITCOUNT(x)	(((x) & 0xfff) << 20)
 #define MXC_CSPICTRL_PREDIV(x)	(((x) & 0xF) << 12)
@@ -400,6 +405,12 @@ struct iim_regs {
 	struct fuse_bank {
 		u32	fuse_regs[0x20];
 	} bank[15];
+};
+
+struct fuse_bank1_regs {
+	u32     mem[0x18];
+	u32	ana1;
+	u32     ana2;
 };
 
 struct fuse_bank4_regs {
@@ -600,6 +611,16 @@ struct iomuxc_base_regs {
 	u32     swgrp[26];      /* 0x748 */
 	u32     daisy[104];     /* 0x7b0..94c */
 };
+
+struct wdog_regs {
+	u16	wcr;	/* Control */
+	u16	wsr;	/* Service */
+	u16	wrsr;	/* Reset Status */
+	u16	wicr;	/* Interrupt Control */
+	u16	wmcr;	/* Miscellaneous Control */
+};
+
+extern void check_cpu_temperature(void);
 
 #endif /* __ASSEMBLER__*/
 #endif /* __ASM_ARCH_MX6_IMX_REGS_H__ */

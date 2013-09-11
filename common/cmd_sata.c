@@ -4,7 +4,7 @@
  * Copyright (C) Procsys. All rights reserved.
  *		Mushtaq Khan <mushtaq_k@procsys.com>
  *			<mushtaqk_921@yahoo.co.in>
- * Copyright (C) 2008 Freescale Semiconductor, Inc.
+ * Copyright (C) 2008-2013 Freescale Semiconductor, Inc.
  *		Dave Liu <daveliu@freescale.com>
  *
  * This program is free software; you can redistribute it and/or
@@ -28,7 +28,7 @@
 #include <part.h>
 #include <sata.h>
 
-static int sata_curr_device = -1;
+int sata_curr_device = -1;
 block_dev_desc_t sata_dev_desc[CONFIG_SYS_SATA_MAX_DEVICE];
 
 int __sata_initialize(void)
@@ -196,7 +196,7 @@ static int do_sata(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 U_BOOT_CMD(
 	sata, 5, 1, do_sata,
 	"SATA sub system",
-	"sata init - init SATA sub system\n"
+	"init - init SATA sub system\n"
 	"sata info - show available SATA devices\n"
 	"sata device [dev] - show or set current device\n"
 	"sata part [dev] - print partition table\n"
