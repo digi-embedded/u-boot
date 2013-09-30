@@ -279,7 +279,6 @@
 #define CONFIG_SYS_LONGHELP
 
 /* Monitor Command Prompt       */
-#define CONFIG_SYS_PROMPT              "=> "
 
 /* Define this variable to enable the "hush" shell (from
    Busybox) as command line interpreter, thus enabling

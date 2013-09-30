@@ -101,7 +101,6 @@
 
 
 #undef CONFIG_SYS_PROMPT
-#define CONFIG_SYS_PROMPT		"=> "
 #define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
 
 /*

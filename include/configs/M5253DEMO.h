@@ -124,7 +124,6 @@
 #define CONFIG_SYS_I2C_PINMUX_CLR	(0xFFFFE7FF)
 #define CONFIG_SYS_I2C_PINMUX_SET	(0)
 
-#define CONFIG_SYS_PROMPT		"=> "
 #define CONFIG_SYS_LONGHELP		/* undef to save memory */
 
 #if defined(CONFIG_CMD_KGDB)
