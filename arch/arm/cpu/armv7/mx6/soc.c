@@ -37,6 +37,12 @@
 #include <libfdt.h>
 #include <stdbool.h>
 
+enum ldo_reg {
+	LDO_ARM,
+	LDO_SOC,
+	LDO_PU,
+};
+
 struct scu_regs {
 	u32	ctrl;
 	u32	config;
@@ -135,10 +141,11 @@ void init_aips(void)
  * Possible values are from 0.725V to 1.450V in steps of
  * 0.025V (25mV).
  */
-void set_vddsoc(u32 mv)
+static int set_ldo_voltage(enum ldo_reg ldo, u32 mv)
 {
 	struct anatop_regs *anatop = (struct anatop_regs *)ANATOP_BASE_ADDR;
 	u32 val, reg = readl(&anatop->reg_core);
+	u8 shift;
 
 	if (mv < 725)
 		val = 0x00;	/* Power gated off */
@@ -147,11 +154,21 @@ void set_vddsoc(u32 mv)
 	else
 		val = (mv - 700) / 25;
 
-	/*
-	 * Mask out the REG_CORE[22:18] bits (REG2_TRIG)
-	 * and set them to the calculated value (0.7V + val * 0.25V)
-	 */
-	reg = (reg & ~(0x1F << 18)) | (val << 18);
+	switch (ldo) {
+	case LDO_SOC:
+		shift = 18;
+		break;
+	case LDO_PU:
+		shift = 9;
+		break;
+	case LDO_ARM:
+		shift = 0;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	reg = (reg & ~(0x1F << shift)) | (val << shift);
 	writel(reg, &anatop->reg_core);
 
 	/* ROM may modify LDO ramp up time according to fuse setting for safe,
@@ -161,6 +178,7 @@ void set_vddsoc(u32 mv)
 	reg &= ~(0x3f << 24);
 	writel(reg, &anatop->ana_misc2);
 
+	return 0;
 }
 
 static void imx_set_wdog_powerdown(bool enable)
@@ -380,7 +398,8 @@ static void imx_set_pcie_phy_power_down(void)
 int arch_cpu_init(void)
 {
 	init_aips();
-	set_vddsoc(1200);	/* Set VDDSOC to 1.2V */
+
+	set_ldo_voltage(LDO_SOC, 1200);	/* Set VDDSOC to 1.2V */
 
 	imx_set_wdog_powerdown(false); /* Disable PDE bit of WMCR register */
 
