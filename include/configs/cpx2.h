@@ -50,6 +50,7 @@
 #define CONFIG_DIGI_CMD
 #define CONFIG_CMD_NVRAM
 #define CONFIG_ENV_IS_IN_DIGI_NVRAM
+#define CONFIG_TFTP_UPDATE_ONTHEFLY	/* support to tftp and update on-the-fly */
 
 /*
  * SPL

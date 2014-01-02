@@ -70,7 +70,6 @@
 #ifndef CONFIG_TFTP_RETRIES_ON_ERROR
 # define CONFIG_TFTP_RETRIES_ON_ERROR	5
 #endif
-#define CONFIG_TFTP_UPDATE_ONTHEFLY	/* support to tftp and update on-the-fly */
 
 /* ********** usb/mmc ********** */
 #define DEFAULT_KERNEL_FS		"fat"
