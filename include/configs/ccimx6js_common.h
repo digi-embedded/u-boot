@@ -21,6 +21,7 @@
 #define CONFIG_MX6
 
 #include "mx6_common.h"
+#include "digi_common.h"		/* Load Digi common stuff... */
 
 #define CONFIG_DISPLAY_CPUINFO
 #define CONFIG_DISPLAY_BOARDINFO
@@ -69,7 +70,6 @@
 #define CONFIG_PHY_ATHEROS
 
 /* allow to overwrite serial and ethaddr */
-#define CONFIG_ENV_OVERWRITE
 #define CONFIG_CONS_INDEX              1
 #define CONFIG_BAUDRATE                        115200
 
@@ -79,6 +79,7 @@
 #define CONFIG_CMD_BMODE
 #define CONFIG_CMD_BOOTZ
 #undef CONFIG_CMD_IMLS
+#define CONFIG_CMD_SETEXPR
 
 #define CONFIG_BOOTDELAY               1
 
@@ -203,11 +204,6 @@
 #define CONFIG_AUTO_COMPLETE
 #define CONFIG_SYS_CBSIZE              1024
 
-/* Print Buffer Size */
-#define CONFIG_SYS_PBSIZE (CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
-#define CONFIG_SYS_MAXARGS             16
-#define CONFIG_SYS_BARGSIZE CONFIG_SYS_CBSIZE
-
 #define CONFIG_SYS_MEMTEST_START       0x10000000
 #define CONFIG_SYS_MEMTEST_END         0x10010000
 #define CONFIG_SYS_MEMTEST_SCRATCH     0x10800000
@@ -216,7 +212,6 @@
 #define CONFIG_SYS_HZ                  1000
 
 #define CONFIG_CMDLINE_EDITING
-#define CONFIG_STACKSIZE               (128 * 1024)
 
 /* Physical Memory Map */
 #define CONFIG_NR_DRAM_BANKS           1
@@ -233,8 +228,6 @@
 
 /* FLASH and environment organization */
 #define CONFIG_SYS_NO_FLASH
-
-#define CONFIG_ENV_SIZE			(8 * 1024)
 
 #ifndef CONFIG_SYS_NOSMP
 #define CONFIG_SYS_NOSMP

@@ -18,6 +18,7 @@
 #
 
 include $(TOPDIR)/config.mk
+include $(TOPDIR)/board/$(VENDOR)/config.mk
 
 LIB    = $(obj)lib$(BOARD).o
 
