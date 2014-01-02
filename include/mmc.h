@@ -282,6 +282,8 @@ int board_mmc_getcd(struct mmc *mmc);
 int mmc_switch_part(int dev_num, unsigned int part_num);
 int mmc_getcd(struct mmc *mmc);
 int mmc_getwp(struct mmc *mmc);
+int mmc_send_ext_csd(struct mmc *mmc, u8 *ext_csd);
+int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value);
 void spl_mmc_load(void) __noreturn;
 
 #ifdef CONFIG_GENERIC_MMC

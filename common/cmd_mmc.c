@@ -259,6 +259,64 @@ static int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 		return 0;
 	}
+#ifdef CONFIG_CMD_EMMC
+	else if (strcmp(argv[1], "ecsd") == 0) {
+		struct mmc *mmc = find_mmc_device(curr_device);
+		ALLOC_CACHE_ALIGN_BUFFER(u8, ext_csd, 512);
+		int err;
+		int field;
+		u8 val;
+
+		err = mmc_send_ext_csd(mmc, ext_csd);
+		if (err) {
+			printf("Can't access ECSD. "
+				"Maybe selected device %d is not an eMMC\n",
+				curr_device);
+			return 1;
+		}
+
+		if (strcmp(argv[2], "dump") == 0) {
+			for (field = 0; field < 511; field++)
+				printf("ECSD[%d]: 0x%08x\n", field,
+					ext_csd[field]);
+			return 0;
+		} else if (strcmp(argv[2], "read") == 0 && argc == 4) {
+			field = simple_strtoul(argv[3], NULL, 16);
+			if (field >=0 && field < 512) {
+				printf("ECSD[%d]: 0x%08x\n", field,
+					ext_csd[field]);
+				return 0;
+			}
+			else {
+				printf("Invalid field offset. "
+					"Must be within range 0..511\n");
+				return 1;
+			}
+		} else if (strcmp(argv[2], "write") == 0 && argc == 5) {
+			field = simple_strtoul(argv[3], NULL, 16);
+			val = simple_strtoul(argv[4], NULL, 16);
+
+			/* only modes segment (0..191) can be modified */
+			if (field >=0 && field <= 191) {
+
+				err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL,
+						field, val);
+				if (err) {
+					printf("Can't access ECSD.\n");
+					return 1;
+				}
+				return 0;
+			}
+			else {
+				printf("Invalid field offset. "
+					"Must be within range 0..191\n");
+				return 1;
+			}
+		} else {
+			return CMD_RET_USAGE;
+		}
+	}
+#endif /* CONFIG_CMD_EMMC */
 
 	state = MMC_INVALID;
 	if (argc == 5 && strcmp(argv[1], "read") == 0)
@@ -334,5 +392,12 @@ U_BOOT_CMD(
 	"mmc rescan\n"
 	"mmc part - lists available partition on current mmc device\n"
 	"mmc dev [dev] [part] - show or set current mmc device [partition]\n"
-	"mmc list - lists available devices");
+	"mmc list - lists available devices\n"
+#ifdef CONFIG_CMD_EMMC
+	"mmc ecsd dump - dump ECSD values\n"
+	"mmc ecsd read offset - read ECSD value at offset\n"
+	"mmc ecsd write offset value - write ECSD value at offset\n"
+#endif
+	);
+
 #endif
