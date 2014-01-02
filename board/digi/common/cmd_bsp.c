@@ -758,7 +758,7 @@ _getpart:
 			 * allows us to introduce some modifications.
 			 */
 			sprintf(tmp, "fdt addr %x %x", iLoadAddrFdt,
-				CONFIG_FDT_MAX_SIZE);
+				CONFIG_FDT_MAXSIZE);
 			if (!RunCmd(tmp))
 				eprintf("Could not set the Device Tree address!\n");
 #endif /* CONFIG_OF_LIBFDT */

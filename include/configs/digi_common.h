@@ -118,7 +118,7 @@
 #define CONFIG_SYS_64BIT_STRTOUL       /* we need if for NVRAM */
 
 /* device tree */
-#define CONFIG_FDT_MAX_SIZE	(128 * 1024)
+#define CONFIG_FDT_MAXSIZE    (128 * 1024)
 
 #ifndef __ASSEMBLY__		/* put C only stuff in this section */
 /* macros */

@@ -305,7 +305,6 @@
 						  * kernel load address */
 #define CONFIG_FDT_PREFIX	"imx28-"
 #define CONFIG_FDT_SUFFIX	".dtb"
-#define CONFIG_FDT_MAXSIZE	128 * 1024	/* 128 KiB */
 #define CONFIG_SYS_LOAD_ADDR	CONFIG_LOADADDR
 #define CONFIG_OF_LIBFDT
 #define CONFIG_OF_BOARD_SETUP
