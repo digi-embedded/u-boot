@@ -29,7 +29,7 @@ $(if $(CONFIG_CMD_BOOTSTREAM), $(shell mkdir -p $(obj)cmd_bootstream))
 
 LIB	= $(obj)lib$(VENDOR).o
 
-COBJS-y	= cmd_bsp.o \
+COBJS-$(CONFIG_CMD_BSP)	= cmd_bsp.o \
 	  cmd_compat.o \
 	  cmd_video.o \
 	  cmd_chkimg.o \
