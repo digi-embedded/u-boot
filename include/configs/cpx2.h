@@ -48,6 +48,8 @@
 #define CONFIG_IDENT_STRING             " - GCC " __VERSION__ "\nfor " \
                                         CONFIG_MODULE_STRING
 #define CONFIG_DIGI_CMD
+#define CONFIG_CMD_NVRAM
+#define CONFIG_ENV_IS_IN_DIGI_NVRAM
 
 /*
  * SPL

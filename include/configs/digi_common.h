@@ -83,7 +83,6 @@
 #define SPI_LOADER_SIZE		8192
 
 /* NVRAM */
-#define CONFIG_ENV_IS_IN_DIGI_NVRAM
 #define CONFIG_ENV_SIZE		(16 * 1024)
 
 /*-----------------------------------------------------------------------

@@ -24,7 +24,7 @@
 include $(TOPDIR)/config.mk
 include $(TOPDIR)/board/$(VENDOR)/config.mk
 
-$(shell mkdir -p $(obj)cmd_nvram/lib/src)
+$(if $(CONFIG_CMD_NVRAM), $(shell mkdir -p $(obj)cmd_nvram/lib/src))
 $(if $(CONFIG_CMD_BOOTSTREAM), $(shell mkdir -p $(obj)cmd_bootstream))
 
 LIB	= $(obj)lib$(VENDOR).o
@@ -33,13 +33,6 @@ COBJS-y	= cmd_bsp.o \
 	  cmd_compat.o \
 	  cmd_video.o \
 	  cmd_chkimg.o \
-	  cmd_nvram/mtd.o \
-	  cmd_nvram/lib/src/nvram.o \
-	  cmd_nvram/lib/src/nvram_cmdline.o \
-	  cmd_nvram/cmd.o \
-	  cmd_nvram/nvram_priv_uboot.o \
-	  cmd_nvram/env.o \
-	  cmd_nvram/partition.o \
 	  vscanf.o \
 	  atoi.o \
 	  safe_strcat.o \
@@ -48,6 +41,13 @@ COBJS-$(CONFIG_CMD_BOOTSTREAM) += cmd_bootstream/ncb.o \
 				  cmd_bootstream/cmd_bootstream.o \
 				  cmd_bootstream/mxsboot.o
 COBJS-$(CONFIG_MXS_OTP) += cmd_mxsotp.o
+COBJS-$(CONFIG_CMD_NVRAM) += cmd_nvram/mtd.o \
+	  cmd_nvram/lib/src/nvram.o \
+	  cmd_nvram/lib/src/nvram_cmdline.o \
+	  cmd_nvram/cmd.o \
+	  cmd_nvram/nvram_priv_uboot.o \
+	  cmd_nvram/env.o \
+	  cmd_nvram/partition.o
 
 COBJS	:= $(sort $(COBJS-y))
 SRCS	:= $(AOBJS:.o=.S) $(COBJS:.o=.c)
