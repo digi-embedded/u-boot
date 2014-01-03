@@ -131,6 +131,7 @@
 	"fdt_high=0xffffffff\0"	  \
 	"initrd_high=0xffffffff\0" \
 	"mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV) "\0" \
+	"mmcbootpart=" __stringify(CONFIG_SYS_MMC_ENV_PART) "\0" \
 	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"smp=" CONFIG_SYS_NOSMP "\0"\
@@ -180,7 +181,15 @@
 			"fi; " \
 		"else " \
 			"bootm; " \
-		"fi;\0"
+		"fi;\0" \
+	"uboot_file=u-boot.imx\0" \
+	"update_uboot_tftp=echo Updating U-Boot from net...; " \
+		"tftpboot ${loadaddr} ${uboot_file}; " \
+		"setexpr filesizeblks ${filesize} / 200; " \
+		"setexpr filesizeblks ${filesizeblks} + 1; " \
+		"mmc dev ${mmcdev} ${mmcbootpart}; " \
+		"mmc write ${loadaddr} 2 ${filesizeblks}; " \
+		"mmc dev ${mmcdev} 0\0"
 
 #define CONFIG_BOOTCOMMAND \
 	"mmc dev ${mmcdev};" \
