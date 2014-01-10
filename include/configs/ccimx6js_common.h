@@ -130,8 +130,9 @@
 	"console=" CONFIG_CONSOLE_DEV "\0" \
 	"fdt_high=0xffffffff\0"	  \
 	"initrd_high=0xffffffff\0" \
-	"mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV) "\0" \
-	"mmcbootpart=" __stringify(CONFIG_SYS_MMC_ENV_PART) "\0" \
+	"mmcbootdev=" __stringify(CONFIG_SYS_MMC_BOOT_DEV) "\0" \
+	"mmcbootpart=" __stringify(CONFIG_SYS_MMC_BOOT_PART) "\0" \
+	"mmcdev=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_DEV) "\0" \
 	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"smp=" CONFIG_SYS_NOSMP "\0"\
@@ -187,7 +188,7 @@
 		"tftpboot ${loadaddr} ${uboot_file}; " \
 		"setexpr filesizeblks ${filesize} / 200; " \
 		"setexpr filesizeblks ${filesizeblks} + 1; " \
-		"mmc dev ${mmcdev} ${mmcbootpart}; " \
+		"mmc dev ${mmcbootdev} ${mmcbootpart}; " \
 		"mmc write ${loadaddr} 2 ${filesizeblks}; " \
 		"mmc dev ${mmcdev} 0\0"
 
