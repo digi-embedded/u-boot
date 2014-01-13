@@ -15,15 +15,15 @@
  * GNU General Public License for more details.
  */
 
-#ifndef __CCIMX6JS_CONFIG_H
-#define __CCIMX6JS_CONFIG_H
+#ifndef __CCIMX6ADPTJS_CONFIG_H
+#define __CCIMX6ADPT_CONFIG_H
 
 #define CONFIG_MACH_TYPE	3980
 #define CONFIG_MXC_UART_BASE	UART1_BASE
 #define CONFIG_CONSOLE_DEV		"ttymxc0"
 #define CONFIG_MMCROOT			"/dev/mmcblk0p2"
 
-#include "ccimx6js_common.h"
+#include "ccimx6_common.h"
 #include <asm/imx-common/gpio.h>
 
 #define CONFIG_SYS_FSL_USDHC_NUM	3
@@ -40,4 +40,4 @@
 #define CONFIG_SF_DEFAULT_CS   (0|(IMX_GPIO_NR(4, 9)<<8))
 #endif
 
-#endif                         /* __CCIMX6JS_CONFIG_H */
+#endif                         /* __CCIMX6ADPT_CONFIG_H */

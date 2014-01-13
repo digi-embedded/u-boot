@@ -15,8 +15,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef __CCIMX6JS_COMMON_CONFIG_H
-#define __CCIMX6JS_COMMON_CONFIG_H
+#ifndef __CCIMX6_COMMON_CONFIG_H
+#define __CCIMX6_COMMON_CONFIG_H
 
 #define CONFIG_MX6
 
@@ -352,4 +352,4 @@
 #define CONFIG_SYS_I2C_SPEED            100000
 #define CONFIG_SYS_I2C_SLAVE            0x8
 
-#endif                         /* __CCIMX6JS_COMMON_CONFIG_H */
+#endif                         /* __CCIMX6_COMMON_CONFIG_H */

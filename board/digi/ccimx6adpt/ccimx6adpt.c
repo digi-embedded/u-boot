@@ -494,7 +494,7 @@ int board_late_init(void)
 
 int checkboard(void)
 {
-	puts("Board: ConnectCore 6 on the Jump Start Kit\n");
+	puts("Board: ConnectCore for i.MX6 on the Adapter board\n");
 
 	return 0;
 }
