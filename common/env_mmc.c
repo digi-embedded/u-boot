@@ -64,6 +64,14 @@ __weak int mmc_get_env_addr(struct mmc *mmc, int copy, u32 *env_addr)
 __weak int mmc_get_env_devno(void)
 {
 	return CONFIG_SYS_MMC_ENV_DEV;
+
+#if !defined(CONFIG_SYS_MMC_ENV_PART)
+#define CONFIG_SYS_MMC_ENV_PART 0
+#endif
+
+__weak int mmc_get_env_partno(void)
+{
+	return CONFIG_SYS_MMC_ENV_PART;
 }
 
 int env_init(void)
@@ -77,6 +85,9 @@ int env_init(void)
 
 static int init_mmc_for_env(struct mmc *mmc)
 {
+	int mmc_env_devno = mmc_get_env_devno();
+	int mmc_env_partno = mmc_get_env_partno();
+
 	if (!mmc) {
 		puts("No MMC card found\n");
 		return -1;
@@ -87,30 +98,23 @@ static int init_mmc_for_env(struct mmc *mmc)
 		return -1;
 	}
 
-#ifdef CONFIG_SYS_MMC_ENV_PART
-	if (CONFIG_SYS_MMC_ENV_PART != mmc->part_num) {
-		int mmc_env_devno = mmc_get_env_devno();
-
-		if (mmc_switch_part(mmc_env_devno,
-				    CONFIG_SYS_MMC_ENV_PART)) {
+	if (mmc_env_partno != mmc->part_num) {
+		if (mmc_switch_part(mmc_env_devno, mmc_env_partno)) {
 			puts("MMC partition switch failed\n");
 			return -1;
 		}
 	}
-#endif
 
 	return 0;
 }
 
 static void fini_mmc_for_env(struct mmc *mmc)
 {
-#ifdef CONFIG_SYS_MMC_ENV_PART
 	int mmc_env_devno = mmc_get_env_devno();
+	int mmc_env_partno = mmc_get_env_partno();
 
-	if (CONFIG_SYS_MMC_ENV_PART != mmc->part_num)
-		mmc_switch_part(mmc_env_devno,
-				mmc->part_num);
-#endif
+	if (mmc_env_partno != mmc->part_num)
+		mmc_switch_part(mmc_env_devno, mmc->part_num);
 }
 
 #ifdef CONFIG_CMD_SAVEENV
