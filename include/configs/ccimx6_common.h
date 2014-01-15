@@ -350,6 +350,6 @@
 #define CONFIG_I2C_MXC          1
 #define CONFIG_SYS_I2C_BASE             I2C2_BASE_ADDR
 #define CONFIG_SYS_I2C_SPEED            100000
-#define CONFIG_SYS_I2C_SLAVE            0x8
+#define CONFIG_SYS_I2C_SLAVE            0	/* unused */
 
 #endif                         /* __CCIMX6_COMMON_CONFIG_H */
