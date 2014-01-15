@@ -30,9 +30,6 @@
 /* MMC device and partition where U-Boot image is */
 #define CONFIG_SYS_MMC_BOOT_DEV		1	/* SDHC4 (eMMC) */
 #define CONFIG_SYS_MMC_BOOT_PART	1	/* Boot part 1 */
-/* MMC device and partition where U-Boot environment is */
-#define CONFIG_SYS_MMC_ENV_DEV		1	/* SDHC4 (eMMC) */
-#define CONFIG_SYS_MMC_ENV_PART		2	/* Boot part 2 */
 /* MMC device where OS firmware files are */
 #define CONFIG_SYS_MMC_IMG_LOAD_DEV	0	/* SDHC2 (uSD) */
 

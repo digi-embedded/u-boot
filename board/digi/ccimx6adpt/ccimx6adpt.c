@@ -182,18 +182,42 @@ struct fsl_esdhc_cfg usdhc_cfg[3] = {
 int mmc_get_env_devno(void)
 {
 	u32 soc_sbmr = readl(SRC_BASE_ADDR + 0x4);
-	u32 dev_no;
 
-	/* BOOT_CFG2[3] and BOOT_CFG2[4] */
-	dev_no = (soc_sbmr & 0x00001800) >> 11;
-
-	/* need ubstract 1 to map to the mmc device id
-	 * see the comments in board_mmc_init function
+	/* BOOT_CFG2[4] and BOOT_CFG2[3] denote boot media:
+	 * 01:	SDHC2 (uSD card)
+	 * 11:	SDHC4 (eMMC)
 	 */
+	switch((soc_sbmr & 0x00001800) >> 11) {
+	case 1:
+		return 0;	/* SDHC2 (uSD) is mmc0 */
+	case 3:
+		return 1;	/* SDHC4 (eMMC) is mmc1 */
+	}
 
-	dev_no--;
+	return -1;
+}
 
-	return dev_no;
+int mmc_get_env_partno(void)
+{
+	u32 soc_sbmr = readl(SRC_BASE_ADDR + 0x4);
+
+	/* BOOT_CFG2[4] and BOOT_CFG2[3] denote boot media:
+	 * 01:	SDHC2 (uSD card)
+	 * 11:	SDHC4 (eMMC)
+	 */
+	switch((soc_sbmr & 0x00001800) >> 11) {
+	case 1:
+		return 0;	/* When booting from SDHC2 (uSD) the
+				 * environment will be saved to the unique
+				 * hardware partition: 0 */
+	case 3:
+		return 2;	/* When booting from SDHC4 (eMMC) the
+				 * environment will be saved to boot
+				 * partition 2 to protect it from
+				 * accidental overwrite during U-Boot update */
+	}
+
+	return -1;
 }
 
 int board_mmc_getcd(struct mmc *mmc)
