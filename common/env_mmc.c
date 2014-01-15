@@ -61,9 +61,14 @@ __weak int mmc_get_env_addr(struct mmc *mmc, int copy, u32 *env_addr)
 	return 0;
 }
 
+#if !defined(CONFIG_SYS_MMC_ENV_DEV)
+#define CONFIG_SYS_MMC_ENV_DEV 0
+#endif
+
 __weak int mmc_get_env_devno(void)
 {
 	return CONFIG_SYS_MMC_ENV_DEV;
+}
 
 #if !defined(CONFIG_SYS_MMC_ENV_PART)
 #define CONFIG_SYS_MMC_ENV_PART 0
