@@ -199,17 +199,7 @@
 		"mmc dev ${mmcdev}\0"
 
 #define CONFIG_BOOTCOMMAND \
-	"mmc dev ${mmcdev};" \
-	"if mmc rescan; then " \
-		"if run loadbootscript; then " \
-		"run bootscript; " \
-		"else " \
-			"if run loaduimage; then " \
-				"run mmcboot; " \
-			"else run netboot; " \
-			"fi; " \
-		"fi; " \
-	"else run netboot; fi"
+	""
 #endif
 #define CONFIG_ARP_TIMEOUT     200UL
 
