@@ -190,7 +190,7 @@
 		"setexpr filesizeblks ${filesizeblks} + 1; " \
 		"mmc dev ${mmcbootdev} ${mmcbootpart}; " \
 		"mmc write ${loadaddr} 2 ${filesizeblks}; " \
-		"mmc dev ${mmcdev} 0\0" \
+		"mmc dev ${mmcdev}\0" \
 	"update_uboot_mmc=fatload mmc 0 ${loadaddr} ${uboot_file}; " \
 		"setexpr filesizeblks ${filesize} / 200; " \
 		"setexpr filesizeblks ${filesizeblks} + 1; " \
