@@ -33,8 +33,16 @@
 /* MMC device where OS firmware files are */
 #define CONFIG_SYS_MMC_IMG_LOAD_DEV	0	/* SDHC2 (uSD) */
 
-#ifdef CONFIG_SYS_USE_SPINOR
-#define CONFIG_SF_DEFAULT_CS   (0|(IMX_GPIO_NR(4, 9)<<8))
+/* Ethernet PHY (select one) */
+//#define CONFIG_PHY_MICREL
+#define CONFIG_PHY_SMSC
+
+#if defined(CONFIG_PHY_MICREL)
+#define CONFIG_FEC_MXC_PHYADDR		3
+#define CONFIG_FEC_XCV_TYPE		RGMII
+#elif defined(CONFIG_PHY_SMSC)
+#define CONFIG_FEC_MXC_PHYADDR		0
+#define CONFIG_FEC_XCV_TYPE		RMII
 #endif
 
 #endif                         /* __CCIMX6ADPT_CONFIG_H */
