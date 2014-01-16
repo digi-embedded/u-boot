@@ -344,5 +344,6 @@
 #define CONFIG_SYS_I2C_BASE             I2C2_BASE_ADDR
 #define CONFIG_SYS_I2C_SPEED            100000
 #define CONFIG_SYS_I2C_SLAVE            0	/* unused */
+#define CONFIG_PMIC_I2C_ADDR		0x58	/* DA9063 PMIC i2c address */
 
 #endif                         /* __CCIMX6_COMMON_CONFIG_H */

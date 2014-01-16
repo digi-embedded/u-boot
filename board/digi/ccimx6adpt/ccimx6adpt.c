@@ -185,9 +185,44 @@ static void setup_iomux_uart(void)
 }
 
 #ifdef CONFIG_I2C_MXC
+
+/* DA9063 PMIC */
+#define DA9063_DEVICE_ID_ADDR		0x181
+#define DA9063_VARIANT_ID_ADDR		0x182
+#define DA9063_CUSTOMER_ID_ADDR		0x183
+#define DA9063_CONFIG_ID_ADDR		0x184
+
 static int setup_pmic_voltages(void)
 {
-	// TODO: PMIC configuration
+	unsigned char dev_id, var_id, conf_id, cust_id, value;
+
+	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
+
+	if (!i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
+		if (i2c_read(CONFIG_PMIC_I2C_ADDR, DA9063_DEVICE_ID_ADDR, 1,
+			     &dev_id, 1)) {
+			printf("Read device ID error!\n");
+			return -1;
+		}
+		if (i2c_read(CONFIG_PMIC_I2C_ADDR, DA9063_VARIANT_ID_ADDR, 1,
+			     &var_id, 1)) {
+			printf("Read variant ID error!\n");
+			return -1;
+		}
+		if (i2c_read(CONFIG_PMIC_I2C_ADDR, DA9063_CUSTOMER_ID_ADDR, 1,
+			     &cust_id, 1)) {
+			printf("Read variant ID error!\n");
+			return -1;
+		}
+		if (i2c_read(CONFIG_PMIC_I2C_ADDR, DA9063_CONFIG_ID_ADDR, 1,
+			     &conf_id, 1)) {
+			printf("Read config ID error!\n");
+			return -1;
+		}
+		printf("PMIC:  DA9063, Device: 0x%02x, Variant: 0x%02x, "
+			"Customer: 0x%02x, Config: 0x%02x\n", dev_id, var_id,
+			cust_id, conf_id);
+	}
 	return 0;
 }
 #endif
