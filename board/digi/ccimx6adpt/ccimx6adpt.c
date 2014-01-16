@@ -187,6 +187,9 @@ static void setup_iomux_uart(void)
 #ifdef CONFIG_I2C_MXC
 
 /* DA9063 PMIC */
+#define DA9063_VLDO4_CONT_ADDR		0x29
+#define DA9063_VLDO4_A_ADDR		0xac
+#define DA9063_VLDO4_B_ADDR		0xbd
 #define DA9063_DEVICE_ID_ADDR		0x181
 #define DA9063_VARIANT_ID_ADDR		0x182
 #define DA9063_CUSTOMER_ID_ADDR		0x183
@@ -222,6 +225,26 @@ static int setup_pmic_voltages(void)
 		printf("PMIC:  DA9063, Device: 0x%02x, Variant: 0x%02x, "
 			"Customer: 0x%02x, Config: 0x%02x\n", dev_id, var_id,
 			cust_id, conf_id);
+
+#if defined(CONFIG_FEC_MXC) && defined(CONFIG_PHY_SMSC)
+		/* NVCC_ENET comes from LDO4 (2.5V) */
+		/* Config LDO4 voltages A and B at 2.5V */
+		value = 0x50;
+		if (i2c_write(CONFIG_PMIC_I2C_ADDR, DA9063_VLDO4_A_ADDR, 1,
+			      &value, 1)) {
+			printf("Set VLDO4_A error!\n");
+		}
+		if (i2c_write(CONFIG_PMIC_I2C_ADDR, DA9063_VLDO4_B_ADDR, 1,
+			      &value, 1)) {
+			printf("Set VLDO4_B error!\n");
+		}
+		/* Enable VLDO4 */
+		value = 0x01;
+		if (i2c_write(CONFIG_PMIC_I2C_ADDR, DA9063_VLDO4_CONT_ADDR, 1,
+			      &value, 1)) {
+			printf("Set VLDO4_CONT error!\n");
+		}
+#endif
 	}
 	return 0;
 }
