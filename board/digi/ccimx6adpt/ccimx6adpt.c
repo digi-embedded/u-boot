@@ -191,6 +191,7 @@ static void setup_iomux_uart(void)
 #define DA9063_VLDO4_CONT_ADDR		0x29
 #define DA9063_VLDO4_A_ADDR		0xac
 #define DA9063_VLDO4_B_ADDR		0xbd
+#define DA9063_CONFIG_D_ADDR		0x109
 #define DA9063_DEVICE_ID_ADDR		0x181
 #define DA9063_VARIANT_ID_ADDR		0x182
 #define DA9063_CUSTOMER_ID_ADDR		0x183
@@ -277,6 +278,12 @@ static int setup_pmic_voltages(void)
 		    pmic_write_bitfield(DA9063_VLDO4_CONT_ADDR, 0x1, 0, 0x1))
 			printf("Could not configure VLDO4\n");
 #endif
+		/* PWR_EN on the ccimx6adpt enables the +5V suppy and comes
+		 * from GP_FB_2. Configure this as high level active by setting
+		 * pin 6.
+		 */
+		if (pmic_write_bitfield(DA9063_CONFIG_D_ADDR, 0x1, 6, 0x0))
+			printf("Could not enable PWR_EN\n");
 	}
 	return 0;
 }
