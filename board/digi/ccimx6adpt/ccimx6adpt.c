@@ -187,6 +187,7 @@ static void setup_iomux_uart(void)
 #ifdef CONFIG_I2C_MXC
 
 /* DA9063 PMIC */
+#define DA9063_PAGE_CON			0x0
 #define DA9063_VLDO4_CONT_ADDR		0x29
 #define DA9063_VLDO4_A_ADDR		0xac
 #define DA9063_VLDO4_B_ADDR		0xbd
@@ -195,31 +196,73 @@ static void setup_iomux_uart(void)
 #define DA9063_CUSTOMER_ID_ADDR		0x183
 #define DA9063_CONFIG_ID_ADDR		0x184
 
+static int pmic_access_page(unsigned char page)
+{
+	if (i2c_write(CONFIG_PMIC_I2C_ADDR, DA9063_PAGE_CON, 1, &page, 1)) {
+		printf("Cannot set PMIC page!\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+static int pmic_read_reg(int reg, unsigned char *value)
+{
+	unsigned char page = reg / 0x80;
+
+	if (pmic_access_page(page))
+		return -1;
+
+	if (i2c_read(CONFIG_PMIC_I2C_ADDR, reg, 1, value, 1))
+		return -1;
+
+	/* return to page 0 by default */
+	pmic_access_page(0);
+	return 0;
+}
+
+static int pmic_write_reg(int reg, unsigned char value)
+{
+	unsigned char page = reg / 0x80;
+
+	if (pmic_access_page(page))
+		return -1;
+
+	if (i2c_write(CONFIG_PMIC_I2C_ADDR, reg, 1, &value, 1))
+		return -1;
+
+	/* return to page 0 by default */
+	pmic_access_page(0);
+	return 0;
+}
+
+static int pmic_write_bitfield(int reg, unsigned char mask, unsigned char off,
+			       unsigned char bfval)
+{
+	unsigned char value;
+
+	if (pmic_read_reg(reg, &value) == 0) {
+		value &= ~(mask << off);
+		value |= (bfval << off);
+		return pmic_write_reg(reg, value);
+	}
+
+	return -1;
+}
+
 static int setup_pmic_voltages(void)
 {
-	unsigned char dev_id, var_id, conf_id, cust_id, value;
+	unsigned char dev_id, var_id, conf_id, cust_id;
 
 	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
 
 	if (!i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
-		if (i2c_read(CONFIG_PMIC_I2C_ADDR, DA9063_DEVICE_ID_ADDR, 1,
-			     &dev_id, 1)) {
-			printf("Read device ID error!\n");
-			return -1;
-		}
-		if (i2c_read(CONFIG_PMIC_I2C_ADDR, DA9063_VARIANT_ID_ADDR, 1,
-			     &var_id, 1)) {
-			printf("Read variant ID error!\n");
-			return -1;
-		}
-		if (i2c_read(CONFIG_PMIC_I2C_ADDR, DA9063_CUSTOMER_ID_ADDR, 1,
-			     &cust_id, 1)) {
-			printf("Read variant ID error!\n");
-			return -1;
-		}
-		if (i2c_read(CONFIG_PMIC_I2C_ADDR, DA9063_CONFIG_ID_ADDR, 1,
-			     &conf_id, 1)) {
-			printf("Read config ID error!\n");
+		/* Read and print PMIC identification */
+		if (pmic_read_reg(DA9063_DEVICE_ID_ADDR, &dev_id) ||
+		    pmic_read_reg(DA9063_VARIANT_ID_ADDR, &var_id) ||
+		    pmic_read_reg(DA9063_CUSTOMER_ID_ADDR, &cust_id) ||
+		    pmic_read_reg(DA9063_CONFIG_ID_ADDR, &conf_id)) {
+			printf("Could not read PMIC ID registers\n");
 			return -1;
 		}
 		printf("PMIC:  DA9063, Device: 0x%02x, Variant: 0x%02x, "
@@ -228,22 +271,11 @@ static int setup_pmic_voltages(void)
 
 #if defined(CONFIG_FEC_MXC) && defined(CONFIG_PHY_SMSC)
 		/* NVCC_ENET comes from LDO4 (2.5V) */
-		/* Config LDO4 voltages A and B at 2.5V */
-		value = 0x50;
-		if (i2c_write(CONFIG_PMIC_I2C_ADDR, DA9063_VLDO4_A_ADDR, 1,
-			      &value, 1)) {
-			printf("Set VLDO4_A error!\n");
-		}
-		if (i2c_write(CONFIG_PMIC_I2C_ADDR, DA9063_VLDO4_B_ADDR, 1,
-			      &value, 1)) {
-			printf("Set VLDO4_B error!\n");
-		}
-		/* Enable VLDO4 */
-		value = 0x01;
-		if (i2c_write(CONFIG_PMIC_I2C_ADDR, DA9063_VLDO4_CONT_ADDR, 1,
-			      &value, 1)) {
-			printf("Set VLDO4_CONT error!\n");
-		}
+		/* Config LDO4 voltages A and B at 2.5V, then enable VLDO4 */
+		if (pmic_write_reg(DA9063_VLDO4_A_ADDR, 0x50) ||
+		    pmic_write_reg(DA9063_VLDO4_B_ADDR, 0x50) ||
+		    pmic_write_bitfield(DA9063_VLDO4_CONT_ADDR, 0x1, 0, 0x1))
+			printf("Could not configure VLDO4\n");
 #endif
 	}
 	return 0;
