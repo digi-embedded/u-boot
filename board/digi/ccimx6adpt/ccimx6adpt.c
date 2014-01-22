@@ -141,22 +141,6 @@ static void setup_iomux_enet(void)
 	gpio_set_value(CONFIG_PHY_RESET_GPIO, 1);
 }
 
-#ifdef CONFIG_SYS_USE_SPINOR
-iomux_v3_cfg_t const ecspi1_pads[] = {
-	MX6_PAD_KEY_COL0__ECSPI1_SCLK | MUX_PAD_CTRL(SPI_PAD_CTRL),
-	MX6_PAD_KEY_COL1__ECSPI1_MISO | MUX_PAD_CTRL(SPI_PAD_CTRL),
-	MX6_PAD_KEY_ROW0__ECSPI1_MOSI | MUX_PAD_CTRL(SPI_PAD_CTRL),
-	MX6_PAD_KEY_ROW1__GPIO_4_9    | MUX_PAD_CTRL(NO_PAD_CTRL),
-};
-
-void setup_spinor(void)
-{
-	imx_iomux_v3_setup_multiple_pads(ecspi1_pads,
-					 ARRAY_SIZE(ecspi1_pads));
-	gpio_direction_output(IMX_GPIO_NR(4, 9), 0);
-}
-#endif
-
 iomux_v3_cfg_t const usdhc2_pads[] = {
 	MX6_PAD_SD2_CLK__USDHC2_CLK	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX6_PAD_SD2_CMD__USDHC2_CMD	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
@@ -466,10 +450,6 @@ int board_eth_init(bd_t *bis)
 int board_early_init_f(void)
 {
 	setup_iomux_uart();
-
-#ifdef CONFIG_SYS_USE_SPINOR
-	setup_spinor();
-#endif
 
 #ifdef CONFIG_CMD_SATA
 	setup_sata();
