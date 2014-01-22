@@ -18,13 +18,14 @@
 #ifndef __CCIMX6ADPTJS_CONFIG_H
 #define __CCIMX6ADPT_CONFIG_H
 
+#include "ccimx6_common.h"
+#include <asm/imx-common/gpio.h>
+
 #define CONFIG_MACH_TYPE	4842
 #define CONFIG_MXC_UART_BASE	UART1_BASE
 #define CONFIG_CONSOLE_DEV		"ttymxc0"
 #define CONFIG_MMCROOT			"/dev/mmcblk0p2"
-
-#include "ccimx6_common.h"
-#include <asm/imx-common/gpio.h>
+#define CONFIG_DEFAULT_FDT_FILE		"imx6-ccimx6adpt-ldo.dtb"
 
 #define CONFIG_SYS_FSL_USDHC_NUM	2
 /* MMC device and partition where U-Boot image is */
