@@ -143,18 +143,22 @@
 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
 	"mmcboot=echo Booting from mmc ...; " \
 		"run mmcargs; " \
-		"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
-			"if run loadfdt; then " \
-				"bootm ${loadaddr} - ${fdt_addr}; " \
-			"else " \
-				"if test ${boot_fdt} = try; then " \
-					"bootm; " \
+		"if run loaduimage; then " \
+			"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
+				"if run loadfdt; then " \
+					"bootm ${loadaddr} - ${fdt_addr}; " \
 				"else " \
-					"echo WARN: Cannot load the DT; " \
+					"if test ${boot_fdt} = try; then " \
+						"bootm; " \
+					"else " \
+						"echo WARN: Cannot load the DT; " \
+					"fi; " \
 				"fi; " \
-			"fi; " \
+			"else " \
+				"bootm; " \
+			"fi;" \
 		"else " \
-			"bootm; " \
+			"echo ERR: Cannot load the kernel; " \
 		"fi;\0" \
 	"netargs=setenv bootargs console=${console},${baudrate} ${smp} " \
 		"root=/dev/nfs " \
