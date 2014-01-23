@@ -264,6 +264,7 @@ static int gpt_mmc_default(int dev, const char *str_part)
 	if (!str_part)
 		return -1;
 
+	mmc_init(mmc);
 	/* fill partitions */
 	ret = set_gpt_info(&mmc->block_dev, str_part,
 			&str_disk_guid, &partitions, &part_count);
