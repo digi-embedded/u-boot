@@ -225,6 +225,8 @@
 		"name=cache,size=32MiB,uuid=${part5_uuid};" \
 		"name=data,size=2588MiB,uuid=${part6_uuid};" \
 		"\"\0" \
+	"partition_mmc_android=mmc dev ${mmcdev} 0;" \
+		"gpt write mmc ${mmcdev} ${parts_android}\0" \
 	"parts_linux=\"uuid_disk=${uuid_disk};" \
 		"start=2MiB," \
 		"name=kernels1,size=64MiB,uuid=${part1_uuid};" \
@@ -232,7 +234,10 @@
 		"name=system1,size=512MiB,uuid=${part3_uuid};" \
 		"name=system2,size=512MiB,uuid=${part4_uuid};" \
 		"name=data,size=2620MiB,uuid=${part5_uuid};" \
-		"\"\0"
+		"\"\0" \
+	"partition_mmc_linux=mmc dev ${mmcdev} 0;" \
+		"gpt write mmc ${mmcdev} ${parts_linux}\0" \
+	""	/* end line */
 
 #define CONFIG_BOOTCOMMAND \
 	""
