@@ -241,7 +241,7 @@ static int set_protective_mbr(block_dev_desc_t *dev_desc)
 	p_mbr->signature = MSDOS_MBR_SIGNATURE;
 	p_mbr->partition_record[0].sys_ind = EFI_PMBR_OSTYPE_EFI_GPT;
 	p_mbr->partition_record[0].start_sect = 1;
-	p_mbr->partition_record[0].nr_sects = (u32) dev_desc->lba;
+	put_unaligned(dev_desc->lba, &p_mbr->partition_record[0].nr_sects);
 
 	/* Write MBR sector to the MMC device */
 	if (dev_desc->block_write(dev_desc->dev, 0, 1, p_mbr) != 1) {
@@ -375,6 +375,8 @@ int gpt_fill_pte(gpt_header *gpt_h, gpt_entry *gpt_e,
 #ifdef CONFIG_PARTITION_UUIDS
 	char *str_uuid;
 #endif
+	static efi_guid_t basic_guid __aligned(0x04) =
+		PARTITION_BASIC_DATA_GUID;
 
 	for (i = 0; i < parts; i++) {
 		/* partition starting lba */
@@ -402,8 +404,7 @@ int gpt_fill_pte(gpt_header *gpt_h, gpt_entry *gpt_e,
 			gpt_e[i].ending_lba = cpu_to_le64(offset - 1);
 
 		/* partition type GUID */
-		memcpy(gpt_e[i].partition_type_guid.b,
-			&PARTITION_BASIC_DATA_GUID, 16);
+		gpt_e[i].partition_type_guid = basic_guid;
 
 #ifdef CONFIG_PARTITION_UUIDS
 		str_uuid = partitions[i].uuid;
