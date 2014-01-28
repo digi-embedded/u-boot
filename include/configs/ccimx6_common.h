@@ -150,8 +150,7 @@
 	"mmcdev=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_DEV) "\0" \
 	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
-	"smp=" CONFIG_SYS_NOSMP "\0"\
-	"mmcargs=setenv bootargs console=${console},${baudrate} ${smp} " \
+	"mmcargs=setenv bootargs console=${console},${baudrate} " \
 		"root=${mmcroot}\0" \
 	"loadbootscript=" \
 		"fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
@@ -178,7 +177,7 @@
 		"else " \
 			"echo ERR: Cannot load the kernel; " \
 		"fi;\0" \
-	"netargs=setenv bootargs console=${console},${baudrate} ${smp} " \
+	"netargs=setenv bootargs console=${console},${baudrate} " \
 		"root=/dev/nfs " \
 		"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
 	"netboot=echo Booting from net ...; " \
@@ -276,10 +275,6 @@
 
 /* FLASH and environment organization */
 #define CONFIG_SYS_NO_FLASH
-
-#ifndef CONFIG_SYS_NOSMP
-#define CONFIG_SYS_NOSMP
-#endif
 
 #if defined CONFIG_SYS_BOOT_SPINOR
 #define CONFIG_SYS_USE_SPINOR
