@@ -32,7 +32,7 @@
 #define CONFIG_SYS_MMC_BOOT_DEV		1	/* SDHC4 (eMMC) */
 #define CONFIG_SYS_MMC_BOOT_PART	1	/* Boot part 1 */
 /* MMC device where OS firmware files are */
-#define CONFIG_SYS_MMC_IMG_LOAD_DEV	0	/* SDHC2 (uSD) */
+#define CONFIG_SYS_MMC_IMG_LOAD_DEV	1	/* SDHC4 (eMMC) */
 
 /* Ethernet PHY (select one) */
 //#define CONFIG_PHY_MICREL
