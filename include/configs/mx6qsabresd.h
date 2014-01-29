@@ -21,13 +21,21 @@
 #define CONFIG_MXC_UART_BASE	UART1_BASE
 #define CONFIG_CONSOLE_DEV		"ttymxc0"
 #define CONFIG_MMCROOT			"/dev/mmcblk0p2"
+#define CONFIG_DEFAULT_FDT_FILE		"imx6q-sabresd-ldo.dtb"
 
 #include "mx6qsabre_common.h"
 #include <asm/imx-common/gpio.h>
 
 #define CONFIG_SYS_FSL_USDHC_NUM	3
-#define CONFIG_SYS_MMC_ENV_DEV		1	/* SDHC3 */
+#define CONFIG_SYS_MMC_ENV_DEV		2	/* SDHC4 (eMMC) */
 #define CONFIG_SYS_MMC_ENV_PART		0	/* user partition */
+
+/* MMC device and partition where U-Boot image is */
+#define CONFIG_SYS_MMC_BOOT_DEV		2	/* SDHC4 (eMMC) */
+#define CONFIG_SYS_MMC_BOOT_PART	1	/* Boot part 1 */
+/* MMC device where OS firmware files are */
+#define CONFIG_SYS_MMC_IMG_LOAD_DEV	2	/* SDHC4 (eMMC) */
+
 
 #ifdef CONFIG_SYS_USE_SPINOR
 #define CONFIG_SF_DEFAULT_CS   (0|(IMX_GPIO_NR(4, 9)<<8))
