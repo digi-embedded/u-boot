@@ -140,6 +140,8 @@
 	"uimage=uImage\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"fdt_addr=0x18000000\0" \
+	"initrd_addr=0x19000000\0" \
+	"initrd_file=uramdisk.img\0" \
 	"boot_fdt=try\0" \
 	"ip_dyn=yes\0" \
 	"console=" CONFIG_CONSOLE_DEV "\0" \
@@ -154,26 +156,8 @@
 	"bootscript=echo Running bootscript from mmc ...; " \
 		"source\0" \
 	"loaduimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uimage}\0" \
+	"loadinitrd=fatload mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file}\0" \
 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
-	"mmcboot=echo Booting from mmc ...; " \
-		"run mmcargs; " \
-		"if run loaduimage; then " \
-			"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
-				"if run loadfdt; then " \
-					"bootm ${loadaddr} - ${fdt_addr}; " \
-				"else " \
-					"if test ${boot_fdt} = try; then " \
-						"bootm; " \
-					"else " \
-						"echo WARN: Cannot load the DT; " \
-					"fi; " \
-				"fi; " \
-			"else " \
-				"bootm; " \
-			"fi;" \
-		"else " \
-			"echo ERR: Cannot load the kernel; " \
-		"fi;\0" \
 	"netargs=setenv bootargs console=${console},${baudrate} " \
 		"root=/dev/nfs " \
 		"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
@@ -223,6 +207,36 @@
 		"\"\0" \
 	"partition_mmc_android=mmc dev ${mmcdev} 0;" \
 		"gpt write mmc ${mmcdev} ${parts_android}\0" \
+	"bootargs_android=\"vmalloc=400M androidboot.console=ttymxc0 " \
+		"androidboot.hardware=freescale " \
+		"video=mxcfb0:dev=hdmi,1920x1080M@60,bpp=32 " \
+		"video=mxcfb1:off video=mxcfb2:off fbmem=28M vmalloc=400M\"\0" \
+	"mmcargs_android=setenv bootargs console=${console},${baudrate} " \
+		"${bootargs_android} root=PARTUUID=${part3_uuid} rootwait rw\0" \
+	"boot_android_mmc=echo Booting Android from mmc ...; " \
+		"run mmcargs_android; " \
+		"if run loaduimage; then " \
+			"if run loadinitrd; then " \
+				"local_initrd_addr=\\${initrd_addr};" \
+			"else " \
+				"local_initrd_addr=-;" \
+			"fi;" \
+			"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
+				"if run loadfdt; then " \
+					"bootm ${loadaddr} ${local_initrd_addr} ${fdt_addr}; " \
+				"else " \
+					"if test ${boot_fdt} = try; then " \
+						"bootm ${loadaddr} ${local_initrd_addr}; " \
+					"else " \
+						"echo ERR: Cannot load the DT; " \
+					"fi; " \
+				"fi; " \
+			"else " \
+				"bootm ${loadaddr} ${local_initrd_addr}; " \
+			"fi;" \
+		"else " \
+			"echo ERR: Cannot load the kernel; " \
+		"fi;\0" \
 	"mmcargs_linux=setenv bootargs console=${console},${baudrate} " \
 		"root=PARTUUID=${part3_uuid} rootwait rw\0" \
 	"boot_linux_mmc=echo Booting Yocto from mmc ...; " \
