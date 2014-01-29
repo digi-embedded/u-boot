@@ -149,9 +149,6 @@
 	"mmcbootpart=" __stringify(CONFIG_SYS_MMC_BOOT_PART) "\0" \
 	"mmcdev=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_DEV) "\0" \
 	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
-	"mmcargs=setenv bootargs console=${console},${baudrate} " \
-		"root=${mmcroot}\0" \
 	"loadbootscript=" \
 		"fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
 	"bootscript=echo Running bootscript from mmc ...; " \
@@ -226,6 +223,27 @@
 		"\"\0" \
 	"partition_mmc_android=mmc dev ${mmcdev} 0;" \
 		"gpt write mmc ${mmcdev} ${parts_android}\0" \
+	"mmcargs_linux=setenv bootargs console=${console},${baudrate} " \
+		"root=PARTUUID=${part3_uuid} rootwait rw\0" \
+	"boot_linux_mmc=echo Booting Yocto from mmc ...; " \
+		"run mmcargs_linux; " \
+		"if run loaduimage; then " \
+			"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
+				"if run loadfdt; then " \
+					"bootm ${loadaddr} - ${fdt_addr}; " \
+				"else " \
+					"if test ${boot_fdt} = try; then " \
+						"bootm; " \
+					"else " \
+						"echo WARN: Cannot load the DT; " \
+					"fi; " \
+				"fi; " \
+			"else " \
+				"bootm; " \
+			"fi;" \
+		"else " \
+			"echo ERR: Cannot load the kernel; " \
+		"fi;\0" \
 	"parts_linux=\"uuid_disk=${uuid_disk};" \
 		"start=2MiB," \
 		"name=kernels1,size=64MiB,uuid=${part1_uuid};" \
