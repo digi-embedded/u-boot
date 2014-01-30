@@ -83,6 +83,11 @@
 #undef CONFIG_CMD_IMLS
 #define CONFIG_CMD_SETEXPR
 
+#define CONFIG_CMD_FUSE
+#ifdef CONFIG_CMD_FUSE
+#define CONFIG_MXC_OCOTP
+#endif
+
 #define CONFIG_BOOTDELAY               1
 
 #define CONFIG_LOADADDR			0x12000000
