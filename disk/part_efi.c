@@ -237,7 +237,6 @@ static int set_protective_mbr(block_dev_desc_t *dev_desc)
 		printf("%s: calloc failed!\n", __func__);
 		return -1;
 	}
-	memset(p_mbr, 0, sizeof(p_mbr));
 	/* Append signature */
 	p_mbr->signature = MSDOS_MBR_SIGNATURE;
 	p_mbr->partition_record[0].sys_ind = EFI_PMBR_OSTYPE_EFI_GPT;
