@@ -93,11 +93,7 @@
 #define CONFIG_SYS_GBL_DATA_SIZE	256     /* size in bytes reserved for initial data */
 
 /* ********** misc stuff ********** */
-
-/* allow to overwrite serial and ethaddr */
-#define CONFIG_ENV_OVERRIDE
-#define CONFIG_ENV_OVERWRITE
-
+#define CONFIG_CMD_ENV_FLAGS
 #define CONFIG_SYS_PBSIZE	 (CONFIG_SYS_CBSIZE + CONFIG_PROMPT_MAXLEN + 16)
 #define CONFIG_SYS_MAXARGS	32			/* max number of command args */
 #define CONFIG_SYS_BARGSIZE	CONFIG_SYS_CBSIZE	/* Boot Argument Buffer Size */

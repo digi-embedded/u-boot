@@ -199,7 +199,7 @@ static int do_env_grep(cmd_tbl_t *cmdtp, int flag,
  * Set a new environment variable,
  * or replace or delete an existing one.
  */
-#if defined(CONFIG_ENV_OVERRIDE) && defined(CONFIG_ENV_IS_IN_DIGI_NVRAM)
+#if defined(CONFIG_ENV_OVERWRITE) && defined(CONFIG_ENV_IS_IN_DIGI_NVRAM)
 extern int _do_env_set(int flag, int argc, char * const argv[]);
 int _do_orig_env_set(int flag, int argc, char * const argv[])
 #else
