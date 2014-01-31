@@ -71,7 +71,11 @@
 
 #define CONFIG_PHYLIB
 
-/* allow to overwrite serial and ethaddr */
+/* protected environment variables (besides ethaddr and serial#) */
+#define CONFIG_ENV_FLAGS_LIST_STATIC	\
+	"eth1addr:mo,"			\
+	"btaddr:mo,"
+
 #define CONFIG_CONS_INDEX              1
 #define CONFIG_BAUDRATE                        115200
 
