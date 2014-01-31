@@ -52,10 +52,6 @@
 #define CONFIG_CMD_EXT2
 #define CONFIG_CMD_FAT
 #define CONFIG_DOS_PARTITION
-#define CONFIG_EFI_PARTITION
-#define CONFIG_CMD_GPT
-#define CONFIG_PARTITION_UUIDS
-#define CONFIG_CMD_PART
 
 #define CONFIG_CMD_PING
 #define CONFIG_CMD_DHCP
@@ -82,31 +78,12 @@
 #define CONFIG_CMD_BMODE
 #define CONFIG_CMD_BOOTZ
 #undef CONFIG_CMD_IMLS
-#define CONFIG_CMD_SETEXPR
-
-#define CONFIG_CMD_FUSE
-#ifdef CONFIG_CMD_FUSE
-#define CONFIG_MXC_OCOTP
-#endif
 
 #define CONFIG_BOOTDELAY               1
 
 #define CONFIG_LOADADDR			0x12000000
 #define CONFIG_SYS_TEXT_BASE		0x17800000
 #define CONFIG_SYS_MMC_IMG_LOAD_PART	1
-
-/* Pool of randomly generated UUIDs at host machine */
-#define RANDOM_UUIDS	\
-	"uuid_disk=075e2a9b-6af6-448c-a52a-3a6e69f0afff\0" \
-	"part1_uuid=43f1961b-ce4c-4e6c-8f22-2230c5d532bd\0" \
-	"part2_uuid=f241b915-4241-47fd-b4de-ab5af832a0f6\0" \
-	"part3_uuid=1c606ef5-f1ac-43b9-9bb5-d5c578580b6b\0" \
-	"part4_uuid=c7d8648b-76f7-4e2b-b829-e95a83cc7b32\0" \
-	"part5_uuid=ebae5694-6e56-497c-83c6-c4455e12d727\0" \
-	"part6_uuid=3845c9fc-e581-49f3-999f-86c9bab515ef\0" \
-	"part7_uuid=3fcf7bf1-b6fe-419d-9a14-f87950727bc0\0" \
-	"part8_uuid=12c08a28-fb40-430a-a5bc-7b4f015b0b3c\0" \
-	"part9_uuid=dc83dea8-c467-45dc-84eb-5e913daec17e\0"
 
 #if defined(CONFIG_SYS_BOOT_NAND)
 	/*
@@ -141,21 +118,16 @@
 	"bootcmd=run bootcmd_sata \0"
 #else
 #define CONFIG_EXTRA_ENV_SETTINGS \
-	RANDOM_UUIDS \
 	"script=boot.scr\0" \
 	"uimage=uImage\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"fdt_addr=0x18000000\0" \
-	"initrd_addr=0x19000000\0" \
-	"initrd_file=uramdisk.img\0" \
 	"boot_fdt=try\0" \
 	"ip_dyn=yes\0" \
 	"console=" CONFIG_CONSOLE_DEV "\0" \
 	"fdt_high=0xffffffff\0"	  \
 	"initrd_high=0xffffffff\0" \
-	"mmcbootdev=" __stringify(CONFIG_SYS_MMC_BOOT_DEV) "\0" \
-	"mmcbootpart=" __stringify(CONFIG_SYS_MMC_BOOT_PART) "\0" \
-	"mmcdev=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_DEV) "\0" \
+	"mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV) "\0" \
 	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"smp=" CONFIG_SYS_NOSMP "\0"\
@@ -166,7 +138,6 @@
 	"bootscript=echo Running bootscript from mmc ...; " \
 		"source\0" \
 	"loaduimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uimage}\0" \
-	"loadinitrd=fatload mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file}\0" \
 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
 	"mmcboot=echo Booting from mmc ...; " \
 		"run mmcargs; " \
@@ -206,93 +177,7 @@
 			"fi; " \
 		"else " \
 			"bootm; " \
-		"fi;\0" \
-	"update_uboot_tftp=echo Updating U-Boot from net...; " \
-		"tftpboot ${loadaddr} ${uboot_file}; " \
-		"setexpr filesizeblks ${filesize} / 200; " \
-		"setexpr filesizeblks ${filesizeblks} + 1; " \
-		"mmc dev ${mmcbootdev} ${mmcbootpart}; " \
-		"mmc write ${loadaddr} 2 ${filesizeblks}; " \
-		"mmc dev ${mmcdev}\0" \
-	"update_uboot_mmc=fatload mmc 0 ${loadaddr} ${uboot_file}; " \
-		"setexpr filesizeblks ${filesize} / 200; " \
-		"setexpr filesizeblks ${filesizeblks} + 1; " \
-		"mmc dev ${mmcbootdev} ${mmcbootpart}; " \
-		"mmc write ${loadaddr} 2 ${filesizeblks}; " \
-		"mmc dev ${mmcdev}\0" \
-	"parts_android=\"uuid_disk=${uuid_disk};" \
-		"start=2MiB," \
-		"name=kernels1,size=64MiB,uuid=${part1_uuid};" \
-		"name=kernels2,size=64MiB,uuid=${part2_uuid};" \
-		"name=system1,size=512MiB,uuid=${part3_uuid};" \
-		"name=system2,size=512MiB,uuid=${part4_uuid};" \
-		"name=cache,size=32MiB,uuid=${part5_uuid};" \
-		"name=data,size=2588MiB,uuid=${part6_uuid};" \
-		"\"\0" \
-	"partition_mmc_android=mmc dev ${mmcdev} 0;" \
-		"gpt write mmc ${mmcdev} ${parts_android}\0" \
-	"bootargs_android=\"vmalloc=400M androidboot.console=ttymxc0 " \
-		"androidboot.hardware=freescale " \
-		"video=mxcfb0:dev=hdmi,1920x1080M@60,bpp=32 " \
-		"video=mxcfb1:off video=mxcfb2:off fbmem=28M vmalloc=400M\"\0" \
-	"mmcargs_android=setenv bootargs console=${console},${baudrate} " \
-		"${bootargs_android} root=PARTUUID=${part3_uuid} rootwait rw\0" \
-	"boot_android_mmc=echo Booting Android from mmc ...; " \
-		"run mmcargs_android; " \
-		"if run loaduimage; then " \
-			"if run loadinitrd; then " \
-				"local_initrd_addr=\\${initrd_addr};" \
-			"else " \
-				"local_initrd_addr=-;" \
-			"fi;" \
-			"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
-				"if run loadfdt; then " \
-					"bootm ${loadaddr} ${local_initrd_addr} ${fdt_addr}; " \
-				"else " \
-					"if test ${boot_fdt} = try; then " \
-						"bootm ${loadaddr} ${local_initrd_addr}; " \
-					"else " \
-						"echo ERR: Cannot load the DT; " \
-					"fi; " \
-				"fi; " \
-			"else " \
-				"bootm ${loadaddr} ${local_initrd_addr}; " \
-			"fi;" \
-		"else " \
-			"echo ERR: Cannot load the kernel; " \
-		"fi;\0" \
-	"mmcargs_linux=setenv bootargs console=${console},${baudrate} " \
-		"root=PARTUUID=${part3_uuid} rootwait rw\0" \
-	"boot_linux_mmc=echo Booting Yocto from mmc ...; " \
-		"run mmcargs_linux; " \
-		"if run loaduimage; then " \
-			"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
-				"if run loadfdt; then " \
-					"bootm ${loadaddr} - ${fdt_addr}; " \
-				"else " \
-					"if test ${boot_fdt} = try; then " \
-						"bootm; " \
-					"else " \
-						"echo WARN: Cannot load the DT; " \
-					"fi; " \
-				"fi; " \
-			"else " \
-				"bootm; " \
-			"fi;" \
-		"else " \
-			"echo ERR: Cannot load the kernel; " \
-		"fi;\0" \
-	"parts_linux=\"uuid_disk=${uuid_disk};" \
-		"start=2MiB," \
-		"name=kernels1,size=64MiB,uuid=${part1_uuid};" \
-		"name=kernels2,size=64MiB,uuid=${part2_uuid};" \
-		"name=system1,size=512MiB,uuid=${part3_uuid};" \
-		"name=system2,size=512MiB,uuid=${part4_uuid};" \
-		"name=data,size=2620MiB,uuid=${part5_uuid};" \
-		"\"\0" \
-	"partition_mmc_linux=mmc dev ${mmcdev} 0;" \
-		"gpt write mmc ${mmcdev} ${parts_linux}\0" \
-	""	/* end line */
+		"fi;\0"
 
 #define CONFIG_BOOTCOMMAND \
 	"mmc dev ${mmcdev};" \
@@ -319,7 +204,7 @@
 
 /* Print Buffer Size */
 #define CONFIG_SYS_PBSIZE (CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
-#define CONFIG_SYS_MAXARGS             32
+#define CONFIG_SYS_MAXARGS             16
 #define CONFIG_SYS_BARGSIZE CONFIG_SYS_CBSIZE
 
 #define CONFIG_SYS_MEMTEST_START       0x10000000
