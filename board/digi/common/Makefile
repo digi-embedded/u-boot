@@ -48,6 +48,8 @@ COBJS-$(CONFIG_CMD_NVRAM) += cmd_nvram/mtd.o \
 	  cmd_nvram/nvram_priv_uboot.o \
 	  cmd_nvram/env.o \
 	  cmd_nvram/partition.o
+COBJS-$(CONFIG_PLATFORM_HAS_HWID) += cmd_hwid.o
+
 
 COBJS	:= $(sort $(COBJS-y))
 SRCS	:= $(AOBJS:.o=.S) $(COBJS:.o=.c)
