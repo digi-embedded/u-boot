@@ -500,3 +500,25 @@ int checkboard(void)
 
 	return 0;
 }
+
+int get_module_hw_id(void)
+{
+	return 0;
+}
+
+void board_print_hwid(u32 *hwid)
+{
+	int i;
+
+	for (i = CONFIG_HWID_WORDS_NUMBER - 1; i >= 0; i--)
+		printf(" %.8x", hwid[i]);
+	printf("\n");
+	/* Formatted printout */
+	printf("    TF (location): 0x%02x\n", (hwid[1] >> 16) & 0xf);
+	printf("    Variant:       0x%02x\n", (hwid[1] >> 8) & 0xff);
+	printf("    HW Version:    %d\n", (hwid[1] >> 4) & 0xf);
+	printf("    Cert:          0x%x\n", hwid[1] & 0xf);
+	printf("    Year:          20%02d\n", (hwid[0] >> 24) & 0xff);
+	printf("    Month:         %02d\n", (hwid[0] >> 16) & 0xff);
+	printf("    S/N:           %d\n", hwid[0] & 0xffff);
+}

@@ -91,6 +91,10 @@
 #ifdef CONFIG_CMD_FUSE
 #define CONFIG_MXC_OCOTP
 #endif
+#define CONFIG_PLATFORM_HAS_HWID
+#define CONFIG_HWID_BANK		4
+#define CONFIG_HWID_START_WORD		2
+#define CONFIG_HWID_WORDS_NUMBER	2
 
 #define CONFIG_BOOTDELAY               1
 
