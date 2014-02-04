@@ -150,7 +150,7 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	RANDOM_UUIDS \
 	"script=boot.scr\0" \
-	"uimage=uImage\0" \
+	"uimage=uImage-" CONFIG_SYS_BOARD "\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"fdt_addr=0x18000000\0" \
 	"initrd_addr=0x19000000\0" \
@@ -195,7 +195,7 @@
 		"else " \
 			"bootm; " \
 		"fi;\0" \
-	"uboot_file=u-boot.imx\0" \
+	"uboot_file=u-boot-" CONFIG_SYS_BOARD ".imx\0" \
 	"update_uboot_tftp=echo Updating U-Boot from net...; " \
 		"tftpboot ${loadaddr} ${uboot_file}; " \
 		"setexpr filesizeblks ${filesize} / 200; " \
