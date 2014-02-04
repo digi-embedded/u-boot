@@ -465,6 +465,9 @@ $(obj)u-boot.img:	$(obj)u-boot.bin
 $(obj)u-boot.imx: $(obj)u-boot.bin depend
 		$(MAKE) -C $(SRCTREE)/arch/arm/imx-common $(OBJTREE)/u-boot.imx
 
+$(obj)u-boot-$(BOARD).imx: $(obj)u-boot.imx depend
+		cp $< $@
+
 $(obj)u-boot.kwb:       $(obj)u-boot.bin
 		$(obj)tools/mkimage -n $(CONFIG_SYS_KWD_CONFIG) -T kwbimage \
 		-a $(CONFIG_SYS_TEXT_BASE) -e $(CONFIG_SYS_TEXT_BASE) -d $< $@
