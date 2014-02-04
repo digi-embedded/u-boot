@@ -254,8 +254,8 @@ static int setup_pmic_voltages(void)
 			"Customer: 0x%02x, Config: 0x%02x\n", dev_id, var_id,
 			cust_id, conf_id);
 
-#if defined(CONFIG_FEC_MXC) && defined(CONFIG_PHY_SMSC)
-		/* NVCC_ENET comes from LDO4 (2.5V) */
+#if defined(CONFIG_FEC_MXC)
+		/* Both NVCC_ENET and NVCC_RGMII come from LDO4 (2.5V) */
 		/* Config LDO4 voltages A and B at 2.5V, then enable VLDO4 */
 		if (pmic_write_reg(DA9063_VLDO4_A_ADDR, 0x50) ||
 		    pmic_write_reg(DA9063_VLDO4_B_ADDR, 0x50) ||
