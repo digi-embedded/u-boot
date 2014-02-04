@@ -135,10 +135,14 @@ static void setup_iomux_enet(void)
 {
 	imx_iomux_v3_setup_multiple_pads(enet_pads, ARRAY_SIZE(enet_pads));
 
-	/* Reset PHY */
+	/* Assert PHY reset */
 	gpio_direction_output(CONFIG_PHY_RESET_GPIO , 0);
-	udelay(500);
+	/* Need 10ms to guarantee stable voltages */
+	udelay(10 * 1000);
+	/* Deassert PHY reset */
 	gpio_set_value(CONFIG_PHY_RESET_GPIO, 1);
+	/* Need to wait 100us before accessing the MIIM (MDC/MDIO) */
+	udelay(100);
 }
 
 iomux_v3_cfg_t const usdhc2_pads[] = {
