@@ -35,8 +35,8 @@
 #define CONFIG_SYS_MMC_IMG_LOAD_DEV	1	/* SDHC4 (eMMC) */
 
 /* Ethernet PHY (select one) */
-//#define CONFIG_PHY_MICREL
-#define CONFIG_PHY_SMSC
+#define CONFIG_PHY_MICREL
+//#define CONFIG_PHY_SMSC
 
 #if defined(CONFIG_PHY_MICREL)
 #define CONFIG_FEC_MXC_PHYADDR		3
