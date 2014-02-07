@@ -115,6 +115,11 @@
 	"part8_uuid=12c08a28-fb40-430a-a5bc-7b4f015b0b3c\0" \
 	"part9_uuid=dc83dea8-c467-45dc-84eb-5e913daec17e\0"
 
+/* Helper strings for extra env settings */
+#define CALCULATE_FILESIZE_IN_BLOCKS	\
+	"setexpr filesizeblks ${filesize} / 200; " \
+	"setexpr filesizeblks ${filesizeblks} + 1; "
+
 #if defined(CONFIG_SYS_BOOT_NAND)
 	/*
 	 * The partions' layout for NAND is:
@@ -198,14 +203,12 @@
 	"uboot_file=u-boot-" CONFIG_SYS_BOARD ".imx\0" \
 	"update_uboot_tftp=echo Updating U-Boot from net...; " \
 		"tftpboot ${loadaddr} ${uboot_file}; " \
-		"setexpr filesizeblks ${filesize} / 200; " \
-		"setexpr filesizeblks ${filesizeblks} + 1; " \
+		CALCULATE_FILESIZE_IN_BLOCKS \
 		"mmc dev ${mmcbootdev} ${mmcbootpart}; " \
 		"mmc write ${loadaddr} 2 ${filesizeblks}; " \
 		"mmc dev ${mmcdev}\0" \
 	"update_uboot_mmc=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uboot_file}; " \
-		"setexpr filesizeblks ${filesize} / 200; " \
-		"setexpr filesizeblks ${filesizeblks} + 1; " \
+		CALCULATE_FILESIZE_IN_BLOCKS \
 		"mmc dev ${mmcbootdev} ${mmcbootpart}; " \
 		"mmc write ${loadaddr} 2 ${filesizeblks}; " \
 		"mmc dev ${mmcdev}\0" \
