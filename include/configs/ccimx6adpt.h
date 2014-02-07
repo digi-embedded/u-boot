@@ -28,11 +28,14 @@
 #define CONFIG_DEFAULT_FDT_FILE		"imx6-" CONFIG_SYS_BOARD "-ldo.dtb"
 
 #define CONFIG_SYS_FSL_USDHC_NUM	2
+#define CONFIG_MMCDEV_USDHC4		0	/* mmc index for SHDC4 (eMMC) */
+#define CONFIG_MMCDEV_USDHC2		1	/* mmc index for SHDC2 (uSD) */
+
 /* MMC device and partition where U-Boot image is */
-#define CONFIG_SYS_MMC_BOOT_DEV		1	/* SDHC4 (eMMC) */
+#define CONFIG_SYS_MMC_BOOT_DEV		CONFIG_MMCDEV_USDHC4	/* SDHC4 (eMMC) */
 #define CONFIG_SYS_MMC_BOOT_PART	1	/* Boot part 1 */
 /* MMC device where OS firmware files are */
-#define CONFIG_SYS_MMC_IMG_LOAD_DEV	1	/* SDHC4 (eMMC) */
+#define CONFIG_SYS_MMC_IMG_LOAD_DEV	CONFIG_MMCDEV_USDHC4	/* SDHC4 (eMMC) */
 
 /* Ethernet PHY (select one) */
 #define CONFIG_PHY_MICREL
