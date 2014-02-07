@@ -73,7 +73,7 @@
 
 /* protected environment variables (besides ethaddr and serial#) */
 #define CONFIG_ENV_FLAGS_LIST_STATIC	\
-	"eth1addr:mo,"			\
+	"wlanaddr:mo,"			\
 	"btaddr:mo,"
 
 #define CONFIG_CONS_INDEX              1
