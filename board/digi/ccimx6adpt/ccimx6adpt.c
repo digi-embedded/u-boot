@@ -37,6 +37,9 @@
 #include <fsl_esdhc.h>
 #include <miiphy.h>
 #include <netdev.h>
+#ifdef CONFIG_OF_LIBFDT
+#include <fdt_support.h>
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -501,3 +504,28 @@ void board_print_hwid(u32 *hwid)
 	printf("    Month:         %02d\n", (hwid[0] >> 16) & 0xff);
 	printf("    S/N:           %d\n", hwid[0] & 0xffff);
 }
+
+#if defined(CONFIG_OF_BOARD_SETUP)
+void fdt_fixup_mac(void *fdt, char *varname, char *node)
+{
+	char *tmp, *end;
+	unsigned char mac_addr[6];
+	int i;
+
+	if ((tmp = getenv(varname)) != NULL) {
+		for (i = 0; i < 6; i++) {
+			mac_addr[i] = tmp ? simple_strtoul(tmp, &end, 16) : 0;
+			if (tmp)
+				tmp = (*end) ? end+1 : end;
+		}
+		do_fixup_by_path(fdt, node, "mac-address", &mac_addr, 6, 1);
+	}
+}
+
+/* Platform function to modify the FDT as needed */
+void ft_board_setup(void *blob, bd_t *bd)
+{
+	fdt_fixup_mac(blob, "wlanaddr", "/wireless");
+	fdt_fixup_mac(blob, "btaddr", "/bluetooth");
+}
+#endif /* CONFIG_OF_BOARD_SETUP */
