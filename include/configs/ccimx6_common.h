@@ -225,7 +225,7 @@
 		"video=mxcfb0:dev=hdmi,1920x1080M@60,bpp=32 " \
 		"video=mxcfb1:off video=mxcfb2:off fbmem=28M vmalloc=400M\"\0" \
 	"mmcargs_android=setenv bootargs console=${console},${baudrate} " \
-		"${bootargs_android}\0" \
+		"${bootargs_android} androidboot.mmcdev=${mmcdev}\0" \
 	"boot_android_mmc=echo Booting Android from mmc ...; " \
 		"run mmcargs_android; " \
 		"if run loaduimage; then " \
