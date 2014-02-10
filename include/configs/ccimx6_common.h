@@ -100,7 +100,6 @@
 
 #define CONFIG_LOADADDR			0x12000000
 #define CONFIG_SYS_TEXT_BASE		0x17800000
-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 
 /* Pool of randomly generated UUIDs at host machine */
 #define RANDOM_UUIDS	\
@@ -165,10 +164,9 @@
 	"console=" CONFIG_CONSOLE_DEV "\0" \
 	"fdt_high=0xffffffff\0"	  \
 	"initrd_high=0xffffffff\0" \
-	"mmcbootdev=" __stringify(CONFIG_SYS_MMC_BOOT_DEV) "\0" \
-	"mmcbootpart=" __stringify(CONFIG_SYS_MMC_BOOT_PART) "\0" \
-	"mmcdev=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_DEV) "\0" \
-	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
+	"mmcbootpart=" __stringify(CONFIG_SYS_EMMC_BOOT_PART) "\0" \
+	"mmcdev=" __stringify(CONFIG_SYS_EMMC_DEV) "\0" \
+	"mmcpart=1\0" \
 	"loadbootscript=" \
 		"fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
 	"bootscript=echo Running bootscript from mmc ...; " \
@@ -204,13 +202,34 @@
 	"update_uboot_tftp=echo Updating U-Boot from net...; " \
 		"tftpboot ${loadaddr} ${uboot_file}; " \
 		CALCULATE_FILESIZE_IN_BLOCKS \
-		"mmc dev ${mmcbootdev} ${mmcbootpart}; " \
-		"mmc write ${loadaddr} 2 ${filesizeblks}; " \
-		"mmc dev ${mmcdev}\0" \
+		"mmc dev " __stringify(CONFIG_SYS_EMMC_DEV) " ${mmcbootpart}; " \
+		"mmc write ${loadaddr} 2 ${filesizeblks}\0" \
 	"update_uboot_mmc=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uboot_file}; " \
 		CALCULATE_FILESIZE_IN_BLOCKS \
-		"mmc dev ${mmcbootdev} ${mmcbootpart}; " \
+		"mmc dev " __stringify(CONFIG_SYS_EMMC_DEV) " ${mmcbootpart}; " \
 		"mmc write ${loadaddr} 2 ${filesizeblks}; " \
+		"mmc dev ${mmcdev}\0" \
+	"kernels_file=fat.img\0" \
+	"kernels1_start_lba=1000\0" \
+	"update_kernels1_tftp=tftp ${loadaddr} ${kernels_file}; " \
+		CALCULATE_FILESIZE_IN_BLOCKS \
+		"mmc dev " __stringify(CONFIG_SYS_EMMC_DEV) " 0; " \
+		"mmc write ${loadaddr} ${kernels1_start_lba} ${filesizeblks}\0" \
+	"update_kernels1_mmc=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${kernels_file}; " \
+		CALCULATE_FILESIZE_IN_BLOCKS \
+		"mmc dev " __stringify(CONFIG_SYS_EMMC_DEV) " 0; " \
+		"mmc write ${loadaddr} ${kernels1_start_lba} ${filesizeblks}\0" \
+		"mmc dev ${mmcdev}\0" \
+	"system_file=android.img\0" \
+	"system1_start_lba=41000\0" \
+	"update_system1_tftp=tftp ${loadaddr} ${system_file}; " \
+		CALCULATE_FILESIZE_IN_BLOCKS \
+		"mmc dev " __stringify(CONFIG_SYS_EMMC_DEV) " 0; " \
+		"mmc write ${loadaddr} ${system1_start_lba} ${filesizeblks}\0" \
+	"update_system1_mmc=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${system_file}; " \
+		CALCULATE_FILESIZE_IN_BLOCKS \
+		"mmc dev " __stringify(CONFIG_SYS_EMMC_DEV) " 0; " \
+		"mmc write ${loadaddr} ${system1_start_lba} ${filesizeblks}\0" \
 		"mmc dev ${mmcdev}\0" \
 	"parts_android=\"uuid_disk=${uuid_disk};" \
 		"start=2MiB," \

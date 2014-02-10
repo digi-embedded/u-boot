@@ -32,10 +32,8 @@
 #define CONFIG_MMCDEV_USDHC2		1	/* mmc index for SHDC2 (uSD) */
 
 /* MMC device and partition where U-Boot image is */
-#define CONFIG_SYS_MMC_BOOT_DEV		CONFIG_MMCDEV_USDHC4	/* SDHC4 (eMMC) */
-#define CONFIG_SYS_MMC_BOOT_PART	1	/* Boot part 1 */
-/* MMC device where OS firmware files are */
-#define CONFIG_SYS_MMC_IMG_LOAD_DEV	CONFIG_MMCDEV_USDHC4	/* SDHC4 (eMMC) */
+#define CONFIG_SYS_EMMC_DEV		CONFIG_MMCDEV_USDHC4	/* SDHC4 (eMMC) */
+#define CONFIG_SYS_EMMC_BOOT_PART	1	/* Boot part 1 */
 
 /* Ethernet PHY (select one) */
 #define CONFIG_PHY_MICREL
