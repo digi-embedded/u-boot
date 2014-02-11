@@ -309,7 +309,7 @@ int array_to_hwid(u8 *hwid)
 	return  0;
 }
 
-int get_module_hw_id(void)
+int get_hwid(void)
 {
 	nv_critical_t *pNVRAM;
 

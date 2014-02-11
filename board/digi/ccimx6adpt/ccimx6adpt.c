@@ -35,13 +35,20 @@
 #endif
 #include <mmc.h>
 #include <fsl_esdhc.h>
+#include <fuse.h>
 #include <miiphy.h>
 #include <netdev.h>
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>
 #endif
+#ifdef CONFIG_PLATFORM_HAS_HWID
+#include "../common/hwid.h"
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
+
+struct ccimx6_hwid my_hwid;
+static u8 hwid[4 * CONFIG_HWID_WORDS_NUMBER];
 
 #define UART_PAD_CTRL  (PAD_CTL_PKE | PAD_CTL_PUE |            \
 	PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED |               \
@@ -476,18 +483,7 @@ int board_late_init(void)
 	return 0;
 }
 
-int checkboard(void)
-{
-	puts("Board: ConnectCore for i.MX6 on the Adapter board\n");
-
-	return 0;
-}
-
-int get_module_hw_id(void)
-{
-	return 0;
-}
-
+#ifdef CONFIG_PLATFORM_HAS_HWID
 void board_print_hwid(u32 *hwid)
 {
 	int i;
@@ -503,6 +499,69 @@ void board_print_hwid(u32 *hwid)
 	printf("    Year:          20%02d\n", (hwid[0] >> 24) & 0xff);
 	printf("    Month:         %02d\n", (hwid[0] >> 16) & 0xff);
 	printf("    S/N:           %d\n", hwid[0] & 0xffff);
+}
+
+static int is_valid_hwid(u8 variant)
+{
+	if (variant < ARRAY_SIZE(ccimx6_variants))
+		if (ccimx6_variants[variant].cpu != IMX6_NONE)
+			return 1;
+
+	return 0;
+}
+
+int array_to_hwid(u8 *hwid)
+{
+	/*
+	 *       | 31..                  MAC1            ..0 | 31..          MAC0                    ..0 |
+	 *       +----------+----------+----------+----------+----------+----------+----------+----------+
+	 * HWID: |       --      | TF  | variant  | HV |Cert |   Year   | Mon |     Serial Number        |
+	 *       +----------+----------+----------+----------+----------+----------+----------+----------+
+	 * Byte:            7          6          5          4          3          2          1          0
+	 */
+
+	if (!is_valid_hwid(hwid[5]))
+		return -EINVAL;
+
+	my_hwid.tf = hwid[6] & 0xf;
+	my_hwid.variant = hwid[5];
+	my_hwid.hv = (hwid[4] & 0xf0) >> 4;
+	my_hwid.cert = hwid[4] & 0xf;
+	my_hwid.year = hwid[3];
+	my_hwid.month = (hwid[2] & 0xf0) >> 4;
+	my_hwid.sn = ((hwid[2] & 0xf) << 16) | (hwid[1] << 8) | hwid[0];
+
+	return  0;
+}
+
+int get_hwid(void)
+{
+	u32 bank = CONFIG_HWID_BANK;
+	u32 word = CONFIG_HWID_START_WORD;
+	u32 cnt = CONFIG_HWID_WORDS_NUMBER;
+	u32 *val = (u32 *)hwid;
+	int ret, i;
+
+	for (i = 0; i < cnt; i++, word++) {
+		ret = fuse_read(bank, word, &val[i]);
+		if (ret)
+			return -1;
+	}
+
+	return 0;
+}
+#endif /* CONFIG_PLATFORM_HAS_HWID */
+
+int checkboard(void)
+{
+	puts("Board:   ConnectCore for i.MX6 on the Adapter board\n");
+#ifdef CONFIG_PLATFORM_HAS_HWID
+	if (!array_to_hwid(hwid))
+		printf("Variant: 0x%02x - %s\n", my_hwid.variant,
+			ccimx6_variants[my_hwid.variant].id_string);
+#endif /* CONFIG_PLATFORM_HAS_HWID */
+
+	return 0;
 }
 
 #if defined(CONFIG_OF_BOARD_SETUP)

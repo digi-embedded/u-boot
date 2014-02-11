@@ -24,7 +24,7 @@
 #include "digi_common.h"		/* Load Digi common stuff... */
 
 #define CONFIG_DISPLAY_CPUINFO
-#define CONFIG_DISPLAY_BOARDINFO
+#define CONFIG_DISPLAY_BOARDINFO_LATE
 
 #include <asm/arch/imx-regs.h>
 

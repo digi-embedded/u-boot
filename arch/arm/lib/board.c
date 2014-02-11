@@ -69,7 +69,7 @@ extern void dataflash_print_info(void);
 #endif
 
 #ifdef CONFIG_PLATFORM_HAS_HWID
-extern int get_module_hw_id(void);
+extern int get_hwid(void);
 #endif
 
 #ifdef CONFIG_BOARD_BEFORE_MLOOP_INIT
@@ -625,7 +625,7 @@ void board_init_r(gd_t *id, ulong dest_addr)
 		set_default_env(NULL);
 
 #if defined(CONFIG_PLATFORM_HAS_HWID)
-	get_module_hw_id();
+	get_hwid();
 #endif
 
 #if defined(CONFIG_CMD_BSP)
