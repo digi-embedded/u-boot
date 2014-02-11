@@ -74,7 +74,8 @@
 /* protected environment variables (besides ethaddr and serial#) */
 #define CONFIG_ENV_FLAGS_LIST_STATIC	\
 	"wlanaddr:mo,"			\
-	"btaddr:mo,"
+	"btaddr:mo,"			\
+	"bootargs_once:sr"
 
 #define CONFIG_CONS_INDEX              1
 #define CONFIG_BAUDRATE                        115200
@@ -176,7 +177,8 @@
 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
 	"netargs=setenv bootargs console=${console},${baudrate} " \
 		"root=/dev/nfs " \
-		"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
+		"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp " \
+		"${bootargs_once}\0" \
 	"netboot=echo Booting from net ...; " \
 		"run netargs; " \
 		"if test ${ip_dyn} = yes; then " \
@@ -247,7 +249,8 @@
 		"video=mxcfb0:dev=hdmi,1920x1080M@60,bpp=32 " \
 		"video=mxcfb1:off video=mxcfb2:off fbmem=28M vmalloc=400M\"\0" \
 	"mmcargs_android=setenv bootargs console=${console},${baudrate} " \
-		"${bootargs_android} androidboot.mmcdev=${mmcdev}\0" \
+		"${bootargs_android} androidboot.mmcdev=${mmcdev} " \
+		"${bootargs_once}\0" \
 	"boot_android_mmc=echo Booting Android from mmc ...; " \
 		"run mmcargs_android; " \
 		"if run loaduimage; then " \
@@ -273,7 +276,8 @@
 			"echo ERR: Cannot load the kernel; " \
 		"fi;\0" \
 	"mmcargs_linux=setenv bootargs console=${console},${baudrate} " \
-		"root=PARTUUID=${part3_uuid} rootwait rw\0" \
+		"root=PARTUUID=${part3_uuid} rootwait rw " \
+		"${bootargs_once}\0" \
 	"boot_linux_mmc=echo Booting Yocto from mmc ...; " \
 		"run mmcargs_linux; " \
 		"if run loaduimage; then " \
