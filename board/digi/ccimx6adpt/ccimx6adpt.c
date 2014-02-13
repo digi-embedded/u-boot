@@ -86,6 +86,20 @@ struct i2c_pads_info i2c_pad_info1 = {
 		.gp = IMX_GPIO_NR(4, 13)
 	}
 };
+#ifdef CONFIG_I2C_MULTI_BUS
+struct i2c_pads_info i2c_pad_info2 = {
+	.scl = {
+		.i2c_mode = MX6_PAD_GPIO_3__I2C3_SCL | PC,
+		.gpio_mode = MX6_PAD_GPIO_3__GPIO_1_3| PC,
+		.gp = IMX_GPIO_NR(1, 3)
+	},
+	.sda = {
+		.i2c_mode = MX6_PAD_GPIO_6__I2C3_SDA | PC,
+		.gpio_mode = MX6_PAD_GPIO_6__GPIO_1_6 | PC,
+		.gp = IMX_GPIO_NR(1, 6)
+	}
+};
+#endif
 #endif
 
 int dram_init(void)
@@ -230,6 +244,13 @@ static int pmic_write_bitfield(int reg, unsigned char mask, unsigned char off,
 static int setup_pmic_voltages(void)
 {
 	unsigned char dev_id, var_id, conf_id, cust_id;
+#ifdef CONFIG_I2C_MULTI_BUS
+	int ret;
+
+	ret = i2c_set_bus_num(0);
+	if (ret)
+                return -1;
+#endif
 
 	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
 
@@ -473,8 +494,14 @@ int board_late_init(void)
 #endif
 
 #ifdef CONFIG_I2C_MXC
+	/* Setup I2C2 (PMIC, Kinetis) */
 	setup_i2c(1, CONFIG_SYS_I2C_SPEED,
 			CONFIG_SYS_I2C_SLAVE, &i2c_pad_info1);
+#ifdef CONFIG_I2C_MULTI_BUS
+	/* Setup I2C3 (HDMI, Audio...) */
+	setup_i2c(2, CONFIG_SYS_I2C_SPEED,
+			CONFIG_SYS_I2C_SLAVE, &i2c_pad_info2);
+#endif
 	ret = setup_pmic_voltages();
 	if (ret)
 		return -1;
