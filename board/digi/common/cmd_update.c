@@ -1,0 +1,244 @@
+/*
+ *  Copyright (C) 2014 by Digi International Inc.
+ *  All rights reserved.
+ *
+ *  This program is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License version2  as published by
+ *  the Free Software Foundation.
+*/
+
+#include <common.h>
+#include <part.h>
+#include "cmd_digi.h"
+
+static int get_image_source(char *source)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(image_source_str); i++) {
+		if (!strncmp(image_source_str[i], source, strlen(source)))
+			return i;
+	}
+
+	return IS_UNDEFINED;
+}
+
+static int get_update_partition(char *partname, disk_partition_t *info)
+{
+	if (!strcmp(partname, "uboot")) {
+		/* Simulate partition data for U-Boot */
+		info->start = CONFIG_SYS_BOOT_PART_OFFSET /
+			      CONFIG_SYS_STORAGE_BLKSZ;
+		info->size = CONFIG_SYS_BOOT_PART_SIZE /
+			     CONFIG_SYS_STORAGE_BLKSZ;
+	} else {
+		/* Not a reserved name. Must be a partition name */
+		/* Look up the device */
+		if (get_partition_byname(CONFIG_SYS_STORAGE_MEDIA,
+					 __stringify(CONFIG_SYS_STORAGE_DEV),
+					 partname, info))
+			return -1;
+	}
+	return 0;
+}
+
+static int get_fw_filename(int argc, char * const argv[], image_source_e src,
+			   char *filename)
+{
+	switch (src) {
+	case IS_TFTP:
+	case IS_NFS:
+		if (argc > 3) {
+			strcpy(filename, argv[3]);
+			return 0;
+		}
+		break;
+	case IS_MMC:
+	case IS_USB:
+	case IS_SATA:
+		if (argc > 5) {
+			strcpy(filename, argv[5]);
+			return 0;
+		}
+		break;
+	case IS_RAM:
+		return 0;	/* No file is needed */
+	default:
+		return -1;
+	}
+
+	return -1;
+}
+
+static int get_default_filename(char *partname, char *filename)
+{
+	if (!strcmp(partname, "uboot")) {
+		strcpy(filename, "$uboot_file");
+		return 0;
+	}
+
+	return -1;
+}
+
+static int load_firmware_to_ram(image_source_e src, char *filename,
+				char *devpartno, char *fs)
+{
+	char cmd[CONFIG_SYS_CBSIZE] = "";
+	char def_devpartno[] = "0:1";
+	char def_fs[] = "fat";
+	int devno = 0;
+
+	/* Use default values if not provided */
+	if (NULL == devpartno)
+		devpartno = def_devpartno;
+	if (NULL == fs)
+		fs = def_fs;
+
+	switch (src) {
+	case IS_TFTP:
+		sprintf(cmd, "tftpboot $loadaddr %s", filename);
+		break;
+	case IS_NFS:
+		sprintf(cmd, "nfs $loadaddr $nfsroot/%s", filename);
+		break;
+	case IS_MMC:
+	case IS_USB:
+	case IS_SATA:
+		sprintf(cmd, "%sload %s %s $loadaddr %s", fs,
+			image_source_str[src], devpartno, filename);
+		break;
+	default:
+		return -1;
+	}
+
+	return run_command(cmd, 0);
+}
+
+static int write_firmware(char *partname, disk_partition_t *info)
+{
+	char cmd[CONFIG_SYS_CBSIZE] = "";
+	char *filesize = getenv("filesize");
+	unsigned long size;
+
+	if (NULL == filesize) {
+		debug("Cannot determine filesize\n");
+		return -1;
+	}
+	size = simple_strtoul(filesize, NULL, 16) / CONFIG_SYS_STORAGE_BLKSZ;
+	if (simple_strtoul(filesize, NULL, 16) % CONFIG_SYS_STORAGE_BLKSZ)
+		size++;
+
+	if (size > info->size) {
+		printf("File size (%lu bytes) exceeds partition size (%lu bytes)!\n",
+			size * CONFIG_SYS_STORAGE_BLKSZ,
+			info->size * CONFIG_SYS_STORAGE_BLKSZ);
+		return -1;
+	}
+
+	/* Prepare command to change to storage device */
+	sprintf(cmd, "%s dev %d", CONFIG_SYS_STORAGE_MEDIA,
+		CONFIG_SYS_STORAGE_DEV);
+
+#ifdef CONFIG_SYS_BOOT_PART
+	/* If U-Boot and special partition, append the hardware partition */
+	if (!strcmp(partname, "uboot"))
+		sprintf(cmd, "%s $mmcbootpart", cmd);
+#endif
+
+	/* Change to storage device */
+	if (run_command(cmd, 0)) {
+		debug("Cannot change to storage device\n");
+		return -1;
+	}
+
+	/* Prepare write command */
+	sprintf(cmd, "%s write $loadaddr %lx %lx", CONFIG_SYS_STORAGE_MEDIA,
+		info->start, size);
+
+	return run_command(cmd, 0);
+}
+
+static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
+{
+	image_source_e src = IS_TFTP;	/* default to TFTP */
+	char *devpartno = NULL;
+	char *fs = NULL;
+	disk_partition_t info;
+	int ret;
+	char filename[256] = "";
+
+	if ((argc < 2) || (argc > 6))
+		return CMD_RET_USAGE;
+
+	/* Get source of update firmware file */
+	if (argc > 2) {
+		src = get_image_source(argv[2]);
+		if (src == IS_UNDEFINED)
+			return CMD_RET_USAGE;
+		if (src == IS_USB || src == IS_MMC || src == IS_SATA) {
+			/* Get device:partition and file system */
+			if (argc > 3)
+				devpartno = argv[3];
+			if (argc > 4)
+				fs = argv[4];
+		}
+	}
+
+	/* Get data of partition to be updated */
+	ret = get_update_partition(argv[1], &info);
+	if (ret) {
+		printf("Partition '%s' not found\n", argv[1]);
+		return CMD_RET_FAILURE;
+	}
+
+	/* Get firmware file name */
+	ret = get_fw_filename(argc, argv, src, filename);
+	if (ret) {
+		/* Filename was not provided. Look for default one */
+		ret = get_default_filename(argv[1], filename);
+		if (ret) {
+			printf("Error: need a filename\n");
+			return CMD_RET_FAILURE;
+		}
+	}
+
+	/* Load firmware file to RAM */
+	ret = load_firmware_to_ram(src, filename, devpartno, fs);
+	if (ret) {
+		printf("Error loading firmware file to RAM\n");
+		return CMD_RET_FAILURE;
+	}
+
+	/* Write firmware file from RAM to storage */
+	ret = write_firmware(argv[1], &info);
+	if (ret) {
+		printf("Error writing firmware\n");
+		return CMD_RET_FAILURE;
+	}
+
+	return 0;
+}
+
+U_BOOT_CMD(
+	update,	6,	0,	do_update,
+	"Digi modules update commands",
+	"<partition> [source] [extra-args...]\n"
+	" Description: updates flash <partition> via <source>\n"
+	" Arguments:\n"
+	"   - partition:    a partition name or one of the reserved names: \n"
+	"                   uboot\n"
+	"   - [source]:     tftp (default)|nfs|usb|mmc|sata|ram\n"
+	"   - [extra-args]: extra arguments depending on 'source'\n"
+	"\n"
+	"      source=tftp|nfs -> [filename]\n"
+	"       - filename: file to transfer (required if using a partition name)\n"
+	"\n"
+	"      source=usb|mmc|sata -> [device:part filesystem] [filename]\n"
+	"       - device:part: number of device and partition\n"
+	"       - filesystem: fat|ext2|ext3\n"
+	"       - filename: file to transfer\n"
+	"\n"
+	"      source=ram -> <image_address> <image_size>\n"
+	"       - image_address: address of image in RAM\n"
+	"       - image_size: size of image in RAM\n"
+);

@@ -638,3 +638,29 @@ cleanup:
 	free(dup_str);
 	return ret;
 }
+
+int get_partition_byname(const char *ifname, const char *dev_str,
+			 char *part_name, disk_partition_t *info)
+{
+	int dev;
+	int part = 1;
+	block_dev_desc_t *dev_desc;
+	int ret;
+
+	dev = get_device(ifname, dev_str, &dev_desc);
+	if (dev < 0)
+		return -1;
+
+	do {
+		ret = get_partition_info(dev_desc, part, info);
+		if (!ret) {
+			/* Check if partition name matches */
+			if (!strcmp((char *)info->name, part_name))
+				return part;
+		}
+		part++;
+	} while(ret == 0);
+
+	info = NULL;
+	return -1;
+}
