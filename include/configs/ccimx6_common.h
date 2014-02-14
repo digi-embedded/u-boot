@@ -203,38 +203,6 @@
 			"bootm; " \
 		"fi;\0" \
 	"uboot_file=u-boot-" CONFIG_SYS_BOARD ".imx\0" \
-	"update_uboot_tftp=echo Updating U-Boot from net...; " \
-		"tftpboot ${loadaddr} ${uboot_file}; " \
-		CALCULATE_FILESIZE_IN_BLOCKS \
-		"mmc dev " __stringify(CONFIG_SYS_STORAGE_DEV) " ${mmcbootpart}; " \
-		"mmc write ${loadaddr} 2 ${filesizeblks}\0" \
-	"update_uboot_mmc=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uboot_file}; " \
-		CALCULATE_FILESIZE_IN_BLOCKS \
-		"mmc dev " __stringify(CONFIG_SYS_STORAGE_DEV) " ${mmcbootpart}; " \
-		"mmc write ${loadaddr} 2 ${filesizeblks}; " \
-		"mmc dev ${mmcdev}\0" \
-	"kernels_file=fat.img\0" \
-	"kernels1_start_lba=1000\0" \
-	"update_kernels1_tftp=tftp ${loadaddr} ${kernels_file}; " \
-		CALCULATE_FILESIZE_IN_BLOCKS \
-		"mmc dev " __stringify(CONFIG_SYS_STORAGE_DEV) " 0; " \
-		"mmc write ${loadaddr} ${kernels1_start_lba} ${filesizeblks}\0" \
-	"update_kernels1_mmc=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${kernels_file}; " \
-		CALCULATE_FILESIZE_IN_BLOCKS \
-		"mmc dev " __stringify(CONFIG_SYS_STORAGE_DEV) " 0; " \
-		"mmc write ${loadaddr} ${kernels1_start_lba} ${filesizeblks}\0" \
-		"mmc dev ${mmcdev}\0" \
-	"system_file=android.img\0" \
-	"system1_start_lba=41000\0" \
-	"update_system1_tftp=tftp ${loadaddr} ${system_file}; " \
-		CALCULATE_FILESIZE_IN_BLOCKS \
-		"mmc dev " __stringify(CONFIG_SYS_STORAGE_DEV) " 0; " \
-		"mmc write ${loadaddr} ${system1_start_lba} ${filesizeblks}\0" \
-	"update_system1_mmc=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${system_file}; " \
-		CALCULATE_FILESIZE_IN_BLOCKS \
-		"mmc dev " __stringify(CONFIG_SYS_STORAGE_DEV) " 0; " \
-		"mmc write ${loadaddr} ${system1_start_lba} ${filesizeblks}\0" \
-		"mmc dev ${mmcdev}\0" \
 	"parts_android=\"uuid_disk=${uuid_disk};" \
 		"start=2MiB," \
 		"name=kernels1,size=64MiB,uuid=${part1_uuid};" \
