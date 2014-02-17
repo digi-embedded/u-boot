@@ -9,76 +9,7 @@
 
 #include <common.h>
 #include <part.h>
-#include "cmd_digi.h"
-
-static int get_image_source(char *source)
-{
-	int i;
-
-	for (i = 0; i < ARRAY_SIZE(image_source_str); i++) {
-		if (!strncmp(image_source_str[i], source, strlen(source)))
-			return i;
-	}
-
-	return IS_UNDEFINED;
-}
-
-static int get_update_partition(char *partname, disk_partition_t *info)
-{
-	if (!strcmp(partname, "uboot")) {
-		/* Simulate partition data for U-Boot */
-		info->start = CONFIG_SYS_BOOT_PART_OFFSET /
-			      CONFIG_SYS_STORAGE_BLKSZ;
-		info->size = CONFIG_SYS_BOOT_PART_SIZE /
-			     CONFIG_SYS_STORAGE_BLKSZ;
-	} else {
-		/* Not a reserved name. Must be a partition name */
-		/* Look up the device */
-		if (get_partition_byname(CONFIG_SYS_STORAGE_MEDIA,
-					 __stringify(CONFIG_SYS_STORAGE_DEV),
-					 partname, info))
-			return -1;
-	}
-	return 0;
-}
-
-static int get_fw_filename(int argc, char * const argv[], image_source_e src,
-			   char *filename)
-{
-	switch (src) {
-	case IS_TFTP:
-	case IS_NFS:
-		if (argc > 3) {
-			strcpy(filename, argv[3]);
-			return 0;
-		}
-		break;
-	case IS_MMC:
-	case IS_USB:
-	case IS_SATA:
-		if (argc > 5) {
-			strcpy(filename, argv[5]);
-			return 0;
-		}
-		break;
-	case IS_RAM:
-		return 0;	/* No file is needed */
-	default:
-		return -1;
-	}
-
-	return -1;
-}
-
-static int get_default_filename(char *partname, char *filename)
-{
-	if (!strcmp(partname, "uboot")) {
-		strcpy(filename, "$uboot_file");
-		return 0;
-	}
-
-	return -1;
-}
+#include "helper.h"
 
 static int load_firmware_to_ram(image_source_e src, char *filename,
 				char *devpartno, char *fs)
@@ -86,7 +17,6 @@ static int load_firmware_to_ram(image_source_e src, char *filename,
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	char def_devpartno[] = "0:1";
 	char def_fs[] = "fat";
-	int devno = 0;
 
 	/* Use default values if not provided */
 	if (NULL == devpartno)
@@ -166,9 +96,18 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	disk_partition_t info;
 	int ret;
 	char filename[256] = "";
+	char *forced_update;
+	int abort = 0;
 
 	if ((argc < 2) || (argc > 6))
 		return CMD_RET_USAGE;
+
+	/* Get data of partition to be updated */
+	ret = get_target_partition(argv[1], &info);
+	if (ret) {
+		printf("Partition '%s' not found\n", argv[1]);
+		return CMD_RET_FAILURE;
+	}
 
 	/* Get source of update firmware file */
 	if (argc > 2) {
@@ -182,13 +121,6 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 			if (argc > 4)
 				fs = argv[4];
 		}
-	}
-
-	/* Get data of partition to be updated */
-	ret = get_update_partition(argv[1], &info);
-	if (ret) {
-		printf("Partition '%s' not found\n", argv[1]);
-		return CMD_RET_FAILURE;
 	}
 
 	/* Get firmware file name */
@@ -209,11 +141,22 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		return CMD_RET_FAILURE;
 	}
 
-	/* Write firmware file from RAM to storage */
-	ret = write_firmware(argv[1], &info);
-	if (ret) {
-		printf("Error writing firmware\n");
-		return CMD_RET_FAILURE;
+	forced_update = getenv("forced_update");
+	if (!forced_update || strcmp(forced_update, "yes")) {
+		/* Confirm programming */
+		if (!strcmp((char *)info.name, "uboot") &&
+		    !confirm_msg("Do you really want to program "
+				 "the boot loader? <y/N>\n"))
+			abort = 1;
+	}
+
+	if (!abort) {
+		/* Write firmware file from RAM to storage */
+		ret = write_firmware(argv[1], &info);
+		if (ret) {
+			printf("Error writing firmware\n");
+			return CMD_RET_FAILURE;
+		}
 	}
 
 	return 0;
@@ -222,7 +165,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 U_BOOT_CMD(
 	update,	6,	0,	do_update,
 	"Digi modules update commands",
-	"<partition> [source] [extra-args...]\n"
+	"<partition>  [source] [extra-args...]\n"
 	" Description: updates flash <partition> via <source>\n"
 	" Arguments:\n"
 	"   - partition:    a partition name or one of the reserved names: \n"

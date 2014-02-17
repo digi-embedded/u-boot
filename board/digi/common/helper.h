@@ -17,7 +17,32 @@
 #ifndef __DIGI_HELPER_H
 #define __DIGI_HELPER_H
 
-extern int WaitForYesPressed( const char* szWhat, const char* szWhere );
-extern int long get_input(const char *cp);
+typedef enum {
+	IS_UNDEFINED = -1,
+	IS_TFTP,
+	IS_NFS,
+	IS_FLASH,
+	IS_USB,
+	IS_MMC,
+	IS_RAM,
+	IS_SATA,
+}image_source_e;
+
+static const char *image_source_str[] = {
+	"tftp",
+	"nfs",
+	"flash",
+	"usb",
+	"mmc",
+	"ram",
+	"sata",
+};
+
+int confirm_msg(char *msg);
+int get_image_source(char *source);
+int get_target_partition(char *partname, disk_partition_t *info);
+int get_fw_filename(int argc, char * const argv[], image_source_e src,
+			   char *filename);
+int get_default_filename(char *partname, char *filename);
 
 #endif  /* __DIGI_HELPER_H */
