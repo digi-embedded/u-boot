@@ -55,6 +55,14 @@ int get_source(char *src)
 	return SRC_UNDEFINED;
 }
 
+const char *get_source_string(int src)
+{
+	if (SRC_UNDEFINED != src && src < ARRAY_SIZE(src_strings))
+		return src_strings[src];
+
+	return "";
+}
+
 int get_target_partition(char *partname, disk_partition_t *info)
 {
 	if (!strcmp(partname, "uboot")) {
@@ -106,6 +114,10 @@ int get_default_filename(char *partname, char *filename)
 {
 	if (!strcmp(partname, "uboot")) {
 		strcpy(filename, "$uboot_file");
+		return 0;
+	} else if (!strcmp(partname, "linux") ||
+		   !strcmp(partname, "android")) {
+		strcpy(filename, "$uimage");
 		return 0;
 	}
 
