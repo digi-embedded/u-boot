@@ -179,8 +179,4 @@ U_BOOT_CMD(
 	"       - filesystem: fat (default)|ext2|ext3\n"
 	"       - filename: kernel file to transfer\n"
 	"\n"
-	"      source=ram -> [initrd_max_size]\n"
-	"       - initrd_max_size: max. allowed ramdisk size (in kB) to pass\n"
-	"                          to the kernel (default: kernel default)\n"
-	"\n"
 );
