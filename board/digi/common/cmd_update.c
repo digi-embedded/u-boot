@@ -72,7 +72,7 @@ static int write_firmware(char *partname, disk_partition_t *info)
 #ifdef CONFIG_SYS_BOOT_PART
 	/* If U-Boot and special partition, append the hardware partition */
 	if (!strcmp(partname, "uboot"))
-		sprintf(cmd, "%s $mmcbootpart", cmd);
+		strcat(cmd, " $mmcbootpart");
 #endif
 
 	/* Change to storage device */
