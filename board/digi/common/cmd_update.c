@@ -11,39 +11,6 @@
 #include <part.h>
 #include "helper.h"
 
-static int load_firmware_to_ram(image_source_e src, char *filename,
-				char *devpartno, char *fs)
-{
-	char cmd[CONFIG_SYS_CBSIZE] = "";
-	char def_devpartno[] = "0:1";
-	char def_fs[] = "fat";
-
-	/* Use default values if not provided */
-	if (NULL == devpartno)
-		devpartno = def_devpartno;
-	if (NULL == fs)
-		fs = def_fs;
-
-	switch (src) {
-	case IS_TFTP:
-		sprintf(cmd, "tftpboot $loadaddr %s", filename);
-		break;
-	case IS_NFS:
-		sprintf(cmd, "nfs $loadaddr $nfsroot/%s", filename);
-		break;
-	case IS_MMC:
-	case IS_USB:
-	case IS_SATA:
-		sprintf(cmd, "%sload %s %s $loadaddr %s", fs,
-			image_source_str[src], devpartno, filename);
-		break;
-	default:
-		return -1;
-	}
-
-	return run_command(cmd, 0);
-}
-
 static int write_firmware(char *partname, disk_partition_t *info)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
@@ -90,7 +57,7 @@ static int write_firmware(char *partname, disk_partition_t *info)
 
 static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 {
-	image_source_e src = IS_TFTP;	/* default to TFTP */
+	int src = SRC_TFTP;	/* default to TFTP */
 	char *devpartno = NULL;
 	char *fs = NULL;
 	disk_partition_t info;
@@ -99,7 +66,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	char *forced_update;
 	int abort = 0;
 
-	if ((argc < 2) || (argc > 6))
+	if (argc < 2)
 		return CMD_RET_USAGE;
 
 	/* Get data of partition to be updated */
@@ -111,10 +78,10 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 
 	/* Get source of update firmware file */
 	if (argc > 2) {
-		src = get_image_source(argv[2]);
-		if (src == IS_UNDEFINED)
+		src = get_source(argv[2]);
+		if (src == SRC_UNDEFINED)
 			return CMD_RET_USAGE;
-		if (src == IS_USB || src == IS_MMC || src == IS_SATA) {
+		if (src == SRC_USB || src == SRC_MMC || src == SRC_SATA) {
 			/* Get device:partition and file system */
 			if (argc > 3)
 				devpartno = argv[3];
@@ -135,8 +102,9 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	/* Load firmware file to RAM */
-	ret = load_firmware_to_ram(src, filename, devpartno, fs);
-	if (ret) {
+	ret = load_firmware_to_ram(src, filename, devpartno, fs,
+				   "$loadaddr", NULL);
+	if (ret < 0) {
 		printf("Error loading firmware file to RAM\n");
 		return CMD_RET_FAILURE;
 	}
@@ -176,7 +144,7 @@ U_BOOT_CMD(
 	"      source=tftp|nfs -> [filename]\n"
 	"       - filename: file to transfer (required if using a partition name)\n"
 	"\n"
-	"      source=usb|mmc|sata -> [device:part filesystem] [filename]\n"
+	"      source=usb|mmc|sata -> [device:part] [filesystem] [filename]\n"
 	"       - device:part: number of device and partition\n"
 	"       - filesystem: fat|ext2|ext3\n"
 	"       - filename: file to transfer\n"
