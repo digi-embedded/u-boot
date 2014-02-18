@@ -170,11 +170,15 @@ int load_firmware_to_ram(int src, char *filename, char *devpartno,
 		sprintf(cmd, "%sload %s %s %s %s", fs,
 			src_strings[src], devpartno, loadaddr, filename);
 		break;
+	case SRC_RAM:
+		ret = 0;	/* file is already supposed to be in RAM */
+		goto _ret;
 	default:
 		return -1;
 	}
 
 	ret = run_command(cmd, 0);
+_ret:
 	if (FWLOAD_TRY == fwload)
 		return 0;	/* ok, but file was not loaded */
 	if (ret)
