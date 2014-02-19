@@ -180,7 +180,8 @@ int load_firmware_to_ram(int src, char *filename, char *devpartno,
 	ret = run_command(cmd, 0);
 _ret:
 	if (FWLOAD_TRY == fwload)
-		return 0;	/* ok, but file was not loaded */
+		return !ret;	/* 1 if file was loaded, 0 if not */
+
 	if (ret)
 		return -1;	/* error */
 
