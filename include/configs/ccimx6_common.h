@@ -213,7 +213,8 @@
 		"name=data,size=-,uuid=${part6_uuid};" \
 		"\"\0" \
 	"partition_mmc_android=mmc dev ${mmcdev} 0;" \
-		"gpt write mmc ${mmcdev} ${parts_android}\0" \
+		"gpt write mmc ${mmcdev} ${parts_android};" \
+		"mmc rescan\0" \
 	"bootargs_android=\"vmalloc=400M androidboot.console=ttymxc0 " \
 		"androidboot.hardware=freescale " \
 		"video=mxcfb0:dev=hdmi,1920x1080M@60,bpp=32 " \
@@ -241,7 +242,8 @@
 		"name=data,size=-,uuid=${part5_uuid};" \
 		"\"\0" \
 	"partition_mmc_linux=mmc dev ${mmcdev} 0;" \
-		"gpt write mmc ${mmcdev} ${parts_linux}\0" \
+		"gpt write mmc ${mmcdev} ${parts_linux};" \
+		"mmc rescan\0" \
 	""	/* end line */
 
 #define CONFIG_BOOTCOMMAND \
