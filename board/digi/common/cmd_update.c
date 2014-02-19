@@ -55,6 +55,30 @@ static int write_firmware(char *partname, disk_partition_t *info)
 	return run_command(cmd, 0);
 }
 
+#define ECSD_PARTITION_CONFIG		179
+#define BOOT_ACK			(1 << 6)
+#define BOOT_PARTITION_ENABLE_OFF	3
+
+static int emmc_bootselect(void)
+{
+	char cmd[CONFIG_SYS_CBSIZE] = "";
+
+	/* Prepare command to change to storage device */
+	sprintf(cmd, "mmc dev %d", CONFIG_SYS_STORAGE_DEV);
+
+	/* Change to storage device */
+	if (run_command(cmd, 0)) {
+		debug("Cannot change to storage device\n");
+		return -1;
+	}
+
+	/* Select boot partition and enable boot acknowledge */
+	sprintf(cmd, "mmc ecsd write %x %x", ECSD_PARTITION_CONFIG,
+		BOOT_ACK | (CONFIG_SYS_BOOT_PART << BOOT_PARTITION_ENABLE_OFF));
+
+	return run_command(cmd, 0);
+}
+
 static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 {
 	int src = SRC_TFTP;	/* default to TFTP */
@@ -125,6 +149,19 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 			printf("Error writing firmware\n");
 			return CMD_RET_FAILURE;
 		}
+
+#ifdef CONFIG_SYS_BOOT_PART
+		/* If U-Boot and special partition, instruct the eMMC
+		 * to boot from it */
+		if (!strcmp(argv[1], "uboot") &&
+		    !strcmp(CONFIG_SYS_STORAGE_MEDIA, "mmc")) {
+			ret = emmc_bootselect();
+			if (ret) {
+				printf("Error changing eMMC boot partition\n");
+				return CMD_RET_FAILURE;
+			}
+		}
+#endif
 	}
 
 	return 0;
