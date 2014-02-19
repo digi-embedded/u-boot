@@ -50,7 +50,6 @@ static int set_bootargs(int os, int src)
 	sprintf(cmd, "run bootargs_%s_%s", get_source_string(src),
 		get_os_string(os));
 
-	printf("cmd: %s\n", cmd);
 	return run_command(cmd, 0);
 }
 
@@ -62,7 +61,6 @@ static int boot_os(int has_initrd, int has_fdt)
 		has_initrd ? "$initrd_addr" : "-",
 		has_fdt ? "$fdt_addr" : "");
 
-	printf("cmd: %s\n", cmd);
 	return run_command(cmd, 0);
 }
 
