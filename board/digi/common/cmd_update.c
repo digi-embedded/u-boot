@@ -114,7 +114,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		/* Confirm programming */
 		if (!strcmp((char *)info.name, "uboot") &&
 		    !confirm_msg("Do you really want to program "
-				 "the boot loader? <y/N>\n"))
+				 "the boot loader? <y/N> "))
 			abort = 1;
 	}
 

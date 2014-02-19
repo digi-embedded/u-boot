@@ -47,7 +47,7 @@ static int confirm_prog(void)
 			"         This may brick your system.\n"
 			"         Use this command only if you are sure of "
 					"what you are doing!\n"
-			"\nReally perform this fuse programming? <y/N>\n");
+			"\nReally perform this fuse programming? <y/N> ");
 
 	if (getc() == 'y') {
 		int c;
