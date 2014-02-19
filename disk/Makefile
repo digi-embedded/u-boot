@@ -38,9 +38,6 @@ COBJS	:= $(COBJS-y)
 SRCS	:= $(COBJS:.o=.c)
 OBJS	:= $(addprefix $(obj),$(COBJS))
 
-# SEE README.arm-unaligned-accesses
-$(obj)part_efi.o: CFLAGS += $(PLATFORM_NO_UNALIGNED)
-
 all:	$(LIB)
 
 $(LIB):	$(obj).depend $(OBJS)
