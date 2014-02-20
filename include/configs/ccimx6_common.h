@@ -215,7 +215,7 @@
 	"partition_mmc_android=mmc dev ${mmcdev} 0;" \
 		"gpt write mmc ${mmcdev} ${parts_android};" \
 		"mmc rescan\0" \
-	"bootargs_android=\"vmalloc=400M androidboot.console=ttymxc0 " \
+	"bootargs_android=\"androidboot.console=ttymxc0 " \
 		"androidboot.hardware=freescale " \
 		"video=mxcfb0:dev=hdmi,1920x1080M@60,bpp=32 " \
 		"video=mxcfb1:off video=mxcfb2:off fbmem=28M vmalloc=400M\"\0" \
@@ -226,8 +226,10 @@
 		"${bootargs_android} root=/dev/nfs " \
 		"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp " \
 		"${bootargs_once} ${std_bootargs}\0" \
+	"bootargs_linux=video=mxcfb0:dev=hdmi,1920x1080M@60,bpp=32 " \
+		"video=mxcfb1:off video=mxcfb2:off\0" \
 	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
-		"root=PARTUUID=${part3_uuid} rootwait rw " \
+		"{bootargs_linux} root=PARTUUID=${part3_uuid} rootwait rw " \
 		"${bootargs_once} ${std_bootargs}\0" \
 	"bootargs_tftp_linux=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} root=/dev/nfs " \
