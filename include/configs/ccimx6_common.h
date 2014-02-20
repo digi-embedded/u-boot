@@ -251,7 +251,7 @@
 	"bootargs_linux=video=mxcfb0:dev=hdmi,1920x1080M@60,bpp=32 " \
 		"video=mxcfb1:off video=mxcfb2:off\0" \
 	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
-		"{bootargs_linux} root=PARTUUID=${part3_uuid} rootwait rw " \
+		"${bootargs_linux} root=PARTUUID=${part3_uuid} rootwait rw " \
 		"${bootargs_once} ${std_bootargs}\0" \
 	"bootargs_tftp_linux=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} root=/dev/nfs " \
