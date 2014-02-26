@@ -56,7 +56,7 @@
 	_min1 < _min2 ? _min1 : _min2; })
 
 struct envdev_s {
-	char devname[16];		/* Device name */
+	char devname[24];		/* Device name */
 	ulong devoff;			/* Device offset */
 	ulong env_size;			/* environment size */
 	ulong erase_size;		/* device erase size */
