@@ -126,12 +126,13 @@ int get_default_filename(char *partname, char *filename)
 
 /* A variable determines if the file must be loaded.
  * The function returns:
- * 	 1 if the file was loaded successfully
- * 	 0 if the file was not loaded, but isn't required
- * 	-1 on error
+ *	LDFW_UPDATED if the file was loaded and updated (on-the-fly)
+ *	LDFW_LOADED if the file was loaded successfully
+ *	LDFW_NOT_LOADED if the file was not loaded, but isn't required
+ *	LDFW_ERROR on error
  */
-int load_firmware_to_ram(int src, char *filename, char *devpartno,
-			 char *fs, char *loadaddr, char *varload)
+int load_firmware(int src, char *filename, char *devpartno,
+		  char *fs, char *loadaddr, char *varload)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	char def_devpartno[] = "0:1";
@@ -146,7 +147,7 @@ int load_firmware_to_ram(int src, char *filename, char *devpartno,
 	 */
 	if (NULL != varload) {
 		if (!strcmp(varload, "no"))
-			return 0;	/* skip load and return ok */
+			return LDFW_NOT_LOADED;	/* skip load and return ok */
 		else if (!strcmp(varload, "try"))
 			fwload = FWLOAD_TRY;
 	}
@@ -171,7 +172,7 @@ int load_firmware_to_ram(int src, char *filename, char *devpartno,
 			src_strings[src], devpartno, loadaddr, filename);
 		break;
 	case SRC_RAM:
-		ret = 0;	/* file is already supposed to be in RAM */
+		ret = LDFW_NOT_LOADED;	/* file is already in RAM */
 		goto _ret;
 	default:
 		return -1;
@@ -179,11 +180,17 @@ int load_firmware_to_ram(int src, char *filename, char *devpartno,
 
 	ret = run_command(cmd, 0);
 _ret:
-	if (FWLOAD_TRY == fwload)
-		return !ret;	/* 1 if file was loaded, 0 if not */
+	if (FWLOAD_TRY == fwload) {
+		if (ret)
+			return LDFW_NOT_LOADED;
+		else
+			return LDFW_LOADED;
+	}
 
 	if (ret)
-		return -1;	/* error */
+		return LDFW_ERROR;
 
-	return 1;	/* ok, file was loaded */
+	return LDFW_LOADED;	/* ok, file was loaded */
+}
+
 }

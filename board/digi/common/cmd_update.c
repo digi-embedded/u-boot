@@ -133,11 +133,14 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	/* Load firmware file to RAM */
-	ret = load_firmware_to_ram(src, filename, devpartno, fs,
-				   "$loadaddr", NULL);
-	if (ret < 0) {
+	ret = load_firmware(src, filename, devpartno, fs, "$loadaddr", NULL);
+	if (ret == LDFW_ERROR) {
 		printf("Error loading firmware file to RAM\n");
-		return CMD_RET_FAILURE;
+		ret = CMD_RET_FAILURE;
+		goto _ret;
+	} else if (ret == LDFW_UPDATED) {
+		ret = 0;
+		goto _ret;
 	}
 
 	/* Write firmware file from RAM to storage */
@@ -161,7 +164,8 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 #endif
 
-	return 0;
+_ret:
+	return ret;
 }
 
 U_BOOT_CMD(

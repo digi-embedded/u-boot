@@ -112,9 +112,8 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	/* Load firmware file to RAM */
-	ret = load_firmware_to_ram(src, filename, devpartno, fs, "$loadaddr",
-				   NULL);
-	if (ret < 0) {
+	ret = load_firmware(src, filename, devpartno, fs, "$loadaddr", NULL);
+	if (ret == LDFW_ERROR) {
 		printf("Error loading firmware file to RAM\n");
 		return CMD_RET_FAILURE;
 	}
@@ -123,12 +122,11 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	varload = getenv("boot_fdt");
 	if (NULL == varload && OS_ANDROID == os)
 		varload = (char *)"no";	/* Android default */
-	ret = load_firmware_to_ram(src, "$fdt_file", devpartno, fs,
-				   "$fdt_addr", varload);
-	if (ret == 1) {
+	ret = load_firmware(src, "$fdt_file", devpartno, fs,
+			    "$fdt_addr", varload);
+	if (ret == LDFW_LOADED) {
 		has_fdt = 1;
-	}
-	else if (ret == -1) {
+	} else if (ret == LDFW_ERROR) {
 		printf("Error loading FDT file\n");
 		return CMD_RET_FAILURE;
 	}
@@ -137,12 +135,11 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	varload =  getenv("boot_initrd");
 	if (NULL == varload && OS_LINUX == os)
 		varload = (char *)"no";	/* Linux default */
-	ret = load_firmware_to_ram(src, "$initrd_file", devpartno, fs,
-				   "$initrd_addr", varload);
-	if (ret == 1) {
+	ret = load_firmware(src, "$initrd_file", devpartno, fs,
+			    "$initrd_addr", varload);
+	if (ret == LDFW_LOADED) {
 		has_initrd = 1;
-	}
-	else if (ret == -1) {
+	} else if (ret == LDFW_ERROR) {
 		printf("Error loading init ramdisk file\n");
 		return CMD_RET_FAILURE;
 	}
