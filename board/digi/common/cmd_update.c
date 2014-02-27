@@ -87,8 +87,6 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	disk_partition_t info;
 	int ret;
 	char filename[256] = "";
-	char *forced_update;
-	int abort = 0;
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -98,6 +96,15 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	if (ret) {
 		printf("Partition '%s' not found\n", argv[1]);
 		return CMD_RET_FAILURE;
+	}
+
+	/* Ask for confirmation if needed */
+	if (getenv_yesno("forced_update") <= 0) {
+		/* Confirm programming */
+		if (!strcmp((char *)info.name, "uboot") &&
+		    !confirm_msg("Do you really want to program "
+				 "the boot loader? <y/N> "))
+			return CMD_RET_FAILURE;
 	}
 
 	/* Get source of update firmware file */
@@ -133,36 +140,26 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		return CMD_RET_FAILURE;
 	}
 
-	forced_update = getenv("forced_update");
-	if (!forced_update || strcmp(forced_update, "yes")) {
-		/* Confirm programming */
-		if (!strcmp((char *)info.name, "uboot") &&
-		    !confirm_msg("Do you really want to program "
-				 "the boot loader? <y/N> "))
-			abort = 1;
+	/* Write firmware file from RAM to storage */
+	ret = write_firmware(argv[1], &info);
+	if (ret) {
+		printf("Error writing firmware\n");
+		ret = CMD_RET_FAILURE;
+		goto _ret;
 	}
-
-	if (!abort) {
-		/* Write firmware file from RAM to storage */
-		ret = write_firmware(argv[1], &info);
-		if (ret) {
-			printf("Error writing firmware\n");
-			return CMD_RET_FAILURE;
-		}
-
 #ifdef CONFIG_SYS_BOOT_PART
-		/* If U-Boot and special partition, instruct the eMMC
-		 * to boot from it */
-		if (!strcmp(argv[1], "uboot") &&
-		    !strcmp(CONFIG_SYS_STORAGE_MEDIA, "mmc")) {
-			ret = emmc_bootselect();
-			if (ret) {
-				printf("Error changing eMMC boot partition\n");
-				return CMD_RET_FAILURE;
-			}
+	/* If U-Boot and special partition, instruct the eMMC
+	 * to boot from it */
+	if (!strcmp(argv[1], "uboot") &&
+	    !strcmp(CONFIG_SYS_STORAGE_MEDIA, "mmc")) {
+		ret = emmc_bootselect();
+		if (ret) {
+			printf("Error changing eMMC boot partition\n");
+			ret = CMD_RET_FAILURE;
+			goto _ret;
 		}
-#endif
 	}
+#endif
 
 	return 0;
 }
