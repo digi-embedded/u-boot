@@ -16,19 +16,26 @@ static int write_firmware(char *partname, disk_partition_t *info)
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	char *filesize = getenv("filesize");
 	unsigned long size;
+	block_dev_desc_t *mmc_dev;
+
+	mmc_dev = mmc_get_dev(CONFIG_SYS_STORAGE_DEV);
+	if (NULL == mmc_dev) {
+		debug("Cannot determine sys storage device\n");
+		return -1;
+	}
 
 	if (NULL == filesize) {
 		debug("Cannot determine filesize\n");
 		return -1;
 	}
-	size = simple_strtoul(filesize, NULL, 16) / CONFIG_SYS_STORAGE_BLKSZ;
-	if (simple_strtoul(filesize, NULL, 16) % CONFIG_SYS_STORAGE_BLKSZ)
+	size = simple_strtoul(filesize, NULL, 16) / mmc_dev->blksz;
+	if (simple_strtoul(filesize, NULL, 16) % mmc_dev->blksz)
 		size++;
 
 	if (size > info->size) {
 		printf("File size (%lu bytes) exceeds partition size (%lu bytes)!\n",
-			size * CONFIG_SYS_STORAGE_BLKSZ,
-			info->size * CONFIG_SYS_STORAGE_BLKSZ);
+			size * mmc_dev->blksz,
+			info->size * mmc_dev->blksz);
 		return -1;
 	}
 

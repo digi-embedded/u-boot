@@ -67,10 +67,16 @@ int get_target_partition(char *partname, disk_partition_t *info)
 {
 	if (!strcmp(partname, "uboot")) {
 		/* Simulate partition data for U-Boot */
-		info->start = CONFIG_SYS_BOOT_PART_OFFSET /
-			      CONFIG_SYS_STORAGE_BLKSZ;
-		info->size = CONFIG_SYS_BOOT_PART_SIZE /
-			     CONFIG_SYS_STORAGE_BLKSZ;
+		block_dev_desc_t *mmc_dev;
+
+		mmc_dev = mmc_get_dev(CONFIG_SYS_STORAGE_DEV);
+		if (NULL == mmc_dev) {
+			debug("Cannot determine sys storage device\n");
+			return -1;
+		}
+
+		info->start = CONFIG_SYS_BOOT_PART_OFFSET / mmc_dev->blksz;
+		info->size = CONFIG_SYS_BOOT_PART_SIZE / mmc_dev->blksz;
 		strcpy((char *)info->name, partname);
 	} else {
 		/* Not a reserved name. Must be a partition name */

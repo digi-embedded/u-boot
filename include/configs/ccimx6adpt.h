@@ -39,7 +39,6 @@
 
 /* Media type for firmware updates */
 #define CONFIG_SYS_STORAGE_MEDIA	"mmc"
-#define CONFIG_SYS_STORAGE_BLKSZ	512
 
 /* Ethernet PHY (select one) */
 #define CONFIG_PHY_MICREL
