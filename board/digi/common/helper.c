@@ -132,7 +132,6 @@ int get_default_filename(char *partname, char *filename)
 
 /* A variable determines if the file must be loaded.
  * The function returns:
- *	LDFW_UPDATED if the file was loaded and updated (on-the-fly)
  *	LDFW_LOADED if the file was loaded successfully
  *	LDFW_NOT_LOADED if the file was not loaded, but isn't required
  *	LDFW_ERROR on error
@@ -197,6 +196,4 @@ _ret:
 		return LDFW_ERROR;
 
 	return LDFW_LOADED;	/* ok, file was loaded */
-}
-
 }

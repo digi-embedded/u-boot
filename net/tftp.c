@@ -9,6 +9,8 @@
 #include <common.h>
 #include <command.h>
 #include <net.h>
+#include <otf_update.h>
+#include <part.h>
 #include "tftp.h"
 #include "bootp.h"
 #ifdef CONFIG_SYS_DIRECT_FLASH_TFTP
@@ -62,6 +64,11 @@ int TftpErrorCount;		/* The number of erroneous tries */
  */
 ulong TftpRRQTimeoutMSecs = TIMEOUT;
 int TftpRRQTimeoutCountMax = TIMEOUT_COUNT;
+
+/* hook for on-the-fly update and register function */
+static int (*otf_update_hook)(otf_data_t *data) = NULL;
+/* Data structu for on-the-fly update */
+otf_data_t otfd;
 
 #ifdef CONFIG_TFTP_UPDATE_ONTHEFLY
 char bTftpToFlashStatus = 0;			/* Signaling flags */
@@ -214,7 +221,17 @@ store_block(int block, uchar *src, unsigned len)
 	} else
 #endif /* CONFIG_SYS_DIRECT_FLASH_TFTP */
 	{
-		(void)memcpy((void *)(load_addr + offset), src, len);
+		if (otf_update_hook != NULL) {
+			otfd.loadaddr = load_addr;
+			otfd.offset = offset;
+			otfd.buf = src;
+			otfd.len = len;
+			otfd.flags = 0;
+			otf_update_hook(&otfd);
+		}
+		else {
+			(void)memcpy((void *)(load_addr + offset), src, len);
+		}
 	}
 #ifdef CONFIG_MCAST_TFTP
 	if (Multicast)
@@ -452,12 +469,19 @@ static void tftp_complete(void)
 		TftpNumchars++;
 	}
 #endif
+	/* OTF: Write last bytes (less than a chunk) to media */
+	if (otf_update_hook != NULL) {
+		otfd.flags |= OTF_FLAG_FLUSH;
+		otf_update_hook(&otfd);
+	}
+
 	time_start = get_timer(time_start);
 	if (time_start > 0) {
 		puts("\n\t ");	/* Line up with "Loading: " */
 		print_size(NetBootFileXferSize /
 			time_start * 1000, "/s");
 	}
+
 #ifdef CONFIG_TFTP_UPDATE_ONTHEFLY
 			if( (bTftpToFlashStatus & B_WRITE_IMG_TO_FLASH) == B_WRITE_IMG_TO_FLASH ){
 				/* TFTP transfer complete, write last received TftpBlocks to flash */
@@ -1022,7 +1046,10 @@ void TftpStart(enum proto_t protocol)
 		else
 #endif /* CONFIG_TFTP_UPDATE_ONTHEFLY */
 		{
-			puts("Loading: *\b");
+			if (otf_update_hook)
+				printf("Loading and updating on-the-fly: \n\t");
+			else
+				puts("Loading: *\b");
 		}
 		TftpState = STATE_SEND_RRQ;
 	}
@@ -1189,3 +1216,16 @@ static void parse_multicast_oack(char *pkt, int len)
 }
 
 #endif /* Multicast TFTP */
+
+void register_tftp_otf_update_hook(int (*hook)(otf_data_t *data),
+				   disk_partition_t *partition)
+{
+	otf_update_hook = hook;
+	otfd.part = partition;
+}
+
+void unregister_tftp_otf_update_hook(void)
+{
+	otf_update_hook = NULL;
+	otfd.part = NULL;
+}

@@ -8,8 +8,50 @@
 */
 
 #include <common.h>
+#include <otf_update.h>
 #include <part.h>
 #include "helper.h"
+
+extern int board_update_chunk(otf_data_t *oftd);
+extern void register_tftp_otf_update_hook(int (*hook)(otf_data_t *oftd),
+					  disk_partition_t*);
+extern void unregister_tftp_otf_update_hook(void);
+
+void register_otf_hook(int src, int (*hook)(otf_data_t *oftd),
+		       disk_partition_t *partition)
+{
+	switch (src) {
+	case SRC_TFTP:
+		register_tftp_otf_update_hook(hook, partition);
+		break;
+	case SRC_NFS:
+		//TODO
+		break;
+	case SRC_MMC:
+	case SRC_USB:
+	case SRC_SATA:
+		//register_block_otf_update_hook(hook, partition);
+		break;
+	}
+}
+
+void unregister_otf_hook(int src)
+{
+	switch (src) {
+	case SRC_TFTP:
+		unregister_tftp_otf_update_hook();
+		break;
+	case SRC_NFS:
+		//TODO
+		break;
+	case SRC_MMC:
+	case SRC_USB:
+	case SRC_SATA:
+		//unregister_block_otf_update_hook();
+		break;
+	}
+
+}
 
 static int write_firmware(char *partname, disk_partition_t *info)
 {
@@ -94,6 +136,8 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	disk_partition_t info;
 	int ret;
 	char filename[256] = "";
+	int otf = 0;
+	char cmd[CONFIG_SYS_CBSIZE] = "";
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -139,13 +183,35 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		}
 	}
 
+	/* Activate on-the-fly update if needed */
+	otf = getenv_yesno("otf-update");
+	if (otf) {
+		if (!strcmp((char *)info.name, "uboot")) {
+			/* Do not activate on-the-fly update for U-Boot */
+			printf("On-the-fly mechanism disabled for U-Boot "
+				"for security reasons\n");
+			otf = 0;
+		} else {
+			/* register on-the-fly update mechanism */
+			register_otf_hook(src, board_update_chunk, &info);
+			/* Prepare command to change to storage device */
+			sprintf(cmd, "mmc dev %d", CONFIG_SYS_STORAGE_DEV);
+			/* Change to storage device */
+			if (run_command(cmd, 0)) {
+				printf("Cannot change to storage device\n");
+				ret = -1;
+				goto _ret;
+			}
+		}
+	}
+
 	/* Load firmware file to RAM */
 	ret = load_firmware(src, filename, devpartno, fs, "$loadaddr", NULL);
 	if (ret == LDFW_ERROR) {
 		printf("Error loading firmware file to RAM\n");
 		ret = CMD_RET_FAILURE;
 		goto _ret;
-	} else if (ret == LDFW_UPDATED) {
+	} else if (ret == LDFW_LOADED && otf) {
 		ret = 0;
 		goto _ret;
 	}
@@ -172,6 +238,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 #endif
 
 _ret:
+	unregister_otf_hook(src);
 	return ret;
 }
 

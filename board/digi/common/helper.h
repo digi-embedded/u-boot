@@ -32,7 +32,6 @@ enum {
 	LDFW_ERROR = -1,
 	LDFW_NOT_LOADED,
 	LDFW_LOADED,
-	LDFW_UPDATED,
 };
 
 int load_firmware(int src, char *filename, char *devpartno,

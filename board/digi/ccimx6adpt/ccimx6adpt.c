@@ -38,6 +38,8 @@
 #include <fuse.h>
 #include <miiphy.h>
 #include <netdev.h>
+#include <otf_update.h>
+#include <part.h>
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>
 #endif
@@ -49,6 +51,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 struct ccimx6_hwid my_hwid;
 static u8 hwid[4 * CONFIG_HWID_WORDS_NUMBER];
+static block_dev_desc_t *mmc_dev;
 
 #define UART_PAD_CTRL  (PAD_CTL_PKE | PAD_CTL_PUE |            \
 	PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED |               \
@@ -405,6 +408,10 @@ int board_mmc_init(bd_t *bis)
 			printf("Warning: failed to initialize mmc dev %d\n", i);
 	}
 
+	mmc_dev = mmc_get_dev(CONFIG_SYS_STORAGE_DEV);
+	if (NULL == mmc_dev)
+		printf("Warning: failed to get sys storage device\n");
+
 	return 0;
 }
 #endif
@@ -615,3 +622,99 @@ void ft_board_setup(void *blob, bd_t *bd)
 	fdt_fixup_mac(blob, "btaddr", "/bluetooth");
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
+
+static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
+			unsigned int chunklen, unsigned int chunkno)
+{
+	int n;
+
+	/* Check WP */
+	if (mmc_getwp(mmc) == 1) {
+		printf("Error: card is write protected!\n");
+		return -1;
+	}
+
+	/* Check if chunk fits */
+	if ((chunkno + 1) * chunklen / mmc_dev->blksz > otfd->part->size) {
+		printf("Error: length of data exceeds partition size\n");
+		return -1;
+	}
+
+	/* Write CONFIG_OTF_CHUNK bytes of chunk to media */
+	debug("writing chunk of %d bytes from 0x%x to block %d\n",
+		chunklen, otfd->loadaddr, dstblk);
+	n = mmc->block_dev.block_write(CONFIG_SYS_STORAGE_DEV, dstblk,
+			chunklen / mmc_dev->blksz,
+			(const void *)otfd->loadaddr);
+	if (n != chunklen / mmc_dev->blksz) {
+		printf("Error: not all data written to media\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+/* writes a chunk of data from RAM to main storage media (eMMC) */
+int board_update_chunk(otf_data_t *otfd)
+{
+	static unsigned int chunk_len = 0;
+	static unsigned int src_offset = 0;
+	static unsigned int dstblk = 0;
+	static int current_chunk = 0;
+	struct mmc *mmc = find_mmc_device(CONFIG_SYS_STORAGE_DEV);
+
+	/* Reset all static variables if offset == 0 (starting chunk) */
+	if (otfd->offset == 0) {
+		chunk_len = 0;
+		src_offset = 0;
+		dstblk = 0;
+		current_chunk = 0;
+	}
+
+	/* Initialize dstblk */
+	if (dstblk == 0)
+		dstblk = otfd->part->start;
+
+	/* The flush flag is set when the download process has finished
+	 * meaning we must write the remaining bytes in RAM to the storage
+	 * media. After this, we must quit the function. */
+	if (otfd->flags & OTF_FLAG_FLUSH) {
+		/* Write chunk */
+		printf("- Writing chunk -");
+		if (write_chunk(mmc, otfd, dstblk, chunk_len, current_chunk))
+			return -1;
+		return 0;
+	}
+
+	/* Buffer otfd in RAM until we reach the configured limit
+	 * to write it to media */
+	src_offset = otfd->offset % CONFIG_OTF_CHUNK;
+	if (otfd->offset / CONFIG_OTF_CHUNK == current_chunk) {
+		memcpy((void *)(otfd->loadaddr + src_offset), otfd->buf,
+			otfd->len);
+		chunk_len += otfd->len;
+	} else {
+		/* Write chunk */
+		printf("- Writing chunk -");
+		if (write_chunk(mmc, otfd, dstblk, chunk_len, current_chunk))
+			return -1;
+		/* increment destiny block */
+		dstblk += (CONFIG_OTF_CHUNK / mmc_dev->blksz);
+		/* copy excess of bytes from previous chunk to offset 0 */
+		memcpy((void *)otfd->loadaddr,
+		       (void *)(otfd->loadaddr + CONFIG_OTF_CHUNK),
+		       src_offset);
+		debug("Copying excess of %d bytes to offset 0\n", src_offset);
+		/* copy new chunk */
+		memcpy((void *)(otfd->loadaddr + src_offset), otfd->buf,
+			otfd->len);
+		debug("Copying new chunk to offset %d\n", src_offset);
+		/* reset chunk_len to excess of bytes from previous chunk +
+		 * bytes of this new chunk */
+		chunk_len = src_offset + otfd->len;
+		/* increment current_chunk */
+		current_chunk++;
+	}
+
+	return 0;
+}

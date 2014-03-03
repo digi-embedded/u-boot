@@ -98,6 +98,8 @@
 #define CONFIG_HWID_WORDS_NUMBER	2
 
 #define CONFIG_CMD_UPDATE
+/* On the fly update chunk (must be a multiple of mmc block size) */
+#define CONFIG_OTF_CHUNK		(32 * 1024 * 1024)
 #define CONFIG_CMD_DBOOT
 
 #define CONFIG_BOOTDELAY               1
