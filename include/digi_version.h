@@ -12,6 +12,6 @@
 #ifndef __DIGI_VERSION_H
 #define __DIGI_VERSION_H
 
-#define VERSION_TAG	"dub-ccimx6-sprint2-git"
+#define VERSION_TAG	"dub-ccimx6-sprint3-git"
 
 #endif /* __DIGI_VERSION_H */
