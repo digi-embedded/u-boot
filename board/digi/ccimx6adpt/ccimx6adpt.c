@@ -588,13 +588,22 @@ int get_hwid(void)
 
 int checkboard(void)
 {
+	const char *bootdevice;
+
 	puts("Board:   ConnectCore for i.MX6 on the Adapter board\n");
 #ifdef CONFIG_PLATFORM_HAS_HWID
 	if (!array_to_hwid(hwid))
 		printf("Variant: 0x%02x - %s\n", my_hwid.variant,
 			ccimx6_variants[my_hwid.variant].id_string);
 #endif /* CONFIG_PLATFORM_HAS_HWID */
-
+	bootdevice = boot_mode_string();
+	printf("Boot device: %s", bootdevice);
+	if (!strcmp(bootdevice, "esdhc2"))
+		printf(" (uSD card)\n");
+	else if (!strcmp(bootdevice, "esdhc4"))
+		printf(" (eMMC)\n");
+	else
+		printf("\n");
 	return 0;
 }
 
