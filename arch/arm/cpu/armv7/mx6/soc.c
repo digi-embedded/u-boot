@@ -436,6 +436,35 @@ const struct boot_mode soc_boot_modes[] = {
 	{NULL,		0},
 };
 
+/* The following array contains the boot device string, and the value and mask
+ * of SBMR1 register associated to it.
+ */
+const struct boot_device boot_device_sel[] = {
+	{"NOR/OneNAND",	0x00,	0xf0},
+	{"usb",		0x10,	0xf0},
+	{"sata",	0x20,	0xf0},
+	{"esdhc1",	0x40,	0x18C0},
+	{"esdhc2",	0x840,	0x18C0},
+	{"esdhc3",	0x1040,	0x18C0},
+	{"esdhc4",	0x1840,	0x18C0},
+	{NULL,		0},
+};
+
+const char * boot_mode_string(void)
+{
+	struct src *psrc = (struct src *)SRC_BASE_ADDR;
+	unsigned reg;
+	int i;
+
+	reg = readl(&psrc->sbmr1);
+	for (i = 0; boot_device_sel[i].name != NULL; i++) {
+		if ((reg & boot_device_sel[i].mask) == boot_device_sel[i].val)
+			return boot_device_sel[i].name;
+	}
+
+	return "unknown";
+}
+
 void s_init(void)
 {
 }
