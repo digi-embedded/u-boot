@@ -172,9 +172,8 @@
 	"initrd_high=0xffffffff\0" \
 	"mmcbootpart=" __stringify(CONFIG_SYS_BOOT_PART) "\0" \
 	"mmcpart=1\0" \
-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} ${smp} " \
-		"root=${mmcroot}\0" \
+		"root=/dev/mmcblk0p2 rootwait rw\0" \
 	"loadbootscript=" \
 		"fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
 	"bootscript=echo Running bootscript from mmc ...; " \
