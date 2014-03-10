@@ -130,6 +130,29 @@ int get_default_filename(char *partname, char *filename)
 	return -1;
 }
 
+int get_default_devpartno(int src, char *devpartno)
+{
+	char *dev, *part;
+
+	switch (src) {
+	case SRC_MMC:
+		dev = getenv("mmcdev");
+		if (dev == NULL)
+			return -1;
+		part = getenv("mmcpart");
+		if (part == NULL)
+			strcpy(part, "1");	/* default to 1 */
+		sprintf(devpartno, "%s:%s", dev, part);
+		break;
+	case SRC_USB:	// TODO
+	case SRC_SATA:	// TODO
+	default:
+		return -1;
+	}
+
+	return 0;
+}
+
 /* A variable determines if the file must be loaded.
  * The function returns:
  *	LDFW_LOADED if the file was loaded successfully
@@ -158,8 +181,11 @@ int load_firmware(int src, char *filename, char *devpartno,
 	}
 
 	/* Use default values if not provided */
-	if (NULL == devpartno)
+	if (NULL == devpartno) {
+		if (get_default_devpartno(src, def_devpartno))
+			strcpy(def_devpartno, "0:1");
 		devpartno = def_devpartno;
+	}
 	if (NULL == fs)
 		fs = def_fs;
 
