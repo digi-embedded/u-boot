@@ -150,7 +150,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	/* Ask for confirmation if needed */
-	if (getenv_yesno("forced_update") <= 0) {
+	if (getenv_yesno("forced_update") != 1) {
 		/* Confirm programming */
 		if (!strcmp((char *)info.name, "uboot") &&
 		    !confirm_msg("Do you really want to program "
@@ -184,7 +184,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	/* Activate on-the-fly update if needed */
-	otf = getenv_yesno("otf-update");
+	otf = (getenv_yesno("otf-update") == 1);
 	if (otf) {
 		if (!strcmp((char *)info.name, "uboot")) {
 			/* Do not activate on-the-fly update for U-Boot */
