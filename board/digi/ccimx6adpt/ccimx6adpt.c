@@ -514,6 +514,30 @@ int board_late_init(void)
 		return -1;
 #endif
 
+#ifdef CONFIG_CMD_MMC
+	/* If undefined, determine 'mmcdev' variable depending on boot media */
+	if (NULL == getenv("mmcdev")) {
+		u32 soc_sbmr = readl(SRC_BASE_ADDR + 0x4);
+
+		switch((soc_sbmr & 0x00001800) >> 11) {
+		case 1:
+			setenv_ulong("mmcdev", 1);	/* SDHC2 (uSD) */
+			break;
+		case 3:
+			setenv_ulong("mmcdev", 0);	/* SDHC4 (eMMC) */
+			break;
+		}
+	}
+	/* If undefined, set 'mmcroot' depending on 'mmcdev' */
+	if (NULL == getenv("mmcroot")) {
+		char mmcroot[100];
+
+		sprintf(mmcroot, "/dev/mmcblk%sp%d", getenv("mmcdev"),
+			CONFIG_MMCROOTPART);
+		setenv("mmcroot", mmcroot);
+	}
+#endif
+
 	return 0;
 }
 

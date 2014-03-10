@@ -171,7 +171,6 @@
 	"fdt_high=0xffffffff\0"	  \
 	"initrd_high=0xffffffff\0" \
 	"mmcbootpart=" __stringify(CONFIG_SYS_BOOT_PART) "\0" \
-	"mmcdev=" __stringify(CONFIG_SYS_STORAGE_DEV) "\0" \
 	"mmcpart=1\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} ${smp} " \
@@ -253,7 +252,7 @@
 	"bootargs_linux=video=mxcfb0:dev=hdmi,1920x1080M@60,bpp=32 " \
 		"video=mxcfb1:off video=mxcfb2:off\0" \
 	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
-		"${bootargs_linux} root=PARTUUID=${part3_uuid} rootwait rw " \
+		"${bootargs_linux} root=${mmcroot} rootwait rw " \
 		"${bootargs_once} ${std_bootargs}\0" \
 	"bootargs_tftp_linux=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} root=/dev/nfs " \
