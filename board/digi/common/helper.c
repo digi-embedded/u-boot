@@ -10,6 +10,8 @@
 #include <common.h>
 #include "helper.h"
 
+DECLARE_GLOBAL_DATA_PTR;
+
 enum {
 	FWLOAD_NO,
 	FWLOAD_YES,
@@ -26,8 +28,27 @@ static const char *src_strings[] = {
 	[SRC_SATA] =	"sata",
 };
 
+#ifdef CONFIG_AUTO_BOOTSCRIPT
+#define AUTOSCRIPT_TFTP_MSEC		100
+#define AUTOSCRIPT_TFTP_CNT		15
+#define AUTOSCRIPT_START_AGAIN		100
+extern ulong TftpRRQTimeoutMSecs;
+extern int TftpRRQTimeoutCountMax;
+extern unsigned long NetStartAgainTimeout;
+int DownloadingAutoScript = 0;
+int RunningAutoScript = 0;
+#endif
+
 int confirm_msg(char *msg)
 {
+#ifdef CONFIG_AUTO_BOOTSCRIPT
+        /* From autoscript we shouldn't expect user's confirmations.
+         * Assume yes is the correct answer here to avoid halting the script.
+         */
+	if (RunningAutoScript)
+		return 1;
+#endif
+
 	printf(msg);
 	if (getc() == 'y') {
 		int c;
@@ -223,3 +244,55 @@ _ret:
 
 	return LDFW_LOADED;	/* ok, file was loaded */
 }
+
+#if defined(CONFIG_SOURCE) && defined(CONFIG_AUTO_BOOTSCRIPT)
+void run_auto_bootscript(void)
+{
+#ifdef CONFIG_CMD_NET
+	int ret;
+	char *bootscript;
+	/* Save original timeouts */
+        ulong saved_rrqtimeout_msecs = TftpRRQTimeoutMSecs;
+        int saved_rrqtimeout_count = TftpRRQTimeoutCountMax;
+	ulong saved_startagain_timeout = NetStartAgainTimeout;
+	unsigned long saved_flags = gd->flags;
+
+	bootscript = getenv("bootscript");
+	if (bootscript) {
+		printf("Bootscript from TFTP... ");
+
+		/* Silence console */
+		gd->flags |= GD_FLG_SILENT;
+		/* set timeouts for bootscript */
+		TftpRRQTimeoutMSecs = AUTOSCRIPT_TFTP_MSEC;
+		TftpRRQTimeoutCountMax = AUTOSCRIPT_TFTP_CNT;
+		NetStartAgainTimeout = AUTOSCRIPT_START_AGAIN;
+
+		/* Silence net commands during the bootscript download */
+		DownloadingAutoScript = 1;
+		ret = run_command("tftp ${loadaddr} ${bootscript}", 0);
+		/* First restore original values of global variables
+		 * and then evaluate the result of the run_command */
+		DownloadingAutoScript = 0;
+		/* Restore original timeouts */
+		TftpRRQTimeoutMSecs = saved_rrqtimeout_msecs;
+		TftpRRQTimeoutCountMax = saved_rrqtimeout_count;
+		NetStartAgainTimeout = saved_startagain_timeout;
+		/* Restore flags */
+		gd->flags = saved_flags;
+
+		if (ret)
+			goto error;
+
+		printf("[ready]\nRunning bootscript...\n");
+		RunningAutoScript = 1;
+		/* Launch bootscript */
+		run_command("source ${loadaddr}", 0);
+		RunningAutoScript = 0;
+		return;
+error:
+		printf( "[not available]\n" );
+	}
+#endif
+}
+#endif

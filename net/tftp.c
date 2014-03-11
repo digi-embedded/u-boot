@@ -49,7 +49,6 @@
 static ulong TftpTimeoutMSecs = TIMEOUT;
 static int TftpTimeoutCountMax = TIMEOUT_COUNT;
 static ulong time_start;   /* Record time we started tftp */
-extern int NetSilent;		/* Whether to silence the net commands output */
 extern int DownloadingAutoScript;	/* To know if we are trying to download the autoscript */
 int TftpErrorCount;		/* The number of erroneous tries */
 
@@ -918,9 +917,7 @@ static void
 TftpTimeout(void)
 {
 	if (++TftpTimeoutCount > TftpTimeoutCountMax) {
-#if defined(CONFIG_CMD_AUTOSCRIPT) &&		\
-    defined(CONFIG_AUTOLOAD_BOOTSCRIPT) &&	\
-    defined(CONFIG_TFTP_RETRIES_ON_ERROR)
+#if defined(CONFIG_AUTO_BOOTSCRIPT) && defined(CONFIG_TFTP_RETRIES_ON_ERROR)
 		if (DownloadingAutoScript) {
 			if (++TftpErrorCount > CONFIG_TFTP_RETRIES_ON_ERROR) {
 				printf ("\nRetry count exceeded; aborting\n");

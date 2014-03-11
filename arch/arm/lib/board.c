@@ -717,6 +717,10 @@ void board_init_r(gd_t *id, ulong dest_addr)
 	}
 #endif
 
+#if defined(CONFIG_SOURCE) && defined(CONFIG_AUTO_BOOTSCRIPT)
+	run_auto_bootscript();
+#endif
+
 #ifdef CONFIG_BOARD_BEFORE_MLOOP_INIT
 	board_before_mloop_init();
 #endif

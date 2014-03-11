@@ -71,6 +71,17 @@
 # define CONFIG_TFTP_RETRIES_ON_ERROR	5
 #endif
 
+#define CONFIG_SILENT_CONSOLE
+#define CONFIG_SOURCE
+#define CONFIG_AUTO_BOOTSCRIPT
+#define CONFIG_BOOTSCRIPT		CONFIG_SYS_BOARD "-bootscript"
+
+#define CONFIG_DEFAULT_NETWORK_SETTINGS	\
+	"ethaddr=00:04:f3:ff:ff:fa\0" \
+	"ipaddr=192.168.42.30\0" \
+	"serverip=192.168.42.1\0" \
+	"netmask=255.255.0.0\0"
+
 /* ********** usb/mmc ********** */
 #define DEFAULT_KERNEL_FS		"fat"
 #define DEFAULT_KERNEL_DEVPART		"0:1"

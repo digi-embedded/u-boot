@@ -158,6 +158,7 @@
 	"bootcmd=run bootcmd_sata \0"
 #else
 #define CONFIG_EXTRA_ENV_SETTINGS \
+	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	RANDOM_UUIDS \
 	"script=boot.scr\0" \
 	"uimage=uImage-" CONFIG_SYS_BOARD "\0" \
@@ -166,6 +167,7 @@
 	"initrd_addr=0x19000000\0" \
 	"initrd_file=uramdisk.img\0" \
 	"boot_fdt=try\0" \
+	"bootscript=" CONFIG_BOOTSCRIPT "\0" \
 	"ip_dyn=yes\0" \
 	"console=" CONFIG_CONSOLE_DEV "\0" \
 	"fdt_high=0xffffffff\0"	  \
@@ -174,10 +176,6 @@
 	"mmcpart=1\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} ${smp} " \
 		"root=/dev/mmcblk0p2 rootwait rw\0" \
-	"loadbootscript=" \
-		"fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
-	"bootscript=echo Running bootscript from mmc ...; " \
-		"source\0" \
 	"loaduimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uimage}\0" \
 	"loadinitrd=fatload mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file}\0" \
 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
