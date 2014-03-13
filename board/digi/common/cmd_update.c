@@ -16,6 +16,9 @@ extern int board_update_chunk(otf_data_t *oftd);
 extern void register_tftp_otf_update_hook(int (*hook)(otf_data_t *oftd),
 					  disk_partition_t*);
 extern void unregister_tftp_otf_update_hook(void);
+extern void register_mmc_otf_update_hook(int (*hook)(otf_data_t *oftd),
+					  disk_partition_t*);
+extern void unregister_mmc_otf_update_hook(void);
 
 void register_otf_hook(int src, int (*hook)(otf_data_t *oftd),
 		       disk_partition_t *partition)
@@ -24,13 +27,13 @@ void register_otf_hook(int src, int (*hook)(otf_data_t *oftd),
 	case SRC_TFTP:
 		register_tftp_otf_update_hook(hook, partition);
 		break;
-	case SRC_NFS:
-		//TODO
-		break;
 	case SRC_MMC:
+		register_mmc_otf_update_hook(hook, partition);
+		break;
 	case SRC_USB:
 	case SRC_SATA:
-		//register_block_otf_update_hook(hook, partition);
+	case SRC_NFS:
+		//TODO
 		break;
 	}
 }
@@ -41,13 +44,13 @@ void unregister_otf_hook(int src)
 	case SRC_TFTP:
 		unregister_tftp_otf_update_hook();
 		break;
-	case SRC_NFS:
-		//TODO
-		break;
 	case SRC_MMC:
+		unregister_mmc_otf_update_hook();
+		break;
 	case SRC_USB:
 	case SRC_SATA:
-		//unregister_block_otf_update_hook();
+	case SRC_NFS:
+		//TODO
 		break;
 	}
 

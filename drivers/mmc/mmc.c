@@ -27,6 +27,7 @@
 #include <common.h>
 #include <command.h>
 #include <mmc.h>
+#include <otf_update.h>
 #include <part.h>
 #include <malloc.h>
 #include <linux/list.h>
@@ -39,6 +40,11 @@
 
 static struct list_head mmc_devices;
 static int cur_dev_num = -1;
+
+/* hook for on-the-fly update and register function */
+static int (*otf_update_hook)(otf_data_t *data) = NULL;
+/* Data struct for on-the-fly update */
+static otf_data_t otfd;
 
 int __weak board_mmc_getwp(struct mmc *mmc)
 {
@@ -409,6 +415,7 @@ static int mmc_read_blocks(struct mmc *mmc, void *dst, ulong start,
 static ulong mmc_bread(int dev_num, ulong start, lbaint_t blkcnt, void *dst)
 {
 	lbaint_t cur, blocks_todo = blkcnt;
+	int otf = 0;
 
 	if (blkcnt == 0)
 		return 0;
@@ -426,14 +433,47 @@ static ulong mmc_bread(int dev_num, ulong start, lbaint_t blkcnt, void *dst)
 	if (mmc_set_blocklen(mmc, mmc->read_bl_len))
 		return 0;
 
+	/* Check if we need to activate OTF update:
+	 * - a hook is registered AND
+	 * - we are reading to $loadaddr */
+	if (otf_update_hook && (unsigned long)dst == getenv_ulong("loadaddr",
+						16, CONFIG_SYS_LOAD_ADDR)) {
+		otf = 1;
+		/* Initialize offset to zero */
+		otfd.offset = 0;
+	}
+
 	do {
 		cur = (blocks_todo > mmc->b_max) ?  mmc->b_max : blocks_todo;
-		if(mmc_read_blocks(mmc, dst, start, cur) != cur)
-			return 0;
+		/* Read block to memory */
+		if (otf) {
+			debug("mmc_read_blocks to 0x%x from 0x%x, cur=0x%x\n",
+				(unsigned int)(dst + otfd.offset),
+				(unsigned int)start,
+				(unsigned int)cur);
+			if(mmc_read_blocks(mmc, dst + otfd.offset, start,
+					   cur) != cur)
+				return 0;
+			otfd.loadaddr = (unsigned int)dst;
+			otfd.buf = dst;		/* Buffer is already in dst */
+			otfd.len = cur * mmc->block_dev.blksz;
+			otfd.flags = 0;
+			if (otf_update_hook(&otfd))
+				printf("Error writing on-the-fly\n");
+		} else {
+			if(mmc_read_blocks(mmc, dst, start, cur) != cur)
+				return 0;
+			dst += cur * mmc->read_bl_len;
+		}
 		blocks_todo -= cur;
 		start += cur;
-		dst += cur * mmc->read_bl_len;
 	} while (blocks_todo > 0);
+
+	/* Flush remaining data to media, and reset internal variables */
+	if (otf_update_hook != NULL) {
+		otfd.flags |= OTF_FLAG_FLUSH;
+		otf_update_hook(&otfd);
+	}
 
 	return blkcnt;
 }
@@ -1369,4 +1409,17 @@ int mmc_initialize(bd_t *bis)
 	print_mmc_devices(',');
 
 	return 0;
+}
+
+void register_mmc_otf_update_hook(int (*hook)(otf_data_t *data),
+				  disk_partition_t *partition)
+{
+	otf_update_hook = hook;
+	otfd.part = partition;
+}
+
+void unregister_mmc_otf_update_hook(void)
+{
+	otf_update_hook = NULL;
+	otfd.part = NULL;
 }
