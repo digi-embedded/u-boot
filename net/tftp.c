@@ -225,7 +225,8 @@ store_block(int block, uchar *src, unsigned len)
 			otfd.buf = src;
 			otfd.len = len;
 			otfd.flags = 0;
-			otf_update_hook(&otfd);
+			if (otf_update_hook(&otfd))
+				printf("Error writing on-the-fly\n");
 		}
 		else {
 			(void)memcpy((void *)(load_addr + offset), src, len);
