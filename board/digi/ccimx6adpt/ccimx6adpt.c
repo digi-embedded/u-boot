@@ -18,7 +18,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-
 #include <common.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>
@@ -657,9 +656,9 @@ void ft_board_setup(void *blob, bd_t *bd)
 #endif /* CONFIG_OF_BOARD_SETUP */
 
 static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
-			unsigned int chunklen, unsigned int chunkno)
+			unsigned int chunklen)
 {
-	int n;
+	int sectors;
 
 	/* Check WP */
 	if (mmc_getwp(mmc) == 1) {
@@ -667,42 +666,31 @@ static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
 		return -1;
 	}
 
+	/* Sectors to write. If less bytes than one sector, make it one */
+	sectors = chunklen / mmc_dev->blksz;
+	if (sectors == 0)
+		sectors = 1;
+
 	/* Check if chunk fits */
-	if ((chunkno + 1) * chunklen / mmc_dev->blksz > otfd->part->size) {
+	if (sectors + dstblk > otfd->part->start + otfd->part->size) {
 		printf("Error: length of data exceeds partition size\n");
 		return -1;
 	}
 
-	/* Write CONFIG_OTF_CHUNK bytes of chunk to media */
+	/* Write chunklen bytes of chunk to media */
 	debug("writing chunk of %d bytes from 0x%x to block %d\n",
 		chunklen, otfd->loadaddr, dstblk);
-	n = mmc->block_dev.block_write(CONFIG_SYS_STORAGE_DEV, dstblk,
-			chunklen / mmc_dev->blksz,
-			(const void *)otfd->loadaddr);
-	if (n != chunklen / mmc_dev->blksz) {
-		printf("Error: not all data written to media\n");
-		return -1;
-	}
-
-	return 0;
+	return mmc->block_dev.block_write(CONFIG_SYS_STORAGE_DEV, dstblk,
+					  chunklen / mmc_dev->blksz,
+					  (const void *)otfd->loadaddr);
 }
 
 /* writes a chunk of data from RAM to main storage media (eMMC) */
 int board_update_chunk(otf_data_t *otfd)
 {
 	static unsigned int chunk_len = 0;
-	static unsigned int src_offset = 0;
 	static unsigned int dstblk = 0;
-	static int current_chunk = 0;
 	struct mmc *mmc = find_mmc_device(CONFIG_SYS_STORAGE_DEV);
-
-	/* Reset all static variables if offset == 0 (starting chunk) */
-	if (otfd->offset == 0) {
-		chunk_len = 0;
-		src_offset = 0;
-		dstblk = 0;
-		current_chunk = 0;
-	}
 
 	/* Initialize dstblk */
 	if (dstblk == 0)
@@ -712,42 +700,58 @@ int board_update_chunk(otf_data_t *otfd)
 	 * meaning we must write the remaining bytes in RAM to the storage
 	 * media. After this, we must quit the function. */
 	if (otfd->flags & OTF_FLAG_FLUSH) {
-		/* Write chunk */
-		printf("- Writing chunk -");
-		if (write_chunk(mmc, otfd, dstblk, chunk_len, current_chunk))
-			return -1;
+		/* Write chunk with remaining bytes */
+		if (chunk_len) {
+			printf("- Writing chunk\n");
+			if (write_chunk(mmc, otfd, dstblk, chunk_len) < 0) {
+				printf("Error: not all data written to media\n");
+				return -1;
+			}
+		}
+		/* Reset all static variables if offset == 0 (starting chunk) */
+		chunk_len = 0;
+		dstblk = 0;
 		return 0;
 	}
 
-	/* Buffer otfd in RAM until we reach the configured limit
-	 * to write it to media */
-	src_offset = otfd->offset % CONFIG_OTF_CHUNK;
-	if (otfd->offset / CONFIG_OTF_CHUNK == current_chunk) {
-		memcpy((void *)(otfd->loadaddr + src_offset), otfd->buf,
+	/* Buffer otfd in RAM (if not there already) until we reach the
+	 * configured limit to write it to media
+	 */
+	if (otfd->loadaddr != (unsigned int)otfd->buf) {
+		memcpy((void *)(otfd->loadaddr + otfd->offset), otfd->buf,
 			otfd->len);
-		chunk_len += otfd->len;
-	} else {
-		/* Write chunk */
-		printf("- Writing chunk -");
-		if (write_chunk(mmc, otfd, dstblk, chunk_len, current_chunk))
-			return -1;
-		/* increment destiny block */
-		dstblk += (CONFIG_OTF_CHUNK / mmc_dev->blksz);
-		/* copy excess of bytes from previous chunk to offset 0 */
-		memcpy((void *)otfd->loadaddr,
-		       (void *)(otfd->loadaddr + CONFIG_OTF_CHUNK),
-		       src_offset);
-		debug("Copying excess of %d bytes to offset 0\n", src_offset);
-		/* copy new chunk */
-		memcpy((void *)(otfd->loadaddr + src_offset), otfd->buf,
-			otfd->len);
-		debug("Copying new chunk to offset %d\n", src_offset);
-		/* reset chunk_len to excess of bytes from previous chunk +
-		 * bytes of this new chunk */
-		chunk_len = src_offset + otfd->len;
-		/* increment current_chunk */
-		current_chunk++;
 	}
+	chunk_len += otfd->len;
+	if (chunk_len >= CONFIG_OTF_CHUNK) {
+		unsigned int remaining;
+		unsigned int written;
+		/* We have CONFIG_OTF_CHUNK (or more) bytes in RAM.
+		 * Let's proceed to write as many as multiples of blksz
+		 * as possible.
+		 */
+		printf("- Writing chunk\n");
+		written = write_chunk(mmc, otfd, dstblk, chunk_len) *
+			  mmc_dev->blksz;
+		if (written < 0)
+			return -1;
+		remaining = chunk_len - written;
+		/* increment destiny block */
+		dstblk += (written / mmc_dev->blksz);
+		/* copy excess of bytes from previous chunk to offset 0 */
+		if (remaining) {
+			memcpy((void *)otfd->loadaddr,
+			       (void *)(otfd->loadaddr + written),
+			       remaining);
+			debug("Copying excess of %d bytes to offset 0\n",
+			      remaining);
+		}
+		/* reset chunk_len to excess of bytes from previous chunk
+		 * (or zero, if that's the case) */
+		chunk_len = remaining;
+	}
+	/* Set otfd offset pointer to offset in RAM where new bytes would
+	 * be written. This offset may be reused by caller */
+	otfd->offset = chunk_len;
 
 	return 0;
 }

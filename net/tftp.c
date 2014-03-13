@@ -66,8 +66,8 @@ int TftpRRQTimeoutCountMax = TIMEOUT_COUNT;
 
 /* hook for on-the-fly update and register function */
 static int (*otf_update_hook)(otf_data_t *data) = NULL;
-/* Data structu for on-the-fly update */
-otf_data_t otfd;
+/* Data struct for on-the-fly update */
+static otf_data_t otfd;
 
 #ifdef CONFIG_TFTP_UPDATE_ONTHEFLY
 char bTftpToFlashStatus = 0;			/* Signaling flags */
@@ -222,7 +222,6 @@ store_block(int block, uchar *src, unsigned len)
 	{
 		if (otf_update_hook != NULL) {
 			otfd.loadaddr = load_addr;
-			otfd.offset = offset;
 			otfd.buf = src;
 			otfd.len = len;
 			otfd.flags = 0;
