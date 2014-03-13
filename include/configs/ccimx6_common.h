@@ -236,20 +236,25 @@
 		"gpt write mmc ${mmcdev} ${parts_android};" \
 		"mmc rescan\0" \
 	"bootargs_android=\"androidboot.console=ttymxc0 " \
-		"androidboot.hardware=freescale " \
-		"video=mxcfb0:dev=hdmi,1920x1080M@60,bpp=32 " \
-		"video=mxcfb1:off video=mxcfb2:off fbmem=28M vmalloc=400M\"\0" \
+		"androidboot.hardware=freescale fbmem=28M vmalloc=400M\"\0" \
 	"bootargs_mmc_android=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_android} androidboot.mmcdev=${mmcdev} " \
+		"video=mxcfb0:${video0} " \
+		"video=mxcfb1:${video1} " \
+		"video=mxcfb2:${video2} " \
 		"${bootargs_once} ${std_bootargs}\0" \
 	"bootargs_tftp_android=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_android} root=/dev/nfs " \
+		"video=mxcfb0:${video0} " \
+		"video=mxcfb1:${video1} " \
+		"video=mxcfb2:${video2} " \
 		"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp " \
 		"${bootargs_once} ${std_bootargs}\0" \
-	"bootargs_linux=video=mxcfb0:dev=hdmi,1920x1080M@60,bpp=32 " \
-		"video=mxcfb1:off video=mxcfb2:off\0" \
 	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} root=${mmcroot} rootwait rw " \
+		"video=mxcfb0:${video0} " \
+		"video=mxcfb1:${video1} " \
+		"video=mxcfb2:${video2} " \
 		"${bootargs_once} ${std_bootargs}\0" \
 	"bootargs_tftp_linux=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} root=/dev/nfs " \
@@ -266,6 +271,9 @@
 	"partition_mmc_linux=mmc dev ${mmcdev} 0;" \
 		"gpt write mmc ${mmcdev} ${parts_linux};" \
 		"mmc rescan\0" \
+	"video0=dev=ldb,LDB-HSD101PFW2,bpp=32\0" \
+	"video1=dev=hdmi,1920x1080M@60,bpp=32\0" \
+	"video2=off\0" \
 	""	/* end line */
 
 #define CONFIG_BOOTCOMMAND \
