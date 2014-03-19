@@ -137,15 +137,36 @@ int get_fw_filename(int argc, char * const argv[], int src, char *filename)
 	return -1;
 }
 
-int get_default_filename(char *partname, char *filename)
+int get_default_filename(char *partname, char *filename, int cmd)
 {
-	if (!strcmp(partname, "uboot")) {
-		strcpy(filename, "$uboot_file");
-		return 0;
-	} else if (!strcmp(partname, "linux") ||
-		   !strcmp(partname, "android")) {
-		strcpy(filename, "$uimage");
-		return 0;
+	switch(cmd) {
+	case CMD_DBOOT:
+		if (!strcmp(partname, "linux") ||
+		    !strcmp(partname, "android")) {
+			strcpy(filename, "$uimage");
+			return 0;
+		}
+		break;
+
+	case CMD_UPDATE:
+		if (!strcmp(partname, "uboot")) {
+			strcpy(filename, "$uboot_file");
+			return 0;
+		} else {
+			/* Read the default filename from a variable called
+			 * after the partition name: <partname>_file
+			 */
+			char varname[100];
+			char *varvalue;
+
+			sprintf(varname, "%s_file", partname);
+			varvalue = getenv(varname);
+			if (varvalue != NULL) {
+				strcpy(filename, varvalue);
+				return 0;
+			}
+		}
+		break;
 	}
 
 	return -1;

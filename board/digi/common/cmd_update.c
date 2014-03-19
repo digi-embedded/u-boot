@@ -179,7 +179,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	ret = get_fw_filename(argc, argv, src, filename);
 	if (ret) {
 		/* Filename was not provided. Look for default one */
-		ret = get_default_filename(argv[1], filename);
+		ret = get_default_filename(argv[1], filename, CMD_UPDATE);
 		if (ret) {
 			printf("Error: need a filename\n");
 			return CMD_RET_FAILURE;
@@ -257,12 +257,14 @@ U_BOOT_CMD(
 	"   - [extra-args]: extra arguments depending on 'source'\n"
 	"\n"
 	"      source=tftp|nfs -> [filename]\n"
-	"       - filename: file to transfer (required if using a partition name)\n"
+	"       - filename: file to transfer (if not provided, filename will\n"
+	"                   will be taken from variable '<partition>_file')\n"
 	"\n"
 	"      source=usb|mmc|sata -> [device:part] [filesystem] [filename]\n"
 	"       - device:part: number of device and partition\n"
 	"       - filesystem: fat|ext2|ext3\n"
-	"       - filename: file to transfer\n"
+	"       - filename: file to transfer (if not provided, filename will\n"
+	"                   will be taken from variable '<partition>_file')\n"
 	"\n"
 	"      source=ram -> <image_address> <image_size>\n"
 	"       - image_address: address of image in RAM\n"

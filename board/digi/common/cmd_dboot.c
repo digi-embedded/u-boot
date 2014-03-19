@@ -104,7 +104,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	ret = get_fw_filename(argc, argv, src, filename);
 	if (ret) {
 		/* Filename was not provided. Look for default one */
-		ret = get_default_filename(argv[1], filename);
+		ret = get_default_filename(argv[1], filename, CMD_DBOOT);
 		if (ret) {
 			printf("Error: need a filename\n");
 			return CMD_RET_FAILURE;
