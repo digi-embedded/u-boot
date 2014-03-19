@@ -527,14 +527,6 @@ int board_late_init(void)
 			break;
 		}
 	}
-	/* If undefined, set 'mmcroot' depending on 'mmcdev' */
-	if (NULL == getenv("mmcroot")) {
-		char mmcroot[100];
-
-		sprintf(mmcroot, "/dev/mmcblk%sp%d", getenv("mmcdev"),
-			CONFIG_MMCROOTPART);
-		setenv("mmcroot", mmcroot);
-	}
 #endif
 
 	return 0;

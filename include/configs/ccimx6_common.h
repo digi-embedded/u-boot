@@ -161,6 +161,7 @@
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	RANDOM_UUIDS \
 	"script=boot.scr\0" \
+	"loadscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script}\0" \
 	"uimage=uImage-" CONFIG_SYS_BOARD "\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"fdt_addr=0x18000000\0" \
@@ -250,6 +251,7 @@
 		"video=mxcfb2:${video2} " \
 		"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp " \
 		"${bootargs_once} ${std_bootargs}\0" \
+	"mmcroot=${part3_uuid}\0" \
 	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} root=${mmcroot} rootwait rw " \
 		"video=mxcfb0:${video0} " \
@@ -277,7 +279,11 @@
 	""	/* end line */
 
 #define CONFIG_BOOTCOMMAND \
-	""
+	"if run loadscript; then " \
+		"source ${loadaddr};" \
+	"else " \
+		"dboot android mmc ${mmcdev}:${mmcpart}; " \
+	"fi;"
 #endif
 #define CONFIG_ARP_TIMEOUT     200UL
 
