@@ -226,9 +226,9 @@
 	"uboot_file=u-boot-" CONFIG_SYS_BOARD ".imx\0" \
 	"parts_android=\"uuid_disk=${uuid_disk};" \
 		"start=2MiB," \
-		"name=kernels1,size=64MiB,uuid=${part1_uuid};" \
-		"name=kernels2,size=64MiB,uuid=${part2_uuid};" \
-		"name=system1,size=512MiB,uuid=${part3_uuid};" \
+		"name=android,size=64MiB,uuid=${part1_uuid};" \
+		"name=android2,size=64MiB,uuid=${part2_uuid};" \
+		"name=system,size=512MiB,uuid=${part3_uuid};" \
 		"name=system2,size=512MiB,uuid=${part4_uuid};" \
 		"name=cache,size=32MiB,uuid=${part5_uuid};" \
 		"name=data,size=-,uuid=${part6_uuid};" \
@@ -264,11 +264,11 @@
 		"${bootargs_once} ${std_bootargs}\0" \
 	"parts_linux=\"uuid_disk=${uuid_disk};" \
 		"start=2MiB," \
-		"name=kernels1,size=64MiB,uuid=${part1_uuid};" \
-		"name=kernels2,size=64MiB,uuid=${part2_uuid};" \
-		"name=system1,size=512MiB,uuid=${part3_uuid};" \
-		"name=system2,size=512MiB,uuid=${part4_uuid};" \
-		"name=data,size=-,uuid=${part5_uuid};" \
+		"name=linux,size=64MiB,uuid=${part1_uuid};" \
+		"name=linux2,size=64MiB,uuid=${part2_uuid};" \
+		"name=rootfs,size=512MiB,uuid=${part3_uuid};" \
+		"name=rootfs2,size=512MiB,uuid=${part4_uuid};" \
+		"name=userfs,size=-,uuid=${part5_uuid};" \
 		"\"\0" \
 	"partition_mmc_linux=mmc dev ${mmcdev} 0;" \
 		"gpt write mmc ${mmcdev} ${parts_linux};" \
