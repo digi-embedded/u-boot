@@ -240,7 +240,7 @@ int load_firmware(int src, char *filename, char *devpartno,
 		sprintf(cmd, "tftpboot %s %s", loadaddr, filename);
 		break;
 	case SRC_NFS:
-		sprintf(cmd, "nfs %s $nfsroot/%s", loadaddr, filename);
+		sprintf(cmd, "nfs %s $rootpath/%s", loadaddr, filename);
 		break;
 	case SRC_MMC:
 	case SRC_USB:

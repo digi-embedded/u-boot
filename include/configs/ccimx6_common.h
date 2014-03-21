@@ -211,7 +211,7 @@
 		"fi;\0" \
 	"netargs=setenv bootargs console=${console},${baudrate} " \
 		"root=/dev/nfs " \
-		"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp \0" \
+		"ip=dhcp nfsroot=${serverip}:${rootpath},v3,tcp \0" \
 	"netboot=echo Booting from net ...; " \
 		"run netargs; " \
 		"if test ${ip_dyn} = yes; then " \
@@ -261,7 +261,7 @@
 		"video=mxcfb0:${video0} " \
 		"video=mxcfb1:${video1} " \
 		"video=mxcfb2:${video2} " \
-		"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp " \
+		"ip=dhcp nfsroot=${serverip}:${rootpath},v3,tcp " \
 		"${bootargs_once} ${std_bootargs}\0" \
 	"mmcroot=${part3_uuid}\0" \
 	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
@@ -272,7 +272,7 @@
 		"${bootargs_once} ${std_bootargs}\0" \
 	"bootargs_tftp_linux=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} root=/dev/nfs " \
-		"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp " \
+		"ip=dhcp nfsroot=${serverip}:${rootpath},v3,tcp " \
 		"${bootargs_once} ${std_bootargs}\0" \
 	"parts_linux=\"uuid_disk=${uuid_disk};" \
 		"start=2MiB," \

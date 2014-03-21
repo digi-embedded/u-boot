@@ -82,6 +82,7 @@
 	"serverip=192.168.42.1\0" \
 	"netmask=255.255.0.0\0"
 
+#define CONFIG_ROOTPATH		"/exports/nfsroot-" CONFIG_SYS_BOARD
 /* ********** usb/mmc ********** */
 #define DEFAULT_KERNEL_FS		"fat"
 #define DEFAULT_KERNEL_DEVPART		"0:1"
