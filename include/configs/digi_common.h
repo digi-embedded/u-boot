@@ -125,6 +125,24 @@
 /* device tree */
 #define CONFIG_FDT_MAXSIZE    (128 * 1024)
 
+#define DIGICMD_SRC_NET_ARGS	\
+	"      source=" CONFIG_SUPPORTED_SOURCES_NET " -> [filename]\n" \
+	"       - filename: file to transfer (if not provided, filename will\n" \
+	"                   will be taken from variable '<partition>_file')\n" \
+	"\n"
+#define DIGICMD_SRC_BLOCK_ARGS	\
+	"      source=" CONFIG_SUPPORTED_SOURCES_BLOCK " -> [device:part] [filesystem] [filename]\n" \
+	"       - device:part: number of device and partition\n" \
+	"       - filesystem: fat|ext2|ext3\n" \
+	"       - filename: file to transfer (if not provided, filename will\n" \
+	"                   will be taken from variable '<partition>_file')\n" \
+	"\n"
+#define DIGICMD_SRC_RAM_ARGS	\
+	"      source=ram -> <image_address> <image_size>\n" \
+	"       - image_address: address of image in RAM\n" \
+	"       - image_size: size of image in RAM\n" \
+	"\n"
+
 #ifndef __ASSEMBLY__		/* put C only stuff in this section */
 /* macros */
 #define VIDEO_MENU_OPTION(text, hook, param)	\

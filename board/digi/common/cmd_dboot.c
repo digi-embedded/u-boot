@@ -89,8 +89,15 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	/* Get source of firmware file */
 	if (argc > 2) {
 		src = get_source(argv[2]);
-		if (src == SRC_UNDEFINED)
+		if (src == SRC_UNSUPPORTED) {
+			printf("'%s' is not supported as source\n",
+				argv[2]);
 			return CMD_RET_USAGE;
+		}
+		else if (src == SRC_UNDEFINED) {
+			return CMD_RET_USAGE;
+		}
+
 		if (src == SRC_USB || src == SRC_MMC || src == SRC_SATA) {
 			/* Get device:partition and file system */
 			if (argc > 3)
@@ -163,16 +170,8 @@ U_BOOT_CMD(
 	" Arguments:\n"
 	"   - os:           a partition name or one of the reserved names: \n"
 	"                   linux|android\n"
-	"   - [source]:     tftp (default)|flash|nfs|usb|mmc|sata|ram\n"
+	"   - [source]:     " CONFIG_SUPPORTED_SOURCES_LIST "\n"
 	"   - [extra-args]: extra arguments depending on 'source'\n"
 	"\n"
-	"      source=tftp|nfs -> [filename]\n"
-	"       - filename: kernel file to transfer\n"
-	"\n"
-	"      source=usb|mmc|sata -> [device:part] [filesystem] [filename]\n"
-	"       - device:part: number of device and partition "
-				"(default is $mmcdev:$mmcpart)\n"
-	"       - filesystem: fat (default)|ext2|ext3\n"
-	"       - filename: kernel file to transfer\n"
-	"\n"
+	CONFIG_SUPPORTED_SOURCES_ARGS
 );

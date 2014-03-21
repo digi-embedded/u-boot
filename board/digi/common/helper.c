@@ -69,8 +69,12 @@ int get_source(char *src)
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(src_strings); i++) {
-		if (!strncmp(src_strings[i], src, strlen(src)))
-			return i;
+		if (!strncmp(src_strings[i], src, strlen(src))) {
+			if (1 << i & CONFIG_SUPPORTED_SOURCES)
+				return i;
+			else
+				return SRC_UNSUPPORTED;
+		}
 	}
 
 	return SRC_UNDEFINED;
