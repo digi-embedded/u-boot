@@ -233,6 +233,8 @@
 		"name=cache,size=32MiB,uuid=${part5_uuid};" \
 		"name=data,size=-,uuid=${part6_uuid};" \
 		"\"\0" \
+	"android_file=boot.img\0" \
+	"system_file=system.img\0" \
 	"partition_mmc_android=mmc dev ${mmcdev} 0;" \
 		"gpt write mmc ${mmcdev} ${parts_android};" \
 		"mmc rescan\0" \
@@ -270,6 +272,8 @@
 		"name=rootfs2,size=512MiB,uuid=${part4_uuid};" \
 		"name=userfs,size=-,uuid=${part5_uuid};" \
 		"\"\0" \
+	"linux_file=dey-image-graphical-ccimx6adpt.boot.vfat\0" \
+	"rootfs_file=dey-image-graphical-ccimx6adpt.rootfs.ext4\0" \
 	"partition_mmc_linux=mmc dev ${mmcdev} 0;" \
 		"gpt write mmc ${mmcdev} ${parts_linux};" \
 		"mmc rescan\0" \
