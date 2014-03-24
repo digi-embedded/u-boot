@@ -263,6 +263,7 @@
 		"video=mxcfb2:${video2} " \
 		"ip=dhcp nfsroot=${serverip}:${rootpath},v3,tcp " \
 		"${bootargs_once} ${std_bootargs}\0" \
+	"bootargs_nfs_android=run bootargs_tftp_android\0" \
 	"mmcroot=${part3_uuid}\0" \
 	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} root=${mmcroot} rootwait rw " \
@@ -274,6 +275,7 @@
 		"${bootargs_linux} root=/dev/nfs " \
 		"ip=dhcp nfsroot=${serverip}:${rootpath},v3,tcp " \
 		"${bootargs_once} ${std_bootargs}\0" \
+	"bootargs_nfs_linux=run bootargs_tftp_linux\0" \
 	"parts_linux=\"uuid_disk=${uuid_disk};" \
 		"start=2MiB," \
 		"name=linux,size=64MiB,uuid=${part1_uuid};" \
