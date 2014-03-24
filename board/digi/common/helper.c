@@ -281,6 +281,7 @@ void run_auto_bootscript(void)
         int saved_rrqtimeout_count = TftpRRQTimeoutCountMax;
 	ulong saved_startagain_timeout = NetStartAgainTimeout;
 	unsigned long saved_flags = gd->flags;
+	char *retrycnt = getenv("netretry");
 
 	bootscript = getenv("bootscript");
 	if (bootscript) {
@@ -292,6 +293,8 @@ void run_auto_bootscript(void)
 		TftpRRQTimeoutMSecs = AUTOSCRIPT_TFTP_MSEC;
 		TftpRRQTimeoutCountMax = AUTOSCRIPT_TFTP_CNT;
 		NetStartAgainTimeout = AUTOSCRIPT_START_AGAIN;
+		/* set retrycnt */
+		setenv("netretry", "no");
 
 		/* Silence net commands during the bootscript download */
 		DownloadingAutoScript = 1;
@@ -303,6 +306,11 @@ void run_auto_bootscript(void)
 		TftpRRQTimeoutMSecs = saved_rrqtimeout_msecs;
 		TftpRRQTimeoutCountMax = saved_rrqtimeout_count;
 		NetStartAgainTimeout = saved_startagain_timeout;
+		/* restore retrycnt */
+		if (retrycnt)
+			setenv("netretry", retrycnt);
+		else
+			setenv("netretry", "");
 		/* Restore flags */
 		gd->flags = saved_flags;
 
