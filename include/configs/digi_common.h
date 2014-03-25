@@ -136,7 +136,7 @@
 #define DIGICMD_SRC_BLOCK_ARGS	\
 	"      source=" CONFIG_SUPPORTED_SOURCES_BLOCK " -> [device:part] [filesystem] [filename]\n" \
 	"       - device:part: number of device and partition\n" \
-	"       - filesystem: fat|ext2|ext3\n" \
+	"       - filesystem: fat|ext2\n" \
 	"       - filename: file to transfer (if not provided, filename will\n" \
 	"                   will be taken from variable '<partition>_file')\n" \
 	"\n"
