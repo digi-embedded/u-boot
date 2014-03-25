@@ -605,7 +605,7 @@ int checkboard(void)
 {
 	const char *bootdevice;
 
-	puts("Board:   ConnectCore for i.MX6 on the Adapter board\n");
+	printf("Board:   %s\n", CONFIG_BOARD_DESCRIPTION);
 #ifdef CONFIG_PLATFORM_HAS_HWID
 	if (!array_to_hwid(hwid))
 		printf("Variant: 0x%02x - %s\n", my_hwid.variant,
