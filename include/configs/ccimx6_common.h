@@ -264,7 +264,7 @@
 		"ip=dhcp nfsroot=${serverip}:${rootpath},v3,tcp " \
 		"${bootargs_once} ${std_bootargs}\0" \
 	"bootargs_nfs_android=run bootargs_tftp_android\0" \
-	"mmcroot=${part3_uuid}\0" \
+	"mmcroot=PARTUUID=1c606ef5-f1ac-43b9-9bb5-d5c578580b6b\0" \
 	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} root=${mmcroot} rootwait rw " \
 		"video=mxcfb0:${video0} " \
