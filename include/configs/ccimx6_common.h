@@ -280,8 +280,8 @@
 		"start=2MiB," \
 		"name=linux,size=64MiB,uuid=${part1_uuid};" \
 		"name=linux2,size=64MiB,uuid=${part2_uuid};" \
-		"name=rootfs,size=512MiB,uuid=${part3_uuid};" \
-		"name=rootfs2,size=512MiB,uuid=${part4_uuid};" \
+		"name=rootfs,size=1GiB,uuid=${part3_uuid};" \
+		"name=rootfs2,size=1GiB,uuid=${part4_uuid};" \
 		"name=userfs,size=-,uuid=${part5_uuid};" \
 		"\"\0" \
 	"linux_file=dey-image-graphical-ccimx6adpt.boot.vfat\0" \
