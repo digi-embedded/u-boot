@@ -68,6 +68,7 @@
 #define CONFIG_MII
 #define IMX_FEC_BASE			ENET_BASE_ADDR
 #define CONFIG_ETHPRIME			"FEC"
+#define CONFIG_NO_MAC_FROM_OTP
 
 #define CONFIG_PHYLIB
 

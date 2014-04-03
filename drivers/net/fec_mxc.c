@@ -372,7 +372,11 @@ static void fec_rbd_clean(int last, struct fec_bd *pRbd)
 static int fec_get_hwaddr(struct eth_device *dev, int dev_id,
 						unsigned char *mac)
 {
+#ifdef CONFIG_NO_MAC_FROM_OTP
+	memset(mac, 0, 6);
+#else
 	imx_get_mac_from_fuse(dev_id, mac);
+#endif
 	return !is_valid_ether_addr(mac);
 }
 
