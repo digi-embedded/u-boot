@@ -2,6 +2,10 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
+v2013.04 - DUB-2.1.1.x, released on 2014/xx/xx
+	- Disabled on-the-fly update from MMC which was wrong.
+
+
 v2013.04 - DUB-2.1.0.3, released on 2014/03/27
 	- Initial release for ccimx6adpt, including:
 		- 'dboot' command
