@@ -2,9 +2,8 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
-v2013.04 - DUB-2.1.1.1, released on 2014/04/09
+v2013.04 - DUB-2.1.1.2, released on 2014/04/09
 	- Disabled on-the-fly update from MMC which was wrong.
-          On-the-fly update is only supported from TFTP.
 	- Disable L2 cache which was causing occasional hangs.
 	- Select between Gigabit and 10/100 ethernet using
 	  'ENET' env variable.
