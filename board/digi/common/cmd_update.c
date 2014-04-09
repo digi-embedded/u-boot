@@ -196,7 +196,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	/* Activate on-the-fly update if needed */
-	if (getenv_yesno("otf-update")) {
+	if (getenv_yesno("otf-update") == 1) {
 		if (!strcmp((char *)info.name, "uboot")) {
 			/* Do not activate on-the-fly update for U-Boot */
 			printf("On-the-fly mechanism disabled for U-Boot "
