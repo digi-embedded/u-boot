@@ -252,16 +252,18 @@
 		"if mmc dev ${mmcdev} 0;then;else mmc dev ${mmcdev};fi;" \
 		"gpt write mmc ${mmcdev} ${parts_android};" \
 		"mmc rescan\0" \
-	"bootargs_android=\"androidboot.console=ttymxc0 " \
-		"androidboot.hardware=freescale fbmem=28M vmalloc=400M\"\0" \
+	"bootargs_android=\"androidboot.hardware=freescale " \
+		"fbmem=28M vmalloc=400M\"\0" \
 	"bootargs_mmc_android=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_android} androidboot.mmcdev=${mmcdev} " \
+		"androidboot.console=${console} " \
 		"video=mxcfb0:${video0} " \
 		"video=mxcfb1:${video1} " \
 		"video=mxcfb2:${video2} " \
 		"${bootargs_once} ${std_bootargs}\0" \
 	"bootargs_tftp_android=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_android} root=/dev/nfs " \
+		"androidboot.console=${console} " \
 		"video=mxcfb0:${video0} " \
 		"video=mxcfb1:${video1} " \
 		"video=mxcfb2:${video2} " \
