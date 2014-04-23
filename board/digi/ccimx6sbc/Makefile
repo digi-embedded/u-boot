@@ -22,7 +22,7 @@ include $(TOPDIR)/board/$(VENDOR)/config.mk
 
 LIB    = $(obj)lib$(BOARD).o
 
-COBJS  := ccimx6sbc.o
+COBJS  := ccimx6sbc.o ../ccimx6/ccimx6.o
 
 SRCS   := $(COBJS:.o=.c)
 OBJS   := $(addprefix $(obj),$(COBJS))
