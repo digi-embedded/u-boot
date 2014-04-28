@@ -43,7 +43,5 @@
 /* Ethernet PHY */
 #define CONFIG_PHY_MICREL
 #define CONFIG_ENET_PHYADDR_MICREL	3
-#define CONFIG_PHY_SMSC
-#define CONFIG_ENET_PHYADDR_SMSC	0
 
 #endif                         /* __CCIMX6SBC_CONFIG_H */
