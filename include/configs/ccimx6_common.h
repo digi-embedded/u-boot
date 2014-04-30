@@ -175,7 +175,7 @@
 	RANDOM_UUIDS \
 	"script=boot.scr\0" \
 	"loadscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script}\0" \
-	"uimage=uImage-" CONFIG_SYS_BOARD "\0" \
+	"uimage=uImage-" CONFIG_SYS_BOARD ".bin\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"fdt_addr=0x18000000\0" \
 	"initrd_addr=0x19000000\0" \
@@ -291,7 +291,7 @@
 		"name=userfs,size=-,uuid=${part5_uuid};" \
 		"\"\0" \
 	"linux_file=dey-image-graphical-" CONFIG_SYS_BOARD ".boot.vfat\0" \
-	"rootfs_file=dey-image-graphical-" CONFIG_SYS_BOARD ".rootfs.ext4\0" \
+	"rootfs_file=dey-image-graphical-" CONFIG_SYS_BOARD ".ext4\0" \
 	"partition_mmc_linux=mmc rescan;" \
 		"if mmc dev ${mmcdev} 0;then;else mmc dev ${mmcdev};fi;" \
 		"gpt write mmc ${mmcdev} ${parts_linux};" \
