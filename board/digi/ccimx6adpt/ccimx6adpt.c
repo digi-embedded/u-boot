@@ -23,11 +23,13 @@
 #include <asm/arch/mx6-pins.h>
 #include <asm/gpio.h>
 #include <netdev.h>
+#if CONFIG_I2C_MXC
+#include <i2c.h>
+#include <asm/imx-common/mxc_i2c.h>
+#endif
+#include "../ccimx6/ccimx6.h"
 
 DECLARE_GLOBAL_DATA_PTR;
-
-extern void setup_iomux_enet(void);
-extern int ccimx6_late_init(void);
 
 static int phy_addr;
 
@@ -51,6 +53,52 @@ iomux_v3_cfg_t const ksz9031_pads[] = {
 	/* Micrel KSZ9031 PHY reset */
 	MX6_PAD_ENET_CRS_DV__GPIO_1_25		| MUX_PAD_CTRL(NO_PAD_CTRL),
 };
+
+#ifdef CONFIG_I2C_MXC
+int setup_pmic_voltages(void)
+{
+	unsigned char dev_id, var_id, conf_id, cust_id;
+#ifdef CONFIG_I2C_MULTI_BUS
+	int ret;
+
+	ret = i2c_set_bus_num(0);
+	if (ret)
+                return -1;
+#endif
+
+	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
+
+	if (!i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
+		/* Read and print PMIC identification */
+		if (pmic_read_reg(DA9063_DEVICE_ID_ADDR, &dev_id) ||
+		    pmic_read_reg(DA9063_VARIANT_ID_ADDR, &var_id) ||
+		    pmic_read_reg(DA9063_CUSTOMER_ID_ADDR, &cust_id) ||
+		    pmic_read_reg(DA9063_CONFIG_ID_ADDR, &conf_id)) {
+			printf("Could not read PMIC ID registers\n");
+			return -1;
+		}
+		printf("PMIC:  DA9063, Device: 0x%02x, Variant: 0x%02x, "
+			"Customer: 0x%02x, Config: 0x%02x\n", dev_id, var_id,
+			cust_id, conf_id);
+
+#if defined(CONFIG_FEC_MXC)
+		/* Both NVCC_ENET and NVCC_RGMII come from LDO4 (2.5V) */
+		/* Config LDO4 voltages A and B at 2.5V, then enable VLDO4 */
+		if (pmic_write_reg(DA9063_VLDO4_A_ADDR, 0x50) ||
+		    pmic_write_reg(DA9063_VLDO4_B_ADDR, 0x50) ||
+		    pmic_write_bitfield(DA9063_VLDO4_CONT_ADDR, 0x1, 0, 0x1))
+			printf("Could not configure VLDO4\n");
+#endif
+		/* PWR_EN on the ccimx6adpt enables the +5V suppy and comes
+		 * from GP_FB_2. Configure this as high level active by setting
+		 * pin 6.
+		 */
+		if (pmic_write_bitfield(DA9063_CONFIG_D_ADDR, 0x1, 6, 0x0))
+			printf("Could not enable PWR_EN\n");
+	}
+	return 0;
+}
+#endif /* CONFIG_I2C_MXC */
 
 static void setup_board_enet(void)
 {
