@@ -279,8 +279,7 @@ static int setup_pmic_voltages(void)
 	}
 	return 0;
 }
-#endif
-
+#endif /* CONFIG_I2C_MXC */
 
 #ifdef CONFIG_FSL_ESDHC
 
@@ -406,7 +405,7 @@ int board_mmc_init(bd_t *bis)
 
 	return 0;
 }
-#endif
+#endif /* CONFIG_FSL_ESDHC */
 
 #ifdef CONFIG_CMD_SATA
 int setup_sata(void)
@@ -431,7 +430,7 @@ int setup_sata(void)
 
 	return 0;
 }
-#endif
+#endif /* CONFIG_CMD_SATA */
 
 #ifdef CONFIG_CMD_BMODE
 static const struct boot_mode board_boot_modes[] = {
