@@ -555,10 +555,12 @@ static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
 		return -1;
 	}
 
-	/* Sectors to write. If less bytes than one sector, make it one */
+	/* We can only write whole sectors (multiples of mmc_dev->blksz bytes)
+	 * so we need to check if the chunk is a whole multiple or else add 1
+	 */
 	sectors = chunklen / mmc_dev->blksz;
-	if (sectors == 0)
-		sectors = 1;
+	if (chunklen % mmc_dev->blksz)
+		sectors++;
 
 	/* Check if chunk fits */
 	if (sectors + dstblk > otfd->part->start + otfd->part->size) {
@@ -567,10 +569,11 @@ static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
 	}
 
 	/* Write chunklen bytes of chunk to media */
-	debug("writing chunk of %d bytes from 0x%x to block %d\n",
-		chunklen, otfd->loadaddr, dstblk);
+	debug("writing chunk of 0x%x bytes (0x%x sectors) "
+		"from 0x%x to block 0x%x\n",
+		chunklen, sectors, otfd->loadaddr, dstblk);
 	return mmc->block_dev.block_write(CONFIG_SYS_STORAGE_DEV, dstblk,
-					  chunklen / mmc_dev->blksz,
+					  sectors,
 					  (const void *)otfd->loadaddr);
 }
 
@@ -591,7 +594,7 @@ int board_update_chunk(otf_data_t *otfd)
 	if (otfd->flags & OTF_FLAG_FLUSH) {
 		/* Write chunk with remaining bytes */
 		if (chunk_len) {
-			printf("- Writing chunk\n");
+			printf("- Writing final chunk\n");
 			if (write_chunk(mmc, otfd, dstblk, chunk_len) < 0) {
 				printf("Error: not all data written to media\n");
 				return -1;
@@ -618,12 +621,15 @@ int board_update_chunk(otf_data_t *otfd)
 		 * Let's proceed to write as many as multiples of blksz
 		 * as possible.
 		 */
+		remaining = chunk_len % mmc_dev->blksz;
+		chunk_len -= remaining;	/* chunk_len is now multiple of blksz */
+
 		printf("- Writing chunk\n");
 		written = write_chunk(mmc, otfd, dstblk, chunk_len) *
 			  mmc_dev->blksz;
-		if (written < 0)
+		if (written != chunk_len)
 			return -1;
-		remaining = chunk_len - written;
+
 		/* increment destiny block */
 		dstblk += (written / mmc_dev->blksz);
 		/* copy excess of bytes from previous chunk to offset 0 */
