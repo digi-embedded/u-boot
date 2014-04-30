@@ -260,6 +260,7 @@
 		"video=mxcfb0:${video0} " \
 		"video=mxcfb1:${video1} " \
 		"video=mxcfb2:${video2} " \
+		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
 		"${bootargs_once} ${std_bootargs}\0" \
 	"bootargs_tftp_android=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_android} root=/dev/nfs " \
@@ -268,6 +269,7 @@
 		"video=mxcfb1:${video1} " \
 		"video=mxcfb2:${video2} " \
 		"ip=dhcp nfsroot=${serverip}:${rootpath},v3,tcp " \
+		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
 		"${bootargs_once} ${std_bootargs}\0" \
 	"bootargs_nfs_android=run bootargs_tftp_android\0" \
 	"mmcroot=PARTUUID=1c606ef5-f1ac-43b9-9bb5-d5c578580b6b\0" \
