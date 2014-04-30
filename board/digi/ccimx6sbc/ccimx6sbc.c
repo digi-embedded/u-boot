@@ -82,11 +82,12 @@ int setup_pmic_voltages(void)
 		    pmic_write_bitfield(DA9063_VLDO4_CONT_ADDR, 0x1, 0, 0x1))
 			printf("Could not configure VLDO4\n");
 #endif
-		/* PWR_EN on the ccimx6 enables the +5V suppy and comes
-		 * from GP_FB_2. Configure this as high level active by setting
-		 * pin 6.
+		/* PWR_EN on the ccimx6sbc enables the +5V suppy and comes
+		 * from PMIC_GPIO7. Set this GPIO high to enable +5V supply.
 		 */
-		if (pmic_write_bitfield(DA9063_CONFIG_D_ADDR, 0x1, 6, 0x0))
+		if (pmic_write_bitfield(DA9063_GPIO6_7_ADDR, 0xf, 4, 0x3))
+			printf("Could not configure GPIO7\n");
+		if (pmic_write_bitfield(DA9063_GPIO_MODE0_7_ADDR, 0x1, 7, 0x1))
 			printf("Could not enable PWR_EN\n");
 	}
 	return 0;
