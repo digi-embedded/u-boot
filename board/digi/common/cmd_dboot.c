@@ -164,7 +164,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 
 U_BOOT_CMD(
 	dboot,	6,	0,	do_dboot,
-	"Digi modules boot commands",
+	"Digi modules boot command",
 	"<os> [source] [extra-args...]\n"
 	" Description: Boots <os> via <source>\n"
 	" Arguments:\n"

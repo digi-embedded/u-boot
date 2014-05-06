@@ -257,11 +257,11 @@ _ret:
 
 U_BOOT_CMD(
 	update,	6,	0,	do_update,
-	"Digi modules update commands",
+	"Digi modules update command",
 	"<partition>  [source] [extra-args...]\n"
-	" Description: updates flash <partition> via <source>\n"
+	" Description: updates (raw writes) eMMC <partition> via <source>\n"
 	" Arguments:\n"
-	"   - partition:    a partition name or one of the reserved names: \n"
+	"   - partition:    a GUID partition name or one of the reserved names: \n"
 	"                   uboot\n"
 	"   - [source]:     " CONFIG_SUPPORTED_SOURCES_LIST "\n"
 	"   - [extra-args]: extra arguments depending on 'source'\n"
