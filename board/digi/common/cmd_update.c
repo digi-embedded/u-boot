@@ -150,7 +150,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	/* Get data of partition to be updated */
 	ret = get_target_partition(argv[1], &info);
 	if (ret) {
-		printf("Partition '%s' not found\n", argv[1]);
+		printf("Error: partition '%s' not found\n", argv[1]);
 		return CMD_RET_FAILURE;
 	}
 
@@ -167,11 +167,12 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	if (argc > 2) {
 		src = get_source(argv[2]);
 		if (src == SRC_UNSUPPORTED) {
-			printf("'%s' is not supported as source\n",
+			printf("Error: '%s' is not supported as source\n",
 				argv[2]);
 			return CMD_RET_USAGE;
 		}
 		else if (src == SRC_UNDEFINED) {
+			printf("Error: undefined source\n");
 			return CMD_RET_USAGE;
 		}
 
@@ -191,7 +192,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		ret = get_default_filename(argv[1], filename, CMD_UPDATE);
 		if (ret) {
 			printf("Error: need a filename\n");
-			return CMD_RET_FAILURE;
+			return CMD_RET_USAGE;
 		}
 	}
 
@@ -212,8 +213,8 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		sprintf(cmd, "mmc dev %d", CONFIG_SYS_STORAGE_DEV);
 		/* Change to storage device */
 		if (run_command(cmd, 0)) {
-			printf("Cannot change to storage device\n");
-			ret = -1;
+			printf("Error: cannot change to storage device\n");
+			ret = CMD_RET_FAILURE;
 			goto _ret;
 		}
 	}
@@ -225,7 +226,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		ret = CMD_RET_FAILURE;
 		goto _ret;
 	} else if (ret == LDFW_LOADED && otf) {
-		ret = 0;
+		ret = CMD_RET_SUCCESS;
 		goto _ret;
 	}
 

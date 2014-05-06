@@ -95,6 +95,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 			return CMD_RET_USAGE;
 		}
 		else if (src == SRC_UNDEFINED) {
+			printf("Error: undefined source\n");
 			return CMD_RET_USAGE;
 		}
 
