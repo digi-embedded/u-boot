@@ -171,8 +171,8 @@ U_BOOT_CMD(
 	" Arguments:\n"
 	"   - os:           a partition name or one of the reserved names: \n"
 	"                   linux|android\n"
-	"   - [source]:     " CONFIG_SUPPORTED_SOURCES_LIST "\n"
+	"   - [source]:     " CONFIG_DBOOT_SUPPORTED_SOURCES_LIST "\n"
 	"   - [extra-args]: extra arguments depending on 'source'\n"
 	"\n"
-	CONFIG_SUPPORTED_SOURCES_ARGS
+	CONFIG_DBOOT_SUPPORTED_SOURCES_ARGS_HELP
 );

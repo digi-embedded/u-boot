@@ -265,8 +265,8 @@ U_BOOT_CMD(
 	" Arguments:\n"
 	"   - partition:    a GUID partition name or one of the reserved names: \n"
 	"                   uboot\n"
-	"   - [source]:     " CONFIG_SUPPORTED_SOURCES_LIST "\n"
+	"   - [source]:     " CONFIG_UPDATE_SUPPORTED_SOURCES_LIST "\n"
 	"   - [extra-args]: extra arguments depending on 'source'\n"
 	"\n"
-	CONFIG_SUPPORTED_SOURCES_ARGS
+	CONFIG_UPDATE_SUPPORTED_SOURCES_ARGS_HELP
 );
