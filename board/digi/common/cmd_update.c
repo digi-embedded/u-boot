@@ -210,7 +210,8 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 
 	if (otf) {
 		/* Prepare command to change to storage device */
-		sprintf(cmd, "mmc dev %d", CONFIG_SYS_STORAGE_DEV);
+		sprintf(cmd, CONFIG_SYS_STORAGE_MEDIA " dev %d",
+			CONFIG_SYS_STORAGE_DEV);
 		/* Change to storage device */
 		if (run_command(cmd, 0)) {
 			printf("Error: cannot change to storage device\n");
