@@ -64,20 +64,32 @@ int confirm_msg(char *msg)
 	return 0;
 }
 
-int get_source(char *src)
+int get_source(int argc, char * const argv[], char **devpartno, char **fs)
 {
 	int i;
+	char *src = argv[2];
 
 	for (i = 0; i < ARRAY_SIZE(src_strings); i++) {
 		if (!strncmp(src_strings[i], src, strlen(src))) {
 			if (1 << i & CONFIG_SUPPORTED_SOURCES)
-				return i;
+				break;
 			else
 				return SRC_UNSUPPORTED;
 		}
 	}
 
-	return SRC_UNDEFINED;
+	if (i >= ARRAY_SIZE(src_strings))
+		return SRC_UNDEFINED;
+
+	if (i == SRC_USB || i == SRC_MMC || i == SRC_SATA) {
+		/* Get device:partition and file system */
+		if (argc > 3)
+			*devpartno = (char *)argv[3];
+		if (argc > 4)
+			*fs = (char *)argv[4];
+	}
+
+	return i;
 }
 
 const char *get_source_string(int src)

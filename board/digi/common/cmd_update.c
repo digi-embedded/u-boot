@@ -165,7 +165,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 
 	/* Get source of update firmware file */
 	if (argc > 2) {
-		src = get_source(argv[2]);
+		src = get_source(argc, argv, &devpartno, &fs);
 		if (src == SRC_UNSUPPORTED) {
 			printf("Error: '%s' is not supported as source\n",
 				argv[2]);
@@ -174,14 +174,6 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		else if (src == SRC_UNDEFINED) {
 			printf("Error: undefined source\n");
 			return CMD_RET_USAGE;
-		}
-
-		if (src == SRC_USB || src == SRC_MMC || src == SRC_SATA) {
-			/* Get device:partition and file system */
-			if (argc > 3)
-				devpartno = argv[3];
-			if (argc > 4)
-				fs = argv[4];
 		}
 	}
 
