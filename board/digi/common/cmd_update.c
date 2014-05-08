@@ -109,6 +109,32 @@ static int write_firmware(char *partname, disk_partition_t *info)
 	return run_command(cmd, 0);
 }
 
+static int write_file(char *targetfilename, char *targetfs, int part)
+{
+	char cmd[CONFIG_SYS_CBSIZE] = "";
+	char *filesize = getenv("filesize");
+
+	if (NULL == filesize) {
+		debug("Cannot determine filesize\n");
+		return -1;
+	}
+
+	/* Change to storage device */
+	sprintf(cmd, "%s dev %d", CONFIG_SYS_STORAGE_MEDIA,
+		CONFIG_SYS_STORAGE_DEV);
+	if (run_command(cmd, 0)) {
+		debug("Cannot change to storage device\n");
+		return -1;
+	}
+
+	/* Prepare write command */
+	sprintf(cmd, "%swrite %s %d:%d $loadaddr %s %s", targetfs,
+		CONFIG_SYS_STORAGE_MEDIA, CONFIG_SYS_STORAGE_DEV, part,
+		targetfilename, filesize);
+
+	return run_command(cmd, 0);
+}
+
 #define ECSD_PARTITION_CONFIG		179
 #define BOOT_ACK			(1 << 6)
 #define BOOT_PARTITION_ENABLE_OFF	3
@@ -261,4 +287,150 @@ U_BOOT_CMD(
 	"   - [extra-args]: extra arguments depending on 'source'\n"
 	"\n"
 	CONFIG_UPDATE_SUPPORTED_SOURCES_ARGS_HELP
+);
+
+/* Certain command line arguments of 'update' command may be at different
+ * index depending on the selected <source>. This function returns in 'arg'
+ * the argument at <index> plus an offset that depends on the selected <source>
+ * Upon calling, the <index> must be given as if <source> was SRC_RAM.
+ */
+static int get_arg_src(int argc, char * const argv[], int src, int index,
+		       char **arg)
+{
+	switch (src) {
+	case SRC_TFTP:
+	case SRC_NFS:
+		index += 1;
+		break;
+	case SRC_MMC:
+	case SRC_USB:
+	case SRC_SATA:
+		index += 3;
+		break;
+	case SRC_RAM:
+		break;
+	default:
+		return -1;
+	}
+
+	if (argc > index) {
+		*arg = (char *)argv[index];
+
+		return 0;
+	}
+
+	return -1;
+}
+
+static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
+			 char * const argv[])
+{
+	int src = SRC_TFTP;	/* default to TFTP */
+	char *devpartno = NULL;
+	char *fs = NULL;
+	disk_partition_t info;
+	int ret;
+	char *srcfilename = NULL;
+	char *targetfilename = NULL;
+	char *targetfs = NULL;
+	int part;
+	int i;
+	char *supported_fs[] = {
+#ifdef CONFIG_FAT_WRITE
+		"fat",
+#endif
+#ifdef CONFIG_EXT4_WRITE
+		"ext4",
+#endif
+	};
+
+	if (argc < 2)
+		return CMD_RET_USAGE;
+
+	/* Get data of partition to be updated */
+	part = get_partition_byname(CONFIG_SYS_STORAGE_MEDIA,
+				    __stringify(CONFIG_SYS_STORAGE_DEV),
+				    argv[1], &info);
+	if (part < 0) {
+		printf("Error: partition '%s' not found\n", argv[1]);
+		return CMD_RET_FAILURE;
+	}
+
+	/* Get source of update firmware file */
+	if (argc > 2) {
+		src = get_source(argc, argv, &devpartno, &fs);
+		if (src == SRC_UNSUPPORTED) {
+			printf("Error: '%s' is not supported as source\n",
+				argv[2]);
+			return CMD_RET_USAGE;
+		}
+		else if (src == SRC_UNDEFINED) {
+			printf("Error: undefined source\n");
+			return CMD_RET_USAGE;
+		}
+	}
+
+	/* Get file name */
+	ret = get_arg_src(argc, argv, src, 2, &srcfilename);
+	if (ret) {
+		printf("Error: need a filename\n");
+		return CMD_RET_USAGE;
+	}
+
+	/* Get target file name */
+	ret = get_arg_src(argc, argv, src, 3, &targetfilename);
+	if (ret) {
+		/* Target filename was not provided. Use filename by default */
+		targetfilename = strdup(srcfilename);
+	}
+
+	/* Get target filesystem */
+	ret = get_arg_src(argc, argv, src, 4, &targetfs);
+	if (ret) {
+		/* Target fs was not provided. Use 'fat' by default */
+		targetfs = strdup("fat");
+	}
+	/* Check target fs is supported */
+	for (i = 0; i < ARRAY_SIZE(supported_fs); i++)
+		if (!strcmp(targetfs, supported_fs[i]))
+			break;
+
+	if (i >= ARRAY_SIZE(supported_fs)) {
+		printf("Error: target file system '%s' is unsupported for "
+			"write operation.\n"
+			"Valid file systems are: ", targetfs);
+		for (i = 0; i < ARRAY_SIZE(supported_fs); i++)
+			printf("%s ", supported_fs[i]);
+		printf("\n");
+		return CMD_RET_FAILURE;
+	}
+
+	/* Load firmware file to RAM */
+	ret = load_firmware(src, srcfilename, devpartno, fs, "$loadaddr", NULL);
+	if (ret == LDFW_ERROR) {
+		printf("Error loading firmware file to RAM\n");
+		return CMD_RET_FAILURE;
+	}
+
+	/* Write file from RAM to storage partition */
+	ret = write_file(targetfilename, targetfs, part);
+	if (ret) {
+		printf("Error writing file\n");
+		return CMD_RET_FAILURE;
+	}
+
+	return CMD_RET_SUCCESS;
+}
+
+U_BOOT_CMD(
+	updatefile,	8,	0,	do_updatefile,
+	"Digi modules updatefile command",
+	"<partition>  [source] [extra-args...]\n"
+	" Description: updates/writes a file in <partition> via <source>\n"
+	" Arguments:\n"
+	"   - partition:    a GUID partition name where to upload the file\n"
+	"   - [source]:     " CONFIG_UPDATE_SUPPORTED_SOURCES_LIST "\n"
+	"   - [extra-args]: extra arguments depending on 'source'\n"
+	"\n"
+	CONFIG_UPDATEFILE_SUPPORTED_SOURCES_ARGS_HELP
 );
