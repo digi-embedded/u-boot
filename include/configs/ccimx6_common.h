@@ -321,7 +321,7 @@
 		"if mmc dev ${mmcdev} 0;then;else mmc dev ${mmcdev};fi;" \
 		"gpt write mmc ${mmcdev} ${parts_linux};" \
 		"mmc rescan\0" \
-	"video0=dev=hdmi,1920x1080M@60,bpp=32\0" \
+	"video0=dev=hdmi,1920x1080M@60\0" \
 	"video1=off\0" \
 	"video2=off\0" \
 	""	/* end line */
