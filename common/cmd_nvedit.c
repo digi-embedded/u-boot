@@ -733,28 +733,12 @@ static int do_env_default(cmd_tbl_t *cmdtp, int __flag,
 	debug("Final value for argc=%d\n", argc);
 	if (all && (argc == 0)) {
 		/* Reset the whole environment */
-		if (flag & H_FORCE) {
-			/* Forced reset: this removes any variable that does
-			 * not exist in the default environment and
-			 * overwrites/deletes any protected variable to its
-			 * default value.
-			 */
-			set_default_env("** Resetting to default "
-					"environment\n");
-		} else {
-			/* Normal reset: this resets any variable that exists
-			 * in the default environment to its default value but
-			 * does not clear other existing variables and does not
-			 * overwrite/delete protected variables.
-			 */
-			set_default_env("## Resetting to default "
-					"environment\n");
-		}
+		set_default_env("## Resetting to default environment\n");
 		return 0;
 	}
 	if (!all && (argc > 0)) {
 		/* Reset individual variables */
-		set_default_vars(argc, argv, flag);
+		set_default_vars(argc, argv);
 		return 0;
 	}
 
