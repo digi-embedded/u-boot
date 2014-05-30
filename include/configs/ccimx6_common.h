@@ -272,9 +272,16 @@
 	"android_file=boot.img\0" \
 	"system_file=system.img\0" \
 	"partition_mmc_android=mmc rescan;" \
-		"if mmc dev ${mmcdev} 0;then;else mmc dev ${mmcdev};fi;" \
-		"gpt write mmc ${mmcdev} ${parts_android};" \
-		"mmc rescan\0" \
+		"if mmc dev ${mmcdev} 0; then " \
+			"gpt write mmc ${mmcdev} ${parts_android};" \
+			"mmc rescan;" \
+		"else " \
+			"if mmc dev ${mmcdev};then " \
+				"gpt write mmc ${mmcdev} ${parts_android};" \
+				"mmc rescan;" \
+			"else;" \
+			"fi;" \
+		"fi;\0" \
 	"bootargs_android=\"androidboot.hardware=freescale " \
 		"fbmem=28M vmalloc=400M\"\0" \
 	"bootargs_mmc_android=setenv bootargs console=${console},${baudrate} " \
@@ -318,9 +325,16 @@
 	"linux_file=dey-image-graphical-" CONFIG_SYS_BOARD ".boot.vfat\0" \
 	"rootfs_file=dey-image-graphical-" CONFIG_SYS_BOARD ".ext4\0" \
 	"partition_mmc_linux=mmc rescan;" \
-		"if mmc dev ${mmcdev} 0;then;else mmc dev ${mmcdev};fi;" \
-		"gpt write mmc ${mmcdev} ${parts_linux};" \
-		"mmc rescan\0" \
+		"if mmc dev ${mmcdev} 0; then " \
+			"gpt write mmc ${mmcdev} ${parts_linux};" \
+			"mmc rescan;" \
+		"else " \
+			"if mmc dev ${mmcdev};then " \
+				"gpt write mmc ${mmcdev} ${parts_linux};" \
+				"mmc rescan;" \
+			"else;" \
+			"fi;" \
+		"fi;\0" \
 	"video0=dev=hdmi,1920x1080M@60\0" \
 	"video1=off\0" \
 	"video2=off\0" \
