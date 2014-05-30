@@ -778,7 +778,7 @@ static int do_env_default(cmd_tbl_t *cmdtp, int __flag,
 	}
 	if (!all && (argc > 0)) {
 		/* Reset individual variables */
-		set_default_vars(argc, argv);
+		set_default_vars(argc, argv, flag);
 		return 0;
 	}
 
