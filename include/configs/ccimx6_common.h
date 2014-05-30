@@ -88,8 +88,8 @@
 
 /* protected environment variables (besides ethaddr and serial#) */
 #define CONFIG_ENV_FLAGS_LIST_STATIC	\
-	"wlanaddr:mo,"			\
-	"btaddr:mo,"			\
+	"wlanaddr:mc,"			\
+	"btaddr:mc,"			\
 	"bootargs_once:sr"
 
 #define CONFIG_CONS_INDEX              1

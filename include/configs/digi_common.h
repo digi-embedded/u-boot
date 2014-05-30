@@ -76,6 +76,7 @@
 #define CONFIG_AUTO_BOOTSCRIPT
 #define CONFIG_BOOTSCRIPT		CONFIG_SYS_BOARD "-boot.scr"
 
+#define CONFIG_OVERWRITE_ETHADDR_ONCE
 #define CONFIG_DEFAULT_NETWORK_SETTINGS	\
 	"ethaddr=00:04:f3:ff:ff:fa\0" \
 	"wlanaddr=00:04:f3:ff:ff:fb\0" \
