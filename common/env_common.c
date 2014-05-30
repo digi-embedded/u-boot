@@ -135,7 +135,9 @@ void set_default_env(const char *s)
 				"using default environment\n\n",
 				s + 1);
 		} else {
-			flags = H_INTERACTIVE;
+			if (*s == '*')
+				flags |= H_FORCE;	/* Forced reset */
+			flags |= H_INTERACTIVE;
 			puts(s);
 		}
 	} else {
