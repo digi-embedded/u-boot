@@ -287,17 +287,13 @@
 	"bootargs_mmc_android=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_android} androidboot.mmcdev=${mmcdev} " \
 		"androidboot.console=${console} " \
-		"video=mxcfb0:${video0} " \
-		"video=mxcfb1:${video1} " \
-		"video=mxcfb2:${video2} " \
+		"${video_args} " \
 		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
 		"${bootargs_once} ${std_bootargs}\0" \
 	"bootargs_tftp_android=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_android} root=/dev/nfs " \
 		"androidboot.console=${console} " \
-		"video=mxcfb0:${video0} " \
-		"video=mxcfb1:${video1} " \
-		"video=mxcfb2:${video2} " \
+		"${video_args} " \
 		"ip=dhcp nfsroot=${serverip}:${rootpath},v3,tcp " \
 		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
 		"${bootargs_once} ${std_bootargs}\0" \
@@ -305,9 +301,6 @@
 	"mmcroot=PARTUUID=1c606ef5-f1ac-43b9-9bb5-d5c578580b6b\0" \
 	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} root=${mmcroot} rootwait rw " \
-		"video=mxcfb0:${video0} " \
-		"video=mxcfb1:${video1} " \
-		"video=mxcfb2:${video2} " \
 		"${bootargs_once} ${std_bootargs}\0" \
 	"bootargs_tftp_linux=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} root=/dev/nfs " \
@@ -335,9 +328,7 @@
 			"else;" \
 			"fi;" \
 		"fi;\0" \
-	"video0=dev=hdmi,1920x1080M@60\0" \
-	"video1=off\0" \
-	"video2=off\0" \
+	"video_args=video=mxcfb0:dev=hdmi,1920x1080M@60\0" \
 	""	/* end line */
 
 #define CONFIG_BOOTCOMMAND \
