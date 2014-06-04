@@ -496,6 +496,45 @@ int get_hwid(void)
 
 	return 0;
 }
+
+void fdt_fixup_hwid(void *fdt)
+{
+	const char *propnames[] = {
+		"digi,hwid,tf",
+		"digi,hwid,variant",
+		"digi,hwid,hv",
+		"digi,hwid,cert",
+		"digi,hwid,year",
+		"digi,hwid,month",
+		"digi,hwid,sn",
+	};
+	char str[20];
+	int i;
+
+	/* Register the HWID as main node properties in the FDT */
+	for (i = 0; i < ARRAY_SIZE(propnames); i++) {
+		/* Convert HWID fields to strings */
+		if (!strcmp("digi,hwid,tf", propnames[i]))
+			sprintf(str, "0x%02x", my_hwid.tf);
+		else if (!strcmp("digi,hwid,variant", propnames[i]))
+			sprintf(str, "0x%02x", my_hwid.variant);
+		else if (!strcmp("digi,hwid,hv", propnames[i]))
+			sprintf(str, "0x%x", my_hwid.hv);
+		else if (!strcmp("digi,hwid,cert", propnames[i]))
+			sprintf(str, "0x%x", my_hwid.cert);
+		else if (!strcmp("digi,hwid,year", propnames[i]))
+			sprintf(str, "20%02d", my_hwid.year);
+		else if (!strcmp("digi,hwid,month", propnames[i]))
+			sprintf(str, "%02d", my_hwid.month);
+		else if (!strcmp("digi,hwid,sn", propnames[i]))
+			sprintf(str, "%d", my_hwid.sn);
+		else
+			continue;
+
+		do_fixup_by_path(fdt, "/", propnames[i], str,
+				 strlen(str) + 1, 1);
+	}
+}
 #endif /* CONFIG_PLATFORM_HAS_HWID */
 
 int checkboard(void)
@@ -539,6 +578,14 @@ void fdt_fixup_mac(void *fdt, char *varname, char *node)
 /* Platform function to modify the FDT as needed */
 void ft_board_setup(void *blob, bd_t *bd)
 {
+
+#ifdef CONFIG_PLATFORM_HAS_HWID
+	/* Re-read HWID which could have been overriden by U-Boot commands */
+	get_hwid();
+	if (!array_to_hwid(hwid))
+		fdt_fixup_hwid(blob);
+#endif /* CONFIG_PLATFORM_HAS_HWID */
+
 	fdt_fixup_mac(blob, "wlanaddr", "/wireless");
 	fdt_fixup_mac(blob, "btaddr", "/bluetooth");
 }
