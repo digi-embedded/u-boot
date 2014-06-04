@@ -443,8 +443,8 @@ void board_print_hwid(u32 *hwid)
 	printf("    HW Version:    %d\n", (hwid[1] >> 4) & 0xf);
 	printf("    Cert:          0x%x\n", hwid[1] & 0xf);
 	printf("    Year:          20%02d\n", (hwid[0] >> 24) & 0xff);
-	printf("    Month:         %02d\n", (hwid[0] >> 16) & 0xff);
-	printf("    S/N:           %d\n", hwid[0] & 0xffff);
+	printf("    Month:         %02d\n", (hwid[0] >> 20) & 0xf);
+	printf("    S/N:           %d\n", hwid[0] & 0xfffff);
 }
 
 static int is_valid_hwid(u8 variant)
