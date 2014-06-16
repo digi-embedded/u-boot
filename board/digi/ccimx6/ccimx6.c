@@ -595,7 +595,9 @@ static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
 			unsigned int chunklen)
 {
 	int sectors;
+	unsigned long written, read, verifyaddr;
 
+	printf("\nWriting chunk...\n");
 	/* Check WP */
 	if (mmc_getwp(mmc) == 1) {
 		printf("Error: card is write protected!\n");
@@ -619,9 +621,32 @@ static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
 	debug("writing chunk of 0x%x bytes (0x%x sectors) "
 		"from 0x%x to block 0x%x\n",
 		chunklen, sectors, otfd->loadaddr, dstblk);
-	return mmc->block_dev.block_write(CONFIG_SYS_STORAGE_DEV, dstblk,
-					  sectors,
-					  (const void *)otfd->loadaddr);
+	written = mmc->block_dev.block_write(CONFIG_SYS_STORAGE_DEV, dstblk,
+					     sectors,
+					     (const void *)otfd->loadaddr);
+	if (written != sectors)
+		return -1;
+
+	/* Verify written chunk if $loadaddr + chunk size does not overlap
+	 * $verifyaddr (where the read-back copy will be placed)
+	 */
+	verifyaddr = getenv_ulong("verifyaddr", 16, CONFIG_VERIFYADDR);
+	if (otfd->loadaddr + sectors * mmc_dev->blksz < verifyaddr) {
+		/* Read back data... */
+		printf("Reading back chunk...\n");
+		read = mmc->block_dev.block_read(CONFIG_SYS_STORAGE_DEV, dstblk,
+						 sectors, (void *)verifyaddr);
+		if (read != sectors)
+			return -1;
+		/* ...then compare */
+		printf("Verifying chunk...\n");
+		return memcmp((const void *)otfd->loadaddr,
+			      (const void *)verifyaddr,
+			      sectors * mmc_dev->blksz);
+	} else {
+		printf("Cannot verify chunk. It overlaps $verifyaddr!\n");
+		return 0;
+	}
 }
 
 /* writes a chunk of data from RAM to main storage media (eMMC) */
@@ -641,11 +666,8 @@ int board_update_chunk(otf_data_t *otfd)
 	if (otfd->flags & OTF_FLAG_FLUSH) {
 		/* Write chunk with remaining bytes */
 		if (chunk_len) {
-			printf("- Writing final chunk\n");
-			if (write_chunk(mmc, otfd, dstblk, chunk_len) < 0) {
-				printf("Error: not all data written to media\n");
+			if (write_chunk(mmc, otfd, dstblk, chunk_len))
 				return -1;
-			}
 		}
 		/* Reset all static variables if offset == 0 (starting chunk) */
 		chunk_len = 0;
@@ -663,7 +685,6 @@ int board_update_chunk(otf_data_t *otfd)
 	chunk_len += otfd->len;
 	if (chunk_len >= CONFIG_OTF_CHUNK) {
 		unsigned int remaining;
-		unsigned int written;
 		/* We have CONFIG_OTF_CHUNK (or more) bytes in RAM.
 		 * Let's proceed to write as many as multiples of blksz
 		 * as possible.
@@ -671,18 +692,15 @@ int board_update_chunk(otf_data_t *otfd)
 		remaining = chunk_len % mmc_dev->blksz;
 		chunk_len -= remaining;	/* chunk_len is now multiple of blksz */
 
-		printf("- Writing chunk\n");
-		written = write_chunk(mmc, otfd, dstblk, chunk_len) *
-			  mmc_dev->blksz;
-		if (written != chunk_len)
+		if (write_chunk(mmc, otfd, dstblk, chunk_len))
 			return -1;
 
 		/* increment destiny block */
-		dstblk += (written / mmc_dev->blksz);
+		dstblk += (chunk_len / mmc_dev->blksz);
 		/* copy excess of bytes from previous chunk to offset 0 */
 		if (remaining) {
 			memcpy((void *)otfd->loadaddr,
-			       (void *)(otfd->loadaddr + written),
+			       (void *)(otfd->loadaddr + chunk_len),
 			       remaining);
 			debug("Copying excess of %d bytes to offset 0\n",
 			      remaining);
