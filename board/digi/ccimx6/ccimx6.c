@@ -656,9 +656,12 @@ int board_update_chunk(otf_data_t *otfd)
 	static unsigned int dstblk = 0;
 	struct mmc *mmc = find_mmc_device(CONFIG_SYS_STORAGE_DEV);
 
-	/* Initialize dstblk */
-	if (dstblk == 0)
+	/* Initialize dstblk and local variables */
+	if (otfd->flags & OTF_FLAG_INIT) {
+		chunk_len = 0;
 		dstblk = otfd->part->start;
+		otfd->flags &= ~OTF_FLAG_INIT;
+	}
 
 	/* The flush flag is set when the download process has finished
 	 * meaning we must write the remaining bytes in RAM to the storage
@@ -675,13 +678,10 @@ int board_update_chunk(otf_data_t *otfd)
 		return 0;
 	}
 
-	/* Buffer otfd in RAM (if not there already) until we reach the
-	 * configured limit to write it to media
+	/* Buffer otfd in RAM until we reach the  configured limit to write it
+	 * to media
 	 */
-	if (otfd->loadaddr != (unsigned int)otfd->buf) {
-		memcpy((void *)(otfd->loadaddr + otfd->offset), otfd->buf,
-			otfd->len);
-	}
+	memcpy((void *)(otfd->loadaddr + otfd->offset), otfd->buf, otfd->len);
 	chunk_len += otfd->len;
 	if (chunk_len >= CONFIG_OTF_CHUNK) {
 		unsigned int remaining;
