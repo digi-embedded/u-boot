@@ -67,9 +67,11 @@ enum {
 static int write_firmware(char *partname, disk_partition_t *info)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
-	char *filesize = getenv("filesize");
-	unsigned long size, loadaddr, verifyaddr, u, m;
+	char *filesize_str = getenv("filesize");
+	unsigned long filesize;
+	unsigned long size_blks, loadaddr, verifyaddr, u, m;
 	block_dev_desc_t *mmc_dev;
+	int mod = 0;
 
 	mmc_dev = mmc_get_dev(CONFIG_SYS_STORAGE_DEV);
 	if (NULL == mmc_dev) {
@@ -77,17 +79,20 @@ static int write_firmware(char *partname, disk_partition_t *info)
 		return -1;
 	}
 
-	if (NULL == filesize) {
+	if (NULL == filesize_str) {
 		debug("Cannot determine filesize\n");
 		return -1;
 	}
-	size = simple_strtoul(filesize, NULL, 16) / mmc_dev->blksz;
-	if (simple_strtoul(filesize, NULL, 16) % mmc_dev->blksz)
-		size++;
 
-	if (size > info->size) {
+	filesize = simple_strtoul(filesize_str, NULL, 16);
+	size_blks = filesize / mmc_dev->blksz;
+	mod = filesize % mmc_dev->blksz;
+	if (mod)
+		size_blks++;
+
+	if (size_blks > info->size) {
 		printf("File size (%lu bytes) exceeds partition size (%lu bytes)!\n",
-			size * mmc_dev->blksz,
+			filesize,
 			info->size * mmc_dev->blksz);
 		return -1;
 	}
@@ -111,7 +116,7 @@ static int write_firmware(char *partname, disk_partition_t *info)
 	/* Write firmware command */
 	printf("Writing firmware...\n");
 	sprintf(cmd, "%s write $loadaddr %lx %lx", CONFIG_SYS_STORAGE_MEDIA,
-		info->start, size);
+		info->start, size_blks);
 	if (run_command(cmd, 0))
 		return ERR_WRITE;
 
@@ -138,17 +143,35 @@ static int write_firmware(char *partname, disk_partition_t *info)
 	 */
 	if ((loadaddr + size_blks * mmc_dev->blksz) < verifyaddr &&
 	    (verifyaddr + size_blks * mmc_dev->blksz) < u) {
+		char *p1, *p2;
+		int i;
 
 		/* Read back data... */
 		printf("Reading back firmware...\n");
 		sprintf(cmd, "%s read $verifyaddr %lx %lx",
-			CONFIG_SYS_STORAGE_MEDIA, info->start, size);
+			CONFIG_SYS_STORAGE_MEDIA, info->start, size_blks);
 		if (run_command(cmd, 0))
 			return ERR_READ;
-		/* ...then compare */
+		/* ...then compare by 32-bit words (faster than by bytes)
+		 * padding with zeros any bytes at the end to make the size
+		 * be a multiple of 4 */
 		printf("Verifying firmware...\n");
-		sprintf(cmd, "cmp.b $loadaddr $verifyaddr %lx",
-			size * mmc_dev->blksz);
+		p1 = (char *)(loadaddr + filesize);
+		p2 = (char *)(verifyaddr + filesize);
+		mod = filesize % 4;
+		printf("mod: %d\n", mod);
+		/* Pad mod bytes with zeros in $loadaddr and $verifyaddr */
+		if (mod) {
+			for (i = 0; i < (4 - mod); i++) {
+				*(p1 + i) = 0;
+				*(p2 + i) = 0;
+			}
+			sprintf(cmd, "cmp.l $loadaddr $verifyaddr %lx",
+				(filesize / 4) + 1);
+		} else {
+			sprintf(cmd, "cmp.l $loadaddr $verifyaddr %lx",
+				filesize / 4);
+		}
 		if (run_command(cmd, 0))
 			return ERR_VERIFY;
 		printf("Update was successful\n");
