@@ -58,11 +58,17 @@ void unregister_otf_hook(int src)
 
 }
 
+enum {
+	ERR_WRITE = 1,
+	ERR_READ,
+	ERR_VERIFY,
+};
+
 static int write_firmware(char *partname, disk_partition_t *info)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	char *filesize = getenv("filesize");
-	unsigned long size;
+	unsigned long size, loadaddr, verifyaddr, u, m;
 	block_dev_desc_t *mmc_dev;
 
 	mmc_dev = mmc_get_dev(CONFIG_SYS_STORAGE_DEV);
@@ -102,11 +108,56 @@ static int write_firmware(char *partname, disk_partition_t *info)
 		return -1;
 	}
 
-	/* Prepare write command */
+	/* Write firmware command */
+	printf("Writing firmware...\n");
 	sprintf(cmd, "%s write $loadaddr %lx %lx", CONFIG_SYS_STORAGE_MEDIA,
 		info->start, size);
+	if (run_command(cmd, 0))
+		return ERR_WRITE;
 
-	return run_command(cmd, 0);
+	/* If there is enough RAM to hold two copies of the firmware,
+	 * verify written firmware.
+	 * +--------|---------------------|------------------|--------------+
+	 * |        L                     V                  | U-Boot+Stack |
+	 * +--------|---------------------|------------------|--------------+
+	 * P                                                 U              M
+	 *
+	 *  P = PHYS_SDRAM (base address of SDRAM)
+	 *  L = $loadaddr
+	 *  V = $verifyaddr
+	 *  M = last address of SDRAM (CONFIG_DDR_MB (size of SDRAM) + P)
+	 *  U = SDRAM address where U-Boot is located (plus margin)
+	 */
+	loadaddr = getenv_ulong("loadaddr", 16, CONFIG_LOADADDR);
+	verifyaddr = getenv_ulong("verifyaddr", 16, CONFIG_VERIFYADDR);
+	m = PHYS_SDRAM + (CONFIG_DDR_MB * 1024 * 1024);
+	u = m - CONFIG_UBOOT_RESERVED;
+
+	/* ($loadaddr + firmware size) must not exceed $verifyaddr
+	 * ($verifyaddr + firmware size) must not exceed U
+	 */
+	if ((loadaddr + size_blks * mmc_dev->blksz) < verifyaddr &&
+	    (verifyaddr + size_blks * mmc_dev->blksz) < u) {
+
+		/* Read back data... */
+		printf("Reading back firmware...\n");
+		sprintf(cmd, "%s read $verifyaddr %lx %lx",
+			CONFIG_SYS_STORAGE_MEDIA, info->start, size);
+		if (run_command(cmd, 0))
+			return ERR_READ;
+		/* ...then compare */
+		printf("Verifying firmware...\n");
+		sprintf(cmd, "cmp.b $loadaddr $verifyaddr %lx",
+			size * mmc_dev->blksz);
+		if (run_command(cmd, 0))
+			return ERR_VERIFY;
+		printf("Update was successful\n");
+	} else {
+		printf("Firmware updated but not verified "
+		       "(not enough available RAM to verify)\n");
+	}
+
+	return 0;
 }
 
 static int write_file(char *targetfilename, char *targetfs, int part)
@@ -252,7 +303,12 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	/* Write firmware file from RAM to storage */
 	ret = write_firmware(argv[1], &info);
 	if (ret) {
-		printf("Error writing firmware\n");
+		if (ret == ERR_READ)
+			printf("Error while reading back written firmware!\n");
+		else if (ret == ERR_VERIFY)
+			printf("Error while verifying written firmware!\n");
+		else
+			printf("Error writing firmware!\n");
 		ret = CMD_RET_FAILURE;
 		goto _ret;
 	}

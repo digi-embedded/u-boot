@@ -142,6 +142,13 @@
 
 #define CONFIG_LOADADDR			0x12000000
 #define CONFIG_SYS_TEXT_BASE		0x17800000
+/* RAM memory reserved for U-Boot, stack, malloc pool... */
+#define CONFIG_UBOOT_RESERVED		(10 * 1024 * 1024)
+
+/* RAM Address to do firmware update verification (half way from $loadaddr
+ * to the top of the RAM)
+ */
+#define CONFIG_VERIFYADDR		0x31000000
 
 /* Pool of randomly generated UUIDs at host machine */
 #define RANDOM_UUIDS	\
@@ -196,6 +203,7 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	RANDOM_UUIDS \
+	"verifyaddr=" __stringify(CONFIG_VERIFYADDR) "\0" \
 	"script=boot.scr\0" \
 	"loadscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script}\0" \
 	"uimage=uImage-" CONFIG_SYS_BOARD ".bin\0" \
