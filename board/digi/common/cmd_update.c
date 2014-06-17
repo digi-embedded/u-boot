@@ -159,7 +159,6 @@ static int write_firmware(char *partname, disk_partition_t *info)
 		p1 = (char *)(loadaddr + filesize);
 		p2 = (char *)(verifyaddr + filesize);
 		mod = filesize % 4;
-		printf("mod: %d\n", mod);
 		/* Pad mod bytes with zeros in $loadaddr and $verifyaddr */
 		if (mod) {
 			for (i = 0; i < (4 - mod); i++) {

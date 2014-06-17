@@ -678,7 +678,7 @@ int board_update_chunk(otf_data_t *otfd)
 		return 0;
 	}
 
-	/* Buffer otfd in RAM until we reach the  configured limit to write it
+	/* Buffer otfd in RAM until we reach the configured limit to write it
 	 * to media
 	 */
 	memcpy((void *)(otfd->loadaddr + otfd->offset), otfd->buf, otfd->len);
