@@ -148,8 +148,8 @@ static int write_firmware(char *partname, disk_partition_t *info)
 
 		/* Read back data... */
 		printf("Reading back firmware...\n");
-		sprintf(cmd, "%s read $verifyaddr %lx %lx",
-			CONFIG_SYS_STORAGE_MEDIA, info->start, size_blks);
+		sprintf(cmd, "%s read %lx %lx %lx", CONFIG_SYS_STORAGE_MEDIA,
+			verifyaddr, info->start, size_blks);
 		if (run_command(cmd, 0))
 			return ERR_READ;
 		/* ...then compare by 32-bit words (faster than by bytes)
@@ -165,10 +165,10 @@ static int write_firmware(char *partname, disk_partition_t *info)
 				*(p1 + i) = 0;
 				*(p2 + i) = 0;
 			}
-			sprintf(cmd, "cmp.l $loadaddr $verifyaddr %lx",
+			sprintf(cmd, "cmp.l $loadaddr %lx %lx", verifyaddr,
 				(filesize / 4) + 1);
 		} else {
-			sprintf(cmd, "cmp.l $loadaddr $verifyaddr %lx",
+			sprintf(cmd, "cmp.l $loadaddr %lx %lx", verifyaddr,
 				filesize / 4);
 		}
 		if (run_command(cmd, 0))
