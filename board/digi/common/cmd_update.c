@@ -407,7 +407,6 @@ static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 	char *devpartno = NULL;
 	char *fs = NULL;
 	disk_partition_t info;
-	int ret;
 	char *srcfilename = NULL;
 	char *targetfilename = NULL;
 	char *targetfs = NULL;
@@ -449,25 +448,19 @@ static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 	}
 
 	/* Get file name */
-	ret = get_arg_src(argc, argv, src, 2, &srcfilename);
-	if (ret) {
+	if (get_arg_src(argc, argv, src, 2, &srcfilename)) {
 		printf("Error: need a filename\n");
 		return CMD_RET_USAGE;
 	}
 
-	/* Get target file name */
-	ret = get_arg_src(argc, argv, src, 3, &targetfilename);
-	if (ret) {
-		/* Target filename was not provided. Use filename by default */
+	/* Get target file name. If not provided use srcfilename by default */
+	if (get_arg_src(argc, argv, src, 3, &targetfilename))
 		targetfilename = strdup(srcfilename);
-	}
 
-	/* Get target filesystem */
-	ret = get_arg_src(argc, argv, src, 4, &targetfs);
-	if (ret) {
-		/* Target fs was not provided. Use 'fat' by default */
+	/* Get target filesystem. If not provided use 'fat' by default */
+	if (get_arg_src(argc, argv, src, 4, &targetfs))
 		targetfs = strdup("fat");
-	}
+
 	/* Check target fs is supported */
 	for (i = 0; i < ARRAY_SIZE(supported_fs); i++)
 		if (!strcmp(targetfs, supported_fs[i]))
@@ -484,15 +477,14 @@ static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 	}
 
 	/* Load firmware file to RAM */
-	ret = load_firmware(src, srcfilename, devpartno, fs, "$loadaddr", NULL);
-	if (ret == LDFW_ERROR) {
+	if (LDFW_ERROR == load_firmware(src, srcfilename, devpartno, fs,
+					"$loadaddr", NULL)) {
 		printf("Error loading firmware file to RAM\n");
 		return CMD_RET_FAILURE;
 	}
 
 	/* Write file from RAM to storage partition */
-	ret = write_file(targetfilename, targetfs, part);
-	if (ret) {
+	if (write_file(targetfilename, targetfs, part)) {
 		printf("Error writing file\n");
 		return CMD_RET_FAILURE;
 	}
