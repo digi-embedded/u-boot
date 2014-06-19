@@ -198,9 +198,11 @@ int get_default_devpartno(int src, char *devpartno)
 		if (dev == NULL)
 			return -1;
 		part = getenv("mmcpart");
+		/* If mmcpart not defined, default to 1 */
 		if (part == NULL)
-			strcpy(part, "1");	/* default to 1 */
-		sprintf(devpartno, "%s:%s", dev, part);
+			sprintf(devpartno, "%s:1", dev);
+		else
+			sprintf(devpartno, "%s:%s", dev, part);
 		break;
 	case SRC_USB:	// TODO
 	case SRC_SATA:	// TODO
