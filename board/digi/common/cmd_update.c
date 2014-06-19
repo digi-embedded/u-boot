@@ -410,6 +410,7 @@ static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 	char *srcfilename = NULL;
 	char *targetfilename = NULL;
 	char *targetfs = NULL;
+	const char *default_fs = "fat";
 	int part;
 	int i;
 	char *supported_fs[] = {
@@ -455,11 +456,11 @@ static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 
 	/* Get target file name. If not provided use srcfilename by default */
 	if (get_arg_src(argc, argv, src, 3, &targetfilename))
-		targetfilename = strdup(srcfilename);
+		targetfilename = srcfilename;
 
 	/* Get target filesystem. If not provided use 'fat' by default */
 	if (get_arg_src(argc, argv, src, 4, &targetfs))
-		targetfs = strdup("fat");
+		targetfs = (char *)default_fs;
 
 	/* Check target fs is supported */
 	for (i = 0; i < ARRAY_SIZE(supported_fs); i++)
