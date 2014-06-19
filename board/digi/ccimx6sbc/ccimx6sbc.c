@@ -111,21 +111,13 @@ int setup_pmic_voltages(void)
 
 static void setup_board_enet(void)
 {
-	int enet;
 	int phy_reset_gpio;
 
-	/* iomux for Gigabit or 10/100 and PHY selection
-	 * basing on env variable 'ENET'. Default to Gigabit.
-	 */
-	enet = (int)getenv_ulong("ENET", 10, 1000);
-	if (enet != 100) {
-		/* Gigabit ENET (Micrel PHY) */
-		phy_reset_gpio = IMX_GPIO_NR(1, 25);
-		phy_addr = CONFIG_ENET_PHYADDR_MICREL;
-		imx_iomux_v3_setup_multiple_pads(ksz9031_pads,
-						 ARRAY_SIZE(ksz9031_pads));
-	}
-
+	/* Gigabit ENET (Micrel PHY) */
+	phy_reset_gpio = IMX_GPIO_NR(1, 25);
+	phy_addr = CONFIG_ENET_PHYADDR_MICREL;
+	imx_iomux_v3_setup_multiple_pads(ksz9031_pads,
+					 ARRAY_SIZE(ksz9031_pads));
 	/* Assert PHY reset */
 	gpio_direction_output(phy_reset_gpio , 0);
 	/* Need 10ms to guarantee stable voltages */
