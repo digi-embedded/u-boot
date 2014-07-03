@@ -36,7 +36,7 @@ done<<-_EOF_
 _EOF_
 
 # Set default values if not provided by Jenkins
-DUB_GIT_URL="${DUB_GIT_URL:-git://log-sln-git.digi.com/u-boot-denx.git}"
+DUB_GIT_URL="${DUB_GIT_URL:-ssh://git@stash.digi.com/uboot/u-boot-denx.git}"
 DUB_TOOLCHAIN_URL="${DUB_TOOLCHAIN_URL:-http://build-linux.digi.com/yocto/toolchain}"
 DUB_PLATFORMS="${DUB_PLATFORMS:-$(echo ${AVAILABLE_PLATFORMS})}"
 
