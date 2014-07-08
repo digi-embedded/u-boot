@@ -27,7 +27,7 @@ DECLARE_GLOBAL_DATA_PTR;
 /* Well known TFTP port # */
 #define WELL_KNOWN_PORT	69
 /* Millisecs to timeout for lost pkt */
-#define TIMEOUT		5000UL
+#define TIMEOUT		1000UL
 #ifndef	CONFIG_NET_RETRY_COUNT
 /* # of timeouts before giving up */
 # define TIMEOUT_COUNT	10
