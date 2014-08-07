@@ -36,8 +36,10 @@ void set_vddsoc(u32 mv);
 #ifdef CONFIG_LDO_BYPASS_CHECK
 int check_ldo_bypass(void);
 int check_1_2G(void);
-void set_anatop_bypass(void);
+int set_anatop_bypass(void);
 void ldo_mode_set(int ldo_bypass);
+void prep_anatop_bypass(void);
+void finish_anatop_bypass(void);
 #endif
 
 /*
