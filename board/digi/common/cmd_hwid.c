@@ -75,7 +75,6 @@ static int do_hwid(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	int confirmed = argc >= 3 && !strcmp(argv[2], "-y");
 	u32 bank = CONFIG_HWID_BANK;
 	u32 word = CONFIG_HWID_START_WORD;
-	u32 cnt = CONFIG_HWID_WORDS_NUMBER;
 	u32 val[8];
 	int ret, i;
 
@@ -88,7 +87,7 @@ static int do_hwid(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 
 	if (!strcmp(op, "read")) {
 		printf("Reading HWID: ");
-		for (i = 0; i < cnt; i++, word++) {
+		for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word++) {
 			ret = fuse_read(bank, word, &val[i]);
 			if (ret)
 				goto err;
@@ -96,7 +95,7 @@ static int do_hwid(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 		board_print_hwid(val);
 	} else if (!strcmp(op, "sense")) {
 		printf("Sensing HWID: ");
-		for (i = 0; i < cnt; i++, word++) {
+		for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word++) {
 			ret = fuse_sense(bank, word, &val[i]);
 			if (ret)
 				goto err;
