@@ -106,4 +106,10 @@ struct ccimx6_variant ccimx6_variants[] = {
 	},
 };
 
+const char *cert_regions[] = {
+	"U.S.A.",
+	"International",
+	"Japan",
+};
+
 #endif	/* __HWID_H_ */

@@ -480,6 +480,7 @@ int ccimx6_late_init(void)
 void board_print_hwid(u32 *hwid)
 {
 	int i;
+	int cert;
 
 	for (i = CONFIG_HWID_WORDS_NUMBER - 1; i >= 0; i--)
 		printf(" %.8x", hwid[i]);
@@ -488,8 +489,10 @@ void board_print_hwid(u32 *hwid)
 	printf("    Year:          20%02d\n", (hwid[1] >> 26) & 0x3f);
 	printf("    Week:          %02d\n", (hwid[1] >> 20) & 0x3f);
 	printf("    Variant:       0x%02x\n", (hwid[1] >> 8) & 0xff);
-	printf("    HW Version:    %d\n", (hwid[1] >> 4) & 0xf);
-	printf("    Cert:          0x%x\n", hwid[1] & 0xf);
+	printf("    HW Version:    0x%x\n", (hwid[1] >> 4) & 0xf);
+	cert = hwid[1] & 0xf;
+	printf("    Cert:          0x%x (%s)\n", cert,
+	       cert < ARRAY_SIZE(cert_regions) ? cert_regions[cert] : "??");
 	printf("    Location:      %c\n", ((hwid[0] >> 27) & 0x1f) + 'A');
 	printf("    Generator ID:  %02d\n", (hwid[0] >> 20) & 0x7f);
 	printf("    S/N:           %06d\n", hwid[0] & 0xfffff);
