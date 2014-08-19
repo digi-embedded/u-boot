@@ -25,8 +25,6 @@
 #include <fuse.h>
 #include <asm/errno.h>
 
-extern void board_print_hwid(u32 *hwid);
-
 static int strtou32(const char *str, unsigned int base, u32 *result)
 {
 	char *ep;
