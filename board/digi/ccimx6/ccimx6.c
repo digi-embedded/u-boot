@@ -51,7 +51,7 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 struct ccimx6_hwid my_hwid;
-static u8 hwid[4 * CONFIG_HWID_WORDS_NUMBER];
+static u32 hwid[CONFIG_HWID_WORDS_NUMBER];
 static block_dev_desc_t *mmc_dev;
 static int enet_xcv_type;
 
@@ -485,13 +485,14 @@ void board_print_hwid(u32 *hwid)
 		printf(" %.8x", hwid[i]);
 	printf("\n");
 	/* Formatted printout */
-	printf("    TF (location): 0x%02x\n", (hwid[1] >> 16) & 0xf);
+	printf("    Year:          20%02d\n", (hwid[1] >> 26) & 0x3f);
+	printf("    Week:          %02d\n", (hwid[1] >> 20) & 0x3f);
 	printf("    Variant:       0x%02x\n", (hwid[1] >> 8) & 0xff);
 	printf("    HW Version:    %d\n", (hwid[1] >> 4) & 0xf);
 	printf("    Cert:          0x%x\n", hwid[1] & 0xf);
-	printf("    Year:          20%02d\n", (hwid[0] >> 24) & 0xff);
-	printf("    Month:         %02d\n", (hwid[0] >> 20) & 0xf);
-	printf("    S/N:           %d\n", hwid[0] & 0xfffff);
+	printf("    Location:      %c\n", ((hwid[0] >> 27) & 0x1f) + 'A');
+	printf("    Generator ID:  %02d\n", (hwid[0] >> 20) & 0x7f);
+	printf("    S/N:           %06d\n", hwid[0] & 0xfffff);
 }
 
 void board_print_manufid(u32 *hwid)
@@ -519,26 +520,35 @@ static int is_valid_hwid(u8 variant)
 	return 0;
 }
 
-int array_to_hwid(u8 *hwid)
+static int array_to_hwid(u32 *hwid)
 {
 	/*
-	 *       | 31..                  MAC1            ..0 | 31..          MAC0                    ..0 |
-	 *       +----------+----------+----------+----------+----------+----------+----------+----------+
-	 * HWID: |       --      | TF  | variant  | HV |Cert |   Year   | Mon |     Serial Number        |
-	 *       +----------+----------+----------+----------+----------+----------+----------+----------+
-	 * Byte:            7          6          5          4          3          2          1          0
+	 *                      MAC1 (Bank 4 Word 3)
+	 *
+	 *       | 31..26 | 25..20 |   |  15..8  | 7..4 | 3..0 |
+	 *       +--------+--------+---+---------+------+------+
+	 * HWID: |  Year  |  Week  | - | Variant |  HV  | Cert |
+	 *       +--------+--------+---+---------+------+------+
+	 *
+	 *                      MAC0 (Bank 4 Word 2)
+	 *
+	 *       |  31..27  | 26..20 |         19..0           |
+	 *       +----------+--------+-------------------------+
+	 * HWID: | Location |  GenID |      Serial number      |
+	 *       +----------+--------+-------------------------+
 	 */
 
-	if (!is_valid_hwid(hwid[5]))
+	if (!is_valid_hwid((hwid[1] >> 8) & 0xff))
 		return -EINVAL;
 
-	my_hwid.tf = hwid[6] & 0xf;
-	my_hwid.variant = hwid[5];
-	my_hwid.hv = (hwid[4] & 0xf0) >> 4;
-	my_hwid.cert = hwid[4] & 0xf;
-	my_hwid.year = hwid[3];
-	my_hwid.month = (hwid[2] & 0xf0) >> 4;
-	my_hwid.sn = ((hwid[2] & 0xf) << 16) | (hwid[1] << 8) | hwid[0];
+	my_hwid.year = (hwid[1] >> 26) & 0x3f;
+	my_hwid.week = (hwid[1] >> 20) & 0x3f;
+	my_hwid.variant = (hwid[1] >> 8) & 0xff;
+	my_hwid.hv = (hwid[1] >> 4) & 0xf;
+	my_hwid.cert = hwid[1] & 0xf;
+	my_hwid.location = (hwid[0] >> 27) & 0x1f;
+	my_hwid.genid = (hwid[0] >> 20) & 0x7f;
+	my_hwid.sn = hwid[0] & 0xfffff;
 
 	return  0;
 }
@@ -629,11 +639,10 @@ int get_hwid(void)
 	u32 bank = CONFIG_HWID_BANK;
 	u32 word = CONFIG_HWID_START_WORD;
 	u32 cnt = CONFIG_HWID_WORDS_NUMBER;
-	u32 *val = (u32 *)hwid;
 	int ret, i;
 
 	for (i = 0; i < cnt; i++, word++) {
-		ret = fuse_read(bank, word, &val[i]);
+		ret = fuse_read(bank, word, &hwid[i]);
 		if (ret)
 			return -1;
 	}
@@ -644,13 +653,14 @@ int get_hwid(void)
 void fdt_fixup_hwid(void *fdt)
 {
 	const char *propnames[] = {
-		"digi,hwid,tf",
+		"digi,hwid,location",
+		"digi,hwid,genid",
+		"digi,hwid,sn",
+		"digi,hwid,year",
+		"digi,hwid,week",
 		"digi,hwid,variant",
 		"digi,hwid,hv",
 		"digi,hwid,cert",
-		"digi,hwid,year",
-		"digi,hwid,month",
-		"digi,hwid,sn",
 	};
 	char str[20];
 	int i;
@@ -658,20 +668,22 @@ void fdt_fixup_hwid(void *fdt)
 	/* Register the HWID as main node properties in the FDT */
 	for (i = 0; i < ARRAY_SIZE(propnames); i++) {
 		/* Convert HWID fields to strings */
-		if (!strcmp("digi,hwid,tf", propnames[i]))
-			sprintf(str, "0x%02x", my_hwid.tf);
+		if (!strcmp("digi,hwid,location", propnames[i]))
+			sprintf(str, "%c", my_hwid.location + 'A');
+		else if (!strcmp("digi,hwid,genid", propnames[i]))
+			sprintf(str, "%02d", my_hwid.genid);
+		else if (!strcmp("digi,hwid,sn", propnames[i]))
+			sprintf(str, "%06d", my_hwid.sn);
+		else if (!strcmp("digi,hwid,year", propnames[i]))
+			sprintf(str, "20%02d", my_hwid.year);
+		else if (!strcmp("digi,hwid,week", propnames[i]))
+			sprintf(str, "%02d", my_hwid.week);
 		else if (!strcmp("digi,hwid,variant", propnames[i]))
 			sprintf(str, "0x%02x", my_hwid.variant);
 		else if (!strcmp("digi,hwid,hv", propnames[i]))
 			sprintf(str, "0x%x", my_hwid.hv);
 		else if (!strcmp("digi,hwid,cert", propnames[i]))
 			sprintf(str, "0x%x", my_hwid.cert);
-		else if (!strcmp("digi,hwid,year", propnames[i]))
-			sprintf(str, "20%02d", my_hwid.year);
-		else if (!strcmp("digi,hwid,month", propnames[i]))
-			sprintf(str, "%02d", my_hwid.month);
-		else if (!strcmp("digi,hwid,sn", propnames[i]))
-			sprintf(str, "%d", my_hwid.sn);
 		else
 			continue;
 
