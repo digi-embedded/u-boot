@@ -176,6 +176,17 @@ static int do_hwid(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 				goto err;
 		}
 		printf("OK\n");
+	} else if (!strcmp(op, "lock")) {
+		if (!confirmed && !confirm_prog())
+			return CMD_RET_FAILURE;
+		printf("Locking HWID... ");
+		ret = fuse_prog(CONFIG_OCOTP_LOCK_BANK,
+				CONFIG_OCOTP_LOCK_WORD,
+				CONFIG_HWID_LOCK_FUSE);
+		if (ret)
+			goto err;
+		printf("OK\n");
+		printf("Locking of the HWID will be effective when the CPU is reset\n");
 	} else {
 		return CMD_RET_USAGE;
 	}
@@ -198,4 +209,5 @@ U_BOOT_CMD(
 	"hwid prog_manuf [-y] <LYYWWGGXXXXXX> - program HWID with manufacturing ID (PERMANENT)\n"
 	"hwid override <hexval MSB> [.. <hexval LSB>] - override HWID\n"
 	"hwid override_manuf <LYYWWGGXXXXXX> - override HWID with manufacturing ID\n"
+	"hwid lock [-y] - lock HWID OTP bits (PERMANENT)\n"
 );

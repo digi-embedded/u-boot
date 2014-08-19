@@ -111,6 +111,9 @@
 #define CONFIG_HWID_BANK		4
 #define CONFIG_HWID_START_WORD		2
 #define CONFIG_HWID_WORDS_NUMBER	2
+#define CONFIG_OCOTP_LOCK_BANK		0
+#define CONFIG_OCOTP_LOCK_WORD		0
+#define CONFIG_HWID_LOCK_FUSE		(1 << 8)
 
 #define CONFIG_CMD_UPDATE
 /* On the fly update chunk (must be a multiple of mmc block size) */
