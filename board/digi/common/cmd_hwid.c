@@ -67,6 +67,17 @@ __weak void board_print_hwid(u32 *hwid)
 	printf("\n");
 }
 
+__weak void board_print_manufid(u32 *hwid)
+{
+	board_print_hwid(hwid);
+}
+
+__weak int manufstr_to_hwid(char *str, u32 *val)
+{
+	printf("Undefined function for manufacturing string conversion\n");
+	return -EPERM;
+}
+
 static int do_hwid(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 {
 	const char *op;
@@ -83,22 +94,28 @@ static int do_hwid(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	argc -= 2 + confirmed;
 	argv += 2 + confirmed;
 
-	if (!strcmp(op, "read")) {
+	if (!strcmp(op, "read") || !strcmp(op, "read_manuf")) {
 		printf("Reading HWID: ");
 		for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word++) {
 			ret = fuse_read(bank, word, &val[i]);
 			if (ret)
 				goto err;
 		}
-		board_print_hwid(val);
-	} else if (!strcmp(op, "sense")) {
+		if (!strcmp(op, "read_manuf"))
+			board_print_manufid(val);
+		else
+			board_print_hwid(val);
+	} else if (!strcmp(op, "sense") || !strcmp(op, "sense_manuf")) {
 		printf("Sensing HWID: ");
 		for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word++) {
 			ret = fuse_sense(bank, word, &val[i]);
 			if (ret)
 				goto err;
 		}
-		board_print_hwid(val);
+		if (!strcmp(op, "sense_manuf"))
+			board_print_manufid(val);
+		else
+			board_print_hwid(val);
 	} else if (!strcmp(op, "prog")) {
 		if (argc < CONFIG_HWID_WORDS_NUMBER)
 			return CMD_RET_USAGE;
@@ -112,6 +129,20 @@ static int do_hwid(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 			if (strtou32(argv[i], 16, &val[i]))
 				return CMD_RET_USAGE;
 
+			ret = fuse_prog(bank, word, val[i]);
+			if (ret)
+				goto err;
+		}
+		printf("OK\n");
+	} else if (!strcmp(op, "prog_manuf")) {
+		if (argc < 1)
+			return CMD_RET_USAGE;
+		if (manufstr_to_hwid(argv[0], val))
+			return CMD_RET_FAILURE;
+		if (!confirmed && !confirm_prog())
+			return CMD_RET_FAILURE;
+		printf("Programming manufacturing information into HWID... ");
+		for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word++) {
 			ret = fuse_prog(bank, word, val[i]);
 			if (ret)
 				goto err;
@@ -133,6 +164,18 @@ static int do_hwid(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 				goto err;
 		}
 		printf("OK\n");
+	}  else if (!strcmp(op, "override_manuf")) {
+		if (argc < 1)
+			return CMD_RET_USAGE;
+		if (manufstr_to_hwid(argv[0], val))
+			return CMD_RET_FAILURE;
+		printf("Overriding manufacturing information into HWID... ");
+		for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word++) {
+			ret = fuse_override(bank, word, val[i]);
+			if (ret)
+				goto err;
+		}
+		printf("OK\n");
 	} else {
 		return CMD_RET_USAGE;
 	}
@@ -148,7 +191,11 @@ U_BOOT_CMD(
 	hwid, CONFIG_SYS_MAXARGS, 0, do_hwid,
 	"HWID on fuse sub-system",
 	     "read - read HWID from shadow registers\n"
+	"hwid read_manuf - read HWID from shadow registers and print manufacturing ID\n"
 	"hwid sense - sense HWID from fuses\n"
+	"hwid sense_manuf - sense HWID from fuses and print manufacturing ID\n"
 	"hwid prog [-y] <hexval MSB> [.. <hexval LSB>] - program HWID (PERMANENT)\n"
-	"hwid override <hexval MSB> [.. <hexval LSB>] - override HWID"
+	"hwid prog_manuf [-y] <LYYWWGGXXXXXX> - program HWID with manufacturing ID (PERMANENT)\n"
+	"hwid override <hexval MSB> [.. <hexval LSB>] - override HWID\n"
+	"hwid override_manuf <LYYWWGGXXXXXX> - override HWID with manufacturing ID\n"
 );
