@@ -494,6 +494,22 @@ void board_print_hwid(u32 *hwid)
 	printf("    S/N:           %d\n", hwid[0] & 0xfffff);
 }
 
+void board_print_manufid(u32 *hwid)
+{
+	int i;
+
+	for (i = CONFIG_HWID_WORDS_NUMBER - 1; i >= 0; i--)
+		printf(" %.8x", hwid[i]);
+	printf("\n");
+	/* Formatted printout */
+	printf(" Manufacturing ID: %c%02d%02d%02d%06d\n",
+	       ((hwid[0] >> 27) & 0x1f) + 'A',
+	       (hwid[1] >> 26) & 0x3f,
+	       (hwid[1] >> 20) & 0x3f,
+	       (hwid[0] >> 20) & 0x7f,
+	       hwid[0] & 0xfffff);
+}
+
 static int is_valid_hwid(u8 variant)
 {
 	if (variant < ARRAY_SIZE(ccimx6_variants))
@@ -525,6 +541,87 @@ int array_to_hwid(u8 *hwid)
 	my_hwid.sn = ((hwid[2] & 0xf) << 16) | (hwid[1] << 8) | hwid[0];
 
 	return  0;
+}
+
+int manufstr_to_hwid(char *str, u32 *val)
+{
+	u32 *mac0 = val;
+	u32 *mac1 = val + 1;
+	char tmp[13];
+	unsigned long num;
+
+	/* Initialize HWID words */
+	*mac0 = 0;
+	*mac1 = 0;
+
+	/*
+	 * Digi Manufacturing team produces a string in the form
+	 *     LYYWWGGXXXXXX
+	 * where:
+	 *  - L:	location, an uppercase letter [A..Z]
+	 *  - YY:	year (last two digits of XXI century, in decimal)
+	 *  - WW:	week of year (in decimal)
+	 *  - GG:	generator ID (in decimal)
+	 *  - XXXXXX:	serial number (in decimal)
+	 * this information goes into the following places on the HWID:
+	 *  - L:	OCOTP_MAC0 bits 31..27 (5 bits)
+	 *  - YY:	OCOTP_MAC1 bits 31..26 (6 bits)
+	 *  - WW:	OCOTP_MAC1 bits 25..20 (6 bits)
+	 *  - GG:	OCOTP_MAC0 bits 26..20 (7 bits)
+	 *  - XXXXXX:	OCOTP_MAC0 bits 19..0 (20 bits)
+	 */
+	if (strlen(str) != 13)
+		goto err;
+
+	/* Location */
+	if (str[0] < 'A' || str[0] > 'Z')
+		goto err;
+	*mac0 |= (str[0] - 'A') << 27;
+	printf("    Location:      %c\n", str[0]);
+
+	/* Year (only 6 bits: from 0 to 63) */
+	strncpy(tmp, &str[1], 2);
+	tmp[2] = 0;
+	num = simple_strtol(tmp, NULL, 10);
+	if (num < 0 || num > 63)
+		goto err;
+	*mac1 |= num << 26;
+	printf("    Year:          20%02d\n", (int)num);
+
+	/* Week */
+	strncpy(tmp, &str[3], 2);
+	tmp[2] = 0;
+	num = simple_strtol(tmp, NULL, 10);
+	if (num < 1 || num > 54)
+		goto err;
+	*mac1 |= num << 20;
+	printf("    Week:          %02d\n", (int)num);
+
+	/* Generator ID */
+	strncpy(tmp, &str[5], 2);
+	tmp[2] = 0;
+	num = simple_strtol(tmp, NULL, 10);
+	if (num < 0 || num > 99)
+		goto err;
+	*mac0 |= num << 20;
+	printf("    Generator ID:  %02d\n", (int)num);
+
+	/* Serial number */
+	strncpy(tmp, &str[7], 6);
+	tmp[6] = 0;
+	num = simple_strtol(tmp, NULL, 10);
+	if (num < 0 || num > 999999)
+		goto err;
+	*mac0 |= num;
+	printf("    S/N:           %06d\n", (int)num);
+
+	return 0;
+
+err:
+	printf("Invalid manufacturing string.\n"
+		"Manufacturing information must be in the form: "
+		"LYYWWGGXXXXXX\n");
+	return -EINVAL;
 }
 
 int get_hwid(void)
