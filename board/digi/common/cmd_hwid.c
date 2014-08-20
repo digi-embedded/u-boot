@@ -72,7 +72,7 @@ __weak void board_print_manufid(u32 *hwid)
 	board_print_hwid(hwid);
 }
 
-__weak int manufstr_to_hwid(char *str, u32 *val)
+__weak int manufstr_to_hwid(int argc, char *const argv[], u32 *val)
 {
 	printf("Undefined function for manufacturing string conversion\n");
 	return -EPERM;
@@ -137,7 +137,7 @@ static int do_hwid(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	} else if (!strcmp(op, "prog_manuf")) {
 		if (argc < 1)
 			return CMD_RET_USAGE;
-		if (manufstr_to_hwid(argv[0], val))
+		if (manufstr_to_hwid(argc, argv, val))
 			return CMD_RET_FAILURE;
 		if (!confirmed && !confirm_prog())
 			return CMD_RET_FAILURE;
@@ -167,7 +167,7 @@ static int do_hwid(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	}  else if (!strcmp(op, "override_manuf")) {
 		if (argc < 1)
 			return CMD_RET_USAGE;
-		if (manufstr_to_hwid(argv[0], val))
+		if (manufstr_to_hwid(argc, argv, val))
 			return CMD_RET_FAILURE;
 		printf("Overriding manufacturing information into HWID... ");
 		for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word++) {
@@ -206,8 +206,8 @@ U_BOOT_CMD(
 	"hwid sense - sense HWID from fuses\n"
 	"hwid sense_manuf - sense HWID from fuses and print manufacturing ID\n"
 	"hwid prog [-y] <hexval MSB> [.. <hexval LSB>] - program HWID (PERMANENT)\n"
-	"hwid prog_manuf [-y] <LYYWWGGXXXXXX> - program HWID with manufacturing ID (PERMANENT)\n"
+	"hwid prog_manuf [-y] " CONFIG_MANUF_STRINGS_HELP " - program HWID with manufacturing ID (PERMANENT)\n"
 	"hwid override <hexval MSB> [.. <hexval LSB>] - override HWID\n"
-	"hwid override_manuf <LYYWWGGXXXXXX> - override HWID with manufacturing ID\n"
+	"hwid override_manuf " CONFIG_MANUF_STRINGS_HELP " - override HWID with manufacturing ID\n"
 	"hwid lock [-y] - lock HWID OTP bits (PERMANENT)\n"
 );

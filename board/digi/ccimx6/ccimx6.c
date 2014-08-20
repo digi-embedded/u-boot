@@ -506,12 +506,15 @@ void board_print_manufid(u32 *hwid)
 		printf(" %.8x", hwid[i]);
 	printf("\n");
 	/* Formatted printout */
-	printf(" Manufacturing ID: %c%02d%02d%02d%06d\n",
+	printf(" Manufacturing ID: %c%02d%02d%02d%06d %02x%x%x\n",
 	       ((hwid[0] >> 27) & 0x1f) + 'A',
 	       (hwid[1] >> 26) & 0x3f,
 	       (hwid[1] >> 20) & 0x3f,
 	       (hwid[0] >> 20) & 0x7f,
-	       hwid[0] & 0xfffff);
+	       hwid[0] & 0xfffff,
+	       (hwid[1] >> 8) & 0xff,
+	       (hwid[1] >> 4) & 0xf,
+	       hwid[1] & 0xf);
 }
 
 static int is_valid_hwid(u8 variant)
@@ -556,7 +559,7 @@ static int array_to_hwid(u32 *hwid)
 	return  0;
 }
 
-int manufstr_to_hwid(char *str, u32 *val)
+int manufstr_to_hwid(int argc, char *const argv[], u32 *val)
 {
 	u32 *mac0 = val;
 	u32 *mac1 = val + 1;
@@ -566,6 +569,9 @@ int manufstr_to_hwid(char *str, u32 *val)
 	/* Initialize HWID words */
 	*mac0 = 0;
 	*mac1 = 0;
+
+	if (argc != 2)
+		goto err;
 
 	/*
 	 * Digi Manufacturing team produces a string in the form
@@ -583,17 +589,30 @@ int manufstr_to_hwid(char *str, u32 *val)
 	 *  - GG:	OCOTP_MAC0 bits 26..20 (7 bits)
 	 *  - XXXXXX:	OCOTP_MAC0 bits 19..0 (20 bits)
 	 */
-	if (strlen(str) != 13)
+	if (strlen(argv[0]) != 13)
+		goto err;
+
+	/*
+	 * Additionally a second string in the form VVHC must be given where:
+	 *  - VV:	variant (in hex)
+	 *  - H:	hardware version (in hex)
+	 *  - C:	wireless certification (in hex)
+	 * this information goes into the following places on the HWID:
+	 *  - VV:	OCOTP_MAC1 bits 15..8 (8 bits)
+	 *  - H:	OCOTP_MAC1 bits 7..4 (4 bits)
+	 *  - C:	OCOTP_MAC1 bits 3..0 (4 bits)
+	 */
+	if (strlen(argv[1]) != 4)
 		goto err;
 
 	/* Location */
-	if (str[0] < 'A' || str[0] > 'Z')
+	if (argv[0][0] < 'A' || argv[0][0] > 'Z')
 		goto err;
-	*mac0 |= (str[0] - 'A') << 27;
-	printf("    Location:      %c\n", str[0]);
+	*mac0 |= (argv[0][0] - 'A') << 27;
+	printf("    Location:      %c\n", argv[0][0]);
 
 	/* Year (only 6 bits: from 0 to 63) */
-	strncpy(tmp, &str[1], 2);
+	strncpy(tmp, &argv[0][1], 2);
 	tmp[2] = 0;
 	num = simple_strtol(tmp, NULL, 10);
 	if (num < 0 || num > 63)
@@ -602,7 +621,7 @@ int manufstr_to_hwid(char *str, u32 *val)
 	printf("    Year:          20%02d\n", (int)num);
 
 	/* Week */
-	strncpy(tmp, &str[3], 2);
+	strncpy(tmp, &argv[0][3], 2);
 	tmp[2] = 0;
 	num = simple_strtol(tmp, NULL, 10);
 	if (num < 1 || num > 54)
@@ -611,7 +630,7 @@ int manufstr_to_hwid(char *str, u32 *val)
 	printf("    Week:          %02d\n", (int)num);
 
 	/* Generator ID */
-	strncpy(tmp, &str[5], 2);
+	strncpy(tmp, &argv[0][5], 2);
 	tmp[2] = 0;
 	num = simple_strtol(tmp, NULL, 10);
 	if (num < 0 || num > 99)
@@ -620,7 +639,7 @@ int manufstr_to_hwid(char *str, u32 *val)
 	printf("    Generator ID:  %02d\n", (int)num);
 
 	/* Serial number */
-	strncpy(tmp, &str[7], 6);
+	strncpy(tmp, &argv[0][7], 6);
 	tmp[6] = 0;
 	num = simple_strtol(tmp, NULL, 10);
 	if (num < 0 || num > 999999)
@@ -628,12 +647,40 @@ int manufstr_to_hwid(char *str, u32 *val)
 	*mac0 |= num;
 	printf("    S/N:           %06d\n", (int)num);
 
+	/* Variant */
+	strncpy(tmp, &argv[1][0], 2);
+	tmp[2] = 0;
+	num = simple_strtol(tmp, NULL, 16);
+	if (num < 0 || num > 0xff)
+		goto err;
+	*mac1 |= num << 8;
+	printf("    Variant:       0x%02x\n", (int)num);
+
+	/* Hardware version */
+	strncpy(tmp, &argv[1][2], 1);
+	tmp[1] = 0;
+	num = simple_strtol(tmp, NULL, 16);
+	if (num < 0 || num > 0xf)
+		goto err;
+	*mac1 |= num << 4;
+	printf("    HW version:    0x%x\n", (int)num);
+
+	/* Cert */
+	strncpy(tmp, &argv[1][3], 1);
+	tmp[1] = 0;
+	num = simple_strtol(tmp, NULL, 16);
+	if (num < 0 || num > 0xf)
+		goto err;
+	*mac1 |= num;
+	printf("    Cert:          0x%x (%s)\n", (int)num,
+	       num < ARRAY_SIZE(cert_regions) ? cert_regions[num] : "??");
+
 	return 0;
 
 err:
 	printf("Invalid manufacturing string.\n"
 		"Manufacturing information must be in the form: "
-		"LYYWWGGXXXXXX\n");
+		CONFIG_MANUF_STRINGS_HELP "\n");
 	return -EINVAL;
 }
 
