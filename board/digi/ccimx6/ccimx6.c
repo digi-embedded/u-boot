@@ -109,6 +109,8 @@ struct i2c_pads_info i2c_pad_info2 = {
 
 static int mx6_rgmii_rework(struct phy_device *phydev)
 {
+	char *phy_mode;
+
 	/*
 	 * Micrel PHY KSZ9031 has four MMD registers to configure the clock skew
 	 * of different signals. In U-Boot we're having Ethernet issues on
@@ -141,6 +143,24 @@ static int mx6_rgmii_rework(struct phy_device *phydev)
 	ksz9031_phy_extended_write(phydev, 0x02,
 				   MII_KSZ9031_EXT_RGMII_CLOCK_SKEW,
 				   MII_KSZ9031_MOD_DATA_NO_POST_INC, 0x03ff);
+
+	phy_mode = getenv("phy_mode");
+	if (!strcmp("master", phy_mode)) {
+		unsigned short reg;
+
+		/*
+		 * Micrel PHY KSZ9031 takes up to 5 seconds to autonegotiate
+		 * with Gigabit switches. This time can be reduced by forcing
+		 * the PHY to work as master during master-slave negotiation.
+		 * Forcing master mode may cause autonegotiation to fail if
+		 * the other end is also forced as master, or using a direct
+		 * cable connection.
+		 */
+		reg = phy_read(phydev, MDIO_DEVAD_NONE, MII_CTRL1000);
+		reg |= MSTSLV_MANCONFIG_ENABLE | MSTSLV_MANCONFIG_MASTER;
+		phy_write(phydev, MDIO_DEVAD_NONE, MII_CTRL1000, reg);
+	}
+
 	return 0;
 }
 

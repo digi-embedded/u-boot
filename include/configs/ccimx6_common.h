@@ -217,6 +217,7 @@
 	"initrd_file=uramdisk.img\0" \
 	"boot_fdt=try\0" \
 	"ip_dyn=yes\0" \
+	"phy_mode=auto\0" \
 	"console=" CONFIG_CONSOLE_DEV "\0" \
 	"fdt_high=0xffffffff\0"	  \
 	"initrd_high=0xffffffff\0" \
