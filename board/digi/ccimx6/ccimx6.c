@@ -42,7 +42,7 @@
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>
 #endif
-#ifdef CONFIG_PLATFORM_HAS_HWID
+#ifdef CONFIG_HAS_HWID
 #include "../common/hwid.h"
 #endif
 #include "../ccimx6/ccimx6.h"
@@ -496,7 +496,7 @@ int ccimx6_late_init(void)
 	return 0;
 }
 
-#ifdef CONFIG_PLATFORM_HAS_HWID
+#ifdef CONFIG_HAS_HWID
 void board_print_hwid(u32 *hwid)
 {
 	int i;
@@ -761,18 +761,18 @@ void fdt_fixup_hwid(void *fdt)
 				 strlen(str) + 1, 1);
 	}
 }
-#endif /* CONFIG_PLATFORM_HAS_HWID */
+#endif /* CONFIG_HAS_HWID */
 
 int checkboard(void)
 {
 	const char *bootdevice;
 
 	printf("Board:   %s\n", CONFIG_BOARD_DESCRIPTION);
-#ifdef CONFIG_PLATFORM_HAS_HWID
+#ifdef CONFIG_HAS_HWID
 	if (!array_to_hwid(hwid))
 		printf("Variant: 0x%02x - %s\n", my_hwid.variant,
 			ccimx6_variants[my_hwid.variant].id_string);
-#endif /* CONFIG_PLATFORM_HAS_HWID */
+#endif /* CONFIG_HAS_HWID */
 	bootdevice = boot_mode_string();
 	printf("Boot device: %s", bootdevice);
 	if (!strcmp(bootdevice, "esdhc2"))
@@ -805,12 +805,12 @@ void fdt_fixup_mac(void *fdt, char *varname, char *node)
 void ft_board_setup(void *blob, bd_t *bd)
 {
 
-#ifdef CONFIG_PLATFORM_HAS_HWID
+#ifdef CONFIG_HAS_HWID
 	/* Re-read HWID which could have been overriden by U-Boot commands */
 	get_hwid();
 	if (!array_to_hwid(hwid))
 		fdt_fixup_hwid(blob);
-#endif /* CONFIG_PLATFORM_HAS_HWID */
+#endif /* CONFIG_HAS_HWID */
 
 	fdt_fixup_mac(blob, "wlanaddr", "/wireless");
 	fdt_fixup_mac(blob, "btaddr", "/bluetooth");
