@@ -717,7 +717,7 @@ int get_hwid(void)
 			return -1;
 	}
 
-	return 0;
+	return(array_to_hwid(hwid));
 }
 
 void fdt_fixup_hwid(void *fdt)
@@ -769,7 +769,7 @@ int checkboard(void)
 
 	printf("Board:   %s\n", CONFIG_BOARD_DESCRIPTION);
 #ifdef CONFIG_HAS_HWID
-	if (!array_to_hwid(hwid))
+	if (!get_hwid())
 		printf("Variant: 0x%02x - %s\n", my_hwid.variant,
 			ccimx6_variants[my_hwid.variant].id_string);
 #endif /* CONFIG_HAS_HWID */
@@ -807,8 +807,7 @@ void ft_board_setup(void *blob, bd_t *bd)
 
 #ifdef CONFIG_HAS_HWID
 	/* Re-read HWID which could have been overriden by U-Boot commands */
-	get_hwid();
-	if (!array_to_hwid(hwid))
+	if (!get_hwid())
 		fdt_fixup_hwid(blob);
 #endif /* CONFIG_HAS_HWID */
 
