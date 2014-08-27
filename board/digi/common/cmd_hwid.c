@@ -25,6 +25,9 @@
 #include <fuse.h>
 #include <asm/errno.h>
 
+#define OCOTP_LOCK_BANK		0
+#define OCOTP_LOCK_WORD		0
+
 static int strtou32(const char *str, unsigned int base, u32 *result)
 {
 	char *ep;
@@ -180,8 +183,8 @@ static int do_hwid(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 		if (!confirmed && !confirm_prog())
 			return CMD_RET_FAILURE;
 		printf("Locking HWID... ");
-		ret = fuse_prog(CONFIG_OCOTP_LOCK_BANK,
-				CONFIG_OCOTP_LOCK_WORD,
+		ret = fuse_prog(OCOTP_LOCK_BANK,
+				OCOTP_LOCK_WORD,
 				CONFIG_HWID_LOCK_FUSE);
 		if (ret)
 			goto err;
