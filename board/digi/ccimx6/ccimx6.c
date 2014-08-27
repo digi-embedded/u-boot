@@ -45,7 +45,7 @@
 #ifdef CONFIG_HAS_HWID
 #include "../common/hwid.h"
 #endif
-#include "../ccimx6/ccimx6.h"
+#include "ccimx6.h"
 #include "../../../drivers/net/fec_mxc.h"
 
 DECLARE_GLOBAL_DATA_PTR;
