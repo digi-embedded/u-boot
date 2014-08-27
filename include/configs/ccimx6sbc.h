@@ -44,4 +44,15 @@
 #define CONFIG_PHY_MICREL
 #define CONFIG_ENET_PHYADDR_MICREL	3
 
+/* Carrier board version in OTP bits */
+#define CONFIG_HAS_CARRIERBOARD_VERSION
+#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
+/* For the SBC, the carrier board version is stored in Bank 4 Word 6 (GP1)
+ * in the lower 4 bits */
+#define CONFIG_CARRIERBOARD_VERSION_BANK	4
+#define CONFIG_CARRIERBOARD_VERSION_WORD	6
+#define CONFIG_CARRIERBOARD_VERSION_MASK	0xf	/* 4 OTP bits */
+#define CONFIG_CARRIERBOARD_VERSION_OFFSET	0	/* lower 4 OTP bits */
+#endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
+
 #endif                         /* __CCIMX6SBC_CONFIG_H */

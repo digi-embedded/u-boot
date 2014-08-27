@@ -89,6 +89,8 @@
 #define CONFIG_ROOTPATH		"/exports/nfsroot-" CONFIG_SYS_BOARD
 #define CONFIG_ENV_VARS_UBOOT_CONFIG
 
+#define CARRIERBOARD_VERSION_UNDEFINED	0
+
 /* ********** usb/mmc ********** */
 #define DEFAULT_KERNEL_FS		"fat"
 #define DEFAULT_KERNEL_DEVPART		"0:1"

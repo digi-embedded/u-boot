@@ -763,11 +763,34 @@ void fdt_fixup_hwid(void *fdt)
 }
 #endif /* CONFIG_HAS_HWID */
 
+int get_carrier_board_version(void)
+{
+#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
+	u32 version;
+
+	if (fuse_read(CONFIG_CARRIERBOARD_VERSION_BANK,
+		      CONFIG_CARRIERBOARD_VERSION_WORD, &version))
+		return CARRIERBOARD_VERSION_UNDEFINED;
+
+	version >>= CONFIG_CARRIERBOARD_VERSION_OFFSET;
+	version &= CONFIG_CARRIERBOARD_VERSION_MASK;
+
+	return((int)version);
+#else
+	return CARRIERBOARD_VERSION_UNDEFINED;
+#endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
+}
+
 int checkboard(void)
 {
 	const char *bootdevice;
+	int board_ver = get_carrier_board_version();
 
-	printf("Board:   %s\n", CONFIG_BOARD_DESCRIPTION);
+	printf("Board: %s ", CONFIG_BOARD_DESCRIPTION);
+	if (CARRIERBOARD_VERSION_UNDEFINED == board_ver)
+		printf("(undefined version)\n");
+	else
+		printf("v%d\n", board_ver);
 #ifdef CONFIG_HAS_HWID
 	if (!get_hwid())
 		printf("Variant: 0x%02x - %s\n", my_hwid.variant,
