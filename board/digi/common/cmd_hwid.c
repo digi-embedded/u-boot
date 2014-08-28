@@ -315,7 +315,7 @@ err:
 U_BOOT_CMD(
 	board_version, CONFIG_SYS_MAXARGS, 0, do_board_version,
 	"Carrier board version on fuse sub-system",
-	     "read - read carrier board version from shadow registers\n"
+		      "read - read carrier board version from shadow registers\n"
 	"board_version sense - sense carrier board version from fuses\n"
 	"board_version prog [-y] <version> - program carrier board version (PERMANENT)\n"
 	"board_version override <version> - override carrier board version\n"
