@@ -208,9 +208,9 @@ U_BOOT_CMD(
 	"hwid read_manuf - read HWID from shadow registers and print manufacturing ID\n"
 	"hwid sense - sense HWID from fuses\n"
 	"hwid sense_manuf - sense HWID from fuses and print manufacturing ID\n"
-	"hwid prog [-y] <hexval MSB> [.. <hexval LSB>] - program HWID (PERMANENT)\n"
+	"hwid prog [-y] <high_word> <low_word> - program HWID (PERMANENT)\n"
 	"hwid prog_manuf [-y] " CONFIG_MANUF_STRINGS_HELP " - program HWID with manufacturing ID (PERMANENT)\n"
-	"hwid override <hexval MSB> [.. <hexval LSB>] - override HWID\n"
+	"hwid override <high_word> <low_word> - override HWID\n"
 	"hwid override_manuf " CONFIG_MANUF_STRINGS_HELP " - override HWID with manufacturing ID\n"
 	"hwid lock [-y] - lock HWID OTP bits (PERMANENT)\n"
 );
