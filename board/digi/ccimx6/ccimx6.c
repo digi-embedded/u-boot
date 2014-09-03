@@ -781,6 +781,17 @@ int get_carrier_board_version(void)
 #endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
 }
 
+#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
+void fdt_fixup_carrierboard(void *fdt)
+{
+	char str[20];
+
+	sprintf(str, "%d", get_carrier_board_version());
+	do_fixup_by_path(fdt, "/", "digi,carrierboard,version", str,
+			 strlen(str) + 1, 1);
+}
+#endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
+
 int checkboard(void)
 {
 	const char *bootdevice;
@@ -833,6 +844,10 @@ void ft_board_setup(void *blob, bd_t *bd)
 	if (!get_hwid())
 		fdt_fixup_hwid(blob);
 #endif /* CONFIG_HAS_HWID */
+
+#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
+	fdt_fixup_carrierboard(blob);
+#endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
 
 	fdt_fixup_mac(blob, "wlanaddr", "/wireless");
 	fdt_fixup_mac(blob, "btaddr", "/bluetooth");
