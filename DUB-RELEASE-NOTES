@@ -2,13 +2,14 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
-v2013.04 - DUB-2.3.0.1, released on 2014/08/28
+v2013.04 - DUB-2.3.0.2, released on 2014/09/03
 	- Add DDR3 calibration values for cavity-less module.
 	- Variable 'phy-mode' allows you to force the PHY to work as MASTER
 	  during master/slave negotiation, which may speed up the
 	  autonegotiation with Gigabit switches.
 	- Disable automatic TFTP bootscript download by clearing the
-	  'bootscript' variable to avoid long PHY autonegotiation time.
+	  'bootscript' variable to avoid long PHY autonegotiation time
+	  during boot.
 	- Abort OTF update operation on chunk write failure.
 	- Added support for carrier board version in OTP bits.
 	- Disable power on audio codec on SBC v2 carrier board.
