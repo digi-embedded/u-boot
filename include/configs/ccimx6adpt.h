@@ -46,4 +46,7 @@
 #define CONFIG_PHY_SMSC
 #define CONFIG_ENET_PHYADDR_SMSC	0
 
+/* Celsius degrees below CPU's max die temp at which boot should be attempted */
+#define CONFIG_BOOT_TEMP_BELOW_MAX		10
+
 #endif                         /* __CCIMX6ADPT_CONFIG_H */

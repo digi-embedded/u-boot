@@ -55,4 +55,7 @@
 #define CONFIG_CARRIERBOARD_VERSION_OFFSET	0	/* lower 4 OTP bits */
 #endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
 
+/* Celsius degrees below CPU's max die temp at which boot should be attempted */
+#define CONFIG_BOOT_TEMP_BELOW_MAX		10
+
 #endif                         /* __CCIMX6SBC_CONFIG_H */

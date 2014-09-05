@@ -45,8 +45,6 @@ struct scu_regs {
 };
 
 #define TEMPERATURE_MIN		-40
-#define TEMPERATURE_HOT		80
-#define TEMPERATURE_MAX		125
 #define FACTOR1			15976
 #define FACTOR2			4297157
 #define MEASURE_FREQ		327
@@ -286,27 +284,32 @@ static int read_cpu_temperature(void)
 	return temperature;
 }
 
+#define OCOTP_HOT_TEMP_MASK	0xff
 void check_cpu_temperature(void)
 {
-	int cpu_tmp = 0;
+	int cpu_tmp, temp_max, temp_hot;
 	u32 fuse;
 
+	/* Set temperature limits for U-Boot depending on on the maximum die
+	 * temperature stored in the OCOTP fuses. This allows higher margin in
+	 * industrial and automotive rated i.MX6 SoCs
+	 */
 	fuse = read_temp_fuse();
+	temp_max = fuse & OCOTP_HOT_TEMP_MASK;
+	temp_hot = temp_max - CONFIG_BOOT_TEMP_BELOW_MAX;
+	debug("temp_max: %d C, temp_hot: %d C\n", temp_max, temp_hot);
+
 	cpu_tmp = read_cpu_temperature();
-	while (cpu_tmp > TEMPERATURE_MIN && cpu_tmp < TEMPERATURE_MAX) {
-		if (cpu_tmp >= TEMPERATURE_HOT) {
-			printf("CPU is %d C, too hot to boot, waiting...\n",
-				cpu_tmp);
-			udelay(5000000);
-			cpu_tmp = read_cpu_temperature();
-		} else
-			break;
+	while (cpu_tmp > temp_hot) {
+		printf("CPU is %d C, too hot to boot, waiting...\n", cpu_tmp);
+		udelay(5000000);
+		cpu_tmp = read_cpu_temperature();
 	}
-	if (cpu_tmp > TEMPERATURE_MIN && cpu_tmp < TEMPERATURE_MAX)
+	if (cpu_tmp < TEMPERATURE_MIN || cpu_tmp > temp_max)
+		printf("CPU:   WARNING. Measured temperature out of limits!\n");
+	else
 		printf("CPU:   Temperature %d C, calibration data: 0x%x\n",
 			cpu_tmp, fuse);
-	else
-		printf("CPU:   Temperature: can't get valid data!\n");
 }
 
 static void imx_reset_pfd(void)
