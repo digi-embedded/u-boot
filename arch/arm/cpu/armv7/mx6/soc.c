@@ -54,8 +54,6 @@ struct scu_regs {
 #define REG_VALUE_TO_CEL(ratio, raw) \
 	((raw_n40c - raw) * 100 / ratio - 40)
 
-static unsigned int fuse = ~0;
-
 u32 get_cpu_rev(void)
 {
 	struct anatop_regs *anatop = (struct anatop_regs *)ANATOP_BASE_ADDR;
@@ -176,18 +174,36 @@ static void imx_set_wdog_powerdown(bool enable)
 	writew(enable, &wdog2->wmcr);
 }
 
-static int read_cpu_temperature(void)
+static u32 read_temp_fuse(void)
 {
-	int temperature;
-	unsigned int ccm_ccgr2;
-	unsigned int reg, tmp;
-	unsigned int raw_25c, raw_n40c, ratio;
-	struct anatop_regs *anatop = (struct anatop_regs *)ANATOP_BASE_ADDR;
-	struct mxc_ccm_reg *mxc_ccm = (struct mxc_ccm_reg *)CCM_BASE_ADDR;
 	struct ocotp_regs *ocotp = (struct ocotp_regs *)OCOTP_BASE_ADDR;
+	struct mxc_ccm_reg *mxc_ccm = (struct mxc_ccm_reg *)CCM_BASE_ADDR;
 	struct fuse_bank *bank = &ocotp->bank[1];
 	struct fuse_bank1_regs *fuse_bank1 =
 			(struct fuse_bank1_regs *)bank->fuse_regs;
+	unsigned int ccm_ccgr2;
+	u32 fuse;
+
+	/* enable OCOTP_CTRL clock in CCGR2 */
+	ccm_ccgr2 = readl(&mxc_ccm->CCGR2);
+	writel(ccm_ccgr2 | MXC_CCM_CCGR2_OCOTP_CTRL_MASK, &mxc_ccm->CCGR2);
+
+	/* Read temp parameters from fuses */
+	fuse = readl(&fuse_bank1->ana1);
+
+	/* restore CCGR2 */
+	writel(ccm_ccgr2, &mxc_ccm->CCGR2);
+
+	return fuse;
+}
+
+static int read_cpu_temperature(void)
+{
+	int temperature;
+	unsigned int reg, tmp;
+	unsigned int raw_25c, raw_n40c, ratio;
+	struct anatop_regs *anatop = (struct anatop_regs *)ANATOP_BASE_ADDR;
+	u32 fuse;
 
 	/* need to make sure pll3 is enabled for thermal sensor */
 	if ((readl(&anatop->usb1_pll_480_ctrl) &
@@ -208,14 +224,7 @@ static int read_cpu_temperature(void)
 				&anatop->usb1_pll_480_ctrl_set);
 	}
 
-	ccm_ccgr2 = readl(&mxc_ccm->CCGR2);
-	/* enable OCOTP_CTRL clock in CCGR2 */
-	writel(ccm_ccgr2 | MXC_CCM_CCGR2_OCOTP_CTRL_MASK, &mxc_ccm->CCGR2);
-	fuse = readl(&fuse_bank1->ana1);
-
-	/* restore CCGR2 */
-	writel(ccm_ccgr2, &mxc_ccm->CCGR2);
-
+	fuse = read_temp_fuse();
 	if (fuse == 0 || fuse == 0xffffffff || (fuse & 0xfff00000) == 0)
 		return TEMPERATURE_MIN;
 
@@ -235,7 +244,6 @@ static int read_cpu_temperature(void)
 	 * FACTOR2 is 4297157. Our ratio = -100 * slope
 	 */
 	ratio = ((FACTOR1 * raw_25c - FACTOR2) + 50000) / 100000;
-
 	debug("Thermal sensor with ratio = %d\n", ratio);
 
 	raw_n40c = raw_25c + (13 * ratio) / 20;
@@ -281,7 +289,9 @@ static int read_cpu_temperature(void)
 void check_cpu_temperature(void)
 {
 	int cpu_tmp = 0;
+	u32 fuse;
 
+	fuse = read_temp_fuse();
 	cpu_tmp = read_cpu_temperature();
 	while (cpu_tmp > TEMPERATURE_MIN && cpu_tmp < TEMPERATURE_MAX) {
 		if (cpu_tmp >= TEMPERATURE_HOT) {
