@@ -32,6 +32,7 @@ int pmic_write_bitfield(int reg, unsigned char mask, unsigned char off,
 			       unsigned char bfval);
 int setup_sata(void);
 void setup_iomux_enet(void);
+int ccimx6_early_init(void);
 int ccimx6_late_init(void);
 int get_carrierboard_version(void);
 

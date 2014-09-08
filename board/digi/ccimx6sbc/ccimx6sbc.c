@@ -177,6 +177,7 @@ void ldo_mode_set(int ldo_bypass)
 int board_early_init_f(void)
 {
 	setup_iomux_uart();
+	ccimx6_early_init();
 
 #ifdef CONFIG_CMD_SATA
 	setup_sata();

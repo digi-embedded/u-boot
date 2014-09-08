@@ -1108,3 +1108,14 @@ int board_update_chunk(otf_data_t *otfd)
 
 	return 0;
 }
+
+int ccimx6_early_init(void)
+{
+#ifdef CONFIG_HAS_HWID
+	if (get_hwid()) {
+		printf("Cannot read HWID\n");
+		return -1;
+	}
+#endif
+	return 0;
+}
