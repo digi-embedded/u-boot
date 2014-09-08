@@ -12,6 +12,6 @@
 #ifndef __DIGI_VERSION_H
 #define __DIGI_VERSION_H
 
-#define VERSION_TAG	"dub-2.3.0.2-git"
+#define VERSION_TAG	"dub-2.3.0.3-git"
 
 #endif /* __DIGI_VERSION_H */
