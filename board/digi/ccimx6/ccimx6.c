@@ -667,16 +667,16 @@ void board_print_manufid(u32 *hwid)
 	       hwid[1] & 0xf);
 }
 
-static int is_valid_hwid(u8 variant)
+static int is_valid_hwid(struct ccimx6_hwid *hwid)
 {
-	if (variant < ARRAY_SIZE(ccimx6_variants))
-		if (ccimx6_variants[variant].cpu != IMX6_NONE)
+	if (hwid->variant < ARRAY_SIZE(ccimx6_variants))
+		if (ccimx6_variants[hwid->variant].cpu != IMX6_NONE)
 			return 1;
 
 	return 0;
 }
 
-static int array_to_hwid(u32 *hwid)
+static void array_to_hwid(u32 *hwid)
 {
 	/*
 	 *                      MAC1 (Bank 4 Word 3)
@@ -693,10 +693,6 @@ static int array_to_hwid(u32 *hwid)
 	 * HWID: | Location |  GenID |      Serial number      |
 	 *       +----------+--------+-------------------------+
 	 */
-
-	if (!is_valid_hwid((hwid[1] >> 8) & 0xff))
-		return -EINVAL;
-
 	my_hwid.year = (hwid[1] >> 26) & 0x3f;
 	my_hwid.week = (hwid[1] >> 20) & 0x3f;
 	my_hwid.variant = (hwid[1] >> 8) & 0xff;
@@ -705,8 +701,6 @@ static int array_to_hwid(u32 *hwid)
 	my_hwid.location = (hwid[0] >> 27) & 0x1f;
 	my_hwid.genid = (hwid[0] >> 20) & 0x7f;
 	my_hwid.sn = hwid[0] & 0xfffff;
-
-	return  0;
 }
 
 int manufstr_to_hwid(int argc, char *const argv[], u32 *val)
@@ -847,7 +841,9 @@ int get_hwid(void)
 			return -1;
 	}
 
-	return(array_to_hwid(hwid));
+	array_to_hwid(hwid);
+
+	return 0;
 }
 
 void fdt_fixup_hwid(void *fdt)
@@ -933,7 +929,7 @@ int checkboard(void)
 	else
 		printf("v%d\n", board_ver);
 #ifdef CONFIG_HAS_HWID
-	if (!get_hwid())
+	if (is_valid_hwid(&my_hwid))
 		printf("Variant: 0x%02x - %s\n", my_hwid.variant,
 			ccimx6_variants[my_hwid.variant].id_string);
 #endif /* CONFIG_HAS_HWID */
@@ -971,8 +967,7 @@ void ft_board_setup(void *blob, bd_t *bd)
 
 #ifdef CONFIG_HAS_HWID
 	/* Re-read HWID which could have been overriden by U-Boot commands */
-	if (!get_hwid())
-		fdt_fixup_hwid(blob);
+	fdt_fixup_hwid(blob);
 #endif /* CONFIG_HAS_HWID */
 
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
