@@ -540,10 +540,34 @@ void update_ddr3_calibration(u8 variant)
 	}
 }
 
+static int setup_pmic_voltages_ccimx6(void)
+{
+	unsigned char dev_id, var_id, conf_id, cust_id;
+#ifdef CONFIG_I2C_MULTI_BUS
+	if (i2c_set_bus_num(0))
+                return -1;
+#endif
+
+	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
+
+	if (!i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
+		/* Read and print PMIC identification */
+		if (pmic_read_reg(DA9063_DEVICE_ID_ADDR, &dev_id) ||
+		    pmic_read_reg(DA9063_VARIANT_ID_ADDR, &var_id) ||
+		    pmic_read_reg(DA9063_CUSTOMER_ID_ADDR, &cust_id) ||
+		    pmic_read_reg(DA9063_CONFIG_ID_ADDR, &conf_id)) {
+			printf("Could not read PMIC ID registers\n");
+			return -1;
+		}
+		printf("PMIC:  DA9063, Device: 0x%02x, Variant: 0x%02x, "
+			"Customer: 0x%02x, Config: 0x%02x\n", dev_id, var_id,
+			cust_id, conf_id);
+	}
+	return 0;
+}
+
 int ccimx6_late_init(void)
 {
-	int ret = 0;
-
 	/* Override DDR3 calibration values basing on HWID variant */
 	update_ddr3_calibration(my_hwid.variant);
 
@@ -560,8 +584,9 @@ int ccimx6_late_init(void)
 	setup_i2c(2, CONFIG_SYS_I2C_SPEED,
 			CONFIG_SYS_I2C_SLAVE, &i2c_pad_info2);
 #endif
-	ret = setup_pmic_voltages();
-	if (ret)
+	if (setup_pmic_voltages_ccimx6())
+		return -1;
+	if (setup_pmic_voltages_carrierboard())
 		return -1;
 #endif
 

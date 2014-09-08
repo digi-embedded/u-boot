@@ -36,6 +36,6 @@ int ccimx6_late_init(void);
 int get_carrier_board_version(void);
 
 /* Board defined functions */
-int setup_pmic_voltages(void);
+int setup_pmic_voltages_carrierboard(void);
 
 #endif  /* __CCIMX6_H */
