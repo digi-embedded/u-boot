@@ -890,7 +890,7 @@ void fdt_fixup_hwid(void *fdt)
 }
 #endif /* CONFIG_HAS_HWID */
 
-int get_carrier_board_version(void)
+int get_carrierboard_version(void)
 {
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
 	u32 version;
@@ -913,7 +913,7 @@ void fdt_fixup_carrierboard(void *fdt)
 {
 	char str[20];
 
-	sprintf(str, "%d", get_carrier_board_version());
+	sprintf(str, "%d", get_carrierboard_version());
 	do_fixup_by_path(fdt, "/", "digi,carrierboard,version", str,
 			 strlen(str) + 1, 1);
 }
@@ -922,7 +922,7 @@ void fdt_fixup_carrierboard(void *fdt)
 int checkboard(void)
 {
 	const char *bootdevice;
-	int board_ver = get_carrier_board_version();
+	int board_ver = get_carrierboard_version();
 
 	printf("Board: %s ", CONFIG_BOARD_DESCRIPTION);
 	if (CARRIERBOARD_VERSION_UNDEFINED == board_ver)

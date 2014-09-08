@@ -145,7 +145,7 @@ int board_eth_init(bd_t *bis)
 static void setup_board_audio(void)
 {
 	/* SBC version 2 uses a GPIO to power enable the audio codec */
-	if (get_carrier_board_version() >= 2) {
+	if (get_carrierboard_version() >= 2) {
 		int pwren_gpio = IMX_GPIO_NR(2, 25);
 
 		/* Power enable line IOMUX */
