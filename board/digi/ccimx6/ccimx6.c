@@ -549,20 +549,23 @@ static int setup_pmic_voltages_ccimx6(void)
 #endif
 
 	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
-
-	if (!i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
-		/* Read and print PMIC identification */
-		if (pmic_read_reg(DA9063_DEVICE_ID_ADDR, &dev_id) ||
-		    pmic_read_reg(DA9063_VARIANT_ID_ADDR, &var_id) ||
-		    pmic_read_reg(DA9063_CUSTOMER_ID_ADDR, &cust_id) ||
-		    pmic_read_reg(DA9063_CONFIG_ID_ADDR, &conf_id)) {
-			printf("Could not read PMIC ID registers\n");
-			return -1;
-		}
-		printf("PMIC:  DA9063, Device: 0x%02x, Variant: 0x%02x, "
-			"Customer: 0x%02x, Config: 0x%02x\n", dev_id, var_id,
-			cust_id, conf_id);
+	if (i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
+		printf("ERR: cannot access the PMIC\n");
+		return -1;
 	}
+
+	/* Read and print PMIC identification */
+	if (pmic_read_reg(DA9063_DEVICE_ID_ADDR, &dev_id) ||
+	    pmic_read_reg(DA9063_VARIANT_ID_ADDR, &var_id) ||
+	    pmic_read_reg(DA9063_CUSTOMER_ID_ADDR, &cust_id) ||
+	    pmic_read_reg(DA9063_CONFIG_ID_ADDR, &conf_id)) {
+		printf("Could not read PMIC ID registers\n");
+		return -1;
+	}
+	printf("PMIC:  DA9063, Device: 0x%02x, Variant: 0x%02x, "
+		"Customer: 0x%02x, Config: 0x%02x\n", dev_id, var_id,
+		cust_id, conf_id);
+
 	return 0;
 }
 

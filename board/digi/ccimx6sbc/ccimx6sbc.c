@@ -63,38 +63,42 @@ int setup_pmic_voltages_carrierboard(void)
 
 	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
 
-	if (!i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
-#if defined(CONFIG_FEC_MXC)
-		/* Both NVCC_ENET and NVCC_RGMII come from LDO4 (2.5V) */
-		/* Config LDO4 voltages A and B at 2.5V, then enable VLDO4 */
-		if (pmic_write_reg(DA9063_VLDO4_A_ADDR, 0x50) ||
-		    pmic_write_reg(DA9063_VLDO4_B_ADDR, 0x50) ||
-		    pmic_write_bitfield(DA9063_VLDO4_CONT_ADDR, 0x1, 0, 0x1))
-			printf("Could not configure VLDO4\n");
-#endif
-		/* PMIC GPIO11 is the LCD backlight which is low level
-		 * enabled. If left with default configuration (input) or when
-		 * coming from power-off, the backlight may be enabled and draw
-		 * too much power from the 5V source when this source is
-		 * enabled, which may cause a voltage drop on the 5V line and
-		 * hang the I2C bus where the touch controller is attached.
-		 * To prevent this, configure GPIO11 as output and set it
-		 * high, to make sure the backlight is disabled when the 5V is
-		 * enabled.
-		 */
-		if (pmic_write_bitfield(DA9063_GPIO10_11_ADDR, 0xf, 4, 0x3))
-			printf("Could not configure GPIO11\n");
-		if (pmic_write_bitfield(DA9063_GPIO_MODE8_15_ADDR, 0x1, 3, 0x1))
-			printf("Could not set GPIO11 high\n");
-
-		/* PWR_EN on the ccimx6sbc enables the +5V suppy and comes
-		 * from PMIC_GPIO7. Set this GPIO high to enable +5V supply.
-		 */
-		if (pmic_write_bitfield(DA9063_GPIO6_7_ADDR, 0xf, 4, 0x3))
-			printf("Could not configure GPIO7\n");
-		if (pmic_write_bitfield(DA9063_GPIO_MODE0_7_ADDR, 0x1, 7, 0x1))
-			printf("Could not enable PWR_EN\n");
+	if (i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
+		printf("ERR: cannot access the PMIC\n");
+		return -1;
 	}
+
+#if defined(CONFIG_FEC_MXC)
+	/* Both NVCC_ENET and NVCC_RGMII come from LDO4 (2.5V) */
+	/* Config LDO4 voltages A and B at 2.5V, then enable VLDO4 */
+	if (pmic_write_reg(DA9063_VLDO4_A_ADDR, 0x50) ||
+	    pmic_write_reg(DA9063_VLDO4_B_ADDR, 0x50) ||
+	    pmic_write_bitfield(DA9063_VLDO4_CONT_ADDR, 0x1, 0, 0x1))
+		printf("Could not configure VLDO4\n");
+#endif
+	/* PMIC GPIO11 is the LCD backlight which is low level
+	 * enabled. If left with default configuration (input) or when
+	 * coming from power-off, the backlight may be enabled and draw
+	 * too much power from the 5V source when this source is
+	 * enabled, which may cause a voltage drop on the 5V line and
+	 * hang the I2C bus where the touch controller is attached.
+	 * To prevent this, configure GPIO11 as output and set it
+	 * high, to make sure the backlight is disabled when the 5V is
+	 * enabled.
+	 */
+	if (pmic_write_bitfield(DA9063_GPIO10_11_ADDR, 0xf, 4, 0x3))
+		printf("Could not configure GPIO11\n");
+	if (pmic_write_bitfield(DA9063_GPIO_MODE8_15_ADDR, 0x1, 3, 0x1))
+		printf("Could not set GPIO11 high\n");
+
+	/* PWR_EN on the ccimx6sbc enables the +5V suppy and comes
+	 * from PMIC_GPIO7. Set this GPIO high to enable +5V supply.
+	 */
+	if (pmic_write_bitfield(DA9063_GPIO6_7_ADDR, 0xf, 4, 0x3))
+		printf("Could not configure GPIO7\n");
+	if (pmic_write_bitfield(DA9063_GPIO_MODE0_7_ADDR, 0x1, 7, 0x1))
+		printf("Could not enable PWR_EN\n");
+
 	return 0;
 }
 #endif /* CONFIG_I2C_MXC */
