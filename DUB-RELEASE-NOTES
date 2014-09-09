@@ -2,8 +2,11 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
-v2013.04 - DUB-2.3.0.2, released on 2014/09/03
+v2013.04 - DUB-2.3.0.3, released on 2014/09/09
 	- Add DDR3 calibration values for cavity-less module.
+	- Added CONFIG_BOOT_TEMP_BELOW_MAX to establish celsius degrees
+	  below CPU's max die temp at which boot should be attempted
+	  (defaults to 10C).
 	- Variable 'phy_mode' allows you to force the PHY to work as MASTER
 	  during master/slave negotiation, which may speed up the
 	  autonegotiation with Gigabit switches.
