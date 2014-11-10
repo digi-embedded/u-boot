@@ -21,6 +21,7 @@
 #include <common.h>
 #include <asm/arch/iomux.h>
 #include <asm/arch/mx6-pins.h>
+#include <asm/arch/sys_proto.h>
 #include <asm/gpio.h>
 #include <netdev.h>
 #if CONFIG_I2C_MXC
@@ -173,6 +174,17 @@ static void setup_board_audio(void)
 		gpio_direction_output(pwren_gpio , 0);
 	}
 }
+
+#ifdef CONFIG_LDO_BYPASS_CHECK
+void ldo_mode_set(int ldo_bypass)
+{
+        /* swith to ldo_bypass mode */
+        if (ldo_bypass) {
+                set_anatop_bypass();
+                printf("switch to ldo_bypass mode!\n");
+        }
+}
+#endif
 
 int board_early_init_f(void)
 {
