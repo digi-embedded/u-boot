@@ -23,7 +23,6 @@
 set -e
 
 AVAILABLE_PLATFORMS=" \
-	ccimx6adpt \
 	ccimx6sbc \
 "
 
@@ -31,7 +30,6 @@ AVAILABLE_PLATFORMS=" \
 while read pl mt; do
 	eval "${pl}_make_target=\"${mt}\""
 done<<-_EOF_
-	ccimx6adpt    u-boot.imx
 	ccimx6sbc     u-boot.imx
 _EOF_
 
