@@ -22,9 +22,6 @@
 #define XMK_STR(x)	#x
 #define MK_STR(x)	XMK_STR(x)
 
-/* may undefine settings */
-#include <digi_version.h>
-
 #define CONFIG_VENDOR		"Digi"
 
 /* stuff that may be undefined in userconfig.h */
