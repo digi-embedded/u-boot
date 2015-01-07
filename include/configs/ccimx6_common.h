@@ -299,8 +299,7 @@
 			"else;" \
 			"fi;" \
 		"fi;\0" \
-	"bootargs_android=\"androidboot.hardware=freescale " \
-		"fbmem=28M vmalloc=400M\"\0" \
+	"bootargs_android=\"androidboot.hardware=" CONFIG_SYS_BOARD "\0" \
 	"bootargs_mmc_android=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_android} androidboot.mmcdev=${mmcdev} " \
 		"androidboot.console=${console} " \
