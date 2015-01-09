@@ -25,6 +25,8 @@
 /* may undefine settings */
 #include <digi_version.h>
 
+#define CONFIG_VENDOR		"Digi"
+
 /* stuff that may be undefined in userconfig.h */
 /* ********** user key configuration ********** */
 #ifndef CONFIG_UBOOT_DISABLE_USER_KEYS
