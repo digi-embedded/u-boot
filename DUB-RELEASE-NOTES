@@ -2,6 +2,16 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
+DUB-2013.04.0.1, released on 2015/01/09
+	- Change Digi version string to follow upstream U-Boot major/minor
+	  version numbers. The two last numbers are feature/patch version
+	  and build version.
+	- Removed support for ConnectCore 6 Adapter platform (ccimx6adpt).
+	- Removed $video_args variable, no longer used.
+	- Added support for LDO bypass mode.
+	- Added support to update firmware from RAM.
+
+
 v2013.04 - DUB-2.3.0.3, released on 2014/09/09
 	- Add DDR3 calibration values for cavity-less module.
 	- Added CONFIG_BOOT_TEMP_BELOW_MAX to establish celsius degrees
