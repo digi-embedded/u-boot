@@ -129,7 +129,7 @@ static int write_firmware(char *partname, disk_partition_t *info)
 	 *  M = last address of SDRAM (CONFIG_DDR_MB (size of SDRAM) + P)
 	 *  U = SDRAM address where U-Boot is located (plus margin)
 	 */
-	verifyaddr = getenv_ulong("verifyaddr", 16, CONFIG_VERIFYADDR);
+	verifyaddr = getenv_ulong("verifyaddr", 16, 0);
 	m = PHYS_SDRAM + (CONFIG_DDR_MB * 1024 * 1024);
 	u = m - CONFIG_UBOOT_RESERVED;
 
