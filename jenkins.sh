@@ -22,16 +22,15 @@
 
 set -e
 
-AVAILABLE_PLATFORMS=" \
-	ccimx6sbc \
-"
-
 # <platform> <uboot_make_target> <toolchain_type>
 while read pl mt tt; do
+	AVAILABLE_PLATFORMS="${AVAILABLE_PLATFORMS:+${AVAILABLE_PLATFORMS} }${pl}"
 	eval "${pl}_make_target=\"${mt}\""
 	eval "${pl}_toolchain_type=\"${tt}\""
 done<<-_EOF_
-	ccimx6sbc  u-boot.imx  cortexa9hf
+	ccimx6qsbc       u-boot.imx  cortexa9hf
+	ccimx6qsbc512MB  u-boot.imx  cortexa9hf
+	ccimx6dlsbc      u-boot.imx  cortexa9hf
 _EOF_
 
 # Set default values if not provided by Jenkins
@@ -77,6 +76,8 @@ if pushd ${DUB_UBOOT_DIR}; then
 			eval TOOLCHAIN_TYPE=\"\${${platform}_toolchain_type}\"
 			for TLABEL in ${DUB_REVISION_SANE} default; do
 				TLABEL="${TLABEL}-${TOOLCHAIN_TYPE}"
+				# If the toolchain is already installed exit the loop
+				[ -d "${DUB_TOOLCHAIN_DIR}/${TLABEL}" ] && break
 				if wget -q --spider "${DUB_TOOLCHAIN_URL}/toolchain-${TLABEL}.sh"; then
 					printf "\n[INFO] Installing toolchain-${TLABEL}.sh\n\n"
 					tmp_toolchain="$(mktemp /tmp/toolchain.XXXXXX)"
