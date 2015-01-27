@@ -293,7 +293,8 @@
 			"else;" \
 			"fi;" \
 		"fi;\0" \
-	"bootargs_android=\"androidboot.hardware=" CONFIG_SYS_BOARD "\0" \
+	"bootargs_android=\"androidboot.hardware=" CONFIG_SYS_BOARD " " \
+		"mem=" __stringify(CONFIG_DDR_MB) "M\0" \
 	"bootargs_mmc_android=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_android} androidboot.mmcdev=${mmcdev} " \
 		"androidboot.console=${console} " \
