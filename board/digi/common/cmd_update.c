@@ -12,6 +12,8 @@
 #include <part.h>
 #include "helper.h"
 
+DECLARE_GLOBAL_DATA_PTR;
+
 extern int board_update_chunk(otf_data_t *oftd);
 extern void register_tftp_otf_update_hook(int (*hook)(otf_data_t *oftd),
 					  disk_partition_t*);
@@ -213,6 +215,24 @@ static int emmc_bootselect(void)
 	return run_command(cmd, 0);
 }
 
+/*
+ * This function returns the size of available RAM holding a firmware transfer.
+ * This size depends on:
+ *   - The total RAM available
+ *   - The loadaddr
+ *   - The RAM occupied by U-Boot and its location
+ */
+static unsigned int get_available_ram_for_update(void)
+{
+	unsigned int loadaddr;
+	unsigned int la_off;
+
+	loadaddr = getenv_ulong("loadaddr", 16, CONFIG_LOADADDR);
+	la_off = loadaddr - gd->bd->bi_dram[0].start;
+
+	return (gd->bd->bi_dram[0].size - CONFIG_UBOOT_RESERVED - la_off);
+}
+
 static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 {
 	int src = SRC_TFTP;	/* default to TFTP */
@@ -222,6 +242,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	int ret;
 	char filename[256] = "";
 	int otf = 0;
+	int otf_enabled = 0;
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	unsigned long loadaddr, filesize;
 
@@ -263,10 +284,28 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		/* Get address in RAM where firmware file is */
 		if (argc > 3)
 			loadaddr = simple_strtol(argv[3], NULL, 16);
+
 		/* Get filesize */
 		if (argc > 4)
 			filesize = simple_strtol(argv[4], NULL, 16);
 	} else {
+		/*
+		 * Check if there is enough RAM to hold the largest possible
+		 * file that fits into the partition.
+		 */
+		unsigned long avail = get_available_ram_for_update();
+		block_dev_desc_t *mmc_dev;
+
+		mmc_dev = mmc_get_dev(CONFIG_SYS_STORAGE_DEV);
+		if (avail <= info.size * mmc_dev->blksz) {
+			printf("Partition to update is larger (%d MiB) than the\n"
+			       "available RAM memory (%d MiB, starting at $loadaddr=0x%08x).\n",
+			       (int)(info.size * mmc_dev->blksz / (1024 * 1024)),
+			       (int)(avail / (1024 * 1024)),
+			       (unsigned int)loadaddr);
+			printf("Activating On-the-fly update mechanism.\n");
+			otf_enabled = 1;
+		}
 		/* Get firmware file name */
 		ret = get_fw_filename(argc, argv, src, filename);
 		if (ret) {
@@ -280,7 +319,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	/* Activate on-the-fly update if needed */
-	if (getenv_yesno("otf-update") == 1) {
+	if (otf_enabled || (getenv_yesno("otf-update") == 1)) {
 		if (!strcmp((char *)info.name, "uboot")) {
 			/* Do not activate on-the-fly update for U-Boot */
 			printf("On-the-fly mechanism disabled for U-Boot "
