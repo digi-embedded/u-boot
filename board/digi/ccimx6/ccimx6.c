@@ -242,9 +242,27 @@ int board_phy_config(struct phy_device *phydev)
 	return 0;
 }
 
+static void update_ddr3_calibration(u8 variant)
+{
+	int i;
+	volatile u32 *addr;
+
+	if (variant <= 0 || variant > NUM_VARIANTS)
+		return;
+
+	for (i = 0; i < ARRAY_SIZE(ddr3_calibration[variant]); i++) {
+		addr = (volatile u32 *)(ddr3_calibration[variant][i].address);
+		if (addr != NULL)
+			writel(ddr3_calibration[variant][i].value, addr);
+	}
+}
+
 int dram_init(void)
 {
 	gd->ram_size = ((ulong)CONFIG_DDR_MB * 1024 * 1024);
+
+	/* Override DDR3 calibration values basing on HWID variant */
+	update_ddr3_calibration(my_hwid.variant);
 
 	return 0;
 }
@@ -525,21 +543,6 @@ static const struct boot_mode board_boot_modes[] = {
 };
 #endif
 
-void update_ddr3_calibration(u8 variant)
-{
-	int i;
-	volatile u32 *addr;
-
-	if (variant <= 0 || variant > NUM_VARIANTS)
-		return;
-
-	for (i = 0; i < ARRAY_SIZE(ddr3_calibration[variant]); i++) {
-		addr = (volatile u32 *)(ddr3_calibration[variant][i].address);
-		if (addr != NULL)
-			writel(ddr3_calibration[variant][i].value, addr);
-	}
-}
-
 static int setup_pmic_voltages_ccimx6(void)
 {
 	unsigned char dev_id, var_id, conf_id, cust_id;
@@ -571,9 +574,6 @@ static int setup_pmic_voltages_ccimx6(void)
 
 int ccimx6_late_init(void)
 {
-	/* Override DDR3 calibration values basing on HWID variant */
-	update_ddr3_calibration(my_hwid.variant);
-
 #ifdef CONFIG_CMD_BMODE
 	add_board_boot_modes(board_boot_modes);
 #endif
