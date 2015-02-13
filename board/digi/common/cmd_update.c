@@ -289,23 +289,27 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		if (argc > 4)
 			filesize = simple_strtol(argv[4], NULL, 16);
 	} else {
-		/*
-		 * Check if there is enough RAM to hold the largest possible
-		 * file that fits into the partition.
-		 */
-		unsigned long avail = get_available_ram_for_update();
-		block_dev_desc_t *mmc_dev;
+		if (getenv_yesno("otf-update") == -1) {
+			/*
+			 * If otf-update is undefined, check if there is enough
+			 * RAM to hold the largest possible file that fits into
+			 * the destiny partition.
+			 */
+			unsigned long avail = get_available_ram_for_update();
+			block_dev_desc_t *mmc_dev;
 
-		mmc_dev = mmc_get_dev(CONFIG_SYS_STORAGE_DEV);
-		if (avail <= info.size * mmc_dev->blksz) {
-			printf("Partition to update is larger (%d MiB) than the\n"
-			       "available RAM memory (%d MiB, starting at $loadaddr=0x%08x).\n",
-			       (int)(info.size * mmc_dev->blksz / (1024 * 1024)),
-			       (int)(avail / (1024 * 1024)),
-			       (unsigned int)loadaddr);
-			printf("Activating On-the-fly update mechanism.\n");
-			otf_enabled = 1;
+			mmc_dev = mmc_get_dev(CONFIG_SYS_STORAGE_DEV);
+			if (avail <= info.size * mmc_dev->blksz) {
+				printf("Partition to update is larger (%d MiB) than the\n"
+				       "available RAM memory (%d MiB, starting at $loadaddr=0x%08x).\n",
+				       (int)(info.size * mmc_dev->blksz / (1024 * 1024)),
+				       (int)(avail / (1024 * 1024)),
+				       (unsigned int)loadaddr);
+				printf("Activating On-the-fly update mechanism.\n");
+				otf_enabled = 1;
+			}
 		}
+
 		/* Get firmware file name */
 		ret = get_fw_filename(argc, argv, src, filename);
 		if (ret) {
