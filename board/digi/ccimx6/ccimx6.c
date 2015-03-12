@@ -118,7 +118,7 @@ struct addrvalue {
 /* DDR3 calibration values for the different CC6 variants @528MHz */
 struct addrvalue ddr3_calibration[NUM_VARIANTS + 1][12] = {
 	/* Variant 0x02 */
-	[2] = {
+	[0x02] = {
 		/* Write leveling */
 		{MX6_MMDC_P0_MPWLDECTRL0, 0x00070012},
 		{MX6_MMDC_P0_MPWLDECTRL1, 0x002C0020},
@@ -137,7 +137,7 @@ struct addrvalue ddr3_calibration[NUM_VARIANTS + 1][12] = {
 		{MX6_MMDC_P1_MPWRDLCTL, 0x4430453D},
 	},
 	/* Variant 0x03 */
-	[3] = {
+	[0x03] = {
 		/* Write leveling */
 		{MX6_MMDC_P0_MPWLDECTRL0, 0x000C0019},
 		{MX6_MMDC_P0_MPWLDECTRL1, 0x00310024},
@@ -156,7 +156,7 @@ struct addrvalue ddr3_calibration[NUM_VARIANTS + 1][12] = {
 		{0, 0},
 	},
 	/* Variant 0x04 */
-	[4] = {
+	[0x04] = {
 		/* Write leveling */
 		{MX6_MMDC_P0_MPWLDECTRL0, 0x000B0018},
 		{MX6_MMDC_P0_MPWLDECTRL1, 0x00320023},
