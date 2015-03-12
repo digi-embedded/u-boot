@@ -174,6 +174,44 @@ struct addrvalue ddr3_calibration[NUM_VARIANTS + 1][12] = {
 		{MX6_MMDC_P0_MPWRDLCTL, 0x3B3A433D},
 		{MX6_MMDC_P1_MPWRDLCTL, 0x4633483E},
 	},
+	/* Variant 0x06 (same as 0x08) */
+	[0x06] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x000A0015},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x002E0020},
+		{0, 0},
+		{0, 0},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x43360337},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x0329032B},
+		{0, 0},
+		{0, 0},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x39303338},
+		{0, 0},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x37373F3A},
+		{0, 0},
+	},
+	/* Variant 0x08 (same as 0x06) */
+	[0x08] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x000A0015},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x002E0020},
+		{0, 0},
+		{0, 0},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x43360337},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x0329032B},
+		{0, 0},
+		{0, 0},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x39303338},
+		{0, 0},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x37373F3A},
+		{0, 0},
+	},
 	/* Variant 0x0A */
 	[0x0A] = {
 		/* Write leveling */
