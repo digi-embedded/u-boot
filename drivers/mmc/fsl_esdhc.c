@@ -302,6 +302,9 @@ esdhc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 	if (data) {
 		int err;
 
+		if (data->flags & MMC_DATA_READ)
+			check_and_invalidate_dcache_range(cmd, data);
+
 		err = esdhc_setup_data(mmc, data);
 		if(err)
 			return err;
