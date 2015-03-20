@@ -704,20 +704,6 @@ int ccimx6_late_init(void)
 	}
 #endif
 
-	/* TODO: move dynamic variable generation to a common place */
-	/* If undefined, calculate 'verifyaddr' as halfway through the RAM
-	 * from $loadaddr.
-	 */
-	if (NULL == getenv("verifyaddr")) {
-		u32 verifyaddr = CONFIG_LOADADDR +
-			((gd->ram_size - (CONFIG_LOADADDR - PHYS_SDRAM)) / 2);
-		u32 loadaddr = simple_strtol(getenv("loadaddr"), NULL, 16);
-
-		if (verifyaddr > loadaddr &&
-		    verifyaddr < (PHYS_SDRAM + gd->ram_size))
-			setenv_hex("verifyaddr", verifyaddr);
-	}
-
 	return 0;
 }
 
