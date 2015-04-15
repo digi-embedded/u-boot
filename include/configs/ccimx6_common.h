@@ -121,6 +121,7 @@
 /* On the fly update chunk (must be a multiple of mmc block size) */
 #define CONFIG_OTF_CHUNK		(32 * 1024 * 1024)
 #define CONFIG_CMD_DBOOT
+#define CONFIG_CMD_PMIC
 
 #define CONFIG_SUPPORTED_SOURCES	((1 << SRC_TFTP) | \
 					 (1 << SRC_NFS) | \

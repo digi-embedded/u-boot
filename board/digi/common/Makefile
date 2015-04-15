@@ -51,6 +51,8 @@ COBJS-$(CONFIG_CMD_NVRAM) += cmd_nvram/mtd.o \
 COBJS-$(CONFIG_HAS_HWID) += cmd_hwid.o
 COBJS-$(CONFIG_CMD_UPDATE) += cmd_update.o helper.o
 COBJS-$(CONFIG_CMD_DBOOT) += cmd_dboot.o helper.o
+COBJS-$(CONFIG_CMD_PMIC) += cmd_pmic.o
+
 
 COBJS	:= $(sort $(COBJS-y))
 SRCS	:= $(AOBJS:.o=.S) $(COBJS:.o=.c)
