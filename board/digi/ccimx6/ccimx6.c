@@ -942,6 +942,14 @@ void fdt_fixup_hwid(void *fdt)
 	char str[20];
 	int i;
 
+#ifdef CONFIG_HAS_HWID
+	/* Re-read HWID which might have been overridden by user */
+	if (get_hwid()) {
+		printf("Cannot read HWID\n");
+		return -1;
+	}
+#endif
+
 	/* Register the HWID as main node properties in the FDT */
 	for (i = 0; i < ARRAY_SIZE(propnames); i++) {
 		/* Convert HWID fields to strings */
