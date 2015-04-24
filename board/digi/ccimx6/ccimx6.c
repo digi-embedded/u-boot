@@ -356,9 +356,6 @@ int dram_init(void)
 {
 	gd->ram_size = ((ulong)CONFIG_DDR_MB * 1024 * 1024);
 
-	/* Override DDR3 calibration values basing on HWID variant */
-	update_ddr3_calibration(my_hwid.variant);
-
 	return 0;
 }
 
@@ -1201,5 +1198,14 @@ int ccimx6_early_init(void)
 		return -1;
 	}
 #endif
+
+	/*
+	 * Override DDR3 calibration values basing on HWID variant.
+	 * NOTE: Re-writing the DDR3 calibration values is a delicate operation
+	 * that must be done before other systems (like VPU) are enabled and can
+	 * be accessing the RAM on their own.
+	 */
+	update_ddr3_calibration(my_hwid.variant);
+
 	return 0;
 }
