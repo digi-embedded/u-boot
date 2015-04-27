@@ -2,6 +2,14 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
+DUB-2013.04.0.2, released on 2015/04/27
+	- Added support for DualLite CC6 variants.
+	- Enabled L2 cache.
+	- Fix dcache problem in mmc driver.
+	- Added 'pmic' command to read/write PMIC registers.
+	- Rewrite DDR3 calibration values on early board setup.
+
+
 DUB-2013.04.0.1, released on 2015/01/09
 	- Change Digi version string to follow upstream U-Boot major/minor
 	  version numbers. The two last numbers are feature/patch version
