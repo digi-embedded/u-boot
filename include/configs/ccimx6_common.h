@@ -272,7 +272,7 @@
 		"else " \
 			"bootm; " \
 		"fi;\0" \
-	"uboot_file=u-boot-" CONFIG_SYS_BOARD ".imx\0" \
+	"uboot_file=u-boot-" CONFIG_SYS_BOARD_NAME ".imx\0" \
 	"parts_android=\"uuid_disk=${uuid_disk};" \
 		"start=2MiB," \
 		"name=android,size=64MiB,uuid=${part1_uuid};" \

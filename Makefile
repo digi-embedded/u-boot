@@ -465,7 +465,7 @@ $(obj)u-boot.img:	$(obj)u-boot.bin
 $(obj)u-boot.imx: $(obj)u-boot.bin depend
 		$(MAKE) -C $(SRCTREE)/arch/arm/imx-common $(OBJTREE)/u-boot.imx
 
-$(obj)u-boot-$(BOARD).imx: $(obj)u-boot.imx depend
+$(obj)u-boot-$(BOARD_NAME).imx: $(obj)u-boot.imx depend
 		cp $< $@
 
 $(obj)u-boot.kwb:       $(obj)u-boot.bin
