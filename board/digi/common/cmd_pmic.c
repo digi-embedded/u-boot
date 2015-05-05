@@ -34,7 +34,6 @@ int do_pmic(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	unsigned char val;
 	int i;
 	int count = 1;
-	int ret;
 
 	if (argc < 3)
 		return CMD_RET_USAGE;
@@ -44,8 +43,7 @@ int do_pmic(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		if (argc == 4)
 			count = simple_strtol(argv[3], NULL, 16);
 		for (i = 0; i < count; i++) {
-			ret = pmic_read_reg(addr + i, &val);
-			if (ret)
+			if (pmic_read_reg(addr + i, &val))
 				printf("Error reading PMIC address 0x%x\n",
 					addr + i);
 			else
@@ -55,15 +53,13 @@ int do_pmic(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		if (argc < 4)
 			return CMD_RET_USAGE;
 		val = simple_strtol(argv[3], NULL, 16);
-		ret = pmic_write_reg(addr, (unsigned char)val);
-		if (ret)
+		if (pmic_write_reg(addr, (unsigned char)val)) {
 			printf("Error writing PMIC address 0x%x\n", addr);
+			return CMD_RET_FAILURE;
+		}
 	} else {
 		return CMD_RET_USAGE;
 	}
-
-	if (ret)
-		return CMD_RET_FAILURE;
 
 	return CMD_RET_SUCCESS;
 }
