@@ -943,7 +943,7 @@ void fdt_fixup_hwid(void *fdt)
 	/* Re-read HWID which might have been overridden by user */
 	if (get_hwid()) {
 		printf("Cannot read HWID\n");
-		return -1;
+		return;
 	}
 #endif
 
