@@ -37,6 +37,7 @@ enum imx6_cpu {
 #define	CCIMX6_HAS_WIRELESS	(1 << 0)
 #define	CCIMX6_HAS_BLUETOOTH	(1 << 1)
 #define	CCIMX6_HAS_KINETIS	(1 << 2)
+#define	CCIMX6_HAS_EMMC		(1 << 3)
 
 struct ccimx6_variant {
 	enum imx6_cpu	cpu;
@@ -58,42 +59,44 @@ struct ccimx6_variant ccimx6_variants[] = {
 	{
 		IMX6Q,
 		MEM_1GB,
-		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH | CCIMX6_HAS_KINETIS,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
+		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
 		"Consumer quad-core 1.2GHz, 4GB eMMC, 1GB DDR3, 0/+70C, Wireless, Bluetooth, Kinetis",
 	},
 /* 0x02 - 55001818-02 */
 	{
 		IMX6Q,
 		MEM_1GB,
-		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH | CCIMX6_HAS_KINETIS,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
+		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
 		"Consumer quad-core 1.2GHz, 4GB eMMC, 1GB DDR3, -20/+85C, Wireless, Bluetooth, Kinetis",
 	},
 /* 0x03 - 55001818-03 */
 	{
 		IMX6Q,
 		MEM_512MB,
-		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH | CCIMX6_HAS_EMMC,
 		"Industrial quad-core 800MHz, 4GB eMMC, 512MB DDR3, -40/+85C, Wireless, Bluetooth",
 	},
 /* 0x04 - 55001818-04 */
 	{
 		IMX6D,
 		MEM_1GB,
-		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH | CCIMX6_HAS_EMMC,
 		"Industrial dual-core 800MHz, 4GB eMMC, 1GB DDR3, -40/+85C, Wireless, Bluetooth",
 	},
 /* 0x05 - 55001818-05 */
 	{
 		IMX6D,
 		MEM_1GB,
-		CCIMX6_HAS_WIRELESS,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_EMMC,
 		"Consumer dual-core 1GHz, 4GB eMMC, 1GB DDR3, 0/+70C, Wireless",
 	},
 /* 0x06 - 55001818-06 */
 	{
 		IMX6D,
 		MEM_1GB,
-		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH | CCIMX6_HAS_EMMC,
 		"Consumer dual-core 1GHz, 4GB eMMC, 512MB DDR3, 0/+70C, Wireless, Bluetooth",
 	},
 /* 0x07 - 55001818-07 */
@@ -107,7 +110,7 @@ struct ccimx6_variant ccimx6_variants[] = {
 	{
 		IMX6D,
 		MEM_512MB,
-		0,
+		CCIMX6_HAS_EMMC,
 		"Consumer dual-core 1GHz, 4GB eMMC, 512MB DDR3, 0/+70C",
 	},
 /* 0x09 - 55001818-09 */
@@ -121,14 +124,14 @@ struct ccimx6_variant ccimx6_variants[] = {
 	{
 		IMX6DL,
 		MEM_512MB,
-		CCIMX6_HAS_WIRELESS,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_EMMC,
 		"Industrial DualLite-core 800MHz, 4GB eMMC, 512MB DDR3, -40/+85C, Wireless",
 	},
 /* 0x0B - 55001818-11 */
 	{
 		IMX6DL,
 		MEM_1GB,
-		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH | CCIMX6_HAS_EMMC,
 		"Consumer DualLite-core 1GHz, 4GB eMMC, 1GB DDR3, 0/+70C, Wireless, Bluetooth",
 	},
 };
