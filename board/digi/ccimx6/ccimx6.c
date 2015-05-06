@@ -113,7 +113,99 @@ struct addrvalue {
 	u32 value;
 };
 
+/**
+ * To add new valid variant ID, append new lines in this array with its configuration
+ */
+struct ccimx6_variant ccimx6_variants[] = {
+/* 0x00 */ { IMX6_NONE,	0, 0, "Unknown"},
+/* 0x01 - 55001818-01 */
+	{
+		IMX6Q,
+		MEM_1GB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
+		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
+		"Consumer quad-core 1.2GHz, 4GB eMMC, 1GB DDR3, 0/+70C, Wireless, Bluetooth, Kinetis",
+	},
+/* 0x02 - 55001818-02 */
+	{
+		IMX6Q,
+		MEM_1GB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
+		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
+		"Consumer quad-core 1.2GHz, 4GB eMMC, 1GB DDR3, -20/+85C, Wireless, Bluetooth, Kinetis",
+	},
+/* 0x03 - 55001818-03 */
+	{
+		IMX6Q,
+		MEM_512MB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH | CCIMX6_HAS_EMMC,
+		"Industrial quad-core 800MHz, 4GB eMMC, 512MB DDR3, -40/+85C, Wireless, Bluetooth",
+	},
+/* 0x04 - 55001818-04 */
+	{
+		IMX6D,
+		MEM_1GB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH | CCIMX6_HAS_EMMC,
+		"Industrial dual-core 800MHz, 4GB eMMC, 1GB DDR3, -40/+85C, Wireless, Bluetooth",
+	},
+/* 0x05 - 55001818-05 */
+	{
+		IMX6D,
+		MEM_1GB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_EMMC,
+		"Consumer dual-core 1GHz, 4GB eMMC, 1GB DDR3, 0/+70C, Wireless",
+	},
+/* 0x06 - 55001818-06 */
+	{
+		IMX6D,
+		MEM_1GB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH | CCIMX6_HAS_EMMC,
+		"Consumer dual-core 1GHz, 4GB eMMC, 512MB DDR3, 0/+70C, Wireless, Bluetooth",
+	},
+/* 0x07 - 55001818-07 */
+	{
+		IMX6S,
+		MEM_256MB,
+		CCIMX6_HAS_WIRELESS,
+		"Consumer mono-core 1GHz, no eMMC, 256MB DDR3, 0/+70C, Wireless",
+	},
+/* 0x08 - 55001818-08 */
+	{
+		IMX6D,
+		MEM_512MB,
+		CCIMX6_HAS_EMMC,
+		"Consumer dual-core 1GHz, 4GB eMMC, 512MB DDR3, 0/+70C",
+	},
+/* 0x09 - 55001818-09 */
+	{
+		IMX6S,
+		MEM_256MB,
+		0,
+		"Consumer mono-core 1GHz, no eMMC, 256MB DDR3, 0/+70C",
+	},
+/* 0x0A - 55001818-10 */
+	{
+		IMX6DL,
+		MEM_512MB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_EMMC,
+		"Industrial DualLite-core 800MHz, 4GB eMMC, 512MB DDR3, -40/+85C, Wireless",
+	},
+/* 0x0B - 55001818-11 */
+	{
+		IMX6DL,
+		MEM_1GB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH | CCIMX6_HAS_EMMC,
+		"Consumer DualLite-core 1GHz, 4GB eMMC, 1GB DDR3, 0/+70C, Wireless, Bluetooth",
+	},
+};
+
 #define NUM_VARIANTS	11
+
+const char *cert_regions[] = {
+	"U.S.A.",
+	"International",
+	"Japan",
+};
 
 /* DDR3 calibration values for the different CC6 variants */
 struct addrvalue ddr3_calibration[NUM_VARIANTS + 1][12] = {
