@@ -32,14 +32,16 @@ int do_pmic(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	unsigned int addr;
 	unsigned char val;
-	int i;
+	int i, j;
 	int count = 1;
 
-	if (argc < 3)
+	if (argc < 2)
 		return CMD_RET_USAGE;
 
 	addr = simple_strtol(argv[2], NULL, 16);
 	if (strcmp(argv[1], "read") == 0) {
+		if (argc < 3)
+			return CMD_RET_USAGE;
 		if (argc == 4)
 			count = simple_strtol(argv[3], NULL, 16);
 		for (i = 0; i < count; i++) {
@@ -57,6 +59,26 @@ int do_pmic(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			printf("Error writing PMIC address 0x%x\n", addr);
 			return CMD_RET_FAILURE;
 		}
+	} else if (strcmp(argv[1], "dump") == 0) {
+	       printf("PMIC\t00 01 02 03 04 05 06 07     08 09 0a 0b 0c 0d 0e 0f\n"
+		      "    \t---------------------------------------------------\n");
+	       for (i = 0, j = 0; i < CONFIG_PMIC_NUMREGS; i++) {
+		       if (j == 0)
+			       printf("0x%04x:\t", i);
+		       if (pmic_read_reg(i, &val))
+			       printf("-- ");
+		       else
+			       printf("%02x ", val);
+		       if (j == 7)
+			       printf("    ");
+		       if (j == 15) {
+			       printf("\n");
+			       j = 0;
+		       } else {
+			       j++;
+		       }
+	       }
+	       printf("\n\n");
 	} else {
 		return CMD_RET_USAGE;
 	}
