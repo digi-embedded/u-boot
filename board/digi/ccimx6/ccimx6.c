@@ -584,23 +584,6 @@ int mmc_get_env_partno(void)
 	return -1;
 }
 
-int board_mmc_getcd(struct mmc *mmc)
-{
-	struct fsl_esdhc_cfg *cfg = (struct fsl_esdhc_cfg *)mmc->priv;
-	int ret = 0;
-
-	switch (cfg->esdhc_base) {
-	case USDHC2_BASE_ADDR:
-		ret = 1; /* uSD/uSDHC2 does not connect CD. Assume present */
-		break;
-	case USDHC4_BASE_ADDR:
-		ret = 1; /* eMMC/uSDHC4 is always present */
-		break;
-	}
-
-	return ret;
-}
-
 int board_mmc_init(bd_t *bis)
 {
 	int i;

@@ -23,6 +23,8 @@
 #include <asm/arch/mx6-pins.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/gpio.h>
+#include <fsl_esdhc.h>
+#include <mmc.h>
 #include <netdev.h>
 #if CONFIG_I2C_MXC
 #include <i2c.h>
@@ -161,6 +163,23 @@ static void setup_board_audio(void)
 		 * pulled-up, and thus audio codec is ON by default) */
 		gpio_direction_output(pwren_gpio , 0);
 	}
+}
+
+int board_mmc_getcd(struct mmc *mmc)
+{
+	struct fsl_esdhc_cfg *cfg = (struct fsl_esdhc_cfg *)mmc->priv;
+	int ret = 0;
+
+	switch (cfg->esdhc_base) {
+	case USDHC2_BASE_ADDR:
+		ret = 1; /* uSD/uSDHC2 does not connect CD. Assume present */
+		break;
+	case USDHC4_BASE_ADDR:
+		ret = 1; /* eMMC/uSDHC4 is always present */
+		break;
+	}
+
+	return ret;
 }
 
 #ifdef CONFIG_LDO_BYPASS_CHECK
