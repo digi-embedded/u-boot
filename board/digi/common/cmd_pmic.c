@@ -89,6 +89,7 @@ int do_pmic(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 U_BOOT_CMD(
 	pmic, 4, 1, do_pmic,
 	"PMIC access",
-	"read address [count] - read PMIC register(s)\n"
+	"dump - dumps all PMIC registers\n"
+	"pmic read address [count] - read PMIC register(s)\n"
 	"pmic write address value - write PMIC register"
 );
