@@ -645,9 +645,14 @@ int mmc_get_env_devno(void)
 	 */
 	switch((soc_sbmr & 0x00001800) >> 11) {
 	case 1:
-		return CONFIG_MMCDEV_USDHC2;	/* SDHC2 (uSD) */
+		/* SDHC2 (uSD) */
+		if (ccimx6_variants[my_hwid.variant].capabilities &
+		    CCIMX6_HAS_EMMC)
+			return 1;	/* index of USDHC2 if SOM has eMMC */
+		else
+			return 0;	/* index of USDHC2 if SOM has no eMMC */
 	case 3:
-		return CONFIG_MMCDEV_USDHC4;	/* SDHC4 (eMMC) */
+		return 0;	/* index of SDHC4 (eMMC) */
 	}
 
 	return -1;
