@@ -252,10 +252,20 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		return CMD_RET_USAGE;
 
 	/* Get data of partition to be updated */
-	ret = get_target_partition(argv[1], &info);
-	if (ret) {
-		printf("Error: partition '%s' not found\n", argv[1]);
-		return CMD_RET_FAILURE;
+	if (!strcmp(argv[1], "uboot")) {
+		/* Simulate partition data for U-Boot */
+		info.start = CONFIG_SYS_BOOT_PART_OFFSET / mmc_dev->blksz;
+		info.size = CONFIG_SYS_BOOT_PART_SIZE / mmc_dev->blksz;
+		strcpy((char *)info.name, argv[1]);
+	} else {
+		/* Not a reserved name. Must be a partition name */
+		/* Look up the device */
+		if (get_partition_byname(CONFIG_SYS_STORAGE_MEDIA,
+					 __stringify(CONFIG_SYS_STORAGE_DEV),
+					 argv[1], &info) < 0) {
+			printf("Error: partition '%s' not found\n", argv[1]);
+			return CMD_RET_FAILURE;
+		}
 	}
 
 	/* Ask for confirmation if needed */
