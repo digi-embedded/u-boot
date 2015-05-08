@@ -54,6 +54,7 @@ DECLARE_GLOBAL_DATA_PTR;
 struct ccimx6_hwid my_hwid;
 static u32 hwid[CONFIG_HWID_WORDS_NUMBER];
 static block_dev_desc_t *mmc_dev;
+static int mmc_dev_index = -1;
 static int enet_xcv_type;
 
 #define UART_PAD_CTRL  (PAD_CTL_PKE | PAD_CTL_PUE |            \
@@ -635,7 +636,7 @@ iomux_v3_cfg_t const usdhc2_pads[] = {
 	MX6_PAD_SD2_DAT3__USDHC2_DAT3	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
 };
 
-int mmc_get_env_devno(void)
+int mmc_get_bootdevindex(void)
 {
 	u32 soc_sbmr = readl(SRC_BASE_ADDR + 0x4);
 
@@ -656,6 +657,11 @@ int mmc_get_env_devno(void)
 	}
 
 	return -1;
+}
+
+int mmc_get_env_devno(void)
+{
+	return mmc_get_bootdevindex();
 }
 
 int mmc_get_env_partno(void)
@@ -714,9 +720,10 @@ int board_mmc_init(bd_t *bis)
 
 	}
 
-	mmc_dev = mmc_get_dev(CONFIG_SYS_STORAGE_DEV);
+	/* Get mmc system device */
+	mmc_dev = mmc_get_dev(mmc_get_bootdevindex());
 	if (NULL == mmc_dev)
-		printf("Warning: failed to get sys storage device\n");
+		printf("Warning: failed to get mmc sys storage device\n");
 
 	return 0;
 }
@@ -810,18 +817,8 @@ int ccimx6_late_init(void)
 
 #ifdef CONFIG_CMD_MMC
 	/* If undefined, determine 'mmcdev' variable depending on boot media */
-	if (NULL == getenv("mmcdev")) {
-		u32 soc_sbmr = readl(SRC_BASE_ADDR + 0x4);
-
-		switch((soc_sbmr & 0x00001800) >> 11) {
-		case 1:
-			setenv_ulong("mmcdev", 1);	/* SDHC2 (uSD) */
-			break;
-		case 3:
-			setenv_ulong("mmcdev", 0);	/* SDHC4 (eMMC) */
-			break;
-		}
-	}
+	if (NULL == getenv("mmcdev"))
+		setenv_ulong("mmcdev", mmc_get_bootdevindex());
 #endif
 
 	return 0;
@@ -1218,8 +1215,7 @@ static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
 	debug("writing chunk of 0x%x bytes (0x%x sectors) "
 		"from 0x%x to block 0x%x\n",
 		chunklen, sectors, otfd->loadaddr, dstblk);
-	written = mmc->block_dev.block_write(CONFIG_SYS_STORAGE_DEV, dstblk,
-					     sectors,
+	written = mmc->block_dev.block_write(mmc_dev_index, dstblk, sectors,
 					     (const void *)otfd->loadaddr);
 	if (written != sectors)
 		return -1;
@@ -1231,8 +1227,8 @@ static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
 	if (otfd->loadaddr + sectors * mmc_dev->blksz < verifyaddr) {
 		/* Read back data... */
 		printf("Reading back chunk...\n");
-		read = mmc->block_dev.block_read(CONFIG_SYS_STORAGE_DEV, dstblk,
-						 sectors, (void *)verifyaddr);
+		read = mmc->block_dev.block_read(mmc_dev_index, dstblk, sectors,
+						 (void *)verifyaddr);
 		if (read != sectors)
 			return -1;
 		/* ...then compare */
@@ -1251,7 +1247,14 @@ int board_update_chunk(otf_data_t *otfd)
 {
 	static unsigned int chunk_len = 0;
 	static unsigned int dstblk = 0;
-	struct mmc *mmc = find_mmc_device(CONFIG_SYS_STORAGE_DEV);
+	struct mmc *mmc;
+
+	if (mmc_dev_index == -1)
+		mmc_dev_index = getenv_ulong("mmcdev", 16,
+					     mmc_get_bootdevindex());
+	mmc = find_mmc_device(mmc_dev_index);
+	if (NULL == mmc)
+		return -1;
 
 	/* Initialize dstblk and local variables */
 	if (otfd->flags & OTF_FLAG_INIT) {

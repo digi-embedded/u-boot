@@ -14,6 +14,10 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+static block_dev_desc_t *mmc_dev;
+static int mmc_dev_index;
+
+extern int mmc_get_bootdevindex(void);
 extern int board_update_chunk(otf_data_t *oftd);
 extern void register_tftp_otf_update_hook(int (*hook)(otf_data_t *oftd),
 					  disk_partition_t*);
@@ -71,13 +75,6 @@ static int write_firmware(char *partname, unsigned long loadaddr,
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	unsigned long size_blks, verifyaddr, u, m;
-	block_dev_desc_t *mmc_dev;
-
-	mmc_dev = mmc_get_dev(CONFIG_SYS_STORAGE_DEV);
-	if (NULL == mmc_dev) {
-		debug("Cannot determine sys storage device\n");
-		return -1;
-	}
 
 	size_blks = (filesize / mmc_dev->blksz) + (filesize % mmc_dev->blksz != 0);
 
@@ -89,8 +86,7 @@ static int write_firmware(char *partname, unsigned long loadaddr,
 	}
 
 	/* Prepare command to change to storage device */
-	sprintf(cmd, "%s dev %d", CONFIG_SYS_STORAGE_MEDIA,
-		CONFIG_SYS_STORAGE_DEV);
+	sprintf(cmd, "%s dev %d", CONFIG_SYS_STORAGE_MEDIA, mmc_dev_index);
 
 #ifdef CONFIG_SYS_BOOT_PART
 	/* If U-Boot and special partition, append the hardware partition */
@@ -176,8 +172,7 @@ static int write_file(char *targetfilename, char *targetfs, int part)
 	filesize = getenv_ulong("filesize", 16, 0);
 
 	/* Change to storage device */
-	sprintf(cmd, "%s dev %d", CONFIG_SYS_STORAGE_MEDIA,
-		CONFIG_SYS_STORAGE_DEV);
+	sprintf(cmd, "%s dev %d", CONFIG_SYS_STORAGE_MEDIA, mmc_dev_index);
 	if (run_command(cmd, 0)) {
 		debug("Cannot change to storage device\n");
 		return -1;
@@ -185,7 +180,7 @@ static int write_file(char *targetfilename, char *targetfs, int part)
 
 	/* Prepare write command */
 	sprintf(cmd, "%swrite %s %d:%d %lx %s %lx", targetfs,
-		CONFIG_SYS_STORAGE_MEDIA, CONFIG_SYS_STORAGE_DEV, part,
+		CONFIG_SYS_STORAGE_MEDIA, mmc_dev_index, part,
 		loadaddr, targetfilename, filesize);
 
 	return run_command(cmd, 0);
@@ -200,7 +195,7 @@ static int emmc_bootselect(void)
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 
 	/* Prepare command to change to storage device */
-	sprintf(cmd, "mmc dev %d", CONFIG_SYS_STORAGE_DEV);
+	sprintf(cmd, "mmc dev %d", mmc_dev_index);
 
 	/* Change to storage device */
 	if (run_command(cmd, 0)) {
@@ -233,6 +228,19 @@ static unsigned int get_available_ram_for_update(void)
 	return (gd->bd->bi_dram[0].size - CONFIG_UBOOT_RESERVED - la_off);
 }
 
+static int init_mmc_globals(void)
+{
+	/* Use the device in $mmcdev or else, the boot media */
+	mmc_dev_index = getenv_ulong("mmcdev", 16, mmc_get_bootdevindex());
+	mmc_dev = mmc_get_dev(mmc_dev_index);
+	if (NULL == mmc_dev) {
+		debug("Cannot determine sys storage device\n");
+		return -1;
+	}
+
+	return 0;
+}
+
 static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 {
 	int src = SRC_TFTP;	/* default to TFTP */
@@ -251,6 +259,9 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	if (argc < 2)
 		return CMD_RET_USAGE;
 
+	if (init_mmc_globals())
+		return CMD_RET_FAILURE;
+
 	/* Get data of partition to be updated */
 	if (!strcmp(argv[1], "uboot")) {
 		/* Simulate partition data for U-Boot */
@@ -259,10 +270,12 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		strcpy((char *)info.name, argv[1]);
 	} else {
 		/* Not a reserved name. Must be a partition name */
-		/* Look up the device */
+		char dev_index_str[2];
+
+		/* Look up partition on the device */
+		sprintf(dev_index_str, "%d", mmc_dev_index);
 		if (get_partition_byname(CONFIG_SYS_STORAGE_MEDIA,
-					 __stringify(CONFIG_SYS_STORAGE_DEV),
-					 argv[1], &info) < 0) {
+					 dev_index_str, argv[1], &info) < 0) {
 			printf("Error: partition '%s' not found\n", argv[1]);
 			return CMD_RET_FAILURE;
 		}
@@ -320,9 +333,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 			 * the destiny partition.
 			 */
 			unsigned long avail = get_available_ram_for_update();
-			block_dev_desc_t *mmc_dev;
 
-			mmc_dev = mmc_get_dev(CONFIG_SYS_STORAGE_DEV);
 			if (avail <= info.size * mmc_dev->blksz) {
 				printf("Partition to update is larger (%d MiB) than the\n"
 				       "available RAM memory (%d MiB, starting at $loadaddr=0x%08x).\n",
@@ -360,8 +371,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 
 	if (otf) {
 		/* Prepare command to change to storage device */
-		sprintf(cmd, CONFIG_SYS_STORAGE_MEDIA " dev %d",
-			CONFIG_SYS_STORAGE_DEV);
+		sprintf(cmd, CONFIG_SYS_STORAGE_MEDIA " dev %d", mmc_dev_index);
 		/* Change to storage device */
 		if (run_command(cmd, 0)) {
 			printf("Error: cannot change to storage device\n");
@@ -484,13 +494,17 @@ static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 		"ext4",
 #endif
 	};
+	char dev_index_str[2];
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
 
+	if (init_mmc_globals())
+		return CMD_RET_FAILURE;
+
 	/* Get data of partition to be updated */
-	part = get_partition_byname(CONFIG_SYS_STORAGE_MEDIA,
-				    __stringify(CONFIG_SYS_STORAGE_DEV),
+	sprintf(dev_index_str, "%d", mmc_dev_index);
+	part = get_partition_byname(CONFIG_SYS_STORAGE_MEDIA, dev_index_str,
 				    argv[1], &info);
 	if (part < 0) {
 		printf("Error: partition '%s' not found\n", argv[1]);
