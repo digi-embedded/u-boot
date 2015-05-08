@@ -109,13 +109,11 @@
 #define CONFIG_MXC_OCOTP
 #endif
 #define CONFIG_HAS_HWID
-#ifdef CONFIG_HAS_HWID
 #define CONFIG_HWID_BANK		4
 #define CONFIG_HWID_START_WORD		2
 #define CONFIG_HWID_WORDS_NUMBER	2
 #define CONFIG_HWID_LOCK_FUSE		(1 << 8)
 #define CONFIG_MANUF_STRINGS_HELP	"<LYYWWGGXXXXXX> <VVHC>"
-#endif /* CONFIG_HAS_HWID */
 
 #define CONFIG_CMD_UPDATE
 /* On the fly update chunk (must be a multiple of mmc block size) */

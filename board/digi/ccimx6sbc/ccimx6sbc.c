@@ -31,9 +31,7 @@
 #include <asm/imx-common/mxc_i2c.h>
 #endif
 #include "../ccimx6/ccimx6.h"
-#ifdef CONFIG_HAS_HWID
 #include "../common/hwid.h"
-#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 

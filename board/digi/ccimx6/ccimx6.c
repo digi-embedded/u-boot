@@ -43,9 +43,7 @@
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>
 #endif
-#ifdef CONFIG_HAS_HWID
 #include "../common/hwid.h"
-#endif
 #include "ccimx6.h"
 #include "../../../drivers/net/fec_mxc.h"
 
@@ -824,7 +822,6 @@ int ccimx6_late_init(void)
 	return 0;
 }
 
-#ifdef CONFIG_HAS_HWID
 void board_print_hwid(u32 *hwid)
 {
 	int i;
@@ -1059,13 +1056,11 @@ void fdt_fixup_hwid(void *fdt)
 	char str[20];
 	int i;
 
-#ifdef CONFIG_HAS_HWID
 	/* Re-read HWID which might have been overridden by user */
 	if (get_hwid()) {
 		printf("Cannot read HWID\n");
 		return;
 	}
-#endif
 
 	/* Register the HWID as main node properties in the FDT */
 	for (i = 0; i < ARRAY_SIZE(propnames); i++) {
@@ -1093,7 +1088,6 @@ void fdt_fixup_hwid(void *fdt)
 				 strlen(str) + 1, 1);
 	}
 }
-#endif /* CONFIG_HAS_HWID */
 
 int get_carrierboard_version(void)
 {
@@ -1134,11 +1128,10 @@ int checkboard(void)
 		printf("(undefined version)\n");
 	else
 		printf("v%d\n", board_ver);
-#ifdef CONFIG_HAS_HWID
 	if (is_valid_hwid(&my_hwid))
 		printf("Variant: 0x%02x - %s\n", my_hwid.variant,
 			ccimx6_variants[my_hwid.variant].id_string);
-#endif /* CONFIG_HAS_HWID */
+
 	bootdevice = boot_mode_string();
 	printf("Boot device: %s", bootdevice);
 	if (!strcmp(bootdevice, "esdhc2"))
@@ -1171,10 +1164,8 @@ void fdt_fixup_mac(void *fdt, char *varname, char *node)
 void ft_board_setup(void *blob, bd_t *bd)
 {
 
-#ifdef CONFIG_HAS_HWID
 	/* Re-read HWID which could have been overriden by U-Boot commands */
 	fdt_fixup_hwid(blob);
-#endif /* CONFIG_HAS_HWID */
 
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
 	fdt_fixup_carrierboard(blob);
@@ -1318,12 +1309,10 @@ int board_update_chunk(otf_data_t *otfd)
 
 int ccimx6_early_init(void)
 {
-#ifdef CONFIG_HAS_HWID
 	if (get_hwid()) {
 		printf("Cannot read HWID\n");
 		return -1;
 	}
-#endif
 
 	/*
 	 * Override DDR3 calibration values basing on HWID variant.
