@@ -683,16 +683,23 @@ int board_mmc_init(bd_t *bis)
 	for (i = 0; i < CONFIG_SYS_FSL_USDHC_NUM; i++) {
 		switch (i) {
 		case 0:
-			/* USDHC4 (eMMC) */
-			imx_iomux_v3_setup_multiple_pads(
-					usdhc4_pads, ARRAY_SIZE(usdhc4_pads));
-			usdhc_cfg[i].sdhc_clk = mxc_get_clock(MXC_ESDHC4_CLK);
+			if (ccimx6_variants[my_hwid.variant].capabilities &
+			    CCIMX6_HAS_EMMC) {
+				/* USDHC4 (eMMC) */
+				imx_iomux_v3_setup_multiple_pads(usdhc4_pads,
+						ARRAY_SIZE(usdhc4_pads));
+				usdhc_cfg[i].sdhc_clk = mxc_get_clock(MXC_ESDHC4_CLK);
+				if (fsl_esdhc_initialize(bis, &usdhc_cfg[i]))
+					printf("Warning: failed to initialize USDHC4\n");
+			}
 			break;
 		case 1:
 			/* USDHC2 (uSD) */
 			imx_iomux_v3_setup_multiple_pads(
 					usdhc2_pads, ARRAY_SIZE(usdhc2_pads));
 			usdhc_cfg[i].sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
+			if (fsl_esdhc_initialize(bis, &usdhc_cfg[i]))
+				printf("Warning: failed to initialize USDHC2\n");
 			break;
 		default:
 			printf("Warning: you configured more USDHC controllers"
@@ -700,8 +707,6 @@ int board_mmc_init(bd_t *bis)
 			return 0;
 		}
 
-		if (fsl_esdhc_initialize(bis, &usdhc_cfg[i]))
-			printf("Warning: failed to initialize mmc dev %d\n", i);
 	}
 
 	mmc_dev = mmc_get_dev(CONFIG_SYS_STORAGE_DEV);
