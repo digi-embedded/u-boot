@@ -31,12 +31,10 @@
 #include <asm/imx-common/mxc_i2c.h>
 #endif
 #include "../ccimx6/ccimx6.h"
-#include "../common/hwid.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
 static int phy_addr;
-extern struct ccimx6_hwid my_hwid;
 
 #define UART_PAD_CTRL  (PAD_CTL_PKE | PAD_CTL_PUE |            \
 	PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED |               \
@@ -177,8 +175,7 @@ int board_mmc_getcd(struct mmc *mmc)
 		ret = 1; /* uSD/uSDHC2 does not connect CD. Assume present */
 		break;
 	case USDHC4_BASE_ADDR:
-		if (ccimx6_variants[my_hwid.variant].capabilities &
-			    CCIMX6_HAS_EMMC)
+		if (board_has_emmc())
 			ret = 1;
 		break;
 	}

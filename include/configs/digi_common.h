@@ -203,6 +203,7 @@
 	{MENU_OPTION, text, hook, param}
 /* global functions */
 int bsp_init(void);
+int board_has_emmc(void);
 #endif /* __ASSEMBLY__ */
 
 #endif /* __DIGI_COMMON_H */

@@ -645,8 +645,7 @@ int mmc_get_bootdevindex(void)
 	switch((soc_sbmr & 0x00001800) >> 11) {
 	case 1:
 		/* SDHC2 (uSD) */
-		if (ccimx6_variants[my_hwid.variant].capabilities &
-		    CCIMX6_HAS_EMMC)
+		if (board_has_emmc())
 			return 1;	/* index of USDHC2 if SOM has eMMC */
 		else
 			return 0;	/* index of USDHC2 if SOM has no eMMC */
@@ -692,8 +691,7 @@ int board_mmc_init(bd_t *bis)
 	for (i = 0; i < CONFIG_SYS_FSL_USDHC_NUM; i++) {
 		switch (i) {
 		case 0:
-			if (ccimx6_variants[my_hwid.variant].capabilities &
-			    CCIMX6_HAS_EMMC) {
+			if (board_has_emmc()) {
 				/* USDHC4 (eMMC) */
 				imx_iomux_v3_setup_multiple_pads(usdhc4_pads,
 						ARRAY_SIZE(usdhc4_pads));
@@ -1087,6 +1085,12 @@ void fdt_fixup_hwid(void *fdt)
 		do_fixup_by_path(fdt, "/", propnames[i], str,
 				 strlen(str) + 1, 1);
 	}
+}
+
+int board_has_emmc(void)
+{
+	return (ccimx6_variants[my_hwid.variant].capabilities &
+			    CCIMX6_HAS_EMMC);
 }
 
 int get_carrierboard_version(void)
