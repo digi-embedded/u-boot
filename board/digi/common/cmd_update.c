@@ -88,11 +88,9 @@ static int write_firmware(char *partname, unsigned long loadaddr,
 	/* Prepare command to change to storage device */
 	sprintf(cmd, "%s dev %d", CONFIG_SYS_STORAGE_MEDIA, mmc_dev_index);
 
-#ifdef CONFIG_SYS_BOOT_PART
 	/* If U-Boot and special partition, append the hardware partition */
 	if (!strcmp(partname, "uboot"))
 		strcat(cmd, " $mmcbootpart");
-#endif
 
 	/* Change to storage device */
 	if (run_command(cmd, 0)) {
@@ -205,7 +203,7 @@ static int emmc_bootselect(void)
 
 	/* Select boot partition and enable boot acknowledge */
 	sprintf(cmd, "mmc ecsd write %x %x", ECSD_PARTITION_CONFIG,
-		BOOT_ACK | (CONFIG_SYS_BOOT_PART << BOOT_PARTITION_ENABLE_OFF));
+		BOOT_ACK | (CONFIG_SYS_BOOT_PART_EMMC << BOOT_PARTITION_ENABLE_OFF));
 
 	return run_command(cmd, 0);
 }
@@ -407,7 +405,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		ret = CMD_RET_FAILURE;
 		goto _ret;
 	}
-#ifdef CONFIG_SYS_BOOT_PART
+
 	/* If U-Boot and special partition, instruct the eMMC
 	 * to boot from it */
 	if (!strcmp(argv[1], "uboot") &&
@@ -419,7 +417,6 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 			goto _ret;
 		}
 	}
-#endif
 
 _ret:
 	unregister_otf_hook(src);

@@ -34,7 +34,7 @@
 #define CONFIG_SYS_FSL_USDHC_NUM	2
 
 /* MMC device and partition where U-Boot image is */
-#define CONFIG_SYS_BOOT_PART		1	/* Boot part 1 */
+#define CONFIG_SYS_BOOT_PART_EMMC	1	/* Boot part 1 on eMMC */
 #define CONFIG_SYS_BOOT_PART_OFFSET	1024
 #define CONFIG_SYS_BOOT_PART_SIZE	((2 * 1024 * 1024) - CONFIG_SYS_BOOT_PART_OFFSET)
 
