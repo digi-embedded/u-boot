@@ -824,9 +824,11 @@ int ccimx6_late_init(void)
 #endif
 
 #ifdef CONFIG_CMD_MMC
-	/* If undefined, determine 'mmcdev' variable depending on boot media */
-	if (NULL == getenv("mmcdev"))
-		setenv_ulong("mmcdev", mmc_get_bootdevindex());
+	/* Set '$mmcdev' depending on boot media */
+	setenv_ulong("mmcdev", mmc_get_bootdevindex());
+	/* Set '$mmcbootpart' to special partition if booting from eMMC */
+	if (!strcmp("esdhc4", boot_mode_string()))
+		setenv_ulong("mmcbootpart", CONFIG_SYS_BOOT_PART_EMMC);
 #endif
 
 	return 0;
