@@ -1126,6 +1126,7 @@ int checkboard(void)
 {
 	const char *bootdevice;
 	int board_ver = get_carrierboard_version();
+	char cmd[80];
 
 	printf("Board: %s ", CONFIG_BOARD_DESCRIPTION);
 	if (CARRIERBOARD_VERSION_UNDEFINED == board_ver)
@@ -1137,6 +1138,9 @@ int checkboard(void)
 			ccimx6_variants[my_hwid.variant].id_string);
 
 	bootdevice = boot_mode_string();
+	sprintf(cmd, "setenv -f bootdev %s", bootdevice);
+	run_command(cmd, 0);
+
 	printf("Boot device: %s", bootdevice);
 	if (!strcmp(bootdevice, "esdhc2"))
 		printf(" (uSD card)\n");
