@@ -636,13 +636,19 @@ iomux_v3_cfg_t const usdhc2_pads[] = {
 
 int mmc_get_bootdevindex(void)
 {
-	u32 soc_sbmr = readl(SRC_BASE_ADDR + 0x4);
+	struct src *psrc = (struct src *)SRC_BASE_ADDR;
+	unsigned reg;
+
+	if (readl(&psrc->gpr10) & (1 << 28))
+		reg = readl(&psrc->gpr9);
+	else
+		reg = readl(&psrc->sbmr1);
 
 	/* BOOT_CFG2[4] and BOOT_CFG2[3] denote boot media:
 	 * 01:	SDHC2 (uSD card)
 	 * 11:	SDHC4 (eMMC)
 	 */
-	switch((soc_sbmr & 0x00001800) >> 11) {
+	switch((reg & 0x00001800) >> 11) {
 	case 1:
 		/* SDHC2 (uSD) */
 		if (board_has_emmc())
@@ -663,13 +669,19 @@ int mmc_get_env_devno(void)
 
 int mmc_get_env_partno(void)
 {
-	u32 soc_sbmr = readl(SRC_BASE_ADDR + 0x4);
+	struct src *psrc = (struct src *)SRC_BASE_ADDR;
+	unsigned reg;
+
+	if (readl(&psrc->gpr10) & (1 << 28))
+		reg = readl(&psrc->gpr9);
+	else
+		reg = readl(&psrc->sbmr1);
 
 	/* BOOT_CFG2[4] and BOOT_CFG2[3] denote boot media:
 	 * 01:	SDHC2 (uSD card)
 	 * 11:	SDHC4 (eMMC)
 	 */
-	switch((soc_sbmr & 0x00001800) >> 11) {
+	switch((reg & 0x00001800) >> 11) {
 	case 1:
 		return 0;	/* When booting from SDHC2 (uSD) the
 				 * environment will be saved to the unique
