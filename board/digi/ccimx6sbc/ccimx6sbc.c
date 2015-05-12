@@ -31,6 +31,7 @@
 #include <asm/imx-common/mxc_i2c.h>
 #endif
 #include "../ccimx6/ccimx6.h"
+#include "../common/hwid.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -211,6 +212,9 @@ int board_init(void)
 {
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
+
+	/* Re-read global HWID variable after relocation */
+	get_hwid();
 
 	return 0;
 }

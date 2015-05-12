@@ -53,4 +53,6 @@ struct ccimx6_variant {
 
 extern struct ccimx6_variant ccimx6_variants[];
 
+int get_hwid(void);
+
 #endif	/* __HWID_H_ */
