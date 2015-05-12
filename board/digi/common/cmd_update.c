@@ -8,6 +8,7 @@
 */
 
 #include <common.h>
+#include <asm/imx-common/boot_mode.h>
 #include <otf_update.h>
 #include <part.h>
 #include "helper.h"
@@ -88,8 +89,13 @@ static int write_firmware(char *partname, unsigned long loadaddr,
 	/* Prepare command to change to storage device */
 	sprintf(cmd, "%s dev %d", CONFIG_SYS_STORAGE_MEDIA, mmc_dev_index);
 
-	/* If U-Boot and special partition, append the hardware partition */
-	if (!strcmp(partname, "uboot"))
+	/*
+	 * If updating U-Boot on eMMC
+	 * append the hardware partition where U-Boot lives.
+	 */
+	if (!strcmp(partname, "uboot") &&
+	    !strcmp(CONFIG_SYS_STORAGE_MEDIA, "mmc") &&
+	    board_has_emmc() && (mmc_dev_index == 0))
 		strcat(cmd, " $mmcbootpart");
 
 	/* Change to storage device */
@@ -408,10 +414,13 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		goto _ret;
 	}
 
-	/* If U-Boot and special partition, instruct the eMMC
-	 * to boot from it */
+	/*
+	 * If updating U-Boot into eMMC, instruct the eMMC to boot from
+	 * special hardware partition.
+	 */
 	if (!strcmp(argv[1], "uboot") &&
-	    !strcmp(CONFIG_SYS_STORAGE_MEDIA, "mmc")) {
+	    !strcmp(CONFIG_SYS_STORAGE_MEDIA, "mmc") &&
+	    board_has_emmc() && (mmc_dev_index == 0)) {
 		ret = emmc_bootselect();
 		if (ret) {
 			printf("Error changing eMMC boot partition\n");
