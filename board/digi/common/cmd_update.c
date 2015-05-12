@@ -191,6 +191,7 @@ static int write_file(char *targetfilename, char *targetfs, int part)
 static int emmc_bootselect(void)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
+	int bootpart;
 
 	/* Prepare command to change to storage device */
 	sprintf(cmd, "mmc dev %d", mmc_dev_index);
@@ -202,8 +203,9 @@ static int emmc_bootselect(void)
 	}
 
 	/* Select boot partition and enable boot acknowledge */
+	bootpart = getenv_ulong("mmcbootpart", 16, CONFIG_SYS_BOOT_PART_EMMC);
 	sprintf(cmd, "mmc ecsd write %x %x", ECSD_PARTITION_CONFIG,
-		BOOT_ACK | (CONFIG_SYS_BOOT_PART_EMMC << BOOT_PARTITION_ENABLE_OFF));
+		BOOT_ACK | (bootpart << BOOT_PARTITION_ENABLE_OFF));
 
 	return run_command(cmd, 0);
 }
