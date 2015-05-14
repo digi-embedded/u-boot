@@ -1107,6 +1107,18 @@ int board_has_emmc(void)
 			    CCIMX6_HAS_EMMC);
 }
 
+int board_has_wireless(void)
+{
+	return (ccimx6_variants[my_hwid.variant].capabilities &
+			    CCIMX6_HAS_WIRELESS);
+}
+
+int board_has_bluetooth(void)
+{
+	return (ccimx6_variants[my_hwid.variant].capabilities &
+			    CCIMX6_HAS_BLUETOOTH);
+}
+
 int get_carrierboard_version(void)
 {
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
@@ -1193,8 +1205,10 @@ void ft_board_setup(void *blob, bd_t *bd)
 	fdt_fixup_carrierboard(blob);
 #endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
 
-	fdt_fixup_mac(blob, "wlanaddr", "/wireless");
-	fdt_fixup_mac(blob, "btaddr", "/bluetooth");
+	if (board_has_wireless())
+		fdt_fixup_mac(blob, "wlanaddr", "/wireless");
+	if (board_has_bluetooth())
+		fdt_fixup_mac(blob, "btaddr", "/bluetooth");
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
 
