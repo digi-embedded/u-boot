@@ -275,13 +275,13 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		info.size = CONFIG_SYS_BOOT_PART_SIZE / mmc_dev->blksz;
 		strcpy((char *)info.name, argv[1]);
 	} else {
-		/* Not a reserved name. Must be a partition name */
+		/* Not a reserved name. Must be a partition name or index */
 		char dev_index_str[2];
 
 		/* Look up partition on the device */
 		sprintf(dev_index_str, "%d", mmc_dev_index);
-		if (get_partition_byname(CONFIG_SYS_STORAGE_MEDIA,
-					 dev_index_str, argv[1], &info) < 0) {
+		if (get_partition_bynameorindex(CONFIG_SYS_STORAGE_MEDIA,
+					dev_index_str, argv[1], &info) < 0) {
 			printf("Error: partition '%s' not found\n", argv[1]);
 			return CMD_RET_FAILURE;
 		}
@@ -438,10 +438,10 @@ U_BOOT_CMD(
 	update,	6,	0,	do_update,
 	"Digi modules update command",
 	"<partition>  [source] [extra-args...]\n"
-	" Description: updates (raw writes) eMMC <partition> via <source>\n"
+	" Description: updates (raw writes) <partition> in $mmcdev via <source>\n"
 	" Arguments:\n"
-	"   - partition:    a GUID partition name or one of the reserved names: \n"
-	"                   uboot\n"
+	"   - partition:    a partition index, a GUID partition name, or one\n"
+	"                   of the reserved names: uboot\n"
 	"   - [source]:     " CONFIG_UPDATE_SUPPORTED_SOURCES_LIST "\n"
 	"   - [extra-args]: extra arguments depending on 'source'\n"
 	"\n"
@@ -512,8 +512,8 @@ static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 
 	/* Get data of partition to be updated */
 	sprintf(dev_index_str, "%d", mmc_dev_index);
-	part = get_partition_byname(CONFIG_SYS_STORAGE_MEDIA, dev_index_str,
-				    argv[1], &info);
+	part = get_partition_bynameorindex(CONFIG_SYS_STORAGE_MEDIA,
+					   dev_index_str, argv[1], &info);
 	if (part < 0) {
 		printf("Error: partition '%s' not found\n", argv[1]);
 		return CMD_RET_FAILURE;
@@ -582,9 +582,11 @@ U_BOOT_CMD(
 	updatefile,	8,	0,	do_updatefile,
 	"Digi modules updatefile command",
 	"<partition>  [source] [extra-args...]\n"
-	" Description: updates/writes a file in <partition> via <source>\n"
+	" Description: updates/writes a file in <partition> in $mmcdev via\n"
+	"              <source>\n"
 	" Arguments:\n"
-	"   - partition:    a GUID partition name where to upload the file\n"
+	"   - partition:    a partition index or a GUID partition name where\n"
+	"                   to upload the file\n"
 	"   - [source]:     " CONFIG_UPDATE_SUPPORTED_SOURCES_LIST "\n"
 	"   - [extra-args]: extra arguments depending on 'source'\n"
 	"\n"
