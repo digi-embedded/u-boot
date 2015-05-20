@@ -153,7 +153,7 @@ static inline int get_device_and_partition(const char *ifname,
 { *dev_desc = NULL; return -1; }
 static inline int get_partition_byname(const char *ifname, const char *dev_str,
 				       char *part_name, disk_partition_t *info)
-{ *info = NULL; return -1; }
+{ return -1; }
 #endif
 
 #ifdef CONFIG_MAC_PARTITION

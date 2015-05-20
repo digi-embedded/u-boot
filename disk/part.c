@@ -657,6 +657,5 @@ int get_partition_byname(const char *ifname, const char *dev_str,
 		part++;
 	}
 
-	info = NULL;
 	return -1;
 }
