@@ -1218,10 +1218,10 @@ static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
 	int sectors;
 	unsigned long written, read, verifyaddr;
 
-	printf("\nWriting chunk...\n");
+	printf("\nWriting chunk...");
 	/* Check WP */
 	if (mmc_getwp(mmc) == 1) {
-		printf("Error: card is write protected!\n");
+		printf("[Error]: card is write protected!\n");
 		return -1;
 	}
 
@@ -1234,7 +1234,7 @@ static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
 
 	/* Check if chunk fits */
 	if (sectors + dstblk > otfd->part->start + otfd->part->size) {
-		printf("Error: length of data exceeds partition size\n");
+		printf("[Error]: length of data exceeds partition size\n");
 		return -1;
 	}
 
@@ -1244,8 +1244,11 @@ static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
 		chunklen, sectors, otfd->loadaddr, dstblk);
 	written = mmc->block_dev.block_write(mmc_dev_index, dstblk, sectors,
 					     (const void *)otfd->loadaddr);
-	if (written != sectors)
+	if (written != sectors) {
+		printf("[Error]: written sectors != sectors to write\n");
 		return -1;
+	}
+	printf("[OK]\n");
 
 	/* Verify written chunk if $loadaddr + chunk size does not overlap
 	 * $verifyaddr (where the read-back copy will be placed)
@@ -1253,18 +1256,28 @@ static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
 	verifyaddr = getenv_ulong("verifyaddr", 16, 0);
 	if (otfd->loadaddr + sectors * mmc_dev->blksz < verifyaddr) {
 		/* Read back data... */
-		printf("Reading back chunk...\n");
+		printf("Reading back chunk...");
 		read = mmc->block_dev.block_read(mmc_dev_index, dstblk, sectors,
 						 (void *)verifyaddr);
-		if (read != sectors)
+		if (read != sectors) {
+			printf("[Error]: read sectors != sectors to read\n");
 			return -1;
+		}
+		printf("[OK]\n");
 		/* ...then compare */
-		printf("Verifying chunk...\n");
-		return memcmp((const void *)otfd->loadaddr,
+		printf("Verifying chunk...");
+		if (memcmp((const void *)otfd->loadaddr,
 			      (const void *)verifyaddr,
-			      sectors * mmc_dev->blksz);
+			      sectors * mmc_dev->blksz)) {
+			printf("[Error]\n");
+			return -1;
+		} else {
+			printf("[OK]\n");
+			return 0;
+		}
 	} else {
-		printf("Cannot verify chunk. It overlaps $verifyaddr!\n");
+		printf("[Warning]: Cannot verify chunk. "
+			"It overlaps $verifyaddr!\n");
 		return 0;
 	}
 }
