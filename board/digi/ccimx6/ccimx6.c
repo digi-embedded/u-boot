@@ -1103,20 +1103,29 @@ void fdt_fixup_hwid(void *fdt)
 
 int board_has_emmc(void)
 {
-	return (ccimx6_variants[my_hwid.variant].capabilities &
-			    CCIMX6_HAS_EMMC);
+	if (is_valid_hwid(&my_hwid))
+		return (ccimx6_variants[my_hwid.variant].capabilities &
+				    CCIMX6_HAS_EMMC);
+	else
+		return 1; /* assume it has if invalid HWID */
 }
 
 int board_has_wireless(void)
 {
-	return (ccimx6_variants[my_hwid.variant].capabilities &
-			    CCIMX6_HAS_WIRELESS);
+	if (is_valid_hwid(&my_hwid))
+		return (ccimx6_variants[my_hwid.variant].capabilities &
+				    CCIMX6_HAS_WIRELESS);
+	else
+		return 1; /* assume it has if invalid HWID */
 }
 
 int board_has_bluetooth(void)
 {
-	return (ccimx6_variants[my_hwid.variant].capabilities &
-			    CCIMX6_HAS_BLUETOOTH);
+	if (is_valid_hwid(&my_hwid))
+		return (ccimx6_variants[my_hwid.variant].capabilities &
+				    CCIMX6_HAS_BLUETOOTH);
+	else
+		return 1; /* assume it has if invalid HWID */
 }
 
 int get_carrierboard_version(void)
