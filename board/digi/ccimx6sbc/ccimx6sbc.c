@@ -320,7 +320,36 @@ int board_init(void)
 	return 0;
 }
 
+static int board_fixup(void)
+{
+	unsigned int carrierboard_ver = get_carrierboard_version();
+
+	/* Mask the CHG_WAKE interrupt. This pin should be grounded
+	 * if unused. */
+	if (pmic_write_bitfield(DA9063_IRQ_MASK_B_ADDR, 0x1, 0, 0x1)) {
+		printf("Failed to mask CHG_WAKE. Spurious wake up events may occur\n");
+		return -1;
+	}
+
+
+	if (carrierboard_ver <= 1) {
+		/* Mask the PMIC_GPIO7 interrupt which is N/C on the SBCv1. */
+		if (pmic_write_bitfield(DA9063_GPIO6_7_ADDR, 0x1, 0x7, 0x1)) {
+			printf("Failed to mask PMIC_GPIO7.\n");
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 int board_late_init(void)
 {
-	return ccimx6_late_init();
+	int ret;
+
+	ret = ccimx6_late_init();
+	if (!ret)
+		ret = board_fixup();
+
+	return ret;
 }
