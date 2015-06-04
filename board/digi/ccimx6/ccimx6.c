@@ -196,9 +196,38 @@ struct ccimx6_variant ccimx6_variants[] = {
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH | CCIMX6_HAS_EMMC,
 		"Consumer DualLite-core 1GHz, 4GB eMMC, 1GB DDR3, 0/+70C, Wireless, Bluetooth",
 	},
+/* 0x0C - 55001818-12 */
+	{
+		IMX6DL,
+		MEM_512MB,
+		CCIMX6_HAS_EMMC,
+		"Industrial DualLite-core 800MHz, 4GB eMMC, 512MB DDR3, -40/+85C",
+	},
+/* 0x0D - 55001818-13 */
+	{
+		IMX6D,
+		MEM_1GB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
+		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
+		"Industrial dual-core 800MHz, 8GB eMMC, 1GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
+	},
+/* 0x0E - 55001818-14 */
+	{
+	},
+/* 0x0F - 55001818-15 */
+	{
+	},
+/* 0x10 - 55001818-16 */
+	{
+		IMX6Q,
+		MEM_1GB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
+		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
+		"Industrial quad-core 800MHz, 4GB eMMC, 1GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
+	},
 };
 
-#define NUM_VARIANTS	11
+#define NUM_VARIANTS	16
 
 const char *cert_regions[] = {
 	"U.S.A.",
