@@ -921,6 +921,27 @@ static void verify_mac_address(char *var, char *default_mac)
 		printf("Warning! Dummy default MAC in '%s'\n", var);
 }
 
+static int ccimx6_fixup(void)
+{
+	if (!board_has_bluetooth()) {
+		/* Avoid spurious wake ups */
+		if (pmic_write_bitfield(DA9063_GPIO4_5_ADDR, 0x1, 7, 0x1)) {
+			printf("Failed to suppress GPIO5 wakeup.");
+			return -1;
+		}
+	}
+
+	if (!board_has_wireless()) {
+		/* Avoid spurious wake ups */
+		if (pmic_write_bitfield(DA9063_GPIO6_7_ADDR, 0x1, 3, 0x1)) {
+			printf("Failed to suppress GPIO6 wakeup.");
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 int ccimx6_late_init(void)
 {
 #ifdef CONFIG_CMD_MMC
@@ -973,7 +994,7 @@ int ccimx6_late_init(void)
 			run_command(recoverycmd, 0);
 	}
 #endif
-	return 0;
+	return ccimx6_fixup();
 }
 
 void board_print_hwid(u32 *hwid)
