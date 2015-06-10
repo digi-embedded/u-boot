@@ -871,6 +871,9 @@ static int setup_pmic_voltages_ccimx6(void)
 
 int ccimx6_late_init(void)
 {
+#ifdef CONFIG_CMD_MMC
+	char cmd[80];
+#endif
 	char var[5];
 
 #ifdef CONFIG_CMD_BMODE
@@ -890,6 +893,12 @@ int ccimx6_late_init(void)
 		return -1;
 	if (setup_pmic_voltages_carrierboard())
 		return -1;
+#endif
+
+#ifdef CONFIG_CMD_MMC
+	/* Set $mmcbootdev to MMC boot device index */
+	sprintf(cmd, "setenv -f mmcbootdev %x", mmc_get_bootdevindex());
+	run_command(cmd, 0);
 #endif
 
 	/* Set $module_variant variable */
