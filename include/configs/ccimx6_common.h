@@ -178,38 +178,7 @@
 	"setexpr filesizeblks ${filesize} / 200; " \
 	"setexpr filesizeblks ${filesizeblks} + 1; "
 
-#if defined(CONFIG_SYS_BOOT_NAND)
-	/*
-	 * The partions' layout for NAND is:
-	 *     mtd0: 16M      (uboot)
-	 *     mtd1: 16M      (kernel)
-	 *     mtd2: 16M      (dtb)
-	 *     mtd3: left     (rootfs)
-	 */
-#define CONFIG_EXTRA_ENV_SETTINGS \
-	"fdt_addr=0x18000000\0" \
-	"fdt_high=0xffffffff\0"	  \
-	"bootargs=console=" CONFIG_CONSOLE_DEV ",115200 ubi.mtd=3 "  \
-		"root=ubi0:rootfs rootfstype=ubifs "		     \
-		"mtdparts=gpmi-nand:16m(boot),16m(kernel),16m(dtb),-(rootfs)\0"\
-	"bootcmd=nand read ${loadaddr} 0x1000000 0x800000;"\
-		"nand read ${fdt_addr} 0x2000000 0x100000;"\
-		"bootm ${loadaddr} - ${fdt_addr}\0"
 
-#elif defined(CONFIG_SYS_BOOT_SATA)
-
-#define CONFIG_EXTRA_ENV_SETTINGS \
-	"fdt_addr=0x18000000\0" \
-	"fdt_high=0xffffffff\0"   \
-	"bootargs=console=" CONFIG_CONSOLE_DEV ",115200 \0"\
-	"bootargs_sata=setenv bootargs ${bootargs} " \
-		"root=/dev/sda1 rootwait rw \0" \
-	"bootcmd_sata=run bootargs_sata; sata init; " \
-		"sata read ${loadaddr} 0x800  0x4000; " \
-		"sata read ${fdt_addr} 0x8000 0x800; " \
-		"bootm ${loadaddr} - ${fdt_addr} \0" \
-	"bootcmd=run bootcmd_sata \0"
-#else
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	RANDOM_UUIDS \
@@ -234,49 +203,6 @@
 	"loaduimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uimage}\0" \
 	"loadinitrd=fatload mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file}\0" \
 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
-	"mmcboot=echo Booting from mmc ...; " \
-		"run mmcargs; " \
-		"if run loaduimage; then " \
-			"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
-				"if run loadfdt; then " \
-					"bootm ${loadaddr} - ${fdt_addr}; " \
-				"else " \
-					"if test ${boot_fdt} = try; then " \
-						"bootm; " \
-					"else " \
-						"echo WARN: Cannot load the DT; " \
-					"fi; " \
-				"fi; " \
-			"else " \
-				"bootm; " \
-			"fi;" \
-		"else " \
-			"echo ERR: Cannot load the kernel; " \
-		"fi;\0" \
-	"netargs=setenv bootargs console=${console},${baudrate} " \
-		"root=/dev/nfs " \
-		"ip=dhcp nfsroot=${serverip}:${rootpath},v3,tcp \0" \
-	"netboot=echo Booting from net ...; " \
-		"run netargs; " \
-		"if test ${ip_dyn} = yes; then " \
-			"setenv get_cmd dhcp; " \
-		"else " \
-			"setenv get_cmd tftp; " \
-		"fi; " \
-		"${get_cmd} ${uimage}; " \
-		"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
-			"if ${get_cmd} ${fdt_addr} ${fdt_file}; then " \
-				"bootm ${loadaddr} - ${fdt_addr}; " \
-			"else " \
-				"if test ${boot_fdt} = try; then " \
-					"bootm; " \
-				"else " \
-					"echo WARN: Cannot load the DT; " \
-				"fi; " \
-			"fi; " \
-		"else " \
-			"bootm; " \
-		"fi;\0" \
 	"uboot_file=u-boot-" CONFIG_SYS_BOARD_NAME ".imx\0" \
 	"parts_android=\"uuid_disk=${uuid_disk};" \
 		"start=2MiB," \
@@ -352,7 +278,7 @@
 	"else " \
 		"dboot android mmc ${mmcdev}:${mmcpart}; " \
 	"fi;"
-#endif
+
 #define CONFIG_ARP_TIMEOUT     200UL
 
 /* Miscellaneous configurable options */
