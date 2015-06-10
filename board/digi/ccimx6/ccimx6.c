@@ -892,14 +892,6 @@ int ccimx6_late_init(void)
 		return -1;
 #endif
 
-#ifdef CONFIG_CMD_MMC
-	/* Set '$mmcdev' depending on boot media */
-	setenv_ulong("mmcdev", mmc_get_bootdevindex());
-	/* Set '$mmcbootpart' to special partition if booting from eMMC */
-	if (!strcmp("esdhc4", boot_mode_string()))
-		setenv_ulong("mmcbootpart", CONFIG_SYS_BOOT_PART_EMMC);
-#endif
-
 	/* Set $module_variant variable */
 	sprintf(var, "0x%02x", my_hwid.variant);
 	setenv("module_variant", var);
