@@ -89,7 +89,7 @@ int setup_pmic_voltages_carrierboard(void)
 	 * high, to make sure the backlight is disabled when the 5V is
 	 * enabled.
 	 */
-	if (pmic_write_bitfield(DA9063_GPIO10_11_ADDR, 0xf, 4, 0x3))
+	if (pmic_write_bitfield(DA9063_GPIO10_11_ADDR, 0x3, 4, 0x3))
 		printf("Could not configure GPIO11\n");
 	if (pmic_write_bitfield(DA9063_GPIO_MODE8_15_ADDR, 0x1, 3, 0x1))
 		printf("Could not set GPIO11 high\n");
@@ -98,7 +98,7 @@ int setup_pmic_voltages_carrierboard(void)
 		/* PWR_EN on the ccimx6sbc enables the +5V suppy and
 		 * comes from PMIC_GPIO7. Set this GPIO high to enable
 		 * +5V supply. */
-		if (pmic_write_bitfield(DA9063_GPIO6_7_ADDR, 0xf, 4, 0x3))
+		if (pmic_write_bitfield(DA9063_GPIO6_7_ADDR, 0x3, 4, 0x3))
 			printf("Could not configure GPIO7\n");
 		if (pmic_write_bitfield(DA9063_GPIO_MODE0_7_ADDR, 0x1, 7, 0x1))
 			printf("Could not enable PWR_EN\n");
