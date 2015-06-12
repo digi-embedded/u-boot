@@ -871,6 +871,8 @@ static int setup_pmic_voltages_ccimx6(void)
 
 int ccimx6_late_init(void)
 {
+	char var[5];
+
 #ifdef CONFIG_CMD_BMODE
 	add_board_boot_modes(board_boot_modes);
 #endif
@@ -897,6 +899,10 @@ int ccimx6_late_init(void)
 	if (!strcmp("esdhc4", boot_mode_string()))
 		setenv_ulong("mmcbootpart", CONFIG_SYS_BOOT_PART_EMMC);
 #endif
+
+	/* Set $module_variant variable */
+	sprintf(var, "0x%02x", my_hwid.variant);
+	setenv("module_variant", var);
 
 	return 0;
 }
