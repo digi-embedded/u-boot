@@ -96,6 +96,7 @@
 
 #define CONFIG_CONS_INDEX              1
 #define CONFIG_BAUDRATE                        115200
+#define CONFIG_SILENT_CONSOLE_UPDATE_ON_RELOC
 
 /* Command definition */
 #include <config_cmd_default.h>
