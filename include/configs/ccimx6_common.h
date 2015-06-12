@@ -91,8 +91,7 @@
 #define CONFIG_ENV_FLAGS_LIST_STATIC	\
 	"wlanaddr:mc,"			\
 	"btaddr:mc,"			\
-	"bootargs_once:sr,"		\
-	"bootdev:so"
+	"bootargs_once:sr"
 
 #define CONFIG_CONS_INDEX              1
 #define CONFIG_BAUDRATE                        115200
