@@ -76,11 +76,15 @@
 #define CONFIG_BOOTSCRIPT		CONFIG_SYS_BOARD "-boot.scr"
 #define CONFIG_CMD_TIME
 
+#define DEFAULT_MAC_ETHADDR	"00:04:f3:ff:ff:fa"
+#define DEFAULT_MAC_WLANADDR	"00:04:f3:ff:ff:fb"
+#define DEFAULT_MAC_BTADDR	"00:04:f3:ff:ff:fc"
+
 #define CONFIG_OVERWRITE_ETHADDR_ONCE
 #define CONFIG_DEFAULT_NETWORK_SETTINGS	\
-	"ethaddr=00:04:f3:ff:ff:fa\0" \
-	"wlanaddr=00:04:f3:ff:ff:fb\0" \
-	"btaddr=00:04:f3:ff:ff:fc\0" \
+	"ethaddr=" DEFAULT_MAC_ETHADDR "\0" \
+	"wlanaddr=" DEFAULT_MAC_WLANADDR "\0" \
+	"btaddr=" DEFAULT_MAC_BTADDR "\0" \
 	"ipaddr=192.168.42.30\0" \
 	"serverip=192.168.42.1\0" \
 	"netmask=255.255.0.0\0"

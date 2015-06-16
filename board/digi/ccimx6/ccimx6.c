@@ -904,6 +904,17 @@ static int setup_pmic_voltages_ccimx6(void)
 	return 0;
 }
 
+static void verify_mac_address(char *var, char *default_mac)
+{
+	char *mac;
+
+	mac = getenv(var);
+	if (NULL == mac)
+		printf("Warning! MAC not set in '%s'\n", var);
+	else if (!strcmp(mac, default_mac))
+		printf("Warning! Dummy default MAC in '%s'\n", var);
+}
+
 int ccimx6_late_init(void)
 {
 #ifdef CONFIG_CMD_MMC
@@ -939,6 +950,15 @@ int ccimx6_late_init(void)
 	/* Set $module_variant variable */
 	sprintf(var, "0x%02x", my_hwid.variant);
 	setenv("module_variant", var);
+
+	/* Verify MAC addresses */
+	verify_mac_address("ethaddr", DEFAULT_MAC_ETHADDR);
+
+	if (board_has_wireless())
+		verify_mac_address("wlanaddr", DEFAULT_MAC_WLANADDR);
+
+	if (board_has_bluetooth())
+		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
 
 	return 0;
 }
