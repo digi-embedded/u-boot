@@ -213,9 +213,17 @@ struct ccimx6_variant ccimx6_variants[] = {
 	},
 /* 0x0E - 55001818-14 */
 	{
+		IMX6D,
+		MEM_512MB,
+		CCIMX6_HAS_EMMC,
+		"Industrial dual-core 800MHz, 4GB eMMC, 512MB DDR3, -40/+85C",
 	},
 /* 0x0F - 55001818-15 */
 	{
+		IMX6Q,
+		MEM_512MB,
+		CCIMX6_HAS_EMMC,
+		"Industrial quad-core 800MHz, 4GB eMMC, 512MB DDR3, -40/+85C",
 	},
 /* 0x10 - 55001818-16 */
 	{
@@ -225,9 +233,17 @@ struct ccimx6_variant ccimx6_variants[] = {
 		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
 		"Industrial quad-core 800MHz, 4GB eMMC, 1GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
 	},
+/* 0x11 - 55001818-17 */
+	{
+		IMX6Q,
+		MEM_1GB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
+		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
+		"Industrial quad-core 800MHz, 8GB eMMC, 1GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
+	},
 };
 
-#define NUM_VARIANTS	16
+#define NUM_VARIANTS	17
 
 const char *cert_regions[] = {
 	"U.S.A.",
