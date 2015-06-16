@@ -183,7 +183,7 @@
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	RANDOM_UUIDS \
 	"script=boot.scr\0" \
-	"loadscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script}\0" \
+	"loadscript=fatload mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
 	"uimage=uImage-" CONFIG_SYS_BOARD ".bin\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"fdt_addr=0x18000000\0" \
