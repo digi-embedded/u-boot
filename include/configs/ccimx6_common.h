@@ -233,10 +233,19 @@
 		"androidboot.console=${console} " \
 		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
 		"${bootargs_once} ${extra_bootargs}\0" \
-	"bootargs_tftp_android=setenv bootargs console=${console},${baudrate} " \
+	"bootargs_tftp=" \
+		"if test ${ip_dyn} = yes; then " \
+			"bootargs_ip=\"ip=dhcp\";" \
+		"else " \
+			"bootargs_ip=\"ip=\\${ipaddr}:\\${serverip}:" \
+			"\\${gatewayip}:\\${netmask}:\\${hostname}:" \
+			"eth0:off\";" \
+		"fi;\0" \
+	"bootargs_tftp_android=run bootargs_tftp;" \
+		"setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_android} root=/dev/nfs " \
 		"androidboot.console=${console} " \
-		"ip=dhcp nfsroot=${serverip}:${rootpath},v3,tcp " \
+		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
 		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
 		"${bootargs_once} ${extra_bootargs}\0" \
 	"bootargs_nfs_android=run bootargs_tftp_android\0" \
@@ -244,9 +253,10 @@
 	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} root=${mmcroot} rootwait rw " \
 		"${bootargs_once} ${extra_bootargs}\0" \
-	"bootargs_tftp_linux=setenv bootargs console=${console},${baudrate} " \
+	"bootargs_tftp_linux=run bootargs_tftp;" \
+		"setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} root=/dev/nfs " \
-		"ip=dhcp nfsroot=${serverip}:${rootpath},v3,tcp " \
+		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
 		"${bootargs_once} ${extra_bootargs}\0" \
 	"bootargs_nfs_linux=run bootargs_tftp_linux\0" \
 	"parts_linux=\"uuid_disk=${uuid_disk};" \
