@@ -500,6 +500,25 @@ struct addrvalue ddr3_calibration[NUM_VARIANTS + 1][12] = {
 		{MX6_MMDC_P0_MPWRDLCTL, 0x3A3B433F},
 		{0, 0},
 	},
+	/* Variant 0x11 */
+	[0x11] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x0013001E},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x003B002D},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x00280041},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x0037003E},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x434C034F},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x033F0344},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x4358035F},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x034E0332},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3D33353A},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x37383240},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x3C3B453E},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x47374A40},
+	},
 };
 
 static int mx6_rgmii_rework(struct phy_device *phydev)
