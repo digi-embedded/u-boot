@@ -2,18 +2,6 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
-DUB-2013.04.0.3, released on 2015/06/29
-	- Added support for variants 0x07, 0x09, 0x0C, 0x0D, 0x0E, 0x0F, 0x10,
-	  and 0x11.
-	- Added support to 'update' command to write to uSD card.
-	- Added subcommand 'dump' for 'pmic' command.
-	- Added support to 'bmode' command.
-	- Allow to update partitions by index apart from name.
-	- Remove unused boot scripts inherited from Freescale platforms.
-	- Print warning message if MACs unset or set to default values.
-	- Add static $ipaddr to bootargs when $ip_dyn != yes.
-
-
 DUB-2013.04.0.2, released on 2015/04/27
 	- Added support for DualLite CC6 variants.
 	- Enabled L2 cache.
