@@ -138,8 +138,10 @@ unsigned imx_ddr_size(void)
 const char *get_imx_type(u32 imxtype)
 {
 	switch (imxtype) {
-	case MXC_CPU_MX7D:
-		return "7D";	/* Dual-core version of the mx7 */
+	case MXC_CPU_MX6QP:
+		return "6QP";	/* Quad-Plus version of the mx6 */
+	case MXC_CPU_MX6DP:
+		return "6DP";	/* Dual-Plus version of the mx6 */
 	case MXC_CPU_MX6Q:
 		return "6Q";	/* Quad-core version of the mx6 */
 	case MXC_CPU_MX6D:
@@ -192,13 +194,10 @@ int print_cpuinfo(void)
 
 	cpurev = get_cpu_rev();
 
-	printf("CPU:   Freescale i.MX%s",
-		get_imx_type((cpurev & 0xFF000) >> 12));
-#if defined(CONFIG_MX6)
-	if (is_mx6dqp())
-		printf("P");
-#endif
-	printf(" rev%d.%d", (cpurev & 0x000F0) >> 4, (cpurev & 0x0000F) >> 0);
+	printf("CPU:   Freescale i.MX%s rev%d.%d",
+	       get_imx_type((cpurev & 0xFF000) >> 12),
+	       (cpurev & 0x000F0) >> 4,
+	       (cpurev & 0x0000F) >> 0);
 	max_freq = get_cpu_speed_grade_hz();
 	if (!max_freq || max_freq == mxc_get_clock(MXC_ARM_CLK)) {
 		printf(" at %dMHz\n", mxc_get_clock(MXC_ARM_CLK) / 1000000);
