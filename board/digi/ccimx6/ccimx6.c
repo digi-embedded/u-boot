@@ -921,6 +921,116 @@ static void verify_mac_address(char *var, char *default_mac)
 		printf("Warning! Dummy default MAC in '%s'\n", var);
 }
 
+static void ccimx6_detect_spurious_wakeup(void) {
+	unsigned int carrierboard_ver = get_carrierboard_version();
+	unsigned char event_a, event_b, event_c, event_d, fault_log;
+
+	/* Check whether we come from a shutdown state */
+	pmic_read_reg(DA9063_FAULT_LOG_ADDR, &fault_log);
+	debug("DA9063 fault_log 0x%08x\n", fault_log);
+
+	if (fault_log & DA9063_E_nSHUT_DOWN) {
+		/* Clear fault log nSHUTDOWN bit */
+		pmic_write_reg(DA9063_FAULT_LOG_ADDR, fault_log &
+			       DA9063_E_nSHUT_DOWN);
+
+		pmic_read_reg(DA9063_EVENT_A_ADDR, &event_a);
+		pmic_read_reg(DA9063_EVENT_B_ADDR, &event_b);
+		pmic_read_reg(DA9063_EVENT_C_ADDR, &event_c);
+		pmic_read_reg(DA9063_EVENT_D_ADDR, &event_d);
+
+		/* Clear event registers */
+		pmic_write_reg(DA9063_EVENT_A_ADDR, event_a);
+		pmic_write_reg(DA9063_EVENT_B_ADDR, event_b);
+		pmic_write_reg(DA9063_EVENT_C_ADDR, event_c);
+		pmic_write_reg(DA9063_EVENT_D_ADDR, event_d);
+
+		/* Return if the wake up is valid */
+		if (event_a) {
+			/* Valid wake up sources include RTC ticks and alarm,
+			 * onKey and ADC measurement */
+			if (event_a & (DA9063_E_TICK | DA9063_E_ALARM |
+				       DA9063_E_nONKEY | DA9063_E_ADC_RDY)) {
+				debug("WAKE: Event A: 0x%02x\n", event_a);
+				return;
+			}
+		}
+
+		/* All events in B are wake-up capable  */
+		if (event_b) {
+			unsigned int valid_mask = 0xFF;
+
+			/* Any event B is valid, except E_WAKE on SBCv1 which
+			 * is N/C */
+			if (carrierboard_ver == 1)
+				valid_mask &= ~DA9063_E_WAKE;
+
+			if (event_b & valid_mask) {
+				debug("WAKE: Event B: 0x%02x wake-up valid 0x%02x\n",
+						event_b, valid_mask);
+				return;
+			}
+		}
+
+		/* The only wake-up OTP enabled GPIOs in event C are:
+		 *   - GPIO5, valid on BT variants
+		 *   - GPIO6, valid on wireless variants
+		 */
+		if (event_c) {
+			unsigned int valid_mask = 0;
+
+			/* On variants with bluetooth the BT_HOST_WAKE
+			 * (GPIO5) pin is valid. */
+			if (board_has_bluetooth())
+				valid_mask |= DA9063_E_GPIO5;
+			/* On variants with wireless the WLAN_HOST_WAKE
+			 * (GPIO6) pin is valid. */
+			if (board_has_wireless())
+				valid_mask |= DA9063_E_GPIO6;
+
+			if (event_c & valid_mask) {
+				debug("WAKE: Event C: 0x%02x wake-up valid 0x%02x\n",
+						event_c, valid_mask);
+				return;
+			}
+		}
+
+		/* The only wake-up OTP enabled GPIOs in event D are:
+		 *  - GPIO8, valid on MCA variants
+		 *  - GPIO9, N/C on SBCs, never valid
+		 */
+		if (event_d) {
+			unsigned int valid_mask = 0;
+
+			/* On variants with kinetis GPIO8/SYS_EN is valid */
+			if (board_has_kinetis())
+			       valid_mask |= DA9063_E_GPIO8;
+
+			if (event_d & valid_mask) {
+				debug("WAKE: Event D: 0x%02x wake-up valid 0x%02x\n",
+						event_d, valid_mask);
+				return;
+			}
+		}
+
+		/* If we reach here the event is spurious */
+		printf("Spurious wake, back to standby.\n");
+		debug("Events A:%02x B:%02x C:%02x D:%02x\n", event_a, event_b,
+			event_c, event_d);
+
+		/* De-assert SYS_EN to get to powerdown mode. The OTP
+		 * is not reread when coming up so the wake-up
+		 * supression configuration will be preserved .*/
+		pmic_write_bitfield(DA9063_CONTROL_A_ADDR, 0x1, 0, 0x0);
+
+		/* Don't come back */
+		while (1)
+			udelay(1000);
+	}
+
+	return;
+}
+
 static int ccimx6_fixup(void)
 {
 	if (!board_has_bluetooth()) {
@@ -938,6 +1048,8 @@ static int ccimx6_fixup(void)
 			return -1;
 		}
 	}
+
+	ccimx6_detect_spurious_wakeup();
 
 	return 0;
 }
