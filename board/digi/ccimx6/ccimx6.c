@@ -1291,6 +1291,15 @@ int board_has_bluetooth(void)
 		return 1; /* assume it has if invalid HWID */
 }
 
+int board_has_kinetis(void)
+{
+	if (is_valid_hwid(&my_hwid))
+		return (ccimx6_variants[my_hwid.variant].capabilities &
+				    CCIMX6_HAS_KINETIS);
+	else
+		return 1; /* assume it has if invalid HWID */
+}
+
 int get_carrierboard_version(void)
 {
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
