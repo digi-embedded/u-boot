@@ -532,6 +532,11 @@ config TARGET_MX6SXSABRESD
 	select CPU_V7
 	select SUPPORT_SPL
 
+config TARGET_CCIMX6SBC
+	bool "Support ccimx6sbc"
+	select CPU_V7
+	select SUPPORT_SPL
+
 config TARGET_GW_VENTANA
 	bool "Support gw_ventana"
 	select CPU_V7
@@ -804,6 +809,7 @@ source "board/creative/xfi3/Kconfig"
 source "board/davedenx/qong/Kconfig"
 source "board/denx/m28evk/Kconfig"
 source "board/denx/m53evk/Kconfig"
+source "board/digi/ccimx6sbc/Kconfig"
 source "board/embest/mx6boards/Kconfig"
 source "board/esg/ima3-mx53/Kconfig"
 source "board/freescale/ls2085a/Kconfig"
