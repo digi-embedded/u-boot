@@ -27,6 +27,10 @@ struct hsearch_data env_htab = {
 	.change_ok = env_flags_validate,
 };
 
+#if defined(CONFIG_CMD_NAND) && defined(CONFIG_CMD_BSP)
+size_t nvram_part_size;
+#endif
+
 __weak uchar env_get_char_spec(int index)
 {
 	return *((uchar *)(gd->env_addr + index));
@@ -110,7 +114,9 @@ void set_default_env(const char *s)
 				"using default environment\n\n",
 				s + 1);
 		} else {
-			flags = H_INTERACTIVE;
+			if (*s == '*')
+				flags |= H_FORCE;	/* Forced reset */
+			flags |= H_INTERACTIVE;
 			puts(s);
 		}
 	} else {
@@ -127,7 +133,7 @@ void set_default_env(const char *s)
 
 
 /* [re]set individual variables to their value in the default environment */
-int set_default_vars(int nvars, char * const vars[])
+int set_default_vars(int nvars, char * const vars[], int flag)
 {
 	/*
 	 * Special use-case: import from default environment
@@ -135,7 +141,7 @@ int set_default_vars(int nvars, char * const vars[])
 	 */
 	return himport_r(&env_htab, (const char *)default_environment,
 				sizeof(default_environment), '\0',
-				H_NOCLEAR | H_INTERACTIVE, 0, nvars, vars);
+				flag | H_NOCLEAR | H_INTERACTIVE, 0, nvars, vars);
 }
 
 #ifdef CONFIG_ENV_AES
@@ -251,6 +257,20 @@ int env_export(env_t *env_out)
 
 void env_relocate(void)
 {
+#if defined(CONFIG_CMD_NAND) && defined(CONFIG_CMD_BSP)
+	/* Dynamic calculation of NVRAM partition size. */
+	nvram_part_size = MtdGetEraseSize(0, PART_UBOOT_SIZE);
+	while (nvram_part_size < CONFIG_ENV_SIZE)
+		nvram_part_size += MtdGetEraseSize(0, PART_UBOOT_SIZE + nvram_part_size);
+
+	/* space for NVRAM backup */
+	nvram_part_size += MtdGetEraseSize(0, PART_UBOOT_SIZE + nvram_part_size);
+	while (nvram_part_size < 2 * CONFIG_ENV_SIZE)
+		nvram_part_size += MtdGetEraseSize(0, PART_UBOOT_SIZE + nvram_part_size);
+
+	/* double NVRAM partition size to handle bad blcoks */
+	nvram_part_size += nvram_part_size;
+#endif
 #if defined(CONFIG_NEEDS_MANUAL_RELOC)
 	env_reloc();
 	env_htab.change_ok += gd->reloc_off;

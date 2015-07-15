@@ -166,6 +166,8 @@ static int	NetRestarted;
 /* At least one device configured */
 static int	NetDevExists;
 
+unsigned long NetStartAgainTimeout = 10000;
+
 /* XXX in both little & big endian machines 0xFFFF == ntohs(-1) */
 /* default is without VLAN */
 ushort		NetOurVLAN = 0xFFFF;
@@ -622,7 +624,7 @@ void NetStartAgain(void)
 	if (NetRestartWrap) {
 		NetRestartWrap = 0;
 		if (NetDevExists) {
-			NetSetTimeout(10000UL, startAgainTimeout);
+			NetSetTimeout(NetStartAgainTimeout, startAgainTimeout);
 			net_set_udp_handler(NULL);
 		} else {
 			net_set_state(NETLOOP_FAIL);

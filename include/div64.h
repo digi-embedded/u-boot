@@ -46,4 +46,10 @@ static inline uint64_t lldiv(uint64_t dividend, uint32_t divisor)
 	return(__res);
 }
 
+static inline uint64_t llmod(uint64_t dividend, uint32_t divisor)
+{
+	uint64_t __res = dividend;
+	return (do_div(__res, divisor));
+}
+
 #endif /* _ASM_GENERIC_DIV64_H */

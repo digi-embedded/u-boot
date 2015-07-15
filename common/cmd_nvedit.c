@@ -45,13 +45,14 @@ DECLARE_GLOBAL_DATA_PTR;
 	!defined(CONFIG_ENV_IS_IN_FAT)		&& \
 	!defined(CONFIG_ENV_IS_IN_NAND)		&& \
 	!defined(CONFIG_ENV_IS_IN_NVRAM)	&& \
+	!defined(CONFIG_ENV_IS_IN_DIGI_NVRAM)	&& \
 	!defined(CONFIG_ENV_IS_IN_ONENAND)	&& \
 	!defined(CONFIG_ENV_IS_IN_SPI_FLASH)	&& \
 	!defined(CONFIG_ENV_IS_IN_REMOTE)	&& \
 	!defined(CONFIG_ENV_IS_IN_UBI)		&& \
 	!defined(CONFIG_ENV_IS_NOWHERE)
 # error Define one of CONFIG_ENV_IS_IN_{EEPROM|FLASH|DATAFLASH|ONENAND|\
-SPI_FLASH|NVRAM|MMC|FAT|REMOTE|UBI} or CONFIG_ENV_IS_NOWHERE
+SPI_FLASH|NVRAM|DIGI_NVRAM|MMC|FAT|REMOTE|UBI} or CONFIG_ENV_IS_NOWHERE
 #endif
 
 /*
@@ -207,7 +208,12 @@ DONE:
  * Set a new environment variable,
  * or replace or delete an existing one.
  */
-static int _do_env_set(int flag, int argc, char * const argv[])
+#if defined(CONFIG_ENV_OVERWRITE) && defined(CONFIG_ENV_IS_IN_DIGI_NVRAM)
+extern int _do_env_set(int flag, int argc, char * const argv[]);
+int _do_orig_env_set(int flag, int argc, char * const argv[])
+#else
+int _do_env_set(int flag, int argc, char * const argv[])
+#endif
 {
 	int   i, len;
 	char  *name, *value, *s;
@@ -751,12 +757,27 @@ static int do_env_default(cmd_tbl_t *cmdtp, int __flag,
 	debug("Final value for argc=%d\n", argc);
 	if (all && (argc == 0)) {
 		/* Reset the whole environment */
-		set_default_env("## Resetting to default environment\n");
+		if (flag & H_FORCE) {
+			/* Forced reset: this removes any variable that does
+			 * not exist in the default environment and
+			 * overwrites/deletes any protected variable to its
+			 * default value.
+			 */
+			set_default_env("** Resetting to default "
+				        "environment\n");
+		} else {
+			/* Normal reset: this resets any variable that exists
+			 * in the default environment to its default value but
+			 * does not overwrite/delete protected variables.
+			 */
+			set_default_env("## Resetting to default "
+				        "environment\n");
+		}
 		return 0;
 	}
 	if (!all && (argc > 0)) {
 		/* Reset individual variables */
-		set_default_vars(argc, argv);
+		set_default_vars(argc, argv, flag);
 		return 0;
 	}
 

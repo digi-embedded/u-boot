@@ -35,7 +35,7 @@ Makefile have been tested to some extent and can be considered
 "working". In fact, many of them are used in production systems.
 
 In case of problems see the CHANGELOG and CREDITS files to find out
-who contributed the specific port. The boards.cfg file lists board
+who contributed the specific port. The MAINTAINERS file lists board
 maintainers.
 
 Note: There is no CHANGELOG file in the actual U-Boot source tree;
@@ -1084,7 +1084,7 @@ The following options need to be configured:
 		CONFIG_CMD_FAT		* FAT command support
 		CONFIG_CMD_FLASH	  flinfo, erase, protect
 		CONFIG_CMD_FPGA		  FPGA device initialization support
-		CONFIG_CMD_FUSE		* Device fuse support
+		CONFIG_CMD_FUSE         * Device fuse support
 		CONFIG_CMD_GETTIME	* Get time since boot
 		CONFIG_CMD_GO		* the 'go' command (exec code)
 		CONFIG_CMD_GREPENV	* search environment

@@ -147,8 +147,8 @@ static void mxs_mem_init_clock(void)
 	/* Fractional divider for ref_emi is 33 ; 480 * 18 / 33 = 266MHz */
 	const unsigned char divider = 33;
 #elif defined(CONFIG_MX28)
-	/* Fractional divider for ref_emi is 21 ; 480 * 18 / 21 = 411MHz */
-	const unsigned char divider = 21;
+	/* Fractional divider for ref_emi is 411MHz / EMI_FRAC */
+	const unsigned char divider = EMI_FRAC(CONFIG_CPU_FREQ);
 #endif
 
 	debug("SPL: Initialising FRAC0\n");
@@ -167,8 +167,8 @@ static void mxs_mem_init_clock(void)
 
 	early_delay(11000);
 
-	/* Set EMI clock divider for EMI clock to 411 / 2 = 205MHz */
-	writel((2 << CLKCTRL_EMI_DIV_EMI_OFFSET) |
+	/* Set EMI clock divider for EMI clock to 411 / EMI_DIV */
+	writel((EMI_DIV(CONFIG_CPU_FREQ) << CLKCTRL_EMI_DIV_EMI_OFFSET) |
 		(1 << CLKCTRL_EMI_DIV_XTAL_OFFSET),
 		&clkctrl_regs->hw_clkctrl_emi);
 
@@ -187,25 +187,25 @@ static void mxs_mem_setup_cpu_and_hbus(void)
 
 	debug("SPL: Setting CPU and HBUS clock frequencies\n");
 
-	/* Set fractional divider for ref_cpu to 480 * 18 / 19 = 454MHz
+	/* Set fractional divider for ref_cpu to 480 * 18 / CPU_FRAC
 	 * and ungate CPU clock */
-	writeb(19 & CLKCTRL_FRAC_FRAC_MASK,
+	writeb(CPU_FRAC(CONFIG_CPU_FREQ) & CLKCTRL_FRAC_FRAC_MASK,
 		(uint8_t *)&clkctrl_regs->hw_clkctrl_frac0[CLKCTRL_FRAC0_CPU]);
 
 	/* Set CPU bypass */
 	writel(CLKCTRL_CLKSEQ_BYPASS_CPU,
 		&clkctrl_regs->hw_clkctrl_clkseq_set);
 
-	/* HBUS = 151MHz */
+	/* HBUS */
 	writel(CLKCTRL_HBUS_DIV_MASK, &clkctrl_regs->hw_clkctrl_hbus_set);
-	writel(((~3) << CLKCTRL_HBUS_DIV_OFFSET) & CLKCTRL_HBUS_DIV_MASK,
-		&clkctrl_regs->hw_clkctrl_hbus_clr);
+	writel(((~HBUS_DIV(CONFIG_CPU_FREQ)) << CLKCTRL_HBUS_DIV_OFFSET) &
+		CLKCTRL_HBUS_DIV_MASK, &clkctrl_regs->hw_clkctrl_hbus_clr);
 
 	early_delay(10000);
 
-	/* CPU clock divider = 1 */
+	/* CPU clock divider */
 	clrsetbits_le32(&clkctrl_regs->hw_clkctrl_cpu,
-			CLKCTRL_CPU_DIV_CPU_MASK, 1);
+			CLKCTRL_CPU_DIV_CPU_MASK, CPU_DIV(CONFIG_CPU_FREQ));
 
 	/* Disable CPU bypass */
 	writel(CLKCTRL_CLKSEQ_BYPASS_CPU,
@@ -227,7 +227,7 @@ static void mxs_mem_setup_vdda(void)
 		&power_regs->hw_power_vddactrl);
 }
 
-uint32_t mxs_mem_get_size(void)
+uint32_t __mxs_mem_get_size(void)
 {
 	uint32_t sz, da;
 	uint32_t *vt = (uint32_t *)0x20;
@@ -245,6 +245,9 @@ uint32_t mxs_mem_get_size(void)
 
 	return sz;
 }
+uint32_t mxs_mem_get_size(void)
+	__attribute__((weak, alias("__mxs_mem_get_size")));
+
 
 #ifdef CONFIG_MX23
 static void mx23_mem_setup_vddmem(void)

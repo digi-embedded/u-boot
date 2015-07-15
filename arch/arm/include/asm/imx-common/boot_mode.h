@@ -14,7 +14,14 @@ struct boot_mode {
 	unsigned cfg_val;
 };
 
+struct boot_device {
+	const char *name;
+	unsigned val;
+	unsigned mask;
+};
+
 void add_board_boot_modes(const struct boot_mode *p);
 void boot_mode_apply(unsigned cfg_val);
+const char * boot_mode_string(void);
 extern const struct boot_mode soc_boot_modes[];
 #endif

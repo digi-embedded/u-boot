@@ -23,6 +23,7 @@
 #include <asm/arch/crm_regs.h>
 #include <dm.h>
 #include <imx_thermal.h>
+#include <libfdt.h>
 
 enum ldo_reg {
 	LDO_ARM,
@@ -396,6 +397,105 @@ void imx_get_mac_from_fuse(int dev_id, unsigned char *mac)
 }
 #endif
 
+#ifdef CONFIG_LDO_BYPASS_CHECK
+DECLARE_GLOBAL_DATA_PTR;
+int check_ldo_bypass(void)
+{
+	const u32 * prop = NULL;
+	int node;
+
+	/* get the right fdt_addr */
+	gd->fdt_blob = (void *)getenv_ulong("fdt_addr", 16,
+						(uintptr_t)gd->fdt_blob);
+	/* Get the node from FDT for anatop ldo-bypass */
+	node = fdt_node_offset_by_compatible(gd->fdt_blob, -1,
+		"fsl,imx6q-gpc");
+	if (node < 0) {
+		printf("gpc: No node for gpc in device tree,%d\n", node);
+		return -1;
+	}
+	prop = (u32 *)fdt_getprop(gd->fdt_blob, node, "fsl,ldo-bypass", NULL);
+	return *prop;
+}
+
+int check_1_2G(void)
+{
+	u32 reg;
+	int result = 0;
+	struct ocotp_regs *ocotp = (struct ocotp_regs *)OCOTP_BASE_ADDR;
+	struct mxc_ccm_reg *mxc_ccm = (struct mxc_ccm_reg *)CCM_BASE_ADDR;
+	struct fuse_bank *bank = &ocotp->bank[0];
+	struct fuse_bank0_regs *fuse_bank0 =
+			(struct fuse_bank0_regs *)bank->fuse_regs;
+	unsigned int ccm_ccgr2;
+
+	/* enable OCOTP_CTRL clock in CCGR2 */
+	ccm_ccgr2 = readl(&mxc_ccm->CCGR2);
+	writel(ccm_ccgr2 | MXC_CCM_CCGR2_OCOTP_CTRL_MASK, &mxc_ccm->CCGR2);
+
+	reg = readl(&fuse_bank0->cfg4);
+	if (reg & (0x3 << 16))
+		result = 1;
+
+	/* restore CCGR2 */
+	writel(ccm_ccgr2, &mxc_ccm->CCGR2);
+
+	return result;
+}
+
+static int arm_orig_podf;
+void set_arm_freq_400M(bool is_400M)
+{
+	struct mxc_ccm_reg *mxc_ccm = (struct mxc_ccm_reg *)CCM_BASE_ADDR;
+
+	if (is_400M)
+		writel(0x1, &mxc_ccm->cacrr);
+	else
+		writel(arm_orig_podf, &mxc_ccm->cacrr);
+}
+
+void prep_anatop_bypass(void)
+{
+	struct mxc_ccm_reg *mxc_ccm = (struct mxc_ccm_reg *)CCM_BASE_ADDR;
+
+	arm_orig_podf = readl(&mxc_ccm->cacrr);
+	/*
+	 * Downgrade ARM speed to 400Mhz as half of boot 800Mhz before ldo
+	 * bypassed, also downgrade internal vddarm ldo to 0.975V.
+	 * VDDARM_IN 0.975V + 125mV = 1.1V < Max(1.3V)
+	 * otherwise at 800Mhz(i.mx6dl):
+	 * VDDARM_IN 1.175V + 125mV = 1.3V = Max(1.3V)
+	 * We need provide enough gap in this case.
+	 * skip if boot from 400M.
+	 */
+	if (!arm_orig_podf)
+		set_arm_freq_400M(true);
+#if !defined(CONFIG_MX6DL) && !defined(CONFIG_MX6S)
+	set_ldo_voltage(LDO_ARM, 975);
+#else
+	set_ldo_voltage(LDO_ARM, 1150);
+#endif
+}
+
+int set_anatop_bypass(void)
+{
+	struct anatop_regs *anatop = (struct anatop_regs *)ANATOP_BASE_ADDR;
+	u32 reg = readl(&anatop->reg_core);
+
+	/* bypass VDDARM/VDDSOC */
+	reg = reg | (0x1F << 18) | 0x1F;
+	writel(reg, &anatop->reg_core);
+
+	return arm_orig_podf;
+}
+
+void finish_anatop_bypass(void)
+{
+	if (!arm_orig_podf)
+		set_arm_freq_400M(false);
+}
+#endif /* CONFIG_LDO_BYPASS_CHECK */
+
 void boot_mode_apply(unsigned cfg_val)
 {
 	unsigned reg;
@@ -430,6 +530,38 @@ const struct boot_mode soc_boot_modes[] = {
 	{"esdhc4",	MAKE_CFGVAL(0x40, 0x38, 0x00, 0x00)},
 	{NULL,		0},
 };
+
+/* The following array contains the boot device string, and the value and mask
+ * of SBMR1 register associated to it.
+ */
+const struct boot_device boot_device_sel[] = {
+	{"NOR/OneNAND",	0x00,	0xf0},
+	{"usb",		0x10,	0xf0},
+	{"sata",	0x20,	0xf0},
+	{"esdhc1",	0x40,	0x18C0},
+	{"esdhc2",	0x840,	0x18C0},
+	{"esdhc3",	0x1040,	0x18C0},
+	{"esdhc4",	0x1840,	0x18C0},
+	{NULL,		0},
+};
+
+const char * boot_mode_string(void)
+{
+	struct src *psrc = (struct src *)SRC_BASE_ADDR;
+	unsigned reg;
+	int i;
+
+	if (readl(&psrc->gpr10) & (1 << 28))
+		reg = readl(&psrc->gpr9);
+	else
+		reg = readl(&psrc->sbmr1);
+	for (i = 0; boot_device_sel[i].name != NULL; i++) {
+		if ((reg & boot_device_sel[i].mask) == boot_device_sel[i].val)
+			return boot_device_sel[i].name;
+	}
+
+	return "unknown";
+}
 
 void s_init(void)
 {

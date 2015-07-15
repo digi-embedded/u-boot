@@ -338,8 +338,18 @@ static void mxs_enable_4p2_dcdc_input(int xfer)
 				POWER_CTRL_ENIRQ_VDD5V_DROOP;
 
 	clrbits_le32(&power_regs->hw_power_5vctrl, POWER_5VCTRL_PWDN_5VBRNOUT);
+#ifdef CONFIG_NO_PSWITCH
+	/* Disable hardware poweroff on fast-falling edge of PSWITCH if not
+	 * used. This improves ESD immunity by removing
+	 * a source resets/power-cycling during ESD events.
+	 */
+	writel(POWER_RESET_UNLOCK_KEY | POWER_RESET_PWD_OFF |
+		POWER_RESET_FASTFALL_PSWITCH_OFF,
+		&power_regs->hw_power_reset);
+#else
 	writel(POWER_RESET_UNLOCK_KEY | POWER_RESET_PWD_OFF,
 		&power_regs->hw_power_reset);
+#endif
 
 	clrbits_le32(&power_regs->hw_power_ctrl, POWER_CTRL_ENIRQ_VDD5V_DROOP);
 
@@ -1222,7 +1232,7 @@ void mxs_power_init(void)
 	mxs_power_set_vddx(&mxs_vddio_cfg, 3300, 3150);
 
 	debug("SPL: Setting VDDD to 1V5 (brownout @ 1v0)\n");
-	mxs_power_set_vddx(&mxs_vddd_cfg, 1500, 1000);
+	mxs_power_set_vddx(&mxs_vddd_cfg, VDDD(CONFIG_CPU_FREQ), 1000);
 #ifdef CONFIG_MX23
 	debug("SPL: Setting mx23 VDDMEM to 2V5 (brownout @ 1v7)\n");
 	mxs_power_set_vddx(&mxs_vddmem_cfg, 2500, 1700);

@@ -462,6 +462,9 @@ int board_postclk_init (void); /* after clocks/timebase, before env/serial */
 int board_early_init_r (void);
 void board_poweroff (void);
 
+/* board/digi/common */
+void run_auto_bootscript(void);
+
 #if defined(CONFIG_SYS_DRAM_TEST)
 int testdram(void);
 #endif /* CONFIG_SYS_DRAM_TEST */

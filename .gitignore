@@ -83,3 +83,9 @@ GTAGS
 *.orig
 *~
 \#*#
+
+# Digi
+*.sb
+
+# Eclipse
+.project

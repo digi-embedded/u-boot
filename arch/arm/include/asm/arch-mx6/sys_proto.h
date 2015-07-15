@@ -28,6 +28,15 @@ const char *get_imx_type(u32 imxtype);
 unsigned imx_ddr_size(void);
 void set_chipselect_size(int const);
 
+#ifdef CONFIG_LDO_BYPASS_CHECK
+int check_ldo_bypass(void);
+int check_1_2G(void);
+int set_anatop_bypass(void);
+void ldo_mode_set(int ldo_bypass);
+void prep_anatop_bypass(void);
+void finish_anatop_bypass(void);
+#endif
+
 /*
  * Initializes on-chip ethernet controllers.
  * to override, implement board_eth_init()

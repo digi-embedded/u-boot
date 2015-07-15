@@ -1,0 +1,79 @@
+-------------------------
+Digi U-Boot RELEASE NOTES
+-------------------------
+
+DUB-2013.04.1.1, released on 2015/06/29
+	- Added support for variants 0x07, 0x09, 0x0C, 0x0D, 0x0E, 0x0F, 0x10,
+	  and 0x11.
+	- Added support to 'update' command to write to uSD card.
+	- Added subcommand 'dump' for 'pmic' command.
+	- Added support to 'bmode' command.
+	- Allow to update partitions by index apart from name.
+	- Remove unused boot scripts inherited from Freescale platforms.
+	- Print warning message if MACs unset or set to default values.
+	- Add static $ipaddr to bootargs when $ip_dyn != yes.
+
+
+DUB-2013.04.0.2, released on 2015/04/27
+	- Added support for DualLite CC6 variants.
+	- Enabled L2 cache.
+	- Fix dcache problem in mmc driver.
+	- Added 'pmic' command to read/write PMIC registers.
+	- Rewrite DDR3 calibration values on early board setup.
+
+
+DUB-2013.04.0.1, released on 2015/01/09
+	- Change Digi version string to follow upstream U-Boot major/minor
+	  version numbers. The two last numbers are feature/patch version
+	  and build version.
+	- Removed support for ConnectCore 6 Adapter platform (ccimx6adpt).
+	- Removed $video_args variable, no longer used.
+	- Added support for LDO bypass mode.
+	- Added support to update firmware from RAM.
+
+
+v2013.04 - DUB-2.3.0.3, released on 2014/09/09
+	- Add DDR3 calibration values for cavity-less module.
+	- Added CONFIG_BOOT_TEMP_BELOW_MAX to establish celsius degrees
+	  below CPU's max die temp at which boot should be attempted
+	  (defaults to 10C).
+	- Variable 'phy_mode' allows you to force the PHY to work as MASTER
+	  during master/slave negotiation, which may speed up the
+	  autonegotiation with Gigabit switches.
+	- Disable automatic TFTP bootscript download by clearing the
+	  'bootscript' variable to avoid long PHY autonegotiation time
+	  during boot.
+	- Abort OTF update operation on chunk write failure.
+	- Added support for carrier board version in OTP bits.
+	- Disable power on audio codec on SBC v2 carrier board.
+	- Update HWID format and add manufacturing commands.
+
+
+v2013.04 - DUB-2.2.1.2, released on 2014/06/20
+	- Added support for ConnectCore 6 SBC platform (ccimx6sbc).
+	- Fixed TFTP on-the-fly update mechanism.
+	- Added 'updatefile' command to update files into FAT partitions.
+	- Added verification step to 'update' command. 
+	- Changed default firmware file names to match Yocto's default
+	  build artifact filenames.
+	- Fixup FDT with HWID information
+	- Pass MAC addresses in cmdline to Android
+	- Protect MAC addresses from being reset by 'env default' command
+	  unless -f (forced) option passed.
+
+
+v2013.04 - DUB-2.1.1.2, released on 2014/04/09
+	- Disabled on-the-fly update from MMC which was wrong.
+	- Disable L2 cache which was causing occasional hangs.
+	- Select between Gigabit and 10/100 ethernet using
+	  'ENET' env variable.
+
+
+v2013.04 - DUB-2.1.0.3, released on 2014/03/27
+	- Initial release for ccimx6adpt, including:
+		- 'dboot' command
+		- 'update' command
+		- On-the-fly update from TFTP/MMC
+		- Auto bootscript from TFTP
+		- OCOTP support via 'fuse' command
+	- Dual Boot yet unsupported

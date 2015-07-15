@@ -183,7 +183,6 @@ static int esdhc_setup_data(struct mmc *mmc, struct mmc_data *data)
 	int timeout;
 	struct fsl_esdhc_cfg *cfg = mmc->priv;
 	struct fsl_esdhc *regs = (struct fsl_esdhc *)cfg->esdhc_base;
-
 	uint wml_value;
 
 	wml_value = data->blocksize/4;
@@ -309,6 +308,9 @@ esdhc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 		err = esdhc_setup_data(mmc, data);
 		if(err)
 			return err;
+
+		if (data->flags & MMC_DATA_READ)
+			check_and_invalidate_dcache_range(cmd, data);
 	}
 
 	/* Figure out the transfer arguments */
@@ -405,6 +407,11 @@ esdhc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 			}
 		} while ((irqstat & DATA_COMPLETE) != DATA_COMPLETE);
 
+		/*
+		 * Need invalidate the dcache here again to avoid any
+		 * cache-fill during the DMA operations such as the
+		 * speculative pre-fetching etc.
+		 */
 		if (data->flags & MMC_DATA_READ)
 			check_and_invalidate_dcache_range(cmd, data);
 #endif
