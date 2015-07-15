@@ -861,8 +861,7 @@ int board_mmc_init(bd_t *bis)
 #ifdef CONFIG_CMD_SATA
 int setup_sata(void)
 {
-	struct iomuxc_base_regs *const iomuxc_regs
-		= (struct iomuxc_base_regs *) IOMUXC_BASE_ADDR;
+	struct iomuxc *const iomuxc_regs = (struct iomuxc *) IOMUXC_BASE_ADDR;
 	int ret = enable_sata_clock();
 	if (ret)
 		return ret;
