@@ -71,7 +71,10 @@ int env_init(void)
 	return 0;
 }
 
-#ifdef CONFIG_SYS_MMC_ENV_PART
+#ifndef CONFIG_SYS_MMC_ENV_PART
+#define CONFIG_SYS_MMC_ENV_PART 0
+#endif
+
 __weak uint mmc_get_env_part(struct mmc *mmc)
 {
 	return CONFIG_SYS_MMC_ENV_PART;
@@ -95,9 +98,6 @@ static int mmc_set_env_part(struct mmc *mmc)
 
 	return ret;
 }
-#else
-static inline int mmc_set_env_part(struct mmc *mmc) {return 0; };
-#endif
 
 static int init_mmc_for_env(struct mmc *mmc)
 {
@@ -116,7 +116,6 @@ static int init_mmc_for_env(struct mmc *mmc)
 
 static void fini_mmc_for_env(struct mmc *mmc)
 {
-#ifdef CONFIG_SYS_MMC_ENV_PART
 	int dev = mmc_get_env_devno();
 
 #ifdef CONFIG_SPL_BUILD
@@ -124,7 +123,6 @@ static void fini_mmc_for_env(struct mmc *mmc)
 #endif
 	if (mmc_get_env_part(mmc) != mmc->part_num)
 		mmc_switch_part(dev, mmc->part_num);
-#endif
 }
 
 #ifdef CONFIG_CMD_SAVEENV

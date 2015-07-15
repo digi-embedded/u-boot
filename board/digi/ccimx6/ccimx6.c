@@ -788,7 +788,7 @@ int mmc_get_env_devno(void)
 	return mmc_get_bootdevindex();
 }
 
-int mmc_get_env_partno(void)
+uint mmc_get_env_part(struct mmc *mmc)
 {
 	struct src *psrc = (struct src *)SRC_BASE_ADDR;
 	unsigned reg;
