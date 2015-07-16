@@ -26,7 +26,7 @@
 #include <fsl_esdhc.h>
 #include <mmc.h>
 #include <netdev.h>
-#if CONFIG_I2C_MXC
+#ifdef CONFIG_SYS_I2C_MXC
 #include <i2c.h>
 #include <asm/imx-common/mxc_i2c.h>
 #endif
@@ -56,7 +56,7 @@ iomux_v3_cfg_t const sgtl5000_pads[] = {
 	MX6_PAD_EIM_OE__GPIO2_IO25 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 
-#ifdef CONFIG_I2C_MXC
+#ifdef CONFIG_SYS_I2C_MXC
 int setup_pmic_voltages_carrierboard(void)
 {
 #ifdef CONFIG_I2C_MULTI_BUS
@@ -104,7 +104,7 @@ int setup_pmic_voltages_carrierboard(void)
 
 	return 0;
 }
-#endif /* CONFIG_I2C_MXC */
+#endif /* CONFIG_SYS_I2C_MXC */
 
 static void setup_board_enet(void)
 {

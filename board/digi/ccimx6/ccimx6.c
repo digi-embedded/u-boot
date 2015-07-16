@@ -29,7 +29,7 @@
 #include <asm/gpio.h>
 #include <asm/imx-common/iomux-v3.h>
 #include <asm/imx-common/boot_mode.h>
-#if CONFIG_I2C_MXC
+#ifdef CONFIG_SYS_I2C_MXC
 #include <i2c.h>
 #include <asm/imx-common/mxc_i2c.h>
 #endif
@@ -76,7 +76,7 @@ static int enet_xcv_type;
 	PAD_CTL_DSE_40ohm | PAD_CTL_HYS |			\
 	PAD_CTL_ODE | PAD_CTL_SRE_FAST)
 
-#if CONFIG_I2C_MXC
+#ifdef CONFIG_SYS_I2C_MXC
 #define PC MUX_PAD_CTRL(I2C_PAD_CTRL)
 /* I2C2 Camera, MIPI, pfuze */
 struct i2c_pads_info i2c_pad_info1 = {
@@ -666,7 +666,7 @@ int board_get_enet_xcv_type(void)
 	return enet_xcv_type;
 }
 
-#ifdef CONFIG_I2C_MXC
+#ifdef CONFIG_SYS_I2C_MXC
 
 static int pmic_access_page(unsigned char page)
 {
@@ -721,7 +721,7 @@ int pmic_write_bitfield(int reg, unsigned char mask, unsigned char off,
 
 	return -1;
 }
-#endif /* CONFIG_I2C_MXC */
+#endif /* CONFIG_SYS_I2C_MXC */
 
 #ifdef CONFIG_FSL_ESDHC
 
@@ -944,7 +944,7 @@ int ccimx6_late_init(void)
 	add_board_boot_modes(board_boot_modes);
 #endif
 
-#ifdef CONFIG_I2C_MXC
+#ifdef CONFIG_SYS_I2C_MXC
 	/* Setup I2C2 (PMIC, Kinetis) */
 	setup_i2c(1, CONFIG_SYS_I2C_SPEED,
 			CONFIG_SYS_I2C_SLAVE, &i2c_pad_info1);
