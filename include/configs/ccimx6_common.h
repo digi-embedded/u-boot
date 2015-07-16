@@ -203,7 +203,7 @@
 	"loaduimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uimage}\0" \
 	"loadinitrd=fatload mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file}\0" \
 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
-	"uboot_file=u-boot-" CONFIG_SYS_BOARD_NAME ".imx\0" \
+	"uboot_file=u-boot.imx\0" \
 	"parts_android=\"uuid_disk=${uuid_disk};" \
 		"start=2MiB," \
 		"name=android,size=64MiB,uuid=${part1_uuid};" \
