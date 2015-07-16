@@ -426,7 +426,7 @@ void fdt_fixup_wireless_mac(void *fdt)
 /*
  * Platform function to modify the FDT as needed
  */
-void ft_board_setup(void *blob, bd_t *bd)
+int ft_board_setup(void *blob, bd_t *bd)
 {
 #if defined(CONFIG_HAS_HWID)
 	fdt_fixup_hwid(blob);
@@ -434,6 +434,8 @@ void ft_board_setup(void *blob, bd_t *bd)
 
 	fdt_fixup_bluetooth_mac(blob);
 	fdt_fixup_wireless_mac(blob);
+
+	return 0;
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
 

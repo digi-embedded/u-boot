@@ -1347,7 +1347,7 @@ void fdt_fixup_mac(void *fdt, char *varname, char *node)
 }
 
 /* Platform function to modify the FDT as needed */
-void ft_board_setup(void *blob, bd_t *bd)
+int ft_board_setup(void *blob, bd_t *bd)
 {
 
 	/* Re-read HWID which could have been overriden by U-Boot commands */
@@ -1361,6 +1361,8 @@ void ft_board_setup(void *blob, bd_t *bd)
 		fdt_fixup_mac(blob, "wlanaddr", "/wireless");
 	if (board_has_bluetooth())
 		fdt_fixup_mac(blob, "btaddr", "/bluetooth");
+
+	return 0;
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
 
