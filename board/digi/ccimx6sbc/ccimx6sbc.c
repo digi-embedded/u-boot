@@ -281,7 +281,7 @@ int board_early_init_f(void)
 	ccimx6_early_init();
 
 #ifdef CONFIG_CMD_SATA
-	setup_sata();
+	setup_iomux_sata();
 #endif
 	setup_board_audio();
 
