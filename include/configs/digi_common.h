@@ -117,7 +117,6 @@
 
 /* ********** misc stuff ********** */
 #define CONFIG_CMD_ENV_FLAGS
-#define CONFIG_SYS_PBSIZE	 (CONFIG_SYS_CBSIZE + CONFIG_PROMPT_MAXLEN + 16)
 #define CONFIG_SYS_MAXARGS	32			/* max number of command args */
 #define CONFIG_SYS_BARGSIZE	CONFIG_SYS_CBSIZE	/* Boot Argument Buffer Size */
 
