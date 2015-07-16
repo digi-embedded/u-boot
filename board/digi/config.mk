@@ -9,4 +9,4 @@ CPPFLAGS-$(CONFIG_CMD_BOOTSTREAM) += \
 	-I$(TOPDIR)/drivers/mtd/nand
 
 CPPFLAGS += $(CPPFLAGS-y)
-CFLAGS += $(CPPFLAGS-y)
+ccflags-y += $(CPPFLAGS-y)
