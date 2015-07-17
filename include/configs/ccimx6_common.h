@@ -236,7 +236,7 @@
 	"bootargs_android=androidboot.hardware=" CONFIG_SYS_BOARD " " \
 		"mem=" __stringify(CONFIG_DDR_MB) "M\0" \
 	"bootargs_mmc_android=setenv bootargs console=${console},${baudrate} " \
-		"${bootargs_android} androidboot.mmcdev=${mmcdev} " \
+		"${bootargs_android} androidboot.mmcdev=${mmcbootdev} " \
 		"androidboot.console=${console} " \
 		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
 		"${bootargs_once} ${extra_bootargs}\0" \
@@ -293,7 +293,7 @@
 	"if run loadscript; then " \
 		"source ${loadaddr};" \
 	"else " \
-		"dboot android mmc ${mmcdev}:${mmcpart}; " \
+		"dboot android mmc ${mmcbootdev}:${mmcpart}; " \
 	"fi;"
 
 #define CONFIG_ARP_TIMEOUT     200UL
