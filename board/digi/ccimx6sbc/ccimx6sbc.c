@@ -144,7 +144,7 @@ int board_eth_init(bd_t *bis)
 	if (ret)
 		printf("FEC MXC: %s:failed\n", __func__);
 
-	return 0;
+	return ret;
 }
 
 static void setup_board_audio(void)
