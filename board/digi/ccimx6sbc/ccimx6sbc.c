@@ -135,16 +135,10 @@ static void setup_iomux_uart(void)
 
 int board_eth_init(bd_t *bis)
 {
-	int ret;
-
 	setup_iomux_enet();
 	setup_board_enet();
 
-	ret = cpu_eth_init(bis);
-	if (ret)
-		printf("FEC MXC: %s:failed\n", __func__);
-
-	return ret;
+	return cpu_eth_init(bis);
 }
 
 static void setup_board_audio(void)
