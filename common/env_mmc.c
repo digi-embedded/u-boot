@@ -57,7 +57,7 @@ __weak int mmc_get_env_addr(struct mmc *mmc, int copy, u32 *env_addr)
 #define CONFIG_SYS_MMC_ENV_DEV 0
 #endif
 
-__weak int mmc_get_env_devno(void)
+__weak uint mmc_get_env_dev(void)
 {
 	return CONFIG_SYS_MMC_ENV_DEV;
 }
@@ -83,7 +83,7 @@ __weak uint mmc_get_env_part(struct mmc *mmc)
 static int mmc_set_env_part(struct mmc *mmc)
 {
 	uint part = mmc_get_env_part(mmc);
-	int dev = mmc_get_env_devno();
+	int dev = mmc_get_env_dev();
 	int ret = 0;
 
 #ifdef CONFIG_SPL_BUILD
@@ -116,7 +116,7 @@ static int init_mmc_for_env(struct mmc *mmc)
 
 static void fini_mmc_for_env(struct mmc *mmc)
 {
-	int dev = mmc_get_env_devno();
+	int dev = mmc_get_env_dev();
 
 #ifdef CONFIG_SPL_BUILD
 	dev = 0;
@@ -130,7 +130,7 @@ static inline int write_env(struct mmc *mmc, unsigned long size,
 			    unsigned long offset, const void *buffer)
 {
 	uint blk_start, blk_cnt, n;
-	int dev = mmc_get_env_devno();
+	int dev = mmc_get_env_dev();
 
 	blk_start	= ALIGN(offset, mmc->write_bl_len) / mmc->write_bl_len;
 	blk_cnt		= ALIGN(size, mmc->write_bl_len) / mmc->write_bl_len;
@@ -148,7 +148,7 @@ static unsigned char env_flags;
 int saveenv(void)
 {
 	ALLOC_CACHE_ALIGN_BUFFER(env_t, env_new, 1);
-	int dev = mmc_get_env_devno();
+	int dev = mmc_get_env_dev();
 	struct mmc *mmc = find_mmc_device(dev);
 	u32	offset;
 	int	ret, copy = 0;
@@ -196,7 +196,7 @@ static inline int read_env(struct mmc *mmc, unsigned long size,
 			   unsigned long offset, const void *buffer)
 {
 	uint blk_start, blk_cnt, n;
-	int dev = mmc_get_env_devno();
+	int dev = mmc_get_env_dev();
 
 #ifdef CONFIG_SPL_BUILD
 	dev = 0;
@@ -220,7 +220,7 @@ void env_relocate_spec(void)
 	int crc1_ok = 0, crc2_ok = 0;
 	env_t *ep;
 	int ret;
-	int dev = mmc_get_env_devno();
+	int dev = mmc_get_env_dev();
 
 	ALLOC_CACHE_ALIGN_BUFFER(env_t, tmp_env1, 1);
 	ALLOC_CACHE_ALIGN_BUFFER(env_t, tmp_env2, 1);
@@ -304,7 +304,7 @@ void env_relocate_spec(void)
 	struct mmc *mmc;
 	u32 offset;
 	int ret;
-	int dev = mmc_get_env_devno();
+	int dev = mmc_get_env_dev();
 
 #ifdef CONFIG_SPL_BUILD
 	dev = 0;
