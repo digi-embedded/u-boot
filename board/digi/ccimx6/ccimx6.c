@@ -897,11 +897,10 @@ static int setup_pmic_voltages_ccimx6(void)
 {
 	unsigned char dev_id, var_id, conf_id, cust_id;
 #ifdef CONFIG_I2C_MULTI_BUS
-	if (i2c_set_bus_num(0))
+	if (i2c_set_bus_num(CONFIG_PMIC_I2C_BUS))
                 return -1;
 #endif
 
-	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
 	if (i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
 		printf("ERR: cannot access the PMIC\n");
 		return -1;
@@ -946,12 +945,10 @@ int ccimx6_late_init(void)
 
 #ifdef CONFIG_SYS_I2C_MXC
 	/* Setup I2C2 (PMIC, Kinetis) */
-	setup_i2c(1, CONFIG_SYS_I2C_SPEED,
-			CONFIG_SYS_I2C_SLAVE, &i2c_pad_info1);
+	setup_i2c(1, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
 #ifdef CONFIG_I2C_MULTI_BUS
 	/* Setup I2C3 (HDMI, Audio...) */
-	setup_i2c(2, CONFIG_SYS_I2C_SPEED,
-			CONFIG_SYS_I2C_SLAVE, &i2c_pad_info2);
+	setup_i2c(2, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info2);
 #endif
 	if (setup_pmic_voltages_ccimx6())
 		return -1;

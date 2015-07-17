@@ -425,13 +425,12 @@
 /*
  * I2C configs
  */
+#define CONFIG_SYS_I2C
 #define CONFIG_CMD_I2C
-#define CONFIG_HARD_I2C         1
 #define CONFIG_SYS_I2C_MXC
 #define CONFIG_I2C_MULTI_BUS
-#define CONFIG_SYS_I2C_BASE             I2C2_BASE_ADDR
 #define CONFIG_SYS_I2C_SPEED            100000
-#define CONFIG_SYS_I2C_SLAVE            0	/* unused */
+#define CONFIG_PMIC_I2C_BUS		1	/* DA9063 PMIC i2c bus */
 #define CONFIG_PMIC_I2C_ADDR		0x58	/* DA9063 PMIC i2c address */
 
 #endif                         /* __CCIMX6_COMMON_CONFIG_H */

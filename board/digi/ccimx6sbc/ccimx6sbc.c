@@ -60,11 +60,9 @@ iomux_v3_cfg_t const sgtl5000_pads[] = {
 int setup_pmic_voltages_carrierboard(void)
 {
 #ifdef CONFIG_I2C_MULTI_BUS
-	if (i2c_set_bus_num(0))
+	if (i2c_set_bus_num(CONFIG_PMIC_I2C_BUS))
                 return -1;
 #endif
-
-	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
 
 	if (i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
 		printf("ERR: cannot access the PMIC\n");
