@@ -458,7 +458,7 @@ int mmc_send_ext_csd(struct mmc *mmc, u8 *ext_csd)
 }
 
 
-static int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value)
+int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value)
 {
 	struct mmc_cmd cmd;
 	int timeout = 1000;
