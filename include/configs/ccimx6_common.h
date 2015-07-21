@@ -42,6 +42,7 @@
 #define CONFIG_MXC_GPIO
 
 #define CONFIG_MXC_UART
+#define CONFIG_IMX6_THERMAL
 
 /* MMC Configs */
 #define CONFIG_FSL_ESDHC
@@ -111,7 +112,7 @@
 #define CONFIG_CMD_SETEXPR
 
 #define CONFIG_CMD_FUSE
-#ifdef CONFIG_CMD_FUSE
+#if defined(CONFIG_CMD_FUSE) || defined(CONFIG_IMX6_THERMAL)
 #define CONFIG_MXC_OCOTP
 #endif
 #define CONFIG_HAS_HWID
