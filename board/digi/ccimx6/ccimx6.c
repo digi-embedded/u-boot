@@ -79,7 +79,7 @@ static int enet_xcv_type;
 #ifdef CONFIG_SYS_I2C_MXC
 #define PC MUX_PAD_CTRL(I2C_PAD_CTRL)
 /* I2C2 Camera, MIPI, pfuze */
-struct i2c_pads_info i2c_pad_info1 = {
+static struct i2c_pads_info i2c_pad_info1 = {
 	.scl = {
 		.i2c_mode = MX6_PAD_KEY_COL3__I2C2_SCL | PC,
 		.gpio_mode = MX6_PAD_KEY_COL3__GPIO4_IO12 | PC,
@@ -92,7 +92,7 @@ struct i2c_pads_info i2c_pad_info1 = {
 	}
 };
 #ifdef CONFIG_I2C_MULTI_BUS
-struct i2c_pads_info i2c_pad_info2 = {
+static struct i2c_pads_info i2c_pad_info2 = {
 	.scl = {
 		.i2c_mode = MX6_PAD_GPIO_3__I2C3_SCL | PC,
 		.gpio_mode = MX6_PAD_GPIO_3__GPIO1_IO03| PC,
@@ -252,7 +252,7 @@ const char *cert_regions[] = {
 };
 
 /* DDR3 calibration values for the different CC6 variants */
-struct addrvalue ddr3_calibration[NUM_VARIANTS + 1][12] = {
+static struct addrvalue ddr3_calibration[NUM_VARIANTS + 1][12] = {
 	/* Variant 0x02 */
 	[0x02] = {
 		/* Write leveling */
@@ -609,7 +609,7 @@ int dram_init(void)
 	return 0;
 }
 
-iomux_v3_cfg_t const enet_pads_100[] = {
+static iomux_v3_cfg_t const enet_pads_100[] = {
 	MX6_PAD_ENET_MDIO__ENET_MDIO		| MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_ENET_MDC__ENET_MDC		| MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_ENET_TXD0__ENET_TX_DATA0	| MUX_PAD_CTRL(ENET_PAD_CTRL),
@@ -622,7 +622,7 @@ iomux_v3_cfg_t const enet_pads_100[] = {
 	MX6_PAD_ENET_CRS_DV__ENET_RX_EN		| MUX_PAD_CTRL(ENET_PAD_CTRL),
 };
 
-iomux_v3_cfg_t const enet_pads_1000[] = {
+static iomux_v3_cfg_t const enet_pads_1000[] = {
 	MX6_PAD_ENET_MDIO__ENET_MDIO		| MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_ENET_MDC__ENET_MDC		| MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_RGMII_TXC__RGMII_TXC		| MUX_PAD_CTRL(ENET_PAD_CTRL),
@@ -728,12 +728,12 @@ int pmic_write_bitfield(int reg, unsigned char mask, unsigned char off,
 /* The order of MMC controllers here must match that of CONFIG_MMCDEV_USDHCx
  * in the platform header
  */
-struct fsl_esdhc_cfg usdhc_cfg[CONFIG_SYS_FSL_USDHC_NUM] = {
+static struct fsl_esdhc_cfg usdhc_cfg[CONFIG_SYS_FSL_USDHC_NUM] = {
 	{USDHC4_BASE_ADDR},
 	{USDHC2_BASE_ADDR},
 };
 
-iomux_v3_cfg_t const usdhc4_pads[] = {
+static iomux_v3_cfg_t const usdhc4_pads[] = {
 	MX6_PAD_SD4_CLK__SD4_CLK	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX6_PAD_SD4_CMD__SD4_CMD	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX6_PAD_SD4_DAT0__SD4_DATA0	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
@@ -746,7 +746,7 @@ iomux_v3_cfg_t const usdhc4_pads[] = {
 	MX6_PAD_SD4_DAT7__SD4_DATA7	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
 };
 
-iomux_v3_cfg_t const usdhc2_pads[] = {
+static iomux_v3_cfg_t const usdhc2_pads[] = {
 	MX6_PAD_SD2_CLK__SD2_CLK	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX6_PAD_SD2_CMD__SD2_CMD	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX6_PAD_SD2_DAT0__SD2_DATA0	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
