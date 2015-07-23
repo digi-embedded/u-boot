@@ -819,6 +819,7 @@ uint mmc_get_env_part(struct mmc *mmc)
 
 int board_mmc_init(bd_t *bis)
 {
+	int ret;
 	int i;
 
 	for (i = 0; i < CONFIG_SYS_FSL_USDHC_NUM; i++) {
@@ -829,8 +830,9 @@ int board_mmc_init(bd_t *bis)
 				imx_iomux_v3_setup_multiple_pads(usdhc4_pads,
 						ARRAY_SIZE(usdhc4_pads));
 				usdhc_cfg[i].sdhc_clk = mxc_get_clock(MXC_ESDHC4_CLK);
-				if (fsl_esdhc_initialize(bis, &usdhc_cfg[i]))
-					printf("Warning: failed to initialize USDHC4\n");
+				ret = fsl_esdhc_initialize(bis, &usdhc_cfg[i]);
+				if (ret)
+					return ret;
 			}
 			break;
 		case 1:
@@ -838,13 +840,14 @@ int board_mmc_init(bd_t *bis)
 			imx_iomux_v3_setup_multiple_pads(
 					usdhc2_pads, ARRAY_SIZE(usdhc2_pads));
 			usdhc_cfg[i].sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
-			if (fsl_esdhc_initialize(bis, &usdhc_cfg[i]))
-				printf("Warning: failed to initialize USDHC2\n");
+			ret = fsl_esdhc_initialize(bis, &usdhc_cfg[i]);
+			if (ret)
+				return ret;
 			break;
 		default:
 			printf("Warning: you configured more USDHC controllers"
 				"(%d) than supported by the board\n", i + 1);
-			return 0;
+			return -EINVAL;
 		}
 
 	}
