@@ -17,6 +17,7 @@
 #ifndef __DIGI_COMMON_H
 #define __DIGI_COMMON_H
 
+#include <linux/sizes.h>
 /* global helper stuff */
 
 #define XMK_STR(x)	#x
@@ -102,18 +103,18 @@
 #define DEFAULT_ROOTFS_USB_PART		"/dev/sda2"
 
 /* ********** memory sizes ********** */
-#define SPI_LOADER_SIZE		8192
+#define SPI_LOADER_SIZE		SZ_8K
 
 /* NVRAM */
-#define CONFIG_ENV_SIZE		(16 * 1024)
+#define CONFIG_ENV_SIZE		SZ_16K
 
 /*-----------------------------------------------------------------------
  * Stack sizes
  *
  * The stack sizes are set up in start.S using the settings below
  */
-#define CONFIG_STACKSIZE	(128*1024)	/* regular stack */
-#define CONFIG_SYS_GBL_DATA_SIZE	256     /* size in bytes reserved for initial data */
+#define CONFIG_STACKSIZE		SZ_128K	/* regular stack */
+#define CONFIG_SYS_GBL_DATA_SIZE	SZ_256 /* size in bytes reserved for initial data */
 
 /* ********** misc stuff ********** */
 #define CONFIG_CMD_ENV_FLAGS
@@ -134,7 +135,7 @@
 #define CONFIG_SYS_64BIT_STRTOUL       /* we need if for NVRAM */
 
 /* device tree */
-#define CONFIG_FDT_MAXSIZE    (128 * 1024)
+#define CONFIG_FDT_MAXSIZE    SZ_128K
 
 /* Digi commands arguments help */
 #define DIGICMD_ARG_BLKDEV_HELP	\

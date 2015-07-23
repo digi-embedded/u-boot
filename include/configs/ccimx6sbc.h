@@ -18,6 +18,7 @@
 #ifndef __CCIMX6SBC_CONFIG_H
 #define __CCIMX6SBC_CONFIG_H
 
+#include <linux/sizes.h>
 #include "ccimx6_common.h"
 #include <asm/imx-common/gpio.h>
 
@@ -35,8 +36,8 @@
 
 /* MMC device and partition where U-Boot image is */
 #define CONFIG_SYS_BOOT_PART_EMMC	1	/* Boot part 1 on eMMC */
-#define CONFIG_SYS_BOOT_PART_OFFSET	1024
-#define CONFIG_SYS_BOOT_PART_SIZE	((2 * 1024 * 1024) - CONFIG_SYS_BOOT_PART_OFFSET)
+#define CONFIG_SYS_BOOT_PART_OFFSET	SZ_1K
+#define CONFIG_SYS_BOOT_PART_SIZE	(SZ_2M - CONFIG_SYS_BOOT_PART_OFFSET)
 
 /* Media type for firmware updates */
 #define CONFIG_SYS_STORAGE_MEDIA	"mmc"
