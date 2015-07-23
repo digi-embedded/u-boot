@@ -115,7 +115,7 @@ struct addrvalue {
 /**
  * To add new valid variant ID, append new lines in this array with its configuration
  */
-struct ccimx6_variant ccimx6_variants[] = {
+static struct ccimx6_variant ccimx6_variants[] = {
 /* 0x00 */ { IMX6_NONE,	0, 0, "Unknown"},
 /* 0x01 - 55001818-01 */
 	{

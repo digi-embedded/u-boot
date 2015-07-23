@@ -51,8 +51,6 @@ struct ccimx6_variant {
 #define	CCIMX6_HAS_KINETIS	(1 << 2)
 #define	CCIMX6_HAS_EMMC		(1 << 3)
 
-extern struct ccimx6_variant ccimx6_variants[];
-
 int get_hwid(void);
 
 #endif	/* __HWID_H_ */
