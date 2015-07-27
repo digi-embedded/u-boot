@@ -50,15 +50,8 @@ int confirm_msg(char *msg)
 #endif
 
 	printf(msg);
-	if (getc() == 'y') {
-		int c;
-
-		putc('y');
-		c = getc();
-		putc('\n');
-		if (c == '\r')
-			return 1;
-	}
+	if (confirm_yesno())
+		return 1;
 
 	puts("Operation aborted by user\n");
 	return 0;
