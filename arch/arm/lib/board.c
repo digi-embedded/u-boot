@@ -45,6 +45,10 @@
 #include <miiphy.h>
 #endif
 
+#ifdef CONFIG_FASTBOOT
+#include <fastboot.h>
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 ulong monitor_flash_len;
@@ -53,11 +57,6 @@ ulong monitor_flash_len;
 extern int  AT91F_DataflashInit(void);
 extern void dataflash_print_info(void);
 #endif
-
-#ifdef CONFIG_BOARD_BEFORE_MLOOP_INIT
-extern int board_before_mloop_init(void);
-#endif
-
 
 #if defined(CONFIG_HARD_I2C) || \
 	defined(CONFIG_SYS_I2C)
@@ -599,11 +598,6 @@ void board_init_r(gd_t *id, ulong dest_addr)
 	else
 		set_default_env(NULL);
 
-#if defined(CONFIG_CMD_BSP)
-       if (bsp_init())             /* initialize common Digi BSP stuff */
-	       printf("Error during BSP initialization!\n");
-#endif
-
 #if defined(CONFIG_CMD_PCI) || defined(CONFIG_PCI)
 	arm_pci_init();
 #endif
@@ -688,12 +682,8 @@ void board_init_r(gd_t *id, ulong dest_addr)
 	}
 #endif
 
-#if defined(CONFIG_SOURCE) && defined(CONFIG_AUTO_BOOTSCRIPT)
-	run_auto_bootscript();
-#endif
-
-#ifdef CONFIG_BOARD_BEFORE_MLOOP_INIT
-	board_before_mloop_init();
+#ifdef CONFIG_FASTBOOT
+	check_fastboot();
 #endif
 
 	/* main_loop() can return to retry autoboot, if so just run it again. */

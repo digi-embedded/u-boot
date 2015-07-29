@@ -134,11 +134,13 @@ static void fec_mii_setspeed(struct ethernet_regs *eth)
 	 * and do not drop the Preamble.
 	 */
 	register u32 speed = DIV_ROUND_UP(imx_get_fecclk(), 5000000);
+	register u32 holdtime = DIV_ROUND_UP(imx_get_fecclk(), 100000000) - 1;
 #ifdef FEC_QUIRK_ENET_MAC
 	speed--;
 #endif
 	speed <<= 1;
-	writel(speed, &eth->mii_speed);
+	holdtime <<= 8;
+	writel(speed | holdtime, &eth->mii_speed);
 	debug("%s: mii_speed %08x\n", __func__, readl(&eth->mii_speed));
 }
 
@@ -527,8 +529,10 @@ static int fec_open(struct eth_device *edev)
 static int fec_init(struct eth_device *dev, bd_t* bd)
 {
 	struct fec_priv *fec = (struct fec_priv *)dev->priv;
+#if !defined(CONFIG_MX6UL)
 	uint32_t mib_ptr = (uint32_t)&fec->eth->rmon_t_drop;
 	int i;
+#endif
 
 	/* Initialize MAC address */
 	fec_set_hwaddr(dev);
@@ -557,13 +561,14 @@ static int fec_init(struct eth_device *dev, bd_t* bd)
 	writel(0x00000000, &fec->eth->gaddr1);
 	writel(0x00000000, &fec->eth->gaddr2);
 
-
+#if !defined(CONFIG_MX6UL)
 	/* clear MIB RAM */
 	for (i = mib_ptr; i <= mib_ptr + 0xfc; i += 4)
 		writel(0, i);
 
 	/* FIFO receive start register */
 	writel(0x520, &fec->eth->r_fstart);
+#endif
 
 	/* size and address of each buffer */
 	writel(FEC_MAX_PKT_SIZE, &fec->eth->emrbr);
@@ -1111,7 +1116,11 @@ int fecmxc_initialize_multi(bd_t *bd, int dev_id, int phy_id, uint32_t addr)
 	 */
 	base_mii = MXS_ENET0_BASE;
 #else
+#ifdef CONFIG_FEC_MXC_MDIO_BASE
+	base_mii = CONFIG_FEC_MXC_MDIO_BASE;
+#else
 	base_mii = addr;
+#endif
 #endif
 	debug("eth_init: fec_probe(bd, %i, %i) @ %08x\n", dev_id, phy_id, addr);
 	bus = fec_get_miibus(base_mii, dev_id);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2014 Freescale Semiconductor, Inc.
+ * Copyright (C) 2010-2015 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:    GPL-2.0+
  */
@@ -19,7 +19,8 @@
 	  is_cpu_type(MXC_CPU_MX6D)) &&				\
 	  (soc_rev() >= CHIP_REV_1_5)) ?			\
 	((hab_rvt_report_event_t *)HAB_RVT_REPORT_EVENT_NEW) :	\
-	(is_cpu_type(MXC_CPU_MX6DL) &&				\
+	((is_cpu_type(MXC_CPU_MX6DL) ||				\
+	  is_cpu_type(MXC_CPU_MX6SOLO)) &&			\
 	 (soc_rev() >= CHIP_REV_1_2)) ?				\
 	((hab_rvt_report_event_t *)HAB_RVT_REPORT_EVENT_NEW) :	\
 	((hab_rvt_report_event_t *)HAB_RVT_REPORT_EVENT)	\
@@ -31,7 +32,8 @@
 	  is_cpu_type(MXC_CPU_MX6D)) &&				\
 	  (soc_rev() >= CHIP_REV_1_5)) ?			\
 	((hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS_NEW) :\
-	(is_cpu_type(MXC_CPU_MX6DL) &&				\
+	((is_cpu_type(MXC_CPU_MX6DL) ||				\
+	  is_cpu_type(MXC_CPU_MX6SOLO)) &&			\
 	 (soc_rev() >= CHIP_REV_1_2)) ?				\
 	((hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS_NEW) :\
 	((hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS)	\
@@ -43,7 +45,8 @@
 	  is_cpu_type(MXC_CPU_MX6D)) &&				\
 	  (soc_rev() >= CHIP_REV_1_5)) ?			\
 	((hab_rvt_authenticate_image_t *)HAB_RVT_AUTHENTICATE_IMAGE_NEW) : \
-	(is_cpu_type(MXC_CPU_MX6DL) &&				\
+	((is_cpu_type(MXC_CPU_MX6DL) ||				\
+	  is_cpu_type(MXC_CPU_MX6SOLO)) &&			\
 	 (soc_rev() >= CHIP_REV_1_2)) ?				\
 	((hab_rvt_authenticate_image_t *)HAB_RVT_AUTHENTICATE_IMAGE_NEW) : \
 	((hab_rvt_authenticate_image_t *)HAB_RVT_AUTHENTICATE_IMAGE)	\
@@ -55,7 +58,8 @@
 	  is_cpu_type(MXC_CPU_MX6D)) &&				\
 	  (soc_rev() >= CHIP_REV_1_5)) ?			\
 	((hab_rvt_entry_t *)HAB_RVT_ENTRY_NEW) :		\
-	(is_cpu_type(MXC_CPU_MX6DL) &&				\
+	((is_cpu_type(MXC_CPU_MX6DL) ||				\
+	 is_cpu_type(MXC_CPU_MX6SOLO)) &&			\
 	 (soc_rev() >= CHIP_REV_1_2)) ?				\
 	((hab_rvt_entry_t *)HAB_RVT_ENTRY_NEW) :		\
 	((hab_rvt_entry_t *)HAB_RVT_ENTRY)			\
@@ -67,7 +71,8 @@
 	  is_cpu_type(MXC_CPU_MX6D)) &&				\
 	  (soc_rev() >= CHIP_REV_1_5)) ?			\
 	((hab_rvt_exit_t *)HAB_RVT_EXIT_NEW) :			\
-	(is_cpu_type(MXC_CPU_MX6DL) &&				\
+	((is_cpu_type(MXC_CPU_MX6DL) ||				\
+	 is_cpu_type(MXC_CPU_MX6SOLO)) &&			\
 	 (soc_rev() >= CHIP_REV_1_2)) ?				\
 	((hab_rvt_exit_t *)HAB_RVT_EXIT_NEW) :			\
 	((hab_rvt_exit_t *)HAB_RVT_EXIT)			\
@@ -252,7 +257,8 @@ uint32_t authenticate_image(uint32_t ddr_start, uint32_t image_size)
 					 * do cache flushes. don't think any
 					 * exist, so we ignore them.
 					 */
-					writel(1, MX6DQ_PU_IROM_MMU_EN_VAR);
+					if (!is_mx6dqp())
+						writel(1, MX6DQ_PU_IROM_MMU_EN_VAR);
 				} else if (is_cpu_type(MXC_CPU_MX6DL) ||
 					   is_cpu_type(MXC_CPU_MX6SOLO)) {
 					writel(1, MX6DLS_PU_IROM_MMU_EN_VAR);
@@ -322,7 +328,7 @@ U_BOOT_CMD(
 	  );
 
 U_BOOT_CMD(
-		hab_auth_img, 3, 0, do_authenticate_image,
+		hab_auth_img, 3, 1, do_authenticate_image,
 		"authenticate image via HAB",
 		"addr ivt_offset\n"
 		"addr - image hex address\n"

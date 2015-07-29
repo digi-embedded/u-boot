@@ -172,7 +172,10 @@ static int spi_flash_validate_params(struct spi_slave *spi, u8 *idcode,
 #endif
 
 	/* Compute erase sector and command */
-	if (params->flags & SECT_4K) {
+	if (params->flags & SECT_2K) {
+		flash->erase_cmd = CMD_ERASE_2K;
+		flash->erase_size = 2048 << flash->shift;
+	} else if (params->flags & SECT_4K) {
 		flash->erase_cmd = CMD_ERASE_4K;
 		flash->erase_size = 4096 << flash->shift;
 	} else if (params->flags & SECT_32K) {
@@ -396,6 +399,15 @@ int spi_flash_probe_slave(struct spi_slave *spi, struct spi_flash *flash)
 	if (spi_enable_wp_pin(flash))
 		puts("Enable WP pin failed\n");
 
+
+#if defined(CONFIG_SPI_FLASH_ATMEL)
+	/*
+	 * Default configure the page size to 256bytes to
+	 * be compatible with the mtd/spi framework
+	 */
+	spi_flash_cmd_write_config(flash, SPI_FLASH_PAGE_256);
+#endif
+
 	/* Release spi bus */
 	spi_release_bus(spi);
 
@@ -433,6 +445,8 @@ struct spi_flash *spi_flash_probe(unsigned int busnum, unsigned int cs,
 	struct spi_slave *bus;
 
 	bus = spi_setup_slave(busnum, cs, max_hz, spi_mode);
+	if (!bus)
+		return NULL;
 	return spi_flash_probe_tail(bus);
 }
 
@@ -443,6 +457,8 @@ struct spi_flash *spi_flash_probe_fdt(const void *blob, int slave_node,
 	struct spi_slave *bus;
 
 	bus = spi_setup_slave_fdt(blob, slave_node, spi_node);
+	if (!bus)
+		return NULL;
 	return spi_flash_probe_tail(bus);
 }
 #endif

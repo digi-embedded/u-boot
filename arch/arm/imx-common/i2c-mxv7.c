@@ -33,13 +33,36 @@ static int force_idle_bus(void *priv)
 
 	printf("%s: sda=%d scl=%d sda.gp=0x%x scl.gp=0x%x\n", __func__,
 		sda, scl, p->sda.gp, p->scl.gp);
+	gpio_direction_output(p->scl.gp, 1);
+	udelay(1000);
 	/* Send high and low on the SCL line */
 	for (i = 0; i < 9; i++) {
+		gpio_direction_output(p->scl.gp, 1);
+		udelay(50);
 		gpio_direction_output(p->scl.gp, 0);
 		udelay(50);
-		gpio_direction_input(p->scl.gp);
-		udelay(50);
 	}
+
+	/* Simulate the NACK */
+	gpio_direction_output(p->sda.gp, 1);
+	udelay(50);
+	gpio_direction_output(p->scl.gp, 1);
+	udelay(50);
+	gpio_direction_output(p->scl.gp, 0);
+	udelay(50);
+
+	/* Simulate the STOP signal */
+	gpio_direction_output(p->sda.gp, 0);
+	udelay(50);
+	gpio_direction_output(p->scl.gp, 1);
+	udelay(50);
+	gpio_direction_output(p->sda.gp, 1);
+	udelay(50);
+
+	/* Get the bus status */
+	gpio_direction_input(p->sda.gp);
+	gpio_direction_input(p->scl.gp);
+
 	start_time = get_timer(0);
 	for (;;) {
 		sda = gpio_get_value(p->sda.gp);
@@ -66,6 +89,9 @@ static void * const i2c_bases[] = {
 	(void *)I2C2_BASE_ADDR,
 #ifdef I2C3_BASE_ADDR
 	(void *)I2C3_BASE_ADDR,
+#endif
+#ifdef I2C4_BASE_ADDR
+	(void *)I2C4_BASE_ADDR,
 #endif
 };
 

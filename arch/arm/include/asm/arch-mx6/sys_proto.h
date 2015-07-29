@@ -2,6 +2,8 @@
  * (C) Copyright 2009
  * Stefano Babic, DENX Software Engineering, sbabic@denx.de.
  *
+ * (C) Copyright 2009-2015 Freescale Semiconductor, Inc.
+ *
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
@@ -12,7 +14,7 @@
 #include "../arch-imx/cpu.h"
 
 #define soc_rev() (get_cpu_rev() & 0xFF)
-#define is_soc_rev(rev)        (soc_rev() - rev)
+#define is_soc_rev(rev)        (int)(soc_rev() - rev)
 
 u32 get_nr_cpus(void);
 u32 get_cpu_rev(void);
@@ -29,15 +31,24 @@ u32 get_cpu_temp_grade(int *minc, int *maxc);
 const char *get_imx_type(u32 imxtype);
 unsigned imx_ddr_size(void);
 void set_chipselect_size(int const);
+void set_wdog_reset(struct wdog_regs *wdog);
 
 #ifdef CONFIG_LDO_BYPASS_CHECK
 int check_ldo_bypass(void);
 int check_1_2G(void);
-int set_anatop_bypass(void);
+int set_anatop_bypass(int wdog_reset_pin);
 void ldo_mode_set(int ldo_bypass);
 void prep_anatop_bypass(void);
 void finish_anatop_bypass(void);
 #endif
+
+#ifdef CONFIG_MX6SX
+int arch_auxiliary_core_up(u32 core_id, u32 boot_private_data);
+int arch_auxiliary_core_check_up(u32 core_id);
+#endif
+
+#define is_mx6dqp() ((is_cpu_type(MXC_CPU_MX6Q) || is_cpu_type(MXC_CPU_MX6D)) \
+	&& (is_soc_rev(CHIP_REV_2_0) >= 0))
 
 /*
  * Initializes on-chip ethernet controllers.

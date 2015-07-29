@@ -52,6 +52,7 @@ obj-$(CONFIG_ENV_IS_IN_FAT) += env_fat.o
 obj-$(CONFIG_ENV_IS_IN_NAND) += env_nand.o
 obj-$(CONFIG_ENV_IS_IN_NVRAM) += env_nvram.o
 obj-$(CONFIG_ENV_IS_IN_ONENAND) += env_onenand.o
+obj-$(CONFIG_ENV_IS_IN_SATA) += env_sata.o
 obj-$(CONFIG_ENV_IS_IN_SPI_FLASH) += env_sf.o
 obj-$(CONFIG_ENV_IS_IN_REMOTE) += env_remote.o
 obj-$(CONFIG_ENV_IS_IN_UBI) += env_ubi.o
@@ -181,6 +182,9 @@ obj-y += usb.o usb_hub.o
 obj-$(CONFIG_USB_STORAGE) += usb_storage.o
 endif
 obj-$(CONFIG_CMD_FASTBOOT) += cmd_fastboot.o
+ifndef CONFIG_FASTBOOT_FLASH_MMC_DEV
+obj-$(CONFIG_CMD_FASTBOOT) += aboot.o
+endif
 obj-$(CONFIG_CMD_FS_UUID) += cmd_fs_uuid.o
 
 obj-$(CONFIG_CMD_USB_MASS_STORAGE) += cmd_usb_mass_storage.o
@@ -209,6 +213,7 @@ obj-$(CONFIG_UPDATE_TFTP) += update.o
 obj-$(CONFIG_USB_KEYBOARD) += usb_kbd.o
 obj-$(CONFIG_CMD_DFU) += cmd_dfu.o
 obj-$(CONFIG_CMD_GPT) += cmd_gpt.o
+obj-$(CONFIG_CMD_BOOTAUX) += cmd_bootaux.o
 endif
 
 ifdef CONFIG_SPL_BUILD
