@@ -806,6 +806,31 @@ enum boot_device get_boot_device(void)
 	return boot_dev;
 }
 
+/* This is in sync with 'enum boot_device' */
+const char *boot_device_name[] = {
+	"NOR Flash",
+	"OneNAND",
+	"PATA",
+	"SATA",
+	"I2C",
+	"SPI NOR",
+	"SD1",
+	"SD2",
+	"SD3",
+	"SD4",
+	"MMC1",
+	"MMC2",
+	"MMC3",
+	"MMC4",
+	"NAND",
+	"QSPI",
+	"Unknown",
+};
+const char * get_boot_device_name(void)
+{
+	return boot_device_name[get_boot_device()];
+}
+
 void s_init(void)
 {
 	struct anatop_regs *anatop = (struct anatop_regs *)ANATOP_BASE_ADDR;
