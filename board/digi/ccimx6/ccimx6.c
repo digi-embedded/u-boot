@@ -1282,7 +1282,6 @@ void fdt_fixup_carrierboard(void *fdt)
 
 int checkboard(void)
 {
-	const char *bootdevice;
 	int board_ver = get_carrierboard_version();
 
 	printf("Board: %s ", CONFIG_BOARD_DESCRIPTION);
@@ -1294,14 +1293,7 @@ int checkboard(void)
 		printf("Variant: 0x%02x - %s\n", my_hwid.variant,
 			ccimx6_variants[my_hwid.variant].id_string);
 
-	bootdevice = boot_mode_string();
-	printf("Boot device: %s", bootdevice);
-	if (!strcmp(bootdevice, "esdhc2"))
-		printf(" (uSD card)\n");
-	else if (!strcmp(bootdevice, "esdhc4"))
-		printf(" (eMMC)\n");
-	else
-		printf("\n");
+	printf("Boot device: %s\n", get_boot_device_name());
 	return 0;
 }
 
