@@ -757,10 +757,19 @@ const struct boot_mode soc_boot_modes[] = {
 enum boot_device get_boot_device(void)
 {
 	enum boot_device boot_dev = UNKNOWN_BOOT;
-	uint soc_sbmr = readl(SRC_BASE_ADDR + 0x4);
-	uint bt_mem_ctl = (soc_sbmr & 0x000000FF) >> 4 ;
-	uint bt_mem_type = (soc_sbmr & 0x00000008) >> 3;
-	uint bt_dev_port = (soc_sbmr & 0x00001800) >> 11;
+	struct src *psrc = (struct src *)SRC_BASE_ADDR;
+	uint reg;
+	uint bt_mem_ctl;
+	uint bt_mem_type;
+	uint bt_dev_port;
+
+	if (readl(&psrc->gpr10) & (1 << 28))
+		reg = readl(&psrc->gpr9);
+	else
+		reg = readl(&psrc->sbmr1);
+	bt_mem_ctl = (reg & 0x000000FF) >> 4 ;
+	bt_mem_type = (reg & 0x00000008) >> 3;
+	bt_dev_port = (reg & 0x00001800) >> 11;
 
 	switch (bt_mem_ctl) {
 	case 0x0:
