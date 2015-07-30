@@ -767,7 +767,8 @@ int mmc_get_bootdevindex(void)
 	case MMC4_BOOT:
 		return 0;	/* index of SDHC4 (eMMC) */
 	default:
-		return -1;
+		/* return default value otherwise */
+		return CONFIG_SYS_MMC_ENV_DEV;
 	}
 }
 
@@ -789,7 +790,7 @@ uint mmc_get_env_part(struct mmc *mmc)
 				 * partition 2 to protect it from
 				 * accidental overwrite during U-Boot update */
 	default:
-		return -1;
+		return CONFIG_SYS_MMC_ENV_PART;
 	}
 }
 

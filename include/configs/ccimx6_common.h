@@ -399,6 +399,9 @@
 #define CONFIG_ENV_OFFSET		(1792 * 1024)	/* 256kB below 2MiB */
 #define CONFIG_ENV_OFFSET_REDUND	(CONFIG_ENV_OFFSET + (128 * 1024))
 #define CONFIG_ENV_SIZE_REDUND		CONFIG_ENV_SIZE
+/* Default MMC device index/partition for location of environment */
+#define CONFIG_SYS_MMC_ENV_DEV		0
+#define CONFIG_SYS_MMC_ENV_PART		1
 #elif defined(CONFIG_ENV_IS_IN_SPI_FLASH)
 #define CONFIG_ENV_OFFSET		(768 * 1024)
 #define CONFIG_ENV_SECT_SIZE		(8 * 1024)
