@@ -757,30 +757,18 @@ static iomux_v3_cfg_t const usdhc2_pads[] = {
 
 int mmc_get_bootdevindex(void)
 {
-	struct src *psrc = (struct src *)SRC_BASE_ADDR;
-	unsigned reg;
-
-	if (readl(&psrc->gpr10) & (1 << 28))
-		reg = readl(&psrc->gpr9);
-	else
-		reg = readl(&psrc->sbmr1);
-
-	/* BOOT_CFG2[4] and BOOT_CFG2[3] denote boot media:
-	 * 01:	SDHC2 (uSD card)
-	 * 11:	SDHC4 (eMMC)
-	 */
-	switch((reg & 0x00001800) >> 11) {
-	case 1:
-		/* SDHC2 (uSD) */
+	switch(get_boot_device()) {
+	case SD1_BOOT ... SD4_BOOT:
+		/* SD card */
 		if (board_has_emmc())
 			return 1;	/* index of USDHC2 if SOM has eMMC */
 		else
 			return 0;	/* index of USDHC2 if SOM has no eMMC */
-	case 3:
+	case MMC4_BOOT:
 		return 0;	/* index of SDHC4 (eMMC) */
+	default:
+		return -1;
 	}
-
-	return -1;
 }
 
 int mmc_get_env_dev(void)
@@ -790,31 +778,19 @@ int mmc_get_env_dev(void)
 
 uint mmc_get_env_part(struct mmc *mmc)
 {
-	struct src *psrc = (struct src *)SRC_BASE_ADDR;
-	unsigned reg;
-
-	if (readl(&psrc->gpr10) & (1 << 28))
-		reg = readl(&psrc->gpr9);
-	else
-		reg = readl(&psrc->sbmr1);
-
-	/* BOOT_CFG2[4] and BOOT_CFG2[3] denote boot media:
-	 * 01:	SDHC2 (uSD card)
-	 * 11:	SDHC4 (eMMC)
-	 */
-	switch((reg & 0x00001800) >> 11) {
-	case 1:
-		return 0;	/* When booting from SDHC2 (uSD) the
+	switch(get_boot_device()) {
+	case SD1_BOOT ... SD4_BOOT:
+		return 0;	/* When booting from an SD card the
 				 * environment will be saved to the unique
 				 * hardware partition: 0 */
-	case 3:
+	case MMC4_BOOT:
 		return 2;	/* When booting from SDHC4 (eMMC) the
 				 * environment will be saved to boot
 				 * partition 2 to protect it from
 				 * accidental overwrite during U-Boot update */
+	default:
+		return -1;
 	}
-
-	return -1;
 }
 
 int board_mmc_init(bd_t *bis)
