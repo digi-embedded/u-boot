@@ -222,7 +222,7 @@ void ldo_mode_set(int ldo_bypass)
 		 * VDDARM:1.175V@800M; VDDSOC:1.175V@800M
 		 * VDDARM:1.075V@400M; VDDSOC:1.175V@400M
 		 */
-		is_400M = set_anatop_bypass();
+		is_400M = set_anatop_bypass(0);
 		if (is_400M)
 #if defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
 			vddarm = 0x4e;
