@@ -1018,6 +1018,9 @@ static void ccimx6_detect_spurious_wakeup(void) {
 		debug("Events A:%02x B:%02x C:%02x D:%02x\n", event_a, event_b,
 			event_c, event_d);
 
+		/* Make sure nRESET is asserted when waking up */
+		pmic_write_bitfield(DA9063_CONTROL_B_ADDR, 0x1, 3, 0x1);
+
 		/* De-assert SYS_EN to get to powerdown mode. The OTP
 		 * is not reread when coming up so the wake-up
 		 * supression configuration will be preserved .*/
