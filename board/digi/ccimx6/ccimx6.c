@@ -1049,6 +1049,14 @@ static int ccimx6_fixup(void)
 		}
 	}
 
+	if (!board_has_kinetis()) {
+		/* Avoid spurious wake ups */
+		if (pmic_write_bitfield(DA9063_GPIO8_9_ADDR, 0x1, 3, 0x1)) {
+			printf("Failed to suppress GPIO8 wakeup.");
+			return -1;
+		}
+	}
+
 	ccimx6_detect_spurious_wakeup();
 
 	return 0;
