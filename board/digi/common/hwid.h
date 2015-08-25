@@ -41,6 +41,7 @@ struct ccimx6_variant {
 };
 
 /* RAM size */
+#define MEM_2GB		(2 * 1024 * 1024 * 1024)
 #define MEM_1GB		(1024 * 1024 * 1024)
 #define MEM_512MB	(512 * 1024 * 1024)
 #define MEM_256MB	(256 * 1024 * 1024)

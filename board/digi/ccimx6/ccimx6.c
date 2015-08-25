@@ -241,6 +241,14 @@ static struct ccimx6_variant ccimx6_variants[] = {
 		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
 		"Industrial quad-core 800MHz, 8GB eMMC, 1GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
 	},
+/* 0x12 - 55001818-18 */
+	{
+		IMX6Q,
+		MEM_2GB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
+		CCIMX6_HAS_EMMC,
+		"Consumer quad-core 1.2GHz, 4GB eMMC, 2GB DDR3, -20/+85C, Wireless, Bluetooth",
+	},
 };
 
 #define NUM_VARIANTS	17

@@ -4,6 +4,7 @@ S:	Supported
 F:	board/digi/ccimx6sbc/
 F:	include/configs/ccimx6sbc.h
 F:	include/configs/ccimx6_common.h
+F:	configs/ccimx6qsbc2GB_defconfig
 F:	configs/ccimx6qsbc_defconfig
 F:	configs/ccimx6qsbc512MB_defconfig
 F:	configs/ccimx6dlsbc_defconfig
