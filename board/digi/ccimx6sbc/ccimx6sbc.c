@@ -207,7 +207,7 @@ void ldo_mode_set(int ldo_bypass)
 			printf("Read BCORE2 error!\n");
 			goto out;
 		}
-		value &= ~0x3f;
+		value &= ~0x7f;
 		value |= 0x64;
 		if (pmic_write_reg(DA9063_VBCORE2_A_ADDR, value)) {
 			printf("Set BCORE2 error!\n");
