@@ -183,6 +183,34 @@ void ldo_mode_set(int ldo_bypass)
 	int is_400M;
 	unsigned char vddarm;
 
+	/* increase VDDARM/VDDSOC to support 1.2G chip */
+	if (check_1_2G()) {
+		ldo_bypass = 0;	/* ldo_enable on 1.2G chip */
+		printf("1.2G chip, increase VDDARM_IN/VDDSOC_IN\n");
+		/* increase VDDARM to 1.425V */
+		if (pmic_read_reg(DA9063_VBCORE1_A_ADDR, &value)) {
+			printf("Read BCORE1 error!\n");
+			goto out;
+		}
+		value &= ~0x7f;
+		value |= 0x71;
+		if (pmic_write_reg(DA9063_VBCORE1_A_ADDR, value)) {
+			printf("Set BCORE1 error!\n");
+			goto out;
+		}
+
+		/* increase VDDSOC to 1.425V */
+		if (pmic_read_reg(DA9063_VBCORE2_A_ADDR, &value)) {
+			printf("Read BCORE2 error!\n");
+			goto out;
+		}
+		value &= ~0x7f;
+		value |= 0x71;
+		if (pmic_write_reg(DA9063_VBCORE2_A_ADDR, value)) {
+			printf("Set BCORE2 error!\n");
+			goto out;
+		}
+	}
 	/* switch to ldo_bypass mode, boot on 800Mhz */
 	if (ldo_bypass) {
 		prep_anatop_bypass();
