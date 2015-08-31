@@ -40,6 +40,7 @@
 #include <miiphy.h>
 #include <otf_update.h>
 #include <part.h>
+#include <recovery.h>
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>
 #endif
@@ -963,6 +964,15 @@ int ccimx6_late_init(void)
 	if (board_has_bluetooth())
 		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
 
+#ifdef CONFIG_ANDROID_RECOVERY
+	if (recovery_check_and_clean_flag()) {
+		char *recoverycmd;
+
+		recoverycmd = getenv("recoverycmd");
+		if (recoverycmd)
+			run_command(recoverycmd, 0);
+	}
+#endif
 	return 0;
 }
 

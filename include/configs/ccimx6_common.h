@@ -40,6 +40,7 @@
 #define CONFIG_BOARD_EARLY_INIT_F
 #define CONFIG_BOARD_LATE_INIT
 #define CONFIG_MXC_GPIO
+#define CONFIG_ANDROID_RECOVERY
 
 #define CONFIG_MXC_UART
 #define CONFIG_IMX6_THERMAL
@@ -287,6 +288,8 @@
 			"else;" \
 			"fi;" \
 		"fi;\0" \
+	"recoverycmd=setenv -f bootargs_once \"androidboot.data=format " \
+		"androidboot.cache=format\"\0" \
 	""	/* end line */
 
 #define CONFIG_BOOTCOMMAND \

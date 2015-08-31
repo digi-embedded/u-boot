@@ -1139,12 +1139,9 @@ void v7_outer_cache_disable(void)
 int recovery_check_and_clean_flag(void)
 {
 	int flag_set = 0;
-	u32 reg;
-	reg = readl(SNVS_BASE_ADDR + SNVS_LPGPR);
+	u32 reg = readl(SNVS_BASE_ADDR + SNVS_LPGPR);
 
 	flag_set = !!(reg & ANDROID_RECOVERY_BOOT);
-    printf("check_and_clean: reg %x, flag_set %d\n", reg, flag_set);
-	/* clean it in case looping infinite here.... */
 	if (flag_set) {
 		reg &= ~ANDROID_RECOVERY_BOOT;
 		writel(reg, SNVS_BASE_ADDR + SNVS_LPGPR);
