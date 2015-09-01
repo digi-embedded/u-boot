@@ -1130,8 +1130,6 @@ void v7_outer_cache_disable(void)
 #endif
 #endif /* !CONFIG_SYS_L2CACHE_OFF */
 
-#ifdef CONFIG_FASTBOOT
-
 #ifdef CONFIG_ANDROID_RECOVERY
 #define ANDROID_RECOVERY_BOOT  (1 << 7)
 /* check if the recovery bit is set by kernel, it can be set by kernel
@@ -1151,6 +1149,7 @@ int recovery_check_and_clean_flag(void)
 }
 #endif /*CONFIG_ANDROID_RECOVERY*/
 
+#ifdef CONFIG_FASTBOOT
 #define ANDROID_FASTBOOT_BOOT  (1 << 8)
 /* check if the recovery bit is set by kernel, it can be set by kernel
  * issue a command '# reboot fastboot' */
