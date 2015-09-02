@@ -99,7 +99,7 @@ if pushd ${DUB_UBOOT_DIR}; then
 			# '--sysroot' option and the build fails
 			eval UBOOT_MAKE_TARGET=\"\${${platform}_make_target}\"
 			make distclean
-			make ${platform}_config
+			make ${platform}_defconfig
 			make ${MAKE_JOBS} CC="${CROSS_COMPILE}gcc --sysroot=${SDKTARGETSYSROOT}" ${UBOOT_MAKE_TARGET}
 
 			# Copy u-boot image
