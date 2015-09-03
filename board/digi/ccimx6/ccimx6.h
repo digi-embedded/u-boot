@@ -39,6 +39,7 @@
 
 /* DA9063 FAULT_LOG bitfields */
 #define DA9063_E_nSHUT_DOWN		0x40
+#define DA9063_E_nKEY_RESET		0x20
 
 /* DA9063 EVENT_A bitfields */
 #define DA9063_E_ADC_RDY		0x08
