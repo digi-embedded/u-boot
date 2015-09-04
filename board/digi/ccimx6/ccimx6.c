@@ -932,7 +932,7 @@ static void ccimx6_detect_spurious_wakeup(void) {
 	if (fault_log & (DA9063_E_nSHUT_DOWN | DA9063_E_nKEY_RESET)) {
 		/* Clear fault log nSHUTDOWN or nKEY_RESET bit */
 		pmic_write_reg(DA9063_FAULT_LOG_ADDR, fault_log &
-				DA9063_E_nSHUT_DOWN | DA9063_E_nKEY_RESET);
+			      (DA9063_E_nSHUT_DOWN | DA9063_E_nKEY_RESET));
 
 		pmic_read_reg(DA9063_EVENT_A_ADDR, &event_a);
 		pmic_read_reg(DA9063_EVENT_B_ADDR, &event_b);
