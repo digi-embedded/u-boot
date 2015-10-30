@@ -132,7 +132,7 @@ static struct ccimx6_variant ccimx6_variants[] = {
 		MEM_1GB,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
 		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
-		"Consumer quad-core 1.2GHz, 4GB eMMC, 1GB DDR3, -20/+85C, Wireless, Bluetooth, Kinetis",
+		"Consumer quad-core 1.2GHz, 4GB eMMC, 1GB DDR3, -20/+70C, Wireless, Bluetooth, Kinetis",
 	},
 /* 0x03 - 55001818-03 */
 	{
@@ -248,7 +248,7 @@ static struct ccimx6_variant ccimx6_variants[] = {
 		MEM_2GB,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
 		CCIMX6_HAS_EMMC,
-		"Consumer quad-core 1.2GHz, 4GB eMMC, 2GB DDR3, -20/+85C, Wireless, Bluetooth",
+		"Consumer quad-core 1.2GHz, 4GB eMMC, 2GB DDR3, -20/+70C, Wireless, Bluetooth",
 	},
 };
 
