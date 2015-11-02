@@ -1103,6 +1103,32 @@ static int ccimx6_fixup(void)
 	return 0;
 }
 
+void pmic_bucks_synch_mode(void)
+{
+#ifdef CONFIG_I2C_MULTI_BUS
+	if (i2c_set_bus_num(0))
+                return;
+#endif
+
+	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
+	if (!i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
+		if (pmic_write_bitfield(DA9063_BCORE2_CONF_ADDR, 0x3, 7, 0x2))
+			printf("Could not set BCORE2 in synchronous mode\n");
+		if (pmic_write_bitfield(DA9063_BCORE1_CONF_ADDR, 0x3, 7, 0x2))
+			printf("Could not set BCORE1 in synchronous mode\n");
+		if (pmic_write_bitfield(DA9063_BPRO_CONF_ADDR, 0x3, 7, 0x2))
+			printf("Could not set BPRO in synchronous mode\n");
+		if (pmic_write_bitfield(DA9063_BIO_CONF_ADDR, 0x3, 7, 0x2))
+			printf("Could not set BIO in synchronous mode\n");
+		if (pmic_write_bitfield(DA9063_BMEM_CONF_ADDR, 0x3, 7, 0x2))
+			printf("Could not set BMEM in synchronous mode\n");
+		if (pmic_write_bitfield(DA9063_BPERI_CONF_ADDR, 0x3, 7, 0x2))
+			printf("Could not set BPERI in synchronous mode\n");
+	} else {
+		printf("Could not set bucks in synchronous mode\n");
+	}
+}
+
 int ccimx6_late_init(void)
 {
 #ifdef CONFIG_CMD_MMC
@@ -1123,6 +1149,14 @@ int ccimx6_late_init(void)
 #endif
 	if (setup_pmic_voltages_ccimx6())
 		return -1;
+
+	/* Operate all PMIC's bucks in "synchronous" mode (PWM) since the
+	 * default "auto" mode may change them to operate in "sleep" mode (PFD)
+	 * which might result in malfunctioning on certain custom boards with
+	 * low loads under extreme stress conditions.
+	 */
+	pmic_bucks_synch_mode();
+
 	if (setup_pmic_voltages_carrierboard())
 		return -1;
 #endif
