@@ -1112,17 +1112,17 @@ void pmic_bucks_synch_mode(void)
 
 	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
 	if (!i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
-		if (pmic_write_bitfield(DA9063_BCORE2_CONF_ADDR, 0x3, 7, 0x2))
+		if (pmic_write_bitfield(DA9063_BCORE2_CONF_ADDR, 0x3, 6, 0x2))
 			printf("Could not set BCORE2 in synchronous mode\n");
-		if (pmic_write_bitfield(DA9063_BCORE1_CONF_ADDR, 0x3, 7, 0x2))
+		if (pmic_write_bitfield(DA9063_BCORE1_CONF_ADDR, 0x3, 6, 0x2))
 			printf("Could not set BCORE1 in synchronous mode\n");
-		if (pmic_write_bitfield(DA9063_BPRO_CONF_ADDR, 0x3, 7, 0x2))
+		if (pmic_write_bitfield(DA9063_BPRO_CONF_ADDR, 0x3, 6, 0x2))
 			printf("Could not set BPRO in synchronous mode\n");
-		if (pmic_write_bitfield(DA9063_BIO_CONF_ADDR, 0x3, 7, 0x2))
+		if (pmic_write_bitfield(DA9063_BIO_CONF_ADDR, 0x3, 6, 0x2))
 			printf("Could not set BIO in synchronous mode\n");
-		if (pmic_write_bitfield(DA9063_BMEM_CONF_ADDR, 0x3, 7, 0x2))
+		if (pmic_write_bitfield(DA9063_BMEM_CONF_ADDR, 0x3, 6, 0x2))
 			printf("Could not set BMEM in synchronous mode\n");
-		if (pmic_write_bitfield(DA9063_BPERI_CONF_ADDR, 0x3, 7, 0x2))
+		if (pmic_write_bitfield(DA9063_BPERI_CONF_ADDR, 0x3, 6, 0x2))
 			printf("Could not set BPERI in synchronous mode\n");
 	} else {
 		printf("Could not set bucks in synchronous mode\n");
