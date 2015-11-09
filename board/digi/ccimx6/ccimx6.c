@@ -1106,11 +1106,10 @@ static int ccimx6_fixup(void)
 void pmic_bucks_synch_mode(void)
 {
 #ifdef CONFIG_I2C_MULTI_BUS
-	if (i2c_set_bus_num(0))
+	if (i2c_set_bus_num(CONFIG_PMIC_I2C_BUS))
                 return;
 #endif
 
-	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
 	if (!i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
 		if (pmic_write_bitfield(DA9063_BCORE2_CONF_ADDR, 0x3, 6, 0x2))
 			printf("Could not set BCORE2 in synchronous mode\n");
