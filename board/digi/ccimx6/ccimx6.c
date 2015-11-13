@@ -25,6 +25,7 @@
 #include <asm/arch/iomux.h>
 #include <asm/arch/mx6-ddr.h>
 #include <asm/arch/mx6-pins.h>
+#include <asm/arch/sys_proto.h>
 #include <asm/errno.h>
 #include <asm/gpio.h>
 #include <asm/imx-common/iomux-v3.h>
@@ -918,6 +919,125 @@ static const struct boot_mode board_boot_modes[] = {
 	{"emmc", MAKE_CFGVAL(0x60, 0x58, 0x00, 0x00)},
 	{NULL,	 0},
 };
+#endif
+
+#ifdef CONFIG_LDO_BYPASS_CHECK
+void ldo_mode_set(int ldo_bypass)
+{
+	unsigned char value;
+	int is_400M;
+	unsigned char vddarm;
+
+	/* increase VDDARM/VDDSOC to support 1.2G chip */
+	if (check_1_2G()) {
+		ldo_bypass = 0;	/* ldo_enable on 1.2G chip */
+		printf("1.2G chip, increase VDDARM_IN/VDDSOC_IN\n");
+		/* increase VDDARM to 1.425V */
+		if (pmic_read_reg(DA9063_VBCORE1_A_ADDR, &value)) {
+			printf("Read BCORE1 error!\n");
+			goto out;
+		}
+		value &= ~0x7f;
+		value |= 0x71;
+		if (pmic_write_reg(DA9063_VBCORE1_A_ADDR, value)) {
+			printf("Set BCORE1 error!\n");
+			goto out;
+		}
+
+		/* increase VDDSOC to 1.425V */
+		if (pmic_read_reg(DA9063_VBCORE2_A_ADDR, &value)) {
+			printf("Read BCORE2 error!\n");
+			goto out;
+		}
+		value &= ~0x7f;
+		value |= 0x71;
+		if (pmic_write_reg(DA9063_VBCORE2_A_ADDR, value)) {
+			printf("Set BCORE2 error!\n");
+			goto out;
+		}
+	}
+	/* switch to ldo_bypass mode, boot on 800Mhz */
+	if (ldo_bypass) {
+		prep_anatop_bypass();
+
+		/* decrease VDDARM for 400Mhz DQ:1.1V, DL:1.275V */
+		if (pmic_read_reg(DA9063_VBCORE1_A_ADDR, &value)) {
+			printf("Read BCORE1 error!\n");
+			goto out;
+		}
+		value &= ~0x7f;
+#if defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
+		value |= 0x62;
+#else
+		value |= 0x50;
+#endif
+		if (pmic_write_reg(DA9063_VBCORE1_A_ADDR, value)) {
+			printf("Set BCORE1 error!\n");
+			goto out;
+		}
+		/* increase VDDSOC to 1.3V */
+		if (pmic_read_reg(DA9063_VBCORE2_A_ADDR, &value)) {
+			printf("Read BCORE2 error!\n");
+			goto out;
+		}
+		value &= ~0x7f;
+		value |= 0x64;
+		if (pmic_write_reg(DA9063_VBCORE2_A_ADDR, value)) {
+			printf("Set BCORE2 error!\n");
+			goto out;
+		}
+
+		/*
+		 * MX6Q:
+		 * VDDARM:1.15V@800M; VDDSOC:1.175V@800M
+		 * VDDARM:0.975V@400M; VDDSOC:1.175V@400M
+		 * MX6DL:
+		 * VDDARM:1.175V@800M; VDDSOC:1.175V@800M
+		 * VDDARM:1.075V@400M; VDDSOC:1.175V@400M
+		 */
+		is_400M = set_anatop_bypass(0);
+		if (is_400M)
+#if defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
+			vddarm = 0x4e;
+#else
+			vddarm = 0x43;
+#endif
+		else
+#if defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
+			vddarm = 0x57;
+#else
+			vddarm = 0x55;
+#endif
+		if (pmic_read_reg(DA9063_VBCORE1_A_ADDR, &value)) {
+			printf("Read BCORE1 error!\n");
+			goto out;
+		}
+		value &= ~0x7f;
+		value |= vddarm;
+		if (pmic_write_reg(DA9063_VBCORE1_A_ADDR, value)) {
+			printf("Set BCORE1 error!\n");
+			goto out;
+		}
+
+		/* decrease VDDSOC to 1.175V */
+		if (pmic_read_reg(DA9063_VBCORE2_A_ADDR, &value)) {
+			printf("Read BCORE2 error!\n");
+			goto out;
+		}
+		value &= ~0x7f;
+		value |= 0x57;
+		if (pmic_write_reg(DA9063_VBCORE2_A_ADDR, value)) {
+			printf("Set BCORE2 error!\n");
+			goto out;
+		}
+
+		finish_anatop_bypass();
+		printf("switch to LDO bypass mode\n");
+	}
+	return;
+out:
+	printf("Error switching to LDO bypass mode\n");
+}
 #endif
 
 static int setup_pmic_voltages_ccimx6(void)
