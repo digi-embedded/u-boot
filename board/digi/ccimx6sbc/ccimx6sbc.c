@@ -76,7 +76,7 @@ int setup_pmic_voltages_carrierboard(void)
 	    pmic_write_bitfield(DA9063_VLDO4_CONT_ADDR, 0x1, 0, 0x1))
 		printf("Could not configure VLDO4\n");
 #endif
-	/* PMIC GPIO11 is the LCD backlight which is low level
+	/* PMIC GPIO11 is the LVDS0 backlight which is low level
 	 * enabled. If left with default configuration (input) or when
 	 * coming from power-off, the backlight may be enabled and draw
 	 * too much power from the 5V source when this source is
@@ -85,10 +85,19 @@ int setup_pmic_voltages_carrierboard(void)
 	 * To prevent this, configure GPIO11 as output and set it
 	 * high, to make sure the backlight is disabled when the 5V is
 	 * enabled.
+	 * This also configures it as active-low when acting as PWM.
 	 */
 	if (pmic_write_bitfield(DA9063_GPIO10_11_ADDR, 0x3, 4, 0x3))
 		printf("Could not configure GPIO11\n");
 	if (pmic_write_bitfield(DA9063_GPIO_MODE8_15_ADDR, 0x1, 3, 0x1))
+		printf("Could not set GPIO11 high\n");
+
+	/* Similarly, do the same with PMIC_GPIO15 (LVDS1 backlight)
+	 * This also configures it as active-low when acting as PWM.
+	 */
+	if (pmic_write_bitfield(DA9063_GPIO14_15_ADDR, 0x3, 4, 0x3))
+		printf("Could not configure GPIO11\n");
+	if (pmic_write_bitfield(DA9063_GPIO_MODE8_15_ADDR, 0x1, 7, 0x1))
 		printf("Could not set GPIO11 high\n");
 
 	/* PWR_EN on the ccimx6sbc enables the +5V suppy and comes
