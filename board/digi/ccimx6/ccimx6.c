@@ -251,9 +251,17 @@ static struct ccimx6_variant ccimx6_variants[] = {
 		CCIMX6_HAS_EMMC,
 		"Consumer quad-core 1.2GHz, 4GB eMMC, 2GB DDR3, -20/+70C, Wireless, Bluetooth",
 	},
+/* 0x13 - 55001818-19 */
+	{
+		IMX6DL,
+		MEM_512MB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
+		CCIMX6_HAS_EMMC,
+		"Industrial DualLite-core 800MHz, 4GB eMMC, 512MB DDR3, -40/+85C, Wireless, Bluetooth",
+	},
 };
 
-#define NUM_VARIANTS	18
+#define NUM_VARIANTS	19
 
 const char *cert_regions[] = {
 	"U.S.A.",
@@ -415,7 +423,7 @@ static struct addrvalue ddr3_calibration[NUM_VARIANTS + 1][12] = {
 		{MX6_MMDC_P0_MPWRDLCTL, 0x40402D31},
 		{0, 0},
 	},
-	/* Variant 0x0A (same as variant 0x0C) */
+	/* Variant 0x0A (same as variants 0x0C, 0x13) */
 	[0x0A] = {
 		/* Write leveling */
 		{MX6_MMDC_P0_MPWLDECTRL0, 0x00270036},
@@ -453,7 +461,7 @@ static struct addrvalue ddr3_calibration[NUM_VARIANTS + 1][12] = {
 		{MX6_MMDC_P0_MPWRDLCTL, 0x36352D31},
 		{MX6_MMDC_P1_MPWRDLCTL, 0x3130332D},
 	},
-	/* Variant 0x0C (same as variant 0x0A) */
+	/* Variant 0x0C (same as variants 0x0A, 0x13) */
 	[0x0C] = {
 		/* Write leveling */
 		{MX6_MMDC_P0_MPWLDECTRL0, 0x00270036},
@@ -566,6 +574,25 @@ static struct addrvalue ddr3_calibration[NUM_VARIANTS + 1][12] = {
 		/* Write delay */
 		{MX6_MMDC_P0_MPWRDLCTL, 0x3939423B},
 		{MX6_MMDC_P1_MPWRDLCTL, 0x46354840},
+	},
+	/* Variant 0x13 (same as variants 0x0A, 0x0C) */
+	[0x13] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x00270036},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x00310033},
+		{0, 0},
+		{0, 0},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x42520243},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x0236023F},
+		{0, 0},
+		{0, 0},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x45474B4A},
+		{0, 0},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x28282326},
+		{0, 0},
 	},
 };
 
