@@ -2,7 +2,31 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
-DUB-2013.04.1.1, released on 2015/06/29
+DUB-2013.04.5.2, released on 2015/12/17
+	- Added support and DDR3 calibration for variant 0x13.
+	- Fixed erase operation for eMMC.
+
+
+DUB-2013.04.4.2, released on 2015/11/03
+	- Force all PMIC's bucks to operate in synchronous mode (PWM).
+	- Added DDR3 calibration data for variant 0x0E.
+	- Fixed temperature range description on variants 0x02 and 0x12.
+
+
+DUB-2013.04.3.3, released on 2015/09/14
+	- Added support for Android factory reset.
+	- Fixed spurious wake-ups from power-down on certain CC6 variants.
+
+
+DUB-2013.04.2.1, released on 2015/08/25
+	- Added support for CC6 variant:
+		0x12 (1P): Consumer quad-core 1.2GHz, 4GB eMMC, 2GB DDR3,
+                           -20/+85C, Wireless, Bluetooth
+	- Fix default 'bootcmd' to boot Android from uSD card.
+
+
+DUB-2013.04.1.2, released on 2015/08/17
+	- Fix default 'bootcmd' to boot Android from uSD card.
 	- Added support for variants 0x07, 0x09, 0x0C, 0x0D, 0x0E, 0x0F, 0x10,
 	  and 0x11.
 	- Added support to 'update' command to write to uSD card.
