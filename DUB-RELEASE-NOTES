@@ -2,6 +2,11 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
+DUB-2015.04.1.1, released on 2015/12/18
+        - Based on upstream version v2015.04 plus Freescale's tag
+          'rel_imx_3.14.38_6ul_ga'.
+
+
 DUB-2013.04.5.2, released on 2015/12/17
 	- Added support and DDR3 calibration for variant 0x13.
 	- Fixed erase operation for eMMC.
