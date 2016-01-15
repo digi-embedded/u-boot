@@ -745,6 +745,16 @@ int board_get_enet_xcv_type(void)
 
 static int pmic_access_page(unsigned char page)
 {
+#ifdef CONFIG_I2C_MULTI_BUS
+	if (i2c_set_bus_num(CONFIG_PMIC_I2C_BUS))
+		return -1;
+#endif
+
+	if (i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
+		printf("ERR: cannot access the PMIC\n");
+		return -1;
+	}
+
 	if (i2c_write(CONFIG_PMIC_I2C_ADDR, DA9063_PAGE_CON, 1, &page, 1)) {
 		printf("Cannot set PMIC page!\n");
 		return -1;
@@ -1070,15 +1080,6 @@ out:
 static int setup_pmic_voltages_ccimx6(void)
 {
 	unsigned char dev_id, var_id, conf_id, cust_id;
-#ifdef CONFIG_I2C_MULTI_BUS
-	if (i2c_set_bus_num(CONFIG_PMIC_I2C_BUS))
-                return -1;
-#endif
-
-	if (i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
-		printf("ERR: cannot access the PMIC\n");
-		return -1;
-	}
 
 	/* Read and print PMIC identification */
 	if (pmic_read_reg(DA9063_DEVICE_ID_ADDR, &dev_id) ||
