@@ -100,6 +100,8 @@
 	"wlanaddr:mc,"			\
 	"btaddr:mc,"			\
 	"bootargs_once:sr,"		\
+	"board_version:so,"		\
+	"board_id:so,"			\
 	"mmcbootdev:so"
 
 #define CONFIG_CONS_INDEX              1

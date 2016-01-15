@@ -380,6 +380,21 @@ static int board_fixup(void)
 int board_late_init(void)
 {
 	int ret;
+	unsigned int board_version = get_carrierboard_version();
+	unsigned int board_id = get_carrierboard_id();
+	char cmd[80];
+
+	/* Set $board_version variable if defined in OTP bits */
+	if (board_version > 0) {
+		sprintf(cmd, "setenv -f board_version %d", board_version);
+		run_command(cmd, 0);
+	}
+
+	/* Set $board_id variable if defined in OTP bits */
+	if (board_id > 0) {
+		sprintf(cmd, "setenv -f board_id %d", board_id);
+		run_command(cmd, 0);
+	}
 
 	ret = ccimx6_late_init();
 	if (!ret)
