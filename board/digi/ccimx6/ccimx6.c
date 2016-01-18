@@ -37,8 +37,6 @@
 #include <mmc.h>
 #include <fsl_esdhc.h>
 #include <fuse.h>
-#include <micrel.h>
-#include <miiphy.h>
 #include <otf_update.h>
 #include <part.h>
 #include <recovery.h>
@@ -50,6 +48,8 @@
 #include "../../../drivers/net/fec_mxc.h"
 
 DECLARE_GLOBAL_DATA_PTR;
+
+extern int get_carrierboard_version(void);
 
 struct ccimx6_hwid my_hwid;
 static u32 hwid[CONFIG_HWID_WORDS_NUMBER];
@@ -596,72 +596,6 @@ static struct addrvalue ddr3_calibration[NUM_VARIANTS + 1][12] = {
 	},
 };
 
-static int mx6_rgmii_rework(struct phy_device *phydev)
-{
-	char *phy_mode;
-
-	/*
-	 * Micrel PHY KSZ9031 has four MMD registers to configure the clock skew
-	 * of different signals. In U-Boot we're having Ethernet issues on
-	 * certain boards which work fine in Linux. We examined these MMD clock
-	 * skew registers in Linux which have different values than the reset
-	 * defaults:
-	 * 			Reset default		Linux
-	 * ------------------------------------------------------------------
-	 *  Control data pad	0077 (no skew)		0000 (-0.42 ns)
-	 *  RX data pad		7777 (no skew)		0000 (-0.42 ns)
-	 *  TX data pad		7777 (no skew)		7777 (no skew)
-	 *  Clock pad		3def (no skew)		03ff (+0.96 ns)
-	 *
-	 *  Setting the skews used in Linux solves the issues in U-Boot.
-	 */
-
-	/* control data pad skew - devaddr = 0x02, register = 0x04 */
-	ksz9031_phy_extended_write(phydev, 0x02,
-				   MII_KSZ9031_EXT_RGMII_CTRL_SIG_SKEW,
-				   MII_KSZ9031_MOD_DATA_NO_POST_INC, 0x0000);
-	/* rx data pad skew - devaddr = 0x02, register = 0x05 */
-	ksz9031_phy_extended_write(phydev, 0x02,
-				   MII_KSZ9031_EXT_RGMII_RX_DATA_SKEW,
-				   MII_KSZ9031_MOD_DATA_NO_POST_INC, 0x0000);
-	/* tx data pad skew - devaddr = 0x02, register = 0x05 */
-	ksz9031_phy_extended_write(phydev, 0x02,
-				   MII_KSZ9031_EXT_RGMII_TX_DATA_SKEW,
-				   MII_KSZ9031_MOD_DATA_NO_POST_INC, 0x7777);
-	/* gtx and rx clock pad skew - devaddr = 0x02, register = 0x08 */
-	ksz9031_phy_extended_write(phydev, 0x02,
-				   MII_KSZ9031_EXT_RGMII_CLOCK_SKEW,
-				   MII_KSZ9031_MOD_DATA_NO_POST_INC, 0x03ff);
-
-	phy_mode = getenv("phy_mode");
-	if (!strcmp("master", phy_mode)) {
-		unsigned short reg;
-
-		/*
-		 * Micrel PHY KSZ9031 takes up to 5 seconds to autonegotiate
-		 * with Gigabit switches. This time can be reduced by forcing
-		 * the PHY to work as master during master-slave negotiation.
-		 * Forcing master mode may cause autonegotiation to fail if
-		 * the other end is also forced as master, or using a direct
-		 * cable connection.
-		 */
-		reg = phy_read(phydev, MDIO_DEVAD_NONE, MII_CTRL1000);
-		reg |= MSTSLV_MANCONFIG_ENABLE | MSTSLV_MANCONFIG_MASTER;
-		phy_write(phydev, MDIO_DEVAD_NONE, MII_CTRL1000, reg);
-	}
-
-	return 0;
-}
-
-int board_phy_config(struct phy_device *phydev)
-{
-	mx6_rgmii_rework(phydev);
-	if (phydev->drv->config)
-		phydev->drv->config(phydev);
-
-	return 0;
-}
-
 static void update_ddr3_calibration(u8 variant)
 {
 	int i;
@@ -1107,7 +1041,8 @@ static void verify_mac_address(char *var, char *default_mac)
 		printf("Warning! Dummy default MAC in '%s'\n", var);
 }
 
-static void ccimx6_detect_spurious_wakeup(void) {
+static void ccimx6_detect_spurious_wakeup(void)
+{
 	unsigned int carrierboard_ver = get_carrierboard_version();
 	unsigned char event_a, event_b, event_c, event_d, fault_log;
 
@@ -1642,59 +1577,11 @@ int board_has_kinetis(void)
 		return 1; /* assume it has if invalid HWID */
 }
 
-int get_carrierboard_version(void)
-{
-#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
-	u32 version;
-
-	if (fuse_read(CONFIG_CARRIERBOARD_VERSION_BANK,
-		      CONFIG_CARRIERBOARD_VERSION_WORD, &version))
-		return CARRIERBOARD_VERSION_UNDEFINED;
-
-	version >>= CONFIG_CARRIERBOARD_VERSION_OFFSET;
-	version &= CONFIG_CARRIERBOARD_VERSION_MASK;
-
-	return((int)version);
-#else
-	return CARRIERBOARD_VERSION_UNDEFINED;
-#endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
-}
-
-#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
-void fdt_fixup_carrierboard(void *fdt)
-{
-	char str[20];
-
-	sprintf(str, "%d", get_carrierboard_version());
-	do_fixup_by_path(fdt, "/", "digi,carrierboard,version", str,
-			 strlen(str) + 1, 1);
-}
-#endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
-
 void print_ccimx6_info(void)
 {
 	if (is_valid_hwid(&my_hwid))
 		printf("Variant: 0x%02x - %s\n", my_hwid.variant,
 			ccimx6_variants[my_hwid.variant].id_string);
-}
-
-void print_carrierboard_info(void)
-{
-	int board_ver = get_carrierboard_version();
-
-	printf("Board: %s ", CONFIG_BOARD_DESCRIPTION);
-	if (CARRIERBOARD_VERSION_UNDEFINED == board_ver)
-		printf("(undefined version)\n");
-	else
-		printf("v%d\n", board_ver);
-}
-
-int checkboard(void)
-{
-	print_ccimx6_info();
-	print_carrierboard_info();
-	printf("Boot device: %s\n", get_boot_device_name());
-	return 0;
 }
 
 #if defined(CONFIG_OF_BOARD_SETUP)
@@ -1712,25 +1599,6 @@ void fdt_fixup_mac(void *fdt, char *varname, char *node)
 		}
 		do_fixup_by_path(fdt, node, "mac-address", &mac_addr, 6, 1);
 	}
-}
-
-/* Platform function to modify the FDT as needed */
-int ft_board_setup(void *blob, bd_t *bd)
-{
-
-	/* Re-read HWID which could have been overriden by U-Boot commands */
-	fdt_fixup_hwid(blob);
-
-#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
-	fdt_fixup_carrierboard(blob);
-#endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
-
-	if (board_has_wireless())
-		fdt_fixup_mac(blob, "wlanaddr", "/wireless");
-	if (board_has_bluetooth())
-		fdt_fixup_mac(blob, "btaddr", "/bluetooth");
-
-	return 0;
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
 
