@@ -94,6 +94,7 @@
 #define CONFIG_ENV_VARS_UBOOT_CONFIG
 
 #define CARRIERBOARD_VERSION_UNDEFINED	0
+#define CARRIERBOARD_ID_UNDEFINED	0
 
 /* ********** usb/mmc ********** */
 #define DEFAULT_KERNEL_FS		"fat"

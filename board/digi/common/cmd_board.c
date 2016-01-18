@@ -133,3 +133,110 @@ U_BOOT_CMD(
 	"\nNOTE: <version> parameter is in DECIMAL\n"
 );
 #endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
+
+#ifdef CONFIG_HAS_CARRIERBOARD_ID
+__weak void print_board_id(u32 id)
+{
+	printf("Board: %s\n", CONFIG_BOARD_DESCRIPTION);
+	if (CARRIERBOARD_ID_UNDEFINED == id)
+		printf("       WARNING: Undefined board ID!\n");
+	else
+		printf("       ID: %d\n", id);
+}
+
+static int do_board_id(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+{
+	const char *op;
+	int confirmed = argc >= 3 && !strcmp(argv[2], "-y");
+	u32 val, id;
+	int ret;
+
+	if (argc < 2)
+		return CMD_RET_USAGE;
+
+	op = argv[1];
+	argc -= 2 + confirmed;
+	argv += 2 + confirmed;
+
+	if (!strcmp(op, "read")) {
+		printf("Reading carrier board ID...\n");
+		ret = fuse_read(CONFIG_CARRIERBOARD_ID_BANK,
+				CONFIG_CARRIERBOARD_ID_WORD, &val);
+		if (ret)
+			goto err;
+		id = (val >> CONFIG_CARRIERBOARD_ID_OFFSET) &
+		     CONFIG_CARRIERBOARD_ID_MASK;
+		print_board_id(id);
+	} else if (!strcmp(op, "sense")) {
+		printf("Sensing carrier board ID...\n");
+		ret = fuse_sense(CONFIG_CARRIERBOARD_ID_BANK,
+				 CONFIG_CARRIERBOARD_ID_WORD, &val);
+		if (ret)
+			goto err;
+		id = (val >> CONFIG_CARRIERBOARD_ID_OFFSET) &
+		     CONFIG_CARRIERBOARD_ID_MASK;
+		print_board_id(id);
+	} else if (!strcmp(op, "prog")) {
+		if (argc < 1)
+			return CMD_RET_USAGE;
+
+		if (!confirmed && !confirm_prog())
+			return CMD_RET_FAILURE;
+
+		/* Validate input value */
+		strtou32(argv[0], 10, &val);
+		id = val & CONFIG_CARRIERBOARD_ID_MASK;
+		if (id != val) {
+			printf("Provided ID %d does not fit into"
+			       "carrier board ID mask: 0x%x\n", val,
+			       CONFIG_CARRIERBOARD_ID_MASK);
+			return CMD_RET_FAILURE;
+		}
+		id <<= CONFIG_CARRIERBOARD_ID_OFFSET;
+		printf("Programming carrier board ID... ");
+		ret = fuse_prog(CONFIG_CARRIERBOARD_ID_BANK,
+				CONFIG_CARRIERBOARD_ID_WORD, id);
+		if (ret)
+			goto err;
+		printf("OK\n");
+	} else if (!strcmp(op, "override")) {
+		if (argc < 1)
+			return CMD_RET_USAGE;
+
+		/* Validate input value */
+		strtou32(argv[0], 10, &val);
+		id = val & CONFIG_CARRIERBOARD_ID_MASK;
+		if (id != val) {
+			printf("Provided ID %d does not fit into"
+			       "carrier board ID mask: 0x%x\n", val,
+			       CONFIG_CARRIERBOARD_ID_MASK);
+			return CMD_RET_FAILURE;
+		}
+		id <<= CONFIG_CARRIERBOARD_ID_OFFSET;
+		printf("Overriding carrier board ID... ");
+		ret = fuse_override(CONFIG_CARRIERBOARD_ID_BANK,
+				    CONFIG_CARRIERBOARD_ID_WORD, id);
+		if (ret)
+			goto err;
+		printf("OK\n");
+	} else {
+		return CMD_RET_USAGE;
+	}
+
+	return 0;
+
+err:
+	puts("ERROR\n");
+	return ret;
+}
+
+U_BOOT_CMD(
+	board_id, CONFIG_SYS_MAXARGS, 0, do_board_id,
+	"Carrier board ID on fuse sub-system",
+		      "read - read carrier board ID from shadow registers\n"
+	"board_id sense - sense carrier board ID from fuses\n"
+	"board_id prog [-y] <id> - program carrier board ID (PERMANENT)\n"
+	"board_id override <id> - override carrier board ID\n"
+	"\nNOTE: <id> parameter is in DECIMAL\n"
+);
+#endif /* CONFIG_HAS_CARRIERBOARD_ID */

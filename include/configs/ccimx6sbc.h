@@ -50,12 +50,24 @@
 #define CONFIG_HAS_CARRIERBOARD_VERSION
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
 /* For the SBC, the carrier board version is stored in Bank 4 Word 6 (GP1)
- * in the lower 4 bits */
+ * in bits 3..0 */
 #define CONFIG_CARRIERBOARD_VERSION_BANK	4
 #define CONFIG_CARRIERBOARD_VERSION_WORD	6
-#define CONFIG_CARRIERBOARD_VERSION_MASK	0xf	/* 4 OTP bits */
-#define CONFIG_CARRIERBOARD_VERSION_OFFSET	0	/* lower 4 OTP bits */
+#define CONFIG_CARRIERBOARD_VERSION_MASK	0xf
+#define CONFIG_CARRIERBOARD_VERSION_OFFSET	0
 #endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
+
+/* Carrier board ID in OTP bits */
+#define CONFIG_HAS_CARRIERBOARD_ID
+#ifdef CONFIG_HAS_CARRIERBOARD_ID
+/* For the SBC, the carrier board ID is stored in Bank 4 Word 6 (GP1)
+ * in bits 11..4 */
+#define CONFIG_CARRIERBOARD_ID_BANK	4
+#define CONFIG_CARRIERBOARD_ID_WORD	6
+#define CONFIG_CARRIERBOARD_ID_MASK	0xff
+#define CONFIG_CARRIERBOARD_ID_OFFSET	4
+#endif /* CONFIG_HAS_CARRIERBOARD_ID */
+
 
 /* Celsius degrees below CPU's max die temp at which boot should be attempted */
 #define CONFIG_BOOT_TEMP_BELOW_MAX		10
