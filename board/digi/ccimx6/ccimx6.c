@@ -1671,7 +1671,14 @@ void fdt_fixup_carrierboard(void *fdt)
 }
 #endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
 
-int checkboard(void)
+void print_ccimx6_info(void)
+{
+	if (is_valid_hwid(&my_hwid))
+		printf("Variant: 0x%02x - %s\n", my_hwid.variant,
+			ccimx6_variants[my_hwid.variant].id_string);
+}
+
+void print_carrierboard_info(void)
 {
 	int board_ver = get_carrierboard_version();
 
@@ -1680,10 +1687,12 @@ int checkboard(void)
 		printf("(undefined version)\n");
 	else
 		printf("v%d\n", board_ver);
-	if (is_valid_hwid(&my_hwid))
-		printf("Variant: 0x%02x - %s\n", my_hwid.variant,
-			ccimx6_variants[my_hwid.variant].id_string);
+}
 
+int checkboard(void)
+{
+	print_ccimx6_info();
+	print_carrierboard_info();
 	printf("Boot device: %s\n", get_boot_device_name());
 	return 0;
 }
