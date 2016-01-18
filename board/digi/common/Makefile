@@ -40,6 +40,7 @@ obj-$(CONFIG_CMD_NVRAM) += cmd_nvram/mtd.o \
 	  cmd_nvram/env.o \
 	  cmd_nvram/partition.o
 obj-$(CONFIG_HAS_HWID) += cmd_hwid.o
+obj-$(CONFIG_HAS_CARRIERBOARD_VERSION) += cmd_board.o
 obj-$(CONFIG_CMD_UPDATE) += cmd_update.o helper.o
 obj-$(CONFIG_CMD_DBOOT) += cmd_dboot.o helper.o
 obj-$(CONFIG_CMD_PMIC) += cmd_pmic.o
