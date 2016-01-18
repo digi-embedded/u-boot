@@ -297,8 +297,6 @@
 #define CONFIG_BOOTCOMMAND \
 	"if run loadscript; then " \
 		"source ${loadaddr};" \
-	"else " \
-		"dboot android mmc ${mmcbootdev}:${mmcpart}; " \
 	"fi;"
 
 #define CONFIG_ARP_TIMEOUT     200UL
