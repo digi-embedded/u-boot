@@ -8,6 +8,7 @@
 */
 
 #include <common.h>
+#include <asm/errno.h>
 #include "helper.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -310,3 +311,36 @@ error:
 #endif
 }
 #endif
+
+int strtou32(const char *str, unsigned int base, u32 *result)
+{
+	char *ep;
+
+	*result = simple_strtoul(str, &ep, base);
+	if (ep == str || *ep != '\0')
+		return -EINVAL;
+
+	return 0;
+}
+
+int confirm_prog(void)
+{
+	puts("Warning: Programming fuses is an irreversible operation!\n"
+			"         This may brick your system.\n"
+			"         Use this command only if you are sure of "
+					"what you are doing!\n"
+			"\nReally perform this fuse programming? <y/N>\n");
+
+	if (getc() == 'y') {
+		int c;
+
+		putc('y');
+		c = getc();
+		putc('\n');
+		if (c == '\r')
+			return 1;
+	}
+
+	puts("Fuse programming aborted\n");
+	return 0;
+}

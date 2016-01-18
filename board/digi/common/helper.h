@@ -32,6 +32,8 @@ int get_source(int argc, char * const argv[], char **devpartno, char **fs);
 const char *get_source_string(int src);
 int get_fw_filename(int argc, char * const argv[], int src, char *filename);
 int get_default_filename(char *partname, char *filename, int cmd);
+int strtou32(const char *str, unsigned int base, u32 *result);
+int confirm_prog(void);
 
 enum {
 	LDFW_ERROR = -1,
