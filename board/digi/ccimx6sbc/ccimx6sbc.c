@@ -310,14 +310,14 @@ static void fdt_fixup_carrierboard(void *fdt)
 
 static void print_carrierboard_info(void)
 {
-	int board_ver = get_carrierboard_version();
+	int board_version = get_carrierboard_version();
 
 	printf("Board: %s\n", CONFIG_BOARD_DESCRIPTION);
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
-	if (CARRIERBOARD_VERSION_UNDEFINED == board_ver)
+	if (CARRIERBOARD_VERSION_UNDEFINED == board_version)
 		printf("       WARNING: Undefined board version!\n");
 	else
-		printf("       Version: %d\n", board_ver);
+		printf("       Version: %d\n", board_version);
 #endif
 }
 
@@ -331,7 +331,7 @@ int checkboard(void)
 
 static int board_fixup(void)
 {
-	unsigned int carrierboard_ver = get_carrierboard_version();
+	unsigned int board_version = get_carrierboard_version();
 
 	/* Mask the CHG_WAKE interrupt. This pin should be grounded
 	 * if unused. */
@@ -340,7 +340,7 @@ static int board_fixup(void)
 		return -1;
 	}
 
-	if (carrierboard_ver <= 1) {
+	if (board_version <= 1) {
 		/* Mask the PMIC_GPIO7 interrupt which is N/C on the SBCv1. */
 		if (pmic_write_bitfield(DA9063_GPIO6_7_ADDR, 0x1, 0x7, 0x1)) {
 			printf("Failed to mask PMIC_GPIO7.\n");

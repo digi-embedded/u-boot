@@ -106,9 +106,20 @@ static int do_board_version(cmd_tbl_t *cmdtp, int flag, int argc,
 			return CMD_RET_FAILURE;
 		}
 		version <<= CONFIG_CARRIERBOARD_VERSION_OFFSET;
+
+		/* Read current value of OTP word */
+		ret = fuse_read(CONFIG_CARRIERBOARD_VERSION_BANK,
+				CONFIG_CARRIERBOARD_VERSION_WORD, &val);
+		if (ret)
+			goto err;
+		/* OR mask with value to write */
+		val &= ~(CONFIG_CARRIERBOARD_VERSION_MASK <<
+			 CONFIG_CARRIERBOARD_VERSION_OFFSET);
+		val |= version;
+
 		printf("Overriding carrier board version... ");
 		ret = fuse_override(CONFIG_CARRIERBOARD_VERSION_BANK,
-				    CONFIG_CARRIERBOARD_VERSION_WORD, version);
+				    CONFIG_CARRIERBOARD_VERSION_WORD, val);
 		if (ret)
 			goto err;
 		printf("OK\n");
@@ -213,6 +224,17 @@ static int do_board_id(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 			return CMD_RET_FAILURE;
 		}
 		id <<= CONFIG_CARRIERBOARD_ID_OFFSET;
+
+		/* Read current value of OTP word */
+		ret = fuse_read(CONFIG_CARRIERBOARD_ID_BANK,
+				CONFIG_CARRIERBOARD_ID_WORD, &val);
+		if (ret)
+			goto err;
+		/* OR mask with value to write */
+		val &= ~(CONFIG_CARRIERBOARD_ID_MASK <<
+			 CONFIG_CARRIERBOARD_ID_OFFSET);
+		val |= id;
+
 		printf("Overriding carrier board ID... ");
 		ret = fuse_override(CONFIG_CARRIERBOARD_ID_BANK,
 				    CONFIG_CARRIERBOARD_ID_WORD, id);
