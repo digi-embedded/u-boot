@@ -81,6 +81,24 @@ int get_carrierboard_version(void)
 #endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
 }
 
+int get_carrierboard_id(void)
+{
+#ifdef CONFIG_HAS_CARRIERBOARD_ID
+	u32 id;
+
+	if (fuse_read(CONFIG_CARRIERBOARD_ID_BANK,
+		      CONFIG_CARRIERBOARD_ID_WORD, &id))
+		return CARRIERBOARD_ID_UNDEFINED;
+
+	id >>= CONFIG_CARRIERBOARD_ID_OFFSET;
+	id &= CONFIG_CARRIERBOARD_ID_MASK;
+
+	return((int)id);
+#else
+	return CARRIERBOARD_ID_UNDEFINED;
+#endif /* CONFIG_HAS_CARRIERBOARD_ID */
+}
+
 #ifdef CONFIG_SYS_I2C_MXC
 int setup_pmic_voltages_carrierboard(void)
 {
@@ -311,6 +329,7 @@ static void fdt_fixup_carrierboard(void *fdt)
 static void print_carrierboard_info(void)
 {
 	int board_version = get_carrierboard_version();
+	int board_id = get_carrierboard_id();
 
 	printf("Board: %s\n", CONFIG_BOARD_DESCRIPTION);
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
@@ -318,6 +337,13 @@ static void print_carrierboard_info(void)
 		printf("       WARNING: Undefined board version!\n");
 	else
 		printf("       Version: %d\n", board_version);
+#endif
+
+#ifdef CONFIG_HAS_CARRIERBOARD_ID
+	if (CARRIERBOARD_ID_UNDEFINED == board_id)
+		printf("       WARNING: Undefined board ID!\n");
+	else
+		printf("       ID: %d\n", board_id);
 #endif
 }
 

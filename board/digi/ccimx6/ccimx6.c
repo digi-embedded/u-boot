@@ -1580,7 +1580,7 @@ int board_has_kinetis(void)
 void print_ccimx6_info(void)
 {
 	if (is_valid_hwid(&my_hwid))
-		printf("Variant: 0x%02x - %s\n", my_hwid.variant,
+		printf("ConnectCore 6 SOM variant 0x%02X: %s\n", my_hwid.variant,
 			ccimx6_variants[my_hwid.variant].id_string);
 }
 
