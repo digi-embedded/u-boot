@@ -317,13 +317,22 @@ int board_init(void)
 
 static void fdt_fixup_carrierboard(void *fdt)
 {
-#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
+#if defined(CONFIG_HAS_CARRIERBOARD_VERSION) || \
+    defined(CONFIG_HAS_CARRIERBOARD_ID)
 	char str[20];
+#endif
 
+#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
 	sprintf(str, "%d", get_carrierboard_version());
 	do_fixup_by_path(fdt, "/", "digi,carrierboard,version", str,
 			 strlen(str) + 1, 1);
-#endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
+#endif
+
+#ifdef CONFIG_HAS_CARRIERBOARD_ID
+	sprintf(str, "%d", get_carrierboard_id());
+	do_fixup_by_path(fdt, "/", "digi,carrierboard,id", str,
+			 strlen(str) + 1, 1);
+#endif
 }
 
 static void print_carrierboard_info(void)
