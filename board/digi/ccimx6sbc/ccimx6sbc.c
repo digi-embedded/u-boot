@@ -312,11 +312,13 @@ static void print_carrierboard_info(void)
 {
 	int board_ver = get_carrierboard_version();
 
-	printf("Board: %s ", CONFIG_BOARD_DESCRIPTION);
+	printf("Board: %s\n", CONFIG_BOARD_DESCRIPTION);
+#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
 	if (CARRIERBOARD_VERSION_UNDEFINED == board_ver)
-		printf("(undefined version)\n");
+		printf("       WARNING: Undefined board version!\n");
 	else
-		printf("v%d\n", board_ver);
+		printf("       Version: %d\n", board_ver);
+#endif
 }
 
 int checkboard(void)

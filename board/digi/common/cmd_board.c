@@ -29,11 +29,11 @@
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
 __weak void print_board_version(u32 version)
 {
-	printf("Carrier board: %s ", CONFIG_BOARD_DESCRIPTION);
+	printf("Board: %s\n", CONFIG_BOARD_DESCRIPTION);
 	if (CARRIERBOARD_VERSION_UNDEFINED == version)
-		printf("(undefined version)\n");
+		printf("       WARNING: Undefined board version!\n");
 	else
-		printf("v%d\n", version);
+		printf("       Version: %d\n", version);
 }
 
 static int do_board_version(cmd_tbl_t *cmdtp, int flag, int argc,
