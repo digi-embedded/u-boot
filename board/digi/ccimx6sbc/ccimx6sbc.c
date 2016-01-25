@@ -259,10 +259,24 @@ int board_eth_init(bd_t *bis)
 	return cpu_eth_init(bis);
 }
 
+static int board_has_audio(void)
+{
+	switch(get_carrierboard_id()) {
+	case CCIMX6SBC_ID129:
+	case CCIMX6SBC_ID130:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
 static void setup_board_audio(void)
 {
-	/* SBC version 2 uses a GPIO to power enable the audio codec */
-	if (get_carrierboard_version() >= 2) {
+	unsigned int board_id = get_carrierboard_id();
+
+	/* SBC version 2 and later use a GPIO to power enable the audio codec */
+	if (((board_id == CCIMX6SBC_ID129) || (board_id == CCIMX6SBC_ID130)) &&
+	    get_carrierboard_version() >= 2) {
 		int pwren_gpio = IMX_GPIO_NR(2, 25);
 
 		/* Power enable line IOMUX */
@@ -310,7 +324,8 @@ int board_init(void)
 #ifdef CONFIG_CMD_SATA
 	setup_iomux_sata();
 #endif
-	setup_board_audio();
+	if (board_has_audio())
+		setup_board_audio();
 
 	return 0;
 }

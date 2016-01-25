@@ -46,6 +46,9 @@
 #define CONFIG_PHY_MICREL
 #define CONFIG_ENET_PHYADDR_MICREL	3
 
+/* Celsius degrees below CPU's max die temp at which boot should be attempted */
+#define CONFIG_BOOT_TEMP_BELOW_MAX		10
+
 /* Carrier board version in OTP bits */
 #define CONFIG_HAS_CARRIERBOARD_VERSION
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
@@ -66,10 +69,18 @@
 #define CONFIG_CARRIERBOARD_ID_WORD	6
 #define CONFIG_CARRIERBOARD_ID_MASK	0xff
 #define CONFIG_CARRIERBOARD_ID_OFFSET	4
+
+/*
+ * Custom carrier board IDs
+ * Define here your custom carrier board ID numbers (between 1 and 127)
+ * Use these defines to run conditional code basing on your carrier board
+ * design.
+ */
+
+/* Digi ConnectCore 6 carrier board IDs */
+#define CCIMX6SBC_ID129		129
+#define CCIMX6SBC_ID130		130
+#define CCIMX6SBC_ID131		131
 #endif /* CONFIG_HAS_CARRIERBOARD_ID */
-
-
-/* Celsius degrees below CPU's max die temp at which boot should be attempted */
-#define CONFIG_BOOT_TEMP_BELOW_MAX		10
 
 #endif                         /* __CCIMX6SBC_CONFIG_H */

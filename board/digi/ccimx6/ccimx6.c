@@ -50,6 +50,7 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 extern int get_carrierboard_version(void);
+extern int get_carrierboard_id(void);
 
 struct ccimx6_hwid my_hwid;
 static u32 hwid[CONFIG_HWID_WORDS_NUMBER];
@@ -1043,6 +1044,7 @@ static void verify_mac_address(char *var, char *default_mac)
 
 static void ccimx6_detect_spurious_wakeup(void)
 {
+	unsigned int board_id = get_carrierboard_id();
 	unsigned int carrierboard_ver = get_carrierboard_version();
 	unsigned char event_a, event_b, event_c, event_d, fault_log;
 
@@ -1083,7 +1085,10 @@ static void ccimx6_detect_spurious_wakeup(void)
 
 			/* Any event B is valid, except E_WAKE on SBCv1 which
 			 * is N/C */
-			if (carrierboard_ver == 1)
+			if (((board_id == CCIMX6SBC_ID129) ||
+			     (board_id == CCIMX6SBC_ID130) ||
+			     (board_id == CCIMX6SBC_ID131)) &&
+			    carrierboard_ver == 1)
 				valid_mask &= ~DA9063_E_WAKE;
 
 			if (event_b & valid_mask) {
