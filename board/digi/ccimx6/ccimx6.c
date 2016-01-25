@@ -1088,7 +1088,7 @@ static void ccimx6_detect_spurious_wakeup(void)
 			if (((board_id == CCIMX6SBC_ID129) ||
 			     (board_id == CCIMX6SBC_ID130) ||
 			     (board_id == CCIMX6SBC_ID131)) &&
-			    carrierboard_ver == 1)
+			    carrierboard_ver <= 1)
 				valid_mask &= ~DA9063_E_WAKE;
 
 			if (event_b & valid_mask) {
