@@ -63,7 +63,7 @@ iomux_v3_cfg_t const sgtl5000_pads[] = {
 	MX6_PAD_EIM_OE__GPIO2_IO25 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 
-int get_carrierboard_version(void)
+unsigned int get_carrierboard_version(void)
 {
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
 	u32 version;
@@ -81,7 +81,7 @@ int get_carrierboard_version(void)
 #endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
 }
 
-int get_carrierboard_id(void)
+unsigned int get_carrierboard_id(void)
 {
 #ifdef CONFIG_HAS_CARRIERBOARD_ID
 	u32 id;

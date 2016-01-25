@@ -49,8 +49,8 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-extern int get_carrierboard_version(void);
-extern int get_carrierboard_id(void);
+extern unsigned int get_carrierboard_version(void);
+extern unsigned int get_carrierboard_id(void);
 
 struct ccimx6_hwid my_hwid;
 static u32 hwid[CONFIG_HWID_WORDS_NUMBER];
