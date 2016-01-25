@@ -58,7 +58,19 @@ iomux_v3_cfg_t const ksz9031_pads[] = {
 	MX6_PAD_ENET_CRS_DV__GPIO1_IO25		| MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 
-iomux_v3_cfg_t const sgtl5000_pads[] = {
+iomux_v3_cfg_t const sgtl5000_audio_pads[] = {
+	/*
+	 * Audio lines must be configured as GPIO inputs when coming
+	 * from a software reset, since the audio chip itself does not have a
+	 * reset line, and the codec might get power from I2S lines otherwise.
+	 */
+	MX6_PAD_CSI0_DAT7__GPIO5_IO25 | MUX_PAD_CTRL(NO_PAD_CTRL), /* RXD */
+	MX6_PAD_CSI0_DAT4__GPIO5_IO22 | MUX_PAD_CTRL(NO_PAD_CTRL), /* TXC */
+	MX6_PAD_CSI0_DAT5__GPIO5_IO23 | MUX_PAD_CTRL(NO_PAD_CTRL), /* TXD */
+	MX6_PAD_CSI0_DAT6__GPIO5_IO24 | MUX_PAD_CTRL(NO_PAD_CTRL), /* TXFS */
+};
+
+iomux_v3_cfg_t const sgtl5000_pwr_pads[] = {
 	/* SGTL5000 audio codec power enable (external 4K7 pull-up) */
 	MX6_PAD_EIM_OE__GPIO2_IO25 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
@@ -274,18 +286,27 @@ static void setup_board_audio(void)
 {
 	unsigned int board_id = get_carrierboard_id();
 
+	/*
+	 * The codec does not have a reset line so after a reset the
+	 * ADC may be active and spitting noise.
+	 * Power it off by pulling the power enable line down (it is externally
+	 * pulled-up, and thus audio codec is ON by default) and configuring
+	 * the audio lines as GPIO inputs (the codec might get power from I2S
+	 * lines otherwise).
+	 */
+
+	/* Audio lines IOMUX */
+	imx_iomux_v3_setup_multiple_pads(sgtl5000_audio_pads,
+					 ARRAY_SIZE(sgtl5000_audio_pads));
+
 	/* SBC version 2 and later use a GPIO to power enable the audio codec */
 	if (((board_id == CCIMX6SBC_ID129) || (board_id == CCIMX6SBC_ID130)) &&
 	    get_carrierboard_version() >= 2) {
 		int pwren_gpio = IMX_GPIO_NR(2, 25);
 
 		/* Power enable line IOMUX */
-		imx_iomux_v3_setup_multiple_pads(sgtl5000_pads,
-						 ARRAY_SIZE(sgtl5000_pads));
-		/* The codec does not have a reset line so after a reset the
-		 * codec may be active and spitting noise. Power it off by
-		 * pulling the power enable line down (it is externally
-		 * pulled-up, and thus audio codec is ON by default) */
+		imx_iomux_v3_setup_multiple_pads(sgtl5000_pwr_pads,
+						 ARRAY_SIZE(sgtl5000_pwr_pads));
 		gpio_direction_output(pwren_gpio , 0);
 	}
 }
