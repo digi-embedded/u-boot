@@ -34,6 +34,7 @@
 #include <i2c.h>
 #include <asm/imx-common/mxc_i2c.h>
 #endif
+#include <linux/ctype.h>
 #include <mmc.h>
 #include <fsl_esdhc.h>
 #include <fuse.h>
@@ -1221,7 +1222,9 @@ int ccimx6_late_init(void)
 #ifdef CONFIG_CMD_MMC
 	char cmd[80];
 #endif
-	char var[5];
+	char var[10];
+	char var2[10];
+	int i;
 
 #ifdef CONFIG_CMD_BMODE
 	add_board_boot_modes(board_boot_modes);
@@ -1253,6 +1256,14 @@ int ccimx6_late_init(void)
 	sprintf(cmd, "setenv -f mmcbootdev %x", mmc_get_bootdevindex());
 	run_command(cmd, 0);
 #endif
+
+	/* Build $soc_family variable */
+	strcpy(var2, get_imx_family((get_cpu_rev() & 0xFF000) >> 12));
+	/* Convert to lower case */
+	for (i = 0; i < strlen(var2); i++)
+		var2[i] = tolower(var2[i]);
+	sprintf(var, "imx%s", var2);
+	setenv("soc_family", var);
 
 	/* Set $module_variant variable */
 	sprintf(var, "0x%02x", my_hwid.variant);
