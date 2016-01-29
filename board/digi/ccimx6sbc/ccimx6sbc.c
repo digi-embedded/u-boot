@@ -375,21 +375,28 @@ static void print_carrierboard_info(void)
 {
 	int board_version = get_carrierboard_version();
 	int board_id = get_carrierboard_id();
+	char board_str[100];
+	char warnings[100] = "";
 
-	printf("Board: %s\n", CONFIG_BOARD_DESCRIPTION);
+	sprintf(board_str, "Board: %s", CONFIG_BOARD_DESCRIPTION);
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
 	if (CARRIERBOARD_VERSION_UNDEFINED == board_version)
-		printf("       WARNING: Undefined board version!\n");
+		sprintf(warnings, "%s   WARNING: Undefined board version!\n",
+			warnings);
 	else
-		printf("       Version: %d\n", board_version);
+		sprintf(board_str, "%s, version %d", board_str, board_version);
 #endif
 
 #ifdef CONFIG_HAS_CARRIERBOARD_ID
 	if (CARRIERBOARD_ID_UNDEFINED == board_id)
-		printf("       WARNING: Undefined board ID!\n");
+		sprintf(warnings, "%s   WARNING: Undefined board ID!\n",
+			warnings);
 	else
-		printf("       ID: %d\n", board_id);
+		sprintf(board_str, "%s, ID %d", board_str, board_id);
 #endif
+	printf("%s\n", board_str);
+	if (strcmp(warnings, ""))
+		printf("%s", warnings);
 }
 
 int checkboard(void)
