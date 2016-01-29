@@ -118,6 +118,7 @@ u32 get_cpu_rev(void);
 u32 get_cpu_speed_grade_hz(void);
 u32 get_cpu_temp_grade(int *minc, int *maxc);
 const char *get_imx_type(u32 imxtype);
+const char *get_imx_family(u32 imxtype);
 u32 imx_ddr_size(void);
 void sdelay(unsigned long);
 void set_chipselect_size(int const);
