@@ -21,6 +21,7 @@ u32 get_cpu_rev(void);
 #define is_cpu_type(cpu) (cpu_type(get_cpu_rev()) == cpu)
 
 const char *get_imx_type(u32 imxtype);
+const char *get_imx_family(u32 imxtype);
 unsigned imx_ddr_size(void);
 void set_wdog_reset(struct wdog_regs *wdog);
 

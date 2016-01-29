@@ -29,6 +29,7 @@ u32 get_cpu_temp_grade(int *minc, int *maxc);
 #define is_cpu_type(cpu) (get_cpu_type() == cpu)
 
 const char *get_imx_type(u32 imxtype);
+const char *get_imx_family(u32 imxtype);
 unsigned imx_ddr_size(void);
 void set_chipselect_size(int const);
 void set_wdog_reset(struct wdog_regs *wdog);
