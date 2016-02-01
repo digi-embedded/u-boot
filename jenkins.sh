@@ -49,6 +49,9 @@ error() {
 # Sanity check (Jenkins environment)
 [ -z "${WORKSPACE}" ] && error "WORKSPACE not specified"
 
+# Unset BUILD_TAG from Jenkins so U-Boot does not show it
+unset BUILD_TAG
+
 printf "\n[INFO] Build U-Boot \"${DUB_REVISION}\" for \"${DUB_PLATFORMS}\"\n\n"
 
 # Remove nested directories from the revision
