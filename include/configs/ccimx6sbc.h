@@ -18,7 +18,6 @@
 #ifndef __CCIMX6SBC_CONFIG_H
 #define __CCIMX6SBC_CONFIG_H
 
-#include <linux/sizes.h>
 #include "ccimx6_common.h"
 #include <asm/imx-common/gpio.h>
 
@@ -33,11 +32,6 @@
 #endif
 
 #define CONFIG_SYS_FSL_USDHC_NUM	2
-
-/* MMC device and partition where U-Boot image is */
-#define CONFIG_SYS_BOOT_PART_EMMC	1	/* Boot part 1 on eMMC */
-#define CONFIG_SYS_BOOT_PART_OFFSET	SZ_1K
-#define CONFIG_SYS_BOOT_PART_SIZE	(SZ_2M - CONFIG_SYS_BOOT_PART_OFFSET)
 
 /* Media type for firmware updates */
 #define CONFIG_SYS_STORAGE_MEDIA	"mmc"
@@ -82,5 +76,117 @@
 #define CCIMX6SBC_ID130		130
 #define CCIMX6SBC_ID131		131
 #endif /* CONFIG_HAS_CARRIERBOARD_ID */
+
+#define CONFIG_EXTRA_ENV_SETTINGS \
+	CONFIG_DEFAULT_NETWORK_SETTINGS \
+	RANDOM_UUIDS \
+	"script=boot.scr\0" \
+	"loadscript=fatload mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
+	"uimage=uImage-" CONFIG_SYS_BOARD ".bin\0" \
+	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
+	"fdt_addr=0x18000000\0" \
+	"initrd_addr=0x19000000\0" \
+	"initrd_file=uramdisk.img\0" \
+	"boot_fdt=try\0" \
+	"ip_dyn=yes\0" \
+	"phy_mode=auto\0" \
+	"console=" CONFIG_CONSOLE_DEV "\0" \
+	"fdt_high=0xffffffff\0"	  \
+	"initrd_high=0xffffffff\0" \
+	"mmcbootpart=" __stringify(CONFIG_SYS_BOOT_PART_EMMC) "\0" \
+	"mmcdev=0\0" \
+	"mmcpart=1\0" \
+	"mmcargs=setenv bootargs console=${console},${baudrate} ${smp} " \
+		"root=/dev/mmcblk0p2 rootwait rw\0" \
+	"loaduimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uimage}\0" \
+	"loadinitrd=fatload mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file}\0" \
+	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
+	"uboot_file=u-boot.imx\0" \
+	"parts_android=\"uuid_disk=${uuid_disk};" \
+		"start=2MiB," \
+		"name=android,size=64MiB,uuid=${part1_uuid};" \
+		"name=android2,size=64MiB,uuid=${part2_uuid};" \
+		"name=system,size=512MiB,uuid=${part3_uuid};" \
+		"name=system2,size=512MiB,uuid=${part4_uuid};" \
+		"name=cache,size=32MiB,uuid=${part5_uuid};" \
+		"name=data,size=-,uuid=${part6_uuid};" \
+		"\"\0" \
+	"android_file=boot.img\0" \
+	"system_file=system.img\0" \
+	"partition_mmc_android=mmc rescan;" \
+		"if mmc dev ${mmcdev} 0; then " \
+			"gpt write mmc ${mmcdev} ${parts_android};" \
+			"mmc rescan;" \
+		"else " \
+			"if mmc dev ${mmcdev};then " \
+				"gpt write mmc ${mmcdev} ${parts_android};" \
+				"mmc rescan;" \
+			"else;" \
+			"fi;" \
+		"fi;\0" \
+	"bootargs_android=androidboot.hardware=" CONFIG_SYS_BOARD " " \
+		"mem=" __stringify(CONFIG_DDR_MB) "M\0" \
+	"bootargs_mmc_android=setenv bootargs console=${console},${baudrate} " \
+		"${bootargs_android} androidboot.mmcdev=${mmcbootdev} " \
+		"androidboot.console=${console} " \
+		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
+		"${bootargs_once} ${extra_bootargs}\0" \
+	"bootargs_tftp=" \
+		"if test ${ip_dyn} = yes; then " \
+			"bootargs_ip=\"ip=dhcp\";" \
+		"else " \
+			"bootargs_ip=\"ip=\\${ipaddr}:\\${serverip}:" \
+			"\\${gatewayip}:\\${netmask}:\\${hostname}:" \
+			"eth0:off\";" \
+		"fi;\0" \
+	"bootargs_tftp_android=run bootargs_tftp;" \
+		"setenv bootargs console=${console},${baudrate} " \
+		"${bootargs_android} root=/dev/nfs " \
+		"androidboot.console=${console} " \
+		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
+		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
+		"${bootargs_once} ${extra_bootargs}\0" \
+	"bootargs_nfs_android=run bootargs_tftp_android\0" \
+	"mmcroot=PARTUUID=1c606ef5-f1ac-43b9-9bb5-d5c578580b6b\0" \
+	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
+		"${bootargs_linux} root=${mmcroot} rootwait rw " \
+		"${bootargs_once} ${extra_bootargs}\0" \
+	"bootargs_tftp_linux=run bootargs_tftp;" \
+		"setenv bootargs console=${console},${baudrate} " \
+		"${bootargs_linux} root=/dev/nfs " \
+		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
+		"${bootargs_once} ${extra_bootargs}\0" \
+	"bootargs_nfs_linux=run bootargs_tftp_linux\0" \
+	"parts_linux=\"uuid_disk=${uuid_disk};" \
+		"start=2MiB," \
+		"name=linux,size=64MiB,uuid=${part1_uuid};" \
+		"name=linux2,size=64MiB,uuid=${part2_uuid};" \
+		"name=rootfs,size=1GiB,uuid=${part3_uuid};" \
+		"name=rootfs2,size=1GiB,uuid=${part4_uuid};" \
+		"name=userfs,size=-,uuid=${part5_uuid};" \
+		"\"\0" \
+	"linux_file=dey-image-graphical-" CONFIG_SYS_BOARD ".boot.vfat\0" \
+	"rootfs_file=dey-image-graphical-" CONFIG_SYS_BOARD ".ext4\0" \
+	"partition_mmc_linux=mmc rescan;" \
+		"if mmc dev ${mmcdev} 0; then " \
+			"gpt write mmc ${mmcdev} ${parts_linux};" \
+			"mmc rescan;" \
+		"else " \
+			"if mmc dev ${mmcdev};then " \
+				"gpt write mmc ${mmcdev} ${parts_linux};" \
+				"mmc rescan;" \
+			"else;" \
+			"fi;" \
+		"fi;\0" \
+	"recoverycmd=setenv -f bootargs_once \"androidboot.data=format " \
+		"androidboot.cache=format\"\0" \
+	""	/* end line */
+
+#define CONFIG_BOOTCOMMAND \
+	"if run loadscript; then " \
+		"source ${loadaddr};" \
+	"fi;"
+
+#define CONFIG_BOOTDELAY               1
 
 #endif                         /* __CCIMX6SBC_CONFIG_H */
