@@ -180,6 +180,14 @@
 		"fi;\0" \
 	"recoverycmd=setenv -f bootargs_once \"androidboot.data=format " \
 		"androidboot.cache=format\"\0" \
+	"install_android_fw_sd=if load mmc 1 ${loadaddr} " \
+		"install_android_fw_sd.scr;then " \
+			"source ${loadaddr};" \
+		"fi;\0" \
+	"install_linux_fw_sd=if load mmc 1 ${loadaddr} " \
+		"install_linux_fw_sd.scr;then " \
+			"source ${loadaddr};" \
+		"fi;\0" \
 	""	/* end line */
 
 #define CONFIG_BOOTCOMMAND \
