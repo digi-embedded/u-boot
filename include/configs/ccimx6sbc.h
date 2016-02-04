@@ -81,7 +81,7 @@
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	RANDOM_UUIDS \
 	"script=boot.scr\0" \
-	"loadscript=fatload mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
+	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
 	"uimage=uImage-" CONFIG_SYS_BOARD ".bin\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"fdt_addr=0x18000000\0" \
@@ -98,9 +98,9 @@
 	"mmcpart=1\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} ${smp} " \
 		"root=/dev/mmcblk0p2 rootwait rw\0" \
-	"loaduimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uimage}\0" \
-	"loadinitrd=fatload mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file}\0" \
-	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
+	"loaduimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uimage}\0" \
+	"loadinitrd=load mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file}\0" \
+	"loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
 	"uboot_file=u-boot.imx\0" \
 	"parts_android=\"uuid_disk=${uuid_disk};" \
 		"start=2MiB," \
