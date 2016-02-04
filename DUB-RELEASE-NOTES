@@ -2,17 +2,14 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
-dub-2015.04-r2.1, released on 2016/02/01
-	- Added support for carrier board IDs.
-	- Added warning messages for undefined carrier board version/ID.
-	- Updated Digi version format.
-	- Reconfigure ISS lines as GPIOs to prevent audio codec from
-	  powering up from these lines.
-
-
-DUB-2015.04.1.1, released on 2015/12/18
+dub-2015.04-r2.2, released on 2016/02/04
         - Based on upstream version v2015.04 plus Freescale's tag
           'rel_imx_3.14.38_6ul_ga'.
+	- Added support for carrier board IDs.
+	- Added warning messages for undefined carrier board version/ID.
+	- Changed Digi version format.
+	- Reconfigure ISS lines as GPIOs to prevent audio codec from
+	  powering up from these lines.
 
 
 DUB-2013.04.5.2, released on 2015/12/17
