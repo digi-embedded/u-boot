@@ -192,7 +192,6 @@ int load_firmware(int src, char *filename, char *devpartno,
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	char def_devpartno[] = "0:1";
-	char def_fs[] = "fat";
 	int ret;
 	int fwload = FWLOAD_YES;
 
@@ -214,8 +213,6 @@ int load_firmware(int src, char *filename, char *devpartno,
 			strcpy(def_devpartno, "0:1");
 		devpartno = def_devpartno;
 	}
-	if (NULL == fs)
-		fs = def_fs;
 
 	switch (src) {
 	case SRC_TFTP:
@@ -227,8 +224,8 @@ int load_firmware(int src, char *filename, char *devpartno,
 	case SRC_MMC:
 	case SRC_USB:
 	case SRC_SATA:
-		sprintf(cmd, "%sload %s %s %s %s", fs,
-			src_strings[src], devpartno, loadaddr, filename);
+		sprintf(cmd, "load %s %s %s %s", src_strings[src], devpartno,
+			loadaddr, filename);
 		break;
 	case SRC_RAM:
 		ret = LDFW_NOT_LOADED;	/* file is already in RAM */
