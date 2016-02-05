@@ -76,6 +76,7 @@
 #define CONFIG_AUTO_BOOTSCRIPT
 #define CONFIG_BOOTSCRIPT		CONFIG_SYS_BOARD "-boot.scr"
 #define CONFIG_CMD_TIME
+#define CONFIG_CMD_ASKENV
 
 #define DEFAULT_MAC_ETHADDR	"00:04:f3:ff:ff:fa"
 #define DEFAULT_MAC_WLANADDR	"00:04:f3:ff:ff:fb"
