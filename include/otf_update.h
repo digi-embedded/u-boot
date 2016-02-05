@@ -11,16 +11,16 @@
 #define __OTF_UPDATE_H
 
 /* OTF flags */
-#define OTF_FLAG_FLUSH 		(1 << 0)
-#define OTF_FLAG_INIT 		(1 << 1)
+#define OTF_FLAG_FLUSH 		(1 << 0)	/* flag to write last chunk */
+#define OTF_FLAG_INIT 		(1 << 1)	/* flag to write first chunk */
 
 typedef struct otf_data {
-	unsigned int loadaddr;
-	unsigned int offset;
-	unsigned char *buf;
-	unsigned int len;
-	disk_partition_t *part;
-	unsigned int flags;
+	unsigned int loadaddr;	/* address in RAM to load data to */
+	unsigned int offset;	/* offset in media to write data to */
+	unsigned char *buf;	/* buffer with data to write */
+	unsigned int len;	/* length of chunk to write */
+	disk_partition_t *part;	/* partition data */
+	unsigned int flags;	/* on-the-fly flags */
 }otf_data_t;
 
 #endif  /* __OTF_UPDATE_H */
