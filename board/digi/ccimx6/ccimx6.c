@@ -1702,12 +1702,32 @@ int board_update_chunk(otf_data_t *otfd)
 	if (NULL == mmc)
 		return -1;
 
+	/*
+	 * There are two variants:
+	 *  - otfd.buf == NULL
+	 *  	In this case, the data is already waiting on the correct
+	 *  	address in RAM, waiting to be written to the media.
+	 *  - otfd.buf != NULL
+	 *  	In this case, the data is on the buffer and must still be
+	 *  	copied to an address in RAM, before it is written to media.
+	 */
+	if (otfd->buf && otfd->len) {
+		/*
+		 * If data is in the otfd->buf buffer, copy it to the loadaddr
+		 * in RAM until we have a chunk that is at least as large as
+		 * CONFIG_OTF_CHUNK, to write it to media.
+		 */
+		memcpy((void *)(otfd->loadaddr + otfd->offset), otfd->buf,
+		       otfd->len);
+	}
+
 	/* Initialize dstblk and local variables */
 	if (otfd->flags & OTF_FLAG_INIT) {
 		chunk_len = 0;
 		dstblk = otfd->part->start;
 		otfd->flags &= ~OTF_FLAG_INIT;
 	}
+	chunk_len += otfd->len;
 
 	/* The flush flag is set when the download process has finished
 	 * meaning we must write the remaining bytes in RAM to the storage
@@ -1724,11 +1744,6 @@ int board_update_chunk(otf_data_t *otfd)
 		return 0;
 	}
 
-	/* Buffer otfd in RAM until we reach the configured limit to write it
-	 * to media
-	 */
-	memcpy((void *)(otfd->loadaddr + otfd->offset), otfd->buf, otfd->len);
-	chunk_len += otfd->len;
 	if (chunk_len >= CONFIG_OTF_CHUNK) {
 		unsigned int remaining;
 		/* We have CONFIG_OTF_CHUNK (or more) bytes in RAM.
