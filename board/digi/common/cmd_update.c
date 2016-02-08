@@ -6,7 +6,6 @@
  *  under the terms of the GNU General Public License version2  as published by
  *  the Free Software Foundation.
 */
-
 #include <common.h>
 #include <asm/imx-common/boot_mode.h>
 #include <otf_update.h>
@@ -23,9 +22,9 @@ extern int board_update_chunk(otf_data_t *oftd);
 extern void register_tftp_otf_update_hook(int (*hook)(otf_data_t *oftd),
 					  disk_partition_t*);
 extern void unregister_tftp_otf_update_hook(void);
-extern void register_mmc_otf_update_hook(int (*hook)(otf_data_t *oftd),
-					  disk_partition_t*);
-extern void unregister_mmc_otf_update_hook(void);
+extern void register_fs_otf_update_hook(int (*hook)(otf_data_t *oftd),
+					disk_partition_t*);
+extern void unregister_fs_otf_update_hook(void);
 
 int register_otf_hook(int src, int (*hook)(otf_data_t *oftd),
 		       disk_partition_t *partition)
@@ -35,10 +34,10 @@ int register_otf_hook(int src, int (*hook)(otf_data_t *oftd),
 		register_tftp_otf_update_hook(hook, partition);
 		return 1;
 	case SRC_MMC:
-		//register_mmc_otf_update_hook(hook, partition);
-		break;
 	case SRC_USB:
 	case SRC_SATA:
+		register_fs_otf_update_hook(hook, partition);
+		return 1;
 	case SRC_NFS:
 		//TODO
 		break;
@@ -54,7 +53,7 @@ void unregister_otf_hook(int src)
 		unregister_tftp_otf_update_hook();
 		break;
 	case SRC_MMC:
-		//unregister_mmc_otf_update_hook();
+		unregister_fs_otf_update_hook();
 		break;
 	case SRC_USB:
 	case SRC_SATA:
@@ -387,7 +386,10 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	if (src != SRC_RAM) {
-		/* Load firmware file to RAM */
+		/*
+		 * Load firmware file to RAM (this process may write the file
+		 * to the target media if OTF mechanism is enabled).
+		 */
 		ret = load_firmware(src, filename, devpartno, fs, "$loadaddr",
 				    NULL);
 		if (ret == LDFW_ERROR) {
