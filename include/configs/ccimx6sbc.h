@@ -165,8 +165,8 @@
 		"name=rootfs2,size=1GiB,uuid=${part4_uuid};" \
 		"name=userfs,size=-,uuid=${part5_uuid};" \
 		"\"\0" \
-	"linux_file=dey-image-graphical-" CONFIG_SYS_BOARD ".boot.vfat\0" \
-	"rootfs_file=dey-image-graphical-" CONFIG_SYS_BOARD ".ext4\0" \
+	"linux_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".boot.vfat\0" \
+	"rootfs_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".ext4\0" \
 	"partition_mmc_linux=mmc rescan;" \
 		"if mmc dev ${mmcdev} 0; then " \
 			"gpt write mmc ${mmcdev} ${parts_linux};" \
