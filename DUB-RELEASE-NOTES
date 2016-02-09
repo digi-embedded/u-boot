@@ -2,7 +2,7 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
-dub-2015.04-r2.2, released on 2016/02/04
+dub-2015.04-r2.3, released on 2016/02/09
         - Based on upstream version v2015.04 plus Freescale's tag
           'rel_imx_3.14.38_6ul_ga'.
 	- Added support for carrier board IDs.
@@ -10,6 +10,11 @@ dub-2015.04-r2.2, released on 2016/02/04
 	- Changed Digi version format.
 	- Reconfigure ISS lines as GPIOs to prevent audio codec from
 	  powering up from these lines.
+	- Added 'askenv' support.
+	- Added install firmware scripts to install Linux/Android from
+	  micro SD card.
+	- Added on-the-fly update support from file system.
+	- Added generic file system support.
 
 
 DUB-2013.04.5.2, released on 2015/12/17
