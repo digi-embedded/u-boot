@@ -34,12 +34,12 @@
 #ifdef CONFIG_CMD_SATA
 #include <asm/imx-common/sata.h>
 #endif
-#ifdef CONFIG_FASTBOOT
-#include <fastboot.h>
+#ifdef CONFIG_FSL_FASTBOOT
+#include <fsl_fastboot.h>
 #ifdef CONFIG_ANDROID_RECOVERY
 #include <recovery.h>
 #endif
-#endif /*CONFIG_FASTBOOT*/
+#endif /*CONFIG_FSL_FASTBOOT*/
 
 #ifdef CONFIG_MAX7310_IOEXP
 #include <gpio_exp.h>
@@ -778,40 +778,62 @@ int power_init_board(void)
 	if (!pfuze)
 		return -ENODEV;
 
-	ret = pfuze_mode_init(pfuze, APS_PFM);
+	if (is_mx6dqp())
+		ret = pfuze_mode_init(pfuze, APS_APS);
+	else
+		ret = pfuze_mode_init(pfuze, APS_PFM);
+
 	if (ret < 0)
 		return ret;
 
-	/* set SW1AB staby volatage 0.975V*/
-	pmic_reg_read(pfuze, PFUZE100_SW1ABSTBY, &value);
-	value &= ~0x3f;
-	value |= 0x1b;
-	pmic_reg_write(pfuze, PFUZE100_SW1ABSTBY, value);
-
-	/* set SW1AB/VDDARM step ramp up time from 16us to 4us/25mV */
-	pmic_reg_read(pfuze, PFUZE100_SW1ABCONF, &value);
-	value &= ~0xc0;
-	value |= 0x40;
-	pmic_reg_write(pfuze, PFUZE100_SW1ABCONF, value);
-
-	/* set SW1C staby volatage 0.975V*/
-	pmic_reg_read(pfuze, PFUZE100_SW1CSTBY, &value);
-	value &= ~0x3f;
-	value |= 0x1b;
-	pmic_reg_write(pfuze, PFUZE100_SW1CSTBY, value);
-
-	/* set SW1C/VDDSOC step ramp up time to from 16us to 4us/25mV */
-	pmic_reg_read(pfuze, PFUZE100_SW1CCONF, &value);
-	value &= ~0xc0;
-	value |= 0x40;
-	pmic_reg_write(pfuze, PFUZE100_SW1CCONF, value);
-
 	if (is_mx6dqp()) {
+		/* set SW1C staby volatage 1.075V*/
+		pmic_reg_read(pfuze, PFUZE100_SW1CSTBY, &value);
+		value &= ~0x3f;
+		value |= 0x1f;
+		pmic_reg_write(pfuze, PFUZE100_SW1CSTBY, value);
+
+		/* set SW1C/VDDSOC step ramp up time to from 16us to 4us/25mV */
+		pmic_reg_read(pfuze, PFUZE100_SW1CCONF, &value);
+		value &= ~0xc0;
+		value |= 0x40;
+		pmic_reg_write(pfuze, PFUZE100_SW1CCONF, value);
+
 		/* set SW2 staby volatage 0.975V*/
 		pmic_reg_read(pfuze, PFUZE100_SW2STBY, &value);
 		value &= ~0x3f;
 		value |= 0x17;
 		pmic_reg_write(pfuze, PFUZE100_SW2STBY, value);
+
+		/* set SW2/VDDARM step ramp up time to from 16us to 4us/25mV */
+		pmic_reg_read(pfuze, PFUZE100_SW2CONF, &value);
+		value &= ~0xc0;
+		value |= 0x40;
+		pmic_reg_write(pfuze, PFUZE100_SW2CONF, value);
+	} else {
+		/* set SW1AB staby volatage 0.975V*/
+		pmic_reg_read(pfuze, PFUZE100_SW1ABSTBY, &value);
+		value &= ~0x3f;
+		value |= 0x1b;
+		pmic_reg_write(pfuze, PFUZE100_SW1ABSTBY, value);
+
+		/* set SW1AB/VDDARM step ramp up time from 16us to 4us/25mV */
+		pmic_reg_read(pfuze, PFUZE100_SW1ABCONF, &value);
+		value &= ~0xc0;
+		value |= 0x40;
+		pmic_reg_write(pfuze, PFUZE100_SW1ABCONF, value);
+
+		/* set SW1C staby volatage 0.975V*/
+		pmic_reg_read(pfuze, PFUZE100_SW1CSTBY, &value);
+		value &= ~0x3f;
+		value |= 0x1b;
+		pmic_reg_write(pfuze, PFUZE100_SW1CSTBY, value);
+
+		/* set SW1C/VDDSOC step ramp up time to from 16us to 4us/25mV */
+		pmic_reg_read(pfuze, PFUZE100_SW1CCONF, &value);
+		value &= ~0xc0;
+		value |= 0x40;
+		pmic_reg_write(pfuze, PFUZE100_SW1CCONF, value);
 	}
 
 	return 0;
@@ -832,12 +854,20 @@ void ldo_mode_set(int ldo_bypass)
 	if (check_1_2G()) {
 		ldo_bypass = 0;	/* ldo_enable on 1.2G chip */
 		printf("1.2G chip, increase VDDARM_IN/VDDSOC_IN\n");
-		/* increase VDDARM to 1.425V */
-		pmic_reg_read(p, PFUZE100_SW1ABVOL, &value);
-		value &= ~0x3f;
-		value |= 0x2d;
-		pmic_reg_write(p, PFUZE100_SW1ABVOL, value);
 
+		if (is_mx6dqp()) {
+			/* increase VDDARM to 1.425V */
+			pmic_reg_read(p, PFUZE100_SW2VOL, &value);
+			value &= ~0x3f;
+			value |= 0x29;
+			pmic_reg_write(p, PFUZE100_SW2VOL, value);
+		} else {
+			/* increase VDDARM to 1.425V */
+			pmic_reg_read(p, PFUZE100_SW1ABVOL, &value);
+			value &= ~0x3f;
+			value |= 0x2d;
+			pmic_reg_write(p, PFUZE100_SW1ABVOL, value);
+		}
 		/* increase VDDSOC to 1.425V */
 		pmic_reg_read(p, PFUZE100_SW1CVOL, &value);
 		value &= ~0x3f;
@@ -942,7 +972,7 @@ int board_ehci_power(int port, int on)
 }
 #endif
 
-#ifdef CONFIG_FASTBOOT
+#ifdef CONFIG_FSL_FASTBOOT
 
 void board_fastboot_setup(void)
 {
@@ -952,7 +982,7 @@ void board_fastboot_setup(void)
 		if (!getenv("fastboot_dev"))
 			setenv("fastboot_dev", "sata");
 		if (!getenv("bootcmd"))
-			setenv("bootcmd", "booti sata");
+			setenv("bootcmd", "boota sata");
 		break;
 #endif /*CONFIG_FASTBOOT_STORAGE_SATA*/
 #if defined(CONFIG_FASTBOOT_STORAGE_MMC)
@@ -961,14 +991,14 @@ void board_fastboot_setup(void)
 		if (!getenv("fastboot_dev"))
 			setenv("fastboot_dev", "mmc0");
 		if (!getenv("bootcmd"))
-			setenv("bootcmd", "booti mmc0");
+			setenv("bootcmd", "boota mmc0");
 		break;
 	case SD3_BOOT:
 	case MMC3_BOOT:
 		if (!getenv("fastboot_dev"))
 			setenv("fastboot_dev", "mmc1");
 		if (!getenv("bootcmd"))
-			setenv("bootcmd", "booti mmc1");
+			setenv("bootcmd", "boota mmc1");
 		break;
 #endif /*CONFIG_FASTBOOT_STORAGE_MMC*/
 #if defined(CONFIG_FASTBOOT_STORAGE_NAND)
@@ -980,7 +1010,7 @@ void board_fastboot_setup(void)
 		if (!getenv("bootcmd"))
 			setenv("bootcmd",
 				"nand read ${loadaddr} ${boot_nand_offset} "
-				"${boot_nand_size};booti ${loadaddr}");
+				"${boot_nand_size};boota ${loadaddr}");
 		break;
 #endif /*CONFIG_FASTBOOT_STORAGE_NAND*/
 	default:
@@ -1025,19 +1055,19 @@ void board_recovery_setup(void)
 #if defined(CONFIG_FASTBOOT_STORAGE_SATA)
 	case SATA_BOOT:
 		if (!getenv("bootcmd_android_recovery"))
-			setenv("bootcmd_android_recovery", "booti sata recovery");
+			setenv("bootcmd_android_recovery", "boota sata recovery");
 		break;
 #endif /*CONFIG_FASTBOOT_STORAGE_SATA*/
 #if defined(CONFIG_FASTBOOT_STORAGE_MMC)
 	case SD1_BOOT:
 	case MMC1_BOOT:
 		if (!getenv("bootcmd_android_recovery"))
-			setenv("bootcmd_android_recovery", "booti mmc0 recovery");
+			setenv("bootcmd_android_recovery", "boota mmc0 recovery");
 		break;
 	case SD3_BOOT:
 	case MMC3_BOOT:
 		if (!getenv("bootcmd_android_recovery"))
-			setenv("bootcmd_android_recovery", "booti mmc1 recovery");
+			setenv("bootcmd_android_recovery", "boota mmc1 recovery");
 		break;
 #endif /*CONFIG_FASTBOOT_STORAGE_MMC*/
 #if defined(CONFIG_FASTBOOT_STORAGE_NAND)
@@ -1045,7 +1075,7 @@ void board_recovery_setup(void)
 		if (!getenv("bootcmd_android_recovery"))
 			setenv("bootcmd_android_recovery",
 				"nand read ${loadaddr} ${recovery_nand_offset} "
-				"${recovery_nand_size};booti ${loadaddr}");
+				"${recovery_nand_size};boota ${loadaddr}");
 		break;
 #endif /*CONFIG_FASTBOOT_STORAGE_NAND*/
 	default:
@@ -1059,19 +1089,4 @@ void board_recovery_setup(void)
 }
 #endif /*CONFIG_ANDROID_RECOVERY*/
 
-#endif /*CONFIG_FASTBOOT*/
-
-#ifdef CONFIG_IMX_UDC
-iomux_v3_cfg_t const otg_udc_pads[] = {
-	(MX6_PAD_ENET_RX_ER__USB_OTG_ID | MUX_PAD_CTRL(NO_PAD_CTRL)),
-};
-void udc_pins_setting(void)
-{
-	imx_iomux_v3_setup_multiple_pads(otg_udc_pads,
-		ARRAY_SIZE(otg_udc_pads));
-
-	/*set daisy chain for otg_pin_id on 6q. for 6dl, this bit is reserved*/
-    imx_iomux_set_gpr_register(1, 13, 1, 0);
-}
-
-#endif /*CONFIG_IMX_UDC*/
+#endif /*CONFIG_FSL_FASTBOOT*/

@@ -36,12 +36,12 @@
 #include <mxsfb.h>
 #endif
 
-#ifdef CONFIG_FASTBOOT
-#include <fastboot.h>
+#ifdef CONFIG_FSL_FASTBOOT
+#include <fsl_fastboot.h>
 #ifdef CONFIG_ANDROID_RECOVERY
 #include <recovery.h>
 #endif
-#endif /*CONFIG_FASTBOOT*/
+#endif /*CONFIG_FSL_FASTBOOT*/
 
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -131,8 +131,8 @@ static iomux_v3_cfg_t const usdhc1_pads[] = {
 	MX7D_PAD_SD1_DATA2__SD1_DATA2 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX7D_PAD_SD1_DATA3__SD1_DATA3 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 
-	MX7D_PAD_SD1_CD_B__GPIO5_IO0 | MUX_PAD_CTRL(NO_PAD_CTRL),
-	MX7D_PAD_SD1_RESET_B__GPIO5_IO2 | MUX_PAD_CTRL(NO_PAD_CTRL),
+	MX7D_PAD_SD1_CD_B__GPIO5_IO0 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX7D_PAD_SD1_RESET_B__GPIO5_IO2 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 };
 
 static iomux_v3_cfg_t const usdhc3_emmc_pads[] = {
@@ -148,7 +148,7 @@ static iomux_v3_cfg_t const usdhc3_emmc_pads[] = {
 	MX7D_PAD_SD3_DATA7__SD3_DATA7 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX7D_PAD_SD3_STROBE__SD3_STROBE	 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 
-	MX7D_PAD_SD3_RESET_B__GPIO6_IO11 | MUX_PAD_CTRL(NO_PAD_CTRL),
+	MX7D_PAD_SD3_RESET_B__GPIO6_IO11 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 };
 
 #define IOX_SDI IMX_GPIO_NR(1, 9)
@@ -782,42 +782,6 @@ static void setup_epdc_power(void)
 	gpio_direction_output(IMX_GPIO_NR(2, 30), 1);
 }
 
-int setup_waveform_file(ulong waveform_buf)
-{
-	char *fs_argv[5];
-	char addr[17];
-	ulong file_len, mmc_dev;
-
-	if (!check_mmc_autodetect())
-		mmc_dev = getenv_ulong("mmcdev", 10, 0);
-	else
-		mmc_dev = mmc_get_env_devno();
-
-	sprintf(addr, "%lx", waveform_buf);
-
-	fs_argv[0] = "fatload";
-	fs_argv[1] = "mmc";
-	fs_argv[2] = simple_itoa(mmc_dev);
-	fs_argv[3] = addr;
-	fs_argv[4] = getenv("epdc_waveform");
-
-	if (!fs_argv[4])
-		fs_argv[4] = "epdc_splash.bin";
-
-	if (do_fat_fsload(NULL, 0, 5, fs_argv)) {
-		printf("File %s not found on MMC Device %lu \n", fs_argv[4], mmc_dev);
-		return -1;
-	}
-
-	file_len = getenv_hex("filesize", 0);
-	if (!file_len)
-		return -1;
-
-	flush_cache((ulong)addr, file_len);
-
-	return 0;
-}
-
 static void epdc_enable_pins(void)
 {
 	/* epdc iomux settings */
@@ -990,6 +954,22 @@ int power_init_board(void)
 	reg |= 0x1;
 	pmic_reg_write(p, PFUZE300_LDOGCTL, reg);
 
+	/* SW1A/1B mode set to APS/APS */
+	reg = 0x8;
+	pmic_reg_write(p, PFUZE300_SW1AMODE, reg);
+	pmic_reg_write(p, PFUZE300_SW1BMODE, reg);
+
+	/* SW1A/1B standby voltage set to 1.025V */
+	reg = 0xd;
+	pmic_reg_write(p, PFUZE300_SW1ASTBY, reg);
+	pmic_reg_write(p, PFUZE300_SW1BSTBY, reg);
+
+	/* decrease SW1B normal voltage to 0.975V */
+	pmic_reg_read(p, PFUZE300_SW1BVOLT, &reg);
+	reg &= ~0x1f;
+	reg |= PFUZE300_SW1AB_SETP(975);
+	pmic_reg_write(p, PFUZE300_SW1BVOLT, reg);
+
 	return 0;
 }
 #endif
@@ -1051,7 +1031,7 @@ int board_ehci_hcd_init(int port)
 }
 #endif
 
-#ifdef CONFIG_FASTBOOT
+#ifdef CONFIG_FSL_FASTBOOT
 
 void board_fastboot_setup(void)
 {
@@ -1062,14 +1042,14 @@ void board_fastboot_setup(void)
 		if (!getenv("fastboot_dev"))
 			setenv("fastboot_dev", "mmc0");
 		if (!getenv("bootcmd"))
-			setenv("bootcmd", "booti mmc0");
+			setenv("bootcmd", "boota mmc0");
 		break;
 	case SD3_BOOT:
 	case MMC3_BOOT:
 		if (!getenv("fastboot_dev"))
 			setenv("fastboot_dev", "mmc1");
 		if (!getenv("bootcmd"))
-			setenv("bootcmd", "booti mmc1");
+			setenv("bootcmd", "boota mmc1");
 		break;
 #endif /*CONFIG_FASTBOOT_STORAGE_MMC*/
 	default:
@@ -1116,12 +1096,12 @@ void board_recovery_setup(void)
 	case SD1_BOOT:
 	case MMC1_BOOT:
 		if (!getenv("bootcmd_android_recovery"))
-			setenv("bootcmd_android_recovery", "booti mmc0 recovery");
+			setenv("bootcmd_android_recovery", "boota mmc0 recovery");
 		break;
 	case SD3_BOOT:
 	case MMC3_BOOT:
 		if (!getenv("bootcmd_android_recovery"))
-			setenv("bootcmd_android_recovery", "booti mmc1 recovery");
+			setenv("bootcmd_android_recovery", "boota mmc1 recovery");
 		break;
 #endif /*CONFIG_FASTBOOT_STORAGE_MMC*/
 	default:
@@ -1135,11 +1115,4 @@ void board_recovery_setup(void)
 }
 #endif /*CONFIG_ANDROID_RECOVERY*/
 
-#endif /*CONFIG_FASTBOOT*/
-
-#ifdef CONFIG_IMX_UDC
-void udc_pins_setting(void)
-{
-}
-
-#endif /*CONFIG_IMX_UDC*/
+#endif /*CONFIG_FSL_FASTBOOT*/

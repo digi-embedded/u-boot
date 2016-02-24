@@ -45,12 +45,12 @@
 #ifdef CONFIG_CMD_SATA
 #include <asm/imx-common/sata.h>
 #endif
-#ifdef CONFIG_FASTBOOT
-#include <fastboot.h>
+#ifdef CONFIG_FSL_FASTBOOT
+#include <fsl_fastboot.h>
 #ifdef CONFIG_ANDROID_RECOVERY
 #include <recovery.h>
 #endif
-#endif /*CONFIG_FASTBOOT*/
+#endif /*CONFIG_FSL_FASTBOOT*/
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -549,42 +549,6 @@ static void setup_epdc_power(void)
 	gpio_direction_output(IMX_GPIO_NR(2, 20), 1);
 }
 
-int setup_waveform_file(ulong waveform_buf)
-{
-	char *fs_argv[5];
-	char addr[17];
-	ulong file_len, mmc_dev;
-
-	if (!check_mmc_autodetect())
-		mmc_dev = getenv_ulong("mmcdev", 10, 0);
-	else
-		mmc_dev = mmc_get_env_devno();
-
-	sprintf(addr, "%lx", waveform_buf);
-
-	fs_argv[0] = "fatload";
-	fs_argv[1] = "mmc";
-	fs_argv[2] = simple_itoa(mmc_dev);
-	fs_argv[3] = addr;
-	fs_argv[4] = getenv("epdc_waveform");
-
-	if (!fs_argv[4])
-		fs_argv[4] = "epdc_splash.bin";
-
-	if (do_fat_fsload(NULL, 0, 5, fs_argv)) {
-		printf("MMC Device %lu not found\n", mmc_dev);
-		return -1;
-	}
-
-	file_len = getenv_hex("filesize", 0);
-	if (!file_len)
-		return -1;
-
-	flush_cache((ulong)addr, file_len);
-
-	return 0;
-}
-
 static void epdc_enable_pins(void)
 {
 	/* epdc iomux settings */
@@ -795,7 +759,7 @@ struct display_info_t const displays[] = {{
 	.bus	= -1,
 	.addr	= 0,
 	.pixfmt	= IPU_PIX_FMT_RGB24,
-	.detect	= detect_hdmi,
+	.detect	= NULL,
 	.enable	= do_enable_hdmi,
 	.mode	= {
 		.name           = "HDMI",
@@ -1014,7 +978,11 @@ int power_init_board(void)
 	if (!pfuze)
 		return -ENODEV;
 
-	ret = pfuze_mode_init(pfuze, APS_PFM);
+	if (is_mx6dqp())
+		ret = pfuze_mode_init(pfuze, APS_APS);
+	else
+		ret = pfuze_mode_init(pfuze, APS_PFM);
+
 	if (ret < 0)
 		return ret;
 
@@ -1030,29 +998,55 @@ int power_init_board(void)
 	reg |= LDOB_3_00V;
 	pmic_reg_write(pfuze, PFUZE100_VGEN5VOL, reg);
 
-	/* set SW1AB staby volatage 0.975V*/
-	pmic_reg_read(pfuze, PFUZE100_SW1ABSTBY, &reg);
-	reg &= ~0x3f;
-	reg |= 0x1b;
-	pmic_reg_write(pfuze, PFUZE100_SW1ABSTBY, reg);
+	if (is_mx6dqp()) {
+		/* set SW1C staby volatage 1.075V*/
+		pmic_reg_read(pfuze, PFUZE100_SW1CSTBY, &reg);
+		reg &= ~0x3f;
+		reg |= 0x1f;
+		pmic_reg_write(pfuze, PFUZE100_SW1CSTBY, reg);
 
-	/* set SW1AB/VDDARM step ramp up time from 16us to 4us/25mV */
-	pmic_reg_read(pfuze, PFUZE100_SW1ABCONF, &reg);
-	reg &= ~0xc0;
-	reg |= 0x40;
-	pmic_reg_write(pfuze, PFUZE100_SW1ABCONF, reg);
+		/* set SW1C/VDDSOC step ramp up time to from 16us to 4us/25mV */
+		pmic_reg_read(pfuze, PFUZE100_SW1CCONF, &reg);
+		reg &= ~0xc0;
+		reg |= 0x40;
+		pmic_reg_write(pfuze, PFUZE100_SW1CCONF, reg);
 
-	/* set SW1C staby volatage 0.975V*/
-	pmic_reg_read(pfuze, PFUZE100_SW1CSTBY, &reg);
-	reg &= ~0x3f;
-	reg |= 0x1b;
-	pmic_reg_write(pfuze, PFUZE100_SW1CSTBY, reg);
+		/* set SW2/VDDARM staby volatage 0.975V*/
+		pmic_reg_read(pfuze, PFUZE100_SW2STBY, &reg);
+		reg &= ~0x3f;
+		reg |= 0x17;
+		pmic_reg_write(pfuze, PFUZE100_SW2STBY, reg);
 
-	/* set SW1C/VDDSOC step ramp up time to from 16us to 4us/25mV */
-	pmic_reg_read(pfuze, PFUZE100_SW1CCONF, &reg);
-	reg &= ~0xc0;
-	reg |= 0x40;
-	pmic_reg_write(pfuze, PFUZE100_SW1CCONF, reg);
+		/* set SW2/VDDARM step ramp up time to from 16us to 4us/25mV */
+		pmic_reg_read(pfuze, PFUZE100_SW2CONF, &reg);
+		reg &= ~0xc0;
+		reg |= 0x40;
+		pmic_reg_write(pfuze, PFUZE100_SW2CONF, reg);
+	} else {
+		/* set SW1AB staby volatage 0.975V*/
+		pmic_reg_read(pfuze, PFUZE100_SW1ABSTBY, &reg);
+		reg &= ~0x3f;
+		reg |= 0x1b;
+		pmic_reg_write(pfuze, PFUZE100_SW1ABSTBY, reg);
+
+		/* set SW1AB/VDDARM step ramp up time from 16us to 4us/25mV */
+		pmic_reg_read(pfuze, PFUZE100_SW1ABCONF, &reg);
+		reg &= ~0xc0;
+		reg |= 0x40;
+		pmic_reg_write(pfuze, PFUZE100_SW1ABCONF, reg);
+
+		/* set SW1C staby volatage 0.975V*/
+		pmic_reg_read(pfuze, PFUZE100_SW1CSTBY, &reg);
+		reg &= ~0x3f;
+		reg |= 0x1b;
+		pmic_reg_write(pfuze, PFUZE100_SW1CSTBY, reg);
+
+		/* set SW1C/VDDSOC step ramp up time to from 16us to 4us/25mV */
+		pmic_reg_read(pfuze, PFUZE100_SW1CCONF, &reg);
+		reg &= ~0xc0;
+		reg |= 0x40;
+		pmic_reg_write(pfuze, PFUZE100_SW1CCONF, reg);
+	}
 
 	return 0;
 }
@@ -1074,12 +1068,19 @@ void ldo_mode_set(int ldo_bypass)
 	if (check_1_2G()) {
 		ldo_bypass = 0;	/* ldo_enable on 1.2G chip */
 		printf("1.2G chip, increase VDDARM_IN/VDDSOC_IN\n");
-		/* increase VDDARM to 1.425V */
-		pmic_reg_read(p, PFUZE100_SW1ABVOL, &value);
-		value &= ~0x3f;
-		value |= 0x2d;
-		pmic_reg_write(p, PFUZE100_SW1ABVOL, value);
-
+		if (is_mx6dqp()) {
+			/* increase VDDARM to 1.425V */
+			pmic_reg_read(p, PFUZE100_SW2VOL, &value);
+			value &= ~0x3f;
+			value |= 0x29;
+			pmic_reg_write(p, PFUZE100_SW2VOL, value);
+		} else {
+			/* increase VDDARM to 1.425V */
+			pmic_reg_read(p, PFUZE100_SW1ABVOL, &value);
+			value &= ~0x3f;
+			value |= 0x2d;
+			pmic_reg_write(p, PFUZE100_SW1ABVOL, value);
+		}
 		/* increase VDDSOC to 1.425V */
 		pmic_reg_read(p, PFUZE100_SW1CVOL, &value);
 		value &= ~0x3f;
@@ -1089,17 +1090,24 @@ void ldo_mode_set(int ldo_bypass)
 	/* switch to ldo_bypass mode , boot on 800Mhz */
 	if (ldo_bypass) {
 		prep_anatop_bypass();
-
-		/* decrease VDDARM for 400Mhz DQ:1.1V, DL:1.275V */
-		pmic_reg_read(p, PFUZE100_SW1ABVOL, &value);
-		value &= ~0x3f;
+		if (is_mx6dqp()) {
+			/* decrease VDDARM for 400Mhz DQP:1.1V*/
+			pmic_reg_read(p, PFUZE100_SW2VOL, &value);
+			value &= ~0x3f;
+			value |= 0x1c;
+			pmic_reg_write(p, PFUZE100_SW2VOL, value);
+		} else {
+			/* decrease VDDARM for 400Mhz DQ:1.1V, DL:1.275V */
+			pmic_reg_read(p, PFUZE100_SW1ABVOL, &value);
+			value &= ~0x3f;
 #if defined(CONFIG_MX6DL)
-		value |= 0x27;
+			value |= 0x27;
 #else
-		value |= 0x20;
+			value |= 0x20;
 #endif
-		pmic_reg_write(p, PFUZE100_SW1ABVOL, value);
 
+			pmic_reg_write(p, PFUZE100_SW1ABVOL, value);
+		}
 		/* increase VDDSOC to 1.3V */
 		pmic_reg_read(p, PFUZE100_SW1CVOL, &value);
 		value &= ~0x3f;
@@ -1107,7 +1115,7 @@ void ldo_mode_set(int ldo_bypass)
 		pmic_reg_write(p, PFUZE100_SW1CVOL, value);
 
 		/*
-		 * MX6Q:
+		 * MX6Q/DQP:
 		 * VDDARM:1.15V@800M; VDDSOC:1.175V@800M
 		 * VDDARM:0.975V@400M; VDDSOC:1.175V@400M
 		 * MX6DL:
@@ -1115,6 +1123,16 @@ void ldo_mode_set(int ldo_bypass)
 		 * VDDARM:1.075V@400M; VDDSOC:1.175V@400M
 		 */
 		is_400M = set_anatop_bypass(2);
+		if (is_mx6dqp()) {
+			pmic_reg_read(p, PFUZE100_SW2VOL, &value);
+			value &= ~0x3f;
+			if (is_400M)
+				value |= 0x17;
+			else
+				value |= 0x1e;
+			pmic_reg_write(p, PFUZE100_SW2VOL, value);
+		}
+
 		if (is_400M)
 #if defined(CONFIG_MX6DL)
 			vddarm = 0x1f;
@@ -1127,7 +1145,6 @@ void ldo_mode_set(int ldo_bypass)
 #else
 			vddarm = 0x22;
 #endif
-
 		pmic_reg_read(p, PFUZE100_SW1ABVOL, &value);
 		value &= ~0x3f;
 		value |= vddarm;
@@ -1174,7 +1191,7 @@ int checkboard(void)
 	return 0;
 }
 
-#ifdef CONFIG_FASTBOOT
+#ifdef CONFIG_FSL_FASTBOOT
 
 void board_fastboot_setup(void)
 {
@@ -1184,7 +1201,7 @@ void board_fastboot_setup(void)
 		if (!getenv("fastboot_dev"))
 			setenv("fastboot_dev", "sata");
 		if (!getenv("bootcmd"))
-			setenv("bootcmd", "booti sata");
+			setenv("bootcmd", "boota sata");
 		break;
 #endif /*CONFIG_FASTBOOT_STORAGE_SATA*/
 #if defined(CONFIG_FASTBOOT_STORAGE_MMC)
@@ -1193,20 +1210,20 @@ void board_fastboot_setup(void)
 	    if (!getenv("fastboot_dev"))
 			setenv("fastboot_dev", "mmc0");
 	    if (!getenv("bootcmd"))
-			setenv("bootcmd", "booti mmc0");
+			setenv("bootcmd", "boota mmc0");
 	    break;
 	case SD3_BOOT:
 	case MMC3_BOOT:
 	    if (!getenv("fastboot_dev"))
 			setenv("fastboot_dev", "mmc1");
 	    if (!getenv("bootcmd"))
-			setenv("bootcmd", "booti mmc1");
+			setenv("bootcmd", "boota mmc1");
 	    break;
 	case MMC4_BOOT:
 	    if (!getenv("fastboot_dev"))
 			setenv("fastboot_dev", "mmc2");
 	    if (!getenv("bootcmd"))
-			setenv("bootcmd", "booti mmc2");
+			setenv("bootcmd", "boota mmc2");
 	    break;
 #endif /*CONFIG_FASTBOOT_STORAGE_MMC*/
 	default:
@@ -1253,7 +1270,7 @@ void board_recovery_setup(void)
 	case SATA_BOOT:
 		if (!getenv("bootcmd_android_recovery"))
 			setenv("bootcmd_android_recovery",
-				"booti sata recovery");
+				"boota sata recovery");
 		break;
 #endif /*CONFIG_FASTBOOT_STORAGE_SATA*/
 #if defined(CONFIG_FASTBOOT_STORAGE_MMC)
@@ -1261,18 +1278,18 @@ void board_recovery_setup(void)
 	case MMC2_BOOT:
 		if (!getenv("bootcmd_android_recovery"))
 			setenv("bootcmd_android_recovery",
-				"booti mmc0 recovery");
+				"boota mmc0 recovery");
 		break;
 	case SD3_BOOT:
 	case MMC3_BOOT:
 		if (!getenv("bootcmd_android_recovery"))
 			setenv("bootcmd_android_recovery",
-				"booti mmc1 recovery");
+				"boota mmc1 recovery");
 		break;
 	case MMC4_BOOT:
 		if (!getenv("bootcmd_android_recovery"))
 			setenv("bootcmd_android_recovery",
-				"booti mmc2 recovery");
+				"boota mmc2 recovery");
 		break;
 #endif /*CONFIG_FASTBOOT_STORAGE_MMC*/
 	default:
@@ -1287,21 +1304,7 @@ void board_recovery_setup(void)
 
 #endif /*CONFIG_ANDROID_RECOVERY*/
 
-#endif /*CONFIG_FASTBOOT*/
-
-#ifdef CONFIG_IMX_UDC
-iomux_v3_cfg_t const otg_udc_pads[] = {
-	(MX6_PAD_ENET_RX_ER__USB_OTG_ID | MUX_PAD_CTRL(NO_PAD_CTRL)),
-};
-void udc_pins_setting(void)
-{
-	imx_iomux_v3_setup_multiple_pads(otg_udc_pads,
-					 ARRAY_SIZE(otg_udc_pads));
-
-	/*set daisy chain for otg_pin_id on 6q. for 6dl, this bit is reserved*/
-	imx_iomux_set_gpr_register(1, 13, 1, 0);
-}
-#endif /*CONFIG_IMX_UDC*/
+#endif /*CONFIG_FSL_FASTBOOT*/
 
 #ifdef CONFIG_SPL_BUILD
 #include <spl.h>

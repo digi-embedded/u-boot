@@ -27,12 +27,18 @@
 #include <usb.h>
 #include <usb/ehci-fsl.h>
 
-#ifdef CONFIG_FASTBOOT
-#include <fastboot.h>
+#ifdef CONFIG_POWER
+#include <power/pmic.h>
+#include <power/pfuze300_pmic.h>
+#include "../common/pfuze.h"
+#endif
+
+#ifdef CONFIG_FSL_FASTBOOT
+#include <fsl_fastboot.h>
 #ifdef CONFIG_ANDROID_RECOVERY
 #include <recovery.h>
 #endif
-#endif /*CONFIG_FASTBOOT*/
+#endif /*CONFIG_FSL_FASTBOOT*/
 
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -821,6 +827,85 @@ int board_early_init_f(void)
 	return 0;
 }
 
+#ifdef CONFIG_POWER
+#define I2C_PMIC	0
+static struct pmic *pfuze;
+int power_init_board(void)
+{
+	int ret;
+	unsigned int reg, rev_id;
+
+	ret = power_pfuze300_init(I2C_PMIC);
+	if (ret)
+		return ret;
+
+	pfuze = pmic_get("PFUZE300");
+	ret = pmic_probe(pfuze);
+	if (ret)
+		return ret;
+
+	pmic_reg_read(pfuze, PFUZE300_DEVICEID, &reg);
+	pmic_reg_read(pfuze, PFUZE300_REVID, &rev_id);
+	printf("PMIC: PFUZE300 DEV_ID=0x%x REV_ID=0x%x\n", reg, rev_id);
+
+	/* disable Low Power Mode during standby mode */
+	pmic_reg_read(pfuze, PFUZE300_LDOGCTL, &reg);
+	reg |= 0x1;
+	pmic_reg_write(pfuze, PFUZE300_LDOGCTL, reg);
+
+	/* SW1B step ramp up time from 2us to 4us/25mV */
+	reg = 0x40;
+	pmic_reg_write(pfuze, PFUZE300_SW1BCONF, reg);
+
+	/* SW1B mode to APS/PFM */
+	reg = 0xc;
+	pmic_reg_write(pfuze, PFUZE300_SW1BMODE, reg);
+
+	/* SW1B standby voltage set to 0.975V */
+	reg = 0xb;
+	pmic_reg_write(pfuze, PFUZE300_SW1BSTBY, reg);
+
+	return 0;
+}
+
+#ifdef CONFIG_LDO_BYPASS_CHECK
+void ldo_mode_set(int ldo_bypass)
+{
+	unsigned int value;
+	u32 vddarm;
+
+	struct pmic *p = pfuze;
+
+	if (!p) {
+		printf("No PMIC found!\n");
+		return;
+	}
+
+	/* switch to ldo_bypass mode */
+	if (ldo_bypass) {
+		prep_anatop_bypass();
+		/* decrease VDDARM to 1.275V */
+		pmic_reg_read(pfuze, PFUZE300_SW1BVOLT, &value);
+		value &= ~0x1f;
+		value |= PFUZE300_SW1AB_SETP(1275);
+		pmic_reg_write(pfuze, PFUZE300_SW1BVOLT, value);
+
+		set_anatop_bypass(1);
+		vddarm = PFUZE300_SW1AB_SETP(1175);
+
+		pmic_reg_read(pfuze, PFUZE300_SW1BVOLT, &value);
+		value &= ~0x1f;
+		value |= vddarm;
+		pmic_reg_write(pfuze, PFUZE300_SW1BVOLT, value);
+
+		finish_anatop_bypass();
+
+		printf("switch to ldo_bypass mode!\n");
+	}
+}
+#endif
+#endif
+
 int board_init(void)
 {
 	/* Address of boot parameters */
@@ -885,12 +970,16 @@ u32 get_board_rev(void)
 
 int checkboard(void)
 {
-	puts("Board: MX6UL 14x14 EVK\n");
+#if defined(CONFIG_MX6UL_9X9_LPDDR2)
+    puts("Board: MX6UL 9x9 EVK\n");
+#else
+    puts("Board: MX6UL 14x14 EVK\n");
+#endif
 
 	return 0;
 }
 
-#ifdef CONFIG_FASTBOOT
+#ifdef CONFIG_FSL_FASTBOOT
 
 void board_fastboot_setup(void)
 {
@@ -901,14 +990,14 @@ void board_fastboot_setup(void)
 		if (!getenv("fastboot_dev"))
 			setenv("fastboot_dev", "mmc0");
 		if (!getenv("bootcmd"))
-			setenv("bootcmd", "booti mmc0");
+			setenv("bootcmd", "boota mmc0");
 		break;
 	case SD2_BOOT:
 	case MMC2_BOOT:
 		if (!getenv("fastboot_dev"))
 			setenv("fastboot_dev", "mmc1");
 		if (!getenv("bootcmd"))
-			setenv("bootcmd", "booti mmc1");
+			setenv("bootcmd", "boota mmc1");
 		break;
 #endif /*CONFIG_FASTBOOT_STORAGE_MMC*/
 #if defined(CONFIG_FASTBOOT_STORAGE_NAND)
@@ -920,7 +1009,7 @@ void board_fastboot_setup(void)
 		if (!getenv("bootcmd"))
 			setenv("bootcmd",
 				"nand read ${loadaddr} ${boot_nand_offset} "
-				"${boot_nand_size};booti ${loadaddr}");
+				"${boot_nand_size};boota ${loadaddr}");
 		break;
 #endif /*CONFIG_FASTBOOT_STORAGE_NAND*/
 
@@ -949,12 +1038,12 @@ void board_recovery_setup(void)
 	case SD1_BOOT:
 	case MMC1_BOOT:
 		if (!getenv("bootcmd_android_recovery"))
-			setenv("bootcmd_android_recovery", "booti mmc0 recovery");
+			setenv("bootcmd_android_recovery", "boota mmc0 recovery");
 		break;
 	case SD2_BOOT:
 	case MMC2_BOOT:
 		if (!getenv("bootcmd_android_recovery"))
-			setenv("bootcmd_android_recovery", "booti mmc1 recovery");
+			setenv("bootcmd_android_recovery", "boota mmc1 recovery");
 		break;
 #endif /*CONFIG_FASTBOOT_STORAGE_MMC*/
 #if defined(CONFIG_FASTBOOT_STORAGE_NAND)
@@ -962,7 +1051,7 @@ void board_recovery_setup(void)
 		if (!getenv("bootcmd_android_recovery"))
 			setenv("bootcmd_android_recovery",
 				"nand read ${loadaddr} ${recovery_nand_offset} "
-				"${recovery_nand_size};booti ${loadaddr}");
+				"${recovery_nand_size};boota ${loadaddr}");
 		break;
 #endif /*CONFIG_FASTBOOT_STORAGE_NAND*/
 
@@ -977,17 +1066,4 @@ void board_recovery_setup(void)
 }
 #endif /*CONFIG_ANDROID_RECOVERY*/
 
-#endif /*CONFIG_FASTBOOT*/
-
-#ifdef CONFIG_IMX_UDC
-static iomux_v3_cfg_t const otg_udc_pads[] = {
-	MX6_PAD_GPIO1_IO00__ANATOP_OTG1_ID | MUX_PAD_CTRL(NO_PAD_CTRL),
-};
-
-void udc_pins_setting(void)
-{
-	imx_iomux_v3_setup_multiple_pads(otg_udc_pads,
-		ARRAY_SIZE(otg_udc_pads));
-}
-
-#endif /*CONFIG_IMX_UDC*/
+#endif /*CONFIG_FSL_FASTBOOT*/
