@@ -471,8 +471,9 @@ static void tftp_complete(void)
 	puts("  ");
 	print_size(TftpTsize, "");
 #endif
-	/* OTF: Write last bytes (less than a chunk) to media */
+	/* OTF: Write remaining bytes in RAM (less than a chunk) to media */
 	if (otf_update_hook != NULL) {
+		otfd.len = 0;	/* there are no bytes left from TFTP frame */
 		otfd.flags |= OTF_FLAG_FLUSH;
 		otf_update_hook(&otfd);
 	}
