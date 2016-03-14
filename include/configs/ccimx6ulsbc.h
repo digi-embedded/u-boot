@@ -2,12 +2,12 @@
  * Copyright (C) 2016 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
- * Configuration settings for the Freescale i.MX6UL 14x14 EVK board.
+ * Configuration settings for the Digi ConnecCore 6 UL SBC board.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
-#ifndef __MX6UL_14X14_EVK_CONFIG_H
-#define __MX6UL_14X14_EVK_CONFIG_H
+#ifndef CCIMX6ULSBC_CONFIG_H
+#define CCIMX6ULSBC_CONFIG_H
 
 
 #include <asm/arch/imx-regs.h>
@@ -20,11 +20,6 @@
 #define CONFIG_SYS_GENERIC_BOARD
 #define CONFIG_DISPLAY_CPUINFO
 #define CONFIG_DISPLAY_BOARDINFO
-
-#if !defined(CONFIG_MX6UL_9X9_LPDDR2)
-/* DCDC used on 14x14 EVK, no PMIC */
-#undef CONFIG_LDO_BYPASS_CHECK
-#endif
 
 /* uncomment for PLUGIN mode support */
 /* #define CONFIG_USE_PLUGIN */
@@ -130,8 +125,7 @@
 #define CONFIG_SYS_I2C_SPEED		100000
 #endif
 
-#if defined(CONFIG_MX6UL_9X9_LPDDR2)
-#define CONFIG_DEFAULT_FDT_FILE "imx6ul-9x9-evk.dtb"
+#define CONFIG_DEFAULT_FDT_FILE "ccimx6ulsbc.dtb"
 #define PHYS_SDRAM_SIZE			SZ_256M
 #define CONFIG_BOOTARGS_CMA_SIZE   "cma=96M "
 
@@ -140,12 +134,6 @@
 #define CONFIG_POWER_I2C
 #define CONFIG_POWER_PFUZE300
 #define CONFIG_POWER_PFUZE300_I2C_ADDR	0x08
-#else
-#define CONFIG_DEFAULT_FDT_FILE "imx6ul-14x14-evk.dtb"
-#define PHYS_SDRAM_SIZE			SZ_512M
-#define CONFIG_BOOTARGS_CMA_SIZE   ""
-#endif
-
 
 #define CONFIG_VIDEO
 
@@ -423,8 +411,4 @@
 #define CONFIG_USB_MAX_CONTROLLER_COUNT 2
 #endif
 
-#if defined(CONFIG_ANDROID_SUPPORT)
-#include "mx6ul_14x14_evk_android.h"
-#endif
-
-#endif
+#endif /* CCIMX6ULSBC_CONFIG_H */
