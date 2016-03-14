@@ -31,7 +31,7 @@
 #ifdef CONFIG_POWER
 #include <power/pmic.h>
 #include <power/pfuze300_pmic.h>
-#include "../common/pfuze.h"
+#include "../../freescale/common/pfuze.h"
 #endif
 
 #ifdef CONFIG_FSL_FASTBOOT

@@ -23,7 +23,7 @@
 #ifdef CONFIG_POWER
 #include <power/pmic.h>
 #include <power/pfuze300_pmic.h>
-#include "../common/pfuze.h"
+#include "../../freescale/common/pfuze.h"
 #endif
 
 DECLARE_GLOBAL_DATA_PTR;
