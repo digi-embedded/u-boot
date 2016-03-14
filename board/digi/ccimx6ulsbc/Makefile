@@ -3,7 +3,7 @@
 # SPDX-License-Identifier:	GPL-2.0+
 #
 
-obj-y  := ccimx6ulsbc.o
+obj-y  := ccimx6ulsbc.o ../ccimx6ul/ccimx6ul.o
 
 extra-$(CONFIG_USE_PLUGIN) :=  plugin.bin
 $(obj)/plugin.bin: $(obj)/plugin.o
