@@ -98,7 +98,12 @@ static int pmic_dump(struct pmic *p)
 		if (!(i % 8))
 			printf("\n0x%02x: ", i);
 
-		printf("%08x ", val);
+		if (p->register_size == BYTE)
+			printf("%02x ", val);
+		else if (p->register_size == SHORT)
+			printf("%04x ", val);
+		else
+			printf("%08x ", val);
 	}
 	puts("\n");
 	return 0;
@@ -163,7 +168,12 @@ static int do_pmic(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		if (ret)
 			puts("PMIC: Register read failed\n");
 
-		printf("\n0x%02x: 0x%08x\n", reg, val);
+		if (p->register_size == BYTE)
+			printf("\n0x%02x: 0x%02x\n", reg, val);
+		else if (p->register_size == SHORT)
+			printf("\n0x%02x: 0x%04x\n", reg, val);
+		else
+			printf("\n0x%02x: 0x%08x\n", reg, val);
 
 		return CMD_RET_SUCCESS;
 	}
