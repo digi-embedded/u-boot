@@ -27,6 +27,7 @@
 #include <netdev.h>
 #include <usb.h>
 #include <usb/ehci-fsl.h>
+#include "../ccimx6ul/ccimx6ul.h"
 
 #ifdef CONFIG_POWER
 #include <power/pmic.h>
@@ -412,42 +413,10 @@ int board_early_init_f(void)
 }
 
 #ifdef CONFIG_POWER
-#define I2C_PMIC	0
-static struct pmic *pfuze;
 int power_init_board(void)
 {
-	int ret;
-	unsigned int reg, rev_id;
-
-	ret = power_pfuze300_init(I2C_PMIC);
-	if (ret)
-		return ret;
-
-	pfuze = pmic_get("PFUZE300");
-	ret = pmic_probe(pfuze);
-	if (ret)
-		return ret;
-
-	pmic_reg_read(pfuze, PFUZE300_DEVICEID, &reg);
-	pmic_reg_read(pfuze, PFUZE300_REVID, &rev_id);
-	printf("PMIC: PFUZE300 DEV_ID=0x%x REV_ID=0x%x\n", reg, rev_id);
-
-	/* disable Low Power Mode during standby mode */
-	pmic_reg_read(pfuze, PFUZE300_LDOGCTL, &reg);
-	reg |= 0x1;
-	pmic_reg_write(pfuze, PFUZE300_LDOGCTL, reg);
-
-	/* SW1B step ramp up time from 2us to 4us/25mV */
-	reg = 0x40;
-	pmic_reg_write(pfuze, PFUZE300_SW1BCONF, reg);
-
-	/* SW1B mode to APS/PFM */
-	reg = 0xc;
-	pmic_reg_write(pfuze, PFUZE300_SW1BMODE, reg);
-
-	/* SW1B standby voltage set to 0.975V */
-	reg = 0xb;
-	pmic_reg_write(pfuze, PFUZE300_SW1BSTBY, reg);
+	/* SOM power init */
+	power_init_ccimx6ul();
 
 	return 0;
 }
@@ -455,8 +424,8 @@ int power_init_board(void)
 
 int board_init(void)
 {
-	/* Address of boot parameters */
-	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
+	/* SOM init */
+	ccimx6ul_init();
 
 #ifdef	CONFIG_FEC_MXC
 	setup_fec(CONFIG_FEC_ENET_DEV);
@@ -471,6 +440,9 @@ int board_init(void)
 
 int board_late_init(void)
 {
+	/* SOM late init */
+	ccimx6ul_late_init();
+
 #ifdef CONFIG_ENV_IS_IN_MMC
 	board_late_mmc_init();
 #endif

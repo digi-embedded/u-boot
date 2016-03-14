@@ -130,7 +130,7 @@ static void setup_gpmi_nand(void)
 #ifdef CONFIG_POWER
 #define I2C_PMIC	0
 static struct pmic *pfuze;
-int power_init_board(void)
+int power_init_ccimx6ul(void)
 {
 	int ret;
 	unsigned int reg, rev_id;
@@ -206,7 +206,7 @@ void ldo_mode_set(int ldo_bypass)
 #endif
 #endif
 
-int board_init(void)
+int ccimx6ul_init(void)
 {
 	/* Address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
@@ -232,7 +232,7 @@ static const struct boot_mode board_boot_modes[] = {
 };
 #endif
 
-int board_late_init(void)
+int ccimx6ul_late_init(void)
 {
 #ifdef CONFIG_CMD_BMODE
 	add_board_boot_modes(board_boot_modes);
