@@ -24,6 +24,7 @@ int power_pfuze3000_init(unsigned char bus)
 	p->name = name;
 	p->interface = PMIC_I2C;
 	p->number_of_regs = PMIC_NUM_OF_REGS;
+	p->register_size = BYTE;
 	p->hw.i2c.addr = CONFIG_POWER_PFUZE3000_I2C_ADDR;
 	p->hw.i2c.tx_num = 1;
 	p->bus = bus;
