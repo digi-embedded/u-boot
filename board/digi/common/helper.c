@@ -13,6 +13,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#if defined(CONFIG_CMD_UPDATE) || defined(CONFIG_CMD_DBOOT)
 enum {
 	FWLOAD_NO,
 	FWLOAD_YES,
@@ -33,6 +34,7 @@ static const char *src_strings[] = {
 static int (*otf_update_hook)(otf_data_t *data) = NULL;
 /* Data struct for on-the-fly update */
 static otf_data_t otfd;
+#endif
 
 #ifdef CONFIG_AUTO_BOOTSCRIPT
 #define AUTOSCRIPT_TFTP_MSEC		100
@@ -63,6 +65,7 @@ int confirm_msg(char *msg)
 	return 0;
 }
 
+#if defined(CONFIG_CMD_UPDATE) || defined(CONFIG_CMD_DBOOT)
 int get_source(int argc, char * const argv[], char **devpartno, char **fs)
 {
 	int i;
@@ -185,7 +188,9 @@ int get_default_devpartno(int src, char *devpartno)
 
 	return 0;
 }
+#endif /* CONFIG_CMD_UPDATE || CONFIG_CMD_DBOOT */
 
+#ifdef CONFIG_CMD_UPDATE
 void register_fs_otf_update_hook(int (*hook)(otf_data_t *data),
 				 disk_partition_t *partition)
 {
@@ -331,6 +336,7 @@ _ret:
 
 	return LDFW_LOADED;	/* ok, file was loaded */
 }
+#endif /* CONFIG_CMD_UPDATE */
 
 #if defined(CONFIG_SOURCE) && defined(CONFIG_AUTO_BOOTSCRIPT)
 void run_auto_bootscript(void)
