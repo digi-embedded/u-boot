@@ -9,6 +9,7 @@
 #ifndef CCIMX6ULSBC_CONFIG_H
 #define CCIMX6ULSBC_CONFIG_H
 
+#include "ccimx6ul_common.h"
 
 #include <asm/arch/imx-regs.h>
 #include <linux/sizes.h>
