@@ -120,7 +120,7 @@
 
 /* ********** misc stuff ********** */
 #define CONFIG_CMD_ENV_FLAGS
-#define CONFIG_SYS_MAXARGS	32			/* max number of command args */
+#define CONFIG_SYS_MAXARGS	256			/* max number of command args */
 #define CONFIG_SYS_BARGSIZE	CONFIG_SYS_CBSIZE	/* Boot Argument Buffer Size */
 
 /* valid baudrates */
