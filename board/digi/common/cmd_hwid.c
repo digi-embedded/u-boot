@@ -25,6 +25,10 @@
 #include <fuse.h>
 #include <asm/errno.h>
 #include "helper.h"
+#include "hwid.h"
+#ifdef CONFIG_OF_LIBFDT
+#include <fdt_support.h>
+#endif
 
 #define OCOTP_LOCK_BANK		0
 #define OCOTP_LOCK_WORD		0

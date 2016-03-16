@@ -39,7 +39,10 @@ obj-$(CONFIG_CMD_NVRAM) += cmd_nvram/mtd.o \
 	  cmd_nvram/nvram_priv_uboot.o \
 	  cmd_nvram/env.o \
 	  cmd_nvram/partition.o
-obj-$(CONFIG_HAS_HWID) += cmd_hwid.o
+ifdef CONFIG_HAS_HWID
+obj-y += cmd_hwid.o
+obj-$(CONFIG_CC6) += ccimx6_hwid.o
+endif
 obj-$(CONFIG_HAS_CARRIERBOARD_VERSION) += cmd_board.o
 obj-$(CONFIG_HAS_CARRIERBOARD_ID) += cmd_board.o
 obj-$(CONFIG_AUTO_BOOTSCRIPT) += helper.o
