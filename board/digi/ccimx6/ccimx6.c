@@ -1338,7 +1338,7 @@ static int is_valid_hwid(struct ccimx6_hwid *hwid)
 	return 0;
 }
 
-static void array_to_hwid(u32 *buf)
+static void array_to_hwid(u32 *buf, struct ccimx6_hwid *hwid)
 {
 	/*
 	 *                      MAC1 (Bank 4 Word 3)
@@ -1355,14 +1355,14 @@ static void array_to_hwid(u32 *buf)
 	 * HWID: | Location |  GenID |      Serial number      |
 	 *       +----------+--------+-------------------------+
 	 */
-	my_hwid.year = (buf[1] >> 26) & 0x3f;
-	my_hwid.week = (buf[1] >> 20) & 0x3f;
-	my_hwid.variant = (buf[1] >> 8) & 0xff;
-	my_hwid.hv = (buf[1] >> 4) & 0xf;
-	my_hwid.cert = buf[1] & 0xf;
-	my_hwid.location = (buf[0] >> 27) & 0x1f;
-	my_hwid.genid = (buf[0] >> 20) & 0x7f;
-	my_hwid.sn = buf[0] & 0xfffff;
+	hwid->year = (buf[1] >> 26) & 0x3f;
+	hwid->week = (buf[1] >> 20) & 0x3f;
+	hwid->variant = (buf[1] >> 8) & 0xff;
+	hwid->hv = (buf[1] >> 4) & 0xf;
+	hwid->cert = buf[1] & 0xf;
+	hwid->location = (buf[0] >> 27) & 0x1f;
+	hwid->genid = (buf[0] >> 20) & 0x7f;
+	hwid->sn = buf[0] & 0xfffff;
 }
 
 int manufstr_to_hwid(int argc, char *const argv[], u32 *val)
@@ -1490,7 +1490,7 @@ err:
 	return -EINVAL;
 }
 
-int get_hwid(void)
+int get_hwid(struct ccimx6_hwid *hwid)
 {
 	u32 buf[CONFIG_HWID_WORDS_NUMBER];
 	u32 bank = CONFIG_HWID_BANK;
@@ -1504,7 +1504,7 @@ int get_hwid(void)
 			return -1;
 	}
 
-	array_to_hwid(buf);
+	array_to_hwid(buf, hwid);
 
 	return 0;
 }
@@ -1525,7 +1525,7 @@ void fdt_fixup_hwid(void *fdt)
 	int i;
 
 	/* Re-read HWID which might have been overridden by user */
-	if (get_hwid()) {
+	if (get_hwid(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return;
 	}
@@ -1779,7 +1779,7 @@ int board_update_chunk(otf_data_t *otfd)
 
 int ccimx6_init(void)
 {
-	if (get_hwid()) {
+	if (get_hwid(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return -1;
 	}
