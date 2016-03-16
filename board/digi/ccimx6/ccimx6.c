@@ -1289,44 +1289,44 @@ int ccimx6_late_init(void)
 	return ccimx6_fixup();
 }
 
-void board_print_hwid(u32 *hwid)
+void board_print_hwid(u32 *buf)
 {
 	int i;
 	int cert;
 
 	for (i = CONFIG_HWID_WORDS_NUMBER - 1; i >= 0; i--)
-		printf(" %.8x", hwid[i]);
+		printf(" %.8x", buf[i]);
 	printf("\n");
 	/* Formatted printout */
-	printf("    Year:          20%02d\n", (hwid[1] >> 26) & 0x3f);
-	printf("    Week:          %02d\n", (hwid[1] >> 20) & 0x3f);
-	printf("    Variant:       0x%02x\n", (hwid[1] >> 8) & 0xff);
-	printf("    HW Version:    0x%x\n", (hwid[1] >> 4) & 0xf);
-	cert = hwid[1] & 0xf;
+	printf("    Year:          20%02d\n", (buf[1] >> 26) & 0x3f);
+	printf("    Week:          %02d\n", (buf[1] >> 20) & 0x3f);
+	printf("    Variant:       0x%02x\n", (buf[1] >> 8) & 0xff);
+	printf("    HW Version:    0x%x\n", (buf[1] >> 4) & 0xf);
+	cert = buf[1] & 0xf;
 	printf("    Cert:          0x%x (%s)\n", cert,
 	       cert < ARRAY_SIZE(cert_regions) ? cert_regions[cert] : "??");
-	printf("    Location:      %c\n", ((hwid[0] >> 27) & 0x1f) + 'A');
-	printf("    Generator ID:  %02d\n", (hwid[0] >> 20) & 0x7f);
-	printf("    S/N:           %06d\n", hwid[0] & 0xfffff);
+	printf("    Location:      %c\n", ((buf[0] >> 27) & 0x1f) + 'A');
+	printf("    Generator ID:  %02d\n", (buf[0] >> 20) & 0x7f);
+	printf("    S/N:           %06d\n", buf[0] & 0xfffff);
 }
 
-void board_print_manufid(u32 *hwid)
+void board_print_manufid(u32 *buf)
 {
 	int i;
 
 	for (i = CONFIG_HWID_WORDS_NUMBER - 1; i >= 0; i--)
-		printf(" %.8x", hwid[i]);
+		printf(" %.8x", buf[i]);
 	printf("\n");
 	/* Formatted printout */
 	printf(" Manufacturing ID: %c%02d%02d%02d%06d %02x%x%x\n",
-	       ((hwid[0] >> 27) & 0x1f) + 'A',
-	       (hwid[1] >> 26) & 0x3f,
-	       (hwid[1] >> 20) & 0x3f,
-	       (hwid[0] >> 20) & 0x7f,
-	       hwid[0] & 0xfffff,
-	       (hwid[1] >> 8) & 0xff,
-	       (hwid[1] >> 4) & 0xf,
-	       hwid[1] & 0xf);
+	       ((buf[0] >> 27) & 0x1f) + 'A',
+	       (buf[1] >> 26) & 0x3f,
+	       (buf[1] >> 20) & 0x3f,
+	       (buf[0] >> 20) & 0x7f,
+	       buf[0] & 0xfffff,
+	       (buf[1] >> 8) & 0xff,
+	       (buf[1] >> 4) & 0xf,
+	       buf[1] & 0xf);
 }
 
 static int is_valid_hwid(struct ccimx6_hwid *hwid)
@@ -1338,7 +1338,7 @@ static int is_valid_hwid(struct ccimx6_hwid *hwid)
 	return 0;
 }
 
-static void array_to_hwid(u32 *hwid)
+static void array_to_hwid(u32 *buf)
 {
 	/*
 	 *                      MAC1 (Bank 4 Word 3)
@@ -1355,14 +1355,14 @@ static void array_to_hwid(u32 *hwid)
 	 * HWID: | Location |  GenID |      Serial number      |
 	 *       +----------+--------+-------------------------+
 	 */
-	my_hwid.year = (hwid[1] >> 26) & 0x3f;
-	my_hwid.week = (hwid[1] >> 20) & 0x3f;
-	my_hwid.variant = (hwid[1] >> 8) & 0xff;
-	my_hwid.hv = (hwid[1] >> 4) & 0xf;
-	my_hwid.cert = hwid[1] & 0xf;
-	my_hwid.location = (hwid[0] >> 27) & 0x1f;
-	my_hwid.genid = (hwid[0] >> 20) & 0x7f;
-	my_hwid.sn = hwid[0] & 0xfffff;
+	my_hwid.year = (buf[1] >> 26) & 0x3f;
+	my_hwid.week = (buf[1] >> 20) & 0x3f;
+	my_hwid.variant = (buf[1] >> 8) & 0xff;
+	my_hwid.hv = (buf[1] >> 4) & 0xf;
+	my_hwid.cert = buf[1] & 0xf;
+	my_hwid.location = (buf[0] >> 27) & 0x1f;
+	my_hwid.genid = (buf[0] >> 20) & 0x7f;
+	my_hwid.sn = buf[0] & 0xfffff;
 }
 
 int manufstr_to_hwid(int argc, char *const argv[], u32 *val)
@@ -1492,19 +1492,19 @@ err:
 
 int get_hwid(void)
 {
-	u32 hwid[CONFIG_HWID_WORDS_NUMBER];
+	u32 buf[CONFIG_HWID_WORDS_NUMBER];
 	u32 bank = CONFIG_HWID_BANK;
 	u32 word = CONFIG_HWID_START_WORD;
 	u32 cnt = CONFIG_HWID_WORDS_NUMBER;
 	int ret, i;
 
 	for (i = 0; i < cnt; i++, word++) {
-		ret = fuse_read(bank, word, &hwid[i]);
+		ret = fuse_read(bank, word, &buf[i]);
 		if (ret)
 			return -1;
 	}
 
-	array_to_hwid(hwid);
+	array_to_hwid(buf);
 
 	return 0;
 }
