@@ -19,6 +19,7 @@
 #define __CCIMX6_COMMON_CONFIG_H
 
 #define CONFIG_MX6
+#define CONFIG_CC6
 
 #include <linux/sizes.h>
 #include "mx6_common.h"

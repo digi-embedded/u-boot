@@ -16,6 +16,7 @@
 #include "digi_common.h"
 
 #define CONFIG_MX6
+#define CONFIG_CC6
 #define CONFIG_ROM_UNIFIED_SECTIONS
 #define CONFIG_SYS_GENERIC_BOARD
 #define CONFIG_DISPLAY_CPUINFO
