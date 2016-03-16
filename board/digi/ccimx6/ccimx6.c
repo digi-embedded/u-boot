@@ -54,7 +54,6 @@ extern unsigned int get_carrierboard_version(void);
 extern unsigned int get_carrierboard_id(void);
 
 struct ccimx6_hwid my_hwid;
-static u32 hwid[CONFIG_HWID_WORDS_NUMBER];
 static block_dev_desc_t *mmc_dev;
 static int mmc_dev_index = -1;
 static int enet_xcv_type;
@@ -1493,6 +1492,7 @@ err:
 
 int get_hwid(void)
 {
+	u32 hwid[CONFIG_HWID_WORDS_NUMBER];
 	u32 bank = CONFIG_HWID_BANK;
 	u32 word = CONFIG_HWID_START_WORD;
 	u32 cnt = CONFIG_HWID_WORDS_NUMBER;
