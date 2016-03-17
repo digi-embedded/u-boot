@@ -13,21 +13,12 @@
 #include <linux/sizes.h>
 #include "mx6_common.h"
 #include <asm/imx-common/gpio.h>
+#include "digi_common.h"
 
 #define CONFIG_MX6
 #define CONFIG_ROM_UNIFIED_SECTIONS
 #define CONFIG_SYS_GENERIC_BOARD
 #define CONFIG_DISPLAY_CPUINFO
-#define CONFIG_DISPLAY_BOARDINFO
-
-/* uncomment for PLUGIN mode support */
-/* #define CONFIG_USE_PLUGIN */
-
-/* uncomment for SECURE mode support */
-/* #define CONFIG_SECURE_BOOT */
-
-/* uncomment for BEE support, needs to enable CONFIG_CMD_FUSE */
-/* #define CONFIG_CMD_BEE */
 
 #ifdef CONFIG_SECURE_BOOT
 #ifndef CONFIG_CSF_SIZE
@@ -46,14 +37,6 @@
 #define CONFIG_BOARD_EARLY_INIT_F
 #define CONFIG_BOARD_LATE_INIT
 #define CONFIG_MXC_GPIO
-
-#define CONFIG_MXC_UART
-#define CONFIG_MXC_UART_BASE		UART1_BASE
-
-/* allow to overwrite serial and ethaddr */
-#define CONFIG_ENV_OVERWRITE
-#define CONFIG_CONS_INDEX		1
-#define CONFIG_BAUDRATE			115200
 
 #define CONFIG_CMD_FUSE
 #ifdef CONFIG_CMD_FUSE
@@ -87,31 +70,6 @@
 #undef CONFIG_CMD_EXPORTENV
 #undef CONFIG_CMD_IMPORTENV
 
-#define CONFIG_CMD_NET
-#ifdef CONFIG_CMD_NET
-#define CONFIG_CMD_PING
-#define CONFIG_CMD_DHCP
-#define CONFIG_CMD_MII
-#define CONFIG_FEC_MXC
-#define CONFIG_MII
-#define CONFIG_FEC_ENET_DEV 1
-
-#if (CONFIG_FEC_ENET_DEV == 0)
-#define IMX_FEC_BASE			ENET_BASE_ADDR
-#define CONFIG_FEC_MXC_PHYADDR          0x2
-#define CONFIG_FEC_XCV_TYPE             RMII
-#elif (CONFIG_FEC_ENET_DEV == 1)
-#define IMX_FEC_BASE			ENET2_BASE_ADDR
-#define CONFIG_FEC_MXC_PHYADDR          0x1  /* need board rework */
-#define CONFIG_FEC_XCV_TYPE             RMII
-#endif
-#define CONFIG_ETHPRIME                 "FEC"
-
-#define CONFIG_PHYLIB
-#define CONFIG_PHY_MICREL
-#define CONFIG_FEC_DMA_MINALIGN		64
-#endif
-
 /* allow to overwrite serial and ethaddr */
 #define CONFIG_ENV_OVERWRITE
 #define CONFIG_CONS_INDEX		1
@@ -135,13 +93,6 @@
 #define CONFIG_LOADADDR			0x80800000
 #define CONFIG_SYS_TEXT_BASE		0x87800000
 
-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
-#ifdef CONFIG_SYS_BOOT_NAND
-#define CONFIG_MFG_NAND_PARTITION "mtdparts=gpmi-nand:64m(boot),16m(kernel),16m(dtb),-(rootfs) "
-#else
-#define CONFIG_MFG_NAND_PARTITION ""
-#endif
-
 /* Miscellaneous configurable options */
 #define CONFIG_SYS_LONGHELP
 #define CONFIG_SYS_HUSH_PARSER
@@ -151,8 +102,6 @@
 
 /* Print Buffer Size */
 #define CONFIG_SYS_PBSIZE (CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
-#define CONFIG_SYS_MAXARGS		256
-#define CONFIG_SYS_BARGSIZE CONFIG_SYS_CBSIZE
 
 #define CONFIG_CMD_MEMTEST
 #define CONFIG_SYS_MEMTEST_START	0x80000000
@@ -162,7 +111,6 @@
 #define CONFIG_SYS_HZ			1000
 
 #define CONFIG_CMDLINE_EDITING
-#define CONFIG_STACKSIZE		SZ_128K
 
 /* Physical Memory Map */
 #define CONFIG_NR_DRAM_BANKS		1
@@ -179,8 +127,6 @@
 
 /* FLASH and environment organization */
 #define CONFIG_SYS_NO_FLASH
-
-#define CONFIG_ENV_SIZE			SZ_8K
 
 #ifdef CONFIG_SYS_BOOT_QSPI
 #define CONFIG_FSL_QSPI
@@ -240,10 +186,6 @@
 #define CONFIG_ENV_SIZE			CONFIG_ENV_SECT_SIZE
 #endif
 
-#define CONFIG_SYS_MMC_ENV_DEV		1   /* USDHC2 */
-#define CONFIG_SYS_MMC_ENV_PART		0	/* user area */
-#define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
-
 #define CONFIG_OF_LIBFDT
 #define CONFIG_CMD_BOOTZ
 
@@ -251,20 +193,6 @@
 
 #ifndef CONFIG_SYS_DCACHE_OFF
 #define CONFIG_CMD_CACHE
-#endif
-
-/* USB Configs */
-#define CONFIG_CMD_USB
-#ifdef CONFIG_CMD_USB
-#define CONFIG_USB_EHCI
-#define CONFIG_USB_EHCI_MX6
-#define CONFIG_USB_STORAGE
-#define CONFIG_EHCI_HCD_INIT_AFTER_RESET
-#define CONFIG_USB_HOST_ETHER
-#define CONFIG_USB_ETHER_ASIX
-#define CONFIG_MXC_USB_PORTSC  (PORT_PTS_UTMI | PORT_PTS_PTW)
-#define CONFIG_MXC_USB_FLAGS   0
-#define CONFIG_USB_MAX_CONTROLLER_COUNT 2
 #endif
 
 #endif /* CCIMX6UL_CONFIG_H */
