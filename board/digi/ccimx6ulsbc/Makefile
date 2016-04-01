@@ -5,6 +5,6 @@
 
 obj-y  := ccimx6ulsbc.o ../ccimx6ul/ccimx6ul.o
 
-extra-$(CONFIG_USE_PLUGIN) :=  plugin.bin
-$(obj)/plugin.bin: $(obj)/plugin.o
+extra-$(CONFIG_USE_PLUGIN) :=  ../ccimx6ul/plugin.bin
+$(obj)/../ccimx6ul/plugin.bin: $(obj)/../ccimx6ul/plugin.o
 	$(OBJCOPY) -O binary --gap-fill 0xff $< $@
