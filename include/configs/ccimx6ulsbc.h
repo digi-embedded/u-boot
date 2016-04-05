@@ -30,6 +30,9 @@
 #define CONFIG_CONS_INDEX		1
 #define CONFIG_BAUDRATE			115200
 
+#define CONFIG_MODULE_FUSE
+#define CONFIG_OF_SYSTEM_SETUP
+
 #define CONFIG_CMD_NET
 #ifdef CONFIG_CMD_NET
 #define CONFIG_CMD_PING
@@ -71,6 +74,7 @@
 	    CONFIG_BOOTARGS_CMA_SIZE \
 		"rdinit=/linuxrc " \
 		"g_mass_storage.stall=0 g_mass_storage.removable=1 " \
+		"g_mass_storage.file=/fat g_mass_storage.ro=1 " \
 		"g_mass_storage.idVendor=0x066F g_mass_storage.idProduct=0x37FF "\
 		"g_mass_storage.iSerialNumber=\"\" "\
 		CONFIG_MFG_NAND_PARTITION \
