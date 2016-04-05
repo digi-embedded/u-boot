@@ -20,6 +20,7 @@
 #include <fsl_esdhc.h>
 #include <fdt_support.h>
 #include <asm/io.h>
+#include <asm/arch/sys_proto.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -211,9 +212,12 @@ static int esdhc_setup_data(struct mmc *mmc, struct mmc_data *data)
 #endif
 		if (wml_value > WML_WR_WML_MAX)
 			wml_value = WML_WR_WML_MAX_VAL;
-		if ((esdhc_read32(&regs->prsstat) & PRSSTAT_WPSPL) == 0) {
-			printf("\nThe SD card is locked. Can not write to a locked card.\n\n");
-			return TIMEOUT;
+
+		if (cfg->wp_enable) {
+			if ((esdhc_read32(&regs->prsstat) & PRSSTAT_WPSPL) == 0) {
+				printf("\nThe SD card is locked. Can not write to a locked card.\n\n");
+				return TIMEOUT;
+			}
 		}
 
 		esdhc_clrsetbits32(&regs->wml, WML_WR_WML_MASK,
@@ -536,6 +540,9 @@ static int esdhc_init(struct mmc *mmc)
 
 	/* Put VEND_SPEC to default value */
 	esdhc_write32(&regs->vendorspec, VENDORSPEC_INIT);
+
+	/* Disable DLL_CTRL delay line */
+	esdhc_write32(&regs->dllctrl, 0x0);
 #endif
 
 #ifndef ARCH_MXC
@@ -613,6 +620,13 @@ int fsl_esdhc_initialize(bd_t *bis, struct fsl_esdhc_cfg *cfg)
 		return -1;
 
 	regs = (struct fsl_esdhc *)cfg->esdhc_base;
+
+#ifdef CONFIG_MX6
+	if (mx6_esdhc_fused(cfg->esdhc_base)) {
+		printf("ESDHC@0x%x is fused, disable it\n", cfg->esdhc_base);
+		return -2;
+	}
+#endif
 
 	/* First reset the eSDHC controller */
 	esdhc_reset(regs);

@@ -2161,7 +2161,7 @@ int set_local_var(const char *s, int flg_export)
 	 * NAME=VALUE format.  So the first order of business is to
 	 * split 's' on the '=' into 'name' and 'value' */
 	value = strchr(name, '=');
-	if (value == NULL && ++value == NULL) {
+	if (value == NULL || *(value + 1) == 0) {
 		free(name);
 		return -1;
 	}
@@ -2470,11 +2470,16 @@ static int done_word(o_string *dest, struct p_context *ctx)
 		}
 		argc = ++child->argc;
 		child->argv = realloc(child->argv, (argc+1)*sizeof(*child->argv));
-		if (child->argv == NULL) return 1;
+		if (child->argv == NULL) {
+			free(str);
+			return 1;
+		}
 		child->argv_nonnull = realloc(child->argv_nonnull,
 					(argc+1)*sizeof(*child->argv_nonnull));
-		if (child->argv_nonnull == NULL)
+		if (child->argv_nonnull == NULL) {
+			free(str);
 			return 1;
+		}
 		child->argv[argc-1]=str;
 		child->argv_nonnull[argc-1] = dest->nonnull;
 		child->argv[argc]=NULL;

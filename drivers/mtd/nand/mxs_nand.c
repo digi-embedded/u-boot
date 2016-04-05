@@ -1172,6 +1172,13 @@ int mxs_nand_init(struct mxs_nand_info *info)
 		(struct mxs_bch_regs *)MXS_BCH_BASE;
 	int i = 0, j;
 
+#ifdef CONFIG_MX6
+	if (check_module_fused(MX6_MODULE_GPMI)) {
+		printf("NAND GPMI@0x%x is fused, disable it\n", MXS_GPMI_BASE);
+		return -EPERM;
+	}
+#endif
+
 	info->desc = malloc(sizeof(struct mxs_dma_desc *) *
 				MXS_NAND_DMA_DESCRIPTOR_COUNT);
 	if (!info->desc)
@@ -1210,10 +1217,10 @@ err3:
 	for (--j; j >= 0; j--)
 		mxs_dma_release(j);
 err2:
-	free(info->desc);
-err1:
 	for (--i; i >= 0; i--)
 		mxs_dma_desc_free(info->desc[i]);
+	free(info->desc);
+err1:
 	printf("MXS NAND: Unable to allocate DMA descriptors\n");
 	return -ENOMEM;
 }

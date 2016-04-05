@@ -348,7 +348,10 @@ static void clear_mmdc_ch_mask(void)
 	reg = readl(&mxc_ccm->ccdr);
 
 	/* Clear MMDC channel mask */
-	reg &= ~(MXC_CCM_CCDR_MMDC_CH1_HS_MASK | MXC_CCM_CCDR_MMDC_CH0_HS_MASK);
+	if (is_cpu_type(MXC_CPU_MX6SX) || is_cpu_type(MXC_CPU_MX6UL) || is_cpu_type(MXC_CPU_MX6SL))
+		reg &= ~(MXC_CCM_CCDR_MMDC_CH1_HS_MASK);
+	else
+		reg &= ~(MXC_CCM_CCDR_MMDC_CH1_HS_MASK | MXC_CCM_CCDR_MMDC_CH0_HS_MASK);
 	writel(reg, &mxc_ccm->ccdr);
 }
 
@@ -546,12 +549,14 @@ int arch_cpu_init(void)
 #endif
 
 #if defined(CONFIG_MX6UL)
-	/*
-	 * According to the design team's requirement on i.MX6UL,
-	 * the PMIC_STBY_REQ PAD should be configured as open
-	 * drain 100K (0x0000b8a0).
-	 */
-	writel(0x0000b8a0, IOMUXC_BASE_ADDR + 0x29c);
+	if (is_soc_rev(CHIP_REV_1_0) == 0) {
+		/*
+		 * According to the design team's requirement on i.MX6UL,
+		 * the PMIC_STBY_REQ PAD should be configured as open
+		 * drain 100K (0x0000b8a0).
+		 */
+		writel(0x0000b8a0, IOMUXC_BASE_ADDR + 0x29c);
+	}
 #endif
 
 	/* Set perclk to source from OSC 24MHz */

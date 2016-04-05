@@ -78,9 +78,7 @@ int android_image_get_kernel(const struct andr_img_hdr *hdr, int verify,
 					serialnr.high,
 					serialnr.low);
 #endif
-
 	setenv("bootargs", commandline);
-
 	if (os_data) {
 		*os_data = (ulong)hdr;
 		*os_data += hdr->page_size;

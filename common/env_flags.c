@@ -152,7 +152,7 @@ enum env_flags_varaccess env_flags_parse_varaccess_from_binflags(int binflags)
 {
 	int i;
 
-	for (i = 0; i < sizeof(env_flags_varaccess_mask); i++)
+	for (i = 0; i < ARRAY_SIZE(env_flags_varaccess_mask); i++)
 		if (env_flags_varaccess_mask[i] ==
 		    (binflags & ENV_FLAGS_VARACCESS_BIN_MASK))
 			return (enum env_flags_varaccess)i;
@@ -441,6 +441,8 @@ static int set_flags(const char *name, const char *value)
 
 	e.key	= name;
 	e.data	= NULL;
+	e.callback = NULL;
+	e.flags = 0;
 	hsearch_r(e, FIND, &ep, &env_htab, 0);
 
 	/* does the env variable actually exist? */

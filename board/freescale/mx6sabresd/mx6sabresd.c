@@ -972,7 +972,8 @@ int board_init(void)
 static struct pmic *pfuze;
 int power_init_board(void)
 {
-	unsigned int reg, ret;
+	unsigned int reg;
+	int ret;
 
 	pfuze = pfuze_common_init(I2C_PMIC);
 	if (!pfuze)
@@ -1168,7 +1169,7 @@ static const struct boot_mode board_boot_modes[] = {
 	{"sd2",	 MAKE_CFGVAL(0x40, 0x28, 0x00, 0x00)},
 	{"sd3",	 MAKE_CFGVAL(0x40, 0x30, 0x00, 0x00)},
 	/* 8 bit bus width */
-	{"emmc", MAKE_CFGVAL(0x40, 0x38, 0x00, 0x00)},
+	{"emmc", MAKE_CFGVAL(0x60, 0x58, 0x00, 0x00)},
 	{NULL,	 0},
 };
 #endif
