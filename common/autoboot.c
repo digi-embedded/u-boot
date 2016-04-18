@@ -263,6 +263,9 @@ static int abortboot(int bootdelay)
 {
 	int abort = 0;
 
+	if (gd->flags & GD_FLG_DISABLE_CONSOLE_INPUT)
+		return 0;
+
 	if (bootdelay >= 0)
 		abort = __abortboot(bootdelay);
 

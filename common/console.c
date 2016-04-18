@@ -383,10 +383,8 @@ int fprintf(int file, const char *fmt, ...)
 
 int getc(void)
 {
-#ifdef CONFIG_DISABLE_CONSOLE
-	if (gd->flags & GD_FLG_DISABLE_CONSOLE)
+	if (gd->flags & GD_FLG_DISABLE_CONSOLE_INPUT)
 		return 0;
-#endif
 
 	if (!gd->have_console)
 		return 0;
@@ -411,10 +409,8 @@ int getc(void)
 
 int tstc(void)
 {
-#ifdef CONFIG_DISABLE_CONSOLE
-	if (gd->flags & GD_FLG_DISABLE_CONSOLE)
+	if (gd->flags & GD_FLG_DISABLE_CONSOLE_INPUT)
 		return 0;
-#endif
 
 	if (!gd->have_console)
 		return 0;
@@ -512,10 +508,8 @@ void putc(const char c)
 		return;
 #endif
 
-#ifdef CONFIG_DISABLE_CONSOLE
-	if (gd->flags & GD_FLG_DISABLE_CONSOLE)
+	if (gd->flags & GD_FLG_DISABLE_CONSOLE_OUTPUT)
 		return;
-#endif
 
 	if (!gd->have_console)
 		return pre_console_putc(c);
@@ -551,10 +545,8 @@ void puts(const char *s)
 		return;
 #endif
 
-#ifdef CONFIG_DISABLE_CONSOLE
-	if (gd->flags & GD_FLG_DISABLE_CONSOLE)
+	if (gd->flags & GD_FLG_DISABLE_CONSOLE_OUTPUT)
 		return;
-#endif
 
 	if (!gd->have_console)
 		return pre_console_puts(s);
