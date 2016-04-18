@@ -13,6 +13,32 @@ source "arch/Kconfig"
 
 menu "General setup"
 
+menu "Console settings"
+
+config CONSOLE_DISABLE
+	bool "Disable the console"
+	default n
+	help
+	  Disables the console in U-Boot, and performs a silent boot into
+	  Linux.
+
+config CONSOLE_ENABLE_GPIO
+	bool "GPIO console enable support"
+	default n
+	depends on CONSOLE_DISABLE
+	help
+	  Allow to enable the console with a GPIO.
+
+config CCIMX6SBC_CONSOLE_ENABLE_GPIO_NR
+	int "Console enable EXP_GPIO number"
+	range 0 7
+	depends on CONSOLE_ENABLE_GPIO
+	help
+	  Use one of the EXP_GPIO_N (0-7) lines available on the GPIO
+	  connector of the ConnectCore 6 SBC to enable the console on boot.
+
+endmenu
+
 config LOCALVERSION
 	string "Local version - append to U-Boot release"
 	help

@@ -329,10 +329,70 @@ int board_mmc_getcd(struct mmc *mmc)
 	return ret;
 }
 
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+static int board_console_enable_gpio(void)
+{
+	int ret = 0;
+	int enable_gpio = -1;
+
+	switch(CONFIG_CCIMX6SBC_CONSOLE_ENABLE_GPIO_NR) {
+	case 0:
+		imx_iomux_v3_setup_pad(MX6_PAD_NANDF_D5__GPIO2_IO05);
+		enable_gpio = IMX_GPIO_NR(2, 5);
+		break;
+	case 1:
+		imx_iomux_v3_setup_pad(MX6_PAD_NANDF_D6__GPIO2_IO06);
+		enable_gpio = IMX_GPIO_NR(2, 6);
+		break;
+	case 2:
+		imx_iomux_v3_setup_pad(MX6_PAD_NANDF_D7__GPIO2_IO07);
+		enable_gpio = IMX_GPIO_NR(2, 7);
+		break;
+	case 3:
+		imx_iomux_v3_setup_pad(MX6_PAD_EIM_CS1__GPIO2_IO24);
+		enable_gpio = IMX_GPIO_NR(2, 24);
+		break;
+	case 4:
+		imx_iomux_v3_setup_pad(MX6_PAD_EIM_EB0__GPIO2_IO28);
+		enable_gpio = IMX_GPIO_NR(2, 28);
+		break;
+	case 5:
+		imx_iomux_v3_setup_pad(MX6_PAD_EIM_EB1__GPIO2_IO29);
+		enable_gpio = IMX_GPIO_NR(2, 29);
+		break;
+	case 6:
+		imx_iomux_v3_setup_pad(MX6_PAD_GPIO_18__GPIO7_IO13);
+		enable_gpio = IMX_GPIO_NR(7, 13);
+		break;
+	case 7:
+		imx_iomux_v3_setup_pad(MX6_PAD_GPIO_19__GPIO4_IO05);
+		enable_gpio = IMX_GPIO_NR(4, 5);
+		break;
+	default:
+		return ret;
+	}
+
+	if (gpio_request(enable_gpio, "console_enable") == 0) {
+		if (gpio_direction_input(enable_gpio) == 0)
+			ret = gpio_get_value(enable_gpio);
+		gpio_free(enable_gpio);
+	}
+
+	return ret;
+}
+#endif
+
 int board_early_init_f(void)
 {
 	setup_iomux_uart();
 
+#ifdef CONFIG_CONSOLE_DISABLE
+	gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+	if (board_console_enable_gpio())
+		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#endif
+#endif
 	return 0;
 }
 
