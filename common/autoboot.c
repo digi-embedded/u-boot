@@ -206,6 +206,9 @@ static int abortboot_normal(int bootdelay)
 
 static int abortboot(int bootdelay)
 {
+	if (gd->flags & GD_FLG_DISABLE_CONSOLE_INPUT)
+		return 0;
+
 #ifdef CONFIG_AUTOBOOT_KEYED
 	return abortboot_keyed(bootdelay);
 #else
