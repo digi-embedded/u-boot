@@ -297,6 +297,11 @@ const char *bootdelay_process(void)
 	}
 #endif
 
+	/* Check if boot recovery is enabled */
+	if (strcmp("yes", getenv("boot_recovery")) == 0) {
+		s = getenv("recoverycmd");
+	}
+
 	process_fdt_options(gd->fdt_blob);
 	stored_bootdelay = bootdelay;
 

@@ -183,8 +183,15 @@
 			"else;" \
 			"fi;" \
 		"fi;\0" \
-	"recoverycmd=setenv -f bootargs_once \"androidboot.data=format " \
-		"androidboot.cache=format\"\0" \
+	"bootargs_recovery=setenv bootargs console=${console},${baudrate} " \
+		"androidboot.hardware=" CONFIG_SYS_BOARD " " \
+		"androidboot.mmcdev=${mmcbootdev} " \
+		"androidboot.console=${console} " \
+		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
+		"${extra_bootargs}\0" \
+	"recoverycmd=setenv mmcpart 2;" \
+		"run bootargs_recovery;" \
+		"boot\0" \
 	"install_android_fw_sd=if load mmc 1 ${loadaddr} " \
 		"install_android_fw_sd.scr;then " \
 			"source ${loadaddr};" \
