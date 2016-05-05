@@ -169,6 +169,64 @@ config SECURE_BOOT
 	  This setting configures U-Boot for secure support so that
 	  only properly signed uImages/zImages are booted.
 
+config SIGN_IMAGE
+	bool "Generate signed images"
+	help
+	  Enable this option to generate signed uboot images. When enabled:
+	  * UBOOT_CST_PATH must be defined to the path of the CST folder by NXP.
+	  * UBOOT_KEY_INDEX can be defined to the key index to use for signing.
+
+config CSF_SIZE
+	hex "CSF blob size (bytes)"
+	depends on SIGN_IMAGE
+	default 0x4000
+	help
+	  Configures the size of the Command Sequence File. A size of 0x4000
+	  is enough to fit up to 4096-bit cryptographic keys.
+
+config CST_PATH
+	string "Path to CST by NXP"
+	depends on SIGN_IMAGE
+	help
+	  Sets the path to the Code Signing Tools by NXP. This path must contain
+	  the certificates, keys and key passwords with the default names to be
+	  used for signing.
+
+config KEY_INDEX
+	int "Key index to use for the signature"
+	depends on SIGN_IMAGE
+	default 0
+	help
+	  Defines the key index for the signature process.
+
+config ENCRYPT_IMAGE
+	bool "Encrypt signed image"
+	depends on SIGN_IMAGE
+	help
+	  Enable to encrypt the signed U-boot image.
+
+choice
+	prompt "Data Encryption Key size"
+	default DEK_SIZE_128
+	depends on ENCRYPT_IMAGE
+	help
+	  Sets the size in bits of the Data Encryption Key for the signed
+	  U-Boot image encryption.
+
+	config DEK_SIZE_128
+		bool "128-bits"
+	config DEK_SIZE_192
+		bool "192-bits"
+	config DEK_SIZE_256
+		bool "256-bits"
+endchoice
+
+config DEK_SIZE
+	int
+	default 128 if DEK_SIZE_128
+	default 192 if DEK_SIZE_192
+	default 256 if DEK_SIZE_256
+
 config IMX_HAB
 	bool "IMX HAB support"
 	help

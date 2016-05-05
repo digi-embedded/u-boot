@@ -814,6 +814,9 @@ u-boot-dtb.bin: u-boot.bin dts/dt.dtb FORCE
 %.imx: %.bin
 	$(Q)$(MAKE) $(build)=arch/arm/imx-common $@
 
+%-signed.imx: %.imx
+	$(Q)$(MAKE) $(build)=arch/arm/imx-common $@
+
 quiet_cmd_copy = COPY    $@
       cmd_copy = cp $< $@
 

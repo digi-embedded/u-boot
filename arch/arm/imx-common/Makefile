@@ -53,6 +53,9 @@ MKIMAGEFLAGS_u-boot.imx = -n $(filter-out $< $(PHONY),$^) -T imximage \
 u-boot.imx: u-boot.bin $(IMX_CONFIG) FORCE
 	$(call if_changed,mkimage)
 
+u-boot-signed.imx: u-boot.imx FORCE
+	$(srctree)/scripts/sign.sh $< $@
+
 ifeq ($(CONFIG_OF_SEPARATE),y)
 MKIMAGEFLAGS_u-boot-dtb.imx = -n $(filter-out $< $(PHONY),$^) -T imximage \
 	-e $(CONFIG_SYS_TEXT_BASE)

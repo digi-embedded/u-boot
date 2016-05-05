@@ -130,6 +130,7 @@ ifeq ($(CONFIG_OF_SEPARATE),y)
 ALL-y += u-boot-dtb.imx
 else
 ALL-y += u-boot.imx
+ALL-$(CONFIG_SIGN_IMAGE) += u-boot-signed.imx
 endif
 endif
 endif

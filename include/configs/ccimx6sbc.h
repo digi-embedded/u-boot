@@ -21,6 +21,11 @@
 #include "ccimx6_common.h"
 #include <asm/imx-common/gpio.h>
 
+#define CONFIG_SYS_FSL_SEC_COMPAT    4 /* HAB version */
+#define CONFIG_FSL_CAAM
+#define CONFIG_CMD_DEKBLOB
+#define CONFIG_SYS_FSL_SEC_LE
+
 #define CONFIG_MACH_TYPE		4899
 #define CONFIG_BOARD_DESCRIPTION	"ConnectCore 6 SBC"
 #define CONFIG_MXC_UART_BASE		UART4_BASE
