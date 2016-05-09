@@ -17,14 +17,12 @@ menu "Console settings"
 
 config CONSOLE_DISABLE
 	bool "Disable the console"
-	default n
 	help
 	  Disables the console in U-Boot, and performs a silent boot into
 	  Linux.
 
 config CONSOLE_ENABLE_GPIO
 	bool "GPIO console enable support"
-	default n
 	depends on CONSOLE_DISABLE
 	help
 	  Allow to enable the console with a GPIO.
@@ -36,6 +34,19 @@ config CCIMX6SBC_CONSOLE_ENABLE_GPIO_NR
 	help
 	  Use one of the EXP_GPIO_N (0-7) lines available on the GPIO
 	  connector of the ConnectCore 6 SBC to enable the console on boot.
+
+config CONSOLE_ENABLE_PASSPHRASE
+	bool "Passphrase console enable support"
+	depends on CONSOLE_DISABLE
+	help
+	  Allow to enable the console with a passphrase.
+
+config CONSOLE_ENABLE_PASSPHRASE_KEY
+	string "Console enable sha256 key"
+	depends on CONSOLE_ENABLE_PASSPHRASE
+	help
+	  This is the 64 digits hex number sha256 hash of the passphrase that
+	  enables the console on boot.
 
 endmenu
 
