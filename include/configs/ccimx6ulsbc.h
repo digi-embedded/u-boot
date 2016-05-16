@@ -72,7 +72,7 @@
 	"bootargs=console=ttymxc0,115200 ubi.mtd=3 "  \
 		"root=ubi0:rootfs rootfstype=ubifs "		     \
 		CONFIG_BOOTARGS_CMA_SIZE \
-		"mtdparts=gpmi-nand:64m(boot),16m(kernel),16m(dtb),-(rootfs)\0"\
+		"mtdparts=gpmi-nand:3m(bootstream),1m(environment),14m(kernel),14m(recovery),128m(rootfs),-(fwupdate)\0"\
 	"bootcmd=nand read ${loadaddr} 0x4000000 0x800000;"\
 		"nand read ${fdt_addr} 0x5000000 0x100000;"\
 		"bootz ${loadaddr} - ${fdt_addr}\0"
