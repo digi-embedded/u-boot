@@ -358,4 +358,23 @@
 #define CONFIG_PMIC_I2C_BUS		1	/* DA9063 PMIC i2c bus */
 #define CONFIG_PMIC_I2C_ADDR		0x58	/* DA9063 PMIC i2c address */
 
+/*
+ * Secure boot configs
+ */
+#define CONFIG_HAS_SECBOOT
+
+#define CONFIG_SRK_N_REVOKE_KEYS	3
+#define CONFIG_SRK_REVOKE_BANK		5
+#define CONFIG_SRK_REVOKE_WORD		7
+#define CONFIG_SRK_REVOKE_MASK		0x7
+#define CONFIG_SRK_REVOKE_OFFSET	0
+
+#define CONFIG_SRK_BANK			3
+#define CONFIG_SRK_WORDS		8
+
+#define CONFIG_CLOSE_BIT_BANK		0
+#define CONFIG_CLOSE_BIT_WORD		6
+#define CONFIG_CLOSE_BIT_MASK		0x1
+#define CONFIG_CLOSE_BIT_OFFSET		1
+
 #endif                         /* __CCIMX6_COMMON_CONFIG_H */
