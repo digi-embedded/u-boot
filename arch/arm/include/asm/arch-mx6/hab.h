@@ -9,8 +9,75 @@
 #define __SECURE_MX6Q_H__
 
 #include <linux/types.h>
+#include <asm/arch/sys_proto.h>
 
 /* -------- start of HAB API updates ------------*/
+
+#define hab_rvt_report_event_p					\
+(								\
+	((is_cpu_type(MXC_CPU_MX6Q) ||				\
+	  is_cpu_type(MXC_CPU_MX6D)) &&				\
+	  (soc_rev() >= CHIP_REV_1_5)) ?			\
+	((hab_rvt_report_event_t *)HAB_RVT_REPORT_EVENT_NEW) :	\
+	((is_cpu_type(MXC_CPU_MX6DL) ||				\
+	  is_cpu_type(MXC_CPU_MX6SOLO)) &&			\
+	 (soc_rev() >= CHIP_REV_1_2)) ?				\
+	((hab_rvt_report_event_t *)HAB_RVT_REPORT_EVENT_NEW) :	\
+	((hab_rvt_report_event_t *)HAB_RVT_REPORT_EVENT)	\
+)
+
+#define hab_rvt_report_status_p					\
+(								\
+	((is_cpu_type(MXC_CPU_MX6Q) ||				\
+	  is_cpu_type(MXC_CPU_MX6D)) &&				\
+	  (soc_rev() >= CHIP_REV_1_5)) ?			\
+	((hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS_NEW) :\
+	((is_cpu_type(MXC_CPU_MX6DL) ||				\
+	  is_cpu_type(MXC_CPU_MX6SOLO)) &&			\
+	 (soc_rev() >= CHIP_REV_1_2)) ?				\
+	((hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS_NEW) :\
+	((hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS)	\
+)
+
+#define hab_rvt_authenticate_image_p				\
+(								\
+	((is_cpu_type(MXC_CPU_MX6Q) ||				\
+	  is_cpu_type(MXC_CPU_MX6D)) &&				\
+	  (soc_rev() >= CHIP_REV_1_5)) ?			\
+	((hab_rvt_authenticate_image_t *)HAB_RVT_AUTHENTICATE_IMAGE_NEW) : \
+	((is_cpu_type(MXC_CPU_MX6DL) ||				\
+	  is_cpu_type(MXC_CPU_MX6SOLO)) &&			\
+	 (soc_rev() >= CHIP_REV_1_2)) ?				\
+	((hab_rvt_authenticate_image_t *)HAB_RVT_AUTHENTICATE_IMAGE_NEW) : \
+	((hab_rvt_authenticate_image_t *)HAB_RVT_AUTHENTICATE_IMAGE)	\
+)
+
+#define hab_rvt_entry_p						\
+(								\
+	((is_cpu_type(MXC_CPU_MX6Q) ||				\
+	  is_cpu_type(MXC_CPU_MX6D)) &&				\
+	  (soc_rev() >= CHIP_REV_1_5)) ?			\
+	((hab_rvt_entry_t *)HAB_RVT_ENTRY_NEW) :		\
+	((is_cpu_type(MXC_CPU_MX6DL) ||				\
+	 is_cpu_type(MXC_CPU_MX6SOLO)) &&			\
+	 (soc_rev() >= CHIP_REV_1_2)) ?				\
+	((hab_rvt_entry_t *)HAB_RVT_ENTRY_NEW) :		\
+	((hab_rvt_entry_t *)HAB_RVT_ENTRY)			\
+)
+
+#define hab_rvt_exit_p						\
+(								\
+	((is_cpu_type(MXC_CPU_MX6Q) ||				\
+	  is_cpu_type(MXC_CPU_MX6D)) &&				\
+	  (soc_rev() >= CHIP_REV_1_5)) ?			\
+	((hab_rvt_exit_t *)HAB_RVT_EXIT_NEW) :			\
+	((is_cpu_type(MXC_CPU_MX6DL) ||				\
+	 is_cpu_type(MXC_CPU_MX6SOLO)) &&			\
+	 (soc_rev() >= CHIP_REV_1_2)) ?				\
+	((hab_rvt_exit_t *)HAB_RVT_EXIT_NEW) :			\
+	((hab_rvt_exit_t *)HAB_RVT_EXIT)			\
+)
+
 /* The following are taken from HAB4 SIS */
 
 /* Status definitions */
@@ -76,5 +143,7 @@ typedef void hapi_clock_init_t(void);
 #define HAB_CID_ROM 0 /**< ROM Caller ID */
 #define HAB_CID_UBOOT 1 /**< UBOOT Caller ID*/
 /* ----------- end of HAB API updates ------------*/
+
+bool is_hab_enabled(void);
 
 #endif
