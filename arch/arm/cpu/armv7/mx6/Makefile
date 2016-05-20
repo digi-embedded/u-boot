@@ -9,7 +9,7 @@
 
 obj-y	:= soc.o clock.o
 obj-$(CONFIG_SPL_BUILD)	     += ddr.o
-obj-$(CONFIG_SECURE_BOOT)    += hab.o
+obj-$(CONFIG_IMX_HAB)    += hab.o
 obj-$(CONFIG_MP)             += mp.o
 ifdef CONFIG_MX6UL
 obj-$(CONFIG_CMD_BEE)        += bee.o

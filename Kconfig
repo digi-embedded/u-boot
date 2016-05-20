@@ -164,13 +164,15 @@ menu "Boot images"
 
 config SECURE_BOOT
 	bool "Enable secure boot support"
+	select IMX_HAB
 	help
-	  This setting configures U-Boot for secure support:
-	   * Sets the right value for the CFS pointer in the IVT so
-	     that the U-Boot image can be properly validated by the HAB.
-	   * Boots only properly signed uImages/zImages.
+	  This setting configures U-Boot for secure support so that
+	  only properly signed uImages/zImages are booted.
 
-	  This also adds the following commands:
+config IMX_HAB
+	bool "IMX HAB support"
+	help
+	  Enables the API for HAB. It also adds the following commands:
 
 	  * hab_auth_img which can be used for HAB
 	    authentication of images. The command takes the image
@@ -178,9 +180,6 @@ config SECURE_BOOT
 	    image as parameters.
 	  * hab_status which allows to retrieve the HAB status and
 	    events. This can be useful while developing and testing HAB.
-
-	  Detailed info about signing images can be found in Freescale
-	  AppNote AN4581.
 
 config SUPPORT_SPL
 	bool

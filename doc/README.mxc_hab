@@ -34,7 +34,7 @@ HAB Blocks:   177ff400 00000000 0004dc00
 (2)	Start of area in u-boot.imx to sign
 (3)	Start of area in RAM to authenticate
 
-CONFIG_SECURE_BOOT currently enables only an additional command
+CONFIG_IMX_HAB currently enables only an additional command
 'hab_status' in U-Boot to retrieve the HAB status and events. This
 can be useful while developing and testing HAB.
 
