@@ -22,8 +22,60 @@
 /* uncomment for BEE support, needs to enable CONFIG_CMD_FUSE */
 /* #define CONFIG_CMD_BEE */
 
-#define CONFIG_SYS_BOOT_NAND
+#define CONFIG_NR_DRAM_BANKS		1
+#define PHYS_SDRAM_SIZE			SZ_256M
 
+/* FLASH and environment organization */
+#define CONFIG_SYS_BOOT_NAND
+#define CONFIG_SYS_NO_FLASH
+
+#if defined(CONFIG_SYS_BOOT_NAND)
+#define CONFIG_SYS_USE_NAND
+#define CONFIG_ENV_IS_IN_NAND
+#else
+#define CONFIG_ENV_IS_IN_MMC
+#endif
+
+#ifdef CONFIG_SYS_USE_NAND
+#define CONFIG_CMD_NAND
+#define CONFIG_CMD_NAND_TRIMFFS
+
+/* NAND stuff */
+#define CONFIG_NAND_MXS
+#define CONFIG_SYS_MAX_NAND_DEVICE	1
+#define CONFIG_SYS_NAND_BASE		0x40000000
+#define CONFIG_SYS_NAND_5_ADDR_CYCLE
+#define CONFIG_SYS_NAND_ONFI_DETECTION
+
+/* DMA stuff, needed for GPMI/MXS NAND support */
+#define CONFIG_APBH_DMA
+#define CONFIG_APBH_DMA_BURST
+#define CONFIG_APBH_DMA_BURST8
+#endif
+
+#ifdef CONFIG_SYS_USE_NAND
+#define CONFIG_SYS_FSL_USDHC_NUM	1
+#else
+#define CONFIG_SYS_FSL_USDHC_NUM	2
+#endif
+
+#if defined(CONFIG_ENV_IS_IN_MMC)
+#define CONFIG_ENV_OFFSET		(8 * SZ_64K)
+#elif defined(CONFIG_ENV_IS_IN_SPI_FLASH)
+#define CONFIG_ENV_OFFSET		(768 * 1024)
+#define CONFIG_ENV_SECT_SIZE		(64 * 1024)
+#define CONFIG_ENV_SPI_BUS		CONFIG_SF_DEFAULT_BUS
+#define CONFIG_ENV_SPI_CS		CONFIG_SF_DEFAULT_CS
+#define CONFIG_ENV_SPI_MODE		CONFIG_SF_DEFAULT_MODE
+#define CONFIG_ENV_SPI_MAX_HZ		CONFIG_SF_DEFAULT_SPEED
+#elif defined(CONFIG_ENV_IS_IN_NAND)
+#undef CONFIG_ENV_SIZE
+#define CONFIG_ENV_OFFSET		(37 << 20)
+#define CONFIG_ENV_SECT_SIZE		(128 << 10)
+#define CONFIG_ENV_SIZE			CONFIG_ENV_SECT_SIZE
+#endif
+
+/* Serial port */
 #define CONFIG_MXC_UART
 #define CONFIG_MXC_UART_BASE		UART5_BASE
 
@@ -58,9 +110,8 @@
 #define CONFIG_FEC_DMA_MINALIGN		64
 #endif
 
-#define CONFIG_DEFAULT_FDT_FILE "ccimx6ulsbc.dtb"
-#define PHYS_SDRAM_SIZE			SZ_256M
-#define CONFIG_BOOTARGS_CMA_SIZE   "cma=96M "
+#define CONFIG_DEFAULT_FDT_FILE		"ccimx6ulsbc.dtb"
+#define CONFIG_BOOTARGS_CMA_SIZE	"cma=96M "
 
 #define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 
@@ -159,19 +210,5 @@
 #define CONFIG_SYS_MMC_ENV_DEV		1   /* USDHC2 */
 #define CONFIG_SYS_MMC_ENV_PART		0	/* user area */
 #define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
-
-/* USB Configs */
-#define CONFIG_CMD_USB
-#ifdef CONFIG_CMD_USB
-#define CONFIG_USB_EHCI
-#define CONFIG_USB_EHCI_MX6
-#define CONFIG_USB_STORAGE
-#define CONFIG_EHCI_HCD_INIT_AFTER_RESET
-#define CONFIG_USB_HOST_ETHER
-#define CONFIG_USB_ETHER_ASIX
-#define CONFIG_MXC_USB_PORTSC  (PORT_PTS_UTMI | PORT_PTS_PTW)
-#define CONFIG_MXC_USB_FLAGS   0
-#define CONFIG_USB_MAX_CONTROLLER_COUNT 2
-#endif
 
 #endif /* CCIMX6ULSBC_CONFIG_H */
