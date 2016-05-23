@@ -46,8 +46,8 @@ struct ccimx6_hwid my_hwid;
 
 #ifdef CONFIG_SYS_I2C_MXC
 #define PC MUX_PAD_CTRL(I2C_PAD_CTRL)
-/* I2C1 for PMIC and EEPROM */
-struct i2c_pads_info i2c_pad_info1 = {
+/* I2C1 for PMIC and MCA */
+struct i2c_pads_info i2c1_pad_info = {
 	.scl = {
 		.i2c_mode =  MX6_PAD_UART4_TX_DATA__I2C1_SCL | PC,
 		.gpio_mode = MX6_PAD_UART4_TX_DATA__GPIO1_IO28 | PC,
@@ -214,7 +214,7 @@ int ccimx6ul_init(void)
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 
 #ifdef CONFIG_SYS_I2C_MXC
-	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
+	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c1_pad_info);
 #endif
 
 #ifdef CONFIG_SYS_USE_NAND
