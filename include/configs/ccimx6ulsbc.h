@@ -78,7 +78,6 @@
 /* Serial port */
 #define CONFIG_MXC_UART
 #define CONFIG_MXC_UART_BASE		UART5_BASE
-
 #define CONFIG_CONS_INDEX		5
 #define CONFIG_BAUDRATE			115200
 
@@ -92,7 +91,7 @@
 #define CONFIG_CMD_MII
 #define CONFIG_FEC_MXC
 #define CONFIG_MII
-#define CONFIG_FEC_ENET_DEV 1
+#define CONFIG_FEC_ENET_DEV		0
 
 #if (CONFIG_FEC_ENET_DEV == 0)
 #define IMX_FEC_BASE			ENET_BASE_ADDR
@@ -106,7 +105,6 @@
 #define CONFIG_ETHPRIME                 "FEC"
 
 #define CONFIG_PHYLIB
-#define CONFIG_PHY_MICREL
 #define CONFIG_FEC_DMA_MINALIGN		64
 #endif
 
