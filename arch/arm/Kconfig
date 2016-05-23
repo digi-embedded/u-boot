@@ -584,7 +584,6 @@ config TARGET_CCIMX6SBC
 config TARGET_CCIMX6ULSBC
 	bool "Support ccimx6ulsbc"
 	select CPU_V7
-	select SUPPORT_SPL
 
 config TARGET_PICOSOM_IMX6UL
         bool "Support picosom-imx6ul"
