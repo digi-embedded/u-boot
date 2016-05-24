@@ -111,6 +111,7 @@
 
 #if defined(CONFIG_SYS_BOOT_NAND)
 #define CONFIG_EXTRA_ENV_SETTINGS \
+	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	"fdt_addr=0x83000000\0" \
 	"fdt_high=0xffffffff\0"	  \
 	"console=ttymxc0\0" \
@@ -124,6 +125,7 @@
 
 #else
 #define CONFIG_EXTRA_ENV_SETTINGS \
+	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	"script=boot.scr\0" \
 	"image=zImage\0" \
 	"console=ttymxc0\0" \
