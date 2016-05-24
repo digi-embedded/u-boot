@@ -48,6 +48,11 @@ DECLARE_GLOBAL_DATA_PTR;
 	PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED |		\
 	PAD_CTL_DSE_40ohm   | PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
 
+#define I2C_PAD_CTRL    (PAD_CTL_PKE | PAD_CTL_PUE |            \
+	PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED |               \
+	PAD_CTL_DSE_40ohm | PAD_CTL_HYS |			\
+	PAD_CTL_ODE)
+
 #define USDHC_PAD_CTRL (PAD_CTL_PKE | PAD_CTL_PUE |		\
 	PAD_CTL_PUS_22K_UP  | PAD_CTL_SPEED_LOW |		\
 	PAD_CTL_DSE_80ohm   | PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
@@ -82,6 +87,23 @@ static iomux_v3_cfg_t const usdhc2_pads[] = {
 	MX6_PAD_CSI_DATA02__USDHC2_DATA2 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX6_PAD_CSI_DATA03__USDHC2_DATA3 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 };
+
+#ifdef CONFIG_SYS_I2C_MXC
+#define PC MUX_PAD_CTRL(I2C_PAD_CTRL)
+/* I2C2 for PMIC and MCA */
+struct i2c_pads_info i2c2_pad_info = {
+	.scl = {
+		.i2c_mode =  MX6_PAD_GPIO1_IO00__I2C2_SCL | PC,
+		.gpio_mode = MX6_PAD_GPIO1_IO00__GPIO1_IO00 | PC,
+		.gp = IMX_GPIO_NR(1, 0),
+	},
+	.sda = {
+		.i2c_mode = MX6_PAD_GPIO1_IO01__I2C2_SDA | PC,
+		.gpio_mode = MX6_PAD_GPIO1_IO01__GPIO1_IO01 | PC,
+		.gp = IMX_GPIO_NR(1, 1),
+	},
+};
+#endif
 
 #ifdef CONFIG_FEC_MXC
 /*
@@ -313,6 +335,11 @@ int board_init(void)
 {
 	/* SOM init */
 	ccimx6ul_init();
+
+#ifdef CONFIG_I2C_MULTI_BUS
+	/* Setup I2C2 (Groove connector) */
+	setup_i2c(1, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c2_pad_info);
+#endif
 
 #ifdef	CONFIG_FEC_MXC
 	setup_fec(CONFIG_FEC_ENET_DEV);
