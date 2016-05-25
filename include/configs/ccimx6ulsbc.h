@@ -2,7 +2,7 @@
  * Copyright (C) 2016 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
- * Configuration settings for the Digi ConnecCore 6 UL SBC board.
+ * Configuration settings for the Digi ConnecCore 6UL SBC board.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */

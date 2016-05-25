@@ -2,7 +2,7 @@
  * Copyright (C) 2016 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
- * Configuration settings for the Digi ConnecCore 6 UL System-On-Module.
+ * Configuration settings for the Digi ConnecCore 6UL System-On-Module.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */

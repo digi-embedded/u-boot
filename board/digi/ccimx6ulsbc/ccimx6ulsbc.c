@@ -465,7 +465,7 @@ int board_late_init(void)
 
 int checkboard(void)
 {
-	puts("Board: ConnectCore 6 UL on SBC\n");
+	puts("Board: ConnectCore 6UL on SBC\n");
 
 	return 0;
 }
