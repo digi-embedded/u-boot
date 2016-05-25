@@ -105,6 +105,7 @@
 #define CONFIG_ETHPRIME                 "FEC"
 
 #define CONFIG_PHYLIB
+#define CONFIG_PHY_SMSC
 #define CONFIG_FEC_DMA_MINALIGN		64
 #endif
 
