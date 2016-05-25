@@ -259,7 +259,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	unsigned long loadaddr;
 	unsigned long verifyaddr;
-	unsigned long filesize;
+	unsigned long filesize = 0;
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -400,10 +400,12 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 			ret = CMD_RET_SUCCESS;
 			goto _ret;
 		}
+
 	}
 
 	/* Write firmware file from RAM to storage */
-	filesize = getenv_ulong("filesize", 16, 0);
+	if (!filesize)
+		filesize = getenv_ulong("filesize", 16, 0);
 	ret = write_firmware(argv[1], loadaddr, filesize, &info);
 	if (ret) {
 		if (ret == ERR_READ)
