@@ -11,8 +11,10 @@
 
 #include <asm/arch/imx-regs.h>
 #include <linux/sizes.h>
-#include "mx6_common.h"
 #include <asm/imx-common/gpio.h>
+/* Command definition */
+#include <config_cmd_default.h>
+#include "mx6_common.h"
 #include "digi_common.h"
 
 #define CONFIG_MX6
@@ -61,8 +63,17 @@
 #define CONFIG_MMC
 #define CONFIG_CMD_MMC
 #define CONFIG_GENERIC_MMC
+#define CONFIG_CMD_FS_GENERIC
+#define CONFIG_CMD_EXT2
+#define CONFIG_CMD_EXT4
+#define CONFIG_CMD_EXT4_WRITE
 #define CONFIG_CMD_FAT
+#define CONFIG_FAT_WRITE
 #define CONFIG_DOS_PARTITION
+#define CONFIG_EFI_PARTITION
+#define CONFIG_CMD_GPT
+#define CONFIG_PARTITION_UUIDS
+#define CONFIG_CMD_PART
 #define CONFIG_SUPPORT_EMMC_BOOT /* eMMC specific */
 #endif
 
@@ -131,6 +142,7 @@
 #define CONFIG_CMD_BOOTZ
 
 #define CONFIG_CMD_BMODE
+#define CONFIG_CMD_SETEXPR
 
 #ifndef CONFIG_SYS_DCACHE_OFF
 #define CONFIG_CMD_CACHE
