@@ -121,6 +121,7 @@ static iomux_v3_cfg_t const fec1_pads[] = {
 	MX6_PAD_ENET1_RX_DATA1__ENET1_RDATA01 | MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_ENET1_RX_ER__ENET1_RX_ER | MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_ENET1_RX_EN__ENET1_RX_EN | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX6_PAD_LCD_HSYNC__GPIO3_IO02 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 
 static iomux_v3_cfg_t const fec2_pads[] = {
@@ -217,6 +218,22 @@ int board_mmc_init(bd_t *bis)
 #endif
 
 #ifdef CONFIG_FEC_MXC
+void reset_phy()
+{
+	int phy_reset_gpio = IMX_GPIO_NR(3, 2);
+
+	/* Assert PHY reset */
+	gpio_direction_output(phy_reset_gpio , 0);
+	/*
+	 * The reset line must be held low for a minimum of 100usec and cannot
+	 * be deasserted before 25ms have passed since the power supply has
+	 * reached 80% of the operating voltage. At this point of the code
+	 * we can assume the second premise is already accomplished. */
+	udelay(100);
+	/* Deassert PHY reset */
+	gpio_set_value(phy_reset_gpio, 1);
+}
+
 int board_eth_init(bd_t *bis)
 {
 	int ret;
@@ -227,6 +244,8 @@ int board_eth_init(bd_t *bis)
 		CONFIG_FEC_MXC_PHYADDR, IMX_FEC_BASE);
 	if (ret)
 		printf("FEC%d MXC: %s:failed\n", CONFIG_FEC_ENET_DEV, __func__);
+
+	reset_phy();
 
 	return 0;
 }
