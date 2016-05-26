@@ -167,4 +167,11 @@
 #define CONFIG_EXTRA_NETWORK_SETTINGS \
 	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"
 
+#define CONFIG_ENV_FLAGS_LIST_STATIC	\
+	"wlanaddr:mc,"			\
+	"btaddr:mc,"			\
+	"bootargs_once:sr,"		\
+	"board_version:so,"		\
+	"board_id:so,"
+
 #endif /* CCIMX6UL_CONFIG_H */
