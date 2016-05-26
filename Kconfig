@@ -50,6 +50,19 @@ config CONSOLE_ENABLE_PASSPHRASE_KEY
 
 endmenu
 
+config AES
+	bool "AES support"
+	help
+	  Add support for AES using an implementation from Karl Malbrain.
+	  This offers small code size (around 5KB on ARM) and supports 128-bit
+	  AES only.
+
+config ENV_AES
+	bool "Encrypt U-Boot environment"
+	select AES
+	help
+	  Define to encrypt the whole environment block with AES-128-CBC.
+
 config LOCALVERSION
 	string "Local version - append to U-Boot release"
 	help
