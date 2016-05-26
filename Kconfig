@@ -63,6 +63,17 @@ config ENV_AES
 	help
 	  Define to encrypt the whole environment block with AES-128-CBC.
 
+config ENV_AES_KEY
+	string "AES-128 key"
+	depends on ENV_AES
+	help
+	  AES-128-CBC key for environment encryption.
+	  Define as 32 hexadecimal characters (128 bits).
+
+	  Note: This key will be included in plain text in the U-Boot image.
+	  Thus it is strongly recommended to *encrypt the U-Boot image* when
+	  this feature is used.
+
 config LOCALVERSION
 	string "Local version - append to U-Boot release"
 	help

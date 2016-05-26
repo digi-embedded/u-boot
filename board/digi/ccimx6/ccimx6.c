@@ -1213,6 +1213,7 @@ void pmic_bucks_synch_mode(void)
 	}
 }
 
+#if defined(CONFIG_CONSOLE_ENABLE_PASSPHRASE) || defined(CONFIG_ENV_AES_KEY)
 #define STR_HEX_CHUNK 			8
 /*
  * Convert string with hexadecimal characters into a hex number
@@ -1230,6 +1231,7 @@ static void strtohex(char * in, unsigned long * out, int len)
 		out[j] = cpu_to_be32(simple_strtol(tmp, NULL, 16));
 	}
 }
+#endif
 
 #ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
 #define INACTIVITY_TIMEOUT 		2
@@ -1350,6 +1352,28 @@ pp_hash_error:
 pp_error:
 	free(pp);
 	return ret;
+}
+#endif
+
+#ifdef CONFIG_ENV_AES_KEY
+/*
+ * CONFIG_ENV_AES_KEY is a 128 bits (16 bytes) AES key, represented as
+ * 32 hexadecimal characters.
+ */
+unsigned long key[4];
+
+uint8_t *env_aes_cbc_get_key(void)
+{
+	if (strlen(CONFIG_ENV_AES_KEY) != 32) {
+		puts("[ERROR] Wrong CONFIG_ENV_AES_KEY size "
+			"(should be 128 bits)\n");
+		return NULL;
+	}
+
+	strtohex(CONFIG_ENV_AES_KEY, key,
+		 sizeof(CONFIG_ENV_AES_KEY) / sizeof(unsigned long));
+
+	return (uint8_t *) key;
 }
 #endif
 
