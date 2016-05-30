@@ -49,4 +49,5 @@ obj-$(CONFIG_AUTO_BOOTSCRIPT) += helper.o
 obj-$(CONFIG_CMD_UPDATE) += cmd_update.o helper.o
 obj-$(CONFIG_CMD_DBOOT) += cmd_dboot.o helper.o
 obj-$(CONFIG_CMD_PMIC) += cmd_pmic.o
+obj-$(CONFIG_HAS_SJC) += cmd_sjc.o
 endif

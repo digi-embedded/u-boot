@@ -135,6 +135,23 @@
 #define CONFIG_HWID_LOCK_FUSE		(1 << 8)
 #define CONFIG_MANUF_STRINGS_HELP	"<LYYWWGGXXXXXX> <VVHC>"
 
+#define OCOTP_LOCK_BANK		0
+#define OCOTP_LOCK_WORD		0
+
+/* Secure JTAG OPTs */
+#define CONFIG_HAS_SJC
+#define CONFIG_SJC_MODE_BANK		0
+#define CONFIG_SJC_MODE_START_WORD	6
+#define CONFIG_SJC_MODE_WORDS_NUMBER	1
+#define CONFIG_SJC_KEY_BANK		4
+#define CONFIG_SJC_KEY_START_WORD	0
+#define CONFIG_SJC_KEY_WORDS_NUMBER	2
+#define CONFIG_SJC_LOCK_FUSE		(1 << 2)
+#define CONFIG_SJC_KEY_LOCK_FUSE	(1 << 6)
+
+#define SJC_DISABLE_OFFSET     20
+#define JTAG_SMODE_OFFSET      22
+
 #define CONFIG_CMD_UPDATE
 /* On the fly update chunk (must be a multiple of mmc block size) */
 #define CONFIG_OTF_CHUNK		(32 * 1024 * 1024)

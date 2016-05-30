@@ -30,9 +30,6 @@
 #include <fdt_support.h>
 #endif
 
-#define OCOTP_LOCK_BANK		0
-#define OCOTP_LOCK_WORD		0
-
 __weak void board_print_hwid(u32 *hwid)
 {
 	int i;
