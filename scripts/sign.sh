@@ -175,6 +175,18 @@ if [ "${ENCRYPT}" = "true" ]; then
 	sig_len="$((sig_len - dek_blob_size))"
 fi
 
+# When building signed (or signed and encrypted) images, the CSF pointer on the
+# IVT is set to the CSF future location. The final image has the CSF block
+# appended, so this is consistent.
+# On the other hand, the u-boot.imx artifact is in a inconsistent state: the CSF
+# pointer is not zero, but it does not have a CSF appended.
+# This can cause problems if the u-boot.imx artifact gets flashed and the media
+# contains a CSF in the location pointed at, so that CSF is interpreted by HAB.
+# If that CSF corresponds to an encrypted U-Boot image, HAB will apply the
+# decryption procedure to an image which is not encrypted, failing to boot.
+
+# Erase the CSF pointer of the u-boot.imx artifact to avoid that problem.
+printf '\x0\x0\x0\x0' | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6
+
 objcopy -I binary -O binary --pad-to "${sig_len}" --gap-fill="${GAP_FILLER}"  u-boot-signed-no-pad.imx "${TARGET}"
 rm -f "${SRK_TABLE}" csf_descriptor u-boot_csf.bin u-boot-pad.imx u-boot-signed-no-pad.imx u-boot-encrypted.imx 2> /dev/null
-
