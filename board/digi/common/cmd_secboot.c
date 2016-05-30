@@ -177,6 +177,82 @@ static int do_secboot(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 			puts("[NO ERRORS]\n");
 		else
 			puts("[ERRORS PRESENT!]\n");
+	} else if (!strcmp(op, "update")) {
+		char cmd_buf[CONFIG_SYS_CBSIZE];
+		unsigned long loadaddr = getenv_ulong("loadaddr", 16,
+						      CONFIG_LOADADDR);
+		unsigned long filesize;
+		unsigned long dek_blob_src;
+		unsigned long dek_blob_dst;
+		unsigned long dek_blob_final_dst;
+
+		if (argc == 3 && (!strcmp(argv[0], "tftp") ||
+				  !strcmp(argv[0], "nfs"))) {
+			sprintf(cmd_buf, "%s $loadaddr %s", argv[0],
+				argv[1]);
+		} else if (argc == 4 && !strcmp(argv[0], "mmc")) {
+			sprintf(cmd_buf, "load mmc %s $loadaddr %s",
+				argv[1], argv[2]);
+		} else
+			return CMD_RET_USAGE;
+
+		printf("\nLoading encrypted U-Boot image...\n");
+		if (run_command(cmd_buf, 0))
+			return CMD_RET_FAILURE;
+
+		filesize = getenv_ulong("filesize", 16, 0);
+		/* DEK blob will be directly appended to the U-Boot image */
+		dek_blob_final_dst = loadaddr + filesize;
+		/*
+		 * for the DEK blob source (DEK in plain text) we use the
+		 * first 0x100 aligned memory address
+		 */
+		dek_blob_src = (dek_blob_final_dst & 0xFFFFFF00) + 0x100;
+		/*
+		 * DEK destination also needs to be 0x100 alinged. Leave
+		 * 0x400 = 1KiB to fit the DEK source 
+		 */
+		dek_blob_dst = dek_blob_src + 0x400;
+
+		printf("\nLoading Data Encryption Key...\n");
+		if (argc == 3) {
+			sprintf(cmd_buf, "%s 0x%lx %s", argv[0], dek_blob_src,
+				argv[2]);
+		} else { /* argc == 4 */
+			sprintf(cmd_buf, "load mmc %s 0x%lx %s", argv[1],
+				dek_blob_src, argv[3]);
+		}
+		if (run_command(cmd_buf, 0))
+			return CMD_RET_FAILURE;
+		filesize = getenv_ulong("filesize", 16, 0);
+
+		printf("\nGenerating DEK blob...\n");
+		/* dek_blob takes size in bits */
+		sprintf(cmd_buf, "dek_blob 0x%lx 0x%lx 0x%lx",
+			dek_blob_src, dek_blob_dst, filesize * 8);
+		if (run_command(cmd_buf, 0))
+			return CMD_RET_FAILURE;
+
+		/*
+		 * Set filesize to the size of the DEK blob, that is:
+		 * header (8 bytes) + random AES-256 key (32 bytes)
+                 * + DEK ('filesize' bytes) + MAC (16 bytes)
+		 */
+		filesize += 8 + 32 + 16;
+
+		/* Copy DEK blob to its final destination */
+		memcpy((void *)dek_blob_final_dst, (void *)dek_blob_dst,
+			filesize);
+
+		printf("\nFlashing U-Boot partition...\n");
+		sprintf(cmd_buf, "update uboot ram 0x%lx 0x%lx",
+			loadaddr,
+			dek_blob_final_dst + filesize - loadaddr);
+		setenv("forced_update", "y");
+		ret = run_command(cmd_buf, 0);
+		setenv("forced_update", "n");
+		if (ret)
+			return CMD_RET_FAILURE;
 	} else
 		return CMD_RET_USAGE;
 
@@ -195,7 +271,18 @@ U_BOOT_CMD(
 			      "signed images\n"
 	"secboot revoke [-f] <key index> - revoke one Super Root Key\n"
 	"secboot status - show secure boot configuration status\n"
-	"\nWARNING: These commands (except 'status') burn the eFuses. They "
-	"are irreversible and could brick your device.\n"
+	"secboot update <source> [extra-args...]\n"
+	" Description: flash an encrypted U-Boot image.\n"
+	" Arguments:\n"
+	"\n\t- <source>: tftp|nfs|mmc\n"
+	"\n\tsource=tftp|nfs -> <uboot_file> <dek_file>\n"
+	"\t\t - <uboot_file>: name of the encrypted uboot image\n"
+	"\t\t - <dek_file>: name of the Data Encryption Key (DEK) in plain text\n"
+	"\n\tsource=mmc -> <dev:part> <uboot_file> <dek_file>\n"
+        "\t\t - <dev:part>: number of device and partition\n"
+        "\t\t - <uboot_file>: name of the encrypted uboot image\n"
+        "\t\t - <dek_file>: name of the Data Encryption Key (DEK) in plain text\n"
+	"\nWARNING: These commands (except 'status' and 'update') burn the"
+	" eFuses.\nThey are irreversible and could brick your device.\n"
         "Make sure you know what you do before playing with this command.\n"
 );
