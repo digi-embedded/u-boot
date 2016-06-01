@@ -32,6 +32,8 @@
 #if defined(CONFIG_SYS_BOOT_NAND)
 #define CONFIG_SYS_USE_NAND
 #define CONFIG_ENV_IS_IN_NAND
+#define CONFIG_CMD_MTDPARTS
+#define CONFIG_MTD_DEVICE
 #else
 #define CONFIG_ENV_IS_IN_MMC
 #endif
@@ -124,7 +126,7 @@
 	"bootargs=console=ttymxc0,115200 ubi.mtd=3 "  \
 		"root=ubi0:rootfs rootfstype=ubifs "		     \
 		CONFIG_BOOTARGS_CMA_SIZE \
-		"mtdparts=gpmi-nand:3m(bootstream),1m(environment),14m(kernel),14m(recovery),128m(rootfs),-(fwupdate)\0"\
+	CONFIG_ENV_MTD_SETTINGS \
 	"bootcmd=nand read ${loadaddr} 0x4000000 0x800000;"\
 		"nand read ${fdt_addr} 0x5000000 0x100000;"\
 		"bootz ${loadaddr} - ${fdt_addr}\0"

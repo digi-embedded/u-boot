@@ -196,4 +196,18 @@
 	"board_version:so,"		\
 	"board_id:so,"
 
+/* MTD (NAND) */
+#define CONFIG_NAND_NAME		"gpmi-nand"
+#define MTDIDS_DEFAULT			"nand0=" CONFIG_NAND_NAME
+#define MTDPARTS_DEFAULT		"mtdparts=" CONFIG_NAND_NAME ":" \
+					"3m(uboot)," \
+					"1m(environment)," \
+					"14m(linux)," \
+					"14m(recovery)," \
+					"128m(rootfs)," \
+					"-(update)\0"
+#define CONFIG_ENV_MTD_SETTINGS	\
+	"mtdids=" MTDIDS_DEFAULT "\0" \
+	"mtdparts=" MTDPARTS_DEFAULT "\0"
+
 #endif /* CCIMX6UL_CONFIG_H */
