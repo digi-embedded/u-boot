@@ -157,7 +157,7 @@
 #define SJC_ENABLE_SECURE_JTAG_MODE 	(0x01 << JTAG_SMODE_OFFSET)
 #define SJC_DISABLE_DEBUG 		(0x03 << JTAG_SMODE_OFFSET)
 
-#define CONFIG_CMD_UPDATE
+#define CONFIG_CMD_UPDATE_MMC
 /* On the fly update chunk (must be a multiple of mmc block size) */
 #define CONFIG_OTF_CHUNK		(32 * 1024 * 1024)
 #define CONFIG_CMD_DBOOT

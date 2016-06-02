@@ -12,6 +12,9 @@
 #include "helper.h"
 
 DECLARE_GLOBAL_DATA_PTR;
+#if defined(CONFIG_CMD_UPDATE_MMC) || defined(CONFIG_CMD_UPDATE_NAND)
+#define CONFIG_CMD_UPDATE
+#endif
 
 #if defined(CONFIG_CMD_UPDATE) || defined(CONFIG_CMD_DBOOT)
 enum {
