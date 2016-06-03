@@ -34,6 +34,7 @@ done<<-_EOF_
 	ccimx6qsbc2GB    u-boot.imx  cortexa9hf
 	ccimx6qsbc512MB  u-boot.imx  cortexa9hf
 	ccimx6qsbc       u-boot.imx  cortexa9hf
+	ccimx6ulstarter  u-boot.imx  cortexa9hf
 _EOF_
 
 # Set default values if not provided by Jenkins
