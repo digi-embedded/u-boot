@@ -139,6 +139,7 @@
 #define OCOTP_LOCK_WORD		0
 
 /* Secure JTAG OPTs */
+/* #define CONFIG_SJC_DIGI_INTERNAL */
 #define CONFIG_HAS_SJC
 #define CONFIG_SJC_MODE_BANK		0
 #define CONFIG_SJC_MODE_START_WORD	6
@@ -151,6 +152,10 @@
 
 #define SJC_DISABLE_OFFSET     20
 #define JTAG_SMODE_OFFSET      22
+
+#define SJC_DISABLE_JTAG 		(0x01 << SJC_DISABLE_OFFSET)
+#define SJC_ENABLE_SECURE_JTAG_MODE 	(0x01 << JTAG_SMODE_OFFSET)
+#define SJC_DISABLE_DEBUG 		(0x03 << JTAG_SMODE_OFFSET)
 
 #define CONFIG_CMD_UPDATE
 /* On the fly update chunk (must be a multiple of mmc block size) */

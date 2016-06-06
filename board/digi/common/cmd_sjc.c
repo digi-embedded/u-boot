@@ -67,7 +67,8 @@ static int do_sjc(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	u32 bank = CONFIG_SJC_MODE_BANK;
 	u32 word = CONFIG_SJC_MODE_START_WORD;
 	u32 val[2];
-	int ret, i;
+	char *jtag_op = NULL;
+	int ret, i = 0;
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -108,31 +109,26 @@ static int do_sjc(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 				goto err;
 		}
 		board_print_sjc_key(val);
-	} else if ((!strcmp(op, "prog")) || (!strcmp(op, "prog_disable"))) {
+	} else if (!strcmp(op, "prog")) {
 		if (!confirmed && !confirm_prog())
 			return CMD_RET_FAILURE;
 
 		if (argc < 1)
 			return CMD_RET_USAGE;
 
-		printf("Programming Secure JTAG mode... ");
-		if (strtou32(argv[0], 0, &val[0]))
-			return CMD_RET_USAGE;
+		strcpy(jtag_op, argv[0]);
 
-		if (!strcmp(op, "prog")) {
-			if (val[0] == 0 || val[0] == 1 || val[0] == 3)
-				ret = fuse_prog(bank, word, val[0] << JTAG_SMODE_OFFSET);
-			else {
-				printf("\nWrong parameter.\n");
-				return CMD_RET_USAGE;
-			}
+		printf("Programming Secure JTAG mode... ");
+		if (!strcmp(jtag_op, "secure")) {
+			ret = fuse_prog(bank, word, SJC_ENABLE_SECURE_JTAG_MODE);
+		} else if (!strcmp(jtag_op, "disable-debug")) {
+			ret = fuse_prog(bank, word, SJC_DISABLE_DEBUG);
+		} else if (!strcmp(jtag_op, "disable-jtag")) {
+			ret = fuse_prog(bank, word, SJC_DISABLE_JTAG);
 		} else {
-			if ((val[0] == 0) || (val[0] == 1))
-				ret = fuse_prog(bank, word, val[0] << SJC_DISABLE_OFFSET);
-			else {
-				printf("\nWrong parameter.\n");
-				return CMD_RET_USAGE;
-			}
+			printf("\nWrong parameter.\n");
+			ret = CMD_RET_USAGE;
+			goto err;
 		}
 		if (ret)
 			goto err;
@@ -158,28 +154,24 @@ static int do_sjc(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 				goto err;
 		}
 		printf("[OK]\n");
-	} else if ((!strcmp(op, "override")) || (!strcmp(op, "override_disable"))) {
+#if defined CONFIG_SJC_DIGI_INTERNAL
+	} else if (!strcmp(op, "override")) {
 		if (argc < 1)
 			return CMD_RET_USAGE;
 
-		if (strtou32(argv[0], 0, &val[0]))
-			return CMD_RET_USAGE;
+		strcpy(jtag_op, argv[0]);
 
 		printf("Overriding Secure JTAG mode... ");
-		if (!strcmp(op, "override")) {
-			if (val[0] == 0 || val[0] == 1 || val[0] == 3)
-				ret = fuse_override(bank, word, val[0] << JTAG_SMODE_OFFSET);
-			else {
-				printf("\nWrong parameter.\n");
-				return CMD_RET_USAGE;
-			}
+		if (!strcmp(jtag_op, "secure")) {
+			ret = fuse_override(bank, word, SJC_ENABLE_SECURE_JTAG_MODE);
+		} else if (!strcmp(jtag_op, "disable-debug")) {
+			ret = fuse_override(bank, word, SJC_DISABLE_DEBUG);
+		} else if (!strcmp(jtag_op, "disable-jtag")) {
+			ret = fuse_override(bank, word, SJC_DISABLE_JTAG);
 		} else {
-			if ((val[0] == 0) || (val[0] == 1))
-				ret = fuse_override(bank, word, val[0] << SJC_DISABLE_OFFSET);
-			else {
-				printf("\nWrong parameter.\n");
-				return CMD_RET_USAGE;
-			}
+			printf("\nWrong parameter.\n");
+			ret = CMD_RET_USAGE;
+			goto err;
 		}
 		if (ret)
 			goto err;
@@ -203,6 +195,7 @@ static int do_sjc(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 				goto err;
 		}
 		printf("[OK]\n");
+#endif
 	} else if (!strcmp(op, "lock")) {
 		if (!confirmed && !confirm_prog())
 			return CMD_RET_FAILURE;
@@ -243,22 +236,20 @@ U_BOOT_CMD(
 	"sjc read_key - read Secure JTAG response key from shadow registers\n"
 	"sjc sense - sense Secure JTAG mode from fuses\n"
 	"sjc sense_key - sense Secure JTAG response key from fuses\n"
-	"sjc prog [-y] - program Secure JTAG mode <mode> (PERMANENT). <mode> can be one of:\n"
-	"    0 - JTAG enable mode\n"
-	"    1 - Secure JTAG mode\n"
-	"    3 - No debug mode\n"
+	"sjc prog [-y] <mode> - program Secure JTAG mode <mode> (PERMANENT). <mode> can be one of:\n"
+	"    secure - Secure JTAG mode (debugging only possible by providing the key "
+	"burned in the e-fuses)\n"
+	"    disable-debug - JTAG debugging disabled (only boundary-scan possible)\n"
+	"    disable-jtag - JTAG port disabled (no JTAG operations allowed)\n"
 	"sjc prog_key [-y] <high_word> <low_word> - program response key (PERMANENT)\n"
-	"sjc prog_disable [-y] - program disable JTAG interface OTP bit <sjc> (PERMANENT). <sjc> can be one of:\n"
-	"    0 - Secure JTAG Controller is enabled\n"
-	"    1 - Secure JTAG Controller is disabled\n"	
-	"sjc override - override Secure JTAG mode <mode>. <mode> can be one of:\n"
-	"    0 - JTAG enable mode\n"
-	"    1 - Secure JTAG mode\n"
-	"    3 - No debug mode\n"
+#if defined CONFIG_SJC_DIGI_INTERNAL
+	"sjc override <mode> - override Secure JTAG mode <mode>. <mode> can be one of:\n"
+	"    secure - Secure JTAG mode (debugging only possible by providing the key "
+	"burned in the e-fuses)\n"
+	"    disable-debug - JTAG debugging disabled (only boundary-scan possible)\n"
+	"    disable-jtag - JTAG port disabled (no JTAG operations allowed)\n"
 	"sjc override_key <high_word> <low_word> - override response key\n"
-	"sjc override_disable - override disable JTAG interface <sjc>. <sjc> can be one of:\n"
-	"    0 - Secure JTAG Controller is enabled\n"
-	"    1 - Secure JTAG Controller is disabled\n"
+#endif
 	"sjc lock [-y] - lock Secure JTAG mode and disable JTAG interface\n"
 	"    OTP bits (PERMANENT)\n"
 	"sjc lock_key [-y] - lock Secure JTAG key OTP bits (PERMANENT)\n"
