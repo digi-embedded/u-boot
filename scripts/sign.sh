@@ -47,10 +47,9 @@ fi
 CONFIG_KEY_INDEX_1="$((CONFIG_KEY_INDEX+1))"
 [ -z "${CONFIG_DEK_SIZE}" ] && CONFIG_DEK_SIZE="128"
 
-# Default names for keys in CST
-SRK_KEYS="../crts/SRK1_sha256_2048_65537_v3_ca_crt.pem,../crts/SRK2_sha256_2048_65537_v3_ca_crt.pem,../crts/SRK3_sha256_2048_65537_v3_ca_crt.pem,../crts/SRK4_sha256_2048_65537_v3_ca_crt.pem"
-CERT_CSF="../crts/CSF${CONFIG_KEY_INDEX_1}_1_sha256_2048_65537_v3_usr_crt.pem"
-CERT_IMG="../crts/IMG${CONFIG_KEY_INDEX_1}_1_sha256_2048_65537_v3_usr_crt.pem"
+SRK_KEYS="$(echo ${CONFIG_CST_PATH}/crts/SRK*crt.pem | sed s/\ /\,/g)"
+CERT_CSF="$(echo ${CONFIG_CST_PATH}/crts/CSF${CONFIG_KEY_INDEX_1}*crt.pem)"
+CERT_IMG="$(echo ${CONFIG_CST_PATH}/crts/IMG${CONFIG_KEY_INDEX_1}*crt.pem)"
 
 # Path to export the DEK used in plain text
 UBOOT_DEK_PATH="$(pwd)/dek.bin"
@@ -157,7 +156,7 @@ objcopy -I binary -O binary --pad-to "${pad_len}" --gap-fill="${GAP_FILLER}" "${
 
 CURRENT_PATH="$(pwd)"
 if pushd "${CONFIG_CST_PATH}/linux${ARCH}" > /dev/null; then
-	./cst -o "${CURRENT_PATH}/u-boot_csf.bin" < "${CURRENT_PATH}/csf_descriptor"
+	./cst -o "${CURRENT_PATH}/u-boot_csf.bin" -i "${CURRENT_PATH}/csf_descriptor"
 	if [ $? -ne 0 ]; then
 		echo "[ERROR] Could not generate CSF"
 		exit 1
