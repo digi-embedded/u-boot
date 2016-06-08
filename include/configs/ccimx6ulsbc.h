@@ -81,6 +81,7 @@
 #define CONFIG_MXC_UART
 #define CONFIG_MXC_UART_BASE		UART5_BASE
 #define CONFIG_CONS_INDEX		5
+#define CONFIG_CONSOLE_PORT		"ttymxc4"
 #define CONFIG_BAUDRATE			115200
 
 #define CONFIG_MODULE_FUSE
@@ -122,8 +123,8 @@
 	CONFIG_EXTRA_NETWORK_SETTINGS \
 	"fdt_addr=0x83000000\0" \
 	"fdt_high=0xffffffff\0"	  \
-	"console=ttymxc0\0" \
-	"bootargs=console=ttymxc0,115200 ubi.mtd=3 "  \
+	"console=" CONFIG_CONSOLE_PORT "\0" \
+	"bootargs=console=" CONFIG_CONSOLE_PORT ",115200 ubi.mtd=3 "  \
 		"root=ubi0:rootfs rootfstype=ubifs "		     \
 		CONFIG_BOOTARGS_CMA_SIZE \
 	CONFIG_ENV_MTD_SETTINGS \
@@ -137,7 +138,7 @@
 	CONFIG_EXTRA_NETWORK_SETTINGS \
 	"script=boot.scr\0" \
 	"image=zImage\0" \
-	"console=ttymxc0\0" \
+	"console=" CONFIG_CONSOLE_PORT "\0" \
 	"fdt_high=0xffffffff\0" \
 	"initrd_high=0xffffffff\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
