@@ -1371,7 +1371,7 @@ uint8_t *env_aes_cbc_get_key(void)
 	}
 
 	strtohex(CONFIG_ENV_AES_KEY, key,
-		 sizeof(CONFIG_ENV_AES_KEY) / sizeof(unsigned long));
+		 sizeof(key) / sizeof(unsigned long));
 
 	return (uint8_t *) key;
 }
