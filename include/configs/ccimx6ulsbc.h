@@ -218,4 +218,26 @@
 #define CONFIG_SYS_MMC_ENV_PART		0	/* user area */
 #define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
 
+/* Carrier board version in OTP bits */
+#define CONFIG_HAS_CARRIERBOARD_VERSION
+#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
+/* The carrier board version is stored in Bank 4 Word 6 (GP1)
+ * in bits 3..0 */
+#define CONFIG_CARRIERBOARD_VERSION_BANK	4
+#define CONFIG_CARRIERBOARD_VERSION_WORD	6
+#define CONFIG_CARRIERBOARD_VERSION_MASK	0xf
+#define CONFIG_CARRIERBOARD_VERSION_OFFSET	0
+#endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
+
+/* Carrier board ID in OTP bits */
+#define CONFIG_HAS_CARRIERBOARD_ID
+#ifdef CONFIG_HAS_CARRIERBOARD_ID
+/* The carrier board ID is stored in Bank 4 Word 6 (GP1)
+ * in bits 11..4 */
+#define CONFIG_CARRIERBOARD_ID_BANK	4
+#define CONFIG_CARRIERBOARD_ID_WORD	6
+#define CONFIG_CARRIERBOARD_ID_MASK	0xff
+#define CONFIG_CARRIERBOARD_ID_OFFSET	4
+#endif /* CONFIG_HAS_CARRIERBOARD_ID */
+
 #endif /* CCIMX6ULSBC_CONFIG_H */
