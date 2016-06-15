@@ -31,6 +31,7 @@ enum imx6_cpu {
 	IMX6D,		/* Dual */
 	IMX6DL,		/* Dual-Lite */
 	IMX6S,		/* Solo */
+	IMX6UL,		/* UltraLite */
 };
 
 struct ccimx6_variant {

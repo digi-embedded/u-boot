@@ -61,6 +61,25 @@ struct i2c_pads_info i2c1_pad_info = {
 };
 #endif
 
+static struct ccimx6_variant ccimx6ul_variants[] = {
+/* 0x00 */ { IMX6_NONE,	0, 0, "Unknown"},
+/* 0x01 */ { IMX6_NONE,	0, 0, "Unknown"},
+/* 0x02 - 55001875-02 */
+	{
+		IMX6UL,
+		MEM_256MB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
+		"Industrial Ultralite 528MHz, 256MB NAND, 256MB DDR3, -40/+85C, Wireless, Bluetooth",
+	},
+/* 0x03 - 55001875-03 */
+	{
+		IMX6UL,
+		MEM_256MB,
+		0,
+		"Industrial Ultralite 528MHz, 256MB NAND, 256MB DDR3, -40/+85C",
+	},
+};
+
 int dram_init(void)
 {
 	gd->ram_size = PHYS_SDRAM_SIZE;
