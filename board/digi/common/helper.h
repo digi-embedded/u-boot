@@ -34,6 +34,7 @@ int get_fw_filename(int argc, char * const argv[], int src, char *filename);
 int get_default_filename(char *partname, char *filename, int cmd);
 int strtou32(const char *str, unsigned int base, u32 *result);
 int confirm_prog(void);
+void fdt_fixup_mac(void *fdt, char *varname, char *node);
 
 enum {
 	LDFW_ERROR = -1,

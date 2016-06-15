@@ -83,7 +83,6 @@ void setup_iomux_enet(void);
 int ccimx6_init(void);
 int ccimx6_late_init(void);
 void print_ccimx6_info(void);
-void fdt_fixup_mac(void *fdt, char *varname, char *node);
 void fdt_fixup_hwid(void *fdt);
 
 /* Board defined functions */

@@ -8,6 +8,9 @@
 */
 #include <common.h>
 #include <asm/errno.h>
+#ifdef CONFIG_OF_LIBFDT
+#include <fdt_support.h>
+#endif
 #include <otf_update.h>
 #include "helper.h"
 
@@ -433,3 +436,21 @@ int confirm_prog(void)
 	puts("Fuse programming aborted\n");
 	return 0;
 }
+
+#if defined(CONFIG_OF_BOARD_SETUP)
+void fdt_fixup_mac(void *fdt, char *varname, char *node)
+{
+	char *tmp, *end;
+	unsigned char mac_addr[6];
+	int i;
+
+	if ((tmp = getenv(varname)) != NULL) {
+		for (i = 0; i < 6; i++) {
+			mac_addr[i] = tmp ? simple_strtoul(tmp, &end, 16) : 0;
+			if (tmp)
+				tmp = (*end) ? end+1 : end;
+		}
+		do_fixup_by_path(fdt, node, "mac-address", &mac_addr, 6, 1);
+	}
+}
+#endif /* CONFIG_OF_BOARD_SETUP */

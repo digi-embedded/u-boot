@@ -39,6 +39,7 @@
 #include <asm/imx-common/iomux-v3.h>
 #include "../ccimx6/ccimx6.h"
 #include "../common/carrier_board.h"
+#include "../common/helper.h"
 #include "../common/hwid.h"
 
 DECLARE_GLOBAL_DATA_PTR;
