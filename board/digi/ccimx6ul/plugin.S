@@ -59,11 +59,11 @@
 	/* TODO: update with calibration values */
 	ldr r1, =0x00000000
 	str r1, [r0, #0x80C]
-	ldr r1, =0x41490145
+	ldr r1, =0x413B013B
 	str r1, [r0, #0x83C]
-	ldr r1, =0x40404546
+	ldr r1, =0x4040373E
 	str r1, [r0, #0x848]
-	ldr r1, =0x4040524D
+	ldr r1, =0x40405954
 	str r1, [r0, #0x850]
 	ldr r1, =0x33333333
 	str r1, [r0, #0x81C]
@@ -87,7 +87,7 @@
 	str r1, [r0, #0x010]
 	ldr r1, =0x01FF00DB
 	str r1, [r0, #0x014]
-	/* Consider reducing RALAT (currently set to 5) and increasing WALAT */
+	/* Consider reducing RALAT (currently set to 5) */
 	ldr r1, =0x00201740
 	str r1, [r0, #0x018]
 	ldr r1, =0x00008000
