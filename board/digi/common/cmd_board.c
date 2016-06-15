@@ -22,9 +22,98 @@
 
 #include <common.h>
 #include <command.h>
+#include <fdt_support.h>
 #include <fuse.h>
 #include <asm/errno.h>
 #include "helper.h"
+
+__weak unsigned int get_carrierboard_version(void)
+{
+#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
+	u32 version;
+
+	if (fuse_read(CONFIG_CARRIERBOARD_VERSION_BANK,
+		      CONFIG_CARRIERBOARD_VERSION_WORD, &version))
+		return CARRIERBOARD_VERSION_UNDEFINED;
+
+	version >>= CONFIG_CARRIERBOARD_VERSION_OFFSET;
+	version &= CONFIG_CARRIERBOARD_VERSION_MASK;
+
+	return((int)version);
+#else
+	return CARRIERBOARD_VERSION_UNDEFINED;
+#endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
+}
+
+__weak unsigned int get_carrierboard_id(void)
+{
+#ifdef CONFIG_HAS_CARRIERBOARD_ID
+	u32 id;
+
+	if (fuse_read(CONFIG_CARRIERBOARD_ID_BANK,
+		      CONFIG_CARRIERBOARD_ID_WORD, &id))
+		return CARRIERBOARD_ID_UNDEFINED;
+
+	id >>= CONFIG_CARRIERBOARD_ID_OFFSET;
+	id &= CONFIG_CARRIERBOARD_ID_MASK;
+
+	return((int)id);
+#else
+	return CARRIERBOARD_ID_UNDEFINED;
+#endif /* CONFIG_HAS_CARRIERBOARD_ID */
+}
+
+__weak void fdt_fixup_carrierboard(void *fdt)
+{
+#if defined(CONFIG_HAS_CARRIERBOARD_VERSION) || \
+    defined(CONFIG_HAS_CARRIERBOARD_ID)
+	char str[20];
+#endif
+
+#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
+	sprintf(str, "%d", get_carrierboard_version());
+	do_fixup_by_path(fdt, "/", "digi,carrierboard,version", str,
+			 strlen(str) + 1, 1);
+#endif
+
+#ifdef CONFIG_HAS_CARRIERBOARD_ID
+	sprintf(str, "%d", get_carrierboard_id());
+	do_fixup_by_path(fdt, "/", "digi,carrierboard,id", str,
+			 strlen(str) + 1, 1);
+#endif
+}
+
+__weak void print_carrierboard_info(void)
+{
+#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
+	int board_version = get_carrierboard_version();
+#endif
+#ifdef CONFIG_HAS_CARRIERBOARD_ID
+	int board_id = get_carrierboard_id();
+#endif
+	char board_str[100];
+	char warnings[100] = "";
+
+	sprintf(board_str, "Board: %s", CONFIG_BOARD_DESCRIPTION);
+#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
+	if (CARRIERBOARD_VERSION_UNDEFINED == board_version)
+		sprintf(warnings, "%s   WARNING: Undefined board version!\n",
+			warnings);
+	else
+		sprintf(board_str, "%s, version %d", board_str, board_version);
+#endif
+
+#ifdef CONFIG_HAS_CARRIERBOARD_ID
+	if (CARRIERBOARD_ID_UNDEFINED == board_id)
+		sprintf(warnings, "%s   WARNING: Undefined board ID!\n",
+			warnings);
+	else
+		sprintf(board_str, "%s, ID %d", board_str, board_id);
+#endif
+	printf("%s\n", board_str);
+	if (strcmp(warnings, ""))
+		printf("%s", warnings);
+}
 
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
 __weak void print_board_version(u32 version)

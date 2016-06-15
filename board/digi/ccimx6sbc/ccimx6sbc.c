@@ -38,6 +38,7 @@
 #include <asm/imx-common/boot_mode.h>
 #include <asm/imx-common/iomux-v3.h>
 #include "../ccimx6/ccimx6.h"
+#include "../common/carrier_board.h"
 #include "../common/hwid.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -74,42 +75,6 @@ iomux_v3_cfg_t const sgtl5000_pwr_pads[] = {
 	/* SGTL5000 audio codec power enable (external 4K7 pull-up) */
 	MX6_PAD_EIM_OE__GPIO2_IO25 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
-
-unsigned int get_carrierboard_version(void)
-{
-#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
-	u32 version;
-
-	if (fuse_read(CONFIG_CARRIERBOARD_VERSION_BANK,
-		      CONFIG_CARRIERBOARD_VERSION_WORD, &version))
-		return CARRIERBOARD_VERSION_UNDEFINED;
-
-	version >>= CONFIG_CARRIERBOARD_VERSION_OFFSET;
-	version &= CONFIG_CARRIERBOARD_VERSION_MASK;
-
-	return((int)version);
-#else
-	return CARRIERBOARD_VERSION_UNDEFINED;
-#endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
-}
-
-unsigned int get_carrierboard_id(void)
-{
-#ifdef CONFIG_HAS_CARRIERBOARD_ID
-	u32 id;
-
-	if (fuse_read(CONFIG_CARRIERBOARD_ID_BANK,
-		      CONFIG_CARRIERBOARD_ID_WORD, &id))
-		return CARRIERBOARD_ID_UNDEFINED;
-
-	id >>= CONFIG_CARRIERBOARD_ID_OFFSET;
-	id &= CONFIG_CARRIERBOARD_ID_MASK;
-
-	return((int)id);
-#else
-	return CARRIERBOARD_ID_UNDEFINED;
-#endif /* CONFIG_HAS_CARRIERBOARD_ID */
-}
 
 #ifdef CONFIG_SYS_I2C_MXC
 int setup_pmic_voltages_carrierboard(void)
@@ -409,54 +374,6 @@ int board_init(void)
 		setup_board_audio();
 
 	return 0;
-}
-
-static void fdt_fixup_carrierboard(void *fdt)
-{
-#if defined(CONFIG_HAS_CARRIERBOARD_VERSION) || \
-    defined(CONFIG_HAS_CARRIERBOARD_ID)
-	char str[20];
-#endif
-
-#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
-	sprintf(str, "%d", get_carrierboard_version());
-	do_fixup_by_path(fdt, "/", "digi,carrierboard,version", str,
-			 strlen(str) + 1, 1);
-#endif
-
-#ifdef CONFIG_HAS_CARRIERBOARD_ID
-	sprintf(str, "%d", get_carrierboard_id());
-	do_fixup_by_path(fdt, "/", "digi,carrierboard,id", str,
-			 strlen(str) + 1, 1);
-#endif
-}
-
-static void print_carrierboard_info(void)
-{
-	int board_version = get_carrierboard_version();
-	int board_id = get_carrierboard_id();
-	char board_str[100];
-	char warnings[100] = "";
-
-	sprintf(board_str, "Board: %s", CONFIG_BOARD_DESCRIPTION);
-#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
-	if (CARRIERBOARD_VERSION_UNDEFINED == board_version)
-		sprintf(warnings, "%s   WARNING: Undefined board version!\n",
-			warnings);
-	else
-		sprintf(board_str, "%s, version %d", board_str, board_version);
-#endif
-
-#ifdef CONFIG_HAS_CARRIERBOARD_ID
-	if (CARRIERBOARD_ID_UNDEFINED == board_id)
-		sprintf(warnings, "%s   WARNING: Undefined board ID!\n",
-			warnings);
-	else
-		sprintf(board_str, "%s, ID %d", board_str, board_id);
-#endif
-	printf("%s\n", board_str);
-	if (strcmp(warnings, ""))
-		printf("%s", warnings);
 }
 
 int checkboard(void)

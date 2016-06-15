@@ -47,14 +47,12 @@
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>
 #endif
+#include "../common/carrier_board.h"
 #include "../common/hwid.h"
 #include "ccimx6.h"
 #include "../../../drivers/net/fec_mxc.h"
 
 DECLARE_GLOBAL_DATA_PTR;
-
-extern unsigned int get_carrierboard_version(void);
-extern unsigned int get_carrierboard_id(void);
 
 struct ccimx6_hwid my_hwid;
 static block_dev_desc_t *mmc_dev;
