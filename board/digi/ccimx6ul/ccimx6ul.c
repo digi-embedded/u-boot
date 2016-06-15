@@ -303,3 +303,30 @@ void fdt_fixup_hwid(void *fdt)
 
 	ccimx6_fdt_fixup_hwid(fdt, &my_hwid);
 }
+
+static int is_valid_hwid(struct ccimx6_hwid *hwid)
+{
+	if (hwid->variant < ARRAY_SIZE(ccimx6ul_variants))
+		if (ccimx6ul_variants[hwid->variant].cpu != IMX6_NONE)
+			return 1;
+
+	return 0;
+}
+
+int board_has_wireless(void)
+{
+	if (is_valid_hwid(&my_hwid))
+		return (ccimx6ul_variants[my_hwid.variant].capabilities &
+				    CCIMX6_HAS_WIRELESS);
+	else
+		return 1; /* assume it has if invalid HWID */
+}
+
+int board_has_bluetooth(void)
+{
+	if (is_valid_hwid(&my_hwid))
+		return (ccimx6ul_variants[my_hwid.variant].capabilities &
+				    CCIMX6_HAS_BLUETOOTH);
+	else
+		return 1; /* assume it has if invalid HWID */
+}
