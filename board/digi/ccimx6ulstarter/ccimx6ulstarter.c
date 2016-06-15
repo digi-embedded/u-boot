@@ -383,7 +383,7 @@ int board_late_init(void)
 
 int checkboard(void)
 {
-	puts("Board: ConnectCore 6UL on Starter Board\n");
+	puts("Board: " CONFIG_BOARD_DESCRIPTION "\n");
 
 	return 0;
 }
