@@ -56,6 +56,12 @@
 #define OCOTP_LOCK_BANK		0
 #define OCOTP_LOCK_WORD		0
 
+/* CAAM support */
+#define CONFIG_SYS_FSL_SEC_COMPAT    4 /* HAB version */
+#define CONFIG_FSL_CAAM
+#define CONFIG_CMD_DEKBLOB
+#define CONFIG_SYS_FSL_SEC_LE
+
 /* Secure JTAG OPTs */
 /* #define CONFIG_SJC_DIGI_INTERNAL */
 #define CONFIG_HAS_SJC
