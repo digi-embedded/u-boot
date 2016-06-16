@@ -330,3 +330,11 @@ int board_has_bluetooth(void)
 	else
 		return 1; /* assume it has if invalid HWID */
 }
+
+void print_ccimx6ul_info(void)
+{
+	if (is_valid_hwid(&my_hwid))
+		printf("ConnectCore 6UL SOM variant 0x%02X: %s\n",
+			my_hwid.variant,
+			ccimx6ul_variants[my_hwid.variant].id_string);
+}

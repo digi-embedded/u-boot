@@ -419,7 +419,8 @@ int ft_board_setup(void *blob, bd_t *bd)
 
 int checkboard(void)
 {
-	puts("Board: " CONFIG_BOARD_DESCRIPTION "\n");
+	print_ccimx6ul_info();
+	print_carrierboard_info();
 
 	return 0;
 }

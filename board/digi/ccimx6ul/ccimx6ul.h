@@ -11,5 +11,6 @@
 int power_init_ccimx6ul(void);
 int ccimx6ul_init(void);
 int ccimx6ul_late_init(void);
+void print_ccimx6ul_info(void);
 
 #endif  /* CCIMX6UL_H */
