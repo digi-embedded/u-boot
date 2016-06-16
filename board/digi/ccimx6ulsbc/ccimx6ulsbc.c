@@ -29,6 +29,7 @@
 #include <usb/ehci-fsl.h>
 #include "../ccimx6ul/ccimx6ul.h"
 #include "../common/carrier_board.h"
+#include "../common/helper.h"
 #include "../common/hwid.h"
 
 #ifdef CONFIG_POWER
@@ -480,6 +481,23 @@ int board_late_init(void)
 
 	return 0;
 }
+
+#if defined(CONFIG_OF_BOARD_SETUP)
+/* Platform function to modify the FDT as needed */
+int ft_board_setup(void *blob, bd_t *bd)
+{
+	/* Re-read HWID which could have been overriden by U-Boot commands */
+	fdt_fixup_hwid(blob);
+
+	fdt_fixup_carrierboard(blob);
+	if (board_has_wireless())
+		fdt_fixup_mac(blob, "wlanaddr", "/wireless");
+	if (board_has_bluetooth())
+		fdt_fixup_mac(blob, "btaddr", "/bluetooth");
+
+	return 0;
+}
+#endif /* CONFIG_OF_BOARD_SETUP */
 
 int checkboard(void)
 {
