@@ -52,6 +52,8 @@ struct ccimx6_variant {
 #define	CCIMX6_HAS_KINETIS	(1 << 2)
 #define	CCIMX6_HAS_EMMC		(1 << 3)
 
+void fdt_fixup_hwid(void *fdt);
+
 #ifdef CONFIG_CC6
 void ccimx6_print_hwid(u32 *buf);
 void ccimx6_print_manufid(u32 *buf);
