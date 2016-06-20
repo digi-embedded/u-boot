@@ -189,9 +189,11 @@
 		"androidboot.console=${console} " \
 		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
 		"${extra_bootargs}\0" \
-	"recoverycmd=setenv mmcpart 2;" \
+	"recoverycmd=load mmc 0:2 ${loadaddr} ${uimage};" \
+		"load mmc 0:2 ${initrd_addr} ${initrd_file};" \
+		"load mmc 0:2 ${fdt_addr} ${fdt_file};" \
 		"run bootargs_recovery;" \
-		"boot\0" \
+		"bootm ${loadaddr} ${initrd_addr} ${fdt_addr}\0" \
 	"install_android_fw_sd=if load mmc 1 ${loadaddr} " \
 		"install_android_fw_sd.scr;then " \
 			"source ${loadaddr};" \
