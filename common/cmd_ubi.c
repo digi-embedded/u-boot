@@ -704,17 +704,6 @@ int ubi_part(char *part_name, const char *vid_header_offset)
 	struct part_info *part;
 	u8 pnum;
 
-	if (strncmp(argv[1], "silent", 6) == 0) {
-		if (argc != 3) {
-			printf("Please see usage\n");
-			return 1;
-		}
-
-		ubi_silent = simple_strtoul(argv[2], NULL, 10) ? 1 : 0;
-
-		return 0;
-	}
-
 	if (mtdparts_init() != 0) {
 		printf("Error initializing mtdparts!\n");
 		return 1;
@@ -780,6 +769,17 @@ static int do_ubi(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
+
+	if (strncmp(argv[1], "silent", 6) == 0) {
+		if (argc != 3) {
+			printf("Please see usage\n");
+			return 1;
+		}
+
+		ubi_silent = simple_strtoul(argv[2], NULL, 10) ? 1 : 0;
+
+		return 0;
+	}
 
 	if (strcmp(argv[1], "part") == 0) {
 		const char *vid_header_offset = NULL;
