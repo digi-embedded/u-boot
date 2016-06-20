@@ -46,9 +46,8 @@ endif
 obj-$(CONFIG_HAS_CARRIERBOARD_VERSION) += cmd_board.o
 obj-$(CONFIG_HAS_CARRIERBOARD_ID) += cmd_board.o
 obj-$(CONFIG_AUTO_BOOTSCRIPT) += helper.o
-obj-$(CONFIG_HAS_SECBOOT) += cmd_secboot.o
 obj-$(CONFIG_CMD_UPDATE_MMC) += cmd_update_mmc.o helper.o
 obj-$(CONFIG_CMD_DBOOT) += cmd_dboot.o helper.o
 obj-$(CONFIG_CMD_PMIC) += cmd_pmic.o
-obj-$(CONFIG_HAS_SJC) += cmd_sjc.o
+obj-$(CONFIG_HAS_TRUSTFENCE) += cmd_trustfence.o
 endif

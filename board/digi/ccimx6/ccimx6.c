@@ -1470,8 +1470,8 @@ int fuse_check_srk(void)
         int i;
         u32 val;
 
-        for (i = 0; i < CONFIG_SRK_WORDS; i++) {
-                if (fuse_sense(CONFIG_SRK_BANK, i, &val))
+        for (i = 0; i < CONFIG_TRUSTFENCE_SRK_WORDS; i++) {
+                if (fuse_sense(CONFIG_TRUSTFENCE_SRK_BANK, i, &val))
                         return -1;
                 if (val == 0)
                         return i + 1;
@@ -1486,13 +1486,13 @@ int fuse_prog_srk(u32 addr, u32 size)
         int ret;
         uint32_t *src_addr = map_sysmem(addr, size);
 
-        if (size != CONFIG_SRK_WORDS * 4) {
+        if (size != CONFIG_TRUSTFENCE_SRK_WORDS * 4) {
                 puts("Bad size\n");
                 return -1;
         }
 
-        for (i = 0; i < CONFIG_SRK_WORDS; i++) {
-                ret = fuse_prog(CONFIG_SRK_BANK, i, src_addr[i]);
+        for (i = 0; i < CONFIG_TRUSTFENCE_SRK_WORDS; i++) {
+                ret = fuse_prog(CONFIG_TRUSTFENCE_SRK_BANK, i, src_addr[i]);
                 if (ret)
                         return ret;
         }
