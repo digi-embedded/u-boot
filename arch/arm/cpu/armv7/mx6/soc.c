@@ -97,10 +97,6 @@ u32 get_cpu_rev(void)
  * defines a 2-bit SPEED_GRADING
  */
 #define OCOTP_CFG3_SPEED_SHIFT	16
-#define OCOTP_CFG3_SPEED_800MHZ	0
-#define OCOTP_CFG3_SPEED_850MHZ	1
-#define OCOTP_CFG3_SPEED_1GHZ	2
-#define OCOTP_CFG3_SPEED_1P2GHZ	3
 
 u32 get_cpu_speed_grade_hz(void)
 {
@@ -116,18 +112,23 @@ u32 get_cpu_speed_grade_hz(void)
 
 	switch (val) {
 	/* Valid for IMX6DQ */
-	case OCOTP_CFG3_SPEED_1P2GHZ:
+	case 3:
 		if (is_cpu_type(MXC_CPU_MX6Q) || is_cpu_type(MXC_CPU_MX6D))
 			return 1200000000;
-	/* Valid for IMX6SX/IMX6SDL/IMX6DQ */
-	case OCOTP_CFG3_SPEED_1GHZ:
-		return 996000000;
-	/* Valid for IMX6DQ */
-	case OCOTP_CFG3_SPEED_850MHZ:
+	/* Valid for IMX6SX/IMX6SDL/IMX6DQ/IMX6UL */
+	case 2:
+		if (is_cpu_type(MXC_CPU_MX6UL))
+			return 700000000;
+		else
+			return 996000000;
+	/* Valid for IMX6DQ/IMX6UL */
+	case 1:
 		if (is_cpu_type(MXC_CPU_MX6Q) || is_cpu_type(MXC_CPU_MX6D))
 			return 852000000;
+		if (is_cpu_type(MXC_CPU_MX6UL))
+			return 528000000;
 	/* Valid for IMX6SX/IMX6SDL/IMX6DQ */
-	case OCOTP_CFG3_SPEED_800MHZ:
+	case 0:
 		return 792000000;
 	}
 	return 0;
