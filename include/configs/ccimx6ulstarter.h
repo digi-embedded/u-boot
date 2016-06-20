@@ -35,6 +35,7 @@
 #define CONFIG_ENV_IS_IN_NAND
 #define CONFIG_CMD_MTDPARTS
 #define CONFIG_MTD_DEVICE
+#define CONFIG_MTD_PARTITIONS
 #define CONFIG_CMD_UPDATE_NAND
 #define CONFIG_SYS_STORAGE_MEDIA	"nand"
 #else
@@ -239,5 +240,11 @@
 #endif /* CONFIG_HAS_CARRIERBOARD_ID */
 
 #define CONFIG_BOOTDELAY               1
+
+/* UBI and UBIFS support */
+#define CONFIG_CMD_UBI
+#define CONFIG_RBTREE
+#define CONFIG_CMD_UBIFS
+#define CONFIG_LZO
 
 #endif /* CCIMX6ULSTARTER_CONFIG_H */
