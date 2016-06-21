@@ -106,6 +106,9 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 	char *jtag_op = NULL;
 	int ret = -1, i = 0;
 	hab_rvt_report_status_t *hab_report_status = hab_rvt_report_status_p;
+	char *devpartno = NULL;
+	int src = SRC_TFTP;	/* default to TFTP */
+	char *fs = NULL;
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -231,19 +234,29 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		unsigned long dek_blob_dst;
 		unsigned long dek_blob_final_dst;
 
-		if (argc == 3 && (!strcmp(argv[0], "tftp") ||
-				  !strcmp(argv[0], "nfs"))) {
-			sprintf(cmd_buf, "%s $loadaddr %s", argv[0],
-				argv[1]);
-		} else if (argc == 4 && !strcmp(argv[0], "mmc")) {
-			sprintf(cmd_buf, "load mmc %s $loadaddr %s",
-				argv[1], argv[2]);
-		} else
-			return CMD_RET_USAGE;
+		argv -= 2 + confirmed;
+		argc += 2 + confirmed;
+
+		/* Get source of firmware file */
+		if (argc > 2) {
+			src = get_source(argc, argv, &devpartno, &fs);
+			if (src == SRC_UNSUPPORTED) {
+				printf("'%s' is not supported as source\n",
+					argv[2]);
+				return CMD_RET_USAGE;
+			} else if (src == SRC_UNDEFINED) {
+				printf("Error: undefined source\n");
+				return CMD_RET_USAGE;
+			}
+		}
 
 		printf("\nLoading encrypted U-Boot image...\n");
-		if (run_command(cmd_buf, 0))
+		/* Load firmware file to RAM */
+		ret = load_firmware(src, argv[3], devpartno, NULL, "$loadaddr", NULL);
+		if (ret == LDFW_ERROR) {
+			printf("Error loading firmware file to RAM\n");
 			return CMD_RET_FAILURE;
+		}
 
 		filesize = getenv_ulong("filesize", 16, 0);
 		/* DEK blob will be directly appended to the U-Boot image */
@@ -260,12 +273,12 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		dek_blob_dst = dek_blob_src + 0x400;
 
 		printf("\nLoading Data Encryption Key...\n");
-		if (argc == 3) {
-			sprintf(cmd_buf, "%s 0x%lx %s", argv[0], dek_blob_src,
-				argv[2]);
+		if (argc == 5) {
+			sprintf(cmd_buf, "%s 0x%lx %s", argv[2], dek_blob_src,
+				argv[4]);
 		} else { /* argc == 4 */
-			sprintf(cmd_buf, "load mmc %s 0x%lx %s", argv[1],
-				dek_blob_src, argv[3]);
+			sprintf(cmd_buf, "load mmc %s 0x%lx %s", argv[3],
+				dek_blob_src, argv[5]);
 		}
 		if (run_command(cmd_buf, 0))
 			return CMD_RET_FAILURE;
