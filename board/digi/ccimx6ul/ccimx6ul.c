@@ -411,3 +411,42 @@ void print_ccimx6ul_info(void)
 			my_hwid.variant,
 			ccimx6ul_variants[my_hwid.variant].id_string);
 }
+
+/*
+ * This hook makes a custom reset implementation of the board that runs before
+ * the standard cpu_reset() which does a CPU watchdog reset.
+ * On the CC6UL we want instead to do an MCA watchdog reset, which will pull
+ * down POR_B line, thus doing a controlled reset of the CPU.
+ */
+void board_reset(void)
+{
+	int ret;
+	int retries = 3;
+	uint8_t unlock_data[] = {'C', 'T', 'R', 'U'};
+
+	do {
+		/* First, unlock the CTRL_0 register access */
+		ret = mca_bulk_write(MCA_CC6UL_CTRL_UNLOCK_0, unlock_data,
+				     sizeof(unlock_data));
+		if (ret) {
+			printf("MCA: unable to unlock CTRL register (%d)\n", ret);
+			retries--;
+			continue;
+		}
+
+		ret = mca_write_reg(MCA_CC6UL_CTRL_0, MCA_CTRL_0_RESET);
+		if (ret) {
+			printf("MCA: unable to perform a fw reset (%d)\n", ret);
+			retries--;
+			continue;
+		}
+
+		break;
+	} while (retries);
+
+	/*
+	 * Give it some time to generate the reset, or else U-Boot will
+	 * proceed with standard reset_cpu()
+	 */
+	mdelay(100);
+}
