@@ -119,6 +119,10 @@
 #define CONFIG_I2C_MULTI_BUS
 #endif
 
+/* MCA */
+#define CONFIG_MCA_I2C_BUS		0
+#define CONFIG_MCA_I2C_ADDR		0x7e
+
 /* PMIC */
 #define CONFIG_POWER
 #define CONFIG_POWER_I2C
