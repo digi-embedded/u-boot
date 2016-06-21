@@ -876,8 +876,19 @@ void set_wdog_reset(struct wdog_regs *wdog)
 	writew(reg, &wdog->wcr);
 }
 
+__weak void board_reset(void)
+{
+}
+
 void reset_misc(void)
 {
+	/*
+	 * Give a chance to every board to customize the reset. This is needed
+	 * because the reset_misc() hook is used already by the cpu code.
+	 * Therefore, now the board_reet() hook can be used by the board code.
+	 */
+	board_reset();
+
 #ifdef CONFIG_VIDEO_MXS
 	lcdif_power_down();
 #endif
