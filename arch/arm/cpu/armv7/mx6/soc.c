@@ -590,7 +590,7 @@ int arch_cpu_init(void)
 #endif
 
 	init_src();
-	
+
 	if (is_mx6dqp())
 		writel(0x80000201, 0xbb0608);
 
@@ -908,7 +908,7 @@ __weak void board_reset(void)
 }
 
 void reset_misc(void)
-{    
+{
 	/*
 	 * Give a chance to every board to customize the reset. This is needed
 	 * because the reset_misc() hook is used already by the cpu code.
@@ -917,8 +917,8 @@ void reset_misc(void)
 	board_reset();
 
 #ifdef CONFIG_VIDEO_MXS
-    if (is_cpu_type(MXC_CPU_MX6UL))
-        lcdif_power_down();
+	if (is_cpu_type(MXC_CPU_MX6UL))
+		lcdif_power_down();
 #endif
 }
 
