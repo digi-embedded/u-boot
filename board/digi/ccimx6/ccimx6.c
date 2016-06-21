@@ -1290,49 +1290,6 @@ int ccimx6_late_init(void)
 	return ccimx6_fixup();
 }
 
-/*
- * Check if all SRK words have been burned.
- *
- * Returns:
- * 0 if all SRK are burned
- * i+1 if SRK word i is not burned
- * <0 on error
- */
-int fuse_check_srk(void)
-{
-        int i;
-        u32 val;
-
-        for (i = 0; i < CONFIG_TRUSTFENCE_SRK_WORDS; i++) {
-                if (fuse_sense(CONFIG_TRUSTFENCE_SRK_BANK, i, &val))
-                        return -1;
-                if (val == 0)
-                        return i + 1;
-        }
-
-        return 0;
-}
-
-int fuse_prog_srk(u32 addr, u32 size)
-{
-        int i;
-        int ret;
-        uint32_t *src_addr = map_sysmem(addr, size);
-
-        if (size != CONFIG_TRUSTFENCE_SRK_WORDS * 4) {
-                puts("Bad size\n");
-                return -1;
-        }
-
-        for (i = 0; i < CONFIG_TRUSTFENCE_SRK_WORDS; i++) {
-                ret = fuse_prog(CONFIG_TRUSTFENCE_SRK_BANK, i, src_addr[i]);
-                if (ret)
-                        return ret;
-        }
-
-        return 0;
-}
-
 void board_print_hwid(u32 *buf)
 {
 	ccimx6_print_hwid(buf);
