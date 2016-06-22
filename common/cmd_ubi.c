@@ -405,18 +405,15 @@ int ubi_volume_read(char *volume, char *buf, size_t size)
 }
 
 #ifdef CONFIG_DIGI_UBI
-extern void MemDump(const void* pvBase, loff_t iOffset, size_t iLen);
-extern loff_t MemCmp(const void* pvS1, const void* pvS2, size_t iSize);
-extern void PrintProgress(int iPercentage, int iThrottle, const char* szFmt, ...);
+
 /* TODO, generalize (share) code with other functions like ubi_volume_read */
 int ubi_volume_verify(char *volume, char *buf, loff_t offset, size_t size, char skipUpdFlagCheck)
 {
 	int err, lnum, len, tbuf_size, i = 0;
-	loff_t off, offDiff, offPercent;
+	loff_t off, offPercent;
 	void *tbuf;
 	unsigned char *rbuf;
 	struct ubi_volume *vol = NULL;
-	int total_size = size;
 
 	for (i = 0; i < ubi->vtbl_slots; i++) {
 		vol = ubi->volumes[i];
@@ -489,10 +486,6 @@ int ubi_volume_verify(char *volume, char *buf, loff_t offset, size_t size, char 
 			goto error;
 		}
 
-		if (!ubi_silent) {
-			PrintProgress(lldiv((offPercent * 100), total_size), 10, "Verifying: ");
-		}
-
 		/* Get read length */
 		len = size > tbuf_size ? tbuf_size : size;
 
@@ -503,14 +496,9 @@ int ubi_volume_verify(char *volume, char *buf, loff_t offset, size_t size, char 
 			break;
 		}
 		/* Compare temporary buffer's content with the original data */
-		offDiff = MemCmp(rbuf, tbuf, len);
-		if (offDiff != -1) {
-			printf("Compare error at offset 0x%08x\n",
-			       (unsigned int)(off + offDiff));
-			printf("Original:\n");
-			MemDump(rbuf, offDiff, 64);
-			printf("Flash:\n");
-			MemDump(tbuf, offDiff, 64);
+		if (memcmp(rbuf, tbuf, len)) {
+			printf("Compare error at block with offset 0x%08x\n",
+			       (unsigned int)(off));
 			err = -EIO;
 			goto error;
 		}
@@ -521,11 +509,6 @@ int ubi_volume_verify(char *volume, char *buf, loff_t offset, size_t size, char 
 		size -= len;
 		rbuf += len;
 	} while (size);
-
-	if (!ubi_silent) {
-		PrintProgress(100, 10, "Verifying: ");
-		printf("\nOK\n");
-	}
 
 error:
 	free(tbuf);
