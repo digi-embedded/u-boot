@@ -454,3 +454,17 @@ void fdt_fixup_mac(void *fdt, char *varname, char *node)
 	}
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
+
+const char *get_filename_ext(const char *filename)
+{
+	const char *dot;
+
+	if (NULL == filename)
+		return "";
+
+	dot = strrchr(filename, '.');
+	if (!dot || dot == filename)
+		return "";
+
+	return dot + 1;
+}

@@ -44,5 +44,6 @@ enum {
 
 int load_firmware(int src, char *filename, char *devpartno,
 		  char *fs, char *loadaddr, char *varload);
+const char *get_filename_ext(const char *filename);
 
 #endif  /* __DIGI_HELPER_H */
