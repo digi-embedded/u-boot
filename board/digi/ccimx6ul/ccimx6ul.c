@@ -30,6 +30,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+extern bool bmode_reset;
 struct ccimx6_hwid my_hwid;
 
 #define MDIO_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_PUE |     \
@@ -423,6 +424,13 @@ void board_reset(void)
 	int ret;
 	int retries = 3;
 	uint8_t unlock_data[] = {'C', 'T', 'R', 'U'};
+
+	/*
+	 * If a bmode_reset was flagged, do not reset through the MCA, which
+	 * would otherwise power-cycle the CPU.
+	 */
+	if (bmode_reset)
+		return;
 
 	do {
 		/* First, unlock the CTRL_0 register access */
