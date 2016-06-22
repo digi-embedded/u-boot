@@ -87,6 +87,7 @@ extern int ubi_volume_get_leb_size(char *volume);
 extern int ubi_volume_off_write(char *volume, void *buf, size_t size,
 				int isFirstPart, int isLastPart);
 extern int ubi_volume_off_write_break(char *volume);
+extern const char *ubi_get_volume_name(int index);
 #endif /* CONFIG_DIGI_UBI */
 
 extern struct ubi_device *ubi_devices[];

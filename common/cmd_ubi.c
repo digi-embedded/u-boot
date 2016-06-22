@@ -653,6 +653,16 @@ int ubi_volume_off_write_break(char *volume)
 	return err;
 }
 
+const char *ubi_get_volume_name(int index)
+{
+	if (index >= ubi->vtbl_slots)
+		return NULL;
+
+	if (!strcmp(ubi->volumes[index]->name, ""))
+		return NULL;
+
+	return ubi->volumes[index]->name;
+}
 #endif /* CONFIG_DIGI_UBI */
 
 static int ubi_dev_scan(struct mtd_info *info, char *ubidev,
