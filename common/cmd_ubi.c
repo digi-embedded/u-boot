@@ -404,7 +404,7 @@ int ubi_volume_read(char *volume, char *buf, size_t size)
 	return err;
 }
 
-#ifdef CONFIG_CMD_BSP
+#ifdef CONFIG_DIGI_UBI
 extern void MemDump(const void* pvBase, loff_t iOffset, size_t iLen);
 extern loff_t MemCmp(const void* pvS1, const void* pvS2, size_t iSize);
 extern void PrintProgress(int iPercentage, int iThrottle, const char* szFmt, ...);
@@ -652,7 +652,8 @@ int ubi_volume_off_write_break(char *volume)
 
 	return err;
 }
-#endif /* CONFIG_CMD_BSP */
+
+#endif /* CONFIG_DIGI_UBI */
 
 static int ubi_dev_scan(struct mtd_info *info, char *ubidev,
 		const char *vid_header_offset)
