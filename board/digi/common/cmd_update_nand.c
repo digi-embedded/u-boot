@@ -13,6 +13,7 @@
 #include <linux/mtd/nand.h>
 #include <nand.h>
 #include <otf_update.h>
+#include <ubi_uboot.h>
 
 #include "helper.h"
 
@@ -25,7 +26,7 @@ enum {
 };
 
 static int write_firmware(unsigned long loadaddr, unsigned long filesize,
-			  struct part_info *part)
+			  struct part_info *part, char *ubivolname)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	unsigned long verifyaddr, u, m;
@@ -36,10 +37,30 @@ static int write_firmware(unsigned long loadaddr, unsigned long filesize,
 		return -1;
 	}
 
-	/* Write firmware command */
-	sprintf(cmd, "nand write %lx %s %lx", loadaddr, part->name, filesize);
+	if (ubivolname) {
+		/* A UBI volume exists in the partition, use 'ubi write' */
+		sprintf(cmd, "ubi write %lx %s %lx", loadaddr, ubivolname,
+			filesize);
+	} else {
+		/* raw-write firmware command */
+		sprintf(cmd, "nand write %lx %s %lx", loadaddr, part->name,
+			filesize);
+	}
 	if (run_command(cmd, 0))
 		return ERR_WRITE;
+
+#ifdef CONFIG_DIGI_UBI
+	/* If it is a UBIFS file system, verify it using a special function */
+	if (ubivolname) {
+		printf("Verifying firmware...\n");
+		if (ubi_volume_verify(part->name, (char *)loadaddr, 0,
+				      filesize, 0))
+			return ERR_VERIFY;
+		printf("Update was successful\n");
+
+		return 0;
+	}
+#endif
 
 	/*
 	 * If there is enough RAM to hold two copies of the firmware,
@@ -101,6 +122,35 @@ static int write_firmware(unsigned long loadaddr, unsigned long filesize,
 	return 0;
 }
 
+/*
+ * Attaches an MTD partition to UBI and gets its volume name.
+ * If a volume does not exist, it creates one with the same name of the
+ * partition.
+ */
+static int ubi_attach_getcreatevol(char *partname, const char **volname)
+{
+	char cmd[CONFIG_SYS_CBSIZE] = "";
+	int ret = -1;
+
+	*volname = NULL;
+
+	/* Attach partition and get volume name */
+	if (!ubi_part(partname, NULL)) {
+		*volname = ubi_get_volume_name(0);
+		if (!*volname) {
+			/* Create UBI volume with the name of the partition */
+			sprintf(cmd, "ubi createvol %s", partname);
+			if (run_command(cmd, 0))
+				return -1;
+
+			*volname = partname;
+		}
+		ret = 0;
+	}
+
+	return ret;
+}
+
 static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 {
 	int src = SRC_TFTP;	/* default to TFTP */
@@ -117,6 +167,12 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	char *ubootpartname = CONFIG_UBOOT_PARTITION;
 	char *partname;
 	u8 pnum;
+	int ubifs_ext = 0;
+	const char *ubivolname = NULL;
+#ifdef CONFIG_DIGI_UBI
+        struct mtd_info *nand = &nand_info[0];
+        size_t rsize;
+#endif
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -204,7 +260,50 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 				return CMD_RET_USAGE;
 			}
 		}
+
+		/* Check if the filename has extension UBIFS */
+		if (!strcmp(get_filename_ext(filename), "ubifs"))
+			ubifs_ext = 1;
 	}
+
+#ifdef CONFIG_DIGI_UBI
+	/*
+	 * Check if the partition is UBI formatted by reading the first word
+	 * in the first page, which should contain the UBI magic "UBI#".
+	 * Then verify it contains a UBI volume and get its name.
+	 */
+	rsize = nand->writesize;
+	if (!nand_read_skip_bad(nand, part->offset, &rsize, NULL, part->size,
+				(unsigned char *)loadaddr)) {
+		unsigned long *magic = (unsigned long *)loadaddr;
+		unsigned long ubi_magic = 0x23494255;	/* "UBI#" */
+
+		if (*magic == ubi_magic) {
+			/* Silent UBI commands during the update */
+			run_command("ubi silent 1", 0);
+
+			/* Attach partition and get volume name */
+			if (ubi_attach_getcreatevol(partname, &ubivolname)) {
+				ret = CMD_RET_FAILURE;
+				goto _ret;
+			}
+		}
+	}
+
+	/*
+	 * If the partition does not have a valid UBI volume but we are updating
+	 * a *.ubifs filename, create the volume (except if updating the U-Boot
+	 * partition).
+	 */
+	if (ubifs_ext && ubivolname == NULL &&
+	    strcmp(partname, CONFIG_UBOOT_PARTITION)) {
+		/* Attach partition and get volume name */
+		if (ubi_attach_getcreatevol(partname, &ubivolname)) {
+			ret = CMD_RET_FAILURE;
+			goto _ret;
+		}
+	}
+#endif /* CONFIG_DIGI_UBI */
 
 	/* TODO: Activate on-the-fly update if needed */
 
@@ -229,7 +328,7 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	/* Write firmware file from RAM to storage */
 	if (!filesize)
 		filesize = getenv_ulong("filesize", 16, 0);
-	ret = write_firmware(loadaddr, filesize, part);
+	ret = write_firmware(loadaddr, filesize, part, (char *)ubivolname);
 	if (ret) {
 		if (ret == ERR_READ)
 			printf("Error while reading back written firmware!\n");
@@ -242,6 +341,11 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	}
 
 _ret:
+#ifdef CONFIG_DIGI_UBI
+	/* restore UBI commands verbosity */
+	run_command("ubi silent 0", 0);
+#endif
+
 	return ret;
 }
 
@@ -249,7 +353,11 @@ U_BOOT_CMD(
 	update,	6,	0,	do_update,
 	"Digi modules update command",
 	"<partition>  [source] [extra-args...]\n"
-	" Description: updates (raw writes) <partition> in NAND via <source>\n"
+	" Description: updates <partition> in NAND via <source>\n"
+	"              If the partition is UBI formatted, or a filename with\n"
+	"              extension *.ubifs is passed, writing a UBIFS is assumed\n"
+	"              Otherwise, this command raw-writes the file to the partition.\n"
+	"\n"
 	" Arguments:\n"
 	"   - partition:    a partition index, a GUID partition name, or one\n"
 	"                   of the reserved names: uboot\n"
