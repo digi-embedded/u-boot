@@ -50,6 +50,159 @@ const struct mtd_config default_mtd_config = {
 	.flags = 0,
 };
 
+int write_firmware(struct mtd_info *mtd,
+		   struct mtd_config *cfg,
+		   struct mtd_bootblock *bootblock,
+		   unsigned long bs_start_address,
+		   unsigned int boot_stream_size_in_bytes)
+{
+	int startpage, start, size;
+	int i, r, chunk;
+	loff_t ofs, end;
+	int chip = 0;
+	unsigned long read_addr;
+	size_t nbytes = 0;
+	char *readbuf = NULL;
+
+	readbuf = malloc(mtd->writesize);
+	if (NULL == readbuf)
+		return -1;
+
+	//----------------------------------------------------------------------
+	// Loop over the two boot streams.
+	//----------------------------------------------------------------------
+
+	for (i = 0; i < 2; i++) {
+		/* Set start address where bootstream is in RAM */
+		read_addr = bs_start_address;
+
+		//--------------------------------------------------------------
+		// Figure out where to put the current boot stream.
+		//--------------------------------------------------------------
+
+		if (i == 0) {
+			startpage = bootblock->fcb.FCB_Block.m_u32Firmware1_startingPage;
+			size      = bootblock->fcb.FCB_Block.m_u32PagesInFirmware1;
+			end       = bootblock->fcb.FCB_Block.m_u32Firmware2_startingPage;
+		} else {
+			startpage = bootblock->fcb.FCB_Block.m_u32Firmware2_startingPage;
+			size      = bootblock->fcb.FCB_Block.m_u32PagesInFirmware2;
+			end       = lldiv(mtd->size, mtd->writesize);
+		}
+
+		//--------------------------------------------------------------
+		// Compute the byte addresses corresponding to the page
+		// addresses.
+		//--------------------------------------------------------------
+
+		start = startpage * mtd->writesize;
+		size  = size      * mtd->writesize;
+		end   = end       * mtd->writesize;
+
+		if (cfg->flags & F_VERBOSE)
+			printf("mtd: Writting firmware image #%d @%d: 0x%08x - 0x%08x\n", i,
+					chip, start, start + size);
+
+		//--------------------------------------------------------------
+		// Loop over pages as we write them.
+		//--------------------------------------------------------------
+
+		ofs = start;
+		while (ofs < end && size > 0) {
+
+			//------------------------------------------------------
+			// Check if the current block is bad.
+			//------------------------------------------------------
+
+			while (nand_block_isbad(mtd, ofs) == 1) {
+				if (cfg->flags & F_VERBOSE)
+					fprintf(stdout, "mtd: Skipping bad block at 0x%llx\n", ofs);
+				ofs += mtd->erasesize;
+			}
+
+			chunk = size;
+
+			//------------------------------------------------------
+			// Check if we've entered a new block and, if so, erase
+			// it before beginning to write it.
+			//------------------------------------------------------
+
+			if (llmod(ofs, mtd->erasesize) == 0) {
+				if (cfg->flags & F_VERBOSE) {
+					fprintf(stdout, "erasing block at 0x%llx\n", ofs);
+				}
+				if (!(cfg->flags & F_DRYRUN)) {
+					r = nand_erase(mtd, ofs, mtd->erasesize);
+					if (r < 0) {
+						fprintf(stderr, "mtd: Failed to erase block @0x%llx\n", ofs);
+						ofs += mtd->erasesize;
+						continue;
+					}
+				}
+			}
+
+			if (chunk > mtd->writesize)
+				chunk = mtd->writesize;
+
+			//------------------------------------------------------
+			// Write the current chunk to the medium.
+			//------------------------------------------------------
+
+			if (cfg->flags & F_VERBOSE) {
+				fprintf(stdout, "Writing bootstream file from 0x%lx to offset 0x%llx\n", read_addr, ofs);
+			}
+			if (!(cfg->flags & F_DRYRUN)) {
+				r = nand_write_skip_bad(mtd, ofs, (size_t *)&chunk, &nbytes, mtd->size, (unsigned char *)read_addr, WITH_WR_VERIFY);
+				if (r || nbytes != chunk) {
+					fprintf(stderr, "mtd: Failed to write BS @0x%llx (%d)\n", ofs, r);
+				}
+			}
+			//------------------------------------------------------
+			// Verify the written data
+			//------------------------------------------------------
+			r = nand_read_skip_bad(mtd, ofs, (size_t*)&chunk, &nbytes, mtd->size, (unsigned char *)readbuf);
+			if (r || nbytes != chunk) {
+				fprintf(stderr, "mtd: Failed to read BS @0x%llx (%d)\n", ofs, r);
+				goto _error;
+			}
+			if (memcmp((void *)read_addr, readbuf, chunk)) {
+				fprintf(stderr, "mtd: Verification error @0x%llx\n", ofs);
+				goto _error;
+			}
+
+			ofs += mtd->writesize;
+			read_addr += mtd->writesize;
+			size -= chunk;
+		}
+		if (cfg->flags & F_VERBOSE)
+			printf("mtd: Verified firmware image #%d @%d: 0x%08x - 0x%08x\n", i,
+					chip, start, start + size);
+
+		/*
+		 * Write one safe guard page:
+		 * The Image_len of uboot is bigger then the real size of
+		 * uboot by 1K. The ROM will get all 0xff error in this case.
+		 * So we write one more page for safe guard.
+		 */
+
+
+		//--------------------------------------------------------------
+		// Check if we ran out of room.
+		//--------------------------------------------------------------
+
+		if (ofs >= end) {
+			fprintf(stderr, "mtd: Failed to write BS#%d\n", i);
+			goto _error;
+		}
+	}
+
+	free(readbuf);
+	return 0;
+_error:
+	free(readbuf);
+	return -1;
+}
+
 int v1_rom_mtd_init(struct mtd_info *mtd,
 		    struct mtd_config *cfg,
 		    struct mtd_bootblock *bootblock,
@@ -440,18 +593,9 @@ int v1_rom_mtd_commit_structures(struct mtd_info *mtd,
 				 unsigned long bs_start_address,
 				 unsigned int boot_stream_size_in_bytes)
 {
-	int startpage, start, size;
+	int size;
 //	unsigned int search_area_size_in_bytes, stride_size_in_bytes;
-	int i, r, chunk;
-	loff_t ofs, end;
-	int chip = 0;
-	unsigned long read_addr;
-	size_t nbytes = 0;
-	char *readbuf = NULL;
-
-	readbuf = malloc(mtd->writesize);
-	if (NULL == readbuf)
-		return -1;
+	int r;
 
 	//----------------------------------------------------------------------
 	// Compute some important facts about geometry.
@@ -489,130 +633,13 @@ int v1_rom_mtd_commit_structures(struct mtd_info *mtd,
 
 	mtd_commit_bcb(mtd, cfg, bootblock, "DBBT", 1, 1, 1, 1, mtd->writesize);
 
-	//----------------------------------------------------------------------
-	// Loop over the two boot streams.
-	//----------------------------------------------------------------------
+	/* Write the firmware copies */
+	write_firmware(mtd, cfg, bootblock, bs_start_address,
+		       boot_stream_size_in_bytes);
 
-	for (i = 0; i < 2; i++) {
-		/* Set start address where bootstream is in RAM */
-		read_addr = bs_start_address;
-
-		//--------------------------------------------------------------
-		// Figure out where to put the current boot stream.
-		//--------------------------------------------------------------
-
-		if (i == 0) {
-			startpage = bootblock->fcb.FCB_Block.m_u32Firmware1_startingPage;
-			size      = bootblock->fcb.FCB_Block.m_u32PagesInFirmware1;
-			end       = bootblock->fcb.FCB_Block.m_u32Firmware2_startingPage;
-		} else {
-			startpage = bootblock->fcb.FCB_Block.m_u32Firmware2_startingPage;
-			size      = bootblock->fcb.FCB_Block.m_u32PagesInFirmware2;
-			end       = lldiv(mtd->size, mtd->writesize);
-		}
-
-		//--------------------------------------------------------------
-		// Compute the byte addresses corresponding to the page
-		// addresses.
-		//--------------------------------------------------------------
-
-		start = startpage * mtd->writesize;
-		size  = size      * mtd->writesize;
-		end   = end       * mtd->writesize;
-
-		if (cfg->flags & F_VERBOSE)
-			printf("mtd: Writting firmware image #%d @%d: 0x%08x - 0x%08x\n", i,
-					chip, start, start + size);
-
-		//--------------------------------------------------------------
-		// Loop over pages as we write them.
-		//--------------------------------------------------------------
-
-		ofs = start;
-		while (ofs < end && size > 0) {
-
-			//------------------------------------------------------
-			// Check if the current block is bad.
-			//------------------------------------------------------
-
-			while (nand_block_isbad(mtd, ofs) == 1) {
-				if (cfg->flags & F_VERBOSE)
-					fprintf(stdout, "mtd: Skipping bad block at 0x%llx\n", ofs);
-				ofs += mtd->erasesize;
-			}
-
-			chunk = size;
-
-			//------------------------------------------------------
-			// Check if we've entered a new block and, if so, erase
-			// it before beginning to write it.
-			//------------------------------------------------------
-
-			if (llmod(ofs, mtd->erasesize) == 0) {
-				if (cfg->flags & F_VERBOSE) {
-					fprintf(stdout, "erasing block at 0x%llx\n", ofs);
-				}
-				if (!(cfg->flags & F_DRYRUN)) {
-					r = nand_erase(mtd, ofs, mtd->erasesize);
-					if (r < 0) {
-						fprintf(stderr, "mtd: Failed to erase block @0x%llx\n", ofs);
-						ofs += mtd->erasesize;
-						continue;
-					}
-				}
-			}
-
-			if (chunk > mtd->writesize)
-				chunk = mtd->writesize;
-
-			//------------------------------------------------------
-			// Write the current chunk to the medium.
-			//------------------------------------------------------
-
-			if (cfg->flags & F_VERBOSE) {
-				fprintf(stdout, "Writing bootstream file from 0x%lx to offset 0x%llx\n", read_addr, ofs);
-			}
-			if (!(cfg->flags & F_DRYRUN)) {
-				r = nand_write_skip_bad(mtd, ofs, (size_t *)&chunk, &nbytes, mtd->size, (unsigned char *)read_addr, WITH_WR_VERIFY);
-				if (r || nbytes != chunk) {
-					fprintf(stderr, "mtd: Failed to write BS @0x%llx (%d)\n", ofs, r);
-				}
-			}
-			//------------------------------------------------------
-			// Verify the written data
-			//------------------------------------------------------
-			r = nand_read_skip_bad(mtd, ofs, (size_t*)&chunk, &nbytes, mtd->size, (unsigned char *)readbuf);
-			if (r || nbytes != chunk) {
-				fprintf(stderr, "mtd: Failed to read BS @0x%llx (%d)\n", ofs, r);
-				goto _error;
-			}
-			if (memcmp((void *)read_addr, readbuf, chunk)) {
-				fprintf(stderr, "mtd: Verification error @0x%llx\n", ofs);
-				goto _error;
-			}
-
-			ofs += mtd->writesize;
-			read_addr += mtd->writesize;
-			size -= chunk;
-		}
-		if (cfg->flags & F_VERBOSE)
-			printf("mtd: Verified firmware image #%d @%d: 0x%08x - 0x%08x\n", i,
-					chip, start, start + size);
-
-		//--------------------------------------------------------------
-		// Check if we ran out of room.
-		//--------------------------------------------------------------
-
-		if (ofs >= end) {
-			fprintf(stderr, "mtd: Failed to write BS#%d\n", i);
-			goto _error;
-		}
-	}
-
-	free(readbuf);
 	return 0;
+
 _error:
-	free(readbuf);
 	return -1;
 }
 
