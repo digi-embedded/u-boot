@@ -144,8 +144,13 @@ static inline uint32_t mx28_nand_ecc_size_in_bits(uint32_t ecc_strength)
 static inline uint32_t mx28_nand_get_ecc_strength(uint32_t page_data_size,
 						uint32_t page_oob_size)
 {
-	if (page_data_size == 2048)
+	if (page_data_size == 2048) {
+#if defined(CONFIG_MX28)
 		return 8;
+#elif defined(CONFIG_MX6UL)
+		return 4;
+#endif
+	}
 
 	if (page_data_size == 4096) {
 		if (page_oob_size == 128)
@@ -207,14 +212,14 @@ static inline uint32_t mx28_nand_get_mark_offset(uint32_t page_data_size,
 	return block_mark_bit_offset;
 }
 
-inline uint32_t mx28_nand_mark_byte_offset(void)
+uint32_t mx28_nand_mark_byte_offset(void)
 {
 	uint32_t ecc_strength;
 	ecc_strength = mx28_nand_get_ecc_strength(nand_writesize, nand_oobsize);
 	return mx28_nand_get_mark_offset(nand_writesize, ecc_strength) >> 3;
 }
 
-inline uint32_t mx28_nand_mark_bit_offset(void)
+uint32_t mx28_nand_mark_bit_offset(void)
 {
 	uint32_t ecc_strength;
 	ecc_strength = mx28_nand_get_ecc_strength(nand_writesize, nand_oobsize);

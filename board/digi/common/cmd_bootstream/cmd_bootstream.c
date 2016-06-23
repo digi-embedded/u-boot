@@ -224,7 +224,6 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
 		    unsigned int boot_stream_size_in_bytes,
 		    uint64_t part_size)
 {
-#ifdef CONFIG_MX28
 	unsigned int  stride_size_in_bytes;
 	unsigned int  search_area_size_in_bytes;
 #ifdef CONFIG_USE_NAND_DBBT
@@ -338,8 +337,13 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
                 fcb->FCB_Block.m_u32MetadataBytes            = 10;
                 fcb->FCB_Block.m_u32EccBlock0Size            = 512;
                 fcb->FCB_Block.m_u32EccBlockNSize            = 512;
+#if defined(CONFIG_MX28)
 		fcb->FCB_Block.m_u32EccBlock0EccType         = ROM_BCH_Ecc_8bit;
 		fcb->FCB_Block.m_u32EccBlockNEccType         = ROM_BCH_Ecc_8bit;
+#elif defined(CONFIG_MX6UL)
+		fcb->FCB_Block.m_u32EccBlock0EccType         = ROM_BCH_Ecc_4bit;
+		fcb->FCB_Block.m_u32EccBlockNEccType         = ROM_BCH_Ecc_4bit;
+#endif
 
 	} else if (mtd->writesize == 4096) {
 		fcb->FCB_Block.m_u32NumEccBlocksPerPage      = (mtd->writesize / 512) - 1;
@@ -384,7 +388,6 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
 
 	dbbt->DBBT_Block.v2.m_u32NumberBB        = 0;
 	dbbt->DBBT_Block.v2.m_u32Number2KPagesBB = 0;
-#endif /* CONFIG_MX28 */
 	return 0;
 
 }
@@ -658,6 +661,33 @@ _error:
 	return -1;
 }
 
+int v6_rom_mtd_commit_structures(struct mtd_info *mtd,
+				 struct mtd_config *cfg,
+				 struct mtd_bootblock *bootblock,
+				 unsigned long bs_start_address,
+				 unsigned int boot_stream_size_in_bytes)
+{
+	int size, r;
+
+	/* [1] Write the FCB search area. */
+	size =  mtd->writesize + mtd->oobsize;
+
+	r = fcb_encrypt(&bootblock->fcb, bootblock->buf, size, 3);
+	if (r < 0)
+		return r;
+	mtd_commit_bcb(mtd, cfg, bootblock, "FCB", 0, 0, 0, 1, size);
+
+	/* [2] Write the DBBT search area. */
+	memset(bootblock->buf, 0, size);
+	memcpy(bootblock->buf, &(bootblock->dbbt28), sizeof(bootblock->dbbt28));
+
+	mtd_commit_bcb(mtd, cfg, bootblock, "DBBT", 1, 1, 1, 1, mtd->writesize);
+
+	/* [3] Write the two boot streams using a 1K padding. */
+	return write_firmware(mtd, cfg, bootblock, bs_start_address,
+			      boot_stream_size_in_bytes, 1024);
+}
+
 int write_bootstream(struct part_info *part,
 		     unsigned long bs_start_address,
 		     int bs_size)
@@ -684,7 +714,7 @@ int write_bootstream(struct part_info *part,
 	}
 
 	printf("Writing bootstream...");
-#if defined(CONFIG_MX28)
+#if defined(CONFIG_MX28) || defined(CONFIG_MX6UL)
 	r = v1_rom_mtd_init(mtd, &cfg, &bootblock, bs_size, part->size);
 #endif
 	if (r < 0) {
@@ -693,8 +723,8 @@ int write_bootstream(struct part_info *part,
 	else {
 #if defined(CONFIG_MX28)
 		r = v1_rom_mtd_commit_structures(mtd, &cfg, &bootblock, bs_start_address, bs_size);
-#elif defined(CONFIG_MX53)
-		r = v2_rom_mtd_commit_structures(mtd, &cfg, &bootblock, bs_start_address, bs_size);
+#elif defined(CONFIG_MX6UL)
+		r = v6_rom_mtd_commit_structures(mtd, &cfg, &bootblock, bs_start_address, bs_size);
 #endif
 	}
 
