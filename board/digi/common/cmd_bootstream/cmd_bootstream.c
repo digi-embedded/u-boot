@@ -54,7 +54,8 @@ int write_firmware(struct mtd_info *mtd,
 		   struct mtd_config *cfg,
 		   struct mtd_bootblock *bootblock,
 		   unsigned long bs_start_address,
-		   unsigned int boot_stream_size_in_bytes)
+		   unsigned int boot_stream_size_in_bytes,
+		   unsigned int pre_padding)
 {
 	int startpage, start, size;
 	int i, r, chunk;
@@ -68,6 +69,20 @@ int write_firmware(struct mtd_info *mtd,
 	if (NULL == readbuf)
 		return -1;
 
+	if (pre_padding) {
+		/*
+		 * rewind bs_start_address pre_padding bytes and fill it with
+		 * zeros.
+		 */
+		if (bs_start_address - pre_padding < PHYS_SDRAM) {
+			printf("pre-padding required! "
+			       "Use a $loadaddr of at least 0x%08x\n",
+			       PHYS_SDRAM + pre_padding);
+			goto _error;
+		}
+		bs_start_address -= pre_padding;
+		memset((u8 *)bs_start_address, 0, pre_padding);
+	}
 	//----------------------------------------------------------------------
 	// Loop over the two boot streams.
 	//----------------------------------------------------------------------
@@ -635,7 +650,7 @@ int v1_rom_mtd_commit_structures(struct mtd_info *mtd,
 
 	/* Write the firmware copies */
 	write_firmware(mtd, cfg, bootblock, bs_start_address,
-		       boot_stream_size_in_bytes);
+		       boot_stream_size_in_bytes, 0);
 
 	return 0;
 
