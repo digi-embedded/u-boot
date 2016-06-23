@@ -24,7 +24,7 @@
 #include <linux/string.h>
 #include <asm/errno.h>
 
-#include "mtd.h"
+#include "cmd_bootstream.h"
 //#include "config.h"
 #include "rom_nand_hamming_code_ecc.h"
 #include "BootControlBlocks.h"

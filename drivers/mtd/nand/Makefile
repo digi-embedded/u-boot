@@ -57,7 +57,6 @@ obj-$(CONFIG_NAND_MPC5121_NFC) += mpc5121_nfc.o
 obj-$(CONFIG_NAND_VF610_NFC) += vf610_nfc.o
 obj-$(CONFIG_NAND_MXC) += mxc_nand.o
 obj-$(CONFIG_NAND_MXS) += mxs_nand.o
-obj-$(CONFIG_CMD_BOOTSTREAM) += nand_device_info.o
 obj-$(CONFIG_NAND_NDFC) += ndfc.o
 obj-$(CONFIG_NAND_NOMADIK) += nomadik.o
 obj-$(CONFIG_NAND_S3C2410) += s3c2410_nand.o
