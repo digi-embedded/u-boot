@@ -16,6 +16,9 @@
 #include <ubi_uboot.h>
 
 #include "helper.h"
+#ifdef CONFIG_CMD_BOOTSTREAM
+#include "cmd_bootstream/cmd_bootstream.h"
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -328,6 +331,13 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	/* Write firmware file from RAM to storage */
 	if (!filesize)
 		filesize = getenv_ulong("filesize", 16, 0);
+#ifdef CONFIG_CMD_BOOTSTREAM
+	/* U-Boot is written in a special way */
+	if (!strcmp(partname, CONFIG_UBOOT_PARTITION)) {
+		ret = write_bootstream(part, loadaddr, filesize);
+		goto _ret;
+	}
+#endif
 	ret = write_firmware(loadaddr, filesize, part, (char *)ubivolname);
 	if (ret) {
 		if (ret == ERR_READ)
