@@ -28,6 +28,7 @@
 //#include "config.h"
 #include "rom_nand_hamming_code_ecc.h"
 #include "BootControlBlocks.h"
+#include "bch.h"
 
 static inline int even_number_of_1s(uint8_t byte)
 {
@@ -412,6 +413,10 @@ int fcb_encrypt(BCB_ROM_BootBlockStruct_t *fcb, void *target, size_t size, int v
 		return size;
 	case 1:
 		return encode_hamming_code_13_8(fcb, sizeof(*fcb), target, size);
+	case 2:
+		return encode_bch_ecc(fcb, sizeof(*fcb), target, size, version);
+	case 3:
+		return encode_bch_ecc(fcb, sizeof(*fcb), target, size, version);
 	default:
 		fprintf(stderr, "FCB version == %d? Something is wrong!\n", version);
 		return -EINVAL;
