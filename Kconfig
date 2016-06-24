@@ -27,13 +27,15 @@ config CONSOLE_ENABLE_GPIO
 	help
 	  Allow to enable the console with a GPIO.
 
-config CCIMX6SBC_CONSOLE_ENABLE_GPIO_NR
-	int "Console enable EXP_GPIO number"
-	range 0 7
+config CONSOLE_ENABLE_GPIO_NR
+	int "Console enable GPIO number"
 	depends on CONSOLE_ENABLE_GPIO
 	help
-	  Use one of the EXP_GPIO_N (0-7) lines available on the GPIO
-	  connector of the ConnectCore 6 SBC to enable the console on boot.
+	  Use one of the GPIO_N lines available on the board to enable the console port:
+	  GPIO_N lines are available:
+	    On the ConnectCore 6 SBC, on GPIO connector
+	    On the ConnectCore 6UL StarterBoard, on Raspberry-Pi expansion connector
+	    On the ConnectCore 6UL SBC, on GPIO connector
 
 config CONSOLE_ENABLE_PASSPHRASE
 	bool "Passphrase console enable support"

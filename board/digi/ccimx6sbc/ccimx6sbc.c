@@ -301,7 +301,7 @@ static int board_console_enable_gpio(void)
 	int ret = 0;
 	int enable_gpio = -1;
 
-	switch(CONFIG_CCIMX6SBC_CONSOLE_ENABLE_GPIO_NR) {
+	switch(CONFIG_CONSOLE_ENABLE_GPIO_NR) {
 	case 0:
 		imx_iomux_v3_setup_pad(MX6_PAD_NANDF_D5__GPIO2_IO05);
 		enable_gpio = IMX_GPIO_NR(2, 5);
