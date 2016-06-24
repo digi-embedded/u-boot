@@ -28,7 +28,8 @@ obj-$(CONFIG_CMD_BSP) += cmd_bsp.o \
 	  atoi.o \
 	  safe_strcat.o \
 	  helper.o
-obj-$(CONFIG_CMD_BOOTSTREAM) += cmd_bootstream/ncb.o \
+obj-$(CONFIG_CMD_BOOTSTREAM) += cmd_bootstream/bch.o \
+				cmd_bootstream/ncb.o \
 				cmd_bootstream/cmd_bootstream.o \
 				cmd_bootstream/mxsboot.o
 obj-$(CONFIG_MXS_OTP) += cmd_mxsotp.o

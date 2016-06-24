@@ -84,11 +84,9 @@
  * finite fields GF(2^q). In Rapport de recherche INRIA no 2829, 1996.
  */
 
+#include <common.h>
 #include <errno.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <malloc.h>
 #include "bch.h"
 
 #if defined(CONFIG_BCH_CONST_PARAMS)
@@ -102,7 +100,6 @@
 #endif
 
 #define DIV_ROUND_UP(n,d) (((n) + (d) - 1) / (d))
-#define ARRAY_SIZE(_A) (sizeof(_A) / sizeof((_A)[0]))
 #define BCH_ECC_WORDS(_p)      DIV_ROUND_UP(GF_M(_p)*GF_T(_p), 32)
 #define BCH_ECC_BYTES(_p)      DIV_ROUND_UP(GF_M(_p)*GF_T(_p), 8)
 
@@ -312,35 +309,6 @@ static inline int modulo(struct bch_control *bch, unsigned int v)
 		v = (v & n) + (v >> GF_M(bch));
 	}
 	return v;
-}
-
-static inline int fls(int x)
-{
-    int r = 32;
-
-    if (!x)
-        return 0;
-    if (!(x & 0xffff0000u)) {
-        x <<= 16;
-        r -= 16;
-    }
-    if (!(x & 0xff000000u)) {
-        x <<= 8;
-        r -= 8;
-    }
-    if (!(x & 0xf0000000u)) {
-        x <<= 4;
-        r -= 4;
-    }
-    if (!(x & 0xc0000000u)) {
-        x <<= 2;
-        r -= 2;
-    }
-    if (!(x & 0x80000000u)) {
-        x <<= 1;
-        r -= 1;
-    }
-    return r;
 }
 
 /*
