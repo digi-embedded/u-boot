@@ -50,6 +50,19 @@ const struct mtd_config default_mtd_config = {
 	.flags = 0,
 };
 
+void dump_buffer(unsigned char *buf, int size)
+{
+	int i;
+
+	for (i = 0; i < size; i++) {
+		if ((i % 16) == 0)
+			printf("\n");
+		if (i == 0 || (i % 8) == 0)
+			printf("  ");
+		printf("%02x ", buf[i]);
+	}
+}
+
 int write_firmware(struct mtd_info *mtd,
 		   struct mtd_config *cfg,
 		   struct mtd_bootblock *bootblock,
