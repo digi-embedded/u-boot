@@ -120,8 +120,8 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 
 	/* Get flattened Device Tree */
 	varload = getenv("boot_fdt");
-	if (NULL == varload && OS_ANDROID == os)
-		varload = (char *)"no";	/* Android default */
+	if (NULL == varload)
+		varload = (char *)"try"
 	ret = load_firmware(src, "$fdt_file", devpartno, fs,
 			    "$fdt_addr", varload);
 	if (ret == LDFW_LOADED) {
