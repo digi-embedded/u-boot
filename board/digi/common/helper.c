@@ -33,7 +33,7 @@ enum {
 static const char *src_strings[] = {
 	[SRC_TFTP] =	"tftp",
 	[SRC_NFS] =	"nfs",
-	[SRC_FLASH] =	"flash",
+	[SRC_NAND] =	"nand",
 	[SRC_USB] =	"usb",
 	[SRC_MMC] =	"mmc",
 	[SRC_RAM] =	"ram",
