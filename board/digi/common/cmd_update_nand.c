@@ -172,10 +172,6 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	u8 pnum;
 	int ubifs_ext = 0;
 	const char *ubivolname = NULL;
-#ifdef CONFIG_DIGI_UBI
-        struct mtd_info *nand = &nand_info[0];
-        size_t rsize;
-#endif
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -272,40 +268,31 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 #ifdef CONFIG_DIGI_UBI
 	/*
 	 * If the partition is not U-Boot (whose sectors must be raw-read),
-	 * check if the partition is UBI formatted by reading the first word
-	 * in the first page, which should contain the UBI magic "UBI#".
-	 * Then verify it contains a UBI volume and get its name.
+	 * check if the partition is UBI formatted.
 	 */
 	if (strcmp(part->name, CONFIG_UBOOT_PARTITION)) {
-		rsize = nand->writesize;
-		if (!nand_read_skip_bad(nand, part->offset, &rsize, NULL,
-					part->size,
-					(unsigned char *)loadaddr)) {
-			unsigned long *magic = (unsigned long *)loadaddr;
-			unsigned long ubi_magic = 0x23494255;	/* "UBI#" */
+		if (is_ubi_partition(part)) {
+			/* Silent UBI commands during the update */
+			run_command("ubi silent 1", 0);
 
-			if (*magic == ubi_magic) {
-				/* Silent UBI commands during the update */
-				run_command("ubi silent 1", 0);
-
+			/* Attach partition and get volume name */
+			if (ubi_attach_getcreatevol(partname, &ubivolname)) {
+				ret = CMD_RET_FAILURE;
+				goto _ret;
+			}
+		} else {
+			/*
+			 * If the partition does not have a valid UBI volume
+			 * but we are updating a *.ubifs filename, create the
+			 * volume.
+			 */
+			if (ubifs_ext && ubivolname == NULL) {
 				/* Attach partition and get volume name */
 				if (ubi_attach_getcreatevol(partname,
 							    &ubivolname)) {
 					ret = CMD_RET_FAILURE;
 					goto _ret;
 				}
-			}
-		}
-
-		/*
-		 * If the partition does not have a valid UBI volume but we are
-		 * updating a *.ubifs filename, create the volume.
-		 */
-		if (ubifs_ext && ubivolname == NULL) {
-			/* Attach partition and get volume name */
-			if (ubi_attach_getcreatevol(partname, &ubivolname)) {
-				ret = CMD_RET_FAILURE;
-				goto _ret;
 			}
 		}
 	}

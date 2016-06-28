@@ -9,6 +9,7 @@
 #include <common.h>
 #include <asm/errno.h>
 #include <malloc.h>
+#include <nand.h>
 #include <watchdog.h>
 #include <u-boot/sha256.h>
 #ifdef CONFIG_OF_LIBFDT
@@ -197,6 +198,36 @@ int get_default_devpartno(int src, char *devpartno)
 
 	return 0;
 }
+
+#ifdef CONFIG_DIGI_UBI
+bool is_ubi_partition(struct part_info *part)
+{
+	struct mtd_info *nand = &nand_info[0];
+	size_t rsize = nand->writesize;
+	unsigned char *page;
+	unsigned long ubi_magic = 0x23494255;	/* "UBI#" */
+	bool ret = false;
+
+	/*
+	 * Check if the partition is UBI formatted by reading the first word
+	 * in the first page, which should contain the UBI magic "UBI#".
+	 * Then verify it contains a UBI volume and get its name.
+	 */
+	page = malloc(rsize);
+	if (page) {
+		if (!nand_read_skip_bad(nand, part->offset, &rsize, NULL,
+					part->size, page)) {
+			unsigned long *magic = (unsigned long *)page;
+
+			if (*magic == ubi_magic)
+				ret = true;
+		}
+		free(page);
+	}
+
+	return ret;
+}
+#endif /* CONFIG_DIGI_UBI */
 #endif /* CONFIG_CMD_UPDATE || CONFIG_CMD_DBOOT */
 
 #ifdef CONFIG_CMD_UPDATE
