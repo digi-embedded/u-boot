@@ -35,6 +35,9 @@ int get_default_filename(char *partname, char *filename, int cmd);
 int strtou32(const char *str, unsigned int base, u32 *result);
 int confirm_prog(void);
 void fdt_fixup_mac(void *fdt, char *varname, char *node);
+#ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
+int console_enable_passphrase(void);
+#endif
 
 enum {
 	LDFW_ERROR = -1,
