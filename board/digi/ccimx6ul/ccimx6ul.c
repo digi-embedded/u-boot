@@ -339,6 +339,14 @@ int ccimx6ul_late_init(void)
 	sprintf(var, "0x%02x", my_hwid.variant);
 	setenv("module_variant", var);
 
+#ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
+	gd->flags &= ~GD_FLG_DISABLE_CONSOLE_INPUT;
+	if (!console_enable_passphrase())
+		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+	else
+		gd->flags |= GD_FLG_DISABLE_CONSOLE_INPUT;
+#endif
+
 	return 0;
 }
 
