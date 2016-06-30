@@ -107,9 +107,6 @@
 #undef CONFIG_CMD_EXPORTENV
 #undef CONFIG_CMD_IMPORTENV
 
-/* allow to overwrite serial and ethaddr */
-#define CONFIG_ENV_OVERWRITE
-
 /* I2C configs */
 #define CONFIG_CMD_I2C
 #ifdef CONFIG_CMD_I2C
