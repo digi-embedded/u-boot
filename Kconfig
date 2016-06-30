@@ -169,7 +169,9 @@ config SECURE_BOOT
 	select IMX_HAB
 	help
 	  This setting configures U-Boot for secure support so that
-	  only properly signed uImages/zImages are booted.
+	  only properly signed uImages/zImages are booted on closed devices.
+
+	  This setting has no effect on open devices.
 
 config SIGN_IMAGE
 	bool "Generate signed images"
