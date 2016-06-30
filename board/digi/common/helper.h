@@ -42,6 +42,7 @@ struct load_fw {
 	char *fs;
 	char *loadaddr;
 	char *varload;
+	struct part_info *part;
 };
 
 int confirm_msg(char *msg);

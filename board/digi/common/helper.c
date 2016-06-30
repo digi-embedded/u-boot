@@ -80,6 +80,9 @@ int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 {
 	int i;
 	char *src;
+	struct mtd_device *dev;
+	u8 pnum;
+	char *partname;
 
 	if (argc < 3) {
 		fwinfo->src = SRC_TFTP;	/* default to TFTP */
@@ -103,12 +106,36 @@ int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 		goto _err;
 	}
 
-	if (i == SRC_USB || i == SRC_MMC || i == SRC_SATA) {
+	switch (i) {
+	case SRC_USB:
+	case SRC_MMC:
+	case SRC_SATA:
 		/* Get device:partition and file system */
 		if (argc > 3)
 			fwinfo->devpartno = (char *)argv[3];
 		if (argc > 4)
 			fwinfo->fs = (char *)argv[4];
+		break;
+	case SRC_NAND:
+		/* Initialize partitions */
+		if (mtdparts_init()) {
+			printf("Cannot initialize MTD partitions\n");
+			goto _err;
+		}
+
+		/*
+		 * Use partition name if provided, or else search for a
+		 * partition with the same name as the OS.
+		 */
+		if (argc > 3)
+			partname = argv[3];
+		else
+			partname = argv[1];
+		if (find_dev_and_part(partname, &dev, &pnum, &fwinfo->part)) {
+			printf("Cannot find '%s' partition\n", partname);
+			goto _err;
+		}
+		break;
 	}
 
 	fwinfo->src = i;
@@ -146,6 +173,12 @@ int get_fw_filename(int argc, char * const argv[], struct load_fw *fwinfo)
 	case SRC_SATA:
 		if (argc > 5) {
 			fwinfo->filename = argv[5];
+			return 0;
+		}
+		break;
+	case SRC_NAND:
+		if (argc > 4) {
+			fwinfo->filename = argv[4];
 			return 0;
 		}
 		break;
@@ -368,6 +401,21 @@ int load_firmware(struct load_fw *fwinfo)
 			sprintf(cmd, "load %s %s %s %s", src_strings[fwinfo->src],
 				fwinfo->devpartno, fwinfo->loadaddr,
 				fwinfo->filename);
+		}
+		break;
+	case SRC_NAND:
+		/*
+		 * If the partition is UBI formatted, use 'ubiload' to read
+		 * a file from the UBIFS file system. Otherwise use a raw
+		 * read using 'nand read'.
+		 */
+		if (is_ubi_partition(fwinfo->part)) {
+			sprintf(cmd, "ubi part %s;ubifsmount ubi0:%s;ubifsload %s %s",
+				fwinfo->part->name, fwinfo->part->name,
+				fwinfo->loadaddr, fwinfo->filename);
+		} else {
+			sprintf(cmd, "nand read %s %s %x", fwinfo->part->name,
+				fwinfo->loadaddr, (u32)fwinfo->part->size);
 		}
 		break;
 	case SRC_RAM:

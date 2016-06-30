@@ -159,6 +159,9 @@
 	"       - target_file: target filename\n"
 #define DIGICMD_ARG_TARGETFILESYS_HELP	\
 	"       - target_fs: fat (default)\n"
+#define DIGICMD_ARG_PARTITION_HELP	\
+	"       - partition: partition name (if not provided, a partition \n" \
+	"                    with the name of the OS will be assumed)\n"
 
 /* Help arguments for update command */
 #define DIGICMD_UPDATE_NET_ARGS_HELP	\
@@ -179,6 +182,11 @@
 /* Help arguments for dboot command */
 #define DIGICMD_DBOOT_NET_ARGS_HELP	DIGICMD_UPDATE_NET_ARGS_HELP
 #define DIGICMD_DBOOT_BLOCK_ARGS_HELP	DIGICMD_UPDATE_BLOCK_ARGS_HELP
+#define DIGICMD_DBOOT_NAND_ARGS_HELP	\
+	"      source=" CONFIG_SUPPORTED_SOURCES_NAND " -> " \
+	"[partition] [filename]\n" \
+		DIGICMD_ARG_PARTITION_HELP \
+		DIGICMD_ARG_FILENAME_HELP
 
 /* Help arguments for updatefile command */
 #define DIGICMD_UPDATEFILE_NET_ARGS_HELP	\
