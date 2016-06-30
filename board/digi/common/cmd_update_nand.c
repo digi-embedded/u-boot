@@ -156,11 +156,7 @@ static int ubi_attach_getcreatevol(char *partname, const char **volname)
 
 static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 {
-	int src = SRC_TFTP;	/* default to TFTP */
-	char *devpartno = NULL;
-	char *fs = NULL;
 	int ret;
-	char filename[256] = "";
 	int otf = 0;
 	unsigned long loadaddr;
 	unsigned long verifyaddr;
@@ -172,6 +168,7 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	u8 pnum;
 	int ubifs_ext = 0;
 	const char *ubivolname = NULL;
+	struct load_fw fwinfo;
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -208,18 +205,8 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	}
 
 	/* Get source of update firmware file */
-	if (argc > 2) {
-		src = get_source(argc, argv, &devpartno, &fs);
-		if (src == SRC_UNSUPPORTED) {
-			printf("Error: '%s' is not supported as source\n",
-				argv[2]);
-			return CMD_RET_USAGE;
-		}
-		else if (src == SRC_UNDEFINED) {
-			printf("Error: undefined source\n");
-			return CMD_RET_USAGE;
-		}
-	}
+	if (get_source(argc, argv, &fwinfo))
+		return CMD_RET_FAILURE;
 
 	loadaddr = getenv_ulong("loadaddr", 16, CONFIG_LOADADDR);
 	/*
@@ -234,7 +221,7 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 			setenv_hex("verifyaddr", verifyaddr);
 	}
 
-	if (src == SRC_RAM) {
+	if (fwinfo.src == SRC_RAM) {
 		/* Get address in RAM where firmware file is */
 		if (argc > 3)
 			loadaddr = simple_strtol(argv[3], NULL, 16);
@@ -250,18 +237,19 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 		 */
 
 		/* Get firmware file name */
-		ret = get_fw_filename(argc, argv, src, filename);
+		ret = get_fw_filename(argc, argv, &fwinfo);
 		if (ret) {
 			/* Filename was not provided. Look for default one */
-			ret = get_default_filename(argv[1], filename, CMD_UPDATE);
-			if (ret) {
+			fwinfo.filename = get_default_filename(argv[1],
+							       CMD_UPDATE);
+			if (!fwinfo.filename) {
 				printf("Error: need a filename\n");
 				return CMD_RET_USAGE;
 			}
 		}
 
 		/* Check if the filename has extension UBIFS */
-		if (!strcmp(get_filename_ext(filename), "ubifs"))
+		if (!strcmp(get_filename_ext(fwinfo.filename), "ubifs"))
 			ubifs_ext = 1;
 	}
 
@@ -300,13 +288,13 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 
 	/* TODO: Activate on-the-fly update if needed */
 
-	if (src != SRC_RAM) {
+	if (fwinfo.src != SRC_RAM) {
 		/*
 		 * Load firmware file to RAM (this process may write the file
 		 * to the target media if OTF mechanism is enabled).
 		 */
-		ret = load_firmware(src, filename, devpartno, fs, "$loadaddr",
-				    NULL);
+		fwinfo.loadaddr = "$loadaddr";
+		ret = load_firmware(&fwinfo);
 		if (ret == LDFW_ERROR) {
 			printf("Error loading firmware file to RAM\n");
 			ret = CMD_RET_FAILURE;

@@ -76,32 +76,51 @@ int confirm_msg(char *msg)
 }
 
 #if defined(CONFIG_CMD_UPDATE) || defined(CONFIG_CMD_DBOOT)
-int get_source(int argc, char * const argv[], char **devpartno, char **fs)
+int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 {
 	int i;
-	char *src = argv[2];
+	char *src;
 
+	if (argc < 3) {
+		fwinfo->src = SRC_TFTP;	/* default to TFTP */
+		return 0;
+	}
+
+	src = argv[2];
 	for (i = 0; i < ARRAY_SIZE(src_strings); i++) {
 		if (!strncmp(src_strings[i], src, strlen(src))) {
-			if (1 << i & CONFIG_SUPPORTED_SOURCES)
+			if (1 << i & CONFIG_SUPPORTED_SOURCES) {
 				break;
-			else
-				return SRC_UNSUPPORTED;
+			} else {
+				fwinfo->src = SRC_UNSUPPORTED;
+				goto _err;
+			}
 		}
 	}
 
-	if (i >= ARRAY_SIZE(src_strings))
-		return SRC_UNDEFINED;
+	if (i >= ARRAY_SIZE(src_strings)) {
+		fwinfo->src = SRC_UNDEFINED;
+		goto _err;
+	}
 
 	if (i == SRC_USB || i == SRC_MMC || i == SRC_SATA) {
 		/* Get device:partition and file system */
 		if (argc > 3)
-			*devpartno = (char *)argv[3];
+			fwinfo->devpartno = (char *)argv[3];
 		if (argc > 4)
-			*fs = (char *)argv[4];
+			fwinfo->fs = (char *)argv[4];
 	}
 
-	return i;
+	fwinfo->src = i;
+	return 0;
+
+_err:
+	if (fwinfo->src == SRC_UNSUPPORTED)
+		printf("Error: '%s' is not supported as source\n", argv[2]);
+	else if (fwinfo->src == SRC_UNDEFINED)
+		printf("Error: undefined source\n");
+
+	return -1;
 }
 
 const char *get_source_string(int src)
@@ -112,13 +131,13 @@ const char *get_source_string(int src)
 	return "";
 }
 
-int get_fw_filename(int argc, char * const argv[], int src, char *filename)
+int get_fw_filename(int argc, char * const argv[], struct load_fw *fwinfo)
 {
-	switch (src) {
+	switch (fwinfo->src) {
 	case SRC_TFTP:
 	case SRC_NFS:
 		if (argc > 3) {
-			strcpy(filename, argv[3]);
+			fwinfo->filename = argv[3];
 			return 0;
 		}
 		break;
@@ -126,7 +145,7 @@ int get_fw_filename(int argc, char * const argv[], int src, char *filename)
 	case SRC_USB:
 	case SRC_SATA:
 		if (argc > 5) {
-			strcpy(filename, argv[5]);
+			fwinfo->filename = argv[5];
 			return 0;
 		}
 		break;
@@ -139,39 +158,32 @@ int get_fw_filename(int argc, char * const argv[], int src, char *filename)
 	return -1;
 }
 
-int get_default_filename(char *partname, char *filename, int cmd)
+char *get_default_filename(char *partname, int cmd)
 {
 	switch(cmd) {
 	case CMD_DBOOT:
 		if (!strcmp(partname, "linux") ||
 		    !strcmp(partname, "android")) {
-			strcpy(filename, "$uimage");
-			return 0;
+			return "$uimage";
 		}
 		break;
 
 	case CMD_UPDATE:
 		if (!strcmp(partname, "uboot")) {
-			strcpy(filename, "$uboot_file");
-			return 0;
+			return "$uboot_file";
 		} else {
 			/* Read the default filename from a variable called
 			 * after the partition name: <partname>_file
 			 */
 			char varname[100];
-			char *varvalue;
 
 			sprintf(varname, "%s_file", partname);
-			varvalue = getenv(varname);
-			if (varvalue != NULL) {
-				strcpy(filename, varvalue);
-				return 0;
-			}
+			return getenv(varname);
 		}
 		break;
 	}
 
-	return -1;
+	return NULL;
 }
 
 int get_default_devpartno(int src, char *devpartno)
@@ -310,49 +322,52 @@ static int write_file_fs_otf(int src, char *filename, char *devpartno)
  *	LDFW_NOT_LOADED if the file was not loaded, but isn't required
  *	LDFW_ERROR on error
  */
-int load_firmware(int src, char *filename, char *devpartno,
-		  char *fs, char *loadaddr, char *varload)
+int load_firmware(struct load_fw *fwinfo)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	char def_devpartno[] = "0:1";
 	int ret;
 	int fwload = FWLOAD_YES;
 
-	/* Variable 'varload' determines if the file must be loaded:
+	/* 'fwinfo->varload' determines if the file must be loaded:
 	 * - yes|NULL: the file must be loaded. Return error otherwise.
 	 * - try: the file may be loaded. Return ok even if load fails.
 	 * - no: skip the load.
 	 */
-	if (NULL != varload) {
-		if (!strcmp(varload, "no"))
+	if (NULL != fwinfo->varload) {
+		if (!strcmp(fwinfo->varload, "no"))
 			return LDFW_NOT_LOADED;	/* skip load and return ok */
-		else if (!strcmp(varload, "try"))
+		else if (!strcmp(fwinfo->varload, "try"))
 			fwload = FWLOAD_TRY;
 	}
 
 	/* Use default values if not provided */
-	if (NULL == devpartno) {
-		if (get_default_devpartno(src, def_devpartno))
+	if (NULL == fwinfo->devpartno) {
+		if (get_default_devpartno(fwinfo->src, def_devpartno))
 			strcpy(def_devpartno, "0:1");
-		devpartno = def_devpartno;
+		fwinfo->devpartno = def_devpartno;
 	}
 
-	switch (src) {
+	switch (fwinfo->src) {
 	case SRC_TFTP:
-		sprintf(cmd, "tftpboot %s %s", loadaddr, filename);
+		sprintf(cmd, "tftpboot %s %s", fwinfo->loadaddr,
+			fwinfo->filename);
 		break;
 	case SRC_NFS:
-		sprintf(cmd, "nfs %s $rootpath/%s", loadaddr, filename);
+		sprintf(cmd, "nfs %s $rootpath/%s", fwinfo->loadaddr,
+			fwinfo->filename);
 		break;
 	case SRC_MMC:
 	case SRC_USB:
 	case SRC_SATA:
 		if (otf_update_hook) {
-			ret = write_file_fs_otf(src, filename, devpartno);
+			ret = write_file_fs_otf(fwinfo->src, fwinfo->filename,
+						fwinfo->devpartno);
 			goto _ret;
 		} else {
-			sprintf(cmd, "load %s %s %s %s", src_strings[src],
-				devpartno, loadaddr, filename);
+			sprintf(cmd, "load %s %s %s %s", src_strings[fwinfo->src],
+				fwinfo->devpartno, fwinfo->loadaddr,
+				fwinfo->filename);
 		}
 		break;
 	case SRC_RAM:

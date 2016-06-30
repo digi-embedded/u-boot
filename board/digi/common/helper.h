@@ -29,11 +29,26 @@ enum {
 	CMD_UPDATE,
 };
 
+enum {
+	LDFW_ERROR = -1,
+	LDFW_NOT_LOADED,
+	LDFW_LOADED,
+};
+
+struct load_fw {
+	int src;
+	char *filename;
+	char *devpartno;
+	char *fs;
+	char *loadaddr;
+	char *varload;
+};
+
 int confirm_msg(char *msg);
-int get_source(int argc, char * const argv[], char **devpartno, char **fs);
+int get_source(int argc, char * const argv[], struct load_fw *fwinfo);
 const char *get_source_string(int src);
-int get_fw_filename(int argc, char * const argv[], int src, char *filename);
-int get_default_filename(char *partname, char *filename, int cmd);
+int get_fw_filename(int argc, char * const argv[], struct load_fw *fwinfo);
+char *get_default_filename(char *partname, int cmd);
 #ifdef CONFIG_DIGI_UBI
 bool is_ubi_partition(struct part_info *part);
 #endif
@@ -44,14 +59,7 @@ void fdt_fixup_mac(void *fdt, char *varname, char *node);
 int console_enable_passphrase(void);
 #endif
 
-enum {
-	LDFW_ERROR = -1,
-	LDFW_NOT_LOADED,
-	LDFW_LOADED,
-};
-
-int load_firmware(int src, char *filename, char *devpartno,
-		  char *fs, char *loadaddr, char *varload);
+int load_firmware(struct load_fw *fwinfo);
 const char *get_filename_ext(const char *filename);
 
 #endif  /* __DIGI_HELPER_H */

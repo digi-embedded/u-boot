@@ -66,15 +66,11 @@ static int boot_os(int has_initrd, int has_fdt)
 
 static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 {
-	int src = SRC_TFTP;	/* default to TFTP */
 	int os = SRC_UNDEFINED;
-	char *devpartno = NULL;
-	char *fs = NULL;
 	int ret;
-	char filename[256] = "";
-	char *varload;
 	int has_fdt = 0;
 	int has_initrd = 0;
+	struct load_fw fwinfo;
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -87,43 +83,35 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	/* Get source of firmware file */
-	if (argc > 2) {
-		src = get_source(argc, argv, &devpartno, &fs);
-		if (src == SRC_UNSUPPORTED) {
-			printf("'%s' is not supported as source\n",
-				argv[2]);
-			return CMD_RET_USAGE;
-		}
-		else if (src == SRC_UNDEFINED) {
-			printf("Error: undefined source\n");
-			return CMD_RET_USAGE;
-		}
-	}
+	if (get_source(argc, argv, &fwinfo))
+		return CMD_RET_FAILURE;
 
 	/* Get firmware file name */
-	ret = get_fw_filename(argc, argv, src, filename);
+	ret = get_fw_filename(argc, argv, &fwinfo);
 	if (ret) {
 		/* Filename was not provided. Look for default one */
-		ret = get_default_filename(argv[1], filename, CMD_DBOOT);
-		if (ret) {
+		fwinfo.filename = get_default_filename(argv[1], CMD_DBOOT);
+		if (!fwinfo.filename) {
 			printf("Error: need a filename\n");
 			return CMD_RET_FAILURE;
 		}
 	}
 
 	/* Load firmware file to RAM */
-	ret = load_firmware(src, filename, devpartno, fs, "$loadaddr", NULL);
+	fwinfo.loadaddr = "$loadaddr";
+	ret = load_firmware(&fwinfo);
 	if (ret == LDFW_ERROR) {
 		printf("Error loading firmware file to RAM\n");
 		return CMD_RET_FAILURE;
 	}
 
 	/* Get flattened Device Tree */
-	varload = getenv("boot_fdt");
-	if (NULL == varload)
-		varload = (char *)"try"
-	ret = load_firmware(src, "$fdt_file", devpartno, fs,
-			    "$fdt_addr", varload);
+	fwinfo.varload = getenv("boot_fdt");
+	if (NULL == fwinfo.varload)
+		fwinfo.varload = "try";
+	fwinfo.loadaddr = "$fdt_addr";
+	fwinfo.filename = "$fdt_file";
+	ret = load_firmware(&fwinfo);
 	if (ret == LDFW_LOADED) {
 		has_fdt = 1;
 	} else if (ret == LDFW_ERROR) {
@@ -132,11 +120,12 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	/* Get init ramdisk */
-	varload =  getenv("boot_initrd");
-	if (NULL == varload && OS_LINUX == os)
-		varload = (char *)"no";	/* Linux default */
-	ret = load_firmware(src, "$initrd_file", devpartno, fs,
-			    "$initrd_addr", varload);
+	fwinfo.varload = getenv("boot_initrd");
+	if (NULL == fwinfo.varload && OS_LINUX == os)
+		fwinfo.varload = "no";	/* Linux default */
+	fwinfo.loadaddr = "$initrd_addr";
+	fwinfo.filename = "$initrd_file";
+	ret = load_firmware(&fwinfo);
 	if (ret == LDFW_LOADED) {
 		has_initrd = 1;
 	} else if (ret == LDFW_ERROR) {
@@ -145,7 +134,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	/* Set boot arguments */
-	ret = set_bootargs(os, src);
+	ret = set_bootargs(os, fwinfo.src);
 	if (ret) {
 		printf("Error setting boot arguments\n");
 		return CMD_RET_FAILURE;

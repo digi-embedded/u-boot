@@ -106,9 +106,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 	char *jtag_op = NULL;
 	int ret = -1, i = 0;
 	hab_rvt_report_status_t *hab_report_status = hab_rvt_report_status_p;
-	char *devpartno = NULL;
-	int src = SRC_TFTP;	/* default to TFTP */
-	char *fs = NULL;
+	struct load_fw fwinfo;
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -238,21 +236,14 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		argc += 2 + confirmed;
 
 		/* Get source of firmware file */
-		if (argc > 2) {
-			src = get_source(argc, argv, &devpartno, &fs);
-			if (src == SRC_UNSUPPORTED) {
-				printf("'%s' is not supported as source\n",
-					argv[2]);
-				return CMD_RET_USAGE;
-			} else if (src == SRC_UNDEFINED) {
-				printf("Error: undefined source\n");
-				return CMD_RET_USAGE;
-			}
-		}
+		if (get_source(argc, argv, &fwinfo))
+			return CMD_RET_FAILURE;
 
 		printf("\nLoading encrypted U-Boot image...\n");
 		/* Load firmware file to RAM */
-		ret = load_firmware(src, argv[3], devpartno, NULL, "$loadaddr", NULL);
+		fwinfo.loadaddr = "$loadaddr";
+		fwinfo.filename = argv[3];
+		ret = load_firmware(&fwinfo);
 		if (ret == LDFW_ERROR) {
 			printf("Error loading firmware file to RAM\n");
 			return CMD_RET_FAILURE;
