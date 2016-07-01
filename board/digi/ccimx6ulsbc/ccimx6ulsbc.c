@@ -431,41 +431,6 @@ int board_ehci_hcd_init(int port)
 #endif
 
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
-static int board_console_enable_gpio(void)
-{
-	int ret = 0;
-	int enable_gpio = -1;
-
-	switch(CONFIG_CONSOLE_ENABLE_GPIO_NR) {
-	case 0:
-		imx_iomux_v3_setup_pad(MX6_PAD_NAND_CE1_B__GPIO4_IO14);
-		enable_gpio = IMX_GPIO_NR(4, 14);
-		break;
-	case 1:
-		imx_iomux_v3_setup_pad(MX6_PAD_GPIO1_IO05__GPIO1_IO05);
-		enable_gpio = IMX_GPIO_NR(1, 5);
-		break;
-	case 2:
-		imx_iomux_v3_setup_pad(MX6_PAD_GPIO1_IO03__GPIO1_IO03);
-		enable_gpio = IMX_GPIO_NR(1, 3);
-		break;
-	case 3:
-		imx_iomux_v3_setup_pad(MX6_PAD_GPIO1_IO02__GPIO1_IO02);
-		enable_gpio = IMX_GPIO_NR(1, 2);
-		break;
-	default:
-		return ret;
-	}
-
-	if (gpio_request(enable_gpio, "console_enable") == 0) {
-		if (gpio_direction_input(enable_gpio) == 0)
-			ret = gpio_get_value(enable_gpio);
-		gpio_free(enable_gpio);
-	}
-
-	return ret;
-}
-
 static void setup_iomux_ext_gpios(void)
 {
 	imx_iomux_v3_setup_multiple_pads(ext_gpios_pads,
@@ -476,14 +441,24 @@ static void setup_iomux_ext_gpios(void)
 int board_early_init_f(void)
 {
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
+	int ext_gpios[] =  {
+		IMX_GPIO_NR(4, 14),
+		IMX_GPIO_NR(1, 5),
+		IMX_GPIO_NR(1, 3),
+		IMX_GPIO_NR(1, 2),
+	};
+	int console_enable_gpio = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
+
 	setup_iomux_ext_gpios();
+	gpio_direction_input(console_enable_gpio);
 #endif
+
 	setup_iomux_uart();
 
 #ifdef CONFIG_CONSOLE_DISABLE
 	gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
-	if (board_console_enable_gpio())
+	if (board_console_enable_gpio(console_enable_gpio))
 		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
 #endif
 #endif
