@@ -80,9 +80,11 @@ int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 {
 	int i;
 	char *src;
+#ifdef CONFIG_CMD_MTDPARTS
 	struct mtd_device *dev;
 	u8 pnum;
 	char *partname;
+#endif
 
 	if (argc < 3) {
 		fwinfo->src = SRC_TFTP;	/* default to TFTP */
@@ -117,6 +119,7 @@ int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 			fwinfo->fs = (char *)argv[4];
 		break;
 	case SRC_NAND:
+#ifdef CONFIG_CMD_MTDPARTS
 		/* Initialize partitions */
 		if (mtdparts_init()) {
 			printf("Cannot initialize MTD partitions\n");
@@ -135,6 +138,7 @@ int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 			printf("Cannot find '%s' partition\n", partname);
 			goto _err;
 		}
+#endif
 		break;
 	}
 
@@ -404,6 +408,7 @@ int load_firmware(struct load_fw *fwinfo)
 		}
 		break;
 	case SRC_NAND:
+#ifdef CONFIG_DIGI_UBI
 		/*
 		 * If the partition is UBI formatted, use 'ubiload' to read
 		 * a file from the UBIFS file system. Otherwise use a raw
@@ -413,7 +418,9 @@ int load_firmware(struct load_fw *fwinfo)
 			sprintf(cmd, "ubi part %s;ubifsmount ubi0:%s;ubifsload %s %s",
 				fwinfo->part->name, fwinfo->part->name,
 				fwinfo->loadaddr, fwinfo->filename);
-		} else {
+		} else
+#endif
+		{
 			sprintf(cmd, "nand read %s %s %x", fwinfo->part->name,
 				fwinfo->loadaddr, (u32)fwinfo->part->size);
 		}

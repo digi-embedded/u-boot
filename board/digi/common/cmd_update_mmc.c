@@ -514,7 +514,7 @@ static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 		return CMD_RET_FAILURE;
 
 	/* Get file name */
-	if (get_arg_src(argc, argv, fwinfo.src, 2, fwinfo.filename)) {
+	if (get_arg_src(argc, argv, fwinfo.src, 2, &fwinfo.filename)) {
 		printf("Error: need a filename\n");
 		return CMD_RET_USAGE;
 	}
