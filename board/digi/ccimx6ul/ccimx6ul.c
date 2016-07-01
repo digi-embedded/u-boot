@@ -241,7 +241,7 @@ int power_init_ccimx6ul(void)
 
 	pmic_reg_read(pfuze, PFUZE300_DEVICEID, &reg);
 	pmic_reg_read(pfuze, PFUZE300_REVID, &rev_id);
-	printf("PMIC: PFUZE300 DEV_ID=0x%x REV_ID=0x%x\n", reg, rev_id);
+	printf("PMIC:  PFUZE300 DEV_ID=0x%x REV_ID=0x%x\n", reg, rev_id);
 
 	/* disable Low Power Mode during standby mode */
 	pmic_reg_read(pfuze, PFUZE300_LDOGCTL, &reg);
