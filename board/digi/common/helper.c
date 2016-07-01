@@ -197,7 +197,7 @@ char *get_default_filename(char *partname, int cmd)
 	case CMD_DBOOT:
 		if (!strcmp(partname, "linux") ||
 		    !strcmp(partname, "android")) {
-			return "$uimage";
+			return "$" CONFIG_DBOOT_DEFAULTKERNELVAR;
 		}
 		break;
 

@@ -142,6 +142,9 @@
 /* On the fly update chunk (must be a multiple of mmc block size) */
 #define CONFIG_OTF_CHUNK		(32 * 1024 * 1024)
 #define CONFIG_CMD_DBOOT
+#define CONFIG_DBOOT_BOOTCOMMAND	"bootm"
+#define CONFIG_DBOOT_DEFAULTKERNELVAR	"uimage"
+
 /* PMIC */
 #define CONFIG_CMD_PMIC
 #ifdef CONFIG_CMD_PMIC

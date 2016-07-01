@@ -57,7 +57,7 @@ static int boot_os(int has_initrd, int has_fdt)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 
-	sprintf(cmd, "bootm $loadaddr %s %s",
+	sprintf(cmd, "%s $loadaddr %s %s", CONFIG_DBOOT_BOOTCOMMAND,
 		has_initrd ? "$initrd_addr" : "-",
 		has_fdt ? "$fdt_addr" : "");
 
