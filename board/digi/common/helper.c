@@ -140,6 +140,9 @@ int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 		}
 #endif
 		break;
+	default:
+		fwinfo->src = SRC_UNSUPPORTED;
+		goto _err;
 	}
 
 	fwinfo->src = i;
