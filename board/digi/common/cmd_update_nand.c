@@ -45,9 +45,10 @@ static int write_firmware(unsigned long loadaddr, unsigned long filesize,
 		sprintf(cmd, "ubi write %lx %s %lx", loadaddr, ubivolname,
 			filesize);
 	} else {
-		/* raw-write firmware command */
-		sprintf(cmd, "nand write %lx %s %lx", loadaddr, part->name,
-			filesize);
+		/* raw-write firmware command (erase first) */
+		sprintf(cmd, "if nand erase.part %s; then "
+			"nand write %lx %s %lx;fi", part->name,
+			loadaddr, part->name, filesize);
 	}
 	if (run_command(cmd, 0))
 		return ERR_WRITE;
