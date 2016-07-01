@@ -491,7 +491,9 @@ static void strtohex(char * in, unsigned long * out, int len)
 		out[j] = cpu_to_be32(simple_strtol(tmp, NULL, 16));
 	}
 }
+#endif
 
+#if defined(CONFIG_CONSOLE_ENABLE_PASSPHRASE)
 #define INACTIVITY_TIMEOUT 		2
 
 /*
