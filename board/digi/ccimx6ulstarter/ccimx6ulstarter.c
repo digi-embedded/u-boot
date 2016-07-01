@@ -76,9 +76,22 @@ DECLARE_GLOBAL_DATA_PTR;
 	PAD_CTL_PUS_47K_UP  | PAD_CTL_SPEED_LOW |		\
 	PAD_CTL_DSE_80ohm   | PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
 
+#define GPI_PAD_CTRL  (PAD_CTL_PKE | PAD_CTL_PUE |            \
+	PAD_CTL_PUS_100K_DOWN | PAD_CTL_SPEED_MED |               \
+	PAD_CTL_DSE_40ohm   | PAD_CTL_SRE_FAST)
+
 static iomux_v3_cfg_t const uart5_pads[] = {
 	MX6_PAD_UART5_TX_DATA__UART5_DCE_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
 	MX6_PAD_UART5_RX_DATA__UART5_DCE_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
+};
+
+static iomux_v3_cfg_t const ext_gpios_pads[] = {
+	MX6_PAD_GPIO1_IO04__GPIO1_IO04 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_JTAG_TDO__GPIO1_IO12 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_JTAG_TDI__GPIO1_IO13 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_JTAG_TMS__GPIO1_IO11 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_JTAG_TRST_B__GPIO1_IO15 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_JTAG_TCK__GPIO1_IO14 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 };
 
 /* micro SD */
@@ -379,10 +392,19 @@ static int board_console_enable_gpio(void)
 
 	return ret;
 }
+
+static void setup_iomux_ext_gpios(void)
+{
+	imx_iomux_v3_setup_multiple_pads(ext_gpios_pads,
+					 ARRAY_SIZE(ext_gpios_pads));
+}
 #endif
 
 int board_early_init_f(void)
 {
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+	setup_iomux_ext_gpios();
+#endif
 	setup_iomux_uart();
 
 #ifdef CONFIG_CONSOLE_DISABLE

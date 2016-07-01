@@ -75,9 +75,20 @@ DECLARE_GLOBAL_DATA_PTR;
 	PAD_CTL_PUS_47K_UP  | PAD_CTL_SPEED_LOW |		\
 	PAD_CTL_DSE_80ohm   | PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
 
+#define GPI_PAD_CTRL  (PAD_CTL_PKE | PAD_CTL_PUE |            \
+	PAD_CTL_PUS_100K_DOWN | PAD_CTL_SPEED_MED |               \
+	PAD_CTL_DSE_40ohm   | PAD_CTL_SRE_FAST)
+
 static iomux_v3_cfg_t const uart5_pads[] = {
 	MX6_PAD_UART5_TX_DATA__UART5_DCE_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
 	MX6_PAD_UART5_RX_DATA__UART5_DCE_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
+};
+
+static iomux_v3_cfg_t const ext_gpios_pads[] = {
+	MX6_PAD_NAND_CE1_B__GPIO4_IO14 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_GPIO1_IO05__GPIO1_IO05 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_GPIO1_IO03__GPIO1_IO03 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_GPIO1_IO02__GPIO1_IO02 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 };
 
 static iomux_v3_cfg_t const usdhc1_pads[] = {
@@ -454,10 +465,19 @@ static int board_console_enable_gpio(void)
 
 	return ret;
 }
+
+static void setup_iomux_ext_gpios(void)
+{
+	imx_iomux_v3_setup_multiple_pads(ext_gpios_pads,
+					 ARRAY_SIZE(ext_gpios_pads));
+}
 #endif
 
 int board_early_init_f(void)
 {
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+	setup_iomux_ext_gpios();
+#endif
 	setup_iomux_uart();
 
 #ifdef CONFIG_CONSOLE_DISABLE

@@ -50,9 +50,24 @@ static int phy_addr;
 	PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED |               \
 	PAD_CTL_DSE_40ohm   | PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
 
+#define GPI_PAD_CTRL  (PAD_CTL_PKE | PAD_CTL_PUE |            \
+	PAD_CTL_PUS_100K_DOWN | PAD_CTL_SPEED_MED |               \
+	PAD_CTL_DSE_40ohm   | PAD_CTL_SRE_FAST)
+
 iomux_v3_cfg_t const uart4_pads[] = {
 	MX6_PAD_KEY_COL0__UART4_TX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL),
 	MX6_PAD_KEY_ROW0__UART4_RX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL),
+};
+
+iomux_v3_cfg_t const ext_gpios_pads[] = {
+	MX6_PAD_NANDF_D5__GPIO2_IO05 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_NANDF_D6__GPIO2_IO06 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_NANDF_D7__GPIO2_IO07 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_EIM_CS1__GPIO2_IO24 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_EIM_EB0__GPIO2_IO28 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_EIM_EB1__GPIO2_IO29 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_GPIO_18__GPIO7_IO13 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_GPIO_19__GPIO4_IO05 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 };
 
 iomux_v3_cfg_t const ksz9031_pads[] = {
@@ -296,6 +311,12 @@ int board_mmc_getcd(struct mmc *mmc)
 }
 
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
+static void setup_iomux_ext_gpios(void)
+{
+	imx_iomux_v3_setup_multiple_pads(ext_gpios_pads,
+					 ARRAY_SIZE(ext_gpios_pads));
+}
+
 static int board_console_enable_gpio(void)
 {
 	int ret = 0;
@@ -350,6 +371,9 @@ static int board_console_enable_gpio(void)
 
 int board_early_init_f(void)
 {
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+	setup_iomux_ext_gpios();
+#endif
 	setup_iomux_uart();
 
 #ifdef CONFIG_CONSOLE_DISABLE
