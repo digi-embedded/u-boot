@@ -209,7 +209,8 @@
 					"14m(linux)," \
 					"14m(recovery)," \
 					"128m(rootfs)," \
-					"-(update)\0"
+					"-(update)"
+#define CONFIG_ENV_MTD_ROOTFS_INDEX	"4"
 #define CONFIG_ENV_MTD_SETTINGS	\
 	"mtdids=" MTDIDS_DEFAULT "\0" \
 	"mtdparts=" MTDPARTS_DEFAULT "\0"

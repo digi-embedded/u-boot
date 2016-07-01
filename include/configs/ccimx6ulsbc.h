@@ -119,39 +119,49 @@
 #define CONFIG_FEC_DMA_MINALIGN		64
 #endif
 
-#define CONFIG_DEFAULT_FDT_FILE		"ccimx6ulsbc.dtb"
+#define CONFIG_DEFAULT_FDT_FILE		"imx6ul-" CONFIG_SYS_BOARD ".dtb"
 #define CONFIG_BOOTARGS_CMA_SIZE	"cma=96M "
 
 #define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 
+#define CONFIG_BOOTCOMMAND \
+	"if run loadscript; then " \
+		"source ${loadaddr};" \
+	"fi;"
+
+#define CONFIG_COMMON_ENV	\
+	CONFIG_DEFAULT_NETWORK_SETTINGS \
+	"boot_fdt=yes\0" \
+	"console=" CONFIG_CONSOLE_PORT "\0" \
+	"fdt_addr=0x83000000\0" \
+	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
+	"fdt_high=0xffffffff\0"	  \
+	"initrd_addr=0x83800000\0" \
+	"initrd_file=uramdisk.img\0" \
+	"initrd_high=0xffffffff\0" \
+	"script=boot.scr\0" \
+	"uboot_file=u-boot.imx\0" \
+	"zimage=zImage-" CONFIG_SYS_BOARD ".bin\0"
+
 #if defined(CONFIG_SYS_BOOT_NAND)
 #define CONFIG_EXTRA_ENV_SETTINGS \
-	CONFIG_DEFAULT_NETWORK_SETTINGS \
-	CONFIG_EXTRA_NETWORK_SETTINGS \
-	"fdt_addr=0x83000000\0" \
-	"fdt_high=0xffffffff\0"	  \
-	"console=" CONFIG_CONSOLE_PORT "\0" \
-	"bootargs=console=" CONFIG_CONSOLE_PORT ",115200 ubi.mtd=3 "  \
-		"root=ubi0:rootfs rootfstype=ubifs "		     \
-		CONFIG_BOOTARGS_CMA_SIZE \
+	CONFIG_COMMON_ENV \
 	CONFIG_ENV_MTD_SETTINGS \
-	"bootcmd=nand read ${loadaddr} 0x4000000 0x800000;"\
-		"nand read ${fdt_addr} 0x5000000 0x100000;"\
-		"bootz ${loadaddr} - ${fdt_addr}\0"
-
+	"bootargs_linux=" CONFIG_BOOTARGS_CMA_SIZE "\0" \
+	"bootargs_nand_linux=setenv bootargs console=${console},${baudrate} " \
+		"${bootargs_linux} root=/dev/mtd${mtdrootfsindex} " \
+		"${mtdparts} ubi.mtd=${mtdrootfsindex} root=ubi0_0 " \
+		"rootfstype=ubifs rw " \
+		"${bootargs_once} ${extra_bootargs}\0" \
+	"linux_file=linux.ubifs\0" \
+	"loadscript=ubi part linux;ubifsmount ubi0:linux;" \
+		"ubifsload ${loadaddr} ${script}\0" \
+	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
+	""	/* end line */
 #else
 #define CONFIG_EXTRA_ENV_SETTINGS \
-	CONFIG_DEFAULT_NETWORK_SETTINGS \
-	CONFIG_EXTRA_NETWORK_SETTINGS \
-	"script=boot.scr\0" \
-	"image=zImage\0" \
-	"console=" CONFIG_CONSOLE_PORT "\0" \
-	"fdt_high=0xffffffff\0" \
-	"initrd_high=0xffffffff\0" \
-	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
-	"fdt_addr=0x83000000\0" \
-	"boot_fdt=try\0" \
-	"ip_dyn=yes\0" \
+	CONFIG_COMMON_ENV \
+	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
@@ -159,65 +169,7 @@
 	"mmcargs=setenv bootargs console=${console},${baudrate} " \
 	    CONFIG_BOOTARGS_CMA_SIZE \
 		"root=${mmcroot}\0" \
-	"loadbootscript=" \
-		"fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
-	"bootscript=echo Running bootscript from mmc ...; " \
-		"source\0" \
-	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
-	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
-	"mmcboot=echo Booting from mmc ...; " \
-		"run mmcargs; " \
-		"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
-			"if run loadfdt; then " \
-				"bootz ${loadaddr} - ${fdt_addr}; " \
-			"else " \
-				"if test ${boot_fdt} = try; then " \
-					"bootz; " \
-				"else " \
-					"echo WARN: Cannot load the DT; " \
-				"fi; " \
-			"fi; " \
-		"else " \
-			"bootz; " \
-		"fi;\0" \
-	"netargs=setenv bootargs console=${console},${baudrate} " \
-	    CONFIG_BOOTARGS_CMA_SIZE \
-		"root=/dev/nfs " \
-	"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
-		"netboot=echo Booting from net ...; " \
-		"run netargs; " \
-		"if test ${ip_dyn} = yes; then " \
-			"setenv get_cmd dhcp; " \
-		"else " \
-			"setenv get_cmd tftp; " \
-		"fi; " \
-		"${get_cmd} ${image}; " \
-		"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
-			"if ${get_cmd} ${fdt_addr} ${fdt_file}; then " \
-				"bootz ${loadaddr} - ${fdt_addr}; " \
-			"else " \
-				"if test ${boot_fdt} = try; then " \
-					"bootz; " \
-				"else " \
-					"echo WARN: Cannot load the DT; " \
-				"fi; " \
-			"fi; " \
-		"else " \
-			"bootz; " \
-		"fi;\0"
-
-#define CONFIG_BOOTCOMMAND \
-	   "mmc dev ${mmcdev};" \
-	   "mmc dev ${mmcdev}; if mmc rescan; then " \
-		   "if run loadbootscript; then " \
-			   "run bootscript; " \
-		   "else " \
-			   "if run loadimage; then " \
-				   "run mmcboot; " \
-			   "else run netboot; " \
-			   "fi; " \
-		   "fi; " \
-	   "else run netboot; fi"
+	""	/* end line */
 #endif
 
 #define CONFIG_SYS_MMC_ENV_DEV		1   /* USDHC2 */
