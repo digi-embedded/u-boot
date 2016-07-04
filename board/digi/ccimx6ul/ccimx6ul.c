@@ -319,6 +319,26 @@ void ldo_mode_set(int ldo_bypass)
 #endif
 #endif
 
+void mca_init(void)
+{
+	unsigned char hwver[2];
+	unsigned char fwver[2];
+
+	printf("MCA:   HW_VER=");
+	if (mca_bulk_read(MCA_CC6UL_HWVER_L, hwver, 2))
+		printf("?? ");
+	else
+		printf("%d.%d", hwver[1], hwver[0]);
+
+	printf(" FW_VER=");
+	if (mca_bulk_read(MCA_CC6UL_FWVER_L, fwver, 2))
+		printf("?? ");
+	else
+		printf("%d.%d", fwver[1], fwver[0]);
+
+	printf("\n");
+}
+
 int ccimx6ul_init(void)
 {
 	/* Address of boot parameters */
@@ -326,6 +346,7 @@ int ccimx6ul_init(void)
 
 #ifdef CONFIG_SYS_I2C_MXC
 	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c1_pad_info);
+	mca_init();
 #endif
 
 #ifdef CONFIG_SYS_USE_NAND
