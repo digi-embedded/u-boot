@@ -45,6 +45,7 @@
 #endif
 #include "../common/carrier_board.h"
 #include "../common/hwid.h"
+#include "../common/trustfence.h"
 #include "ccimx6.h"
 #include "../../../drivers/net/fec_mxc.h"
 
@@ -1284,6 +1285,10 @@ int ccimx6_late_init(void)
 		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
 	else
 		gd->flags |= GD_FLG_DISABLE_CONSOLE_INPUT;
+#endif
+
+#ifdef CONFIG_HAS_TRUSTFENCE
+	copy_dek();
 #endif
 
 	return ccimx6_fixup();

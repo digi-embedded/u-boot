@@ -22,6 +22,7 @@
 
 #include <common.h>
 #include <command.h>
+#include <fsl_sec.h>
 #include <fuse.h>
 #include <asm/arch/hab.h>
 #include <asm/errno.h>
@@ -32,6 +33,55 @@
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
 #include <asm/gpio.h>
 #endif
+#include "trustfence.h"
+
+#define UBOOT_HEADER_SIZE	0xC00
+#define UBOOT_START_ADDR	(CONFIG_SYS_TEXT_BASE - UBOOT_HEADER_SIZE)
+
+/* Location of the CSF pointer within the Image Vector Table */
+#define CSF_IVT_WORD_OFFSET	6
+#define BLOB_DEK_OFFSET		0x100
+
+/*
+ * If CONFIG_CSF_SIZE is undefined, assume 0x4000. This value will be used
+ * in the signing script.
+ */
+#ifndef CONFIG_CSF_SIZE
+#define CONFIG_CSF_SIZE 0x4000
+#endif
+
+/*
+ * For secure OS, we want to have the DEK blob in a common absolute
+ * memory address, so that there are no dependencies between the CSF
+ * appended to the uImage and the U-Boot image size.
+ * This copies the DEK blob into $loadaddr - BLOB_DEK_OFFSET. That is the
+ * smallest negative offset that guarantees that the DEK blob fits and that it
+ * is properly aligned.
+ */
+void copy_dek(void)
+{
+	u32 *csf_addr = (u32 *)UBOOT_START_ADDR + CSF_IVT_WORD_OFFSET;
+
+	if (*csf_addr) {
+		u32 loadaddr = getenv_ulong("loadaddr", 16, load_addr);
+		int blob_size = MAX_DEK_BLOB_SIZE;
+		uint8_t *dek_blob = (uint8_t *)(*csf_addr + CONFIG_CSF_SIZE - blob_size);
+		void *dek_blob_dst = (void *)(loadaddr - BLOB_DEK_OFFSET);
+
+		/*
+		 * Several DEK sizes can be used (128, 192 or 256 bits).
+		 * Determine the size and the start of the DEK blob by looking
+		 * for its header.
+		 */
+		while (*dek_blob != HDR_TAG && blob_size > 0) {
+			dek_blob += 8;
+			blob_size -= 8;
+		}
+
+		if (blob_size > 0)
+			memcpy(dek_blob_dst, dek_blob, blob_size);
+	}
+}
 
 /*
  * Check if all SRK words have been burned.

@@ -27,6 +27,7 @@
 #endif
 #include "../common/hwid.h"
 #include "../common/mca_registers.h"
+#include "../common/trustfence.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -408,6 +409,10 @@ int ccimx6ul_late_init(void)
 		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
 	else
 		gd->flags |= GD_FLG_DISABLE_CONSOLE_INPUT;
+#endif
+
+#ifdef CONFIG_HAS_TRUSTFENCE
+	copy_dek();
 #endif
 
 	return 0;
