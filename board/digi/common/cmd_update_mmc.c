@@ -379,7 +379,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		 * Load firmware file to RAM (this process may write the file
 		 * to the target media if OTF mechanism is enabled).
 		 */
-		strcpy(fwinfo.loadaddr, "$loadaddr");
+		fwinfo.loadaddr = "$loadaddr";
 		ret = load_firmware(&fwinfo);
 		if (ret == LDFW_ERROR) {
 			printf("Error loading firmware file to RAM\n");
