@@ -48,6 +48,9 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+unsigned int board_version = CARRIERBOARD_VERSION_UNDEFINED;
+unsigned int board_id = CARRIERBOARD_ID_UNDEFINED;
+
 #define UART_PAD_CTRL  (PAD_CTL_PKE | PAD_CTL_PUE |		\
 	PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED |		\
 	PAD_CTL_DSE_40ohm   | PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
@@ -463,6 +466,7 @@ int board_early_init_f(void)
 		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
 #endif
 #endif
+
 	return 0;
 }
 
@@ -481,6 +485,9 @@ int board_init(void)
 	/* SOM init */
 	ccimx6ul_init();
 
+	board_version = get_carrierboard_version();
+	board_id = get_carrierboard_id();
+
 #ifdef	CONFIG_FEC_MXC
 	setup_fec(CONFIG_FEC_ENET_DEV);
 #endif
@@ -494,8 +501,6 @@ int board_init(void)
 
 int board_late_init(void)
 {
-	unsigned int board_version = get_carrierboard_version();
-	unsigned int board_id = get_carrierboard_id();
 	char cmd[80];
 
 	/* Set $board_version variable if defined in OTP bits */
