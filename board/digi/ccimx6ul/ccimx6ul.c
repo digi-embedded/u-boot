@@ -100,6 +100,24 @@ int mca_read_reg(int reg, unsigned char *value)
 	return 0;
 }
 
+int mca_bulk_read(int reg, unsigned char *values, int len)
+{
+#ifdef CONFIG_I2C_MULTI_BUS
+	if (i2c_set_bus_num(CONFIG_MCA_I2C_BUS))
+		return -1;
+#endif
+
+	if (i2c_probe(CONFIG_MCA_I2C_ADDR)) {
+		printf("ERR: cannot access the MCA\n");
+		return -1;
+	}
+
+	if (i2c_read(CONFIG_MCA_I2C_ADDR, reg, 2, values, len))
+		return -1;
+
+	return 0;
+}
+
 int mca_write_reg(int reg, unsigned char value)
 {
 #ifdef CONFIG_I2C_MULTI_BUS
