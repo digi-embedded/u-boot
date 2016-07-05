@@ -31,6 +31,7 @@
 #include <miiphy.h>
 #include <mmc.h>
 #include <netdev.h>
+#include <command.h>
 #ifdef CONFIG_SYS_I2C_MXC
 #include <i2c.h>
 #include <asm/imx-common/mxc_i2c.h>

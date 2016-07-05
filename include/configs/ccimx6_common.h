@@ -348,7 +348,7 @@
 #define CONFIG_PMIC_I2C_ADDR		0x58	/* DA9063 PMIC i2c address */
 
 /*
- * Trusefence configs
+ * Trustfence configs
  */
 #define CONFIG_HAS_TRUSTFENCE
 

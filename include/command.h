@@ -139,6 +139,14 @@ enum command_ret_t {
  */
 int cmd_process(int flag, int argc, char * const argv[],
 			       int *repeatable, unsigned long *ticks);
+#ifdef CONFIG_HAS_TRUSTFENCE
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+int console_enable_gpio(int gpio);
+#endif
+#ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
+int console_enable_passphrase(void);
+#endif
+#endif /* CONFIG_HAS_TRUSTFENCE */
 
 #endif	/* __ASSEMBLY__ */
 

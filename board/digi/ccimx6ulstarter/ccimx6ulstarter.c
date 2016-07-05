@@ -27,6 +27,7 @@
 #include <netdev.h>
 #include <usb.h>
 #include <usb/ehci-fsl.h>
+#include <command.h>
 #include "../ccimx6ul/ccimx6ul.h"
 #include "../common/carrier_board.h"
 #include "../common/helper.h"

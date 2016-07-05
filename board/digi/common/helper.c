@@ -11,13 +11,11 @@
 #include <malloc.h>
 #include <nand.h>
 #include <watchdog.h>
-#include <u-boot/sha256.h>
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>
 #endif
 #include <otf_update.h>
 #include "helper.h"
-
 DECLARE_GLOBAL_DATA_PTR;
 #if defined(CONFIG_CMD_UPDATE_MMC) || defined(CONFIG_CMD_UPDATE_NAND)
 #define CONFIG_CMD_UPDATE
@@ -573,170 +571,20 @@ const char *get_filename_ext(const char *filename)
 	return dot + 1;
 }
 
-#if defined(CONFIG_CONSOLE_ENABLE_PASSPHRASE) || defined(CONFIG_ENV_AES_KEY)
-#define STR_HEX_CHUNK 			8
-
+#define STR_HEX_CHUNK			8
 /*
  * Convert string with hexadecimal characters into a hex number
  * @in: Pointer to input string
  * @out Pointer to output number array
  * @len Number of elements in the output array
 */
-static void strtohex(char * in, unsigned long * out, int len)
+void strtohex(char *in, unsigned long *out, int len)
 {
 	char tmp[] = "ffffffff";
 	int i, j;
 
-	for(i = 0, j = 0; j < len; i += STR_HEX_CHUNK, j++) {
+	for (i = 0, j = 0; j < len; i += STR_HEX_CHUNK, j++) {
 		strncpy(tmp, &in[i], STR_HEX_CHUNK);
 		out[j] = cpu_to_be32(simple_strtol(tmp, NULL, 16));
 	}
 }
-#endif
-
-#if defined(CONFIG_CONSOLE_ENABLE_PASSPHRASE)
-#define INACTIVITY_TIMEOUT 		2
-
-/*
- * Grab a passphrase from the console input
- * @secs: Inactivity timeout in seconds
- * @buff: Pointer to passphrase output buffer
- * @len: Length of output buffer
- *
- * Returns zero on success and a negative number on error.
- */
-static int console_get_passphrase(int secs, char *buff, int len)
-{
-	char c;
-	uint64_t end_tick, timeout;
-	int i;
-
-	/* Set a global timeout to avoid DoS attacks */
-	end_tick = get_ticks() + (uint64_t)(secs * get_tbclk());
-
-	/* Set an inactivity timeout */
-	timeout = get_ticks() + INACTIVITY_TIMEOUT * get_tbclk();
-
-	*buff = '\0';
-	for (i = 0; i < len;) {
-		/* Check timeouts */
-		uint64_t tks = get_ticks();
-
-		if ((tks > end_tick) || (tks > timeout)) {
-			*buff = '\0';
-			return -ETIME;
-		}
-
-		/* Do not trigger watchdog while typing passphrase */
-		WATCHDOG_RESET();
-
-		if (tstc()) {
-			c = getc();
-			i++;
-		} else
-			continue;
-
-		switch (c) {
-			/* Enter */
-			case '\r':
-			case '\n':
-				*buff = '\0';
-				return 0;
-			/* nul */
-			case '\0':
-				continue;
-			/* Ctrl-c */
-			case 0x03:
-				*buff = '\0';
-				return -EINVAL;
-			default:
-				*buff++ = c;
-				/* Restart inactivity timeout */
-				timeout = get_ticks() + INACTIVITY_TIMEOUT *
-					get_tbclk();
-		}
-	}
-
-	return -EINVAL;
-}
-
-#define SHA256_HASH_LEN 		32
-#define PASSPHRASE_SECS_TIMEOUT	10
-#define MAX_PP_LEN 			64
-
-/*
- * Returns zero (success) to enable the console, or a non zero otherwise.
- *
- * A sha256 hash is 256 bits (32 bytes) long, and is represented as
- * a 64 digits hex number.
- */
-int console_enable_passphrase(void)
-{
-	char * pp = NULL;
-	unsigned char *sha256_pp = NULL;
-	unsigned long *pp_hash = NULL;
-	int ret = -EINVAL;
-
-	pp = malloc(MAX_PP_LEN + 1);
-	if (!pp) {
-		debug("Not enough memory for passphrase\n");
-		return -ENOMEM;
-	}
-
-	ret = console_get_passphrase(PASSPHRASE_SECS_TIMEOUT,
-				     pp, MAX_PP_LEN);
-	if (ret)
-		goto pp_error;
-
-	sha256_pp = malloc(SHA256_HASH_LEN);
-	if (!sha256_pp) {
-		debug("Not enough memory for passphrase\n");
-		ret = -ENOMEM;
-		goto pp_error;
-	}
-
-	sha256_csum_wd((const unsigned char *)pp, strlen(pp),
-			sha256_pp, CHUNKSZ_SHA256);
-
-	pp_hash = malloc(SHA256_HASH_LEN);
-	if (!pp_hash) {
-		debug("Not enough memory for passphrase\n");
-		ret = -ENOMEM;
-		goto pp_hash_error;
-	}
-
-	memset(pp_hash, 0, SHA256_HASH_LEN);
-	strtohex(CONFIG_CONSOLE_ENABLE_PASSPHRASE_KEY, pp_hash,
-			SHA256_HASH_LEN/sizeof(unsigned long));
-	ret = memcmp(sha256_pp, pp_hash, SHA256_HASH_LEN);
-
-	free(pp_hash);
-pp_hash_error:
-	free(sha256_pp);
-pp_error:
-	free(pp);
-	return ret;
-}
-#endif
-
-#ifdef CONFIG_ENV_AES_KEY
-/*
- * CONFIG_ENV_AES_KEY is a 128 bits (16 bytes) AES key, represented as
- * 32 hexadecimal characters.
- */
-unsigned long key[4];
-
-uint8_t *env_aes_cbc_get_key(void)
-{
-	if (strlen(CONFIG_ENV_AES_KEY) != 32) {
-		puts("[ERROR] Wrong CONFIG_ENV_AES_KEY size "
-			"(should be 128 bits)\n");
-		return NULL;
-	}
-
-	strtohex(CONFIG_ENV_AES_KEY, key,
-		 sizeof(key) / sizeof(unsigned long));
-
-	return (uint8_t *) key;
-}
-#endif

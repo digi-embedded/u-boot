@@ -37,7 +37,6 @@
 #include <linux/ctype.h>
 #include <mmc.h>
 #include <fsl_esdhc.h>
-#include <fuse.h>
 #include <otf_update.h>
 #include <part.h>
 #include <recovery.h>
