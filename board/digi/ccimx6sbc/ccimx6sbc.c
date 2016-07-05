@@ -331,10 +331,10 @@ int board_early_init_f(void)
 		IMX_GPIO_NR(7, 13),
 		IMX_GPIO_NR(4, 5)
 	};
-	int console_enable_gpio = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
+	int console_enable_gpio_nr = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
 
 	setup_iomux_ext_gpios();
-	gpio_direction_input(console_enable_gpio);
+	gpio_direction_input(console_enable_gpio_nr);
 #endif
 
 	setup_iomux_uart();
@@ -342,7 +342,7 @@ int board_early_init_f(void)
 #ifdef CONFIG_CONSOLE_DISABLE
 	gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
-	if (board_console_enable_gpio(console_enable_gpio))
+	if (console_enable_gpio(console_enable_gpio_nr))
 		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
 #endif
 #endif
