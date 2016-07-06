@@ -170,6 +170,7 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	int ubifs_ext = 0;
 	const char *ubivolname = NULL;
 	struct load_fw fwinfo;
+	char cmd[CONFIG_SYS_CBSIZE] = "";
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -272,10 +273,14 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 		} else {
 			/*
 			 * If the partition does not have a valid UBI volume
-			 * but we are updating a *.ubifs filename, create the
-			 * volume.
+			 * but we are updating a *.ubifs filename, erase the
+			 * partition and create the UBI volume.
 			 */
 			if (ubifs_ext && ubivolname == NULL) {
+				sprintf(cmd, "nand erase.part %s", partname);
+				if (run_command(cmd, 0))
+					goto _ret;
+
 				/* Attach partition and get volume name */
 				if (ubi_attach_getcreatevol(partname,
 							    &ubivolname)) {
