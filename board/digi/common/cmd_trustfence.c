@@ -420,7 +420,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		     key_index++) {
 			printf("   Key %d:\t", key_index);
 			printf((val[0] & (1 << key_index) ?
-	                       "[REVOKED]\n" : "[OK]\n"));
+			       "[REVOKED]\n" : "[OK]\n"));
 		}
 		printf("   Key %d:\t[OK]\n", CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS);
 
@@ -494,7 +494,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		/*
 		 * Set filesize to the size of the DEK blob, that is:
 		 * header (8 bytes) + random AES-256 key (32 bytes)
-                 * + DEK ('filesize' bytes) + MAC (16 bytes)
+		 * + DEK ('filesize' bytes) + MAC (16 bytes)
 		 */
 		filesize += 8 + 32 + 16;
 
