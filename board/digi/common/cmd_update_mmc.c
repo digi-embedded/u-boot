@@ -261,6 +261,8 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	if (argc < 2)
 		return CMD_RET_USAGE;
 
+	memset(&fwinfo, 0, sizeof(fwinfo));
+
 	if (init_mmc_globals())
 		return CMD_RET_FAILURE;
 
@@ -496,6 +498,8 @@ static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
+
+	memset(&fwinfo, 0, sizeof(fwinfo));
 
 	if (init_mmc_globals())
 		return CMD_RET_FAILURE;

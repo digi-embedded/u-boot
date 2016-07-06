@@ -175,6 +175,8 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	if (argc < 2)
 		return CMD_RET_USAGE;
 
+	memset(&fwinfo, 0, sizeof(fwinfo));
+
 	/* Initialize partitions */
 	if (mtdparts_init()) {
 		printf("Cannot initialize MTD partitions\n");

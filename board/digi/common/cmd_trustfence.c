@@ -318,6 +318,8 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 	if (argc < 2)
 		return CMD_RET_USAGE;
 
+	memset(&fwinfo, 0, sizeof(fwinfo));
+
 	op = argv[1];
 	argc -= 2 + confirmed;
 	argv += 2 + confirmed;
