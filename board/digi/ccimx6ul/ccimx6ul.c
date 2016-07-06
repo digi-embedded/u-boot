@@ -339,10 +339,20 @@ void mca_init(void)
 	printf("\n");
 }
 
+int get_hwid(struct ccimx6_hwid *hwid)
+{
+	return ccimx6_get_hwid(hwid);
+}
+
 int ccimx6ul_init(void)
 {
 	/* Address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
+
+	if (get_hwid(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return -1;
+	}
 
 #ifdef CONFIG_SYS_I2C_MXC
 	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c1_pad_info);
@@ -407,11 +417,6 @@ void board_print_manufid(u32 *buf)
 int manufstr_to_hwid(int argc, char *const argv[], u32 *val)
 {
 	return ccimx6_manufstr_to_hwid(argc, argv, val);
-}
-
-int get_hwid(struct ccimx6_hwid *hwid)
-{
-	return ccimx6_get_hwid(hwid);
 }
 
 void fdt_fixup_hwid(void *fdt)
