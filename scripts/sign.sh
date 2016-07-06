@@ -29,6 +29,11 @@
 UBOOT_PATH="$(readlink -e $1)"
 TARGET="${2}"
 
+# The CST uses the same file as input and output.
+# We want to keep the original U-Boot image unmodified, so
+# make a copy of it and restore it as the last step.
+cp "${UBOOT_PATH}" "${UBOOT_PATH}-orig"
+
 # Check arguments
 if [ -z "${CONFIG_CST_PATH}" ]; then
 	echo "Undefined CONFIG_CST_PATH";
@@ -174,18 +179,22 @@ if [ "${ENCRYPT}" = "true" ]; then
 	sig_len="$((sig_len - dek_blob_size))"
 fi
 
-# When building signed (or signed and encrypted) images, the CSF pointer on the
+objcopy -I binary -O binary --pad-to "${sig_len}" --gap-fill="${GAP_FILLER}"  u-boot-signed-no-pad.imx "${TARGET}"
+
+# Restore the original U-Boot image to undo any transformations that have been made during
+# the signature/encryption process.
+mv "${UBOOT_PATH}-orig" "${UBOOT_PATH}"
+
+# When CONFIG_CSF_SIZE is defined, the CSF pointer on the
 # IVT is set to the CSF future location. The final image has the CSF block
 # appended, so this is consistent.
 # On the other hand, the u-boot.imx artifact is in a inconsistent state: the CSF
 # pointer is not zero, but it does not have a CSF appended.
-# This can cause problems if the u-boot.imx artifact gets flashed and the media
-# contains a CSF in the location pointed at, so that CSF is interpreted by HAB.
-# If that CSF corresponds to an encrypted U-Boot image, HAB will apply the
-# decryption procedure to an image which is not encrypted, failing to boot.
+# This can cause problems because the HAB and CAAM will execute
+# instructions from an uninitialized region of memory.
 
-# Erase the CSF pointer of the u-boot.imx artifact to avoid that problem.
+# Erase the CSF pointer of the unsigned artifact to avoid that problem.
+# Note: this pointer is set during compilation, not in this script.
 printf '\x0\x0\x0\x0' | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6
 
-objcopy -I binary -O binary --pad-to "${sig_len}" --gap-fill="${GAP_FILLER}"  u-boot-signed-no-pad.imx "${TARGET}"
 rm -f "${SRK_TABLE}" csf_descriptor u-boot_csf.bin u-boot-pad.imx u-boot-signed-no-pad.imx u-boot-encrypted.imx 2> /dev/null
