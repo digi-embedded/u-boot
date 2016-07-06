@@ -149,6 +149,9 @@
 		"${mtdparts} ubi.mtd=${mtdrootfsindex} root=ubi0_0 " \
 		"rootfstype=ubifs rw " \
 		"${bootargs_once} ${extra_bootargs}\0" \
+	"install_linux_fw_sd=if load mmc 0 ${loadaddr} install_linux_fw_sd.scr;then " \
+			"source ${loadaddr};" \
+		"fi;\0" \
 	"linux_file=linux.ubifs\0" \
 	"loadscript=ubi part linux;ubifsmount ubi0:linux;" \
 		"ubifsload ${loadaddr} ${script}\0" \
