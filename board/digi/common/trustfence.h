@@ -10,6 +10,15 @@
 #ifndef TRUSTFENCE_H
 #define TRUSTFENCE_H
 
+#ifdef CONFIG_HAS_TRUSTFENCE
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+int console_enable_gpio(int gpio);
+#endif
+#ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
+int console_enable_passphrase(void);
+#endif
+
 void copy_dek(void);
+#endif /* CONFIG_HAS_TRUSTFENCE */
 
 #endif /* TRUSTFENCE_H */
