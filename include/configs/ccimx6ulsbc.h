@@ -157,7 +157,7 @@
 	"install_linux_fw_sd=if load mmc 0 ${loadaddr} install_linux_fw_sd.scr;then " \
 			"source ${loadaddr};" \
 		"fi;\0" \
-	"linux_file=linux.ubifs\0" \
+	"linux_file=core-image-base-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
 	"loadscript=ubi part linux;ubifsmount ubi0:linux;" \
 		"ubifsload ${loadaddr} ${script}\0" \
 	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
