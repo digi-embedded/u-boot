@@ -157,9 +157,12 @@
 			"source ${loadaddr};" \
 		"fi;\0" \
 	"linux_file=core-image-base-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
-	"loadscript=ubi part " CONFIG_LINUX_PARTITION ";" \
-		"ubifsmount ubi0:" CONFIG_LINUX_PARTITION";" \
-		"ubifsload ${loadaddr} ${script}\0" \
+	"loadscript=" \
+		"if ubi part " CONFIG_LINUX_PARTITION "; then" \
+			"if ubifsmount ubi0:" CONFIG_LINUX_PARTITION"; then" \
+				"ubifsload ${loadaddr} ${script};" \
+			"fi;" \
+		"fi;\0" \
 	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
 	"rootfs_file=core-image-base-" CONFIG_SYS_BOARD ".ubifs\0" \
 	""	/* end line */
