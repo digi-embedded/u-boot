@@ -139,7 +139,6 @@
 	"initrd_addr=0x83800000\0" \
 	"initrd_file=uramdisk.img\0" \
 	"initrd_high=0xffffffff\0" \
-	"rootfs_file=core-image-base-" CONFIG_SYS_BOARD ".ubifs\0" \
 	"script=boot.scr\0" \
 	"uboot_file=u-boot.imx\0" \
 	"zimage=zImage-" CONFIG_SYS_BOARD ".bin\0"
@@ -161,6 +160,7 @@
 	"loadscript=ubi part linux;ubifsmount ubi0:linux;" \
 		"ubifsload ${loadaddr} ${script}\0" \
 	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
+	"rootfs_file=core-image-base-" CONFIG_SYS_BOARD ".ubifs\0" \
 	""	/* end line */
 #else
 #define CONFIG_EXTRA_ENV_SETTINGS \
