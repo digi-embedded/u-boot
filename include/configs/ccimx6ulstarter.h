@@ -153,7 +153,8 @@
 			"source ${loadaddr};" \
 		"fi;\0" \
 	"linux_file=core-image-base-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
-	"loadscript=ubi part linux;ubifsmount ubi0:linux;" \
+	"loadscript=ubi part " CONFIG_LINUX_PARTITION ";" \
+		"ubifsmount ubi0:" CONFIG_LINUX_PARTITION";" \
 		"ubifsload ${loadaddr} ${script}\0" \
 	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
 	"rootfs_file=core-image-base-" CONFIG_SYS_BOARD ".ubifs\0" \

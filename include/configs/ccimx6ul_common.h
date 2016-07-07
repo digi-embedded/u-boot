@@ -228,14 +228,16 @@
 
 /* MTD (NAND) */
 #define CONFIG_UBOOT_PARTITION		"uboot"
+#define CONFIG_LINUX_PARTITION		"linux"
+#define CONFIG_RECOVERY_PARTITION	"recovery"
 #define CONFIG_UBOOT_RESERVED		(10 * 1024 * 1024)
 #define CONFIG_NAND_NAME		"gpmi-nand"
 #define MTDIDS_DEFAULT			"nand0=" CONFIG_NAND_NAME
 #define MTDPARTS_DEFAULT		"mtdparts=" CONFIG_NAND_NAME ":" \
 					"3m(" CONFIG_UBOOT_PARTITION ")," \
 					"1m(environment)," \
-					"14m(linux)," \
-					"14m(recovery)," \
+					"14m(" CONFIG_LINUX_PARTITION ")," \
+					"14m(" CONFIG_RECOVERY_PARTITION ")," \
 					"128m(rootfs)," \
 					"-(update)"
 #define CONFIG_ENV_MTD_ROOTFS_INDEX	"4"
