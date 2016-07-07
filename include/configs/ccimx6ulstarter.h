@@ -149,6 +149,10 @@
 		"${mtdparts} ubi.mtd=${mtdrootfsindex} root=ubi0_0 " \
 		"rootfstype=ubifs rw " \
 		"${bootargs_once} ${extra_bootargs}\0" \
+	"bootargs_recovery=setenv bootargs console=${console},${baudrate} " \
+		"androidboot.hardware=" CONFIG_SYS_BOARD " " \
+		"androidboot.console=${console}" \
+		"${mtdparts} ${bootargs_once} ${extra_bootargs}\0" \
 	"install_linux_fw_sd=if load mmc 0 ${loadaddr} install_linux_fw_sd.scr;then " \
 			"source ${loadaddr};" \
 		"fi;\0" \
@@ -160,6 +164,16 @@
 			"fi;" \
 		"fi;\0" \
 	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
+	"recoverycmd=" \
+		"if ubi part " CONFIG_RECOVERY_PARTITION "; then" \
+			"if ubifsmount ubi0:" CONFIG_RECOVERY_PARTITION "; then" \
+				"ubifsload ${loadaddr} ${" CONFIG_DBOOT_DEFAULTKERNELVAR "};" \
+				"ubifsload ${fdt_addr} ${fdt_file};" \
+				"ubifsload ${initrs_addr} ${initrd_file};" \
+				"run bootargs_recovery;" \
+				CONFIG_DBOOT_BOOTCOMMAND " ${loadaddr} ${initrd_addr} ${fdt_addr};" \
+			"fi;" \
+		"fi;\0" \
 	"rootfs_file=core-image-base-" CONFIG_SYS_BOARD ".ubifs\0" \
 	""	/* end line */
 #else
