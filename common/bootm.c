@@ -668,10 +668,6 @@ int do_bootm_states(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[],
 			goto err;
 		else if (ret == BOOTM_ERR_OVERLAP)
 			ret = 0;
-#if defined(CONFIG_SILENT_CONSOLE) && !defined(CONFIG_SILENT_U_BOOT_ONLY)
-		if (images->os.os == IH_OS_LINUX)
-			fixup_silent_linux();
-#endif
 	}
 
 	/* Relocate the ramdisk */
@@ -716,8 +712,13 @@ int do_bootm_states(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[],
 		ret = boot_fn(BOOTM_STATE_OS_CMDLINE, argc, argv, images);
 	if (!ret && (states & BOOTM_STATE_OS_BD_T))
 		ret = boot_fn(BOOTM_STATE_OS_BD_T, argc, argv, images);
-	if (!ret && (states & BOOTM_STATE_OS_PREP))
+	if (!ret && (states & BOOTM_STATE_OS_PREP)) {
+#if defined(CONFIG_SILENT_CONSOLE) && !defined(CONFIG_SILENT_U_BOOT_ONLY)
+		if (images->os.os == IH_OS_LINUX)
+			fixup_silent_linux();
+#endif
 		ret = boot_fn(BOOTM_STATE_OS_PREP, argc, argv, images);
+	}
 
 #ifdef CONFIG_TRACE
 	/* Pretend to run the OS, then run a user command */
