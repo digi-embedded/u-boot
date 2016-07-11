@@ -161,8 +161,8 @@
 		"fi;\0" \
 	"linux_file=core-image-base-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
 	"loadscript=" \
-		"if ubi part " CONFIG_LINUX_PARTITION "; then" \
-			"if ubifsmount ubi0:" CONFIG_LINUX_PARTITION"; then" \
+		"if ubi part " CONFIG_LINUX_PARTITION "; then " \
+			"if ubifsmount ubi0:" CONFIG_LINUX_PARTITION"; then " \
 				"ubifsload ${loadaddr} ${script};" \
 			"fi;" \
 		"fi;\0" \
