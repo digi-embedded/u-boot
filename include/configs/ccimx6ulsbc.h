@@ -22,7 +22,6 @@
 /* uncomment for BEE support, needs to enable CONFIG_CMD_FUSE */
 /* #define CONFIG_CMD_BEE */
 
-#define CONFIG_NR_DRAM_BANKS		1
 #define PHYS_SDRAM_SIZE			SZ_256M
 
 /* FLASH and environment organization */
@@ -93,15 +92,8 @@
 #define CONFIG_MODULE_FUSE
 #define CONFIG_OF_SYSTEM_SETUP
 
-#define CONFIG_CMD_NET
-#ifdef CONFIG_CMD_NET
-#define CONFIG_CMD_PING
-#define CONFIG_CMD_DHCP
-#define CONFIG_CMD_MII
-#define CONFIG_FEC_MXC
-#define CONFIG_MII
+/* Ethernet */
 #define CONFIG_FEC_ENET_DEV		0
-
 #if (CONFIG_FEC_ENET_DEV == 0)
 #define IMX_FEC_BASE			ENET_BASE_ADDR
 #define CONFIG_FEC_MXC_PHYADDR          0x0
@@ -110,12 +102,6 @@
 #define IMX_FEC_BASE			ENET2_BASE_ADDR
 #define CONFIG_FEC_MXC_PHYADDR          0x1
 #define CONFIG_FEC_XCV_TYPE             RMII
-#endif
-#define CONFIG_ETHPRIME                 "FEC"
-
-#define CONFIG_PHYLIB
-#define CONFIG_PHY_SMSC
-#define CONFIG_FEC_DMA_MINALIGN		64
 #endif
 
 #define CONFIG_DEFAULT_FDT_FILE		"zImage-imx6ul-" CONFIG_SYS_BOARD ".dtb"

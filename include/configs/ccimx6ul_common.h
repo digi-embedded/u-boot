@@ -10,15 +10,15 @@
 #define CCIMX6UL_CONFIG_H
 
 #include <asm/arch/imx-regs.h>
-#include <linux/sizes.h>
 #include <asm/imx-common/gpio.h>
-/* Command definition */
 #include <config_cmd_default.h>
+#include <linux/sizes.h>
 #include "mx6_common.h"
-#include "digi_common.h"
+#include "digi_common.h"		/* Load Digi common stuff... */
 
 #define CONFIG_MX6
 #define CONFIG_CC6
+
 #define CONFIG_ROM_UNIFIED_SECTIONS
 #define CONFIG_SYS_GENERIC_BOARD
 #define CONFIG_DISPLAY_CPUINFO
@@ -29,18 +29,43 @@
 #define CONFIG_INITRD_TAG
 #define CONFIG_REVISION_TAG
 
+/*
+ * RAM
+ */
+#define CONFIG_LOADADDR			0x80800000
+#define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
+#define CONFIG_SYS_TEXT_BASE		0x87800000
+/* RAM memory reserved for U-Boot, stack, malloc pool... */
+#define CONFIG_UBOOT_RESERVED		(10 * 1024 * 1024)
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		(16 * SZ_1M)
+/* memtest */
+#define CONFIG_CMD_MEMTEST
+#define CONFIG_SYS_MEMTEST_START	0x80000000
+#define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_MEMTEST_START + (PHYS_SDRAM_SIZE >> 1))
+/* Physical Memory Map */
+#define CONFIG_NR_DRAM_BANKS		1
+#define PHYS_SDRAM			MMDC0_ARB_BASE_ADDR
+#define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM
+#define CONFIG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
+#define CONFIG_SYS_INIT_RAM_SIZE	IRAM_SIZE
+
+#define CONFIG_SYS_INIT_SP_OFFSET \
+	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
+#define CONFIG_SYS_INIT_SP_ADDR \
+	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
 
 #define CONFIG_BOARD_EARLY_INIT_F
 #define CONFIG_BOARD_LATE_INIT
-#define CONFIG_OF_BOARD_SETUP
 #define CONFIG_MXC_GPIO
 
+/* Fuse */
 #define CONFIG_CMD_FUSE
 #ifdef CONFIG_CMD_FUSE
 #define CONFIG_MXC_OCOTP
 #endif
+
+/* HWID */
 #define CONFIG_HAS_HWID
 #define CONFIG_HWID_BANK		4
 #define CONFIG_HWID_START_WORD		2
@@ -58,10 +83,12 @@
 #define CONFIG_SYS_FSL_SEC_LE
 
 /*
- * Secure boot configs
+ * Trustfence configs
  */
 #define CONFIG_HAS_TRUSTFENCE
+#define CONFIG_SHA256
 
+/* Secure boot configs */
 #define CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS		3
 #define CONFIG_TRUSTFENCE_SRK_REVOKE_BANK		5
 #define CONFIG_TRUSTFENCE_SRK_REVOKE_WORD		7
@@ -76,8 +103,7 @@
 #define CONFIG_TRUSTFENCE_CLOSE_BIT_MASK		0x1
 #define CONFIG_TRUSTFENCE_CLOSE_BIT_OFFSET		1
 
-/* Secure JTAG OPTs */
-/* #define CONFIG_SJC_DIGI_INTERNAL */
+/* Secure JTAG configs */
 #define CONFIG_TRUSTFENCE_JTAG_MODE_BANK		0
 #define CONFIG_TRUSTFENCE_JTAG_MODE_START_WORD		6
 #define CONFIG_TRUSTFENCE_JTAG_MODE_WORDS_NUMBER	1
@@ -89,9 +115,6 @@
 
 #define TRUSTFENCE_JTAG_DISABLE_OFFSET			20
 #define TRUSTFENCE_JTAG_SMODE_OFFSET			22
-
-#define TRUSTFENCE_JTAG_DISABLE_OFFSET 			20
-#define TRUSTFENCE_JTAG_SMODE_OFFSET  			22
 
 #define TRUSTFENCE_JTAG_DISABLE_JTAG_MASK 		0x01
 #define TRUSTFENCE_JTAG_SMODE_MASK 			0x03
@@ -129,21 +152,48 @@
 #define CONFIG_SUPPORT_EMMC_BOOT /* eMMC specific */
 #endif
 
-#undef CONFIG_BOOTM_NETBSD
-#undef CONFIG_BOOTM_PLAN9
-#undef CONFIG_BOOTM_RTEMS
+/* Ethernet */
+#define CONFIG_CMD_NET
+#define CONFIG_CMD_PING
+#define CONFIG_CMD_DHCP
+#define CONFIG_CMD_MII
+#define CONFIG_FEC_MXC
+#define CONFIG_MII
+#define CONFIG_ETHPRIME                 "FEC"
+#define CONFIG_PHYLIB
+#define CONFIG_PHY_SMSC
+#define CONFIG_FEC_DMA_MINALIGN		64
 
-#undef CONFIG_CMD_EXPORTENV
-#undef CONFIG_CMD_IMPORTENV
+/* Extra network settings for second Ethernet */
+#define DEFAULT_MAC_ETHADDR1	"00:04:f3:ff:ff:fd"
+#define CONFIG_EXTRA_NETWORK_SETTINGS \
+	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"
+
+#define CONFIG_ENV_FLAGS_LIST_STATIC	\
+	"wlanaddr:mc,"			\
+	"btaddr:mc,"			\
+	"bootargs_once:sr,"		\
+	"board_version:so,"		\
+	"board_id:so,"
+
+#define CONFIG_OF_LIBFDT
+#define CONFIG_OF_BOARD_SETUP
+
+#define CONFIG_CMD_BMODE
+#define CONFIG_CMD_BOOTZ
+#undef CONFIG_CMD_IMLS
+#define CONFIG_CMD_SETEXPR
+
+#ifndef CONFIG_SYS_DCACHE_OFF
+#define CONFIG_CMD_CACHE
+#endif
 
 /* I2C configs */
-#define CONFIG_CMD_I2C
-#ifdef CONFIG_CMD_I2C
 #define CONFIG_SYS_I2C
+#define CONFIG_CMD_I2C
 #define CONFIG_SYS_I2C_MXC
-#define CONFIG_SYS_I2C_SPEED		100000
 #define CONFIG_I2C_MULTI_BUS
-#endif
+#define CONFIG_SYS_I2C_SPEED		100000
 
 /* MCA */
 #define CONFIG_MCA_I2C_BUS		0
@@ -154,52 +204,6 @@
 #define CONFIG_POWER_I2C
 #define CONFIG_POWER_PFUZE300
 #define CONFIG_POWER_PFUZE300_I2C_ADDR	0x08
-
-#undef CONFIG_CMD_IMLS
-
-#define CONFIG_LOADADDR			0x80800000
-#define CONFIG_SYS_TEXT_BASE		0x87800000
-
-/* Miscellaneous configurable options */
-#define CONFIG_SYS_LONGHELP
-#define CONFIG_SYS_HUSH_PARSER
-#define CONFIG_SYS_PROMPT		"=> "
-#define CONFIG_AUTO_COMPLETE
-#define CONFIG_SYS_CBSIZE		1024
-
-/* Print Buffer Size */
-#define CONFIG_SYS_PBSIZE (CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
-
-#define CONFIG_CMD_MEMTEST
-#define CONFIG_SYS_MEMTEST_START	0x80000000
-#define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_MEMTEST_START + (PHYS_SDRAM_SIZE >> 1))
-
-#define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
-#define CONFIG_SYS_HZ			1000
-
-#define CONFIG_CMDLINE_EDITING
-
-/* Physical Memory Map */
-#define PHYS_SDRAM			MMDC0_ARB_BASE_ADDR
-
-#define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM
-#define CONFIG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
-#define CONFIG_SYS_INIT_RAM_SIZE	IRAM_SIZE
-
-#define CONFIG_SYS_INIT_SP_OFFSET \
-	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
-#define CONFIG_SYS_INIT_SP_ADDR \
-	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
-
-#define CONFIG_OF_LIBFDT
-#define CONFIG_CMD_BOOTZ
-
-#define CONFIG_CMD_BMODE
-#define CONFIG_CMD_SETEXPR
-
-#ifndef CONFIG_SYS_DCACHE_OFF
-#define CONFIG_CMD_CACHE
-#endif
 
 /* USB Configs */
 #define CONFIG_CMD_USB
@@ -215,23 +219,10 @@
 #define CONFIG_USB_MAX_CONTROLLER_COUNT 2
 #endif
 
-/* Extra network settings for second Ethernet */
-#define DEFAULT_MAC_ETHADDR1	"00:04:f3:ff:ff:fd"
-#define CONFIG_EXTRA_NETWORK_SETTINGS \
-	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"
-
-#define CONFIG_ENV_FLAGS_LIST_STATIC	\
-	"wlanaddr:mc,"			\
-	"btaddr:mc,"			\
-	"bootargs_once:sr,"		\
-	"board_version:so,"		\
-	"board_id:so,"
-
 /* MTD (NAND) */
 #define CONFIG_UBOOT_PARTITION		"uboot"
 #define CONFIG_LINUX_PARTITION		"linux"
 #define CONFIG_RECOVERY_PARTITION	"recovery"
-#define CONFIG_UBOOT_RESERVED		(10 * 1024 * 1024)
 #define CONFIG_NAND_NAME		"gpmi-nand"
 #define MTDIDS_DEFAULT			"nand0=" CONFIG_NAND_NAME
 #define MTDPARTS_DEFAULT		"mtdparts=" CONFIG_NAND_NAME ":" \
@@ -246,7 +237,7 @@
 	"mtdids=" MTDIDS_DEFAULT "\0" \
 	"mtdparts=" MTDPARTS_DEFAULT "\0"
 
-/* dboot|update command */
+/* Supported sources for update|dboot */
 #define CONFIG_SUPPORTED_SOURCES	((1 << SRC_TFTP) | \
 					 (1 << SRC_NFS) | \
 					 (1 << SRC_MMC) | \
@@ -256,18 +247,25 @@
 #define CONFIG_SUPPORTED_SOURCES_BLOCK	"mmc"
 #define CONFIG_SUPPORTED_SOURCES_NAND	"nand"
 #define CONFIG_SUPPORTED_SOURCES_RAM	"ram"
+
+/* Digi boot command 'dboot' */
+#define CONFIG_CMD_DBOOT
+#define CONFIG_DBOOT_BOOTCOMMAND	"bootz"
+#define CONFIG_DBOOT_DEFAULTKERNELVAR	"zimage"
 #define CONFIG_DBOOT_SUPPORTED_SOURCES_LIST	\
 	CONFIG_SUPPORTED_SOURCES_NET "|" \
 	CONFIG_SUPPORTED_SOURCES_NAND "|" \
 	CONFIG_SUPPORTED_SOURCES_BLOCK
-#define CONFIG_UPDATE_SUPPORTED_SOURCES_LIST	\
-	CONFIG_SUPPORTED_SOURCES_NET "|" \
-	CONFIG_SUPPORTED_SOURCES_BLOCK "|" \
-	CONFIG_SUPPORTED_SOURCES_RAM
 #define CONFIG_DBOOT_SUPPORTED_SOURCES_ARGS_HELP	\
 	DIGICMD_DBOOT_NET_ARGS_HELP "\n" \
 	DIGICMD_DBOOT_NAND_ARGS_HELP "\n" \
 	DIGICMD_DBOOT_BLOCK_ARGS_HELP
+
+/* Firmware update */
+#define CONFIG_UPDATE_SUPPORTED_SOURCES_LIST	\
+	CONFIG_SUPPORTED_SOURCES_NET "|" \
+	CONFIG_SUPPORTED_SOURCES_BLOCK "|" \
+	CONFIG_SUPPORTED_SOURCES_RAM
 #define CONFIG_UPDATE_SUPPORTED_SOURCES_ARGS_HELP	\
 	DIGICMD_UPDATE_NET_ARGS_HELP "\n" \
 	DIGICMD_UPDATE_BLOCK_ARGS_HELP "\n" \
@@ -278,9 +276,22 @@
 	DIGICMD_UPDATEFILE_RAM_ARGS_HELP
 #define CONFIG_OTF_CHUNK		(32 * 1024 * 1024)
 
-#define CONFIG_SHA256
-#define CONFIG_CMD_DBOOT
-#define CONFIG_DBOOT_BOOTCOMMAND	"bootz"
-#define CONFIG_DBOOT_DEFAULTKERNELVAR	"zimage"
+/* Miscellaneous configurable options */
+#define CONFIG_SYS_LONGHELP
+#define CONFIG_SYS_HUSH_PARSER
+#define CONFIG_SYS_PROMPT		"=> "
+#define CONFIG_AUTO_COMPLETE
+#define CONFIG_SYS_CBSIZE		1024
+#define CONFIG_SYS_HZ			1000
+#define CONFIG_CMDLINE_EDITING
+
+/* Print Buffer Size */
+#define CONFIG_SYS_PBSIZE (CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
+
+#undef CONFIG_BOOTM_NETBSD
+#undef CONFIG_BOOTM_PLAN9
+#undef CONFIG_BOOTM_RTEMS
+#undef CONFIG_CMD_EXPORTENV
+#undef CONFIG_CMD_IMPORTENV
 
 #endif /* CCIMX6UL_CONFIG_H */
