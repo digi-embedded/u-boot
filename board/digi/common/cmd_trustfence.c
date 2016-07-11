@@ -310,7 +310,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 	u32 bank = CONFIG_TRUSTFENCE_JTAG_MODE_BANK;
 	u32 word = CONFIG_TRUSTFENCE_JTAG_MODE_START_WORD;
 	u32 val[2], addr;
-	char *jtag_op = NULL;
+	char jtag_op[15];
 	int ret = -1, i = 0;
 	hab_rvt_report_status_t *hab_report_status = hab_rvt_report_status_p;
 	struct load_fw fwinfo;
@@ -535,6 +535,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			if (argc < 1)
 				return CMD_RET_USAGE;
 
+			memset(jtag_op, 0, sizeof(jtag_op));
 			strcpy(jtag_op, argv[1]);
 
 			printf("Programming Secure JTAG mode... ");
@@ -579,6 +580,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			if (argc < 1)
 				return CMD_RET_USAGE;
 
+			memset(jtag_op, 0, sizeof(jtag_op));
 			strcpy(jtag_op, argv[1]);
 
 			printf("Overriding Secure JTAG mode... ");
