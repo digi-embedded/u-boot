@@ -321,17 +321,22 @@ void ldo_mode_set(int ldo_bypass)
 
 void mca_init(void)
 {
-	unsigned char hwver[2];
-	unsigned char fwver[2];
+	unsigned char hwver[2] = "";
+	int hwver_ret = -1;
+	unsigned char fwver[2] = "";
+	int fwver_ret = -1;
+
+	hwver_ret = mca_bulk_read(MCA_CC6UL_HWVER_L, hwver, 2);
+	fwver_ret = mca_bulk_read(MCA_CC6UL_FWVER_L, fwver, 2);
 
 	printf("MCA:   HW_VER=");
-	if (mca_bulk_read(MCA_CC6UL_HWVER_L, hwver, 2))
+	if (hwver_ret)
 		printf("?? ");
 	else
 		printf("%d.%d", hwver[1], hwver[0]);
 
 	printf(" FW_VER=");
-	if (mca_bulk_read(MCA_CC6UL_FWVER_L, fwver, 2))
+	if (fwver_ret)
 		printf("?? ");
 	else
 		printf("%d.%d", fwver[1], fwver[0]);
