@@ -12,5 +12,10 @@ int power_init_ccimx6ul(void);
 int ccimx6ul_init(void);
 int ccimx6ul_late_init(void);
 void print_ccimx6ul_info(void);
+int mca_read_reg(int reg, unsigned char *value);
+int mca_bulk_read(int reg, unsigned char *values, int len);
+int mca_write_reg(int reg, unsigned char value);
+int mca_bulk_write(int reg, unsigned char *values, int len);
+int mca_update_bits(int reg, unsigned char mask, unsigned char val);
 
 #endif  /* CCIMX6UL_H */
