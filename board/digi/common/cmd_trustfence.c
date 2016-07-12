@@ -590,6 +590,8 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 				ret = fuse_override(bank, word, TRUSTFENCE_JTAG_DISABLE_DEBUG);
 			} else if (!strcmp(jtag_op, "disable-jtag")) {
 				ret = fuse_override(bank, word, TRUSTFENCE_JTAG_DISABLE_JTAG);
+			} else if (!strcmp(jtag_op, "enable-jtag")) {
+				ret = fuse_override(bank, word, TRUSTFENCE_JTAG_ENABLE_JTAG);
 			} else {
 				printf("\nWrong parameter.\n");
 				ret = CMD_RET_USAGE;
@@ -693,6 +695,7 @@ U_BOOT_CMD(
 	"burned in the e-fuses)\n"
 	"    disable-debug - JTAG debugging disabled (only boundary-scan possible)\n"
 	"    disable-jtag - JTAG port disabled (no JTAG operations allowed)\n"
+	"    enable-jtag - JTAG port enabled (JTAG operations allowed)\n"
 	"trustfence jtag override_key <high_word> <low_word> - override response key\n"
 #endif
 	"trustfence jtag lock [-y] - lock Secure JTAG mode and disable JTAG interface "
