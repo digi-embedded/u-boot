@@ -32,6 +32,7 @@
 #include "../common/carrier_board.h"
 #include "../common/helper.h"
 #include "../common/hwid.h"
+#include "../common/mca_registers.h"
 
 #ifdef CONFIG_POWER
 #include <power/pmic.h>
@@ -141,6 +142,10 @@ static iomux_v3_cfg_t const fec1_pads[] = {
 	MX6_PAD_ENET1_RX_DATA1__ENET1_RDATA01 | MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_ENET1_RX_ER__ENET1_RX_ER | MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_ENET1_RX_EN__ENET1_RX_EN | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	/*
+	 * GPIO3_IO2 is used as PHY reset in StarterBoard v1 and as PHY power
+	 * enable on StarterBoard v2
+	 */
 	MX6_PAD_LCD_HSYNC__GPIO3_IO02 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 
@@ -222,18 +227,32 @@ int board_mmc_init(bd_t *bis)
 #ifdef CONFIG_FEC_MXC
 void reset_phy()
 {
-	int phy_reset_gpio = IMX_GPIO_NR(3, 2);
-
-	/* Assert PHY reset */
-	gpio_direction_output(phy_reset_gpio , 0);
 	/*
 	 * The reset line must be held low for a minimum of 100usec and cannot
 	 * be deasserted before 25ms have passed since the power supply has
 	 * reached 80% of the operating voltage. At this point of the code
-	 * we can assume the second premise is already accomplished. */
-	udelay(100);
-	/* Deassert PHY reset */
-	gpio_set_value(phy_reset_gpio, 1);
+	 * we can assume the second premise is already accomplished.
+	 */
+	if (board_version == 1) {
+		int phy_reset_gpio = IMX_GPIO_NR(3, 2);
+
+		/* Assert PHY reset (low) */
+		gpio_direction_output(phy_reset_gpio , 0);
+		udelay(100);
+		/* Deassert PHY reset (high) */
+		gpio_set_value(phy_reset_gpio, 1);
+	} else {
+		/* MCA_IO7 is connected to PHY reset */
+		int reset = (1 << 7);
+
+		/* Configure as output */
+		mca_update_bits(MCA_CC6UL_GPIO_DIR_0, reset, reset);
+		/* Assert PHY reset (low) */
+		mca_update_bits(MCA_CC6UL_GPIO_DATA_0, reset, 0);
+		udelay(100);
+		/* Deassert PHY reset (high) */
+		mca_update_bits(MCA_CC6UL_GPIO_DATA_0, reset, reset);
+	}
 }
 
 int board_eth_init(bd_t *bis)
@@ -257,6 +276,13 @@ static int setup_fec(int fec_id)
 	struct iomuxc_gpr_base_regs *const iomuxc_gpr_regs
 		= (struct iomuxc_gpr_base_regs *) IOMUXC_GPR_BASE_ADDR;
 	int ret;
+
+	if (board_version != 1) {
+		/* Enable PHY power */
+		int phy_power_gpio = IMX_GPIO_NR(3, 2);
+
+		gpio_direction_output(phy_power_gpio , 1);
+	}
 
 	if (0 == fec_id) {
 		if (check_module_fused(MX6_MODULE_ENET1))
