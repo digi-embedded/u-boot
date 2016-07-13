@@ -117,6 +117,7 @@
 	"mfgtool_args=setenv bootargs console=" CONFIG_CONSOLE_DEV ",115200 " \
 		"rdinit=/linuxrc " \
 		"g_mass_storage.stall=0 g_mass_storage.removable=1 " \
+		"g_mass_storage.file=/fat g_mass_storage.ro=1 " \
 		"g_mass_storage.idVendor=0x066F g_mass_storage.idProduct=0x37FF "\
 		"g_mass_storage.iSerialNumber=\"\" "\
 		"enable_wait_mode=off "\
@@ -401,7 +402,7 @@
 #define CONFIG_ENV_OFFSET              (4 * CONFIG_SYS_FLASH_SECT_SIZE)
 #elif defined(CONFIG_ENV_IS_IN_NAND)
 #undef CONFIG_ENV_SIZE
-#define CONFIG_ENV_OFFSET              (8 << 20)
+#define CONFIG_ENV_OFFSET              (37 << 20)
 #define CONFIG_ENV_SECT_SIZE           (128 << 10)
 #define CONFIG_ENV_SIZE                        CONFIG_ENV_SECT_SIZE
 #elif defined(CONFIG_ENV_IS_IN_SATA)
@@ -442,28 +443,6 @@
 #endif
 #define CONFIG_IMX_HDMI
 #define CONFIG_IMX_VIDEO_SKIP
-
-#ifndef CONFIG_SPL
-/*
- * USE our legacy UDC driver, but not CI_UDC
- * USE our legacy fastboot way, but not gnl
- */
-#if 0
-#define CONFIG_CI_UDC
-#define CONFIG_USBD_HS
-#define CONFIG_USB_GADGET_DUALSPEED
-
-#define CONFIG_USB_GADGET
-#define CONFIG_CMD_USB_MASS_STORAGE
-#define CONFIG_USB_GADGET_MASS_STORAGE
-#define CONFIG_USBDOWNLOAD_GADGET
-#define CONFIG_USB_GADGET_VBUS_DRAW	2
-
-#define CONFIG_G_DNL_VENDOR_NUM		0x0525
-#define CONFIG_G_DNL_PRODUCT_NUM	0xa4a5
-#define CONFIG_G_DNL_MANUFACTURER	"FSL"
-#endif
-#endif
 
 #if defined(CONFIG_ANDROID_SUPPORT)
 #include "mx6sabreandroid_common.h"

@@ -37,24 +37,20 @@
 #include <linux/ctype.h>
 #include <mmc.h>
 #include <fsl_esdhc.h>
-#include <fuse.h>
 #include <otf_update.h>
 #include <part.h>
 #include <recovery.h>
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>
 #endif
+#include "../common/carrier_board.h"
 #include "../common/hwid.h"
 #include "ccimx6.h"
 #include "../../../drivers/net/fec_mxc.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
-extern unsigned int get_carrierboard_version(void);
-extern unsigned int get_carrierboard_id(void);
-
 struct ccimx6_hwid my_hwid;
-static u32 hwid[CONFIG_HWID_WORDS_NUMBER];
 static block_dev_desc_t *mmc_dev;
 static int mmc_dev_index = -1;
 static int enet_xcv_type;
@@ -264,12 +260,6 @@ static struct ccimx6_variant ccimx6_variants[] = {
 };
 
 #define NUM_VARIANTS	19
-
-const char *cert_regions[] = {
-	"U.S.A.",
-	"International",
-	"Japan",
-};
 
 /* DDR3 calibration values for the different CC6 variants */
 static struct addrvalue ddr3_calibration[NUM_VARIANTS + 1][12] = {
@@ -1287,47 +1277,47 @@ int ccimx6_late_init(void)
 			run_command(recoverycmd, 0);
 	}
 #endif
+
+#ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
+	gd->flags &= ~GD_FLG_DISABLE_CONSOLE_INPUT;
+	if (!console_enable_passphrase())
+		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+	else
+		gd->flags |= GD_FLG_DISABLE_CONSOLE_INPUT;
+#endif
+
 	return ccimx6_fixup();
 }
 
-void board_print_hwid(u32 *hwid)
+void board_print_hwid(u32 *buf)
 {
-	int i;
-	int cert;
-
-	for (i = CONFIG_HWID_WORDS_NUMBER - 1; i >= 0; i--)
-		printf(" %.8x", hwid[i]);
-	printf("\n");
-	/* Formatted printout */
-	printf("    Year:          20%02d\n", (hwid[1] >> 26) & 0x3f);
-	printf("    Week:          %02d\n", (hwid[1] >> 20) & 0x3f);
-	printf("    Variant:       0x%02x\n", (hwid[1] >> 8) & 0xff);
-	printf("    HW Version:    0x%x\n", (hwid[1] >> 4) & 0xf);
-	cert = hwid[1] & 0xf;
-	printf("    Cert:          0x%x (%s)\n", cert,
-	       cert < ARRAY_SIZE(cert_regions) ? cert_regions[cert] : "??");
-	printf("    Location:      %c\n", ((hwid[0] >> 27) & 0x1f) + 'A');
-	printf("    Generator ID:  %02d\n", (hwid[0] >> 20) & 0x7f);
-	printf("    S/N:           %06d\n", hwid[0] & 0xfffff);
+	ccimx6_print_hwid(buf);
 }
 
-void board_print_manufid(u32 *hwid)
+void board_print_manufid(u32 *buf)
 {
-	int i;
+	ccimx6_print_manufid(buf);
+}
 
-	for (i = CONFIG_HWID_WORDS_NUMBER - 1; i >= 0; i--)
-		printf(" %.8x", hwid[i]);
-	printf("\n");
-	/* Formatted printout */
-	printf(" Manufacturing ID: %c%02d%02d%02d%06d %02x%x%x\n",
-	       ((hwid[0] >> 27) & 0x1f) + 'A',
-	       (hwid[1] >> 26) & 0x3f,
-	       (hwid[1] >> 20) & 0x3f,
-	       (hwid[0] >> 20) & 0x7f,
-	       hwid[0] & 0xfffff,
-	       (hwid[1] >> 8) & 0xff,
-	       (hwid[1] >> 4) & 0xf,
-	       hwid[1] & 0xf);
+int manufstr_to_hwid(int argc, char *const argv[], u32 *val)
+{
+	return ccimx6_manufstr_to_hwid(argc, argv, val);
+}
+
+int get_hwid(struct ccimx6_hwid *hwid)
+{
+	return ccimx6_get_hwid(hwid);
+}
+
+void fdt_fixup_hwid(void *fdt)
+{
+	/* Re-read HWID which might have been overridden by user */
+	if (get_hwid(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return;
+	}
+
+	ccimx6_fdt_fixup_hwid(fdt, &my_hwid);
 }
 
 static int is_valid_hwid(struct ccimx6_hwid *hwid)
@@ -1337,224 +1327,6 @@ static int is_valid_hwid(struct ccimx6_hwid *hwid)
 			return 1;
 
 	return 0;
-}
-
-static void array_to_hwid(u32 *hwid)
-{
-	/*
-	 *                      MAC1 (Bank 4 Word 3)
-	 *
-	 *       | 31..26 | 25..20 |   |  15..8  | 7..4 | 3..0 |
-	 *       +--------+--------+---+---------+------+------+
-	 * HWID: |  Year  |  Week  | - | Variant |  HV  | Cert |
-	 *       +--------+--------+---+---------+------+------+
-	 *
-	 *                      MAC0 (Bank 4 Word 2)
-	 *
-	 *       |  31..27  | 26..20 |         19..0           |
-	 *       +----------+--------+-------------------------+
-	 * HWID: | Location |  GenID |      Serial number      |
-	 *       +----------+--------+-------------------------+
-	 */
-	my_hwid.year = (hwid[1] >> 26) & 0x3f;
-	my_hwid.week = (hwid[1] >> 20) & 0x3f;
-	my_hwid.variant = (hwid[1] >> 8) & 0xff;
-	my_hwid.hv = (hwid[1] >> 4) & 0xf;
-	my_hwid.cert = hwid[1] & 0xf;
-	my_hwid.location = (hwid[0] >> 27) & 0x1f;
-	my_hwid.genid = (hwid[0] >> 20) & 0x7f;
-	my_hwid.sn = hwid[0] & 0xfffff;
-}
-
-int manufstr_to_hwid(int argc, char *const argv[], u32 *val)
-{
-	u32 *mac0 = val;
-	u32 *mac1 = val + 1;
-	char tmp[13];
-	unsigned long num;
-
-	/* Initialize HWID words */
-	*mac0 = 0;
-	*mac1 = 0;
-
-	if (argc != 2)
-		goto err;
-
-	/*
-	 * Digi Manufacturing team produces a string in the form
-	 *     LYYWWGGXXXXXX
-	 * where:
-	 *  - L:	location, an uppercase letter [A..Z]
-	 *  - YY:	year (last two digits of XXI century, in decimal)
-	 *  - WW:	week of year (in decimal)
-	 *  - GG:	generator ID (in decimal)
-	 *  - XXXXXX:	serial number (in decimal)
-	 * this information goes into the following places on the HWID:
-	 *  - L:	OCOTP_MAC0 bits 31..27 (5 bits)
-	 *  - YY:	OCOTP_MAC1 bits 31..26 (6 bits)
-	 *  - WW:	OCOTP_MAC1 bits 25..20 (6 bits)
-	 *  - GG:	OCOTP_MAC0 bits 26..20 (7 bits)
-	 *  - XXXXXX:	OCOTP_MAC0 bits 19..0 (20 bits)
-	 */
-	if (strlen(argv[0]) != 13)
-		goto err;
-
-	/*
-	 * Additionally a second string in the form VVHC must be given where:
-	 *  - VV:	variant (in hex)
-	 *  - H:	hardware version (in hex)
-	 *  - C:	wireless certification (in hex)
-	 * this information goes into the following places on the HWID:
-	 *  - VV:	OCOTP_MAC1 bits 15..8 (8 bits)
-	 *  - H:	OCOTP_MAC1 bits 7..4 (4 bits)
-	 *  - C:	OCOTP_MAC1 bits 3..0 (4 bits)
-	 */
-	if (strlen(argv[1]) != 4)
-		goto err;
-
-	/* Location */
-	if (argv[0][0] < 'A' || argv[0][0] > 'Z')
-		goto err;
-	*mac0 |= (argv[0][0] - 'A') << 27;
-	printf("    Location:      %c\n", argv[0][0]);
-
-	/* Year (only 6 bits: from 0 to 63) */
-	strncpy(tmp, &argv[0][1], 2);
-	tmp[2] = 0;
-	num = simple_strtol(tmp, NULL, 10);
-	if (num < 0 || num > 63)
-		goto err;
-	*mac1 |= num << 26;
-	printf("    Year:          20%02d\n", (int)num);
-
-	/* Week */
-	strncpy(tmp, &argv[0][3], 2);
-	tmp[2] = 0;
-	num = simple_strtol(tmp, NULL, 10);
-	if (num < 1 || num > 54)
-		goto err;
-	*mac1 |= num << 20;
-	printf("    Week:          %02d\n", (int)num);
-
-	/* Generator ID */
-	strncpy(tmp, &argv[0][5], 2);
-	tmp[2] = 0;
-	num = simple_strtol(tmp, NULL, 10);
-	if (num < 0 || num > 99)
-		goto err;
-	*mac0 |= num << 20;
-	printf("    Generator ID:  %02d\n", (int)num);
-
-	/* Serial number */
-	strncpy(tmp, &argv[0][7], 6);
-	tmp[6] = 0;
-	num = simple_strtol(tmp, NULL, 10);
-	if (num < 0 || num > 999999)
-		goto err;
-	*mac0 |= num;
-	printf("    S/N:           %06d\n", (int)num);
-
-	/* Variant */
-	strncpy(tmp, &argv[1][0], 2);
-	tmp[2] = 0;
-	num = simple_strtol(tmp, NULL, 16);
-	if (num < 0 || num > 0xff)
-		goto err;
-	*mac1 |= num << 8;
-	printf("    Variant:       0x%02x\n", (int)num);
-
-	/* Hardware version */
-	strncpy(tmp, &argv[1][2], 1);
-	tmp[1] = 0;
-	num = simple_strtol(tmp, NULL, 16);
-	if (num < 0 || num > 0xf)
-		goto err;
-	*mac1 |= num << 4;
-	printf("    HW version:    0x%x\n", (int)num);
-
-	/* Cert */
-	strncpy(tmp, &argv[1][3], 1);
-	tmp[1] = 0;
-	num = simple_strtol(tmp, NULL, 16);
-	if (num < 0 || num > 0xf)
-		goto err;
-	*mac1 |= num;
-	printf("    Cert:          0x%x (%s)\n", (int)num,
-	       num < ARRAY_SIZE(cert_regions) ? cert_regions[num] : "??");
-
-	return 0;
-
-err:
-	printf("Invalid manufacturing string.\n"
-		"Manufacturing information must be in the form: "
-		CONFIG_MANUF_STRINGS_HELP "\n");
-	return -EINVAL;
-}
-
-int get_hwid(void)
-{
-	u32 bank = CONFIG_HWID_BANK;
-	u32 word = CONFIG_HWID_START_WORD;
-	u32 cnt = CONFIG_HWID_WORDS_NUMBER;
-	int ret, i;
-
-	for (i = 0; i < cnt; i++, word++) {
-		ret = fuse_read(bank, word, &hwid[i]);
-		if (ret)
-			return -1;
-	}
-
-	array_to_hwid(hwid);
-
-	return 0;
-}
-
-void fdt_fixup_hwid(void *fdt)
-{
-	const char *propnames[] = {
-		"digi,hwid,location",
-		"digi,hwid,genid",
-		"digi,hwid,sn",
-		"digi,hwid,year",
-		"digi,hwid,week",
-		"digi,hwid,variant",
-		"digi,hwid,hv",
-		"digi,hwid,cert",
-	};
-	char str[20];
-	int i;
-
-	/* Re-read HWID which might have been overridden by user */
-	if (get_hwid()) {
-		printf("Cannot read HWID\n");
-		return;
-	}
-
-	/* Register the HWID as main node properties in the FDT */
-	for (i = 0; i < ARRAY_SIZE(propnames); i++) {
-		/* Convert HWID fields to strings */
-		if (!strcmp("digi,hwid,location", propnames[i]))
-			sprintf(str, "%c", my_hwid.location + 'A');
-		else if (!strcmp("digi,hwid,genid", propnames[i]))
-			sprintf(str, "%02d", my_hwid.genid);
-		else if (!strcmp("digi,hwid,sn", propnames[i]))
-			sprintf(str, "%06d", my_hwid.sn);
-		else if (!strcmp("digi,hwid,year", propnames[i]))
-			sprintf(str, "20%02d", my_hwid.year);
-		else if (!strcmp("digi,hwid,week", propnames[i]))
-			sprintf(str, "%02d", my_hwid.week);
-		else if (!strcmp("digi,hwid,variant", propnames[i]))
-			sprintf(str, "0x%02x", my_hwid.variant);
-		else if (!strcmp("digi,hwid,hv", propnames[i]))
-			sprintf(str, "0x%x", my_hwid.hv);
-		else if (!strcmp("digi,hwid,cert", propnames[i]))
-			sprintf(str, "0x%x", my_hwid.cert);
-		else
-			continue;
-
-		do_fixup_by_path(fdt, "/", propnames[i], str,
-				 strlen(str) + 1, 1);
-	}
 }
 
 int board_has_emmc(void)
@@ -1599,24 +1371,6 @@ void print_ccimx6_info(void)
 		printf("ConnectCore 6 SOM variant 0x%02X: %s\n", my_hwid.variant,
 			ccimx6_variants[my_hwid.variant].id_string);
 }
-
-#if defined(CONFIG_OF_BOARD_SETUP)
-void fdt_fixup_mac(void *fdt, char *varname, char *node)
-{
-	char *tmp, *end;
-	unsigned char mac_addr[6];
-	int i;
-
-	if ((tmp = getenv(varname)) != NULL) {
-		for (i = 0; i < 6; i++) {
-			mac_addr[i] = tmp ? simple_strtoul(tmp, &end, 16) : 0;
-			if (tmp)
-				tmp = (*end) ? end+1 : end;
-		}
-		do_fixup_by_path(fdt, node, "mac-address", &mac_addr, 6, 1);
-	}
-}
-#endif /* CONFIG_OF_BOARD_SETUP */
 
 static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
 			unsigned int chunklen)
@@ -1779,7 +1533,7 @@ int board_update_chunk(otf_data_t *otfd)
 
 int ccimx6_init(void)
 {
-	if (get_hwid()) {
+	if (get_hwid(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return -1;
 	}

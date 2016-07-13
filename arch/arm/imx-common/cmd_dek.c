@@ -68,7 +68,7 @@ static int do_dek_blob(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 
 	src_addr = simple_strtoul(argv[1], NULL, 16);
 	dst_addr = simple_strtoul(argv[2], NULL, 16);
-	len = simple_strtoul(argv[3], NULL, 10);
+	len = simple_strtoul(argv[3], NULL, 16);
 
 	src_ptr = map_sysmem(src_addr, len/8);
 	dst_ptr = map_sysmem(dst_addr, BLOB_SIZE(len/8));
@@ -82,7 +82,9 @@ static int do_dek_blob(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 static char dek_blob_help_text[] =
 	"src dst len            - Encapsulate and create blob of data\n"
 	"                         $len bits long at address $src and\n"
-	"                         store the result at address $dst.\n";
+	"                         store the result at address $dst.\n"
+	"\nNote: $len valid values are 0x80 (128 bits), 0xC0 (192 bits)"
+        " and 0x100 (256 bits)";
 
 U_BOOT_CMD(
 	dek_blob, 4, 1, do_dek_blob,

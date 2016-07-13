@@ -325,7 +325,7 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 
 			if (load == image_start ||
 			    load == image_data) {
-				fdt_blob = (char *)image_data;
+				fdt_addr = load;
 				break;
 			}
 
@@ -416,7 +416,34 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 			debug("## No Flattened Device Tree\n");
 			goto no_fdt;
 		}
-	} else {
+	}
+#ifdef CONFIG_ANDROID_BOOT_IMAGE
+	else if (genimg_get_format((void *)images->os.start) ==
+		IMAGE_FORMAT_ANDROID) {
+		ulong fdt_data, fdt_len;
+		android_image_get_fdt((void *)images->os.start,
+		 &fdt_data, &fdt_len);
+
+		if (fdt_len) {
+			fdt_blob = (char *)fdt_data;
+			printf("   Booting using the fdt at 0x%p\n", fdt_blob);
+
+			if (fdt_check_header(fdt_blob) != 0) {
+				fdt_error("image is not a fdt");
+				goto error;
+			}
+
+			if (fdt_totalsize(fdt_blob) != fdt_len) {
+				fdt_error("fdt size != image size");
+				goto error;
+			}
+		} else {
+			debug("## No Flattened Device Tree\n");
+			goto no_fdt;
+		}
+	}
+#endif
+	else {
 		debug("## No Flattened Device Tree\n");
 		goto no_fdt;
 	}
@@ -487,7 +514,8 @@ int image_setup_libfdt(bootm_headers_t *images, void *blob,
 		}
 	}
 	if (IMAGE_OF_SYSTEM_SETUP) {
-		if (ft_system_setup(blob, gd->bd)) {
+		fdt_ret = ft_system_setup(blob, gd->bd);
+		if (fdt_ret) {
 			printf("ERROR: system-specific fdt fixup failed: %s\n",
 			       fdt_strerror(fdt_ret));
 			goto err;

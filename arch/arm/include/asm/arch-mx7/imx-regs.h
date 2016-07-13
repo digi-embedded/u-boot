@@ -212,6 +212,8 @@
 #define FEC_QUIRK_ENET_MAC
 #define SNVS_LPGPR	0x68
 
+#define CHIP_REV_1_0                 0x10
+#define CHIP_REV_1_1                 0x11
 #if !(defined(__KERNEL_STRICT_NAMES) || defined(__ASSEMBLY__))
 #include <asm/types.h>
 
@@ -267,6 +269,8 @@ struct src {
 #define IOMUXC_GPR_GPR0_DMAREQ_MUX_SEL5_SHIFT    5
 #define IOMUXC_GPR_GPR0_DMAREQ_MUX_SEL6_MASK     0x40u
 #define IOMUXC_GPR_GPR0_DMAREQ_MUX_SEL6_SHIFT    6
+#define IOMUXC_GPR_GPR0_ENET_MDIO_OPEN_DRAIN_MASK (3 << 7)
+#define IOMUXC_GPR_GPR0_ENET_MDIO_OPEN_DRAIN_SHIFT 7
 /* GPR1 Bit Fields */
 #define IOMUXC_GPR_GPR1_GPR_WEIM_ACT_CS0_MASK    0x1u
 #define IOMUXC_GPR_GPR1_GPR_WEIM_ACT_CS0_SHIFT   0

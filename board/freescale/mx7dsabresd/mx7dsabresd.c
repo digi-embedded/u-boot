@@ -36,12 +36,12 @@
 #include <mxsfb.h>
 #endif
 
-#ifdef CONFIG_FASTBOOT
-#include <fastboot.h>
+#ifdef CONFIG_FSL_FASTBOOT
+#include <fsl_fastboot.h>
 #ifdef CONFIG_ANDROID_RECOVERY
 #include <recovery.h>
 #endif
-#endif /*CONFIG_FASTBOOT*/
+#endif /*CONFIG_FSL_FASTBOOT*/
 
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -131,8 +131,8 @@ static iomux_v3_cfg_t const usdhc1_pads[] = {
 	MX7D_PAD_SD1_DATA2__SD1_DATA2 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX7D_PAD_SD1_DATA3__SD1_DATA3 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 
-	MX7D_PAD_SD1_CD_B__GPIO5_IO0 | MUX_PAD_CTRL(NO_PAD_CTRL),
-	MX7D_PAD_SD1_RESET_B__GPIO5_IO2 | MUX_PAD_CTRL(NO_PAD_CTRL),
+	MX7D_PAD_SD1_CD_B__GPIO5_IO0 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX7D_PAD_SD1_RESET_B__GPIO5_IO2 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 };
 
 static iomux_v3_cfg_t const usdhc3_emmc_pads[] = {
@@ -148,7 +148,7 @@ static iomux_v3_cfg_t const usdhc3_emmc_pads[] = {
 	MX7D_PAD_SD3_DATA7__SD3_DATA7 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX7D_PAD_SD3_STROBE__SD3_STROBE	 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 
-	MX7D_PAD_SD3_RESET_B__GPIO6_IO11 | MUX_PAD_CTRL(NO_PAD_CTRL),
+	MX7D_PAD_SD3_RESET_B__GPIO6_IO11 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 };
 
 #define IOX_SDI IMX_GPIO_NR(1, 9)
@@ -276,6 +276,49 @@ void iox74lv_set(int index)
 	  */
 	gpio_direction_output(IOX_STCP, 1);
 };
+
+#define BOARD_REV_B  0x200
+#define BOARD_REV_A  0x100
+
+static int mx7sabre_rev(void)
+{
+	/*
+	 * Get Board ID information from OCOTP_GP1[15:8]
+	 * i.MX7D SDB RevA: 0x41
+	 * i.MX7D SDB RevB: 0x42
+	 */
+	struct ocotp_regs *ocotp = (struct ocotp_regs *)OCOTP_BASE_ADDR;
+	struct fuse_bank *bank = &ocotp->bank[14];
+	int reg = readl(&bank->fuse_regs[0]);
+	int ret;
+
+	if (reg != 0) {
+		switch (reg >> 8 & 0x0F) {
+		case 0x02:
+			ret = BOARD_REV_B;
+			break;
+		case 0x01:
+		default:
+			ret = BOARD_REV_A;
+			break;
+		}
+	} else {
+		/* If the gp1 fuse is not burn, we have to use TO rev for the board rev */
+		if (0 == is_soc_rev(CHIP_REV_1_0))
+			ret = BOARD_REV_A;
+		else
+			ret = BOARD_REV_B;
+	}
+
+	return ret;
+}
+
+u32 get_board_rev(void)
+{
+	int rev = mx7sabre_rev();
+
+	return (get_cpu_rev() & ~(0xF << 8)) | rev;
+}
 
 
 #ifdef CONFIG_SYS_USE_NAND
@@ -433,30 +476,6 @@ int board_video_skip(void)
 	}
 
 	return 0;
-}
-#endif
-
-#ifdef CONFIG_FEC_MXC
-static iomux_v3_cfg_t const fec1_pads[] = {
-	MX7D_PAD_ENET1_RGMII_RX_CTL__ENET1_RGMII_RX_CTL | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
-	MX7D_PAD_ENET1_RGMII_RD0__ENET1_RGMII_RD0 | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
-	MX7D_PAD_ENET1_RGMII_RD1__ENET1_RGMII_RD1 | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
-	MX7D_PAD_ENET1_RGMII_RD2__ENET1_RGMII_RD2 | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
-	MX7D_PAD_ENET1_RGMII_RD3__ENET1_RGMII_RD3 | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
-	MX7D_PAD_ENET1_RGMII_RXC__ENET1_RGMII_RXC | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
-	MX7D_PAD_ENET1_RGMII_TX_CTL__ENET1_RGMII_TX_CTL | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX7D_PAD_ENET1_RGMII_TD0__ENET1_RGMII_TD0 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX7D_PAD_ENET1_RGMII_TD1__ENET1_RGMII_TD1 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX7D_PAD_ENET1_RGMII_TD2__ENET1_RGMII_TD2 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX7D_PAD_ENET1_RGMII_TD3__ENET1_RGMII_TD3 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX7D_PAD_ENET1_RGMII_TXC__ENET1_RGMII_TXC | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX7D_PAD_GPIO1_IO10__ENET1_MDIO | MUX_PAD_CTRL(ENET_PAD_CTRL_MII),
-	MX7D_PAD_GPIO1_IO11__ENET1_MDC | MUX_PAD_CTRL(ENET_PAD_CTRL_MII),
-};
-
-static void setup_iomux_fec(void)
-{
-	imx_iomux_v3_setup_multiple_pads(fec1_pads, ARRAY_SIZE(fec1_pads));
 }
 #endif
 
@@ -620,14 +639,69 @@ void board_late_mmc_init(void)
 
 #endif
 
+iomux_v3_cfg_t const fec2_en_pads[] = {
+	MX7D_PAD_GPIO1_IO04__GPIO1_IO4 | MUX_PAD_CTRL(NO_PAD_CTRL),
+};
+
 #ifdef CONFIG_FEC_MXC
+static iomux_v3_cfg_t const fec1_pads[] = {
+	MX7D_PAD_ENET1_RGMII_RX_CTL__ENET1_RGMII_RX_CTL | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
+	MX7D_PAD_ENET1_RGMII_RD0__ENET1_RGMII_RD0 | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
+	MX7D_PAD_ENET1_RGMII_RD1__ENET1_RGMII_RD1 | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
+	MX7D_PAD_ENET1_RGMII_RD2__ENET1_RGMII_RD2 | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
+	MX7D_PAD_ENET1_RGMII_RD3__ENET1_RGMII_RD3 | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
+	MX7D_PAD_ENET1_RGMII_RXC__ENET1_RGMII_RXC | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
+	MX7D_PAD_ENET1_RGMII_TX_CTL__ENET1_RGMII_TX_CTL | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX7D_PAD_ENET1_RGMII_TD0__ENET1_RGMII_TD0 | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX7D_PAD_ENET1_RGMII_TD1__ENET1_RGMII_TD1 | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX7D_PAD_ENET1_RGMII_TD2__ENET1_RGMII_TD2 | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX7D_PAD_ENET1_RGMII_TD3__ENET1_RGMII_TD3 | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX7D_PAD_ENET1_RGMII_TXC__ENET1_RGMII_TXC | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX7D_PAD_GPIO1_IO10__ENET1_MDIO | MUX_PAD_CTRL(ENET_PAD_CTRL_MII),
+	MX7D_PAD_GPIO1_IO11__ENET1_MDC | MUX_PAD_CTRL(ENET_PAD_CTRL_MII),
+};
+
+static iomux_v3_cfg_t const fec2_pads[] = {
+	MX7D_PAD_EPDC_SDCE0__ENET2_RGMII_RX_CTL | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
+	MX7D_PAD_EPDC_SDCLK__ENET2_RGMII_RD0 | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
+	MX7D_PAD_EPDC_SDLE__ENET2_RGMII_RD1  | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
+	MX7D_PAD_EPDC_SDOE__ENET2_RGMII_RD2  | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
+	MX7D_PAD_EPDC_SDSHR__ENET2_RGMII_RD3 | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
+	MX7D_PAD_EPDC_SDCE1__ENET2_RGMII_RXC | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
+	MX7D_PAD_EPDC_GDRL__ENET2_RGMII_TX_CTL | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX7D_PAD_EPDC_SDCE2__ENET2_RGMII_TD0 | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX7D_PAD_EPDC_SDCE3__ENET2_RGMII_TD1 | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX7D_PAD_EPDC_GDCLK__ENET2_RGMII_TD2 | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX7D_PAD_EPDC_GDOE__ENET2_RGMII_TD3  | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX7D_PAD_EPDC_GDSP__ENET2_RGMII_TXC  | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX7D_PAD_GPIO1_IO10__ENET1_MDIO | MUX_PAD_CTRL(ENET_PAD_CTRL_MII),
+	MX7D_PAD_GPIO1_IO11__ENET1_MDC | MUX_PAD_CTRL(ENET_PAD_CTRL_MII),
+};
+
+static void setup_iomux_fec(void)
+{
+	if (0 == CONFIG_FEC_ENET_DEV) {
+		imx_iomux_v3_setup_multiple_pads(fec1_pads, ARRAY_SIZE(fec1_pads));
+	} else {
+		if (mx7sabre_rev() == BOARD_REV_B) {
+			/*  On RevB, GPIO1_IO04 is used for ENET2 EN, 
+			*  so set its output to low to enable ENET2 signals 
+			*/
+			imx_iomux_v3_setup_multiple_pads(fec2_en_pads, 
+				ARRAY_SIZE(fec2_en_pads));
+			gpio_direction_output(IMX_GPIO_NR(1, 4), 0);
+		}
+		imx_iomux_v3_setup_multiple_pads(fec2_pads, ARRAY_SIZE(fec2_pads));
+	}
+}
+
 int board_eth_init(bd_t *bis)
 {
 	int ret;
 
 	setup_iomux_fec();
 
-	ret = fecmxc_initialize_multi(bis, 0,
+	ret = fecmxc_initialize_multi(bis, CONFIG_FEC_ENET_DEV,
 		CONFIG_FEC_MXC_PHYADDR, IMX_FEC_BASE);
 	if (ret)
 		printf("FEC1 MXC: %s:failed\n", __func__);
@@ -635,16 +709,23 @@ int board_eth_init(bd_t *bis)
 	return ret;
 }
 
-static int setup_fec(void)
+static int setup_fec(int fec_id)
 {
 	struct iomuxc_gpr_base_regs *const iomuxc_gpr_regs
 		= (struct iomuxc_gpr_base_regs *) IOMUXC_GPR_BASE_ADDR;
 	int ret;
 
-	/* Use 125M anatop REF_CLK1 for ENET1, clear gpr1[13], gpr1[17]*/
-	clrsetbits_le32(&iomuxc_gpr_regs->gpr[1],
-		(IOMUXC_GPR_GPR1_GPR_ENET1_TX_CLK_SEL_MASK |
-		 IOMUXC_GPR_GPR1_GPR_ENET1_CLK_DIR_MASK), 0);
+	if (0 == fec_id) {
+		/* Use 125M anatop REF_CLK1 for ENET1, clear gpr1[13], gpr1[17]*/
+		clrsetbits_le32(&iomuxc_gpr_regs->gpr[1],
+			(IOMUXC_GPR_GPR1_GPR_ENET1_TX_CLK_SEL_MASK |
+			 IOMUXC_GPR_GPR1_GPR_ENET1_CLK_DIR_MASK), 0);
+	} else {
+		/* Use 125M anatop REF_CLK2 for ENET2, clear gpr1[14], gpr1[18]*/
+		clrsetbits_le32(&iomuxc_gpr_regs->gpr[1],
+			(IOMUXC_GPR_GPR1_GPR_ENET2_TX_CLK_SEL_MASK |
+			 IOMUXC_GPR_GPR1_GPR_ENET2_CLK_DIR_MASK), 0);
+	}
 
 	ret = set_clk_enet(ENET_125MHz);
 	if (ret)
@@ -782,42 +863,6 @@ static void setup_epdc_power(void)
 	gpio_direction_output(IMX_GPIO_NR(2, 30), 1);
 }
 
-int setup_waveform_file(ulong waveform_buf)
-{
-	char *fs_argv[5];
-	char addr[17];
-	ulong file_len, mmc_dev;
-
-	if (!check_mmc_autodetect())
-		mmc_dev = getenv_ulong("mmcdev", 10, 0);
-	else
-		mmc_dev = mmc_get_env_devno();
-
-	sprintf(addr, "%lx", waveform_buf);
-
-	fs_argv[0] = "fatload";
-	fs_argv[1] = "mmc";
-	fs_argv[2] = simple_itoa(mmc_dev);
-	fs_argv[3] = addr;
-	fs_argv[4] = getenv("epdc_waveform");
-
-	if (!fs_argv[4])
-		fs_argv[4] = "epdc_splash.bin";
-
-	if (do_fat_fsload(NULL, 0, 5, fs_argv)) {
-		printf("File %s not found on MMC Device %lu \n", fs_argv[4], mmc_dev);
-		return -1;
-	}
-
-	file_len = getenv_hex("filesize", 0);
-	if (!file_len)
-		return -1;
-
-	flush_cache((ulong)addr, file_len);
-
-	return 0;
-}
-
 static void epdc_enable_pins(void)
 {
 	/* epdc iomux settings */
@@ -933,7 +978,7 @@ int board_init(void)
 	iox74lv_init();
 
 #ifdef CONFIG_FEC_MXC
-	setup_fec();
+	setup_fec(CONFIG_FEC_ENET_DEV);
 #endif
 
 #ifdef CONFIG_SYS_USE_NAND
@@ -945,8 +990,17 @@ int board_init(void)
 #endif
 
 #ifdef	CONFIG_MXC_EPDC
-	qn_output[5] = qn_disable;
-	iox74lv_set(5);
+	if (mx7sabre_rev() == BOARD_REV_B) {
+		/*  On RevB, GPIO1_IO04 is used for ENET2 EN, 
+		*  so set its output to high to isolate the ENET2 signals for EPDC 
+		*/
+		imx_iomux_v3_setup_multiple_pads(fec2_en_pads, 
+			ARRAY_SIZE(fec2_en_pads));
+		gpio_direction_output(IMX_GPIO_NR(1, 4), 1);
+	} else {
+		qn_output[5] = qn_disable;
+		iox74lv_set(5);
+	}
 	setup_epdc();
 #endif
 
@@ -990,6 +1044,22 @@ int power_init_board(void)
 	reg |= 0x1;
 	pmic_reg_write(p, PFUZE300_LDOGCTL, reg);
 
+	/* SW1A/1B mode set to APS/APS */
+	reg = 0x8;
+	pmic_reg_write(p, PFUZE300_SW1AMODE, reg);
+	pmic_reg_write(p, PFUZE300_SW1BMODE, reg);
+
+	/* SW1A/1B standby voltage set to 1.025V */
+	reg = 0xd;
+	pmic_reg_write(p, PFUZE300_SW1ASTBY, reg);
+	pmic_reg_write(p, PFUZE300_SW1BSTBY, reg);
+
+	/* decrease SW1B normal voltage to 0.975V */
+	pmic_reg_read(p, PFUZE300_SW1BVOLT, &reg);
+	reg &= ~0x1f;
+	reg |= PFUZE300_SW1AB_SETP(975);
+	pmic_reg_write(p, PFUZE300_SW1BVOLT, reg);
+
 	return 0;
 }
 #endif
@@ -1011,14 +1081,22 @@ int board_late_init(void)
 	return 0;
 }
 
-u32 get_board_rev(void)
-{
-	return get_cpu_rev();
-}
-
 int checkboard(void)
 {
-	puts("Board: i.MX7D SABRESD\n");
+	int rev = mx7sabre_rev();
+	char *revname;
+
+	switch (rev) {
+	case BOARD_REV_B:
+		revname = "B";
+		break;
+	case BOARD_REV_A:
+	default:
+		revname = "A";
+		break;
+	}
+
+	printf("Board: i.MX7D SABRESD Rev%s\n", revname);
 
 	return 0;
 }
@@ -1032,6 +1110,11 @@ iomux_v3_cfg_t const usb_otg2_pads[] = {
 	MX7D_PAD_UART3_CTS_B__USB_OTG2_PWR | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 
+/* On RevB board, the GPIO_IO07 is muxed for OTG2 PWR */
+iomux_v3_cfg_t const usb_otg2_revB_pads[] = {
+	MX7D_PAD_GPIO1_IO07__USB_OTG2_PWR | MUX_PAD_CTRL(NO_PAD_CTRL),
+};
+
 int board_ehci_hcd_init(int port)
 {
 	switch (port) {
@@ -1040,8 +1123,12 @@ int board_ehci_hcd_init(int port)
 						 ARRAY_SIZE(usb_otg1_pads));
 		break;
 	case 1:
-		imx_iomux_v3_setup_multiple_pads(usb_otg2_pads,
-						 ARRAY_SIZE(usb_otg2_pads));
+		if (mx7sabre_rev() == BOARD_REV_B)
+			imx_iomux_v3_setup_multiple_pads(usb_otg2_revB_pads,
+						 ARRAY_SIZE(usb_otg2_revB_pads));
+		else
+			imx_iomux_v3_setup_multiple_pads(usb_otg2_pads,
+							 ARRAY_SIZE(usb_otg2_pads));
 		break;
 	default:
 		printf("MXC USB port %d not yet supported\n", port);
@@ -1051,7 +1138,7 @@ int board_ehci_hcd_init(int port)
 }
 #endif
 
-#ifdef CONFIG_FASTBOOT
+#ifdef CONFIG_FSL_FASTBOOT
 
 void board_fastboot_setup(void)
 {
@@ -1062,14 +1149,14 @@ void board_fastboot_setup(void)
 		if (!getenv("fastboot_dev"))
 			setenv("fastboot_dev", "mmc0");
 		if (!getenv("bootcmd"))
-			setenv("bootcmd", "booti mmc0");
+			setenv("bootcmd", "boota mmc0");
 		break;
 	case SD3_BOOT:
 	case MMC3_BOOT:
 		if (!getenv("fastboot_dev"))
 			setenv("fastboot_dev", "mmc1");
 		if (!getenv("bootcmd"))
-			setenv("bootcmd", "booti mmc1");
+			setenv("bootcmd", "boota mmc1");
 		break;
 #endif /*CONFIG_FASTBOOT_STORAGE_MMC*/
 	default:
@@ -1116,12 +1203,12 @@ void board_recovery_setup(void)
 	case SD1_BOOT:
 	case MMC1_BOOT:
 		if (!getenv("bootcmd_android_recovery"))
-			setenv("bootcmd_android_recovery", "booti mmc0 recovery");
+			setenv("bootcmd_android_recovery", "boota mmc0 recovery");
 		break;
 	case SD3_BOOT:
 	case MMC3_BOOT:
 		if (!getenv("bootcmd_android_recovery"))
-			setenv("bootcmd_android_recovery", "booti mmc1 recovery");
+			setenv("bootcmd_android_recovery", "boota mmc1 recovery");
 		break;
 #endif /*CONFIG_FASTBOOT_STORAGE_MMC*/
 	default:
@@ -1135,11 +1222,4 @@ void board_recovery_setup(void)
 }
 #endif /*CONFIG_ANDROID_RECOVERY*/
 
-#endif /*CONFIG_FASTBOOT*/
-
-#ifdef CONFIG_IMX_UDC
-void udc_pins_setting(void)
-{
-}
-
-#endif /*CONFIG_IMX_UDC*/
+#endif /*CONFIG_FSL_FASTBOOT*/

@@ -106,6 +106,7 @@ ALL-y += checkarmreloc
 # instruction. Relocation is not supported for that case, so disable
 # such usage by requiring word relocations.
 PLATFORM_CPPFLAGS += $(call cc-option, -mword-relocations)
+PLATFORM_CPPFLAGS += $(call cc-option, -fno-pic)
 endif
 
 # limit ourselves to the sections we want in the .bin.
@@ -129,6 +130,7 @@ ifeq ($(CONFIG_OF_SEPARATE),y)
 ALL-y += u-boot-dtb.imx
 else
 ALL-y += u-boot.imx
+ALL-$(CONFIG_SIGN_IMAGE) += u-boot-signed.imx
 endif
 endif
 endif

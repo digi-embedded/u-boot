@@ -1,7 +1,7 @@
 VERSION = 2015
 PATCHLEVEL = 04
-SUBLEVEL = r3
-EXTRAVERSION = .1
+SUBLEVEL = r4
+EXTRAVERSION =.1
 NAME =
 
 # *DOCUMENTATION*
@@ -624,6 +624,7 @@ HAVE_VENDOR_COMMON_LIB = $(if $(wildcard $(srctree)/board/$(VENDOR)/common/Makef
 
 libs-y += lib/
 libs-$(HAVE_VENDOR_COMMON_LIB) += board/$(VENDOR)/common/
+libs-$(CONFIG_FSL_FASTBOOT) += board/freescale/common/
 libs-$(CONFIG_OF_EMBED) += dts/
 libs-y += fs/
 libs-y += net/
@@ -811,6 +812,9 @@ u-boot-dtb.bin: u-boot.bin dts/dt.dtb FORCE
 	$(call if_changed,cat)
 
 %.imx: %.bin
+	$(Q)$(MAKE) $(build)=arch/arm/imx-common $@
+
+%-signed.imx: %.imx
 	$(Q)$(MAKE) $(build)=arch/arm/imx-common $@
 
 quiet_cmd_copy = COPY    $@

@@ -34,12 +34,12 @@
 #include <lcd.h>
 #include <mxc_epdc_fb.h>
 #endif
-#ifdef CONFIG_FASTBOOT
-#include <fastboot.h>
+#ifdef CONFIG_FSL_FASTBOOT
+#include <fsl_fastboot.h>
 #ifdef CONFIG_ANDROID_RECOVERY
 #include <recovery.h>
 #endif
-#endif /*CONFIG_FASTBOOT*/
+#endif /*CONFIG_FSL_FASTBOOT*/
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -382,7 +382,8 @@ struct i2c_pads_info i2c_pad_info1 = {
 static struct pmic *pfuze;
 int power_init_board(void)
 {
-	unsigned int reg, ret;
+	unsigned int reg;
+	int ret;
 
 	pfuze = pfuze_common_init(I2C_PMIC);
 	if (!pfuze)
@@ -604,42 +605,6 @@ static void setup_epdc_power(void)
 				MUX_PAD_CTRL(EPDC_PAD_CTRL));
 	/* Set as output */
 	gpio_direction_output(IMX_GPIO_NR(2, 7), 1);
-}
-
-int setup_waveform_file(ulong waveform_buf)
-{
-	char *fs_argv[5];
-	char addr[17];
-	ulong file_len, mmc_dev;
-
-	if (!check_mmc_autodetect())
-		mmc_dev = getenv_ulong("mmcdev", 10, 0);
-	else
-		mmc_dev = mmc_get_env_devno();
-
-	sprintf(addr, "%lx", waveform_buf);
-
-	fs_argv[0] = "fatload";
-	fs_argv[1] = "mmc";
-	fs_argv[2] = simple_itoa(mmc_dev);
-	fs_argv[3] = addr;
-	fs_argv[4] = getenv("epdc_waveform");
-
-	if (!fs_argv[4])
-		fs_argv[4] = "epdc_splash.bin";
-
-	if (do_fat_fsload(NULL, 0, 5, fs_argv)) {
-		printf("MMC Device %lu not found\n", mmc_dev);
-		return -1;
-	}
-
-	file_len = getenv_hex("filesize", 0);
-	if (!file_len)
-		return -1;
-
-	flush_cache((ulong)addr, file_len);
-
-	return 0;
 }
 
 static void epdc_enable_pins(void)
@@ -873,7 +838,7 @@ int setup_mxc_kpd(void)
 }
 #endif /*CONFIG_MXC_KPD*/
 
-#ifdef CONFIG_FASTBOOT
+#ifdef CONFIG_FSL_FASTBOOT
 
 void board_fastboot_setup(void)
 {
@@ -884,21 +849,21 @@ void board_fastboot_setup(void)
 		if (!getenv("fastboot_dev"))
 			setenv("fastboot_dev", "mmc0");
 		if (!getenv("bootcmd"))
-			setenv("bootcmd", "booti mmc0");
+			setenv("bootcmd", "boota mmc0");
 		break;
 	case SD2_BOOT:
 	case MMC2_BOOT:
 		if (!getenv("fastboot_dev"))
 			setenv("fastboot_dev", "mmc1");
 		if (!getenv("bootcmd"))
-			setenv("bootcmd", "booti mmc1");
+			setenv("bootcmd", "boota mmc1");
 		break;
 	case SD3_BOOT:
 	case MMC3_BOOT:
 		if (!getenv("fastboot_dev"))
 			setenv("fastboot_dev", "mmc2");
 		if (!getenv("bootcmd"))
-			setenv("bootcmd", "booti mmc2");
+			setenv("bootcmd", "boota mmc2");
 		break;
 #endif /*CONFIG_FASTBOOT_STORAGE_MMC*/
 	default:
@@ -925,19 +890,19 @@ void board_recovery_setup(void)
 	case MMC1_BOOT:
 		if (!getenv("bootcmd_android_recovery"))
 			setenv("bootcmd_android_recovery",
-					"booti mmc0 recovery");
+					"boota mmc0 recovery");
 		break;
 	case SD2_BOOT:
 	case MMC2_BOOT:
 		if (!getenv("bootcmd_android_recovery"))
 			setenv("bootcmd_android_recovery",
-					"booti mmc1 recovery");
+					"boota mmc1 recovery");
 		break;
 	case SD3_BOOT:
 	case MMC3_BOOT:
 		if (!getenv("bootcmd_android_recovery"))
 			setenv("bootcmd_android_recovery",
-					"booti mmc2 recovery");
+					"boota mmc2 recovery");
 		break;
 #endif /*CONFIG_FASTBOOT_STORAGE_MMC*/
 	default:
@@ -952,15 +917,4 @@ void board_recovery_setup(void)
 
 #endif /*CONFIG_ANDROID_RECOVERY*/
 
-#endif /*CONFIG_FASTBOOT*/
-
-#ifdef CONFIG_IMX_UDC
-iomux_v3_cfg_t const otg_udc_pads[] = {
-	(MX6_PAD_EPDC_PWRCOM__ANATOP_USBOTG1_ID | MUX_PAD_CTRL(NO_PAD_CTRL)),
-};
-void udc_pins_setting(void)
-{
-	imx_iomux_v3_setup_multiple_pads(otg_udc_pads,
-			ARRAY_SIZE(otg_udc_pads));
-}
-#endif /*CONFIG_IMX_UDC*/
+#endif /*CONFIG_FSL_FASTBOOT*/

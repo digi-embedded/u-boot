@@ -248,21 +248,20 @@ static int init_mmc_globals(void)
 
 static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 {
-	int src = SRC_TFTP;	/* default to TFTP */
-	char *devpartno = NULL;
-	char *fs = NULL;
 	disk_partition_t info;
 	int ret;
-	char filename[256] = "";
 	int otf = 0;
 	int otf_enabled = 0;
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	unsigned long loadaddr;
 	unsigned long verifyaddr;
-	unsigned long filesize;
+	unsigned long filesize = 0;
+	struct load_fw fwinfo;
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
+
+	memset(&fwinfo, 0, sizeof(fwinfo));
 
 	if (init_mmc_globals())
 		return CMD_RET_FAILURE;
@@ -296,18 +295,8 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	/* Get source of update firmware file */
-	if (argc > 2) {
-		src = get_source(argc, argv, &devpartno, &fs);
-		if (src == SRC_UNSUPPORTED) {
-			printf("Error: '%s' is not supported as source\n",
-				argv[2]);
-			return CMD_RET_USAGE;
-		}
-		else if (src == SRC_UNDEFINED) {
-			printf("Error: undefined source\n");
-			return CMD_RET_USAGE;
-		}
-	}
+	if (get_source(argc, argv, &fwinfo))
+		return CMD_RET_FAILURE;
 
 	loadaddr = getenv_ulong("loadaddr", 16, CONFIG_LOADADDR);
 	/*
@@ -322,7 +311,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 			setenv_hex("verifyaddr", verifyaddr);
 	}
 
-	if (src == SRC_RAM) {
+	if (fwinfo.src == SRC_RAM) {
 		/* Get address in RAM where firmware file is */
 		if (argc > 3)
 			loadaddr = simple_strtol(argv[3], NULL, 16);
@@ -351,11 +340,12 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		}
 
 		/* Get firmware file name */
-		ret = get_fw_filename(argc, argv, src, filename);
+		ret = get_fw_filename(argc, argv, &fwinfo);
 		if (ret) {
 			/* Filename was not provided. Look for default one */
-			ret = get_default_filename(argv[1], filename, CMD_UPDATE);
-			if (ret) {
+			fwinfo.filename = get_default_filename(argv[1],
+							       CMD_UPDATE);
+			if (!fwinfo.filename) {
 				printf("Error: need a filename\n");
 				return CMD_RET_USAGE;
 			}
@@ -370,7 +360,8 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 				"for security reasons\n");
 		} else {
 			/* register on-the-fly update mechanism */
-			otf = register_otf_hook(src, board_update_chunk, &info);
+			otf = register_otf_hook(fwinfo.src, board_update_chunk,
+						&info);
 		}
 	}
 
@@ -385,13 +376,13 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		}
 	}
 
-	if (src != SRC_RAM) {
+	if (fwinfo.src != SRC_RAM) {
 		/*
 		 * Load firmware file to RAM (this process may write the file
 		 * to the target media if OTF mechanism is enabled).
 		 */
-		ret = load_firmware(src, filename, devpartno, fs, "$loadaddr",
-				    NULL);
+		fwinfo.loadaddr = "$loadaddr";
+		ret = load_firmware(&fwinfo);
 		if (ret == LDFW_ERROR) {
 			printf("Error loading firmware file to RAM\n");
 			ret = CMD_RET_FAILURE;
@@ -400,10 +391,12 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 			ret = CMD_RET_SUCCESS;
 			goto _ret;
 		}
+
 	}
 
 	/* Write firmware file from RAM to storage */
-	filesize = getenv_ulong("filesize", 16, 0);
+	if (!filesize)
+		filesize = getenv_ulong("filesize", 16, 0);
 	ret = write_firmware(argv[1], loadaddr, filesize, &info);
 	if (ret) {
 		if (ret == ERR_READ)
@@ -432,7 +425,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 _ret:
-	unregister_otf_hook(src);
+	unregister_otf_hook(fwinfo.src);
 	return ret;
 }
 
@@ -486,11 +479,7 @@ static int get_arg_src(int argc, char * const argv[], int src, int index,
 static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 			 char * const argv[])
 {
-	int src = SRC_TFTP;	/* default to TFTP */
-	char *devpartno = NULL;
-	char *fs = NULL;
 	disk_partition_t info;
-	char *srcfilename = NULL;
 	char *targetfilename = NULL;
 	char *targetfs = NULL;
 	const char *default_fs = "fat";
@@ -505,9 +494,12 @@ static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 #endif
 	};
 	char dev_index_str[2];
+	struct load_fw fwinfo;
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
+
+	memset(&fwinfo, 0, sizeof(fwinfo));
 
 	if (init_mmc_globals())
 		return CMD_RET_FAILURE;
@@ -522,31 +514,21 @@ static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 	}
 
 	/* Get source of update firmware file */
-	if (argc > 2) {
-		src = get_source(argc, argv, &devpartno, &fs);
-		if (src == SRC_UNSUPPORTED) {
-			printf("Error: '%s' is not supported as source\n",
-				argv[2]);
-			return CMD_RET_USAGE;
-		}
-		else if (src == SRC_UNDEFINED) {
-			printf("Error: undefined source\n");
-			return CMD_RET_USAGE;
-		}
-	}
+	if (get_source(argc, argv, &fwinfo))
+		return CMD_RET_FAILURE;
 
 	/* Get file name */
-	if (get_arg_src(argc, argv, src, 2, &srcfilename)) {
+	if (get_arg_src(argc, argv, fwinfo.src, 2, &fwinfo.filename)) {
 		printf("Error: need a filename\n");
 		return CMD_RET_USAGE;
 	}
 
-	/* Get target file name. If not provided use srcfilename by default */
-	if (get_arg_src(argc, argv, src, 3, &targetfilename))
-		targetfilename = srcfilename;
+	/* Get target file name. If not provided use fwinfo.filename by default */
+	if (get_arg_src(argc, argv, fwinfo.src, 3, &targetfilename))
+		targetfilename = fwinfo.filename;
 
 	/* Get target filesystem. If not provided use 'fat' by default */
-	if (get_arg_src(argc, argv, src, 4, &targetfs))
+	if (get_arg_src(argc, argv, fwinfo.src, 4, &targetfs))
 		targetfs = (char *)default_fs;
 
 	/* Check target fs is supported */
@@ -565,8 +547,8 @@ static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 	}
 
 	/* Load firmware file to RAM */
-	if (LDFW_ERROR == load_firmware(src, srcfilename, devpartno, fs,
-					"$loadaddr", NULL)) {
+	fwinfo.loadaddr = "$loadaddr";
+	if (LDFW_ERROR == load_firmware(&fwinfo)) {
 		printf("Error loading firmware file to RAM\n");
 		return CMD_RET_FAILURE;
 	}

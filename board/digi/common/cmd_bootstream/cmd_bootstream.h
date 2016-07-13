@@ -14,8 +14,9 @@
 #ifndef __DIGI_CMD_BOOTSTREAM_H
 #define __DIGI_CMD_BOOTSTREAM_H
 
+#include <jffs2/load_kernel.h>
+#include <mtd/mtd-abi.h>
 #include "BootControlBlocks.h"
-#include "nvram.h"
 
 /* flags */
 #define F_VERBOSE	(1 << 0)
@@ -102,7 +103,7 @@ struct mtd_bootblock {
 /* Functions */
 int ncb_get_version(void *ncb_candidate, NCB_BootBlockStruct_t **result);
 int fcb_encrypt(BCB_ROM_BootBlockStruct_t *fcb, void *target, size_t size, int version);
-int write_bootstream(const nv_param_part_t* part,
+int write_bootstream(struct part_info *part,
 		     unsigned long bs_start_address,
 		     int bs_size);
 #endif	/* __DIGI_CMD_BOOTSTREAM_H */

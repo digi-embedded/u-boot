@@ -1,0 +1,517 @@
+/*
+ * Copyright (C) 2016 Digi International, Inc.
+ * Copyright (C) 2015 Freescale Semiconductor, Inc.
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
+
+#include <asm/arch/clock.h>
+#include <asm/arch/iomux.h>
+#include <asm/arch/imx-regs.h>
+#include <asm/arch/crm_regs.h>
+#include <asm/arch/mx6-pins.h>
+#include <asm/arch/sys_proto.h>
+#include <asm/gpio.h>
+#include <asm/imx-common/iomux-v3.h>
+#include <asm/imx-common/boot_mode.h>
+#include <asm/imx-common/mxc_i2c.h>
+#include <asm/io.h>
+#include <common.h>
+#include <i2c.h>
+#include <linux/sizes.h>
+
+#ifdef CONFIG_POWER
+#include <power/pmic.h>
+#include <power/pfuze300_pmic.h>
+#include "../../freescale/common/pfuze.h"
+#endif
+#include "../common/hwid.h"
+#include "../common/mca_registers.h"
+
+DECLARE_GLOBAL_DATA_PTR;
+
+extern bool bmode_reset;
+struct ccimx6_hwid my_hwid;
+
+#define MDIO_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_PUE |     \
+	PAD_CTL_DSE_48ohm   | PAD_CTL_SRE_FAST | PAD_CTL_ODE)
+
+#define I2C_PAD_CTRL    (PAD_CTL_PKE | PAD_CTL_PUE |            \
+	PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED |               \
+	PAD_CTL_DSE_40ohm | PAD_CTL_HYS |			\
+	PAD_CTL_ODE)
+
+#define GPMI_PAD_CTRL0 (PAD_CTL_PKE | PAD_CTL_PUE | PAD_CTL_PUS_100K_UP)
+#define GPMI_PAD_CTRL1 (PAD_CTL_DSE_40ohm | PAD_CTL_SPEED_MED | \
+			PAD_CTL_SRE_FAST)
+#define GPMI_PAD_CTRL2 (GPMI_PAD_CTRL0 | GPMI_PAD_CTRL1)
+
+#ifdef CONFIG_SYS_I2C_MXC
+#define PC MUX_PAD_CTRL(I2C_PAD_CTRL)
+/* I2C1 for PMIC and MCA */
+struct i2c_pads_info i2c1_pad_info = {
+	.scl = {
+		.i2c_mode =  MX6_PAD_UART4_TX_DATA__I2C1_SCL | PC,
+		.gpio_mode = MX6_PAD_UART4_TX_DATA__GPIO1_IO28 | PC,
+		.gp = IMX_GPIO_NR(1, 28),
+	},
+	.sda = {
+		.i2c_mode = MX6_PAD_UART4_RX_DATA__I2C1_SDA | PC,
+		.gpio_mode = MX6_PAD_UART4_RX_DATA__GPIO1_IO29 | PC,
+		.gp = IMX_GPIO_NR(1, 29),
+	},
+};
+#endif
+
+static struct ccimx6_variant ccimx6ul_variants[] = {
+/* 0x00 */ { IMX6_NONE,	0, 0, "Unknown"},
+/* 0x01 */ { IMX6_NONE,	0, 0, "Unknown"},
+/* 0x02 - 55001875-02 */
+	{
+		IMX6UL,
+		MEM_256MB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
+		"Industrial Ultralite 528MHz, 256MB NAND, 256MB DDR3, -40/+85C, Wireless, Bluetooth",
+	},
+/* 0x03 - 55001875-03 */
+	{
+		IMX6UL,
+		MEM_256MB,
+		0,
+		"Industrial Ultralite 528MHz, 256MB NAND, 256MB DDR3, -40/+85C",
+	},
+};
+
+int mca_read_reg(int reg, unsigned char *value)
+{
+#ifdef CONFIG_I2C_MULTI_BUS
+	if (i2c_set_bus_num(CONFIG_MCA_I2C_BUS))
+		return -1;
+#endif
+
+	if (i2c_probe(CONFIG_MCA_I2C_ADDR)) {
+		printf("ERR: cannot access the MCA\n");
+		return -1;
+	}
+
+	if (i2c_read(CONFIG_MCA_I2C_ADDR, reg, 2, value, 1))
+		return -1;
+
+	return 0;
+}
+
+int mca_bulk_read(int reg, unsigned char *values, int len)
+{
+#ifdef CONFIG_I2C_MULTI_BUS
+	if (i2c_set_bus_num(CONFIG_MCA_I2C_BUS))
+		return -1;
+#endif
+
+	if (i2c_probe(CONFIG_MCA_I2C_ADDR)) {
+		printf("ERR: cannot access the MCA\n");
+		return -1;
+	}
+
+	if (i2c_read(CONFIG_MCA_I2C_ADDR, reg, 2, values, len))
+		return -1;
+
+	return 0;
+}
+
+int mca_write_reg(int reg, unsigned char value)
+{
+#ifdef CONFIG_I2C_MULTI_BUS
+	if (i2c_set_bus_num(CONFIG_MCA_I2C_BUS))
+		return -1;
+#endif
+
+	if (i2c_probe(CONFIG_MCA_I2C_ADDR)) {
+		printf("ERR: cannot access the MCA\n");
+		return -1;
+	}
+
+	if (i2c_write(CONFIG_MCA_I2C_ADDR, reg, 2, &value, 1))
+		return -1;
+
+	return 0;
+}
+
+int mca_bulk_write(int reg, unsigned char *values, int len)
+{
+#ifdef CONFIG_I2C_MULTI_BUS
+	if (i2c_set_bus_num(CONFIG_MCA_I2C_BUS))
+		return -1;
+#endif
+
+	if (i2c_probe(CONFIG_MCA_I2C_ADDR)) {
+		printf("ERR: cannot access the MCA\n");
+		return -1;
+	}
+
+	if (i2c_write(CONFIG_MCA_I2C_ADDR, reg, 2, values, len))
+		return -1;
+
+	return 0;
+}
+
+int mca_update_bits(int reg, unsigned char mask, unsigned char val)
+{
+	int ret;
+	unsigned char tmp, orig;
+
+	ret = mca_read_reg(reg, &orig);
+	if (ret != 0)
+		return ret;
+
+	tmp = orig & ~mask;
+	tmp |= val & mask;
+
+	if (tmp != orig)
+		return mca_write_reg(reg, tmp);
+
+	return 0;
+}
+
+int dram_init(void)
+{
+	gd->ram_size = PHYS_SDRAM_SIZE;
+
+	return 0;
+}
+
+#ifdef CONFIG_SYS_USE_NAND
+static iomux_v3_cfg_t const nand_pads[] = {
+	MX6_PAD_NAND_DATA00__RAWNAND_DATA00 | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
+	MX6_PAD_NAND_DATA01__RAWNAND_DATA01 | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
+	MX6_PAD_NAND_DATA02__RAWNAND_DATA02 | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
+	MX6_PAD_NAND_DATA03__RAWNAND_DATA03 | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
+	MX6_PAD_NAND_DATA04__RAWNAND_DATA04 | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
+	MX6_PAD_NAND_DATA05__RAWNAND_DATA05 | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
+	MX6_PAD_NAND_DATA06__RAWNAND_DATA06 | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
+	MX6_PAD_NAND_DATA07__RAWNAND_DATA07 | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
+	MX6_PAD_NAND_CLE__RAWNAND_CLE | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
+	MX6_PAD_NAND_ALE__RAWNAND_ALE | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
+	MX6_PAD_NAND_CE0_B__RAWNAND_CE0_B | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
+	MX6_PAD_NAND_CE1_B__RAWNAND_CE1_B | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
+	MX6_PAD_NAND_RE_B__RAWNAND_RE_B | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
+	MX6_PAD_NAND_WE_B__RAWNAND_WE_B | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
+	MX6_PAD_NAND_WP_B__RAWNAND_WP_B | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
+	MX6_PAD_NAND_READY_B__RAWNAND_READY_B | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
+};
+
+static void setup_gpmi_nand(void)
+{
+	struct mxc_ccm_reg *mxc_ccm = (struct mxc_ccm_reg *)CCM_BASE_ADDR;
+
+	/* config gpmi nand iomux */
+	imx_iomux_v3_setup_multiple_pads(nand_pads, ARRAY_SIZE(nand_pads));
+
+	clrbits_le32(&mxc_ccm->CCGR4,
+		     MXC_CCM_CCGR4_RAWNAND_U_BCH_INPUT_APB_MASK |
+		     MXC_CCM_CCGR4_RAWNAND_U_GPMI_BCH_INPUT_BCH_MASK |
+		     MXC_CCM_CCGR4_RAWNAND_U_GPMI_BCH_INPUT_GPMI_IO_MASK |
+		     MXC_CCM_CCGR4_RAWNAND_U_GPMI_INPUT_APB_MASK |
+		     MXC_CCM_CCGR4_PL301_MX6QPER1_BCH_MASK);
+
+	/*
+	 * config gpmi and bch clock to 100 MHz
+	 * bch/gpmi select PLL2 PFD2 400M
+	 * 100M = 400M / 4
+	 */
+	clrbits_le32(&mxc_ccm->cscmr1,
+		     MXC_CCM_CSCMR1_BCH_CLK_SEL |
+		     MXC_CCM_CSCMR1_GPMI_CLK_SEL);
+	clrsetbits_le32(&mxc_ccm->cscdr1,
+			MXC_CCM_CSCDR1_BCH_PODF_MASK |
+			MXC_CCM_CSCDR1_GPMI_PODF_MASK,
+			(3 << MXC_CCM_CSCDR1_BCH_PODF_OFFSET) |
+			(3 << MXC_CCM_CSCDR1_GPMI_PODF_OFFSET));
+
+	/* enable gpmi and bch clock gating */
+	setbits_le32(&mxc_ccm->CCGR4,
+		     MXC_CCM_CCGR4_RAWNAND_U_BCH_INPUT_APB_MASK |
+		     MXC_CCM_CCGR4_RAWNAND_U_GPMI_BCH_INPUT_BCH_MASK |
+		     MXC_CCM_CCGR4_RAWNAND_U_GPMI_BCH_INPUT_GPMI_IO_MASK |
+		     MXC_CCM_CCGR4_RAWNAND_U_GPMI_INPUT_APB_MASK |
+		     MXC_CCM_CCGR4_PL301_MX6QPER1_BCH_MASK);
+
+	/* enable apbh clock gating */
+	setbits_le32(&mxc_ccm->CCGR0, MXC_CCM_CCGR0_APBHDMA_MASK);
+}
+#endif
+
+#ifdef CONFIG_POWER
+#define I2C_PMIC	0
+static struct pmic *pfuze;
+int power_init_ccimx6ul(void)
+{
+	int ret;
+	unsigned int reg, rev_id;
+
+	ret = power_pfuze300_init(I2C_PMIC);
+	if (ret)
+		return ret;
+
+	pfuze = pmic_get("PFUZE300");
+	ret = pmic_probe(pfuze);
+	if (ret)
+		return ret;
+
+	pmic_reg_read(pfuze, PFUZE300_DEVICEID, &reg);
+	pmic_reg_read(pfuze, PFUZE300_REVID, &rev_id);
+	printf("PMIC:  PFUZE300 DEV_ID=0x%x REV_ID=0x%x\n", reg, rev_id);
+
+	/* disable Low Power Mode during standby mode */
+	pmic_reg_read(pfuze, PFUZE300_LDOGCTL, &reg);
+	reg |= 0x1;
+	pmic_reg_write(pfuze, PFUZE300_LDOGCTL, reg);
+
+	/* SW1B step ramp up time from 2us to 4us/25mV */
+	reg = 0x40;
+	pmic_reg_write(pfuze, PFUZE300_SW1BCONF, reg);
+
+	/* SW1B mode to APS/PFM */
+	reg = 0xc;
+	pmic_reg_write(pfuze, PFUZE300_SW1BMODE, reg);
+
+	/* SW1B standby voltage set to 0.975V */
+	reg = 0xb;
+	pmic_reg_write(pfuze, PFUZE300_SW1BSTBY, reg);
+
+	return 0;
+}
+
+#ifdef CONFIG_LDO_BYPASS_CHECK
+void ldo_mode_set(int ldo_bypass)
+{
+	unsigned int value;
+	u32 vddarm;
+
+	struct pmic *p = pfuze;
+
+	if (!p) {
+		printf("No PMIC found!\n");
+		return;
+	}
+
+	/* switch to ldo_bypass mode */
+	if (ldo_bypass) {
+		prep_anatop_bypass();
+		/* decrease VDDARM to 1.275V */
+		pmic_reg_read(pfuze, PFUZE300_SW1BVOLT, &value);
+		value &= ~0x1f;
+		value |= PFUZE300_SW1AB_SETP(1275);
+		pmic_reg_write(pfuze, PFUZE300_SW1BVOLT, value);
+
+		set_anatop_bypass(1);
+		vddarm = PFUZE300_SW1AB_SETP(1175);
+
+		pmic_reg_read(pfuze, PFUZE300_SW1BVOLT, &value);
+		value &= ~0x1f;
+		value |= vddarm;
+		pmic_reg_write(pfuze, PFUZE300_SW1BVOLT, value);
+
+		finish_anatop_bypass();
+
+		printf("switch to ldo_bypass mode!\n");
+	}
+}
+#endif
+#endif
+
+void mca_init(void)
+{
+	unsigned char hwver[2] = "";
+	int hwver_ret = -1;
+	unsigned char fwver[2] = "";
+	int fwver_ret = -1;
+
+	hwver_ret = mca_bulk_read(MCA_CC6UL_HWVER_L, hwver, 2);
+	fwver_ret = mca_bulk_read(MCA_CC6UL_FWVER_L, fwver, 2);
+
+	printf("MCA:   HW_VER=");
+	if (hwver_ret)
+		printf("?? ");
+	else
+		printf("%d.%d", hwver[1], hwver[0]);
+
+	printf(" FW_VER=");
+	if (fwver_ret)
+		printf("?? ");
+	else
+		printf("%d.%d", fwver[1], fwver[0]);
+
+	printf("\n");
+}
+
+int get_hwid(struct ccimx6_hwid *hwid)
+{
+	return ccimx6_get_hwid(hwid);
+}
+
+int ccimx6ul_init(void)
+{
+	/* Address of boot parameters */
+	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
+
+	if (get_hwid(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return -1;
+	}
+
+#ifdef CONFIG_SYS_I2C_MXC
+	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c1_pad_info);
+	mca_init();
+#endif
+
+#ifdef CONFIG_SYS_USE_NAND
+	setup_gpmi_nand();
+#endif
+
+	return 0;
+}
+
+#ifdef CONFIG_CMD_BMODE
+static const struct boot_mode board_boot_modes[] = {
+	/* 4 bit bus width */
+	{"sd1", MAKE_CFGVAL(0x42, 0x20, 0x00, 0x00)},
+	{"sd2", MAKE_CFGVAL(0x40, 0x28, 0x00, 0x00)},
+	{"qspi1", MAKE_CFGVAL(0x10, 0x00, 0x00, 0x00)},
+	{NULL,	 0},
+};
+#endif
+
+int ccimx6ul_late_init(void)
+{
+	char var[10];
+
+#ifdef CONFIG_CMD_BMODE
+	add_board_boot_modes(board_boot_modes);
+#endif
+
+	/* Set $module_variant variable */
+	sprintf(var, "0x%02x", my_hwid.variant);
+	setenv("module_variant", var);
+
+#ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
+	gd->flags &= ~GD_FLG_DISABLE_CONSOLE_INPUT;
+	if (!console_enable_passphrase())
+		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+	else
+		gd->flags |= GD_FLG_DISABLE_CONSOLE_INPUT;
+#endif
+
+	return 0;
+}
+
+u32 get_board_rev(void)
+{
+	return get_cpu_rev();
+}
+
+void board_print_hwid(u32 *buf)
+{
+	ccimx6_print_hwid(buf);
+}
+
+void board_print_manufid(u32 *buf)
+{
+	ccimx6_print_manufid(buf);
+}
+
+int manufstr_to_hwid(int argc, char *const argv[], u32 *val)
+{
+	return ccimx6_manufstr_to_hwid(argc, argv, val);
+}
+
+void fdt_fixup_hwid(void *fdt)
+{
+	/* Re-read HWID which might have been overridden by user */
+	if (get_hwid(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return;
+	}
+
+	ccimx6_fdt_fixup_hwid(fdt, &my_hwid);
+}
+
+static int is_valid_hwid(struct ccimx6_hwid *hwid)
+{
+	if (hwid->variant < ARRAY_SIZE(ccimx6ul_variants))
+		if (ccimx6ul_variants[hwid->variant].cpu != IMX6_NONE)
+			return 1;
+
+	return 0;
+}
+
+int board_has_wireless(void)
+{
+	if (is_valid_hwid(&my_hwid))
+		return (ccimx6ul_variants[my_hwid.variant].capabilities &
+				    CCIMX6_HAS_WIRELESS);
+	else
+		return 1; /* assume it has if invalid HWID */
+}
+
+int board_has_bluetooth(void)
+{
+	if (is_valid_hwid(&my_hwid))
+		return (ccimx6ul_variants[my_hwid.variant].capabilities &
+				    CCIMX6_HAS_BLUETOOTH);
+	else
+		return 1; /* assume it has if invalid HWID */
+}
+
+void print_ccimx6ul_info(void)
+{
+	if (is_valid_hwid(&my_hwid))
+		printf("ConnectCore 6UL SOM variant 0x%02X: %s\n",
+			my_hwid.variant,
+			ccimx6ul_variants[my_hwid.variant].id_string);
+}
+
+/*
+ * This hook makes a custom reset implementation of the board that runs before
+ * the standard cpu_reset() which does a CPU watchdog reset.
+ * On the CC6UL we want instead to do an MCA watchdog reset, which will pull
+ * down POR_B line, thus doing a controlled reset of the CPU.
+ */
+void board_reset(void)
+{
+	int ret;
+	int retries = 3;
+	uint8_t unlock_data[] = {'C', 'T', 'R', 'U'};
+
+	/*
+	 * If a bmode_reset was flagged, do not reset through the MCA, which
+	 * would otherwise power-cycle the CPU.
+	 */
+	if (bmode_reset)
+		return;
+
+	do {
+		/* First, unlock the CTRL_0 register access */
+		ret = mca_bulk_write(MCA_CC6UL_CTRL_UNLOCK_0, unlock_data,
+				     sizeof(unlock_data));
+		if (ret) {
+			printf("MCA: unable to unlock CTRL register (%d)\n", ret);
+			retries--;
+			continue;
+		}
+
+		ret = mca_write_reg(MCA_CC6UL_CTRL_0, MCA_CTRL_0_RESET);
+		if (ret) {
+			printf("MCA: unable to perform a fw reset (%d)\n", ret);
+			retries--;
+			continue;
+		}
+
+		break;
+	} while (retries);
+
+	/*
+	 * Give it some time to generate the reset, or else U-Boot will
+	 * proceed with standard reset_cpu()
+	 */
+	mdelay(100);
+}

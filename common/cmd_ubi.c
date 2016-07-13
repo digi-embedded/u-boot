@@ -404,19 +404,16 @@ int ubi_volume_read(char *volume, char *buf, size_t size)
 	return err;
 }
 
-#ifdef CONFIG_CMD_BSP
-extern void MemDump(const void* pvBase, loff_t iOffset, size_t iLen);
-extern loff_t MemCmp(const void* pvS1, const void* pvS2, size_t iSize);
-extern void PrintProgress(int iPercentage, int iThrottle, const char* szFmt, ...);
+#ifdef CONFIG_DIGI_UBI
+
 /* TODO, generalize (share) code with other functions like ubi_volume_read */
 int ubi_volume_verify(char *volume, char *buf, loff_t offset, size_t size, char skipUpdFlagCheck)
 {
 	int err, lnum, len, tbuf_size, i = 0;
-	loff_t off, offDiff, offPercent;
+	loff_t off, offPercent;
 	void *tbuf;
 	unsigned char *rbuf;
 	struct ubi_volume *vol = NULL;
-	int total_size = size;
 
 	for (i = 0; i < ubi->vtbl_slots; i++) {
 		vol = ubi->volumes[i];
@@ -489,10 +486,6 @@ int ubi_volume_verify(char *volume, char *buf, loff_t offset, size_t size, char 
 			goto error;
 		}
 
-		if (!ubi_silent) {
-			PrintProgress(lldiv((offPercent * 100), total_size), 10, "Verifying: ");
-		}
-
 		/* Get read length */
 		len = size > tbuf_size ? tbuf_size : size;
 
@@ -503,14 +496,9 @@ int ubi_volume_verify(char *volume, char *buf, loff_t offset, size_t size, char 
 			break;
 		}
 		/* Compare temporary buffer's content with the original data */
-		offDiff = MemCmp(rbuf, tbuf, len);
-		if (offDiff != -1) {
-			printf("Compare error at offset 0x%08x\n",
-			       (unsigned int)(off + offDiff));
-			printf("Original:\n");
-			MemDump(rbuf, offDiff, 64);
-			printf("Flash:\n");
-			MemDump(tbuf, offDiff, 64);
+		if (memcmp(rbuf, tbuf, len)) {
+			printf("Compare error at block with offset 0x%08x\n",
+			       (unsigned int)(off));
 			err = -EIO;
 			goto error;
 		}
@@ -521,11 +509,6 @@ int ubi_volume_verify(char *volume, char *buf, loff_t offset, size_t size, char 
 		size -= len;
 		rbuf += len;
 	} while (size);
-
-	if (!ubi_silent) {
-		PrintProgress(100, 10, "Verifying: ");
-		printf("\nOK\n");
-	}
 
 error:
 	free(tbuf);
@@ -652,7 +635,18 @@ int ubi_volume_off_write_break(char *volume)
 
 	return err;
 }
-#endif /* CONFIG_CMD_BSP */
+
+const char *ubi_get_volume_name(int index)
+{
+	if (index >= ubi->vtbl_slots)
+		return NULL;
+
+	if (!strcmp(ubi->volumes[index]->name, ""))
+		return NULL;
+
+	return ubi->volumes[index]->name;
+}
+#endif /* CONFIG_DIGI_UBI */
 
 static int ubi_dev_scan(struct mtd_info *info, char *ubidev,
 		const char *vid_header_offset)
@@ -703,17 +697,6 @@ int ubi_part(char *part_name, const char *vid_header_offset)
 	struct mtd_device *dev;
 	struct part_info *part;
 	u8 pnum;
-
-	if (strncmp(argv[1], "silent", 6) == 0) {
-		if (argc != 3) {
-			printf("Please see usage\n");
-			return 1;
-		}
-
-		ubi_silent = simple_strtoul(argv[2], NULL, 10) ? 1 : 0;
-
-		return 0;
-	}
 
 	if (mtdparts_init() != 0) {
 		printf("Error initializing mtdparts!\n");
@@ -780,6 +763,17 @@ static int do_ubi(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
+
+	if (strncmp(argv[1], "silent", 6) == 0) {
+		if (argc != 3) {
+			printf("Please see usage\n");
+			return 1;
+		}
+
+		ubi_silent = simple_strtoul(argv[2], NULL, 10) ? 1 : 0;
+
+		return 0;
+	}
 
 	if (strcmp(argv[1], "part") == 0) {
 		const char *vid_header_offset = NULL;

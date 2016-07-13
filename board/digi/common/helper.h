@@ -10,12 +10,14 @@
 #ifndef __DIGI_HELPER_H
 #define __DIGI_HELPER_H
 
+#include <jffs2/load_kernel.h>
+
 enum {
 	SRC_UNDEFINED = -2,
 	SRC_UNSUPPORTED = -1,
 	SRC_TFTP,
 	SRC_NFS,
-	SRC_FLASH,
+	SRC_NAND,
 	SRC_USB,
 	SRC_MMC,
 	SRC_RAM,
@@ -27,21 +29,35 @@ enum {
 	CMD_UPDATE,
 };
 
-int confirm_msg(char *msg);
-int get_source(int argc, char * const argv[], char **devpartno, char **fs);
-const char *get_source_string(int src);
-int get_fw_filename(int argc, char * const argv[], int src, char *filename);
-int get_default_filename(char *partname, char *filename, int cmd);
-int strtou32(const char *str, unsigned int base, u32 *result);
-int confirm_prog(void);
-
 enum {
 	LDFW_ERROR = -1,
 	LDFW_NOT_LOADED,
 	LDFW_LOADED,
 };
 
-int load_firmware(int src, char *filename, char *devpartno,
-		  char *fs, char *loadaddr, char *varload);
+struct load_fw {
+	int src;
+	char *filename;
+	char *devpartno;
+	char *fs;
+	char *loadaddr;
+	char *varload;
+	struct part_info *part;
+};
+
+int confirm_msg(char *msg);
+int get_source(int argc, char * const argv[], struct load_fw *fwinfo);
+const char *get_source_string(int src);
+int get_fw_filename(int argc, char * const argv[], struct load_fw *fwinfo);
+char *get_default_filename(char *partname, int cmd);
+#ifdef CONFIG_DIGI_UBI
+bool is_ubi_partition(struct part_info *part);
+#endif
+int strtou32(const char *str, unsigned int base, u32 *result);
+int confirm_prog(void);
+void fdt_fixup_mac(void *fdt, char *varname, char *node);
+int load_firmware(struct load_fw *fwinfo);
+const char *get_filename_ext(const char *filename);
+void strtohex(char *in, unsigned long *out, int len);
 
 #endif  /* __DIGI_HELPER_H */

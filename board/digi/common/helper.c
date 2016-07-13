@@ -8,11 +8,20 @@
 */
 #include <common.h>
 #include <asm/errno.h>
+#include <malloc.h>
+#include <nand.h>
+#include <watchdog.h>
+#ifdef CONFIG_OF_LIBFDT
+#include <fdt_support.h>
+#endif
 #include <otf_update.h>
 #include "helper.h"
-
 DECLARE_GLOBAL_DATA_PTR;
+#if defined(CONFIG_CMD_UPDATE_MMC) || defined(CONFIG_CMD_UPDATE_NAND)
+#define CONFIG_CMD_UPDATE
+#endif
 
+#if defined(CONFIG_CMD_UPDATE) || defined(CONFIG_CMD_DBOOT)
 enum {
 	FWLOAD_NO,
 	FWLOAD_YES,
@@ -22,7 +31,7 @@ enum {
 static const char *src_strings[] = {
 	[SRC_TFTP] =	"tftp",
 	[SRC_NFS] =	"nfs",
-	[SRC_FLASH] =	"flash",
+	[SRC_NAND] =	"nand",
 	[SRC_USB] =	"usb",
 	[SRC_MMC] =	"mmc",
 	[SRC_RAM] =	"ram",
@@ -33,6 +42,7 @@ static const char *src_strings[] = {
 static int (*otf_update_hook)(otf_data_t *data) = NULL;
 /* Data struct for on-the-fly update */
 static otf_data_t otfd;
+#endif
 
 #ifdef CONFIG_AUTO_BOOTSCRIPT
 #define AUTOSCRIPT_TFTP_MSEC		100
@@ -63,32 +73,83 @@ int confirm_msg(char *msg)
 	return 0;
 }
 
-int get_source(int argc, char * const argv[], char **devpartno, char **fs)
+#if defined(CONFIG_CMD_UPDATE) || defined(CONFIG_CMD_DBOOT)
+int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 {
 	int i;
-	char *src = argv[2];
+	char *src;
+#ifdef CONFIG_CMD_MTDPARTS
+	struct mtd_device *dev;
+	u8 pnum;
+	char *partname;
+#endif
 
+	if (argc < 3) {
+		fwinfo->src = SRC_TFTP;	/* default to TFTP */
+		return 0;
+	}
+
+	src = argv[2];
 	for (i = 0; i < ARRAY_SIZE(src_strings); i++) {
 		if (!strncmp(src_strings[i], src, strlen(src))) {
-			if (1 << i & CONFIG_SUPPORTED_SOURCES)
+			if (1 << i & CONFIG_SUPPORTED_SOURCES) {
 				break;
-			else
-				return SRC_UNSUPPORTED;
+			} else {
+				fwinfo->src = SRC_UNSUPPORTED;
+				goto _err;
+			}
 		}
 	}
 
-	if (i >= ARRAY_SIZE(src_strings))
-		return SRC_UNDEFINED;
-
-	if (i == SRC_USB || i == SRC_MMC || i == SRC_SATA) {
-		/* Get device:partition and file system */
-		if (argc > 3)
-			*devpartno = (char *)argv[3];
-		if (argc > 4)
-			*fs = (char *)argv[4];
+	if (i >= ARRAY_SIZE(src_strings)) {
+		fwinfo->src = SRC_UNDEFINED;
+		goto _err;
 	}
 
-	return i;
+	switch (i) {
+	case SRC_USB:
+	case SRC_MMC:
+	case SRC_SATA:
+		/* Get device:partition and file system */
+		if (argc > 3)
+			fwinfo->devpartno = (char *)argv[3];
+		if (argc > 4)
+			fwinfo->fs = (char *)argv[4];
+		break;
+	case SRC_NAND:
+#ifdef CONFIG_CMD_MTDPARTS
+		/* Initialize partitions */
+		if (mtdparts_init()) {
+			printf("Cannot initialize MTD partitions\n");
+			goto _err;
+		}
+
+		/*
+		 * Use partition name if provided, or else search for a
+		 * partition with the same name as the OS.
+		 */
+		if (argc > 3)
+			partname = argv[3];
+		else
+			partname = argv[1];
+		if (find_dev_and_part(partname, &dev, &pnum, &fwinfo->part)) {
+			printf("Cannot find '%s' partition\n", partname);
+			goto _err;
+		}
+#endif
+		break;
+	}
+
+	fwinfo->src = i;
+	return 0;
+
+_err:
+	if (fwinfo->src == SRC_UNSUPPORTED)
+		printf("Error: '%s' is not supported as source\n", argv[2]);
+	else if (fwinfo->src == SRC_UNDEFINED)
+		printf("Error: undefined source\n");
+
+	return -1;
 }
 
 const char *get_source_string(int src)
@@ -99,13 +160,13 @@ const char *get_source_string(int src)
 	return "";
 }
 
-int get_fw_filename(int argc, char * const argv[], int src, char *filename)
+int get_fw_filename(int argc, char * const argv[], struct load_fw *fwinfo)
 {
-	switch (src) {
+	switch (fwinfo->src) {
 	case SRC_TFTP:
 	case SRC_NFS:
 		if (argc > 3) {
-			strcpy(filename, argv[3]);
+			fwinfo->filename = argv[3];
 			return 0;
 		}
 		break;
@@ -113,7 +174,13 @@ int get_fw_filename(int argc, char * const argv[], int src, char *filename)
 	case SRC_USB:
 	case SRC_SATA:
 		if (argc > 5) {
-			strcpy(filename, argv[5]);
+			fwinfo->filename = argv[5];
+			return 0;
+		}
+		break;
+	case SRC_NAND:
+		if (argc > 4) {
+			fwinfo->filename = argv[4];
 			return 0;
 		}
 		break;
@@ -126,39 +193,32 @@ int get_fw_filename(int argc, char * const argv[], int src, char *filename)
 	return -1;
 }
 
-int get_default_filename(char *partname, char *filename, int cmd)
+char *get_default_filename(char *partname, int cmd)
 {
 	switch(cmd) {
 	case CMD_DBOOT:
 		if (!strcmp(partname, "linux") ||
 		    !strcmp(partname, "android")) {
-			strcpy(filename, "$uimage");
-			return 0;
+			return "$" CONFIG_DBOOT_DEFAULTKERNELVAR;
 		}
 		break;
 
 	case CMD_UPDATE:
 		if (!strcmp(partname, "uboot")) {
-			strcpy(filename, "$uboot_file");
-			return 0;
+			return "$uboot_file";
 		} else {
 			/* Read the default filename from a variable called
 			 * after the partition name: <partname>_file
 			 */
 			char varname[100];
-			char *varvalue;
 
 			sprintf(varname, "%s_file", partname);
-			varvalue = getenv(varname);
-			if (varvalue != NULL) {
-				strcpy(filename, varvalue);
-				return 0;
-			}
+			return getenv(varname);
 		}
 		break;
 	}
 
-	return -1;
+	return NULL;
 }
 
 int get_default_devpartno(int src, char *devpartno)
@@ -186,6 +246,38 @@ int get_default_devpartno(int src, char *devpartno)
 	return 0;
 }
 
+#ifdef CONFIG_DIGI_UBI
+bool is_ubi_partition(struct part_info *part)
+{
+	struct mtd_info *nand = &nand_info[0];
+	size_t rsize = nand->writesize;
+	unsigned char *page;
+	unsigned long ubi_magic = 0x23494255;	/* "UBI#" */
+	bool ret = false;
+
+	/*
+	 * Check if the partition is UBI formatted by reading the first word
+	 * in the first page, which should contain the UBI magic "UBI#".
+	 * Then verify it contains a UBI volume and get its name.
+	 */
+	page = malloc(rsize);
+	if (page) {
+		if (!nand_read_skip_bad(nand, part->offset, &rsize, NULL,
+					part->size, page)) {
+			unsigned long *magic = (unsigned long *)page;
+
+			if (*magic == ubi_magic)
+				ret = true;
+		}
+		free(page);
+	}
+
+	return ret;
+}
+#endif /* CONFIG_DIGI_UBI */
+#endif /* CONFIG_CMD_UPDATE || CONFIG_CMD_DBOOT */
+
+#ifdef CONFIG_CMD_UPDATE
 void register_fs_otf_update_hook(int (*hook)(otf_data_t *data),
 				 disk_partition_t *partition)
 {
@@ -265,49 +357,70 @@ static int write_file_fs_otf(int src, char *filename, char *devpartno)
  *	LDFW_NOT_LOADED if the file was not loaded, but isn't required
  *	LDFW_ERROR on error
  */
-int load_firmware(int src, char *filename, char *devpartno,
-		  char *fs, char *loadaddr, char *varload)
+int load_firmware(struct load_fw *fwinfo)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	char def_devpartno[] = "0:1";
 	int ret;
 	int fwload = FWLOAD_YES;
 
-	/* Variable 'varload' determines if the file must be loaded:
+	/* 'fwinfo->varload' determines if the file must be loaded:
 	 * - yes|NULL: the file must be loaded. Return error otherwise.
 	 * - try: the file may be loaded. Return ok even if load fails.
 	 * - no: skip the load.
 	 */
-	if (NULL != varload) {
-		if (!strcmp(varload, "no"))
+	if (NULL != fwinfo->varload) {
+		if (!strcmp(fwinfo->varload, "no"))
 			return LDFW_NOT_LOADED;	/* skip load and return ok */
-		else if (!strcmp(varload, "try"))
+		else if (!strcmp(fwinfo->varload, "try"))
 			fwload = FWLOAD_TRY;
 	}
 
 	/* Use default values if not provided */
-	if (NULL == devpartno) {
-		if (get_default_devpartno(src, def_devpartno))
+	if (NULL == fwinfo->devpartno) {
+		if (get_default_devpartno(fwinfo->src, def_devpartno))
 			strcpy(def_devpartno, "0:1");
-		devpartno = def_devpartno;
+		fwinfo->devpartno = def_devpartno;
 	}
 
-	switch (src) {
+	switch (fwinfo->src) {
 	case SRC_TFTP:
-		sprintf(cmd, "tftpboot %s %s", loadaddr, filename);
+		sprintf(cmd, "tftpboot %s %s", fwinfo->loadaddr,
+			fwinfo->filename);
 		break;
 	case SRC_NFS:
-		sprintf(cmd, "nfs %s $rootpath/%s", loadaddr, filename);
+		sprintf(cmd, "nfs %s $rootpath/%s", fwinfo->loadaddr,
+			fwinfo->filename);
 		break;
 	case SRC_MMC:
 	case SRC_USB:
 	case SRC_SATA:
 		if (otf_update_hook) {
-			ret = write_file_fs_otf(src, filename, devpartno);
+			ret = write_file_fs_otf(fwinfo->src, fwinfo->filename,
+						fwinfo->devpartno);
 			goto _ret;
 		} else {
-			sprintf(cmd, "load %s %s %s %s", src_strings[src],
-				devpartno, loadaddr, filename);
+			sprintf(cmd, "load %s %s %s %s", src_strings[fwinfo->src],
+				fwinfo->devpartno, fwinfo->loadaddr,
+				fwinfo->filename);
+		}
+		break;
+	case SRC_NAND:
+#ifdef CONFIG_DIGI_UBI
+		/*
+		 * If the partition is UBI formatted, use 'ubiload' to read
+		 * a file from the UBIFS file system. Otherwise use a raw
+		 * read using 'nand read'.
+		 */
+		if (is_ubi_partition(fwinfo->part)) {
+			sprintf(cmd, "ubi part %s;ubifsmount ubi0:%s;ubifsload %s %s",
+				fwinfo->part->name, fwinfo->part->name,
+				fwinfo->loadaddr, fwinfo->filename);
+		} else
+#endif
+		{
+			sprintf(cmd, "nand read %s %s %x", fwinfo->part->name,
+				fwinfo->loadaddr, (u32)fwinfo->part->size);
 		}
 		break;
 	case SRC_RAM:
@@ -331,6 +444,7 @@ _ret:
 
 	return LDFW_LOADED;	/* ok, file was loaded */
 }
+#endif /* CONFIG_CMD_UPDATE */
 
 #if defined(CONFIG_SOURCE) && defined(CONFIG_AUTO_BOOTSCRIPT)
 void run_auto_bootscript(void)
@@ -423,4 +537,54 @@ int confirm_prog(void)
 
 	puts("Fuse programming aborted\n");
 	return 0;
+}
+
+#if defined(CONFIG_OF_BOARD_SETUP)
+void fdt_fixup_mac(void *fdt, char *varname, char *node)
+{
+	char *tmp, *end;
+	unsigned char mac_addr[6];
+	int i;
+
+	if ((tmp = getenv(varname)) != NULL) {
+		for (i = 0; i < 6; i++) {
+			mac_addr[i] = tmp ? simple_strtoul(tmp, &end, 16) : 0;
+			if (tmp)
+				tmp = (*end) ? end+1 : end;
+		}
+		do_fixup_by_path(fdt, node, "mac-address", &mac_addr, 6, 1);
+	}
+}
+#endif /* CONFIG_OF_BOARD_SETUP */
+
+const char *get_filename_ext(const char *filename)
+{
+	const char *dot;
+
+	if (NULL == filename)
+		return "";
+
+	dot = strrchr(filename, '.');
+	if (!dot || dot == filename)
+		return "";
+
+	return dot + 1;
+}
+
+#define STR_HEX_CHUNK			8
+/*
+ * Convert string with hexadecimal characters into a hex number
+ * @in: Pointer to input string
+ * @out Pointer to output number array
+ * @len Number of elements in the output array
+*/
+void strtohex(char *in, unsigned long *out, int len)
+{
+	char tmp[] = "ffffffff";
+	int i, j;
+
+	for (i = 0, j = 0; j < len; i += STR_HEX_CHUNK, j++) {
+		strncpy(tmp, &in[i], STR_HEX_CHUNK);
+		out[j] = cpu_to_be32(simple_strtol(tmp, NULL, 16));
+	}
 }

@@ -31,6 +31,7 @@
 #include <miiphy.h>
 #include <mmc.h>
 #include <netdev.h>
+#include <command.h>
 #ifdef CONFIG_SYS_I2C_MXC
 #include <i2c.h>
 #include <asm/imx-common/mxc_i2c.h>
@@ -38,6 +39,8 @@
 #include <asm/imx-common/boot_mode.h>
 #include <asm/imx-common/iomux-v3.h>
 #include "../ccimx6/ccimx6.h"
+#include "../common/carrier_board.h"
+#include "../common/helper.h"
 #include "../common/hwid.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -48,9 +51,24 @@ static int phy_addr;
 	PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED |               \
 	PAD_CTL_DSE_40ohm   | PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
 
+#define GPI_PAD_CTRL  (PAD_CTL_PKE | PAD_CTL_PUE |            \
+	PAD_CTL_PUS_100K_DOWN | PAD_CTL_SPEED_MED |               \
+	PAD_CTL_DSE_40ohm   | PAD_CTL_SRE_FAST)
+
 iomux_v3_cfg_t const uart4_pads[] = {
 	MX6_PAD_KEY_COL0__UART4_TX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL),
 	MX6_PAD_KEY_ROW0__UART4_RX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL),
+};
+
+iomux_v3_cfg_t const ext_gpios_pads[] = {
+	MX6_PAD_NANDF_D5__GPIO2_IO05 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_NANDF_D6__GPIO2_IO06 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_NANDF_D7__GPIO2_IO07 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_EIM_CS1__GPIO2_IO24 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_EIM_EB0__GPIO2_IO28 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_EIM_EB1__GPIO2_IO29 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_GPIO_18__GPIO7_IO13 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	MX6_PAD_GPIO_19__GPIO4_IO05 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 };
 
 iomux_v3_cfg_t const ksz9031_pads[] = {
@@ -74,42 +92,6 @@ iomux_v3_cfg_t const sgtl5000_pwr_pads[] = {
 	/* SGTL5000 audio codec power enable (external 4K7 pull-up) */
 	MX6_PAD_EIM_OE__GPIO2_IO25 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
-
-unsigned int get_carrierboard_version(void)
-{
-#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
-	u32 version;
-
-	if (fuse_read(CONFIG_CARRIERBOARD_VERSION_BANK,
-		      CONFIG_CARRIERBOARD_VERSION_WORD, &version))
-		return CARRIERBOARD_VERSION_UNDEFINED;
-
-	version >>= CONFIG_CARRIERBOARD_VERSION_OFFSET;
-	version &= CONFIG_CARRIERBOARD_VERSION_MASK;
-
-	return((int)version);
-#else
-	return CARRIERBOARD_VERSION_UNDEFINED;
-#endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
-}
-
-unsigned int get_carrierboard_id(void)
-{
-#ifdef CONFIG_HAS_CARRIERBOARD_ID
-	u32 id;
-
-	if (fuse_read(CONFIG_CARRIERBOARD_ID_BANK,
-		      CONFIG_CARRIERBOARD_ID_WORD, &id))
-		return CARRIERBOARD_ID_UNDEFINED;
-
-	id >>= CONFIG_CARRIERBOARD_ID_OFFSET;
-	id &= CONFIG_CARRIERBOARD_ID_MASK;
-
-	return((int)id);
-#else
-	return CARRIERBOARD_ID_UNDEFINED;
-#endif /* CONFIG_HAS_CARRIERBOARD_ID */
-}
 
 #ifdef CONFIG_SYS_I2C_MXC
 int setup_pmic_voltages_carrierboard(void)
@@ -329,10 +311,42 @@ int board_mmc_getcd(struct mmc *mmc)
 	return ret;
 }
 
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+static void setup_iomux_ext_gpios(void)
+{
+	imx_iomux_v3_setup_multiple_pads(ext_gpios_pads,
+					 ARRAY_SIZE(ext_gpios_pads));
+}
+#endif
+
 int board_early_init_f(void)
 {
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+	int ext_gpios[] =  {
+		IMX_GPIO_NR(2, 5),
+		IMX_GPIO_NR(2, 6),
+		IMX_GPIO_NR(2, 7),
+		IMX_GPIO_NR(2, 24),
+		IMX_GPIO_NR(2, 28),
+		IMX_GPIO_NR(2, 29),
+		IMX_GPIO_NR(7, 13),
+		IMX_GPIO_NR(4, 5)
+	};
+	int console_enable_gpio_nr = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
+
+	setup_iomux_ext_gpios();
+	gpio_direction_input(console_enable_gpio_nr);
+#endif
+
 	setup_iomux_uart();
 
+#ifdef CONFIG_CONSOLE_DISABLE
+	gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+	if (console_enable_gpio(console_enable_gpio_nr))
+		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#endif
+#endif
 	return 0;
 }
 
@@ -349,54 +363,6 @@ int board_init(void)
 		setup_board_audio();
 
 	return 0;
-}
-
-static void fdt_fixup_carrierboard(void *fdt)
-{
-#if defined(CONFIG_HAS_CARRIERBOARD_VERSION) || \
-    defined(CONFIG_HAS_CARRIERBOARD_ID)
-	char str[20];
-#endif
-
-#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
-	sprintf(str, "%d", get_carrierboard_version());
-	do_fixup_by_path(fdt, "/", "digi,carrierboard,version", str,
-			 strlen(str) + 1, 1);
-#endif
-
-#ifdef CONFIG_HAS_CARRIERBOARD_ID
-	sprintf(str, "%d", get_carrierboard_id());
-	do_fixup_by_path(fdt, "/", "digi,carrierboard,id", str,
-			 strlen(str) + 1, 1);
-#endif
-}
-
-static void print_carrierboard_info(void)
-{
-	int board_version = get_carrierboard_version();
-	int board_id = get_carrierboard_id();
-	char board_str[100];
-	char warnings[100] = "";
-
-	sprintf(board_str, "Board: %s", CONFIG_BOARD_DESCRIPTION);
-#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
-	if (CARRIERBOARD_VERSION_UNDEFINED == board_version)
-		sprintf(warnings, "%s   WARNING: Undefined board version!\n",
-			warnings);
-	else
-		sprintf(board_str, "%s, version %d", board_str, board_version);
-#endif
-
-#ifdef CONFIG_HAS_CARRIERBOARD_ID
-	if (CARRIERBOARD_ID_UNDEFINED == board_id)
-		sprintf(warnings, "%s   WARNING: Undefined board ID!\n",
-			warnings);
-	else
-		sprintf(board_str, "%s, ID %d", board_str, board_id);
-#endif
-	printf("%s\n", board_str);
-	if (strcmp(warnings, ""))
-		printf("%s", warnings);
 }
 
 int checkboard(void)

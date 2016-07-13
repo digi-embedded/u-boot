@@ -17,11 +17,9 @@
 #include <div64.h>
 #include <command.h>
 #include <nand.h>
+#include <jffs2/load_kernel.h>
 #include <linux/mtd/nand.h>
 #include <net.h>                /* DHCP */
-#include "partition.h"          /* MtdGetEraseSize */
-#include "mtd.h"
-#include "nand_device_info.h"
 #include "cmd_bootstream.h"
 #include "BootControlBlocks.h"
 
@@ -52,13 +50,193 @@ const struct mtd_config default_mtd_config = {
 	.flags = 0,
 };
 
+void dump_buffer(unsigned char *buf, int size)
+{
+	int i;
+
+	for (i = 0; i < size; i++) {
+		if ((i % 16) == 0)
+			printf("\n");
+		if (i == 0 || (i % 8) == 0)
+			printf("  ");
+		printf("%02x ", buf[i]);
+	}
+}
+
+int write_firmware(struct mtd_info *mtd,
+		   struct mtd_config *cfg,
+		   struct mtd_bootblock *bootblock,
+		   unsigned long bs_start_address,
+		   unsigned int boot_stream_size_in_bytes,
+		   unsigned int pre_padding)
+{
+	int startpage, start, size;
+	int i, r, chunk;
+	loff_t ofs, end;
+	int chip = 0;
+	unsigned long read_addr;
+	size_t nbytes = 0;
+	char *readbuf = NULL;
+
+	readbuf = malloc(mtd->writesize);
+	if (NULL == readbuf)
+		return -1;
+
+	if (pre_padding) {
+		/*
+		 * rewind bs_start_address pre_padding bytes and fill it with
+		 * zeros.
+		 */
+		if (bs_start_address - pre_padding < PHYS_SDRAM) {
+			printf("pre-padding required! "
+			       "Use a $loadaddr of at least 0x%08x\n",
+			       PHYS_SDRAM + pre_padding);
+			goto _error;
+		}
+		bs_start_address -= pre_padding;
+		memset((u8 *)bs_start_address, 0, pre_padding);
+	}
+	//----------------------------------------------------------------------
+	// Loop over the two boot streams.
+	//----------------------------------------------------------------------
+
+	for (i = 0; i < 2; i++) {
+		/* Set start address where bootstream is in RAM */
+		read_addr = bs_start_address;
+
+		//--------------------------------------------------------------
+		// Figure out where to put the current boot stream.
+		//--------------------------------------------------------------
+
+		if (i == 0) {
+			startpage = bootblock->fcb.FCB_Block.m_u32Firmware1_startingPage;
+			size      = bootblock->fcb.FCB_Block.m_u32PagesInFirmware1;
+			end       = bootblock->fcb.FCB_Block.m_u32Firmware2_startingPage;
+		} else {
+			startpage = bootblock->fcb.FCB_Block.m_u32Firmware2_startingPage;
+			size      = bootblock->fcb.FCB_Block.m_u32PagesInFirmware2;
+			end       = lldiv(mtd->size, mtd->writesize);
+		}
+
+		//--------------------------------------------------------------
+		// Compute the byte addresses corresponding to the page
+		// addresses.
+		//--------------------------------------------------------------
+
+		start = startpage * mtd->writesize;
+		size  = size      * mtd->writesize;
+		end   = end       * mtd->writesize;
+
+		if (cfg->flags & F_VERBOSE)
+			printf("mtd: Writting firmware image #%d @%d: 0x%08x - 0x%08x\n", i,
+					chip, start, start + size);
+
+		//--------------------------------------------------------------
+		// Loop over pages as we write them.
+		//--------------------------------------------------------------
+
+		ofs = start;
+		while (ofs < end && size > 0) {
+
+			//------------------------------------------------------
+			// Check if the current block is bad.
+			//------------------------------------------------------
+
+			while (nand_block_isbad(mtd, ofs) == 1) {
+				if (cfg->flags & F_VERBOSE)
+					fprintf(stdout, "mtd: Skipping bad block at 0x%llx\n", ofs);
+				ofs += mtd->erasesize;
+			}
+
+			chunk = size;
+
+			//------------------------------------------------------
+			// Check if we've entered a new block and, if so, erase
+			// it before beginning to write it.
+			//------------------------------------------------------
+
+			if (llmod(ofs, mtd->erasesize) == 0) {
+				if (cfg->flags & F_VERBOSE) {
+					fprintf(stdout, "erasing block at 0x%llx\n", ofs);
+				}
+				if (!(cfg->flags & F_DRYRUN)) {
+					r = nand_erase(mtd, ofs, mtd->erasesize);
+					if (r < 0) {
+						fprintf(stderr, "mtd: Failed to erase block @0x%llx\n", ofs);
+						ofs += mtd->erasesize;
+						continue;
+					}
+				}
+			}
+
+			if (chunk > mtd->writesize)
+				chunk = mtd->writesize;
+
+			//------------------------------------------------------
+			// Write the current chunk to the medium.
+			//------------------------------------------------------
+
+			if (cfg->flags & F_VERBOSE) {
+				fprintf(stdout, "Writing bootstream file from 0x%lx to offset 0x%llx\n", read_addr, ofs);
+			}
+			if (!(cfg->flags & F_DRYRUN)) {
+				r = nand_write_skip_bad(mtd, ofs, (size_t *)&chunk, &nbytes, mtd->size, (unsigned char *)read_addr, WITH_WR_VERIFY);
+				if (r || nbytes != chunk) {
+					fprintf(stderr, "mtd: Failed to write BS @0x%llx (%d)\n", ofs, r);
+				}
+			}
+			//------------------------------------------------------
+			// Verify the written data
+			//------------------------------------------------------
+			r = nand_read_skip_bad(mtd, ofs, (size_t*)&chunk, &nbytes, mtd->size, (unsigned char *)readbuf);
+			if (r || nbytes != chunk) {
+				fprintf(stderr, "mtd: Failed to read BS @0x%llx (%d)\n", ofs, r);
+				goto _error;
+			}
+			if (memcmp((void *)read_addr, readbuf, chunk)) {
+				fprintf(stderr, "mtd: Verification error @0x%llx\n", ofs);
+				goto _error;
+			}
+
+			ofs += mtd->writesize;
+			read_addr += mtd->writesize;
+			size -= chunk;
+		}
+		if (cfg->flags & F_VERBOSE)
+			printf("mtd: Verified firmware image #%d @%d: 0x%08x - 0x%08x\n", i,
+					chip, start, start + size);
+
+		/*
+		 * Write one safe guard page:
+		 * The Image_len of uboot is bigger then the real size of
+		 * uboot by 1K. The ROM will get all 0xff error in this case.
+		 * So we write one more page for safe guard.
+		 */
+
+
+		//--------------------------------------------------------------
+		// Check if we ran out of room.
+		//--------------------------------------------------------------
+
+		if (ofs >= end) {
+			fprintf(stderr, "mtd: Failed to write BS#%d\n", i);
+			goto _error;
+		}
+	}
+
+	free(readbuf);
+	return 0;
+_error:
+	free(readbuf);
+	return -1;
+}
+
 int v1_rom_mtd_init(struct mtd_info *mtd,
 		    struct mtd_config *cfg,
 		    struct mtd_bootblock *bootblock,
 		    unsigned int boot_stream_size_in_bytes,
 		    uint64_t part_size)
 {
-#ifdef CONFIG_MX28
 	unsigned int  stride_size_in_bytes;
 	unsigned int  search_area_size_in_bytes;
 #ifdef CONFIG_USE_NAND_DBBT
@@ -172,8 +350,13 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
                 fcb->FCB_Block.m_u32MetadataBytes            = 10;
                 fcb->FCB_Block.m_u32EccBlock0Size            = 512;
                 fcb->FCB_Block.m_u32EccBlockNSize            = 512;
+#if defined(CONFIG_MX28)
 		fcb->FCB_Block.m_u32EccBlock0EccType         = ROM_BCH_Ecc_8bit;
 		fcb->FCB_Block.m_u32EccBlockNEccType         = ROM_BCH_Ecc_8bit;
+#elif defined(CONFIG_MX6UL)
+		fcb->FCB_Block.m_u32EccBlock0EccType         = ROM_BCH_Ecc_4bit;
+		fcb->FCB_Block.m_u32EccBlockNEccType         = ROM_BCH_Ecc_4bit;
+#endif
 
 	} else if (mtd->writesize == 4096) {
 		fcb->FCB_Block.m_u32NumEccBlocksPerPage      = (mtd->writesize / 512) - 1;
@@ -218,187 +401,6 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
 
 	dbbt->DBBT_Block.v2.m_u32NumberBB        = 0;
 	dbbt->DBBT_Block.v2.m_u32Number2KPagesBB = 0;
-#endif /* CONFIG_MX28 */
-	return 0;
-
-}
-
-int v2_rom_mtd_init(struct mtd_info *mtd,
-		    struct mtd_config *cfg,
-		    struct mtd_bootblock *bootblock,
-		    unsigned int boot_stream_size_in_bytes,
-		    uint64_t part_size)
-{
-	unsigned int  stride_size_in_bytes;
-	unsigned int  search_area_size_in_bytes;
-	unsigned int  max_boot_stream_size_in_bytes;
-	unsigned int  boot_stream_size_in_pages;
-	unsigned int  boot_stream1_pos;
-	unsigned int  boot_stream2_pos;
-	BCB_ROM_BootBlockStruct_t  *fcb;
-	BCB_ROM_BootBlockStruct_t  *dbbt;
-#ifdef CONFIG_USE_NAND_DBBT
-	struct mtd_part *mp;
-	int j, k , thisbad, badmax,currbad;
-	BadBlockTableNand_t *bbtn;
-	unsigned int  search_area_size_in_pages;
-#endif
-
-	//----------------------------------------------------------------------
-	// Compute the geometry of a search area.
-	//----------------------------------------------------------------------
-
-	stride_size_in_bytes = mtd->erasesize;
-	search_area_size_in_bytes = 4 * stride_size_in_bytes;
-#ifdef CONFIG_USE_NAND_DBBT
-	search_area_size_in_pages = search_area_size_in_bytes / mtd->writesize;
-#endif
-	//----------------------------------------------------------------------
-	// Check if the target MTD is too small to even contain the necessary
-	// search areas.
-	//
-	// the first chip and contains two search areas: one each for the FCB
-	// and DBBT.
-	//----------------------------------------------------------------------
-
-	if ((search_area_size_in_bytes * 2) > mtd->size) {
-		fprintf(stderr, "mtd: mtd size too small\n");
-		return -1;
-	}
-
-	//----------------------------------------------------------------------
-	// Figure out how large a boot stream the target MTD could possibly
-	// hold.
-	//
-	// The boot area will contain both search areas and two copies of the
-	// boot stream.
-	//----------------------------------------------------------------------
-
-	max_boot_stream_size_in_bytes =
-
-		lldiv(part_size - search_area_size_in_bytes * 2,
-		//--------------------------------------------//
-					2);
-
-	//----------------------------------------------------------------------
-	// Figure out how large the boot stream is.
-	//----------------------------------------------------------------------
-
-	boot_stream_size_in_pages =
-
-		(boot_stream_size_in_bytes + (mtd->writesize - 1)) /
-		//---------------------------------------------------//
-				mtd->writesize;
-
-	if (cfg->flags & F_VERBOSE) {
-		printf("mtd: max_boot_stream_size_in_bytes = %d\n", max_boot_stream_size_in_bytes);
-		printf("mtd: boot_stream_size_in_bytes = %d\n", boot_stream_size_in_bytes);
-	}
-
-	//----------------------------------------------------------------------
-	// Check if the boot stream will fit.
-	//----------------------------------------------------------------------
-
-	if (boot_stream_size_in_bytes >= max_boot_stream_size_in_bytes) {
-		fprintf(stderr, "mtd: bootstream too large\n");
-		return -1;
-	}
-
-	//----------------------------------------------------------------------
-	// Compute the positions of the boot stream copies.
-	//----------------------------------------------------------------------
-
-	boot_stream1_pos = 2 * search_area_size_in_bytes;
-	boot_stream2_pos = boot_stream1_pos + max_boot_stream_size_in_bytes;
-
-	if (cfg->flags & F_VERBOSE) {
-		printf("mtd: #1 0x%08x - 0x%08x (0x%08x)\n",
-				boot_stream1_pos, boot_stream1_pos + max_boot_stream_size_in_bytes,
-				boot_stream1_pos + boot_stream_size_in_bytes);
-		printf("mtd: #2 0x%08x - 0x%08x (0x%08x)\n",
-				boot_stream2_pos, boot_stream2_pos + max_boot_stream_size_in_bytes,
-				boot_stream2_pos + boot_stream_size_in_bytes);
-	}
-
-	//----------------------------------------------------------------------
-	// Fill in the FCB.
-	//----------------------------------------------------------------------
-
-	fcb = &(bootblock->fcb);
-	memset(fcb, 0, sizeof(*fcb));
-
-	fcb->m_u32FingerPrint                        = FCB_FINGERPRINT;
-	fcb->m_u32Version                            = 0x00000001;
-
-	fcb->FCB_Block.m_u32Firmware1_startingPage = boot_stream1_pos / mtd->writesize;
-	fcb->FCB_Block.m_u32Firmware2_startingPage = boot_stream2_pos / mtd->writesize;
-	fcb->FCB_Block.m_u32PagesInFirmware1         = boot_stream_size_in_pages;
-	fcb->FCB_Block.m_u32PagesInFirmware2         = boot_stream_size_in_pages;
-#ifdef CONFIG_USE_NAND_DBBT
-	fcb->FCB_Block.m_u32DBBTSearchAreaStartAddress = search_area_size_in_pages;
-#else
-	fcb->FCB_Block.m_u32DBBTSearchAreaStartAddress = 0;
-#endif
-
-#ifdef CONFIG_MXC_NAND_SWAP_BI
-	/* Enable BI_SWAP */
-	{
-		unsigned int nand_sections =  mtd->writesize >> 9;
-		unsigned int nand_oob_per_section = ((mtd->oobsize / nand_sections) >> 1) << 1;
-		unsigned int nand_trunks =  mtd->writesize / (512 + nand_oob_per_section);
-		fcb->FCB_Block.m_u32DISBBM = 1;
-		fcb->FCB_Block.m_u32BadBlockMarkerByte =
-			mtd->writesize - nand_trunks  * nand_oob_per_section;
-		fcb->FCB_Block.m_u32BBMarkerPhysicalOffsetInSpareData
-			= (nand_sections - 1) * (512 + nand_oob_per_section) + 512 + 1;
-	}
-#endif
-	//----------------------------------------------------------------------
-	// Fill in the DBBT.
-	//----------------------------------------------------------------------
-
-	dbbt = &(bootblock->dbbt28);
-	memset(dbbt, 0, sizeof(*dbbt));
-
-	dbbt->m_u32FingerPrint                = DBBT_FINGERPRINT2;
-	dbbt->m_u32Version                    = 1;
-
-	/* Only check boot partition that ROM support */
-
-#ifdef CONFIG_USE_NAND_DBBT
-	mp = &md->part[0];
-	if (mp->nrbad == 0)
-		return 0;
-
-	md->bbtn[0] = malloc(2048); /* single page */
-	if (md->bbtn[0] == NULL) {
-		fprintf(stderr, "mtd: failed to allocate BBTN#%d\n", 2048);
-		return -1;
-	}
-
-	bbtn = md->bbtn[0];
-	memset(bbtn, 0, sizeof(*bbtn));
-
-	badmax = ARRAY_SIZE(bbtn->u32BadBlock);
-	thisbad = mp->nrbad;
-	if (thisbad > badmax)
-		thisbad = badmax;
-
-
-	dbbt->DBBT_Block.v2.m_u32NumberBB = thisbad;
-	dbbt->DBBT_Block.v2.m_u32Number2KPagesBB = 1; /* one page should be enough*/
-
-	bbtn->uNumberBB = thisbad;
-
-	/* fill in BBTN */
-	j = mtd->size / mtd->erasesize;
-	currbad = 0;
-	for (k = 0; k < j && currbad < thisbad; k++) {
-		if ((mp->bad_blocks[k >> 5] & (1 << (k & 31))) == 0)
-			continue;
-		bbtn->u32BadBlock[currbad++] = k;
-	}
-#endif
 	return 0;
 
 }
@@ -436,9 +438,8 @@ int mtd_commit_bcb(struct mtd_info *mtd,
 	unsigned stride_size_in_bytes;
 	unsigned search_area_size_in_strides;
 	unsigned search_area_size_in_bytes;
-	struct nand_chip *nandchip = mtd->priv;
 	size_t nbytes = 0;
-	char *readbuf = NULL;
+	unsigned char *readbuf = NULL;
 	unsigned count;
 
 	readbuf = malloc(mtd->writesize);
@@ -525,7 +526,7 @@ int mtd_commit_bcb(struct mtd_info *mtd,
 						fprintf(stdout, "erasing block at 0x%llx\n", o);
 					}
 					if (!(cfg->flags & F_DRYRUN)) {
-						r = MtdErase(chip, o, mtd->erasesize);
+						r = nand_erase(mtd, o, mtd->erasesize);
 						if (r < 0) {
 							fprintf(stderr, "mtd: Failed to erase block @0x%llx\n", o);
 							err++;
@@ -544,13 +545,14 @@ int mtd_commit_bcb(struct mtd_info *mtd,
 
 				if (!(cfg->flags & F_DRYRUN)) {
 					if (size == mtd->writesize + mtd->oobsize) {
-						/* We're going to write a raw page (data+oob).
-						 * Change the mode to RAW. Then restore it. */
-						int old_mode = nandchip->ops.mode;
+						/* We're going to write a raw page (data+oob) */
+						mtd_oob_ops_t ops = {
+							.datbuf = bootblock->buf,
+							.len = mtd->writesize,
+							.mode = MTD_OPS_RAW,
+						};
 
-						nandchip->ops.datbuf = bootblock->buf;
-						nandchip->ops.mode = MTD_OOB_RAW;
-						r = mtd->write_oob(mtd, o, &nandchip->ops);
+						r = mtd_write_oob(mtd, o, &ops);
 						if (r) {
 							fprintf(stderr, "mtd: Failed to write %s @%d: 0x%llx (%d)\n",
 								bcb_name, chip, o, r);
@@ -559,8 +561,8 @@ int mtd_commit_bcb(struct mtd_info *mtd,
 						//------------------------------------------------------
 						// Verify the written data
 						//------------------------------------------------------
-						nandchip->ops.datbuf = (void *)readbuf;
-						r = mtd->read_oob(mtd, o, &nandchip->ops);
+						ops.datbuf = (u8 *)readbuf;
+						r = mtd_read_oob(mtd, o, &ops);
 						if (r) {
 							fprintf(stderr, "mtd: Failed to read @0x%llx (%d)\n", o, r);
 							err++;
@@ -575,12 +577,9 @@ int mtd_commit_bcb(struct mtd_info *mtd,
 						if (cfg->flags & F_VERBOSE)
 							fprintf(stdout, "mtd: Verified %s%d @%d:0x%llx(%x)\n",
 										bcb_name, j, chip, o, size);
-
-						/* restore mode */
-						nandchip->ops.mode = old_mode;
 					}
 					else {
-						r = mtd->write(mtd, o, size, &nbytes, (const void *)bootblock->buf);
+						r = nand_write_skip_bad(mtd, o, &size, &nbytes, mtd->size, bootblock->buf, WITH_WR_VERIFY);
 						if (r || nbytes != size) {
 							fprintf(stderr, "mtd: Failed to write %s @%d: 0x%llx (%d)\n",
 								bcb_name, chip, o, r);
@@ -589,7 +588,7 @@ int mtd_commit_bcb(struct mtd_info *mtd,
 						//------------------------------------------------------
 						// Verify the written data
 						//------------------------------------------------------
-						r = mtd->read(mtd, o, size, &nbytes, (void *)readbuf);
+						r = nand_read_skip_bad(mtd, o, &size, &nbytes, mtd->size, readbuf);
 						if (r || nbytes != size) {
 							fprintf(stderr, "mtd: Failed to read @0x%llx (%d)\n", o, r);
 							err++;
@@ -625,18 +624,9 @@ int v1_rom_mtd_commit_structures(struct mtd_info *mtd,
 				 unsigned long bs_start_address,
 				 unsigned int boot_stream_size_in_bytes)
 {
-	int startpage, start, size;
+	int size;
 //	unsigned int search_area_size_in_bytes, stride_size_in_bytes;
-	int i, r, chunk;
-	loff_t ofs, end;
-	int chip = 0;
-	unsigned long read_addr;
-	size_t nbytes = 0;
-	char *readbuf = NULL;
-
-	readbuf = malloc(mtd->writesize);
-	if (NULL == readbuf)
-		return -1;
+	int r;
 
 	//----------------------------------------------------------------------
 	// Compute some important facts about geometry.
@@ -674,349 +664,51 @@ int v1_rom_mtd_commit_structures(struct mtd_info *mtd,
 
 	mtd_commit_bcb(mtd, cfg, bootblock, "DBBT", 1, 1, 1, 1, mtd->writesize);
 
-	//----------------------------------------------------------------------
-	// Loop over the two boot streams.
-	//----------------------------------------------------------------------
+	/* Write the firmware copies */
+	write_firmware(mtd, cfg, bootblock, bs_start_address,
+		       boot_stream_size_in_bytes, 0);
 
-	for (i = 0; i < 2; i++) {
-		/* Set start address where bootstream is in RAM */
-		read_addr = bs_start_address;
-
-		//--------------------------------------------------------------
-		// Figure out where to put the current boot stream.
-		//--------------------------------------------------------------
-
-		if (i == 0) {
-			startpage = bootblock->fcb.FCB_Block.m_u32Firmware1_startingPage;
-			size      = bootblock->fcb.FCB_Block.m_u32PagesInFirmware1;
-			end       = bootblock->fcb.FCB_Block.m_u32Firmware2_startingPage;
-		} else {
-			startpage = bootblock->fcb.FCB_Block.m_u32Firmware2_startingPage;
-			size      = bootblock->fcb.FCB_Block.m_u32PagesInFirmware2;
-			end       = lldiv(mtd->size, mtd->writesize);
-		}
-
-		//--------------------------------------------------------------
-		// Compute the byte addresses corresponding to the page
-		// addresses.
-		//--------------------------------------------------------------
-
-		start = startpage * mtd->writesize;
-		size  = size      * mtd->writesize;
-		end   = end       * mtd->writesize;
-
-		if (cfg->flags & F_VERBOSE)
-			printf("mtd: Writting firmware image #%d @%d: 0x%08x - 0x%08x\n", i,
-					chip, start, start + size);
-
-		//--------------------------------------------------------------
-		// Loop over pages as we write them.
-		//--------------------------------------------------------------
-
-		ofs = start;
-		while (ofs < end && size > 0) {
-
-			//------------------------------------------------------
-			// Check if the current block is bad.
-			//------------------------------------------------------
-
-			while (mtd->block_isbad(mtd, ofs) == 1) {
-				if (cfg->flags & F_VERBOSE)
-					fprintf(stdout, "mtd: Skipping bad block at 0x%llx\n", ofs);
-				ofs += mtd->erasesize;
-			}
-
-			chunk = size;
-
-			//------------------------------------------------------
-			// Check if we've entered a new block and, if so, erase
-			// it before beginning to write it.
-			//------------------------------------------------------
-
-			if (llmod(ofs, mtd->erasesize) == 0) {
-				if (cfg->flags & F_VERBOSE) {
-					fprintf(stdout, "erasing block at 0x%llx\n", ofs);
-				}
-				if (!(cfg->flags & F_DRYRUN)) {
-					r = MtdErase(chip, ofs, mtd->erasesize);
-					if (r < 0) {
-						fprintf(stderr, "mtd: Failed to erase block @0x%llx\n", ofs);
-						ofs += mtd->erasesize;
-						continue;
-					}
-				}
-			}
-
-			if (chunk > mtd->writesize)
-				chunk = mtd->writesize;
-
-			//------------------------------------------------------
-			// Write the current chunk to the medium.
-			//------------------------------------------------------
-
-			if (cfg->flags & F_VERBOSE) {
-				fprintf(stdout, "Writing bootstream file from 0x%lx to offset 0x%llx\n", read_addr, ofs);
-			}
-			if (!(cfg->flags & F_DRYRUN)) {
-				r = mtd->write(mtd, ofs, chunk, &nbytes, (const void *)read_addr);
-				if (r || nbytes != chunk) {
-					fprintf(stderr, "mtd: Failed to write BS @0x%llx (%d)\n", ofs, r);
-				}
-			}
-			//------------------------------------------------------
-			// Verify the written data
-			//------------------------------------------------------
-			r = mtd->read(mtd, ofs, chunk, &nbytes, (void *)readbuf);
-			if (r || nbytes != chunk) {
-				fprintf(stderr, "mtd: Failed to read BS @0x%llx (%d)\n", ofs, r);
-				goto _error;
-			}
-			if (memcmp((void *)read_addr, readbuf, chunk)) {
-				fprintf(stderr, "mtd: Verification error @0x%llx\n", ofs);
-				goto _error;
-			}
-
-			ofs += mtd->writesize;
-			read_addr += mtd->writesize;
-			size -= chunk;
-		}
-		if (cfg->flags & F_VERBOSE)
-			printf("mtd: Verified firmware image #%d @%d: 0x%08x - 0x%08x\n", i,
-					chip, start, start + size);
-
-		//--------------------------------------------------------------
-		// Check if we ran out of room.
-		//--------------------------------------------------------------
-
-		if (ofs >= end) {
-			fprintf(stderr, "mtd: Failed to write BS#%d\n", i);
-			goto _error;
-		}
-	}
-
-	free(readbuf);
 	return 0;
+
 _error:
-	free(readbuf);
 	return -1;
 }
 
-int v2_rom_mtd_commit_structures(struct mtd_info *mtd,
-		 struct mtd_config *cfg,
-		 struct mtd_bootblock *bootblock,
-		 unsigned long bs_start_address,
-		 unsigned int boot_stream_size_in_bytes)
+int v6_rom_mtd_commit_structures(struct mtd_info *mtd,
+				 struct mtd_config *cfg,
+				 struct mtd_bootblock *bootblock,
+				 unsigned long bs_start_address,
+				 unsigned int boot_stream_size_in_bytes)
 {
-	int startpage, start, size;
-#ifdef CONFIG_USE_NAND_DBBT
-	unsigned int search_area_size_in_bytes, stride_size_in_bytes;
-#endif
-	int i, r, chunk;
-	loff_t ofs, end;
-	int chip = 0;
-	unsigned long read_addr;
-	size_t nbytes = 0;
-	char *readbuf = NULL;
+	int size, r;
 
-	readbuf = malloc(mtd->writesize);
-	if (NULL == readbuf)
-		return -1;
+	/* [1] Write the FCB search area. */
+	size =  mtd->writesize + mtd->oobsize;
 
-	//----------------------------------------------------------------------
-	// Compute some important facts about geometry.
-	//----------------------------------------------------------------------
-#ifdef CONFIG_USE_NAND_DBBT
-	stride_size_in_bytes = mtd->erasesize;
-	search_area_size_in_bytes = 4 * stride_size_in_bytes;
-#endif
-	//----------------------------------------------------------------------
-	// Construct the ECC decorations and such for the FCB.
-	//----------------------------------------------------------------------
+	r = fcb_encrypt(&bootblock->fcb, bootblock->buf, size, 3);
+	if (r < 0)
+		return r;
+	mtd_commit_bcb(mtd, cfg, bootblock, "FCB", 0, 0, 0, 1, size);
 
-	size = mtd->writesize + mtd->oobsize;
-
-	if (cfg->flags & F_VERBOSE) {
-		if (bootblock->ncb_version != cfg->ncb_version)
-			printf("NCB versions differ, %d is used.\n", cfg->ncb_version);
-	}
-
-	//----------------------------------------------------------------------
-	// Write the FCB search area.
-	//----------------------------------------------------------------------
-	memset(bootblock->buf, 0, size);
-	memcpy(bootblock->buf, &(bootblock->fcb), sizeof(bootblock->fcb));
-
-	mtd_commit_bcb(mtd, cfg, bootblock, "FCB", 0, 0, 0, 1, mtd->writesize);
-
-	//----------------------------------------------------------------------
-	// Write the DBBT search area.
-	//----------------------------------------------------------------------
-
+	/* [2] Write the DBBT search area. */
 	memset(bootblock->buf, 0, size);
 	memcpy(bootblock->buf, &(bootblock->dbbt28), sizeof(bootblock->dbbt28));
 
 	mtd_commit_bcb(mtd, cfg, bootblock, "DBBT", 1, 1, 1, 1, mtd->writesize);
 
-	//----------------------------------------------------------------------
-	// Write the DBBT table area.
-	//----------------------------------------------------------------------
-
-	memset(bootblock->buf, 0, size);
-
-#ifdef CONFIG_USE_NAND_DBBT
-	if (bootblock->dbbt28.DBBT_Block.v2.m_u32Number2KPagesBB> 0 && md->bbtn[0] != NULL) {
-		memcpy(md->buf, md->bbtn[0], sizeof(*md->bbtn[0]));
-
-		ofs = search_area_size_in_bytes;
-
-		for (i=0; i < 4; i++, ofs += stride_size_in_bytes) {
-
-			if (md->flags & F_VERBOSE)
-				printf("mtd: PUTTING down DBBT%d BBTN%d @0x%llx (0x%x)\n", i, 0,
-					ofs + 4 * mtd->writesize, mtd->writesize);
-
-			r = mtd_write_page(md, chip, ofs + 4 * mtd->writesize, 1);
-			if (r != mtd->writesize) {
-				fprintf(stderr, "mtd: Failed to write BBTN @0x%llx (%d)\n", ofs, r);
-			}
-		}
-	}
-#endif
-	//----------------------------------------------------------------------
-	// Loop over the two boot streams.
-	//----------------------------------------------------------------------
-
-	for (i = 0; i < 2; i++) {
-		/* Set start address where bootstream is in RAM */
-		read_addr = bs_start_address;
-
-		//--------------------------------------------------------------
-		// Figure out where to put the current boot stream.
-		//--------------------------------------------------------------
-		if (i == 0) {
-			startpage = bootblock->fcb.FCB_Block.m_u32Firmware1_startingPage;
-			size      = bootblock->fcb.FCB_Block.m_u32PagesInFirmware1;
-			end       = bootblock->fcb.FCB_Block.m_u32Firmware2_startingPage;
-		} else {
-			startpage = bootblock->fcb.FCB_Block.m_u32Firmware2_startingPage;
-			size      = bootblock->fcb.FCB_Block.m_u32PagesInFirmware2;
-			end       = lldiv(mtd->size, mtd->writesize);
-		}
-
-		//--------------------------------------------------------------
-		// Compute the byte addresses corresponding to the page
-		// addresses.
-		//--------------------------------------------------------------
-
-		start = startpage * mtd->writesize;
-		size  = size      * mtd->writesize;
-		end   = end       * mtd->writesize;
-
-		if (cfg->flags & F_VERBOSE)
-			printf("mtd: Writting firmware image #%d @%d: 0x%08x - 0x%08x\n", i,
-					chip, start, start + size);
-
-		//--------------------------------------------------------------
-		// Loop over pages as we write them.
-		//--------------------------------------------------------------
-
-		ofs = start;
-		while (ofs < end && size > 0) {
-
-			//------------------------------------------------------
-			// Check if the current block is bad.
-			//------------------------------------------------------
-
-			while (mtd->block_isbad(mtd, ofs) == 1) {
-				if (cfg->flags & F_VERBOSE)
-					printf("mtd: Skipping bad block at 0x%llx\n", ofs);
-				ofs += mtd->erasesize;
-			}
-
-			chunk = size;
-
-			//------------------------------------------------------
-			// Check if we've entered a new block and, if so, erase
-			// it before beginning to write it.
-			//------------------------------------------------------
-
-			if (llmod(ofs, mtd->erasesize) == 0) {
-				if (cfg->flags & F_VERBOSE) {
-					fprintf(stdout, "erasing block at 0x%llx\n", ofs);
-				}
-				if (!(cfg->flags & F_DRYRUN)) {
-					r = MtdErase(chip, ofs, mtd->erasesize);
-					if (r < 0) {
-						fprintf(stderr, "mtd: Failed to erase block @0x%llx\n", ofs);
-						ofs += mtd->erasesize;
-						continue;
-					}
-				}
-			}
-
-			if (chunk > mtd->writesize)
-				chunk = mtd->writesize;
-
-			//------------------------------------------------------
-			// Write the current chunk to the medium.
-			//------------------------------------------------------
-			if (cfg->flags & F_VERBOSE) {
-				fprintf(stdout, "Writing bootstream file from 0x%lx to offset 0x%llx\n", read_addr, ofs);
-			}
-			if (!(cfg->flags & F_DRYRUN)) {
-				r = mtd->write(mtd, ofs, chunk, &nbytes, (const void *)read_addr);
-				if (r || nbytes != chunk) {
-					fprintf(stderr, "mtd: Failed to write BS @0x%llx (%d)\n", ofs, r);
-				}
-			}
-
-			//------------------------------------------------------
-			// Verify the written data
-			//------------------------------------------------------
-			r = mtd->read(mtd, ofs, chunk, &nbytes, (void *)readbuf);
-			if (r || nbytes != chunk) {
-				fprintf(stderr, "mtd: Failed to read BS @0x%llx (%d)\n", ofs, r);
-				goto _error;
-			}
-			if (memcmp((void *)read_addr, readbuf, chunk)) {
-				fprintf(stderr, "mtd: Verification error @0x%llx\n", ofs);
-				goto _error;
-			}
-
-			ofs += mtd->writesize;
-			read_addr += mtd->writesize;
-			size -= chunk;
-		}
-
-		//--------------------------------------------------------------
-		// Check if we ran out of room.
-		//--------------------------------------------------------------
-
-		if (ofs >= end) {
-			fprintf(stderr, "mtd: Failed to write BS#%d\n", i);
-			return -1;
-		}
-
-	}
-
-	free(readbuf);
-	return 0;
-_error:
-	free(readbuf);
-	return -1;
+	/* [3] Write the two boot streams using a 1K padding. */
+	return write_firmware(mtd, cfg, bootblock, bs_start_address,
+			      boot_stream_size_in_bytes, 1024);
 }
 
-int write_bootstream(const nv_param_part_t* part,
+int write_bootstream(struct part_info *part,
 		     unsigned long bs_start_address,
 		     int bs_size)
 {
 	/* TODO: considering chip = 0 */
 	int chip = 0;
-	uint8_t id_bytes[NAND_DEVICE_ID_BYTE_COUNT];
 	struct mtd_info *mtd = &nand_info[chip];
-	struct nand_chip *this = mtd->priv;
-	struct nand_device_info  *dev_info;
-	int i, r = -1;
+	int r = -1;
 	struct mtd_config cfg;
 	struct mtd_bootblock bootblock;
 
@@ -1034,34 +726,9 @@ int write_bootstream(const nv_param_part_t* part,
 		return -1;
 	}
 
-	/* Read ID bytes from the first NAND Flash chip. */
-	this->select_chip(mtd, chip);
-
-	this->cmdfunc(mtd, NAND_CMD_READID, 0x00, -1);
-
-	for (i = 0; i < NAND_DEVICE_ID_BYTE_COUNT; i++)
-		id_bytes[i] = this->read_byte(mtd);
-
-	/* Get information about this device, based on the ID bytes. */
-	dev_info = nand_device_get_info(id_bytes);
-
-	/* Check if we understand this device. */
-	if (dev_info) {
-		/* Update configuration with values for detected chip */
-		cfg.data_setup_time = dev_info->data_setup_in_ns;
-		cfg.data_hold_time = dev_info->data_hold_in_ns;
-		cfg.address_setup_time = dev_info->address_setup_in_ns;
-		cfg.data_sample_time = dev_info->gpmi_sample_delay_in_ns;
-	}
-	else {
-		printf("Unrecognized NAND Flash device. Using default values.\n");
-	}
-
 	printf("Writing bootstream...");
-#if defined(CONFIG_MX28)
-	r = v1_rom_mtd_init(mtd, &cfg, &bootblock, bs_size, part->ullSize);
-#elif defined(CONFIG_MX53)
-	r = v2_rom_mtd_init(mtd, &cfg, &bootblock, bs_size, part->ullSize);
+#if defined(CONFIG_MX28) || defined(CONFIG_MX6UL)
+	r = v1_rom_mtd_init(mtd, &cfg, &bootblock, bs_size, part->size);
 #endif
 	if (r < 0) {
 		printf("mtd_init failed!\n");
@@ -1069,8 +736,8 @@ int write_bootstream(const nv_param_part_t* part,
 	else {
 #if defined(CONFIG_MX28)
 		r = v1_rom_mtd_commit_structures(mtd, &cfg, &bootblock, bs_start_address, bs_size);
-#elif defined(CONFIG_MX53)
-		r = v2_rom_mtd_commit_structures(mtd, &cfg, &bootblock, bs_start_address, bs_size);
+#elif defined(CONFIG_MX6UL)
+		r = v6_rom_mtd_commit_structures(mtd, &cfg, &bootblock, bs_start_address, bs_size);
 #endif
 	}
 

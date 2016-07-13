@@ -28,7 +28,8 @@ obj-$(CONFIG_CMD_BSP) += cmd_bsp.o \
 	  atoi.o \
 	  safe_strcat.o \
 	  helper.o
-obj-$(CONFIG_CMD_BOOTSTREAM) += cmd_bootstream/ncb.o \
+obj-$(CONFIG_CMD_BOOTSTREAM) += cmd_bootstream/bch.o \
+				cmd_bootstream/ncb.o \
 				cmd_bootstream/cmd_bootstream.o \
 				cmd_bootstream/mxsboot.o
 obj-$(CONFIG_MXS_OTP) += cmd_mxsotp.o
@@ -39,10 +40,16 @@ obj-$(CONFIG_CMD_NVRAM) += cmd_nvram/mtd.o \
 	  cmd_nvram/nvram_priv_uboot.o \
 	  cmd_nvram/env.o \
 	  cmd_nvram/partition.o
-obj-$(CONFIG_HAS_HWID) += cmd_hwid.o
+ifdef CONFIG_HAS_HWID
+obj-y += cmd_hwid.o
+obj-$(CONFIG_CC6) += ccimx6_hwid.o
+endif
 obj-$(CONFIG_HAS_CARRIERBOARD_VERSION) += cmd_board.o
 obj-$(CONFIG_HAS_CARRIERBOARD_ID) += cmd_board.o
-obj-$(CONFIG_CMD_UPDATE) += cmd_update.o helper.o
+obj-$(CONFIG_AUTO_BOOTSCRIPT) += helper.o
+obj-$(CONFIG_CMD_UPDATE_MMC) += cmd_update_mmc.o helper.o
+obj-$(CONFIG_CMD_UPDATE_NAND) += cmd_update_nand.o helper.o
 obj-$(CONFIG_CMD_DBOOT) += cmd_dboot.o helper.o
 obj-$(CONFIG_CMD_PMIC) += cmd_pmic.o
+obj-$(CONFIG_HAS_TRUSTFENCE) += cmd_trustfence.o
 endif

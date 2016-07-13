@@ -581,6 +581,18 @@ config TARGET_CCIMX6SBC
 	select CPU_V7
 	select SUPPORT_SPL
 
+config TARGET_CCIMX6ULSBC
+	bool "Support ccimx6ulsbc"
+	select CPU_V7
+
+config TARGET_CCIMX6ULSTARTER
+        bool "Support ccimx6ulstarter"
+        select CPU_V7
+
+config TARGET_PICOSOM_IMX6UL
+        bool "Support picosom-imx6ul"
+        select CPU_V7
+
 config TARGET_GW_VENTANA
 	bool "Support gw_ventana"
 	select CPU_V7
@@ -854,6 +866,8 @@ source "board/davedenx/qong/Kconfig"
 source "board/denx/m28evk/Kconfig"
 source "board/denx/m53evk/Kconfig"
 source "board/digi/ccimx6sbc/Kconfig"
+source "board/digi/ccimx6ulsbc/Kconfig"
+source "board/digi/ccimx6ulstarter/Kconfig"
 source "board/embest/mx6boards/Kconfig"
 source "board/esg/ima3-mx53/Kconfig"
 source "board/freescale/ls2085a/Kconfig"
@@ -886,6 +900,7 @@ source "board/freescale/mx7dsabresd/Kconfig"
 source "board/freescale/mx6ul_14x14_evk/Kconfig"
 source "board/freescale/mx6ul_14x14_ddr3_arm2/Kconfig"
 source "board/freescale/mx6ul_14x14_lpddr2_arm2/Kconfig"
+source "board/technexion/picosom-imx6ul/Kconfig"
 source "board/freescale/vf610twr/Kconfig"
 source "board/gateworks/gw_ventana/Kconfig"
 source "board/genesi/mx51_efikamx/Kconfig"

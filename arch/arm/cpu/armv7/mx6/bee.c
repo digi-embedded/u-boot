@@ -10,6 +10,8 @@
 #include <asm/system.h>
 #include <common.h>
 #include <command.h>
+#include <fuse.h>
+#include <asm/arch/sys_proto.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -277,6 +279,13 @@ static int do_bee_init(cmd_tbl_t *cmdtp, int flag, int argc,
 
 	if (argc > 5)
 		return CMD_RET_USAGE;
+
+#ifdef CONFIG_MX6
+	if (check_module_fused(MX6_MODULE_BEE)) {
+		printf("BEE is fused, disable it!\n");
+		return CMD_RET_FAILURE;
+	}
+#endif
 
 	/* Cache enabled? */
 	if ((get_cr() & (CR_I | CR_C)) != (CR_I | CR_C)) {

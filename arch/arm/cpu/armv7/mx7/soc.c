@@ -18,7 +18,7 @@
 #include <dm.h>
 #include <imx_thermal.h>
 #include <mxsfb.h>
-#ifdef CONFIG_FASTBOOT
+#ifdef CONFIG_FSL_FASTBOOT
 #ifdef CONFIG_ANDROID_RECOVERY
 #include <recovery.h>
 #endif
@@ -122,6 +122,24 @@ static void imx_set_wdog_powerdown(bool enable)
 	writew(enable, &wdog4->wmcr);
 }
 
+static void imx_enet_mdio_fixup(void)
+{
+	struct iomuxc_gpr_base_regs *gpr_regs =
+		(struct iomuxc_gpr_base_regs *)IOMUXC_GPR_BASE_ADDR;
+
+	/*
+	 * The management data input/output (MDIO) requires open-drain,
+	 * i.MX7D TO1.0 ENET MDIO pin has no open drain, but TO1.1 supports
+	 * this feature. So to TO1.1, need to enable open drain by setting
+	 * bits GPR0[8:7].
+	 */
+
+	if (is_soc_rev(CHIP_REV_1_1) >= 0) {
+		setbits_le32(&gpr_regs->gpr[0],
+			     IOMUXC_GPR_GPR0_ENET_MDIO_OPEN_DRAIN_MASK);
+	}
+}
+
 static void set_epdc_qos(void)
 {
 #define REGS_QOS_BASE     QOSC_IPS_BASE_ADDR
@@ -159,6 +177,8 @@ int arch_cpu_init(void)
 	imx_set_wdog_powerdown(false);
 
 	imx_set_pcie_phy_power_down();
+
+	imx_enet_mdio_fixup();
 
 #ifdef CONFIG_APBH_DMA
 	/* Start APBH DMA */
@@ -394,7 +414,7 @@ void reset_misc(void)
 #endif
 }
 
-#ifdef CONFIG_FASTBOOT
+#ifdef CONFIG_FSL_FASTBOOT
 
 #ifdef CONFIG_ANDROID_RECOVERY
 #define ANDROID_RECOVERY_BOOT	(1 << 7)
@@ -445,27 +465,7 @@ int fastboot_check_and_clean_flag(void)
 
 void fastboot_enable_flag(void)
 {
-       u32 reg;
-       reg = readl(SNVS_BASE_ADDR + SNVS_LPGPR);
-       reg |= ANDROID_FASTBOOT_BOOT;
-       writel(reg, SNVS_BASE_ADDR + SNVS_LPGPR);
+	setbits_le32(SNVS_BASE_ADDR + SNVS_LPGPR,
+		ANDROID_FASTBOOT_BOOT);
 }
-
-#endif /*CONFIG_FASTBOOT*/
-
-#ifdef CONFIG_IMX_UDC
-void set_usb_phy1_clk(void)
-{
-	/* TODO */
-}
-void enable_usb_phy1_clk(unsigned char enable)
-{
-}
-
-void reset_usb_phy1(void)
-{
-	/* Reset USBPHY module */
-	setbits_le32(&src_reg->usbophy1_rcr, 0x00000001);
-}
-
-#endif
+#endif /*CONFIG_FSL_FASTBOOT*/

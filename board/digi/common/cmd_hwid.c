@@ -25,9 +25,10 @@
 #include <fuse.h>
 #include <asm/errno.h>
 #include "helper.h"
-
-#define OCOTP_LOCK_BANK		0
-#define OCOTP_LOCK_WORD		0
+#include "hwid.h"
+#ifdef CONFIG_OF_LIBFDT
+#include <fdt_support.h>
+#endif
 
 __weak void board_print_hwid(u32 *hwid)
 {

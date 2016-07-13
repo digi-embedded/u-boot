@@ -339,10 +339,24 @@ static void eimnor_cs_setup(void)
 
 static void setup_eimnor(void)
 {
+	if (check_module_fused(MX6_MODULE_EIM)) {
+		printf("WEIM@0x%x is fused, disable it\n", WEIM_BASE_ADDR);
+		return;
+	}
+
 	imx_iomux_v3_setup_multiple_pads(eimnor_pads, ARRAY_SIZE(eimnor_pads));
 
 	eimnor_cs_setup();
 }
+
+int board_flash_wp_on(void)
+{
+	if (check_module_fused(MX6_MODULE_EIM))
+		return 1; /* Skip flash init */
+
+	return 0;
+}
+
 #endif
 
 #ifdef CONFIG_FEC_MXC
@@ -489,11 +503,17 @@ int mmc_get_env_devno(void)
 	/* BOOT_CFG2[3] and BOOT_CFG2[4] */
 	dev_no = (soc_sbmr & 0x00001800) >> 11;
 
+	if (dev_no == 1 && mx6_esdhc_fused(USDHC1_BASE_ADDR))
+		dev_no = 0;
+
 	return dev_no;
 }
 
 int mmc_map_to_kernel_blk(int dev_no)
 {
+	if (dev_no == 0 && mx6_esdhc_fused(USDHC1_BASE_ADDR))
+		dev_no = 1;
+
 	return dev_no;
 }
 
@@ -735,6 +755,9 @@ static int setup_fec(int fec_id)
 	int ret;
 
 	if (0 == fec_id) {
+		if (check_module_fused(MX6_MODULE_ENET1))
+			return -1;
+
 		/*
 		 * Use 50M anatop loopback REF_CLK1 for ENET1,
 		 * clear gpr1[13], set gpr1[17]
@@ -746,6 +769,9 @@ static int setup_fec(int fec_id)
 			return ret;
 
 	} else {
+		if (check_module_fused(MX6_MODULE_ENET2))
+			return -1;
+
 		/* clk from phy, set gpr1[14], clear gpr1[18]*/
 		clrsetbits_le32(&iomuxc_gpr_regs->gpr[1], IOMUX_GPR1_FEC2_MASK,
 				IOMUX_GPR1_FEC2_CLOCK_MUX2_SEL_MASK);

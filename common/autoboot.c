@@ -206,6 +206,9 @@ static int abortboot_normal(int bootdelay)
 
 static int abortboot(int bootdelay)
 {
+	if (gd->flags & GD_FLG_DISABLE_CONSOLE_INPUT)
+		return 0;
+
 #ifdef CONFIG_AUTOBOOT_KEYED
 	return abortboot_keyed(bootdelay);
 #else
@@ -255,10 +258,6 @@ const char *bootdelay_process(void)
 		disconnect_from_pc();
 		printf("Boot from USB for mfgtools\n");
 		bootdelay = 0;
-		set_default_env("Use default environment for \
-				 mfgtools\n");
-	} else {
-		printf("Normal Boot\n");
 	}
 #endif
 
@@ -290,8 +289,11 @@ const char *bootdelay_process(void)
 
 #ifdef is_boot_from_usb
 	if (is_boot_from_usb()) {
-		s = getenv("bootcmd_mfg");
-		printf("Run bootcmd_mfg: %s\n", s);
+		if ((s = getenv("bootcmd_mfg")) != NULL)
+			printf("Run bootcmd_mfg: %s\n", s);
+		else
+			printf("Empty manufacturing boot command"
+			       " 'bootcmd_mfg'\n");
 	}
 #endif
 

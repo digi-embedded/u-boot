@@ -24,14 +24,11 @@
 #include <asm/arch/crm_regs.h>
 #include <dm.h>
 #include <imx_thermal.h>
-#ifdef CONFIG_FASTBOOT
+#include <mxsfb.h>
+#ifdef CONFIG_FSL_FASTBOOT
 #ifdef CONFIG_ANDROID_RECOVERY
 #include <recovery.h>
 #endif
-#endif
-#ifdef CONFIG_IMX_UDC
-#include <asm/arch/mx6_usbphy.h>
-#include <usb/imx_udc.h>
 #endif
 
 enum ldo_reg {
@@ -100,10 +97,6 @@ u32 get_cpu_rev(void)
  * defines a 2-bit SPEED_GRADING
  */
 #define OCOTP_CFG3_SPEED_SHIFT	16
-#define OCOTP_CFG3_SPEED_800MHZ	0
-#define OCOTP_CFG3_SPEED_850MHZ	1
-#define OCOTP_CFG3_SPEED_1GHZ	2
-#define OCOTP_CFG3_SPEED_1P2GHZ	3
 
 u32 get_cpu_speed_grade_hz(void)
 {
@@ -119,18 +112,23 @@ u32 get_cpu_speed_grade_hz(void)
 
 	switch (val) {
 	/* Valid for IMX6DQ */
-	case OCOTP_CFG3_SPEED_1P2GHZ:
+	case 3:
 		if (is_cpu_type(MXC_CPU_MX6Q) || is_cpu_type(MXC_CPU_MX6D))
 			return 1200000000;
-	/* Valid for IMX6SX/IMX6SDL/IMX6DQ */
-	case OCOTP_CFG3_SPEED_1GHZ:
-		return 996000000;
-	/* Valid for IMX6DQ */
-	case OCOTP_CFG3_SPEED_850MHZ:
+	/* Valid for IMX6SX/IMX6SDL/IMX6DQ/IMX6UL */
+	case 2:
+		if (is_cpu_type(MXC_CPU_MX6UL))
+			return 700000000;
+		else
+			return 996000000;
+	/* Valid for IMX6DQ/IMX6UL */
+	case 1:
 		if (is_cpu_type(MXC_CPU_MX6Q) || is_cpu_type(MXC_CPU_MX6D))
 			return 852000000;
+		if (is_cpu_type(MXC_CPU_MX6UL))
+			return 528000000;
 	/* Valid for IMX6SX/IMX6SDL/IMX6DQ */
-	case OCOTP_CFG3_SPEED_800MHZ:
+	case 0:
 		return 792000000;
 	}
 	return 0;
@@ -351,7 +349,10 @@ static void clear_mmdc_ch_mask(void)
 	reg = readl(&mxc_ccm->ccdr);
 
 	/* Clear MMDC channel mask */
-	reg &= ~(MXC_CCM_CCDR_MMDC_CH1_HS_MASK | MXC_CCM_CCDR_MMDC_CH0_HS_MASK);
+	if (is_cpu_type(MXC_CPU_MX6SX) || is_cpu_type(MXC_CPU_MX6UL) || is_cpu_type(MXC_CPU_MX6SL))
+		reg &= ~(MXC_CCM_CCDR_MMDC_CH1_HS_MASK);
+	else
+		reg &= ~(MXC_CCM_CCDR_MMDC_CH1_HS_MASK | MXC_CCM_CCDR_MMDC_CH0_HS_MASK);
 	writel(reg, &mxc_ccm->ccdr);
 }
 
@@ -549,12 +550,14 @@ int arch_cpu_init(void)
 #endif
 
 #if defined(CONFIG_MX6UL)
-	/*
-	 * According to the design team's requirement on i.MX6UL,
-	 * the PMIC_STBY_REQ PAD should be configured as open
-	 * drain 100K (0x0000b8a0).
-	 */
-	writel(0x0000b8a0, IOMUXC_BASE_ADDR + 0x29c);
+	if (is_soc_rev(CHIP_REV_1_0) == 0) {
+		/*
+		 * According to the design team's requirement on i.MX6UL,
+		 * the PMIC_STBY_REQ PAD should be configured as open
+		 * drain 100K (0x0000b8a0).
+		 */
+		writel(0x0000b8a0, IOMUXC_BASE_ADDR + 0x29c);
+	}
 #endif
 
 	/* Set perclk to source from OSC 24MHz */
@@ -578,7 +581,8 @@ int arch_cpu_init(void)
 #endif
 
 #if !defined(CONFIG_MX6UL)
-	imx_set_vddpu_power_down();
+	if (!is_mx6dqp())
+		imx_set_vddpu_power_down();
 #endif
 
 #ifdef CONFIG_APBH_DMA
@@ -587,6 +591,9 @@ int arch_cpu_init(void)
 #endif
 
 	init_src();
+
+	if (is_mx6dqp())
+		writel(0x80000201, 0xbb0608);
 
 	return 0;
 }
@@ -897,6 +904,25 @@ void set_wdog_reset(struct wdog_regs *wdog)
 	writew(reg, &wdog->wcr);
 }
 
+__weak void board_reset(void)
+{
+}
+
+void reset_misc(void)
+{
+	/*
+	 * Give a chance to every board to customize the reset. This is needed
+	 * because the reset_misc() hook is used already by the cpu code.
+	 * Therefore, now the board_reet() hook can be used by the board code.
+	 */
+	board_reset();
+
+#ifdef CONFIG_VIDEO_MXS
+	if (is_cpu_type(MXC_CPU_MX6UL))
+		lcdif_power_down();
+#endif
+}
+
 #ifdef CONFIG_LDO_BYPASS_CHECK
 DECLARE_GLOBAL_DATA_PTR;
 static int ldo_bypass;
@@ -1137,9 +1163,12 @@ void v7_outer_cache_disable(void)
 int recovery_check_and_clean_flag(void)
 {
 	int flag_set = 0;
-	u32 reg = readl(SNVS_BASE_ADDR + SNVS_LPGPR);
+	u32 reg;
+	reg = readl(SNVS_BASE_ADDR + SNVS_LPGPR);
 
 	flag_set = !!(reg & ANDROID_RECOVERY_BOOT);
+	debug("check_and_clean: reg %x, flag_set %d\n", reg, flag_set);
+	/* clean it in case looping infinite here.... */
 	if (flag_set) {
 		reg &= ~ANDROID_RECOVERY_BOOT;
 		writel(reg, SNVS_BASE_ADDR + SNVS_LPGPR);
@@ -1149,7 +1178,7 @@ int recovery_check_and_clean_flag(void)
 }
 #endif /*CONFIG_ANDROID_RECOVERY*/
 
-#ifdef CONFIG_FASTBOOT
+#ifdef CONFIG_FSL_FASTBOOT
 #define ANDROID_FASTBOOT_BOOT  (1 << 8)
 /* check if the recovery bit is set by kernel, it can be set by kernel
  * issue a command '# reboot fastboot' */
@@ -1173,58 +1202,7 @@ int fastboot_check_and_clean_flag(void)
 
 void fastboot_enable_flag(void)
 {
-       u32 reg;
-       reg = readl(SNVS_BASE_ADDR + SNVS_LPGPR);
-       reg |= ANDROID_FASTBOOT_BOOT;
-       writel(reg, SNVS_BASE_ADDR + SNVS_LPGPR);
+	setbits_le32(SNVS_BASE_ADDR + SNVS_LPGPR,
+		ANDROID_FASTBOOT_BOOT);
 }
-
-#endif /*CONFIG_FASTBOOT*/
-
-#ifdef CONFIG_IMX_UDC
-void set_usboh3_clk(void)
-{
-	udc_pins_setting();
-}
-
-void set_usb_phy1_clk(void)
-{
-	/* make sure pll3 is enable here */
-	struct mxc_ccm_reg *ccm_regs = (struct mxc_ccm_reg *)CCM_BASE_ADDR;
-
-	writel((BM_ANADIG_USB1_CHRG_DETECT_EN_B |
-		BM_ANADIG_USB1_CHRG_DETECT_CHK_CHRG_B),
-		&ccm_regs->usb1_chrg_detect_set);
-
-	writel(BM_ANADIG_USB1_PLL_480_CTRL_EN_USB_CLKS,
-		&ccm_regs->analog_usb1_pll_480_ctrl_set);
-}
-void enable_usb_phy1_clk(unsigned char enable)
-{
-	if (enable)
-		writel(BM_USBPHY_CTRL_CLKGATE,
-			USB_PHY0_BASE_ADDR + HW_USBPHY_CTRL_CLR);
-	else
-		writel(BM_USBPHY_CTRL_CLKGATE,
-			USB_PHY0_BASE_ADDR + HW_USBPHY_CTRL_SET);
-}
-
-void reset_usb_phy1(void)
-{
-	/* Reset USBPHY module */
-	u32 temp;
-	temp = readl(USB_PHY0_BASE_ADDR + HW_USBPHY_CTRL);
-	temp |= BM_USBPHY_CTRL_SFTRST;
-	writel(temp, USB_PHY0_BASE_ADDR + HW_USBPHY_CTRL);
-	udelay(10);
-
-	/* Remove CLKGATE and SFTRST */
-	temp = readl(USB_PHY0_BASE_ADDR + HW_USBPHY_CTRL);
-	temp &= ~(BM_USBPHY_CTRL_CLKGATE | BM_USBPHY_CTRL_SFTRST);
-	writel(temp, USB_PHY0_BASE_ADDR + HW_USBPHY_CTRL);
-	udelay(10);
-
-	/* Power up the PHY */
-	writel(0, USB_PHY0_BASE_ADDR + HW_USBPHY_PWD);
-}
-#endif
+#endif /*CONFIG_FSL_FASTBOOT*/

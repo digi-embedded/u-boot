@@ -13,6 +13,69 @@ source "arch/Kconfig"
 
 menu "General setup"
 
+menu "Console settings"
+
+config CONSOLE_DISABLE
+	bool "Disable the console"
+	help
+	  Disables the console in U-Boot, and performs a silent boot into
+	  Linux.
+
+config CONSOLE_ENABLE_GPIO
+	bool "GPIO console enable support"
+	depends on CONSOLE_DISABLE
+	help
+	  Allow to enable the console with a GPIO.
+
+config CONSOLE_ENABLE_GPIO_NR
+	int "Console enable GPIO number"
+	depends on CONSOLE_ENABLE_GPIO
+	help
+	  Use one of the GPIO_N lines available on the board to enable the console port:
+	  GPIO_N lines are available:
+	    On the ConnectCore 6 SBC, on GPIO connector
+	    On the ConnectCore 6UL StarterBoard, on Raspberry-Pi expansion connector
+	    On the ConnectCore 6UL SBC, on GPIO connector
+
+config CONSOLE_ENABLE_PASSPHRASE
+	bool "Passphrase console enable support"
+	depends on CONSOLE_DISABLE
+	help
+	  Allow to enable the console with a passphrase.
+
+config CONSOLE_ENABLE_PASSPHRASE_KEY
+	string "Console enable sha256 key"
+	depends on CONSOLE_ENABLE_PASSPHRASE
+	help
+	  This is the 64 digits hex number sha256 hash of the passphrase that
+	  enables the console on boot.
+
+endmenu
+
+config AES
+	bool "AES support"
+	help
+	  Add support for AES using an implementation from Karl Malbrain.
+	  This offers small code size (around 5KB on ARM) and supports 128-bit
+	  AES only.
+
+config ENV_AES
+	bool "Encrypt U-Boot environment"
+	select AES
+	help
+	  Define to encrypt the whole environment block with AES-128-CBC.
+
+config ENV_AES_KEY
+	string "AES-128 key"
+	depends on ENV_AES
+	help
+	  AES-128-CBC key for environment encryption.
+	  Define as 32 hexadecimal characters (128 bits).
+
+	  Note: This key will be included in plain text in the U-Boot image.
+	  Thus it is strongly recommended to *encrypt the U-Boot image* when
+	  this feature is used.
+
 config LOCALVERSION
 	string "Local version - append to U-Boot release"
 	help
@@ -100,6 +163,85 @@ endif
 endmenu		# General setup
 
 menu "Boot images"
+
+config SECURE_BOOT
+	bool "Enable secure boot support"
+	select IMX_HAB
+	help
+	  This setting configures U-Boot for secure support so that
+	  only properly signed uImages/zImages are booted on closed devices.
+
+	  This setting has no effect on open devices.
+
+config SIGN_IMAGE
+	bool "Generate signed images"
+	help
+	  Enable this option to generate signed uboot images. When enabled:
+	  * UBOOT_CST_PATH must be defined to the path of the CST folder by NXP.
+	  * UBOOT_KEY_INDEX can be defined to the key index to use for signing.
+
+config CSF_SIZE
+	hex "CSF blob size (bytes)"
+	depends on SIGN_IMAGE
+	default 0x4000
+	help
+	  Configures the size of the Command Sequence File. A size of 0x4000
+	  is enough to fit up to 4096-bit cryptographic keys.
+
+config CST_PATH
+	string "Path to CST by NXP"
+	depends on SIGN_IMAGE
+	help
+	  Sets the path to the Code Signing Tools by NXP. This path must contain
+	  the certificates, keys and key passwords with the default names to be
+	  used for signing.
+
+config KEY_INDEX
+	int "Key index to use for the signature"
+	depends on SIGN_IMAGE
+	default 0
+	help
+	  Defines the key index for the signature process.
+
+config ENCRYPT_IMAGE
+	bool "Encrypt signed image"
+	depends on SIGN_IMAGE
+	help
+	  Enable to encrypt the signed U-boot image.
+
+choice
+	prompt "Data Encryption Key size"
+	default DEK_SIZE_128
+	depends on ENCRYPT_IMAGE
+	help
+	  Sets the size in bits of the Data Encryption Key for the signed
+	  U-Boot image encryption.
+
+	config DEK_SIZE_128
+		bool "128-bits"
+	config DEK_SIZE_192
+		bool "192-bits"
+	config DEK_SIZE_256
+		bool "256-bits"
+endchoice
+
+config DEK_SIZE
+	int
+	default 128 if DEK_SIZE_128
+	default 192 if DEK_SIZE_192
+	default 256 if DEK_SIZE_256
+
+config IMX_HAB
+	bool "IMX HAB support"
+	help
+	  Enables the API for HAB. It also adds the following commands:
+
+	  * hab_auth_img which can be used for HAB
+	    authentication of images. The command takes the image
+	    memory location, IVT (Image Vector Table) offset inside
+	    image as parameters.
+	  * hab_status which allows to retrieve the HAB status and
+	    events. This can be useful while developing and testing HAB.
 
 config SUPPORT_SPL
 	bool

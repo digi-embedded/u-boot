@@ -31,6 +31,7 @@ enum imx6_cpu {
 	IMX6D,		/* Dual */
 	IMX6DL,		/* Dual-Lite */
 	IMX6S,		/* Solo */
+	IMX6UL,		/* UltraLite */
 };
 
 struct ccimx6_variant {
@@ -52,6 +53,14 @@ struct ccimx6_variant {
 #define	CCIMX6_HAS_KINETIS	(1 << 2)
 #define	CCIMX6_HAS_EMMC		(1 << 3)
 
-int get_hwid(void);
+void fdt_fixup_hwid(void *fdt);
+
+#ifdef CONFIG_CC6
+void ccimx6_print_hwid(u32 *buf);
+void ccimx6_print_manufid(u32 *buf);
+int ccimx6_manufstr_to_hwid(int argc, char *const argv[], u32 *val);
+int ccimx6_get_hwid(struct ccimx6_hwid *hwid);
+void ccimx6_fdt_fixup_hwid(void *fdt, struct ccimx6_hwid *hwid);
+#endif
 
 #endif	/* __HWID_H_ */

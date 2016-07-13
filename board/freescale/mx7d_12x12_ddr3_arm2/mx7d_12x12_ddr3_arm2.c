@@ -33,8 +33,6 @@ DECLARE_GLOBAL_DATA_PTR;
 	PAD_CTL_PUS_PU100KOHM | PAD_CTL_HYS)
 #define USDHC_PAD_CTRL (PAD_CTL_DSE_3P3V_32OHM | PAD_CTL_SRE_SLOW | \
 	PAD_CTL_HYS | PAD_CTL_PUE | PAD_CTL_PUS_PU47KOHM)
-#define USDHC_PAD_VSELECT (PAD_CTL_DSE_3P3V_32OHM | \
-	PAD_CTL_PUE | PAD_CTL_PUS_PU47KOHM)
 #define I2C_PAD_CTRL    (PAD_CTL_DSE_3P3V_32OHM | PAD_CTL_SRE_SLOW | \
 	PAD_CTL_HYS | PAD_CTL_PUE | PAD_CTL_PUS_PU100KOHM)
 #define SPI_PAD_CTRL (PAD_CTL_DSE_3P3V_49OHM | PAD_CTL_SRE_SLOW | PAD_CTL_HYS)
@@ -94,7 +92,7 @@ static iomux_v3_cfg_t const usdhc2_emmc_pads[] = {
 	MX7D_PAD_ECSPI1_MISO__SD2_DATA6 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX7D_PAD_ECSPI1_SS0__SD2_DATA7 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 
-	MX7D_PAD_SD2_RESET_B__GPIO5_IO11 | MUX_PAD_CTRL(NO_PAD_CTRL),
+	MX7D_PAD_SD2_RESET_B__GPIO5_IO11 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 };
 
 static iomux_v3_cfg_t const usdhc3_pads[] = {
@@ -105,8 +103,8 @@ static iomux_v3_cfg_t const usdhc3_pads[] = {
 	MX7D_PAD_SD3_DATA2__SD3_DATA2 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX7D_PAD_SD3_DATA3__SD3_DATA3 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 
-	MX7D_PAD_GPIO1_IO14__GPIO1_IO14  | MUX_PAD_CTRL(NO_PAD_CTRL),
-	MX7D_PAD_GPIO1_IO15__GPIO1_IO15  | MUX_PAD_CTRL(NO_PAD_CTRL),
+	MX7D_PAD_GPIO1_IO14__GPIO1_IO14  | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX7D_PAD_GPIO1_IO15__GPIO1_IO15  | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 };
 
 static iomux_v3_cfg_t const wdog_pads[] = {
@@ -317,6 +315,22 @@ int power_init_board(void)
 	pmic_reg_read(p, PFUZE300_LDOGCTL, &reg);
 	reg |= 0x1;
 	pmic_reg_write(p, PFUZE300_LDOGCTL, reg);
+
+	/* SW1A/1B mode set to APS/APS */
+	reg = 0x8;
+	pmic_reg_write(p, PFUZE300_SW1AMODE, reg);
+	pmic_reg_write(p, PFUZE300_SW1BMODE, reg);
+
+	/* SW1A/1B standby voltage set to 1.025V */
+	reg = 0xd;
+	pmic_reg_write(p, PFUZE300_SW1ASTBY, reg);
+	pmic_reg_write(p, PFUZE300_SW1BSTBY, reg);
+
+	/* decrease SW1B normal voltage to 0.975V */
+	pmic_reg_read(p, PFUZE300_SW1BVOLT, &reg);
+	reg &= ~0x1f;
+	reg |= PFUZE300_SW1AB_SETP(975);
+	pmic_reg_write(p, PFUZE300_SW1BVOLT, reg);
 
 	return 0;
 }

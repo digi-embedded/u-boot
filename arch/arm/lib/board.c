@@ -45,8 +45,8 @@
 #include <miiphy.h>
 #endif
 
-#ifdef CONFIG_FASTBOOT
-#include <fastboot.h>
+#ifdef CONFIG_FSL_FASTBOOT
+#include <fsl_fastboot.h>
 #endif
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -643,6 +643,10 @@ void board_init_r(gd_t *id, ulong dest_addr)
 	board_late_init();
 #endif
 
+#ifdef CONFIG_FSL_FASTBOOT
+	fastboot_setup();
+#endif
+
 #ifdef CONFIG_BITBANGMII
 	bb_miiphy_init();
 #endif
@@ -682,7 +686,7 @@ void board_init_r(gd_t *id, ulong dest_addr)
 	}
 #endif
 
-#ifdef CONFIG_FASTBOOT
+#ifdef CONFIG_FSL_FASTBOOT
 	check_fastboot();
 #endif
 
