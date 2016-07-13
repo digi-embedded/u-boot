@@ -33,6 +33,8 @@ DECLARE_GLOBAL_DATA_PTR;
 extern bool bmode_reset;
 struct ccimx6_hwid my_hwid;
 
+#define MCA_CC6UL_DEVICE_ID_VAL		0x61
+
 #define MDIO_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_PUE |     \
 	PAD_CTL_DSE_48ohm   | PAD_CTL_SRE_FAST | PAD_CTL_ODE)
 
@@ -321,23 +323,29 @@ void ldo_mode_set(int ldo_bypass)
 
 void mca_init(void)
 {
-	unsigned char hwver[2] = "";
-	int hwver_ret = -1;
-	unsigned char fwver[2] = "";
-	int fwver_ret = -1;
+	unsigned char devid = 0;
+	unsigned char hwver;
+	unsigned char fwver[2];
+	int ret, fwver_ret;
 
-	hwver_ret = mca_bulk_read(MCA_CC6UL_HWVER_L, hwver, 2);
-	fwver_ret = mca_bulk_read(MCA_CC6UL_FWVER_L, fwver, 2);
+	ret = mca_read_reg(MCA_CC6UL_DEVICE_ID, &devid);
+	if (devid != MCA_CC6UL_DEVICE_ID_VAL) {
+		printf("MCA: invalid MCA DEVICE ID (0x%02x)\n", devid);
+		return;
+	}
+
+	ret = mca_read_reg(MCA_CC6UL_HW_VER, &hwver);
+	fwver_ret = mca_bulk_read(MCA_CC6UL_FW_VER_L, fwver, 2);
 
 	printf("MCA:   HW_VER=");
-	if (hwver_ret)
-		printf("?? ");
+	if (ret)
+		printf("??");
 	else
-		printf("%d.%d", hwver[1], hwver[0]);
+		printf("%d", hwver);
 
-	printf(" FW_VER=");
+	printf("  FW_VER=");
 	if (fwver_ret)
-		printf("?? ");
+		printf("??");
 	else
 		printf("%d.%d", fwver[1], fwver[0]);
 
