@@ -17,9 +17,10 @@
 #    The following Kconfig entries are used:
 #      CONFIG_SIGN_KEYS_PATH: (mandatory) path to the CST folder by NXP with keys generated.
 #      CONFIG_KEY_INDEX: (optional) key index to use for signing. Default is 0.
-#      CONFIG_DEK_PATH: (optional) path to a Data Encryption Key. If defined, the signed
-#			U-Boot image is encrypted with the given key.
-#			Supported key sizes: 128, 192 and 256 bits.
+#      ENABLE_ENCRYPTION: (optional) enable encryption of the images.
+#      CONFIG_DEK_PATH: (mandatory if ENCRYPT is defined) path to a Data Encryption Key.
+#                       If defined, the signed	U-Boot image is encrypted with the
+#                       given key. Supported key sizes: 128, 192 and 256 bits.
 #
 #===============================================================================
 
@@ -42,7 +43,7 @@ if [ -z "${CONFIG_SIGN_KEYS_PATH}" ]; then
 fi
 [ -d "${CONFIG_SIGN_KEYS_PATH}" ] || mkdir -p "${CONFIG_SIGN_KEYS_PATH}"
 
-if [ ! -z "${CONFIG_DEK_PATH}" ]; then
+if [ -n "${CONFIG_DEK_PATH}" ] && [ -n "${ENABLE_ENCRYPTION}" ]; then
 	if [ ! -f "${CONFIG_DEK_PATH}" ]; then
 		echo "DEK not found. Generating random 256 bit DEK."
 		[ -d $(dirname ${CONFIG_DEK_PATH}) ] || mkdir -p $(dirname ${CONFIG_DEK_PATH})
@@ -203,4 +204,4 @@ mv "${UBOOT_PATH}-orig" "${UBOOT_PATH}"
 # Note: this pointer is set during compilation, not in this script.
 printf '\x0\x0\x0\x0' | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6
 
-rm -f "${SRK_TABLE}" csf_descriptor u-boot_csf.bin u-boot-pad.imx u-boot-signed-no-pad.imx u-boot-encrypted.imx 2> /dev/null
+rm -f "${SRK_TABLE}" csf_descriptor u-boot_csf.bin u-boot-pad.imx u-boot-signed-no-pad.imx 2> /dev/null

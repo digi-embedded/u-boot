@@ -131,6 +131,9 @@ ALL-y += u-boot-dtb.imx
 else
 ALL-y += u-boot.imx
 ALL-$(CONFIG_SIGN_IMAGE) += u-boot-signed.imx
+ifneq ($(CONFIG_DEK_PATH),)
+ALL-y += u-boot-encrypted.imx
+endif
 endif
 endif
 endif
