@@ -144,9 +144,12 @@
 	"       - device:part: number of device and partition\n"
 #define DIGICMD_ARG_FILESYS_HELP	\
 	"       - filesystem: fat (default)|ext4\n"
-#define DIGICMD_ARG_FILENAME_HELP	\
-	"       - filename: file to transfer (if not provided, filename will\n" \
-	"                   will be taken from variable '<partition>_file')\n"
+#define DIGICMD_ARG_FILENAME_UPDATE_HELP	\
+	"       - filename: file to transfer (if not provided, filename\n" \
+	"                   will be taken from variable $<partition>_file)\n"
+#define DIGICMD_ARG_FILENAME_DBOOT_HELP	\
+	"       - filename: kernel file to transfer (if not provided, filename\n" \
+	"                   will be taken from variable $" CONFIG_DBOOT_DEFAULTKERNELVAR ")\n"
 #define DIGICMD_ARG_IMGADDR_HELP	\
 	"       - image_address: address of image in RAM\n" \
 	"                        ($loadaddr if not provided)\n"
@@ -167,26 +170,34 @@
 #define DIGICMD_UPDATE_NET_ARGS_HELP	\
 	"      source=" CONFIG_SUPPORTED_SOURCES_NET " -> " \
 	"[filename]\n" \
-		DIGICMD_ARG_FILENAME_HELP
+		DIGICMD_ARG_FILENAME_UPDATE_HELP
 #define DIGICMD_UPDATE_BLOCK_ARGS_HELP	\
 	"      source=" CONFIG_SUPPORTED_SOURCES_BLOCK " -> " \
 	"[device:part] [filesystem] [filename]\n" \
 		DIGICMD_ARG_BLKDEV_HELP \
 		DIGICMD_ARG_FILESYS_HELP \
-		DIGICMD_ARG_FILENAME_HELP
+		DIGICMD_ARG_FILENAME_UPDATE_HELP
 #define DIGICMD_UPDATE_RAM_ARGS_HELP	\
 	"      source=ram -> [image_address] [image_size]\n" \
 		DIGICMD_ARG_IMGADDR_HELP \
 		DIGICMD_ARG_IMGSIZE_HELP
 
 /* Help arguments for dboot command */
-#define DIGICMD_DBOOT_NET_ARGS_HELP	DIGICMD_UPDATE_NET_ARGS_HELP
-#define DIGICMD_DBOOT_BLOCK_ARGS_HELP	DIGICMD_UPDATE_BLOCK_ARGS_HELP
+#define DIGICMD_DBOOT_NET_ARGS_HELP	\
+	"      source=" CONFIG_SUPPORTED_SOURCES_NET " -> " \
+	"[filename]\n" \
+		DIGICMD_ARG_FILENAME_DBOOT_HELP
+#define DIGICMD_DBOOT_BLOCK_ARGS_HELP	\
+	"      source=" CONFIG_SUPPORTED_SOURCES_BLOCK " -> " \
+	"[device:part] [filesystem] [filename]\n" \
+		DIGICMD_ARG_BLKDEV_HELP \
+		DIGICMD_ARG_FILESYS_HELP \
+		DIGICMD_ARG_FILENAME_DBOOT_HELP
 #define DIGICMD_DBOOT_NAND_ARGS_HELP	\
 	"      source=" CONFIG_SUPPORTED_SOURCES_NAND " -> " \
 	"[partition] [filename]\n" \
 		DIGICMD_ARG_PARTITION_HELP \
-		DIGICMD_ARG_FILENAME_HELP
+		DIGICMD_ARG_FILENAME_DBOOT_HELP
 
 /* Help arguments for updatefile command */
 #define DIGICMD_UPDATEFILE_NET_ARGS_HELP	\
