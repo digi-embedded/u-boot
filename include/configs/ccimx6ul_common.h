@@ -173,6 +173,9 @@
 
 #define CONFIG_ENV_FLAGS_LIST_STATIC	\
 	"wlanaddr:mc,"			\
+	"wlan1addr:mc,"			\
+	"wlan2addr:mc,"			\
+	"wlan3addr:mc,"			\
 	"btaddr:mc,"			\
 	"bootargs_once:sr,"		\
 	"board_version:so,"		\
