@@ -534,7 +534,7 @@ void board_reset(void)
 void fdt_fixup_ccimx6ul(void *fdt)
 {
 	if (board_has_wireless())
-		fdt_fixup_mac(fdt, "wlanaddr", "/wireless");
+		fdt_fixup_mac(fdt, "wlanaddr", "/wireless", "mac-address");
 	if (board_has_bluetooth())
-		fdt_fixup_mac(fdt, "btaddr", "/bluetooth");
+		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
 }

@@ -1558,7 +1558,7 @@ int ccimx6_init(void)
 void fdt_fixup_ccimx6(void *fdt)
 {
 	if (board_has_wireless())
-		fdt_fixup_mac(fdt, "wlanaddr", "/wireless");
+		fdt_fixup_mac(fdt, "wlanaddr", "/wireless", "mac-address");
 	if (board_has_bluetooth())
-		fdt_fixup_mac(fdt, "btaddr", "/bluetooth");
+		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
 }
