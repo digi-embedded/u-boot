@@ -17,5 +17,6 @@ int mca_bulk_read(int reg, unsigned char *values, int len);
 int mca_write_reg(int reg, unsigned char value);
 int mca_bulk_write(int reg, unsigned char *values, int len);
 int mca_update_bits(int reg, unsigned char mask, unsigned char val);
+void fdt_fixup_ccimx6ul(void *fdt);
 
 #endif  /* CCIMX6UL_H */

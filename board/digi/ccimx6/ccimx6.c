@@ -44,6 +44,7 @@
 #include <fdt_support.h>
 #endif
 #include "../common/carrier_board.h"
+#include "../common/helper.h"
 #include "../common/hwid.h"
 #include "../common/trustfence.h"
 #include "ccimx6.h"
@@ -1552,4 +1553,12 @@ int ccimx6_init(void)
 	update_ddr3_calibration(my_hwid.variant);
 
 	return 0;
+}
+
+void fdt_fixup_ccimx6(void *fdt)
+{
+	if (board_has_wireless())
+		fdt_fixup_mac(fdt, "wlanaddr", "/wireless");
+	if (board_has_bluetooth())
+		fdt_fixup_mac(fdt, "btaddr", "/bluetooth");
 }

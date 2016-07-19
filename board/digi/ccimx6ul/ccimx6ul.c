@@ -25,6 +25,7 @@
 #include <power/pfuze300_pmic.h>
 #include "../../freescale/common/pfuze.h"
 #endif
+#include "../common/helper.h"
 #include "../common/hwid.h"
 #include "../common/mca_registers.h"
 #include "../common/trustfence.h"
@@ -528,4 +529,12 @@ void board_reset(void)
 	 * proceed with standard reset_cpu()
 	 */
 	mdelay(100);
+}
+
+void fdt_fixup_ccimx6ul(void *fdt)
+{
+	if (board_has_wireless())
+		fdt_fixup_mac(fdt, "wlanaddr", "/wireless");
+	if (board_has_bluetooth())
+		fdt_fixup_mac(fdt, "btaddr", "/bluetooth");
 }

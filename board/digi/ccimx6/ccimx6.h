@@ -83,6 +83,7 @@ void setup_iomux_enet(void);
 int ccimx6_init(void);
 int ccimx6_late_init(void);
 void print_ccimx6_info(void);
+void fdt_fixup_ccimx6(void *fdt);
 
 /* Board defined functions */
 int setup_pmic_voltages_carrierboard(void);
