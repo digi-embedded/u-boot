@@ -229,7 +229,7 @@
 #endif
 
 /* MTD (NAND) */
-#define CONFIG_UBOOT_PARTITION		"uboot"
+#define CONFIG_UBOOT_PARTITION		"bootloader"
 #define CONFIG_LINUX_PARTITION		"linux"
 #define CONFIG_RECOVERY_PARTITION	"recovery"
 #define CONFIG_NAND_NAME		"gpmi-nand"
