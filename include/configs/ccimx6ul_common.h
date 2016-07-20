@@ -76,6 +76,10 @@
 #define OCOTP_LOCK_BANK		0
 #define OCOTP_LOCK_WORD		0
 
+/* Digi ConnectCore 6UL carrier board IDs */
+#define CCIMX6ULSTARTER_ID129	129
+#define CCIMX6ULSBC_ID135	135
+
 /* CAAM support */
 #define CONFIG_SYS_FSL_SEC_COMPAT    4 /* HAB version */
 #define CONFIG_FSL_CAAM
