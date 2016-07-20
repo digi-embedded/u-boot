@@ -93,6 +93,10 @@
 #define CONFIG_HAS_TRUSTFENCE
 #define CONFIG_SHA256
 
+
+/* Environment encryption support */
+#define CONFIG_MD5
+
 /* Secure boot configs */
 #define CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS		3
 #define CONFIG_TRUSTFENCE_SRK_REVOKE_BANK		5

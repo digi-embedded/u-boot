@@ -27,6 +27,7 @@ static int do_caam(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	void *data_addr;
 	void *blob_addr;
 	int size;
+	uint8_t zero_key_modifier[16] = {0};
 
 	if (argc != 5)
 		return CMD_RET_USAGE;
@@ -38,7 +39,7 @@ static int do_caam(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	caam_open();
 
 	if (strcmp(argv[1], "genblob") == 0) {
-		ret = caam_gen_blob((uint32_t)data_addr, (uint32_t)blob_addr, size);
+		ret = caam_gen_blob(data_addr, blob_addr, zero_key_modifier, size);
 		if (ret != SUCCESS) {
 			printf("Error during blob decap operation: 0x%d\n",ret);
 			return CMD_RET_FAILURE;
@@ -56,7 +57,7 @@ static int do_caam(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		if (size <= 48)
 			return CMD_RET_USAGE;
 
-		ret = caam_decap_blob(data_addr, blob_addr, (uint32_t)size);
+		ret = caam_decap_blob(data_addr, blob_addr, zero_key_modifier, size);
 		if (ret != SUCCESS)
 			printf("Error during blob decap operation: 0x%d\n",
 				ret);

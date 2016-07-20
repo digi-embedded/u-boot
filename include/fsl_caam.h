@@ -56,7 +56,7 @@ void caam_open(void);
 //! @return SUCCESS
 //! @return ERROR_XXX 
 ////////////////////////////////////////////////////////////////////////////////
-uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, uint32_t size);
+uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, void *key_modifier, uint32_t size);
 
 ////////////////////////////////////////////////////////////////////////////////
 //! @brief Decapsulate a blob of a secure key.
@@ -66,6 +66,6 @@ uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, uint32_t size);
 //! @return SUCCESS
 //! @return ERROR_XXX
 ////////////////////////////////////////////////////////////////////////////////
-uint32_t caam_decap_blob(void *plain_text, void *blob_addr, uint32_t size);
+uint32_t caam_decap_blob(void *plain_text, void *blob_addr, void *key_modifier, uint32_t size);
 
 #endif /* __CAAM_H__ */

@@ -82,11 +82,6 @@ uint32_t rng_inst_dsc[] =
 	RNG_INST_DESC9
 };
 
-static uint8_t skeymod[] = {
-	0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08,
-	0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00
-};
-
 /*!
  * Secure memory run command.
  *
@@ -114,13 +109,13 @@ uint32_t secmem_set_cmd_1(uint32_t sec_mem_cmd)
  *
  * @return  SUCCESS or ERROR_XXX
  */
-uint32_t caam_decap_blob(void *plain_text, void *blob_addr, uint32_t size)
+uint32_t caam_decap_blob(void *plain_text, void *blob_addr, void *key_modifier, uint32_t size)
 {
 	uint32_t ret = SUCCESS;
 
 	decap_dsc[0] = (uint32_t)0xB0800008;
 	decap_dsc[1] = (uint32_t)0x14400010;
-	decap_dsc[2] = (uint32_t)skeymod;
+	decap_dsc[2] = (uint32_t)key_modifier;
 	decap_dsc[3] = (uint32_t)0xF0000000 | (0x0000ffff & (size+48) );
 	decap_dsc[4] = (uint32_t)blob_addr;
 	decap_dsc[5] = (uint32_t)0xF8000000 | (0x0000ffff & (size));
@@ -135,6 +130,7 @@ uint32_t caam_decap_blob(void *plain_text, void *blob_addr, uint32_t size)
 	flush_dcache_range(DMA_ALIGN(plain_text), DMA_ALIGN(plain_text + 2 * size));
 	flush_dcache_range(DMA_ALIGN(decap_dsc), DMA_ALIGN(decap_dsc + 128));
 	flush_dcache_range(DMA_ALIGN(g_input_ring), DMA_ALIGN(g_input_ring + 128));
+	flush_dcache_range(DMA_ALIGN(key_modifier), DMA_ALIGN(key_modifier  + 256));
 
 	/* Increment jobs added */
 	__raw_writel(1, CAAM_IRJAR0);
@@ -174,7 +170,7 @@ uint32_t caam_decap_blob(void *plain_text, void *blob_addr, uint32_t size)
  *
  * @return  SUCCESS or ERROR_XXX
  */
-uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, uint32_t size)
+uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, void *key_modifier, uint32_t size)
 {
 	uint32_t ret = SUCCESS;
 	uint8_t *blob = (uint8_t *)blob_addr;
@@ -184,7 +180,7 @@ uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, uint32_t size)
 
 	encap_dsc[0] = (uint32_t)0xB0800008;
 	encap_dsc[1] = (uint32_t)0x14400010;
-	encap_dsc[2] = (uint32_t)skeymod;
+	encap_dsc[2] = (uint32_t)key_modifier;
 	encap_dsc[3] = (uint32_t)0xF0000000 | (0x0000ffff & (size));
 	encap_dsc[4] = (uint32_t)plain_data_addr;
 	encap_dsc[5] = (uint32_t)0xF8000000 | (0x0000ffff & (size+48));
@@ -198,6 +194,8 @@ uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, uint32_t size)
 	flush_dcache_range(DMA_ALIGN(plain_data_addr), DMA_ALIGN(plain_data_addr + size));
 	flush_dcache_range(DMA_ALIGN(encap_dsc), DMA_ALIGN(encap_dsc + 128));
 	flush_dcache_range(DMA_ALIGN(blob), DMA_ALIGN(g_input_ring + 2 * size));
+	flush_dcache_range(DMA_ALIGN(key_modifier), DMA_ALIGN(key_modifier + 256));
+	
 	/* Increment jobs added */
 	__raw_writel(1, CAAM_IRJAR0);
 
