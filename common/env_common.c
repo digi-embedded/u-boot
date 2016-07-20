@@ -145,6 +145,39 @@ int set_default_vars(int nvars, char * const vars[], int flag)
 }
 
 #ifdef CONFIG_ENV_AES
+
+#ifdef CONFIG_ENV_AES_CAAM_KEY
+#include <fsl_caam.h>
+
+static int env_aes_cbc_crypt(env_t *env, const int enc)
+{
+	unsigned char *data = env->data;
+	unsigned char *buffer;
+	int ret = 0;
+
+	caam_open();
+	buffer = malloc(ENV_SIZE);
+	if (!buffer) {
+		debug("Not enough memory for en/de-cryption buffer");
+		return -ENOMEM;
+	}
+
+	if (enc)
+		ret = caam_gen_blob(data, buffer, ENV_SIZE - BLOB_OVERHEAD);
+	else
+		ret = caam_decap_blob(buffer, data, ENV_SIZE - BLOB_OVERHEAD);
+
+	if (ret)
+		goto err;
+	
+	memcpy(data, buffer, ENV_SIZE);
+	
+err:
+	free(buffer);
+	return ret;
+}
+#else
+
 #include <aes.h>
 /**
  * env_aes_cbc_get_key() - Get AES-128-CBC key for the environment
@@ -183,6 +216,8 @@ static int env_aes_cbc_crypt(env_t *env, const int enc)
 
 	return 0;
 }
+#endif
+
 #else
 static inline int env_aes_cbc_crypt(env_t *env, const int enc)
 {

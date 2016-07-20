@@ -244,6 +244,7 @@ struct sg_entry {
 						 * lock SMAG group 1 Blob */
 
 #define BLOB_SIZE(x)       (x + 32 + 16) /* Blob buffer size */
+#define BLOB_OVERHEAD	   BLOB_SIZE(0)
 
 /* Header (8) + BKEK (32) + MAC (16) + MAX_KEY_SIZE (256 bits) */
 #define MAX_DEK_BLOB_SIZE	(8 + 32 + 16 + (256 / 8))
