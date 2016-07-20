@@ -370,6 +370,27 @@
 	"part8_uuid=12c08a28-fb40-430a-a5bc-7b4f015b0b3c\0" \
 	"part9_uuid=dc83dea8-c467-45dc-84eb-5e913daec17e\0"
 
+#define LINUX_DEFAULT_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=linux,size=64MiB,uuid=${part1_uuid};" \
+	"name=linux2,size=64MiB,uuid=${part2_uuid};" \
+	"name=rootfs,size=1GiB,uuid=${part3_uuid};" \
+	"name=rootfs2,size=1GiB,uuid=${part4_uuid};" \
+	"name=userfs,size=-,uuid=${part5_uuid};" \
+	"\""
+
+#define ANDROID_DEFAULT_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=android,size=64MiB,uuid=${part1_uuid};" \
+	"name=android2,size=64MiB,uuid=${part2_uuid};" \
+	"name=system,size=512MiB,uuid=${part3_uuid};" \
+	"name=system2,size=512MiB,uuid=${part4_uuid};" \
+	"name=cache,size=32MiB,uuid=${part5_uuid};" \
+	"name=data,size=-,uuid=${part6_uuid};" \
+	"\""
+
 /* Helper strings for extra env settings */
 #define CALCULATE_FILESIZE_IN_BLOCKS	\
 	"setexpr filesizeblks ${filesize} / 200; " \
