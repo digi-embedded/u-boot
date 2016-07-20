@@ -237,6 +237,7 @@
 #define MTDPARTS_DEFAULT		"mtdparts=" CONFIG_NAND_NAME ":" \
 					"3m(" CONFIG_UBOOT_PARTITION ")," \
 					"1m(environment)," \
+					"1m(safe)," \
 					"14m(" CONFIG_LINUX_PARTITION ")," \
 					"14m(" CONFIG_RECOVERY_PARTITION ")," \
 					"128m(rootfs)," \
