@@ -2,10 +2,11 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
-dub-2015.04-r4.1.1, released on 2016/07/05
-	- Added support for ConnectCore 6UL SOM on Starterboard.
+dub-2015.04-r4.2, released on 2016/07/21
+	- Added support for ConnectCore 6UL SOM on Starter Board.
 	- Based on upstream version v2015.04 plus NXP release tag
 	  'rel_imx_4.1.15_1.0.0_ga'.
+	- Added TrustFence (TM) support.
 
 
 dub-2015.04-r3.1, released on 2016/03/14
