@@ -62,6 +62,7 @@
 
 #define CONFIG_SYS_FSL_USDHC_NUM	1
 
+/* U-Boot Environment */
 #if defined(CONFIG_ENV_IS_IN_MMC)
 #define CONFIG_ENV_OFFSET		(8 * SZ_64K)
 #elif defined(CONFIG_ENV_IS_IN_SPI_FLASH)
@@ -77,6 +78,9 @@
 #define CONFIG_ENV_SECT_SIZE		(128 << 10)
 #define CONFIG_ENV_SIZE			CONFIG_ENV_SECT_SIZE
 #endif
+#define CONFIG_SYS_REDUNDANT_ENVIRONMENT
+#define CONFIG_ENV_OFFSET_REDUND	(CONFIG_ENV_OFFSET + CONFIG_ENV_SECT_SIZE)
+#define CONFIG_ENV_SIZE_REDUND		CONFIG_ENV_SIZE
 
 /* Serial port */
 #define CONFIG_MXC_UART
@@ -120,6 +124,7 @@
 	"initrd_addr=0x83800000\0" \
 	"initrd_file=uramdisk.img\0" \
 	"initrd_high=0xffffffff\0" \
+	"recovery_file=recovery.img\0" \
 	"script=boot.scr\0" \
 	"uboot_file=u-boot.imx\0" \
 	"zimage=zImage-" CONFIG_SYS_BOARD ".bin\0"
@@ -130,8 +135,8 @@
 	CONFIG_ENV_MTD_SETTINGS \
 	"bootargs_linux=" CONFIG_BOOTARGS_CMA_SIZE "\0" \
 	"bootargs_nand_linux=setenv bootargs console=${console},${baudrate} " \
-		"${bootargs_linux} root=/dev/mtd${mtdrootfsindex} " \
-		"${mtdparts} ubi.mtd=${mtdrootfsindex} root=ubi0_0 " \
+		"${bootargs_linux} ${mtdparts} ubi.mtd=${mtdlinuxindex} " \
+		"ubi.mtd=${mtdrootfsindex} root=ubi1_0 " \
 		"rootfstype=ubifs rw " \
 		"${bootargs_once} ${extra_bootargs}\0" \
 	"bootargs_recovery=setenv bootargs console=${console},${baudrate} " \
@@ -148,6 +153,7 @@
 				"ubifsload ${loadaddr} ${script};" \
 			"fi;" \
 		"fi;\0" \
+	"mtdlinuxindex=" CONFIG_ENV_MTD_LINUX_INDEX "\0" \
 	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
 	"recoverycmd=" \
 		"if ubi part " CONFIG_RECOVERY_PARTITION "; then" \

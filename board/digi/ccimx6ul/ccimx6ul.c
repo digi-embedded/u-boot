@@ -17,6 +17,9 @@
 #include <asm/imx-common/mxc_i2c.h>
 #include <asm/io.h>
 #include <common.h>
+#ifdef CONFIG_OF_LIBFDT
+#include <fdt_support.h>
+#endif
 #include <i2c.h>
 #include <linux/sizes.h>
 
@@ -25,13 +28,17 @@
 #include <power/pfuze300_pmic.h>
 #include "../../freescale/common/pfuze.h"
 #endif
+#include "../common/helper.h"
 #include "../common/hwid.h"
 #include "../common/mca_registers.h"
+#include "../common/trustfence.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
 extern bool bmode_reset;
 struct ccimx6_hwid my_hwid;
+
+#define MCA_CC6UL_DEVICE_ID_VAL		0x61
 
 #define MDIO_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_PUE |     \
 	PAD_CTL_DSE_48ohm   | PAD_CTL_SRE_FAST | PAD_CTL_ODE)
@@ -321,23 +328,29 @@ void ldo_mode_set(int ldo_bypass)
 
 void mca_init(void)
 {
-	unsigned char hwver[2] = "";
-	int hwver_ret = -1;
-	unsigned char fwver[2] = "";
-	int fwver_ret = -1;
+	unsigned char devid = 0;
+	unsigned char hwver;
+	unsigned char fwver[2];
+	int ret, fwver_ret;
 
-	hwver_ret = mca_bulk_read(MCA_CC6UL_HWVER_L, hwver, 2);
-	fwver_ret = mca_bulk_read(MCA_CC6UL_FWVER_L, fwver, 2);
+	ret = mca_read_reg(MCA_CC6UL_DEVICE_ID, &devid);
+	if (devid != MCA_CC6UL_DEVICE_ID_VAL) {
+		printf("MCA: invalid MCA DEVICE ID (0x%02x)\n", devid);
+		return;
+	}
+
+	ret = mca_read_reg(MCA_CC6UL_HW_VER, &hwver);
+	fwver_ret = mca_bulk_read(MCA_CC6UL_FW_VER_L, fwver, 2);
 
 	printf("MCA:   HW_VER=");
-	if (hwver_ret)
-		printf("?? ");
+	if (ret)
+		printf("??");
 	else
-		printf("%d.%d", hwver[1], hwver[0]);
+		printf("%d", hwver);
 
-	printf(" FW_VER=");
+	printf("  FW_VER=");
 	if (fwver_ret)
-		printf("?? ");
+		printf("??");
 	else
 		printf("%d.%d", fwver[1], fwver[0]);
 
@@ -377,6 +390,7 @@ static const struct boot_mode board_boot_modes[] = {
 	{"sd1", MAKE_CFGVAL(0x42, 0x20, 0x00, 0x00)},
 	{"sd2", MAKE_CFGVAL(0x40, 0x28, 0x00, 0x00)},
 	{"qspi1", MAKE_CFGVAL(0x10, 0x00, 0x00, 0x00)},
+	{"nand", MAKE_CFGVAL(0x90, 0x28, 0x00, 0x00)},
 	{NULL,	 0},
 };
 #endif
@@ -399,6 +413,10 @@ int ccimx6ul_late_init(void)
 		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
 	else
 		gd->flags |= GD_FLG_DISABLE_CONSOLE_INPUT;
+#endif
+
+#ifdef CONFIG_HAS_TRUSTFENCE
+	copy_dek();
 #endif
 
 	return 0;
@@ -514,4 +532,32 @@ void board_reset(void)
 	 * proceed with standard reset_cpu()
 	 */
 	mdelay(100);
+}
+
+void fdt_fixup_ccimx6ul(void *fdt)
+{
+	if (board_has_wireless()) {
+		char *regdomain;
+		unsigned int val;
+
+		/* Wireless MACs */
+		fdt_fixup_mac(fdt, "wlanaddr", "/wireless", "mac-address");
+		fdt_fixup_mac(fdt, "wlan1addr", "/wireless", "mac-address1");
+		fdt_fixup_mac(fdt, "wlan2addr", "/wireless", "mac-address2");
+		fdt_fixup_mac(fdt, "wlan3addr", "/wireless", "mac-address3");
+
+		/* Regulatory domain */
+		if ((regdomain = getenv("regdomain")) != NULL) {
+			val = simple_strtoul(regdomain, NULL, 16);
+			if (val < DIGI_MAX_CERT) {
+				sprintf(regdomain, "0x%x", val);
+				do_fixup_by_path(fdt, "/wireless",
+						 "regulatory-domain", regdomain,
+						 strlen(regdomain) + 1, 1);
+			}
+		}
+	}
+
+	if (board_has_bluetooth())
+		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
 }

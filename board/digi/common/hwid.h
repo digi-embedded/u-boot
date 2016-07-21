@@ -34,6 +34,14 @@ enum imx6_cpu {
 	IMX6UL,		/* UltraLite */
 };
 
+enum digi_cert{
+	DIGI_CERT_USA = 0,
+	DIGI_CERT_INTERNATIONAL,
+	DIGI_CERT_JAPAN,
+
+	DIGI_MAX_CERT,
+};
+
 struct ccimx6_variant {
 	enum imx6_cpu	cpu;
 	const int	sdram;

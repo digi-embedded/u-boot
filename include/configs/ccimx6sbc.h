@@ -102,16 +102,8 @@
 	"loadinitrd=load mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file}\0" \
 	"loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
 	"uboot_file=u-boot.imx\0" \
-	"parts_android=\"uuid_disk=${uuid_disk};" \
-		"start=2MiB," \
-		"name=android,size=64MiB,uuid=${part1_uuid};" \
-		"name=android2,size=64MiB,uuid=${part2_uuid};" \
-		"name=system,size=512MiB,uuid=${part3_uuid};" \
-		"name=system2,size=512MiB,uuid=${part4_uuid};" \
-		"name=cache,size=32MiB,uuid=${part5_uuid};" \
-		"name=data,size=-,uuid=${part6_uuid};" \
-		"\"\0" \
-	"android_file=boot.img\0" \
+	"parts_android=" ANDROID_DEFAULT_PARTITION_TABLE "\0" \
+	"boot_file=boot.img\0" \
 	"system_file=system.img\0" \
 	"partition_mmc_android=mmc rescan;" \
 		"if mmc dev ${mmcdev} 0; then " \
@@ -157,14 +149,7 @@
 		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
 		"${bootargs_once} ${extra_bootargs}\0" \
 	"bootargs_nfs_linux=run bootargs_tftp_linux\0" \
-	"parts_linux=\"uuid_disk=${uuid_disk};" \
-		"start=2MiB," \
-		"name=linux,size=64MiB,uuid=${part1_uuid};" \
-		"name=linux2,size=64MiB,uuid=${part2_uuid};" \
-		"name=rootfs,size=1GiB,uuid=${part3_uuid};" \
-		"name=rootfs2,size=1GiB,uuid=${part4_uuid};" \
-		"name=userfs,size=-,uuid=${part5_uuid};" \
-		"\"\0" \
+	"parts_linux=" LINUX_DEFAULT_PARTITION_TABLE "\0" \
 	"linux_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".boot.vfat\0" \
 	"rootfs_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".ext4\0" \
 	"partition_mmc_linux=mmc rescan;" \
@@ -189,6 +174,7 @@
 		"load mmc 0:2 ${fdt_addr} ${fdt_file};" \
 		"run bootargs_recovery;" \
 		"bootm ${loadaddr} ${initrd_addr} ${fdt_addr}\0" \
+	"recovery_file=recovery.img\0" \
 	"install_android_fw_sd=if load mmc 1 ${loadaddr} " \
 		"install_android_fw_sd.scr;then " \
 			"source ${loadaddr};" \

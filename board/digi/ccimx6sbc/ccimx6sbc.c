@@ -425,15 +425,11 @@ int board_late_init(void)
 /* Platform function to modify the FDT as needed */
 int ft_board_setup(void *blob, bd_t *bd)
 {
-
 	/* Re-read HWID which could have been overriden by U-Boot commands */
 	fdt_fixup_hwid(blob);
 
+	fdt_fixup_ccimx6(blob);
 	fdt_fixup_carrierboard(blob);
-	if (board_has_wireless())
-		fdt_fixup_mac(blob, "wlanaddr", "/wireless");
-	if (board_has_bluetooth())
-		fdt_fixup_mac(blob, "btaddr", "/bluetooth");
 
 	return 0;
 }

@@ -245,6 +245,9 @@ struct sg_entry {
 
 #define BLOB_SIZE(x)       (x + 32 + 16) /* Blob buffer size */
 
+/* Header (8) + BKEK (32) + MAC (16) + MAX_KEY_SIZE (256 bits) */
+#define MAX_DEK_BLOB_SIZE	(8 + 32 + 16 + (256 / 8))
+
 /* HAB WRAPPED KEY header */
 #define WRP_HDR_SIZE		0x08
 #define HDR_TAG			0x81

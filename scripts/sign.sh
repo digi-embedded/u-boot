@@ -15,10 +15,12 @@
 #    Script for building signed and encrypted uboot images using NXP CST.
 #
 #    The following Kconfig entries are used:
-#      CONFIG_CST_PATH: (mandatory) path to the CST folder by NXP with keys generated.
+#      CONFIG_SIGN_KEYS_PATH: (mandatory) path to the CST folder by NXP with keys generated.
 #      CONFIG_KEY_INDEX: (optional) key index to use for signing. Default is 0.
-#      CONFIG_ENCRYPT_IMAGE: (optional) define it to build encrypted images.
-#      CONFIG_DEK_SIZE: (optional) size of the DEK. Allowed values: 128 (default), 192, 256.
+#      ENABLE_ENCRYPTION: (optional) enable encryption of the images.
+#      CONFIG_DEK_PATH: (mandatory if ENCRYPT is defined) path to a Data Encryption Key.
+#                       If defined, the signed	U-Boot image is encrypted with the
+#                       given key. Supported key sizes: 128, 192 and 256 bits.
 #
 #===============================================================================
 
@@ -29,30 +31,58 @@
 UBOOT_PATH="$(readlink -e $1)"
 TARGET="${2}"
 
+# The CST uses the same file as input and output.
+# We want to keep the original U-Boot image unmodified, so
+# make a copy of it and restore it as the last step.
+cp "${UBOOT_PATH}" "${UBOOT_PATH}-orig"
+
 # Check arguments
-if [ -z "${CONFIG_CST_PATH}" ]; then
-	echo "Undefined CONFIG_CST_PATH";
-	exit 1
-elif [ ! -d "${CONFIG_CST_PATH}" ]; then
-	echo "Invalid CONFIG_CST_PATH: ${CONFIG_CST_PATH}"
+if [ -z "${CONFIG_SIGN_KEYS_PATH}" ]; then
+	echo "Undefined CONFIG_SIGN_KEYS_PATH";
 	exit 1
 fi
+[ -d "${CONFIG_SIGN_KEYS_PATH}" ] || mkdir -p "${CONFIG_SIGN_KEYS_PATH}"
 
-if [ ! -z "${CONFIG_ENCRYPT_IMAGE}" ]; then
+if [ -n "${CONFIG_DEK_PATH}" ] && [ -n "${ENABLE_ENCRYPTION}" ]; then
+	if [ ! -f "${CONFIG_DEK_PATH}" ]; then
+		echo "DEK not found. Generating random 256 bit DEK."
+		[ -d $(dirname ${CONFIG_DEK_PATH}) ] || mkdir -p $(dirname ${CONFIG_DEK_PATH})
+		dd if=/dev/urandom of="${CONFIG_DEK_PATH}" bs=32 count=1
+	fi
+	dek_size="$((8 * $(stat -L -c %s ${CONFIG_DEK_PATH})))"
+	if [ "${dek_size}" != "128" ] && [ "${dek_size}" != "192" ] && [ "${dek_size}" != "256" ]; then
+		echo "Invalid DEK size: ${dek_size} bits. Valid sizes are 128, 192 and 256 bits"
+		exit 1
+	fi
 	ENCRYPT="true"
 fi
 
 # Default values
 [ -z "${CONFIG_KEY_INDEX}" ] && CONFIG_KEY_INDEX="0"
-CONFIG_KEY_INDEX_1="$((CONFIG_KEY_INDEX+1))"
-[ -z "${CONFIG_DEK_SIZE}" ] && CONFIG_DEK_SIZE="128"
+CONFIG_KEY_INDEX_1="$((CONFIG_KEY_INDEX + 1))"
 
-SRK_KEYS="$(echo ${CONFIG_CST_PATH}/crts/SRK*crt.pem | sed s/\ /\,/g)"
-CERT_CSF="$(echo ${CONFIG_CST_PATH}/crts/CSF${CONFIG_KEY_INDEX_1}*crt.pem)"
-CERT_IMG="$(echo ${CONFIG_CST_PATH}/crts/IMG${CONFIG_KEY_INDEX_1}*crt.pem)"
+SRK_KEYS="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/SRK*crt.pem | sed s/\ /\,/g)"
+CERT_CSF="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/CSF${CONFIG_KEY_INDEX_1}*crt.pem)"
+CERT_IMG="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/IMG${CONFIG_KEY_INDEX_1}*crt.pem)"
 
-# Path to export the DEK used in plain text
-UBOOT_DEK_PATH="$(pwd)/dek.bin"
+n_commas="$(echo ${SRK_KEYS} | grep -o "," | wc -l)"
+
+if [ "${n_commas}" -eq 3 ] && [ -f "${CERT_CSF}" ] && [ -f "${CERT_IMG}" ]; then
+	# PKI tree already exists. Do nothing
+	echo "Using existing PKI tree"
+elif [ "${n_commas}" -eq 0 ] || [ ! -f "${CERT_CSF}" ] || [ ! -f "${CERT_IMG}" ]; then
+	# Generate PKI
+	trustfence-gen-pki.sh "${CONFIG_SIGN_KEYS_PATH}"
+
+	SRK_KEYS="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/SRK*crt.pem | sed s/\ /\,/g)"
+	CERT_CSF="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/CSF${CONFIG_KEY_INDEX_1}*crt.pem)"
+	CERT_IMG="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/IMG${CONFIG_KEY_INDEX_1}*crt.pem)"
+else
+	echo "Inconsistent CST folder."
+	exit 1
+fi
+
+# Path for the SRK table and eFuses file
 SRK_TABLE="$(pwd)/SRK_table.bin"
 SRK_EFUSES="$(pwd)/SRK_efuses.bin"
 
@@ -67,12 +97,6 @@ PADDED_UBOOT_PATH="$(pwd)/u-boot-pad.imx"
 IVT_OFFSET="0"
 UBOOT_START_OFFSET="0x400"
 
-if [ "$(uname -m)" = "x86_64" ]; then
-	ARCH="64"
-else
-	ARCH="32"
-fi
-
 # Parse uboot IVT
 ivt_self=$(hexdump -n 4 -s 20 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
 ivt_csf=$(hexdump -n 4 -s 24 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
@@ -80,13 +104,13 @@ ddr_addr=$(hexdump -n 4 -s 32 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
 
 # Compute dek blob size in bytes:
 # header (8) + 256-bit AES key (32) + MAC (16) + custom key size in bytes
-dek_blob_size="$((8 + 32 + 16 + CONFIG_DEK_SIZE/8))"
+dek_blob_size="$((8 + 32 + 16 + dek_size/8))"
 
 # It is important to abort in this case because running the rest of the logic
 # with a null csf pointer will attempt to create huge paddings causing problems
 # in the development machine.
 if [ $((ivt_csf)) -eq 0 ]; then
-	echo "Invalid CSF pointer in the IVT table (is SECURE_BOOT enabled?)"
+	echo "Invalid CSF pointer in the IVT table (is CONFIG_CSF_SIZE enabled?)"
 	exit 1
 fi
 
@@ -111,43 +135,37 @@ dek_blob_offset="$(printf "0x%X" ${dek_blob_offset})"
 
 # Generate actual CSF descriptor file from template
 if [ "${ENCRYPT}" = "true" ]; then
-	sed -e "s,%ram_start%,${ivt_start},g"                  \
-	    -e "s,%srk_table%,${SRK_TABLE},g "                 \
-	    -e "s,%image_offset%,${IVT_OFFSET},g"              \
-	    -e "s,%auth_len%,${ENCRYPT_START},g"               \
-	    -e "s,%cert_csf%,${CERT_CSF},g"                    \
-	    -e "s,%cert_img%,${CERT_IMG},g"                    \
-	    -e "s,%uboot_path%,${PADDED_UBOOT_PATH},g"         \
-	    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"           \
-	    -e "s,%dek_len%,${CONFIG_DEK_SIZE},g"              \
-	    -e "s,%dek_path%,${UBOOT_DEK_PATH},g"              \
-	    -e "s,%dek_offset%,${dek_blob_offset},g"           \
+	sed -e "s,%ram_start%,${ivt_start},g"		       \
+	    -e "s,%srk_table%,${SRK_TABLE},g "		       \
+	    -e "s,%image_offset%,${IVT_OFFSET},g"	       \
+	    -e "s,%auth_len%,${ENCRYPT_START},g"	       \
+	    -e "s,%cert_csf%,${CERT_CSF},g"		       \
+	    -e "s,%cert_img%,${CERT_IMG},g"		       \
+	    -e "s,%uboot_path%,${PADDED_UBOOT_PATH},g"	       \
+	    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"	       \
+	    -e "s,%dek_len%,${dek_size},g"		       \
+	    -e "s,%dek_path%,${CONFIG_DEK_PATH},g"	       \
+	    -e "s,%dek_offset%,${dek_blob_offset},g"	       \
 	    -e "s,%ram_decrypt_start%,${ram_decrypt_start},g"  \
 	    -e "s,%image_decrypt_offset%,${ENCRYPT_START},g"   \
-	    -e "s,%decrypt_len%,${decrypt_len},g"              \
+	    -e "s,%decrypt_len%,${decrypt_len},g"	       \
 	${srctree}/scripts/csf_encrypt_template > csf_descriptor
 else
-	sed -e "s,%ram_start%,${ivt_start},g"          \
-	    -e "s,%srk_table%,${SRK_TABLE},g"          \
+	sed -e "s,%ram_start%,${ivt_start},g"	       \
+	    -e "s,%srk_table%,${SRK_TABLE},g"	       \
 	    -e "s,%image_offset%,${IVT_OFFSET},g"      \
-	    -e "s,%auth_len%,${auth_len},g"            \
-	    -e "s,%cert_csf%,${CERT_CSF},g"            \
-	    -e "s,%cert_img%,${CERT_IMG},g"            \
+	    -e "s,%auth_len%,${auth_len},g"	       \
+	    -e "s,%cert_csf%,${CERT_CSF},g"	       \
+	    -e "s,%cert_img%,${CERT_IMG},g"	       \
 	    -e "s,%uboot_path%,${PADDED_UBOOT_PATH},g" \
 	    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"   \
 	${srctree}/scripts/csf_sign_template > csf_descriptor
 fi
 
 # Generate SRK tables
-if pushd "${CONFIG_CST_PATH}/linux${ARCH}" > /dev/null; then
-	./srktool --hab_ver 4 --certs "${SRK_KEYS}" --table "${SRK_TABLE}" --efuses "${SRK_EFUSES}" --digest sha256
-	if [ $? -ne 0 ]; then
-		echo "[ERROR] Could not generate SRK tables"
-		exit 1
-	fi
-	popd > /dev/null
-else
-	echo "Bad path: ${CONFIG_CST_PATH}/linux${ARCH}"
+srktool --hab_ver 4 --certs "${SRK_KEYS}" --table "${SRK_TABLE}" --efuses "${SRK_EFUSES}" --digest sha256
+if [ $? -ne 0 ]; then
+	echo "[ERROR] Could not generate SRK tables"
 	exit 1
 fi
 
@@ -155,15 +173,9 @@ fi
 objcopy -I binary -O binary --pad-to "${pad_len}" --gap-fill="${GAP_FILLER}" "${UBOOT_PATH}" u-boot-pad.imx
 
 CURRENT_PATH="$(pwd)"
-if pushd "${CONFIG_CST_PATH}/linux${ARCH}" > /dev/null; then
-	./cst -o "${CURRENT_PATH}/u-boot_csf.bin" -i "${CURRENT_PATH}/csf_descriptor"
-	if [ $? -ne 0 ]; then
-		echo "[ERROR] Could not generate CSF"
-		exit 1
-	fi
-	popd > /dev/null
-else
-	echo "Bad path: ${CONFIG_CST_PATH}/linux${ARCH}"
+cst -o "${CURRENT_PATH}/u-boot_csf.bin" -i "${CURRENT_PATH}/csf_descriptor"
+if [ $? -ne 0 ]; then
+	echo "[ERROR] Could not generate CSF"
 	exit 1
 fi
 
@@ -174,18 +186,22 @@ if [ "${ENCRYPT}" = "true" ]; then
 	sig_len="$((sig_len - dek_blob_size))"
 fi
 
-# When building signed (or signed and encrypted) images, the CSF pointer on the
+objcopy -I binary -O binary --pad-to "${sig_len}" --gap-fill="${GAP_FILLER}"  u-boot-signed-no-pad.imx "${TARGET}"
+
+# Restore the original U-Boot image to undo any transformations that have been made during
+# the signature/encryption process.
+mv "${UBOOT_PATH}-orig" "${UBOOT_PATH}"
+
+# When CONFIG_CSF_SIZE is defined, the CSF pointer on the
 # IVT is set to the CSF future location. The final image has the CSF block
 # appended, so this is consistent.
 # On the other hand, the u-boot.imx artifact is in a inconsistent state: the CSF
 # pointer is not zero, but it does not have a CSF appended.
-# This can cause problems if the u-boot.imx artifact gets flashed and the media
-# contains a CSF in the location pointed at, so that CSF is interpreted by HAB.
-# If that CSF corresponds to an encrypted U-Boot image, HAB will apply the
-# decryption procedure to an image which is not encrypted, failing to boot.
+# This can cause problems because the HAB and CAAM will execute
+# instructions from an uninitialized region of memory.
 
-# Erase the CSF pointer of the u-boot.imx artifact to avoid that problem.
+# Erase the CSF pointer of the unsigned artifact to avoid that problem.
+# Note: this pointer is set during compilation, not in this script.
 printf '\x0\x0\x0\x0' | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6
 
-objcopy -I binary -O binary --pad-to "${sig_len}" --gap-fill="${GAP_FILLER}"  u-boot-signed-no-pad.imx "${TARGET}"
-rm -f "${SRK_TABLE}" csf_descriptor u-boot_csf.bin u-boot-pad.imx u-boot-signed-no-pad.imx u-boot-encrypted.imx 2> /dev/null
+rm -f "${SRK_TABLE}" csf_descriptor u-boot_csf.bin u-boot-pad.imx u-boot-signed-no-pad.imx 2> /dev/null

@@ -76,6 +76,10 @@
 #define OCOTP_LOCK_BANK		0
 #define OCOTP_LOCK_WORD		0
 
+/* Digi ConnectCore 6UL carrier board IDs */
+#define CCIMX6ULSTARTER_ID129	129
+#define CCIMX6ULSBC_ID135	135
+
 /* CAAM support */
 #define CONFIG_SYS_FSL_SEC_COMPAT    4 /* HAB version */
 #define CONFIG_FSL_CAAM
@@ -173,6 +177,9 @@
 
 #define CONFIG_ENV_FLAGS_LIST_STATIC	\
 	"wlanaddr:mc,"			\
+	"wlan1addr:mc,"			\
+	"wlan2addr:mc,"			\
+	"wlan3addr:mc,"			\
 	"btaddr:mc,"			\
 	"bootargs_once:sr,"		\
 	"board_version:so,"		\
@@ -222,7 +229,7 @@
 #endif
 
 /* MTD (NAND) */
-#define CONFIG_UBOOT_PARTITION		"uboot"
+#define CONFIG_UBOOT_PARTITION		"bootloader"
 #define CONFIG_LINUX_PARTITION		"linux"
 #define CONFIG_RECOVERY_PARTITION	"recovery"
 #define CONFIG_NAND_NAME		"gpmi-nand"
@@ -230,11 +237,13 @@
 #define MTDPARTS_DEFAULT		"mtdparts=" CONFIG_NAND_NAME ":" \
 					"3m(" CONFIG_UBOOT_PARTITION ")," \
 					"1m(environment)," \
+					"1m(safe)," \
 					"14m(" CONFIG_LINUX_PARTITION ")," \
 					"14m(" CONFIG_RECOVERY_PARTITION ")," \
 					"128m(rootfs)," \
 					"-(update)"
-#define CONFIG_ENV_MTD_ROOTFS_INDEX	"4"
+#define CONFIG_ENV_MTD_LINUX_INDEX	"3"
+#define CONFIG_ENV_MTD_ROOTFS_INDEX	"5"
 #define CONFIG_ENV_MTD_SETTINGS	\
 	"mtdids=" MTDIDS_DEFAULT "\0" \
 	"mtdparts=" MTDPARTS_DEFAULT "\0"

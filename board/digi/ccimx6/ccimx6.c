@@ -44,7 +44,9 @@
 #include <fdt_support.h>
 #endif
 #include "../common/carrier_board.h"
+#include "../common/helper.h"
 #include "../common/hwid.h"
+#include "../common/trustfence.h"
 #include "ccimx6.h"
 #include "../../../drivers/net/fec_mxc.h"
 
@@ -1286,6 +1288,10 @@ int ccimx6_late_init(void)
 		gd->flags |= GD_FLG_DISABLE_CONSOLE_INPUT;
 #endif
 
+#ifdef CONFIG_HAS_TRUSTFENCE
+	copy_dek();
+#endif
+
 	return ccimx6_fixup();
 }
 
@@ -1547,4 +1553,12 @@ int ccimx6_init(void)
 	update_ddr3_calibration(my_hwid.variant);
 
 	return 0;
+}
+
+void fdt_fixup_ccimx6(void *fdt)
+{
+	if (board_has_wireless())
+		fdt_fixup_mac(fdt, "wlanaddr", "/wireless", "mac-address");
+	if (board_has_bluetooth())
+		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
 }

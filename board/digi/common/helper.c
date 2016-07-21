@@ -540,7 +540,7 @@ int confirm_prog(void)
 }
 
 #if defined(CONFIG_OF_BOARD_SETUP)
-void fdt_fixup_mac(void *fdt, char *varname, char *node)
+void fdt_fixup_mac(void *fdt, char *varname, char *node, char *property)
 {
 	char *tmp, *end;
 	unsigned char mac_addr[6];
@@ -552,7 +552,7 @@ void fdt_fixup_mac(void *fdt, char *varname, char *node)
 			if (tmp)
 				tmp = (*end) ? end+1 : end;
 		}
-		do_fixup_by_path(fdt, node, "mac-address", &mac_addr, 6, 1);
+		do_fixup_by_path(fdt, node, property, &mac_addr, 6, 1);
 	}
 }
 #endif /* CONFIG_OF_BOARD_SETUP */

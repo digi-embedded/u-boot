@@ -55,7 +55,7 @@ bool is_ubi_partition(struct part_info *part);
 #endif
 int strtou32(const char *str, unsigned int base, u32 *result);
 int confirm_prog(void);
-void fdt_fixup_mac(void *fdt, char *varname, char *node);
+void fdt_fixup_mac(void *fdt, char *varname, char *node, char *property);
 int load_firmware(struct load_fw *fwinfo);
 const char *get_filename_ext(const char *filename);
 void strtohex(char *in, unsigned long *out, int len);
