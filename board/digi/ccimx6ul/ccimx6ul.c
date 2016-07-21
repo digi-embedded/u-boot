@@ -17,6 +17,9 @@
 #include <asm/imx-common/mxc_i2c.h>
 #include <asm/io.h>
 #include <common.h>
+#ifdef CONFIG_OF_LIBFDT
+#include <fdt_support.h>
+#endif
 #include <i2c.h>
 #include <linux/sizes.h>
 
@@ -534,11 +537,27 @@ void board_reset(void)
 void fdt_fixup_ccimx6ul(void *fdt)
 {
 	if (board_has_wireless()) {
+		char *regdomain;
+		unsigned int val;
+
+		/* Wireless MACs */
 		fdt_fixup_mac(fdt, "wlanaddr", "/wireless", "mac-address");
 		fdt_fixup_mac(fdt, "wlan1addr", "/wireless", "mac-address1");
 		fdt_fixup_mac(fdt, "wlan2addr", "/wireless", "mac-address2");
 		fdt_fixup_mac(fdt, "wlan3addr", "/wireless", "mac-address3");
+
+		/* Regulatory domain */
+		if ((regdomain = getenv("regdomain")) != NULL) {
+			val = simple_strtoul(regdomain, NULL, 16);
+			if (val < DIGI_MAX_CERT) {
+				sprintf(regdomain, "0x%x", val);
+				do_fixup_by_path(fdt, "/wireless",
+						 "regulatory-domain", regdomain,
+						 strlen(regdomain) + 1, 1);
+			}
+		}
 	}
+
 	if (board_has_bluetooth())
 		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
 }
