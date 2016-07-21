@@ -174,6 +174,7 @@
 		"load mmc 0:2 ${fdt_addr} ${fdt_file};" \
 		"run bootargs_recovery;" \
 		"bootm ${loadaddr} ${initrd_addr} ${fdt_addr}\0" \
+	"recovery_file=recovery.img\0" \
 	"install_android_fw_sd=if load mmc 1 ${loadaddr} " \
 		"install_android_fw_sd.scr;then " \
 			"source ${loadaddr};" \
