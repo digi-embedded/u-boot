@@ -242,6 +242,7 @@
 					"14m(" CONFIG_RECOVERY_PARTITION ")," \
 					"128m(rootfs)," \
 					"-(update)"
+#define CONFIG_ENV_MTD_LINUX_INDEX	"3"
 #define CONFIG_ENV_MTD_ROOTFS_INDEX	"5"
 #define CONFIG_ENV_MTD_SETTINGS	\
 	"mtdids=" MTDIDS_DEFAULT "\0" \
