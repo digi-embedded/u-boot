@@ -75,6 +75,8 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	if (argc < 2)
 		return CMD_RET_USAGE;
 
+	memset(&fwinfo, 0, sizeof(fwinfo));
+
 	/* Get OS to boot */
 	os = get_os(argv[1]);
 	if (OS_UNDEFINED == os) {
