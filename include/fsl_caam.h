@@ -31,8 +31,6 @@
 #ifndef __CAAM_H__
 #define	__CAAM_H__
 
-//! @name Error codes
-//@{
 #if !defined(SUCCESS)
 #define SUCCESS (0)
 #endif

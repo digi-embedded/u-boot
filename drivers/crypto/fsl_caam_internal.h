@@ -61,7 +61,7 @@
 #define CAAM_RTSDCTL        CAAM_BASE_ADDR + 0x0610
 #define CAAM_RTFRQMIN       CAAM_BASE_ADDR + 0x0618
 #define CAAM_RTFRQMAX       CAAM_BASE_ADDR + 0x061C
-#define CAAM_RTSTATUS		CAAM_BASE_ADDR + 0x063C
+#define CAAM_RTSTATUS       (CAAM_BASE_ADDR + 0x063C)
 #define CAAM_RDSTA          CAAM_BASE_ADDR + 0x06C0
 
 /* Job Ring 0 registers */
@@ -125,7 +125,6 @@
 /** OSC_DIV in RNG trim fuses */
 #define RNG_TRIM_OSC_DIV    0
 /** ENT_DLY multiplier in RNG trim fuses */
-//#define RNG_TRIM_ENT_DLY    200*4
 #define RNG_TRIM_ENT_DLY    3200
 
 #define RTMCTL_PGM  (1 << 16)
