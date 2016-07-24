@@ -89,7 +89,6 @@ static int do_caam(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				ret);
 		else {
 			printf("Blob decap at SM PAGE1 original data is:\n");
-			int i = 0;
 			for (i = 0; i < size; i++) {
 				printf("0x%x  ",
 					*(unsigned char *)(data_addr+i));

@@ -104,70 +104,6 @@ uint32_t secmem_set_cmd_1(uint32_t sec_mem_cmd)
 }
 
 /*!
- * CAAM page allocation.
- *
- * @param   page  Number of the page to allocate.
- * @param   partition  Number of the partition to allocate.
- */
-static uint32_t caam_page_alloc(uint8_t page_num, uint8_t partition_num)
-{
-	uint32_t temp_reg;
-
-	/* 
-	 * De-Allocate partition_num if already allocated to ARM core
-	 */
-	if(__raw_readl(CAAM_SMPO_0) & PARTITION_OWNER(partition_num))
-	{
-		temp_reg = secmem_set_cmd_1(PARTITION(partition_num) | CMD_PART_DEALLOC);
-		if(temp_reg & SMCSJR_AERR)
-		{
-		printf("Error: De-allocation status 0x%X\n",temp_reg);
-		return ERROR_IN_PAGE_ALLOC;
-		}
-	}
-
-	/* set the access rights to allow full access */ 
-	__raw_writel(0xF, CAAM_SMAG1JR0(partition_num));
-	__raw_writel(0xF, CAAM_SMAG2JR0(partition_num));
-	__raw_writel(0xFF, CAAM_SMAPJR0(partition_num));
-
-	/* Now need to allocate partition_num of secure RAM. */    
-	/* De-Allocate page_num by starting with a page inquiry command */
-	temp_reg = secmem_set_cmd_1(PAGE(page_num) | CMD_INQUIRY);
-	/* if the page is owned, de-allocate it */
-	if((temp_reg & SMCSJR_PO) == PAGE_OWNED)
-	{
-		temp_reg = secmem_set_cmd_1(PAGE(page_num) | CMD_PAGE_DEALLOC);
-		if(temp_reg & SMCSJR_AERR)
-	{
-	  printf("Error: Allocation status 0x%X\n",temp_reg);
-	  return ERROR_IN_PAGE_ALLOC;
-		}
-	}
-
-	/* Allocate page_num to partition_num */
-	temp_reg = secmem_set_cmd_1(PAGE(page_num) | PARTITION(partition_num)
-		| CMD_PAGE_ALLOC);
-	if(temp_reg & SMCSJR_AERR)
-	{
-		printf("Error: Allocation status 0x%X\n",temp_reg);
-		return ERROR_IN_PAGE_ALLOC;
-	}
-	/* page inquiry command to ensure that the page was allocated */
-	temp_reg = secmem_set_cmd_1(PAGE(page_num) | CMD_INQUIRY);
-	/* if the page is not owned => problem */
-	if((temp_reg & SMCSJR_PO) != PAGE_OWNED)
-	{
-		printf("Error: Allocation of page %d in partition %d failed " \
-			" 0x%X\n", temp_reg, page_num, partition_num);
-
-		return ERROR_IN_PAGE_ALLOC;
-	}
-
-	return SUCCESS;
-}
-
-/*!
  * Use CAAM to decapsulate a blob to secure memory.
  * Such blob of secret key cannot be read once decrypted,
  * but can still be used for enc/dec operation of user's data.
@@ -179,7 +115,6 @@ static uint32_t caam_page_alloc(uint8_t page_num, uint8_t partition_num)
 uint32_t caam_decap_blob(uint32_t plain_text, uint32_t blob_addr, uint32_t size)
 {
 	uint32_t ret = SUCCESS;
-	uint8_t *blob = (uint8_t *)blob_addr;
 
 	decap_dsc[0] = (uint32_t)0xB0800008;
 	decap_dsc[1] = (uint32_t)0x14400010;
@@ -236,7 +171,6 @@ uint32_t caam_decap_blob(uint32_t plain_text, uint32_t blob_addr, uint32_t size)
 uint32_t caam_gen_blob(uint32_t plain_data_addr, uint32_t blob_addr, uint32_t size)
 {
 	uint32_t ret = SUCCESS;
-	uint32_t addr;
 	uint8_t *blob = (uint8_t *)blob_addr;
 
 	/* initialize the blob array */

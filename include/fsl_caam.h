@@ -31,12 +31,11 @@
 #ifndef __CAAM_H__
 #define	__CAAM_H__
 
+#include <fsl_sec.h>
+
 #if !defined(SUCCESS)
 #define SUCCESS (0)
 #endif
-
-#define ERROR_IN_PAGE_ALLOC (1)
-
 
 ////////////////////////////////////////////////////////////////////////////////
 //! @brief Enable and initialize the CAAM driver.

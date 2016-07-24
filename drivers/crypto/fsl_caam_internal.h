@@ -34,11 +34,6 @@
 /* 4kbyte pages */
 #define CAAM_SEC_RAM_START_ADDR CAAM_ARB_BASE_ADDR
 
-#define SEC_MEM_PAGE0       CAAM_SEC_RAM_START_ADDR
-#define SEC_MEM_PAGE1       (CAAM_SEC_RAM_START_ADDR + 0x1000)
-#define SEC_MEM_PAGE2       (CAAM_SEC_RAM_START_ADDR + 0x2000)
-#define SEC_MEM_PAGE3       (CAAM_SEC_RAM_START_ADDR + 0x3000)
-
 /* Configuration and special key registers */
 #define CAAM_MCFGR          CAAM_BASE_ADDR + 0x0004
 #define CAAM_SCFGR          CAAM_BASE_ADDR + 0x000c
@@ -54,7 +49,6 @@
 #define CAAM_SKNR           CAAM_BASE_ADDR + 0x04e0
 #define CAAM_SMSTA          CAAM_BASE_ADDR + 0x0FB4
 #define CAAM_STA            CAAM_BASE_ADDR + 0x0FD4
-#define CAAM_SMPO_0         CAAM_BASE_ADDR + 0x1FBC
 
 /* RNG registers */
 #define CAAM_RTMCTL         CAAM_BASE_ADDR + 0x0600
@@ -80,11 +74,6 @@
 #define CAAM_IRRIR0         CAAM_BASE_ADDR + 0x105c
 #define CAAM_ORWIR0         CAAM_BASE_ADDR + 0x1064
 #define CAAM_JRCR0          CAAM_BASE_ADDR + 0x106c
-#define CAAM_SMCJR0         CAAM_BASE_ADDR + 0x10f4
-#define CAAM_SMCSJR0        CAAM_BASE_ADDR + 0x10fc
-#define CAAM_SMAPJR0(y)     (CAAM_BASE_ADDR + 0x1104 + y*16)
-#define CAAM_SMAG2JR0(y)    (CAAM_BASE_ADDR + 0x1108 + y*16)
-#define CAAM_SMAG1JR0(y)    (CAAM_BASE_ADDR + 0x110C + y*16)
 #define CAAM_SMAPJR0_PRTN1  CAAM_BASE_ADDR + 0x1114
 #define CAAM_SMAG2JR0_PRTN1 CAAM_BASE_ADDR + 0x1118
 #define CAAM_SMAG1JR0_PRTN1 CAAM_BASE_ADDR + 0x111c
