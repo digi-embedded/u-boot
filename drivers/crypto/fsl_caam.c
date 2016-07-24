@@ -112,7 +112,7 @@ uint32_t secmem_set_cmd_1(uint32_t sec_mem_cmd)
  *
  * @return  SUCCESS or ERROR_XXX
  */
-uint32_t caam_decap_blob(uint32_t plain_text, uint32_t blob_addr, uint32_t size)
+uint32_t caam_decap_blob(void *plain_text, void *blob_addr, uint32_t size)
 {
 	uint32_t ret = SUCCESS;
 
@@ -168,7 +168,7 @@ uint32_t caam_decap_blob(uint32_t plain_text, uint32_t blob_addr, uint32_t size)
  *
  * @return  SUCCESS or ERROR_XXX
  */
-uint32_t caam_gen_blob(uint32_t plain_data_addr, uint32_t blob_addr, uint32_t size)
+uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, uint32_t size)
 {
 	uint32_t ret = SUCCESS;
 	uint8_t *blob = (uint8_t *)blob_addr;

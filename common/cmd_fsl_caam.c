@@ -56,8 +56,7 @@ static int do_caam(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		if (size <= 48)
 			return CMD_RET_USAGE;
 
-		ret = caam_decap_blob((uint32_t)(data_addr), 
-				      (uint32_t)(blob_addr), size);
+		ret = caam_decap_blob(data_addr, blob_addr, (uint32_t)size);
 		if (ret != SUCCESS)
 			printf("Error during blob decap operation: 0x%d\n",
 				ret);
