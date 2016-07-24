@@ -41,8 +41,6 @@ static int do_caam(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		data_addr = (void *)strict_strtoul(argv[2], NULL, 16);
 		blob_addr = (void *)strict_strtoul(argv[3], NULL, 16);
 		size      = (void *)strict_strtoul(argv[4], NULL, 10);
-		if (size <= 48)
-			return CMD_RET_USAGE;
 
 		caam_open();
 		ret = caam_gen_blob((uint32_t)data_addr, (uint32_t)blob_addr,
