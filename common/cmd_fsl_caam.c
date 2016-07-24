@@ -23,33 +23,25 @@
 
 static int do_caam(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
-
 	int ret, i;
+	void *data_addr;
+	void *blob_addr;
+	int size;
 
-	if (argc < 2)
+	if (argc != 5)
 		return CMD_RET_USAGE;
 
+	data_addr = (void *)strict_strtoul(argv[2], NULL, 16);
+	blob_addr = (void *)strict_strtoul(argv[3], NULL, 16);
+	size      = strict_strtoul(argv[4], NULL, 10);
+
+	caam_open();
+
 	if (strcmp(argv[1], "genblob") == 0) {
-
-		if (argc != 5)
-			return CMD_RET_USAGE;
-
-		void *data_addr;
-		void *blob_addr;
-		int size;
-
-		data_addr = (void *)strict_strtoul(argv[2], NULL, 16);
-		blob_addr = (void *)strict_strtoul(argv[3], NULL, 16);
-		size      = (void *)strict_strtoul(argv[4], NULL, 10);
-
-		caam_open();
-		ret = caam_gen_blob((uint32_t)data_addr, (uint32_t)blob_addr,
-					size);
-
+		ret = caam_gen_blob((uint32_t)data_addr, (uint32_t)blob_addr, size);
 		if (ret != SUCCESS) {
-			printf("Error during blob decap operation: 0x%d\n",
-				ret);
-			return 0;
+			printf("Error during blob decap operation: 0x%d\n",ret);
+			return CMD_RET_FAILURE;
 		}
 
 		/* Print the generated DEK blob */
@@ -59,29 +51,13 @@ static int do_caam(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			printf("%02X ", ((uint8_t *)blob_addr)[i]);
 		printf("\n\n");
 
-
-		return 1;
-
+		return CMD_RET_SUCCESS;
 	} else if (strcmp(argv[1], "decap") == 0) {
-
-		if (argc != 5)
-			return CMD_RET_USAGE;
-
-		void *blob_addr;
-		void *data_addr;
-		int size;
-
-		blob_addr = (void *)strict_strtoul(argv[2], NULL, 16);
-		data_addr = (void *)strict_strtoul(argv[3], NULL, 16);
-		size      = (void *)strict_strtoul(argv[4], NULL, 10);
-
 		if (size <= 48)
 			return CMD_RET_USAGE;
 
-		caam_open();
-		ret = caam_decap_blob((uint32_t)(data_addr),
-				      (uint32_t)(blob_addr), (uint32_t)size);
-
+		ret = caam_decap_blob((uint32_t)(data_addr), 
+				      (uint32_t)(blob_addr), size);
 		if (ret != SUCCESS)
 			printf("Error during blob decap operation: 0x%d\n",
 				ret);
@@ -96,7 +72,7 @@ static int do_caam(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			printf("\n");
 		}
 
-		return 1;
+		return CMD_RET_SUCCESS;
 	}
 
 	return CMD_RET_USAGE;
