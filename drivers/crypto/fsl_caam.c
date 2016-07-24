@@ -34,6 +34,8 @@
 #include "fsl_caam_internal.h"
 #include <fsl_caam.h>
 
+#define DMA_ALIGN(x) (((uint32_t) x) & (~(ARCH_DMA_MINALIGN-1)))
+
 /*---------- Global variables ----------*/
 /* Input job ring - single entry input ring */
 uint32_t g_input_ring[JOB_RING_ENTRIES] = {0};
@@ -129,10 +131,10 @@ uint32_t caam_decap_blob(void *plain_text, void *blob_addr, uint32_t size)
 	/* Add job to input ring */
 	g_input_ring[0] = (uint32_t)decap_dsc;
 
-	flush_dcache_range((uint32_t)blob_addr & 0xffffffe0, ((uint32_t)blob_addr & 0xffffffe0) + 2*size);
-	flush_dcache_range((uint32_t)plain_text& 0xffffffe0, ((uint32_t)plain_text& 0xffffffe0) + 2*size);
-	flush_dcache_range((uint32_t)decap_dsc & 0xffffffe0, ((uint32_t)decap_dsc & 0xffffffe0) + 128); 
-	flush_dcache_range((uint32_t)g_input_ring & 0xffffffe0, ((uint32_t)g_input_ring & 0xffffffe0) + 128);
+	flush_dcache_range(DMA_ALIGN(blob_addr), DMA_ALIGN(blob_addr + 2 * size));
+	flush_dcache_range(DMA_ALIGN(plain_text), DMA_ALIGN(plain_text + 2 * size));
+	flush_dcache_range(DMA_ALIGN(decap_dsc), DMA_ALIGN(decap_dsc + 128));
+	flush_dcache_range(DMA_ALIGN(g_input_ring), DMA_ALIGN(g_input_ring + 128));
 
 	/* Increment jobs added */
 	__raw_writel(1, CAAM_IRJAR0);
@@ -141,7 +143,7 @@ uint32_t caam_decap_blob(void *plain_text, void *blob_addr, uint32_t size)
 	while (__raw_readl(CAAM_ORSFR0) != 1)
 		;
 
-	invalidate_dcache_range((uint32_t)g_output_ring & 0xffffffe0, ((uint32_t)g_output_ring & 0xffffffe0) + 128);
+	invalidate_dcache_range(DMA_ALIGN(g_output_ring), DMA_ALIGN(g_output_ring + 128));
 	/* check that descriptor address is the one expected in the output ring */
 
 	if (g_output_ring[0] == (uint32_t)decap_dsc) {
@@ -152,7 +154,7 @@ uint32_t caam_decap_blob(void *plain_text, void *blob_addr, uint32_t size)
 	} else
 		printf("Error: blob decap job output ring descriptor address does" \
 	                " not match\n");
-	flush_dcache_range((uint32_t)plain_text& 0xffffffe0, ((uint32_t)plain_text& 0xffffffe0) + 2*size);
+	flush_dcache_range(DMA_ALIGN(plain_text), DMA_ALIGN(plain_text + 2 * size));
 
 	/* Remove job from Job Ring Output Queue */
 	__raw_writel(1, CAAM_ORJRR0);
@@ -189,9 +191,9 @@ uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, uint32_t size)
 	/* Add job to input ring */
 	g_input_ring[0] = (uint32_t)encap_dsc;
 
-	flush_dcache_range((uint32_t)plain_data_addr& 0xffffffe0, ((uint32_t)plain_data_addr& 0xffffffe0) + size);
-	flush_dcache_range((uint32_t)encap_dsc & 0xffffffe0, ((uint32_t)encap_dsc & 0xffffffe0) + 128);
-	flush_dcache_range((uint32_t)blob & 0xffffffe0, ((uint32_t)g_input_ring & 0xffffffe0) + 2 * size);
+	flush_dcache_range(DMA_ALIGN(plain_data_addr), DMA_ALIGN(plain_data_addr + size));
+	flush_dcache_range(DMA_ALIGN(encap_dsc), DMA_ALIGN(encap_dsc + 128));
+	flush_dcache_range(DMA_ALIGN(blob), DMA_ALIGN(g_input_ring + 2 * size));
 	/* Increment jobs added */
 	__raw_writel(1, CAAM_IRJAR0);
 
@@ -199,9 +201,9 @@ uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, uint32_t size)
 	while (__raw_readl(CAAM_ORSFR0) != 1)
 		;
 
-	/* flush cache */
-	invalidate_dcache_range((uint32_t)g_output_ring & 0xffffffe0, ((uint32_t)g_output_ring & 0xffffffe0) + 128);
-	invalidate_dcache_range((uint32_t)g_output_ring & 0xffffffe0, ((uint32_t)g_output_ring & 0xffffffe0) + 128);
+	// flush cache
+	invalidate_dcache_range(DMA_ALIGN(g_output_ring), DMA_ALIGN(g_output_ring + 128));
+	invalidate_dcache_range(DMA_ALIGN(g_output_ring), DMA_ALIGN(g_output_ring + 128));
 	/* check that descriptor address is the one expected in the output ring */
 	if (g_output_ring[0] == (uint32_t)encap_dsc) {
 		/* check if any error is reported in the output ring */
@@ -285,18 +287,15 @@ void caam_open(void)
 		/* Add job to input ring */
 		g_input_ring[0] = (uint32_t)rng_inst_dsc;
 
-		flush_dcache_range((uint32_t)g_input_ring & 0xffffffe0,
-				   ((uint32_t)g_input_ring & 0xffffffe0) + 128);
+		flush_dcache_range(DMA_ALIGN(g_input_ring), DMA_ALIGN(g_input_ring + 128));
 		/* Increment jobs added */
 		__raw_writel(1, CAAM_IRJAR0);
 
 		/* Wait for job ring to complete the job */
 		while (__raw_readl(CAAM_ORSFR0) != 1)
 			;
-
-		invalidate_dcache_range((uint32_t)g_output_ring & 0xffffffe0,
-				((uint32_t)g_output_ring & 0xffffffe0) + 128);
-
+		invalidate_dcache_range(DMA_ALIGN(g_output_ring), DMA_ALIGN(g_output_ring + 128));
+		
 		/* check that descriptor address is the one expected */
 		if (g_output_ring[0] == (uint32_t)rng_inst_dsc) {
 			/* check if any error is reported in the output ring */
