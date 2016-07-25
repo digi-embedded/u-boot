@@ -264,6 +264,16 @@ int env_import(const char *buf, int check)
 	/* Decrypt the env if desired. */
 	ret = env_aes_cbc_crypt(ep, 0);
 	if (ret) {
+#ifdef CONFIG_ENV_AES_CAAM_KEY
+		if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE,
+				'\0', 0, 0, 0, NULL)) {
+			printf("Environment is unencrypted!\n");
+			printf("Resetting to defaults (read-only variables like MAC addresses will be kept).\n");
+			gd->flags |= GD_FLG_ENV_READY;
+			run_command("env default -a", 0);
+			return 1;
+		}
+#endif
 		error("Failed to decrypt env!\n");
 		set_default_env("!import failed");
 		return ret;
