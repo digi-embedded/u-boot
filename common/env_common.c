@@ -150,6 +150,7 @@ int set_default_vars(int nvars, char * const vars[], int flag)
 #include <fuse.h>
 #include <fsl_caam.h>
 #include <u-boot/md5.h>
+#include <asm/arch/hab.h>
 
 static int env_aes_cbc_crypt(env_t *env, const int enc)
 {
@@ -159,6 +160,9 @@ static int env_aes_cbc_crypt(env_t *env, const int enc)
 	unsigned char key_modifier[16] = {0};
 	int i;
 	u32 ocotp_hwid[CONFIG_HWID_WORDS_NUMBER];
+
+	if (!is_hab_enabled())
+		return 0;
 
 	/* Use the HWID as key modifier. This is a unique value per module. */
 	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
