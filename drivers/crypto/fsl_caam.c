@@ -148,12 +148,16 @@ uint32_t caam_decap_blob(void *plain_text, void *blob_addr, uint32_t size)
 
 	if (g_output_ring[0] == (uint32_t)decap_dsc) {
 		/* check if any error is reported in the output ring */
-		if ((g_output_ring[1] & JOB_RING_STS) != 0)
+		if ((g_output_ring[1] & JOB_RING_STS) != 0) {
 			printf("Error: blob decap job completed with errors 0x%X\n",
 						g_output_ring[1]);
-	} else
+			ret = -1;
+		}
+	} else {
 		printf("Error: blob decap job output ring descriptor address does" \
 	                " not match\n");
+		ret = -1;
+	}
 	flush_dcache_range(DMA_ALIGN(plain_text), DMA_ALIGN(plain_text + 2 * size));
 
 	/* Remove job from Job Ring Output Queue */
@@ -207,12 +211,15 @@ uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, uint32_t size)
 	/* check that descriptor address is the one expected in the output ring */
 	if (g_output_ring[0] == (uint32_t)encap_dsc) {
 		/* check if any error is reported in the output ring */
-		if ((g_output_ring[1] & JOB_RING_STS) != 0)
-			printf("Error: blob encap job completed with " \
-			       "errors 0x%X\n", g_output_ring[1]);
+		if ((g_output_ring[1] & JOB_RING_STS) != 0) {
+			printf("Error: blob encap job completed with errors 0x%X\n",
+			      g_output_ring[1]);
+			ret = -1;
+ 		}
 	} else {
-		printf("Error: blob encap job output ring descriptor address" \
-			" does not match\n");
+		printf("Error: blob encap job output ring descriptor " \
+			"address does not match\n");
+		ret = -1;
 	}
 	/* Remove job from Job Ring Output Queue */
 	__raw_writel(1, CAAM_ORJRR0);
