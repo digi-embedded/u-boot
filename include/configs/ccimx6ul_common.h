@@ -176,6 +176,7 @@
 	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"
 
 #define CONFIG_ENV_FLAGS_LIST_STATIC	\
+	"eth1addr:mc,"			\
 	"wlanaddr:mc,"			\
 	"wlan1addr:mc,"			\
 	"wlan2addr:mc,"			\
