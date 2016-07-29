@@ -263,32 +263,35 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	 * check if the partition is UBI formatted.
 	 */
 	if (strcmp(part->name, CONFIG_UBOOT_PARTITION)) {
+		bool erase_ubi = 0;
+
 		if (is_ubi_partition(part)) {
 			/* Silent UBI commands during the update */
 			run_command("ubi silent 1", 0);
 
 			/* Attach partition and get volume name */
 			if (ubi_attach_getcreatevol(partname, &ubivolname)) {
+				/* On error, erase partition and retry */
+				erase_ubi = 1;
+			}
+		}
+
+		/*
+		 * If the partition does not have a valid UBI volume
+		 * but we are updating a *.ubifs filename, erase the
+		 * partition and create the UBI volume.
+		 */
+		if ((ubifs_ext && ubivolname == NULL) || erase_ubi) {
+			sprintf(cmd, "nand erase.part %s", partname);
+			if (run_command(cmd, 0)) {
 				ret = CMD_RET_FAILURE;
 				goto _ret;
 			}
-		} else {
-			/*
-			 * If the partition does not have a valid UBI volume
-			 * but we are updating a *.ubifs filename, erase the
-			 * partition and create the UBI volume.
-			 */
-			if (ubifs_ext && ubivolname == NULL) {
-				sprintf(cmd, "nand erase.part %s", partname);
-				if (run_command(cmd, 0))
-					goto _ret;
 
-				/* Attach partition and get volume name */
-				if (ubi_attach_getcreatevol(partname,
-							    &ubivolname)) {
-					ret = CMD_RET_FAILURE;
-					goto _ret;
-				}
+			/* Attach partition and get volume name */
+			if (ubi_attach_getcreatevol(partname, &ubivolname)) {
+				ret = CMD_RET_FAILURE;
+				goto _ret;
 			}
 		}
 	}
