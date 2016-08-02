@@ -209,6 +209,19 @@ struct sg_entry {
 #define SMCSJR_AERR		(3 << 12)
 /* Secure memory partition 0 page 0 owner register */
 #define CAAM_SMPO_0		CONFIG_SYS_FSL_SEC_ADDR + 0x1FBC
+
+#ifdef CONFIG_MX6UL
+/* Secure memory command register */
+#define CAAM_SMCJR0		CONFIG_SYS_FSL_SEC_ADDR + 0x1BE4
+/* Secure memory command status register */
+#define CAAM_SMCSJR0		CONFIG_SYS_FSL_SEC_ADDR + 0x1BEC
+/* Secure memory access permissions register */
+#define CAAM_SMAPJR0(y)	(CONFIG_SYS_FSL_SEC_ADDR + 0x1A04 + y*16)
+/* Secure memory access group 2 register */
+#define CAAM_SMAG2JR0(y)	(CONFIG_SYS_FSL_SEC_ADDR + 0x1A08 + y*16)
+/* Secure memory access group 1 register */
+#define CAAM_SMAG1JR0(y)	(CONFIG_SYS_FSL_SEC_ADDR + 0x1A0C + y*16)
+#else
 /* Secure memory command register */
 #define CAAM_SMCJR0		CONFIG_SYS_FSL_SEC_ADDR + 0x10f4
 /* Secure memory command status register */
@@ -219,6 +232,7 @@ struct sg_entry {
 #define CAAM_SMAG2JR0(y)	(CONFIG_SYS_FSL_SEC_ADDR + 0x1108 + y*16)
 /* Secure memory access group 1 register */
 #define CAAM_SMAG1JR0(y)	(CONFIG_SYS_FSL_SEC_ADDR + 0x110C + y*16)
+#endif
 
 /* Commands and macros for secure memory */
 #define CMD_PAGE_ALLOC		0x1
