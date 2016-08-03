@@ -102,17 +102,19 @@ ivt_self=$(hexdump -n 4 -s 20 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
 ivt_csf=$(hexdump -n 4 -s 24 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
 ddr_addr=$(hexdump -n 4 -s 32 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
 
+# If the U-Boot Image Vector Table contains a nulled CSF pointer, assume that
+# the CSF will be appended at the end. This is the case when using the script
+# outside the compilation process, to sign existing U-Boot images.
+if [ $((ivt_csf)) -eq 0 ]; then
+	echo "IVT contains null CSF pointer. Assuming attached CSF..."
+	ivt_csf="$((uboot_size + ddr_addr + UBOOT_START_OFFSET))"
+	printf "0: %.8x" ${ivt_csf} | sed -E 's/0: (..)(..)(..)(..)/0: \4\3\2\1/' | xxd -r -g0 | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6
+	echo "IVT CSF pointer set to: ${ivt_csf}"
+fi
+
 # Compute dek blob size in bytes:
 # header (8) + 256-bit AES key (32) + MAC (16) + custom key size in bytes
 dek_blob_size="$((8 + 32 + 16 + dek_size/8))"
-
-# It is important to abort in this case because running the rest of the logic
-# with a null csf pointer will attempt to create huge paddings causing problems
-# in the development machine.
-if [ $((ivt_csf)) -eq 0 ]; then
-	echo "Invalid CSF pointer in the IVT table (is CONFIG_CSF_SIZE enabled?)"
-	exit 1
-fi
 
 # Compute the layout: sizes and offsets.
 uboot_size="$(stat -c %s ${UBOOT_PATH})"
