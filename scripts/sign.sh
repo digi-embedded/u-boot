@@ -17,6 +17,10 @@
 #    The following Kconfig entries are used:
 #      CONFIG_SIGN_KEYS_PATH: (mandatory) path to the CST folder by NXP with keys generated.
 #      CONFIG_KEY_INDEX: (optional) key index to use for signing. Default is 0.
+#      NO_DCD: (optional) if defined, the DCD pointer is nulled. This is useful when the
+#               signed images will be used to boot in a non-standard way (for example, USB).
+#		In those cases, the DCD data is copied to the On Chip RAM, which would
+#		invalidate the signature.
 #      ENABLE_ENCRYPTION: (optional) enable encryption of the images.
 #      CONFIG_DEK_PATH: (mandatory if ENCRYPT is defined) path to a Data Encryption Key.
 #                       If defined, the signed	U-Boot image is encrypted with the
@@ -55,6 +59,11 @@ if [ -n "${CONFIG_DEK_PATH}" ] && [ -n "${ENABLE_ENCRYPTION}" ]; then
 		exit 1
 	fi
 	ENCRYPT="true"
+fi
+
+if [ -n "${NO_DCD}" ]; then
+	# Null the DCD pointer in the IVT.
+	printf '\x0\x0\x0\x0' | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=3
 fi
 
 # Default values
