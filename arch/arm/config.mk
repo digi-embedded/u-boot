@@ -132,7 +132,9 @@ else
 ALL-y += u-boot.imx
 ALL-$(CONFIG_SIGN_IMAGE) += u-boot-signed.imx u-boot-usb-signed.imx
 ifneq ($(CONFIG_DEK_PATH),)
+ifneq ($(CONFIG_DEK_PATH),"")
 ALL-y += u-boot-encrypted.imx
+endif
 endif
 endif
 endif
