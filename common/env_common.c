@@ -145,6 +145,59 @@ int set_default_vars(int nvars, char * const vars[], int flag)
 }
 
 #ifdef CONFIG_ENV_AES
+
+#ifdef CONFIG_ENV_AES_CAAM_KEY
+#include <fuse.h>
+#include <fsl_caam.h>
+#include <u-boot/md5.h>
+#include <asm/arch/hab.h>
+
+static int env_aes_cbc_crypt(env_t *env, const int enc)
+{
+	unsigned char *data = env->data;
+	unsigned char *buffer;
+	int ret = 0;
+	unsigned char key_modifier[16] = {0};
+	int i;
+	u32 ocotp_hwid[CONFIG_HWID_WORDS_NUMBER];
+
+	if (!is_hab_enabled())
+		return 0;
+
+	/* Use the HWID as key modifier. This is a unique value per module. */
+	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
+		ret = fuse_read(CONFIG_HWID_BANK,
+				CONFIG_HWID_START_WORD + i,
+				&ocotp_hwid[i]);
+		if (ret)
+			return ret;
+	}
+
+	md5((unsigned char*)(&ocotp_hwid), sizeof(ocotp_hwid), key_modifier);
+
+	caam_open();
+	buffer = malloc(ENV_SIZE);
+	if (!buffer) {
+		debug("Not enough memory for en/de-cryption buffer");
+		return -ENOMEM;
+	}
+
+	if (enc)
+		ret = caam_gen_blob(data, buffer, key_modifier, ENV_SIZE - BLOB_OVERHEAD);
+	else
+		ret = caam_decap_blob(buffer, data, key_modifier, ENV_SIZE - BLOB_OVERHEAD);
+
+	if (ret)
+		goto err;
+	
+	memcpy(data, buffer, ENV_SIZE);
+	
+err:
+	free(buffer);
+	return ret;
+}
+#else
+
 #include <aes.h>
 /**
  * env_aes_cbc_get_key() - Get AES-128-CBC key for the environment
@@ -183,6 +236,8 @@ static int env_aes_cbc_crypt(env_t *env, const int enc)
 
 	return 0;
 }
+#endif
+
 #else
 static inline int env_aes_cbc_crypt(env_t *env, const int enc)
 {
@@ -213,6 +268,16 @@ int env_import(const char *buf, int check)
 	/* Decrypt the env if desired. */
 	ret = env_aes_cbc_crypt(ep, 0);
 	if (ret) {
+#ifdef CONFIG_ENV_AES_CAAM_KEY
+		if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE,
+				'\0', 0, 0, 0, NULL)) {
+			printf("Environment is unencrypted!\n");
+			printf("Resetting to defaults (read-only variables like MAC addresses will be kept).\n");
+			gd->flags |= GD_FLG_ENV_READY;
+			run_command("env default -a", 0);
+			return 1;
+		}
+#endif
 		error("Failed to decrypt env!\n");
 		set_default_env("!import failed");
 		return ret;

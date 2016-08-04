@@ -76,6 +76,15 @@ config ENV_AES_KEY
 	  Thus it is strongly recommended to *encrypt the U-Boot image* when
 	  this feature is used.
 
+config ENV_AES_CAAM_KEY
+	bool "Use CAAM internal key"
+	depends on ENV_AES
+	help
+	  Use the internal CAAM secure key for environment encryption.
+
+	  This setting is only supported in closed devices (those which can 
+	  only boot signed U-Boot images). It has no effect on open devices.
+
 config LOCALVERSION
 	string "Local version - append to U-Boot release"
 	help

@@ -17,6 +17,10 @@
 #    The following Kconfig entries are used:
 #      CONFIG_SIGN_KEYS_PATH: (mandatory) path to the CST folder by NXP with keys generated.
 #      CONFIG_KEY_INDEX: (optional) key index to use for signing. Default is 0.
+#      NO_DCD: (optional) if defined, the DCD pointer is nulled. This is useful when the
+#               signed images will be used to boot in a non-standard way (for example, USB).
+#		In those cases, the DCD data is copied to the On Chip RAM, which would
+#		invalidate the signature.
 #      ENABLE_ENCRYPTION: (optional) enable encryption of the images.
 #      CONFIG_DEK_PATH: (mandatory if ENCRYPT is defined) path to a Data Encryption Key.
 #                       If defined, the signed	U-Boot image is encrypted with the
@@ -55,6 +59,11 @@ if [ -n "${CONFIG_DEK_PATH}" ] && [ -n "${ENABLE_ENCRYPTION}" ]; then
 		exit 1
 	fi
 	ENCRYPT="true"
+fi
+
+if [ -n "${NO_DCD}" ]; then
+	# Null the DCD pointer in the IVT.
+	printf '\x0\x0\x0\x0' | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=3
 fi
 
 # Default values
@@ -102,17 +111,25 @@ ivt_self=$(hexdump -n 4 -s 20 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
 ivt_csf=$(hexdump -n 4 -s 24 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
 ddr_addr=$(hexdump -n 4 -s 32 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
 
+# If the U-Boot Image Vector Table contains a nulled CSF pointer, assume that
+# the CSF will be appended at the end. This is the case when using the script
+# outside the compilation process, to sign existing U-Boot images.
+if [ $((ivt_csf)) -eq 0 ]; then
+	echo "IVT contains null CSF pointer. Assuming attached CSF..."
+	ivt_csf="$((uboot_size + ddr_addr + UBOOT_START_OFFSET))"
+	printf "0: %.8x" ${ivt_csf} | sed -E 's/0: (..)(..)(..)(..)/0: \4\3\2\1/' | xxd -r -g0 | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6
+	# It is also necessary to adjust the size of the image to take into account
+	# the overhead of the CSF block.
+	image_size=$(hexdump -n 4 -s 36 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
+	image_size=$((image_size + CONFIG_CSF_SIZE))
+	printf "0: %.8x" ${image_size} | sed -E 's/0: (..)(..)(..)(..)/0: \4\3\2\1/' | xxd -r -g0 | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=9
+
+	echo "IVT CSF pointer set to: ${ivt_csf}"
+fi
+
 # Compute dek blob size in bytes:
 # header (8) + 256-bit AES key (32) + MAC (16) + custom key size in bytes
 dek_blob_size="$((8 + 32 + 16 + dek_size/8))"
-
-# It is important to abort in this case because running the rest of the logic
-# with a null csf pointer will attempt to create huge paddings causing problems
-# in the development machine.
-if [ $((ivt_csf)) -eq 0 ]; then
-	echo "Invalid CSF pointer in the IVT table (is CONFIG_CSF_SIZE enabled?)"
-	exit 1
-fi
 
 # Compute the layout: sizes and offsets.
 uboot_size="$(stat -c %s ${UBOOT_PATH})"
@@ -203,5 +220,11 @@ mv "${UBOOT_PATH}-orig" "${UBOOT_PATH}"
 # Erase the CSF pointer of the unsigned artifact to avoid that problem.
 # Note: this pointer is set during compilation, not in this script.
 printf '\x0\x0\x0\x0' | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6
+
+# The $UBOOT_PATH artifact is not signed, so the size of the image
+# needs to be adjusted substracting the CSF_SIZE
+image_size=$(hexdump -n 4 -s 36 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
+image_size=$((image_size - CONFIG_CSF_SIZE))
+printf "0: %.8x" ${image_size} | sed -E 's/0: (..)(..)(..)(..)/0: \4\3\2\1/' | xxd -r -g0 | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=9
 
 rm -f "${SRK_TABLE}" csf_descriptor u-boot_csf.bin u-boot-pad.imx u-boot-signed-no-pad.imx 2> /dev/null

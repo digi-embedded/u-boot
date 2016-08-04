@@ -146,7 +146,7 @@ extern unsigned long nand_env_oob_offset;
 extern char *env_name_spec;
 #endif
 
-#ifdef CONFIG_ENV_AES
+#if defined(CONFIG_ENV_AES) && !defined(CONFIG_ENV_AES_CAAM_KEY)
 /* Make sure the payload is multiple of AES block size */
 #define ENV_SIZE ((CONFIG_ENV_SIZE - ENV_HEADER_SIZE) & ~(16 - 1))
 #else

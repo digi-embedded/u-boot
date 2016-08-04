@@ -85,12 +85,17 @@
 #define CONFIG_FSL_CAAM
 #define CONFIG_CMD_DEKBLOB
 #define CONFIG_SYS_FSL_SEC_LE
+#define CONFIG_FSL_CAAM_KB
 
 /*
  * Trustfence configs
  */
 #define CONFIG_HAS_TRUSTFENCE
 #define CONFIG_SHA256
+
+
+/* Environment encryption support */
+#define CONFIG_MD5
 
 /* Secure boot configs */
 #define CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS		3
