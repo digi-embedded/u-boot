@@ -118,6 +118,12 @@ if [ $((ivt_csf)) -eq 0 ]; then
 	echo "IVT contains null CSF pointer. Assuming attached CSF..."
 	ivt_csf="$((uboot_size + ddr_addr + UBOOT_START_OFFSET))"
 	printf "0: %.8x" ${ivt_csf} | sed -E 's/0: (..)(..)(..)(..)/0: \4\3\2\1/' | xxd -r -g0 | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6
+	# It is also necessary to adjust the size of the image to take into account
+	# the overhead of the CSF block.
+	image_size=$(hexdump -n 4 -s 36 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
+	image_size=$((image_size + CONFIG_CSF_SIZE))
+	printf "0: %.8x" ${image_size} | sed -E 's/0: (..)(..)(..)(..)/0: \4\3\2\1/' | xxd -r -g0 | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=9
+
 	echo "IVT CSF pointer set to: ${ivt_csf}"
 fi
 
@@ -214,5 +220,11 @@ mv "${UBOOT_PATH}-orig" "${UBOOT_PATH}"
 # Erase the CSF pointer of the unsigned artifact to avoid that problem.
 # Note: this pointer is set during compilation, not in this script.
 printf '\x0\x0\x0\x0' | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6
+
+# The $UBOOT_PATH artifact is not signed, so the size of the image
+# needs to be adjusted substracting the CSF_SIZE
+image_size=$(hexdump -n 4 -s 36 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
+image_size=$((image_size - CONFIG_CSF_SIZE))
+printf "0: %.8x" ${image_size} | sed -E 's/0: (..)(..)(..)(..)/0: \4\3\2\1/' | xxd -r -g0 | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=9
 
 rm -f "${SRK_TABLE}" csf_descriptor u-boot_csf.bin u-boot-pad.imx u-boot-signed-no-pad.imx 2> /dev/null
