@@ -117,12 +117,12 @@ ddr_addr=$(hexdump -n 4 -s 32 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
 if [ $((ivt_csf)) -eq 0 ]; then
 	echo "IVT contains null CSF pointer. Assuming attached CSF..."
 	ivt_csf="$((uboot_size + ddr_addr + UBOOT_START_OFFSET))"
-	printf "0: %.8x" ${ivt_csf} | sed -E 's/0: (..)(..)(..)(..)/0: \4\3\2\1/' | xxd -r -g0 | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6
+	printf $(printf "%08x" ${ivt_csf} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6
 	# It is also necessary to adjust the size of the image to take into account
 	# the overhead of the CSF block.
 	image_size=$(hexdump -n 4 -s 36 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
 	image_size=$((image_size + CONFIG_CSF_SIZE))
-	printf "0: %.8x" ${image_size} | sed -E 's/0: (..)(..)(..)(..)/0: \4\3\2\1/' | xxd -r -g0 | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=9
+	printf $(printf "%08x" ${image_size} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=9
 
 	echo "IVT CSF pointer set to: ${ivt_csf}"
 fi
@@ -233,6 +233,6 @@ printf '\x0\x0\x0\x0' | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6
 # needs to be adjusted substracting the CSF_SIZE
 image_size=$(hexdump -n 4 -s 36 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
 image_size=$((image_size - CONFIG_CSF_SIZE))
-printf "0: %.8x" ${image_size} | sed -E 's/0: (..)(..)(..)(..)/0: \4\3\2\1/' | xxd -r -g0 | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=9
+printf $(printf "%08x" ${ímage_size} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=9
 
 rm -f "${SRK_TABLE}" csf_descriptor u-boot_csf.bin u-boot-pad.imx u-boot-signed-no-pad.imx 2> /dev/null
