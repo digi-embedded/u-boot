@@ -179,6 +179,14 @@ else
 	${srctree}/scripts/csf_sign_template > csf_descriptor
 fi
 
+# If requested, instruct HAB not to protect the SRK_REVOKE OTP field
+if [ -n "${CONFIG_UNLOCK_SRK_REVOKE}" ]; then
+	echo "" >> csf_descriptor
+	echo "[Unlock]" >> csf_descriptor
+	echo "    Engine = OCOTP" >> csf_descriptor
+	echo "    Features = SRK Revoke" >> csf_descriptor
+fi
+
 # Generate SRK tables
 srktool --hab_ver 4 --certs "${SRK_KEYS}" --table "${SRK_TABLE}" --efuses "${SRK_EFUSES}" --digest sha256
 if [ $? -ne 0 ]; then

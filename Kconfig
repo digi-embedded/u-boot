@@ -197,6 +197,16 @@ config CSF_SIZE
 	  Configures the size of the Command Sequence File. A size of 0x4000
 	  is enough to fit up to 4096-bit cryptographic keys.
 
+config UNLOCK_SRK_REVOKE
+	bool "Unlock the SRK_REVOKE eFuse field"
+	help
+	  In closed devices, HAB, by default, sets the SRK_REVOKE_LOCK sticky
+	  bit in the OCOTP controller to write protect the SRK_REVOKE eFuse
+	  field.
+	  Enable this option to instruct HAB not to lock the SRK_REVOKE eFuse.
+
+	  This seting has no effect on open devices.
+
 config SIGN_KEYS_PATH
 	string "Path to the signing keys"
 	depends on SIGN_IMAGE
