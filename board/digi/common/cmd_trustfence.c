@@ -494,9 +494,17 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		argv -= 2 + confirmed;
 		argc += 2 + confirmed;
 
+		if (argc < 3)
+			return CMD_RET_USAGE;
+
 		/* Get source of firmware file */
 		if (get_source(argc, argv, &fwinfo))
 			return CMD_RET_FAILURE;
+
+		if (!((fwinfo.src == SRC_MMC && argc ==	6) ||
+		     ((fwinfo.src == SRC_TFTP || fwinfo.src == SRC_NFS) &&
+			argc == 5)))
+			return CMD_RET_USAGE;
 
 		printf("\nLoading encrypted U-Boot image...\n");
 		/* Load firmware file to RAM */
