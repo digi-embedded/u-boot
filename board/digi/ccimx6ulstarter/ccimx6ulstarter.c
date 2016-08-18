@@ -111,7 +111,7 @@ static iomux_v3_cfg_t const usdhc2_pads[] = {
 
 #ifdef CONFIG_SYS_I2C_MXC
 #define PC MUX_PAD_CTRL(I2C_PAD_CTRL)
-/* I2C2 for PMIC and MCA */
+/* I2C2 */
 struct i2c_pads_info i2c2_pad_info = {
 	.scl = {
 		.i2c_mode =  MX6_PAD_GPIO1_IO00__I2C2_SCL | PC,
