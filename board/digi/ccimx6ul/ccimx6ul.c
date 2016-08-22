@@ -560,4 +560,6 @@ void fdt_fixup_ccimx6ul(void *fdt)
 
 	if (board_has_bluetooth())
 		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
+
+	fdt_fixup_trustfence(fdt);
 }

@@ -21,4 +21,10 @@ int console_enable_passphrase(void);
 void copy_dek(void);
 #endif /* CONFIG_HAS_TRUSTFENCE */
 
+#ifdef CONFIG_ENV_AES_CAAM_KEY
+void fdt_fixup_trustfence(void *fdt);
+#else
+static inline void fdt_fixup_trustfence(void *fdt) {}
+#endif
+
 #endif /* TRUSTFENCE_H */

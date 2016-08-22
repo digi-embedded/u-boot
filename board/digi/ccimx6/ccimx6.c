@@ -1561,4 +1561,5 @@ void fdt_fixup_ccimx6(void *fdt)
 		fdt_fixup_mac(fdt, "wlanaddr", "/wireless", "mac-address");
 	if (board_has_bluetooth())
 		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
+	fdt_fixup_trustfence(fdt);
 }
