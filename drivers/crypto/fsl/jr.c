@@ -81,6 +81,9 @@ static void jr_initregs(void)
 
 static int jr_init(void)
 {
+	unsigned long start;
+	unsigned long size;
+
 	memset(&jr, 0, sizeof(struct jobring));
 
 	jr.jq_id = DEFAULT_JR_ID;
@@ -103,6 +106,18 @@ static int jr_init(void)
 	memset(jr.input_ring, 0, JR_SIZE * sizeof(dma_addr_t));
 	memset(jr.output_ring, 0, JR_SIZE * sizeof(struct op_ring));
 
+	start = (unsigned long)&jr & ~(ARCH_DMA_MINALIGN - 1);
+	size = roundup(sizeof(struct jobring), ARCH_DMA_MINALIGN);
+	flush_dcache_range(start, start + size);
+
+	size = roundup(JR_SIZE * sizeof(dma_addr_t), ARCH_DMA_MINALIGN);
+	flush_dcache_range((unsigned long)jr.input_ring,
+			   (unsigned long)jr.input_ring + size);
+
+	size = roundup(JR_SIZE * sizeof(struct op_ring), ARCH_DMA_MINALIGN);
+	flush_dcache_range((unsigned long)jr.output_ring,
+			   (unsigned long)jr.output_ring + size);
+
 	start_jr0();
 
 	jr_initregs();
@@ -112,6 +127,9 @@ static int jr_init(void)
 
 static int jr_sw_cleanup(void)
 {
+	unsigned long start;
+	unsigned long size;
+
 	jr.head = 0;
 	jr.tail = 0;
 	jr.read_idx = 0;
@@ -119,6 +137,18 @@ static int jr_sw_cleanup(void)
 	memset(jr.info, 0, sizeof(jr.info));
 	memset(jr.input_ring, 0, jr.size * sizeof(dma_addr_t));
 	memset(jr.output_ring, 0, jr.size * sizeof(struct op_ring));
+
+	start = (unsigned long)&jr & ~(ARCH_DMA_MINALIGN - 1);
+	size = roundup(sizeof(struct jobring), ARCH_DMA_MINALIGN);
+	flush_dcache_range(start, start + size);
+
+	size = roundup(JR_SIZE * sizeof(dma_addr_t), ARCH_DMA_MINALIGN);
+	flush_dcache_range((unsigned long)jr.input_ring,
+			   (unsigned long)jr.input_ring + size);
+
+	size = roundup(JR_SIZE * sizeof(struct op_ring), ARCH_DMA_MINALIGN);
+	flush_dcache_range((unsigned long)jr.output_ring,
+			   (unsigned long)jr.output_ring + size);
 
 	return 0;
 }
@@ -157,6 +187,8 @@ static int jr_enqueue(uint32_t *desc_addr,
 	       void (*callback)(uint32_t desc, uint32_t status, void *arg),
 	       void *arg)
 {
+	unsigned long start;
+	unsigned long size;
 	struct jr_regs *regs = (struct jr_regs *)CONFIG_SYS_FSL_JR0_ADDR;
 	int head = jr.head;
 	dma_addr_t desc_phys_addr = virt_to_phys(desc_addr);
@@ -171,18 +203,19 @@ static int jr_enqueue(uint32_t *desc_addr,
 	jr.info[head].arg = arg;
 	jr.info[head].op_done = 0;
 
-	unsigned long start = (unsigned long)&jr.info[head] &
-					~(ARCH_DMA_MINALIGN - 1);
-	unsigned long end = ALIGN(start + sizeof(struct jr_info),
-					ARCH_DMA_MINALIGN);
-	flush_dcache_range(start, end);
+	start = (unsigned long)jr.info & ~(ARCH_DMA_MINALIGN - 1);
+	size = roundup(sizeof(struct jr_info), ARCH_DMA_MINALIGN);
+	flush_dcache_range(start, start + size);
 
 	jr.input_ring[head] = desc_phys_addr;
-	start = (unsigned long)&jr.input_ring[head] & ~(ARCH_DMA_MINALIGN - 1);
-	end = ALIGN(start + sizeof(dma_addr_t), ARCH_DMA_MINALIGN);
-	flush_dcache_range(start, end);
+	size = roundup(JR_SIZE * sizeof(dma_addr_t), ARCH_DMA_MINALIGN);
+	flush_dcache_range((unsigned long)jr.input_ring,
+			   (unsigned long)jr.input_ring + size);
 
 	jr.head = (head + 1) & (jr.size - 1);
+	start = (unsigned long)&jr & ~(ARCH_DMA_MINALIGN - 1);
+	size = roundup(sizeof(struct jobring), ARCH_DMA_MINALIGN);
+	flush_dcache_range(start, start + size);
 
 	sec_out32(&regs->irja, 1);
 
@@ -199,13 +232,6 @@ static int jr_dequeue(void)
 	void *arg = NULL;
 
 	while (sec_in32(&regs->orsf) && CIRC_CNT(jr.head, jr.tail, jr.size)) {
-		unsigned long start = (unsigned long)jr.output_ring &
-					~(ARCH_DMA_MINALIGN - 1);
-		unsigned long end = ALIGN(start +
-					  sizeof(struct op_ring)*JR_SIZE,
-					  ARCH_DMA_MINALIGN);
-		invalidate_dcache_range(start, end);
-
 		found = 0;
 
 		dma_addr_t op_desc = jr.output_ring[jr.tail].desc;
@@ -264,8 +290,12 @@ int run_descriptor_jr(uint32_t *desc)
 	unsigned long long timeout = usec2ticks(CONFIG_SEC_DEQ_TIMEOUT);
 	struct result op;
 	int ret = 0;
+	unsigned long size = roundup(JR_SIZE * sizeof(struct op_ring), ARCH_DMA_MINALIGN);
 
 	memset(&op, 0, sizeof(op));
+
+	invalidate_dcache_range((unsigned long)jr.output_ring,
+				(unsigned long)jr.output_ring + size);
 
 	ret = jr_enqueue(desc, desc_done, &op);
 	if (ret) {
