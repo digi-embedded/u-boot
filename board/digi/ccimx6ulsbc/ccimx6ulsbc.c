@@ -32,6 +32,7 @@
 #include "../common/carrier_board.h"
 #include "../common/helper.h"
 #include "../common/hwid.h"
+#include "../common/mca_registers.h"
 
 #ifdef CONFIG_POWER
 #include <power/pmic.h>
@@ -213,6 +214,26 @@ int board_mmc_init(bd_t *bis)
 #endif
 
 #ifdef CONFIG_FEC_MXC
+void reset_phy()
+{
+	int reset = (1 << 7);	/* MCA_IO7 is connected to PHY reset */
+
+	/*
+	 * The reset line must be held low for a minimum of 100usec and cannot
+	 * be deasserted before 25ms have passed since the power supply has
+	 * reached 80% of the operating voltage. At this point of the code
+	 * we can assume the second premise is already accomplished.
+	 */
+
+	/* Configure as output */
+	mca_update_bits(MCA_CC6UL_GPIO_DIR_0, reset, reset);
+	/* Assert PHY reset (low) */
+	mca_update_bits(MCA_CC6UL_GPIO_DATA_0, reset, 0);
+	udelay(100);
+	/* Deassert PHY reset (high) */
+	mca_update_bits(MCA_CC6UL_GPIO_DATA_0, reset, reset);
+}
+
 int board_eth_init(bd_t *bis)
 {
 	int ret;
@@ -223,6 +244,8 @@ int board_eth_init(bd_t *bis)
 		CONFIG_FEC_MXC_PHYADDR, IMX_FEC_BASE);
 	if (ret)
 		printf("FEC%d MXC: %s:failed\n", CONFIG_FEC_ENET_DEV, __func__);
+
+	reset_phy();
 
 	return 0;
 }
