@@ -60,11 +60,7 @@
 #define CONFIG_APBH_DMA_BURST8
 #endif
 
-#ifdef CONFIG_SYS_USE_NAND
 #define CONFIG_SYS_FSL_USDHC_NUM	1
-#else
-#define CONFIG_SYS_FSL_USDHC_NUM	2
-#endif
 
 /* U-Boot Environment */
 #if defined(CONFIG_ENV_IS_IN_MMC)
@@ -186,7 +182,7 @@
 	""	/* end line */
 #endif
 
-#define CONFIG_SYS_MMC_ENV_DEV		1   /* USDHC2 */
+#define CONFIG_SYS_MMC_ENV_DEV		0   /* USDHC2 */
 #define CONFIG_SYS_MMC_ENV_PART		0	/* user area */
 #define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
 
