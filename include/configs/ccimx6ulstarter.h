@@ -118,6 +118,32 @@
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	CONFIG_EXTRA_NETWORK_SETTINGS \
 	"boot_fdt=yes\0" \
+	"bootargs_nfs=" \
+		"if test ${ip_dyn} = yes; then " \
+			"bootargs_ip=\"ip=dhcp\";" \
+		"else " \
+			"bootargs_ip=\"ip=\\${ipaddr}:\\${serverip}:" \
+			"\\${gatewayip}:\\${netmask}:\\${hostname}:" \
+			"eth0:off\";" \
+		"fi;\0" \
+	"bootargs_nfs_linux=run bootargs_nfs;" \
+		"setenv bootargs console=${console},${baudrate} " \
+		"${bootargs_linux} root=/dev/nfs " \
+		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
+		"${bootargs_once} ${extra_bootargs}\0" \
+	"bootargs_tftp=" \
+		"if test ${ip_dyn} = yes; then " \
+			"bootargs_ip=\"ip=dhcp\";" \
+		"else " \
+			"bootargs_ip=\"ip=\\${ipaddr}:\\${serverip}:" \
+			"\\${gatewayip}:\\${netmask}:\\${hostname}:" \
+			"eth0:off\";" \
+		"fi;\0" \
+	"bootargs_tftp_linux=run bootargs_tftp;" \
+		"setenv bootargs console=${console},${baudrate} " \
+		"${bootargs_linux} root=/dev/nfs " \
+		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
+		"${bootargs_once} ${extra_bootargs}\0" \
 	"console=" CONFIG_CONSOLE_PORT "\0" \
 	"fdt_addr=0x83000000\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
