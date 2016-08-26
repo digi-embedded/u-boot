@@ -199,6 +199,7 @@ config CSF_SIZE
 
 config UNLOCK_SRK_REVOKE
 	bool "Unlock the SRK_REVOKE eFuse field"
+	depends on SIGN_IMAGE
 	help
 	  In closed devices, HAB, by default, sets the SRK_REVOKE_LOCK sticky
 	  bit in the OCOTP controller to write protect the SRK_REVOKE eFuse
