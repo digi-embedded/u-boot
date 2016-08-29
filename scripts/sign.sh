@@ -30,17 +30,20 @@
 #
 #===============================================================================
 
+SCRIPT_NAME="$(basename ${0})"
+SCRIPT_PATH="$(cd $(dirname ${0}) && pwd)"
+
+if [ "${#}" != "2" ]; then
+	echo "Usage: ${SCRIPT_NAME} input-unsigned-uboot.imx output-signed-uboot.imx"
+	exit 1
+fi
+
 # Get enviroment variables from .config
-. .config
+[ -f .config ] && . .config
 
 # External tools are used, so UBOOT_PATH has to be absolute
 UBOOT_PATH="$(readlink -e $1)"
 TARGET="${2}"
-
-# The CST uses the same file as input and output.
-# We want to keep the original U-Boot image unmodified, so
-# make a copy of it and restore it as the last step.
-cp "${UBOOT_PATH}" "${UBOOT_PATH}-orig"
 
 # Check arguments
 if [ -z "${CONFIG_SIGN_KEYS_PATH}" ]; then
@@ -53,7 +56,7 @@ if [ -n "${CONFIG_DEK_PATH}" ] && [ -n "${ENABLE_ENCRYPTION}" ]; then
 	if [ ! -f "${CONFIG_DEK_PATH}" ]; then
 		echo "DEK not found. Generating random 256 bit DEK."
 		[ -d $(dirname ${CONFIG_DEK_PATH}) ] || mkdir -p $(dirname ${CONFIG_DEK_PATH})
-		dd if=/dev/urandom of="${CONFIG_DEK_PATH}" bs=32 count=1
+		dd if=/dev/urandom of="${CONFIG_DEK_PATH}" bs=32 count=1 >/dev/null 2>&1
 	fi
 	dek_size="$((8 * $(stat -L -c %s ${CONFIG_DEK_PATH})))"
 	if [ "${dek_size}" != "128" ] && [ "${dek_size}" != "192" ] && [ "${dek_size}" != "256" ]; then
@@ -65,12 +68,14 @@ fi
 
 if [ -n "${NO_DCD}" ]; then
 	# Null the DCD pointer in the IVT.
-	printf '\x0\x0\x0\x0' | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=3
+	ivt_dcd=$(hexdump -n 4 -s 12 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
+	printf '\x0\x0\x0\x0' | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=3 >/dev/null 2>&1
 fi
 
 # Default values
 [ -z "${CONFIG_KEY_INDEX}" ] && CONFIG_KEY_INDEX="0"
 CONFIG_KEY_INDEX_1="$((CONFIG_KEY_INDEX + 1))"
+[ -z "${CONFIG_CSF_SIZE}" ] && CONFIG_CSF_SIZE="0x4000"
 
 SRK_KEYS="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/SRK*crt.pem | sed s/\ /\,/g)"
 CERT_CSF="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/CSF${CONFIG_KEY_INDEX_1}*crt.pem)"
@@ -108,25 +113,23 @@ PADDED_UBOOT_PATH="$(pwd)/u-boot-pad.imx"
 IVT_OFFSET="0"
 UBOOT_START_OFFSET="0x400"
 
-# Parse uboot IVT
+# Parse uboot IVT and size
 ivt_self=$(hexdump -n 4 -s 20 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
 ivt_csf=$(hexdump -n 4 -s 24 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
 ddr_addr=$(hexdump -n 4 -s 32 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
+uboot_size="$(stat -c %s ${UBOOT_PATH})"
 
 # If the U-Boot Image Vector Table contains a nulled CSF pointer, assume that
 # the CSF will be appended at the end. This is the case when using the script
 # outside the compilation process, to sign existing U-Boot images.
 if [ $((ivt_csf)) -eq 0 ]; then
-	echo "IVT contains null CSF pointer. Assuming attached CSF..."
 	ivt_csf="$((uboot_size + ddr_addr + UBOOT_START_OFFSET))"
-	printf $(printf "%08x" ${ivt_csf} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6
+	printf $(printf "%08x" ${ivt_csf} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6 >/dev/null 2>&1
 	# It is also necessary to adjust the size of the image to take into account
 	# the overhead of the CSF block.
 	image_size=$(hexdump -n 4 -s 36 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
 	image_size=$((image_size + CONFIG_CSF_SIZE))
-	printf $(printf "%08x" ${image_size} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=9
-
-	echo "IVT CSF pointer set to: ${ivt_csf}"
+	printf $(printf "%08x" ${image_size} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=9 >/dev/null 2>&1
 fi
 
 # Compute dek blob size in bytes:
@@ -134,7 +137,6 @@ fi
 dek_blob_size="$((8 + 32 + 16 + dek_size/8))"
 
 # Compute the layout: sizes and offsets.
-uboot_size="$(stat -c %s ${UBOOT_PATH})"
 pad_len="$((ivt_csf - ivt_self))"
 sig_len="$((pad_len + CONFIG_CSF_SIZE))"
 auth_len="$((pad_len - IVT_OFFSET))"
@@ -168,7 +170,7 @@ if [ "${ENCRYPT}" = "true" ]; then
 	    -e "s,%ram_decrypt_start%,${ram_decrypt_start},g"  \
 	    -e "s,%image_decrypt_offset%,${ENCRYPT_START},g"   \
 	    -e "s,%decrypt_len%,${decrypt_len},g"	       \
-	${srctree}/scripts/csf_encrypt_template > csf_descriptor
+	${SCRIPT_PATH}/csf_templates/encrypt_uboot > csf_descriptor
 else
 	sed -e "s,%ram_start%,${ivt_start},g"	       \
 	    -e "s,%srk_table%,${SRK_TABLE},g"	       \
@@ -178,7 +180,7 @@ else
 	    -e "s,%cert_img%,${CERT_IMG},g"	       \
 	    -e "s,%uboot_path%,${PADDED_UBOOT_PATH},g" \
 	    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"   \
-	${srctree}/scripts/csf_sign_template > csf_descriptor
+	${SCRIPT_PATH}/csf_templates/sign_uboot > csf_descriptor
 fi
 
 # If requested, instruct HAB not to protect the SRK_REVOKE OTP field
@@ -200,7 +202,7 @@ fi
 objcopy -I binary -O binary --pad-to "${pad_len}" --gap-fill="${GAP_FILLER}" "${UBOOT_PATH}" u-boot-pad.imx
 
 CURRENT_PATH="$(pwd)"
-cst -o "${CURRENT_PATH}/u-boot_csf.bin" -i "${CURRENT_PATH}/csf_descriptor"
+cst -o "${CURRENT_PATH}/u-boot_csf.bin" -i "${CURRENT_PATH}/csf_descriptor" > /dev/null
 if [ $? -ne 0 ]; then
 	echo "[ERROR] Could not generate CSF"
 	exit 1
@@ -215,9 +217,10 @@ fi
 
 objcopy -I binary -O binary --pad-to "${sig_len}" --gap-fill="${GAP_FILLER}"  u-boot-signed-no-pad.imx "${TARGET}"
 
-# Restore the original U-Boot image to undo any transformations that have been made during
-# the signature/encryption process.
-mv "${UBOOT_PATH}-orig" "${UBOOT_PATH}"
+# If previously nulled, restore DCD pointer.
+if [ -n "${NO_DCD}" ]; then
+	printf $(printf "%08x" ${ivt_dcd} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=3 >/dev/null 2>&1
+fi
 
 # When CONFIG_CSF_SIZE is defined, the CSF pointer on the
 # IVT is set to the CSF future location. The final image has the CSF block
@@ -229,12 +232,15 @@ mv "${UBOOT_PATH}-orig" "${UBOOT_PATH}"
 
 # Erase the CSF pointer of the unsigned artifact to avoid that problem.
 # Note: this pointer is set during compilation, not in this script.
-printf '\x0\x0\x0\x0' | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6
+printf '\x0\x0\x0\x0' | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6 >/dev/null 2>&1
 
 # The $UBOOT_PATH artifact is not signed, so the size of the image
 # needs to be adjusted substracting the CSF_SIZE
 image_size=$(hexdump -n 4 -s 36 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
 image_size=$((image_size - CONFIG_CSF_SIZE))
-printf $(printf "%08x" ${image_size} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=9
+printf $(printf "%08x" ${image_size} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=9 >/dev/null 2>&1
+
+[ "${ENCRYPT}" = "true" ] && ENCRYPTED_MSG="and encrypted "
+echo "Signed ${ENCRYPTED_MSG}image ready: ${TARGET}"
 
 rm -f "${SRK_TABLE}" csf_descriptor u-boot_csf.bin u-boot-pad.imx u-boot-signed-no-pad.imx 2> /dev/null
