@@ -34,7 +34,7 @@ config CONSOLE_ENABLE_GPIO_NR
 	  Use one of the GPIO_N lines available on the board to enable the console port:
 	  GPIO_N lines are available:
 	    On the ConnectCore 6 SBC, on GPIO connector
-	    On the ConnectCore 6UL StarterBoard, on Raspberry-Pi expansion connector
+	    On the ConnectCore 6UL Starter Board, on Raspberry-Pi expansion connector
 	    On the ConnectCore 6UL SBC, on GPIO connector
 
 config CONSOLE_ENABLE_PASSPHRASE

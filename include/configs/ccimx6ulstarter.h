@@ -11,7 +11,7 @@
 
 #include "ccimx6ul_common.h"
 
-#define CONFIG_BOARD_DESCRIPTION	"ConnectCore 6UL StarterBoard"
+#define CONFIG_BOARD_DESCRIPTION	"ConnectCore 6UL Starter Board"
 
 /* uncomment for PLUGIN mode support */
 /* #define CONFIG_USE_PLUGIN */

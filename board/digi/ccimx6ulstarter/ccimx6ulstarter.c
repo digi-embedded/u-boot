@@ -143,8 +143,8 @@ static iomux_v3_cfg_t const fec1_pads[] = {
 	MX6_PAD_ENET1_RX_ER__ENET1_RX_ER | MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_ENET1_RX_EN__ENET1_RX_EN | MUX_PAD_CTRL(ENET_PAD_CTRL),
 	/*
-	 * GPIO3_IO2 is used as PHY reset in StarterBoard v1 and as PHY power
-	 * enable on StarterBoard v2
+	 * GPIO3_IO2 is used as PHY reset in Starter Board v1 and as PHY power
+	 * enable on Starter Board v2
 	 */
 	MX6_PAD_LCD_HSYNC__GPIO3_IO02 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
