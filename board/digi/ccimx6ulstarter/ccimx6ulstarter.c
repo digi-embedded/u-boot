@@ -415,6 +415,9 @@ int board_init(void)
 	ccimx6ul_init();
 
 	board_version = get_carrierboard_version();
+	/* Treat Starter Board version 1 (prototypes) as version 2 */
+	if (board_version == 1)
+		board_version = 2;
 	board_id = get_carrierboard_id();
 
 #ifdef CONFIG_I2C_MULTI_BUS
