@@ -52,6 +52,9 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+extern unsigned int board_version;
+extern unsigned int board_id;
+
 struct ccimx6_hwid my_hwid;
 static block_dev_desc_t *mmc_dev;
 static int mmc_dev_index = -1;
@@ -1037,8 +1040,6 @@ static void verify_mac_address(char *var, char *default_mac)
 
 static void ccimx6_detect_spurious_wakeup(void)
 {
-	unsigned int board_id = get_carrierboard_id();
-	unsigned int board_version = get_carrierboard_version();
 	unsigned char event_a, event_b, event_c, event_d, fault_log;
 
 	/* Check whether we come from a shutdown state */
