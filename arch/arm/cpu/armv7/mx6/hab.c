@@ -140,7 +140,7 @@ uint32_t authenticate_image(uint32_t ddr_start, uint32_t image_size)
 	hab_rvt_exit = hab_rvt_exit_p;
 
 	if (is_hab_enabled()) {
-		printf("\nAuthenticate image from DDR location 0x%x...\n",
+		printf("   Authenticating image from DDR location 0x%x... ",
 		       ddr_start);
 
 		hab_caam_clock_enable(1);
@@ -206,23 +206,29 @@ uint32_t authenticate_image(uint32_t ddr_start, uint32_t image_size)
 					HAB_CID_UBOOT,
 					ivt_offset, (void **)&start,
 					(size_t *)&bytes, NULL);
-			if (hab_rvt_exit() != HAB_SUCCESS) {
-				puts("hab exit function fail\n");
+			if (load_addr == 0) {
+				printf("FAILED!\n");
+			} else if (hab_rvt_exit() != HAB_SUCCESS) {
+				puts("FAILED!\nhab exit function fail\n");
 				load_addr = 0;
 			}
 		} else {
-			puts("hab entry function fail\n");
+			puts("FAILED!\nhab entry function fail\n");
 		}
 
 		hab_caam_clock_enable(0);
 
-		get_hab_status();
 	} else {
-		puts("hab fuse not enabled\n");
+		puts("   Open device, skipping authentication...\n");
+		return 1;
 	}
 
-	if ((!is_hab_enabled()) || (load_addr != 0))
+	if ((!is_hab_enabled()) || (load_addr != 0)) {
+		printf("OK\n");
 		result = 1;
+	} else {
+		get_hab_status();
+	}
 
 	return result;
 }
