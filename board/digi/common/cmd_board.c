@@ -78,6 +78,13 @@ __weak void fdt_fixup_carrierboard(void *fdt)
 	char str[20];
 #endif
 
+	/*
+	 * Re-read board version/ID in case the shadow registers were
+	 * overridden by the user.
+	 */
+	board_version = get_carrierboard_version();
+	board_id = get_carrierboard_id();
+
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
 	sprintf(str, "%d", board_version);
 	do_fixup_by_path(fdt, "/", "digi,carrierboard,version", str,
