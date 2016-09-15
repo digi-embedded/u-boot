@@ -19,6 +19,10 @@
 #include <mapmem.h>
 #include <asm/io.h>
 
+#ifdef CONFIG_SECURE_BOOT
+#include <asm/mach-imx/hab.h>
+#endif
+
 #ifndef CONFIG_SYS_FDT_PAD
 #define CONFIG_SYS_FDT_PAD 0x3000
 #endif
@@ -451,6 +455,13 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 	*of_size = fdt_totalsize(fdt_blob);
 	debug("   of_flat_tree at 0x%08lx size 0x%08lx\n",
 	      (ulong)*of_flat_tree, *of_size);
+
+#ifdef CONFIG_SECURE_BOOT
+	if (authenticate_image((uintptr_t)*of_flat_tree, *of_size) != 0) {
+		printf("Device Tree authentication failed\n");
+		goto error;
+	}
+#endif
 
 	return 0;
 
