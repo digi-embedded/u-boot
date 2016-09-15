@@ -182,6 +182,7 @@ config SECURE_BOOT
 
 	  * only signed kernel images are booted.
 	  * only signed FDTs can be used.
+	  * only signed ramdisks can be used.
 
 	  This setting has no effect on open devices.
 
