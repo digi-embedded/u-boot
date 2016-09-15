@@ -20,6 +20,10 @@
 #define CONFIG_SYS_FDT_PAD 0x3000
 #endif
 
+#ifdef CONFIG_SECURE_BOOT
+extern uint32_t authenticate_image(uint32_t ddr_start, uint32_t image_size);
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 static void fdt_error(const char *msg)
@@ -452,6 +456,13 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 	*of_size = fdt_totalsize(fdt_blob);
 	debug("   of_flat_tree at 0x%08lx size 0x%08lx\n",
 	      (ulong)*of_flat_tree, *of_size);
+
+#ifdef CONFIG_SECURE_BOOT
+	if (authenticate_image((uint32_t)*of_flat_tree, *of_size) == 0) {
+		printf("Device Tree authentication failed\n");
+		goto error;
+	}
+#endif
 
 	return 0;
 
