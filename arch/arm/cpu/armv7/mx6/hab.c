@@ -9,6 +9,7 @@
 #include <asm/system.h>
 #include <asm/arch/hab.h>
 #include <asm/arch/clock.h>
+#include <fuse.h>
 
 #define IVT_SIZE		0x20
 #define ALIGN_SIZE		0x1000
@@ -50,13 +51,15 @@
 
 bool is_hab_enabled(void)
 {
-	struct ocotp_regs *ocotp = (struct ocotp_regs *)OCOTP_BASE_ADDR;
-	struct fuse_bank *bank = &ocotp->bank[0];
-	struct fuse_bank0_regs *fuse =
-		(struct fuse_bank0_regs *)bank->fuse_regs;
-	uint32_t reg = readl(&fuse->cfg5);
+	u32 val;
+	if (fuse_sense(CONFIG_TRUSTFENCE_CLOSE_BIT_BANK,
+		   CONFIG_TRUSTFENCE_CLOSE_BIT_WORD, &val)) {
+		printf("[ERROR] Cannot check device status. Assuming closed...\n");
+		return 1;
+	}
 
-	return (reg & 0x2) == 0x2;
+	return (val & CONFIG_TRUSTFENCE_CLOSE_BIT_MASK) ==
+		CONFIG_TRUSTFENCE_CLOSE_BIT_MASK;
 }
 
 void display_event(uint8_t *event_data, size_t bytes)
