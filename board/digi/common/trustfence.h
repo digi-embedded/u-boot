@@ -18,6 +18,7 @@ int console_enable_gpio(int gpio);
 int console_enable_passphrase(void);
 #endif
 
+int is_uboot_encrypted(void);
 void copy_dek(void);
 #endif /* CONFIG_HAS_TRUSTFENCE */
 

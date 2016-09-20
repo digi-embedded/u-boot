@@ -51,6 +51,53 @@
 #endif
 
 /*
+ * Copy the DEK blob used by the current U-Boot image into a buffer. Also
+ * get its size in the last out parameter.
+ * Possible DEK key sizes are 128, 192 and 256 bits.
+ * DEK blobs have an overhead of 56 bytes.
+ * Hence, possible DEK blob sizes are 72, 80 and 88 bytes.
+ *
+ * The output buffer should be at least MAX_DEK_BLOB_SIZE (88) bytes long to
+ * prevent out of boundary access.
+ *
+ * Returns 0 if the DEK blob was found, 1 otherwise.
+ */
+static int get_dek_blob(char *output, u32 *size) {
+	u32 *csf_addr = (u32 *)UBOOT_START_ADDR + CSF_IVT_WORD_OFFSET;
+
+	if (*csf_addr) {
+		int blob_size = MAX_DEK_BLOB_SIZE;
+		uint8_t *dek_blob = (uint8_t *)(*csf_addr + CONFIG_CSF_SIZE - blob_size);
+
+		/*
+		 * Several DEK sizes can be used.
+		 * Determine the size and the start of the DEK blob by looking
+		 * for its header.
+		 */
+		while (*dek_blob != HDR_TAG && blob_size > 0) {
+			dek_blob += 8;
+			blob_size -= 8;
+		}
+
+		if (blob_size > 0) {
+			*size = blob_size;
+			memcpy(output, dek_blob, blob_size);
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+int is_uboot_encrypted() {
+	char dek_blob[MAX_DEK_BLOB_SIZE];
+	u32 dek_blob_size;
+
+	/* U-Boot is encrypted if and only if get_dek_blob does not fail */
+	return !get_dek_blob(dek_blob, &dek_blob_size);
+}
+
+/*
  * For secure OS, we want to have the DEK blob in a common absolute
  * memory address, so that there are no dependencies between the CSF
  * appended to the uImage and the U-Boot image size.
@@ -60,27 +107,11 @@
  */
 void copy_dek(void)
 {
-	u32 *csf_addr = (u32 *)UBOOT_START_ADDR + CSF_IVT_WORD_OFFSET;
+	u32 loadaddr = getenv_ulong("loadaddr", 16, load_addr);
+	void *dek_blob_dst = (void *)(loadaddr - BLOB_DEK_OFFSET);
+	u32 dek_size;
 
-	if (*csf_addr) {
-		u32 loadaddr = getenv_ulong("loadaddr", 16, load_addr);
-		int blob_size = MAX_DEK_BLOB_SIZE;
-		uint8_t *dek_blob = (uint8_t *)(*csf_addr + CONFIG_CSF_SIZE - blob_size);
-		void *dek_blob_dst = (void *)(loadaddr - BLOB_DEK_OFFSET);
-
-		/*
-		 * Several DEK sizes can be used (128, 192 or 256 bits).
-		 * Determine the size and the start of the DEK blob by looking
-		 * for its header.
-		 */
-		while (*dek_blob != HDR_TAG && blob_size > 0) {
-			dek_blob += 8;
-			blob_size -= 8;
-		}
-
-		if (blob_size > 0)
-			memcpy(dek_blob_dst, dek_blob, blob_size);
-	}
+	get_dek_blob(dek_blob_dst, &dek_size);
 }
 
 /*
