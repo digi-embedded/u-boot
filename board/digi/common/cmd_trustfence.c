@@ -497,7 +497,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		enum hab_config config = 0;
 		enum hab_state state = 0;
 
-		printf("* SRK fuses:\t");
+		printf("* SRK fuses:\t\t");
 		ret = fuse_check_srk();
 		if (ret > 0) {
 			printf("[NOT PROGRAMMED]\n");
@@ -511,16 +511,19 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			goto err;
 		for (key_index = 0; key_index < CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS;
 		     key_index++) {
-			printf("   Key %d:\t", key_index);
+			printf("   Key %d:\t\t", key_index);
 			printf((val[0] & (1 << key_index) ?
 			       "[REVOKED]\n" : "[OK]\n"));
 		}
-		printf("   Key %d:\t[OK]\n", CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS);
+		printf("   Key %d:\t\t[OK]\n", CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS);
 
-		printf("* Secure boot:\t%s", is_hab_enabled() ?
+		printf("* Secure boot:\t\t%s", is_hab_enabled() ?
 		       "[CLOSED]\n" : "[OPEN]\n");
 
-		puts("* HAB events:\t");
+		printf("* Encrypted U-Boot:\t%s\n", is_uboot_encrypted() ?
+			"[YES]" : "[NO]");
+
+		puts("* HAB events:\t\t");
 		if (hab_report_status(&config, &state) == HAB_SUCCESS)
 			puts("[NO ERRORS]\n");
 		else
