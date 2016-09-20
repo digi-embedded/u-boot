@@ -536,6 +536,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		unsigned long dek_blob_src;
 		unsigned long dek_blob_dst;
 		unsigned long dek_blob_final_dst;
+		int generate_dek_blob;
 
 		argv -= 2 + confirmed;
 		argc += 2 + confirmed;
@@ -547,9 +548,9 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		if (get_source(argc, argv, &fwinfo))
 			return CMD_RET_FAILURE;
 
-		if (!((fwinfo.src == SRC_MMC && argc ==	6) ||
+		if (!((fwinfo.src == SRC_MMC && argc >= 5 ) ||
 		     ((fwinfo.src == SRC_TFTP || fwinfo.src == SRC_NFS) &&
-			argc == 5)))
+			argc >= 4)))
 			return CMD_RET_USAGE;
 
 		printf("\nLoading encrypted U-Boot image...\n");
@@ -577,34 +578,50 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		dek_blob_dst = dek_blob_src + 0x400;
 
 		printf("\nLoading Data Encryption Key...\n");
-		if (argc == 5) {
+		if ((fwinfo.src == SRC_TFTP || fwinfo.src == SRC_NAND) &&
+		    argc >= 5) {
 			sprintf(cmd_buf, "%s 0x%lx %s", argv[2], dek_blob_src,
 				argv[4]);
-		} else { /* argc == 4 */
+			generate_dek_blob = 1;
+		} else if (fwinfo.src == SRC_MMC && argc >= 6) {
 			sprintf(cmd_buf, "load mmc %s 0x%lx %s", argv[3],
 				dek_blob_src, argv[5]);
+			generate_dek_blob = 1;
+		} else {
+			u32 dek_blob_size;
+
+			if (get_dek_blob((void *)dek_blob_final_dst, &dek_blob_size)) {
+				printf("Current U-Boot does not contain a DEK, and a new DEK was not provided\n");
+				return CMD_RET_FAILURE;
+			}
+			printf("Using current DEK\n");
+			filesize = dek_blob_size;
+			generate_dek_blob = 0;
 		}
-		if (run_command(cmd_buf, 0))
-			return CMD_RET_FAILURE;
-		filesize = getenv_ulong("filesize", 16, 0);
 
-		printf("\nGenerating DEK blob...\n");
-		/* dek_blob takes size in bits */
-		sprintf(cmd_buf, "dek_blob 0x%lx 0x%lx 0x%lx",
-			dek_blob_src, dek_blob_dst, filesize * 8);
-		if (run_command(cmd_buf, 0))
-			return CMD_RET_FAILURE;
+		if (generate_dek_blob) {
+			if (run_command(cmd_buf, 0))
+				return CMD_RET_FAILURE;
+			filesize = getenv_ulong("filesize", 16, 0);
 
-		/*
-		 * Set filesize to the size of the DEK blob, that is:
-		 * header (8 bytes) + random AES-256 key (32 bytes)
-		 * + DEK ('filesize' bytes) + MAC (16 bytes)
-		 */
-		filesize += 8 + 32 + 16;
+			printf("\nGenerating DEK blob...\n");
+			/* dek_blob takes size in bits */
+			sprintf(cmd_buf, "dek_blob 0x%lx 0x%lx 0x%lx",
+				dek_blob_src, dek_blob_dst, filesize * 8);
+			if (run_command(cmd_buf, 0))
+				return CMD_RET_FAILURE;
 
-		/* Copy DEK blob to its final destination */
-		memcpy((void *)dek_blob_final_dst, (void *)dek_blob_dst,
-			filesize);
+			/*
+			 * Set filesize to the size of the DEK blob, that is:
+			 * header (8 bytes) + random AES-256 key (32 bytes)
+			 * + DEK ('filesize' bytes) + MAC (16 bytes)
+			 */
+			filesize += 8 + 32 + 16;
+
+			/* Copy DEK blob to its final destination */
+			memcpy((void *)dek_blob_final_dst, (void *)dek_blob_dst,
+				filesize);
+		}
 
 		printf("\nFlashing U-Boot partition...\n");
 		sprintf(cmd_buf, "update uboot ram 0x%lx 0x%lx",
@@ -780,7 +797,9 @@ U_BOOT_CMD(
 	"\n\tsource=mmc -> <dev:part> <uboot_file> <dek_file>\n"
 	"\t\t - <dev:part>: number of device and partition\n"
 	"\t\t - <uboot_file>: name of the encrypted uboot image\n"
-	"\t\t - <dek_file>: name of the Data Encryption Key (DEK) in plain text\n"
+	"\t\t - <dek_file>: name of the Data Encryption Key (DEK) in plain text.\n"
+	"\t\t               If the current U-Boot is encrypted, this parameter can\n"
+	"\t\t               be skipped and the current DEK will be used\n"
 	"\nWARNING: These commands (except 'status' and 'update') burn the"
 	" eFuses.\nThey are irreversible and could brick your device.\n"
 	"Make sure you know what you do before playing with this command.\n"
