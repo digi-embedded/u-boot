@@ -249,7 +249,6 @@ static int do_authenticate_image(cmd_tbl_t *cmdtp, int flag, int argc,
 				char * const argv[])
 {
 	ulong	addr, ivt_offset;
-	int	rcode = 0;
 
 	if (argc < 3)
 		return CMD_RET_USAGE;
@@ -257,9 +256,10 @@ static int do_authenticate_image(cmd_tbl_t *cmdtp, int flag, int argc,
 	addr = simple_strtoul(argv[1], NULL, 16);
 	ivt_offset = simple_strtoul(argv[2], NULL, 16);
 
-	rcode = authenticate_image(addr, ivt_offset);
-
-	return rcode;
+	if (authenticate_image(addr, ivt_offset) == 1) 
+		return CMD_RET_SUCCESS;
+	else
+		return CMD_RET_FAILURE;
 }
 
 U_BOOT_CMD(
