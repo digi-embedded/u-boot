@@ -2,6 +2,10 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
+dub-2015.04-r4.7, released on 2016/09/13
+	- Fix reading of board version/ID on ConnectCore 6UL Starter Board.
+
+
 dub-2015.04-r4.5, released on 2016/08/10
 	- Added support for ConnectCore 6UL SOM on Starter Board.
 	- Based on upstream version v2015.04 plus NXP release tag

@@ -46,6 +46,8 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 static int phy_addr;
+unsigned int board_version = CARRIERBOARD_VERSION_UNDEFINED;
+unsigned int board_id = CARRIERBOARD_ID_UNDEFINED;
 
 #define UART_PAD_CTRL  (PAD_CTL_PKE | PAD_CTL_PUE |            \
 	PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED |               \
@@ -255,7 +257,7 @@ int board_eth_init(bd_t *bis)
 
 static int board_has_audio(void)
 {
-	switch(get_carrierboard_id()) {
+	switch(board_id) {
 	case CCIMX6SBC_ID129:
 	case CCIMX6SBC_ID130:
 		return 1;
@@ -266,8 +268,6 @@ static int board_has_audio(void)
 
 static void setup_board_audio(void)
 {
-	unsigned int board_id = get_carrierboard_id();
-
 	/*
 	 * The codec does not have a reset line so after a reset the
 	 * ADC may be active and spitting noise.
@@ -283,7 +283,7 @@ static void setup_board_audio(void)
 
 	/* SBC version 2 and later use a GPIO to power enable the audio codec */
 	if (((board_id == CCIMX6SBC_ID129) || (board_id == CCIMX6SBC_ID130)) &&
-	    get_carrierboard_version() >= 2) {
+	    board_version >= 2) {
 		int pwren_gpio = IMX_GPIO_NR(2, 25);
 
 		/* Power enable line IOMUX */
@@ -356,6 +356,10 @@ int board_init(void)
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 
 	ccimx6_init();
+
+	board_version = get_carrierboard_version();
+	board_id = get_carrierboard_id();
+
 #ifdef CONFIG_CMD_SATA
 	setup_iomux_sata();
 #endif
@@ -375,8 +379,6 @@ int checkboard(void)
 
 static int board_fixup(void)
 {
-	unsigned int board_version = get_carrierboard_version();
-
 	/* Mask the CHG_WAKE interrupt. This pin should be grounded
 	 * if unused. */
 	if (pmic_write_bitfield(DA9063_IRQ_MASK_B_ADDR, 0x1, 0, 0x1)) {
@@ -398,8 +400,6 @@ static int board_fixup(void)
 int board_late_init(void)
 {
 	int ret;
-	unsigned int board_version = get_carrierboard_version();
-	unsigned int board_id = get_carrierboard_id();
 	char cmd[80];
 
 	/* Set $board_version variable if defined in OTP bits */

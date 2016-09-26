@@ -27,6 +27,14 @@
 #include <asm/errno.h>
 #include "helper.h"
 
+#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
+extern unsigned int board_version;
+#endif
+
+#ifdef CONFIG_HAS_CARRIERBOARD_ID
+extern unsigned int board_id;
+#endif
+
 __weak unsigned int get_carrierboard_version(void)
 {
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
@@ -70,14 +78,21 @@ __weak void fdt_fixup_carrierboard(void *fdt)
 	char str[20];
 #endif
 
+	/*
+	 * Re-read board version/ID in case the shadow registers were
+	 * overridden by the user.
+	 */
+	board_version = get_carrierboard_version();
+	board_id = get_carrierboard_id();
+
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
-	sprintf(str, "%d", get_carrierboard_version());
+	sprintf(str, "%d", board_version);
 	do_fixup_by_path(fdt, "/", "digi,carrierboard,version", str,
 			 strlen(str) + 1, 1);
 #endif
 
 #ifdef CONFIG_HAS_CARRIERBOARD_ID
-	sprintf(str, "%d", get_carrierboard_id());
+	sprintf(str, "%d", board_id);
 	do_fixup_by_path(fdt, "/", "digi,carrierboard,id", str,
 			 strlen(str) + 1, 1);
 #endif
@@ -85,12 +100,6 @@ __weak void fdt_fixup_carrierboard(void *fdt)
 
 __weak void print_carrierboard_info(void)
 {
-#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
-	int board_version = get_carrierboard_version();
-#endif
-#ifdef CONFIG_HAS_CARRIERBOARD_ID
-	int board_id = get_carrierboard_id();
-#endif
 	char board_str[100];
 	char warnings[100] = "";
 
