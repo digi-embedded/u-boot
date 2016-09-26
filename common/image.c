@@ -35,13 +35,9 @@
 
 #include <u-boot/md5.h>
 #include <u-boot/sha1.h>
+#include <asm/arch/hab.h>
 #include <asm/errno.h>
 #include <asm/io.h>
-
-#ifdef CONFIG_SECURE_BOOT
-extern uint32_t authenticate_image(uint32_t ddr_start, uint32_t image_size);
-extern bool is_hab_enabled(void);
-#endif
 
 #ifdef CONFIG_CMD_BDI
 extern int do_bdinfo(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);

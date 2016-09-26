@@ -9,6 +9,7 @@
 #define __SECURE_MX6Q_H__
 
 #include <linux/types.h>
+#include <common.h>
 #include <asm/arch/sys_proto.h>
 
 /* -------- start of HAB API updates ------------*/
@@ -144,6 +145,22 @@ typedef void hapi_clock_init_t(void);
 #define HAB_CID_UBOOT 1 /**< UBOOT Caller ID*/
 /* ----------- end of HAB API updates ------------*/
 
+/*
+ * Check if the device is closed.
+ * @return: 1 if the device is closed, 0 otherwise.
+ */
 bool is_hab_enabled(void);
+
+/*
+ * Authenticate and decrypt binary.
+ * @ddr_start: memory address of the binary to be authenticated
+ * @image_size: binary size, excluding CSF block.
+ * @return: 1 if the authentication was successful.
+ *
+ * Note: the IVT must be attached at the end of the image and padded
+ *       to 0x1000. The CSF block must be attached after the IVT.
+ * Note: On open devices, this method always returns 1.
+ */
+uint32_t authenticate_image(uint32_t ddr_start, uint32_t image_size);
 
 #endif

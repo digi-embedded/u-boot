@@ -28,6 +28,7 @@
 #include <fsl_fastboot.h>
 #include <mmc.h>
 #include <android_image.h>
+#include <asm/arch/hab.h>
 #include <asm/bootm.h>
 #include <nand.h>
 #include <aboot.h>
@@ -1635,9 +1636,6 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		addr = load_addr;
 
 #ifdef CONFIG_SECURE_BOOT
-		extern uint32_t authenticate_image(uint32_t ddr_start,
-				uint32_t image_size);
-
 		if (authenticate_image(load_addr, image_size)) {
 			printf("Authenticate OK\n");
 		} else {
@@ -1705,9 +1703,6 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 #endif /*CONFIG_SECURE_BOOT*/
 
 #ifdef CONFIG_SECURE_BOOT
-		extern uint32_t authenticate_image(uint32_t ddr_start,
-				uint32_t image_size);
-
 		if (authenticate_image(addr, image_size)) {
 			printf("Authenticate OK\n");
 		} else {

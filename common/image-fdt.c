@@ -14,14 +14,11 @@
 #include <errno.h>
 #include <image.h>
 #include <libfdt.h>
+#include <asm/arch/hab.h>
 #include <asm/io.h>
 
 #ifndef CONFIG_SYS_FDT_PAD
 #define CONFIG_SYS_FDT_PAD 0x3000
-#endif
-
-#ifdef CONFIG_SECURE_BOOT
-extern uint32_t authenticate_image(uint32_t ddr_start, uint32_t image_size);
 #endif
 
 DECLARE_GLOBAL_DATA_PTR;
