@@ -173,7 +173,7 @@
 	"install_linux_fw_sd=if load mmc 0 ${loadaddr} install_linux_fw_sd.scr;then " \
 			"source ${loadaddr};" \
 		"fi;\0" \
-	"linux_file=core-image-base-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
+	"linux_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
 	"loadscript=" \
 		"if ubi part " CONFIG_LINUX_PARTITION "; then " \
 			"if ubifsmount ubi0:" CONFIG_LINUX_PARTITION"; then " \
@@ -192,7 +192,7 @@
 				CONFIG_DBOOT_BOOTCOMMAND " ${loadaddr} ${initrd_addr} ${fdt_addr};" \
 			"fi;" \
 		"fi;\0" \
-	"rootfs_file=core-image-base-" CONFIG_SYS_BOARD ".ubifs\0" \
+	"rootfs_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".ubifs\0" \
 	""	/* end line */
 #else
 #define CONFIG_EXTRA_ENV_SETTINGS \
