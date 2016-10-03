@@ -183,8 +183,8 @@
 	"mtdlinuxindex=" CONFIG_ENV_MTD_LINUX_INDEX "\0" \
 	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
 	"recoverycmd=" \
-		"if ubi part " CONFIG_RECOVERY_PARTITION "; then" \
-			"if ubifsmount ubi0:" CONFIG_RECOVERY_PARTITION "; then" \
+		"if ubi part " CONFIG_RECOVERY_PARTITION "; then " \
+			"if ubifsmount ubi0:" CONFIG_RECOVERY_PARTITION "; then " \
 				"ubifsload ${loadaddr} ${" CONFIG_DBOOT_DEFAULTKERNELVAR "};" \
 				"ubifsload ${fdt_addr} ${fdt_file};" \
 				"ubifsload ${initrs_addr} ${initrd_file};" \
