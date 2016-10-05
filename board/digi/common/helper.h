@@ -59,5 +59,6 @@ void fdt_fixup_mac(void *fdt, char *varname, char *node, char *property);
 int load_firmware(struct load_fw *fwinfo);
 const char *get_filename_ext(const char *filename);
 void strtohex(char *in, unsigned long *out, int len);
+void verify_mac_address(char *var, char *default_mac);
 
 #endif  /* __DIGI_HELPER_H */

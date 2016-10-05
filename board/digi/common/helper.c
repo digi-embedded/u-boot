@@ -588,3 +588,20 @@ void strtohex(char *in, unsigned long *out, int len)
 		out[j] = cpu_to_be32(simple_strtol(tmp, NULL, 16));
 	}
 }
+
+/*
+ * Verifies if a MAC address has a default value (dummy) and prints a warning
+ * if so.
+ * @var: Variable to check
+ * @default_mac: Default MAC to check with (as a string)
+ */
+void verify_mac_address(char *var, char *default_mac)
+{
+	char *mac;
+
+	mac = getenv(var);
+	if (NULL == mac)
+		printf("Warning! MAC not set in '%s'\n", var);
+	else if (!strcmp(mac, default_mac))
+		printf("Warning! Dummy default MAC in '%s'\n", var);
+}
