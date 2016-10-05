@@ -601,7 +601,7 @@ void verify_mac_address(char *var, char *default_mac)
 
 	mac = getenv(var);
 	if (NULL == mac)
-		printf("Warning! MAC not set in '%s'\n", var);
+		printf("   WARNING: MAC not set in '%s'\n", var);
 	else if (!strcmp(mac, default_mac))
-		printf("Warning! Dummy default MAC in '%s'\n", var);
+		printf("   WARNING: Dummy default MAC in '%s'\n", var);
 }
