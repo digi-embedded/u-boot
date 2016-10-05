@@ -176,7 +176,6 @@
 #define CONFIG_FEC_DMA_MINALIGN		64
 
 /* Extra network settings for second Ethernet */
-#define DEFAULT_MAC_ETHADDR1	"00:04:f3:ff:ff:fd"
 #define CONFIG_EXTRA_NETWORK_SETTINGS \
 	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"
 

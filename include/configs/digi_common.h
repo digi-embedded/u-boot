@@ -81,6 +81,7 @@
 #define DEFAULT_MAC_ETHADDR	"00:04:f3:ff:ff:fa"
 #define DEFAULT_MAC_WLANADDR	"00:04:f3:ff:ff:fb"
 #define DEFAULT_MAC_BTADDR	"00:04:f3:ff:ff:fc"
+#define DEFAULT_MAC_ETHADDR1	"00:04:f3:ff:ff:fd"
 
 #define CONFIG_OVERWRITE_ETHADDR_ONCE
 #define CONFIG_DEFAULT_NETWORK_SETTINGS	\
