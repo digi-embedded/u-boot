@@ -413,7 +413,13 @@ int load_firmware(struct load_fw *fwinfo)
 		 * read using 'nand read'.
 		 */
 		if (is_ubi_partition(fwinfo->part)) {
-			sprintf(cmd, "ubi part %s;ubifsmount ubi0:%s;ubifsload %s %s",
+			sprintf(cmd,
+				"if ubi part %s;then "
+					"if ubifsmount ubi0:%s;then "
+						"ubifsload %s %s;"
+						"ubifsumount;"
+					"fi;"
+				"fi;",
 				fwinfo->part->name, fwinfo->part->name,
 				fwinfo->loadaddr, fwinfo->filename);
 		} else
