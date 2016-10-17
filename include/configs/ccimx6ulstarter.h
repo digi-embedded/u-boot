@@ -187,7 +187,7 @@
 			"if ubifsmount ubi0:" CONFIG_RECOVERY_PARTITION "; then " \
 				"ubifsload ${loadaddr} ${" CONFIG_DBOOT_DEFAULTKERNELVAR "};" \
 				"ubifsload ${fdt_addr} ${fdt_file};" \
-				"ubifsload ${initrs_addr} ${initrd_file};" \
+				"ubifsload ${initrd_addr} ${initrd_file};" \
 				"run bootargs_recovery;" \
 				CONFIG_DBOOT_BOOTCOMMAND " ${loadaddr} ${initrd_addr} ${fdt_addr};" \
 			"fi;" \
