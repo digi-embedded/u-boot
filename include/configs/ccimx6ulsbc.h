@@ -167,9 +167,11 @@
 		"rootfstype=ubifs rw " \
 		"${bootargs_once} ${extra_bootargs}\0" \
 	"bootargs_recovery=setenv bootargs console=${console},${baudrate} " \
-		"androidboot.hardware=" CONFIG_SYS_BOARD " " \
-		"androidboot.console=${console}" \
-		"${mtdparts} ${bootargs_once} ${extra_bootargs}\0" \
+		"${bootargs_linux} ${mtdparts} ubi.mtd=${mtdlinuxindex} " \
+		"ubi.mtd=${mtdrecoveryindex} " \
+		"ubi.mtd=${mtdrootfsindex} " \
+		"ubi.mtd=${mtdupdateindex} " \
+		"${bootargs_once} ${extra_bootargs}\0" \
 	"install_linux_fw_sd=if load mmc 0 ${loadaddr} install_linux_fw_sd.scr;then " \
 			"source ${loadaddr};" \
 		"fi;\0" \
@@ -181,7 +183,9 @@
 			"fi;" \
 		"fi;\0" \
 	"mtdlinuxindex=" CONFIG_ENV_MTD_LINUX_INDEX "\0" \
+	"mtdrecoveryindex=" CONFIG_ENV_MTD_RECOVERY_INDEX "\0" \
 	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
+	"mtdupdateindex=" CONFIG_ENV_MTD_UPDATE_INDEX "\0" \
 	"recoverycmd=" \
 		"if ubi part " CONFIG_RECOVERY_PARTITION "; then " \
 			"if ubifsmount ubi0:" CONFIG_RECOVERY_PARTITION "; then " \
