@@ -10,6 +10,7 @@
 #include <asm/errno.h>
 #include <malloc.h>
 #include <nand.h>
+#include <version.h>
 #include <watchdog.h>
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>
@@ -562,6 +563,11 @@ void fdt_fixup_mac(void *fdt, char *varname, char *node, char *property)
 	}
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
+
+void fdt_fixup_uboot_version(void *fdt) {
+	do_fixup_by_path(fdt, "/", "digi,uboot,version", version_string,
+			 strlen(version_string), 1);
+}
 
 const char *get_filename_ext(const char *filename)
 {
