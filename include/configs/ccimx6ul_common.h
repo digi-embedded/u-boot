@@ -255,6 +255,9 @@
 	"mtdids=" MTDIDS_DEFAULT "\0" \
 	"mtdparts=" MTDPARTS_DEFAULT "\0"
 
+/* Max percentage of reserved blocks for bad block management per partition */
+#define CONFIG_MTD_UBI_MAXRSVDPEB_PCNT	4
+
 /* Supported sources for update|dboot */
 #define CONFIG_SUPPORTED_SOURCES	((1 << SRC_TFTP) | \
 					 (1 << SRC_NFS) | \
