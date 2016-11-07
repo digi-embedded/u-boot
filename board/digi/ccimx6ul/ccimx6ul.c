@@ -272,17 +272,29 @@ int power_init_ccimx6ul(void)
 	reg |= 0x1;
 	pmic_reg_write(pfuze, PFUZE300_LDOGCTL, reg);
 
+	/* SW1A mode to APS/OFF, to switch off the regulator in standby */
+	reg = 0x04;
+	pmic_reg_write(pfuze, PFUZE300_SW1AMODE, reg);
+
 	/* SW1B step ramp up time from 2us to 4us/25mV */
 	reg = 0x40;
 	pmic_reg_write(pfuze, PFUZE300_SW1BCONF, reg);
 
-	/* SW1B mode to APS/PFM */
+	/* SW1B mode to APS/PFM, to optimize performance */
 	reg = 0xc;
 	pmic_reg_write(pfuze, PFUZE300_SW1BMODE, reg);
 
-	/* SW1B standby voltage set to 0.975V */
-	reg = 0xb;
+	/* SW1B voltage set to 1.3V */
+	reg = 0x18;
+	pmic_reg_write(pfuze, PFUZE300_SW1BVOLT, reg);
+
+	/* SW1B standby voltage set to 0.925V */
+	reg = 0x09;
 	pmic_reg_write(pfuze, PFUZE300_SW1BSTBY, reg);
+
+	/* SW2 mode to APS/OFF, to switch off in standby mode */
+	reg = 0x04;
+	pmic_reg_write(pfuze, PFUZE300_SW2MODE, reg);
 
 	return 0;
 }
