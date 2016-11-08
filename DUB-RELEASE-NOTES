@@ -2,6 +2,16 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
+dub-2015.04-r5.1, released on 2016/11/08
+	- Fix occasional problems mounting UBIFS file systems.
+	- TrustFence: add support for authentication/decryption of DTB,
+	  initramfs rootfs, and U-Boot scripts.
+	- Added support for encrypted partition recognition.
+	- Top limit reserved blocks for bad block handling in MTD partitions.
+	- Adjust values of regulators for reducing power consumption.
+	- Added support for tamper detection.
+
+
 dub-2015.04-r4.7, released on 2016/09/13
 	- Fix reading of board version/ID on ConnectCore 6UL Starter Board.
 
