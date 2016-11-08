@@ -32,6 +32,7 @@
 #include "../common/hwid.h"
 #include "../common/mca_registers.h"
 #include "../common/trustfence.h"
+#include "../common/tamper.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -393,6 +394,9 @@ int ccimx6ul_init(void)
 	setup_gpmi_nand();
 #endif
 
+#ifdef CONFIG_MCA_CC6UL_TAMPER
+	mca_tamper_check_events();
+#endif
 	return 0;
 }
 
