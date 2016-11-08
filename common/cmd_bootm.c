@@ -8,6 +8,7 @@
 /*
  * Boot support
  */
+#include <asm/arch/hab.h>
 #include <common.h>
 #include <bootm.h>
 #include <command.h>
@@ -128,8 +129,6 @@ int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	}
 
 #ifdef CONFIG_SECURE_BOOT
-	extern uint32_t authenticate_image(
-			uint32_t ddr_start, uint32_t image_size);
 
 	switch (genimg_get_format((void *)load_addr)) {
 #if defined(CONFIG_IMAGE_FORMAT_LEGACY)
@@ -608,8 +607,6 @@ static int bootz_start(cmd_tbl_t *cmdtp, int flag, int argc,
 		return 1;
 
 #ifdef CONFIG_SECURE_BOOT
-	extern uint32_t authenticate_image(
-			uint32_t ddr_start, uint32_t image_size);
 	if (authenticate_image(images->ep, zi_end - zi_start) == 0) {
 		printf("Authenticate zImage Fail, Please check\n");
 		return 1;
@@ -757,8 +754,6 @@ static int booti_start(cmd_tbl_t *cmdtp, int flag, int argc,
 		return 1;
 
 #ifdef CONFIG_SECURE_BOOT
-	extern uint32_t authenticate_image(
-			uint32_t ddr_start, uint32_t image_size);
 	if (authenticate_image(images->ep, zi_end - zi_start) == 0) {
 		printf("Authenticate zImage Fail, Please check\n");
 		return 1;

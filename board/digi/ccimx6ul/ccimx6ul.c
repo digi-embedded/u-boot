@@ -32,6 +32,7 @@
 #include "../common/hwid.h"
 #include "../common/mca_registers.h"
 #include "../common/trustfence.h"
+#include "../common/tamper.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -199,7 +200,6 @@ static iomux_v3_cfg_t const nand_pads[] = {
 	MX6_PAD_NAND_CLE__RAWNAND_CLE | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
 	MX6_PAD_NAND_ALE__RAWNAND_ALE | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
 	MX6_PAD_NAND_CE0_B__RAWNAND_CE0_B | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
-	MX6_PAD_NAND_CE1_B__RAWNAND_CE1_B | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
 	MX6_PAD_NAND_RE_B__RAWNAND_RE_B | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
 	MX6_PAD_NAND_WE_B__RAWNAND_WE_B | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
 	MX6_PAD_NAND_WP_B__RAWNAND_WP_B | MUX_PAD_CTRL(GPMI_PAD_CTRL2),
@@ -273,17 +273,29 @@ int power_init_ccimx6ul(void)
 	reg |= 0x1;
 	pmic_reg_write(pfuze, PFUZE300_LDOGCTL, reg);
 
+	/* SW1A mode to APS/OFF, to switch off the regulator in standby */
+	reg = 0x04;
+	pmic_reg_write(pfuze, PFUZE300_SW1AMODE, reg);
+
 	/* SW1B step ramp up time from 2us to 4us/25mV */
 	reg = 0x40;
 	pmic_reg_write(pfuze, PFUZE300_SW1BCONF, reg);
 
-	/* SW1B mode to APS/PFM */
+	/* SW1B mode to APS/PFM, to optimize performance */
 	reg = 0xc;
 	pmic_reg_write(pfuze, PFUZE300_SW1BMODE, reg);
 
-	/* SW1B standby voltage set to 0.975V */
-	reg = 0xb;
+	/* SW1B voltage set to 1.3V */
+	reg = 0x18;
+	pmic_reg_write(pfuze, PFUZE300_SW1BVOLT, reg);
+
+	/* SW1B standby voltage set to 0.925V */
+	reg = 0x09;
 	pmic_reg_write(pfuze, PFUZE300_SW1BSTBY, reg);
+
+	/* SW2 mode to APS/OFF, to switch off in standby mode */
+	reg = 0x04;
+	pmic_reg_write(pfuze, PFUZE300_SW2MODE, reg);
 
 	return 0;
 }
@@ -352,7 +364,8 @@ void mca_init(void)
 	if (fwver_ret)
 		printf("??");
 	else
-		printf("%d.%d", fwver[1], fwver[0]);
+		printf("%d.%d %s", fwver[1] & 0x7f, fwver[0],
+		       fwver[1] & 0x80 ? "" : "(alpha)");
 
 	printf("\n");
 }
@@ -381,6 +394,9 @@ int ccimx6ul_init(void)
 	setup_gpmi_nand();
 #endif
 
+#ifdef CONFIG_MCA_CC6UL_TAMPER
+	mca_tamper_check_events();
+#endif
 	return 0;
 }
 
@@ -418,6 +434,16 @@ int ccimx6ul_late_init(void)
 #ifdef CONFIG_HAS_TRUSTFENCE
 	copy_dek();
 #endif
+
+	/* Verify MAC addresses */
+	verify_mac_address("ethaddr", DEFAULT_MAC_ETHADDR);
+	verify_mac_address("eth1addr", DEFAULT_MAC_ETHADDR1);
+
+	if (board_has_wireless())
+		verify_mac_address("wlanaddr", DEFAULT_MAC_WLANADDR);
+
+	if (board_has_bluetooth())
+		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
 
 	return 0;
 }
@@ -560,4 +586,7 @@ void fdt_fixup_ccimx6ul(void *fdt)
 
 	if (board_has_bluetooth())
 		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
+
+	fdt_fixup_trustfence(fdt);
+	fdt_fixup_uboot_version(fdt);
 }

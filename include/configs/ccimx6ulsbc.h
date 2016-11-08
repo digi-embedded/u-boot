@@ -60,11 +60,7 @@
 #define CONFIG_APBH_DMA_BURST8
 #endif
 
-#ifdef CONFIG_SYS_USE_NAND
 #define CONFIG_SYS_FSL_USDHC_NUM	1
-#else
-#define CONFIG_SYS_FSL_USDHC_NUM	2
-#endif
 
 /* U-Boot Environment */
 #if defined(CONFIG_ENV_IS_IN_MMC)
@@ -113,15 +109,58 @@
 
 #define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 
+#ifdef CONFIG_SECURE_BOOT
+/*
+ * Authenticate bootscript before running it. IVT offset is at
+ * ${filesize} - CONFIG_CSF_SIZE - IVT_SIZE (0x20)
+ * Use 0x4000 as CSF_SIZE, as this is the value used by the script
+ * to sign / encrypt the bootscript
+ */
+#define CONFIG_BOOTCOMMAND \
+	"if run loadscript; then " \
+		"setexpr bs_ivt_offset ${filesize} - 0x4020;" \
+		"if hab_auth_img ${loadaddr} ${bs_ivt_offset}; then " \
+			"source ${loadaddr};" \
+		"fi; " \
+	"fi;"
+#else
 #define CONFIG_BOOTCOMMAND \
 	"if run loadscript; then " \
 		"source ${loadaddr};" \
 	"fi;"
 
+#endif	/* CONFIG_SECURE_BOOT */
+
 #define CONFIG_COMMON_ENV	\
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	CONFIG_EXTRA_NETWORK_SETTINGS \
 	"boot_fdt=yes\0" \
+	"bootargs_nfs=" \
+		"if test ${ip_dyn} = yes; then " \
+			"bootargs_ip=\"ip=dhcp\";" \
+		"else " \
+			"bootargs_ip=\"ip=\\${ipaddr}:\\${serverip}:" \
+			"\\${gatewayip}:\\${netmask}:\\${hostname}:" \
+			"eth0:off\";" \
+		"fi;\0" \
+	"bootargs_nfs_linux=run bootargs_nfs;" \
+		"setenv bootargs console=${console},${baudrate} " \
+		"${bootargs_linux} root=/dev/nfs " \
+		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
+		"${bootargs_once} ${extra_bootargs}\0" \
+	"bootargs_tftp=" \
+		"if test ${ip_dyn} = yes; then " \
+			"bootargs_ip=\"ip=dhcp\";" \
+		"else " \
+			"bootargs_ip=\"ip=\\${ipaddr}:\\${serverip}:" \
+			"\\${gatewayip}:\\${netmask}:\\${hostname}:" \
+			"eth0:off\";" \
+		"fi;\0" \
+	"bootargs_tftp_linux=run bootargs_tftp;" \
+		"setenv bootargs console=${console},${baudrate} " \
+		"${bootargs_linux} root=/dev/nfs " \
+		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
+		"${bootargs_once} ${extra_bootargs}\0" \
 	"console=" CONFIG_CONSOLE_PORT "\0" \
 	"fdt_addr=0x83000000\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
@@ -145,13 +184,15 @@
 		"rootfstype=ubifs rw " \
 		"${bootargs_once} ${extra_bootargs}\0" \
 	"bootargs_recovery=setenv bootargs console=${console},${baudrate} " \
-		"androidboot.hardware=" CONFIG_SYS_BOARD " " \
-		"androidboot.console=${console}" \
-		"${mtdparts} ${bootargs_once} ${extra_bootargs}\0" \
+		"${bootargs_linux} ${mtdparts} ubi.mtd=${mtdlinuxindex} " \
+		"ubi.mtd=${mtdrecoveryindex} " \
+		"ubi.mtd=${mtdrootfsindex} " \
+		"ubi.mtd=${mtdupdateindex} " \
+		"${bootargs_once} ${extra_bootargs}\0" \
 	"install_linux_fw_sd=if load mmc 0 ${loadaddr} install_linux_fw_sd.scr;then " \
 			"source ${loadaddr};" \
 		"fi;\0" \
-	"linux_file=core-image-base-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
+	"linux_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
 	"loadscript=" \
 		"if ubi part " CONFIG_LINUX_PARTITION "; then " \
 			"if ubifsmount ubi0:" CONFIG_LINUX_PARTITION"; then " \
@@ -159,18 +200,20 @@
 			"fi;" \
 		"fi;\0" \
 	"mtdlinuxindex=" CONFIG_ENV_MTD_LINUX_INDEX "\0" \
+	"mtdrecoveryindex=" CONFIG_ENV_MTD_RECOVERY_INDEX "\0" \
 	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
+	"mtdupdateindex=" CONFIG_ENV_MTD_UPDATE_INDEX "\0" \
 	"recoverycmd=" \
-		"if ubi part " CONFIG_RECOVERY_PARTITION "; then" \
-			"if ubifsmount ubi0:" CONFIG_RECOVERY_PARTITION "; then" \
+		"if ubi part " CONFIG_RECOVERY_PARTITION "; then " \
+			"if ubifsmount ubi0:" CONFIG_RECOVERY_PARTITION "; then " \
 				"ubifsload ${loadaddr} ${" CONFIG_DBOOT_DEFAULTKERNELVAR "};" \
 				"ubifsload ${fdt_addr} ${fdt_file};" \
-				"ubifsload ${initrs_addr} ${initrd_file};" \
+				"ubifsload ${initrd_addr} ${initrd_file};" \
 				"run bootargs_recovery;" \
 				CONFIG_DBOOT_BOOTCOMMAND " ${loadaddr} ${initrd_addr} ${fdt_addr};" \
 			"fi;" \
 		"fi;\0" \
-	"rootfs_file=core-image-base-" CONFIG_SYS_BOARD ".ubifs\0" \
+	"rootfs_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".ubifs\0" \
 	""	/* end line */
 #else
 #define CONFIG_EXTRA_ENV_SETTINGS \
@@ -186,7 +229,7 @@
 	""	/* end line */
 #endif
 
-#define CONFIG_SYS_MMC_ENV_DEV		1   /* USDHC2 */
+#define CONFIG_SYS_MMC_ENV_DEV		0   /* USDHC2 */
 #define CONFIG_SYS_MMC_ENV_PART		0	/* user area */
 #define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
 

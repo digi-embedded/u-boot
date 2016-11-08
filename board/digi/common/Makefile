@@ -52,4 +52,5 @@ obj-$(CONFIG_CMD_UPDATE_NAND) += cmd_update_nand.o helper.o
 obj-$(CONFIG_CMD_DBOOT) += cmd_dboot.o helper.o
 obj-$(CONFIG_CMD_PMIC) += cmd_pmic.o
 obj-$(CONFIG_HAS_TRUSTFENCE) += cmd_trustfence.o
+obj-$(CONFIG_MCA_CC6UL_TAMPER) += tamper.o
 endif

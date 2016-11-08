@@ -92,7 +92,7 @@
  */
 #define CONFIG_HAS_TRUSTFENCE
 #define CONFIG_SHA256
-
+#define CONFIG_MCA_CC6UL_TAMPER
 
 /* Environment encryption support */
 #define CONFIG_MD5
@@ -109,7 +109,7 @@
 
 #define CONFIG_TRUSTFENCE_CLOSE_BIT_BANK		0
 #define CONFIG_TRUSTFENCE_CLOSE_BIT_WORD		6
-#define CONFIG_TRUSTFENCE_CLOSE_BIT_MASK		0x1
+#define CONFIG_TRUSTFENCE_CLOSE_BIT_MASK		0x2
 #define CONFIG_TRUSTFENCE_CLOSE_BIT_OFFSET		1
 
 /* Secure JTAG configs */
@@ -176,7 +176,6 @@
 #define CONFIG_FEC_DMA_MINALIGN		64
 
 /* Extra network settings for second Ethernet */
-#define DEFAULT_MAC_ETHADDR1	"00:04:f3:ff:ff:fd"
 #define CONFIG_EXTRA_NETWORK_SETTINGS \
 	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"
 
@@ -249,10 +248,15 @@
 					"128m(rootfs)," \
 					"-(update)"
 #define CONFIG_ENV_MTD_LINUX_INDEX	"3"
+#define CONFIG_ENV_MTD_RECOVERY_INDEX	"4"
 #define CONFIG_ENV_MTD_ROOTFS_INDEX	"5"
+#define CONFIG_ENV_MTD_UPDATE_INDEX	"6"
 #define CONFIG_ENV_MTD_SETTINGS	\
 	"mtdids=" MTDIDS_DEFAULT "\0" \
 	"mtdparts=" MTDPARTS_DEFAULT "\0"
+
+/* Max percentage of reserved blocks for bad block management per partition */
+#define CONFIG_MTD_UBI_MAXRSVDPEB_PCNT	4
 
 /* Supported sources for update|dboot */
 #define CONFIG_SUPPORTED_SOURCES	((1 << SRC_TFTP) | \

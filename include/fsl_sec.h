@@ -97,7 +97,8 @@ typedef struct ccsr_sec {
 	u32	fadr;		/* Fault Address Detail Register */
 	u8	res7[0x4];
 	u32	csta;		/* CAAM Status Register */
-	u8	res8[0x8];
+	u32 	smpart;		/* Secure Memory Partition Parameters */
+	u32 	smvid;		/* Secure Memory Version ID */
 	u32	rvid;		/* Run Time Integrity Checking Version ID Reg.*/
 	u32	ccbvid;		/* CHA Cluster Block Version ID Register */
 	u32	chavid_ms;	/* CHA Version ID Register, MS */
@@ -202,6 +203,14 @@ struct sg_entry {
 };
 
 #ifdef CONFIG_MX6
+#define JR_BASE_ADDR(x) 	(CONFIG_SYS_FSL_SEC_ADDR + 0x1000 * (x + 1))
+
+#define SM_V1_OFFSET 		0x0f4
+#define SM_V2_OFFSET 		0xa00
+#define SMVID_V2 		0x20105
+#define SM_VERSION(x)  		(x < SMVID_V2 ? 1 : 2)
+#define SM_OFFSET(x)  		(x == 1 ? SM_V1_OFFSET : SM_V2_OFFSET)
+
 /* CAAM Job Ring 0 Registers */
 /* Secure Memory Partition Owner register */
 #define SMCSJR_PO		(3 << 6)
@@ -209,30 +218,33 @@ struct sg_entry {
 #define SMCSJR_AERR		(3 << 12)
 /* Secure memory partition 0 page 0 owner register */
 #define CAAM_SMPO_0		CONFIG_SYS_FSL_SEC_ADDR + 0x1FBC
-
-#ifdef CONFIG_MX6UL
-/* Secure memory command register */
-#define CAAM_SMCJR0		CONFIG_SYS_FSL_SEC_ADDR + 0x1BE4
-/* Secure memory command status register */
-#define CAAM_SMCSJR0		CONFIG_SYS_FSL_SEC_ADDR + 0x1BEC
-/* Secure memory access permissions register */
-#define CAAM_SMAPJR0(y)	(CONFIG_SYS_FSL_SEC_ADDR + 0x1A04 + y*16)
-/* Secure memory access group 2 register */
-#define CAAM_SMAG2JR0(y)	(CONFIG_SYS_FSL_SEC_ADDR + 0x1A08 + y*16)
-/* Secure memory access group 1 register */
-#define CAAM_SMAG1JR0(y)	(CONFIG_SYS_FSL_SEC_ADDR + 0x1A0C + y*16)
-#else
 /* Secure memory command register */
 #define CAAM_SMCJR0		CONFIG_SYS_FSL_SEC_ADDR + 0x10f4
 /* Secure memory command status register */
 #define CAAM_SMCSJR0		CONFIG_SYS_FSL_SEC_ADDR + 0x10fc
 /* Secure memory access permissions register */
-#define CAAM_SMAPJR0(y)	(CONFIG_SYS_FSL_SEC_ADDR + 0x1104 + y*16)
+#define CAAM_SMAPJR0(y)		(CONFIG_SYS_FSL_SEC_ADDR + 0x1104 + y*16)
 /* Secure memory access group 2 register */
 #define CAAM_SMAG2JR0(y)	(CONFIG_SYS_FSL_SEC_ADDR + 0x1108 + y*16)
 /* Secure memory access group 1 register */
 #define CAAM_SMAG1JR0(y)	(CONFIG_SYS_FSL_SEC_ADDR + 0x110C + y*16)
-#endif
+
+#define CAAM_SMCJR(v, jr) \
+		JR_BASE_ADDR(jr) + SM_OFFSET(v) + SM_CMD(v)
+#define CAAM_SMCSJR(v, jr) \
+		JR_BASE_ADDR(jr) + SM_OFFSET(v) + SM_STATUS(v)
+#define CAAM_SMAPJR(v, jr, y) \
+		JR_BASE_ADDR(jr) + SM_OFFSET(v) + SM_PERM(v) + y*16
+#define CAAM_SMAG2JR(v, jr, y) \
+		JR_BASE_ADDR(jr) + SM_OFFSET(v) + SM_GROUP2(v) + y*16
+#define CAAM_SMAG1JR(v, jr, y)  \
+		JR_BASE_ADDR(jr) + SM_OFFSET(v) + SM_GROUP1(v) + y*16
+
+#define SM_CMD(v) 		(v == 1 ? 0x0 : 0x1E4)
+#define SM_STATUS(v) 		(v == 1 ? 0x8 : 0x1EC)
+#define SM_PERM(v) 		(v == 1 ? 0x10 : 0x4)
+#define SM_GROUP2(v) 		(v == 1 ? 0x14 : 0x8)
+#define SM_GROUP1(v) 		(v == 1 ? 0x18 : 0xC)
 
 /* Commands and macros for secure memory */
 #define CMD_PAGE_ALLOC		0x1

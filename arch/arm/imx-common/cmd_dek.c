@@ -30,10 +30,6 @@ static int blob_encap_dek(const u8 *src, u8 *dst, u32 len)
 	int ret = 0;
 	u32 jr_size = 4;
 
-#ifdef CONFIG_MX6UL
-	icache_disable();
-	dcache_disable();
-#endif
 	u32 out_jr_size = sec_in32(CONFIG_SYS_FSL_JR0_ADDR + 0x102c);
 	if (out_jr_size != jr_size) {
 		hab_caam_clock_enable(1);
@@ -42,18 +38,12 @@ static int blob_encap_dek(const u8 *src, u8 *dst, u32 len)
 
 	if (!((len == 128) | (len == 192) | (len == 256))) {
 		debug("Invalid DEK size. Valid sizes are 128, 192 and 256b\n");
-		ret = -1;
-		goto out;
+		return -1;
 	}
 
 	len /= 8;
 	ret = blob_dek(src, dst, len);
 
-out:
-#ifdef CONFIG_MX6UL
-	dcache_enable();
-	icache_enable();
-#endif
 	return ret;
 }
 

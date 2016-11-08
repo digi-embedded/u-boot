@@ -111,7 +111,7 @@ static iomux_v3_cfg_t const usdhc2_pads[] = {
 
 #ifdef CONFIG_SYS_I2C_MXC
 #define PC MUX_PAD_CTRL(I2C_PAD_CTRL)
-/* I2C2 for PMIC and MCA */
+/* I2C2 */
 struct i2c_pads_info i2c2_pad_info = {
 	.scl = {
 		.i2c_mode =  MX6_PAD_GPIO1_IO00__I2C2_SCL | PC,
@@ -143,8 +143,8 @@ static iomux_v3_cfg_t const fec1_pads[] = {
 	MX6_PAD_ENET1_RX_ER__ENET1_RX_ER | MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_ENET1_RX_EN__ENET1_RX_EN | MUX_PAD_CTRL(ENET_PAD_CTRL),
 	/*
-	 * GPIO3_IO2 is used as PHY reset in StarterBoard v1 and as PHY power
-	 * enable on StarterBoard v2
+	 * GPIO3_IO2 is used as PHY reset in Starter Board v1 and as PHY power
+	 * enable on Starter Board v2
 	 */
 	MX6_PAD_LCD_HSYNC__GPIO3_IO02 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };

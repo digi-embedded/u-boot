@@ -9,6 +9,7 @@
 #include <asm/system.h>
 #include <asm/arch/hab.h>
 #include <asm/arch/clock.h>
+#include <fuse.h>
 
 #define IVT_SIZE		0x20
 #define ALIGN_SIZE		0x1000
@@ -50,13 +51,15 @@
 
 bool is_hab_enabled(void)
 {
-	struct ocotp_regs *ocotp = (struct ocotp_regs *)OCOTP_BASE_ADDR;
-	struct fuse_bank *bank = &ocotp->bank[0];
-	struct fuse_bank0_regs *fuse =
-		(struct fuse_bank0_regs *)bank->fuse_regs;
-	uint32_t reg = readl(&fuse->cfg5);
+	u32 val;
+	if (fuse_sense(CONFIG_TRUSTFENCE_CLOSE_BIT_BANK,
+		   CONFIG_TRUSTFENCE_CLOSE_BIT_WORD, &val)) {
+		printf("[ERROR] Cannot check device status. Assuming closed...\n");
+		return 1;
+	}
 
-	return (reg & 0x2) == 0x2;
+	return (val & CONFIG_TRUSTFENCE_CLOSE_BIT_MASK) ==
+		CONFIG_TRUSTFENCE_CLOSE_BIT_MASK;
 }
 
 void display_event(uint8_t *event_data, size_t bytes)
@@ -137,7 +140,7 @@ uint32_t authenticate_image(uint32_t ddr_start, uint32_t image_size)
 	hab_rvt_exit = hab_rvt_exit_p;
 
 	if (is_hab_enabled()) {
-		printf("\nAuthenticate image from DDR location 0x%x...\n",
+		printf("   Authenticating image from DDR location 0x%x... ",
 		       ddr_start);
 
 		hab_caam_clock_enable(1);
@@ -203,23 +206,29 @@ uint32_t authenticate_image(uint32_t ddr_start, uint32_t image_size)
 					HAB_CID_UBOOT,
 					ivt_offset, (void **)&start,
 					(size_t *)&bytes, NULL);
-			if (hab_rvt_exit() != HAB_SUCCESS) {
-				puts("hab exit function fail\n");
+			if (load_addr == 0) {
+				printf("FAILED!\n");
+			} else if (hab_rvt_exit() != HAB_SUCCESS) {
+				puts("FAILED!\nhab exit function fail\n");
 				load_addr = 0;
 			}
 		} else {
-			puts("hab entry function fail\n");
+			puts("FAILED!\nhab entry function fail\n");
 		}
 
 		hab_caam_clock_enable(0);
 
-		get_hab_status();
 	} else {
-		puts("hab fuse not enabled\n");
+		puts("   Open device, skipping authentication...\n");
+		return 1;
 	}
 
-	if ((!is_hab_enabled()) || (load_addr != 0))
+	if ((!is_hab_enabled()) || (load_addr != 0)) {
+		printf("OK\n");
 		result = 1;
+	} else {
+		get_hab_status();
+	}
 
 	return result;
 }
@@ -240,7 +249,6 @@ static int do_authenticate_image(cmd_tbl_t *cmdtp, int flag, int argc,
 				char * const argv[])
 {
 	ulong	addr, ivt_offset;
-	int	rcode = 0;
 
 	if (argc < 3)
 		return CMD_RET_USAGE;
@@ -248,9 +256,10 @@ static int do_authenticate_image(cmd_tbl_t *cmdtp, int flag, int argc,
 	addr = simple_strtoul(argv[1], NULL, 16);
 	ivt_offset = simple_strtoul(argv[2], NULL, 16);
 
-	rcode = authenticate_image(addr, ivt_offset);
-
-	return rcode;
+	if (authenticate_image(addr, ivt_offset) == 1) 
+		return CMD_RET_SUCCESS;
+	else
+		return CMD_RET_FAILURE;
 }
 
 U_BOOT_CMD(

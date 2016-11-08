@@ -10,6 +10,7 @@
 #include <asm/errno.h>
 #include <malloc.h>
 #include <nand.h>
+#include <version.h>
 #include <watchdog.h>
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>
@@ -413,7 +414,13 @@ int load_firmware(struct load_fw *fwinfo)
 		 * read using 'nand read'.
 		 */
 		if (is_ubi_partition(fwinfo->part)) {
-			sprintf(cmd, "ubi part %s;ubifsmount ubi0:%s;ubifsload %s %s",
+			sprintf(cmd,
+				"if ubi part %s;then "
+					"if ubifsmount ubi0:%s;then "
+						"ubifsload %s %s;"
+						"ubifsumount;"
+					"fi;"
+				"fi;",
 				fwinfo->part->name, fwinfo->part->name,
 				fwinfo->loadaddr, fwinfo->filename);
 		} else
@@ -557,6 +564,11 @@ void fdt_fixup_mac(void *fdt, char *varname, char *node, char *property)
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
 
+void fdt_fixup_uboot_version(void *fdt) {
+	do_fixup_by_path(fdt, "/", "digi,uboot,version", version_string,
+			 strlen(version_string), 1);
+}
+
 const char *get_filename_ext(const char *filename)
 {
 	const char *dot;
@@ -587,4 +599,21 @@ void strtohex(char *in, unsigned long *out, int len)
 		strncpy(tmp, &in[i], STR_HEX_CHUNK);
 		out[j] = cpu_to_be32(simple_strtol(tmp, NULL, 16));
 	}
+}
+
+/*
+ * Verifies if a MAC address has a default value (dummy) and prints a warning
+ * if so.
+ * @var: Variable to check
+ * @default_mac: Default MAC to check with (as a string)
+ */
+void verify_mac_address(char *var, char *default_mac)
+{
+	char *mac;
+
+	mac = getenv(var);
+	if (NULL == mac)
+		printf("   WARNING: MAC not set in '%s'\n", var);
+	else if (!strcmp(mac, default_mac))
+		printf("   WARNING: Dummy default MAC in '%s'\n", var);
 }

@@ -142,7 +142,8 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		return CMD_RET_FAILURE;
 	}
 
-	/* Boot OS */
+	/* Reset load_addr and boot OS */
+	load_addr = getenv_ulong("loadaddr", 16, load_addr);
 	return boot_os(has_initrd, has_fdt);
 }
 

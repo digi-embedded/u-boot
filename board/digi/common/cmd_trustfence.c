@@ -51,6 +51,53 @@
 #endif
 
 /*
+ * Copy the DEK blob used by the current U-Boot image into a buffer. Also
+ * get its size in the last out parameter.
+ * Possible DEK key sizes are 128, 192 and 256 bits.
+ * DEK blobs have an overhead of 56 bytes.
+ * Hence, possible DEK blob sizes are 72, 80 and 88 bytes.
+ *
+ * The output buffer should be at least MAX_DEK_BLOB_SIZE (88) bytes long to
+ * prevent out of boundary access.
+ *
+ * Returns 0 if the DEK blob was found, 1 otherwise.
+ */
+static int get_dek_blob(char *output, u32 *size) {
+	u32 *csf_addr = (u32 *)UBOOT_START_ADDR + CSF_IVT_WORD_OFFSET;
+
+	if (*csf_addr) {
+		int blob_size = MAX_DEK_BLOB_SIZE;
+		uint8_t *dek_blob = (uint8_t *)(*csf_addr + CONFIG_CSF_SIZE - blob_size);
+
+		/*
+		 * Several DEK sizes can be used.
+		 * Determine the size and the start of the DEK blob by looking
+		 * for its header.
+		 */
+		while (*dek_blob != HDR_TAG && blob_size > 0) {
+			dek_blob += 8;
+			blob_size -= 8;
+		}
+
+		if (blob_size > 0) {
+			*size = blob_size;
+			memcpy(output, dek_blob, blob_size);
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+int is_uboot_encrypted() {
+	char dek_blob[MAX_DEK_BLOB_SIZE];
+	u32 dek_blob_size;
+
+	/* U-Boot is encrypted if and only if get_dek_blob does not fail */
+	return !get_dek_blob(dek_blob, &dek_blob_size);
+}
+
+/*
  * For secure OS, we want to have the DEK blob in a common absolute
  * memory address, so that there are no dependencies between the CSF
  * appended to the uImage and the U-Boot image size.
@@ -60,27 +107,11 @@
  */
 void copy_dek(void)
 {
-	u32 *csf_addr = (u32 *)UBOOT_START_ADDR + CSF_IVT_WORD_OFFSET;
+	u32 loadaddr = getenv_ulong("loadaddr", 16, load_addr);
+	void *dek_blob_dst = (void *)(loadaddr - BLOB_DEK_OFFSET);
+	u32 dek_size;
 
-	if (*csf_addr) {
-		u32 loadaddr = getenv_ulong("loadaddr", 16, load_addr);
-		int blob_size = MAX_DEK_BLOB_SIZE;
-		uint8_t *dek_blob = (uint8_t *)(*csf_addr + CONFIG_CSF_SIZE - blob_size);
-		void *dek_blob_dst = (void *)(loadaddr - BLOB_DEK_OFFSET);
-
-		/*
-		 * Several DEK sizes can be used (128, 192 or 256 bits).
-		 * Determine the size and the start of the DEK blob by looking
-		 * for its header.
-		 */
-		while (*dek_blob != HDR_TAG && blob_size > 0) {
-			dek_blob += 8;
-			blob_size -= 8;
-		}
-
-		if (blob_size > 0)
-			memcpy(dek_blob_dst, dek_blob, blob_size);
-	}
+	get_dek_blob(dek_blob_dst, &dek_size);
 }
 
 /*
@@ -353,6 +384,18 @@ uint8_t *env_aes_cbc_get_key(void)
 }
 #endif
 
+#ifdef CONFIG_ENV_AES_CAAM_KEY
+#include <fdt_support.h>
+
+void fdt_fixup_trustfence(void *fdt) {
+	/* Environment encryption is not enabled on open devices */
+	if (!is_hab_enabled())
+		return;
+
+	do_fixup_by_path(fdt, "/", "digi,uboot-env,encrypted", NULL, 0, 1);
+}
+#endif
+
 static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 {
 	const char *op;
@@ -454,7 +497,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		enum hab_config config = 0;
 		enum hab_state state = 0;
 
-		printf("* SRK fuses:\t");
+		printf("* SRK fuses:\t\t");
 		ret = fuse_check_srk();
 		if (ret > 0) {
 			printf("[NOT PROGRAMMED]\n");
@@ -468,16 +511,19 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			goto err;
 		for (key_index = 0; key_index < CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS;
 		     key_index++) {
-			printf("   Key %d:\t", key_index);
+			printf("   Key %d:\t\t", key_index);
 			printf((val[0] & (1 << key_index) ?
 			       "[REVOKED]\n" : "[OK]\n"));
 		}
-		printf("   Key %d:\t[OK]\n", CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS);
+		printf("   Key %d:\t\t[OK]\n", CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS);
 
-		printf("* Secure boot:\t%s", is_hab_enabled() ?
+		printf("* Secure boot:\t\t%s", is_hab_enabled() ?
 		       "[CLOSED]\n" : "[OPEN]\n");
 
-		puts("* HAB events:\t");
+		printf("* Encrypted U-Boot:\t%s\n", is_uboot_encrypted() ?
+			"[YES]" : "[NO]");
+
+		puts("* HAB events:\t\t");
 		if (hab_report_status(&config, &state) == HAB_SUCCESS)
 			puts("[NO ERRORS]\n");
 		else
@@ -490,6 +536,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		unsigned long dek_blob_src;
 		unsigned long dek_blob_dst;
 		unsigned long dek_blob_final_dst;
+		int generate_dek_blob;
 
 		argv -= 2 + confirmed;
 		argc += 2 + confirmed;
@@ -501,9 +548,9 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		if (get_source(argc, argv, &fwinfo))
 			return CMD_RET_FAILURE;
 
-		if (!((fwinfo.src == SRC_MMC && argc ==	6) ||
+		if (!((fwinfo.src == SRC_MMC && argc >= 5 ) ||
 		     ((fwinfo.src == SRC_TFTP || fwinfo.src == SRC_NFS) &&
-			argc == 5)))
+			argc >= 4)))
 			return CMD_RET_USAGE;
 
 		printf("\nLoading encrypted U-Boot image...\n");
@@ -531,34 +578,50 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		dek_blob_dst = dek_blob_src + 0x400;
 
 		printf("\nLoading Data Encryption Key...\n");
-		if (argc == 5) {
+		if ((fwinfo.src == SRC_TFTP || fwinfo.src == SRC_NAND) &&
+		    argc >= 5) {
 			sprintf(cmd_buf, "%s 0x%lx %s", argv[2], dek_blob_src,
 				argv[4]);
-		} else { /* argc == 4 */
+			generate_dek_blob = 1;
+		} else if (fwinfo.src == SRC_MMC && argc >= 6) {
 			sprintf(cmd_buf, "load mmc %s 0x%lx %s", argv[3],
 				dek_blob_src, argv[5]);
+			generate_dek_blob = 1;
+		} else {
+			u32 dek_blob_size;
+
+			if (get_dek_blob((void *)dek_blob_final_dst, &dek_blob_size)) {
+				printf("Current U-Boot does not contain a DEK, and a new DEK was not provided\n");
+				return CMD_RET_FAILURE;
+			}
+			printf("Using current DEK\n");
+			filesize = dek_blob_size;
+			generate_dek_blob = 0;
 		}
-		if (run_command(cmd_buf, 0))
-			return CMD_RET_FAILURE;
-		filesize = getenv_ulong("filesize", 16, 0);
 
-		printf("\nGenerating DEK blob...\n");
-		/* dek_blob takes size in bits */
-		sprintf(cmd_buf, "dek_blob 0x%lx 0x%lx 0x%lx",
-			dek_blob_src, dek_blob_dst, filesize * 8);
-		if (run_command(cmd_buf, 0))
-			return CMD_RET_FAILURE;
+		if (generate_dek_blob) {
+			if (run_command(cmd_buf, 0))
+				return CMD_RET_FAILURE;
+			filesize = getenv_ulong("filesize", 16, 0);
 
-		/*
-		 * Set filesize to the size of the DEK blob, that is:
-		 * header (8 bytes) + random AES-256 key (32 bytes)
-		 * + DEK ('filesize' bytes) + MAC (16 bytes)
-		 */
-		filesize += 8 + 32 + 16;
+			printf("\nGenerating DEK blob...\n");
+			/* dek_blob takes size in bits */
+			sprintf(cmd_buf, "dek_blob 0x%lx 0x%lx 0x%lx",
+				dek_blob_src, dek_blob_dst, filesize * 8);
+			if (run_command(cmd_buf, 0))
+				return CMD_RET_FAILURE;
 
-		/* Copy DEK blob to its final destination */
-		memcpy((void *)dek_blob_final_dst, (void *)dek_blob_dst,
-			filesize);
+			/*
+			 * Set filesize to the size of the DEK blob, that is:
+			 * header (8 bytes) + random AES-256 key (32 bytes)
+			 * + DEK ('filesize' bytes) + MAC (16 bytes)
+			 */
+			filesize += 8 + 32 + 16;
+
+			/* Copy DEK blob to its final destination */
+			memcpy((void *)dek_blob_final_dst, (void *)dek_blob_dst,
+				filesize);
+		}
 
 		printf("\nFlashing U-Boot partition...\n");
 		sprintf(cmd_buf, "update uboot ram 0x%lx 0x%lx",
@@ -734,7 +797,9 @@ U_BOOT_CMD(
 	"\n\tsource=mmc -> <dev:part> <uboot_file> <dek_file>\n"
 	"\t\t - <dev:part>: number of device and partition\n"
 	"\t\t - <uboot_file>: name of the encrypted uboot image\n"
-	"\t\t - <dek_file>: name of the Data Encryption Key (DEK) in plain text\n"
+	"\t\t - <dek_file>: name of the Data Encryption Key (DEK) in plain text.\n"
+	"\t\t               If the current U-Boot is encrypted, this parameter can\n"
+	"\t\t               be skipped and the current DEK will be used\n"
 	"\nWARNING: These commands (except 'status' and 'update') burn the"
 	" eFuses.\nThey are irreversible and could brick your device.\n"
 	"Make sure you know what you do before playing with this command.\n"

@@ -32,6 +32,7 @@
 #include "../common/carrier_board.h"
 #include "../common/helper.h"
 #include "../common/hwid.h"
+#include "../common/mca_registers.h"
 
 #ifdef CONFIG_POWER
 #include <power/pmic.h>
@@ -57,10 +58,6 @@ unsigned int board_id = CARRIERBOARD_ID_UNDEFINED;
 
 #define USDHC_PAD_CTRL (PAD_CTL_PKE | PAD_CTL_PUE |		\
 	PAD_CTL_PUS_22K_UP  | PAD_CTL_SPEED_LOW |		\
-	PAD_CTL_DSE_80ohm   | PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
-
-#define USDHC_DAT3_CD_PAD_CTRL (PAD_CTL_PKE | PAD_CTL_PUE |		\
-	PAD_CTL_PUS_100K_DOWN  | PAD_CTL_SPEED_LOW |		\
 	PAD_CTL_DSE_80ohm   | PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
 
 #define ENET_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_PUE |     \
@@ -95,41 +92,14 @@ static iomux_v3_cfg_t const ext_gpios_pads[] = {
 	MX6_PAD_GPIO1_IO02__GPIO1_IO02 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 };
 
-static iomux_v3_cfg_t const usdhc1_pads[] = {
-	MX6_PAD_SD1_CLK__USDHC1_CLK | MUX_PAD_CTRL(USDHC_PAD_CTRL),
-	MX6_PAD_SD1_CMD__USDHC1_CMD | MUX_PAD_CTRL(USDHC_PAD_CTRL),
-	MX6_PAD_SD1_DATA0__USDHC1_DATA0 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
-	MX6_PAD_SD1_DATA1__USDHC1_DATA1 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
-	MX6_PAD_SD1_DATA2__USDHC1_DATA2 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
-	MX6_PAD_SD1_DATA3__USDHC1_DATA3 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
-
-	/* VSELECT */
-	MX6_PAD_GPIO1_IO05__USDHC1_VSELECT | MUX_PAD_CTRL(USDHC_PAD_CTRL),
-	/* CD */
-	MX6_PAD_UART1_RTS_B__GPIO1_IO19 | MUX_PAD_CTRL(NO_PAD_CTRL),
-	/* RST_B */
-	MX6_PAD_GPIO1_IO09__GPIO1_IO09 | MUX_PAD_CTRL(NO_PAD_CTRL),
-};
-
+/* micro SD */
 static iomux_v3_cfg_t const usdhc2_pads[] = {
-	MX6_PAD_NAND_RE_B__USDHC2_CLK | MUX_PAD_CTRL(USDHC_PAD_CTRL),
-	MX6_PAD_NAND_WE_B__USDHC2_CMD | MUX_PAD_CTRL(USDHC_PAD_CTRL),
-	MX6_PAD_NAND_DATA00__USDHC2_DATA0 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
-	MX6_PAD_NAND_DATA01__USDHC2_DATA1 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
-	MX6_PAD_NAND_DATA02__USDHC2_DATA2 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
-	MX6_PAD_NAND_DATA03__USDHC2_DATA3 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
-};
-
-static iomux_v3_cfg_t const usdhc2_cd_pads[] = {
-
-	/* The evk board uses DAT3 to detect CD card plugin, in u-boot we mux the pin to
-	  * GPIO when doing board_mmc_getcd.
-	  */
-	MX6_PAD_NAND_DATA03__GPIO4_IO05 | MUX_PAD_CTRL(USDHC_DAT3_CD_PAD_CTRL),
-};
-
-static iomux_v3_cfg_t const usdhc2_dat3_pads[] = {
-	MX6_PAD_NAND_DATA03__USDHC2_DATA3 | MUX_PAD_CTRL(USDHC_DAT3_CD_PAD_CTRL),
+	MX6_PAD_CSI_VSYNC__USDHC2_CLK | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_CSI_HSYNC__USDHC2_CMD | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_CSI_DATA00__USDHC2_DATA0 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_CSI_DATA01__USDHC2_DATA1 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_CSI_DATA02__USDHC2_DATA2 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_CSI_DATA03__USDHC2_DATA3 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 };
 
 #ifdef CONFIG_FEC_MXC
@@ -180,19 +150,9 @@ static void setup_iomux_uart(void)
 }
 
 #ifdef CONFIG_FSL_ESDHC
-static struct fsl_esdhc_cfg usdhc_cfg[2] = {
-	{USDHC1_BASE_ADDR, 0, 4},
-#if defined(CONFIG_MX6UL_EVK_EMMC_REWORK)
-	{USDHC2_BASE_ADDR, 0, 8},
-#else
+static struct fsl_esdhc_cfg usdhc_cfg[] = {
 	{USDHC2_BASE_ADDR, 0, 4},
-#endif
 };
-
-#define USDHC1_CD_GPIO	IMX_GPIO_NR(1, 19)
-#define USDHC1_PWR_GPIO	IMX_GPIO_NR(1, 9)
-#define USDHC2_CD_GPIO	IMX_GPIO_NR(4, 5)
-#define USDHC2_PWR_GPIO	IMX_GPIO_NR(4, 10)
 
 int mmc_get_env_devno(void)
 {
@@ -215,42 +175,10 @@ int mmc_get_env_devno(void)
 	return dev_no;
 }
 
-int mmc_map_to_kernel_blk(int dev_no)
-{
-	if (dev_no == 0 && mx6_esdhc_fused(USDHC1_BASE_ADDR))
-		dev_no = 1;
-
-	return dev_no;
-}
-
 int board_mmc_getcd(struct mmc *mmc)
 {
-	struct fsl_esdhc_cfg *cfg = (struct fsl_esdhc_cfg *)mmc->priv;
-	int ret = 0;
-
-	switch (cfg->esdhc_base) {
-	case USDHC1_BASE_ADDR:
-		ret = !gpio_get_value(USDHC1_CD_GPIO);
-		break;
-	case USDHC2_BASE_ADDR:
-#if defined(CONFIG_MX6UL_EVK_EMMC_REWORK)
-		ret = 1;
-#else
-		imx_iomux_v3_setup_multiple_pads(
-				usdhc2_cd_pads, ARRAY_SIZE(usdhc2_cd_pads));
-		gpio_direction_input(USDHC2_CD_GPIO);
-
-		/* Since it is the DAT3 pin, this pin is pulled to a low voltage if no card */
-		ret = gpio_get_value(USDHC2_CD_GPIO);
-
-		imx_iomux_v3_setup_multiple_pads(
-				usdhc2_dat3_pads, ARRAY_SIZE(usdhc2_dat3_pads));
-#endif
-		break;
-	}
-
-	return ret;
-
+	/* CD not connected. Assume microSD card present */
+	return 1;
 }
 
 int board_mmc_init(bd_t *bis)
@@ -260,83 +188,52 @@ int board_mmc_init(bd_t *bis)
 	/*
 	 * According to the board_mmc_init() the following map is done:
 	 * (U-boot device node)    (Physical Port)
-	 * mmc0                    USDHC1
-	 * mmc1                    USDHC2
+	 * mmc0                    USDHC2
 	 */
 	for (i = 0; i < CONFIG_SYS_FSL_USDHC_NUM; i++) {
 		switch (i) {
 		case 0:
 			imx_iomux_v3_setup_multiple_pads(
-				usdhc1_pads, ARRAY_SIZE(usdhc1_pads));
-			gpio_direction_input(USDHC1_CD_GPIO);
-			usdhc_cfg[0].sdhc_clk = mxc_get_clock(MXC_ESDHC_CLK);
-
-			gpio_direction_output(USDHC1_PWR_GPIO, 0);
-			udelay(500);
-			gpio_direction_output(USDHC1_PWR_GPIO, 1);
-			break;
-		case 1:
-#if defined(CONFIG_MX6UL_EVK_EMMC_REWORK)
-			imx_iomux_v3_setup_multiple_pads(
-				usdhc2_emmc_pads, ARRAY_SIZE(usdhc2_emmc_pads));
-#else
-			imx_iomux_v3_setup_multiple_pads(
 				usdhc2_pads, ARRAY_SIZE(usdhc2_pads));
-#endif
-			gpio_direction_output(USDHC2_PWR_GPIO, 0);
-			udelay(500);
-			gpio_direction_output(USDHC2_PWR_GPIO, 1);
-			usdhc_cfg[1].sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
+			usdhc_cfg[0].sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
 			break;
 		default:
 			printf("Warning: you configured more USDHC controllers"
 				"(%d) than supported by the board\n", i + 1);
 			return -EINVAL;
-			}
+		}
 
-			ret = fsl_esdhc_initialize(bis, &usdhc_cfg[i]);
-			if (ret) {
-				printf("Warning: failed to initialize mmc dev %d\n", i);
-			}
+		ret = fsl_esdhc_initialize(bis, &usdhc_cfg[i]);
+		if (ret) {
+			printf("Warning: failed to initialize mmc dev %d\n", i);
+		}
 	}
 
 	return 0;
-}
-
-int check_mmc_autodetect(void)
-{
-	char *autodetect_str = getenv("mmcautodetect");
-
-	if ((autodetect_str != NULL) &&
-		(strcmp(autodetect_str, "yes") == 0)) {
-		return 1;
-	}
-
-	return 0;
-}
-
-void board_late_mmc_init(void)
-{
-	char cmd[32];
-	char mmcblk[32];
-	u32 dev_no = mmc_get_env_devno();
-
-	if (!check_mmc_autodetect())
-		return;
-
-	setenv_ulong("mmcdev", dev_no);
-
-	/* Set mmcblk env */
-	sprintf(mmcblk, "/dev/mmcblk%dp2 rootwait rw",
-		mmc_map_to_kernel_blk(dev_no));
-	setenv("mmcroot", mmcblk);
-
-	sprintf(cmd, "mmc dev %d", dev_no);
-	run_command(cmd, 0);
 }
 #endif
 
 #ifdef CONFIG_FEC_MXC
+void reset_phy()
+{
+	int reset = (1 << 7);	/* MCA_IO7 is connected to PHY reset */
+
+	/*
+	 * The reset line must be held low for a minimum of 100usec and cannot
+	 * be deasserted before 25ms have passed since the power supply has
+	 * reached 80% of the operating voltage. At this point of the code
+	 * we can assume the second premise is already accomplished.
+	 */
+
+	/* Configure as output */
+	mca_update_bits(MCA_CC6UL_GPIO_DIR_0, reset, reset);
+	/* Assert PHY reset (low) */
+	mca_update_bits(MCA_CC6UL_GPIO_DATA_0, reset, 0);
+	udelay(100);
+	/* Deassert PHY reset (high) */
+	mca_update_bits(MCA_CC6UL_GPIO_DATA_0, reset, reset);
+}
+
 int board_eth_init(bd_t *bis)
 {
 	int ret;
@@ -347,6 +244,8 @@ int board_eth_init(bd_t *bis)
 		CONFIG_FEC_MXC_PHYADDR, IMX_FEC_BASE);
 	if (ret)
 		printf("FEC%d MXC: %s:failed\n", CONFIG_FEC_ENET_DEV, __func__);
+
+	reset_phy();
 
 	return 0;
 }
@@ -517,10 +416,6 @@ int board_late_init(void)
 
 	/* SOM late init */
 	ccimx6ul_late_init();
-
-#ifdef CONFIG_ENV_IS_IN_MMC
-	board_late_mmc_init();
-#endif
 
 	set_wdog_reset((struct wdog_regs *)WDOG1_BASE_ADDR);
 

@@ -1027,17 +1027,6 @@ static int setup_pmic_voltages_ccimx6(void)
 	return 0;
 }
 
-static void verify_mac_address(char *var, char *default_mac)
-{
-	char *mac;
-
-	mac = getenv(var);
-	if (NULL == mac)
-		printf("Warning! MAC not set in '%s'\n", var);
-	else if (!strcmp(mac, default_mac))
-		printf("Warning! Dummy default MAC in '%s'\n", var);
-}
-
 static void ccimx6_detect_spurious_wakeup(void)
 {
 	unsigned char event_a, event_b, event_c, event_d, fault_log;
@@ -1562,4 +1551,6 @@ void fdt_fixup_ccimx6(void *fdt)
 		fdt_fixup_mac(fdt, "wlanaddr", "/wireless", "mac-address");
 	if (board_has_bluetooth())
 		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
+	fdt_fixup_trustfence(fdt);
+	fdt_fixup_uboot_version(fdt);
 }

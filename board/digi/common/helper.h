@@ -56,8 +56,10 @@ bool is_ubi_partition(struct part_info *part);
 int strtou32(const char *str, unsigned int base, u32 *result);
 int confirm_prog(void);
 void fdt_fixup_mac(void *fdt, char *varname, char *node, char *property);
+void fdt_fixup_uboot_version(void *fdt);
 int load_firmware(struct load_fw *fwinfo);
 const char *get_filename_ext(const char *filename);
 void strtohex(char *in, unsigned long *out, int len);
+void verify_mac_address(char *var, char *default_mac);
 
 #endif  /* __DIGI_HELPER_H */

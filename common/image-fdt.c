@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <image.h>
 #include <libfdt.h>
+#include <asm/arch/hab.h>
 #include <asm/io.h>
 
 #ifndef CONFIG_SYS_FDT_PAD
@@ -452,6 +453,13 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 	*of_size = fdt_totalsize(fdt_blob);
 	debug("   of_flat_tree at 0x%08lx size 0x%08lx\n",
 	      (ulong)*of_flat_tree, *of_size);
+
+#ifdef CONFIG_SECURE_BOOT
+	if (authenticate_image((uint32_t)*of_flat_tree, *of_size) == 0) {
+		printf("Device Tree authentication failed\n");
+		goto error;
+	}
+#endif
 
 	return 0;
 
