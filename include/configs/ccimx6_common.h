@@ -399,6 +399,10 @@
 	"name=data,size=-,uuid=${part7_uuid};" \
 	"\""
 
+/* Partition defines */
+#define CONFIG_BOOT_PARTITION		"1"
+#define CONFIG_RECOVERY_PARTITION	"2"
+
 /* Helper strings for extra env settings */
 #define CALCULATE_FILESIZE_IN_BLOCKS	\
 	"setexpr filesizeblks ${filesize} / 200; " \

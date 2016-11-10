@@ -208,15 +208,8 @@
 	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
 	"mtdupdateindex=" CONFIG_ENV_MTD_UPDATE_INDEX "\0" \
 	"recoverycmd=" \
-		"if ubi part " CONFIG_RECOVERY_PARTITION "; then " \
-			"if ubifsmount ubi0:" CONFIG_RECOVERY_PARTITION "; then " \
-				"ubifsload ${loadaddr} ${" CONFIG_DBOOT_DEFAULTKERNELVAR "};" \
-				"ubifsload ${fdt_addr} ${fdt_file};" \
-				"ubifsload ${initrd_addr} ${initrd_file};" \
-				"run bootargs_recovery;" \
-				CONFIG_DBOOT_BOOTCOMMAND " ${loadaddr} ${initrd_addr} ${fdt_addr};" \
-			"fi;" \
-		"fi;\0" \
+		"setenv mtdbootpart " CONFIG_RECOVERY_PARTITION ";" \
+		"boot\0" \
 	"rootfs_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".ubifs\0" \
 	""	/* end line */
 #else
