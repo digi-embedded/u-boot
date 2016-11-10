@@ -169,7 +169,7 @@
 		"androidboot.console=${console} " \
 		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
 		"${extra_bootargs}\0" \
-	"recoverycmd=setenv mmcbootpart " CONFIG_RECOVERY_PARTITION ";" \
+	"recoverycmd=setenv mmcpart " CONFIG_RECOVERY_PARTITION ";" \
 		"boot\0" \
 	"recovery_file=recovery.img\0" \
 	"install_android_fw_sd=if load mmc 1 ${loadaddr} " \
