@@ -2,7 +2,7 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
-dub-2015.04-r5.2, released on 2016/11/10
+dub-2015.04-r5.3, released on 2016/11/10
 	- Fix occasional problems mounting UBIFS file systems.
 	- TrustFence: add support for authentication/decryption of DTB,
 	  initramfs rootfs, and U-Boot scripts.
