@@ -168,7 +168,7 @@
 		"androidboot.mmcdev=${mmcbootdev} " \
 		"androidboot.console=${console} " \
 		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
-		"${extra_bootargs}\0" \
+		"${bootargs_once} ${extra_bootargs}\0" \
 	"recoverycmd=setenv mmcpart " CONFIG_RECOVERY_PARTITION ";" \
 		"boot\0" \
 	"recovery_file=recovery.img\0" \
