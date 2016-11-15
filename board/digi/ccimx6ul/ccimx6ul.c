@@ -365,7 +365,7 @@ void mca_init(void)
 		printf("??");
 	else
 		printf("%d.%d %s", fwver[1] & 0x7f, fwver[0],
-		       fwver[1] & 0x80 ? "" : "(alpha)");
+		       fwver[1] & 0x80 ? "(alpha)" : "");
 
 	printf("\n");
 }

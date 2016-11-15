@@ -194,25 +194,22 @@
 		"fi;\0" \
 	"linux_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
 	"loadscript=" \
-		"if ubi part " CONFIG_LINUX_PARTITION "; then " \
-			"if ubifsmount ubi0:" CONFIG_LINUX_PARTITION"; then " \
+		"if test -z \"${mtdbootpart}\"; then " \
+			"setenv mtdbootpart " CONFIG_LINUX_PARTITION ";" \
+		"fi;" \
+		"if ubi part ${mtdbootpart}; then " \
+			"if ubifsmount ubi0:${mtdbootpart}; then " \
 				"ubifsload ${loadaddr} ${script};" \
 			"fi;" \
 		"fi;\0" \
+	"mtdbootpart=" CONFIG_LINUX_PARTITION "\0" \
 	"mtdlinuxindex=" CONFIG_ENV_MTD_LINUX_INDEX "\0" \
 	"mtdrecoveryindex=" CONFIG_ENV_MTD_RECOVERY_INDEX "\0" \
 	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
 	"mtdupdateindex=" CONFIG_ENV_MTD_UPDATE_INDEX "\0" \
 	"recoverycmd=" \
-		"if ubi part " CONFIG_RECOVERY_PARTITION "; then " \
-			"if ubifsmount ubi0:" CONFIG_RECOVERY_PARTITION "; then " \
-				"ubifsload ${loadaddr} ${" CONFIG_DBOOT_DEFAULTKERNELVAR "};" \
-				"ubifsload ${fdt_addr} ${fdt_file};" \
-				"ubifsload ${initrd_addr} ${initrd_file};" \
-				"run bootargs_recovery;" \
-				CONFIG_DBOOT_BOOTCOMMAND " ${loadaddr} ${initrd_addr} ${fdt_addr};" \
-			"fi;" \
-		"fi;\0" \
+		"setenv mtdbootpart " CONFIG_RECOVERY_PARTITION ";" \
+		"boot\0" \
 	"rootfs_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".ubifs\0" \
 	""	/* end line */
 #else

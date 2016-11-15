@@ -95,7 +95,7 @@
 	"initrd_high=0xffffffff\0" \
 	"mmcbootpart=" __stringify(CONFIG_SYS_BOOT_PART_EMMC) "\0" \
 	"mmcdev=0\0" \
-	"mmcpart=1\0" \
+	"mmcpart=" CONFIG_BOOT_PARTITION "\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} ${smp} " \
 		"root=/dev/mmcblk0p2 rootwait rw\0" \
 	"loaduimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uimage}\0" \
@@ -168,12 +168,9 @@
 		"androidboot.mmcdev=${mmcbootdev} " \
 		"androidboot.console=${console} " \
 		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
-		"${extra_bootargs}\0" \
-	"recoverycmd=load mmc 0:2 ${loadaddr} ${uimage};" \
-		"load mmc 0:2 ${initrd_addr} ${initrd_file};" \
-		"load mmc 0:2 ${fdt_addr} ${fdt_file};" \
-		"run bootargs_recovery;" \
-		"bootm ${loadaddr} ${initrd_addr} ${fdt_addr}\0" \
+		"${bootargs_once} ${extra_bootargs}\0" \
+	"recoverycmd=setenv mmcpart " CONFIG_RECOVERY_PARTITION ";" \
+		"boot\0" \
 	"recovery_file=recovery.img\0" \
 	"install_android_fw_sd=if load mmc 1 ${loadaddr} " \
 		"install_android_fw_sd.scr;then " \
