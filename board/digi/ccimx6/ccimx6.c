@@ -1261,13 +1261,8 @@ int ccimx6_late_init(void)
 		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
 
 #ifdef CONFIG_ANDROID_RECOVERY
-	if (recovery_check_and_clean_flag()) {
-		char *recoverycmd;
-
-		recoverycmd = getenv("recoverycmd");
-		if (recoverycmd)
-			run_command(recoverycmd, 0);
-	}
+	if (recovery_check_and_clean_flag())
+		setenv("boot_recovery", "yes");
 #endif
 
 #ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
