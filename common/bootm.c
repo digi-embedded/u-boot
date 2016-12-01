@@ -14,6 +14,7 @@
 #include <lmb.h>
 #include <malloc.h>
 #include <asm/io.h>
+#include <asm/arch/hab.h>
 #include <linux/lzo.h>
 #include <lzma/LzmaTypes.h>
 #include <lzma/LzmaDec.h>
@@ -848,6 +849,29 @@ static const void *boot_get_kernel(cmd_tbl_t *cmdtp, int flag, int argc,
 	/* check image type, for FIT images get FIT kernel node */
 	*os_data = *os_len = 0;
 	buf = map_sysmem(img_addr, 0);
+
+#ifdef CONFIG_SECURE_BOOT
+        switch (genimg_get_format(buf)) {
+#if defined(CONFIG_IMAGE_FORMAT_LEGACY)
+        case IMAGE_FORMAT_LEGACY:
+                if (authenticate_image((uint32_t) buf,
+                        image_get_image_size((image_header_t *) buf)) == 0) {
+                        printf("Authenticate uImage Fail, Please check\n");
+                        return NULL;
+                }
+                break;
+#endif
+#ifdef CONFIG_ANDROID_BOOT_IMAGE
+        case IMAGE_FORMAT_ANDROID:
+                /* Do this authentication in boota command */
+                break;
+#endif
+        default:
+                printf("Not valid image format for Authentication, Please check\n");
+                return NULL;
+        }
+#endif
+
 	switch (genimg_get_format(buf)) {
 #if defined(CONFIG_IMAGE_FORMAT_LEGACY)
 	case IMAGE_FORMAT_LEGACY:
