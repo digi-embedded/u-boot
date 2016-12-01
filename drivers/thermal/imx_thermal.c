@@ -54,6 +54,7 @@ static int read_cpu_temperature(struct udevice *dev)
 	int t1, n1;
 	u64 c1, c2;
 	u64 temp64;
+	int64_t tmeas;
 
 	/*
 	 * Sensor data layout:
@@ -119,8 +120,14 @@ static int read_cpu_temperature(struct udevice *dev)
 		>> TEMPSENSE0_TEMP_CNT_SHIFT;
 	writel(TEMPSENSE0_FINISHED, &anatop->tempsense0_clr);
 
-	/* Tmeas = (c2 - Nmeas * c1 + OFFSET) / 1000000 */
-	temperature = lldiv(c2 - n_meas * c1 + OFFSET, 1000000);
+	/*
+	 * Tmeas = (c2 - Nmeas * c1 + OFFSET) / 1000000
+	 * Use an intermediate signed variable to avoid overflows
+	 */
+	tmeas = c2 - n_meas * c1 + OFFSET;
+	temperature = lldiv(abs64(tmeas), 1000000);
+	if (tmeas < 0)
+		temperature *= -1;
 
 	/* power down anatop thermal sensor */
 	writel(TEMPSENSE0_POWER_DOWN, &anatop->tempsense0_set);
