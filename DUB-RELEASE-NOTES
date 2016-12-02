@@ -2,6 +2,13 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
+dub-2015.04-r6.1, released on 2016/12/02
+	- Add MTD partitions to all kernel cmdline.
+	- Fix 'recovery boot' when requested from the operating system
+	  (for example with Android's 'reboot recovery' command).
+	- Fix reported temperature value when below 0ºC
+
+
 dub-2015.04-r5.4, released on 2016/11/14
 	- Fix occasional problems mounting UBIFS file systems.
 	- TrustFence: add support for authentication/decryption of DTB,
