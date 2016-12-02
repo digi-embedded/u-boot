@@ -147,7 +147,7 @@
 		"setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} root=/dev/nfs " \
 		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
-		"${bootargs_once} ${extra_bootargs}\0" \
+		"${mtdparts} ${bootargs_once} ${extra_bootargs}\0" \
 	"bootargs_tftp=" \
 		"if test ${ip_dyn} = yes; then " \
 			"bootargs_ip=\"ip=dhcp\";" \
@@ -160,7 +160,7 @@
 		"setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} root=/dev/nfs " \
 		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
-		"${bootargs_once} ${extra_bootargs}\0" \
+		"${mtdparts} ${bootargs_once} ${extra_bootargs}\0" \
 	"console=" CONFIG_CONSOLE_PORT "\0" \
 	"fdt_addr=0x83000000\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
@@ -177,7 +177,7 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_COMMON_ENV \
 	CONFIG_ENV_MTD_SETTINGS \
-	"bootargs_linux=" CONFIG_BOOTARGS_CMA_SIZE "\0" \
+	"bootargs_linux=" CONFIG_BOOTARGS_CMA_SIZE " \0" \
 	"bootargs_nand_linux=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} ${mtdparts} ubi.mtd=${mtdlinuxindex} " \
 		"ubi.mtd=${mtdrootfsindex} root=ubi1_0 " \
@@ -221,7 +221,7 @@
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} " \
-	    CONFIG_BOOTARGS_CMA_SIZE \
+		"${mtdparts} " CONFIG_BOOTARGS_CMA_SIZE \
 		"root=${mmcroot}\0" \
 	""	/* end line */
 #endif
