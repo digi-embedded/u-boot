@@ -208,7 +208,7 @@
 	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
 	"mtdupdateindex=" CONFIG_ENV_MTD_UPDATE_INDEX "\0" \
 	"recoverycmd=" \
-		"setenv mmcbootpart " CONFIG_RECOVERY_PARTITION ";" \
+		"setenv mtdbootpart " CONFIG_RECOVERY_PARTITION ";" \
 		"boot\0" \
 	"rootfs_file=core-image-base-" CONFIG_SYS_BOARD ".ubifs\0" \
 	""	/* end line */
