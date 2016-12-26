@@ -163,12 +163,6 @@
 			"else;" \
 			"fi;" \
 		"fi;\0" \
-	"bootargs_recovery=setenv bootargs console=${console},${baudrate} " \
-		"androidboot.hardware=" CONFIG_SYS_BOARD " " \
-		"androidboot.mmcdev=${mmcbootdev} " \
-		"androidboot.console=${console} " \
-		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
-		"${bootargs_once} ${extra_bootargs}\0" \
 	"recoverycmd=setenv mmcpart " CONFIG_RECOVERY_PARTITION ";" \
 		"boot\0" \
 	"recovery_file=recovery.img\0" \

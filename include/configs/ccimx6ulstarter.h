@@ -183,12 +183,6 @@
 		"ubi.mtd=${mtdrootfsindex} root=ubi1_0 " \
 		"rootfstype=ubifs rw " \
 		"${bootargs_once} ${extra_bootargs}\0" \
-	"bootargs_recovery=setenv bootargs console=${console},${baudrate} " \
-		"${bootargs_linux} ${mtdparts} ubi.mtd=${mtdlinuxindex} " \
-		"ubi.mtd=${mtdrecoveryindex} " \
-		"ubi.mtd=${mtdrootfsindex} " \
-		"ubi.mtd=${mtdupdateindex} " \
-		"${bootargs_once} ${extra_bootargs}\0" \
 	"install_linux_fw_sd=if load mmc 0 ${loadaddr} install_linux_fw_sd.scr;then " \
 			"source ${loadaddr};" \
 		"fi;\0" \
