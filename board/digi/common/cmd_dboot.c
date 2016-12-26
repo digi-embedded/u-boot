@@ -44,11 +44,25 @@ static const char *get_os_string(int os)
 
 static int set_bootargs(int os, int src)
 {
+	char var[100] = "";
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 
-	/* Run script at variable 'bootargs_<src>_<os>' */
-	sprintf(cmd, "run bootargs_%s_%s", get_source_string(src),
-		get_os_string(os));
+	/*
+	 * If using 'dboot' in recovery mode, run the script at variable
+	 * $bootargs_recovery.
+	 */
+	if (getenv_yesno("boot_recovery") == 1)
+		sprintf(var, "bootargs_recovery");
+
+	/*
+	 * If using 'dboot' in normal mode, or $bootargs_recovery does not
+	 * exist, run the script in $bootargs_<src>_<os>.
+	 */
+	if (!getenv(var))
+		sprintf(var, "bootargs_%s_%s", get_source_string(src),
+			get_os_string(os));
+
+	sprintf(cmd, "run %s", var);
 
 	return run_command(cmd, 0);
 }
