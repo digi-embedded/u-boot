@@ -434,3 +434,13 @@ int ft_board_setup(void *blob, bd_t *bd)
 	return 0;
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
+
+/* board specific configuration for spurious wakeup */
+void board_spurious_wakeup(void)
+{
+	/* Disable the 5V regulator on the ccimx6sbc before going
+	 * to power down
+	 */
+	if (pmic_write_bitfield(DA9063_GPIO_MODE0_7_ADDR, 0x1, 7, 0x0))
+		printf("Could not disable PWR_EN\n");
+}
