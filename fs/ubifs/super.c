@@ -2423,8 +2423,8 @@ retry:
 #else
 	strncpy(s->s_id, type->name, sizeof(s->s_id));
 #endif
-	hlist_add_head(&s->s_instances, &type->fs_supers);
 #ifndef __UBOOT__
+	hlist_add_head(&s->s_instances, &type->fs_supers);
 	spin_unlock(&sb_lock);
 	get_filesystem(type);
 	register_shrinker(&s->s_shrink);
