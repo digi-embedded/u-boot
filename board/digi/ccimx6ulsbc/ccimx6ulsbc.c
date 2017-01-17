@@ -356,7 +356,6 @@ int board_early_init_f(void)
 {
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
 	int ext_gpios[] =  {
-		IMX_GPIO_NR(4, 14),
 		IMX_GPIO_NR(1, 5),
 		IMX_GPIO_NR(1, 3),
 		IMX_GPIO_NR(1, 2),
