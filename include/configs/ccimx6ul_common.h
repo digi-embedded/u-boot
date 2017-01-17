@@ -243,9 +243,9 @@
 					"3m(" CONFIG_UBOOT_PARTITION ")," \
 					"1m(environment)," \
 					"1m(safe)," \
-					"14m(" CONFIG_LINUX_PARTITION ")," \
+					"12m(" CONFIG_LINUX_PARTITION ")," \
 					"14m(" CONFIG_RECOVERY_PARTITION ")," \
-					"128m(rootfs)," \
+					"122m(rootfs)," \
 					"-(update)"
 #define CONFIG_ENV_MTD_LINUX_INDEX	"3"
 #define CONFIG_ENV_MTD_RECOVERY_INDEX	"4"
