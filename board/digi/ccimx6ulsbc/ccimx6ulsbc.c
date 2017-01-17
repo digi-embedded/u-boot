@@ -450,6 +450,8 @@ int checkboard(void)
 {
 	print_ccimx6ul_info();
 	print_carrierboard_info();
+	printf("Boot device:  %s\n",
+	       is_boot_from_usb() ? "USB" : get_boot_device_name());
 
 	return 0;
 }
