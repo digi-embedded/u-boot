@@ -219,14 +219,20 @@ uint32_t authenticate_image(uint32_t ddr_start, uint32_t image_size)
 		hab_caam_clock_enable(0);
 
 	} else {
-		puts("   Open device, skipping authentication...\n");
+		debug("   Open device, skipping authentication...\n");
 		return 1;
 	}
 
-	if ((!is_hab_enabled()) || (load_addr != 0)) {
+	if (!is_hab_enabled()) {
+		/* Open device: consider image as valid */
+		debug("OK\n");
+		result = 1;
+	} else if (load_addr != 0) {
+		/* Closed device, authentication successful */
 		printf("OK\n");
 		result = 1;
 	} else {
+		/* Closed device, authentication failed: show errors */
 		get_hab_status();
 	}
 
