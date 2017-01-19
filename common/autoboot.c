@@ -300,6 +300,11 @@ const char *bootdelay_process(void)
 	/* Check if boot recovery is enabled */
 	if (strcmp("yes", getenv("boot_recovery")) == 0) {
 		s = getenv("recoverycmd");
+		printf("\n"
+		       "******************************************\n"
+		       "* Warning: Booting into recovery mode... *\n"
+		       "******************************************\n"
+		       "\n");
 	}
 
 	process_fdt_options(gd->fdt_blob);

@@ -54,6 +54,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 extern unsigned int board_version;
 extern unsigned int board_id;
+extern void board_spurious_wakeup(void);
 
 struct ccimx6_hwid my_hwid;
 static block_dev_desc_t *mmc_dev;
@@ -1129,6 +1130,9 @@ static void ccimx6_detect_spurious_wakeup(void)
 
 		/* Make sure nRESET is asserted when waking up */
 		pmic_write_bitfield(DA9063_CONTROL_B_ADDR, 0x1, 3, 0x1);
+
+		/* Call board-specific actions for spurious wake situation */
+		board_spurious_wakeup();
 
 		/* De-assert SYS_EN to get to powerdown mode. The OTP
 		 * is not reread when coming up so the wake-up

@@ -183,12 +183,6 @@
 		"ubi.mtd=${mtdrootfsindex} root=ubi1_0 " \
 		"rootfstype=ubifs rw " \
 		"${bootargs_once} ${extra_bootargs}\0" \
-	"bootargs_recovery=setenv bootargs console=${console},${baudrate} " \
-		"${bootargs_linux} ${mtdparts} ubi.mtd=${mtdlinuxindex} " \
-		"ubi.mtd=${mtdrecoveryindex} " \
-		"ubi.mtd=${mtdrootfsindex} " \
-		"ubi.mtd=${mtdupdateindex} " \
-		"${bootargs_once} ${extra_bootargs}\0" \
 	"install_linux_fw_sd=if load mmc 0 ${loadaddr} install_linux_fw_sd.scr;then " \
 			"source ${loadaddr};" \
 		"fi;\0" \
@@ -208,7 +202,7 @@
 	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
 	"mtdupdateindex=" CONFIG_ENV_MTD_UPDATE_INDEX "\0" \
 	"recoverycmd=" \
-		"setenv mmcbootpart " CONFIG_RECOVERY_PARTITION ";" \
+		"setenv mtdbootpart " CONFIG_RECOVERY_PARTITION ";" \
 		"boot\0" \
 	"rootfs_file=core-image-base-" CONFIG_SYS_BOARD ".ubifs\0" \
 	""	/* end line */
