@@ -23,6 +23,7 @@ struct ccimx6_hwid {
 	u8		week;		/* manufacturing week */
 	u8		genid;		/* generator id */
 	u32		sn;		/* serial number */
+	unsigned char	wid;		/* wireless ID */
 };
 
 enum imx6_cpu {
