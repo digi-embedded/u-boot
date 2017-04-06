@@ -74,19 +74,26 @@ struct i2c_pads_info i2c1_pad_info = {
 static struct ccimx6_variant ccimx6ul_variants[] = {
 /* 0x00 */ { IMX6_NONE,	0, 0, "Unknown"},
 /* 0x01 */ { IMX6_NONE,	0, 0, "Unknown"},
-/* 0x02 - 55001875-02 */
+/* 0x02 - 55001944-01 */
 	{
 		IMX6UL,
 		MEM_256MB,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
 		"Industrial Ultralite 528MHz, 256MB NAND, 256MB DDR3, -40/+85C, Wireless, Bluetooth",
 	},
-/* 0x03 - 55001875-03 */
+/* 0x03 - 55001944-02 */
 	{
 		IMX6UL,
 		MEM_256MB,
 		0,
 		"Industrial Ultralite 528MHz, 256MB NAND, 256MB DDR3, -40/+85C",
+	},
+/* 0x04 - 55001944-03 */
+	{
+		IMX6UL,
+		MEM_1GB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
+		"Industrial Ultralite 528MHz, 1GB NAND, 1GB DDR3, -40/+85C, Wireless, Bluetooth",
 	},
 };
 
@@ -182,7 +189,7 @@ int mca_update_bits(int reg, unsigned char mask, unsigned char val)
 
 int dram_init(void)
 {
-	gd->ram_size = PHYS_SDRAM_SIZE;
+	gd->ram_size = ((ulong)CONFIG_DDR_MB * SZ_1M);
 
 	return 0;
 }

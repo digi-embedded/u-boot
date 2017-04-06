@@ -95,6 +95,11 @@ iomux_v3_cfg_t const sgtl5000_pwr_pads[] = {
 	MX6_PAD_EIM_OE__GPIO2_IO25 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 
+iomux_v3_cfg_t const pcie_pwr_pads[] = {
+	/* PCIe power enable */
+	MX6_PAD_NANDF_RB0__GPIO6_IO10 | MUX_PAD_CTRL(NO_PAD_CTRL),
+};
+
 #ifdef CONFIG_SYS_I2C_MXC
 int setup_pmic_voltages_carrierboard(void)
 {
@@ -293,6 +298,21 @@ static void setup_board_audio(void)
 	}
 }
 
+static void setup_board_pcie(void)
+{
+	/* SBC version 2 and later use a GPIO to power enable the PCIe */
+	if (((board_id == CCIMX6SBC_ID129) || (board_id == CCIMX6SBC_ID130)) &&
+	    board_version >= 2) {
+		int pcie_pwren_gpio = IMX_GPIO_NR(6, 10);
+
+		/* PCIe Power enable line IOMUX */
+		imx_iomux_v3_setup_multiple_pads(pcie_pwr_pads,
+						 ARRAY_SIZE(pcie_pwr_pads));
+		/* Switching off PCIe power */
+		gpio_direction_output(pcie_pwren_gpio , 0);
+	}
+}
+
 int board_mmc_getcd(struct mmc *mmc)
 {
 	struct fsl_esdhc_cfg *cfg = (struct fsl_esdhc_cfg *)mmc->priv;
@@ -365,6 +385,8 @@ int board_init(void)
 #endif
 	if (board_has_audio())
 		setup_board_audio();
+
+	setup_board_pcie();
 
 	return 0;
 }

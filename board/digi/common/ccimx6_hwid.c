@@ -30,6 +30,7 @@ void ccimx6_print_hwid(u32 *buf)
 	/* Formatted printout */
 	printf("    Year:          20%02d\n", (buf[1] >> 26) & 0x3f);
 	printf("    Week:          %02d\n", (buf[1] >> 20) & 0x3f);
+	printf("    Wireless ID:   0x%x\n", (buf[1] >> 16) & 0xf);
 	printf("    Variant:       0x%02x\n", (buf[1] >> 8) & 0xff);
 	printf("    HW Version:    0x%x\n", (buf[1] >> 4) & 0xf);
 	cert = buf[1] & 0xf;
@@ -48,7 +49,7 @@ void ccimx6_print_manufid(u32 *buf)
 		printf(" %.8x", buf[i]);
 	printf("\n");
 	/* Formatted printout */
-	printf(" Manufacturing ID: %c%02d%02d%02d%06d %02x%x%x\n",
+	printf(" Manufacturing ID: %c%02d%02d%02d%06d %02x%x%x %x\n",
 	       ((buf[0] >> 27) & 0x1f) + 'A',
 	       (buf[1] >> 26) & 0x3f,
 	       (buf[1] >> 20) & 0x3f,
@@ -56,7 +57,8 @@ void ccimx6_print_manufid(u32 *buf)
 	       buf[0] & 0xfffff,
 	       (buf[1] >> 8) & 0xff,
 	       (buf[1] >> 4) & 0xf,
-	       buf[1] & 0xf);
+	       buf[1] & 0xf,
+	       (buf[1] >> 16) & 0xf);
 }
 
 static void array_to_hwid(u32 *buf, struct ccimx6_hwid *hwid)
@@ -64,10 +66,10 @@ static void array_to_hwid(u32 *buf, struct ccimx6_hwid *hwid)
 	/*
 	 *                      MAC1 (Bank 4 Word 3)
 	 *
-	 *       | 31..26 | 25..20 |   |  15..8  | 7..4 | 3..0 |
-	 *       +--------+--------+---+---------+------+------+
-	 * HWID: |  Year  |  Week  | - | Variant |  HV  | Cert |
-	 *       +--------+--------+---+---------+------+------+
+	 *       | 31..26 | 25..20 | 19..16 |  15..8  | 7..4 | 3..0 |
+	 *       +--------+--------+--------+---------+------+------+
+	 * HWID: |  Year  |  Week  |  WID   | Variant |  HV  | Cert |
+	 *       +--------+--------+--------+---------+------+------+
 	 *
 	 *                      MAC0 (Bank 4 Word 2)
 	 *
@@ -78,6 +80,7 @@ static void array_to_hwid(u32 *buf, struct ccimx6_hwid *hwid)
 	 */
 	hwid->year = (buf[1] >> 26) & 0x3f;
 	hwid->week = (buf[1] >> 20) & 0x3f;
+	hwid->wid = (buf[1] >> 16) & 0xf;
 	hwid->variant = (buf[1] >> 8) & 0xff;
 	hwid->hv = (buf[1] >> 4) & 0xf;
 	hwid->cert = buf[1] & 0xf;
@@ -97,7 +100,7 @@ int ccimx6_manufstr_to_hwid(int argc, char *const argv[], u32 *val)
 	*mac0 = 0;
 	*mac1 = 0;
 
-	if (argc != 2)
+	if (argc < 2 || argc > 3)
 		goto err;
 
 	/*
@@ -120,7 +123,7 @@ int ccimx6_manufstr_to_hwid(int argc, char *const argv[], u32 *val)
 		goto err;
 
 	/*
-	 * Additionally a second string in the form VVHC must be given where:
+	 * A second string in the form VVHCK must be given where:
 	 *  - VV:	variant (in hex)
 	 *  - H:	hardware version (in hex)
 	 *  - C:	wireless certification (in hex)
@@ -131,6 +134,18 @@ int ccimx6_manufstr_to_hwid(int argc, char *const argv[], u32 *val)
 	 */
 	if (strlen(argv[1]) != 4)
 		goto err;
+
+	/*
+	 * A third string (if provided) in the form K may be given, where:
+	 *  - K:	wireless ID (in hex)
+	 * this information goes into the following places on the HWID:
+	 *  - K:	OCOTP_MAC1 bits 19..16 (4 bits)
+	 * If not provided, a zero is used (for backwards compatibility)
+	 */
+	if (argc > 2) {
+		if (strlen(argv[2]) != 1)
+			goto err;
+	}
 
 	/* Location */
 	if (argv[0][0] < 'A' || argv[0][0] > 'Z')
@@ -202,6 +217,18 @@ int ccimx6_manufstr_to_hwid(int argc, char *const argv[], u32 *val)
 	printf("    Cert:          0x%x (%s)\n", (int)num,
 	       num < ARRAY_SIZE(cert_regions) ? cert_regions[num] : "??");
 
+	num = 0;
+	if (argc > 2) {
+		/* Wireless ID */
+		strncpy(tmp, &argv[2][0], 1);
+		tmp[1] = 0;
+		num = simple_strtol(tmp, NULL, 16);
+		if (num < 0 || num > 0xf)
+			goto err;
+		*mac1 |= num << 16;
+	}
+	printf("    Wireless ID:   0x%x\n", (int)num);
+
 	return 0;
 
 err:
@@ -241,6 +268,7 @@ void ccimx6_fdt_fixup_hwid(void *fdt, struct ccimx6_hwid *hwid)
 		"digi,hwid,variant",
 		"digi,hwid,hv",
 		"digi,hwid,cert",
+		"digi,hwid,wid",
 	};
 	char str[20];
 	int i;
@@ -264,6 +292,8 @@ void ccimx6_fdt_fixup_hwid(void *fdt, struct ccimx6_hwid *hwid)
 			sprintf(str, "0x%x", hwid->hv);
 		else if (!strcmp("digi,hwid,cert", propnames[i]))
 			sprintf(str, "0x%x", hwid->cert);
+		else if (!strcmp("digi,hwid,wid", propnames[i]))
+			sprintf(str, "0x%x", hwid->wid);
 		else
 			continue;
 
