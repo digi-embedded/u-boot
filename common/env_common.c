@@ -99,6 +99,11 @@ char *getenv_default(const char *name)
 	return ret_val;
 }
 
+__weak void platform_default_environment(void)
+{
+	return;
+}
+
 void set_default_env(const char *s)
 {
 	int flags = 0;
@@ -127,6 +132,9 @@ void set_default_env(const char *s)
 			sizeof(default_environment), '\0', flags, 0,
 			0, NULL) == 0)
 		error("Environment import failed: errno = %d\n", errno);
+
+	/* Platform-specific actions on default environment */
+	platform_default_environment();
 
 	gd->flags |= GD_FLG_ENV_READY;
 }
