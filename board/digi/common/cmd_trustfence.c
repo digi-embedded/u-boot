@@ -185,6 +185,13 @@ __weak int sense_key_status(u32 *val)
 	return 0;
 }
 
+__weak int disable_ext_mem_boot(void)
+{
+	return fuse_prog(CONFIG_TRUSTFENCE_DIRBTDIS_BANK,
+			 CONFIG_TRUSTFENCE_DIRBTDIS_WORD,
+			 1 << CONFIG_TRUSTFENCE_DIRBTDIS_OFFSET);
+}
+
 static void board_print_trustfence_jtag_mode(u32 *sjc)
 {
 	u32 sjc_mode;
@@ -446,9 +453,6 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		enum hab_config config = 0;
 		enum hab_state state = 0;
 
-		if (!confirmed && !confirm_prog())
-			return CMD_RET_FAILURE;
-
 		puts("Checking SRK bank...\n");
 		ret = fuse_check_srk();
 		if (ret > 0) {
@@ -466,6 +470,17 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			return CMD_RET_FAILURE;
 		}
 
+		puts("Before closing the device DIR_BT_DIS will be burned.\n");
+		puts("This permanently disables the ability to boot using external memory.\n");
+		puts("Please confirm the programming of DIR_BT_DIS and SEC_CONFIG[1]\n\n");
+		if (!confirmed && !confirm_prog())
+			return CMD_RET_FAILURE;
+
+		puts("Programming DIR_BT_DIS eFuse...\n");
+		if (disable_ext_mem_boot())
+			goto err;
+		puts("[OK]\n");
+		
 		puts("Closing device...\n");
 		if (close_device())
 			goto err;
