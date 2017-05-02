@@ -240,7 +240,7 @@
 #define CONFIG_RECOVERY_PARTITION	"recovery"
 #define CONFIG_NAND_NAME		"gpmi-nand"
 #define MTDIDS_DEFAULT			"nand0=" CONFIG_NAND_NAME
-#define MTDPARTS_DEFAULT		"mtdparts=" CONFIG_NAND_NAME ":" \
+#define MTDPARTS_256MB			"mtdparts=" CONFIG_NAND_NAME ":" \
 					"3m(" CONFIG_UBOOT_PARTITION ")," \
 					"1m(environment)," \
 					"1m(safe)," \
@@ -248,13 +248,19 @@
 					"14m(" CONFIG_RECOVERY_PARTITION ")," \
 					"122m(rootfs)," \
 					"-(update)"
+#define MTDPARTS_1024MB			"mtdparts=" CONFIG_NAND_NAME ":" \
+					"3m(" CONFIG_UBOOT_PARTITION ")," \
+					"1m(environment)," \
+					"1m(safe)," \
+					"24m(" CONFIG_LINUX_PARTITION ")," \
+					"32m(" CONFIG_RECOVERY_PARTITION ")," \
+					"512m(rootfs)," \
+					"-(update)"
 #define CONFIG_ENV_MTD_LINUX_INDEX	"3"
 #define CONFIG_ENV_MTD_RECOVERY_INDEX	"4"
 #define CONFIG_ENV_MTD_ROOTFS_INDEX	"5"
 #define CONFIG_ENV_MTD_UPDATE_INDEX	"6"
-#define CONFIG_ENV_MTD_SETTINGS	\
-	"mtdids=" MTDIDS_DEFAULT "\0" \
-	"mtdparts=" MTDPARTS_DEFAULT "\0"
+#define CONFIG_ENV_MTD_SETTINGS		"mtdids=" MTDIDS_DEFAULT "\0"
 
 /* Max percentage of reserved blocks for bad block management per partition */
 #define CONFIG_MTD_UBI_MAXRSVDPEB_PCNT	4

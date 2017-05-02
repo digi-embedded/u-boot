@@ -22,6 +22,7 @@
 #endif
 #include <i2c.h>
 #include <linux/sizes.h>
+#include <nand.h>
 
 #ifdef CONFIG_POWER
 #include <power/pmic.h>
@@ -418,9 +419,36 @@ static const struct boot_mode board_boot_modes[] = {
 };
 #endif
 
+void generate_partition_table(void)
+{
+	struct mtd_info *nand = &nand_info[0];
+	uint32_t nand_size_mb = nand->size / SZ_1M;
+
+	switch (nand_size_mb) {
+	case 1024:
+		setenv("mtdparts", MTDPARTS_1024MB);
+		break;
+	case 256:
+	default:
+		setenv("mtdparts", MTDPARTS_256MB);
+		break;
+	}
+}
+
+void platform_default_environment(void)
+{
+	char *parttable;
+
+	/* Partition table */
+	parttable = getenv("mtdparts");
+	if (!parttable)
+		generate_partition_table();
+}
+
 int ccimx6ul_late_init(void)
 {
 	char var[10];
+	char *parttable;
 
 #ifdef CONFIG_CMD_BMODE
 	add_board_boot_modes(board_boot_modes);
@@ -429,6 +457,14 @@ int ccimx6ul_late_init(void)
 	/* Set $module_variant variable */
 	sprintf(var, "0x%02x", my_hwid.variant);
 	setenv("module_variant", var);
+
+	/*
+	 * If there is no partition table generate one dynamically basing
+	 * on the available NAND size.
+	 */
+	parttable = getenv("mtdparts");
+	if (!parttable)
+		generate_partition_table();
 
 #ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
 	gd->flags &= ~GD_FLG_DISABLE_CONSOLE_INPUT;
