@@ -419,10 +419,11 @@ static int board_fixup(void)
 	return 0;
 }
 
-int board_late_init(void)
+void platform_default_environment(void)
 {
-	int ret;
 	char cmd[80];
+
+	som_default_environment();
 
 	/* Set $board_version variable if defined in OTP bits */
 	if (board_version > 0) {
@@ -435,10 +436,18 @@ int board_late_init(void)
 		sprintf(cmd, "setenv -f board_id %d", board_id);
 		run_command(cmd, 0);
 	}
+}
+
+int board_late_init(void)
+{
+	int ret;
 
 	ret = ccimx6_late_init();
 	if (!ret)
 		ret = board_fixup();
+
+	/* Set default dynamic variables */
+	platform_default_environment();
 
 	return ret;
 }

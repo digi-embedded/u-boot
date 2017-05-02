@@ -436,9 +436,11 @@ int board_init(void)
 	return 0;
 }
 
-int board_late_init(void)
+void platform_default_environment(void)
 {
 	char cmd[80];
+
+	som_default_environment();
 
 	/* Set $board_version variable if defined in OTP bits */
 	if (board_version > 0) {
@@ -451,9 +453,15 @@ int board_late_init(void)
 		sprintf(cmd, "setenv -f board_id %d", board_id);
 		run_command(cmd, 0);
 	}
+}
 
+int board_late_init(void)
+{
 	/* SOM late init */
 	ccimx6ul_late_init();
+
+	/* Set default dynamic variables */
+	platform_default_environment();
 
 	set_wdog_reset((struct wdog_regs *)WDOG1_BASE_ADDR);
 

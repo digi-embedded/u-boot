@@ -435,36 +435,26 @@ void generate_partition_table(void)
 	}
 }
 
-void platform_default_environment(void)
+void som_default_environment(void)
 {
+	char var[10];
 	char *parttable;
 
 	/* Partition table */
 	parttable = getenv("mtdparts");
 	if (!parttable)
 		generate_partition_table();
-}
-
-int ccimx6ul_late_init(void)
-{
-	char var[10];
-	char *parttable;
-
-#ifdef CONFIG_CMD_BMODE
-	add_board_boot_modes(board_boot_modes);
-#endif
 
 	/* Set $module_variant variable */
 	sprintf(var, "0x%02x", my_hwid.variant);
 	setenv("module_variant", var);
+}
 
-	/*
-	 * If there is no partition table generate one dynamically basing
-	 * on the available NAND size.
-	 */
-	parttable = getenv("mtdparts");
-	if (!parttable)
-		generate_partition_table();
+int ccimx6ul_late_init(void)
+{
+#ifdef CONFIG_CMD_BMODE
+	add_board_boot_modes(board_boot_modes);
+#endif
 
 #ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
 	gd->flags &= ~GD_FLG_DISABLE_CONSOLE_INPUT;

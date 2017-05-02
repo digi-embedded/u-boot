@@ -1203,7 +1203,7 @@ void pmic_bucks_synch_mode(void)
 	}
 }
 
-int ccimx6_late_init(void)
+void som_default_environment(void)
 {
 #ifdef CONFIG_CMD_MMC
 	char cmd[80];
@@ -1212,6 +1212,27 @@ int ccimx6_late_init(void)
 	char var2[10];
 	int i;
 
+#ifdef CONFIG_CMD_MMC
+	/* Set $mmcbootdev to MMC boot device index */
+	sprintf(cmd, "setenv -f mmcbootdev %x", mmc_get_bootdevindex());
+	run_command(cmd, 0);
+#endif
+
+	/* Build $soc_family variable */
+	strcpy(var2, get_imx_family((get_cpu_rev() & 0xFF000) >> 12));
+	/* Convert to lower case */
+	for (i = 0; i < strlen(var2); i++)
+		var2[i] = tolower(var2[i]);
+	sprintf(var, "imx%s", var2);
+	setenv("soc_family", var);
+
+	/* Set $module_variant variable */
+	sprintf(var, "0x%02x", my_hwid.variant);
+	setenv("module_variant", var);
+}
+
+int ccimx6_late_init(void)
+{
 #ifdef CONFIG_CMD_BMODE
 	add_board_boot_modes(board_boot_modes);
 #endif
@@ -1236,24 +1257,6 @@ int ccimx6_late_init(void)
 	if (setup_pmic_voltages_carrierboard())
 		return -1;
 #endif
-
-#ifdef CONFIG_CMD_MMC
-	/* Set $mmcbootdev to MMC boot device index */
-	sprintf(cmd, "setenv -f mmcbootdev %x", mmc_get_bootdevindex());
-	run_command(cmd, 0);
-#endif
-
-	/* Build $soc_family variable */
-	strcpy(var2, get_imx_family((get_cpu_rev() & 0xFF000) >> 12));
-	/* Convert to lower case */
-	for (i = 0; i < strlen(var2); i++)
-		var2[i] = tolower(var2[i]);
-	sprintf(var, "imx%s", var2);
-	setenv("soc_family", var);
-
-	/* Set $module_variant variable */
-	sprintf(var, "0x%02x", my_hwid.variant);
-	setenv("module_variant", var);
 
 	/* Verify MAC addresses */
 	verify_mac_address("ethaddr", DEFAULT_MAC_ETHADDR);
