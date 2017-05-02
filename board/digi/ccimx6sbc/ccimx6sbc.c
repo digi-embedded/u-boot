@@ -57,12 +57,12 @@ unsigned int board_id = CARRIERBOARD_ID_UNDEFINED;
 	PAD_CTL_PUS_100K_DOWN | PAD_CTL_SPEED_MED |               \
 	PAD_CTL_DSE_40ohm   | PAD_CTL_SRE_FAST)
 
-iomux_v3_cfg_t const uart4_pads[] = {
+static iomux_v3_cfg_t const uart4_pads[] = {
 	MX6_PAD_KEY_COL0__UART4_TX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL),
 	MX6_PAD_KEY_ROW0__UART4_RX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL),
 };
 
-iomux_v3_cfg_t const ext_gpios_pads[] = {
+static iomux_v3_cfg_t const ext_gpios_pads[] = {
 	MX6_PAD_NANDF_D5__GPIO2_IO05 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 	MX6_PAD_NANDF_D6__GPIO2_IO06 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 	MX6_PAD_NANDF_D7__GPIO2_IO07 | MUX_PAD_CTRL(GPI_PAD_CTRL),
@@ -73,12 +73,12 @@ iomux_v3_cfg_t const ext_gpios_pads[] = {
 	MX6_PAD_GPIO_19__GPIO4_IO05 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 };
 
-iomux_v3_cfg_t const ksz9031_pads[] = {
+static iomux_v3_cfg_t const ksz9031_pads[] = {
 	/* Micrel KSZ9031 PHY reset */
 	MX6_PAD_ENET_CRS_DV__GPIO1_IO25		| MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 
-iomux_v3_cfg_t const sgtl5000_audio_pads[] = {
+static iomux_v3_cfg_t const sgtl5000_audio_pads[] = {
 	/*
 	 * Audio lines must be configured as GPIO inputs when coming
 	 * from a software reset, since the audio chip itself does not have a
@@ -90,12 +90,12 @@ iomux_v3_cfg_t const sgtl5000_audio_pads[] = {
 	MX6_PAD_CSI0_DAT6__GPIO5_IO24 | MUX_PAD_CTRL(NO_PAD_CTRL), /* TXFS */
 };
 
-iomux_v3_cfg_t const sgtl5000_pwr_pads[] = {
+static iomux_v3_cfg_t const sgtl5000_pwr_pads[] = {
 	/* SGTL5000 audio codec power enable (external 4K7 pull-up) */
 	MX6_PAD_EIM_OE__GPIO2_IO25 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 
-iomux_v3_cfg_t const pcie_pwr_pads[] = {
+static iomux_v3_cfg_t const pcie_pwr_pads[] = {
 	/* PCIe power enable */
 	MX6_PAD_NANDF_RB0__GPIO6_IO10 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
