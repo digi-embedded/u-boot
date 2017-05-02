@@ -254,6 +254,11 @@ char *env_get_default(const char *name)
 	return NULL;
 }
 
+__weak void platform_default_environment(void)
+{
+	return;
+}
+
 void env_set_default(const char *s, int flags)
 {
 	if (s) {
@@ -275,6 +280,9 @@ void env_set_default(const char *s, int flags)
 		       errno);
 		return;
 	}
+
+	/* Platform-specific actions on default environment */
+	platform_default_environment();
 
 	gd->flags |= GD_FLG_ENV_READY;
 	gd->flags |= GD_FLG_ENV_DEFAULT;
