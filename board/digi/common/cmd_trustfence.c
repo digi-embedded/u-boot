@@ -461,6 +461,8 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			return CMD_RET_FAILURE;
 		} else if (ret < 0) {
 			goto err;
+		} else {
+			puts("[OK]\n\n");
 		}
 
 		if (hab_report_status(&config, &state) != HAB_SUCCESS) {
