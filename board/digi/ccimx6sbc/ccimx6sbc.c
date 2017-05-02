@@ -62,6 +62,7 @@ static iomux_v3_cfg_t const uart4_pads[] = {
 	MX6_PAD_KEY_ROW0__UART4_RX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL),
 };
 
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
 static iomux_v3_cfg_t const ext_gpios_pads[] = {
 	MX6_PAD_NANDF_D5__GPIO2_IO05 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 	MX6_PAD_NANDF_D6__GPIO2_IO06 | MUX_PAD_CTRL(GPI_PAD_CTRL),
@@ -72,6 +73,7 @@ static iomux_v3_cfg_t const ext_gpios_pads[] = {
 	MX6_PAD_GPIO_18__GPIO7_IO13 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 	MX6_PAD_GPIO_19__GPIO4_IO05 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 };
+#endif
 
 static iomux_v3_cfg_t const ksz9031_pads[] = {
 	/* Micrel KSZ9031 PHY reset */

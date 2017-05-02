@@ -90,6 +90,7 @@ static iomux_v3_cfg_t const uart5_pads[] = {
 	MX6_PAD_UART5_RX_DATA__UART5_DCE_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
 };
 
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
 static iomux_v3_cfg_t const ext_gpios_pads[] = {
 	MX6_PAD_GPIO1_IO04__GPIO1_IO04 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 	MX6_PAD_JTAG_TDO__GPIO1_IO12 | MUX_PAD_CTRL(GPI_PAD_CTRL),
@@ -98,6 +99,7 @@ static iomux_v3_cfg_t const ext_gpios_pads[] = {
 	MX6_PAD_JTAG_TRST_B__GPIO1_IO15 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 	MX6_PAD_JTAG_TCK__GPIO1_IO14 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 };
+#endif
 
 /* micro SD */
 static iomux_v3_cfg_t const usdhc2_pads[] = {
