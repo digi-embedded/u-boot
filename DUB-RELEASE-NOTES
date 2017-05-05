@@ -2,6 +2,14 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
+dub-2015.04-r8.3, released on 2017/04/21
+	- Added preliminary support for CC6UL variant 0x04.
+	- Switch off CC6 PCIe power.
+	- Fix for compiling with newer gcc versions.
+	- Fix clock management on dek_blob command.
+	- Increment polling timeout in eSDHC controller.
+
+
 dub-2015.04-r7.1, released on 2017/01/19
 	- Adjust CC6UL default NAND partition table.
 	- Fixes in recovery boot mode.
