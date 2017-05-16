@@ -255,7 +255,7 @@
 					"-(update)"
 #define MTDPARTS_1024MB			"mtdparts=" CONFIG_NAND_NAME ":" \
 					"3m(" CONFIG_UBOOT_PARTITION ")," \
-					"1m(environment)," \
+					"3m(environment)," \
 					"1m(safe)," \
 					"24m(" CONFIG_LINUX_PARTITION ")," \
 					"32m(" CONFIG_RECOVERY_PARTITION ")," \
