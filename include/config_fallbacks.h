@@ -60,4 +60,14 @@
 # endif
 #endif
 
+#if defined(CONFIG_DYNAMIC_ENV_LOCATION) && \
+    defined(CONFIG_SYS_REDUNDANT_ENVIRONMENT)
+# ifndef CONFIG_ENV_OFFSET_REDUND
+#   define CONFIG_ENV_OFFSET_REDUND	CONFIG_ENV_OFFSET
+# endif
+# ifndef CONFIG_ENV_SIZE_REDUND
+#  define CONFIG_ENV_SIZE_REDUND	CONFIG_ENV_SIZE
+# endif
+#endif
+
 #endif	/* __CONFIG_FALLBACKS_H */
