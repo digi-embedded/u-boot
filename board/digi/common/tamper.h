@@ -10,7 +10,7 @@
 #ifndef MCA_TAMPER_H
 #define MCA_TAMPER_H
 
-#define MCA_MAX_TAMPER_PINS	2
+#define MCA_MAX_TAMPER_PINS	4
 
 void mca_tamper_check_events(void);
 

@@ -65,11 +65,33 @@ static int mca_tamper_iface_enabled_in_dt(int iface)
 }
 #endif
 
+static unsigned int get_tamper_base_reg(unsigned int iface)
+{
+	switch (iface) {
+	case 0:
+		return MCA_CC6UL_TAMPER0_CFG0;
+	case 1:
+		return MCA_CC6UL_TAMPER1_CFG0;
+	case 2:
+		return MCA_CC6UL_TAMPER2_CFG0;
+	case 3:
+		return MCA_CC6UL_TAMPER3_CFG0;
+	default:
+		printf("MCA: tamper interface %d not supported\n", iface);
+		break;
+	}
+
+	return ~0;
+}
+
 static void mca_tamper_ack_event(int iface)
 {
-	int ret, regaddr;
+	int ret;
+	unsigned int regaddr = get_tamper_base_reg(iface);
 
-	regaddr = MCA_CC6UL_TAMPER0_CFG0 + iface * MCA_CC6UL_TAMPER_REG_LEN;
+	if (regaddr == ~0)
+		return;
+
 
 	/* Ack the tamper event */
 	ret = mca_write_reg(regaddr + MCA_CC6UL_TAMPER_EV_OFFSET,
@@ -82,9 +104,11 @@ static void mca_tamper_ack_event(int iface)
 static int mca_tamper_check_event(int iface)
 {
 	unsigned char data[MCA_CC6UL_TAMPER_REG_LEN];
-	int ret, regaddr;
+	int ret;
+	unsigned int regaddr = get_tamper_base_reg(iface);
 
-	regaddr = MCA_CC6UL_TAMPER0_CFG0 + iface * MCA_CC6UL_TAMPER_REG_LEN;
+	if (regaddr == ~0)
+		return 0;
 
 	ret = mca_bulk_read(regaddr, data, MCA_CC6UL_TAMPER_REG_LEN);
 	if (ret) {
