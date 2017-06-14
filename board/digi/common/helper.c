@@ -564,9 +564,12 @@ void fdt_fixup_mac(void *fdt, char *varname, char *node, char *property)
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
 
-void fdt_fixup_uboot_version(void *fdt) {
+void fdt_fixup_uboot_info(void *fdt) {
 	do_fixup_by_path(fdt, "/", "digi,uboot,version", version_string,
 			 strlen(version_string), 1);
+#ifdef CONFIG_DYNAMIC_ENV_LOCATION
+	do_fixup_by_path(fdt, "/", "digi,uboot,dynamic-env", NULL, 0, 1);
+#endif
 }
 
 const char *get_filename_ext(const char *filename)
