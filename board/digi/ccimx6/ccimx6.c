@@ -1307,6 +1307,7 @@ int ccimx6_late_init(void)
 #endif
 
 #ifdef CONFIG_HAS_TRUSTFENCE
+	migrate_filesystem_key();
 	copy_dek();
 #endif
 
