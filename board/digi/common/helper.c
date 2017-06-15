@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2014 by Digi International Inc.
+ *  Copyright (C) 2017 by Digi International Inc.
  *  All rights reserved.
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -619,4 +619,81 @@ void verify_mac_address(char *var, char *default_mac)
 		printf("   WARNING: MAC not set in '%s'\n", var);
 	else if (!strcmp(mac, default_mac))
 		printf("   WARNING: Dummy default MAC in '%s'\n", var);
+}
+
+/*
+ * Check if the storage media address/block is empty
+ * @in: Address/offset in media
+ * @in: Partition index, only applies for MMC
+ * The function returns:
+ *	1 if the block is empty
+ *	0 if the block is not empty
+ *	-1 on error
+ */
+int media_block_is_empty(u32 addr, uint hwpart)
+{
+	size_t len;
+	int ret = -1;
+	int i;
+	uint64_t empty_pattern = 0;
+	uint64_t *readbuf = NULL;
+
+	if (strcmp(CONFIG_SYS_STORAGE_MEDIA, "nand") == 0)
+		empty_pattern = ~0;
+
+	len = media_get_block_size();
+	if (!len)
+		return ret;
+
+	readbuf = malloc(len);
+	if (!readbuf)
+		return ret;
+
+	if (media_read_block(addr, (unsigned char *)readbuf, hwpart))
+		goto out_free;
+
+	ret = 1;	/* media block empty */
+	for (i = 0; i < len / 8; i++) {
+		if (readbuf[i] != empty_pattern) {
+			ret = 0;	/* media block not empty */
+			break;
+		}
+	}
+out_free:
+	free(readbuf);
+	return ret;
+}
+
+/**
+ * Parses a string into a number. The number stored at ptr is
+ * potentially suffixed with K (for kilobytes, or 1024 bytes),
+ * M (for megabytes, or 1048576 bytes), or G (for gigabytes, or
+ * 1073741824). If the number is suffixed with K, M, or G, then
+ * the return value is the number multiplied by one kilobyte, one
+ * megabyte, or one gigabyte, respectively.
+ *
+ * @param ptr where parse begins
+ * @param retptr output pointer to next char after parse completes (output)
+ * @return resulting unsigned int
+ */
+u64 memsize_parse(const char *const ptr, const char **retptr)
+{
+	u64 ret = simple_strtoull(ptr, (char **)retptr, 0);
+
+	switch (**retptr) {
+	case 'G':
+	case 'g':
+		ret <<= 10;
+	case 'M':
+	case 'm':
+		ret <<= 10;
+	case 'K':
+	case 'k':
+		ret <<= 10;
+		(*retptr)++;
+	default:
+		break;
+	}
+
+	return ret;
 }
