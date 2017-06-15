@@ -34,6 +34,7 @@
 #include <asm/gpio.h>
 #endif
 #include "trustfence.h"
+#include <u-boot/md5.h>
 
 #define UBOOT_HEADER_SIZE	0xC00
 #define UBOOT_START_ADDR	(CONFIG_SYS_TEXT_BASE - UBOOT_HEADER_SIZE)
@@ -95,6 +96,22 @@ int is_uboot_encrypted() {
 
 	/* U-Boot is encrypted if and only if get_dek_blob does not fail */
 	return !get_dek_blob(dek_blob, &dek_blob_size);
+}
+
+int get_trustfence_key_modifier(unsigned char key_modifier[16])
+{
+	u32 ocotp_hwid[CONFIG_HWID_WORDS_NUMBER];
+	int i, ret;
+
+	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
+		ret = fuse_read(CONFIG_HWID_BANK,
+				CONFIG_HWID_START_WORD + i,
+				&ocotp_hwid[i]);
+		if (ret)
+			return ret;
+	}
+	md5((unsigned char *)(&ocotp_hwid), sizeof(ocotp_hwid), key_modifier);
+	return ret;
 }
 
 /*

@@ -166,22 +166,13 @@ static int env_aes_cbc_crypt(env_t *env, const int enc)
 	unsigned char *buffer;
 	int ret = 0;
 	unsigned char key_modifier[16] = {0};
-	int i;
-	u32 ocotp_hwid[CONFIG_HWID_WORDS_NUMBER];
 
 	if (!is_hab_enabled())
 		return 0;
 
-	/* Use the HWID as key modifier. This is a unique value per module. */
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
-		ret = fuse_read(CONFIG_HWID_BANK,
-				CONFIG_HWID_START_WORD + i,
-				&ocotp_hwid[i]);
-		if (ret)
-			return ret;
-	}
-
-	md5((unsigned char*)(&ocotp_hwid), sizeof(ocotp_hwid), key_modifier);
+	ret = get_trustfence_key_modifier(key_modifier);
+	if (ret)
+		return ret;
 
 	caam_open();
 	buffer = malloc(ENV_SIZE);

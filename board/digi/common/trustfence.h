@@ -28,4 +28,5 @@ void fdt_fixup_trustfence(void *fdt);
 static inline void fdt_fixup_trustfence(void *fdt) {}
 #endif
 
+int get_trustfence_key_modifier(unsigned char key_modifier[16]);
 #endif /* TRUSTFENCE_H */
