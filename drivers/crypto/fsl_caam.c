@@ -207,7 +207,7 @@ uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, void *key_modifie
 
 	// flush cache
 	invalidate_dcache_range(DMA_ALIGN(g_output_ring), DMA_ALIGN(g_output_ring + 128));
-	invalidate_dcache_range(DMA_ALIGN(g_output_ring), DMA_ALIGN(g_output_ring + 128));
+
 	/* check that descriptor address is the one expected in the output ring */
 	if (g_output_ring[0] == (uint32_t)encap_dsc) {
 		/* check if any error is reported in the output ring */
