@@ -146,12 +146,12 @@ uint32_t caam_decap_blob(void *plain_text, void *blob_addr, void *key_modifier, 
 	if (g_output_ring[0] == (uint32_t)decap_dsc) {
 		/* check if any error is reported in the output ring */
 		if ((g_output_ring[1] & JOB_RING_STS) != 0) {
-			printf("Error: blob decap job completed with errors 0x%X\n",
+			debug("Error: blob decap job completed with errors 0x%X\n",
 						g_output_ring[1]);
 			ret = -1;
 		}
 	} else {
-		printf("Error: blob decap job output ring descriptor address does" \
+		debug("Error: blob decap job output ring descriptor address does" \
 	                " not match\n");
 		ret = -1;
 	}
@@ -212,12 +212,12 @@ uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, void *key_modifie
 	if (g_output_ring[0] == (uint32_t)encap_dsc) {
 		/* check if any error is reported in the output ring */
 		if ((g_output_ring[1] & JOB_RING_STS) != 0) {
-			printf("Error: blob encap job completed with errors 0x%X\n",
+			debug("Error: blob encap job completed with errors 0x%X\n",
 			      g_output_ring[1]);
 			ret = -1;
  		}
 	} else {
-		printf("Error: blob encap job output ring descriptor " \
+		debug("Error: blob encap job output ring descriptor " \
 			"address does not match\n");
 		ret = -1;
 	}
