@@ -91,7 +91,7 @@ static void env_set_dynamic_location(struct env_location *location)
 	int env_copies = 1;
 
 	if (CONFIG_ENV_SIZE > nand_info[0].erasesize)
-		printf("Warning: environment size larger than PEB size is not supported\n")):
+		printf("Warning: environment size larger than PEB size is not supported\n");
 
 #ifdef CONFIG_ENV_OFFSET_REDUND
 	env_copies++;
