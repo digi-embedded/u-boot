@@ -75,21 +75,14 @@
 #define CONFIG_ENV_SIZE			SZ_128K
 #endif
 #define CONFIG_SYS_REDUNDANT_ENVIRONMENT
-/*
- * For the 1GB variant, place the redundant copy half way across the environment
- * partition, to account for NAND flash chips with bigger erase block size than
- * 128K and to give enough blocks to each copy for bad block management.
- * For the 256M variant, leave the redundant copy where it was when the variant
- * was released, to avoid backwards-compatibility problems.
- */
+#define CONFIG_DYNAMIC_ENV_LOCATION
 #if (CONFIG_DDR_MB == 1024)
-# define CONFIG_ENV_MTD_SIZE		(3 * SZ_1M)
-# define CONFIG_ENV_OFFSET_REDUND	(CONFIG_ENV_OFFSET + \
-					 (CONFIG_ENV_MTD_SIZE / 2))
+# define CONFIG_ENV_PARTITION_SIZE	(3 * SZ_1M)
 #else
-# define CONFIG_ENV_OFFSET_REDUND	(CONFIG_ENV_OFFSET + CONFIG_ENV_SIZE)
+# define CONFIG_ENV_PARTITION_SIZE	(1 * SZ_1M)
 #endif /* (CONFIG_DDR_MB == 1024) */
-#define CONFIG_ENV_SIZE_REDUND		CONFIG_ENV_SIZE
+/* The environment may use any good blocks within the "environment" partition */
+#define CONFIG_ENV_RANGE		CONFIG_ENV_PARTITION_SIZE
 
 /* Serial port */
 #define CONFIG_MXC_UART
