@@ -70,7 +70,11 @@ end:
  */
 unsigned int get_filesystem_key_offset(void)
 {
-	return CONFIG_ENV_OFFSET_REDUND + CONFIG_ENV_SIZE_REDUND;
+	u32 offset;
+
+	if (!get_partition_offset("environment", &offset))
+		return offset + (2*media_get_block_size());
+	return 0;
 }
 
 /*
