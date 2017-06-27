@@ -90,23 +90,17 @@ unsigned int get_filesystem_key_offset(void)
 int media_read_block(u32 addr, unsigned char *readbuf, uint hwpart)
 {
 	size_t len;
-	size_t nbytes;
-	int ret = -1;
-	int r;
 
 	len = media_get_block_size();
 	if (len <= 0)
-		return ret;
+		return -1;
 
-	r = nand_read_skip_bad(&nand_info[0],
-				addr,
-				&len,
-				&nbytes,
-				nand_info[0].size,
-				readbuf);
-	if (!r && nbytes == len)
-		ret = 0;
-	return ret;
+	return nand_read_skip_bad(&nand_info[0],
+				  addr,
+				  &len,
+				  NULL,
+				  nand_info[0].size,
+				  readbuf);
 }
 
 /*
@@ -122,24 +116,19 @@ int media_read_block(u32 addr, unsigned char *readbuf, uint hwpart)
  */
 int media_write_block(u32 addr, unsigned char *writebuf, uint hwpart)
 {
-	size_t len, nbytes;
-	int ret = -1;
-	int r;
+	size_t len;
 
 	len = media_get_block_size();
 	if (len <= 0)
-		return ret;
+		return -1;
 
-	r = nand_write_skip_bad(&nand_info[0],
-				addr,
-				&len,
-				&nbytes,
-				nand_info[0].size,
-				writebuf,
-				WITH_WR_VERIFY);
-	if (!r && nbytes == len)
-		ret = 0;
-	return ret;
+	return nand_write_skip_bad(&nand_info[0],
+				   addr,
+				   &len,
+				   NULL,
+				   nand_info[0].size,
+				   writebuf,
+				   WITH_WR_VERIFY);
 }
 
 /*
