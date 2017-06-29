@@ -2,6 +2,17 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
+dub-2015.04-r9.1, released on 2017/06/29
+	- Added support for CC6UL variant 0x04.
+	- Added support for CC6 variant 0x14.
+	- Added dynamic environment location and bad block
+	  handling for the environment.
+	- TrustFence: moved RootFS encryption key to 'safe'
+	  partition.
+	- Added support for four tamper interfaces.
+	- Disable external memory boot in OTP for secure boot.
+
+
 dub-2015.04-r8.3, released on 2017/04/21
 	- Added preliminary support for CC6UL variant 0x04.
 	- Switch off CC6 PCIe power.
