@@ -34,6 +34,8 @@
 #include <asm/gpio.h>
 #endif
 #include "trustfence.h"
+#include <u-boot/md5.h>
+#include <fsl_caam.h>
 
 #define UBOOT_HEADER_SIZE	0xC00
 #define UBOOT_START_ADDR	(CONFIG_SYS_TEXT_BASE - UBOOT_HEADER_SIZE)
@@ -95,6 +97,156 @@ int is_uboot_encrypted() {
 
 	/* U-Boot is encrypted if and only if get_dek_blob does not fail */
 	return !get_dek_blob(dek_blob, &dek_blob_size);
+}
+
+int get_trustfence_key_modifier(unsigned char key_modifier[16])
+{
+	u32 ocotp_hwid[CONFIG_HWID_WORDS_NUMBER];
+	int i, ret;
+
+	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
+		ret = fuse_read(CONFIG_HWID_BANK,
+				CONFIG_HWID_START_WORD + i,
+				&ocotp_hwid[i]);
+		if (ret)
+			return ret;
+	}
+	md5((unsigned char *)(&ocotp_hwid), sizeof(ocotp_hwid), key_modifier);
+	return ret;
+}
+
+/*
+ * Function:    secure_memzero
+ * Description: secure memzero that is not optimized out by the compiler
+ */
+static void secure_memzero(void *buf, size_t len)
+{
+	volatile uint8_t *p = (volatile uint8_t *)buf;
+
+	while (len--)
+		*p++ = 0;
+}
+
+static int validate_tf_key(u32 addr, uint hwpart)
+{
+	unsigned char *data = NULL;
+	unsigned char *readbuf = NULL;
+	unsigned char key_modifier[16] = {0};
+	int ret = -1;
+	size_t block_size;
+	size_t key_size = 32;
+
+	block_size = media_get_block_size();
+	if (!block_size)
+		goto exit;
+
+	data = malloc(block_size);
+	if (!data)
+		goto exit;
+
+	readbuf = malloc(block_size);
+	if (!readbuf)
+		goto out_free;
+
+	if (media_read_block(addr, readbuf, hwpart))
+		goto out_free;
+
+	if (get_trustfence_key_modifier(key_modifier))
+		goto out_free;
+
+	caam_open();
+	ret = caam_decap_blob(data, readbuf, key_modifier, key_size);
+	/* Always empty the data in a secure way */
+	secure_memzero(data, key_size);
+out_free:
+	free(readbuf);
+	free(data);
+exit:
+	return ret;
+}
+
+static int move_key(u32 orig, uint orig_hwpart, u32 dest, uint dest_hwpart)
+{
+	unsigned char *readbuf = NULL;
+	int ret = -1;
+	size_t block_size;
+
+	block_size = media_get_block_size();
+	if (!block_size)
+		goto exit;
+
+	readbuf = malloc(block_size);
+	if (!readbuf)
+		goto exit;
+
+	if (media_read_block(orig, readbuf, orig_hwpart))
+		goto out_free;
+
+	if (media_write_block(dest, readbuf, dest_hwpart))
+		goto out_free;
+
+	ret = 0;
+out_free:
+	free(readbuf);
+exit:
+	return ret;
+}
+
+/*
+ * At the beginning we were storing the TF RootFS Key in the 'environment'
+ * partition. It could be that we will override that Key,
+ * so we need to move it to 'safe' partition.
+ */
+void migrate_filesystem_key(void)
+{
+	u32 safe_addr, env_addr;
+	uint env_hwpart = get_env_hwpart();
+	uint safe_hwpart = 0;
+
+	if (get_partition_offset("safe", &safe_addr))
+		return;
+
+	/* If the key in the 'safe' partition is valid, do nothing */
+	if (validate_tf_key(safe_addr, safe_hwpart) == 0)
+		return;
+
+	/* Get the addr for the TF RootFS Key in the 'environment' partition */
+	env_addr = get_filesystem_key_offset();
+	if (env_addr <= 0)
+		return;
+
+	/* If there is not valid key, do nothing */
+	if (validate_tf_key(env_addr, env_hwpart) != 0)
+		return;
+
+	if (!media_block_is_empty(safe_addr, safe_hwpart)) {
+		printf("[WARNING] There is a filesystem encryption key in the environment partition.\n"
+			"          U-Boot needs to move it to the first block of the 'safe' partition,\n"
+			"          where TrustFence expects it but this partition is currently not empty.\n"
+			"          Erase the 'safe' partition to let U-Boot move the key\n"
+			"          and to remove this warning.\n"
+		);
+		return;
+	}
+
+	/* Move the key from 'environment' partition to 'safe' partition */
+	if (!move_key(env_addr, env_hwpart, safe_addr, safe_hwpart)) {
+		/*
+		 * Check that key was really well copied. Do not erase the key
+		 * from the environment if it was well copied to keep compatibility.
+		 */
+		if (validate_tf_key(safe_addr, safe_hwpart) != 0) {
+			/*
+			 * Critical scenario, the TF RootFS Key was incorrectly copied.
+			 * We still have it in the 'environment' partition, so clear
+			 * the data in 'safe' and the key will be moved in the next boot.
+			 */
+			media_erase_fskey(safe_addr, safe_hwpart);
+			printf("[ERROR] TF RootFS Key could not be copied to 'safe' partition\n");
+		}
+	} else {
+		printf("[ERROR] TF RootFS Key could not be copied to 'safe' partition\n");
+	}
 }
 
 /*
@@ -183,6 +335,13 @@ __weak int sense_key_status(u32 *val)
 		CONFIG_TRUSTFENCE_SRK_REVOKE_OFFSET;
 
 	return 0;
+}
+
+__weak int disable_ext_mem_boot(void)
+{
+	return fuse_prog(CONFIG_TRUSTFENCE_DIRBTDIS_BANK,
+			 CONFIG_TRUSTFENCE_DIRBTDIS_WORD,
+			 1 << CONFIG_TRUSTFENCE_DIRBTDIS_OFFSET);
 }
 
 static void board_print_trustfence_jtag_mode(u32 *sjc)
@@ -446,9 +605,6 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		enum hab_config config = 0;
 		enum hab_state state = 0;
 
-		if (!confirmed && !confirm_prog())
-			return CMD_RET_FAILURE;
-
 		puts("Checking SRK bank...\n");
 		ret = fuse_check_srk();
 		if (ret > 0) {
@@ -457,6 +613,8 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			return CMD_RET_FAILURE;
 		} else if (ret < 0) {
 			goto err;
+		} else {
+			puts("[OK]\n\n");
 		}
 
 		if (hab_report_status(&config, &state) != HAB_SUCCESS) {
@@ -466,6 +624,17 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			return CMD_RET_FAILURE;
 		}
 
+		puts("Before closing the device DIR_BT_DIS will be burned.\n");
+		puts("This permanently disables the ability to boot using external memory.\n");
+		puts("Please confirm the programming of DIR_BT_DIS and SEC_CONFIG[1]\n\n");
+		if (!confirmed && !confirm_prog())
+			return CMD_RET_FAILURE;
+
+		puts("Programming DIR_BT_DIS eFuse...\n");
+		if (disable_ext_mem_boot())
+			goto err;
+		puts("[OK]\n");
+		
 		puts("Closing device...\n");
 		if (close_device())
 			goto err;

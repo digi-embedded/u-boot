@@ -109,16 +109,17 @@ uint32_t secmem_set_cmd_1(uint32_t sec_mem_cmd)
  *
  * @return  SUCCESS or ERROR_XXX
  */
-uint32_t caam_decap_blob(void *plain_text, void *blob_addr, void *key_modifier, uint32_t size)
+uint32_t caam_decap_blob(void *plain_text, void *blob_addr, void *key_modifier, uint32_t data_size)
 {
 	uint32_t ret = SUCCESS;
+	uint32_t blob_size = BLOB_SIZE(data_size);
 
 	decap_dsc[0] = (uint32_t)0xB0800008;
 	decap_dsc[1] = (uint32_t)0x14400010;
 	decap_dsc[2] = (uint32_t)key_modifier;
-	decap_dsc[3] = (uint32_t)0xF0000000 | (0x0000ffff & (size+48) );
+	decap_dsc[3] = (uint32_t)0xF0000000 | (0x0000ffff & (blob_size));
 	decap_dsc[4] = (uint32_t)blob_addr;
-	decap_dsc[5] = (uint32_t)0xF8000000 | (0x0000ffff & (size));
+	decap_dsc[5] = (uint32_t)0xF8000000 | (0x0000ffff & (data_size));
 	decap_dsc[6] = (uint32_t)plain_text;
 	decap_dsc[7] = (uint32_t)0x860D0000;
 
@@ -126,8 +127,8 @@ uint32_t caam_decap_blob(void *plain_text, void *blob_addr, void *key_modifier, 
 	/* Add job to input ring */
 	g_input_ring[0] = (uint32_t)decap_dsc;
 
-	flush_dcache_range(DMA_ALIGN(blob_addr), DMA_ALIGN(blob_addr + 2 * size));
-	flush_dcache_range(DMA_ALIGN(plain_text), DMA_ALIGN(plain_text + 2 * size));
+	flush_dcache_range(DMA_ALIGN(blob_addr), DMA_ALIGN(blob_addr + 2 * blob_size));
+	flush_dcache_range(DMA_ALIGN(plain_text), DMA_ALIGN(plain_text + 2 * data_size));
 	flush_dcache_range(DMA_ALIGN(decap_dsc), DMA_ALIGN(decap_dsc + 128));
 	flush_dcache_range(DMA_ALIGN(g_input_ring), DMA_ALIGN(g_input_ring + 128));
 	flush_dcache_range(DMA_ALIGN(key_modifier), DMA_ALIGN(key_modifier  + 256));
@@ -145,16 +146,16 @@ uint32_t caam_decap_blob(void *plain_text, void *blob_addr, void *key_modifier, 
 	if (g_output_ring[0] == (uint32_t)decap_dsc) {
 		/* check if any error is reported in the output ring */
 		if ((g_output_ring[1] & JOB_RING_STS) != 0) {
-			printf("Error: blob decap job completed with errors 0x%X\n",
+			debug("Error: blob decap job completed with errors 0x%X\n",
 						g_output_ring[1]);
 			ret = -1;
 		}
 	} else {
-		printf("Error: blob decap job output ring descriptor address does" \
+		debug("Error: blob decap job output ring descriptor address does" \
 	                " not match\n");
 		ret = -1;
 	}
-	flush_dcache_range(DMA_ALIGN(plain_text), DMA_ALIGN(plain_text + 2 * size));
+	flush_dcache_range(DMA_ALIGN(plain_text), DMA_ALIGN(plain_text + 2 * data_size));
 
 	/* Remove job from Job Ring Output Queue */
 	__raw_writel(1, CAAM_ORJRR0);
@@ -170,20 +171,21 @@ uint32_t caam_decap_blob(void *plain_text, void *blob_addr, void *key_modifier, 
  *
  * @return  SUCCESS or ERROR_XXX
  */
-uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, void *key_modifier, uint32_t size)
+uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, void *key_modifier, uint32_t data_size)
 {
 	uint32_t ret = SUCCESS;
+	uint32_t blob_size = BLOB_SIZE(data_size);
 	uint8_t *blob = (uint8_t *)blob_addr;
 
 	/* initialize the blob array */
-	memset(blob, 0, size);
+	memset(blob, 0, blob_size);
 
 	encap_dsc[0] = (uint32_t)0xB0800008;
 	encap_dsc[1] = (uint32_t)0x14400010;
 	encap_dsc[2] = (uint32_t)key_modifier;
-	encap_dsc[3] = (uint32_t)0xF0000000 | (0x0000ffff & (size));
+	encap_dsc[3] = (uint32_t)0xF0000000 | (0x0000ffff & (data_size));
 	encap_dsc[4] = (uint32_t)plain_data_addr;
-	encap_dsc[5] = (uint32_t)0xF8000000 | (0x0000ffff & (size+48));
+	encap_dsc[5] = (uint32_t)0xF8000000 | (0x0000ffff & (blob_size));
 	encap_dsc[6] = (uint32_t)blob;	
 	encap_dsc[7] = (uint32_t)0x870D0000;
 
@@ -191,9 +193,9 @@ uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, void *key_modifie
 	/* Add job to input ring */
 	g_input_ring[0] = (uint32_t)encap_dsc;
 
-	flush_dcache_range(DMA_ALIGN(plain_data_addr), DMA_ALIGN(plain_data_addr + size));
+	flush_dcache_range(DMA_ALIGN(plain_data_addr), DMA_ALIGN(plain_data_addr + data_size));
 	flush_dcache_range(DMA_ALIGN(encap_dsc), DMA_ALIGN(encap_dsc + 128));
-	flush_dcache_range(DMA_ALIGN(blob), DMA_ALIGN(g_input_ring + 2 * size));
+	flush_dcache_range(DMA_ALIGN(blob), DMA_ALIGN(g_input_ring + 2 * blob_size));
 	flush_dcache_range(DMA_ALIGN(key_modifier), DMA_ALIGN(key_modifier + 256));
 	
 	/* Increment jobs added */
@@ -205,17 +207,17 @@ uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, void *key_modifie
 
 	// flush cache
 	invalidate_dcache_range(DMA_ALIGN(g_output_ring), DMA_ALIGN(g_output_ring + 128));
-	invalidate_dcache_range(DMA_ALIGN(g_output_ring), DMA_ALIGN(g_output_ring + 128));
+
 	/* check that descriptor address is the one expected in the output ring */
 	if (g_output_ring[0] == (uint32_t)encap_dsc) {
 		/* check if any error is reported in the output ring */
 		if ((g_output_ring[1] & JOB_RING_STS) != 0) {
-			printf("Error: blob encap job completed with errors 0x%X\n",
+			debug("Error: blob encap job completed with errors 0x%X\n",
 			      g_output_ring[1]);
 			ret = -1;
  		}
 	} else {
-		printf("Error: blob encap job output ring descriptor " \
+		debug("Error: blob encap job output ring descriptor " \
 			"address does not match\n");
 		ret = -1;
 	}

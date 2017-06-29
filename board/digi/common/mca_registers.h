@@ -64,6 +64,46 @@
 #define MCA_CC6UL_TAMPER1_DATE_START	0x004b
 #define MCA_CC6UL_TAMPER1_EVENT		0x0054
 
+#define MCA_CC6UL_TAMPER2_CFG0		0x0060
+#define MCA_CC6UL_TAMPER2_CFG1		0x0061
+#define MCA_CC6UL_TAMPER2_IO_IN		0x0062
+#define MCA_CC6UL_TAMPER2_IO_OUT		0x0063
+#define MCA_CC6UL_TAMPER2_DELAY_PWROFF	0x0064
+/* 1 byte for padding */
+/* Tamper event time-stamp follows the same format used by the RTC registers*/
+#define MCA_CC6UL_TAMPER2_DATE_START		0x0066
+/* ... */
+#define MCA_CC6UL_TAMPER2_DATE_END		0x006C
+/* 1 byte for padding */
+#define MCA_CC6UL_TAMPER2_EVENT		0x006E
+/* 1 byte for padding */
+#define MCA_CC6UL_TAMPER2_TICKS_L		0x0070
+#define MCA_CC6UL_TAMPER2_TICKS_H		0x0071
+#define MCA_CC6UL_TAMPER2_THRESH_LO_L		0x0072
+#define MCA_CC6UL_TAMPER2_THRESH_LO_H		0x0073
+#define MCA_CC6UL_TAMPER2_THRESH_HI_L		0x0074
+#define MCA_CC6UL_TAMPER2_THRESH_HI_H		0x0075
+
+#define MCA_CC6UL_TAMPER3_CFG0		0x0080
+#define MCA_CC6UL_TAMPER3_CFG1		0x0081
+#define MCA_CC6UL_TAMPER3_IO_IN		0x0082
+#define MCA_CC6UL_TAMPER3_IO_OUT		0x0083
+#define MCA_CC6UL_TAMPER3_DELAY_PWROFF	0x0084
+/* 1 byte for padding */
+/* Tamper event time-stamp follows the same format used by the RTC registers*/
+#define MCA_CC6UL_TAMPER3_DATE_START		0x0086
+/* ... */
+#define MCA_CC6UL_TAMPER3_DATE_END		0x008C
+/* 1 byte for padding */
+#define MCA_CC6UL_TAMPER3_EVENT		0x008E
+/* 1 byte for padding */
+#define MCA_CC6UL_TAMPER3_TICKS_L		0x0090
+#define MCA_CC6UL_TAMPER3_TICKS_H		0x0091
+#define MCA_CC6UL_TAMPER3_THRESH_LO_L		0x0092
+#define MCA_CC6UL_TAMPER3_THRESH_LO_H		0x0093
+#define MCA_CC6UL_TAMPER3_THRESH_HI_L		0x0094
+#define MCA_CC6UL_TAMPER3_THRESH_HI_H		0x0095
+
 #define MCA_CC6UL_TAMPER_REG_LEN	(MCA_CC6UL_TAMPER1_CFG0 - \
 					 MCA_CC6UL_TAMPER0_CFG0)
 

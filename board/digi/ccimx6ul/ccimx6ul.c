@@ -22,6 +22,7 @@
 #endif
 #include <i2c.h>
 #include <linux/sizes.h>
+#include <nand.h>
 
 #ifdef CONFIG_POWER
 #include <power/pmic.h>
@@ -418,17 +419,42 @@ static const struct boot_mode board_boot_modes[] = {
 };
 #endif
 
-int ccimx6ul_late_init(void)
+void generate_partition_table(void)
+{
+	struct mtd_info *nand = &nand_info[0];
+	uint32_t nand_size_mb = nand->size / SZ_1M;
+
+	switch (nand_size_mb) {
+	case 1024:
+		setenv("mtdparts", MTDPARTS_1024MB);
+		break;
+	case 256:
+	default:
+		setenv("mtdparts", MTDPARTS_256MB);
+		break;
+	}
+}
+
+void som_default_environment(void)
 {
 	char var[10];
+	char *parttable;
 
-#ifdef CONFIG_CMD_BMODE
-	add_board_boot_modes(board_boot_modes);
-#endif
+	/* Partition table */
+	parttable = getenv("mtdparts");
+	if (!parttable)
+		generate_partition_table();
 
 	/* Set $module_variant variable */
 	sprintf(var, "0x%02x", my_hwid.variant);
 	setenv("module_variant", var);
+}
+
+int ccimx6ul_late_init(void)
+{
+#ifdef CONFIG_CMD_BMODE
+	add_board_boot_modes(board_boot_modes);
+#endif
 
 #ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
 	gd->flags &= ~GD_FLG_DISABLE_CONSOLE_INPUT;
@@ -439,6 +465,7 @@ int ccimx6ul_late_init(void)
 #endif
 
 #ifdef CONFIG_HAS_TRUSTFENCE
+	migrate_filesystem_key();
 	copy_dek();
 #endif
 
@@ -595,5 +622,5 @@ void fdt_fixup_ccimx6ul(void *fdt)
 		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
 
 	fdt_fixup_trustfence(fdt);
-	fdt_fixup_uboot_version(fdt);
+	fdt_fixup_uboot_info(fdt);
 }

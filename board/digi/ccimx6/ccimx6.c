@@ -263,9 +263,16 @@ static struct ccimx6_variant ccimx6_variants[] = {
 		CCIMX6_HAS_EMMC,
 		"Industrial DualLite-core 800MHz, 4GB eMMC, 512MB DDR3, -40/+85C, Wireless, Bluetooth",
 	},
+/* 0x14 - 55001818-20 */
+	{
+		IMX6D,
+		MEM_1GB,
+		CCIMX6_HAS_EMMC,
+		"Consumer dual-core 1GHz, 4GB eMMC, 1GB DDR3, 0/+70C",
+	},
 };
 
-#define NUM_VARIANTS	19
+#define NUM_VARIANTS	20
 
 /* DDR3 calibration values for the different CC6 variants */
 static struct addrvalue ddr3_calibration[NUM_VARIANTS + 1][12] = {
@@ -326,7 +333,7 @@ static struct addrvalue ddr3_calibration[NUM_VARIANTS + 1][12] = {
 		{MX6_MMDC_P0_MPWRDLCTL, 0x3B3A433D},
 		{MX6_MMDC_P1_MPWRDLCTL, 0x4633483E},
 	},
-	/* Variant 0x05 */
+	/* Variant 0x05 (same as variant 0x14) */
 	[0x05] = {
 		/* Write leveling */
 		{MX6_MMDC_P0_MPWLDECTRL0, 0x00080014},
@@ -591,6 +598,25 @@ static struct addrvalue ddr3_calibration[NUM_VARIANTS + 1][12] = {
 		/* Write delay */
 		{MX6_MMDC_P0_MPWRDLCTL, 0x28282326},
 		{0, 0},
+	},
+	/* Variant 0x14 (same as variant 0x05) */
+	[0x14] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x00080014},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x00300022},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x00200035},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x00300032},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x432F0332},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x03250328},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x433D0345},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x0339031C},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3B303438},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x32342D3C},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x3938433C},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x4433463D},
 	},
 };
 
@@ -1203,7 +1229,7 @@ void pmic_bucks_synch_mode(void)
 	}
 }
 
-int ccimx6_late_init(void)
+void som_default_environment(void)
 {
 #ifdef CONFIG_CMD_MMC
 	char cmd[80];
@@ -1212,6 +1238,27 @@ int ccimx6_late_init(void)
 	char var2[10];
 	int i;
 
+#ifdef CONFIG_CMD_MMC
+	/* Set $mmcbootdev to MMC boot device index */
+	sprintf(cmd, "setenv -f mmcbootdev %x", mmc_get_bootdevindex());
+	run_command(cmd, 0);
+#endif
+
+	/* Build $soc_family variable */
+	strcpy(var2, get_imx_family((get_cpu_rev() & 0xFF000) >> 12));
+	/* Convert to lower case */
+	for (i = 0; i < strlen(var2); i++)
+		var2[i] = tolower(var2[i]);
+	sprintf(var, "imx%s", var2);
+	setenv("soc_family", var);
+
+	/* Set $module_variant variable */
+	sprintf(var, "0x%02x", my_hwid.variant);
+	setenv("module_variant", var);
+}
+
+int ccimx6_late_init(void)
+{
 #ifdef CONFIG_CMD_BMODE
 	add_board_boot_modes(board_boot_modes);
 #endif
@@ -1237,24 +1284,6 @@ int ccimx6_late_init(void)
 		return -1;
 #endif
 
-#ifdef CONFIG_CMD_MMC
-	/* Set $mmcbootdev to MMC boot device index */
-	sprintf(cmd, "setenv -f mmcbootdev %x", mmc_get_bootdevindex());
-	run_command(cmd, 0);
-#endif
-
-	/* Build $soc_family variable */
-	strcpy(var2, get_imx_family((get_cpu_rev() & 0xFF000) >> 12));
-	/* Convert to lower case */
-	for (i = 0; i < strlen(var2); i++)
-		var2[i] = tolower(var2[i]);
-	sprintf(var, "imx%s", var2);
-	setenv("soc_family", var);
-
-	/* Set $module_variant variable */
-	sprintf(var, "0x%02x", my_hwid.variant);
-	setenv("module_variant", var);
-
 	/* Verify MAC addresses */
 	verify_mac_address("ethaddr", DEFAULT_MAC_ETHADDR);
 
@@ -1278,6 +1307,7 @@ int ccimx6_late_init(void)
 #endif
 
 #ifdef CONFIG_HAS_TRUSTFENCE
+	migrate_filesystem_key();
 	copy_dek();
 #endif
 
@@ -1551,5 +1581,5 @@ void fdt_fixup_ccimx6(void *fdt)
 	if (board_has_bluetooth())
 		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
 	fdt_fixup_trustfence(fdt);
-	fdt_fixup_uboot_version(fdt);
+	fdt_fixup_uboot_info(fdt);
 }

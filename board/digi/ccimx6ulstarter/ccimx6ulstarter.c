@@ -90,6 +90,7 @@ static iomux_v3_cfg_t const uart5_pads[] = {
 	MX6_PAD_UART5_RX_DATA__UART5_DCE_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
 };
 
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
 static iomux_v3_cfg_t const ext_gpios_pads[] = {
 	MX6_PAD_GPIO1_IO04__GPIO1_IO04 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 	MX6_PAD_JTAG_TDO__GPIO1_IO12 | MUX_PAD_CTRL(GPI_PAD_CTRL),
@@ -98,6 +99,7 @@ static iomux_v3_cfg_t const ext_gpios_pads[] = {
 	MX6_PAD_JTAG_TRST_B__GPIO1_IO15 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 	MX6_PAD_JTAG_TCK__GPIO1_IO14 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 };
+#endif
 
 /* micro SD */
 static iomux_v3_cfg_t const usdhc2_pads[] = {
@@ -436,9 +438,11 @@ int board_init(void)
 	return 0;
 }
 
-int board_late_init(void)
+void platform_default_environment(void)
 {
 	char cmd[80];
+
+	som_default_environment();
 
 	/* Set $board_version variable if defined in OTP bits */
 	if (board_version > 0) {
@@ -451,9 +455,15 @@ int board_late_init(void)
 		sprintf(cmd, "setenv -f board_id %d", board_id);
 		run_command(cmd, 0);
 	}
+}
 
+int board_late_init(void)
+{
 	/* SOM late init */
 	ccimx6ul_late_init();
+
+	/* Set default dynamic variables */
+	platform_default_environment();
 
 	set_wdog_reset((struct wdog_regs *)WDOG1_BASE_ADDR);
 

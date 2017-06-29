@@ -56,10 +56,19 @@ bool is_ubi_partition(struct part_info *part);
 int strtou32(const char *str, unsigned int base, u32 *result);
 int confirm_prog(void);
 void fdt_fixup_mac(void *fdt, char *varname, char *node, char *property);
-void fdt_fixup_uboot_version(void *fdt);
+void fdt_fixup_uboot_info(void *fdt);
 int load_firmware(struct load_fw *fwinfo);
 const char *get_filename_ext(const char *filename);
 void strtohex(char *in, unsigned long *out, int len);
 void verify_mac_address(char *var, char *default_mac);
+int get_partition_offset(char *part_name, u32 *offset);
+int media_block_is_empty(u32 addr, uint hwpart);
+int media_read_block(u32 addr, unsigned char *readbuf, uint hwpart);
+int media_write_block(u32 addr, unsigned char *readbuf, uint hwpart);
+void media_erase_fskey(u32 addr, uint hwpart);
+size_t media_get_block_size(void);
+unsigned int get_filesystem_key_offset(void);
+uint get_env_hwpart(void);
+u64 memsize_parse(const char *const ptr, const char **retptr);
 
 #endif  /* __DIGI_HELPER_H */
