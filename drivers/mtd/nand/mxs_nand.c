@@ -1115,20 +1115,11 @@ static int mxs_nand_block_bad(struct mtd_info *mtd, loff_t ofs)
 }
 
 /*
- * Nominally, the purpose of this function is to look for or create the bad
- * block table. In fact, since the we call this function at the very end of
- * the initialization process started by nand_scan(), and we doesn't have a
- * more formal mechanism, we "hook" this function to continue init process.
- *
  * At this point, the physical NAND Flash chips have been identified and
  * counted, so we know the physical geometry. This enables us to make some
  * important configuration decisions.
- *
- * The return value of this function propagates directly back to this driver's
- * call to nand_scan(). Anything other than zero will cause this driver to
- * tear everything down and declare failure.
  */
-static int mxs_nand_scan_bbt(struct mtd_info *mtd)
+void nand_postident(struct mtd_info *mtd)
 {
 	struct nand_chip *nand = mtd_to_nand(mtd);
 	struct mxs_nand_info *nand_info = nand_get_controller_data(nand);
@@ -1195,7 +1186,10 @@ static int mxs_nand_scan_bbt(struct mtd_info *mtd)
 		nand_info->hooked_block_markbad = mtd->_block_markbad;
 		mtd->_block_markbad = mxs_nand_hook_block_markbad;
 	}
+}
 
+static int mxs_nand_scan_bbt(struct mtd_info *mtd)
+{
 	/* We use the reference implementation for bad block management. */
 	return nand_default_bbt(mtd);
 }

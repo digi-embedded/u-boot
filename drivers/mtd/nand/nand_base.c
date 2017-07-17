@@ -3940,6 +3940,12 @@ ident_done:
 	return type;
 }
 
+/* Allows to provide a custom hook for actions after identification process */
+__weak void nand_postident(struct mtd_info *mtd)
+{
+	return;
+}
+
 #if CONFIG_IS_ENABLED(OF_CONTROL)
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -4655,6 +4661,9 @@ int nand_scan_tail(struct mtd_info *mtd)
 	 */
 	if (!mtd->bitflip_threshold)
 		mtd->bitflip_threshold = DIV_ROUND_UP(mtd->ecc_strength * 3, 4);
+
+	/* Post-identification hook */
+	nand_postident(mtd);
 
 	return 0;
 }
