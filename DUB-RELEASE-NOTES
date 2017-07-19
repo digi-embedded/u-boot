@@ -2,7 +2,7 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
-dub-2015.04-r9.1, released on 2017/06/29
+dub-2015.04-r9.2, released on 2017/07/19
 	- Added support for CC6UL variant 0x04.
 	- Added support for CC6 variant 0x14.
 	- Added dynamic environment location and bad block
@@ -11,6 +11,7 @@ dub-2015.04-r9.1, released on 2017/06/29
 	  partition.
 	- Added support for four tamper interfaces.
 	- Disable external memory boot in OTP for secure boot.
+	- Skip initial scanning of bad blocks for faster boot.
 
 
 dub-2015.04-r8.3, released on 2017/04/21
@@ -150,7 +151,7 @@ v2013.04 - DUB-2.2.1.2, released on 2014/06/20
 	- Added support for ConnectCore 6 SBC platform (ccimx6sbc).
 	- Fixed TFTP on-the-fly update mechanism.
 	- Added 'updatefile' command to update files into FAT partitions.
-	- Added verification step to 'update' command. 
+	- Added verification step to 'update' command.
 	- Changed default firmware file names to match Yocto's default
 	  build artifact filenames.
 	- Fixup FDT with HWID information
