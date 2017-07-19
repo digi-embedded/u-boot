@@ -107,7 +107,6 @@
 #endif
 
 #define CONFIG_DEFAULT_FDT_FILE		"zImage-imx6ul-" CONFIG_SYS_BOARD ".dtb"
-#define CONFIG_BOOTARGS_CMA_SIZE	"cma=96M "
 
 #define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 
@@ -179,7 +178,7 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_COMMON_ENV \
 	CONFIG_ENV_MTD_SETTINGS \
-	"bootargs_linux=" CONFIG_BOOTARGS_CMA_SIZE "\0" \
+	"bootargs_linux=\0" \
 	"bootargs_nand_linux=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} ${mtdparts} ubi.mtd=${mtdlinuxindex} " \
 		"ubi.mtd=${mtdrootfsindex} root=ubi1_0 " \
@@ -217,7 +216,7 @@
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} " \
-		"${mtdparts} " CONFIG_BOOTARGS_CMA_SIZE \
+		"${mtdparts} " \
 		"root=${mmcroot}\0" \
 	""	/* end line */
 #endif
