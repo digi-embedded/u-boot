@@ -240,6 +240,7 @@
 #endif
 
 /* MTD (NAND) */
+#define CONFIG_SKIP_NAND_BBT_SCAN
 #define CONFIG_UBOOT_PARTITION		"bootloader"
 #define CONFIG_LINUX_PARTITION		"linux"
 #define CONFIG_RECOVERY_PARTITION	"recovery"

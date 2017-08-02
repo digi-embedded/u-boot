@@ -1030,38 +1030,11 @@ static int mxs_nand_ecc_write_oob(struct mtd_info *mtd, struct nand_chip *nand,
 }
 
 /*
- * Claims all blocks are good.
- *
- * In principle, this function is *only* called when the NAND Flash MTD system
- * isn't allowed to keep an in-memory bad block table, so it is forced to ask
- * the driver for bad block information.
- *
- * In fact, we permit the NAND Flash MTD system to have an in-memory BBT, so
- * this function is *only* called when we take it away.
- *
- * Thus, this function is only called when we want *all* blocks to look good,
- * so it *always* return success.
- */
-static int mxs_nand_block_bad(struct mtd_info *mtd, loff_t ofs, int getchip)
-{
-	return 0;
-}
-
-/*
- * Nominally, the purpose of this function is to look for or create the bad
- * block table. In fact, since the we call this function at the very end of
- * the initialization process started by nand_scan(), and we doesn't have a
- * more formal mechanism, we "hook" this function to continue init process.
- *
  * At this point, the physical NAND Flash chips have been identified and
  * counted, so we know the physical geometry. This enables us to make some
  * important configuration decisions.
- *
- * The return value of this function propogates directly back to this driver's
- * call to nand_scan(). Anything other than zero will cause this driver to
- * tear everything down and declare failure.
  */
-static int mxs_nand_scan_bbt(struct mtd_info *mtd)
+void nand_postident(struct mtd_info *mtd)
 {
 	struct nand_chip *nand = mtd->priv;
 	struct mxs_nand_info *nand_info = nand->priv;
@@ -1122,6 +1095,13 @@ static int mxs_nand_scan_bbt(struct mtd_info *mtd)
 		mtd->_block_markbad = mxs_nand_hook_block_markbad;
 	}
 
+#ifdef CONFIG_SKIP_NAND_BBT_SCAN
+	nand->options |= NAND_SKIP_BBTSCAN;
+#endif
+}
+
+static int mxs_nand_scan_bbt(struct mtd_info *mtd)
+{
 	/* We use the reference implementation for bad block management. */
 	return nand_default_bbt(mtd);
 }
@@ -1263,7 +1243,6 @@ int board_nand_init(struct nand_chip *nand)
 
 	nand->dev_ready		= mxs_nand_device_ready;
 	nand->select_chip	= mxs_nand_select_chip;
-	nand->block_bad		= mxs_nand_block_bad;
 	nand->scan_bbt		= mxs_nand_scan_bbt;
 
 	nand->read_byte		= mxs_nand_read_byte;

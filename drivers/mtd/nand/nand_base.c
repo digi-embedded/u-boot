@@ -3908,6 +3908,12 @@ ident_done:
 	return type;
 }
 
+/* Allows to provide a custom hook for actions after identification process */
+__weak void nand_postident(struct mtd_info *mtd)
+{
+	return;
+}
+
 /**
  * nand_scan_ident - [NAND Interface] Scan for the NAND device
  * @mtd: MTD device structure
@@ -4267,6 +4273,9 @@ int nand_scan_tail(struct mtd_info *mtd)
 	 */
 	if (!mtd->bitflip_threshold)
 		mtd->bitflip_threshold = mtd->ecc_strength;
+
+	/* Post-identification hook */
+	nand_postident(mtd);
 
 	return 0;
 }
