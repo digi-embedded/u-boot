@@ -33,6 +33,8 @@ enum imx6_cpu {
 	IMX6DL,		/* Dual-Lite */
 	IMX6S,		/* Solo */
 	IMX6UL,		/* UltraLite */
+	IMX6QP,		/* QuadPlus */
+	IMX6DP,		/* DualPlus */
 };
 
 enum digi_cert{

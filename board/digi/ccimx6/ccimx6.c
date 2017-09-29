@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012-2013 Freescale Semiconductor, Inc.
- * Copyright (C) 2013 Digi International, Inc.
+ * Copyright (C) 2013-2017 Digi International, Inc.
  *
  * Author: Fabio Estevam <fabio.estevam@freescale.com>
  * Author: Jason Liu <r64343@freescale.com>
@@ -272,10 +272,11 @@ static struct ccimx6_variant ccimx6_variants[] = {
 	},
 };
 
-#define NUM_VARIANTS	20
+#define NUM_VARIANTS_CC6	20
 
+#define DDR3_CAL_REGS	12
 /* DDR3 calibration values for the different CC6 variants */
-static struct addrvalue ddr3_calibration[NUM_VARIANTS + 1][12] = {
+static struct addrvalue ddr3_cal_cc6[NUM_VARIANTS_CC6 + 1][DDR3_CAL_REGS] = {
 	/* Variant 0x02 */
 	[0x02] = {
 		/* Write leveling */
@@ -620,18 +621,78 @@ static struct addrvalue ddr3_calibration[NUM_VARIANTS + 1][12] = {
 	},
 };
 
+/**
+ * To add new valid variant ID, append new lines in this array with its configuration
+ */
+static struct ccimx6_variant ccimx6p_variants[] = {
+/* 0x00 */ { IMX6_NONE,	0, 0, "Unknown"},
+/* 0x01 - 55001983-01 */
+	{
+		IMX6QP,
+		MEM_2GB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
+		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
+		"Industrial QuadPlus-core 1GHz, 8GB eMMC, 2GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
+	},
+};
+#define NUM_VARIANTS_CC6P	2
+
+/* DDR3 calibration values for the different CC6+ variants */
+static struct addrvalue ddr3_cal_cc6p[NUM_VARIANTS_CC6P + 1][DDR3_CAL_REGS] = {
+	/* Variant 0x01 */
+	[0x01] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x00060015},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x002F001F},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x00220035},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x00300031},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x43220325},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x0318031F},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x4334033C},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x032F0314},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3E31343B},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x38363040},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x3939423B},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x46354840},
+	},
+};
+
+static struct ccimx6_variant * get_cc6_variant(u8 variant)
+{
+	if (is_mx6dqp()) {
+		if (variant < 0 || variant > ARRAY_SIZE(ccimx6p_variants))
+			return NULL;
+		return &ccimx6p_variants[variant];
+	} else {
+		if (variant < 0 || variant > ARRAY_SIZE(ccimx6_variants))
+			return NULL;
+		return &ccimx6_variants[variant];
+	}
+}
+
 static void update_ddr3_calibration(u8 variant)
 {
 	int i;
 	volatile u32 *addr;
+	struct addrvalue *ddr3_cal;
 
-	if (variant <= 0 || variant > NUM_VARIANTS)
-		return;
+	if (is_mx6dqp()) {
+		if (variant <= 0 || variant > ARRAY_SIZE(ddr3_cal_cc6p))
+			return;
+		ddr3_cal = ddr3_cal_cc6p[variant];
+	} else {
+		if (variant <= 0 || variant > ARRAY_SIZE(ddr3_cal_cc6))
+			return;
+		ddr3_cal = ddr3_cal_cc6[variant];
+	}
 
-	for (i = 0; i < ARRAY_SIZE(ddr3_calibration[variant]); i++) {
-		addr = (volatile u32 *)(ddr3_calibration[variant][i].address);
+	for (i = 0; i < DDR3_CAL_REGS; i++) {
+		addr = (volatile u32 *)(ddr3_cal[i].address);
 		if (addr != NULL)
-			writel(ddr3_calibration[variant][i].value, addr);
+			writel(ddr3_cal[i].value, addr);
 	}
 }
 
@@ -1347,8 +1408,14 @@ void fdt_fixup_hwid(void *fdt)
 
 static int is_valid_hwid(struct ccimx6_hwid *hwid)
 {
-	if (hwid->variant < ARRAY_SIZE(ccimx6_variants))
-		if (ccimx6_variants[hwid->variant].cpu != IMX6_NONE)
+	int num;
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(hwid->variant);
+
+	num = is_mx6dqp() ? ARRAY_SIZE(ccimx6p_variants) :
+			    ARRAY_SIZE(ccimx6_variants);
+
+	if (hwid->variant < num && cc6_variant != NULL)
+		if (cc6_variant->cpu != IMX6_NONE)
 			return 1;
 
 	return 0;
@@ -1356,45 +1423,51 @@ static int is_valid_hwid(struct ccimx6_hwid *hwid)
 
 int board_has_emmc(void)
 {
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
+
 	if (is_valid_hwid(&my_hwid))
-		return (ccimx6_variants[my_hwid.variant].capabilities &
-				    CCIMX6_HAS_EMMC);
+		return (cc6_variant->capabilities & CCIMX6_HAS_EMMC);
 	else
 		return 1; /* assume it has if invalid HWID */
 }
 
 int board_has_wireless(void)
 {
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
+
 	if (is_valid_hwid(&my_hwid))
-		return (ccimx6_variants[my_hwid.variant].capabilities &
-				    CCIMX6_HAS_WIRELESS);
+		return (cc6_variant->capabilities & CCIMX6_HAS_WIRELESS);
 	else
 		return 1; /* assume it has if invalid HWID */
 }
 
 int board_has_bluetooth(void)
 {
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
+
 	if (is_valid_hwid(&my_hwid))
-		return (ccimx6_variants[my_hwid.variant].capabilities &
-				    CCIMX6_HAS_BLUETOOTH);
+		return (cc6_variant->capabilities & CCIMX6_HAS_BLUETOOTH);
 	else
 		return 1; /* assume it has if invalid HWID */
 }
 
 int board_has_kinetis(void)
 {
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
+
 	if (is_valid_hwid(&my_hwid))
-		return (ccimx6_variants[my_hwid.variant].capabilities &
-				    CCIMX6_HAS_KINETIS);
+		return (cc6_variant->capabilities & CCIMX6_HAS_KINETIS);
 	else
 		return 1; /* assume it has if invalid HWID */
 }
 
 void print_ccimx6_info(void)
 {
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
+
 	if (is_valid_hwid(&my_hwid))
-		printf("ConnectCore 6 SOM variant 0x%02X: %s\n", my_hwid.variant,
-			ccimx6_variants[my_hwid.variant].id_string);
+		printf("ConnectCore 6 SOM variant 0x%02X: %s\n",
+		       my_hwid.variant, cc6_variant->id_string);
 }
 
 static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
