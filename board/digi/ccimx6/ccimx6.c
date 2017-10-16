@@ -1112,6 +1112,10 @@ static int setup_pmic_voltages_ccimx6(void)
 		"Customer: 0x%02x, Config: 0x%02x\n", dev_id, var_id,
 		cust_id, conf_id);
 
+	/* On CC6PLUS enable LDO9 regulator powering USDHC2 (microSD) */
+	if (is_mx6dqp())
+		pmic_write_bitfield(DA9063_LDO9_CONT, 0x1, 0, 0x1);
+
 	return 0;
 }
 
