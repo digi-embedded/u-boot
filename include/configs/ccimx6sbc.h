@@ -22,11 +22,22 @@
 #include <asm/imx-common/gpio.h>
 
 #define CONFIG_MACH_TYPE		4899
+
+#ifdef CONFIG_MX6QP
+#define CONFIG_BOARD_DESCRIPTION	"ConnectCore 6 QuadPlus SBC"
+#undef CONFIG_SYS_BOARD
+#define CONFIG_SYS_BOARD		"ccimx6qpsbc"
+#else
 #define CONFIG_BOARD_DESCRIPTION	"ConnectCore 6 SBC"
+#endif
+
 #define CONFIG_MXC_UART_BASE		UART4_BASE
 #define CONFIG_CONSOLE_DEV		"ttymxc3"
+
 #if defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
 #define CONFIG_DEFAULT_FDT_FILE		"uImage-imx6dl-" CONFIG_SYS_BOARD ".dtb"
+#elif defined(CONFIG_MX6QP)
+#define CONFIG_DEFAULT_FDT_FILE		"uImage-imx6qp-" CONFIG_SYS_BOARD ".dtb"
 #elif defined(CONFIG_MX6Q)
 #define CONFIG_DEFAULT_FDT_FILE		"uImage-imx6q-" CONFIG_SYS_BOARD ".dtb"
 #endif
