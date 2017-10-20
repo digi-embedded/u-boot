@@ -1653,8 +1653,15 @@ int ccimx6_init(void)
 
 void fdt_fixup_ccimx6(void *fdt)
 {
-	if (board_has_wireless())
+	if (board_has_wireless()) {
+		/* Wireless MACs */
 		fdt_fixup_mac(fdt, "wlanaddr", "/wireless", "mac-address");
+		if (is_mx6dqp()) {
+			fdt_fixup_mac(fdt, "wlan1addr", "/wireless", "mac-address1");
+			fdt_fixup_mac(fdt, "wlan2addr", "/wireless", "mac-address2");
+			fdt_fixup_mac(fdt, "wlan3addr", "/wireless", "mac-address3");
+		}
+	}
 	if (board_has_bluetooth())
 		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
 	fdt_fixup_trustfence(fdt);
