@@ -1661,6 +1661,9 @@ void fdt_fixup_ccimx6(void *fdt)
 			fdt_fixup_mac(fdt, "wlan2addr", "/wireless", "mac-address2");
 			fdt_fixup_mac(fdt, "wlan3addr", "/wireless", "mac-address3");
 		}
+
+		/* Regulatory domain */
+		fdt_fixup_regulatory(fdt);
 	}
 	if (board_has_bluetooth())
 		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");

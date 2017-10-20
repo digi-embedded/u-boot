@@ -17,6 +17,7 @@
 #endif
 #include <otf_update.h>
 #include "helper.h"
+#include "hwid.h"
 DECLARE_GLOBAL_DATA_PTR;
 #if defined(CONFIG_CMD_UPDATE_MMC) || defined(CONFIG_CMD_UPDATE_NAND)
 #define CONFIG_CMD_UPDATE
@@ -560,6 +561,22 @@ void fdt_fixup_mac(void *fdt, char *varname, char *node, char *property)
 				tmp = (*end) ? end+1 : end;
 		}
 		do_fixup_by_path(fdt, node, property, &mac_addr, 6, 1);
+	}
+}
+
+void fdt_fixup_regulatory(void *fdt)
+{
+	unsigned int val;
+	char *regdomain = getenv("regdomain");
+
+	if (regdomain != NULL) {
+		val = simple_strtoul(regdomain, NULL, 16);
+		if (val < DIGI_MAX_CERT) {
+			sprintf(regdomain, "0x%x", val);
+			do_fixup_by_path(fdt, "/wireless",
+					 "regulatory-domain", regdomain,
+					 strlen(regdomain) + 1, 1);
+		}
 	}
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
