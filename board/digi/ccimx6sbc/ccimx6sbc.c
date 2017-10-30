@@ -267,6 +267,7 @@ static int board_has_audio(void)
 	switch(board_id) {
 	case CCIMX6SBC_ID129:
 	case CCIMX6SBC_ID130:
+	case CCIMX6QPSBC_ID160:
 		return 1;
 	default:
 		return 0;
@@ -289,8 +290,8 @@ static void setup_board_audio(void)
 					 ARRAY_SIZE(sgtl5000_audio_pads));
 
 	/* SBC version 2 and later use a GPIO to power enable the audio codec */
-	if (((board_id == CCIMX6SBC_ID129) || (board_id == CCIMX6SBC_ID130)) &&
-	    board_version >= 2) {
+	if (((board_id == CCIMX6SBC_ID129) || (board_id == CCIMX6SBC_ID130) ||
+	    (board_id == CCIMX6QPSBC_ID160)) && board_version >= 2) {
 		int pwren_gpio = IMX_GPIO_NR(2, 25);
 
 		/* Power enable line IOMUX */
@@ -303,8 +304,8 @@ static void setup_board_audio(void)
 static void setup_board_pcie(void)
 {
 	/* SBC version 2 and later use a GPIO to power enable the PCIe */
-	if (((board_id == CCIMX6SBC_ID129) || (board_id == CCIMX6SBC_ID130)) &&
-	    board_version >= 2) {
+	if (((board_id == CCIMX6SBC_ID129) || (board_id == CCIMX6SBC_ID130) ||
+	    (board_id == CCIMX6QPSBC_ID160)) && board_version >= 2) {
 		int pcie_pwren_gpio = IMX_GPIO_NR(6, 10);
 
 		/* PCIe Power enable line IOMUX */
