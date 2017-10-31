@@ -290,8 +290,7 @@ static void setup_board_audio(void)
 					 ARRAY_SIZE(sgtl5000_audio_pads));
 
 	/* SBC version 2 and later use a GPIO to power enable the audio codec */
-	if (((board_id == CCIMX6SBC_ID129) || (board_id == CCIMX6SBC_ID130) ||
-	    (board_id == CCIMX6QPSBC_ID160)) && board_version >= 2) {
+	if (board_version >= 2) {
 		int pwren_gpio = IMX_GPIO_NR(2, 25);
 
 		/* Power enable line IOMUX */
