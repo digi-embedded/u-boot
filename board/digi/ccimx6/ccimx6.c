@@ -1470,7 +1470,7 @@ void print_ccimx6_info(void)
 	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
 
 	if (is_valid_hwid(&my_hwid))
-		printf("ConnectCore 6 SOM variant 0x%02X: %s\n",
+		printf("%s SOM variant 0x%02X: %s\n", CONFIG_SOM_DESCRIPTION,
 		       my_hwid.variant, cc6_variant->id_string);
 }
 

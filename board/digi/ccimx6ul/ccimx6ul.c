@@ -543,7 +543,7 @@ int board_has_bluetooth(void)
 void print_ccimx6ul_info(void)
 {
 	if (is_valid_hwid(&my_hwid))
-		printf("ConnectCore 6UL SOM variant 0x%02X: %s\n",
+		printf("%s SOM variant 0x%02X: %s\n", CONFIG_SOM_DESCRIPTION,
 			my_hwid.variant,
 			ccimx6ul_variants[my_hwid.variant].id_string);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Digi International, Inc.
+ * Copyright (C) 2016, 2017 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * Configuration settings for the Digi ConnecCore 6UL Starter board.
@@ -11,7 +11,7 @@
 
 #include "ccimx6ul_common.h"
 
-#define CONFIG_BOARD_DESCRIPTION	"ConnectCore 6UL Starter Board"
+#define CONFIG_BOARD_DESCRIPTION	"SBC Express"
 
 /* uncomment for PLUGIN mode support */
 /* #define CONFIG_USE_PLUGIN */
