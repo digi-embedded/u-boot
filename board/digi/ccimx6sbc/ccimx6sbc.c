@@ -19,8 +19,10 @@
  * GNU General Public License for more details.
  */
 #include <common.h>
+#include <asm/arch/clock.h>
 #include <asm/arch/iomux.h>
 #include <asm/arch/mx6-pins.h>
+#include <asm/arch/sys_proto.h>
 #include <asm/gpio.h>
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>
@@ -256,6 +258,16 @@ static void setup_iomux_uart(void)
 
 int board_eth_init(bd_t *bis)
 {
+	if (is_mx6dqp()) {
+		int ret;
+
+		/* select ENET MAC0 TX clock from PLL */
+		imx_iomux_set_gpr_register(5, 9, 1, 1);
+		ret = enable_fec_anatop_clock(0, ENET_125MHZ);
+		if (ret)
+			printf("Error fec anatop clock settings!\n");
+	}
+
 	setup_iomux_enet();
 	setup_board_enet();
 
