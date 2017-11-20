@@ -36,7 +36,7 @@
 #if defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
 #define CONFIG_DEFAULT_FDT_FILE		"uImage-imx6dl-" CONFIG_SYS_BOARD ".dtb"
 #elif defined(CONFIG_MX6QP)
-#define CONFIG_DEFAULT_FDT_FILE		"uImage-imx6qp-" CONFIG_SYS_BOARD ".dtb"
+#define CONFIG_DEFAULT_FDT_FILE		"zImage-imx6qp-" CONFIG_SYS_BOARD ".dtb"
 #elif defined(CONFIG_MX6Q)
 #define CONFIG_DEFAULT_FDT_FILE		"uImage-imx6q-" CONFIG_SYS_BOARD ".dtb"
 #endif
@@ -94,6 +94,7 @@
 	"script=boot.scr\0" \
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
 	"uimage=uImage-" CONFIG_SYS_BOARD ".bin\0" \
+	"zimage=zImage-" CONFIG_SYS_BOARD ".bin\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"fdt_addr=0x18000000\0" \
 	"initrd_addr=0x19000000\0" \
@@ -110,6 +111,7 @@
 	"mmcargs=setenv bootargs console=${console},${baudrate} ${smp} " \
 		"root=/dev/mmcblk0p2 rootwait rw\0" \
 	"loaduimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uimage}\0" \
+	"loadzimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${zimage}\0" \
 	"loadinitrd=load mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file}\0" \
 	"loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
 	"uboot_file=u-boot.imx\0" \
