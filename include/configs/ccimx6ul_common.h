@@ -82,6 +82,7 @@
 /* Digi ConnectCore 6UL carrier board IDs */
 #define CCIMX6ULSTARTER_ID129	129
 #define CCIMX6ULSBC_ID135	135
+#define CCIMX6ULSBC_ID136	136
 
 /* CAAM support */
 #define CONFIG_SYS_FSL_SEC_COMPAT    4 /* HAB version */
