@@ -911,6 +911,15 @@ int board_mmc_init(bd_t *bis)
 			break;
 		case 1:
 			/* USDHC2 (uSD) */
+
+			/*
+			 * On CC6PLUS enable LDO9 regulator powering USDHC2
+			 * (microSD)
+			 */
+			if (is_mx6dqp())
+				pmic_write_bitfield(DA9063_LDO9_CONT, 0x1, 0,
+						    0x1);
+
 			imx_iomux_v3_setup_multiple_pads(
 					usdhc2_pads, ARRAY_SIZE(usdhc2_pads));
 			usdhc_cfg[i].sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
@@ -1104,10 +1113,6 @@ static int setup_pmic_voltages_ccimx6(void)
 	printf("PMIC:  DA9063, Device: 0x%02x, Variant: 0x%02x, "
 		"Customer: 0x%02x, Config: 0x%02x\n", dev_id, var_id,
 		cust_id, conf_id);
-
-	/* On CC6PLUS enable LDO9 regulator powering USDHC2 (microSD) */
-	if (is_mx6dqp())
-		pmic_write_bitfield(DA9063_LDO9_CONT, 0x1, 0, 0x1);
 
 	return 0;
 }
