@@ -162,7 +162,6 @@
 		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
 		"${bootargs_once} ${extra_bootargs}\0" \
 	"bootargs_nfs_linux=run bootargs_tftp_linux\0" \
-	"parts_linux=" LINUX_DEFAULT_PARTITION_TABLE "\0" \
 	"linux_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".boot.vfat\0" \
 	"rootfs_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".ext4\0" \
 	"partition_mmc_linux=mmc rescan;" \
