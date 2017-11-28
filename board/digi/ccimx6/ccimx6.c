@@ -1098,7 +1098,7 @@ out:
 }
 #endif
 
-static int setup_pmic_voltages_ccimx6(void)
+static int print_pmic_info(void)
 {
 	unsigned char dev_id, var_id, conf_id, cust_id;
 
@@ -1330,7 +1330,7 @@ int ccimx6_late_init(void)
 	/* Setup I2C3 (HDMI, Audio...) */
 	setup_i2c(2, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info2);
 #endif
-	if (setup_pmic_voltages_ccimx6())
+	if (print_pmic_info())
 		return -1;
 
 	/* Operate all PMIC's bucks in "synchronous" mode (PWM) since the
