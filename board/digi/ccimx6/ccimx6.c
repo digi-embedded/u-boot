@@ -1321,8 +1321,6 @@ int ccimx6_late_init(void)
 	add_board_boot_modes(board_boot_modes);
 #endif
 
-	/* Setup I2C2 (PMIC, Kinetis) */
-	setup_i2c(1, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
 #ifdef CONFIG_I2C_MULTI_BUS
 	/* Setup I2C3 (HDMI, Audio...) */
 	setup_i2c(2, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info2);
@@ -1638,6 +1636,9 @@ int ccimx6_init(void)
 	 * be accessing the RAM on their own.
 	 */
 	update_ddr3_calibration(my_hwid.variant);
+
+	/* Setup I2C2 (PMIC, Kinetis) */
+	setup_i2c(1, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
 
 	return 0;
 }
