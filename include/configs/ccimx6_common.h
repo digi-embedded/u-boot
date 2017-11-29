@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012-2013 Freescale Semiconductor, Inc.
- * Copyright (C) 2013 Digi International, Inc.
+ * Copyright (C) 2013-2017 Digi International, Inc.
  *
  * Configuration settings for the Freescale i.MX6Q SabreSD board.
  *
@@ -26,6 +26,12 @@
 
 #define CONFIG_MX6
 #define CONFIG_CC6
+
+#ifdef CONFIG_MX6QP
+#define CONFIG_SOM_DESCRIPTION		"ConnectCore 6 Plus"
+#else
+#define CONFIG_SOM_DESCRIPTION		"ConnectCore 6"
+#endif
 
 #define CONFIG_SYS_GENERIC_BOARD
 #define CONFIG_DISPLAY_CPUINFO
@@ -206,6 +212,9 @@
 /* protected environment variables (besides ethaddr and serial#) */
 #define CONFIG_ENV_FLAGS_LIST_STATIC	\
 	"wlanaddr:mc,"			\
+	"wlan1addr:mc,"			\
+	"wlan2addr:mc,"			\
+	"wlan3addr:mc,"			\
 	"btaddr:mc,"			\
 	"bootargs_once:sr,"		\
 	"board_version:so,"		\
@@ -341,8 +350,16 @@
 
 /* Digi boot command 'dboot' */
 #define CONFIG_CMD_DBOOT
-#define CONFIG_DBOOT_BOOTCOMMAND	"bootm"
+
+/* Use zImage for CC6PLUS, uImage for CC6 (for backwards compatibility) */
+#ifdef CONFIG_MX6QP
+#define CONFIG_DBOOT_DEFAULTKERNELVAR	"zimage"
+#define CONFIG_DBOOT_BOOTCOMMAND	"bootz"
+#else
 #define CONFIG_DBOOT_DEFAULTKERNELVAR	"uimage"
+#define CONFIG_DBOOT_BOOTCOMMAND	"bootm"
+#endif
+
 #define CONFIG_DBOOT_SUPPORTED_SOURCES_LIST	\
 	CONFIG_SUPPORTED_SOURCES_NET "|" \
 	CONFIG_SUPPORTED_SOURCES_BLOCK
@@ -380,13 +397,25 @@
 	"part8_uuid=12c08a28-fb40-430a-a5bc-7b4f015b0b3c\0" \
 	"part9_uuid=dc83dea8-c467-45dc-84eb-5e913daec17e\0"
 
-#define LINUX_DEFAULT_PARTITION_TABLE \
+#define LINUX_4GB_PARTITION_TABLE \
 	"\"uuid_disk=${uuid_disk};" \
 	"start=2MiB," \
 	"name=linux,size=64MiB,uuid=${part1_uuid};" \
 	"name=recovery,size=64MiB,uuid=${part2_uuid};" \
 	"name=rootfs,size=1GiB,uuid=${part3_uuid};" \
 	"name=update,size=1GiB,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
+	"name=data,size=-,uuid=${part7_uuid};" \
+	"\""
+
+#define LINUX_8GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=linux,size=64MiB,uuid=${part1_uuid};" \
+	"name=recovery,size=64MiB,uuid=${part2_uuid};" \
+	"name=rootfs,size=3GiB,uuid=${part3_uuid};" \
+	"name=update,size=3GiB,uuid=${part4_uuid};" \
 	"name=safe,size=16MiB,uuid=${part5_uuid};" \
 	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
 	"name=data,size=-,uuid=${part7_uuid};" \

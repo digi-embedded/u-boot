@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Digi International, Inc.
+ * Copyright (C) 2016, 2017 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * Configuration settings for the Digi ConnecCore 6UL System-On-Module.
@@ -18,6 +18,8 @@
 
 #define CONFIG_MX6
 #define CONFIG_CC6
+
+#define CONFIG_SOM_DESCRIPTION		"ConnectCore 6UL"
 
 #define CONFIG_ROM_UNIFIED_SECTIONS
 #define CONFIG_SYS_GENERIC_BOARD
@@ -80,6 +82,7 @@
 /* Digi ConnectCore 6UL carrier board IDs */
 #define CCIMX6ULSTARTER_ID129	129
 #define CCIMX6ULSBC_ID135	135
+#define CCIMX6ULSBC_ID136	136
 
 /* CAAM support */
 #define CONFIG_SYS_FSL_SEC_COMPAT    4 /* HAB version */

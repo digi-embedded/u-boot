@@ -16,6 +16,9 @@
 
 #define hab_rvt_report_event_p					\
 (								\
+	(is_cpu_type(MXC_CPU_MX6QP) ||				\
+	  is_cpu_type(MXC_CPU_MX6DP)) ?				\
+	((hab_rvt_report_event_t *)HAB_RVT_REPORT_EVENT_NEW) :	\
 	((is_cpu_type(MXC_CPU_MX6Q) ||				\
 	  is_cpu_type(MXC_CPU_MX6D)) &&				\
 	  (soc_rev() >= CHIP_REV_1_5)) ?			\
@@ -29,6 +32,9 @@
 
 #define hab_rvt_report_status_p					\
 (								\
+	(is_cpu_type(MXC_CPU_MX6QP) ||				\
+	  is_cpu_type(MXC_CPU_MX6DP)) ?				\
+	((hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS_NEW) :\
 	((is_cpu_type(MXC_CPU_MX6Q) ||				\
 	  is_cpu_type(MXC_CPU_MX6D)) &&				\
 	  (soc_rev() >= CHIP_REV_1_5)) ?			\
@@ -42,6 +48,9 @@
 
 #define hab_rvt_authenticate_image_p				\
 (								\
+	(is_cpu_type(MXC_CPU_MX6QP) ||				\
+	  is_cpu_type(MXC_CPU_MX6DP)) ?				\
+	((hab_rvt_authenticate_image_t *)HAB_RVT_AUTHENTICATE_IMAGE_NEW) : \
 	((is_cpu_type(MXC_CPU_MX6Q) ||				\
 	  is_cpu_type(MXC_CPU_MX6D)) &&				\
 	  (soc_rev() >= CHIP_REV_1_5)) ?			\
@@ -55,6 +64,9 @@
 
 #define hab_rvt_entry_p						\
 (								\
+	(is_cpu_type(MXC_CPU_MX6QP) ||				\
+	  is_cpu_type(MXC_CPU_MX6DP)) ?				\
+	((hab_rvt_entry_t *)HAB_RVT_ENTRY_NEW) :		\
 	((is_cpu_type(MXC_CPU_MX6Q) ||				\
 	  is_cpu_type(MXC_CPU_MX6D)) &&				\
 	  (soc_rev() >= CHIP_REV_1_5)) ?			\
@@ -68,6 +80,9 @@
 
 #define hab_rvt_exit_p						\
 (								\
+	(is_cpu_type(MXC_CPU_MX6QP) ||				\
+	  is_cpu_type(MXC_CPU_MX6DP)) ?			\
+	((hab_rvt_exit_t *)HAB_RVT_EXIT_NEW) :			\
 	((is_cpu_type(MXC_CPU_MX6Q) ||				\
 	  is_cpu_type(MXC_CPU_MX6D)) &&				\
 	  (soc_rev() >= CHIP_REV_1_5)) ?			\

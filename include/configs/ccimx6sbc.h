@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012-2013 Freescale Semiconductor, Inc.
- * Copyright (C) 2013 Digi International, Inc.
+ * Copyright (C) 2013-2017 Digi International, Inc.
  *
  * Configuration settings for the Freescale i.MX6Q SabreSD board.
  *
@@ -22,11 +22,21 @@
 #include <asm/imx-common/gpio.h>
 
 #define CONFIG_MACH_TYPE		4899
-#define CONFIG_BOARD_DESCRIPTION	"ConnectCore 6 SBC"
+
+#ifdef CONFIG_MX6QP
+#undef CONFIG_SYS_BOARD
+#define CONFIG_SYS_BOARD		"ccimx6qpsbc"
+#else
+#endif
+#define CONFIG_BOARD_DESCRIPTION	"SBC"
+
 #define CONFIG_MXC_UART_BASE		UART4_BASE
 #define CONFIG_CONSOLE_DEV		"ttymxc3"
+
 #if defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
 #define CONFIG_DEFAULT_FDT_FILE		"uImage-imx6dl-" CONFIG_SYS_BOARD ".dtb"
+#elif defined(CONFIG_MX6QP)
+#define CONFIG_DEFAULT_FDT_FILE		"zImage-imx6qp-" CONFIG_SYS_BOARD ".dtb"
 #elif defined(CONFIG_MX6Q)
 #define CONFIG_DEFAULT_FDT_FILE		"uImage-imx6q-" CONFIG_SYS_BOARD ".dtb"
 #endif
@@ -75,6 +85,7 @@
 #define CCIMX6SBC_ID129		129
 #define CCIMX6SBC_ID130		130
 #define CCIMX6SBC_ID131		131
+#define CCIMX6QPSBC_ID160	160
 #endif /* CONFIG_HAS_CARRIERBOARD_ID */
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
@@ -83,6 +94,7 @@
 	"script=boot.scr\0" \
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
 	"uimage=uImage-" CONFIG_SYS_BOARD ".bin\0" \
+	"zimage=zImage-" CONFIG_SYS_BOARD ".bin\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"fdt_addr=0x18000000\0" \
 	"initrd_addr=0x19000000\0" \
@@ -99,6 +111,7 @@
 	"mmcargs=setenv bootargs console=${console},${baudrate} ${smp} " \
 		"root=/dev/mmcblk0p2 rootwait rw\0" \
 	"loaduimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uimage}\0" \
+	"loadzimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${zimage}\0" \
 	"loadinitrd=load mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file}\0" \
 	"loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
 	"uboot_file=u-boot.imx\0" \
@@ -149,7 +162,6 @@
 		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
 		"${bootargs_once} ${extra_bootargs}\0" \
 	"bootargs_nfs_linux=run bootargs_tftp_linux\0" \
-	"parts_linux=" LINUX_DEFAULT_PARTITION_TABLE "\0" \
 	"linux_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".boot.vfat\0" \
 	"rootfs_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".ext4\0" \
 	"partition_mmc_linux=mmc rescan;" \

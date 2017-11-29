@@ -41,7 +41,6 @@ extern bool bmode_reset;
 struct ccimx6_hwid my_hwid;
 
 #define MCA_CC6UL_DEVICE_ID_VAL		0x61
-#define CC6UL_VARIANT_04_PWROFF_DURATION	250
 
 #define MDIO_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_PUE |     \
 	PAD_CTL_DSE_48ohm   | PAD_CTL_SRE_FAST | PAD_CTL_ODE)
@@ -347,70 +346,6 @@ void ldo_mode_set(int ldo_bypass)
 #endif
 #endif
 
-static int mca_unlock_ctrl0(void)
-{
-	uint8_t unlock_data[] = {'C', 'T', 'R', 'U'};
-	int ret;
-
-	ret = mca_bulk_write(MCA_CC6UL_CTRL_UNLOCK_0, unlock_data,
-			     sizeof(unlock_data));
-	if (ret)
-		printf("MCA: unable to unlock CTRL0 register (%d)\n", ret);
-
-	return ret;
-}
-
-static int mca_save_config(void)
-{
-	int ret;
-
-	ret = mca_unlock_ctrl0();
-	if (ret)
-		return ret;
-
-	ret = mca_write_reg(MCA_CC6UL_CTRL_0, MCA_CTRL_0_SAVE_CFG);
-	if (ret)
-		printf("MCA: couldn't save configuration to NVRAM (%d)\n", ret);
-
-	/* Give it some time to save configuration, or it will read garbage. */
-	mdelay(25);
-	return ret;
-}
-
-/*
- * The PMIC power off time during reset needs to be adjusted for 1G/1G variant.
- * Checking the value is done always in case it changes, but once changed the
- * configuration is saved into MCA's non-volatile storage.
- */
-static void mca_adjust_pwroff_boot_duration(void)
-{
-	int ret;
-	unsigned char pwroff_duration;
-
-	if (my_hwid.variant != 0x04)
-		return;
-
-	ret = mca_read_reg(MCA_CC6UL_PWROFF_BOOT_DURATION, &pwroff_duration);
-	if (ret) {
-		printf("MCA: unable to read MCA_CC6UL_PWROFF_BOOT_DURATION (%d)\n",
-		       ret);
-		return;
-	}
-
-	if (pwroff_duration == CC6UL_VARIANT_04_PWROFF_DURATION)
-		return;
-
-	ret = mca_write_reg(MCA_CC6UL_PWROFF_BOOT_DURATION,
-			    CC6UL_VARIANT_04_PWROFF_DURATION);
-	if (ret) {
-		printf("MCA: unable to write MCA_CC6UL_PWROFF_BOOT_DURATION (%d)\n",
-		       ret);
-		return;
-	}
-
-	mca_save_config();
-}
-
 void mca_init(void)
 {
 	unsigned char devid = 0;
@@ -441,7 +376,6 @@ void mca_init(void)
 		       fwver[1] & 0x80 ? "(alpha)" : "");
 
 	printf("\n");
-	mca_adjust_pwroff_boot_duration();
 }
 
 int get_hwid(struct ccimx6_hwid *hwid)
@@ -609,7 +543,7 @@ int board_has_bluetooth(void)
 void print_ccimx6ul_info(void)
 {
 	if (is_valid_hwid(&my_hwid))
-		printf("ConnectCore 6UL SOM variant 0x%02X: %s\n",
+		printf("%s SOM variant 0x%02X: %s\n", CONFIG_SOM_DESCRIPTION,
 			my_hwid.variant,
 			ccimx6ul_variants[my_hwid.variant].id_string);
 }
@@ -624,6 +558,7 @@ void board_reset(void)
 {
 	int ret;
 	int retries = 3;
+	uint8_t unlock_data[] = {'C', 'T', 'R', 'U'};
 
 	/*
 	 * If a bmode_reset was flagged, do not reset through the MCA, which
@@ -634,8 +569,10 @@ void board_reset(void)
 
 	do {
 		/* First, unlock the CTRL_0 register access */
-		ret = mca_unlock_ctrl0();
+		ret = mca_bulk_write(MCA_CC6UL_CTRL_UNLOCK_0, unlock_data,
+				     sizeof(unlock_data));
 		if (ret) {
+			printf("MCA: unable to unlock CTRL register (%d)\n", ret);
 			retries--;
 			continue;
 		}
@@ -660,9 +597,6 @@ void board_reset(void)
 void fdt_fixup_ccimx6ul(void *fdt)
 {
 	if (board_has_wireless()) {
-		char *regdomain;
-		unsigned int val;
-
 		/* Wireless MACs */
 		fdt_fixup_mac(fdt, "wlanaddr", "/wireless", "mac-address");
 		fdt_fixup_mac(fdt, "wlan1addr", "/wireless", "mac-address1");
@@ -670,15 +604,7 @@ void fdt_fixup_ccimx6ul(void *fdt)
 		fdt_fixup_mac(fdt, "wlan3addr", "/wireless", "mac-address3");
 
 		/* Regulatory domain */
-		if ((regdomain = getenv("regdomain")) != NULL) {
-			val = simple_strtoul(regdomain, NULL, 16);
-			if (val < DIGI_MAX_CERT) {
-				sprintf(regdomain, "0x%x", val);
-				do_fixup_by_path(fdt, "/wireless",
-						 "regulatory-domain", regdomain,
-						 strlen(regdomain) + 1, 1);
-			}
-		}
+		fdt_fixup_regulatory(fdt);
 	}
 
 	if (board_has_bluetooth())

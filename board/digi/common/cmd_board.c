@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2014 Digi International, Inc.
+ * (C) Copyright 2014-2017 Digi International, Inc.
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -103,7 +103,8 @@ __weak void print_carrierboard_info(void)
 	char board_str[100];
 	char warnings[100] = "";
 
-	sprintf(board_str, "Board: %s", CONFIG_BOARD_DESCRIPTION);
+	sprintf(board_str, "Board: %s %s", CONFIG_SOM_DESCRIPTION,
+		CONFIG_BOARD_DESCRIPTION);
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
 	if (CARRIERBOARD_VERSION_UNDEFINED == board_version)
 		sprintf(warnings, "%s   WARNING: Undefined board version!\n",
@@ -127,7 +128,8 @@ __weak void print_carrierboard_info(void)
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
 __weak void print_board_version(u32 version)
 {
-	printf("Board: %s\n", CONFIG_BOARD_DESCRIPTION);
+	printf("Board: %s %s\n", CONFIG_SOM_DESCRIPTION,
+	       CONFIG_BOARD_DESCRIPTION);
 	if (CARRIERBOARD_VERSION_UNDEFINED == version)
 		printf("       WARNING: Undefined board version!\n");
 	else
@@ -246,7 +248,8 @@ U_BOOT_CMD(
 #ifdef CONFIG_HAS_CARRIERBOARD_ID
 __weak void print_board_id(u32 id)
 {
-	printf("Board: %s\n", CONFIG_BOARD_DESCRIPTION);
+	printf("Board: %s %s\n", CONFIG_SOM_DESCRIPTION,
+	       CONFIG_BOARD_DESCRIPTION);
 	if (CARRIERBOARD_ID_UNDEFINED == id)
 		printf("       WARNING: Undefined board ID!\n");
 	else

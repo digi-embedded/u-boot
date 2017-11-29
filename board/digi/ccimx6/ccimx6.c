@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012-2013 Freescale Semiconductor, Inc.
- * Copyright (C) 2013 Digi International, Inc.
+ * Copyright (C) 2013-2017 Digi International, Inc.
  *
  * Author: Fabio Estevam <fabio.estevam@freescale.com>
  * Author: Jason Liu <r64343@freescale.com>
@@ -30,10 +30,8 @@
 #include <asm/gpio.h>
 #include <asm/imx-common/iomux-v3.h>
 #include <asm/imx-common/boot_mode.h>
-#ifdef CONFIG_SYS_I2C_MXC
 #include <i2c.h>
 #include <asm/imx-common/mxc_i2c.h>
-#endif
 #include <linux/ctype.h>
 #include <mmc.h>
 #include <fsl_esdhc.h>
@@ -82,7 +80,6 @@ static int enet_xcv_type;
 	PAD_CTL_DSE_40ohm | PAD_CTL_HYS |			\
 	PAD_CTL_ODE | PAD_CTL_SRE_FAST)
 
-#ifdef CONFIG_SYS_I2C_MXC
 #define PC MUX_PAD_CTRL(I2C_PAD_CTRL)
 /* I2C2 Camera, MIPI, pfuze */
 static struct i2c_pads_info i2c_pad_info1 = {
@@ -110,7 +107,6 @@ static struct i2c_pads_info i2c_pad_info2 = {
 		.gp = IMX_GPIO_NR(1, 6)
 	}
 };
-#endif
 #endif
 
 struct addrvalue {
@@ -272,10 +268,11 @@ static struct ccimx6_variant ccimx6_variants[] = {
 	},
 };
 
-#define NUM_VARIANTS	20
+#define NUM_VARIANTS_CC6	20
 
+#define DDR3_CAL_REGS	12
 /* DDR3 calibration values for the different CC6 variants */
-static struct addrvalue ddr3_calibration[NUM_VARIANTS + 1][12] = {
+static struct addrvalue ddr3_cal_cc6[NUM_VARIANTS_CC6 + 1][DDR3_CAL_REGS] = {
 	/* Variant 0x02 */
 	[0x02] = {
 		/* Write leveling */
@@ -620,18 +617,78 @@ static struct addrvalue ddr3_calibration[NUM_VARIANTS + 1][12] = {
 	},
 };
 
+/**
+ * To add new valid variant ID, append new lines in this array with its configuration
+ */
+static struct ccimx6_variant ccimx6p_variants[] = {
+/* 0x00 */ { IMX6_NONE,	0, 0, "Unknown"},
+/* 0x01 - 55001983-01 */
+	{
+		IMX6QP,
+		MEM_2GB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
+		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
+		"Industrial QuadPlus-core 1GHz, 8GB eMMC, 2GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
+	},
+};
+#define NUM_VARIANTS_CC6P	2
+
+/* DDR3 calibration values for the different CC6+ variants */
+static struct addrvalue ddr3_cal_cc6p[NUM_VARIANTS_CC6P + 1][DDR3_CAL_REGS] = {
+	/* Variant 0x01 */
+	[0x01] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x00060015},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x002F001F},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x00220035},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x00300031},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x43220325},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x0318031F},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x4334033C},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x032F0314},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3E31343B},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x38363040},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x3939423B},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x46354840},
+	},
+};
+
+static struct ccimx6_variant * get_cc6_variant(u8 variant)
+{
+	if (is_mx6dqp()) {
+		if (variant < 0 || variant > ARRAY_SIZE(ccimx6p_variants))
+			return NULL;
+		return &ccimx6p_variants[variant];
+	} else {
+		if (variant < 0 || variant > ARRAY_SIZE(ccimx6_variants))
+			return NULL;
+		return &ccimx6_variants[variant];
+	}
+}
+
 static void update_ddr3_calibration(u8 variant)
 {
 	int i;
 	volatile u32 *addr;
+	struct addrvalue *ddr3_cal;
 
-	if (variant <= 0 || variant > NUM_VARIANTS)
-		return;
+	if (is_mx6dqp()) {
+		if (variant <= 0 || variant > ARRAY_SIZE(ddr3_cal_cc6p))
+			return;
+		ddr3_cal = ddr3_cal_cc6p[variant];
+	} else {
+		if (variant <= 0 || variant > ARRAY_SIZE(ddr3_cal_cc6))
+			return;
+		ddr3_cal = ddr3_cal_cc6[variant];
+	}
 
-	for (i = 0; i < ARRAY_SIZE(ddr3_calibration[variant]); i++) {
-		addr = (volatile u32 *)(ddr3_calibration[variant][i].address);
+	for (i = 0; i < DDR3_CAL_REGS; i++) {
+		addr = (volatile u32 *)(ddr3_cal[i].address);
 		if (addr != NULL)
-			writel(ddr3_calibration[variant][i].value, addr);
+			writel(ddr3_cal[i].value, addr);
 	}
 }
 
@@ -699,8 +756,6 @@ int board_get_enet_xcv_type(void)
 	return enet_xcv_type;
 }
 
-#ifdef CONFIG_SYS_I2C_MXC
-
 static int pmic_access_page(unsigned char page)
 {
 #ifdef CONFIG_I2C_MULTI_BUS
@@ -764,7 +819,6 @@ int pmic_write_bitfield(int reg, unsigned char mask, unsigned char off,
 
 	return -1;
 }
-#endif /* CONFIG_SYS_I2C_MXC */
 
 #ifdef CONFIG_FSL_ESDHC
 
@@ -857,6 +911,15 @@ int board_mmc_init(bd_t *bis)
 			break;
 		case 1:
 			/* USDHC2 (uSD) */
+
+			/*
+			 * On CC6PLUS enable LDO9 regulator powering USDHC2
+			 * (microSD)
+			 */
+			if (is_mx6dqp())
+				pmic_write_bitfield(DA9063_LDO9_CONT, 0x1, 0,
+						    0x1);
+
 			imx_iomux_v3_setup_multiple_pads(
 					usdhc2_pads, ARRAY_SIZE(usdhc2_pads));
 			usdhc_cfg[i].sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
@@ -1035,7 +1098,7 @@ out:
 }
 #endif
 
-static int setup_pmic_voltages_ccimx6(void)
+static int print_pmic_info(void)
 {
 	unsigned char dev_id, var_id, conf_id, cust_id;
 
@@ -1229,6 +1292,22 @@ void pmic_bucks_synch_mode(void)
 	}
 }
 
+void generate_partition_table(void)
+{
+	struct mmc *mmc = find_mmc_device(0);
+	u64 capacity = 0;
+
+	/* Retrieve eMMC size */
+	if (mmc)
+		capacity = mmc->capacity;
+
+	/* eMMC capacity is not exact, so asume 8GB if larger than 7GB */
+	if (capacity > (7U * SZ_1G))
+		setenv("parts_linux", LINUX_8GB_PARTITION_TABLE);
+	else
+		setenv("parts_linux", LINUX_4GB_PARTITION_TABLE);
+}
+
 void som_default_environment(void)
 {
 #ifdef CONFIG_CMD_MMC
@@ -1237,6 +1316,7 @@ void som_default_environment(void)
 	char var[10];
 	char var2[10];
 	int i;
+	char *parttable;
 
 #ifdef CONFIG_CMD_MMC
 	/* Set $mmcbootdev to MMC boot device index */
@@ -1255,6 +1335,14 @@ void som_default_environment(void)
 	/* Set $module_variant variable */
 	sprintf(var, "0x%02x", my_hwid.variant);
 	setenv("module_variant", var);
+
+	/*
+	 * If there is no defined partition table generate one dynamically
+	 * basing on the available eMMC size.
+	 */
+	parttable = getenv("parts_linux");
+	if (!parttable)
+		generate_partition_table();
 }
 
 int ccimx6_late_init(void)
@@ -1263,14 +1351,11 @@ int ccimx6_late_init(void)
 	add_board_boot_modes(board_boot_modes);
 #endif
 
-#ifdef CONFIG_SYS_I2C_MXC
-	/* Setup I2C2 (PMIC, Kinetis) */
-	setup_i2c(1, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
 #ifdef CONFIG_I2C_MULTI_BUS
 	/* Setup I2C3 (HDMI, Audio...) */
 	setup_i2c(2, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info2);
 #endif
-	if (setup_pmic_voltages_ccimx6())
+	if (print_pmic_info())
 		return -1;
 
 	/* Operate all PMIC's bucks in "synchronous" mode (PWM) since the
@@ -1282,7 +1367,6 @@ int ccimx6_late_init(void)
 
 	if (setup_pmic_voltages_carrierboard())
 		return -1;
-#endif
 
 	/* Verify MAC addresses */
 	verify_mac_address("ethaddr", DEFAULT_MAC_ETHADDR);
@@ -1347,8 +1431,14 @@ void fdt_fixup_hwid(void *fdt)
 
 static int is_valid_hwid(struct ccimx6_hwid *hwid)
 {
-	if (hwid->variant < ARRAY_SIZE(ccimx6_variants))
-		if (ccimx6_variants[hwid->variant].cpu != IMX6_NONE)
+	int num;
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(hwid->variant);
+
+	num = is_mx6dqp() ? ARRAY_SIZE(ccimx6p_variants) :
+			    ARRAY_SIZE(ccimx6_variants);
+
+	if (hwid->variant < num && cc6_variant != NULL)
+		if (cc6_variant->cpu != IMX6_NONE)
 			return 1;
 
 	return 0;
@@ -1356,45 +1446,51 @@ static int is_valid_hwid(struct ccimx6_hwid *hwid)
 
 int board_has_emmc(void)
 {
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
+
 	if (is_valid_hwid(&my_hwid))
-		return (ccimx6_variants[my_hwid.variant].capabilities &
-				    CCIMX6_HAS_EMMC);
+		return (cc6_variant->capabilities & CCIMX6_HAS_EMMC);
 	else
 		return 1; /* assume it has if invalid HWID */
 }
 
 int board_has_wireless(void)
 {
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
+
 	if (is_valid_hwid(&my_hwid))
-		return (ccimx6_variants[my_hwid.variant].capabilities &
-				    CCIMX6_HAS_WIRELESS);
+		return (cc6_variant->capabilities & CCIMX6_HAS_WIRELESS);
 	else
 		return 1; /* assume it has if invalid HWID */
 }
 
 int board_has_bluetooth(void)
 {
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
+
 	if (is_valid_hwid(&my_hwid))
-		return (ccimx6_variants[my_hwid.variant].capabilities &
-				    CCIMX6_HAS_BLUETOOTH);
+		return (cc6_variant->capabilities & CCIMX6_HAS_BLUETOOTH);
 	else
 		return 1; /* assume it has if invalid HWID */
 }
 
 int board_has_kinetis(void)
 {
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
+
 	if (is_valid_hwid(&my_hwid))
-		return (ccimx6_variants[my_hwid.variant].capabilities &
-				    CCIMX6_HAS_KINETIS);
+		return (cc6_variant->capabilities & CCIMX6_HAS_KINETIS);
 	else
 		return 1; /* assume it has if invalid HWID */
 }
 
 void print_ccimx6_info(void)
 {
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
+
 	if (is_valid_hwid(&my_hwid))
-		printf("ConnectCore 6 SOM variant 0x%02X: %s\n", my_hwid.variant,
-			ccimx6_variants[my_hwid.variant].id_string);
+		printf("%s SOM variant 0x%02X: %s\n", CONFIG_SOM_DESCRIPTION,
+		       my_hwid.variant, cc6_variant->id_string);
 }
 
 static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
@@ -1571,13 +1667,26 @@ int ccimx6_init(void)
 	 */
 	update_ddr3_calibration(my_hwid.variant);
 
+	/* Setup I2C2 (PMIC, Kinetis) */
+	setup_i2c(1, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
+
 	return 0;
 }
 
 void fdt_fixup_ccimx6(void *fdt)
 {
-	if (board_has_wireless())
+	if (board_has_wireless()) {
+		/* Wireless MACs */
 		fdt_fixup_mac(fdt, "wlanaddr", "/wireless", "mac-address");
+		if (is_mx6dqp()) {
+			fdt_fixup_mac(fdt, "wlan1addr", "/wireless", "mac-address1");
+			fdt_fixup_mac(fdt, "wlan2addr", "/wireless", "mac-address2");
+			fdt_fixup_mac(fdt, "wlan3addr", "/wireless", "mac-address3");
+		}
+
+		/* Regulatory domain */
+		fdt_fixup_regulatory(fdt);
+	}
 	if (board_has_bluetooth())
 		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
 	fdt_fixup_trustfence(fdt);
