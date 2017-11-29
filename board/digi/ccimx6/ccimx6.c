@@ -1295,14 +1295,14 @@ void pmic_bucks_synch_mode(void)
 void generate_partition_table(void)
 {
 	struct mmc *mmc = find_mmc_device(0);
-	u64 capacity = 0;
+	unsigned int capacity_gb = 0;
 
-	/* Retrieve eMMC size */
+	/* Retrieve eMMC size in GiB */
 	if (mmc)
-		capacity = mmc->capacity;
+		capacity_gb = mmc->capacity / SZ_1G;
 
 	/* eMMC capacity is not exact, so asume 8GB if larger than 7GB */
-	if (capacity > (7U * SZ_1G))
+	if (capacity_gb >= 7)
 		setenv("parts_linux", LINUX_8GB_PARTITION_TABLE);
 	else
 		setenv("parts_linux", LINUX_4GB_PARTITION_TABLE);
