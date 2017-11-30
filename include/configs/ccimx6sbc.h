@@ -49,6 +49,7 @@
 /* Ethernet PHY */
 #define CONFIG_PHY_MICREL
 #define CONFIG_ENET_PHYADDR_MICREL	3
+#define PHY_ANEG_TIMEOUT		8000
 
 /* Celsius degrees below CPU's max die temp at which boot should be attempted */
 #define CONFIG_BOOT_TEMP_BELOW_MAX		10
