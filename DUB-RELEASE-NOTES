@@ -2,6 +2,10 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
+dub-2015.04-r10.2, released on 2017/11/29
+	- Added support for ConnectCore 6 Plus.
+
+
 dub-2015.04-r9.2, released on 2017/07/19
 	- Added support for CC6UL variant 0x04.
 	- Added support for CC6 variant 0x14.
