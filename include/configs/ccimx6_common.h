@@ -351,14 +351,8 @@
 /* Digi boot command 'dboot' */
 #define CONFIG_CMD_DBOOT
 
-/* Use zImage for CC6PLUS, uImage for CC6 (for backwards compatibility) */
-#ifdef CONFIG_MX6QP
 #define CONFIG_DBOOT_DEFAULTKERNELVAR	"zimage"
 #define CONFIG_DBOOT_BOOTCOMMAND	"bootz"
-#else
-#define CONFIG_DBOOT_DEFAULTKERNELVAR	"uimage"
-#define CONFIG_DBOOT_BOOTCOMMAND	"bootm"
-#endif
 
 #define CONFIG_DBOOT_SUPPORTED_SOURCES_LIST	\
 	CONFIG_SUPPORTED_SOURCES_NET "|" \

@@ -34,11 +34,11 @@
 #define CONFIG_CONSOLE_DEV		"ttymxc3"
 
 #if defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
-#define CONFIG_DEFAULT_FDT_FILE		"uImage-imx6dl-" CONFIG_SYS_BOARD ".dtb"
+#define CONFIG_DEFAULT_FDT_FILE		"zImage-imx6dl-" CONFIG_SYS_BOARD ".dtb"
 #elif defined(CONFIG_MX6QP)
 #define CONFIG_DEFAULT_FDT_FILE		"zImage-imx6qp-" CONFIG_SYS_BOARD ".dtb"
 #elif defined(CONFIG_MX6Q)
-#define CONFIG_DEFAULT_FDT_FILE		"uImage-imx6q-" CONFIG_SYS_BOARD ".dtb"
+#define CONFIG_DEFAULT_FDT_FILE		"zImage-imx6q-" CONFIG_SYS_BOARD ".dtb"
 #endif
 
 #define CONFIG_SYS_FSL_USDHC_NUM	2
