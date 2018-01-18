@@ -150,7 +150,8 @@
 	"                   will be taken from variable $<partition>_file)\n"
 #define DIGICMD_ARG_FILENAME_DBOOT_HELP	\
 	"       - filename: kernel file to transfer (if not provided, filename\n" \
-	"                   will be taken from variable $" CONFIG_DBOOT_DEFAULTKERNELVAR ")\n"
+	"                   will be taken from the variable pointed to by \n" \
+	"                   $dboot_kernel_var)\n"
 #define DIGICMD_ARG_IMGADDR_HELP	\
 	"       - image_address: address of image in RAM\n" \
 	"                        ($loadaddr if not provided)\n"
