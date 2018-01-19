@@ -2,6 +2,13 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
+dub-2015.04-r11.1, released on 2018/01/19
+	- Added support for Winbond W29N08GVBIAA 1GiB NAND for CC6UL.
+	- Resize 'rootfs' and 'update' partitions to 1.5 GiB for CC6 on variants
+	  with 4GiB eMMC.
+	- Default to using zImage on CC6.
+
+
 dub-2015.04-r10.2, released on 2017/11/29
 	- Added support for ConnectCore 6 Plus.
 
