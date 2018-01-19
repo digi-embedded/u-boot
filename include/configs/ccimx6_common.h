@@ -351,15 +351,6 @@
 /* Digi boot command 'dboot' */
 #define CONFIG_CMD_DBOOT
 
-/* Use zImage for CC6PLUS, uImage for CC6 (for backwards compatibility) */
-#ifdef CONFIG_MX6QP
-#define CONFIG_DBOOT_DEFAULTKERNELVAR	"zimage"
-#define CONFIG_DBOOT_BOOTCOMMAND	"bootz"
-#else
-#define CONFIG_DBOOT_DEFAULTKERNELVAR	"uimage"
-#define CONFIG_DBOOT_BOOTCOMMAND	"bootm"
-#endif
-
 #define CONFIG_DBOOT_SUPPORTED_SOURCES_LIST	\
 	CONFIG_SUPPORTED_SOURCES_NET "|" \
 	CONFIG_SUPPORTED_SOURCES_BLOCK
@@ -402,8 +393,8 @@
 	"start=2MiB," \
 	"name=linux,size=64MiB,uuid=${part1_uuid};" \
 	"name=recovery,size=64MiB,uuid=${part2_uuid};" \
-	"name=rootfs,size=1GiB,uuid=${part3_uuid};" \
-	"name=update,size=1GiB,uuid=${part4_uuid};" \
+	"name=rootfs,size=1536MiB,uuid=${part3_uuid};" \
+	"name=update,size=1536MiB,uuid=${part4_uuid};" \
 	"name=safe,size=16MiB,uuid=${part5_uuid};" \
 	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
 	"name=data,size=-,uuid=${part7_uuid};" \

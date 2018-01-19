@@ -70,8 +70,14 @@ static int set_bootargs(int os, int src)
 static int boot_os(int has_initrd, int has_fdt)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
+	char *var;
+	char dboot_cmd[] = "bootz";	/* default */
 
-	sprintf(cmd, "%s $loadaddr %s %s", CONFIG_DBOOT_BOOTCOMMAND,
+	var = getenv("dboot_kernel_var");
+	if (var && !strcmp(var, "uimage"))
+		strcpy(dboot_cmd, "bootm");
+
+	sprintf(cmd, "%s $loadaddr %s %s", dboot_cmd,
 		has_initrd ? "$initrd_addr" : "-",
 		has_fdt ? "$fdt_addr" : "");
 

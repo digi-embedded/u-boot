@@ -34,11 +34,11 @@
 #define CONFIG_CONSOLE_DEV		"ttymxc3"
 
 #if defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
-#define CONFIG_DEFAULT_FDT_FILE		"uImage-imx6dl-" CONFIG_SYS_BOARD ".dtb"
+#define CONFIG_DEFAULT_FDT_FILE		"zImage-imx6dl-" CONFIG_SYS_BOARD ".dtb"
 #elif defined(CONFIG_MX6QP)
 #define CONFIG_DEFAULT_FDT_FILE		"zImage-imx6qp-" CONFIG_SYS_BOARD ".dtb"
 #elif defined(CONFIG_MX6Q)
-#define CONFIG_DEFAULT_FDT_FILE		"uImage-imx6q-" CONFIG_SYS_BOARD ".dtb"
+#define CONFIG_DEFAULT_FDT_FILE		"zImage-imx6q-" CONFIG_SYS_BOARD ".dtb"
 #endif
 
 #define CONFIG_SYS_FSL_USDHC_NUM	2
@@ -49,6 +49,7 @@
 /* Ethernet PHY */
 #define CONFIG_PHY_MICREL
 #define CONFIG_ENET_PHYADDR_MICREL	3
+#define PHY_ANEG_TIMEOUT		8000
 
 /* Celsius degrees below CPU's max die temp at which boot should be attempted */
 #define CONFIG_BOOT_TEMP_BELOW_MAX		10
@@ -91,6 +92,7 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	RANDOM_UUIDS \
+	"dboot_kernel_var=zimage\0" \
 	"script=boot.scr\0" \
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
 	"uimage=uImage-" CONFIG_SYS_BOARD ".bin\0" \

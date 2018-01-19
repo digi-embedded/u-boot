@@ -63,6 +63,35 @@ void dump_buffer(unsigned char *buf, int size)
 	}
 }
 
+#if defined(CONFIG_MX6UL)
+static uint32_t mx6ul_nand_mark_byte_offset(struct mtd_info *mtd)
+{
+	/*
+	 * This value should be computed following the method described in the
+	 * kobs-ng application, in the mtd.c file.
+	 * The function cal_nfc_geometry() describes the right way to compute
+	 * the value. The implementation here in uboot tries to minimize the
+	 * complexity and the number of changes required for the i.mx6ul.
+	 */
+	if (mtd->writesize == 2048 && mtd->oobsize == 64)
+		return 2028;
+
+	return mx28_nand_mark_byte_offset();
+}
+
+static uint32_t mx6ul_nand_mark_bit_offset(struct mtd_info *mtd)
+{
+	/*
+	 * The comment in mx6ul_nand_mark_byte_offset() applies also to this
+	 * funcion.
+	 */
+	if (mtd->writesize == 2048 && mtd->oobsize == 64)
+		return 2;
+
+	return mx28_nand_mark_bit_offset();
+}
+#endif
+
 int write_firmware(struct mtd_info *mtd,
 		   struct mtd_config *cfg,
 		   struct mtd_bootblock *bootblock,
@@ -354,8 +383,13 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
 		fcb->FCB_Block.m_u32EccBlock0EccType         = ROM_BCH_Ecc_8bit;
 		fcb->FCB_Block.m_u32EccBlockNEccType         = ROM_BCH_Ecc_8bit;
 #elif defined(CONFIG_MX6UL)
-		fcb->FCB_Block.m_u32EccBlock0EccType         = ROM_BCH_Ecc_4bit;
-		fcb->FCB_Block.m_u32EccBlockNEccType         = ROM_BCH_Ecc_4bit;
+		if (mtd->oobsize == 64) {
+			fcb->FCB_Block.m_u32EccBlock0EccType         = ROM_BCH_Ecc_2bit;
+			fcb->FCB_Block.m_u32EccBlockNEccType         = ROM_BCH_Ecc_2bit;
+		} else {
+			fcb->FCB_Block.m_u32EccBlock0EccType         = ROM_BCH_Ecc_4bit;
+			fcb->FCB_Block.m_u32EccBlockNEccType         = ROM_BCH_Ecc_4bit;
+		}
 #endif
 
 	} else if (mtd->writesize == 4096) {
@@ -385,8 +419,13 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
 #else
 	fcb->FCB_Block.m_u32DBBTSearchAreaStartAddress = 0;
 #endif
+#if defined(CONFIG_MX28)
 	fcb->FCB_Block.m_u32BadBlockMarkerByte         = mx28_nand_mark_byte_offset();
 	fcb->FCB_Block.m_u32BadBlockMarkerStartBit     = mx28_nand_mark_bit_offset();
+#elif defined(CONFIG_MX6UL)
+	fcb->FCB_Block.m_u32BadBlockMarkerByte         = mx6ul_nand_mark_byte_offset(mtd);
+	fcb->FCB_Block.m_u32BadBlockMarkerStartBit     = mx6ul_nand_mark_bit_offset(mtd);
+#endif
 	fcb->FCB_Block.m_u32BBMarkerPhysicalOffset     = mtd->writesize;
 
 	//----------------------------------------------------------------------

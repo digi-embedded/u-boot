@@ -197,11 +197,18 @@ int get_fw_filename(int argc, char * const argv[], struct load_fw *fwinfo)
 
 char *get_default_filename(char *partname, int cmd)
 {
+	char *var;
+	char varname[100];
+
 	switch(cmd) {
 	case CMD_DBOOT:
 		if (!strcmp(partname, "linux") ||
 		    !strcmp(partname, "android")) {
-			return "$" CONFIG_DBOOT_DEFAULTKERNELVAR;
+			var = getenv("dboot_kernel_var");
+			if (var)
+				return getenv(var);
+			else
+				return "$zimage";
 		}
 		break;
 
@@ -212,8 +219,6 @@ char *get_default_filename(char *partname, int cmd)
 			/* Read the default filename from a variable called
 			 * after the partition name: <partname>_file
 			 */
-			char varname[100];
-
 			sprintf(varname, "%s_file", partname);
 			return getenv(varname);
 		}
