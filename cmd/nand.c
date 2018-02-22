@@ -303,6 +303,9 @@ static void nand_print_and_set_info(int idx)
 	printf("  subpagesize %8d b\n", chip->subpagesize);
 	printf("  options     0x%08x\n", chip->options);
 	printf("  bbt options 0x%08x\n", chip->bbt_options);
+	printf("  ECC\n");
+	printf("    strength  %8d b\n", chip->ecc_strength_ds);
+	printf("    step      %8d b\n", chip->ecc_step_ds);
 
 	/* Set geometry info */
 	env_set_hex("nand_writesize", mtd->writesize);
