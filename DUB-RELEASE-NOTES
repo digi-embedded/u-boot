@@ -2,6 +2,10 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
+dub-2015.04-r12.1, released on 2018/02/22
+	- Fixed bug in U-Boot programming for certain CC6UL NAND chips.
+
+
 dub-2015.04-r11.1, released on 2018/01/19
 	- Added support for Winbond W29N08GVBIAA 1GiB NAND for CC6UL.
 	- Resize 'rootfs' and 'update' partitions to 1.5 GiB for CC6 on variants
