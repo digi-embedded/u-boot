@@ -345,11 +345,11 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
 	fcb->FCB_Block.m_u32TotalPageSize            = mtd->writesize + mtd->oobsize;
 	fcb->FCB_Block.m_u32SectorsPerBlock          = mtd->erasesize / mtd->writesize;
 
+	fcb->FCB_Block.m_u32NumEccBlocksPerPage      = mtd->writesize / 512 - 1;
+	fcb->FCB_Block.m_u32MetadataBytes            = 10;
+	fcb->FCB_Block.m_u32EccBlock0Size            = 512;
+	fcb->FCB_Block.m_u32EccBlockNSize            = 512;
 	if (mtd->writesize == 2048) {
-                fcb->FCB_Block.m_u32NumEccBlocksPerPage      = mtd->writesize / 512 - 1;
-                fcb->FCB_Block.m_u32MetadataBytes            = 10;
-                fcb->FCB_Block.m_u32EccBlock0Size            = 512;
-                fcb->FCB_Block.m_u32EccBlockNSize            = 512;
 #if defined(CONFIG_MX28)
 		fcb->FCB_Block.m_u32EccBlock0EccType         = ROM_BCH_Ecc_8bit;
 		fcb->FCB_Block.m_u32EccBlockNEccType         = ROM_BCH_Ecc_8bit;
@@ -359,10 +359,6 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
 #endif
 
 	} else if (mtd->writesize == 4096) {
-		fcb->FCB_Block.m_u32NumEccBlocksPerPage      = (mtd->writesize / 512) - 1;
-		fcb->FCB_Block.m_u32MetadataBytes            = 10;
-		fcb->FCB_Block.m_u32EccBlock0Size            = 512;
-		fcb->FCB_Block.m_u32EccBlockNSize            = 512;
 		if (mtd->oobsize == 218) {
 			fcb->FCB_Block.m_u32EccBlock0EccType = ROM_BCH_Ecc_16bit;
 			fcb->FCB_Block.m_u32EccBlockNEccType = ROM_BCH_Ecc_16bit;
