@@ -63,35 +63,6 @@ void dump_buffer(unsigned char *buf, int size)
 	}
 }
 
-#if defined(CONFIG_MX6UL)
-static uint32_t mx6ul_nand_mark_byte_offset(struct mtd_info *mtd)
-{
-	/*
-	 * This value should be computed following the method described in the
-	 * kobs-ng application, in the mtd.c file.
-	 * The function cal_nfc_geometry() describes the right way to compute
-	 * the value. The implementation here in uboot tries to minimize the
-	 * complexity and the number of changes required for the i.mx6ul.
-	 */
-	if (mtd->writesize == 2048 && mtd->oobsize == 64)
-		return 2028;
-
-	return mx28_nand_mark_byte_offset();
-}
-
-static uint32_t mx6ul_nand_mark_bit_offset(struct mtd_info *mtd)
-{
-	/*
-	 * The comment in mx6ul_nand_mark_byte_offset() applies also to this
-	 * funcion.
-	 */
-	if (mtd->writesize == 2048 && mtd->oobsize == 64)
-		return 2;
-
-	return mx28_nand_mark_bit_offset();
-}
-#endif
-
 int write_firmware(struct mtd_info *mtd,
 		   struct mtd_config *cfg,
 		   struct mtd_bootblock *bootblock,
@@ -277,6 +248,8 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
 	unsigned int  boot_stream2_pos;
 	BCB_ROM_BootBlockStruct_t  *fcb;
 	BCB_ROM_BootBlockStruct_t  *dbbt;
+	struct nand_chip *chip = nand_info[0].priv;
+	unsigned int ecc_strength;
 
 	//----------------------------------------------------------------------
 	// Compute the geometry of a search area.
@@ -374,39 +347,14 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
 	fcb->FCB_Block.m_u32TotalPageSize            = mtd->writesize + mtd->oobsize;
 	fcb->FCB_Block.m_u32SectorsPerBlock          = mtd->erasesize / mtd->writesize;
 
-	if (mtd->writesize == 2048) {
-                fcb->FCB_Block.m_u32NumEccBlocksPerPage      = mtd->writesize / 512 - 1;
-                fcb->FCB_Block.m_u32MetadataBytes            = 10;
-                fcb->FCB_Block.m_u32EccBlock0Size            = 512;
-                fcb->FCB_Block.m_u32EccBlockNSize            = 512;
-#if defined(CONFIG_MX28)
-		fcb->FCB_Block.m_u32EccBlock0EccType         = ROM_BCH_Ecc_8bit;
-		fcb->FCB_Block.m_u32EccBlockNEccType         = ROM_BCH_Ecc_8bit;
-#elif defined(CONFIG_MX6UL)
-		if (mtd->oobsize == 64) {
-			fcb->FCB_Block.m_u32EccBlock0EccType         = ROM_BCH_Ecc_2bit;
-			fcb->FCB_Block.m_u32EccBlockNEccType         = ROM_BCH_Ecc_2bit;
-		} else {
-			fcb->FCB_Block.m_u32EccBlock0EccType         = ROM_BCH_Ecc_4bit;
-			fcb->FCB_Block.m_u32EccBlockNEccType         = ROM_BCH_Ecc_4bit;
-		}
-#endif
-
-	} else if (mtd->writesize == 4096) {
-		fcb->FCB_Block.m_u32NumEccBlocksPerPage      = (mtd->writesize / 512) - 1;
-		fcb->FCB_Block.m_u32MetadataBytes            = 10;
-		fcb->FCB_Block.m_u32EccBlock0Size            = 512;
-		fcb->FCB_Block.m_u32EccBlockNSize            = 512;
-		if (mtd->oobsize == 218) {
-			fcb->FCB_Block.m_u32EccBlock0EccType = ROM_BCH_Ecc_16bit;
-			fcb->FCB_Block.m_u32EccBlockNEccType = ROM_BCH_Ecc_16bit;
-		} else if ((mtd->oobsize == 128)){
-			fcb->FCB_Block.m_u32EccBlock0EccType = ROM_BCH_Ecc_8bit;
-			fcb->FCB_Block.m_u32EccBlockNEccType = ROM_BCH_Ecc_8bit;
-		}
-	} else {
-		fprintf(stderr, "Illegal page size %d\n", mtd->writesize);
-	}
+	fcb->FCB_Block.m_u32NumEccBlocksPerPage      = mtd->writesize /
+						       chip->ecc_step_ds - 1;
+	fcb->FCB_Block.m_u32MetadataBytes            = 10;
+	fcb->FCB_Block.m_u32EccBlock0Size	     = chip->ecc_step_ds;
+	fcb->FCB_Block.m_u32EccBlockNSize	     = chip->ecc_step_ds;
+	ecc_strength = round_up(chip->ecc_strength_ds, 2);
+	fcb->FCB_Block.m_u32EccBlock0EccType	     = ecc_strength >> 1;
+	fcb->FCB_Block.m_u32EccBlockNEccType	     = ecc_strength >> 1;
 
 	fcb->FCB_Block.m_u32BootPatch                  = 0; // Normal boot.
 
@@ -419,13 +367,8 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
 #else
 	fcb->FCB_Block.m_u32DBBTSearchAreaStartAddress = 0;
 #endif
-#if defined(CONFIG_MX28)
 	fcb->FCB_Block.m_u32BadBlockMarkerByte         = mx28_nand_mark_byte_offset();
 	fcb->FCB_Block.m_u32BadBlockMarkerStartBit     = mx28_nand_mark_bit_offset();
-#elif defined(CONFIG_MX6UL)
-	fcb->FCB_Block.m_u32BadBlockMarkerByte         = mx6ul_nand_mark_byte_offset(mtd);
-	fcb->FCB_Block.m_u32BadBlockMarkerStartBit     = mx6ul_nand_mark_bit_offset(mtd);
-#endif
 	fcb->FCB_Block.m_u32BBMarkerPhysicalOffset     = mtd->writesize;
 
 	//----------------------------------------------------------------------

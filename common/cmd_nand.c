@@ -397,6 +397,9 @@ static void nand_print_and_set_info(int idx)
 	printf("  Page size  %8d b\n", nand->writesize);
 	printf("  OOB size   %8d b\n", nand->oobsize);
 	printf("  Erase size %8d b\n", nand->erasesize);
+	printf("  ECC\n");
+	printf("    strength %8d b\n", chip->ecc_strength_ds);
+	printf("    step     %8d b\n", chip->ecc_step_ds);
 
 	/* Set geometry info */
 	setenv_hex("nand_writesize", nand->writesize);
