@@ -24,6 +24,7 @@
  */
 
 #include <common.h>
+#include <nand.h>
 
 /*
  * Default BCB layout.
@@ -144,23 +145,9 @@ static inline uint32_t mx28_nand_ecc_size_in_bits(uint32_t ecc_strength)
 static inline uint32_t mx28_nand_get_ecc_strength(uint32_t page_data_size,
 						uint32_t page_oob_size)
 {
-	if (page_data_size == 2048) {
-#if defined(CONFIG_MX28)
-		return 8;
-#elif defined(CONFIG_MX6UL)
-		return 4;
-#endif
-	}
+	struct nand_chip *chip = nand_info[0].priv;
 
-	if (page_data_size == 4096) {
-		if (page_oob_size == 128)
-			return 8;
-
-		if (page_oob_size == 218)
-			return 16;
-	}
-
-	return 0;
+	return round_up(chip->ecc_strength_ds, 2);
 }
 
 static inline uint32_t mx28_nand_get_mark_offset(uint32_t page_data_size,

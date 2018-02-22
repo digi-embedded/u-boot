@@ -248,6 +248,8 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
 	unsigned int  boot_stream2_pos;
 	BCB_ROM_BootBlockStruct_t  *fcb;
 	BCB_ROM_BootBlockStruct_t  *dbbt;
+	struct nand_chip *chip = nand_info[0].priv;
+	unsigned int ecc_strength;
 
 	//----------------------------------------------------------------------
 	// Compute the geometry of a search area.
@@ -345,30 +347,14 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
 	fcb->FCB_Block.m_u32TotalPageSize            = mtd->writesize + mtd->oobsize;
 	fcb->FCB_Block.m_u32SectorsPerBlock          = mtd->erasesize / mtd->writesize;
 
-	fcb->FCB_Block.m_u32NumEccBlocksPerPage      = mtd->writesize / 512 - 1;
+	fcb->FCB_Block.m_u32NumEccBlocksPerPage      = mtd->writesize /
+						       chip->ecc_step_ds - 1;
 	fcb->FCB_Block.m_u32MetadataBytes            = 10;
-	fcb->FCB_Block.m_u32EccBlock0Size            = 512;
-	fcb->FCB_Block.m_u32EccBlockNSize            = 512;
-	if (mtd->writesize == 2048) {
-#if defined(CONFIG_MX28)
-		fcb->FCB_Block.m_u32EccBlock0EccType         = ROM_BCH_Ecc_8bit;
-		fcb->FCB_Block.m_u32EccBlockNEccType         = ROM_BCH_Ecc_8bit;
-#elif defined(CONFIG_MX6UL)
-		fcb->FCB_Block.m_u32EccBlock0EccType         = ROM_BCH_Ecc_4bit;
-		fcb->FCB_Block.m_u32EccBlockNEccType         = ROM_BCH_Ecc_4bit;
-#endif
-
-	} else if (mtd->writesize == 4096) {
-		if (mtd->oobsize == 218) {
-			fcb->FCB_Block.m_u32EccBlock0EccType = ROM_BCH_Ecc_16bit;
-			fcb->FCB_Block.m_u32EccBlockNEccType = ROM_BCH_Ecc_16bit;
-		} else if ((mtd->oobsize == 128)){
-			fcb->FCB_Block.m_u32EccBlock0EccType = ROM_BCH_Ecc_8bit;
-			fcb->FCB_Block.m_u32EccBlockNEccType = ROM_BCH_Ecc_8bit;
-		}
-	} else {
-		fprintf(stderr, "Illegal page size %d\n", mtd->writesize);
-	}
+	fcb->FCB_Block.m_u32EccBlock0Size	     = chip->ecc_step_ds;
+	fcb->FCB_Block.m_u32EccBlockNSize	     = chip->ecc_step_ds;
+	ecc_strength = round_up(chip->ecc_strength_ds, 2);
+	fcb->FCB_Block.m_u32EccBlock0EccType	     = ecc_strength >> 1;
+	fcb->FCB_Block.m_u32EccBlockNEccType	     = ecc_strength >> 1;
 
 	fcb->FCB_Block.m_u32BootPatch                  = 0; // Normal boot.
 
