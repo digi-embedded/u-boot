@@ -96,6 +96,13 @@ static struct ccimx6_variant ccimx6ul_variants[] = {
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
 		"Industrial Ultralite 528MHz, 1GB NAND, 1GB DDR3, -40/+85C, Wireless, Bluetooth",
 	},
+/* 0x05 - 55001944-05 */
+	{
+		IMX6UL,
+		MEM_1GB,
+		0,
+		"Industrial Ultralite 528MHz, 1GB NAND, 1GB DDR3, -40/+85C",
+	},
 };
 
 int mca_read_reg(int reg, unsigned char *value)
