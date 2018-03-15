@@ -89,7 +89,7 @@ static struct ccimx6_variant ccimx6ul_variants[] = {
 		0,
 		"Industrial Ultralite 528MHz, 256MB NAND, 256MB DDR3, -40/+85C",
 	},
-/* 0x04 - 55001944-03 */
+/* 0x04 - 55001944-04 */
 	{
 		IMX6UL,
 		MEM_1GB,
