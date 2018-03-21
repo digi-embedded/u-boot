@@ -18,7 +18,6 @@
 #include <configs/ti_am335x_common.h>
 
 /* Mach type */
-#define MACH_TYPE_IGEP0033		4521	/* Until the next sync */
 #define CONFIG_MACH_TYPE		MACH_TYPE_IGEP0033
 
 /* Clock defines */
@@ -123,9 +122,7 @@
 #undef CONFIG_USE_IRQ
 
 /* SPL */
-#undef CONFIG_SPL_OS_BOOT	/* Not supported by existing map */
-#define CONFIG_SPL_YMODEM_SUPPORT
-#define CONFIG_SPL_LDSCRIPT		"$(CPUDIR)/am33xx/u-boot-spl.lds"
+#define CONFIG_SPL_LDSCRIPT		"arch/arm/mach-omap2/am33xx/u-boot-spl.lds"
 
 #define CONFIG_SYS_NAND_5_ADDR_CYCLE
 #define CONFIG_SYS_NAND_PAGE_COUNT	(CONFIG_SYS_NAND_BLOCK_SIZE / \

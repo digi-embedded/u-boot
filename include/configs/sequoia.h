@@ -45,7 +45,6 @@
  * Define this if you want support for video console with radeon 9200 pci card
  * Also set CONFIG_SYS_TEXT_BASE to 0xFFF80000 in board/amcc/sequoia/config.mk in this case
  */
-#undef CONFIG_VIDEO
 
 #ifdef CONFIG_VIDEO
 /*
@@ -55,7 +54,6 @@
 #define CONFIG_4xx_DCACHE		/* enable dcache		*/
 #endif
 
-#define CONFIG_BOARD_EARLY_INIT_F 1	/* Call board_early_init_f	*/
 #define CONFIG_MISC_INIT_R	1	/* Call misc_init_r		*/
 
 /*
@@ -100,15 +98,6 @@
 #if defined(CONFIG_SYS_RAMBOOT)
 #define CONFIG_ENV_IS_NOWHERE		/* Store env in memory only	*/
 #define CONFIG_ENV_SIZE		(8 << 10)
-/*
- * In RAM-booting version, we have no environment storage. So we need to
- * provide at least preliminary MAC addresses for the 4xx EMAC driver to
- * register the interfaces. Those two addresses are generated via the
- * tools/gen_eth_addr tool and should only be used in a closed laboratory
- * environment.
- */
-#define	CONFIG_ETHADDR		4a:56:49:22:3e:43
-#define	CONFIG_ETH1ADDR		02:93:53:d5:06:98
 #else
 #define CONFIG_ENV_IS_IN_FLASH		/* use FLASH for environ vars	*/
 #endif
@@ -133,6 +122,7 @@
 
 #define CONFIG_SYS_FLASH_EMPTY_INFO	      /* print 'E' for empty sector on flinfo */
 #define CONFIG_SYS_FLASH_QUIET_TEST	1	/* don't warn upon unknown flash      */
+#endif /* CONFIG_CMD_FLASH */
 
 #ifdef CONFIG_ENV_IS_IN_FLASH
 #define CONFIG_ENV_SECT_SIZE	0x20000	/* size of one complete sector	      */
@@ -143,7 +133,6 @@
 #define CONFIG_ENV_ADDR_REDUND	(CONFIG_ENV_ADDR-CONFIG_ENV_SECT_SIZE)
 #define CONFIG_ENV_SIZE_REDUND	(CONFIG_ENV_SIZE)
 #endif
-#endif /* CONFIG_CMD_FLASH */
 
 /*
  * DDR SDRAM
@@ -160,7 +149,6 @@
  */
 #define CONFIG_SYS_I2C_PPC4XX_SPEED_0		400000
 
-#define CONFIG_SYS_I2C_MULTI_EEPROMS
 #define CONFIG_SYS_I2C_EEPROM_ADDR	(0xa8>>1)
 #define CONFIG_SYS_I2C_EEPROM_ADDR_LEN 1
 #define CONFIG_SYS_EEPROM_PAGE_WRITE_BITS 3
@@ -224,29 +212,23 @@
 #define CONFIG_SYS_USB_OHCI_MAX_ROOT_PORTS 15
 #endif
 
-#define CONFIG_USB_STORAGE
 /* Comment this out to enable USB 1.1 device */
 #define USB_2_0_DEVICE
 
 #endif /* CONFIG_440EPX */
 
 /* Partitions */
-#define CONFIG_MAC_PARTITION
-#define CONFIG_DOS_PARTITION
-#define CONFIG_ISO_PARTITION
 
 /*
  * Commands additional to the ones defined in amcc-common.h
  */
 #define CONFIG_CMD_CHIP_CONFIG
 #define CONFIG_CMD_DTT
-#define CONFIG_CMD_FAT
 #define CONFIG_CMD_NAND
 #define CONFIG_CMD_PCI
 #define CONFIG_CMD_SDRAM
 
 #ifdef CONFIG_440EPX
-#define CONFIG_CMD_USB
 #endif
 
 #ifndef CONFIG_RAINIER
@@ -279,17 +261,13 @@
 #define CONFIG_LOGBUFFER
 #define CONFIG_SYS_POST_CACHE_ADDR	0x7fff0000	/* free virtual address     */
 
-#define CONFIG_SYS_CONSOLE_IS_IN_ENV	/* Otherwise it catches logbuffer as output */
-
 #define CONFIG_SUPPORT_VFAT
 
 /*
  * PCI stuff
  */
 /* General PCI */
-#define CONFIG_PCI			/* include pci support		*/
 #define CONFIG_PCI_INDIRECT_BRIDGE	/* indirect PCI bridge support */
-#define CONFIG_PCI_PNP			/* do pci plug-and-play		*/
 #define CONFIG_SYS_PCI_CACHE_LINE_SIZE	0	/* to avoid problems with PNP	*/
 #define CONFIG_PCI_SCAN_SHOW		/* show pci devices on startup	*/
 #define CONFIG_SYS_PCI_TARGBASE	0x80000000	/* PCIaddr mapped to	*/
@@ -424,11 +402,8 @@
 #define CONFIG_ATI_RADEON_FB		/* use radeon framebuffer driver */
 #define VIDEO_IO_OFFSET			0xe8000000
 #define CONFIG_SYS_ISA_IO_BASE_ADDRESS		VIDEO_IO_OFFSET
-#define CONFIG_VIDEO_SW_CURSOR
 #define CONFIG_VIDEO_LOGO
-#define CONFIG_CFB_CONSOLE
 #define CONFIG_SPLASH_SCREEN
-#define CONFIG_VGA_AS_SINGLE_DEVICE
 #define CONFIG_CMD_BMP
 #endif
 

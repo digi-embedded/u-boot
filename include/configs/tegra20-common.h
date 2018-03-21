@@ -9,34 +9,20 @@
 #define _TEGRA20_COMMON_H_
 #include "tegra-common.h"
 
-/* Cortex-A9 uses a cache line size of 32 bytes */
-#define CONFIG_SYS_CACHELINE_SIZE	32
-
-/*
- * Errata configuration
- */
-#define CONFIG_ARM_ERRATA_716044
-#define CONFIG_ARM_ERRATA_742230
-#define CONFIG_ARM_ERRATA_751472
-
 /*
  * NS16550 Configuration
  */
 #define V_NS16550_CLK		216000000	/* 216MHz (pllp_out0) */
 
-/* Environment information, boards can override if required */
-#define CONFIG_LOADADDR		0x00408000	/* def. location for kernel */
-
 /*
  * Miscellaneous configurable options
  */
-#define CONFIG_SYS_LOAD_ADDR	0x00A00800	/* default */
 #define CONFIG_STACKBASE	0x02800000	/* 40MB */
 
 /*-----------------------------------------------------------------------
  * Physical Memory Map
  */
-#define CONFIG_SYS_TEXT_BASE	0x0010E000
+#define CONFIG_SYS_TEXT_BASE	0x00110000
 
 /*
  * Memory layout for where various images get loaded by boot scripts:
@@ -62,10 +48,11 @@
  * ramdisk_addr_r simply shouldn't overlap anything else. Choosing 33M allows
  *   for the FDT/DTB to be up to 1M, which is hopefully plenty.
  */
+#define CONFIG_LOADADDR 0x01000000
 #define MEM_LAYOUT_ENV_SETTINGS \
 	"scriptaddr=0x10000000\0" \
 	"pxefile_addr_r=0x10100000\0" \
-	"kernel_addr_r=0x01000000\0" \
+	"kernel_addr_r=" __stringify(CONFIG_LOADADDR) "\0" \
 	"fdt_addr_r=0x02000000\0" \
 	"ramdisk_addr_r=0x02100000\0"
 

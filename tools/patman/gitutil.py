@@ -44,6 +44,11 @@ def LogCmd(commit_range, git_dir=None, oneline=False, reverse=False,
         cmd.append('-n%d' % count)
     if commit_range:
         cmd.append(commit_range)
+
+    # Add this in case we have a branch with the same name as a directory.
+    # This avoids messages like this, for example:
+    #   fatal: ambiguous argument 'test': both revision and filename
+    cmd.append('--')
     return cmd
 
 def CountCommitsToBranch():
@@ -134,7 +139,7 @@ def GetUpstream(git_dir, branch):
         leaf = merge.split('/')[-1]
         return '%s/%s' % (remote, leaf), None
     else:
-        raise ValueError, ("Cannot determine upstream branch for branch "
+        raise ValueError("Cannot determine upstream branch for branch "
                 "'%s' remote='%s', merge='%s'" % (branch, remote, merge))
 
 
@@ -219,7 +224,7 @@ def Checkout(commit_hash, git_dir=None, work_tree=None, force=False):
     result = command.RunPipe([pipe], capture=True, raise_on_error=False,
                              capture_stderr=True)
     if result.return_code != 0:
-        raise OSError, 'git checkout (%s): %s' % (pipe, result.stderr)
+        raise OSError('git checkout (%s): %s' % (pipe, result.stderr))
 
 def Clone(git_dir, output_dir):
     """Checkout the selected commit for this build
@@ -231,7 +236,7 @@ def Clone(git_dir, output_dir):
     result = command.RunPipe([pipe], capture=True, cwd=output_dir,
                              capture_stderr=True)
     if result.return_code != 0:
-        raise OSError, 'git clone: %s' % result.stderr
+        raise OSError('git clone: %s' % result.stderr)
 
 def Fetch(git_dir=None, work_tree=None):
     """Fetch from the origin repo
@@ -247,7 +252,7 @@ def Fetch(git_dir=None, work_tree=None):
     pipe.append('fetch')
     result = command.RunPipe([pipe], capture=True, capture_stderr=True)
     if result.return_code != 0:
-        raise OSError, 'git fetch: %s' % result.stderr
+        raise OSError('git fetch: %s' % result.stderr)
 
 def CreatePatches(start, count, series):
     """Create a series of patches from the top of the current branch.
@@ -328,7 +333,7 @@ def BuildEmailList(in_list, tag=None, alias=None, raise_on_error=True):
     return result
 
 def EmailPatches(series, cover_fname, args, dry_run, raise_on_error, cc_fname,
-        self_only=False, alias=None, in_reply_to=None):
+        self_only=False, alias=None, in_reply_to=None, thread=False):
     """Email a patch series.
 
     Args:
@@ -342,6 +347,8 @@ def EmailPatches(series, cover_fname, args, dry_run, raise_on_error, cc_fname,
         self_only: True to just email to yourself as a test
         in_reply_to: If set we'll pass this to git as --in-reply-to.
             Should be a message ID that this is in reply to.
+        thread: True to add --thread to git send-email (make
+            all patches reply to cover-letter or first patch in series)
 
     Returns:
         Git command that was/would be run
@@ -384,7 +391,8 @@ def EmailPatches(series, cover_fname, args, dry_run, raise_on_error, cc_fname,
     """
     to = BuildEmailList(series.get('to'), '--to', alias, raise_on_error)
     if not to:
-        git_config_to = command.Output('git', 'config', 'sendemail.to')
+        git_config_to = command.Output('git', 'config', 'sendemail.to',
+                                       raise_on_error=False)
         if not git_config_to:
             print ("No recipient.\n"
                    "Please add something like this to a commit\n"
@@ -400,6 +408,8 @@ def EmailPatches(series, cover_fname, args, dry_run, raise_on_error, cc_fname,
     cmd = ['git', 'send-email', '--annotate']
     if in_reply_to:
         cmd.append('--in-reply-to="%s"' % in_reply_to)
+    if thread:
+        cmd.append('--thread')
 
     cmd += to
     cmd += cc
@@ -479,18 +489,18 @@ def LookupEmail(lookup_name, alias=None, raise_on_error=True, level=0):
     if level > 10:
         msg = "Recursive email alias at '%s'" % lookup_name
         if raise_on_error:
-            raise OSError, msg
+            raise OSError(msg)
         else:
-            print col.Color(col.RED, msg)
+            print(col.Color(col.RED, msg))
             return out_list
 
     if lookup_name:
         if not lookup_name in alias:
             msg = "Alias '%s' not found" % lookup_name
             if raise_on_error:
-                raise ValueError, msg
+                raise ValueError(msg)
             else:
-                print col.Color(col.RED, msg)
+                print(col.Color(col.RED, msg))
                 return out_list
         for item in alias[lookup_name]:
             todo = LookupEmail(item, alias, raise_on_error, level + 1)
@@ -498,7 +508,7 @@ def LookupEmail(lookup_name, alias=None, raise_on_error=True, level=0):
                 if not new_item in out_list:
                     out_list.append(new_item)
 
-    #print "No match for alias '%s'" % lookup_name
+    #print("No match for alias '%s'" % lookup_name)
     return out_list
 
 def GetTopLevel():
@@ -544,6 +554,17 @@ def GetDefaultUserEmail():
     """
     uemail = command.OutputOneLine('git', 'config', '--global', 'user.email')
     return uemail
+
+def GetDefaultSubjectPrefix():
+    """Gets the format.subjectprefix from local .git/config file.
+
+    Returns:
+        Subject prefix found in local .git/config file, or None if none
+    """
+    sub_prefix = command.OutputOneLine('git', 'config', 'format.subjectprefix',
+                 raise_on_error=False)
+
+    return sub_prefix
 
 def Setup():
     """Set up git utils, by reading the alias files."""

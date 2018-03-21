@@ -37,6 +37,11 @@ void arch_lmb_reserve(struct lmb *lmb)
 	lmb_reserve(lmb, sp, (CONFIG_SYS_SDRAM_BASE + gd->ram_size - sp));
 }
 
+int arch_fixup_fdt(void *blob)
+{
+	return 0;
+}
+
 static int cleanup_before_linux(void)
 {
 	disable_interrupts();
@@ -52,6 +57,9 @@ static void boot_prep_linux(bootm_headers_t *images)
 	if (image_setup_linux(images))
 		hang();
 }
+
+__weak void smp_set_core_boot_addr(unsigned long addr, int corenr) {}
+__weak void smp_kick_all_cpus(void) {}
 
 /* Subcommand: GO */
 static void boot_jump_linux(bootm_headers_t *images, int flag)
@@ -79,6 +87,9 @@ static void boot_jump_linux(bootm_headers_t *images, int flag)
 		r0 = 1;
 		r2 = (unsigned int)getenv("bootargs");
 	}
+
+	smp_set_core_boot_addr((unsigned long)kernel_entry, -1);
+	smp_kick_all_cpus();
 
 	if (!fake)
 		kernel_entry(r0, 0, r2);

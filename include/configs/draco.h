@@ -14,23 +14,21 @@
 #define __CONFIG_DRACO_H
 
 #define CONFIG_SIEMENS_DRACO
-#define MACH_TYPE_DRACO			4314
 #define CONFIG_SIEMENS_MACH_TYPE	MACH_TYPE_DRACO
 
 #include "siemens-am33x-common.h"
 
-#define CONFIG_SYS_MPUCLK	275
+#define CONFIG_SYS_MPUCLK	300
 #define DDR_PLL_FREQ	303
 #undef CONFIG_SPL_AM33XX_ENABLE_RTC32K_OSC
 
-#define BOARD_DFU_BUTTON_GPIO	27
-#define BOARD_DFU_BUTTON_LED	64	/* red LED */
-#define BOARD_STATUS_LED	103	/* green LED */
+#define BOARD_DFU_BUTTON_GPIO	27	/* Use as default */
 #define GPIO_LAN9303_NRST	88	/* GPIO2_24 = gpio88 */
 
-#undef CONFIG_DOS_PARTITION
-#undef CONFIG_CMD_FAT
-
+#define CONFIG_ENV_SETTINGS_BUTTONS_AND_LEDS \
+	"button_dfu0=27\0" \
+	"led0=103,1,0\0" \
+	"led1=64,0,1\0"
 
  /* Physical Memory Map */
 #define CONFIG_MAX_RAM_BANK_SIZE	(1024 << 20)	/* 1GB */
@@ -42,12 +40,6 @@
 #define EEPROM_ADDR_DDR3 0x90
 #define EEPROM_ADDR_CHIP 0x120
 
-#define CONFIG_SYS_U_BOOT_MAX_SIZE_SECTORS	0x300
-
-#undef CONFIG_SPL_NET_SUPPORT
-#undef CONFIG_SPL_NET_VCI_STRING
-#undef CONFIG_SPL_ETH_SUPPORT
-
 #undef CONFIG_MII
 #undef CONFIG_PHY_GIGE
 #define CONFIG_PHY_SMSC
@@ -57,17 +49,28 @@
 /* Watchdog */
 #define CONFIG_OMAP_WATCHDOG
 
+/* Define own nand partitions */
+#define CONFIG_ENV_OFFSET_REDUND    0x2E0000
+#define CONFIG_ENV_SIZE_REDUND      0x2000
+#define CONFIG_ENV_RANGE        (4 * CONFIG_SYS_ENV_SECT_SIZE)
+
+#define MTDPARTS_DEFAULT	MTDPARTS_DEFAULT_V2
+
 #ifndef CONFIG_SPL_BUILD
 
 /* Default env settings */
 #define CONFIG_EXTRA_ENV_SETTINGS \
+	"hostname=draco\0" \
+	"ubi_off=2048\0"\
 	"nand_img_size=0x400000\0" \
 	"optargs=\0" \
-	CONFIG_COMMON_ENV_SETTINGS
+	"preboot=draco_led 0\0" \
+	CONFIG_ENV_SETTINGS_BUTTONS_AND_LEDS \
+	CONFIG_ENV_SETTINGS_V2 \
+	CONFIG_ENV_SETTINGS_NAND_V2
 
 #ifndef CONFIG_RESTORE_FLASH
 /* set to negative value for no autoboot */
-#define CONFIG_BOOTDELAY		3
 
 #define CONFIG_BOOTCOMMAND \
 "if dfubutton; then " \
@@ -75,11 +78,10 @@
 	"reset; " \
 "fi;" \
 "run nand_boot;" \
+"run nand_boot_backup;" \
 "reset;"
 
-
 #else
-#define CONFIG_BOOTDELAY		0
 
 #define CONFIG_BOOTCOMMAND			\
 	"setenv autoload no; "			\

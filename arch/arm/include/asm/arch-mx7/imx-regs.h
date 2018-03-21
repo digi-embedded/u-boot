@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015 Freescale Semiconductor, Inc. All Rights Reserved.
+ * Copyright (C) 2015 Freescale Semiconductor, Inc. All Rights Reserved.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -8,8 +8,6 @@
 #define __ASM_ARCH_MX7_IMX_REGS_H__
 
 #define ARCH_MXC
-
-#define CONFIG_SYS_CACHELINE_SIZE	64
 
 #define ROM_SW_INFO_ADDR                0x000001E8
 #define ROMCP_ARB_BASE_ADDR             0x00000000
@@ -185,9 +183,9 @@
 #define MUDSP_IPS_BASE_ADDR             (AIPS3_OFF_BASE_ADDR+0xB0000)
 #define HS_IPS_BASE_ADDR                (AIPS3_OFF_BASE_ADDR+0xC0000)
 #define USBOH2_PL301_IPS_BASE_ADDR      (AIPS3_OFF_BASE_ADDR+0xD0000)
-#define USBOTG1_IPS_BASE_ADDR    		(AIPS3_OFF_BASE_ADDR+0x110000)
-#define USBOTG2_IPS_BASE_ADDR    		(AIPS3_OFF_BASE_ADDR+0x120000)
-#define USBHSIC_IPS_BASE_ADDR    		(AIPS3_OFF_BASE_ADDR+0x130000)
+#define USBOTG1_IPS_BASE_ADDR		(AIPS3_OFF_BASE_ADDR+0x110000)
+#define USBOTG2_IPS_BASE_ADDR		(AIPS3_OFF_BASE_ADDR+0x120000)
+#define USBHSIC_IPS_BASE_ADDR		(AIPS3_OFF_BASE_ADDR+0x130000)
 #define USDHC1_BASE_ADDR                (AIPS3_OFF_BASE_ADDR+0x140000)
 #define USDHC2_BASE_ADDR                (AIPS3_OFF_BASE_ADDR+0x150000)
 #define USDHC3_BASE_ADDR                (AIPS3_OFF_BASE_ADDR+0x160000)
@@ -201,6 +199,10 @@
 #define ENET_IPS_BASE_ADDR              (AIPS3_OFF_BASE_ADDR+0x1E0000)
 #define ENET2_IPS_BASE_ADDR             (AIPS3_OFF_BASE_ADDR+0x1F0000)
 
+#define AIPS1_BASE_ADDR			AIPS1_ON_BASE_ADDR
+#define AIPS2_BASE_ADDR			AIPS2_ON_BASE_ADDR
+#define AIPS3_BASE_ADDR			AIPS3_ON_BASE_ADDR
+
 #define SDMA_IPS_HOST_BASE_ADDR         SDMA_PORT_IPS_HOST_BASE_ADDR
 #define SDMA_IPS_HOST_IPS_BASE_ADDR     SDMA_PORT_IPS_HOST_BASE_ADDR
 
@@ -208,13 +210,26 @@
 #define DEBUG_MONITOR_BASE_ADDR IP2APB_AXIMON_IPS_BASE_ADDR
 
 #define USB_BASE_ADDR USBOTG1_IPS_BASE_ADDR
+#define SEMAPHORE1_BASE_ADDR SEMA41_IPS_BASE_ADDR
+#define SEMAPHORE2_BASE_ADDR SEMA42_IPS_BASE_ADDR
+#define RDC_BASE_ADDR RDC_IPS_BASE_ADDR
+#define REGS_QOS_BASE     QOSC_IPS_BASE_ADDR
+#define REGS_QOS_EPDC     (QOSC_IPS_BASE_ADDR + 0x3400)
+#define REGS_QOS_PXP0     (QOSC_IPS_BASE_ADDR + 0x2C00)
+#define REGS_QOS_PXP1     (QOSC_IPS_BASE_ADDR + 0x3C00)
+
 
 #define FEC_QUIRK_ENET_MAC
 #define SNVS_LPGPR	0x68
-
-#define CHIP_REV_1_0                 0x10
-#define CHIP_REV_1_1                 0x11
+#define CONFIG_SYS_FSL_SEC_OFFSET       0
+#define CONFIG_SYS_FSL_SEC_ADDR         (CAAM_IPS_BASE_ADDR + \
+					 CONFIG_SYS_FSL_SEC_OFFSET)
+#define CONFIG_SYS_FSL_JR0_OFFSET       0x1000
+#define CONFIG_SYS_FSL_JR0_ADDR         (CONFIG_SYS_FSL_SEC_ADDR + \
+					 CONFIG_SYS_FSL_JR0_OFFSET)
+#define CONFIG_SYS_FSL_MAX_NUM_OF_SEC   1
 #if !(defined(__KERNEL_STRICT_NAMES) || defined(__ASSEMBLY__))
+#include <asm/imx-common/regs-lcdif.h>
 #include <asm/types.h>
 
 extern void imx_get_mac_from_fuse(int dev_id, unsigned char *mac);
@@ -253,6 +268,11 @@ struct src {
 	u32 reserved5[985];
 	u32 ddrc_rcr;
 };
+
+#define SRC_M4RCR_M4C_NON_SCLR_RST_OFFSET	0
+#define SRC_M4RCR_M4C_NON_SCLR_RST_MASK		(1 << 0)
+#define SRC_M4RCR_ENABLE_M4_OFFSET		3
+#define SRC_M4RCR_ENABLE_M4_MASK		(1 << 3)
 
 /* GPR0 Bit Fields */
 #define IOMUXC_GPR_GPR0_DMAREQ_MUX_SEL0_MASK     0x1u
@@ -866,6 +886,9 @@ struct cspi_regs {
 	ECSPI3_BASE_ADDR, \
 	ECSPI4_BASE_ADDR
 
+#define CSU_INIT_SEC_LEVEL0	0x00FF00FF
+#define CSU_NUM_REGS		64
+
 struct ocotp_regs {
 	u32 ctrl;
 	u32 ctrl_set;
@@ -1027,101 +1050,6 @@ struct rdc_regs {
 struct rdc_sema_regs {
 	u8	gate[64];	/* Gate */
 	u16	rstgt;		/* Reset Gate */
-};
-
-/* eLCDIF controller registers */
-struct mxs_lcdif_regs {
-	u32	hw_lcdif_ctrl;			/* 0x00 */
-	u32	hw_lcdif_ctrl_set;
-	u32	hw_lcdif_ctrl_clr;
-	u32	hw_lcdif_ctrl_tog;
-	u32	hw_lcdif_ctrl1;			/* 0x10 */
-	u32	hw_lcdif_ctrl1_set;
-	u32	hw_lcdif_ctrl1_clr;
-	u32	hw_lcdif_ctrl1_tog;
-	u32	hw_lcdif_ctrl2;			/* 0x20 */
-	u32	hw_lcdif_ctrl2_set;
-	u32	hw_lcdif_ctrl2_clr;
-	u32	hw_lcdif_ctrl2_tog;
-	u32	hw_lcdif_transfer_count;	/* 0x30 */
-	u32	reserved1[3];
-	u32	hw_lcdif_cur_buf;		/* 0x40 */
-	u32	reserved2[3];
-	u32	hw_lcdif_next_buf;		/* 0x50 */
-	u32	reserved3[3];
-	u32	hw_lcdif_timing;		/* 0x60 */
-	u32	reserved4[3];
-	u32	hw_lcdif_vdctrl0;		/* 0x70 */
-	u32	hw_lcdif_vdctrl0_set;
-	u32	hw_lcdif_vdctrl0_clr;
-	u32	hw_lcdif_vdctrl0_tog;
-	u32	hw_lcdif_vdctrl1;		/* 0x80 */
-	u32	reserved5[3];
-	u32	hw_lcdif_vdctrl2;		/* 0x90 */
-	u32	reserved6[3];
-	u32	hw_lcdif_vdctrl3;		/* 0xa0 */
-	u32	reserved7[3];
-	u32	hw_lcdif_vdctrl4;		/* 0xb0 */
-	u32	reserved8[3];
-	u32	hw_lcdif_dvictrl0;		/* 0xc0 */
-	u32	reserved9[3];
-	u32	hw_lcdif_dvictrl1;		/* 0xd0 */
-	u32	reserved10[3];
-	u32	hw_lcdif_dvictrl2;		/* 0xe0 */
-	u32	reserved11[3];
-	u32	hw_lcdif_dvictrl3;		/* 0xf0 */
-	u32	reserved12[3];
-	u32	hw_lcdif_dvictrl4;		/* 0x100 */
-	u32	reserved13[3];
-	u32	hw_lcdif_csc_coeffctrl0;	/* 0x110 */
-	u32	reserved14[3];
-	u32	hw_lcdif_csc_coeffctrl1;	/* 0x120 */
-	u32	reserved15[3];
-	u32	hw_lcdif_csc_coeffctrl2;	/* 0x130 */
-	u32	reserved16[3];
-	u32	hw_lcdif_csc_coeffctrl3;	/* 0x140 */
-	u32	reserved17[3];
-	u32	hw_lcdif_csc_coeffctrl4;	/* 0x150 */
-	u32	reserved18[3];
-	u32	hw_lcdif_csc_offset;	/* 0x160 */
-	u32	reserved19[3];
-	u32	hw_lcdif_csc_limit;		/* 0x170 */
-	u32	reserved20[3];
-	u32	hw_lcdif_data;			/* 0x180 */
-	u32	reserved21[3];
-	u32	hw_lcdif_bm_error_stat;	/* 0x190 */
-	u32	reserved22[3];
-	u32	hw_lcdif_crc_stat;		/* 0x1a0 */
-	u32	reserved23[3];
-	u32	hw_lcdif_lcdif_stat;	/* 0x1b0 */
-	u32	reserved24[3];
-	u32	hw_lcdif_version;		/* 0x1c0 */
-	u32	reserved25[3];
-	u32	hw_lcdif_debug0;		/* 0x1d0 */
-	u32	reserved26[3];
-	u32	hw_lcdif_debug1;		/* 0x1e0 */
-	u32	reserved27[3];
-	u32	hw_lcdif_debug2;		/* 0x1f0 */
-	u32	reserved28[3];
-	u32	hw_lcdif_thres;			/* 0x200 */
-	u32	reserved29[3];
-	u32	hw_lcdif_as_ctrl;		/* 0x210 */
-	u32	reserved30[3];
-	u32	hw_lcdif_as_buf;		/* 0x220 */
-	u32	reserved31[3];
-	u32	hw_lcdif_as_next_buf;	/* 0x230 */
-	u32	reserved32[3];
-	u32	hw_lcdif_as_clrkeylow;	/* 0x240 */
-	u32	reserved33[3];
-	u32	hw_lcdif_as_clrkeyhigh;	/* 0x250 */
-	u32	reserved34[3];
-	u32	hw_lcdif_as_sync_delay;	/* 0x260 */
-	u32	reserved35[3];
-	u32	hw_lcdif_as_debug3;		/* 0x270 */
-	u32	reserved36[3];
-	u32	hw_lcdif_as_debug4;		/* 0x280 */
-	u32	reserved37[3];
-	u32	hw_lcdif_as_debug5;		/* 0x290 */
 };
 
 #define MXS_LCDIF_BASE ELCDIF1_IPS_BASE_ADDR

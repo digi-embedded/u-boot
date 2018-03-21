@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Freescale Semiconductor, Inc. All Rights Reserved.
+ * Copyright (C) 2016 Freescale Semiconductor, Inc. All Rights Reserved.
  *
  * Peng Fan <Peng.Fan@freescale.com>
  *
@@ -92,14 +92,14 @@ int board_setup_logo_file(void *display_buf)
 	if (do_fat_size(NULL, 0, 4, fs_argv)) {
 		debug("File %s not found on MMC Device %lu, use black border\n", fs_argv[3], mmc_dev);
 		/* Draw black border around framebuffer*/
-		memset(lcd_base, 0x0, 24 * panel_info.vl_col);
+		memset(display_buf, 0x0, 24 * panel_info.vl_col);
 		for (i = 24; i < (panel_info.vl_row - 24); i++) {
-			memset((u8 *)lcd_base + i * panel_info.vl_col,
+			memset((u8 *)display_buf + i * panel_info.vl_col,
 			       0x00, 24);
-			memset((u8 *)lcd_base + i * panel_info.vl_col
+			memset((u8 *)display_buf + i * panel_info.vl_col
 				+ panel_info.vl_col - 24, 0x00, 24);
 		}
-		memset((u8 *)lcd_base +
+		memset((u8 *)display_buf +
 		       panel_info.vl_col * (panel_info.vl_row - 24),
 		       0x00, 24 * panel_info.vl_col);
 		return 0;

@@ -29,7 +29,6 @@
 /*
  * Enable this board for more than 2GB of SDRAM
  */
-#define CONFIG_PHYS_64BIT
 #define	CONFIG_VERY_BIG_RAM
 
 /*
@@ -38,7 +37,6 @@
 #define CONFIG_HOSTNAME		katmai
 #include "amcc-common.h"
 
-#define CONFIG_BOARD_EARLY_INIT_F 1	/* Call board_pre_init		*/
 #undef  CONFIG_SHOW_BOOT_PROGRESS
 
 /*-----------------------------------------------------------------------
@@ -109,7 +107,6 @@
 #define IIC0_BOOTPROM_ADDR	0x50
 #define IIC0_ALT_BOOTPROM_ADDR	0x54
 
-#define CONFIG_SYS_I2C_MULTI_EEPROMS
 #define CONFIG_SYS_I2C_EEPROM_ADDR	(0x50)
 #define CONFIG_SYS_I2C_EEPROM_ADDR_LEN 1
 #define CONFIG_SYS_EEPROM_PAGE_WRITE_BITS 3
@@ -176,11 +173,8 @@
 #define CONFIG_CMD_CHIP_CONFIG
 #define CONFIG_CMD_DATE
 #define CONFIG_CMD_ECCTEST
-#define CONFIG_CMD_EXT2
-#define CONFIG_CMD_FAT
 #define CONFIG_CMD_PCI
 #define CONFIG_CMD_SDRAM
-#define CONFIG_CMD_SNTP
 
 #define	CONFIG_IBM_EMAC4_V4	1	/* 440SPe has this EMAC version	*/
 #define CONFIG_PHY_ADDR		1	/* PHY address, See schematics	*/
@@ -219,9 +213,7 @@
  *-----------------------------------------------------------------------
  */
 /* General PCI */
-#define CONFIG_PCI			/* include pci support		*/
 #define CONFIG_PCI_INDIRECT_BRIDGE	/* indirect PCI bridge support */
-#define CONFIG_PCI_PNP		1	/* do pci plug-and-play		*/
 #define CONFIG_PCI_SCAN_SHOW	1	/* show pci devices on startup	*/
 #define CONFIG_PCI_CONFIG_HOST_BRIDGE
 
@@ -245,7 +237,6 @@
 #define CONFIG_SYSTEMACE	1	/* Enable SystemACE support	*/
 #define CONFIG_SYS_SYSTEMACE_WIDTH	16	/* Data bus width is 16		*/
 #define CONFIG_SYS_SYSTEMACE_BASE	CONFIG_SYS_ACE_BASE
-#define CONFIG_DOS_PARTITION	1
 
 /*-----------------------------------------------------------------------
  * External Bus Controller (EBC) Setup

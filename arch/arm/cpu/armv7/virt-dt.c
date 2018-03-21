@@ -16,6 +16,7 @@
  */
 
 #include <common.h>
+#include <errno.h>
 #include <stdio_dev.h>
 #include <linux/ctype.h>
 #include <linux/types.h>
@@ -25,72 +26,37 @@
 #include <asm/armv7.h>
 #include <asm/psci.h>
 
-static int fdt_psci(void *fdt)
+int armv7_apply_memory_carveout(u64 *start, u64 *size)
 {
-#ifdef CONFIG_ARMV7_PSCI
-	int nodeoff;
-	int tmp;
+#ifdef CONFIG_ARMV7_SECURE_RESERVE_SIZE
+	if (*start + *size < CONFIG_ARMV7_SECURE_BASE ||
+	    *start >= (u64)CONFIG_ARMV7_SECURE_BASE +
+		      CONFIG_ARMV7_SECURE_RESERVE_SIZE)
+		return 0;
 
-	nodeoff = fdt_path_offset(fdt, "/cpus");
-	if (nodeoff < 0) {
-		printf("couldn't find /cpus\n");
-		return nodeoff;
+	/* carveout must be at the beginning or the end of the bank */
+	if (*start == CONFIG_ARMV7_SECURE_BASE ||
+	    *start + *size == (u64)CONFIG_ARMV7_SECURE_BASE +
+			      CONFIG_ARMV7_SECURE_RESERVE_SIZE) {
+		if (*size < CONFIG_ARMV7_SECURE_RESERVE_SIZE) {
+			debug("Secure monitor larger than RAM bank!?\n");
+			return -EINVAL;
+		}
+		*size -= CONFIG_ARMV7_SECURE_RESERVE_SIZE;
+		if (*start == CONFIG_ARMV7_SECURE_BASE)
+			*start += CONFIG_ARMV7_SECURE_RESERVE_SIZE;
+		return 0;
 	}
-
-	/* add 'enable-method = "psci"' to each cpu node */
-	for (tmp = fdt_first_subnode(fdt, nodeoff);
-	     tmp >= 0;
-	     tmp = fdt_next_subnode(fdt, tmp)) {
-		const struct fdt_property *prop;
-		int len;
-
-		prop = fdt_get_property(fdt, tmp, "device_type", &len);
-		if (!prop)
-			continue;
-		if (len < 4)
-			continue;
-		if (strcmp(prop->data, "cpu"))
-			continue;
-
-		fdt_setprop_string(fdt, tmp, "enable-method", "psci");
-	}
-
-	nodeoff = fdt_path_offset(fdt, "/psci");
-	if (nodeoff < 0) {
-		nodeoff = fdt_path_offset(fdt, "/");
-		if (nodeoff < 0)
-			return nodeoff;
-
-		nodeoff = fdt_add_subnode(fdt, nodeoff, "psci");
-		if (nodeoff < 0)
-			return nodeoff;
-	}
-
-	tmp = fdt_setprop_string(fdt, nodeoff, "compatible", "arm,psci");
-	if (tmp)
-		return tmp;
-	tmp = fdt_setprop_string(fdt, nodeoff, "method", "smc");
-	if (tmp)
-		return tmp;
-	tmp = fdt_setprop_u32(fdt, nodeoff, "cpu_suspend", ARM_PSCI_FN_CPU_SUSPEND);
-	if (tmp)
-		return tmp;
-	tmp = fdt_setprop_u32(fdt, nodeoff, "cpu_off", ARM_PSCI_FN_CPU_OFF);
-	if (tmp)
-		return tmp;
-	tmp = fdt_setprop_u32(fdt, nodeoff, "cpu_on", ARM_PSCI_FN_CPU_ON);
-	if (tmp)
-		return tmp;
-	tmp = fdt_setprop_u32(fdt, nodeoff, "migrate", ARM_PSCI_FN_MIGRATE);
-	if (tmp)
-		return tmp;
-#endif
+	debug("Secure monitor not located at beginning or end of RAM bank\n");
+	return -EINVAL;
+#else /* !CONFIG_ARMV7_SECURE_RESERVE_SIZE */
 	return 0;
+#endif
 }
 
 int psci_update_dt(void *fdt)
 {
-#if defined(CONFIG_ARMV7_NONSEC) || defined(CONFIG_ARMV7_VIRT)
+#ifdef CONFIG_ARMV7_NONSEC
 	if (!armv7_boot_nonsec())
 		return 0;
 #endif

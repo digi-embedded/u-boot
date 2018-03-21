@@ -2,7 +2,7 @@
  * FSL SD/MMC Defines
  *-------------------------------------------------------------------
  *
- * Copyright 2007-2008, 2010-2015 Freescale Semiconductor, Inc.
+ * Copyright 2007-2008,2010-2011 Freescale Semiconductor, Inc
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -10,11 +10,15 @@
 #ifndef  __FSL_ESDHC_H__
 #define	__FSL_ESDHC_H__
 
-#include <asm/errno.h>
+#include <linux/errno.h>
 #include <asm/byteorder.h>
 
 /* needed for the mmc_cfg definition */
 #include <mmc.h>
+
+#ifdef CONFIG_FSL_ESDHC_ADAPTER_IDENT
+#include "../board/freescale/common/qixis.h"
+#endif
 
 /* FSL eSDHC-specific constants */
 #define SYSCTL			0x0002e02c
@@ -32,10 +36,43 @@
 #define SYSCTL_RSTD		0x04000000
 
 #define VENDORSPEC_CKEN		0x00004000
-#define VENDORSPEC_PEREN		0x00002000
-#define VENDORSPEC_HCKEN		0x00001000
-#define VENDORSPEC_IPGEN		0x00000800
-#define VENDORSPEC_INIT     0x20007809
+#define VENDORSPEC_PEREN	0x00002000
+#define VENDORSPEC_HCKEN	0x00001000
+#define VENDORSPEC_IPGEN	0x00000800
+#define VENDORSPEC_INIT		0x20007809
+
+#define	MIX_CTRL_DDREN		(1 << 3)
+#define MIX_CTRL_DTDSEL_READ	(1 << 4)
+#define	MIX_CTRL_AC23EN		(1 << 7)
+#define	MIX_CTRL_EXE_TUNE	(1 << 22)
+#define	MIX_CTRL_SMPCLK_SEL	(1 << 23)
+#define	MIX_CTRL_AUTO_TUNE_EN	(1 << 24)
+#define	MIX_CTRL_FBCLK_SEL	(1 << 25)
+#define	MIX_CTRL_HS400_EN	(1 << 26)
+#define	MIX_CTRL_HS400_ES	(1 << 27)
+/* Bits 3 and 6 are not SDHCI standard definitions */
+#define	MIX_CTRL_SDHCI_MASK	0xb7
+/* Tuning bits */
+#define	MIX_CTRL_TUNING_MASK	0x03c00000
+
+/* strobe dll register */
+#define ESDHC_STROBE_DLL_CTRL		0x70
+#define ESDHC_STROBE_DLL_CTRL_ENABLE	(1 << 0)
+#define ESDHC_STROBE_DLL_CTRL_RESET	(1 << 1)
+#define ESDHC_STROBE_DLL_CTRL_SLV_DLY_TARGET_DEFAULT	0x7
+#define ESDHC_STROBE_DLL_CTRL_SLV_DLY_TARGET_SHIFT	3
+
+#define ESDHC_STROBE_DLL_STATUS		0x74
+#define ESDHC_STROBE_DLL_STS_REF_LOCK	(1 << 1)
+#define ESDHC_STROBE_DLL_STS_SLV_LOCK	0x1
+#define ESDHC_STROBE_DLL_CLK_FREQ	100000000
+
+#define ESDHC_STD_TUNING_EN             (1 << 24)
+/* NOTE: the minimum valid tuning start tap for mx6sl is 1 */
+#define ESDHC_TUNING_START_TAP_DEFAULT	0x1
+#define ESDHC_TUNING_START_TAP_MASK	0xff
+#define ESDHC_TUNING_STEP_MASK		0x00070000
+#define ESDHC_TUNING_STEP_SHIFT		16
 
 #define IRQSTAT			0x0002e030
 #define IRQSTAT_DMAE		(0x10000000)
@@ -82,6 +119,9 @@
 #define IRQSTATEN_TC		(0x00000002)
 #define IRQSTATEN_CC		(0x00000001)
 
+#define ESDHCCTL		0x0002e40c
+#define ESDHCCTL_PCS		(0x00080000)
+
 #define PRSSTAT			0x0002e024
 #define PRSSTAT_DAT0		(0x01000000)
 #define PRSSTAT_CLSL		(0x00800000)
@@ -90,7 +130,7 @@
 #define PRSSTAT_CINS		(0x00010000)
 #define PRSSTAT_BREN		(0x00000800)
 #define PRSSTAT_BWEN		(0x00000400)
-#define PRSSTAT_SDSTB		(0x00000008)
+#define PRSSTAT_SDSTB		(0X00000008)
 #define PRSSTAT_DLA		(0x00000004)
 #define PRSSTAT_CICHB		(0x00000002)
 #define PRSSTAT_CIDHB		(0x00000001)
@@ -167,10 +207,11 @@
 #define ESDHC_VENDORSPEC_VSELECT 0x00000002 /* Use 1.8V */
 
 struct fsl_esdhc_cfg {
-	u32	esdhc_base;
+	phys_addr_t esdhc_base;
 	u32	sdhc_clk;
 	u8	max_bus_width;
 	u8	wp_enable;
+	u8	vs18_enable; /*default use 1.8v if this var is not 0*/
 	struct mmc_config cfg;
 };
 

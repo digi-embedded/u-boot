@@ -8,12 +8,34 @@
  */
 
 #include <config.h>
+#include <asm/psci.h>
 
 OUTPUT_FORMAT("elf32-littlearm", "elf32-littlearm", "elf32-littlearm")
 OUTPUT_ARCH(arm)
 ENTRY(_start)
 SECTIONS
 {
+#ifndef CONFIG_CMDLINE
+	/DISCARD/ : { *(.u_boot_list_2_cmd_*) }
+#endif
+#if defined(CONFIG_ARMV7_SECURE_BASE) && defined(CONFIG_ARMV7_NONSEC)
+	/*
+	 * If CONFIG_ARMV7_SECURE_BASE is true, secure code will not
+	 * bundle with u-boot, and code offsets are fixed. Secure zone
+	 * only needs to be copied from the loading address to
+	 * CONFIG_ARMV7_SECURE_BASE, which is the linking and running
+	 * address for secure code.
+	 *
+	 * If CONFIG_ARMV7_SECURE_BASE is undefined, the secure zone will
+	 * be included in u-boot address space, and some absolute address
+	 * were used in secure code. The absolute addresses of the secure
+	 * code also needs to be relocated along with the accompanying u-boot
+	 * code.
+	 *
+	 * So DISCARD is only for CONFIG_ARMV7_SECURE_BASE.
+	 */
+	/DISCARD/ : { *(.rel._secure*) }
+#endif
 	. = 0x00000000;
 
 	. = ALIGN(4);
@@ -25,16 +47,21 @@ SECTIONS
 		*(.text*)
 	}
 
-#if defined(CONFIG_ARMV7_NONSEC) || defined(CONFIG_ARMV7_VIRT) || defined(CONFIG_ARMV7_PSCI)
+#ifdef CONFIG_ARMV7_NONSEC
+
+	/* Align the secure section only if we're going to use it in situ */
+	.__secure_start :
+#ifndef CONFIG_ARMV7_SECURE_BASE
+		ALIGN(CONSTANT(COMMONPAGESIZE))
+#endif
+	{
+		KEEP(*(.__secure_start))
+	}
 
 #ifndef CONFIG_ARMV7_SECURE_BASE
 #define CONFIG_ARMV7_SECURE_BASE
+#define __ARMV7_PSCI_STACK_IN_RAM
 #endif
-
-	.__secure_start : {
-		. = ALIGN(0x1000);
-		*(.__secure_start)
-	}
 
 	.secure_text CONFIG_ARMV7_SECURE_BASE :
 		AT(ADDR(.__secure_start) + SIZEOF(.__secure_start))
@@ -42,12 +69,50 @@ SECTIONS
 		*(._secure.text)
 	}
 
-	. = LOADADDR(.__secure_start) +
-		SIZEOF(.__secure_start) +
-		SIZEOF(.secure_text);
+	.secure_data : AT(LOADADDR(.secure_text) + SIZEOF(.secure_text))
+	{
+		*(._secure.data)
+	}
 
-	__secure_end_lma = .;
-	.__secure_end : AT(__secure_end_lma) {
+#ifdef CONFIG_ARMV7_PSCI
+	.secure_stack ALIGN(ADDR(.secure_data) + SIZEOF(.secure_data),
+			    CONSTANT(COMMONPAGESIZE)) (NOLOAD) :
+#ifdef __ARMV7_PSCI_STACK_IN_RAM
+		AT(ADDR(.secure_stack))
+#else
+		AT(LOADADDR(.secure_data) + SIZEOF(.secure_data))
+#endif
+	{
+		KEEP(*(.__secure_stack_start))
+
+		/* Skip addreses for stack */
+		. = . + CONFIG_ARMV7_PSCI_NR_CPUS * ARM_PSCI_STACK_SIZE;
+
+		/* Align end of stack section to page boundary */
+		. = ALIGN(CONSTANT(COMMONPAGESIZE));
+
+		KEEP(*(.__secure_stack_end))
+
+#ifdef CONFIG_ARMV7_SECURE_MAX_SIZE
+		/*
+		 * We are not checking (__secure_end - __secure_start) here,
+		 * as these are the load addresses, and do not include the
+		 * stack section. Instead, use the end of the stack section
+		 * and the start of the text section.
+		 */
+		ASSERT((. - ADDR(.secure_text)) <= CONFIG_ARMV7_SECURE_MAX_SIZE,
+		       "Error: secure section exceeds secure memory size");
+#endif
+	}
+
+#ifndef __ARMV7_PSCI_STACK_IN_RAM
+	/* Reset VMA but don't allocate space if we have secure SRAM */
+	. = LOADADDR(.secure_stack);
+#endif
+
+#endif
+
+	.__secure_end : AT(ADDR(.__secure_end)) {
 		*(.__secure_end)
 		LONG(0x1d1071c);	/* Must output something to reset LMA */
 	}
@@ -72,10 +137,56 @@ SECTIONS
 
 	. = ALIGN(4);
 
+	.__efi_runtime_start : {
+		*(.__efi_runtime_start)
+	}
+
+	.efi_runtime : {
+		*(efi_runtime_text)
+		*(efi_runtime_data)
+	}
+
+	.__efi_runtime_stop : {
+		*(.__efi_runtime_stop)
+	}
+
+	.efi_runtime_rel_start :
+	{
+		*(.__efi_runtime_rel_start)
+	}
+
+	.efi_runtime_rel : {
+		*(.relefi_runtime_text)
+		*(.relefi_runtime_data)
+	}
+
+	.efi_runtime_rel_stop :
+	{
+		*(.__efi_runtime_rel_stop)
+	}
+
+	. = ALIGN(8);
+
 	.image_copy_end :
 	{
 		*(.__image_copy_end)
 	}
+
+#ifdef CONFIG_IMX_M4_BIND
+	.firmware_image_start : {
+                *(.__firmware_image_start)
+        }
+
+	.firmware_image : {
+		KEEP(*(.firmware_image))
+        }
+
+	.firmware_image_end : {
+                *(.__firmware_image_end)
+        }
+
+	. = ALIGN(4);
+#endif
 
 	.rel_dyn_start :
 	{

@@ -15,12 +15,6 @@
  */
 #define CONFIG_OMAP	/* in a TI OMAP core */
 #define CONFIG_CM_T3517	/* working with CM-T3517 */
-#define CONFIG_OMAP_COMMON
-#define CONFIG_SYS_GENERIC_BOARD
-/* Common ARM Erratas */
-#define CONFIG_ARM_ERRATA_454179
-#define CONFIG_ARM_ERRATA_430973
-#define CONFIG_ARM_ERRATA_621766
 
 #define CONFIG_SYS_TEXT_BASE	0x80008000
 
@@ -29,18 +23,13 @@
  * Although the default iss 64, we still define it
  * to be on the safe side once the default is changed.
  */
-#define CONFIG_SYS_CACHELINE_SIZE	64
 
 #define CONFIG_EMIF4	/* The chip has EMIF4 controller */
 
 #include <asm/arch/cpu.h>		/* get chip and board defs */
 #include <asm/arch/omap.h>
 
-/*
- * Display CPU and Board information
- */
-#define CONFIG_DISPLAY_CPUINFO
-#define CONFIG_DISPLAY_BOARDINFO
+#define CONFIG_MACH_TYPE                MACH_TYPE_CM_T3517
 
 /* Clock Defines */
 #define V_OSCK			26000000	/* Clock output from T2 */
@@ -48,7 +37,6 @@
 
 #define CONFIG_MISC_INIT_R
 
-#define CONFIG_OF_LIBFDT
 /*
  * The early kernel mapping on ARM currently only maps from the base of DRAM
  * to the end of the kernel image.  The kernel is loaded at DRAM base + 0x8000.
@@ -66,7 +54,7 @@
 /*
  * Size of malloc() pool
  */
-#define CONFIG_ENV_SIZE		(16 << 10)	/* 16 KiB */
+#define CONFIG_ENV_SIZE		(128 << 10)	/* 128 KiB */
 #define CONFIG_SYS_MALLOC_LEN	(CONFIG_ENV_SIZE + (128 << 10))
 
 /*
@@ -76,7 +64,6 @@
 /*
  * NS16550 Configuration
  */
-#define CONFIG_SYS_NS16550
 #define CONFIG_SYS_NS16550_SERIAL
 #define CONFIG_SYS_NS16550_REG_SIZE	(-4)
 #define CONFIG_SYS_NS16550_CLK		48000000	/* 48MHz (APLL96/2) */
@@ -87,7 +74,6 @@
 #define CONFIG_CONS_INDEX		3
 #define CONFIG_SYS_NS16550_COM3		OMAP34XX_UART3
 #define CONFIG_SERIAL3			3	/* UART3 */
-#define CONFIG_SYS_CONSOLE_IS_IN_ENV
 
 /* allow to overwrite serial and ethaddr */
 #define CONFIG_ENV_OVERWRITE
@@ -96,11 +82,6 @@
 					115200}
 
 #define CONFIG_OMAP_GPIO
-
-#define CONFIG_GENERIC_MMC
-#define CONFIG_MMC
-#define CONFIG_OMAP_HSMMC
-#define CONFIG_DOS_PARTITION
 
 /* USB */
 #define CONFIG_USB_MUSB_AM35X
@@ -112,19 +93,10 @@
 #define CONFIG_OMAP_EHCI_PHY1_RESET_GPIO 146
 #define CONFIG_OMAP_EHCI_PHY2_RESET_GPIO 147
 #else /* !CONFIG_USB_MUSB_AM35X */
-#define CONFIG_MUSB_HOST
-#define CONFIG_MUSB_PIO_ONLY
+#define CONFIG_USB_MUSB_PIO_ONLY
 #endif /* CONFIG_USB_MUSB_AM35X */
 
-#define CONFIG_USB_STORAGE
-#define CONFIG_CMD_USB
-
 /* commands to include */
-#include <config_cmd_default.h>
-
-#define CONFIG_CMD_CACHE
-#define CONFIG_CMD_EXT2		/* EXT2 Support			*/
-#define CONFIG_CMD_FAT		/* FAT support			*/
 #define CONFIG_CMD_MTDPARTS	/* Enable MTD parts commands */
 #define CONFIG_MTD_DEVICE	/* needed for mtdparts commands */
 #define CONFIG_MTD_PARTITIONS
@@ -133,18 +105,8 @@
 				"1920k(u-boot),256k(u-boot-env),"\
 				"4m(kernel),-(fs)"
 
-#define CONFIG_CMD_I2C		/* I2C serial bus support	*/
-#define CONFIG_CMD_MMC		/* MMC support			*/
 #define CONFIG_CMD_NAND		/* NAND support			*/
-#define CONFIG_CMD_DHCP
-#define CONFIG_CMD_PING
-#define CONFIG_CMD_GPIO
 
-#undef CONFIG_CMD_FLASH		/* flinfo, erase, protect	*/
-#undef CONFIG_CMD_FPGA		/* FPGA configuration Support	*/
-#undef CONFIG_CMD_IMLS		/* List all found images	*/
-
-#define CONFIG_SYS_NO_FLASH
 #define CONFIG_SYS_I2C
 #define CONFIG_SYS_OMAP24_I2C_SPEED	400000
 #define CONFIG_SYS_OMAP24_I2C_SLAVE	1
@@ -157,7 +119,6 @@
 /*
  * Board NAND Info.
  */
-#define CONFIG_SYS_NAND_QUIET_TEST
 #define CONFIG_NAND_OMAP_GPMC
 #define CONFIG_SYS_NAND_ADDR		NAND_BASE	/* physical address */
 							/* to access nand */
@@ -168,13 +129,11 @@
 							/* devices */
 
 /* Environment information */
-#define CONFIG_BOOTDELAY		3
-#define CONFIG_ZERO_BOOTDELAY_CHECK
-
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"loadaddr=0x82000000\0" \
 	"baudrate=115200\0" \
 	"console=ttyO2,115200n8\0" \
+	"netretry=yes\0" \
 	"mpurate=auto\0" \
 	"vram=12M\0" \
 	"dvimode=1024x768MR-16@60\0" \
@@ -210,7 +169,6 @@
 		"nand read ${loadaddr} 2a0000 400000; " \
 		"bootm ${loadaddr}\0" \
 
-#define CONFIG_CMD_BOOTZ
 #define CONFIG_BOOTCOMMAND \
 	"mmc dev ${mmcdev}; if mmc rescan; then " \
 		"if run loadbootscript; then " \
@@ -231,8 +189,6 @@
 #define CONFIG_TIMESTAMP
 #define CONFIG_SYS_AUTOLOAD		"no"
 #define CONFIG_SYS_LONGHELP		/* undef to save memory */
-#define CONFIG_SYS_HUSH_PARSER		/* use "hush" command parser */
-#define CONFIG_SYS_PROMPT		"CM-T3517 # "
 #define CONFIG_SYS_CBSIZE		512	/* Console I/O Buffer Size */
 /* Print Buffer Size */
 #define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + \
@@ -280,6 +236,8 @@
 #define CONFIG_SMC911X
 #define CONFIG_SMC911X_32_BIT
 #define CONFIG_SMC911X_BASE	(0x2C000000 + (16 << 20))
+#define CONFIG_ARP_TIMEOUT		200UL
+#define CONFIG_NET_RETRY_COUNT		5
 #endif /* CONFIG_CMD_NET */
 
 /* additions for new relocation code, must be added to all boards */
@@ -291,18 +249,10 @@
 					 GENERATED_GBL_DATA_SIZE)
 
 /* Status LED */
-#define CONFIG_STATUS_LED		/* Status LED enabled */
-#define CONFIG_BOARD_SPECIFIC_LED
-#define CONFIG_GPIO_LED
 #define GREEN_LED_GPIO			186 /* CM-T3517 Green LED is GPIO186 */
-#define GREEN_LED_DEV			0
-#define STATUS_LED_BIT			GREEN_LED_GPIO
-#define STATUS_LED_STATE		STATUS_LED_ON
-#define STATUS_LED_PERIOD		(CONFIG_SYS_HZ / 2)
-#define STATUS_LED_BOOT			GREEN_LED_DEV
 
 /* GPIO banks */
-#ifdef CONFIG_STATUS_LED
+#ifdef CONFIG_LED_STATUS
 #define CONFIG_OMAP3_GPIO_6	/* GPIO186 is in GPIO bank 6  */
 #endif
 
@@ -312,7 +262,6 @@
 #define CONFIG_VIDEO_OMAP3
 #define LCD_BPP		LCD_COLOR16
 
-#define CONFIG_LCD
 #define CONFIG_SPLASH_SCREEN
 #define CONFIG_SPLASHIMAGE_GUARD
 #define CONFIG_CMD_BMP
@@ -320,5 +269,16 @@
 #define CONFIG_SCF0403_LCD
 
 #define CONFIG_OMAP3_SPI
+
+/* EEPROM */
+#define CONFIG_CMD_EEPROM
+#define CONFIG_ENV_EEPROM_IS_ON_I2C
+#define CONFIG_SYS_I2C_EEPROM_ADDR_LEN		1
+#define CONFIG_SYS_EEPROM_PAGE_WRITE_BITS	4
+#define CONFIG_SYS_EEPROM_PAGE_WRITE_DELAY_MS	5
+#define CONFIG_SYS_EEPROM_SIZE			256
+
+#define CONFIG_CMD_EEPROM_LAYOUT
+#define CONFIG_EEPROM_LAYOUT_HELP_STRING "v1, v2, v3"
 
 #endif /* __CONFIG_H */

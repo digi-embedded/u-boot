@@ -6,18 +6,27 @@
 #
 
 ifndef CONFIG_STANDALONE_LOAD_ADDR
-ifneq ($(CONFIG_OMAP_COMMON),)
+ifneq ($(CONFIG_ARCH_OMAP2),)
 CONFIG_STANDALONE_LOAD_ADDR = 0x80300000
 else
 CONFIG_STANDALONE_LOAD_ADDR = 0xc100000
 endif
 endif
 
+CFLAGS_NON_EFI := -fno-pic -ffixed-r9 -ffunction-sections -fdata-sections
+CFLAGS_EFI := -fpic -fshort-wchar
+
 LDFLAGS_FINAL += --gc-sections
 PLATFORM_RELFLAGS += -ffunction-sections -fdata-sections \
 		     -fno-common -ffixed-r9
 PLATFORM_RELFLAGS += $(call cc-option, -msoft-float) \
       $(call cc-option,-mshort-load-bytes,$(call cc-option,-malignment-traps,))
+
+# LLVM support
+LLVMS_RELFLAGS		:= $(call cc-option,-mllvm,) \
+			$(call cc-option,-target arm-none-eabi,) \
+			$(call cc-option,-arm-use-movt=0,)
+PLATFORM_RELFLAGS	+= $(LLVM_RELFLAGS)
 
 PLATFORM_CPPFLAGS += -D__ARM__
 
@@ -40,7 +49,8 @@ ifeq ($(CONFIG_SYS_THUMB_BUILD),y)
 archprepare: checkthumb
 
 checkthumb:
-	@if test "$(call cc-version)" -lt "0404"; then \
+	@if test "$(call cc-name)" = "gcc" -a \
+			"$(call cc-version)" -lt "0404"; then \
 		echo -n '*** Your GCC does not produce working '; \
 		echo 'binaries in THUMB mode.'; \
 		echo '*** Your board is configured for THUMB mode.'; \
@@ -109,15 +119,27 @@ PLATFORM_CPPFLAGS += $(call cc-option, -mword-relocations)
 PLATFORM_CPPFLAGS += $(call cc-option, -fno-pic)
 endif
 
+PLATFORM_CPPFLAGS += $(call cc-option, -fno-pic)
+
 # limit ourselves to the sections we want in the .bin.
 ifdef CONFIG_ARM64
-OBJCOPYFLAGS += -j .text -j .rodata -j .data -j .u_boot_list -j .rela.dyn
+OBJCOPYFLAGS += -j .text -j .secure_text -j .secure_data -j .rodata -j .data \
+		-j .u_boot_list -j .rela.dyn
 else
-OBJCOPYFLAGS += -j .text -j .secure_text -j .rodata -j .hash -j .data -j .got.plt -j .u_boot_list -j .rel.dyn
+OBJCOPYFLAGS += -j .text -j .secure_text -j .secure_data -j .rodata -j .hash \
+		-j .data -j .got -j .got.plt -j .u_boot_list -j .rel.dyn
 endif
 
 ifdef CONFIG_OF_EMBED
 OBJCOPYFLAGS += -j .dtb.init.rodata
+endif
+
+ifdef CONFIG_EFI_LOADER
+OBJCOPYFLAGS += -j .efi_runtime -j .efi_runtime_rel
+endif
+
+ifdef CONFIG_IMX_M4_BIND
+OBJCOPYFLAGS += -j .firmware_image
 endif
 
 ifneq ($(CONFIG_IMX_CONFIG),)
@@ -138,4 +160,11 @@ endif
 endif
 endif
 endif
+ifneq ($(CONFIG_VF610),)
+ALL-y += u-boot.vyb
 endif
+endif
+
+EFI_LDS := elf_arm_efi.lds
+EFI_CRT0 := crt0_arm_efi.o
+EFI_RELOC := reloc_arm_efi.o

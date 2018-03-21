@@ -23,12 +23,12 @@
 #ifdef CONFIG_BOARD_EARLY_INIT_F
 void gpio_early_init(void)
 {
-	gpio_request(GPIO_PI4, NULL);
-	gpio_direction_output(GPIO_PI4, 1);
+	gpio_request(TEGRA_GPIO(I, 4), NULL);
+	gpio_direction_output(TEGRA_GPIO(I, 4), 1);
 }
 #endif
 
-#ifdef CONFIG_TEGRA_MMC
+#ifdef CONFIG_MMC_SDHCI_TEGRA
 /*
  * Routine: pin_mux_mmc
  * Description: setup the pin muxes/tristate values for the SDMMC(s)

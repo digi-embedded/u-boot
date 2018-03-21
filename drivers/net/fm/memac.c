@@ -12,7 +12,7 @@
 #include <phy.h>
 #include <asm/types.h>
 #include <asm/io.h>
-#include <asm/fsl_memac.h>
+#include <fsl_memac.h>
 
 #include "fm.h"
 
@@ -90,6 +90,7 @@ static void memac_set_interface_mode(struct fsl_enet_mac *mac,
 		if_mode |= (IF_MODE_GMII | IF_MODE_RM);
 		break;
 	case PHY_INTERFACE_MODE_SGMII:
+	case PHY_INTERFACE_MODE_SGMII_2500:
 	case PHY_INTERFACE_MODE_QSGMII:
 		if_mode &= ~IF_MODE_MASK;
 		if_mode |= (IF_MODE_GMII);

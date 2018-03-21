@@ -133,7 +133,7 @@ s3cmmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 
 	if (!timeout) {
 		puts("S3C SDI: Command timed out!\n");
-		ret = TIMEOUT;
+		ret = -ETIMEDOUT;
 		goto error;
 	}
 
@@ -196,7 +196,7 @@ s3cmmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 
 	if (!timeout) {
 		puts("S3C SDI: Command timed out!\n");
-		ret = TIMEOUT;
+		ret = -ETIMEDOUT;
 		goto error;
 	}
 
@@ -207,7 +207,7 @@ error:
 	return ret;
 }
 
-static void s3cmmc_set_ios(struct mmc *mmc)
+static int s3cmmc_set_ios(struct mmc *mmc)
 {
 	struct s3c24x0_sdi *sdi_regs = s3c24x0_get_base_sdi();
 	uint32_t divider = 0;
@@ -215,7 +215,7 @@ static void s3cmmc_set_ios(struct mmc *mmc)
 	wide_bus = (mmc->bus_width == 4);
 
 	if (!mmc->clock)
-		return;
+		return 0;
 
 	divider = DIV_ROUND_UP(get_PCLK(), mmc->clock);
 	if (divider)
@@ -223,6 +223,8 @@ static void s3cmmc_set_ios(struct mmc *mmc)
 
 	writel(divider, &sdi_regs->sdipre);
 	mdelay(125);
+
+	return 0;
 }
 
 static int s3cmmc_init(struct mmc *mmc)
@@ -298,7 +300,7 @@ int s3cmmc_initialize(bd_t *bis, int (*getcd)(struct mmc *),
 	cfg->name = "S3C MMC";
 	cfg->ops = &s3cmmc_ops;
 	cfg->voltages = MMC_VDD_32_33 | MMC_VDD_33_34;
-	cfg->host_caps = MMC_MODE_4BIT | MMC_MODE_HC | MMC_MODE_HS;
+	cfg->host_caps = MMC_MODE_4BIT | MMC_MODE_HS;
 	cfg->f_min = 400000;
 	cfg->f_max = get_PCLK() / 2;
 	cfg->b_max = 0x80;

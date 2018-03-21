@@ -16,7 +16,7 @@
 #include <common.h>
 #include <dm.h>
 #include <ns16550.h>
-#ifdef CONFIG_STATUS_LED
+#ifdef CONFIG_LED_STATUS
 #include <status_led.h>
 #endif
 #include <twl4030.h>
@@ -29,7 +29,7 @@
 #include <asm/gpio.h>
 #include <asm/mach-types.h>
 #include <asm/omap_musb.h>
-#include <asm/errno.h>
+#include <linux/errno.h>
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
 #include <linux/usb/musb.h>
@@ -73,13 +73,14 @@ static struct {
 } expansion_config;
 
 static const struct ns16550_platdata beagle_serial = {
-	OMAP34XX_UART3,
-	2,
-	V_NS16550_CLK
+	.base = OMAP34XX_UART3,
+	.reg_shift = 2,
+	.clock = V_NS16550_CLK,
+	.fcr = UART_FCR_DEFVAL,
 };
 
 U_BOOT_DEVICE(beagle_uart) = {
-	"serial_omap",
+	"ns16550_serial",
 	&beagle_serial
 };
 
@@ -95,8 +96,8 @@ int board_init(void)
 	/* boot param addr */
 	gd->bd->bi_boot_params = (OMAP34XX_SDRC_CS0 + 0x100);
 
-#if defined(CONFIG_STATUS_LED) && defined(STATUS_LED_BOOT)
-	status_led_set (STATUS_LED_BOOT, STATUS_LED_ON);
+#if defined(CONFIG_LED_STATUS) && defined(CONFIG_LED_STATUS_BOOT_ENABLE)
+	status_led_set(CONFIG_LED_STATUS_BOOT, CONFIG_LED_STATUS_ON);
 #endif
 
 	return 0;
@@ -306,12 +307,12 @@ static struct omap_musb_board_data musb_board_data = {
 };
 
 static struct musb_hdrc_platform_data musb_plat = {
-#if defined(CONFIG_MUSB_HOST)
+#if defined(CONFIG_USB_MUSB_HOST)
 	.mode           = MUSB_HOST,
-#elif defined(CONFIG_MUSB_GADGET)
+#elif defined(CONFIG_USB_MUSB_GADGET)
 	.mode		= MUSB_PERIPHERAL,
 #else
-#error "Please define either CONFIG_MUSB_HOST or CONFIG_MUSB_GADGET"
+#error "Please define either CONFIG_USB_MUSB_HOST or CONFIG_USB_MUSB_GADGET"
 #endif
 	.config         = &musb_config,
 	.power          = 100,
@@ -494,7 +495,7 @@ int misc_init_r(void)
 	writel(~(GPIO31 | GPIO30 | GPIO29 | GPIO28 | GPIO22 | GPIO21 |
 		GPIO15 | GPIO14 | GPIO13 | GPIO12), &gpio5_base->oe);
 
-	dieid_num_r();
+	omap_die_id_display();
 
 #ifdef CONFIG_VIDEO_OMAP3
 	beagle_dvi_pup();
@@ -506,12 +507,8 @@ int misc_init_r(void)
 	musb_register(&musb_plat, &musb_board_data, (void *)MUSB_BASE);
 #endif
 
-	if (generate_fake_mac) {
-		u32 id[4];
-
-		get_dieid(id);
-		usb_fake_mac_from_die_id(id);
-	}
+	if (generate_fake_mac)
+		omap_die_id_usbethaddr();
 
 	return 0;
 }
@@ -568,7 +565,7 @@ int ehci_hcd_stop(int index)
 
 #endif /* CONFIG_USB_EHCI */
 
-#if defined(CONFIG_USB_ETHER) && defined(CONFIG_MUSB_GADGET)
+#if defined(CONFIG_USB_ETHER) && defined(CONFIG_USB_MUSB_GADGET)
 int board_eth_init(bd_t *bis)
 {
 	return usb_eth_initialize(bis);

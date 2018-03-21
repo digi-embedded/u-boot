@@ -1,104 +1,163 @@
 /*
  * Copyright (C) 2011-2015 Panasonic Corporation
- *   Author: Masahiro Yamada <yamada.m@jp.panasonic.com>
+ * Copyright (C) 2016      Socionext Inc.
+ *   Author: Masahiro Yamada <yamada.masahiro@socionext.com>
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
+#include <linux/errno.h>
+#include <linux/io.h>
 #include <linux/sizes.h>
-#include <asm/io.h>
-#include <mach/sg-regs.h>
 
-static inline u32 sg_memconf_val_ch0(unsigned long size, int num)
+#include "sg-regs.h"
+#include "init.h"
+
+static int __uniphier_memconf_init(const struct uniphier_board_data *bd,
+				   int have_ch2, int have_ch2_disable_bit)
 {
-	int size_mb = size / num;
-	u32 ret;
+	u32 val = 0;
+	unsigned long size_per_word;
 
-	switch (size_mb) {
+	/* set up ch0 */
+	switch (bd->dram_ch[0].width) {
+	case 16:
+		val |= SG_MEMCONF_CH0_NUM_1;
+		size_per_word = bd->dram_ch[0].size;
+		break;
+	case 32:
+		val |= SG_MEMCONF_CH0_NUM_2;
+		size_per_word = bd->dram_ch[0].size >> 1;
+		break;
+	default:
+		pr_err("error: unsupported DRAM ch0 width\n");
+		return -EINVAL;
+	}
+
+	switch (size_per_word) {
 	case SZ_64M:
-		ret = SG_MEMCONF_CH0_SZ_64M;
+		val |= SG_MEMCONF_CH0_SZ_64M;
 		break;
 	case SZ_128M:
-		ret = SG_MEMCONF_CH0_SZ_128M;
+		val |= SG_MEMCONF_CH0_SZ_128M;
 		break;
 	case SZ_256M:
-		ret = SG_MEMCONF_CH0_SZ_256M;
+		val |= SG_MEMCONF_CH0_SZ_256M;
 		break;
 	case SZ_512M:
-		ret = SG_MEMCONF_CH0_SZ_512M;
+		val |= SG_MEMCONF_CH0_SZ_512M;
 		break;
 	case SZ_1G:
-		ret = SG_MEMCONF_CH0_SZ_1G;
+		val |= SG_MEMCONF_CH0_SZ_1G;
 		break;
 	default:
-		BUG();
-		break;
+		pr_err("error: unsupported DRAM ch0 size\n");
+		return -EINVAL;
 	}
 
-	switch (num) {
-	case 1:
-		ret |= SG_MEMCONF_CH0_NUM_1;
+	/* set up ch1 */
+	switch (bd->dram_ch[1].width) {
+	case 16:
+		val |= SG_MEMCONF_CH1_NUM_1;
+		size_per_word = bd->dram_ch[1].size;
 		break;
-	case 2:
-		ret |= SG_MEMCONF_CH0_NUM_2;
+	case 32:
+		val |= SG_MEMCONF_CH1_NUM_2;
+		size_per_word = bd->dram_ch[1].size >> 1;
 		break;
 	default:
-		BUG();
-		break;
+		pr_err("error: unsupported DRAM ch1 width\n");
+		return -EINVAL;
 	}
-	return ret;
-}
 
-static inline u32 sg_memconf_val_ch1(unsigned long size, int num)
-{
-	int size_mb = size / num;
-	u32 ret;
-
-	switch (size_mb) {
+	switch (size_per_word) {
 	case SZ_64M:
-		ret = SG_MEMCONF_CH1_SZ_64M;
+		val |= SG_MEMCONF_CH1_SZ_64M;
 		break;
 	case SZ_128M:
-		ret = SG_MEMCONF_CH1_SZ_128M;
+		val |= SG_MEMCONF_CH1_SZ_128M;
 		break;
 	case SZ_256M:
-		ret = SG_MEMCONF_CH1_SZ_256M;
+		val |= SG_MEMCONF_CH1_SZ_256M;
 		break;
 	case SZ_512M:
-		ret = SG_MEMCONF_CH1_SZ_512M;
+		val |= SG_MEMCONF_CH1_SZ_512M;
 		break;
 	case SZ_1G:
-		ret = SG_MEMCONF_CH1_SZ_1G;
+		val |= SG_MEMCONF_CH1_SZ_1G;
 		break;
 	default:
-		BUG();
-		break;
+		pr_err("error: unsupported DRAM ch1 size\n");
+		return -EINVAL;
 	}
 
-	switch (num) {
-	case 1:
-		ret |= SG_MEMCONF_CH1_NUM_1;
+	/* is sparse mem? */
+	if (bd->flags & UNIPHIER_BD_DRAM_SPARSE)
+		val |= SG_MEMCONF_SPARSEMEM;
+
+	if (!have_ch2)
+		goto out;
+
+	if (!bd->dram_ch[2].size) {
+		if (have_ch2_disable_bit)
+			val |= SG_MEMCONF_CH2_DISABLE;
+		goto out;
+	}
+
+	/* set up ch2 */
+	switch (bd->dram_ch[2].width) {
+	case 16:
+		val |= SG_MEMCONF_CH2_NUM_1;
+		size_per_word = bd->dram_ch[2].size;
 		break;
-	case 2:
-		ret |= SG_MEMCONF_CH1_NUM_2;
+	case 32:
+		val |= SG_MEMCONF_CH2_NUM_2;
+		size_per_word = bd->dram_ch[2].size >> 1;
 		break;
 	default:
-		BUG();
-		break;
+		pr_err("error: unsupported DRAM ch2 width\n");
+		return -EINVAL;
 	}
-	return ret;
+
+	switch (size_per_word) {
+	case SZ_64M:
+		val |= SG_MEMCONF_CH2_SZ_64M;
+		break;
+	case SZ_128M:
+		val |= SG_MEMCONF_CH2_SZ_128M;
+		break;
+	case SZ_256M:
+		val |= SG_MEMCONF_CH2_SZ_256M;
+		break;
+	case SZ_512M:
+		val |= SG_MEMCONF_CH2_SZ_512M;
+		break;
+	case SZ_1G:
+		val |= SG_MEMCONF_CH2_SZ_1G;
+		break;
+	default:
+		pr_err("error: unsupported DRAM ch2 size\n");
+		return -EINVAL;
+	}
+
+out:
+	writel(val, SG_MEMCONF);
+
+	return 0;
 }
 
-void memconf_init(void)
+int uniphier_memconf_2ch_init(const struct uniphier_board_data *bd)
 {
-	u32 tmp;
+	return __uniphier_memconf_init(bd, 0, 0);
+}
 
-	/* Set DDR size */
-	tmp = sg_memconf_val_ch0(CONFIG_SDRAM0_SIZE, CONFIG_DDR_NUM_CH0);
-	tmp |= sg_memconf_val_ch1(CONFIG_SDRAM1_SIZE, CONFIG_DDR_NUM_CH1);
-#if CONFIG_SDRAM0_BASE + CONFIG_SDRAM0_SIZE < CONFIG_SDRAM1_BASE
-	tmp |= SG_MEMCONF_SPARSEMEM;
-#endif
-	writel(tmp, SG_MEMCONF);
+int uniphier_memconf_3ch_no_disbit_init(const struct uniphier_board_data *bd)
+{
+	return __uniphier_memconf_init(bd, 1, 0);
+}
+
+int uniphier_memconf_3ch_init(const struct uniphier_board_data *bd)
+{
+	return __uniphier_memconf_init(bd, 1, 1);
 }

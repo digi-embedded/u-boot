@@ -10,9 +10,6 @@
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
-#define CONFIG_SYS_GENERIC_BOARD
-#define CONFIG_DISPLAY_BOARDINFO
-
 #ifndef CONFIG_SYS_TEXT_BASE
 #define CONFIG_SYS_TEXT_BASE	0xeff40000
 #endif
@@ -26,21 +23,15 @@
 #endif
 
 /* High Level Configuration Options */
-#define CONFIG_BOOKE		/* BOOKE */
-#define CONFIG_E500		/* BOOKE e500 family */
-#define CONFIG_P1023
 #define CONFIG_MP		/* support multiple processors */
 
-#define CONFIG_FSL_ELBC		/* Has Enhanced localbus controller */
-#define CONFIG_PCI		/* Enable PCI/PCIE */
 #define CONFIG_PCI_INDIRECT_BRIDGE     /* indirect PCI bridge support */
-#define CONFIG_PCIE1		/* PCIE controler 1 (slot 1) */
-#define CONFIG_PCIE2		/* PCIE controler 2 (slot 2) */
-#define CONFIG_PCIE3		/* PCIE controler 3 (slot 3) */
+#define CONFIG_PCIE1		/* PCIE controller 1 (slot 1) */
+#define CONFIG_PCIE2		/* PCIE controller 2 (slot 2) */
+#define CONFIG_PCIE3		/* PCIE controller 3 (slot 3) */
 #define CONFIG_FSL_PCI_INIT	/* Use common FSL init code */
 #define CONFIG_FSL_PCIE_RESET	/* need PCIe reset errata */
 #define CONFIG_SYS_PCI_64BIT	/* enable 64-bit PCI resources */
-#define CONFIG_FSL_LAW		/* Use common FSL init code */
 
 #ifndef __ASSEMBLY__
 extern unsigned long get_clock_freq(void);
@@ -76,7 +67,6 @@ extern unsigned long get_clock_freq(void);
 #define CONFIG_CHIP_SELECTS_PER_CTRL	1
 
 #define CONFIG_DDR_SPD
-#define CONFIG_SYS_FSL_DDR3
 #define CONFIG_FSL_DDR_INTERACTIVE
 #define CONFIG_SYS_SDRAM_SIZE		512u	/* DDR is 512M */
 #define CONFIG_SYS_SPD_BUS_NUM          0
@@ -118,7 +108,6 @@ extern unsigned long get_clock_freq(void);
 #define CONFIG_SYS_FLASH_ERASE_TOUT	60000	/* Flash Erase Timeout (ms) */
 #define CONFIG_SYS_FLASH_WRITE_TOUT	500	/* Flash Write Timeout (ms) */
 
-#define CONFIG_BOARD_EARLY_INIT_F	/* call board_early_init_f function */
 #define CONFIG_BOARD_EARLY_INIT_R	/* call board_early_init_r function */
 
 #define CONFIG_SYS_INIT_RAM_LOCK
@@ -163,7 +152,6 @@ extern unsigned long get_clock_freq(void);
 /* Serial Port */
 #define CONFIG_CONS_INDEX		1
 #undef	CONFIG_SERIAL_SOFTWARE_FIFO
-#define CONFIG_SYS_NS16550
 #define CONFIG_SYS_NS16550_SERIAL
 #define CONFIG_SYS_NS16550_REG_SIZE	1
 #define CONFIG_SYS_NS16550_CLK		get_bus_freq(0)
@@ -173,20 +161,6 @@ extern unsigned long get_clock_freq(void);
 
 #define CONFIG_SYS_NS16550_COM1	(CONFIG_SYS_CCSRBAR + 0x4500)
 #define CONFIG_SYS_NS16550_COM2	(CONFIG_SYS_CCSRBAR + 0x4600)
-
-/* Use the HUSH parser */
-#define CONFIG_SYS_HUSH_PARSER
-
-/*
- * Pass open firmware flat tree
- */
-#define CONFIG_OF_LIBFDT
-#define CONFIG_OF_BOARD_SETUP
-#define CONFIG_OF_STDOUT_VIA_ALIAS
-
-/* new uImage format support */
-#define CONFIG_FIT
-#define CONFIG_FIT_VERBOSE	/* enable fit_format_{error,warning}() */
 
 /* I2C */
 #define CONFIG_SYS_I2C
@@ -208,8 +182,6 @@ extern unsigned long get_clock_freq(void);
 #define CONFIG_SYS_I2C_EEPROM_ADDR		0x50
 #define CONFIG_SYS_I2C_EEPROM_ADDR_LEN		1
 #define CONFIG_SYS_EEPROM_BUS_NUM		0
-
-#define CONFIG_CMD_I2C
 
 /*
  * General PCI
@@ -250,8 +222,6 @@ extern unsigned long get_clock_freq(void);
 #define CONFIG_SYS_PCIE1_IO_SIZE	0x00010000	/* 64k */
 
 #if defined(CONFIG_PCI)
-#define CONFIG_E1000		/* Defind e1000 pci Ethernet card */
-#define CONFIG_PCI_PNP		/* do pci plug-and-play */
 #define CONFIG_PCI_SCAN_SHOW	/* show pci devices on startup */
 #endif	/* CONFIG_PCI */
 
@@ -271,17 +241,11 @@ extern unsigned long get_clock_freq(void);
 /*
  * Command line configuration.
  */
-#include <config_cmd_default.h>
-
 #define CONFIG_CMD_IRQ
-#define CONFIG_CMD_PING
-#define CONFIG_CMD_MII
-#define CONFIG_CMD_SETEXPR
 #define CONFIG_CMD_REGINFO
 
 #if defined(CONFIG_PCI)
 #define CONFIG_CMD_PCI
-#define CONFIG_CMD_NET
 #endif
 
 /*
@@ -292,14 +256,8 @@ extern unsigned long get_clock_freq(void);
 #define CONFIG_USB_EHCI
 
 #ifdef CONFIG_USB_EHCI
-#define CONFIG_CMD_USB
 #define CONFIG_EHCI_HCD_INIT_AFTER_RESET
 #define CONFIG_USB_EHCI_FSL
-#define CONFIG_USB_STORAGE
-#define CONFIG_CMD_FAT
-#define CONFIG_CMD_EXT2
-#define CONFIG_CMD_FAT
-#define CONFIG_DOS_PARTITION
 #endif
 #endif
 
@@ -337,7 +295,6 @@ extern unsigned long get_clock_freq(void);
 /* default location for tftp and bootm */
 #define CONFIG_LOADADDR		1000000
 
-#define CONFIG_BOOTDELAY -1	/* -1 disables auto-boot */
 
 #define CONFIG_BAUDRATE	115200
 
@@ -405,7 +362,7 @@ extern unsigned long get_clock_freq(void);
 	"consoledev=ttyS0\0"					\
 	"ramdiskaddr=2000000\0"					\
 	"ramdiskfile=rootfs.ext2.gz.uboot\0"			\
-	"fdtaddr=c00000\0"					\
+	"fdtaddr=1e00000\0"					\
 	"fdtfile=p1023rdb.dtb\0"				\
 	"othbootargs=ramdisk_size=600000\0"			\
 	"bdev=sda1\0"						\

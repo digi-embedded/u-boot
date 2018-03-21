@@ -14,7 +14,6 @@
  *----------------------------------------------------------------------*/
 #define CONFIG_440			1	/* ... PPC460 family	*/
 #define CONFIG_460SX			1	/* ... PPC460 family	*/
-#define CONFIG_BOARD_EARLY_INIT_F	1	/* Call board_pre_init	*/
 
 #define	CONFIG_SYS_TEXT_BASE	0xfffb0000
 
@@ -132,7 +131,6 @@
 
 #define CONFIG_BOOTCOMMAND	"run flash_self"
 
-#define CONFIG_BOOTDELAY	5	/* autoboot after 5 seconds	*/
 
 #define	CONFIG_IBM_EMAC4_V4	1
 #define CONFIG_PHY_RESET	1	/* reset phy upon startup	*/

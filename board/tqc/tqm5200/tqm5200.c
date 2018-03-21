@@ -12,11 +12,13 @@
  */
 
 #include <common.h>
+#include <console.h>
 #include <mpc5xxx.h>
 #include <pci.h>
 #include <asm/processor.h>
 #include <libfdt.h>
 #include <netdev.h>
+#include <video.h>
 
 #ifdef CONFIG_VIDEO_SM501
 #include <sm501.h>

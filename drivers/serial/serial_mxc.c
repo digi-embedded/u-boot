@@ -13,6 +13,7 @@
 #include <dm/platform_data/serial_mxc.h>
 #include <serial.h>
 #include <linux/compiler.h>
+#include <asm/imx-common/sys_proto.h>
 
 /* UART Control Register Bit Fields.*/
 #define  URXD_CHARRDY    (1<<15)
@@ -75,6 +76,8 @@
 #define  UCR4_DREN	 (1<<0)  /* Recv data ready interrupt enable */
 #define  UFCR_RXTL_SHF   0       /* Receiver trigger level shift */
 #define  UFCR_RFDIV      (7<<7)  /* Reference freq divider mask */
+#define  UFCR_RFDIV_SHF  7      /* Reference freq divider shift */
+#define  UFCR_DCEDTE	 (1<<6)  /* DTE mode select */
 #define  UFCR_TXTL_SHF   10      /* Transmitter trigger level shift */
 #define  USR1_PARITYERR  (1<<15) /* Parity error interrupt flag */
 #define  USR1_RTSS	 (1<<14) /* RTS pin status */
@@ -106,6 +109,8 @@
 #define  UTS_RXFULL	 (1<<3)	 /* RxFIFO full */
 #define  UTS_SOFTRST	 (1<<0)	 /* Software reset */
 
+DECLARE_GLOBAL_DATA_PTR;
+
 #ifndef CONFIG_DM_SERIAL
 
 #ifndef CONFIG_MXC_UART_BASE
@@ -133,7 +138,9 @@
 #define UBRC  0xac /* Baud Rate Count Register */
 #define UTS   0xb4 /* UART Test Register (mx31) */
 
-DECLARE_GLOBAL_DATA_PTR;
+#define TXTL  2 /* reset default */
+#define RXTL  1 /* reset default */
+#define RFDIV 4 /* divide input clock by 2 */
 
 static void mxc_serial_setbrg(void)
 {
@@ -142,7 +149,9 @@ static void mxc_serial_setbrg(void)
 	if (!gd->baudrate)
 		gd->baudrate = CONFIG_BAUDRATE;
 
-	__REG(UART_PHYS + UFCR) = 4 << 7; /* divide input clock by 2 */
+	__REG(UART_PHYS + UFCR) = (RFDIV << UFCR_RFDIV_SHF)
+		| (TXTL << UFCR_TXTL_SHF)
+		| (RXTL << UFCR_RXTL_SHF);
 	__REG(UART_PHYS + UBIR) = 0xf;
 	__REG(UART_PHYS + UBMR) = clk / (2 * gd->baudrate);
 
@@ -157,15 +166,15 @@ static int mxc_serial_getc(void)
 
 static void mxc_serial_putc(const char c)
 {
+	/* If \n, also do \r */
+	if (c == '\n')
+		serial_putc('\r');
+
 	__REG(UART_PHYS + UTXD) = c;
 
 	/* wait for transmitter to be ready */
 	while (!(__REG(UART_PHYS + UTS) & UTS_TXEMPTY))
 		WATCHDOG_RESET();
-
-	/* If \n, also do \r */
-	if (c == '\n')
-		serial_putc ('\r');
 }
 
 /*
@@ -262,8 +271,13 @@ int mxc_serial_setbrg(struct udevice *dev, int baudrate)
 	struct mxc_serial_platdata *plat = dev->platdata;
 	struct mxc_uart *const uart = plat->reg;
 	u32 clk = imx_get_uartclk();
+	u32 tmp;
 
-	writel(4 << 7, &uart->fcr); /* divide input clock by 2 */
+	tmp = 4 << UFCR_RFDIV_SHF;
+	if (plat->use_dte)
+		tmp |= UFCR_DCEDTE;
+	writel(tmp, &uart->fcr);
+
 	writel(0xf, &uart->bir);
 	writel(clk / (2 * baudrate), &uart->bmr);
 
@@ -334,9 +348,37 @@ static const struct dm_serial_ops mxc_serial_ops = {
 	.setbrg = mxc_serial_setbrg,
 };
 
+#if CONFIG_IS_ENABLED(OF_CONTROL)
+static int mxc_serial_ofdata_to_platdata(struct udevice *dev)
+{
+	struct mxc_serial_platdata *plat = dev->platdata;
+	fdt_addr_t addr;
+
+	addr = dev_get_addr(dev);
+	if (addr == FDT_ADDR_T_NONE)
+		return -EINVAL;
+
+	plat->reg = (struct mxc_uart *)addr;
+
+	plat->use_dte = fdtdec_get_bool(gd->fdt_blob, dev_of_offset(dev),
+					"fsl,dte-mode");
+	return 0;
+}
+
+static const struct udevice_id mxc_serial_ids[] = {
+	{ .compatible = "fsl,imx7d-uart" },
+	{ }
+};
+#endif
+
 U_BOOT_DRIVER(serial_mxc) = {
 	.name	= "serial_mxc",
 	.id	= UCLASS_SERIAL,
+#if CONFIG_IS_ENABLED(OF_CONTROL)
+	.of_match = mxc_serial_ids,
+	.ofdata_to_platdata = mxc_serial_ofdata_to_platdata,
+	.platdata_auto_alloc_size = sizeof(struct mxc_serial_platdata),
+#endif
 	.probe = mxc_serial_probe,
 	.ops	= &mxc_serial_ops,
 	.flags = DM_FLAG_PRE_RELOC,

@@ -37,7 +37,7 @@ _monitor_vectors:
 
 /*
  * secure monitor handler
- * U-boot calls this "software interrupt" in start.S
+ * U-Boot calls this "software interrupt" in start.S
  * This is executed on a "smc" instruction, we use a "smc #0" to switch
  * to non-secure state.
  * r0, r1, r2: passed to the callee
@@ -49,8 +49,27 @@ _secure_monitor:
 	mcr	p15, 0, r5, c12, c0, 1
 	isb
 
-	@ Obtain a secure stack, and configure the PSCI backend
+	@ Obtain a secure stack
+	bl	psci_stack_setup
+
+	@ Configure the PSCI backend
+	push	{r0, r1, r2, ip}
 	bl	psci_arch_init
+	pop	{r0, r1, r2, ip}
+#endif
+
+#ifdef CONFIG_ARM_ERRATA_773022
+	mrc	p15, 0, r5, c1, c0, 1
+	orr	r5, r5, #(1 << 1)
+	mcr	p15, 0, r5, c1, c0, 1
+	isb
+#endif
+
+#ifdef CONFIG_ARM_ERRATA_774769
+	mrc	p15, 0, r5, c1, c0, 1
+	orr	r5, r5, #(1 << 25)
+	mcr	p15, 0, r5, c1, c0, 1
+	isb
 #endif
 
 	mrc	p15, 0, r5, c1, c1, 0		@ read SCR
@@ -176,7 +195,6 @@ ENTRY(_nonsec_init)
 	ldreq	r1, =CONFIG_TIMER_CLK_FREQ
 	mcreq	p15, 0, r1, c14, c0, 0		@ write CNTFRQ
 #endif
-
 	adr	r1, _monitor_vectors
 	mcr	p15, 0, r1, c12, c0, 1		@ set MVBAR to secure vectors
 	isb

@@ -6,10 +6,11 @@
  */
 
 #include <common.h>
+#include <console.h>
 #include <serial.h>
 #include <malloc.h>
 
-#ifdef CONFIG_CONSOLE_MUX
+#if CONFIG_IS_ENABLED(CONSOLE_MUX)
 void iomux_printdevs(const int console)
 {
 	int i;
@@ -144,4 +145,4 @@ int iomux_doenv(const int console, const char *arg)
 	free(cons_set);
 	return 0;
 }
-#endif /* CONFIG_CONSOLE_MUX */
+#endif /* CONSOLE_MUX */

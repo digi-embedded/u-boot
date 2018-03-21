@@ -14,18 +14,12 @@
 #ifndef __CONFIG_TI_OMAP3_COMMON_H__
 #define __CONFIG_TI_OMAP3_COMMON_H__
 
+/*
+ * High Level Configuration Options
+ */
 
 #include <asm/arch/cpu.h>
 #include <asm/arch/omap.h>
-
-#ifndef CONFIG_SPL_BUILD
-# define CONFIG_OMAP_SERIAL
-#endif
-
-/* Common ARM Erratas */
-#define CONFIG_ARM_ERRATA_454179
-#define CONFIG_ARM_ERRATA_430973
-#define CONFIG_ARM_ERRATA_621766
 
 /* The chip has SDRC controller */
 #define CONFIG_SDRC
@@ -36,11 +30,10 @@
 
 /* NS16550 Configuration */
 #define V_NS16550_CLK			48000000	/* 48MHz (APLL96/2) */
-#define CONFIG_SYS_NS16550
+#define CONFIG_SYS_NS16550_CLK		V_NS16550_CLK
 #ifdef CONFIG_SPL_BUILD
 # define CONFIG_SYS_NS16550_SERIAL
 # define CONFIG_SYS_NS16550_REG_SIZE	(-4)
-# define CONFIG_SYS_NS16550_CLK		V_NS16550_CLK
 #endif
 #define CONFIG_SYS_BAUDRATE_TABLE	{4800, 9600, 19200, 38400, 57600, \
 					115200}
@@ -66,24 +59,20 @@
 #define CONFIG_SYS_MONITOR_LEN		(256 << 10)
 
 /* TWL4030 */
-#define CONFIG_TWL4030_POWER		1
+#define CONFIG_TWL4030_POWER
 
 /* SPL */
 #define CONFIG_SPL_TEXT_BASE		0x40200800
-#define CONFIG_SPL_MAX_SIZE		(54 * 1024)
-#define CONFIG_SPL_LDSCRIPT		"$(CPUDIR)/omap-common/u-boot-spl.lds"
-#define CONFIG_SPL_POWER_SUPPORT
+#define CONFIG_SPL_LDSCRIPT		"arch/arm/mach-omap2/u-boot-spl.lds"
 #define CONFIG_SYS_SPL_ARGS_ADDR	(CONFIG_SYS_SDRAM_BASE + \
 					 (64 << 20))
 
-
 #ifdef CONFIG_NAND
-#define CONFIG_SPL_NAND_SUPPORT
 #define CONFIG_SPL_NAND_SIMPLE
 #define CONFIG_SYS_NAND_BASE		0x30000000
 #endif
 
 /* Now bring in the rest of the common code. */
-#include <configs/ti_armv7_common.h>
+#include <configs/ti_armv7_omap.h>
 
 #endif	/* __CONFIG_TI_OMAP3_COMMON_H__ */

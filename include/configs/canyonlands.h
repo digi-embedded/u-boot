@@ -47,7 +47,6 @@
 
 #define CONFIG_SYS_CLK_FREQ	66666667	/* external freq to pll	*/
 
-#define CONFIG_BOARD_EARLY_INIT_F		/* Call board_early_init_f */
 #define CONFIG_BOARD_EARLY_INIT_R		/* Call board_early_init_r */
 #define CONFIG_MISC_INIT_R			/* Call misc_init_r */
 #define CONFIG_BOARD_TYPES			/* support board types */
@@ -248,7 +247,6 @@
  *----------------------------------------------------------------------*/
 #define CONFIG_SYS_I2C_PPC4XX_SPEED_0		400000
 
-#define CONFIG_SYS_I2C_MULTI_EEPROMS
 #define CONFIG_SYS_I2C_EEPROM_ADDR		(0xa8>>1)
 #define CONFIG_SYS_I2C_EEPROM_ADDR_LEN		1
 #define CONFIG_SYS_EEPROM_PAGE_WRITE_BITS	3
@@ -334,7 +332,6 @@
 /* Only Canyonlands (460EX) has USB */
 #ifdef CONFIG_460EX
 #define CONFIG_USB_OHCI_NEW
-#define CONFIG_USB_STORAGE
 #undef CONFIG_SYS_OHCI_BE_CONTROLLER		/* 460EX has little endian descriptors	*/
 #define CONFIG_SYS_OHCI_SWAP_REG_ACCESS	/* 460EX has little endian register	*/
 #define CONFIG_SYS_OHCI_USE_NPS		/* force NoPowerSwitching mode		*/
@@ -383,37 +380,27 @@
 #elif defined(CONFIG_CANYONLANDS)
 #define CONFIG_CMD_DATE
 #define CONFIG_CMD_DTT
-#define CONFIG_CMD_EXT2
-#define CONFIG_CMD_FAT
 #define CONFIG_CMD_NAND
 #define CONFIG_CMD_PCI
 #define CONFIG_CMD_SATA
 #define CONFIG_CMD_SDRAM
-#define CONFIG_CMD_SNTP
-#define CONFIG_CMD_USB
 #elif defined(CONFIG_GLACIER)
 #define CONFIG_CMD_DATE
 #define CONFIG_CMD_DTT
 #define CONFIG_CMD_NAND
 #define CONFIG_CMD_PCI
 #define CONFIG_CMD_SDRAM
-#define CONFIG_CMD_SNTP
 #else
 #error "board type not defined"
 #endif
 
 /* Partitions */
-#define CONFIG_MAC_PARTITION
-#define CONFIG_DOS_PARTITION
-#define CONFIG_ISO_PARTITION
 
 /*-----------------------------------------------------------------------
  * PCI stuff
  *----------------------------------------------------------------------*/
 /* General PCI */
-#define CONFIG_PCI			/* include pci support	        */
 #define CONFIG_PCI_INDIRECT_BRIDGE	/* indirect PCI bridge support */
-#define CONFIG_PCI_PNP			/* do pci plug-and-play   */
 #define CONFIG_PCI_SCAN_SHOW		/* show pci devices on startup  */
 #define CONFIG_PCI_CONFIG_HOST_BRIDGE
 

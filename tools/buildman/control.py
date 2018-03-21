@@ -48,9 +48,9 @@ def ShowActions(series, why_selected, boards_selected, builder, options):
     Args:
         series: Series object
         why_selected: Dictionary where each key is a buildman argument
-                provided by the user, and the value is the boards brought
-                in by that argument. For example, 'arm' might bring in
-                400 boards, so in this case the key would be 'arm' and
+                provided by the user, and the value is the list of boards
+                brought in by that argument. For example, 'arm' might bring
+                in 400 boards, so in this case the key would be 'arm' and
                 the value would be a list of board names.
         boards_selected: Dict of selected boards, key is target name,
                 value is Board object
@@ -75,9 +75,11 @@ def ShowActions(series, why_selected, boards_selected, builder, options):
     print
     for arg in why_selected:
         if arg != 'all':
-            print arg, ': %d boards' % why_selected[arg]
+            print arg, ': %d boards' % len(why_selected[arg])
+            if options.verbose:
+                print '   %s' % ' '.join(why_selected[arg])
     print ('Total boards to build for each commit: %d\n' %
-            why_selected['all'])
+            len(why_selected['all']))
 
 def DoBuildman(options, args, toolchains=None, make_func=None, boards=None,
                clean_dir=False):
@@ -101,16 +103,40 @@ def DoBuildman(options, args, toolchains=None, make_func=None, boards=None,
         pager = os.getenv('PAGER')
         if not pager:
             pager = 'more'
-        fname = os.path.join(os.path.dirname(sys.argv[0]), 'README')
+        fname = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])),
+                             'README')
         command.Run(pager, fname)
         return 0
 
     gitutil.Setup()
+    col = terminal.Color()
 
     options.git_dir = os.path.join(options.git, '.git')
 
-    if not toolchains:
+    no_toolchains = toolchains is None
+    if no_toolchains:
         toolchains = toolchain.Toolchains()
+
+    if options.fetch_arch:
+        if options.fetch_arch == 'list':
+            sorted_list = toolchains.ListArchs()
+            print col.Color(col.BLUE, 'Available architectures: %s\n' %
+                            ' '.join(sorted_list))
+            return 0
+        else:
+            fetch_arch = options.fetch_arch
+            if fetch_arch == 'all':
+                fetch_arch = ','.join(toolchains.ListArchs())
+                print col.Color(col.CYAN, '\nDownloading toolchains: %s' %
+                                fetch_arch)
+            for arch in fetch_arch.split(','):
+                print
+                ret = toolchains.FetchAndInstall(arch)
+                if ret:
+                    return ret
+            return 0
+
+    if no_toolchains:
         toolchains.GetSettings()
         toolchains.Scan(options.list_tool_chains)
     if options.list_tool_chains:
@@ -118,26 +144,9 @@ def DoBuildman(options, args, toolchains=None, make_func=None, boards=None,
         print
         return 0
 
-    if options.fetch_arch:
-        if options.fetch_arch == 'list':
-            sorted_list = toolchains.ListArchs()
-            print 'Available architectures: %s\n' % ' '.join(sorted_list)
-            return 0
-        else:
-            fetch_arch = options.fetch_arch
-            if fetch_arch == 'all':
-                fetch_arch = ','.join(toolchains.ListArchs())
-                print 'Downloading toolchains: %s\n' % fetch_arch
-            for arch in fetch_arch.split(','):
-                ret = toolchains.FetchAndInstall(arch)
-                if ret:
-                    return ret
-            return 0
-
     # Work out how many commits to build. We want to build everything on the
     # branch. We also build the upstream commit as a control so we can see
     # problems introduced by the first commit on the branch.
-    col = terminal.Color()
     count = options.count
     has_range = options.branch and '..' in options.branch
     if count == -1:
@@ -214,9 +223,10 @@ def DoBuildman(options, args, toolchains=None, make_func=None, boards=None,
                     options.git_dir, count, series=None, allow_overwrite=True)
     else:
         series = None
-        options.verbose = True
-        if not options.summary:
-            options.show_errors = True
+        if not options.dry_run:
+            options.verbose = True
+            if not options.summary:
+                options.show_errors = True
 
     # By default we have one thread per CPU. But if there are not enough jobs
     # we can have fewer threads and use a high '-j' value for make.
@@ -230,7 +240,7 @@ def DoBuildman(options, args, toolchains=None, make_func=None, boards=None,
         options.step = len(series.commits) - 1
 
     gnu_make = command.Output(os.path.join(options.git,
-                                           'scripts/show-gnu-make')).rstrip()
+            'scripts/show-gnu-make'), raise_on_error=False).rstrip()
     if not gnu_make:
         sys.exit('GNU Make not found')
 
@@ -249,7 +259,11 @@ def DoBuildman(options, args, toolchains=None, make_func=None, boards=None,
             options.threads, options.jobs, gnu_make=gnu_make, checkout=True,
             show_unknown=options.show_unknown, step=options.step,
             no_subdirs=options.no_subdirs, full_path=options.full_path,
-            verbose_build=options.verbose_build)
+            verbose_build=options.verbose_build,
+            incremental=options.incremental,
+            per_board_out_dir=options.per_board_out_dir,
+            config_only=options.config_only,
+            squash_config_y=not options.preserve_config_y)
     builder.force_config_on_failure = not options.quick
     if make_func:
         builder.do_make = make_func
@@ -282,7 +296,8 @@ def DoBuildman(options, args, toolchains=None, make_func=None, boards=None,
             options.show_detail = True
         builder.SetDisplayOptions(options.show_errors, options.show_sizes,
                                   options.show_detail, options.show_bloat,
-                                  options.list_error_boards)
+                                  options.list_error_boards,
+                                  options.show_config)
         if options.summary:
             builder.ShowSummary(commits, board_selected)
         else:

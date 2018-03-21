@@ -1,22 +1,51 @@
 /*
- *  (C) Copyright 2014
+ *  (C) Copyright 2014-2016
  *  Marcel Ziswiler <marcel@ziswiler.com>
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
-#include <dm.h>
 #include <asm/arch/gp_padctrl.h>
 #include <asm/arch/pinmux.h>
+#include <asm/arch-tegra/ap.h>
+#include <asm/arch-tegra/tegra.h>
 #include <asm/gpio.h>
+#include <asm/io.h>
+#include <dm.h>
 #include <i2c.h>
-#include <netdev.h>
+#include "../common/tdx-common.h"
 
 #include "pinmux-config-apalis_t30.h"
 
+DECLARE_GLOBAL_DATA_PTR;
+
 #define PMU_I2C_ADDRESS		0x2D
 #define MAX_I2C_RETRY		3
+
+int arch_misc_init(void)
+{
+	if (readl(NV_PA_BASE_SRAM + NVBOOTINFOTABLE_BOOTTYPE) ==
+	    NVBOOTTYPE_RECOVERY)
+		printf("USB recovery mode\n");
+
+	return 0;
+}
+
+int checkboard(void)
+{
+	printf("Model: Toradex Apalis T30 %dGB\n",
+	       (gd->ram_size == 0x40000000) ? 1 : 2);
+
+	return 0;
+}
+
+#if defined(CONFIG_OF_LIBFDT) && defined(CONFIG_OF_BOARD_SETUP)
+int ft_board_setup(void *blob, bd_t *bd)
+{
+	return ft_common_board_setup(blob, bd);
+}
+#endif
 
 /*
  * Routine: pinmux_init
@@ -47,6 +76,7 @@ int tegra_pcie_board_init(void)
 		debug("%s: Cannot find PMIC I2C chip\n", __func__);
 		return err;
 	}
+
 	/* TPS659110: VDD2_OP_REG = 1.05V */
 	data[0] = 0x27;
 	addr = 0x25;
@@ -78,10 +108,5 @@ int tegra_pcie_board_init(void)
 	}
 
 	return 0;
-}
-
-int board_eth_init(bd_t *bis)
-{
-	return pci_eth_init(bis);
 }
 #endif /* CONFIG_PCI_TEGRA */

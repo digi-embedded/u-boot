@@ -46,7 +46,6 @@
 #define CONFIG_HOSTNAME		kilauea
 #include "amcc-common.h"
 
-#define CONFIG_BOARD_EARLY_INIT_F 1		/* Call board_early_init_f */
 #define CONFIG_MISC_INIT_R	1		/* Call misc_init_r	*/
 #define CONFIG_BOARD_TYPES
 #define CONFIG_BOARD_EMAC_COUNT
@@ -369,7 +368,6 @@
 #define CONFIG_CMD_DATE
 #define CONFIG_CMD_NAND
 #define CONFIG_CMD_PCI
-#define CONFIG_CMD_SNTP
 
 #define CONFIG_SYS_POST_MEMORY_ON	CONFIG_SYS_POST_MEMORY
 
@@ -388,14 +386,10 @@
 #define CONFIG_LOGBUFFER
 #define CONFIG_SYS_POST_CACHE_ADDR	0x00800000 /* free virtual address	*/
 
-#define CONFIG_SYS_CONSOLE_IS_IN_ENV /* Otherwise it catches logbuffer as output */
-
 /*-----------------------------------------------------------------------
  * PCI stuff
  *----------------------------------------------------------------------*/
-#define CONFIG_PCI			/* include pci support	        */
 #define CONFIG_PCI_INDIRECT_BRIDGE	/* indirect PCI bridge support */
-#define CONFIG_PCI_PNP		1	/* do pci plug-and-play		*/
 #define CONFIG_PCI_SCAN_SHOW	1	/* show pci devices on startup	*/
 #define CONFIG_PCI_CONFIG_HOST_BRIDGE
 

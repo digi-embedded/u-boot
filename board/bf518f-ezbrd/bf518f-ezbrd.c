@@ -1,5 +1,5 @@
 /*
- * U-boot - main board file
+ * U-Boot - main board file
  *
  * Copyright (c) 2008-2009 Analog Devices Inc.
  *
@@ -29,28 +29,14 @@ int checkboard(void)
 #if defined(CONFIG_BFIN_MAC)
 static void board_init_enetaddr(uchar *mac_addr)
 {
-#ifdef CONFIG_SYS_NO_FLASH
-# define USE_MAC_IN_FLASH 0
-#else
-# define USE_MAC_IN_FLASH 1
+#ifdef CONFIG_MTD_NOR_FLASH
+	/* we cram the MAC in the last flash sector */
+	uchar *board_mac_addr = (uchar *)0x203F0096;
+	if (is_valid_ethaddr(board_mac_addr)) {
+		memcpy(mac_addr, board_mac_addr, 6);
+		eth_setenv_enetaddr("ethaddr", mac_addr);
+	}
 #endif
-	bool valid_mac = false;
-
-	if (USE_MAC_IN_FLASH) {
-		/* we cram the MAC in the last flash sector */
-		uchar *board_mac_addr = (uchar *)0x203F0096;
-		if (is_valid_ether_addr(board_mac_addr)) {
-			memcpy(mac_addr, board_mac_addr, 6);
-			valid_mac = true;
-		}
-	}
-
-	if (!valid_mac) {
-		puts("Warning: Generating 'random' MAC address\n");
-		eth_random_addr(mac_addr);
-	}
-
-	eth_setenv_enetaddr("ethaddr", mac_addr);
 }
 
 /* Only the first run of boards had a KSZ switch */
@@ -150,7 +136,7 @@ int misc_init_r(void)
 		board_init_enetaddr(enetaddr);
 #endif
 
-#ifndef CONFIG_SYS_NO_FLASH
+#ifdef CONFIG_MTD_NOR_FLASH
 	/* we use the last sector for the MAC address / POST LDR */
 	extern flash_info_t flash_info[];
 	flash_protect(FLAG_PROTECT_SET, 0x203F0000, 0x203FFFFF, &flash_info[0]);

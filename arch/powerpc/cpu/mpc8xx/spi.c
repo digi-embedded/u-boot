@@ -187,14 +187,7 @@ void spi_init_f (void)
 	spi->spi_tbc	= 0;
 	spi->spi_txtmp	= 0;
 
-	/* Allocate space for one transmit and one receive buffer
-	 * descriptor in the DP ram
-	 */
-#ifdef CONFIG_SYS_ALLOC_DPRAM
-	dpaddr = dpram_alloc_align (sizeof(cbd_t)*2, 8);
-#else
 	dpaddr = CPM_SPI_BASE;
-#endif
 
 /* 3 */
 	/* Set up the SPI parameters in the parameter ram */
@@ -455,7 +448,7 @@ ssize_t spi_xfer (size_t count)
  *
  * The Serial Peripheral Interface (SPI) is tested in the local loopback mode.
  * The interface is configured accordingly and several packets
- * are transfered. The configurable test parameters are:
+ * are transferred. The configurable test parameters are:
  *   TEST_MIN_LENGTH - minimum size of packet to transfer
  *   TEST_MAX_LENGTH - maximum size of packet to transfer
  *   TEST_NUM - number of tests

@@ -6,7 +6,7 @@
  *
  * Linux IPU driver for MX51:
  *
- * (C) Copyright 2005-2015 Freescale Semiconductor, Inc.
+ * (C) Copyright 2005-2016 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -15,7 +15,7 @@
 
 #include <common.h>
 #include <linux/types.h>
-#include <asm/errno.h>
+#include <linux/errno.h>
 #include <asm/io.h>
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/sys_proto.h>
@@ -613,11 +613,9 @@ void ipu_dp_dc_enable(ipu_channel_t channel)
 	uint32_t reg;
 	uint32_t dc_chan;
 
-	if (channel == MEM_FG_SYNC)
-		dc_chan = 5;
 	if (channel == MEM_DC_SYNC)
 		dc_chan = 1;
-	else if (channel == MEM_BG_SYNC)
+	else if ((channel == MEM_BG_SYNC) || (channel == MEM_FG_SYNC))
 		dc_chan = 5;
 	else
 		return;

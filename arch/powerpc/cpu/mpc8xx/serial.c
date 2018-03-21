@@ -176,15 +176,7 @@ static int smc_init (void)
 	/* Set the physical address of the host memory buffers in
 	 * the buffer descriptors.
 	 */
-
-#ifdef CONFIG_SYS_ALLOC_DPRAM
-	/* allocate
-	 * size of struct serialbuffer with bd rx/tx, buffer rx/tx and rx index
-	 */
-	dpaddr = dpram_alloc_align((sizeof(serialbuffer_t)), 8);
-#else
-	dpaddr = CPM_SERIAL_BASE ;
-#endif
+	dpaddr = CPM_SERIAL_BASE;
 
 	rtx = (serialbuffer_t *)&cp->cp_dpmem[dpaddr];
 	/* Allocate space for two buffer descriptors in the DP ram.
@@ -267,11 +259,6 @@ smc_putc(const char c)
 	volatile immap_t	*im = (immap_t *)CONFIG_SYS_IMMR;
 	volatile cpm8xx_t	*cpmp = &(im->im_cpm);
 	volatile serialbuffer_t	*rtx;
-
-#ifdef CONFIG_MODEM_SUPPORT
-	if (gd->be_quiet)
-		return;
-#endif
 
 	if (c == '\n')
 		smc_putc ('\r');
@@ -426,12 +413,7 @@ static int scc_init (void)
 #endif
 
 	/* Allocate space for two buffer descriptors in the DP ram. */
-
-#ifdef CONFIG_SYS_ALLOC_DPRAM
-	dpaddr = dpram_alloc_align (sizeof(cbd_t)*2 + 2, 8) ;
-#else
-	dpaddr = CPM_SERIAL2_BASE ;
-#endif
+	dpaddr = dpram_alloc_align(sizeof(cbd_t)*2 + 2, 8);
 
 	/* Enable SDMA.	*/
 	im->im_siu_conf.sc_sdcr = 0x0001;
@@ -526,11 +508,6 @@ scc_putc(const char c)
 	volatile scc_uart_t	*up;
 	volatile immap_t	*im = (immap_t *)CONFIG_SYS_IMMR;
 	volatile cpm8xx_t	*cpmp = &(im->im_cpm);
-
-#ifdef CONFIG_MODEM_SUPPORT
-	if (gd->be_quiet)
-		return;
-#endif
 
 	if (c == '\n')
 		scc_putc ('\r');
@@ -636,18 +613,6 @@ void mpc8xx_serial_initialize(void)
 	serial_register(&serial_scc_device);
 #endif
 }
-
-#ifdef CONFIG_MODEM_SUPPORT
-void disable_putc(void)
-{
-	gd->be_quiet = 1;
-}
-
-void enable_putc(void)
-{
-	gd->be_quiet = 0;
-}
-#endif
 
 #if defined(CONFIG_CMD_KGDB)
 

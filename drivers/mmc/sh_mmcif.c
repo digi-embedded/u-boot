@@ -3,9 +3,7 @@
  *
  * Copyright (C)  2011 Renesas Solutions Corp.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License.
+ * SPDX-License-Identifier:	GPL-2.0
  */
 
 #include <config.h>
@@ -14,7 +12,7 @@
 #include <command.h>
 #include <mmc.h>
 #include <malloc.h>
-#include <asm/errno.h>
+#include <linux/errno.h>
 #include <asm/io.h>
 #include "sh_mmcif.h"
 
@@ -170,7 +168,7 @@ static int sh_mmcif_error_manage(struct sh_mmcif_host *host)
 	if (state2 & STS2_CRC_ERR)
 		ret = -EILSEQ;
 	else if (state2 & STS2_TIMEOUT_ERR)
-		ret = TIMEOUT;
+		ret = -ETIMEDOUT;
 	else
 		ret = -EILSEQ;
 	return ret;
@@ -485,7 +483,7 @@ static int sh_mmcif_start_cmd(struct sh_mmcif_host *host,
 		case MMC_CMD_ALL_SEND_CID:
 		case MMC_CMD_SELECT_CARD:
 		case MMC_CMD_APP_CMD:
-			ret = TIMEOUT;
+			ret = -ETIMEDOUT;
 			break;
 		default:
 			printf(DRIVER_NAME": Cmd(d'%d) err\n", cmd->cmdidx);
@@ -522,14 +520,14 @@ static int sh_mmcif_request(struct mmc *mmc, struct mmc_cmd *cmd,
 
 	switch (cmd->cmdidx) {
 	case MMC_CMD_APP_CMD:
-		return TIMEOUT;
+		return -ETIMEDOUT;
 	case MMC_CMD_SEND_EXT_CSD: /* = SD_SEND_IF_COND (8) */
 		if (data)
 			/* ext_csd */
 			break;
 		else
 			/* send_if_cond cmd (not support) */
-			return TIMEOUT;
+			return -ETIMEDOUT;
 	default:
 		break;
 	}
@@ -541,7 +539,7 @@ static int sh_mmcif_request(struct mmc *mmc, struct mmc_cmd *cmd,
 	return ret;
 }
 
-static void sh_mmcif_set_ios(struct mmc *mmc)
+static int sh_mmcif_set_ios(struct mmc *mmc)
 {
 	struct sh_mmcif_host *host = mmc->priv;
 
@@ -556,6 +554,8 @@ static void sh_mmcif_set_ios(struct mmc *mmc)
 		host->bus_width = MMC_BUS_WIDTH_1;
 
 	debug("clock = %d, buswidth = %d\n", mmc->clock, mmc->bus_width);
+
+	return 0;
 }
 
 static int sh_mmcif_init(struct mmc *mmc)
@@ -577,7 +577,7 @@ static struct mmc_config sh_mmcif_cfg = {
 	.name		= DRIVER_NAME,
 	.ops		= &sh_mmcif_ops,
 	.host_caps	= MMC_MODE_HS | MMC_MODE_HS_52MHz | MMC_MODE_4BIT |
-			  MMC_MODE_8BIT | MMC_MODE_HC,
+			  MMC_MODE_8BIT,
 	.voltages	= MMC_VDD_32_33 | MMC_VDD_33_34,
 	.b_max		= CONFIG_SYS_MMC_MAX_BLK_COUNT,
 };

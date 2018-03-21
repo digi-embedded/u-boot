@@ -23,7 +23,7 @@
 #include <common.h>
 #include <malloc.h>
 #include <asm/io.h>
-#include <asm/au1x00.h>
+#include <mach/au1x00.h>
 #include <usb.h>
 #include "au1x00_usb_ohci.h"
 
@@ -671,7 +671,8 @@ static void td_submit_job (struct usb_device *dev, unsigned long pipe, void *buf
 	__u32 info = 0;
 	unsigned int toggle = 0;
 
-	/* OHCI handles the DATA-toggles itself, we just use the USB-toggle bits for reseting */
+	/* OHCI handles the DATA-toggles itself, we just use the
+	   USB-toggle bits for resetting */
 	if(usb_gettoggle(dev, usb_pipeendpoint(pipe), usb_pipeout(pipe))) {
 		toggle = TD_T_TOGGLE;
 	} else {

@@ -18,6 +18,7 @@
 #include <u-boot/zlib.h>
 #include <asm/byteorder.h>
 #include <libfdt.h>
+#include <mapmem.h>
 #include <fdt_support.h>
 #include <asm/bootm.h>
 #include <asm/secure.h>
@@ -25,7 +26,7 @@
 #include <bootm.h>
 #include <vxworks.h>
 
-#if defined(CONFIG_ARMV7_NONSEC) || defined(CONFIG_ARMV7_VIRT)
+#ifdef CONFIG_ARMV7_NONSEC
 #include <asm/armv7.h>
 #endif
 
@@ -63,6 +64,10 @@ void arch_lmb_reserve(struct lmb *lmb)
 		    gd->bd->bi_dram[0].start + gd->bd->bi_dram[0].size - sp);
 }
 
+__weak void board_quiesce_devices(void)
+{
+}
+
 /**
  * announce_and_cleanup() - Print message and prepare for kernel boot
  *
@@ -83,6 +88,9 @@ static void announce_and_cleanup(int fake)
 #ifdef CONFIG_USB_DEVICE
 	udc_disconnect();
 #endif
+
+	board_quiesce_devices();
+
 	cleanup_before_linux();
 }
 
@@ -192,10 +200,6 @@ static void do_nonsec_virt_switch(void)
 {
 	smp_kick_all_cpus();
 	dcache_disable();	/* flush cache before swtiching to EL2 */
-	armv8_switch_to_el2();
-#ifdef CONFIG_ARMV8_SWITCH_TO_EL1
-	armv8_switch_to_el1();
-#endif
 }
 #endif
 
@@ -224,7 +228,17 @@ static void boot_prep_linux(bootm_headers_t *images)
 		if (BOOTM_ENABLE_MEMORY_TAGS)
 			setup_memory_tags(gd->bd);
 		if (BOOTM_ENABLE_INITRD_TAG) {
-			if (images->rd_start && images->rd_end) {
+			/*
+			 * In boot_ramdisk_high(), it may relocate ramdisk to
+			 * a specified location. And set images->initrd_start &
+			 * images->initrd_end to relocated ramdisk's start/end
+			 * addresses. So use them instead of images->rd_start &
+			 * images->rd_end when possible.
+			 */
+			if (images->initrd_start && images->initrd_end) {
+				setup_initrd_tag(gd->bd, images->initrd_start,
+						 images->initrd_end);
+			} else if (images->rd_start && images->rd_end) {
 				setup_initrd_tag(gd->bd, images->rd_start,
 						 images->rd_end);
 			}
@@ -237,15 +251,20 @@ static void boot_prep_linux(bootm_headers_t *images)
 	}
 }
 
-#if defined(CONFIG_ARMV7_NONSEC) || defined(CONFIG_ARMV7_VIRT)
+__weak bool armv7_boot_nonsec_default(void)
+{
+#ifdef CONFIG_ARMV7_BOOT_SEC_DEFAULT
+	return false;
+#else
+	return true;
+#endif
+}
+
+#ifdef CONFIG_ARMV7_NONSEC
 bool armv7_boot_nonsec(void)
 {
 	char *s = getenv("bootm_boot_mode");
-#ifdef CONFIG_ARMV7_BOOT_SEC_DEFAULT
-	bool nonsec = false;
-#else
-	bool nonsec = true;
-#endif
+	bool nonsec = armv7_boot_nonsec_default();
 
 	if (s && !strcmp(s, "sec"))
 		nonsec = false;
@@ -255,6 +274,28 @@ bool armv7_boot_nonsec(void)
 
 	return nonsec;
 }
+#endif
+
+#ifdef CONFIG_ARM64
+__weak void update_os_arch_secondary_cores(uint8_t os_arch)
+{
+}
+
+#ifdef CONFIG_ARMV8_SWITCH_TO_EL1
+static void switch_to_el1(void)
+{
+	if ((IH_ARCH_DEFAULT == IH_ARCH_ARM64) &&
+	    (images.os.arch == IH_ARCH_ARM))
+		armv8_switch_to_el1(0, (u64)gd->bd->bi_arch_number,
+				    (u64)images.ft_addr, 0,
+				    (u64)images.ep,
+				    ES_TO_AARCH32);
+	else
+		armv8_switch_to_el1((u64)images.ft_addr, 0, 0, 0,
+				    images.ep,
+				    ES_TO_AARCH64);
+}
+#endif
 #endif
 
 /* Subcommand: GO */
@@ -275,8 +316,28 @@ static void boot_jump_linux(bootm_headers_t *images, int flag)
 	announce_and_cleanup(fake);
 
 	if (!fake) {
+#ifdef CONFIG_ARMV8_PSCI
+		armv8_setup_psci();
+#endif
 		do_nonsec_virt_switch();
-		kernel_entry(images->ft_addr, NULL, NULL, NULL);
+
+		update_os_arch_secondary_cores(images->os.arch);
+
+#ifdef CONFIG_ARMV8_SWITCH_TO_EL1
+		armv8_switch_to_el2((u64)images->ft_addr, 0, 0, 0,
+				    (u64)switch_to_el1, ES_TO_AARCH64);
+#else
+		if ((IH_ARCH_DEFAULT == IH_ARCH_ARM64) &&
+		    (images->os.arch == IH_ARCH_ARM))
+			armv8_switch_to_el2(0, (u64)gd->bd->bi_arch_number,
+					    (u64)images->ft_addr, 0,
+					    (u64)images->ep,
+					    ES_TO_AARCH32);
+		else
+			armv8_switch_to_el2((u64)images->ft_addr, 0, 0, 0,
+					    images->ep,
+					    ES_TO_AARCH64);
+#endif
 	}
 #else
 	unsigned long machid = gd->bd->bi_arch_number;
@@ -307,7 +368,10 @@ static void boot_jump_linux(bootm_headers_t *images, int flag)
 		r2 = gd->bd->bi_boot_params;
 
 	if (!fake) {
-#if defined(CONFIG_ARMV7_NONSEC) || defined(CONFIG_ARMV7_VIRT)
+#ifdef CONFIG_ARMV7_NONSEC
+#ifdef CONFIG_IMX_TRUSTY_OS
+		kernel_entry(0, machid, r2);
+#endif
 		if (armv7_boot_nonsec()) {
 			armv7_init_nonsec();
 			secure_ram_addr(_do_nonsec_entry)(kernel_entry,
@@ -346,38 +410,6 @@ int do_bootm_linux(int flag, int argc, char * const argv[],
 	boot_jump_linux(images, flag);
 	return 0;
 }
-
-#ifdef CONFIG_CMD_BOOTZ
-
-struct zimage_header {
-	uint32_t	code[9];
-	uint32_t	zi_magic;
-	uint32_t	zi_start;
-	uint32_t	zi_end;
-};
-
-#define	LINUX_ARM_ZIMAGE_MAGIC	0x016f2818
-
-int bootz_setup(ulong image, ulong *start, ulong *end)
-{
-	struct zimage_header *zi;
-
-	zi = (struct zimage_header *)map_sysmem(image, 0);
-	if (zi->zi_magic != LINUX_ARM_ZIMAGE_MAGIC) {
-		puts("Bad Linux ARM zImage magic!\n");
-		return 1;
-	}
-
-	*start = zi->zi_start;
-	*end = zi->zi_end;
-
-	printf("Kernel image @ %#08lx [ %#08lx - %#08lx ]\n", image, *start,
-	      *end);
-
-	return 0;
-}
-
-#endif	/* CONFIG_CMD_BOOTZ */
 
 #if defined(CONFIG_BOOTM_VXWORKS)
 void boot_prep_vxworks(bootm_headers_t *images)

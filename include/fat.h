@@ -33,6 +33,8 @@
 #define FAT16BUFSIZE	(FATBUFSIZE/2)
 #define FAT32BUFSIZE	(FATBUFSIZE/4)
 
+/* Maximum number of entry for long file name according to spec */
+#define MAX_LFN_SLOT	20
 
 /* Filesystem identifiers */
 #define FAT12_SIGN	"FAT12   "
@@ -169,6 +171,7 @@ typedef struct {
 	int	fatsize;	/* Size of FAT in bits */
 	__u32	fatlength;	/* Length of FAT in sectors */
 	__u16	fat_sect;	/* Starting sector of the FAT */
+	__u8	fat_dirty;      /* Set if fatbuf has been modified */
 	__u32	rootdir_sect;	/* Start sector of root directory */
 	__u16	sect_size;	/* Size of sectors in bytes */
 	__u16	clust_size;	/* Size of clusters in sectors */
@@ -203,8 +206,8 @@ int file_fat_read_at(const char *filename, loff_t pos, void *buffer,
 		     loff_t maxsize, loff_t *actread);
 int file_fat_read(const char *filename, void *buffer, int maxsize);
 const char *file_getfsname(int idx);
-int fat_set_blk_dev(block_dev_desc_t *rbdd, disk_partition_t *info);
-int fat_register_device(block_dev_desc_t *dev_desc, int part_no);
+int fat_set_blk_dev(struct blk_desc *rbdd, disk_partition_t *info);
+int fat_register_device(struct blk_desc *dev_desc, int part_no);
 
 int file_fat_write(const char *filename, void *buf, loff_t offset, loff_t len,
 		   loff_t *actwrite);

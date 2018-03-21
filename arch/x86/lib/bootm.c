@@ -22,13 +22,16 @@
 #include <asm/arch/timestamp.h>
 #endif
 
+DECLARE_GLOBAL_DATA_PTR;
+
 #define COMMAND_LINE_OFFSET 0x9000
 
-/*
- * Implement a weak default function for boards that optionally
- * need to clean up the system before jumping to the kernel.
- */
-__weak void board_final_cleanup(void)
+int arch_fixup_fdt(void *blob)
+{
+	return 0;
+}
+
+__weak void board_quiesce_devices(void)
 {
 }
 
@@ -43,7 +46,6 @@ void bootm_announce_and_cleanup(void)
 #ifdef CONFIG_BOOTSTAGE_REPORT
 	bootstage_report();
 #endif
-	board_final_cleanup();
 }
 
 #if defined(CONFIG_OF_LIBFDT) && !defined(CONFIG_OF_NO_KERNEL)
@@ -153,16 +155,27 @@ int boot_linux_kernel(ulong setup_base, ulong load_address, bool image_64bit)
 			puts("Cannot boot 64-bit kernel on 32-bit machine\n");
 			return -EFAULT;
 		}
+		/* At present 64-bit U-Boot does not support booting a
+		 * kernel.
+		 * TODO(sjg@chromium.org): Support booting both 32-bit and
+		 * 64-bit kernels from 64-bit U-Boot.
+		 */
+#if !CONFIG_IS_ENABLED(X86_64)
 		return cpu_jump_to_64bit(setup_base, load_address);
+#endif
 	} else {
 		/*
 		* Set %ebx, %ebp, and %edi to 0, %esi to point to the
 		* boot_params structure, and then jump to the kernel. We
 		* assume that %cs is 0x10, 4GB flat, and read/execute, and
 		* the data segments are 0x18, 4GB flat, and read/write.
-		* U-boot is setting them up that way for itself in
+		* U-Boot is setting them up that way for itself in
 		* arch/i386/cpu/cpu.c.
+		*
+		* Note that we cannot currently boot a kernel while running as
+		* an EFI application. Please use the payload option for that.
 		*/
+#ifndef CONFIG_EFI_APP
 		__asm__ __volatile__ (
 		"movl $0, %%ebp\n"
 		"cli\n"
@@ -171,6 +184,7 @@ int boot_linux_kernel(ulong setup_base, ulong load_address, bool image_64bit)
 		[boot_params] "S"(setup_base),
 		"b"(0), "D"(0)
 		);
+#endif
 	}
 
 	/* We can't get to here */

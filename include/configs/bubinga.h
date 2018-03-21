@@ -28,8 +28,6 @@
 #define CONFIG_HOSTNAME		bubinga
 #include "amcc-common.h"
 
-#define CONFIG_BOARD_EARLY_INIT_F 1	/* Call board_early_init_f	*/
-
 #define CONFIG_SYS_CLK_FREQ     33333333 /* external frequency to pll   */
 
 #define CONFIG_NO_SERIAL_EEPROM
@@ -95,7 +93,6 @@
 #define CONFIG_CMD_DATE
 #define CONFIG_CMD_PCI
 #define CONFIG_CMD_SDRAM
-#define CONFIG_CMD_SNTP
 
 #define CONFIG_SPD_EEPROM      1       /* use SPD EEPROM for setup    */
 
@@ -135,10 +132,8 @@
 #define PCI_HOST_FORCE  1               /* configure as pci host        */
 #define PCI_HOST_AUTO   2               /* detected via arbiter enable  */
 
-#define CONFIG_PCI			/* include pci support	        */
 #define CONFIG_PCI_INDIRECT_BRIDGE	/* indirect PCI bridge support */
 #define CONFIG_PCI_HOST	PCI_HOST_FORCE  /* select pci host function     */
-#define CONFIG_PCI_PNP			/* do pci plug-and-play         */
 					/* resource configuration       */
 #define CONFIG_PCI_SCAN_SHOW            /* show pci devices on startup  */
 

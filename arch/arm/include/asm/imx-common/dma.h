@@ -5,7 +5,8 @@
  * on behalf of DENX Software Engineering GmbH
  *
  * Based on code from LTIB:
- * Copyright 2008-2015 Freescale Semiconductor, Inc. All Rights Reserved.
+ * Copyright 2008-2010 Freescale Semiconductor, Inc. All Rights Reserved.
+ * Copyright 2017 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -16,12 +17,7 @@
 #include <linux/list.h>
 #include <linux/compiler.h>
 
-#ifndef	CONFIG_ARCH_DMA_PIO_WORDS
-#define	DMA_PIO_WORDS		15
-#else
-#define	DMA_PIO_WORDS		CONFIG_ARCH_DMA_PIO_WORDS
-#endif
-
+#define DMA_PIO_WORDS		15
 #define MXS_DMA_ALIGNMENT	ARCH_DMA_MINALIGN
 
 /*
@@ -59,7 +55,7 @@ enum {
 	MXS_DMA_CHANNEL_AHB_APBH_RESERVED1,
 	MXS_MAX_DMA_CHANNELS,
 };
-#elif (defined(CONFIG_MX6) || defined(CONFIG_MX7))
+#elif (defined(CONFIG_MX6) || defined(CONFIG_MX7) || defined(CONFIG_IMX8) || defined(CONFIG_IMX8M))
 enum {
 	MXS_DMA_CHANNEL_AHB_APBH_GPMI0 = 0,
 	MXS_DMA_CHANNEL_AHB_APBH_GPMI1,
@@ -101,13 +97,13 @@ enum {
 #define	MXS_DMA_DESC_BYTES_OFFSET	16
 
 struct mxs_dma_cmd {
-	unsigned long		next;
-	unsigned long		data;
+	uint32_t		next;
+	uint32_t		data;
 	union {
-		dma_addr_t	address;
-		unsigned long	alternate;
+		uint32_t	address;
+		uint32_t	alternate;
 	};
-	unsigned long		pio_words[DMA_PIO_WORDS];
+	uint32_t		pio_words[DMA_PIO_WORDS];
 };
 
 /*
@@ -123,7 +119,7 @@ struct mxs_dma_cmd {
 struct mxs_dma_desc {
 	struct mxs_dma_cmd	cmd;
 	unsigned int		flags;
-	dma_addr_t		address;
+	uint32_t		address;
 	void			*buffer;
 	struct list_head	node;
 } __aligned(MXS_DMA_ALIGNMENT);

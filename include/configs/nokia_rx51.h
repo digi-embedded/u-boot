@@ -27,12 +27,6 @@
 #define CONFIG_OMAP3430			/* which is in a 3430 */
 #define CONFIG_OMAP3_RX51		/* working with RX51 */
 #define CONFIG_SYS_L2CACHE_OFF		/* pretend there is no L2 CACHE */
-#define CONFIG_OMAP_COMMON
-#define CONFIG_SYS_GENERIC_BOARD
-/* Common ARM Erratas */
-#define CONFIG_ARM_ERRATA_454179
-#define CONFIG_ARM_ERRATA_430973
-#define CONFIG_ARM_ERRATA_621766
 
 #define CONFIG_MACH_TYPE		MACH_TYPE_NOKIA_RX51
 
@@ -49,12 +43,6 @@
 #include <asm/arch/omap.h>
 #include <asm/arch/mem.h>
 #include <linux/stringify.h>
-
-/*
- * Display CPU and Board information
- */
-#define CONFIG_DISPLAY_CPUINFO
-#define CONFIG_DISPLAY_BOARDINFO
 
 /* Clock Defines */
 #define V_OSCK			26000000	/* Clock output from T2 */
@@ -86,7 +74,6 @@
  */
 #define V_NS16550_CLK		48000000		/* 48MHz (APLL96/2) */
 
-#define CONFIG_SYS_NS16550
 #define CONFIG_SYS_NS16550_SERIAL
 #define CONFIG_SYS_NS16550_REG_SIZE	(-4)
 #define CONFIG_SYS_NS16550_CLK		V_NS16550_CLK
@@ -102,14 +89,10 @@
 #define CONFIG_ENV_OVERWRITE
 #define CONFIG_BAUDRATE			115200
 #define CONFIG_SYS_BAUDRATE_TABLE { 4800, 9600, 19200, 38400, 57600, 115200 }
-#define CONFIG_MMC
-#define CONFIG_GENERIC_MMC
-#define CONFIG_OMAP_HSMMC
-#define CONFIG_DOS_PARTITION
 
 /* USB */
-#define CONFIG_MUSB_UDC
-#define CONFIG_MUSB_HDC
+#define CONFIG_USB_MUSB_UDC
+#define CONFIG_USB_MUSB_HCD
 #define CONFIG_USB_OMAP3
 #define CONFIG_TWL4030_USB
 
@@ -120,24 +103,11 @@
 #define CONFIG_USBD_MANUFACTURER	"Nokia"
 #define CONFIG_USBD_PRODUCT_NAME	"N900"
 
-#define CONFIG_SYS_CONSOLE_IS_IN_ENV
-#define CONFIG_SYS_NO_FLASH
-
 /* commands to include */
-#include <config_cmd_default.h>
-
-#define CONFIG_CMD_EXT2			/* EXT2 Support */
-#define CONFIG_CMD_EXT4			/* EXT4 Support */
-#define CONFIG_CMD_FAT			/* FAT support */
-
-#define CONFIG_CMD_I2C			/* I2C serial bus support */
-#define CONFIG_CMD_MMC			/* MMC support */
-#define CONFIG_CMD_GPIO			/* Enable gpio command */
 
 #define CONFIG_CMDLINE_EDITING		/* add command line history */
 #define CONFIG_AUTO_COMPLETE		/* add autocompletion support */
 
-#define CONFIG_CMD_BOOTMENU		/* ANSI terminal Boot Menu */
 #define CONFIG_CMD_CLEAR		/* ANSI terminal clear screen command */
 
 #ifdef ONENAND_SUPPORT
@@ -146,19 +116,10 @@
 #define CONFIG_CMD_MTDPARTS		/* mtd parts support */
 
 #ifdef UBIFS_SUPPORT
-#define CONFIG_CMD_UBI			/* UBI Support */
 #define CONFIG_CMD_UBIFS		/* UBIFS Support */
 #endif
 
 #endif
-
-/* commands not needed from config_cmd_default.h */
-#undef CONFIG_CMD_FPGA			/* FPGA configuration Support */
-#undef CONFIG_CMD_IMI			/* iminfo */
-#undef CONFIG_CMD_NET			/* bootp, tftpboot, rarpboot */
-#undef CONFIG_CMD_NFS			/* NFS support */
-#undef CONFIG_CMD_SAVEENV		/* saveenv */
-#undef CONFIG_CMD_SETGETDCR		/* DCR support on 4xx */
 
 #define CONFIG_OMAP3_SPI
 #define CONFIG_SYS_I2C
@@ -251,13 +212,9 @@
  * Framebuffer
  */
 /* Video console */
-#define CONFIG_VIDEO
-#define CONFIG_CFB_CONSOLE
-#define CONFIG_CFB_CONSOLE_ANSI	/* Enable ANSI escape codes in framebuffer */
 #define CONFIG_VIDEO_LOGO
 #define VIDEO_FB_16BPP_PIXEL_SWAP
 #define VIDEO_FB_16BPP_WORD_SWAP
-#define CONFIG_VIDEO_SW_CURSOR
 #define CONFIG_SPLASH_SCREEN
 
 /* functions for cfb_console */
@@ -396,18 +353,12 @@ int rx51_kp_getc(struct stdio_dev *sdev);
 	"run attachboot;" \
 	"echo"
 
-#define CONFIG_BOOTDELAY 30
-#define CONFIG_AUTOBOOT_KEYED
-#define CONFIG_MENU
 #define CONFIG_MENU_SHOW
 
 /*
  * Miscellaneous configurable options
  */
 #define CONFIG_SYS_LONGHELP			/* undef to save memory */
-#define CONFIG_SYS_HUSH_PARSER			/* use "hush" command parser */
-#define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
-#define CONFIG_SYS_PROMPT		"Nokia RX-51 # "
 #define CONFIG_SYS_CBSIZE		256	/* Console I/O Buffer Size */
 /* Print Buffer Size */
 #define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + \

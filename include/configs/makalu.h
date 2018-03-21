@@ -31,7 +31,6 @@
 #define CONFIG_ADDMISC	"addmisc=setenv bootargs ${bootargs} rtc-x1205.probe=0,0x6f\0"
 #include "amcc-common.h"
 
-#define CONFIG_BOARD_EARLY_INIT_F 1		/* Call board_early_init_f */
 #define CONFIG_MISC_INIT_R	1		/* Call misc_init_r	*/
 
 /*-----------------------------------------------------------------------
@@ -236,7 +235,6 @@
 #define CONFIG_CMD_DATE
 #define CONFIG_CMD_DTT
 #define CONFIG_CMD_PCI
-#define CONFIG_CMD_SNTP
 
 /* POST support */
 #define CONFIG_POST		(CONFIG_SYS_POST_CACHE		| \
@@ -253,14 +251,10 @@
 #define CONFIG_LOGBUFFER
 #define CONFIG_SYS_POST_CACHE_ADDR	0x00800000 /* free virtual address	*/
 
-#define CONFIG_SYS_CONSOLE_IS_IN_ENV /* Otherwise it catches logbuffer as output */
-
 /*-----------------------------------------------------------------------
  * PCI stuff
  *----------------------------------------------------------------------*/
-#define CONFIG_PCI			/* include pci support	        */
 #define CONFIG_PCI_INDIRECT_BRIDGE	/* indirect PCI bridge support */
-#define CONFIG_PCI_PNP		1	/* do pci plug-and-play		*/
 #define CONFIG_PCI_SCAN_SHOW	1	/* show pci devices on startup	*/
 #define CONFIG_PCI_CONFIG_HOST_BRIDGE
 

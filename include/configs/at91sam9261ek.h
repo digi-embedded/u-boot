@@ -29,12 +29,6 @@
 
 #define CONFIG_SKIP_LOWLEVEL_INIT
 
-#define CONFIG_DISPLAY_CPUINFO
-
-#define CONFIG_OF_LIBFDT
-
-#define CONFIG_SYS_GENERIC_BOARD
-
 #define CONFIG_ATMEL_LEGACY
 #define CONFIG_SYS_TEXT_BASE		0x21f00000
 
@@ -53,7 +47,6 @@
 #define CONFIG_BAUDRATE			115200
 
 /* LCD */
-#define CONFIG_LCD
 #define LCD_BPP				LCD_COLOR8
 #define CONFIG_LCD_LOGO
 #undef LCD_TEST_PATTERN
@@ -65,15 +58,12 @@
 #define CONFIG_ATMEL_LCD_BGR555
 #endif
 
-#define CONFIG_SYS_CONSOLE_IS_IN_ENV
-
 /* LED */
 #define CONFIG_AT91_LED
 #define	CONFIG_RED_LED		AT91_PIN_PA23	/* this is the power led */
 #define	CONFIG_GREEN_LED	AT91_PIN_PA13	/* this is the user1 led */
 #define	CONFIG_YELLOW_LED	AT91_PIN_PA14	/* this is the user2 led */
 
-#define CONFIG_BOOTDELAY	3
 
 /*
  * BOOTP options
@@ -86,18 +76,7 @@
 /*
  * Command line configuration.
  */
-#include <config_cmd_default.h>
-#undef CONFIG_CMD_BDI
-#undef CONFIG_CMD_FPGA
-#undef CONFIG_CMD_IMI
-#undef CONFIG_CMD_IMLS
-#undef CONFIG_CMD_LOADS
-#undef CONFIG_CMD_SOURCE
-
-#define CONFIG_CMD_PING
-#define CONFIG_CMD_DHCP
 #define CONFIG_CMD_NAND
-#define CONFIG_CMD_USB
 
 /* SDRAM */
 #define CONFIG_NR_DRAM_BANKS		1
@@ -131,9 +110,6 @@
 
 #endif
 
-/* NOR flash - no real flash on this board */
-#define CONFIG_SYS_NO_FLASH
-
 /* Ethernet */
 #define CONFIG_DRIVER_DM9000
 #define CONFIG_DM9000_BASE		0x30000000
@@ -148,7 +124,6 @@
 #define CONFIG_USB_ATMEL
 #define CONFIG_USB_ATMEL_CLK_SEL_PLLB
 #define CONFIG_USB_OHCI_NEW
-#define CONFIG_DOS_PARTITION
 #define CONFIG_SYS_USB_OHCI_CPU_INIT
 #define CONFIG_SYS_USB_OHCI_REGS_BASE		0x00500000	/* AT91SAM9261_UHP_BASE */
 #ifdef CONFIG_AT91SAM9G10EK
@@ -157,8 +132,6 @@
 #define CONFIG_SYS_USB_OHCI_SLOT_NAME		"at91sam9261"
 #endif
 #define CONFIG_SYS_USB_OHCI_MAX_ROOT_PORTS	2
-#define CONFIG_USB_STORAGE
-#define CONFIG_CMD_FAT
 
 #define CONFIG_SYS_LOAD_ADDR			0x22000000	/* load address */
 
@@ -209,10 +182,8 @@
 	"root=/dev/mtdblock7 rw rootfstype=jffs2"
 #endif
 
-#define CONFIG_SYS_PROMPT		"U-Boot> "
 #define CONFIG_SYS_CBSIZE		256
 #define CONFIG_SYS_MAXARGS		16
-#define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
 #define CONFIG_SYS_LONGHELP
 #define CONFIG_CMDLINE_EDITING
 #define CONFIG_AUTO_COMPLETE

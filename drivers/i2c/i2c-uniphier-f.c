@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2014 Panasonic Corporation
- * Copyright (C) 2015 Socionext Inc.
+ * Copyright (C) 2014      Panasonic Corporation
+ * Copyright (C) 2015-2016 Socionext Inc.
  *   Author: Masahiro Yamada <yamada.masahiro@socionext.com>
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -8,14 +8,13 @@
 
 #include <common.h>
 #include <linux/types.h>
-#include <asm/io.h>
-#include <asm/errno.h>
+#include <linux/io.h>
+#include <linux/iopoll.h>
+#include <linux/sizes.h>
+#include <linux/errno.h>
 #include <dm/device.h>
-#include <dm/root.h>
 #include <i2c.h>
 #include <fdtdec.h>
-
-DECLARE_GLOBAL_DATA_PTR;
 
 struct uniphier_fi2c_regs {
 	u32 cr;				/* control register */
@@ -71,26 +70,14 @@ struct uniphier_fi2c_dev {
 	unsigned long timeout;			/* time out (us) */
 };
 
-static int poll_status(u32 __iomem *reg, u32 flag)
-{
-	int wait = 1000000; /* 1 sec is long enough */
-
-	while (readl(reg) & flag) {
-		if (wait-- < 0)
-			return -EREMOTEIO;
-		udelay(1);
-	}
-
-	return 0;
-}
-
 static int reset_bus(struct uniphier_fi2c_regs __iomem *regs)
 {
+	u32 val;
 	int ret;
 
 	/* bus forcible reset */
 	writel(I2C_RST_RST, &regs->rst);
-	ret = poll_status(&regs->rst, I2C_RST_RST);
+	ret = readl_poll_timeout(&regs->rst, val, !(val & I2C_RST_RST), 1);
 	if (ret < 0)
 		debug("error: fail to reset I2C controller\n");
 
@@ -99,9 +86,10 @@ static int reset_bus(struct uniphier_fi2c_regs __iomem *regs)
 
 static int check_device_busy(struct uniphier_fi2c_regs __iomem *regs)
 {
+	u32 val;
 	int ret;
 
-	ret = poll_status(&regs->sr, I2C_SR_DB);
+	ret = readl_poll_timeout(&regs->sr, val, !(val & I2C_SR_DB), 100);
 	if (ret < 0) {
 		debug("error: device busy too long. reset...\n");
 		ret = reset_bus(regs);
@@ -113,15 +101,14 @@ static int check_device_busy(struct uniphier_fi2c_regs __iomem *regs)
 static int uniphier_fi2c_probe(struct udevice *dev)
 {
 	fdt_addr_t addr;
-	fdt_size_t size;
 	struct uniphier_fi2c_dev *priv = dev_get_priv(dev);
 	int ret;
 
-	addr = fdtdec_get_addr_size(gd->fdt_blob, dev->of_offset, "reg",
-				    &size);
+	addr = dev_get_addr(dev);
+	if (addr == FDT_ADDR_T_NONE)
+		return -EINVAL;
 
-	priv->regs = map_sysmem(addr, size);
-
+	priv->regs = devm_ioremap(dev, addr, SZ_128);
 	if (!priv->regs)
 		return -ENOMEM;
 
@@ -137,28 +124,15 @@ static int uniphier_fi2c_probe(struct udevice *dev)
 	return 0;
 }
 
-static int uniphier_fi2c_remove(struct udevice *dev)
-{
-	struct uniphier_fi2c_dev *priv = dev_get_priv(dev);
-
-	unmap_sysmem(priv->regs);
-
-	return 0;
-}
-
 static int wait_for_irq(struct uniphier_fi2c_dev *dev, u32 flags,
 			bool *stop)
 {
 	u32 irq;
-	unsigned long wait = dev->timeout;
-	int ret = -EREMOTEIO;
+	int ret;
 
-	do {
-		udelay(1);
-		irq = readl(&dev->regs->intr);
-	} while (!(irq & flags) && wait--);
-
-	if (wait < 0) {
+	ret = readl_poll_timeout(&dev->regs->intr, irq, irq & flags,
+				 dev->timeout);
+	if (ret < 0) {
 		debug("error: time out\n");
 		return ret;
 	}
@@ -184,7 +158,7 @@ static int issue_stop(struct uniphier_fi2c_dev *dev, int old_ret)
 	debug("stop condition\n");
 	writel(I2C_CR_MST | I2C_CR_STO, &dev->regs->cr);
 
-	ret = poll_status(&dev->regs->sr, I2C_SR_DB);
+	ret = check_device_busy(dev->regs);
 	if (ret < 0)
 		debug("error: device busy after operation\n");
 
@@ -362,7 +336,6 @@ U_BOOT_DRIVER(uniphier_fi2c) = {
 	.id = UCLASS_I2C,
 	.of_match = uniphier_fi2c_of_match,
 	.probe = uniphier_fi2c_probe,
-	.remove = uniphier_fi2c_remove,
 	.priv_auto_alloc_size = sizeof(struct uniphier_fi2c_dev),
 	.ops = &uniphier_fi2c_ops,
 };

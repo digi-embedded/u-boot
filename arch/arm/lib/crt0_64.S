@@ -27,7 +27,8 @@
  *    the GD ('global data') structure, both located in some readily
  *    available RAM (SRAM, locked cache...). In this context, VARIABLE
  *    global data, initialized or not (BSS), are UNAVAILABLE; only
- *    CONSTANT initialized data are available.
+ *    CONSTANT initialized data are available. GD should be zeroed
+ *    before board_init_f() is called.
  *
  * 2. Call board_init_f(). This function prepares the hardware for
  *    execution from system RAM (DRAM, DDR...) As system RAM may not
@@ -36,24 +37,31 @@
  *    data include the relocation destination, the future stack, and
  *    the future GD location.
  *
- * (the following applies only to non-SPL builds)
- *
  * 3. Set up intermediate environment where the stack and GD are the
  *    ones allocated by board_init_f() in system RAM, but BSS and
  *    initialized non-const data are still not available.
  *
- * 4. Call relocate_code(). This function relocates U-Boot from its
- *    current location into the relocation destination computed by
- *    board_init_f().
+ * 4a.For U-Boot proper (not SPL), call relocate_code(). This function
+ *    relocates U-Boot from its current location into the relocation
+ *    destination computed by board_init_f().
+ *
+ * 4b.For SPL, board_init_f() just returns (to crt0). There is no
+ *    code relocation in SPL.
  *
  * 5. Set up final environment for calling board_init_r(). This
  *    environment has BSS (initialized to 0), initialized non-const
  *    data (initialized to their intended value), and stack in system
- *    RAM. GD has retained values set by board_init_f(). Some CPUs
- *    have some work left to do at this point regarding memory, so
- *    call c_runtime_cpu_setup.
+ *    RAM (for SPL moving the stack and GD into RAM is optional - see
+ *    CONFIG_SPL_STACK_R). GD has retained values set by board_init_f().
  *
- * 6. Branch to board_init_r().
+ * TODO: For SPL, implement stack relocation on AArch64.
+ *
+ * 6. For U-Boot proper (not SPL), some CPUs have some work left to do
+ *    at this point regarding memory, so call c_runtime_cpu_setup.
+ *
+ * 7. Branch to board_init_r().
+ *
+ * For more information see 'Board Initialisation Flow in README.
  */
 
 ENTRY(_main)
@@ -61,22 +69,23 @@ ENTRY(_main)
 /*
  * Set up initial C runtime environment and call board_init_f(0).
  */
+#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_STACK)
+	ldr	x0, =(CONFIG_SPL_STACK)
+#else
 	ldr	x0, =(CONFIG_SYS_INIT_SP_ADDR)
-	sub	x18, x0, #GD_SIZE	/* allocate one GD above SP */
-	bic	x18, x18, #0x7		/* 8-byte alignment for GD */
-zero_gd:
-	sub	x0, x0, #0x8
-	str	xzr, [x0]
-	cmp	x0, x18
-	b.gt	zero_gd
-#if defined(CONFIG_SYS_MALLOC_F_LEN)
-	sub	x0, x18, #CONFIG_SYS_MALLOC_F_LEN
-	str	x0, [x18, #GD_MALLOC_BASE]
 #endif
 	bic	sp, x0, #0xf	/* 16-byte alignment for ABI compliance */
+	mov	x0, sp
+	bl	board_init_f_alloc_reserve
+	mov	sp, x0
+	/* set up gd here, outside any C code */
+	mov	x18, x0
+	bl	board_init_f_init_reserve
+
 	mov	x0, #0
 	bl	board_init_f
 
+#if !defined(CONFIG_SPL_BUILD)
 /*
  * Set up intermediate environment (new sp and gd) and call
  * relocate_code(addr_moni). Trick here is that we'll return
@@ -99,16 +108,27 @@ relocation_return:
  * Set up final (full) environment
  */
 	bl	c_runtime_cpu_setup		/* still call old routine */
+#endif /* !CONFIG_SPL_BUILD */
+#if defined(CONFIG_SPL_BUILD)
+	bl	spl_relocate_stack_gd           /* may return NULL */
+	/*
+	 * Perform 'sp = (x0 != NULL) ? x0 : sp' while working
+	 * around the constraint that conditional moves can not
+	 * have 'sp' as an operand
+	 */
+	mov	x1, sp
+	cmp	x0, #0
+	csel	x0, x0, x1, ne
+	mov	sp, x0
+#endif
 
 /*
  * Clear BSS section
  */
 	ldr	x0, =__bss_start		/* this is auto-relocated! */
 	ldr	x1, =__bss_end			/* this is auto-relocated! */
-	mov	x2, #0
 clear_loop:
-	str	x2, [x0]
-	add	x0, x0, #8
+	str	xzr, [x0], #8
 	cmp	x0, x1
 	b.lo	clear_loop
 

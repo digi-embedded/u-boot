@@ -229,6 +229,8 @@
 	ldr r2, =0xc3110000
 	str r2, [r0, #0x000]
 
+	ldr r2, =0x00008010
+	str r2, [r0, #0x01c]
 	ldr r2, =0x003f8030
 	str r2, [r0, #0x01c]
 	ldr r2, =0xff0a8030
@@ -240,6 +242,8 @@
 	ldr r2, =0x01038030
 	str r2, [r0, #0x01c]
 
+	ldr r2, =0x00008018
+	str r2, [r0, #0x01c]
 	ldr r2, =0x003f8038
 	str r2, [r0, #0x01c]
 	ldr r2, =0xff0a8038
@@ -266,7 +270,7 @@
 .endm
 
 .macro imx6_ddr_setting
-#if defined(CONFIG_MX6SX_14x14) && defined (CONFIG_LPDDR)
+#if defined(CONFIG_TARGET_MX6SX_14X14_ARM2) && defined (CONFIG_LPDDR2)
 	imx6sx_14x14_lpddr2_arm2_ddr_setting
 #else
 	imx6sx_17x17_ddr3_evk_ddr_setting

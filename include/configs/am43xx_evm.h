@@ -9,31 +9,25 @@
 #ifndef __CONFIG_AM43XX_EVM_H
 #define __CONFIG_AM43XX_EVM_H
 
-#define CONFIG_AM43XX
-
-#define CONFIG_CMD_FAT
-#define CONFIG_CMD_SAVEENV
-
-#define CONFIG_BOARD_LATE_INIT
 #define CONFIG_ARCH_CPU_INIT
-#define CONFIG_SYS_CACHELINE_SIZE       32
-#define CONFIG_MAX_RAM_BANK_SIZE	(1024 << 20)	/* 1GB */
+#define CONFIG_MAX_RAM_BANK_SIZE	(1024 << 21)	/* 2GB */
 #define CONFIG_SYS_TIMERBASE		0x48040000	/* Use Timer2 */
 
+#include <environment/ti/dfu.h>
 #include <asm/arch/omap.h>
 
 /* NS16550 Configuration */
-#define CONFIG_SYS_NS16550
+#define CONFIG_SYS_NS16550_CLK		48000000
+#if defined(CONFIG_SPL_BUILD) || !defined(CONFIG_DM_SERIAL)
 #define CONFIG_SYS_NS16550_SERIAL
 #define CONFIG_SYS_NS16550_REG_SIZE	(-4)
-#define CONFIG_SYS_NS16550_CLK		48000000
+#endif
 
 /* I2C Configuration */
 #define CONFIG_CMD_EEPROM
 #define CONFIG_ENV_EEPROM_IS_ON_I2C
 #define CONFIG_SYS_I2C_EEPROM_ADDR	0x50	/* Main EEPROM */
 #define CONFIG_SYS_I2C_EEPROM_ADDR_LEN	2
-#define CONFIG_SYS_I2C_MULTI_EEPROMS
 
 /* Power */
 #define CONFIG_POWER
@@ -42,17 +36,13 @@
 #define CONFIG_POWER_TPS62362
 
 /* SPL defines. */
-#define CONFIG_SPL_TEXT_BASE		0x40300350
-#define CONFIG_SPL_MAX_SIZE		(220 << 10)	/* 220KB */
+#define CONFIG_SPL_TEXT_BASE		CONFIG_ISW_ENTRY_ADDR
 #define CONFIG_SYS_SPL_ARGS_ADDR	(CONFIG_SYS_SDRAM_BASE + \
 					 (128 << 20))
-#define CONFIG_SPL_POWER_SUPPORT
-#define CONFIG_SPL_YMODEM_SUPPORT
 
 /* Enabling L2 Cache */
 #define CONFIG_SYS_L2_PL310
 #define CONFIG_SYS_PL310_BASE	0x48242000
-#define CONFIG_SYS_CACHELINE_SIZE	32
 
 /*
  * Since SPL did pll and ddr initialization for us,
@@ -67,12 +57,9 @@
  * we need to call board_early_init_f.  This is taken care of in
  * s_init when we have SPL used.
  */
-#if !defined(CONFIG_SKIP_LOWLEVEL_INIT) && !defined(CONFIG_SPL)
-#define CONFIG_BOARD_EARLY_INIT_F
-#endif
 
 /* Now bring in the rest of the common code. */
-#include <configs/ti_armv7_common.h>
+#include <configs/ti_armv7_omap.h>
 
 /* Always 64 KiB env size */
 #define CONFIG_ENV_SIZE			(64 << 10)
@@ -92,25 +79,60 @@
 #define FAT_ENV_FILE			"uboot.env"
 #define CONFIG_FAT_WRITE
 
-#define CONFIG_SPL_LDSCRIPT		"$(CPUDIR)/omap-common/u-boot-spl.lds"
+#define CONFIG_SPL_LDSCRIPT		"arch/arm/mach-omap2/u-boot-spl.lds"
 
 /* SPL USB Support */
-#define CONFIG_SPL_USB_SUPPORT
-#define CONFIG_SPL_USB_HOST_SUPPORT
-#define CONFIG_SYS_USB_FAT_BOOT_PARTITION		1
 
-#define CONFIG_CMD_USB
-#define CONFIG_USB_HOST
-#define CONFIG_USB_XHCI
+#if defined(CONFIG_SPL_USB_HOST_SUPPORT) || !defined(CONFIG_SPL_BUILD)
+#define CONFIG_SYS_USB_FAT_BOOT_PARTITION		1
 #define CONFIG_USB_XHCI_OMAP
-#define CONFIG_USB_STORAGE
 #define CONFIG_SYS_USB_XHCI_MAX_ROOT_PORTS 2
 
 #define CONFIG_OMAP_USB_PHY
 #define CONFIG_AM437X_USB2PHY2_HOST
+#endif
+
+#if defined(CONFIG_SPL_BUILD) && !defined(CONFIG_SPL_USBETH_SUPPORT)
+#undef CONFIG_USB_DWC3_PHY_OMAP
+#undef CONFIG_USB_DWC3_OMAP
+#undef CONFIG_USB_DWC3
+#undef CONFIG_USB_DWC3_GADGET
+
+#undef CONFIG_USB_GADGET_DOWNLOAD
+#undef CONFIG_USB_GADGET_VBUS_DRAW
+#undef CONFIG_G_DNL_MANUFACTURER
+#undef CONFIG_G_DNL_VENDOR_NUM
+#undef CONFIG_G_DNL_PRODUCT_NUM
+#undef CONFIG_USB_GADGET_DUALSPEED
+#endif
+
+/*
+ * Disable MMC DM for SPL build and can be re-enabled after adding
+ * DM support in SPL
+ */
+#ifdef CONFIG_SPL_BUILD
+#undef CONFIG_DM_MMC
+#undef CONFIG_DM_SPI
+#undef CONFIG_DM_SPI_FLASH
+#undef CONFIG_TIMER
+#endif
+
+#ifndef CONFIG_SPL_BUILD
+/* USB Device Firmware Update support */
+#define DFUARGS \
+	"dfu_bufsiz=0x10000\0" \
+	DFU_ALT_INFO_MMC \
+	DFU_ALT_INFO_EMMC \
+	DFU_ALT_INFO_RAM \
+	DFU_ALT_INFO_QSPI_XIP
+#else
+#define DFUARGS
+#endif
 
 #ifdef CONFIG_QSPI_BOOT
-#define CONFIG_SYS_TEXT_BASE           0x30000000
+#ifndef CONFIG_SYS_TEXT_BASE
+#define CONFIG_SYS_TEXT_BASE		CONFIG_ISW_ENTRY_ADDR
+#endif
 #undef CONFIG_ENV_IS_IN_FAT
 #define CONFIG_ENV_IS_IN_SPI_FLASH
 #define CONFIG_SYS_REDUNDAND_ENVIRONMENT
@@ -135,24 +157,18 @@
 
 /* SPI */
 #undef CONFIG_OMAP3_SPI
-#define CONFIG_TI_QSPI
-#define CONFIG_SPI_FLASH
-#define CONFIG_SPI_FLASH_MACRONIX
-#define CONFIG_CMD_SF
-#define CONFIG_CMD_SPI
 #define CONFIG_TI_SPI_MMAP
-#define CONFIG_SPI_FLASH_BAR
 #define CONFIG_QSPI_SEL_GPIO                   48
 #define CONFIG_SF_DEFAULT_SPEED                48000000
-#define CONFIG_DEFAULT_SPI_MODE                SPI_MODE_3
-
-/* Enhance our eMMC support / experience. */
-#define CONFIG_CMD_GPT
-#define CONFIG_EFI_PARTITION
+#define CONFIG_SF_DEFAULT_MODE                 SPI_MODE_3
+#define CONFIG_QSPI_QUAD_SUPPORT
+#define CONFIG_TI_EDMA3
 
 #ifndef CONFIG_SPL_BUILD
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	DEFAULT_LINUX_BOOT_ENV \
+	DEFAULT_MMC_TI_ARGS \
+	DEFAULT_FIT_TI_ARGS \
 	"fdtfile=undefined\0" \
 	"bootpart=0:2\0" \
 	"bootdir=/boot\0" \
@@ -162,53 +178,20 @@
 		"uuid_disk=${uuid_gpt_disk};" \
 		"name=rootfs,start=2MiB,size=-,uuid=${uuid_gpt_rootfs}\0" \
 	"optargs=\0" \
-	"mmcdev=0\0" \
-	"mmcroot=/dev/mmcblk0p2 rw\0" \
-	"mmcrootfstype=ext4 rootwait\0" \
 	"usbroot=/dev/sda2 rw\0" \
 	"usbrootfstype=ext4 rootwait\0" \
 	"usbdev=0\0" \
 	"ramroot=/dev/ram0 rw\0" \
 	"ramrootfstype=ext2\0" \
-	"mmcargs=setenv bootargs console=${console} " \
-		"${optargs} " \
-		"root=${mmcroot} " \
-		"rootfstype=${mmcrootfstype}\0" \
 	"usbargs=setenv bootargs console=${console} " \
 		"${optargs} " \
 		"root=${usbroot} " \
 		"rootfstype=${usbrootfstype}\0" \
-	"bootenv=uEnv.txt\0" \
-	"loadbootenv=load ${devtype} ${devnum} ${loadaddr} ${bootenv}\0" \
-	"importbootenv=echo Importing environment from mmc ...; " \
-		"env import -t $loadaddr $filesize\0" \
 	"ramargs=setenv bootargs console=${console} " \
 		"${optargs} " \
 		"root=${ramroot} " \
 		"rootfstype=${ramrootfstype}\0" \
 	"loadramdisk=load ${devtype} ${devnum} ${rdaddr} ramdisk.gz\0" \
-	"loadimage=load ${devtype} ${bootpart} ${loadaddr} ${bootdir}/${bootfile}\0" \
-	"loadfdt=load ${devtype} ${bootpart} ${fdtaddr} ${bootdir}/${fdtfile}\0" \
-	"mmcboot=mmc dev ${mmcdev}; " \
-		"setenv devnum ${mmcdev}; " \
-		"setenv devtype mmc; " \
-		"if mmc rescan; then " \
-			"echo SD/MMC found on device ${devnum};" \
-			"if run loadbootenv; then " \
-				"echo Loaded environment from ${bootenv};" \
-				"run importbootenv;" \
-			"fi;" \
-			"if test -n $uenvcmd; then " \
-				"echo Running uenvcmd ...;" \
-				"run uenvcmd;" \
-			"fi;" \
-			"if run loadimage; then " \
-				"run loadfdt; " \
-				"echo Booting from mmc${mmcdev} ...; " \
-				"run mmcargs; " \
-				"bootz ${loadaddr} - ${fdtaddr}; " \
-			"fi;" \
-		"fi;\0" \
 	"usbboot=" \
 		"setenv devnum ${usbdev}; " \
 		"setenv devtype usb; " \
@@ -229,31 +212,39 @@
 				"bootz ${loadaddr} - ${fdtaddr}; " \
 			"fi;" \
 		"fi\0" \
+		"fi;" \
+		"usb stop ${usbdev};\0" \
 	"findfdt="\
 		"if test $board_name = AM43EPOS; then " \
 			"setenv fdtfile am43x-epos-evm.dtb; fi; " \
 		"if test $board_name = AM43__GP; then " \
+			"setenv fdtfile am437x-gp-evm.dtb; fi; " \
+		"if test $board_name = AM43XXHS; then " \
 			"setenv fdtfile am437x-gp-evm.dtb; fi; " \
 		"if test $board_name = AM43__SK; then " \
 			"setenv fdtfile am437x-sk-evm.dtb; fi; " \
 		"if test $board_name = AM43_IDK; then " \
 			"setenv fdtfile am437x-idk-evm.dtb; fi; " \
 		"if test $fdtfile = undefined; then " \
-			"echo WARNING: Could not determine device tree; fi; \0"
+			"echo WARNING: Could not determine device tree; fi; \0" \
+	NANDARGS \
+	NETARGS \
+	DFUARGS \
 
 #define CONFIG_BOOTCOMMAND \
+	"if test ${boot_fit} -eq 1; then "	\
+		"run update_to_fit;"	\
+	"fi;"	\
 	"run findfdt; " \
+	"run envboot;" \
 	"run mmcboot;" \
-	"run usbboot;"
+	"run usbboot;" \
+	NANDBOOT \
 
 #endif
 
+#ifndef CONFIG_SPL_BUILD
 /* CPSW Ethernet */
-#define CONFIG_CMD_NET
-#define CONFIG_CMD_DHCP
-#define CONFIG_CMD_PING
-#define CONFIG_CMD_MII
-#define CONFIG_DRIVER_TI_CPSW
 #define CONFIG_MII
 #define CONFIG_BOOTP_DEFAULT
 #define CONFIG_BOOTP_DNS
@@ -262,15 +253,18 @@
 #define CONFIG_BOOTP_GATEWAY
 #define CONFIG_BOOTP_SUBNETMASK
 #define CONFIG_NET_RETRY_COUNT		10
-#define CONFIG_NET_MULTI
 #define CONFIG_PHY_GIGE
+#endif
+
+#define CONFIG_DRIVER_TI_CPSW
 #define CONFIG_PHYLIB
+#define PHY_ANEG_TIMEOUT	8000 /* PHY needs longer aneg time at 1G */
 
-#define CONFIG_SPL_ENV_SUPPORT
-#define CONFIG_SPL_NET_VCI_STRING	"AM43xx U-Boot SPL"
+#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_ETH_SUPPORT)
+#undef CONFIG_ENV_IS_IN_FAT
+#define CONFIG_ENV_IS_NOWHERE
+#endif
 
-#define CONFIG_SPL_ETH_SUPPORT
-#define CONFIG_SPL_NET_SUPPORT
 #define CONFIG_SYS_RX_ETH_BUFFER	64
 
 /* NAND support */
@@ -323,7 +317,7 @@
 					"256k(NAND.u-boot-env)," \
 					"256k(NAND.u-boot-env.backup1)," \
 					"7m(NAND.kernel)," \
-					"-(NAND.rootfs)"
+					"-(NAND.file-system)"
 #define CONFIG_SYS_NAND_U_BOOT_OFFS	0x00180000
 /* NAND: SPL related configs */
 #ifdef CONFIG_SPL_NAND_SUPPORT
@@ -335,6 +329,24 @@
 #define CONFIG_SYS_NAND_SPL_KERNEL_OFFS	0x00300000 /* kernel offset */
 #define CONFIG_CMD_SPL_WRITE_SIZE	CONFIG_SYS_NAND_BLOCK_SIZE
 #endif
-#endif /* !CONFIG_NAND */
+#define NANDARGS \
+	"mtdids=" MTDIDS_DEFAULT "\0" \
+	"mtdparts=" MTDPARTS_DEFAULT "\0" \
+	"nandargs=setenv bootargs console=${console} " \
+		"${optargs} " \
+		"root=${nandroot} " \
+		"rootfstype=${nandrootfstype}\0" \
+	"nandroot=ubi0:rootfs rw ubi.mtd=NAND.file-system,4096\0" \
+	"nandrootfstype=ubifs rootwait=1\0" \
+	"nandboot=echo Booting from nand ...; " \
+		"run nandargs; " \
+		"nand read ${fdtaddr} NAND.u-boot-spl-os; " \
+		"nand read ${loadaddr} NAND.kernel; " \
+		"bootz ${loadaddr} - ${fdtaddr}\0"
+#define NANDBOOT			"run nandboot; "
+#else /* !CONFIG_NAND */
+#define NANDARGS
+#define NANDBOOT
+#endif /* CONFIG_NAND */
 
 #endif	/* __CONFIG_AM43XX_EVM_H */

@@ -15,8 +15,6 @@
 #define __CONFIG_H
 
 #define CONFIG_MECP5123 1
-#define CONFIG_DISPLAY_BOARDINFO
-#define CONFIG_SYS_GENERIC_BOARD
 
 /*
  * Memory map for the MECP5123 board:
@@ -37,7 +35,6 @@
 
 #define CONFIG_SYS_MPC512X_CLKIN	33333333	/* in Hz */
 
-#define CONFIG_BOARD_EARLY_INIT_F		/* call board_early_init_f() */
 #define CONFIG_MISC_INIT_R
 
 #define CONFIG_SYS_IMMR		        0x80000000
@@ -243,12 +240,7 @@
 #define SCCR2_CLOCKS_EN	(CLOCK_SCCR2_MEM_EN |	\
 			 CLOCK_SCCR2_I2C_EN)
 
-
 #define CONFIG_CMDLINE_EDITING	1	/* add command line history	*/
-/* Use the HUSH parser */
-#define CONFIG_SYS_HUSH_PARSER
-#ifdef  CONFIG_SYS_HUSH_PARSER
-#endif
 
 /* I2C */
 #define CONFIG_HARD_I2C			/* I2C with hardware support */
@@ -296,24 +288,12 @@
 #define CONFIG_LOADS_ECHO		/* echo on for serial download	*/
 #define CONFIG_SYS_LOADS_BAUD_CHANGE	/* allow baudrate change	*/
 
-#include <config_cmd_default.h>
-
-#define CONFIG_CMD_ASKENV
-#define CONFIG_CMD_DHCP
-#define CONFIG_CMD_I2C
-#define CONFIG_CMD_MII
-#define CONFIG_CMD_NFS
-#define CONFIG_CMD_PING
 #define CONFIG_CMD_REGINFO
 #define CONFIG_CMD_EEPROM
 #define CONFIG_CMD_DATE
 #undef CONFIG_CMD_FUSE
 #undef CONFIG_CMD_IDE
-#undef CONFIG_CMD_EXT2
-#define CONFIG_CMD_FAT
 #define CONFIG_CMD_JFFS2
-#define CONFIG_CMD_ELF
-#define CONFIG_DOS_PARTITION
 
 /*
  * Watchdog timeout = CONFIG_SYS_WATCHDOG_VALUE * 65536 / IPS clock.
@@ -379,7 +359,6 @@
 
 #define CONFIG_LOADADDR		400000	/* def. location for tftp and bootm */
 
-#define CONFIG_BOOTDELAY	5	/* -1 disables auto-boot */
 #undef  CONFIG_BOOTARGS			/* the boot command will set bootargs*/
 
 #define CONFIG_PREBOOT	"echo;"	\
@@ -431,9 +410,6 @@
 	""
 
 #define CONFIG_BOOTCOMMAND	"run flash_self"
-
-#define CONFIG_OF_LIBFDT
-#define CONFIG_OF_BOARD_SETUP
 
 #define OF_CPU			"PowerPC,5121@0"
 #define OF_SOC_COMPAT		"fsl,mpc5121-immr"

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2015 Freescale Semiconductor, Inc.
+ * Copyright (C) 2012-2016 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -631,6 +631,14 @@
 	str r1, [r0, #0x07c]
 	ldr r1, =0x00000FFF
 	str r1, [r0, #0x080]
+
+#ifdef CONFIG_IMX_OPTEE
+#ifndef CONFIG_MX6QP
+	ldr r0, =0x20e0024
+	ldr r1, =0x3
+	str r1, [r0]
+#endif
+#endif
 .endm
 
 .macro imx6_qos_setting
@@ -638,13 +646,19 @@
 	ldr r1, =0xF00000CF
 	str r1, [r0, #0x10]
 
+#if defined(CONFIG_MX6QP)
+	ldr r1, =0x77177717
+	str r1, [r0, #0x18]
+	str r1, [r0, #0x1c]
+#else
 	ldr r1, =0x007F007F
 	str r1, [r0, #0x18]
 	str r1, [r0, #0x1c]
+#endif
 .endm
 
 .macro imx6_ddr_setting
-#if defined (CONFIG_MX6SOLO)
+#if defined (CONFIG_MX6S)
 	imx6solosabreauto_ddr_setting
 #elif defined (CONFIG_MX6DL)
 	imx6dlsabreauto_ddr_setting

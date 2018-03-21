@@ -41,15 +41,6 @@
 #define CONFIG_SYS_USE_NORFLASH
 #endif
 
-#define CONFIG_BOARD_EARLY_INIT_F
-
-#define CONFIG_DISPLAY_CPUINFO
-
-#define CONFIG_CMD_BOOTZ
-#define CONFIG_OF_LIBFDT
-
-#define CONFIG_SYS_GENERIC_BOARD
-
 /*
  * Hardware drivers
  */
@@ -64,7 +55,6 @@
 #define CONFIG_BAUDRATE			115200
 
 /* LCD */
-#define CONFIG_LCD			1
 #define LCD_BPP				LCD_COLOR8
 #define CONFIG_LCD_LOGO			1
 #undef LCD_TEST_PATTERN
@@ -73,7 +63,6 @@
 #define CONFIG_SYS_WHITE_ON_BLACK	1
 #define CONFIG_ATMEL_LCD		1
 #define CONFIG_ATMEL_LCD_BGR555		1
-#define CONFIG_SYS_CONSOLE_IS_IN_ENV	1
 
 /* LED */
 #define CONFIG_AT91_LED
@@ -81,7 +70,6 @@
 #define	CONFIG_GREEN_LED	AT91_PIN_PB8	/* the user1 led */
 #define	CONFIG_YELLOW_LED	AT91_PIN_PC29	/* the user2 led */
 
-#define CONFIG_BOOTDELAY	3
 
 /*
  * BOOTP options
@@ -94,19 +82,7 @@
 /*
  * Command line configuration.
  */
-#include <config_cmd_default.h>
-#undef CONFIG_CMD_BDI
-#undef CONFIG_CMD_FPGA
-#undef CONFIG_CMD_IMI
-#undef CONFIG_CMD_IMLS
-#undef CONFIG_CMD_LOADS
-#undef CONFIG_CMD_SOURCE
-
-#define CONFIG_CMD_PING		1
-#define CONFIG_CMD_DHCP		1
 #define CONFIG_CMD_NAND		1
-#define CONFIG_CMD_MMC
-#define CONFIG_CMD_USB		1
 
 /* SDRAM */
 #define CONFIG_NR_DRAM_BANKS		1
@@ -127,14 +103,7 @@
 
 /* MMC */
 #ifdef CONFIG_CMD_MMC
-#define CONFIG_MMC
-#define CONFIG_GENERIC_MMC
 #define CONFIG_GENERIC_ATMEL_MCI
-#endif
-
-/* FAT */
-#ifdef CONFIG_CMD_FAT
-#define CONFIG_DOS_PARTITION
 #endif
 
 /* NOR flash, if populated */
@@ -265,9 +234,6 @@
 		 AT91_WDT_MR_WDD(0xfff))
 
 #endif
-
-#else
-#define CONFIG_SYS_NO_FLASH			1
 #endif
 
 /* NAND flash */
@@ -295,13 +261,10 @@
 #define CONFIG_USB_ATMEL
 #define CONFIG_USB_ATMEL_CLK_SEL_PLLB
 #define CONFIG_USB_OHCI_NEW		1
-#define CONFIG_DOS_PARTITION		1
 #define CONFIG_SYS_USB_OHCI_CPU_INIT		1
 #define CONFIG_SYS_USB_OHCI_REGS_BASE		0x00a00000	/* AT91SAM9263_UHP_BASE */
 #define CONFIG_SYS_USB_OHCI_SLOT_NAME		"at91sam9263"
 #define CONFIG_SYS_USB_OHCI_MAX_ROOT_PORTS	2
-#define CONFIG_USB_STORAGE		1
-#define CONFIG_CMD_FAT			1
 
 #define CONFIG_SYS_LOAD_ADDR			0x22000000	/* load address */
 
@@ -338,14 +301,11 @@
 	"root=/dev/mtdblock7 rw rootfstype=jffs2"
 #endif
 
-#define CONFIG_SYS_PROMPT		"U-Boot> "
 #define CONFIG_SYS_CBSIZE		256
 #define CONFIG_SYS_MAXARGS		16
-#define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
 #define CONFIG_SYS_LONGHELP		1
 #define CONFIG_CMDLINE_EDITING		1
 #define CONFIG_AUTO_COMPLETE
-#define CONFIG_SYS_HUSH_PARSER
 
 /*
  * Size of malloc() pool

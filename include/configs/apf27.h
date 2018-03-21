@@ -10,9 +10,7 @@
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
-#define CONFIG_VERSION_VARIABLE
 #define CONFIG_ENV_VERSION	10
-#define CONFIG_IDENT_STRING	" apf27 patch 3.10"
 #define CONFIG_BOARD_NAME apf27
 
 /*
@@ -20,18 +18,10 @@
  */
 #define CONFIG_MX27			/* This is a Freescale i.MX27 Chip */
 #define CONFIG_MACH_TYPE	1698	/* APF27 */
-#define CONFIG_SYS_GENERIC_BOARD
 
 /*
  * Enable the call to miscellaneous platform dependent initialization.
  */
-#define CONFIG_SYS_NO_FLASH	/* to be define before <config_cmd_default.h> */
-
-/*
- * Board display option
- */
-#define CONFIG_DISPLAY_BOARDINFO
-#define CONFIG_DISPLAY_CPUINFO
 
 /*
  * SPL
@@ -42,7 +32,6 @@
 #define CONFIG_SPL_TEXT_BASE    0xA0000000
 
 /* NAND boot config */
-#define CONFIG_SPL_NAND_SUPPORT
 #define CONFIG_SYS_NAND_U_BOOT_START    CONFIG_SYS_TEXT_BASE
 #define CONFIG_SYS_NAND_U_BOOT_OFFS	0x800
 #define CONFIG_SYS_NAND_U_BOOT_DST	CONFIG_SYS_TEXT_BASE
@@ -65,29 +54,14 @@
 /*
  * U-Boot Commands
  */
-#include <config_cmd_default.h>
-
-#define CONFIG_CMD_ASKENV	/* ask for env variable		*/
 #define CONFIG_CMD_BSP		/* Board Specific functions	*/
-#define CONFIG_CMD_CACHE	/* icache, dcache		*/
 #define CONFIG_CMD_DATE
-#define CONFIG_CMD_DHCP		/* DHCP Support			*/
-#define CONFIG_CMD_DNS
 #define CONFIG_CMD_EEPROM
-#define CONFIG_CMD_EXT2
-#define CONFIG_CMD_FAT		/* FAT support			*/
 #define CONFIG_CMD_IMX_FUSE	/* imx iim fuse                 */
-#define CONFIG_CMD_I2C
-#define CONFIG_CMD_MII		/* MII support			*/
-#define CONFIG_CMD_MMC
 #define CONFIG_CMD_MTDPARTS	/* MTD partition support	*/
 #define CONFIG_CMD_NAND		/* NAND support			*/
 #define CONFIG_CMD_NAND_LOCK_UNLOCK
 #define CONFIG_CMD_NAND_TRIMFFS
-#define CONFIG_CMD_NFS		/* NFS support			*/
-#define CONFIG_CMD_PING		/* ping support			*/
-#define CONFIG_CMD_SETEXPR	/* setexpr support		*/
-#define CONFIG_CMD_UBI
 #define CONFIG_CMD_UBIFS
 
 /*
@@ -143,7 +117,6 @@
  * U-Boot general configurations
  */
 #define CONFIG_SYS_LONGHELP
-#define CONFIG_SYS_PROMPT		"BIOS> "	/* prompt string */
 #define CONFIG_SYS_CBSIZE		2048		/* console I/O buffer */
 #define CONFIG_SYS_PBSIZE		\
 				(CONFIG_SYS_CBSIZE+sizeof(CONFIG_SYS_PROMPT)+16)
@@ -153,11 +126,8 @@
 						/* Boot argument buffer size */
 #define CONFIG_AUTO_COMPLETE
 #define CONFIG_CMDLINE_EDITING
-#define CONFIG_SYS_HUSH_PARSER			/* enable the "hush" shell */
-#define CONFIG_SYS_PROMPT_HUSH_PS2	"> "	/* secondary prompt string */
 #define CONFIG_ENV_VARS_UBOOT_CONFIG
 #define CONFIG_PREBOOT			"run check_flash check_env;"
-
 
 /*
  * Boot Linux
@@ -166,10 +136,6 @@
 #define CONFIG_SETUP_MEMORY_TAGS	/* send memory definition to kernel */
 #define CONFIG_INITRD_TAG		/* send initrd params	*/
 
-#define CONFIG_OF_LIBFDT
-
-#define CONFIG_BOOTDELAY	5
-#define CONFIG_ZERO_BOOTDELAY_CHECK
 #define	CONFIG_BOOTFILE		__stringify(CONFIG_BOARD_NAME) "-linux.bin"
 #define CONFIG_BOOTARGS		"console=" __stringify(ACFG_CONSOLE_DEV) "," \
 			__stringify(CONFIG_BAUDRATE) " " MTDPARTS_DEFAULT \
@@ -274,7 +240,6 @@
  */
 #define CONFIG_MTD_DEVICE
 #define CONFIG_MTD_PARTITIONS
-#define CONFIG_DOS_PARTITION
 #define CONFIG_SUPPORT_VFAT
 
 /*
@@ -321,6 +286,8 @@
 #ifdef CONFIG_CMD_I2C
 #define CONFIG_SYS_I2C
 #define CONFIG_SYS_I2C_MXC
+#define CONFIG_SYS_I2C_MXC_I2C1		/* enable I2C bus 1 */
+#define CONFIG_SYS_I2C_MXC_I2C2		/* enable I2C bus 2 */
 #define CONFIG_SYS_MXC_I2C1_SPEED	100000	/* 100 kHz */
 #define CONFIG_SYS_MXC_I2C1_SLAVE	0x7F
 #define CONFIG_SYS_MXC_I2C2_SPEED	100000	/* 100 kHz */
@@ -339,9 +306,6 @@
  * SD/MMC
  */
 #ifdef CONFIG_CMD_MMC
-#define CONFIG_MMC
-#define CONFIG_GENERIC_MMC
-#define CONFIG_MXC_MMC
 #define CONFIG_MXC_MCI_REGS_BASE	0x10014000
 #endif
 

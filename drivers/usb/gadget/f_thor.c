@@ -17,7 +17,9 @@
 
 #include <errno.h>
 #include <common.h>
+#include <console.h>
 #include <malloc.h>
+#include <memalign.h>
 #include <version.h>
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
@@ -123,6 +125,9 @@ static int process_rqt_cmd(const struct rqt_box *rqt)
 		send_rsp(rsp);
 		g_dnl_unregister();
 		dfu_free_entities();
+#ifdef CONFIG_THOR_RESET_OFF
+		return RESET_DONE;
+#endif
 		run_command("reset", 0);
 		break;
 	case RQT_CMD_POWEROFF:
@@ -543,7 +548,7 @@ static int thor_rx_data(void)
 		}
 
 		while (!dev->rxdata) {
-			usb_gadget_handle_interrupts();
+			usb_gadget_handle_interrupts(0);
 			if (ctrlc())
 				return -1;
 		}
@@ -565,7 +570,7 @@ static void thor_tx_data(unsigned char *data, int len)
 
 	dev->in_req->length = len;
 
-	debug("%s: dev->in_req->length:%d to_cpy:%d\n", __func__,
+	debug("%s: dev->in_req->length:%d to_cpy:%zd\n", __func__,
 	      dev->in_req->length, sizeof(data));
 
 	status = usb_ep_queue(dev->in_ep, dev->in_req, 0);
@@ -577,7 +582,7 @@ static void thor_tx_data(unsigned char *data, int len)
 
 	/* Wait until tx interrupt received */
 	while (!dev->txdata)
-		usb_gadget_handle_interrupts();
+		usb_gadget_handle_interrupts(0);
 
 	dev->txdata = 0;
 }
@@ -694,7 +699,7 @@ int thor_init(void)
 	/* Wait for a device enumeration and configuration settings */
 	debug("THOR enumeration/configuration setting....\n");
 	while (!dev->configuration_done)
-		usb_gadget_handle_interrupts();
+		usb_gadget_handle_interrupts(0);
 
 	thor_set_dma(thor_rx_data_buf, strlen("THOR"));
 	/* detect the download request from Host PC */
@@ -728,6 +733,10 @@ int thor_handle(void)
 
 		if (ret > 0) {
 			ret = process_data();
+#ifdef CONFIG_THOR_RESET_OFF
+			if (ret == RESET_DONE)
+				break;
+#endif
 			if (ret < 0)
 				return ret;
 		} else {
@@ -768,7 +777,7 @@ static int thor_func_bind(struct usb_configuration *c, struct usb_function *f)
 		goto fail;
 	}
 	dev->req->buf = memalign(CONFIG_SYS_CACHELINE_SIZE,
-				 gadget->ep0->maxpacket);
+				 THOR_PACKET_SIZE);
 	if (!dev->req->buf) {
 		status = -ENOMEM;
 		goto fail;
@@ -806,6 +815,7 @@ static int thor_func_bind(struct usb_configuration *c, struct usb_function *f)
 	}
 
 	dev->in_ep = ep; /* Store IN EP for enabling @ setup */
+	ep->driver_data = dev;
 
 	ep = usb_ep_autoconfig(gadget, &fs_out_desc);
 	if (!ep) {
@@ -818,6 +828,7 @@ static int thor_func_bind(struct usb_configuration *c, struct usb_function *f)
 				fs_out_desc.bEndpointAddress;
 
 	dev->out_ep = ep; /* Store OUT EP for enabling @ setup */
+	ep->driver_data = dev;
 
 	ep = usb_ep_autoconfig(gadget, &fs_int_desc);
 	if (!ep) {
@@ -826,6 +837,7 @@ static int thor_func_bind(struct usb_configuration *c, struct usb_function *f)
 	}
 
 	dev->int_ep = ep;
+	ep->driver_data = dev;
 
 	if (gadget_is_dualspeed(gadget)) {
 		hs_int_desc.bEndpointAddress =

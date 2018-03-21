@@ -1,17 +1,8 @@
 /*
- * Copyright (c) 2010-2014, NVIDIA CORPORATION.  All rights reserved.
+ * (C) Copyright 2010-2015
+ * NVIDIA Corporation <www.nvidia.com>
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier:     GPL-2.0+
  */
 
 /* Tegra30 Clock control functions */
@@ -415,6 +406,36 @@ static s8 periph_id_to_internal_id[PERIPH_ID_COUNT] = {
 };
 
 /*
+ * PLL divider shift/mask tables for all PLL IDs.
+ */
+struct clk_pll_info tegra_pll_info_table[CLOCK_ID_PLL_COUNT] = {
+	/*
+	 * T30: some deviations from T2x.
+	 * NOTE: If kcp_mask/kvco_mask == 0, they're not used in that PLL (PLLX, etc.)
+	 *       If lock_ena or lock_det are >31, they're not used in that PLL.
+	 */
+
+	{ .m_shift = 0, .m_mask = 0xFF, .n_shift = 8, .n_mask = 0x3FF,  .p_shift = 20, .p_mask = 0x0F,
+	  .lock_ena = 24, .lock_det = 27, .kcp_shift = 28, .kcp_mask = 3, .kvco_shift = 27, .kvco_mask = 1 },	/* PLLC */
+	{ .m_shift = 0, .m_mask = 0xFF, .n_shift = 8, .n_mask = 0x3FF,  .p_shift = 0,  .p_mask = 0,
+	  .lock_ena = 0,  .lock_det = 27, .kcp_shift = 1, .kcp_mask = 3, .kvco_shift = 0, .kvco_mask = 1 },	/* PLLM */
+	{ .m_shift = 0, .m_mask = 0x1F, .n_shift = 8, .n_mask = 0x3FF, .p_shift = 20, .p_mask = 0x07,
+	  .lock_ena = 18, .lock_det = 27, .kcp_shift = 8, .kcp_mask = 0xF, .kvco_shift = 4, .kvco_mask = 0xF },	/* PLLP */
+	{ .m_shift = 0, .m_mask = 0x1F, .n_shift = 8, .n_mask = 0x3FF, .p_shift = 20, .p_mask = 0x07,
+	  .lock_ena = 18, .lock_det = 27, .kcp_shift = 8, .kcp_mask = 0xF, .kvco_shift = 4, .kvco_mask = 0xF },	/* PLLA */
+	{ .m_shift = 0, .m_mask = 0x1F, .n_shift = 8, .n_mask = 0x3FF, .p_shift = 20, .p_mask = 0x01,
+	  .lock_ena = 22, .lock_det = 27, .kcp_shift = 8, .kcp_mask = 0xF, .kvco_shift = 4, .kvco_mask = 0xF },	/* PLLU */
+	{ .m_shift = 0, .m_mask = 0x1F, .n_shift = 8, .n_mask = 0x3FF, .p_shift = 20, .p_mask = 0x07,
+	  .lock_ena = 22, .lock_det = 27, .kcp_shift = 8, .kcp_mask = 0xF, .kvco_shift = 4, .kvco_mask = 0xF },	/* PLLD */
+	{ .m_shift = 0, .m_mask = 0xFF, .n_shift = 8, .n_mask = 0xFF,  .p_shift = 20, .p_mask = 0x0F,
+	  .lock_ena = 18, .lock_det = 27, .kcp_shift = 8, .kcp_mask = 0xF, .kvco_shift = 0, .kvco_mask = 0 },	/* PLLX */
+	{ .m_shift = 0, .m_mask = 0xFF, .n_shift = 8, .n_mask = 0xFF,  .p_shift = 0,  .p_mask = 0,
+	  .lock_ena = 9,  .lock_det = 11, .kcp_shift = 6, .kcp_mask = 3, .kvco_shift = 0, .kvco_mask = 1 },	/* PLLE */
+	{ .m_shift = 0, .m_mask = 0x0F, .n_shift = 8, .n_mask = 0x3FF, .p_shift = 20, .p_mask = 0x07,
+	  .lock_ena = 18, .lock_det = 27, .kcp_shift = 8, .kcp_mask = 0xF, .kvco_shift = 4, .kvco_mask = 0xF },	/* PLLS (RESERVED) */
+};
+
+/*
  * Get the oscillator frequency, from the corresponding hardware configuration
  * field. Note that T30 supports 3 new higher freqs, but we map back
  * to the old T20 freqs. Support for the higher oscillators is TBD.
@@ -455,6 +476,51 @@ u32 *get_periph_source_reg(enum periph_id periph_id)
 		return &clkrst->crc_clk_src[internal_id];
 }
 
+int get_periph_clock_info(enum periph_id periph_id, int *mux_bits,
+			  int *divider_bits, int *type)
+{
+	enum periphc_internal_id internal_id;
+
+	if (!clock_periph_id_isvalid(periph_id))
+		return -1;
+
+	internal_id = periph_id_to_internal_id[periph_id];
+	if (!periphc_internal_id_isvalid(internal_id))
+		return -1;
+
+	*type = clock_periph_type[internal_id];
+	if (!clock_type_id_isvalid(*type))
+		return -1;
+
+	*mux_bits = clock_source[*type][CLOCK_MAX_MUX];
+
+	if (*type == CLOCK_TYPE_PCMT16)
+		*divider_bits = 16;
+	else
+		*divider_bits = 8;
+
+	return 0;
+}
+
+enum clock_id get_periph_clock_id(enum periph_id periph_id, int source)
+{
+	enum periphc_internal_id internal_id;
+	int type;
+
+	if (!clock_periph_id_isvalid(periph_id))
+		return CLOCK_ID_NONE;
+
+	internal_id = periph_id_to_internal_id[periph_id];
+	if (!periphc_internal_id_isvalid(internal_id))
+		return CLOCK_ID_NONE;
+
+	type = clock_periph_type[internal_id];
+	if (!clock_type_id_isvalid(type))
+		return CLOCK_ID_NONE;
+
+	return clock_source[type][source];
+}
+
 /**
  * Given a peripheral ID and the required source clock, this returns which
  * value should be programmed into the source mux for that peripheral.
@@ -471,23 +537,10 @@ int get_periph_clock_source(enum periph_id periph_id,
 	enum clock_id parent, int *mux_bits, int *divider_bits)
 {
 	enum clock_type_id type;
-	enum periphc_internal_id internal_id;
-	int mux;
+	int mux, err;
 
-	assert(clock_periph_id_isvalid(periph_id));
-
-	internal_id = periph_id_to_internal_id[periph_id];
-	assert(periphc_internal_id_isvalid(internal_id));
-
-	type = clock_periph_type[internal_id];
-	assert(clock_type_id_isvalid(type));
-
-	*mux_bits = clock_source[type][CLOCK_MAX_MUX];
-
-	if (type == CLOCK_TYPE_PCMT16)
-		*divider_bits = 16;
-	else
-		*divider_bits = 8;
+	err = get_periph_clock_info(periph_id, mux_bits, divider_bits, &type);
+	assert(!err);
 
 	for (mux = 0; mux < CLOCK_MAX_MUX; mux++)
 		if (clock_source[type][mux] == parent)
@@ -541,7 +594,7 @@ void reset_set_enable(enum periph_id periph_id, int enable)
 	writel(reg, reset);
 }
 
-#ifdef CONFIG_OF_CONTROL
+#if CONFIG_IS_ENABLED(OF_CONTROL)
 /*
  * Convert a device tree clock ID to our peripheral ID. They are mostly
  * the same but we are very cautious so we check that a valid clock ID is
@@ -579,7 +632,7 @@ enum periph_id clk_id_to_periph_id(int clk_id)
 		return clk_id;
 	}
 }
-#endif /* CONFIG_OF_CONTROL */
+#endif /* CONFIG_IS_ENABLED(OF_CONTROL) */
 
 void clock_early_init(void)
 {
@@ -742,3 +795,26 @@ int tegra_plle_enable(void)
 
 	return 0;
 }
+
+struct periph_clk_init periph_clk_init_table[] = {
+	{ PERIPH_ID_SBC1, CLOCK_ID_PERIPH },
+	{ PERIPH_ID_SBC2, CLOCK_ID_PERIPH },
+	{ PERIPH_ID_SBC3, CLOCK_ID_PERIPH },
+	{ PERIPH_ID_SBC4, CLOCK_ID_PERIPH },
+	{ PERIPH_ID_SBC5, CLOCK_ID_PERIPH },
+	{ PERIPH_ID_SBC6, CLOCK_ID_PERIPH },
+	{ PERIPH_ID_HOST1X, CLOCK_ID_PERIPH },
+	{ PERIPH_ID_DISP1, CLOCK_ID_CGENERAL },
+	{ PERIPH_ID_NDFLASH, CLOCK_ID_PERIPH },
+	{ PERIPH_ID_SDMMC1, CLOCK_ID_PERIPH },
+	{ PERIPH_ID_SDMMC2, CLOCK_ID_PERIPH },
+	{ PERIPH_ID_SDMMC3, CLOCK_ID_PERIPH },
+	{ PERIPH_ID_SDMMC4, CLOCK_ID_PERIPH },
+	{ PERIPH_ID_PWM, CLOCK_ID_SFROM32KHZ },
+	{ PERIPH_ID_DVC_I2C, CLOCK_ID_PERIPH },
+	{ PERIPH_ID_I2C1, CLOCK_ID_PERIPH },
+	{ PERIPH_ID_I2C2, CLOCK_ID_PERIPH },
+	{ PERIPH_ID_I2C3, CLOCK_ID_PERIPH },
+	{ PERIPH_ID_I2C4, CLOCK_ID_PERIPH },
+	{ -1, },
+};

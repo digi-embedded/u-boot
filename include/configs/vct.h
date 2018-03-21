@@ -25,8 +25,6 @@
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
-#define CONFIG_DISPLAY_BOARDINFO
-
 #define CPU_CLOCK_RATE			324000000 /* Clock for the MIPS core */
 #define CONFIG_SYS_MIPS_TIMER_FREQ	(CPU_CLOCK_RATE / 2)
 
@@ -40,8 +38,6 @@
 
 #if !defined(CONFIG_VCT_NAND) && !defined(CONFIG_VCT_ONENAND)
 #define CONFIG_VCT_NOR
-#else
-#define CONFIG_SYS_NO_FLASH
 #endif
 
 /*
@@ -54,7 +50,6 @@
 #endif
 
 #define CONFIG_SYS_NS16550_SERIAL
-#define CONFIG_SYS_NS16550
 #define CONFIG_SYS_NS16550_REG_SIZE	-4
 #define CONFIG_SYS_NS16550_COM1		UART_1_BASE
 #define CONFIG_CONS_INDEX		1
@@ -83,23 +78,13 @@
 /*
  * Commands
  */
-#include <config_cmd_default.h>
-
-#define CONFIG_CMD_DHCP
-#define CONFIG_CMD_ELF
 #define CONFIG_CMD_EEPROM
-#define CONFIG_CMD_I2C
 
 /*
  * Only Premium/Platinum have ethernet support right now
  */
 #if (defined(CONFIG_VCT_PREMIUM) || defined(CONFIG_VCT_PLATINUM)) && \
 	!defined(CONFIG_VCT_SMALL_IMAGE)
-#define CONFIG_CMD_PING
-#define CONFIG_CMD_SNTP
-#else
-#undef CONFIG_CMD_NET
-#undef CONFIG_CMD_NFS
 #endif
 
 /*
@@ -107,15 +92,9 @@
  */
 #if (defined(CONFIG_VCT_PREMIUM) || defined(CONFIG_VCT_PLATINUM)) && \
 	!defined(CONFIG_VCT_SMALL_IMAGE)
-#define CONFIG_CMD_USB
-#define CONFIG_CMD_FAT
 #endif
 
 #if defined(CONFIG_CMD_USB)
-#define CONFIG_USB_STORAGE
-#define CONFIG_DOS_PARTITION
-#define CONFIG_ISO_PARTITION
-
 #define CONFIG_SUPPORT_VFAT
 
 /*
@@ -128,11 +107,6 @@
 #define CONFIG_EHCI_IS_TDI
 #define CONFIG_EHCI_HCD_INIT_AFTER_RESET /* re-init HCD after CMD_RESET */
 #endif /* CONFIG_CMD_USB */
-
-#if !defined(CONFIG_VCT_NOR)
-#undef CONFIG_CMD_FLASH
-#undef CONFIG_CMD_IMLS
-#endif
 
 #if defined(CONFIG_VCT_NAND)
 #define CONFIG_CMD_NAND
@@ -155,14 +129,12 @@
  * Miscellaneous configurable options
  */
 #define CONFIG_SYS_LONGHELP			/* undef to save memory		*/
-#define CONFIG_SYS_PROMPT	"VCT# "		/* Monitor Command Prompt	*/
 #define CONFIG_SYS_CBSIZE	512		/* Console I/O Buffer Size	*/
 #define CONFIG_SYS_PBSIZE	(CONFIG_SYS_CBSIZE + \
 				 sizeof(CONFIG_SYS_PROMPT) + 16)
 #define CONFIG_SYS_MAXARGS	16		/* max number of command args	*/
 #define CONFIG_TIMESTAMP			/* Print image info with timestamp */
 #define CONFIG_CMDLINE_EDITING			/* add command line history	*/
-#define CONFIG_SYS_CONSOLE_INFO_QUIET		/* don't print console @ startup*/
 
 /*
  * FLASH and environment organization
@@ -223,13 +195,6 @@
 #endif /* CONFIG_VCT_ONENAND */
 
 /*
- * Cache Configuration
- */
-#define CONFIG_SYS_DCACHE_SIZE		16384
-#define CONFIG_SYS_ICACHE_SIZE		16384
-#define CONFIG_SYS_CACHELINE_SIZE	32
-
-/*
  * I2C/EEPROM
  */
 #define CONFIG_SYS_I2C
@@ -266,7 +231,6 @@ int vct_gpio_get(int pin);
 #define CONFIG_SYS_EEPROM_PAGE_WRITE_DELAY_MS	10   /* and takes up to 10 msec */
 
 #define CONFIG_BOOTCOMMAND	"run test3"
-#define CONFIG_BOOTDELAY	5	/* autoboot after 5 seconds	*/
 
 /*
  * UBI configuration
@@ -274,7 +238,6 @@ int vct_gpio_get(int pin);
 #if defined(CONFIG_VCT_ONENAND)
 #define CONFIG_SYS_USE_UBI
 #define	CONFIG_CMD_JFFS2
-#define	CONFIG_CMD_UBI
 #define	CONFIG_RBTREE
 #define CONFIG_MTD_DEVICE		/* needed for mtdparts commands */
 #define CONFIG_MTD_PARTITIONS
@@ -293,33 +256,14 @@ int vct_gpio_get(int pin);
  * (NOR/OneNAND) usage and Linux kernel booting.
  */
 #if defined(CONFIG_VCT_SMALL_IMAGE)
-#undef CONFIG_CMD_ASKENV
-#undef CONFIG_CMD_BDI
 #undef CONFIG_CMD_BEDBUG
-#undef CONFIG_CMD_CACHE
-#undef CONFIG_CMD_CONSOLE
-#undef CONFIG_CMD_DHCP
 #undef CONFIG_CMD_EEPROM
 #undef CONFIG_CMD_EEPROM
-#undef CONFIG_CMD_ELF
-#undef CONFIG_CMD_FAT
-#undef CONFIG_CMD_I2C
-#undef CONFIG_CMD_I2C
 #undef CONFIG_CMD_IRQ
-#undef CONFIG_CMD_ITEST
-#undef CONFIG_CMD_LOADB
-#undef CONFIG_CMD_LOADS
 #undef CONFIG_CMD_LOADY
-#undef CONFIG_CMD_MII
-#undef CONFIG_CMD_MISC
-#undef CONFIG_CMD_NET
-#undef CONFIG_CMD_PING
 #undef CONFIG_CMD_REGINFO
-#undef CONFIG_CMD_SNTP
-#undef CONFIG_CMD_SOURCE
 #undef CONFIG_CMD_STRINGS
 #undef CONFIG_CMD_TERMINAL
-#undef CONFIG_CMD_USB
 
 #undef CONFIG_SMC911X
 #undef CONFIG_SYS_I2C_SOFT

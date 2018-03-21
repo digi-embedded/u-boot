@@ -6,6 +6,8 @@
 
 #include <common.h>
 #include <lcd.h>
+#include <memalign.h>
+#include <phys2bus.h>
 #include <asm/arch/mbox.h>
 #include <asm/global_data.h>
 
@@ -38,10 +40,11 @@ struct msg_setup {
 
 void lcd_ctrl_init(void *lcdbase)
 {
-	ALLOC_ALIGN_BUFFER(struct msg_query, msg_query, 1, 16);
-	ALLOC_ALIGN_BUFFER(struct msg_setup, msg_setup, 1, 16);
+	ALLOC_CACHE_ALIGN_BUFFER(struct msg_query, msg_query, 1);
+	ALLOC_CACHE_ALIGN_BUFFER(struct msg_setup, msg_setup, 1);
 	int ret;
 	u32 w, h;
+	u32 fb_start, fb_end;
 
 	debug("bcm2835: Query resolution...\n");
 
@@ -68,9 +71,9 @@ void lcd_ctrl_init(void *lcdbase)
 	msg_setup->virtual_w_h.body.req.width = w;
 	msg_setup->virtual_w_h.body.req.height = h;
 	BCM2835_MBOX_INIT_TAG(&msg_setup->depth, SET_DEPTH);
-	msg_setup->depth.body.req.bpp = 16;
+	msg_setup->depth.body.req.bpp = 32;
 	BCM2835_MBOX_INIT_TAG(&msg_setup->pixel_order, SET_PIXEL_ORDER);
-	msg_setup->pixel_order.body.req.order = BCM2835_MBOX_PIXEL_ORDER_BGR;
+	msg_setup->pixel_order.body.req.order = BCM2835_MBOX_PIXEL_ORDER_RGB;
 	BCM2835_MBOX_INIT_TAG(&msg_setup->alpha_mode, SET_ALPHA_MODE);
 	msg_setup->alpha_mode.body.req.alpha = BCM2835_MBOX_ALPHA_MODE_IGNORED;
 	BCM2835_MBOX_INIT_TAG(&msg_setup->virtual_offset, SET_VIRTUAL_OFFSET);
@@ -100,9 +103,18 @@ void lcd_ctrl_init(void *lcdbase)
 
 	panel_info.vl_col = w;
 	panel_info.vl_row = h;
-	panel_info.vl_bpix = LCD_COLOR16;
+	panel_info.vl_bpix = LCD_COLOR32;
 
-	gd->fb_base = msg_setup->allocate_buffer.body.resp.fb_address;
+	gd->fb_base = bus_to_phys(
+		msg_setup->allocate_buffer.body.resp.fb_address);
+
+	/* Enable dcache for the frame buffer */
+	fb_start = gd->fb_base & ~(MMU_SECTION_SIZE - 1);
+	fb_end = gd->fb_base + msg_setup->allocate_buffer.body.resp.fb_size;
+	fb_end = ALIGN(fb_end, 1 << MMU_SECTION_SHIFT);
+	mmu_set_region_dcache_behaviour(fb_start, fb_end - fb_start,
+		DCACHE_WRITEBACK);
+	lcd_set_flush_dcache(1);
 }
 
 void lcd_enable(void)

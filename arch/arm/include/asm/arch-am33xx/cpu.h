@@ -17,7 +17,6 @@
 
 #include <asm/arch/hardware.h>
 
-#define BIT(x)				(1 << x)
 #define CL_BIT(x)			(0 << x)
 
 /* Timer register bits */
@@ -44,7 +43,8 @@
 #define HS_DEVICE			0x2
 #define GP_DEVICE			0x3
 
-/* cpu-id for AM33XX and TI81XX family */
+/* cpu-id for AM43XX AM33XX and TI81XX family */
+#define AM437X				0xB98C
 #define AM335X				0xB944
 #define TI81XX				0xB81E
 #define DEVICE_ID			(CTRL_BASE + 0x0600)
@@ -100,7 +100,8 @@ struct cm_wkuppll {
 	unsigned int timer0clkctrl;	/* offset 0x10 */
 	unsigned int resv2[3];
 	unsigned int idlestdpllmpu;	/* offset 0x20 */
-	unsigned int resv3[2];
+	unsigned int sscdeltamstepdllmpu; /* off  0x24 */
+	unsigned int sscmodfreqdivdpllmpu; /* off 0x28 */
 	unsigned int clkseldpllmpu;	/* offset 0x2c */
 	unsigned int resv4[1];
 	unsigned int idlestdpllddr;	/* offset 0x34 */
@@ -230,7 +231,11 @@ struct prm_device_inst {
 struct cm_wkuppll {
 	unsigned int resv0[136];
 	unsigned int wkl4wkclkctrl;	/* offset 0x220 */
-	unsigned int resv1[55];
+	unsigned int resv1[7];
+	unsigned int usbphy0clkctrl;	/* offset 0x240 */
+	unsigned int resv112;
+	unsigned int usbphy1clkctrl;	/* offset 0x248 */
+	unsigned int resv113[45];
 	unsigned int wkclkstctrl;	/* offset 0x300 */
 	unsigned int resv2[15];
 	unsigned int wkup_i2c0ctrl;	/* offset 0x340 */
@@ -289,7 +294,7 @@ struct cm_perpll {
 	unsigned int l3clkstctrl;	/* offset 0x00 */
 	unsigned int resv0[7];
 	unsigned int l3clkctrl;		/* Offset 0x20 */
-	unsigned int resv1[7];
+	unsigned int resv112[7];
 	unsigned int l3instrclkctrl;	/* offset 0x40 */
 	unsigned int resv2[3];
 	unsigned int ocmcramclkctrl;	/* offset 0x50 */
@@ -316,7 +321,9 @@ struct cm_perpll {
 	unsigned int qspiclkctrl;       /* offset 0x258 */
 	unsigned int resv121;
 	unsigned int usb0clkctrl;	/* offset 0x260 */
-	unsigned int resv13[103];
+	unsigned int resv122;
+	unsigned int usb1clkctrl;	/* offset 0x268 */
+	unsigned int resv13[101];
 	unsigned int l4lsclkstctrl;	/* offset 0x400 */
 	unsigned int resv14[7];
 	unsigned int l4lsclkctrl;	/* offset 0x420 */
@@ -370,10 +377,14 @@ struct cm_perpll {
 	unsigned int uart4clkctrl;	/* offset 0x598 */
 	unsigned int resv35;
 	unsigned int uart5clkctrl;	/* offset 0x5A0 */
-	unsigned int resv36[87];
+	unsigned int resv36[5];
+	unsigned int usbphyocp2scp0clkctrl;	/* offset 0x5B8 */
+	unsigned int resv361;
+	unsigned int usbphyocp2scp1clkctrl;	/* offset 0x5C0 */
+	unsigned int resv3611[79];
 
 	unsigned int emifclkstctrl;	/* offset 0x700 */
-	unsigned int resv361[7];
+	unsigned int resv362[7];
 	unsigned int emifclkctrl;	/* offset 0x720 */
 	unsigned int resv37[3];
 	unsigned int emiffwclkctrl;	/* offset 0x730 */
@@ -488,6 +499,8 @@ struct ctrl_stat {
 #define OMAP_GPIO_SYSSTATUS		0x0114
 #define OMAP_GPIO_IRQSTATUS1		0x002c
 #define OMAP_GPIO_IRQSTATUS2		0x0030
+#define OMAP_GPIO_IRQSTATUS_SET_0	0x0034
+#define OMAP_GPIO_IRQSTATUS_SET_1	0x0038
 #define OMAP_GPIO_CTRL			0x0130
 #define OMAP_GPIO_OE			0x0134
 #define OMAP_GPIO_DATAIN		0x0138
@@ -567,6 +580,8 @@ struct pwmss_regs {
 };
 #define ECAP_CLK_EN		BIT(0)
 #define ECAP_CLK_STOP_REQ	BIT(1)
+#define EPWM_CLK_EN		BIT(8)
+#define EPWM_CLK_STOP_REQ	BIT(9)
 
 struct pwmss_ecap_regs {
 	unsigned int tsctr;
@@ -578,6 +593,40 @@ struct pwmss_ecap_regs {
 	unsigned int resv1[4];
 	unsigned short ecctl1;
 	unsigned short ecctl2;
+};
+
+struct pwmss_epwm_regs {
+	unsigned short tbctl;
+	unsigned short tbsts;
+	unsigned short tbphshr;
+	unsigned short tbphs;
+	unsigned short tbcnt;
+	unsigned short tbprd;
+	unsigned short res1;
+	unsigned short cmpctl;
+	unsigned short cmpahr;
+	unsigned short cmpa;
+	unsigned short cmpb;
+	unsigned short aqctla;
+	unsigned short aqctlb;
+	unsigned short aqsfrc;
+	unsigned short aqcsfrc;
+	unsigned short dbctl;
+	unsigned short dbred;
+	unsigned short dbfed;
+	unsigned short tzsel;
+	unsigned short tzctl;
+	unsigned short tzflg;
+	unsigned short tzclr;
+	unsigned short tzfrc;
+	unsigned short etsel;
+	unsigned short etps;
+	unsigned short etflg;
+	unsigned short etclr;
+	unsigned short etfrc;
+	unsigned short pcctl;
+	unsigned int res2[66];
+	unsigned short hrcnfg;
 };
 
 /* Capture Control register 2 */

@@ -16,8 +16,6 @@
 
 #define DEV_FLAGS_INPUT	 0x00000001	/* Device can be used as input	console */
 #define DEV_FLAGS_OUTPUT 0x00000002	/* Device can be used as output console */
-#define DEV_FLAGS_SYSTEM 0x80000000	/* Device is a system device		*/
-#define DEV_EXT_VIDEO	 0x00000001	/* Video extensions supported		*/
 
 /* Device information */
 struct stdio_dev {
@@ -102,7 +100,7 @@ int stdio_add_devices(void);
 int stdio_init(void);
 
 void	stdio_print_current_devices(void);
-#ifdef CONFIG_SYS_STDIO_DEREGISTER
+#if CONFIG_IS_ENABLED(SYS_STDIO_DEREGISTER)
 int stdio_deregister(const char *devname, int force);
 int stdio_deregister_dev(struct stdio_dev *dev, int force);
 #endif

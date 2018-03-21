@@ -288,6 +288,8 @@ void do_bootvx_fdt(bootm_headers_t *images)
 		if (ret)
 			return;
 
+		fdt_fixup_ethernet(*of_flat_tree);
+
 		ret = fdt_add_subnode(*of_flat_tree, 0, "chosen");
 		if ((ret >= 0 || ret == -FDT_ERR_EXISTS)) {
 			bootline = getenv("bootargs");
@@ -351,6 +353,7 @@ static int do_bootm_qnxelf(int flag, int argc, char * const argv[],
 {
 	char *local_args[2];
 	char str[16];
+	int dcache;
 
 	if (flag != BOOTM_STATE_OS_GO)
 		return 0;
@@ -365,7 +368,18 @@ static int do_bootm_qnxelf(int flag, int argc, char * const argv[],
 	sprintf(str, "%lx", images->ep); /* write entry-point into string */
 	local_args[0] = argv[0];
 	local_args[1] = str;	/* and provide it via the arguments */
+
+	/*
+	 * QNX images require the data cache is disabled.
+	 */
+	dcache = dcache_status();
+	if (dcache)
+		dcache_disable();
+
 	do_bootelf(NULL, 0, 2, local_args);
+
+	if (dcache)
+		dcache_enable();
 
 	return 1;
 }
@@ -479,12 +493,12 @@ int boot_selected_os(int argc, char * const argv[], int state,
 
 	/* Stand-alone may return when 'autostart' is 'no' */
 	if (images->os.type == IH_TYPE_STANDALONE ||
+	    IS_ENABLED(CONFIG_SANDBOX) ||
 	    state == BOOTM_STATE_OS_FAKE_GO) /* We expect to return */
 		return 0;
 	bootstage_error(BOOTSTAGE_ID_BOOT_OS_RETURNED);
-#ifdef DEBUG
-	puts("\n## Control returned to monitor - resetting...\n");
-#endif
+	debug("\n## Control returned to monitor - resetting...\n");
+
 	return BOOTM_ERR_RESET;
 }
 

@@ -34,7 +34,7 @@ static int do_caam(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	data_addr = (void *)strict_strtoul(argv[2], NULL, 16);
 	blob_addr = (void *)strict_strtoul(argv[3], NULL, 16);
-	size      = strict_strtoul(argv[4], NULL, 16);
+	size      = (void *)strict_strtoul(argv[4], NULL, 16);
 
 	caam_open();
 

@@ -14,11 +14,11 @@
 #include <asm/immap_85xx.h>
 #include <asm/fsl_law.h>
 #include <asm/fsl_serdes.h>
-#include <asm/fsl_portals.h>
 #include <asm/fsl_liodn.h>
 #include <fm_eth.h>
 #include "t208xrdb.h"
 #include "cpld.h"
+#include "../common/vid.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -80,11 +80,12 @@ int board_early_init_r(void)
 		MAS3_SX|MAS3_SW|MAS3_SR, MAS2_I|MAS2_G,
 		0, flash_esel, BOOKE_PAGESZ_256M, 1);
 
-	set_liodns();
-#ifdef CONFIG_SYS_DPAA_QBMAN
-	setup_portals();
-#endif
-
+	/*
+	 * Adjust core voltage according to voltage ID
+	 * This function changes I2C mux to channel 2.
+	 */
+	if (adjust_vdd(0))
+		printf("Warning: Adjusting core voltage failed.\n");
 	return 0;
 }
 
@@ -100,6 +101,13 @@ unsigned long get_board_ddr_clk(void)
 
 int misc_init_r(void)
 {
+	u8 reg;
+
+	/* Reset CS4315 PHY */
+	reg = CPLD_READ(reset_ctl);
+	reg |= CPLD_RSTCON_EDC_RST;
+	CPLD_WRITE(reset_ctl, reg);
+
 	return 0;
 }
 
@@ -120,7 +128,7 @@ int ft_board_setup(void *blob, bd_t *bd)
 #endif
 
 	fdt_fixup_liodn(blob);
-	fdt_fixup_dr_usb(blob, bd);
+	fsl_fdt_fixup_dr_usb(blob, bd);
 
 #ifdef CONFIG_SYS_DPAA_FMAN
 	fdt_fixup_fman_ethernet(blob);

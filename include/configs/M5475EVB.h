@@ -19,8 +19,6 @@
  * (easy to change)
  */
 
-#define CONFIG_DISPLAY_BOARDINFO
-
 #define CONFIG_MCFUART
 #define CONFIG_SYS_UART_PORT		(0)
 #define CONFIG_BAUDRATE		115200
@@ -29,21 +27,9 @@
 #define CONFIG_WATCHDOG_TIMEOUT	5000	/* timeout in milliseconds, max timeout is 6.71sec */
 
 /* Command line configuration */
-#include <config_cmd_default.h>
-
-#define CONFIG_CMD_CACHE
 #undef CONFIG_CMD_DATE
-#define CONFIG_CMD_ELF
-#define CONFIG_CMD_FLASH
-#define CONFIG_CMD_I2C
-#define CONFIG_CMD_MEMORY
-#define CONFIG_CMD_MISC
-#define CONFIG_CMD_MII
-#define CONFIG_CMD_NET
 #define CONFIG_CMD_PCI
-#define CONFIG_CMD_PING
 #define CONFIG_CMD_REGINFO
-#define CONFIG_CMD_USB
 
 #define CONFIG_SLTTMR
 
@@ -75,25 +61,20 @@
 #		endif
 #	endif			/* CONFIG_SYS_DISCOVER_PHY */
 
-#	define CONFIG_ETHADDR	00:e0:0c:bc:e5:60
-#	define CONFIG_ETH1ADDR	00:e0:0c:bc:e5:61
 #	define CONFIG_IPADDR	192.162.1.2
 #	define CONFIG_NETMASK	255.255.255.0
 #	define CONFIG_SERVERIP	192.162.1.1
 #	define CONFIG_GATEWAYIP	192.162.1.1
-#	define CONFIG_OVERWRITE_ETHADDR_ONCE
 
 #endif
 
 #ifdef CONFIG_CMD_USB
 #	define CONFIG_USB_OHCI_NEW
-#	define CONFIG_USB_STORAGE
 
 #	ifndef CONFIG_CMD_PCI
 #		define CONFIG_CMD_PCI
 #	endif
 #	define CONFIG_PCI_OHCI
-#	define CONFIG_DOS_PARTITION
 
 #	undef CONFIG_SYS_USB_OHCI_BOARD_INIT
 #	undef CONFIG_SYS_USB_OHCI_CPU_INIT
@@ -112,8 +93,6 @@
 
 /* PCI */
 #ifdef CONFIG_CMD_PCI
-#define CONFIG_PCI		1
-#define CONFIG_PCI_PNP		1
 #define CONFIG_PCIAUTO_SKIP_HOST_BRIDGE	1
 
 #define CONFIG_SYS_PCI_CACHE_LINE_SIZE	8
@@ -131,16 +110,13 @@
 #define CONFIG_SYS_PCI_CFG_SIZE	0x01000000
 #endif
 
-#define CONFIG_BOOTDELAY	1	/* autoboot after 5 seconds */
 #define CONFIG_UDP_CHECKSUM
 
 #ifdef CONFIG_MCFFEC
-#	define CONFIG_ETHADDR	00:e0:0c:bc:e5:60
 #	define CONFIG_IPADDR	192.162.1.2
 #	define CONFIG_NETMASK	255.255.255.0
 #	define CONFIG_SERVERIP	192.162.1.1
 #	define CONFIG_GATEWAYIP	192.162.1.1
-#	define CONFIG_OVERWRITE_ETHADDR_ONCE
 #endif				/* FEC_ENET */
 
 #define CONFIG_HOSTNAME		M547xEVB
@@ -157,7 +133,6 @@
 	""
 
 #define CONFIG_PRAM		512	/* 512 KB */
-#define CONFIG_SYS_PROMPT		"-> "
 #define CONFIG_SYS_LONGHELP		/* undef to save memory */
 
 #ifdef CONFIG_CMD_KGDB

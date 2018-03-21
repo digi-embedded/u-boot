@@ -7,31 +7,15 @@ config SYS_ARCH
 config SYS_BOARD
 	default "sandbox"
 
-config SYS_CONFIG_NAME
+config SYS_CPU
 	default "sandbox"
 
-config DM
-	default y
+config SANDBOX_SPL
+	bool "Enable SPL for sandbox"
+	select SUPPORT_SPL
 
-config DM_GPIO
-	default y
-
-config DM_SERIAL
-	default y
-
-config DM_CROS_EC
-	default y
-
-config DM_SPI
-	default y
-
-config DM_SPI_FLASH
-	default y
-
-config DM_I2C
-	default y
-
-config DM_TEST
-	default y
+config SYS_CONFIG_NAME
+	default "sandbox_spl" if SANDBOX_SPL
+	default "sandbox" if !SANDBOX_SPL
 
 endmenu

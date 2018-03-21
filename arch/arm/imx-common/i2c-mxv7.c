@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2012 Boundary Devices Inc.
+ * Copyright (C) 2014-2016 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -7,12 +8,12 @@
 #include <malloc.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/imx-regs.h>
-#include <asm/errno.h>
+#include <linux/errno.h>
 #include <asm/gpio.h>
 #include <asm/imx-common/mxc_i2c.h>
 #include <watchdog.h>
 
-static int force_idle_bus(void *priv)
+int force_idle_bus(void *priv)
 {
 	int i;
 	int sda, scl;
@@ -95,7 +96,7 @@ static void * const i2c_bases[] = {
 #endif
 };
 
-/* i2c_index can be from 0 - 2 */
+/* i2c_index can be from 0 - 3 */
 int setup_i2c(unsigned i2c_index, int speed, int slave_addr,
 	      struct i2c_pads_info *p)
 {
@@ -125,8 +126,9 @@ int setup_i2c(unsigned i2c_index, int speed, int slave_addr,
 	if (ret)
 		goto err_idle;
 
-	bus_i2c_init(i2c_bases[i2c_index], speed, slave_addr,
-			force_idle_bus, p);
+#ifndef CONFIG_DM_I2C
+	bus_i2c_init(i2c_index, speed, slave_addr, force_idle_bus, p);
+#endif
 
 	return 0;
 

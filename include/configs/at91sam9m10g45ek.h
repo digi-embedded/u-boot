@@ -27,13 +27,6 @@
 #define CONFIG_SETUP_MEMORY_TAGS
 #define CONFIG_INITRD_TAG
 #define CONFIG_SKIP_LOWLEVEL_INIT
-#define CONFIG_BOARD_EARLY_INIT_F
-#define CONFIG_DISPLAY_CPUINFO
-
-#define CONFIG_CMD_BOOTZ
-#define CONFIG_OF_LIBFDT
-
-#define CONFIG_SYS_GENERIC_BOARD
 
 /* general purpose I/O */
 #define CONFIG_ATMEL_LEGACY		/* required until (g)pio is fixed */
@@ -46,7 +39,6 @@
 #define	CONFIG_USART_ID			ATMEL_ID_SYS
 
 /* LCD */
-#define CONFIG_LCD
 #define LCD_BPP				LCD_COLOR8
 #define CONFIG_LCD_LOGO
 #undef LCD_TEST_PATTERN
@@ -55,7 +47,6 @@
 #define CONFIG_SYS_WHITE_ON_BLACK
 #define CONFIG_ATMEL_LCD
 #define CONFIG_ATMEL_LCD_RGB565
-#define CONFIG_SYS_CONSOLE_IS_IN_ENV
 /* board specific(not enough SRAM) */
 #define CONFIG_AT91SAM9G45_LCD_BASE		0x73E00000
 
@@ -64,7 +55,6 @@
 #define	CONFIG_RED_LED		AT91_PIN_PD31	/* this is the user1 led */
 #define	CONFIG_GREEN_LED	AT91_PIN_PD0	/* this is the user2 led */
 
-#define CONFIG_BOOTDELAY	3
 
 /*
  * BOOTP options
@@ -78,20 +68,7 @@
  * Command line configuration.
  */
 
-/* No NOR flash */
-#define CONFIG_SYS_NO_FLASH
-
-#include <config_cmd_default.h>
-#undef CONFIG_CMD_BDI
-#undef CONFIG_CMD_FPGA
-#undef CONFIG_CMD_IMI
-#undef CONFIG_CMD_IMLS
-#undef CONFIG_CMD_LOADS
-
-#define CONFIG_CMD_PING
-#define CONFIG_CMD_DHCP
 #define CONFIG_CMD_NAND
-#define CONFIG_CMD_USB
 
 /* SDRAM */
 #define CONFIG_NR_DRAM_BANKS		1
@@ -117,17 +94,9 @@
 #endif
 
 /* MMC */
-#define CONFIG_CMD_MMC
 
 #ifdef CONFIG_CMD_MMC
-#define CONFIG_MMC
-#define CONFIG_GENERIC_MMC
 #define CONFIG_GENERIC_ATMEL_MCI
-#endif
-
-#if defined(CONFIG_CMD_USB) || defined(CONFIG_CMD_MMC)
-#define CONFIG_CMD_FAT
-#define CONFIG_DOS_PARTITION
 #endif
 
 /* Ethernet */
@@ -141,7 +110,6 @@
 #define CONFIG_USB_EHCI
 #define CONFIG_USB_EHCI_ATMEL
 #define CONFIG_SYS_USB_EHCI_MAX_ROOT_PORTS	2
-#define CONFIG_USB_STORAGE
 
 #define CONFIG_SYS_LOAD_ADDR		0x22000000	/* load address */
 
@@ -189,14 +157,11 @@
 
 #define CONFIG_BAUDRATE			115200
 
-#define CONFIG_SYS_PROMPT		"U-Boot> "
 #define CONFIG_SYS_CBSIZE		256
 #define CONFIG_SYS_MAXARGS		16
-#define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
 #define CONFIG_SYS_LONGHELP
 #define CONFIG_CMDLINE_EDITING
 #define CONFIG_AUTO_COMPLETE
-#define CONFIG_SYS_HUSH_PARSER
 
 /*
  * Size of malloc() pool
@@ -209,11 +174,6 @@
 #define CONFIG_SPL_MAX_SIZE		0x010000
 #define CONFIG_SPL_STACK		0x310000
 
-#define CONFIG_SPL_LIBCOMMON_SUPPORT
-#define CONFIG_SPL_LIBGENERIC_SUPPORT
-#define CONFIG_SPL_SERIAL_SUPPORT
-#define CONFIG_SPL_GPIO_SUPPORT
-
 #define CONFIG_SYS_MONITOR_LEN		0x80000
 
 #ifdef CONFIG_SYS_USE_MMC
@@ -224,16 +184,10 @@
 #define CONFIG_SYS_SPL_MALLOC_SIZE	0x00080000
 
 #define CONFIG_SPL_LDSCRIPT		arch/arm/mach-at91/arm926ejs/u-boot-spl.lds
-#define CONFIG_SPL_MMC_SUPPORT
-#define CONFIG_SYS_U_BOOT_MAX_SIZE_SECTORS	0x400
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR 0x200
 #define CONFIG_SYS_MMCSD_FS_BOOT_PARTITION	1
 #define CONFIG_SPL_FS_LOAD_PAYLOAD_NAME		"u-boot.img"
-#define CONFIG_SPL_FAT_SUPPORT
-#define CONFIG_SPL_LIBDISK_SUPPORT
 
 #elif CONFIG_SYS_USE_NANDFLASH
-#define CONFIG_SPL_NAND_SUPPORT
 #define CONFIG_SPL_NAND_DRIVERS
 #define CONFIG_SPL_NAND_BASE
 #define CONFIG_SPL_NAND_ECC
@@ -260,5 +214,4 @@
 #define CONFIG_SYS_MCKR			0x1301
 #define CONFIG_SYS_MCKR_CSS		0x1302
 
-#define ATMEL_BASE_MPDDRC		ATMEL_BASE_DDRSDRC0
 #endif

@@ -10,14 +10,11 @@
 #ifndef __CONFIG_5250_H
 #define __CONFIG_5250_H
 
-#include <configs/exynos5-common.h>
 #define CONFIG_EXYNOS5250
 
 #define CONFIG_SYS_SDRAM_BASE		0x40000000
 #define CONFIG_SYS_TEXT_BASE		0x43E00000
 
-/* MACH_TYPE_SMDK5250 macro will be removed once added to mach-types */
-#define MACH_TYPE_SMDK5250		3774
 #define CONFIG_MACH_TYPE		MACH_TYPE_SMDK5250
 
 #define CONFIG_SPL_MAX_FOOTPRINT	(14 * 1024)
@@ -28,26 +25,15 @@
 
 #define CONFIG_SYS_INIT_SP_ADDR	CONFIG_IRAM_STACK
 
-/* Sound */
-#define CONFIG_CMD_SOUND
-#ifdef CONFIG_CMD_SOUND
-#define CONFIG_SOUND
-#define CONFIG_I2S_SAMSUNG
-#define CONFIG_I2S
-#define CONFIG_SOUND_MAX98095
-#define CONFIG_SOUND_WM8994
-#endif
+/* USB */
+#define CONFIG_USB_EHCI
+#define CONFIG_USB_EHCI_EXYNOS
 
-/* I2C */
-#define CONFIG_MAX_I2C_NUM	8
+#define CONFIG_USB_XHCI_EXYNOS
 
-/* Display */
-#define CONFIG_LCD
-#ifdef CONFIG_LCD
-#define CONFIG_EXYNOS_FB
-#define CONFIG_EXYNOS_DP
-#define LCD_BPP			LCD_COLOR16
-#endif
+#define CONFIG_USB_HOST_ETHER
+#define CONFIG_USB_ETHER_ASIX
+#define CONFIG_USB_ETHER_ASIX88179
 
 /* DRAM Memory Banks */
 #define CONFIG_NR_DRAM_BANKS	8

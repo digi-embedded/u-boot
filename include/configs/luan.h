@@ -28,7 +28,6 @@
 #define CONFIG_HOSTNAME		luan
 #include "amcc-common.h"
 
-#define CONFIG_BOARD_EARLY_INIT_F 1	/* call board_early_init_f()	*/
 #define CONFIG_MISC_INIT_R	1	/* call misc_init_r()		*/
 
 /*-----------------------------------------------------------------------
@@ -119,7 +118,6 @@
  *----------------------------------------------------------------------*/
 #define CONFIG_SYS_I2C_PPC4XX_SPEED_0		400000
 
-#define CONFIG_SYS_I2C_MULTI_EEPROMS
 #define CONFIG_SYS_I2C_EEPROM_ADDR	(0xa8>>1)
 #define CONFIG_SYS_I2C_EEPROM_ADDR_LEN 1
 #define CONFIG_SYS_EEPROM_PAGE_WRITE_BITS 3
@@ -160,9 +158,7 @@
 #if defined(CONFIG_CMD_PCI)
 
 /* General PCI */
-#define CONFIG_PCI			/* include pci support	        */
 #define CONFIG_PCI_INDIRECT_BRIDGE	/* indirect PCI bridge support */
-#define CONFIG_PCI_PNP			/* do (not) pci plug-and-play   */
 #define CONFIG_PCI_SCAN_SHOW            /* show pci devices on startup  */
 
 /* Board-specific PCI */

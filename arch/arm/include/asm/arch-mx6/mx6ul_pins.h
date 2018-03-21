@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Freescale Semiconductor, Inc.
+ * Copyright (C) 2015 - 2016 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:     GPL-2.0+
  */
@@ -14,9 +14,9 @@ enum {
 	MX6_PAD_BOOT_MODE0__GPIO5_IO10	                        = IOMUX_PAD(0x02A0, 0x0014, 5, 0x0000, 0, 0),
 	MX6_PAD_BOOT_MODE1__GPIO5_IO11	                        = IOMUX_PAD(0x02A4, 0x0018, 5, 0x0000, 0, 0),
 	/*
-	* The TAMPER Pin can be used for GPIO, which depends on
-	* TAMPER_PIN_DISABLE[1:0] settings.
-	*/
+	 * The TAMPER Pin can be used for GPIO, which depends on
+	 * fusemap TAMPER_PIN_DISABLE[1:0] settings.
+	 */
 	MX6_PAD_SNVS_TAMPER0__GPIO5_IO00                       = IOMUX_PAD(0x02A8, 0x001C, 5, 0x0000, 0, 0),
 	MX6_PAD_SNVS_TAMPER1__GPIO5_IO01                       = IOMUX_PAD(0x02AC, 0x0020, 5, 0x0000, 0, 0),
 	MX6_PAD_SNVS_TAMPER2__GPIO5_IO02                       = IOMUX_PAD(0x02B0, 0x0024, 5, 0x0000, 0, 0),

@@ -7,7 +7,7 @@
 #include <common.h>
 #include <command.h>
 #include <linux/compiler.h>
-#include <asm/fsl_errata.h>
+#include <fsl_errata.h>
 #include <asm/processor.h>
 #include <fsl_usb.h>
 #include "fsl_corenet_serdes.h"
@@ -26,12 +26,12 @@ static void check_erratum_a4849(uint32_t svr)
 	void __iomem *dcsr = (void *)CONFIG_SYS_DCSRBAR + 0xb0000;
 	unsigned int i;
 
-#if defined(CONFIG_PPC_P2041) || defined(CONFIG_PPC_P3041)
+#if defined(CONFIG_ARCH_P2041) || defined(CONFIG_ARCH_P3041)
 	static const uint8_t offsets[] = {
 		0x50, 0x54, 0x58, 0x90, 0x94, 0x98
 	};
 #endif
-#ifdef CONFIG_PPC_P4080
+#ifdef CONFIG_ARCH_P4080
 	static const uint8_t offsets[] = {
 		0x60, 0x64, 0x68, 0x6c, 0xa0, 0xa4, 0xa8, 0xac
 	};
@@ -45,11 +45,11 @@ static void check_erratum_a4849(uint32_t svr)
 		}
 	}
 
-#if defined(CONFIG_PPC_P2041) || defined(CONFIG_PPC_P3041)
+#if defined(CONFIG_ARCH_P2041) || defined(CONFIG_ARCH_P3041)
 	x108 = 0x12;
 #endif
 
-#ifdef CONFIG_PPC_P4080
+#ifdef CONFIG_ARCH_P4080
 	/*
 	 * For P4080, the erratum document says that the value at offset 0x108
 	 * should be 0x12 on rev2, or 0x1c on rev3.
@@ -136,7 +136,7 @@ static int do_errata(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 #endif
 	__maybe_unused u32 svr = get_svr();
 
-#if defined(CONFIG_FSL_SATA_V2) && defined(CONFIG_FSL_SATA_ERRATUM_A001)
+#if defined(CONFIG_FSL_SATA_V2) && defined(CONFIG_SYS_FSL_ERRATUM_SATA_A001)
 	if (IS_SVR_REV(svr, 1, 0)) {
 		switch (SVR_SOC_VER(svr)) {
 		case SVR_P1013:
@@ -299,6 +299,10 @@ static int do_errata(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	if (has_erratum_a007798())
 		puts("Work-around for Erratum A007798 enabled\n");
 #endif
+#ifdef CONFIG_SYS_FSL_ERRATUM_A004477
+	if (has_erratum_a004477())
+		puts("Work-around for Erratum A004477 enabled\n");
+#endif
 #ifdef CONFIG_SYS_FSL_ERRATUM_I2C_A004447
 	if ((SVR_SOC_VER(svr) == SVR_8548 && IS_SVR_REV(svr, 3, 1)) ||
 	    (SVR_REV(svr) <= CONFIG_SYS_FSL_A004447_SVR_REV))
@@ -319,8 +323,18 @@ static int do_errata(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	if (IS_SVR_REV(svr, 1, 0))
 		puts("Work-around for Erratum A-008044 enabled\n");
 #endif
-#if defined(CONFIG_SYS_FSL_B4860QDS_XFI_ERR) && defined(CONFIG_B4860QDS)
+#if defined(CONFIG_SYS_FSL_B4860QDS_XFI_ERR) && \
+	(defined(CONFIG_TARGET_B4860QDS) || defined(CONFIG_TARGET_B4420QDS))
 	puts("Work-around for Erratum XFI on B4860QDS enabled\n");
+#endif
+#ifdef CONFIG_SYS_FSL_ERRATUM_A009663
+	puts("Work-around for Erratum A009663 enabled\n");
+#endif
+#ifdef CONFIG_SYS_FSL_ERRATUM_A007907
+	puts("Work-around for Erratum A007907 enabled\n");
+#endif
+#ifdef CONFIG_SYS_FSL_ERRATUM_A007815
+	puts("Work-around for Erratum A007815 enabled\n");
 #endif
 
 	return 0;

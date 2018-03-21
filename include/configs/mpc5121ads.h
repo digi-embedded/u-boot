@@ -12,8 +12,6 @@
 #define __CONFIG_H
 
 #define CONFIG_MPC5121ADS 1
-#define CONFIG_DISPLAY_BOARDINFO
-#define CONFIG_SYS_GENERIC_BOARD
 
 /*
  * Memory map for the MPC5121ADS board:
@@ -38,11 +36,7 @@
 /* video */
 #ifdef CONFIG_FSL_DIU_FB
 #define CONFIG_SYS_DIU_ADDR	(CONFIG_SYS_IMMR + 0x2100)
-#define CONFIG_VIDEO
 #define CONFIG_CMD_BMP
-#define CONFIG_CFB_CONSOLE
-#define CONFIG_VIDEO_SW_CURSOR
-#define CONFIG_VGA_AS_SINGLE_DEVICE
 #define CONFIG_VIDEO_LOGO
 #define CONFIG_VIDEO_BMP_LOGO
 #endif
@@ -53,10 +47,8 @@
 #define CONFIG_SYS_MPC512X_CLKIN	66000000	/* in Hz */
 #else
 #define CONFIG_SYS_MPC512X_CLKIN	33333333	/* in Hz */
-#define CONFIG_PCI
 #endif
 
-#define CONFIG_BOARD_EARLY_INIT_F		/* call board_early_init_f() */
 #define CONFIG_MISC_INIT_R
 
 #define CONFIG_SYS_IMMR		0x80000000
@@ -292,10 +284,6 @@
 #define CONSOLE_FIFO_RX_ADDR	FIFOC_PSC3_RX_ADDR
 
 #define CONFIG_CMDLINE_EDITING	1	/* add command line history	*/
-/* Use the HUSH parser */
-#define CONFIG_SYS_HUSH_PARSER
-#ifdef  CONFIG_SYS_HUSH_PARSER
-#endif
 
 /*
  * Clocks in use
@@ -336,9 +324,6 @@
 #define CONFIG_SYS_PCI_IO_BASE		0x00000000
 #define CONFIG_SYS_PCI_IO_PHYS		0x84000000
 #define CONFIG_SYS_PCI_IO_SIZE		0x01000000	/* 16M */
-
-
-#define CONFIG_PCI_PNP			/* do pci plug-and-play */
 
 #define CONFIG_PCI_SCAN_SHOW		/* show pci devices on startup */
 
@@ -384,7 +369,6 @@
 /*
  * USB  Support
  */
-#define CONFIG_CMD_USB
 
 #if defined(CONFIG_CMD_USB)
 #define CONFIG_USB_EHCI				/* Enable EHCI Support	*/
@@ -392,7 +376,6 @@
 #define CONFIG_EHCI_MMIO_BIG_ENDIAN		/* With big-endian regs	*/
 #define CONFIG_EHCI_DESC_BIG_ENDIAN
 #define CONFIG_EHCI_IS_TDI
-#define CONFIG_USB_STORAGE
 #endif
 
 /*
@@ -415,19 +398,10 @@
 #define CONFIG_LOADS_ECHO	1	/* echo on for serial download */
 #define CONFIG_SYS_LOADS_BAUD_CHANGE	1	/* allow baudrate change */
 
-#include <config_cmd_default.h>
-
-#define CONFIG_CMD_ASKENV
 #define CONFIG_CMD_DATE
-#define CONFIG_CMD_DHCP
 #define CONFIG_CMD_EEPROM
-#define CONFIG_CMD_EXT2
-#define CONFIG_CMD_I2C
 #define CONFIG_CMD_IDE
 #define CONFIG_CMD_JFFS2
-#define CONFIG_CMD_MII
-#define CONFIG_CMD_NFS
-#define CONFIG_CMD_PING
 #define CONFIG_CMD_REGINFO
 
 #undef CONFIG_CMD_FUSE
@@ -462,14 +436,7 @@
 						"1m(u-boot);"		\
 					"mpc5121.nand:-(data)"
 
-
 #if defined(CONFIG_CMD_IDE) || defined(CONFIG_CMD_EXT2) || defined(CONFIG_CMD_USB)
-
-#define CONFIG_DOS_PARTITION
-#define CONFIG_MAC_PARTITION
-#define CONFIG_ISO_PARTITION
-
-#define CONFIG_CMD_FAT
 #define CONFIG_SUPPORT_VFAT
 
 #endif /* defined(CONFIG_CMD_IDE) */
@@ -494,7 +461,6 @@
 #else
 	#define CONFIG_SYS_CBSIZE	256	/* Console I/O Buffer Size */
 #endif
-
 
 #define CONFIG_SYS_PBSIZE (CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16) /* Print Buffer Size */
 #define CONFIG_SYS_MAXARGS	16		/* max number of command args */
@@ -535,7 +501,6 @@
 
 #define CONFIG_LOADADDR		400000	/* default location for tftp and bootm */
 
-#define CONFIG_BOOTDELAY	5	/* -1 disables auto-boot */
 #undef  CONFIG_BOOTARGS			/* the boot command will set bootargs */
 
 #define CONFIG_BAUDRATE		115200
@@ -590,8 +555,6 @@
 
 #define CONFIG_BOOTCOMMAND	"run flash_self"
 
-#define CONFIG_OF_LIBFDT	1
-#define CONFIG_OF_BOARD_SETUP	1
 #define CONFIG_OF_SUPPORT_OLD_DEVICE_TREES	1
 
 #define OF_CPU			"PowerPC,5121@0"

@@ -198,9 +198,9 @@ class TestBuild(unittest.TestCase):
             if line.text.strip():
                 count += 1
 
-        # We should get one starting message, then an update for every commit
+        # We should get two starting messages, then an update for every commit
         # built.
-        self.assertEqual(count, len(commits) * len(boards) + 1)
+        self.assertEqual(count, len(commits) * len(boards) + 2)
         build.SetDisplayOptions(show_errors=True);
         build.ShowSummary(self.commits, board_selected)
         #terminal.EchoPrintTestLines()
@@ -411,7 +411,7 @@ class TestBuild(unittest.TestCase):
 
     def testToolchainDownload(self):
         """Test that we can download toolchains"""
-        self.assertEqual('https://www.kernel.org/pub/tools/crosstool/files/bin/x86_64/4.6.3/x86_64-gcc-4.6.3-nolibc_arm-unknown-linux-gnueabi.tar.xz',
+        self.assertEqual('https://www.kernel.org/pub/tools/crosstool/files/bin/x86_64/4.9.0/x86_64-gcc-4.9.0-nolibc_arm-unknown-linux-gnueabi.tar.xz',
             self.toolchains.LocateArchUrl('arm'))
 
 

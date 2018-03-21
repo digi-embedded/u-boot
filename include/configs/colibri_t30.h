@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2013-2015 Stefan Agner
+ * Copyright (c) 2013-2016 Stefan Agner
+ *
+ * Configuration settings for the Toradex Colibri T30 modules.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -12,11 +14,9 @@
 #include "tegra30-common.h"
 
 /* High-level configuration options */
-#define V_PROMPT			"Colibri T30 # "
-#define CONFIG_TEGRA_BOARD_STRING	"Toradex Colibri T30"
+#define CONFIG_DISPLAY_BOARDINFO_LATE	/* Calls show_board_info() */
 
 /* Board-specific serial config */
-#define CONFIG_SERIAL_MULTI
 #define CONFIG_TEGRA_ENABLE_UARTA
 #define CONFIG_SYS_NS16550_COM1		NV_PA_APB_UARTA_BASE
 
@@ -24,37 +24,28 @@
 
 /* I2C */
 #define CONFIG_SYS_I2C_TEGRA
-#define CONFIG_CMD_I2C
 
-/* SD/MMC */
-#define CONFIG_MMC
-#define CONFIG_GENERIC_MMC
-#define CONFIG_TEGRA_MMC
-#define CONFIG_CMD_MMC
-
-/* Environment in eMMC, at the end of 2nd "boot sector" */
+/* Environment in eMMC, before config block at the end of 1st "boot sector" */
 #define CONFIG_ENV_IS_IN_MMC
-#define CONFIG_ENV_OFFSET		(-CONFIG_ENV_SIZE)
+#define CONFIG_ENV_OFFSET		(-CONFIG_ENV_SIZE + \
+					 CONFIG_TDX_CFG_BLOCK_OFFSET)
 #define CONFIG_SYS_MMC_ENV_DEV		0
-#define CONFIG_SYS_MMC_ENV_PART		2
+#define CONFIG_SYS_MMC_ENV_PART		1
 
-/* USB Host support */
+/* USB host support */
 #define CONFIG_USB_EHCI
 #define CONFIG_USB_EHCI_TEGRA
-#define CONFIG_USB_MAX_CONTROLLER_COUNT 3
-#define CONFIG_USB_STORAGE
-#define CONFIG_CMD_USB
 
 /* USB networking support */
 #define CONFIG_USB_HOST_ETHER
 #define CONFIG_USB_ETHER_ASIX
 
 /* General networking support */
-#define CONFIG_CMD_NET
-#define CONFIG_CMD_DHCP
+#define CONFIG_IP_DEFRAG
+#define CONFIG_TFTP_BLOCKSIZE		16352
+#define CONFIG_TFTP_TSIZE
 
 /* Miscellaneous commands */
-#define CONFIG_CMD_SETEXPR
 #define CONFIG_FAT_WRITE
 
 /* Increase console I/O buffer size */

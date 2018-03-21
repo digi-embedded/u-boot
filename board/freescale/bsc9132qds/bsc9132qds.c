@@ -36,9 +36,9 @@ DECLARE_GLOBAL_DATA_PTR;
 
 int board_early_init_f(void)
 {
-	struct fsl_ifc *ifc = (void *)CONFIG_SYS_IFC_ADDR;
+	struct fsl_ifc ifc = {(void *)CONFIG_SYS_IFC_ADDR, (void *)NULL};
 
-	setbits_be32(&ifc->ifc_gcr, 1 << IFC_GCR_TBCTL_TRN_TIME_SHIFT);
+	setbits_be32(&ifc.gregs->ifc_gcr, 1 << IFC_GCR_TBCTL_TRN_TIME_SHIFT);
 
 	return 0;
 }
@@ -151,7 +151,7 @@ void dsp_ddr_configure(void)
 
 int board_early_init_r(void)
 {
-#ifndef CONFIG_SYS_NO_FLASH
+#ifdef CONFIG_MTD_NOR_FLASH
 	const unsigned int flashbase = CONFIG_SYS_FLASH_BASE;
 	int flash_esel = find_tlb_idx((void *)flashbase, 1);
 
@@ -227,9 +227,9 @@ int checkboard(void)
 	return 0;
 }
 
-#ifdef CONFIG_TSEC_ENET
 int board_eth_init(bd_t *bis)
 {
+#ifdef CONFIG_TSEC_ENET
 	struct fsl_pq_mdio_info mdio_info;
 	struct tsec_info_struct tsec_info[4];
 	int num = 0;
@@ -250,6 +250,7 @@ int board_eth_init(bd_t *bis)
 
 	fsl_pq_mdio_init(bis, &mdio_info);
 	tsec_eth_init(bis, tsec_info, num);
+#endif
 
 	#ifdef CONFIG_PCI
 	pci_eth_init(bis);
@@ -257,7 +258,6 @@ int board_eth_init(bd_t *bis)
 
 	return 0;
 }
-#endif
 
 #define USBMUX_SEL_MASK		0xc0
 #define USBMUX_SEL_UART2	0xc0
@@ -394,7 +394,7 @@ int ft_board_setup(void *blob, bd_t *bd)
 			/* remove dts usb node */
 			fdt_del_node_compat(blob, "fsl-usb2-dr");
 		} else {
-			fdt_fixup_dr_usb(blob, bd);
+			fsl_fdt_fixup_dr_usb(blob, bd);
 			fdt_del_node_and_alias(blob, "serial2");
 		}
 	}

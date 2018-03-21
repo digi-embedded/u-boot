@@ -13,7 +13,6 @@
 /* CPU, chip, mach, etc */
 #define CONFIG_KONA
 #define CONFIG_SKIP_LOWLEVEL_INIT
-#define CONFIG_SYS_GENERIC_BOARD
 
 /*
  * Memory configuration
@@ -31,12 +30,6 @@
 #define CONFIG_KONA_GPIO
 
 /* MMC/SD Driver */
-#define CONFIG_SDHCI
-#define CONFIG_MMC_SDMA
-#define CONFIG_KONA_SDHCI
-#define CONFIG_MMC
-#define CONFIG_GENERIC_MMC
-
 #define CONFIG_SYS_SDIO_BASE0 SDIO1_BASE_ADDR
 #define CONFIG_SYS_SDIO_BASE1 SDIO2_BASE_ADDR
 #define CONFIG_SYS_SDIO_BASE2 SDIO3_BASE_ADDR
@@ -71,7 +64,6 @@
 #define CONFIG_SYS_LOAD_ADDR		CONFIG_SYS_SDRAM_BASE
 
 /* No mtest functions as recommended */
-#undef CONFIG_CMD_MEMORY
 
 /*
  * This is the initial SP which is used only briefly for relocating the u-boot
@@ -81,7 +73,6 @@
 #define CONFIG_SYS_INIT_SP_ADDR		CONFIG_SYS_TEXT_BASE
 
 /* Serial Info */
-#define CONFIG_SYS_NS16550
 #define CONFIG_SYS_NS16550_SERIAL
 /* Post pad 3 bytes after each reg addr */
 #define CONFIG_SYS_NS16550_REG_SIZE	(-4)
@@ -91,10 +82,11 @@
 
 #define CONFIG_BAUDRATE			115200
 
-#define CONFIG_ENV_SIZE			0x10000
-#define CONFIG_ENV_IS_NOWHERE
-
-#define CONFIG_SYS_NO_FLASH	/* Not using NAND/NOR unmanaged flash */
+/* must fit into GPT:u-boot-env partition */
+#define CONFIG_ENV_IS_IN_MMC
+#define CONFIG_SYS_MMC_ENV_DEV		0
+#define CONFIG_ENV_OFFSET		(0x00011a00 * 512)
+#define CONFIG_ENV_SIZE			(8 * 512)
 
 /* console configuration */
 #define CONFIG_SYS_CBSIZE		1024	/* Console buffer size */
@@ -108,12 +100,9 @@
  * This is necessary for the fatls command to work on an SD card
  * for example.
  */
-#define CONFIG_DOS_PARTITION
 
 /* version string, parser, etc */
-#define CONFIG_VERSION_VARIABLE
 #define CONFIG_AUTO_COMPLETE
-#define CONFIG_SYS_HUSH_PARSER
 #define CONFIG_CMDLINE_EDITING
 #define CONFIG_SYS_LONGHELP
 
@@ -124,17 +113,8 @@
 #define CONFIG_BOOTCOMMAND		""
 
 /* Commands */
-#include <config_cmd_default.h>
-#define CONFIG_CMD_ASKENV
-#define CONFIG_CMD_CACHE
-#define CONFIG_CMD_FAT
-#define CONFIG_CMD_GPIO
-#define CONFIG_CMD_I2C
-#define CONFIG_CMD_MMC
-#define CONFIG_CMD_BOOTZ
 #define CONFIG_FAT_WRITE
 
-#undef CONFIG_CMD_NET
-#undef CONFIG_CMD_NFS
+#define CONFIG_USBID_ADDR		0x34052c46
 
 #endif /* __BCM28155_AP_H */

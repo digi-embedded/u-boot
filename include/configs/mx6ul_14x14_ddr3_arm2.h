@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Freescale Semiconductor, Inc.
+ * Copyright (C) 2015-2016 Freescale Semiconductor, Inc.
  *
  * Configuration settings for the Freescale i.MX6UL 14x14 DDR3 ARM2.
  *
@@ -8,48 +8,35 @@
 #ifndef __MX6UL_14X14_DDR3_ARM2_CONFIG_H
 #define __MX6UL_14X14_DDR3_ARM2_CONFIG_H
 
-#define CONFIG_DEFAULT_FDT_FILE  "imx6ul-14x14-ddr3-arm2.dtb"
-
-#ifdef CONFIG_SYS_BOOT_QSPI
-#define CONFIG_SYS_USE_QSPI
+#ifdef CONFIG_QSPI_BOOT
 #define CONFIG_ENV_IS_IN_SPI_FLASH
-#elif defined CONFIG_SYS_BOOT_SPINOR
-#define CONFIG_SYS_USE_SPINOR
+#elif defined CONFIG_SPI_BOOT
+#define CONFIG_MXC_SPI
 #define CONFIG_ENV_IS_IN_SPI_FLASH
-#elif defined CONFIG_SYS_BOOT_EIMNOR
-#define CONFIG_SYS_USE_EIMNOR
+#elif defined(CONFIG_NOR_BOOT)
+#define CONFIG_MTD_NOR_FLASH
 #define CONFIG_ENV_IS_IN_FLASH
-#elif defined CONFIG_SYS_BOOT_NAND
-#define CONFIG_SYS_USE_NAND
+#elif defined CONFIG_NAND_BOOT
+#define CONFIG_CMD_NAND
 #define CONFIG_ENV_IS_IN_NAND
 #else
-#define CONFIG_SYS_USE_QSPI
 #define CONFIG_ENV_IS_IN_MMC
 #endif
 
-#define CONFIG_VIDEO
-#define CONFIG_FSL_USDHC
-#define CONFIG_BOOTARGS_CMA_SIZE   ""
+#define BOOTARGS_CMA_SIZE   ""
 
 #include "mx6ul_arm2.h"
 
 #define PHYS_SDRAM_SIZE			SZ_1G
 
-#ifdef CONFIG_SYS_USE_SPINOR
-#define CONFIG_CMD_SF
-#define CONFIG_SPI_FLASH
-#define CONFIG_SPI_FLASH_STMICRO
-#define CONFIG_MXC_SPI
+#ifdef CONFIG_MXC_SPI
 #define CONFIG_SF_DEFAULT_BUS  0
 #define CONFIG_SF_DEFAULT_SPEED 20000000
 #define CONFIG_SF_DEFAULT_MODE (SPI_MODE_0)
 #define CONFIG_SF_DEFAULT_CS   0
 #endif
 
-#define CONFIG_CMD_NET
-#ifdef CONFIG_CMD_NET
-#define CONFIG_CMD_PING
-#define CONFIG_CMD_DHCP
+#ifdef CONFIG_DM_ETH
 #define CONFIG_CMD_MII
 #define CONFIG_FEC_MXC
 #define CONFIG_MII
@@ -59,16 +46,25 @@
 #define IMX_FEC_BASE			ENET_BASE_ADDR
 #define CONFIG_FEC_MXC_PHYADDR          0x1
 #define CONFIG_FEC_XCV_TYPE             RMII
+#ifdef CONFIG_DM_ETH
+#define CONFIG_ETHPRIME			"eth0"
+#else
+#define CONFIG_ETHPRIME			"FEC0"
+#endif
 #elif (CONFIG_FEC_ENET_DEV == 1)
 #define IMX_FEC_BASE			ENET2_BASE_ADDR
 #define CONFIG_FEC_MXC_PHYADDR          0x2
 #define CONFIG_FEC_XCV_TYPE             MII100
+#ifdef CONFIG_DM_ETH
+#define CONFIG_ETHPRIME			"eth1"
+#else
+#define CONFIG_ETHPRIME			"FEC1"
 #endif
-#define CONFIG_ETHPRIME                 "FEC"
+#endif
 
 #define CONFIG_PHYLIB
 #define CONFIG_PHY_MICREL
-#define CONFIG_FEC_DMA_MINALIGN		64
+#define CONFIG_FEC_MXC_MDIO_BASE ENET2_BASE_ADDR
 #endif
 
 #define CONFIG_MODULE_FUSE

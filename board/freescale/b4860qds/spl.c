@@ -4,6 +4,7 @@
  */
 
 #include <common.h>
+#include <console.h>
 #include <asm/spl.h>
 #include <malloc.h>
 #include <ns16550.h>
@@ -86,10 +87,11 @@ void board_init_r(gd_t *gd, ulong dest_addr)
 	bd->bi_memstart = CONFIG_SYS_INIT_L3_ADDR;
 	bd->bi_memsize = CONFIG_SYS_L3_SIZE;
 
-	probecpu();
+	arch_cpu_init();
 	get_clocks();
 	mem_malloc_init(CONFIG_SPL_RELOC_MALLOC_ADDR,
 			CONFIG_SPL_RELOC_MALLOC_SIZE);
+	gd->flags |= GD_FLG_FULL_MALLOC_INIT;
 
 #ifndef CONFIG_SPL_NAND_BOOT
 	env_init();

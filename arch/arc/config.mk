@@ -11,13 +11,13 @@ CONFIG_SYS_BIG_ENDIAN = 1
 endif
 
 ifdef CONFIG_SYS_LITTLE_ENDIAN
-ARC_CROSS_COMPILE := arc-buildroot-linux-uclibc-
+ARC_CROSS_COMPILE := arc-linux-
 PLATFORM_LDFLAGS += -EL
 PLATFORM_CPPFLAGS += -mlittle-endian
 endif
 
 ifdef CONFIG_SYS_BIG_ENDIAN
-ARC_CROSS_COMPILE := arceb-buildroot-linux-uclibc-
+ARC_CROSS_COMPILE := arceb-linux-
 PLATFORM_LDFLAGS += -EB
 PLATFORM_CPPFLAGS += -mbig-endian
 endif
@@ -31,23 +31,23 @@ CONFIG_MMU = 1
 endif
 
 ifdef CONFIG_CPU_ARC750D
-PLATFORM_CPPFLAGS += -marc700
+PLATFORM_CPPFLAGS += -mcpu=arc700
 endif
 
 ifdef CONFIG_CPU_ARC770D
-PLATFORM_CPPFLAGS += -marc700 -mlock -mswape
+PLATFORM_CPPFLAGS += -mcpu=arc700 -mlock -mswape
 endif
 
 ifdef CONFIG_CPU_ARCEM6
-PLATFORM_CPPFLAGS += -marcem
+PLATFORM_CPPFLAGS += -mcpu=arcem
 endif
 
 ifdef CONFIG_CPU_ARCHS34
-PLATFORM_CPPFLAGS += -marchs
+PLATFORM_CPPFLAGS += -mcpu=archs
 endif
 
 ifdef CONFIG_CPU_ARCHS38
-PLATFORM_CPPFLAGS += -marchs
+PLATFORM_CPPFLAGS += -mcpu=archs
 endif
 
 PLATFORM_CPPFLAGS += -ffixed-r25 -D__ARC__ -gdwarf-2

@@ -1,17 +1,4 @@
-if TARGET_T4240EMU
-
-config SYS_BOARD
-	default "t4qds"
-
-config SYS_VENDOR
-	default "freescale"
-
-config SYS_CONFIG_NAME
-	default "T4240EMU"
-
-endif
-
-if TARGET_T4240QDS
+if TARGET_T4160QDS || TARGET_T4240QDS
 
 config SYS_BOARD
 	default "t4qds"
@@ -21,5 +8,7 @@ config SYS_VENDOR
 
 config SYS_CONFIG_NAME
 	default "T4240QDS"
+
+source "board/freescale/common/Kconfig"
 
 endif

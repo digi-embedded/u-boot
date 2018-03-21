@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015 Freescale Semiconductor, Inc.
+ * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * Author:
  *	Peng Fan <Peng.Fan@freescale.com>
@@ -10,7 +10,7 @@
 #include <common.h>
 #include <div64.h>
 #include <asm/io.h>
-#include <asm/errno.h>
+#include <linux/errno.h>
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/crm_regs.h>
 #include <asm/arch/clock.h>
@@ -83,7 +83,8 @@ void enable_usboh3_clk(unsigned char enable)
 		clock_enable(CCGR_USB_HSIC, 0);
 
 		/* 120Mhz */
-		target = CLK_ROOT_ON | USB_HSIC_CLK_ROOT_FROM_PLL_SYS_MAIN_480M_CLK |
+		target = CLK_ROOT_ON |
+			 USB_HSIC_CLK_ROOT_FROM_PLL_SYS_MAIN_480M_CLK |
 			 CLK_ROOT_PRE_DIV(CLK_ROOT_PRE_DIV1) |
 			 CLK_ROOT_POST_DIV(CLK_ROOT_POST_DIV1);
 		clock_set_target_val(USB_HSIC_CLK_ROOT, target);
@@ -99,7 +100,6 @@ void enable_usboh3_clk(unsigned char enable)
 		clock_enable(CCGR_USB_PHY1, 0);
 		clock_enable(CCGR_USB_PHY2, 0);
 	}
-
 }
 
 static u32 decode_pll(enum pll_clocks pll, u32 infreq)
@@ -522,7 +522,7 @@ unsigned int mxc_get_clock(enum mxc_clock clk)
 
 #ifdef CONFIG_SYS_I2C_MXC
 /* i2c_num can be 0 - 3 */
-int enable_i2c_clk(bool enable, unsigned int i2c_num)
+int enable_i2c_clk(unsigned char enable, unsigned i2c_num)
 {
 	u32 target;
 
@@ -534,7 +534,8 @@ int enable_i2c_clk(bool enable, unsigned int i2c_num)
 
 		/* Set i2c root clock to PLL_SYS_MAIN_120M_CLK */
 
-		target = CLK_ROOT_ON | I2C1_CLK_ROOT_FROM_PLL_SYS_MAIN_120M_CLK |
+		target = CLK_ROOT_ON |
+			 I2C1_CLK_ROOT_FROM_PLL_SYS_MAIN_120M_CLK |
 			 CLK_ROOT_PRE_DIV(CLK_ROOT_PRE_DIV1) |
 			 CLK_ROOT_POST_DIV(CLK_ROOT_POST_DIV2);
 		clock_set_target_val(I2C1_CLK_ROOT + i2c_num, target);
@@ -577,7 +578,6 @@ static void init_clk_esdhc(void)
 	clock_enable(CCGR_USDHC1, 1);
 	clock_enable(CCGR_USDHC2, 1);
 	clock_enable(CCGR_USDHC3, 1);
-
 }
 
 static void init_clk_uart(void)
@@ -637,7 +637,6 @@ static void init_clk_uart(void)
 	clock_enable(CCGR_UART5, 1);
 	clock_enable(CCGR_UART6, 1);
 	clock_enable(CCGR_UART7, 1);
-
 }
 
 static void init_clk_weim(void)
@@ -707,7 +706,8 @@ static void init_clk_wdog(void)
 
 	/* 24Mhz */
 	target = CLK_ROOT_ON | WDOG_CLK_ROOT_FROM_OSC_24M_CLK |
-		 CLK_ROOT_PRE_DIV(CLK_ROOT_PRE_DIV1) | CLK_ROOT_POST_DIV(CLK_ROOT_POST_DIV1);
+		 CLK_ROOT_PRE_DIV(CLK_ROOT_PRE_DIV1) |
+		 CLK_ROOT_POST_DIV(CLK_ROOT_POST_DIV1);
 	clock_set_target_val(WDOG_CLK_ROOT, target);
 
 	/* enable the clock gate */
@@ -715,7 +715,6 @@ static void init_clk_wdog(void)
 	clock_enable(CCGR_WDOG2, 1);
 	clock_enable(CCGR_WDOG3, 1);
 	clock_enable(CCGR_WDOG4, 1);
-
 }
 
 #ifdef CONFIG_MXC_EPDC
@@ -849,7 +848,6 @@ static int enable_pll_video(u32 pll_div, u32 pll_num, u32 pll_denom,
 	printf("Lock PLL5 timeout\n");
 
 	return 1;
-
 }
 
 int set_clk_qspi(void)
@@ -907,7 +905,6 @@ void mxs_set_lcdclk(uint32_t base_addr, uint32_t freq)
 
 	temp = (freq * 8 * 8);
 	if (temp < min) {
-
 		for (i = 1; i <= 4; i++) {
 			if ((temp * (1 << i)) > min) {
 				post_div = i;
@@ -1016,7 +1013,8 @@ int set_clk_enet(enum enet_freq type)
 	clock_set_target_val(ENET2_TIME_CLK_ROOT, target);
 
 #ifdef CONFIG_FEC_MXC_25M_REF_CLK
-	target = CLK_ROOT_ON | ENET_PHY_REF_CLK_ROOT_FROM_PLL_ENET_MAIN_25M_CLK |
+	target = CLK_ROOT_ON |
+		 ENET_PHY_REF_CLK_ROOT_FROM_PLL_ENET_MAIN_25M_CLK |
 		 CLK_ROOT_PRE_DIV(CLK_ROOT_PRE_DIV1) |
 		 CLK_ROOT_POST_DIV(CLK_ROOT_POST_DIV1);
 	clock_set_target_val(ENET_PHY_REF_CLK_ROOT, target);
@@ -1032,14 +1030,13 @@ int set_clk_enet(enum enet_freq type)
 /* Configure PLL/PFD freq */
 void clock_init(void)
 {
-	/*	Rom has enabled PLL_ARM, PLL_DDR, PLL_SYS, PLL_ENET
-	  *   In u-boot, we have to:
-	  *   1. Configure PFD3- PFD7 for freq we needed in u-boot
-	  *   2. Set clock root for peripherals (ip channel) used in u-boot but without set rate
-	  *       interface.  The clocks for these peripherals are enabled after this intialization.
-	  *   3. Other peripherals with set clock rate interface does not be set in this function.
-	  */
-
+/* Rom has enabled PLL_ARM, PLL_DDR, PLL_SYS, PLL_ENET
+ *   In u-boot, we have to:
+ *   1. Configure PFD3- PFD7 for freq we needed in u-boot
+ *   2. Set clock root for peripherals (ip channel) used in u-boot but without set rate
+ *       interface.  The clocks for these peripherals are enabled after this intialization.
+ *   3. Other peripherals with set clock rate interface does not be set in this function.
+ */
 	u32 reg;
 
 	/*
@@ -1070,6 +1067,12 @@ void clock_init(void)
 #ifdef CONFIG_NAND_MXS
 	clock_enable(CCGR_RAWNAND, 1);
 #endif
+
+	if (IS_ENABLED(CONFIG_IMX_RDC)) {
+		clock_enable(CCGR_RDC, 1);
+		clock_enable(CCGR_SEMA1, 1);
+		clock_enable(CCGR_SEMA2, 1);
+	}
 }
 
 #ifdef CONFIG_SECURE_BOOT

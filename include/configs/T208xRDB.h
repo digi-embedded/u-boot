@@ -11,20 +11,11 @@
 #ifndef __T2080RDB_H
 #define __T2080RDB_H
 
-#define CONFIG_SYS_GENERIC_BOARD
-#define CONFIG_DISPLAY_BOARDINFO
-#define CONFIG_T2080RDB
 #define CONFIG_ICS307_REFCLK_HZ 25000000  /* ICS307 ref clk freq */
-#define CONFIG_MMC
-#define CONFIG_SPI_FLASH
 #define CONFIG_USB_EHCI
 #define CONFIG_FSL_SATA_V2
 
 /* High Level Configuration Options */
-#define CONFIG_PHYS_64BIT
-#define CONFIG_BOOKE
-#define CONFIG_E500		/* BOOKE e500 family */
-#define CONFIG_E500MC		/* BOOKE e500mc family */
 #define CONFIG_SYS_BOOK3E_HV	/* Category E.HV supported */
 #define CONFIG_MP		/* support multiple processors */
 #define CONFIG_ENABLE_36BIT_PHYS
@@ -35,26 +26,14 @@
 #endif
 
 #define CONFIG_SYS_FSL_CPC	/* Corenet Platform Cache */
-#define CONFIG_SYS_NUM_CPC	CONFIG_NUM_DDR_CONTROLLERS
-#define CONFIG_FSL_IFC		/* Enable IFC Support */
-#define CONFIG_FSL_CAAM		/* Enable SEC/CAAM */
-#define CONFIG_FSL_LAW		/* Use common FSL init code */
+#define CONFIG_SYS_NUM_CPC	CONFIG_SYS_NUM_DDR_CTLRS
 #define CONFIG_ENV_OVERWRITE
 
 #ifdef CONFIG_RAMBOOT_PBL
 #define CONFIG_SYS_FSL_PBL_PBI board/freescale/t208xrdb/t2080_pbi.cfg
-#define CONFIG_SYS_FSL_PBL_RCW board/freescale/t208xrdb/t2080_rcw.cfg
 
-#define CONFIG_SPL_MPC8XXX_INIT_DDR_SUPPORT
-#define CONFIG_SPL_ENV_SUPPORT
-#define CONFIG_SPL_SERIAL_SUPPORT
 #define CONFIG_SPL_FLUSH_IMAGE
 #define CONFIG_SPL_TARGET		"u-boot-with-spl.bin"
-#define CONFIG_SPL_LIBGENERIC_SUPPORT
-#define CONFIG_SPL_LIBCOMMON_SUPPORT
-#define CONFIG_SPL_I2C_SUPPORT
-#define CONFIG_SPL_DRIVERS_MISC_SUPPORT
-#define CONFIG_FSL_LAW			/* Use common FSL init code */
 #define CONFIG_SYS_TEXT_BASE		0x00201000
 #define CONFIG_SPL_TEXT_BASE		0xFFFD8000
 #define CONFIG_SPL_PAD_TO		0x40000
@@ -65,23 +44,20 @@
 #define CONFIG_SPL_SKIP_RELOCATE
 #define CONFIG_SPL_COMMON_INIT_DDR
 #define CONFIG_SYS_CCSR_DO_NOT_RELOCATE
-#define CONFIG_SYS_NO_FLASH
 #endif
 
 #ifdef CONFIG_NAND
-#define CONFIG_SPL_NAND_SUPPORT
 #define CONFIG_SYS_NAND_U_BOOT_SIZE	(768 << 10)
 #define CONFIG_SYS_NAND_U_BOOT_DST	0x00200000
 #define CONFIG_SYS_NAND_U_BOOT_START	0x00200000
 #define CONFIG_SYS_NAND_U_BOOT_OFFS	(256 << 10)
 #define CONFIG_SYS_LDSCRIPT  "arch/powerpc/cpu/mpc85xx/u-boot-nand.lds"
+#define CONFIG_SYS_FSL_PBL_RCW board/freescale/t208xrdb/t2080_nand_rcw.cfg
 #define CONFIG_SPL_NAND_BOOT
 #endif
 
 #ifdef CONFIG_SPIFLASH
 #define        CONFIG_RESET_VECTOR_ADDRESS             0x200FFC
-#define CONFIG_SPL_SPI_SUPPORT
-#define CONFIG_SPL_SPI_FLASH_SUPPORT
 #define CONFIG_SPL_SPI_FLASH_MINIMAL
 #define CONFIG_SYS_SPI_FLASH_U_BOOT_SIZE       (768 << 10)
 #define CONFIG_SYS_SPI_FLASH_U_BOOT_DST                (0x00200000)
@@ -91,12 +67,12 @@
 #ifndef CONFIG_SPL_BUILD
 #define CONFIG_SYS_MPC85XX_NO_RESETVEC
 #endif
+#define CONFIG_SYS_FSL_PBL_RCW board/freescale/t208xrdb/t2080_spi_rcw.cfg
 #define CONFIG_SPL_SPI_BOOT
 #endif
 
 #ifdef CONFIG_SDCARD
 #define        CONFIG_RESET_VECTOR_ADDRESS             0x200FFC
-#define CONFIG_SPL_MMC_SUPPORT
 #define CONFIG_SPL_MMC_MINIMAL
 #define CONFIG_SYS_MMC_U_BOOT_SIZE     (768 << 10)
 #define CONFIG_SYS_MMC_U_BOOT_DST      (0x00200000)
@@ -106,6 +82,7 @@
 #ifndef CONFIG_SPL_BUILD
 #define CONFIG_SYS_MPC85XX_NO_RESETVEC
 #endif
+#define CONFIG_SYS_FSL_PBL_RCW board/freescale/t208xrdb/t2080_sd_rcw.cfg
 #define CONFIG_SPL_MMC_BOOT
 #endif
 
@@ -118,7 +95,6 @@
 #define CONFIG_SYS_SRIO_PCIE_BOOT_SLAVE_ADDR_PHYS \
 		(0x300000000ull | CONFIG_SYS_SRIO_PCIE_BOOT_SLAVE_ADDR)
 #define CONFIG_RESET_VECTOR_ADDRESS 0xfffffffc
-#define CONFIG_SYS_NO_FLASH
 #endif
 
 #ifndef CONFIG_SYS_TEXT_BASE
@@ -140,7 +116,11 @@
 #define CONFIG_MEM_INIT_VALUE		0xdeadbeef
 #endif
 
-#ifndef CONFIG_SYS_NO_FLASH
+#define CONFIG_SYS_MEMTEST_START	0x00200000 /* memtest works on */
+#define CONFIG_SYS_MEMTEST_END		0x00400000
+#define CONFIG_SYS_ALT_MEMTEST
+
+#ifdef CONFIG_MTD_NOR_FLASH
 #define CONFIG_FLASH_CFI_DRIVER
 #define CONFIG_SYS_FLASH_CFI
 #define CONFIG_SYS_FLASH_USE_BUFFER_WRITE
@@ -221,7 +201,6 @@ unsigned long get_board_ddr_clk(void);
 #define CONFIG_DIMM_SLOTS_PER_CTLR	1
 #define CONFIG_CHIP_SELECTS_PER_CTRL	(4 * CONFIG_DIMM_SLOTS_PER_CTLR)
 #define CONFIG_DDR_SPD
-#define CONFIG_SYS_FSL_DDR3
 #undef CONFIG_FSL_DDR_INTERACTIVE
 #define CONFIG_SYS_SPD_BUS_NUM	0
 #define CONFIG_SYS_SDRAM_SIZE	2048	/* for fixed parameter use */
@@ -386,7 +365,7 @@ unsigned long get_board_ddr_clk(void);
 #define CONFIG_SYS_INIT_RAM_LOCK
 #define CONFIG_SYS_INIT_RAM_ADDR	0xfdd00000 /* Initial L1 address */
 #define CONFIG_SYS_INIT_RAM_ADDR_PHYS_HIGH	0xf
-#define CONFIG_SYS_INIT_RAM_ADDR_PHYS_LOW	0xfe0ec000
+#define CONFIG_SYS_INIT_RAM_ADDR_PHYS_LOW	0xfe03c000
 /* The assembler doesn't like typecast */
 #define CONFIG_SYS_INIT_RAM_ADDR_PHYS \
 			((CONFIG_SYS_INIT_RAM_ADDR_PHYS_HIGH * 1ull << 32) | \
@@ -402,7 +381,6 @@ unsigned long get_board_ddr_clk(void);
  * Serial Port
  */
 #define CONFIG_CONS_INDEX		1
-#define CONFIG_SYS_NS16550
 #define CONFIG_SYS_NS16550_SERIAL
 #define CONFIG_SYS_NS16550_REG_SIZE	1
 #define CONFIG_SYS_NS16550_CLK		(get_bus_freq(0)/2)
@@ -412,19 +390,6 @@ unsigned long get_board_ddr_clk(void);
 #define CONFIG_SYS_NS16550_COM2 (CONFIG_SYS_CCSRBAR+0x11C600)
 #define CONFIG_SYS_NS16550_COM3 (CONFIG_SYS_CCSRBAR+0x11D500)
 #define CONFIG_SYS_NS16550_COM4 (CONFIG_SYS_CCSRBAR+0x11D600)
-
-/* Use the HUSH parser */
-#define CONFIG_SYS_HUSH_PARSER
-#define CONFIG_SYS_PROMPT_HUSH_PS2 "> "
-
-/* pass open firmware flat tree */
-#define CONFIG_OF_LIBFDT
-#define CONFIG_OF_BOARD_SETUP
-#define CONFIG_OF_STDOUT_VIA_ALIAS
-
-/* new uImage format support */
-#define CONFIG_FIT
-#define CONFIG_FIT_VERBOSE	/* enable fit_format_{error,warning}() */
 
 /*
  * I2C
@@ -448,6 +413,17 @@ unsigned long get_board_ddr_clk(void);
 #define I2C_MUX_PCA_ADDR_SEC2	0x76 /* I2C bus multiplexer,secondary 2 */
 #define I2C_MUX_CH_DEFAULT	0x8
 
+#define I2C_MUX_CH_VOL_MONITOR	0xa
+
+#define CONFIG_VID_FLS_ENV		"t208xrdb_vdd_mv"
+#ifndef CONFIG_SPL_BUILD
+#define CONFIG_VID
+#endif
+#define CONFIG_VOL_MONITOR_IR36021_SET
+#define CONFIG_VOL_MONITOR_IR36021_READ
+/* The lowest and highest voltage allowed for T208xRDB */
+#define VDD_MV_MIN			819
+#define VDD_MV_MAX			1212
 
 /*
  * RapidIO
@@ -491,10 +467,7 @@ unsigned long get_board_ddr_clk(void);
  * eSPI - Enhanced SPI
  */
 #ifdef CONFIG_SPI_FLASH
-#define CONFIG_FSL_ESPI
-#define CONFIG_SPI_FLASH_STMICRO
 #define CONFIG_SPI_FLASH_BAR
-#define CONFIG_CMD_SF
 #define CONFIG_SF_DEFAULT_SPEED	 10000000
 #define CONFIG_SF_DEFAULT_MODE	  0
 #endif
@@ -503,11 +476,10 @@ unsigned long get_board_ddr_clk(void);
  * General PCI
  * Memory space is mapped 1-1, but I/O space must start from 0.
  */
-#define CONFIG_PCI		/* Enable PCI/PCIE */
-#define CONFIG_PCIE1		/* PCIE controler 1 */
-#define CONFIG_PCIE2		/* PCIE controler 2 */
-#define CONFIG_PCIE3		/* PCIE controler 3 */
-#define CONFIG_PCIE4		/* PCIE controler 4 */
+#define CONFIG_PCIE1		/* PCIE controller 1 */
+#define CONFIG_PCIE2		/* PCIE controller 2 */
+#define CONFIG_PCIE3		/* PCIE controller 3 */
+#define CONFIG_PCIE4		/* PCIE controller 4 */
 #define CONFIG_FSL_PCI_INIT	/* Use common FSL init code */
 #define CONFIG_SYS_PCI_64BIT	/* enable 64-bit PCI resources */
 /* controller 1, direct to uli, tgtid 3, Base address 20000 */
@@ -552,11 +524,7 @@ unsigned long get_board_ddr_clk(void);
 #ifdef CONFIG_PCI
 #define CONFIG_PCI_INDIRECT_BRIDGE
 #define CONFIG_FSL_PCIE_RESET           /* need PCIe reset errata LSZ ADD */
-#define CONFIG_NET_MULTI
-#define CONFIG_E1000
-#define CONFIG_PCI_PNP		/* do pci plug-and-play */
 #define CONFIG_PCI_SCAN_SHOW	/* show pci devices on startup */
-#define CONFIG_DOS_PARTITION
 #endif
 
 /* Qman/Bman */
@@ -646,8 +614,8 @@ unsigned long get_board_ddr_clk(void);
 #ifdef CONFIG_SYS_DPAA_FMAN
 #define CONFIG_FMAN_ENET
 #define CONFIG_PHYLIB_10G
+#define CONFIG_PHY_AQUANTIA
 #define CONFIG_PHY_CORTINA
-#define CONFIG_PHY_AQ1202
 #define CONFIG_PHY_REALTEK
 #define CONFIG_CORTINA_FW_LENGTH	0x40000
 #define RGMII_PHY1_ADDR		0x01  /* RealTek RTL8211E */
@@ -657,7 +625,6 @@ unsigned long get_board_ddr_clk(void);
 #define FM1_10GEC3_PHY_ADDR	0x00  /* Aquantia AQ1202 10G Base-T */
 #define FM1_10GEC4_PHY_ADDR	0x01
 #endif
-
 
 #ifdef CONFIG_FMAN_ENET
 #define CONFIG_MII		/* MII PHY management */
@@ -680,19 +647,14 @@ unsigned long get_board_ddr_clk(void);
 #define CONFIG_SYS_SATA2_FLAGS		FLAGS_DMA
 #define CONFIG_LBA48
 #define CONFIG_CMD_SATA
-#define CONFIG_DOS_PARTITION
-#define CONFIG_CMD_EXT2
 #endif
 
 /*
  * USB
  */
 #ifdef CONFIG_USB_EHCI
-#define CONFIG_CMD_USB
-#define CONFIG_USB_STORAGE
 #define CONFIG_USB_EHCI_FSL
 #define CONFIG_EHCI_HCD_INIT_AFTER_RESET
-#define CONFIG_CMD_EXT2
 #define CONFIG_HAS_FSL_DR_USB
 #endif
 
@@ -700,21 +662,16 @@ unsigned long get_board_ddr_clk(void);
  * SDHC
  */
 #ifdef CONFIG_MMC
-#define CONFIG_CMD_MMC
 #define CONFIG_FSL_ESDHC
 #define CONFIG_SYS_FSL_ESDHC_ADDR	CONFIG_SYS_MPC85xx_ESDHC_ADDR
 #define CONFIG_SYS_FSL_ESDHC_BROKEN_TIMEOUT
 #define CONFIG_SYS_FSL_MMC_HAS_CAPBLT_VS33
-#define CONFIG_GENERIC_MMC
-#define CONFIG_CMD_EXT2
-#define CONFIG_CMD_FAT
-#define CONFIG_DOS_PARTITION
 #endif
 
 /*
  * Dynamic MTD Partition support with mtdparts
  */
-#ifndef CONFIG_SYS_NO_FLASH
+#ifdef CONFIG_MTD_NOR_FLASH
 #define CONFIG_MTD_DEVICE
 #define CONFIG_MTD_PARTITIONS
 #define CONFIG_CMD_MTDPARTS
@@ -734,22 +691,11 @@ unsigned long get_board_ddr_clk(void);
 /*
  * Command line configuration.
  */
-#include <config_cmd_default.h>
-
-#define CONFIG_CMD_DHCP
-#define CONFIG_CMD_ELF
 #define CONFIG_CMD_ERRATA
-#define CONFIG_CMD_MII
-#define CONFIG_CMD_I2C
-#define CONFIG_CMD_PING
-#define CONFIG_CMD_ECHO
-#define CONFIG_CMD_SETEXPR
 #define CONFIG_CMD_REGINFO
-#define CONFIG_CMD_BDI
 
 #ifdef CONFIG_PCI
 #define CONFIG_CMD_PCI
-#define CONFIG_CMD_NET
 #endif
 
 /* Hash command with SHA acceleration supported in hardware */
@@ -797,7 +743,6 @@ unsigned long get_board_ddr_clk(void);
 /* default location for tftp and bootm */
 #define CONFIG_LOADADDR		1000000
 #define CONFIG_BAUDRATE		115200
-#define CONFIG_BOOTDELAY	10	/* -1 disables auto-boot */
 #define __USB_PHY_TYPE		utmi
 
 #define	CONFIG_EXTRA_ENV_SETTINGS				\
@@ -817,7 +762,7 @@ unsigned long get_board_ddr_clk(void);
 	"consoledev=ttyS0\0"					\
 	"ramdiskaddr=2000000\0"					\
 	"ramdiskfile=t2080rdb/ramdisk.uboot\0"			\
-	"fdtaddr=c00000\0"					\
+	"fdtaddr=1e00000\0"					\
 	"fdtfile=t2080rdb/t2080rdb.dtb\0"			\
 	"bdev=sda3\0"
 
@@ -887,10 +832,6 @@ unsigned long get_board_ddr_clk(void);
 
 #define CONFIG_BOOTCOMMAND		CONFIG_LINUX
 
-#ifdef CONFIG_SECURE_BOOT
 #include <asm/fsl_secure_boot.h>
-#define CONFIG_CMD_BLOB
-#undef CONFIG_CMD_USB
-#endif
 
 #endif	/* __T2080RDB_H */

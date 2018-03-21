@@ -3,6 +3,9 @@
  *
  * Copyright (C) 2011-2013 Marek Vasut <marex@denx.de>
  *
+ * Copyright (C) 2014-2016 Freescale Semiconductor, Inc.
+ * Copyright 2017 NXP
+ *
  * SPDX-License-Identifier:	GPL-2.0+
  */
 #include <common.h>
@@ -12,7 +15,7 @@
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/sys_proto.h>
-#include <asm/errno.h>
+#include <linux/errno.h>
 #include <asm/io.h>
 
 #include <asm/imx-common/dma.h>
@@ -27,8 +30,11 @@
 #include <gis.h>
 #endif
 
+#ifdef CONFIG_MXC_MIPI_DSI_NORTHWEST
+#include <mipi_dsi_northwest.h>
+#endif
+
 #define	PS2KHZ(ps)	(1000000000UL / (ps))
-#define	WAIT_FOR_VSYNC_TIMEOUT	1000000
 
 static GraphicDevice panel;
 struct mxs_dma_desc desc;
@@ -92,7 +98,7 @@ static void mxs_lcd_init(GraphicDevice *panel,
 	mxs_set_lcdclk(panel->isaBase, PS2KHZ(mode->pixclock));
 
 	/* Restart the LCDIF block */
-	mxs_reset_block((struct mxs_register_32 *)&regs->hw_lcdif_ctrl);
+	mxs_reset_block(&regs->hw_lcdif_ctrl_reg);
 
 	switch (bpp) {
 	case 24:
@@ -165,24 +171,32 @@ static void mxs_lcd_init(GraphicDevice *panel,
 	writel(LCDIF_CTRL_RUN, &regs->hw_lcdif_ctrl_set);
 }
 
-void lcdif_power_down()
+void lcdif_power_down(void)
 {
 	struct mxs_lcdif_regs *regs = (struct mxs_lcdif_regs *)(panel.isaBase);
-	int timeout = WAIT_FOR_VSYNC_TIMEOUT;
+	int timeout = 1000000;
 
 #ifdef CONFIG_MX6
 	if (check_module_fused(MX6_MODULE_LCDIF))
 		return;
 #endif
-	writel(panel.frameAdrs, &regs->hw_lcdif_cur_buf);
-	writel(panel.frameAdrs, &regs->hw_lcdif_next_buf);
+	if (!panel.frameAdrs)
+		return;
+
+#ifdef CONFIG_MXC_MIPI_DSI_NORTHWEST
+	mipi_dsi_northwest_shutdown();
+#endif
+
+	writel(panel.frameAdrs, &regs->hw_lcdif_cur_buf_reg);
+	writel(panel.frameAdrs, &regs->hw_lcdif_next_buf_reg);
 	writel(LCDIF_CTRL1_VSYNC_EDGE_IRQ, &regs->hw_lcdif_ctrl1_clr);
 	while (--timeout) {
-		if (readl(&regs->hw_lcdif_ctrl1) & LCDIF_CTRL1_VSYNC_EDGE_IRQ)
+		if (readl(&regs->hw_lcdif_ctrl1_reg) &
+		    LCDIF_CTRL1_VSYNC_EDGE_IRQ)
 			break;
 		udelay(1);
 	}
-	mxs_reset_block((struct mxs_register_32 *)&regs->hw_lcdif_ctrl);
+	mxs_reset_block((struct mxs_register_32 *)&regs->hw_lcdif_ctrl_reg);
 }
 
 void *video_hw_init(void)
@@ -272,6 +286,40 @@ void *video_hw_init(void)
 	panel.frameAdrs = (u32)fb;
 
 	printf("%s\n", panel.modeIdent);
+
+#ifdef CONFIG_MXC_MIPI_DSI_NORTHWEST
+	struct mipi_dsi_northwest_panel_device *pdevice;
+
+	/* Setup DSI host driver */
+	mipi_dsi_northwest_setup(DSI_RBASE, SIM0_RBASE);
+
+#ifdef CONFIG_HX8363
+	/* Setup hx8363 panel driver */
+	hx8363_init();
+#endif
+
+	pdevice = (struct mipi_dsi_northwest_panel_device *)malloc(sizeof(struct mipi_dsi_northwest_panel_device));
+	if (!pdevice) {
+		printf("Error allocating MIPI panel device!\n");
+		free(fb);
+		return NULL;
+	}
+
+	/* Using the panel parameters to create a DSI panel device */
+	pdevice->bpp = bpp;
+	pdevice->data_lane_num = 2;
+	pdevice->mode = fbmode;
+	pdevice->name = fbmode.name;
+	pdevice->virtual_ch_id = 0;
+	pdevice->host = NULL;
+
+	/* Register a panel device */
+	mipi_dsi_northwest_register_panel_device(pdevice);
+
+	/* Enable the MIPI DSI host to work */
+	mipi_dsi_northwest_enable();
+#endif
+
 
 	/* Start framebuffer */
 	mxs_lcd_init(&panel, &mode, bpp);

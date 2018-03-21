@@ -9,6 +9,7 @@
  * Copyright (c) 2003	Richard Woodruff <r-woodruff2@ti.com>
  * Copyright (c) 2003	Kshitij <kshitij@ti.com>
  * Copyright (c) 2006-2008 Syed Mohammed Khasim <x0khasim@ti.com>
+ * Copyright (C) 2016 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -17,25 +18,38 @@
 #include <config.h>
 #include <asm/system.h>
 #include <linux/linkage.h>
+#include <asm/armv7.h>
 
 /*************************************************************************
  *
  * Startup Code (reset vector)
  *
- * do important init only if we don't start from memory!
- * setup Memory and board specific bits prior to relocation.
- * relocate armboot to ram
- * setup stack
+ * Do important init only if we don't start from memory!
+ * Setup memory and board specific bits prior to relocation.
+ * Relocate armboot to ram. Setup stack.
  *
  *************************************************************************/
 
 	.globl	reset
 	.globl	save_boot_params_ret
+#ifdef CONFIG_ARMV7_LPAE
+	.global	switch_to_hypervisor_ret
+#endif
 
 reset:
 	/* Allow the board to save important registers */
 	b	save_boot_params
 save_boot_params_ret:
+#ifdef CONFIG_ARMV7_LPAE
+/*
+ * check for Hypervisor support
+ */
+	mrc	p15, 0, r0, c0, c1, 1		@ read ID_PFR1
+	and	r0, r0, #CPUID_ARM_VIRT_MASK	@ mask virtualization bits
+	cmp	r0, #(1 << CPUID_ARM_VIRT_SHIFT)
+	beq	switch_to_hypervisor
+switch_to_hypervisor_ret:
+#endif
 	/*
 	 * disable interrupts (FIQ and IRQ), also set the cpu to SVC32 mode,
 	 * except if in HYP mode already
@@ -67,7 +81,9 @@ save_boot_params_ret:
 	/* the mask ROM code should have PLL and others stable */
 #ifndef CONFIG_SKIP_LOWLEVEL_INIT
 	bl	cpu_init_cp15
+#ifndef CONFIG_SKIP_LOWLEVEL_INIT_ONLY
 	bl	cpu_init_crit
+#endif
 #endif
 
 	bl	_main
@@ -101,6 +117,13 @@ ENTRY(save_boot_params)
 	b	save_boot_params_ret		@ back to my caller
 ENDPROC(save_boot_params)
 	.weak	save_boot_params
+
+#ifdef CONFIG_ARMV7_LPAE
+ENTRY(switch_to_hypervisor)
+	b	switch_to_hypervisor_ret
+ENDPROC(switch_to_hypervisor)
+	.weak	switch_to_hypervisor
+#endif
 
 /*************************************************************************
  *
@@ -193,6 +216,27 @@ ENTRY(cpu_init_cp15)
 skip_errata_798870:
 #endif
 
+#ifdef CONFIG_ARM_ERRATA_801819
+	cmp	r2, #0x24		@ Applies to lt including R2p4
+	bgt	skip_errata_801819      @ skip if not affected rev
+	cmp	r2, #0x20		@ Applies to including and above R2p0
+	blt	skip_errata_801819      @ skip if not affected rev
+	mrc	p15, 0, r0, c0, c0, 6	@ pick up REVIDR reg
+	and	r0, r0, #1 << 3		@ check REVIDR[3]
+	cmp	r0, #1 << 3
+	beq	skip_errata_801819	@ skip erratum if REVIDR[3] is set
+
+	mrc	p15, 0, r0, c1, c0, 1	@ read auxilary control register
+	orr	r0, r0, #3 << 27	@ Disables streaming. All write-allocate
+					@ lines allocate in the L1 or L2 cache.
+	orr	r0, r0, #3 << 25	@ Disables streaming. All write-allocate
+					@ lines allocate in the L1 cache.
+	push	{r1-r5}			@ Save the cpu info registers
+	bl	v7_arch_cp15_set_acr
+	pop	{r1-r5}			@ Restore the cpu info - fall through
+skip_errata_801819:
+#endif
+
 #ifdef CONFIG_ARM_ERRATA_454179
 	cmp	r2, #0x21		@ Only on < r2p1
 	bge	skip_errata_454179
@@ -235,7 +279,8 @@ skip_errata_621766:
 	mov	pc, r5			@ back to my caller
 ENDPROC(cpu_init_cp15)
 
-#ifndef CONFIG_SKIP_LOWLEVEL_INIT
+#if !defined(CONFIG_SKIP_LOWLEVEL_INIT) && \
+	!defined(CONFIG_SKIP_LOWLEVEL_INIT_ONLY)
 /*************************************************************************
  *
  * CPU_init_critical registers

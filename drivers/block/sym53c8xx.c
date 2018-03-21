@@ -33,7 +33,7 @@
 #define PRINTF(fmt,args...)
 #endif
 
-#if defined(CONFIG_CMD_SCSI) && defined(CONFIG_SCSI_SYM53C8XX)
+#if defined(CONFIG_SCSI) && defined(CONFIG_SCSI_SYM53C8XX)
 
 #undef SCSI_SINGLE_STEP
 /*
@@ -284,9 +284,8 @@ void scsi_low_level_init(int busdevfunc)
  */
 unsigned long swap_script(unsigned long val)
 {
-	unsigned long tmp;
-	tmp = ((val>>24)&0xff) | ((val>>8)&0xff00) | ((val<<8)&0xff0000) | ((val<<24)&0xff000000);
-	return tmp;
+	return ((val >> 24) & 0xff) | ((val >> 8) & 0xff00) |
+		((val << 8) & 0xff0000) | ((val << 24) & 0xff000000);
 }
 
 
@@ -657,7 +656,7 @@ void scsi_issue(ccb *pccb)
 	/* struct pccb must be set-up correctly */
 	retrycnt=0;
 	PRINTF("ID %d issue cmd %02X\n",pccb->target,pccb->cmd[0]);
-	pccb->trans_bytes=0; /* no bytes transfered yet */
+	pccb->trans_bytes=0; /* no bytes transferred yet */
 	scsi_set_script(pccb); /* fill in SCRIPT		*/
 	scsi_int_mask=STO | UDC | MA; /* | CMP; / * Interrupts which are enabled */
 	script_int_mask=0xff; /* enable all Ints */
@@ -712,7 +711,7 @@ retry:
 				for(i=0;i<3;i++)
 					int_stat[i]=0; /* delete all int status */
 				retrycnt++;
-				PRINTF("ID: %X Phase Missmatch Retry %d Phase %02X transfered %lx\n",
+				PRINTF("ID: %X Phase Missmatch Retry %d Phase %02X transferred %lx\n",
 						pccb->target,retrycnt,scsi_read_byte(SBCL),pccb->trans_bytes);
 				scsi_write_dsp(phys_to_bus(&script_cmd[4])); /* start retry script */
 				goto retry;

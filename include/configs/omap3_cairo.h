@@ -40,12 +40,6 @@
 
 #include <configs/ti_omap3_common.h>
 
-/*
- * Display CPU and Board information
- */
-#define CONFIG_DISPLAY_CPUINFO		1
-#define CONFIG_DISPLAY_BOARDINFO	1
-
 #define CONFIG_MISC_INIT_R
 
 #define CONFIG_REVISION_TAG		1
@@ -60,15 +54,7 @@
 #define CONFIG_NAND
 
 /* commands to include */
-#include <config_cmd_default.h>
-
-#define CONFIG_CMD_SETEXPR	/* Evaluate expressions		*/
 #define CONFIG_CMD_NAND_LOCK_UNLOCK
-
-/* Disable some commands */
-#undef CONFIG_CMD_FPGA		/* FPGA configuration Support	*/
-#undef CONFIG_CMD_IMI		/* iminfo			*/
-#undef CONFIG_CMD_NET		/* bootp, tftpboot, rarpboot	*/
 
 /*
  * TWL4030
@@ -78,19 +64,13 @@
 /*
  * Board NAND Info.
  */
-#define CONFIG_SYS_NAND_QUIET_TEST	1
 #define CONFIG_NAND_OMAP_GPMC
 #define CONFIG_SYS_MAX_NAND_DEVICE	1		/* Max number of NAND */
 							/* devices */
-/* override default CONFIG_BOOTDELAY */
-#undef CONFIG_BOOTDELAY
-#define CONFIG_BOOTDELAY	0
-
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"machid=ffffffff\0" \
 	"fdt_high=0x87000000\0" \
 	"baudrate=115200\0" \
-	"ethaddr=00:50:C2:7E:90:F0\0" \
 	"fec_addr=00:50:C2:7E:90:F0\0" \
 	"netmask=255.255.255.0\0" \
 	"ipaddr=192.168.2.9\0" \
@@ -206,8 +186,6 @@
 
 #define CONFIG_OMAP3_SPI
 
-#define CONFIG_SYS_CACHELINE_SIZE	64
-
 /* Defines for SPL */
 #define CONFIG_SPL_OMAP3_ID_NAND
 
@@ -250,13 +228,8 @@
 #define CONFIG_SERIAL2
 #endif
 
-/* Keep old prompt in case some existing script depends on it */
-#undef CONFIG_SYS_PROMPT
-#define CONFIG_SYS_PROMPT		"Cairo # "
-
-/* Provide MACH_TYPE for compatibility with non-DT kernels */
-#define MACH_TYPE_OMAP3_CAIRO	3063
-#define CONFIG_MACH_TYPE	MACH_TYPE_OMAP3_CAIRO
+/* Provide the MACH_TYPE value the vendor kernel requires */
+#define CONFIG_MACH_TYPE	3063
 
 /*-----------------------------------------------------------------------
  * FLASH and environment organization

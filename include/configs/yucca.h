@@ -21,7 +21,6 @@
 #define CONFIG_440			1	/* ... PPC440 family	*/
 #define CONFIG_440SPE			1	/* Specifc SPe support	*/
 #define CONFIG_440SPE_REVA		1	/* Support old Rev A.	*/
-#define CONFIG_BOARD_EARLY_INIT_F	1	/* Call board_pre_init	*/
 #define CONFIG_SYS_CLK_FREQ	33333333	/* external freq to pll	*/
 #define EXTCLK_33_33		33333333
 #define EXTCLK_66_66		66666666
@@ -181,9 +180,7 @@
  *-----------------------------------------------------------------------
  */
 /* General PCI */
-#define CONFIG_PCI			/* include pci support		*/
 #define CONFIG_PCI_INDIRECT_BRIDGE	/* indirect PCI bridge support */
-#define CONFIG_PCI_PNP		1	/* do pci plug-and-play		*/
 #define CONFIG_PCI_SCAN_SHOW	1	/* show pci devices on startup	*/
 #define CONFIG_PCI_CONFIG_HOST_BRIDGE
 

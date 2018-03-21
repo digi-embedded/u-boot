@@ -13,18 +13,15 @@
 #define _CONFIG_NAS220_H
 
 /*
- * Machine type definition and ID
+ * Machine type ID
  */
-#define MACH_TYPE_NAS220		MACH_TYPE_RD88F6192_NAS
-#define CONFIG_MACH_TYPE		MACH_TYPE_NAS220
-#define CONFIG_IDENT_STRING		"\nNAS 220"
+#define CONFIG_MACH_TYPE		MACH_TYPE_RD88F6192_NAS
 
 /*
  * High Level Configuration Options (easy to change)
  */
 #define CONFIG_FEROCEON_88FR131		/* #define CPU Core subversion */
 #define CONFIG_KW88F6192		/* SOC Name */
-#define CONFIG_SYS_GENERIC_BOARD
 #define CONFIG_SKIP_LOWLEVEL_INIT	/* disable board lowlevel_init */
 
 /* power-on led, regulator, sata0, sata1 */
@@ -44,31 +41,18 @@
 /*
  * Commands configuration
  */
-#define CONFIG_SYS_NO_FLASH		/* Declare no flash (NOR/SPI) */
-#include <config_cmd_default.h>
-#define CONFIG_CMD_DHCP
-#define CONFIG_CMD_MII
 #define CONFIG_CMD_NAND
-#define CONFIG_CMD_SAVEENV
-#define CONFIG_CMD_PING
-#define CONFIG_CMD_USB
 #define CONFIG_CMD_DATE
 #define CONFIG_CMD_IDE
 #define CONFIG_SYS_LONGHELP
 #define CONFIG_AUTO_COMPLETE
 #define CONFIG_CMDLINE_EDITING
-#define CONFIG_SYS_HUSH_PARSER
-#define CONFIG_SYS_PROMPT_HUSH_PS2 "> "
 
 /*
  * mv-common.h should be defined after CMD configs since it used them
  * to enable certain macros
  */
 #include "mv-common.h"
-
-/* Remove or override few declarations from mv-common.h */
-#undef CONFIG_SYS_PROMPT	/* previously defined in mv-common.h */
-#define CONFIG_SYS_PROMPT "nas220> "
 
 /*
  *  Environment variables configurations
@@ -114,21 +98,15 @@
 #define CONFIG_USB_EHCI			/* Enable EHCI USB support */
 #define CONFIG_USB_EHCI_KIRKWOOD	/* on Kirkwood platform	*/
 #define CONFIG_EHCI_IS_TDI
-#define CONFIG_USB_STORAGE
-#define CONFIG_DOS_PARTITION
 #define CONFIG_SUPPORT_VFAT
 #endif /* CONFIG_CMD_USB */
 
 /*
  * File system
  */
-#define CONFIG_CMD_EXT2
-#define CONFIG_CMD_EXT4
-#define CONFIG_CMD_FAT
 #define CONFIG_CMD_JFFS2
 #define CONFIG_JFFS2_NAND
 #define CONFIG_JFFS2_LZO
-#define CONFIG_CMD_UBI
 #define CONFIG_CMD_UBIFS
 #define CONFIG_RBTREE
 #define CONFIG_MTD_DEVICE               /* needed for mtdparts commands */
@@ -144,16 +122,9 @@
 #define CONFIG_SYS_ATA_IDE1_OFFSET      MV_SATA_PORT1_OFFSET
 #endif
 
-
-/*
- * Device Tree
- */
-#define CONFIG_OF_LIBFDT
-
 /*
  * EFI partition
  */
-#define CONFIG_EFI_PARTITION
 
 /*
  *  Date Time

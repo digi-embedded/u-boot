@@ -9,8 +9,9 @@
 #include <common.h>
 #include <asm/gpio.h>
 #include <asm/arch/mmc.h>
+#include <dm.h>
 #include <power/pmic.h>
-#include <usb/s3c_udc.h>
+#include <usb/dwc2_udc.h>
 #include <asm/arch/cpu.h>
 #include <power/max8998_pmic.h>
 #include <samsung/misc.h>
@@ -42,21 +43,6 @@ void i2c_init_board(void)
 	gpio_direction_output(S5PC110_GPIO_J40, 1);
 }
 #endif
-
-int power_init_board(void)
-{
-	int ret;
-
-	/*
-	 * For PMIC the I2C bus is named as I2C5, but it is connected
-	 * to logical I2C adapter 0
-	 */
-	ret = pmic_init(I2C_0);
-	if (ret)
-		return ret;
-
-	return 0;
-}
 
 int dram_init(void)
 {
@@ -148,42 +134,54 @@ int board_mmc_init(bd_t *bis)
 #ifdef CONFIG_USB_GADGET
 static int s5pc1xx_phy_control(int on)
 {
-	int ret;
+	struct udevice *dev;
 	static int status;
-	struct pmic *p = pmic_get("MAX8998_PMIC");
-	if (!p)
-		return -ENODEV;
+	int reg, ret;
 
-	if (pmic_probe(p))
-		return -1;
+	ret = pmic_get("max8998-pmic", &dev);
+	if (ret)
+		return ret;
 
 	if (on && !status) {
-		ret = pmic_set_output(p, MAX8998_REG_ONOFF1,
-				      MAX8998_LDO3, LDO_ON);
-		ret = pmic_set_output(p, MAX8998_REG_ONOFF2,
-				      MAX8998_LDO8, LDO_ON);
+		reg = pmic_reg_read(dev, MAX8998_REG_ONOFF1);
+		reg |= MAX8998_LDO3;
+		ret = pmic_reg_write(dev, MAX8998_REG_ONOFF1, reg);
 		if (ret) {
 			puts("MAX8998 LDO setting error!\n");
-			return -1;
+			return -EINVAL;
+		}
+
+		reg = pmic_reg_read(dev, MAX8998_REG_ONOFF2);
+		reg |= MAX8998_LDO8;
+		ret = pmic_reg_write(dev, MAX8998_REG_ONOFF2, reg);
+		if (ret) {
+			puts("MAX8998 LDO setting error!\n");
+			return -EINVAL;
 		}
 		status = 1;
 	} else if (!on && status) {
-		ret = pmic_set_output(p, MAX8998_REG_ONOFF1,
-				      MAX8998_LDO3, LDO_OFF);
-		ret = pmic_set_output(p, MAX8998_REG_ONOFF2,
-				      MAX8998_LDO8, LDO_OFF);
+		reg = pmic_reg_read(dev, MAX8998_REG_ONOFF1);
+		reg &= ~MAX8998_LDO3;
+		ret = pmic_reg_write(dev, MAX8998_REG_ONOFF1, reg);
 		if (ret) {
 			puts("MAX8998 LDO setting error!\n");
-			return -1;
+			return -EINVAL;
+		}
+
+		reg = pmic_reg_read(dev, MAX8998_REG_ONOFF2);
+		reg &= ~MAX8998_LDO8;
+		ret = pmic_reg_write(dev, MAX8998_REG_ONOFF2, reg);
+		if (ret) {
+			puts("MAX8998 LDO setting error!\n");
+			return -EINVAL;
 		}
 		status = 0;
 	}
 	udelay(10000);
-
 	return 0;
 }
 
-struct s3c_plat_otg_data s5pc110_otg_data = {
+struct dwc2_plat_otg_data s5pc110_otg_data = {
 	.phy_control = s5pc1xx_phy_control,
 	.regs_phy = S5PC110_PHY_BASE,
 	.regs_otg = S5PC110_OTG_BASE,
@@ -193,7 +191,7 @@ struct s3c_plat_otg_data s5pc110_otg_data = {
 int board_usb_init(int index, enum usb_init_type init)
 {
 	debug("USB_udc_probe\n");
-	return s3c_udc_probe(&s5pc110_otg_data);
+	return dwc2_udc_probe(&s5pc110_otg_data);
 }
 #endif
 
@@ -206,3 +204,8 @@ int misc_init_r(void)
 	return 0;
 }
 #endif
+
+int board_usb_cleanup(int index, enum usb_init_type init)
+{
+	return 0;
+}

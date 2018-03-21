@@ -19,7 +19,16 @@
 
 .globl	_start
 _start:
+#ifdef CONFIG_ENABLE_ARM_SOC_BOOT0_HOOK
+/*
+ * Various SoCs need something special and SoC-specific up front in
+ * order to boot, allow them to set that in their boot0.h file and then
+ * use it here.
+ */
+#include <asm/arch/boot0.h>
+#else
 	b	reset
+#endif
 
 	.align 3
 
@@ -43,6 +52,14 @@ _bss_end_ofs:
 	.quad	__bss_end - _start
 
 reset:
+	/* Allow the board to save important registers */
+	b	save_boot_params
+.globl	save_boot_params_ret
+save_boot_params_ret:
+
+#ifdef CONFIG_SYS_RESET_SCTRL
+	bl reset_sctrl
+#endif
 	/*
 	 * Could be EL3/EL2/EL1, Initial State:
 	 * Little Endian, MMU Disabled, i/dCache Disabled
@@ -54,8 +71,10 @@ reset:
 	orr	x0, x0, #0xf			/* SCR_EL3.NS|IRQ|FIQ|EA */
 	msr	scr_el3, x0
 	msr	cptr_el3, xzr			/* Enable FP/SIMD */
+#ifdef COUNTER_FREQUENCY
 	ldr	x0, =COUNTER_FREQUENCY
 	msr	cntfrq_el0, x0			/* Initialize CNTFRQ */
+#endif
 	b	0f
 2:	msr	vbar_el2, x0
 	mov	x0, #0x33ff
@@ -65,6 +84,17 @@ reset:
 	mov	x0, #3 << 20
 	msr	cpacr_el1, x0			/* Enable FP/SIMD */
 0:
+
+	/*
+	 * Enalbe SMPEN bit for coherency.
+	 * This register is not architectural but at the moment
+	 * this bit should be set for A53/A57/A72.
+	 */
+#ifdef CONFIG_ARMV8_SET_SMPEN
+	mrs     x0, S3_1_c15_c2_1               /* cpuactlr_el1 */
+	orr     x0, x0, #0x40
+	msr     S3_1_c15_c2_1, x0
+#endif
 
 	/* Apply ARM core specific erratas */
 	bl	apply_core_errata
@@ -79,7 +109,11 @@ reset:
 	/* Processor specific initialization */
 	bl	lowlevel_init
 
-#ifdef CONFIG_ARMV8_MULTIENTRY
+#if defined(CONFIG_ARMV8_SPIN_TABLE) && !defined(CONFIG_SPL_BUILD)
+	branch_if_master x0, x1, master_cpu
+	b	spin_table_secondary_jump
+	/* never return */
+#elif defined(CONFIG_ARMV8_MULTIENTRY)
 	branch_if_master x0, x1, master_cpu
 
 	/*
@@ -91,11 +125,42 @@ slave_cpu:
 	ldr	x0, [x1]
 	cbz	x0, slave_cpu
 	br	x0			/* branch to the given address */
-master_cpu:
-	/* On the master CPU */
 #endif /* CONFIG_ARMV8_MULTIENTRY */
-
+master_cpu:
 	bl	_main
+
+#ifdef CONFIG_SYS_RESET_SCTRL
+reset_sctrl:
+	switch_el x1, 3f, 2f, 1f
+3:
+	mrs	x0, sctlr_el3
+	b	0f
+2:
+	mrs	x0, sctlr_el2
+	b	0f
+1:
+	mrs	x0, sctlr_el1
+
+0:
+	ldr	x1, =0xfdfffffa
+	and	x0, x0, x1
+
+	switch_el x1, 6f, 5f, 4f
+6:
+	msr	sctlr_el3, x0
+	b	7f
+5:
+	msr	sctlr_el2, x0
+	b	7f
+4:
+	msr	sctlr_el1, x0
+
+7:
+	dsb	sy
+	isb
+	b	__asm_invalidate_tlb_all
+	ret
+#endif
 
 /*-----------------------------------------------------------------------*/
 
@@ -115,18 +180,37 @@ apply_a57_core_errata:
 #ifdef CONFIG_ARM_ERRATA_828024
 	mrs	x0, S3_1_c15_c2_0	/* cpuactlr_el1 */
 	/* Disable non-allocate hint of w-b-n-a memory type */
-	mov	x0, #0x1 << 49
+	orr	x0, x0, #1 << 49
 	/* Disable write streaming no L1-allocate threshold */
-	mov	x0, #0x3 << 25
+	orr	x0, x0, #3 << 25
 	/* Disable write streaming no-allocate threshold */
-	mov	x0, #0x3 << 27
+	orr	x0, x0, #3 << 27
 	msr	S3_1_c15_c2_0, x0	/* cpuactlr_el1 */
 #endif
 
 #ifdef CONFIG_ARM_ERRATA_826974
 	mrs	x0, S3_1_c15_c2_0	/* cpuactlr_el1 */
 	/* Disable speculative load execution ahead of a DMB */
-	mov	x0, #0x1 << 59
+	orr	x0, x0, #1 << 59
+	msr	S3_1_c15_c2_0, x0	/* cpuactlr_el1 */
+#endif
+
+#ifdef CONFIG_ARM_ERRATA_833471
+	mrs	x0, S3_1_c15_c2_0	/* cpuactlr_el1 */
+	/* FPSCR write flush.
+	 * Note that in some cases where a flush is unnecessary this
+	    could impact performance. */
+	orr	x0, x0, #1 << 38
+	msr	S3_1_c15_c2_0, x0	/* cpuactlr_el1 */
+#endif
+
+#ifdef CONFIG_ARM_ERRATA_829520
+	mrs	x0, S3_1_c15_c2_0	/* cpuactlr_el1 */
+	/* Disable Indirect Predictor bit will prevent this erratum
+	    from occurring
+	 * Note that in some cases where a flush is unnecessary this
+	    could impact performance. */
+	orr	x0, x0, #1 << 4
 	msr	S3_1_c15_c2_0, x0	/* cpuactlr_el1 */
 #endif
 
@@ -144,15 +228,6 @@ ENDPROC(apply_core_errata)
 WEAK(lowlevel_init)
 	mov	x29, lr			/* Save LR */
 
-#ifndef CONFIG_ARMV8_MULTIENTRY
-	/*
-	 * For single-entry systems the lowlevel init is very simple.
-	 */
-	ldr	x0, =GICD_BASE
-	bl	gic_init_secure
-
-#else /* CONFIG_ARMV8_MULTIENTRY is set */
-
 #if defined(CONFIG_GICV2) || defined(CONFIG_GICV3)
 	branch_if_slave x0, 1f
 	ldr	x0, =GICD_BASE
@@ -168,6 +243,7 @@ WEAK(lowlevel_init)
 #endif
 #endif
 
+#ifdef CONFIG_ARMV8_MULTIENTRY
 	branch_if_master x0, x1, 2f
 
 	/*
@@ -185,9 +261,17 @@ WEAK(lowlevel_init)
 	/*
 	 * All slaves will enter EL2 and optionally EL1.
 	 */
+	adr	x4, lowlevel_in_el2
+	ldr	x5, =ES_TO_AARCH64
 	bl	armv8_switch_to_el2
+
+lowlevel_in_el2:
 #ifdef CONFIG_ARMV8_SWITCH_TO_EL1
+	adr	x4, lowlevel_in_el1
+	ldr	x5, =ES_TO_AARCH64
 	bl	armv8_switch_to_el1
+
+lowlevel_in_el1:
 #endif
 
 #endif /* CONFIG_ARMV8_MULTIENTRY */
@@ -199,12 +283,10 @@ ENDPROC(lowlevel_init)
 
 WEAK(smp_kick_all_cpus)
 	/* Kick secondary cpus up by SGI 0 interrupt */
-	mov	x29, lr			/* Save LR */
 #if defined(CONFIG_GICV2) || defined(CONFIG_GICV3)
 	ldr	x0, =GICD_BASE
-	bl	gic_kick_secondary_cpus
+	b	gic_kick_secondary_cpus
 #endif
-	mov	lr, x29			/* Restore LR */
 	ret
 ENDPROC(smp_kick_all_cpus)
 
@@ -223,3 +305,7 @@ ENTRY(c_runtime_cpu_setup)
 
 	ret
 ENDPROC(c_runtime_cpu_setup)
+
+WEAK(save_boot_params)
+	b	save_boot_params_ret	/* back to my caller */
+ENDPROC(save_boot_params)

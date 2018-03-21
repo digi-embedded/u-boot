@@ -14,24 +14,9 @@
  /* High Level Configuration Options */
 #define CONFIG_MX31		1		/* This is a mx31 */
 
-#define CONFIG_SYS_GENERIC_BOARD
-
-#define CONFIG_DISPLAY_CPUINFO
-#define CONFIG_DISPLAY_BOARDINFO
-
 #define CONFIG_SYS_TEXT_BASE		0xA0000000
 
 #define CONFIG_MACH_TYPE	MACH_TYPE_MX31ADS
-
-/*
- * Disabled for now due to build problems under Debian and a significant increase
- * in the final file size: 144260 vs. 109536 Bytes.
- */
-#if 0
-#define CONFIG_OF_LIBFDT		1
-#define CONFIG_FIT			1
-#define CONFIG_FIT_VERBOSE		1
-#endif
 
 #define CONFIG_CMDLINE_TAG		1	/* enable passing of ATAGs */
 #define CONFIG_SETUP_MEMORY_TAGS	1
@@ -74,15 +59,8 @@
 /***********************************************************
  * Command definition
  ***********************************************************/
-
-#include <config_cmd_default.h>
-
-#define CONFIG_CMD_PING
-#define CONFIG_CMD_DHCP
-#define CONFIG_CMD_SPI
 #define CONFIG_CMD_DATE
 
-#define CONFIG_BOOTDELAY	3
 
 #define CONFIG_LOADADDR		0x80800000	/* loadaddr env var */
 
@@ -143,7 +121,6 @@
 #define CONFIG_NR_DRAM_BANKS	1
 #define PHYS_SDRAM_1		CSD0_BASE
 #define PHYS_SDRAM_1_SIZE	(128 * 1024 * 1024)
-#define CONFIG_BOARD_EARLY_INIT_F
 
 #define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM_1
 #define CONFIG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
@@ -170,7 +147,6 @@
 /* Address and size of Redundant Environment Sector	*/
 #define CONFIG_ENV_ADDR_REDUND	(CONFIG_ENV_ADDR + CONFIG_ENV_SIZE)
 #define CONFIG_ENV_SIZE_REDUND	CONFIG_ENV_SIZE
-
 
 /*-----------------------------------------------------------------------
  * CFI FLASH driver setup

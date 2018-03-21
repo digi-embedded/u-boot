@@ -57,6 +57,8 @@ struct ihs_fpga {
 	u32 versions;		/* 0x0004 */
 	u32 fpga_version;	/* 0x0008 */
 	u32 fpga_features;	/* 0x000c */
+	u32 reserved[4];	/* 0x0010 */
+	u32 control;		/* 0x0020 */
 };
 
 #ifndef CONFIG_TRAILBLAZER
@@ -339,7 +341,7 @@ int ft_board_setup(void *blob, bd_t *bd)
 	fdt_fixup_memory(blob, (u64)base, (u64)size);
 
 #ifdef CONFIG_HAS_FSL_DR_USB
-	fdt_fixup_dr_usb(blob, bd);
+	fsl_fdt_fixup_dr_usb(blob, bd);
 #endif
 
 	FT_FSL_PCI_SETUP;
@@ -383,6 +385,9 @@ static void hydra_initialize(void)
 		/* read FPGA details */
 		fpga = pci_map_bar(devno, PCI_BASE_ADDRESS_0,
 			PCI_REGION_MEM);
+
+		/* disable sideband clocks */
+		writel(1, &fpga->control);
 
 		versions = readl(&fpga->versions);
 		fpga_version = readl(&fpga->fpga_version);

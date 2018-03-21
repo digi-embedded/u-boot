@@ -12,7 +12,7 @@
 #include <malloc.h>
 #include <miiphy.h>
 #include <asm/io.h>
-#include <asm/errno.h>
+#include <linux/errno.h>
 #include <asm/types.h>
 #include <asm/system.h>
 #include <asm/byteorder.h>
@@ -151,7 +151,7 @@ struct lpc32xx_eth_registers {
 #define SUPP_SPEED 0x00000100
 
 /* MCFG register bitfields/masks and offsets (see Table 292) */
-#define MCFG_CLOCK_SELECT_MASK  0x0000001C
+#define MCFG_RESET_MII_MGMT     0x00008000
 /* divide clock by 28 (see Table 293) */
 #define MCFG_CLOCK_SELECT_DIV28 0x0000001C
 
@@ -168,9 +168,10 @@ struct lpc32xx_eth_registers {
 #define COMMAND_RXENABLE      0x00000001
 #define COMMAND_TXENABLE      0x00000002
 #define COMMAND_PASSRUNTFRAME 0x00000040
+#define COMMAND_RMII          0x00000200
 #define COMMAND_FULL_DUPLEX   0x00000400
 /* Helper: general reset */
-#define COMMAND_RESETS        0x0000001C
+#define COMMAND_RESETS        0x00000038
 
 /* STATUS register bitfields/masks and offsets (see Table 283) */
 #define STATUS_RXSTATUS 0x00000001
@@ -201,6 +202,7 @@ struct lpc32xx_eth_device {
 	struct eth_device dev;
 	struct lpc32xx_eth_registers *regs;
 	struct lpc32xx_eth_buffers *bufs;
+	bool phy_rmii;
 };
 
 #define LPC32XX_ETH_DEVICE_SIZE (sizeof(struct lpc32xx_eth_device))
@@ -224,9 +226,11 @@ DECLARE_GLOBAL_DATA_PTR;
  *
  * Returns 16bit phy register value, or 0xffff on error
  */
-static int mii_reg_read(const char *devname, u8 phy_adr, u8 reg_ofs, u16 *data)
+static int mii_reg_read(struct mii_dev *bus, int phy_adr, int devad,
+			int reg_ofs)
 {
-	struct eth_device *dev = eth_get_dev_by_name(devname);
+	u16 data = 0;
+	struct eth_device *dev = eth_get_dev_by_name(bus->name);
 	struct lpc32xx_eth_device *dlpc32xx_eth = to_lpc32xx_eth(dev);
 	struct lpc32xx_eth_registers *regs = dlpc32xx_eth->regs;
 	u32 mind_reg;
@@ -268,12 +272,12 @@ static int mii_reg_read(const char *devname, u8 phy_adr, u8 reg_ofs, u16 *data)
 		return -EFAULT;
 	}
 
-	*data = (u16) readl(&regs->mrdd);
+	data = (u16) readl(&regs->mrdd);
 
 	debug("%s:(adr %d, off %d) => %04x\n", __func__, phy_adr,
-	      reg_ofs, *data);
+	      reg_ofs, data);
 
-	return 0;
+	return data;
 }
 
 /*
@@ -282,9 +286,10 @@ static int mii_reg_read(const char *devname, u8 phy_adr, u8 reg_ofs, u16 *data)
  * Returns 0 if write succeed, -EINVAL on bad parameters
  * -ETIME on timeout
  */
-static int mii_reg_write(const char *devname, u8 phy_adr, u8 reg_ofs, u16 data)
+static int mii_reg_write(struct mii_dev *bus, int phy_adr, int devad,
+			 int reg_ofs, u16 data)
 {
-	struct eth_device *dev = eth_get_dev_by_name(devname);
+	struct eth_device *dev = eth_get_dev_by_name(bus->name);
 	struct lpc32xx_eth_device *dlpc32xx_eth = to_lpc32xx_eth(dev);
 	struct lpc32xx_eth_registers *regs = dlpc32xx_eth->regs;
 	u32 mind_reg;
@@ -302,6 +307,13 @@ static int mii_reg_write(const char *devname, u8 phy_adr, u8 reg_ofs, u16 data)
 		return -EFAULT;
 	}
 
+	/* write the phy and reg addressse into the MII address reg */
+	writel((phy_adr << MADR_PHY_OFFSET) | (reg_ofs << MADR_REG_OFFSET),
+	       &regs->madr);
+
+	/* write data to the MII write register */
+	writel(data, &regs->mwtd);
+
 	/* wait till the MII is not busy */
 	timeout = MII_TIMEOUT;
 	do {
@@ -317,13 +329,6 @@ static int mii_reg_write(const char *devname, u8 phy_adr, u8 reg_ofs, u16 data)
 		return -EFAULT;
 	}
 
-	/* write the phy and reg addressse into the MII address reg */
-	writel((phy_adr << MADR_PHY_OFFSET) | (reg_ofs << MADR_REG_OFFSET),
-	       &regs->madr);
-
-	/* write data to the MII write register */
-	writel(data, &regs->mwtd);
-
 	/*debug("%s:(adr %d, off %d) <= %04x\n", __func__, phy_adr,
 		reg_ofs, data);*/
 
@@ -331,35 +336,21 @@ static int mii_reg_write(const char *devname, u8 phy_adr, u8 reg_ofs, u16 data)
 }
 #endif
 
-#if defined(CONFIG_PHYLIB)
-int lpc32xx_eth_phy_read(struct mii_dev *bus, int phy_addr, int dev_addr,
-	int reg_addr)
-{
-	u16 data;
-	int ret;
-	ret = mii_reg_read(bus->name, phy_addr, reg_addr, &data);
-	if (ret)
-		return ret;
-	return data;
-}
-
-int lpc32xx_eth_phy_write(struct mii_dev *bus, int phy_addr, int dev_addr,
-	int reg_addr, u16 data)
-{
-	return mii_reg_write(bus->name, phy_addr, reg_addr, data);
-}
-#endif
-
 /*
+ * Provide default Ethernet buffers base address if target did not.
  * Locate buffers in SRAM at 0x00001000 to avoid cache issues and
  * maximize throughput.
  */
-
-#define LPC32XX_ETH_BUFS 0x00001000
+#if !defined(CONFIG_LPC32XX_ETH_BUFS_BASE)
+#define CONFIG_LPC32XX_ETH_BUFS_BASE 0x00001000
+#endif
 
 static struct lpc32xx_eth_device lpc32xx_eth = {
 	.regs = (struct lpc32xx_eth_registers *)LPC32XX_ETH_BASE,
-	.bufs = (struct lpc32xx_eth_buffers *)LPC32XX_ETH_BUFS
+	.bufs = (struct lpc32xx_eth_buffers *)CONFIG_LPC32XX_ETH_BUFS_BASE,
+#if defined(CONFIG_RMII)
+	.phy_rmii = true,
+#endif
 };
 
 #define TX_TIMEOUT 10000
@@ -419,10 +410,12 @@ static int lpc32xx_eth_recv(struct eth_device *dev)
 	rx_index = readl(&regs->rxconsumeindex);
 
 	/* if data was valid, pass it on */
-	if (!(bufs->rx_stat[rx_index].statusinfo & RX_STAT_ERRORS))
-		NetReceive(&(bufs->rx_buf[rx_index*PKTSIZE_ALIGN]),
-			   (bufs->rx_stat[rx_index].statusinfo
-			    & RX_STAT_RXSIZE) + 1);
+	if (!(bufs->rx_stat[rx_index].statusinfo & RX_STAT_ERRORS)) {
+		net_process_received_packet(
+			&(bufs->rx_buf[rx_index * PKTSIZE_ALIGN]),
+			(bufs->rx_stat[rx_index].statusinfo
+			 & RX_STAT_RXSIZE) + 1);
+	}
 
 	/* pass receive slot back to DMA engine */
 	rx_index = (rx_index + 1) % RX_BUF_COUNT;
@@ -457,8 +450,22 @@ static int lpc32xx_eth_init(struct eth_device *dev)
 	struct lpc32xx_eth_buffers *bufs = lpc32xx_eth_device->bufs;
 	int index;
 
-	/* Release SOFT reset to let MII talk to PHY */
-	clrbits_le32(&regs->mac1, MAC1_SOFT_RESET);
+	/* Initial MAC initialization */
+	writel(MAC1_PASS_ALL_RX_FRAMES, &regs->mac1);
+	writel(MAC2_PAD_CRC_ENABLE | MAC2_CRC_ENABLE, &regs->mac2);
+	writel(PKTSIZE_ALIGN, &regs->maxf);
+
+	/* Retries: 15 (0xF). Collision window: 57 (0x37). */
+	writel(0x370F, &regs->clrt);
+
+	/* Set IP gap pt 2 to default 0x12 but pt 1 to non-default 0 */
+	writel(0x0012, &regs->ipgr);
+
+	/* pass runt (smaller than 64 bytes) frames */
+	if (lpc32xx_eth_device->phy_rmii)
+		writel(COMMAND_PASSRUNTFRAME | COMMAND_RMII, &regs->command);
+	else
+		writel(COMMAND_PASSRUNTFRAME, &regs->command);
 
 	/* Configure Full/Half Duplex mode */
 	if (miiphy_duplex(dev->name, CONFIG_PHY_ADDR) == FULL) {
@@ -474,20 +481,6 @@ static int lpc32xx_eth_init(struct eth_device *dev)
 		writel(SUPP_SPEED, &regs->supp);
 	else
 		writel(0, &regs->supp);
-
-	/* Initial MAC initialization */
-	writel(MAC1_PASS_ALL_RX_FRAMES, &regs->mac1);
-	writel(MAC2_PAD_CRC_ENABLE | MAC2_CRC_ENABLE, &regs->mac2);
-	writel(PKTSIZE_ALIGN, &regs->maxf);
-
-	/* Retries: 15 (0xF). Collision window: 57 (0x37). */
-	writel(0x370F, &regs->clrt);
-
-	/* Set IP gap pt 2 to default 0x12 but pt 1 to non-default 0 */
-	writel(0x0012, &regs->ipgr);
-
-	/* pass runt (smaller than 64 bytes) frames */
-	writel(COMMAND_PASSRUNTFRAME, &regs->command);
 
 	/* Save station address */
 	writel((unsigned long) (dev->enetaddr[0] |
@@ -560,6 +553,8 @@ static int lpc32xx_eth_halt(struct eth_device *dev)
 #if defined(CONFIG_PHYLIB)
 int lpc32xx_eth_phylib_init(struct eth_device *dev, int phyid)
 {
+	struct lpc32xx_eth_device *lpc32xx_eth_device =
+		container_of(dev, struct lpc32xx_eth_device, dev);
 	struct mii_dev *bus;
 	struct phy_device *phydev;
 	int ret;
@@ -569,9 +564,9 @@ int lpc32xx_eth_phylib_init(struct eth_device *dev, int phyid)
 		printf("mdio_alloc failed\n");
 		return -ENOMEM;
 	}
-	bus->read = lpc32xx_eth_phy_read;
-	bus->write = lpc32xx_eth_phy_write;
-	sprintf(bus->name, dev->name);
+	bus->read = mii_reg_read;
+	bus->write = mii_reg_write;
+	strcpy(bus->name, dev->name);
 
 	ret = mdio_register(bus);
 	if (ret) {
@@ -580,7 +575,11 @@ int lpc32xx_eth_phylib_init(struct eth_device *dev, int phyid)
 		return -ENOMEM;
 	}
 
-	phydev = phy_connect(bus, phyid, dev, PHY_INTERFACE_MODE_MII);
+	if (lpc32xx_eth_device->phy_rmii)
+		phydev = phy_connect(bus, phyid, dev, PHY_INTERFACE_MODE_RMII);
+	else
+		phydev = phy_connect(bus, phyid, dev, PHY_INTERFACE_MODE_MII);
+
 	if (!phydev) {
 		printf("phy_connect failed\n");
 		return -ENODEV;
@@ -602,7 +601,7 @@ int lpc32xx_eth_initialize(bd_t *bis)
 	 * Set RMII management clock rate. With HCLK at 104 MHz and
 	 * a divider of 28, this will be 3.72 MHz.
 	 */
-
+	writel(MCFG_RESET_MII_MGMT, &regs->mcfg);
 	writel(MCFG_CLOCK_SELECT_DIV28, &regs->mcfg);
 
 	/* Reset all MAC logic */
@@ -628,9 +627,19 @@ int lpc32xx_eth_initialize(bd_t *bis)
 	eth_register(dev);
 
 #if defined(CONFIG_PHYLIB)
-	lpc32xx_eth_phylib_init(dev, 0);
+	lpc32xx_eth_phylib_init(dev, CONFIG_PHY_ADDR);
 #elif defined(CONFIG_MII) || defined(CONFIG_CMD_MII)
-	miiphy_register(dev->name, mii_reg_read, mii_reg_write);
+	int retval;
+	struct mii_dev *mdiodev = mdio_alloc();
+	if (!mdiodev)
+		return -ENOMEM;
+	strncpy(mdiodev->name, dev->name, MDIO_NAME_LEN);
+	mdiodev->read = mii_reg_read;
+	mdiodev->write = mii_reg_write;
+
+	retval = mdio_register(mdiodev);
+	if (retval < 0)
+		return retval;
 #endif
 
 	return 0;

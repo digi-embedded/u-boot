@@ -32,53 +32,13 @@
 #endif
 
 /* uart */
-#ifdef XILINX_UARTLITE_BASEADDR
-# define CONFIG_XILINX_UARTLITE
-# define CONFIG_SERIAL_BASE	XILINX_UARTLITE_BASEADDR
-# define CONFIG_BAUDRATE	XILINX_UARTLITE_BAUDRATE
-# define CONFIG_SYS_BAUDRATE_TABLE	{ CONFIG_BAUDRATE }
-# define CONSOLE_ARG	"console=console=ttyUL0,115200\0"
-#elif XILINX_UART16550_BASEADDR
-# define CONFIG_SYS_NS16550		1
-# define CONFIG_SYS_NS16550_SERIAL
-# if defined(__MICROBLAZEEL__)
-#  define CONFIG_SYS_NS16550_REG_SIZE	-4
-# else
-#  define CONFIG_SYS_NS16550_REG_SIZE	4
-# endif
-# define CONFIG_CONS_INDEX		1
-# define CONFIG_SYS_NS16550_COM1 \
-		((XILINX_UART16550_BASEADDR & ~0xF) + 0x1000)
-# define CONFIG_SYS_NS16550_CLK	XILINX_UART16550_CLOCK_HZ
 # define CONFIG_BAUDRATE	115200
-
 /* The following table includes the supported baudrates */
 # define CONFIG_SYS_BAUDRATE_TABLE \
 	{300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400}
-# define CONSOLE_ARG	"console=console=ttyS0,115200\0"
-#else
-# error Undefined uart
-#endif
 
 /* setting reset address */
 /*#define	CONFIG_SYS_RESET_ADDRESS	CONFIG_SYS_TEXT_BASE*/
-
-/* ethernet */
-#undef CONFIG_SYS_ENET
-#if defined(XILINX_EMACLITE_BASEADDR) || defined(CONFIG_OF_CONTROL)
-# define CONFIG_XILINX_EMACLITE	1
-# define CONFIG_SYS_ENET
-#endif
-#if defined(XILINX_LLTEMAC_BASEADDR)
-# define CONFIG_XILINX_LL_TEMAC	1
-# define CONFIG_SYS_ENET
-#endif
-#if defined(XILINX_AXIEMAC_BASEADDR)
-# define CONFIG_XILINX_AXIEMAC	1
-# define CONFIG_SYS_ENET
-#endif
-
-#undef ET_DEBUG
 
 /* gpio */
 #ifdef XILINX_GPIO_BASEADDR
@@ -86,42 +46,21 @@
 # define CONFIG_SYS_GPIO_0_ADDR		XILINX_GPIO_BASEADDR
 #endif
 
-/* interrupt controller */
-#ifdef XILINX_INTC_BASEADDR
-# define CONFIG_SYS_INTC_0_ADDR		XILINX_INTC_BASEADDR
-# define CONFIG_SYS_INTC_0_NUM		XILINX_INTC_NUM_INTR_INPUTS
-#endif
-
-/* timer */
-#if defined(XILINX_TIMER_BASEADDR) && defined(XILINX_TIMER_IRQ)
-#  define CONFIG_SYS_TIMER_0_ADDR	XILINX_TIMER_BASEADDR
-#  define CONFIG_SYS_TIMER_0_IRQ	XILINX_TIMER_IRQ
-#endif
-
 /* watchdog */
 #if defined(XILINX_WATCHDOG_BASEADDR) && defined(XILINX_WATCHDOG_IRQ)
 # define CONFIG_WATCHDOG_BASEADDR	XILINX_WATCHDOG_BASEADDR
 # define CONFIG_WATCHDOG_IRQ		XILINX_WATCHDOG_IRQ
-# define CONFIG_HW_WATCHDOG
-# define CONFIG_XILINX_TB_WATCHDOG
-#endif
-
-#ifndef CONFIG_OF_CONTROL
-/* ddr sdram - main memory */
-# define CONFIG_SYS_SDRAM_BASE	XILINX_RAM_START
-# define CONFIG_SYS_SDRAM_SIZE	XILINX_RAM_SIZE
+# ifndef CONFIG_SPL_BUILD
+#  define CONFIG_HW_WATCHDOG
+#  define CONFIG_XILINX_TB_WATCHDOG
+# endif
 #endif
 
 #define CONFIG_SYS_MALLOC_LEN	0xC0000
-#ifndef CONFIG_SPL_BUILD
-# define CONFIG_SYS_MALLOC_F_LEN	1024
-#else
-# define CONFIG_SYS_MALLOC_SIMPLE
-# define CONFIG_SYS_MALLOC_F_LEN	0x150
-#endif
 
 /* Stack location before relocation */
-#define CONFIG_SYS_INIT_SP_OFFSET	CONFIG_SYS_TEXT_BASE
+#define CONFIG_SYS_INIT_SP_OFFSET	(CONFIG_SYS_TEXT_BASE - \
+					 CONFIG_SYS_MALLOC_F_LEN)
 
 /*
  * CFI flash memory layout - Example
@@ -172,12 +111,8 @@
 #else /* !FLASH */
 
 #ifdef SPIFLASH
-# define CONFIG_SYS_NO_FLASH		1
 # define CONFIG_SYS_SPI_BASE		XILINX_SPI_FLASH_BASEADDR
-# define CONFIG_XILINX_SPI		1
 # define CONFIG_SPI			1
-# define CONFIG_SPI_FLASH		1
-# define CONFIG_SPI_FLASH_STMICRO	1
 # define CONFIG_SF_DEFAULT_MODE		SPI_MODE_3
 # define CONFIG_SF_DEFAULT_SPEED	XILINX_SPI_FLASH_MAX_FREQ
 # define CONFIG_SF_DEFAULT_CS		XILINX_SPI_FLASH_CS
@@ -201,22 +136,11 @@
 #else /* !SPIFLASH */
 
 /* ENV in RAM */
-# define CONFIG_SYS_NO_FLASH	1
 # define CONFIG_ENV_IS_NOWHERE	1
 # define CONFIG_ENV_SIZE	0x1000
 # define CONFIG_ENV_ADDR	(CONFIG_SYS_MONITOR_BASE - CONFIG_ENV_SIZE)
 #endif /* !SPIFLASH */
 #endif /* !FLASH */
-
-/* system ace */
-#ifdef XILINX_SYSACE_BASEADDR
-# define CONFIG_SYSTEMACE
-/* #define DEBUG_SYSTEMACE */
-# define SYSTEMACE_CONFIG_FPGA
-# define CONFIG_SYS_SYSTEMACE_BASE	XILINX_SYSACE_BASEADDR
-# define CONFIG_SYS_SYSTEMACE_WIDTH	XILINX_SYSACE_MEM_WIDTH
-# define CONFIG_DOS_PARTITION
-#endif
 
 #if defined(XILINX_USE_ICACHE)
 # define CONFIG_ICACHE
@@ -245,60 +169,25 @@
 /*
  * Command line configuration.
  */
-#include <config_cmd_default.h>
-
-#define CONFIG_CMD_ASKENV
 #define CONFIG_CMD_IRQ
 #define CONFIG_CMD_MFSL
-#define CONFIG_CMD_ECHO
-#define CONFIG_CMD_GPIO
-
-#if defined(CONFIG_DCACHE) || defined(CONFIG_ICACHE)
-# define CONFIG_CMD_CACHE
-#else
-# undef CONFIG_CMD_CACHE
-#endif
-
-#ifndef CONFIG_SYS_ENET
-# undef CONFIG_CMD_NET
-# undef CONFIG_CMD_NFS
-#else
-# define CONFIG_CMD_PING
-# define CONFIG_CMD_DHCP
-# define CONFIG_CMD_TFTPPUT
-#endif
-
-#if defined(CONFIG_SYSTEMACE)
-# define CONFIG_CMD_EXT2
-# define CONFIG_CMD_FAT
-#endif
 
 #if defined(FLASH)
-# define CONFIG_CMD_ECHO
-# define CONFIG_CMD_FLASH
-# define CONFIG_CMD_IMLS
 # define CONFIG_CMD_JFFS2
-# define CONFIG_CMD_UBI
 # undef CONFIG_CMD_UBIFS
 
 # if !defined(RAMENV)
-#  define CONFIG_CMD_SAVEENV
 #  define CONFIG_CMD_SAVES
 # endif
 
 #else
 #if defined(SPIFLASH)
-# define CONFIG_CMD_SF
 
 # if !defined(RAMENV)
-#  define CONFIG_CMD_SAVEENV
 #  define CONFIG_CMD_SAVES
 # endif
 #else
-# undef CONFIG_CMD_IMLS
-# undef CONFIG_CMD_FLASH
 # undef CONFIG_CMD_JFFS2
-# undef CONFIG_CMD_UBI
 # undef CONFIG_CMD_UBIFS
 #endif
 #endif
@@ -308,7 +197,6 @@
 #endif
 
 #if defined(CONFIG_CMD_UBIFS)
-# define CONFIG_CMD_UBI
 # define CONFIG_LZO
 #endif
 
@@ -330,8 +218,6 @@
 				"1m(cramfs),-(jffs2)"
 #endif
 
-/* Miscellaneous configurable options */
-#define	CONFIG_SYS_PROMPT	"U-Boot-mONStR> "
 /* size of console buffer */
 #define	CONFIG_SYS_CBSIZE	512
  /* print buffer size */
@@ -341,22 +227,18 @@
 #define	CONFIG_SYS_MAXARGS	15
 #define	CONFIG_SYS_LONGHELP
 /* default load address */
-#define	CONFIG_SYS_LOAD_ADDR	XILINX_RAM_START
+#define	CONFIG_SYS_LOAD_ADDR	0
 
-#define	CONFIG_BOOTDELAY	-1	/* -1 disables auto-boot */
 #define	CONFIG_BOOTARGS		"root=romfs"
 #define	CONFIG_HOSTNAME		XILINX_BOARD_NAME
 #define	CONFIG_BOOTCOMMAND	"base 0;tftp 11000000 image.img;bootm"
-#define	CONFIG_IPADDR		192.168.0.3
-#define	CONFIG_SERVERIP		192.168.0.5
-#define	CONFIG_GATEWAYIP	192.168.0.1
-#define	CONFIG_ETHADDR		00:E0:0C:00:00:FD
 
 /* architecture dependent code */
 #define	CONFIG_SYS_USR_EXCEP	/* user exception */
 
 #define	CONFIG_PREBOOT	"echo U-BOOT for ${hostname};setenv preboot;echo"
 
+#ifndef CONFIG_EXTRA_ENV_SETTINGS
 #define	CONFIG_EXTRA_ENV_SETTINGS	"unlock=yes\0" \
 					"nor0=flash-0\0"\
 					"mtdparts=mtdparts=flash-0:"\
@@ -366,64 +248,47 @@
 					"setenv stdin nc\0" \
 					"serial=setenv stdout serial;"\
 					"setenv stdin serial\0"
+#endif
 
 #define CONFIG_CMDLINE_EDITING
 
-#define CONFIG_NETCONSOLE
-#define CONFIG_SYS_CONSOLE_IS_IN_ENV
-
-/* Use the HUSH parser */
-#define CONFIG_SYS_HUSH_PARSER
-
 /* Enable flat device tree support */
 #define CONFIG_LMB		1
-#define CONFIG_FIT		1
-#define CONFIG_OF_LIBFDT	1
 
-#if defined(CONFIG_XILINX_LL_TEMAC) || defined(CONFIG_XILINX_AXIEMAC)
+#if defined(CONFIG_XILINX_AXIEMAC)
 # define CONFIG_MII		1
-# define CONFIG_CMD_MII		1
 # define CONFIG_PHY_GIGE	1
 # define CONFIG_SYS_FAULT_ECHO_LINK_DOWN	1
-# define CONFIG_PHYLIB		1
 # define CONFIG_PHY_ATHEROS	1
 # define CONFIG_PHY_BROADCOM	1
 # define CONFIG_PHY_DAVICOM	1
 # define CONFIG_PHY_LXT		1
 # define CONFIG_PHY_MARVELL	1
 # define CONFIG_PHY_MICREL	1
+# define CONFIG_PHY_MICREL_KSZ9021
 # define CONFIG_PHY_NATSEMI	1
 # define CONFIG_PHY_REALTEK	1
 # define CONFIG_PHY_VITESSE	1
 #else
 # undef CONFIG_MII
-# undef CONFIG_CMD_MII
-# undef CONFIG_PHYLIB
 #endif
 
 /* SPL part */
 #define CONFIG_CMD_SPL
 #define CONFIG_SPL_FRAMEWORK
-#define CONFIG_SPL_LIBCOMMON_SUPPORT
-#define CONFIG_SPL_LIBGENERIC_SUPPORT
-#define CONFIG_SPL_SERIAL_SUPPORT
 #define CONFIG_SPL_BOARD_INIT
 
 #define CONFIG_SPL_LDSCRIPT	"arch/microblaze/cpu/u-boot-spl.lds"
 
-#define CONFIG_SPL_RAM_DEVICE
 #ifdef CONFIG_SYS_FLASH_BASE
-# define CONFIG_SPL_NOR_SUPPORT
 # define CONFIG_SYS_UBOOT_BASE		CONFIG_SYS_FLASH_BASE
 #endif
 
 /* for booting directly linux */
-#define CONFIG_SPL_OS_BOOT
 
-#define CONFIG_SYS_OS_BASE		(CONFIG_SYS_FLASH_BASE + \
-					 0x60000)
 #define CONFIG_SYS_FDT_BASE		(CONFIG_SYS_FLASH_BASE + \
 					 0x40000)
+#define CONFIG_SYS_FDT_SIZE		(16<<10)
 #define CONFIG_SYS_SPL_ARGS_ADDR	(CONFIG_SYS_TEXT_BASE + \
 					 0x1000000)
 

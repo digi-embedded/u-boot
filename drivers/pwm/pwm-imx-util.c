@@ -2,7 +2,7 @@
  * (C) Copyright 2014
  * Heiko Schocher, DENX Software Engineering, hs@denx.de.
  *
- * Basic support for the pwm modul on imx6.
+ * Basic support for the pwm module on imx6.
  *
  * Based on linux:drivers/pwm/pwm-imx.c
  * from
@@ -15,22 +15,28 @@
 #include <div64.h>
 #include <asm/arch/imx-regs.h>
 
-/* pwm_id from 0..3 */
+/* pwm_id from 0..7 */
 struct pwm_regs *pwm_id_to_reg(int pwm_id)
 {
 	switch (pwm_id) {
 	case 0:
 		return (struct pwm_regs *)PWM1_BASE_ADDR;
-		break;
 	case 1:
 		return (struct pwm_regs *)PWM2_BASE_ADDR;
-		break;
 	case 2:
 		return (struct pwm_regs *)PWM3_BASE_ADDR;
-		break;
 	case 3:
 		return (struct pwm_regs *)PWM4_BASE_ADDR;
-		break;
+#ifdef CONFIG_MX6SX
+	case 4:
+		return (struct pwm_regs *)PWM5_BASE_ADDR;
+	case 5:
+		return (struct pwm_regs *)PWM6_BASE_ADDR;
+	case 6:
+		return (struct pwm_regs *)PWM7_BASE_ADDR;
+	case 7:
+		return (struct pwm_regs *)PWM8_BASE_ADDR;
+#endif
 	default:
 		printf("unknown pwm_id: %d\n", pwm_id);
 		break;
@@ -56,7 +62,7 @@ int pwm_imx_get_parms(int period_ns, int duty_ns, unsigned long *period_c,
 	*prescale = *period_c / 0x10000 + 1;
 
 	*period_c /= *prescale;
-	c = (unsigned long long)(*period_c * duty_ns);
+	c = *period_c * (unsigned long long)duty_ns;
 	do_div(c, period_ns);
 	*duty_c = c;
 

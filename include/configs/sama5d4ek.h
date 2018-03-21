@@ -10,9 +10,6 @@
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
-/* No NOR flash, this definition should put before common header */
-#define CONFIG_SYS_NO_FLASH
-
 #include "at91-sama5_common.h"
 
 /* serial console */
@@ -35,13 +32,10 @@
 #define CONFIG_SYS_LOAD_ADDR		0x22000000 /* load address */
 
 /* SerialFlash */
-#define CONFIG_CMD_SF
 
 #ifdef CONFIG_CMD_SF
 #define CONFIG_ATMEL_SPI
 #define CONFIG_ATMEL_SPI0
-#define CONFIG_SPI_FLASH
-#define CONFIG_SPI_FLASH_ATMEL
 #define CONFIG_SF_DEFAULT_BUS		0
 #define CONFIG_SF_DEFAULT_CS		0
 #define CONFIG_SF_DEFAULT_SPEED		30000000
@@ -65,37 +59,24 @@
 #endif
 
 /* MMC */
-#define CONFIG_CMD_MMC
 
 #ifdef CONFIG_CMD_MMC
-#define CONFIG_MMC
-#define CONFIG_GENERIC_MMC
 #define CONFIG_GENERIC_ATMEL_MCI
 #define ATMEL_BASE_MMCI			ATMEL_BASE_MCI1
 #endif
 
 /* USB */
-#define CONFIG_CMD_USB
 
 #ifdef CONFIG_CMD_USB
 #define CONFIG_USB_EHCI
 #define CONFIG_USB_EHCI_ATMEL
 #define CONFIG_SYS_USB_EHCI_MAX_ROOT_PORTS	3
-#define CONFIG_USB_STORAGE
 #endif
 
 /* USB device */
-#define CONFIG_USB_GADGET
-#define CONFIG_USB_GADGET_DUALSPEED
-#define CONFIG_USB_GADGET_ATMEL_USBA
 #define CONFIG_USB_ETHER
 #define CONFIG_USB_ETH_RNDIS
 #define CONFIG_USBNET_MANUFACTURER      "Atmel SAMA5D4EK"
-
-#if defined(CONFIG_CMD_USB) || defined(CONFIG_CMD_MMC)
-#define CONFIG_CMD_FAT
-#define CONFIG_DOS_PARTITION
-#endif
 
 /* Ethernet Hardware */
 #define CONFIG_MACB
@@ -104,7 +85,6 @@
 #define CONFIG_MACB_SEARCH_PHY
 
 /* LCD */
-#define CONFIG_LCD
 #define LCD_BPP				LCD_COLOR16
 #define LCD_OUTPUT_BPP                  18
 #define CONFIG_LCD_LOGO
@@ -113,45 +93,13 @@
 #define CONFIG_SYS_WHITE_ON_BLACK
 #define CONFIG_ATMEL_HLCD
 #define CONFIG_ATMEL_LCD_RGB565
-#define CONFIG_SYS_CONSOLE_IS_IN_ENV
 
 #ifdef CONFIG_SYS_USE_SERIALFLASH
-/* bootstrap + u-boot + env + linux in serial flash */
-#define CONFIG_ENV_IS_IN_SPI_FLASH
-#define CONFIG_ENV_SPI_BUS	CONFIG_SF_DEFAULT_BUS
-#define CONFIG_ENV_SPI_CS	CONFIG_SF_DEFAULT_CS
-#define CONFIG_ENV_OFFSET       0x10000
-#define CONFIG_ENV_SIZE         0x10000
-#define CONFIG_ENV_SECT_SIZE    0x1000
-#define CONFIG_BOOTCOMMAND      "sf probe 0; " \
-				"sf read 0x21000000 0xa0000 0x60000; " \
-				"sf read 0x22000000 0x100000 0x300000; " \
-				"bootz 0x22000000 - 0x21000000"
+/* override the bootcmd, bootargs and other configuration for spi flash env*/
 #elif CONFIG_SYS_USE_NANDFLASH
-/* bootstrap + u-boot + env in nandflash */
-#define CONFIG_ENV_IS_IN_NAND
-#define CONFIG_ENV_OFFSET		0xc0000
-#define CONFIG_ENV_OFFSET_REDUND	0x100000
-#define CONFIG_ENV_SIZE			0x20000
-#define CONFIG_BOOTCOMMAND	"nand read 0x21000000 0x180000 0x80000;" \
-				"nand read 0x22000000 0x200000 0x600000;" \
-				"bootz 0x22000000 - 0x21000000"
+/* override the bootcmd, bootargs and other configuration for nandflash env*/
 #elif CONFIG_SYS_USE_MMC
-/* bootstrap + u-boot + env in sd card */
-#define CONFIG_ENV_IS_IN_FAT
-#define CONFIG_FAT_WRITE
-#define FAT_ENV_INTERFACE	"mmc"
-/*
- * We don't specify the part number, if device 0 has partition table, it means
- * the first partition; it no partition table, then take whole device as a
- * FAT file system.
- */
-#define FAT_ENV_DEVICE_AND_PART	"0"
-#define FAT_ENV_FILE		"uboot.env"
-#define CONFIG_ENV_SIZE		0x4000
-#define CONFIG_BOOTCOMMAND	"fatload mmc 0:1 0x21000000 sama5d4ek.dtb; " \
-				"fatload mmc 0:1 0x22000000 zImage; " \
-				"bootz 0x22000000 - 0x21000000"
+/* override the bootcmd, bootargs and other configuration for sd/mmc env */
 #endif
 
 /* SPL */
@@ -163,26 +111,15 @@
 #define CONFIG_SYS_SPL_MALLOC_START	0x20080000
 #define CONFIG_SYS_SPL_MALLOC_SIZE	0x80000
 
-#define CONFIG_SPL_LIBCOMMON_SUPPORT
-#define CONFIG_SPL_LIBGENERIC_SUPPORT
-#define CONFIG_SPL_GPIO_SUPPORT
-#define CONFIG_SPL_SERIAL_SUPPORT
-
 #define CONFIG_SPL_BOARD_INIT
 #define CONFIG_SYS_MONITOR_LEN		(512 << 10)
 
 #ifdef CONFIG_SYS_USE_MMC
 #define CONFIG_SPL_LDSCRIPT		arch/arm/mach-at91/armv7/u-boot-spl.lds
-#define CONFIG_SPL_MMC_SUPPORT
-#define CONFIG_SYS_U_BOOT_MAX_SIZE_SECTORS	0x400
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR 0x200
 #define CONFIG_SYS_MMCSD_FS_BOOT_PARTITION	1
 #define CONFIG_SPL_FS_LOAD_PAYLOAD_NAME		"u-boot.img"
-#define CONFIG_SPL_FAT_SUPPORT
-#define CONFIG_SPL_LIBDISK_SUPPORT
 
 #elif CONFIG_SYS_USE_NANDFLASH
-#define CONFIG_SPL_NAND_SUPPORT
 #define CONFIG_SPL_NAND_DRIVERS
 #define CONFIG_SPL_NAND_BASE
 #define CONFIG_PMECC_CAP		8
@@ -197,10 +134,8 @@
 #define CONFIG_SPL_GENERATE_ATMEL_PMECC_HEADER
 
 #elif CONFIG_SYS_USE_SERIALFLASH
-#define CONFIG_SPL_SPI_SUPPORT
-#define CONFIG_SPL_SPI_FLASH_SUPPORT
 #define CONFIG_SPL_SPI_LOAD
-#define CONFIG_SYS_SPI_U_BOOT_OFFS	0x20000
+#define CONFIG_SYS_SPI_U_BOOT_OFFS	0x8000
 
 #endif
 #endif

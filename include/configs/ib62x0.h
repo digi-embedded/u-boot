@@ -9,13 +9,6 @@
 #ifndef _CONFIG_IB62x0_H
 #define _CONFIG_IB62x0_H
 
-#define CONFIG_SYS_GENERIC_BOARD
-
-/*
- * Version number information
- */
-#define CONFIG_IDENT_STRING	" RaidSonic ICY BOX IB-NAS62x0"
-
 /*
  * High level configuration options
  */
@@ -23,45 +16,26 @@
 #define CONFIG_KW88F6281		/* SOC Name */
 #define CONFIG_SKIP_LOWLEVEL_INIT	/* disable board lowlevel_init */
 
-/*
- * Machine type
- */
-#define CONFIG_MACH_TYPE	MACH_TYPE_NAS6210
-
-/*
- * Enable device tree support
- */
-#define CONFIG_OF_LIBFDT
+/* Add target to build it automatically upon "make" */
+#define CONFIG_BUILD_TARGET     "u-boot.kwb"
 
 /*
  * Compression configuration
  */
 #define CONFIG_BZIP2
 #define CONFIG_LZMA
-#define CONFIG_LZO
 
 /*
  * Commands configuration
  */
-#define CONFIG_SYS_NO_FLASH		/* declare no flash (NOR/SPI) */
 #define CONFIG_SYS_MVFS
-#include <config_cmd_default.h>
-#define CONFIG_CMD_ENV
-#define CONFIG_CMD_BOOTZ
 #define CONFIG_CMD_IDE
-#define CONFIG_CMD_MII
-#define CONFIG_CMD_NAND
-#define CONFIG_CMD_PING
-#define CONFIG_CMD_USB
 
 /*
  * mv-common.h should be defined after CMD configs since it used them
  * to enable certain macros
  */
 #include "mv-common.h"
-
-#undef CONFIG_SYS_PROMPT
-#define CONFIG_SYS_PROMPT	"ib62x0 => "
 
 /*
  * Environment variables configuration
@@ -117,7 +91,6 @@
 #ifdef CONFIG_CMD_IDE
 #define __io
 #define CONFIG_IDE_PREINIT
-#define CONFIG_DOS_PARTITION
 #define CONFIG_MVSATA_IDE_USE_PORT0
 #define CONFIG_MVSATA_IDE_USE_PORT1
 #define CONFIG_SYS_ATA_IDE0_OFFSET	MV_SATA_PORT0_OFFSET
@@ -130,18 +103,5 @@
 #ifdef CONFIG_CMD_DATE
 #define CONFIG_RTC_MV
 #endif /* CONFIG_CMD_DATE */
-
-/*
- * File system
- */
-#define CONFIG_CMD_EXT2
-#define CONFIG_CMD_FAT
-#define CONFIG_CMD_JFFS2
-#define CONFIG_CMD_UBI
-#define CONFIG_CMD_UBIFS
-#define CONFIG_RBTREE
-#define CONFIG_MTD_DEVICE
-#define CONFIG_MTD_PARTITIONS
-#define CONFIG_CMD_MTDPARTS
 
 #endif /* _CONFIG_IB62x0_H */

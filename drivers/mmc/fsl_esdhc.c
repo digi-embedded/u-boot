@@ -1,6 +1,8 @@
 /*
- * Copyright 2007, 2010-2015 Freescale Semiconductor, Inc.
+ * Copyright 2007, 2010-2011 Freescale Semiconductor, Inc
  * Andy Fleming
+ *
+ * Copyright 2017 NXP
  *
  * Based vaguely on the pxa mmc code:
  * (C) Copyright 2003
@@ -12,15 +14,20 @@
 #include <config.h>
 #include <common.h>
 #include <command.h>
+#include <errno.h>
 #include <hwconfig.h>
 #include <mmc.h>
 #include <part.h>
 #include <malloc.h>
-#include <mmc.h>
 #include <fsl_esdhc.h>
 #include <fdt_support.h>
 #include <asm/io.h>
+#include <dm.h>
+#include <asm-generic/gpio.h>
+#include <power/regulator.h>
 #include <asm/arch/sys_proto.h>
+#include <dm/pinctrl.h>
+#include "mmc_private.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -30,6 +37,19 @@ DECLARE_GLOBAL_DATA_PTR;
 				IRQSTATEN_CIE | IRQSTATEN_DTOE | IRQSTATEN_DCE | \
 				IRQSTATEN_DEBE | IRQSTATEN_BRR | IRQSTATEN_BWR | \
 				IRQSTATEN_DINT)
+
+/* Imported/Modified from Kernel drivers/mmc/host/sdhci-esdhc-imx.c */
+#define	ESDHC_FLAG_MULTIBLK_NO_INT	BIT(1)
+#define	ESDHC_FLAG_ENGCM07207		BIT(2)
+#define	ESDHC_FLAG_USDHC		BIT(3)
+#define	ESDHC_FLAG_MAN_TUNING		BIT(4)
+#define	ESDHC_FLAG_STD_TUNING		BIT(5)
+#define	ESDHC_FLAG_HAVE_CAP1		BIT(6)
+#define	ESDHC_FLAG_ERR004536		BIT(7)
+#define	ESDHC_FLAG_HS200		BIT(8)
+#define	ESDHC_FLAG_HS400		BIT(9)
+#define	ESDHC_FLAG_ERR010450		BIT(10)
+#define	ESDHC_FLAG_HS400_ES		BIT(11)
 
 struct fsl_esdhc {
 	uint    dsaddr;		/* SDMA system address register */
@@ -59,13 +79,16 @@ struct fsl_esdhc {
 	uint    dllctrl;
 	uint    dllstat;
 	uint    clktunectrlstatus;
-	char    reserved3[84];
+	char	reserved[4];
+	uint	strobe_dllctrl;
+	uint	strobe_dllstat;
+	char    reserved3[72];
 	uint    vendorspec;
 	uint    mmcboot;
 	uint    vendorspec2;
-	char	reserved4[48];
+	uint    tuning_ctrl;	/* on i.MX6/7/8 */
+	char	reserved4[44];
 	uint    hostver;	/* Host controller version register */
-#ifndef ARCH_MXC
 	char    reserved5[4];	/* reserved */
 	uint    dmaerraddr;	/* DMA error address register */
 	char    reserved6[4];	/* reserved */
@@ -78,8 +101,79 @@ struct fsl_esdhc {
 	uint    sddirctl;	/* SD direction control register */
 	char    reserved10[712];/* reserved */
 	uint    scr;		/* eSDHC control register */
+};
+
+struct esdhc_soc_data {
+	u32 flags;
+	u32 caps;
+};
+
+/**
+ * struct fsl_esdhc_priv
+ *
+ * @esdhc_regs: registers of the sdhc controller
+ * @sdhc_clk: Current clk of the sdhc controller
+ * @bus_width: bus width, 1bit, 4bit or 8bit
+ * @cfg: mmc config
+ * @mmc: mmc
+ * Following is used when Driver Model is enabled for MMC
+ * @dev: pointer for the device
+ * @non_removable: 0: removable; 1: non-removable
+ * @wp_enable: 1: enable checking wp; 0: no check
+ * @cd_gpio: gpio for card detection
+ * @wp_gpio: gpio for write protection
+ */
+struct fsl_esdhc_priv {
+	struct fsl_esdhc *esdhc_regs;
+	unsigned int sdhc_clk;
+	unsigned int clock;
+	unsigned int mode;
+	unsigned int bus_width;
+	unsigned int flags;
+	unsigned int caps;
+	struct mmc_config cfg;
+	struct mmc *mmc;
+	struct udevice *dev;
+	int non_removable;
+	int wp_enable;
+	int vs18_enable;
+	u32 tuning_step;
+	u32 tuning_start_tap;
+	u32 strobe_dll_delay_target;
+	u32 delay_line;
+	uint signal_voltage;
+#if CONFIG_IS_ENABLED(DM_REGULATOR)
+	struct udevice *vqmmc_dev;
+	struct udevice *vmmc_dev;
+#endif
+#ifdef CONFIG_DM_GPIO
+	struct gpio_desc cd_gpio;
+	struct gpio_desc wp_gpio;
 #endif
 };
+
+static void esdhc_dump(struct mmc *mmc)
+{
+#ifdef DEBUG
+	struct fsl_esdhc_priv *priv = mmc->priv;
+	struct fsl_esdhc *regs = priv->esdhc_regs;
+	ulong addr = (ulong)regs;
+
+	int i = 0;
+
+	for (i = 0; i < 0xd0; i+=4) {
+
+		if (i % 16 == 0) {
+			printf("\n");
+			printf("0x%08x: ", addr + i);
+		}
+
+		printf("0x%08x ", readl(addr + i));
+	}
+
+	printf("\n");
+#endif
+}
 
 /* Return the XFERTYP flags for a given command and data packet */
 static uint esdhc_xfertyp(struct mmc_cmd *cmd, struct mmc_data *data)
@@ -114,10 +208,9 @@ static uint esdhc_xfertyp(struct mmc_cmd *cmd, struct mmc_data *data)
 	else if (cmd->resp_type & MMC_RSP_PRESENT)
 		xfertyp |= XFERTYP_RSPTYP_48;
 
-#if defined(CONFIG_MX53) || defined(CONFIG_PPC_T4240) || defined(CONFIG_LS102XA)
 	if (cmd->cmdidx == MMC_CMD_STOP_TRANSMISSION)
 		xfertyp |= XFERTYP_CMDTYP_ABORT;
-#endif
+
 	return XFERTYP_CMD(cmd->cmdidx) | xfertyp;
 }
 
@@ -128,8 +221,8 @@ static uint esdhc_xfertyp(struct mmc_cmd *cmd, struct mmc_data *data)
 static void
 esdhc_pio_read_write(struct mmc *mmc, struct mmc_data *data)
 {
-	struct fsl_esdhc_cfg *cfg = mmc->priv;
-	struct fsl_esdhc *regs = (struct fsl_esdhc *)cfg->esdhc_base;
+	struct fsl_esdhc_priv *priv = mmc->priv;
+	struct fsl_esdhc *regs = priv->esdhc_regs;
 	uint blocks;
 	char *buffer;
 	uint databuf;
@@ -190,8 +283,12 @@ esdhc_pio_read_write(struct mmc *mmc, struct mmc_data *data)
 static int esdhc_setup_data(struct mmc *mmc, struct mmc_data *data)
 {
 	int timeout;
-	struct fsl_esdhc_cfg *cfg = mmc->priv;
-	struct fsl_esdhc *regs = (struct fsl_esdhc *)cfg->esdhc_base;
+	struct fsl_esdhc_priv *priv = mmc->priv;
+	struct fsl_esdhc *regs = priv->esdhc_regs;
+#if defined(CONFIG_FSL_LAYERSCAPE) || defined(CONFIG_S32V234) || \
+	defined(CONFIG_IMX8) || defined(CONFIG_IMX8M)
+	dma_addr_t addr;
+#endif
 	uint wml_value;
 
 	wml_value = data->blocksize/4;
@@ -202,7 +299,16 @@ static int esdhc_setup_data(struct mmc *mmc, struct mmc_data *data)
 
 		esdhc_clrsetbits32(&regs->wml, WML_RD_WML_MASK, wml_value);
 #ifndef CONFIG_SYS_FSL_ESDHC_USE_PIO
+#if defined(CONFIG_FSL_LAYERSCAPE) || defined(CONFIG_S32V234) || \
+		defined(CONFIG_IMX8) || defined(CONFIG_IMX8M)
+		addr = virt_to_phys((void *)(data->dest));
+		if (upper_32_bits(addr))
+			printf("Error found for upper 32 bits\n");
+		else
+			esdhc_write32(&regs->dsaddr, lower_32_bits(addr));
+#else
 		esdhc_write32(&regs->dsaddr, (u32)data->dest);
+#endif
 #endif
 	} else {
 #ifndef CONFIG_SYS_FSL_ESDHC_USE_PIO
@@ -212,18 +318,34 @@ static int esdhc_setup_data(struct mmc *mmc, struct mmc_data *data)
 #endif
 		if (wml_value > WML_WR_WML_MAX)
 			wml_value = WML_WR_WML_MAX_VAL;
-
-		if (cfg->wp_enable) {
-			if ((esdhc_read32(&regs->prsstat) & PRSSTAT_WPSPL) == 0) {
+		if (priv->wp_enable) {
+			if ((esdhc_read32(&regs->prsstat) &
+			    PRSSTAT_WPSPL) == 0) {
 				printf("\nThe SD card is locked. Can not write to a locked card.\n\n");
-				return TIMEOUT;
+				return -ETIMEDOUT;
 			}
+		} else {
+#ifdef CONFIG_DM_GPIO
+			if (dm_gpio_is_valid(&priv->wp_gpio) && dm_gpio_get_value(&priv->wp_gpio)) {
+				printf("\nThe SD card is locked. Can not write to a locked card.\n\n");
+				return -ETIMEDOUT;
+			}
+#endif
 		}
 
 		esdhc_clrsetbits32(&regs->wml, WML_WR_WML_MASK,
 					wml_value << 16);
 #ifndef CONFIG_SYS_FSL_ESDHC_USE_PIO
+#if defined(CONFIG_FSL_LAYERSCAPE) || defined(CONFIG_S32V234) || \
+		defined(CONFIG_IMX8) || defined(CONFIG_IMX8M)
+		addr = virt_to_phys((void *)(data->src));
+		if (upper_32_bits(addr))
+			printf("Error found for upper 32 bits\n");
+		else
+			esdhc_write32(&regs->dsaddr, lower_32_bits(addr));
+#else
 		esdhc_write32(&regs->dsaddr, (u32)data->src);
+#endif
 #endif
 	}
 
@@ -243,8 +365,15 @@ static int esdhc_setup_data(struct mmc *mmc, struct mmc_data *data)
 	 * Rounding up to next power of 2
 	 * => timeout + 13 = log2(mmc->clock/4) + 1
 	 * => timeout + 13 = fls(mmc->clock/4)
+	 *
+	 * However, the MMC spec "It is strongly recommended for hosts to
+	 * implement more than 500ms timeout value even if the card
+	 * indicates the 250ms maximum busy length."  Even the previous
+	 * value of 300ms is known to be insufficient for some cards.
+	 * So, we use
+	 * => timeout + 13 = fls(mmc->clock/2)
 	 */
-	timeout = fls(mmc->clock/4);
+	timeout = fls(mmc->clock/2);
 	timeout -= 13;
 
 	if (timeout > 14)
@@ -266,17 +395,28 @@ static int esdhc_setup_data(struct mmc *mmc, struct mmc_data *data)
 	return 0;
 }
 
-#ifndef CONFIG_SYS_FSL_ESDHC_USE_PIO
 static void check_and_invalidate_dcache_range
 	(struct mmc_cmd *cmd,
 	 struct mmc_data *data) {
-	unsigned start = (unsigned)data->dest ;
+	unsigned start = 0;
+	unsigned end = 0;
 	unsigned size = roundup(ARCH_DMA_MINALIGN,
 				data->blocks*data->blocksize);
-	unsigned end = start+size ;
+#if defined(CONFIG_FSL_LAYERSCAPE) || defined(CONFIG_S32V234) || \
+	defined(CONFIG_IMX8) || defined(CONFIG_IMX8M)
+	dma_addr_t addr;
+
+	addr = virt_to_phys((void *)(data->dest));
+	if (upper_32_bits(addr))
+		printf("Error found for upper 32 bits\n");
+	else
+		start = lower_32_bits(addr);
+#else
+	start = (unsigned)data->dest;
+#endif
+	end = start + size;
 	invalidate_dcache_range(start, end);
 }
-#endif
 
 /*
  * Sends a command out on the bus.  Takes the mmc pointer,
@@ -288,8 +428,9 @@ esdhc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 	int	err = 0;
 	uint	xfertyp;
 	uint	irqstat;
-	struct fsl_esdhc_cfg *cfg = mmc->priv;
-	volatile struct fsl_esdhc *regs = (struct fsl_esdhc *)cfg->esdhc_base;
+	uint	flags;
+	struct fsl_esdhc_priv *priv = mmc->priv;
+	struct fsl_esdhc *regs = priv->esdhc_regs;
 
 #ifdef CONFIG_SYS_FSL_ERRATUM_ESDHC111
 	if (cmd->cmdidx == MMC_CMD_STOP_TRANSMISSION)
@@ -342,19 +483,26 @@ esdhc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 	esdhc_write32(&regs->xfertyp, xfertyp);
 #endif
 
+	if ((cmd->cmdidx == MMC_SEND_TUNING_BLOCK) ||
+	    (cmd->cmdidx == MMC_SEND_TUNING_BLOCK_HS200)) {
+		flags = IRQSTAT_BRR;
+	} else {
+		flags = IRQSTAT_CC | IRQSTAT_CTOE;
+	}
+
 	/* Wait for the command to complete */
-	while (!(esdhc_read32(&regs->irqstat) & (IRQSTAT_CC | IRQSTAT_CTOE)))
+	while (!(esdhc_read32(&regs->irqstat) & flags))
 		;
 
 	irqstat = esdhc_read32(&regs->irqstat);
 
 	if (irqstat & CMD_ERR) {
-		err = COMM_ERR;
+		err = -ECOMM;
 		goto out;
 	}
 
 	if (irqstat & IRQSTAT_CTOE) {
-		err = TIMEOUT;
+		err = -ETIMEDOUT;
 		goto out;
 	}
 
@@ -369,9 +517,9 @@ esdhc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 
 	/* Workaround for ESDHC errata ENGcm03648 */
 	if (!data && (cmd->resp_type & MMC_RSP_BUSY)) {
-		int timeout = 3000;
+		int timeout = 12000;
 
-		/* Poll on DATA0 line for cmd with busy signal for 300 ms */
+		/* Poll on DATA0 line for cmd with busy signal for 1200 ms */
 		while (timeout > 0 && !(esdhc_read32(&regs->prsstat) &
 					PRSSTAT_DAT0)) {
 			udelay(100);
@@ -380,7 +528,7 @@ esdhc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 
 		if (timeout <= 0) {
 			printf("Timeout waiting for DAT0 to go high!\n");
-			err = TIMEOUT;
+			err = -ETIMEDOUT;
 			goto out;
 		}
 	}
@@ -405,19 +553,25 @@ esdhc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 #ifdef CONFIG_SYS_FSL_ESDHC_USE_PIO
 		esdhc_pio_read_write(mmc, data);
 #else
+		flags = DATA_COMPLETE;
+		if ((cmd->cmdidx == MMC_SEND_TUNING_BLOCK) ||
+		    (cmd->cmdidx == MMC_SEND_TUNING_BLOCK_HS200)) {
+			flags = IRQSTAT_BRR;
+		}
+
 		do {
 			irqstat = esdhc_read32(&regs->irqstat);
 
 			if (irqstat & IRQSTAT_DTOE) {
-				err = TIMEOUT;
+				err = -ETIMEDOUT;
 				goto out;
 			}
 
 			if (irqstat & DATA_ERR) {
-				err = COMM_ERR;
+				err = -ECOMM;
 				goto out;
 			}
-		} while ((irqstat & DATA_COMPLETE) != DATA_COMPLETE);
+		} while (((irqstat & flags) != flags));
 
 		/*
 		 * Need invalidate the dcache here again to avoid any
@@ -432,6 +586,8 @@ esdhc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 out:
 	/* Reset CMD and DATA portions on error */
 	if (err) {
+		esdhc_dump(mmc);
+
 		esdhc_write32(&regs->sysctl, esdhc_read32(&regs->sysctl) |
 			      SYSCTL_RSTC);
 		while (esdhc_read32(&regs->sysctl) & SYSCTL_RSTC)
@@ -458,10 +614,19 @@ out:
 static void set_sysctl(struct mmc *mmc, uint clock)
 {
 	int div, pre_div;
-	struct fsl_esdhc_cfg *cfg = mmc->priv;
-	volatile struct fsl_esdhc *regs = (struct fsl_esdhc *)cfg->esdhc_base;
-	int sdhc_clk = cfg->sdhc_clk;
+	struct fsl_esdhc_priv *priv = mmc->priv;
+	struct fsl_esdhc *regs = priv->esdhc_regs;
+	int sdhc_clk = priv->sdhc_clk;
 	uint clk;
+
+	/*
+	 * For ddr mode, usdhc need to enable DDR mode first, after select
+	 * this DDR mode, usdhc will automatically divide the usdhc clock
+	 */
+	if (mmc->ddr_mode) {
+		writel(readl(&regs->mixctrl) | MIX_CTRL_DDREN, &regs->mixctrl);
+		sdhc_clk >>= 1;
+	}
 
 	if (clock < mmc->cfg->f_min)
 		clock = mmc->cfg->f_min;
@@ -471,19 +636,19 @@ static void set_sysctl(struct mmc *mmc, uint clock)
 			if ((sdhc_clk / pre_div) <= (clock * 16))
 				break;
 	} else
-		pre_div = 2;
+		pre_div = 1;
 
 	for (div = 1; div <= 16; div++)
 		if ((sdhc_clk / (div * pre_div)) <= clock)
 			break;
 
-	pre_div >>= mmc->ddr_mode ? 2 : 1;
+	pre_div >>= 1;
 	div -= 1;
 
 	clk = (pre_div << 8) | (div << 4);
 
 #ifdef CONFIG_FSL_USDHC
-	esdhc_setbits32(&regs->sysctl, SYSCTL_RSTA);
+	esdhc_clrbits32(&regs->vendorspec, VENDORSPEC_CKEN);
 #else
 	esdhc_clrbits32(&regs->sysctl, SYSCTL_CKEN);
 #endif
@@ -493,20 +658,360 @@ static void set_sysctl(struct mmc *mmc, uint clock)
 	udelay(10000);
 
 #ifdef CONFIG_FSL_USDHC
-	esdhc_clrbits32(&regs->sysctl, SYSCTL_RSTA);
+	esdhc_setbits32(&regs->vendorspec, VENDORSPEC_PEREN | VENDORSPEC_CKEN);
 #else
 	esdhc_setbits32(&regs->sysctl, SYSCTL_PEREN | SYSCTL_CKEN);
 #endif
 
+	priv->clock = clock;
 }
 
-static void esdhc_set_ios(struct mmc *mmc)
+#ifdef CONFIG_FSL_ESDHC_USE_PERIPHERAL_CLK
+static void esdhc_clock_control(struct mmc *mmc, bool enable)
 {
-	struct fsl_esdhc_cfg *cfg = mmc->priv;
-	struct fsl_esdhc *regs = (struct fsl_esdhc *)cfg->esdhc_base;
+	struct fsl_esdhc_priv *priv = mmc->priv;
+	struct fsl_esdhc *regs = priv->esdhc_regs;
+	u32 value;
+	u32 time_out;
 
+	value = esdhc_read32(&regs->sysctl);
+
+	if (enable)
+		value |= SYSCTL_CKEN;
+	else
+		value &= ~SYSCTL_CKEN;
+
+	esdhc_write32(&regs->sysctl, value);
+
+	time_out = 20;
+	value = PRSSTAT_SDSTB;
+	while (!(esdhc_read32(&regs->prsstat) & value)) {
+		if (time_out == 0) {
+			printf("fsl_esdhc: Internal clock never stabilised.\n");
+			break;
+		}
+		time_out--;
+		mdelay(1);
+	}
+}
+#endif
+
+#if CONFIG_IS_ENABLED(DM_MMC)
+static int esdhc_change_pinstate(struct mmc *mmc)
+{
+	struct udevice *dev = mmc->dev;
+	struct fsl_esdhc_priv *priv = mmc->priv;
+	int ret;
+
+	switch(priv->mode) {
+	case UHS_SDR50:
+	case UHS_DDR50:
+		ret = pinctrl_select_state(dev, "state_100mhz");
+		break;
+	case UHS_SDR104:
+	case MMC_HS_200:
+	case MMC_HS_400:
+	case MMC_HS_400_ES:
+		ret = pinctrl_select_state(dev, "state_200mhz");
+		break;
+	default:
+		ret = pinctrl_select_state(dev, "default");
+		break;
+	}
+
+	if (ret) {
+		printf("%s %d error\n", __func__, priv->mode);
+	}
+
+	return ret;
+}
+
+static void esdhc_reset_tuning(struct mmc *mmc)
+{
+	struct fsl_esdhc_priv *priv = mmc->priv;
+	struct fsl_esdhc *regs = priv->esdhc_regs;
+
+	if (priv->flags & ESDHC_FLAG_USDHC) {
+		if (priv->flags & ESDHC_FLAG_STD_TUNING) {
+			esdhc_clrbits32(&regs->autoc12err,
+					MIX_CTRL_SMPCLK_SEL |
+					MIX_CTRL_EXE_TUNE);
+		}
+	}
+}
+
+static void esdhc_set_strobe_dll(struct mmc *mmc)
+{
+	struct fsl_esdhc_priv *priv = mmc->priv;
+	struct fsl_esdhc *regs = priv->esdhc_regs;
+	u32 v;
+
+	if (priv->clock > ESDHC_STROBE_DLL_CLK_FREQ) {
+		writel(ESDHC_STROBE_DLL_CTRL_RESET, &regs->strobe_dllctrl);
+
+		/*
+		 * enable strobe dll ctrl and adjust the delay target
+		 * for the uSDHC loopback read clock
+		 */
+		v = ESDHC_STROBE_DLL_CTRL_ENABLE |
+			(priv->strobe_dll_delay_target << ESDHC_STROBE_DLL_CTRL_SLV_DLY_TARGET_SHIFT);
+		writel(v, &regs->strobe_dllctrl);
+		/* wait 1us to make sure strobe dll status register stable */
+		udelay(1);
+		v = readl(&regs->strobe_dllstat);
+		if (!(v & ESDHC_STROBE_DLL_STS_REF_LOCK))
+			printf("warning! HS400 strobe DLL status REF not lock!\n");
+		if (!(v & ESDHC_STROBE_DLL_STS_SLV_LOCK))
+			printf("warning! HS400 strobe DLL status SLV not lock!\n");
+	}
+}
+
+static int esdhc_set_timing(struct mmc *mmc)
+{
+	struct fsl_esdhc_priv *priv = mmc->priv;
+	struct fsl_esdhc *regs = priv->esdhc_regs;
+	uint32_t m;
+
+	m = readl(&regs->mixctrl);
+	m &= ~(MIX_CTRL_DDREN | MIX_CTRL_HS400_EN);
+
+	switch (mmc->selected_mode) {
+	case MMC_LEGACY:
+	case SD_LEGACY:
+		esdhc_reset_tuning(mmc);
+		break;
+	case MMC_HS_400:
+	case MMC_HS_400_ES:
+		m |= MIX_CTRL_DDREN | MIX_CTRL_HS400_EN;
+		writel(m, &regs->mixctrl);
+		esdhc_set_strobe_dll(mmc);
+		break;
+	case MMC_HS:
+	case MMC_HS_52:
+	case MMC_HS_200:
+	case SD_HS:
+	case UHS_SDR12:
+	case UHS_SDR25:
+	case UHS_SDR50:
+	case UHS_SDR104:
+		writel(m, &regs->mixctrl);
+		break;
+	case UHS_DDR50:
+	case MMC_DDR_52:
+		m |= MIX_CTRL_DDREN;
+		writel(m, &regs->mixctrl);
+		break;
+	default:
+		printf("Not supported %d\n", mmc->selected_mode);
+		break;
+	}
+
+	priv->mode = mmc->selected_mode;
+
+	return esdhc_change_pinstate(mmc);
+}
+
+static int esdhc_set_voltage(struct mmc *mmc)
+{
+	struct fsl_esdhc_priv *priv = mmc->priv;
+	struct fsl_esdhc *regs = priv->esdhc_regs;
+	int ret;
+
+	priv->signal_voltage = mmc->signal_voltage;
+	switch (mmc->signal_voltage) {
+	case MMC_SIGNAL_VOLTAGE_330:
+		if (priv->vs18_enable)
+			return -EIO;
+		if (!IS_ERR_OR_NULL(priv->vqmmc_dev)) {
+			ret = regulator_set_value(priv->vqmmc_dev, 3300000);
+			if (ret) {
+				printf("Setting to 3.3V error");
+				return -EIO;
+			}
+			/* Wait for 5ms */
+			mdelay(5);
+		}
+		esdhc_clrbits32(&regs->vendorspec, ESDHC_VENDORSPEC_VSELECT);
+		if (!(esdhc_read32(&regs->vendorspec) & ESDHC_VENDORSPEC_VSELECT))
+			return 0;
+
+		return -EAGAIN;
+	case MMC_SIGNAL_VOLTAGE_180:
+		if (!IS_ERR_OR_NULL(priv->vqmmc_dev)) {
+			ret = regulator_set_value(priv->vqmmc_dev, 1800000);
+			if (ret) {
+				printf("Setting to 1.8V error");
+				return -EIO;
+			}
+		}
+		esdhc_setbits32(&regs->vendorspec, ESDHC_VENDORSPEC_VSELECT);
+		if (esdhc_read32(&regs->vendorspec) & ESDHC_VENDORSPEC_VSELECT)
+			return 0;
+
+		return -EAGAIN;
+	case MMC_SIGNAL_VOLTAGE_120:
+		return -ENOTSUPP;
+	default:
+		return 0;
+	}
+}
+
+static void esdhc_stop_tuning(struct mmc *mmc)
+{
+	struct mmc_cmd cmd;
+
+	cmd.cmdidx = MMC_CMD_STOP_TRANSMISSION;
+	cmd.cmdarg = 0;
+	cmd.resp_type = MMC_RSP_R1b;
+	mmc_send_cmd(mmc, &cmd, NULL);
+}
+
+static int esdhc_execute_tuning(struct mmc *mmc, uint32_t opcode)
+{
+	struct fsl_esdhc_priv *priv = mmc->priv;
+	struct fsl_esdhc *regs = priv->esdhc_regs;
+	u32 irqstaten = readl(&regs->irqstaten);
+	u32 irqsigen = readl(&regs->irqsigen);
+	int i, ret = -ETIMEDOUT;
+	u32 v, m;
+
+	/* clock tuning is not needed for upto 52MHz */
+	if (mmc->clock <= 52000000)
+		return 0;
+
+	/* This is readw/writew SDHCI_HOST_CONTROL2 when tuning */
+	if (priv->flags & ESDHC_FLAG_STD_TUNING) {
+		v = readl(&regs->autoc12err);
+		m = readl(&regs->mixctrl);
+		v &= ~MIX_CTRL_SMPCLK_SEL;
+		m &= ~MIX_CTRL_FBCLK_SEL;
+		m &= ~MIX_CTRL_AUTO_TUNE_EN;
+
+		v |= MIX_CTRL_EXE_TUNE;
+		m |= MIX_CTRL_FBCLK_SEL;
+		m |= MIX_CTRL_AUTO_TUNE_EN;
+
+		writel(v, &regs->autoc12err);
+		writel(m, &regs->mixctrl);
+	}
+
+	/* sdhci_writew(host, SDHCI_TRNS_READ, SDHCI_TRANSFER_MODE); */
+	v = readl(&regs->mixctrl);
+	v = MIX_CTRL_DTDSEL_READ | (v & ~MIX_CTRL_SDHCI_MASK);
+	writel(v, &regs->mixctrl);
+
+	writel(IRQSTATEN_BRR, &regs->irqstaten);
+	writel(IRQSTATEN_BRR, &regs->irqsigen);
+
+	for (i = 0; i < 40; i++) {
+		u32 ctrl;
+
+		if (opcode == MMC_SEND_TUNING_BLOCK_HS200) {
+			if (mmc->bus_width == 8)
+				writel(0x7080, &regs->blkattr);
+			else if (mmc->bus_width == 4)
+				writel(0x7040, &regs->blkattr);
+		} else {
+				writel(0x7040, &regs->blkattr);
+		}
+
+		/* sdhci_writew(host, SDHCI_TRNS_READ, SDHCI_TRANSFER_MODE); */
+		v = readl(&regs->mixctrl);
+		v = MIX_CTRL_DTDSEL_READ | (v & ~MIX_CTRL_SDHCI_MASK);
+		writel(v, &regs->mixctrl);
+
+		/* We are using STD tuning, no need to check return value */
+		mmc_send_tuning(mmc, opcode, NULL);
+
+		ctrl = readl(&regs->autoc12err);
+		if ((!(ctrl & MIX_CTRL_EXE_TUNE)) &&
+		    (ctrl & MIX_CTRL_SMPCLK_SEL)) {
+			ret = 0;
+			break;
+		}
+
+		/* Add 2ms delay for SD and eMMC */
+		mdelay(2);
+	}
+
+	writel(irqstaten, &regs->irqstaten);
+	writel(irqsigen, &regs->irqsigen);
+
+	esdhc_stop_tuning(mmc);
+
+	return ret;
+}
+
+static void esdhc_hs400_enhanced_strobe(struct mmc *mmc)
+{
+	struct fsl_esdhc_priv *priv = mmc->priv;
+	struct fsl_esdhc *regs = priv->esdhc_regs;
+	u32 m;
+
+	m = readl(&regs->mixctrl);
+	m |= MIX_CTRL_HS400_ES;
+	writel(m, &regs->mixctrl);
+}
+
+static int esdhc_set_vdd(struct mmc *mmc, bool enable)
+{
+#if CONFIG_IS_ENABLED(DM_REGULATOR)
+	struct fsl_esdhc_priv *priv = mmc->priv;
+
+	return regulator_set_enable(priv->vmmc_dev, enable);
+#else
+	return 0;
+#endif
+}
+#endif
+
+static int esdhc_set_ios(struct mmc *mmc)
+{
+	struct fsl_esdhc_priv *priv = mmc->priv;
+	struct fsl_esdhc *regs = priv->esdhc_regs;
+	int ret __maybe_unused;
+
+#ifdef CONFIG_FSL_ESDHC_USE_PERIPHERAL_CLK
+	/* Select to use peripheral clock */
+	esdhc_clock_control(mmc, false);
+	esdhc_setbits32(&regs->scr, ESDHCCTL_PCS);
+	esdhc_clock_control(mmc, true);
+#endif
 	/* Set the clock speed */
-	set_sysctl(mmc, mmc->clock);
+	if (priv->clock != mmc->clock)
+		set_sysctl(mmc, mmc->clock);
+
+	if (mmc->clk_disable) {
+#ifdef CONFIG_FSL_USDHC
+	esdhc_clrbits32(&regs->vendorspec, VENDORSPEC_CKEN);
+#else
+	esdhc_clrbits32(&regs->sysctl, SYSCTL_CKEN);
+#endif
+	} else {
+#ifdef CONFIG_FSL_USDHC
+	esdhc_setbits32(&regs->vendorspec, VENDORSPEC_PEREN | VENDORSPEC_CKEN);
+#else
+	esdhc_setbits32(&regs->sysctl, SYSCTL_PEREN | SYSCTL_CKEN);
+#endif
+	}
+
+#if CONFIG_IS_ENABLED(DM_MMC)
+	if (priv->mode != mmc->selected_mode) {
+		ret = esdhc_set_timing(mmc);
+		if (ret) {
+			printf("esdhc_set_timing error %d\n", ret);
+			return ret;
+		}
+	}
+
+	if (priv->signal_voltage != mmc->signal_voltage) {
+		ret = esdhc_set_voltage(mmc);
+		if (ret) {
+			printf("esdhc_set_voltage error %d\n", ret);
+			return ret;
+		}
+	}
+#endif
 
 	/* Set the bus width */
 	esdhc_clrbits32(&regs->proctl, PROCTL_DTW_4 | PROCTL_DTW_8);
@@ -516,12 +1021,13 @@ static void esdhc_set_ios(struct mmc *mmc)
 	else if (mmc->bus_width == 8)
 		esdhc_setbits32(&regs->proctl, PROCTL_DTW_8);
 
+	return 0;
 }
 
 static int esdhc_init(struct mmc *mmc)
 {
-	struct fsl_esdhc_cfg *cfg = mmc->priv;
-	struct fsl_esdhc *regs = (struct fsl_esdhc *)cfg->esdhc_base;
+	struct fsl_esdhc_priv *priv = mmc->priv;
+	struct fsl_esdhc *regs = priv->esdhc_regs;
 	int timeout = 1000;
 
 	/* Reset the entire host controller */
@@ -539,7 +1045,10 @@ static int esdhc_init(struct mmc *mmc)
 	esdhc_write32(&regs->clktunectrlstatus, 0x0);
 
 	/* Put VEND_SPEC to default value */
-	esdhc_write32(&regs->vendorspec, VENDORSPEC_INIT);
+	if (priv->vs18_enable)
+		esdhc_write32(&regs->vendorspec, (VENDORSPEC_INIT | ESDHC_VENDORSPEC_VSELECT));
+	else
+		esdhc_write32(&regs->vendorspec, VENDORSPEC_INIT);
 
 	/* Disable DLL_CTRL delay line */
 	esdhc_write32(&regs->dllctrl, 0x0);
@@ -552,10 +1061,12 @@ static int esdhc_init(struct mmc *mmc)
 
 #ifndef CONFIG_FSL_USDHC
 	esdhc_setbits32(&regs->sysctl, SYSCTL_HCKEN | SYSCTL_IPGEN);
+#else
+	esdhc_setbits32(&regs->vendorspec, VENDORSPEC_HCKEN | VENDORSPEC_IPGEN);
 #endif
 
 	/* Set the initial clock speed */
-	mmc_set_clock(mmc, 400000);
+	mmc_set_clock(mmc, 400000, false);
 
 	/* Disable the BRR and BWR bits in IRQSTAT */
 	esdhc_clrbits32(&regs->irqstaten, IRQSTATEN_BRR | IRQSTATEN_BWR);
@@ -566,23 +1077,29 @@ static int esdhc_init(struct mmc *mmc)
 	/* Set timout to the maximum value */
 	esdhc_clrsetbits32(&regs->sysctl, SYSCTL_TIMEOUT_MASK, 14 << 16);
 
-#ifdef CONFIG_SYS_FSL_ESDHC_FORCE_VSELECT
-	esdhc_setbits32(&regs->vendorspec, ESDHC_VENDORSPEC_VSELECT);
-#endif
-
 	return 0;
 }
 
 static int esdhc_getcd(struct mmc *mmc)
 {
-	struct fsl_esdhc_cfg *cfg = mmc->priv;
-	struct fsl_esdhc *regs = (struct fsl_esdhc *)cfg->esdhc_base;
+	struct fsl_esdhc_priv *priv = mmc->priv;
+	struct fsl_esdhc *regs = priv->esdhc_regs;
 	int timeout = 1000;
 
 #ifdef CONFIG_ESDHC_DETECT_QUIRK
 	if (CONFIG_ESDHC_DETECT_QUIRK)
 		return 1;
 #endif
+
+#ifdef CONFIG_DM_MMC
+	if (priv->non_removable)
+		return 1;
+#ifdef CONFIG_DM_GPIO
+	if (dm_gpio_is_valid(&priv->cd_gpio))
+		return dm_gpio_get_value(&priv->cd_gpio);
+#endif
+#endif
+
 	while (!(esdhc_read32(&regs->prsstat) & PRSSTAT_CINS) && --timeout)
 		udelay(1000);
 
@@ -608,25 +1125,39 @@ static const struct mmc_ops esdhc_ops = {
 	.set_ios	= esdhc_set_ios,
 	.init		= esdhc_init,
 	.getcd		= esdhc_getcd,
+#if CONFIG_IS_ENABLED(DM_MMC)
+	.execute_tuning	= esdhc_execute_tuning,
+	.set_vdd = esdhc_set_vdd,
+	.hs400_enhanced_strobe = esdhc_hs400_enhanced_strobe,
+#endif
 };
 
-int fsl_esdhc_initialize(bd_t *bis, struct fsl_esdhc_cfg *cfg)
+static int fsl_esdhc_cfg_to_priv(struct fsl_esdhc_cfg *cfg,
+				 struct fsl_esdhc_priv *priv)
+{
+	if (!cfg || !priv)
+		return -EINVAL;
+
+	priv->esdhc_regs = (struct fsl_esdhc *)(unsigned long)(cfg->esdhc_base);
+	priv->bus_width = cfg->max_bus_width;
+	priv->sdhc_clk = cfg->sdhc_clk;
+	priv->wp_enable  = cfg->wp_enable;
+	priv->vs18_enable  = cfg->vs18_enable;
+
+	return 0;
+};
+
+static int fsl_esdhc_init(struct fsl_esdhc_priv *priv)
 {
 	struct fsl_esdhc *regs;
 	struct mmc *mmc;
 	u32 caps, voltage_caps;
+	u32 val;
 
-	if (!cfg)
-		return -1;
+	if (!priv)
+		return -EINVAL;
 
-	regs = (struct fsl_esdhc *)cfg->esdhc_base;
-
-#ifdef CONFIG_MX6
-	if (mx6_esdhc_fused(cfg->esdhc_base)) {
-		printf("ESDHC@0x%x is fused, disable it\n", cfg->esdhc_base);
-		return -2;
-	}
-#endif
+	regs = priv->esdhc_regs;
 
 	/* First reset the eSDHC controller */
 	esdhc_reset(regs);
@@ -634,10 +1165,19 @@ int fsl_esdhc_initialize(bd_t *bis, struct fsl_esdhc_cfg *cfg)
 #ifndef CONFIG_FSL_USDHC
 	esdhc_setbits32(&regs->sysctl, SYSCTL_PEREN | SYSCTL_HCKEN
 				| SYSCTL_IPGEN | SYSCTL_CKEN);
+	/* Clearing tuning bits in case ROM has set it already */
+	esdhc_write32(&regs->mixctrl, 0);
+	esdhc_write32(&regs->autoc12err, 0);
+	esdhc_write32(&regs->clktunectrlstatus, 0);
+#else
+	esdhc_setbits32(&regs->vendorspec, VENDORSPEC_PEREN |
+			VENDORSPEC_HCKEN | VENDORSPEC_IPGEN | VENDORSPEC_CKEN);
 #endif
+	if (priv->vs18_enable)
+		esdhc_setbits32(&regs->vendorspec, ESDHC_VENDORSPEC_VSELECT);
 
 	writel(SDHCI_IRQ_EN_BITS, &regs->irqstaten);
-	memset(&cfg->cfg, 0, sizeof(cfg->cfg));
+	memset(&priv->cfg, 0, sizeof(priv->cfg));
 
 	voltage_caps = 0;
 	caps = esdhc_read32(&regs->hostcapblt);
@@ -659,46 +1199,105 @@ int fsl_esdhc_initialize(bd_t *bis, struct fsl_esdhc_cfg *cfg)
 	if (caps & ESDHC_HOSTCAPBLT_VS33)
 		voltage_caps |= MMC_VDD_32_33 | MMC_VDD_33_34;
 
-	cfg->cfg.name = "FSL_SDHC";
-	cfg->cfg.ops = &esdhc_ops;
+	priv->cfg.name = "FSL_SDHC";
+	priv->cfg.ops = &esdhc_ops;
 #ifdef CONFIG_SYS_SD_VOLTAGE
-	cfg->cfg.voltages = CONFIG_SYS_SD_VOLTAGE;
+	priv->cfg.voltages = CONFIG_SYS_SD_VOLTAGE;
 #else
-	cfg->cfg.voltages = MMC_VDD_32_33 | MMC_VDD_33_34;
+	priv->cfg.voltages = MMC_VDD_32_33 | MMC_VDD_33_34;
 #endif
-	if ((cfg->cfg.voltages & voltage_caps) == 0) {
+	if ((priv->cfg.voltages & voltage_caps) == 0) {
 		printf("voltage not supported by controller\n");
 		return -1;
 	}
 
-	cfg->cfg.host_caps = MMC_MODE_4BIT | MMC_MODE_8BIT | MMC_MODE_HC;
+	if (priv->bus_width == 8)
+		priv->cfg.host_caps = MMC_MODE_4BIT | MMC_MODE_8BIT;
+	else if (priv->bus_width == 4)
+		priv->cfg.host_caps = MMC_MODE_4BIT;
+
+	priv->cfg.host_caps = MMC_MODE_4BIT | MMC_MODE_8BIT;
 #ifdef CONFIG_SYS_FSL_ESDHC_HAS_DDR_MODE
-	cfg->cfg.host_caps |= MMC_MODE_DDR_52MHz;
+	priv->cfg.host_caps |= MMC_MODE_DDR_52MHz;
 #endif
 
-	if (cfg->max_bus_width > 0) {
-		if (cfg->max_bus_width < 8)
-			cfg->cfg.host_caps &= ~MMC_MODE_8BIT;
-		if (cfg->max_bus_width < 4)
-			cfg->cfg.host_caps &= ~MMC_MODE_4BIT;
+	if (priv->bus_width > 0) {
+		if (priv->bus_width < 8)
+			priv->cfg.host_caps &= ~MMC_MODE_8BIT;
+		if (priv->bus_width < 4)
+			priv->cfg.host_caps &= ~MMC_MODE_4BIT;
 	}
 
 	if (caps & ESDHC_HOSTCAPBLT_HSS)
-		cfg->cfg.host_caps |= MMC_MODE_HS_52MHz | MMC_MODE_HS;
+		priv->cfg.host_caps |= MMC_MODE_HS_52MHz | MMC_MODE_HS;
 
 #ifdef CONFIG_ESDHC_DETECT_8_BIT_QUIRK
 	if (CONFIG_ESDHC_DETECT_8_BIT_QUIRK)
-		cfg->cfg.host_caps &= ~MMC_MODE_8BIT;
+		priv->cfg.host_caps &= ~MMC_MODE_8BIT;
 #endif
 
-	cfg->cfg.f_min = 400000;
-	cfg->cfg.f_max = min(cfg->sdhc_clk, (u32)52000000);
+	priv->cfg.host_caps |= priv->caps;
 
-	cfg->cfg.b_max = CONFIG_SYS_MMC_MAX_BLK_COUNT;
+	priv->cfg.f_min = 400000;
+	priv->cfg.f_max = min(priv->sdhc_clk, (u32)200000000);
 
-	mmc = mmc_create(&cfg->cfg, cfg);
+	priv->cfg.b_max = CONFIG_SYS_MMC_MAX_BLK_COUNT;
+
+	writel(0, &regs->dllctrl);
+	if (priv->flags & ESDHC_FLAG_USDHC) {
+		if (priv->flags & ESDHC_FLAG_STD_TUNING) {
+			val = readl(&regs->tuning_ctrl);
+			val |= ESDHC_STD_TUNING_EN;
+			val &= ~ESDHC_TUNING_START_TAP_MASK;
+			val |= priv->tuning_start_tap;
+			val &= ~ESDHC_TUNING_STEP_MASK;
+			val |= (priv->tuning_step) << ESDHC_TUNING_STEP_SHIFT;
+			writel(val, &regs->tuning_ctrl);
+		}
+	}
+
+	mmc = mmc_create(&priv->cfg, priv);
 	if (mmc == NULL)
 		return -1;
+
+	priv->mmc = mmc;
+
+	return 0;
+}
+
+int fsl_esdhc_initialize(bd_t *bis, struct fsl_esdhc_cfg *cfg)
+{
+	struct fsl_esdhc_priv *priv;
+	int ret;
+
+	if (!cfg)
+		return -EINVAL;
+
+	priv = calloc(sizeof(struct fsl_esdhc_priv), 1);
+	if (!priv)
+		return -ENOMEM;
+
+	ret = fsl_esdhc_cfg_to_priv(cfg, priv);
+	if (ret) {
+		debug("%s xlate failure\n", __func__);
+		free(priv);
+		return ret;
+	}
+
+#ifdef CONFIG_MX6
+	if (mx6_esdhc_fused(cfg->esdhc_base)) {
+		printf("ESDHC@0x%lx is fused, disable it\n", cfg->esdhc_base);
+		free(priv);
+		return -ENODEV;
+	}
+#endif
+
+	ret = fsl_esdhc_init(priv);
+	if (ret) {
+		debug("%s init failure\n", __func__);
+		free(priv);
+		return ret;
+	}
 
 	return 0;
 }
@@ -713,23 +1312,244 @@ int fsl_esdhc_mmc_init(bd_t *bis)
 	return fsl_esdhc_initialize(bis, cfg);
 }
 
+#ifdef CONFIG_FSL_ESDHC_ADAPTER_IDENT
+void mmc_adapter_card_type_ident(void)
+{
+	u8 card_id;
+	u8 value;
+
+	card_id = QIXIS_READ(present) & QIXIS_SDID_MASK;
+	gd->arch.sdhc_adapter = card_id;
+
+	switch (card_id) {
+	case QIXIS_ESDHC_ADAPTER_TYPE_EMMC45:
+		value = QIXIS_READ(brdcfg[5]);
+		value |= (QIXIS_DAT4 | QIXIS_DAT5_6_7);
+		QIXIS_WRITE(brdcfg[5], value);
+		break;
+	case QIXIS_ESDHC_ADAPTER_TYPE_SDMMC_LEGACY:
+		value = QIXIS_READ(pwr_ctl[1]);
+		value |= QIXIS_EVDD_BY_SDHC_VS;
+		QIXIS_WRITE(pwr_ctl[1], value);
+		break;
+	case QIXIS_ESDHC_ADAPTER_TYPE_EMMC44:
+		value = QIXIS_READ(brdcfg[5]);
+		value |= (QIXIS_SDCLKIN | QIXIS_SDCLKOUT);
+		QIXIS_WRITE(brdcfg[5], value);
+		break;
+	case QIXIS_ESDHC_ADAPTER_TYPE_RSV:
+		break;
+	case QIXIS_ESDHC_ADAPTER_TYPE_MMC:
+		break;
+	case QIXIS_ESDHC_ADAPTER_TYPE_SD:
+		break;
+	case QIXIS_ESDHC_NO_ADAPTER:
+		break;
+	default:
+		break;
+	}
+}
+#endif
+
 #ifdef CONFIG_OF_LIBFDT
+__weak int esdhc_status_fixup(void *blob, const char *compat)
+{
+#ifdef CONFIG_FSL_ESDHC_PIN_MUX
+	if (!hwconfig("esdhc")) {
+		do_fixup_by_compat(blob, compat, "status", "disabled",
+				sizeof("disabled"), 1);
+		return 1;
+	}
+#endif
+	do_fixup_by_compat(blob, compat, "status", "okay",
+			   sizeof("okay"), 1);
+	return 0;
+}
+
 void fdt_fixup_esdhc(void *blob, bd_t *bd)
 {
 	const char *compat = "fsl,esdhc";
 
-#ifdef CONFIG_FSL_ESDHC_PIN_MUX
-	if (!hwconfig("esdhc")) {
-		do_fixup_by_compat(blob, compat, "status", "disabled",
-				8 + 1, 1);
+	if (esdhc_status_fixup(blob, compat))
 		return;
+
+#ifdef CONFIG_FSL_ESDHC_USE_PERIPHERAL_CLK
+	do_fixup_by_compat_u32(blob, compat, "peripheral-frequency",
+			       gd->arch.sdhc_clk, 1);
+#else
+	do_fixup_by_compat_u32(blob, compat, "clock-frequency",
+			       gd->arch.sdhc_clk, 1);
+#endif
+#ifdef CONFIG_FSL_ESDHC_ADAPTER_IDENT
+	do_fixup_by_compat_u32(blob, compat, "adapter-type",
+			       (u32)(gd->arch.sdhc_adapter), 1);
+#endif
+}
+#endif
+
+#ifdef CONFIG_DM_MMC
+#include <asm/arch/clock.h>
+__weak void init_clk_usdhc(u32 index)
+{
+}
+
+static int fsl_esdhc_probe(struct udevice *dev)
+{
+	struct mmc_uclass_priv *upriv = dev_get_uclass_priv(dev);
+	struct fsl_esdhc_priv *priv = dev_get_priv(dev);
+	const void *fdt = gd->fdt_blob;
+	int node = dev_of_offset(dev);
+	struct esdhc_soc_data *data = (struct esdhc_soc_data *)dev_get_driver_data(dev);
+	fdt_addr_t addr;
+	unsigned int val;
+	int ret;
+#ifdef CONFIG_DM_REGULATOR
+	struct udevice *vqmmc_dev;
+#endif
+
+	addr = dev_get_addr(dev);
+	if (addr == FDT_ADDR_T_NONE)
+		return -EINVAL;
+
+#ifdef CONFIG_MX6
+	if (mx6_esdhc_fused(addr)) {
+		printf("ESDHC@0x%lx is fused, disable it\n", addr);
+		return -ENODEV;
 	}
 #endif
 
-	do_fixup_by_compat_u32(blob, compat, "clock-frequency",
-			       gd->arch.sdhc_clk, 1);
+	priv->esdhc_regs = (struct fsl_esdhc *)addr;
+	priv->dev = dev;
+	priv->mode = -1;
+	if (data) {
+		priv->flags = data->flags;
+		priv->caps = data->caps;
+	}
 
-	do_fixup_by_compat(blob, compat, "status", "okay",
-			   4 + 1, 1);
+	val = fdtdec_get_int(fdt, node, "bus-width", -1);
+	if (val == 8)
+		priv->bus_width = 8;
+	else if (val == 4)
+		priv->bus_width = 4;
+	else
+		priv->bus_width = 1;
+
+	val = fdtdec_get_int(fdt, node, "fsl,tuning-step", 1);
+	priv->tuning_step = val;
+	val = fdtdec_get_int(fdt, node, "fsl,tuning-start-tap", ESDHC_TUNING_START_TAP_DEFAULT);
+	priv->tuning_start_tap = val;
+	val = fdtdec_get_int(fdt, node, "fsl,strobe-dll-delay-target", ESDHC_STROBE_DLL_CTRL_SLV_DLY_TARGET_DEFAULT);
+	priv->strobe_dll_delay_target = val;
+
+	if (fdt_get_property(fdt, node, "non-removable", NULL)) {
+		priv->non_removable = 1;
+	 } else {
+		priv->non_removable = 0;
+#ifdef CONFIG_DM_GPIO
+		gpio_request_by_name_nodev(fdt, node, "cd-gpios", 0,
+					   &priv->cd_gpio, GPIOD_IS_IN);
+#endif
+	}
+
+	if (fdt_get_property(fdt, node, "fsl,wp-controller", NULL)) {
+		priv->wp_enable = 1;
+	} else {
+		priv->wp_enable = 0;
+#ifdef CONFIG_DM_GPIO
+		gpio_request_by_name_nodev(fdt, node, "wp-gpios", 0,
+					 &priv->wp_gpio, GPIOD_IS_IN);
+#endif
+	}
+
+	priv->vs18_enable = 0;
+
+#ifdef CONFIG_DM_REGULATOR
+	priv->vqmmc_dev = NULL;
+	priv->vmmc_dev = NULL;
+	ret = device_get_supply_regulator(dev, "vqmmc-supply", &vqmmc_dev);
+	if (ret) {
+		dev_dbg(dev, "no vqmmc supply\n");
+	} else {
+		priv->vqmmc_dev = vqmmc_dev;
+		if (regulator_get_value(vqmmc_dev) == 1800000)
+			priv->vs18_enable = 1;
+	}
+	ret = device_get_supply_regulator(dev, "vmmc-supply", &priv->vmmc_dev);
+	if (ret)
+		dev_dbg(dev, "no vmmc supply\n");
+#endif
+
+	if (fdt_get_property(fdt, node, "no-1-8-v", NULL)) {
+		priv->caps &= ~(UHS_CAPS | MMC_MODE_HS400 | MMC_MODE_HS400_ES |
+				MMC_MODE_HS200);
+	}
+
+	/*
+	 * TODO:
+	 * Because lack of clk driver, if SDHC clk is not enabled,
+	 * need to enable it first before this driver is invoked.
+	 *
+	 * we use MXC_ESDHC_CLK to get clk freq.
+	 * If one would like to make this function work,
+	 * the aliases should be provided in dts as this:
+	 *
+	 *  aliases {
+	 *	mmc0 = &usdhc1;
+	 *	mmc1 = &usdhc2;
+	 *	mmc2 = &usdhc3;
+	 *	mmc3 = &usdhc4;
+	 *	};
+	 * Then if your board only supports mmc2 and mmc3, but we can
+	 * correctly get the seq as 2 and 3, then let mxc_get_clock
+	 * work as expected.
+	 */
+
+	init_clk_usdhc(dev->seq);
+
+	priv->sdhc_clk = mxc_get_clock(MXC_ESDHC_CLK + dev->seq);
+	if (priv->sdhc_clk <= 0) {
+		dev_err(dev, "Unable to get clk for %s\n", dev->name);
+		return -EINVAL;
+	}
+
+	ret = fsl_esdhc_init(priv);
+	if (ret) {
+		dev_err(dev, "fsl_esdhc_init failure\n");
+		return ret;
+	}
+
+	upriv->mmc = priv->mmc;
+	priv->mmc->dev = dev;
+
+	return 0;
 }
+
+static struct esdhc_soc_data usdhc_imx8qm_data = {
+	.flags = ESDHC_FLAG_USDHC | ESDHC_FLAG_STD_TUNING
+			| ESDHC_FLAG_HAVE_CAP1 | ESDHC_FLAG_HS200
+			| ESDHC_FLAG_HS400 | ESDHC_FLAG_HS400_ES,
+	.caps = UHS_CAPS | MMC_MODE_HS400 | MMC_MODE_HS400_ES |
+		MMC_MODE_HS200 | MMC_MODE_DDR_52MHz | MMC_MODE_HS_52MHz |
+		MMC_MODE_HS,
+};
+
+static const struct udevice_id fsl_esdhc_ids[] = {
+	{ .compatible = "fsl,imx6ul-usdhc", },
+	{ .compatible = "fsl,imx6sx-usdhc", },
+	{ .compatible = "fsl,imx6sl-usdhc", },
+	{ .compatible = "fsl,imx6q-usdhc", },
+	{ .compatible = "fsl,imx7d-usdhc", },
+	{ .compatible = "fsl,imx7ulp-usdhc", },
+	{ .compatible = "fsl,imx8qm-usdhc", .data = (ulong)&usdhc_imx8qm_data,},
+	{ .compatible = "fsl,esdhc", },
+	{ /* sentinel */ }
+};
+
+U_BOOT_DRIVER(fsl_esdhc) = {
+	.name	= "fsl-esdhc-mmc",
+	.id	= UCLASS_MMC,
+	.of_match = fsl_esdhc_ids,
+	.probe	= fsl_esdhc_probe,
+	.priv_auto_alloc_size = sizeof(struct fsl_esdhc_priv),
+};
 #endif

@@ -107,6 +107,8 @@ static struct mx6_ddr_sysinfo cm_fx6_sysinfo_s = {
 	.mif3_mode	= 3,
 	.rst_to_cke	= 0x23,
 	.sde_to_rst	= 0x10,
+	.refsel = 1,		/* Refresh cycles at 32KHz */
+	.refr = 7,		/* 8 refresh commands per refresh cycle */
 };
 
 static struct mx6_ddr3_cfg cm_fx6_ddr3_cfg_s = {
@@ -174,6 +176,8 @@ static struct mx6_ddr_sysinfo cm_fx6_sysinfo_q = {
 	.mif3_mode	= 3,
 	.rst_to_cke	= 0x23,
 	.sde_to_rst	= 0x10,
+	.refsel = 1,		/* Refresh cycles at 32KHz */
+	.refr = 7,		/* 8 refresh commands per refresh cycle */
 };
 
 static struct mx6_ddr3_cfg cm_fx6_ddr3_cfg_q = {
@@ -303,7 +307,7 @@ static void cm_fx6_setup_uart(void)
 static void cm_fx6_setup_ecspi(void)
 {
 	cm_fx6_set_ecspi_iomux();
-	enable_cspi_clock(1, 0);
+	enable_spi_clk(1, 0);
 }
 #else
 static void cm_fx6_setup_ecspi(void) { }
@@ -337,16 +341,17 @@ void board_init_f(ulong dummy)
 	board_init_r(NULL, 0);
 }
 
-void spl_board_init(void)
+void board_boot_order(u32 *spl_boot_list)
 {
-	u32 boot_device = spl_boot_device();
-
-	if (boot_device == BOOT_DEVICE_SPI)
-		puts("Booting from SPI flash\n");
-	else if (boot_device == BOOT_DEVICE_MMC1)
-		puts("Booting from MMC\n");
-	else
-		puts("Unknown boot device\n");
+	spl_boot_list[0] = spl_boot_device();
+	switch (spl_boot_list[0]) {
+	case BOOT_DEVICE_SPI:
+		spl_boot_list[1] = BOOT_DEVICE_MMC1;
+		break;
+	case BOOT_DEVICE_MMC1:
+		spl_boot_list[1] = BOOT_DEVICE_SPI;
+		break;
+	}
 }
 
 #ifdef CONFIG_SPL_MMC_SUPPORT

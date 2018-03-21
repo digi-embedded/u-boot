@@ -1,12 +1,12 @@
 /*
- * Copyright (C) 2015 Freescale Semiconductor, Inc.
+ * Copyright (C) 2015-2016 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <asm/io.h>
 #include <asm/arch/mx6_bee.h>
-#include <asm-generic/errno.h>
+#include <linux/errno.h>
 #include <asm/system.h>
 #include <common.h>
 #include <command.h>

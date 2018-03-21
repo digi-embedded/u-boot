@@ -7,6 +7,8 @@
  * Sysgo Real-Time Solutions, GmbH <www.elinos.com>
  * Marius Groeger <mgroeger@sysgo.de>
  *
+ * Copyright (C) 2015-2016 Freescale Semiconductor, Inc.
+ *
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
@@ -15,6 +17,8 @@
 #if defined(CONFIG_CMD_BEDBUG)
 #include <bedbug/type.h>
 #endif
+#include <command.h>
+#include <console.h>
 #ifdef CONFIG_HAS_DATAFLASH
 #include <dataflash.h>
 #endif
@@ -33,6 +37,7 @@
 #endif
 #include <logbuff.h>
 #include <malloc.h>
+#include <mapmem.h>
 #ifdef CONFIG_BITBANGMII
 #include <miiphy.h>
 #endif
@@ -43,8 +48,12 @@
 #include <serial.h>
 #include <spi.h>
 #include <stdio_dev.h>
+#include <timer.h>
 #include <trace.h>
 #include <watchdog.h>
+#ifdef CONFIG_CMD_AMBAPP
+#include <ambapp.h>
+#endif
 #ifdef CONFIG_ADDR_MAP
 #include <asm/mmu.h>
 #endif
@@ -58,11 +67,16 @@
 #ifdef CONFIG_AVR32
 #include <asm/arch/mmu.h>
 #endif
+#include <efi_loader.h>
 #ifdef CONFIG_FSL_FASTBOOT
 #include <fsl_fastboot.h>
 #endif
 
 DECLARE_GLOBAL_DATA_PTR;
+
+#if defined(CONFIG_SPARC)
+extern int prom_init(void);
+#endif
 
 ulong monitor_flash_len;
 
@@ -107,7 +121,6 @@ static int initr_reloc(void)
 {
 	/* tell others: relocation done */
 	gd->flags |= GD_FLG_RELOC | GD_FLG_FULL_MALLOC_INIT;
-	bootstage_mark_name(BOOTSTAGE_ID_START_UBOOT_R, "board_init_r");
 
 	return 0;
 }
@@ -134,6 +147,8 @@ static int initr_reloc_global_data(void)
 {
 #ifdef __ARM__
 	monitor_flash_len = _end - __image_copy_start;
+#elif defined(CONFIG_NDS32)
+	monitor_flash_len = (ulong)&_end - (ulong)&_start;
 #elif !defined(CONFIG_SANDBOX) && !defined(CONFIG_NIOS2)
 	monitor_flash_len = (ulong)&__init_end - gd->relocaddr;
 #endif
@@ -161,6 +176,17 @@ static int initr_reloc_global_data(void)
 	 */
 	gd->env_addr += gd->relocaddr - CONFIG_SYS_MONITOR_BASE;
 #endif
+#ifdef CONFIG_OF_EMBED
+	/*
+	* The fdt_blob needs to be moved to new relocation address
+	* incase of FDT blob is embedded with in image
+	*/
+	gd->fdt_blob += gd->reloc_off;
+#endif
+#ifdef CONFIG_EFI_LOADER
+	efi_runtime_relocate(gd->relocaddr, NULL);
+#endif
+
 	return 0;
 }
 
@@ -170,7 +196,7 @@ static int initr_serial(void)
 	return 0;
 }
 
-#if defined(CONFIG_PPC) || defined(CONFIG_M68K)
+#if defined(CONFIG_PPC) || defined(CONFIG_M68K) || defined(CONFIG_MIPS)
 static int initr_trap(void)
 {
 	/*
@@ -233,19 +259,10 @@ static int initr_unlock_ram_in_cache(void)
 #ifdef CONFIG_PCI
 static int initr_pci(void)
 {
+#ifndef CONFIG_DM_PCI
 	pci_init();
-
-	return 0;
-}
 #endif
 
-#ifdef CONFIG_WINBOND_83C553
-static int initr_w83c553f(void)
-{
-	/*
-	 * Initialise the ISA bridge
-	 */
-	initialise_w83c553f();
 	return 0;
 }
 #endif
@@ -274,6 +291,15 @@ static int initr_malloc(void)
 	return 0;
 }
 
+static int initr_console_record(void)
+{
+#if defined(CONFIG_CONSOLE_RECORD)
+	return console_record_init();
+#else
+	return 0;
+#endif
+}
+
 #ifdef CONFIG_SYS_NONCACHED_MEMORY
 static int initr_noncached(void)
 {
@@ -285,12 +311,34 @@ static int initr_noncached(void)
 #ifdef CONFIG_DM
 static int initr_dm(void)
 {
+	int ret;
+
 	/* Save the pre-reloc driver model and start a new one */
 	gd->dm_root_f = gd->dm_root;
 	gd->dm_root = NULL;
-	return dm_init_and_scan(false);
+#ifdef CONFIG_TIMER
+	gd->timer = NULL;
+#endif
+	ret = dm_init_and_scan(false);
+	if (ret)
+		return ret;
+#ifdef CONFIG_TIMER_EARLY
+	ret = dm_timer_init();
+	if (ret)
+		return ret;
+#endif
+
+	return 0;
 }
 #endif
+
+static int initr_bootstage(void)
+{
+	/* We cannot do this before initr_dm() */
+	bootstage_mark_name(BOOTSTAGE_ID_START_UBOOT_R, "board_init_r");
+
+	return 0;
+}
 
 __weak int power_init_board(void)
 {
@@ -312,7 +360,7 @@ static int initr_manual_reloc_cmdtable(void)
 }
 #endif
 
-#if !defined(CONFIG_SYS_NO_FLASH)
+#if defined(CONFIG_MTD_NOR_FLASH)
 static int initr_flash(void)
 {
 	ulong flash_size = 0;
@@ -418,7 +466,7 @@ static int initr_dataflash(void)
 /*
  * Tell if it's OK to load the environment early in boot.
  *
- * If CONFIG_OF_CONFIG is defined, we'll check with the FDT to see
+ * If CONFIG_OF_CONTROL is defined, we'll check with the FDT to see
  * if this is OK (defaulting to saying it's OK).
  *
  * NOTE: Loading the environment early can be a bad idea if security is
@@ -444,6 +492,9 @@ static int initr_env(void)
 		env_relocate();
 	else
 		set_default_env(NULL);
+#ifdef CONFIG_OF_CONTROL
+	setenv_addr("fdtcontroladdr", gd->fdt_blob);
+#endif
 
 	/* Initialize from environment */
 	load_addr = getenv_ulong("loadaddr", 16, load_addr);
@@ -476,17 +527,6 @@ static int initr_malloc_bootparams(void)
 		puts("WARNING: Cannot allocate space for boot parameters\n");
 		return -ENOMEM;
 	}
-	return 0;
-}
-#endif
-
-#ifdef CONFIG_SC3
-/* TODO: with new initcalls, move this into the driver */
-extern void sc3_read_eeprom(void);
-
-static int initr_sc3_read_eeprom(void)
-{
-	sc3_read_eeprom();
 	return 0;
 }
 #endif
@@ -550,30 +590,36 @@ static int initr_kgdb(void)
 }
 #endif
 
-#if defined(CONFIG_STATUS_LED) && defined(STATUS_LED_BOOT)
+#if defined(CONFIG_LED_STATUS)
 static int initr_status_led(void)
 {
-	status_led_set(STATUS_LED_BOOT, STATUS_LED_BLINKING);
+#if defined(CONFIG_LED_STATUS_BOOT)
+	status_led_set(CONFIG_LED_STATUS_BOOT, CONFIG_LED_STATUS_BLINKING);
+#else
+	status_led_init();
+#endif
+	return 0;
+}
+#endif
+
+#if defined(CONFIG_CMD_AMBAPP) && defined(CONFIG_SYS_AMBAPP_PRINT_ON_STARTUP)
+extern int do_ambapp_print(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+
+static int initr_ambapp_print(void)
+{
+	puts("AMBA:\n");
+	do_ambapp_print(NULL, 0, 0, NULL);
 
 	return 0;
 }
 #endif
 
-#if defined(CONFIG_CMD_SCSI)
+#if defined(CONFIG_SCSI) && !defined(CONFIG_DM_SCSI)
 static int initr_scsi(void)
 {
 	puts("SCSI:  ");
 	scsi_init();
 
-	return 0;
-}
-#endif
-
-#if defined(CONFIG_CMD_DOC)
-static int initr_doc(void)
-{
-	puts("DOC:   ");
-	doc_init();
 	return 0;
 }
 #endif
@@ -590,7 +636,7 @@ static int initr_bbmii(void)
 static int initr_net(void)
 {
 	puts("Net:   ");
-	eth_initialize(gd->bd);
+	eth_initialize();
 #if defined(CONFIG_RESET_PHY_R)
 	debug("Reset Ethernet PHY\n");
 	reset_phy();
@@ -685,9 +731,25 @@ static int initr_fastboot_setup(void)
 
 static int initr_check_fastboot(void)
 {
-	check_fastboot();
+	fastboot_run_bootmode();
 	return 0;
 }
+#endif
+
+#ifdef AVB_RPMB
+static int initr_avbkey(void)
+{
+	return init_avbkey();
+}
+#endif
+
+#ifdef CONFIG_IMX_TRUSTY_OS
+static int initr_tee_setup(void)
+{
+	tee_setup();
+	return 0;
+}
+
 #endif
 
 static int run_main_loop(void)
@@ -713,12 +775,18 @@ static int run_main_loop(void)
  *
  * TODO: perhaps reset the watchdog in the initcall function after each call?
  */
-init_fnc_t init_sequence_r[] = {
+static init_fnc_t init_sequence_r[] = {
 	initr_trace,
 	initr_reloc,
 	/* TODO: could x86/PPC have this also perhaps? */
 #ifdef CONFIG_ARM
 	initr_caches,
+	/* Note: For Freescale LS2 SoCs, new MMU table is created in DDR.
+	 *	 A temporary mapping of IFC high region is since removed,
+	 *	 so environmental variables in NOR flash is not availble
+	 *	 until board_init() is called below to remap IFC to high
+	 *	 region.
+	 */
 #endif
 	initr_reloc_global_data,
 #if defined(CONFIG_SYS_INIT_RAM_LOCK) && defined(CONFIG_E500)
@@ -726,6 +794,7 @@ init_fnc_t init_sequence_r[] = {
 #endif
 	initr_barrier,
 	initr_malloc,
+	initr_console_record,
 #ifdef CONFIG_SYS_NONCACHED_MEMORY
 	initr_noncached,
 #endif
@@ -733,7 +802,8 @@ init_fnc_t init_sequence_r[] = {
 #ifdef CONFIG_DM
 	initr_dm,
 #endif
-#ifdef CONFIG_ARM
+	initr_bootstage,
+#if defined(CONFIG_ARM) || defined(CONFIG_NDS32)
 	board_init,	/* Setup chipselects */
 #endif
 	/*
@@ -745,6 +815,9 @@ init_fnc_t init_sequence_r[] = {
 #ifdef CONFIG_CLOCKS
 	set_cpu_clk_info, /* Setup clock information */
 #endif
+#ifdef CONFIG_EFI_LOADER
+	efi_memory_init,
+#endif
 	stdio_init_tables,
 	initr_serial,
 	initr_announce,
@@ -752,7 +825,7 @@ init_fnc_t init_sequence_r[] = {
 #ifdef CONFIG_NEEDS_MANUAL_RELOC
 	initr_manual_reloc_cmdtable,
 #endif
-#if defined(CONFIG_PPC) || defined(CONFIG_M68K)
+#if defined(CONFIG_PPC) || defined(CONFIG_M68K) || defined(CONFIG_MIPS)
 	initr_trap,
 #endif
 #ifdef CONFIG_ADDR_MAP
@@ -779,26 +852,21 @@ init_fnc_t init_sequence_r[] = {
 	 */
 	initr_pci,
 #endif
-#ifdef CONFIG_WINBOND_83C553
-	initr_w83c553f,
-#endif
 #ifdef CONFIG_ARCH_EARLY_INIT_R
 	arch_early_init_r,
 #endif
 	power_init_board,
-#ifndef CONFIG_SYS_NO_FLASH
+#ifdef CONFIG_MTD_NOR_FLASH
 	initr_flash,
 #endif
 	INIT_FUNC_WATCHDOG_RESET
-#if defined(CONFIG_PPC) || defined(CONFIG_M68K)
+#if defined(CONFIG_PPC) || defined(CONFIG_M68K) || defined(CONFIG_X86) || \
+	defined(CONFIG_SPARC)
 	/* initialize higher level parts of CPU like time base and timers */
 	cpu_init_r,
 #endif
 #ifdef CONFIG_PPC
 	initr_spi,
-#endif
-#if defined(CONFIG_X86) && defined(CONFIG_SPI)
-	init_func_spi,
 #endif
 #ifdef CONFIG_CMD_NAND
 	initr_nand,
@@ -818,9 +886,6 @@ init_fnc_t init_sequence_r[] = {
 #endif
 	INIT_FUNC_WATCHDOG_RESET
 	initr_secondary_cpu,
-#ifdef CONFIG_SC3
-	initr_sc3_read_eeprom,
-#endif
 #if defined(CONFIG_ID_EEPROM) || defined(CONFIG_SYS_I2C_MAC_OFFSET)
 	mac_read_from_eeprom,
 #endif
@@ -854,11 +919,10 @@ init_fnc_t init_sequence_r[] = {
 #if defined(CONFIG_ARM) || defined(CONFIG_AVR32)
 	initr_enable_interrupts,
 #endif
-#if defined(CONFIG_X86) || defined(CONFIG_MICROBLAZE) || defined(CONFIG_AVR32) \
-	|| defined(CONFIG_M68K)
+#if defined(CONFIG_MICROBLAZE) || defined(CONFIG_AVR32) || defined(CONFIG_M68K)
 	timer_init,		/* initialize timer */
 #endif
-#if defined(CONFIG_STATUS_LED) && defined(STATUS_LED_BOOT)
+#if defined(CONFIG_LED_STATUS)
 	initr_status_led,
 #endif
 	/* PPC has a udelay(20) here dating from 2002. Why? */
@@ -871,13 +935,15 @@ init_fnc_t init_sequence_r[] = {
 #ifdef CONFIG_FSL_FASTBOOT
 	initr_fastboot_setup,
 #endif
-#ifdef CONFIG_CMD_SCSI
+#if defined(CONFIG_CMD_AMBAPP)
+	ambapp_init_reloc,
+#if defined(CONFIG_SYS_AMBAPP_PRINT_ON_STARTUP)
+	initr_ambapp_print,
+#endif
+#endif
+#if defined(CONFIG_SCSI) && !defined(CONFIG_DM_SCSI)
 	INIT_FUNC_WATCHDOG_RESET
 	initr_scsi,
-#endif
-#ifdef CONFIG_CMD_DOC
-	INIT_FUNC_WATCHDOG_RESET
-	initr_doc,
 #endif
 #ifdef CONFIG_BITBANGMII
 	initr_bbmii,
@@ -914,6 +980,15 @@ init_fnc_t init_sequence_r[] = {
 #ifdef CONFIG_PS2KBD
 	initr_kbd,
 #endif
+#if defined(CONFIG_SPARC)
+	prom_init,
+#endif
+#ifdef AVB_RPMB
+	initr_avbkey,
+#endif
+#ifdef CONFIG_IMX_TRUSTY_OS
+	initr_tee_setup,
+#endif
 #ifdef CONFIG_FSL_FASTBOOT
 	initr_check_fastboot,
 #endif
@@ -922,6 +997,16 @@ init_fnc_t init_sequence_r[] = {
 
 void board_init_r(gd_t *new_gd, ulong dest_addr)
 {
+	/*
+	 * Set up the new global data pointer. So far only x86 does this
+	 * here.
+	 * TODO(sjg@chromium.org): Consider doing this for all archs, or
+	 * dropping the new_gd parameter.
+	 */
+#if CONFIG_IS_ENABLED(X86_64)
+	arch_setup_gd(new_gd);
+#endif
+
 #ifdef CONFIG_NEEDS_MANUAL_RELOC
 	int i;
 #endif

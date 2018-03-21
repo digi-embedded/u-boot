@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
+ * Copyright 2017 NXP
  *
  * Configuration settings for the Freescale i.MX7D 12x12 DDR3 ARM2 board.
  *
@@ -15,35 +16,18 @@
 #define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC3 */
 
 #define PHYS_SDRAM_SIZE			SZ_1G
-#define CONFIG_CMD_MEMTEST
-#define CONFIG_SYS_MEMTEST_START        0x80000000
-#define CONFIG_SYS_MEMTEST_END          (CONFIG_SYS_MEMTEST_START + 0x20000000)
 
-#ifdef CONFIG_SYS_BOOT_SPINOR
-#define CONFIG_SYS_USE_SPINOR
+#ifdef CONFIG_SPI_BOOT
+#define CONFIG_MXC_SPI
 #define CONFIG_ENV_IS_IN_SPI_FLASH
 #else
 #define CONFIG_ENV_IS_IN_MMC
 #endif
 
-/* I2C configs */
-#define CONFIG_CMD_I2C
-#ifdef CONFIG_CMD_I2C
-#define CONFIG_SYS_I2C
-#define CONFIG_SYS_I2C_MXC
-#define CONFIG_SYS_I2C_SPEED		100000
-/* PMIC */
-#define CONFIG_POWER
-#define CONFIG_POWER_I2C
-#define CONFIG_POWER_PFUZE300
-#define CONFIG_POWER_PFUZE300_I2C_ADDR	0x08
-#endif
-
-#ifdef CONFIG_SYS_USE_SPINOR
+#ifdef CONFIG_MXC_SPI
 #define CONFIG_CMD_SF
 #define CONFIG_SPI_FLASH
 #define CONFIG_SPI_FLASH_ATMEL
-#define CONFIG_MXC_SPI
 #define CONFIG_SF_DEFAULT_BUS  3
 #define CONFIG_SF_DEFAULT_SPEED 20000000
 #define CONFIG_SF_DEFAULT_MODE (SPI_MODE_0)

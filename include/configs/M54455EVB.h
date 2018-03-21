@@ -20,8 +20,6 @@
  */
 #define CONFIG_M54455EVB	/* M54455EVB board */
 
-#define CONFIG_DISPLAY_BOARDINFO
-
 #define CONFIG_MCFUART
 #define CONFIG_SYS_UART_PORT		(0)
 #define CONFIG_BAUDRATE		115200
@@ -39,31 +37,11 @@
 #define CONFIG_BOOTP_HOSTNAME
 
 /* Command line configuration */
-#include <config_cmd_default.h>
-
-#define CONFIG_CMD_BOOTD
-#define CONFIG_CMD_CACHE
 #define CONFIG_CMD_DATE
-#define CONFIG_CMD_DHCP
-#define CONFIG_CMD_ELF
-#define CONFIG_CMD_EXT2
-#define CONFIG_CMD_FAT
-#define CONFIG_CMD_FLASH
-#define CONFIG_CMD_I2C
 #define CONFIG_CMD_IDE
 #define CONFIG_CMD_JFFS2
-#define CONFIG_CMD_MEMORY
-#define CONFIG_CMD_MISC
-#define CONFIG_CMD_MII
-#define CONFIG_CMD_NET
 #undef CONFIG_CMD_PCI
-#define CONFIG_CMD_PING
 #define CONFIG_CMD_REGINFO
-#define CONFIG_CMD_SPI
-#define CONFIG_CMD_SF
-
-#undef CONFIG_CMD_LOADB
-#undef CONFIG_CMD_LOADS
 
 /* Network configuration */
 #define CONFIG_MCFFEC
@@ -81,16 +59,12 @@
 #	define MCFFEC_TOUT_LOOP 50000
 #	define CONFIG_HAS_ETH1
 
-#	define CONFIG_BOOTDELAY	1	/* autoboot after 5 seconds */
 #	define CONFIG_BOOTARGS		"root=/dev/mtdblock1 rw rootfstype=jffs2 ip=none mtdparts=physmap-flash.0:5M(kernel)ro,-(jffs2)"
-#	define CONFIG_ETHADDR		00:e0:0c:bc:e5:60
-#	define CONFIG_ETH1ADDR		00:e0:0c:bc:e5:61
 #	define CONFIG_ETHPRIME		"FEC0"
 #	define CONFIG_IPADDR		192.162.1.2
 #	define CONFIG_NETMASK		255.255.255.0
 #	define CONFIG_SERVERIP		192.162.1.1
 #	define CONFIG_GATEWAYIP		192.162.1.1
-#	define CONFIG_OVERWRITE_ETHADDR_ONCE
 
 /* If CONFIG_SYS_DISCOVER_PHY is not defined - hardcoded */
 #	ifndef CONFIG_SYS_DISCOVER_PHY
@@ -145,8 +119,6 @@
 #endif
 
 /* ATA configuration */
-#define CONFIG_ISO_PARTITION
-#define CONFIG_DOS_PARTITION
 #define CONFIG_IDE_RESET	1
 #define CONFIG_IDE_PREINIT	1
 #define CONFIG_ATAPI
@@ -186,8 +158,6 @@
 #define CONFIG_HARD_SPI
 #define CONFIG_SYS_SBFHDR_SIZE		0x13
 #ifdef CONFIG_CMD_SPI
-#	define CONFIG_SPI_FLASH
-#	define CONFIG_SPI_FLASH_STMICRO
 
 #	define CONFIG_SYS_DSPI_CTAR0		(DSPI_CTAR_TRSZ(7) | \
 					 DSPI_CTAR_PCSSCK_1CLK | \
@@ -200,8 +170,6 @@
 
 /* PCI */
 #ifdef CONFIG_CMD_PCI
-#define CONFIG_PCI		1
-#define CONFIG_PCI_PNP		1
 #define CONFIG_PCIAUTO_SKIP_HOST_BRIDGE	1
 
 #define CONFIG_SYS_PCI_CACHE_LINE_SIZE	4
@@ -232,7 +200,6 @@
 
 #define CONFIG_PRAM		2048	/* 2048 KB */
 
-#define CONFIG_SYS_PROMPT		"-> "
 #define CONFIG_SYS_LONGHELP		/* undef to save memory */
 
 #if defined(CONFIG_CMD_KGDB)

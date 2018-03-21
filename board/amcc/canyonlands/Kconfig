@@ -11,6 +11,7 @@ config SYS_CONFIG_NAME
 
 choice BOARD_TYPE
 	prompt "Select which board to build for"
+	optional
 
 config CANYONLANDS
 	bool "Glacier"
@@ -28,15 +29,5 @@ config ARCHES
 	  Select this to build for the Arches dual 460GT board.
 
 endchoice
-
-config DISPLAY_BOARDINFO
-	bool
-	default y
-
-config DM
-	default y
-
-config DM_SERIAL
-	default y
 
 endif

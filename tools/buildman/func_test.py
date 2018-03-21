@@ -180,7 +180,7 @@ class TestFunctional(unittest.TestCase):
         self._base_dir = tempfile.mkdtemp()
         self._git_dir = os.path.join(self._base_dir, 'src')
         self._buildman_pathname = sys.argv[0]
-        self._buildman_dir = os.path.dirname(sys.argv[0])
+        self._buildman_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
         command.test_result = self._HandleCommand
         self.setupToolchains()
         self._toolchains.Add('arm-gcc', test=False)
@@ -255,6 +255,8 @@ class TestFunctional(unittest.TestCase):
         self.assertEqual(gitutil.use_no_decorate, True)
 
     def _HandleCommandGitLog(self, args):
+        if args[-1] == '--':
+            args = args[:-1]
         if '-n0' in args:
             return command.CommandResult(return_code=0)
         elif args[-1] == 'upstream/master..%s' % self._test_branch:

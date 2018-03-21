@@ -1,9 +1,7 @@
 /*
  * Copyright 2008 Freescale Semiconductor, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * Version 2 as published by the Free Software Foundation.
+ * SPDX-License-Identifier:	GPL-2.0
  */
 
 #include <common.h>
@@ -109,22 +107,14 @@ static unsigned int byte40_table_ps[8] = {
 static unsigned int
 compute_trfc_ps_from_spd(unsigned char trctrfc_ext, unsigned char trfc)
 {
-	unsigned int trfc_ps;
-
-	trfc_ps = (((trctrfc_ext & 0x1) * 256) + trfc) * 1000
+	return (((trctrfc_ext & 0x1) * 256) + trfc) * 1000
 		+ byte40_table_ps[(trctrfc_ext >> 1) & 0x7];
-
-	return trfc_ps;
 }
 
 static unsigned int
 compute_trc_ps_from_spd(unsigned char trctrfc_ext, unsigned char trc)
 {
-	unsigned int trc_ps;
-
-	trc_ps = trc * 1000 + byte40_table_ps[(trctrfc_ext >> 4) & 0x7];
-
-	return trc_ps;
+	return trc * 1000 + byte40_table_ps[(trctrfc_ext >> 4) & 0x7];
 }
 
 /*

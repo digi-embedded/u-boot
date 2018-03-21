@@ -120,11 +120,11 @@ int misc_init_r(void)
 	print_hwversion(&eeprom);
 
 	twl4030_power_init();
-	status_led_set(0, STATUS_LED_ON);
-	status_led_set(1, STATUS_LED_ON);
-	status_led_set(2, STATUS_LED_ON);
+	status_led_set(0, CONFIG_LED_STATUS_ON);
+	status_led_set(1, CONFIG_LED_STATUS_ON);
+	status_led_set(2, CONFIG_LED_STATUS_ON);
 
-	dieid_num_r();
+	omap_die_id_display();
 
 	return 0;
 }

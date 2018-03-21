@@ -6,21 +6,26 @@
  */
 
 #include <common.h>
+#include <asm/arch/clk.h>
 #include <asm/arch/hardware.h>
 #include <asm/arch/sys_proto.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
-unsigned long get_uart_clk(int dev_id)
+unsigned long zynqmp_get_system_timer_freq(void)
 {
 	u32 ver = zynqmp_get_silicon_version();
 
 	switch (ver) {
+	case ZYNQMP_CSU_VERSION_VELOCE:
+		return 10000;
 	case ZYNQMP_CSU_VERSION_EP108:
-		return 25000000;
+		return 4000000;
+	case ZYNQMP_CSU_VERSION_QEMU:
+		return 50000000;
 	}
 
-	return 133000000;
+	return 100000000;
 }
 
 #ifdef CONFIG_CLOCKS

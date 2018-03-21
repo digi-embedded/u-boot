@@ -19,6 +19,7 @@
 #include <ns16550.h>
 #include <netdev.h>
 #include <twl4030.h>
+#include <linux/mtd/omap_gpmc.h>
 #include <asm/io.h>
 #include <asm/arch/mem.h>
 #include <asm/arch/mmc_host_def.h>
@@ -29,10 +30,10 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-/* gpmc_cfg is initialized by gpmc_init and we use it here */
-extern struct gpmc *gpmc_cfg;
-
-/* GPMC definitions for Ethenet Controller LAN9211 */
+/*
+ * gpmc_cfg is initialized by gpmc_init and we use it here.
+ * GPMC definitions for Ethenet Controller LAN9211
+ */
 static const u32 gpmc_lab_enet[] = {
 	ZOOM1_ENET_GPMC_CONF1,
 	ZOOM1_ENET_GPMC_CONF2,
@@ -44,13 +45,14 @@ static const u32 gpmc_lab_enet[] = {
 };
 
 static const struct ns16550_platdata zoom1_serial = {
-	OMAP34XX_UART3,
-	2,
-	V_NS16550_CLK
+	.base = OMAP34XX_UART3,
+	.reg_shift = 2,
+	.clock = V_NS16550_CLK,
+	.fcr = UART_FCR_DEFVAL,
 };
 
 U_BOOT_DEVICE(zoom1_uart) = {
-	"serial_omap",
+	"ns16550_serial",
 	&zoom1_serial
 };
 
@@ -80,7 +82,7 @@ int misc_init_r(void)
 {
 	twl4030_power_init();
 	twl4030_led_init(TWL4030_LED_LEDEN_LEDAON | TWL4030_LED_LEDEN_LEDBON);
-	dieid_num_r();
+	omap_die_id_display();
 
 	/*
 	 * Board Reset

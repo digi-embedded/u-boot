@@ -71,12 +71,12 @@ typedef int cyg_int32;
 static int
 CYGACC_COMM_IF_GETC_TIMEOUT (char chan, char *c)
 {
-#define DELAY 20
-  unsigned long counter = 0;
-  while (!tstc () && (counter < xyzModem_CHAR_TIMEOUT * 1000 / DELAY))
+
+  ulong now = get_timer(0);
+  while (!tstc ())
     {
-      udelay (DELAY);
-      counter++;
+      if (get_timer(now) > xyzModem_CHAR_TIMEOUT)
+        break;
     }
   if (tstc ())
     {
@@ -446,7 +446,7 @@ xyzModem_get_hdr (void)
   /* Verify checksum/CRC */
   if (xyz.crc_mode)
     {
-      cksum = cyg_crc16 (xyz.pkt, xyz.len);
+      cksum = crc16_ccitt(0, xyz.pkt, xyz.len);
       if (cksum != ((xyz.crc1 << 8) | xyz.crc2))
 	{
 	  ZM_DEBUG (zm_dprintf ("CRC error - recvd: %02x%02x, computed: %x\n",

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 Freescale Semiconductor, Inc.
+ * Copyright (C) 2016 Freescale Semiconductor, Inc.
  */
 
 /*
@@ -63,6 +63,10 @@ enum fuse_module_type{
 	MX6_MODULE_GPT2,
 	MX6_MODULE_EPIT1,
 	MX6_MODULE_EPIT2,
+	MX6_MODULE_EPDC,
+	MX6_MODULE_ESAI,
+	MX6_MODULE_DCP,
+	MX6_MODULE_DCP_CRYPTO,
 };
 
 #if !defined(CONFIG_MODULE_FUSE)

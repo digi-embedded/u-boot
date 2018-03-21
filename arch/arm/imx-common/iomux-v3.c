@@ -4,17 +4,15 @@
  * Copyright (C) 2009 by Jan Weitzel Phytec Messtechnik GmbH,
  *                       <armlinux@phytec.de>
  *
- * Copyright (C) 2004-2015 Freescale Semiconductor, Inc.
+ * Copyright (C) 2004-2011 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
 #include <common.h>
 #include <asm/io.h>
 #include <asm/arch/imx-regs.h>
-#if !defined(CONFIG_MX25) && !defined(CONFIG_VF610)
-#include <asm/arch/sys_proto.h>
-#endif
 #include <asm/imx-common/iomux-v3.h>
+#include <asm/imx-common/sys_proto.h>
 
 static void *base = (void *)IOMUXC_BASE_ADDR;
 
@@ -33,7 +31,7 @@ void imx_iomux_v3_setup_pad(iomux_v3_cfg_t pad)
 		(pad & MUX_PAD_CTRL_OFS_MASK) >> MUX_PAD_CTRL_OFS_SHIFT;
 	u32 pad_ctrl = (pad & MUX_PAD_CTRL_MASK) >> MUX_PAD_CTRL_SHIFT;
 
-#if defined CONFIG_MX6SL
+#if defined(CONFIG_MX6SL) || defined(CONFIG_MX6SLL)
 	/* Check whether LVE bit needs to be set */
 	if (pad_ctrl & PAD_CTL_LVE) {
 		pad_ctrl &= ~PAD_CTL_LVE;
@@ -44,6 +42,7 @@ void imx_iomux_v3_setup_pad(iomux_v3_cfg_t pad)
 #ifdef CONFIG_IOMUX_LPSR
 	u32 lpsr = (pad & MUX_MODE_LPSR) >> MUX_MODE_SHIFT;
 
+#ifdef CONFIG_MX7
 	if (lpsr == IOMUX_CONFIG_LPSR) {
 		base = (void *)IOMUXC_LPSR_BASE_ADDR;
 		mux_mode &= ~IOMUX_CONFIG_LPSR;
@@ -51,9 +50,18 @@ void imx_iomux_v3_setup_pad(iomux_v3_cfg_t pad)
 		if (sel_input_ofs)
 			sel_input_ofs += IOMUX_LPSR_SEL_INPUT_OFS;
 	}
+#else
+	if (is_mx6ull() || is_mx6sll()) {
+		if (lpsr == IOMUX_CONFIG_LPSR) {
+			base = (void *)IOMUXC_SNVS_BASE_ADDR;
+			mux_mode &= ~IOMUX_CONFIG_LPSR;
+		}
+	}
+#endif
 #endif
 
-	__raw_writel(mux_mode, base + mux_ctrl_ofs);
+	if (is_mx7() || is_mx6ull() || is_mx6sll() || mux_ctrl_ofs)
+		__raw_writel(mux_mode, base + mux_ctrl_ofs);
 
 	if (sel_input_ofs)
 		__raw_writel(sel_input, base + sel_input_ofs);
@@ -65,6 +73,10 @@ void imx_iomux_v3_setup_pad(iomux_v3_cfg_t pad)
 #else
 	if (!(pad_ctrl & NO_PAD_CTRL) && pad_ctrl_ofs)
 		__raw_writel(pad_ctrl, base + pad_ctrl_ofs);
+#if defined(CONFIG_MX6SLL)
+	else if ((pad_ctrl & NO_PAD_CTRL) && pad_ctrl_ofs)
+		clrbits_le32(base + pad_ctrl_ofs, PAD_CTL_IPD_BIT);
+#endif
 #endif
 
 #ifdef CONFIG_IOMUX_LPSR
@@ -84,7 +96,7 @@ void imx_iomux_v3_setup_multiple_pads(iomux_v3_cfg_t const *pad_list,
 
 #if defined(CONFIG_MX6QDL)
 	stride = 2;
-	if (!is_cpu_type(MXC_CPU_MX6Q) && !is_cpu_type(MXC_CPU_MX6D))
+	if (!is_mx6dq() && !is_mx6dqp())
 		p += 1;
 #else
 	stride = 1;
@@ -109,3 +121,29 @@ void imx_iomux_set_gpr_register(int group, int start_bit,
 	reg |= (value << start_bit);
 	writel(reg, base + group * 4);
 }
+
+#ifdef CONFIG_IOMUX_SHARE_CONF_REG
+void imx_iomux_gpio_set_direction(unsigned int gpio,
+				unsigned int direction)
+{
+	u32 reg;
+	/*
+	 * Only on Vybrid the input/output buffer enable flags
+	 * are part of the shared mux/conf register.
+	 */
+	reg = readl(base + (gpio << 2));
+
+	if (direction)
+		reg |= 0x2;
+	else
+		reg &= ~0x2;
+
+	writel(reg, base + (gpio << 2));
+}
+
+void imx_iomux_gpio_get_function(unsigned int gpio, u32 *gpio_state)
+{
+	*gpio_state = readl(base + (gpio << 2)) &
+		((0X07 << PAD_MUX_MODE_SHIFT) | PAD_CTL_OBE_IBE_ENABLE);
+}
+#endif

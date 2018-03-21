@@ -283,10 +283,9 @@ static void mal_err (struct eth_device *dev, unsigned long isr,
 static void emac_err (struct eth_device *dev, unsigned long isr);
 
 extern int phy_setup_aneg (char *devname, unsigned char addr);
-extern int emac4xx_miiphy_read (const char *devname, unsigned char addr,
-		unsigned char reg, unsigned short *value);
-extern int emac4xx_miiphy_write (const char *devname, unsigned char addr,
-		unsigned char reg, unsigned short value);
+int emac4xx_miiphy_read(struct mii_dev *bus, int addr, int devad, int reg);
+int emac4xx_miiphy_write(struct mii_dev *bus, int addr, int devad, int reg,
+			 u16 value);
 
 int board_emac_count(void);
 
@@ -900,7 +899,7 @@ static int ppc_4xx_eth_init (struct eth_device *dev, bd_t * bis)
 	 * current transfer) have got the time to arrived before
 	 * netloop calls eth_halt
 	 */
-	printf ("About preceeding transfer (eth%d):\n"
+	printf ("About preceding transfer (eth%d):\n"
 		"- Sent packet number %d\n"
 		"- Received packet number %d\n"
 		"- Handled packet number %d\n",
@@ -1350,7 +1349,7 @@ get_speed:
 	for (i = 0; i < NUM_RX_BUFF; i++) {
 		hw_p->rx[i].ctrl = 0;
 		hw_p->rx[i].data_len = 0;
-		hw_p->rx[i].data_ptr = (char *)NetRxPackets[i];
+		hw_p->rx[i].data_ptr = (char *)net_rx_packets[i];
 		if ((NUM_RX_BUFF - 1) == i)
 			hw_p->rx[i].ctrl |= MAL_RX_CTRL_WRAP;
 		hw_p->rx[i].ctrl |= MAL_RX_CTRL_EMPTY | MAL_RX_CTRL_INTR;
@@ -1719,8 +1718,6 @@ static void mal_err (struct eth_device *dev, unsigned long isr,
 		     unsigned long uic, unsigned long maldef,
 		     unsigned long mal_errr)
 {
-	EMAC_4XX_HW_PST hw_p = dev->priv;
-
 	mtdcr (MAL0_ESR, isr);	/* clear interrupt */
 
 	/* clear DE interrupt */
@@ -1728,10 +1725,11 @@ static void mal_err (struct eth_device *dev, unsigned long isr,
 	mtdcr (MAL0_RXDEIR, 0x80000000);
 
 #ifdef INFO_4XX_ENET
-	printf ("\nMAL error occured.... ISR = %lx UIC = = %lx	MAL_DEF = %lx  MAL_ERR= %lx \n", isr, uic, maldef, mal_errr);
+	printf("\nMAL error occurred.... ISR = %lx UIC = = %lx	MAL_DEF = %lx  MAL_ERR= %lx\n",
+	       isr, uic, maldef, mal_errr);
 #endif
 
-	eth_init (hw_p->bis);	/* start again... */
+	eth_init();	/* start again... */
 }
 
 /*-----------------------------------------------------------------------------+
@@ -1741,7 +1739,7 @@ static void emac_err (struct eth_device *dev, unsigned long isr)
 {
 	EMAC_4XX_HW_PST hw_p = dev->priv;
 
-	printf ("EMAC%d error occured.... ISR = %lx\n", hw_p->devnum, isr);
+	printf ("EMAC%d error occurred.... ISR = %lx\n", hw_p->devnum, isr);
 	out_be32((void *)EMAC0_ISR + hw_p->hw_addr, isr);
 }
 
@@ -1859,13 +1857,17 @@ static int ppc_4xx_eth_rx (struct eth_device *dev)
 
 		length = hw_p->rx[user_index].data_len & 0x0fff;
 
-		/* Pass the packet up to the protocol layers. */
-		/*	 NetReceive(NetRxPackets[rxIdx], length - 4); */
-		/*	 NetReceive(NetRxPackets[i], length); */
+		/*
+		 * Pass the packet up to the protocol layers.
+		 * net_process_received_packet(net_rx_packets[rxIdx],
+		 *			       length - 4);
+		 * net_process_received_packet(net_rx_packets[i], length);
+		 */
 		invalidate_dcache_range((u32)hw_p->rx[user_index].data_ptr,
 					(u32)hw_p->rx[user_index].data_ptr +
 					length - 4);
-		NetReceive (NetRxPackets[user_index], length - 4);
+		net_process_received_packet(net_rx_packets[user_index],
+					    length - 4);
 		/* Free Recv Buffer */
 		hw_p->rx[user_index].ctrl |= MAL_RX_CTRL_EMPTY;
 		/* Free rx buffer descriptor queue */
@@ -2012,8 +2014,17 @@ int ppc_4xx_eth_initialize (bd_t * bis)
 		eth_register(dev);
 
 #if defined(CONFIG_MII) || defined(CONFIG_CMD_MII)
-		miiphy_register(dev->name,
-				emac4xx_miiphy_read, emac4xx_miiphy_write);
+		int retval;
+		struct mii_dev *mdiodev = mdio_alloc();
+		if (!mdiodev)
+			return -ENOMEM;
+		strncpy(mdiodev->name, dev->name, MDIO_NAME_LEN);
+		mdiodev->read = emac4xx_miiphy_read;
+		mdiodev->write = emac4xx_miiphy_write;
+
+		retval = mdio_register(mdiodev);
+		if (retval < 0)
+			return retval;
 #endif
 
 		if (0 == virgin) {

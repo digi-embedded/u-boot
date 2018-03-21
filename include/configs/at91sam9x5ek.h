@@ -23,13 +23,6 @@
 #define CONFIG_SETUP_MEMORY_TAGS
 #define CONFIG_INITRD_TAG
 #define CONFIG_SKIP_LOWLEVEL_INIT
-#define CONFIG_BOARD_EARLY_INIT_F
-#define CONFIG_DISPLAY_CPUINFO
-
-#define CONFIG_CMD_BOOTZ
-#define CONFIG_OF_LIBFDT
-
-#define CONFIG_SYS_GENERIC_BOARD
 
 /* general purpose I/O */
 #define CONFIG_ATMEL_LEGACY		/* required until (g)pio is fixed */
@@ -41,7 +34,6 @@
 #define CONFIG_USART_ID		ATMEL_ID_SYS
 
 /* LCD */
-#define CONFIG_LCD
 #define LCD_BPP			LCD_COLOR16
 #define LCD_OUTPUT_BPP		24
 #define CONFIG_LCD_LOGO
@@ -50,9 +42,7 @@
 #define CONFIG_SYS_WHITE_ON_BLACK
 #define CONFIG_ATMEL_HLCD
 #define CONFIG_ATMEL_LCD_RGB565
-#define CONFIG_SYS_CONSOLE_IS_IN_ENV
 
-#define CONFIG_BOOTDELAY	3
 
 /*
  * BOOTP options
@@ -62,29 +52,15 @@
 #define CONFIG_BOOTP_GATEWAY
 #define CONFIG_BOOTP_HOSTNAME
 
-/* no NOR flash */
-#define CONFIG_SYS_NO_FLASH
-
 /*
  * Command line configuration.
  */
-#include <config_cmd_default.h>
-#undef CONFIG_CMD_FPGA
-#undef CONFIG_CMD_IMI
-
-#define CONFIG_CMD_PING
-#define CONFIG_CMD_DHCP
 #define CONFIG_CMD_NAND
-#define CONFIG_CMD_SF
-#define CONFIG_CMD_MMC
-#define CONFIG_CMD_FAT
-#define CONFIG_CMD_USB
 
 /*
  * define CONFIG_USB_EHCI to enable USB Hi-Speed (aka 2.0)
  * NB: in this case, USB 1.1 devices won't be recognized.
  */
-
 
 /* SDRAM */
 #define CONFIG_NR_DRAM_BANKS		1
@@ -97,8 +73,6 @@
 /* DataFlash */
 #ifdef CONFIG_CMD_SF
 #define CONFIG_ATMEL_SPI
-#define CONFIG_SPI_FLASH
-#define CONFIG_SPI_FLASH_ATMEL
 #define CONFIG_SF_DEFAULT_SPEED		30000000
 #endif
 
@@ -128,20 +102,12 @@
 #define CONFIG_MTD_PARTITIONS
 #define CONFIG_RBTREE
 #define CONFIG_LZO
-#define CONFIG_CMD_UBI
 #define CONFIG_CMD_UBIFS
 #endif
 
 /* MMC */
 #ifdef CONFIG_CMD_MMC
-#define CONFIG_MMC
-#define CONFIG_GENERIC_MMC
 #define CONFIG_GENERIC_ATMEL_MCI
-#endif
-
-/* FAT */
-#ifdef CONFIG_CMD_FAT
-#define CONFIG_DOS_PARTITION
 #endif
 
 /* Ethernet */
@@ -164,7 +130,6 @@
 #define CONFIG_SYS_USB_OHCI_SLOT_NAME		"at91sam9x5"
 #define CONFIG_SYS_USB_OHCI_MAX_ROOT_PORTS	3
 #endif
-#define CONFIG_USB_STORAGE
 #endif
 
 #define CONFIG_SYS_LOAD_ADDR		0x22000000	/* load address */
@@ -228,15 +193,11 @@
 
 #define CONFIG_BAUDRATE		115200
 
-#define CONFIG_SYS_PROMPT	"U-Boot> "
 #define CONFIG_SYS_CBSIZE	256
 #define CONFIG_SYS_MAXARGS	16
-#define CONFIG_SYS_PBSIZE	(CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) \
-					+ 16)
 #define CONFIG_SYS_LONGHELP
 #define CONFIG_CMDLINE_EDITING
 #define CONFIG_AUTO_COMPLETE
-#define CONFIG_SYS_HUSH_PARSER
 
 /*
  * Size of malloc() pool
@@ -254,11 +215,6 @@
 #define CONFIG_SYS_SPL_MALLOC_START	0x20080000
 #define CONFIG_SYS_SPL_MALLOC_SIZE	0x80000
 
-#define CONFIG_SPL_LIBCOMMON_SUPPORT
-#define CONFIG_SPL_LIBGENERIC_SUPPORT
-#define CONFIG_SPL_GPIO_SUPPORT
-#define CONFIG_SPL_SERIAL_SUPPORT
-
 #define CONFIG_SPL_BOARD_INIT
 #define CONFIG_SYS_MONITOR_LEN		(512 << 10)
 
@@ -267,20 +223,12 @@
 #define CONFIG_SYS_MCKR			0x1301
 #define CONFIG_SYS_MCKR_CSS		0x1302
 
-#define ATMEL_BASE_MPDDRC		ATMEL_BASE_DDRSDRC
-
 #ifdef CONFIG_SYS_USE_MMC
 #define CONFIG_SPL_LDSCRIPT		arch/arm/mach-at91/arm926ejs/u-boot-spl.lds
-#define CONFIG_SPL_MMC_SUPPORT
-#define CONFIG_SYS_U_BOOT_MAX_SIZE_SECTORS	0x400
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR 0x200
 #define CONFIG_SYS_MMCSD_FS_BOOT_PARTITION	1
 #define CONFIG_SPL_FS_LOAD_PAYLOAD_NAME		"u-boot.img"
-#define CONFIG_SPL_FAT_SUPPORT
-#define CONFIG_SPL_LIBDISK_SUPPORT
 
 #elif CONFIG_SYS_USE_NANDFLASH
-#define CONFIG_SPL_NAND_SUPPORT
 #define CONFIG_SPL_NAND_DRIVERS
 #define CONFIG_SPL_NAND_BASE
 #define CONFIG_SYS_NAND_U_BOOT_OFFS	0x40000
@@ -293,8 +241,6 @@
 #define CONFIG_SPL_GENERATE_ATMEL_PMECC_HEADER
 
 #elif CONFIG_SYS_USE_SPIFLASH
-#define CONFIG_SPL_SPI_SUPPORT
-#define CONFIG_SPL_SPI_FLASH_SUPPORT
 #define CONFIG_SPL_SPI_LOAD
 #define CONFIG_SYS_SPI_U_BOOT_OFFS	0x8400
 

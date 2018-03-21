@@ -15,6 +15,7 @@
  */
 
 #include <config.h>
+#include <asm/unified.h>
 
 /*
  * Endian independent macros for shifting bytes within registers.
@@ -58,7 +59,7 @@
 
 	.irp	c,,eq,ne,cs,cc,mi,pl,vs,vc,hi,ls,ge,lt,gt,le,hs,lo
 	.macro	ret\c, reg
-#if defined(__ARM_ARCH_5E__) || defined(__ARM_ARCH_5TE__)
+#if defined(__ARM_ARCH_5E__)
 	mov\c	pc, \reg
 #else
 	.ifeqs	"\reg", "lr"

@@ -31,10 +31,18 @@
 #include <twl4030.h>
 #include <twl6030.h>
 #include <palmas.h>
-#include <asm/gpio.h>
 #include <asm/io.h>
 #include <asm/arch/mmc_host_def.h>
+#if !defined(CONFIG_SOC_KEYSTONE)
+#include <asm/gpio.h>
 #include <asm/arch/sys_proto.h>
+#endif
+#ifdef CONFIG_MMC_OMAP36XX_PINS
+#include <asm/arch/mux.h>
+#endif
+#include <dm.h>
+
+DECLARE_GLOBAL_DATA_PTR;
 
 /* simplify defines to OMAP_HSMMC_USE_GPIO */
 #if (defined(CONFIG_OMAP_GPIO) && !defined(CONFIG_SPL_BUILD)) || \
@@ -52,8 +60,14 @@ struct omap_hsmmc_data {
 	struct hsmmc *base_addr;
 	struct mmc_config cfg;
 #ifdef OMAP_HSMMC_USE_GPIO
+#ifdef CONFIG_DM_MMC
+	struct gpio_desc cd_gpio;	/* Change Detect GPIO */
+	struct gpio_desc wp_gpio;	/* Write Protect GPIO */
+	bool cd_inverted;
+#else
 	int cd_gpio;
 	int wp_gpio;
+#endif
 #endif
 };
 
@@ -64,7 +78,7 @@ static int mmc_read_data(struct hsmmc *mmc_base, char *buf, unsigned int size);
 static int mmc_write_data(struct hsmmc *mmc_base, const char *buf,
 			unsigned int siz);
 
-#ifdef OMAP_HSMMC_USE_GPIO
+#if defined(OMAP_HSMMC_USE_GPIO) && !defined(CONFIG_DM_MMC)
 static int omap_mmc_setup_gpio_in(int gpio, const char *label)
 {
 	int ret;
@@ -85,52 +99,15 @@ static int omap_mmc_setup_gpio_in(int gpio, const char *label)
 }
 #endif
 
-#if defined(CONFIG_OMAP44XX) && defined(CONFIG_TWL6030_POWER)
-static void omap4_vmmc_pbias_config(struct mmc *mmc)
-{
-	u32 value = 0;
-
-	value = readl((*ctrl)->control_pbiaslite);
-	value &= ~(MMC1_PBIASLITE_PWRDNZ | MMC1_PWRDNZ);
-	writel(value, (*ctrl)->control_pbiaslite);
-	/* set VMMC to 3V */
-	twl6030_power_mmc_init();
-	value = readl((*ctrl)->control_pbiaslite);
-	value |= MMC1_PBIASLITE_VMODE | MMC1_PBIASLITE_PWRDNZ | MMC1_PWRDNZ;
-	writel(value, (*ctrl)->control_pbiaslite);
-}
-#endif
-
-#if defined(CONFIG_OMAP54XX) && defined(CONFIG_PALMAS_POWER)
-static void omap5_pbias_config(struct mmc *mmc)
-{
-	u32 value = 0;
-
-	value = readl((*ctrl)->control_pbias);
-	value &= ~SDCARD_PWRDNZ;
-	writel(value, (*ctrl)->control_pbias);
-	udelay(10); /* wait 10 us */
-	value &= ~SDCARD_BIAS_PWRDNZ;
-	writel(value, (*ctrl)->control_pbias);
-
-	palmas_mmc1_poweron_ldo();
-
-	value = readl((*ctrl)->control_pbias);
-	value |= SDCARD_BIAS_PWRDNZ;
-	writel(value, (*ctrl)->control_pbias);
-	udelay(150); /* wait 150 us */
-	value |= SDCARD_PWRDNZ;
-	writel(value, (*ctrl)->control_pbias);
-	udelay(150); /* wait 150 us */
-}
-#endif
-
 static unsigned char mmc_board_init(struct mmc *mmc)
 {
 #if defined(CONFIG_OMAP34XX)
 	t2_t *t2_base = (t2_t *)T2_BASE;
 	struct prcm *prcm_base = (struct prcm *)PRCM_BASE;
 	u32 pbias_lite;
+#ifdef CONFIG_MMC_OMAP36XX_PINS
+	u32 wkup_ctrl = readl(OMAP34XX_CTRL_WKUP_CTRL);
+#endif
 
 	pbias_lite = readl(&t2_base->pbias_lite);
 	pbias_lite &= ~(PBIASLITEPWRDNZ1 | PBIASLITEPWRDNZ0);
@@ -138,12 +115,26 @@ static unsigned char mmc_board_init(struct mmc *mmc)
 	/* for cairo board, we need to set up 1.8 Volt bias level on MMC1 */
 	pbias_lite &= ~PBIASLITEVMODE0;
 #endif
+#ifdef CONFIG_MMC_OMAP36XX_PINS
+	if (get_cpu_family() == CPU_OMAP36XX) {
+		/* Disable extended drain IO before changing PBIAS */
+		wkup_ctrl &= ~OMAP34XX_CTRL_WKUP_CTRL_GPIO_IO_PWRDNZ;
+		writel(wkup_ctrl, OMAP34XX_CTRL_WKUP_CTRL);
+	}
+#endif
 	writel(pbias_lite, &t2_base->pbias_lite);
 
 	writel(pbias_lite | PBIASLITEPWRDNZ1 |
 		PBIASSPEEDCTRL0 | PBIASLITEPWRDNZ0,
 		&t2_base->pbias_lite);
 
+#ifdef CONFIG_MMC_OMAP36XX_PINS
+	if (get_cpu_family() == CPU_OMAP36XX)
+		/* Enable extended drain IO after changing PBIAS */
+		writel(wkup_ctrl |
+				OMAP34XX_CTRL_WKUP_CTRL_GPIO_IO_PWRDNZ,
+				OMAP34XX_CTRL_WKUP_CTRL);
+#endif
 	writel(readl(&t2_base->devconf0) | MMCSDIO1ADPCLKISEL,
 		&t2_base->devconf0);
 
@@ -164,14 +155,10 @@ static unsigned char mmc_board_init(struct mmc *mmc)
 		&prcm_base->iclken1_core);
 #endif
 
-#if defined(CONFIG_OMAP44XX) && defined(CONFIG_TWL6030_POWER)
+#if defined(CONFIG_OMAP54XX) || defined(CONFIG_OMAP44XX)
 	/* PBIAS config needed for MMC1 only */
-	if (mmc->block_dev.dev == 0)
-		omap4_vmmc_pbias_config(mmc);
-#endif
-#if defined(CONFIG_OMAP54XX) && defined(CONFIG_PALMAS_POWER)
-	if (mmc->block_dev.dev == 0)
-		omap5_pbias_config(mmc);
+	if (mmc->block_dev.devnum == 0)
+		vmmc_pbias_config(LDO_VOLT_3V0);
 #endif
 
 	return 0;
@@ -205,7 +192,6 @@ void mmc_init_stream(struct hsmmc *mmc_base)
 	writel(readl(&mmc_base->con) & ~INIT_INITSTREAM, &mmc_base->con);
 }
 
-
 static int omap_hsmmc_init_setup(struct mmc *mmc)
 {
 	struct hsmmc *mmc_base;
@@ -222,7 +208,7 @@ static int omap_hsmmc_init_setup(struct mmc *mmc)
 	while ((readl(&mmc_base->sysstatus) & RESETDONE) == 0) {
 		if (get_timer(0) - start > MAX_RETRY_MS) {
 			printf("%s: timedout waiting for cc2!\n", __func__);
-			return TIMEOUT;
+			return -ETIMEDOUT;
 		}
 	}
 	writel(readl(&mmc_base->sysctl) | SOFTRESETALL, &mmc_base->sysctl);
@@ -231,7 +217,7 @@ static int omap_hsmmc_init_setup(struct mmc *mmc)
 		if (get_timer(0) - start > MAX_RETRY_MS) {
 			printf("%s: timedout waiting for softresetall!\n",
 				__func__);
-			return TIMEOUT;
+			return -ETIMEDOUT;
 		}
 	}
 	writel(DTW_1_BITMODE | SDBP_PWROFF | SDVS_3V0, &mmc_base->hctl);
@@ -253,7 +239,7 @@ static int omap_hsmmc_init_setup(struct mmc *mmc)
 	while ((readl(&mmc_base->sysctl) & ICS_MASK) == ICS_NOTREADY) {
 		if (get_timer(0) - start > MAX_RETRY_MS) {
 			printf("%s: timedout waiting for ics!\n", __func__);
-			return TIMEOUT;
+			return -ETIMEDOUT;
 		}
 	}
 	writel(readl(&mmc_base->sysctl) | CEN_ENABLE, &mmc_base->sysctl);
@@ -296,7 +282,7 @@ static void mmc_reset_controller_fsm(struct hsmmc *mmc_base, u32 bit)
 	 *    (reset procedure is completed).
 	 */
 #if defined(CONFIG_OMAP44XX) || defined(CONFIG_OMAP54XX) || \
-	defined(CONFIG_AM33XX)
+	defined(CONFIG_AM33XX) || defined(CONFIG_AM43XX)
 	if (!(readl(&mmc_base->sysctl) & bit)) {
 		start = get_timer(0);
 		while (!(readl(&mmc_base->sysctl) & bit)) {
@@ -328,7 +314,7 @@ static int omap_hsmmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 		if (get_timer(0) - start > MAX_RETRY_MS) {
 			printf("%s: timedout waiting on cmd inhibit to clear\n",
 					__func__);
-			return TIMEOUT;
+			return -ETIMEDOUT;
 		}
 	}
 	writel(0xFFFFFFFF, &mmc_base->stat);
@@ -337,7 +323,7 @@ static int omap_hsmmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 		if (get_timer(0) - start > MAX_RETRY_MS) {
 			printf("%s: timedout waiting for STAT (%x) to clear\n",
 				__func__, readl(&mmc_base->stat));
-			return TIMEOUT;
+			return -ETIMEDOUT;
 		}
 	}
 	/*
@@ -401,13 +387,13 @@ static int omap_hsmmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 		mmc_stat = readl(&mmc_base->stat);
 		if (get_timer(0) - start > MAX_RETRY_MS) {
 			printf("%s : timeout: No status update\n", __func__);
-			return TIMEOUT;
+			return -ETIMEDOUT;
 		}
 	} while (!mmc_stat);
 
 	if ((mmc_stat & IE_CTO) != 0) {
 		mmc_reset_controller_fsm(mmc_base, SYSCTL_SRC);
-		return TIMEOUT;
+		return -ETIMEDOUT;
 	} else if ((mmc_stat & ERRI_MASK) != 0)
 		return -1;
 
@@ -455,7 +441,7 @@ static int mmc_read_data(struct hsmmc *mmc_base, char *buf, unsigned int size)
 			if (get_timer(0) - start > MAX_RETRY_MS) {
 				printf("%s: timedout waiting for status!\n",
 						__func__);
-				return TIMEOUT;
+				return -ETIMEDOUT;
 			}
 		} while (mmc_stat == 0);
 
@@ -510,7 +496,7 @@ static int mmc_write_data(struct hsmmc *mmc_base, const char *buf,
 			if (get_timer(0) - start > MAX_RETRY_MS) {
 				printf("%s: timedout waiting for status!\n",
 						__func__);
-				return TIMEOUT;
+				return -ETIMEDOUT;
 			}
 		} while (mmc_stat == 0);
 
@@ -545,7 +531,7 @@ static int mmc_write_data(struct hsmmc *mmc_base, const char *buf,
 	return 0;
 }
 
-static void omap_hsmmc_set_ios(struct mmc *mmc)
+static int omap_hsmmc_set_ios(struct mmc *mmc)
 {
 	struct hsmmc *mmc_base;
 	unsigned int dsor = 0;
@@ -593,13 +579,43 @@ static void omap_hsmmc_set_ios(struct mmc *mmc)
 	while ((readl(&mmc_base->sysctl) & ICS_MASK) == ICS_NOTREADY) {
 		if (get_timer(0) - start > MAX_RETRY_MS) {
 			printf("%s: timedout waiting for ics!\n", __func__);
-			return;
+			return -ETIMEDOUT;
 		}
 	}
 	writel(readl(&mmc_base->sysctl) | CEN_ENABLE, &mmc_base->sysctl);
+
+	return 0;
 }
 
 #ifdef OMAP_HSMMC_USE_GPIO
+#ifdef CONFIG_DM_MMC
+static int omap_hsmmc_getcd(struct mmc *mmc)
+{
+	struct omap_hsmmc_data *priv = mmc->priv;
+	int value;
+
+	value = dm_gpio_get_value(&priv->cd_gpio);
+	/* if no CD return as 1 */
+	if (value < 0)
+		return 1;
+
+	if (priv->cd_inverted)
+		return !value;
+	return value;
+}
+
+static int omap_hsmmc_getwp(struct mmc *mmc)
+{
+	struct omap_hsmmc_data *priv = mmc->priv;
+	int value;
+
+	value = dm_gpio_get_value(&priv->wp_gpio);
+	/* if no WP return as 0 */
+	if (value < 0)
+		return 0;
+	return value;
+}
+#else
 static int omap_hsmmc_getcd(struct mmc *mmc)
 {
 	struct omap_hsmmc_data *priv_data = mmc->priv;
@@ -628,6 +644,7 @@ static int omap_hsmmc_getwp(struct mmc *mmc)
 	return gpio_get_value(wp_gpio);
 }
 #endif
+#endif
 
 static const struct mmc_ops omap_hsmmc_ops = {
 	.send_cmd	= omap_hsmmc_send_cmd,
@@ -639,6 +656,7 @@ static const struct mmc_ops omap_hsmmc_ops = {
 #endif
 };
 
+#ifndef CONFIG_DM_MMC
 int omap_mmc_init(int dev_index, uint host_caps_mask, uint f_max, int cd_gpio,
 		int wp_gpio)
 {
@@ -651,8 +669,7 @@ int omap_mmc_init(int dev_index, uint host_caps_mask, uint f_max, int cd_gpio,
 	if (priv_data == NULL)
 		return -1;
 
-	host_caps_val = MMC_MODE_4BIT | MMC_MODE_HS_52MHz | MMC_MODE_HS |
-			     MMC_MODE_HC;
+	host_caps_val = MMC_MODE_4BIT | MMC_MODE_HS_52MHz | MMC_MODE_HS;
 
 	switch (dev_index) {
 	case 0:
@@ -662,7 +679,8 @@ int omap_mmc_init(int dev_index, uint host_caps_mask, uint f_max, int cd_gpio,
 	case 1:
 		priv_data->base_addr = (struct hsmmc *)OMAP_HSMMC2_BASE;
 #if (defined(CONFIG_OMAP44XX) || defined(CONFIG_OMAP54XX) || \
-     defined(CONFIG_DRA7XX) || defined(CONFIG_AM57XX)) && \
+	defined(CONFIG_DRA7XX) || defined(CONFIG_AM33XX) || \
+	defined(CONFIG_AM43XX) || defined(CONFIG_SOC_KEYSTONE)) && \
 		defined(CONFIG_HSMMC2_8BIT)
 		/* Enable 8-bit interface for eMMC on OMAP4/5 or DRA7XX */
 		host_caps_val |= MMC_MODE_8BIT;
@@ -672,7 +690,7 @@ int omap_mmc_init(int dev_index, uint host_caps_mask, uint f_max, int cd_gpio,
 #ifdef OMAP_HSMMC3_BASE
 	case 2:
 		priv_data->base_addr = (struct hsmmc *)OMAP_HSMMC3_BASE;
-#if (defined(CONFIG_DRA7XX) || defined(CONFIG_AM57XX)) && defined(CONFIG_HSMMC3_8BIT)
+#if defined(CONFIG_DRA7XX) && defined(CONFIG_HSMMC3_8BIT)
 		/* Enable 8-bit interface for eMMC on DRA7XX */
 		host_caps_val |= MMC_MODE_8BIT;
 #endif
@@ -725,3 +743,88 @@ int omap_mmc_init(int dev_index, uint host_caps_mask, uint f_max, int cd_gpio,
 
 	return 0;
 }
+#else
+static int omap_hsmmc_ofdata_to_platdata(struct udevice *dev)
+{
+	struct omap_hsmmc_data *priv = dev_get_priv(dev);
+	const void *fdt = gd->fdt_blob;
+	int node = dev_of_offset(dev);
+	struct mmc_config *cfg;
+	int val;
+
+	priv->base_addr = map_physmem(dev_get_addr(dev), sizeof(struct hsmmc *),
+				      MAP_NOCACHE);
+	cfg = &priv->cfg;
+
+	cfg->host_caps = MMC_MODE_HS_52MHz | MMC_MODE_HS;
+	val = fdtdec_get_int(fdt, node, "bus-width", -1);
+	if (val < 0) {
+		printf("error: bus-width property missing\n");
+		return -ENOENT;
+	}
+
+	switch (val) {
+	case 0x8:
+		cfg->host_caps |= MMC_MODE_8BIT;
+	case 0x4:
+		cfg->host_caps |= MMC_MODE_4BIT;
+		break;
+	default:
+		printf("error: invalid bus-width property\n");
+		return -ENOENT;
+	}
+
+	cfg->f_min = 400000;
+	cfg->f_max = fdtdec_get_int(fdt, node, "max-frequency", 52000000);
+	cfg->voltages = MMC_VDD_32_33 | MMC_VDD_33_34 | MMC_VDD_165_195;
+	cfg->b_max = CONFIG_SYS_MMC_MAX_BLK_COUNT;
+
+#ifdef OMAP_HSMMC_USE_GPIO
+	priv->cd_inverted = fdtdec_get_bool(fdt, node, "cd-inverted");
+#endif
+
+	return 0;
+}
+
+static int omap_hsmmc_probe(struct udevice *dev)
+{
+	struct mmc_uclass_priv *upriv = dev_get_uclass_priv(dev);
+	struct omap_hsmmc_data *priv = dev_get_priv(dev);
+	struct mmc_config *cfg;
+	struct mmc *mmc;
+
+	cfg = &priv->cfg;
+	cfg->name = "OMAP SD/MMC";
+	cfg->ops = &omap_hsmmc_ops;
+
+	mmc = mmc_create(cfg, priv);
+	if (mmc == NULL)
+		return -1;
+
+#ifdef OMAP_HSMMC_USE_GPIO
+	gpio_request_by_name(dev, "cd-gpios", 0, &priv->cd_gpio, GPIOD_IS_IN);
+	gpio_request_by_name(dev, "wp-gpios", 0, &priv->wp_gpio, GPIOD_IS_IN);
+#endif
+
+	mmc->dev = dev;
+	upriv->mmc = mmc;
+
+	return 0;
+}
+
+static const struct udevice_id omap_hsmmc_ids[] = {
+	{ .compatible = "ti,omap3-hsmmc" },
+	{ .compatible = "ti,omap4-hsmmc" },
+	{ .compatible = "ti,am33xx-hsmmc" },
+	{ }
+};
+
+U_BOOT_DRIVER(omap_hsmmc) = {
+	.name	= "omap_hsmmc",
+	.id	= UCLASS_MMC,
+	.of_match = omap_hsmmc_ids,
+	.ofdata_to_platdata = omap_hsmmc_ofdata_to_platdata,
+	.probe	= omap_hsmmc_probe,
+	.priv_auto_alloc_size = sizeof(struct omap_hsmmc_data),
+};
+#endif

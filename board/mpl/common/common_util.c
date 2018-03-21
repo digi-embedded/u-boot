@@ -15,12 +15,13 @@
 #include <pci.h>
 #include <malloc.h>
 #include <bzlib.h>
+#include <video.h>
 
 #ifdef CONFIG_PIP405
 #include "../pip405/pip405.h"
 #include <asm/4xx_pci.h>
 #endif
-#ifdef CONFIG_MIP405
+#if defined(CONFIG_TARGET_MIP405) || defined(CONFIG_TARGET_MIP405T)
 #include "../mip405/mip405.h"
 #include <asm/4xx_pci.h>
 #endif
@@ -36,7 +37,8 @@ extern int mem_test(ulong start, ulong ramsize, int quiet);
 #define I2C_BACKUP_ADDR 0x7C00		/* 0x200 bytes for backup */
 #define IMAGE_SIZE CONFIG_SYS_MONITOR_LEN	/* ugly, but it works for now */
 
-#if defined(CONFIG_PIP405) || defined(CONFIG_MIP405)
+#if defined(CONFIG_PIP405) || defined(CONFIG_TARGET_MIP405) \
+	|| defined(CONFIG_TARGET_MIP405T)
 /*-----------------------------------------------------------------------
  * On PIP/MIP405 we have 3 (4) possible boot mode
  *
@@ -116,7 +118,7 @@ void setup_cs_reloc(void)
 		mtdcr(EBC0_CFGDATA, FLASH_CR_B);
 	}
 }
-#endif /* #if defined(CONFIG_PIP405) || defined(CONFIG_MIP405) */
+#endif /* #if defined(CONFIG_PIP405) || defined(CONFIG_TARGET_MIP405) */
 
 #ifdef CONFIG_SYS_UPDATE_FLASH_SIZE
 /* adjust flash start and protection info */
@@ -190,12 +192,11 @@ mpl_prg(uchar *src, ulong size)
 #if defined(CONFIG_PATI)
 	int start_sect;
 #endif
-#if defined(CONFIG_PIP405) || defined(CONFIG_MIP405) || defined(CONFIG_PATI)
+#if defined(CONFIG_PIP405) || defined(CONFIG_TARGET_MIP405) \
+		|| defined(CONFIG_TARGET_MIP405T) || defined(CONFIG_PATI)
 	char *copystr = (char *)src;
 	ulong *magic = (ulong *)src;
-#endif
 
-#if defined(CONFIG_PIP405) || defined(CONFIG_MIP405) || defined(CONFIG_PATI)
 	if (uimage_to_cpu (magic[0]) != IH_MAGIC) {
 		puts("Bad Magic number\n");
 		return -1;
@@ -241,7 +242,7 @@ mpl_prg(uchar *src, ulong size)
 		return (1);
 	}
 
-#else /* #if !defined(CONFIG_PATI */
+#else /* #if !defined(CONFIG_PATI) */
 	start = FIRM_START;
 	start_sect = -1;
 
@@ -272,29 +273,6 @@ mpl_prg(uchar *src, ulong size)
 		return (1);
 	}
 #endif /* defined(CONFIG_PATI) */
-
-#elif defined(CONFIG_VCMA9)
-	start = 0;
-
-	/* search end sector */
-	for (i = 0; i < info->sector_count; i++)
-		if (size < info->start[i])
-		    break;
-
-	flash_protect(FLAG_PROTECT_CLEAR,
-		      start,
-		      size,
-		      info);
-
-	/* now erase flash */
-	printf("Erasing at %lx (sector %d) (start %lx)\n",
-				start,0,info->start[0]);
-	if ((rc = flash_erase (info, 0, i)) != 0) {
-		puts("ERROR ");
-		flash_perror(rc);
-		return (1);
-	}
-
 #endif
 	printf("flash erased, programming from 0x%lx 0x%lx Bytes\n",
 		(ulong)src, size);
@@ -644,15 +622,6 @@ int do_mplcommon(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	return cmd_usage(cmdtp);
 }
 
-
-#if defined(CONFIG_CMD_DOC)
-void doc_init (void)
-{
-  doc_probe(MULTI_PURPOSE_SOCKET_ADDR);
-}
-#endif
-
-
 #ifdef CONFIG_VIDEO
 /******************************************************
  * Routines to display the Board information
@@ -698,12 +667,12 @@ void video_get_info_str (int line_number, char *info)
 		s=getenv ("serial#");
 #ifdef CONFIG_PIP405
 		if (!s || strncmp (s, "PIP405", 6)) {
-			sprintf(buf,"### No HW ID - assuming PIP405");
+			strcpy(buf,"### No HW ID - assuming PIP405");
 		}
 #endif
-#ifdef CONFIG_MIP405
+#if defined(CONFIG_TARGET_MIP405) || defined(CONFIG_TARGET_MIP405T)
 		if (!s || strncmp (s, "MIP405", 6)) {
-			sprintf(buf,"### No HW ID - assuming MIP405");
+			strcpy(buf,"### No HW ID - assuming MIP405");
 		}
 #endif
 		else {
@@ -718,7 +687,7 @@ void video_get_info_str (int line_number, char *info)
 				}
 				buf[i++] = *s;
 			}
-			sprintf(&buf[i]," SN ");
+			strcpy(&buf[i]," SN ");
 			i+=4;
 			for (; s < e; ++s) {
 				buf[i++] = *s;
@@ -744,7 +713,7 @@ void video_get_info_str (int line_number, char *info)
 			ctfb.modeIdent);
 		return;
 	case 1:
-		sprintf	(buf, "%s",CONFIG_IDENT_STRING);
+		strcpy(buf, CONFIG_IDENT_STRING);
 		sprintf (info, " %s", &buf[1]);
 		return;
     }

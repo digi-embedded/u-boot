@@ -13,8 +13,6 @@
 #define __CONFIG_H
 
 #define CONFIG_ARIA 1
-#define CONFIG_DISPLAY_BOARDINFO
-#define CONFIG_SYS_GENERIC_BOARD
 
 /*
  * Memory map for the ARIA board:
@@ -39,12 +37,6 @@
 #define	CONFIG_SYS_TEXT_BASE	0xFFF00000
 
 /* video */
-#undef CONFIG_VIDEO
-
-#if defined(CONFIG_VIDEO)
-#define CONFIG_CFB_CONSOLE
-#define CONFIG_VGA_AS_SINGLE_DEVICE
-#endif
 
 /* CONFIG_PCI is defined at config time */
 
@@ -327,10 +319,6 @@
 #define CONSOLE_FIFO_RX_ADDR		FIFOC_PSC3_RX_ADDR
 
 #define CONFIG_CMDLINE_EDITING		1	/* command line history */
-/* Use the HUSH parser */
-#define CONFIG_SYS_HUSH_PARSER
-#ifdef  CONFIG_SYS_HUSH_PARSER
-#endif
 
 /*
  * PCI
@@ -348,8 +336,6 @@
 #define CONFIG_SYS_PCI_IO_BASE		0x00000000
 #define CONFIG_SYS_PCI_IO_PHYS		0x84000000
 #define CONFIG_SYS_PCI_IO_SIZE		0x01000000	/* 16M */
-
-#define CONFIG_PCI_PNP			/* do pci plug-and-play */
 
 #define CONFIG_PCI_SCAN_SHOW		/* show pci devices on startup */
 
@@ -407,29 +393,15 @@
 #define CONFIG_LOADS_ECHO		1
 #define CONFIG_SYS_LOADS_BAUD_CHANGE	1
 
-#include <config_cmd_default.h>
-
-#define CONFIG_CMD_ASKENV
-#define CONFIG_CMD_DHCP
 #define CONFIG_CMD_EEPROM
 #undef CONFIG_CMD_FUSE
-#define CONFIG_CMD_I2C
 #undef CONFIG_CMD_IDE
 #define CONFIG_CMD_JFFS2
-#define CONFIG_CMD_MII
-#define CONFIG_CMD_NFS
-#define CONFIG_CMD_PING
 #define CONFIG_CMD_REGINFO
 
 #if defined(CONFIG_PCI)
 #define CONFIG_CMD_PCI
 #endif
-
-#if defined(CONFIG_CMD_IDE) || defined(CONFIG_CMD_EXT2)
-#define CONFIG_DOS_PARTITION
-#define CONFIG_MAC_PARTITION
-#define CONFIG_ISO_PARTITION
-#endif /* defined(CONFIG_CMD_IDE) */
 
 /*
  * Dynamic MTD partition support
@@ -523,7 +495,6 @@
 
 #define CONFIG_LOADADDR			400000	/* default load addr */
 
-#define CONFIG_BOOTDELAY	5	/* -1 disables auto-boot */
 #undef  CONFIG_BOOTARGS			/* the boot command will set bootargs */
 
 #define CONFIG_BAUDRATE		115200
@@ -576,8 +547,6 @@
 
 #define CONFIG_BOOTCOMMAND	"run flash_self"
 
-#define CONFIG_OF_LIBFDT	1
-#define CONFIG_OF_BOARD_SETUP	1
 #define CONFIG_OF_SUPPORT_OLD_DEVICE_TREES	1
 
 #define OF_CPU			"PowerPC,5121@0"

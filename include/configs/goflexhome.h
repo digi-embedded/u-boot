@@ -15,13 +15,6 @@
 #ifndef _CONFIG_GOFLEXHOME_H
 #define _CONFIG_GOFLEXHOME_H
 
-#define CONFIG_SYS_GENERIC_BOARD
-
-/*
- * Version number information
- */
-#define CONFIG_IDENT_STRING	"\nSeagate GoFlex Home"
-
 /*
  * High Level Configuration Options (easy to change)
  */
@@ -49,20 +42,11 @@
 /*
  * Commands configuration
  */
-#define CONFIG_SYS_NO_FLASH		/* Declare no flash (NOR/SPI) */
-#define CONFIG_CONSOLE_MUX
-#define CONFIG_SYS_CONSOLE_IS_IN_ENV
 
-#include <config_cmd_default.h>
-#define CONFIG_CMD_DHCP
 #define CONFIG_CMD_ENV
-#define CONFIG_CMD_MII
 #define CONFIG_CMD_NAND
-#define CONFIG_CMD_PING
-#define CONFIG_CMD_USB
 #define CONFIG_CMD_IDE
 #define CONFIG_CMD_DATE
-#define CONFIG_CMD_EXT4
 #define CONFIG_SYS_MVFS         /* Picks up Filesystem from mv-common.h */
 
 /*
@@ -70,9 +54,6 @@
  * to enable certain macros
  */
 #include "mv-common.h"
-
-#undef CONFIG_SYS_PROMPT	/* previously defined in mv-common.h */
-#define CONFIG_SYS_PROMPT	"GoFlexHome> "	/* Command Prompt */
 
 /*
  *  Environment variables configurations

@@ -6,7 +6,7 @@
  *
  * Linux IPU driver for MX51:
  *
- * (C) Copyright 2005-2015 Freescale Semiconductor, Inc.
+ * (C) Copyright 2005-2016 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -16,7 +16,7 @@
 #include <linux/types.h>
 #include <linux/err.h>
 #include <asm/io.h>
-#include <asm/errno.h>
+#include <linux/errno.h>
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/crm_regs.h>
 #include <div64.h>
@@ -131,7 +131,7 @@ int clk_set_rate(struct clk *clk, unsigned long rate)
 
 	if (!clk)
 		return 0;
-	
+
 	return clk->rate;
 }
 
@@ -215,6 +215,10 @@ static struct clk ipu_clk = {
 	.usecount = 0,
 };
 
+#if !defined CONFIG_SYS_LDB_CLOCK
+#define CONFIG_SYS_LDB_CLOCK 65000000
+#endif
+
 #if defined(CONFIG_MX6) || defined(CONFIG_MX53)
 static int clk_ldb_clk_enable(struct clk *clk)
 {
@@ -240,7 +244,7 @@ static struct clk ldb_clk[2] = {
 	{
 	.name = "ldb_clk",
 	.id = 0,
-	.rate = 65000000,
+	.rate = CONFIG_SYS_LDB_CLOCK,
 #ifdef CONFIG_MX6
 	.enable_reg = (u32 *)(CCM_BASE_ADDR +
 		offsetof(struct mxc_ccm_reg, CCGR3)),
@@ -256,7 +260,7 @@ static struct clk ldb_clk[2] = {
 	}, {
 	.name = "ldb_clk",
 	.id = 1,
-	.rate = 65000000,
+	.rate = CONFIG_SYS_LDB_CLOCK,
 #ifdef CONFIG_MX6
 	.enable_reg = (u32 *)(CCM_BASE_ADDR +
 		offsetof(struct mxc_ccm_reg, CCGR3)),
@@ -335,7 +339,7 @@ static void ipu_pixel_clk_recalc(struct clk *clk)
 
 	div = __raw_readl(DI_BS_CLKGEN0(clk->id));
 	debug("read BS_CLKGEN0 div:%d, final_rate:%lld, prate:%ld\n",
-			div, final_rate, clk->parent->rate);
+	      div, final_rate, clk->parent->rate);
 
 	clk->rate = 0;
 	if (div != 0) {
@@ -359,7 +363,7 @@ static unsigned long ipu_pixel_clk_round_rate(struct clk *clk,
 	div = parent_rate;
 	remainder = do_div(div, rate);
 	/* Round the divider value */
-	if (remainder > (rate/2))
+	if (remainder > (rate / 2))
 		div++;
 	if (div < 0x10)            /* Min DI disp clock divider is 1 */
 		div = 0x10;
@@ -387,7 +391,7 @@ static int ipu_pixel_clk_set_rate(struct clk *clk, unsigned long rate)
 	div = parent_rate;
 	remainder = do_div(div, rate);
 	/* Round the divider value */
-	if (remainder > (rate/2))
+	if (remainder > (rate / 2))
 		div++;
 
 	/* Round up divider if it gets us closer to desired pix clk */
@@ -400,9 +404,15 @@ static int ipu_pixel_clk_set_rate(struct clk *clk, unsigned long rate)
 
 	__raw_writel(div, DI_BS_CLKGEN0(clk->id));
 
-	/* Setup pixel clock timing */
-	/* Down time is half of period */
+	/*
+	 * Setup pixel clock timing
+	 * Down time is half of period
+	 */
 	__raw_writel((div / 16) << 16, DI_BS_CLKGEN1(clk->id));
+
+	do_div(parent_rate, div);
+
+	clk->rate = parent_rate;
 
 	return 0;
 }
@@ -1288,4 +1298,13 @@ ipu_color_space_t format_to_colorspace(uint32_t fmt)
 		break;
 	}
 	return RGB;
+}
+
+/* should be removed when clk framework is availiable */
+int ipu_set_ldb_clock(int rate)
+{
+	ldb_clk[0].rate = rate;
+	ldb_clk[1].rate = rate;
+
+	return 0;
 }

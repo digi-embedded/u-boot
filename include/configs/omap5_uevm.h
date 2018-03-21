@@ -12,10 +12,20 @@
 #ifndef __CONFIG_OMAP5_EVM_H
 #define __CONFIG_OMAP5_EVM_H
 
+#include <environment/ti/dfu.h>
+
+#ifndef CONFIG_SPL_BUILD
 /* Define the default GPT table for eMMC */
 #define PARTS_DEFAULT \
 	"uuid_disk=${uuid_gpt_disk};" \
 	"name=rootfs,start=2MiB,size=-,uuid=${uuid_gpt_rootfs}"
+#endif
+
+#define DFUARGS \
+	"dfu_bufsiz=0x10000\0" \
+	DFU_ALT_INFO_MMC \
+	DFU_ALT_INFO_EMMC \
+	DFU_ALT_INFO_RAM
 
 #include <configs/ti_omap5_common.h>
 
@@ -31,11 +41,8 @@
 #define CONFIG_ENV_OFFSET		0xE0000
 #define CONFIG_ENV_OFFSET_REDUND	(CONFIG_ENV_OFFSET + CONFIG_ENV_SIZE)
 #define CONFIG_SYS_REDUNDAND_ENVIRONMENT
-#define CONFIG_CMD_SAVEENV
 
 /* Enhance our eMMC support / experience. */
-#define CONFIG_CMD_GPT
-#define CONFIG_EFI_PARTITION
 #define CONFIG_HSMMC2_8BIT
 #define CONFIG_SUPPORT_EMMC_BOOT
 
@@ -46,11 +53,8 @@
 #define CONFIG_SYS_I2C_TCA642X_ADDR 0x22
 
 /* USB UHH support options */
-#define CONFIG_CMD_USB
-#define CONFIG_USB_HOST
 #define CONFIG_USB_EHCI
 #define CONFIG_USB_EHCI_OMAP
-#define CONFIG_USB_STORAGE
 #define CONFIG_SYS_USB_EHCI_MAX_ROOT_PORTS 3
 #define CONFIG_EHCI_HCD_INIT_AFTER_RESET
 
@@ -58,9 +62,6 @@
 #define CONFIG_OMAP_EHCI_PHY3_RESET_GPIO 79
 
 /* Enabled commands */
-#define CONFIG_CMD_DHCP		/* DHCP Support			*/
-#define CONFIG_CMD_NET		/* bootp, tftpboot, rarpboot	*/
-#define CONFIG_CMD_NFS		/* NFS support			*/
 
 /* USB Networking options */
 #define CONFIG_USB_HOST_ETHER
@@ -71,7 +72,7 @@
 /* Max time to hold reset on this board, see doc/README.omap-reset-time */
 #define CONFIG_OMAP_PLATFORM_RESET_TIME_MAX_USEC	16296
 
-#define CONFIG_CMD_SCSI
+#define CONFIG_SCSI
 #define CONFIG_LIBATA
 #define CONFIG_SCSI_AHCI
 #define CONFIG_SCSI_AHCI_PLAT

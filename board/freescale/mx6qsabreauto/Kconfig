@@ -6,10 +6,12 @@ config SYS_BOARD
 config SYS_VENDOR
 	default "freescale"
 
-config SYS_SOC
-	default "mx6"
-
 config SYS_CONFIG_NAME
 	default "mx6qsabreauto"
 
+config NOR
+	bool "Support for NOR flash"
+	help
+	  The i.MX SoC supports having a NOR flash connected to the WEIM.
+	  Need to set this for NOR_BOOT.
 endif

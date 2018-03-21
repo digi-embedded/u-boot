@@ -36,22 +36,11 @@
  * Include common defines/options for all AMCC eval boards
  */
 #define CONFIG_HOSTNAME		io64
-#define CONFIG_IDENT_STRING	" io64 0.02"
 #include "amcc-common.h"
 
-#define CONFIG_BOARD_EARLY_INIT_F
 #define CONFIG_BOARD_EARLY_INIT_R
 #define CONFIG_MISC_INIT_R
 #define CONFIG_LAST_STAGE_INIT
-#define CONFIG_SYS_GENERIC_BOARD
-
-#undef CONFIG_ZERO_BOOTDELAY_CHECK	/* ignore keypress on bootdelay==0 */
-#define CONFIG_AUTOBOOT_KEYED		/* use key strings to stop autoboot */
-#define CONFIG_AUTOBOOT_STOP_STR " "
-
-/* new uImage format support */
-#define CONFIG_FIT
-#define CONFIG_FIT_VERBOSE
 
 /*-----------------------------------------------------------------------
  * Base addresses -- Note these are effective addresses where the
@@ -403,8 +392,6 @@
 
 #define CONFIG_LOGBUFFER
 #define CONFIG_SYS_POST_CACHE_ADDR	0x00800000 /* free virtual address */
-
-#define CONFIG_SYS_CONSOLE_IS_IN_ENV
 
 /*-----------------------------------------------------------------------
  * External Bus Controller (EBC) Setup

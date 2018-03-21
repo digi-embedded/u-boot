@@ -256,9 +256,6 @@ struct ctfb_chips_properties {
 
 static const struct ctfb_chips_properties chips[] = {
 	{PCI_DEVICE_ID_CT_69000, 0x200000, 1, 4, -2, 3, 257, 100, 220},
-#ifdef CONFIG_USE_CPCIDVI
-	{PCI_DEVICE_ID_CT_69030, 0x400000, 1, 4, -2, 3, 257, 100, 220},
-#endif
 	{PCI_DEVICE_ID_CT_65555, 0x100000, 16, 4, 0, 1, 255, 48, 220},	/* NOT TESTED */
 	{0, 0, 0, 0, 0, 0, 0, 0, 0}	/* Terminator */
 };
@@ -807,84 +804,6 @@ video_dump_reg (void)
 
 #endif
 
-#ifdef CONFIG_VIDEO_HW_CURSOR
-/***************************************************************
- * Set Hardware Cursor in Pixel
- */
-void
-video_set_hw_cursor (int x, int y)
-{
-	int sig_x = 0, sig_y = 0;
-	if (x < 0) {
-		x *= -1;
-		sig_x = 1;
-	}
-	if (y < 0) {
-		y *= -1;
-		sig_y = 1;
-	}
-	ctWrite_i (CT_XR_O, 0xa4, x & 0xff);
-	ctWrite_i (CT_XR_O, 0xa5, (x >> 8) & 0x7);
-	ctWrite_i (CT_XR_O, 0xa6, y & 0xff);
-	ctWrite_i (CT_XR_O, 0xa7, (y >> 8) & 0x7);
-}
-
-/***************************************************************
- * Init Hardware Cursor. To know the size of the Cursor,
- * we have to know the Font size.
- */
-void
-video_init_hw_cursor (int font_width, int font_height)
-{
-	unsigned char xr_80;
-	unsigned long *curs, pattern;
-	int i;
-	int cursor_start;
-	GraphicDevice *pGD = (GraphicDevice *) & ctfb;
-
-	cursor_start = pGD->dprBase;
-	xr_80 = ctRead_i (CT_XR_O, 0x80);
-	/* set start address */
-	ctWrite_i (CT_XR_O, 0xa2, (cursor_start >> 8) & 0xf0);
-	ctWrite_i (CT_XR_O, 0xa3, (cursor_start >> 16) & 0x3f);
-	/* set cursor shape */
-	curs = (unsigned long *) cursor_start;
-	i = 0;
-	while (i < 0x400) {
-		curs[i++] = 0xffffffff;	/* AND mask */
-		curs[i++] = 0xffffffff;	/* AND mask */
-		curs[i++] = 0;	/* XOR mask */
-		curs[i++] = 0;	/* XOR mask */
-		/* Transparent */
-	}
-	pattern = 0xffffffff >> font_width;
-	i = 0;
-	while (i < (font_height * 2)) {
-		curs[i++] = pattern;	/* AND mask */
-		curs[i++] = pattern;	/* AND mask */
-		curs[i++] = 0;	/* XOR mask */
-		curs[i++] = 0;	/* XOR mask */
-		/* Cursor Color 0 */
-	}
-	/* set blink rate */
-	ctWrite_i (CT_FP_O, 0x19, 0xf);
-
-	/* set cursors colors */
-	xr_80 = ctRead_i (CT_XR_O, 0x80);
-	xr_80 |= 0x1;		/* alternate palette select */
-	ctWrite_i (CT_XR_O, 0x80, xr_80);
-	video_set_lut (4, CONSOLE_FG_COL, CONSOLE_FG_COL, CONSOLE_FG_COL);
-	/* position 4 is color 0 cursor 0 */
-	xr_80 &= 0xfe;		/* normal palette select */
-	ctWrite_i (CT_XR_O, 0x80, xr_80);
-	/* cursor enable */
-	ctWrite_i (CT_XR_O, 0xa0, 0x91);
-	xr_80 |= 0x10;		/* enable hwcursor */
-	ctWrite_i (CT_XR_O, 0x80, xr_80);
-	video_set_hw_cursor (0, 0);
-}
-#endif				/* CONFIG_VIDEO_HW_CURSOR */
-
 /***************************************************************
  * Wait for BitBlt ready
  */
@@ -944,9 +863,6 @@ SetDrawingEngine (int bits_per_pixel)
 */
 static struct pci_device_id supported[] = {
 	{PCI_VENDOR_ID_CT, PCI_DEVICE_ID_CT_69000},
-#ifdef CONFIG_USE_CPCIDVI
-	{PCI_VENDOR_ID_CT, PCI_DEVICE_ID_CT_69030},
-#endif
 	{}
 };
 
@@ -1111,22 +1027,7 @@ video_hw_init (void)
 	pGD->cprBase = pci_mem_base;	/* Dummy */
 	/* set up Hardware */
 
-#ifdef CONFIG_USE_CPCIDVI
-	if (device_id == PCI_DEVICE_ID_CT_69030) {
-		ctWrite (CT_MSR_W_O, 0x0b);
-		ctWrite (0x3cd, 0x13);
-		ctWrite_i (CT_FP_O, 0x02, 0x00);
-		ctWrite_i (CT_FP_O, 0x05, 0x00);
-		ctWrite_i (CT_FP_O, 0x06, 0x00);
-		ctWrite (0x3c2, 0x0b);
-		ctWrite_i (CT_FP_O, 0x02, 0x10);
-		ctWrite_i (CT_FP_O, 0x01, 0x09);
-	} else {
-		ctWrite (CT_MSR_W_O, 0x01);
-	}
-#else
 	ctWrite (CT_MSR_W_O, 0x01);
-#endif
 
 	/* set the extended Registers */
 	ctLoadRegs (CT_XR_O, xreg);

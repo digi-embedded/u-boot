@@ -10,7 +10,7 @@
 #include <fdtdec.h>
 #include <malloc.h>
 #include <spi.h>
-#include <asm/errno.h>
+#include <linux/errno.h>
 #include "cadence_qspi.h"
 
 #define CQSPI_STIG_READ			0
@@ -37,9 +37,8 @@ static int cadence_spi_write_speed(struct udevice *bus, uint hz)
 }
 
 /* Calibration sequence to determine the read data capture delay register */
-static int spi_calibration(struct udevice *bus)
+static int spi_calibration(struct udevice *bus, uint hz)
 {
-	struct cadence_spi_platdata *plat = bus->platdata;
 	struct cadence_spi_priv *priv = dev_get_priv(bus);
 	void *base = priv->regbase;
 	u8 opcode_rdid = 0x9F;
@@ -64,7 +63,7 @@ static int spi_calibration(struct udevice *bus)
 	}
 
 	/* use back the intended clock and find low range */
-	cadence_spi_write_speed(bus, plat->max_hz);
+	cadence_spi_write_speed(bus, hz);
 	for (i = 0; i < CQSPI_READ_CAPTURE_MAX_DELAY; i++) {
 		/* Disable QSPI */
 		cadence_qspi_apb_controller_disable(base);
@@ -111,7 +110,7 @@ static int spi_calibration(struct udevice *bus)
 	      (range_hi + range_lo) / 2, range_lo, range_hi);
 
 	/* just to ensure we do once only when speed or chip select change */
-	priv->qspi_calibrated_hz = plat->max_hz;
+	priv->qspi_calibrated_hz = hz;
 	priv->qspi_calibrated_cs = spi_chip_select(bus);
 
 	return 0;
@@ -123,17 +122,25 @@ static int cadence_spi_set_speed(struct udevice *bus, uint hz)
 	struct cadence_spi_priv *priv = dev_get_priv(bus);
 	int err;
 
+	if (hz > plat->max_hz)
+		hz = plat->max_hz;
+
 	/* Disable QSPI */
 	cadence_qspi_apb_controller_disable(priv->regbase);
 
-	cadence_spi_write_speed(bus, hz);
-
-	/* Calibration required for different SCLK speed or chip select */
-	if (priv->qspi_calibrated_hz != plat->max_hz ||
+	/*
+	 * Calibration required for different current SCLK speed, requested
+	 * SCLK speed or chip select
+	 */
+	if (priv->previous_hz != hz ||
+	    priv->qspi_calibrated_hz != hz ||
 	    priv->qspi_calibrated_cs != spi_chip_select(bus)) {
-		err = spi_calibration(bus);
+		err = spi_calibration(bus, hz);
 		if (err)
 			return err;
+
+		/* prevent calibration run when same as previous request */
+		priv->previous_hz = hz;
 	}
 
 	/* Enable QSPI */
@@ -163,14 +170,12 @@ static int cadence_spi_probe(struct udevice *bus)
 static int cadence_spi_set_mode(struct udevice *bus, uint mode)
 {
 	struct cadence_spi_priv *priv = dev_get_priv(bus);
-	unsigned int clk_pol = (mode & SPI_CPOL) ? 1 : 0;
-	unsigned int clk_pha = (mode & SPI_CPHA) ? 1 : 0;
 
 	/* Disable QSPI */
 	cadence_qspi_apb_controller_disable(priv->regbase);
 
 	/* Set SPI mode */
-	cadence_qspi_apb_set_clk_mode(priv->regbase, clk_pol, clk_pha);
+	cadence_qspi_apb_set_clk_mode(priv->regbase, mode);
 
 	/* Enable QSPI */
 	cadence_qspi_apb_controller_enable(priv->regbase);
@@ -184,6 +189,7 @@ static int cadence_spi_xfer(struct udevice *dev, unsigned int bitlen,
 	struct udevice *bus = dev->parent;
 	struct cadence_spi_platdata *plat = bus->platdata;
 	struct cadence_spi_priv *priv = dev_get_priv(bus);
+	struct dm_spi_slave_platdata *dm_plat = dev_get_parent_platdata(dev);
 	void *base = priv->regbase;
 	u8 *cmd_buf = priv->cmd_buf;
 	size_t data_bytes;
@@ -243,7 +249,7 @@ static int cadence_spi_xfer(struct udevice *dev, unsigned int bitlen,
 		break;
 		case CQSPI_INDIRECT_READ:
 			err = cadence_qspi_apb_indirect_read_setup(plat,
-				priv->cmd_len, cmd_buf);
+				priv->cmd_len, dm_plat->mode, cmd_buf);
 			if (!err) {
 				err = cadence_qspi_apb_indirect_read_execute
 				(plat, data_bytes, din);
@@ -276,7 +282,7 @@ static int cadence_spi_ofdata_to_platdata(struct udevice *bus)
 {
 	struct cadence_spi_platdata *plat = bus->platdata;
 	const void *blob = gd->fdt_blob;
-	int node = bus->of_offset;
+	int node = dev_of_offset(bus);
 	int subnode;
 	u32 data[4];
 	int ret;
@@ -290,10 +296,7 @@ static int cadence_spi_ofdata_to_platdata(struct udevice *bus)
 
 	plat->regbase = (void *)data[0];
 	plat->ahbbase = (void *)data[2];
-
-	/* Use 500KHz as a suitable default */
-	plat->max_hz = fdtdec_get_int(blob, node, "spi-max-frequency",
-				      500000);
+	plat->sram_size = fdtdec_get_int(blob, node, "sram-size", 128);
 
 	/* All other paramters are embedded in the child node */
 	subnode = fdt_first_subnode(blob, node);
@@ -301,6 +304,10 @@ static int cadence_spi_ofdata_to_platdata(struct udevice *bus)
 		printf("Error: subnode with SPI flash config missing!\n");
 		return -ENODEV;
 	}
+
+	/* Use 500 KHz as a suitable default */
+	plat->max_hz = fdtdec_get_uint(blob, subnode, "spi-max-frequency",
+				       500000);
 
 	/* Read other parameters from DT */
 	plat->page_size = fdtdec_get_int(blob, subnode, "page-size", 256);

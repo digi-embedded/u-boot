@@ -37,7 +37,7 @@ static int wait_for_command_end(struct mmc *dev, struct mmc_cmd *cmd)
 	writel(statusmask, &host->base->status_clear);
 	if (hoststatus & SDI_STA_CTIMEOUT) {
 		debug("CMD%d time out\n", cmd->cmdidx);
-		return TIMEOUT;
+		return -ETIMEDOUT;
 	} else if ((hoststatus & SDI_STA_CCRCFAIL) &&
 		   (cmd->resp_type & MMC_RSP_CRC)) {
 		printf("CMD%d CRC error\n", cmd->cmdidx);
@@ -275,7 +275,7 @@ static int mmc_host_reset(struct mmc *dev)
 	return 0;
 }
 
-static void host_set_ios(struct mmc *dev)
+static int  host_set_ios(struct mmc *dev)
 {
 	struct pl180_mmc_host *host = dev->priv;
 	u32 sdi_clkcr;
@@ -333,6 +333,8 @@ static void host_set_ios(struct mmc *dev)
 
 	writel(sdi_clkcr, &host->base->clock);
 	udelay(CLK_CHANGE_DELAY);
+
+	return 0;
 }
 
 static const struct mmc_ops arm_pl180_mmci_ops = {
@@ -375,7 +377,7 @@ int arm_pl180_mmci_init(struct pl180_mmc_host *host)
 	if (mmc == NULL)
 		return -1;
 
-	debug("registered mmc interface number is:%d\n", mmc->block_dev.dev);
+	debug("registered mmc interface number is:%d\n", mmc->block_dev.devnum);
 
 	return 0;
 }

@@ -50,9 +50,9 @@ static otf_data_t otfd;
 #define AUTOSCRIPT_TFTP_MSEC		100
 #define AUTOSCRIPT_TFTP_CNT		15
 #define AUTOSCRIPT_START_AGAIN		100
-extern ulong TftpRRQTimeoutMSecs;
-extern int TftpRRQTimeoutCountMax;
-extern unsigned long NetStartAgainTimeout;
+extern ulong tftp_timeout_ms;
+extern int tftp_timeout_count_max;
+extern unsigned long net_start_again_timeout;
 int DownloadingAutoScript = 0;
 int RunningAutoScript = 0;
 #endif
@@ -466,9 +466,9 @@ void run_auto_bootscript(void)
 	int ret;
 	char *bootscript;
 	/* Save original timeouts */
-        ulong saved_rrqtimeout_msecs = TftpRRQTimeoutMSecs;
-        int saved_rrqtimeout_count = TftpRRQTimeoutCountMax;
-	ulong saved_startagain_timeout = NetStartAgainTimeout;
+	ulong saved_rrqtimeout_msecs = tftp_timeout_ms;
+	int saved_rrqtimeout_count = tftp_timeout_count_max;
+	ulong saved_startagain_timeout = net_start_again_timeout;
 	unsigned long saved_flags = gd->flags;
 	char *retrycnt = getenv("netretry");
 
@@ -479,9 +479,9 @@ void run_auto_bootscript(void)
 		/* Silence console */
 		gd->flags |= GD_FLG_SILENT;
 		/* set timeouts for bootscript */
-		TftpRRQTimeoutMSecs = AUTOSCRIPT_TFTP_MSEC;
-		TftpRRQTimeoutCountMax = AUTOSCRIPT_TFTP_CNT;
-		NetStartAgainTimeout = AUTOSCRIPT_START_AGAIN;
+		tftp_timeout_ms = AUTOSCRIPT_TFTP_MSEC;
+		tftp_timeout_count_max = AUTOSCRIPT_TFTP_CNT;
+		net_start_again_timeout = AUTOSCRIPT_START_AGAIN;
 		/* set retrycnt */
 		setenv("netretry", "no");
 
@@ -492,9 +492,9 @@ void run_auto_bootscript(void)
 		 * and then evaluate the result of the run_command */
 		DownloadingAutoScript = 0;
 		/* Restore original timeouts */
-		TftpRRQTimeoutMSecs = saved_rrqtimeout_msecs;
-		TftpRRQTimeoutCountMax = saved_rrqtimeout_count;
-		NetStartAgainTimeout = saved_startagain_timeout;
+		tftp_timeout_ms = saved_rrqtimeout_msecs;
+		tftp_timeout_count_max = saved_rrqtimeout_count;
+		net_start_again_timeout = saved_startagain_timeout;
 		/* restore retrycnt */
 		if (retrycnt)
 			setenv("netretry", retrycnt);

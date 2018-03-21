@@ -24,10 +24,8 @@
 #define CONFIG_460EX		1	/* Specific PPC460EX		*/
 #ifdef CONFIG_DEVCONCENTER
 #define CONFIG_HOSTNAME		devconcenter
-#define CONFIG_IDENT_STRING	" devconcenter 0.06"
 #else
 #define CONFIG_HOSTNAME		intip
-#define CONFIG_IDENT_STRING	" intip 0.06"
 #endif
 #define CONFIG_440		1
 
@@ -42,17 +40,10 @@
 
 #define CONFIG_SYS_CLK_FREQ	66666667	/* external freq to pll	*/
 
-#define CONFIG_BOARD_EARLY_INIT_F	1	/* Call board_early_init_f */
 #define CONFIG_BOARD_EARLY_INIT_R	1	/* Call board_early_init_r */
 #define CONFIG_MISC_INIT_R		1	/* Call misc_init_r */
-#define CONFIG_SYS_GENERIC_BOARD
 #define CONFIG_BOARD_TYPES		1	/* support board types */
-#define CONFIG_FIT
 #define CFG_ALT_MEMTEST
-
-#undef CONFIG_ZERO_BOOTDELAY_CHECK     /* ignore keypress on bootdelay==0 */
-#define CONFIG_AUTOBOOT_KEYED          /* use key strings to stop autoboot */
-#define CONFIG_AUTOBOOT_STOP_STR " "
 
 /*
  * Base addresses -- Note these are effective addresses where the
@@ -217,7 +208,6 @@
  */
 #define CONFIG_SYS_I2C_PPC4XX_SPEED_0		400000
 
-#define CONFIG_SYS_I2C_MULTI_EEPROMS
 #define CONFIG_SYS_I2C_EEPROM_ADDR		(0xa8>>1)
 #define CONFIG_SYS_I2C_EEPROM_ADDR_LEN		1
 #define CONFIG_SYS_EEPROM_PAGE_WRITE_BITS	3
@@ -258,7 +248,6 @@
  * USB-OHCI
  */
 #define CONFIG_USB_OHCI_NEW
-#define CONFIG_USB_STORAGE
 #undef CONFIG_SYS_OHCI_BE_CONTROLLER	/* 460EX has little endian descriptors*/
 #define CONFIG_SYS_OHCI_SWAP_REG_ACCESS	/* 460EX has little endian register */
 #define CONFIG_SYS_OHCI_USE_NPS		/* force NoPowerSwitching mode */
@@ -286,25 +275,16 @@
 #define CONFIG_CMD_CHIP_CONFIG
 #define CONFIG_CMD_DATE
 #define CONFIG_CMD_DTT
-#define CONFIG_CMD_EXT2
-#define CONFIG_CMD_FAT
 #define CONFIG_CMD_PCI
 #define CONFIG_CMD_SDRAM
-#define CONFIG_CMD_SNTP
-#define CONFIG_CMD_USB
 
 /* Partitions */
-#define CONFIG_MAC_PARTITION
-#define CONFIG_DOS_PARTITION
-#define CONFIG_ISO_PARTITION
 
 /*
  * PCI stuff
  */
 /* General PCI */
-#define CONFIG_PCI			/* include pci support	        */
 #define CONFIG_PCI_INDIRECT_BRIDGE	/* indirect PCI bridge support */
-#define CONFIG_PCI_PNP			/* do pci plug-and-play   */
 #define CONFIG_PCI_SCAN_SHOW		/* show pci devices on startup  */
 #define CONFIG_PCI_CONFIG_HOST_BRIDGE
 #define CONFIG_PCI_DISABLE_PCIE
@@ -315,7 +295,6 @@
 
 #define CONFIG_SYS_PCI_SUBSYS_VENDORID 0x1014	/* IBM */
 #define CONFIG_SYS_PCI_SUBSYS_DEVICEID 0xcafe	/* Whatever */
-
 
 /*
  * External Bus Controller (EBC) Setup
@@ -330,7 +309,6 @@
  *
  * 0xfc00.0000 -> 4.cc00.0000
  */
-
 
 /* Memory Bank 0 (NOR-FLASH) initialization */
 #define CONFIG_SYS_EBC_PB0AP		0x10055e00

@@ -38,6 +38,7 @@ struct uclass {
 	struct list_head sibling_node;
 };
 
+struct driver;
 struct udevice;
 
 /* Members of this uclass sequence themselves with aliases */
@@ -53,6 +54,7 @@ struct udevice;
  * @id: ID number of this uclass
  * @post_bind: Called after a new device is bound to this uclass
  * @pre_unbind: Called before a device is unbound from this uclass
+ * @pre_probe: Called before a new device is probed
  * @post_probe: Called after a new device is probed
  * @pre_remove: Called before a device is removed
  * @child_post_bind: Called after a child is bound to a device in this uclass
@@ -64,6 +66,9 @@ struct udevice;
  * @per_device_auto_alloc_size: Each device can hold private data owned
  * by the uclass. If required this will be automatically allocated if this
  * value is non-zero.
+ * @per_device_platdata_auto_alloc_size: Each device can hold platform data
+ * owned by the uclass as 'dev->uclass_platdata'. If the value is non-zero,
+ * then this will be automatically allocated.
  * @per_child_auto_alloc_size: Each child device (of a parent in this
  * uclass) can hold parent data for the device/uclass. This value is only
  * used as a falback if this member is 0 in the driver.
@@ -80,6 +85,7 @@ struct uclass_driver {
 	enum uclass_id id;
 	int (*post_bind)(struct udevice *dev);
 	int (*pre_unbind)(struct udevice *dev);
+	int (*pre_probe)(struct udevice *dev);
 	int (*post_probe)(struct udevice *dev);
 	int (*pre_remove)(struct udevice *dev);
 	int (*child_post_bind)(struct udevice *dev);
@@ -88,6 +94,7 @@ struct uclass_driver {
 	int (*destroy)(struct uclass *class);
 	int priv_auto_alloc_size;
 	int per_device_auto_alloc_size;
+	int per_device_platdata_auto_alloc_size;
 	int per_child_auto_alloc_size;
 	int per_child_platdata_auto_alloc_size;
 	const void *ops;
@@ -112,6 +119,14 @@ struct uclass_driver {
 int uclass_get(enum uclass_id key, struct uclass **ucp);
 
 /**
+ * uclass_get_name() - Get the name of a uclass driver
+ *
+ * @id: ID to look up
+ * @returns the name of the uclass driver for that ID, or NULL if none
+ */
+const char *uclass_get_name(enum uclass_id id);
+
+/**
  * uclass_get_device() - Get a uclass device based on an ID and index
  *
  * The device is probed to activate it ready for use.
@@ -122,6 +137,21 @@ int uclass_get(enum uclass_id key, struct uclass **ucp);
  * @return 0 if OK, -ve on error
  */
 int uclass_get_device(enum uclass_id id, int index, struct udevice **devp);
+
+/**
+ * uclass_get_device_by_name() - Get a uclass device by its name
+ *
+ * This searches the devices in the uclass for one with the exactly given name.
+ *
+ * The device is probed to activate it ready for use.
+ *
+ * @id: ID to look up
+ * @name: name of a device to get
+ * @devp: Returns pointer to device (the first one with the name)
+ * @return 0 if OK, -ve on error
+ */
+int uclass_get_device_by_name(enum uclass_id id, const char *name,
+			      struct udevice **devp);
 
 /**
  * uclass_get_device_by_seq() - Get a uclass device based on an ID and sequence
@@ -156,15 +186,60 @@ int uclass_get_device_by_of_offset(enum uclass_id id, int node,
 				   struct udevice **devp);
 
 /**
+ * uclass_get_device_by_phandle() - Get a uclass device by phandle
+ *
+ * This searches the devices in the uclass for one with the given phandle.
+ *
+ * The device is probed to activate it ready for use.
+ *
+ * @id: uclass ID to look up
+ * @parent: Parent device containing the phandle pointer
+ * @name: Name of property in the parent device node
+ * @devp: Returns pointer to device (there is only one for each node)
+ * @return 0 if OK, -ENOENT if there is no @name present in the node, other
+ *	-ve on error
+ */
+int uclass_get_device_by_phandle(enum uclass_id id, struct udevice *parent,
+				 const char *name, struct udevice **devp);
+
+/**
+ * uclass_get_device_by_driver() - Get a uclass device for a driver
+ *
+ * This searches the devices in the uclass for one that uses the given
+ * driver. Use DM_GET_DRIVER(name) for the @drv argument, where 'name' is
+ * the driver name - as used in U_BOOT_DRIVER(name).
+ *
+ * The device is probed to activate it ready for use.
+ *
+ * @id: ID to look up
+ * @drv: Driver to look for
+ * @devp: Returns pointer to the first device with that driver
+ * @return 0 if OK, -ve on error
+ */
+int uclass_get_device_by_driver(enum uclass_id id, const struct driver *drv,
+				struct udevice **devp);
+
+/**
  * uclass_first_device() - Get the first device in a uclass
  *
  * The device returned is probed if necessary, and ready for use
  *
  * @id: Uclass ID to look up
  * @devp: Returns pointer to the first device in that uclass, or NULL if none
- * @return 0 if OK (found or not found), -1 on error
+ * @return 0 if OK (found or not found), other -ve on error
  */
 int uclass_first_device(enum uclass_id id, struct udevice **devp);
+
+/**
+ * uclass_first_device_err() - Get the first device in a uclass
+ *
+ * The device returned is probed if necessary, and ready for use
+ *
+ * @id: Uclass ID to look up
+ * @devp: Returns pointer to the first device in that uclass, or NULL if none
+ * @return 0 if found, -ENODEV if not found, other -ve on error
+ */
+int uclass_first_device_err(enum uclass_id id, struct udevice **devp);
 
 /**
  * uclass_next_device() - Get the next device in a uclass
@@ -173,7 +248,7 @@ int uclass_first_device(enum uclass_id id, struct udevice **devp);
  *
  * @devp: On entry, pointer to device to lookup. On exit, returns pointer
  * to the next device in the same uclass, or NULL if none
- * @return 0 if OK (found or not found), -1 on error
+ * @return 0 if OK (found or not found), other -ve on error
  */
 int uclass_next_device(struct udevice **devp);
 
@@ -202,12 +277,22 @@ int uclass_resolve_seq(struct udevice *dev);
  * are no more devices.
  * @uc: uclass to scan
  */
-#define uclass_foreach_dev(pos, uc)					\
-	for (pos = list_entry((&(uc)->dev_head)->next, typeof(*pos),	\
-			uclass_node);					\
-	     prefetch(pos->uclass_node.next),				\
-			&pos->uclass_node != (&(uc)->dev_head);		\
-	     pos = list_entry(pos->uclass_node.next, typeof(*pos),	\
-			uclass_node))
+#define uclass_foreach_dev(pos, uc)	\
+	list_for_each_entry(pos, &uc->dev_head, uclass_node)
+
+/**
+ * uclass_foreach_dev_safe() - Helper function to safely iteration through devs
+ *
+ * This creates a for() loop which works through the available devices in
+ * a uclass in order from start to end. Inside the loop, it is safe to remove
+ * @pos if required.
+ *
+ * @pos: struct udevice * to hold the current device. Set to NULL when there
+ * are no more devices.
+ * @next: struct udevice * to hold the next next
+ * @uc: uclass to scan
+ */
+#define uclass_foreach_dev_safe(pos, next, uc)	\
+	list_for_each_entry_safe(pos, next, &uc->dev_head, uclass_node)
 
 #endif

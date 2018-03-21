@@ -69,6 +69,7 @@ uint32_t encap_dsc[] =
 	ENCAP_BLOB_DESC9
 };
 
+uint32_t hwrng_dsc[6] = {0};
 uint32_t rng_inst_dsc[] =
 {
 	RNG_INST_DESC1,
@@ -81,6 +82,9 @@ uint32_t rng_inst_dsc[] =
 	RNG_INST_DESC8,
 	RNG_INST_DESC9
 };
+
+/* arm v7 need 64 align */
+#define ALIGN_MASK 0xffffffc0
 
 /*!
  * Secure memory run command.
@@ -133,6 +137,16 @@ uint32_t caam_decap_blob(void *plain_text, void *blob_addr, void *key_modifier, 
 	flush_dcache_range(DMA_ALIGN(g_input_ring), DMA_ALIGN(g_input_ring + 128));
 	flush_dcache_range(DMA_ALIGN(key_modifier), DMA_ALIGN(key_modifier  + 256));
 
+	invalidate_dcache_range((uint32_t)decap_dsc & ALIGN_MASK,
+			   ((uint32_t)decap_dsc & ALIGN_MASK) + 128);
+	invalidate_dcache_range((uint32_t)g_input_ring & ALIGN_MASK,
+			   ((uint32_t)g_input_ring & ALIGN_MASK) + 128);
+	invalidate_dcache_range((uint32_t)blob_addr & ALIGN_MASK,
+			   (((uint32_t)blob_addr + 2 * data_size + 64) & ALIGN_MASK));
+	invalidate_dcache_range((uint32_t)plain_text & ALIGN_MASK,
+				(((uint32_t)plain_text + 2 * data_size + 64) & ALIGN_MASK));
+	invalidate_dcache_range((uint32_t)key_modifier & ALIGN_MASK,
+				(((uint32_t)key_modifier + 256) & ALIGN_MASK));
 	/* Increment jobs added */
 	__raw_writel(1, CAAM_IRJAR0);
 
@@ -140,7 +154,11 @@ uint32_t caam_decap_blob(void *plain_text, void *blob_addr, void *key_modifier, 
 	while (__raw_readl(CAAM_ORSFR0) != 1)
 		;
 
-	invalidate_dcache_range(DMA_ALIGN(g_output_ring), DMA_ALIGN(g_output_ring + 128));
+	// TODO: check if Secure memory is cacheable.
+	flush_dcache_range((uint32_t)g_output_ring & ALIGN_MASK,
+				((uint32_t)g_output_ring & ALIGN_MASK) + 128);
+	invalidate_dcache_range((uint32_t)g_output_ring & ALIGN_MASK,
+				((uint32_t)g_output_ring & ALIGN_MASK) + 128);
 	/* check that descriptor address is the one expected in the output ring */
 
 	if (g_output_ring[0] == (uint32_t)decap_dsc) {
@@ -155,7 +173,6 @@ uint32_t caam_decap_blob(void *plain_text, void *blob_addr, void *key_modifier, 
 	                " not match\n");
 		ret = -1;
 	}
-	flush_dcache_range(DMA_ALIGN(plain_text), DMA_ALIGN(plain_text + 2 * data_size));
 
 	/* Remove job from Job Ring Output Queue */
 	__raw_writel(1, CAAM_ORJRR0);
@@ -186,7 +203,7 @@ uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, void *key_modifie
 	encap_dsc[3] = (uint32_t)0xF0000000 | (0x0000ffff & (data_size));
 	encap_dsc[4] = (uint32_t)plain_data_addr;
 	encap_dsc[5] = (uint32_t)0xF8000000 | (0x0000ffff & (blob_size));
-	encap_dsc[6] = (uint32_t)blob;	
+	encap_dsc[6] = (uint32_t)blob;
 	encap_dsc[7] = (uint32_t)0x870D0000;
 
 	/* Run descriptor with result written to blob buffer */
@@ -197,7 +214,9 @@ uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, void *key_modifie
 	flush_dcache_range(DMA_ALIGN(encap_dsc), DMA_ALIGN(encap_dsc + 128));
 	flush_dcache_range(DMA_ALIGN(blob), DMA_ALIGN(g_input_ring + 2 * blob_size));
 	flush_dcache_range(DMA_ALIGN(key_modifier), DMA_ALIGN(key_modifier + 256));
-	
+
+	invalidate_dcache_range((uint32_t)blob & ALIGN_MASK,
+			   (((uint32_t)blob + 2 * data_size + 64) & ALIGN_MASK));
 	/* Increment jobs added */
 	__raw_writel(1, CAAM_IRJAR0);
 
@@ -227,21 +246,85 @@ uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, void *key_modifie
 	return ret;
 }
 
+uint32_t caam_hwrng(uint8_t *output_ptr, uint32_t output_len) {
+	uint32_t ret = SUCCESS;
+
+	/* Buffer to hold the resulting output*/
+	uint8_t *output = (uint8_t *)output_ptr;
+
+	/* initialize the output array */
+	memset(output,0,output_len);
+
+	int n = 0;
+	hwrng_dsc[n++] = (uint32_t)0xB0800004;
+	hwrng_dsc[n++] = (uint32_t)0x82500000;
+	hwrng_dsc[n++] = (uint32_t)0x60340000| (0x0000ffff & output_len);
+	hwrng_dsc[n++] = (uint32_t)output;
+
+	/* Run descriptor with result written to blob buffer */
+	/* Add job to input ring */
+	// flush cache
+	g_input_ring[0] = (uint32_t)hwrng_dsc;
+
+	flush_dcache_range((uint32_t)hwrng_dsc & ALIGN_MASK,
+			   ((uint32_t)hwrng_dsc & ALIGN_MASK) + 128);
+	flush_dcache_range((uint32_t)g_input_ring & ALIGN_MASK,
+			   ((uint32_t)g_input_ring & ALIGN_MASK) + 128);
+	invalidate_dcache_range((uint32_t)hwrng_dsc & ALIGN_MASK,
+			   ((uint32_t)hwrng_dsc & ALIGN_MASK) + 128);
+	invalidate_dcache_range((uint32_t)g_input_ring & ALIGN_MASK,
+			   ((uint32_t)g_input_ring & ALIGN_MASK) + 128);
+	invalidate_dcache_range((uint32_t)output & ALIGN_MASK,
+			   (((uint32_t)output + 2 * output_len + 64) & ALIGN_MASK));
+	/* Increment jobs added */
+	__raw_writel(1, CAAM_IRJAR0);
+
+	/* Wait for job ring to complete the job: 1 completed job expected */
+	size_t timeout = 100000;
+	while(__raw_readl(CAAM_ORSFR0) != 1 && timeout--);
+	flush_dcache_range((uint32_t)g_output_ring & ALIGN_MASK,
+				((uint32_t)g_output_ring & ALIGN_MASK) + 128);
+
+	/* check that descriptor address is the one expected in the output ring */
+	if(g_output_ring[0] == (uint32_t)hwrng_dsc) {
+	/* check if any error is reported in the output ring */
+		if ((g_output_ring[1] & JOB_RING_STS) != 0) {
+			printf("Error: RNG job completed with errors 0x%X\n",
+			g_output_ring[1]);
+			ret = -1;
+		}
+	} else {
+		printf("Error: RNG output ring descriptor address does" \
+			" not match\n");
+		ret = -1;
+
+	}
+
+	/* Remove job from Job Ring Output Queue */
+	__raw_writel(1, CAAM_ORJRR0);
+
+	return ret;
+}
+
 /*!
  * Initialize the CAAM.
  *
  */
 void caam_open(void)
 {
-	struct mxc_ccm_reg *mxc_ccm = (struct mxc_ccm_reg *)CCM_BASE_ADDR;
 	uint32_t temp_reg;
 
 	/* switch on the clock */
+#if defined(CONFIG_MX6)
+	struct mxc_ccm_reg *mxc_ccm = (struct mxc_ccm_reg *)CCM_BASE_ADDR;
 	temp_reg = __raw_readl(&mxc_ccm->CCGR0);
-	temp_reg |= MXC_CCM_CCGR0_CAAM_SECURE_MEM_MASK | 
-		MXC_CCM_CCGR0_CAAM_WRAPPER_ACLK_MASK | 
+	temp_reg |= MXC_CCM_CCGR0_CAAM_SECURE_MEM_MASK |
+		MXC_CCM_CCGR0_CAAM_WRAPPER_ACLK_MASK |
 		MXC_CCM_CCGR0_CAAM_WRAPPER_IPG_MASK;
 	__raw_writel(temp_reg, &mxc_ccm->CCGR0);
+#elif defined(CONFIG_MX7)
+	HW_CCM_CCGR_SET(36,	MXC_CCM_CCGR36_CAAM_DOMAIN0_MASK);
+#endif
 
 	/* MID for CAAM - already done by HAB in ROM during preconfigure,
 	 * That is JROWN for JR0/1 = 1 (TZ, Secure World, ARM)
@@ -261,7 +344,7 @@ void caam_open(void)
 
 	/* HAB disables interrupts for JR0 so do the same here */
 	temp_reg = __raw_readl(CAAM_JRCFGR0_LS) | JRCFG_LS_IMSK;
-	__raw_writel(temp_reg, CAAM_JRCFGR0_LS);    
+	__raw_writel(temp_reg, CAAM_JRCFGR0_LS);
 
 	/********* Initialize and instantiate the RNG *******************/
 	/* if RNG already instantiated then skip it */
@@ -301,8 +384,9 @@ void caam_open(void)
 		/* Wait for job ring to complete the job */
 		while (__raw_readl(CAAM_ORSFR0) != 1)
 			;
-		invalidate_dcache_range(DMA_ALIGN(g_output_ring), DMA_ALIGN(g_output_ring + 128));
-		
+		invalidate_dcache_range(DMA_ALIGN(g_output_ring),
+					DMA_ALIGN(g_output_ring + 128));
+
 		/* check that descriptor address is the one expected */
 		if (g_output_ring[0] == (uint32_t)rng_inst_dsc) {
 			/* check if any error is reported in the output ring */
@@ -326,7 +410,7 @@ void caam_open(void)
 		temp_reg = __raw_readl(CAAM_RDSTA);
 		if (temp_reg != (RDSTA_IF0 | RDSTA_SKVN))
 			printf("Error: RNG instantiation failed 0x%X\n", temp_reg);
-		
+
 		/* Remove job from Job Ring Output Queue */
 		__raw_writel(1, CAAM_ORJRR0);
 	}

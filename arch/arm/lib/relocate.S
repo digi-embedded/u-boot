@@ -8,7 +8,11 @@
 
 #include <asm-offsets.h>
 #include <config.h>
+#include <elf.h>
 #include <linux/linkage.h>
+#ifdef CONFIG_CPU_V7M
+#include <asm/armv7m.h>
+#endif
 
 /*
  * Default/weak exception vectors relocation routine
@@ -23,6 +27,15 @@
 
 ENTRY(relocate_vectors)
 
+#ifdef CONFIG_CPU_V7M
+	/*
+	 * On ARMv7-M we only have to write the new vector address
+	 * to VTOR register.
+	 */
+	ldr	r0, [r9, #GD_RELOCADDR]	/* r0 = gd->relocaddr */
+	ldr	r1, =V7M_SCB_BASE
+	str	r0, [r1, V7M_SCB_VTOR]
+#else
 #ifdef CONFIG_HAS_VBAR
 	/*
 	 * If the ARM processor has the security extensions,
@@ -46,6 +59,7 @@ ENTRY(relocate_vectors)
 	stmia	r1!, {r2-r8,r10}
 	ldmia	r0!, {r2-r8,r10}
 	stmia	r1!, {r2-r8,r10}
+#endif
 #endif
 	bx	lr
 
@@ -83,7 +97,7 @@ copy_loop:
 fixloop:
 	ldmia	r2!, {r0-r1}		/* (r0,r1) <- (SRC location,fixup) */
 	and	r1, r1, #0xff
-	cmp	r1, #23			/* relative fixup? */
+	cmp	r1, #R_ARM_RELATIVE
 	bne	fixnext
 
 	/* relative fix: increase location by offset */

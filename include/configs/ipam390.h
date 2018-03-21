@@ -18,7 +18,6 @@
 /*
  * Board
  */
-#define CONFIG_SYS_GENERIC_BOARD
 #define CONFIG_DRIVER_TI_EMAC
 #define CONFIG_BARIX_IPAM390
 
@@ -33,8 +32,6 @@
 #define CONFIG_SYS_OSCIN_FREQ		24000000
 #define CONFIG_SYS_TIMERBASE		DAVINCI_TIMER0_BASE
 #define CONFIG_SYS_HZ_CLOCK		clk_get(DAVINCI_AUXCLK_CLKID)
-#define CONFIG_SYS_DA850_PLL_INIT
-#define CONFIG_SYS_DA850_DDR_INIT
 #define CONFIG_SYS_TEXT_BASE		0xc1080000
 
 /*
@@ -91,7 +88,6 @@
 #define CONFIG_SYS_DA850_DDR2_SDBCR2	0x00000004
 #define CONFIG_SYS_DA850_DDR2_PBBPR	0x00000020
 
-
 #define CONFIG_SYS_DA850_DDR2_SDTIMR (		\
 	(13 << DV_DDR_SDTMR1_RFC_SHIFT) |	\
 	(2 << DV_DDR_SDTMR1_RP_SHIFT) |		\
@@ -130,11 +126,9 @@
 				DAVINCI_ABCR_TA(0)	| \
 				DAVINCI_ABCR_ASIZE_8BIT)
 
-
 /*
  * Serial Driver info
  */
-#define CONFIG_SYS_NS16550
 #define CONFIG_SYS_NS16550_SERIAL
 #define CONFIG_SYS_NS16550_REG_SIZE	-4	/* NS16550 register size */
 #define CONFIG_SYS_NS16550_COM1	DAVINCI_UART0_BASE /* Base address of UART0 */
@@ -146,7 +140,6 @@
  * Flash & Environment
  */
 #define CONFIG_NAND_DAVINCI
-#define CONFIG_SYS_NO_FLASH
 #define CONFIG_ENV_IS_IN_NAND		/* U-Boot env in NAND Flash  */
 #define CONFIG_ENV_OFFSET		0x0 /* Block 0--not used by bootcode */
 #define CONFIG_ENV_SIZE			(128 << 10)
@@ -182,7 +175,6 @@
 #define CONFIG_SYS_NAND_ECCSIZE		512
 #define CONFIG_SYS_NAND_ECCBYTES	10
 #define CONFIG_SYS_NAND_OOBSIZE		64
-#define CONFIG_SPL_NAND_SUPPORT
 #define CONFIG_SPL_NAND_BASE
 #define CONFIG_SPL_NAND_DRIVERS
 #define CONFIG_SPL_NAND_ECC
@@ -205,17 +197,13 @@
  * U-Boot general configuration
  */
 #define CONFIG_MISC_INIT_R
-#define CONFIG_BOARD_EARLY_INIT_F
 #define CONFIG_BOOTFILE		"uImage" /* Boot file name */
-#define CONFIG_SYS_PROMPT	"U-Boot > " /* Command Prompt */
 #define CONFIG_SYS_CBSIZE	1024 /* Console I/O Buffer Size	*/
 #define CONFIG_SYS_PBSIZE	(CONFIG_SYS_CBSIZE+sizeof(CONFIG_SYS_PROMPT)+16)
 #define CONFIG_SYS_MAXARGS	16 /* max number of command args */
 #define CONFIG_SYS_BARGSIZE	CONFIG_SYS_CBSIZE /* Boot Args Buffer Size */
 #define CONFIG_SYS_LOAD_ADDR	(PHYS_SDRAM_1 + 0x700000)
-#define CONFIG_VERSION_VARIABLE
 #define CONFIG_AUTO_COMPLETE
-#define CONFIG_SYS_HUSH_PARSER
 #define CONFIG_CMDLINE_EDITING
 #define CONFIG_SYS_LONGHELP
 #define CONFIG_CRC32_VERIFY
@@ -229,7 +217,6 @@
 #define CONFIG_CMDLINE_TAG
 #define CONFIG_REVISION_TAG
 #define CONFIG_SETUP_MEMORY_TAGS
-#define CONFIG_BOOTDELAY	2
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"defbootargs=setenv bootargs mem=128M console=ttyS0,115200n8 " \
 		"root=/dev/mtdblock5 rw noinitrd " \
@@ -255,25 +242,15 @@
 /*
  * U-Boot commands
  */
-#include <config_cmd_default.h>
 #define CONFIG_CMD_ENV
-#define CONFIG_CMD_ASKENV
-#define CONFIG_CMD_DHCP
 #define CONFIG_CMD_DIAG
-#define CONFIG_CMD_MII
-#define CONFIG_CMD_PING
 #define CONFIG_CMD_SAVES
-#define CONFIG_CMD_MEMORY
 
 #ifdef CONFIG_CMD_BDI
 #define CONFIG_CLOCKS
 #endif
 
 #ifndef CONFIG_DRIVER_TI_EMAC
-#undef CONFIG_CMD_NET
-#undef CONFIG_CMD_DHCP
-#undef CONFIG_CMD_MII
-#undef CONFIG_CMD_PING
 #endif
 
 #define CONFIG_CMD_NAND
@@ -284,7 +261,6 @@
 #define CONFIG_MTD_PARTITIONS
 #define CONFIG_LZO
 #define CONFIG_RBTREE
-#define CONFIG_CMD_UBI
 #define CONFIG_CMD_UBIFS
 
 #define MTDIDS_NAME_STR		"davinci_nand.0"
@@ -303,9 +279,6 @@
 #define CONFIG_SYS_SPL_MALLOC_START	(CONFIG_SYS_TEXT_BASE - \
 						CONFIG_SYS_MALLOC_LEN)
 #define CONFIG_SYS_SPL_MALLOC_SIZE	CONFIG_SYS_MALLOC_LEN
-#define CONFIG_SPL_SERIAL_SUPPORT
-#define CONFIG_SPL_LIBCOMMON_SUPPORT
-#define CONFIG_SPL_LIBGENERIC_SUPPORT
 #define CONFIG_SPL_LDSCRIPT	"board/$(BOARDDIR)/u-boot-spl-ipam390.lds"
 #define CONFIG_SPL_STACK	0x8001ff00
 #define CONFIG_SPL_TEXT_BASE	0x80000000
@@ -320,14 +293,12 @@
 
 /* add FALCON boot mode */
 #define CONFIG_CMD_SPL
-#define CONFIG_SPL_OS_BOOT
 #define CONFIG_SYS_NAND_SPL_KERNEL_OFFS	0x00200000
 #define CONFIG_SYS_SPL_ARGS_ADDR	LINUX_BOOT_PARAM_ADDR
 #define CONFIG_CMD_SPL_NAND_OFS		0x00180000
 #define CONFIG_CMD_SPL_WRITE_SIZE	0x400
 
 /* GPIO support */
-#define CONFIG_SPL_GPIO_SUPPORT
 #define CONFIG_DA8XX_GPIO
 #define CONFIG_IPAM390_GPIO_BOOTMODE	((16 * 7) + 14)
 

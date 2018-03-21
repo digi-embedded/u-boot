@@ -6,6 +6,8 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
+.pic
+
 .text
 
 #include <common.h>
@@ -205,8 +207,8 @@ relo_base:
 	 * Remapping
 	 */
 	led	0x1a
-	write32	SDMC_B0_BSR_A, SDMC_B0_BSR_D		! 0x00001100
-	write32	SDMC_B1_BSR_A, SDMC_B1_BSR_D		! 0x00001140
+	write32	SDMC_B0_BSR_A, SDMC_B0_BSR_D		! 0x00001800
+	write32	SDMC_B1_BSR_A, SDMC_B1_BSR_D		! 0x00001880
 
 	/* clear empty BSR registers */
 	led	0x1b
@@ -248,16 +250,11 @@ relo_base:
     */
 	li	$r5, AHBC_BSR6_A
 	lwi $r8, [$r5]
-	li	$r4, 0xfff00000
+	li	$r4, 0xfff00000   /* r4 = bank6 base */
 	and $r4, $r4, $r8
 
-
-	li	$r5, 0x0
-	la	$r1, relo_base				/* get $pc or $lp */
-	sub	$r2, $r0, $r1
-	sethi	$r6, hi20(_end)
-	ori	$r6, $r6, lo12(_end)
-	add	$r6, $r6, $r2
+	la	$r5, _start@GOTOFF
+	la  $r6, _end@GOTOFF
 1:
 	lwi.p	$r7, [$r5], #4
 	swi.p	$r7, [$r4], #4
@@ -272,7 +269,11 @@ relo_base:
 	 */
 	led	0x1c
 	write32 SDMC_B0_BSR_A, 0x00001000
-	write32 SDMC_B1_BSR_A, 0x00001040
+	write32 SDMC_B1_BSR_A, 0x00001200
+	li $r5, CONFIG_SYS_TEXT_BASE	/* flash base address */
+	add $r11, $r11, $r5	/* add flash address offset for ret */
+	add $r10, $r10, $r5
+	move $lp, $r11
 	setbf15	AHBC_CR_A, FTAHBC020S_CR_REMAP		! 0x1
 
   /*
@@ -282,9 +283,9 @@ relo_base:
 	li	$r5, AHBC_BSR6_A
 	lwi $r6, [$r5]
 	li  $r4, 0xfff0ffff
-	and $r6 ,$r4 , $r6
+	and $r6 ,$r4, $r6
 	li	$r4, 0x000b0000
-	or  $r6, $r4,	$r6
+	or  $r6, $r4, $r6
 	swi	$r6, [$r5]
 
   /*
@@ -299,7 +300,7 @@ relo_base:
 	or  $r5, $r5, $r6
 	swi $r5,	[$r4]
 #endif /* #ifdef CONFIG_MEM_REMAP */
-	move	$lp, $r11
+	move $lp, $r11
 2:
 	ret
 

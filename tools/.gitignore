@@ -1,9 +1,12 @@
 /atmel_pmecc_params
+/bin2header
 /bmp_logo
 /envcrc
+/fdtgrep
 /fit_check_sign
 /fit_info
 /gen_eth_addr
+/gen_ethaddr_crc
 /ifdtool
 /img2srec
 /kwboot
@@ -11,7 +14,6 @@
 /mkenvimage
 /mkimage
 /mkexynosspl
-/mpc86x_clk
 /mxsboot
 /mksunxiboot
 /ncb

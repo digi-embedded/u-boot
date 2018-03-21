@@ -1,18 +1,7 @@
 /*
- * Copyright (C) 2012-2014 Freescale Semiconductor, Inc.
+ * Copyright (C) 2016 Freescale Semiconductor, Inc.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <config.h>
@@ -53,7 +42,7 @@ plugin_start:
 	adr r1, image_len2
 	adr r2, boot_data2
 
-#ifdef CONFIG_SYS_BOOT_EIMNOR
+#ifdef CONFIG_NOR_BOOT
 #ifdef CONFIG_MX6SX
 	ldr r3, =ROM_VERSION_OFFSET
 	ldr r4, [r3]
@@ -75,7 +64,7 @@ plugin_start:
 before_calling_rom___pu_irom_hwcnfg_setup:
 	ldr r3, =ROM_VERSION_OFFSET
 	ldr r4, [r3]
-#if defined(CONFIG_MX6SOLO) || defined(CONFIG_MX6DL)
+#if defined(CONFIG_MX6S) || defined(CONFIG_MX6DL)
 	ldr r3, =ROM_VERSION_TO12
 	cmp r4, r3
 	ldrge r3, =ROM_API_TABLE_BASE_ADDR_MX6DL_TO12
@@ -92,6 +81,31 @@ before_calling_rom___pu_irom_hwcnfg_setup:
 	blx r4
 after_calling_rom___pu_irom_hwcnfg_setup:
 
+/*
+ * ROM_API_HWCNFG_SETUP function enables MMU & Caches.
+ * Thus disable MMU & Caches.
+ */
+
+	mrc     p15, 0, r0, c1, c0, 0   /* read CP15 register 1 into r0*/
+	ands    r0, r0, #0x1            /* check if MMU is enabled */
+	beq     mmu_disable_notreq      /* exit if MMU is already disabled */
+
+	/* Disable caches, MMU */
+	mrc     p15, 0, r0, c1, c0, 0	/* read CP15 register 1 into r0 */
+	bic     r0, r0, #(1 << 2)	/* disable D Cache */
+	bic     r0, r0, #0x1		/* clear bit 0 ; MMU off */
+
+	bic     r0, r0, #(0x1 << 11)	/* disable Z, branch prediction */
+	bic     r0, r0, #(0x1 << 1)	/* disable A, Strict alignment */
+					/* check enabled. */
+	mcr     p15, 0, r0, c1, c0, 0	/* write CP15 register 1 */
+	mov     r0, r0
+	mov     r0, r0
+	mov     r0, r0
+	mov     r0, r0
+
+mmu_disable_notreq:
+    NOP
 
 /* To return to ROM from plugin, we need to fill in these argument.
  * Here is what need to do:
@@ -115,7 +129,7 @@ after_calling_rom___pu_irom_hwcnfg_setup:
 /* make the following data right in the end of the output*/
 .ltorg
 
-#if (defined(CONFIG_SYS_BOOT_EIMNOR) || defined(CONFIG_SYS_BOOT_QSPI))
+#if (defined(CONFIG_NOR_BOOT) || defined(CONFIG_QSPI_BOOT))
 #define FLASH_OFFSET 0x1000
 #else
 #define FLASH_OFFSET 0x400

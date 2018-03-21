@@ -219,7 +219,8 @@ int fec_recv(struct eth_device *dev)
 
 			length -= 4;
 			/* Pass the packet up to the protocol layers. */
-			NetReceive(NetRxPackets[info->rxIdx], length);
+			net_process_received_packet(net_rx_packets[info->rxIdx],
+						    length);
 
 			fecp->eir |= FEC_EIR_RXF;
 		}
@@ -477,7 +478,7 @@ int fec_init(struct eth_device *dev, bd_t * bd)
 	for (i = 0; i < PKTBUFSRX; i++) {
 		info->rxbd[i].cbd_sc = BD_ENET_RX_EMPTY;
 		info->rxbd[i].cbd_datlen = 0;	/* Reset */
-		info->rxbd[i].cbd_bufaddr = (uint) NetRxPackets[i];
+		info->rxbd[i].cbd_bufaddr = (uint) net_rx_packets[i];
 	}
 	info->rxbd[PKTBUFSRX - 1].cbd_sc |= BD_ENET_RX_WRAP;
 
@@ -594,8 +595,17 @@ int mcffec_initialize(bd_t * bis)
 		eth_register(dev);
 
 #if defined(CONFIG_MII) || defined(CONFIG_CMD_MII)
-		miiphy_register(dev->name,
-				mcffec_miiphy_read, mcffec_miiphy_write);
+		int retval;
+		struct mii_dev *mdiodev = mdio_alloc();
+		if (!mdiodev)
+			return -ENOMEM;
+		strncpy(mdiodev->name, dev->name, MDIO_NAME_LEN);
+		mdiodev->read = mcffec_miiphy_read;
+		mdiodev->write = mcffec_miiphy_write;
+
+		retval = mdio_register(mdiodev);
+		if (retval < 0)
+			return retval;
 #endif
 		if (i > 0)
 			fec_info[i - 1].next = &fec_info[i];

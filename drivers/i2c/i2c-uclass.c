@@ -12,11 +12,26 @@
 #include <malloc.h>
 #include <dm/device-internal.h>
 #include <dm/lists.h>
-#include <dm/root.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
 #define I2C_MAX_OFFSET_LEN	4
+
+/* Useful debugging function */
+void i2c_dump_msgs(struct i2c_msg *msg, int nmsgs)
+{
+	int i;
+
+	for (i = 0; i < nmsgs; i++) {
+		struct i2c_msg *m = &msg[i];
+
+		printf("   %s %x len=%x", m->flags & I2C_M_RD ? "R" : "W",
+		       msg->addr, msg->len);
+		if (!(m->flags & I2C_M_RD))
+			printf(": %x", m->buf[0]);
+		printf("\n");
+	}
+}
 
 /**
  * i2c_setup_offset() - Set up a new message with a chip offset
@@ -186,6 +201,36 @@ int dm_i2c_write(struct udevice *dev, uint offset, const uint8_t *buffer,
 	}
 }
 
+int dm_i2c_xfer(struct udevice *dev, struct i2c_msg *msg, int nmsgs)
+{
+	struct udevice *bus = dev_get_parent(dev);
+	struct dm_i2c_ops *ops = i2c_get_ops(bus);
+
+	if (!ops->xfer)
+		return -ENOSYS;
+
+	return ops->xfer(bus, msg, nmsgs);
+}
+
+int dm_i2c_reg_read(struct udevice *dev, uint offset)
+{
+	uint8_t val;
+	int ret;
+
+	ret = dm_i2c_read(dev, offset, &val, 1);
+	if (ret < 0)
+		return ret;
+
+	return val;
+}
+
+int dm_i2c_reg_write(struct udevice *dev, uint offset, uint value)
+{
+	uint8_t val = value;
+
+	return dm_i2c_write(dev, offset, &val, 1);
+}
+
 /**
  * i2c_probe_chip() - probe for a chip on a bus
  *
@@ -330,7 +375,7 @@ int dm_i2c_probe(struct udevice *bus, uint chip_addr, uint chip_flags,
 int dm_i2c_set_bus_speed(struct udevice *bus, unsigned int speed)
 {
 	struct dm_i2c_ops *ops = i2c_get_ops(bus);
-	struct dm_i2c_bus *i2c = bus->uclass_priv;
+	struct dm_i2c_bus *i2c = dev_get_uclass_priv(bus);
 	int ret;
 
 	/*
@@ -351,7 +396,7 @@ int dm_i2c_set_bus_speed(struct udevice *bus, unsigned int speed)
 int dm_i2c_get_bus_speed(struct udevice *bus)
 {
 	struct dm_i2c_ops *ops = i2c_get_ops(bus);
-	struct dm_i2c_bus *i2c = bus->uclass_priv;
+	struct dm_i2c_bus *i2c = dev_get_uclass_priv(bus);
 
 	if (!ops->get_bus_speed)
 		return i2c->speed_hz;
@@ -396,6 +441,13 @@ int i2c_set_chip_offset_len(struct udevice *dev, uint offset_len)
 	return 0;
 }
 
+int i2c_get_chip_offset_len(struct udevice *dev)
+{
+	struct dm_i2c_chip *chip = dev_get_parent_platdata(dev);
+
+	return chip->offset_len;
+}
+
 int i2c_deblock(struct udevice *bus)
 {
 	struct dm_i2c_ops *ops = i2c_get_ops(bus);
@@ -414,6 +466,7 @@ int i2c_deblock(struct udevice *bus)
 	return ops->deblock(bus);
 }
 
+#if CONFIG_IS_ENABLED(OF_CONTROL)
 int i2c_chip_ofdata_to_platdata(const void *blob, int node,
 				struct dm_i2c_chip *chip)
 {
@@ -429,38 +482,44 @@ int i2c_chip_ofdata_to_platdata(const void *blob, int node,
 
 	return 0;
 }
+#endif
 
 static int i2c_post_probe(struct udevice *dev)
 {
-	struct dm_i2c_bus *i2c = dev->uclass_priv;
+#if CONFIG_IS_ENABLED(OF_CONTROL)
+	struct dm_i2c_bus *i2c = dev_get_uclass_priv(dev);
 
-	i2c->speed_hz = fdtdec_get_int(gd->fdt_blob, dev->of_offset,
+	i2c->speed_hz = fdtdec_get_int(gd->fdt_blob, dev_of_offset(dev),
 				     "clock-frequency", 100000);
 
 	return dm_i2c_set_bus_speed(dev, i2c->speed_hz);
-}
-
-static int i2c_post_bind(struct udevice *dev)
-{
-	/* Scan the bus for devices */
-	return dm_scan_fdt_node(dev, gd->fdt_blob, dev->of_offset, false);
+#else
+	return 0;
+#endif
 }
 
 static int i2c_child_post_bind(struct udevice *dev)
 {
+#if CONFIG_IS_ENABLED(OF_CONTROL)
 	struct dm_i2c_chip *plat = dev_get_parent_platdata(dev);
 
-	if (dev->of_offset == -1)
+	if (dev_of_offset(dev) == -1)
 		return 0;
 
-	return i2c_chip_ofdata_to_platdata(gd->fdt_blob, dev->of_offset, plat);
+	return i2c_chip_ofdata_to_platdata(gd->fdt_blob, dev_of_offset(dev),
+					   plat);
+#else
+	return 0;
+#endif
 }
 
 UCLASS_DRIVER(i2c) = {
 	.id		= UCLASS_I2C,
 	.name		= "i2c",
 	.flags		= DM_UC_FLAG_SEQ_ALIAS,
-	.post_bind	= i2c_post_bind,
+#if CONFIG_IS_ENABLED(OF_CONTROL)
+	.post_bind	= dm_scan_fdt_dev,
+#endif
 	.post_probe	= i2c_post_probe,
 	.per_device_auto_alloc_size = sizeof(struct dm_i2c_bus),
 	.per_child_platdata_auto_alloc_size = sizeof(struct dm_i2c_chip),
