@@ -1,7 +1,7 @@
 /*
  *  include/configs/digi_common.h
  *
- *  Copyright (C) 2006 by Digi International Inc.
+ *  Copyright (C) 2006-2018 by Digi International Inc.
  *  All rights reserved.
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -18,31 +18,6 @@
 #define __DIGI_COMMON_H
 
 #include <linux/sizes.h>
-/* global helper stuff */
-
-#define XMK_STR(x)	#x
-#define MK_STR(x)	XMK_STR(x)
-
-#define CONFIG_VENDOR		"Digi"
-
-/* stuff that may be undefined in userconfig.h */
-/* ********** user key configuration ********** */
-#ifndef CONFIG_UBOOT_DISABLE_USER_KEYS
-# define CONFIG_USER_KEY
-#endif
-/* ********** console configuration ********** */
-#ifdef CONFIG_SILENT_CONSOLE
-# define CFG_SET_SILENT		"yes"
-#else
-# define CFG_SET_SILENT		"no"
-#endif
-#define CONFIG_GET_CONS_FROM_CONS_VAR
-#define CONFIG_GET_BAUDRATE_FROM_VAR
-
-/* ********** System Initialization ********** */
-#ifdef CONFIG_DOWNLOAD_BY_DEBUGGER
-# define CONFIG_SKIP_RELOCATE_UBOOT
-#endif /* CONFIG_DOWNLOAD_BY_DEBUGGER */
 
 /*
  * If we are developing, we might want to start armboot from ram
@@ -51,32 +26,10 @@
 /* define for developing */
 #undef	CONFIG_SKIP_LOWLEVEL_INIT
 
-#define PLATFORMNAME_MAXLEN	30	/* Max length of module and
-					 * platform name */
-#define MAX_DYNVARS		100	/* Max number of dynamic variables */
-
-/* ********** Prompt *********** */
-#define CONFIG_PROMPT_SEPARATOR		"#"
-
-/* ********** Rootfs *********** */
-/* Delay before trying to mount the rootfs from a media */
-#define ROOTFS_DELAY		10
-
-#ifndef CONFIG_ZERO_BOOTDELAY_CHECK
-# define CONFIG_ZERO_BOOTDELAY_CHECK	/* check for keypress on bootdelay==0 */
-#endif  /* CONFIG_ZERO_BOOTDELAY_CHECK */
-
-/* ********** network ********** */
-#ifndef CONFIG_TFTP_RETRIES_ON_ERROR
-# define CONFIG_TFTP_RETRIES_ON_ERROR	5
-#endif
-
 #define CONFIG_SILENT_CONSOLE
 #define CONFIG_SOURCE
 #define CONFIG_AUTO_BOOTSCRIPT
 #define CONFIG_BOOTSCRIPT		CONFIG_SYS_BOARD "-boot.scr"
-#define CONFIG_CMD_TIME
-#define CONFIG_CMD_ASKENV
 
 #define DEFAULT_MAC_ETHADDR	"00:04:f3:ff:ff:fa"
 #define DEFAULT_MAC_WLANADDR	"00:04:f3:ff:ff:fb"
@@ -98,17 +51,6 @@
 #define CARRIERBOARD_VERSION_UNDEFINED	0
 #define CARRIERBOARD_ID_UNDEFINED	0
 
-/* ********** usb/mmc ********** */
-#define DEFAULT_KERNEL_FS		"fat"
-#define DEFAULT_KERNEL_DEVPART		"0:1"
-#define DEFAULT_ROOTFS_SATA_PART	"/dev/sda2"
-#define DEFAULT_ROOTFS_MMC_PART		"/dev/mmcblk0p2"
-#define DEFAULT_ROOTFS_USB_PART		"/dev/sda2"
-
-/* ********** memory sizes ********** */
-#define SPI_LOADER_SIZE		SZ_8K
-
-/* NVRAM */
 #define CONFIG_ENV_SIZE		SZ_16K
 
 /*-----------------------------------------------------------------------
@@ -126,19 +68,6 @@
 
 /* valid baudrates */
 #define CONFIG_SYS_BAUDRATE_TABLE	{9600, 19200, 38400, 57600, 115200}
-
-/* In: serial, Out: serial etc. */
-#define CFG_CONSOLE_INFO_QUIET
-
-/* stuff for DVTs and special information */
-#define CONFIG_DVT_PROVIDED
-
-/* compilation */
-#define CONFIG_SYS_64BIT_VSPRINTF      /* we need if for NVRAM */
-#define CONFIG_SYS_64BIT_STRTOUL       /* we need if for NVRAM */
-
-/* device tree */
-#define CONFIG_FDT_MAXSIZE    SZ_128K
 
 /* Digi commands arguments help */
 #define DIGICMD_ARG_BLKDEV_HELP	\
@@ -225,11 +154,7 @@
 		DIGICMD_ARG_TARGETFILESYS_HELP
 
 #ifndef __ASSEMBLY__		/* put C only stuff in this section */
-/* macros */
-#define VIDEO_MENU_OPTION(text, hook, param)	\
-	{MENU_OPTION, text, hook, param}
 /* global functions */
-int bsp_init(void);
 int board_has_emmc(void);
 int board_has_wireless(void);
 int board_has_bluetooth(void);
