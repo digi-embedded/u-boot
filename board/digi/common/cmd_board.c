@@ -24,7 +24,7 @@
 #include <command.h>
 #include <fdt_support.h>
 #include <fuse.h>
-#include <asm/errno.h>
+#include <linux/errno.h>
 #include "helper.h"
 
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION

@@ -7,7 +7,7 @@
 #include <common.h>
 #include <command.h>
 #include <fuse.h>
-#include <asm/errno.h>
+#include <linux/errno.h>
 #include "helper.h"
 #include "hwid.h"
 #include <fdt_support.h>

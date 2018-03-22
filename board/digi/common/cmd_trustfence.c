@@ -25,7 +25,7 @@
 #include <fsl_sec.h>
 #include <fuse.h>
 #include <asm/arch/hab.h>
-#include <asm/errno.h>
+#include <linux/errno.h>
 #include "helper.h"
 #include <u-boot/sha256.h>
 #include <watchdog.h>

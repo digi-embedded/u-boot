@@ -22,7 +22,7 @@
 #include <common.h>
 #include <malloc.h>
 #include <linux/string.h>
-#include <asm/errno.h>
+#include <linux/errno.h>
 
 #include "cmd_bootstream.h"
 //#include "config.h"
