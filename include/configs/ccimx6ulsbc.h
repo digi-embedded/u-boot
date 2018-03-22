@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016, 2017 Digi International, Inc.
+ * Copyright (C) 2016-2018 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * Configuration settings for the Digi ConnecCore 6UL SBC board.
@@ -24,7 +24,6 @@
 
 /* FLASH and environment organization */
 #define CONFIG_SYS_BOOT_NAND
-#define CONFIG_SYS_NO_FLASH
 
 #if defined(CONFIG_SYS_BOOT_NAND)
 #define CONFIG_SYS_USE_NAND
@@ -87,12 +86,10 @@
 /* Serial port */
 #define CONFIG_MXC_UART
 #define CONFIG_MXC_UART_BASE		UART5_BASE
+#undef CONFIG_CONS_INDEX
 #define CONFIG_CONS_INDEX		5
 #define CONFIG_CONSOLE_PORT		"ttymxc4"
 #define CONFIG_BAUDRATE			115200
-
-#define CONFIG_MODULE_FUSE
-#define CONFIG_OF_SYSTEM_SETUP
 
 /* Ethernet */
 #define CONFIG_FEC_ENET_DEV		0
@@ -106,6 +103,7 @@
 #define CONFIG_FEC_XCV_TYPE             RMII
 #endif
 
+#undef CONFIG_DEFAULT_FDT_FILE
 #define CONFIG_DEFAULT_FDT_FILE		"zImage-imx6ul-" CONFIG_SYS_BOARD ".dtb"
 
 #define CONFIG_SYS_MMC_IMG_LOAD_PART	1
@@ -248,10 +246,7 @@
 #define CONFIG_CARRIERBOARD_ID_OFFSET	4
 #endif /* CONFIG_HAS_CARRIERBOARD_ID */
 
-#define CONFIG_BOOTDELAY               1
-
 /* UBI and UBIFS support */
-#define CONFIG_CMD_UBI
 #define CONFIG_RBTREE
 #define CONFIG_CMD_UBIFS
 #define CONFIG_LZO

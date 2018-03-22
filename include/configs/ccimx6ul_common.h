@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016, 2017 Digi International, Inc.
+ * Copyright (C) 2016-2018 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * Configuration settings for the Digi ConnecCore 6UL System-On-Module.
@@ -11,19 +11,14 @@
 
 #include <asm/arch/imx-regs.h>
 #include <asm/imx-common/gpio.h>
-#include <config_cmd_default.h>
 #include <linux/sizes.h>
 #include "mx6_common.h"
 #include "digi_common.h"		/* Load Digi common stuff... */
 
-#define CONFIG_MX6
 #define CONFIG_CC6
 
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 6UL"
 
-#define CONFIG_ROM_UNIFIED_SECTIONS
-#define CONFIG_SYS_GENERIC_BOARD
-#define CONFIG_DISPLAY_CPUINFO
 #define CONFIG_DISPLAY_BOARDINFO_LATE
 
 #define CONFIG_CMDLINE_TAG
@@ -42,7 +37,6 @@
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		(16 * SZ_1M)
 /* memtest */
-#define CONFIG_CMD_MEMTEST
 #define CONFIG_SYS_MEMTEST_START	0x80000000
 #define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_MEMTEST_START + \
 					((CONFIG_DDR_MB * SZ_1M) >> 1))
@@ -57,16 +51,6 @@
 	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
 #define CONFIG_SYS_INIT_SP_ADDR \
 	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
-
-#define CONFIG_BOARD_EARLY_INIT_F
-#define CONFIG_BOARD_LATE_INIT
-#define CONFIG_MXC_GPIO
-
-/* Fuse */
-#define CONFIG_CMD_FUSE
-#ifdef CONFIG_CMD_FUSE
-#define CONFIG_MXC_OCOTP
-#endif
 
 /* HWID */
 #define CONFIG_HAS_HWID
@@ -85,10 +69,6 @@
 #define CCIMX6ULSBC_ID136	136
 
 /* CAAM support */
-#define CONFIG_SYS_FSL_SEC_COMPAT    4 /* HAB version */
-#define CONFIG_FSL_CAAM
-#define CONFIG_CMD_DEKBLOB
-#define CONFIG_SYS_FSL_SEC_LE
 #define CONFIG_FSL_CAAM_KB
 
 /*
@@ -146,43 +126,19 @@
 #define TRUSTFENCE_JTAG_DISABLE_DEBUG			(0x03 << TRUSTFENCE_JTAG_SMODE_OFFSET)
 #define TRUSTFENCE_JTAG_ENABLE_JTAG 			(0x00 << TRUSTFENCE_JTAG_SMODE_OFFSET)
 
-#define CONFIG_MODULE_FUSE
-#define CONFIG_OF_SYSTEM_SETUP
-
 /* MMC Configs */
-#define CONFIG_FSL_USDHC
-#ifdef CONFIG_FSL_USDHC
-#define CONFIG_FSL_ESDHC
 #define CONFIG_SYS_FSL_ESDHC_ADDR	USDHC2_BASE_ADDR
-#define CONFIG_MMC
-#define CONFIG_CMD_MMC
-#define CONFIG_GENERIC_MMC
-#define CONFIG_CMD_FS_GENERIC
-#define CONFIG_CMD_EXT2
-#define CONFIG_CMD_EXT4
-#define CONFIG_CMD_EXT4_WRITE
-#define CONFIG_CMD_FAT
 #define CONFIG_FAT_WRITE
-#define CONFIG_DOS_PARTITION
-#define CONFIG_EFI_PARTITION
-#define CONFIG_CMD_GPT
-#define CONFIG_PARTITION_UUIDS
-#define CONFIG_CMD_PART
 #define CONFIG_SUPPORT_EMMC_BOOT /* eMMC specific */
-#endif
+#define CONFIG_SUPPORT_EMMC_RPMB
+#define CONFIG_SUPPORT_MMC_ECSD
 
 /* Ethernet */
-#define CONFIG_CMD_NET
-#define CONFIG_CMD_PING
-#define CONFIG_CMD_DHCP
-#define CONFIG_CMD_MII
 #define CONFIG_FEC_MXC
 #define CONFIG_MII
 #define CONFIG_ETHPRIME                 "FEC"
 #define CONFIG_NO_MAC_FROM_OTP
-#define CONFIG_PHYLIB
 #define CONFIG_PHY_SMSC
-#define CONFIG_FEC_DMA_MINALIGN		64
 
 /* Extra network settings for second Ethernet */
 #define CONFIG_EXTRA_NETWORK_SETTINGS \
@@ -199,21 +155,10 @@
 	"board_version:so,"		\
 	"board_id:so,"
 
-#define CONFIG_OF_LIBFDT
-#define CONFIG_OF_BOARD_SETUP
-
 #define CONFIG_CMD_BMODE
-#define CONFIG_CMD_BOOTZ
-#undef CONFIG_CMD_IMLS
-#define CONFIG_CMD_SETEXPR
-
-#ifndef CONFIG_SYS_DCACHE_OFF
-#define CONFIG_CMD_CACHE
-#endif
 
 /* I2C configs */
 #define CONFIG_SYS_I2C
-#define CONFIG_CMD_I2C
 #define CONFIG_SYS_I2C_MXC
 #define CONFIG_I2C_MULTI_BUS
 #define CONFIG_SYS_I2C_SPEED		100000
@@ -229,7 +174,6 @@
 #define CONFIG_POWER_PFUZE300_I2C_ADDR	0x08
 
 /* USB Configs */
-#define CONFIG_CMD_USB
 #ifdef CONFIG_CMD_USB
 #define CONFIG_USB_EHCI
 #define CONFIG_USB_EHCI_MX6
@@ -313,9 +257,8 @@
 
 /* Miscellaneous configurable options */
 #define CONFIG_SYS_LONGHELP
-#define CONFIG_SYS_HUSH_PARSER
-#define CONFIG_SYS_PROMPT		"=> "
 #define CONFIG_AUTO_COMPLETE
+#undef CONFIG_SYS_CBSIZE
 #define CONFIG_SYS_CBSIZE		1024
 #define CONFIG_SYS_HZ			1000
 #define CONFIG_CMDLINE_EDITING

@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012-2013 Freescale Semiconductor, Inc.
- * Copyright (C) 2013-2017 Digi International, Inc.
+ * Copyright (C) 2013-2018 Digi International, Inc.
  *
  * Configuration settings for the Freescale i.MX6Q SabreSD board.
  *
@@ -33,6 +33,7 @@
 #define CONFIG_MXC_UART_BASE		UART4_BASE
 #define CONFIG_CONSOLE_DEV		"ttymxc3"
 
+#undef CONFIG_DEFAULT_FDT_FILE
 #if defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
 #define CONFIG_DEFAULT_FDT_FILE		"zImage-imx6dl-" CONFIG_SYS_BOARD ".dtb"
 #elif defined(CONFIG_MX6QP)
@@ -50,9 +51,6 @@
 #define CONFIG_PHY_MICREL
 #define CONFIG_ENET_PHYADDR_MICREL	3
 #define PHY_ANEG_TIMEOUT		8000
-
-/* Celsius degrees below CPU's max die temp at which boot should be attempted */
-#define CONFIG_BOOT_TEMP_BELOW_MAX		10
 
 /* Carrier board version in OTP bits */
 #define CONFIG_HAS_CARRIERBOARD_VERSION
@@ -211,7 +209,5 @@
 	"fi;"
 
 #endif	/* CONFIG_SECURE_BOOT */
-
-#define CONFIG_BOOTDELAY               1
 
 #endif                         /* __CCIMX6SBC_CONFIG_H */

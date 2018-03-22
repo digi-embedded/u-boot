@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012-2013 Freescale Semiconductor, Inc.
- * Copyright (C) 2013-2017 Digi International, Inc.
+ * Copyright (C) 2013-2018 Digi International, Inc.
  *
  * Configuration settings for the Freescale i.MX6Q SabreSD board.
  *
@@ -19,12 +19,10 @@
 #define CCIMX6_COMMON_CONFIG_H
 
 #include <asm/arch/imx-regs.h>
-#include <config_cmd_default.h>
 #include <linux/sizes.h>
 #include "mx6_common.h"
 #include "digi_common.h"		/* Load Digi common stuff... */
 
-#define CONFIG_MX6
 #define CONFIG_CC6
 
 #ifdef CONFIG_MX6QP
@@ -33,8 +31,6 @@
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 6"
 #endif
 
-#define CONFIG_SYS_GENERIC_BOARD
-#define CONFIG_DISPLAY_CPUINFO
 #define CONFIG_DISPLAY_BOARDINFO_LATE
 
 #define CONFIG_CMDLINE_TAG
@@ -68,16 +64,6 @@
 #define CONFIG_SYS_INIT_SP_ADDR \
 	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
 
-#define CONFIG_BOARD_EARLY_INIT_F
-#define CONFIG_BOARD_LATE_INIT
-#define CONFIG_MXC_GPIO
-
-/* Fuse */
-#define CONFIG_CMD_FUSE
-#ifdef CONFIG_CMD_FUSE
-#define CONFIG_MXC_OCOTP
-#endif
-
 /* HWID */
 #define CONFIG_HAS_HWID
 #define CONFIG_HWID_BANK		4
@@ -90,10 +76,6 @@
 #define OCOTP_LOCK_WORD		0
 
 /* CAAM support */
-#define CONFIG_SYS_FSL_SEC_COMPAT    4 /* HAB version */
-#define CONFIG_FSL_CAAM
-#define CONFIG_CMD_DEKBLOB
-#define CONFIG_SYS_FSL_SEC_LE
 #define CONFIG_FSL_CAAM_KB
 
 /*
@@ -153,29 +135,13 @@
 #define CONFIG_MXC_UART
 
 /* MMC Configs */
-#define CONFIG_FSL_ESDHC
-#define CONFIG_FSL_USDHC
 #define CONFIG_SYS_FSL_ESDHC_ADDR      0
 
-#define CONFIG_MMC
-#define CONFIG_CMD_MMC
-#define CONFIG_GENERIC_MMC
-#define CONFIG_CMD_EMMC
 #define CONFIG_SUPPORT_EMMC_BOOT
 #define CONFIG_SUPPORT_EMMC_RPMB
 #define CONFIG_SUPPORT_MMC_ECSD
 #define CONFIG_BOUNCE_BUFFER
-#define CONFIG_CMD_EXT2
-#define CONFIG_CMD_FAT
-#define CONFIG_CMD_FS_GENERIC
 #define CONFIG_FAT_WRITE
-#define CONFIG_CMD_EXT4
-#define CONFIG_CMD_EXT4_WRITE
-#define CONFIG_DOS_PARTITION
-#define CONFIG_EFI_PARTITION
-#define CONFIG_CMD_GPT
-#define CONFIG_PARTITION_UUIDS
-#define CONFIG_CMD_PART
 
 /* MMC device and partition where U-Boot image is */
 #define CONFIG_SYS_BOOT_PART_EMMC	1	/* Boot part 1 on eMMC */
@@ -197,16 +163,11 @@
 #endif
 
 /* Ethernet */
-#define CONFIG_CMD_NET
-#define CONFIG_CMD_PING
-#define CONFIG_CMD_DHCP
-#define CONFIG_CMD_MII
 #define CONFIG_FEC_MXC
 #define CONFIG_MII
 #define IMX_FEC_BASE			ENET_BASE_ADDR
 #define CONFIG_ETHPRIME			"FEC"
 #define CONFIG_NO_MAC_FROM_OTP
-#define CONFIG_PHYLIB
 #define CONFIG_ARP_TIMEOUT     200UL
 
 /* protected environment variables (besides ethaddr and serial#) */
@@ -221,25 +182,14 @@
 	"board_id:so,"			\
 	"mmcbootdev:so"
 
-#define CONFIG_CONS_INDEX              1
-#define CONFIG_BAUDRATE                        115200
+#define CONFIG_CONS_INDEX		1
+#define CONFIG_BAUDRATE			115200
 #define CONFIG_SILENT_CONSOLE_UPDATE_ON_RELOC
 
-#define CONFIG_OF_LIBFDT
-#define CONFIG_OF_BOARD_SETUP
-
 #define CONFIG_CMD_BMODE
-#define CONFIG_CMD_BOOTZ
-#undef CONFIG_CMD_IMLS
-#define CONFIG_CMD_SETEXPR
-
-#ifndef CONFIG_SYS_DCACHE_OFF
-#define CONFIG_CMD_CACHE
-#endif
 
 /* I2C configs */
 #define CONFIG_SYS_I2C
-#define CONFIG_CMD_I2C
 #define CONFIG_SYS_I2C_MXC
 #define CONFIG_I2C_MULTI_BUS
 #define CONFIG_SYS_I2C_SPEED            100000
@@ -247,67 +197,10 @@
 /* PMIC */
 #define CONFIG_PMIC_I2C_BUS		1	/* DA9063 PMIC i2c bus */
 #define CONFIG_PMIC_I2C_ADDR		0x58	/* DA9063 PMIC i2c address */
-#define CONFIG_CMD_PMIC
 #define CONFIG_PMIC_NUMREGS		0x185
 
-/* FLASH and environment organization */
-#define CONFIG_SYS_NO_FLASH
-
-#if defined CONFIG_SYS_BOOT_SPINOR
-#define CONFIG_SYS_USE_SPINOR
-#define CONFIG_ENV_IS_IN_SPI_FLASH
-#elif defined CONFIG_SYS_BOOT_EIMNOR
-#define CONFIG_SYS_USE_EIMNOR
-#define CONFIG_ENV_IS_IN_FLASH
-#elif defined CONFIG_SYS_BOOT_NAND
-#define CONFIG_SYS_USE_NAND
-#define CONFIG_ENV_IS_IN_NAND
-#elif defined CONFIG_SYS_BOOT_SATA
-#define CONFIG_ENV_IS_IN_SATA
-#define CONFIG_CMD_SATA
-#else
+/* Environment */
 #define CONFIG_ENV_IS_IN_MMC
-#endif
-
-#ifdef CONFIG_SYS_USE_SPINOR
-#define CONFIG_CMD_SF
-#define CONFIG_SPI_FLASH
-#define CONFIG_SPI_FLASH_STMICRO
-#define CONFIG_MXC_SPI
-#define CONFIG_SF_DEFAULT_BUS  0
-#define CONFIG_SF_DEFAULT_SPEED 20000000
-#define CONFIG_SF_DEFAULT_MODE (SPI_MODE_0)
-#endif
-
-#ifdef CONFIG_SYS_USE_EIMNOR
-#undef CONFIG_SYS_NO_FLASH
-#define CONFIG_SYS_FLASH_BASE           WEIM_ARB_BASE_ADDR
-#define CONFIG_SYS_FLASH_SECT_SIZE	(128 * 1024)
-#define CONFIG_SYS_MAX_FLASH_BANKS 1    /* max number of memory banks */
-#define CONFIG_SYS_MAX_FLASH_SECT 256   /* max number of sectors on one chip */
-#define CONFIG_SYS_FLASH_CFI            /* Flash memory is CFI compliant */
-#define CONFIG_FLASH_CFI_DRIVER         /* Use drivers/cfi_flash.c */
-#define CONFIG_SYS_FLASH_USE_BUFFER_WRITE /* Use buffered writes*/
-#define CONFIG_SYS_FLASH_EMPTY_INFO
-#define CONFIG_SYS_FLASH_PROTECTION
-#endif
-
-#ifdef CONFIG_SYS_USE_NAND
-#define CONFIG_CMD_NAND
-#define CONFIG_CMD_NAND_TRIMFFS
-
-/* NAND stuff */
-#define CONFIG_NAND_MXS
-#define CONFIG_SYS_MAX_NAND_DEVICE	1
-#define CONFIG_SYS_NAND_BASE		0x40000000
-#define CONFIG_SYS_NAND_5_ADDR_CYCLE
-#define CONFIG_SYS_NAND_ONFI_DETECTION
-
-/* DMA stuff, needed for GPMI/MXS NAND support */
-#define CONFIG_APBH_DMA
-#define CONFIG_APBH_DMA_BURST
-#define CONFIG_APBH_DMA_BURST8
-#endif
 
 #if defined(CONFIG_ENV_IS_IN_MMC)
 #define CONFIG_ENV_OFFSET		(1792 * 1024)	/* 256kB below 2MiB */
@@ -316,27 +209,6 @@
 /* Default MMC device index/partition for location of environment */
 #define CONFIG_SYS_MMC_ENV_DEV		0
 #define CONFIG_SYS_MMC_ENV_PART		1
-#elif defined(CONFIG_ENV_IS_IN_SPI_FLASH)
-#define CONFIG_ENV_OFFSET		(768 * 1024)
-#define CONFIG_ENV_SECT_SIZE		(8 * 1024)
-#define CONFIG_ENV_SPI_BUS		CONFIG_SF_DEFAULT_BUS
-#define CONFIG_ENV_SPI_CS		CONFIG_SF_DEFAULT_CS
-#define CONFIG_ENV_SPI_MODE		CONFIG_SF_DEFAULT_MODE
-#define CONFIG_ENV_SPI_MAX_HZ		CONFIG_SF_DEFAULT_SPEED
-#elif defined(CONFIG_ENV_IS_IN_FLASH)
-#undef CONFIG_ENV_SIZE
-#define CONFIG_ENV_SIZE			CONFIG_SYS_FLASH_SECT_SIZE
-#define CONFIG_ENV_SECT_SIZE		CONFIG_SYS_FLASH_SECT_SIZE
-#define CONFIG_ENV_OFFSET		(4 * CONFIG_SYS_FLASH_SECT_SIZE)
-#elif defined(CONFIG_ENV_IS_IN_NAND)
-#undef CONFIG_ENV_SIZE
-#define CONFIG_ENV_OFFSET		(8 << 20)
-#define CONFIG_ENV_SECT_SIZE		(128 << 10)
-#define CONFIG_ENV_SIZE			CONFIG_ENV_SECT_SIZE
-#elif defined(CONFIG_ENV_IS_IN_SATA)
-#define CONFIG_ENV_OFFSET		(768 * 1024)
-#define CONFIG_SATA_ENV_DEV		0
-#define CONFIG_SYS_DCACHE_OFF /* remove when sata driver support cache */
 #endif
 
 /* Supported sources for update|dboot */
@@ -437,12 +309,10 @@
 
 /* Miscellaneous configurable options */
 #define CONFIG_SYS_LONGHELP
-#define CONFIG_SYS_HUSH_PARSER
-#define CONFIG_SYS_PROMPT_HUSH_PS2     "> "
 #define CONFIG_AUTO_COMPLETE
+#undef CONFIG_SYS_CBSIZE
 #define CONFIG_SYS_CBSIZE              1024
 #define CONFIG_SYS_HZ                  1000
 #define CONFIG_CMDLINE_EDITING
-#define CONFIG_SILENT_CONSOLE_UPDATE_ON_RELOC
 
 #endif	/* CCIMX6_COMMON_CONFIG_H */
