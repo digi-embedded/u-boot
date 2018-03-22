@@ -213,19 +213,6 @@ endmenu		# General setup
 
 menu "Boot images"
 
-config SECURE_BOOT
-	bool "Enable secure boot support"
-	select IMX_HAB
-	help
-	  This setting configures U-Boot for secure support so that in
-	  closed devices:
-
-	  * only signed kernel images are booted.
-	  * only signed FDTs can be used.
-	  * only signed ramdisks can be used.
-
-	  This setting has no effect on open devices.
-
 config SIGN_IMAGE
 	bool "Generate signed images"
 	help
@@ -279,18 +266,6 @@ config DEK_PATH
 	help
 	  Define to the DEK path to enable encryption of the signed U-boot
 	  image. Supported DEK sizes are 128, 192 and 256 bits.
-
-config IMX_HAB
-	bool "IMX HAB support"
-	help
-	  Enables the API for HAB. It also adds the following commands:
-
-	  * hab_auth_img which can be used for HAB
-	    authentication of images. The command takes the image
-	    memory location, IVT (Image Vector Table) offset inside
-	    image as parameters.
-	  * hab_status which allows to retrieve the HAB status and
-	    events. This can be useful while developing and testing HAB.
 
 config FIT
 	bool "Support Flattened Image Tree"

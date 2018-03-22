@@ -9,7 +9,6 @@
 
 obj-y	:= soc.o clock.o
 obj-$(CONFIG_SPL_BUILD)	     += ddr.o
-obj-$(CONFIG_IMX_HAB)    += hab.o
 obj-$(CONFIG_MP)             += mp.o
 obj-$(CONFIG_MX6UL_LITESOM)  += litesom.o
 ifdef CONFIG_MX6UL
