@@ -936,7 +936,7 @@ int board_mmc_init(bd_t *bis)
 	}
 
 	/* Get mmc system device */
-	mmc_dev = mmc_get_dev(mmc_get_bootdevindex());
+	mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC, mmc_get_bootdevindex());
 	if (NULL == mmc_dev)
 		printf("Warning: failed to get mmc sys storage device\n");
 

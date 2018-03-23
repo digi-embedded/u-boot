@@ -237,7 +237,7 @@ static int init_mmc_globals(void)
 {
 	/* Use the device in $mmcdev or else, the boot media */
 	mmc_dev_index = getenv_ulong("mmcdev", 16, mmc_get_bootdevindex());
-	mmc_dev = mmc_get_dev(mmc_dev_index);
+	mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC, mmc_dev_index);
 	if (NULL == mmc_dev) {
 		debug("Cannot determine sys storage device\n");
 		return -1;
