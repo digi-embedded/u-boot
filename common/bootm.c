@@ -15,7 +15,7 @@
 #include <malloc.h>
 #include <mapmem.h>
 #include <asm/io.h>
-#include <asm/arch/hab.h>
+#include <asm/imx-common/hab.h>
 #include <linux/lzo.h>
 #include <lzma/LzmaTypes.h>
 #include <lzma/LzmaDec.h>

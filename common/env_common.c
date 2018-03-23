@@ -159,7 +159,7 @@ int set_default_vars(int nvars, char * const vars[], int flag)
 #include <fuse.h>
 #include <fsl_caam.h>
 #include <u-boot/md5.h>
-#include <asm/arch/hab.h>
+#include <asm/imx-common/hab.h>
 
 static int env_aes_cbc_crypt(env_t *env, const int enc)
 {

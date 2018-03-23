@@ -39,7 +39,7 @@
 #include <u-boot/md5.h>
 #include <u-boot/sha1.h>
 #include <linux/errno.h>
-#include <asm/arch/hab.h>
+#include <asm/imx-common/hab.h>
 #include <asm/io.h>
 
 #ifdef CONFIG_CMD_BDI
