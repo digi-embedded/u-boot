@@ -7,6 +7,7 @@
  *  the Free Software Foundation.
 */
 #include <common.h>
+#include <console.h>
 #include <linux/errno.h>
 #include <malloc.h>
 #include <nand.h>
