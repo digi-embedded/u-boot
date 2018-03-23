@@ -679,7 +679,7 @@ int get_partition_bynameorindex(const char *ifname, const char *dev_str,
 {
 	int dev;
 	unsigned long part;
-	block_dev_desc_t *dev_desc;
+	struct blk_desc *dev_desc;
 
 	dev = get_device(ifname, dev_str, &dev_desc);
 	if (dev < 0)

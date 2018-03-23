@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012-2013 Freescale Semiconductor, Inc.
- * Copyright (C) 2013-2017 Digi International, Inc.
+ * Copyright (C) 2013-2018 Digi International, Inc.
  *
  * Author: Fabio Estevam <fabio.estevam@freescale.com>
  * Author: Jason Liu <r64343@freescale.com>
@@ -55,7 +55,7 @@ extern unsigned int board_id;
 extern void board_spurious_wakeup(void);
 
 struct ccimx6_hwid my_hwid;
-static block_dev_desc_t *mmc_dev;
+static struct blk_desc *mmc_dev;
 static int mmc_dev_index = -1;
 static int enet_xcv_type;
 

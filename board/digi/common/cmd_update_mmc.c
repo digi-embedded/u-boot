@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2014 by Digi International Inc.
+ *  Copyright (C) 2014-2018 by Digi International Inc.
  *  All rights reserved.
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -14,7 +14,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-static block_dev_desc_t *mmc_dev;
+static struct blk_desc *mmc_dev;
 static int mmc_dev_index;
 
 extern int mmc_get_bootdevindex(void);
