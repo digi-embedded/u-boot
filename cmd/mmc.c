@@ -8,6 +8,7 @@
 #include <common.h>
 #include <command.h>
 #include <console.h>
+#include <memalign.h>
 #include <mmc.h>
 
 static int curr_device = -1;
@@ -806,10 +807,13 @@ static int do_mmcecsd_write(cmd_tbl_t *cmdtp, int flag,
                             int argc, char * const argv[])
 {
         struct mmc *mmc = find_mmc_device(curr_device);
-        int field;
-        int val;
+        unsigned int field;
+        unsigned int val;
         int ret;
         ALLOC_CACHE_ALIGN_BUFFER(u8, ext_csd, 512);
+
+        field = simple_strtoul(argv[1], NULL, 16);
+        val = simple_strtoul(argv[2], NULL, 16);
 
         ret = mmc_send_ext_csd(mmc, ext_csd);
         if (ret) {
@@ -817,12 +821,9 @@ static int do_mmcecsd_write(cmd_tbl_t *cmdtp, int flag,
                 return ret;
         }
 
-        field = simple_strtoul(argv[1], NULL, 16);
-        val = simple_strtoul(argv[2], NULL, 16);
-
         /* only modes segment (0..191) can be modified */
         if (field >=0 && field <= 191) {
-                ret = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL, field, val);
+                ret = mmc_switch_any(mmc, field, val);
                 if (ret) {
                         printf("Can't access ECSD.\n");
                         return ret;
