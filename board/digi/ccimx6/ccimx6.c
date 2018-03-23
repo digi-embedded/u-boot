@@ -1523,7 +1523,7 @@ static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
 	debug("writing chunk of 0x%x bytes (0x%x sectors) "
 		"from 0x%x to block 0x%x\n",
 		chunklen, sectors, otfd->loadaddr, dstblk);
-	written = mmc->block_dev.block_write(mmc_dev_index, dstblk, sectors,
+	written = mmc->block_dev.block_write(mmc_dev, dstblk, sectors,
 					     (const void *)otfd->loadaddr);
 	if (written != sectors) {
 		printf("[Error]: written sectors != sectors to write\n");
@@ -1538,7 +1538,7 @@ static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
 	if (otfd->loadaddr + sectors * mmc_dev->blksz < verifyaddr) {
 		/* Read back data... */
 		printf("Reading back chunk...");
-		read = mmc->block_dev.block_read(mmc_dev_index, dstblk, sectors,
+		read = mmc->block_dev.block_read(mmc_dev, dstblk, sectors,
 						 (void *)verifyaddr);
 		if (read != sectors) {
 			printf("[Error]: read sectors != sectors to read\n");

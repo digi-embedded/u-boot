@@ -86,11 +86,12 @@ int media_read_block(u32 addr, unsigned char *readbuf, uint hwpart)
 	if (!mmc)
 		return ret;
 
-	orig_part = mmc->part_num;
-	if (mmc_switch_part(CONFIG_SYS_MMC_ENV_DEV, hwpart))
+	orig_part = mmc->block_dev.hwpart;
+	if (blk_select_hwpart_devnum(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV,
+				     hwpart))
 		return ret;
 
-	nbytes = mmc->block_dev.block_read(CONFIG_SYS_MMC_ENV_DEV,
+	nbytes = mmc->block_dev.block_read(&mmc->block_dev,
 					   addr,
 					   1,
 					   (void *)loadaddr);
@@ -98,7 +99,8 @@ int media_read_block(u32 addr, unsigned char *readbuf, uint hwpart)
 		memcpy(readbuf, (const void *)loadaddr, len);
 		ret = 0;
 	}
-	mmc_switch_part(CONFIG_SYS_MMC_ENV_DEV, orig_part);
+	blk_select_hwpart_devnum(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV,
+				 orig_part);
 	return ret;
 }
 
@@ -129,8 +131,9 @@ int media_write_block(u32 addr, unsigned char *writebuf, uint hwpart)
 	if (!mmc)
 		return ret;
 
-	orig_part = mmc->part_num;
-	if (mmc_switch_part(CONFIG_SYS_MMC_ENV_DEV, hwpart))
+	orig_part = mmc->block_dev.hwpart;
+	if (blk_select_hwpart_devnum(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV,
+				     hwpart))
 		return ret;
 	written = mmc->block_dev.block_write(CONFIG_SYS_MMC_ENV_DEV,
 					     addr,
@@ -138,7 +141,8 @@ int media_write_block(u32 addr, unsigned char *writebuf, uint hwpart)
 					     writebuf);
 	if (written == 1)
 		ret = 0;
-	mmc_switch_part(CONFIG_SYS_MMC_ENV_DEV, orig_part);
+	blk_select_hwpart_devnum(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV,
+				 orig_part);
 	return ret;
 }
 
@@ -162,15 +166,17 @@ void media_erase_fskey(u32 addr, uint hwpart)
 	mmc = find_mmc_device(CONFIG_SYS_MMC_ENV_DEV);
 	if (!mmc)
 		return;
-	orig_part = mmc->part_num;
-	if (mmc_switch_part(CONFIG_SYS_MMC_ENV_DEV, hwpart))
+	orig_part = mmc->block_dev.hwpart;
+	if (blk_select_hwpart_devnum(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV,
+				     hwpart))
 		return;
 	/*
 	 * Do not use block_erase, it uses different erase ranges
 	 *  and will erase the full environment.
 	 */
 	media_write_block(addr, zero_buf, mmc_get_env_part(mmc));
-	mmc_switch_part(CONFIG_SYS_MMC_ENV_DEV, orig_part);
+	blk_select_hwpart_devnum(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV,
+				 orig_part);
 }
 
 uint get_env_hwpart(void)
