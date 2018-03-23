@@ -182,8 +182,6 @@
 	"board_id:so,"			\
 	"mmcbootdev:so"
 
-#define CONFIG_CONS_INDEX		1
-#define CONFIG_BAUDRATE			115200
 #define CONFIG_SILENT_CONSOLE_UPDATE_ON_RELOC
 
 #define CONFIG_CMD_BMODE

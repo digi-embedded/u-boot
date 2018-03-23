@@ -24,7 +24,7 @@
  * so we MUST NOT initialize critical regs like mem-timing ...
  */
 /* define for developing */
-#undef	CONFIG_SKIP_LOWLEVEL_INIT
+#undef CONFIG_SKIP_LOWLEVEL_INIT
 
 #define CONFIG_SILENT_CONSOLE
 #define CONFIG_SOURCE
