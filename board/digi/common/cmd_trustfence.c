@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2016 Digi International, Inc.
+ * (C) Copyright 2016-2018 Digi International, Inc.
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -24,12 +24,13 @@
 #include <command.h>
 #include <fsl_sec.h>
 #include <fuse.h>
-#include <asm/arch/hab.h>
+#include <asm/imx-common/hab.h>
 #include <linux/errno.h>
 #include "helper.h"
 #include <u-boot/sha256.h>
 #include <watchdog.h>
 #include <malloc.h>
+#include <mapmem.h>
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
 #include <asm/gpio.h>
 #endif
@@ -634,7 +635,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		if (disable_ext_mem_boot())
 			goto err;
 		puts("[OK]\n");
-		
+
 		puts("Closing device...\n");
 		if (close_device())
 			goto err;

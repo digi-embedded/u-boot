@@ -9,9 +9,75 @@
 #define __SECURE_MX6Q_H__
 
 #include <linux/types.h>
+#include <asm/arch/sys_proto.h>
 
 /* -------- start of HAB API updates ------------*/
 /* The following are taken from HAB4 SIS */
+
+#define hab_rvt_report_event_p					\
+(								\
+	(is_imx8m()) ?						\
+	((hab_rvt_report_event_t *)HAB_RVT_REPORT_EVENT_ARM64) :	\
+	(is_mx6dqp()) ?						\
+	((hab_rvt_report_event_t *)HAB_RVT_REPORT_EVENT_NEW) :	\
+	(is_mx6dq() && (soc_rev() >= CHIP_REV_1_5)) ?		\
+	((hab_rvt_report_event_t *)HAB_RVT_REPORT_EVENT_NEW) :	\
+	(is_mx6sdl() &&	(soc_rev() >= CHIP_REV_1_2)) ?		\
+	((hab_rvt_report_event_t *)HAB_RVT_REPORT_EVENT_NEW) :	\
+	((hab_rvt_report_event_t *)HAB_RVT_REPORT_EVENT)	\
+)
+
+#define hab_rvt_report_status_p					\
+(								\
+	(is_imx8m()) ?						\
+	((hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS_ARM64) :\
+	(is_mx6dqp()) ?						\
+	((hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS_NEW) :\
+	(is_mx6dq() && (soc_rev() >= CHIP_REV_1_5)) ?		\
+	((hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS_NEW) :\
+	(is_mx6sdl() &&	(soc_rev() >= CHIP_REV_1_2)) ?		\
+	((hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS_NEW) :\
+	((hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS)	\
+)
+
+#define hab_rvt_authenticate_image_p				\
+(								\
+	(is_imx8m()) ?						\
+	((hab_rvt_authenticate_image_t *)HAB_RVT_AUTHENTICATE_IMAGE_ARM64) : \
+	(is_mx6dqp()) ?						\
+	((hab_rvt_authenticate_image_t *)HAB_RVT_AUTHENTICATE_IMAGE_NEW) : \
+	(is_mx6dq() && (soc_rev() >= CHIP_REV_1_5)) ?		\
+	((hab_rvt_authenticate_image_t *)HAB_RVT_AUTHENTICATE_IMAGE_NEW) : \
+	(is_mx6sdl() &&	(soc_rev() >= CHIP_REV_1_2)) ?		\
+	((hab_rvt_authenticate_image_t *)HAB_RVT_AUTHENTICATE_IMAGE_NEW) : \
+	((hab_rvt_authenticate_image_t *)HAB_RVT_AUTHENTICATE_IMAGE)	\
+)
+
+#define hab_rvt_entry_p						\
+(								\
+	(is_imx8m()) ?						\
+	((hab_rvt_entry_t *)HAB_RVT_ENTRY_ARM64) :		\
+	(is_mx6dqp()) ?						\
+	((hab_rvt_entry_t *)HAB_RVT_ENTRY_NEW) :		\
+	(is_mx6dq() && (soc_rev() >= CHIP_REV_1_5)) ?		\
+	((hab_rvt_entry_t *)HAB_RVT_ENTRY_NEW) :		\
+	(is_mx6sdl() &&	(soc_rev() >= CHIP_REV_1_2)) ?		\
+	((hab_rvt_entry_t *)HAB_RVT_ENTRY_NEW) :		\
+	((hab_rvt_entry_t *)HAB_RVT_ENTRY)			\
+)
+
+#define hab_rvt_exit_p						\
+(								\
+	(is_imx8m()) ?						\
+	((hab_rvt_exit_t *)HAB_RVT_EXIT_ARM64) :			\
+	(is_mx6dqp()) ?						\
+	((hab_rvt_exit_t *)HAB_RVT_EXIT_NEW) :			\
+	(is_mx6dq() && (soc_rev() >= CHIP_REV_1_5)) ?		\
+	((hab_rvt_exit_t *)HAB_RVT_EXIT_NEW) :			\
+	(is_mx6sdl() &&	(soc_rev() >= CHIP_REV_1_2)) ?		\
+	((hab_rvt_exit_t *)HAB_RVT_EXIT_NEW) :			\
+	((hab_rvt_exit_t *)HAB_RVT_EXIT)			\
+)
 
 /* Status definitions */
 enum hab_status {
@@ -179,6 +245,7 @@ typedef void hapi_clock_init_t(void);
 
 /* ----------- end of HAB API updates ------------*/
 
+bool is_hab_enabled(void);
 uint32_t authenticate_image(uint32_t ddr_start, uint32_t image_size);
 
 #endif

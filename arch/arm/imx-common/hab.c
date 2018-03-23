@@ -10,77 +10,11 @@
 #include <asm/io.h>
 #include <asm/system.h>
 #include <asm/arch/clock.h>
-#include <asm/arch/sys_proto.h>
 #include <asm/imx-common/hab.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
 /* -------- start of HAB API updates ------------*/
-
-#define hab_rvt_report_event_p					\
-(								\
-	(is_imx8m()) ?						\
-	((hab_rvt_report_event_t *)HAB_RVT_REPORT_EVENT_ARM64) :	\
-	(is_mx6dqp()) ?						\
-	((hab_rvt_report_event_t *)HAB_RVT_REPORT_EVENT_NEW) :	\
-	(is_mx6dq() && (soc_rev() >= CHIP_REV_1_5)) ?		\
-	((hab_rvt_report_event_t *)HAB_RVT_REPORT_EVENT_NEW) :	\
-	(is_mx6sdl() &&	(soc_rev() >= CHIP_REV_1_2)) ?		\
-	((hab_rvt_report_event_t *)HAB_RVT_REPORT_EVENT_NEW) :	\
-	((hab_rvt_report_event_t *)HAB_RVT_REPORT_EVENT)	\
-)
-
-#define hab_rvt_report_status_p					\
-(								\
-	(is_imx8m()) ?						\
-	((hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS_ARM64) :\
-	(is_mx6dqp()) ?						\
-	((hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS_NEW) :\
-	(is_mx6dq() && (soc_rev() >= CHIP_REV_1_5)) ?		\
-	((hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS_NEW) :\
-	(is_mx6sdl() &&	(soc_rev() >= CHIP_REV_1_2)) ?		\
-	((hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS_NEW) :\
-	((hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS)	\
-)
-
-#define hab_rvt_authenticate_image_p				\
-(								\
-	(is_imx8m()) ?						\
-	((hab_rvt_authenticate_image_t *)HAB_RVT_AUTHENTICATE_IMAGE_ARM64) : \
-	(is_mx6dqp()) ?						\
-	((hab_rvt_authenticate_image_t *)HAB_RVT_AUTHENTICATE_IMAGE_NEW) : \
-	(is_mx6dq() && (soc_rev() >= CHIP_REV_1_5)) ?		\
-	((hab_rvt_authenticate_image_t *)HAB_RVT_AUTHENTICATE_IMAGE_NEW) : \
-	(is_mx6sdl() &&	(soc_rev() >= CHIP_REV_1_2)) ?		\
-	((hab_rvt_authenticate_image_t *)HAB_RVT_AUTHENTICATE_IMAGE_NEW) : \
-	((hab_rvt_authenticate_image_t *)HAB_RVT_AUTHENTICATE_IMAGE)	\
-)
-
-#define hab_rvt_entry_p						\
-(								\
-	(is_imx8m()) ?						\
-	((hab_rvt_entry_t *)HAB_RVT_ENTRY_ARM64) :		\
-	(is_mx6dqp()) ?						\
-	((hab_rvt_entry_t *)HAB_RVT_ENTRY_NEW) :		\
-	(is_mx6dq() && (soc_rev() >= CHIP_REV_1_5)) ?		\
-	((hab_rvt_entry_t *)HAB_RVT_ENTRY_NEW) :		\
-	(is_mx6sdl() &&	(soc_rev() >= CHIP_REV_1_2)) ?		\
-	((hab_rvt_entry_t *)HAB_RVT_ENTRY_NEW) :		\
-	((hab_rvt_entry_t *)HAB_RVT_ENTRY)			\
-)
-
-#define hab_rvt_exit_p						\
-(								\
-	(is_imx8m()) ?						\
-	((hab_rvt_exit_t *)HAB_RVT_EXIT_ARM64) :			\
-	(is_mx6dqp()) ?						\
-	((hab_rvt_exit_t *)HAB_RVT_EXIT_NEW) :			\
-	(is_mx6dq() && (soc_rev() >= CHIP_REV_1_5)) ?		\
-	((hab_rvt_exit_t *)HAB_RVT_EXIT_NEW) :			\
-	(is_mx6sdl() &&	(soc_rev() >= CHIP_REV_1_2)) ?		\
-	((hab_rvt_exit_t *)HAB_RVT_EXIT_NEW) :			\
-	((hab_rvt_exit_t *)HAB_RVT_EXIT)			\
-)
 
 #define IVT_SIZE		0x20
 #define ALIGN_SIZE		0x1000
@@ -133,7 +67,7 @@ DECLARE_GLOBAL_DATA_PTR;
 static volatile gd_t *gd_save;
 #endif
 
-static bool is_hab_enabled(void);
+bool is_hab_enabled(void);
 
 static inline void save_gd(void)
 {
@@ -541,7 +475,7 @@ U_BOOT_CMD(
 
 #endif /* !defined(CONFIG_SPL_BUILD) */
 
-static bool is_hab_enabled(void)
+bool is_hab_enabled(void)
 {
 	struct imx_sec_config_fuse_t *fuse =
 		(struct imx_sec_config_fuse_t *)&imx_sec_config_fuse;
