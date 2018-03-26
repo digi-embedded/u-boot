@@ -303,7 +303,7 @@
 	"setexpr filesizeblks ${filesize} / 200; " \
 	"setexpr filesizeblks ${filesizeblks} + 1; "
 
-#define CONFIG_ANDROID_RECOVERY
+/*#define CONFIG_ANDROID_RECOVERY*/
 
 /* Miscellaneous configurable options */
 #define CONFIG_SYS_LONGHELP
