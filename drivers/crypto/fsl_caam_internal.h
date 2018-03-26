@@ -54,7 +54,6 @@
 #define CAAM_SKNR           CONFIG_SYS_FSL_SEC_ADDR + 0x04e0
 #define CAAM_SMSTA          CONFIG_SYS_FSL_SEC_ADDR + 0x0FB4
 #define CAAM_STA            CONFIG_SYS_FSL_SEC_ADDR + 0x0FD4
-#define CAAM_SMPO_0         CONFIG_SYS_FSL_SEC_ADDR + 0x1FBC
 
 /* RNG registers */
 #define CAAM_RTMCTL         CONFIG_SYS_FSL_SEC_ADDR + 0x0600

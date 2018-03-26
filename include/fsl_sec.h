@@ -264,10 +264,12 @@ struct sg_entry {
 #define PARTITION_OWNER(x)	(0x3 << (x*2))
 
 /* Address of secure 4kbyte pages */
-#define SEC_MEM_PAGE0		CAAM_ARB_BASE_ADDR
-#define SEC_MEM_PAGE1		(CAAM_ARB_BASE_ADDR + 0x1000)
-#define SEC_MEM_PAGE2		(CAAM_ARB_BASE_ADDR + 0x2000)
-#define SEC_MEM_PAGE3		(CAAM_ARB_BASE_ADDR + 0x3000)
+#define CAAM_SEC_RAM_START_ADDR CAAM_ARB_BASE_ADDR
+
+#define SEC_MEM_PAGE0       CAAM_SEC_RAM_START_ADDR
+#define SEC_MEM_PAGE1       (CAAM_SEC_RAM_START_ADDR + 0x1000)
+#define SEC_MEM_PAGE2       (CAAM_SEC_RAM_START_ADDR + 0x2000)
+#define SEC_MEM_PAGE3       (CAAM_SEC_RAM_START_ADDR + 0x3000)
 
 #define JR_MID			2               /* Matches ROM configuration */
 #define KS_G1			(1 << JR_MID)   /* CAAM only */

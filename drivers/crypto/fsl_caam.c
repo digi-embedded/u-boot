@@ -33,6 +33,7 @@
 #include <asm/arch/crm_regs.h>
 #include "fsl_caam_internal.h"
 #include <fsl_caam.h>
+#include <fsl_sec.h>
 
 #define DMA_ALIGN(x) (((uint32_t) x) & (~(ARCH_DMA_MINALIGN-1)))
 
