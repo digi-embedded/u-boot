@@ -933,16 +933,6 @@ static int fec_recv(struct eth_device *dev)
 	return len;
 }
 
-static int fecmxc_free_pkt(struct udevice *dev, uchar *packet, int length)
-{
-#ifdef CONFIG_DM_ETH
-	if (packet)
-		free(packet);
-#endif
-
-	return 0;
-}
-
 static void fec_set_dev_name(char *dest, int dev_id)
 {
 	sprintf(dest, (dev_id == -1) ? "FEC" : "FEC%i", dev_id);
@@ -1238,6 +1228,16 @@ int fecmxc_register_mii_postcall(struct eth_device *dev, int (*cb)(int))
 #endif
 
 #else
+
+static int fecmxc_free_pkt(struct udevice *dev, uchar *packet, int length)
+{
+#ifdef CONFIG_DM_ETH
+	if (packet)
+		free(packet);
+#endif
+
+	return 0;
+}
 
 static int fecmxc_read_rom_hwaddr(struct udevice *dev)
 {
