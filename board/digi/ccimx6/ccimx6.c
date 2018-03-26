@@ -869,12 +869,12 @@ int mmc_get_bootdevindex(void)
 	}
 }
 
-int mmc_get_env_dev(void)
+int board_mmc_get_env_dev(void)
 {
 	return mmc_get_bootdevindex();
 }
 
-uint mmc_get_env_part(struct mmc *mmc)
+int board_mmc_get_env_part(int devno)
 {
 	switch(get_boot_device()) {
 	case SD1_BOOT ... SD4_BOOT:
