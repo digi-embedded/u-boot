@@ -1,8 +1,6 @@
 CPPFLAGS-y = \
 	-DUBOOT \
-	-I$(TOPDIR)/board/$(VENDOR)/common \
-	-I$(TOPDIR)/board/$(VENDOR)/common/cmd_nvram \
-	-I$(TOPDIR)/board/$(VENDOR)/common/cmd_nvram/lib/include
+	-I$(TOPDIR)/board/$(VENDOR)/common
 
 CPPFLAGS-$(CONFIG_CMD_BOOTSTREAM) += \
 	-I$(TOPDIR)/board/$(VENDOR)/common/cmd_bootstream \
