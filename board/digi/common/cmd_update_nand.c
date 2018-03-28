@@ -77,7 +77,7 @@ static int write_firmware(unsigned long loadaddr, unsigned long filesize,
 	 *  P = PHYS_SDRAM (base address of SDRAM)
 	 *  L = $loadaddr
 	 *  V = $verifyaddr
-	 *  M = last address of SDRAM (CONFIG_DDR_MB (size of SDRAM) + P)
+	 *  M = last address of SDRAM ((size of SDRAM) + P)
 	 *  U = SDRAM address where U-Boot is located (plus margin)
 	 */
 	verifyaddr = getenv_ulong("verifyaddr", 16, 0);

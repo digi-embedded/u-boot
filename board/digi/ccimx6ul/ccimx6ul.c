@@ -197,8 +197,7 @@ int mca_update_bits(int reg, unsigned char mask, unsigned char val)
 
 int dram_init(void)
 {
-	gd->ram_size = ((ulong)CONFIG_DDR_MB * SZ_1M);
-
+	gd->ram_size = imx_ddr_size();
 	return 0;
 }
 

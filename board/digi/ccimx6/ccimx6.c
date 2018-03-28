@@ -694,8 +694,7 @@ static void update_ddr3_calibration(u8 variant)
 
 int dram_init(void)
 {
-	gd->ram_size = ((ulong)CONFIG_DDR_MB * 1024 * 1024);
-
+	gd->ram_size = imx_ddr_size();
 	return 0;
 }
 

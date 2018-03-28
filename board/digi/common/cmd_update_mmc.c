@@ -119,11 +119,11 @@ static int write_firmware(char *partname, unsigned long loadaddr,
 	 *  P = PHYS_SDRAM (base address of SDRAM)
 	 *  L = $loadaddr
 	 *  V = $verifyaddr
-	 *  M = last address of SDRAM (CONFIG_DDR_MB (size of SDRAM) + P)
+	 *  M = last address of SDRAM ((size of SDRAM) + P)
 	 *  U = SDRAM address where U-Boot is located (plus margin)
 	 */
 	verifyaddr = getenv_ulong("verifyaddr", 16, 0);
-	m = PHYS_SDRAM + (CONFIG_DDR_MB * 1024LU * 1024LU);
+	m = PHYS_SDRAM + gd->ram_size;
 	u = m - CONFIG_UBOOT_RESERVED;
 
 	/* ($loadaddr + firmware size) must not exceed $verifyaddr
