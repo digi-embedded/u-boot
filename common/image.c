@@ -1124,7 +1124,12 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 			rd_hdr = image_get_ramdisk(rd_addr, arch, 0, 0);
 			if (rd_hdr == NULL)
 				return 1;
-			rd_len =  image_get_data_size(rd_hdr);
+
+			/*
+			 * Add the size of the header, which is not included in
+			 * the image size field.
+			 */
+			rd_len = sizeof(image_header_t) + image_get_data_size(rd_hdr);
 
 			if (authenticate_image(rd_addr, rd_len) == 0) {
 				printf("Ramdisk authentication failed\n");
