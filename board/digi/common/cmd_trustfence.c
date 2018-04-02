@@ -726,7 +726,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		printf("\nLoading encrypted U-Boot image...\n");
 		/* Load firmware file to RAM */
 		fwinfo.loadaddr = "$loadaddr";
-		fwinfo.filename = argv[3];
+		fwinfo.filename = (fwinfo.src == SRC_MMC) ? argv[4] : argv[3];
 		ret = load_firmware(&fwinfo);
 		if (ret == LDFW_ERROR) {
 			printf("Error loading firmware file to RAM\n");
