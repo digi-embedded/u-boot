@@ -171,6 +171,7 @@ static void setup_board_enet(void)
 	imx_iomux_v3_setup_multiple_pads(ksz9031_pads,
 					 ARRAY_SIZE(ksz9031_pads));
 	/* Assert PHY reset */
+	gpio_request(phy_reset_gpio, "ENET PHY Reset");
 	gpio_direction_output(phy_reset_gpio , 0);
 	/* Need 10ms to guarantee stable voltages */
 	udelay(10 * 1000);
@@ -308,6 +309,7 @@ static void setup_board_audio(void)
 		/* Power enable line IOMUX */
 		imx_iomux_v3_setup_multiple_pads(sgtl5000_pwr_pads,
 						 ARRAY_SIZE(sgtl5000_pwr_pads));
+		gpio_request(pwren_gpio, "Codec power enable");
 		gpio_direction_output(pwren_gpio , 0);
 	}
 }
@@ -323,6 +325,7 @@ static void setup_board_pcie(void)
 		imx_iomux_v3_setup_multiple_pads(pcie_pwr_pads,
 						 ARRAY_SIZE(pcie_pwr_pads));
 		/* Switching off PCIe power */
+		gpio_request(pcie_pwren_gpio, "PCIe power enable");
 		gpio_direction_output(pcie_pwren_gpio , 0);
 	}
 }
@@ -369,6 +372,7 @@ int board_early_init_f(void)
 	int console_enable_gpio_nr = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
 
 	setup_iomux_ext_gpios();
+	gpio_request(console_enable_gpio_nr, "Console enable");
 	gpio_direction_input(console_enable_gpio_nr);
 #endif
 

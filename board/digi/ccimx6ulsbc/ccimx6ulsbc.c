@@ -240,6 +240,7 @@ void reset_phy(void)
 		/* CPU GPIO5_6 is connected to PHY reset */
 		reset = IMX_GPIO_NR(5, 6);
 		/* Assert PHY reset (low) */
+		gpio_request(reset, "ENET PHY Reset");
 		gpio_direction_output(reset, 0);
 		udelay(100);
 		/* Deassert PHY reset (high) */
@@ -365,6 +366,7 @@ int board_early_init_f(void)
 	int console_enable_gpio_nr = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
 
 	setup_iomux_ext_gpios();
+	gpio_request(console_enable_gpio_nr, "Console enable");
 	gpio_direction_input(console_enable_gpio_nr);
 #endif
 

@@ -239,6 +239,7 @@ void reset_phy()
 		int phy_reset_gpio = IMX_GPIO_NR(3, 2);
 
 		/* Assert PHY reset (low) */
+		gpio_request(phy_reset_gpio, "ENET PHY Reset");
 		gpio_direction_output(phy_reset_gpio , 0);
 		udelay(100);
 		/* Deassert PHY reset (high) */
@@ -283,6 +284,7 @@ static int setup_fec(int fec_id)
 		/* Enable PHY power */
 		int phy_power_gpio = IMX_GPIO_NR(3, 2);
 
+		gpio_request(phy_power_gpio, "ENET PHY power enable");
 		gpio_direction_output(phy_power_gpio , 1);
 	}
 
@@ -385,6 +387,7 @@ int board_early_init_f(void)
 	int console_enable_gpio_nr = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
 
 	setup_iomux_ext_gpios();
+	gpio_request(console_enable_gpio_nr, "Console enable");
 	gpio_direction_input(console_enable_gpio_nr);
 #endif
 
