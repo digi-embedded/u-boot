@@ -88,7 +88,7 @@
 #define CONFIG_MXC_UART_BASE		UART5_BASE
 #undef CONFIG_CONS_INDEX
 #define CONFIG_CONS_INDEX		5
-#define CONFIG_CONSOLE_PORT		"ttymxc4"
+#define CONSOLE_DEV			"ttymxc4"
 #define CONFIG_BAUDRATE			115200
 
 /* Ethernet */
@@ -164,7 +164,7 @@
 		"${bootargs_linux} root=/dev/nfs " \
 		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
 		"${mtdparts} ${bootargs_once} ${extra_bootargs}\0" \
-	"console=" CONFIG_CONSOLE_PORT "\0" \
+	"console=" CONSOLE_DEV "\0" \
 	"dboot_kernel_var=zimage\0" \
 	"fdt_addr=0x83000000\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \

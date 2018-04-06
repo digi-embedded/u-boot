@@ -32,7 +32,7 @@
 
 #define CONFIG_CONS_INDEX		1
 #define CONFIG_MXC_UART_BASE		UART4_BASE
-#define CONFIG_CONSOLE_DEV		"ttymxc3"
+#define CONSOLE_DEV			"ttymxc3"
 #define CONFIG_BAUDRATE			115200
 
 #undef CONFIG_DEFAULT_FDT_FILE
@@ -110,7 +110,7 @@
 	"boot_fdt=try\0" \
 	"ip_dyn=yes\0" \
 	"phy_mode=auto\0" \
-	"console=" CONFIG_CONSOLE_DEV "\0" \
+	"console=" CONSOLE_DEV "\0" \
 	"fdt_high=0xffffffff\0"	  \
 	"initrd_high=0xffffffff\0" \
 	"mmcbootpart=" __stringify(CONFIG_SYS_BOOT_PART_EMMC) "\0" \
