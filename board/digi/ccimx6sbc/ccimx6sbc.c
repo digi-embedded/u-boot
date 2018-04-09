@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012-2013 Freescale Semiconductor, Inc.
- * Copyright (C) 2013 Digi International, Inc.
+ * Copyright (C) 2013-2018 Digi International, Inc.
  *
  * Author: Fabio Estevam <fabio.estevam@freescale.com>
  * Author: Jason Liu <r64343@freescale.com>
