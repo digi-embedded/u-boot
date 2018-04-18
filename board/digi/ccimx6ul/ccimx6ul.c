@@ -26,7 +26,7 @@
 
 #ifdef CONFIG_POWER
 #include <power/pmic.h>
-#include <power/pfuze300_pmic.h>
+#include <power/pfuze3000_pmic.h>
 #include "../../freescale/common/pfuze.h"
 #endif
 #include "../common/helper.h"
@@ -269,47 +269,47 @@ int power_init_ccimx6ul(void)
 	int ret;
 	unsigned int reg, rev_id;
 
-	ret = power_pfuze300_init(I2C_PMIC);
+	ret = power_pfuze3000_init(I2C_PMIC);
 	if (ret)
 		return ret;
 
-	pfuze = pmic_get("PFUZE300");
+	pfuze = pmic_get("PFUZE3000");
 	ret = pmic_probe(pfuze);
 	if (ret)
 		return ret;
 
-	pmic_reg_read(pfuze, PFUZE300_DEVICEID, &reg);
-	pmic_reg_read(pfuze, PFUZE300_REVID, &rev_id);
-	printf("PMIC:  PFUZE300 DEV_ID=0x%x REV_ID=0x%x\n", reg, rev_id);
+	pmic_reg_read(pfuze, PFUZE3000_DEVICEID, &reg);
+	pmic_reg_read(pfuze, PFUZE3000_REVID, &rev_id);
+	printf("PMIC:  PFUZE3000 DEV_ID=0x%x REV_ID=0x%x\n", reg, rev_id);
 
 	/* disable Low Power Mode during standby mode */
-	pmic_reg_read(pfuze, PFUZE300_LDOGCTL, &reg);
+	pmic_reg_read(pfuze, PFUZE3000_LDOGCTL, &reg);
 	reg |= 0x1;
-	pmic_reg_write(pfuze, PFUZE300_LDOGCTL, reg);
+	pmic_reg_write(pfuze, PFUZE3000_LDOGCTL, reg);
 
 	/* SW1A mode to APS/OFF, to switch off the regulator in standby */
 	reg = 0x04;
-	pmic_reg_write(pfuze, PFUZE300_SW1AMODE, reg);
+	pmic_reg_write(pfuze, PFUZE3000_SW1AMODE, reg);
 
 	/* SW1B step ramp up time from 2us to 4us/25mV */
 	reg = 0x40;
-	pmic_reg_write(pfuze, PFUZE300_SW1BCONF, reg);
+	pmic_reg_write(pfuze, PFUZE3000_SW1BCONF, reg);
 
 	/* SW1B mode to APS/PFM, to optimize performance */
 	reg = 0xc;
-	pmic_reg_write(pfuze, PFUZE300_SW1BMODE, reg);
+	pmic_reg_write(pfuze, PFUZE3000_SW1BMODE, reg);
 
 	/* SW1B voltage set to 1.3V */
 	reg = 0x18;
-	pmic_reg_write(pfuze, PFUZE300_SW1BVOLT, reg);
+	pmic_reg_write(pfuze, PFUZE3000_SW1BVOLT, reg);
 
 	/* SW1B standby voltage set to 0.925V */
 	reg = 0x09;
-	pmic_reg_write(pfuze, PFUZE300_SW1BSTBY, reg);
+	pmic_reg_write(pfuze, PFUZE3000_SW1BSTBY, reg);
 
 	/* SW2 mode to APS/OFF, to switch off in standby mode */
 	reg = 0x04;
-	pmic_reg_write(pfuze, PFUZE300_SW2MODE, reg);
+	pmic_reg_write(pfuze, PFUZE3000_SW2MODE, reg);
 
 	return 0;
 }
@@ -331,18 +331,18 @@ void ldo_mode_set(int ldo_bypass)
 	if (ldo_bypass) {
 		prep_anatop_bypass();
 		/* decrease VDDARM to 1.275V */
-		pmic_reg_read(pfuze, PFUZE300_SW1BVOLT, &value);
+		pmic_reg_read(pfuze, PFUZE3000_SW1BVOLT, &value);
 		value &= ~0x1f;
-		value |= PFUZE300_SW1AB_SETP(1275);
-		pmic_reg_write(pfuze, PFUZE300_SW1BVOLT, value);
+		value |= PFUZE3000_SW1AB_SETP(12750);
+		pmic_reg_write(pfuze, PFUZE3000_SW1BVOLT, value);
 
 		set_anatop_bypass(1);
-		vddarm = PFUZE300_SW1AB_SETP(1175);
+		vddarm = PFUZE3000_SW1AB_SETP(11750);
 
-		pmic_reg_read(pfuze, PFUZE300_SW1BVOLT, &value);
+		pmic_reg_read(pfuze, PFUZE3000_SW1BVOLT, &value);
 		value &= ~0x1f;
 		value |= vddarm;
-		pmic_reg_write(pfuze, PFUZE300_SW1BVOLT, value);
+		pmic_reg_write(pfuze, PFUZE3000_SW1BVOLT, value);
 
 		finish_anatop_bypass();
 

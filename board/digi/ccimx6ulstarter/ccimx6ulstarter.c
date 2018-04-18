@@ -36,7 +36,7 @@
 
 #ifdef CONFIG_POWER
 #include <power/pmic.h>
-#include <power/pfuze300_pmic.h>
+#include <power/pfuze3000_pmic.h>
 #include "../../freescale/common/pfuze.h"
 #endif
 
