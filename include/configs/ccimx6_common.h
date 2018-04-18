@@ -209,6 +209,8 @@
 #define CONFIG_SYS_MMC_ENV_PART		1
 #endif
 
+#define CONFIG_TFTP_UPDATE_ONTHEFLY      /* support to tftp and update on-the-fly */
+
 /* Supported sources for update|dboot */
 #define CONFIG_SUPPORTED_SOURCES	((1 << SRC_TFTP) | \
 					 (1 << SRC_NFS) | \
