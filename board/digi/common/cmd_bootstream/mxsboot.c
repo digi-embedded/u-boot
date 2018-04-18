@@ -145,7 +145,8 @@ static inline uint32_t mx28_nand_ecc_size_in_bits(uint32_t ecc_strength)
 static inline uint32_t mx28_nand_get_ecc_strength(uint32_t page_data_size,
 						uint32_t page_oob_size)
 {
-	struct nand_chip *chip = nand_info[0].priv;
+	struct mtd_info *mtd = nand_info[0];
+	struct nand_chip *chip = mtd_to_nand(mtd);
 
 	return round_up(chip->ecc_strength_ds, 2);
 }

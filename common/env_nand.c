@@ -91,7 +91,7 @@ static void env_set_dynamic_location(struct env_location *location)
 	int i = 0;
 	int env_copies = 1;
 
-	if (CONFIG_ENV_SIZE > nand_info[0].erasesize)
+	if (CONFIG_ENV_SIZE > nand_info[0]->erasesize)
 		printf("Warning: environment size larger than PEB size is not supported\n");
 
 #ifdef CONFIG_ENV_OFFSET_REDUND
@@ -99,7 +99,7 @@ static void env_set_dynamic_location(struct env_location *location)
 
 	/* Init redundant copy offset */
 	if (location[1].erase_opts.offset == location[0].erase_opts.offset)
-		location[1].erase_opts.offset += nand_info[0].erasesize;
+		location[1].erase_opts.offset += nand_info[0]->erasesize;
 #endif
 
 	/*
@@ -108,12 +108,12 @@ static void env_set_dynamic_location(struct env_location *location)
 	 */
 	for (i = 0; i < env_copies; i++) {
 		/* limit erase size to one erase block */
-		location[i].erase_opts.length = nand_info[0].erasesize;
+		location[i].erase_opts.length = nand_info[0]->erasesize;
 
 		for (off = CONFIG_ENV_OFFSET;
 		     off < ENV_FIRST_NOENV_SECTOR;
-		     off += nand_info[0].erasesize) {
-			if (!nand_block_isbad(&nand_info[0], off)) {
+		     off += nand_info[0]->erasesize) {
+			if (!nand_block_isbad(nand_info[0], off)) {
 				if (off == location[i].erase_opts.offset) {
 					/* already set in a good block */
 					break;
@@ -216,7 +216,7 @@ int env_init(void)
 static int writeenv(size_t offset, u_char *buf)
 {
 #ifdef CONFIG_DYNAMIC_ENV_LOCATION
-	size_t end = offset + nand_info[0].erasesize;
+	size_t end = offset + nand_info[0]->erasesize;
 #else
 	size_t end = offset + CONFIG_ENV_RANGE;
 #endif

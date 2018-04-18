@@ -427,7 +427,7 @@ static const struct boot_mode board_boot_modes[] = {
 
 void generate_partition_table(void)
 {
-	struct mtd_info *nand = &nand_info[0];
+	struct mtd_info *nand = nand_info[0];
 	uint32_t nand_size_mb = nand->size / SZ_1M;
 
 	switch (nand_size_mb) {

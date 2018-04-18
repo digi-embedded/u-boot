@@ -257,7 +257,7 @@ int get_default_devpartno(int src, char *devpartno)
 #ifdef CONFIG_DIGI_UBI
 bool is_ubi_partition(struct part_info *part)
 {
-	struct mtd_info *nand = &nand_info[0];
+	struct mtd_info *nand = nand_info[0];
 	size_t rsize = nand->writesize;
 	unsigned char *page;
 	unsigned long ubi_magic = 0x23494255;	/* "UBI#" */

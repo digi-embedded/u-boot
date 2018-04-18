@@ -15,7 +15,7 @@
  */
 size_t media_get_block_size(void)
 {
-	return nand_info[0].erasesize;
+	return nand_info[0]->erasesize;
 }
 
 /*
@@ -95,11 +95,11 @@ int media_read_block(u32 addr, unsigned char *readbuf, uint hwpart)
 	if (len <= 0)
 		return -1;
 
-	return nand_read_skip_bad(&nand_info[0],
+	return nand_read_skip_bad(nand_info[0],
 				  addr,
 				  &len,
 				  NULL,
-				  nand_info[0].size,
+				  nand_info[0]->size,
 				  readbuf);
 }
 
@@ -122,11 +122,11 @@ int media_write_block(u32 addr, unsigned char *writebuf, uint hwpart)
 	if (len <= 0)
 		return -1;
 
-	return nand_write_skip_bad(&nand_info[0],
+	return nand_write_skip_bad(nand_info[0],
 				   addr,
 				   &len,
 				   NULL,
-				   nand_info[0].size,
+				   nand_info[0]->size,
 				   writebuf,
 				   WITH_WR_VERIFY);
 }
@@ -140,7 +140,7 @@ int media_write_block(u32 addr, unsigned char *writebuf, uint hwpart)
  */
 void media_erase_fskey(u32 addr, uint hwpart)
 {
-	nand_erase(&nand_info[0], addr, nand_info[0].erasesize);
+	nand_erase(nand_info[0], addr, nand_info[0]->erasesize);
 }
 
 /* Dummy function for compatibility with MMC */

@@ -248,7 +248,7 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
 	unsigned int  boot_stream2_pos;
 	BCB_ROM_BootBlockStruct_t  *fcb;
 	BCB_ROM_BootBlockStruct_t  *dbbt;
-	struct nand_chip *chip = nand_info[0].priv;
+	struct nand_chip *chip = mtd_to_nand(mtd);
 	unsigned int ecc_strength;
 
 	//----------------------------------------------------------------------
@@ -689,7 +689,7 @@ int write_bootstream(struct part_info *part,
 {
 	/* TODO: considering chip = 0 */
 	int chip = 0;
-	struct mtd_info *mtd = &nand_info[chip];
+	struct mtd_info *mtd = nand_info[chip];
 	int r = -1;
 	struct mtd_config cfg;
 	struct mtd_bootblock bootblock;
