@@ -10,7 +10,6 @@
 #ifndef MCA_CC6UL_REGISTERS_H_
 #define MCA_CC6UL_REGISTERS_H_
 
-#define BIT(x)                       (1 << (x))
 
 /* EP0: Control and status */
 #define MCA_CC6UL_DEVICE_ID		0x0001

@@ -42,8 +42,8 @@ static inline int even_number_of_1s(uint8_t byte)
 }
 
 
-#define BIT(v,n)	(((v) >> (n)) & 0x1)
-#define B(n)		(BIT(d,n))
+#define BIT_NCB(v,n)	(((v) >> (n)) & 0x1)
+#define B(n)		(BIT_NCB(d,n))
 #define BSEQ(a1,a2,a3,a4,a5,a6,a7,a8) \
 	(B(a1) ^ B(a2) ^ B(a3) ^ B(a4) ^ B(a5) ^ B(a6) ^ B(a7) ^ B(a8))
 
@@ -74,7 +74,7 @@ static uint8_t calculate_parity_13_8(uint8_t d)
 	p |= (B(6) ^ B(4) ^ B(3) ^ B(2) ^ B(1) ^ B(0)) << 4;
 	return p;
 }
-#undef BIT
+#undef BIT_NCB
 #undef B
 #undef BSEQ
 
