@@ -13,6 +13,7 @@
 
 #include <common.h>
 #include <command.h>
+#include <console.h>
 #include <exports.h>
 #include <memalign.h>
 #include <nand.h>
