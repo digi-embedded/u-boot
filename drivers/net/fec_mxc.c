@@ -187,6 +187,11 @@ static int fec_phy_write(struct mii_dev *bus, int phyaddr, int dev_addr,
 	return fec_mdio_write(bus->priv, phyaddr, regaddr, data);
 }
 
+static int fec_phy_reset(struct mii_dev *bus)
+{
+	return 0;
+}
+
 #ifndef CONFIG_PHYLIB
 static int miiphy_restart_aneg(struct eth_device *dev)
 {
@@ -1032,6 +1037,7 @@ struct mii_dev *fec_get_miibus(ulong base_addr, int dev_id)
 	}
 	bus->read = fec_phy_read;
 	bus->write = fec_phy_write;
+	bus->reset = fec_phy_reset;
 	bus->priv = eth;
 	fec_set_dev_name(bus->name, dev_id);
 
