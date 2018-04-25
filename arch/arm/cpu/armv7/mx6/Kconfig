@@ -119,6 +119,7 @@ config TARGET_CCIMX6SBC
 
 config TARGET_CCIMX6ULSBC
 	bool "Digi ConnectCore 6UL SBC Pro"
+	select MX6UL
 	select BOARD_LATE_INIT
 	select SUPPORT_SPL
 	select DM
@@ -127,6 +128,7 @@ config TARGET_CCIMX6ULSBC
 
 config TARGET_CCIMX6ULSTARTER
 	bool "Digi ConnectCore 6UL SBC Express"
+	select MX6UL
 	select BOARD_LATE_INIT
 	select SUPPORT_SPL
 	select DM
