@@ -1,0 +1,81 @@
+/*
+ * Copyright 2018 Digi International, Inc.
+ *
+ * The code contained herein is licensed under the GNU General Public
+ * License. You may obtain a copy of the GNU General Public License
+ * Version 2 or later at the following locations:
+ *
+ * http://www.opensource.org/licenses/gpl-license.html
+ * http://www.gnu.org/copyleft/gpl.html
+ */
+
+/dts-v1/;
+
+/* First 128KB is for PSCI ATF. */
+/* Last 127M is for M4/RPMSG */
+/memreserve/ 0x80000000 0x08000000;
+
+/* i.MX8QXP CPU */
+#include "fsl-imx8qxp.dtsi"
+/* ConnectCore 8X SBC Express Board */
+#include "imx8qxp-ccimx8qxp-sbc-express.dtsi"
+
+&lpuart0 {
+	status = "okay";
+};
+
+&gpio0 {
+	status = "okay";
+};
+
+&gpio1 {
+	status = "okay";
+};
+
+&gpio3 {
+	status = "okay";
+};
+
+&gpio4 {
+	status = "okay";
+};
+
+&fec1 {
+	status = "okay";
+};
+
+&fec2 {
+	status = "okay";
+};
+
+&flexspi0 {
+	status = "okay";
+};
+
+&i2c1 {
+	status = "okay";
+};
+
+&i2c0_mipi_lvds0 {
+	status = "okay";
+};
+
+&i2c0_mipi_lvds1 {
+	status = "okay";
+};
+
+&usdhc1 {
+	status = "okay";
+};
+
+&usdhc2 {
+	status = "okay";
+};
+
+&usbotg1 {
+	status = "okay";
+};
+
+&usb2 {
+	status = "okay";
+};
