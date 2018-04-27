@@ -536,10 +536,6 @@ int board_late_init(void)
 	setenv("board_rev", "iMX8QXP");
 #endif
 
-#ifdef CONFIG_ENV_IS_IN_MMC
-	board_late_mmc_env_init();
-#endif
-
 	return 0;
 }
 
