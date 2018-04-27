@@ -20,7 +20,7 @@
 /* ConnectCore 8X SBC Express Board */
 #include "imx8qxp-ccimx8qxp-sbc-express.dtsi"
 
-&lpuart0 {
+&lpuart2 {
 	status = "okay";
 };
 
