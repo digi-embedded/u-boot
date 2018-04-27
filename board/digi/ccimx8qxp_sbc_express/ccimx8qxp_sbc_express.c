@@ -321,36 +321,12 @@ static int setup_fec(int ind)
 #endif
 
 #ifdef CONFIG_MXC_GPIO
-#define IOEXP_RESET IMX_GPIO_NR(1, 1)
-
 static iomux_cfg_t board_gpios[] = {
-	SC_P_SPI2_SDO | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPIO_PAD_CTRL),
-	SC_P_ENET0_REFCLK_125M_25M | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPIO_PAD_CTRL),
 };
 
 static void board_gpio_init(void)
 {
-	int ret;
-	struct gpio_desc desc;
-
-	ret = dm_gpio_lookup_name("gpio@1a_3", &desc);
-	if (ret)
-		return;
-
-	ret = dm_gpio_request(&desc, "bb_per_rst_b");
-	if (ret)
-		return;
-
-	dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT);
-	dm_gpio_set_value(&desc, 0);
-	udelay(50);
-	dm_gpio_set_value(&desc, 1);
-
 	imx8_iomux_setup_multiple_pads(board_gpios, ARRAY_SIZE(board_gpios));
-
-	/* enable i2c port expander assert reset line */
-	gpio_request(IOEXP_RESET, "ioexp_rst");
-	gpio_direction_output(IOEXP_RESET, 1);
 }
 #endif
 
