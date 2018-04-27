@@ -10,6 +10,8 @@
 
 #include <linux/sizes.h>
 #include <asm/arch/imx-regs.h>
+#include "ccimx8qxp_common.h"
+#include "digi_common.h"
 
 #define CONFIG_REMAKE_ELF
 
@@ -196,7 +198,6 @@
 
 
 /* Default environment is in SD */
-#define CONFIG_ENV_SIZE			0x1000
 #ifdef CONFIG_QSPI_BOOT
 #define CONFIG_ENV_IS_IN_SPI_FLASH
 #define CONFIG_ENV_OFFSET       (4 * 1024 * 1024)
@@ -235,8 +236,6 @@
 #define CONFIG_SYS_PROMPT_HUSH_PS2     "> "
 #define CONFIG_AUTO_COMPLETE
 #define CONFIG_SYS_CBSIZE              1024
-#define CONFIG_SYS_MAXARGS             64
-#define CONFIG_SYS_BARGSIZE CONFIG_SYS_CBSIZE
 #define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + \
 					sizeof(CONFIG_SYS_PROMPT) + 16)
 #define CONFIG_CMDLINE_EDITING
