@@ -16,9 +16,6 @@
 #define CONFIG_BOARD_EARLY_INIT_F
 #define CONFIG_ARCH_MISC_INIT
 
-/* Flat Device Tree Definitions */
-#define CONFIG_OF_BOARD_SETUP
-
 #undef CONFIG_CMD_EXPORTENV
 #undef CONFIG_CMD_IMPORTENV
 #undef CONFIG_CMD_IMLS
@@ -238,7 +235,6 @@
 
 /* Monitor Command Prompt */
 #define CONFIG_SYS_LONGHELP
-#define CONFIG_HUSH_PARSER
 #define CONFIG_SYS_PROMPT_HUSH_PS2     "> "
 #define CONFIG_AUTO_COMPLETE
 #define CONFIG_SYS_CBSIZE              1024
@@ -250,12 +246,6 @@
 
 /* Generic Timer Definitions */
 #define COUNTER_FREQUENCY		8000000	/* 8MHz */
-
-#ifndef CONFIG_DM_PCA953X
-#define CONFIG_PCA953X
-#define CONFIG_CMD_PCA953X
-#define CONFIG_CMD_PCA953X_INFO
-#endif
 
 #define CONFIG_IMX_SMMU
 
