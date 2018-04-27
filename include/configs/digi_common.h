@@ -26,7 +26,6 @@
 /* define for developing */
 #undef CONFIG_SKIP_LOWLEVEL_INIT
 
-#define CONFIG_SILENT_CONSOLE
 #define CONFIG_SOURCE
 #define CONFIG_AUTO_BOOTSCRIPT
 #define CONFIG_BOOTSCRIPT		CONFIG_SYS_BOARD "-boot.scr"
