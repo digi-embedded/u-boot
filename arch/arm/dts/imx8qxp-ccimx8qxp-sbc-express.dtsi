@@ -14,13 +14,6 @@
 	compatible = "digi,ccimx8qxp_sbc_express", "digi,ccimx8qxp", "fsl,imx8qxp";
 	digi,machine,name = "ccimx8qxp_sbc_express";
 
-	aliases {
-		i2c4 = &bb_i2c1;
-		i2c5 = &mfi_i2c1;
-		i2c6 = &i2cexp1_i2c1;
-		i2c7 = &i2cexp2_i2c1;
-	};
-
 	chosen {
 		bootargs = "console=ttyLP0,115200 earlycon=lpuart32,0x5a060000,115200";
 		stdout-path = &lpuart0;
@@ -30,28 +23,6 @@
 		compatible = "simple-bus";
 		#address-cells = <1>;
 		#size-cells = <0>;
-
-		reg_usdhc2_vmmc: usdhc2_vmmc {
-			compatible = "regulator-fixed";
-			regulator-name = "SD1_SPWR";
-			regulator-min-microvolt = <3000000>;
-			regulator-max-microvolt = <3000000>;
-			gpio = <&gpio4 19 GPIO_ACTIVE_HIGH>;
-			enable-active-high;
-			startup-delay-us = <100>;
-			off-on-delay-us = <12000>;
-		};
-
-		reg_usb_otg1_vbus: regulator@0 {
-			compatible = "regulator-fixed";
-			reg = <0>;
-			regulator-name = "usb_otg1_vbus";
-			regulator-min-microvolt = <5000000>;
-			regulator-max-microvolt = <5000000>;
-			gpio = <&pca9557_b 2 GPIO_ACTIVE_HIGH>;
-			enable-active-high;
-		};
-
 	};
 };
 
@@ -86,31 +57,6 @@
 	};
 };
 
-&fec2 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_fec2>;
-	phy-mode = "rgmii";
-	phy-handle = <&ethphy1>;
-	fsl,ar8031-phy-fixup;
-	fsl,magic-packet;
-	status = "disabled";
-};
-
-&flexspi0 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_flexspi0>;
-	status = "disabled";
-
-	flash0: mt35xu512aba@0 {
-		reg = <0>;
-		#address-cells = <1>;
-		#size-cells = <1>;
-		compatible = "spi-flash";
-		spi-max-frequency = <29000000>;
-		spi-nor,ddr-quad-read-dummy = <8>;
-	};
-};
-
 &i2c1 {
 	#address-cells = <1>;
 	#size-cells = <0>;
@@ -118,52 +64,6 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lpi2c1>;
 	status = "disabled";
-
-	pca9646_switch: mux@71 {
-		compatible = "nxp,pca9544";
-		reg = <0x71>;
-		u-boot,i2c-offset-len = <0>;
-		#address-cells = <1>;
-		#size-cells = <0>;
-
-		bb_i2c1: i2c@0 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			reg = <0x0>;
-		};
-
-		mfi_i2c1: i2c@1 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			reg = <0x1>;
-		};
-
-		i2cexp1_i2c1: i2c@2 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			reg = <0x2>;
-		};
-
-		i2cexp2_i2c1: i2c@3 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			reg = <0x3>;
-
-			pca9557_a: gpio@1a {
-				compatible = "nxp,pca9557";
-				reg = <0x1a>;
-				gpio-controller;
-				#gpio-cells = <2>;
-			};
-
-			pca9557_b: gpio@1d {
-				compatible = "nxp,pca9557";
-				reg = <0x1d>;
-				gpio-controller;
-				#gpio-cells = <2>;
-			};
-		};
-	};
 };
 
 &i2c0_mipi_lvds0 {
@@ -171,15 +71,6 @@
 	#size-cells = <0>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c0_mipi_lvds0>;
-	clock-frequency = <100000>;
-	status = "disabled";
-};
-
-&i2c0_mipi_lvds1 {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_i2c0_mipi_lvds1>;
 	clock-frequency = <100000>;
 	status = "disabled";
 };
@@ -202,12 +93,10 @@
 	bus-width = <4>;
 	cd-gpios = <&gpio4 22 GPIO_ACTIVE_LOW>;
 	wp-gpios = <&gpio4 21 GPIO_ACTIVE_HIGH>;
-	vmmc-supply = <&reg_usdhc2_vmmc>;
 	status = "disabled";
 };
 
 &usbotg1 {
-	vbus-supply = <&reg_usb_otg1_vbus>;
 	srp-disable;
 	hnp-disable;
 	adp-disable;
@@ -243,23 +132,6 @@
 				SC_P_ENET0_RGMII_RXD1_CONN_ENET0_RGMII_RXD1	0x06000048
 				SC_P_ENET0_RGMII_RXD2_CONN_ENET0_RGMII_RXD2	0x06000048
 				SC_P_ENET0_RGMII_RXD3_CONN_ENET0_RGMII_RXD3	0x06000048
-			>;
-		};
-
-		pinctrl_fec2: fec2grp {
-			fsl,pins = <
-				SC_P_ESAI0_SCKR_CONN_ENET1_RGMII_TX_CTL		0x06000048
-				SC_P_ESAI0_FSR_CONN_ENET1_RGMII_TXC		0x06000048
-				SC_P_ESAI0_TX4_RX1_CONN_ENET1_RGMII_TXD0	0x06000048
-				SC_P_ESAI0_TX5_RX0_CONN_ENET1_RGMII_TXD1	0x06000048
-				SC_P_ESAI0_FST_CONN_ENET1_RGMII_TXD2		0x06000048
-				SC_P_ESAI0_SCKT_CONN_ENET1_RGMII_TXD3		0x06000048
-				SC_P_ESAI0_TX0_CONN_ENET1_RGMII_RXC		0x06000048
-				SC_P_SPDIF0_TX_CONN_ENET1_RGMII_RX_CTL		0x06000048
-				SC_P_SPDIF0_RX_CONN_ENET1_RGMII_RXD0		0x06000048
-				SC_P_ESAI0_TX3_RX2_CONN_ENET1_RGMII_RXD1	0x06000048
-				SC_P_ESAI0_TX2_RX3_CONN_ENET1_RGMII_RXD2	0x06000048
-				SC_P_ESAI0_TX1_CONN_ENET1_RGMII_RXD3		0x06000048
 			>;
 		};
 
@@ -362,38 +234,10 @@
 			>;
 		};
 
-		pinctrl_flexspi0: flexspi0grp {
-			fsl,pins = <
-				SC_P_QSPI0A_DATA0_LSIO_QSPI0A_DATA0	0x0600004c
-				SC_P_QSPI0A_DATA1_LSIO_QSPI0A_DATA1	0x0600004c
-				SC_P_QSPI0A_DATA2_LSIO_QSPI0A_DATA2	0x0600004c
-				SC_P_QSPI0A_DATA3_LSIO_QSPI0A_DATA3	0x0600004c
-				SC_P_QSPI0A_DQS_LSIO_QSPI0A_DQS		0x0600004c
-				SC_P_QSPI0A_SS0_B_LSIO_QSPI0A_SS0_B	0x0600004c
-				SC_P_QSPI0A_SS1_B_LSIO_QSPI0A_SS1_B	0x0600004c
-				SC_P_QSPI0A_SCLK_LSIO_QSPI0A_SCLK	0x0600004c
-				SC_P_QSPI0B_SCLK_LSIO_QSPI0B_SCLK	0x0600004c
-				SC_P_QSPI0B_DATA0_LSIO_QSPI0B_DATA0	0x0600004c
-				SC_P_QSPI0B_DATA1_LSIO_QSPI0B_DATA1	0x0600004c
-				SC_P_QSPI0B_DATA2_LSIO_QSPI0B_DATA2	0x0600004c
-				SC_P_QSPI0B_DATA3_LSIO_QSPI0B_DATA3	0x0600004c
-				SC_P_QSPI0B_DQS_LSIO_QSPI0B_DQS		0x0600004c
-				SC_P_QSPI0B_SS0_B_LSIO_QSPI0B_SS0_B	0x0600004c
-				SC_P_QSPI0B_SS1_B_LSIO_QSPI0B_SS1_B	0x0600004c
-			>;
-		};
-
 		pinctrl_i2c0_mipi_lvds0: mipi_lvds0_i2c0_grp {
 			fsl,pins = <
 				SC_P_MIPI_DSI0_I2C0_SCL_MIPI_DSI0_I2C0_SCL 0xc6000020
 				SC_P_MIPI_DSI0_I2C0_SDA_MIPI_DSI0_I2C0_SDA 0xc6000020
-			>;
-		};
-
-		pinctrl_i2c0_mipi_lvds1: mipi_lvds1_i2c0_grp {
-			fsl,pins = <
-				SC_P_MIPI_DSI1_I2C0_SCL_MIPI_DSI1_I2C0_SCL 0xc6000020
-				SC_P_MIPI_DSI1_I2C0_SDA_MIPI_DSI1_I2C0_SDA 0xc6000020
 			>;
 		};
 	};
