@@ -98,80 +98,20 @@ int board_early_init_f(void)
 
 #ifdef CONFIG_FSL_ESDHC
 
-#define USDHC1_CD_GPIO	IMX_GPIO_NR(4, 22)
-
-static struct fsl_esdhc_cfg usdhc_cfg[CONFIG_SYS_FSL_USDHC_NUM] = {
-	{USDHC1_BASE_ADDR, 0, 8},
-	{USDHC2_BASE_ADDR, 0, 4},
-};
-
-static iomux_cfg_t emmc0[] = {
-	SC_P_EMMC0_CLK | MUX_PAD_CTRL(ESDHC_CLK_PAD_CTRL),
-	SC_P_EMMC0_CMD | MUX_PAD_CTRL(ESDHC_PAD_CTRL),
-	SC_P_EMMC0_DATA0 | MUX_PAD_CTRL(ESDHC_PAD_CTRL),
-	SC_P_EMMC0_DATA1 | MUX_PAD_CTRL(ESDHC_PAD_CTRL),
-	SC_P_EMMC0_DATA2 | MUX_PAD_CTRL(ESDHC_PAD_CTRL),
-	SC_P_EMMC0_DATA3 | MUX_PAD_CTRL(ESDHC_PAD_CTRL),
-	SC_P_EMMC0_DATA4 | MUX_PAD_CTRL(ESDHC_PAD_CTRL),
-	SC_P_EMMC0_DATA5 | MUX_PAD_CTRL(ESDHC_PAD_CTRL),
-	SC_P_EMMC0_DATA6 | MUX_PAD_CTRL(ESDHC_PAD_CTRL),
-	SC_P_EMMC0_DATA7 | MUX_PAD_CTRL(ESDHC_PAD_CTRL),
-	SC_P_EMMC0_STROBE | MUX_PAD_CTRL(ESDHC_PAD_CTRL),
-};
-
-static iomux_cfg_t usdhc1_sd[] = {
-	SC_P_USDHC1_CLK | MUX_PAD_CTRL(ESDHC_CLK_PAD_CTRL),
-	SC_P_USDHC1_CMD | MUX_PAD_CTRL(ESDHC_PAD_CTRL),
-	SC_P_USDHC1_DATA0 | MUX_PAD_CTRL(ESDHC_PAD_CTRL),
-	SC_P_USDHC1_DATA1 | MUX_PAD_CTRL(ESDHC_PAD_CTRL),
-	SC_P_USDHC1_DATA2 | MUX_PAD_CTRL(ESDHC_PAD_CTRL),
-	SC_P_USDHC1_DATA3 | MUX_PAD_CTRL(ESDHC_PAD_CTRL),
-	SC_P_USDHC1_WP    | MUX_PAD_CTRL(ESDHC_PAD_CTRL), /* Mux for WP */
-	SC_P_USDHC1_CD_B  | MUX_MODE_ALT(4) | MUX_PAD_CTRL(ESDHC_PAD_CTRL), /* Mux for CD,  GPIO4 IO22 */
-	SC_P_USDHC1_RESET_B | MUX_PAD_CTRL(ESDHC_PAD_CTRL),
-	SC_P_USDHC1_VSELECT | MUX_PAD_CTRL(ESDHC_PAD_CTRL),
-};
+struct gpio_desc usdhc2_cd;
 
 int board_mmc_init(bd_t *bis)
 {
-	int i, ret;
-	struct power_domain pd;
+	int ret = 0;
 
-	/*
-	 * According to the board_mmc_init() the following map is done:
-	 * (U-boot device node)    (Physical Port)
-	 * mmc0                    USDHC1
-	 * mmc1                    USDHC2
-	 */
-	for (i = 0; i < CONFIG_SYS_FSL_USDHC_NUM; i++) {
-		switch (i) {
-		case 0:
-			if (!power_domain_lookup_name("conn_sdhc0", &pd))
-				power_domain_on(&pd);
-			imx8_iomux_setup_multiple_pads(emmc0, ARRAY_SIZE(emmc0));
-			init_clk_usdhc(0);
-			usdhc_cfg[i].sdhc_clk = mxc_get_clock(MXC_ESDHC_CLK);
-			break;
-		case 1:
-			if (!power_domain_lookup_name("conn_sdhc1", &pd))
-				power_domain_on(&pd);
-			imx8_iomux_setup_multiple_pads(usdhc1_sd, ARRAY_SIZE(usdhc1_sd));
-			init_clk_usdhc(1);
-			usdhc_cfg[i].sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
-			gpio_request(USDHC1_CD_GPIO, "sd1_cd");
-			gpio_direction_input(USDHC1_CD_GPIO);
-			break;
-		default:
-			printf("Warning: you configured more USDHC controllers"
-				"(%d) than supported by the board\n", i + 1);
-			return 0;
-		}
-		ret = fsl_esdhc_initialize(bis, &usdhc_cfg[i]);
-		if (ret) {
-			printf("Warning: failed to initialize mmc dev %d\n", i);
-			return ret;
-		}
-	}
+	/* Request uSDHC2 card detect GPIO */
+	ret = dm_gpio_lookup_name("gpio5_9", &usdhc2_cd);
+	if (ret)
+		return ret;
+
+	ret = dm_gpio_request(&usdhc2_cd, "usdhc2_cd");
+	if (ret)
+		return ret;
 
 	return 0;
 }
@@ -186,7 +126,7 @@ int board_mmc_getcd(struct mmc *mmc)
 		ret = 1; /* eMMC */
 		break;
 	case USDHC2_BASE_ADDR:
-		ret = !gpio_get_value(USDHC1_CD_GPIO);
+		ret = dm_gpio_get_value(&usdhc2_cd);
 		break;
 	}
 
@@ -420,6 +360,9 @@ int board_init(void)
 #ifdef CONFIG_MXC_GPIO
 	board_gpio_init();
 #endif
+
+	if (board_mmc_init(NULL))
+		printf("  Error initializing MMC\n");
 
 #ifdef CONFIG_FEC_MXC
 	setup_fec(CONFIG_FEC_ENET_DEV);
