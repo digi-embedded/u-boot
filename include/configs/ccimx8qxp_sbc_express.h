@@ -57,12 +57,11 @@
 #define CONFIG_MII
 
 #define CONFIG_FEC_MXC
-#define CONFIG_FEC_XCV_TYPE             RGMII
+#define CONFIG_FEC_XCV_TYPE             RMII
 #define FEC_QUIRK_ENET_MAC
 
-#define CONFIG_PHY_GIGE /* Support for 1000BASE-X */
 #define CONFIG_PHYLIB
-#define CONFIG_PHY_ATHEROS
+#define CONFIG_PHY_SMSC
 
 /* ENET0 connects AR8031 on CPU board, ENET1 connects to base board and MUX with ESAI, default is ESAI */
 #define CONFIG_FEC_ENET_DEV 0
@@ -120,6 +119,7 @@
 /* Initial environment variables */
 #define CONFIG_EXTRA_ENV_SETTINGS		\
 	CONFIG_MFG_ENV_SETTINGS \
+	CONFIG_DEFAULT_NETWORK_SETTINGS		\
 	M4_BOOT_ENV \
 	XEN_ENV \
 	"script=boot.scr\0" \
