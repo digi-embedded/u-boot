@@ -59,6 +59,7 @@
 #define CONFIG_FEC_MXC
 #define CONFIG_FEC_XCV_TYPE             RMII
 #define FEC_QUIRK_ENET_MAC
+#define CONFIG_RESET_PHY_R
 
 #define CONFIG_PHYLIB
 #define CONFIG_PHY_SMSC

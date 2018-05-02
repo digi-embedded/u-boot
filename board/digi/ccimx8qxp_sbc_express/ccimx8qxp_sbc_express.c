@@ -201,6 +201,7 @@ int board_mmc_getcd(struct mmc *mmc)
 static void enet_device_phy_reset(void)
 {
 	struct gpio_desc desc;
+	struct udevice *dev = NULL;
 	int ret;
 
 	if (0 == CONFIG_FEC_ENET_DEV) {
@@ -216,6 +217,7 @@ static void enet_device_phy_reset(void)
 		dm_gpio_set_value(&desc, 0);
 		udelay(100);
 		dm_gpio_set_value(&desc, 1);
+		dm_gpio_free(dev, &desc);
 	}
 }
 
@@ -404,6 +406,14 @@ int board_usb_cleanup(int index, enum usb_init_type init)
 	return ret;
 }
 #endif
+
+#ifdef CONFIG_RESET_PHY_R
+void reset_phy(void)
+{
+	enet_device_phy_reset();
+}
+#endif /* CONFIG_RESET_PHY_R */
+
 
 int board_init(void)
 {
