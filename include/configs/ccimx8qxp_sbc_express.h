@@ -121,6 +121,7 @@
 #define CONFIG_EXTRA_ENV_SETTINGS		\
 	CONFIG_MFG_ENV_SETTINGS \
 	CONFIG_DEFAULT_NETWORK_SETTINGS		\
+	RANDOM_UUIDS \
 	M4_BOOT_ENV \
 	XEN_ENV \
 	"script=boot.scr\0" \
@@ -176,6 +177,18 @@
 			"fi; " \
 		"else " \
 			"booti; " \
+		"fi;\0" \
+	"parts_linux="LINUX_4GB_PARTITION_TABLE"\0" \
+	"partition_mmc_linux=mmc rescan;" \
+		"if mmc dev ${mmcdev} 0; then " \
+			"gpt write mmc ${mmcdev} ${parts_linux};" \
+			"mmc rescan;" \
+		"else " \
+			"if mmc dev ${mmcdev};then " \
+				"gpt write mmc ${mmcdev} ${parts_linux};" \
+				"mmc rescan;" \
+			"else;" \
+			"fi;" \
 		"fi;\0"
 
 #define CONFIG_BOOTCOMMAND \
