@@ -120,6 +120,7 @@ int media_write_block(u32 addr, unsigned char *writebuf, uint hwpart)
 	size_t len;
 	int ret = -1;
 	struct mmc *mmc;
+	static struct blk_desc *mmc_dev;
 	unsigned long written;
 	uint orig_part;
 
@@ -131,11 +132,12 @@ int media_write_block(u32 addr, unsigned char *writebuf, uint hwpart)
 	if (!mmc)
 		return ret;
 
+	mmc_dev = mmc_get_blk_desc(mmc);
 	orig_part = mmc->block_dev.hwpart;
 	if (blk_select_hwpart_devnum(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV,
 				     hwpart))
 		return ret;
-	written = mmc->block_dev.block_write(CONFIG_SYS_MMC_ENV_DEV,
+	written = mmc->block_dev.block_write(mmc_dev,
 					     addr,
 					     1,
 					     writebuf);
