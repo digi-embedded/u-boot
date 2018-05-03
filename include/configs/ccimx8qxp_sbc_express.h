@@ -133,6 +133,7 @@
 	"fdt_file=fsl-imx8qxp-mek.dtb\0" \
 	"initrd_addr=0x83800000\0"		\
 	"initrd_high=0xffffffffffffffff\0" \
+	"mmcbootpart=" __stringify(CONFIG_SYS_BOOT_PART_EMMC) "\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
@@ -189,15 +190,6 @@
 		   "fi; " \
 	   "else booti ${loadaddr} - ${fdt_addr}; fi"
 
-/* Link Definitions */
-#define CONFIG_LOADADDR			0x80280000
-#define CONFIG_SYS_TEXT_BASE		0x80020000
-
-#define CONFIG_SYS_LOAD_ADDR           CONFIG_LOADADDR
-
-#define CONFIG_SYS_INIT_SP_ADDR         0x80200000
-
-
 /* Default environment is in SD */
 #ifdef CONFIG_QSPI_BOOT
 #define CONFIG_ENV_IS_IN_SPI_FLASH
@@ -209,15 +201,17 @@
 #define CONFIG_ENV_SPI_MAX_HZ	CONFIG_SF_DEFAULT_SPEED
 #else
 #define CONFIG_ENV_IS_IN_MMC
-#define CONFIG_ENV_OFFSET       (64 * SZ_64K)
+#define CONFIG_ENV_OFFSET		(1792 * 1024)	/* 256kB below 2MiB */
+#define CONFIG_ENV_OFFSET_REDUND	(CONFIG_ENV_OFFSET + (128 * 1024))
+#define CONFIG_ENV_SIZE_REDUND		CONFIG_ENV_SIZE
 #define CONFIG_SYS_MMC_ENV_PART		0	/* user area */
 #endif
 
 #define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 
-/* On LPDDR4 board, USDHC1 is for eMMC, USDHC2 is for SD on CPU board
+/* On CC8X, USDHC1 is for eMMC, USDHC2 is for SD on SBC Express
   */
-#define CONFIG_SYS_MMC_ENV_DEV		1   /* USDHC2 */
+#define CONFIG_SYS_MMC_ENV_DEV		0   /* USDHC1 */
 #define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
 #define CONFIG_SYS_FSL_USDHC_NUM	2
 
@@ -228,6 +222,7 @@
 #define CONFIG_NR_DRAM_BANKS		1
 #define PHYS_SDRAM_1			0x80000000
 #define PHYS_SDRAM_1_SIZE		0x40000000	/* 1 GB */
+#define PHYS_SDRAM			PHYS_SDRAM_1
 
 /* Serial */
 #define CONFIG_BAUDRATE			115200
