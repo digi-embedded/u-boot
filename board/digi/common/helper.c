@@ -41,11 +41,13 @@ static const char *src_strings[] = {
 	[SRC_SATA] =	"sata",
 };
 
+#ifdef CONFIG_CMD_UPDATE
 /* hook for on-the-fly update and register function */
 static int (*otf_update_hook)(otf_data_t *data) = NULL;
 /* Data struct for on-the-fly update */
 static otf_data_t otfd;
 #endif
+#endif /* CONFIG_CMD_UPDATE || CONFIG_CMD_DBOOT */
 
 #ifdef CONFIG_AUTO_BOOTSCRIPT
 #define AUTOSCRIPT_TFTP_MSEC		100
@@ -75,6 +77,81 @@ int confirm_msg(char *msg)
 	puts("Operation aborted by user\n");
 	return 0;
 }
+
+#ifdef CONFIG_CMD_UPDATE
+void register_fs_otf_update_hook(int (*hook)(otf_data_t *data),
+				 disk_partition_t *partition)
+{
+	otf_update_hook = hook;
+	/* Initialize data for new transfer */
+	otfd.buf = NULL;
+	otfd.part = partition;
+	otfd.flags = OTF_FLAG_INIT;
+	otfd.offset = 0;
+}
+
+void unregister_fs_otf_update_hook(void)
+{
+	otf_update_hook = NULL;
+}
+
+/* On-the-fly update for files in a filesystem on mass storage media
+ * The function returns:
+ *	0 if the file was loaded successfully
+ *	-1 on error
+ */
+static int write_file_fs_otf(int src, char *filename, char *devpartno)
+{
+	char cmd[CONFIG_SYS_CBSIZE] = "";
+	unsigned long filesize;
+	unsigned long remaining;
+	unsigned long offset = 0;
+
+	/* Obtain file size */
+	sprintf(cmd, "size %s %s %s", src_strings[src], devpartno, filename);
+	if (run_command(cmd, 0)) {
+		printf("Couldn't determine file size\n");
+		return -1;
+	}
+	filesize = getenv_ulong("filesize", 16, 0);
+	remaining = filesize;
+
+	/* Init otf data */
+	otfd.loadaddr = getenv_ulong("loadaddr", 16, 0);
+
+	while (remaining > 0) {
+		debug("%lu remaining bytes\n", remaining);
+		/* Determine chunk length to write */
+		if (remaining > CONFIG_OTF_CHUNK) {
+			otfd.len = CONFIG_OTF_CHUNK;
+		} else {
+			otfd.flags |= OTF_FLAG_FLUSH;
+			otfd.len = remaining;
+		}
+
+		/* Load 'len' bytes from file[offset] into RAM */
+		sprintf(cmd, "load %s %s $loadaddr %s %x %x", src_strings[src],
+			devpartno, filename, otfd.len, (unsigned int)offset);
+		if (run_command(cmd, 0)) {
+			printf("Couldn't load file\n");
+			return -1;
+		}
+
+		/* Write chunk */
+		if (otf_update_hook(&otfd)) {
+			printf("Error writing on-the-fly. Aborting\n");
+			return -1;
+		}
+
+		/* Update local target offset */
+		offset += otfd.len;
+		/* Update remaining bytes */
+		remaining -= otfd.len;
+	}
+
+	return 0;
+}
+#endif /* CONFIG_CMD_UPDATE */
 
 #if defined(CONFIG_CMD_UPDATE) || defined(CONFIG_CMD_DBOOT)
 int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
@@ -283,81 +360,6 @@ bool is_ubi_partition(struct part_info *part)
 	return ret;
 }
 #endif /* CONFIG_DIGI_UBI */
-#endif /* CONFIG_CMD_UPDATE || CONFIG_CMD_DBOOT */
-
-#ifdef CONFIG_CMD_UPDATE
-void register_fs_otf_update_hook(int (*hook)(otf_data_t *data),
-				 disk_partition_t *partition)
-{
-	otf_update_hook = hook;
-	/* Initialize data for new transfer */
-	otfd.buf = NULL;
-	otfd.part = partition;
-	otfd.flags = OTF_FLAG_INIT;
-	otfd.offset = 0;
-}
-
-void unregister_fs_otf_update_hook(void)
-{
-	otf_update_hook = NULL;
-}
-
-/* On-the-fly update for files in a filesystem on mass storage media
- * The function returns:
- *	0 if the file was loaded successfully
- *	-1 on error
- */
-static int write_file_fs_otf(int src, char *filename, char *devpartno)
-{
-	char cmd[CONFIG_SYS_CBSIZE] = "";
-	unsigned long filesize;
-	unsigned long remaining;
-	unsigned long offset = 0;
-
-	/* Obtain file size */
-	sprintf(cmd, "size %s %s %s", src_strings[src], devpartno, filename);
-	if (run_command(cmd, 0)) {
-		printf("Couldn't determine file size\n");
-		return -1;
-	}
-	filesize = getenv_ulong("filesize", 16, 0);
-	remaining = filesize;
-
-	/* Init otf data */
-	otfd.loadaddr = getenv_ulong("loadaddr", 16, 0);
-
-	while (remaining > 0) {
-		debug("%lu remaining bytes\n", remaining);
-		/* Determine chunk length to write */
-		if (remaining > CONFIG_OTF_CHUNK) {
-			otfd.len = CONFIG_OTF_CHUNK;
-		} else {
-			otfd.flags |= OTF_FLAG_FLUSH;
-			otfd.len = remaining;
-		}
-
-		/* Load 'len' bytes from file[offset] into RAM */
-		sprintf(cmd, "load %s %s $loadaddr %s %x %x", src_strings[src],
-			devpartno, filename, otfd.len, (unsigned int)offset);
-		if (run_command(cmd, 0)) {
-			printf("Couldn't load file\n");
-			return -1;
-		}
-
-		/* Write chunk */
-		if (otf_update_hook(&otfd)) {
-			printf("Error writing on-the-fly. Aborting\n");
-			return -1;
-		}
-
-		/* Update local target offset */
-		offset += otfd.len;
-		/* Update remaining bytes */
-		remaining -= otfd.len;
-	}
-
-	return 0;
-}
 
 /* A variable determines if the file must be loaded.
  * The function returns:
@@ -403,11 +405,14 @@ int load_firmware(struct load_fw *fwinfo)
 	case SRC_MMC:
 	case SRC_USB:
 	case SRC_SATA:
+#ifdef CONFIG_CMD_UPDATE
 		if (otf_update_hook) {
 			ret = write_file_fs_otf(fwinfo->src, fwinfo->filename,
 						fwinfo->devpartno);
 			goto _ret;
-		} else {
+		} else
+#endif
+		{
 			sprintf(cmd, "load %s %s %s %s", src_strings[fwinfo->src],
 				fwinfo->devpartno, fwinfo->loadaddr,
 				fwinfo->filename);
@@ -458,7 +463,7 @@ _ret:
 
 	return LDFW_LOADED;	/* ok, file was loaded */
 }
-#endif /* CONFIG_CMD_UPDATE */
+#endif /* CONFIG_CMD_UPDATE || CONFIG_CMD_DBOOT */
 
 #if defined(CONFIG_SOURCE) && defined(CONFIG_AUTO_BOOTSCRIPT)
 void run_auto_bootscript(void)
