@@ -658,7 +658,7 @@ void verify_mac_address(char *var, char *default_mac)
  *	0 if the block is not empty
  *	-1 on error
  */
-int media_block_is_empty(u32 addr, uint hwpart)
+int media_block_is_empty(uintptr_t addr, uint hwpart)
 {
 	size_t len;
 	int ret = -1;

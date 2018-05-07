@@ -23,7 +23,7 @@ size_t media_get_block_size(void)
  * @in: Partition name
  * return 0 if found or -1 if error
 */
-int get_partition_offset(char *part_name, u32 *offset)
+int get_partition_offset(char *part_name, lbaint_t *offset)
 {
 	char *parts, *parttable;
 	char *aux = NULL;
@@ -70,7 +70,7 @@ end:
  */
 unsigned int get_filesystem_key_offset(void)
 {
-	u32 offset;
+	lbaint_t offset;
 
 	if (!get_partition_offset("environment", &offset))
 		return offset + (2*media_get_block_size());

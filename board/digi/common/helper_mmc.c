@@ -33,7 +33,7 @@ size_t media_get_block_size(void)
  * @in: Offset of the partition in mmc block units
  * return 0 if success
 */
-int get_partition_offset(char *part_name, u32 *offset)
+int get_partition_offset(char *part_name, lbaint_t *offset)
 {
 	disk_partition_t info;
 	char dev_index_str[2];
@@ -69,14 +69,14 @@ unsigned int get_filesystem_key_offset(void)
  *	0 if success and data in readbuf.
  *	-1 on error
  */
-int media_read_block(u32 addr, unsigned char *readbuf, uint hwpart)
+int media_read_block(uintptr_t addr, unsigned char *readbuf, uint hwpart)
 {
 	size_t len;
 	size_t nbytes;
 	int ret = -1;
 	struct mmc *mmc;
 	uint orig_part;
-	u32 loadaddr = getenv_ulong("loadaddr", 16, load_addr);
+	uintptr_t loadaddr = getenv_ulong("loadaddr", 16, load_addr);
 
 	len = media_get_block_size();
 	if (len <= 0)
@@ -115,7 +115,7 @@ int media_read_block(u32 addr, unsigned char *readbuf, uint hwpart)
  *	0 if success
  *	-1 on error
  */
-int media_write_block(u32 addr, unsigned char *writebuf, uint hwpart)
+int media_write_block(uintptr_t addr, unsigned char *writebuf, uint hwpart)
 {
 	size_t len;
 	int ret = -1;
@@ -155,7 +155,7 @@ int media_write_block(u32 addr, unsigned char *writebuf, uint hwpart)
  * @in: Address in media (must be aligned to block size)
  * @in: Partition index, only applies for MMC
  */
-void media_erase_fskey(u32 addr, uint hwpart)
+void media_erase_fskey(uintptr_t addr, uint hwpart)
 {
 	struct mmc *mmc;
 	unsigned char *zero_buf;

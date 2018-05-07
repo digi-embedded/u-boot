@@ -184,7 +184,7 @@ static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
 
 	/* Write chunklen bytes of chunk to media */
 	debug("writing chunk of 0x%x bytes (0x%x sectors) "
-		"from 0x%x to block 0x%x\n",
+		"from 0x%lx to block 0x%x\n",
 		chunklen, sectors, otfd->loadaddr, dstblk);
 	written = mmc->block_dev.block_write(mmc_dev, dstblk, sectors,
 					     (const void *)otfd->loadaddr);
