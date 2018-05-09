@@ -239,6 +239,11 @@ int board_update_chunk(otf_data_t *otfd)
 	mmc = find_mmc_device(mmc_dev_index);
 	if (NULL == mmc)
 		return -1;
+	mmc_dev = mmc_get_blk_desc(mmc);
+	if (NULL == mmc_dev) {
+		printf("ERROR: failed to get block descriptor for MMC device\n");
+		return -1;
+	}
 
 	/*
 	 * There are two variants:
