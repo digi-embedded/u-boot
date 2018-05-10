@@ -32,9 +32,6 @@
 #define USDHC2_BASE_ADDR                0x5B020000
 #define CONFIG_SUPPORT_EMMC_BOOT	/* eMMC specific */
 
-#define CONFIG_ENV_OVERWRITE
-
-
 #define CONFIG_FSL_HSIO
 #ifdef CONFIG_FSL_HSIO
 #define CONFIG_PCIE_IMX8X
@@ -79,6 +76,19 @@
 
 /* ENET0 MDIO are shared */
 #define CONFIG_FEC_MXC_MDIO_BASE	0x5B040000
+
+/* protected environment variables (besides ethaddr and serial#) */
+#define CONFIG_ENV_FLAGS_LIST_STATIC	\
+	"eth1addr:mc,"			\
+	"wlanaddr:mc,"			\
+	"wlan1addr:mc,"			\
+	"wlan2addr:mc,"			\
+	"wlan3addr:mc,"			\
+	"btaddr:mc,"			\
+	"bootargs_once:sr,"		\
+	"board_version:so,"		\
+	"board_id:so,"			\
+	"mmcbootdev:so"
 
 /* Boot M4 */
 #define M4_BOOT_ENV \
