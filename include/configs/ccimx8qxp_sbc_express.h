@@ -137,7 +137,7 @@
 	"mmcbootpart=" __stringify(CONFIG_SYS_BOOT_PART_EMMC) "\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+	"mmcroot=PARTUUID=1c606ef5-f1ac-43b9-9bb5-d5c578580b6b\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} root=${mmcroot} " \
 	"video=imxdpufb5:off video=imxdpufb6:off video=imxdpufb7:off\0" \
@@ -225,7 +225,6 @@
 /* On CC8X, USDHC1 is for eMMC, USDHC2 is for SD on SBC Express
   */
 #define CONFIG_SYS_MMC_ENV_DEV		0   /* USDHC1 */
-#define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
 #define CONFIG_SYS_FSL_USDHC_NUM	2
 
 /* Size of malloc() pool */
