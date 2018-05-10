@@ -39,7 +39,7 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 extern bool bmode_reset;
-struct ccimx6_hwid my_hwid;
+struct digi_hwid my_hwid;
 
 #define MCA_CC6UL_DEVICE_ID_VAL		0x61
 
@@ -295,17 +295,12 @@ void mca_init(void)
 	printf("\n");
 }
 
-int get_hwid(struct ccimx6_hwid *hwid)
-{
-	return ccimx6_get_hwid(hwid);
-}
-
 int ccimx6ul_init(void)
 {
 	/* Address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 
-	if (get_hwid(&my_hwid)) {
+	if (board_get_hwid(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return -1;
 	}
@@ -404,33 +399,18 @@ u32 get_board_rev(void)
 	return get_cpu_rev();
 }
 
-void board_print_hwid(u32 *buf)
-{
-	ccimx6_print_hwid(buf);
-}
-
-void board_print_manufid(u32 *buf)
-{
-	ccimx6_print_manufid(buf);
-}
-
-int manufstr_to_hwid(int argc, char *const argv[], u32 *val)
-{
-	return ccimx6_manufstr_to_hwid(argc, argv, val);
-}
-
 void fdt_fixup_hwid(void *fdt)
 {
 	/* Re-read HWID which might have been overridden by user */
-	if (get_hwid(&my_hwid)) {
+	if (board_get_hwid(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return;
 	}
 
-	ccimx6_fdt_fixup_hwid(fdt, &my_hwid);
+	board_fdt_fixup_hwid(fdt, &my_hwid);
 }
 
-static int is_valid_hwid(struct ccimx6_hwid *hwid)
+static int is_valid_hwid(struct digi_hwid *hwid)
 {
 	if (hwid->variant < ARRAY_SIZE(ccimx6ul_variants))
 		if (ccimx6ul_variants[hwid->variant].cpu != IMX6_NONE)

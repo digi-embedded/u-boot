@@ -11,6 +11,11 @@
 #include <asm/arch/imx-regs.h>
 #include "digi_common.h"		/* Load Digi common stuff... */
 
+#define CONFIG_CC8
+#define CONFIG_SOM_DESCRIPTION		"ConnectCore 8X"
+
+#define CONFIG_DISPLAY_BOARDINFO_LATE
+
 /* RAM */
 #define CONFIG_LOADADDR			0x80280000
 #define CONFIG_SYS_TEXT_BASE		0x80020000
@@ -34,6 +39,12 @@
 #define BOOTAUX_RESERVED_MEM_BASE 0x88000000
 #define BOOTAUX_RESERVED_MEM_SIZE 0x08000000 /* Reserve from second 128MB */
 
+/* HWID */
+#define CONFIG_HAS_HWID
+#define CONFIG_HWID_BANK		0
+#define HWID0_FUSE0			708
+#define HWID1_FUSE1			709
+#define HWID1_FUSE2			711
 
 /* Media type for firmware updates */
 #define CONFIG_SYS_STORAGE_MEDIA       "mmc"

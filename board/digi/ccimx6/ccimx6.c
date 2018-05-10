@@ -54,7 +54,7 @@ extern unsigned int board_version;
 extern unsigned int board_id;
 extern void board_spurious_wakeup(void);
 
-struct ccimx6_hwid my_hwid;
+struct digi_hwid my_hwid;
 static struct blk_desc *mmc_dev;
 static int mmc_dev_index = -1;
 static int enet_xcv_type;
@@ -1397,38 +1397,18 @@ int ccimx6_late_init(void)
 	return ccimx6_fixup();
 }
 
-void board_print_hwid(u32 *buf)
-{
-	ccimx6_print_hwid(buf);
-}
-
-void board_print_manufid(u32 *buf)
-{
-	ccimx6_print_manufid(buf);
-}
-
-int manufstr_to_hwid(int argc, char *const argv[], u32 *val)
-{
-	return ccimx6_manufstr_to_hwid(argc, argv, val);
-}
-
-int get_hwid(struct ccimx6_hwid *hwid)
-{
-	return ccimx6_get_hwid(hwid);
-}
-
 void fdt_fixup_hwid(void *fdt)
 {
 	/* Re-read HWID which might have been overridden by user */
-	if (get_hwid(&my_hwid)) {
+	if (board_get_hwid(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return;
 	}
 
-	ccimx6_fdt_fixup_hwid(fdt, &my_hwid);
+	board_fdt_fixup_hwid(fdt, &my_hwid);
 }
 
-static int is_valid_hwid(struct ccimx6_hwid *hwid)
+static int is_valid_hwid(struct digi_hwid *hwid)
 {
 	int num;
 	struct ccimx6_variant *cc6_variant = get_cc6_variant(hwid->variant);
@@ -1653,7 +1633,7 @@ int board_update_chunk(otf_data_t *otfd)
 
 int ccimx6_init(void)
 {
-	if (get_hwid(&my_hwid)) {
+	if (board_get_hwid(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return -1;
 	}

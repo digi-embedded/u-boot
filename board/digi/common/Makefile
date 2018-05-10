@@ -37,7 +37,9 @@ obj-$(CONFIG_CMD_BOOTSTREAM) += cmd_bootstream/bch.o \
 obj-$(CONFIG_MXS_OTP) += cmd_mxsotp.o
 ifdef CONFIG_HAS_HWID
 obj-y += cmd_hwid.o
+obj-y += hwid.o
 obj-$(CONFIG_CC6) += ccimx6_hwid.o
+obj-$(CONFIG_CC8) += ccimx8_hwid.o
 endif
 obj-$(CONFIG_HAS_CARRIERBOARD_VERSION) += cmd_board.o
 obj-$(CONFIG_HAS_CARRIERBOARD_ID) += cmd_board.o

@@ -8,6 +8,8 @@
 #define CCIMX8X_H
 
 /* Common ccimx8x functions */
+int ccimx8_init(void);
 int ccimx8x_late_init(void);
+void print_ccimx8x_info(void);
 
 #endif  /* CCIMX8X_H */

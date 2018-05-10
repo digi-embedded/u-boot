@@ -10,6 +10,8 @@
 
 #include "ccimx8x_common.h"
 
+#define CONFIG_BOARD_DESCRIPTION	"SBC Express"
+
 #define CONFIG_REMAKE_ELF
 
 #define CONFIG_BOARD_EARLY_INIT_F
@@ -24,8 +26,6 @@
 #define CONFIG_PCI_SCAN_SHOW
 #define CONFIG_CMD_PCI_ENUM
 #endif
-
-#define CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
 
 /* GPIO configs */
 #define CONFIG_MXC_GPIO

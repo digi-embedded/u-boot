@@ -18,6 +18,7 @@
 #include "../../freescale/common/tcpc.h"
 
 #include "../ccimx8x/ccimx8x.h"
+#include "../common/hwid.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -195,8 +196,7 @@ static void board_gpio_init(void)
 
 int checkboard(void)
 {
-	puts("Board: iMX8QXP MEK\n");
-
+	print_ccimx8x_info();
 	print_bootinfo();
 
 	/* Note:  After reloc, ipcHndl will no longer be valid.  If handle
@@ -290,6 +290,9 @@ void reset_phy(void)
 
 int board_init(void)
 {
+	/* SOM init */
+	ccimx8_init();
+
 #ifdef CONFIG_MXC_GPIO
 	board_gpio_init();
 #endif
@@ -317,22 +320,21 @@ void board_quiesce_devices()
 	power_off_pd_devices(power_on_devices, ARRAY_SIZE(power_on_devices));
 }
 
-#ifdef CONFIG_OF_BOARD_SETUP
+#if defined(CONFIG_OF_BOARD_SETUP)
+/* Platform function to modify the FDT as needed */
 int ft_board_setup(void *blob, bd_t *bd)
 {
+	/* Re-read HWID which could have been overriden by U-Boot commands */
+	fdt_fixup_hwid(blob);
+
 	return 0;
 }
-#endif
+#endif /* CONFIG_OF_BOARD_SETUP */
 
 int board_late_init(void)
 {
 	/* SOM late init */
 	ccimx8x_late_init();
-
-#ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
-	setenv("board_name", "MEK");
-	setenv("board_rev", "iMX8QXP");
-#endif
 
 	return 0;
 }

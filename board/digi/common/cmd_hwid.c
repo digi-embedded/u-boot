@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2014 Digi International, Inc.
+ * (C) Copyright 2014-2018 Digi International, Inc.
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -22,42 +22,251 @@
 
 #include <common.h>
 #include <command.h>
-#include <fuse.h>
 #include <linux/errno.h>
 #include "helper.h"
 #include "hwid.h"
-#ifdef CONFIG_OF_LIBFDT
-#include <fdt_support.h>
-#endif
 
-__weak void board_print_hwid(u32 *hwid)
+const char *cert_regions[] = {
+	"U.S.A.",
+	"International",
+	"Japan",
+};
+
+/* Print hwid_array as HWID output */
+__weak void print_hwid(u32 *hwid_array)
+{
+	int i;
+	int cert;
+
+	for (i = HWID_ARRAY_WORDS_NUMBER - 1; i >= 0; i--)
+		printf(" %.8x", hwid_array[i]);
+	printf("\n");
+
+	/* Formatted printout */
+	printf("    Year:          20%02d\n", (hwid_array[1] >> 26) & 0x3f);
+	printf("    Week:          %02d\n", (hwid_array[1] >> 20) & 0x3f);
+	printf("    Wireless ID:   0x%x\n", (hwid_array[1] >> 16) & 0xf);
+	printf("    Variant:       0x%02x\n", (hwid_array[1] >> 8) & 0xff);
+	printf("    HW Version:    0x%x\n", (hwid_array[1] >> 4) & 0xf);
+	cert = hwid_array[1] & 0xf;
+	printf("    Cert:          0x%x (%s)\n", cert,
+	       cert < ARRAY_SIZE(cert_regions) ? cert_regions[cert] : "??");
+	printf("    Location:      %c\n", ((hwid_array[0] >> 27) & 0x1f) + 'A');
+	printf("    Generator ID:  %02d\n", (hwid_array[0] >> 20) & 0x7f);
+	printf("    S/N:           %06d\n", hwid_array[0] & 0xfffff);
+}
+
+/* Print hwid_array as MANUFID output */
+__weak void print_manufid(u32 *hwid_array)
 {
 	int i;
 
-	for (i = CONFIG_HWID_WORDS_NUMBER - 1; i >= 0; i--)
-		printf(" %.8x", hwid[i]);
+	for (i = HWID_ARRAY_WORDS_NUMBER - 1; i >= 0; i--)
+		printf(" %.8x", hwid_array[i]);
 	printf("\n");
+
+	/* Formatted printout */
+	printf(" Manufacturing ID: %c%02d%02d%02d%06d %02x%x%x %x\n",
+	       ((hwid_array[0] >> 27) & 0x1f) + 'A',
+	       (hwid_array[1] >> 26) & 0x3f,
+	       (hwid_array[1] >> 20) & 0x3f,
+	       (hwid_array[0] >> 20) & 0x7f,
+	       hwid_array[0] & 0xfffff,
+	       (hwid_array[1] >> 8) & 0xff,
+	       (hwid_array[1] >> 4) & 0xf,
+	       hwid_array[1] & 0xf,
+	       (hwid_array[1] >> 16) & 0xf);
 }
 
-__weak void board_print_manufid(u32 *hwid)
+/* Parse HWID input into hwid_array */
+__weak int parse_hwid(int argc, char *const argv[], u32 *hwid_array)
 {
-	board_print_hwid(hwid);
+	int i;
+	int word;
+
+	if (argc != HWID_ARRAY_WORDS_NUMBER)
+		return -EINVAL;
+
+	/*
+	 * Digi HWID is set as a couple of hex strings in the form
+	 *     <HWID1> <HWID0>
+	 * where:
+	 *
+	 *        | 31..26 | 25..20 | 19..16 |  15..8  | 7..4 | 3..0 |
+	 *        +--------+--------+--------+---------+------+------+
+	 * HWID1: |  Year  |  Week  |  WID   | Variant |  HV  | Cert |
+	 *        +--------+--------+--------+---------+------+------+
+	 *
+	 *        |  31..27  | 26..20 |             19..0            |
+	 *        +----------+--------+------------------------------+
+	 * HWID0: | Location |  GenID |         Serial number        |
+	 *        +----------+--------+------------------------------+
+	 */
+
+	/* Parse backwards, from MSB to LSB */
+	word = HWID_ARRAY_WORDS_NUMBER - 1;
+	for (i = 0; i < HWID_ARRAY_WORDS_NUMBER; i++, word--) {
+		if (strtou32(argv[i], 16, &hwid_array[word]))
+			return -EINVAL;
+	}
+
+	return 0;
 }
 
-__weak int manufstr_to_hwid(int argc, char *const argv[], u32 *val)
+/* Parse MANUFID input into hwid_array */
+__weak int parse_manufid(int argc, char *const argv[], u32 *hwid_array)
 {
-	printf("Undefined function for manufacturing string conversion\n");
-	return -EPERM;
+	char tmp[13];
+	unsigned long num;
+
+	/* Initialize HWID words */
+	hwid_array[0] = 0;
+	hwid_array[1] = 0;
+
+	if (argc < 2 || argc > 3)
+		goto err;
+
+	/*
+	 * Digi Manufacturing team produces a string in the form
+	 *     <LYYWWGGXXXXXX>
+	 * where:
+	 *  - L:	location, an uppercase letter [A..Z]
+	 *  - YY:	year (last two digits of XXI century, in decimal)
+	 *  - WW:	week of year (in decimal)
+	 *  - GG:	generator ID (in decimal)
+	 *  - XXXXXX:	serial number (in decimal)
+	 * this information goes into the following places on the HWID:
+	 *  - L:	HWID0 bits 31..27 (5 bits)
+	 *  - YY:	HWID1 bits 31..26 (6 bits)
+	 *  - WW:	HWID1 bits 25..20 (6 bits)
+	 *  - GG:	HWID0 bits 26..20 (7 bits)
+	 *  - XXXXXX:	HWID0 bits 19..0 (20 bits)
+	 */
+	if (strlen(argv[0]) != 13)
+		goto err;
+
+	/*
+	 * A second string in the form <VVHC> must be given where:
+	 *  - VV:	variant (in hex)
+	 *  - H:	hardware version (in hex)
+	 *  - C:	wireless certification (in hex)
+	 * this information goes into the following places on the HWID:
+	 *  - VV:	HWID1 bits 15..8 (8 bits)
+	 *  - H:	HWID1 bits 7..4 (4 bits)
+	 *  - C:	HWID1 bits 3..0 (4 bits)
+	 */
+	if (strlen(argv[1]) != 4)
+		goto err;
+
+	/*
+	 * A third string (if provided) in the form <K> may be given, where:
+	 *  - K:	wireless ID (in hex)
+	 * this information goes into the following places on the HWID:
+	 *  - K:	HWID1 bits 19..16 (4 bits)
+	 * If not provided, a zero is used (for backwards compatibility)
+	 */
+	if (argc > 2) {
+		if (strlen(argv[2]) != 1)
+			goto err;
+	}
+
+	/* Location */
+	if (argv[0][0] < 'A' || argv[0][0] > 'Z')
+		goto err;
+	hwid_array[0] |= (argv[0][0] - 'A') << 27;
+	printf("    Location:      %c\n", argv[0][0]);
+
+	/* Year (only 6 bits: from 0 to 63) */
+	strncpy(tmp, &argv[0][1], 2);
+	tmp[2] = 0;
+	num = simple_strtol(tmp, NULL, 10);
+	if (num < 0 || num > 63)
+		goto err;
+	hwid_array[1] |= num << 26;
+	printf("    Year:          20%02d\n", (int)num);
+
+	/* Week */
+	strncpy(tmp, &argv[0][3], 2);
+	tmp[2] = 0;
+	num = simple_strtol(tmp, NULL, 10);
+	if (num < 1 || num > 54)
+		goto err;
+	hwid_array[1] |= num << 20;
+	printf("    Week:          %02d\n", (int)num);
+
+	/* Generator ID */
+	strncpy(tmp, &argv[0][5], 2);
+	tmp[2] = 0;
+	num = simple_strtol(tmp, NULL, 10);
+	if (num < 0 || num > 99)
+		goto err;
+	hwid_array[0] |= num << 20;
+	printf("    Generator ID:  %02d\n", (int)num);
+
+	/* Serial number */
+	strncpy(tmp, &argv[0][7], 6);
+	tmp[6] = 0;
+	num = simple_strtol(tmp, NULL, 10);
+	if (num < 0 || num > 999999)
+		goto err;
+	hwid_array[0] |= num;
+	printf("    S/N:           %06d\n", (int)num);
+
+	/* Variant */
+	strncpy(tmp, &argv[1][0], 2);
+	tmp[2] = 0;
+	num = simple_strtol(tmp, NULL, 16);
+	if (num < 0 || num > 0xff)
+		goto err;
+	hwid_array[1] |= num << 8;
+	printf("    Variant:       0x%02x\n", (int)num);
+
+	/* Hardware version */
+	strncpy(tmp, &argv[1][2], 1);
+	tmp[1] = 0;
+	num = simple_strtol(tmp, NULL, 16);
+	if (num < 0 || num > 0xf)
+		goto err;
+	hwid_array[1] |= num << 4;
+	printf("    HW version:    0x%x\n", (int)num);
+
+	/* Cert */
+	strncpy(tmp, &argv[1][3], 1);
+	tmp[1] = 0;
+	num = simple_strtol(tmp, NULL, 16);
+	if (num < 0 || num > 0xf)
+		goto err;
+	hwid_array[1] |= num;
+	printf("    Cert:          0x%x (%s)\n", (int)num,
+	       num < ARRAY_SIZE(cert_regions) ? cert_regions[num] : "??");
+
+	num = 0;
+	if (argc > 2) {
+		/* Wireless ID */
+		strncpy(tmp, &argv[2][0], 1);
+		tmp[1] = 0;
+		num = simple_strtol(tmp, NULL, 16);
+		if (num < 0 || num > 0xf)
+			goto err;
+		hwid_array[1] |= num << 16;
+	}
+	printf("    Wireless ID:   0x%x\n", (int)num);
+
+	return 0;
+
+err:
+	printf("Invalid manufacturing string.\n"
+		"Manufacturing information must be in the form: "
+		CONFIG_MANUF_STRINGS_HELP "\n");
+	return -EINVAL;
 }
 
 static int do_hwid(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 {
 	const char *op;
 	int confirmed = argc >= 3 && !strcmp(argv[2], "-y");
-	u32 bank = CONFIG_HWID_BANK;
-	u32 word = CONFIG_HWID_START_WORD;
-	u32 val[8];
-	int ret, i;
+	u32 hwid_array[HWID_ARRAY_WORDS_NUMBER];
+	int ret;
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -68,93 +277,59 @@ static int do_hwid(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 
 	if (!strcmp(op, "read") || !strcmp(op, "read_manuf")) {
 		printf("Reading HWID: ");
-		for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word++) {
-			ret = fuse_read(bank, word, &val[i]);
-			if (ret)
-				goto err;
-		}
+		board_read_hwid(hwid_array);
 		if (!strcmp(op, "read_manuf"))
-			board_print_manufid(val);
+			print_manufid(hwid_array);
 		else
-			board_print_hwid(val);
+			print_hwid(hwid_array);
 	} else if (!strcmp(op, "sense") || !strcmp(op, "sense_manuf")) {
 		printf("Sensing HWID: ");
-		for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word++) {
-			ret = fuse_sense(bank, word, &val[i]);
-			if (ret)
-				goto err;
-		}
+		board_sense_hwid(hwid_array);
 		if (!strcmp(op, "sense_manuf"))
-			board_print_manufid(val);
+			print_manufid(hwid_array);
 		else
-			board_print_hwid(val);
+			print_hwid(hwid_array);
 	} else if (!strcmp(op, "prog")) {
-		if (argc < CONFIG_HWID_WORDS_NUMBER)
+		if (parse_hwid(argc, argv, hwid_array))
 			return CMD_RET_USAGE;
-
 		if (!confirmed && !confirm_prog())
 			return CMD_RET_FAILURE;
 		printf("Programming HWID... ");
-		/* Write backwards, from MSB to LSB */
-		word = CONFIG_HWID_START_WORD + CONFIG_HWID_WORDS_NUMBER - 1;
-		for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word--) {
-			if (strtou32(argv[i], 16, &val[i]))
-				return CMD_RET_USAGE;
-
-			ret = fuse_prog(bank, word, val[i]);
-			if (ret)
-				goto err;
-		}
+		ret = board_prog_hwid(hwid_array);
+		if (ret)
+			goto err;
 		printf("OK\n");
 	} else if (!strcmp(op, "prog_manuf")) {
-		if (argc < 1)
-			return CMD_RET_USAGE;
-		if (manufstr_to_hwid(argc, argv, val))
+		if (parse_manufid(argc, argv, hwid_array))
 			return CMD_RET_FAILURE;
 		if (!confirmed && !confirm_prog())
 			return CMD_RET_FAILURE;
 		printf("Programming manufacturing information into HWID... ");
-		for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word++) {
-			ret = fuse_prog(bank, word, val[i]);
-			if (ret)
-				goto err;
-		}
+		ret = board_prog_hwid(hwid_array);
+		if (ret)
+			goto err;
 		printf("OK\n");
 	} else if (!strcmp(op, "override")) {
-		if (argc < CONFIG_HWID_WORDS_NUMBER)
+		if (parse_hwid(argc, argv, hwid_array))
 			return CMD_RET_USAGE;
-
 		printf("Overriding HWID... ");
-		/* Write backwards, from MSB to LSB */
-		word = CONFIG_HWID_START_WORD + CONFIG_HWID_WORDS_NUMBER - 1;
-		for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word--) {
-			if (strtou32(argv[i], 16, &val[i]))
-				return CMD_RET_USAGE;
-
-			ret = fuse_override(bank, word, val[i]);
-			if (ret)
-				goto err;
-		}
+		ret = board_override_hwid(hwid_array);
+		if (ret)
+			goto err;
 		printf("OK\n");
 	}  else if (!strcmp(op, "override_manuf")) {
-		if (argc < 1)
-			return CMD_RET_USAGE;
-		if (manufstr_to_hwid(argc, argv, val))
+		if (parse_manufid(argc, argv, hwid_array))
 			return CMD_RET_FAILURE;
 		printf("Overriding manufacturing information into HWID... ");
-		for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word++) {
-			ret = fuse_override(bank, word, val[i]);
-			if (ret)
-				goto err;
-		}
+		ret = board_override_hwid(hwid_array);
+		if (ret)
+			goto err;
 		printf("OK\n");
 	} else if (!strcmp(op, "lock")) {
 		if (!confirmed && !confirm_prog())
 			return CMD_RET_FAILURE;
 		printf("Locking HWID... ");
-		ret = fuse_prog(OCOTP_LOCK_BANK,
-				OCOTP_LOCK_WORD,
-				CONFIG_HWID_LOCK_FUSE);
+		ret = board_lock_hwid();
 		if (ret)
 			goto err;
 		printf("OK\n");

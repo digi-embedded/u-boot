@@ -13,11 +13,14 @@
 #include <asm/imx-common/boot_mode.h>
 #include "../../freescale/common/tcpc.h"
 
+#include "../common/hwid.h"
 #include "../common/mca_registers.h"
 #include "../common/mca.h"
 #include "ccimx8x.h"
 
 DECLARE_GLOBAL_DATA_PTR;
+
+struct digi_hwid my_hwid;
 
 #define MCA_CC8X_DEVICE_ID_VAL		0x4A
 
@@ -25,6 +28,17 @@ DECLARE_GLOBAL_DATA_PTR;
 
 static struct blk_desc *mmc_dev;
 static int mmc_dev_index = -1;
+
+static struct ccimx8_variant ccimx8x_variants[] = {
+/* 0x00 */ { IMX8_NONE,	0, 0, "Unknown"},
+/* 0x01 - 55001984-01 */
+	{
+		IMX8QXP,
+		MEM_1GB,
+		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
+		"Automotive QuadXPlus 1.2GHz, 8GB eMMC, 1GB LPDDR4, -40/+85C, Wireless, Bluetooth",
+	},
+};
 
 int mmc_get_bootdevindex(void)
 {
@@ -265,6 +279,44 @@ static void mca_init(void)
 		       fwver[1] & 0x80 ? "(alpha)" : "");
 
 	printf("\n");
+}
+
+void fdt_fixup_hwid(void *fdt)
+{
+	/* Re-read HWID which might have been overridden by user */
+	if (board_get_hwid(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return;
+	}
+
+	board_fdt_fixup_hwid(fdt, &my_hwid);
+}
+
+static int is_valid_hwid(struct digi_hwid *hwid)
+{
+	if (hwid->variant < ARRAY_SIZE(ccimx8x_variants))
+		if (ccimx8x_variants[hwid->variant].cpu != IMX8_NONE)
+			return 1;
+
+	return 0;
+}
+
+void print_ccimx8x_info(void)
+{
+	if (is_valid_hwid(&my_hwid))
+		printf("%s SOM variant 0x%02X: %s\n", CONFIG_SOM_DESCRIPTION,
+			my_hwid.variant,
+			ccimx8x_variants[my_hwid.variant].id_string);
+}
+
+int ccimx8_init(void)
+{
+	if (board_get_hwid(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return -1;
+	}
+
+	return 0;
 }
 
 int ccimx8x_late_init(void)

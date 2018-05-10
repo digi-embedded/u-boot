@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Digi International Inc. All Rights Reserved.
+ * Copyright 2014-2018 Digi International Inc. All Rights Reserved.
  */
 
 /*
@@ -14,7 +14,7 @@
 #ifndef __HWID_H_
 #define __HWID_H_
 
-struct ccimx6_hwid {
+struct digi_hwid {
 	unsigned char	location;	/* location */
 	u8		variant;	/* module variant */
 	unsigned char	hv;		/* hardware version */
@@ -26,6 +26,25 @@ struct ccimx6_hwid {
 	unsigned char	wid;		/* wireless ID */
 };
 
+#define HWID_ARRAY_WORDS_NUMBER    2
+
+enum digi_cert{
+	DIGI_CERT_USA = 0,
+	DIGI_CERT_INTERNATIONAL,
+	DIGI_CERT_JAPAN,
+
+	DIGI_MAX_CERT,
+};
+
+/* RAM size */
+#define MEM_2GB		0x80000000
+#define MEM_1GB		0x40000000
+#define MEM_512MB	0x20000000
+#define MEM_256MB	0x10000000
+
+#define CONFIG_MANUF_STRINGS_HELP	"<LYYWWGGXXXXXX> <VVHC> <K>"
+
+#ifdef CONFIG_CC6
 enum imx6_cpu {
 	IMX6_NONE = 0,	/* Reserved */
 	IMX6Q,		/* Quad */
@@ -37,14 +56,6 @@ enum imx6_cpu {
 	IMX6DP,		/* DualPlus */
 };
 
-enum digi_cert{
-	DIGI_CERT_USA = 0,
-	DIGI_CERT_INTERNATIONAL,
-	DIGI_CERT_JAPAN,
-
-	DIGI_MAX_CERT,
-};
-
 struct ccimx6_variant {
 	enum imx6_cpu	cpu;
 	const int	sdram;
@@ -52,26 +63,39 @@ struct ccimx6_variant {
 	const char	*id_string;
 };
 
-/* RAM size */
-#define MEM_2GB		0x80000000
-#define MEM_1GB		0x40000000
-#define MEM_512MB	0x20000000
-#define MEM_256MB	0x10000000
-
 /* Capabilities */
 #define	CCIMX6_HAS_WIRELESS	(1 << 0)
 #define	CCIMX6_HAS_BLUETOOTH	(1 << 1)
 #define	CCIMX6_HAS_KINETIS	(1 << 2)
 #define	CCIMX6_HAS_EMMC		(1 << 3)
+#endif /* CONFIG_CC6 */
 
+#ifdef CONFIG_CC8
+
+enum imx8_cpu {
+	IMX8_NONE = 0,	/* Reserved */
+	IMX8QXP,	/* QuadXPlus */
+};
+
+struct ccimx8_variant {
+	enum imx8_cpu	cpu;
+	const int	sdram;
+	u8		capabilities;
+	const char	*id_string;
+};
+
+/* Capabilities */
+#define	CCIMX8_HAS_WIRELESS	(1 << 0)
+#define	CCIMX8_HAS_BLUETOOTH	(1 << 1)
+#endif /* CONFIG_CC8 */
+
+int board_read_hwid(u32 *hwid_array);
+int board_sense_hwid(u32 *hwid_array);
+int board_prog_hwid(const u32 *hwid_array);
+int board_override_hwid(const u32 *hwid_array);
+int board_lock_hwid(void);
+int board_get_hwid(struct digi_hwid *hwid);
 void fdt_fixup_hwid(void *fdt);
-
-#ifdef CONFIG_CC6
-void ccimx6_print_hwid(u32 *buf);
-void ccimx6_print_manufid(u32 *buf);
-int ccimx6_manufstr_to_hwid(int argc, char *const argv[], u32 *val);
-int ccimx6_get_hwid(struct ccimx6_hwid *hwid);
-void ccimx6_fdt_fixup_hwid(void *fdt, struct ccimx6_hwid *hwid);
-#endif
+void board_fdt_fixup_hwid(void *fdt, struct digi_hwid *hwid);
 
 #endif	/* __HWID_H_ */
