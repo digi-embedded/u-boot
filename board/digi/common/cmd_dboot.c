@@ -74,8 +74,12 @@ static int boot_os(int has_initrd, int has_fdt)
 	char dboot_cmd[] = "bootz";	/* default */
 
 	var = getenv("dboot_kernel_var");
-	if (var && !strcmp(var, "uimage"))
-		strcpy(dboot_cmd, "bootm");
+	if (var) {
+		if (!strcmp(var, "uimage"))
+			strcpy(dboot_cmd, "bootm");
+		else if (!strcmp(var, "image"))
+			strcpy(dboot_cmd, "booti");
+	}
 
 	sprintf(cmd, "%s $loadaddr %s %s", dboot_cmd,
 		has_initrd ? "$initrd_addr" : "-",
