@@ -139,7 +139,8 @@
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
 	"image=Image-ccimx8qxp-sbc-express.bin\0" \
 	"panel=NULL\0" \
-	"console=ttyLP2,115200 earlycon=lpuart32,0x5a080000,115200\0" \
+	"console=" CONSOLE_DEV "\0" \
+	"earlycon=" EARLY_CONSOLE "\0" \
 	"fdt_addr=0x83000000\0"			\
 	"fdt_high=0xffffffffffffffff\0"		\
 	"boot_fdt=try\0" \
@@ -160,10 +161,12 @@
 			"eth0:off\";" \
 		"fi;\0" \
 	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
+		"earlycon=${earlycon},${baudrate} " \
 		"${bootargs_linux} root=${mmcroot} rootwait rw " \
 		"${bootargs_once} ${extra_bootargs}\0" \
 	"bootargs_tftp_linux=run bootargs_tftp;" \
 		"setenv bootargs console=${console},${baudrate} " \
+		"earlycon=${earlycon},${baudrate} " \
 		"${bootargs_linux} root=/dev/nfs " \
 		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
 		"${bootargs_once} ${extra_bootargs}\0" \
@@ -258,6 +261,8 @@
 #define PHYS_SDRAM			PHYS_SDRAM_1
 
 /* Serial */
+#define CONSOLE_DEV			"ttyLP2"
+#define EARLY_CONSOLE			"lpuart32,0x5a080000"
 #define CONFIG_BAUDRATE			115200
 
 /* Monitor Command Prompt */
