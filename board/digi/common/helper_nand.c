@@ -87,7 +87,7 @@ unsigned int get_filesystem_key_offset(void)
  *	0 if success and data in readbuf.
  *	-1 on error
  */
-int media_read_block(u32 addr, unsigned char *readbuf, uint hwpart)
+int media_read_block(uintptr_t addr, unsigned char *readbuf, uint hwpart)
 {
 	size_t len;
 
@@ -114,7 +114,7 @@ int media_read_block(u32 addr, unsigned char *readbuf, uint hwpart)
  *	0 if success
  *	-1 on error
  */
-int media_write_block(u32 addr, unsigned char *writebuf, uint hwpart)
+int media_write_block(uintptr_t addr, unsigned char *writebuf, uint hwpart)
 {
 	size_t len;
 
@@ -138,7 +138,7 @@ int media_write_block(u32 addr, unsigned char *writebuf, uint hwpart)
  * @in: Address in media (must be aligned to block size)
  * @in: Partition index, only applies for MMC
  */
-void media_erase_fskey(u32 addr, uint hwpart)
+void media_erase_fskey(uintptr_t addr, uint hwpart)
 {
 	nand_erase(nand_info[0], addr, nand_info[0]->erasesize);
 }
