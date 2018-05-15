@@ -200,7 +200,7 @@ exit:
  */
 void migrate_filesystem_key(void)
 {
-	u32 safe_addr, env_addr;
+	ulong safe_addr, env_addr;
 	uint env_hwpart = get_env_hwpart();
 	uint safe_hwpart = 0;
 
@@ -260,7 +260,7 @@ void migrate_filesystem_key(void)
  */
 void copy_dek(void)
 {
-	u32 loadaddr = getenv_ulong("loadaddr", 16, load_addr);
+	ulong loadaddr = getenv_ulong("loadaddr", 16, load_addr);
 	void *dek_blob_dst = (void *)(loadaddr - BLOB_DEK_OFFSET);
 	u32 dek_size;
 
