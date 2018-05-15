@@ -99,6 +99,15 @@ u-boot.imx: MKIMAGEOUTPUT = u-boot.imx.log
 u-boot.imx: u-boot.bin $(IMX_CONFIG) $(PLUGIN).bin FORCE
 	$(call if_changed,mkimage)
 
+u-boot-dtb-signed.imx: u-boot-dtb.imx FORCE
+	$(srctree)/scripts/sign.sh $< $@
+
+u-boot-dtb-usb-signed.imx: u-boot-dtb.imx FORCE
+	NO_DCD=y $(srctree)/scripts/sign.sh $< $@
+
+u-boot-dtb-encrypted.imx: u-boot-dtb.imx FORCE
+	ENABLE_ENCRYPTION=y $(srctree)/scripts/sign.sh $< $@
+
 u-boot-signed.imx: u-boot.imx FORCE
 	$(srctree)/scripts/sign.sh $< $@
 
