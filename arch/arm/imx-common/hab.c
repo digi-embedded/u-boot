@@ -599,8 +599,8 @@ uint32_t authenticate_image(uint32_t ddr_start, uint32_t image_size)
 			start = ddr_start;
 			bytes = ivt_offset + IVT_SIZE + CSF_PAD_SIZE;
 
-			puts("Check CSF for Write Data command before ");
-			puts("authenticating image\n");
+			debug("Check CSF for Write Data command before ");
+			debug("authenticating image\n");
 			if (!csf_is_valid(ivt_offset, start, bytes))
 				return result;
 
@@ -685,9 +685,6 @@ uint32_t authenticate_image(uint32_t ddr_start, uint32_t image_size)
 
 		hab_caam_clock_enable(0);
 
-#if !defined(CONFIG_SPL_BUILD)
-		get_hab_status();
-#endif
 	} else {
 		debug("   Open device, skipping authentication...\n");
 		return 1;
