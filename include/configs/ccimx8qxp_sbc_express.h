@@ -138,6 +138,7 @@
 	"script=boot.scr\0" \
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
 	"image=Image-ccimx8qxp-sbc-express.bin\0" \
+	"uboot_file=u-boot-ccimx8qxp-sbc-express.bin\0" \
 	"panel=NULL\0" \
 	"console=" CONSOLE_DEV "\0" \
 	"earlycon=" EARLY_CONSOLE "\0" \
