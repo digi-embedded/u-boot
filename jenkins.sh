@@ -92,7 +92,7 @@ if pushd ${DUB_UBOOT_DIR}; then
 				if wget -q --spider "${DUB_TOOLCHAIN_URL}/toolchain-${TLABEL}.sh"; then
 					printf "\n[INFO] Installing toolchain-${TLABEL}.sh\n\n"
 					tmp_toolchain="$(mktemp /tmp/toolchain.XXXXXX)"
-					wget -q -O ${tmp_toolchain} "${DUB_TOOLCHAIN_URL}/toolchain-${TLABEL}.sh"
+					wget -q -O ${tmp_toolchain} "${DUB_TOOLCHAIN_URL}/toolchain-${TLABEL}.sh" && chmod +x ${tmp_toolchain}
 					rm -rf ${DUB_TOOLCHAIN_DIR}/${TLABEL} && sh ${tmp_toolchain} -y -d ${DUB_TOOLCHAIN_DIR}/${TLABEL}
 					rm -f ${tmp_toolchain}
 					break
