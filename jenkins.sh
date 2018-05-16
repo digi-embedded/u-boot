@@ -28,17 +28,18 @@ while read pl mt tt; do
 	eval "${pl}_make_target=\"${mt}\""
 	eval "${pl}_toolchain_type=\"${tt}\""
 done<<-_EOF_
-	ccimx6dlsbc256MB    u-boot.imx  cortexa9hf
-	ccimx6dlsbc512MB    u-boot.imx  cortexa9hf
-	ccimx6dlsbc         u-boot.imx  cortexa9hf
-	ccimx6qsbc2GB       u-boot.imx  cortexa9hf
-	ccimx6qsbc512MB     u-boot.imx  cortexa9hf
-	ccimx6qsbc          u-boot.imx  cortexa9hf
-	ccimx6qpsbc2GB      u-boot.imx  cortexa9hf
-	ccimx6ulstarter     u-boot.imx  cortexa9hf
-	ccimx6ulsbc         u-boot.imx  cortexa9hf
-	ccimx6ulstarter1GB  u-boot.imx  cortexa9hf
-	ccimx6ulsbc1GB      u-boot.imx  cortexa9hf
+	ccimx6dlsbc256MB         u-boot.imx  cortexa9hf
+	ccimx6dlsbc512MB         u-boot.imx  cortexa9hf
+	ccimx6dlsbc              u-boot.imx  cortexa9hf
+	ccimx6qsbc2GB            u-boot.imx  cortexa9hf
+	ccimx6qsbc512MB          u-boot.imx  cortexa9hf
+	ccimx6qsbc               u-boot.imx  cortexa9hf
+	ccimx6qpsbc2GB           u-boot.imx  cortexa9hf
+	ccimx6ulstarter          u-boot.imx  cortexa9hf
+	ccimx6ulsbc              u-boot.imx  cortexa9hf
+	ccimx6ulstarter1GB       u-boot.imx  cortexa9hf
+	ccimx6ulsbc1GB           u-boot.imx  cortexa9hf
+	ccimx8qxp_sbc_express    u-boot-dtb.bin  aarch64
 _EOF_
 
 # Set default values if not provided by Jenkins
