@@ -3,4 +3,4 @@
 # SPDX-License-Identifier:	GPL-2.0+
 #
 
-obj-y  := ccimx8qxp_sbc_express.o
+obj-y  := ccimx8x_sbc_express.o

@@ -20,8 +20,8 @@
 
 / {
 	model = "Digi International ConnectCore 8X SBC Express Board.";
-	compatible = "digi,ccimx8qxp_sbc_express", "digi,ccimx8qxp", "fsl,imx8qxp";
-	digi,machine,name = "ccimx8qxp_sbc_express";
+	compatible = "digi,ccimx8x-sbc-express", "digi,ccimx8x", "fsl,imx8qxp";
+	digi,machine,name = "ccimx8x-sbc-express";
 
 	chosen {
 		bootargs = "console=ttyLP2,115200 earlycon=lpuart32,0x5a080000,115200";
@@ -137,7 +137,7 @@
 
 &iomuxc {
 	pinctrl-names = "default";
-	imx8qxp-mek {
+	ccimx8x {
 
 		pinctrl_lpuart2: lpuart2grp {
 			fsl,pins = <

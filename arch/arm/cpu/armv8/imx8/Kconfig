@@ -29,7 +29,7 @@ choice
 	prompt "MX8 board select"
 	optional
 
-config TARGET_CCIMX8QXP_SBC_EXPRESS
+config TARGET_CCIMX8X_SBC_EXPRESS
 	bool "Digi ConnectCore 8X SBC Express"
 	select BOARD_LATE_INIT
 	select IMX8QXP
@@ -66,7 +66,7 @@ config TARGET_IMX8QXP_MEK
 
 endchoice
 
-source "board/digi/ccimx8qxp_sbc_express/Kconfig"
+source "board/digi/ccimx8x_sbc_express/Kconfig"
 source "board/freescale/imx8qm_arm2/Kconfig"
 source "board/freescale/imx8qm_mek/Kconfig"
 source "board/freescale/imx8qxp_arm2/Kconfig"

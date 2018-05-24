@@ -5,12 +5,12 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
-#ifndef CCIMX8QXP_SBC_EXPRESS_CONFIG_H
-#define CCIMX8QXP_SBC_EXPRESS_CONFIG_H
+#ifndef CCIMX8X_SBC_EXPRESS_CONFIG_H
+#define CCIMX8X_SBC_EXPRESS_CONFIG_H
 
 #include <linux/sizes.h>
 #include <asm/arch/imx-regs.h>
-#include "ccimx8qxp_common.h"
+#include "ccimx8x_common.h"
 #include "digi_common.h"
 
 #define CONFIG_REMAKE_ELF
@@ -137,8 +137,8 @@
 	"dboot_kernel_var=image\0" \
 	"script=boot.scr\0" \
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
-	"image=Image-ccimx8qxp-sbc-express.bin\0" \
-	"uboot_file=u-boot-ccimx8qxp-sbc-express.bin\0" \
+	"image=Image-ccimx8x-sbc-express.bin\0" \
+	"uboot_file=u-boot-ccimx8x-sbc-express.bin\0" \
 	"panel=NULL\0" \
 	"console=" CONSOLE_DEV "\0" \
 	"earlycon=" EARLY_CONSOLE "\0" \
@@ -326,4 +326,4 @@
 #define CONFIG_SYS_MEMTEST_START	0x90000000
 #define CONFIG_SYS_MEMTEST_END		0xCF000000
 
-#endif /* CCIMX8QXP_SBC_EXPRESS_CONFIG_H */
+#endif /* CCIMX8X_SBC_EXPRESS_CONFIG_H */

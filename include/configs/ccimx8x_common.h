@@ -4,8 +4,8 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
-#ifndef CCIMX8QXP_COMMON_H
-#define CCIMX8QXP_COMMON_H
+#ifndef CCIMX8X_COMMON_H
+#define CCIMX8X_COMMON_H
 
 /* RAM */
 #define CONFIG_LOADADDR			0x80280000
@@ -93,4 +93,4 @@
 	"name=data,size=-,uuid=${part7_uuid};" \
 	"\""
 
-#endif /* CCIMX8QXP_COMMON_H */
+#endif /* CCIMX8X_COMMON_H */
