@@ -231,12 +231,12 @@ void reset_phy(void)
 		/* MCA_IO7 is connected to PHY reset */
 		reset = (1 << 7);
 		/* Configure as output */
-		mca_update_bits(MCA_CC6UL_GPIO_DIR_0, reset, reset);
+		mca_update_bits(MCA_GPIO_DIR_0, reset, reset);
 		/* Assert PHY reset (low) */
-		mca_update_bits(MCA_CC6UL_GPIO_DATA_0, reset, 0);
+		mca_update_bits(MCA_GPIO_DATA_0, reset, 0);
 		udelay(100);
 		/* Deassert PHY reset (high) */
-		mca_update_bits(MCA_CC6UL_GPIO_DATA_0, reset, reset);
+		mca_update_bits(MCA_GPIO_DATA_0, reset, reset);
 	} else if (CONFIG_FEC_ENET_DEV == 1) {
 		/* CPU GPIO5_6 is connected to PHY reset */
 		reset = IMX_GPIO_NR(5, 6);

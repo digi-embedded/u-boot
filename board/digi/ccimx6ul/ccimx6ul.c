@@ -270,14 +270,14 @@ void mca_init(void)
 	unsigned char fwver[2];
 	int ret, fwver_ret;
 
-	ret = mca_read_reg(MCA_CC6UL_DEVICE_ID, &devid);
+	ret = mca_read_reg(MCA_DEVICE_ID, &devid);
 	if (devid != MCA_CC6UL_DEVICE_ID_VAL) {
 		printf("MCA: invalid MCA DEVICE ID (0x%02x)\n", devid);
 		return;
 	}
 
-	ret = mca_read_reg(MCA_CC6UL_HW_VER, &hwver);
-	fwver_ret = mca_bulk_read(MCA_CC6UL_FW_VER_L, fwver, 2);
+	ret = mca_read_reg(MCA_HW_VER, &hwver);
+	fwver_ret = mca_bulk_read(MCA_FW_VER_L, fwver, 2);
 
 	printf("MCA:   HW_VER=");
 	if (ret)

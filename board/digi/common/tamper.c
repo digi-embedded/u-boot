@@ -69,13 +69,13 @@ static unsigned int get_tamper_base_reg(unsigned int iface)
 {
 	switch (iface) {
 	case 0:
-		return MCA_CC6UL_TAMPER0_CFG0;
+		return MCA_TAMPER0_CFG0;
 	case 1:
-		return MCA_CC6UL_TAMPER1_CFG0;
+		return MCA_TAMPER1_CFG0;
 	case 2:
-		return MCA_CC6UL_TAMPER2_CFG0;
+		return MCA_TAMPER2_CFG0;
 	case 3:
-		return MCA_CC6UL_TAMPER3_CFG0;
+		return MCA_TAMPER3_CFG0;
 	default:
 		printf("MCA: tamper interface %d not supported\n", iface);
 		break;
@@ -94,8 +94,8 @@ static void mca_tamper_ack_event(int iface)
 
 
 	/* Ack the tamper event */
-	ret = mca_write_reg(regaddr + MCA_CC6UL_TAMPER_EV_OFFSET,
-			    MCA_CC6UL_TAMPER_ACKED);
+	ret = mca_write_reg(regaddr + MCA_TAMPER_EV_OFFSET,
+			    MCA_TAMPER_ACKED);
 	if (ret)
 		printf("MCA: unable to write Tamper%d event register\n", iface);
 	mdelay(100);
@@ -103,14 +103,14 @@ static void mca_tamper_ack_event(int iface)
 
 static int mca_tamper_check_event(int iface)
 {
-	unsigned char data[MCA_CC6UL_TAMPER_REG_LEN];
+	unsigned char data[MCA_TAMPER_REG_LEN];
 	int ret;
 	unsigned int regaddr = get_tamper_base_reg(iface);
 
 	if (regaddr == ~0)
 		return 0;
 
-	ret = mca_bulk_read(regaddr, data, MCA_CC6UL_TAMPER_REG_LEN);
+	ret = mca_bulk_read(regaddr, data, MCA_TAMPER_REG_LEN);
 	if (ret) {
 		printf("MCA: unable to read Tamper%d registers\n", iface);
 		/* Return a tamper condition as the MCA could have been tampered */
@@ -118,12 +118,12 @@ static int mca_tamper_check_event(int iface)
 	}
 
 	/* Skip if tamper pin is not enabled */
-	if (!(data[MCA_CC6UL_TAMPER_CFG0_OFFSET] & MCA_CC6UL_TAMPER_DET_EN))
+	if (!(data[MCA_TAMPER_CFG0_OFFSET] & MCA_TAMPER_DET_EN))
 		return 0;
 
 	/* Check if there is an event signaled that has not been acked */
-	if (data[MCA_CC6UL_TAMPER_EV_OFFSET] & MCA_CC6UL_TAMPER_SIGNALED &&
-	   !(data[MCA_CC6UL_TAMPER_EV_OFFSET] & MCA_CC6UL_TAMPER_ACKED))
+	if (data[MCA_TAMPER_EV_OFFSET] & MCA_TAMPER_SIGNALED &&
+	   !(data[MCA_TAMPER_EV_OFFSET] & MCA_TAMPER_ACKED))
 		return 1;
 
 	return 0;

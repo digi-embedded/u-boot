@@ -106,7 +106,7 @@ void mca_reset(void)
 
 	do {
 		/* First, unlock the CTRL_0 register access */
-		ret = mca_bulk_write(MCA_CC6UL_CTRL_UNLOCK_0, unlock_data,
+		ret = mca_bulk_write(MCA_CTRL_UNLOCK_0, unlock_data,
 				     sizeof(unlock_data));
 		if (ret) {
 			printf("MCA: unable to unlock CTRL register (%d)\n", ret);
@@ -114,7 +114,7 @@ void mca_reset(void)
 			continue;
 		}
 
-		ret = mca_write_reg(MCA_CC6UL_CTRL_0, MCA_CTRL_0_RESET);
+		ret = mca_write_reg(MCA_CTRL_0, MCA_CTRL_0_RESET);
 		if (ret) {
 			printf("MCA: unable to perform a fw reset (%d)\n", ret);
 			retries--;
