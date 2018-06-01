@@ -1,5 +1,9 @@
 if TARGET_CCIMX6ULSBC
 
+config MCA
+	bool
+	default y
+
 config SYS_BOARD
 	default "ccimx6ulsbc"
 

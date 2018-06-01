@@ -33,6 +33,7 @@
 #include "../common/helper.h"
 #include "../common/hwid.h"
 #include "../common/mca_registers.h"
+#include "../common/mca.h"
 
 #ifdef CONFIG_POWER
 #include <power/pmic.h>

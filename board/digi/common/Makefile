@@ -47,6 +47,7 @@ obj-$(CONFIG_CMD_UPDATE_NAND) += cmd_update_nand.o helper.o helper_nand.o
 obj-$(CONFIG_CMD_DBOOT) += cmd_dboot.o helper.o
 obj-$(CONFIG_CMD_DIGI_PMIC) += cmd_pmic.o
 obj-$(CONFIG_HAS_TRUSTFENCE) += cmd_trustfence.o
+obj-$(CONFIG_MCA) += mca.o
 obj-$(CONFIG_MCA_CC6UL_TAMPER) += tamper.o
 obj-$(CONFIG_USB_XHCI_IMX8) += ../../freescale/common/tcpc.o
 
