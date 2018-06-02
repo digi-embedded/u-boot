@@ -27,6 +27,10 @@
 #define CONFIG_SUPPORT_MMC_ECSD
 #define CONFIG_FAT_WRITE
 
+/* MCA */
+#define CONFIG_MCA_I2C_BUS		0
+#define CONFIG_MCA_I2C_ADDR		0x63
+
 #define CONFIG_TFTP_UPDATE_ONTHEFLY      /* support to tftp and update on-the-fly */
 
 /* Supported sources for update|dboot */

@@ -31,10 +31,15 @@
 #include <power-domain.h>
 #include "../../freescale/common/tcpc.h"
 
+#include "../common/mca_registers.h"
+#include "../common/mca.h"
+
 DECLARE_GLOBAL_DATA_PTR;
 
 static struct blk_desc *mmc_dev;
 static int mmc_dev_index = -1;
+
+#define MCA_CC8X_DEVICE_ID_VAL		0x4A
 
 #define ESDHC_PAD_CTRL	((SC_PAD_CONFIG_NORMAL << PADRING_CONFIG_SHIFT) | (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) \
 						| (SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) | (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
@@ -391,6 +396,59 @@ static void board_gpio_init(void)
 }
 #endif
 
+void mca_init(void)
+{
+	unsigned char devid = 0;
+	unsigned char hwver;
+	unsigned char fwver[2];
+	int ret, fwver_ret;
+
+#ifdef CONFIG_DM_I2C
+	struct udevice *bus, *dev;
+
+	ret = uclass_get_device_by_seq(UCLASS_I2C, CONFIG_MCA_I2C_BUS, &bus);
+	if (ret) {
+		printf("ERROR: getting %d bus for MCA\n", CONFIG_MCA_I2C_BUS);
+		return;
+	}
+
+	ret = dm_i2c_probe(bus, CONFIG_MCA_I2C_ADDR, 0, &dev);
+	if (ret) {
+		printf("ERROR: can't find MCA at address %x\n",
+		       CONFIG_MCA_I2C_ADDR);
+		return;
+	}
+
+	ret = i2c_set_chip_offset_len(dev, 2);
+	if (ret)
+		printf("ERROR: setting address len to 2 for MCA\n");
+#endif
+	ret = mca_read_reg(MCA_DEVICE_ID, &devid);
+	if (devid != MCA_CC8X_DEVICE_ID_VAL) {
+		printf("MCA: invalid MCA DEVICE ID (0x%02x)\n", devid);
+		return;
+	}
+
+	ret = mca_read_reg(MCA_HW_VER, &hwver);
+	fwver_ret = mca_bulk_read(MCA_FW_VER_L, fwver, 2);
+
+	printf("MCA:   HW_VER=");
+	if (ret)
+		printf("??");
+	else
+		printf("%d", hwver);
+
+	printf("  FW_VER=");
+	if (fwver_ret)
+		printf("??");
+	else
+		printf("%d.%02d %s", fwver[1] & 0x7f, fwver[0],
+		       fwver[1] & 0x80 ? "(alpha)" : "");
+
+	printf("\n");
+}
+
+
 int checkboard(void)
 {
 	puts("Board: iMX8QXP MEK\n");
@@ -545,6 +603,14 @@ int board_mmc_get_env_dev(int devno)
 
 int board_late_init(void)
 {
+	/*
+	 * FIXME: the MCA shoudld be initialized earlier, but we depend on the
+	 * I2C bus being ready. This should be revisited in future and it is
+	 * likely that we will have to initialize the i2c earlier (for instance
+	 * in the early init function, and then initialize the MCA.
+	 */
+	mca_init();
+
 #ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
 	setenv("board_name", "MEK");
 	setenv("board_rev", "iMX8QXP");
