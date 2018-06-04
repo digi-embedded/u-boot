@@ -589,6 +589,34 @@ void reset_cpu(ulong addr)
 		putc('.');
 }
 
+
+/*
+ * Use the reset_misc hook to customize the reset implementation. This function
+ * is invoked before the standard reset_cpu().
+ * On the CC8X we want to perfrom the reset through the MCA which may, depending
+ * on the configuration, assert the POR_B line or perform a power cycle of the
+ * system.
+ */
+void reset_misc(void)
+{
+#if 0
+	/*
+	 * If a bmode_reset was flagged, do not reset through the MCA, which
+	 * would otherwise power-cycle the CPU.
+	 */
+	if (bmode_reset)
+		return;
+#endif
+	mca_reset();
+
+	mdelay(1);
+
+#ifdef CONFIG_PSCI_RESET
+	psci_system_reset();
+	mdelay(1);
+#endif
+}
+
 #ifdef CONFIG_OF_BOARD_SETUP
 int ft_board_setup(void *blob, bd_t *bd)
 {
