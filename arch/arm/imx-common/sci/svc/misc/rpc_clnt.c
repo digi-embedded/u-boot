@@ -269,6 +269,24 @@ sc_err_t sc_misc_otp_fuse_read(sc_ipc_t ipc, uint32_t word, uint32_t *val)
     return (sc_err_t) result;
 }
 
+sc_err_t sc_misc_otp_fuse_write(sc_ipc_t ipc, uint32_t word, uint32_t val)
+{
+    sc_rpc_msg_t msg;
+    uint8_t result;
+
+    RPC_VER(&msg) = SC_RPC_VERSION;
+    RPC_SVC(&msg) = SC_RPC_SVC_MISC;
+    RPC_FUNC(&msg) = MISC_FUNC_OTP_FUSE_WRITE;
+    RPC_U32(&msg, 0) = word;
+    RPC_U32(&msg, 4) = val;
+    RPC_SIZE(&msg) = 3;
+
+    sc_call_rpc(ipc, &msg, false);
+
+    result = RPC_R8(&msg);
+    return (sc_err_t) result;
+}
+
 sc_err_t sc_misc_set_temp(sc_ipc_t ipc, sc_rsrc_t resource,
     sc_misc_temp_t temp, int16_t celsius, int8_t tenths)
 {

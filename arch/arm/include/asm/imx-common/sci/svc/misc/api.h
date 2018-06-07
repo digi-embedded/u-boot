@@ -334,6 +334,7 @@ sc_err_t sc_misc_boot_done(sc_ipc_t ipc, sc_rsrc_t cpu);
  * - SC_ERR_LOCKED if read operation is locked
  */
 sc_err_t sc_misc_otp_fuse_read(sc_ipc_t ipc, uint32_t word, uint32_t *val);
+sc_err_t sc_misc_otp_fuse_write(sc_ipc_t ipc, uint32_t word, uint32_t val);
 
 /*!
  * This function sets a temp sensor alarm.
