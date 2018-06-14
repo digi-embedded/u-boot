@@ -8,29 +8,12 @@
 #ifndef CCIMX8X_SBC_EXPRESS_CONFIG_H
 #define CCIMX8X_SBC_EXPRESS_CONFIG_H
 
-#include <linux/sizes.h>
-#include <asm/arch/imx-regs.h>
 #include "ccimx8x_common.h"
-#include "digi_common.h"
 
 #define CONFIG_REMAKE_ELF
 
 #define CONFIG_BOARD_EARLY_INIT_F
 #define CONFIG_ARCH_MISC_INIT
-
-#undef CONFIG_CMD_EXPORTENV
-#undef CONFIG_CMD_IMPORTENV
-#undef CONFIG_CMD_IMLS
-
-#undef CONFIG_CMD_CRC32
-#undef CONFIG_BOOTM_NETBSD
-
-#define CONFIG_FSL_ESDHC
-#define CONFIG_FSL_USDHC
-#define CONFIG_SYS_FSL_ESDHC_ADDR       0
-#define USDHC1_BASE_ADDR                0x5B010000
-#define USDHC2_BASE_ADDR                0x5B020000
-#define CONFIG_SUPPORT_EMMC_BOOT	/* eMMC specific */
 
 #define CONFIG_FSL_HSIO
 #ifdef CONFIG_FSL_HSIO
@@ -44,34 +27,23 @@
 
 #define CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
 
-/* FUSE command */
-#define CONFIG_CMD_FUSE
-
 /* GPIO configs */
 #define CONFIG_MXC_GPIO
 
 /* ENET Config */
-#define CONFIG_MII
-
 #define CONFIG_FEC_MXC
-#define CONFIG_FEC_XCV_TYPE             RMII
+#define CONFIG_MII
 #define FEC_QUIRK_ENET_MAC
 #define CONFIG_RESET_PHY_R
-
 #define CONFIG_PHYLIB
 #define CONFIG_PHY_SMSC
 
-/* ENET0 connects AR8031 on CPU board, ENET1 connects to base board and MUX with ESAI, default is ESAI */
 #define CONFIG_FEC_ENET_DEV 0
-
 #if (CONFIG_FEC_ENET_DEV == 0)
 #define IMX_FEC_BASE			0x5B040000
 #define CONFIG_FEC_MXC_PHYADDR          0x0
-#define CONFIG_ETHPRIME                 "eth0"
-#elif (CONFIG_FEC_ENET_DEV == 1)
-#define IMX_FEC_BASE			0x5B050000
-#define CONFIG_FEC_MXC_PHYADDR          0x1
-#define CONFIG_ETHPRIME                 "eth1"
+#define CONFIG_ETHPRIME                 "FEC0"
+#define CONFIG_FEC_XCV_TYPE             RMII
 #endif
 
 /* ENET0 MDIO are shared */
@@ -230,52 +202,10 @@
 		"source ${loadaddr};" \
 	"fi;"
 
-/* Default environment is in SD */
-#ifdef CONFIG_QSPI_BOOT
-#define CONFIG_ENV_IS_IN_SPI_FLASH
-#define CONFIG_ENV_OFFSET       (4 * 1024 * 1024)
-#define CONFIG_ENV_SECT_SIZE	(128 * 1024)
-#define CONFIG_ENV_SPI_BUS	CONFIG_SF_DEFAULT_BUS
-#define CONFIG_ENV_SPI_CS	CONFIG_SF_DEFAULT_CS
-#define CONFIG_ENV_SPI_MODE	CONFIG_SF_DEFAULT_MODE
-#define CONFIG_ENV_SPI_MAX_HZ	CONFIG_SF_DEFAULT_SPEED
-#else
-#define CONFIG_ENV_IS_IN_MMC
-#define CONFIG_ENV_OFFSET		(1792 * 1024)	/* 256kB below 2MiB */
-#define CONFIG_ENV_OFFSET_REDUND	(CONFIG_ENV_OFFSET + (128 * 1024))
-#define CONFIG_ENV_SIZE_REDUND		CONFIG_ENV_SIZE
-#define CONFIG_SYS_MMC_ENV_PART		0	/* user area */
-#endif
-
-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
-
-/* On CC8X, USDHC1 is for eMMC, USDHC2 is for SD on SBC Express
-  */
-#define CONFIG_SYS_MMC_ENV_DEV		0   /* USDHC1 */
-#define CONFIG_SYS_FSL_USDHC_NUM	2
-
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		((CONFIG_ENV_SIZE + (32*1024)) * 1024)
-
-#define CONFIG_SYS_SDRAM_BASE		0x80000000
-#define CONFIG_NR_DRAM_BANKS		1
-#define PHYS_SDRAM_1			0x80000000
-#define PHYS_SDRAM_1_SIZE		0x40000000	/* 1 GB */
-#define PHYS_SDRAM			PHYS_SDRAM_1
-
 /* Serial */
 #define CONSOLE_DEV			"ttyLP2"
 #define EARLY_CONSOLE			"lpuart32,0x5a080000"
 #define CONFIG_BAUDRATE			115200
-
-/* Monitor Command Prompt */
-#define CONFIG_SYS_LONGHELP
-#define CONFIG_SYS_PROMPT_HUSH_PS2     "> "
-#define CONFIG_AUTO_COMPLETE
-#define CONFIG_SYS_CBSIZE              1024
-#define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + \
-					sizeof(CONFIG_SYS_PROMPT) + 16)
-#define CONFIG_CMDLINE_EDITING
 
 /* Generic Timer Definitions */
 #define COUNTER_FREQUENCY		8000000	/* 8MHz */
@@ -320,12 +250,5 @@
 #define CONFIG_USBD_HS
 #define CONFIG_USB_FUNCTION_MASS_STORAGE
 #endif
-
-#define CONFIG_OF_SYSTEM_SETUP
-#define BOOTAUX_RESERVED_MEM_BASE 0x88000000
-#define BOOTAUX_RESERVED_MEM_SIZE 0x08000000 /* Reserve from second 128MB */
-
-#define CONFIG_SYS_MEMTEST_START	0x90000000
-#define CONFIG_SYS_MEMTEST_END		0xCF000000
 
 #endif /* CCIMX8X_SBC_EXPRESS_CONFIG_H */

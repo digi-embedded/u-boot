@@ -7,6 +7,10 @@
 #ifndef CCIMX8X_COMMON_H
 #define CCIMX8X_COMMON_H
 
+#include <linux/sizes.h>
+#include <asm/arch/imx-regs.h>
+#include "digi_common.h"		/* Load Digi common stuff... */
+
 /* RAM */
 #define CONFIG_LOADADDR			0x80280000
 #define CONFIG_SYS_TEXT_BASE		0x80020000
@@ -14,18 +18,66 @@
 #define CONFIG_SYS_INIT_SP_ADDR		0x80200000
 /* RAM memory reserved for U-Boot, stack, malloc pool... */
 #define CONFIG_UBOOT_RESERVED		(10 * 1024 * 1024)
+/* Size of malloc() pool */
+#define CONFIG_SYS_MALLOC_LEN		((CONFIG_ENV_SIZE + (32*1024)) * 1024)
+/* memtest */
+#define CONFIG_SYS_MEMTEST_START	0x90000000
+#define CONFIG_SYS_MEMTEST_END		0xCF000000
+/* Physical Memory Map */
+#define CONFIG_SYS_SDRAM_BASE		0x80000000
+#define CONFIG_NR_DRAM_BANKS		1
+#define PHYS_SDRAM_1			0x80000000
+#define PHYS_SDRAM_1_SIZE		0x40000000	/* 1 GB */
+#define PHYS_SDRAM			PHYS_SDRAM_1
+
+#define CONFIG_OF_SYSTEM_SETUP
+#define BOOTAUX_RESERVED_MEM_BASE 0x88000000
+#define BOOTAUX_RESERVED_MEM_SIZE 0x08000000 /* Reserve from second 128MB */
+
+
+/* Media type for firmware updates */
+#define CONFIG_SYS_STORAGE_MEDIA       "mmc"
+
+/* MMC Configs */
+#define CONFIG_FSL_ESDHC
+#define CONFIG_FSL_USDHC
+#define CONFIG_SYS_FSL_ESDHC_ADDR       0
+#define USDHC1_BASE_ADDR                0x5B010000
+#define USDHC2_BASE_ADDR                0x5B020000
+#define CONFIG_SUPPORT_EMMC_BOOT	/* eMMC specific */
+#define CONFIG_SUPPORT_MMC_ECSD
+#define CONFIG_FAT_WRITE
 
 /* MMC device and partition where U-Boot image is */
 #define CONFIG_SYS_BOOT_PART_EMMC	1	/* Boot part 1 on eMMC */
 #define CONFIG_SYS_BOOT_PART_OFFSET	(33 * SZ_1K)
 #define CONFIG_SYS_BOOT_PART_SIZE	(SZ_2M - CONFIG_SYS_BOOT_PART_OFFSET)
 
-/* Media type for firmware updates */
-#define CONFIG_SYS_STORAGE_MEDIA       "mmc"
+/* Default environment is in SD */
+#ifdef CONFIG_QSPI_BOOT
+#define CONFIG_ENV_IS_IN_SPI_FLASH
+#define CONFIG_ENV_OFFSET       (4 * 1024 * 1024)
+#define CONFIG_ENV_SECT_SIZE	(128 * 1024)
+#define CONFIG_ENV_SPI_BUS	CONFIG_SF_DEFAULT_BUS
+#define CONFIG_ENV_SPI_CS	CONFIG_SF_DEFAULT_CS
+#define CONFIG_ENV_SPI_MODE	CONFIG_SF_DEFAULT_MODE
+#define CONFIG_ENV_SPI_MAX_HZ	CONFIG_SF_DEFAULT_SPEED
+#else
+#define CONFIG_ENV_IS_IN_MMC
+#define CONFIG_ENV_OFFSET		(1792 * 1024)	/* 256kB below 2MiB */
+#define CONFIG_ENV_OFFSET_REDUND	(CONFIG_ENV_OFFSET + (128 * 1024))
+#define CONFIG_ENV_SIZE_REDUND		CONFIG_ENV_SIZE
+#define CONFIG_SYS_MMC_ENV_PART		0	/* user area */
+#endif
 
-/* MMC Configs */
-#define CONFIG_SUPPORT_MMC_ECSD
-#define CONFIG_FAT_WRITE
+#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
+
+/* On CC8X, USDHC1 is for eMMC, USDHC2 is for SD on SBC Express */
+#define CONFIG_SYS_MMC_ENV_DEV		0   /* USDHC1 */
+#define CONFIG_SYS_FSL_USDHC_NUM	2
+
+/* FUSE command */
+#define CONFIG_CMD_FUSE
 
 /* MCA */
 #define CONFIG_MCA_I2C_BUS		0
@@ -71,6 +123,21 @@
 	DIGICMD_UPDATEFILE_RAM_ARGS_HELP
 /* On the fly update chunk (must be a multiple of mmc block size) */
 #define CONFIG_OTF_CHUNK		(32 * 1024 * 1024)
+
+/* Monitor Command Prompt */
+#define CONFIG_SYS_LONGHELP
+#define CONFIG_SYS_PROMPT_HUSH_PS2     "> "
+#define CONFIG_AUTO_COMPLETE
+#define CONFIG_SYS_CBSIZE              1024
+#define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + \
+					sizeof(CONFIG_SYS_PROMPT) + 16)
+#define CONFIG_CMDLINE_EDITING
+
+#undef CONFIG_CMD_EXPORTENV
+#undef CONFIG_CMD_IMPORTENV
+#undef CONFIG_CMD_IMLS
+#undef CONFIG_CMD_CRC32
+#undef CONFIG_BOOTM_NETBSD
 
 /* Pool of randomly generated UUIDs at host machine */
 #define RANDOM_UUIDS	\

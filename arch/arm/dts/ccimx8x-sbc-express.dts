@@ -17,6 +17,8 @@
 
 /* i.MX8QXP CPU */
 #include "fsl-imx8qxp.dtsi"
+/* Digi ConnectCore 8X SOM */
+#include "ccimx8x.dtsi"
 
 / {
 	model = "Digi International ConnectCore 8X SBC Express Board.";
@@ -72,16 +74,6 @@
 	};
 };
 
-/* I2C0 connected to MCA and crypto chip */
-&i2c0 {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	clock-frequency = <100000>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_lpi2c0>;
-	status = "okay";
-};
-
 /* I2C2 available on Raspberry Pi expansion header */
 &i2c2 {
 	#address-cells = <1>;
@@ -108,16 +100,6 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c0_mipi_lvds0>;
 	clock-frequency = <100000>;
-	status = "okay";
-};
-
-&usdhc1 {
-	pinctrl-names = "default", "state_100mhz", "state_200mhz";
-	pinctrl-0 = <&pinctrl_usdhc1>;
-	pinctrl-1 = <&pinctrl_usdhc1_100mhz>;
-	pinctrl-2 = <&pinctrl_usdhc1_200mhz>;
-	bus-width = <8>;
-	non-removable;
 	status = "okay";
 };
 
@@ -172,13 +154,6 @@
 			>;
 		};
 
-		pinctrl_lpi2c0: lpi2c0grp {
-			fsl,pins = <
-				SC_P_MIPI_CSI0_GPIO0_00_ADMA_I2C0_SCL	0x06000020
-				SC_P_MIPI_CSI0_GPIO0_01_ADMA_I2C0_SDA	0x06000020
-			>;
-		};
-
 		pinctrl_lpi2c2: lpi2c2grp {
 			fsl,pins = <
 				SC_P_MIPI_DSI1_GPIO0_00_ADMA_I2C2_SCL	0x06000020
@@ -190,54 +165,6 @@
 			fsl,pins = <
 				SC_P_SPI3_CS1_ADMA_I2C3_SCL	0x06000020
 				SC_P_MCLK_IN1_ADMA_I2C3_SDA	0x06000020
-			>;
-		};
-
-		pinctrl_usdhc1: usdhc1grp {
-			fsl,pins = <
-				SC_P_EMMC0_CLK_CONN_EMMC0_CLK		0x06000041
-				SC_P_EMMC0_CMD_CONN_EMMC0_CMD		0x00000021
-				SC_P_EMMC0_DATA0_CONN_EMMC0_DATA0	0x00000021
-				SC_P_EMMC0_DATA1_CONN_EMMC0_DATA1	0x00000021
-				SC_P_EMMC0_DATA2_CONN_EMMC0_DATA2	0x00000021
-				SC_P_EMMC0_DATA3_CONN_EMMC0_DATA3	0x00000021
-				SC_P_EMMC0_DATA4_CONN_EMMC0_DATA4	0x00000021
-				SC_P_EMMC0_DATA5_CONN_EMMC0_DATA5	0x00000021
-				SC_P_EMMC0_DATA6_CONN_EMMC0_DATA6	0x00000021
-				SC_P_EMMC0_DATA7_CONN_EMMC0_DATA7	0x00000021
-				SC_P_EMMC0_STROBE_CONN_EMMC0_STROBE	0x06000041
-			>;
-		};
-
-		pinctrl_usdhc1_100mhz: usdhc1grp100mhz {
-			fsl,pins = <
-				SC_P_EMMC0_CLK_CONN_EMMC0_CLK		0x06000040
-				SC_P_EMMC0_CMD_CONN_EMMC0_CMD		0x00000020
-				SC_P_EMMC0_DATA0_CONN_EMMC0_DATA0	0x00000020
-				SC_P_EMMC0_DATA1_CONN_EMMC0_DATA1	0x00000020
-				SC_P_EMMC0_DATA2_CONN_EMMC0_DATA2	0x00000020
-				SC_P_EMMC0_DATA3_CONN_EMMC0_DATA3	0x00000020
-				SC_P_EMMC0_DATA4_CONN_EMMC0_DATA4	0x00000020
-				SC_P_EMMC0_DATA5_CONN_EMMC0_DATA5	0x00000020
-				SC_P_EMMC0_DATA6_CONN_EMMC0_DATA6	0x00000020
-				SC_P_EMMC0_DATA7_CONN_EMMC0_DATA7	0x00000020
-				SC_P_EMMC0_STROBE_CONN_EMMC0_STROBE	0x06000040
-			>;
-		};
-
-		pinctrl_usdhc1_200mhz: usdhc1grp200mhz {
-			fsl,pins = <
-				SC_P_EMMC0_CLK_CONN_EMMC0_CLK		0x06000040
-				SC_P_EMMC0_CMD_CONN_EMMC0_CMD		0x00000020
-				SC_P_EMMC0_DATA0_CONN_EMMC0_DATA0	0x00000020
-				SC_P_EMMC0_DATA1_CONN_EMMC0_DATA1	0x00000020
-				SC_P_EMMC0_DATA2_CONN_EMMC0_DATA2	0x00000020
-				SC_P_EMMC0_DATA3_CONN_EMMC0_DATA3	0x00000020
-				SC_P_EMMC0_DATA4_CONN_EMMC0_DATA4	0x00000020
-				SC_P_EMMC0_DATA5_CONN_EMMC0_DATA5	0x00000020
-				SC_P_EMMC0_DATA6_CONN_EMMC0_DATA6	0x00000020
-				SC_P_EMMC0_DATA7_CONN_EMMC0_DATA7	0x00000020
-				SC_P_EMMC0_STROBE_CONN_EMMC0_STROBE	0x06000040
 			>;
 		};
 
