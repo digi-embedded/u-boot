@@ -36,17 +36,20 @@ enum {
 };
 
 struct load_fw {
+	bool compressed;
 	int src;
 	char *filename;
 	char *devpartno;
 	char *fs;
 	char *loadaddr;
+	char *lzipaddr;
 	char *varload;
 	struct part_info *part;
 };
 
 int confirm_msg(char *msg);
 int get_source(int argc, char * const argv[], struct load_fw *fwinfo);
+bool is_image_compressed(void);
 const char *get_source_string(int src);
 int get_fw_filename(int argc, char * const argv[], struct load_fw *fwinfo);
 char *get_default_filename(char *partname, int cmd);

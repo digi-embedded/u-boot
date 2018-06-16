@@ -154,6 +154,17 @@ static int write_file_fs_otf(int src, char *filename, char *devpartno)
 #endif /* CONFIG_CMD_UPDATE */
 
 #if defined(CONFIG_CMD_UPDATE) || defined(CONFIG_CMD_DBOOT)
+bool is_image_compressed(void)
+{
+	char *var;
+
+	var = getenv("dboot_kernel_var");
+	if (var && !strcmp(var, "imagegz"))
+		return true;
+
+	return false;
+}
+
 int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 {
 	int i;
@@ -373,6 +384,7 @@ int load_firmware(struct load_fw *fwinfo)
 	char def_devpartno[] = "0:1";
 	int ret;
 	int fwload = FWLOAD_YES;
+	char *loadaddr;
 
 	/* 'fwinfo->varload' determines if the file must be loaded:
 	 * - yes|NULL: the file must be loaded. Return error otherwise.
@@ -393,14 +405,18 @@ int load_firmware(struct load_fw *fwinfo)
 		fwinfo->devpartno = def_devpartno;
 	}
 
+	/*
+	 * Load firmware to fwinfo->loadaddr except if loading a compressed
+	 * image
+	 */
+	loadaddr = fwinfo->compressed ? fwinfo->lzipaddr : fwinfo->loadaddr;
+
 	switch (fwinfo->src) {
 	case SRC_TFTP:
-		sprintf(cmd, "tftpboot %s %s", fwinfo->loadaddr,
-			fwinfo->filename);
+		sprintf(cmd, "tftpboot %s %s", loadaddr, fwinfo->filename);
 		break;
 	case SRC_NFS:
-		sprintf(cmd, "nfs %s $rootpath/%s", fwinfo->loadaddr,
-			fwinfo->filename);
+		sprintf(cmd, "nfs %s $rootpath/%s", loadaddr, fwinfo->filename);
 		break;
 	case SRC_MMC:
 	case SRC_USB:
@@ -414,8 +430,7 @@ int load_firmware(struct load_fw *fwinfo)
 #endif
 		{
 			sprintf(cmd, "load %s %s %s %s", src_strings[fwinfo->src],
-				fwinfo->devpartno, fwinfo->loadaddr,
-				fwinfo->filename);
+				fwinfo->devpartno, loadaddr, fwinfo->filename);
 		}
 		break;
 	case SRC_NAND:
@@ -434,12 +449,12 @@ int load_firmware(struct load_fw *fwinfo)
 					"fi;"
 				"fi;",
 				fwinfo->part->name, fwinfo->part->name,
-				fwinfo->loadaddr, fwinfo->filename);
+				loadaddr, fwinfo->filename);
 		} else
 #endif
 		{
 			sprintf(cmd, "nand read %s %s %x", fwinfo->part->name,
-				fwinfo->loadaddr, (u32)fwinfo->part->size);
+				loadaddr, (u32)fwinfo->part->size);
 		}
 		break;
 	case SRC_RAM:
@@ -450,6 +465,20 @@ int load_firmware(struct load_fw *fwinfo)
 	}
 
 	ret = run_command(cmd, 0);
+	if (!ret && fwinfo->compressed) {
+		ulong len, src, dest;
+
+		src = getenv_ulong(fwinfo->lzipaddr + 1, 16, 0);
+		dest = getenv_ulong(fwinfo->loadaddr + 1, 16, 0);
+
+		if (!src || !dest) {
+			printf("ERROR: for compressed images %s and %s must be provided\n", fwinfo->lzipaddr, fwinfo->loadaddr);
+			ret = -EINVAL;
+		} else {
+			ret = gunzip((void *)dest, INT_MAX, (uchar *)src, &len);
+		}
+	}
+
 _ret:
 	if (FWLOAD_TRY == fwload) {
 		if (ret)

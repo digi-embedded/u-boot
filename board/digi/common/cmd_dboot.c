@@ -79,6 +79,8 @@ static int boot_os(int has_initrd, int has_fdt)
 			strcpy(dboot_cmd, "bootm");
 		else if (!strcmp(var, "image"))
 			strcpy(dboot_cmd, "booti");
+		else if (!strcmp(var, "imagegz"))
+			strcpy(dboot_cmd, "booti");
 	}
 
 	sprintf(cmd, "%s $loadaddr %s %s", dboot_cmd,
@@ -124,7 +126,10 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	/* Load firmware file to RAM */
+	fwinfo.compressed = is_image_compressed();
 	fwinfo.loadaddr = "$loadaddr";
+	fwinfo.lzipaddr = "$lzipaddr";
+
 	ret = load_firmware(&fwinfo);
 	if (ret == LDFW_ERROR) {
 		printf("Error loading firmware file to RAM\n");
@@ -137,6 +142,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		fwinfo.varload = "try";
 	fwinfo.loadaddr = "$fdt_addr";
 	fwinfo.filename = "$fdt_file";
+	fwinfo.compressed = false;
 	ret = load_firmware(&fwinfo);
 	if (ret == LDFW_LOADED) {
 		has_fdt = 1;
