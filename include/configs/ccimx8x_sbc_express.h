@@ -134,10 +134,12 @@
 	RANDOM_UUIDS \
 	M4_BOOT_ENV \
 	XEN_ENV \
-	"dboot_kernel_var=image\0" \
+	"dboot_kernel_var=imagegz\0" \
+	"lzipaddr=0x82000000\0" \
 	"script=boot.scr\0" \
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
 	"image=Image-ccimx8x-sbc-express.bin\0" \
+	"imagegz=Image-ccimx8x-sbc-express.gz\0" \
 	"uboot_file=u-boot-ccimx8x-sbc-express.bin\0" \
 	"panel=NULL\0" \
 	"console=" CONSOLE_DEV "\0" \
