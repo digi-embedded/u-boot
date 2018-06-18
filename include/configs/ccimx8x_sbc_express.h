@@ -35,7 +35,6 @@
 #define CONFIG_MII
 #define FEC_QUIRK_ENET_MAC
 #define CONFIG_RESET_PHY_R
-#define CONFIG_PHYLIB
 #define CONFIG_PHY_SMSC
 
 #define CONFIG_FEC_ENET_DEV 0
