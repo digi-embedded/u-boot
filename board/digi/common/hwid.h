@@ -75,6 +75,7 @@ struct ccimx6_variant {
 enum imx8_cpu {
 	IMX8_NONE = 0,	/* Reserved */
 	IMX8QXP,	/* QuadXPlus */
+	IMX8DXP,	/* DualXPlus */
 };
 
 struct ccimx8_variant {

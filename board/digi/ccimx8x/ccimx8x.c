@@ -38,6 +38,34 @@ static struct ccimx8_variant ccimx8x_variants[] = {
 		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
 		"Automotive QuadXPlus 1.2GHz, 8GB eMMC, 1GB LPDDR4, -40/+85C, Wireless, Bluetooth",
 	},
+/* 0x02 - 55001984-02 */
+	{
+		IMX8QXP,
+		MEM_2GB,
+		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
+		"Automotive QuadXPlus 1.2GHz, 16GB eMMC, 2GB LPDDR4, -40/+85C, Wireless, Bluetooth",
+	},
+/* 0x03 - 55001984-03 */
+	{
+		IMX8QXP,
+		MEM_2GB,
+		0,
+		"Automotive QuadXPlus 1.2GHz, 8GB eMMC, 2GB LPDDR4, -40/+85C",
+	},
+/* 0x04 - 55001984-04 */
+	{
+		IMX8DXP,
+		MEM_1GB,
+		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
+		"Automotive DualXPlus 1.2GHz, 8GB eMMC, 1GB LPDDR4, -40/+85C, Wireless, Bluetooth",
+	},
+/* 0x05 - 55001984-05 */
+	{
+		IMX8DXP,
+		MEM_1GB,
+		0,
+		"Automotive DualXPlus 1.2GHz, 8GB eMMC, 1GB LPDDR4, -40/+85C",
+	},
 };
 
 int mmc_get_bootdevindex(void)
