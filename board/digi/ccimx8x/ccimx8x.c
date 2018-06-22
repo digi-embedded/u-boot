@@ -13,6 +13,7 @@
 #include <asm/imx-common/boot_mode.h>
 #include "../../freescale/common/tcpc.h"
 
+#include "../common/helper.h"
 #include "../common/hwid.h"
 #include "../common/mca_registers.h"
 #include "../common/mca.h"
@@ -329,6 +330,24 @@ static int is_valid_hwid(struct digi_hwid *hwid)
 	return 0;
 }
 
+int board_has_wireless(void)
+{
+	if (is_valid_hwid(&my_hwid))
+		return (ccimx8x_variants[my_hwid.variant].capabilities &
+				CCIMX8_HAS_WIRELESS);
+	else
+		return 1; /* assume it has if invalid HWID */
+}
+
+int board_has_bluetooth(void)
+{
+	if (is_valid_hwid(&my_hwid))
+		return (ccimx8x_variants[my_hwid.variant].capabilities &
+				CCIMX8_HAS_BLUETOOTH);
+	else
+		return 1; /* assume it has if invalid HWID */
+}
+
 void print_ccimx8x_info(void)
 {
 	if (is_valid_hwid(&my_hwid))
@@ -356,6 +375,16 @@ int ccimx8x_late_init(void)
 	 * in the early init function, and then initialize the MCA.
 	 */
 	mca_init();
+
+	/* Verify MAC addresses */
+	verify_mac_address("ethaddr", DEFAULT_MAC_ETHADDR);
+	verify_mac_address("eth1addr", DEFAULT_MAC_ETHADDR1);
+
+	if (board_has_wireless())
+		verify_mac_address("wlanaddr", DEFAULT_MAC_WLANADDR);
+
+	if (board_has_bluetooth())
+		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
 
 	return 0;
 }
