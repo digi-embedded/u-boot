@@ -543,9 +543,6 @@ restart:
 #ifdef CONFIG_SHOW_ACTIVITY
 		show_activity(1);
 #endif
-		if (arp_timeout_check() > 0)
-			time_start = get_timer(0);
-
 		/*
 		 *	Check the ethernet for a new packet.  The ethernet
 		 *	receive routine will process it.
