@@ -366,6 +366,50 @@ int ccimx8_init(void)
 	return 0;
 }
 
+void generate_partition_table(void)
+{
+	struct mmc *mmc = find_mmc_device(0);
+	unsigned int capacity_gb = 0;
+
+	/* Retrieve eMMC size in GiB */
+	if (mmc)
+		capacity_gb = mmc->capacity / SZ_1G;
+
+	/* eMMC capacity is not exact, so asume 16GB if larger than 15GB */
+	if (capacity_gb >= 15)
+		setenv("parts_linux", LINUX_16GB_PARTITION_TABLE);
+	else if (capacity_gb >= 7)
+		setenv("parts_linux", LINUX_8GB_PARTITION_TABLE);
+	else
+		setenv("parts_linux", LINUX_4GB_PARTITION_TABLE);
+}
+
+void som_default_environment(void)
+{
+#ifdef CONFIG_CMD_MMC
+	char cmd[80];
+#endif
+	char var[10];
+	char *parttable;
+
+#ifdef CONFIG_CMD_MMC
+	/* Set $mmcbootdev to MMC boot device index */
+	sprintf(cmd, "setenv -f mmcbootdev %x", mmc_get_bootdevindex());
+	run_command(cmd, 0);
+#endif
+	/* Set $module_variant variable */
+	sprintf(var, "0x%02x", my_hwid.variant);
+	setenv("module_variant", var);
+
+	/*
+	 * If there is no defined partition table generate one dynamically
+	 * basing on the available eMMC size.
+	 */
+	parttable = getenv("parts_linux");
+	if (!parttable)
+		generate_partition_table();
+}
+
 int ccimx8x_late_init(void)
 {
 	/*

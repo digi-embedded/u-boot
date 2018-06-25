@@ -331,10 +331,18 @@ int ft_board_setup(void *blob, bd_t *bd)
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
 
+void platform_default_environment(void)
+{
+	som_default_environment();
+}
+
 int board_late_init(void)
 {
 	/* SOM late init */
 	ccimx8x_late_init();
+
+	/* Set default dynamic variables */
+	platform_default_environment();
 
 	return 0;
 }

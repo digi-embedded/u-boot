@@ -175,4 +175,28 @@
 	"name=data,size=-,uuid=${part7_uuid};" \
 	"\""
 
+#define LINUX_8GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=linux,size=64MiB,uuid=${part1_uuid};" \
+	"name=recovery,size=64MiB,uuid=${part2_uuid};" \
+	"name=rootfs,size=3GiB,uuid=${part3_uuid};" \
+	"name=update,size=3GiB,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
+	"name=data,size=-,uuid=${part7_uuid};" \
+	"\""
+
+#define LINUX_16GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=linux,size=64MiB,uuid=${part1_uuid};" \
+	"name=recovery,size=64MiB,uuid=${part2_uuid};" \
+	"name=rootfs,size=7GiB,uuid=${part3_uuid};" \
+	"name=update,size=7GiB,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
+	"name=data,size=-,uuid=${part7_uuid};" \
+	"\""
+
 #endif /* CCIMX8X_COMMON_H */

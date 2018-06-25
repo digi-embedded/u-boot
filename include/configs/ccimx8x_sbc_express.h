@@ -183,7 +183,6 @@
 		"else " \
 			"booti; " \
 		"fi;\0" \
-	"parts_linux="LINUX_4GB_PARTITION_TABLE"\0" \
 	"partition_mmc_linux=mmc rescan;" \
 		"if mmc dev ${mmcdev} 0; then " \
 			"gpt write mmc ${mmcdev} ${parts_linux};" \

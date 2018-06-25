@@ -11,5 +11,6 @@
 int ccimx8_init(void);
 int ccimx8x_late_init(void);
 void print_ccimx8x_info(void);
+void som_default_environment(void);
 
 #endif  /* CCIMX8X_H */
