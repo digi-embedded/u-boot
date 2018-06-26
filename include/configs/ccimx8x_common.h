@@ -45,6 +45,7 @@
 #define HWID0_FUSE0			708
 #define HWID1_FUSE1			709
 #define HWID1_FUSE2			711
+#define CONFIG_NO_MAC_FROM_OTP
 
 /* Media type for firmware updates */
 #define CONFIG_SYS_STORAGE_MEDIA       "mmc"
