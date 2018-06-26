@@ -10,7 +10,6 @@
 #include <asm/gpio.h>
 #include <asm/imx-common/sci/sci.h>
 #include <asm/arch/imx8-pins.h>
-#include <imx8_hsio.h>
 #include <usb.h>
 #include <asm/arch/iomux.h>
 #include <asm/arch/sys_proto.h>
@@ -220,39 +219,6 @@ int checkboard(void)
 
 	return 0;
 }
-
-#ifdef CONFIG_FSL_HSIO
-
-#define PCIE_PAD_CTRL	((SC_PAD_CONFIG_OD_IN << PADRING_CONFIG_SHIFT))
-static iomux_cfg_t board_pcie_pins[] = {
-	SC_P_PCIE_CTRL0_CLKREQ_B | MUX_MODE_ALT(0) | MUX_PAD_CTRL(PCIE_PAD_CTRL),
-	SC_P_PCIE_CTRL0_WAKE_B | MUX_MODE_ALT(0) | MUX_PAD_CTRL(PCIE_PAD_CTRL),
-	SC_P_PCIE_CTRL0_PERST_B | MUX_MODE_ALT(0) | MUX_PAD_CTRL(PCIE_PAD_CTRL),
-};
-
-static void imx8qxp_hsio_initialize(void)
-{
-	struct power_domain pd;
-	int ret;
-
-	if (!power_domain_lookup_name("hsio_pcie1", &pd)) {
-		ret = power_domain_on(&pd);
-		if (ret)
-			printf("hsio_pcie1 Power up failed! (error = %d)\n", ret);
-	}
-
-	imx8_iomux_setup_multiple_pads(board_pcie_pins, ARRAY_SIZE(board_pcie_pins));
-}
-
-void pci_init_board(void)
-{
-	imx8qxp_hsio_initialize();
-
-	/* test the 1 lane mode of the PCIe A controller */
-	mx8qxp_pcie_init();
-}
-
-#endif
 
 #ifdef CONFIG_USB_XHCI_IMX8
 

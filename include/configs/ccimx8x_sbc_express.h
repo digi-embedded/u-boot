@@ -17,16 +17,6 @@
 #define CONFIG_BOARD_EARLY_INIT_F
 #define CONFIG_ARCH_MISC_INIT
 
-#define CONFIG_FSL_HSIO
-#ifdef CONFIG_FSL_HSIO
-#define CONFIG_PCIE_IMX8X
-#define CONFIG_CMD_PCI
-#define CONFIG_PCI
-#define CONFIG_PCI_PNP
-#define CONFIG_PCI_SCAN_SHOW
-#define CONFIG_CMD_PCI_ENUM
-#endif
-
 /* GPIO configs */
 #define CONFIG_MXC_GPIO
 
