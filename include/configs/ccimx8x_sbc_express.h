@@ -14,9 +14,6 @@
 
 #define CONFIG_REMAKE_ELF
 
-#define CONFIG_BOARD_EARLY_INIT_F
-#define CONFIG_ARCH_MISC_INIT
-
 /* GPIO configs */
 #define CONFIG_MXC_GPIO
 
