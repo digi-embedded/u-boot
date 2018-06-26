@@ -199,9 +199,6 @@
 #define COUNTER_FREQUENCY		8000000	/* 8MHz */
 
 #define CONFIG_IMX_SMMU
-#if defined(CONFIG_ANDROID_SUPPORT)
-#include "imx8qxp_mek_android.h"
-#endif
 
 /* USB Config */
 #ifdef CONFIG_CMD_USB
