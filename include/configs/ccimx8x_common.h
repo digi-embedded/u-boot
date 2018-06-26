@@ -64,6 +64,19 @@
 #define CONFIG_SYS_BOOT_PART_OFFSET	(33 * SZ_1K)
 #define CONFIG_SYS_BOOT_PART_SIZE	(SZ_2M - CONFIG_SYS_BOOT_PART_OFFSET)
 
+/* protected environment variables (besides ethaddr and serial#) */
+#define CONFIG_ENV_FLAGS_LIST_STATIC	\
+	"eth1addr:mc,"			\
+	"wlanaddr:mc,"			\
+	"wlan1addr:mc,"			\
+	"wlan2addr:mc,"			\
+	"wlan3addr:mc,"			\
+	"btaddr:mc,"			\
+	"bootargs_once:sr,"		\
+	"board_version:so,"		\
+	"board_id:so,"			\
+	"mmcbootdev:so"
+
 /* Environment */
 #define CONFIG_ENV_IS_IN_MMC
 #define CONFIG_ENV_OFFSET		(1792 * 1024)	/* 256kB below 2MiB */
@@ -137,6 +150,11 @@
 #undef CONFIG_CMD_IMLS
 #undef CONFIG_CMD_CRC32
 #undef CONFIG_BOOTM_NETBSD
+
+/* Generic Timer Definitions */
+#define COUNTER_FREQUENCY		8000000	/* 8MHz */
+
+#define CONFIG_IMX_SMMU
 
 /* Pool of randomly generated UUIDs at host machine */
 #define RANDOM_UUIDS	\

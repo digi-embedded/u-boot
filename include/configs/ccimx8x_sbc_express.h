@@ -38,18 +38,32 @@
 /* ENET0 MDIO are shared */
 #define CONFIG_FEC_MXC_MDIO_BASE	0x5B040000
 
-/* protected environment variables (besides ethaddr and serial#) */
-#define CONFIG_ENV_FLAGS_LIST_STATIC	\
-	"eth1addr:mc,"			\
-	"wlanaddr:mc,"			\
-	"wlan1addr:mc,"			\
-	"wlan2addr:mc,"			\
-	"wlan3addr:mc,"			\
-	"btaddr:mc,"			\
-	"bootargs_once:sr,"		\
-	"board_version:so,"		\
-	"board_id:so,"			\
-	"mmcbootdev:so"
+/* Serial */
+#define CONSOLE_DEV			"ttyLP2"
+#define EARLY_CONSOLE			"lpuart32,0x5a080000"
+#define CONFIG_BAUDRATE			115200
+
+/* USB Config */
+#ifdef CONFIG_CMD_USB
+#define CONFIG_USB_MAX_CONTROLLER_COUNT 2
+
+/* USB 3.0 controller configs */
+#ifdef CONFIG_USB_XHCI_IMX8
+#define CONFIG_SYS_USB_XHCI_MAX_ROOT_PORTS	2
+#endif
+
+/* USB OTG controller configs */
+#ifdef CONFIG_USB_EHCI_HCD
+#define CONFIG_USB_HOST_ETHER
+#define CONFIG_USB_ETHER_ASIX
+#define CONFIG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
+#endif
+#endif /* CONFIG_CMD_USB */
+
+#ifdef CONFIG_USB_GADGET
+#define CONFIG_USBD_HS
+#define CONFIG_USB_FUNCTION_MASS_STORAGE
+#endif
 
 /* Initial environment variables */
 #define CONFIG_EXTRA_ENV_SETTINGS		\
@@ -149,37 +163,5 @@
 	"if run loadscript; then " \
 		"source ${loadaddr};" \
 	"fi;"
-
-/* Serial */
-#define CONSOLE_DEV			"ttyLP2"
-#define EARLY_CONSOLE			"lpuart32,0x5a080000"
-#define CONFIG_BAUDRATE			115200
-
-/* Generic Timer Definitions */
-#define COUNTER_FREQUENCY		8000000	/* 8MHz */
-
-#define CONFIG_IMX_SMMU
-
-/* USB Config */
-#ifdef CONFIG_CMD_USB
-#define CONFIG_USB_MAX_CONTROLLER_COUNT 2
-
-/* USB 3.0 controller configs */
-#ifdef CONFIG_USB_XHCI_IMX8
-#define CONFIG_SYS_USB_XHCI_MAX_ROOT_PORTS	2
-#endif
-
-/* USB OTG controller configs */
-#ifdef CONFIG_USB_EHCI_HCD
-#define CONFIG_USB_HOST_ETHER
-#define CONFIG_USB_ETHER_ASIX
-#define CONFIG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
-#endif
-#endif /* CONFIG_CMD_USB */
-
-#ifdef CONFIG_USB_GADGET
-#define CONFIG_USBD_HS
-#define CONFIG_USB_FUNCTION_MASS_STORAGE
-#endif
 
 #endif /* CCIMX8X_SBC_EXPRESS_CONFIG_H */
