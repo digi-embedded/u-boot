@@ -51,50 +51,10 @@
 	"board_id:so,"			\
 	"mmcbootdev:so"
 
-/* Boot M4 */
-#define M4_BOOT_ENV \
-	"m4_0_image=m4_0.bin\0" \
-	"loadm4image_0=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${m4_0_image}\0" \
-	"m4boot_0=run loadm4image_0; dcache flush; bootaux ${loadaddr} 0\0" \
-
-#ifdef CONFIG_NAND_BOOT
-#define MFG_NAND_PARTITION "mtdparts=gpmi-nand:64m(boot),16m(kernel),16m(dtb),1m(misc),-(rootfs) "
-#else
-#define MFG_NAND_PARTITION ""
-#endif
-
-#define CONFIG_MFG_ENV_SETTINGS \
-	"mfgtool_args=setenv bootargs console=${console},${baudrate} " \
-		"rdinit=/linuxrc " \
-		"g_mass_storage.stall=0 g_mass_storage.removable=1 " \
-		"g_mass_storage.idVendor=0x066F g_mass_storage.idProduct=0x37FF "\
-		"g_mass_storage.iSerialNumber=\"\" "\
-		MFG_NAND_PARTITION \
-		"video=imxdpufb5:off video=imxdpufb6:off video=imxdpufb7:off "\
-		"clk_ignore_unused "\
-		"\0" \
-	"initrd_addr=0x83800000\0" \
-	"initrd_high=0xffffffff\0" \
-	"bootcmd_mfg=run mfgtool_args;booti ${loadaddr} ${initrd_addr} ${fdt_addr};\0" \
-
-#define XEN_ENV \
-	"xen_addr=0x80200000\0" \
-	"xen_file=xen\0" \
-	"xenargs=setenv bootargs console=dtuart dtuart=/serial@5a060000 dom0_mem=1024M \0" \
-	"loadxen=fatload mmc ${mmcdev}:${mmcpart} ${xen_addr} ${xen_file}\0" \
-	"xenboot=setenv loadaddr 0x80a00000; setenv fdt_file fsl-imx8qxp-mek-dom0.dtb; "\
-	"setenv bootargs console=dtuart dtuart=/serial@5a060000 dom0_mem=1024M; " \
-	"run loadfdt; run loadxen; run loadimage; fdt addr ${fdt_addr}; "\
-	"fdt set /chosen/module@0 reg <0x00000000 ${loadaddr} 0x00000000 0x${filesize}>; " \
-	"booti ${xen_addr} - ${fdt_addr} \0" \
-
 /* Initial environment variables */
 #define CONFIG_EXTRA_ENV_SETTINGS		\
-	CONFIG_MFG_ENV_SETTINGS \
 	CONFIG_DEFAULT_NETWORK_SETTINGS		\
 	RANDOM_UUIDS \
-	M4_BOOT_ENV \
-	XEN_ENV \
 	"dboot_kernel_var=imagegz\0" \
 	"lzipaddr=0x82000000\0" \
 	"script=boot.scr\0" \
