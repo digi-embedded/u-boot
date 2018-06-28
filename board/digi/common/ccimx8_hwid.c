@@ -5,145 +5,326 @@
  */
 
 #include <common.h>
-#include <fuse.h>
+#include <fdt_support.h>
+#include "helper.h"
 #include "hwid.h"
 
-/*
- * HWID is stored in 3 NON-consecutive Fuse Words, being:
- *
- *                           MAC1[31:0] (Bank 0 Word 708)
- *
- *               |    31..27   | 26..20  |          19..0           |
- *               +-------------+---------+--------------------------+
- * HWID0[31:0]:  |   Location  |  GenID  |      Serial number       |
- *               +-------------+---------+--------------------------+
- *
- *                           MAC1[47:32] (Bank 0 Word 709)
- *
- *               |          31..16          |  15..8  | 7..4 | 3..0 |
- *               +--------------------------+---------+------+------+
- * HWID1[15:0]:  |         RESERVED         | Variant |  HV  | Cert |
- *               +--------------------------+---------+------+------+
- *
- *                           MAC2[47:32] (Bank 0 Word 711)
- *
- *               |          31..16          | 15..10  | 9..4 | 3..0 |
- *               +--------------------------+---------+------+------+
- * HWID1[31:16]: |         RESERVED         |  Year   | Week |  WID |
- *               +--------------------------+---------+------+------+
- */
-int board_read_hwid(u32 *hwid_array)
+const char *cert_regions[] = {
+	"U.S.A.",
+	"International",
+	"Japan",
+};
+
+/* Print HWID info */
+void board_print_hwid(struct digi_hwid *hwid)
 {
-	u32 bank = CONFIG_HWID_BANK;
-	u32 fuseword;
-	int ret;
+	printf(" %.8x", ((u32 *)hwid)[2]);
+	printf(" %.4x", ((u32 *)hwid)[1]);
+	printf(" %.8x", ((u32 *)hwid)[0]);
+	printf("\n");
 
-	/* HWID0 */
-	ret = fuse_read(bank, HWID0_FUSE0, &fuseword);
-	if (ret)
-		return ret;
-
-	hwid_array[0] = fuseword;
-
-	/* HWID1 */
-	ret = fuse_read(bank, HWID1_FUSE1, &fuseword);
-	if (ret)
-		return ret;
-
-	hwid_array[1] = fuseword & 0xFFFF;
-
-	ret = fuse_read(bank, HWID1_FUSE2, &fuseword);
-	if (ret)
-		return ret;
-
-	hwid_array[1] |= (fuseword << 16) & 0xFFFF0000;
-
-	return 0;
+	/* Formatted printout */
+	printf("    Generator ID:  %02d\n", hwid->genid);
+	printf("    MAC Pool:      %02d\n", hwid->mac_pool);
+	printf("    MAC Base:      %.2x:%.2x:%.2x\n",
+		(hwid->mac_base >> 16) & 0xFF,
+		(hwid->mac_base >> 8) & 0xFF,
+		(hwid->mac_base) & 0xFF);
+	printf("    Variant:       0x%02x\n", hwid->variant);
+	printf("    HW Version:    0x%x\n", hwid->hv);
+	printf("    Cert:          0x%x (%s)\n", hwid->cert,
+		hwid->cert < ARRAY_SIZE(cert_regions) ?
+		cert_regions[hwid->cert] : "??");
+	printf("    Wireless ID:   0x%x\n", hwid->wid);
+	printf("    Year:          20%02d\n", hwid->year);
+	printf("    Month:         %02d\n", hwid->month);
+	printf("    S/N:           %06d\n", hwid->sn);
 }
 
-int board_sense_hwid(u32 *hwid_array)
+/* Print HWID info in MANUFID format */
+void board_print_manufid(struct digi_hwid *hwid)
 {
-	u32 bank = CONFIG_HWID_BANK;
-	u32 fuseword;
-	int ret;
+	printf(" %.8x", ((u32 *)hwid)[2]);
+	printf(" %.4x", ((u32 *)hwid)[1]);
+	printf(" %.8x", ((u32 *)hwid)[0]);
+	printf("\n");
 
-	/* HWID0 */
-	ret = fuse_sense(bank, HWID0_FUSE0, &fuseword);
-	if (ret)
-		return ret;
-
-	hwid_array[0] = fuseword;
-
-	/* HWID1 */
-	ret = fuse_sense(bank, HWID1_FUSE1, &fuseword);
-	if (ret)
-		return ret;
-
-	hwid_array[1] = fuseword & 0xFFFF;
-
-	ret = fuse_sense(bank, HWID1_FUSE2, &fuseword);
-	if (ret)
-		return ret;
-
-	hwid_array[1] |= (fuseword << 16) & 0xFFFF0000;
-
-	return 0;
+	/* Formatted printout */
+	printf(" Manufacturing ID: %02d%02d%02d%06d %02d%06x %02x%x%x %x\n",
+		hwid->year,
+		hwid->month,
+		hwid->genid,
+		hwid->sn,
+		hwid->mac_pool,
+		hwid->mac_base,
+		hwid->variant,
+		hwid->hv,
+		hwid->cert,
+		hwid->wid);
 }
 
-int board_prog_hwid(const u32 *hwid_array)
+/* Parse HWID info in HWID format */
+int board_parse_hwid(int argc, char *const argv[], struct digi_hwid *hwid)
 {
-	u32 bank = CONFIG_HWID_BANK;
-	u32 fuseword;
-	int ret;
+	int i, word;
+	u32 hwidword;
 
-	/* HWID0 */
-	fuseword = hwid_array[0];
-	ret = fuse_prog(bank, HWID0_FUSE0, fuseword);
-	if (ret)
-		return ret;
+	if (argc != CONFIG_HWID_WORDS_NUMBER)
+		goto err;
 
-	/* HWID1 */
-	fuseword = hwid_array[1] & 0xFFFF;
-	ret = fuse_prog(bank, HWID1_FUSE1, fuseword);
-	if (ret)
-		return ret;
+	if (strlen(argv[0]) != 8)
+		goto err;
 
-	fuseword = (hwid_array[1] >> 16) & 0xFFFF;
-	ret = fuse_prog(bank, HWID1_FUSE2, fuseword);
-	if (ret)
-		return ret;
+	if (strlen(argv[1]) != 4)
+		goto err;
+
+	if (strlen(argv[2]) != 8)
+		goto err;
+	/*
+	 * Digi HWID is set as a three hex strings in the form
+	 *     <XXXXXXXX> <YYYY> <ZZZZZZZZ>
+	 * that are inversely stored into the structure.
+	 */
+
+	/* Parse backwards, from MSB to LSB */
+	word = CONFIG_HWID_WORDS_NUMBER - 1;
+	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word--) {
+		if (strtou32(argv[i], 16, &hwidword))
+			goto err;
+
+		((u32 *)hwid)[word] = hwidword;
+	}
 
 	return 0;
+
+err:
+	printf("Invalid HWID input.\n"
+		"HWID input must be in the form: "
+		CONFIG_HWID_STRINGS_HELP "\n");
+	return -EINVAL;
 }
 
-int board_override_hwid(const u32 *hwid_array)
+/* Parse HWID info in MANUFID format */
+int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 {
-	u32 bank = CONFIG_HWID_BANK;
-	u32 fuseword;
-	int ret;
+	char tmp[13];
+	unsigned long num;
 
-	/* HWID0 */
-	fuseword = hwid_array[0];
-	ret = fuse_override(bank, HWID0_FUSE0, fuseword);
-	if (ret)
-		return ret;
+	/* Initialize HWID words */
+	memset(hwid, 0, sizeof(struct digi_hwid));
 
-	/* HWID1 */
-	fuseword = hwid_array[1] & 0xFFFF;
-	ret = fuse_override(bank, HWID1_FUSE1, fuseword);
-	if (ret)
-		return ret;
+	if (argc < 3 || argc > 4)
+		goto err;
 
-	fuseword = (hwid_array[1] >> 16) & 0xFFFF;
-	ret = fuse_override(bank, HWID1_FUSE2, fuseword);
-	if (ret)
-		return ret;
+	/*
+	 * Digi Manufacturing team produces a string in the form
+	 *     <YYMMGGXXXXXX>
+	 * where:
+	 *  - YY:	year (last two digits of XXI century, in decimal)
+	 *  - MM:	month of the year (in decimal)
+	 *  - GG:	generator ID (in decimal)
+	 *  - XXXXXX:	serial number (in decimal)
+	 * this information goes into the following places on the fuses:
+	 *  - YY:	MAC1_ADDR0 bits 29..24 (6 bits)
+	 *  - MM:	MAC1_ADDR0 bits 23..20 (4 bits)
+	 *  - GG:	MAC2_ADDR0 bits 31..28 (4 bits)
+	 *  - XXXXXX:	MAC1_ADDR0 bits 19..0 (20 bits)
+	 */
+	if (strlen(argv[0]) != 12)
+		goto err;
+
+	/*
+	 * A second string in the form <PPAAAAAA> must be given where:
+	 *  - PP:	MAC pool (in decimal)
+	 *  - AAAAAA:	MAC base address (in hex)
+	 * this information goes into the following places on the fuses:
+	 *  - PP:	MAC2_ADDR0 bits 27..24 (4 bits)
+	 *  - AAAAAA:	MAC2_ADDR0 bits 23..0 (24 bits)
+	 */
+	if (strlen(argv[1]) != 8)
+		goto err;
+
+	/*
+	 * A third string in the form <VVHC> must be given where:
+	 *  - VV:	variant (in hex)
+	 *  - H:	hardware version (in hex)
+	 *  - C:	wireless certification (in hex)
+	 * this information goes into the following places on the fuses:
+	 *  - VV:	MAC1_ADDR1 bits 10..6 (5 bits)
+	 *  - H:	MAC1_ADDR1 bits 5..3 (3 bits)
+	 *  - C:	MAC1_ADDR1 bits 2..0 (3 bits)
+	 */
+	if (strlen(argv[2]) != 4)
+		goto err;
+
+	/*
+	 * A fourth string (if provided) in the form <K> may be given, where:
+	 *  - K:	wireless ID (in hex)
+	 * this information goes into the following places on the fuses:
+	 *  - K:	MAC1_ADDR0 bits 31..30 (2 bits)
+	 * If not provided, a zero is used (for backwards compatibility)
+	 */
+	if (argc > 3) {
+		if (strlen(argv[3]) != 1)
+			goto err;
+	}
+
+	/* Year (only 6 bits: from 0 to 63) */
+	strncpy(tmp, &argv[0][0], 2);
+	tmp[2] = 0;
+	num = simple_strtol(tmp, NULL, 10);
+	if (num < 0 || num > 63)
+		goto err;
+	hwid->year = num;
+	printf("    Year:          20%02d\n", hwid->year);
+
+	/* Month */
+	strncpy(tmp, &argv[0][2], 2);
+	tmp[2] = 0;
+	num = simple_strtol(tmp, NULL, 10);
+	if (num < 1 || num > 12)
+		goto err;
+	hwid->month = num;
+	printf("    Month:         %02d\n", hwid->month);
+
+	/* Generator ID */
+	strncpy(tmp, &argv[0][4], 2);
+	tmp[2] = 0;
+	num = simple_strtol(tmp, NULL, 10);
+	if (num < 0 || num > 15)
+		goto err;
+	hwid->genid = num;
+	printf("    Generator ID:  %02d\n", hwid->genid);
+
+	/* Serial number */
+	strncpy(tmp, &argv[0][6], 6);
+	tmp[6] = 0;
+	num = simple_strtol(tmp, NULL, 10);
+	if (num < 0 || num > 999999)
+		goto err;
+	hwid->sn = num;
+	printf("    S/N:           %06d\n", hwid->sn);
+
+	/* MAC pool */
+	strncpy(tmp, &argv[1][0], 2);
+	tmp[2] = 0;
+	num = simple_strtol(tmp, NULL, 10);
+	if (num < 0 || num > 15)
+		goto err;
+	hwid->mac_pool = num;
+	printf("    MAC pool:      %02d\n", hwid->mac_pool);
+
+	/* MAC base address */
+	strncpy(tmp, &argv[1][2], 6);
+	tmp[6] = 0;
+	num = simple_strtol(tmp, NULL, 16);
+	if (num < 0 || num > 0xFFFFFF)
+		goto err;
+	hwid->mac_base = num;
+	printf("    MAC Base:      %.2x:%.2x:%.2x\n",
+		(hwid->mac_base >> 16) & 0xFF,
+		(hwid->mac_base >> 8) & 0xFF,
+		(hwid->mac_base) & 0xFF);
+
+	/* Variant */
+	strncpy(tmp, &argv[2][0], 2);
+	tmp[2] = 0;
+	num = simple_strtol(tmp, NULL, 16);
+	if (num < 0 || num > 0x1F)
+		goto err;
+	hwid->variant = num;
+	printf("    Variant:       0x%02x\n", hwid->variant);
+
+	/* Hardware version */
+	strncpy(tmp, &argv[2][2], 1);
+	tmp[1] = 0;
+	num = simple_strtol(tmp, NULL, 16);
+	if (num < 0 || num > 7)
+		goto err;
+	hwid->hv = num;
+	printf("    HW version:    0x%x\n", hwid->hv);
+
+	/* Cert */
+	strncpy(tmp, &argv[2][3], 1);
+	tmp[1] = 0;
+	num = simple_strtol(tmp, NULL, 16);
+	if (num < 0 || num > 7)
+		goto err;
+	hwid->cert = num;
+	printf("    Cert:          0x%x (%s)\n", hwid->cert,
+	       hwid->cert < ARRAY_SIZE(cert_regions) ?
+	       cert_regions[hwid->cert] : "??");
+
+	if (argc > 2) {
+		/* Wireless ID */
+		strncpy(tmp, &argv[3][0], 1);
+		tmp[1] = 0;
+		num = simple_strtol(tmp, NULL, 16);
+		if (num < 0 || num > 3)
+			goto err;
+		hwid->wid = num;
+	}
+	printf("    Wireless ID:   0x%x\n", hwid->wid);
 
 	return 0;
+
+err:
+	printf("Invalid manufacturing string.\n"
+		"Manufacturing information must be in the form: "
+		CONFIG_MANUF_STRINGS_HELP "\n");
+	return -EINVAL;
 }
 
 int board_lock_hwid(void)
 {
 	/* SCU performs automatic lock after programming */
 	return 0;
+}
+
+void board_fdt_fixup_hwid(void *fdt, struct digi_hwid *hwid)
+{
+	const char *propnames[] = {
+		"digi,hwid,year",
+		"digi,hwid,month",
+		"digi,hwid,genid",
+		"digi,hwid,sn",
+		"digi,hwid,macpool",
+		"digi,hwid,macbase",
+		"digi,hwid,variant",
+		"digi,hwid,hv",
+		"digi,hwid,cert",
+		"digi,hwid,wid",
+	};
+	char str[20];
+	int i;
+
+	/* Register the HWID as main node properties in the FDT */
+	for (i = 0; i < ARRAY_SIZE(propnames); i++) {
+		/* Convert HWID fields to strings */
+		if (!strcmp("digi,hwid,year", propnames[i]))
+			sprintf(str, "20%02d", hwid->year);
+		else if (!strcmp("digi,hwid,month", propnames[i]))
+			sprintf(str, "%02d", hwid->month);
+		else if (!strcmp("digi,hwid,genid", propnames[i]))
+			sprintf(str, "%02d", hwid->genid);
+		else if (!strcmp("digi,hwid,sn", propnames[i]))
+			sprintf(str, "%06d", hwid->sn);
+		else if (!strcmp("digi,hwid,macpool", propnames[i]))
+			sprintf(str, "%02d", hwid->mac_pool);
+		else if (!strcmp("digi,hwid,macbase", propnames[i]))
+			sprintf(str, "%06x", hwid->mac_base);
+		else if (!strcmp("digi,hwid,variant", propnames[i]))
+			sprintf(str, "0x%02x", hwid->variant);
+		else if (!strcmp("digi,hwid,hv", propnames[i]))
+			sprintf(str, "0x%x", hwid->hv);
+		else if (!strcmp("digi,hwid,cert", propnames[i]))
+			sprintf(str, "0x%x", hwid->cert);
+		else if (!strcmp("digi,hwid,wid", propnames[i]))
+			sprintf(str, "0x%x", hwid->wid);
+		else
+			continue;
+
+		do_fixup_by_path(fdt, "/", propnames[i], str,
+				strlen(str) + 1, 1);
+	}
 }

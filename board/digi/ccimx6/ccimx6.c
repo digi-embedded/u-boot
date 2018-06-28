@@ -1400,7 +1400,7 @@ int ccimx6_late_init(void)
 void fdt_fixup_hwid(void *fdt)
 {
 	/* Re-read HWID which might have been overridden by user */
-	if (board_get_hwid(&my_hwid)) {
+	if (board_read_hwid(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return;
 	}
@@ -1633,7 +1633,7 @@ int board_update_chunk(otf_data_t *otfd)
 
 int ccimx6_init(void)
 {
-	if (board_get_hwid(&my_hwid)) {
+	if (board_read_hwid(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return -1;
 	}

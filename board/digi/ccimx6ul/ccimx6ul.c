@@ -300,7 +300,7 @@ int ccimx6ul_init(void)
 	/* Address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 
-	if (board_get_hwid(&my_hwid)) {
+	if (board_read_hwid(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return -1;
 	}
@@ -402,7 +402,7 @@ u32 get_board_rev(void)
 void fdt_fixup_hwid(void *fdt)
 {
 	/* Re-read HWID which might have been overridden by user */
-	if (board_get_hwid(&my_hwid)) {
+	if (board_read_hwid(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return;
 	}
