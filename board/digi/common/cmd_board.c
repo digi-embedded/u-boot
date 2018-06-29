@@ -22,110 +22,11 @@
 
 #include <common.h>
 #include <command.h>
-#include <fdt_support.h>
 #include <fuse.h>
-#include <linux/errno.h>
 #include "helper.h"
 
-#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
-extern unsigned int board_version;
-#endif
-
-#ifdef CONFIG_HAS_CARRIERBOARD_ID
-extern unsigned int board_id;
-#endif
-
-__weak unsigned int get_carrierboard_version(void)
-{
-#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
-	u32 version;
-
-	if (fuse_read(CONFIG_CARRIERBOARD_VERSION_BANK,
-		      CONFIG_CARRIERBOARD_VERSION_WORD, &version))
-		return CARRIERBOARD_VERSION_UNDEFINED;
-
-	version >>= CONFIG_CARRIERBOARD_VERSION_OFFSET;
-	version &= CONFIG_CARRIERBOARD_VERSION_MASK;
-
-	return((int)version);
-#else
-	return CARRIERBOARD_VERSION_UNDEFINED;
-#endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
-}
-
-__weak unsigned int get_carrierboard_id(void)
-{
-#ifdef CONFIG_HAS_CARRIERBOARD_ID
-	u32 id;
-
-	if (fuse_read(CONFIG_CARRIERBOARD_ID_BANK,
-		      CONFIG_CARRIERBOARD_ID_WORD, &id))
-		return CARRIERBOARD_ID_UNDEFINED;
-
-	id >>= CONFIG_CARRIERBOARD_ID_OFFSET;
-	id &= CONFIG_CARRIERBOARD_ID_MASK;
-
-	return((int)id);
-#else
-	return CARRIERBOARD_ID_UNDEFINED;
-#endif /* CONFIG_HAS_CARRIERBOARD_ID */
-}
-
-__weak void fdt_fixup_carrierboard(void *fdt)
-{
-#if defined(CONFIG_HAS_CARRIERBOARD_VERSION) || \
-    defined(CONFIG_HAS_CARRIERBOARD_ID)
-	char str[20];
-#endif
-
-	/*
-	 * Re-read board version/ID in case the shadow registers were
-	 * overridden by the user.
-	 */
-	board_version = get_carrierboard_version();
-	board_id = get_carrierboard_id();
-
-#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
-	sprintf(str, "%d", board_version);
-	do_fixup_by_path(fdt, "/", "digi,carrierboard,version", str,
-			 strlen(str) + 1, 1);
-#endif
-
-#ifdef CONFIG_HAS_CARRIERBOARD_ID
-	sprintf(str, "%d", board_id);
-	do_fixup_by_path(fdt, "/", "digi,carrierboard,id", str,
-			 strlen(str) + 1, 1);
-#endif
-}
-
-__weak void print_carrierboard_info(void)
-{
-	char board_str[100];
-	char warnings[100] = "";
-
-	sprintf(board_str, "Board: %s %s", CONFIG_SOM_DESCRIPTION,
-		CONFIG_BOARD_DESCRIPTION);
-#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
-	if (CARRIERBOARD_VERSION_UNDEFINED == board_version)
-		sprintf(warnings, "%s   WARNING: Undefined board version!\n",
-			warnings);
-	else
-		sprintf(board_str, "%s, version %d", board_str, board_version);
-#endif
-
-#ifdef CONFIG_HAS_CARRIERBOARD_ID
-	if (CARRIERBOARD_ID_UNDEFINED == board_id)
-		sprintf(warnings, "%s   WARNING: Undefined board ID!\n",
-			warnings);
-	else
-		sprintf(board_str, "%s, ID %d", board_str, board_id);
-#endif
-	printf("%s\n", board_str);
-	if (strcmp(warnings, ""))
-		printf("%s", warnings);
-}
-
-#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
+#if defined(CONFIG_CMD_BOARD_VERSION) && \
+    defined(CONFIG_HAS_CARRIERBOARD_VERSION)
 __weak void print_board_version(u32 version)
 {
 	printf("Board: %s %s\n", CONFIG_SOM_DESCRIPTION,
@@ -243,9 +144,10 @@ U_BOOT_CMD(
 	"board_version override <version> - override carrier board version\n"
 	"\nNOTE: <version> parameter is in DECIMAL\n"
 );
-#endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
+#endif /* CONFIG_CMD_BOARD_VERSION && CONFIG_HAS_CARRIERBOARD_VERSION */
 
-#ifdef CONFIG_HAS_CARRIERBOARD_ID
+#if defined(CONFIG_CMD_BOARD_ID) && \
+    defined(CONFIG_HAS_CARRIERBOARD_ID)
 __weak void print_board_id(u32 id)
 {
 	printf("Board: %s %s\n", CONFIG_SOM_DESCRIPTION,
@@ -362,4 +264,4 @@ U_BOOT_CMD(
 	"board_id override <id> - override carrier board ID\n"
 	"\nNOTE: <id> parameter is in DECIMAL\n"
 );
-#endif /* CONFIG_HAS_CARRIERBOARD_ID */
+#endif /* CONFIG_CMD_BOARD_ID && CONFIG_HAS_CARRIERBOARD_ID */

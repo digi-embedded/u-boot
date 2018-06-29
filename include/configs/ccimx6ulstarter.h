@@ -230,6 +230,10 @@
 #define CONFIG_SYS_MMC_ENV_PART		0	/* user area */
 #define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
 
+/* Carrier board version and ID commands */
+#define CONFIG_CMD_BOARD_VERSION
+#define CONFIG_CMD_BOARD_ID
+
 /* Carrier board version in OTP bits */
 #define CONFIG_HAS_CARRIERBOARD_VERSION
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION

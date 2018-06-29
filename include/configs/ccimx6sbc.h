@@ -60,6 +60,10 @@
 #define CONFIG_SYS_I2C_MXC_I2C3
 #define CONFIG_SYS_I2C_MXC_I2C4
 
+/* Carrier board version and ID commands */
+#define CONFIG_CMD_BOARD_VERSION
+#define CONFIG_CMD_BOARD_ID
+
 /* Carrier board version in OTP bits */
 #define CONFIG_HAS_CARRIERBOARD_VERSION
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
