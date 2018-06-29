@@ -460,6 +460,25 @@ void reset_misc(void)
 #endif
 }
 
+void fdt_fixup_ccimx8x(void *fdt)
+{
+	if (board_has_wireless()) {
+		/* Wireless MACs */
+		fdt_fixup_mac(fdt, "wlanaddr", "/wireless", "mac-address");
+		fdt_fixup_mac(fdt, "wlan1addr", "/wireless", "mac-address1");
+		fdt_fixup_mac(fdt, "wlan2addr", "/wireless", "mac-address2");
+		fdt_fixup_mac(fdt, "wlan3addr", "/wireless", "mac-address3");
+
+		/* Regulatory domain */
+		fdt_fixup_regulatory(fdt);
+	}
+
+	if (board_has_bluetooth())
+		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
+
+	fdt_fixup_uboot_info(fdt);
+}
+
 void detail_board_ddr_info(void)
 {
 	puts("\nDDR    ");

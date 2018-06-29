@@ -300,6 +300,8 @@ void board_quiesce_devices()
 int ft_board_setup(void *blob, bd_t *bd)
 {
 	fdt_fixup_hwid(blob);
+	fdt_fixup_ccimx8x(blob);
+	fdt_fixup_carrierboard(blob);
 
 	return 0;
 }
