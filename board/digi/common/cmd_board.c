@@ -240,7 +240,7 @@ static int do_board_id(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 
 		printf("Overriding carrier board ID... ");
 		ret = fuse_override(CONFIG_CARRIERBOARD_ID_BANK,
-				    CONFIG_CARRIERBOARD_ID_WORD, id);
+				    CONFIG_CARRIERBOARD_ID_WORD, val);
 		if (ret)
 			goto err;
 		printf("OK\n");
