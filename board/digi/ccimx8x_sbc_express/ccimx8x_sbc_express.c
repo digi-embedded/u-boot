@@ -17,6 +17,7 @@
 #include "../../freescale/common/tcpc.h"
 
 #include "../ccimx8x/ccimx8x.h"
+#include "../common/carrier_board.h"
 #include "../common/helper.h"
 #include "../common/hwid.h"
 
@@ -196,60 +197,6 @@ static void board_gpio_init(void)
 	imx8_iomux_setup_multiple_pads(board_gpios, ARRAY_SIZE(board_gpios));
 }
 #endif
-
-unsigned int get_carrierboard_version(void)
-{
-	char const *str_version;
-	u32 version;
-
-	str_version = getenv("board_version");
-
-	if (str_version != NULL) {
-		strtou32(str_version, 10, &version);
-		return version;
-	} else {
-		return CARRIERBOARD_VERSION_UNDEFINED;
-	}
-}
-
-unsigned int get_carrierboard_id(void)
-{
-	char const *str_id;
-	u32 id;
-
-	str_id = getenv("board_id");
-
-	if (str_id != NULL) {
-		strtou32(str_id, 10, &id);
-		return id;
-	} else {
-		return CARRIERBOARD_ID_UNDEFINED;
-	}
-}
-
-void print_carrierboard_info(void)
-{
-	char board_str[100];
-	char warnings[100] = "";
-
-	sprintf(board_str, "Board: %s %s", CONFIG_SOM_DESCRIPTION,
-		CONFIG_BOARD_DESCRIPTION);
-	if (CARRIERBOARD_VERSION_UNDEFINED == board_version)
-		sprintf(warnings, "%s   WARNING: Undefined board version!\n",
-			warnings);
-	else
-		sprintf(board_str, "%s, version %d", board_str, board_version);
-
-	if (CARRIERBOARD_ID_UNDEFINED == board_id)
-		sprintf(warnings, "%s   WARNING: Undefined board ID!\n",
-			warnings);
-	else
-		sprintf(board_str, "%s, ID %d", board_str, board_id);
-
-	printf("%s\n", board_str);
-	if (strcmp(warnings, ""))
-		printf("%s", warnings);
-}
 
 int checkboard(void)
 {

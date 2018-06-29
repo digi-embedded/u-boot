@@ -22,7 +22,7 @@
 
 #include <common.h>
 #include <fdt_support.h>
-#include <fuse.h>
+#include "carrier_board.h"
 
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
 extern unsigned int board_version;
@@ -31,42 +31,6 @@ extern unsigned int board_version;
 #ifdef CONFIG_HAS_CARRIERBOARD_ID
 extern unsigned int board_id;
 #endif
-
-__weak unsigned int get_carrierboard_version(void)
-{
-#ifdef CONFIG_HAS_CARRIERBOARD_VERSION
-	u32 version;
-
-	if (fuse_read(CONFIG_CARRIERBOARD_VERSION_BANK,
-		      CONFIG_CARRIERBOARD_VERSION_WORD, &version))
-		return CARRIERBOARD_VERSION_UNDEFINED;
-
-	version >>= CONFIG_CARRIERBOARD_VERSION_OFFSET;
-	version &= CONFIG_CARRIERBOARD_VERSION_MASK;
-
-	return((int)version);
-#else
-	return CARRIERBOARD_VERSION_UNDEFINED;
-#endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
-}
-
-__weak unsigned int get_carrierboard_id(void)
-{
-#ifdef CONFIG_HAS_CARRIERBOARD_ID
-	u32 id;
-
-	if (fuse_read(CONFIG_CARRIERBOARD_ID_BANK,
-		      CONFIG_CARRIERBOARD_ID_WORD, &id))
-		return CARRIERBOARD_ID_UNDEFINED;
-
-	id >>= CONFIG_CARRIERBOARD_ID_OFFSET;
-	id &= CONFIG_CARRIERBOARD_ID_MASK;
-
-	return((int)id);
-#else
-	return CARRIERBOARD_ID_UNDEFINED;
-#endif /* CONFIG_HAS_CARRIERBOARD_ID */
-}
 
 __weak void fdt_fixup_carrierboard(void *fdt)
 {

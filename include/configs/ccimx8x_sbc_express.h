@@ -62,6 +62,10 @@
 #define CONFIG_USB_FUNCTION_MASS_STORAGE
 #endif
 
+/* Carrier board version in environment */
+#define CONFIG_HAS_CARRIERBOARD_VERSION
+#define CONFIG_HAS_CARRIERBOARD_ID
+
 /* Initial environment variables */
 #define CONFIG_EXTRA_ENV_SETTINGS		\
 	CONFIG_DEFAULT_NETWORK_SETTINGS		\
