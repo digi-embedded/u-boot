@@ -157,6 +157,5 @@ int board_prog_hwid(const struct digi_hwid *hwid);
 int board_override_hwid(const struct digi_hwid *hwid);
 int board_lock_hwid(void);
 void fdt_fixup_hwid(void *fdt);
-void board_fdt_fixup_hwid(void *fdt, struct digi_hwid *hwid);
 
 #endif	/* __HWID_H_ */

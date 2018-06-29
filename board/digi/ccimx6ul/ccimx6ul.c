@@ -399,17 +399,6 @@ u32 get_board_rev(void)
 	return get_cpu_rev();
 }
 
-void fdt_fixup_hwid(void *fdt)
-{
-	/* Re-read HWID which might have been overridden by user */
-	if (board_read_hwid(&my_hwid)) {
-		printf("Cannot read HWID\n");
-		return;
-	}
-
-	board_fdt_fixup_hwid(fdt, &my_hwid);
-}
-
 static int is_valid_hwid(struct digi_hwid *hwid)
 {
 	if (hwid->variant < ARRAY_SIZE(ccimx6ul_variants))

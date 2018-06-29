@@ -1397,17 +1397,6 @@ int ccimx6_late_init(void)
 	return ccimx6_fixup();
 }
 
-void fdt_fixup_hwid(void *fdt)
-{
-	/* Re-read HWID which might have been overridden by user */
-	if (board_read_hwid(&my_hwid)) {
-		printf("Cannot read HWID\n");
-		return;
-	}
-
-	board_fdt_fixup_hwid(fdt, &my_hwid);
-}
-
 static int is_valid_hwid(struct digi_hwid *hwid)
 {
 	int num;

@@ -12,6 +12,8 @@
 #include "helper.h"
 #include "hwid.h"
 
+extern struct digi_hwid my_hwid;
+
 const char *cert_regions[] = {
 	"U.S.A.",
 	"International",
@@ -249,7 +251,7 @@ int board_lock_hwid(void)
 			CONFIG_HWID_LOCK_FUSE);
 }
 
-void board_fdt_fixup_hwid(void *fdt, struct digi_hwid *hwid)
+void fdt_fixup_hwid(void *fdt)
 {
 	const char *propnames[] = {
 		"digi,hwid,location",
@@ -265,27 +267,33 @@ void board_fdt_fixup_hwid(void *fdt, struct digi_hwid *hwid)
 	char str[20];
 	int i;
 
+	/* Re-read HWID which might have been overridden by user */
+	if (board_read_hwid(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return;
+	}
+
 	/* Register the HWID as main node properties in the FDT */
 	for (i = 0; i < ARRAY_SIZE(propnames); i++) {
 		/* Convert HWID fields to strings */
 		if (!strcmp("digi,hwid,location", propnames[i]))
-			sprintf(str, "%c", hwid->location + 'A');
+			sprintf(str, "%c", my_hwid.location + 'A');
 		else if (!strcmp("digi,hwid,genid", propnames[i]))
-			sprintf(str, "%02d", hwid->genid);
+			sprintf(str, "%02d", my_hwid.genid);
 		else if (!strcmp("digi,hwid,sn", propnames[i]))
-			sprintf(str, "%06d", hwid->sn);
+			sprintf(str, "%06d", my_hwid.sn);
 		else if (!strcmp("digi,hwid,year", propnames[i]))
-			sprintf(str, "20%02d", hwid->year);
+			sprintf(str, "20%02d", my_hwid.year);
 		else if (!strcmp("digi,hwid,week", propnames[i]))
-			sprintf(str, "%02d", hwid->week);
+			sprintf(str, "%02d", my_hwid.week);
 		else if (!strcmp("digi,hwid,variant", propnames[i]))
-			sprintf(str, "0x%02x", hwid->variant);
+			sprintf(str, "0x%02x", my_hwid.variant);
 		else if (!strcmp("digi,hwid,hv", propnames[i]))
-			sprintf(str, "0x%x", hwid->hv);
+			sprintf(str, "0x%x", my_hwid.hv);
 		else if (!strcmp("digi,hwid,cert", propnames[i]))
-			sprintf(str, "0x%x", hwid->cert);
+			sprintf(str, "0x%x", my_hwid.cert);
 		else if (!strcmp("digi,hwid,wid", propnames[i]))
-			sprintf(str, "0x%x", hwid->wid);
+			sprintf(str, "0x%x", my_hwid.wid);
 		else
 			continue;
 
