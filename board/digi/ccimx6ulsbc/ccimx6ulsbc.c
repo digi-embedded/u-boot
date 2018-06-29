@@ -449,9 +449,7 @@ int board_late_init(void)
 /* Platform function to modify the FDT as needed */
 int ft_board_setup(void *blob, bd_t *bd)
 {
-	/* Re-read HWID which could have been overriden by U-Boot commands */
 	fdt_fixup_hwid(blob);
-
 	fdt_fixup_ccimx6ul(blob);
 	fdt_fixup_carrierboard(blob);
 
