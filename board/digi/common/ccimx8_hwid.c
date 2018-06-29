@@ -278,7 +278,8 @@ err:
 int board_lock_hwid(void)
 {
 	/* SCU performs automatic lock after programming */
-	return 0;
+	printf("not supported. Fuses automatically locked after programming.\n");
+	return 1;
 }
 
 void board_fdt_fixup_hwid(void *fdt, struct digi_hwid *hwid)
