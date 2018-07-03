@@ -21,6 +21,13 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+typedef struct mac_base { uint8_t mbase[3]; } mac_base_t;
+
+mac_base_t mac_pools[] = {
+	[1] = {{0x00, 0x04, 0xf3}},
+	[2] = {{0x00, 0x40, 0x9d}},
+};
+
 struct digi_hwid my_hwid;
 
 #define MCA_CC8X_DEVICE_ID_VAL		0x4A
@@ -363,6 +370,17 @@ static int is_valid_hwid(struct digi_hwid *hwid)
 	return 0;
 }
 
+static int use_mac_from_fuses(struct digi_hwid *hwid)
+{
+	/*
+	 * Setting the mac pool to 0 means that the mac addresses will not be
+	 * setup with the information encoded in the efuses.
+	 * This is a back-door to allow manufacturing units with uboots that
+	 * does not support some specific pool.
+	 */
+	return hwid->mac_pool != 0;
+}
+
 int board_has_wireless(void)
 {
 	if (is_valid_hwid(&my_hwid))
@@ -443,6 +461,69 @@ void som_default_environment(void)
 		generate_partition_table();
 }
 
+static int set_mac_from_pool(uint32_t pool, uint8_t *mac)
+{
+	if (pool > ARRAY_SIZE(mac_pools) || pool < 1) {
+		printf("ERROR unsupported MAC address pool %u\n", pool);
+		return -EINVAL;
+	}
+
+	memcpy(mac, mac_pools[pool].mbase, sizeof(mac_base_t));
+
+	return 0;
+}
+
+static int set_lower_mac(uint32_t val, uint8_t *mac)
+{
+	mac[3] = (uint8_t)(val >> 16);
+	mac[4] = (uint8_t)(val >> 8);
+	mac[5] = (uint8_t)(val);
+
+	return 0;
+}
+
+static int setenv_macaddr_forced(const char *var, const uchar *enetaddr)
+{
+	char cmd[CONFIG_SYS_CBSIZE] = "";
+
+	sprintf(cmd, "setenv -f %s %pM", var, enetaddr);
+
+	return run_command(cmd, 0);
+}
+
+static void get_macs_from_fuses(void)
+{
+	uint8_t macaddr[6];
+	char *macvars[] = {"ethaddr", "eth1addr", "wlanaddr", "btaddr"};
+	int ret, n_macs, i;
+
+	if (!is_valid_hwid(&my_hwid) || !use_mac_from_fuses(&my_hwid))
+		return;
+
+	ret = set_mac_from_pool(my_hwid.mac_pool, macaddr);
+	if (ret) {
+		printf("ERROR: MAC addresses will not be set from fuses (%d)\n",
+		       ret);
+		return;
+	}
+
+	n_macs = board_has_wireless() ? 4 : 2;
+
+	/* Protect from overflow */
+	if (my_hwid.mac_base + n_macs > 0xffffff) {
+		printf("ERROR: not enough remaining MACs on this MAC pool\n");
+		return;
+	}
+
+	for (i = 0; i < n_macs; i++) {
+		set_lower_mac(my_hwid.mac_base + i, macaddr);
+		ret = setenv_macaddr_forced(macvars[i], macaddr);
+		if (ret)
+			printf("ERROR setting %s from fuses (%d)\n", macvars[i],
+			       ret);
+	}
+}
+
 int ccimx8x_late_init(void)
 {
 	/*
@@ -452,6 +533,9 @@ int ccimx8x_late_init(void)
 	 * in the early init function, and then initialize the MCA.
 	 */
 	mca_init();
+
+	if (getenv_yesno("use_fused_macs"))
+		get_macs_from_fuses();
 
 	/* Verify MAC addresses */
 	verify_mac_address("ethaddr", DEFAULT_MAC_ETHADDR);
