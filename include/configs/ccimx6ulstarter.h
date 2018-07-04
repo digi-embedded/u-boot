@@ -140,6 +140,9 @@
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	CONFIG_EXTRA_NETWORK_SETTINGS \
 	"boot_fdt=yes\0" \
+	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
+		"${bootargs_linux} root=${mmcroot} ${mtdparts}" \
+		"${bootargs_once} ${extra_bootargs}\0" \
 	"bootargs_nfs=" \
 		"if test ${ip_dyn} = yes; then " \
 			"bootargs_ip=\"ip=dhcp\";" \
@@ -174,6 +177,7 @@
 	"initrd_addr=0x83800000\0" \
 	"initrd_file=uramdisk.img\0" \
 	"initrd_high=0xffffffff\0" \
+	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"recovery_file=recovery.img\0" \
 	"script=boot.scr\0" \
 	"uboot_file=u-boot.imx\0" \
@@ -218,7 +222,6 @@
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} " \
 		"${mtdparts} " \
