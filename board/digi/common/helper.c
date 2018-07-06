@@ -470,6 +470,7 @@ int load_firmware(struct load_fw *fwinfo)
 
 		src = getenv_ulong(fwinfo->lzipaddr + 1, 16, 0);
 		dest = getenv_ulong(fwinfo->loadaddr + 1, 16, 0);
+		len = getenv_ulong("filesize", 16, 0);
 
 		if (!src || !dest) {
 			printf("ERROR: for compressed images %s and %s must be provided\n", fwinfo->lzipaddr, fwinfo->loadaddr);
