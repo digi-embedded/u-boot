@@ -84,7 +84,7 @@
 	"fdt_high=0xffffffffffffffff\0"		\
 	"boot_fdt=try\0" \
 	"ip_dyn=yes\0" \
-	"fdt_file=Image-" CONFIG_DEFAULT_DEVICE_TREE ".dtb\0" \
+	"fdt_file=Image.gz-" CONFIG_DEFAULT_DEVICE_TREE ".dtb\0" \
 	"initrd_addr=0x83800000\0"		\
 	"initrd_high=0xffffffffffffffff\0" \
 	"mmcbootpart=" __stringify(CONFIG_SYS_BOOT_PART_EMMC) "\0" \
