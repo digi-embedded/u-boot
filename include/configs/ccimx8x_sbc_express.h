@@ -11,6 +11,7 @@
 #include "ccimx8x_common.h"
 
 #define CONFIG_BOARD_DESCRIPTION	"SBC Express"
+#define BOARD_DEY_NAME			"ccimx8x-sbc-express"
 
 #define CONFIG_REMAKE_ELF
 
@@ -74,9 +75,9 @@
 	"lzipaddr=0x82000000\0" \
 	"script=boot.scr\0" \
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
-	"image=Image-ccimx8x-sbc-express.bin\0" \
-	"imagegz=Image-ccimx8x-sbc-express.gz\0" \
-	"uboot_file=u-boot-ccimx8x-sbc-express.bin\0" \
+	"image=Image-" BOARD_DEY_NAME ".bin\0" \
+	"imagegz=Image.gz-" BOARD_DEY_NAME ".bin\0" \
+	"uboot_file=u-boot-" BOARD_DEY_NAME ".bin\0" \
 	"panel=NULL\0" \
 	"console=" CONSOLE_DEV "\0" \
 	"earlycon=" EARLY_CONSOLE "\0" \
@@ -84,7 +85,7 @@
 	"fdt_high=0xffffffffffffffff\0"		\
 	"boot_fdt=try\0" \
 	"ip_dyn=yes\0" \
-	"fdt_file=Image.gz-" CONFIG_DEFAULT_DEVICE_TREE ".dtb\0" \
+	"fdt_file=Image.gz-" BOARD_DEY_NAME ".dtb\0" \
 	"initrd_addr=0x83800000\0"		\
 	"initrd_high=0xffffffffffffffff\0" \
 	"mmcbootpart=" __stringify(CONFIG_SYS_BOOT_PART_EMMC) "\0" \
