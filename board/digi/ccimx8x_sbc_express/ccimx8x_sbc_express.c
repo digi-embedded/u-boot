@@ -231,14 +231,10 @@ int checkboard(void)
 
 #ifdef CONFIG_USB_XHCI_IMX8
 
-struct udevice *tcpc_i2c_dev = NULL;
-
 int board_usb_init(int index, enum usb_init_type init)
 {
 	int ret = 0;
 
-	if (init == USB_INIT_HOST && tcpc_i2c_dev)
-		ret = tcpc_setup_dfp_mode(tcpc_i2c_dev, NULL);
 
 	return ret;
 
@@ -247,9 +243,6 @@ int board_usb_init(int index, enum usb_init_type init)
 int board_usb_cleanup(int index, enum usb_init_type init)
 {
 	int ret = 0;
-
-	if (init == USB_INIT_HOST && tcpc_i2c_dev)
-		ret = tcpc_disable_vbus(tcpc_i2c_dev);
 
 	return ret;
 }
