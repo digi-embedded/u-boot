@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 NXP
+ * Copyright 2017-2018 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -80,6 +80,15 @@
 /* ENET0 MDIO are shared */
 #define CONFIG_FEC_MXC_MDIO_BASE	0x5B040000
 
+#define CONFIG_LIB_RAND
+#define CONFIG_NET_RANDOM_ETHADDR
+
+#ifdef CONFIG_AHAB_BOOT
+#define AHAB_ENV "sec_boot=yes\0"
+#else
+#define AHAB_ENV "sec_boot=no\0"
+#endif
+
 /* Boot M4 */
 #define M4_BOOT_ENV \
 	"m4_0_image=m4_0.bin\0" \
@@ -102,36 +111,55 @@
 		"video=imxdpufb5:off video=imxdpufb6:off video=imxdpufb7:off "\
 		"clk_ignore_unused "\
 		"\0" \
-	"initrd_addr=0x83800000\0" \
+	"initrd_addr=0x83100000\0" \
 	"initrd_high=0xffffffff\0" \
 	"bootcmd_mfg=run mfgtool_args;booti ${loadaddr} ${initrd_addr} ${fdt_addr};\0" \
 
-#define XEN_ENV \
-	"xen_addr=0x80200000\0" \
-	"xen_file=xen\0" \
-	"xenargs=setenv bootargs console=dtuart dtuart=/serial@5a060000 dom0_mem=1024M \0" \
-	"loadxen=fatload mmc ${mmcdev}:${mmcpart} ${xen_addr} ${xen_file}\0" \
-	"xenboot=setenv loadaddr 0x80a00000; setenv fdt_file fsl-imx8qxp-mek-dom0.dtb; "\
-	"setenv bootargs console=dtuart dtuart=/serial@5a060000 dom0_mem=1024M; " \
-	"run loadfdt; run loadxen; run loadimage; fdt addr ${fdt_addr}; "\
-	"fdt set /chosen/module@0 reg <0x00000000 ${loadaddr} 0x00000000 0x${filesize}>; " \
-	"booti ${xen_addr} - ${fdt_addr} \0" \
+#define XEN_BOOT_ENV \
+            "xenhyper_bootargs=console=dtuart dtuart=/serial@5a060000 dom0_mem=1024M dom0_max_vcpus=2 dom0_vcpus_pin=true\0" \
+            "xenlinux_bootargs= \0" \
+            "xenlinux_console=hvc0 earlycon=xen\0" \
+            "xenlinux_addr=0x85000000\0" \
+            "xenboot_common=" \
+                "${get_cmd} ${loadaddr} xen;" \
+                "${get_cmd} ${fdt_addr} fsl-imx8qxp-mek-dom0.dtb;" \
+                "${get_cmd} ${xenlinux_addr} ${image};" \
+                "fdt addr ${fdt_addr};" \
+                "fdt resize 256;" \
+                "fdt set /chosen/module@0 reg <0x00000000 ${xenlinux_addr} 0x00000000 0x${filesize}>; " \
+                "fdt set /chosen/module@0 bootargs \"${bootargs} ${xenlinux_bootargs}\"; " \
+                "setenv bootargs ${xenhyper_bootargs};" \
+                "booti ${loadaddr} - ${fdt_addr};" \
+            "\0" \
+            "xennetboot=" \
+                "setenv get_cmd dhcp;" \
+                "setenv console ${xenlinux_console};" \
+                "run netargs;" \
+                "run xenboot_common;" \
+            "\0" \
+            "xenmmcboot=" \
+                "setenv get_cmd \"fatload mmc ${mmcdev}:${mmcpart}\";" \
+                "setenv console ${xenlinux_console};" \
+                "run mmcargs;" \
+                "run xenboot_common;" \
+            "\0" \
 
 /* Initial environment variables */
 #define CONFIG_EXTRA_ENV_SETTINGS		\
 	CONFIG_MFG_ENV_SETTINGS \
 	M4_BOOT_ENV \
-	XEN_ENV \
+	XEN_BOOT_ENV \
+	AHAB_ENV \
 	"script=boot.scr\0" \
 	"image=Image\0" \
 	"panel=NULL\0" \
 	"console=ttyLP0,115200 earlycon=lpuart32,0x5a060000,115200\0" \
 	"fdt_addr=0x83000000\0"			\
 	"fdt_high=0xffffffffffffffff\0"		\
+	"cntr_addr=0x88000000\0"			\
+	"cntr_file=os_cntr_signed.bin\0" \
 	"boot_fdt=try\0" \
 	"fdt_file=fsl-imx8qxp-mek.dtb\0" \
-	"initrd_addr=0x83800000\0"		\
-	"initrd_high=0xffffffffffffffff\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
@@ -143,16 +171,26 @@
 		"source\0" \
 	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
+	"loadcntr=fatload mmc ${mmcdev}:${mmcpart} ${cntr_addr} ${cntr_file}\0" \
+	"auth_os=auth_cntr ${cntr_addr}\0" \
 	"mmcboot=echo Booting from mmc ...; " \
 		"run mmcargs; " \
-		"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
-			"if run loadfdt; then " \
+		"if test ${sec_boot} = yes; then " \
+			"if run auth_os; then " \
 				"booti ${loadaddr} - ${fdt_addr}; " \
 			"else " \
-				"echo WARN: Cannot load the DT; " \
+				"echo ERR: failed to authenticate; " \
 			"fi; " \
 		"else " \
-			"echo wait for boot; " \
+			"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
+				"if run loadfdt; then " \
+					"booti ${loadaddr} - ${fdt_addr}; " \
+				"else " \
+					"echo WARN: Cannot load the DT; " \
+				"fi; " \
+			"else " \
+				"echo wait for boot; " \
+			"fi;" \
 		"fi;\0" \
 	"netargs=setenv bootargs console=${console} " \
 		"root=/dev/nfs " \
@@ -165,15 +203,24 @@
 		"else " \
 			"setenv get_cmd tftp; " \
 		"fi; " \
-		"${get_cmd} ${loadaddr} ${image}; " \
-		"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
-			"if ${get_cmd} ${fdt_addr} ${fdt_file}; then " \
+		"if test ${sec_boot} = yes; then " \
+			"${get_cmd} ${cntr_addr} ${cntr_file}; " \
+			"if run auth_os; then " \
 				"booti ${loadaddr} - ${fdt_addr}; " \
 			"else " \
-				"echo WARN: Cannot load the DT; " \
+				"echo ERR: failed to authenticate; " \
 			"fi; " \
 		"else " \
-			"booti; " \
+			"${get_cmd} ${loadaddr} ${image}; " \
+			"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
+				"if ${get_cmd} ${fdt_addr} ${fdt_file}; then " \
+					"booti ${loadaddr} - ${fdt_addr}; " \
+				"else " \
+					"echo WARN: Cannot load the DT; " \
+				"fi; " \
+			"else " \
+				"booti; " \
+			"fi;" \
 		"fi;\0"
 
 #define CONFIG_BOOTCOMMAND \
@@ -181,10 +228,17 @@
 		   "if run loadbootscript; then " \
 			   "run bootscript; " \
 		   "else " \
-			   "if run loadimage; then " \
-				   "run mmcboot; " \
-			   "else run netboot; " \
-			   "fi; " \
+			   "if test ${sec_boot} = yes; then " \
+				   "if run loadcntr; then " \
+					   "run mmcboot; " \
+				   "else run netboot; " \
+				   "fi; " \
+			    "else " \
+				   "if run loadimage; then " \
+					   "run mmcboot; " \
+				   "else run netboot; " \
+				   "fi; " \
+			 "fi; " \
 		   "fi; " \
 	   "else booti ${loadaddr} - ${fdt_addr}; fi"
 
@@ -198,7 +252,7 @@
 
 
 /* Default environment is in SD */
-#define CONFIG_ENV_SIZE			0x1000
+#define CONFIG_ENV_SIZE			0x2000
 #ifdef CONFIG_QSPI_BOOT
 #define CONFIG_ENV_IS_IN_SPI_FLASH
 #define CONFIG_ENV_OFFSET       (4 * 1024 * 1024)
@@ -237,7 +291,7 @@
 #define CONFIG_HUSH_PARSER
 #define CONFIG_SYS_PROMPT_HUSH_PS2     "> "
 #define CONFIG_AUTO_COMPLETE
-#define CONFIG_SYS_CBSIZE              1024
+#define CONFIG_SYS_CBSIZE              2048
 #define CONFIG_SYS_MAXARGS             64
 #define CONFIG_SYS_BARGSIZE CONFIG_SYS_CBSIZE
 #define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + \
@@ -266,10 +320,6 @@
 #define FSPI0_BASE_ADDR			0x5d120000
 #define FSPI0_AMBA_BASE			0
 #define CONFIG_SYS_FSL_FSPI_AHB
-#endif
-
-#if defined(CONFIG_ANDROID_SUPPORT)
-#include "imx8qxp_mek_android.h"
 #endif
 
 /* USB Config */
@@ -309,5 +359,11 @@
 #define CONFIG_OF_SYSTEM_SETUP
 #define BOOTAUX_RESERVED_MEM_BASE 0x88000000
 #define BOOTAUX_RESERVED_MEM_SIZE 0x08000000 /* Reserve from second 128MB */
+
+#if defined(CONFIG_ANDROID_SUPPORT)
+#include "imx8qxp_mek_android.h"
+#elif defined (CONFIG_ANDROID_AUTO_SUPPORT)
+#include "imx8qxp_mek_android_auto.h"
+#endif
 
 #endif /* __IMX8QXP_MEK_H */

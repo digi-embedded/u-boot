@@ -12,6 +12,8 @@
 
 #include <asm/imx-common/mxc_key_defs.h>
 
+#define CONFIG_CMD_FASTBOOT
+#define CONFIG_ANDROID_BOOT_IMAGE
 /* lock/unlock stuff */
 #define CONFIG_FASTBOOT_LOCK
 #define FSL_FASTBOOT_FB_DEV "mmc"
@@ -30,5 +32,21 @@
 	}
 #define CONFIG_MXC_KPD_COLMAX 4
 #define CONFIG_MXC_KPD_ROWMAX 4
+
+#define CONFIG_AVB_SUPPORT
+#ifdef CONFIG_AVB_SUPPORT
+#define CONFIG_ANDROID_RECOVERY
+
+#ifdef CONFIG_SYS_CBSIZE
+#undef CONFIG_SYS_CBSIZE
+#define CONFIG_SYS_CBSIZE 2048
+#endif
+
+#ifdef CONFIG_SYS_MALLOC_LEN
+#undef CONFIG_SYS_MALLOC_LEN
+#define CONFIG_SYS_MALLOC_LEN           (96 * SZ_1M)
+#endif
+
+#endif /* CONFIG_AVB_SUPPORT */
 
 #endif

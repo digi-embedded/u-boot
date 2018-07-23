@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
- * Copyright 2017 NXP
+ * Copyright 2017-2018 NXP
  *
  * Configuration settings for the Freescale i.MX7D SABRESD board.
  *
@@ -102,18 +102,10 @@
 #define UPDATE_M4_ENV ""
 #endif
 
-#ifdef CONFIG_IMX_OPTEE
 #ifdef CONFIG_NAND_BOOT
-#define MFG_NAND_PARTITION "mtdparts=gpmi-nand:64m(boot),16m(tee),16m(kernel),16m(dtb),1m(misc),-(rootfs) "
+#define MFG_NAND_PARTITION "mtdparts=gpmi-nand:64m(boot),16m(kernel),16m(dtb),16m(tee),-(rootfs) "
 #else
 #define MFG_NAND_PARTITION ""
-#endif
-#else
-#ifdef CONFIG_NAND_BOOT
-#define MFG_NAND_PARTITION "mtdparts=gpmi-nand:64m(boot),16m(kernel),16m(dtb),1m(misc),-(rootfs) "
-#else
-#define MFG_NAND_PARTITION ""
-#endif
 #endif
 
 #define CONFIG_MFG_ENV_SETTINGS \
@@ -152,10 +144,10 @@
 		"root=ubi0:rootfs rootfstype=ubifs "		     \
 		MFG_NAND_PARTITION \
 		"\0" \
-	"bootcmd=nand read ${loadaddr} 0x5000000 0x800000;"\
-		"nand read ${fdt_addr} 0x6000000 0x100000;"\
+	"bootcmd=nand read ${loadaddr} 0x4000000 0x800000;"\
+		"nand read ${fdt_addr} 0x5000000 0x100000;"\
 		"if test ${tee} = yes; then " \
-			"nand read ${tee_addr} 0x4000000 0x100000;"\
+			"nand read ${tee_addr} 0x6000000 0x400000;"\
 			"bootm ${teeaddr} - ${fdt_addr};" \
 		"else " \
 			"bootz ${loadaddr} - ${fdt_addr};" \
@@ -172,7 +164,7 @@
 	"console=ttymxc0\0" \
 	"fdt_high=0xffffffff\0" \
 	"initrd_high=0xffffffff\0" \
-	"fdt_file=imx7d-sdb.dtb\0" \
+	"fdt_file=undefined\0" \
 	"fdt_addr=0x83000000\0" \
 	"tee_addr=0x84000000\0" \
 	"tee_file=uTee-7dsdb\0" \
@@ -240,9 +232,14 @@
 			"else " \
 				"bootz; " \
 			"fi; " \
-		"fi;\0"
+		"fi;\0" \
+		"findfdt="\
+			"if test $fdt_file = undefined; then " \
+				"setenv fdt_file imx7d-sdb.dtb; " \
+			"fi;\0" \
 
 #define CONFIG_BOOTCOMMAND \
+	   "run findfdt;" \
 	   "mmc dev ${mmcdev};" \
 	   "mmc dev ${mmcdev}; if mmc rescan; then " \
 		   "if run loadbootscript; then " \

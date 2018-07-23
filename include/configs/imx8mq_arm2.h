@@ -38,10 +38,12 @@
 #define CONFIG_SPL_MMC_SUPPORT
 #define CONFIG_SPL_BSS_START_ADDR      0x00180000
 #define CONFIG_SPL_BSS_MAX_SIZE        0x2000	/* 8 KB */
-#define CONFIG_SYS_SPL_MALLOC_START    0x00182000
-#define CONFIG_SYS_SPL_MALLOC_SIZE     0x2000	/* 8 KB */
+#define CONFIG_SYS_SPL_MALLOC_START    0x42200000
+#define CONFIG_SYS_SPL_MALLOC_SIZE     0x80000	/* 512 KB */
 #define CONFIG_SYS_ICACHE_OFF
 #define CONFIG_SYS_DCACHE_OFF
+
+#define CONFIG_MALLOC_F_ADDR		0x182000 /* malloc f used before GD_FLG_FULL_MALLOC_INIT set */
 
 #define CONFIG_SPL_ABORT_ON_RAW_IMAGE /* For RAW image gives a error info not panic */
 
@@ -65,7 +67,7 @@
 #define CONFIG_SPL_NAND_SUPPORT
 #define CONFIG_SPL_DMA_SUPPORT
 #define CONFIG_SPL_NAND_MXS
-#define CONFIG_SYS_NAND_U_BOOT_OFFS 	0x8000000 /* Put the FIT out of first 128MB boot area */
+#define CONFIG_SYS_NAND_U_BOOT_OFFS 	0x4000000 /* Put the FIT out of first 64MB boot area */
 #endif
 #define CONFIG_SPL_DMA_SUPPORT
 
@@ -142,7 +144,7 @@
 	"fdt_addr=0x43000000\0"			\
 	"fdt_high=0xffffffffffffffff\0" \
 	"console=ttymxc0,115200 earlycon=ec_imx6q,0x30860000,115200\0" \
-	"bootargs=console=${console} ubi.mtd=5 "  \
+	"bootargs=console=ttymxc0,115200 earlycon=ec_imx6q,0x30860000,115200 ubi.mtd=5 "  \
 		"root=ubi0:rootfs rootfstype=ubifs "		     \
 		MFG_NAND_PARTITION \
 		"\0" \
@@ -230,10 +232,17 @@
 #define CONFIG_SYS_INIT_SP_ADDR \
         (CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
 
+
+#define CONFIG_ENV_SIZE			0x1000
+#ifdef CONFIG_NAND_BOOT
+#define CONFIG_ENV_IS_IN_NAND
+#define CONFIG_ENV_OFFSET       (60 << 20)
+#else
 #define CONFIG_ENV_OVERWRITE
 #define CONFIG_ENV_OFFSET               (64 * SZ_64K)
-#define CONFIG_ENV_SIZE			0x1000
 #define CONFIG_ENV_IS_IN_MMC
+#endif
+
 #define CONFIG_SYS_MMC_ENV_DEV		1   /* USDHC2 */
 #define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
 
@@ -325,6 +334,16 @@
 #define CONFIG_APBH_DMA
 #define CONFIG_APBH_DMA_BURST
 #define CONFIG_APBH_DMA_BURST8
+
+#ifdef CONFIG_CMD_UBI
+#define CONFIG_MTD_PARTITIONS
+#define CONFIG_MTD_DEVICE
+#define CONFIG_RBTREE
+#define CONFIG_LZO
+#define CONFIG_CMD_MTDPARTS
+#define CONFIG_CMD_UBIFS
+#endif
+
 #endif
 
 /* USB configs */

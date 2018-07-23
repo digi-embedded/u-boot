@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 NXP
+ * Copyright 2017-2018 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
  *
@@ -29,6 +29,13 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+struct edma_ch_map {
+	sc_rsrc_t ch_start_rsrc;
+	u32 ch_start_regs;
+	u32 ch_num;
+	const char* node_path;
+};
+
 u32 get_cpu_rev(void)
 {
 	sc_ipc_t ipcHndl;
@@ -37,7 +44,7 @@ u32 get_cpu_rev(void)
 
 	ipcHndl = gd->arch.ipc_channel_handle;
 
-	err = sc_misc_get_control(ipcHndl, SC_R_SC_PID0, SC_C_ID, &id);
+	err = sc_misc_get_control(ipcHndl, SC_R_SYSTEM, SC_C_ID, &id);
 	if (err != SC_ERR_NONE)
 		return 0;
 
@@ -460,7 +467,7 @@ int arch_auxiliary_core_up(u32 core_id, ulong boot_private_data)
 		size = SZ_128K;
 		break;
 	case 1:
-		core_rsrc = SC_R_HIFI;
+		core_rsrc = SC_R_DSP;
 		aux_core_ram = 0x596f8000;
 		size = SZ_2K;
 		break;
@@ -645,11 +652,12 @@ bool is_usb_boot(void)
 	return get_boot_device() == USB_BOOT;
 }
 
+#if defined(CONFIG_ARCH_MISC_INIT)
 #define FSL_SIP_BUILDINFO		0xC2000003
 #define FSL_SIP_BUILDINFO_GET_COMMITHASH	0x00
 extern uint32_t _end_ofs;
 
-static void set_buildinfo_to_env(uint32_t scfw, char *mkimage, char *atf)
+static void set_buildinfo_to_env(uint32_t scfw, uint32_t secofw, char *mkimage, char *atf)
 {
 	if (!mkimage || !atf)
 		return;
@@ -657,12 +665,14 @@ static void set_buildinfo_to_env(uint32_t scfw, char *mkimage, char *atf)
 	setenv("commit_mkimage", mkimage);
 	setenv("commit_atf", atf);
 	setenv_hex("commit_scfw", (ulong)scfw);
+	setenv_hex("commit_secofw", (ulong)secofw);
 }
 
 static void acquire_buildinfo(void)
 {
 	sc_ipc_t ipc;
 	uint32_t sc_build = 0, sc_commit = 0;
+	uint32_t seco_build = 0, seco_commit = 0;
 	char *mkimage_commit, *temp;
 	uint64_t atf_commit = 0;
 
@@ -673,6 +683,13 @@ static void acquire_buildinfo(void)
 	if (sc_build == 0) {
 		debug("SCFW does not support build info\n");
 		sc_commit = 0; /* Display 0 when the build info is not supported*/
+	}
+
+	/* Get SECO FW build and commit id */
+	sc_misc_seco_build_info(ipc, &seco_build, &seco_commit);
+	if (seco_build == 0) {
+		debug("SECO FW does not support build info\n");
+		seco_commit = 0; /* Display 0 when the build info is not supported*/
 	}
 
 	/* Get imx-mkimage commit id.
@@ -695,12 +712,12 @@ static void acquire_buildinfo(void)
 	}
 
 	/* Set all to env */
-	set_buildinfo_to_env(sc_commit, mkimage_commit, (char *)&atf_commit);
+	set_buildinfo_to_env(sc_commit, seco_commit, mkimage_commit, (char *)&atf_commit);
 
-	printf("\n BuildInfo: \n  - SCFW %08x, IMX-MKIMAGE %s, ATF %s\n  - %s \n\n", sc_commit, mkimage_commit, (char *)&atf_commit, U_BOOT_VERSION);
+	printf("\n BuildInfo: \n  - SCFW %08x, SECO-FW %08x, IMX-MKIMAGE %s, ATF %s\n  - %s \n\n",
+		sc_commit, seco_commit, mkimage_commit, (char *)&atf_commit, U_BOOT_VERSION);
 }
 
-#if defined(CONFIG_ARCH_MISC_INIT)
 int arch_misc_init(void)
 {
 	acquire_buildinfo();
@@ -850,6 +867,240 @@ static int disable_fdt_node(void *blob, int nodeoffset)
 	return rc;
 }
 
+static void fdt_edma_debug_int_array(u32 *array, int count, u32 stride)
+{
+#if DEBUG
+	int i;
+	for (i = 0; i < count; i++) {
+		printf("0x%x ", array[i]);
+		if (i % stride == stride - 1)
+			printf("\n");
+	}
+
+	printf("\n");
+#endif
+}
+
+static void fdt_edma_debug_stringlist(const char *stringlist, int length)
+{
+#if DEBUG
+	int i = 0, len;
+	while (i < length) {
+		printf("%s\n", stringlist);
+
+		len = strlen(stringlist) + 1;
+		i += len;
+		stringlist += len;
+	}
+
+	printf("\n");
+#endif
+}
+
+static void fdt_edma_swap_int_array(u32 *array, int count)
+{
+	int i;
+	for (i = 0; i < count; i++) {
+		array[i] = cpu_to_fdt32(array[i]);
+	}
+}
+
+static int fdt_edma_update_int_array(u32 *array, int count, u32 *new_array, u32 stride, int *remove_array, int remove_count)
+{
+	int i = 0, j, curr = 0, new_cnt = 0;
+
+	do {
+		if (remove_count && curr == remove_array[i]) {
+			i++;
+			remove_count--;
+			array += stride;
+		} else {
+			for (j = 0; j< stride; j++) {
+				*new_array = *array;
+				new_array++;
+				array++;
+			}
+			new_cnt+= j;
+		}
+		curr++;
+	} while ((curr * stride) < count);
+
+	return new_cnt;
+}
+
+static int fdt_edma_update_stringlist(const char *stringlist, int stringlist_count, char *newlist, int *remove_array, int remove_count)
+{
+	int i = 0, curr = 0, new_len = 0;
+	int length;
+
+	debug("fdt_edma_update_stringlist, remove_cnt %d\n", remove_count);
+
+	do {
+		if (remove_count && curr == remove_array[i]) {
+			debug("remove %s at %d\n", stringlist, remove_array[i]);
+
+			length = strlen(stringlist) + 1;
+			stringlist += length;
+			i++;
+			remove_count--;
+		} else {
+			length = strlen(stringlist) + 1;
+			strcpy(newlist, stringlist);
+
+			debug("copy %s, %s, curr %d, len %d\n", newlist, stringlist, curr, length);
+
+			stringlist += length;
+			newlist += length;
+			new_len += length;
+		}
+		curr++;
+	} while (curr < stringlist_count);
+
+	return new_len;
+}
+
+static int fdt_edma_get_channel_id(u32 *regs, int index, struct edma_ch_map *edma)
+{
+	u32 ch_reg = regs[(index << 2) + 1];
+	u32 ch_reg_size = regs[(index << 2) + 3];
+	int ch_id = (ch_reg - edma->ch_start_regs) / ch_reg_size;
+	if (ch_id >= edma->ch_num)
+		return -1;
+
+	return ch_id;
+}
+
+static void update_fdt_edma_nodes(void *blob)
+{
+	struct edma_ch_map edma_qm[] = {
+		{ SC_R_DMA_0_CH0, 0x5a200000, 32, "/dma-controller@5a1f0000"},
+		{ SC_R_DMA_1_CH0, 0x5aa00000, 32, "/dma-controller@5a9f0000"},
+		{ SC_R_DMA_2_CH0, 0x59200000, 5, "/dma-controller@591F0000"},
+		{ SC_R_DMA_2_CH5, 0x59250000, 27, "/dma-controller@591F0000"},
+		{ SC_R_DMA_3_CH0, 0x59a00000, 32, "/dma-controller@599F0000"},
+	};
+
+	struct edma_ch_map edma_qxp[] = {
+		{ SC_R_DMA_0_CH0, 0x59200000, 32, "/dma-controller@591F0000"},
+		{ SC_R_DMA_1_CH0, 0x59a00000, 32, "/dma-controller@599F0000"},
+		{ SC_R_DMA_2_CH0, 0x5a200000, 5, "/dma-controller@5a1f0000"},
+		{ SC_R_DMA_2_CH5, 0x5a250000, 27, "/dma-controller@5a1f0000"},
+		{ SC_R_DMA_3_CH0, 0x5aa00000, 32, "/dma-controller@5a9f0000"},
+	};
+
+	u32 i, j, edma_size;
+	int nodeoff, ret;
+	struct edma_ch_map *edma_array;
+
+	if (is_imx8qm()) {
+		edma_array = edma_qm;
+		edma_size = ARRAY_SIZE(edma_qm);
+	} else {
+		edma_array = edma_qxp;
+		edma_size = ARRAY_SIZE(edma_qxp);
+	}
+
+	for (i = 0; i < edma_size; i++, edma_array++) {
+		u32 regs[128];
+		u32 interrupts[96];
+		u32 dma_channels;
+		int regs_count, interrupts_count, int_names_count;
+
+		const char *list;
+		int list_len, newlist_len;
+		int remove[32];
+		int remove_cnt = 0;
+		char * newlist;
+
+		nodeoff = fdt_path_offset(blob, edma_array->node_path);
+		if (nodeoff < 0)
+			continue; /* Not found, skip it */
+
+		printf("%s, %d\n", edma_array->node_path, nodeoff);
+
+		regs_count = fdtdec_get_int_array_count(blob, nodeoff, "reg", regs, 128);
+		debug("regs_count %d\n", regs_count);
+		if (regs_count < 0)
+			continue;
+
+		interrupts_count = fdtdec_get_int_array_count(blob, nodeoff, "interrupts", interrupts, 96);
+		debug("interrupts_count %d\n", interrupts_count);
+		if (interrupts_count < 0)
+			continue;
+
+		dma_channels = fdtdec_get_uint(blob, nodeoff, "dma-channels", 0);
+		if (dma_channels == 0)
+			continue;
+
+		list = fdt_getprop(blob, nodeoff, "interrupt-names", &list_len);
+		if (!list)
+			continue;
+
+		int_names_count = fdt_stringlist_count(blob, nodeoff, "interrupt-names");
+
+		fdt_edma_debug_int_array(regs, regs_count, 4);
+		fdt_edma_debug_int_array(interrupts, interrupts_count, 3);
+		fdt_edma_debug_stringlist(list, list_len);
+
+		for (j = 0; j < (regs_count >> 2); j++) {
+			int ch_id = fdt_edma_get_channel_id(regs, j, edma_array);
+			if (ch_id < 0)
+				continue;
+
+			if (!check_owned_resource(edma_array->ch_start_rsrc + ch_id)) {
+				printf("remove edma items %d\n", j);
+
+				dma_channels--;
+
+				remove[remove_cnt] = j;
+				remove_cnt++;
+			}
+		}
+
+		if (remove_cnt > 0) {
+			u32 new_regs[128];
+			u32 new_interrupts[96];
+
+			regs_count = fdt_edma_update_int_array(regs, regs_count, new_regs, 4, remove, remove_cnt);
+			interrupts_count = fdt_edma_update_int_array(interrupts, interrupts_count, new_interrupts, 3, remove, remove_cnt);
+
+			fdt_edma_debug_int_array(new_regs, regs_count, 4);
+			fdt_edma_debug_int_array(new_interrupts, interrupts_count, 3);
+
+			fdt_edma_swap_int_array(new_regs, regs_count);
+			fdt_edma_swap_int_array(new_interrupts, interrupts_count);
+
+			/* malloc a new string list */
+			newlist = (char *)malloc(list_len);
+			if (!newlist) {
+				printf("malloc new string list failed, len=%d\n", list_len);
+				continue;
+			}
+
+			newlist_len = fdt_edma_update_stringlist(list, int_names_count, newlist, remove, remove_cnt);
+			fdt_edma_debug_stringlist(newlist, newlist_len);
+
+			ret = fdt_setprop(blob, nodeoff, "reg", new_regs, regs_count * sizeof(u32));
+			if (ret)
+				printf("fdt_setprop regs error %d\n", ret);
+
+			ret = fdt_setprop(blob, nodeoff, "interrupts", new_interrupts, interrupts_count * sizeof(u32));
+			if (ret)
+				printf("fdt_setprop interrupts error %d\n", ret);
+
+			ret = fdt_setprop_u32(blob, nodeoff, "dma-channels", dma_channels);
+			if (ret)
+				printf("fdt_setprop_u32 dma-channels error %d\n", ret);
+
+			ret = fdt_setprop(blob, nodeoff, "interrupt-names", newlist, newlist_len);
+			if (ret)
+				printf("fdt_setprop interrupt-names error %d\n", ret);
+
+			free(newlist);
+		}
+	}
+}
+
 static void update_fdt_with_owned_resources(void *blob)
 {
 	/* Traverses the fdt nodes,
@@ -861,6 +1112,7 @@ static void update_fdt_with_owned_resources(void *blob)
 	int depth, next_depth;
 	unsigned int rsrc_id;
 	const fdt32_t *php;
+	const char *name;
 	int rc;
 
 	for (offset = fdt_next_node(blob, offset, &depth); offset > 0;
@@ -897,6 +1149,12 @@ static void update_fdt_with_owned_resources(void *blob)
 		} else {
 			addr = fdt_node_offset_by_phandle(blob, fdt32_to_cpu(*php));
 			rsrc_id = fdtdec_get_uint(blob, addr, "reg", 0);
+
+			if (rsrc_id == SC_R_LAST) {
+				name = fdt_get_name(blob, offset, NULL);
+				printf("%s's power domain use SC_R_LAST\n", name);
+				continue;
+			}
 
 			debug("power-domains phandle 0x%x, addr 0x%x, resource id %u\n",
 				fdt32_to_cpu(*php), addr, rsrc_id);
@@ -1048,6 +1306,8 @@ int ft_system_setup(void *blob, bd_t *bd)
 #endif
 
 	update_fdt_with_owned_resources(blob);
+
+	update_fdt_edma_nodes(blob);
 #ifdef CONFIG_IMX_SMMU
 	config_smmu_fdt(blob);
 #endif
@@ -1361,5 +1621,30 @@ void power_off_pd_devices(const char* permanent_on_devices[], int size)
 				power_domain_off(&pd);
 			}
 		}
+	}
+}
+
+void disconnect_from_pc(void)
+{
+	int ret;
+	struct power_domain pd;
+
+	if (!power_domain_lookup_name("conn_usb0", &pd)) {
+		ret = power_domain_on(&pd);
+		if (ret) {
+			printf("conn_usb0 Power up failed! (error = %d)\n", ret);
+			return;
+		}
+
+		writel(0x0, USB_BASE_ADDR + 0x140);
+
+		ret = power_domain_off(&pd);
+		if (ret) {
+			printf("conn_usb0 Power off failed! (error = %d)\n", ret);
+			return;
+		}
+	} else {
+		printf("conn_usb0 finding failed!\n");
+		return;
 	}
 }

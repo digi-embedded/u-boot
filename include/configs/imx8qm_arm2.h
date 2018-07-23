@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 NXP
+ * Copyright 2017-2018 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -91,6 +91,9 @@
 /* ENET0 MDIO are shared */
 #define CONFIG_FEC_MXC_MDIO_BASE	0x5B040000
 
+#define CONFIG_LIB_RAND
+#define CONFIG_NET_RANDOM_ETHADDR
+
 /* MAX7322 */
 #ifdef CONFIG_FEC_ENABLE_MAX7322
 #define CONFIG_MAX7322_I2C_ADDR		0x68
@@ -126,9 +129,39 @@
 	"initrd_high=0xffffffff\0" \
 	"bootcmd_mfg=run mfgtool_args;booti ${loadaddr} ${initrd_addr} ${fdt_addr};\0" \
 
+#define XEN_BOOT_ENV \
+            "xenhyper_bootargs=console=dtuart dtuart=/serial@5a060000 dom0_mem=1024M\0" \
+            "xenlinux_bootargs=clk_ignore_unused\0" \
+            "xenlinux_console=hvc0 earlycon=xen\0" \
+            "xenlinux_addr=0x85000000\0" \
+            "xenboot_common=" \
+                "${get_cmd} ${loadaddr} xen;" \
+                "${get_cmd} ${fdt_addr} ${fdt_file};" \
+                "${get_cmd} ${xenlinux_addr} ${image};" \
+                "fdt addr ${fdt_addr};" \
+                "fdt resize 256;" \
+                "fdt set /chosen/module@0 reg <0x00000000 ${xenlinux_addr} 0x00000000 0x${filesize}>; " \
+                "fdt set /chosen/module@0 bootargs \"${bootargs} ${xenlinux_bootargs}\"; " \
+                "setenv bootargs ${xenhyper_bootargs};" \
+                "booti ${loadaddr} - ${fdt_addr};" \
+            "\0" \
+            "xennetboot=" \
+                "setenv get_cmd dhcp;" \
+                "setenv console ${xenlinux_console};" \
+                "run netargs;" \
+                "run xenboot_common;" \
+            "\0" \
+            "xenmmcboot=" \
+                "setenv get_cmd \"fatload mmc ${mmcdev}:${mmcpart}\";" \
+                "setenv console ${xenlinux_console};" \
+                "run mmcargs;" \
+                "run xenboot_common;" \
+            "\0" \
+
 /* Initial environment variables */
 #define CONFIG_EXTRA_ENV_SETTINGS		\
 	CONFIG_MFG_ENV_SETTINGS \
+	XEN_BOOT_ENV \
 	M4_BOOT_ENV \
 	"script=boot.scr\0" \
 	"image=Image\0" \
@@ -144,7 +177,7 @@
 	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"mmcautodetect=yes\0" \
-	"mmcargs=setenv bootargs console=${console},${baudrate} root=${mmcroot} " \
+	"mmcargs=setenv bootargs console=${console},${baudrate} root=${mmcroot}\0 " \
 	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
 	"bootscript=echo Running bootscript from mmc ...; " \
 		"source\0" \
@@ -154,7 +187,7 @@
 	"hdp_file=dpfw.bin\0" \
 	"loadhdp=fatload mmc ${mmcdev}:${mmcpart} ${hdp_addr} ${hdp_file}\0" \
 	"mmcboot=echo Booting from mmc ...; " \
-		"run loadhdp; hdp load ${hdp_addr}; " \
+		"if run loadhdp; then; hdp load ${hdp_addr}; fi;" \
 		"run mmcargs; " \
 		"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
 			"if run loadfdt; then " \
@@ -176,7 +209,7 @@
 		"else " \
 			"setenv get_cmd tftp; " \
 		"fi; " \
-		"${get_cmd} ${hdp_addr} ${hdp_file}; hdp load ${hdp_addr}; " \
+		"if ${get_cmd} ${hdp_addr} ${hdp_file}; then; hdp load ${hdp_addr}; fi;" \
 		"${get_cmd} ${loadaddr} ${image}; " \
 		"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
 			"if ${get_cmd} ${fdt_addr} ${fdt_file}; then " \
@@ -210,7 +243,7 @@
 
 
 /* Default environment is in SD */
-#define CONFIG_ENV_SIZE			0x1000
+#define CONFIG_ENV_SIZE			0x2000
 
 #ifdef CONFIG_QSPI_BOOT
 #define CONFIG_ENV_IS_IN_SPI_FLASH

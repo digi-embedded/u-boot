@@ -25,6 +25,7 @@
 #include <linux/compiler.h>
 #include <version.h>
 #include <g_dnl.h>
+#include "lib/avb/fsl/utils.h"
 #ifdef CONFIG_FASTBOOT_FLASH_MMC_DEV
 #include <fb_mmc.h>
 #endif
@@ -81,6 +82,15 @@ extern void trusty_os_init(void);
 #define TX_ENDPOINT_MAXIMUM_PACKET_SIZE      (0x0040)
 
 #define EP_BUFFER_SIZE			4096
+
+#ifdef CONFIG_FLASH_MCUFIRMWARE_SUPPORT
+struct fastboot_device_info fastboot_firmwareinfo;
+#endif
+
+#if defined (CONFIG_ARCH_IMX8) || defined (CONFIG_ARCH_IMX8M)
+#define DST_DECOMPRESS_LEN 1024*1024*32
+#endif
+
 /*
  * EP_BUFFER_SIZE must always be an integral multiple of maxpacket size
  * (64 or 512 or 1024), else we break on certain controllers like DWC3
@@ -88,9 +98,6 @@ extern void trusty_os_init(void);
  */
 static unsigned int download_size;
 static unsigned int download_bytes;
-#ifdef CONFIG_SYSTEM_RAMDISK_SUPPORT
-static bool is_recovery_mode;
-#endif
 
 /* common variables of fastboot getvar command */
 char *fastboot_common_var[FASTBOOT_COMMON_VAR_NUM] = {
@@ -121,15 +128,19 @@ boot_metric metrics = {
 };
 
 #ifdef CONFIG_USB_GADGET
-#define MAX_REQ_NUM 100
+typedef struct usb_req usb_req;
+struct usb_req {
+	struct usb_request *in_req;
+	usb_req *next;
+};
 
 struct f_fastboot {
 	struct usb_function usb_function;
 
 	/* IN/OUT EP's and corresponding requests */
 	struct usb_ep *in_ep, *out_ep;
-	struct usb_request *in_req, *in_req_more[MAX_REQ_NUM], *out_req;
-	int next_req;
+	struct usb_request *in_req, *out_req;
+	usb_req *front, *rear;
 };
 
 static inline struct f_fastboot *func_to_fastboot(struct usb_function *f)
@@ -238,14 +249,13 @@ static struct usb_gadget_strings *fastboot_strings[] = {
 #define ANDROID_MBR_SIZE	    0x200
 #ifdef  CONFIG_BOOTLOADER_OFFSET_33K
 #define ANDROID_BOOTLOADER_OFFSET   0x8400
+/* The Bootloader offset of imx8qxp B0 board is set to 32K */
+#elif defined(CONFIG_BOOTLOADER_OFFSET_32K)
+#define ANDROID_BOOTLOADER_OFFSET 0x8000
 #else
 #define ANDROID_BOOTLOADER_OFFSET   0x400
 #endif
-#define ANDROID_BOOTLOADER_SIZE	    0xFFC00
-#define ANDROID_KERNEL_OFFSET	    0x100000
-#define ANDROID_KERNEL_SIZE	    0x500000
-#define ANDROID_URAMDISK_OFFSET	    0x600000
-#define ANDROID_URAMDISK_SIZE	    0x100000
+#define ANDROID_BOOTLOADER_SIZE	    0x1FFC00
 
 #define MMC_SATA_BLOCK_SIZE 512
 #define FASTBOOT_FBPARTS_ENV_MAX_LEN 1024
@@ -259,6 +269,9 @@ struct fastboot_device_info fastboot_devinfo;
 enum {
 	PTN_GPT_INDEX = 0,
 	PTN_TEE_INDEX,
+#ifdef CONFIG_FLASH_MCUFIRMWARE_SUPPORT
+	PTN_M4_OS_INDEX,
+#endif
 	PTN_BOOTLOADER_INDEX,
 };
 static unsigned int download_bytes_unpadded;
@@ -276,6 +289,98 @@ static struct cmd_fastboot_interface interface = {
 	.transfer_buffer       = (unsigned char *)0xffffffff,
 	.transfer_buffer_size  = 0,
 };
+
+int read_from_partition_multi(const char* partition,
+		int64_t offset, size_t num_bytes, void* buffer, size_t* out_num_read)
+{
+	struct fastboot_ptentry *pte;
+	unsigned char *bdata;
+	unsigned char *out_buf = (unsigned char *)buffer;
+	unsigned char *dst, *dst64 = NULL;
+	unsigned long blksz;
+	unsigned long s, cnt;
+	size_t num_read = 0;
+	lbaint_t part_start, part_end, bs, be, bm, blk_num;
+	margin_pos_t margin;
+	struct blk_desc *fs_dev_desc = NULL;
+	int dev_no;
+	int ret;
+
+	assert(buffer != NULL && out_num_read != NULL);
+
+	dev_no = mmc_get_env_dev();
+	if ((fs_dev_desc = blk_get_dev("mmc", dev_no)) == NULL) {
+		printf("mmc device not found\n");
+		return -1;
+	}
+
+	pte = fastboot_flash_find_ptn(partition);
+	if (!pte) {
+		printf("no %s partition\n", partition);
+		return -1;
+	}
+
+	blksz = fs_dev_desc->blksz;
+	part_start = pte->start;
+	part_end = pte->start + pte->length - 1;
+
+	if (get_margin_pos((uint64_t)part_start, (uint64_t)part_end, blksz,
+				&margin, offset, num_bytes, true))
+		return -1;
+
+	bs = (lbaint_t)margin.blk_start;
+	be = (lbaint_t)margin.blk_end;
+	s = margin.start;
+	bm = margin.multi;
+
+	/* alloc a blksz mem */
+	bdata = (unsigned char *)memalign(ALIGN_BYTES, blksz);
+	if (bdata == NULL) {
+		printf("Failed to allocate memory!\n");
+		return -1;
+	}
+
+	/* support multi blk read */
+	while (bs <= be) {
+		if (!s && bm > 1) {
+			dst = out_buf;
+			dst64 = PTR_ALIGN(out_buf, 64); /* for mmc blk read alignment */
+			if (dst64 != dst) {
+				dst = dst64;
+				bm--;
+			}
+			blk_num = bm;
+			cnt = bm * blksz;
+			bm = 0; /* no more multi blk */
+		} else {
+			blk_num = 1;
+			cnt = blksz - s;
+			if (num_read + cnt > num_bytes)
+				cnt = num_bytes - num_read;
+			dst = bdata;
+		}
+		if (!fs_dev_desc->block_read(fs_dev_desc, bs, blk_num, dst)) {
+			ret = -1;
+			goto fail;
+		}
+
+		if (dst == bdata)
+			memcpy(out_buf, bdata + s, cnt);
+		else if (dst == dst64)
+			memcpy(out_buf, dst, cnt); /* internal copy */
+
+		s = 0;
+		bs += blk_num;
+		num_read += cnt;
+		out_buf += cnt;
+	}
+	*out_num_read = num_read;
+	ret = 0;
+
+fail:
+	free(bdata);
+	return ret;
+}
 
 static void save_env(struct fastboot_ptentry *ptn,
 		     char *var, char *val)
@@ -472,6 +577,109 @@ static int saveenv_to_ptn(struct fastboot_ptentry *ptn, char *err_string)
 	return ret;
 }
 
+static int get_block_size(void);
+#ifdef CONFIG_FLASH_MCUFIRMWARE_SUPPORT
+static void process_flash_sf(const char *cmdbuf)
+{
+	int blksz = 0;
+	blksz = get_block_size();
+
+	if (download_bytes) {
+		struct fastboot_ptentry *ptn;
+		ptn = fastboot_flash_find_ptn(cmdbuf);
+		if (ptn == 0) {
+			fastboot_fail("partition does not exist");
+		} else if ((download_bytes > ptn->length * blksz)) {
+			fastboot_fail("image too large for partition");
+		/* TODO : Improve check for yaffs write */
+		} else {
+			int ret;
+			char sf_command[128];
+			/* Normal case */
+			/* Probe device */
+			sprintf(sf_command, "sf probe");
+			ret = run_command(sf_command, 0);
+			if (ret){
+				fastboot_fail("Probe sf failed");
+				return;
+			}
+			/* Erase */
+			sprintf(sf_command, "sf erase 0x%x 0x%x", ptn->start * blksz, /*start*/
+			ptn->length * blksz /*size*/);
+			ret = run_command(sf_command, 0);
+			if (ret) {
+				fastboot_fail("Erasing sf failed");
+				return;
+			}
+			/* Write image */
+			sprintf(sf_command, "sf write 0x%x 0x%x 0x%x",
+					(unsigned int)(ulong)interface.transfer_buffer, /* source */
+					ptn->start * blksz, /* start */
+					download_bytes /*size*/);
+			printf("sf write '%s'\n", ptn->name);
+			ret = run_command(sf_command, 0);
+			if (ret){
+				fastboot_fail("Writing sf failed");
+				return;
+			}
+			printf("sf write finished '%s'\n", ptn->name);
+			fastboot_okay("");
+		}
+	} else {
+		fastboot_fail("no image downloaded");
+	}
+}
+
+#ifdef CONFIG_ARCH_IMX8M
+/* Check if the mcu image is built for running from TCM */
+static bool is_tcm_image(char *image_addr)
+{
+	u32 stack, pc;
+
+	stack = *(u32 *)image_addr;
+	pc    = *(u32 *)(image_addr + 4);
+
+	if ((stack != (u32)ANDROID_MCU_FIRMWARE_HEADER_STACK) ||
+				(pc != (u32)ANDROID_MCU_FIRMWARE_HEADER_PC)) {
+		printf("Please flash mcu firmware images for running from TCM\n");
+		return false;
+	} else
+		return true;
+}
+
+static int do_bootmcu(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+	int ret;
+	size_t out_num_read;
+	void *m4_base_addr = (void *)M4_BOOTROM_BASE_ADDR;
+	char command[32];
+
+	ret = read_from_partition_multi(FASTBOOT_MCU_FIRMWARE_PARTITION,
+			0, ANDROID_MCU_FIRMWARE_SIZE, (void *)m4_base_addr, &out_num_read);
+	if ((ret != 0) || (out_num_read != ANDROID_MCU_FIRMWARE_SIZE)) {
+		printf("Read M4 images failed!\n");
+		return 1;
+	} else {
+		printf("run command: 'bootaux 0x%x'\n",(unsigned int)(ulong)m4_base_addr);
+
+		sprintf(command, "bootaux 0x%x", (unsigned int)(ulong)m4_base_addr);
+		ret = run_command(command, 0);
+		if (ret) {
+			printf("run 'bootaux' command failed!\n");
+			return 1;
+		}
+	}
+	return 0;
+}
+
+U_BOOT_CMD(
+	bootmcu, 1, 0, do_bootmcu,
+	"boot mcu images\n",
+	"boot mcu images from 'm4_os' partition, only support images run from TCM"
+);
+#endif
+#endif /* CONFIG_FLASH_MCUFIRMWARE_SUPPORT */
+
 #if defined(CONFIG_FASTBOOT_STORAGE_SATA)
 static void process_flash_sata(const char *cmdbuf)
 {
@@ -642,7 +850,40 @@ int write_backup_gpt(void)
 	printf("flash backup gpt image successfully\n");
 	return 0;
 }
+static int get_fastboot_target_dev(char *mmc_dev, struct fastboot_ptentry *ptn)
+{
+	int dev = 0;
+	struct mmc *target_mmc;
 
+	/* Support flash bootloader to mmc 'target_ubootdev' devices, if the
+	* 'target_ubootdev' env is not set just flash bootloader to current
+	* mmc device.
+	*/
+	if ((!strncmp(ptn->name, FASTBOOT_PARTITION_BOOTLOADER,
+					sizeof(FASTBOOT_PARTITION_BOOTLOADER))) &&
+					(getenv("target_ubootdev"))) {
+		dev = simple_strtoul(getenv("target_ubootdev"), NULL, 10);
+		target_mmc = find_mmc_device(dev);
+		if ((target_mmc == NULL) || mmc_init(target_mmc)) {
+			printf("MMC card init failed!\n");
+			return -1;
+		} else {
+			printf("Flash target is mmc%d\n", dev);
+			if (target_mmc->part_config != MMCPART_NOAVAILABLE)
+				sprintf(mmc_dev, "mmc dev %x %x", dev, /*slot no*/
+						FASTBOOT_MMC_BOOT_PARTITION_ID/*part no*/);
+			else
+				sprintf(mmc_dev, "mmc dev %x", dev);
+			}
+	} else if (ptn->partition_id != FASTBOOT_MMC_NONE_PARTITION_ID)
+		sprintf(mmc_dev, "mmc dev %x %x",
+				fastboot_devinfo.dev_id, /*slot no*/
+				ptn->partition_id /*part no*/);
+	else
+		sprintf(mmc_dev, "mmc dev %x",
+				fastboot_devinfo.dev_id /*slot no*/);
+	return 0;
+}
 static void process_flash_mmc(const char *cmdbuf)
 {
 	if (download_bytes) {
@@ -688,14 +929,9 @@ static void process_flash_mmc(const char *cmdbuf)
 			int mmcret;
 
 			printf("writing to partition '%s'\n", ptn->name);
-
-			if (ptn->partition_id != FASTBOOT_MMC_NONE_PARTITION_ID)
-				sprintf(mmc_dev, "mmc dev %x %x",
-					fastboot_devinfo.dev_id, /*slot no*/
-					ptn->partition_id /*part no*/);
-			else
-				sprintf(mmc_dev, "mmc dev %x",
-					fastboot_devinfo.dev_id /*slot no*/);
+			/* Get target flash device. */
+			if (get_fastboot_target_dev(mmc_dev, ptn) != 0)
+				return;
 
 			if (!is_raw_partition(ptn) &&
 				is_sparse_image(interface.transfer_buffer)) {
@@ -900,6 +1136,27 @@ static void rx_process_erase(const char *cmdbuf, char *response)
 
 static void rx_process_flash(const char *cmdbuf)
 {
+/* Check if we need to flash mcu firmware */
+#ifdef CONFIG_FLASH_MCUFIRMWARE_SUPPORT
+	if (!strncmp(cmdbuf, FASTBOOT_MCU_FIRMWARE_PARTITION,
+				sizeof(FASTBOOT_MCU_FIRMWARE_PARTITION))) {
+		switch (fastboot_firmwareinfo.type) {
+		case DEV_SF:
+			process_flash_sf(cmdbuf);
+			break;
+#ifdef CONFIG_ARCH_IMX8M
+		case DEV_MMC:
+			if (is_tcm_image(interface.transfer_buffer))
+				process_flash_mmc(cmdbuf);
+			break;
+#endif
+		default:
+			printf("Don't support flash firmware\n");
+		}
+		return;
+	}
+#endif
+	/* Normal case */
 	switch (fastboot_devinfo.type) {
 #if defined(CONFIG_FASTBOOT_STORAGE_SATA)
 	case DEV_SATA:
@@ -947,6 +1204,12 @@ static int _fastboot_setup_dev(void)
 	} else {
 		return 1;
 	}
+#ifdef CONFIG_FLASH_MCUFIRMWARE_SUPPORT
+	/* For imx7ulp, flash m4 images directly to spi nor-flash, M4 will
+	 * run automatically after powered on. For imx8mq, flash m4 images to
+	 * physical partition 'm4_os', m4 will be kicked off by A core. */
+	fastboot_firmwareinfo.type = ANDROID_MCU_FRIMWARE_DEV_TYPE;
+#endif
 
 	return 0;
 }
@@ -978,7 +1241,8 @@ static int _fastboot_parts_add_ptable_entry(int ptable_index,
 	ptable[ptable_index].length = info.size;
 	ptable[ptable_index].partition_id = mmc_partition_index;
 	ptable[ptable_index].partition_index = mmc_dos_partition_index;
-	strcpy(ptable[ptable_index].name, (const char *)info.name);
+	strncpy(ptable[ptable_index].name, (const char *)info.name,
+			sizeof(ptable[ptable_index].name) - 1);
 
 #ifdef CONFIG_PARTITION_UUIDS
 	strcpy(ptable[ptable_index].uuid, (const char *)info.uuid);
@@ -1076,6 +1340,16 @@ static int _fastboot_parts_load_from_ptable(void)
 	ptable[PTN_TEE_INDEX].partition_id = TEE_HWPARTITION_ID;
 	strcpy(ptable[PTN_TEE_INDEX].fstype, "raw");
 
+	/* Add m4_os partition if we support mcu firmware image flash */
+#ifdef CONFIG_FLASH_MCUFIRMWARE_SUPPORT
+	strcpy(ptable[PTN_M4_OS_INDEX].name, FASTBOOT_MCU_FIRMWARE_PARTITION);
+	ptable[PTN_M4_OS_INDEX].start = ANDROID_MCU_FIRMWARE_START / dev_desc->blksz;
+	ptable[PTN_M4_OS_INDEX].length = ANDROID_MCU_FIRMWARE_SIZE / dev_desc->blksz;
+	ptable[PTN_M4_OS_INDEX].flags = FASTBOOT_PTENTRY_FLAGS_UNERASEABLE;
+	ptable[PTN_M4_OS_INDEX].partition_id = user_partition;
+	strcpy(ptable[PTN_M4_OS_INDEX].fstype, "raw");
+#endif
+
 	/* Bootloader */
 	strcpy(ptable[PTN_BOOTLOADER_INDEX].name, FASTBOOT_PARTITION_BOOTLOADER);
 	ptable[PTN_BOOTLOADER_INDEX].start =
@@ -1099,7 +1373,7 @@ static int _fastboot_parts_load_from_ptable(void)
 		if (ret)
 			break;
 	}
-	for (i = 0; i <= part_idx; i++)
+	for (i = 0; i < tbl_idx; i++)
 		fastboot_flash_add_ptn(&ptable[i]);
 
 	return 0;
@@ -1247,6 +1521,11 @@ void board_fastboot_setup(void)
 #ifdef CONFIG_ANDROID_RECOVERY
 void board_recovery_setup(void)
 {
+/* boot from current mmc with avb verify */
+#ifdef CONFIG_AVB_SUPPORT
+	if (!getenv("bootcmd_android_recovery"))
+		setenv("bootcmd_android_recovery", "boota recovery");
+#else
 #if defined(CONFIG_FASTBOOT_STORAGE_MMC)
 	static char boot_dev_part[32];
 	u32 dev_no;
@@ -1273,7 +1552,7 @@ void board_recovery_setup(void)
 			bootdev);
 		return;
 	}
-
+#endif /* CONFIG_AVB_SUPPORT */
 	printf("setup env for recovery..\n");
 	setenv("bootcmd", "run bootcmd_android_recovery");
 }
@@ -1308,7 +1587,8 @@ static AvbOps fsl_avb_ops = {
 	.read_rollback_index = fsl_read_rollback_index_rpmb,
 	.write_rollback_index = fsl_write_rollback_index_rpmb,
 	.read_is_device_unlocked = fsl_read_is_device_unlocked,
-	.get_unique_guid_for_partition = fsl_get_unique_guid_for_partition
+	.get_unique_guid_for_partition = fsl_get_unique_guid_for_partition,
+	.get_size_of_partition = fsl_get_size_of_partition
 };
 #endif
 
@@ -1436,7 +1716,7 @@ static FbBootMode fastboot_get_bootmode(void)
 
 #ifdef CONFIG_SYSTEM_RAMDISK_SUPPORT
 /* Setup booargs for taking the system parition as ramdisk */
-static void fastboot_setup_system_boot_args(const char *slot)
+static void fastboot_setup_system_boot_args(const char *slot, bool append_root)
 {
 	const char *system_part_name = NULL;
 	if(slot == NULL)
@@ -1446,15 +1726,23 @@ static void fastboot_setup_system_boot_args(const char *slot)
 	}
 	else if(!strncmp(slot, "_b", strlen("_b")) || !strncmp(slot, "boot_b", strlen("boot_b"))) {
 		system_part_name = FASTBOOT_PARTITION_SYSTEM_B;
+	} else {
+		printf("slot invalid!\n");
+		return;
 	}
 	struct fastboot_ptentry *ptentry = fastboot_flash_find_ptn(system_part_name);
 	if(ptentry != NULL) {
 		char bootargs_3rd[ANDR_BOOT_ARGS_SIZE];
 #if defined(CONFIG_FASTBOOT_STORAGE_MMC)
-		u32 dev_no = mmc_map_to_kernel_blk(mmc_get_env_dev());
-		sprintf(bootargs_3rd, "skip_initramfs root=/dev/mmcblk%dp%d",
-				dev_no,
-				ptentry->partition_index);
+		if (append_root) {
+			u32 dev_no = mmc_map_to_kernel_blk(mmc_get_env_dev());
+			sprintf(bootargs_3rd, "skip_initramfs root=/dev/mmcblk%dp%d",
+					dev_no,
+					ptentry->partition_index);
+		} else {
+			sprintf(bootargs_3rd, "skip_initramfs");
+		}
+		strcat(bootargs_3rd, " rootwait");
 		setenv("bootargs_3rd", bootargs_3rd);
 #endif
 	}
@@ -1468,9 +1756,6 @@ void fastboot_run_bootmode(void)
 	case BOOTMODE_FASTBOOT_BCB_CMD:
 		/* Make the boot into fastboot mode*/
 		puts("Fastboot: Got bootloader commands!\n");
-#ifdef CONFIG_SYSTEM_RAMDISK_SUPPORT
-		is_recovery_mode = false;
-#endif
 		run_command("fastboot 0", 0);
 		break;
 #ifdef CONFIG_ANDROID_RECOVERY
@@ -1478,18 +1763,11 @@ void fastboot_run_bootmode(void)
 	case BOOTMODE_RECOVERY_KEY_PRESSED:
 		/* Make the boot into recovery mode */
 		puts("Fastboot: Got Recovery key pressing or recovery commands!\n");
-#ifdef CONFIG_SYSTEM_RAMDISK_SUPPORT
-		is_recovery_mode = true;
-#else
 		board_recovery_setup();
-#endif
 		break;
 #endif
 	default:
 		/* skip special mode boot*/
-#ifdef CONFIG_SYSTEM_RAMDISK_SUPPORT
-		is_recovery_mode = false;
-#endif
 		puts("Fastboot: Normal\n");
 		break;
 	}
@@ -1532,21 +1810,29 @@ bootimg_print_image_hdr(struct andr_img_hdr *hdr)
 static struct andr_img_hdr boothdr __aligned(ARCH_DMA_MINALIGN);
 
 #if defined(CONFIG_AVB_SUPPORT) && defined(CONFIG_MMC)
-/* we can use avb to verify Trusty if we want */
-const char *requested_partitions[] = {"boot", 0};
 
 int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 
 	ulong addr = 0;
 	struct andr_img_hdr *hdr = NULL;
-	struct andr_img_hdr *hdrload;
+	void *boot_buf = NULL;
 	ulong image_size;
 	u32 avb_metric;
 	bool check_image_arm64 =  false;
+	bool is_recovery_mode = false;
 
+#if defined (CONFIG_ARCH_IMX8) || defined (CONFIG_ARCH_IMX8M)
+	size_t lz4_len = DST_DECOMPRESS_LEN;
+#endif
 	AvbABFlowResult avb_result;
 	AvbSlotVerifyData *avb_out_data;
 	AvbPartitionData *avb_loadpart;
+
+	/* get bootmode, default to boot "boot" */
+	if (argc > 1) {
+		is_recovery_mode =
+			(strncmp(argv[1], "recovery", sizeof("recovery")) != 0) ? false: true;
+	}
 
 #ifdef CONFIG_FASTBOOT_LOCK
 	/* check lock state */
@@ -1558,12 +1844,30 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 	}
 	bool allow_fail = (lock_status == FASTBOOT_UNLOCK ? true : false);
 	avb_metric = get_timer(0);
-	/* if in lock state, do avb verify */
-	avb_result = avb_ab_flow(&fsl_avb_ab_ops, requested_partitions, allow_fail, &avb_out_data);
+	/* For imx6 on Android, we don't have a/b slot and we want to verify
+	 * boot/recovery with AVB. For imx8 and Android Things we don't have
+	 * recovery and support a/b slot for boot */
+#ifdef CONFIG_ANDROID_AB_SUPPORT
+	/* we can use avb to verify Trusty if we want */
+	const char *requested_partitions[] = {"boot", 0};
+	avb_result = avb_ab_flow_fast(&fsl_avb_ab_ops, requested_partitions, allow_fail,
+			AVB_HASHTREE_ERROR_MODE_RESTART_AND_INVALIDATE, &avb_out_data);
+#else /* CONFIG_ANDROID_AB_SUPPORT */
+	if (!is_recovery_mode) {
+		const char *requested_partitions[] = {"boot", 0};
+		avb_result = avb_single_flow(&fsl_avb_ab_ops, requested_partitions, allow_fail,
+				AVB_HASHTREE_ERROR_MODE_RESTART, &avb_out_data);
+	} else {
+		const char *requested_partitions[] = {"recovery", 0};
+		avb_result = avb_single_flow(&fsl_avb_ab_ops, requested_partitions, allow_fail,
+				AVB_HASHTREE_ERROR_MODE_RESTART, &avb_out_data);
+	}
+#endif /* CONFIG_ANDROID_AB_SUPPORT */
 	/* get the duration of avb */
 	metrics.avb = get_timer(avb_metric);
 
-	if (avb_result == AVB_AB_FLOW_RESULT_OK) {
+	if ((avb_result == AVB_AB_FLOW_RESULT_OK) ||
+			(avb_result == AVB_AB_FLOW_RESULT_OK_WITH_VERIFICATION_ERROR)) {
 		assert(avb_out_data != NULL);
 		/* load the first partition */
 		avb_loadpart = avb_out_data->loaded_partitions;
@@ -1575,18 +1879,23 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 			printf("boota: bad boot image magic\n");
 			goto fail;
 		}
-		printf(" verify OK, boot '%s%s'\n", avb_loadpart->partition_name, avb_out_data->ab_suffix);
-		/* The dm-verity commandline has conflicts with system bootargs and we can't
-		 * determine whether dm-verity is opened by the commandline for now. */
+		if (avb_result == AVB_AB_FLOW_RESULT_OK)
+			printf(" verify OK, boot '%s%s'\n",
+					avb_loadpart->partition_name, avb_out_data->ab_suffix);
+		else {
+			printf(" verify FAIL, state: UNLOCK\n");
+			printf(" boot '%s%s' still\n",
+					avb_loadpart->partition_name, avb_out_data->ab_suffix);
+		}
 		char bootargs_sec[ANDR_BOOT_ARGS_SIZE];
 		if (lock_status == FASTBOOT_LOCK) {
 			sprintf(bootargs_sec,
-					"androidboot.verifiedbootstate=green androidboot.slot_suffix=%s",
-					avb_out_data->ab_suffix);
+					"androidboot.verifiedbootstate=green androidboot.slot_suffix=%s %s",
+					avb_out_data->ab_suffix, avb_out_data->cmdline);
 		} else {
 			sprintf(bootargs_sec,
-					"androidboot.verifiedbootstate=orange androidboot.slot_suffix=%s",
-					avb_out_data->ab_suffix);
+					"androidboot.verifiedbootstate=orange androidboot.slot_suffix=%s %s",
+					avb_out_data->ab_suffix, avb_out_data->cmdline);
 		}
 		setenv("bootargs_sec", bootargs_sec);
 #ifdef IMX_LOAD_HDMI_FIMRWARE
@@ -1594,16 +1903,43 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 #endif
 
 #ifdef CONFIG_SYSTEM_RAMDISK_SUPPORT
-		if(!is_recovery_mode)
-			fastboot_setup_system_boot_args(avb_out_data->ab_suffix);
-#endif
+		if(!is_recovery_mode) {
+			if(avb_out_data->cmdline != NULL && strstr(avb_out_data->cmdline, "root="))
+				fastboot_setup_system_boot_args(avb_out_data->ab_suffix, false);
+			else
+				fastboot_setup_system_boot_args(avb_out_data->ab_suffix, true);
+		}
+#endif /* CONFIG_SYSTEM_RAMDISK_SUPPORT */
 		image_size = avb_loadpart->data_size;
-		memcpy((void *)(ulong)(hdr->kernel_addr - hdr->page_size), (void *)hdr, image_size);
+#if defined (CONFIG_ARCH_IMX8) || defined (CONFIG_ARCH_IMX8M)
+		/* If we are using uncompressed kernel image, copy it directly to
+		 * hdr->kernel_addr, if we are using compressed lz4 kernel image,
+		 * we need to decompress the kernel image first. */
+		if (image_arm64((void *)((ulong)hdr + hdr->page_size))) {
+			memcpy((void *)(long)hdr->kernel_addr,
+					(void *)((ulong)hdr + hdr->page_size), hdr->kernel_size);
+		} else {
+#ifdef CONFIG_LZ4
+			if (ulz4fn((void *)((ulong)hdr + hdr->page_size),
+						hdr->kernel_size, (void *)(ulong)hdr->kernel_addr, &lz4_len) != 0) {
+				printf("Decompress kernel fail!\n");
+				goto fail;
+			}
+#else /* CONFIG_LZ4 */
+			printf("please enable CONFIG_LZ4 if we're using compressed lz4 kernel image!\n");
+			goto fail;
+#endif /* CONFIG_LZ4 */
+		}
+#else /* CONFIG_ARCH_IMX8 || CONFIG_ARCH_IMX8M */
+		/* copy kernel image and boot header to hdr->kernel_addr - hdr->page_size */
+		memcpy((void *)(ulong)(hdr->kernel_addr - hdr->page_size), (void *)hdr,
+				hdr->page_size + ALIGN(hdr->kernel_size, hdr->page_size));
+#endif /* CONFIG_ARCH_IMX8 || CONFIG_ARCH_IMX8M */
 	} else if (lock_status == FASTBOOT_LOCK) { /* && verify fail */
 		/* if in lock state, verify enforce fail */
 		printf(" verify FAIL, state: LOCK\n");
 		goto fail;
-	} else { /* lock_status == FASTBOOT_UNLOCK && verify fail */
+	} else { /* lock_status == FASTBOOT_UNLOCK && get unacceptable verify fail */
 		/* if in unlock state, log the verify state */
 		printf(" verify FAIL, state: UNLOCK\n");
 #endif
@@ -1612,7 +1948,17 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 		size_t num_read;
 		hdr = &boothdr;
 
-		char bootimg[8];
+		char bootimg[10];
+		/* we don't have a/b slot for imx6 on normal Android*/
+#ifndef CONFIG_ANDROID_AB_SUPPORT
+		char *slot = "";
+		if (!is_recovery_mode) {
+			sprintf(bootimg, "boot");
+		} else {
+			sprintf(bootimg, "recovery");
+		}
+		printf("boot '%s' still\n", bootimg);
+#else
 		char *slot = select_slot(&fsl_avb_ab_ops);
 		if (slot == NULL) {
 			printf("boota: no bootable slot\n");
@@ -1620,6 +1966,7 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 		}
 		sprintf(bootimg, "boot%s", slot);
 		printf(" boot '%s' still\n", bootimg);
+#endif
 		/* maybe we should use bootctl to select a/b
 		 * but libavb doesn't export a/b select */
 		if (fsl_avb_ops.read_from_partition(&fsl_avb_ops, bootimg,
@@ -1633,12 +1980,43 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 			goto fail;
 		}
 		image_size = android_image_get_end(hdr) - (ulong)hdr;
+#if defined (CONFIG_ARCH_IMX8) || defined (CONFIG_ARCH_IMX8M)
+		boot_buf = malloc(image_size);
+		/* Load boot image */
+		if (fsl_avb_ops.read_from_partition(&fsl_avb_ops, bootimg,
+				0, image_size, boot_buf, &num_read) != AVB_IO_RESULT_OK
+				&& num_read != image_size) {
+			printf("boota: read boot image error\n");
+			goto fail;
+		}
+		/* If we are using uncompressed kernel image, copy it directly to
+		 * hdr->kernel_addr, if we are using compressed lz4 kernel image,
+		 * we need to decompress the kernel image first. */
+		if (image_arm64((void *)((ulong)boot_buf + hdr->page_size))) {
+			memcpy((void *)(ulong)hdr->kernel_addr,
+					(void *)((ulong)boot_buf + hdr->page_size), hdr->kernel_size);
+		} else {
+#ifdef CONFIG_LZ4
+			if (ulz4fn((void *)((ulong)boot_buf + hdr->page_size),
+						hdr->kernel_size, (void *)(ulong)hdr->kernel_addr, &lz4_len) != 0) {
+				printf("Decompress kernel fail!\n");
+				goto fail;
+			}
+#else /* CONFIG_LZ4 */
+			printf("please enable CONFIG_LZ4 if we're using compressed lz4 kernel image!\n");
+			goto fail;
+#endif /* CONFIG_LZ4 */
+		}
+		hdr = (struct andr_img_hdr *)boot_buf;
+#else /* CONFIG_ARCH_IMX8 || CONFIG_ARCH_IMX8M */
 		if (fsl_avb_ops.read_from_partition(&fsl_avb_ops, bootimg,
 				0, image_size, (void *)(ulong)(hdr->kernel_addr - hdr->page_size), &num_read) != AVB_IO_RESULT_OK
 				&& num_read != image_size) {
 			printf("boota: read boot image error\n");
 			goto fail;
 		}
+		hdr = (struct andr_img_hdr *)(ulong)(hdr->kernel_addr - hdr->page_size);
+#endif /* CONFIG_ARCH_IMX8 || CONFIG_ARCH_IMX8M */
 		char bootargs_sec[ANDR_BOOT_ARGS_SIZE];
 		sprintf(bootargs_sec,
 				"androidboot.verifiedbootstate=orange androidboot.slot_suffix=%s", slot);
@@ -1648,38 +2026,41 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 #endif
 #ifdef CONFIG_SYSTEM_RAMDISK_SUPPORT
 		if(!is_recovery_mode)
-			fastboot_setup_system_boot_args(slot);
-#endif
+			fastboot_setup_system_boot_args(slot, true);
+#endif /* CONFIG_SYSTEM_RAMDISK_SUPPORT */
 #ifdef CONFIG_FASTBOOT_LOCK
 	}
 #endif
 
 	flush_cache((ulong)load_addr, image_size);
-	hdrload = (struct andr_img_hdr *)(ulong)(hdr->kernel_addr - hdr->page_size);
-	check_image_arm64  = image_arm64((void *)(ulong)hdrload->kernel_addr);
-
-	memcpy((void *)(ulong)hdrload->ramdisk_addr, (void *)(ulong)hdrload->kernel_addr
-			+ ALIGN(hdrload->kernel_size,hdrload->page_size), hdrload->ramdisk_size);
-
+	check_image_arm64  = image_arm64((void *)(ulong)hdr->kernel_addr);
+#ifdef CONFIG_SYSTEM_RAMDISK_SUPPORT
+	if (is_recovery_mode)
+		memcpy((void *)(ulong)hdr->ramdisk_addr, (void *)(ulong)hdr + hdr->page_size
+				+ ALIGN(hdr->kernel_size, hdr->page_size), hdr->ramdisk_size);
+#else
+	memcpy((void *)(ulong)hdr->ramdisk_addr, (void *)(ulong)hdr + hdr->page_size
+			+ ALIGN(hdr->kernel_size, hdr->page_size), hdr->ramdisk_size);
+#endif
 #ifdef CONFIG_OF_LIBFDT
 	/* load the dtb file */
-	if (hdrload->second_size && hdrload->second_addr) {
-		memcpy((void *)(ulong)hdrload->second_addr, (void *)(ulong)hdrload->kernel_addr
-			+ ALIGN(hdrload->kernel_size, hdrload->page_size)
-			+ ALIGN(hdrload->ramdisk_size, hdrload->page_size), hdr->second_size);
+	if (hdr->second_size && hdr->second_addr) {
+		memcpy((void *)(ulong)hdr->second_addr, (void *)(ulong)hdr + hdr->page_size
+			+ ALIGN(hdr->kernel_size, hdr->page_size)
+			+ ALIGN(hdr->ramdisk_size, hdr->page_size), hdr->second_size);
 	}
 #endif /*CONFIG_OF_LIBFDT*/
 	if (check_image_arm64) {
-		android_image_get_kernel(hdrload, 0, NULL, NULL);
-		addr = hdrload->kernel_addr;
+		android_image_get_kernel(hdr, 0, NULL, NULL);
+		addr = hdr->kernel_addr;
 	} else {
-		addr = (ulong)hdrload;
+		addr = (ulong)(hdr->kernel_addr - hdr->page_size);
 	}
-	printf("kernel   @ %08x (%d)\n", hdrload->kernel_addr, hdrload->kernel_size);
-	printf("ramdisk  @ %08x (%d)\n", hdrload->ramdisk_addr, hdrload->ramdisk_size);
+	printf("kernel   @ %08x (%d)\n", hdr->kernel_addr, hdr->kernel_size);
+	printf("ramdisk  @ %08x (%d)\n", hdr->ramdisk_addr, hdr->ramdisk_size);
 #ifdef CONFIG_OF_LIBFDT
-	if (hdrload->second_size)
-		printf("fdt      @ %08x (%d)\n", hdrload->second_addr, hdrload->second_size);
+	if (hdr->second_size)
+		printf("fdt      @ %08x (%d)\n", hdr->second_addr, hdr->second_size);
 #endif /*CONFIG_OF_LIBFDT*/
 
 	char boot_addr_start[12];
@@ -1693,11 +2074,18 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 		boot_args[0] = "bootm";
 
 	sprintf(boot_addr_start, "0x%lx", addr);
-	sprintf(ramdisk_addr, "0x%x:0x%x", hdrload->ramdisk_addr, hdrload->ramdisk_size);
-	sprintf(fdt_addr, "0x%x", hdrload->second_addr);
+	sprintf(ramdisk_addr, "0x%x:0x%x", hdr->ramdisk_addr, hdr->ramdisk_size);
+	sprintf(fdt_addr, "0x%x", hdr->second_addr);
 
+/* no need to pass ramdisk addr for normal boot mode when enable CONFIG_SYSTEM_RAMDISK_SUPPORT*/
+#ifdef CONFIG_SYSTEM_RAMDISK_SUPPORT
+	if (!is_recovery_mode)
+		boot_args[2] = NULL;
+#endif
 	if (avb_out_data != NULL)
 		avb_slot_verify_data_free(avb_out_data);
+	if (boot_buf != NULL)
+		free(boot_buf);
 
 #ifdef CONFIG_IMX_TRUSTY_OS
 	/* put ql-tipc to release resource for Linux */
@@ -1722,6 +2110,8 @@ fail:
 	/* avb has no recovery */
 	if (avb_out_data != NULL)
 		avb_slot_verify_data_free(avb_out_data);
+	if (boot_buf != NULL)
+		free(boot_buf);
 
 	return run_command("fastboot 0", 0);
 }
@@ -1927,6 +2317,24 @@ void fastboot_okay(const char *reason)
 	strncat(fb_response_str, reason, FASTBOOT_RESPONSE_LEN - 4 - 1);
 }
 
+static void fastboot_fifo_complete(struct usb_ep *ep, struct usb_request *req)
+{
+	int status = req->status;
+	usb_req *request;
+
+	if (!status) {
+		if (fastboot_func->front != NULL) {
+			request = fastboot_func->front;
+			fastboot_func->front = fastboot_func->front->next;
+			usb_ep_free_request(ep, request->in_req);
+			free(request);
+		} else {
+			printf("fail free request\n");
+		}
+		return;
+	}
+}
+
 static void fastboot_complete(struct usb_ep *ep, struct usb_request *req)
 {
 	int status = req->status;
@@ -1988,7 +2396,7 @@ static void fastboot_unbind(struct usb_configuration *c, struct usb_function *f)
 
 static void fastboot_disable(struct usb_function *f)
 {
-	int i = 0;
+	usb_req *req;
 	struct f_fastboot *f_fb = func_to_fastboot(f);
 
 	usb_ep_disable(f_fb->out_ep);
@@ -2002,12 +2410,18 @@ static void fastboot_disable(struct usb_function *f)
 	if (f_fb->in_req) {
 		free(f_fb->in_req->buf);
 		usb_ep_free_request(f_fb->in_ep, f_fb->in_req);
-		f_fb->in_req = NULL;
-	}
-	for (i = 0; i < MAX_REQ_NUM; i++) {
-		if (f_fb->in_req_more[i]) {
-			usb_ep_free_request(f_fb->in_ep, f_fb->in_req_more[i]);
+
+		/* disable usb request FIFO */
+		while(f_fb->front != NULL) {
+			req = f_fb->front;
+			f_fb->front = f_fb->front->next;
+			free(req->in_req->buf);
+			usb_ep_free_request(f_fb->in_ep, req->in_req);
+			free(req);
 		}
+
+		f_fb->rear = NULL;
+		f_fb->in_req = NULL;
 	}
 }
 
@@ -2033,7 +2447,7 @@ static struct usb_request *fastboot_start_ep(struct usb_ep *ep)
 static int fastboot_set_alt(struct usb_function *f,
 			    unsigned interface, unsigned alt)
 {
-	int i, ret;
+	int ret;
 	struct usb_composite_dev *cdev = f->config->cdev;
 	struct usb_gadget *gadget = cdev->gadget;
 	struct f_fastboot *f_fb = func_to_fastboot(f);
@@ -2070,17 +2484,18 @@ static int fastboot_set_alt(struct usb_function *f,
 		ret = -EINVAL;
 		goto err;
 	}
+#ifdef CONFIG_ANDROID_THINGS_SUPPORT
+	/*
+	 * fastboot host end implement to get data in one bulk package so need
+	 * large buffer for the "fastboot upload" and "fastboot get_staged".
+	 */
+	if (f_fb->in_req->buf)
+		free(f_fb->in_req->buf);
+	f_fb->in_req->buf = memalign(CONFIG_SYS_CACHELINE_SIZE, EP_BUFFER_SIZE * 32);
+#endif
 	f_fb->in_req->complete = fastboot_complete;
 
-	for (i = 0; i < MAX_REQ_NUM; i++) {
-		f_fb->in_req_more[i] = fastboot_start_ep(f_fb->in_ep);
-		if (!f_fb->in_req_more[i]) {
-			puts("failed alloc req in\n");
-			ret = -EINVAL;
-			goto err;
-		}
-		f_fb->in_req_more[i]->complete = fastboot_complete;
-	}
+	f_fb->front = f_fb->rear = NULL;
 
 	ret = usb_ep_queue(f_fb->out_ep, f_fb->out_req, 0);
 	if (ret)
@@ -2118,7 +2533,7 @@ static int fastboot_add(struct usb_configuration *c)
 	status = usb_add_function(c, &f_fb->usb_function);
 	if (status) {
 		free(f_fb);
-		fastboot_func = f_fb;
+		fastboot_func = NULL;
 	}
 
 	return status;
@@ -2127,25 +2542,44 @@ DECLARE_GADGET_BIND_CALLBACK(usb_dnl_fastboot, fastboot_add);
 
 static int fastboot_tx_write_more(const char *buffer)
 {
-	int next_req = fastboot_func->next_req;
-	struct usb_request *in_req = fastboot_func->in_req_more[next_req];
-	unsigned int buffer_size = strlen(buffer);
 	int ret = 0;
 
-	memcpy(in_req->buf, buffer, buffer_size);
-	in_req->length = buffer_size;
-
-	ret = usb_ep_queue(fastboot_func->in_ep, in_req, 0);
-	if (ret)
-		printf("Error %d on queue\n", ret);
-
-	if (in_req == fastboot_func->in_req_more[MAX_REQ_NUM-1]) {
-		fastboot_func->next_req = 0;
-		return -EINVAL;
-	} else {
-		fastboot_func->next_req++;
+	/* alloc usb request FIFO node */
+	usb_req *req = (usb_req *)malloc(sizeof(usb_req));
+	if (!req) {
+		printf("failed alloc usb req!\n");
+		return -ENOMEM;
 	}
 
+	/* usb request node FIFO enquene */
+	if ((fastboot_func->front == NULL) && (fastboot_func->rear == NULL)) {
+		fastboot_func->front = fastboot_func->rear = req;
+		req->next = NULL;
+	} else {
+		fastboot_func->rear->next = req;
+		fastboot_func->rear = req;
+		req->next = NULL;
+	}
+
+	/* alloc in request for current node */
+	req->in_req = fastboot_start_ep(fastboot_func->in_ep);
+	if (!req->in_req) {
+		printf("failed alloc req in\n");
+		fastboot_disable(&(fastboot_func->usb_function));
+		return  -EINVAL;
+	}
+	req->in_req->complete = fastboot_fifo_complete;
+
+	memcpy(req->in_req->buf, buffer, strlen(buffer));
+	req->in_req->length = strlen(buffer);
+
+	ret = usb_ep_queue(fastboot_func->in_ep, req->in_req, 0);
+	if (ret) {
+		printf("Error %d on queue\n", ret);
+		return -EINVAL;
+	}
+
+	ret = 0;
 	return ret;
 }
 
@@ -2153,7 +2587,6 @@ static int fastboot_tx_write(const char *buffer, unsigned int buffer_size)
 {
 	struct usb_request *in_req = fastboot_func->in_req;
 	int ret;
-
 
 	memcpy(in_req->buf, buffer, buffer_size);
 	in_req->length = buffer_size;
@@ -2306,8 +2739,9 @@ static int get_single_var(char *cmd, char *response)
 	char *str = cmd;
 	size_t chars_left;
 	const char *s;
-	int mmc_no = 0;
-	struct blk_desc *dev_desc;
+	struct mmc *mmc;
+	int mmc_dev_no;
+	int blksz;
 
 	chars_left = FASTBOOT_RESPONSE_LEN - strlen(response) - 1;
 
@@ -2319,7 +2753,7 @@ static int get_single_var(char *cmd, char *response)
 			strncat(response, "Wrong partition name.", chars_left);
 			return -1;
 		} else {
-			snprintf(response + strlen(response), chars_left, "0x%x", fb_part->length * get_block_size());
+			snprintf(response + strlen(response), chars_left, "0x%lx", (unsigned long int)fb_part->length * get_block_size());
 		}
 	} else if ((str = strstr(cmd, "partition-type:"))) {
 		str +=strlen("partition-type:");
@@ -2351,13 +2785,14 @@ static int get_single_var(char *cmd, char *response)
 
 		snprintf(response + strlen(response), chars_left, "0x%x", CONFIG_FASTBOOT_BUF_SIZE);
 	} else if (!strcmp_l1("erase-block-size", cmd)) {
-		mmc_no = fastboot_devinfo.dev_id;
-		dev_desc = blk_get_dev("mmc", mmc_no);
-		snprintf(response + strlen(response), chars_left, "0x%x", (unsigned int)dev_desc->blksz);
+		mmc_dev_no = mmc_get_env_dev();
+		mmc = find_mmc_device(mmc_dev_no);
+		blksz = get_block_size();
+		snprintf(response + strlen(response), chars_left, "0x%x",
+				(blksz * mmc->erase_grp_size));
 	} else if (!strcmp_l1("logical-block-size", cmd)) {
-		mmc_no = fastboot_devinfo.dev_id;
-		dev_desc = blk_get_dev("mmc", mmc_no);
-		snprintf(response + strlen(response), chars_left, "0x%x", (unsigned int)dev_desc->blksz);
+		blksz = get_block_size();
+		snprintf(response + strlen(response), chars_left, "0x%x", blksz);
 	} else if (!strcmp_l1("serialno", cmd)) {
 		s = get_serial();
 		if (s)
@@ -2427,6 +2862,7 @@ static void cb_getvar(struct usb_ep *ep, struct usb_request *req)
 	if (!cmd) {
 		error("missing variable");
 		fastboot_tx_write_str("FAILmissing var");
+		return;
 	}
 
 	if (!strcmp_l1("all", cmd)) {
@@ -2589,6 +3025,25 @@ static void rx_handler_dl_image(struct usb_ep *ep, struct usb_request *req)
 	usb_ep_queue(ep, req, 0);
 }
 
+static void cb_upload(struct usb_ep *ep, struct usb_request *req)
+{
+	char response[FASTBOOT_RESPONSE_LEN];
+
+	if (!download_bytes || download_bytes > (EP_BUFFER_SIZE * 32)) {
+		sprintf(response, "FAIL");
+		fastboot_tx_write_str(response);
+		return;
+	}
+
+	printf("Will upload %d bytes.\n", download_bytes);
+	snprintf(response, FASTBOOT_RESPONSE_LEN, "DATA%08x", download_bytes);
+	fastboot_tx_write_more(response);
+
+	fastboot_tx_write((const char *)(interface.transfer_buffer), download_bytes);
+
+	snprintf(response,FASTBOOT_RESPONSE_LEN, "OKAY");
+	fastboot_tx_write_more(response);
+}
 static void cb_download(struct usb_ep *ep, struct usb_request *req)
 {
 	char *cmd = req->buf;
@@ -2647,38 +3102,6 @@ static void cb_continue(struct usb_ep *ep, struct usb_request *req)
 	fastboot_func->in_req->complete = do_exit_on_complete;
 	fastboot_tx_write_str("OKAY");
 }
-
-#ifdef IMX_LOAD_HDMI_FIMRWARE
-int hdmi_firmware_load(char *slot) {
-	int mmcc = mmc_get_env_dev();
-	int mmc_id;
-	char part_str[32];
-	char command[256];
-	int ret;
-
-	sprintf(part_str, "%s%s", IMX_HDMI_FIRMWARE_PART, slot);
-	mmc_id = fastboot_flash_find_index(part_str);
-	if (mmc_id <= 0)
-		return -1;
-
-	sprintf(command, "ext4load mmc %x:%x 0x%x %s",
-		mmcc, mmc_id, IMX_HDMI_FIRMWARE_LOAD_ADDR, IMX_HDMI_FIRMWARE_PATH);
-
-	ret = run_command(command, 0);
-	if (ret) {
-	    printf("execute command '%s' error!\n", command);
-	    return -1;
-	}
-
-	sprintf(command, "hdp load 0x%x", IMX_HDMI_FIRMWARE_LOAD_ADDR);
-
-	ret = run_command(command, 0);
-	if (ret) {
-	    printf("execute command '%s' error!\n", command);
-	    return -1;
-	}
-}
-#endif
 
 #ifdef CONFIG_FASTBOOT_LOCK
 
@@ -2760,31 +3183,45 @@ static void cb_flashing(struct usb_ep *ep, struct usb_request *req)
 	unsigned char len = strlen(cmd);
 	FbLockState status;
 	FbLockEnableResult result;
-	if (!strncmp(cmd + len - 15, "unlock_critical", 15)) {
+
+#ifdef CONFIG_ANDROID_THINGS_SUPPORT
+	if (!strncmp(cmd + len - strlen(FASTBOOT_BOOTLOADER_VBOOT_KEY),
+		    FASTBOOT_BOOTLOADER_VBOOT_KEY,
+		    strlen(FASTBOOT_BOOTLOADER_VBOOT_KEY))) {
 		strcpy(response, "OKAY");
-	} else if (!strncmp(cmd + len - 13, "lock_critical", 13)) {
+	} else if (!strncmp(cmd + len - strlen("unlock_critical"),
+				"unlock_critical", strlen("unlock_critical"))) {
+#else
+	if (!strncmp(cmd + len - strlen("unlock_critical"),
+				"unlock_critical", strlen("unlock_critical"))) {
+#endif
 		strcpy(response, "OKAY");
-	} else if (!strncmp(cmd + len - 6, "unlock", 6)) {
+	} else if (!strncmp(cmd + len - strlen("lock_critical"),
+				"lock_critical", strlen("lock_critical"))) {
+		strcpy(response, "OKAY");
+	} else if (!strncmp(cmd + len - strlen("unlock"),
+				"unlock", strlen("unlock"))) {
 		printf("flashing unlock.\n");
 		status = do_fastboot_unlock(false);
 		if (status != FASTBOOT_LOCK_ERROR)
 			strcpy(response, "OKAY");
 		else
 			strcpy(response, "FAIL unlock device failed.");
-	} else if (!strncmp(cmd + len - 4, "lock", 4)) {
+	} else if (!strncmp(cmd + len - strlen("lock"), "lock", strlen("lock"))) {
 		printf("flashing lock.\n");
 		status = do_fastboot_lock();
 		if (status != FASTBOOT_LOCK_ERROR)
 			strcpy(response, "OKAY");
 		else
 			strcpy(response, "FAIL lock device failed.");
-	} else if (!strncmp(cmd + len - 18, "get_unlock_ability", 18)) {
+	} else if (!strncmp(cmd + len - strlen("get_unlock_ability"),
+				"get_unlock_ability", strlen("get_unlock_ability"))) {
 		result = fastboot_lock_enable();
 		if (result == FASTBOOT_UL_ENABLE) {
-			fastboot_tx_write_str("INFO1");
+			fastboot_tx_write_more("INFO1");
 			strcpy(response, "OKAY");
 		} else if (result == FASTBOOT_UL_DISABLE) {
-			fastboot_tx_write_str("INFO0");
+			fastboot_tx_write_more("INFO0");
 			strcpy(response, "OKAY");
 		} else {
 			printf("flashing get_unlock_ability fail!\n");
@@ -2794,7 +3231,7 @@ static void cb_flashing(struct usb_ep *ep, struct usb_request *req)
 		printf("Unknown flashing command:%s\n", cmd);
 		strcpy(response, "FAIL command not defined");
 	}
-	fastboot_tx_write_str(response);
+	fastboot_tx_write_more(response);
 }
 
 #endif
@@ -2978,6 +3415,9 @@ static const struct cmd_dispatch_info cmd_dispatch_info[] = {
 		.cmd = "getvar:",
 		.cb = cb_getvar,
 	}, {
+		.cmd = "upload",
+		.cb = cb_upload,
+	}, {
 		.cmd = "download:",
 		.cb = cb_download,
 	}, {
@@ -3021,8 +3461,10 @@ static void rx_handler_command(struct usb_ep *ep, struct usb_request *req)
 	char *cmdbuf = req->buf;
 	void (*func_cb)(struct usb_ep *ep, struct usb_request *req) = NULL;
 	int i;
-	/*init the next_req if need muti USB request*/
-	fastboot_func->next_req = 0;
+
+	/* init in request FIFO pointer */
+	fastboot_func->front = NULL;
+	fastboot_func->rear  = NULL;
 
 	if (req->status != 0 || req->length == 0)
 		return;

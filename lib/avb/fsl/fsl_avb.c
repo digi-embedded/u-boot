@@ -62,7 +62,7 @@ static struct blk_desc *get_mmc_desc(void) {
 
 	assert(buffer != NULL && out_num_read != NULL);
 
-	if (!fs_dev_desc && (fs_dev_desc = get_mmc_desc()) == NULL) {
+	if ((fs_dev_desc = get_mmc_desc()) == NULL) {
 		ERR("mmc device not found\n");
 		return AVB_IO_RESULT_ERROR_NO_SUCH_PARTITION;
 	}
@@ -145,7 +145,7 @@ fail:
 
 	assert(buffer != NULL && out_num_read != NULL);
 
-	if (!fs_dev_desc && (fs_dev_desc = get_mmc_desc()) == NULL) {
+	if ((fs_dev_desc = get_mmc_desc()) == NULL) {
 		ERR("mmc device not found\n");
 		return AVB_IO_RESULT_ERROR_NO_SUCH_PARTITION;
 	}
@@ -268,7 +268,7 @@ fail:
 
 	assert(buffer != NULL);
 
-	if (!fs_dev_desc && (fs_dev_desc = get_mmc_desc()) == NULL) {
+	if ((fs_dev_desc = get_mmc_desc()) == NULL) {
 		ERR("mmc device not found\n");
 		return AVB_IO_RESULT_ERROR_NO_SUCH_PARTITION;
 	}
@@ -410,4 +410,23 @@ AvbIOResult fsl_get_unique_guid_for_partition(AvbOps* ops,
 #else
 	return AVB_IO_RESULT_ERROR_IO;
 #endif
+
+}
+/* Gets the size of a partition with the name in |partition|
+ * (NUL-terminated UTF-8 string). Returns the value in
+ * |out_size_num_bytes|.
+ * Returns AVB_IO_RESULT_OK on success, otherwise an error code.
+ */
+AvbIOResult fsl_get_size_of_partition(AvbOps* ops,
+		const char* partition,
+		uint64_t* out_size_num_bytes)
+{
+	struct fastboot_ptentry *pte;
+	pte = fastboot_flash_find_ptn(partition);
+	if (!pte) {
+		ERR("no %s partition\n", partition);
+		return AVB_IO_RESULT_ERROR_NO_SUCH_PARTITION;
+	}
+	*out_size_num_bytes = (uint64_t)(pte->length * 512);
+	return AVB_IO_RESULT_OK;
 }

@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2012 Freescale Semiconductor, Inc.
+ * Copyright 2018 NXP
  *
  * Configuration settings for the Freescale i.MX6Q SabreSD board.
  *
@@ -251,7 +252,8 @@
 				"if test $board_name = SABRESD && test $board_rev = MX6DL; then " \
 					"setenv fdt_file imx6dl-sabresd.dtb; fi; " \
 				"if test $fdt_file = undefined; then " \
-					"echo WARNING: Could not determine dtb to use; fi; " \
+					"echo WARNING: Could not determine dtb to use; " \
+				"fi; " \
 			"fi;\0" \
 		"findtee="\
 			"if test $tee_file = undefined; then " \

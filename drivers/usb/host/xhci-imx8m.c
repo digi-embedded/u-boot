@@ -13,6 +13,7 @@
 #include <linux/errno.h>
 #include <linux/compat.h>
 #include <linux/usb/dwc3.h>
+#include <asm/arch/sys_proto.h>
 #include "xhci.h"
 
 /* Declare global data pointer */
@@ -42,8 +43,15 @@ struct imx8m_xhci {
 	struct imx8m_usbmix *usbmix_reg;
 };
 
+struct imx8m_usbctrl_data {
+	u32 usb_id;
+	unsigned long ctr_addr;
+};
 static struct imx8m_xhci imx8m_xhci;
-unsigned long ctr_addr[] = {USB2_BASE_ADDR};
+static struct imx8m_usbctrl_data ctr_data[] = {
+	{0, USB1_BASE_ADDR},
+	{1, USB2_BASE_ADDR},
+};
 
 static void imx8m_usb_phy_init(struct imx8m_usbmix *usbmix_reg)
 {
@@ -107,13 +115,14 @@ int xhci_hcd_init(int index, struct xhci_hccr **hccr, struct xhci_hcor **hcor)
 	struct imx8m_xhci *ctx = &imx8m_xhci;
 	int ret = 0;
 
-	ctx->hcd = (struct xhci_hccr *)ctr_addr[index];
+	ctx->hcd = (struct xhci_hccr *)(ctr_data[index].ctr_addr);
 	ctx->dwc3_reg = (struct dwc3 *)((char *)(ctx->hcd) + DWC3_REG_OFFSET);
 	ctx->usbmix_reg = (struct imx8m_usbmix *)((char *)(ctx->hcd) +
 							USBMIX_PHY_OFFSET);
 
-	ret = board_usb_init(index, USB_INIT_HOST);
+	ret = board_usb_init(ctr_data[index].usb_id, USB_INIT_HOST);
 	if (ret != 0) {
+		imx8m_usb_power(ctr_data[index].usb_id, false);
 		puts("Failed to initialize board for imx8m USB\n");
 		return ret;
 	}
@@ -137,4 +146,5 @@ int xhci_hcd_init(int index, struct xhci_hccr **hccr, struct xhci_hcor **hcor)
 
 void xhci_hcd_stop(int index)
 {
+	board_usb_cleanup(ctr_data[index].usb_id, USB_INIT_HOST);
 }

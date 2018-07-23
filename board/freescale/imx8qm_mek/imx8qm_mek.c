@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 NXP
+ * Copyright 2017-2018 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -28,6 +28,7 @@
 #include <asm/arch/video_common.h>
 #include <power-domain.h>
 #include "../common/tcpc.h"
+#include <cdns3-uboot.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -268,6 +269,12 @@ static void imx8qm_hsio_initialize(void)
 			printf("hsio_pcie1 Power up failed! (error = %d)\n", ret);
 	}
 
+	if (!power_domain_lookup_name("hsio_gpio", &pd)) {
+		ret = power_domain_on(&pd);
+		if (ret)
+			 printf("hsio_gpio Power up failed! (error = %d)\n", ret);
+	}
+
 	imx8_iomux_setup_multiple_pads(board_pcie_pins, ARRAY_SIZE(board_pcie_pins));
 }
 
@@ -288,35 +295,12 @@ static iomux_cfg_t ss_mux_gpio[] = {
 	SC_P_QSPI1A_SS0_B | MUX_MODE_ALT(3) | MUX_PAD_CTRL(GPIO_PAD_CTRL),
 };
 
-struct udevice *tcpc_i2c_dev = NULL;
-
-static void setup_typec(void)
-{
-	struct udevice *bus;
-	uint8_t chip = 0x51;
-	int ret;
-
-	imx8_iomux_setup_multiple_pads(ss_mux_gpio, ARRAY_SIZE(ss_mux_gpio));
-	gpio_request(USB_TYPEC_SEL, "typec_sel");
-	gpio_request(USB_TYPEC_EN, "typec_en");
-
-	gpio_direction_output(USB_TYPEC_EN, 1);
-
-	ret = uclass_get_device_by_seq(UCLASS_I2C, 0, &bus);
-	if (ret) {
-		printf("%s: Can't find bus\n", __func__);
-		return;
-	}
-
-	ret = dm_i2c_probe(bus, chip, 0, &tcpc_i2c_dev);
-	if (ret) {
-		printf("%s: Can't find device id=0x%x\n",
-			__func__, chip);
-		return;
-	}
-
-	tcpc_init(tcpc_i2c_dev);
-}
+struct tcpc_port port;
+struct tcpc_port_config port_config = {
+	.i2c_bus = 0,
+	.addr = 0x51,
+	.port_type = TYPEC_PORT_DFP,
+};
 
 void ss_mux_select(enum typec_cc_polarity pol)
 {
@@ -326,13 +310,64 @@ void ss_mux_select(enum typec_cc_polarity pol)
 		gpio_direction_output(USB_TYPEC_SEL, 1);
 }
 
+static void setup_typec(void)
+{
+	imx8_iomux_setup_multiple_pads(ss_mux_gpio, ARRAY_SIZE(ss_mux_gpio));
+	gpio_request(USB_TYPEC_SEL, "typec_sel");
+	gpio_request(USB_TYPEC_EN, "typec_en");
+
+	gpio_direction_output(USB_TYPEC_EN, 1);
+
+	tcpc_init(&port, port_config, &ss_mux_select);
+}
+
+static struct cdns3_device cdns3_device_data = {
+	.none_core_base = 0x5B110000,
+	.xhci_base = 0x5B130000,
+	.dev_base = 0x5B140000,
+	.phy_base = 0x5B160000,
+	.otg_base = 0x5B120000,
+	.dr_mode = USB_DR_MODE_PERIPHERAL,
+	.index = 1,
+};
+
+int usb_gadget_handle_interrupts(void)
+{
+	cdns3_uboot_handle_interrupt(1);
+	return 0;
+}
+
 int board_usb_init(int index, enum usb_init_type init)
 {
 	int ret = 0;
 
-	if (init == USB_INIT_HOST && tcpc_i2c_dev)
-		ret = tcpc_setup_dfp_mode(tcpc_i2c_dev, &ss_mux_select);
+	if (index == 1) {
+		if (init == USB_INIT_HOST) {
+			ret = tcpc_setup_dfp_mode(&port);
+		} else {
+			struct power_domain pd;
+			int ret;
 
+			/* Power on usb */
+			if (!power_domain_lookup_name("conn_usb2", &pd)) {
+				ret = power_domain_on(&pd);
+				if (ret)
+					printf("conn_usb2 Power up failed! (error = %d)\n", ret);
+			}
+
+			if (!power_domain_lookup_name("conn_usb2_phy", &pd)) {
+				ret = power_domain_on(&pd);
+				if (ret)
+					printf("conn_usb2_phy Power up failed! (error = %d)\n", ret);
+			}
+
+			ret = tcpc_setup_ufp_mode(&port);
+			printf("%d setufp mode %d\n", index, ret);
+
+			ret = cdns3_uboot_init(&cdns3_device_data);
+			printf("%d cdns3_uboot_initmode %d\n", index, ret);
+		}
+	}
 	return ret;
 }
 
@@ -340,9 +375,29 @@ int board_usb_cleanup(int index, enum usb_init_type init)
 {
 	int ret = 0;
 
-	if (init == USB_INIT_HOST && tcpc_i2c_dev)
-		ret = tcpc_disable_vbus(tcpc_i2c_dev);
+	if (index == 1) {
+		if (init == USB_INIT_HOST) {
+			ret = tcpc_disable_src_vbus(&port);
+		} else {
+			struct power_domain pd;
+			int ret;
 
+			cdns3_uboot_exit(1);
+
+			/* Power off usb */
+			if (!power_domain_lookup_name("conn_usb2", &pd)) {
+				ret = power_domain_off(&pd);
+				if (ret)
+					printf("conn_usb2 Power up failed! (error = %d)\n", ret);
+			}
+
+			if (!power_domain_lookup_name("conn_usb2_phy", &pd)) {
+				ret = power_domain_off(&pd);
+				if (ret)
+					printf("conn_usb2_phy Power up failed! (error = %d)\n", ret);
+			}
+		}
+	}
 	return ret;
 }
 #endif
@@ -350,7 +405,7 @@ int board_usb_cleanup(int index, enum usb_init_type init)
 int board_init(void)
 {
 	/* Power up base board */
-	sc_pm_set_resource_power_mode(gd->arch.ipc_channel_handle, 
+	sc_pm_set_resource_power_mode(gd->arch.ipc_channel_handle,
 		SC_R_BOARD_R1, SC_PM_PW_MODE_ON);
 
 #ifdef CONFIG_MXC_GPIO
@@ -413,6 +468,7 @@ int mmc_map_to_kernel_blk(int dev_no)
 	return dev_no;
 }
 
+extern uint32_t _end_ofs;
 int board_late_init(void)
 {
 #ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
@@ -422,6 +478,18 @@ int board_late_init(void)
 
 #ifdef CONFIG_ENV_IS_IN_MMC
 	board_late_mmc_env_init();
+#endif
+
+#ifdef IMX_LOAD_HDMI_FIMRWARE
+	char *end_of_uboot;
+	char command[256];
+	end_of_uboot = (char *)(ulong)(CONFIG_SYS_TEXT_BASE + _end_ofs + fdt_totalsize(gd->fdt_blob));
+	end_of_uboot += 9;
+
+	memcpy(IMX_HDMI_FIRMWARE_LOAD_ADDR, end_of_uboot, IMX_HDMI_FIRMWARE_SIZE);
+
+	sprintf(command, "hdp load 0x%x", IMX_HDMI_FIRMWARE_LOAD_ADDR);
+	run_command(command, 0);
 #endif
 
 	return 0;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 NXP
+ * Copyright 2017-2018 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -28,6 +28,7 @@
 #include <asm/imx-common/video.h>
 #include <asm/arch/video_common.h>
 #include <power-domain.h>
+#include <cdns3-uboot.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -287,31 +288,34 @@ static void setup_iomux_fec(void)
 
 static void enet_device_phy_reset(void)
 {
-	struct gpio_desc desc;
+	struct gpio_desc desc_enet0;
+	struct gpio_desc desc_enet1;
 	int ret;
 
-	if (0 == CONFIG_FEC_ENET_DEV) {
-		ret = dm_gpio_lookup_name("gpio@18_1", &desc);
-		if (ret)
-			return;
+	ret = dm_gpio_lookup_name("gpio@18_1", &desc_enet0);
+	if (ret)
+		return;
 
-		ret = dm_gpio_request(&desc, "enet0_reset");
-		if (ret)
-			return;
-	} else {
-		ret = dm_gpio_lookup_name("gpio@18_4", &desc);
-		if (ret)
-			return;
+	ret = dm_gpio_request(&desc_enet0, "enet0_reset");
+	if (ret)
+		return;
+	ret = dm_gpio_lookup_name("gpio@18_4", &desc_enet1);
+	if (ret)
+		return;
 
-		ret = dm_gpio_request(&desc, "enet1_reset");
-		if (ret)
-			return;
-	}
+	ret = dm_gpio_request(&desc_enet1, "enet1_reset");
+	if (ret)
+		return;
 
-	dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT);
-	dm_gpio_set_value(&desc, 0);
+	dm_gpio_set_dir_flags(&desc_enet0, GPIOD_IS_OUT);
+	dm_gpio_set_value(&desc_enet0, 0);
 	udelay(50);
-	dm_gpio_set_value(&desc, 1);
+	dm_gpio_set_value(&desc_enet0, 1);
+
+	dm_gpio_set_dir_flags(&desc_enet1, GPIOD_IS_OUT);
+	dm_gpio_set_value(&desc_enet1, 0);
+	udelay(50);
+	dm_gpio_set_value(&desc_enet1, 1);
 
 	/* The board has a long delay for this reset to become stable */
 	mdelay(200);
@@ -485,6 +489,12 @@ static void imx8qm_hsio_initialize(void)
 			printf("hsio_pcie1 Power up failed! (error = %d)\n", ret);
 	}
 
+	if (!power_domain_lookup_name("hsio_gpio", &pd)) {
+		ret = power_domain_on(&pd);
+		if (ret)
+			 printf("hsio_gpio Power up failed! (error = %d)\n", ret);
+	}
+
 	imx8_iomux_setup_multiple_pads(board_pcie_pins, ARRAY_SIZE(board_pcie_pins));
 
 }
@@ -493,6 +503,82 @@ void pci_init_board(void)
 {
 	/* test the 1 lane mode of the PCIe A controller */
 	mx8qm_pcie_init();
+}
+#endif
+
+#ifdef CONFIG_USB_CDNS3_GADGET
+
+static struct cdns3_device cdns3_device_data = {
+	.none_core_base = 0x5B110000,
+	.xhci_base = 0x5B130000,
+	.dev_base = 0x5B140000,
+	.phy_base = 0x5B160000,
+	.otg_base = 0x5B120000,
+	.dr_mode = USB_DR_MODE_PERIPHERAL,
+	.index = 1,
+};
+
+int usb_gadget_handle_interrupts(void)
+{
+	cdns3_uboot_handle_interrupt(1);
+	return 0;
+}
+
+int board_usb_init(int index, enum usb_init_type init)
+{
+	int ret = 0;
+
+	if (index == 1) {
+		if (init == USB_INIT_DEVICE) {
+			struct power_domain pd;
+			int ret;
+
+			/* Power on usb */
+			if (!power_domain_lookup_name("conn_usb2", &pd)) {
+				ret = power_domain_on(&pd);
+				if (ret)
+					printf("conn_usb2 Power up failed! (error = %d)\n", ret);
+			}
+
+			if (!power_domain_lookup_name("conn_usb2_phy", &pd)) {
+				ret = power_domain_on(&pd);
+				if (ret)
+					printf("conn_usb2_phy Power up failed! (error = %d)\n", ret);
+			}
+
+			ret = cdns3_uboot_init(&cdns3_device_data);
+			printf("%d cdns3_uboot_initmode %d\n", index, ret);
+		}
+	}
+	return ret;
+}
+
+int board_usb_cleanup(int index, enum usb_init_type init)
+{
+	int ret = 0;
+
+	if (index == 1) {
+		if (init == USB_INIT_DEVICE) {
+			struct power_domain pd;
+			int ret;
+
+			cdns3_uboot_exit(1);
+
+			/* Power off usb */
+			if (!power_domain_lookup_name("conn_usb2", &pd)) {
+				ret = power_domain_off(&pd);
+				if (ret)
+					printf("conn_usb2 Power up failed! (error = %d)\n", ret);
+			}
+
+			if (!power_domain_lookup_name("conn_usb2_phy", &pd)) {
+				ret = power_domain_off(&pd);
+				if (ret)
+					printf("conn_usb2_phy Power up failed! (error = %d)\n", ret);
+			}
+		}
+	}
+	return ret;
 }
 #endif
 
@@ -587,30 +673,6 @@ int is_recovery_key_pressing(void)
 }
 #endif /*CONFIG_ANDROID_RECOVERY*/
 #endif /*CONFIG_FSL_FASTBOOT*/
-
-/* Only Enable USB3 resources currently */
-int board_usb_init(int index, enum usb_init_type init)
-{
-#ifndef CONFIG_DM_USB
-	struct power_domain pd;
-	int ret;
-
-	/* Power on usb */
-	if (!power_domain_lookup_name("conn_usb2", &pd)) {
-		ret = power_domain_on(&pd);
-		if (ret)
-			printf("conn_usb2 Power up failed! (error = %d)\n", ret);
-	}
-
-	if (!power_domain_lookup_name("conn_usb2_phy", &pd)) {
-		ret = power_domain_on(&pd);
-		if (ret)
-			printf("conn_usb2_phy Power up failed! (error = %d)\n", ret);
-	}
-#endif
-
-	return 0;
-}
 
 #if defined(CONFIG_VIDEO_IMXDPUV1)
 static void enable_lvds(struct display_info_t const *dev)

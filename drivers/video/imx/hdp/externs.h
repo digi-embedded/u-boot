@@ -35,7 +35,7 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
- * Copyright 2017 NXP
+ * Copyright 2017-2018 NXP
  *
  ******************************************************************************
  *
@@ -77,5 +77,9 @@ uint32_t cdn_apb_read(uint32_t addr, uint32_t *value);
 uint32_t cdn_sapb_read(uint32_t addr, uint32_t *value);
 uint32_t cdn_apb_write(uint32_t addr, uint32_t value);
 uint32_t cdn_sapb_write(uint32_t addr, uint32_t value);
+uint32_t hdp_rx_apb_read(uint32_t addr, uint32_t *value);
+uint32_t hdp_rx_sapb_read(uint32_t addr, uint32_t *value);
+uint32_t hdp_rx_apb_write(uint32_t addr, uint32_t value);
+uint32_t hdp_rx_sapb_write(uint32_t addr, uint32_t value);
 #endif
 

@@ -23,7 +23,7 @@
 
 #ifdef CONFIG_SYS_MALLOC_LEN
 #undef CONFIG_SYS_MALLOC_LEN
-#define CONFIG_SYS_MALLOC_LEN           (64 * SZ_1M)
+#define CONFIG_SYS_MALLOC_LEN           (96 * SZ_1M)
 #endif
 
 #define CONFIG_USB_FUNCTION_FASTBOOT
@@ -49,5 +49,14 @@
 	"splashpos=m,m\0"			\
 	"fdt_high=0xffffffffffffffff\0"		\
 	"initrd_high=0xffffffffffffffff\0"	\
+
+/* Enable mcu firmware flash */
+#ifdef CONFIG_FLASH_MCUFIRMWARE_SUPPORT
+#define ANDROID_MCU_FRIMWARE_DEV_TYPE DEV_MMC
+#define ANDROID_MCU_FIRMWARE_START 0x500000
+#define ANDROID_MCU_FIRMWARE_SIZE  0x40000
+#define ANDROID_MCU_FIRMWARE_HEADER_STACK 0x20020000
+#define ANDROID_MCU_FIRMWARE_HEADER_PC 0x1ffe0321
+#endif
 
 #endif /* IMX8MQ_EVK_ANDROID_H */

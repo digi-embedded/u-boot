@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 NXP
+ * Copyright 2017-2018 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -250,6 +250,36 @@ void init_clk_usb3(int index)
 	return;
 }
 
+int cdns3_enable_clks(int index)
+{
+	init_clk_usb3(index);
+	return 0;
+}
+
+int cdns3_disable_clks(int index)
+{
+	sc_err_t err;
+	sc_ipc_t ipc;
+
+	ipc = gd->arch.ipc_channel_handle;
+
+	err = sc_pm_clock_enable(ipc, SC_R_USB_2, SC_PM_CLK_MISC, false, false);
+	if (err != SC_ERR_NONE)
+		printf("USB3 disable clock failed!, line=%d (error = %d)\n",
+			__LINE__, err);
+
+	err = sc_pm_clock_enable(ipc, SC_R_USB_2, SC_PM_CLK_MST_BUS, false, false);
+	if (err != SC_ERR_NONE)
+		printf("USB3 disable clock failed!, line=%d (error = %d)\n",
+			__LINE__, err);
+
+	err = sc_pm_clock_enable(ipc, SC_R_USB_2, SC_PM_CLK_PER, false, false);
+	if (err != SC_ERR_NONE)
+		printf("USB3 disable clock failed!, line=%d (error = %d)\n",
+			__LINE__, err);
+
+	return 0;
+}
 
 void init_clk_usdhc(u32 index)
 {
@@ -278,14 +308,14 @@ void init_clk_usdhc(u32 index)
 	 * USDHC2_CLK_ROOT to 200MHz, make eMMC HS400ES work at 166MHz, and SD
 	 * SDR104 work at 200MHz.
 	 */
-#ifdef CONFIG_IMX8QXP
-	err = sc_pm_set_clock_parent(ipc, usdhcs[index], 2, SC_PM_PARENT_PLL1);
-	if (err != SC_ERR_NONE)
-		printf("SDHC_%d set clock parent failed!(error = %d)\n", index, err);
+	if (is_imx8qxp() && is_soc_rev(CHIP_REV_A)) {
+		err = sc_pm_set_clock_parent(ipc, usdhcs[index], 2, SC_PM_PARENT_PLL1);
+		if (err != SC_ERR_NONE)
+			printf("SDHC_%d set clock parent failed!(error = %d)\n", index, err);
 
-	if (index == 1)
-		actual = 200000000;
-#endif
+		if (index == 1)
+			actual = 200000000;
+	}
 
 	err = sc_pm_set_clock_rate(ipc, usdhcs[index], 2, &actual);
 	if (err != SC_ERR_NONE) {
@@ -294,7 +324,7 @@ void init_clk_usdhc(u32 index)
 	}
 
 	if (actual != 400000000)
-		printf("Actual rate for SDHC_%d is %d\n", index, actual);
+		debug("Actual rate for SDHC_%d is %d\n", index, actual);
 
 	err = sc_pm_clock_enable(ipc, usdhcs[index], SC_PM_CLK_PER, true, false);
 	if (err != SC_ERR_NONE) {

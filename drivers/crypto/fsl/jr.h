@@ -1,5 +1,6 @@
 /*
  * Copyright 2008-2014 Freescale Semiconductor, Inc.
+ * Copyright 2018 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
  *
@@ -11,8 +12,8 @@
 #include <linux/compiler.h>
 
 #define JR_SIZE 4
-/* Timeout currently defined as 90 sec */
-#define CONFIG_SEC_DEQ_TIMEOUT	90000000U
+/* Timeout currently defined as 10 sec */
+#define CONFIG_USEC_DEQ_TIMEOUT	10000000U
 
 #define DEFAULT_JR_ID		0
 #define DEFAULT_JR_LIODN	0
@@ -40,8 +41,8 @@
 #define JQ_ENQ_ERR		-3
 
 struct op_ring {
-	phys_addr_t desc;
-	uint32_t status;
+	u32 desc;
+	u32 status;
 } __packed;
 
 struct jr_info {
@@ -82,7 +83,7 @@ struct jobring {
 	 * by SEC
 	 */
 	/*Circular  Ring of i/p descriptors */
-	dma_addr_t *input_ring;
+	u32 *input_ring;
 	/* Circular Ring of o/p descriptors */
 	/* Circula Ring containing info regarding descriptors in i/p
 	 * and o/p ring

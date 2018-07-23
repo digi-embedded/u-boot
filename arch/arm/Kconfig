@@ -581,8 +581,11 @@ config ARCH_MESON
 	  support the S905 (GXBaby) 64-bit SoC.
 
 config ARCH_MX7ULP
-        bool "NXP MX7ULP"
-        select CPU_V7
+	bool "NXP MX7ULP"
+	select CPU_V7
+	select SYS_FSL_HAS_SEC if SECURE_BOOT
+	select SYS_FSL_SEC_COMPAT_4
+	select SYS_FSL_SEC_LE
 	select ROM_UNIFIED_SECTIONS
 
 config ARCH_MX7
@@ -851,6 +854,9 @@ config ARCH_IMX8
 config ARCH_IMX8M
 	bool "Support NXP i.MX8M platform"
 	select ARM64
+	select SYS_FSL_HAS_SEC if SECURE_BOOT
+	select SYS_FSL_SEC_COMPAT_4
+	select SYS_FSL_SEC_LE
 	select DM
 
 config TEGRA

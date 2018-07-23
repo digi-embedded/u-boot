@@ -8,6 +8,7 @@
 #ifndef FSL_FASTBOOT_H
 #define FSL_FASTBOOT_H
 #include <stdbool.h>
+#include <linux/types.h>
 
 #define FASTBOOT_PTENTRY_FLAGS_REPEAT(n)              (n & 0x0f)
 #define FASTBOOT_PTENTRY_FLAGS_REPEAT_MASK            0x0000000F
@@ -40,6 +41,15 @@
 #define FASTBOOT_MMC_BOOT1_PARTITION_ID  2
 
 #define FASTBOOT_PARTITION_TEE "tos"
+#define FASTBOOT_PARTITION_PRDATA "presistdata"
+
+#ifdef CONFIG_AVB_SUPPORT
+#define FASTBOOT_PARTITION_AVBKEY "avbkey"
+#endif
+
+#ifdef CONFIG_FLASH_MCUFIRMWARE_SUPPORT
+#define FASTBOOT_MCU_FIRMWARE_PARTITION "m4_os"
+#endif
 
 #ifdef CONFIG_ANDROID_AB_SUPPORT
 #define FASTBOOT_PARTITION_BOOT_A "boot_a"
@@ -52,11 +62,9 @@
 #ifdef CONFIG_AVB_SUPPORT
 #define FASTBOOT_PARTITION_VBMETA_A "vbmeta_a"
 #define FASTBOOT_PARTITION_VBMETA_B "vbmeta_b"
-#define FASTBOOT_PARTITION_AVBKEY "avbkey"
 #endif
 #define FASTBOOT_PARTITION_MISC "misc"
 #define FASTBOOT_PARTITION_GPT "gpt"
-#define FASTBOOT_PARTITION_PRDATA "prdata"
 #define FASTBOOT_PARTITION_FBMISC "fbmisc"
 #else
 #define FASTBOOT_PARTITION_BOOT "boot"
@@ -68,14 +76,21 @@
 #define FASTBOOT_PARTITION_DATA "userdata"
 #define FASTBOOT_PARTITION_GPT "gpt"
 #define FASTBOOT_PARTITION_MISC "misc"
-#define FASTBOOT_PARTITION_PRDATA "presistdata"
 #define FASTBOOT_PARTITION_FBMISC "fbmisc"
+#endif
+
+#ifdef CONFIG_ANDROID_THINGS_SUPPORT
+#define FASTBOOT_BOOTLOADER_VBOOT_KEY "fuse at-bootloader-vboot-key"
 #endif
 
 enum {
     DEV_SATA,
     DEV_MMC,
-    DEV_NAND
+    DEV_NAND,
+#ifdef CONFIG_FLASH_MCUFIRMWARE_SUPPORT
+    /* SPI Flash */
+    DEV_SF
+#endif
 };
 
 typedef enum {
@@ -227,4 +242,12 @@ void save_parts_values(struct fastboot_ptentry *ptn,
 int check_parts_values(struct fastboot_ptentry *ptn);
 #endif /*CONFIG_FASTBOOT_STORAGE_NAND*/
 
+/* Reads |num_bytes| from offset |offset| from partition with name
+ * |partition| (NUL-terminated UTF-8 string). If |offset| is
+ * negative, its absolute value should be interpreted as the number
+ * of bytes from the end of the partition.
+ * It's basically copied from fsl_read_from_partition_multi() because
+ * we may want to read partition when AVB is not enabled. */
+int read_from_partition_multi(const char* partition,
+		int64_t offset, size_t num_bytes,void* buffer, size_t* out_num_read);
 #endif /* FSL_FASTBOOT_H */
