@@ -1,0 +1,7 @@
+CCIMX8X_SBC_PRO BOARD
+M:	Hector Palacios <hector.palacios@digi.com>
+S:	Supported
+F:	board/digi/ccimx8x_sbc_pro/
+F:	include/configs/ccimx8x_sbc_pro.h
+F:	configs/ccimx8x_sbc_pro1GB_defconfig
+F:	configs/ccimx8x_sbc_pro2GB_defconfig

@@ -45,6 +45,12 @@ config TARGET_CCIMX8X_SBC_EXPRESS
 	select IMX8QXP
 	select MCA
 
+config TARGET_CCIMX8X_SBC_PRO
+	bool "Digi ConnectCore 8X SBC Pro"
+	select BOARD_LATE_INIT
+	select IMX8QXP
+	select MCA
+
 config TARGET_IMX8QM_LPDDR4_ARM2
 	bool "Support i.MX8QM lpddr4 validation board"
 	select BOARD_LATE_INIT
@@ -78,6 +84,7 @@ config TARGET_IMX8QXP_MEK
 endchoice
 
 source "board/digi/ccimx8x_sbc_express/Kconfig"
+source "board/digi/ccimx8x_sbc_pro/Kconfig"
 source "board/freescale/imx8qm_arm2/Kconfig"
 source "board/freescale/imx8qm_mek/Kconfig"
 source "board/freescale/imx8qxp_arm2/Kconfig"
