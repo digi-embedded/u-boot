@@ -15,5 +15,6 @@ int mca_bulk_write(int reg, unsigned char *values, int len);
 int mca_update_bits(int reg, unsigned char mask, unsigned char val);
 
 void mca_reset(void);
+void mca_save_cfg(void);
 
 #endif /* MCA_H */

@@ -109,18 +109,47 @@ void mca_reset(void)
 		ret = mca_bulk_write(MCA_CTRL_UNLOCK_0, unlock_data,
 				     sizeof(unlock_data));
 		if (ret) {
-			printf("MCA: unable to unlock CTRL register (%d)\n", ret);
 			retries--;
 			continue;
 		}
 
 		ret = mca_write_reg(MCA_CTRL_0, MCA_CTRL_0_RESET);
 		if (ret) {
-			printf("MCA: unable to perform a fw reset (%d)\n", ret);
 			retries--;
 			continue;
 		}
 
 		break;
 	} while (retries);
+
+	if (!retries)
+		printf("MCA: unable to perform a fw reset (%d)\n", ret);
+}
+
+void mca_save_cfg(void)
+{
+	int ret;
+	int retries = 3;
+	uint8_t unlock_data[] = {'C', 'T', 'R', 'U'};
+
+	do {
+		/* First, unlock the CTRL_0 register access */
+		ret = mca_bulk_write(MCA_CTRL_UNLOCK_0, unlock_data,
+				     sizeof(unlock_data));
+		if (ret) {
+			retries--;
+			continue;
+		}
+
+		ret = mca_update_bits(MCA_CTRL_0, MCA_CTRL_0_SAVE_CFG, MCA_CTRL_0_SAVE_CFG);
+		if (ret) {
+			retries--;
+			continue;
+		}
+
+		break;
+	} while (retries);
+
+	if (!retries)
+		printf("MCA: unable to save configuration (%d)\n", ret);
 }

@@ -203,6 +203,7 @@
 #define MCA_M_WATCHDOG			MCA_WATCHDOG
 
 #define MCA_CTRL_0_RESET		BIT(0)
+#define MCA_CTRL_0_SAVE_CFG		BIT(3)
 
 /* MCA_TAMPER CFGn (addr=0x0037 && addr 0x0046) */
 #define MCA_TAMPER_DET_EN		BIT(0)
