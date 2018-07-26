@@ -87,6 +87,23 @@ int board_mmc_get_env_dev(int devno)
 	return mmc_get_bootdevindex();
 }
 
+uint mmc_get_env_part(struct mmc *mmc)
+{
+	switch(get_boot_device()) {
+	case SD2_BOOT:
+		return 0;	/* When booting from an SD card the
+				 * environment will be saved to the unique
+				 * hardware partition: 0 */
+	case MMC1_BOOT:
+		return 2;	/* When booting from USDHC1 (eMMC) the
+				 * environment will be saved to boot
+				 * partition 2 to protect it from
+				 * accidental overwrite during U-Boot update */
+	default:
+		return CONFIG_SYS_MMC_ENV_PART;
+	}
+}
+
 int board_has_emmc(void)
 {
 	return 1;
