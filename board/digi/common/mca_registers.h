@@ -26,6 +26,7 @@
 #define MCA_UID_7			0x000C
 #define MCA_UID_8			0x000D
 #define MCA_UID_9			0x000E
+#define MCA_HWVER_SOM			0x000F
 
 #define MCA_IRQ_STATUS_0		0x0020
 #define MCA_IRQ_STATUS_1		0x0021

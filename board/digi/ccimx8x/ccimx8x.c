@@ -280,7 +280,9 @@ static void mca_init(void)
 	unsigned char devid = 0;
 	unsigned char hwver;
 	unsigned char fwver[2];
-	int ret, fwver_ret;
+	unsigned char somver;
+	int ret, fwver_ret, somver_ret;
+	struct digi_hwid hwid;
 
 #ifdef CONFIG_DM_I2C
 	struct udevice *bus, *dev;
@@ -325,6 +327,31 @@ static void mca_init(void)
 		       fwver[1] & 0x80 ? "(alpha)" : "");
 
 	printf("\n");
+
+	/*
+	 * Read the som version stored in mca.
+	 * If it doesn't match with real som version read from hwid.hv:
+	 *    - update it into the mca.
+	 *    - force the new value to be saved in mca nvram.
+	 * The purpose of this functionality is that mca starts using the
+	 * correct som version since boot.
+	 */
+	somver_ret = mca_read_reg(MCA_HWVER_SOM, &somver);
+	if (somver_ret)
+		printf("Cannot read MCA_HWVER_SOM\n");
+	else {
+		if (board_read_hwid(&hwid))
+			printf("Cannot read HWID\n");
+		else {
+			if (hwid.hv != somver) {
+				somver_ret = mca_write_reg(MCA_HWVER_SOM, hwid.hv);
+				if (somver_ret)
+					printf("Cannot write MCA_HWVER_SOM\n");
+				else
+					mca_save_cfg();
+			}
+		}
+	}
 }
 
 static int is_valid_hwid(struct digi_hwid *hwid)
