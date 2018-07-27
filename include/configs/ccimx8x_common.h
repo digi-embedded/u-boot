@@ -209,4 +209,7 @@
 	"name=data,size=-,uuid=${part7_uuid};" \
 	"\""
 
+/* Partition defines */
+#define CONFIG_RECOVERY_PARTITION	"2"
+
 #endif /* CCIMX8X_COMMON_H */

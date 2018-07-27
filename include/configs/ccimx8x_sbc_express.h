@@ -159,7 +159,10 @@
 				"mmc rescan;" \
 			"else;" \
 			"fi;" \
-		"fi;\0"
+		"fi;\0" \
+	"recoverycmd=setenv mmcpart " CONFIG_RECOVERY_PARTITION ";" \
+		"boot\0" \
+	"recovery_file=recovery.img\0"
 
 #define CONFIG_BOOTCOMMAND \
 	"if run loadscript; then " \
