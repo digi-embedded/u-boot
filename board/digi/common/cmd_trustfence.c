@@ -825,8 +825,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			if (argc < 1)
 				return CMD_RET_USAGE;
 
-			memset(jtag_op, 0, sizeof(jtag_op));
-			strcpy(jtag_op, argv[1]);
+			snprintf(jtag_op, sizeof(jtag_op), "%s", argv[1]);
 
 			printf("Programming Secure JTAG mode... ");
 			if (!strcmp(jtag_op, "secure")) {
@@ -870,8 +869,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			if (argc < 1)
 				return CMD_RET_USAGE;
 
-			memset(jtag_op, 0, sizeof(jtag_op));
-			strcpy(jtag_op, argv[1]);
+			snprintf(jtag_op, sizeof(jtag_op), "%s", argv[1]);
 
 			printf("Overriding Secure JTAG mode... ");
 			if (!strcmp(jtag_op, "secure")) {
