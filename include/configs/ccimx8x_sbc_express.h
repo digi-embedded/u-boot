@@ -70,6 +70,7 @@
 /* Initial environment variables */
 #define CONFIG_EXTRA_ENV_SETTINGS		\
 	CONFIG_DEFAULT_NETWORK_SETTINGS		\
+	CONFIG_EXTRA_NETWORK_SETTINGS		\
 	RANDOM_UUIDS \
 	"dboot_kernel_var=imagegz\0" \
 	"lzipaddr=0x82000000\0" \
