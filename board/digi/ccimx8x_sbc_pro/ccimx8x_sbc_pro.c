@@ -97,7 +97,7 @@ int board_mmc_init(bd_t *bis)
 	int ret = 0;
 
 	/* Request uSDHC2 card detect GPIO */
-	ret = dm_gpio_lookup_name("gpio5_9", &usdhc2_cd);
+	ret = dm_gpio_lookup_name("gpio4_22", &usdhc2_cd);
 	if (ret)
 		return ret;
 
