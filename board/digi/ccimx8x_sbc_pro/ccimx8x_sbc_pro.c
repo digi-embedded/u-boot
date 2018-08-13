@@ -134,28 +134,42 @@ static void enet_device_phy_reset(void)
 {
 	struct gpio_desc desc;
 	struct udevice *dev = NULL;
+	char *reset_gpio[] = { "gpio3_18", "gpio3_22" };
+	char *reset_gpio_lbl[] = { "enet0_reset", "enet1_reset" };
+	int iface = CONFIG_FEC_ENET_DEV;
 	int ret;
 
-	if (0 == CONFIG_FEC_ENET_DEV) {
-		ret = dm_gpio_lookup_name("gpio5_1", &desc);
-		if (ret)
-			return;
-
-		ret = dm_gpio_request(&desc, "enet0_reset");
-		if (ret)
-			return;
-
-		dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT);
-		dm_gpio_set_value(&desc, 0);
-		udelay(100);
-		dm_gpio_set_value(&desc, 1);
-		dm_gpio_free(dev, &desc);
+	if (iface > 1) {
+		printf("Error: invalid CONFIG_FEC_ENET_DEV\n");
+		return;
 	}
+
+	ret = dm_gpio_lookup_name(reset_gpio[iface], &desc);
+	if (ret)
+		return;
+
+	ret = dm_gpio_request(&desc, reset_gpio_lbl[iface]);
+	if (ret)
+		return;
+
+	dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT);
+	dm_gpio_set_value(&desc, 0);
+	udelay(50);
+	dm_gpio_set_value(&desc, 1);
+	dm_gpio_free(dev, &desc);
+
+	udelay(10);
 }
 
 int board_phy_config(struct phy_device *phydev)
 {
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x8190);
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x1f);
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x8);
+
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x00);
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x82ee);
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x05);
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x100);
 
 	if (phydev->drv->config)
 		phydev->drv->config(phydev);
@@ -169,7 +183,7 @@ static int setup_fec(int ind)
 	int ret;
 
 	/* Power up the PHY */
-	ret = dm_gpio_lookup_name("gpio5_8", &enet_pwr);
+	ret = dm_gpio_lookup_name("gpio3_13", &enet_pwr);
 	if (ret)
 		return -1;
 
@@ -179,7 +193,7 @@ static int setup_fec(int ind)
 
 	dm_gpio_set_dir_flags(&enet_pwr, GPIOD_IS_OUT);
 	dm_gpio_set_value(&enet_pwr, 1);
-	mdelay(26);	/* PHY power up time */
+	mdelay(1);	/* PHY power up time */
 
 	/* Reset ENET PHY */
 	enet_device_phy_reset();

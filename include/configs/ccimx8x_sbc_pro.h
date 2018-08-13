@@ -23,14 +23,19 @@
 #define CONFIG_MII
 #define FEC_QUIRK_ENET_MAC
 #define CONFIG_RESET_PHY_R
-#define CONFIG_PHY_SMSC
+#define CONFIG_PHY_ATHEROS
+#define CONFIG_PHY_GIGE                 /* Support for 1000BASE-X */
 
-#define CONFIG_FEC_ENET_DEV 0
+#define CONFIG_FEC_XCV_TYPE             RGMII
+#define CONFIG_FEC_ENET_DEV             0
 #if (CONFIG_FEC_ENET_DEV == 0)
-#define IMX_FEC_BASE			0x5B040000
+#define IMX_FEC_BASE                    0x5B040000
+#define CONFIG_FEC_MXC_PHYADDR          0x1
+#define CONFIG_ETHPRIME                 "eth0"
+#elif (CONFIG_FEC_ENET_DEV == 1)
+#define IMX_FEC_BASE                    0x5B050000
 #define CONFIG_FEC_MXC_PHYADDR          0x0
-#define CONFIG_ETHPRIME                 "FEC0"
-#define CONFIG_FEC_XCV_TYPE             RMII
+#define CONFIG_ETHPRIME                 "eth1"
 #endif
 
 /* ENET0 MDIO are shared */
