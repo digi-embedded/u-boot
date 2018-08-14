@@ -6,6 +6,7 @@
 
 #include <common.h>
 #include <fdt_support.h>
+#include <fuse.h>
 #include "helper.h"
 #include "hwid.h"
 
@@ -16,6 +17,29 @@ const char *cert_regions[] = {
 	"International",
 	"Japan",
 };
+
+/* Program HWID into efuses */
+int board_prog_hwid(const struct digi_hwid *hwid)
+{
+	u32 bank = CONFIG_HWID_BANK;
+	u32 word = CONFIG_HWID_START_WORD;
+	u32 cnt = CONFIG_HWID_WORDS_NUMBER;
+	u32 fuseword;
+	int ret, i;
+
+	fuse_allow_prog(true);
+
+	for (i = 0; i < cnt; i++, word++) {
+		fuseword = ((u32 *)hwid)[i];
+		ret = fuse_prog(bank, word, fuseword);
+		if (ret)
+			break;
+	}
+
+	fuse_allow_prog(false);
+
+	return ret;
+}
 
 /* Print HWID info */
 void board_print_hwid(struct digi_hwid *hwid)
