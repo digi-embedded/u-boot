@@ -205,7 +205,7 @@
 #define CONFIG_ENV_SIZE_REDUND		CONFIG_ENV_SIZE
 /* Default MMC device index/partition for location of environment */
 #define CONFIG_SYS_MMC_ENV_DEV		0
-#define CONFIG_SYS_MMC_ENV_PART		1
+#define CONFIG_SYS_MMC_ENV_PART		2
 #endif
 
 #define CONFIG_TFTP_UPDATE_ONTHEFLY      /* support to tftp and update on-the-fly */

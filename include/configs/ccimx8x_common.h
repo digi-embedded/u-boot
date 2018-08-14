@@ -88,7 +88,7 @@
 #define CONFIG_ENV_SIZE_REDUND		CONFIG_ENV_SIZE
 /* On CC8X, USDHC1 is for eMMC, USDHC2 is for SD on SBC Express */
 #define CONFIG_SYS_MMC_ENV_DEV		0	/* USDHC1 */
-#define CONFIG_SYS_MMC_ENV_PART		0	/* user area */
+#define CONFIG_SYS_MMC_ENV_PART		2
 #define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 #define CONFIG_SYS_FSL_USDHC_NUM	2
 
