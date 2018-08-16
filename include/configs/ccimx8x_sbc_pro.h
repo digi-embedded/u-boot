@@ -22,7 +22,6 @@
 #define CONFIG_FEC_MXC
 #define CONFIG_MII
 #define FEC_QUIRK_ENET_MAC
-#define CONFIG_RESET_PHY_R
 #define CONFIG_PHY_ATHEROS
 #define CONFIG_PHY_GIGE                 /* Support for 1000BASE-X */
 

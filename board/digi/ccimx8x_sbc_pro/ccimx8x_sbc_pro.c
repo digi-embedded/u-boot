@@ -262,14 +262,6 @@ int board_usb_cleanup(int index, enum usb_init_type init)
 }
 #endif
 
-#ifdef CONFIG_RESET_PHY_R
-void reset_phy(void)
-{
-	enet_device_phy_reset();
-}
-#endif /* CONFIG_RESET_PHY_R */
-
-
 int board_init(void)
 {
 	/* SOM init */
