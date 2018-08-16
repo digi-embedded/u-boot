@@ -28,7 +28,6 @@
 #define CONFIG_FEC_ENET_DEV 0
 #if (CONFIG_FEC_ENET_DEV == 0)
 #define IMX_FEC_BASE			0x5B040000
-#define CONFIG_FEC_MXC_PHYADDR          0x0
 #define CONFIG_ETHPRIME                 "FEC0"
 #define CONFIG_FEC_XCV_TYPE             RMII
 #endif
