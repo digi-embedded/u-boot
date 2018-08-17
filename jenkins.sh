@@ -41,6 +41,8 @@ done<<-_EOF_
 	ccimx6ulsbc1GB           u-boot.imx  cortexa9hf
 	ccimx8x_sbc_express1GB   u-boot-dtb.bin  aarch64
 	ccimx8x_sbc_express2GB   u-boot-dtb.bin  aarch64
+	ccimx8x_sbc_pro1GB       u-boot-dtb.bin  aarch64
+	ccimx8x_sbc_pro2GB       u-boot-dtb.bin  aarch64
 _EOF_
 
 # Set default values if not provided by Jenkins
