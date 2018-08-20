@@ -88,45 +88,6 @@ int board_early_init_f(void)
 	return 0;
 }
 
-#ifdef CONFIG_FSL_ESDHC
-
-struct gpio_desc usdhc2_cd;
-
-int board_mmc_init(bd_t *bis)
-{
-	int ret = 0;
-
-	/* Request uSDHC2 card detect GPIO */
-	ret = dm_gpio_lookup_name("gpio5_9", &usdhc2_cd);
-	if (ret)
-		return ret;
-
-	ret = dm_gpio_request(&usdhc2_cd, "usdhc2_cd");
-	if (ret)
-		return ret;
-
-	return 0;
-}
-
-int board_mmc_getcd(struct mmc *mmc)
-{
-	struct fsl_esdhc_cfg *cfg = (struct fsl_esdhc_cfg *)mmc->priv;
-	int ret = 0;
-
-	switch (cfg->esdhc_base) {
-	case USDHC1_BASE_ADDR:
-		ret = 1; /* eMMC */
-		break;
-	case USDHC2_BASE_ADDR:
-		ret = dm_gpio_get_value(&usdhc2_cd);
-		break;
-	}
-
-	return ret;
-}
-
-#endif /* CONFIG_FSL_ESDHC */
-
 #ifdef CONFIG_FEC_MXC
 #include <miiphy.h>
 
@@ -264,9 +225,6 @@ int board_init(void)
 #ifdef CONFIG_MXC_GPIO
 	board_gpio_init();
 #endif
-
-	if (board_mmc_init(NULL))
-		printf("  Error initializing MMC\n");
 
 #ifdef CONFIG_FEC_MXC
 	setup_fec(CONFIG_FEC_ENET_DEV);
