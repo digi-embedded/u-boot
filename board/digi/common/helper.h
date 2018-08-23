@@ -74,5 +74,6 @@ size_t media_get_block_size(void);
 unsigned int get_filesystem_key_offset(void);
 uint get_env_hwpart(void);
 u64 memsize_parse(const char *const ptr, const char **retptr);
+void set_verifyaddr(unsigned long loadaddr);
 
 #endif  /* __DIGI_HELPER_H */

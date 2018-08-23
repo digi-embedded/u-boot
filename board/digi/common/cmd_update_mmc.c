@@ -254,7 +254,6 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	int otf_enabled = 0;
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	unsigned long loadaddr;
-	unsigned long verifyaddr;
 	unsigned long filesize = 0;
 	struct load_fw fwinfo;
 
@@ -299,17 +298,9 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		return CMD_RET_FAILURE;
 
 	loadaddr = getenv_ulong("loadaddr", 16, CONFIG_LOADADDR);
-	/*
-	 * If undefined, calculate 'verifyaddr' as halfway through the RAM
-	 * from $loadaddr.
-	 */
-	if (NULL == getenv("verifyaddr")) {
-		verifyaddr = loadaddr +
-			     ((gd->ram_size - (loadaddr - PHYS_SDRAM)) / 2);
-		if (verifyaddr > loadaddr &&
-		    verifyaddr < (PHYS_SDRAM + gd->ram_size))
-			setenv_hex("verifyaddr", verifyaddr);
-	}
+	/* If undefined, calculate 'verifyaddr' */
+	if (NULL == getenv("verifyaddr"))
+		set_verifyaddr(loadaddr);
 
 	if (fwinfo.src == SRC_RAM) {
 		/* Get address in RAM where firmware file is */

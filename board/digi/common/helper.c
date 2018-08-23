@@ -755,3 +755,25 @@ u64 memsize_parse(const char *const ptr, const char **retptr)
 
 	return ret;
 }
+
+/*
+ * Calculate a RAM address for verification during update command.
+ * To make the better use of RAM, calculate it around half way through the
+ * available RAM, but skipping reserved areas.
+ */
+void set_verifyaddr(unsigned long loadaddr)
+{
+	 unsigned long verifyaddr;
+
+	 verifyaddr = loadaddr + ((gd->ram_size - (loadaddr - PHYS_SDRAM)) / 2);
+
+	 /* Skip reserved memory area */
+#if defined(RESERVED_MEM_START) && defined(RESERVED_MEM_END)
+	if (verifyaddr >= RESERVED_MEM_START && verifyaddr < RESERVED_MEM_END)
+		verifyaddr = RESERVED_MEM_END;
+#endif
+
+	 if (verifyaddr > loadaddr &&
+	     verifyaddr < (PHYS_SDRAM + gd->ram_size))
+		 setenv_hex("verifyaddr", verifyaddr);
+ }
