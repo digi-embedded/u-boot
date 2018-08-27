@@ -2,6 +2,19 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
+DUB-2017.03
+-----------
+dub-2017.03-r1.1, released on 2018/08/27
+	- Added support for ConnectCore 8X SBC Express.
+        - Update all previous platforms to v2017.03 BSP from NXP.
+          - ConnectCore 6
+          - ConnectCore 6 Plus
+          - ConnectCore 6UL
+
+
+
+DUB-2015.04
+-----------
 dub-2015.04-r12.1, released on 2018/02/22
 	- Fixed bug in U-Boot programming for certain CC6UL NAND chips.
 
@@ -91,6 +104,9 @@ dub-2015.04-r2.3, released on 2016/02/09
 	- Added generic file system support.
 
 
+
+DUB-2013.04
+-----------
 DUB-2013.04.5.2, released on 2015/12/17
 	- Added support and DDR3 calibration for variant 0x13.
 	- Fixed erase operation for eMMC.
