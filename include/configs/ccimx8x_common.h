@@ -23,6 +23,9 @@
 #define CONFIG_SYS_INIT_SP_ADDR		0x80200000
 /* RAM memory reserved for U-Boot, stack, malloc pool... */
 #define CONFIG_UBOOT_RESERVED		(10 * 1024 * 1024)
+/* RAM memory reserved for M4 (empirically determined) */
+#define RESERVED_MEM_START		0xBC000000
+#define RESERVED_MEM_END		0xC3000000
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		((CONFIG_ENV_SIZE + (32*1024)) * 1024)
 /* memtest */
