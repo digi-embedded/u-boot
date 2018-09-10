@@ -143,6 +143,14 @@
 	"recovery_file=recovery.img\0" \
 	"linux_file=dey-image-qt-xwayland-" BOARD_DEY_NAME ".boot.vfat\0" \
 	"rootfs_file=dey-image-qt-xwayland-" BOARD_DEY_NAME ".ext4\0" \
+	"install_android_fw_sd=if load mmc 1 ${loadaddr} " \
+		"install_android_fw_sd.scr;then " \
+			"source ${loadaddr};" \
+		"fi;\0" \
+	"install_linux_fw_sd=if load mmc 1 ${loadaddr} " \
+		"install_linux_fw_sd.scr;then " \
+			"source ${loadaddr};" \
+		"fi;\0" \
 	""	/* end line */
 
 #define CONFIG_BOOTCOMMAND \
