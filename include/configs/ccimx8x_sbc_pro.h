@@ -137,7 +137,13 @@
 				"mmc rescan;" \
 			"else;" \
 			"fi;" \
-		"fi;\0"
+		"fi;" \
+	"recoverycmd=setenv mmcpart " CONFIG_RECOVERY_PARTITION ";" \
+		"boot\0" \
+	"recovery_file=recovery.img\0" \
+	"linux_file=dey-image-qt-xwayland-" BOARD_DEY_NAME ".boot.vfat\0" \
+	"rootfs_file=dey-image-qt-xwayland-" BOARD_DEY_NAME ".ext4\0" \
+	""	/* end line */
 
 #define CONFIG_BOOTCOMMAND \
 	"if run loadscript; then " \
