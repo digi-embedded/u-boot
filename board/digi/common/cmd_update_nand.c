@@ -160,7 +160,6 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	int ret;
 	int otf = 0;
 	unsigned long loadaddr;
-	unsigned long verifyaddr;
 	unsigned long filesize = 0;
 	struct mtd_device *dev;
 	struct part_info *part;
