@@ -108,12 +108,10 @@
 			"eth0:off\";" \
 		"fi;\0" \
 	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
-		"earlycon=${earlycon},${baudrate} " \
 		"${bootargs_linux} root=${mmcroot} rootwait rw " \
 		"${bootargs_once} ${extra_bootargs}\0" \
 	"bootargs_tftp_linux=run bootargs_tftp;" \
 		"setenv bootargs console=${console},${baudrate} " \
-		"earlycon=${earlycon},${baudrate} " \
 		"${bootargs_linux} root=/dev/nfs " \
 		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
 		"${bootargs_once} ${extra_bootargs}\0" \
