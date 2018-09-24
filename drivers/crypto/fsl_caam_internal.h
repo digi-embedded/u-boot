@@ -90,13 +90,6 @@
 #define CAAM_SMPO           CONFIG_SYS_FSL_SEC_ADDR + 0x1fbc
 
 #define JRCFG_LS_IMSK       0x00000001      /* Interrupt Mask */
-#define JR_MID              2               /* Matches ROM configuration */
-#define KS_G1               (1 << JR_MID)   /* CAAM only */
-#define PERM                0x0000B008      /* Clear on release,
-                                             * lock SMAP
-                                             * lock SMAG
-                                             * group 1 Blob
-                                             */
 
 #define CMD_PAGE_ALLOC      0x1
 #define CMD_PAGE_DEALLOC    0x2
