@@ -49,7 +49,12 @@
 #define CONFIG_FASTBOOT_FLASH_FILLBUF_SIZE (1024 * 512)
 #endif
 
-void write_sparse_image(
+#ifndef CONFIG_USB_FUNCTION_FASTBOOT
+#define fastboot_fail(...)	printf("fastboot: fail: " __VA_ARGS__ "\n")
+#define fastboot_okay(...)	(void) 0
+#endif
+
+int write_sparse_image(
 		struct sparse_storage *info, const char *part_name,
 		void *data, unsigned sz)
 {
@@ -68,6 +73,7 @@ void write_sparse_image(
 	int fill_buf_num_blks;
 	int i;
 	int j;
+	int ret_value = 1;
 
 	fill_buf_num_blks = CONFIG_FASTBOOT_FLASH_FILLBUF_SIZE / info->blksz;
 
@@ -102,7 +108,7 @@ void write_sparse_image(
 		printf("%s: Sparse image block size issue [%u]\n",
 		       __func__, sparse_header->blk_sz);
 		fastboot_fail("sparse image block size issue");
-		return;
+		return ret_value;
 	}
 
 	puts("Flashing Sparse Image\n");
@@ -138,7 +144,7 @@ void write_sparse_image(
 			    (sparse_header->chunk_hdr_sz + chunk_data_sz)) {
 				fastboot_fail(
 					"Bogus chunk size for chunk type Raw");
-				return;
+				return ret_value;
 			}
 
 			if (blk + blkcnt > info->start + info->size) {
@@ -147,7 +153,7 @@ void write_sparse_image(
 				    __func__);
 				fastboot_fail(
 				    "Request would exceed partition size!");
-				return;
+				return ret_value;
 			}
 
 			blks = info->write(info, blk, blkcnt, data);
@@ -158,7 +164,7 @@ void write_sparse_image(
 				       blk, blks);
 				fastboot_fail(
 					      "flash write failure");
-				return;
+				return ret_value;
 			}
 			blk += blks;
 			bytes_written += blkcnt * info->blksz;
@@ -171,7 +177,7 @@ void write_sparse_image(
 			    (sparse_header->chunk_hdr_sz + sizeof(uint32_t))) {
 				fastboot_fail(
 					"Bogus chunk size for chunk type FILL");
-				return;
+				return ret_value;
 			}
 
 			fill_buf = (uint32_t *)
@@ -182,7 +188,7 @@ void write_sparse_image(
 			if (!fill_buf) {
 				fastboot_fail(
 					"Malloc failed for: CHUNK_TYPE_FILL");
-				return;
+				return ret_value;
 			}
 
 			fill_val = *(uint32_t *)data;
@@ -200,7 +206,7 @@ void write_sparse_image(
 				    __func__);
 				fastboot_fail(
 				    "Request would exceed partition size!");
-				return;
+				return ret_value;
 			}
 
 			for (i = 0; i < blkcnt;) {
@@ -217,7 +223,7 @@ void write_sparse_image(
 					fastboot_fail(
 						      "flash write failure");
 					free(fill_buf);
-					return;
+					return ret_value;
 				}
 				blk += blks;
 				i += j;
@@ -237,7 +243,7 @@ void write_sparse_image(
 			    sparse_header->chunk_hdr_sz) {
 				fastboot_fail(
 					"Bogus chunk size for chunk type Dont Care");
-				return;
+				return ret_value;
 			}
 			total_blocks += chunk_header->chunk_sz;
 			data += chunk_data_sz;
@@ -247,7 +253,7 @@ void write_sparse_image(
 			printf("%s: Unknown chunk type: %x\n", __func__,
 			       chunk_header->chunk_type);
 			fastboot_fail("Unknown chunk type");
-			return;
+			return ret_value;
 		}
 	}
 
@@ -255,10 +261,12 @@ void write_sparse_image(
 	      total_blocks, sparse_header->total_blks);
 	printf("........ wrote %u bytes to '%s'\n", bytes_written, part_name);
 
-	if (total_blocks != sparse_header->total_blks)
+	if (total_blocks != sparse_header->total_blks) {
 		fastboot_fail("sparse image write failure");
-	else
+	} else {
 		fastboot_okay("");
+		ret_value = 0;
+	}
 
-	return;
+	return ret_value;
 }
