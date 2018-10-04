@@ -8,6 +8,9 @@
 */
 #include <common.h>
 #include <asm/imx-common/boot_mode.h>
+#ifdef CONFIG_FASTBOOT_FLASH
+#include <image-sparse.h>
+#endif
 #include <otf_update.h>
 #include <part.h>
 #include "helper.h"
@@ -64,6 +67,26 @@ void unregister_otf_hook(int src)
 
 }
 
+#ifdef CONFIG_FASTBOOT_FLASH
+struct fb_mmc_sparse {
+	struct blk_desc	*dev_desc;
+};
+
+static lbaint_t fb_mmc_sparse_write(struct sparse_storage *info, lbaint_t blk,
+				    lbaint_t blkcnt, const void *buffer)
+{
+	struct fb_mmc_sparse *sparse = info->priv;
+
+	return blk_dwrite(sparse->dev_desc, blk, blkcnt, buffer);
+}
+
+static lbaint_t fb_mmc_sparse_reserve(struct sparse_storage *info,
+				      lbaint_t blk, lbaint_t blkcnt)
+{
+	return blkcnt;
+}
+#endif
+
 enum {
 	ERR_WRITE = 1,
 	ERR_READ,
@@ -75,6 +98,25 @@ static int write_firmware(char *partname, unsigned long loadaddr,
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	unsigned long size_blks, verifyaddr, u, m;
+
+#ifdef CONFIG_FASTBOOT_FLASH
+	if (is_sparse_image((void *)loadaddr)) {
+		struct fb_mmc_sparse sparse_priv = {
+			.dev_desc = mmc_dev,
+		};
+		struct sparse_storage sparse = {
+			.blksz = mmc_dev->blksz,
+			.start = info->start,
+			.size = info->size,
+			.write = fb_mmc_sparse_write,
+			.reserve = fb_mmc_sparse_reserve,
+			.priv = &sparse_priv,
+		};
+
+		return write_sparse_image(&sparse, partname, (void *)loadaddr,
+					  filesize) ? ERR_WRITE : 0;
+	}
+#endif
 
 	size_blks = (filesize / mmc_dev->blksz) + (filesize % mmc_dev->blksz != 0);
 
