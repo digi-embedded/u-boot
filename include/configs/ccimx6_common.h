@@ -208,6 +208,9 @@
 #define CONFIG_SYS_MMC_ENV_PART		2
 #endif
 
+/* Add support for sparse images */
+#define CONFIG_FASTBOOT_FLASH
+
 #define CONFIG_TFTP_UPDATE_ONTHEFLY      /* support to tftp and update on-the-fly */
 
 /* Supported sources for update|dboot */
