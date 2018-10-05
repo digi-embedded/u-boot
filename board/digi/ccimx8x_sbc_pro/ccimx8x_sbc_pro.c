@@ -124,11 +124,15 @@ static void enet_device_phy_reset(void)
 
 int board_phy_config(struct phy_device *phydev)
 {
+	/* Set RGMII IO voltage to 1.8V */
 	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x1f);
 	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x8);
 
+	/* Introduce RGMII RX clock delay */
 	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x00);
 	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x82ee);
+
+	/* Introduce RGMII TX clock delay */
 	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x05);
 	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x100);
 
