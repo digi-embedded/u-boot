@@ -127,7 +127,6 @@
 	"loadinitrd=load mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file}\0" \
 	"loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
 	"uboot_file=u-boot.imx\0" \
-	"parts_android=" ANDROID_DEFAULT_PARTITION_TABLE "\0" \
 	"boot_file=boot.img\0" \
 	"system_file=system.img\0" \
 	"partition_mmc_android=mmc rescan;" \
