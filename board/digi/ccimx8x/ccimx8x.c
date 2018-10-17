@@ -414,6 +414,8 @@ int ccimx8_init(void)
 		return -1;
 	}
 
+	mca_init();
+
 	return 0;
 }
 
@@ -526,14 +528,6 @@ static void get_macs_from_fuses(void)
 
 int ccimx8x_late_init(void)
 {
-	/*
-	 * FIXME: the MCA shoudld be initialized earlier, but we depend on the
-	 * I2C bus being ready. This should be revisited in future and it is
-	 * likely that we will have to initialize the i2c earlier (for instance
-	 * in the early init function, and then initialize the MCA.
-	 */
-	mca_init();
-
 	if (getenv_yesno("use_fused_macs"))
 		get_macs_from_fuses();
 
