@@ -7,6 +7,8 @@
  *  the Free Software Foundation.
 */
 #include <common.h>
+#include <asm/arch/sys_proto.h>
+#include <asm/arch-imx/cpu.h>
 #include <asm/imx-common/boot_mode.h>
 #ifdef CONFIG_FASTBOOT_FLASH
 #include <image-sparse.h>
@@ -310,8 +312,24 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	/* Get data of partition to be updated */
 	if (!strcmp(argv[1], "uboot")) {
 		/* Simulate partition data for U-Boot */
+#ifdef CONFIG_ARCH_IMX8
+		/* Use a different offset depending on the i.MX8X QXP CPU revision */
+		u32 cpurev = get_cpu_rev();
+
+		switch (cpurev & 0xFFF) {
+		case CHIP_REV_A:
+			info.start = CONFIG_SYS_BOOT_PART_OFFSET_A0 / mmc_dev->blksz;
+			info.size = CONFIG_SYS_BOOT_PART_SIZE_A0 / mmc_dev->blksz;
+			break;
+		default:
+			info.start = CONFIG_SYS_BOOT_PART_OFFSET_B0 / mmc_dev->blksz;
+			info.size = CONFIG_SYS_BOOT_PART_SIZE_B0 / mmc_dev->blksz;
+			break;
+		}
+#else
 		info.start = CONFIG_SYS_BOOT_PART_OFFSET / mmc_dev->blksz;
 		info.size = CONFIG_SYS_BOOT_PART_SIZE / mmc_dev->blksz;
+#endif
 		strcpy((char *)info.name, argv[1]);
 	} else {
 		/* Not a reserved name. Must be a partition name or index */
