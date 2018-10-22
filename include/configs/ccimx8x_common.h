@@ -174,7 +174,8 @@
 	"part6_uuid=3845c9fc-e581-49f3-999f-86c9bab515ef\0" \
 	"part7_uuid=3fcf7bf1-b6fe-419d-9a14-f87950727bc0\0" \
 	"part8_uuid=12c08a28-fb40-430a-a5bc-7b4f015b0b3c\0" \
-	"part9_uuid=dc83dea8-c467-45dc-84eb-5e913daec17e\0"
+	"part9_uuid=dc83dea8-c467-45dc-84eb-5e913daec17e\0" \
+	"part10_uuid=df0dba76-d5e0-11e8-9f8b-f2801f1b9fd1\0"
 
 #define LINUX_4GB_PARTITION_TABLE \
 	"\"uuid_disk=${uuid_disk};" \
