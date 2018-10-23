@@ -36,5 +36,10 @@ static inline int is_sparse_image(void *buf)
 	return 0;
 }
 
+int write_sparse_chunk(struct sparse_storage *info,
+		       const sparse_header_t *sparse_header, void **data_ptr,
+		       lbaint_t *blk, uint32_t *total_blocks,
+		       uint32_t *bytes_written);
+
 int write_sparse_image(struct sparse_storage *info, const char *part_name,
 			void *data, unsigned sz);
