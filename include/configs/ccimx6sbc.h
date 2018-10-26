@@ -140,11 +140,8 @@
 			"else;" \
 			"fi;" \
 		"fi;\0" \
-	"bootargs_android=androidboot.hardware=" CONFIG_SYS_BOARD " " \
-		"mem=" __stringify(CONFIG_DDR_MB) "M\0" \
 	"bootargs_mmc_android=setenv bootargs console=${console},${baudrate} " \
-		"${bootargs_android} androidboot.mmcdev=${mmcbootdev} " \
-		"androidboot.console=${console} " \
+		"${bootargs_android} " \
 		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
 		"${bootargs_once} ${extra_bootargs}\0" \
 	"bootargs_tftp=" \
@@ -158,7 +155,6 @@
 	"bootargs_tftp_android=run bootargs_tftp;" \
 		"setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_android} root=/dev/nfs " \
-		"androidboot.console=${console} " \
 		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
 		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
 		"${bootargs_once} ${extra_bootargs}\0" \
