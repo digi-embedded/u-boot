@@ -1384,11 +1384,6 @@ int ccimx6_late_init(void)
 	if (board_has_bluetooth())
 		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
 
-#ifdef CONFIG_ANDROID_RECOVERY
-	if (recovery_check_and_clean_flag())
-		setenv("boot_recovery", "yes");
-#endif
-
 #ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
 	gd->flags &= ~GD_FLG_DISABLE_CONSOLE_INPUT;
 	if (!console_enable_passphrase())
