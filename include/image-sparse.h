@@ -4,6 +4,9 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
+#ifndef __IMAGE_SPARSE_H
+#define __IMAGE_SPARSE_H
+
 #include <part.h>
 #include <sparse_format.h>
 
@@ -43,3 +46,5 @@ int write_sparse_chunk(struct sparse_storage *info,
 
 int write_sparse_image(struct sparse_storage *info, const char *part_name,
 			void *data, unsigned sz);
+
+#endif /* __IMAGE_SPARSE_H */
