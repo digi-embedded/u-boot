@@ -21,7 +21,7 @@ static struct blk_desc *mmc_dev;
 static int mmc_dev_index;
 
 extern int mmc_get_bootdevindex(void);
-extern int board_update_chunk(otf_data_t *oftd);
+extern int update_chunk(otf_data_t *oftd);
 extern void register_tftp_otf_update_hook(int (*hook)(otf_data_t *oftd),
 					  disk_partition_t*);
 extern void unregister_tftp_otf_update_hook(void);
@@ -393,7 +393,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 				"for security reasons\n");
 		} else {
 			/* register on-the-fly update mechanism */
-			otf = register_otf_hook(fwinfo.src, board_update_chunk,
+			otf = register_otf_hook(fwinfo.src, update_chunk,
 						&info);
 		}
 	}
