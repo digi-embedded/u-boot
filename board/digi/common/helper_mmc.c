@@ -267,6 +267,201 @@ static int write_chunk(struct mmc *mmc, struct blk_desc *mmc_dev,
 	}
 }
 
+#ifdef CONFIG_FASTBOOT_FLASH
+static lbaint_t sparse_write(struct sparse_storage *info, lbaint_t blk,
+			     lbaint_t blkcnt, const void *buffer)
+{
+       otf_sparse_data_t *data = info->priv;
+
+       return blk_dwrite(data->mmc_dev, blk, blkcnt, buffer);
+}
+
+static lbaint_t sparse_reserve(struct sparse_storage *info, lbaint_t blk,
+			       lbaint_t blkcnt)
+{
+       return blkcnt;
+}
+
+static int sparse_write_bytes(otf_sparse_data_t *sparse_data, lbaint_t *dstblk,
+			      void *data, uint32_t data_length)
+{
+	const unsigned long blksz = sparse_data->mmc_dev->blksz;
+	lbaint_t blks_to_write = (data_length / blksz) + (data_length % blksz > 0);
+	lbaint_t blks_written = sparse_write(&sparse_data->storage_info, *dstblk,
+					     blks_to_write, data);
+
+	if (blks_written != blks_to_write) {
+		printf(" [ERROR]\nWrite failed! at block # " LBAFU " (requested: " LBAFU ", written: " LBAFU ")\n\n",
+			   *dstblk, blks_to_write, blks_written);
+		return -1;
+	}
+
+	*dstblk += blks_written;
+
+	return 0;
+}
+
+static uint32_t write_sparse_chunks(otf_data_t *otfd, lbaint_t *dstblk,
+				    unsigned int chunk_len)
+{
+	const unsigned long blksz = otfd->sparse_data.mmc_dev->blksz;
+	int offset_within_chunk = 0;
+	otf_sparse_data_t *sp_data = &otfd->sparse_data;
+
+	printf("\nWriting sparse chunks... ");
+
+	/* On the first block, get and save the sparse image header */
+	if (!(otfd->flags & OTF_FLAG_SPARSE_HDR)) {
+		const sparse_header_t *hdr = (sparse_header_t *) otfd->loadaddr;
+
+		memcpy(&sp_data->hdr, hdr, sizeof(sp_data->hdr));
+		otfd->flags |= OTF_FLAG_SPARSE_HDR;
+		offset_within_chunk += sp_data->hdr.file_hdr_sz;
+
+		debug("\n\n=== Sparse Image Header === @ 0x%p\n", hdr);
+		debug("magic: 0x%x\n", hdr->magic);
+		debug("major_version: 0x%x\n", hdr->major_version);
+		debug("minor_version: 0x%x\n", hdr->minor_version);
+		debug("file_hdr_sz: %d\n", hdr->file_hdr_sz);
+		debug("chunk_hdr_sz: %d\n", hdr->chunk_hdr_sz);
+		debug("blk_sz: %d\n", hdr->blk_sz);
+		debug("total_blks: %d\n", hdr->total_blks);
+		debug("total_chunks: %d\n", hdr->total_chunks);
+	}
+
+	/*
+	 * If a raw chunk is in the process of being flashed, deal with that first.
+	 */
+	if (otfd->flags & OTF_FLAG_RAW_ONGOING) {
+		void *data = otfd->loadaddr + offset_within_chunk;
+		uint32_t bytes_to_write = sp_data->ongoing_bytes -
+					  sp_data->ongoing_bytes_written;
+
+		/* If there is still more data to come, round to the block size */
+		if (bytes_to_write > chunk_len)
+			bytes_to_write = chunk_len - (chunk_len % blksz);
+
+		if (sparse_write_bytes(sp_data, dstblk, data, bytes_to_write))
+			return -1;
+
+		sp_data->ongoing_bytes_written += bytes_to_write;
+		offset_within_chunk += bytes_to_write;
+
+		/* Check if we finished with this raw sparse chunk */
+		if (sp_data->ongoing_bytes == sp_data->ongoing_bytes_written) {
+			/* We account here for all the bytes and blocks of this chunk */
+			sp_data->bytes_written += sp_data->ongoing_bytes;
+			sp_data->blks_written += sp_data->ongoing_blks;
+			otfd->flags &= ~OTF_FLAG_RAW_ONGOING;
+
+			debug("Chunk %d (RAW) completed. (0x%x bytes)\n",
+			      sp_data->current_chunk, sp_data->ongoing_bytes_written);
+			debug("\n\n");
+
+			sp_data->current_chunk++;
+		} else {
+			debug("Chunk %d (RAW) partially flashed (0x%x/0x%x)\n",
+			      sp_data->current_chunk, sp_data->ongoing_bytes_written,
+			      sp_data->ongoing_bytes);
+		}
+	}
+
+	/*
+	 * If we are not in the middle of flashing a raw chunk, deal with all the sparse
+	 * chunks that fitted in the current OTF chunk.
+	 */
+	while (!(otfd->flags & OTF_FLAG_RAW_ONGOING) &&
+	       offset_within_chunk + sizeof(chunk_header_t) <= chunk_len &&
+	       sp_data->current_chunk < sp_data->hdr.total_chunks) {
+		void *data = otfd->loadaddr + offset_within_chunk;
+		const chunk_header_t *chunk_hdr = (chunk_header_t *) data;
+
+		debug("=== Chunk Header (%d/%d) === @ 0x%p\n",
+		      sp_data->current_chunk, sp_data->hdr.total_chunks, chunk_hdr);
+		debug("chunk_type: 0x%x\n", chunk_hdr->chunk_type);
+		debug("chunk_data_sz: 0x%x\n", chunk_hdr->chunk_sz);
+		debug("total_size: 0x%x\n", chunk_hdr->total_sz);
+		debug("range in chunk: [0x%x, 0x%x)\n",
+		      offset_within_chunk, offset_within_chunk + chunk_hdr->total_sz);
+		debug("chunk len: 0x%x\n", chunk_len);
+		debug("\n");
+
+		if (offset_within_chunk + chunk_hdr->total_sz <= chunk_len) {
+			/*
+			 * The current sparse chunk fits in the current OTF chunk.
+			 * Process it and move on.
+			 */
+			if (write_sparse_chunk(&sp_data->storage_info, &sp_data->hdr,
+					       &data, dstblk, &sp_data->blks_written,
+					       &sp_data->bytes_written))
+				return -1;
+
+			debug("Chunk %d completed\n", sp_data->current_chunk);
+			debug("\n\n");
+
+			offset_within_chunk += chunk_hdr->total_sz;
+			sp_data->current_chunk++;
+		} else {
+			/*
+			 * The current sparse chunk did not fit in the OTF chunk.
+			 *
+			 * For sparse chunks other than CHUNK_TYPE_RAW, we can just break out
+			 * of the loop. The remaing data in the current OTF chunk will be
+			 * moved to the start of the next OTF chunk and the current
+			 * incomplete sparse chunk will be dealt with in the next iteration.
+			 * It is safe to do this because these sparse chunks are always
+			 * smaller than BLK_SIZE.
+			 *
+			 * For CHUNK_TYPE_RAW sparse chunks we cannot use that approach
+			 * because they could be bigger than BLK_SIZE. Thus, write as
+			 * much as we can and flag this condition. On the next OTF chunk, we
+			 * will keep processing the current incomplete raw sparse chunk.
+			 * (Note that we need at least the complete chunk header, otherwise
+			 * we break until the next OTF chunk)
+			 */
+			if (chunk_hdr->chunk_type != CHUNK_TYPE_RAW) {
+				/* Deal with this in the next OTF chunk */
+				debug("Chunk %d did not fit\n", sp_data->current_chunk);
+				break;
+			} else {
+				uint32_t bytes_left;
+				uint32_t bytes_to_write;
+
+				debug("Chunk %d (RAW) did not fit\n", sp_data->current_chunk);
+
+				/* Set RAW_ONGOING state */
+				otfd->flags |= OTF_FLAG_RAW_ONGOING;
+				offset_within_chunk += sizeof(chunk_header_t);
+				sp_data->ongoing_bytes_written = sizeof(chunk_header_t);
+				sp_data->ongoing_bytes = chunk_hdr->total_sz;
+				sp_data->ongoing_blks = chunk_hdr->chunk_sz;
+
+				/* Partially write this CHUNK_TYPE_RAW, as much as we can. */
+				data += sizeof(chunk_header_t); /* skip header */
+				bytes_left = chunk_len - offset_within_chunk;
+				bytes_to_write = bytes_left - (bytes_left % blksz);
+
+				if (sparse_write_bytes(sp_data, dstblk, data, bytes_to_write))
+					return -1;
+
+				sp_data->ongoing_bytes_written += bytes_to_write;
+				offset_within_chunk += bytes_to_write;
+
+				debug("Chunk %d (RAW) partially flashed (0x%x/0x%x)\n",
+				      sp_data->current_chunk, sp_data->ongoing_bytes_written,
+				      sp_data->ongoing_bytes);
+			}
+		}
+	}
+
+	printf("[OK]\n");
+	debug("OTF chunk completed, 0x%x bytes used (0x%x available)\n",
+	      offset_within_chunk, chunk_len);
+
+	return offset_within_chunk;
+}
+#endif
+
 /* writes a chunk of data from RAM to main storage media (eMMC) */
 int update_chunk(otf_data_t *otfd)
 {
@@ -314,6 +509,31 @@ int update_chunk(otf_data_t *otfd)
 		chunk_len = 0;
 		dstblk = otfd->part->start;
 		otfd->flags &= ~OTF_FLAG_INIT;
+
+#ifdef CONFIG_FASTBOOT_FLASH
+		if (is_sparse_image(otfd->loadaddr)) {
+			const sparse_header_t *hdr = (sparse_header_t *) otfd->loadaddr;
+			otfd->flags |= OTF_FLAG_SPARSE;
+
+			/* Ensure that the sparse image fits in the partition */
+			if (hdr->blk_sz * hdr->total_blks >
+			    mmc_dev->blksz * otfd->part->size) {
+				printf("\n\n[ERROR] Sparse image does not fit in the partition.\n");
+				return -1;
+			}
+
+			memset(&otfd->sparse_data, 0, sizeof(otfd->sparse_data));
+			otfd->sparse_data.storage_info = (struct sparse_storage) {
+				.blksz = mmc_dev->blksz,
+				.start = otfd->part->start,
+				.size = otfd->part->size,
+				.write = sparse_write,
+				.reserve = sparse_reserve,
+				.priv = &otfd->sparse_data,
+			};
+			otfd->sparse_data.mmc_dev = mmc_dev;
+		}
+#endif
 	}
 	chunk_len += otfd->len;
 
@@ -324,24 +544,38 @@ int update_chunk(otf_data_t *otfd)
 	if (chunk_len >= CONFIG_OTF_CHUNK || (otfd->flags & OTF_FLAG_FLUSH)) {
 		unsigned int remaining;
 
-		if (otfd->flags & OTF_FLAG_FLUSH) {
-			/* Write all pending data (this is the last chunk) */
-			remaining = 0;
-		} else {
-			/* We have CONFIG_OTF_CHUNK (or more) bytes in RAM.
-			* Let's proceed to write as many as multiples of blksz
-			* as possible.
-			*/
-			remaining = chunk_len % mmc_dev->blksz;
+#ifdef CONFIG_FASTBOOT_FLASH
+		if (otfd->flags & OTF_FLAG_SPARSE) {
+			uint32_t bytes_used = write_sparse_chunks(otfd, &dstblk, chunk_len);
+			if (bytes_used == (uint32_t) -1)
+				return -1;
+
+			remaining = chunk_len - bytes_used;
 			chunk_len -= remaining;
-			/* chunk_len is now multiple of blksz */
+		} else
+#endif
+		{
+
+			if (otfd->flags & OTF_FLAG_FLUSH) {
+				/* Write all pending data (this is the last chunk) */
+				remaining = 0;
+			} else {
+				/* We have CONFIG_OTF_CHUNK (or more) bytes in RAM.
+				 * Let's proceed to write as many as multiples of blksz
+				 * as possible.
+				 */
+				remaining = chunk_len % mmc_dev->blksz;
+				chunk_len -= remaining;
+				/* chunk_len is now multiple of blksz */
+			}
+
+			if (write_chunk(mmc, mmc_dev, otfd, dstblk, chunk_len))
+				return -1;
+
+			/* increment destiny block */
+			dstblk += (chunk_len / mmc_dev->blksz);
 		}
 
-		if (write_chunk(mmc, mmc_dev, otfd, dstblk, chunk_len))
-			return -1;
-
-		/* increment destiny block */
-		dstblk += (chunk_len / mmc_dev->blksz);
 		/* copy excess of bytes from previous chunk to offset 0 */
 		if (remaining) {
 			memcpy(otfd->loadaddr, otfd->loadaddr + chunk_len,
@@ -364,7 +598,26 @@ int update_chunk(otf_data_t *otfd)
 		mmc_dev = NULL;
 		mmc_dev_index = -1;
 		mmc = NULL;
+#ifdef CONFIG_FASTBOOT_FLASH
+		/* For sparse images check that everything was flashed */
+		if (otfd->flags & OTF_FLAG_SPARSE) {
+			const otf_sparse_data_t *sparse_data = &otfd->sparse_data;
 
+			if (sparse_data->hdr.total_chunks != sparse_data->current_chunk) {
+				printf("Sparse image flashing failed. 0x%x chunks expected, only 0x%x written\n",
+				       sparse_data->hdr.total_chunks,
+				       sparse_data->current_chunk);
+				return -1;
+			}
+
+			if (sparse_data->hdr.total_blks != sparse_data->blks_written) {
+				printf("Sparse image flashing failed. 0x%x blocks expected, only 0x%x written\n",
+				       sparse_data->hdr.total_blks,
+				       sparse_data->blks_written);
+				return -1;
+			}
+		}
+#endif
 		return 0;
 	}
 
