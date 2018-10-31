@@ -3,6 +3,9 @@
  * Copyright 2014 Broadcom Corporation.
  */
 
+#ifndef __IMAGE_SPARSE_H
+#define __IMAGE_SPARSE_H
+
 #include <compiler.h>
 #include <part.h>
 #include <sparse_format.h>
@@ -40,3 +43,5 @@ static inline int is_sparse_image(void *buf)
 
 int write_sparse_image(struct sparse_storage *info, const char *part_name,
 		       void *data, char *response);
+
+#endif /* __IMAGE_SPARSE_H */
