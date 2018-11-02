@@ -199,7 +199,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[0][0], 2);
 	tmp[2] = 0;
 	num = simple_strtol(tmp, NULL, 10);
-	if (num < 0 || num > 63)
+	if (num > 63)
 		goto err;
 	hwid->year = num;
 	printf("    Year:          20%02d\n", hwid->year);
@@ -217,7 +217,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[0][4], 2);
 	tmp[2] = 0;
 	num = simple_strtol(tmp, NULL, 10);
-	if (num < 0 || num > 15)
+	if (num > 15)
 		goto err;
 	hwid->genid = num;
 	printf("    Generator ID:  %02d\n", hwid->genid);
@@ -226,7 +226,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[0][6], 6);
 	tmp[6] = 0;
 	num = simple_strtol(tmp, NULL, 10);
-	if (num < 0 || num > 999999)
+	if (num > 999999)
 		goto err;
 	hwid->sn = num;
 	printf("    S/N:           %06d\n", hwid->sn);
@@ -235,7 +235,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[1][0], 2);
 	tmp[2] = 0;
 	num = simple_strtol(tmp, NULL, 10);
-	if (num < 0 || num > 15)
+	if (num > 15)
 		goto err;
 	hwid->mac_pool = num;
 	printf("    MAC pool:      %02d\n", hwid->mac_pool);
@@ -244,7 +244,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[1][2], 6);
 	tmp[6] = 0;
 	num = simple_strtol(tmp, NULL, 16);
-	if (num < 0 || num > 0xFFFFFF)
+	if (num > 0xFFFFFF)
 		goto err;
 	hwid->mac_base = num;
 	printf("    MAC Base:      %.2x:%.2x:%.2x\n",
@@ -256,7 +256,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[2][0], 2);
 	tmp[2] = 0;
 	num = simple_strtol(tmp, NULL, 16);
-	if (num < 0 || num > 0x1F)
+	if (num > 0x1F)
 		goto err;
 	hwid->variant = num;
 	printf("    Variant:       0x%02x\n", hwid->variant);
@@ -265,7 +265,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[2][2], 1);
 	tmp[1] = 0;
 	num = simple_strtol(tmp, NULL, 16);
-	if (num < 0 || num > 7)
+	if (num > 7)
 		goto err;
 	hwid->hv = num;
 	printf("    HW version:    0x%x\n", hwid->hv);
@@ -274,7 +274,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[2][3], 1);
 	tmp[1] = 0;
 	num = simple_strtol(tmp, NULL, 16);
-	if (num < 0 || num > 7)
+	if (num > 7)
 		goto err;
 	hwid->cert = num;
 	printf("    Cert:          0x%x (%s)\n", hwid->cert,
@@ -286,7 +286,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 		strncpy(tmp, &argv[3][0], 1);
 		tmp[1] = 0;
 		num = simple_strtol(tmp, NULL, 16);
-		if (num < 0 || num > 3)
+		if (num > 3)
 			goto err;
 		hwid->wid = num;
 	}

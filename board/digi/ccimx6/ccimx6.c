@@ -659,11 +659,11 @@ static struct addrvalue ddr3_cal_cc6p[NUM_VARIANTS_CC6P + 1][DDR3_CAL_REGS] = {
 static struct ccimx6_variant * get_cc6_variant(u8 variant)
 {
 	if (is_mx6dqp()) {
-		if (variant < 0 || variant > ARRAY_SIZE(ccimx6p_variants))
+		if (variant > ARRAY_SIZE(ccimx6p_variants))
 			return NULL;
 		return &ccimx6p_variants[variant];
 	} else {
-		if (variant < 0 || variant > ARRAY_SIZE(ccimx6_variants))
+		if (variant > ARRAY_SIZE(ccimx6_variants))
 			return NULL;
 		return &ccimx6_variants[variant];
 	}
@@ -676,11 +676,11 @@ static void update_ddr3_calibration(u8 variant)
 	struct addrvalue *ddr3_cal;
 
 	if (is_mx6dqp()) {
-		if (variant <= 0 || variant > ARRAY_SIZE(ddr3_cal_cc6p))
+		if (variant == 0 || variant > ARRAY_SIZE(ddr3_cal_cc6p))
 			return;
 		ddr3_cal = ddr3_cal_cc6p[variant];
 	} else {
-		if (variant <= 0 || variant > ARRAY_SIZE(ddr3_cal_cc6))
+		if (variant == 0 || variant > ARRAY_SIZE(ddr3_cal_cc6))
 			return;
 		ddr3_cal = ddr3_cal_cc6[variant];
 	}
