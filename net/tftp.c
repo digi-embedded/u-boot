@@ -1067,7 +1067,7 @@ void tftp_start(enum proto_t protocol)
 				       "| in an non-booting operating system.             |\n"
 				       "+-------------------------------------------------+\n\t");
 				/* Initialize/reset OTF variables */
-				otfd.loadaddr = load_addr;
+				otfd.loadaddr = (void *)load_addr;
 				otfd.flags = OTF_FLAG_INIT;
 				otfd.offset = 0;
 			} else {
@@ -1256,7 +1256,7 @@ void register_tftp_otf_update_hook(int (*hook)(otf_data_t *data),
 	otf_update_hook = hook;
 	/* Initialize data for new transfer */
 	otfd.part = partition;
-	otfd.loadaddr = load_addr;
+	otfd.loadaddr = (void *)load_addr;
 	otfd.flags = OTF_FLAG_INIT;
 	otfd.offset = 0;
 }

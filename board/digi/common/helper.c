@@ -117,7 +117,7 @@ static int write_file_fs_otf(int src, char *filename, char *devpartno)
 	remaining = filesize;
 
 	/* Init otf data */
-	otfd.loadaddr = getenv_ulong("loadaddr", 16, 0);
+	otfd.loadaddr = (void *)getenv_ulong("loadaddr", 16, 0);
 
 	while (remaining > 0) {
 		debug("%lu remaining bytes\n", remaining);

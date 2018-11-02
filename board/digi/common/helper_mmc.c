@@ -80,7 +80,7 @@ int media_read_block(uintptr_t addr, unsigned char *readbuf, uint hwpart)
 	int ret = -1;
 	struct mmc *mmc;
 	uint orig_part;
-	uintptr_t loadaddr = getenv_ulong("loadaddr", 16, load_addr);
+	void *loadaddr = (void *) getenv_ulong("loadaddr", 16, load_addr);
 
 	len = media_get_block_size();
 	if (len <= 0)
@@ -98,9 +98,9 @@ int media_read_block(uintptr_t addr, unsigned char *readbuf, uint hwpart)
 	nbytes = mmc->block_dev.block_read(&mmc->block_dev,
 					   addr,
 					   1,
-					   (void *)loadaddr);
+					   loadaddr);
 	if (nbytes == 1) {
-		memcpy(readbuf, (const void *)loadaddr, len);
+		memcpy(readbuf, loadaddr, len);
 		ret = 0;
 	}
 	blk_select_hwpart_devnum(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV,
@@ -197,11 +197,12 @@ uint get_env_hwpart(void)
 extern int mmc_get_bootdevindex(void);
 
 static int write_chunk(struct mmc *mmc, struct blk_desc *mmc_dev,
-		       otf_data_t *otfd, unsigned int dstblk,
+		       otf_data_t *otfd, lbaint_t dstblk,
 		       unsigned int chunklen)
 {
 	int sectors;
-	unsigned long written, read, verifyaddr;
+	unsigned long written, read;
+	void *verifyaddr;
 
 	printf("\nWriting chunk...");
 	/* Check WP */
@@ -225,10 +226,10 @@ static int write_chunk(struct mmc *mmc, struct blk_desc *mmc_dev,
 
 	/* Write chunklen bytes of chunk to media */
 	debug("writing chunk of 0x%x bytes (0x%x sectors) "
-		"from 0x%lx to block 0x%x\n",
+		"from 0x%p to block " LBAFU "\n",
 		chunklen, sectors, otfd->loadaddr, dstblk);
 	written = mmc->block_dev.block_write(mmc_dev, dstblk, sectors,
-					     (const void *)otfd->loadaddr);
+					     otfd->loadaddr);
 	if (written != sectors) {
 		printf("[Error]: written sectors != sectors to write\n");
 		return -1;
@@ -238,12 +239,12 @@ static int write_chunk(struct mmc *mmc, struct blk_desc *mmc_dev,
 	/* Verify written chunk if $loadaddr + chunk size does not overlap
 	 * $verifyaddr (where the read-back copy will be placed)
 	 */
-	verifyaddr = getenv_ulong("verifyaddr", 16, 0);
+	verifyaddr = (void *) getenv_ulong("verifyaddr", 16, 0);
 	if (otfd->loadaddr + sectors * mmc_dev->blksz < verifyaddr) {
 		/* Read back data... */
 		printf("Reading back chunk...");
 		read = mmc->block_dev.block_read(mmc_dev, dstblk, sectors,
-						 (void *)verifyaddr);
+						 verifyaddr);
 		if (read != sectors) {
 			printf("[Error]: read sectors != sectors to read\n");
 			return -1;
@@ -251,8 +252,7 @@ static int write_chunk(struct mmc *mmc, struct blk_desc *mmc_dev,
 		printf("[OK]\n");
 		/* ...then compare */
 		printf("Verifying chunk...");
-		if (memcmp((const void *)otfd->loadaddr,
-			      (const void *)verifyaddr,
+		if (memcmp(otfd->loadaddr, verifyaddr,
 			      sectors * mmc_dev->blksz)) {
 			printf("[Error]\n");
 			return -1;
@@ -271,7 +271,7 @@ static int write_chunk(struct mmc *mmc, struct blk_desc *mmc_dev,
 int update_chunk(otf_data_t *otfd)
 {
 	static unsigned int chunk_len = 0;
-	static unsigned int dstblk = 0;
+	static lbaint_t dstblk = 0;
 	static struct blk_desc *mmc_dev = NULL;
 	static int mmc_dev_index = -1;
 	static struct mmc *mmc = NULL;
@@ -306,8 +306,7 @@ int update_chunk(otf_data_t *otfd)
 		 * in RAM until we have a chunk that is at least as large as
 		 * CONFIG_OTF_CHUNK, to write it to media.
 		 */
-		memcpy((void *)(otfd->loadaddr + otfd->offset), otfd->buf,
-		       otfd->len);
+		memcpy(otfd->loadaddr + otfd->offset, otfd->buf, otfd->len);
 	}
 
 	/* Initialize dstblk and local variables */
@@ -345,8 +344,7 @@ int update_chunk(otf_data_t *otfd)
 		dstblk += (chunk_len / mmc_dev->blksz);
 		/* copy excess of bytes from previous chunk to offset 0 */
 		if (remaining) {
-			memcpy((void *)otfd->loadaddr,
-			       (void *)(otfd->loadaddr + chunk_len),
+			memcpy(otfd->loadaddr, otfd->loadaddr + chunk_len,
 			       remaining);
 			debug("Copying excess of %d bytes to offset 0\n",
 			      remaining);

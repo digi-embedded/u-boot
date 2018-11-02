@@ -15,7 +15,7 @@
 #define OTF_FLAG_INIT 		(1 << 1)	/* flag to write first chunk */
 
 typedef struct otf_data {
-	uintptr_t loadaddr;	/* address in RAM to load data to */
+	void *loadaddr;		/* address in RAM to load data to */
 	unsigned int offset;	/* offset in media to write data to */
 	unsigned char *buf;	/* buffer with data to write */
 	unsigned int len;	/* length of chunk to write */
