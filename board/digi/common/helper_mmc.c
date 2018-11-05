@@ -318,33 +318,25 @@ int update_chunk(otf_data_t *otfd)
 	}
 	chunk_len += otfd->len;
 
-	/* The flush flag is set when the download process has finished
-	 * meaning we must write the remaining bytes in RAM to the storage
-	 * media. After this, we must quit the function. */
-	if (otfd->flags & OTF_FLAG_FLUSH) {
-		/* Write chunk with remaining bytes */
-		if (chunk_len) {
-			if (write_chunk(mmc, otfd, dstblk, chunk_len))
-				return -1;
-		}
-		/* Reset all static variables if offset == 0 (starting chunk) */
-		chunk_len = 0;
-		dstblk = 0;
-		mmc_dev = NULL;
-		mmc_dev_index = -1;
-		mmc = NULL;
-
-		return 0;
-	}
-
-	if (chunk_len >= CONFIG_OTF_CHUNK) {
+	/*
+	 * If the chunk is completed or if it is the last chunk (OTF_FLAG_FLUSH
+	 * set) write it to storage.
+	 */
+	if (chunk_len >= CONFIG_OTF_CHUNK || (otfd->flags & OTF_FLAG_FLUSH)) {
 		unsigned int remaining;
-		/* We have CONFIG_OTF_CHUNK (or more) bytes in RAM.
-		 * Let's proceed to write as many as multiples of blksz
-		 * as possible.
-		 */
-		remaining = chunk_len % mmc_dev->blksz;
-		chunk_len -= remaining;	/* chunk_len is now multiple of blksz */
+
+		if (otfd->flags & OTF_FLAG_FLUSH) {
+			/* Write all pending data (this is the last chunk) */
+			remaining = 0;
+		} else {
+			/* We have CONFIG_OTF_CHUNK (or more) bytes in RAM.
+			* Let's proceed to write as many as multiples of blksz
+			* as possible.
+			*/
+			remaining = chunk_len % mmc_dev->blksz;
+			chunk_len -= remaining;
+			/* chunk_len is now multiple of blksz */
+		}
 
 		if (write_chunk(mmc, mmc_dev, otfd, dstblk, chunk_len))
 			return -1;
@@ -363,6 +355,21 @@ int update_chunk(otf_data_t *otfd)
 		 * (or zero, if that's the case) */
 		chunk_len = remaining;
 	}
+
+	/*
+	 * This flag signals the last block, so we have finished.
+	 * Reset all static variables.
+	 */
+	if (otfd->flags & OTF_FLAG_FLUSH) {
+		chunk_len = 0;
+		dstblk = 0;
+		mmc_dev = NULL;
+		mmc_dev_index = -1;
+		mmc = NULL;
+
+		return 0;
+	}
+
 	/* Set otfd offset pointer to offset in RAM where new bytes would
 	 * be written. This offset may be reused by caller */
 	otfd->offset = chunk_len;
