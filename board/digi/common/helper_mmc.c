@@ -196,11 +196,9 @@ uint get_env_hwpart(void)
 #ifdef CONFIG_FSL_ESDHC
 extern int mmc_get_bootdevindex(void);
 
-static struct blk_desc *mmc_dev;
-static int mmc_dev_index = -1;
-
-static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
-			unsigned int chunklen)
+static int write_chunk(struct mmc *mmc, struct blk_desc *mmc_dev,
+		       otf_data_t *otfd, unsigned int dstblk,
+		       unsigned int chunklen)
 {
 	int sectors;
 	unsigned long written, read, verifyaddr;
@@ -274,18 +272,23 @@ int update_chunk(otf_data_t *otfd)
 {
 	static unsigned int chunk_len = 0;
 	static unsigned int dstblk = 0;
-	struct mmc *mmc;
+	static struct blk_desc *mmc_dev = NULL;
+	static int mmc_dev_index = -1;
+	static struct mmc *mmc = NULL;
 
-	if (mmc_dev_index == -1)
+	if (mmc_dev_index == -1) {
 		mmc_dev_index = getenv_ulong("mmcdev", 16,
 					     mmc_get_bootdevindex());
-	mmc = find_mmc_device(mmc_dev_index);
-	if (NULL == mmc)
-		return -1;
-	mmc_dev = mmc_get_blk_desc(mmc);
-	if (NULL == mmc_dev) {
-		printf("ERROR: failed to get block descriptor for MMC device\n");
-		return -1;
+		mmc = find_mmc_device(mmc_dev_index);
+		if (NULL == mmc) {
+			printf("ERROR: failed to get MMC device\n");
+			return -1;
+		}
+		mmc_dev = mmc_get_blk_desc(mmc);
+		if (NULL == mmc_dev) {
+			printf("ERROR: failed to get block descriptor for MMC device\n");
+			return -1;
+		}
 	}
 
 	/*
@@ -327,6 +330,10 @@ int update_chunk(otf_data_t *otfd)
 		/* Reset all static variables if offset == 0 (starting chunk) */
 		chunk_len = 0;
 		dstblk = 0;
+		mmc_dev = NULL;
+		mmc_dev_index = -1;
+		mmc = NULL;
+
 		return 0;
 	}
 
@@ -339,7 +346,7 @@ int update_chunk(otf_data_t *otfd)
 		remaining = chunk_len % mmc_dev->blksz;
 		chunk_len -= remaining;	/* chunk_len is now multiple of blksz */
 
-		if (write_chunk(mmc, otfd, dstblk, chunk_len))
+		if (write_chunk(mmc, mmc_dev, otfd, dstblk, chunk_len))
 			return -1;
 
 		/* increment destiny block */
