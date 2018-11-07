@@ -52,6 +52,11 @@
 /* Media type for firmware updates */
 #define CONFIG_SYS_STORAGE_MEDIA       "mmc"
 
+/*
+ * Trustfence configs
+ */
+#define CONFIG_MCA_TAMPER
+
 /* MMC Configs */
 #define CONFIG_FSL_ESDHC
 #define CONFIG_FSL_USDHC

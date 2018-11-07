@@ -75,7 +75,7 @@
  */
 #define CONFIG_HAS_TRUSTFENCE
 #define CONFIG_SHA256
-#define CONFIG_MCA_CC6UL_TAMPER
+#define CONFIG_MCA_TAMPER
 
 /* Environment encryption support */
 #define CONFIG_MD5

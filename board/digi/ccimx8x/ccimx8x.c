@@ -17,6 +17,7 @@
 #include "../common/hwid.h"
 #include "../common/mca_registers.h"
 #include "../common/mca.h"
+#include "../common/tamper.h"
 #include "ccimx8x.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -416,6 +417,9 @@ int ccimx8_init(void)
 
 	mca_init();
 
+#ifdef CONFIG_MCA_TAMPER
+	mca_tamper_check_events();
+#endif
 	return 0;
 }
 
