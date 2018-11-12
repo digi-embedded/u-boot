@@ -142,7 +142,6 @@
 		"fi;\0" \
 	"bootargs_mmc_android=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_android} " \
-		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
 		"${bootargs_once} ${extra_bootargs}\0" \
 	"bootargs_tftp=" \
 		"if test ${ip_dyn} = yes; then " \
@@ -156,7 +155,6 @@
 		"setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_android} root=/dev/nfs " \
 		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
-		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
 		"${bootargs_once} ${extra_bootargs}\0" \
 	"bootargs_nfs_android=run bootargs_tftp_android\0" \
 	"mmcroot=PARTUUID=1c606ef5-f1ac-43b9-9bb5-d5c578580b6b\0" \
