@@ -471,7 +471,9 @@ int load_firmware(struct load_fw *fwinfo)
 				"if ubi part %s;then "
 					"if ubifsmount ubi0:%s;then "
 						"ubifsload %s %s;"
+#ifndef CONFIG_MTD_UBI_SKIP_REATTACH
 						"ubifsumount;"
+#endif
 					"fi;"
 				"fi;",
 				fwinfo->part->name, fwinfo->part->name,
