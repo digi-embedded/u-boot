@@ -91,7 +91,7 @@ static void mxs_lcd_init(GraphicDevice *panel,
 			struct ctfb_res_modes *mode, int bpp)
 {
 	struct mxs_lcdif_regs *regs = (struct mxs_lcdif_regs *)(ulong)(panel->isaBase);
-	uint32_t word_len = 0, bus_width = 0;
+	uint32_t word_len = 0, bus_width = 0, vdctrl0;
 	uint8_t valid_data = 0;
 
 	/* Kick in the LCDIF clock */
@@ -145,10 +145,15 @@ static void mxs_lcd_init(GraphicDevice *panel,
 		LCDIF_VDCTRL0_VSYNC_PULSE_WIDTH_UNIT |
 		mode->vsync_len, &regs->hw_lcdif_vdctrl0);
 #else
-	writel(LCDIF_VDCTRL0_ENABLE_PRESENT | LCDIF_VDCTRL0_ENABLE_POL |
+	vdctrl0 = LCDIF_VDCTRL0_ENABLE_PRESENT | LCDIF_VDCTRL0_ENABLE_POL |
 		LCDIF_VDCTRL0_VSYNC_PERIOD_UNIT |
 		LCDIF_VDCTRL0_VSYNC_PULSE_WIDTH_UNIT |
-		mode->vsync_len, &regs->hw_lcdif_vdctrl0);
+		mode->vsync_len;
+	vdctrl0 |= (mode->sync & FB_SYNC_CLK_LAT_FALL) ? LCDIF_VDCTRL0_DOTCLK_POL : 0;
+	vdctrl0 |= (mode->sync & FB_SYNC_HOR_HIGH_ACT) ? LCDIF_VDCTRL0_HSYNC_POL : 0;
+	vdctrl0 |= (mode->sync & FB_SYNC_VERT_HIGH_ACT) ? LCDIF_VDCTRL0_VSYNC_POL : 0;
+
+	writel(vdctrl0, &regs->hw_lcdif_vdctrl0);
 #endif
 	writel(mode->upper_margin + mode->lower_margin +
 		mode->vsync_len + mode->yres,
