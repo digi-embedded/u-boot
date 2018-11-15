@@ -2411,7 +2411,7 @@ retry:
 		goto retry;
 #endif
 	}
-		
+
 	err = set(s, data);
 	if (err) {
 #ifndef __UBOOT__
@@ -2682,11 +2682,25 @@ int uboot_ubifs_mount(char *vol_name)
 	struct dentry *ret;
 	int flags;
 
+#ifdef CONFIG_MTD_UBI_SKIP_REATTACH
+	if (ubifs_sb) {
+		char *vname = strchr(vol_name, ':');
+		const char *mounted_val_name =
+			((struct ubifs_info *)(ubifs_sb->s_fs_info))->vi.name;
+
+		if (vname != NULL && !strcmp(vname + 1, mounted_val_name)) {
+			printf("Skipping mounting already mounted ubifs fs\n");
+			return 0;
+		}
+	}
+#else
 	/*
 	 * First unmount if allready mounted
 	 */
 	if (ubifs_sb)
 		ubifs_umount(ubifs_sb->s_fs_info);
+
+#endif
 
 	/*
 	 * Mount in read-only mode
