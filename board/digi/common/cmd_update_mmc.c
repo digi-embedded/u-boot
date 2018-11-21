@@ -371,25 +371,6 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		if (argc > 4)
 			filesize = simple_strtol(argv[4], NULL, 16);
 	} else {
-		if (getenv_yesno("otf-update") == -1) {
-			/*
-			 * If otf-update is undefined, check if there is enough
-			 * RAM to hold the largest possible file that fits into
-			 * the destiny partition.
-			 */
-			unsigned long avail = get_available_ram_for_update();
-
-			if (avail <= info.size * mmc_dev->blksz) {
-				printf("Partition to update is larger (%d MiB) than the\n"
-				       "available RAM memory (%d MiB, starting at $loadaddr=0x%08x).\n",
-				       (int)(info.size * mmc_dev->blksz / (1024 * 1024)),
-				       (int)(avail / (1024 * 1024)),
-				       (unsigned int)loadaddr);
-				printf("Activating On-the-fly update mechanism.\n");
-				otf_enabled = 1;
-			}
-		}
-
 		/* Get firmware file name */
 		ret = get_fw_filename(argc, argv, &fwinfo);
 		if (ret) {
@@ -399,6 +380,35 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 			if (!fwinfo.filename) {
 				printf("Error: need a filename\n");
 				return CMD_RET_USAGE;
+			}
+		}
+
+		if (getenv_yesno("otf-update") == -1) {
+			/*
+			 * If otf-update is undefined, check if there is enough
+			 * RAM to hold the image being updated. If that is not
+			 * possible, check assuming the largest possible file
+			 * that fits into the destiny partition.
+			 */
+			unsigned long avail = get_available_ram_for_update();
+			filesize = get_firmware_size(&fwinfo);
+
+			/*
+			 * If it was not possible to get the file size, assume
+			 * the largest possible file size (that is, the
+			 * partition size).
+			 */
+			if (!filesize)
+				filesize = info.size * mmc_dev->blksz;
+
+			if (avail <= filesize) {
+				printf("Partition to update is larger (%d MiB) than the\n"
+				       "available RAM memory (%d MiB, starting at $loadaddr=0x%08x).\n",
+				       (int)(info.size * mmc_dev->blksz / (1024 * 1024)),
+				       (int)(avail / (1024 * 1024)),
+				       (unsigned int)loadaddr);
+				printf("Activating On-the-fly update mechanism.\n");
+				otf_enabled = 1;
 			}
 		}
 	}

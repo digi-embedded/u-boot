@@ -61,6 +61,7 @@ int confirm_prog(void);
 void fdt_fixup_mac(void *fdt, char *varname, char *node, char *property);
 void fdt_fixup_regulatory(void *fdt);
 void fdt_fixup_uboot_info(void *fdt);
+unsigned long get_firmware_size(const struct load_fw *fwinfo);
 int load_firmware(struct load_fw *fwinfo);
 const char *get_filename_ext(const char *filename);
 void strtohex(char *in, unsigned long *out, int len);

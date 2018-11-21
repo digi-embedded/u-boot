@@ -372,6 +372,32 @@ bool is_ubi_partition(struct part_info *part)
 }
 #endif /* CONFIG_DIGI_UBI */
 
+/*
+ * Returns 0 if the file size cannot be obtained.
+ */
+unsigned long get_firmware_size(const struct load_fw *fwinfo) {
+	char cmd[CONFIG_SYS_CBSIZE] = "";
+	unsigned long filesize = 0;
+
+	switch (fwinfo->src) {
+	case SRC_MMC:
+	case SRC_USB:
+	case SRC_SATA:
+		sprintf(cmd, "size %s %s %s", src_strings[fwinfo->src],
+			fwinfo->devpartno, fwinfo->filename);
+
+		if (!run_command(cmd, 0))
+			filesize = getenv_ulong("filesize", 16, 0);
+
+		break;
+	default:
+		/* leave filesize = 0 */
+		break;
+	}
+
+	return filesize;
+}
+
 /* A variable determines if the file must be loaded.
  * The function returns:
  *	LDFW_LOADED if the file was loaded successfully
