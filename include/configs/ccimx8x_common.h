@@ -34,6 +34,9 @@
 #define PHYS_SDRAM_1			0x80000000
 #define PHYS_SDRAM_1_SIZE		(CONFIG_DDR_MB * (unsigned int)SZ_1M)
 #define PHYS_SDRAM			PHYS_SDRAM_1
+/* Address used for update operations */
+#undef CONFIG_DIGI_UPDATE_ADDR
+#define CONFIG_DIGI_UPDATE_ADDR		0x90000000
 
 #define CONFIG_OF_SYSTEM_SETUP
 #define BOOTAUX_RESERVED_MEM_BASE 0x88000000

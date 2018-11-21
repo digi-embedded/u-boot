@@ -95,6 +95,7 @@
 	"fdt_file=Image.gz-" BOARD_DEY_NAME ".dtb\0" \
 	"initrd_addr=0x83800000\0"		\
 	"initrd_high=0xffffffffffffffff\0" \
+	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
 	"mmcbootpart=" __stringify(CONFIG_SYS_BOOT_PART_EMMC) "\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
