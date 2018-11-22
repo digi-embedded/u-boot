@@ -92,12 +92,12 @@
 	"panel=NULL\0" \
 	"console=" CONSOLE_DEV "\0" \
 	"earlycon=" EARLY_CONSOLE "\0" \
-	"fdt_addr=0x83000000\0"			\
+	"fdt_addr=0x82000000\0"			\
 	"fdt_high=0xffffffffffffffff\0"		\
 	"boot_fdt=try\0" \
 	"ip_dyn=yes\0" \
 	"fdt_file=Image.gz-" BOARD_DEY_NAME ".dtb\0" \
-	"initrd_addr=0x83800000\0"		\
+	"initrd_addr=0x82100000\0"		\
 	"initrd_high=0xffffffffffffffff\0" \
 	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
 	"mmcbootpart=" __stringify(CONFIG_SYS_BOOT_PART_EMMC) "\0" \
