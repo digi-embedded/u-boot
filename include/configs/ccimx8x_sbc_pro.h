@@ -71,7 +71,7 @@
 
 #define CONFIG_MFG_ENV_SETTINGS \
 	"mfgtool_args=setenv bootargs console=${console},${baudrate} " \
-		"root=/dev/ram0 rw ramdisk_size=524288 quiet " \
+		"root=/dev/ram0 rw quiet " \
 		"\0" \
 	"bootcmd_mfg=source ${loadaddr}\0" \
 
