@@ -358,7 +358,7 @@ const char *bootdelay_process(void)
 	}
 #endif
 	/* Check if boot recovery is enabled */
-	if (strcmp("yes", getenv("boot_recovery")) == 0) {
+	if (getenv_yesno("boot_recovery") == 1) {
 		s = getenv("recoverycmd");
 		printf("\n"
 		       "******************************************\n"

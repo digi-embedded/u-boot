@@ -7,7 +7,12 @@
  *  the Free Software Foundation.
 */
 #include <common.h>
+#include <asm/arch/sys_proto.h>
+#include <asm/arch-imx/cpu.h>
 #include <asm/imx-common/boot_mode.h>
+#ifdef CONFIG_FASTBOOT_FLASH
+#include <image-sparse.h>
+#endif
 #include <otf_update.h>
 #include <part.h>
 #include "helper.h"
@@ -18,7 +23,7 @@ static struct blk_desc *mmc_dev;
 static int mmc_dev_index;
 
 extern int mmc_get_bootdevindex(void);
-extern int board_update_chunk(otf_data_t *oftd);
+extern int update_chunk(otf_data_t *oftd);
 extern void register_tftp_otf_update_hook(int (*hook)(otf_data_t *oftd),
 					  disk_partition_t*);
 extern void unregister_tftp_otf_update_hook(void);
@@ -64,6 +69,26 @@ void unregister_otf_hook(int src)
 
 }
 
+#ifdef CONFIG_FASTBOOT_FLASH
+struct fb_mmc_sparse {
+	struct blk_desc	*dev_desc;
+};
+
+static lbaint_t fb_mmc_sparse_write(struct sparse_storage *info, lbaint_t blk,
+				    lbaint_t blkcnt, const void *buffer)
+{
+	struct fb_mmc_sparse *sparse = info->priv;
+
+	return blk_dwrite(sparse->dev_desc, blk, blkcnt, buffer);
+}
+
+static lbaint_t fb_mmc_sparse_reserve(struct sparse_storage *info,
+				      lbaint_t blk, lbaint_t blkcnt)
+{
+	return blkcnt;
+}
+#endif
+
 enum {
 	ERR_WRITE = 1,
 	ERR_READ,
@@ -75,6 +100,25 @@ static int write_firmware(char *partname, unsigned long loadaddr,
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	unsigned long size_blks, verifyaddr, u, m;
+
+#ifdef CONFIG_FASTBOOT_FLASH
+	if (is_sparse_image((void *)loadaddr)) {
+		struct fb_mmc_sparse sparse_priv = {
+			.dev_desc = mmc_dev,
+		};
+		struct sparse_storage sparse = {
+			.blksz = mmc_dev->blksz,
+			.start = info->start,
+			.size = info->size,
+			.write = fb_mmc_sparse_write,
+			.reserve = fb_mmc_sparse_reserve,
+			.priv = &sparse_priv,
+		};
+
+		return write_sparse_image(&sparse, partname, (void *)loadaddr,
+					  filesize) ? ERR_WRITE : 0;
+	}
+#endif
 
 	size_blks = (filesize / mmc_dev->blksz) + (filesize % mmc_dev->blksz != 0);
 
@@ -171,7 +215,7 @@ static int write_file(char *targetfilename, char *targetfs, int part)
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	unsigned long loadaddr, filesize;
 
-	loadaddr = getenv_ulong("loadaddr", 16, CONFIG_LOADADDR);
+	loadaddr = getenv_ulong(get_updateaddr_var(), 16, CONFIG_DIGI_UPDATE_ADDR );
 	filesize = getenv_ulong("filesize", 16, 0);
 
 	/* Change to storage device */
@@ -227,7 +271,7 @@ static unsigned int get_available_ram_for_update(void)
 	unsigned int loadaddr;
 	unsigned int la_off;
 
-	loadaddr = getenv_ulong("loadaddr", 16, CONFIG_LOADADDR);
+	loadaddr = getenv_ulong(get_updateaddr_var(), 16, CONFIG_DIGI_UPDATE_ADDR );
 	la_off = loadaddr - gd->bd->bi_dram[0].start;
 
 	return (gd->bd->bi_dram[0].size - CONFIG_UBOOT_RESERVED - la_off);
@@ -268,8 +312,24 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	/* Get data of partition to be updated */
 	if (!strcmp(argv[1], "uboot")) {
 		/* Simulate partition data for U-Boot */
+#ifdef CONFIG_ARCH_IMX8
+		/* Use a different offset depending on the i.MX8X QXP CPU revision */
+		u32 cpurev = get_cpu_rev();
+
+		switch (cpurev & 0xFFF) {
+		case CHIP_REV_A:
+			info.start = CONFIG_SYS_BOOT_PART_OFFSET_A0 / mmc_dev->blksz;
+			info.size = CONFIG_SYS_BOOT_PART_SIZE_A0 / mmc_dev->blksz;
+			break;
+		default:
+			info.start = CONFIG_SYS_BOOT_PART_OFFSET_B0 / mmc_dev->blksz;
+			info.size = CONFIG_SYS_BOOT_PART_SIZE_B0 / mmc_dev->blksz;
+			break;
+		}
+#else
 		info.start = CONFIG_SYS_BOOT_PART_OFFSET / mmc_dev->blksz;
 		info.size = CONFIG_SYS_BOOT_PART_SIZE / mmc_dev->blksz;
+#endif
 		strcpy((char *)info.name, argv[1]);
 	} else {
 		/* Not a reserved name. Must be a partition name or index */
@@ -297,7 +357,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	if (get_source(argc, argv, &fwinfo))
 		return CMD_RET_FAILURE;
 
-	loadaddr = getenv_ulong("loadaddr", 16, CONFIG_LOADADDR);
+	loadaddr = getenv_ulong(get_updateaddr_var(), 16, CONFIG_DIGI_UPDATE_ADDR );
 	/* If undefined, calculate 'verifyaddr' */
 	if (NULL == getenv("verifyaddr"))
 		set_verifyaddr(loadaddr);
@@ -311,25 +371,6 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		if (argc > 4)
 			filesize = simple_strtol(argv[4], NULL, 16);
 	} else {
-		if (getenv_yesno("otf-update") == -1) {
-			/*
-			 * If otf-update is undefined, check if there is enough
-			 * RAM to hold the largest possible file that fits into
-			 * the destiny partition.
-			 */
-			unsigned long avail = get_available_ram_for_update();
-
-			if (avail <= info.size * mmc_dev->blksz) {
-				printf("Partition to update is larger (%d MiB) than the\n"
-				       "available RAM memory (%d MiB, starting at $loadaddr=0x%08x).\n",
-				       (int)(info.size * mmc_dev->blksz / (1024 * 1024)),
-				       (int)(avail / (1024 * 1024)),
-				       (unsigned int)loadaddr);
-				printf("Activating On-the-fly update mechanism.\n");
-				otf_enabled = 1;
-			}
-		}
-
 		/* Get firmware file name */
 		ret = get_fw_filename(argc, argv, &fwinfo);
 		if (ret) {
@@ -339,6 +380,36 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 			if (!fwinfo.filename) {
 				printf("Error: need a filename\n");
 				return CMD_RET_USAGE;
+			}
+		}
+
+		if (getenv_yesno("otf-update") == -1) {
+			/*
+			 * If otf-update is undefined, check if there is enough
+			 * RAM to hold the image being updated. If that is not
+			 * possible, check assuming the largest possible file
+			 * that fits into the destiny partition.
+			 */
+			unsigned long avail = get_available_ram_for_update();
+			filesize = get_firmware_size(&fwinfo);
+
+			/*
+			 * If it was not possible to get the file size, assume
+			 * the largest possible file size (that is, the
+			 * partition size).
+			 */
+			if (!filesize)
+				filesize = info.size * mmc_dev->blksz;
+
+			if (avail <= filesize) {
+				printf("Partition to update is larger (%d MiB) than the\n"
+				       "available RAM memory (%d MiB, starting at $%s=0x%08x).\n",
+				       (int)(info.size * mmc_dev->blksz / (1024 * 1024)),
+				       (int)(avail / (1024 * 1024)),
+				       get_updateaddr_var(),
+				       (unsigned int)loadaddr);
+				printf("Activating On-the-fly update mechanism.\n");
+				otf_enabled = 1;
 			}
 		}
 	}
@@ -351,7 +422,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 				"for security reasons\n");
 		} else {
 			/* register on-the-fly update mechanism */
-			otf = register_otf_hook(fwinfo.src, board_update_chunk,
+			otf = register_otf_hook(fwinfo.src, update_chunk,
 						&info);
 		}
 	}
@@ -372,7 +443,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		 * Load firmware file to RAM (this process may write the file
 		 * to the target media if OTF mechanism is enabled).
 		 */
-		fwinfo.loadaddr = "$loadaddr";
+		sprintf(fwinfo.loadaddr, "$%s", get_updateaddr_var());
 		ret = load_firmware(&fwinfo);
 		if (ret == LDFW_ERROR) {
 			printf("Error loading firmware file to RAM\n");
@@ -538,7 +609,7 @@ static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 	}
 
 	/* Load firmware file to RAM */
-	fwinfo.loadaddr = "$loadaddr";
+	sprintf(fwinfo.loadaddr, "$%s", get_updateaddr_var());
 	if (LDFW_ERROR == load_firmware(&fwinfo)) {
 		printf("Error loading firmware file to RAM\n");
 		return CMD_RET_FAILURE;

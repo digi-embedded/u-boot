@@ -503,7 +503,11 @@ static void tftp_complete(void)
 	if (otf_update_hook != NULL) {
 		otfd.len = 0;	/* there are no bytes left from TFTP frame */
 		otfd.flags |= OTF_FLAG_FLUSH;
-		otf_update_hook(&otfd);
+		if (otf_update_hook(&otfd)) {
+			printf("Error writing on-the-fly. Aborting\n");
+			net_set_state(NETLOOP_FAIL);
+			return;
+		}
 	}
 
 	time_start = get_timer(time_start);
@@ -1067,7 +1071,7 @@ void tftp_start(enum proto_t protocol)
 				       "| in an non-booting operating system.             |\n"
 				       "+-------------------------------------------------+\n\t");
 				/* Initialize/reset OTF variables */
-				otfd.loadaddr = load_addr;
+				otfd.loadaddr = (void *)load_addr;
 				otfd.flags = OTF_FLAG_INIT;
 				otfd.offset = 0;
 			} else {
@@ -1256,7 +1260,7 @@ void register_tftp_otf_update_hook(int (*hook)(otf_data_t *data),
 	otf_update_hook = hook;
 	/* Initialize data for new transfer */
 	otfd.part = partition;
-	otfd.loadaddr = load_addr;
+	otfd.loadaddr = (void *)load_addr;
 	otfd.flags = OTF_FLAG_INIT;
 	otfd.offset = 0;
 }

@@ -87,7 +87,7 @@
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
 	"image=Image-" BOARD_DEY_NAME ".bin\0" \
 	"imagegz=Image.gz-" BOARD_DEY_NAME ".bin\0" \
-	"uboot_file=u-boot-" BOARD_DEY_NAME ".bin\0" \
+	"uboot_file=imx-boot-" BOARD_DEY_NAME ".bin\0" \
 	"panel=NULL\0" \
 	"console=" CONSOLE_DEV "\0" \
 	"earlycon=" EARLY_CONSOLE "\0" \
@@ -98,6 +98,7 @@
 	"fdt_file=Image.gz-" BOARD_DEY_NAME ".dtb\0" \
 	"initrd_addr=0x83800000\0"		\
 	"initrd_high=0xffffffffffffffff\0" \
+	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
 	"mmcbootpart=" __stringify(CONFIG_SYS_BOOT_PART_EMMC) "\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
@@ -135,7 +136,7 @@
 				"mmc rescan;" \
 			"else;" \
 			"fi;" \
-		"fi;" \
+		"fi;\0" \
 	"recoverycmd=setenv mmcpart " CONFIG_RECOVERY_PARTITION ";" \
 		"boot\0" \
 	"recovery_file=recovery.img\0" \

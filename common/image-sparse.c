@@ -49,27 +49,171 @@
 #define CONFIG_FASTBOOT_FLASH_FILLBUF_SIZE (1024 * 512)
 #endif
 
-void write_sparse_image(
+#ifndef CONFIG_USB_FUNCTION_FASTBOOT
+#define fastboot_fail(...)	printf("fastboot: fail: " __VA_ARGS__ "\n")
+#define fastboot_okay(...)	(void) 0
+#endif
+
+int write_sparse_chunk(struct sparse_storage *info, const sparse_header_t *sparse_header,
+                void **data_ptr, lbaint_t *blk, uint32_t *total_blocks, uint32_t *bytes_written)
+{
+	uint32_t fill_val;
+	lbaint_t blkcnt;
+	lbaint_t blks; 
+	chunk_header_t *chunk_header;
+	unsigned int chunk_data_sz;
+	int i;
+	int j;
+	void *data = *data_ptr;
+	uint32_t *fill_buf = NULL;
+	int const fill_buf_num_blks = CONFIG_FASTBOOT_FLASH_FILLBUF_SIZE / info->blksz;
+
+	/* Read and skip over chunk header */
+	chunk_header = (chunk_header_t *)data;
+	data += sizeof(chunk_header_t);
+
+	if (chunk_header->chunk_type != CHUNK_TYPE_RAW) {
+		debug("=== Chunk Header === @ 0x%p\n", chunk_header);
+		debug("chunk_type: 0x%x\n", chunk_header->chunk_type);
+		debug("chunk_data_sz: 0x%x\n", chunk_header->chunk_sz);
+		debug("total_size: 0x%x\n", chunk_header->total_sz);
+	}
+
+	if (sparse_header->chunk_hdr_sz > sizeof(chunk_header_t)) {
+		/*
+		 * Skip the remaining bytes in a header that is longer
+		 * than we expected.
+		 */
+		data += (sparse_header->chunk_hdr_sz -
+				sizeof(chunk_header_t));
+	}
+
+	chunk_data_sz = sparse_header->blk_sz * chunk_header->chunk_sz;
+	blkcnt = chunk_data_sz / info->blksz;
+	switch (chunk_header->chunk_type) {
+	case CHUNK_TYPE_RAW:
+		if (chunk_header->total_sz !=
+			(sparse_header->chunk_hdr_sz + chunk_data_sz)) {
+			fastboot_fail("Bogus chunk size for chunk type Raw");
+			return 1;
+		}
+
+		if (*blk + blkcnt > info->start + info->size) {
+			printf("%s: Request would exceed partition size!\n",
+				__func__);
+			fastboot_fail(
+				"Request would exceed partition size!");
+			return 1;
+		}
+
+		blks = info->write(info, *blk, blkcnt, data);
+		/* blks might be > blkcnt (eg. NAND bad-blocks) */
+		if (blks < blkcnt) {
+			printf("%s: %s" LBAFU " [" LBAFU "]\n", __func__,
+			       "Write failed, block #", *blk, blks);
+			fastboot_fail("flash write failure");
+			return 1;
+		}
+		*blk += blks;
+		*bytes_written += blkcnt * info->blksz;
+		*total_blocks += chunk_header->chunk_sz;
+		data += chunk_data_sz;
+		break;
+
+	case CHUNK_TYPE_FILL:
+		if (chunk_header->total_sz !=
+			(sparse_header->chunk_hdr_sz + sizeof(uint32_t))) {
+			fastboot_fail("Bogus chunk size for chunk type FILL");
+			return 1;
+		}
+
+		fill_buf = (uint32_t *)
+				memalign(ARCH_DMA_MINALIGN,
+					ROUNDUP(
+					info->blksz * fill_buf_num_blks,
+					ARCH_DMA_MINALIGN));
+		if (!fill_buf) {
+			fastboot_fail("Malloc failed for: CHUNK_TYPE_FILL");
+			return 1;
+		}
+
+		fill_val = *(uint32_t *)data;
+		data = (char *)data + sizeof(uint32_t);
+
+		for (i = 0;
+			i < (info->blksz * fill_buf_num_blks /
+				sizeof(fill_val));
+			i++)
+			fill_buf[i] = fill_val;
+
+		if (*blk + blkcnt > info->start + info->size) {
+			printf("%s: Request would exceed partition size!\n",
+				__func__);
+			fastboot_fail("Request would exceed partition size!");
+			return 1;
+		}
+
+		for (i = 0; i < blkcnt;) {
+			j = blkcnt - i;
+			if (j > fill_buf_num_blks)
+				j = fill_buf_num_blks;
+			blks = info->write(info, *blk, j, fill_buf);
+			/* blks might be > j (eg. NAND bad-blocks) */
+			if (blks < j) {
+				printf("%s: %s " LBAFU " [%d]\n",
+					__func__,
+					"Write failed, block #",
+					*blk, j);
+				fastboot_fail("flash write failure");
+				free(fill_buf);
+				return 1;
+			}
+			*blk += blks;
+			i += j;
+		}
+		*bytes_written += blkcnt * info->blksz;
+		*total_blocks += chunk_data_sz / sparse_header->blk_sz;
+		free(fill_buf);
+		break;
+
+	case CHUNK_TYPE_DONT_CARE:
+		*blk += info->reserve(info, *blk, blkcnt);
+		*total_blocks += chunk_header->chunk_sz;
+		break;
+
+	case CHUNK_TYPE_CRC32:
+		if (chunk_header->total_sz !=
+			sparse_header->chunk_hdr_sz) {
+			fastboot_fail(
+				"Bogus chunk size for chunk type Dont Care");
+			return 1;
+		}
+		*total_blocks += chunk_header->chunk_sz;
+		data += chunk_data_sz;
+		break;
+
+	default:
+		printf("%s: Unknown chunk type: %x\n", __func__,
+			chunk_header->chunk_type);
+		fastboot_fail("Unknown chunk type");
+		return 1;
+	}
+
+    *data_ptr = data;
+    return 0;
+}
+
+int write_sparse_image(
 		struct sparse_storage *info, const char *part_name,
 		void *data, unsigned sz)
 {
 	lbaint_t blk;
-	lbaint_t blkcnt;
-	lbaint_t blks;
 	uint32_t bytes_written = 0;
 	unsigned int chunk;
 	unsigned int offset;
-	unsigned int chunk_data_sz;
-	uint32_t *fill_buf = NULL;
-	uint32_t fill_val;
 	sparse_header_t *sparse_header;
-	chunk_header_t *chunk_header;
 	uint32_t total_blocks = 0;
-	int fill_buf_num_blks;
-	int i;
-	int j;
-
-	fill_buf_num_blks = CONFIG_FASTBOOT_FLASH_FILLBUF_SIZE / info->blksz;
+	int ret_value = 1;
 
 	/* Read and skip over sparse image header */
 	sparse_header = (sparse_header_t *)data;
@@ -102,7 +246,7 @@ void write_sparse_image(
 		printf("%s: Sparse image block size issue [%u]\n",
 		       __func__, sparse_header->blk_sz);
 		fastboot_fail("sparse image block size issue");
-		return;
+		return ret_value;
 	}
 
 	puts("Flashing Sparse Image\n");
@@ -110,155 +254,21 @@ void write_sparse_image(
 	/* Start processing chunks */
 	blk = info->start;
 	for (chunk = 0; chunk < sparse_header->total_chunks; chunk++) {
-		/* Read and skip over chunk header */
-		chunk_header = (chunk_header_t *)data;
-		data += sizeof(chunk_header_t);
-
-		if (chunk_header->chunk_type != CHUNK_TYPE_RAW) {
-			debug("=== Chunk Header ===\n");
-			debug("chunk_type: 0x%x\n", chunk_header->chunk_type);
-			debug("chunk_data_sz: 0x%x\n", chunk_header->chunk_sz);
-			debug("total_size: 0x%x\n", chunk_header->total_sz);
-		}
-
-		if (sparse_header->chunk_hdr_sz > sizeof(chunk_header_t)) {
-			/*
-			 * Skip the remaining bytes in a header that is longer
-			 * than we expected.
-			 */
-			data += (sparse_header->chunk_hdr_sz -
-				 sizeof(chunk_header_t));
-		}
-
-		chunk_data_sz = sparse_header->blk_sz * chunk_header->chunk_sz;
-		blkcnt = chunk_data_sz / info->blksz;
-		switch (chunk_header->chunk_type) {
-		case CHUNK_TYPE_RAW:
-			if (chunk_header->total_sz !=
-			    (sparse_header->chunk_hdr_sz + chunk_data_sz)) {
-				fastboot_fail(
-					"Bogus chunk size for chunk type Raw");
-				return;
-			}
-
-			if (blk + blkcnt > info->start + info->size) {
-				printf(
-				    "%s: Request would exceed partition size!\n",
-				    __func__);
-				fastboot_fail(
-				    "Request would exceed partition size!");
-				return;
-			}
-
-			blks = info->write(info, blk, blkcnt, data);
-			/* blks might be > blkcnt (eg. NAND bad-blocks) */
-			if (blks < blkcnt) {
-				printf("%s: %s" LBAFU " [" LBAFU "]\n",
-				       __func__, "Write failed, block #",
-				       blk, blks);
-				fastboot_fail(
-					      "flash write failure");
-				return;
-			}
-			blk += blks;
-			bytes_written += blkcnt * info->blksz;
-			total_blocks += chunk_header->chunk_sz;
-			data += chunk_data_sz;
-			break;
-
-		case CHUNK_TYPE_FILL:
-			if (chunk_header->total_sz !=
-			    (sparse_header->chunk_hdr_sz + sizeof(uint32_t))) {
-				fastboot_fail(
-					"Bogus chunk size for chunk type FILL");
-				return;
-			}
-
-			fill_buf = (uint32_t *)
-				   memalign(ARCH_DMA_MINALIGN,
-					    ROUNDUP(
-						info->blksz * fill_buf_num_blks,
-						ARCH_DMA_MINALIGN));
-			if (!fill_buf) {
-				fastboot_fail(
-					"Malloc failed for: CHUNK_TYPE_FILL");
-				return;
-			}
-
-			fill_val = *(uint32_t *)data;
-			data = (char *)data + sizeof(uint32_t);
-
-			for (i = 0;
-			     i < (info->blksz * fill_buf_num_blks /
-				  sizeof(fill_val));
-			     i++)
-				fill_buf[i] = fill_val;
-
-			if (blk + blkcnt > info->start + info->size) {
-				printf(
-				    "%s: Request would exceed partition size!\n",
-				    __func__);
-				fastboot_fail(
-				    "Request would exceed partition size!");
-				return;
-			}
-
-			for (i = 0; i < blkcnt;) {
-				j = blkcnt - i;
-				if (j > fill_buf_num_blks)
-					j = fill_buf_num_blks;
-				blks = info->write(info, blk, j, fill_buf);
-				/* blks might be > j (eg. NAND bad-blocks) */
-				if (blks < j) {
-					printf("%s: %s " LBAFU " [%d]\n",
-					       __func__,
-					       "Write failed, block #",
-					       blk, j);
-					fastboot_fail(
-						      "flash write failure");
-					free(fill_buf);
-					return;
-				}
-				blk += blks;
-				i += j;
-			}
-			bytes_written += blkcnt * info->blksz;
-			total_blocks += chunk_data_sz / sparse_header->blk_sz;
-			free(fill_buf);
-			break;
-
-		case CHUNK_TYPE_DONT_CARE:
-			blk += info->reserve(info, blk, blkcnt);
-			total_blocks += chunk_header->chunk_sz;
-			break;
-
-		case CHUNK_TYPE_CRC32:
-			if (chunk_header->total_sz !=
-			    sparse_header->chunk_hdr_sz) {
-				fastboot_fail(
-					"Bogus chunk size for chunk type Dont Care");
-				return;
-			}
-			total_blocks += chunk_header->chunk_sz;
-			data += chunk_data_sz;
-			break;
-
-		default:
-			printf("%s: Unknown chunk type: %x\n", __func__,
-			       chunk_header->chunk_type);
-			fastboot_fail("Unknown chunk type");
-			return;
-		}
+		if (write_sparse_chunk(info, sparse_header, &data, &blk, &total_blocks, &bytes_written))
+			return 1;
 	}
 
 	debug("Wrote %d blocks, expected to write %d blocks\n",
 	      total_blocks, sparse_header->total_blks);
 	printf("........ wrote %u bytes to '%s'\n", bytes_written, part_name);
 
-	if (total_blocks != sparse_header->total_blks)
+	if (total_blocks != sparse_header->total_blks) {
 		fastboot_fail("sparse image write failure");
-	else
+	} else {
 		fastboot_okay("");
+		ret_value = 0;
+	}
 
-	return;
+	return ret_value;
 }
+

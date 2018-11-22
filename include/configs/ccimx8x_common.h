@@ -23,9 +23,6 @@
 #define CONFIG_SYS_INIT_SP_ADDR		0x80200000
 /* RAM memory reserved for U-Boot, stack, malloc pool... */
 #define CONFIG_UBOOT_RESERVED		(10 * 1024 * 1024)
-/* RAM memory reserved for M4 (empirically determined) */
-#define RESERVED_MEM_START		0xBC000000
-#define RESERVED_MEM_END		0xC3000000
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		((CONFIG_ENV_SIZE + (32*1024)) * 1024)
 /* memtest */
@@ -37,6 +34,9 @@
 #define PHYS_SDRAM_1			0x80000000
 #define PHYS_SDRAM_1_SIZE		(CONFIG_DDR_MB * (unsigned int)SZ_1M)
 #define PHYS_SDRAM			PHYS_SDRAM_1
+/* Address used for update operations */
+#undef CONFIG_DIGI_UPDATE_ADDR
+#define CONFIG_DIGI_UPDATE_ADDR		0x90000000
 
 #define CONFIG_OF_SYSTEM_SETUP
 #define BOOTAUX_RESERVED_MEM_BASE 0x88000000
@@ -52,6 +52,11 @@
 /* Media type for firmware updates */
 #define CONFIG_SYS_STORAGE_MEDIA       "mmc"
 
+/*
+ * Trustfence configs
+ */
+#define CONFIG_MCA_TAMPER
+
 /* MMC Configs */
 #define CONFIG_FSL_ESDHC
 #define CONFIG_FSL_USDHC
@@ -64,8 +69,10 @@
 
 /* MMC device and partition where U-Boot image is */
 #define CONFIG_SYS_BOOT_PART_EMMC	1	/* Boot part 1 on eMMC */
-#define CONFIG_SYS_BOOT_PART_OFFSET	(33 * SZ_1K)
-#define CONFIG_SYS_BOOT_PART_SIZE	(SZ_2M - CONFIG_SYS_BOOT_PART_OFFSET)
+#define CONFIG_SYS_BOOT_PART_OFFSET_A0	(33 * SZ_1K)
+#define CONFIG_SYS_BOOT_PART_SIZE_A0	(SZ_2M - CONFIG_SYS_BOOT_PART_OFFSET_A0)
+#define CONFIG_SYS_BOOT_PART_OFFSET_B0	(32 * SZ_1K)
+#define CONFIG_SYS_BOOT_PART_SIZE_B0	(SZ_2M - CONFIG_SYS_BOOT_PART_OFFSET_B0)
 
 /* Extra network settings for second Ethernet */
 #define CONFIG_EXTRA_NETWORK_SETTINGS \
@@ -174,7 +181,8 @@
 	"part6_uuid=3845c9fc-e581-49f3-999f-86c9bab515ef\0" \
 	"part7_uuid=3fcf7bf1-b6fe-419d-9a14-f87950727bc0\0" \
 	"part8_uuid=12c08a28-fb40-430a-a5bc-7b4f015b0b3c\0" \
-	"part9_uuid=dc83dea8-c467-45dc-84eb-5e913daec17e\0"
+	"part9_uuid=dc83dea8-c467-45dc-84eb-5e913daec17e\0" \
+	"part10_uuid=df0dba76-d5e0-11e8-9f8b-f2801f1b9fd1\0"
 
 #define LINUX_4GB_PARTITION_TABLE \
 	"\"uuid_disk=${uuid_disk};" \

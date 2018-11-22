@@ -55,8 +55,6 @@ extern unsigned int board_id;
 extern void board_spurious_wakeup(void);
 
 struct digi_hwid my_hwid;
-static struct blk_desc *mmc_dev;
-static int mmc_dev_index = -1;
 static int enet_xcv_type;
 
 #define UART_PAD_CTRL  (PAD_CTL_PKE | PAD_CTL_PUE |            \
@@ -659,11 +657,11 @@ static struct addrvalue ddr3_cal_cc6p[NUM_VARIANTS_CC6P + 1][DDR3_CAL_REGS] = {
 static struct ccimx6_variant * get_cc6_variant(u8 variant)
 {
 	if (is_mx6dqp()) {
-		if (variant < 0 || variant > ARRAY_SIZE(ccimx6p_variants))
+		if (variant > ARRAY_SIZE(ccimx6p_variants))
 			return NULL;
 		return &ccimx6p_variants[variant];
 	} else {
-		if (variant < 0 || variant > ARRAY_SIZE(ccimx6_variants))
+		if (variant > ARRAY_SIZE(ccimx6_variants))
 			return NULL;
 		return &ccimx6_variants[variant];
 	}
@@ -676,11 +674,11 @@ static void update_ddr3_calibration(u8 variant)
 	struct addrvalue *ddr3_cal;
 
 	if (is_mx6dqp()) {
-		if (variant <= 0 || variant > ARRAY_SIZE(ddr3_cal_cc6p))
+		if (variant == 0 || variant > ARRAY_SIZE(ddr3_cal_cc6p))
 			return;
 		ddr3_cal = ddr3_cal_cc6p[variant];
 	} else {
-		if (variant <= 0 || variant > ARRAY_SIZE(ddr3_cal_cc6))
+		if (variant == 0 || variant > ARRAY_SIZE(ddr3_cal_cc6))
 			return;
 		ddr3_cal = ddr3_cal_cc6[variant];
 	}
@@ -933,11 +931,6 @@ int board_mmc_init(bd_t *bis)
 		}
 
 	}
-
-	/* Get mmc system device */
-	mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC, mmc_get_bootdevindex());
-	if (NULL == mmc_dev)
-		printf("Warning: failed to get mmc sys storage device\n");
 
 	return 0;
 }
@@ -1295,16 +1288,27 @@ void generate_partition_table(void)
 {
 	struct mmc *mmc = find_mmc_device(0);
 	unsigned int capacity_gb = 0;
+	const char *linux_partition_table;
+	const char *android_partition_table;
 
 	/* Retrieve eMMC size in GiB */
 	if (mmc)
 		capacity_gb = mmc->capacity / SZ_1G;
 
 	/* eMMC capacity is not exact, so asume 8GB if larger than 7GB */
-	if (capacity_gb >= 7)
-		setenv("parts_linux", LINUX_8GB_PARTITION_TABLE);
-	else
-		setenv("parts_linux", LINUX_4GB_PARTITION_TABLE);
+	if (capacity_gb >= 7) {
+		linux_partition_table = LINUX_8GB_PARTITION_TABLE;
+		android_partition_table = ANDROID_8GB_PARTITION_TABLE;
+	} else {
+		linux_partition_table = LINUX_4GB_PARTITION_TABLE;
+		android_partition_table = ANDROID_4GB_PARTITION_TABLE;
+	}
+
+	if (!getenv("parts_linux"))
+		setenv("parts_linux", linux_partition_table);
+
+	if (!getenv("parts_android"))
+		setenv("parts_android", android_partition_table);
 }
 
 void som_default_environment(void)
@@ -1315,7 +1319,6 @@ void som_default_environment(void)
 	char var[10];
 	char var2[10];
 	int i;
-	char *parttable;
 
 #ifdef CONFIG_CMD_MMC
 	/* Set $mmcbootdev to MMC boot device index */
@@ -1336,12 +1339,10 @@ void som_default_environment(void)
 	setenv("module_variant", var);
 
 	/*
-	 * If there is no defined partition table generate one dynamically
+	 * If there are no defined partition tables generate them dynamically
 	 * basing on the available eMMC size.
 	 */
-	parttable = getenv("parts_linux");
-	if (!parttable)
-		generate_partition_table();
+	generate_partition_table();
 }
 
 int ccimx6_late_init(void)
@@ -1375,11 +1376,6 @@ int ccimx6_late_init(void)
 
 	if (board_has_bluetooth())
 		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
-
-#ifdef CONFIG_ANDROID_RECOVERY
-	if (recovery_check_and_clean_flag())
-		setenv("boot_recovery", "yes");
-#endif
 
 #ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
 	gd->flags &= ~GD_FLG_DISABLE_CONSOLE_INPUT;
@@ -1459,165 +1455,6 @@ void print_ccimx6_info(void)
 	if (is_valid_hwid(&my_hwid))
 		printf("%s SOM variant 0x%02X: %s\n", CONFIG_SOM_DESCRIPTION,
 		       my_hwid.variant, cc6_variant->id_string);
-}
-
-static int write_chunk(struct mmc *mmc, otf_data_t *otfd, unsigned int dstblk,
-			unsigned int chunklen)
-{
-	int sectors;
-	unsigned long written, read, verifyaddr;
-
-	printf("\nWriting chunk...");
-	/* Check WP */
-	if (mmc_getwp(mmc) == 1) {
-		printf("[Error]: card is write protected!\n");
-		return -1;
-	}
-
-	/* We can only write whole sectors (multiples of mmc_dev->blksz bytes)
-	 * so we need to check if the chunk is a whole multiple or else add 1
-	 */
-	sectors = chunklen / mmc_dev->blksz;
-	if (chunklen % mmc_dev->blksz)
-		sectors++;
-
-	/* Check if chunk fits */
-	if (sectors + dstblk > otfd->part->start + otfd->part->size) {
-		printf("[Error]: length of data exceeds partition size\n");
-		return -1;
-	}
-
-	/* Write chunklen bytes of chunk to media */
-	debug("writing chunk of 0x%x bytes (0x%x sectors) "
-		"from 0x%lx to block 0x%x\n",
-		chunklen, sectors, otfd->loadaddr, dstblk);
-	written = mmc->block_dev.block_write(mmc_dev, dstblk, sectors,
-					     (const void *)otfd->loadaddr);
-	if (written != sectors) {
-		printf("[Error]: written sectors != sectors to write\n");
-		return -1;
-	}
-	printf("[OK]\n");
-
-	/* Verify written chunk if $loadaddr + chunk size does not overlap
-	 * $verifyaddr (where the read-back copy will be placed)
-	 */
-	verifyaddr = getenv_ulong("verifyaddr", 16, 0);
-	if (otfd->loadaddr + sectors * mmc_dev->blksz < verifyaddr) {
-		/* Read back data... */
-		printf("Reading back chunk...");
-		read = mmc->block_dev.block_read(mmc_dev, dstblk, sectors,
-						 (void *)verifyaddr);
-		if (read != sectors) {
-			printf("[Error]: read sectors != sectors to read\n");
-			return -1;
-		}
-		printf("[OK]\n");
-		/* ...then compare */
-		printf("Verifying chunk...");
-		if (memcmp((const void *)otfd->loadaddr,
-			      (const void *)verifyaddr,
-			      sectors * mmc_dev->blksz)) {
-			printf("[Error]\n");
-			return -1;
-		} else {
-			printf("[OK]\n");
-			return 0;
-		}
-	} else {
-		printf("[Warning]: Cannot verify chunk. "
-			"It overlaps $verifyaddr!\n");
-		return 0;
-	}
-}
-
-/* writes a chunk of data from RAM to main storage media (eMMC) */
-int board_update_chunk(otf_data_t *otfd)
-{
-	static unsigned int chunk_len = 0;
-	static unsigned int dstblk = 0;
-	struct mmc *mmc;
-
-	if (mmc_dev_index == -1)
-		mmc_dev_index = getenv_ulong("mmcdev", 16,
-					     mmc_get_bootdevindex());
-	mmc = find_mmc_device(mmc_dev_index);
-	if (NULL == mmc)
-		return -1;
-
-	/*
-	 * There are two variants:
-	 *  - otfd.buf == NULL
-	 *  	In this case, the data is already waiting on the correct
-	 *  	address in RAM, waiting to be written to the media.
-	 *  - otfd.buf != NULL
-	 *  	In this case, the data is on the buffer and must still be
-	 *  	copied to an address in RAM, before it is written to media.
-	 */
-	if (otfd->buf && otfd->len) {
-		/*
-		 * If data is in the otfd->buf buffer, copy it to the loadaddr
-		 * in RAM until we have a chunk that is at least as large as
-		 * CONFIG_OTF_CHUNK, to write it to media.
-		 */
-		memcpy((void *)(otfd->loadaddr + otfd->offset), otfd->buf,
-		       otfd->len);
-	}
-
-	/* Initialize dstblk and local variables */
-	if (otfd->flags & OTF_FLAG_INIT) {
-		chunk_len = 0;
-		dstblk = otfd->part->start;
-		otfd->flags &= ~OTF_FLAG_INIT;
-	}
-	chunk_len += otfd->len;
-
-	/* The flush flag is set when the download process has finished
-	 * meaning we must write the remaining bytes in RAM to the storage
-	 * media. After this, we must quit the function. */
-	if (otfd->flags & OTF_FLAG_FLUSH) {
-		/* Write chunk with remaining bytes */
-		if (chunk_len) {
-			if (write_chunk(mmc, otfd, dstblk, chunk_len))
-				return -1;
-		}
-		/* Reset all static variables if offset == 0 (starting chunk) */
-		chunk_len = 0;
-		dstblk = 0;
-		return 0;
-	}
-
-	if (chunk_len >= CONFIG_OTF_CHUNK) {
-		unsigned int remaining;
-		/* We have CONFIG_OTF_CHUNK (or more) bytes in RAM.
-		 * Let's proceed to write as many as multiples of blksz
-		 * as possible.
-		 */
-		remaining = chunk_len % mmc_dev->blksz;
-		chunk_len -= remaining;	/* chunk_len is now multiple of blksz */
-
-		if (write_chunk(mmc, otfd, dstblk, chunk_len))
-			return -1;
-
-		/* increment destiny block */
-		dstblk += (chunk_len / mmc_dev->blksz);
-		/* copy excess of bytes from previous chunk to offset 0 */
-		if (remaining) {
-			memcpy((void *)otfd->loadaddr,
-			       (void *)(otfd->loadaddr + chunk_len),
-			       remaining);
-			debug("Copying excess of %d bytes to offset 0\n",
-			      remaining);
-		}
-		/* reset chunk_len to excess of bytes from previous chunk
-		 * (or zero, if that's the case) */
-		chunk_len = remaining;
-	}
-	/* Set otfd offset pointer to offset in RAM where new bytes would
-	 * be written. This offset may be reused by caller */
-	otfd->offset = chunk_len;
-
-	return 0;
 }
 
 int ccimx6_init(void)

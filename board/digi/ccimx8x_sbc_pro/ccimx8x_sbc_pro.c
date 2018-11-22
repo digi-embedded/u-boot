@@ -20,6 +20,8 @@
 #include "../common/carrier_board.h"
 #include "../common/helper.h"
 #include "../common/hwid.h"
+#include "../common/mca_registers.h"
+#include "../common/mca.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -124,11 +126,15 @@ static void enet_device_phy_reset(void)
 
 int board_phy_config(struct phy_device *phydev)
 {
+	/* Set RGMII IO voltage to 1.8V */
 	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x1f);
 	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x8);
 
+	/* Introduce RGMII RX clock delay */
 	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x00);
 	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x82ee);
+
+	/* Introduce RGMII TX clock delay */
 	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x05);
 	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x100);
 
@@ -223,10 +229,29 @@ int board_usb_cleanup(int index, enum usb_init_type init)
 }
 #endif
 
+int board_power_led_init(void)
+{
+	/* MCA_IO13 (bank 1, bit 5) is connected to POWER_LED */
+	int prw_led_gpiobank = 1;
+	int pwr_led_gpiobit = (1 << 5);
+	int ret;
+
+	/* Configure as output */
+	ret = mca_update_bits(MCA_GPIO_DIR_0 + prw_led_gpiobank, pwr_led_gpiobit, pwr_led_gpiobit);
+	if (ret != 0)
+		return ret;
+
+	/* Turn on POWER_LED (high) */
+	ret = mca_update_bits(MCA_GPIO_DATA_0 + prw_led_gpiobank, pwr_led_gpiobit, pwr_led_gpiobit);
+	return ret;
+}
+
 int board_init(void)
 {
 	/* SOM init */
 	ccimx8_init();
+
+	board_power_led_init();
 
 #ifdef CONFIG_MXC_GPIO
 	board_gpio_init();

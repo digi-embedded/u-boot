@@ -957,3 +957,12 @@ void uboot_ubifs_umount(void)
 		ubifs_sb = NULL;
 	}
 }
+
+char *ubifs_mounted_vol_name(void)
+{
+	if (!ubifs_sb)
+		return NULL;
+
+	return (char *)((struct ubifs_info *)(ubifs_sb->s_fs_info))->vi.name;
+}
+

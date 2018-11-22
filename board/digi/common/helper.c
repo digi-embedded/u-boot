@@ -117,7 +117,7 @@ static int write_file_fs_otf(int src, char *filename, char *devpartno)
 	remaining = filesize;
 
 	/* Init otf data */
-	otfd.loadaddr = getenv_ulong("loadaddr", 16, 0);
+	otfd.loadaddr = (void *)getenv_ulong(get_updateaddr_var(), 16, CONFIG_DIGI_UPDATE_ADDR );
 
 	while (remaining > 0) {
 		debug("%lu remaining bytes\n", remaining);
@@ -130,8 +130,9 @@ static int write_file_fs_otf(int src, char *filename, char *devpartno)
 		}
 
 		/* Load 'len' bytes from file[offset] into RAM */
-		sprintf(cmd, "load %s %s $loadaddr %s %x %x", src_strings[src],
-			devpartno, filename, otfd.len, (unsigned int)offset);
+		sprintf(cmd, "load %s %s $%s %s %x %x", src_strings[src],
+			devpartno, get_updateaddr_var(), filename, otfd.len,
+			(unsigned int)offset);
 		if (run_command(cmd, 0)) {
 			printf("Couldn't load file\n");
 			return -1;
@@ -317,6 +318,14 @@ char *get_default_filename(char *partname, int cmd)
 	return NULL;
 }
 
+char *get_updateaddr_var(void)
+{
+	if (getenv("update_addr"))
+		return "update_addr";
+	else
+		return "loadaddr";
+}
+
 int get_default_devpartno(int src, char *devpartno)
 {
 	char *dev, *part;
@@ -371,6 +380,32 @@ bool is_ubi_partition(struct part_info *part)
 	return ret;
 }
 #endif /* CONFIG_DIGI_UBI */
+
+/*
+ * Returns 0 if the file size cannot be obtained.
+ */
+unsigned long get_firmware_size(const struct load_fw *fwinfo) {
+	char cmd[CONFIG_SYS_CBSIZE] = "";
+	unsigned long filesize = 0;
+
+	switch (fwinfo->src) {
+	case SRC_MMC:
+	case SRC_USB:
+	case SRC_SATA:
+		sprintf(cmd, "size %s %s %s", src_strings[fwinfo->src],
+			fwinfo->devpartno, fwinfo->filename);
+
+		if (!run_command(cmd, 0))
+			filesize = getenv_ulong("filesize", 16, 0);
+
+		break;
+	default:
+		/* leave filesize = 0 */
+		break;
+	}
+
+	return filesize;
+}
 
 /* A variable determines if the file must be loaded.
  * The function returns:
@@ -445,7 +480,9 @@ int load_firmware(struct load_fw *fwinfo)
 				"if ubi part %s;then "
 					"if ubifsmount ubi0:%s;then "
 						"ubifsload %s %s;"
+#ifndef CONFIG_MTD_UBI_SKIP_REATTACH
 						"ubifsumount;"
+#endif
 					"fi;"
 				"fi;",
 				fwinfo->part->name, fwinfo->part->name,

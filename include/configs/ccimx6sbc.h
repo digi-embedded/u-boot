@@ -127,7 +127,6 @@
 	"loadinitrd=load mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file}\0" \
 	"loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
 	"uboot_file=u-boot.imx\0" \
-	"parts_android=" ANDROID_DEFAULT_PARTITION_TABLE "\0" \
 	"boot_file=boot.img\0" \
 	"system_file=system.img\0" \
 	"partition_mmc_android=mmc rescan;" \
@@ -141,12 +140,8 @@
 			"else;" \
 			"fi;" \
 		"fi;\0" \
-	"bootargs_android=androidboot.hardware=" CONFIG_SYS_BOARD " " \
-		"mem=" __stringify(CONFIG_DDR_MB) "M\0" \
 	"bootargs_mmc_android=setenv bootargs console=${console},${baudrate} " \
-		"${bootargs_android} androidboot.mmcdev=${mmcbootdev} " \
-		"androidboot.console=${console} " \
-		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
+		"${bootargs_android} " \
 		"${bootargs_once} ${extra_bootargs}\0" \
 	"bootargs_tftp=" \
 		"if test ${ip_dyn} = yes; then " \
@@ -159,9 +154,7 @@
 	"bootargs_tftp_android=run bootargs_tftp;" \
 		"setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_android} root=/dev/nfs " \
-		"androidboot.console=${console} " \
 		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
-		"ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} " \
 		"${bootargs_once} ${extra_bootargs}\0" \
 	"bootargs_nfs_android=run bootargs_tftp_android\0" \
 	"mmcroot=PARTUUID=1c606ef5-f1ac-43b9-9bb5-d5c578580b6b\0" \

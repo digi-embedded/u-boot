@@ -52,6 +52,7 @@ static struct selected_dev ubi_dev;
 #ifdef CONFIG_CMD_UBIFS
 int ubifs_is_mounted(void);
 void cmd_ubifs_umount(void);
+extern char *ubifs_mounted_vol_name(void);
 #endif
 
 static void display_volume_info(struct ubi_device *ubi)
@@ -721,6 +722,18 @@ int ubi_detach(void)
 	return 0;
 }
 
+#ifdef CONFIG_MTD_UBI_SKIP_REATTACH
+int is_ubi_attached(char *part_name)
+{
+	char *vol_name = ubifs_mounted_vol_name();
+
+	if (!vol_name)
+		return 0;
+
+	return !strcmp(part_name, vol_name);
+}
+#endif
+
 int ubi_part(char *part_name, const char *vid_header_offset)
 {
 	int err = 0;
@@ -728,6 +741,11 @@ int ubi_part(char *part_name, const char *vid_header_offset)
 	struct mtd_device *dev;
 	struct part_info *part;
 	u8 pnum;
+
+#ifdef CONFIG_MTD_UBI_SKIP_REATTACH
+	if (is_ubi_attached(part_name))
+		return 0;
+#endif
 
 	ubi_detach();
 	/*

@@ -126,6 +126,7 @@ config TARGET_CCIMX6ULSBC
 	select DM_THERMAL
 	select BOARD_EARLY_INIT_F
 	select MCA
+	select MTD_UBI_SKIP_REATTACH
 
 config TARGET_CCIMX6ULSTARTER
 	bool "Digi ConnectCore 6UL SBC Express"
@@ -136,6 +137,7 @@ config TARGET_CCIMX6ULSTARTER
 	select DM_THERMAL
 	select BOARD_EARLY_INIT_F
 	select MCA
+	select MTD_UBI_SKIP_REATTACH
 
 config TARGET_CGTQMX6EVAL
 	bool "cgtqmx6eval"

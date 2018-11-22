@@ -53,6 +53,7 @@ bool is_image_compressed(void);
 const char *get_source_string(int src);
 int get_fw_filename(int argc, char * const argv[], struct load_fw *fwinfo);
 char *get_default_filename(char *partname, int cmd);
+char *get_updateaddr_var(void);
 #ifdef CONFIG_DIGI_UBI
 bool is_ubi_partition(struct part_info *part);
 #endif
@@ -61,6 +62,7 @@ int confirm_prog(void);
 void fdt_fixup_mac(void *fdt, char *varname, char *node, char *property);
 void fdt_fixup_regulatory(void *fdt);
 void fdt_fixup_uboot_info(void *fdt);
+unsigned long get_firmware_size(const struct load_fw *fwinfo);
 int load_firmware(struct load_fw *fwinfo);
 const char *get_filename_ext(const char *filename);
 void strtohex(char *in, unsigned long *out, int len);
