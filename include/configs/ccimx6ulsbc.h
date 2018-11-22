@@ -105,6 +105,15 @@
 #define CONFIG_FEC_XCV_TYPE             RMII
 #endif
 
+/* Video */
+#ifdef CONFIG_VIDEO
+#define CONFIG_VIDEO_MXS
+#define CONFIG_CMD_BMP
+#define CONFIG_BMP_16BPP
+#define BACKLIGHT_GPIO			(IMX_GPIO_NR(4, 16))
+#define BACKLIGHT_ENABLE_POLARITY	1
+#endif
+
 /* I2C */
 #define CONFIG_SYS_I2C_MXC_I2C1
 #define CONFIG_SYS_I2C_MXC_I2C2
