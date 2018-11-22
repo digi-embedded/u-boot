@@ -73,7 +73,8 @@
 	"mfgtool_args=setenv bootargs console=${console},${baudrate} " \
 		"root=/dev/ram0 rw quiet " \
 		"\0" \
-	"bootcmd_mfg=source ${loadaddr}\0" \
+	"mfgscript_addr=0xb0000000\0" \
+	"bootcmd_mfg=source ${mfgscript_addr}\0" \
 
 /* Initial environment variables */
 #define CONFIG_EXTRA_ENV_SETTINGS		\
