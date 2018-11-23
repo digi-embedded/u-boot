@@ -43,6 +43,7 @@
  */
 #define CONFIG_LOADADDR			0x12000000
 #define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
+#define CONFIG_DIGI_UPDATE_ADDR		CONFIG_LOADADDR
 #define CONFIG_SYS_TEXT_BASE		0x17800000
 /* RAM memory reserved for U-Boot, stack, malloc pool... */
 #define CONFIG_UBOOT_RESERVED		(10 * 1024 * 1024)
