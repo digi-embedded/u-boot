@@ -215,7 +215,7 @@ static int write_file(char *targetfilename, char *targetfs, int part)
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	unsigned long loadaddr, filesize;
 
-	loadaddr = getenv_ulong(get_updateaddr_var(), 16, CONFIG_DIGI_UPDATE_ADDR );
+	loadaddr = getenv_ulong("update_addr", 16, CONFIG_DIGI_UPDATE_ADDR );
 	filesize = getenv_ulong("filesize", 16, 0);
 
 	/* Change to storage device */
@@ -271,7 +271,7 @@ static unsigned int get_available_ram_for_update(void)
 	unsigned int loadaddr;
 	unsigned int la_off;
 
-	loadaddr = getenv_ulong(get_updateaddr_var(), 16, CONFIG_DIGI_UPDATE_ADDR );
+	loadaddr = getenv_ulong("update_addr", 16, CONFIG_DIGI_UPDATE_ADDR );
 	la_off = loadaddr - gd->bd->bi_dram[0].start;
 
 	return (gd->bd->bi_dram[0].size - CONFIG_UBOOT_RESERVED - la_off);
@@ -357,7 +357,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	if (get_source(argc, argv, &fwinfo))
 		return CMD_RET_FAILURE;
 
-	loadaddr = getenv_ulong(get_updateaddr_var(), 16, CONFIG_DIGI_UPDATE_ADDR );
+	loadaddr = getenv_ulong("update_addr", 16, CONFIG_DIGI_UPDATE_ADDR );
 	/* If undefined, calculate 'verifyaddr' */
 	if (NULL == getenv("verifyaddr"))
 		set_verifyaddr(loadaddr);
@@ -403,10 +403,9 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 
 			if (avail <= filesize) {
 				printf("Partition to update is larger (%d MiB) than the\n"
-				       "available RAM memory (%d MiB, starting at $%s=0x%08x).\n",
+				       "available RAM memory (%d MiB, starting at $update_addr=0x%08x).\n",
 				       (int)(info.size * mmc_dev->blksz / (1024 * 1024)),
 				       (int)(avail / (1024 * 1024)),
-				       get_updateaddr_var(),
 				       (unsigned int)loadaddr);
 				printf("Activating On-the-fly update mechanism.\n");
 				otf_enabled = 1;
@@ -443,8 +442,9 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		 * Load firmware file to RAM (this process may write the file
 		 * to the target media if OTF mechanism is enabled).
 		 */
-		sprintf(fwinfo.loadaddr, "$%s", get_updateaddr_var());
+		fwinfo.loadaddr = "$update_addr";
 		ret = load_firmware(&fwinfo);
+
 		if (ret == LDFW_ERROR) {
 			printf("Error loading firmware file to RAM\n");
 			ret = CMD_RET_FAILURE;
@@ -609,7 +609,8 @@ static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 	}
 
 	/* Load firmware file to RAM */
-	sprintf(fwinfo.loadaddr, "$%s", get_updateaddr_var());
+	fwinfo.loadaddr = "$update_addr";
+
 	if (LDFW_ERROR == load_firmware(&fwinfo)) {
 		printf("Error loading firmware file to RAM\n");
 		return CMD_RET_FAILURE;

@@ -117,7 +117,7 @@ static int write_file_fs_otf(int src, char *filename, char *devpartno)
 	remaining = filesize;
 
 	/* Init otf data */
-	otfd.loadaddr = (void *)getenv_ulong(get_updateaddr_var(), 16, CONFIG_DIGI_UPDATE_ADDR );
+	otfd.loadaddr = (void *)getenv_ulong("update_addr", 16, CONFIG_DIGI_UPDATE_ADDR );
 
 	while (remaining > 0) {
 		debug("%lu remaining bytes\n", remaining);
@@ -130,9 +130,8 @@ static int write_file_fs_otf(int src, char *filename, char *devpartno)
 		}
 
 		/* Load 'len' bytes from file[offset] into RAM */
-		sprintf(cmd, "load %s %s $%s %s %x %x", src_strings[src],
-			devpartno, get_updateaddr_var(), filename, otfd.len,
-			(unsigned int)offset);
+		sprintf(cmd, "load %s %s $update_addr %s %x %x", src_strings[src],
+			devpartno, filename, otfd.len, (unsigned int)offset);
 		if (run_command(cmd, 0)) {
 			printf("Couldn't load file\n");
 			return -1;
@@ -316,14 +315,6 @@ char *get_default_filename(char *partname, int cmd)
 	}
 
 	return NULL;
-}
-
-char *get_updateaddr_var(void)
-{
-	if (getenv("update_addr"))
-		return "update_addr";
-	else
-		return "loadaddr";
 }
 
 int get_default_devpartno(int src, char *devpartno)
