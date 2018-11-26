@@ -4,12 +4,28 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2017.03
 -----------
+dub-2017.03-r2.1, released on 2018/11/26
+	- Added support for ConnectCore 8X SBC Pro.
+	- Added support for step B0 of i.MX8QXP on ConnectCore 8X.
+	  WARNING: this U-Boot version is not suitable for ConnectCore 8X
+		   with hardware version <2.
+	- Added support for video on ConnectCore 6UL SBC Pro.
+	- Added support for variant 0x15 of the ConnectCore 6.
+	- Improve boot time of ConnectCore 6UL by reducing the mount/umount
+	  operations of UBIFS.
+	- Added support for Android 8 (Oreo) on ConnectCore 6 family:
+	    - Added support for sparse images.
+	    - Adapted partition table.
+	    - Removed old variables for previous Android versions.
+
+
+
 dub-2017.03-r1.2, released on 2018/09/11
 	- Added support for ConnectCore 8X SBC Express.
-        - Update all previous platforms to v2017.03 BSP from NXP.
-          - ConnectCore 6
-          - ConnectCore 6 Plus
-          - ConnectCore 6UL
+	- Update all previous platforms to v2017.03 BSP from NXP.
+	  - ConnectCore 6
+	  - ConnectCore 6 Plus
+	  - ConnectCore 6UL
 
 
 
@@ -90,8 +106,8 @@ dub-2015.04-r3.1, released on 2016/03/14
 
 
 dub-2015.04-r2.3, released on 2016/02/09
-        - Based on upstream version v2015.04 plus Freescale's tag
-          'rel_imx_3.14.38_6ul_ga'.
+	- Based on upstream version v2015.04 plus Freescale's tag
+	  'rel_imx_3.14.38_6ul_ga'.
 	- Added support for carrier board IDs.
 	- Added warning messages for undefined carrier board version/ID.
 	- Changed Digi version format.
@@ -126,7 +142,7 @@ DUB-2013.04.3.3, released on 2015/09/14
 DUB-2013.04.2.1, released on 2015/08/25
 	- Added support for CC6 variant:
 		0x12 (1P): Consumer quad-core 1.2GHz, 4GB eMMC, 2GB DDR3,
-                           -20/+85C, Wireless, Bluetooth
+			   -20/+85C, Wireless, Bluetooth
 	- Fix default 'bootcmd' to boot Android from uSD card.
 
 
