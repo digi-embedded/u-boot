@@ -130,8 +130,8 @@ static int write_file_fs_otf(int src, char *filename, char *devpartno)
 		}
 
 		/* Load 'len' bytes from file[offset] into RAM */
-		sprintf(cmd, "load %s %s $update_addr %s %x %x", src_strings[src],
-			devpartno, filename, otfd.len, (unsigned int)offset);
+		sprintf(cmd, "load %s %s 0x%p %s %x %x", src_strings[src],
+			devpartno, otfd.loadaddr, filename, otfd.len, (unsigned int)offset);
 		if (run_command(cmd, 0)) {
 			printf("Couldn't load file\n");
 			return -1;
@@ -410,7 +410,7 @@ int load_firmware(struct load_fw *fwinfo)
 	char def_devpartno[] = "0:1";
 	int ret;
 	int fwload = FWLOAD_YES;
-	char *loadaddr;
+	ulong loadaddr;
 
 	/* 'fwinfo->varload' determines if the file must be loaded:
 	 * - yes|NULL: the file must be loaded. Return error otherwise.
@@ -433,16 +433,19 @@ int load_firmware(struct load_fw *fwinfo)
 
 	/*
 	 * Load firmware to fwinfo->loadaddr except if loading a compressed
-	 * image
+	 * image. Skip the leading dollar sign in the strings to obtain the
+	 * value correctly
 	 */
-	loadaddr = fwinfo->compressed ? fwinfo->lzipaddr : fwinfo->loadaddr;
+	loadaddr = fwinfo->compressed ?
+	           getenv_ulong(fwinfo->lzipaddr + 1, 16, CONFIG_DIGI_LZIPADDR) :
+	           getenv_ulong(fwinfo->loadaddr + 1, 16, CONFIG_DIGI_UPDATE_ADDR);
 
 	switch (fwinfo->src) {
 	case SRC_TFTP:
-		sprintf(cmd, "tftpboot %s %s", loadaddr, fwinfo->filename);
+		sprintf(cmd, "tftpboot 0x%lx %s", loadaddr, fwinfo->filename);
 		break;
 	case SRC_NFS:
-		sprintf(cmd, "nfs %s $rootpath/%s", loadaddr, fwinfo->filename);
+		sprintf(cmd, "nfs 0x%lx $rootpath/%s", loadaddr, fwinfo->filename);
 		break;
 	case SRC_MMC:
 	case SRC_USB:
@@ -455,7 +458,7 @@ int load_firmware(struct load_fw *fwinfo)
 		} else
 #endif
 		{
-			sprintf(cmd, "load %s %s %s %s", src_strings[fwinfo->src],
+			sprintf(cmd, "load %s %s 0x%lx %s", src_strings[fwinfo->src],
 				fwinfo->devpartno, loadaddr, fwinfo->filename);
 		}
 		break;
@@ -470,7 +473,7 @@ int load_firmware(struct load_fw *fwinfo)
 			sprintf(cmd,
 				"if ubi part %s;then "
 					"if ubifsmount ubi0:%s;then "
-						"ubifsload %s %s;"
+						"ubifsload 0x%lx %s;"
 #ifndef CONFIG_MTD_UBI_SKIP_REATTACH
 						"ubifsumount;"
 #endif
@@ -481,7 +484,7 @@ int load_firmware(struct load_fw *fwinfo)
 		} else
 #endif
 		{
-			sprintf(cmd, "nand read %s %s %x", fwinfo->part->name,
+			sprintf(cmd, "nand read %s 0x%lx %x", fwinfo->part->name,
 				loadaddr, (u32)fwinfo->part->size);
 		}
 		break;
