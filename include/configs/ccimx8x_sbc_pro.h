@@ -83,7 +83,7 @@
 	CONFIG_EXTRA_NETWORK_SETTINGS		\
 	RANDOM_UUIDS \
 	"dboot_kernel_var=imagegz\0" \
-	"lzipaddr=0x84000000\0" \
+	"lzipaddr=" __stringify(CONFIG_DIGI_LZIPADDR) "\0" \
 	"script=boot.scr\0" \
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
 	"image=Image-" BOARD_DEY_NAME ".bin\0" \
