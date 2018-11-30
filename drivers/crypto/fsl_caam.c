@@ -200,7 +200,8 @@ uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, void *key_modifie
 
 	flush_dcache_range(DMA_ALIGN(plain_data_addr), DMA_ALIGN(plain_data_addr + data_size));
 	flush_dcache_range(DMA_ALIGN(encap_dsc), DMA_ALIGN(encap_dsc + 128));
-	flush_dcache_range(DMA_ALIGN(blob), DMA_ALIGN(g_input_ring + 2 * blob_size));
+	flush_dcache_range(DMA_ALIGN(g_input_ring), DMA_ALIGN(g_input_ring + 128));
+	flush_dcache_range(DMA_ALIGN(blob), DMA_ALIGN(blob + 2 * blob_size));
 	flush_dcache_range(DMA_ALIGN(key_modifier), DMA_ALIGN(key_modifier + 256));
 
 	/* Increment jobs added */
