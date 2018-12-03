@@ -129,4 +129,8 @@ typedef struct global_data {
 #define GD_FLG_ENV_DEFAULT		0x02000 /* Default variable flag	   */
 #define GD_FLG_DISABLE_CONSOLE_OUTPUT	0x04000	/* Disable console (out)	   */
 
+/* Disable console (in & out) */
+#define GD_FLG_DISABLE_CONSOLE		(GD_FLG_DISABLE_CONSOLE_INPUT | \
+					GD_FLG_DISABLE_CONSOLE_OUTPUT)
+
 #endif /* __ASM_GENERIC_GBL_DATA_H */
