@@ -681,22 +681,15 @@ int console_assign(int file, const char *devname)
 	return -1;
 }
 
-static void console_update_silent(void)
-{
-#ifdef CONFIG_SILENT_CONSOLE
-	if (getenv("silent") != NULL)
-		gd->flags |= GD_FLG_SILENT;
-	else
-		gd->flags &= ~GD_FLG_SILENT;
-#endif
-}
-
 /* Called before relocation - use serial functions */
 int console_init_f(void)
 {
 	gd->have_console = 1;
 
-	console_update_silent();
+#ifdef CONFIG_SILENT_CONSOLE
+	if (getenv("silent") != NULL)
+		gd->flags |= GD_FLG_SILENT;
+#endif
 
 	print_pre_console_buffer(PRE_CONSOLE_FLUSHPOINT1_SERIAL);
 
@@ -831,8 +824,6 @@ int console_init_r(void)
 	struct list_head *list = stdio_get_list();
 	struct list_head *pos;
 	struct stdio_dev *dev;
-
-	console_update_silent();
 
 #ifdef CONFIG_SPLASH_SCREEN
 	/*
