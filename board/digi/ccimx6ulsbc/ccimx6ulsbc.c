@@ -15,12 +15,16 @@
 #include <asm/imx-common/iomux-v3.h>
 #include <asm/imx-common/boot_mode.h>
 #include <asm/imx-common/mxc_i2c.h>
+#include <asm/imx-common/video.h>
 #include <asm/io.h>
+#include <bmp_layout.h>
 #include <common.h>
 #include <fsl_esdhc.h>
 #include <i2c.h>
+#include <lcd.h>
 #include <linux/sizes.h>
 #include <linux/fb.h>
+#include <malloc.h>
 #include <miiphy.h>
 #include <mmc.h>
 #include <mxsfb.h>
@@ -34,6 +38,7 @@
 #include "../common/hwid.h"
 #include "../common/mca_registers.h"
 #include "../common/mca.h"
+#include "../common/trustfence.h"
 
 #ifdef CONFIG_POWER
 #include <power/pmic.h>
@@ -80,6 +85,9 @@ unsigned int board_id = CARRIERBOARD_ID_UNDEFINED;
 #define GPI_PAD_CTRL  (PAD_CTL_PKE | PAD_CTL_PUE |            \
 	PAD_CTL_PUS_100K_DOWN | PAD_CTL_SPEED_MED |               \
 	PAD_CTL_DSE_40ohm   | PAD_CTL_SRE_FAST)
+
+#define LCD_PAD_CTRL    (PAD_CTL_HYS | PAD_CTL_PUS_100K_UP | PAD_CTL_PUE | \
+	PAD_CTL_PKE | PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm)
 
 static iomux_v3_cfg_t const uart5_pads[] = {
 	MX6_PAD_UART5_TX_DATA__UART5_DCE_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
@@ -348,6 +356,268 @@ int board_ehci_hcd_init(int port)
 }
 #endif
 
+#ifdef CONFIG_VIDEO_MXS
+
+/* GPIO used to control the display backlight */
+
+static iomux_v3_cfg_t const lcd_pads[] = {
+	MX6_PAD_LCD_CLK__LCDIF_CLK | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_ENABLE__LCDIF_ENABLE | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_HSYNC__LCDIF_HSYNC | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_VSYNC__LCDIF_VSYNC | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA00__LCDIF_DATA00 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA01__LCDIF_DATA01 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA02__LCDIF_DATA02 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA03__LCDIF_DATA03 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA04__LCDIF_DATA04 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA05__LCDIF_DATA05 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA06__LCDIF_DATA06 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA07__LCDIF_DATA07 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA08__LCDIF_DATA08 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA09__LCDIF_DATA09 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA10__LCDIF_DATA10 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA11__LCDIF_DATA11 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA12__LCDIF_DATA12 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA13__LCDIF_DATA13 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA14__LCDIF_DATA14 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA15__LCDIF_DATA15 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA16__LCDIF_DATA16 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA17__LCDIF_DATA17 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA18__LCDIF_DATA18 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA19__LCDIF_DATA19 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA20__LCDIF_DATA20 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA21__LCDIF_DATA21 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA22__LCDIF_DATA22 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_LCD_DATA23__LCDIF_DATA23 | MUX_PAD_CTRL(LCD_PAD_CTRL),
+
+	/* Use GPIO for Brightness adjustment */
+	MX6_PAD_NAND_DQS__GPIO4_IO16 | MUX_PAD_CTRL(NO_PAD_CTRL),
+};
+
+void board_video_bl_enable(bool enable)
+{
+	int polarity = BACKLIGHT_ENABLE_POLARITY;
+
+	/* Control the display backlight through the corresponding gpio */
+	gpio_direction_output(BACKLIGHT_GPIO, enable ? polarity : !polarity);
+}
+
+void do_enable_parallel_lcd(struct display_info_t const *dev)
+{
+	enable_lcdif_clock(dev->bus, 1);
+
+	imx_iomux_v3_setup_multiple_pads(lcd_pads, ARRAY_SIZE(lcd_pads));
+
+	/* Disable the bl until everything is setup */
+	gpio_request(BACKLIGHT_GPIO, "backlight");
+	board_video_bl_enable(false);
+}
+
+static struct display_info_t const displays[] = {
+	{
+		.bus = MX6UL_LCDIF1_BASE_ADDR,
+		.addr = 0,
+		.pixfmt = 18,
+		.detect = NULL,
+		.enable	= do_enable_parallel_lcd,
+		.mode	= {
+			.name		= "G101EVN010",
+			.xres           = 1280,
+			.yres           = 800,
+			.pixclock       = 14507,
+			.left_margin    = 0,
+			.right_margin   = 120,
+			.upper_margin   = 10,
+			.lower_margin   = 0,
+			.hsync_len      = 8,
+			.vsync_len      = 6,
+			.sync           = FB_SYNC_CLK_LAT_FALL | \
+					  FB_SYNC_HOR_HIGH_ACT | \
+					  FB_SYNC_VERT_HIGH_ACT,
+			.vmode          = FB_VMODE_NONINTERLACED
+		}
+	}, {
+		.bus = MX6UL_LCDIF1_BASE_ADDR,
+		.addr = 0,
+		.pixfmt = 18,
+		.detect = NULL,
+		.enable	= do_enable_parallel_lcd,
+		.mode	= {
+			.name		= "F07A0102",
+			.xres           = 800,
+			.yres           = 480,
+			.pixclock       = 30066,
+			.left_margin    = 0,
+			.right_margin   = 50,
+			.upper_margin   = 25,
+			.lower_margin   = 10,
+			.hsync_len      = 128,
+			.vsync_len      = 10,
+			.sync           = FB_SYNC_CLK_LAT_FALL,
+			.vmode          = FB_VMODE_NONINTERLACED
+		}
+	},
+};
+
+int board_video_skip(void)
+{
+	int i;
+	int ret;
+	char const *panel = getenv("panel");
+
+	if (!panel) {
+		panel = displays[0].mode.name;
+		printf("No panel detected: default to %s\n", panel);
+		i = 0;
+	} else {
+		for (i = 0; i < ARRAY_SIZE(displays); i++) {
+			if (!strcmp(panel, displays[i].mode.name))
+				break;
+		}
+	}
+
+	if (i < ARRAY_SIZE(displays)) {
+		ret = mxs_lcd_panel_setup(displays[i].mode, displays[i].pixfmt,
+					  displays[i].bus);
+		if (!ret) {
+			if (displays[i].enable)
+				displays[i].enable(displays+i);
+			printf("Display: %s (%ux%u)\n",
+			       displays[i].mode.name,
+			       displays[i].mode.xres,
+			       displays[i].mode.yres);
+		} else
+			printf("LCD %s cannot be configured: %d\n",
+			       displays[i].mode.name, ret);
+	} else {
+		printf("unsupported panel %s\n", panel);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+/* We do not want any output on the display, just the splash or logo */
+int board_cfb_skip(void)
+{
+	return 1;
+}
+
+static int check_bmp(ulong addr, u32 *width, u32 *height)
+{
+	struct bmp_image *bmp = (struct bmp_image *)addr;
+	void *bmp_alloc_addr = NULL;
+	unsigned long len;
+
+	if (!((bmp->header.signature[0]=='B') &&
+	      (bmp->header.signature[1]=='M')))
+		/* If there is no signature, check for a compressed file */
+		bmp = gunzip_bmp(addr, &len, &bmp_alloc_addr);
+
+	if (bmp == NULL)
+		return 1;
+
+	*width = le32_to_cpu(bmp->header.width);
+	*height = le32_to_cpu(bmp->header.height);
+
+	return 0;
+}
+
+int board_load_logo(void)
+{
+	int ret, argc;
+	struct load_fw fwinfo;
+	char *source[] = {"", "linux", "nand", "", ""};
+	char const *logosrc = getenv("logosrc");
+	char *r = NULL;
+
+	/*
+	 * The variable "logosrc" can be used to change the location of the logo
+	 * to load it, for instance, from the SD card. The syntax for that
+	 * variable is just like the parameter list of the dboot command.
+	 * For instance, to load the logo from a file on the first partition of
+	 * the SD card called "mylogo.bmp", the contents of the variable should
+	 * be: "linux mmc 0 mylogo.bmp".
+	 * If the variable is not declared, the default is to load the file
+	 * "logo.bmp" from the linux partition on the nand.
+	 */
+	if (logosrc) {
+		char *tok, *end;
+
+		argc = 1;
+
+		r = strdup(logosrc);
+		if (!r)
+			return 1;
+
+		tok = r;
+		end = r;
+
+		while (tok != NULL) {
+			strsep(&end, " ");
+			if (argc < ARRAY_SIZE(source))
+				source[argc] = tok;
+			tok = end;
+			argc++;
+		}
+	} else {
+		/* The default logo source uses 3 arguments */
+		argc = 3;
+	}
+
+	memset(&fwinfo, 0, sizeof(fwinfo));
+	if (get_source(argc, source, &fwinfo)) {
+		ret = 1;
+		goto ll_exit;
+	}
+
+	ret = get_fw_filename(argc, source, &fwinfo);
+	if (ret) {
+		/* Filename was not provided. Look for default one */
+		fwinfo.filename = "logo.bmp";
+	}
+
+	fwinfo.loadaddr = "$loadaddr";
+
+	/* Load the bmp in memory */
+	ret = load_firmware(&fwinfo);
+
+ll_exit:
+	free(r);
+	return ret;
+}
+
+int board_display_logo(void)
+{
+	int ret, xpos, ypos;
+	u32 logoheight, logowidth;
+	unsigned long loadaddr;
+	struct display_panel disp;
+
+	/* Get the logo image from the selected media */
+	ret = board_load_logo();
+	if (ret != LDFW_LOADED) {
+		printf("ERR: failed to load logo\n");
+		return ret;
+	}
+
+	/* Check the format and get the size */
+	loadaddr = getenv_ulong("loadaddr", 16, CONFIG_LOADADDR);
+	ret = check_bmp(loadaddr, &logowidth, &logoheight);
+	if (ret) {
+		printf("ERR: invalid logo bmp image\n");
+		return ret;
+	}
+
+	/* Center the image in the display and show it */
+	mxs_lcd_get_panel(&disp);
+	xpos = (disp.width - logowidth) / 2;
+	ypos = (disp.height - logoheight) / 2;
+
+	return bmp_display(loadaddr, xpos, ypos);
+}
+#endif
+
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
 static void setup_iomux_ext_gpios(void)
 {
@@ -441,6 +711,11 @@ int board_late_init(void)
 	platform_default_environment();
 
 	set_wdog_reset((struct wdog_regs *)WDOG1_BASE_ADDR);
+
+#ifdef CONFIG_VIDEO_MXS
+	board_display_logo();
+	board_video_bl_enable(true);
+#endif
 
 	return 0;
 }

@@ -34,6 +34,7 @@
 #include "../common/hwid.h"
 #include "../common/mca_registers.h"
 #include "../common/mca.h"
+#include "../common/trustfence.h"
 
 #ifdef CONFIG_POWER
 #include <power/pmic.h>

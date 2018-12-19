@@ -138,16 +138,6 @@ uint32_t caam_decap_blob(void *plain_text, void *blob_addr, void *key_modifier, 
 	flush_dcache_range(DMA_ALIGN(g_input_ring), DMA_ALIGN(g_input_ring + 128));
 	flush_dcache_range(DMA_ALIGN(key_modifier), DMA_ALIGN(key_modifier  + 256));
 
-	invalidate_dcache_range((uint32_t)decap_dsc & ALIGN_MASK,
-			   ((uint32_t)decap_dsc & ALIGN_MASK) + 128);
-	invalidate_dcache_range((uint32_t)g_input_ring & ALIGN_MASK,
-			   ((uint32_t)g_input_ring & ALIGN_MASK) + 128);
-	invalidate_dcache_range((uint32_t)blob_addr & ALIGN_MASK,
-			   (((uint32_t)blob_addr + 2 * data_size + 64) & ALIGN_MASK));
-	invalidate_dcache_range((uint32_t)plain_text & ALIGN_MASK,
-				(((uint32_t)plain_text + 2 * data_size + 64) & ALIGN_MASK));
-	invalidate_dcache_range((uint32_t)key_modifier & ALIGN_MASK,
-				(((uint32_t)key_modifier + 256) & ALIGN_MASK));
 	/* Increment jobs added */
 	__raw_writel(1, CAAM_IRJAR0);
 
@@ -156,10 +146,7 @@ uint32_t caam_decap_blob(void *plain_text, void *blob_addr, void *key_modifier, 
 		;
 
 	// TODO: check if Secure memory is cacheable.
-	flush_dcache_range((uint32_t)g_output_ring & ALIGN_MASK,
-				((uint32_t)g_output_ring & ALIGN_MASK) + 128);
-	invalidate_dcache_range((uint32_t)g_output_ring & ALIGN_MASK,
-				((uint32_t)g_output_ring & ALIGN_MASK) + 128);
+	flush_dcache_range(DMA_ALIGN(g_output_ring), DMA_ALIGN(g_output_ring + 128));
 	/* check that descriptor address is the one expected in the output ring */
 
 	if (g_output_ring[0] == (uint32_t)decap_dsc) {
@@ -213,11 +200,10 @@ uint32_t caam_gen_blob(void *plain_data_addr, void *blob_addr, void *key_modifie
 
 	flush_dcache_range(DMA_ALIGN(plain_data_addr), DMA_ALIGN(plain_data_addr + data_size));
 	flush_dcache_range(DMA_ALIGN(encap_dsc), DMA_ALIGN(encap_dsc + 128));
-	flush_dcache_range(DMA_ALIGN(blob), DMA_ALIGN(g_input_ring + 2 * blob_size));
+	flush_dcache_range(DMA_ALIGN(g_input_ring), DMA_ALIGN(g_input_ring + 128));
+	flush_dcache_range(DMA_ALIGN(blob), DMA_ALIGN(blob + 2 * blob_size));
 	flush_dcache_range(DMA_ALIGN(key_modifier), DMA_ALIGN(key_modifier + 256));
 
-	invalidate_dcache_range((uint32_t)blob & ALIGN_MASK,
-			   (((uint32_t)blob + 2 * data_size + 64) & ALIGN_MASK));
 	/* Increment jobs added */
 	__raw_writel(1, CAAM_IRJAR0);
 

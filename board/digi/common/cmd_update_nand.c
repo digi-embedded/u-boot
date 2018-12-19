@@ -211,7 +211,7 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	if (get_source(argc, argv, &fwinfo))
 		return CMD_RET_FAILURE;
 
-	loadaddr = getenv_ulong("loadaddr", 16, CONFIG_LOADADDR);
+	loadaddr = getenv_ulong("update_addr", 16, CONFIG_DIGI_UPDATE_ADDR);
 	/* If undefined, calculate 'verifyaddr' */
 	if (NULL == getenv("verifyaddr"))
 		set_verifyaddr(loadaddr);
@@ -295,7 +295,7 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 		 * Load firmware file to RAM (this process may write the file
 		 * to the target media if OTF mechanism is enabled).
 		 */
-		fwinfo.loadaddr = "$loadaddr";
+		fwinfo.loadaddr = "$update_addr";
 		ret = load_firmware(&fwinfo);
 		if (ret == LDFW_ERROR) {
 			printf("Error loading firmware file to RAM\n");

@@ -53,7 +53,6 @@ bool is_image_compressed(void);
 const char *get_source_string(int src);
 int get_fw_filename(int argc, char * const argv[], struct load_fw *fwinfo);
 char *get_default_filename(char *partname, int cmd);
-char *get_updateaddr_var(void);
 #ifdef CONFIG_DIGI_UBI
 bool is_ubi_partition(struct part_info *part);
 #endif

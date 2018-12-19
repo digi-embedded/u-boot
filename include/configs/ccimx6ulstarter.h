@@ -177,6 +177,7 @@
 	"initrd_addr=0x83800000\0" \
 	"initrd_file=uramdisk.img\0" \
 	"initrd_high=0xffffffff\0" \
+	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"recovery_file=recovery.img\0" \
 	"script=boot.scr\0" \

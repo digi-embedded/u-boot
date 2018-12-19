@@ -154,11 +154,6 @@
 		DIGICMD_ARG_TARGETFILE_HELP \
 		DIGICMD_ARG_TARGETFILESYS_HELP
 
-/* Default address for firmware update operations */
-#ifndef CONFIG_DIGI_UPDATE_ADDR
-#define CONFIG_DIGI_UPDATE_ADDR         CONFIG_LOADADDR
-#endif
-
 #ifndef __ASSEMBLY__		/* put C only stuff in this section */
 /* global functions */
 int board_has_emmc(void);

@@ -44,6 +44,7 @@
 #include "../common/carrier_board.h"
 #include "../common/helper.h"
 #include "../common/hwid.h"
+#include "../common/trustfence.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
