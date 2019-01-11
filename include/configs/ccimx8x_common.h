@@ -59,6 +59,10 @@
 #define CONFIG_HAS_TRUSTFENCE
 #define CONFIG_MCA_TAMPER
 
+#define CONFIG_MD5
+#define CONFIG_FSL_CAAM_KB
+#define CONFIG_SYS_FSL_SEC_LE
+
 /* Secure boot configs */
 #define CONFIG_TRUSTFENCE_SRK_BANK			0
 #define CONFIG_TRUSTFENCE_SRK_WORDS			16

@@ -29,6 +29,9 @@
 #endif
 
 #define BLOB_SIZE(x)		((x) + 32 + 16) /* Blob buffer size */
+#if defined(CONFIG_IMX8QXP)
+#define BLOB_OVERHEAD BLOB_SIZE(0)
+#endif
 
 /* Security Engine Block (MS = Most Sig., LS = Least Sig.) */
 #if CONFIG_SYS_FSL_SEC_COMPAT >= 4

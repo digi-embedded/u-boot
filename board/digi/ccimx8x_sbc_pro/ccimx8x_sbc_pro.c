@@ -85,6 +85,11 @@ int board_early_init_f(void)
 
 	setup_iomux_uart();
 
+#if defined(CONFIG_HAS_TRUSTFENCE) && defined(CONFIG_ENV_AES_CAAM_KEY)
+	sc_pm_set_resource_power_mode(-1, SC_R_CAAM_JR3, SC_PM_PW_MODE_ON);
+	sc_pm_set_resource_power_mode(-1, SC_R_CAAM_JR3_OUT, SC_PM_PW_MODE_ON);
+#endif
+
 	return 0;
 }
 

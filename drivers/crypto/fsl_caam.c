@@ -44,8 +44,6 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#define BLOB_SIZE(x)		((x) + 32 + 16) /* Blob buffer size */
-
 static int do_cfg_jrqueue(void);
 static int do_job(u32 *desc);
 #ifndef CONFIG_ARCH_IMX8
@@ -377,6 +375,10 @@ static int do_job(u32 *desc)
 	while (__raw_readl(CAAM_ORSFR3) == 0)
 		;
 #endif
+
+	flush_dcache_range((uintptr_t)g_jrdata.outrings & ALIGN_MASK,
+			   ((uintptr_t)g_jrdata.outrings & ALIGN_MASK)
+			   + ROUND(DESC_MAX_SIZE, ARCH_DMA_MINALIGN));
 
 	if (PTR2CAAMDMA(desc) == g_jrdata.outrings[0].desc) {
 		ret = g_jrdata.outrings[0].status;
