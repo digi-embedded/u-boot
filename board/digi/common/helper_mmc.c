@@ -308,8 +308,6 @@ static uint32_t write_sparse_chunks(otf_data_t *otfd, lbaint_t *dstblk,
 	int offset_within_chunk = 0;
 	otf_sparse_data_t *sp_data = &otfd->sparse_data;
 
-	printf("\nWriting sparse chunks... ");
-
 	/* On the first block, get and save the sparse image header */
 	if (!(otfd->flags & OTF_FLAG_SPARSE_HDR)) {
 		const sparse_header_t *hdr = (sparse_header_t *) otfd->loadaddr;
@@ -328,6 +326,9 @@ static uint32_t write_sparse_chunks(otf_data_t *otfd, lbaint_t *dstblk,
 		debug("total_blks: %d\n", hdr->total_blks);
 		debug("total_chunks: %d\n", hdr->total_chunks);
 	}
+
+	printf("\nWriting sparse chunks (%d/%d)... ", sp_data->current_chunk,
+	       sp_data->hdr.total_chunks);
 
 	/*
 	 * If a raw chunk is in the process of being flashed, deal with that first.
