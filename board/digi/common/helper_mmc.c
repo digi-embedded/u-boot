@@ -621,8 +621,13 @@ int update_chunk(otf_data_t *otfd)
 		return 0;
 	}
 
-	/* Set otfd offset pointer to offset in RAM where new bytes would
-	 * be written. This offset may be reused by caller */
+	/*
+	 * Set otfd offset pointer to offset in RAM where new bytes would
+	 * be written. Data in the interval
+	 * [otfd->loadaddr, otfd->loadaddr + otfd->offset) shall not be
+	 * replaced with new data. The rest of the buffer may be reused
+	 * by the caller
+	 */
 	otfd->offset = chunk_len;
 
 	return 0;

@@ -120,10 +120,12 @@ static int write_file_fs_otf(int src, char *filename, char *devpartno)
 	otfd.loadaddr = (void *)getenv_ulong("update_addr", 16, CONFIG_DIGI_UPDATE_ADDR );
 
 	while (remaining > 0) {
+		unsigned long max_length = CONFIG_OTF_CHUNK - otfd.offset;
+
 		debug("%lu remaining bytes\n", remaining);
 		/* Determine chunk length to write */
-		if (remaining > CONFIG_OTF_CHUNK) {
-			otfd.len = CONFIG_OTF_CHUNK;
+		if (remaining > max_length) {
+			otfd.len = max_length;
 		} else {
 			otfd.flags |= OTF_FLAG_FLUSH;
 			otfd.len = remaining;
@@ -131,7 +133,8 @@ static int write_file_fs_otf(int src, char *filename, char *devpartno)
 
 		/* Load 'len' bytes from file[offset] into RAM */
 		sprintf(cmd, "load %s %s 0x%p %s %x %x", src_strings[src],
-			devpartno, otfd.loadaddr, filename, otfd.len, (unsigned int)offset);
+			devpartno, otfd.loadaddr + otfd.offset, filename,
+			otfd.len, (unsigned int) offset);
 		if (run_command(cmd, 0)) {
 			printf("Couldn't load file\n");
 			return -1;
