@@ -555,7 +555,6 @@ int update_chunk(otf_data_t *otfd)
 		} else
 #endif
 		{
-
 			if (otfd->flags & OTF_FLAG_FLUSH) {
 				/* Write all pending data (this is the last chunk) */
 				remaining = 0;
