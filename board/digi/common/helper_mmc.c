@@ -15,6 +15,8 @@
 #include <malloc.h>
 #include <otf_update.h>
 
+#define ALIGN_SUP(x, a) (((x) + (a - 1)) & ~(a - 1))
+
 extern int mmc_get_bootdevindex(void);
 
 /*
@@ -305,8 +307,8 @@ static uint32_t write_sparse_chunks(otf_data_t *otfd, lbaint_t *dstblk,
 				    unsigned int chunk_len)
 {
 	const unsigned long blksz = otfd->sparse_data.mmc_dev->blksz;
-	int offset_within_chunk = 0;
 	otf_sparse_data_t *sp_data = &otfd->sparse_data;
+	int offset_within_chunk = sp_data->align_offset;
 
 	/* On the first block, get and save the sparse image header */
 	if (!(otfd->flags & OTF_FLAG_SPARSE_HDR)) {
@@ -337,10 +339,11 @@ static uint32_t write_sparse_chunks(otf_data_t *otfd, lbaint_t *dstblk,
 		void *data = otfd->loadaddr + offset_within_chunk;
 		uint32_t bytes_to_write = sp_data->ongoing_bytes -
 					  sp_data->ongoing_bytes_written;
+		uint32_t available = chunk_len - offset_within_chunk;
 
 		/* If there is still more data to come, round to the block size */
-		if (bytes_to_write > chunk_len)
-			bytes_to_write = chunk_len - (chunk_len % blksz);
+		if (bytes_to_write > available)
+			bytes_to_write = available - (available % blksz);
 
 		if (sparse_write_bytes(sp_data, dstblk, data, bytes_to_write))
 			return -1;
@@ -547,11 +550,24 @@ int update_chunk(otf_data_t *otfd)
 
 #ifdef CONFIG_FASTBOOT_FLASH
 		if (otfd->flags & OTF_FLAG_SPARSE) {
+			int align_offset = 0;
 			uint32_t bytes_used = write_sparse_chunks(otfd, &dstblk, chunk_len);
+
 			if (bytes_used == (uint32_t) -1)
 				return -1;
 
 			remaining = chunk_len - bytes_used;
+
+			/*
+			 * Because of a limitation of the 'load' command, we
+			 * need to offset the remaining data so that its end is
+			 * aligned to ARCH_DMA_MINALIGN. Otherwise we get
+			 * warnings when reading the next data from a file.
+			 */
+			align_offset = ALIGN_SUP(remaining, ARCH_DMA_MINALIGN) - remaining;
+			otfd->sparse_data.align_offset = align_offset;
+			remaining += align_offset;
+
 			chunk_len -= remaining;
 		} else
 #endif

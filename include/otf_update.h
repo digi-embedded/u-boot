@@ -27,6 +27,7 @@ typedef struct otf_sparse_data {
 	struct sparse_storage storage_info;	/* for write_sparse_chunk() */
 	int current_chunk;			/* sparse chunk index */
 	struct blk_desc *mmc_dev;		/* blk device to write to */
+	int align_offset;			/* to DMA-align pending data */
 
 	/* status info for the complete sparse image */
 	uint32_t blks_written;			/* blocks written so far */
