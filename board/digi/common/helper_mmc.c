@@ -172,12 +172,16 @@ void media_erase_fskey(uintptr_t addr, uint hwpart)
 		return;
 
 	mmc = find_mmc_device(CONFIG_SYS_MMC_ENV_DEV);
-	if (!mmc)
+	if (!mmc) {
+		free(zero_buf);
 		return;
+	}
 	orig_part = mmc->block_dev.hwpart;
 	if (blk_select_hwpart_devnum(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV,
-				     hwpart))
+				     hwpart)) {
+		free(zero_buf);
 		return;
+	}
 	/*
 	 * Do not use block_erase, it uses different erase ranges
 	 *  and will erase the full environment.
