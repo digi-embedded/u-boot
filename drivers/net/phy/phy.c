@@ -438,7 +438,7 @@ int genphy_startup(struct phy_device *phydev)
 	int ret;
 
 	ret = genphy_update_link(phydev);
-	if (ret)
+	if (ret && ret != -ETIMEDOUT)
 		return ret;
 
 	return genphy_parse_link(phydev);

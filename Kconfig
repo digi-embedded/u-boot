@@ -14,6 +14,45 @@ source "arch/Kconfig"
 
 menu "General setup"
 
+menu "Console settings"
+
+config CONSOLE_DISABLE
+	bool "Disable the console"
+	help
+	  Disables the console in U-Boot, and performs a silent boot into
+	  Linux.
+
+config CONSOLE_ENABLE_GPIO
+	bool "GPIO console enable support"
+	depends on CONSOLE_DISABLE
+	help
+	  Allow to enable the console with a GPIO.
+
+config CONSOLE_ENABLE_GPIO_NR
+	int "Console enable GPIO number"
+	depends on CONSOLE_ENABLE_GPIO
+	help
+	  Use one of the GPIO_N lines available on the board to enable the console port:
+	  GPIO_N lines are available:
+	    On the ConnectCore 6 SBC, on GPIO connector
+	    On the ConnectCore 6UL Starter Board, on Raspberry-Pi expansion connector
+	    On the ConnectCore 6UL SBC, on GPIO connector
+
+config CONSOLE_ENABLE_PASSPHRASE
+	bool "Passphrase console enable support"
+	depends on CONSOLE_DISABLE
+	help
+	  Allow to enable the console with a passphrase.
+
+config CONSOLE_ENABLE_PASSPHRASE_KEY
+	string "Console enable sha256 key"
+	depends on CONSOLE_ENABLE_PASSPHRASE
+	help
+	  This is the 64 digits hex number sha256 hash of the passphrase that
+	  enables the console on boot.
+
+endmenu
+
 config BROKEN
 	bool
 	help

@@ -24,5 +24,7 @@ int fuse_read(u32 bank, u32 word, u32 *val);
 int fuse_sense(u32 bank, u32 word, u32 *val);
 int fuse_prog(u32 bank, u32 word, u32 val);
 int fuse_override(u32 bank, u32 word, u32 val);
+void fuse_allow_prog(bool allow);
+bool fuse_is_prog_allowed(void);
 
 #endif	/* _FUSE_H_ */

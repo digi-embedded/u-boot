@@ -73,6 +73,15 @@ extern void ubi_exit(void);
 extern int ubi_part(char *part_name, const char *vid_header_offset);
 extern int ubi_volume_write(char *volume, void *buf, size_t size);
 extern int ubi_volume_read(char *volume, char *buf, size_t size);
+#ifdef CONFIG_DIGI_UBI
+extern int ubi_volume_verify(char *volume, char *buf, loff_t offset,
+			     size_t size, char skipUpdFlagCheck);
+extern int ubi_volume_get_leb_size(char *volume);
+extern int ubi_volume_off_write(char *volume, void *buf, size_t size,
+				int isFirstPart, int isLastPart);
+extern int ubi_volume_off_write_break(char *volume);
+extern const char *ubi_get_volume_name(int index);
+#endif /* CONFIG_DIGI_UBI */
 
 extern struct ubi_device *ubi_devices[];
 

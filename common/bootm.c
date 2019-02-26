@@ -517,13 +517,78 @@ ulong bootm_disable_interrupts(void)
 
 #if defined(CONFIG_SILENT_CONSOLE) && !defined(CONFIG_SILENT_U_BOOT_ONLY)
 
-#define CONSOLE_ARG     "console="
-#define CONSOLE_ARG_LEN (sizeof(CONSOLE_ARG) - 1)
+#define CONSOLE_ARG		"console="
+#define CONSOLE_INIT_ARG	"CONSOLE=/dev/null"
+
+/*
+ * Modifies the command line to remove all instances of the specified arg
+ */
+static int fixup_remove_args(char *cmdline, const char *arg)
+{
+	char *start;
+	char *arg_name;
+	char *lvalue = strchr(arg, '=');
+	char *buf;
+
+	if (!lvalue)
+		return 0;
+
+	buf = malloc(strlen(cmdline));
+	if (!buf) {
+		printf("%s: out of memory\n", __func__);
+		return -ENOMEM;
+	}
+
+	/* Stay with the variable name only */
+	arg_name = strdup(arg);
+	if (!arg_name) {
+		free(buf);
+		return -ENOMEM;
+	}
+	arg_name[lvalue - arg + 1] = '\0';
+
+	/* Extract the command line before arg */
+	start = strstr(cmdline, arg_name);
+
+	while (start) {
+		int num_start_bytes = start - cmdline;
+		char *end = strchr(start, ' ');
+
+		strncpy(buf, cmdline, num_start_bytes);
+		if (end)
+			strcpy(buf + num_start_bytes, end);
+		else
+			buf[num_start_bytes] = '\0';
+		/* Store the result and look for another instance */
+		strcpy(cmdline, buf);
+		start = strstr(cmdline, arg_name);
+	}
+	free(arg_name);
+	free(buf);
+	return 0;
+}
+
+/*
+ * Modifies the cmdline to contain only the provided name=value variable
+ */
+static int fixup_replace_arg(char *cmdline, char *arg)
+{
+	if (cmdline && (cmdline[0] != '\0')) {
+		int ret;
+
+		ret = fixup_remove_args(cmdline, arg);
+		if (ret)
+			return ret;
+	}
+	strncat(cmdline, " ", strlen(" "));
+	strncat(cmdline, arg, strlen(arg));
+	return 0;
+}
 
 static void fixup_silent_linux(void)
 {
-	char *buf;
 	const char *env_val;
+	char *new_cmdline = NULL;
 	char *cmdline = env_get("bootargs");
 	int want_silent;
 
@@ -540,38 +605,33 @@ static void fixup_silent_linux(void)
 	else if (want_silent == -1 && !(gd->flags & GD_FLG_SILENT))
 		return;
 
-	debug("before silent fix-up: %s\n", cmdline);
-	if (cmdline && (cmdline[0] != '\0')) {
-		char *start = strstr(cmdline, CONSOLE_ARG);
-
-		/* Allocate space for maximum possible new command line */
-		buf = malloc(strlen(cmdline) + 1 + CONSOLE_ARG_LEN + 1);
-		if (!buf) {
-			debug("%s: out of memory\n", __func__);
-			return;
-		}
-
-		if (start) {
-			char *end = strchr(start, ' ');
-			int num_start_bytes = start - cmdline + CONSOLE_ARG_LEN;
-
-			strncpy(buf, cmdline, num_start_bytes);
-			if (end)
-				strcpy(buf + num_start_bytes, end);
-			else
-				buf[num_start_bytes] = '\0';
-		} else {
-			sprintf(buf, "%s %s", cmdline, CONSOLE_ARG);
-		}
-		env_val = buf;
-	} else {
-		buf = NULL;
-		env_val = CONSOLE_ARG;
+	/* Allocate maximum space for the new command line*/
+	new_cmdline = malloc((cmdline ? strlen(cmdline) : 0) +
+			strlen(CONSOLE_ARG) + 1 +
+			strlen(CONSOLE_INIT_ARG) + 1);
+	if (!new_cmdline) {
+		printf("%s: out of memory\n", __func__);
+		return;
 	}
 
+	if (cmdline)
+		strcpy(new_cmdline, cmdline);
+	else
+		new_cmdline[0] = '\0';
+
+	debug("before silent fix-up: %s\n", new_cmdline);
+
+	if (fixup_replace_arg(new_cmdline, CONSOLE_ARG))
+		goto err;
+	if (fixup_replace_arg(new_cmdline, CONSOLE_INIT_ARG))
+		goto err;
+
+	debug("after silent fix-up: %s\n", new_cmdline);
+
+	env_val = new_cmdline;
 	env_set("bootargs", env_val);
-	debug("after silent fix-up: %s\n", env_val);
-	free(buf);
+err:
+	free(new_cmdline);
 }
 #endif /* CONFIG_SILENT_CONSOLE */
 

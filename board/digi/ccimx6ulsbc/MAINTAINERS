@@ -1,0 +1,6 @@
+CCIMX6ULSBC BOARD
+M:	Hector Palacios <hector.palacios@digi.com>
+S:	Supported
+F:	board/digi/ccimx6ulsbc/
+F:	include/configs/ccimx6ulsbc.h
+F:	configs/ccimx6ulsbc_defconfig

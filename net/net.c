@@ -157,6 +157,7 @@ int		net_restart_wrap;
 static int	net_restarted;
 /* At least one device configured */
 static int	net_dev_exists;
+unsigned long	net_start_again_timeout = 10000;
 
 /* XXX in both little & big endian machines 0xFFFF == ntohs(-1) */
 /* default is without VLAN */
@@ -545,9 +546,6 @@ restart:
 #ifdef CONFIG_SHOW_ACTIVITY
 		show_activity(1);
 #endif
-		if (arp_timeout_check() > 0)
-			time_start = get_timer(0);
-
 		/*
 		 *	Check the ethernet for a new packet.  The ethernet
 		 *	receive routine will process it.
@@ -706,7 +704,7 @@ int net_start_again(void)
 	if (net_restart_wrap) {
 		net_restart_wrap = 0;
 		if (net_dev_exists) {
-			net_set_timeout_handler(10000UL,
+			net_set_timeout_handler(net_start_again_timeout,
 						start_again_timeout_handler);
 			net_set_udp_handler(NULL);
 		} else {

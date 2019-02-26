@@ -17,6 +17,18 @@ DECLARE_GLOBAL_DATA_PTR;
 #define FSL_SIP_OTP_READ             0xc200000A
 #define FSL_SIP_OTP_WRITE            0xc200000B
 
+static bool allow_prog = false;
+
+void fuse_allow_prog(bool allow)
+{
+	allow_prog = allow;
+}
+
+bool fuse_is_prog_allowed(void)
+{
+	return allow_prog;
+}
+
 int fuse_read(u32 bank, u32 word, u32 *val)
 {
 	return fuse_sense(bank, word, val);
@@ -52,12 +64,30 @@ int fuse_sense(u32 bank, u32 word, u32 *val)
 
 int fuse_prog(u32 bank, u32 word, u32 val)
 {
+#if CONFIG_MX8_FUSE_PROG
+	sc_err_t err;
+	sc_ipc_t ipc;
+
+	if (!fuse_is_prog_allowed()) {
+		printf("Fuse programming in U-Boot is disabled\n");
+		return -EPERM;
+	}
+
 	if (bank != 0) {
 		printf("Invalid bank argument, ONLY bank 0 is supported\n");
 		return -EINVAL;
 	}
 
-#if defined(CONFIG_SMC_FUSE)
+	ipc = gd->arch.ipc_channel_handle;
+
+	err = sc_misc_otp_fuse_write(ipc, word, val);
+	if (err != SC_ERR_NONE) {
+		printf("fuse write error: %d\n", err);
+		return -EIO;
+	}
+
+	return 0;
+#elif defined(CONFIG_SMC_FUSE)
 	return call_imx_sip(FSL_SIP_OTP_WRITE, (unsigned long)word,\
 		(unsigned long)val, 0, 0);
 #else

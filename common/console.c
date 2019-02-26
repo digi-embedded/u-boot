@@ -715,8 +715,6 @@ static void console_update_silent(void)
 #ifdef CONFIG_SILENT_CONSOLE
 	if (env_get("silent") != NULL)
 		gd->flags |= GD_FLG_SILENT;
-	else
-		gd->flags &= ~GD_FLG_SILENT;
 #endif
 }
 
@@ -873,8 +871,6 @@ int console_init_r(void)
 	struct list_head *list = stdio_get_list();
 	struct list_head *pos;
 	struct stdio_dev *dev;
-
-	console_update_silent();
 
 #ifdef CONFIG_SPLASH_SCREEN
 	/*

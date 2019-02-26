@@ -484,6 +484,7 @@ void mx6_dram_cfg(const struct mx6_ddr_sysinfo *,
 #define MX6_MMDC_P0_MDRWD	0x021b002c
 #define MX6_MMDC_P0_MDOR	0x021b0030
 #define MX6_MMDC_P0_MDASP	0x021b0040
+#define MX6_MMDC_P0_MAARCR	0x021b0400
 #define MX6_MMDC_P0_MAPSR	0x021b0404
 #define MX6_MMDC_P0_MPZQHWCTRL	0x021b0800
 #define MX6_MMDC_P0_MPWLDECTRL0	0x021b080c
@@ -498,7 +499,9 @@ void mx6_dram_cfg(const struct mx6_ddr_sysinfo *,
 #define MX6_MMDC_P0_MPRDDLCTL	0x021b0848
 #define MX6_MMDC_P0_MPWRDLCTL	0x021b0850
 #define MX6_MMDC_P0_MPZQLP2CTL	0x021b085C
+#define MX6_MMDC_P0_MPPDCMPR2	0x021b0890
 #define MX6_MMDC_P0_MPMUR0	0x021b08b8
+#define MX6_MMDC_P0_MPDCCR	0x021b08c0
 
 #define MX6_MMDC_P1_MDCTL	0x021b4000
 #define MX6_MMDC_P1_MDPDC	0x021b4004
@@ -512,6 +515,7 @@ void mx6_dram_cfg(const struct mx6_ddr_sysinfo *,
 #define MX6_MMDC_P1_MDRWD	0x021b402c
 #define MX6_MMDC_P1_MDOR	0x021b4030
 #define MX6_MMDC_P1_MDASP	0x021b4040
+#define MX6_MMDC_P1_MAARCR	0x021b4400
 #define MX6_MMDC_P1_MAPSR	0x021b4404
 #define MX6_MMDC_P1_MPZQHWCTRL	0x021b4800
 #define MX6_MMDC_P1_MPWLDECTRL0	0x021b480c
@@ -526,6 +530,8 @@ void mx6_dram_cfg(const struct mx6_ddr_sysinfo *,
 #define MX6_MMDC_P1_MPRDDLCTL	0x021b4848
 #define MX6_MMDC_P1_MPWRDLCTL	0x021b4850
 #define MX6_MMDC_P1_MPZQLP2CTL	0x021b485C
+#define MX6_MMDC_P1_MPPDCMPR2	0x021b4890
 #define MX6_MMDC_P1_MPMUR0	0x021b48b8
+#define MX6_MMDC_P1_MPDCCR	0x021b48c0
 
 #endif	/*__ASM_ARCH_MX6_DDR_H__ */

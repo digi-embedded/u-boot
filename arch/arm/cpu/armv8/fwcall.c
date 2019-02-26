@@ -132,10 +132,12 @@ int do_poweroff(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 #endif
 
 #ifdef CONFIG_PSCI_RESET
+#ifndef CONFIG_MCA
 void reset_misc(void)
 {
 	psci_system_reset();
 }
+#endif
 
 #ifdef CONFIG_EFI_LOADER
 void __efi_runtime EFIAPI efi_reset_system(

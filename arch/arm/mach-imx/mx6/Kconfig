@@ -166,6 +166,36 @@ config TARGET_ARISTAINETOS2B
 	bool "Support aristainetos2-revB"
 	select BOARD_LATE_INIT
 
+config TARGET_CCIMX6SBC
+	bool "Digi ConnectCore 6 and ConnectCore 6 Plus SBC"
+	select BOARD_LATE_INIT
+	select SUPPORT_SPL
+	select DM
+	select DM_THERMAL
+	select BOARD_EARLY_INIT_F
+
+config TARGET_CCIMX6ULSBC
+	bool "Digi ConnectCore 6UL SBC Pro"
+	select MX6UL
+	select BOARD_LATE_INIT
+	select SUPPORT_SPL
+	select DM
+	select DM_THERMAL
+	select BOARD_EARLY_INIT_F
+	select MCA
+	select MTD_UBI_SKIP_REATTACH
+
+config TARGET_CCIMX6ULSTARTER
+	bool "Digi ConnectCore 6UL SBC Express"
+	select MX6UL
+	select BOARD_LATE_INIT
+	select SUPPORT_SPL
+	select DM
+	select DM_THERMAL
+	select BOARD_EARLY_INIT_F
+	select MCA
+	select MTD_UBI_SKIP_REATTACH
+
 config TARGET_CGTQMX6EVAL
 	bool "cgtqmx6eval"
 	select MX6QDL
@@ -626,6 +656,9 @@ source "board/boundary/nitrogen6x/Kconfig"
 source "board/ccv/xpress/Kconfig"
 source "board/compulab/cm_fx6/Kconfig"
 source "board/congatec/cgtqmx6eval/Kconfig"
+source "board/digi/ccimx6sbc/Kconfig"
+source "board/digi/ccimx6ulsbc/Kconfig"
+source "board/digi/ccimx6ulstarter/Kconfig"
 source "board/dhelectronics/dh_imx6/Kconfig"
 source "board/el/el6x/Kconfig"
 source "board/embest/mx6boards/Kconfig"

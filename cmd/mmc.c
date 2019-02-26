@@ -8,6 +8,7 @@
 #include <common.h>
 #include <command.h>
 #include <console.h>
+#include <memalign.h>
 #include <mmc.h>
 
 static int curr_device = -1;
@@ -797,6 +798,126 @@ static int do_mmc_bkops_enable(cmd_tbl_t *cmdtp, int flag,
 }
 #endif
 
+#ifdef CONFIG_SUPPORT_MMC_ECSD
+static int do_mmcecsd_dump(cmd_tbl_t *cmdtp, int flag,
+                           int argc, char * const argv[])
+{
+        struct mmc *mmc = find_mmc_device(curr_device);
+        int field;
+        int ret;
+        ALLOC_CACHE_ALIGN_BUFFER(u8, ext_csd, 512);
+
+        ret = mmc_send_ext_csd(mmc, ext_csd);
+        if (ret) {
+                printf("Can't access ECSD!\n");
+                return ret;
+        }
+
+        for (field = 0; field < 511; field++)
+                printf("ECSD[%d]: 0x%08x\n", field, ext_csd[field]);
+
+        return 0;
+}
+
+static int do_mmcecsd_read(cmd_tbl_t *cmdtp, int flag,
+                           int argc, char * const argv[])
+{
+        struct mmc *mmc = find_mmc_device(curr_device);
+        int field;
+        int ret;
+        ALLOC_CACHE_ALIGN_BUFFER(u8, ext_csd, 512);
+
+        ret = mmc_send_ext_csd(mmc, ext_csd);
+        if (ret) {
+                printf("Can't access ECSD!\n");
+                return ret;
+        }
+
+        field = simple_strtoul(argv[1], NULL, 16);
+        if (field >=0 && field < 512) {
+                printf("ECSD[%d]: 0x%08x\n", field, ext_csd[field]);
+                return 0;
+        } else {
+                printf("Invalid field offset. Must be within range 0..511\n");
+                return 1;
+        }
+
+        return 0;
+}
+
+static int do_mmcecsd_write(cmd_tbl_t *cmdtp, int flag,
+                            int argc, char * const argv[])
+{
+        struct mmc *mmc = find_mmc_device(curr_device);
+        unsigned int field;
+        unsigned int val;
+        int ret;
+        ALLOC_CACHE_ALIGN_BUFFER(u8, ext_csd, 512);
+
+        field = simple_strtoul(argv[1], NULL, 16);
+        val = simple_strtoul(argv[2], NULL, 16);
+
+        ret = mmc_send_ext_csd(mmc, ext_csd);
+        if (ret) {
+                printf("Can't access ECSD!\n");
+                return ret;
+        }
+
+        /* only modes segment (0..191) can be modified */
+        if (field >=0 && field <= 191) {
+                ret = mmc_switch_any(mmc, field, val);
+                if (ret) {
+                        printf("Can't access ECSD.\n");
+                        return ret;
+                }
+                return 0;
+        } else {
+                printf("Invalid field offset. Must be within range 0..191\n");
+                return 1;
+        }
+
+        return 0;
+}
+
+static cmd_tbl_t cmd_ecsd[] = {
+        U_BOOT_CMD_MKENT(dump, 1, 1, do_mmcecsd_dump, "", ""),
+        U_BOOT_CMD_MKENT(read, 2, 1, do_mmcecsd_read, "", ""),
+        U_BOOT_CMD_MKENT(write, 3, 0, do_mmcecsd_write, "", ""),
+};
+
+static int do_mmcecsd(cmd_tbl_t *cmdtp, int flag,
+                      int argc, char * const argv[])
+{
+        cmd_tbl_t *cp;
+        struct mmc *mmc;
+
+        cp = find_cmd_tbl(argv[1], cmd_ecsd, ARRAY_SIZE(cmd_ecsd));
+        /* Drop the ecsd subcommand */
+        argc--;
+        argv++;
+
+        if (cp == NULL || argc > cp->maxargs)
+                return CMD_RET_USAGE;
+        if (flag == CMD_FLAG_REPEAT && !cp->repeatable)
+                return CMD_RET_SUCCESS;
+
+        mmc = init_mmc_device(curr_device, false);
+        if (!mmc)
+                return CMD_RET_FAILURE;
+
+        if (!(mmc->version & MMC_VERSION_MMC)) {
+                printf("It is not a EMMC device\n");
+                return CMD_RET_FAILURE;
+        }
+        if (mmc->version < MMC_VERSION_4_41) {
+                printf("RPMB not supported before version 4.41\n");
+                return CMD_RET_FAILURE;
+        }
+
+        return cp->cmd(cmdtp, flag, argc, argv);
+}
+#endif /* CONFIG_SUPPORT_MMC_ECSD */
+
 static cmd_tbl_t cmd_mmc[] = {
 	U_BOOT_CMD_MKENT(info, 1, 0, do_mmcinfo, "", ""),
 	U_BOOT_CMD_MKENT(read, 4, 1, do_mmc_read, "", ""),
@@ -823,6 +944,9 @@ static cmd_tbl_t cmd_mmc[] = {
 	U_BOOT_CMD_MKENT(setdsr, 2, 0, do_mmc_setdsr, "", ""),
 #ifdef CONFIG_CMD_BKOPS_ENABLE
 	U_BOOT_CMD_MKENT(bkops-enable, 2, 0, do_mmc_bkops_enable, "", ""),
+#endif
+#ifdef CONFIG_SUPPORT_MMC_ECSD
+        U_BOOT_CMD_MKENT(ecsd, CONFIG_SYS_MAXARGS, 1, do_mmcecsd, "", ""),
 #endif
 };
 
@@ -891,6 +1015,11 @@ U_BOOT_CMD(
 #ifdef CONFIG_CMD_BKOPS_ENABLE
 	"mmc bkops-enable <dev> - enable background operations handshake on device\n"
 	"   WARNING: This is a write-once setting.\n"
+#endif
+#ifdef CONFIG_SUPPORT_MMC_ECSD
+        "mmc ecsd dump - dump ECSD values\n"
+        "mmc ecsd read offset - read ECSD value at offset\n"
+        "mmc ecsd write offset value - write ECSD value at offset\n"
 #endif
 	);
 

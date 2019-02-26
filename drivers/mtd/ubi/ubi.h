@@ -811,6 +811,9 @@ void ubi_free_volume(struct ubi_device *ubi, struct ubi_volume *vol);
 /* upd.c */
 int ubi_start_update(struct ubi_device *ubi, struct ubi_volume *vol,
 		     long long bytes);
+#ifdef CONFIG_DIGI_UBI
+int ubi_break_update(struct ubi_device *ubi, struct ubi_volume *vol);
+#endif
 int ubi_more_update_data(struct ubi_device *ubi, struct ubi_volume *vol,
 			 const void __user *buf, int count);
 int ubi_start_leb_change(struct ubi_device *ubi, struct ubi_volume *vol,

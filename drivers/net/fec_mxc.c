@@ -46,10 +46,6 @@ DECLARE_GLOBAL_DATA_PTR;
 #error "CONFIG_MII has to be defined!"
 #endif
 
-#ifndef CONFIG_FEC_XCV_TYPE
-#define CONFIG_FEC_XCV_TYPE MII100
-#endif
-
 /*
  * The i.MX28 operates with packets in big endian. We need to swap them before
  * sending and after receiving.
@@ -188,6 +184,11 @@ static int fec_phy_write(struct mii_dev *bus, int phyaddr, int dev_addr,
 			 int regaddr, u16 data)
 {
 	return fec_mdio_write(bus->priv, phyaddr, regaddr, data);
+}
+
+static int fec_phy_reset(struct mii_dev *bus)
+{
+	return 0;
 }
 
 #ifndef CONFIG_PHYLIB
@@ -351,7 +352,11 @@ static void fec_rbd_clean(int last, struct fec_bd *prbd)
 
 static int fec_get_hwaddr(int dev_id, unsigned char *mac)
 {
+#ifdef CONFIG_NO_MAC_FROM_OTP
+	memset(mac, 0, 6);
+#else
 	imx_get_mac_from_fuse(dev_id, mac);
+#endif
 	return !is_valid_ethaddr(mac);
 }
 
@@ -1012,6 +1017,11 @@ static void fec_free_descs(struct fec_priv *fec)
 	free(fec->tbd_base);
 }
 
+int __weak board_get_enet_xcv_type(void)
+{
+	return MII100;
+}
+
 struct mii_dev *fec_get_miibus(ulong base_addr, int dev_id)
 {
 	struct ethernet_regs *eth = (struct ethernet_regs *)base_addr;
@@ -1025,6 +1035,7 @@ struct mii_dev *fec_get_miibus(ulong base_addr, int dev_id)
 	}
 	bus->read = fec_phy_read;
 	bus->write = fec_phy_write;
+	bus->reset = fec_phy_reset;
 	bus->priv = eth;
 	fec_set_dev_name(bus->name, dev_id);
 
@@ -1090,7 +1101,11 @@ static int fec_probe(bd_t *bd, int dev_id, uint32_t base_addr,
 	fec->eth = (struct ethernet_regs *)(ulong)base_addr;
 	fec->bd = bd;
 
+#ifdef CONFIG_FEC_XCV_TYPE
 	fec->xcv_type = CONFIG_FEC_XCV_TYPE;
+#else
+	fec->xcv_type = board_get_enet_xcv_type();
+#endif
 
 	/* Reset chip. */
 	writel(readl(&fec->eth->ecntrl) | FEC_ECNTRL_RESET, &fec->eth->ecntrl);
@@ -1192,13 +1207,16 @@ int fecmxc_initialize_multi(bd_t *bd, int dev_id, int phy_id, uint32_t addr)
 	return ret;
 }
 
-#ifdef CONFIG_FEC_MXC_PHYADDR
 int fecmxc_initialize(bd_t *bd)
 {
+#ifdef CONFIG_FEC_MXC_PHYADDR
 	return fecmxc_initialize_multi(bd, -1, CONFIG_FEC_MXC_PHYADDR,
 			IMX_FEC_BASE);
-}
+#else
+	return fecmxc_initialize_multi(bd, -1, board_get_enet_phy_addr(),
+			IMX_FEC_BASE);
 #endif
+}
 
 #ifndef CONFIG_PHYLIB
 int fecmxc_register_mii_postcall(struct eth_device *dev, int (*cb)(int))
@@ -1242,7 +1260,7 @@ static int fec_phy_init(struct fec_priv *priv, struct udevice *dev)
 	struct phy_device *phydev;
 	int mask = 0xffffffff;
 
-#ifdef CONFIG_PHYLIB
+#if defined(CONFIG_PHYLIB) && defined(CONFIG_FEC_MXC_PHYADDR)
 	mask = 1 << CONFIG_FEC_MXC_PHYADDR;
 #endif
 

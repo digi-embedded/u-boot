@@ -24,6 +24,14 @@
 int board_eth_init(bd_t *bis);
 int cpu_eth_init(bd_t *bis);
 
+/* Board functions to determine PHY transceiver type and address */
+#ifndef CONFIG_FEC_XCV_TYPE
+int board_get_enet_xcv_type(void);
+#endif
+#ifndef CONFIG_FEC_MXC_PHYADDR
+int board_get_enet_phy_addr(void);
+#endif
+
 /* Driver initialization prototypes */
 int at91emac_register(bd_t *bis, unsigned long iobase);
 int au1x00_enet_initialize(bd_t*);

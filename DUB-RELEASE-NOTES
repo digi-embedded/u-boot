@@ -1,0 +1,225 @@
+-------------------------
+Digi U-Boot RELEASE NOTES
+-------------------------
+
+DUB-2017.03
+-----------
+dub-2017.03-r2.3, released on 2018/12/03
+	- Added support for ConnectCore 8X SBC Pro.
+	- Added support for step B0 of i.MX8QXP on ConnectCore 8X.
+	  WARNING: this U-Boot version is not suitable for ConnectCore 8X
+		   with hardware version <2.
+	- Added support for video on ConnectCore 6UL SBC Pro.
+	- Added support for variant 0x15 of the ConnectCore 6.
+	- Improve boot time of ConnectCore 6UL by reducing the mount/umount
+	  operations of UBIFS.
+	- Fixed TrustFence environment decryption and silent console support.
+	- Added support for Android 8 (Oreo) on ConnectCore 6 family:
+	    - Added support for sparse images.
+	    - Adapted partition table.
+	    - Removed old variables for previous Android versions.
+
+
+
+dub-2017.03-r1.2, released on 2018/09/11
+	- Added support for ConnectCore 8X SBC Express.
+	- Update all previous platforms to v2017.03 BSP from NXP.
+	  - ConnectCore 6
+	  - ConnectCore 6 Plus
+	  - ConnectCore 6UL
+
+
+
+DUB-2015.04
+-----------
+dub-2015.04-r12.1, released on 2018/02/22
+	- Fixed bug in U-Boot programming for certain CC6UL NAND chips.
+
+
+dub-2015.04-r11.1, released on 2018/01/19
+	- Added support for Winbond W29N08GVBIAA 1GiB NAND for CC6UL.
+	- Resize 'rootfs' and 'update' partitions to 1.5 GiB for CC6 on variants
+	  with 4GiB eMMC.
+	- Default to using zImage on CC6.
+
+
+dub-2015.04-r10.2, released on 2017/11/29
+	- Added support for ConnectCore 6 Plus.
+
+
+dub-2015.04-r9.2, released on 2017/07/19
+	- Added support for CC6UL variant 0x04.
+	- Added support for CC6 variant 0x14.
+	- Added dynamic environment location and bad block
+	  handling for the environment.
+	- TrustFence: moved RootFS encryption key to 'safe'
+	  partition.
+	- Added support for four tamper interfaces.
+	- Disable external memory boot in OTP for secure boot.
+	- Skip initial scanning of bad blocks for faster boot.
+
+
+dub-2015.04-r8.3, released on 2017/04/21
+	- Added preliminary support for CC6UL variant 0x04.
+	- Switch off CC6 PCIe power.
+	- Fix for compiling with newer gcc versions.
+	- Fix clock management on dek_blob command.
+	- Increment polling timeout in eSDHC controller.
+
+
+dub-2015.04-r7.1, released on 2017/01/19
+	- Adjust CC6UL default NAND partition table.
+	- Fixes in recovery boot mode.
+	- Fix occasional problem reading UBIFS superblock.
+
+
+dub-2015.04-r6.1, released on 2016/12/02
+	- Add MTD partitions to all kernel cmdline.
+	- Fix 'recovery boot' when requested from the operating system
+	  (for example with Android's 'reboot recovery' command).
+	- Fix reported temperature value when below 0ºC
+
+
+dub-2015.04-r5.4, released on 2016/11/14
+	- Fix occasional problems mounting UBIFS file systems.
+	- TrustFence: add support for authentication/decryption of DTB,
+	  initramfs rootfs, and U-Boot scripts.
+	- Added support for encrypted partition recognition.
+	- Top limit reserved blocks for bad block handling in MTD partitions.
+	- Adjust values of regulators for reducing power consumption.
+	- Added support for tamper detection.
+
+
+dub-2015.04-r4.7, released on 2016/09/13
+	- Fix reading of board version/ID on ConnectCore 6UL Starter Board.
+
+
+dub-2015.04-r4.5, released on 2016/08/10
+	- Added support for ConnectCore 6UL SOM on Starter Board.
+	- Based on upstream version v2015.04 plus NXP release tag
+	  'rel_imx_4.1.15_1.0.0_ga'.
+	- Added TrustFence (TM) support.
+
+
+dub-2015.04-r3.1, released on 2016/03/14
+	- Fixed TFTP on-the-fly updates for files with the exact
+	  same size that the target partition.
+
+
+dub-2015.04-r2.3, released on 2016/02/09
+	- Based on upstream version v2015.04 plus Freescale's tag
+	  'rel_imx_3.14.38_6ul_ga'.
+	- Added support for carrier board IDs.
+	- Added warning messages for undefined carrier board version/ID.
+	- Changed Digi version format.
+	- Reconfigure ISS lines as GPIOs to prevent audio codec from
+	  powering up from these lines.
+	- Added 'askenv' support.
+	- Added install firmware scripts to install Linux/Android from
+	  micro SD card.
+	- Added on-the-fly update support from file system.
+	- Added generic file system support.
+
+
+
+DUB-2013.04
+-----------
+DUB-2013.04.5.2, released on 2015/12/17
+	- Added support and DDR3 calibration for variant 0x13.
+	- Fixed erase operation for eMMC.
+
+
+DUB-2013.04.4.2, released on 2015/11/03
+	- Force all PMIC's bucks to operate in synchronous mode (PWM).
+	- Added DDR3 calibration data for variant 0x0E.
+	- Fixed temperature range description on variants 0x02 and 0x12.
+
+
+DUB-2013.04.3.3, released on 2015/09/14
+	- Added support for Android factory reset.
+	- Fixed spurious wake-ups from power-down on certain CC6 variants.
+
+
+DUB-2013.04.2.1, released on 2015/08/25
+	- Added support for CC6 variant:
+		0x12 (1P): Consumer quad-core 1.2GHz, 4GB eMMC, 2GB DDR3,
+			   -20/+85C, Wireless, Bluetooth
+	- Fix default 'bootcmd' to boot Android from uSD card.
+
+
+DUB-2013.04.1.2, released on 2015/08/17
+	- Fix default 'bootcmd' to boot Android from uSD card.
+	- Added support for variants 0x07, 0x09, 0x0C, 0x0D, 0x0E, 0x0F, 0x10,
+	  and 0x11.
+	- Added support to 'update' command to write to uSD card.
+	- Added subcommand 'dump' for 'pmic' command.
+	- Added support to 'bmode' command.
+	- Allow to update partitions by index apart from name.
+	- Remove unused boot scripts inherited from Freescale platforms.
+	- Print warning message if MACs unset or set to default values.
+	- Add static $ipaddr to bootargs when $ip_dyn != yes.
+
+
+DUB-2013.04.0.2, released on 2015/04/27
+	- Added support for DualLite CC6 variants.
+	- Enabled L2 cache.
+	- Fix dcache problem in mmc driver.
+	- Added 'pmic' command to read/write PMIC registers.
+	- Rewrite DDR3 calibration values on early board setup.
+
+
+DUB-2013.04.0.1, released on 2015/01/09
+	- Change Digi version string to follow upstream U-Boot major/minor
+	  version numbers. The two last numbers are feature/patch version
+	  and build version.
+	- Removed support for ConnectCore 6 Adapter platform (ccimx6adpt).
+	- Removed $video_args variable, no longer used.
+	- Added support for LDO bypass mode.
+	- Added support to update firmware from RAM.
+
+
+v2013.04 - DUB-2.3.0.3, released on 2014/09/09
+	- Add DDR3 calibration values for cavity-less module.
+	- Added CONFIG_BOOT_TEMP_BELOW_MAX to establish celsius degrees
+	  below CPU's max die temp at which boot should be attempted
+	  (defaults to 10C).
+	- Variable 'phy_mode' allows you to force the PHY to work as MASTER
+	  during master/slave negotiation, which may speed up the
+	  autonegotiation with Gigabit switches.
+	- Disable automatic TFTP bootscript download by clearing the
+	  'bootscript' variable to avoid long PHY autonegotiation time
+	  during boot.
+	- Abort OTF update operation on chunk write failure.
+	- Added support for carrier board version in OTP bits.
+	- Disable power on audio codec on SBC v2 carrier board.
+	- Update HWID format and add manufacturing commands.
+
+
+v2013.04 - DUB-2.2.1.2, released on 2014/06/20
+	- Added support for ConnectCore 6 SBC platform (ccimx6sbc).
+	- Fixed TFTP on-the-fly update mechanism.
+	- Added 'updatefile' command to update files into FAT partitions.
+	- Added verification step to 'update' command.
+	- Changed default firmware file names to match Yocto's default
+	  build artifact filenames.
+	- Fixup FDT with HWID information
+	- Pass MAC addresses in cmdline to Android
+	- Protect MAC addresses from being reset by 'env default' command
+	  unless -f (forced) option passed.
+
+
+v2013.04 - DUB-2.1.1.2, released on 2014/04/09
+	- Disabled on-the-fly update from MMC which was wrong.
+	- Disable L2 cache which was causing occasional hangs.
+	- Select between Gigabit and 10/100 ethernet using
+	  'ENET' env variable.
+
+
+v2013.04 - DUB-2.1.0.3, released on 2014/03/27
+	- Initial release for ccimx6adpt, including:
+		- 'dboot' command
+		- 'update' command
+		- On-the-fly update from TFTP/MMC
+		- Auto bootscript from TFTP
+		- OCOTP support via 'fuse' command
+	- Dual Boot yet unsupported

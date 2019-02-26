@@ -164,6 +164,34 @@ int ubi_start_update(struct ubi_device *ubi, struct ubi_volume *vol,
 }
 
 /**
+ * ubi_break_update - break UBI update
+ * @ubi: UBI device description object
+ * @vol: volume description object
+ *
+ * This function breaks the UBI update process, and frees the
+ * allocated memory.
+ * Returns zero in case of success and a negative error code
+ * in case of failure.
+ */
+# ifdef CONFIG_CMD_BSP
+int ubi_break_update(struct ubi_device *ubi, struct ubi_volume *vol)
+{
+	int err = 0;
+
+	if (vol->updating)
+	{
+		err = ubi_wl_flush(ubi);
+		if (err == 0) {
+			vol->updating = 0;
+			vfree(vol->upd_buf);
+		}
+	}
+
+	return err;
+}
+#endif /* CONFIG_CMD_BSP */
+
+/**
  * ubi_start_leb_change - start atomic LEB change.
  * @ubi: UBI device description object
  * @vol: volume description object

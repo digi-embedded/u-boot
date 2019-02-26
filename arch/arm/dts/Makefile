@@ -408,6 +408,7 @@ dtb-$(CONFIG_MX6) += imx6ul-14x14-ddr3-arm2.dtb \
 	imx6sll-lpddr3-arm2.dtb \
 	imx6sll-lpddr3-arm2-ecspi.dtb \
 	imx6dl-arm2.dtb \
+	imx6dl-ccimx6sbc.dtb \
 	imx6dl-icore.dtb \
 	imx6dl-icore-mipi.dtb \
 	imx6dl-icore-rqs.dtb \
@@ -416,6 +417,7 @@ dtb-$(CONFIG_MX6) += imx6ul-14x14-ddr3-arm2.dtb \
 	imx6dl-sabreauto-gpmi-weim.dtb \
 	imx6dl-sabresd.dtb \
 	imx6q-arm2.dtb \
+	imx6q-ccimx6sbc.dtb \
 	imx6q-pop-arm2.dtb \
 	imx6q-cm-fx6.dtb \
 	imx6q-icore.dtb \
@@ -425,6 +427,7 @@ dtb-$(CONFIG_MX6) += imx6ul-14x14-ddr3-arm2.dtb \
 	imx6q-sabreauto.dtb \
 	imx6q-sabreauto-ecspi.dtb \
 	imx6q-sabreauto-gpmi-weim.dtb \
+	imx6qp-ccimx6qpsbc.dtb \
 	imx6qp-sabreauto.dtb \
 	imx6qp-sabreauto-ecspi.dtb \
 	imx6qp-sabreauto-gpmi-weim.dtb \
@@ -436,6 +439,8 @@ dtb-$(CONFIG_MX6) += imx6ul-14x14-ddr3-arm2.dtb \
 	imx6sx-19x19-arm2-gpmi-weim.dtb \
 	imx6sx-sabreauto.dtb \
 	imx6sx-sdb.dtb \
+	imx6ul-ccimx6ulsbc.dtb \
+	imx6ul-ccimx6ulstarter.dtb \
 	imx6ul-geam-kit.dtb \
 	imx6ul-isiot-emmc.dtb \
 	imx6ul-isiot-nand.dtb \
@@ -476,7 +481,9 @@ dtb-$(CONFIG_ARCH_IMX8) += fsl-imx8dx-ddr3-arm2.dtb \
 		fsl-imx8qm-mek.dtb \
 		fsl-imx8qm-mek-xen.dtb \
 		fsl-imx8qxp-lpddr4-arm2.dtb \
-		fsl-imx8qxp-mek.dtb
+		fsl-imx8qxp-mek.dtb \
+		ccimx8x-sbc-express.dtb \
+		ccimx8x-sbc-pro.dtb
 
 dtb-$(CONFIG_RCAR_GEN3) += \
 	r8a7795-h3ulcb.dtb \

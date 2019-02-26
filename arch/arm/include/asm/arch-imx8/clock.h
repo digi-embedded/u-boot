@@ -13,7 +13,10 @@ enum mxc_clock {
 	MXC_ARM_CLK = 0,
 	MXC_AHB_CLK,
 	MXC_IPG_CLK,
-	MXC_UART_CLK,
+	MXC_UART0_CLK,
+	MXC_UART1_CLK,
+	MXC_UART2_CLK,
+	MXC_UART3_CLK,
 	MXC_FSPI_CLK,
 	MXC_AXI_CLK,
 	MXC_DDR_CLK,
@@ -25,7 +28,7 @@ enum mxc_clock {
 };
 
 u32 mxc_get_clock(enum mxc_clock clk);
-u32 get_lpuart_clk(void);
+u32 get_lpuart_clk(u64 reg);
 int enable_i2c_clk(unsigned char enable, unsigned i2c_num);
 u32 imx_get_i2cclk(unsigned i2c_num);
 void enable_usboh3_clk(unsigned char enable);
