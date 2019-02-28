@@ -219,6 +219,51 @@
 	"name=data,size=-,uuid=${part7_uuid};" \
 	"\""
 
+#define ANDROID_4GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=boot,size=32MiB,uuid=${part1_uuid};" \
+	"name=recovery,size=32MiB,uuid=${part2_uuid};" \
+	"name=system,size=1024MiB,uuid=${part3_uuid};" \
+	"name=cache,size=1024MiB,uuid=${part4_uuid};" \
+	"name=vendor,size=112MiB,uuid=${part5_uuid};" \
+	"name=datafooter,size=16MiB,uuid=${part6_uuid};" \
+	"name=safe,size=16MiB,uuid=${part7_uuid};" \
+	"name=frp,size=1MiB,uuid=${part8_uuid};" \
+	"name=metadata,size=16MiB,uuid=${part9_uuid};" \
+	"name=userdata,size=-,uuid=${part10_uuid};" \
+	"\""
+
+#define ANDROID_8GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=boot,size=32MiB,uuid=${part1_uuid};" \
+	"name=recovery,size=32MiB,uuid=${part2_uuid};" \
+	"name=system,size=2GiB,uuid=${part3_uuid};" \
+	"name=cache,size=2GiB,uuid=${part4_uuid};" \
+	"name=vendor,size=112MiB,uuid=${part5_uuid};" \
+	"name=datafooter,size=16MiB,uuid=${part6_uuid};" \
+	"name=safe,size=16MiB,uuid=${part7_uuid};" \
+	"name=frp,size=1MiB,uuid=${part8_uuid};" \
+	"name=metadata,size=16MiB,uuid=${part9_uuid};" \
+	"name=userdata,size=-,uuid=${part10_uuid};" \
+	"\""
+
+#define ANDROID_16GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=boot,size=32MiB,uuid=${part1_uuid};" \
+	"name=recovery,size=32MiB,uuid=${part2_uuid};" \
+	"name=system,size=2GiB,uuid=${part3_uuid};" \
+	"name=cache,size=2GiB,uuid=${part4_uuid};" \
+	"name=vendor,size=112MiB,uuid=${part5_uuid};" \
+	"name=datafooter,size=16MiB,uuid=${part6_uuid};" \
+	"name=safe,size=16MiB,uuid=${part7_uuid};" \
+	"name=frp,size=1MiB,uuid=${part8_uuid};" \
+	"name=metadata,size=16MiB,uuid=${part9_uuid};" \
+	"name=userdata,size=-,uuid=${part10_uuid};" \
+	"\""
+
 /* Partition defines */
 #define CONFIG_RECOVERY_PARTITION	"2"
 
