@@ -102,6 +102,8 @@
 			"\\${gatewayip}:\\${netmask}:\\${hostname}:" \
 			"eth0:off\";" \
 		"fi;\0" \
+	"bootargs_mmc_android=setenv bootargs console=${console},${baudrate} " \
+		"${bootargs_android} ${bootargs_once} ${extra_bootargs}\0" \
 	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} root=${mmcroot} rootwait rw " \
 		"${bootargs_once} ${extra_bootargs}\0" \
@@ -117,6 +119,17 @@
 	"loadbootscript=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
 	"loadimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
 	"loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
+	"partition_mmc_android=mmc rescan;" \
+		"if mmc dev ${mmcdev} 0; then " \
+			"gpt write mmc ${mmcdev} ${parts_android};" \
+			"mmc rescan;" \
+		"else " \
+			"if mmc dev ${mmcdev}; then " \
+				"gpt write mmc ${mmcdev} ${parts_android};" \
+				"mmc rescan;" \
+			"else;" \
+			"fi;" \
+		"fi;\0" \
 	"partition_mmc_linux=mmc rescan;" \
 		"if mmc dev ${mmcdev} 0; then " \
 			"gpt write mmc ${mmcdev} ${parts_linux};" \
