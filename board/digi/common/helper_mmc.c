@@ -25,13 +25,9 @@ extern int mmc_get_bootdevindex(void);
 size_t media_get_block_size(void)
 {
 	size_t block_size = 0;
-	struct mmc *mmc;
 	static struct blk_desc *mmc_dev;
 
-	mmc = find_mmc_device(CONFIG_SYS_MMC_ENV_DEV);
-	if (!mmc)
-		return block_size;
-	mmc_dev = mmc_get_blk_desc(mmc);
+	mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV);
 	if (!mmc_dev)
 		return block_size;
 
@@ -86,7 +82,6 @@ int media_read_block(uintptr_t addr, unsigned char *readbuf, uint hwpart)
 	size_t len;
 	size_t nbytes;
 	int ret = -1;
-	struct mmc *mmc;
 	static struct blk_desc *mmc_dev;
 	uint orig_part;
 	void *loadaddr = (void *) env_get_ulong("loadaddr", 16, load_addr);
@@ -95,16 +90,12 @@ int media_read_block(uintptr_t addr, unsigned char *readbuf, uint hwpart)
 	if (len <= 0)
 		return ret;
 
-	mmc = find_mmc_device(CONFIG_SYS_MMC_ENV_DEV);
-	if (!mmc)
-		return ret;
-	mmc_dev = mmc_get_blk_desc(mmc);
+	mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV);
 	if (!mmc_dev)
 		return ret;
 
 	orig_part = mmc_dev->hwpart;
-	if (blk_select_hwpart_devnum(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV,
-				     hwpart))
+	if (blk_dselect_hwpart(mmc_dev, hwpart))
 		return ret;
 
 	nbytes = blk_dread(mmc_dev, addr, 1, loadaddr);
@@ -112,8 +103,7 @@ int media_read_block(uintptr_t addr, unsigned char *readbuf, uint hwpart)
 		memcpy(readbuf, loadaddr, len);
 		ret = 0;
 	}
-	blk_select_hwpart_devnum(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV,
-				 orig_part);
+	blk_dselect_hwpart(mmc_dev, orig_part);
 	return ret;
 }
 
@@ -132,7 +122,6 @@ int media_write_block(uintptr_t addr, unsigned char *writebuf, uint hwpart)
 {
 	size_t len;
 	int ret = -1;
-	struct mmc *mmc;
 	static struct blk_desc *mmc_dev;
 	unsigned long written;
 	uint orig_part;
@@ -141,24 +130,19 @@ int media_write_block(uintptr_t addr, unsigned char *writebuf, uint hwpart)
 	if (len <= 0)
 		return ret;
 
-	mmc = find_mmc_device(CONFIG_SYS_MMC_ENV_DEV);
-	if (!mmc)
-		return ret;
-	mmc_dev = mmc_get_blk_desc(mmc);
+	mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV);
 	if (!mmc_dev)
 		return ret;
 
 	orig_part = mmc_dev->hwpart;
-	if (blk_select_hwpart_devnum(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV,
-				     hwpart))
+	if (blk_dselect_hwpart(mmc_dev, hwpart))
 		return ret;
 
 	written = blk_dwrite(mmc_dev, addr, 1, writebuf);
 	if (written == 1)
 		ret = 0;
 
-	blk_select_hwpart_devnum(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV,
-				 orig_part);
+	blk_dselect_hwpart(mmc_dev, orig_part);
 	return ret;
 }
 
@@ -185,14 +169,13 @@ void media_erase_fskey(uintptr_t addr, uint hwpart)
 		free(zero_buf);
 		return;
 	}
-	mmc_dev = mmc_get_blk_desc(mmc);
+	mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV);
 	if (!mmc_dev) {
 		free(zero_buf);
 		return;
 	}
 	orig_part = mmc_dev->hwpart;
-	if (blk_select_hwpart_devnum(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV,
-				     hwpart)) {
+	if (blk_dselect_hwpart(mmc_dev, hwpart)) {
 		free(zero_buf);
 		return;
 	}
@@ -201,8 +184,7 @@ void media_erase_fskey(uintptr_t addr, uint hwpart)
 	 *  and will erase the full environment.
 	 */
 	media_write_block(addr, zero_buf, mmc_get_env_part(mmc));
-	blk_select_hwpart_devnum(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV,
-				 orig_part);
+	blk_dselect_hwpart(mmc_dev, orig_part);
 }
 
 uint get_env_hwpart(void)
