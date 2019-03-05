@@ -68,9 +68,6 @@
 #define CCIMX6ULSBC_ID135	135
 #define CCIMX6ULSBC_ID136	136
 
-/* CAAM support */
-#define CONFIG_FSL_CAAM_KB
-
 /*
  * Trustfence configs
  */
@@ -153,8 +150,6 @@
 	"bootargs_once:sr,"		\
 	"board_version:so,"		\
 	"board_id:so,"
-
-#define CONFIG_CMD_BMODE
 
 /* I2C configs */
 #define CONFIG_SYS_I2C
@@ -255,12 +250,9 @@
 #define CONFIG_OTF_CHUNK		(32 * 1024 * 1024)
 
 /* Miscellaneous configurable options */
-#define CONFIG_SYS_LONGHELP
-#define CONFIG_AUTO_COMPLETE
 #undef CONFIG_SYS_CBSIZE
 #define CONFIG_SYS_CBSIZE		1024
 #define CONFIG_SYS_HZ			1000
-#define CONFIG_CMDLINE_EDITING
 #define CONFIG_SILENT_CONSOLE_UPDATE_ON_RELOC
 
 /* Print Buffer Size */

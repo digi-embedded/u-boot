@@ -194,6 +194,7 @@
 		"fi;\0" \
 	""	/* end line */
 
+#undef CONFIG_BOOTCOMMAND
 #ifdef CONFIG_SECURE_BOOT
 /*
  * Authenticate bootscript before running it. IVT offset is at

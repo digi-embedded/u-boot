@@ -75,9 +75,6 @@
 #define OCOTP_LOCK_BANK		0
 #define OCOTP_LOCK_WORD		0
 
-/* CAAM support */
-#define CONFIG_FSL_CAAM_KB
-
 /*
  * Trustfence configs
  */
@@ -183,8 +180,6 @@
 	"mmcbootdev:so"
 
 #define CONFIG_SILENT_CONSOLE_UPDATE_ON_RELOC
-
-#define CONFIG_CMD_BMODE
 
 /* I2C configs */
 #define CONFIG_SYS_I2C
@@ -333,11 +328,8 @@
 /*#define CONFIG_ANDROID_RECOVERY*/
 
 /* Miscellaneous configurable options */
-#define CONFIG_SYS_LONGHELP
-#define CONFIG_AUTO_COMPLETE
 #undef CONFIG_SYS_CBSIZE
 #define CONFIG_SYS_CBSIZE              1024
 #define CONFIG_SYS_HZ                  1000
-#define CONFIG_CMDLINE_EDITING
 
 #endif	/* CCIMX6_COMMON_CONFIG_H */

@@ -28,7 +28,6 @@
 #if defined(CONFIG_SYS_BOOT_NAND)
 #define CONFIG_SYS_USE_NAND
 #define CONFIG_ENV_IS_IN_NAND
-#define CONFIG_CMD_MTDPARTS
 #define CONFIG_MTD_DEVICE
 #define CONFIG_MTD_PARTITIONS
 #define CONFIG_CMD_UPDATE_NAND
@@ -114,6 +113,7 @@
 
 #define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 
+#undef CONFIG_BOOTCOMMAND
 #ifdef CONFIG_SECURE_BOOT
 /*
  * Authenticate bootscript before running it. IVT offset is at
@@ -261,9 +261,6 @@
 #endif /* CONFIG_HAS_CARRIERBOARD_ID */
 
 /* UBI and UBIFS support */
-#define CONFIG_RBTREE
-#define CONFIG_CMD_UBIFS
-#define CONFIG_LZO
 #define CONFIG_DIGI_UBI
 
 #endif /* CCIMX6ULSTARTER_CONFIG_H */

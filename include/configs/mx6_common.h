@@ -57,6 +57,7 @@
 #define CONFIG_BAUDRATE         115200
 
 /* Filesystems and image support */
+#undef CONFIG_SUPPORT_RAW_INITRD
 #define CONFIG_SUPPORT_RAW_INITRD
 
 /* Miscellaneous configurable options */
