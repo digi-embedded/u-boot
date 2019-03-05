@@ -736,7 +736,7 @@ int imx_hab_authenticate_image(uint32_t ddr_start, uint32_t image_size,
 
 	status = hab_rvt_check_target(HAB_TGT_MEMORY, (void *)(ulong)ddr_start, bytes);
 	if (status != HAB_SUCCESS) {
-		printf("HAB check target 0x%08x-0x%08lx fail\n",
+		printf("HAB check target 0x%08x-0x%08zx fail\n",
 		       ddr_start, ddr_start + bytes);
 		goto hab_exit_failure_print_status;
 	}
