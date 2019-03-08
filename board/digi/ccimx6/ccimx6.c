@@ -892,7 +892,7 @@ int mmc_get_bootdevindex(void)
 	}
 }
 
-int board_mmc_get_env_dev(void)
+int board_mmc_get_env_dev(int devno)
 {
 	return mmc_get_bootdevindex();
 }
