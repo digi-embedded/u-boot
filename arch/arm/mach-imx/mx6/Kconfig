@@ -113,6 +113,14 @@ config MODULE_FUSE
 	  Once the module is checked as fused to disable, this module driver
 	  won't be called. And it will be modified to disable in kernel DTB.
 
+config TARGET_CCIMX6SBC
+	bool
+	select BOARD_LATE_INIT
+	select SUPPORT_SPL
+	select DM
+	select DM_THERMAL
+	select BOARD_EARLY_INIT_F
+
 config TARGET_MX6SABREAUTO
     bool
     select BOARD_LATE_INIT
@@ -166,13 +174,20 @@ config TARGET_ARISTAINETOS2B
 	bool "Support aristainetos2-revB"
 	select BOARD_LATE_INIT
 
-config TARGET_CCIMX6SBC
-	bool "Digi ConnectCore 6 and ConnectCore 6 Plus SBC"
-	select BOARD_LATE_INIT
-	select SUPPORT_SPL
-	select DM
-	select DM_THERMAL
-	select BOARD_EARLY_INIT_F
+config TARGET_CCIMX6DLSBC
+	bool "Digi ConnectCore 6 DualLite SBC"
+	select TARGET_CCIMX6SBC
+	select MX6DL
+
+config TARGET_CCIMX6QSBC
+	bool "Digi ConnectCore 6 Quad/Dual SBC"
+	select TARGET_CCIMX6SBC
+	select MX6Q
+
+config TARGET_CCIMX6QPSBC
+	bool "Digi ConnectCore 6 Plus SBC"
+	select TARGET_CCIMX6SBC
+	select MX6QP
 
 config TARGET_CCIMX6ULSBC
 	bool "Digi ConnectCore 6UL SBC Pro"
