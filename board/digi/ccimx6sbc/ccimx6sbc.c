@@ -399,7 +399,7 @@ int board_init(void)
 	board_version = get_carrierboard_version();
 	board_id = get_carrierboard_id();
 
-#ifdef CONFIG_CMD_SATA
+#ifdef CONFIG_SATA
 	setup_iomux_sata();
 #endif
 	if (board_has_audio())

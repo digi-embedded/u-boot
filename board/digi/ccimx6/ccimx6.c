@@ -962,7 +962,7 @@ int board_mmc_init(bd_t *bis)
 }
 #endif /* CONFIG_FSL_ESDHC */
 
-#ifdef CONFIG_CMD_SATA
+#ifdef CONFIG_SATA
 int setup_iomux_sata(void)
 {
 	struct iomuxc *const iomuxc_regs = (struct iomuxc *) IOMUXC_BASE_ADDR;
@@ -984,7 +984,7 @@ int setup_iomux_sata(void)
 
 	return 0;
 }
-#endif /* CONFIG_CMD_SATA */
+#endif /* CONFIG_SATA */
 
 #ifdef CONFIG_CMD_BMODE
 static const struct boot_mode board_boot_modes[] = {
