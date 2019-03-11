@@ -50,7 +50,6 @@
 #define CONFIG_SYS_STORAGE_MEDIA	"mmc"
 
 /* Ethernet PHY */
-#define CONFIG_PHY_MICREL
 #define CONFIG_ENET_PHYADDR_MICREL	3
 #define PHY_ANEG_TIMEOUT		8000
 
