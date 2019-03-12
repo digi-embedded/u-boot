@@ -52,14 +52,6 @@
 
 #define CONFIG_ENV_SIZE		SZ_16K
 
-/*-----------------------------------------------------------------------
- * Stack sizes
- *
- * The stack sizes are set up in start.S using the settings below
- */
-#define CONFIG_STACKSIZE		SZ_128K	/* regular stack */
-#define CONFIG_SYS_GBL_DATA_SIZE	SZ_256 /* size in bytes reserved for initial data */
-
 /* ********** misc stuff ********** */
 #define CONFIG_CMD_ENV_FLAGS
 #undef CONFIG_SYS_MAXARGS

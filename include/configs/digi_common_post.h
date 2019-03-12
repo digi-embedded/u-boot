@@ -18,13 +18,6 @@
 #ifndef __DIGI_COMMON_POST_H
 #define __DIGI_COMMON_POST_H
 
-/* ********** stack sizes ********** */
-#ifdef CONFIG_USE_IRQ
-# define CONFIG_STACKSIZE_IRQ	(4*1024)	/* IRQ stack */
-# define CONFIG_STACKSIZE_FIQ	(4*1024)	/* FIQ stack */
-#endif
-
-
 /* Video settings, define video variable */
 /* VGA defaults if supported */
 #if defined(CONFIG_UBOOT_CRT_VGA)
