@@ -1364,6 +1364,13 @@ void som_default_environment(void)
 	sprintf(var, "0x%02x", my_hwid.variant);
 	env_set("module_variant", var);
 
+	/* Set $hwid_n variables */
+	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
+		snprintf(var, sizeof(var), "hwid_%d", i);
+		snprintf(var2, sizeof(var2), "%08x", ((u32 *) &my_hwid)[i]);
+		env_set(var, var2);
+	}
+
 	/*
 	 * If there are no defined partition tables generate them dynamically
 	 * basing on the available eMMC size.

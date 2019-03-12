@@ -351,6 +351,8 @@ void som_default_environment(void)
 {
 	char var[10];
 	char *parttable;
+	char hex_val[9]; // 8 hex chars + null byte
+	int i;
 
 	/* Partition table */
 	parttable = env_get("mtdparts");
@@ -360,6 +362,13 @@ void som_default_environment(void)
 	/* Set $module_variant variable */
 	sprintf(var, "0x%02x", my_hwid.variant);
 	env_set("module_variant", var);
+
+	/* Set $hwid_n variables */
+	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
+		snprintf(var, sizeof(var), "hwid_%d", i);
+		snprintf(hex_val, sizeof(hex_val), "%08x", ((u32 *) &my_hwid)[i]);
+		env_set(var, hex_val);
+	}
 }
 
 int ccimx6ul_late_init(void)
