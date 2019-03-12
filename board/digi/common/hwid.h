@@ -46,7 +46,7 @@ enum digi_cert {
  *   |  Year  |  Week  |  WID   | Variant |  HV  | Cert |
  *   +--------+--------+--------+---------+------+------+
  */
-struct digi_hwid {
+struct __packed digi_hwid {
 	u32	sn:20;		/* serial number */
 	u32	genid:7;	/* generator id */
 	u32	location:5;	/* location */
@@ -111,7 +111,7 @@ struct ccimx6_variant {
  *   |  GenID | MAC pool |            MAC base          |
  *   +--------+----------+------------------------------+
  */
-struct digi_hwid {
+struct __packed digi_hwid {
 	u32	sn:20;		/* serial number */
 	u32	month:4;	/* manufacturing month */
 	u32	year:6;		/* manufacturing year */
