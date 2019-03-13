@@ -22,14 +22,12 @@
 /* FLASH and environment organization */
 #if defined(CONFIG_NAND_BOOT)
 #define CONFIG_SYS_USE_NAND
-#define CONFIG_ENV_IS_IN_NAND
 #define CONFIG_MTD_DEVICE
 #define CONFIG_MTD_PARTITIONS
 #define CONFIG_CMD_UPDATE_NAND
 #define CONFIG_SYS_STORAGE_MEDIA	"nand"
 #define CONFIG_CMD_BOOTSTREAM
 #else
-#define CONFIG_ENV_IS_IN_MMC
 #define CONFIG_CMD_UPDATE_MMC
 #define CONFIG_SYS_STORAGE_MEDIA	"mmc"
 #endif
