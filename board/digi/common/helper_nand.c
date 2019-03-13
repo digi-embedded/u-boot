@@ -66,18 +66,6 @@ end:
 }
 
 /*
- * Get the TF Key offset in the U-Boot environment
- */
-unsigned int get_filesystem_key_offset(void)
-{
-	lbaint_t offset;
-
-	if (!get_partition_offset("environment", &offset))
-		return offset + (2*media_get_block_size());
-	return 0;
-}
-
-/*
  * Read data from the storage media.
  * This function only reads one nand erase block
  * @in: Address in media (must be aligned to block size)
@@ -129,20 +117,6 @@ int media_write_block(uintptr_t addr, unsigned char *writebuf, uint hwpart)
 				   get_nand_dev_by_index(0)->size,
 				   writebuf,
 				   WITH_WR_VERIFY);
-}
-
-/*
- * Erase data in the storage media.
- * This function only erases the minimum required amount of data:
- *	for nand: one erase block size
- * @in: Address in media (must be aligned to block size)
- * @in: Partition index, only applies for MMC
- */
-void media_erase_fskey(uintptr_t addr, uint hwpart)
-{
-	nand_erase(get_nand_dev_by_index(0),
-		   addr,
-		   get_nand_dev_by_index(0)->erasesize);
 }
 
 /* Dummy function for compatibility with MMC */

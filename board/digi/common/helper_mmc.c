@@ -59,15 +59,6 @@ int get_partition_offset(char *part_name, lbaint_t *offset)
 }
 
 /*
- * Get the TF Key offset(in blocks) in the U-Boot environment
- */
-unsigned int get_filesystem_key_offset(void)
-{
-	return (CONFIG_ENV_OFFSET_REDUND + CONFIG_ENV_SIZE_REDUND) /
-		media_get_block_size();
-}
-
-/*
  * Read a data block from the storage media.
  * This function only reads one mmc block
  * @in: Address in media (must be aligned to block size)
@@ -144,47 +135,6 @@ int media_write_block(uintptr_t addr, unsigned char *writebuf, uint hwpart)
 
 	blk_dselect_hwpart(mmc_dev, orig_part);
 	return ret;
-}
-
-/*
- * Erase data in the storage media.
- * This function only erases the minimum required amount of data:
- *	for mmc: one block (probably 512 bytes)
- * @in: Address in media (must be aligned to block size)
- * @in: Partition index, only applies for MMC
- */
-void media_erase_fskey(uintptr_t addr, uint hwpart)
-{
-	struct mmc *mmc;
-	struct blk_desc *mmc_dev;
-	unsigned char *zero_buf;
-	uint orig_part = 0;
-
-	zero_buf = calloc(1, media_get_block_size());
-	if (!zero_buf)
-		return;
-
-	mmc = find_mmc_device(CONFIG_SYS_MMC_ENV_DEV);
-	if (!mmc) {
-		free(zero_buf);
-		return;
-	}
-	mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV);
-	if (!mmc_dev) {
-		free(zero_buf);
-		return;
-	}
-	orig_part = mmc_dev->hwpart;
-	if (blk_dselect_hwpart(mmc_dev, hwpart)) {
-		free(zero_buf);
-		return;
-	}
-	/*
-	 * Do not use block_erase, it uses different erase ranges
-	 *  and will erase the full environment.
-	 */
-	media_write_block(addr, zero_buf, mmc_get_env_part(mmc));
-	blk_dselect_hwpart(mmc_dev, orig_part);
 }
 
 uint get_env_hwpart(void)

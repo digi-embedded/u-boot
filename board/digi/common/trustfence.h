@@ -19,7 +19,6 @@ int console_enable_passphrase(void);
 #endif
 
 int is_uboot_encrypted(void);
-void migrate_filesystem_key(void);
 void copy_dek(void);
 #endif /* CONFIG_HAS_TRUSTFENCE */
 
