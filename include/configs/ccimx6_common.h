@@ -188,8 +188,6 @@
 #define CONFIG_PMIC_NUMREGS		0x185
 
 /* Environment */
-#define CONFIG_ENV_IS_IN_MMC
-
 #if defined(CONFIG_ENV_IS_IN_MMC)
 #define CONFIG_ENV_OFFSET		(1792 * 1024)	/* 256kB below 2MiB */
 #define CONFIG_ENV_OFFSET_REDUND	(CONFIG_ENV_OFFSET + (128 * 1024))
