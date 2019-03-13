@@ -20,9 +20,7 @@
 /* #define CONFIG_CMD_BEE */
 
 /* FLASH and environment organization */
-#define CONFIG_SYS_BOOT_NAND
-
-#if defined(CONFIG_SYS_BOOT_NAND)
+#if defined(CONFIG_NAND_BOOT)
 #define CONFIG_SYS_USE_NAND
 #define CONFIG_ENV_IS_IN_NAND
 #define CONFIG_MTD_DEVICE
@@ -190,7 +188,7 @@
 	"uboot_file=u-boot.imx\0" \
 	"zimage=zImage-" CONFIG_SYS_BOARD ".bin\0"
 
-#if defined(CONFIG_SYS_BOOT_NAND)
+#if defined(CONFIG_NAND_BOOT)
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_COMMON_ENV \
 	CONFIG_ENV_MTD_SETTINGS \
