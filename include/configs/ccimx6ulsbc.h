@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Digi International, Inc.
+ * Copyright (C) 2016-2019 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * Configuration settings for the Digi ConnecCore 6UL SBC board.
@@ -111,7 +111,7 @@
 #define CONFIG_SYS_I2C_MXC_I2C2
 
 #undef CONFIG_DEFAULT_FDT_FILE
-#define CONFIG_DEFAULT_FDT_FILE		"zImage-imx6ul-" CONFIG_SYS_BOARD ".dtb"
+#define CONFIG_DEFAULT_FDT_FILE		"imx6ul-" CONFIG_SYS_BOARD ".dtb"
 
 #define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 

@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012-2013 Freescale Semiconductor, Inc.
- * Copyright (C) 2013-2018 Digi International, Inc.
+ * Copyright (C) 2013-2019 Digi International, Inc.
  *
  * Configuration settings for the Freescale i.MX6Q SabreSD board.
  *
@@ -37,11 +37,11 @@
 
 #undef CONFIG_DEFAULT_FDT_FILE
 #if defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
-#define CONFIG_DEFAULT_FDT_FILE		"zImage-imx6dl-" CONFIG_SYS_BOARD ".dtb"
+#define CONFIG_DEFAULT_FDT_FILE		"imx6dl-" CONFIG_SYS_BOARD ".dtb"
 #elif defined(CONFIG_MX6QP)
-#define CONFIG_DEFAULT_FDT_FILE		"zImage-imx6qp-" CONFIG_SYS_BOARD ".dtb"
+#define CONFIG_DEFAULT_FDT_FILE		"imx6qp-" CONFIG_SYS_BOARD ".dtb"
 #elif defined(CONFIG_MX6Q)
-#define CONFIG_DEFAULT_FDT_FILE		"zImage-imx6q-" CONFIG_SYS_BOARD ".dtb"
+#define CONFIG_DEFAULT_FDT_FILE		"imx6q-" CONFIG_SYS_BOARD ".dtb"
 #endif
 
 #define CONFIG_SYS_FSL_USDHC_NUM	2

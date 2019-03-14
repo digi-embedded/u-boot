@@ -1,6 +1,6 @@
 /*
  * Copyright 2017 NXP
- * Copyright (C) 2018 Digi International, Inc.
+ * Copyright (C) 2018,2019 Digi International, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -87,7 +87,7 @@
 	"fdt_high=0xffffffffffffffff\0"		\
 	"boot_fdt=try\0" \
 	"ip_dyn=yes\0" \
-	"fdt_file=Image.gz-" BOARD_DEY_NAME ".dtb\0" \
+	"fdt_file=" BOARD_DEY_NAME ".dtb\0" \
 	"initrd_addr=0x82100000\0"		\
 	"initrd_high=0xffffffffffffffff\0" \
 	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
