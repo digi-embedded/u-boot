@@ -282,6 +282,9 @@ struct sg_entry {
 #define SEC_MEM_PAGE2		(CAAM_ARB_BASE_ADDR + 0x2000)
 #define SEC_MEM_PAGE3		(CAAM_ARB_BASE_ADDR + 0x3000)
 
+/* Header (8) + BKEK (32) + MAC (16) + MAX_KEY_SIZE (256 bits) */
+#define MAX_DEK_BLOB_SIZE       (8 + 32 + 16 + (256 / 8))
+
 #ifdef CONFIG_IMX8M
 #define JR_MID    (1)         /* Matches ATF configuration */
 #define KS_G1     (0x10000 << JR_MID) /* CAAM only */
