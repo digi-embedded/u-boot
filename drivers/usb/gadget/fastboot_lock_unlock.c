@@ -101,7 +101,7 @@ bool valid_tos() {
 	 */
 	bool valid = false;
 #ifdef CONFIG_SECURE_BOOT
-	if (is_hab_enabled()) {
+	if (imx_hab_is_enabled()) {
 		valid = authenticate_image(TRUSTY_OS_ENTRY, TRUSTY_OS_PADDED_SZ);
 	} else
 #endif

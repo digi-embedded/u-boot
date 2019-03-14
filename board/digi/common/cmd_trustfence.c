@@ -415,7 +415,7 @@ uint8_t *env_aes_cbc_get_key(void)
 
 void fdt_fixup_trustfence(void *fdt) {
 	/* Environment encryption is not enabled on open devices */
-	if (!is_hab_enabled())
+	if (!imx_hab_is_enabled())
 		return;
 
 	do_fixup_by_path(fdt, "/", "digi,uboot-env,encrypted", NULL, 0, 1);
@@ -431,7 +431,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 	u32 val[2], addr;
 	char jtag_op[15];
 	int ret = -1, i = 0;
-	hab_rvt_report_status_t *hab_report_status = hab_rvt_report_status_p;
+	hab_rvt_report_status_t *hab_report_status = (hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS;
 	struct load_fw fwinfo;
 
 	if (argc < 2)
@@ -553,7 +553,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		}
 		printf("   Key %d:\t\t[OK]\n", CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS);
 
-		printf("* Secure boot:\t\t%s", is_hab_enabled() ?
+		printf("* Secure boot:\t\t%s", imx_hab_is_enabled() ?
 		       "[CLOSED]\n" : "[OPEN]\n");
 
 		printf("* Encrypted U-Boot:\t%s\n", is_uboot_encrypted() ?

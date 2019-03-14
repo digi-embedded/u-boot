@@ -3266,7 +3266,7 @@ static int get_single_var(char *cmd, char *response)
 #ifdef CONFIG_AVB_ATX
 	else if (!strcmp_l1("bootloader-locked", cmd)) {
 
-		/* Below is basically copied from is_hab_enabled() */
+		/* Below is basically copied from imx_hab_is_enabled() */
 		struct imx_sec_config_fuse_t *fuse =
 			(struct imx_sec_config_fuse_t *)&imx_sec_config_fuse;
 		uint32_t reg;
