@@ -15,6 +15,7 @@
 #include <asm/imx-common/iomux-v3.h>
 #include <asm/imx-common/boot_mode.h>
 #include <asm/imx-common/mxc_i2c.h>
+#include <asm/imx-common/hab.h>
 #include <asm/io.h>
 #include <common.h>
 #ifdef CONFIG_OF_LIBFDT
@@ -40,6 +41,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 extern bool bmode_reset;
 struct digi_hwid my_hwid;
+extern int rng_swtest_status;
 
 #define MCA_CC6UL_DEVICE_ID_VAL		0x61
 
@@ -364,6 +366,13 @@ void som_default_environment(void)
 
 int ccimx6ul_late_init(void)
 {
+	uint32_t ret;
+	uint8_t event_data[36] = { 0 }; /* Event data buffer */
+	size_t bytes = sizeof(event_data); /* Event size in bytes */
+	enum hab_config config = 0;
+	enum hab_state state = 0;
+	hab_rvt_report_status_t *hab_report_status = hab_rvt_report_status_p;
+
 #ifdef CONFIG_CMD_BMODE
 	add_board_boot_modes(board_boot_modes);
 #endif
@@ -375,6 +384,25 @@ int ccimx6ul_late_init(void)
 	else
 		gd->flags |= GD_FLG_DISABLE_CONSOLE_INPUT;
 #endif
+
+	/* HAB event verification */
+	ret = hab_report_status(&config, &state);
+	if (ret == HAB_WARNING) {
+		pr_debug("\nHAB Configuration: 0x%02x, HAB State: 0x%02x\n",
+		       config, state);
+		/* Verify RNG self test */
+		rng_swtest_status = hab_event_warning_check(event_data, &bytes);
+		if (rng_swtest_status == SW_RNG_TEST_PASSED) {
+			printf("RNG self-test failed, but software test passed.\n");
+		} else if (rng_swtest_status == SW_RNG_TEST_FAILED) {
+			printf("WARNING: RNG self-test and software test failed!\n");
+			if (is_hab_enabled()) {
+				printf("Aborting secure boot.\n");
+				run_command("reset", 0);
+			}
+		}
+	} else
+		rng_swtest_status = SW_RNG_TEST_PASSED;
 
 #ifdef CONFIG_HAS_TRUSTFENCE
 	migrate_filesystem_key();
