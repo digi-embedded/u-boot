@@ -58,6 +58,8 @@
 #define CONFIG_CSF_SIZE 0x4000
 #endif
 
+extern int rng_swtest_status;
+
 #define ALIGN_UP(x, a) (((x) + (a - 1)) & ~(a - 1))
 #define DMA_ALIGN_UP(x) ALIGN_UP(x, ARCH_DMA_MINALIGN)
 
@@ -255,11 +257,17 @@ __weak int close_device(int confirmed)
 	enum hab_state state = 0;
 	int ret = -1;
 
-	if (hab_report_status(&config, &state) != HAB_SUCCESS) {
-		puts("[ERROR]\n There are HAB Events which will "
-		     "prevent the target from booting once closed.\n");
+	ret = hab_report_status(&config, &state);
+	if (ret == HAB_FAILURE) {
+		puts("[ERROR]\n There are HAB Events which will prevent the target from booting once closed.\n");
 		puts("Run 'hab_status' and check the errors.\n");
 		return CMD_RET_FAILURE;
+	} else if (ret == HAB_WARNING) {
+		if (rng_swtest_status == SW_RNG_TEST_FAILED) {
+			puts("[WARNING]\n There are HAB warnings which could prevent the target from booting once closed.\n");
+			puts("Run 'hab_status' and check the errors.\n");
+			return CMD_RET_FAILURE;
+		}
 	}
 
 	puts("Before closing the device DIR_BT_DIS will be burned.\n");
@@ -520,14 +528,25 @@ __weak int trustfence_status()
 	hab_rvt_report_status_t *hab_report_status = (hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS;
 	enum hab_config config = 0;
 	enum hab_state state = 0;
+	int ret;
 
 	printf("* Encrypted U-Boot:\t%s\n", is_uboot_encrypted() ?
 			"[YES]" : "[NO]");
 	puts("* HAB events:\t\t");
-	if (hab_report_status(&config, &state) == HAB_SUCCESS)
+	ret = hab_report_status(&config, &state);
+	if (ret == HAB_SUCCESS)
 		puts("[NO ERRORS]\n");
-	else
+	else if (ret == HAB_FAILURE)
 		puts("[ERRORS PRESENT!]\n");
+	else if (ret == HAB_WARNING) {
+		if (rng_swtest_status == SW_RNG_TEST_PASSED) {
+			puts("[NO ERRORS]\n");
+			puts("\n");
+			puts("Note: RNG selftest failed, but software test passed\n");
+		} else {
+			puts("[WARNINGS PRESENT!]\n");
+		}
+	}
 
 	return 0;
 }
