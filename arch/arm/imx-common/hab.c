@@ -671,9 +671,10 @@ uint32_t authenticate_image(uint32_t ddr_start, uint32_t image_size)
 			/* Validate IVT structure */
 			if (!validate_ivt(ivt_offset, start))
 				return result;
-
+#ifdef DEBUG
 			puts("Check CSF for Write Data command before ");
 			puts("authenticating image\n");
+#endif
 			if (!csf_is_valid(ivt_offset, start, bytes))
 				return result;
 
