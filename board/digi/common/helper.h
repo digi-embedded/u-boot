@@ -47,6 +47,10 @@ struct load_fw {
 	struct part_info *part;
 };
 
+#define SW_RNG_TEST_FAILED 	1
+#define SW_RNG_TEST_PASSED 	2
+#define SW_RNG_TEST_NA 		3
+
 int confirm_msg(char *msg);
 int get_source(int argc, char * const argv[], struct load_fw *fwinfo);
 bool is_image_compressed(void);
@@ -75,5 +79,6 @@ uint get_env_hwpart(void);
 u64 memsize_parse(const char *const ptr, const char **retptr);
 void set_verifyaddr(unsigned long loadaddr);
 bool validate_bootloader_image(void *loadaddr);
+int hab_event_warning_check(uint8_t *event, size_t *bytes);
 
 #endif  /* __DIGI_HELPER_H */
