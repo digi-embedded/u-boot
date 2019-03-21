@@ -9,7 +9,10 @@
 #include <common.h>
 #include <console.h>
 #include <linux/errno.h>
+#include <fsl_sec.h>
+#include <asm/imx-common/hab.h>
 #include <malloc.h>
+#include <mapmem.h>
 #include <nand.h>
 #include <version.h>
 #include <watchdog.h>
@@ -59,6 +62,8 @@ extern unsigned long net_start_again_timeout;
 int DownloadingAutoScript = 0;
 int RunningAutoScript = 0;
 #endif
+
+int rng_swtest_status = 0;
 
 int confirm_msg(char *msg)
 {
@@ -811,3 +816,54 @@ void set_verifyaddr(unsigned long loadaddr)
 	     verifyaddr < (PHYS_SDRAM + gd->ram_size))
 		 setenv_hex("verifyaddr", verifyaddr);
  }
+
+#define RNG_FAIL_EVENT_SIZE 36
+
+static uint8_t habv4_known_rng_fail_events[][RNG_FAIL_EVENT_SIZE] = {
+	{ 0xdb, 0x00, 0x24, 0x42,  0x69, 0x30, 0xe1, 0x1d,
+	  0x00, 0x80, 0x00, 0x02,  0x40, 0x00, 0x36, 0x06,
+	  0x55, 0x55, 0x00, 0x03,  0x00, 0x00, 0x00, 0x00,
+	  0x00, 0x00, 0x00, 0x00,  0x00, 0x00, 0x00, 0x00,
+	  0x00, 0x00, 0x00, 0x01 },
+	{ 0xdb, 0x00, 0x24, 0x42,  0x69, 0x30, 0xe1, 0x1d,
+	  0x00, 0x04, 0x00, 0x02,  0x40, 0x00, 0x36, 0x06,
+	  0x55, 0x55, 0x00, 0x03,  0x00, 0x00, 0x00, 0x00,
+	  0x00, 0x00, 0x00, 0x00,  0x00, 0x00, 0x00, 0x00,
+	  0x00, 0x00, 0x00, 0x01 },
+};
+
+extern enum hab_status hab_rvt_report_event(enum hab_status status, uint32_t index,
+					    uint8_t *event, size_t *bytes);
+
+int hab_event_warning_check(uint8_t *event, size_t *bytes)
+{
+	int ret = SW_RNG_TEST_NA, i;
+	bool is_rng_fail_event = false;
+	uint8_t *res_ptr;
+	uint32_t res_addr = getenv_ulong("loadaddr", 16, CONFIG_LOADADDR);
+
+	/* Get HAB Event warning data */
+	hab_rvt_report_event(HAB_WARNING, 0, event, bytes);
+
+	/* Compare HAB event warning data with known Warning issues */
+	for (i = 0; i < ARRAY_SIZE(habv4_known_rng_fail_events); i++) {
+		if (memcmp(event, habv4_known_rng_fail_events[i],
+			   RNG_FAIL_EVENT_SIZE) == 0) {
+			is_rng_fail_event = true;
+			break;
+		}
+	}
+
+	if (is_rng_fail_event) {
+		printf("RNG self-test failure detected, will run software self-test\n");
+		res_ptr = map_sysmem(res_addr, 32);
+		ret = rng_self_test(res_ptr);
+
+		if (ret == 0)
+			ret = SW_RNG_TEST_PASSED;
+		else
+			ret = SW_RNG_TEST_FAILED;
+	}
+
+	return ret;
+}
