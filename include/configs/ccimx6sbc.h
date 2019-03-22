@@ -26,7 +26,6 @@
 #ifdef CONFIG_MX6QP
 #undef CONFIG_SYS_BOARD
 #define CONFIG_SYS_BOARD		"ccimx6qpsbc"
-#else
 #endif
 #define CONFIG_BOARD_DESCRIPTION	"SBC"
 
