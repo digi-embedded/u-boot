@@ -65,9 +65,6 @@ int fuse_sense(u32 bank, u32 word, u32 *val)
 int fuse_prog(u32 bank, u32 word, u32 val)
 {
 #if CONFIG_MX8_FUSE_PROG
-	sc_err_t err;
-	sc_ipc_t ipc;
-
 	if (!fuse_is_prog_allowed()) {
 		printf("Fuse programming in U-Boot is disabled\n");
 		return -EPERM;
@@ -78,6 +75,13 @@ int fuse_prog(u32 bank, u32 word, u32 val)
 		return -EINVAL;
 	}
 
+#if defined(CONFIG_SMC_FUSE)
+	return call_imx_sip(FSL_SIP_OTP_WRITE, (unsigned long)word,\
+		(unsigned long)val, 0, 0);
+#else
+	sc_err_t err;
+	sc_ipc_t ipc;
+
 	ipc = gd->arch.ipc_channel_handle;
 
 	err = sc_misc_otp_fuse_write(ipc, word, val);
@@ -87,13 +91,10 @@ int fuse_prog(u32 bank, u32 word, u32 val)
 	}
 
 	return 0;
-#elif defined(CONFIG_SMC_FUSE)
-	return call_imx_sip(FSL_SIP_OTP_WRITE, (unsigned long)word,\
-		(unsigned long)val, 0, 0);
-#else
+#endif
+#endif
 	printf("Program fuse to i.MX8 in u-boot is forbidden\n");
 	return -EPERM;
-#endif
 }
 
 int fuse_override(u32 bank, u32 word, u32 val)
