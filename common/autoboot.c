@@ -321,7 +321,7 @@ const char *bootdelay_process(void)
 		bootdelay = 0;
 	} else if (is_boot_from_usb()) {
 		printf("Boot from USB for uuu\n");
-		env_set("bootcmd", "fastboot 0");
+		env_set("bootcmd_mfg", "fastboot 0");
 	}
 #endif
 

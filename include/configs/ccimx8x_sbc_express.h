@@ -64,10 +64,7 @@
 
 #define CONFIG_MFG_ENV_SETTINGS \
 	"mfgtool_args=setenv bootargs console=${console},${baudrate} " \
-		"root=/dev/ram0 rw quiet " \
-		"\0" \
-	"mfgscript_addr=0xb0000000\0" \
-	"bootcmd_mfg=source ${mfgscript_addr}\0" \
+		"root=/dev/ram0 rw quiet\0" \
 	"fastboot_dev=mmc" __stringify(CONFIG_FASTBOOT_FLASH_MMC_DEV) "\0" \
 
 /* Initial environment variables */
