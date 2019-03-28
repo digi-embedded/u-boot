@@ -11,6 +11,7 @@
 #include <asm/mach-imx/sci/sci.h>
 #include <asm/arch/imx8-pins.h>
 #include <usb.h>
+#include <cdns3-uboot.h>
 #include <asm/arch/iomux.h>
 #include <asm/arch/sys_proto.h>
 #include <power-domain.h>
@@ -210,20 +211,99 @@ int checkboard(void)
 	return 0;
 }
 
-#ifdef CONFIG_USB_XHCI_IMX8
+#ifdef CONFIG_USB
+
+#ifdef CONFIG_USB_TCPC
+#define USB_TYPEC_SEL IMX_GPIO_NR(4, 6)
+#define USB_TYPEC_EN IMX_GPIO_NR(4, 5)
+
+static iomux_cfg_t ss_gpios[] = {
+	SC_P_USB_SS3_TC3 | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPIO_PAD_CTRL),
+	SC_P_USB_SS3_TC2 | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPIO_PAD_CTRL),
+};
+
+struct tcpc_port port;
+struct tcpc_port_config port_config = {
+	.i2c_bus = 3,
+	.addr = 0x52,
+	.port_type = TYPEC_PORT_DFP,
+};
+
+void ss_mux_select(enum typec_cc_polarity pol)
+{
+	if (pol == TYPEC_POLARITY_CC1)
+		gpio_direction_output(USB_TYPEC_SEL, 0);
+	else
+		gpio_direction_output(USB_TYPEC_SEL, 1);
+}
+
+static void setup_typec(void)
+{
+	imx8_iomux_setup_multiple_pads(ss_gpios, ARRAY_SIZE(ss_gpios));
+	gpio_request(USB_TYPEC_SEL, "typec_sel");
+	/* USB_SS3_SW_PWR (Active LOW) */
+	gpio_request(USB_TYPEC_EN, "typec_en");
+	gpio_direction_output(USB_TYPEC_EN, 0);
+
+	tcpc_init(&port, port_config, &ss_mux_select);
+}
+#endif
+
+#ifdef CONFIG_USB_CDNS3_GADGET
+static struct cdns3_device cdns3_device_data = {
+	.none_core_base = 0x5B110000,
+	.xhci_base = 0x5B130000,
+	.dev_base = 0x5B140000,
+	.phy_base = 0x5B160000,
+	.otg_base = 0x5B120000,
+	.dr_mode = USB_DR_MODE_PERIPHERAL,
+	.index = 1,
+};
+
+int usb_gadget_handle_interrupts(void)
+{
+	cdns3_uboot_handle_interrupt(1);
+	return 0;
+}
+#endif
 
 int board_usb_init(int index, enum usb_init_type init)
 {
 	int ret = 0;
 
+	if (index == 1) {
+		if (init == USB_INIT_HOST) {
+#ifdef CONFIG_USB_TCPC
+			ret = tcpc_setup_dfp_mode(&port);
+#endif
+		} else {
+#ifdef CONFIG_USB_CDNS3_GADGET
+#ifdef CONFIG_USB_TCPC
+			ret = tcpc_setup_ufp_mode(&port);
+#endif
+			ret = cdns3_uboot_init(&cdns3_device_data);
+#endif
+		}
+	}
 
 	return ret;
-
 }
 
 int board_usb_cleanup(int index, enum usb_init_type init)
 {
 	int ret = 0;
+
+	if (index == 1) {
+		if (init == USB_INIT_HOST) {
+#ifdef CONFIG_USB_TCPC
+			ret = tcpc_disable_src_vbus(&port);
+#endif
+		} else {
+#ifdef CONFIG_USB_CDNS3_GADGET
+			cdns3_uboot_exit(1);
+#endif
+		}
+	}
 
 	return ret;
 }
@@ -259,6 +339,10 @@ int board_init(void)
 
 #ifdef CONFIG_FEC_MXC
 	setup_fec(CONFIG_FEC_ENET_DEV);
+#endif
+
+#if defined(CONFIG_USB) && defined(CONFIG_USB_TCPC)
+	setup_typec();
 #endif
 
 	return 0;

@@ -114,6 +114,11 @@
 	status = "okay";
 };
 
+&usbotg1 {
+	dr_mode = "peripheral";
+	status = "okay";
+};
+
 &usb2 {
 	status = "okay";
 };

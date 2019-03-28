@@ -43,6 +43,8 @@
 #define EARLY_CONSOLE			"lpuart32,0x5a080000"
 #define CONFIG_BAUDRATE			115200
 
+#define CONFIG_SERIAL_TAG
+
 /* USB Config */
 #ifdef CONFIG_CMD_USB
 #define CONFIG_USB_MAX_CONTROLLER_COUNT 2
@@ -55,6 +57,10 @@
 #endif
 #endif /* CONFIG_CMD_USB */
 
+#ifdef CONFIG_USB_GADGET
+#define CONFIG_USBD_HS
+#endif
+
 /* Carrier board version in environment */
 #define CONFIG_HAS_CARRIERBOARD_VERSION
 #define CONFIG_HAS_CARRIERBOARD_ID
@@ -65,10 +71,11 @@
 		"\0" \
 	"mfgscript_addr=0xb0000000\0" \
 	"bootcmd_mfg=source ${mfgscript_addr}\0" \
+	"fastboot_dev=mmc" __stringify(CONFIG_FASTBOOT_FLASH_MMC_DEV) "\0" \
 
 /* Initial environment variables */
 #define CONFIG_EXTRA_ENV_SETTINGS		\
-	CONFIG_MFG_ENV_SETTINGS \
+	CONFIG_MFG_ENV_SETTINGS 		\
 	CONFIG_DEFAULT_NETWORK_SETTINGS		\
 	CONFIG_EXTRA_NETWORK_SETTINGS		\
 	RANDOM_UUIDS \

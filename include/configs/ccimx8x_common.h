@@ -108,9 +108,6 @@
 #define CONFIG_MCA_I2C_BUS		0
 #define CONFIG_MCA_I2C_ADDR		0x63
 
-/* Add support for sparse images */
-#define CONFIG_FASTBOOT_FLASH
-
 #define CONFIG_TFTP_UPDATE_ONTHEFLY      /* support to tftp and update on-the-fly */
 
 /* Supported sources for update|dboot */

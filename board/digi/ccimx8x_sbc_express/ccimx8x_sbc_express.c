@@ -190,12 +190,11 @@ int checkboard(void)
 	return 0;
 }
 
-#ifdef CONFIG_USB_XHCI_IMX8
+#ifdef CONFIG_USB
 
 int board_usb_init(int index, enum usb_init_type init)
 {
 	int ret = 0;
-
 
 	return ret;
 
