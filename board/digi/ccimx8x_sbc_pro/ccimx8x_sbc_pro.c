@@ -267,6 +267,32 @@ int usb_gadget_handle_interrupts(void)
 }
 #endif
 
+static iomux_cfg_t usb_hub_gpio = {
+	SC_P_SPI3_SDI | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPIO_PAD_CTRL)
+};
+
+static int setup_usb_hub(void)
+{
+	struct gpio_desc usb_pwr;
+	int ret;
+
+	imx8_iomux_setup_pad(usb_hub_gpio);
+
+	/* Power up the USB hub */
+	ret = dm_gpio_lookup_name("gpio0_15", &usb_pwr);
+	if (ret)
+		return -1;
+
+	ret = dm_gpio_request(&usb_pwr, "usb_pwr");
+	if (ret)
+		return -1;
+
+	dm_gpio_set_dir_flags(&usb_pwr, GPIOD_IS_OUT);
+	dm_gpio_set_value(&usb_pwr, 1);
+
+	return 0;
+}
+
 int board_usb_init(int index, enum usb_init_type init)
 {
 	int ret = 0;
@@ -341,8 +367,11 @@ int board_init(void)
 	setup_fec(CONFIG_FEC_ENET_DEV);
 #endif
 
-#if defined(CONFIG_USB) && defined(CONFIG_USB_TCPC)
+#if defined(CONFIG_USB)
+	setup_usb_hub();
+#if defined(CONFIG_USB_TCPC)
 	setup_typec();
+#endif
 #endif
 
 	return 0;

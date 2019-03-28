@@ -133,6 +133,11 @@
 	status = "okay";
 };
 
+&usbotg1 {
+	dr_mode = "host";
+	status = "okay";
+};
+
 &usb2 {
 	status = "okay";
 };
