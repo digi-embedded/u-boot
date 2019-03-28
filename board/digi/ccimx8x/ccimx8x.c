@@ -260,18 +260,30 @@ void generate_partition_table(void)
 {
 	struct mmc *mmc = find_mmc_device(0);
 	unsigned int capacity_gb = 0;
+	const char *linux_partition_table;
+	const char *android_partition_table;
 
 	/* Retrieve eMMC size in GiB */
 	if (mmc)
 		capacity_gb = mmc->capacity / SZ_1G;
 
 	/* eMMC capacity is not exact, so asume 16GB if larger than 15GB */
-	if (capacity_gb >= 15)
-		setenv("parts_linux", LINUX_16GB_PARTITION_TABLE);
-	else if (capacity_gb >= 7)
-		setenv("parts_linux", LINUX_8GB_PARTITION_TABLE);
-	else
-		setenv("parts_linux", LINUX_4GB_PARTITION_TABLE);
+	if (capacity_gb >= 15) {
+		linux_partition_table = LINUX_16GB_PARTITION_TABLE;
+		android_partition_table = ANDROID_16GB_PARTITION_TABLE;
+	} else if (capacity_gb >= 7) {
+		linux_partition_table = LINUX_8GB_PARTITION_TABLE;
+		android_partition_table = ANDROID_8GB_PARTITION_TABLE;
+	} else {
+		linux_partition_table = LINUX_4GB_PARTITION_TABLE;
+		android_partition_table = ANDROID_4GB_PARTITION_TABLE;
+	}
+
+	if (!getenv("parts_linux"))
+		setenv("parts_linux", linux_partition_table);
+
+	if (!getenv("parts_android"))
+		setenv("parts_android", android_partition_table);
 }
 
 void som_default_environment(void)
@@ -280,7 +292,6 @@ void som_default_environment(void)
 	char cmd[80];
 #endif
 	char var[10];
-	char *parttable;
 
 #ifdef CONFIG_CMD_MMC
 	/* Set $mmcbootdev to MMC boot device index */
@@ -292,12 +303,10 @@ void som_default_environment(void)
 	setenv("module_variant", var);
 
 	/*
-	 * If there is no defined partition table generate one dynamically
+	 * If there are no defined partition tables generate them dynamically
 	 * basing on the available eMMC size.
 	 */
-	parttable = getenv("parts_linux");
-	if (!parttable)
-		generate_partition_table();
+	generate_partition_table();
 }
 
 static int set_mac_from_pool(uint32_t pool, uint8_t *mac)

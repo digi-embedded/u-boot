@@ -15,6 +15,8 @@
 #include <malloc.h>
 #include <otf_update.h>
 
+#define ALIGN_SUP(x, a) (((x) + (a - 1)) & ~(a - 1))
+
 extern int mmc_get_bootdevindex(void);
 
 /*
@@ -170,12 +172,16 @@ void media_erase_fskey(uintptr_t addr, uint hwpart)
 		return;
 
 	mmc = find_mmc_device(CONFIG_SYS_MMC_ENV_DEV);
-	if (!mmc)
+	if (!mmc) {
+		free(zero_buf);
 		return;
+	}
 	orig_part = mmc->block_dev.hwpart;
 	if (blk_select_hwpart_devnum(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV,
-				     hwpart))
+				     hwpart)) {
+		free(zero_buf);
 		return;
+	}
 	/*
 	 * Do not use block_erase, it uses different erase ranges
 	 *  and will erase the full environment.
@@ -305,10 +311,8 @@ static uint32_t write_sparse_chunks(otf_data_t *otfd, lbaint_t *dstblk,
 				    unsigned int chunk_len)
 {
 	const unsigned long blksz = otfd->sparse_data.mmc_dev->blksz;
-	int offset_within_chunk = 0;
 	otf_sparse_data_t *sp_data = &otfd->sparse_data;
-
-	printf("\nWriting sparse chunks... ");
+	int offset_within_chunk = sp_data->align_offset;
 
 	/* On the first block, get and save the sparse image header */
 	if (!(otfd->flags & OTF_FLAG_SPARSE_HDR)) {
@@ -329,6 +333,9 @@ static uint32_t write_sparse_chunks(otf_data_t *otfd, lbaint_t *dstblk,
 		debug("total_chunks: %d\n", hdr->total_chunks);
 	}
 
+	printf("\nWriting sparse chunks (%d/%d)... ", sp_data->current_chunk,
+	       sp_data->hdr.total_chunks);
+
 	/*
 	 * If a raw chunk is in the process of being flashed, deal with that first.
 	 */
@@ -336,10 +343,11 @@ static uint32_t write_sparse_chunks(otf_data_t *otfd, lbaint_t *dstblk,
 		void *data = otfd->loadaddr + offset_within_chunk;
 		uint32_t bytes_to_write = sp_data->ongoing_bytes -
 					  sp_data->ongoing_bytes_written;
+		uint32_t available = chunk_len - offset_within_chunk;
 
 		/* If there is still more data to come, round to the block size */
-		if (bytes_to_write > chunk_len)
-			bytes_to_write = chunk_len - (chunk_len % blksz);
+		if (bytes_to_write > available)
+			bytes_to_write = available - (available % blksz);
 
 		if (sparse_write_bytes(sp_data, dstblk, data, bytes_to_write))
 			return -1;
@@ -546,16 +554,28 @@ int update_chunk(otf_data_t *otfd)
 
 #ifdef CONFIG_FASTBOOT_FLASH
 		if (otfd->flags & OTF_FLAG_SPARSE) {
+			int align_offset = 0;
 			uint32_t bytes_used = write_sparse_chunks(otfd, &dstblk, chunk_len);
+
 			if (bytes_used == (uint32_t) -1)
 				return -1;
 
 			remaining = chunk_len - bytes_used;
+
+			/*
+			 * Because of a limitation of the 'load' command, we
+			 * need to offset the remaining data so that its end is
+			 * aligned to ARCH_DMA_MINALIGN. Otherwise we get
+			 * warnings when reading the next data from a file.
+			 */
+			align_offset = ALIGN_SUP(remaining, ARCH_DMA_MINALIGN) - remaining;
+			otfd->sparse_data.align_offset = align_offset;
+			remaining += align_offset;
+
 			chunk_len -= remaining;
 		} else
 #endif
 		{
-
 			if (otfd->flags & OTF_FLAG_FLUSH) {
 				/* Write all pending data (this is the last chunk) */
 				remaining = 0;
@@ -621,8 +641,13 @@ int update_chunk(otf_data_t *otfd)
 		return 0;
 	}
 
-	/* Set otfd offset pointer to offset in RAM where new bytes would
-	 * be written. This offset may be reused by caller */
+	/*
+	 * Set otfd offset pointer to offset in RAM where new bytes would
+	 * be written. Data in the interval
+	 * [otfd->loadaddr, otfd->loadaddr + otfd->offset) shall not be
+	 * replaced with new data. The rest of the buffer may be reused
+	 * by the caller
+	 */
 	otfd->offset = chunk_len;
 
 	return 0;

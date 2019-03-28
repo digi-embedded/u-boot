@@ -4,8 +4,8 @@
 
 VERSION = 2017
 PATCHLEVEL = 03
-SUBLEVEL = r2
-EXTRAVERSION = .3
+SUBLEVEL = r3
+EXTRAVERSION = .1-git
 NAME =
 
 # *DOCUMENTATION*
@@ -348,7 +348,7 @@ OBJCOPY		= $(CROSS_COMPILE)objcopy
 OBJDUMP		= $(CROSS_COMPILE)objdump
 AWK		= awk
 PERL		= perl
-PYTHON		= python
+PYTHON		?= python
 DTC		= dtc
 CHECK		= sparse
 

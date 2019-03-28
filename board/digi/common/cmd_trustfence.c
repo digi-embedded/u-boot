@@ -726,7 +726,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		printf("\nLoading encrypted U-Boot image...\n");
 		/* Load firmware file to RAM */
 		fwinfo.loadaddr = "$loadaddr";
-		fwinfo.filename = argv[3];
+		fwinfo.filename = (fwinfo.src == SRC_MMC) ? argv[4] : argv[3];
 		ret = load_firmware(&fwinfo);
 		if (ret == LDFW_ERROR) {
 			printf("Error loading firmware file to RAM\n");
@@ -974,12 +974,12 @@ U_BOOT_CMD(
 	"\n-- SECURE JTAG --\n"
 	"trustfence jtag read - read Secure JTAG mode from shadow registers\n"
 	"trustfence jtag read_key - read Secure JTAG response key from shadow registers\n"
-	"trustfence jtag prog [-y] <mode> - program Secure JTAG mode <mode> (PERMANENT). <mode> can be one of:\n"
+	"trustfence jtag [-y] prog <mode> - program Secure JTAG mode <mode> (PERMANENT). <mode> can be one of:\n"
 	"    secure - Secure JTAG mode (debugging only possible by providing the key "
 	"burned in the e-fuses)\n"
 	"    disable-debug - JTAG debugging disabled (only boundary-scan possible)\n"
 	"    disable-jtag - JTAG port disabled (no JTAG operations allowed)\n"
-	"trustfence jtag prog_key [-y] <high_word> <low_word> - program response key (PERMANENT)\n"
+	"trustfence jtag [-y] prog_key <high_word> <low_word> - program response key (PERMANENT)\n"
 #if defined CONFIG_TRUSTFENCE_JTAG_OVERRIDE
 	"trustfence jtag override <mode> - override Secure JTAG mode <mode>. <mode> can be one of:\n"
 	"    secure - Secure JTAG mode (debugging only possible by providing the key "
@@ -989,7 +989,7 @@ U_BOOT_CMD(
 	"    enable-jtag - JTAG port enabled (JTAG operations allowed)\n"
 	"trustfence jtag override_key <high_word> <low_word> - override response key\n"
 #endif
-	"trustfence jtag lock [-y] - lock Secure JTAG mode and disable JTAG interface "
+	"trustfence jtag [-y] lock - lock Secure JTAG mode and disable JTAG interface "
 				"OTP bits (PERMANENT)\n"
-	"trustfence jtag lock_key [-y] - lock Secure JTAG key OTP bits (PERMANENT)\n"
+	"trustfence jtag [-y] lock_key - lock Secure JTAG key OTP bits (PERMANENT)\n"
 );
