@@ -2,6 +2,15 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
+DUB-2018.03
+-----------
+dub-2018.03-r1.1, released on 2019/03/28
+	- Update ConnectCore 8X platform to v2018.03 BSP from NXP
+	  tag 'p9.0.0_1.0.0-ga'.
+	- Added fastboot support.
+
+
+
 DUB-2017.03
 -----------
 dub-2017.03-r2.3, released on 2018/12/03
