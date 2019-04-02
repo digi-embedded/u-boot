@@ -878,7 +878,7 @@ int hab_event_warning_check(uint8_t *event, size_t *bytes)
 	}
 
 	if (is_rng_fail_event) {
-		printf("RNG self-test failure detected, will run software self-test\n");
+		printf("RNG:   self-test failure detected, will run software self-test\n");
 		res_ptr = map_sysmem(res_addr, 32);
 		ret = rng_self_test(res_ptr);
 
