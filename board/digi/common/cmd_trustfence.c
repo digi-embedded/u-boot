@@ -391,6 +391,7 @@ int console_enable_gpio(int gpio)
 	int ret = 0;
 
 	if (gpio_request(gpio, "console_enable") == 0) {
+		gpio_direction_input(gpio);
 		ret = gpio_get_value(gpio);
 		gpio_free(gpio);
 	}

@@ -76,6 +76,12 @@ static iomux_v3_cfg_t const ext_gpios_pads[] = {
 	MX6_PAD_GPIO_18__GPIO7_IO13 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 	MX6_PAD_GPIO_19__GPIO4_IO05 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 };
+
+static void setup_iomux_ext_gpios(void)
+{
+	imx_iomux_v3_setup_multiple_pads(ext_gpios_pads,
+					 ARRAY_SIZE(ext_gpios_pads));
+}
 #endif
 
 static iomux_v3_cfg_t const ksz9031_pads[] = {
@@ -349,42 +355,12 @@ int board_mmc_getcd(struct mmc *mmc)
 	return ret;
 }
 
-#ifdef CONFIG_CONSOLE_ENABLE_GPIO
-static void setup_iomux_ext_gpios(void)
-{
-	imx_iomux_v3_setup_multiple_pads(ext_gpios_pads,
-					 ARRAY_SIZE(ext_gpios_pads));
-}
-#endif
-
 int board_early_init_f(void)
 {
-#ifdef CONFIG_CONSOLE_ENABLE_GPIO
-	int ext_gpios[] =  {
-		IMX_GPIO_NR(2, 5),
-		IMX_GPIO_NR(2, 6),
-		IMX_GPIO_NR(2, 7),
-		IMX_GPIO_NR(2, 24),
-		IMX_GPIO_NR(2, 28),
-		IMX_GPIO_NR(2, 29),
-		IMX_GPIO_NR(7, 13),
-		IMX_GPIO_NR(4, 5)
-	};
-	int console_enable_gpio_nr = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
-
-	setup_iomux_ext_gpios();
-	gpio_request(console_enable_gpio_nr, "Console enable");
-	gpio_direction_input(console_enable_gpio_nr);
-#endif
-
 	setup_iomux_uart();
 
 #ifdef CONFIG_CONSOLE_DISABLE
 	gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
-#ifdef CONFIG_CONSOLE_ENABLE_GPIO
-	if (console_enable_gpio(console_enable_gpio_nr))
-		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
-#endif
 #endif
 	return 0;
 }
@@ -461,6 +437,25 @@ int board_late_init(void)
 {
 	int ret;
 
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+	int ext_gpios[] =  {
+		IMX_GPIO_NR(2, 5),
+		IMX_GPIO_NR(2, 6),
+		IMX_GPIO_NR(2, 7),
+		IMX_GPIO_NR(2, 24),
+		IMX_GPIO_NR(2, 28),
+		IMX_GPIO_NR(2, 29),
+		IMX_GPIO_NR(7, 13),
+		IMX_GPIO_NR(4, 5)
+	};
+	int console_enable_gpio_nr = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
+
+	setup_iomux_ext_gpios();
+
+	if (console_enable_gpio(console_enable_gpio_nr))
+		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#endif
+	/* SOM late init */
 	ret = ccimx6_late_init();
 	if (!ret)
 		ret = board_fixup();
