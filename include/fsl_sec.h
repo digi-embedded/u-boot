@@ -336,12 +336,12 @@ struct sg_entry {
 int blob_dek(const u8 *src, u8 *dst, u8 len);
 
 /*
- * rng_self_test() - Perform RNG self test
+ * rng_sw_test() - Perform RNG self test
  * @result:     The address where RNG self test will reside in memory
  *
  * Returns zero on success,and negative on error.
  */
-int rng_self_test(u8 *result);
+int rng_sw_test(u8 *result);
 
 int gen_mppubk(u8 *dst);
 

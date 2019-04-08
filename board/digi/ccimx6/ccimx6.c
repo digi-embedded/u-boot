@@ -1555,7 +1555,7 @@ int ccimx6_init(void)
 		if (rng_swtest_status == SW_RNG_TEST_PASSED) {
 			printf("RNG:   self-test failed, but software test passed.\n");
 		} else if (rng_swtest_status == SW_RNG_TEST_FAILED) {
-#ifdef CONFIG_RNG_SELF_TEST
+#ifdef CONFIG_RNG_SW_TEST
 			printf("WARNING: RNG self-test and software test failed!\n");
 #else
 			printf("WARNING: RNG self-test failed!\n");
