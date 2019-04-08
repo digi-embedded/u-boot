@@ -44,5 +44,5 @@ config SYS_FSL_SEC_COMPAT
 config SYS_FSL_SEC_LE
 	bool "Little-endian access to Freescale Secure Boot"
 
-config RNG_SELF_TEST
+config RNG_SW_TEST
 	bool "Include RNG software self-test"

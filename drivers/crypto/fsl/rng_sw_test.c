@@ -83,12 +83,12 @@ uint32_t rng_result2[] = {
 #define CAAM_ERA_MASK		0xFF
 
 /*
- * construct_rng_self_test_jobdesc() - Implement destination address in RNG self test descriptors
+ * construct_rng_sw_test_jobdesc() - Implement destination address in RNG self test descriptors
  * @result:	RNG descriptors constructed
  *
  * Returns zero on success,and negative on error.
  */
-int construct_rng_self_test_jobdesc(u32 *desc, u32 *rng_st_dsc, u8 *res_addr, int desc_size)
+int construct_rng_sw_test_jobdesc(u32 *desc, u32 *rng_st_dsc, u8 *res_addr, int desc_size)
 {
 	int result_addr_idx = desc_size - 5;
 	int i = 0;
@@ -113,12 +113,12 @@ int construct_rng_self_test_jobdesc(u32 *desc, u32 *rng_st_dsc, u8 *res_addr, in
 }
 
 /*
- * rng_self_test() - Perform RNG self test
+ * rng_sw_test() - Perform RNG self test
  * @result:	The address where RNG self test will reside in memory
  *
  * Returns zero on success,and negative on error.
  */
-int rng_self_test(u8 *result)
+int rng_sw_test(u8 *result)
 {
 	int ret, size, i, desc_size = 0;
 	u8 caam_era, rngvid, rngrev;
@@ -154,7 +154,7 @@ int rng_self_test(u8 *result)
 		return -ENOMEM;
 	}
 
-	ret = construct_rng_self_test_jobdesc(desc, rng_st_dsc, result, desc_size);
+	ret = construct_rng_sw_test_jobdesc(desc, rng_st_dsc, result, desc_size);
 	if (ret) {
 		puts("Error in Job Descriptor Construction\n");
 		goto err;
