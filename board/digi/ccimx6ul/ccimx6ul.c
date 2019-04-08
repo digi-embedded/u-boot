@@ -41,7 +41,9 @@ DECLARE_GLOBAL_DATA_PTR;
 
 extern bool bmode_reset;
 static struct digi_hwid my_hwid;
+#ifdef CONFIG_HAS_TRUSTFENCE
 extern int rng_swtest_status;
+#endif
 
 #define MDIO_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_PUE |     \
 	PAD_CTL_DSE_48ohm   | PAD_CTL_SRE_FAST | PAD_CTL_ODE)
@@ -300,6 +302,7 @@ void ldo_mode_set(int ldo_bypass)
 
 int ccimx6ul_init(void)
 {
+#ifdef CONFIG_HAS_TRUSTFENCE
 	uint32_t ret;
 	uint8_t event_data[36] = { 0 }; /* Event data buffer */
 	size_t bytes = sizeof(event_data); /* Event size in bytes */
@@ -317,7 +320,11 @@ int ccimx6ul_init(void)
 		if (rng_swtest_status == SW_RNG_TEST_PASSED) {
 			printf("RNG:   self-test failed, but software test passed.\n");
 		} else if (rng_swtest_status == SW_RNG_TEST_FAILED) {
+#ifdef CONFIG_RNG_SELF_TEST
 			printf("WARNING: RNG self-test and software test failed!\n");
+#else
+			printf("WARNING: RNG self-test failed!\n");
+#endif
 			if (imx_hab_is_enabled()) {
 				printf("Aborting secure boot.\n");
 				run_command("reset", 0);
@@ -326,6 +333,7 @@ int ccimx6ul_init(void)
 	} else {
 		rng_swtest_status = SW_RNG_TEST_NA;
 	}
+#endif /* CONFIG_HAS_TRUSTFENCE */
 
 	/* Address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;

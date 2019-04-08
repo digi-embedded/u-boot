@@ -56,7 +56,9 @@ DECLARE_GLOBAL_DATA_PTR;
 extern unsigned int board_version;
 extern unsigned int board_id;
 extern void board_spurious_wakeup(void);
+#ifdef CONFIG_HAS_TRUSTFENCE
 extern int rng_swtest_status;
+#endif
 
 static struct digi_hwid my_hwid;
 static int enet_xcv_type;
@@ -1534,6 +1536,7 @@ void print_ccimx6_info(void)
 
 int ccimx6_init(void)
 {
+#ifdef CONFIG_HAS_TRUSTFENCE
 	uint32_t ret;
 	uint8_t event_data[36] = { 0 }; /* Event data buffer */
 	size_t bytes = sizeof(event_data); /* Event size in bytes */
@@ -1552,7 +1555,11 @@ int ccimx6_init(void)
 		if (rng_swtest_status == SW_RNG_TEST_PASSED) {
 			printf("RNG:   self-test failed, but software test passed.\n");
 		} else if (rng_swtest_status == SW_RNG_TEST_FAILED) {
+#ifdef CONFIG_RNG_SELF_TEST
 			printf("WARNING: RNG self-test and software test failed!\n");
+#else
+			printf("WARNING: RNG self-test failed!\n");
+#endif
 			if (imx_hab_is_enabled()) {
 				printf("Aborting secure boot.\n");
 				run_command("reset", 0);
@@ -1561,6 +1568,7 @@ int ccimx6_init(void)
 	} else {
 		rng_swtest_status = SW_RNG_TEST_NA;
 	}
+#endif /* CONFIG_HAS_TRUSTFENCE */
 
 	if (board_read_hwid(&my_hwid)) {
 		printf("Cannot read HWID\n");

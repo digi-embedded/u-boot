@@ -64,7 +64,9 @@ int DownloadingAutoScript = 0;
 int RunningAutoScript = 0;
 #endif
 
+#ifdef CONFIG_HAS_TRUSTFENCE
 int rng_swtest_status = 0;
+#endif
 
 int confirm_msg(char *msg)
 {
@@ -840,6 +842,7 @@ __weak bool validate_bootloader_image(void *loadaddr)
 	return true;
 }
 
+#ifdef CONFIG_HAS_TRUSTFENCE
 #define RNG_FAIL_EVENT_SIZE 36
 
 static uint8_t habv4_known_rng_fail_events[][RNG_FAIL_EVENT_SIZE] = {
@@ -878,6 +881,7 @@ int hab_event_warning_check(uint8_t *event, size_t *bytes)
 	}
 
 	if (is_rng_fail_event) {
+#ifdef CONFIG_RNG_SELF_TEST
 		printf("RNG:   self-test failure detected, will run software self-test\n");
 		res_ptr = map_sysmem(res_addr, 32);
 		ret = rng_self_test(res_ptr);
@@ -885,8 +889,10 @@ int hab_event_warning_check(uint8_t *event, size_t *bytes)
 		if (ret == 0)
 			ret = SW_RNG_TEST_PASSED;
 		else
+#endif
 			ret = SW_RNG_TEST_FAILED;
 	}
 
 	return ret;
 }
+#endif /* CONFIG_HAS_TRUSTFENCE */
