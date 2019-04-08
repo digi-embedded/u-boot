@@ -304,6 +304,20 @@ int board_usb_init(int index, enum usb_init_type init)
 #endif
 		} else {
 #ifdef CONFIG_USB_CDNS3_GADGET
+			struct power_domain pd;
+
+			/* Power on usb */
+			if (!power_domain_lookup_name("conn_usb2", &pd)) {
+				ret = power_domain_on(&pd);
+				if (ret)
+					printf("conn_usb2 Power up failed! (error = %d)\n", ret);
+			}
+
+			if (!power_domain_lookup_name("conn_usb2_phy", &pd)) {
+				ret = power_domain_on(&pd);
+				if (ret)
+					printf("conn_usb2_phy Power up failed! (error = %d)\n", ret);
+			}
 #ifdef CONFIG_USB_TCPC
 			ret = tcpc_setup_ufp_mode(&port);
 #endif
@@ -326,7 +340,22 @@ int board_usb_cleanup(int index, enum usb_init_type init)
 #endif
 		} else {
 #ifdef CONFIG_USB_CDNS3_GADGET
+			struct power_domain pd;
+
 			cdns3_uboot_exit(1);
+
+			/* Power off usb */
+			if (!power_domain_lookup_name("conn_usb2", &pd)) {
+				ret = power_domain_off(&pd);
+				if (ret)
+					printf("conn_usb2 Power down failed! (error = %d)\n", ret);
+			}
+
+			if (!power_domain_lookup_name("conn_usb2_phy", &pd)) {
+				ret = power_domain_off(&pd);
+				if (ret)
+					printf("conn_usb2_phy Power down failed! (error = %d)\n", ret);
+			}
 #endif
 		}
 	}
