@@ -4353,7 +4353,14 @@ static const struct cmd_dispatch_info cmd_dispatch_info[] = {
 		.cmd = "UCmd:",
 		.cb = cb_run_uboot_cmd,
 	},
+	{
+		.cmd = "oem ucmd:",
+		.cb = cb_run_uboot_cmd,
+	},
 	{	.cmd ="ACmd:",
+		.cb = cb_run_uboot_acmd,
+	},
+	{	.cmd ="oem acmd:",
 		.cb = cb_run_uboot_acmd,
 	},
 #endif
