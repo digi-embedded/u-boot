@@ -784,10 +784,6 @@ static int is_raw_partition(struct fastboot_ptentry *ptn)
 			strlen(FASTBOOT_PARTITION_BOOTLOADER)) ||
 			!strncmp(ptn->name, FASTBOOT_PARTITION_GPT,
 			strlen(FASTBOOT_PARTITION_GPT)) ||
-			!strncmp(ptn->name, FASTBOOT_PARTITION_BOOT_A,
-			strlen(FASTBOOT_PARTITION_BOOT_A)) ||
-			!strncmp(ptn->name, FASTBOOT_PARTITION_BOOT_B,
-			strlen(FASTBOOT_PARTITION_BOOT_B)) ||
 #ifdef CONFIG_FASTBOOT_LOCK
 			!strncmp(ptn->name, FASTBOOT_PARTITION_FBMISC,
 			strlen(FASTBOOT_PARTITION_FBMISC)) ||
@@ -797,8 +793,6 @@ static int is_raw_partition(struct fastboot_ptentry *ptn)
 #else
 	 if (ptn && (!strncmp(ptn->name, FASTBOOT_PARTITION_BOOTLOADER,
 		strlen(FASTBOOT_PARTITION_BOOTLOADER)) ||
-		!strncmp(ptn->name, FASTBOOT_PARTITION_BOOT,
-		strlen(FASTBOOT_PARTITION_BOOT)) ||
 #ifdef CONFIG_FASTBOOT_LOCK
 		!strncmp(ptn->name, FASTBOOT_PARTITION_FBMISC,
 		strlen(FASTBOOT_PARTITION_FBMISC)) ||
