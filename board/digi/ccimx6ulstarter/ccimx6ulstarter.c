@@ -101,6 +101,12 @@ static iomux_v3_cfg_t const ext_gpios_pads[] = {
 	MX6_PAD_JTAG_TRST_B__GPIO1_IO15 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 	MX6_PAD_JTAG_TCK__GPIO1_IO14 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 };
+
+static void setup_iomux_ext_gpios(void)
+{
+	imx_iomux_v3_setup_multiple_pads(ext_gpios_pads,
+					 ARRAY_SIZE(ext_gpios_pads));
+}
 #endif
 
 /* micro SD */
@@ -367,40 +373,12 @@ int board_ehci_hcd_init(int port)
 }
 #endif
 
-#ifdef CONFIG_CONSOLE_ENABLE_GPIO
-static void setup_iomux_ext_gpios(void)
-{
-	imx_iomux_v3_setup_multiple_pads(ext_gpios_pads,
-					 ARRAY_SIZE(ext_gpios_pads));
-}
-#endif
-
 int board_early_init_f(void)
 {
-#ifdef CONFIG_CONSOLE_ENABLE_GPIO
-	int ext_gpios[] =  {
-		IMX_GPIO_NR(1, 4),
-		IMX_GPIO_NR(1, 12),
-		IMX_GPIO_NR(1, 13),
-		IMX_GPIO_NR(1, 11),
-		IMX_GPIO_NR(1, 15),
-		IMX_GPIO_NR(1, 14),
-	};
-	int console_enable_gpio_nr = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
-
-	setup_iomux_ext_gpios();
-	gpio_request(console_enable_gpio_nr, "Console enable");
-	gpio_direction_input(console_enable_gpio_nr);
-#endif
-
 	setup_iomux_uart();
 
 #ifdef CONFIG_CONSOLE_DISABLE
 	gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
-#ifdef CONFIG_CONSOLE_ENABLE_GPIO
-	if (console_enable_gpio(console_enable_gpio_nr))
-		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
-#endif
 #endif
 
 	return 0;
@@ -464,6 +442,22 @@ void platform_default_environment(void)
 
 int board_late_init(void)
 {
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+	int ext_gpios[] =  {
+		IMX_GPIO_NR(1, 4),
+		IMX_GPIO_NR(1, 12),
+		IMX_GPIO_NR(1, 13),
+		IMX_GPIO_NR(1, 11),
+		IMX_GPIO_NR(1, 15),
+		IMX_GPIO_NR(1, 14),
+	};
+	int console_enable_gpio_nr = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
+
+	setup_iomux_ext_gpios();
+	
+	if (console_enable_gpio(console_enable_gpio_nr))
+		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#endif
 	/* SOM late init */
 	ccimx6ul_late_init();
 

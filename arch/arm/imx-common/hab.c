@@ -8,10 +8,12 @@
 #include <common.h>
 #include <config.h>
 #include <fuse.h>
+#include <mapmem.h>
 #include <asm/io.h>
 #include <asm/system.h>
 #include <asm/arch/clock.h>
 #include <asm/imx-common/hab.h>
+#include <fsl_sec.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -392,7 +394,7 @@ void display_event(uint8_t *event_data, size_t bytes)
 
 int get_hab_status(void)
 {
-	uint32_t index = 0; /* Loop index */
+	uint32_t index = 0, ret; /* Loop index */
 	uint8_t event_data[128]; /* Event data buffer */
 	size_t bytes = sizeof(event_data); /* Event size in bytes */
 	enum hab_config config = 0;
@@ -403,22 +405,39 @@ int get_hab_status(void)
 	else
 		puts("\nSecure boot disabled\n");
 
+	ret = hab_rvt_report_status(&config, &state);
 	/* Check HAB status */
-	if (hab_rvt_report_status(&config, &state) != HAB_SUCCESS) {
+	if (ret != HAB_SUCCESS) {
 		printf("\nHAB Configuration: 0x%02x, HAB State: 0x%02x\n",
 		       config, state);
 
 		/* Display HAB Error events */
-		while (hab_rvt_report_event(HAB_FAILURE, index, event_data,
-					&bytes) == HAB_SUCCESS) {
-			puts("\n");
-			printf("--------- HAB Event %d -----------------\n",
-			       index + 1);
-			puts("event data:\n");
-			display_event(event_data, bytes);
-			puts("\n");
-			bytes = sizeof(event_data);
-			index++;
+		if(ret == HAB_FAILURE) {
+			while (hab_rvt_report_event(HAB_FAILURE, index, event_data,
+						&bytes) == HAB_SUCCESS) {
+				puts("\n");
+				printf("--------- HAB Event %d -----------------\n",
+				index + 1);
+				puts("event data:\n");
+				display_event(event_data, bytes);
+				puts("\n");
+				bytes = sizeof(event_data);
+				index++;
+			}
+		} else {
+			printf("\nHAB Warning detected\n");
+
+			while (hab_rvt_report_event(HAB_WARNING, index, event_data,
+						&bytes) == HAB_SUCCESS) {
+				puts("\n");
+				printf("--------- HAB Event %d -----------------\n",
+				index + 1);
+				puts("event data:\n");
+				display_event(event_data, bytes);
+				puts("\n");
+				bytes = sizeof(event_data);
+				index++;
+			}
 		}
 	}
 	/* Display message if no HAB events are found */
@@ -652,9 +671,10 @@ uint32_t authenticate_image(uint32_t ddr_start, uint32_t image_size)
 			/* Validate IVT structure */
 			if (!validate_ivt(ivt_offset, start))
 				return result;
-
+#ifdef DEBUG
 			puts("Check CSF for Write Data command before ");
 			puts("authenticating image\n");
+#endif
 			if (!csf_is_valid(ivt_offset, start, bytes))
 				return result;
 

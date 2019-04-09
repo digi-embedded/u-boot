@@ -10,3 +10,4 @@ obj-$(CONFIG_CMD_BLOB) += fsl_blob.o
 obj-$(CONFIG_CMD_DEKBLOB) += fsl_blob.o
 obj-$(CONFIG_RSA_FREESCALE_EXP) += fsl_rsa.o
 obj-$(CONFIG_FSL_MFGPROT) += fsl_mfgprot.o
+obj-$(CONFIG_RNG_SW_TEST) += rng_sw_test.o

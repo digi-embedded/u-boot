@@ -53,6 +53,8 @@
 #define CONFIG_CSF_SIZE 0x4000
 #endif
 
+extern int rng_swtest_status;
+
 /*
  * Copy the DEK blob used by the current U-Boot image into a buffer. Also
  * get its size in the last out parameter.
@@ -389,6 +391,7 @@ int console_enable_gpio(int gpio)
 	int ret = 0;
 
 	if (gpio_request(gpio, "console_enable") == 0) {
+		gpio_direction_input(gpio);
 		ret = gpio_get_value(gpio);
 		gpio_free(gpio);
 	}
@@ -618,11 +621,17 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			puts("[OK]\n\n");
 		}
 
-		if (hab_report_status(&config, &state) != HAB_SUCCESS) {
-			puts("[ERROR]\n There are HAB Events which will "
-			     "prevent the target from booting once closed.\n");
+		ret = hab_report_status(&config, &state);
+		if (ret == HAB_FAILURE) {
+			puts("[ERROR]\n There are HAB errors which will prevent the target from booting once closed.\n");
 			puts("Run 'hab_status' and check the errors.\n");
 			return CMD_RET_FAILURE;
+		} else if (ret == HAB_WARNING) {
+			if (rng_swtest_status == SW_RNG_TEST_FAILED) {
+				puts("[WARNING]\n There are HAB warnings which could prevent the target from booting once closed.\n");
+				puts("Run 'hab_status' and check the errors.\n");
+				return CMD_RET_FAILURE;
+			}
 		}
 
 		puts("Before closing the device DIR_BT_DIS will be burned.\n");
@@ -694,10 +703,20 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			"[YES]" : "[NO]");
 
 		puts("* HAB events:\t\t");
-		if (hab_report_status(&config, &state) == HAB_SUCCESS)
+		ret = hab_report_status(&config, &state);
+		if (ret == HAB_SUCCESS)
 			puts("[NO ERRORS]\n");
-		else
+		else if (ret == HAB_FAILURE)
 			puts("[ERRORS PRESENT!]\n");
+		else if (ret == HAB_WARNING) {
+			if (rng_swtest_status == SW_RNG_TEST_PASSED) {
+				puts("[NO ERRORS]\n");
+				puts("\n");
+				puts("Note: RNG selftest failed, but software test passed\n");
+			} else {
+				puts("[WARNINGS PRESENT!]\n");
+			}
+		}
 	} else if (!strcmp(op, "update")) {
 		char cmd_buf[CONFIG_SYS_CBSIZE];
 		unsigned long loadaddr = getenv_ulong("loadaddr", 16,

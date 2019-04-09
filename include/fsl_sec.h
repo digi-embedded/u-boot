@@ -14,8 +14,8 @@
 #include <asm/io.h>
 
 #ifdef CONFIG_SYS_FSL_SEC_LE
-#define sec_in32(a)       in_le32((ulong *)(ulong)a)
-#define sec_out32(a, v)   out_le32((ulong *)(ulong)a, v)
+#define sec_in32(a)       in_le32((ulong *)(ulong)(a))
+#define sec_out32(a, v)   out_le32((ulong *)(ulong)(a), v)
 #define sec_in16(a)       in_le16(a)
 #define sec_clrbits32     clrbits_le32
 #define sec_setbits32     setbits_le32
@@ -329,6 +329,14 @@ struct sg_entry {
  * @return: 0 on success, error otherwise
  */
 int blob_dek(const u8 *src, u8 *dst, u8 len);
+
+/*
+ * rng_sw_test() - Perform RNG self test
+ * @result:     The address where RNG self test will reside in memory
+ *
+ * Returns zero on success,and negative on error.
+ */
+int rng_sw_test(u8 *result);
 
 int gen_mppubk(u8 *dst);
 

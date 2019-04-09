@@ -16,6 +16,7 @@
 #ifdef CONFIG_FSL_CORENET
 #include <asm/fsl_pamu.h>
 #endif
+#include <../../../board/digi/common/helper.h>
 
 #define CIRC_CNT(head, tail, size)	(((head) - (tail)) & (size - 1))
 #define CIRC_SPACE(head, tail, size)	CIRC_CNT((tail), (head) + 1, (size))
@@ -36,6 +37,7 @@ uint32_t sec_offset[CONFIG_SYS_FSL_MAX_NUM_OF_SEC] = {
 	 (CONFIG_SYS_FSL_JR0_OFFSET - CONFIG_SYS_FSL_SEC_OFFSET))
 
 struct jobring jr0[CONFIG_SYS_FSL_MAX_NUM_OF_SEC];
+extern int rng_swtest_status;
 
 static inline void start_jr0(uint8_t sec_idx)
 {
@@ -670,12 +672,14 @@ int sec_init_idx(uint8_t sec_idx)
 	pamu_enable();
 #endif
 
-	if (get_rng_vid(sec_idx) >= 4) {
-		if (rng_init(sec_idx) < 0) {
-			printf("SEC%u: RNG instantiation failed\n", sec_idx);
-			return -1;
+	if (rng_swtest_status > 0) {
+		if (get_rng_vid(sec_idx) >= 4) {
+			if (rng_init(sec_idx) < 0) {
+				printf("SEC%u: RNG instantiation failed\n", sec_idx);
+				return -1;
+			}
+			printf("SEC%u: RNG instantiated\n", sec_idx);
 		}
-		printf("SEC%u: RNG instantiated\n", sec_idx);
 	}
 
 	return ret;

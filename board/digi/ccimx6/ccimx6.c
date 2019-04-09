@@ -27,9 +27,11 @@
 #include <asm/arch/mx6-pins.h>
 #include <asm/arch/sys_proto.h>
 #include <linux/errno.h>
+#include <linux/mtd/mtd.h>
 #include <asm/gpio.h>
 #include <asm/imx-common/iomux-v3.h>
 #include <asm/imx-common/boot_mode.h>
+#include <asm/imx-common/hab.h>
 #include <i2c.h>
 #include <asm/imx-common/mxc_i2c.h>
 #include <linux/ctype.h>
@@ -53,6 +55,9 @@ DECLARE_GLOBAL_DATA_PTR;
 extern unsigned int board_version;
 extern unsigned int board_id;
 extern void board_spurious_wakeup(void);
+#ifdef CONFIG_HAS_TRUSTFENCE
+extern int rng_swtest_status;
+#endif
 
 struct digi_hwid my_hwid;
 static int enet_xcv_type;
@@ -1485,6 +1490,39 @@ void print_ccimx6_info(void)
 
 int ccimx6_init(void)
 {
+#ifdef CONFIG_HAS_TRUSTFENCE
+	uint32_t ret;
+	uint8_t event_data[36] = { 0 }; /* Event data buffer */
+	size_t bytes = sizeof(event_data); /* Event size in bytes */
+	enum hab_config config = 0;
+	enum hab_state state = 0;
+	hab_rvt_report_status_t *hab_report_status = hab_rvt_report_status_p;
+
+	/* HAB event verification */
+	ret = hab_report_status(&config, &state);
+	if (ret == HAB_WARNING) {
+		pr_debug("\nHAB Configuration: 0x%02x, HAB State: 0x%02x\n",
+		       config, state);
+		/* Verify RNG self test */
+		rng_swtest_status = hab_event_warning_check(event_data, &bytes);
+		if (rng_swtest_status == SW_RNG_TEST_PASSED) {
+			printf("RNG:   self-test failed, but software test passed.\n");
+		} else if (rng_swtest_status == SW_RNG_TEST_FAILED) {
+#ifdef CONFIG_RNG_SW_TEST
+			printf("WARNING: RNG self-test and software test failed!\n");
+#else
+			printf("WARNING: RNG self-test failed!\n");
+#endif
+			if (is_hab_enabled()) {
+				printf("Aborting secure boot.\n");
+				run_command("reset", 0);
+			}
+		}
+	} else {
+		rng_swtest_status = SW_RNG_TEST_NA;
+	}
+#endif /* CONFIG_HAS_TRUSTFENCE */
+
 	if (board_read_hwid(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return -1;
