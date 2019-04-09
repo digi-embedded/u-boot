@@ -1312,6 +1312,8 @@ static int _fastboot_parts_add_ptable_entry(int ptable_index,
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_DATA))
 #else
 	if (!strcmp((const char *)info.name, FASTBOOT_PARTITION_SYSTEM) ||
+	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_OEM) ||
+	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_VENDOR) ||
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_DATA) ||
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_DEVICE) ||
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_CACHE))
