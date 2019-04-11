@@ -104,6 +104,14 @@ static struct ccimx6_variant ccimx6ul_variants[] = {
 		0,
 		"Industrial Ultralite 528MHz, 1GB NAND, 1GB DDR3, -40/+85C",
 	},
+/* 0x06 - 55001944-06 */
+/* This variant is the same as 0x02, but with i.MX6UL silicon v1.2 */
+	{
+		IMX6UL,
+		MEM_256MB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
+		"Industrial Ultralite 528MHz, 256MB NAND, 256MB DDR3, -40/+85C, Wireless, Bluetooth",
+	},
 };
 
 int dram_init(void)
