@@ -784,10 +784,6 @@ static int is_raw_partition(struct fastboot_ptentry *ptn)
 			strlen(FASTBOOT_PARTITION_BOOTLOADER)) ||
 			!strncmp(ptn->name, FASTBOOT_PARTITION_GPT,
 			strlen(FASTBOOT_PARTITION_GPT)) ||
-			!strncmp(ptn->name, FASTBOOT_PARTITION_BOOT_A,
-			strlen(FASTBOOT_PARTITION_BOOT_A)) ||
-			!strncmp(ptn->name, FASTBOOT_PARTITION_BOOT_B,
-			strlen(FASTBOOT_PARTITION_BOOT_B)) ||
 #ifdef CONFIG_FASTBOOT_LOCK
 			!strncmp(ptn->name, FASTBOOT_PARTITION_FBMISC,
 			strlen(FASTBOOT_PARTITION_FBMISC)) ||
@@ -797,8 +793,6 @@ static int is_raw_partition(struct fastboot_ptentry *ptn)
 #else
 	 if (ptn && (!strncmp(ptn->name, FASTBOOT_PARTITION_BOOTLOADER,
 		strlen(FASTBOOT_PARTITION_BOOTLOADER)) ||
-		!strncmp(ptn->name, FASTBOOT_PARTITION_BOOT,
-		strlen(FASTBOOT_PARTITION_BOOT)) ||
 #ifdef CONFIG_FASTBOOT_LOCK
 		!strncmp(ptn->name, FASTBOOT_PARTITION_FBMISC,
 		strlen(FASTBOOT_PARTITION_FBMISC)) ||
@@ -1318,6 +1312,8 @@ static int _fastboot_parts_add_ptable_entry(int ptable_index,
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_DATA))
 #else
 	if (!strcmp((const char *)info.name, FASTBOOT_PARTITION_SYSTEM) ||
+	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_OEM) ||
+	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_VENDOR) ||
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_DATA) ||
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_DEVICE) ||
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_CACHE))
@@ -4357,7 +4353,14 @@ static const struct cmd_dispatch_info cmd_dispatch_info[] = {
 		.cmd = "UCmd:",
 		.cb = cb_run_uboot_cmd,
 	},
+	{
+		.cmd = "oem ucmd:",
+		.cb = cb_run_uboot_cmd,
+	},
 	{	.cmd ="ACmd:",
+		.cb = cb_run_uboot_acmd,
+	},
+	{	.cmd ="oem acmd:",
 		.cb = cb_run_uboot_acmd,
 	},
 #endif
