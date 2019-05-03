@@ -865,8 +865,10 @@ int hab_event_warning_check(uint8_t *event, size_t *bytes)
 {
 	int ret = SW_RNG_TEST_NA, i;
 	bool is_rng_fail_event = false;
+#ifdef CONFIG_RNG_SW_TEST
 	uint8_t *res_ptr;
 	uint32_t res_addr = env_get_ulong("loadaddr", 16, CONFIG_LOADADDR);
+#endif
 
 	/* Get HAB Event warning data */
 	hab_rvt_report_event(HAB_WARNING, 0, event, bytes);
