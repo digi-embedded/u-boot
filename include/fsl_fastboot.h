@@ -88,11 +88,16 @@
 #ifdef CONFIG_IMX_TRUSTY_OS
 #ifndef CONFIG_AVB_ATX
 #define FASTBOOT_SET_RPMB_KEY "set-rpmb-key"
+#define FASTBOOT_SET_RPMB_RANDOM_KEY "set-rpmb-random-key"
 #define FASTBOOT_SET_VBMETA_PUBLIC_KEY "set-public-key"
 #endif
 
 #define FASTBOOT_SET_CA_RESP "at-set-ca-response"
 #define FASTBOOT_GET_CA_REQ  "at-get-ca-request"
+#define FASTBOOT_SET_RSA_ATTESTATION_KEY  "set-rsa-atte-key"
+#define FASTBOOT_SET_EC_ATTESTATION_KEY  "set-ec-atte-key"
+#define FASTBOOT_APPEND_RSA_ATTESTATION_CERT  "append-rsa-atte-cert"
+#define FASTBOOT_APPEND_EC_ATTESTATION_CERT  "append-ec-atte-cert"
 #endif
 
 #ifdef CONFIG_ANDROID_THINGS_SUPPORT

@@ -24,13 +24,13 @@
 #define FSL_FASTBOOT_FB_DEV "mmc"
 
 #define IMX_LOAD_HDMI_FIMRWARE
-#define IMX_HDMI_FIRMWARE_LOAD_ADDR (CONFIG_SYS_SDRAM_BASE + SZ_256M)
+#define IMX_HDMI_FIRMWARE_LOAD_ADDR (CONFIG_SYS_SDRAM_BASE + SZ_64M)
 #define IMX_HDMITX_FIRMWARE_SIZE 0x20000
 #define IMX_HDMIRX_FIRMWARE_SIZE 0x20000
 
 #ifdef CONFIG_SYS_MALLOC_LEN
 #undef CONFIG_SYS_MALLOC_LEN
-#define CONFIG_SYS_MALLOC_LEN           (96 * SZ_1M)
+#define CONFIG_SYS_MALLOC_LEN           (76 * SZ_1M)
 #endif
 
 #define CONFIG_USB_FUNCTION_FASTBOOT
@@ -61,6 +61,7 @@
 	"splashpos=m,m\0"	  \
 	"fdt_high=0xffffffffffffffff\0"	  \
 	"initrd_high=0xffffffffffffffff\0" \
+	"panel=NULL\0" \
 
 #define CONFIG_FASTBOOT_BUF_ADDR   0x98000000
 #define CONFIG_FASTBOOT_BUF_SIZE   0x19000000

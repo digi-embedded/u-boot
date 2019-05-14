@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2018 NXP
+ * Copyright 2017-2019 NXP
  *
  * Peng Fan <peng.fan@nxp.com>
  *
@@ -128,7 +128,11 @@ static struct mm_region imx8m_mem_map[] = {
 		.phys = 0x40000000UL,
 		.size = PHYS_SDRAM_SIZE,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
+#ifdef CONFIG_IMX_TRUSTY_OS
+			 PTE_BLOCK_INNER_SHARE
+#else
 			 PTE_BLOCK_OUTER_SHARE
+#endif
 #if CONFIG_NR_DRAM_BANKS > 1
 	}, {
 		/* DRAM2 */
@@ -136,7 +140,11 @@ static struct mm_region imx8m_mem_map[] = {
 		.phys = 0x100000000UL,
 		.size = PHYS_SDRAM_2_SIZE,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
+#ifdef CONFIG_IMX_TRUSTY_OS
+			 PTE_BLOCK_INNER_SHARE
+#else
 			 PTE_BLOCK_OUTER_SHARE
+#endif
 #endif
 	}, {
 		/* List terminator */
@@ -398,6 +406,20 @@ add_status:
 }
 
 #ifdef CONFIG_IMX8MQ
+bool check_dcss_fused(void)
+{
+	struct ocotp_regs *ocotp = (struct ocotp_regs *)OCOTP_BASE_ADDR;
+	struct fuse_bank *bank = &ocotp->bank[1];
+	struct fuse_bank1_regs *fuse =
+		(struct fuse_bank1_regs *)bank->fuse_regs;
+
+	u32 value = readl(&fuse->tester4);
+	if (value & 0x4000000)
+		return true;
+
+	return false;
+}
+
 static int disable_mipi_dsi_nodes(void *blob)
 {
 	const char *nodes_path[] = {
@@ -418,7 +440,8 @@ static int disable_dcss_nodes(void *blob)
 		"/hdmi_cec@32c33800",
 		"/hdmi_drm@32c00000",
 		"/display-subsystem",
-		"/sound-hdmi"
+		"/sound-hdmi",
+		"/sound-hdmi-arc"
 	};
 
 	return disable_fdt_nodes(blob, nodes_path, ARRAY_SIZE(nodes_path));
@@ -595,8 +618,11 @@ usb_modify_speed:
 
 	if (is_imx8mql()) {
 		disable_vpu_nodes(blob);
-		disable_dcss_nodes(blob);
-		check_mipi_dsi_nodes(blob);
+		if (check_dcss_fused()) {
+			printf("DCSS is fused\n");
+			disable_dcss_nodes(blob);
+			check_mipi_dsi_nodes(blob);
+		}
 	}
 
 	if (is_imx8md())
@@ -710,4 +736,28 @@ int imx8m_usb_power(int usb_id, bool on)
 		return -EPERM;
 #endif
 	return 0;
+}
+
+void nxp_tmu_arch_init(void *reg_base)
+{
+	if (is_imx8mm()) {
+		/* Load TCALIV and TASR from fuses */
+		struct ocotp_regs *ocotp = (struct ocotp_regs *)OCOTP_BASE_ADDR;
+		struct fuse_bank *bank = &ocotp->bank[3];
+		struct fuse_bank3_regs *fuse =
+			(struct fuse_bank3_regs *)bank->fuse_regs;
+
+		u32 tca_rt, tca_hr, tca_en;
+		u32 buf_vref, buf_slope;
+
+		tca_rt = fuse->ana0 & 0xFF;
+		tca_hr = (fuse->ana0 & 0xFF00) >> 8;
+		tca_en = (fuse->ana0 & 0x2000000) >> 25;
+
+		buf_vref = (fuse->ana0 & 0x1F00000) >> 20;
+		buf_slope = (fuse->ana0 & 0xF0000) >> 16;
+
+		writel(buf_vref | (buf_slope << 16), (ulong)reg_base + 0x28);
+		writel((tca_en << 31) |(tca_hr <<16) | tca_rt,  (ulong)reg_base + 0x30);
+	}
 }

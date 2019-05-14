@@ -326,13 +326,6 @@ static int setup_fec(int ind)
 #endif
 
 #ifdef CONFIG_MXC_GPIO
-#define IOEXP_RESET IMX_GPIO_NR(1, 1)
-
-static iomux_cfg_t board_gpios[] = {
-	SC_P_SPI2_SDO | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPIO_PAD_CTRL),
-	SC_P_ENET0_REFCLK_125M_25M | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPIO_PAD_CTRL),
-};
-
 static void board_gpio_init(void)
 {
 	int ret;
@@ -350,12 +343,6 @@ static void board_gpio_init(void)
 	dm_gpio_set_value(&desc, 0);
 	udelay(50);
 	dm_gpio_set_value(&desc, 1);
-
-	imx8_iomux_setup_multiple_pads(board_gpios, ARRAY_SIZE(board_gpios));
-
-	/* enable i2c port expander assert reset line */
-	gpio_request(IOEXP_RESET, "ioexp_rst");
-	gpio_direction_output(IOEXP_RESET, 1);
 }
 #endif
 
@@ -482,9 +469,9 @@ static struct cdns3_device cdns3_device_data = {
 	.index = 1,
 };
 
-int usb_gadget_handle_interrupts(void)
+int usb_gadget_handle_interrupts(int index)
 {
-	cdns3_uboot_handle_interrupt(1);
+	cdns3_uboot_handle_interrupt(index);
 	return 0;
 }
 #endif
@@ -500,6 +487,19 @@ int board_usb_init(int index, enum usb_init_type init)
 #endif
 #ifdef CONFIG_USB_CDNS3_GADGET
 		} else {
+#ifdef CONFIG_SPL_BUILD
+			sc_ipc_t ipcHndl = 0;
+
+			ipcHndl = gd->arch.ipc_channel_handle;
+
+			ret = sc_pm_set_resource_power_mode(ipcHndl, SC_R_USB_2, SC_PM_PW_MODE_ON);
+			if (ret != SC_ERR_NONE)
+				printf("conn_usb2 Power up failed! (error = %d)\n", ret);
+
+			ret = sc_pm_set_resource_power_mode(ipcHndl, SC_R_USB_2_PHY, SC_PM_PW_MODE_ON);
+			if (ret != SC_ERR_NONE)
+				printf("conn_usb2_phy Power up failed! (error = %d)\n", ret);
+#else
 			struct power_domain pd;
 			int ret;
 
@@ -515,6 +515,8 @@ int board_usb_init(int index, enum usb_init_type init)
 				if (ret)
 					printf("conn_usb2_phy Power up failed! (error = %d)\n", ret);
 			}
+#endif
+
 #ifdef CONFIG_USB_TCPC
 			ret = tcpc_setup_ufp_mode(&port);
 			printf("%d setufp mode %d\n", index, ret);
@@ -541,23 +543,37 @@ int board_usb_cleanup(int index, enum usb_init_type init)
 #endif
 #ifdef CONFIG_USB_CDNS3_GADGET
 		} else {
+			cdns3_uboot_exit(1);
+
+#ifdef CONFIG_SPL_BUILD
+			sc_ipc_t ipcHndl = 0;
+
+			ipcHndl = gd->arch.ipc_channel_handle;
+
+			ret = sc_pm_set_resource_power_mode(ipcHndl, SC_R_USB_2, SC_PM_PW_MODE_OFF);
+			if (ret != SC_ERR_NONE)
+				printf("conn_usb2 Power down failed! (error = %d)\n", ret);
+
+			ret = sc_pm_set_resource_power_mode(ipcHndl, SC_R_USB_2_PHY, SC_PM_PW_MODE_OFF);
+			if (ret != SC_ERR_NONE)
+				printf("conn_usb2_phy Power down failed! (error = %d)\n", ret);
+#else
 			struct power_domain pd;
 			int ret;
-
-			cdns3_uboot_exit(1);
 
 			/* Power off usb */
 			if (!power_domain_lookup_name("conn_usb2", &pd)) {
 				ret = power_domain_off(&pd);
 				if (ret)
-					printf("conn_usb2 Power up failed! (error = %d)\n", ret);
+					printf("conn_usb2 Power down failed! (error = %d)\n", ret);
 			}
 
 			if (!power_domain_lookup_name("conn_usb2_phy", &pd)) {
 				ret = power_domain_off(&pd);
 				if (ret)
-					printf("conn_usb2_phy Power up failed! (error = %d)\n", ret);
+					printf("conn_usb2_phy Power down failed! (error = %d)\n", ret);
 			}
+#endif
 #endif
 		}
 	}
@@ -626,6 +642,9 @@ int board_mmc_get_env_dev(int devno)
 
 int board_late_init(void)
 {
+	char *fdt_file;
+	bool m4_boot;
+
 #ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
 	env_set("board_name", "MEK");
 	env_set("board_rev", "iMX8QXP");
@@ -635,6 +654,16 @@ int board_late_init(void)
 #ifdef CONFIG_AHAB_BOOT
 	env_set("sec_boot", "yes");
 #endif
+
+	fdt_file = env_get("fdt_file");
+	m4_boot = check_m4_parts_boot();
+
+	if (fdt_file && !strcmp(fdt_file, "undefined")) {
+		if (m4_boot)
+			env_set("fdt_file", "fsl-imx8qxp-mek-rpmsg.dtb");
+		else
+			env_set("fdt_file", "fsl-imx8qxp-mek.dtb");
+	}
 
 #ifdef CONFIG_ENV_IS_IN_MMC
 	board_late_mmc_env_init();
