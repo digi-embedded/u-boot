@@ -83,11 +83,6 @@ int fuse_sense(u32 bank, u32 word, u32 *val)
 int fuse_prog(u32 bank, u32 word, u32 val)
 {
 #if CONFIG_MX8_FUSE_PROG
-	if (!fuse_is_prog_allowed()) {
-		printf("Fuse programming in U-Boot is disabled\n");
-		return -EPERM;
-	}
-
 	if (bank != 0) {
 		printf("Invalid bank argument, ONLY bank 0 is supported\n");
 		return -EINVAL;
@@ -99,19 +94,21 @@ int fuse_prog(u32 bank, u32 word, u32 val)
 	}
 #endif
 
-    if (((word >= FSL_ECC_WORD_START_1) && (word <= FSL_ECC_WORD_END_1)) ||
-		((word >= FSL_ECC_WORD_START_2) && (word <= FSL_ECC_WORD_END_2)))
-       {
-             puts("Warning: Words in this index range have ECC protection and\n"
-                  "can only be programmed once per word. Individual bit operations will\n"
-                  "be rejected after the first one. \n"
-                  "\n\n Really program this word? <y/N> \n");
+	if (!fuse_is_prog_allowed()) {
+		if (((word >= FSL_ECC_WORD_START_1) &&
+		     (word <= FSL_ECC_WORD_END_1)) ||
+		    ((word >= FSL_ECC_WORD_START_2) &&
+		     (word <= FSL_ECC_WORD_END_2)))
+		     puts("Warning: Words in this index range have ECC protection and\n"
+			  "can only be programmed once per word. Individual bit operations will\n"
+			  "be rejected after the first one. \n"
+			  "\n\n Really program this word? <y/N> \n");
 
-             if(!confirm_yesno()) {
-                 puts("Word programming aborted\n");
-                 return -EPERM;
-             }
-       }
+		if(!confirm_yesno()) {
+			puts("Word programming aborted\n");
+			return -EPERM;
+		}
+	}
 
 #if defined(CONFIG_SMC_FUSE)
 	return call_imx_sip(FSL_SIP_OTP_WRITE, (unsigned long)word,\
