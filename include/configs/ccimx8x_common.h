@@ -37,6 +37,11 @@
 #define PHYS_SDRAM_2			0x880000000
 #define PHYS_SDRAM_2_SIZE		0
 #define PHYS_SDRAM			PHYS_SDRAM_1
+/*
+ * 0x08081000 - 0x08180FFF is for m4_0 xip image,
+ * So 3rd container image may start from 0x8181000
+ */
+#define CONFIG_SYS_UBOOT_BASE 0x08181000
 
 #define CONFIG_OF_SYSTEM_SETUP
 
