@@ -98,7 +98,7 @@ struct ccimx6_variant {
 
 #ifdef CONFIG_CC8
 /*
- * HWID is stored in 3 consecutive Fuse Words, being:
+ * HWID is stored in 4 consecutive Fuse Words, being:
  *
  *              MAC1[31:0] (Bank 0 Word 708)
  *
@@ -109,10 +109,10 @@ struct ccimx6_variant {
  *
  *              MAC1[47:32] (Bank 0 Word 709)
  *
- *   |     31..16      | 15..11 |  10..6  | 5..3 | 2..0 |
- *   +--------------------------+---------+------+------+
- *   |     RESERVED    |   --   | Variant |  HV  | Cert |
- *   +--------------------------+---------+------+------+
+ *   |     31..16      | 15  | 14..11 |  10..6  | 5..3 | 2..0 |
+ *   +-----------------+-----+--------+---------+------+------+
+ *   |     RESERVED    | MCA |   RAM  | Variant |  HV  | Cert |
+ *   +-----------------+-----+--------+---------+------+------+
  *
  *              MAC2[31:0] (Bank 0 Word 710)
  *
@@ -120,6 +120,13 @@ struct ccimx6_variant {
  *   +--------+----------+------------------------------+
  *   |  GenID | MAC pool |            MAC base          |
  *   +--------+----------+------------------------------+
+ *
+ *              MAC2[47:32] (Bank 0 Word 711)
+ *
+ *   |     31..16      |      15..3     |    2   | 1  |   0   |
+ *   +-----------------+----------------+--------+----+-------+
+ *   |     RESERVED    |       --       | Crypto | BT | Wi-Fi |
+ *   +-----------------+----------------+--------+----+-------+
  */
 struct __packed digi_hwid {
 	u32	sn:20;		/* serial number */
@@ -129,11 +136,17 @@ struct __packed digi_hwid {
 	u32	cert:3;		/* type of wifi certification */
 	u32	hv:3;		/* hardware version */
 	u32	variant:5;	/* module variant */
-	u32	spare:5;	/* spare bits */
+	u32	ram:4;		/* RAM */
+	u32	mca:1;		/* has MCA */
 	u32	reserved:16;	/* reserved by NXP */
 	u32	mac_base:24;	/* MAC base address */
 	u32	mac_pool:4;	/* MAC address pool */
 	u32	genid:4;	/* generator id */
+	u32	wifi:1;		/* has Wi-Fi */
+	u32	bt:1;		/* has Bluetooth */
+	u32	crypto:1;	/* has crypto-authentication */
+	u32	spare:13;	/* spare */
+	u32	reserved2:16;	/* reserved by NXP */
 };
 
 enum imx8_cpu {
@@ -153,7 +166,7 @@ struct ccimx8_variant {
 #define	CCIMX8_HAS_WIRELESS	(1 << 0)
 #define	CCIMX8_HAS_BLUETOOTH	(1 << 1)
 
-#define CONFIG_HWID_STRINGS_HELP	"<XXXXXXXX> <YYYY> <ZZZZZZZZ>"
+#define CONFIG_HWID_STRINGS_HELP	"<WWWW> <XXXXXXXX> <YYYY> <ZZZZZZZZ>"
 #define CONFIG_MANUF_STRINGS_HELP	"<YYMMGGXXXXXX> <PPAAAAAA> <VVHC> <K>"
 #define DIGICMD_HWID_SUPPORTED_OPTIONS_HELP \
 	     "read - sense HWID from fuses\n" \
@@ -174,5 +187,6 @@ int board_prog_hwid(const struct digi_hwid *hwid);
 int board_override_hwid(const struct digi_hwid *hwid);
 int board_lock_hwid(void);
 void fdt_fixup_hwid(void *fdt);
+int hwid_get_ramsize(void);
 
 #endif	/* __HWID_H_ */

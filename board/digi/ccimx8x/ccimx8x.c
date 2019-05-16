@@ -195,7 +195,7 @@ static void mca_init(void)
 	}
 }
 
-static int is_valid_hwid(struct digi_hwid *hwid)
+static int hwid_in_db(struct digi_hwid *hwid)
 {
 	if (hwid->variant < ARRAY_SIZE(ccimx8x_variants))
 		if (ccimx8x_variants[hwid->variant].cpu != IMX8_NONE)
@@ -217,28 +217,48 @@ static int use_mac_from_fuses(struct digi_hwid *hwid)
 
 int board_has_wireless(void)
 {
-	if (is_valid_hwid(&my_hwid))
+	if (my_hwid.ram)
+		return my_hwid.wifi;
+
+	if (hwid_in_db(&my_hwid))
 		return (ccimx8x_variants[my_hwid.variant].capabilities &
 				CCIMX8_HAS_WIRELESS);
 	else
-		return 1; /* assume it has if invalid HWID */
+		return 1; /* assume it has, if not in database */
 }
 
 int board_has_bluetooth(void)
 {
-	if (is_valid_hwid(&my_hwid))
+	if (my_hwid.ram)
+		return my_hwid.bt;
+
+	if (hwid_in_db(&my_hwid))
 		return (ccimx8x_variants[my_hwid.variant].capabilities &
 				CCIMX8_HAS_BLUETOOTH);
 	else
-		return 1; /* assume it has if invalid HWID */
+		return 1; /* assume it has, if not in database */
 }
 
 void print_ccimx8x_info(void)
 {
-	if (is_valid_hwid(&my_hwid))
+	if (hwid_in_db(&my_hwid)) {
 		printf("%s SOM variant 0x%02X: %s\n", CONFIG_SOM_DESCRIPTION,
 			my_hwid.variant,
 			ccimx8x_variants[my_hwid.variant].id_string);
+	} else if (my_hwid.ram) {
+		printf("%s SOM variant 0x%02X: ", CONFIG_SOM_DESCRIPTION,
+		       my_hwid.variant);
+		print_size(gd->ram_size, " LPDDR4");
+		if (my_hwid.wifi)
+			printf(", Wi-Fi");
+		if (my_hwid.bt)
+			printf(", Bluetooth");
+		if (my_hwid.mca)
+			printf(", MCA");
+		if (my_hwid.crypto)
+			printf(", Crypto-auth");
+		printf("\n");
+	}
 }
 
 int ccimx8_init(void)
@@ -311,6 +331,19 @@ void som_default_environment(void)
 		env_set(var, hex_val);
 	}
 
+	/* Set module_ram variable */
+	if (my_hwid.ram) {
+		int ram = hwid_get_ramsize();
+
+		if (ram >= 1024) {
+			ram /= 1024;
+			snprintf(var, sizeof(var), "%dGB", ram);
+		} else {
+			snprintf(var, sizeof(var), "%dMB", ram);
+		}
+		env_set("module_ram", var);
+	}
+
 	/*
 	 * If there are no defined partition tables generate them dynamically
 	 * basing on the available eMMC size.
@@ -354,7 +387,8 @@ static void get_macs_from_fuses(void)
 	char *macvars[] = {"ethaddr", "eth1addr", "wlanaddr", "btaddr"};
 	int ret, n_macs, i;
 
-	if (!is_valid_hwid(&my_hwid) || !use_mac_from_fuses(&my_hwid))
+	if ((!hwid_in_db(&my_hwid) && !my_hwid.ram) ||
+	    !use_mac_from_fuses(&my_hwid))
 		return;
 
 	ret = set_mac_from_pool(my_hwid.mac_pool, macaddr);
