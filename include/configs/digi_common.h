@@ -75,7 +75,7 @@
 	"                   $dboot_kernel_var)\n"
 #define DIGICMD_ARG_IMGADDR_HELP	\
 	"       - image_address: address of image in RAM\n" \
-	"                        ($loadaddr if not provided)\n"
+	"                        ($update_addr if not provided)\n"
 #define DIGICMD_ARG_IMGSIZE_HELP	\
 	"       - image_size: size of image in RAM\n" \
 	"                    ($filesize if not provided)\n"
