@@ -11,6 +11,7 @@
 #include <jffs2/load_kernel.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/nand.h>
+#include <mapmem.h>
 #include <nand.h>
 #include <otf_update.h>
 #include <ubi_uboot.h>
@@ -22,15 +23,48 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#define UBIFS_MAGIC  0x06101831
+
 enum {
 	ERR_WRITE = 1,
 	ERR_READ,
 	ERR_VERIFY,
 };
 
-static int write_firmware(unsigned long loadaddr, unsigned long filesize,
-			  struct part_info *part, char *ubivolname)
+/*
+ * Attaches an MTD partition to UBI and gets its volume name.
+ * If a volume does not exist, it creates one with the same name of the
+ * partition.
+ */
+static int ubi_attach_getcreatevol(char *partname, const char **volname)
 {
+	char cmd[CONFIG_SYS_CBSIZE] = "";
+	int ret = -1;
+
+	*volname = NULL;
+
+	/* Attach partition and get volume name */
+	if (!ubi_part(partname, NULL)) {
+		*volname = ubi_get_volume_name(0);
+		if (!*volname) {
+			/* Create UBI volume with the name of the partition */
+			sprintf(cmd, "ubi createvol %s", partname);
+			if (run_command(cmd, 0))
+				return -1;
+
+			*volname = partname;
+		}
+		ret = 0;
+	}
+
+	return ret;
+}
+
+static int write_firmware(unsigned long loadaddr, unsigned long filesize,
+			  struct part_info *part)
+{
+	uint32_t *magic;
+	const char *ubivolname = NULL;
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	unsigned long verifyaddr, u, m;
 
@@ -40,15 +74,55 @@ static int write_firmware(unsigned long loadaddr, unsigned long filesize,
 		return -1;
 	}
 
+#ifdef CONFIG_DIGI_UBI
+	/* Check if the file to write is UBIFS */
+	magic = (uint32_t *)map_sysmem(loadaddr, 0);
+	if (*magic == UBIFS_MAGIC) {
+		/*
+		 * If the partition is not U-Boot (whose sectors must be raw-read),
+		 * ensure the partition is UBI formatted.
+		 */
+		if (strcmp(part->name, CONFIG_UBOOT_PARTITION)) {
+			/* Silent UBI commands during the update */
+			run_command("ubi silent 1", 0);
+
+			if (is_ubi_partition(part)) {
+				/* Attach partition and get volume name */
+				ubi_attach_getcreatevol(part->name, &ubivolname);
+			}
+
+			/*
+			 * If the partition does not have a valid UBI volume,
+			 * erase the partition and create the UBI volume.
+			 */
+			if (!ubivolname) {
+				sprintf(cmd, "nand erase.part %s", part->name);
+				if (run_command(cmd, 0))
+					return ERR_WRITE;
+				/* Attach partition and get volume name */
+				ubi_attach_getcreatevol(part->name, &ubivolname);
+			}
+		}
+	}
+	else {
+		/*
+		 * If the file is not UBIFS, erase the entire partition before
+		 * raw-writing.
+		 */
+		sprintf(cmd, "nand erase.part %s", part->name);
+		if (run_command(cmd, 0))
+			return ERR_WRITE;
+	}
+#endif /* CONFIG_DIGI_UBI */
+
 	if (ubivolname) {
 		/* A UBI volume exists in the partition, use 'ubi write' */
 		sprintf(cmd, "ubi write %lx %s %lx", loadaddr, ubivolname,
 			filesize);
 	} else {
-		/* raw-write firmware command (erase first) */
-		sprintf(cmd, "if nand erase.part %s; then "
-			"nand write %lx %s %lx;fi", part->name,
-			loadaddr, part->name, filesize);
+		/* raw-write firmware command */
+		sprintf(cmd, "nand write %lx %s %lx;fi", loadaddr, part->name,
+			filesize);
 	}
 	if (run_command(cmd, 0))
 		return ERR_WRITE;
@@ -126,35 +200,6 @@ static int write_firmware(unsigned long loadaddr, unsigned long filesize,
 	return 0;
 }
 
-/*
- * Attaches an MTD partition to UBI and gets its volume name.
- * If a volume does not exist, it creates one with the same name of the
- * partition.
- */
-static int ubi_attach_getcreatevol(char *partname, const char **volname)
-{
-	char cmd[CONFIG_SYS_CBSIZE] = "";
-	int ret = -1;
-
-	*volname = NULL;
-
-	/* Attach partition and get volume name */
-	if (!ubi_part(partname, NULL)) {
-		*volname = ubi_get_volume_name(0);
-		if (!*volname) {
-			/* Create UBI volume with the name of the partition */
-			sprintf(cmd, "ubi createvol %s", partname);
-			if (run_command(cmd, 0))
-				return -1;
-
-			*volname = partname;
-		}
-		ret = 0;
-	}
-
-	return ret;
-}
-
 static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 {
 	int ret;
@@ -166,10 +211,7 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	char *ubootpartname = CONFIG_UBOOT_PARTITION;
 	char *partname;
 	u8 pnum;
-	int ubifs_ext = 0;
-	const char *ubivolname = NULL;
 	struct load_fw fwinfo;
-	char cmd[CONFIG_SYS_CBSIZE] = "";
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -242,51 +284,7 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 				return CMD_RET_USAGE;
 			}
 		}
-
-		/* Check if the filename has extension UBIFS */
-		if (!strcmp(get_filename_ext(fwinfo.filename), "ubifs"))
-			ubifs_ext = 1;
 	}
-
-#ifdef CONFIG_DIGI_UBI
-	/*
-	 * If the partition is not U-Boot (whose sectors must be raw-read),
-	 * check if the partition is UBI formatted.
-	 */
-	if (strcmp(part->name, CONFIG_UBOOT_PARTITION)) {
-		bool erase_ubi = 0;
-
-		if (is_ubi_partition(part)) {
-			/* Silent UBI commands during the update */
-			run_command("ubi silent 1", 0);
-
-			/* Attach partition and get volume name */
-			if (ubi_attach_getcreatevol(partname, &ubivolname)) {
-				/* On error, erase partition and retry */
-				erase_ubi = 1;
-			}
-		}
-
-		/*
-		 * If the partition does not have a valid UBI volume
-		 * but we are updating a *.ubifs filename, erase the
-		 * partition and create the UBI volume.
-		 */
-		if ((ubifs_ext && ubivolname == NULL) || erase_ubi) {
-			sprintf(cmd, "nand erase.part %s", partname);
-			if (run_command(cmd, 0)) {
-				ret = CMD_RET_FAILURE;
-				goto _ret;
-			}
-
-			/* Attach partition and get volume name */
-			if (ubi_attach_getcreatevol(partname, &ubivolname)) {
-				ret = CMD_RET_FAILURE;
-				goto _ret;
-			}
-		}
-	}
-#endif /* CONFIG_DIGI_UBI */
 
 	/* TODO: Activate on-the-fly update if needed */
 
@@ -318,7 +316,7 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 		goto _ret;
 	}
 #endif
-	ret = write_firmware(loadaddr, filesize, part, (char *)ubivolname);
+	ret = write_firmware(loadaddr, filesize, part);
 	if (ret) {
 		if (ret == ERR_READ)
 			printf("Error while reading back written firmware!\n");
