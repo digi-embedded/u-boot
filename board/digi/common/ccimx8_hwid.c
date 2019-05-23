@@ -310,7 +310,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	       hwid->cert < ARRAY_SIZE(cert_regions) ?
 	       cert_regions[hwid->cert] : "??");
 
-	if (argc > 2) {
+	if (argc > 3) {
 		/* Wireless ID */
 		strncpy(tmp, &argv[3][0], 1);
 		tmp[1] = 0;
