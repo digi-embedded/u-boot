@@ -164,8 +164,10 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[0][1], 2);
 	tmp[2] = 0;
 	num = simple_strtol(tmp, NULL, 10);
-	if (num > 63)
+	if (num > 63) {
+		printf("Invalid year\n");
 		goto err;
+	}
 	hwid->year = num;
 	printf("    Year:          20%02d\n", hwid->year);
 
@@ -173,8 +175,10 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[0][3], 2);
 	tmp[2] = 0;
 	num = simple_strtol(tmp, NULL, 10);
-	if (num < 1 || num > 54)
+	if (num < 1 || num > 54) {
+		printf("Invalid week\n");
 		goto err;
+	}
 	hwid->week = num;
 	printf("    Week:          %02d\n", hwid->week);
 
@@ -182,8 +186,10 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[0][5], 2);
 	tmp[2] = 0;
 	num = simple_strtol(tmp, NULL, 10);
-	if (num > 99)
+	if (num > 99) {
+		printf("Invalid Generator ID\n");
 		goto err;
+	}
 	hwid->genid = num;
 	printf("    Generator ID:  %02d\n", hwid->genid);
 
@@ -191,8 +197,10 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[0][7], 6);
 	tmp[6] = 0;
 	num = simple_strtol(tmp, NULL, 10);
-	if (num > 999999)
+	if (num > 999999) {
+		printf("Invalid serial number\n");
 		goto err;
+	}
 	hwid->sn = num;
 	printf("    S/N:           %06d\n", hwid->sn);
 
@@ -200,8 +208,10 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[1][0], 2);
 	tmp[2] = 0;
 	num = simple_strtol(tmp, NULL, 16);
-	if (num > 0xff)
+	if (num > 0xff) {
+		printf("Invalid variant\n");
 		goto err;
+	}
 	hwid->variant = num;
 	printf("    Variant:       0x%02x\n", hwid->variant);
 
@@ -209,8 +219,10 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[1][2], 1);
 	tmp[1] = 0;
 	num = simple_strtol(tmp, NULL, 16);
-	if (num > 0xf)
+	if (num > 0xf) {
+		printf("Invalid hardware version\n");
 		goto err;
+	}
 	hwid->hv = num;
 	printf("    HW version:    0x%x\n", hwid->hv);
 
@@ -218,8 +230,10 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[1][3], 1);
 	tmp[1] = 0;
 	num = simple_strtol(tmp, NULL, 16);
-	if (num > 0xf)
+	if (num > 0xf) {
+		printf("Invalid cert\n");
 		goto err;
+	}
 	hwid->cert = num;
 	printf("    Cert:          0x%x (%s)\n", hwid->cert,
 		hwid->cert < ARRAY_SIZE(cert_regions) ?
@@ -230,8 +244,10 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 		strncpy(tmp, &argv[2][0], 1);
 		tmp[1] = 0;
 		num = simple_strtol(tmp, NULL, 16);
-		if (num < 0 || num > 0xf)
+		if (num < 0 || num > 0xf) {
+			printf("Invalid Wireless ID\n");
 			goto err;
+		}
 		hwid->wid = num;
 	}
 	printf("    Wireless ID:   0x%x\n", hwid->wid);
