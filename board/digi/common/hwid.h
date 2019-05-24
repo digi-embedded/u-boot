@@ -167,7 +167,7 @@ struct ccimx8_variant {
 #define	CCIMX8_HAS_BLUETOOTH	(1 << 1)
 
 #define CONFIG_HWID_STRINGS_HELP	"<WWWW> <XXXXXXXX> <YYYY> <ZZZZZZZZ>"
-#define CONFIG_MANUF_STRINGS_HELP	"<YYMMGGXXXXXX> <PPAAAAAA> <VVHC> <K>"
+#define CONFIG_MANUF_STRINGS_HELP	"<YYMMGGXXXXXX> <PPAAAAAA> <VVHC> <K> <RMWBC>"
 #define DIGICMD_HWID_SUPPORTED_OPTIONS_HELP \
 	     "read - sense HWID from fuses\n" \
 	"hwid read_manuf - sense HWID from fuses and print manufacturing ID\n" \

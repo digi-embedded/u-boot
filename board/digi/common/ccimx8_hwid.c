@@ -107,7 +107,8 @@ void board_print_manufid(struct digi_hwid *hwid)
 	printf("\n");
 
 	/* Formatted printout */
-	printf(" Manufacturing ID: %02d%02d%02d%06d %02d%06x %02x%x%x %x\n",
+	printf(" Manufacturing ID: %02d%02d%02d%06d %02d%06x %02x%x%x %x"
+	       " %x%x%x%x%x\n",
 		hwid->year,
 		hwid->month,
 		hwid->genid,
@@ -117,7 +118,12 @@ void board_print_manufid(struct digi_hwid *hwid)
 		hwid->variant,
 		hwid->hv,
 		hwid->cert,
-		hwid->wid);
+		hwid->wid,
+		hwid->ram,
+		hwid->mca,
+		hwid->wifi,
+		hwid->bt,
+		hwid->crypto);
 }
 
 /* Parse HWID info in HWID format */
@@ -165,6 +171,18 @@ err:
 	return -EINVAL;
 }
 
+static int parse_bool_char(char c, bool *val)
+{
+	int v = c -'0';
+
+	if (v != 0 && v != 1)
+		return -1;
+
+	*val = (bool)v;
+
+	return 0;
+}
+
 /* Parse HWID info in MANUFID format */
 int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 {
@@ -174,13 +192,15 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	/* Initialize HWID words */
 	memset(hwid, 0, sizeof(struct digi_hwid));
 
-	if (argc < 3 || argc > 4)
+	if (argc < 3 || argc > 5)
 		goto err;
 
 	/*
 	 * Digi Manufacturing team produces a string in the form
-	 *     <YYMMGGXXXXXX>
-	 * where:
+	 *     <YYMMGGXXXXXX> <PPAAAAAA> <VVHC> <K> <RMWBC>
+	 */
+
+	/* <YYMMGGXXXXXX>, where:
 	 *  - YY:	year (last two digits of XXI century, in decimal)
 	 *  - MM:	month of the year (in decimal)
 	 *  - GG:	generator ID (in decimal)
@@ -195,7 +215,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 		goto err;
 
 	/*
-	 * A second string in the form <PPAAAAAA> must be given where:
+	 * <PPAAAAAA>, where:
 	 *  - PP:	MAC pool (in decimal)
 	 *  - AAAAAA:	MAC base address (in hex)
 	 * this information goes into the following places on the fuses:
@@ -206,7 +226,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 		goto err;
 
 	/*
-	 * A third string in the form <VVHC> must be given where:
+	 * <VVHC>, where:
 	 *  - VV:	variant (in hex)
 	 *  - H:	hardware version (in hex)
 	 *  - C:	wireless certification (in hex)
@@ -219,7 +239,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 		goto err;
 
 	/*
-	 * A fourth string (if provided) in the form <K> may be given, where:
+	 * <K>, where:
 	 *  - K:	wireless ID (in hex)
 	 * this information goes into the following places on the fuses:
 	 *  - K:	MAC1_ADDR0 bits 31..30 (2 bits)
@@ -227,6 +247,26 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	 */
 	if (argc > 3) {
 		if (strlen(argv[3]) != 1)
+			goto err;
+	}
+
+	/*
+	 * <RMWBC>, where:
+	 *  - R:	ram (index to ram_sizes_mb[] array)
+	 *  - M:	whether the variant has MCA chip
+	 *  - W:	whether the variant has Wi-Fi chip
+	 *  - B:	whether the variant has Bluetooth chip
+	 *  - C:	whether the variant has crypto-auth chip
+	 * this information goes into the following places on the fuses:
+	 *  - R:	MAC1_ADDR1 bits 14..11 (4 bits)
+	 *  - M:	MAC1_ADDR1 bit 15 (1 bits)
+	 *  - W:	MAC2_ADDR1 bit 0 (1 bits)
+	 *  - B:	MAC2_ADDR1 bit 1 (1 bits)
+	 *  - C:	MAC2_ADDR1 bit 2 (1 bits)
+	 * If not provided, a zero is used (for backwards compatibility)
+	 */
+	if (argc > 4) {
+		if (strlen(argv[4]) != 5)
 			goto err;
 	}
 
@@ -346,6 +386,49 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 		hwid->wid = num;
 	}
 	printf("    Wireless ID:   0x%x\n", hwid->wid);
+
+	if (argc > 4) {
+		bool v;
+
+		/* RAM */
+		strncpy(tmp, &argv[4][0], 1);
+		tmp[1] = 0;
+		num = simple_strtol(tmp, NULL, 16);
+		if (num < 1) {
+			printf("Invalid RAM\n");
+			goto err;
+		}
+		hwid->ram = num;
+		/* MCA */
+		if (parse_bool_char(argv[4][1], &v)) {
+			printf("Invalid MCA\n");
+			goto err;
+		}
+		hwid->mca = v;
+		/* Wi-Fi */
+		if (parse_bool_char(argv[4][2], &v)) {
+			printf("Invalid Wi-Fi\n");
+			goto err;
+		}
+		hwid->wifi = v;
+		/* Bluetooth */
+		if (parse_bool_char(argv[4][3], &v)) {
+			printf("Invalid Bluetooth\n");
+			goto err;
+		}
+		hwid->bt = v;
+		/* Crypto-chip */
+		if (parse_bool_char(argv[4][4], &v)) {
+			printf("Invalid Crypto-chip\n");
+			goto err;
+		}
+		hwid->crypto = v;
+	}
+	printf("    RAM:           %d MiB\n", ram_sizes_mb[hwid->ram]);
+	printf("    Wi-Fi:         %s\n", hwid->wifi ? "yes" : "-");
+	printf("    Bluetooth:     %s\n", hwid->bt ? "yes" : "-");
+	printf("    Cryto-chip:    %s\n", hwid->crypto ? "yes" : "-");
+	printf("    MCA:           %s\n", hwid->mca ? "yes" : "-");
 
 	return 0;
 
