@@ -342,8 +342,7 @@ U_BOOT_CMD(
 	"Digi modules update command",
 	"<partition>  [source] [extra-args...]\n"
 	" Description: updates <partition> in NAND via <source>\n"
-	"              If the partition is UBI formatted, or a filename with\n"
-	"              extension *.ubifs is passed, writing a UBIFS is assumed\n"
+	"              If a UBIFS file is given, it writes the file to the partition using UBI commands.\n"
 	"              Otherwise, this command raw-writes the file to the partition.\n"
 	"\n"
 	" Arguments:\n"
