@@ -161,6 +161,7 @@ int board_parse_hwid(int argc, char *const argv[], struct digi_hwid *hwid)
 
 		((u32 *)hwid)[word] = hwidword;
 	}
+	board_print_hwid(hwid);
 
 	return 0;
 
