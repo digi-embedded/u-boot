@@ -152,7 +152,7 @@ struct __packed digi_hwid {
 enum imx8_cpu {
 	IMX8_NONE = 0,	/* Reserved */
 	IMX8QXP,	/* QuadXPlus */
-	IMX8DXP,	/* DualXPlus */
+	IMX8DX,		/* DualX */
 };
 
 struct ccimx8_variant {
