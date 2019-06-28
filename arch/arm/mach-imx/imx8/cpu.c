@@ -59,7 +59,6 @@ u32 get_cpu_rev(void)
 	return (id << 12) | rev;
 }
 
-#ifdef CONFIG_DISPLAY_CPUINFO
 const char *get_imx8_type(u32 imxtype)
 {
 	switch (imxtype) {
@@ -74,6 +73,7 @@ const char *get_imx8_type(u32 imxtype)
 	}
 }
 
+#ifdef CONFIG_DISPLAY_CPUINFO
 const char *get_imx8_rev(u32 rev)
 {
 	switch (rev) {

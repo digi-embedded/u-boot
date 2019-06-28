@@ -8,7 +8,8 @@
 #include <fsl_esdhc.h>
 #include <i2c.h>
 #include <otf_update.h>
-
+#include <linux/ctype.h>
+#include <asm/arch/sys_proto.h>
 #include <asm/mach-imx/sci/sci.h>
 #include <asm/mach-imx/boot_mode.h>
 #include "../../freescale/common/tcpc.h"
@@ -313,6 +314,8 @@ void generate_partition_table(void)
 		env_set("parts_android", android_partition_table);
 }
 
+extern const char *get_imx8_type(u32 imxtype);
+
 void som_default_environment(void)
 {
 #ifdef CONFIG_CMD_MMC
@@ -321,6 +324,12 @@ void som_default_environment(void)
 	char var[10];
 	char hex_val[9]; // 8 hex chars + null byte
 	int i;
+
+	/* Set soc_type variable (lowercase) */
+	strcpy(var, get_imx8_type(get_cpu_type()));
+	for (i = 0; i < strlen(var); i++)
+		var[i] = tolower(var[i]);
+	env_set("soc_type", var);
 
 #ifdef CONFIG_CMD_MMC
 	/* Set $mmcbootdev to MMC boot device index */
