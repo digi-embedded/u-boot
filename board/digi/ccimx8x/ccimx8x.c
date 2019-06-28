@@ -72,6 +72,13 @@ static struct ccimx8_variant ccimx8x_variants[] = {
 		0,
 		"Industrial DualX 1GHz, 8GB eMMC, 1GB LPDDR4, -40/+85C",
 	},
+/* 0x06 - 55001984-06 */
+	{
+		IMX8DX,
+		MEM_512MB,
+		0,
+		"Industrial DualX 1GHz, 8GB eMMC, 512MB LPDDR4, -40/+85C",
+	},
 };
 
 int mmc_get_bootdevindex(void)
