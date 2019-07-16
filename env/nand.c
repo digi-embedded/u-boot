@@ -64,7 +64,7 @@ static struct nand_env_location location[] = {
 		.name = "NAND",
 		.erase_opts = {
 			.length = CONFIG_ENV_RANGE,
-			.offset = CONFIG_ENV_OFFSET,
+			.offset = env_get_offset(CONFIG_ENV_OFFSET),
 		},
 	},
 #ifdef CONFIG_ENV_OFFSET_REDUND
@@ -114,7 +114,7 @@ static void env_set_dynamic_location(struct nand_env_location *location)
 		/* limit erase size to one erase block */
 		location[i].erase_opts.length = mtd->erasesize;
 
-		for (off = CONFIG_ENV_OFFSET;
+		for (off = env_get_offset(CONFIG_ENV_OFFSET);
 		     off < ENV_FIRST_NOENV_SECTOR;
 		     off += mtd->erasesize) {
 			if (!nand_block_isbad(mtd, off)) {
@@ -418,7 +418,7 @@ static int env_nand_load(void)
 	read2_fail = readenv(location[1].erase_opts.offset,
 			     (u_char *)tmp_env2);
 #else
-	read1_fail = readenv(CONFIG_ENV_OFFSET, (u_char *) tmp_env1);
+	read1_fail = readenv(env_get_offset(CONFIG_ENV_OFFSET), (u_char *) tmp_env1);
 	read2_fail = readenv(CONFIG_ENV_OFFSET_REDUND, (u_char *) tmp_env2);
 #endif
 
@@ -463,7 +463,7 @@ static int env_nand_load(void)
 
 	ret = readenv(location[0].erase_opts.offset, (u_char *)buf);
 #else
-	ret = readenv(CONFIG_ENV_OFFSET, (u_char *)buf);
+	ret = readenv(env_get_offset(CONFIG_ENV_OFFSET), (u_char *)buf);
 #endif
 	if (ret) {
 		set_default_env("!readenv() failed");
