@@ -90,7 +90,7 @@
 	phy-reset-duration = <1>;
 	fsl,ar8031-phy-fixup;
 	fsl,magic-packet;
-	status = "okay";
+	status = "disabled";
 };
 
 /* I2C2 available on Raspberry Pi expansion header */
