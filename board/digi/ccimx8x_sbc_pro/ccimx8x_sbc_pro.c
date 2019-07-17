@@ -94,13 +94,12 @@ int board_early_init_f(void)
 #ifdef CONFIG_FEC_MXC
 #include <miiphy.h>
 
-static void enet_device_phy_reset(void)
+static void enet_device_phy_reset(int iface)
 {
 	struct gpio_desc desc;
 	struct udevice *dev = NULL;
 	char *reset_gpio[] = { "gpio3_18", "gpio3_22" };
 	char *reset_gpio_lbl[] = { "enet0_reset", "enet1_reset" };
-	int iface = CONFIG_FEC_ENET_DEV;
 	int ret;
 
 	if (iface > 1) {
@@ -164,7 +163,7 @@ static int setup_fec(int ind)
 	mdelay(1);	/* PHY power up time */
 
 	/* Reset ENET PHY */
-	enet_device_phy_reset();
+	enet_device_phy_reset(ind);
 
 	return 0;
 }
