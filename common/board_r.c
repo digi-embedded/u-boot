@@ -685,6 +685,15 @@ static int initr_tee_setup(void)
 }
 #endif
 
+#ifdef CONFIG_DUAL_BOOTLOADER
+extern void check_spl_recovery(void);
+static int initr_check_spl_recovery(void)
+{
+	check_spl_recovery();
+	return 0;
+}
+#endif
+
 static int run_main_loop(void)
 {
 #if defined(CONFIG_SOURCE) && defined(CONFIG_AUTO_BOOTSCRIPT)
@@ -910,6 +919,9 @@ static init_fnc_t init_sequence_r[] = {
 #endif
 #ifdef CONFIG_FSL_FASTBOOT
 	initr_check_fastboot,
+#endif
+#ifdef CONFIG_DUAL_BOOTLOADER
+	initr_check_spl_recovery,
 #endif
 	run_main_loop,
 };
