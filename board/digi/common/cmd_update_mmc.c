@@ -119,7 +119,6 @@ static int write_firmware(char *partname, unsigned long loadaddr,
 					  filesize) ? ERR_WRITE : 0;
 	}
 #endif
-
 	size_blks = (filesize / mmc_dev->blksz) + (filesize % mmc_dev->blksz != 0);
 
 	if (size_blks > info->size) {
@@ -388,17 +387,17 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 			 * that fits into the destiny partition.
 			 */
 			unsigned long avail = get_available_ram_for_update();
-			filesize = get_firmware_size(&fwinfo);
+			unsigned long size = get_firmware_size(&fwinfo);
 
 			/*
 			 * If it was not possible to get the file size, assume
 			 * the largest possible file size (that is, the
 			 * partition size).
 			 */
-			if (!filesize)
-				filesize = info.size * mmc_dev->blksz;
+			if (!size)
+				size = info.size * mmc_dev->blksz;
 
-			if (avail <= filesize) {
+			if (avail <= size) {
 				printf("Partition to update is larger (%d MiB) than the\n"
 				       "available RAM memory (%d MiB, starting at $update_addr=0x%08x).\n",
 				       (int)(info.size * mmc_dev->blksz / (1024 * 1024)),
