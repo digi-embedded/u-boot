@@ -95,3 +95,6 @@ GTAGS
 
 # Python cache
 __pycache__
+
+/oe-*
+bitbake-cookerdaemon.log
