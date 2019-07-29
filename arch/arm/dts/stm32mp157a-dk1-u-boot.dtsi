@@ -37,7 +37,7 @@
 	};
 
 	led {
-		red {
+		led-red {
 			label = "error";
 			gpios = <&gpioa 13 GPIO_ACTIVE_LOW>;
 			default-state = "off";
@@ -50,9 +50,11 @@
 	status = "okay";
 };
 
+#ifndef CONFIG_TFABOOT
 &clk_hse {
 	st,digbypass;
 };
+#endif
 
 &i2c4 {
 	u-boot,dm-pre-reloc;
@@ -64,6 +66,12 @@
 		u-boot,dm-pre-reloc;
 	};
 };
+
+#ifndef CONFIG_TFABOOT
+&i2s2 {
+	clocks = <&rcc SPI2>, <&rcc SPI2_K>, <&rcc PLL3_Q>, <&rcc PLL3_R>;
+};
+#endif
 
 &pmic {
 	u-boot,dm-pre-reloc;
@@ -161,6 +169,12 @@
 	};
 };
 
+#ifndef CONFIG_TFABOOT
+&sai2 {
+	clocks = <&rcc SAI2>, <&rcc PLL3_Q>, <&rcc PLL3_R>;
+};
+#endif
+
 &sdmmc1 {
 	u-boot,dm-spl;
 };
@@ -193,4 +207,6 @@
 
 &usbotg_hs {
 	u-boot,force-b-session-valid;
+	/* TEMP: force peripheral for USB OTG */
+	dr_mode = "peripheral";
 };
