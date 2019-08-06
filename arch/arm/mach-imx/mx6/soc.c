@@ -674,8 +674,10 @@ int arch_cpu_init(void)
 	init_src();
 
 #if defined(CONFIG_MX6Q) || defined(CONFIG_MX6QDL)
-	if (is_mx6dqp())
+	if (is_mx6dqp()) {
 		noc_setup();
+		enable_ipu_clock();
+	}
 #endif
 
 #ifdef CONFIG_IMX_SEC_INIT
