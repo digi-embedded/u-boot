@@ -240,7 +240,8 @@ int power_init_ccimx6ul(void)
 	pmic_reg_write(pfuze, PFUZE3000_SW1AMODE, reg);
 
 	/* SW1B step ramp up time from 2us to 4us/25mV */
-	reg = 0x40;
+	pmic_reg_read(pfuze, PFUZE3000_SW1BCONF, &reg);
+	reg |= (1 << 6); /* 0 = 2us/25mV , 1 = 4us/25mV */
 	pmic_reg_write(pfuze, PFUZE3000_SW1BCONF, reg);
 
 	/* SW1B mode to APS/PFM, to optimize performance */
