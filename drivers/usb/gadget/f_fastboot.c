@@ -1639,6 +1639,9 @@ void board_fastboot_setup(void)
 	} else if (is_imx8qxp()) {
 		if (!env_get("soc_type"))
 			env_set("soc_type", "imx8qxp");
+	} else if (is_imx8dx()) {
+		if (!env_get("soc_type"))
+			env_set("soc_type", "imx8dx");
 	} else if (is_imx8mq()) {
 		if (!env_get("soc_type"))
 			env_set("soc_type", "imx8mq");
