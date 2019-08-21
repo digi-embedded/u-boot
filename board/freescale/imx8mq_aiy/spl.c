@@ -26,6 +26,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 extern struct dram_timing_info dram_timing_micron_3g;
 extern struct dram_timing_info dram_timing_1g;
+extern struct dram_timing_info dram_timing_kingston_2g;
 extern int get_imx8m_baseboard_id(void);
 
 void spl_dram_init(void)
@@ -35,8 +36,15 @@ void spl_dram_init(void)
 	/* ddr init */
 	if ((board_id == AIY_MICRON_1G) || (board_id == AIY_HYNIX_1G))
 		ddr_init(&dram_timing_1g);
-	else
+#ifndef CONFIG_AIY_LPDDR4_3G
+	else if (board_id == AIY_KINGSTON_2G)
+		ddr_init(&dram_timing_kingston_2g);
+#else
+	else if (board_id == AIY_MICRON_3G)
 		ddr_init(&dram_timing_micron_3g);
+#endif
+	else
+		printf("ddr size not support!\n");
 
 }
 
@@ -225,8 +233,8 @@ void board_init_f(ulong dummy)
 {
 	int ret;
 
-	/* Clear global data */
-	memset((void *)gd, 0, sizeof(gd_t));
+	/* Clear the BSS. */
+	memset(__bss_start, 0, __bss_end - __bss_start);
 
 	arch_cpu_init();
 
@@ -237,9 +245,6 @@ void board_init_f(ulong dummy)
 	timer_init();
 
 	preloader_console_init();
-
-	/* Clear the BSS. */
-	memset(__bss_start, 0, __bss_end - __bss_start);
 
 	ret = spl_init();
 	if (ret) {

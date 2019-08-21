@@ -18,6 +18,7 @@
 #include <fsl_fastboot.h>
 #include <asm/setup.h>
 #include <dm.h>
+#include <mmc.h>
 
 #define ANDROID_IMAGE_DEFAULT_KERNEL_ADDR	0x10008000
 
@@ -146,6 +147,10 @@ int android_image_get_kernel(const struct andr_img_hdr *hdr, int verify,
 			soc_type);
 		strncat(commandline, newbootargs, sizeof(commandline) - strlen(commandline));
 	}
+
+	sprintf(newbootargs,
+			" androidboot.boot_device_root=mmcblk%d", mmc_map_to_kernel_blk(mmc_get_env_dev()));
+	strncat(commandline, newbootargs, sizeof(commandline) - strlen(commandline));
 
 	char *storage_type = env_get("storage_type");
 	if (storage_type) {

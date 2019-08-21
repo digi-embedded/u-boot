@@ -386,7 +386,7 @@ enum {
 	PTN_GPT_INDEX = 0,
 	PTN_TEE_INDEX,
 #ifdef CONFIG_FLASH_MCUFIRMWARE_SUPPORT
-	PTN_M4_OS_INDEX,
+	PTN_MCU_OS_INDEX,
 #endif
 	PTN_ALL_INDEX,
 	PTN_BOOTLOADER_INDEX,
@@ -764,18 +764,18 @@ static int do_bootmcu(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int ret;
 	size_t out_num_read;
-	void *m4_base_addr = (void *)M4_BOOTROM_BASE_ADDR;
+	void *mcu_base_addr = (void *)MCU_BOOTROM_BASE_ADDR;
 	char command[32];
 
 	ret = read_from_partition_multi(FASTBOOT_MCU_FIRMWARE_PARTITION,
-			0, ANDROID_MCU_FIRMWARE_SIZE, (void *)m4_base_addr, &out_num_read);
+			0, ANDROID_MCU_FIRMWARE_SIZE, (void *)mcu_base_addr, &out_num_read);
 	if ((ret != 0) || (out_num_read != ANDROID_MCU_FIRMWARE_SIZE)) {
-		printf("Read M4 images failed!\n");
+		printf("Read MCU images failed!\n");
 		return 1;
 	} else {
-		printf("run command: 'bootaux 0x%x'\n",(unsigned int)(ulong)m4_base_addr);
+		printf("run command: 'bootaux 0x%x'\n",(unsigned int)(ulong)mcu_base_addr);
 
-		sprintf(command, "bootaux 0x%x", (unsigned int)(ulong)m4_base_addr);
+		sprintf(command, "bootaux 0x%x", (unsigned int)(ulong)mcu_base_addr);
 		ret = run_command(command, 0);
 		if (ret) {
 			printf("run 'bootaux' command failed!\n");
@@ -788,14 +788,14 @@ static int do_bootmcu(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 U_BOOT_CMD(
 	bootmcu, 1, 0, do_bootmcu,
 	"boot mcu images\n",
-	"boot mcu images from 'm4_os' partition, only support images run from TCM"
+	"boot mcu images from 'mcu_os' partition, only support images run from TCM"
 );
 #endif
 #endif /* CONFIG_FLASH_MCUFIRMWARE_SUPPORT */
 
 static ulong bootloader_mmc_offset(void)
 {
-	if (is_imx8m() || (is_imx8() && is_soc_rev(CHIP_REV_A)))
+	if (is_imx8mq() || is_imx8mm() || (is_imx8() && is_soc_rev(CHIP_REV_A)))
 		return 0x8400;
 	else if (is_imx8qm()) {
 		if (MEK_8QM_EMMC == fastboot_devinfo.dev_id)
@@ -803,6 +803,12 @@ static ulong bootloader_mmc_offset(void)
 			return 0x0;
 		else
 		/* target device is SD card, bootloader offset is 0x8000 */
+			return 0x8000;
+	} else if (is_imx8mn()) {
+		/* target device is eMMC boot0 partition, bootloader offset is 0x0 */
+		if (env_get_ulong("emmc_dev", 10, 1) == fastboot_devinfo.dev_id)
+			return 0;
+		else
 			return 0x8000;
 	}
 	else if (is_imx8())
@@ -1295,7 +1301,7 @@ static int _fastboot_setup_dev(int *switched)
 #ifdef CONFIG_FLASH_MCUFIRMWARE_SUPPORT
 	/* For imx7ulp, flash m4 images directly to spi nor-flash, M4 will
 	 * run automatically after powered on. For imx8mq, flash m4 images to
-	 * physical partition 'm4_os', m4 will be kicked off by A core. */
+	 * physical partition 'mcu_os', m4 will be kicked off by A core. */
 	fastboot_firmwareinfo.type = ANDROID_MCU_FRIMWARE_DEV_TYPE;
 #endif
 
@@ -1454,14 +1460,14 @@ static int _fastboot_parts_load_from_ptable(void)
 	strcpy(ptable[PTN_TEE_INDEX].fstype, "raw");
 #endif
 
-	/* Add m4_os partition if we support mcu firmware image flash */
+	/* Add mcu_os partition if we support mcu firmware image flash */
 #ifdef CONFIG_FLASH_MCUFIRMWARE_SUPPORT
-	strcpy(ptable[PTN_M4_OS_INDEX].name, FASTBOOT_MCU_FIRMWARE_PARTITION);
-	ptable[PTN_M4_OS_INDEX].start = ANDROID_MCU_FIRMWARE_START / dev_desc->blksz;
-	ptable[PTN_M4_OS_INDEX].length = ANDROID_MCU_FIRMWARE_SIZE / dev_desc->blksz;
-	ptable[PTN_M4_OS_INDEX].flags = FASTBOOT_PTENTRY_FLAGS_UNERASEABLE;
-	ptable[PTN_M4_OS_INDEX].partition_id = user_partition;
-	strcpy(ptable[PTN_M4_OS_INDEX].fstype, "raw");
+	strcpy(ptable[PTN_MCU_OS_INDEX].name, FASTBOOT_MCU_FIRMWARE_PARTITION);
+	ptable[PTN_MCU_OS_INDEX].start = ANDROID_MCU_FIRMWARE_START / dev_desc->blksz;
+	ptable[PTN_MCU_OS_INDEX].length = ANDROID_MCU_FIRMWARE_SIZE / dev_desc->blksz;
+	ptable[PTN_MCU_OS_INDEX].flags = FASTBOOT_PTENTRY_FLAGS_UNERASEABLE;
+	ptable[PTN_MCU_OS_INDEX].partition_id = user_partition;
+	strcpy(ptable[PTN_MCU_OS_INDEX].fstype, "raw");
 #endif
 
 	strcpy(ptable[PTN_ALL_INDEX].name, FASTBOOT_PARTITION_ALL);
@@ -1648,6 +1654,9 @@ void board_fastboot_setup(void)
 	} else if (is_imx8mm()) {
 		if (!env_get("soc_type"))
 			env_set("soc_type", "imx8mm");
+	} else if (is_imx8mn()) {
+		if (!env_get("soc_type"))
+			env_set("soc_type", "imx8mn");
 	}
 }
 
@@ -1881,6 +1890,7 @@ static FbBootMode fastboot_get_bootmode(void)
 static void fastboot_setup_system_boot_args(const char *slot, bool append_root)
 {
 	const char *system_part_name = NULL;
+#ifdef CONFIG_ANDROID_AB_SUPPORT
 	if(slot == NULL)
 		return;
 	if(!strncmp(slot, "_a", strlen("_a")) || !strncmp(slot, "boot_a", strlen("boot_a"))) {
@@ -1892,6 +1902,10 @@ static void fastboot_setup_system_boot_args(const char *slot, bool append_root)
 		printf("slot invalid!\n");
 		return;
 	}
+#else
+	system_part_name = FASTBOOT_PARTITION_SYSTEM;
+#endif
+
 	struct fastboot_ptentry *ptentry = fastboot_flash_find_ptn(system_part_name);
 	if(ptentry != NULL) {
 		char bootargs_3rd[ANDR_BOOT_ARGS_SIZE];
@@ -2257,7 +2271,7 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 		requested_partitions_boot[1] = NULL;
 		requested_partitions_recovery[1] = NULL;
 	}
-#ifndef CONFIG_ANDROID_AB_SUPPORT
+#ifndef CONFIG_SYSTEM_RAMDISK_SUPPORT
 	else if (is_recovery_mode){
 		requested_partitions_recovery[1] = NULL;
 	}
@@ -2273,6 +2287,7 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 	avb_result = avb_ab_flow_fast(&fsl_avb_ab_ops, requested_partitions_boot, allow_fail,
 			AVB_HASHTREE_ERROR_MODE_RESTART_AND_INVALIDATE, &avb_out_data);
 #else
+#ifndef CONFIG_SYSTEM_RAMDISK_SUPPORT
 	if (!is_recovery_mode) {
 		avb_result = avb_single_flow(&fsl_avb_ab_ops, requested_partitions_boot, allow_fail,
 				AVB_HASHTREE_ERROR_MODE_RESTART, &avb_out_data);
@@ -2280,6 +2295,10 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 		avb_result = avb_single_flow(&fsl_avb_ab_ops, requested_partitions_recovery, allow_fail,
 				AVB_HASHTREE_ERROR_MODE_RESTART, &avb_out_data);
 	}
+#else /* CONFIG_SYSTEM_RAMDISK_SUPPORT defined */
+	avb_result = avb_single_flow(&fsl_avb_ab_ops, requested_partitions_boot, allow_fail,
+			AVB_HASHTREE_ERROR_MODE_RESTART, &avb_out_data);
+#endif /*CONFIG_SYSTEM_RAMDISK_SUPPORT*/
 #endif
 #else /* !CONFIG_DUAL_BOOTLOADER */
 	/* We will only verify single one slot which has been selected in SPL */
@@ -2302,7 +2321,7 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 		/* We may have more than one partition loaded by AVB, find the boot
 		 * partition first.
 		 */
-#ifdef CONFIG_ANDROID_AB_SUPPORT
+#ifdef CONFIG_SYSTEM_RAMDISK_SUPPORT
 		if (find_partition_data_by_name("boot", avb_out_data, &avb_loadpart))
 			goto fail;
 #else
@@ -2333,11 +2352,11 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 		char bootargs_sec[ANDR_BOOT_EXTRA_ARGS_SIZE];
 		if (lock_status == FASTBOOT_LOCK) {
 			snprintf(bootargs_sec, sizeof(bootargs_sec),
-					"androidboot.verifiedbootstate=green androidboot.slot_suffix=%s %s",
+					"androidboot.verifiedbootstate=green androidboot.flash.locked=1 androidboot.slot_suffix=%s %s",
 					avb_out_data->ab_suffix, avb_out_data->cmdline);
 		} else {
 			snprintf(bootargs_sec, sizeof(bootargs_sec),
-					"androidboot.verifiedbootstate=orange androidboot.slot_suffix=%s %s",
+					"androidboot.verifiedbootstate=orange androidboot.flash.locked=0 androidboot.slot_suffix=%s %s",
 					avb_out_data->ab_suffix, avb_out_data->cmdline);
 		}
 		env_set("bootargs_sec", bootargs_sec);
@@ -2407,13 +2426,13 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 			goto fail;
 		} else
 			dt_img = (struct dt_table_header *)avb_loadpart->data;
-#elif defined(CONFIG_ANDROID_AB_SUPPORT)
+#elif defined(CONFIG_SYSTEM_RAMDISK_SUPPORT) /* It means boot.img(recovery) do not include dtb, it need load dtb from partition */
 		if (find_partition_data_by_name("dtbo",
 					avb_out_data, &avb_loadpart)) {
 			goto fail;
 		} else
 			dt_img = (struct dt_table_header *)avb_loadpart->data;
-#else
+#else /* recovery.img include dts while boot.img use dtbo */
 		if (is_recovery_mode) {
 			if (hdr->header_version != 1) {
 				printf("boota: boot image header version error!\n");

@@ -103,6 +103,10 @@ u32 spl_boot_device(void)
 {
 	enum boot_device boot_device_spl = get_boot_device();
 
+#if defined(CONFIG_SPL_IMX_ROMAPI_SUPPORT)
+	return BOOT_DEVICE_IMX_ROMAPI;
+#endif
+
 	switch (boot_device_spl) {
 #if defined(CONFIG_MX7)
 	case SD1_BOOT:
@@ -125,7 +129,7 @@ u32 spl_boot_device(void)
 	case SD1_BOOT:
 	case MMC1_BOOT:
 		return BOOT_DEVICE_MMC1;
-#if defined(CONFIG_IMX8MM)
+#if defined(CONFIG_IMX8MM) || defined(CONFIG_IMX8MN)
 	case SD2_BOOT:
 	case MMC2_BOOT:
 		return BOOT_DEVICE_MMC1;

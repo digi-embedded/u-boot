@@ -659,8 +659,10 @@ int arch_cpu_init(void)
 
 	init_src();
 
-	if (is_mx6dqp())
+	if (is_mx6dqp()) {
 		writel(0x80000201, 0xbb0608);
+		enable_ipu_clock();
+	}
 
 #ifdef CONFIG_IMX_SEC_INIT
 	/* Secure init function such RNG */
