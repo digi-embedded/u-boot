@@ -379,6 +379,17 @@ void som_default_environment(void)
 	}
 }
 
+void board_updated_hwid(void)
+{
+	/* Update HWID-related variables in environment */
+	if (board_read_hwid(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return;
+	}
+
+	som_default_environment();
+}
+
 int ccimx6ul_late_init(void)
 {
 #ifdef CONFIG_CMD_BMODE

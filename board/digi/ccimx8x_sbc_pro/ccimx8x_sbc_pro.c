@@ -475,9 +475,6 @@ void platform_default_environment(void)
 
 int board_late_init(void)
 {
-	/* SOM late init */
-	ccimx8x_late_init();
-
 	/* Set default dynamic variables */
 	platform_default_environment();
 

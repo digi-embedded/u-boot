@@ -185,6 +185,7 @@ int board_read_hwid(struct digi_hwid *hwid);
 int board_sense_hwid(struct digi_hwid *hwid);
 int board_prog_hwid(const struct digi_hwid *hwid);
 int board_override_hwid(const struct digi_hwid *hwid);
+void board_updated_hwid(void);
 int board_lock_hwid(void);
 void fdt_fixup_hwid(void *fdt);
 int hwid_get_ramsize(void);

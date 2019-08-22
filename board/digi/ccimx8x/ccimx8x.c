@@ -124,14 +124,39 @@ int board_has_emmc(void)
 
 #endif /* CONFIG_FSL_ESDHC */
 
+static void mca_somver_update(void)
+{
+	unsigned char somver;
+	int ret;
+
+	/*
+	 * Read the som version stored in MCA.
+	 * If it doesn't match with real SOM version read from my_hwid.hv:
+	 *    - update it into the MCA.
+	 *    - force the new value to be saved in MCA NVRAM.
+	 * The purpose of this functionality is that MCA starts using the
+	 * correct SOM version since boot.
+	 */
+	ret = mca_read_reg(MCA_HWVER_SOM, &somver);
+	if (ret) {
+		printf("Cannot read MCA_HWVER_SOM\n");
+	} else {
+		if (my_hwid.hv != somver) {
+			ret = mca_write_reg(MCA_HWVER_SOM, my_hwid.hv);
+			if (ret)
+				printf("Cannot write MCA_HWVER_SOM\n");
+			else
+				mca_save_cfg();
+		}
+	}
+}
+
 static void mca_init(void)
 {
 	unsigned char devid = 0;
 	unsigned char hwver;
 	unsigned char fwver[2];
-	unsigned char somver;
-	int ret, fwver_ret, somver_ret;
-	struct digi_hwid hwid;
+	int ret, fwver_ret;
 
 #ifdef CONFIG_DM_I2C
 	struct udevice *bus, *dev;
@@ -177,30 +202,7 @@ static void mca_init(void)
 
 	printf("\n");
 
-	/*
-	 * Read the som version stored in mca.
-	 * If it doesn't match with real som version read from hwid.hv:
-	 *    - update it into the mca.
-	 *    - force the new value to be saved in mca nvram.
-	 * The purpose of this functionality is that mca starts using the
-	 * correct som version since boot.
-	 */
-	somver_ret = mca_read_reg(MCA_HWVER_SOM, &somver);
-	if (somver_ret)
-		printf("Cannot read MCA_HWVER_SOM\n");
-	else {
-		if (board_read_hwid(&hwid))
-			printf("Cannot read HWID\n");
-		else {
-			if (hwid.hv != somver) {
-				somver_ret = mca_write_reg(MCA_HWVER_SOM, hwid.hv);
-				if (somver_ret)
-					printf("Cannot write MCA_HWVER_SOM\n");
-				else
-					mca_save_cfg();
-			}
-		}
-	}
+	mca_somver_update();
 }
 
 static int hwid_in_db(struct digi_hwid *hwid)
@@ -316,57 +318,6 @@ void generate_partition_table(void)
 
 extern const char *get_imx8_type(u32 imxtype);
 
-void som_default_environment(void)
-{
-#ifdef CONFIG_CMD_MMC
-	char cmd[80];
-#endif
-	char var[10];
-	char hex_val[9]; // 8 hex chars + null byte
-	int i;
-
-	/* Set soc_type variable (lowercase) */
-	snprintf(var, sizeof(var), "imx%s", get_imx8_type(get_cpu_type()));
-	for (i = 0; i < strlen(var); i++)
-		var[i] = tolower(var[i]);
-	env_set("soc_type", var);
-
-#ifdef CONFIG_CMD_MMC
-	/* Set $mmcbootdev to MMC boot device index */
-	sprintf(cmd, "setenv -f mmcbootdev %x", mmc_get_bootdevindex());
-	run_command(cmd, 0);
-#endif
-	/* Set $module_variant variable */
-	sprintf(var, "0x%02x", my_hwid.variant);
-	env_set("module_variant", var);
-
-	/* Set $hwid_n variables */
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
-		snprintf(var, sizeof(var), "hwid_%d", i);
-		snprintf(hex_val, sizeof(hex_val), "%08x", ((u32 *) &my_hwid)[i]);
-		env_set(var, hex_val);
-	}
-
-	/* Set module_ram variable */
-	if (my_hwid.ram) {
-		int ram = hwid_get_ramsize();
-
-		if (ram >= 1024) {
-			ram /= 1024;
-			snprintf(var, sizeof(var), "%dGB", ram);
-		} else {
-			snprintf(var, sizeof(var), "%dMB", ram);
-		}
-		env_set("module_ram", var);
-	}
-
-	/*
-	 * If there are no defined partition tables generate them dynamically
-	 * basing on the available eMMC size.
-	 */
-	generate_partition_table();
-}
-
 static int set_mac_from_pool(uint32_t pool, uint8_t *mac)
 {
 	if (pool > ARRAY_SIZE(mac_pools) || pool < 1) {
@@ -431,8 +382,57 @@ static void get_macs_from_fuses(void)
 	}
 }
 
-int ccimx8x_late_init(void)
+void som_default_environment(void)
 {
+#ifdef CONFIG_CMD_MMC
+	char cmd[80];
+#endif
+	char var[10];
+	char hex_val[9]; // 8 hex chars + null byte
+	int i;
+
+	/* Set soc_type variable (lowercase) */
+	snprintf(var, sizeof(var), "imx%s", get_imx8_type(get_cpu_type()));
+	for (i = 0; i < strlen(var); i++)
+		var[i] = tolower(var[i]);
+	env_set("soc_type", var);
+
+#ifdef CONFIG_CMD_MMC
+	/* Set $mmcbootdev to MMC boot device index */
+	sprintf(cmd, "setenv -f mmcbootdev %x", mmc_get_bootdevindex());
+	run_command(cmd, 0);
+#endif
+	/* Set $module_variant variable */
+	sprintf(var, "0x%02x", my_hwid.variant);
+	env_set("module_variant", var);
+
+	/* Set $hwid_n variables */
+	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
+		snprintf(var, sizeof(var), "hwid_%d", i);
+		snprintf(hex_val, sizeof(hex_val), "%08x", ((u32 *) &my_hwid)[i]);
+		env_set(var, hex_val);
+	}
+
+	/* Set module_ram variable */
+	if (my_hwid.ram) {
+		int ram = hwid_get_ramsize();
+
+		if (ram >= 1024) {
+			ram /= 1024;
+			snprintf(var, sizeof(var), "%dGB", ram);
+		} else {
+			snprintf(var, sizeof(var), "%dMB", ram);
+		}
+		env_set("module_ram", var);
+	}
+
+	/*
+	 * If there are no defined partition tables generate them dynamically
+	 * basing on the available eMMC size.
+	 */
+	generate_partition_table();
+
+	/* Get MAC address from fuses unless indicated otherwise */
 	if (env_get_yesno("use_fused_macs"))
 		get_macs_from_fuses();
 
@@ -445,8 +445,18 @@ int ccimx8x_late_init(void)
 
 	if (board_has_bluetooth())
 		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
+}
 
-	return 0;
+void board_updated_hwid(void)
+{
+	/* Update HWID-related variables in MCA and environment */
+	if (board_read_hwid(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return;
+	}
+
+	mca_somver_update();
+	som_default_environment();
 }
 
 /*
