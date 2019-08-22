@@ -2742,12 +2742,18 @@ U_BOOT_CMD(
 
 void fastboot_fail(const char *reason)
 {
+        if (!fb_response_str)
+                return;
+
 	strncpy(fb_response_str, "FAIL\0", 5);
 	strncat(fb_response_str, reason, FASTBOOT_RESPONSE_LEN - 4 - 1);
 }
 
 void fastboot_okay(const char *reason)
 {
+        if (!fb_response_str)
+                return;
+
 	strncpy(fb_response_str, "OKAY\0", 5);
 	strncat(fb_response_str, reason, FASTBOOT_RESPONSE_LEN - 4 - 1);
 }
