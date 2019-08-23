@@ -119,7 +119,6 @@ static int write_firmware(char *partname, unsigned long loadaddr,
 					  filesize) ? ERR_WRITE : 0;
 	}
 #endif
-
 	size_blks = (filesize / mmc_dev->blksz) + (filesize % mmc_dev->blksz != 0);
 
 	if (size_blks > info->size) {
@@ -210,13 +209,10 @@ static int write_firmware(char *partname, unsigned long loadaddr,
 	return 0;
 }
 
-static int write_file(char *targetfilename, char *targetfs, int part)
+static int write_file(unsigned long loadaddr, unsigned long filesize,
+		      char *targetfilename, char *targetfs, int part)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
-	unsigned long loadaddr, filesize;
-
-	loadaddr = env_get_ulong("update_addr", 16, CONFIG_DIGI_UPDATE_ADDR );
-	filesize = env_get_ulong("filesize", 16, 0);
 
 	/* Change to storage device */
 	sprintf(cmd, "%s dev %d", CONFIG_SYS_STORAGE_MEDIA, mmc_dev_index);
@@ -391,17 +387,17 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 			 * that fits into the destiny partition.
 			 */
 			unsigned long avail = get_available_ram_for_update();
-			filesize = get_firmware_size(&fwinfo);
+			unsigned long size = get_firmware_size(&fwinfo);
 
 			/*
 			 * If it was not possible to get the file size, assume
 			 * the largest possible file size (that is, the
 			 * partition size).
 			 */
-			if (!filesize)
-				filesize = info.size * mmc_dev->blksz;
+			if (!size)
+				size = info.size * mmc_dev->blksz;
 
-			if (avail <= filesize) {
+			if (avail <= size) {
 				printf("Partition to update is larger (%d MiB) than the\n"
 				       "available RAM memory (%d MiB, starting at $update_addr=0x%08x).\n",
 				       (int)(info.size * mmc_dev->blksz / (1024 * 1024)),
@@ -524,6 +520,8 @@ static int get_arg_src(int argc, char * const argv[], int src, int index,
 		index += 3;
 		break;
 	case SRC_RAM:
+		/* 2-(7-argc) */
+		index += argc - 5;
 		break;
 	default:
 		return -1;
@@ -556,6 +554,8 @@ static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 #endif
 	};
 	char dev_index_str[2];
+	unsigned long loadaddr;
+	unsigned long filesize = 0;
 	struct load_fw fwinfo;
 
 	if (argc < 2)
@@ -579,10 +579,22 @@ static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 	if (get_source(argc, argv, &fwinfo))
 		return CMD_RET_FAILURE;
 
-	/* Get file name */
-	if (get_arg_src(argc, argv, fwinfo.src, 2, &fwinfo.filename)) {
-		printf("Error: need a filename\n");
-		return CMD_RET_USAGE;
+	loadaddr = env_get_ulong("update_addr", 16, CONFIG_DIGI_UPDATE_ADDR);
+
+	if (fwinfo.src == SRC_RAM) {
+		/* Get address in RAM where file is */
+		if (argc > 5)
+			loadaddr = simple_strtol(argv[3], NULL, 16);
+
+		/* Get filesize */
+		if (argc > 6)
+			filesize = simple_strtol(argv[4], NULL, 16);
+	} else {
+		/* Get file name */
+		if (get_arg_src(argc, argv, fwinfo.src, 2, &fwinfo.filename)) {
+			printf("Error: need a filename\n");
+			return CMD_RET_USAGE;
+		}
 	}
 
 	/* Get target file name. If not provided use fwinfo.filename by default */
@@ -616,8 +628,11 @@ static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 		return CMD_RET_FAILURE;
 	}
 
+	if (!filesize)
+		filesize = env_get_ulong("filesize", 16, 0);
+
 	/* Write file from RAM to storage partition */
-	if (write_file(targetfilename, targetfs, part)) {
+	if (write_file(loadaddr, filesize, targetfilename, targetfs, part)) {
 		printf("Error writing file\n");
 		return CMD_RET_FAILURE;
 	}

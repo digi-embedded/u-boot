@@ -94,13 +94,12 @@ int board_early_init_f(void)
 #ifdef CONFIG_FEC_MXC
 #include <miiphy.h>
 
-static void enet_device_phy_reset(void)
+static void enet_device_phy_reset(int iface)
 {
 	struct gpio_desc desc;
 	struct udevice *dev = NULL;
 	char *reset_gpio[] = { "gpio3_18", "gpio3_22" };
 	char *reset_gpio_lbl[] = { "enet0_reset", "enet1_reset" };
-	int iface = CONFIG_FEC_ENET_DEV;
 	int ret;
 
 	if (iface > 1) {
@@ -164,7 +163,7 @@ static int setup_fec(int ind)
 	mdelay(1);	/* PHY power up time */
 
 	/* Reset ENET PHY */
-	enet_device_phy_reset();
+	enet_device_phy_reset(ind);
 
 	return 0;
 }
@@ -260,9 +259,9 @@ static struct cdns3_device cdns3_device_data = {
 	.index = 1,
 };
 
-int usb_gadget_handle_interrupts(void)
+int usb_gadget_handle_interrupts(int index)
 {
-	cdns3_uboot_handle_interrupt(1);
+	cdns3_uboot_handle_interrupt(index);
 	return 0;
 }
 #endif
@@ -304,6 +303,23 @@ int board_usb_init(int index, enum usb_init_type init)
 #endif
 		} else {
 #ifdef CONFIG_USB_CDNS3_GADGET
+#ifdef CONFIG_SPL_BUILD
+			sc_ipc_t ipcHndl = 0;
+
+			ipcHndl = gd->arch.ipc_channel_handle;
+			ret = sc_pm_set_resource_power_mode(ipcHndl, SC_R_USB_2,
+							    SC_PM_PW_MODE_ON);
+			if (ret != SC_ERR_NONE)
+				printf("conn_usb2 Power up failed! (error = %d)\n",
+				       ret);
+
+			ret = sc_pm_set_resource_power_mode(ipcHndl,
+							    SC_R_USB_2_PHY,
+							    SC_PM_PW_MODE_ON);
+			if (ret != SC_ERR_NONE)
+				printf("conn_usb2_phy Power up failed! (error = %d)\n",
+				       ret);
+#else
 			struct power_domain pd;
 
 			/* Power on usb */
@@ -318,6 +334,7 @@ int board_usb_init(int index, enum usb_init_type init)
 				if (ret)
 					printf("conn_usb2_phy Power up failed! (error = %d)\n", ret);
 			}
+#endif
 #ifdef CONFIG_USB_TCPC
 			ret = tcpc_setup_ufp_mode(&port);
 #endif
@@ -340,9 +357,28 @@ int board_usb_cleanup(int index, enum usb_init_type init)
 #endif
 		} else {
 #ifdef CONFIG_USB_CDNS3_GADGET
-			struct power_domain pd;
-
 			cdns3_uboot_exit(1);
+
+#ifdef CONFIG_SPL_BUILD
+			sc_ipc_t ipcHndl = 0;
+
+			ipcHndl = gd->arch.ipc_channel_handle;
+
+			ret = sc_pm_set_resource_power_mode(ipcHndl, SC_R_USB_2,
+							    SC_PM_PW_MODE_OFF);
+			if (ret != SC_ERR_NONE)
+				printf("conn_usb2 Power down failed! (error = %d)\n",
+				       ret);
+
+			ret = sc_pm_set_resource_power_mode(ipcHndl,
+							    SC_R_USB_2_PHY,
+							    SC_PM_PW_MODE_OFF);
+			if (ret != SC_ERR_NONE)
+				printf("conn_usb2_phy Power down failed! (error = %d)\n",
+				       ret);
+#else
+		       struct power_domain pd;
+		       int ret;
 
 			/* Power off usb */
 			if (!power_domain_lookup_name("conn_usb2", &pd)) {
@@ -356,6 +392,7 @@ int board_usb_cleanup(int index, enum usb_init_type init)
 				if (ret)
 					printf("conn_usb2_phy Power down failed! (error = %d)\n", ret);
 			}
+#endif
 #endif
 		}
 	}
@@ -438,9 +475,6 @@ void platform_default_environment(void)
 
 int board_late_init(void)
 {
-	/* SOM late init */
-	ccimx8x_late_init();
-
 	/* Set default dynamic variables */
 	platform_default_environment();
 

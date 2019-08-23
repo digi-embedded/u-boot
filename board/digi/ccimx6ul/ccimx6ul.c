@@ -104,6 +104,14 @@ static struct ccimx6_variant ccimx6ul_variants[] = {
 		0,
 		"Industrial Ultralite 528MHz, 1GB NAND, 1GB DDR3, -40/+85C",
 	},
+/* 0x06 - 55001944-06 */
+/* This variant is the same as 0x02, but with i.MX6UL silicon v1.2 */
+	{
+		IMX6UL,
+		MEM_256MB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
+		"Industrial Ultralite 528MHz, 256MB NAND, 256MB DDR3, -40/+85C, Wireless, Bluetooth",
+	},
 };
 
 int dram_init(void)
@@ -369,6 +377,17 @@ void som_default_environment(void)
 		snprintf(hex_val, sizeof(hex_val), "%08x", ((u32 *) &my_hwid)[i]);
 		env_set(var, hex_val);
 	}
+}
+
+void board_updated_hwid(void)
+{
+	/* Update HWID-related variables in environment */
+	if (board_read_hwid(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return;
+	}
+
+	som_default_environment();
 }
 
 int ccimx6ul_late_init(void)

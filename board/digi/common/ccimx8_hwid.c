@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Digi International, Inc.
+ * Copyright (C) 2018, 2019 Digi International, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -7,6 +7,7 @@
 #include <common.h>
 #include <fdt_support.h>
 #include <fuse.h>
+#include <linux/sizes.h>
 #include "helper.h"
 #include "hwid.h"
 
@@ -16,6 +17,26 @@ const char *cert_regions[] = {
 	"U.S.A.",
 	"International",
 	"Japan",
+};
+
+u32 ram_sizes_mb[16] = {
+	0,	/* 0 */
+	16,	/* 1 */
+	32,	/* 2 */
+	64,	/* 3 */
+	128,	/* 4 */
+	256,	/* 5 */
+	512,	/* 6 */
+	1024,	/* 7 */
+	2048,	/* 8 */
+	3072,	/* 9 */
+	4096,	/* A */
+	/* yet undefined */
+	0,	/* B */
+	0,	/* C */
+	0,	/* D */
+	0,	/* E */
+	0,	/* F */
 };
 
 /* Program HWID into efuses */
@@ -44,6 +65,7 @@ int board_prog_hwid(const struct digi_hwid *hwid)
 /* Print HWID info */
 void board_print_hwid(struct digi_hwid *hwid)
 {
+	printf(" %.4x", ((u32 *)hwid)[3]);
 	printf(" %.8x", ((u32 *)hwid)[2]);
 	printf(" %.4x", ((u32 *)hwid)[1]);
 	printf(" %.8x", ((u32 *)hwid)[0]);
@@ -57,6 +79,14 @@ void board_print_hwid(struct digi_hwid *hwid)
 		(hwid->mac_base >> 8) & 0xFF,
 		(hwid->mac_base) & 0xFF);
 	printf("    Variant:       0x%02x\n", hwid->variant);
+	/* New fields (supported if 'RAM' field != 0) */
+	if (hwid->ram) {
+		printf("      RAM:         %d MiB\n", ram_sizes_mb[hwid->ram]);
+		printf("      Wi-Fi:       %s\n", hwid->wifi ? "yes" : "-");
+		printf("      Bluetooth:   %s\n", hwid->bt ? "yes" : "-");
+		printf("      Cryto-chip:  %s\n", hwid->crypto ? "yes" : "-");
+		printf("      MCA:         %s\n", hwid->mca ? "yes" : "-");
+	}
 	printf("    HW Version:    0x%x\n", hwid->hv);
 	printf("    Cert:          0x%x (%s)\n", hwid->cert,
 		hwid->cert < ARRAY_SIZE(cert_regions) ?
@@ -70,13 +100,15 @@ void board_print_hwid(struct digi_hwid *hwid)
 /* Print HWID info in MANUFID format */
 void board_print_manufid(struct digi_hwid *hwid)
 {
+	printf(" %.4x", ((u32 *)hwid)[3]);
 	printf(" %.8x", ((u32 *)hwid)[2]);
 	printf(" %.4x", ((u32 *)hwid)[1]);
 	printf(" %.8x", ((u32 *)hwid)[0]);
 	printf("\n");
 
 	/* Formatted printout */
-	printf(" Manufacturing ID: %02d%02d%02d%06d %02d%06x %02x%x%x %x\n",
+	printf(" Manufacturing ID: %02d%02d%02d%06d %02d%06x %02x%x%x %x"
+	       " %x%x%x%x%x\n",
 		hwid->year,
 		hwid->month,
 		hwid->genid,
@@ -86,7 +118,12 @@ void board_print_manufid(struct digi_hwid *hwid)
 		hwid->variant,
 		hwid->hv,
 		hwid->cert,
-		hwid->wid);
+		hwid->wid,
+		hwid->ram,
+		hwid->mca,
+		hwid->wifi,
+		hwid->bt,
+		hwid->crypto);
 }
 
 /* Parse HWID info in HWID format */
@@ -98,17 +135,21 @@ int board_parse_hwid(int argc, char *const argv[], struct digi_hwid *hwid)
 	if (argc != CONFIG_HWID_WORDS_NUMBER)
 		goto err;
 
-	if (strlen(argv[0]) != 8)
+	if (strlen(argv[0]) != 4)
 		goto err;
 
-	if (strlen(argv[1]) != 4)
+	if (strlen(argv[1]) != 8)
 		goto err;
 
-	if (strlen(argv[2]) != 8)
+	if (strlen(argv[2]) != 4)
 		goto err;
+
+	if (strlen(argv[3]) != 8)
+		goto err;
+
 	/*
-	 * Digi HWID is set as a three hex strings in the form
-	 *     <XXXXXXXX> <YYYY> <ZZZZZZZZ>
+	 * Digi HWID is set as a four hex strings in the form
+	 *     <WWWW> <XXXXXXXX> <YYYY> <ZZZZZZZZ>
 	 * that are inversely stored into the structure.
 	 */
 
@@ -120,6 +161,7 @@ int board_parse_hwid(int argc, char *const argv[], struct digi_hwid *hwid)
 
 		((u32 *)hwid)[word] = hwidword;
 	}
+	board_print_hwid(hwid);
 
 	return 0;
 
@@ -128,6 +170,18 @@ err:
 		"HWID input must be in the form: "
 		CONFIG_HWID_STRINGS_HELP "\n");
 	return -EINVAL;
+}
+
+static int parse_bool_char(char c, bool *val)
+{
+	int v = c -'0';
+
+	if (v != 0 && v != 1)
+		return -1;
+
+	*val = (bool)v;
+
+	return 0;
 }
 
 /* Parse HWID info in MANUFID format */
@@ -139,13 +193,15 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	/* Initialize HWID words */
 	memset(hwid, 0, sizeof(struct digi_hwid));
 
-	if (argc < 3 || argc > 4)
+	if (argc < 3 || argc > 5)
 		goto err;
 
 	/*
 	 * Digi Manufacturing team produces a string in the form
-	 *     <YYMMGGXXXXXX>
-	 * where:
+	 *     <YYMMGGXXXXXX> <PPAAAAAA> <VVHC> <K> <RMWBC>
+	 */
+
+	/* <YYMMGGXXXXXX>, where:
 	 *  - YY:	year (last two digits of XXI century, in decimal)
 	 *  - MM:	month of the year (in decimal)
 	 *  - GG:	generator ID (in decimal)
@@ -160,7 +216,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 		goto err;
 
 	/*
-	 * A second string in the form <PPAAAAAA> must be given where:
+	 * <PPAAAAAA>, where:
 	 *  - PP:	MAC pool (in decimal)
 	 *  - AAAAAA:	MAC base address (in hex)
 	 * this information goes into the following places on the fuses:
@@ -171,7 +227,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 		goto err;
 
 	/*
-	 * A third string in the form <VVHC> must be given where:
+	 * <VVHC>, where:
 	 *  - VV:	variant (in hex)
 	 *  - H:	hardware version (in hex)
 	 *  - C:	wireless certification (in hex)
@@ -184,7 +240,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 		goto err;
 
 	/*
-	 * A fourth string (if provided) in the form <K> may be given, where:
+	 * <K>, where:
 	 *  - K:	wireless ID (in hex)
 	 * this information goes into the following places on the fuses:
 	 *  - K:	MAC1_ADDR0 bits 31..30 (2 bits)
@@ -195,12 +251,34 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 			goto err;
 	}
 
+	/*
+	 * <RMWBC>, where:
+	 *  - R:	ram (index to ram_sizes_mb[] array)
+	 *  - M:	whether the variant has MCA chip
+	 *  - W:	whether the variant has Wi-Fi chip
+	 *  - B:	whether the variant has Bluetooth chip
+	 *  - C:	whether the variant has crypto-auth chip
+	 * this information goes into the following places on the fuses:
+	 *  - R:	MAC1_ADDR1 bits 14..11 (4 bits)
+	 *  - M:	MAC1_ADDR1 bit 15 (1 bits)
+	 *  - W:	MAC2_ADDR1 bit 0 (1 bits)
+	 *  - B:	MAC2_ADDR1 bit 1 (1 bits)
+	 *  - C:	MAC2_ADDR1 bit 2 (1 bits)
+	 * If not provided, a zero is used (for backwards compatibility)
+	 */
+	if (argc > 4) {
+		if (strlen(argv[4]) != 5)
+			goto err;
+	}
+
 	/* Year (only 6 bits: from 0 to 63) */
 	strncpy(tmp, &argv[0][0], 2);
 	tmp[2] = 0;
 	num = simple_strtol(tmp, NULL, 10);
-	if (num > 63)
+	if (num > 63) {
+		printf("Invalid year\n");
 		goto err;
+	}
 	hwid->year = num;
 	printf("    Year:          20%02d\n", hwid->year);
 
@@ -208,8 +286,10 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[0][2], 2);
 	tmp[2] = 0;
 	num = simple_strtol(tmp, NULL, 10);
-	if (num < 1 || num > 12)
+	if (num < 1 || num > 12) {
+		printf("Invalid month\n");
 		goto err;
+	}
 	hwid->month = num;
 	printf("    Month:         %02d\n", hwid->month);
 
@@ -217,8 +297,10 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[0][4], 2);
 	tmp[2] = 0;
 	num = simple_strtol(tmp, NULL, 10);
-	if (num > 15)
+	if (num > 15) {
+		printf("Invalid Generator ID\n");
 		goto err;
+	}
 	hwid->genid = num;
 	printf("    Generator ID:  %02d\n", hwid->genid);
 
@@ -226,8 +308,10 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[0][6], 6);
 	tmp[6] = 0;
 	num = simple_strtol(tmp, NULL, 10);
-	if (num > 999999)
+	if (num > 999999) {
+		printf("Invalid serial number\n");
 		goto err;
+	}
 	hwid->sn = num;
 	printf("    S/N:           %06d\n", hwid->sn);
 
@@ -235,8 +319,10 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[1][0], 2);
 	tmp[2] = 0;
 	num = simple_strtol(tmp, NULL, 10);
-	if (num > 15)
+	if (num > 15) {
+		printf("Invalid MAC pool\n");
 		goto err;
+	}
 	hwid->mac_pool = num;
 	printf("    MAC pool:      %02d\n", hwid->mac_pool);
 
@@ -244,8 +330,10 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[1][2], 6);
 	tmp[6] = 0;
 	num = simple_strtol(tmp, NULL, 16);
-	if (num > 0xFFFFFF)
+	if (num > 0xFFFFFF) {
+		printf("Invalid MAC base address");
 		goto err;
+	}
 	hwid->mac_base = num;
 	printf("    MAC Base:      %.2x:%.2x:%.2x\n",
 		(hwid->mac_base >> 16) & 0xFF,
@@ -256,8 +344,10 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[2][0], 2);
 	tmp[2] = 0;
 	num = simple_strtol(tmp, NULL, 16);
-	if (num > 0x1F)
+	if (num > 0x1F) {
+		printf("Invalid variant\n");
 		goto err;
+	}
 	hwid->variant = num;
 	printf("    Variant:       0x%02x\n", hwid->variant);
 
@@ -265,8 +355,10 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[2][2], 1);
 	tmp[1] = 0;
 	num = simple_strtol(tmp, NULL, 16);
-	if (num > 7)
+	if (num > 7) {
+		printf("Invalid hardware version\n");
 		goto err;
+	}
 	hwid->hv = num;
 	printf("    HW version:    0x%x\n", hwid->hv);
 
@@ -274,23 +366,70 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[2][3], 1);
 	tmp[1] = 0;
 	num = simple_strtol(tmp, NULL, 16);
-	if (num > 7)
+	if (num > 7) {
+		printf("Invalid cert\n");
 		goto err;
+	}
 	hwid->cert = num;
 	printf("    Cert:          0x%x (%s)\n", hwid->cert,
 	       hwid->cert < ARRAY_SIZE(cert_regions) ?
 	       cert_regions[hwid->cert] : "??");
 
-	if (argc > 2) {
+	if (argc > 3) {
 		/* Wireless ID */
 		strncpy(tmp, &argv[3][0], 1);
 		tmp[1] = 0;
 		num = simple_strtol(tmp, NULL, 16);
-		if (num > 3)
+		if (num > 3) {
+			printf("Invalid Wireless ID\n");
 			goto err;
+		}
 		hwid->wid = num;
 	}
 	printf("    Wireless ID:   0x%x\n", hwid->wid);
+
+	if (argc > 4) {
+		bool v;
+
+		/* RAM */
+		strncpy(tmp, &argv[4][0], 1);
+		tmp[1] = 0;
+		num = simple_strtol(tmp, NULL, 16);
+		if (num < 1) {
+			printf("Invalid RAM\n");
+			goto err;
+		}
+		hwid->ram = num;
+		/* MCA */
+		if (parse_bool_char(argv[4][1], &v)) {
+			printf("Invalid MCA\n");
+			goto err;
+		}
+		hwid->mca = v;
+		/* Wi-Fi */
+		if (parse_bool_char(argv[4][2], &v)) {
+			printf("Invalid Wi-Fi\n");
+			goto err;
+		}
+		hwid->wifi = v;
+		/* Bluetooth */
+		if (parse_bool_char(argv[4][3], &v)) {
+			printf("Invalid Bluetooth\n");
+			goto err;
+		}
+		hwid->bt = v;
+		/* Crypto-chip */
+		if (parse_bool_char(argv[4][4], &v)) {
+			printf("Invalid Crypto-chip\n");
+			goto err;
+		}
+		hwid->crypto = v;
+	}
+	printf("    RAM:           %d MiB\n", ram_sizes_mb[hwid->ram]);
+	printf("    Wi-Fi:         %s\n", hwid->wifi ? "yes" : "-");
+	printf("    Bluetooth:     %s\n", hwid->bt ? "yes" : "-");
+	printf("    Cryto-chip:    %s\n", hwid->crypto ? "yes" : "-");
+	printf("    MCA:           %s\n", hwid->mca ? "yes" : "-");
 
 	return 0;
 
@@ -321,9 +460,16 @@ void fdt_fixup_hwid(void *fdt)
 		"digi,hwid,hv",
 		"digi,hwid,cert",
 		"digi,hwid,wid",
+		"digi,hwid,ram_mb",
+		"digi,hwid,has-mca",
+		"digi,hwid,has-wifi",
+		"digi,hwid,has-bt",
+		"digi,hwid,has-crypto",
 	};
 	char str[20];
 	int i;
+	/* Capabilities fields available if RAM != 0 */
+	bool capabilities = !!my_hwid.ram;
 
 	/* Re-read HWID which might have been overridden by user */
 	if (board_read_hwid(&my_hwid)) {
@@ -333,6 +479,7 @@ void fdt_fixup_hwid(void *fdt)
 
 	/* Register the HWID as main node properties in the FDT */
 	for (i = 0; i < ARRAY_SIZE(propnames); i++) {
+
 		/* Convert HWID fields to strings */
 		if (!strcmp("digi,hwid,year", propnames[i]))
 			sprintf(str, "20%02d", my_hwid.year);
@@ -354,10 +501,29 @@ void fdt_fixup_hwid(void *fdt)
 			sprintf(str, "0x%x", my_hwid.cert);
 		else if (!strcmp("digi,hwid,wid", propnames[i]))
 			sprintf(str, "0x%x", my_hwid.wid);
+		/* capabilties fields */
+		else if (capabilities &&
+			 !strcmp("digi,hwid,ram_mb", propnames[i]))
+			sprintf(str, "%d", ram_sizes_mb[my_hwid.ram]);
+		else if (capabilities &&
+			 (((!strcmp("digi,hwid,has-mca", propnames[i]) &&
+			   my_hwid.mca) ||
+			   (!strcmp("digi,hwid,has-wifi", propnames[i]) &&
+			   my_hwid.wifi) ||
+			   (!strcmp("digi,hwid,has-bt", propnames[i]) &&
+			   my_hwid.bt) ||
+			   (!strcmp("digi,hwid,has-crypto", propnames[i]) &&
+			   my_hwid.crypto))))
+			strcpy(str, "");
 		else
 			continue;
 
 		do_fixup_by_path(fdt, "/", propnames[i], str,
 				strlen(str) + 1, 1);
 	}
+}
+
+int hwid_get_ramsize(void)
+{
+	return ram_sizes_mb[my_hwid.ram];
 }

@@ -1096,7 +1096,7 @@ int file_fat_read_at(const char *filename, loff_t pos, void *buffer,
 	if (ret)
 		goto out_free_both;
 
-	debug("reading %s\n", filename);
+	printf("reading %s\n", filename);
 	ret = get_contents(&fsdata, itr->dent, pos, buffer, maxsize, actread);
 
 out_free_both:

@@ -8,7 +8,8 @@
 #include <fsl_esdhc.h>
 #include <i2c.h>
 #include <otf_update.h>
-
+#include <linux/ctype.h>
+#include <asm/arch/sys_proto.h>
 #include <asm/mach-imx/sci/sci.h>
 #include <asm/mach-imx/boot_mode.h>
 #include "../../freescale/common/tcpc.h"
@@ -49,28 +50,35 @@ static struct ccimx8_variant ccimx8x_variants[] = {
 		IMX8QXP,
 		MEM_2GB,
 		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
-		"Automotive QuadXPlus 1.2GHz, 16GB eMMC, 2GB LPDDR4, -40/+85C, Wireless, Bluetooth",
+		"Industrial QuadXPlus 1.2GHz, 16GB eMMC, 2GB LPDDR4, -40/+85C, Wireless, Bluetooth",
 	},
 /* 0x03 - 55001984-03 */
 	{
 		IMX8QXP,
 		MEM_2GB,
 		0,
-		"Automotive QuadXPlus 1.2GHz, 8GB eMMC, 2GB LPDDR4, -40/+85C",
+		"Industrial QuadXPlus 1.2GHz, 8GB eMMC, 2GB LPDDR4, -40/+85C",
 	},
 /* 0x04 - 55001984-04 */
 	{
-		IMX8DXP,
+		IMX8DX,
 		MEM_1GB,
 		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
-		"Automotive DualXPlus 1.2GHz, 8GB eMMC, 1GB LPDDR4, -40/+85C, Wireless, Bluetooth",
+		"Industrial DualX 1GHz, 8GB eMMC, 1GB LPDDR4, -40/+85C, Wireless, Bluetooth",
 	},
 /* 0x05 - 55001984-05 */
 	{
-		IMX8DXP,
+		IMX8DX,
 		MEM_1GB,
 		0,
-		"Automotive DualXPlus 1.2GHz, 8GB eMMC, 1GB LPDDR4, -40/+85C",
+		"Industrial DualX 1GHz, 8GB eMMC, 1GB LPDDR4, -40/+85C",
+	},
+/* 0x06 - 55001984-06 */
+	{
+		IMX8DX,
+		MEM_512MB,
+		0,
+		"Industrial DualX 1GHz, 8GB eMMC, 512MB LPDDR4, -40/+85C",
 	},
 };
 
@@ -116,14 +124,39 @@ int board_has_emmc(void)
 
 #endif /* CONFIG_FSL_ESDHC */
 
+static void mca_somver_update(void)
+{
+	unsigned char somver;
+	int ret;
+
+	/*
+	 * Read the som version stored in MCA.
+	 * If it doesn't match with real SOM version read from my_hwid.hv:
+	 *    - update it into the MCA.
+	 *    - force the new value to be saved in MCA NVRAM.
+	 * The purpose of this functionality is that MCA starts using the
+	 * correct SOM version since boot.
+	 */
+	ret = mca_read_reg(MCA_HWVER_SOM, &somver);
+	if (ret) {
+		printf("Cannot read MCA_HWVER_SOM\n");
+	} else {
+		if (my_hwid.hv != somver) {
+			ret = mca_write_reg(MCA_HWVER_SOM, my_hwid.hv);
+			if (ret)
+				printf("Cannot write MCA_HWVER_SOM\n");
+			else
+				mca_save_cfg();
+		}
+	}
+}
+
 static void mca_init(void)
 {
 	unsigned char devid = 0;
 	unsigned char hwver;
 	unsigned char fwver[2];
-	unsigned char somver;
-	int ret, fwver_ret, somver_ret;
-	struct digi_hwid hwid;
+	int ret, fwver_ret;
 
 #ifdef CONFIG_DM_I2C
 	struct udevice *bus, *dev;
@@ -169,33 +202,10 @@ static void mca_init(void)
 
 	printf("\n");
 
-	/*
-	 * Read the som version stored in mca.
-	 * If it doesn't match with real som version read from hwid.hv:
-	 *    - update it into the mca.
-	 *    - force the new value to be saved in mca nvram.
-	 * The purpose of this functionality is that mca starts using the
-	 * correct som version since boot.
-	 */
-	somver_ret = mca_read_reg(MCA_HWVER_SOM, &somver);
-	if (somver_ret)
-		printf("Cannot read MCA_HWVER_SOM\n");
-	else {
-		if (board_read_hwid(&hwid))
-			printf("Cannot read HWID\n");
-		else {
-			if (hwid.hv != somver) {
-				somver_ret = mca_write_reg(MCA_HWVER_SOM, hwid.hv);
-				if (somver_ret)
-					printf("Cannot write MCA_HWVER_SOM\n");
-				else
-					mca_save_cfg();
-			}
-		}
-	}
+	mca_somver_update();
 }
 
-static int is_valid_hwid(struct digi_hwid *hwid)
+static int hwid_in_db(struct digi_hwid *hwid)
 {
 	if (hwid->variant < ARRAY_SIZE(ccimx8x_variants))
 		if (ccimx8x_variants[hwid->variant].cpu != IMX8_NONE)
@@ -217,28 +227,48 @@ static int use_mac_from_fuses(struct digi_hwid *hwid)
 
 int board_has_wireless(void)
 {
-	if (is_valid_hwid(&my_hwid))
+	if (my_hwid.ram)
+		return my_hwid.wifi;
+
+	if (hwid_in_db(&my_hwid))
 		return (ccimx8x_variants[my_hwid.variant].capabilities &
 				CCIMX8_HAS_WIRELESS);
 	else
-		return 1; /* assume it has if invalid HWID */
+		return 1; /* assume it has, if not in database */
 }
 
 int board_has_bluetooth(void)
 {
-	if (is_valid_hwid(&my_hwid))
+	if (my_hwid.ram)
+		return my_hwid.bt;
+
+	if (hwid_in_db(&my_hwid))
 		return (ccimx8x_variants[my_hwid.variant].capabilities &
 				CCIMX8_HAS_BLUETOOTH);
 	else
-		return 1; /* assume it has if invalid HWID */
+		return 1; /* assume it has, if not in database */
 }
 
 void print_ccimx8x_info(void)
 {
-	if (is_valid_hwid(&my_hwid))
+	if (hwid_in_db(&my_hwid)) {
 		printf("%s SOM variant 0x%02X: %s\n", CONFIG_SOM_DESCRIPTION,
 			my_hwid.variant,
 			ccimx8x_variants[my_hwid.variant].id_string);
+	} else if (my_hwid.ram) {
+		printf("%s SOM variant 0x%02X: ", CONFIG_SOM_DESCRIPTION,
+		       my_hwid.variant);
+		print_size(gd->ram_size, " LPDDR4");
+		if (my_hwid.wifi)
+			printf(", Wi-Fi");
+		if (my_hwid.bt)
+			printf(", Bluetooth");
+		if (my_hwid.mca)
+			printf(", MCA");
+		if (my_hwid.crypto)
+			printf(", Crypto-auth");
+		printf("\n");
+	}
 }
 
 int ccimx8_init(void)
@@ -286,37 +316,7 @@ void generate_partition_table(void)
 		env_set("parts_android", android_partition_table);
 }
 
-void som_default_environment(void)
-{
-#ifdef CONFIG_CMD_MMC
-	char cmd[80];
-#endif
-	char var[10];
-	char hex_val[9]; // 8 hex chars + null byte
-	int i;
-
-#ifdef CONFIG_CMD_MMC
-	/* Set $mmcbootdev to MMC boot device index */
-	sprintf(cmd, "setenv -f mmcbootdev %x", mmc_get_bootdevindex());
-	run_command(cmd, 0);
-#endif
-	/* Set $module_variant variable */
-	sprintf(var, "0x%02x", my_hwid.variant);
-	env_set("module_variant", var);
-
-	/* Set $hwid_n variables */
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
-		snprintf(var, sizeof(var), "hwid_%d", i);
-		snprintf(hex_val, sizeof(hex_val), "%08x", ((u32 *) &my_hwid)[i]);
-		env_set(var, hex_val);
-	}
-
-	/*
-	 * If there are no defined partition tables generate them dynamically
-	 * basing on the available eMMC size.
-	 */
-	generate_partition_table();
-}
+extern const char *get_imx8_type(u32 imxtype);
 
 static int set_mac_from_pool(uint32_t pool, uint8_t *mac)
 {
@@ -354,7 +354,8 @@ static void get_macs_from_fuses(void)
 	char *macvars[] = {"ethaddr", "eth1addr", "wlanaddr", "btaddr"};
 	int ret, n_macs, i;
 
-	if (!is_valid_hwid(&my_hwid) || !use_mac_from_fuses(&my_hwid))
+	if ((!hwid_in_db(&my_hwid) && !my_hwid.ram) ||
+	    !use_mac_from_fuses(&my_hwid))
 		return;
 
 	ret = set_mac_from_pool(my_hwid.mac_pool, macaddr);
@@ -381,8 +382,57 @@ static void get_macs_from_fuses(void)
 	}
 }
 
-int ccimx8x_late_init(void)
+void som_default_environment(void)
 {
+#ifdef CONFIG_CMD_MMC
+	char cmd[80];
+#endif
+	char var[10];
+	char hex_val[9]; // 8 hex chars + null byte
+	int i;
+
+	/* Set soc_type variable (lowercase) */
+	snprintf(var, sizeof(var), "imx%s", get_imx8_type(get_cpu_type()));
+	for (i = 0; i < strlen(var); i++)
+		var[i] = tolower(var[i]);
+	env_set("soc_type", var);
+
+#ifdef CONFIG_CMD_MMC
+	/* Set $mmcbootdev to MMC boot device index */
+	sprintf(cmd, "setenv -f mmcbootdev %x", mmc_get_bootdevindex());
+	run_command(cmd, 0);
+#endif
+	/* Set $module_variant variable */
+	sprintf(var, "0x%02x", my_hwid.variant);
+	env_set("module_variant", var);
+
+	/* Set $hwid_n variables */
+	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
+		snprintf(var, sizeof(var), "hwid_%d", i);
+		snprintf(hex_val, sizeof(hex_val), "%08x", ((u32 *) &my_hwid)[i]);
+		env_set(var, hex_val);
+	}
+
+	/* Set module_ram variable */
+	if (my_hwid.ram) {
+		int ram = hwid_get_ramsize();
+
+		if (ram >= 1024) {
+			ram /= 1024;
+			snprintf(var, sizeof(var), "%dGB", ram);
+		} else {
+			snprintf(var, sizeof(var), "%dMB", ram);
+		}
+		env_set("module_ram", var);
+	}
+
+	/*
+	 * If there are no defined partition tables generate them dynamically
+	 * basing on the available eMMC size.
+	 */
+	generate_partition_table();
+
+	/* Get MAC address from fuses unless indicated otherwise */
 	if (env_get_yesno("use_fused_macs"))
 		get_macs_from_fuses();
 
@@ -395,8 +445,18 @@ int ccimx8x_late_init(void)
 
 	if (board_has_bluetooth())
 		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
+}
 
-	return 0;
+void board_updated_hwid(void)
+{
+	/* Update HWID-related variables in MCA and environment */
+	if (board_read_hwid(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return;
+	}
+
+	mca_somver_update();
+	som_default_environment();
 }
 
 /*

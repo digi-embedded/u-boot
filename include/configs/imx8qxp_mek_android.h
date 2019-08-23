@@ -16,7 +16,9 @@
 #define CONFIG_ANDROID_AB_SUPPORT
 #define CONFIG_AVB_SUPPORT
 #define CONFIG_SUPPORT_EMMC_RPMB
+#ifdef CONFIG_ANDROID_AB_SUPPORT
 #define CONFIG_SYSTEM_RAMDISK_SUPPORT
+#endif
 #define CONFIG_AVB_FUSE_BANK_SIZEW 0
 #define CONFIG_AVB_FUSE_BANK_START 0
 #define CONFIG_AVB_FUSE_BANK_END 0
@@ -25,7 +27,7 @@
 
 #ifdef CONFIG_SYS_MALLOC_LEN
 #undef CONFIG_SYS_MALLOC_LEN
-#define CONFIG_SYS_MALLOC_LEN           (96 * SZ_1M)
+#define CONFIG_SYS_MALLOC_LEN           (76 * SZ_1M)
 #endif
 
 #define CONFIG_USB_FUNCTION_FASTBOOT
@@ -56,6 +58,7 @@
 	"splashpos=m,m\0"	  \
 	"fdt_high=0xffffffffffffffff\0"	  \
 	"initrd_high=0xffffffffffffffff\0" \
+	"panel=NULL\0" \
 
 #define CONFIG_FASTBOOT_BUF_ADDR   0x98000000
 #define CONFIG_FASTBOOT_BUF_SIZE   0x19000000

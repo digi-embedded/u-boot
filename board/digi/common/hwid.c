@@ -97,3 +97,8 @@ __weak int board_override_hwid(const struct digi_hwid *hwid)
 
 	return 0;
 }
+
+__weak void board_updated_hwid(void)
+{
+	/* Do nothing */
+}

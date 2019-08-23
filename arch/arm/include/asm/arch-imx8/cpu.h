@@ -23,3 +23,5 @@ static inline unsigned int read_midr(void)
 #define is_cortex_a72() (((read_midr() & MIDR_PARTNUM_MASK) >> MIDR_PARTNUM_SHIFT) == MIDR_PARTNUM_CORTEX_A72)
 
 u32 cpu_mask(void);
+
+#define IMX8_MAX_CORES		4

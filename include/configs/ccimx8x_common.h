@@ -37,16 +37,19 @@
 #define PHYS_SDRAM_2			0x880000000
 #define PHYS_SDRAM_2_SIZE		0
 #define PHYS_SDRAM			PHYS_SDRAM_1
+/*
+ * 0x08081000 - 0x08180FFF is for m4_0 xip image,
+ * So 3rd container image may start from 0x8181000
+ */
+#define CONFIG_SYS_UBOOT_BASE 0x08181000
 
 #define CONFIG_OF_SYSTEM_SETUP
-#define BOOTAUX_RESERVED_MEM_BASE 0x88000000
-#define BOOTAUX_RESERVED_MEM_SIZE 0x08000000 /* Reserve from second 128MB */
 
 /* HWID */
 #define CONFIG_HAS_HWID
 #define CONFIG_HWID_BANK		0
 #define CONFIG_HWID_START_WORD		708
-#define CONFIG_HWID_WORDS_NUMBER	3
+#define CONFIG_HWID_WORDS_NUMBER	4
 #define CONFIG_NO_MAC_FROM_OTP
 
 /* Media type for firmware updates */
