@@ -57,6 +57,7 @@
 #undef CONFIG_SYS_MAXARGS
 #define CONFIG_SYS_MAXARGS	256			/* max number of command args */
 #define CONFIG_SYS_BARGSIZE	CONFIG_SYS_CBSIZE	/* Boot Argument Buffer Size */
+#define CONFIG_TFTP_FILE_NAME_MAX_LEN	256
 
 /* valid baudrates */
 #define CONFIG_SYS_BAUDRATE_TABLE	{9600, 19200, 38400, 57600, 115200}
