@@ -80,6 +80,41 @@ static struct ccimx8_variant ccimx8x_variants[] = {
 		0,
 		"Industrial DualX 1.0GHz, 8GB eMMC, 512MB LPDDR4, -40/+85C",
 	},
+/* 0x07 - 55001984-07 */
+	{
+		IMX8QXP,
+		MEM_1GB,
+		0,
+		"Industrial QuadXPlus 1.0GHz, 8GB eMMC, 1GB LPDDR4, -40/+85C",
+	},
+/* 0x08 - 55001984-08 */
+	{
+		IMX8QXP,
+		MEM_1GB,
+		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
+		"Industrial QuadXPlus 1.0GHz, 8GB eMMC, 1GB LPDDR4, -40/+85C, Wireless, Bluetooth",
+	},
+/* 0x09 - 55001984-09 */
+	{
+		IMX8DX,
+		MEM_512MB,
+		0,
+		"Industrial DualX 1.0GHz, 8GB eMMC, 512MB LPDDR4, -40/+85C",
+	},
+/* 0x0A - 55001984-10 */
+	{
+		IMX8DX,
+		MEM_1GB,
+		0,
+		"Industrial DualX 1.0GHz, 8GB eMMC, 1GB LPDDR4, -40/+85C",
+	},
+/* 0x0B - 55001984-11 */
+	{
+		IMX8DX,
+		MEM_1GB,
+		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
+		"Industrial DualX 1.0GHz, 8GB eMMC, 1GB LPDDR4, -40/+85C, Wireless, Bluetooth",
+	},
 };
 
 int mmc_get_bootdevindex(void)
