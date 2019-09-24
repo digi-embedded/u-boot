@@ -31,6 +31,7 @@
 #include <watchdog.h>
 #include <malloc.h>
 #include <mapmem.h>
+#include <memalign.h>
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
 #include <asm/gpio.h>
 #endif
@@ -54,6 +55,9 @@
 #endif
 
 extern int rng_swtest_status;
+
+#define ALIGN_UP(x, a) (((x) + (a - 1)) & ~(a - 1))
+#define DMA_ALIGN_UP(x) ALIGN_UP(x, ARCH_DMA_MINALIGN)
 
 /*
  * Copy the DEK blob used by the current U-Boot image into a buffer. Also
@@ -725,7 +729,9 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		unsigned long dek_blob_src;
 		unsigned long dek_blob_dst;
 		unsigned long dek_blob_final_dst;
+		unsigned long uboot_start;
 		int generate_dek_blob;
+		uint8_t *buffer = NULL;
 
 		argv -= 2 + confirmed;
 		argc += 2 + confirmed;
@@ -737,54 +743,111 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		if (get_source(argc, argv, &fwinfo))
 			return CMD_RET_FAILURE;
 
-		if (!((fwinfo.src == SRC_MMC && argc >= 5 ) ||
-		     ((fwinfo.src == SRC_TFTP || fwinfo.src == SRC_NFS) &&
-			argc >= 4)))
+		if (!(
+			(fwinfo.src == SRC_MMC && argc >= 5 ) ||
+			((fwinfo.src == SRC_TFTP || fwinfo.src == SRC_NFS) && argc >= 4) ||
+			(fwinfo.src == SRC_RAM && argc >= 4)
+		   ))
 			return CMD_RET_USAGE;
 
-		printf("\nLoading encrypted U-Boot image...\n");
-		/* Load firmware file to RAM */
-		fwinfo.loadaddr = "$loadaddr";
-		fwinfo.filename = (fwinfo.src == SRC_MMC) ? argv[4] : argv[3];
-		ret = load_firmware(&fwinfo);
-		if (ret == LDFW_ERROR) {
-			printf("Error loading firmware file to RAM\n");
-			return CMD_RET_FAILURE;
-		}
+		if (fwinfo.src != SRC_RAM) {
+			/* If not in RAM, load artifacts to RAM */
 
-		filesize = getenv_ulong("filesize", 16, 0);
-		/* DEK blob will be directly appended to the U-Boot image */
-		dek_blob_final_dst = loadaddr + filesize;
-		/*
-		 * for the DEK blob source (DEK in plain text) we use the
-		 * first 0x100 aligned memory address
-		 */
-		dek_blob_src = (dek_blob_final_dst & 0xFFFFFF00) + 0x100;
-		/*
-		 * DEK destination also needs to be 0x100 aligned. Leave
-		 * 0x400 = 1KiB to fit the DEK source
-		 */
-		dek_blob_dst = dek_blob_src + 0x400;
-
-		printf("\nLoading Data Encryption Key...\n");
-		if ((fwinfo.src == SRC_TFTP || fwinfo.src == SRC_NAND) &&
-		    argc >= 5) {
-			sprintf(cmd_buf, "%s 0x%lx %s", argv[2], dek_blob_src,
-				argv[4]);
-			generate_dek_blob = 1;
-		} else if (fwinfo.src == SRC_MMC && argc >= 6) {
-			sprintf(cmd_buf, "load mmc %s 0x%lx %s", argv[3],
-				dek_blob_src, argv[5]);
-			generate_dek_blob = 1;
-		} else {
-			generate_dek_blob = 0;
-		}
-
-		/* To generate the DEK blob, first load the DEK to RAM */
-		if (generate_dek_blob) {
-			if (run_command(cmd_buf, 0))
+			printf("\nLoading encrypted U-Boot image...\n");
+			/* Load firmware file to RAM */
+			fwinfo.loadaddr = "$loadaddr";
+			fwinfo.filename = (fwinfo.src == SRC_MMC) ? argv[4] : argv[3];
+			ret = load_firmware(&fwinfo);
+			if (ret == LDFW_ERROR) {
+				printf("Error loading firmware file to RAM\n");
 				return CMD_RET_FAILURE;
+			}
+
 			filesize = getenv_ulong("filesize", 16, 0);
+			/* DEK blob will be directly appended to the U-Boot image */
+			dek_blob_final_dst = loadaddr + filesize;
+			/*
+			 * for the DEK blob source (DEK in plain text) we use the
+			 * first 0x100 aligned memory address
+			 */
+			dek_blob_src = (dek_blob_final_dst & 0xFFFFFF00) + 0x100;
+			/*
+			 * DEK destination also needs to be 0x100 aligned. Leave
+			 * 0x400 = 1KiB to fit the DEK source
+			 */
+			dek_blob_dst = dek_blob_src + 0x400;
+
+			printf("\nLoading Data Encryption Key...\n");
+			if ((fwinfo.src == SRC_TFTP || fwinfo.src == SRC_NAND) &&
+			    argc >= 5) {
+				sprintf(cmd_buf, "%s 0x%lx %s", argv[2], dek_blob_src,
+					argv[4]);
+				generate_dek_blob = 1;
+			} else if (fwinfo.src == SRC_MMC && argc >= 6) {
+				sprintf(cmd_buf, "load mmc %s 0x%lx %s", argv[3],
+					dek_blob_src, argv[5]);
+				generate_dek_blob = 1;
+			} else {
+				generate_dek_blob = 0;
+			}
+
+			/* To generate the DEK blob, first load the DEK to RAM */
+			if (generate_dek_blob) {
+				if (run_command(cmd_buf, 0))
+					return CMD_RET_FAILURE;
+				filesize = getenv_ulong("filesize", 16, 0);
+			}
+		} else {
+			/*
+			 * If artifacts are in RAM, set up an aligned
+			 * buffer to work with them.
+			 */
+			uboot_start = simple_strtoul(argv[3], NULL, 16);
+			unsigned long uboot_size = simple_strtoul(argv[4], NULL, 16);
+			unsigned long dek_start = argc >= 5 ? simple_strtoul(argv[5], NULL, 16) : 0;
+			unsigned long dek_size = argc >= 6 ? simple_strtoul(argv[6], NULL, 16) : 0;
+
+			/*
+			 * This buffer will hold U-Boot, DEK and DEK blob. As
+			 * this function progresses, it will hold the
+			 * following:
+			 *
+			 * | <U-Boot> | <DEK> | <blank>
+			 * | <U-Boot> | <DEK> | <DEK blob>
+			 * | <U-Boot> <DEK-blob>
+			 *
+			 * Note: '|' represents the start of a
+			 * DMA-aligned region.
+			 */
+			buffer = malloc_cache_aligned(DMA_ALIGN_UP(uboot_size) + 2 * DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE));
+			if (!buffer) {
+				printf("Out of memory!\n");
+				return CMD_RET_FAILURE;
+			}
+
+			dek_blob_src = (uintptr_t) (buffer + DMA_ALIGN_UP(uboot_size));
+			dek_blob_dst = (uintptr_t) (buffer + DMA_ALIGN_UP(uboot_size) + DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE)); 
+			dek_blob_final_dst = (uintptr_t) (buffer + uboot_size);
+
+			debug("Buffer:             [0x%p,\t0x%p]\n", buffer, buffer + DMA_ALIGN_UP(uboot_size) + 2 * DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE));
+			debug("dek_blob_src:       0x%lx\n", dek_blob_src);
+			debug("dek_blob_dst:       0x%lx\n", dek_blob_dst);
+			debug("dek_blob_final_dst: 0x%lx\n", dek_blob_final_dst);
+			debug("ARCH_DMA_MINALIGN:  0x%x\n", ARCH_DMA_MINALIGN);
+			debug("dma_(dek_blob):     0x%x\n", DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE));
+			debug("U-Boot:             [0x%p,\t0x%p]\n", buffer, buffer + uboot_size);
+
+			memcpy(buffer, (void *)uboot_start, uboot_size);
+
+			if (dek_start > 0 && dek_size > 0) {
+				memcpy((void *)dek_blob_src, (void *)dek_start, dek_size);
+				filesize = dek_size;
+				generate_dek_blob = 1;
+			} else {
+				generate_dek_blob = 0;
+			}
+
+			loadaddr = (uintptr_t) buffer;
 		}
 
 		/*
@@ -801,8 +864,10 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			/* dek_blob takes size in bits */
 			sprintf(cmd_buf, "dek_blob 0x%lx 0x%lx 0x%lx",
 				dek_blob_src, dek_blob_dst, filesize * 8);
-			if (run_command(cmd_buf, 0))
-				return CMD_RET_FAILURE;
+			if (run_command(cmd_buf, 0)) {
+				ret = CMD_RET_FAILURE;
+				goto tf_update_out;
+			}
 
 			/*
 			 * Set filesize to the size of the DEK blob, that is:
@@ -824,7 +889,8 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 
 			if (get_dek_blob((void *)dek_blob_final_dst, &dek_blob_size)) {
 				printf("Current U-Boot does not contain a DEK, and a new DEK was not provided\n");
-				return CMD_RET_FAILURE;
+				ret = CMD_RET_FAILURE;
+				goto tf_update_out;
 			}
 			printf("Using current DEK\n");
 			filesize = dek_blob_size;
@@ -837,6 +903,9 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		setenv("forced_update", "y");
 		ret = run_command(cmd_buf, 0);
 		setenv("forced_update", "n");
+
+tf_update_out:
+		free(buffer);
 		if (ret)
 			return CMD_RET_FAILURE;
 	} else if (!strcmp(op, "jtag")) {
@@ -995,7 +1064,7 @@ U_BOOT_CMD(
 	"trustfence update <source> [extra-args...]\n"
 	" Description: flash an encrypted U-Boot image.\n"
 	" Arguments:\n"
-	"\n\t- <source>: tftp|nfs|mmc\n"
+	"\n\t- <source>: tftp|nfs|mmc|ram\n"
 	"\n\tsource=tftp|nfs -> <uboot_file> [<dek_file>]\n"
 	"\t\t - <uboot_file>: name of the encrypted uboot image\n"
 	"\t\t - <dek_file>: name of the Data Encryption Key (DEK) in plain text\n"
@@ -1003,6 +1072,11 @@ U_BOOT_CMD(
 	"\t\t - <dev:part>: number of device and partition\n"
 	"\t\t - <uboot_file>: name of the encrypted uboot image\n"
 	"\t\t - <dek_file>: name of the Data Encryption Key (DEK) in plain text.\n"
+	"\n\tsource=ram -> <uboot_start> <uboot_size> [<dek_start> <dek_size>]\n"
+	"\t\t - <uboot_start>: U-Boot binary memory address\n"
+	"\t\t - <uboot_size>: size of U-Boot binary (in bytes)\n"
+	"\t\t - <dek_start>: Data Encryption Key (DEK) memory address\n"
+	"\t\t - <dek_size>: size of DEK (in bytes)\n"
 	"\n"
 	" Note: the DEK arguments are optional if the current U-Boot is encrypted.\n"
 	"       If skipped, the current DEK will be re-used\n"
