@@ -624,22 +624,26 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 				dek_blob_src, argv[5]);
 			generate_dek_blob = 1;
 		} else {
-			u32 dek_blob_size;
-
-			if (get_dek_blob((void *)dek_blob_final_dst, &dek_blob_size)) {
-				printf("Current U-Boot does not contain a DEK, and a new DEK was not provided\n");
-				return CMD_RET_FAILURE;
-			}
-			printf("Using current DEK\n");
-			filesize = dek_blob_size;
 			generate_dek_blob = 0;
 		}
 
+		/* To generate the DEK blob, first load the DEK to RAM */
 		if (generate_dek_blob) {
 			if (run_command(cmd_buf, 0))
 				return CMD_RET_FAILURE;
 			filesize = env_get_ulong("filesize", 16, 0);
+		}
 
+		/*
+		 * The following if-else block is in charge of appending the
+		 * DEK blob to 'dek_blob_final_dst'.
+		 */
+		if (generate_dek_blob) {
+			/*
+			 * If generate_dek_blob, then the DEK blob is generated from
+			 * the DEK (at dek_blob_src) and then copied into its final
+			 * destination.
+			 */
 			printf("\nGenerating DEK blob...\n");
 			/* dek_blob takes size in bits */
 			sprintf(cmd_buf, "dek_blob 0x%lx 0x%lx 0x%lx",
@@ -657,6 +661,20 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			/* Copy DEK blob to its final destination */
 			memcpy((void *)dek_blob_final_dst, (void *)dek_blob_dst,
 				filesize);
+		} else {
+			/* If !generate_dek_blob, then the DEK blob from the running
+			 * U-Boot is recovered and copied into its final
+			 * destination. (This fails if the running U-Boot does not
+			 * include a DEK)
+			 */
+			u32 dek_blob_size;
+
+			if (get_dek_blob((void *)dek_blob_final_dst, &dek_blob_size)) {
+				printf("Current U-Boot does not contain a DEK, and a new DEK was not provided\n");
+				return CMD_RET_FAILURE;
+			}
+			printf("Using current DEK\n");
+			filesize = dek_blob_size;
 		}
 
 		printf("\nFlashing U-Boot partition...\n");
