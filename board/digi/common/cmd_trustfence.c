@@ -906,8 +906,10 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 
 tf_update_out:
 		free(buffer);
-		if (ret)
+		if (ret) {
+			printf("Operation failed!\n");
 			return CMD_RET_FAILURE;
+		}
 	} else if (!strcmp(op, "jtag")) {
 		if (!strcmp(argv[0], "read")) {
 			printf("Reading Secure JTAG mode: ");
