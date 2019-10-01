@@ -23,6 +23,9 @@
 #include "cmd_bootstream.h"
 #include "BootControlBlocks.h"
 
+#define ALIGN_UP(x, a) (((x) + (a - 1)) & ~(a - 1))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
 extern uint32_t mx28_nand_mark_byte_offset(void);
 extern uint32_t mx28_nand_mark_bit_offset(void);
 
@@ -71,12 +74,17 @@ int write_firmware(struct mtd_info *mtd,
 		   unsigned int pre_padding)
 {
 	int startpage, start, size;
-	int i, r, chunk;
+	int i, r;
+	size_t chunk;
 	loff_t ofs, end;
 	int chip = 0;
-	unsigned long read_addr;
+	u_char *read_addr;
 	size_t nbytes = 0;
-	char *readbuf = NULL;
+	u_char *readbuf = NULL;
+	u_char *padding_buf = NULL;
+	unsigned long padding_buf_size = 0;
+	unsigned long data_in_padding_buf = 0;
+	unsigned long bytes_written;
 
 	readbuf = malloc(mtd->writesize);
 	if (NULL == readbuf)
@@ -84,25 +92,39 @@ int write_firmware(struct mtd_info *mtd,
 
 	if (pre_padding) {
 		/*
-		 * rewind bs_start_address pre_padding bytes and fill it with
-		 * zeros.
+		 * Set up a buffer with the prepadding. As this buffer will be
+		 * written as a chunk, it needs to be a multiple of
+		 * mtd->writesize. If necessary, extend it to a multiple of
+		 * mtd->writesize and fill-in the extended section with the
+		 * start of the bootstream data.
+		 *
+		 *  <-    multiple of mtd->writesize     ->
+		 * -----------------------------------------
+		 * | ////////////// | XXXXXXXXXXXXXXXXXXXX |
+		 * -----------------------------------------
+		 * ^ <-pre_padding-> <-data_in_padding_buf->
+		 * |
+		 * |- padding_buf
+		 *
 		 */
-		if (bs_start_address - pre_padding < PHYS_SDRAM) {
-			printf("pre-padding required! "
-			       "Use a $loadaddr of at least 0x%08x\n",
-			       PHYS_SDRAM + pre_padding);
-			goto _error;
+		padding_buf_size = ALIGN_UP(pre_padding, mtd->writesize);
+		data_in_padding_buf = padding_buf_size - pre_padding;
+		padding_buf = malloc(padding_buf_size);
+		if (!padding_buf) {
+			printf("Out of memory!\n");
+			return -1;
 		}
-		bs_start_address -= pre_padding;
-		memset((u8 *)bs_start_address, 0, pre_padding);
+		memset(padding_buf, 0, pre_padding);
+		memcpy(padding_buf + pre_padding, (uchar *) bs_start_address,
+			MIN(boot_stream_size_in_bytes, data_in_padding_buf));
 	}
 	//----------------------------------------------------------------------
 	// Loop over the two boot streams.
 	//----------------------------------------------------------------------
 
 	for (i = 0; i < 2; i++) {
-		/* Set start address where bootstream is in RAM */
-		read_addr = bs_start_address;
+		/* Start writting boot stream again */
+		bytes_written = 0;
 
 		//--------------------------------------------------------------
 		// Figure out where to put the current boot stream.
@@ -172,15 +194,20 @@ int write_firmware(struct mtd_info *mtd,
 			if (chunk > mtd->writesize)
 				chunk = mtd->writesize;
 
+			/* Set data to write (first padding_buf, then actual data) */
+			read_addr = bytes_written < padding_buf_size ?
+				    padding_buf + bytes_written :
+				    (u_char *) (bs_start_address + data_in_padding_buf + bytes_written - padding_buf_size);
+
 			//------------------------------------------------------
 			// Write the current chunk to the medium.
 			//------------------------------------------------------
 
 			if (cfg->flags & F_VERBOSE) {
-				fprintf(stdout, "Writing bootstream file from 0x%lx to offset 0x%llx\n", read_addr, ofs);
+				fprintf(stdout, "Writing bootstream file from 0x%p to offset 0x%llx\n", read_addr, ofs);
 			}
 			if (!(cfg->flags & F_DRYRUN)) {
-				r = nand_write_skip_bad(mtd, ofs, (size_t *)&chunk, &nbytes, mtd->size, (unsigned char *)read_addr, WITH_WR_VERIFY);
+				r = nand_write_skip_bad(mtd, ofs, &chunk, &nbytes, mtd->size, read_addr, WITH_WR_VERIFY);
 				if (r || nbytes != chunk) {
 					fprintf(stderr, "mtd: Failed to write BS @0x%llx (%d)\n", ofs, r);
 				}
@@ -188,18 +215,18 @@ int write_firmware(struct mtd_info *mtd,
 			//------------------------------------------------------
 			// Verify the written data
 			//------------------------------------------------------
-			r = nand_read_skip_bad(mtd, ofs, (size_t*)&chunk, &nbytes, mtd->size, (unsigned char *)readbuf);
+			r = nand_read_skip_bad(mtd, ofs, &chunk, &nbytes, mtd->size, readbuf);
 			if (r || nbytes != chunk) {
 				fprintf(stderr, "mtd: Failed to read BS @0x%llx (%d)\n", ofs, r);
 				goto _error;
 			}
-			if (memcmp((void *)read_addr, readbuf, chunk)) {
+			if (memcmp(read_addr, readbuf, chunk)) {
 				fprintf(stderr, "mtd: Verification error @0x%llx\n", ofs);
 				goto _error;
 			}
 
 			ofs += mtd->writesize;
-			read_addr += mtd->writesize;
+			bytes_written += mtd->writesize;
 			size -= chunk;
 		}
 		if (cfg->flags & F_VERBOSE)
@@ -224,9 +251,11 @@ int write_firmware(struct mtd_info *mtd,
 		}
 	}
 
+	free(padding_buf);
 	free(readbuf);
 	return 0;
 _error:
+	free(padding_buf);
 	free(readbuf);
 	return -1;
 }
