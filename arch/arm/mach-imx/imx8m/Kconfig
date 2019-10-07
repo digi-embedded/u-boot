@@ -78,6 +78,12 @@ config TARGET_IMX8MN_EVK
 	select SUPPORT_SPL
 	select IMX8M_DDR4
 
+config TARGET_CCIMX8MN_DVK
+	bool "Digi ConnectCore 8M Nano Development Kit"
+	select IMX8MN
+	select SUPPORT_SPL
+	select IMX8M_LPDDR4
+
 endchoice
 
 config SYS_SOC
@@ -90,5 +96,6 @@ source "board/freescale/imx8mq_aiy/Kconfig"
 source "board/freescale/imx8mm_evk/Kconfig"
 source "board/freescale/imx8mm_val/Kconfig"
 source "board/freescale/imx8mn_evk/Kconfig"
+source "board/digi/ccimx8mn_dvk/Kconfig"
 
 endif
