@@ -1,4 +1,5 @@
 /*
+ * Copyright 2019 Digi International Inc.
  * Copyright 2018-2019 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -44,8 +45,7 @@ struct i2c_pads_info i2c_pad_info1 = {
 	},
 };
 
-#define USDHC2_CD_GPIO	IMX_GPIO_NR(1, 15)
-#define USDHC2_PWR_GPIO IMX_GPIO_NR(2, 19)
+#define USDHC2_CD_GPIO	IMX_GPIO_NR(2, 12)
 
 #define USDHC_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_HYS | PAD_CTL_PUE |PAD_CTL_PE | \
 			 PAD_CTL_FSEL2)
@@ -73,8 +73,7 @@ static iomux_v3_cfg_t const usdhc2_pads[] = {
 	IMX8MN_PAD_SD2_DATA1__USDHC2_DATA1 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	IMX8MN_PAD_SD2_DATA2__USDHC2_DATA2 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	IMX8MN_PAD_SD2_DATA3__USDHC2_DATA3 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
-	IMX8MN_PAD_SD2_RESET_B__GPIO2_IO19 | MUX_PAD_CTRL(USDHC_GPIO_PAD_CTRL),
-	IMX8MN_PAD_GPIO1_IO15__GPIO1_IO15 | MUX_PAD_CTRL(USDHC_CD_PAD_CTRL),
+	IMX8MN_PAD_SD2_CD_B__GPIO2_IO12 | MUX_PAD_CTRL(USDHC_CD_PAD_CTRL),
 };
 
 static struct fsl_esdhc_cfg usdhc_cfg[2] = {
@@ -97,10 +96,6 @@ int board_mmc_init(bd_t *bis)
 			usdhc_cfg[0].sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
 			imx_iomux_v3_setup_multiple_pads(
 				usdhc2_pads, ARRAY_SIZE(usdhc2_pads));
-			gpio_request(USDHC2_PWR_GPIO, "usdhc2_reset");
-			gpio_direction_output(USDHC2_PWR_GPIO, 0);
-			udelay(500);
-			gpio_direction_output(USDHC2_PWR_GPIO, 1);
 			gpio_request(USDHC2_CD_GPIO, "usdhc2 cd");
 			gpio_direction_input(USDHC2_CD_GPIO);
 			break;

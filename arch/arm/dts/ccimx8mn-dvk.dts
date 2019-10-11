@@ -25,17 +25,6 @@
 		bootargs = "console=ttymxc0,115200 earlycon=ec_imx6q,0x30860000,115200";
 		stdout-path = &uart1;
 	};
-
-	reg_usdhc2_vmmc: regulator-usdhc2 {
-		compatible = "regulator-fixed";
-		regulator-name = "VSD_3V3";
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		gpio = <&gpio2 19 GPIO_ACTIVE_HIGH>;
-		enable-active-high;
-		startup-delay-us = <100>;
-		off-on-delay-us = <12000>;
-	};
 };
 
 &iomuxc {
@@ -138,44 +127,43 @@
 
 		pinctrl_usdhc2_gpio: usdhc2grpgpio {
 			fsl,pins = <
-				MX8MN_IOMUXC_GPIO1_IO15__GPIO1_IO15	0x1c4
-				MX8MN_IOMUXC_SD2_RESET_B__GPIO2_IO19	0x41
+				/* Card detect */
+				MX8MN_IOMUXC_SD2_CD_B__GPIO2_IO12	0x1d0
+				/* MUX_VSELECT */
+				MX8MN_IOMUXC_SAI3_TXD__GPIO5_IO1	0x190
 			>;
 		};
 
 		pinctrl_usdhc2: usdhc2grp {
 			fsl,pins = <
-				MX8MN_IOMUXC_SD2_CLK__USDHC2_CLK		0x190
-				MX8MN_IOMUXC_SD2_CMD__USDHC2_CMD		0x1d0
+				MX8MN_IOMUXC_SD2_CLK__USDHC2_CLK	0x190
+				MX8MN_IOMUXC_SD2_CMD__USDHC2_CMD	0x1d0
 				MX8MN_IOMUXC_SD2_DATA0__USDHC2_DATA0	0x1d0
 				MX8MN_IOMUXC_SD2_DATA1__USDHC2_DATA1	0x1d0
 				MX8MN_IOMUXC_SD2_DATA2__USDHC2_DATA2	0x1d0
 				MX8MN_IOMUXC_SD2_DATA3__USDHC2_DATA3	0x1d0
-				MX8MN_IOMUXC_GPIO1_IO04__USDHC2_VSELECT	0x1d0
 			>;
 		};
 
 		pinctrl_usdhc2_100mhz: usdhc2grp100mhz {
 			fsl,pins = <
-				MX8MN_IOMUXC_SD2_CLK__USDHC2_CLK		0x194
-				MX8MN_IOMUXC_SD2_CMD__USDHC2_CMD		0x1d4
+				MX8MN_IOMUXC_SD2_CLK__USDHC2_CLK	0x194
+				MX8MN_IOMUXC_SD2_CMD__USDHC2_CMD	0x1d4
 				MX8MN_IOMUXC_SD2_DATA0__USDHC2_DATA0	0x1d4
 				MX8MN_IOMUXC_SD2_DATA1__USDHC2_DATA1	0x1d4
 				MX8MN_IOMUXC_SD2_DATA2__USDHC2_DATA2	0x1d4
 				MX8MN_IOMUXC_SD2_DATA3__USDHC2_DATA3	0x1d4
-				MX8MN_IOMUXC_GPIO1_IO04__USDHC2_VSELECT	0x1d0
 			>;
 		};
 
 		pinctrl_usdhc2_200mhz: usdhc2grp200mhz {
 			fsl,pins = <
-				MX8MN_IOMUXC_SD2_CLK__USDHC2_CLK		0x196
-				MX8MN_IOMUXC_SD2_CMD__USDHC2_CMD		0x1d6
+				MX8MN_IOMUXC_SD2_CLK__USDHC2_CLK	0x196
+				MX8MN_IOMUXC_SD2_CMD__USDHC2_CMD	0x1d6
 				MX8MN_IOMUXC_SD2_DATA0__USDHC2_DATA0	0x1d6
 				MX8MN_IOMUXC_SD2_DATA1__USDHC2_DATA1	0x1d6
 				MX8MN_IOMUXC_SD2_DATA2__USDHC2_DATA2	0x1d6
 				MX8MN_IOMUXC_SD2_DATA3__USDHC2_DATA3	0x1d6
-				MX8MN_IOMUXC_GPIO1_IO04__USDHC2_VSELECT	0x1d0
 			>;
 		};
 
@@ -484,9 +472,8 @@
 	pinctrl-0 = <&pinctrl_usdhc2>, <&pinctrl_usdhc2_gpio>;
 	pinctrl-1 = <&pinctrl_usdhc2_100mhz>, <&pinctrl_usdhc2_gpio>;
 	pinctrl-2 = <&pinctrl_usdhc2_200mhz>, <&pinctrl_usdhc2_gpio>;
-	cd-gpios = <&gpio1 15 GPIO_ACTIVE_LOW>;
+	cd-gpios = <&gpio2 12 GPIO_ACTIVE_LOW>;
 	bus-width = <4>;
-	vmmc-supply = <&reg_usdhc2_vmmc>;
 	status = "okay";
 };
 
