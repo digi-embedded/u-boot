@@ -8,10 +8,12 @@
 #ifndef __CCIMX8MN_DVK_H
 #define __CCIMX8MN_DVK_H
 
-#include <linux/sizes.h>
 #include <asm/arch/imx-regs.h>
+#include "digi_common.h"		/* Load Digi common stuff... */
 
-#include "imx_env.h"
+#define CONFIG_CC8M
+#define CONFIG_SOM_DESCRIPTION		"ConnectCore 8M Nano"
+#define CONFIG_BOARD_DESCRIPTION	"Development Kit"
 
 #ifdef CONFIG_SECURE_BOOT
 #define CONFIG_CSF_SIZE			0x2000 /* 8K region */
@@ -85,9 +87,6 @@
 #define CONFIG_BOARD_POSTCLK_INIT
 #define CONFIG_BOARD_LATE_INIT
 
-/* Flat Device Tree Definitions */
-#define CONFIG_OF_BOARD_SETUP
-
 #undef CONFIG_CMD_EXPORTENV
 #undef CONFIG_CMD_IMPORTENV
 #undef CONFIG_CMD_IMLS
@@ -98,9 +97,6 @@
 /* ENET Config */
 /* ENET1 */
 #if defined(CONFIG_CMD_NET)
-#define CONFIG_CMD_PING
-#define CONFIG_CMD_DHCP
-#define CONFIG_CMD_MII
 #define CONFIG_MII
 #define CONFIG_ETHPRIME                 "FEC"
 
@@ -112,7 +108,6 @@
 #define CONFIG_PHY_GIGE
 #define IMX_FEC_BASE			0x30BE0000
 
-#define CONFIG_PHYLIB
 #define CONFIG_PHY_ATHEROS
 #endif
 
@@ -126,10 +121,12 @@
 	"jh_netboot=mw 0x303d0518 0xff; setenv fdt_file fsl-imx8mn-ddr4-evk-root.dtb; setenv jh_clk clk_ignore_unused; run netboot; \0 "
 
 #define CONFIG_MFG_ENV_SETTINGS \
-	CONFIG_MFG_ENV_SETTINGS_DEFAULT \
+	"mfgtool_args=setenv bootargs console=${console},${baudrate} " \
+		"root=/dev/ram0 rw quiet\0" \
+	"fastboot_dev=mmc" __stringify(CONFIG_FASTBOOT_FLASH_MMC_DEV) "\0" \
 	"initrd_addr=0x43800000\0" \
 	"initrd_high=0xffffffffffffffff\0" \
-	"emmc_dev=1\0"\
+	"emmc_dev=1\0" \
 	"sd_dev=0\0" \
 
 /* Initial environment variables */
@@ -224,10 +221,10 @@
 #elif defined(CONFIG_ENV_IS_IN_NAND)
 #define CONFIG_ENV_OFFSET       (60 << 20)
 #endif
-#define CONFIG_ENV_SIZE			0x1000
+
+#define CONFIG_SYS_STORAGE_MEDIA       "mmc"
 #define CONFIG_SYS_MMC_ENV_DEV		0   /* USDHC2 */
 #define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
-
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		((CONFIG_ENV_SIZE + (2*1024) + (16*1024)) * 1024)
 
@@ -249,7 +246,6 @@
 #define CONFIG_SYS_PROMPT		"u-boot=> "
 #define CONFIG_SYS_PROMPT_HUSH_PS2     "> "
 #define CONFIG_SYS_CBSIZE              2048
-#define CONFIG_SYS_MAXARGS             64
 #define CONFIG_SYS_BARGSIZE CONFIG_SYS_CBSIZE
 #define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + \
 					sizeof(CONFIG_SYS_PROMPT) + 16)
@@ -257,7 +253,6 @@
 #define CONFIG_IMX_BOOTAUX
 
 /* USDHC */
-#define CONFIG_CMD_MMC
 #define CONFIG_FSL_ESDHC
 #define CONFIG_FSL_USDHC
 
@@ -331,13 +326,9 @@
 
 /* USB configs */
 #ifndef CONFIG_SPL_BUILD
-#define CONFIG_CMD_USB
-#define CONFIG_USB_STORAGE
 #define CONFIG_USBD_HS
 
-#define CONFIG_CMD_USB_MASS_STORAGE
 #define CONFIG_USB_GADGET_MASS_STORAGE
-#define CONFIG_USB_FUNCTION_MASS_STORAGE
 
 #endif
 
@@ -364,8 +355,10 @@
 
 #define CONFIG_OF_SYSTEM_SETUP
 
+/*
 #if defined(CONFIG_ANDROID_SUPPORT)
 #include "imx8mn_evk_android.h"
 #endif
+*/
 
 #endif /* __CCIMX8MN_DVK_H */

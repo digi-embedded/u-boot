@@ -24,12 +24,18 @@
 #include <asm/mach-imx/dma.h>
 #include <power/pmic.h>
 #include <power/bd71837.h>
-#include "../common/tcpc.h"
+#include "../../freescale/common/tcpc.h"
 #include <usb.h>
 #include <sec_mipi_dsim.h>
 #include <imx_mipi_dsi_bridge.h>
 #include <mipi_dsi_panel.h>
 #include <asm/mach-imx/video.h>
+
+#include "../common/helper.h"
+#include "../common/hwid.h"
+#include "../common/mca_registers.h"
+#include "../common/mca.h"
+#include "../common/tamper.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -721,10 +727,6 @@ size_t display_count = ARRAY_SIZE(displays);
 
 int board_late_init(void)
 {
-#ifdef CONFIG_ENV_IS_IN_MMC
-	board_late_mmc_env_init();
-#endif
-
 	return 0;
 }
 
