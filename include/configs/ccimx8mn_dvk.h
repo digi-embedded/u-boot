@@ -223,7 +223,7 @@
 #endif
 
 #define CONFIG_SYS_STORAGE_MEDIA       "mmc"
-#define CONFIG_SYS_MMC_ENV_DEV		0   /* USDHC2 */
+#define CONFIG_SYS_MMC_ENV_DEV		1   /* USDHC3 */
 #define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		((CONFIG_ENV_SIZE + (2*1024) + (16*1024)) * 1024)

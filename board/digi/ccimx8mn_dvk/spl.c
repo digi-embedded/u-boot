@@ -52,7 +52,6 @@ struct i2c_pads_info i2c_pad_info1 = {
 #define USDHC_GPIO_PAD_CTRL (PAD_CTL_HYS | PAD_CTL_DSE1)
 #define USDHC_CD_PAD_CTRL (PAD_CTL_PE |PAD_CTL_PUE |PAD_CTL_HYS | PAD_CTL_DSE4)
 
-
 static iomux_v3_cfg_t const usdhc3_pads[] = {
 	IMX8MN_PAD_NAND_WE_B__USDHC3_CLK | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	IMX8MN_PAD_NAND_WP_B__USDHC3_CMD | MUX_PAD_CTRL(USDHC_PAD_CTRL),
@@ -64,6 +63,7 @@ static iomux_v3_cfg_t const usdhc3_pads[] = {
 	IMX8MN_PAD_NAND_CE2_B__USDHC3_DATA5 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	IMX8MN_PAD_NAND_CE3_B__USDHC3_DATA6 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	IMX8MN_PAD_NAND_CLE__USDHC3_DATA7 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	IMX8MN_PAD_NAND_READY_B__USDHC3_RESET_B | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 };
 
 static iomux_v3_cfg_t const usdhc2_pads[] = {
@@ -87,8 +87,8 @@ int board_mmc_init(bd_t *bis)
 	/*
 	 * According to the board_mmc_init() the following map is done:
 	 * (U-Boot device node)    (Physical Port)
-	 * mmc0                    USDHC1
-	 * mmc1                    USDHC2
+	 * mmc0                    USDHC2
+	 * mmc1                    USDHC3
 	 */
 	for (i = 0; i < CONFIG_SYS_FSL_USDHC_NUM; i++) {
 		switch (i) {
