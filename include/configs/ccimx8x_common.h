@@ -12,6 +12,7 @@
 #include "digi_common.h"		/* Load Digi common stuff... */
 
 #define CONFIG_CC8
+#define CONFIG_CC8X
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 8X"
 
 #define CONFIG_DISPLAY_BOARDINFO_LATE

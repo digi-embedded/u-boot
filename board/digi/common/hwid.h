@@ -16,7 +16,7 @@
 
 #if defined(CONFIG_CC6)
 #include "hwid_cc6.h"
-#elif defined(CONFIG_CC8)
+#elif defined(CONFIG_CC8X)
 #include "hwid_cc8x.h"
 #endif
 
