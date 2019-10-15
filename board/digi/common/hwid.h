@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2018 Digi International Inc. All Rights Reserved.
+ * Copyright 2014-2019 Digi International Inc. All Rights Reserved.
  */
 
 /*
@@ -21,12 +21,6 @@ enum digi_cert {
 
 	DIGI_MAX_CERT,
 };
-
-/* RAM size */
-#define MEM_2GB		0x80000000
-#define MEM_1GB		0x40000000
-#define MEM_512MB	0x20000000
-#define MEM_256MB	0x10000000
 
 #ifdef CONFIG_CC6
 /*

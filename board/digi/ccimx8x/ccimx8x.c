@@ -9,6 +9,7 @@
 #include <i2c.h>
 #include <otf_update.h>
 #include <linux/ctype.h>
+#include <linux/sizes.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/mach-imx/sci/sci.h>
 #include <asm/mach-imx/boot_mode.h>
@@ -39,77 +40,77 @@ static struct ccimx8_variant ccimx8x_variants[] = {
 /* 0x01 - 55001984-01 */
 	{
 		IMX8QXP,
-		MEM_1GB,
+		SZ_1G,
 		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
 		"Automotive QuadXPlus 1.2GHz, 8GB eMMC, 1GB LPDDR4, -40/+85C, Wireless, Bluetooth",
 	},
 /* 0x02 - 55001984-02 */
 	{
 		IMX8QXP,
-		MEM_2GB,
+		SZ_2G,
 		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
 		"Industrial QuadXPlus 1.0GHz, 16GB eMMC, 2GB LPDDR4, -40/+85C, Wireless, Bluetooth",
 	},
 /* 0x03 - 55001984-03 */
 	{
 		IMX8QXP,
-		MEM_2GB,
+		SZ_2G,
 		0,
 		"Industrial QuadXPlus 1.0GHz, 8GB eMMC, 2GB LPDDR4, -40/+85C",
 	},
 /* 0x04 - 55001984-04 */
 	{
 		IMX8DX,
-		MEM_1GB,
+		SZ_1G,
 		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
 		"Industrial DualX 1.0GHz, 8GB eMMC, 1GB LPDDR4, -40/+85C, Wireless, Bluetooth",
 	},
 /* 0x05 - 55001984-05 */
 	{
 		IMX8DX,
-		MEM_1GB,
+		SZ_1G,
 		0,
 		"Industrial DualX 1.0GHz, 8GB eMMC, 1GB LPDDR4, -40/+85C",
 	},
 /* 0x06 - 55001984-06 */
 	{
 		IMX8DX,
-		MEM_512MB,
+		SZ_512M,
 		0,
 		"Industrial DualX 1.0GHz, 8GB eMMC, 512MB LPDDR4, -40/+85C",
 	},
 /* 0x07 - 55001984-07 */
 	{
 		IMX8QXP,
-		MEM_1GB,
+		SZ_1G,
 		0,
 		"Industrial QuadXPlus 1.0GHz, 8GB eMMC, 1GB LPDDR4, -40/+85C",
 	},
 /* 0x08 - 55001984-08 */
 	{
 		IMX8QXP,
-		MEM_1GB,
+		SZ_1G,
 		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
 		"Industrial QuadXPlus 1.0GHz, 8GB eMMC, 1GB LPDDR4, -40/+85C, Wireless, Bluetooth",
 	},
 /* 0x09 - 55001984-09 */
 	{
 		IMX8DX,
-		MEM_512MB,
+		SZ_512M,
 		0,
 		"Industrial DualX 1.0GHz, 8GB eMMC, 512MB LPDDR4, -40/+85C",
 	},
 /* 0x0A - 55001984-10 */
 	{
 		IMX8DX,
-		MEM_1GB,
+		SZ_1G,
 		0,
 		"Industrial DualX 1.0GHz, 8GB eMMC, 1GB LPDDR4, -40/+85C",
 	},
 /* 0x0B - 55001984-11 */
 	{
 		IMX8DX,
-		MEM_1GB,
+		SZ_1G,
 		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
 		"Industrial DualX 1.0GHz, 8GB eMMC, 1GB LPDDR4, -40/+85C, Wireless, Bluetooth",
 	},
