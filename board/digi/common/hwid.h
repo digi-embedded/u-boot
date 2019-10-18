@@ -18,6 +18,8 @@
 #include "hwid_cc6.h"
 #elif defined(CONFIG_CC8X)
 #include "hwid_cc8x.h"
+#elif defined(CONFIG_CC8M)
+#include "hwid_cc8m.h"
 #endif
 
 enum digi_cert {
