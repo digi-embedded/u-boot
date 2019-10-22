@@ -26,6 +26,8 @@
  #include <fuse.h>
  #include "hwid.h"
 
+extern int hwid_word_lengths[CONFIG_HWID_WORDS_NUMBER];
+
 __weak int board_read_hwid(struct digi_hwid *hwid)
 {
 	u32 bank = CONFIG_HWID_BANK;
@@ -101,4 +103,14 @@ __weak int board_override_hwid(const struct digi_hwid *hwid)
 __weak void board_updated_hwid(void)
 {
 	/* Do nothing */
+}
+
+void print_hwid_hex(struct digi_hwid *hwid)
+{
+	int i;
+
+	for (i = CONFIG_HWID_WORDS_NUMBER - 1; i >= 0; i--)
+		printf(" %.*x", hwid_word_lengths[i], ((u32 *)hwid)[i]);
+
+	printf("\n");
 }

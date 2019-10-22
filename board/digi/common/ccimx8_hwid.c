@@ -19,6 +19,12 @@ const char *cert_regions[] = {
 	"Japan",
 };
 
+#ifdef CONFIG_CC8X
+int hwid_word_lengths[CONFIG_HWID_WORDS_NUMBER] = {8, 4, 8, 4};
+#else
+int hwid_word_lengths[CONFIG_HWID_WORDS_NUMBER] = {8, 8, 8};
+#endif
+
 u32 ram_sizes_mb[16] = {
 	0,	/* 0 */
 	16,	/* 1 */
@@ -69,16 +75,7 @@ int board_prog_hwid(const struct digi_hwid *hwid)
 /* Print HWID info */
 void board_print_hwid(struct digi_hwid *hwid)
 {
-#ifdef CONFIG_CC8X
-	printf(" %.4x", ((u32 *)hwid)[3]);
-	printf(" %.8x", ((u32 *)hwid)[2]);
-	printf(" %.4x", ((u32 *)hwid)[1]);
-	printf(" %.8x", ((u32 *)hwid)[0]);
-#else
-	for (int i = CONFIG_HWID_WORDS_NUMBER - 1; i >= 0; i--)
-		printf(" %.8x", ((u32 *)hwid)[i]);
-#endif
-	printf("\n");
+	print_hwid_hex(hwid);
 
 	/* Formatted printout */
 	printf("    Generator ID:  %02d\n", hwid->genid);
@@ -109,16 +106,7 @@ void board_print_hwid(struct digi_hwid *hwid)
 /* Print HWID info in MANUFID format */
 void board_print_manufid(struct digi_hwid *hwid)
 {
-#if defined(CONFIG_CC8X)
-	printf(" %.4x", ((u32 *)hwid)[3]);
-	printf(" %.8x", ((u32 *)hwid)[2]);
-	printf(" %.4x", ((u32 *)hwid)[1]);
-	printf(" %.8x", ((u32 *)hwid)[0]);
-#else
-	for (int i = CONFIG_HWID_WORDS_NUMBER - 1; i >= 0; i--)
-		printf(" %.8x", ((u32 *)hwid)[i]);
-#endif
-	printf("\n");
+	print_hwid_hex(hwid);
 
 	/* Formatted printout */
 	printf(" Manufacturing ID: %02d%02d%02d%06d %02d%06x %02x%x%x %x"
@@ -149,19 +137,9 @@ int board_parse_hwid(int argc, char *const argv[], struct digi_hwid *hwid)
 	if (argc != CONFIG_HWID_WORDS_NUMBER)
 		goto err;
 
-#ifdef CONFIG_CC8X
-	if (strlen(argv[0]) != 4)
-		goto err;
-
-	if (strlen(argv[1]) != 8)
-		goto err;
-
-	if (strlen(argv[2]) != 4)
-		goto err;
-
-	if (strlen(argv[3]) != 8)
-		goto err;
-#endif
+	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++)
+		if (strlen(argv[i]) > hwid_word_lengths[i])
+			goto err;
 
 	/*
 	 * Digi HWID is set as a number of hex strings in the form

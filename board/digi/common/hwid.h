@@ -42,5 +42,6 @@ void board_updated_hwid(void);
 int board_lock_hwid(void);
 void fdt_fixup_hwid(void *fdt);
 int hwid_get_ramsize(void);
+void print_hwid_hex(struct digi_hwid *hwid);
 
 #endif	/* __HWID_H_ */
