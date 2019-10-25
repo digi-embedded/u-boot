@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Digi International, Inc.
+ * Copyright (C) 2016-2019 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -40,8 +40,6 @@ DECLARE_GLOBAL_DATA_PTR;
 
 extern bool bmode_reset;
 struct digi_hwid my_hwid;
-
-#define MCA_CC6UL_DEVICE_ID_VAL		0x61
 
 #define MDIO_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_PUE |     \
 	PAD_CTL_DSE_48ohm   | PAD_CTL_SRE_FAST | PAD_CTL_ODE)
@@ -270,38 +268,6 @@ void ldo_mode_set(int ldo_bypass)
 }
 #endif
 #endif
-
-void mca_init(void)
-{
-	unsigned char devid = 0;
-	unsigned char hwver;
-	unsigned char fwver[2];
-	int ret, fwver_ret;
-
-	ret = mca_read_reg(MCA_DEVICE_ID, &devid);
-	if (devid != MCA_CC6UL_DEVICE_ID_VAL) {
-		printf("MCA: invalid MCA DEVICE ID (0x%02x)\n", devid);
-		return;
-	}
-
-	ret = mca_read_reg(MCA_HW_VER, &hwver);
-	fwver_ret = mca_bulk_read(MCA_FW_VER_L, fwver, 2);
-
-	printf("MCA:   HW_VER=");
-	if (ret)
-		printf("??");
-	else
-		printf("%d", hwver);
-
-	printf("  FW_VER=");
-	if (fwver_ret)
-		printf("??");
-	else
-		printf("%d.%02d %s", fwver[1] & 0x7f, fwver[0],
-		       fwver[1] & 0x80 ? "(alpha)" : "");
-
-	printf("\n");
-}
 
 int ccimx6ul_init(void)
 {

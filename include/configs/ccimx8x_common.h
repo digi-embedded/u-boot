@@ -110,6 +110,7 @@
 /* MCA */
 #define CONFIG_MCA_I2C_BUS		0
 #define CONFIG_MCA_I2C_ADDR		0x63
+#define BOARD_MCA_DEVICE_ID		0x4A
 
 #define CONFIG_TFTP_UPDATE_ONTHEFLY      /* support to tftp and update on-the-fly */
 

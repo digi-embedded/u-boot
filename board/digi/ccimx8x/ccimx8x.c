@@ -32,8 +32,6 @@ mac_base_t mac_pools[] = {
 
 struct digi_hwid my_hwid;
 
-#define MCA_CC8X_DEVICE_ID_VAL		0x4A
-
 #ifdef CONFIG_FSL_ESDHC
 
 static struct ccimx8_variant ccimx8x_variants[] = {
@@ -159,87 +157,6 @@ int board_has_emmc(void)
 
 #endif /* CONFIG_FSL_ESDHC */
 
-static void mca_somver_update(void)
-{
-	unsigned char somver;
-	int ret;
-
-	/*
-	 * Read the som version stored in MCA.
-	 * If it doesn't match with real SOM version read from my_hwid.hv:
-	 *    - update it into the MCA.
-	 *    - force the new value to be saved in MCA NVRAM.
-	 * The purpose of this functionality is that MCA starts using the
-	 * correct SOM version since boot.
-	 */
-	ret = mca_read_reg(MCA_HWVER_SOM, &somver);
-	if (ret) {
-		printf("Cannot read MCA_HWVER_SOM\n");
-	} else {
-		if (my_hwid.hv != somver) {
-			ret = mca_write_reg(MCA_HWVER_SOM, my_hwid.hv);
-			if (ret)
-				printf("Cannot write MCA_HWVER_SOM\n");
-			else
-				mca_save_cfg();
-		}
-	}
-}
-
-static void mca_init(void)
-{
-	unsigned char devid = 0;
-	unsigned char hwver;
-	unsigned char fwver[2];
-	int ret, fwver_ret;
-
-#ifdef CONFIG_DM_I2C
-	struct udevice *bus, *dev;
-
-	ret = uclass_get_device_by_seq(UCLASS_I2C, CONFIG_MCA_I2C_BUS, &bus);
-	if (ret) {
-		printf("ERROR: getting %d bus for MCA\n", CONFIG_MCA_I2C_BUS);
-		return;
-	}
-
-	ret = dm_i2c_probe(bus, CONFIG_MCA_I2C_ADDR, 0, &dev);
-	if (ret) {
-		printf("ERROR: can't find MCA at address %x\n",
-		       CONFIG_MCA_I2C_ADDR);
-		return;
-	}
-
-	ret = i2c_set_chip_offset_len(dev, 2);
-	if (ret)
-		printf("ERROR: setting address len to 2 for MCA\n");
-#endif
-	ret = mca_read_reg(MCA_DEVICE_ID, &devid);
-	if (devid != MCA_CC8X_DEVICE_ID_VAL) {
-		printf("MCA: invalid MCA DEVICE ID (0x%02x)\n", devid);
-		return;
-	}
-
-	ret = mca_read_reg(MCA_HW_VER, &hwver);
-	fwver_ret = mca_bulk_read(MCA_FW_VER_L, fwver, 2);
-
-	printf("MCA:   HW_VER=");
-	if (ret)
-		printf("??");
-	else
-		printf("%d", hwver);
-
-	printf("  FW_VER=");
-	if (fwver_ret)
-		printf("??");
-	else
-		printf("%d.%02d %s", fwver[1] & 0x7f, fwver[0],
-		       fwver[1] & 0x80 ? "(alpha)" : "");
-
-	printf("\n");
-
-	mca_somver_update();
-}
-
 static int hwid_in_db(struct digi_hwid *hwid)
 {
 	if (hwid->variant < ARRAY_SIZE(ccimx8x_variants))
@@ -314,6 +231,7 @@ int ccimx8_init(void)
 	}
 
 	mca_init();
+	mca_somver_update();
 
 #ifdef CONFIG_MCA_TAMPER
 	mca_tamper_check_events();
