@@ -45,16 +45,6 @@ mac_base_t mac_pools[] = {
 
 struct digi_hwid my_hwid;
 
-int ccimx8_init(void)
-{
-	if (board_read_hwid(&my_hwid)) {
-		printf("Cannot read HWID\n");
-		return -1;
-	}
-
-	return 0;
-}
-
 #if !defined(CONFIG_SPL_BUILD)
 int mmc_get_bootdevindex(void)
 {
@@ -141,6 +131,22 @@ void print_som_info(void)
 			printf(", Crypto-auth");
 		printf("\n");
 	}
+}
+
+int ccimx8_init(void)
+{
+	if (board_read_hwid(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return -1;
+	}
+
+	mca_init();
+	mca_somver_update();
+
+#ifdef CONFIG_MCA_TAMPER
+	mca_tamper_check_events();
+#endif
+	return 0;
 }
 
 void generate_partition_table(void)
@@ -312,10 +318,11 @@ void board_updated_hwid(void)
 		return;
 	}
 
+	mca_somver_update();
 	som_default_environment();
 }
 
-void fdt_fixup_ccimx8x(void *fdt)
+void fdt_fixup_ccimx8m(void *fdt)
 {
 	if (board_has_wireless()) {
 		/* Wireless MACs */

@@ -70,6 +70,12 @@
 #define CONFIG_HWID_LOCK_FUSE		(0x3 << 14)
 #define CONFIG_CMD_FUSE
 
+/* MCA */
+#define CONFIG_MCA_I2C_BUS		0
+#define CONFIG_MCA_I2C_ADDR		0x63
+#define CONFIG_MCA_OFFSET_LEN           2
+#define BOARD_MCA_DEVICE_ID		0x4A
+
 #define OCOTP_LOCK_BANK		0
 #define OCOTP_LOCK_WORD		0
 
