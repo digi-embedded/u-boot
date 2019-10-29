@@ -59,16 +59,20 @@ struct nand_env_location {
 	nand_erase_options_t erase_opts;
 };
 
-static struct nand_env_location location[2] = {0};
-
-location[0].name = "NAND";
-location[0].erase_opts.length = CONFIG_ENV_RANGE;
-location[0].erase_opts.offset = env_get_offset(CONFIG_ENV_OFFSET);
+static struct nand_env_location location[2] = {
+	{
+		.name = "NAND",
+		.erase_opts.length = CONFIG_ENV_RANGE,
+		.erase_opts.offset = CONFIG_ENV_OFFSET
+	},
 #ifdef CONFIG_ENV_OFFSET_REDUND
-location[1].name = "redundant NAND";
-location[1].erase_opts.length = CONFIG_ENV_RANGE;
-location[1].erase_opts.offset = CONFIG_ENV_OFFSET_REDUND;
+	{
+		.name = "redundant NAND",
+		.erase_opts.length = CONFIG_ENV_RANGE,
+		.erase_opts.offset = CONFIG_ENV_OFFSET_REDUND
+	},
 #endif
+};
 
 
 #ifdef CONFIG_DYNAMIC_ENV_LOCATION
