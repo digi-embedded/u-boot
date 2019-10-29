@@ -33,7 +33,7 @@
 #include <asm/mach-imx/video.h>
 #include <linux/ctype.h>
 
-#include "../ccimx8m/ccimx8m.h"
+#include "../ccimx8/ccimx8.h"
 #include "../common/carrier_board.h"
 #include "../common/helper.h"
 #include "../common/hwid.h"
@@ -80,7 +80,7 @@ int board_postclk_init(void)
 int ft_board_setup(void *blob, bd_t *bd)
 {
 	fdt_fixup_hwid(blob);
-	fdt_fixup_ccimx8m(blob);
+	fdt_fixup_ccimx8(blob);
 	fdt_fixup_carrierboard(blob);
 
 	return 0;
