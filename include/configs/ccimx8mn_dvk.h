@@ -56,6 +56,9 @@
 #define CONFIG_PHY_ATHEROS
 #endif
 
+#define CONFIG_HAS_CARRIERBOARD_VERSION
+#define CONFIG_HAS_CARRIERBOARD_ID
+
 #define CONFIG_MFG_ENV_SETTINGS \
 	"mfgtool_args=setenv bootargs console=${console},${baudrate} " \
 		"root=/dev/ram0 rw quiet\0" \

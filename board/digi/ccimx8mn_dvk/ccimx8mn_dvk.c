@@ -43,6 +43,9 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+unsigned int board_version = CARRIERBOARD_VERSION_UNDEFINED;
+unsigned int board_id = CARRIERBOARD_ID_UNDEFINED;
+
 #define UART_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_FSEL1)
 #define WDOG_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_ODE | PAD_CTL_PUE | PAD_CTL_PE)
 
@@ -86,6 +89,19 @@ int ft_board_setup(void *blob, bd_t *bd)
 	return 0;
 }
 #endif
+
+void platform_default_environment(void)
+{
+	som_default_environment();
+}
+
+int board_late_init(void)
+{
+	/* Set default dynamic variables */
+	platform_default_environment();
+
+	return 0;
+}
 
 #ifdef CONFIG_FEC_MXC
 #define FEC_RST_PAD IMX_GPIO_NR(4, 22)
@@ -630,8 +646,14 @@ struct display_info_t const displays[] = {{
 size_t display_count = ARRAY_SIZE(displays);
 #endif
 
-int board_late_init(void)
+int checkboard(void)
 {
+	board_version = get_carrierboard_version();
+	board_id = get_carrierboard_id();
+
+	print_som_info();
+	print_carrierboard_info();
+
 	return 0;
 }
 
