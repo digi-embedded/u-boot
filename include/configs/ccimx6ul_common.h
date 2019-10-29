@@ -160,6 +160,7 @@
 /* MCA */
 #define CONFIG_MCA_I2C_BUS		0
 #define CONFIG_MCA_I2C_ADDR		0x7e
+#define CONFIG_MCA_OFFSET_LEN		2
 #define BOARD_MCA_DEVICE_ID		0x61
 
 /* PMIC */

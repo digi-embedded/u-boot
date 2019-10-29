@@ -4,6 +4,7 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
+#include <dm.h>
 #include <dm/uclass.h>
 #include <common.h>
 #include <i2c.h>
@@ -12,23 +13,96 @@
 
 extern struct digi_hwid my_hwid;
 
-int mca_read_reg(int reg, unsigned char *value)
+#ifdef CONFIG_DM_I2C
+int mca_get_device(struct udevice **devp)
 {
-#ifdef CONFIG_I2C_MULTI_BUS
-	if (i2c_set_bus_num(CONFIG_MCA_I2C_BUS))
-		return -1;
-#endif
+	struct dm_i2c_chip *chip;
+	int ret;
 
-	if (i2c_probe(CONFIG_MCA_I2C_ADDR)) {
-		printf("ERR: cannot access the MCA\n");
-		return -1;
+	ret = i2c_get_chip_for_busnum(CONFIG_MCA_I2C_BUS, CONFIG_MCA_I2C_ADDR,
+				      CONFIG_MCA_OFFSET_LEN, devp);
+	if (ret)
+		return ret;
+
+	chip = dev_get_parent_platdata(*devp);
+	if (chip->offset_len != CONFIG_MCA_OFFSET_LEN) {
+		printf("I2C chip %x: requested len %d does not match chip offset_len %d\n",
+		       CONFIG_MCA_I2C_ADDR, CONFIG_MCA_OFFSET_LEN,
+		       chip->offset_len);
+		return -EADDRNOTAVAIL;
 	}
-
-	if (i2c_read(CONFIG_MCA_I2C_ADDR, reg, 2, value, 1))
-		return -1;
 
 	return 0;
 }
+
+int mca_bulk_read(int reg, unsigned char *values, int len)
+{
+	struct udevice *dev;
+	int ret;
+
+	ret = mca_get_device(&dev);
+	if (ret) {
+		printf("ERROR: can't get MCA device\n");
+		return -1;
+	}
+
+	ret = dm_i2c_read(dev, reg, values, len);
+	if (ret) {
+		printf("ERROR: can't read regs 0x%x-0x%x , err %d\n", reg, reg + len, ret);
+		return -1;
+	}
+
+	return 0;
+}
+
+int mca_bulk_write(int reg, unsigned char *values, int len)
+{
+	struct udevice *dev;
+	int ret;
+
+	ret = mca_get_device(&dev);
+	if (ret) {
+		printf("ERROR: can't get MCA device\n");
+		return -1;
+	}
+
+	ret = dm_i2c_write(dev, reg, values, len);
+	if (ret) {
+		printf("ERROR: can't write reg 0x%x-0x%x , err %d\n", reg, reg + len, ret);
+		return -1;
+	}
+
+	return 0;
+}
+
+int mca_probe(void)
+{
+	struct udevice *bus, *dev;
+	int ret;
+
+	ret = uclass_get_device_by_seq(UCLASS_I2C, CONFIG_MCA_I2C_BUS, &bus);
+	if (ret) {
+		printf("ERROR: getting %d bus for MCA\n", CONFIG_MCA_I2C_BUS);
+		return -1;
+	}
+
+	ret = dm_i2c_probe(bus, CONFIG_MCA_I2C_ADDR, 0, &dev);
+	if (ret) {
+		printf("ERROR: can't find MCA at address %x\n",
+		       CONFIG_MCA_I2C_ADDR);
+		return -1;
+	}
+
+	ret = i2c_set_chip_offset_len(dev, CONFIG_MCA_OFFSET_LEN);
+	if (ret) {
+		printf("ERROR: setting address len to %d for MCA\n",
+		       CONFIG_MCA_OFFSET_LEN);
+		return -1;
+	}
+
+	return 0;
+}
+#else /*CONFIG_DM_I2C*/
 
 int mca_bulk_read(int reg, unsigned char *values, int len)
 {
@@ -42,25 +116,8 @@ int mca_bulk_read(int reg, unsigned char *values, int len)
 		return -1;
 	}
 
-	if (i2c_read(CONFIG_MCA_I2C_ADDR, reg, 2, values, len))
-		return -1;
-
-	return 0;
-}
-
-int mca_write_reg(int reg, unsigned char value)
-{
-#ifdef CONFIG_I2C_MULTI_BUS
-	if (i2c_set_bus_num(CONFIG_MCA_I2C_BUS))
-		return -1;
-#endif
-
-	if (i2c_probe(CONFIG_MCA_I2C_ADDR)) {
-		printf("ERR: cannot access the MCA\n");
-		return -1;
-	}
-
-	if (i2c_write(CONFIG_MCA_I2C_ADDR, reg, 2, &value, 1))
+	if (i2c_read(CONFIG_MCA_I2C_ADDR, reg, CONFIG_MCA_OFFSET_LEN,
+		     values, len))
 		return -1;
 
 	return 0;
@@ -78,10 +135,22 @@ int mca_bulk_write(int reg, unsigned char *values, int len)
 		return -1;
 	}
 
-	if (i2c_write(CONFIG_MCA_I2C_ADDR, reg, 2, values, len))
+	if (i2c_write(CONFIG_MCA_I2C_ADDR, reg, CONFIG_MCA_OFFSET_LEN,
+		      values, len))
 		return -1;
 
 	return 0;
+}
+#endif /*CONFIG_DM_I2C*/
+
+int mca_read_reg(int reg, unsigned char *value)
+{
+	return mca_bulk_read(reg, value, 1);
+}
+
+int mca_write_reg(int reg, unsigned char value)
+{
+	return mca_bulk_write(reg, &value, 1);
 }
 
 int mca_update_bits(int reg, unsigned char mask, unsigned char val)
@@ -193,24 +262,10 @@ void mca_init(void)
 	int ret, fwver_ret;
 
 #ifdef CONFIG_DM_I2C
-	struct udevice *bus, *dev;
-
-	ret = uclass_get_device_by_seq(UCLASS_I2C, CONFIG_MCA_I2C_BUS, &bus);
-	if (ret) {
-		printf("ERROR: getting %d bus for MCA\n", CONFIG_MCA_I2C_BUS);
+	if (mca_probe()) {
+		printf("MCA: failed probing MCA device\n");
 		return;
 	}
-
-	ret = dm_i2c_probe(bus, CONFIG_MCA_I2C_ADDR, 0, &dev);
-	if (ret) {
-		printf("ERROR: can't find MCA at address %x\n",
-		       CONFIG_MCA_I2C_ADDR);
-		return;
-	}
-
-	ret = i2c_set_chip_offset_len(dev, 2);
-	if (ret)
-		printf("ERROR: setting address len to 2 for MCA\n");
 #endif
 	ret = mca_read_reg(MCA_DEVICE_ID, &devid);
 	if (devid != BOARD_MCA_DEVICE_ID) {
