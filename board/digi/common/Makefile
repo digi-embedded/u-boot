@@ -32,11 +32,9 @@ obj-y += hwid.o
 obj-$(CONFIG_CC6) += ccimx6_hwid.o
 obj-$(CONFIG_CC8) += ccimx8_hwid.o
 endif
-obj-$(CONFIG_CMD_BOARD_VERSION) += cmd_board.o
-obj-$(CONFIG_CMD_BOARD_ID) += cmd_board.o
+obj-$(CONFIG_CARRIERBOARD_VERSION_ON_OTP) += cmd_board.o
+obj-$(CONFIG_CARRIERBOARD_ID_ON_OTP) += cmd_board.o
 obj-y += carrier_board.o
-obj-$(CONFIG_CC6) += ccimx6_carrier.o
-obj-$(CONFIG_CC8) += ccimx8_carrier.o
 obj-$(CONFIG_AUTO_BOOTSCRIPT) += helper.o
 obj-$(CONFIG_CMD_UPDATE_MMC) += cmd_update_mmc.o helper.o helper_mmc.o
 obj-$(CONFIG_CMD_UPDATE_NAND) += cmd_update_nand.o helper.o helper_nand.o

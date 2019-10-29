@@ -22,15 +22,89 @@
 
 #include <common.h>
 #include <fdt_support.h>
+#include <fuse.h>
 #include "carrier_board.h"
+#include "helper.h"
 
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
 extern unsigned int board_version;
-#endif
+
+#if defined(CONFIG_CARRIERBOARD_VERSION_ON_OTP)
+unsigned int get_carrierboard_version(void)
+{
+	u32 version;
+
+	if (fuse_read(CONFIG_CARRIERBOARD_VERSION_BANK,
+		      CONFIG_CARRIERBOARD_VERSION_WORD, &version))
+		return CARRIERBOARD_VERSION_UNDEFINED;
+
+	version >>= CONFIG_CARRIERBOARD_VERSION_OFFSET;
+	version &= CONFIG_CARRIERBOARD_VERSION_MASK;
+
+	return (int)version;
+}
+#else /* carrier board version on ENV */
+unsigned int get_carrierboard_version(void)
+{
+	char const *str_version;
+	u32 version;
+
+	str_version = env_get("board_version");
+
+	if (str_version != NULL) {
+		strtou32(str_version, 10, &version);
+		return version;
+	}
+
+	return CARRIERBOARD_VERSION_UNDEFINED;
+}
+#endif /* CONFIG_CARRIERBOARD_VERSION_ON_OTP */
+#else
+unsigned int get_carrierboard_version(void)
+{
+	return CARRIERBOARD_VERSION_UNDEFINED;
+}
+#endif /* CONFIG_HAS_CARRIERBOARD_VERSION */
 
 #ifdef CONFIG_HAS_CARRIERBOARD_ID
 extern unsigned int board_id;
-#endif
+
+#ifdef CONFIG_CARRIERBOARD_ID_ON_OTP
+unsigned int get_carrierboard_id(void)
+{
+	u32 id;
+
+	if (fuse_read(CONFIG_CARRIERBOARD_ID_BANK,
+		      CONFIG_CARRIERBOARD_ID_WORD, &id))
+		return CARRIERBOARD_ID_UNDEFINED;
+
+	id >>= CONFIG_CARRIERBOARD_ID_OFFSET;
+	id &= CONFIG_CARRIERBOARD_ID_MASK;
+
+	return (int)id;
+}
+#else
+unsigned int get_carrierboard_id(void)
+{
+	char const *str_id;
+	u32 id;
+
+	str_id = env_get("board_id");
+
+	if (str_id != NULL) {
+		strtou32(str_id, 10, &id);
+		return id;
+	}
+
+	return CARRIERBOARD_ID_UNDEFINED;
+}
+#endif /* CONFIG_CARRIERBOARD_ID_ON_OTP */
+#else
+unsigned int get_carrierboard_id(void)
+{
+	return CARRIERBOARD_ID_UNDEFINED;
+}
+#endif /* CONFIG_HAS_CARRIERBOARD_ID */
 
 __weak void fdt_fixup_carrierboard(void *fdt)
 {
