@@ -104,49 +104,76 @@ int board_late_init(void)
 }
 
 #ifdef CONFIG_FEC_MXC
-#define FEC_RST_PAD IMX_GPIO_NR(4, 22)
-static iomux_v3_cfg_t const fec1_rst_pads[] = {
-	IMX8MN_PAD_SAI2_RXC__GPIO4_IO22 | MUX_PAD_CTRL(NO_PAD_CTRL),
-};
-
-static void setup_iomux_fec(void)
+static void enet_device_phy_reset(void)
 {
-	imx_iomux_v3_setup_multiple_pads(fec1_rst_pads,
-					 ARRAY_SIZE(fec1_rst_pads));
+	struct gpio_desc desc;
+	struct udevice *dev = NULL;
+	int ret;
 
-	gpio_request(FEC_RST_PAD, "fec1_rst");
-	gpio_direction_output(FEC_RST_PAD, 0);
-	udelay(500);
-	gpio_direction_output(FEC_RST_PAD, 1);
+	ret = dm_gpio_lookup_name("gpio5_3", &desc);
+	if (ret)
+		return;
+
+	ret = dm_gpio_request(&desc, "fec1_reset");
+	if (ret)
+		return;
+
+	dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT);
+	dm_gpio_set_value(&desc, 0);
+	udelay(50);
+	dm_gpio_set_value(&desc, 1);
+	dm_gpio_free(dev, &desc);
+
+	udelay(10);
+}
+
+int board_phy_config(struct phy_device *phydev)
+{
+	/* Set RGMII IO voltage to 1.8V */
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x1f);
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x8);
+
+	/* Introduce RGMII RX clock delay */
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x00);
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x82ee);
+
+	/* Introduce RGMII TX clock delay */
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x05);
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x100);
+
+	if (phydev->drv->config)
+		phydev->drv->config(phydev);
+
+	return 0;
 }
 
 static int setup_fec(void)
 {
 	struct iomuxc_gpr_base_regs *const iomuxc_gpr_regs
 		= (struct iomuxc_gpr_base_regs *) IOMUXC_GPR_BASE_ADDR;
+	struct gpio_desc enet_pwr;
+	int ret;
 
-	setup_iomux_fec();
+	/* Power up the PHY */
+	ret = dm_gpio_lookup_name("gpio5_4", &enet_pwr);
+	if (ret)
+		return -1;
+
+	ret = dm_gpio_request(&enet_pwr, "fec1_pwr");
+	if (ret)
+		return -1;
+
+	dm_gpio_set_dir_flags(&enet_pwr, GPIOD_IS_OUT);
+	dm_gpio_set_value(&enet_pwr, 1);
+	mdelay(1);	/* PHY power up time */
+
+	/* Reset the PHY */
+	enet_device_phy_reset();
 
 	/* Use 125M anatop REF_CLK1 for ENET1, not from external */
 	clrsetbits_le32(&iomuxc_gpr_regs->gpr[1],
 			IOMUXC_GPR_GPR1_GPR_ENET1_TX_CLK_SEL_MASK, 0);
 	return set_clk_enet(ENET_125MHZ);
-}
-
-int board_phy_config(struct phy_device *phydev)
-{
-	/* enable rgmii rxc skew and phy mode select to RGMII copper */
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x1f);
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x8);
-
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x00);
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x82ee);
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x05);
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x100);
-
-	if (phydev->drv->config)
-		phydev->drv->config(phydev);
-	return 0;
 }
 #endif
 
