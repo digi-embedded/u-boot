@@ -16,20 +16,11 @@
 # SPDX-License-Identifier:      GPL-2.0+
 #
 
-MINIMAL=
-
 ifdef CONFIG_SPL_BUILD
-ifdef CONFIG_SPL_INIT_MINIMAL
-MINIMAL=y
-endif
-endif
-
-ifdef MINIMAL
 # necessary to create built-in.o
 obj- := __dummy__.o
 else
 $(if $(CONFIG_CMD_BOOTSTREAM), $(shell mkdir -p $(obj)cmd_bootstream))
-
 obj-$(CONFIG_CMD_BOOTSTREAM) += cmd_bootstream/bch.o \
 				cmd_bootstream/ncb.o \
 				cmd_bootstream/cmd_bootstream.o \
@@ -54,5 +45,4 @@ obj-$(CONFIG_CMD_DIGI_PMIC) += cmd_pmic.o
 obj-$(CONFIG_HAS_TRUSTFENCE) += cmd_trustfence.o
 obj-$(CONFIG_MCA) += mca.o
 obj-$(CONFIG_MCA_TAMPER) += tamper.o
-
 endif
