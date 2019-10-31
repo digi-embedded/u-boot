@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Digi International, Inc.
+ * Copyright (C) 2016-2019 Digi International, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -9,8 +9,8 @@
 #include <linux/errno.h>
 #include <fuse.h>
 #include <fdt_support.h>
-#include "helper.h"
-#include "hwid.h"
+#include "../common/helper.h"
+#include "../common/hwid.h"
 
 extern struct digi_hwid my_hwid;
 

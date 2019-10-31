@@ -8,8 +8,8 @@
 #include <fdt_support.h>
 #include <fuse.h>
 #include <linux/sizes.h>
-#include "helper.h"
-#include "hwid.h"
+#include "../common/helper.h"
+#include "../common/hwid.h"
 
 extern struct digi_hwid my_hwid;
 

@@ -15,11 +15,11 @@
 #define __HWID_H_
 
 #if defined(CONFIG_CC6)
-#include "hwid_cc6.h"
+#include "../ccimx6/hwid_cc6.h"
 #elif defined(CONFIG_CC8X)
-#include "hwid_cc8x.h"
+#include "../ccimx8x/hwid_cc8x.h"
 #elif defined(CONFIG_CC8M)
-#include "hwid_cc8m.h"
+#include "../ccimx8m/hwid_cc8m.h"
 #endif
 
 enum digi_cert {

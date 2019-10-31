@@ -1,5 +1,5 @@
 #
-# Copyright 2015-2018, Digi International Inc.
+# Copyright 2015-2019, Digi International Inc.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -29,8 +29,6 @@ obj-$(CONFIG_MXS_OTP) += cmd_mxsotp.o
 ifdef CONFIG_HAS_HWID
 obj-y += cmd_hwid.o
 obj-y += hwid.o
-obj-$(CONFIG_CC6) += ccimx6_hwid.o
-obj-$(CONFIG_CC8) += ccimx8_hwid.o
 endif
 obj-$(CONFIG_CARRIERBOARD_VERSION_ON_OTP) += cmd_board.o
 obj-$(CONFIG_CARRIERBOARD_ID_ON_OTP) += cmd_board.o
