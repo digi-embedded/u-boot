@@ -659,13 +659,41 @@ static struct ccimx6_variant ccimx6p_variants[] = {
 		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
 		"Automotive QuadPlus-core 1GHz, 8GB eMMC, 2GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
 	},
+/* 0x02 - 55001983-02 */
+	{
+		IMX6QP,
+		MEM_2GB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
+		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
+		"Industrial QuadPlus-core 1GHz, 8GB eMMC, 2GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
+	},
 };
-#define NUM_VARIANTS_CC6P	2
+#define NUM_VARIANTS_CC6P	3
 
 /* DDR3 calibration values for the different CC6+ variants */
 static struct addrvalue ddr3_cal_cc6p[NUM_VARIANTS_CC6P + 1][DDR3_CAL_REGS] = {
 	/* Variant 0x01 */
 	[0x01] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x00060015},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x002F001F},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x00220035},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x00300031},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x43220325},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x0318031F},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x4334033C},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x032F0314},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3E31343B},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x38363040},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x3939423B},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x46354840},
+	},
+
+	/* Variant 0x02 (same as variant 0x01) */
+	[0x02] = {
 		/* Write leveling */
 		{MX6_MMDC_P0_MPWLDECTRL0, 0x00060015},
 		{MX6_MMDC_P0_MPWLDECTRL1, 0x002F001F},
