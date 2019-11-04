@@ -666,7 +666,7 @@ static struct ccimx6_variant ccimx6p_variants[] = {
 		SZ_2G,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
 		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
-		"Industrial QuadPlus-core 1GHz, 8GB eMMC, 2GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
+		"Automotive QuadPlus-core 1GHz, 8GB eMMC, 2GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
 	},
 };
 #define NUM_VARIANTS_CC6P	3
