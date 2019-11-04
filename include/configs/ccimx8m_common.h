@@ -80,6 +80,9 @@
 #define OCOTP_LOCK_BANK		0
 #define OCOTP_LOCK_WORD		0
 
+/* Ethernet */
+#define WIRED_NICS			1
+
 /* Supported sources for update|dboot */
 #define CONFIG_SUPPORTED_SOURCES	((1 << SRC_TFTP) | \
 					 (1 << SRC_NFS) | \

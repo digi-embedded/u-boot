@@ -161,7 +161,7 @@ static int env_set_macaddr_forced(const char *var, const uchar *enetaddr)
 static void get_macs_from_fuses(void)
 {
 	uint8_t macaddr[6];
-	char *macvars[] = {"ethaddr", "eth1addr", "wlanaddr", "btaddr"};
+	char macvars[WIRED_NICS + 2][10];
 	int ret, n_macs, i;
 
 #ifdef CONFIG_CC8X
@@ -179,7 +179,23 @@ static void get_macs_from_fuses(void)
 		return;
 	}
 
-	n_macs = board_has_wireless() ? 4 : 2;
+	/* Fill in env-variables array, depending on available NICs */
+	for (n_macs = 0; n_macs < WIRED_NICS; n_macs++) {
+		if (n_macs == 0)
+			strcpy(macvars[n_macs], "ethaddr");
+		else
+			sprintf(macvars[n_macs], "eth%daddr", n_macs);
+	}
+
+	if (board_has_wireless()) {
+		strcpy(macvars[n_macs], "wlanaddr");
+		n_macs++;
+	}
+
+	if (board_has_bluetooth()) {
+		strcpy(macvars[n_macs], "btaddr");
+		n_macs++;
+	}
 
 	/* Protect from overflow */
 	if (my_hwid.mac_base + n_macs > 0xffffff) {

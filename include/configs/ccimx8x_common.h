@@ -78,6 +78,9 @@
 #define CONFIG_SYS_BOOT_PART_OFFSET_B0	(32 * SZ_1K)
 #define CONFIG_SYS_BOOT_PART_SIZE_B0	(SZ_2M - CONFIG_SYS_BOOT_PART_OFFSET_B0)
 
+/* Ethernet */
+#define WIRED_NICS			2
+
 /* Extra network settings for second Ethernet */
 #define CONFIG_EXTRA_NETWORK_SETTINGS \
 	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"
