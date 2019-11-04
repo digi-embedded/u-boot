@@ -14,6 +14,7 @@
 #define CONFIG_CC8M
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 8M Nano"
 #define CONFIG_BOARD_DESCRIPTION	"Development Kit"
+#define BOARD_DEY_NAME			"ccimx8mn-dvk"
 
 #ifdef CONFIG_SPL_BUILD
 #define CONFIG_SPL_STACK		0x95fff0
@@ -39,6 +40,13 @@
 
 #endif
 
+/* Serial */
+#define CONFIG_MXC_UART
+#define CONFIG_MXC_UART_BASE		UART1_BASE_ADDR
+#define CONSOLE_DEV			"ttymxc0"
+#define EARLY_CONSOLE			"ec_imx6q,0x30860000"
+#define CONFIG_BAUDRATE			115200
+
 /* ENET Config */
 /* ENET1 */
 #if defined(CONFIG_CMD_NET)
@@ -56,6 +64,15 @@
 #define CONFIG_PHY_ATHEROS
 #endif
 
+/* RAM */
+#define PHYS_SDRAM_SIZE			0x40000000 /* 1GB DDR */
+#define CONFIG_NR_DRAM_BANKS		1
+
+/* USDHC */
+#define CONFIG_SYS_FSL_USDHC_NUM	2
+#define CONFIG_SYS_FSL_ESDHC_ADDR	0
+
+/* Carrier board version in environment */
 #define CONFIG_HAS_CARRIERBOARD_VERSION
 #define CONFIG_HAS_CARRIERBOARD_ID
 
@@ -70,81 +87,96 @@
 
 /* Initial environment variables */
 #define CONFIG_EXTRA_ENV_SETTINGS		\
-	CONFIG_MFG_ENV_SETTINGS \
+	CONFIG_MFG_ENV_SETTINGS 		\
+	CONFIG_DEFAULT_NETWORK_SETTINGS		\
+	RANDOM_UUIDS \
+	"dboot_kernel_var=imagegz\0" \
+	"lzipaddr=" __stringify(CONFIG_DIGI_LZIPADDR) "\0" \
 	"script=boot.scr\0" \
-	"image=Image\0" \
-	"console=ttymxc0,115200 earlycon=ec_imx6q,0x30860000,115200\0" \
+	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
+	"image=Image-" BOARD_DEY_NAME ".bin\0" \
+	"imagegz=Image.gz-" BOARD_DEY_NAME ".bin\0" \
+	"uboot_file=imx-boot-" BOARD_DEY_NAME ".bin\0" \
+	"panel=NULL\0" \
+	"console=" CONSOLE_DEV "\0" \
+	"earlycon=" EARLY_CONSOLE "\0" \
 	"fdt_addr=0x43000000\0"			\
 	"fdt_high=0xffffffffffffffff\0"		\
 	"boot_fdt=try\0" \
-	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
+	"ip_dyn=yes\0" \
+	"fdt_file=ccimx8mn-dvk-wb.dtb\0" \
 	"initrd_addr=0x43800000\0"		\
 	"initrd_high=0xffffffffffffffff\0" \
+	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
+	"mmcbootpart=" __stringify(CONFIG_SYS_BOOT_PART_EMMC) "\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
 	"mmcroot=PARTUUID=1c606ef5-f1ac-43b9-9bb5-d5c578580b6b\0" \
-	"mmcautodetect=yes\0" \
-	"mmcargs=setenv bootargs ${jh_clk} console=${console} root=${mmcroot}\0 " \
-	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
-	"bootscript=echo Running bootscript from mmc ...; " \
-		"source\0" \
-	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
-	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
-	"mmcboot=echo Booting from mmc ...; " \
-		"run mmcargs; " \
-		"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
-			"if run loadfdt; then " \
-				"booti ${loadaddr} - ${fdt_addr}; " \
-			"else " \
-				"echo WARN: Cannot load the DT; " \
-			"fi; " \
-		"else " \
-			"echo wait for boot; " \
-		"fi;\0" \
-	"netargs=setenv bootargs ${jh_clk} console=${console} " \
-		"root=/dev/nfs " \
-		"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
-	"netboot=echo Booting from net ...; " \
-		"run netargs;  " \
+	"bootargs_tftp=" \
 		"if test ${ip_dyn} = yes; then " \
-			"setenv get_cmd dhcp; " \
+			"bootargs_ip=\"ip=dhcp\";" \
 		"else " \
-			"setenv get_cmd tftp; " \
-		"fi; " \
-		"${get_cmd} ${loadaddr} ${image}; " \
-		"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
-			"if ${get_cmd} ${fdt_addr} ${fdt_file}; then " \
-				"booti ${loadaddr} - ${fdt_addr}; " \
-			"else " \
-				"echo WARN: Cannot load the DT; " \
-			"fi; " \
+			"bootargs_ip=\"ip=\\${ipaddr}:\\${serverip}:" \
+			"\\${gatewayip}:\\${netmask}:\\${hostname}:" \
+			"eth0:off\";" \
+		"fi;\0" \
+	"bootargs_mmc_android=setenv bootargs console=${console},${baudrate} " \
+		"${bootargs_android} ${bootargs_once} ${extra_bootargs}\0" \
+	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
+		"${bootargs_linux} root=${mmcroot} rootwait rw " \
+		"${bootargs_once} ${extra_bootargs}\0" \
+	"bootargs_tftp_linux=run bootargs_tftp;" \
+		"setenv bootargs console=${console},${baudrate} " \
+		"${bootargs_linux} root=/dev/nfs " \
+		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
+		"${bootargs_once} ${extra_bootargs}\0" \
+	"bootargs_nfs_linux=run bootargs_tftp_linux\0" \
+	"mmcautodetect=yes\0" \
+	"mmcargs=setenv bootargs console=${console},${baudrate} root=${mmcroot} " \
+	"loadbootscript=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
+	"loadimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
+	"loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
+	"partition_mmc_android=mmc rescan;" \
+		"if mmc dev ${mmcdev} 0; then " \
+			"gpt write mmc ${mmcdev} ${parts_android};" \
+			"mmc rescan;" \
 		"else " \
-			"booti; " \
-		"fi;\0"
+			"if mmc dev ${mmcdev}; then " \
+				"gpt write mmc ${mmcdev} ${parts_android};" \
+				"mmc rescan;" \
+			"else;" \
+			"fi;" \
+		"fi;\0" \
+	"partition_mmc_linux=mmc rescan;" \
+		"if mmc dev ${mmcdev} 0; then " \
+			"gpt write mmc ${mmcdev} ${parts_linux};" \
+			"mmc rescan;" \
+		"else " \
+			"if mmc dev ${mmcdev};then " \
+				"gpt write mmc ${mmcdev} ${parts_linux};" \
+				"mmc rescan;" \
+			"else;" \
+			"fi;" \
+		"fi;\0" \
+	"recoverycmd=setenv mmcpart " CONFIG_RECOVERY_PARTITION ";" \
+		"boot\0" \
+	"recovery_file=recovery.img\0" \
+	"linux_file=dey-image-qt-xwayland-" BOARD_DEY_NAME ".boot.vfat\0" \
+	"rootfs_file=dey-image-qt-xwayland-" BOARD_DEY_NAME ".ext4\0" \
+	"install_android_fw_sd=if load mmc 1 ${loadaddr} " \
+		"install_android_fw_sd.scr;then " \
+			"source ${loadaddr};" \
+		"fi;\0" \
+	"install_linux_fw_sd=if load mmc 1 ${loadaddr} " \
+		"install_linux_fw_sd.scr;then " \
+			"source ${loadaddr};" \
+		"fi;\0" \
+	""	/* end line */
 
+#undef CONFIG_BOOTCOMMAND
 #define CONFIG_BOOTCOMMAND \
-	   "mmc dev ${mmcdev}; if mmc rescan; then " \
-		   "if run loadbootscript; then " \
-			   "run bootscript; " \
-		   "else " \
-			   "if run loadimage; then " \
-				   "run mmcboot; " \
-			   "else run netboot; " \
-			   "fi; " \
-		   "fi; " \
-	   "else booti ${loadaddr} - ${fdt_addr}; fi"
-
-
-#define PHYS_SDRAM_SIZE			0x40000000 /* 1GB DDR */
-#define CONFIG_NR_DRAM_BANKS		1
-
-#define CONFIG_BAUDRATE			115200
-
-#define CONFIG_MXC_UART
-#define CONFIG_MXC_UART_BASE		UART1_BASE_ADDR
-
-/* USDHC */
-#define CONFIG_SYS_FSL_USDHC_NUM	2
-#define CONFIG_SYS_FSL_ESDHC_ADDR       0
+	"if run loadscript; then " \
+		"source ${loadaddr};" \
+	"fi;"
 
 #endif /* __CCIMX8MN_DVK_H */

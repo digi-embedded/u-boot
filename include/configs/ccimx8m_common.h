@@ -313,4 +313,16 @@
 /* Partition defines */
 #define CONFIG_RECOVERY_PARTITION	"2"
 
+/* protected environment variables (besides ethaddr and serial#) */
+#define CONFIG_ENV_FLAGS_LIST_STATIC	\
+	"wlanaddr:mc,"			\
+	"wlan1addr:mc,"			\
+	"wlan2addr:mc,"			\
+	"wlan3addr:mc,"			\
+	"btaddr:mc,"			\
+	"bootargs_once:sr,"		\
+	"board_version:so,"		\
+	"board_id:so,"			\
+	"mmcbootdev:so"
+
 #endif /* __CCIMX8M_COMMON_H */
