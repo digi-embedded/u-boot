@@ -60,7 +60,7 @@ int board_has_wireless(void)
 		return my_hwid.wifi;
 
 #ifdef CONFIG_CC8X
-	if (hwid_in_db(&my_hwid))
+	if (hwid_in_db(my_hwid.variant))
 		return (ccimx8x_variants[my_hwid.variant].capabilities &
 				CCIMX8_HAS_WIRELESS);
 #endif
@@ -74,7 +74,7 @@ int board_has_bluetooth(void)
 		return my_hwid.bt;
 
 #ifdef CONFIG_CC8X
-	if (hwid_in_db(&my_hwid))
+	if (hwid_in_db(my_hwid.variant))
 		return (ccimx8x_variants[my_hwid.variant].capabilities &
 				CCIMX8_HAS_BLUETOOTH);
 #endif
@@ -165,7 +165,7 @@ static void get_macs_from_fuses(void)
 	int ret, n_macs, i;
 
 #ifdef CONFIG_CC8X
-	if ((!hwid_in_db(&my_hwid) && !my_hwid.ram) ||
+	if ((!hwid_in_db(my_hwid.variant) && !my_hwid.ram) ||
 	    !use_mac_from_fuses(&my_hwid))
 #else
 	if (!my_hwid.ram || !use_mac_from_fuses(&my_hwid))
@@ -337,7 +337,7 @@ void print_som_info(void)
 			printf(", Crypto-auth");
 	}
 #ifdef CONFIG_CC8X
-	else if (hwid_in_db(&my_hwid)) {
+	else if (hwid_in_db(my_hwid.variant)) {
 		printf("%s", ccimx8x_variants[my_hwid.variant].id_string);
 	}
 #endif

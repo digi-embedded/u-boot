@@ -7,8 +7,6 @@
 #ifndef CCIMX8_H
 #define CCIMX8_H
 
-#include "../common/hwid.h"
-
 /* Common ccimx8 functions */
 int mmc_get_bootdevindex(void);
 int ccimx8_init(void);
@@ -17,7 +15,7 @@ void som_default_environment(void);
 void fdt_fixup_ccimx8(void *fdt);
 
 #ifdef CONFIG_CC8X
-int hwid_in_db(struct digi_hwid *hwid);
+int hwid_in_db(int variant);
 #endif
 
 #endif  /* CCIMX8_H */

@@ -127,10 +127,10 @@ uint mmc_get_env_part(struct mmc *mmc)
 	}
 }
 
-int hwid_in_db(struct digi_hwid *hwid)
+int hwid_in_db(int variant)
 {
-	if (hwid->variant < ARRAY_SIZE(ccimx8x_variants))
-		if (ccimx8x_variants[hwid->variant].cpu != IMX8_NONE)
+	if (variant < ARRAY_SIZE(ccimx8x_variants))
+		if (ccimx8x_variants[variant].cpu != IMX8_NONE)
 			return 1;
 
 	return 0;
