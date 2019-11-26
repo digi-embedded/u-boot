@@ -64,6 +64,7 @@
 #define is_imx8mnsl() (is_cpu_type(MXC_CPU_IMX8MNSL))
 #define is_imx8qm() (is_cpu_type(MXC_CPU_IMX8QM))
 #define is_imx8qxp() (is_cpu_type(MXC_CPU_IMX8QXP))
+#define is_imx8dx() (is_cpu_type(MXC_CPU_IMX8DX))
 
  /* gd->flags reserves high 16 bits for arch-specific flags */
 #define GD_FLG_ARCH_IMX_USB_BOOT		0x80000000	 /* Only used for MX6/7, If set, the u-boot is booting from USB serial download */
@@ -127,6 +128,7 @@ u32 get_cpu_rev(void);
 u32 get_cpu_speed_grade_hz(void);
 u32 get_cpu_temp_grade(int *minc, int *maxc);
 const char *get_imx_type(u32 imxtype);
+const char *get_imx_family(u32 imxtype);
 u32 imx_ddr_size(void);
 void sdelay(unsigned long);
 void set_chipselect_size(int const);

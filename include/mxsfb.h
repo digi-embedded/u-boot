@@ -9,6 +9,8 @@
 
 #include <linux/fb.h>
 
+#define FB_SYNC_CLK_LAT_FALL	0x40000000
+
 #ifdef CONFIG_VIDEO_MXS
 struct display_panel {
 	unsigned int reg_base;

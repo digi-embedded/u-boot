@@ -136,9 +136,11 @@ void board_fastboot_setup(void)
 		sprintf(boot_dev_part,"mmc%d",dev_no);
 		if (!env_get("fastboot_dev"))
 			env_set("fastboot_dev", boot_dev_part);
+#ifdef CONFIG_CMD_BOOTA
 		sprintf(boot_dev_part, "boota mmc%d", dev_no);
 		if (!env_get("bootcmd"))
 			env_set("bootcmd", boot_dev_part);
+#endif
 		break;
 	case USB_BOOT:
 		printf("Detect USB boot. Will enter fastboot mode!\n");
@@ -182,6 +184,9 @@ void board_fastboot_setup(void)
 	} else if (is_imx8qxp()) {
 		if (!env_get("soc_type"))
 			env_set("soc_type", "imx8qxp");
+	} else if (is_imx8dx()) {
+		if (!env_get("soc_type"))
+			env_set("soc_type", "imx8dx");
 	} else if (is_imx8mq()) {
 		if (!env_get("soc_type"))
 			env_set("soc_type", "imx8mq");

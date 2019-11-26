@@ -32,7 +32,6 @@
 static int blob_encap_dek(uint32_t src_addr, uint32_t dst_addr, uint32_t len)
 {
 	uint8_t *src_ptr, *dst_ptr;
-	int i;
 
 	src_ptr = map_sysmem(src_addr, len / 8);
 	dst_ptr = map_sysmem(dst_addr, BLOB_SIZE(len / 8));
@@ -303,7 +302,7 @@ static int do_dek_blob(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 
 	src_addr = simple_strtoul(argv[1], NULL, 16);
 	dst_addr = simple_strtoul(argv[2], NULL, 16);
-	len = simple_strtoul(argv[3], NULL, 10);
+	len = simple_strtoul(argv[3], NULL, 16);
 
 	return blob_encap_dek(src_addr, dst_addr, len);
 }

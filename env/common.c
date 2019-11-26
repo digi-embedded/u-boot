@@ -58,6 +58,11 @@ char *env_get_default(const char *name)
 	return ret_val;
 }
 
+__weak void platform_default_environment(void)
+{
+	return;
+}
+
 void set_default_env(const char *s, int flags)
 {
 	if (sizeof(default_environment) > ENV_SIZE) {
@@ -82,6 +87,9 @@ void set_default_env(const char *s, int flags)
 		pr_err("## Error: Environment import failed: errno = %d\n",
 		       errno);
 
+	/* Platform-specific actions on default environment */
+	platform_default_environment();
+
 	gd->flags |= GD_FLG_ENV_READY;
 	gd->flags |= GD_FLG_ENV_DEFAULT;
 }
@@ -97,7 +105,7 @@ int set_default_vars(int nvars, char * const vars[], int flags)
 	flags |= H_NOCLEAR;
 	return himport_r(&env_htab, (const char *)default_environment,
 				sizeof(default_environment), '\0',
-				flags, 0, nvars, vars);
+				flags | H_NOCLEAR | H_INTERACTIVE, 0, nvars, vars);
 }
 
 /*

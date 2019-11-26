@@ -35,6 +35,18 @@ DECLARE_GLOBAL_DATA_PTR;
 #define FSL_SIP_OTP_READ             0xc200000A
 #define FSL_SIP_OTP_WRITE            0xc200000B
 
+static bool allow_prog = false;
+
+void fuse_allow_prog(bool allow)
+{
+	allow_prog = allow;
+}
+
+bool fuse_is_prog_allowed(void)
+{
+	return allow_prog;
+}
+
 int fuse_read(u32 bank, u32 word, u32 *val)
 {
 	return fuse_sense(bank, word, val);

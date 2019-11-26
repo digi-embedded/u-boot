@@ -343,6 +343,13 @@ config FSL_QSPI
 	  used to access the SPI NOR flash on platforms embedding this
 	  Freescale IP core.
 
+config ATCSPI200_SPI
+	bool "Andestech ATCSPI200 SPI driver"
+	help
+	  Enable the Andestech ATCSPI200 SPI driver. This driver can be
+	  used to access the SPI flash on AE3XX and AE250 platforms embedding
+	  this Andestech IP core.
+
 config DAVINCI_SPI
 	bool "Davinci & Keystone SPI driver"
 	depends on ARCH_DAVINCI || ARCH_KEYSTONE

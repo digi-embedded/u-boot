@@ -38,8 +38,12 @@
 #define SUCCESS (0)
 #endif
 
+#if !defined(ERROR_ANY)
 #define ERROR_ANY           (-1)
+#endif
+#if !defined(ERROR_IN_PAGE_ALLOC)
 #define ERROR_IN_PAGE_ALLOC (1)
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -20,7 +20,6 @@
 #include <elf.h>
 #include <asm/arch/sid.h>
 #include <asm/arch/sys_proto.h>
-#include <asm/arch-imx/cpu.h>
 #include <asm/armv8/cpu.h>
 #include <asm/armv8/mmu.h>
 #include <asm/setup.h>
@@ -1611,6 +1610,29 @@ err:
 	printf("%s: fuse %d, err: %d\n", __func__, word[i], ret);
 }
 
+static int get_imx8_cores(void)
+{
+	sc_rm_pt_t owner;
+	int core_type;
+	int cores = 0;
+	int i;
+
+	if (is_cortex_a53())
+		core_type = SC_R_A53_0;
+	else if (is_cortex_a35())
+		core_type = SC_R_A35_0;
+	else if (is_cortex_a72())
+		core_type = SC_R_A72_0;
+	else
+		return 0;
+
+	for (i = 0; i < IMX8_MAX_CORES; i++)
+		if (!sc_rm_get_resource_owner(-1, core_type + i, &owner))
+			cores++;
+
+	return cores;
+}
+
 u32 get_cpu_rev(void)
 {
 	u32 id = 0, rev = 0;
@@ -1622,6 +1644,13 @@ u32 get_cpu_rev(void)
 
 	rev = (id >> 5)  & 0xf;
 	id = (id & 0x1f) + MXC_SOC_IMX8;  /* Dummy ID for chip */
+
+	/*
+	 * iMX8DX reports the same ID than iMX8QXP, so check the number
+	 * of cores to tell if the CPU is a Dual-core.
+	 */
+	if (id == MXC_CPU_IMX8QXP && get_imx8_cores() == 2)
+		id = MXC_CPU_IMX8DX;
 
 	return (id << 12) | rev;
 }
@@ -1669,6 +1698,8 @@ const char *get_imx8_type(u32 imxtype)
 	case MXC_CPU_IMX8QXP:
 	case MXC_CPU_IMX8QXP_A0:
 		return "QXP";
+	case MXC_CPU_IMX8DX:
+		return "8DX";	/* i.MX8 Dual X */
 	default:
 		return "??";
 	}

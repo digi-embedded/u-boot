@@ -1057,7 +1057,6 @@ static int is_gpt_valid(struct blk_desc *dev_desc, u64 lba,
 		free(*pgpt_pte);
 		return 0;
 	}
-
 	/* We're done, all's well */
 	return 1;
 }

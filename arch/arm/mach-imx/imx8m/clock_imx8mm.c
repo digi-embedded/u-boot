@@ -250,7 +250,7 @@ u32 decode_fracpll(enum clk_root_src frac_pll)
 
 	k = pll_fdiv_ctl1 & GENMASK(15, 0);
 
-	/* FFOUT = ((m + k / 65536) * FFIN) / (p * 2^s), 1 กÜ p กÜ 63, 64 กÜ m กÜ 1023, 0 กÜ s กÜ 6 */
+	/* FFOUT = ((m + k / 65536) * FFIN) / (p * 2^s), 1 ยกร p ยกร 63, 64 ยกร m ยกร 1023, 0 ยกร s ยกร 6 */
 	return lldiv((main_div * 65536 + k) * 24000000ULL, 65536 * pre_div * (1 << post_div));
 }
 

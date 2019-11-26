@@ -154,7 +154,9 @@ unsigned imx_ddr_size(void)
 	bits += col_lookup[ESD_MMDC_CTL_GET_COLUMN(ctl)];
 	bits += bank_lookup[ESD_MMDC_MISC_GET_BANK(misc)];
 	bits += ESD_MMDC_CTL_GET_WIDTH(ctl);
+#ifndef CONFIG_DDR_DUAL_DIE
 	bits += ESD_MMDC_CTL_GET_CS1(ctl);
+#endif
 
 	/* The MX6 can do only 3840 MiB of DRAM */
 	if (bits == 32)
@@ -233,6 +235,20 @@ const char *get_imx_type(u32 imxtype)
 		return "53";
 	default:
 		return "??";
+	}
+}
+
+const char *get_imx_family(u32 imxtype)
+{
+	switch (imxtype) {
+	case MXC_CPU_MX6Q:
+	case MXC_CPU_MX6D:
+		return "6Q";	/* Quad/Dual-core version of the mx6 */
+	case MXC_CPU_MX6DL:
+	case MXC_CPU_MX6SOLO:
+		return "6DL";	/* DualLite/Solo version of the mx6 */
+	default:
+		return get_imx_type(imxtype);
 	}
 }
 

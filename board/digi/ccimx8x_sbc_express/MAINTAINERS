@@ -1,0 +1,6 @@
+CCIMX8X_SBC_EXPRESS BOARD
+M:	Arturo Buzarra <arturo.buzarra@digi.com>
+S:	Supported
+F:	board/digi/ccimx8x_sbc_express/
+F:	include/configs/ccimx8x_sbc_express.h
+F:	configs/ccimx8x_sbc_express_defconfig

@@ -262,6 +262,9 @@ static int abortboot(int bootdelay)
 {
 	int abort = 0;
 
+	if (gd->flags & GD_FLG_DISABLE_CONSOLE_INPUT)
+		return 0;
+
 	if (bootdelay >= 0)
 		abort = __abortboot(bootdelay);
 
@@ -305,13 +308,9 @@ const char *bootdelay_process(void)
 		disconnect_from_pc();
 		printf("Boot from USB for mfgtools\n");
 		bootdelay = 0;
-		set_default_env("Use default environment for \
-				 mfgtools\n", 0);
 	} else if (is_boot_from_usb()) {
 		printf("Boot from USB for uuu\n");
-		env_set("bootcmd", "fastboot 0");
-	} else {
-		printf("Normal Boot\n");
+		env_set("bootcmd_mfg", "fastboot 0");
 	}
 #endif
 
@@ -343,6 +342,16 @@ const char *bootdelay_process(void)
 		printf("Run bootcmd_mfg: %s\n", s);
 	}
 #endif
+
+	/* Check if boot recovery is enabled */
+	if (env_get_yesno("boot_recovery") == 1) {
+		s = env_get("recoverycmd");
+		printf("\n"
+		       "******************************************\n"
+		       "* Warning: Booting into recovery mode... *\n"
+		       "******************************************\n"
+		       "\n");
+	}
 
 	process_fdt_options(gd->fdt_blob);
 	stored_bootdelay = bootdelay;
