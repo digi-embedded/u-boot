@@ -115,7 +115,8 @@ static int write_firmware(char *partname, unsigned long loadaddr,
 			.priv = &sparse_priv,
 		};
 
-		return write_sparse_image(&sparse, partname, (void *)loadaddr) ? ERR_WRITE : 0;
+		return write_sparse_image(&sparse, partname, (void *)loadaddr,
+					  NULL) ? ERR_WRITE : 0;
 	}
 #endif
 	size_blks = (filesize / mmc_dev->blksz) + (filesize % mmc_dev->blksz != 0);
