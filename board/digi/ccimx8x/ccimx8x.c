@@ -417,10 +417,8 @@ void board_updated_hwid(void)
  */
 void reset_cpu(ulong addr)
 {
+	/* TODO */
 	puts("SCI reboot request");
-	sc_pm_reboot(SC_IPC_CH, SC_PM_RESET_TYPE_COLD);
-	while (1)
-		putc('.');
 }
 
 /*
