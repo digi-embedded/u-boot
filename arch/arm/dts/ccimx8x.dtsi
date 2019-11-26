@@ -18,6 +18,9 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 	clock-frequency = <100000>;
+	clocks = <&clk IMX8QXP_I2C0_CLK>,
+		 <&clk IMX8QXP_I2C0_IPG_CLK>;
+	clock-names = "per", "ipg";
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lpi2c0>;
 	status = "okay";
