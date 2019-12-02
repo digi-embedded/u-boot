@@ -156,16 +156,14 @@ int power_init_board(void)
 	/* unlock the PMIC regs */
 	pmic_reg_write(p, BD71837_REGLOCK, 0x1);
 
-#ifdef CONFIG_IMX8MN_FORCE_NOM_SOC
-	/* increase VDD_ARM to typical value 0.85v for 1.2Ghz */
-	pmic_reg_write(p, BD71837_BUCK2_VOLT_RUN, 0xf);
+	/*
+	 * increase VDD_SOC/VDD_DRAM to typical value 0.85v for 1.2Ghz
+	 * DDR clock
+	 */
+	pmic_reg_write(p, BD71837_BUCK1_VOLT_RUN, 0x0F);
 
-	/* increase VDD_SOC/VDD_DRAM to typical value 0.85v for nominal mode */
-	pmic_reg_write(p, BD71837_BUCK1_VOLT_RUN, 0xf);
-#else
-	/* increase VDD_SOC/VDD_DRAM to typical value 0.95v for 3Ghz DDRs */
-	pmic_reg_write(p, BD71837_BUCK1_VOLT_RUN, 0x19);
-#endif
+	/* increase VDD_ARM to typical value 0.95v for Quad-A53, 1.4 GHz */
+	pmic_reg_write(p, BD71837_BUCK2_VOLT_RUN, 0x19);
 
 	/* lock the PMIC regs */
 	pmic_reg_write(p, BD71837_REGLOCK, 0x11);
