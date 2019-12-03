@@ -270,10 +270,10 @@ store_block_to_flash (void)
 #if defined(CONFIG_CMD_NAND)
 #if defined(CONFIG_CMD_UBI)
 		if (tftp_to_flash_status & B_PARTITION_IS_UBIFS) {
-			iRes = !ubi_volume_off_write((char *)otfd.part->name, (void *)(load_addr + tempRamOff),
+			iRes = !ubi_volume_off_write((char *)otfd.part->name, (void *)(tftp_load_addr + tempRamOff),
 					     flash_erase_size, blocks_written_to_flash == 0, 0);
 			if (iRes) {
-				iRes = !ubi_volume_verify((char *)otfd.part->name, (char *)(load_addr + tempRamOff),
+				iRes = !ubi_volume_verify((char *)otfd.part->name, (char *)(tftp_load_addr + tempRamOff),
 							 offset, flash_erase_size, 1);
 			}
 		}
@@ -291,9 +291,9 @@ store_block_to_flash (void)
 
 			/* Write RAM buffer to partition and verify it */
 			iRes = nand_write(nand, partition_start_address + (uint64_t)offset,
-					  &flash_erase_size, (void *)(load_addr + tempRamOff));
+					  &flash_erase_size, (void *)(tftp_load_addr + tempRamOff));
 			iRes = nand_verify(nand, partition_start_address + (uint64_t)offset,
-					flash_erase_size, (void *)(load_addr + tempRamOff));
+					flash_erase_size, (void *)(tftp_load_addr + tempRamOff));
 		}
 #endif /* CONFIG_CMD_NAND */
 		if(!iRes)
@@ -307,9 +307,9 @@ store_block_to_flash (void)
 	/* calculate buffer offset (bytes that were received but don't fit into flash sector anymore)*/
 	ram_offset = last_ram_addr_written - (uint)flash_erase_size * FLASH_SECTORS_BUFFERED_IN_RAM ;
 	/* then copy them to the start of buffer to flash them in the next loop */
-	(void)memcpy( (void *)load_addr,
-			(void *)(load_addr + (flash_erase_size * FLASH_SECTORS_BUFFERED_IN_RAM)),
-			(ram_offset - load_addr) );
+	(void)memcpy( (void *)tftp_load_addr,
+			(void *)(tftp_load_addr + (flash_erase_size * FLASH_SECTORS_BUFFERED_IN_RAM)),
+			(ram_offset - tftp_load_addr) );
 
 	/* finally remember the last address of RAM buffer */
 	last_ram_addr_written = ram_offset;
@@ -333,12 +333,12 @@ store_last_block_to_flash (void)
 #if defined(CONFIG_CMD_NAND)
 #if defined(CONFIG_CMD_UBI)
 	if (tftp_to_flash_status & B_PARTITION_IS_UBIFS) {
-		size_t size = last_ram_addr_written - load_addr;
+		size_t size = last_ram_addr_written - tftp_load_addr;
 
-		iRes = !ubi_volume_off_write((char *)otfd.part->name, (void *)load_addr,
-					    last_ram_addr_written - load_addr, blocks_written_to_flash == 0, 1);
+		iRes = !ubi_volume_off_write((char *)otfd.part->name, (void *)tftp_load_addr,
+					    last_ram_addr_written - tftp_load_addr, blocks_written_to_flash == 0, 1);
 		if (iRes && (size != 0)) {
-			iRes = !ubi_volume_verify((char *)otfd.part->name, (char *)load_addr,
+			iRes = !ubi_volume_verify((char *)otfd.part->name, (char *)tftp_load_addr,
 						 offset, size, 1);
 		}
 	}
@@ -346,7 +346,7 @@ store_last_block_to_flash (void)
 #endif
 	{
 		/* do the padding in the RAM buffer */
-		int iFreeBytesInBlock = flash_page_size - ( (last_ram_addr_written - load_addr) % flash_page_size);
+		int iFreeBytesInBlock = flash_page_size - ( (last_ram_addr_written - tftp_load_addr) % flash_page_size);
 		if( iFreeBytesInBlock > 0 ){
 			if( (tftp_to_flash_status & B_PARTITION_IS_JFFS2) == B_PARTITION_IS_JFFS2 )
 				memset( (void *) last_ram_addr_written, 0x0, iFreeBytesInBlock);
@@ -356,11 +356,11 @@ store_last_block_to_flash (void)
 		}
 
 		/* then write the last bytes to flash and verify */
-		size_t off = last_ram_addr_written - load_addr;
+		size_t off = last_ram_addr_written - tftp_load_addr;
 		iRes = nand_write(nand, partition_start_address + (uint64_t)offset,
-				  &off, (void *)(load_addr));
+				  &off, (void *)(tftp_load_addr));
 		iRes = nand_verify(nand, partition_start_address + (uint64_t)offset,
-				   last_ram_addr_written - load_addr, (void *)(load_addr));
+				   last_ram_addr_written - tftp_load_addr, (void *)(tftp_load_addr));
 	}
 #endif /* CONFIG_CMD_NAND */
 	if(!iRes)
@@ -762,13 +762,13 @@ static void tftp_handler(uchar *pkt, unsigned dest, struct in_addr sip,
 			/* new TFTP on-the-fly update function:
 			 * buffer image in RAM and write it directly to flash */
 			if(last_ram_addr_written == 0)
-				last_ram_addr_written = load_addr;
+				last_ram_addr_written = tftp_load_addr;
 
 			/* capture packets, buffer it into RAM and remember last RAM address*/
 			store_block_to_ram(last_ram_addr_written, pkt + 2, len);
 			last_ram_addr_written += len;
 
-			if( (load_addr + flash_erase_size * FLASH_SECTORS_BUFFERED_IN_RAM) <= last_ram_addr_written){
+			if( (tftp_load_addr + flash_erase_size * FLASH_SECTORS_BUFFERED_IN_RAM) <= last_ram_addr_written){
 				/* we received enough packets to write in a flash sector,
 				 * so do it unless the partition is full*/
 				if( partition_size < (tftp_block_size * tftp_cur_block) ){
@@ -1086,7 +1086,7 @@ void register_tftp_otf_update_hook(int (*hook)(otf_data_t *data),
 	otf_update_hook = hook;
 	/* Initialize data for new transfer */
 	otfd.part = partition;
-	otfd.loadaddr = (void *)load_addr;
+	otfd.loadaddr = (void *)tftp_load_addr;
 	otfd.flags = OTF_FLAG_INIT;
 	otfd.offset = 0;
 }
