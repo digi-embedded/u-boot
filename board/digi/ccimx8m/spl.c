@@ -227,11 +227,27 @@ void board_init_f(ulong dummy)
 unsigned long spl_mmc_get_uboot_raw_sector(struct mmc *mmc)
 {
 	u32 boot_dev = spl_boot_device();
+	int part;
+
 	switch (boot_dev) {
 		case BOOT_DEVICE_MMC1:
+			/* microSD card */
 			return CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR;
 		case BOOT_DEVICE_MMC2:
-			return CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR - UBOOT_RAW_SECTOR_OFFSET;
+			/* eMMC */
+			part = (mmc->part_config >> 3) & PART_ACCESS_MASK;
+			/*
+			 * On the BOOT partitions, the bootloader is stored
+			 * at offset 0.
+			 */
+			if (part == 1 || part == 2)
+				return CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR -
+				       UBOOT_RAW_SECTOR_OFFSET;
+			/*
+			 * On the User Data area the boot loader is expected
+			 * at UBOOT_RAW_SECTOR_OFFSET offset.
+			 */
+			return CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR;
 	}
 	return CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR;
 }
