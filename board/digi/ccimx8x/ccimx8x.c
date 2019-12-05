@@ -8,6 +8,8 @@
 #include <mmc.h>
 #include <linux/ctype.h>
 #include <linux/sizes.h>
+#include <asm/arch/sys_proto.h>
+#include <asm/arch-imx/cpu.h>
 #include <asm/mach-imx/sci/sci.h>
 #include <asm/mach-imx/boot_mode.h>
 
@@ -177,4 +179,22 @@ void reset_misc(void)
 void detail_board_ddr_info(void)
 {
 	puts("\nDDR    ");
+}
+
+void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
+				     disk_partition_t *info)
+{
+	/* Use a different offset depending on the i.MX8X QXP CPU revision */
+	u32 cpurev = get_cpu_rev();
+
+	switch (cpurev & 0xFFF) {
+	case CHIP_REV_A:
+		info->start = CONFIG_SYS_BOOT_PART_OFFSET_A0 / mmc_dev->blksz;
+		info->size = CONFIG_SYS_BOOT_PART_SIZE_A0 / mmc_dev->blksz;
+		break;
+	default:
+		info->start = CONFIG_SYS_BOOT_PART_OFFSET / mmc_dev->blksz;
+		info->size = CONFIG_SYS_BOOT_PART_SIZE / mmc_dev->blksz;
+		break;
+	}
 }
