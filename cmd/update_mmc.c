@@ -134,7 +134,7 @@ static int write_firmware(char *partname, unsigned long loadaddr,
 	 */
 	if (!strcmp(partname, "uboot") &&
 	    !strcmp(CONFIG_SYS_STORAGE_MEDIA, "mmc") &&
-	    board_has_emmc() && (mmc_dev_index == 0))
+	    board_has_emmc() && (mmc_dev_index == CONFIG_SYS_MMC_ENV_DEV))
 		strcat(cmd, " $mmcbootpart");
 
 	/* Change to storage device */
@@ -460,7 +460,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	 */
 	if (!strcmp(argv[1], "uboot") &&
 	    !strcmp(CONFIG_SYS_STORAGE_MEDIA, "mmc") &&
-	    board_has_emmc() && (mmc_dev_index == 0)) {
+	    board_has_emmc() && (mmc_dev_index == CONFIG_SYS_MMC_ENV_DEV)) {
 		ret = emmc_bootselect();
 		if (ret) {
 			printf("Error changing eMMC boot partition\n");
