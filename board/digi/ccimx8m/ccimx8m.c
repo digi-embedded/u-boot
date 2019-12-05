@@ -53,3 +53,25 @@ int dram_init(void)
 
 	return 0;
 }
+
+void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
+				     disk_partition_t *info)
+{
+	struct mmc *mmc = find_mmc_device(CONFIG_SYS_MMC_ENV_DEV);
+	int part = (mmc->part_config >> 3) & PART_ACCESS_MASK;
+
+	/*
+	 * Use a different offset depending on the target device and partition:
+	 * - For eMMC BOOT1 and BOOT2
+	 *	Offset = 0
+	 * - For eMMC User Data area.
+	 *	Offset = CONFIG_SYS_BOOT_PART_OFFSET
+	 */
+	if (part == 1 || part == 2) {
+		/* eMMC BOOT1 or BOOT2 partitions */
+		info->start = 0;
+	} else {
+		info->start = CONFIG_SYS_BOOT_PART_OFFSET / mmc_dev->blksz;
+	}
+	info->size = CONFIG_SYS_BOOT_PART_SIZE / mmc_dev->blksz;
+}
