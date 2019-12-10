@@ -134,27 +134,22 @@ __weak void fdt_fixup_carrierboard(void *fdt)
 
 __weak void print_carrierboard_info(void)
 {
-	char board_str[100];
-	char warnings[100] = "";
+	char board_str[100] = "";
 
-	sprintf(board_str, "Board: %s %s", CONFIG_SOM_DESCRIPTION,
-		CONFIG_BOARD_DESCRIPTION);
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
 	if (CARRIERBOARD_VERSION_UNDEFINED == board_version)
-		sprintf(warnings, "%s   WARNING: Undefined board version!\n",
-			warnings);
+		sprintf(board_str, "version undefined");
 	else
-		sprintf(board_str, "%s, version %d", board_str, board_version);
+		sprintf(board_str, "version %d", board_version);
 #endif
 
 #ifdef CONFIG_HAS_CARRIERBOARD_ID
 	if (CARRIERBOARD_ID_UNDEFINED == board_id)
-		sprintf(warnings, "%s   WARNING: Undefined board ID!\n",
-			warnings);
+		sprintf(board_str, "%s, ID undefined", board_str);
 	else
 		sprintf(board_str, "%s, ID %d", board_str, board_id);
 #endif
-	printf("%s\n", board_str);
-	if (strcmp(warnings, ""))
-		printf("%s", warnings);
+
+	if (strcmp(board_str, ""))
+		printf("  Board %s\n", board_str);
 }
