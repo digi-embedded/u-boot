@@ -23,7 +23,7 @@
 #include <common.h>
 #include <command.h>
 #include <fuse.h>
-#include "helper.h"
+#include "../board/digi/common/helper.h"
 
 #if defined(CONFIG_CMD_BOARD_VERSION) && \
     defined(CONFIG_CARRIERBOARD_VERSION_ON_OTP) && \

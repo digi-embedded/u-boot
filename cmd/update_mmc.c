@@ -12,7 +12,7 @@
 #endif
 #include <otf_update.h>
 #include <part.h>
-#include "helper.h"
+#include "../board/digi/common/helper.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 

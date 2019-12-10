@@ -26,19 +26,13 @@ obj-$(CONFIG_CMD_BOOTSTREAM) += cmd_bootstream/bch.o \
 				cmd_bootstream/cmd_bootstream.o \
 				cmd_bootstream/mxsboot.o
 obj-$(CONFIG_MXS_OTP) += cmd_mxsotp.o
-ifdef CONFIG_HAS_HWID
-obj-y += cmd_hwid.o
-obj-y += hwid.o
-endif
-obj-$(CONFIG_CARRIERBOARD_VERSION_ON_OTP) += cmd_board.o
-obj-$(CONFIG_CARRIERBOARD_ID_ON_OTP) += cmd_board.o
+obj-$(CONFIG_HAS_HWID) += hwid.o
 obj-y += carrier_board.o
 obj-$(CONFIG_AUTO_BOOTSCRIPT) += helper.o
-obj-$(CONFIG_CMD_UPDATE_MMC) += cmd_update_mmc.o helper.o helper_mmc.o
-obj-$(CONFIG_CMD_UPDATE_NAND) += cmd_update_nand.o helper.o helper_nand.o
-obj-$(CONFIG_CMD_DBOOT) += cmd_dboot.o helper.o
+obj-$(CONFIG_CMD_UPDATE_MMC) += helper.o helper_mmc.o
+obj-$(CONFIG_CMD_UPDATE_NAND) += helper.o helper_nand.o
+obj-$(CONFIG_CMD_DBOOT) += helper.o
 obj-$(CONFIG_CMD_DIGI_PMIC) += cmd_pmic.o
-obj-$(CONFIG_HAS_TRUSTFENCE) += cmd_trustfence.o
 obj-$(CONFIG_MCA) += mca.o
 obj-$(CONFIG_MCA_TAMPER) += tamper.o
 endif

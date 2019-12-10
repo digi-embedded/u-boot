@@ -26,7 +26,6 @@
 #include <fuse.h>
 #include <asm/mach-imx/hab.h>
 #include <linux/errno.h>
-#include "helper.h"
 #include <u-boot/sha256.h>
 #include <watchdog.h>
 #include <malloc.h>
@@ -35,9 +34,11 @@
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
 #include <asm/gpio.h>
 #endif
-#include "trustfence.h"
 #include <u-boot/md5.h>
 #include <fsl_caam.h>
+
+#include "../board/digi/common/helper.h"
+#include "../board/digi/common/trustfence.h"
 
 #define UBOOT_HEADER_SIZE	0xC00
 #define UBOOT_START_ADDR	(CONFIG_SYS_TEXT_BASE - UBOOT_HEADER_SIZE)
@@ -686,7 +687,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			}
 
 			dek_blob_src = (uintptr_t) (buffer + DMA_ALIGN_UP(uboot_size));
-			dek_blob_dst = (uintptr_t) (buffer + DMA_ALIGN_UP(uboot_size) + DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE)); 
+			dek_blob_dst = (uintptr_t) (buffer + DMA_ALIGN_UP(uboot_size) + DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE));
 			dek_blob_final_dst = (uintptr_t) (buffer + uboot_size);
 
 			debug("Buffer:             [0x%p,\t0x%p]\n", buffer, buffer + DMA_ALIGN_UP(uboot_size) + 2 * DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE));
