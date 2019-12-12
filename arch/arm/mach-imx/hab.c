@@ -995,5 +995,5 @@ int authenticate_image(uint32_t ddr_start, uint32_t raw_image_size)
 					~(ALIGN_SIZE - 1);
 	bytes = ivt_offset + IVT_SIZE + CSF_PAD_SIZE;
 
-	return imx_hab_authenticate_image(ddr_start, bytes, ivt_offset);
+	return imx_hab_authenticate_image(ddr_start, bytes, ivt_offset) ? CMD_RET_FAILURE : CMD_RET_SUCCESS;
 }
