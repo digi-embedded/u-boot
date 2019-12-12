@@ -122,10 +122,6 @@ int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			return do_bootm_subcommand(cmdtp, flag, argc, argv);
 	}
 
-#ifdef CONFIG_SECURE_BOOT
-	extern int authenticate_image(
-			uint32_t ddr_start, uint32_t raw_image_size);
-
 #ifdef CONFIG_IMX_OPTEE
 	ulong tee_addr = 0;
 	int ret;
@@ -158,29 +154,6 @@ int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		printf("Authenticate zImage Fail, Please check\n");
 		return 1;
 	}
-
-#else
-
-	switch (genimg_get_format((const void *)load_addr)) {
-#if defined(CONFIG_IMAGE_FORMAT_LEGACY)
-	case IMAGE_FORMAT_LEGACY:
-		if (authenticate_image(load_addr,
-			image_get_image_size((image_header_t *)load_addr)) != 0) {
-			printf("Authenticate uImage Fail, Please check\n");
-			return 1;
-		}
-		break;
-#endif
-#ifdef CONFIG_ANDROID_BOOT_IMAGE
-	case IMAGE_FORMAT_ANDROID:
-		/* Do this authentication in boota command */
-		break;
-#endif
-	default:
-		printf("Not valid image format for Authentication, Please check\n");
-		return 1;
-	}
-#endif
 #endif
 
 	return do_bootm_states(cmdtp, flag, argc, argv, BOOTM_STATE_START |
