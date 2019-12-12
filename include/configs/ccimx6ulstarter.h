@@ -109,7 +109,7 @@
 #define CONFIG_BOOTCOMMAND \
 	"if run loadscript; then " \
 		"setexpr bs_ivt_offset ${filesize} - 0x4020;" \
-		"if hab_auth_img ${loadaddr} ${bs_ivt_offset}; then " \
+		"if hab_auth_img ${loadaddr} ${filesize} ${bs_ivt_offset}; then " \
 			"source ${loadaddr};" \
 		"fi; " \
 	"fi;"
