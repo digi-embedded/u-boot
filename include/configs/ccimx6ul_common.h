@@ -137,7 +137,6 @@
 /* Ethernet */
 #define CONFIG_FEC_MXC
 #define CONFIG_MII
-#define CONFIG_NO_MAC_FROM_OTP
 #define CONFIG_PHY_SMSC
 
 /* Extra network settings for second Ethernet */

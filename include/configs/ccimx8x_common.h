@@ -51,7 +51,6 @@
 #define CONFIG_HWID_BANK		0
 #define CONFIG_HWID_START_WORD		708
 #define CONFIG_HWID_WORDS_NUMBER	4
-#define CONFIG_NO_MAC_FROM_OTP
 
 /* Media type for firmware updates */
 #define CONFIG_SYS_STORAGE_MEDIA       "mmc"
