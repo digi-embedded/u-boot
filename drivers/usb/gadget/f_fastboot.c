@@ -19,6 +19,8 @@
 #include <linux/usb/composite.h>
 #include <linux/compiler.h>
 #include <g_dnl.h>
+#include <serial.h>
+#include <stdio_dev.h>
 
 #define FASTBOOT_INTERFACE_CLASS	0xff
 #define FASTBOOT_INTERFACE_SUB_CLASS	0x42
@@ -197,6 +199,8 @@ static struct usb_gadget_strings *fastboot_strings[] = {
 	NULL,
 };
 
+static struct stdio_dev g_fastboot_stdio;
+
 static void rx_handler_command(struct usb_ep *ep, struct usb_request *req);
 
 static void fastboot_fifo_complete(struct usb_ep *ep, struct usb_request *req)
@@ -287,6 +291,7 @@ static int fastboot_bind(struct usb_configuration *c, struct usb_function *f)
 	if (s)
 		g_dnl_set_serialnumber((char *)s);
 
+	stdio_register(&g_fastboot_stdio);
 	return 0;
 }
 
@@ -295,6 +300,7 @@ static void fastboot_unbind(struct usb_configuration *c, struct usb_function *f)
 	f->os_desc_table = NULL;
 	list_del(&fb_os_desc.ext_prop);
 	memset(fastboot_func, 0, sizeof(*fastboot_func));
+	stdio_deregister("fastboot", 1);
 }
 
 static void fastboot_disable(struct usb_function *f)
@@ -629,3 +635,37 @@ static void rx_handler_command(struct usb_ep *ep, struct usb_request *req)
 	req->actual = 0;
 	usb_ep_queue(ep, req, 0);
 }
+
+void fastboot_putc(struct stdio_dev *dev, const char c)
+{
+       char buff[6] = "INFO";
+       buff[4] = c;
+       buff[5] = 0;
+       fastboot_tx_write_more(buff);
+}
+
+#define FASTBOOT_MAX_LEN 64
+
+void fastboot_puts(struct stdio_dev *dev, const char *s)
+{
+       char buff[FASTBOOT_MAX_LEN + 1] = "INFO";
+       int len = strlen(s);
+       int i, left;
+
+       for (i = 0; i < len; i += FASTBOOT_MAX_LEN - 4) {
+               left = len - i;
+               if (left > FASTBOOT_MAX_LEN - 4)
+                       left = FASTBOOT_MAX_LEN - 4;
+
+               memcpy(buff + 4, s + i, left);
+               buff[left + 4 + 1] = 0;
+               fastboot_tx_write_more(buff);
+       }
+}
+
+static struct stdio_dev g_fastboot_stdio = {
+       .name = "fastboot",
+       .flags = DEV_FLAGS_OUTPUT,
+       .putc = fastboot_putc,
+       .puts = fastboot_puts,
+};
