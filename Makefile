@@ -1047,6 +1047,15 @@ endif
 %.imx: %.bin
 	$(Q)$(MAKE) $(build)=arch/arm/mach-imx $@
 
+%-signed.imx: %.imx
+	$(Q)$(MAKE) $(build)=arch/arm/mach-imx $@
+
+%-usb-signed.imx: %.imx %-signed.imx
+	$(Q)$(MAKE) $(build)=arch/arm/mach-imx $@
+
+%-encrypted.imx: %.imx %-usb-signed.imx
+	$(Q)$(MAKE) $(build)=arch/arm/mach-imx $@
+
 %.vyb: %.imx
 	$(Q)$(MAKE) $(build)=arch/arm/cpu/armv7/vf610 $@
 

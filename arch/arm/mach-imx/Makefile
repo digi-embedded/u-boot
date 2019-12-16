@@ -160,6 +160,16 @@ endif
 u-boot.imx: u-boot.bin u-boot.cfgout $(PLUGIN).bin $(QSPI_HEADER) FORCE
 	$(call if_changed,mkimage)
 	$(BOARD_SIZE_CHECK)
+
+u-boot-dtb-signed.imx: u-boot-dtb.imx FORCE
+	$(srctree)/scripts/sign.sh $< $@
+
+u-boot-dtb-usb-signed.imx: u-boot-dtb.imx FORCE
+	NO_DCD=y $(srctree)/scripts/sign.sh $< $@
+
+u-boot-dtb-encrypted.imx: u-boot-dtb.imx FORCE
+	ENABLE_ENCRYPTION=y $(srctree)/scripts/sign.sh $< $@
+
 ifeq ($(CONFIG_QSPI_BOOT),y)
 	@awk '{s="0000000"$$1;l=length(s);if(!((NR-1)%4))printf "%08x ",(NR-1)*4; \
 		for(i=1;i<8;i+=2)printf " %s",substr(s,l-i,2);if(!(NR%4))printf "\n";}' \

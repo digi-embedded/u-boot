@@ -162,6 +162,12 @@ endif
 else
 ifeq ($(CONFIG_OF_SEPARATE),y)
 ALL-y += u-boot-dtb.imx
+ALL-$(CONFIG_SIGN_IMAGE) += u-boot-dtb-signed.imx u-boot-dtb-usb-signed.imx
+ifneq ($(CONFIG_DEK_PATH),)
+ifneq ($(CONFIG_DEK_PATH),"")
+ALL-y += u-boot-dtb-encrypted.imx
+endif
+endif
 else
 ALL-y += u-boot.imx
 endif
