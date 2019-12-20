@@ -246,7 +246,7 @@ DECLARE_GLOBAL_DATA_PTR;
 enum stm32mp1_parent_id {
 /*
  * _HSI, _HSE, _CSI, _LSI, _LSE should not be moved
- * they are used as index in osc[] as entry point
+ * they are used as index in osc_clk[] as clock reference
  */
 	_HSI,
 	_HSE,
@@ -426,8 +426,7 @@ struct stm32mp1_clk_data {
 struct stm32mp1_clk_priv {
 	fdt_addr_t base;
 	const struct stm32mp1_clk_data *data;
-	ulong osc[NB_OSC];
-	struct udevice *osc_dev[NB_OSC];
+	struct clk osc_clk[NB_OSC];
 };
 
 #define STM32MP1_CLK(off, b, idx, s)		\
@@ -786,7 +785,7 @@ static ulong stm32mp1_clk_get_fixed(struct stm32mp1_clk_priv *priv, int idx)
 		return 0;
 	}
 
-	return priv->osc[idx];
+	return clk_get_rate(&priv->osc_clk[idx]);
 }
 
 static int stm32mp1_clk_get_id(struct stm32mp1_clk_priv *priv, unsigned long id)
@@ -1547,7 +1546,7 @@ static int stm32mp1_hsidiv(fdt_addr_t rcc, ulong hsifreq)
 			break;
 
 	if (hsidiv == 4) {
-		pr_err("clk-hsi frequency invalid");
+		pr_err("hsi frequency invalid");
 		return -1;
 	}
 
@@ -1954,13 +1953,13 @@ static int stm32mp1_clktree(struct udevice *dev)
 	 * switch ON oscillator found in device-tree,
 	 * HSI already ON after bootrom
 	 */
-	if (priv->osc[_LSI])
+	if (clk_valid(&priv->osc_clk[_LSI]))
 		stm32mp1_lsi_set(rcc, 1);
 
-	if (priv->osc[_LSE]) {
+	if (clk_valid(&priv->osc_clk[_LSE])) {
 		int bypass, digbyp;
 		u32 lsedrv;
-		struct udevice *dev = priv->osc_dev[_LSE];
+		struct udevice *dev = priv->osc_clk[_LSE].dev;
 
 		bypass = dev_read_bool(dev, "st,bypass");
 		digbyp = dev_read_bool(dev, "st,digbypass");
@@ -1971,9 +1970,9 @@ static int stm32mp1_clktree(struct udevice *dev)
 		stm32mp1_lse_enable(rcc, bypass, digbyp, lsedrv);
 	}
 
-	if (priv->osc[_HSE]) {
+	if (clk_valid(&priv->osc_clk[_HSE])) {
 		int bypass, digbyp, css;
-		struct udevice *dev = priv->osc_dev[_HSE];
+		struct udevice *dev = priv->osc_clk[_HSE].dev;
 
 		bypass = dev_read_bool(dev, "st,bypass");
 		digbyp = dev_read_bool(dev, "st,digbypass");
@@ -1998,8 +1997,8 @@ static int stm32mp1_clktree(struct udevice *dev)
 
 	/* configure HSIDIV */
 	debug("configure HSIDIV\n");
-	if (priv->osc[_HSI]) {
-		stm32mp1_hsidiv(rcc, priv->osc[_HSI]);
+	if (clk_valid(&priv->osc_clk[_HSI])) {
+		stm32mp1_hsidiv(rcc, clk_get_rate(&priv->osc_clk[_HSI]));
 		stgen_config(priv);
 	}
 
@@ -2045,7 +2044,7 @@ static int stm32mp1_clktree(struct udevice *dev)
 	}
 
 	/* wait LSE ready before to use it */
-	if (priv->osc[_LSE])
+	if (clk_valid(&priv->osc_clk[_LSE]))
 		stm32mp1_lse_wait(rcc);
 
 	/* configure with expected clock source */
@@ -2084,7 +2083,7 @@ static int stm32mp1_clktree(struct udevice *dev)
 
 	debug("oscillator off\n");
 	/* switch OFF HSI if not found in device-tree */
-	if (!priv->osc[_HSI])
+	if (!clk_valid(&priv->osc_clk[_HSI]))
 		stm32mp1_hsi_set(rcc, 0);
 
 	/* Software Self-Refresh mode (SSR) during DDR initilialization */
@@ -2182,40 +2181,25 @@ static ulong stm32mp1_clk_set_rate(struct clk *clk, unsigned long clk_rate)
 	return -EINVAL;
 }
 
-static void stm32mp1_osc_clk_init(const char *name,
-				  struct stm32mp1_clk_priv *priv,
-				  int index)
-{
-	struct clk clk;
-	struct udevice *dev = NULL;
-
-	priv->osc[index] = 0;
-	clk.id = 0;
-	if (!uclass_get_device_by_name(UCLASS_CLK, name, &dev)) {
-		if (clk_request(dev, &clk))
-			pr_err("%s request", name);
-		else
-			priv->osc[index] = clk_get_rate(&clk);
-	}
-	priv->osc_dev[index] = dev;
-}
-
 static void stm32mp1_osc_init(struct udevice *dev)
 {
 	struct stm32mp1_clk_priv *priv = dev_get_priv(dev);
 	int i;
 	const char *name[NB_OSC] = {
-		[_LSI] = "clk-lsi",
-		[_LSE] = "clk-lse",
-		[_HSI] = "clk-hsi",
-		[_HSE] = "clk-hse",
-		[_CSI] = "clk-csi",
+		[_LSI] = "lsi",
+		[_LSE] = "lse",
+		[_HSI] = "hsi",
+		[_HSE] = "hse",
+		[_CSI] = "csi",
 		[_I2S_CKIN] = "i2s_ckin",
 	};
 
 	for (i = 0; i < NB_OSC; i++) {
-		stm32mp1_osc_clk_init(name[i], priv, i);
-		debug("%d: %s => %x\n", i, name[i], (u32)priv->osc[i]);
+		if (clk_get_by_name(dev, name[i], &priv->osc_clk[i]))
+			dev_dbg(dev, "No source clock \"%s\"", name[i]);
+		else
+			dev_dbg(dev, "%s clock rate: %luHz\n",
+				name[i], clk_get_rate(&priv->osc_clk[i]));
 	}
 }
 
