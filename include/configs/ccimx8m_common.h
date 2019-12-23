@@ -13,6 +13,7 @@
 
 #define CONFIG_CC8
 #define CONFIG_CC8M
+#define CONFIG_DISPLAY_BOARDINFO_LATE
 
 #ifdef CONFIG_SECURE_BOOT
 #define CONFIG_CSF_SIZE			0x2000 /* 8K region */
