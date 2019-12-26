@@ -226,28 +226,13 @@ static int write_file(unsigned long loadaddr, unsigned long filesize,
 	return run_command(cmd, 0);
 }
 
-#define ECSD_PARTITION_CONFIG		179
-#define BOOT_ACK			(1 << 6)
-#define BOOT_PARTITION_ENABLE_OFF	3
-
 static int emmc_bootselect(void)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
-	int bootpart;
-
-	/* Prepare command to change to storage device */
-	sprintf(cmd, "mmc dev %d", mmc_dev_index);
-
-	/* Change to storage device */
-	if (run_command(cmd, 0)) {
-		debug("Cannot change to storage device\n");
-		return -1;
-	}
 
 	/* Select boot partition and enable boot acknowledge */
-	bootpart = env_get_ulong("mmcbootpart", 16, CONFIG_SYS_BOOT_PART_EMMC);
-	sprintf(cmd, "mmc ecsd write %x %x", ECSD_PARTITION_CONFIG,
-		BOOT_ACK | (bootpart << BOOT_PARTITION_ENABLE_OFF));
+	sprintf(cmd, "mmc partconf %x %x %x %x", EMMC_BOOT_DEV, EMMC_BOOT_ACK,
+		EMMC_BOOT_PART, EMMC_BOOT_PART);
 
 	return run_command(cmd, 0);
 }

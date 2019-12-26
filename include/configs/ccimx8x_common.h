@@ -68,6 +68,9 @@
 #define USDHC2_BASE_ADDR                0x5B020000
 #define CONFIG_SUPPORT_EMMC_BOOT	/* eMMC specific */
 #define CONFIG_SUPPORT_MMC_ECSD
+#define EMMC_BOOT_ACK			1
+#define EMMC_BOOT_DEV			0
+#define EMMC_BOOT_PART			1
 #define CONFIG_FAT_WRITE
 
 /* MMC device and partition where U-Boot image is */
