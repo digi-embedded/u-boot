@@ -144,12 +144,12 @@
 #define CONFIG_ENV_SIZE_REDUND		CONFIG_ENV_SIZE
 
 #define CONFIG_SYS_STORAGE_MEDIA       "mmc"
-#define CONFIG_SYS_MMC_ENV_DEV		1   /* USDHC3 */
+#define CONFIG_SYS_MMC_ENV_DEV		0   /* USDHC3 */
 #define CONFIG_SYS_MMC_ENV_PART		2   /* Boot2 partition of eMMC */
 
 /* MMC device and partition where U-Boot image is */
 #define EMMC_BOOT_ACK			1
-#define EMMC_BOOT_DEV			1
+#define EMMC_BOOT_DEV			0
 #define EMMC_BOOT_PART			1
 #define EMMC_BOOT_PART_OFFSET		(32 * SZ_1K)
 

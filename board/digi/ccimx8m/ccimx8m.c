@@ -17,9 +17,9 @@ int mmc_get_bootdevindex(void)
 {
 	switch(get_boot_device()) {
 	case SD2_BOOT:
-		return 0;	/* index of USDHC2 (SD card) */
+		return 1;	/* index of USDHC2 (SD card) */
 	case MMC3_BOOT:
-		return 1;	/* index of USDHC3 (eMMC) */
+		return 0;	/* index of USDHC3 (eMMC) */
 	default:
 		/* return default value otherwise */
 		return EMMC_BOOT_DEV;

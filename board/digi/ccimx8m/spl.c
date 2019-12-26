@@ -85,24 +85,24 @@ int board_mmc_init(bd_t *bis)
 {
 	int i, ret;
 	/*
-	 * According to the board_mmc_init() the following map is done:
+	 * According to the device tree aliases the following map is done:
 	 * (U-Boot device node)    (Physical Port)
-	 * mmc0                    USDHC2
-	 * mmc1                    USDHC3
+	 * mmc0                    USDHC3 (eMMC)
+	 * mmc1                    USDHC2 (microSD)
 	 */
 	for (i = 0; i < CONFIG_SYS_FSL_USDHC_NUM; i++) {
 		switch (i) {
 		case 0:
+			usdhc_cfg[1].sdhc_clk = mxc_get_clock(MXC_ESDHC3_CLK);
+			imx_iomux_v3_setup_multiple_pads(
+				usdhc3_pads, ARRAY_SIZE(usdhc3_pads));
+			break;
+		case 1:
 			usdhc_cfg[0].sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
 			imx_iomux_v3_setup_multiple_pads(
 				usdhc2_pads, ARRAY_SIZE(usdhc2_pads));
 			gpio_request(USDHC2_CD_GPIO, "usdhc2 cd");
 			gpio_direction_input(USDHC2_CD_GPIO);
-			break;
-		case 1:
-			usdhc_cfg[1].sdhc_clk = mxc_get_clock(MXC_ESDHC3_CLK);
-			imx_iomux_v3_setup_multiple_pads(
-				usdhc3_pads, ARRAY_SIZE(usdhc3_pads));
 			break;
 		default:
 			printf("Warning: you configured more USDHC controllers"
