@@ -57,7 +57,7 @@ int dram_init(void)
 void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 				     disk_partition_t *info)
 {
-	struct mmc *mmc = find_mmc_device(CONFIG_SYS_MMC_ENV_DEV);
+	struct mmc *mmc = find_mmc_device(EMMC_BOOT_DEV);
 	int part = (mmc->part_config >> 3) & PART_ACCESS_MASK;
 
 	/*
@@ -73,5 +73,6 @@ void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 	} else {
 		info->start = CONFIG_SYS_BOOT_PART_OFFSET / mmc_dev->blksz;
 	}
-	info->size = CONFIG_SYS_BOOT_PART_SIZE / mmc_dev->blksz;
+	/* Boot partition size - Start of boot image */
+	info->size = (mmc->capacity_boot / mmc_dev->blksz) - info->start;
 }

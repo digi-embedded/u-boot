@@ -10,6 +10,7 @@
 #ifdef CONFIG_FASTBOOT_FLASH
 #include <image-sparse.h>
 #endif
+#include <mmc.h>
 #include <otf_update.h>
 #include <part.h>
 #include "../board/digi/common/helper.h"
@@ -271,8 +272,11 @@ static int init_mmc_globals(void)
 __weak void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 					    disk_partition_t *info)
 {
+	struct mmc *mmc = find_mmc_device(EMMC_BOOT_DEV);
+
 	info->start = CONFIG_SYS_BOOT_PART_OFFSET / mmc_dev->blksz;
-	info->size = CONFIG_SYS_BOOT_PART_SIZE / mmc_dev->blksz;
+	/* Boot partition size - Start of boot image */
+	info->size = (mmc->capacity_boot / mmc_dev->blksz) - info->start;
 }
 
 static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])

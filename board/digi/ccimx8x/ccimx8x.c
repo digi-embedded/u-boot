@@ -186,15 +186,16 @@ void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 {
 	/* Use a different offset depending on the i.MX8X QXP CPU revision */
 	u32 cpurev = get_cpu_rev();
+	struct mmc *mmc = find_mmc_device(EMMC_BOOT_DEV);
 
 	switch (cpurev & 0xFFF) {
 	case CHIP_REV_A:
 		info->start = CONFIG_SYS_BOOT_PART_OFFSET_A0 / mmc_dev->blksz;
-		info->size = CONFIG_SYS_BOOT_PART_SIZE_A0 / mmc_dev->blksz;
 		break;
 	default:
 		info->start = CONFIG_SYS_BOOT_PART_OFFSET / mmc_dev->blksz;
-		info->size = CONFIG_SYS_BOOT_PART_SIZE / mmc_dev->blksz;
 		break;
 	}
+	/* Boot partition size - Start of boot image */
+	info->size = (mmc->capacity_boot / mmc_dev->blksz) - info->start;
 }

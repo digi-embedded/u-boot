@@ -150,7 +150,6 @@
 /* MMC device and partition where U-Boot image is */
 #define CONFIG_SYS_BOOT_PART_EMMC	1	/* Boot part 1 on eMMC */
 #define CONFIG_SYS_BOOT_PART_OFFSET	SZ_1K
-#define CONFIG_SYS_BOOT_PART_SIZE	(SZ_2M - CONFIG_SYS_BOOT_PART_OFFSET)
 
 #ifdef CONFIG_SATA
 #define CONFIG_DWC_AHSATA
