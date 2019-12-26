@@ -108,7 +108,7 @@ int mmc_get_bootdevindex(void)
 		return 0;	/* index of USDHC1 (eMMC) */
 	default:
 		/* return default value otherwise */
-		return CONFIG_SYS_MMC_ENV_DEV;
+		return EMMC_BOOT_DEV;
 	}
 }
 

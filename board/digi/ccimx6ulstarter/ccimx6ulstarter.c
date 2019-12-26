@@ -179,7 +179,7 @@ int mmc_get_env_devno(void)
 
 	/* If not boot from sd/mmc, use default value */
 	if (bootsel != 1)
-		return CONFIG_SYS_MMC_ENV_DEV;
+		return EMMC_BOOT_DEV;
 
 	/* BOOT_CFG2[3] and BOOT_CFG2[4] */
 	dev_no = (soc_sbmr & 0x00001800) >> 11;
