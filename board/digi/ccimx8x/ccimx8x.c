@@ -190,10 +190,10 @@ void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 
 	switch (cpurev & 0xFFF) {
 	case CHIP_REV_A:
-		info->start = CONFIG_SYS_BOOT_PART_OFFSET_A0 / mmc_dev->blksz;
+		info->start = EMMC_BOOT_PART_OFFSET_A0 / mmc_dev->blksz;
 		break;
 	default:
-		info->start = CONFIG_SYS_BOOT_PART_OFFSET / mmc_dev->blksz;
+		info->start = EMMC_BOOT_PART_OFFSET / mmc_dev->blksz;
 		break;
 	}
 	/* Boot partition size - Start of boot image */

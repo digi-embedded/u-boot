@@ -274,7 +274,7 @@ __weak void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 {
 	struct mmc *mmc = find_mmc_device(EMMC_BOOT_DEV);
 
-	info->start = CONFIG_SYS_BOOT_PART_OFFSET / mmc_dev->blksz;
+	info->start = EMMC_BOOT_PART_OFFSET / mmc_dev->blksz;
 	/* Boot partition size - Start of boot image */
 	info->size = (mmc->capacity_boot / mmc_dev->blksz) - info->start;
 }

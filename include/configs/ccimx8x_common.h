@@ -71,12 +71,9 @@
 #define EMMC_BOOT_ACK			1
 #define EMMC_BOOT_DEV			0
 #define EMMC_BOOT_PART			1
+#define EMMC_BOOT_PART_OFFSET_A0	(33 * SZ_1K)
+#define EMMC_BOOT_PART_OFFSET		(32 * SZ_1K)
 #define CONFIG_FAT_WRITE
-
-/* MMC device and partition where U-Boot image is */
-#define CONFIG_SYS_BOOT_PART_EMMC	1	/* Boot part 1 on eMMC */
-#define CONFIG_SYS_BOOT_PART_OFFSET_A0	(33 * SZ_1K)
-#define CONFIG_SYS_BOOT_PART_OFFSET	(32 * SZ_1K)
 
 /* Ethernet */
 #define WIRED_NICS			2

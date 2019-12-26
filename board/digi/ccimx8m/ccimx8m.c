@@ -65,13 +65,13 @@ void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 	 * - For eMMC BOOT1 and BOOT2
 	 *	Offset = 0
 	 * - For eMMC User Data area.
-	 *	Offset = CONFIG_SYS_BOOT_PART_OFFSET
+	 *	Offset = EMMC_BOOT_PART_OFFSET
 	 */
 	if (part == 1 || part == 2) {
 		/* eMMC BOOT1 or BOOT2 partitions */
 		info->start = 0;
 	} else {
-		info->start = CONFIG_SYS_BOOT_PART_OFFSET / mmc_dev->blksz;
+		info->start = EMMC_BOOT_PART_OFFSET / mmc_dev->blksz;
 	}
 	/* Boot partition size - Start of boot image */
 	info->size = (mmc->capacity_boot / mmc_dev->blksz) - info->start;

@@ -148,12 +148,10 @@
 #define CONFIG_SYS_MMC_ENV_PART		2   /* Boot2 partition of eMMC */
 
 /* MMC device and partition where U-Boot image is */
-#define CONFIG_SYS_BOOT_PART_EMMC	1	/* Boot part 1 on eMMC */
-#define CONFIG_SYS_BOOT_PART_OFFSET	(32 * SZ_1K)
 #define EMMC_BOOT_ACK			1
 #define EMMC_BOOT_DEV			1
 #define EMMC_BOOT_PART			1
-
+#define EMMC_BOOT_PART_OFFSET		(32 * SZ_1K)
 
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		((CONFIG_ENV_SIZE + (2*1024) + (16*1024)) * 1024)
