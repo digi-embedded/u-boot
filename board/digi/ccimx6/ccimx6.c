@@ -934,12 +934,12 @@ int board_mmc_get_env_part(int devno)
 				 * environment will be saved to the unique
 				 * hardware partition: 0 */
 	case MMC4_BOOT:
-		return 2;	/* When booting from SDHC4 (eMMC) the
+	default:
+		return CONFIG_SYS_MMC_ENV_PART;
+				/* When booting from SDHC4 (eMMC) the
 				 * environment will be saved to boot
 				 * partition 2 to protect it from
 				 * accidental overwrite during U-Boot update */
-	default:
-		return CONFIG_SYS_MMC_ENV_PART;
 	}
 }
 

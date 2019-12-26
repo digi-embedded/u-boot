@@ -120,12 +120,12 @@ uint mmc_get_env_part(struct mmc *mmc)
 				 * environment will be saved to the unique
 				 * hardware partition: 0 */
 	case MMC1_BOOT:
-		return 2;	/* When booting from USDHC1 (eMMC) the
+	default:
+		return CONFIG_SYS_MMC_ENV_PART;
+				/* When booting from USDHC1 (eMMC) the
 				 * environment will be saved to boot
 				 * partition 2 to protect it from
 				 * accidental overwrite during U-Boot update */
-	default:
-		return CONFIG_SYS_MMC_ENV_PART;
 	}
 }
 
