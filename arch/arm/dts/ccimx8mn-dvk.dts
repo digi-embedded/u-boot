@@ -38,6 +38,24 @@
 		bootargs = "console=ttymxc0,115200 earlycon=ec_imx6q,0x30860000,115200";
 		stdout-path = &uart1;
 	};
+
+	regulators {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		reg_3v3_usb_hub: regulator@4 {
+			compatible = "regulator-fixed";
+			reg = <4>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_reg_3v3_usb_hub>;
+			regulator-name = "3v3_usb_hub";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			gpio = <&gpio3 25 GPIO_ACTIVE_HIGH>;
+			enable-active-high;
+		};
+	};
 };
 
 &iomuxc {
@@ -134,10 +152,24 @@
 			>;
 		};
 
+		pinctrl_reg_3v3_usb_hub: reg_3v3_usb_hub_grp {
+			fsl,pins = <
+				/* GPIO3_25 USB hub power enable */
+				MX8MN_IOMUXC_SAI5_MCLK__GPIO3_IO25		0x41
+			>;
+		};
+
 		pinctrl_uart1: uart1grp {
 			fsl,pins = <
 				MX8MN_IOMUXC_SAI2_RXC__UART1_DCE_RX	0x49
 				MX8MN_IOMUXC_SAI2_RXFS__UART1_DCE_TX	0x49
+			>;
+		};
+
+		pinctrl_usbotg1: usbotg1grp {
+			fsl,pins = <
+				/* USB hub reset */
+				MX8MN_IOMUXC_ECSPI2_SCLK__GPIO5_IO10		0x16
 			>;
 		};
 
@@ -405,32 +437,6 @@
 	scl-gpios = <&gpio5 16 GPIO_ACTIVE_HIGH>;
 	sda-gpios = <&gpio5 17 GPIO_ACTIVE_HIGH>;
 	status = "okay";
-
-	typec_ptn5110_1: ptn5110@50 {
-		compatible = "usb,tcpci";
-		reg = <0x50>;
-		src-pdos = <0x380190c8>;
-		snk-pdos = <0x380190c8 0x3802d0c8>;
-		max-snk-mv = <9000>;
-		max-snk-ma = <2000>;
-		op-snk-mw = <9000>;
-		max-snk-mw = <18000>;
-		port-type = "drp";
-		default-role = "sink";
-	};
-
-	typec_ptn5110_2: ptn5110@52 {
-		compatible = "usb,tcpci";
-		reg = <0x52>;
-		src-pdos = <0x380190c8>;
-		snk-pdos = <0x380190c8 0x3802d0c8>;
-		max-snk-mv = <9000>;
-		max-snk-ma = <2000>;
-		op-snk-mw = <9000>;
-		max-snk-mw = <18000>;
-		port-type = "drp";
-		default-role = "sink";
-	};
 };
 
 &i2c3 {
@@ -517,12 +523,11 @@
 	arm-supply = <&buck2_reg>;
 };
 
+/* USB_OTG1 connected to usb hub */
 &usbotg1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usbotg1>;
+	vbus-supply = <&reg_3v3_usb_hub>;
+	dr_mode = "peripheral";
 	status = "okay";
-	extcon = <&typec_ptn5110_1>;
-};
-
-&usbotg2 {
-	status = "okay";
-	extcon = <&typec_ptn5110_2>;
 };
