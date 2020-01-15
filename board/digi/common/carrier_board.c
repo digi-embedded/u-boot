@@ -20,6 +20,8 @@
  * MA 02111-1307 USA
  */
 
+// this a custom comment
+
 #include <common.h>
 #include <fdt_support.h>
 #include "carrier_board.h"
@@ -46,15 +48,13 @@ __weak void fdt_fixup_carrierboard(void *fdt)
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
 	board_version = get_carrierboard_version();
 	sprintf(str, "%d", board_version);
-	do_fixup_by_path(fdt, "/", "digi,carrierboard,version", str,
-			 strlen(str) + 1, 1);
+	do_fixup_by_path(fdt, "/", "digi,carrierboard,version", str, strlen(str) + 1, 1);
 #endif
 
 #ifdef CONFIG_HAS_CARRIERBOARD_ID
 	board_id = get_carrierboard_id();
 	sprintf(str, "%d", board_id);
-	do_fixup_by_path(fdt, "/", "digi,carrierboard,id", str,
-			 strlen(str) + 1, 1);
+	do_fixup_by_path(fdt, "/", "digi,carrierboard,id", str, strlen(str) + 1, 1);
 #endif
 }
 
@@ -67,16 +67,14 @@ __weak void print_carrierboard_info(void)
 		CONFIG_BOARD_DESCRIPTION);
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
 	if (CARRIERBOARD_VERSION_UNDEFINED == board_version)
-		sprintf(warnings, "%s   WARNING: Undefined board version!\n",
-			warnings);
+		sprintf(warnings, "%s   WARNING: Undefined board version!\n", warnings);
 	else
 		sprintf(board_str, "%s, version %d", board_str, board_version);
 #endif
 
 #ifdef CONFIG_HAS_CARRIERBOARD_ID
 	if (CARRIERBOARD_ID_UNDEFINED == board_id)
-		sprintf(warnings, "%s   WARNING: Undefined board ID!\n",
-			warnings);
+		sprintf(warnings, "%s   WARNING: Undefined board ID!\n", warnings);
 	else
 		sprintf(board_str, "%s, ID %d", board_str, board_id);
 #endif
