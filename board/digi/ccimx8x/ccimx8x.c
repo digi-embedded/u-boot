@@ -187,13 +187,30 @@ void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 	/* Use a different offset depending on the i.MX8X QXP CPU revision */
 	u32 cpurev = get_cpu_rev();
 	struct mmc *mmc = find_mmc_device(EMMC_BOOT_DEV);
+	int part = (mmc->part_config >> 3) & PART_ACCESS_MASK;
 
 	switch (cpurev & 0xFFF) {
 	case CHIP_REV_A:
 		info->start = EMMC_BOOT_PART_OFFSET_A0 / mmc_dev->blksz;
 		break;
-	default:
+	case CHIP_REV_B:
 		info->start = EMMC_BOOT_PART_OFFSET / mmc_dev->blksz;
+		break;
+	default:
+		/*
+		 * Starting from RevC, use a different offset depending on the
+		 * target device and partition:
+		 * - For eMMC BOOT1 and BOOT2
+		 *	Offset = 0
+		 * - For eMMC User Data area.
+		 *	Offset = EMMC_BOOT_PART_OFFSET
+		 */
+		if (part == 1 || part == 2) {
+			/* eMMC BOOT1 or BOOT2 partitions */
+			info->start = 0;
+		} else {
+			info->start = EMMC_BOOT_PART_OFFSET / mmc_dev->blksz;
+		}
 		break;
 	}
 	/* Boot partition size - Start of boot image */
