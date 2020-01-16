@@ -165,6 +165,9 @@ int power_init_board(void)
 	/* increase VDD_ARM to typical value 0.95v for Quad-A53, 1.4 GHz */
 	pmic_reg_write(p, BD71837_BUCK2_VOLT_RUN, 0x19);
 
+	/* Set VDD_SOC 0.85v for suspend */
+	pmic_reg_write(p, BD71837_BUCK1_VOLT_SUSP, 0xf);
+
 	/* lock the PMIC regs */
 	pmic_reg_write(p, BD71837_REGLOCK, 0x11);
 
