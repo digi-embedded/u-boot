@@ -13,6 +13,7 @@
 #include <usb.h>
 #include <cdns3-uboot.h>
 #include <asm/arch/iomux.h>
+#include <asm/arch/snvs_security_sc.h>
 #include <asm/arch/sys_proto.h>
 #include <power-domain.h>
 #include "../../freescale/common/tcpc.h"
@@ -438,6 +439,15 @@ int board_init(void)
 #if defined(CONFIG_USB_TCPC)
 	setup_typec();
 #endif
+#endif
+
+#ifdef CONFIG_SNVS_SEC_SC_AUTO
+{
+	int ret = snvs_security_sc_init();
+
+	if (ret)
+		return ret;
+}
 #endif
 
 	return 0;

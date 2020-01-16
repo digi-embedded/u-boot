@@ -12,6 +12,7 @@
 #include <asm/arch/imx8-pins.h>
 #include <usb.h>
 #include <asm/arch/iomux.h>
+#include <asm/arch/snvs_security_sc.h>
 #include <asm/arch/sys_proto.h>
 #include <power-domain.h>
 #include "../../freescale/common/tcpc.h"
@@ -227,6 +228,15 @@ int board_init(void)
 
 #ifdef CONFIG_FEC_MXC
 	setup_fec(CONFIG_FEC_ENET_DEV);
+#endif
+
+#ifdef CONFIG_SNVS_SEC_SC_AUTO
+{
+	int ret = snvs_security_sc_init();
+
+	if (ret)
+		return ret;
+}
 #endif
 
 	return 0;
