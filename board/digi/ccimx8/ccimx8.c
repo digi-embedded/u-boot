@@ -362,3 +362,22 @@ void print_som_info(void)
 #endif
 	printf("\n");
 }
+
+/*
+ * Use the reset_misc hook to customize the reset implementation. This function
+ * is invoked before the standard reset_cpu().
+ * We want to perform the reset through the MCA which may, depending
+ * on the configuration, assert the POR_B line or perform a power cycle of the
+ * system.
+ */
+void reset_misc(void)
+{
+	mca_reset();
+	mdelay(1);
+
+	/* fall back to regular reset if MCA reset doesn't work */
+#ifdef CONFIG_PSCI_RESET
+	psci_system_reset();
+	mdelay(1);
+#endif
+}
