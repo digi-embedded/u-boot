@@ -168,6 +168,9 @@
 
 #define CONFIG_IMX_BOOTAUX
 
+/* Tamper */
+#define CONFIG_MCA_TAMPER
+
 /* USDHC */
 #define CONFIG_FSL_ESDHC
 #define CONFIG_FSL_USDHC
