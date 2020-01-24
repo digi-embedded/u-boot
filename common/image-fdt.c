@@ -17,6 +17,7 @@
 #include <mapmem.h>
 #include <asm/io.h>
 #include <asm/mach-imx/hab.h>
+#include <asm/arch-imx8/image.h>
 
 #ifndef CONFIG_SYS_FDT_PAD
 #define CONFIG_SYS_FDT_PAD 0x3000
@@ -338,13 +339,16 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 #endif
 		debug("## Checking for 'FDT'/'FDT Image' at %08lx\n",
 		      fdt_addr);
-
 		/*
 		 * Check if there is an FDT image at the
 		 * address provided in the second bootm argument
 		 * check image type, for FIT images get a FIT node.
 		 */
+#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_ARCH_IMX8)
+		buf = map_sysmem(fdt_addr + CONTAINER_HEADER_SIZE, 0);
+#else
 		buf = map_sysmem(fdt_addr, 0);
+#endif
 		switch (genimg_get_format(buf)) {
 #if defined(CONFIG_IMAGE_FORMAT_LEGACY)
 		case IMAGE_FORMAT_LEGACY:
@@ -490,6 +494,15 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 		printf("Device Tree authentication failed\n");
 		goto error;
 	}
+#endif
+#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_ARCH_IMX8)
+	extern int authenticate_os_container(ulong addr);
+	if (authenticate_os_container((ulong)*of_flat_tree) != 0) {
+		printf("Device Tree authentication failed\n");
+		goto error;
+	}
+	/* update for the reallocation of the DT */
+	*of_flat_tree += CONTAINER_HEADER_SIZE;
 #endif
 
 	return 0;

@@ -12,6 +12,8 @@
 #define CONTAINER_HDR_QSPI_OFFSET SZ_4K
 #define CONTAINER_HDR_NAND_OFFSET SZ_128M
 
+#define CONTAINER_HEADER_SIZE SZ_8K
+
  struct container_hdr{
 	 uint8_t version;
 	 uint8_t length_lsb;

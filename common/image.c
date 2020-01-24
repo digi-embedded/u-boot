@@ -32,6 +32,7 @@
 #include <linux/errno.h>
 #include <asm/io.h>
 #include <asm/mach-imx/hab.h>
+#include <asm/arch-imx8/image.h>
 
 #ifdef CONFIG_CMD_BDI
 extern int do_bdinfo(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
@@ -873,6 +874,7 @@ int genimg_get_format(const void *img_addr)
 	const image_header_t *hdr;
 
 	hdr = (const image_header_t *)img_addr;
+
 	if (image_check_magic(hdr))
 		return IMAGE_FORMAT_LEGACY;
 #endif
@@ -1028,7 +1030,12 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 		 * address provided in the second bootm argument
 		 * check image type, for FIT images get FIT node.
 		 */
+#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_ARCH_IMX8)
+		/* Skip container header */
+		buf = map_sysmem(rd_addr + CONTAINER_HEADER_SIZE, 0);
+#else
 		buf = map_sysmem(rd_addr, 0);
+#endif
 		switch (genimg_get_format(buf)) {
 #if defined(CONFIG_IMAGE_FORMAT_LEGACY)
 		case IMAGE_FORMAT_LEGACY:
@@ -1058,6 +1065,16 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 				authenticated = 1;
 			}
 #endif
+#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_ARCH_IMX8)
+			extern int authenticate_os_container(ulong addr);
+			if (authenticate_os_container(rd_addr) != 0) {
+				printf("Ramdisk authentication failed\n");
+				return 1;
+			}
+			/* skip container header */
+			rd_addr += CONTAINER_HEADER_SIZE;
+#endif
+
 			rd_hdr = image_get_ramdisk(rd_addr, arch,
 							images->verify, 1);
 			if (rd_hdr == NULL)

@@ -21,6 +21,7 @@
 #include <mapmem.h>
 #include <asm/byteorder.h>
 #include <asm/io.h>
+#include <asm/arch-imx8/image.h>
 
 #if defined(CONFIG_FIT)
 /**
@@ -180,6 +181,15 @@ static int do_source(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		debug ("*  source: cmdline image address = 0x%08lx\n", addr);
 	}
 
+#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_ARCH_IMX8)
+	extern int authenticate_os_container(ulong addr);
+	if (authenticate_os_container(addr)) {
+		printf("Authenticate Image Fail, Please check\n");
+		return CMD_RET_FAILURE;
+	}
+	/* Skip signed container header */
+	addr += CONTAINER_HEADER_SIZE;
+#endif
 	printf ("## Executing script at %08lx\n", addr);
 	rcode = source (addr, fit_uname);
 	return rcode;
