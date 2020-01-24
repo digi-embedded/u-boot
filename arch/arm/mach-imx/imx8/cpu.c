@@ -1699,7 +1699,7 @@ const char *get_imx8_type(u32 imxtype)
 	case MXC_CPU_IMX8QXP_A0:
 		return "QXP";
 	case MXC_CPU_IMX8DX:
-		return "8DX";	/* i.MX8 Dual X */
+		return "DX";	/* i.MX8 Dual X */
 	default:
 		return "??";
 	}
