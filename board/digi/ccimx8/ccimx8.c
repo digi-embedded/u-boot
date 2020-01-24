@@ -82,6 +82,14 @@ int board_has_bluetooth(void)
 	return 1; /* assume it has, by default */
 }
 
+static bool board_has_eth1(void)
+{
+#ifdef CONFIG_CC8M
+	return false;
+#endif
+	return true;
+}
+
 int ccimx8_init(void)
 {
 	if (board_read_hwid(&my_hwid)) {
@@ -296,7 +304,9 @@ void som_default_environment(void)
 
 	/* Verify MAC addresses */
 	verify_mac_address("ethaddr", DEFAULT_MAC_ETHADDR);
-	verify_mac_address("eth1addr", DEFAULT_MAC_ETHADDR1);
+
+	if (board_has_eth1())
+		verify_mac_address("eth1addr", DEFAULT_MAC_ETHADDR1);
 
 	if (board_has_wireless())
 		verify_mac_address("wlanaddr", DEFAULT_MAC_WLANADDR);
