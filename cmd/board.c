@@ -23,9 +23,10 @@
 #include <common.h>
 #include <command.h>
 #include <fuse.h>
-#include "helper.h"
+#include "../board/digi/common/helper.h"
 
 #if defined(CONFIG_CMD_BOARD_VERSION) && \
+    defined(CONFIG_CARRIERBOARD_VERSION_ON_OTP) && \
     defined(CONFIG_HAS_CARRIERBOARD_VERSION)
 __weak void print_board_version(u32 version)
 {
@@ -144,9 +145,11 @@ U_BOOT_CMD(
 	"board_version override <version> - override carrier board version\n"
 	"\nNOTE: <version> parameter is in DECIMAL\n"
 );
-#endif /* CONFIG_CMD_BOARD_VERSION && CONFIG_HAS_CARRIERBOARD_VERSION */
+#endif /* CONFIG_CMD_BOARD_VERSION && CONFIG_CARRIERBOARD_VERSION_ON_OTP &&
+	* CONFIG_HAS_CARRIERBOARD_VERSION */
 
 #if defined(CONFIG_CMD_BOARD_ID) && \
+    defined(CONFIG_CARRIERBOARD_ID_ON_OTP) && \
     defined(CONFIG_HAS_CARRIERBOARD_ID)
 __weak void print_board_id(u32 id)
 {
@@ -264,4 +267,5 @@ U_BOOT_CMD(
 	"board_id override <id> - override carrier board ID\n"
 	"\nNOTE: <id> parameter is in DECIMAL\n"
 );
-#endif /* CONFIG_CMD_BOARD_ID && CONFIG_HAS_CARRIERBOARD_ID */
+#endif /* CONFIG_CMD_BOARD_ID && CONFIG_CARRIERBOARD_ID_ON_OTP &&
+	* CONFIG_HAS_CARRIERBOARD_ID */

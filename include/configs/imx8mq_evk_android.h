@@ -23,7 +23,7 @@
 
 #ifdef CONFIG_SYS_MALLOC_LEN
 #undef CONFIG_SYS_MALLOC_LEN
-#define CONFIG_SYS_MALLOC_LEN           (96 * SZ_1M)
+#define CONFIG_SYS_MALLOC_LEN           (64 * SZ_1M)
 #endif
 
 #define CONFIG_ANDROID_RECOVERY
@@ -52,5 +52,13 @@
 #undef CONFIG_FSL_CAAM_KB
 #endif
 #define AVB_AB_I_UNDERSTAND_LIBAVB_AB_IS_DEPRECATED
+
+#ifdef CONFIG_DUAL_BOOTLOADER
+#define CONFIG_SPL_MMC_WRITE 1
+#endif
+
+#ifdef CONFIG_SPL_BUILD
+#undef CONFIG_BLK
+#endif
 
 #endif /* IMX8MQ_EVK_ANDROID_H */

@@ -90,6 +90,7 @@
 #define FASTBOOT_SET_RPMB_KEY "set-rpmb-key"
 #define FASTBOOT_SET_RPMB_RANDOM_KEY "set-rpmb-random-key"
 #define FASTBOOT_SET_VBMETA_PUBLIC_KEY "set-public-key"
+#define FASTBOOT_GET_MPPUBK  "get-mppubk"
 #endif
 
 #define FASTBOOT_SET_CA_RESP "at-set-ca-response"
@@ -98,6 +99,10 @@
 #define FASTBOOT_SET_EC_ATTESTATION_KEY  "set-ec-atte-key"
 #define FASTBOOT_APPEND_RSA_ATTESTATION_CERT  "append-rsa-atte-cert"
 #define FASTBOOT_APPEND_EC_ATTESTATION_CERT  "append-ec-atte-cert"
+#define FASTBOOT_SET_RSA_ATTESTATION_KEY_ENC  "set-rsa-atte-key-enc"
+#define FASTBOOT_SET_EC_ATTESTATION_KEY_ENC  "set-ec-atte-key-enc"
+#define FASTBOOT_APPEND_RSA_ATTESTATION_CERT_ENC  "append-rsa-atte-cert-enc"
+#define FASTBOOT_APPEND_EC_ATTESTATION_CERT_ENC  "append-ec-atte-cert-enc"
 #endif
 
 #ifdef CONFIG_ANDROID_THINGS_SUPPORT

@@ -4,27 +4,105 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
+#include <dm.h>
+#include <dm/uclass.h>
 #include <common.h>
 #include <i2c.h>
+#include "hwid.h"
 #include "mca_registers.h"
 
-int mca_read_reg(int reg, unsigned char *value)
+extern struct digi_hwid my_hwid;
+
+#ifdef CONFIG_DM_I2C
+int mca_get_device(struct udevice **devp)
 {
-#ifdef CONFIG_I2C_MULTI_BUS
-	if (i2c_set_bus_num(CONFIG_MCA_I2C_BUS))
-		return -1;
-#endif
+	struct dm_i2c_chip *chip;
+	int ret;
 
-	if (i2c_probe(CONFIG_MCA_I2C_ADDR)) {
-		printf("ERR: cannot access the MCA\n");
-		return -1;
+	ret = i2c_get_chip_for_busnum(CONFIG_MCA_I2C_BUS, CONFIG_MCA_I2C_ADDR,
+				      CONFIG_MCA_OFFSET_LEN, devp);
+	if (ret)
+		return ret;
+
+	chip = dev_get_parent_platdata(*devp);
+	if (chip->offset_len != CONFIG_MCA_OFFSET_LEN) {
+		printf("I2C chip %x: requested len %d does not match chip offset_len %d\n",
+		       CONFIG_MCA_I2C_ADDR, CONFIG_MCA_OFFSET_LEN,
+		       chip->offset_len);
+		return -EADDRNOTAVAIL;
 	}
-
-	if (i2c_read(CONFIG_MCA_I2C_ADDR, reg, 2, value, 1))
-		return -1;
 
 	return 0;
 }
+
+int mca_bulk_read(int reg, unsigned char *values, int len)
+{
+	struct udevice *dev;
+	int ret;
+
+	ret = mca_get_device(&dev);
+	if (ret) {
+		printf("ERROR: can't get MCA device\n");
+		return -1;
+	}
+
+	ret = dm_i2c_read(dev, reg, values, len);
+	if (ret) {
+		printf("ERROR: can't read regs 0x%x-0x%x , err %d\n", reg, reg + len, ret);
+		return -1;
+	}
+
+	return 0;
+}
+
+int mca_bulk_write(int reg, unsigned char *values, int len)
+{
+	struct udevice *dev;
+	int ret;
+
+	ret = mca_get_device(&dev);
+	if (ret) {
+		printf("ERROR: can't get MCA device\n");
+		return -1;
+	}
+
+	ret = dm_i2c_write(dev, reg, values, len);
+	if (ret) {
+		printf("ERROR: can't write reg 0x%x-0x%x , err %d\n", reg, reg + len, ret);
+		return -1;
+	}
+
+	return 0;
+}
+
+int mca_probe(void)
+{
+	struct udevice *bus, *dev;
+	int ret;
+
+	ret = uclass_get_device_by_seq(UCLASS_I2C, CONFIG_MCA_I2C_BUS, &bus);
+	if (ret) {
+		printf("ERROR: getting %d bus for MCA\n", CONFIG_MCA_I2C_BUS);
+		return -1;
+	}
+
+	ret = dm_i2c_probe(bus, CONFIG_MCA_I2C_ADDR, 0, &dev);
+	if (ret) {
+		printf("ERROR: can't find MCA at address %x\n",
+		       CONFIG_MCA_I2C_ADDR);
+		return -1;
+	}
+
+	ret = i2c_set_chip_offset_len(dev, CONFIG_MCA_OFFSET_LEN);
+	if (ret) {
+		printf("ERROR: setting address len to %d for MCA\n",
+		       CONFIG_MCA_OFFSET_LEN);
+		return -1;
+	}
+
+	return 0;
+}
+#else /*CONFIG_DM_I2C*/
 
 int mca_bulk_read(int reg, unsigned char *values, int len)
 {
@@ -38,25 +116,8 @@ int mca_bulk_read(int reg, unsigned char *values, int len)
 		return -1;
 	}
 
-	if (i2c_read(CONFIG_MCA_I2C_ADDR, reg, 2, values, len))
-		return -1;
-
-	return 0;
-}
-
-int mca_write_reg(int reg, unsigned char value)
-{
-#ifdef CONFIG_I2C_MULTI_BUS
-	if (i2c_set_bus_num(CONFIG_MCA_I2C_BUS))
-		return -1;
-#endif
-
-	if (i2c_probe(CONFIG_MCA_I2C_ADDR)) {
-		printf("ERR: cannot access the MCA\n");
-		return -1;
-	}
-
-	if (i2c_write(CONFIG_MCA_I2C_ADDR, reg, 2, &value, 1))
+	if (i2c_read(CONFIG_MCA_I2C_ADDR, reg, CONFIG_MCA_OFFSET_LEN,
+		     values, len))
 		return -1;
 
 	return 0;
@@ -74,10 +135,22 @@ int mca_bulk_write(int reg, unsigned char *values, int len)
 		return -1;
 	}
 
-	if (i2c_write(CONFIG_MCA_I2C_ADDR, reg, 2, values, len))
+	if (i2c_write(CONFIG_MCA_I2C_ADDR, reg, CONFIG_MCA_OFFSET_LEN,
+		      values, len))
 		return -1;
 
 	return 0;
+}
+#endif /*CONFIG_DM_I2C*/
+
+int mca_read_reg(int reg, unsigned char *value)
+{
+	return mca_bulk_read(reg, value, 1);
+}
+
+int mca_write_reg(int reg, unsigned char value)
+{
+	return mca_bulk_write(reg, &value, 1);
 }
 
 int mca_update_bits(int reg, unsigned char mask, unsigned char val)
@@ -152,4 +225,68 @@ void mca_save_cfg(void)
 
 	if (!retries)
 		printf("MCA: unable to save configuration (%d)\n", ret);
+}
+
+void mca_somver_update(void)
+{
+	unsigned char somver;
+	int ret;
+
+	/*
+	 * Read the som version stored in MCA.
+	 * If it doesn't match with real SOM version read from my_hwid.hv:
+	 *    - update it into the MCA.
+	 *    - force the new value to be saved in MCA NVRAM.
+	 * The purpose of this functionality is that MCA starts using the
+	 * correct SOM version since boot.
+	 */
+	ret = mca_read_reg(MCA_HWVER_SOM, &somver);
+	if (ret) {
+		printf("Cannot read MCA_HWVER_SOM\n");
+	} else {
+		if (my_hwid.hv != somver) {
+			ret = mca_write_reg(MCA_HWVER_SOM, my_hwid.hv);
+			if (ret)
+				printf("Cannot write MCA_HWVER_SOM\n");
+			else
+				mca_save_cfg();
+		}
+	}
+}
+
+void mca_init(void)
+{
+	unsigned char devid = 0;
+	unsigned char hwver;
+	unsigned char fwver[2];
+	int ret, fwver_ret;
+
+#ifdef CONFIG_DM_I2C
+	if (mca_probe()) {
+		printf("MCA: failed probing MCA device\n");
+		return;
+	}
+#endif
+	ret = mca_read_reg(MCA_DEVICE_ID, &devid);
+	if (devid != BOARD_MCA_DEVICE_ID) {
+		printf("MCA: invalid MCA DEVICE ID (0x%02x)\n", devid);
+		return;
+	}
+
+	ret = mca_read_reg(MCA_HW_VER, &hwver);
+	fwver_ret = mca_bulk_read(MCA_FW_VER_L, fwver, 2);
+
+	printf("MCA:   HW_VER=");
+	if (ret)
+		printf("??");
+	else
+		printf("%d", hwver);
+
+	printf("  FW_VER=");
+	if (fwver_ret)
+		printf("??");
+	else
+		printf("%d.%02d %s", fwver[1] & 0x7f, fwver[0],
+		       fwver[1] & 0x80 ? "(alpha)" : "");
+	printf("\n");
 }

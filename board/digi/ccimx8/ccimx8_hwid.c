@@ -8,8 +8,8 @@
 #include <fdt_support.h>
 #include <fuse.h>
 #include <linux/sizes.h>
-#include "helper.h"
-#include "hwid.h"
+#include "../common/helper.h"
+#include "../common/hwid.h"
 
 extern struct digi_hwid my_hwid;
 
@@ -18,6 +18,12 @@ const char *cert_regions[] = {
 	"International",
 	"Japan",
 };
+
+#ifdef CONFIG_CC8X
+int hwid_word_lengths[CONFIG_HWID_WORDS_NUMBER] = {8, 4, 8, 4};
+#else
+int hwid_word_lengths[CONFIG_HWID_WORDS_NUMBER] = {8, 8, 8};
+#endif
 
 u32 ram_sizes_mb[16] = {
 	0,	/* 0 */
@@ -48,7 +54,9 @@ int board_prog_hwid(const struct digi_hwid *hwid)
 	u32 fuseword;
 	int ret, i;
 
+#ifdef CONFIG_CC8X
 	fuse_allow_prog(true);
+#endif
 
 	for (i = 0; i < cnt; i++, word++) {
 		fuseword = ((u32 *)hwid)[i];
@@ -57,7 +65,9 @@ int board_prog_hwid(const struct digi_hwid *hwid)
 			break;
 	}
 
+#ifdef CONFIG_CC8X
 	fuse_allow_prog(false);
+#endif
 
 	return ret;
 }
@@ -65,11 +75,7 @@ int board_prog_hwid(const struct digi_hwid *hwid)
 /* Print HWID info */
 void board_print_hwid(struct digi_hwid *hwid)
 {
-	printf(" %.4x", ((u32 *)hwid)[3]);
-	printf(" %.8x", ((u32 *)hwid)[2]);
-	printf(" %.4x", ((u32 *)hwid)[1]);
-	printf(" %.8x", ((u32 *)hwid)[0]);
-	printf("\n");
+	print_hwid_hex(hwid);
 
 	/* Formatted printout */
 	printf("    Generator ID:  %02d\n", hwid->genid);
@@ -100,11 +106,7 @@ void board_print_hwid(struct digi_hwid *hwid)
 /* Print HWID info in MANUFID format */
 void board_print_manufid(struct digi_hwid *hwid)
 {
-	printf(" %.4x", ((u32 *)hwid)[3]);
-	printf(" %.8x", ((u32 *)hwid)[2]);
-	printf(" %.4x", ((u32 *)hwid)[1]);
-	printf(" %.8x", ((u32 *)hwid)[0]);
-	printf("\n");
+	print_hwid_hex(hwid);
 
 	/* Formatted printout */
 	printf(" Manufacturing ID: %02d%02d%02d%06d %02d%06x %02x%x%x %x"
@@ -135,21 +137,14 @@ int board_parse_hwid(int argc, char *const argv[], struct digi_hwid *hwid)
 	if (argc != CONFIG_HWID_WORDS_NUMBER)
 		goto err;
 
-	if (strlen(argv[0]) != 4)
-		goto err;
-
-	if (strlen(argv[1]) != 8)
-		goto err;
-
-	if (strlen(argv[2]) != 4)
-		goto err;
-
-	if (strlen(argv[3]) != 8)
-		goto err;
+	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++)
+		if (strlen(argv[i]) > hwid_word_lengths[i])
+			goto err;
 
 	/*
-	 * Digi HWID is set as a four hex strings in the form
-	 *     <WWWW> <XXXXXXXX> <YYYY> <ZZZZZZZZ>
+	 * Digi HWID is set as a number of hex strings in the form
+	 *   CC8X: <WWWW> <XXXXXXXX> <YYYY> <ZZZZZZZZ>
+	 *   CC8M: <XXXXXXXX> <YYYYYYYY> <ZZZZZZZZ>
 	 * that are inversely stored into the structure.
 	 */
 
@@ -193,7 +188,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	/* Initialize HWID words */
 	memset(hwid, 0, sizeof(struct digi_hwid));
 
-	if (argc < 3 || argc > 5)
+	if (argc != 5)
 		goto err;
 
 	/*
@@ -206,11 +201,6 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	 *  - MM:	month of the year (in decimal)
 	 *  - GG:	generator ID (in decimal)
 	 *  - XXXXXX:	serial number (in decimal)
-	 * this information goes into the following places on the fuses:
-	 *  - YY:	MAC1_ADDR0 bits 29..24 (6 bits)
-	 *  - MM:	MAC1_ADDR0 bits 23..20 (4 bits)
-	 *  - GG:	MAC2_ADDR0 bits 31..28 (4 bits)
-	 *  - XXXXXX:	MAC1_ADDR0 bits 19..0 (20 bits)
 	 */
 	if (strlen(argv[0]) != 12)
 		goto err;
@@ -219,9 +209,6 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	 * <PPAAAAAA>, where:
 	 *  - PP:	MAC pool (in decimal)
 	 *  - AAAAAA:	MAC base address (in hex)
-	 * this information goes into the following places on the fuses:
-	 *  - PP:	MAC2_ADDR0 bits 27..24 (4 bits)
-	 *  - AAAAAA:	MAC2_ADDR0 bits 23..0 (24 bits)
 	 */
 	if (strlen(argv[1]) != 8)
 		goto err;
@@ -231,10 +218,6 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	 *  - VV:	variant (in hex)
 	 *  - H:	hardware version (in hex)
 	 *  - C:	wireless certification (in hex)
-	 * this information goes into the following places on the fuses:
-	 *  - VV:	MAC1_ADDR1 bits 10..6 (5 bits)
-	 *  - H:	MAC1_ADDR1 bits 5..3 (3 bits)
-	 *  - C:	MAC1_ADDR1 bits 2..0 (3 bits)
 	 */
 	if (strlen(argv[2]) != 4)
 		goto err;
@@ -242,9 +225,6 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	/*
 	 * <K>, where:
 	 *  - K:	wireless ID (in hex)
-	 * this information goes into the following places on the fuses:
-	 *  - K:	MAC1_ADDR0 bits 31..30 (2 bits)
-	 * If not provided, a zero is used (for backwards compatibility)
 	 */
 	if (argc > 3) {
 		if (strlen(argv[3]) != 1)
@@ -258,13 +238,6 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	 *  - W:	whether the variant has Wi-Fi chip
 	 *  - B:	whether the variant has Bluetooth chip
 	 *  - C:	whether the variant has crypto-auth chip
-	 * this information goes into the following places on the fuses:
-	 *  - R:	MAC1_ADDR1 bits 14..11 (4 bits)
-	 *  - M:	MAC1_ADDR1 bit 15 (1 bits)
-	 *  - W:	MAC2_ADDR1 bit 0 (1 bits)
-	 *  - B:	MAC2_ADDR1 bit 1 (1 bits)
-	 *  - C:	MAC2_ADDR1 bit 2 (1 bits)
-	 * If not provided, a zero is used (for backwards compatibility)
 	 */
 	if (argc > 4) {
 		if (strlen(argv[4]) != 5)

@@ -9,7 +9,7 @@
 
 #include <common.h>
 #include <part.h>
-#include "helper.h"
+#include "../board/digi/common/helper.h"
 
 enum {
 	OS_UNDEFINED = -1,

@@ -23,8 +23,8 @@
 #include <common.h>
 #include <command.h>
 #include <linux/errno.h>
-#include "helper.h"
-#include "hwid.h"
+#include "../board/digi/common/helper.h"
+#include "../board/digi/common/hwid.h"
 
 static int do_hwid(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 {

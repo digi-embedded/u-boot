@@ -25,10 +25,12 @@
 #ifdef CONFIG_IMX_SEC_INIT
 #include <fsl_caam.h>
 #endif
+#include <environment.h>
+#include <efi_loader.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#if defined(CONFIG_SECURE_BOOT) || defined(CONFIG_AVB_ATX)
+#if defined(CONFIG_SECURE_BOOT) || defined(CONFIG_AVB_ATX) || defined(CONFIG_IMX_TRUSTY_OS)
 struct imx_sec_config_fuse_t const imx_sec_config_fuse = {
 	.bank = 1,
 	.word = 3,
@@ -789,11 +791,11 @@ void reset_cpu(ulong addr)
 	struct watchdog_regs *wdog = (struct watchdog_regs *)WDOG1_BASE_ADDR;
 
 	/* Clear WDA to trigger WDOG_B immediately */
-	writew((WCR_WDE | WCR_SRS), &wdog->wcr);
+	writew((SET_WCR_WT(1) | WCR_WDT | WCR_WDE | WCR_SRS), &wdog->wcr);
 
 	while (1) {
 		/*
-		 * spin for .5 seconds before reset
+		 * spin for 1 second before timeout reset
 		 */
 	}
 }
@@ -882,7 +884,7 @@ int imx8m_usb_power(int usb_id, bool on)
 
 void nxp_tmu_arch_init(void *reg_base)
 {
-	if (is_imx8mm()) {
+	if (is_imx8mm() || is_imx8mn()) {
 		/* Load TCALIV and TASR from fuses */
 		struct ocotp_regs *ocotp = (struct ocotp_regs *)OCOTP_BASE_ADDR;
 		struct fuse_bank *bank = &ocotp->bank[3];
@@ -903,3 +905,94 @@ void nxp_tmu_arch_init(void *reg_base)
 		writel((tca_en << 31) |(tca_hr <<16) | tca_rt,  (ulong)reg_base + 0x30);
 	}
 }
+
+#if defined(CONFIG_SPL_BUILD)
+#if defined(CONFIG_IMX8MQ) || defined(CONFIG_IMX8MM) || defined(CONFIG_IMX8MN)
+bool serror_need_skip = true;
+void do_error(struct pt_regs *pt_regs, unsigned int esr)
+{
+	/* If stack is still in ROM reserved OCRAM not switch to SPL, it is the ROM SError */
+	ulong sp;
+	asm volatile("mov %0, sp" : "=r"(sp) : );
+
+	if (serror_need_skip &&
+		sp < 0x910000 && sp >= 0x900000) {
+
+		/* Check for ERR050342, imx8mq HDCP enabled parts */
+		if (is_imx8mq() && !(readl(OCOTP_BASE_ADDR + 0x450) & 0x08000000)) {
+			serror_need_skip = false;
+			return; /* Do nothing skip the SError in ROM */
+		}
+
+		/* Check for ERR050350, field return mode for imx8mq, mm and mn */
+		if (readl(OCOTP_BASE_ADDR + 0x630) & 0x1) {
+			serror_need_skip = false;
+			return; /* Do nothing skip the SError in ROM */
+		}
+	}
+
+	efi_restore_gd();
+	printf("\"Error\" handler, esr 0x%08x\n", esr);
+	show_regs(pt_regs);
+	panic("Resetting CPU ...\n");
+
+}
+#endif
+#endif
+
+#if defined(CONFIG_IMX8MN)
+enum env_location env_get_location(enum env_operation op, int prio)
+{
+	enum boot_device dev = get_boot_device();
+	enum env_location env_loc = ENVL_UNKNOWN;
+
+	if (prio)
+		return env_loc;
+
+	switch (dev) {
+#ifdef CONFIG_ENV_IS_IN_SPI_FLASH
+	case QSPI_BOOT:
+		env_loc = ENVL_SPI_FLASH;
+		break;
+#endif
+#ifdef CONFIG_ENV_IS_IN_NAND
+	case NAND_BOOT:
+		env_loc = ENVL_NAND;
+		break;
+#endif
+#ifdef CONFIG_ENV_IS_IN_MMC
+	case SD1_BOOT:
+	case SD2_BOOT:
+	case SD3_BOOT:
+	case MMC1_BOOT:
+	case MMC2_BOOT:
+	case MMC3_BOOT:
+		env_loc =  ENVL_MMC;
+		break;
+#endif
+	default:
+#if defined(CONFIG_ENV_DEFAULT_NOWHERE) || defined(CONFIG_ENV_IS_NOWHERE)
+		env_loc = ENVL_NOWHERE;
+#endif
+		break;
+	}
+
+	return env_loc;
+}
+
+#ifndef ENV_IS_EMBEDDED
+long long env_get_offset(long long defautl_offset)
+{
+	enum boot_device dev = get_boot_device();
+
+	switch (dev) {
+	case NAND_BOOT:
+		return (60 << 20);  /* 60MB offset for NAND */
+	default:
+		break;
+	}
+
+	return defautl_offset;
+}
+#endif
+#endif

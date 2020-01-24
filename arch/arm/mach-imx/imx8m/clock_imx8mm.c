@@ -694,9 +694,9 @@ int clock_init()
 	clock_enable(CCGR_USDHC2, 0);
 	clock_enable(CCGR_USDHC3, 0);
 	clock_set_target_val(NAND_USDHC_BUS_CLK_ROOT, CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(1));
-	clock_set_target_val(USDHC1_CLK_ROOT, CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(1) | CLK_ROOT_POST_DIV(CLK_ROOT_POST_DIV2));
-	clock_set_target_val(USDHC2_CLK_ROOT, CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(1) | CLK_ROOT_POST_DIV(CLK_ROOT_POST_DIV2));
-	clock_set_target_val(USDHC3_CLK_ROOT, CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(1) | CLK_ROOT_POST_DIV(CLK_ROOT_POST_DIV2));
+	clock_set_target_val(USDHC1_CLK_ROOT, CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(1));
+	clock_set_target_val(USDHC2_CLK_ROOT, CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(1));
+	clock_set_target_val(USDHC3_CLK_ROOT, CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(1));
 	clock_enable(CCGR_USDHC1, 1);
 	clock_enable(CCGR_USDHC2, 1);
 	clock_enable(CCGR_USDHC3, 1);
@@ -747,8 +747,7 @@ int set_clk_qspi(void)
 	 * sys pll1 100M
 	 */
 	clock_enable(CCGR_QSPI, 0);
-	clock_set_target_val(QSPI_CLK_ROOT, CLK_ROOT_ON |
-			     CLK_ROOT_SOURCE_SEL(7));
+	clock_set_target_val(QSPI_CLK_ROOT, CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(7));
 	clock_enable(CCGR_QSPI, 1);
 
 	return 0;

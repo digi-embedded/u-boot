@@ -33,6 +33,7 @@
 #include <i2c.h>
 #include <asm/mach-imx/mxc_i2c.h>
 #include <linux/ctype.h>
+#include <linux/sizes.h>
 #include <mmc.h>
 #include <fsl_esdhc.h>
 #include <otf_update.h>
@@ -120,7 +121,7 @@ static struct ccimx6_variant ccimx6_variants[] = {
 /* 0x01 - 55001818-01 */
 	{
 		IMX6Q,
-		MEM_1GB,
+		SZ_1G,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
 		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
 		"Consumer quad-core 1.2GHz, 4GB eMMC, 1GB DDR3, 0/+70C, Wireless, Bluetooth, Kinetis",
@@ -128,7 +129,7 @@ static struct ccimx6_variant ccimx6_variants[] = {
 /* 0x02 - 55001818-02 */
 	{
 		IMX6Q,
-		MEM_1GB,
+		SZ_1G,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
 		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
 		"Consumer quad-core 1.2GHz, 4GB eMMC, 1GB DDR3, -20/+70C, Wireless, Bluetooth, Kinetis",
@@ -136,77 +137,77 @@ static struct ccimx6_variant ccimx6_variants[] = {
 /* 0x03 - 55001818-03 */
 	{
 		IMX6Q,
-		MEM_512MB,
+		SZ_512M,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH | CCIMX6_HAS_EMMC,
 		"Industrial quad-core 800MHz, 4GB eMMC, 512MB DDR3, -40/+85C, Wireless, Bluetooth",
 	},
 /* 0x04 - 55001818-04 */
 	{
 		IMX6D,
-		MEM_1GB,
+		SZ_1G,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH | CCIMX6_HAS_EMMC,
 		"Industrial dual-core 800MHz, 4GB eMMC, 1GB DDR3, -40/+85C, Wireless, Bluetooth",
 	},
 /* 0x05 - 55001818-05 */
 	{
 		IMX6D,
-		MEM_1GB,
+		SZ_1G,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_EMMC,
 		"Consumer dual-core 1GHz, 4GB eMMC, 1GB DDR3, 0/+70C, Wireless",
 	},
 /* 0x06 - 55001818-06 */
 	{
 		IMX6D,
-		MEM_1GB,
+		SZ_1G,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH | CCIMX6_HAS_EMMC,
 		"Consumer dual-core 1GHz, 4GB eMMC, 512MB DDR3, 0/+70C, Wireless, Bluetooth",
 	},
 /* 0x07 - 55001818-07 */
 	{
 		IMX6S,
-		MEM_256MB,
+		SZ_256M,
 		CCIMX6_HAS_WIRELESS,
 		"Consumer mono-core 1GHz, no eMMC, 256MB DDR3, 0/+70C, Wireless",
 	},
 /* 0x08 - 55001818-08 */
 	{
 		IMX6D,
-		MEM_512MB,
+		SZ_512M,
 		CCIMX6_HAS_EMMC,
 		"Consumer dual-core 1GHz, 4GB eMMC, 512MB DDR3, 0/+70C",
 	},
 /* 0x09 - 55001818-09 */
 	{
 		IMX6S,
-		MEM_256MB,
+		SZ_256M,
 		0,
 		"Consumer mono-core 1GHz, no eMMC, 256MB DDR3, 0/+70C",
 	},
 /* 0x0A - 55001818-10 */
 	{
 		IMX6DL,
-		MEM_512MB,
+		SZ_512M,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_EMMC,
 		"Industrial DualLite-core 800MHz, 4GB eMMC, 512MB DDR3, -40/+85C, Wireless",
 	},
 /* 0x0B - 55001818-11 */
 	{
 		IMX6DL,
-		MEM_1GB,
+		SZ_1G,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH | CCIMX6_HAS_EMMC,
 		"Consumer DualLite-core 1GHz, 4GB eMMC, 1GB DDR3, 0/+70C, Wireless, Bluetooth",
 	},
 /* 0x0C - 55001818-12 */
 	{
 		IMX6DL,
-		MEM_512MB,
+		SZ_512M,
 		CCIMX6_HAS_EMMC,
 		"Industrial DualLite-core 800MHz, 4GB eMMC, 512MB DDR3, -40/+85C",
 	},
 /* 0x0D - 55001818-13 */
 	{
 		IMX6D,
-		MEM_1GB,
+		SZ_1G,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
 		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
 		"Industrial dual-core 800MHz, 8GB eMMC, 1GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
@@ -214,21 +215,21 @@ static struct ccimx6_variant ccimx6_variants[] = {
 /* 0x0E - 55001818-14 */
 	{
 		IMX6D,
-		MEM_512MB,
+		SZ_512M,
 		CCIMX6_HAS_EMMC,
 		"Industrial dual-core 800MHz, 4GB eMMC, 512MB DDR3, -40/+85C",
 	},
 /* 0x0F - 55001818-15 */
 	{
 		IMX6Q,
-		MEM_512MB,
+		SZ_512M,
 		CCIMX6_HAS_EMMC,
 		"Industrial quad-core 800MHz, 4GB eMMC, 512MB DDR3, -40/+85C",
 	},
 /* 0x10 - 55001818-16 */
 	{
 		IMX6Q,
-		MEM_1GB,
+		SZ_1G,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
 		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
 		"Industrial quad-core 800MHz, 4GB eMMC, 1GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
@@ -236,7 +237,7 @@ static struct ccimx6_variant ccimx6_variants[] = {
 /* 0x11 - 55001818-17 */
 	{
 		IMX6Q,
-		MEM_1GB,
+		SZ_1G,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
 		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
 		"Industrial quad-core 800MHz, 8GB eMMC, 1GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
@@ -244,7 +245,7 @@ static struct ccimx6_variant ccimx6_variants[] = {
 /* 0x12 - 55001818-18 */
 	{
 		IMX6Q,
-		MEM_2GB,
+		SZ_2G,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
 		CCIMX6_HAS_EMMC,
 		"Consumer quad-core 1.2GHz, 4GB eMMC, 2GB DDR3, -20/+70C, Wireless, Bluetooth",
@@ -252,7 +253,7 @@ static struct ccimx6_variant ccimx6_variants[] = {
 /* 0x13 - 55001818-19 */
 	{
 		IMX6DL,
-		MEM_512MB,
+		SZ_512M,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
 		CCIMX6_HAS_EMMC,
 		"Industrial DualLite-core 800MHz, 4GB eMMC, 512MB DDR3, -40/+85C, Wireless, Bluetooth",
@@ -260,14 +261,14 @@ static struct ccimx6_variant ccimx6_variants[] = {
 /* 0x14 - 55001818-20 */
 	{
 		IMX6D,
-		MEM_1GB,
+		SZ_1G,
 		CCIMX6_HAS_EMMC,
 		"Consumer dual-core 1GHz, 4GB eMMC, 1GB DDR3, 0/+70C",
 	},
 /* 0x15 - 55001818-21 */
 	{
 		IMX6DL,
-		MEM_1GB,
+		SZ_1G,
 		CCIMX6_HAS_EMMC,
 		"Industrial DualLite-core 800MHz, 4GB eMMC, 1GB DDR3, -40/+85C",
 	},
@@ -649,18 +650,46 @@ static struct ccimx6_variant ccimx6p_variants[] = {
 /* 0x01 - 55001983-01 */
 	{
 		IMX6QP,
-		MEM_2GB,
+		SZ_2G,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
+		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
+		"Industrial QuadPlus-core 1GHz, 8GB eMMC, 2GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
+	},
+/* 0x02 - 55001983-02 */
+	{
+		IMX6QP,
+		SZ_2G,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
 		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
 		"Industrial QuadPlus-core 1GHz, 8GB eMMC, 2GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
 	},
 };
-#define NUM_VARIANTS_CC6P	2
+#define NUM_VARIANTS_CC6P	3
 
 /* DDR3 calibration values for the different CC6+ variants */
 static struct addrvalue ddr3_cal_cc6p[NUM_VARIANTS_CC6P + 1][DDR3_CAL_REGS] = {
 	/* Variant 0x01 */
 	[0x01] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x00060015},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x002F001F},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x00220035},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x00300031},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x43220325},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x0318031F},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x4334033C},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x032F0314},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3E31343B},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x38363040},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x3939423B},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x46354840},
+	},
+
+	/* Variant 0x02 (same as variant 0x01) */
+	[0x02] = {
 		/* Write leveling */
 		{MX6_MMDC_P0_MPWLDECTRL0, 0x00060015},
 		{MX6_MMDC_P0_MPWLDECTRL1, 0x002F001F},
@@ -843,6 +872,61 @@ int pmic_write_bitfield(int reg, unsigned char mask, unsigned char off,
 	return -1;
 }
 
+static bool is_valid_hwid(struct digi_hwid *hwid)
+{
+	int num;
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(hwid->variant);
+
+	num = is_mx6dqp() ? ARRAY_SIZE(ccimx6p_variants) :
+			    ARRAY_SIZE(ccimx6_variants);
+
+	if (hwid->variant < num && cc6_variant != NULL)
+		if (cc6_variant->cpu != IMX6_NONE)
+			return 1;
+
+	return 0;
+}
+
+bool board_has_emmc(void)
+{
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
+
+	if (is_valid_hwid(&my_hwid))
+		return !!(cc6_variant->capabilities & CCIMX6_HAS_EMMC);
+	else
+		return true; /* assume it has if invalid HWID */
+}
+
+static bool board_has_wireless(void)
+{
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
+
+	if (is_valid_hwid(&my_hwid))
+		return !!(cc6_variant->capabilities & CCIMX6_HAS_WIRELESS);
+	else
+		return true; /* assume it has if invalid HWID */
+}
+
+static bool board_has_bluetooth(void)
+{
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
+
+	if (is_valid_hwid(&my_hwid))
+		return !!(cc6_variant->capabilities & CCIMX6_HAS_BLUETOOTH);
+	else
+		return true; /* assume it has if invalid HWID */
+}
+
+static bool board_has_kinetis(void)
+{
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
+
+	if (is_valid_hwid(&my_hwid))
+		return !!(cc6_variant->capabilities & CCIMX6_HAS_KINETIS);
+	else
+		return true; /* assume it has if invalid HWID */
+}
+
 #ifdef CONFIG_FSL_ESDHC
 
 /* The order of MMC controllers here must match that of CONFIG_MMCDEV_USDHCx
@@ -888,7 +972,7 @@ int mmc_get_bootdevindex(void)
 		return 0;	/* index of SDHC4 (eMMC) */
 	default:
 		/* return default value otherwise */
-		return CONFIG_SYS_MMC_ENV_DEV;
+		return EMMC_BOOT_DEV;
 	}
 }
 
@@ -905,12 +989,12 @@ int board_mmc_get_env_part(int devno)
 				 * environment will be saved to the unique
 				 * hardware partition: 0 */
 	case MMC4_BOOT:
-		return 2;	/* When booting from SDHC4 (eMMC) the
+	default:
+		return CONFIG_SYS_MMC_ENV_PART;
+				/* When booting from SDHC4 (eMMC) the
 				 * environment will be saved to boot
 				 * partition 2 to protect it from
 				 * accidental overwrite during U-Boot update */
-	default:
-		return CONFIG_SYS_MMC_ENV_PART;
 	}
 }
 
@@ -1434,61 +1518,6 @@ int ccimx6_late_init(void)
 #endif
 
 	return ccimx6_fixup();
-}
-
-static int is_valid_hwid(struct digi_hwid *hwid)
-{
-	int num;
-	struct ccimx6_variant *cc6_variant = get_cc6_variant(hwid->variant);
-
-	num = is_mx6dqp() ? ARRAY_SIZE(ccimx6p_variants) :
-			    ARRAY_SIZE(ccimx6_variants);
-
-	if (hwid->variant < num && cc6_variant != NULL)
-		if (cc6_variant->cpu != IMX6_NONE)
-			return 1;
-
-	return 0;
-}
-
-int board_has_emmc(void)
-{
-	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
-
-	if (is_valid_hwid(&my_hwid))
-		return (cc6_variant->capabilities & CCIMX6_HAS_EMMC);
-	else
-		return 1; /* assume it has if invalid HWID */
-}
-
-int board_has_wireless(void)
-{
-	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
-
-	if (is_valid_hwid(&my_hwid))
-		return (cc6_variant->capabilities & CCIMX6_HAS_WIRELESS);
-	else
-		return 1; /* assume it has if invalid HWID */
-}
-
-int board_has_bluetooth(void)
-{
-	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
-
-	if (is_valid_hwid(&my_hwid))
-		return (cc6_variant->capabilities & CCIMX6_HAS_BLUETOOTH);
-	else
-		return 1; /* assume it has if invalid HWID */
-}
-
-int board_has_kinetis(void)
-{
-	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
-
-	if (is_valid_hwid(&my_hwid))
-		return (cc6_variant->capabilities & CCIMX6_HAS_KINETIS);
-	else
-		return 1; /* assume it has if invalid HWID */
 }
 
 void print_ccimx6_info(void)

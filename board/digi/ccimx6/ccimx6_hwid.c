@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Digi International, Inc.
+ * Copyright (C) 2016-2019 Digi International, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -9,8 +9,8 @@
 #include <linux/errno.h>
 #include <fuse.h>
 #include <fdt_support.h>
-#include "helper.h"
-#include "hwid.h"
+#include "../common/helper.h"
+#include "../common/hwid.h"
 
 extern struct digi_hwid my_hwid;
 
@@ -20,14 +20,12 @@ const char *cert_regions[] = {
 	"Japan",
 };
 
+int hwid_word_lengths[CONFIG_HWID_WORDS_NUMBER] = {8, 8};
+
 /* Print HWID info */
 void board_print_hwid(struct digi_hwid *hwid)
 {
-	int i;
-
-	for (i = CONFIG_HWID_WORDS_NUMBER - 1; i >= 0; i--)
-		printf(" %.8x", ((u32 *)hwid)[i]);
-	printf("\n");
+	print_hwid_hex(hwid);
 
 	/* Formatted printout */
 	printf("    Year:          20%02d\n", hwid->year);
@@ -46,11 +44,7 @@ void board_print_hwid(struct digi_hwid *hwid)
 /* Print HWID info in MANUFID format */
 void board_print_manufid(struct digi_hwid *hwid)
 {
-	int i;
-
-	for (i = CONFIG_HWID_WORDS_NUMBER - 1; i >= 0; i--)
-		printf(" %.8x", ((u32 *)hwid)[i]);
-	printf("\n");
+	print_hwid_hex(hwid);
 
 	/* Formatted printout */
 	printf(" Manufacturing ID: %c%02d%02d%02d%06d %02x%x%x %x\n",

@@ -1,0 +1,20 @@
+if TARGET_CCIMX8MN_DVK
+
+config SYS_BOARD
+	default "ccimx8mn_dvk"
+
+config SYS_VENDOR
+	default "digi"
+
+config SYS_CONFIG_NAME
+	default "ccimx8mn_dvk"
+
+config IMX8MN_FORCE_NOM_SOC
+	bool "Force to use nominal mode for SOC and ARM"
+	default n
+
+config MCA
+	bool
+	default y
+
+endif

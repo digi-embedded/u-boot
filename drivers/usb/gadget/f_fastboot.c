@@ -797,7 +797,7 @@ static ulong bootloader_mmc_offset(void)
 {
 	if (is_imx8mq() || is_imx8mm() || (is_imx8() && is_soc_rev(CHIP_REV_A)))
 		return 0x8400;
-	else if (is_imx8qm()) {
+	else if (is_imx8qm() || (is_imx8qxp() && !is_soc_rev(CHIP_REV_B))) {
 		if (MEK_8QM_EMMC == fastboot_devinfo.dev_id)
 		/* target device is eMMC boot0 partition, bootloader offset is 0x0 */
 			return 0x0;
@@ -1128,6 +1128,7 @@ static void process_flash_mmc(const char *cmdbuf)
 static void process_erase_mmc(const char *cmdbuf, char *response)
 {
 	int mmc_no = 0;
+	char blk_dev[128];
 	lbaint_t blks, blks_start, blks_size, grp_size;
 	struct mmc *mmc;
 	struct blk_desc *dev_desc;
@@ -1155,6 +1156,15 @@ static void process_erase_mmc(const char *cmdbuf, char *response)
 		printf("Block device MMC %d not supported\n",
 			mmc_no);
 		sprintf(response, "FAILnot valid MMC card");
+		return;
+	}
+
+	/* Get and switch target flash device. */
+	if (get_fastboot_target_dev(blk_dev, ptn) != 0) {
+		printf("failed to get target dev!\n");
+		return;
+	} else if (run_command(blk_dev, 0)) {
+		printf("Init of BLK device failed\n");
 		return;
 	}
 
@@ -1702,7 +1712,7 @@ void board_recovery_setup(void)
 #endif /*CONFIG_FSL_FASTBOOT*/
 
 #if defined(CONFIG_AVB_SUPPORT) && defined(CONFIG_MMC)
-static AvbABOps fsl_avb_ab_ops = {
+AvbABOps fsl_avb_ab_ops = {
 	.read_ab_metadata = fsl_read_ab_metadata,
 	.write_ab_metadata = fsl_write_ab_metadata,
 	.ops = NULL
@@ -2521,6 +2531,8 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 		goto fail;
 	/* lock the boot status and rollback_idx preventing Linux modify it */
 	trusty_lock_boot_state();
+	/* lock the boot state so linux can't use some hwcrypto commands. */
+	hwcrypto_lock_boot_state();
 	/* put ql-tipc to release resource for Linux */
 	trusty_ipc_shutdown();
 #endif
@@ -3673,9 +3685,6 @@ static void wipe_all_userdata(void)
 	/* Erase the cache partition for legacy imx6/7 */
 	process_erase_mmc(FASTBOOT_PARTITION_CACHE, response);
 #endif
-	/* The unlock permissive flag is set by user and should be wiped here. */
-	set_fastboot_lock_disable();
-
 
 #if defined(AVB_RPMB) && !defined(CONFIG_IMX_TRUSTY_OS)
 	printf("Start stored_rollback_index wipe process....\n");
@@ -3695,12 +3704,10 @@ static FbLockState do_fastboot_unlock(bool force)
 	}
 	if ((fastboot_lock_enable() == FASTBOOT_UL_ENABLE) || force) {
 		printf("It is able to unlock device. %d\n",fastboot_lock_enable());
+		wipe_all_userdata();
 		status = fastboot_set_lock_stat(FASTBOOT_UNLOCK);
 		if (status < 0)
 			return FASTBOOT_LOCK_ERROR;
-
-		wipe_all_userdata();
-
 	} else {
 		printf("It is not able to unlock device.");
 		return FASTBOOT_LOCK_ERROR;
@@ -3717,11 +3724,10 @@ static FbLockState do_fastboot_lock(void)
 		printf("The device is already locked\n");
 		return FASTBOOT_LOCK;
 	}
+	wipe_all_userdata();
 	status = fastboot_set_lock_stat(FASTBOOT_LOCK);
 	if (status < 0)
 		return FASTBOOT_LOCK_ERROR;
-
-	wipe_all_userdata();
 
 	return FASTBOOT_LOCK;
 }
@@ -3834,6 +3840,46 @@ static void cb_flashing(struct usb_ep *ep, struct usb_request *req)
 			strcpy(response, "FAILInternal error!");
 		} else
 			strcpy(response, "OKAY");
+	} else if (endswith(cmd, FASTBOOT_SET_RSA_ATTESTATION_KEY_ENC)) {
+		if (trusty_set_attestation_key_enc(interface.transfer_buffer,
+						download_bytes,
+						KM_ALGORITHM_RSA)) {
+			printf("ERROR set rsa attestation key failed!\n");
+			strcpy(response, "FAILInternal error!");
+		} else {
+			printf("Set rsa attestation key successfully!\n");
+			strcpy(response, "OKAY");
+		}
+	} else if (endswith(cmd, FASTBOOT_SET_EC_ATTESTATION_KEY_ENC)) {
+		if (trusty_set_attestation_key_enc(interface.transfer_buffer,
+						download_bytes,
+						KM_ALGORITHM_EC)) {
+			printf("ERROR set ec attestation key failed!\n");
+			strcpy(response, "FAILInternal error!");
+		} else {
+			printf("Set ec attestation key successfully!\n");
+			strcpy(response, "OKAY");
+		}
+	} else if (endswith(cmd, FASTBOOT_APPEND_RSA_ATTESTATION_CERT_ENC)) {
+		if (trusty_append_attestation_cert_chain_enc(interface.transfer_buffer,
+							download_bytes,
+							KM_ALGORITHM_RSA)) {
+			printf("ERROR append rsa attestation cert chain failed!\n");
+			strcpy(response, "FAILInternal error!");
+		} else {
+			printf("Append rsa attestation key successfully!\n");
+			strcpy(response, "OKAY");
+		}
+	}  else if (endswith(cmd, FASTBOOT_APPEND_EC_ATTESTATION_CERT_ENC)) {
+		if (trusty_append_attestation_cert_chain_enc(interface.transfer_buffer,
+							download_bytes,
+							KM_ALGORITHM_EC)) {
+			printf("ERROR append ec attestation cert chain failed!\n");
+			strcpy(response, "FAILInternal error!");
+		} else {
+			printf("Append ec attestation key successfully!\n");
+			strcpy(response, "OKAY");
+		}
 	} else if (endswith(cmd, FASTBOOT_SET_RSA_ATTESTATION_KEY)) {
 		if (trusty_set_attestation_key(interface.transfer_buffer,
 						download_bytes,
@@ -3872,6 +3918,14 @@ static void cb_flashing(struct usb_ep *ep, struct usb_request *req)
 			strcpy(response, "FAILInternal error!");
 		} else {
 			printf("Append ec attestation key successfully!\n");
+			strcpy(response, "OKAY");
+		}
+	}  else if (endswith(cmd, FASTBOOT_GET_MPPUBK)) {
+		if (fastboot_get_mppubk(interface.transfer_buffer, &download_bytes)) {
+			printf("ERROR Generate mppubk failed!\n");
+			strcpy(response, "FAILGenerate mppubk failed!");
+		} else {
+			printf("mppubk generated!\n");
 			strcpy(response, "OKAY");
 		}
 	}

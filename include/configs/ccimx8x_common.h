@@ -12,6 +12,7 @@
 #include "digi_common.h"		/* Load Digi common stuff... */
 
 #define CONFIG_CC8
+#define CONFIG_CC8X
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 8X"
 
 #define CONFIG_DISPLAY_BOARDINFO_LATE
@@ -50,7 +51,6 @@
 #define CONFIG_HWID_BANK		0
 #define CONFIG_HWID_START_WORD		708
 #define CONFIG_HWID_WORDS_NUMBER	4
-#define CONFIG_NO_MAC_FROM_OTP
 
 /* Media type for firmware updates */
 #define CONFIG_SYS_STORAGE_MEDIA       "mmc"
@@ -68,14 +68,15 @@
 #define USDHC2_BASE_ADDR                0x5B020000
 #define CONFIG_SUPPORT_EMMC_BOOT	/* eMMC specific */
 #define CONFIG_SUPPORT_MMC_ECSD
+#define EMMC_BOOT_ACK			1
+#define EMMC_BOOT_DEV			0
+#define EMMC_BOOT_PART			1
+#define EMMC_BOOT_PART_OFFSET_A0	(33 * SZ_1K)
+#define EMMC_BOOT_PART_OFFSET		(32 * SZ_1K)
 #define CONFIG_FAT_WRITE
 
-/* MMC device and partition where U-Boot image is */
-#define CONFIG_SYS_BOOT_PART_EMMC	1	/* Boot part 1 on eMMC */
-#define CONFIG_SYS_BOOT_PART_OFFSET_A0	(33 * SZ_1K)
-#define CONFIG_SYS_BOOT_PART_SIZE_A0	(SZ_2M - CONFIG_SYS_BOOT_PART_OFFSET_A0)
-#define CONFIG_SYS_BOOT_PART_OFFSET_B0	(32 * SZ_1K)
-#define CONFIG_SYS_BOOT_PART_SIZE_B0	(SZ_2M - CONFIG_SYS_BOOT_PART_OFFSET_B0)
+/* Ethernet */
+#define WIRED_NICS			2
 
 /* Extra network settings for second Ethernet */
 #define CONFIG_EXTRA_NETWORK_SETTINGS \
@@ -110,6 +111,8 @@
 /* MCA */
 #define CONFIG_MCA_I2C_BUS		0
 #define CONFIG_MCA_I2C_ADDR		0x63
+#define CONFIG_MCA_OFFSET_LEN		2
+#define BOARD_MCA_DEVICE_ID		0x4A
 
 #define CONFIG_TFTP_UPDATE_ONTHEFLY      /* support to tftp and update on-the-fly */
 

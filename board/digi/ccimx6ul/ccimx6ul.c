@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Digi International, Inc.
+ * Copyright (C) 2016-2019 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -41,8 +41,6 @@ DECLARE_GLOBAL_DATA_PTR;
 extern bool bmode_reset;
 struct digi_hwid my_hwid;
 
-#define MCA_CC6UL_DEVICE_ID_VAL		0x61
-
 #define MDIO_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_PUE |     \
 	PAD_CTL_DSE_48ohm   | PAD_CTL_SRE_FAST | PAD_CTL_ODE)
 
@@ -79,28 +77,28 @@ static struct ccimx6_variant ccimx6ul_variants[] = {
 /* 0x02 - 55001944-01 */
 	{
 		IMX6UL,
-		MEM_256MB,
+		SZ_256M,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
 		"Industrial Ultralite 528MHz, 256MB NAND, 256MB DDR3, -40/+85C, Wireless, Bluetooth",
 	},
 /* 0x03 - 55001944-02 */
 	{
 		IMX6UL,
-		MEM_256MB,
+		SZ_256M,
 		0,
 		"Industrial Ultralite 528MHz, 256MB NAND, 256MB DDR3, -40/+85C",
 	},
 /* 0x04 - 55001944-04 */
 	{
 		IMX6UL,
-		MEM_1GB,
+		SZ_1G,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
 		"Industrial Ultralite 528MHz, 1GB NAND, 1GB DDR3, -40/+85C, Wireless, Bluetooth",
 	},
 /* 0x05 - 55001944-05 */
 	{
 		IMX6UL,
-		MEM_1GB,
+		SZ_1G,
 		0,
 		"Industrial Ultralite 528MHz, 1GB NAND, 1GB DDR3, -40/+85C",
 	},
@@ -108,7 +106,7 @@ static struct ccimx6_variant ccimx6ul_variants[] = {
 /* This variant is the same as 0x02, but with i.MX6UL silicon v1.2 */
 	{
 		IMX6UL,
-		MEM_256MB,
+		SZ_256M,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
 		"Industrial Ultralite 528MHz, 256MB NAND, 256MB DDR3, -40/+85C, Wireless, Bluetooth",
 	},
@@ -179,6 +177,33 @@ static void setup_gpmi_nand(void)
 	setbits_le32(&mxc_ccm->CCGR0, MXC_CCM_CCGR0_APBHDMA_MASK);
 }
 #endif
+
+static int is_valid_hwid(struct digi_hwid *hwid)
+{
+	if (hwid->variant < ARRAY_SIZE(ccimx6ul_variants))
+		if (ccimx6ul_variants[hwid->variant].cpu != IMX6_NONE)
+			return 1;
+
+	return 0;
+}
+
+static bool board_has_wireless(void)
+{
+	if (is_valid_hwid(&my_hwid))
+		return !!(ccimx6ul_variants[my_hwid.variant].capabilities &
+			  CCIMX6_HAS_WIRELESS);
+	else
+		return true; /* assume it has if invalid HWID */
+}
+
+static bool board_has_bluetooth(void)
+{
+	if (is_valid_hwid(&my_hwid))
+		return !!(ccimx6ul_variants[my_hwid.variant].capabilities &
+			  CCIMX6_HAS_BLUETOOTH);
+	else
+		return true; /* assume it has if invalid HWID */
+}
 
 #ifdef CONFIG_POWER
 #define I2C_PMIC	0
@@ -270,38 +295,6 @@ void ldo_mode_set(int ldo_bypass)
 }
 #endif
 #endif
-
-void mca_init(void)
-{
-	unsigned char devid = 0;
-	unsigned char hwver;
-	unsigned char fwver[2];
-	int ret, fwver_ret;
-
-	ret = mca_read_reg(MCA_DEVICE_ID, &devid);
-	if (devid != MCA_CC6UL_DEVICE_ID_VAL) {
-		printf("MCA: invalid MCA DEVICE ID (0x%02x)\n", devid);
-		return;
-	}
-
-	ret = mca_read_reg(MCA_HW_VER, &hwver);
-	fwver_ret = mca_bulk_read(MCA_FW_VER_L, fwver, 2);
-
-	printf("MCA:   HW_VER=");
-	if (ret)
-		printf("??");
-	else
-		printf("%d", hwver);
-
-	printf("  FW_VER=");
-	if (fwver_ret)
-		printf("??");
-	else
-		printf("%d.%02d %s", fwver[1] & 0x7f, fwver[0],
-		       fwver[1] & 0x80 ? "(alpha)" : "");
-
-	printf("\n");
-}
 
 int ccimx6ul_init(void)
 {
@@ -424,33 +417,6 @@ int ccimx6ul_late_init(void)
 u32 get_board_rev(void)
 {
 	return get_cpu_rev();
-}
-
-static int is_valid_hwid(struct digi_hwid *hwid)
-{
-	if (hwid->variant < ARRAY_SIZE(ccimx6ul_variants))
-		if (ccimx6ul_variants[hwid->variant].cpu != IMX6_NONE)
-			return 1;
-
-	return 0;
-}
-
-int board_has_wireless(void)
-{
-	if (is_valid_hwid(&my_hwid))
-		return (ccimx6ul_variants[my_hwid.variant].capabilities &
-				    CCIMX6_HAS_WIRELESS);
-	else
-		return 1; /* assume it has if invalid HWID */
-}
-
-int board_has_bluetooth(void)
-{
-	if (is_valid_hwid(&my_hwid))
-		return (ccimx6ul_variants[my_hwid.variant].capabilities &
-				    CCIMX6_HAS_BLUETOOTH);
-	else
-		return 1; /* assume it has if invalid HWID */
 }
 
 void print_ccimx6ul_info(void)
