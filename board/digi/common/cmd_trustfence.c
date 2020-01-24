@@ -24,6 +24,9 @@
 #include <command.h>
 #include <fsl_sec.h>
 #include <fuse.h>
+#ifdef CONFIG_ARCH_IMX8
+#include <asm/arch/sci/sci.h>
+#endif
 #include <asm/mach-imx/hab.h>
 #include <linux/errno.h>
 #include "helper.h"
@@ -38,6 +41,7 @@
 #include "trustfence.h"
 #include <u-boot/md5.h>
 #include <fsl_caam.h>
+#include <console.h>
 
 #define UBOOT_HEADER_SIZE	0xC00
 #define UBOOT_START_ADDR	(CONFIG_SYS_TEXT_BASE - UBOOT_HEADER_SIZE)
@@ -69,7 +73,7 @@
  *
  * Returns 0 if the DEK blob was found, 1 otherwise.
  */
-static int get_dek_blob(char *output, u32 *size) {
+__weak int get_dek_blob(char *output, u32 *size) {
 	u32 *csf_addr = (u32 *)UBOOT_START_ADDR + CSF_IVT_WORD_OFFSET;
 
 	if (*csf_addr) {
@@ -149,13 +153,15 @@ __weak int fuse_check_srk(void)
 {
 	int i;
 	u32 val;
+	int offset = CONFIG_TRUSTFENCE_SRK_WORDS_OFFSET;
 
-	for (i = 0; i < CONFIG_TRUSTFENCE_SRK_WORDS; i++) {
+	for (i = offset; i < (offset + CONFIG_TRUSTFENCE_SRK_WORDS); i++) {
 		if (fuse_sense(CONFIG_TRUSTFENCE_SRK_BANK, i, &val))
 			return -1;
 		if (val == 0)
 			return i + 1;
 	}
+
 
 	return 0;
 }
@@ -178,13 +184,6 @@ __weak int fuse_prog_srk(u32 addr, u32 size)
 	}
 
 	return 0;
-}
-
-__weak int close_device(void)
-{
-	return fuse_prog(CONFIG_TRUSTFENCE_CLOSE_BIT_BANK,
-			 CONFIG_TRUSTFENCE_CLOSE_BIT_WORD,
-			 1 << CONFIG_TRUSTFENCE_CLOSE_BIT_OFFSET);
 }
 
 __weak int revoke_key_index(int i)
@@ -215,7 +214,40 @@ __weak int disable_ext_mem_boot(void)
 			 1 << CONFIG_TRUSTFENCE_DIRBTDIS_OFFSET);
 }
 
-static void board_print_trustfence_jtag_mode(u32 *sjc)
+__weak int close_device(int confirmed)
+{
+	hab_rvt_report_status_t *hab_report_status = (hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS;
+	enum hab_config config = 0;
+	enum hab_state state = 0;
+	int ret = -1;
+
+	if (hab_report_status(&config, &state) != HAB_SUCCESS) {
+		puts("[ERROR]\n There are HAB Events which will "
+		     "prevent the target from booting once closed.\n");
+		puts("Run 'hab_status' and check the errors.\n");
+		return CMD_RET_FAILURE;
+	}
+
+	puts("Before closing the device DIR_BT_DIS will be burned.\n");
+	puts("This permanently disables the ability to boot using external memory.\n");
+	puts("Please confirm the programming of DIR_BT_DIS and SEC_CONFIG[1]\n\n");
+	if (!confirmed && !confirm_prog())
+		return CMD_RET_FAILURE;
+
+	puts("Programming DIR_BT_DIS eFuse...\n");
+	if (disable_ext_mem_boot())
+		goto err;
+	puts("[OK]\n");
+		puts("Closing device...\n");
+
+	return fuse_prog(CONFIG_TRUSTFENCE_CLOSE_BIT_BANK,
+			 CONFIG_TRUSTFENCE_CLOSE_BIT_WORD,
+			 1 << CONFIG_TRUSTFENCE_CLOSE_BIT_OFFSET);
+err:
+	return ret;
+}
+
+__weak void board_print_trustfence_jtag_mode(u32 *sjc)
 {
 	u32 sjc_mode;
 
@@ -241,7 +273,7 @@ static void board_print_trustfence_jtag_mode(u32 *sjc)
 	}
 }
 
-static void board_print_trustfence_jtag_key(u32 *sjc)
+__weak void board_print_trustfence_jtag_key(u32 *sjc)
 {
 	int i;
 
@@ -426,6 +458,24 @@ void fdt_fixup_trustfence(void *fdt) {
 }
 #endif
 
+/* Platform */
+__weak int trustfence_status()
+{
+	hab_rvt_report_status_t *hab_report_status = (hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS;
+	enum hab_config config = 0;
+	enum hab_state state = 0;
+
+	printf("* Encrypted U-Boot:\t%s\n", is_uboot_encrypted() ?
+			"[YES]" : "[NO]");
+	puts("* HAB events:\t\t");
+	if (hab_report_status(&config, &state) == HAB_SUCCESS)
+		puts("[NO ERRORS]\n");
+	else
+		puts("[ERRORS PRESENT!]\n");
+
+	return 0;
+}
+
 static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 {
 	const char *op;
@@ -435,7 +485,6 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 	u32 val[2], addr;
 	char jtag_op[15];
 	int ret = -1, i = 0;
-	hab_rvt_report_status_t *hab_report_status = (hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS;
 	struct load_fw fwinfo;
 
 	if (argc < 2)
@@ -473,9 +522,6 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			goto err;
 		puts("[OK]\n");
 	} else if (!strcmp(op, "close")) {
-		enum hab_config config = 0;
-		enum hab_state state = 0;
-
 		puts("Checking SRK bank...\n");
 		ret = fuse_check_srk();
 		if (ret > 0) {
@@ -488,26 +534,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			puts("[OK]\n\n");
 		}
 
-		if (hab_report_status(&config, &state) != HAB_SUCCESS) {
-			puts("[ERROR]\n There are HAB Events which will "
-			     "prevent the target from booting once closed.\n");
-			puts("Run 'hab_status' and check the errors.\n");
-			return CMD_RET_FAILURE;
-		}
-
-		puts("Before closing the device DIR_BT_DIS will be burned.\n");
-		puts("This permanently disables the ability to boot using external memory.\n");
-		puts("Please confirm the programming of DIR_BT_DIS and SEC_CONFIG[1]\n\n");
-		if (!confirmed && !confirm_prog())
-			return CMD_RET_FAILURE;
-
-		puts("Programming DIR_BT_DIS eFuse...\n");
-		if (disable_ext_mem_boot())
-			goto err;
-		puts("[OK]\n");
-
-		puts("Closing device...\n");
-		if (close_device())
+		if (close_device(confirmed))
 			goto err;
 		puts("[OK]\n");
 	} else if (!strcmp(op, "revoke")) {
@@ -534,8 +561,6 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		puts("[OK]\n");
 	} else if (!strcmp(op, "status")) {
 		int key_index;
-		enum hab_config config = 0;
-		enum hab_state state = 0;
 
 		printf("* SRK fuses:\t\t");
 		ret = fuse_check_srk();
@@ -559,15 +584,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 
 		printf("* Secure boot:\t\t%s", imx_hab_is_enabled() ?
 		       "[CLOSED]\n" : "[OPEN]\n");
-
-		printf("* Encrypted U-Boot:\t%s\n", is_uboot_encrypted() ?
-			"[YES]" : "[NO]");
-
-		puts("* HAB events:\t\t");
-		if (hab_report_status(&config, &state) == HAB_SUCCESS)
-			puts("[NO ERRORS]\n");
-		else
-			puts("[ERRORS PRESENT!]\n");
+		trustfence_status();
 	} else if (!strcmp(op, "update")) {
 		char cmd_buf[CONFIG_SYS_CBSIZE];
 		unsigned long loadaddr = env_get_ulong("loadaddr", 16,
@@ -909,6 +926,7 @@ U_BOOT_CMD(
 	"trustfence prog_srk [-y] <ram addr> <size in bytes> - burn SRK efuses (PERMANENT)\n"
 	"trustfence close [-y] - close the device so that it can only boot "
 			      "signed images (PERMANENT)\n"
+#if defined(CONFIG_MX6)
 	"trustfence revoke [-y] <key index> - revoke one Super Root Key (PERMANENT)\n"
 	"trustfence update <source> [extra-args...]\n"
 	" Description: flash an encrypted U-Boot image.\n"
@@ -955,4 +973,5 @@ U_BOOT_CMD(
 	"trustfence jtag [-y] lock - lock Secure JTAG mode and disable JTAG interface "
 				"OTP bits (PERMANENT)\n"
 	"trustfence jtag [-y] lock_key - lock Secure JTAG key OTP bits (PERMANENT)\n"
+#endif
 );

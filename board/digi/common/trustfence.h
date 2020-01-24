@@ -29,4 +29,8 @@ static inline void fdt_fixup_trustfence(void *fdt) {}
 #endif
 
 int get_trustfence_key_modifier(unsigned char key_modifier[16]);
+
+/* platform specific Trustfence support*/
+int trustfence_status(void);
+
 #endif /* TRUSTFENCE_H */

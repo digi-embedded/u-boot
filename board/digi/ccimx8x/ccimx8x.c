@@ -6,6 +6,7 @@
  */
 #include <common.h>
 #include <fsl_esdhc.h>
+#include <fuse.h>
 #include <i2c.h>
 #include <otf_update.h>
 #include <linux/ctype.h>
@@ -22,6 +23,8 @@
 #include "ccimx8x.h"
 
 DECLARE_GLOBAL_DATA_PTR;
+
+int confirm_close(void);
 
 typedef struct mac_base { uint8_t mbase[3]; } mac_base_t;
 
@@ -470,4 +473,85 @@ void fdt_fixup_ccimx8x(void *fdt)
 void detail_board_ddr_info(void)
 {
 	puts("\nDDR    ");
+}
+
+int close_device(int confirmed_close)
+{
+	int err;
+	uint16_t lc;
+	uint8_t idx = 0U;
+
+	if (!confirmed_close && !confirm_close())
+		return -EACCES;
+
+	err = sc_seco_chip_info(-1, &lc, NULL, NULL, NULL);
+	if (err != SC_ERR_NONE) {
+		printf("Error in get lifecycle\n");
+		return -EIO;
+	}
+
+	if (lc != 0x20) {
+		printf("Current lifecycle is NOT NXP closed, can't move to OEM closed (0x%x)\n", lc);
+		return -EPERM;
+	}
+
+	/* Verifiy that we do not have any AHAB events */
+	err = sc_seco_get_event(-1, idx, NULL);
+	if (err == SC_ERR_NONE) {
+		printf ("SECO Event[%u] - abort closing device.\n", idx);
+		return -EIO;
+	}
+
+	err = sc_seco_forward_lifecycle(-1, 16);
+	if (err != SC_ERR_NONE) {
+		printf("Error in forward lifecycle to OEM closed\n");
+		return -EIO;
+	}
+
+	puts("Closing device...\n");
+
+	return 0;
+}
+
+int sense_key_status(u32 *val)
+{
+	if (fuse_sense(CONFIG_TRUSTFENCE_SRK_BANK,
+		       CONFIG_TRUSTFENCE_SRK_REVOKE_WORD,
+		       val))
+		return -1;
+
+	return 0;
+}
+
+/* Trustfence helper functions */
+int trustfence_status(void)
+{
+	uint8_t idx = 0U;
+	int err;
+
+	puts("* AHAB events:\t\t");
+	err = sc_seco_get_event(-1, idx, NULL);
+	if (err == SC_ERR_NONE)
+		idx++;
+	if (idx == 0)
+		puts("[NO ERRORS]\n");
+	else
+		puts("[ERRORS PRESENT!]\n");
+
+	return err;
+}
+
+void board_print_trustfence_jtag_mode(u32 *sjc)
+{
+	return;
+}
+
+void board_print_trustfence_jtag_key(u32 *sjc)
+{
+	return;
+}
+
+int get_dek_blob(char *output, u32 *size)
+{
+	return 1;
 }
