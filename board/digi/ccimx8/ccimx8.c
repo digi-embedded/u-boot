@@ -37,7 +37,7 @@ int board_mmc_get_env_dev(int devno)
 	return mmc_get_bootdevindex();
 }
 
-int board_has_emmc(void)
+bool board_has_emmc(void)
 {
 	return 1;
 }
@@ -54,32 +54,32 @@ static int use_mac_from_fuses(struct digi_hwid *hwid)
 	return hwid->mac_pool != 0;
 }
 
-int board_has_wireless(void)
+static bool board_has_wireless(void)
 {
 	if (my_hwid.ram)
 		return my_hwid.wifi;
 
 #ifdef CONFIG_CC8X
 	if (hwid_in_db(my_hwid.variant))
-		return (ccimx8x_variants[my_hwid.variant].capabilities &
+		return !!(ccimx8x_variants[my_hwid.variant].capabilities &
 				CCIMX8_HAS_WIRELESS);
 #endif
 
-	return 1; /* assume it has, by default */
+	return true; /* assume it has, by default */
 }
 
-int board_has_bluetooth(void)
+static bool board_has_bluetooth(void)
 {
 	if (my_hwid.ram)
 		return my_hwid.bt;
 
 #ifdef CONFIG_CC8X
 	if (hwid_in_db(my_hwid.variant))
-		return (ccimx8x_variants[my_hwid.variant].capabilities &
-				CCIMX8_HAS_BLUETOOTH);
+		return !!(ccimx8x_variants[my_hwid.variant].capabilities &
+			  CCIMX8_HAS_BLUETOOTH);
 #endif
 
-	return 1; /* assume it has, by default */
+	return true; /* assume it has, by default */
 }
 
 static bool board_has_eth1(void)

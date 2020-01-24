@@ -872,6 +872,61 @@ int pmic_write_bitfield(int reg, unsigned char mask, unsigned char off,
 	return -1;
 }
 
+static bool is_valid_hwid(struct digi_hwid *hwid)
+{
+	int num;
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(hwid->variant);
+
+	num = is_mx6dqp() ? ARRAY_SIZE(ccimx6p_variants) :
+			    ARRAY_SIZE(ccimx6_variants);
+
+	if (hwid->variant < num && cc6_variant != NULL)
+		if (cc6_variant->cpu != IMX6_NONE)
+			return 1;
+
+	return 0;
+}
+
+bool board_has_emmc(void)
+{
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
+
+	if (is_valid_hwid(&my_hwid))
+		return !!(cc6_variant->capabilities & CCIMX6_HAS_EMMC);
+	else
+		return true; /* assume it has if invalid HWID */
+}
+
+static bool board_has_wireless(void)
+{
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
+
+	if (is_valid_hwid(&my_hwid))
+		return !!(cc6_variant->capabilities & CCIMX6_HAS_WIRELESS);
+	else
+		return true; /* assume it has if invalid HWID */
+}
+
+static bool board_has_bluetooth(void)
+{
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
+
+	if (is_valid_hwid(&my_hwid))
+		return !!(cc6_variant->capabilities & CCIMX6_HAS_BLUETOOTH);
+	else
+		return true; /* assume it has if invalid HWID */
+}
+
+static bool board_has_kinetis(void)
+{
+	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
+
+	if (is_valid_hwid(&my_hwid))
+		return !!(cc6_variant->capabilities & CCIMX6_HAS_KINETIS);
+	else
+		return true; /* assume it has if invalid HWID */
+}
+
 #ifdef CONFIG_FSL_ESDHC
 
 /* The order of MMC controllers here must match that of CONFIG_MMCDEV_USDHCx
@@ -1463,61 +1518,6 @@ int ccimx6_late_init(void)
 #endif
 
 	return ccimx6_fixup();
-}
-
-static int is_valid_hwid(struct digi_hwid *hwid)
-{
-	int num;
-	struct ccimx6_variant *cc6_variant = get_cc6_variant(hwid->variant);
-
-	num = is_mx6dqp() ? ARRAY_SIZE(ccimx6p_variants) :
-			    ARRAY_SIZE(ccimx6_variants);
-
-	if (hwid->variant < num && cc6_variant != NULL)
-		if (cc6_variant->cpu != IMX6_NONE)
-			return 1;
-
-	return 0;
-}
-
-int board_has_emmc(void)
-{
-	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
-
-	if (is_valid_hwid(&my_hwid))
-		return (cc6_variant->capabilities & CCIMX6_HAS_EMMC);
-	else
-		return 1; /* assume it has if invalid HWID */
-}
-
-int board_has_wireless(void)
-{
-	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
-
-	if (is_valid_hwid(&my_hwid))
-		return (cc6_variant->capabilities & CCIMX6_HAS_WIRELESS);
-	else
-		return 1; /* assume it has if invalid HWID */
-}
-
-int board_has_bluetooth(void)
-{
-	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
-
-	if (is_valid_hwid(&my_hwid))
-		return (cc6_variant->capabilities & CCIMX6_HAS_BLUETOOTH);
-	else
-		return 1; /* assume it has if invalid HWID */
-}
-
-int board_has_kinetis(void)
-{
-	struct ccimx6_variant *cc6_variant = get_cc6_variant(my_hwid.variant);
-
-	if (is_valid_hwid(&my_hwid))
-		return (cc6_variant->capabilities & CCIMX6_HAS_KINETIS);
-	else
-		return 1; /* assume it has if invalid HWID */
 }
 
 void print_ccimx6_info(void)

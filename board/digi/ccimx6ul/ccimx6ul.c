@@ -178,6 +178,33 @@ static void setup_gpmi_nand(void)
 }
 #endif
 
+static int is_valid_hwid(struct digi_hwid *hwid)
+{
+	if (hwid->variant < ARRAY_SIZE(ccimx6ul_variants))
+		if (ccimx6ul_variants[hwid->variant].cpu != IMX6_NONE)
+			return 1;
+
+	return 0;
+}
+
+static bool board_has_wireless(void)
+{
+	if (is_valid_hwid(&my_hwid))
+		return !!(ccimx6ul_variants[my_hwid.variant].capabilities &
+			  CCIMX6_HAS_WIRELESS);
+	else
+		return true; /* assume it has if invalid HWID */
+}
+
+static bool board_has_bluetooth(void)
+{
+	if (is_valid_hwid(&my_hwid))
+		return !!(ccimx6ul_variants[my_hwid.variant].capabilities &
+			  CCIMX6_HAS_BLUETOOTH);
+	else
+		return true; /* assume it has if invalid HWID */
+}
+
 #ifdef CONFIG_POWER
 #define I2C_PMIC	0
 static struct pmic *pfuze;
@@ -390,33 +417,6 @@ int ccimx6ul_late_init(void)
 u32 get_board_rev(void)
 {
 	return get_cpu_rev();
-}
-
-static int is_valid_hwid(struct digi_hwid *hwid)
-{
-	if (hwid->variant < ARRAY_SIZE(ccimx6ul_variants))
-		if (ccimx6ul_variants[hwid->variant].cpu != IMX6_NONE)
-			return 1;
-
-	return 0;
-}
-
-int board_has_wireless(void)
-{
-	if (is_valid_hwid(&my_hwid))
-		return (ccimx6ul_variants[my_hwid.variant].capabilities &
-				    CCIMX6_HAS_WIRELESS);
-	else
-		return 1; /* assume it has if invalid HWID */
-}
-
-int board_has_bluetooth(void)
-{
-	if (is_valid_hwid(&my_hwid))
-		return (ccimx6ul_variants[my_hwid.variant].capabilities &
-				    CCIMX6_HAS_BLUETOOTH);
-	else
-		return 1; /* assume it has if invalid HWID */
 }
 
 void print_ccimx6ul_info(void)
