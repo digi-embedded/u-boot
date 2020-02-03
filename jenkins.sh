@@ -34,6 +34,7 @@ done<<-_EOF_
 	ccimx6qsbc2GB            u-boot.imx  cortexa9hf
 	ccimx6qsbc512MB          u-boot.imx  cortexa9hf
 	ccimx6qsbc               u-boot.imx  cortexa9hf
+	ccimx6qpsbc1GB           u-boot.imx  cortexa9hf
 	ccimx6qpsbc2GB           u-boot.imx  cortexa9hf
 	ccimx6ulstarter          u-boot.imx  cortexa9hf
 	ccimx6ulsbc              u-boot.imx  cortexa9hf
