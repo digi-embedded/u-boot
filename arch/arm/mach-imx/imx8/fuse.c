@@ -90,7 +90,7 @@ int fuse_prog(u32 bank, u32 word, u32 val)
 	}
 #endif
 
-	if (allow_prog) {
+	if (!fuse_is_prog_allowed()) {
 		if (((word >= FSL_ECC_WORD_START_1) && (word <= FSL_ECC_WORD_END_1)) ||
 			((word >= FSL_ECC_WORD_START_2) && (word <= FSL_ECC_WORD_END_2)))
 		{
