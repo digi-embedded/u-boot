@@ -328,15 +328,7 @@ bool fastboot_parts_is_raw(struct fastboot_ptentry *ptn)
 			return true;
 #ifdef CONFIG_ANDROID_AB_SUPPORT
 		else if (!strncmp(ptn->name, FASTBOOT_PARTITION_GPT,
-			strlen(FASTBOOT_PARTITION_GPT)) ||
-			!strncmp(ptn->name, FASTBOOT_PARTITION_BOOT_A,
-			strlen(FASTBOOT_PARTITION_BOOT_A)) ||
-			!strncmp(ptn->name, FASTBOOT_PARTITION_BOOT_B,
-			strlen(FASTBOOT_PARTITION_BOOT_B)))
-			return true;
-#else
-		else if (!strncmp(ptn->name, FASTBOOT_PARTITION_BOOT,
-			strlen(FASTBOOT_PARTITION_BOOT)))
+			strlen(FASTBOOT_PARTITION_GPT)))
 			return true;
 #endif
 #if defined(CONFIG_FASTBOOT_LOCK)
