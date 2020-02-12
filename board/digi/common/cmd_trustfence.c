@@ -518,7 +518,10 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			return CMD_RET_USAGE;
 
 		puts("Programming SRK efuses... ");
-		if (fuse_prog_srk(addr, val[0]))
+		fuse_allow_prog(true);
+		ret = fuse_prog_srk(addr, val[0]);
+		fuse_allow_prog(false);
+		if (ret)
 			goto err;
 		puts("[OK]\n");
 	} else if (!strcmp(op, "close")) {
@@ -690,7 +693,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			}
 
 			dek_blob_src = (uintptr_t) (buffer + DMA_ALIGN_UP(uboot_size));
-			dek_blob_dst = (uintptr_t) (buffer + DMA_ALIGN_UP(uboot_size) + DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE)); 
+			dek_blob_dst = (uintptr_t) (buffer + DMA_ALIGN_UP(uboot_size) + DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE));
 			dek_blob_final_dst = (uintptr_t) (buffer + uboot_size);
 
 			debug("Buffer:             [0x%p,\t0x%p]\n", buffer, buffer + DMA_ALIGN_UP(uboot_size) + 2 * DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE));
