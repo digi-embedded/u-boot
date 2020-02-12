@@ -4,10 +4,10 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2019.04
 -----------
-dub-2019.04-r1.3, released on 2020/02/12
+dub-2019.04-r1.4, released on 2020/02/12
 	- Update ConnectCore 8X to v2019.04 BSP from NXP
           (tag 'rel_imx_4.19.35_1.1.0').
-	- Added TrustFence support for ConnectCore 8X.
+	- Added TrustFence support (phase 1) for ConnectCore 8X.
 
 
 DUB-2018.03
