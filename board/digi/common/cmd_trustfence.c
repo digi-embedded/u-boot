@@ -163,7 +163,6 @@ __weak int fuse_check_srk(void)
 			return i + 1;
 	}
 
-
 	return 0;
 }
 
@@ -172,14 +171,15 @@ __weak int fuse_prog_srk(u32 addr, u32 size)
 	int i;
 	int ret;
 	uint32_t *src_addr = map_sysmem(addr, size);
+	int word = CONFIG_TRUSTFENCE_SRK_WORDS_OFFSET;
 
 	if (size != CONFIG_TRUSTFENCE_SRK_WORDS * 4) {
 		puts("Bad size\n");
 		return -1;
 	}
 
-	for (i = 0; i < CONFIG_TRUSTFENCE_SRK_WORDS; i++) {
-		ret = fuse_prog(CONFIG_TRUSTFENCE_SRK_BANK, i, src_addr[i]);
+	for (i = 0; i < CONFIG_TRUSTFENCE_SRK_WORDS; i++, word++) {
+		ret = fuse_prog(CONFIG_TRUSTFENCE_SRK_BANK, word, src_addr[i]);
 		if (ret)
 			return ret;
 	}
