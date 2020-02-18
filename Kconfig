@@ -59,6 +59,22 @@ config BROKEN
 	  This option cannot be enabled. It is used as dependency
 	  for broken and incomplete features.
 
+config ENV_AES
+	bool "Encrypt U-Boot environment"
+	select AES
+	help
+	  Define to encrypt the whole environment block with AES-128-CBC.
+
+config ENV_AES_CAAM_KEY
+	bool "Use CAAM internal key"
+	depends on ENV_AES
+	help
+	  Use the internal CAAM secure key for environment encryption which
+	  uses AES-256-CCM.
+
+	  This setting is only supported in closed devices (those which can
+	  only boot signed U-Boot images). It has no effect on open devices.
+
 config LOCALVERSION
 	string "Local version - append to U-Boot release"
 	help

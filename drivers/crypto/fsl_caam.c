@@ -44,6 +44,8 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#define BLOB_SIZE(x)		((x) + 32 + 16) /* Blob buffer size */
+
 static int do_cfg_jrqueue(void);
 static int do_job(u32 *desc);
 #ifndef CONFIG_ARCH_IMX8
