@@ -289,7 +289,7 @@ void caam_open(void)
 	/* Check if the RNG is already instantiated */
 	temp_reg = __raw_readl(CAAM_RDSTA);
 	if (temp_reg == (RDSTA_IF0 | RDSTA_IF1 | RDSTA_SKVN)) {
-		printf("RNG already instantiated 0x%X\n", temp_reg);
+		debug("RNG already instantiated 0x%X\n", temp_reg);
 		return;
 	}
 	rng_init();
