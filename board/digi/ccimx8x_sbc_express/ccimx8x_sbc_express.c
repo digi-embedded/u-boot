@@ -8,10 +8,10 @@
 #include <fsl_esdhc.h>
 
 #include <asm/gpio.h>
-#include <asm/mach-imx/sci/sci.h>
 #include <asm/arch/imx8-pins.h>
 #include <usb.h>
 #include <asm/arch/iomux.h>
+#include <asm/arch/sci/sci.h>
 #include <asm/arch/sys_proto.h>
 #include <power-domain.h>
 #include "../../freescale/common/tcpc.h"

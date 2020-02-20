@@ -14,6 +14,10 @@
 #include <fuse.h>
 #include <linux/errno.h>
 
+__weak void fuse_allow_prog(bool allow) {
+	return;
+}
+
 static int strtou32(const char *str, unsigned int base, u32 *result)
 {
 	char *ep;

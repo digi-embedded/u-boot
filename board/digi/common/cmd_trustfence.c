@@ -78,7 +78,8 @@ __weak int get_dek_blob(char *output, u32 *size) {
 
 	if (*csf_addr) {
 		int blob_size = MAX_DEK_BLOB_SIZE;
-		uint8_t *dek_blob = (uint8_t *)(*csf_addr + CONFIG_CSF_SIZE - blob_size);
+		uint8_t *dek_blob = (uint8_t *)(uintptr_t)(*csf_addr +
+				    CONFIG_CSF_SIZE - blob_size);
 
 		/*
 		 * Several DEK sizes can be used.
@@ -162,7 +163,6 @@ __weak int fuse_check_srk(void)
 			return i + 1;
 	}
 
-
 	return 0;
 }
 
@@ -171,14 +171,15 @@ __weak int fuse_prog_srk(u32 addr, u32 size)
 	int i;
 	int ret;
 	uint32_t *src_addr = map_sysmem(addr, size);
+	int word = CONFIG_TRUSTFENCE_SRK_WORDS_OFFSET;
 
 	if (size != CONFIG_TRUSTFENCE_SRK_WORDS * 4) {
 		puts("Bad size\n");
 		return -1;
 	}
 
-	for (i = 0; i < CONFIG_TRUSTFENCE_SRK_WORDS; i++) {
-		ret = fuse_prog(CONFIG_TRUSTFENCE_SRK_BANK, i, src_addr[i]);
+	for (i = 0; i < CONFIG_TRUSTFENCE_SRK_WORDS; i++, word++) {
+		ret = fuse_prog(CONFIG_TRUSTFENCE_SRK_BANK, word, src_addr[i]);
 		if (ret)
 			return ret;
 	}
@@ -518,7 +519,10 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			return CMD_RET_USAGE;
 
 		puts("Programming SRK efuses... ");
-		if (fuse_prog_srk(addr, val[0]))
+		fuse_allow_prog(true);
+		ret = fuse_prog_srk(addr, val[0]);
+		fuse_allow_prog(false);
+		if (ret)
 			goto err;
 		puts("[OK]\n");
 	} else if (!strcmp(op, "close")) {
@@ -690,7 +694,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			}
 
 			dek_blob_src = (uintptr_t) (buffer + DMA_ALIGN_UP(uboot_size));
-			dek_blob_dst = (uintptr_t) (buffer + DMA_ALIGN_UP(uboot_size) + DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE)); 
+			dek_blob_dst = (uintptr_t) (buffer + DMA_ALIGN_UP(uboot_size) + DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE));
 			dek_blob_final_dst = (uintptr_t) (buffer + uboot_size);
 
 			debug("Buffer:             [0x%p,\t0x%p]\n", buffer, buffer + DMA_ALIGN_UP(uboot_size) + 2 * DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE));
