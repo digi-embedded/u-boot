@@ -316,6 +316,13 @@ __weak int fuse_prog_srk(u32 addr, u32 size)
 	return 0;
 }
 
+__weak int lock_srk_otp(void)
+{
+	return fuse_prog(CONFIG_TRUSTFENCE_SRK_OTP_LOCK_BANK,
+			 CONFIG_TRUSTFENCE_SRK_OTP_LOCK_WORD,
+			 1 << CONFIG_TRUSTFENCE_SRK_OTP_LOCK_OFFSET);
+}
+
 __weak int close_device(void)
 {
 	return fuse_prog(CONFIG_TRUSTFENCE_CLOSE_BIT_BANK,
@@ -640,12 +647,18 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 
 		puts("Before closing the device DIR_BT_DIS will be burned.\n");
 		puts("This permanently disables the ability to boot using external memory.\n");
-		puts("Please confirm the programming of DIR_BT_DIS and SEC_CONFIG[1]\n\n");
+		puts("The SRK_LOCK OTP bit will also be programmed, locking the SRK fields.\n");
+		puts("Please confirm the programming of SRK_LOCK, DIR_BT_DIS and SEC_CONFIG[1]\n\n");
 		if (!confirmed && !confirm_prog())
 			return CMD_RET_FAILURE;
 
 		puts("Programming DIR_BT_DIS eFuse...\n");
 		if (disable_ext_mem_boot())
+			goto err;
+		puts("[OK]\n");
+
+		puts("Programming SRK_LOCK eFuse...\n");
+		if (lock_srk_otp())
 			goto err;
 		puts("[OK]\n");
 
