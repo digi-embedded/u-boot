@@ -315,13 +315,13 @@ void som_default_environment(void)
 		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
 }
 
-void board_updated_hwid(void)
+void board_update_hwid(bool is_fuse)
 {
 	/* Update HWID-related variables in MCA and environment */
-	if (board_read_hwid(&my_hwid)) {
+	int ret = is_fuse ? board_sense_hwid(&my_hwid) : board_read_hwid(&my_hwid);
+
+	if (ret)
 		printf("Cannot read HWID\n");
-		return;
-	}
 
 	mca_somver_update();
 	som_default_environment();

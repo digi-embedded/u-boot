@@ -1462,13 +1462,13 @@ void som_default_environment(void)
 	generate_partition_table();
 }
 
-void board_updated_hwid(void)
+void board_update_hwid(bool is_fuse)
 {
 	/* Update HWID-related variables in environment */
-	if (board_read_hwid(&my_hwid)) {
+	int ret = is_fuse ? board_sense_hwid(&my_hwid) : board_read_hwid(&my_hwid);
+
+	if (ret)
 		printf("Cannot read HWID\n");
-		return;
-	}
 
 	som_default_environment();
 }

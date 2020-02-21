@@ -69,6 +69,10 @@ int board_prog_hwid(const struct digi_hwid *hwid)
 	fuse_allow_prog(false);
 #endif
 
+	/* Trigger a HWID-related variables update (from fuses) */
+	if(!ret)
+		board_update_hwid(true);
+
 	return ret;
 }
 

@@ -64,6 +64,11 @@ __weak int board_sense_hwid(struct digi_hwid *hwid)
 	return 0;
 }
 
+__weak void board_update_hwid(bool is_fuse)
+{
+	/* Do nothing */
+}
+
 __weak int board_prog_hwid(const struct digi_hwid *hwid)
 {
 	u32 bank = CONFIG_HWID_BANK;
@@ -79,6 +84,8 @@ __weak int board_prog_hwid(const struct digi_hwid *hwid)
 			return ret;
 	}
 
+	/* Trigger a HWID-related variables update (from fuses)*/
+	board_update_hwid(true);
 	return 0;
 }
 
@@ -97,12 +104,9 @@ __weak int board_override_hwid(const struct digi_hwid *hwid)
 			return ret;
 	}
 
+	/* Trigger a HWID-related variables update (from shadow registers)*/
+	board_update_hwid(false);
 	return 0;
-}
-
-__weak void board_updated_hwid(void)
-{
-	/* Do nothing */
 }
 
 void print_hwid_hex(struct digi_hwid *hwid)
