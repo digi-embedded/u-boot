@@ -20,7 +20,7 @@
 extern const char *get_imx8_type(u32 imxtype);
 extern struct ccimx8_variant ccimx8x_variants[];
 #endif
-struct digi_hwid my_hwid;
+static struct digi_hwid my_hwid;
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -98,7 +98,7 @@ int ccimx8_init(void)
 	}
 
 	mca_init();
-	mca_somver_update();
+	mca_somver_update(&my_hwid);
 
 #ifdef CONFIG_MCA_TAMPER
 	mca_tamper_check_events();
@@ -281,7 +281,7 @@ void som_default_environment(void)
 
 	/* Set module_ram variable */
 	if (my_hwid.ram) {
-		int ram = hwid_get_ramsize();
+		int ram = hwid_get_ramsize(&my_hwid);
 
 		if (ram >= 1024) {
 			ram /= 1024;
@@ -323,13 +323,13 @@ void board_update_hwid(bool is_fuse)
 	if (ret)
 		printf("Cannot read HWID\n");
 
-	mca_somver_update();
+	mca_somver_update(&my_hwid);
 	som_default_environment();
 }
 
 void fdt_fixup_ccimx8(void *fdt)
 {
-	fdt_fixup_hwid(fdt);
+	fdt_fixup_hwid(fdt, &my_hwid);
 
 	if (board_has_wireless()) {
 		/* Wireless MACs */

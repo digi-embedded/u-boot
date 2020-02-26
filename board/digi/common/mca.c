@@ -8,10 +8,8 @@
 #include <dm/uclass.h>
 #include <common.h>
 #include <i2c.h>
-#include "hwid.h"
+#include "mca.h"
 #include "mca_registers.h"
-
-extern struct digi_hwid my_hwid;
 
 #ifdef CONFIG_DM_I2C
 int mca_get_device(struct udevice **devp)
@@ -227,14 +225,14 @@ void mca_save_cfg(void)
 		printf("MCA: unable to save configuration (%d)\n", ret);
 }
 
-void mca_somver_update(void)
+void mca_somver_update(const struct digi_hwid *hwid)
 {
 	unsigned char somver;
 	int ret;
 
 	/*
 	 * Read the som version stored in MCA.
-	 * If it doesn't match with real SOM version read from my_hwid.hv:
+	 * If it doesn't match with real SOM version read from hwid->hv:
 	 *    - update it into the MCA.
 	 *    - force the new value to be saved in MCA NVRAM.
 	 * The purpose of this functionality is that MCA starts using the
@@ -244,8 +242,8 @@ void mca_somver_update(void)
 	if (ret) {
 		printf("Cannot read MCA_HWVER_SOM\n");
 	} else {
-		if (my_hwid.hv != somver) {
-			ret = mca_write_reg(MCA_HWVER_SOM, my_hwid.hv);
+		if (hwid->hv != somver) {
+			ret = mca_write_reg(MCA_HWVER_SOM, hwid->hv);
 			if (ret)
 				printf("Cannot write MCA_HWVER_SOM\n");
 			else

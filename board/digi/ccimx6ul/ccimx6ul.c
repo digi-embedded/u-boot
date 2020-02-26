@@ -39,7 +39,7 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 extern bool bmode_reset;
-struct digi_hwid my_hwid;
+static struct digi_hwid my_hwid;
 
 #define MDIO_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_PUE |     \
 	PAD_CTL_DSE_48ohm   | PAD_CTL_SRE_FAST | PAD_CTL_ODE)
@@ -453,7 +453,7 @@ void board_reset(void)
 
 void fdt_fixup_ccimx6ul(void *fdt)
 {
-	fdt_fixup_hwid(fdt);
+	fdt_fixup_hwid(fdt, &my_hwid);
 
 	if (board_has_wireless()) {
 		/* Wireless MACs */

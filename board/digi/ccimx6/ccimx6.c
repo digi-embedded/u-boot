@@ -55,7 +55,7 @@ extern unsigned int board_version;
 extern unsigned int board_id;
 extern void board_spurious_wakeup(void);
 
-struct digi_hwid my_hwid;
+static struct digi_hwid my_hwid;
 static int enet_xcv_type;
 
 #define UART_PAD_CTRL  (PAD_CTL_PKE | PAD_CTL_PUE |            \
@@ -1552,7 +1552,7 @@ int ccimx6_init(void)
 
 void fdt_fixup_ccimx6(void *fdt)
 {
-	fdt_fixup_hwid(fdt);
+	fdt_fixup_hwid(fdt, &my_hwid);
 
 	if (board_has_wireless()) {
 		/* Wireless MACs */

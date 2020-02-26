@@ -40,8 +40,8 @@ int board_prog_hwid(const struct digi_hwid *hwid);
 int board_override_hwid(const struct digi_hwid *hwid);
 void board_update_hwid(bool is_fuse);
 int board_lock_hwid(void);
-void fdt_fixup_hwid(void *fdt);
-int hwid_get_ramsize(void);
+void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid);
+int hwid_get_ramsize(const struct digi_hwid *hwid);
 void print_hwid_hex(struct digi_hwid *hwid);
 
 #endif	/* __HWID_H_ */
