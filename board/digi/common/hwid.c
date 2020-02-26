@@ -109,6 +109,14 @@ __weak int board_override_hwid(const struct digi_hwid *hwid)
 	return 0;
 }
 
+#ifndef CONFIG_CC8X
+__weak int board_lock_hwid(void)
+{
+	return fuse_prog(OCOTP_LOCK_BANK, OCOTP_LOCK_WORD,
+			CONFIG_HWID_LOCK_FUSE);
+}
+#endif
+
 void print_hwid_hex(struct digi_hwid *hwid)
 {
 	int i;

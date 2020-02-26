@@ -415,13 +415,6 @@ err:
 	return -EINVAL;
 }
 
-int board_lock_hwid(void)
-{
-	/* SCU performs automatic lock after programming */
-	printf("not supported. Fuses automatically locked after programming.\n");
-	return 1;
-}
-
 void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 {
 	const char *propnames[] = {

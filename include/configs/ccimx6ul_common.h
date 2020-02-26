@@ -60,6 +60,7 @@
 #define CONFIG_HWID_WORDS_NUMBER	2
 #define CONFIG_HWID_LOCK_FUSE		(1 << 8)
 
+/* Lock Fuses */
 #define OCOTP_LOCK_BANK		0
 #define OCOTP_LOCK_WORD		0
 

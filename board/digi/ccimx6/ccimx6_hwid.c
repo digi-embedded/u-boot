@@ -254,12 +254,6 @@ err:
 	return -EINVAL;
 }
 
-int board_lock_hwid(void)
-{
-	return fuse_prog(OCOTP_LOCK_BANK, OCOTP_LOCK_WORD,
-			CONFIG_HWID_LOCK_FUSE);
-}
-
 void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 {
 	const char *propnames[] = {
