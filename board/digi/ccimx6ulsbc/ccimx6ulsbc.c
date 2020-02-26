@@ -35,7 +35,6 @@
 #include "../ccimx6ul/ccimx6ul.h"
 #include "../common/carrier_board.h"
 #include "../common/helper.h"
-#include "../common/hwid.h"
 #include "../common/mca_registers.h"
 #include "../common/mca.h"
 #include "../common/trustfence.h"
@@ -724,7 +723,6 @@ int board_late_init(void)
 /* Platform function to modify the FDT as needed */
 int ft_board_setup(void *blob, bd_t *bd)
 {
-	fdt_fixup_hwid(blob);
 	fdt_fixup_ccimx6ul(blob);
 	fdt_fixup_carrierboard(blob);
 

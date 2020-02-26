@@ -1552,6 +1552,8 @@ int ccimx6_init(void)
 
 void fdt_fixup_ccimx6(void *fdt)
 {
+	fdt_fixup_hwid(fdt);
+
 	if (board_has_wireless()) {
 		/* Wireless MACs */
 		fdt_fixup_mac(fdt, "wlanaddr", "/wireless", "mac-address");

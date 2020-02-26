@@ -329,6 +329,8 @@ void board_update_hwid(bool is_fuse)
 
 void fdt_fixup_ccimx8(void *fdt)
 {
+	fdt_fixup_hwid(fdt);
+
 	if (board_has_wireless()) {
 		/* Wireless MACs */
 		fdt_fixup_mac(fdt, "wlanaddr", "/wireless", "mac-address");
