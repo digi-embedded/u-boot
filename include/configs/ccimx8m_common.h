@@ -68,7 +68,7 @@
 #define CONFIG_HWID_BANK		9
 #define CONFIG_HWID_START_WORD		0
 #define CONFIG_HWID_WORDS_NUMBER	3
-#define CONFIG_HWID_LOCK_FUSE		(0x3 << 14)
+#define CONFIG_HWID_LOCK_FUSE		(0x1 << 14)
 #define CONFIG_CMD_FUSE
 
 /* Lock Fuses */
