@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2014 by Digi International Inc.
+ *  Copyright (C) 2014-2020 by Digi International Inc.
  *  All rights reserved.
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -9,7 +9,10 @@
 
 #include <common.h>
 #include <part.h>
-#include "helper.h"
+#ifdef CONFIG_OF_LIBFDT_OVERLAY
+#include <mapmem.h>
+#endif
+#include "../board/digi/common/helper.h"
 
 enum {
 	OS_UNDEFINED = -1,
@@ -96,6 +99,11 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	int ret;
 	int has_fdt = 0;
 	int has_initrd = 0;
+#ifdef CONFIG_OF_LIBFDT_OVERLAY
+	char *overlay_list;
+	char *overlay;
+	const char delim[2] = ",";
+#endif
 	struct load_fw fwinfo;
 
 	if (argc < 2)
@@ -150,6 +158,37 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		printf("Error loading FDT file\n");
 		return CMD_RET_FAILURE;
 	}
+
+#ifdef CONFIG_OF_LIBFDT_OVERLAY
+	run_command("fdt addr $fdt_addr", 0);
+
+	/* Set firmware info common for all overlay files */
+	fwinfo.varload = "try";
+	fwinfo.loadaddr = "$initrd_addr";
+	fwinfo.compressed = false;
+
+	overlay_list = env_get("overlays");
+	overlay = strtok(overlay_list, delim);
+
+	while (overlay != NULL) {
+		fwinfo.filename = overlay;
+		ret = load_firmware(&fwinfo);
+
+		if (ret == LDFW_LOADED) {
+			/* Resize the base fdt to make room for the overlay */
+			run_command("fdt resize $filesize", 0);
+
+			if (run_command("fdt apply $initrd_addr", 0)) {
+				printf("Failed to apply overlay %s\n", overlay);
+				return CMD_RET_FAILURE;
+			}
+		} else {
+			printf("Error loading overlay %s\n", overlay);
+			return CMD_RET_FAILURE;
+		}
+		overlay = strtok(NULL, delim);
+	}
+#endif
 
 	/* Get init ramdisk */
 	fwinfo.varload = env_get("boot_initrd");
