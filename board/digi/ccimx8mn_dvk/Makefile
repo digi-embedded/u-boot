@@ -13,5 +13,6 @@ endif
 
 ifdef CONFIG_SPL_BUILD
 obj-y += ../ccimx8m/spl.o
+obj-y += ../common/hwid.o
 obj-$(CONFIG_IMX8M_LPDDR4) += ../ccimx8m/lpddr4_timing.o
 endif

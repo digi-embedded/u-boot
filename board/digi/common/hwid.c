@@ -117,7 +117,7 @@ __weak int board_lock_hwid(void)
 }
 #endif
 
-void print_hwid_hex(struct digi_hwid *hwid)
+__weak void print_hwid_hex(struct digi_hwid *hwid)
 {
 	int i;
 
