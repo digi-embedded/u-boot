@@ -24,11 +24,31 @@
 #include <mmc.h>
 #include <asm/arch/ddr.h>
 
+#include "../common/hwid.h"
+
 DECLARE_GLOBAL_DATA_PTR;
+
+extern struct dram_timing_info dram_timing_1G;
+extern struct dram_timing_info dram_timing_512M;
+static struct digi_hwid my_hwid;
 
 void spl_dram_init(void)
 {
-	ddr_init(&dram_timing);
+	/* Default to RAM size of DVK variant 0x01 (1 GiB) */
+	int ram = SZ_1G;
+
+	if (my_hwid.ram)
+		ram = hwid_get_ramsize(&my_hwid);
+
+	switch (ram) {
+	case SZ_512M:
+		ddr_init(&dram_timing_512M);
+		break;
+	case SZ_1G:
+	default:
+		ddr_init(&dram_timing_1G);
+		break;
+	}
 }
 
 #define I2C_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_HYS | PAD_CTL_PUE | PAD_CTL_PE)
@@ -218,6 +238,11 @@ void board_init_f(ulong dummy)
 	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
 
 	power_init_board();
+
+	/* Read HWID */
+	if (board_read_hwid(&my_hwid)) {
+		debug("Cannot read HWID. Using default DDR configuration.\n");
+	}
 
 	/* DDR initialization */
 	spl_dram_init();

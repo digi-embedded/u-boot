@@ -510,5 +510,5 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 
 int hwid_get_ramsize(const struct digi_hwid *hwid)
 {
-	return ram_sizes_mb[hwid->ram];
+	return ram_sizes_mb[hwid->ram] * SZ_1M;
 }
