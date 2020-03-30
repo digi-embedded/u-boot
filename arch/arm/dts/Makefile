@@ -622,6 +622,7 @@ dtb-$(CONFIG_ARCH_MX7ULP) += imx7ulp-evk.dtb \
 dtb-$(CONFIG_ARCH_IMX8) += fsl-imx8qxp-mek.dtb \
 	fsl-imx8qm-mek.dtb \
 	fsl-imx8qm-mek-auto.dtb \
+	fsl-imx8qm-mek-auto2.dtb \
 	fsl-imx8qxp-mek-auto.dtb \
 	fsl-imx8qm-ddr4-arm2.dtb \
 	fsl-imx8qm-lpddr4-arm2.dtb \
@@ -629,7 +630,9 @@ dtb-$(CONFIG_ARCH_IMX8) += fsl-imx8qxp-mek.dtb \
 	fsl-imx8qxp-lpddr4-arm2-gpmi-nand.dtb \
 	fsl-imx8qxp-17x17-val.dtb \
 	fsl-imx8dx-17x17-val.dtb \
+	fsl-imx8dx-mek.dtb \
 	fsl-imx8dxl-phantom-mek.dtb \
+	fsl-imx8dxl-evk.dtb \
 	ccimx8x-sbc-express.dtb \
 	ccimx8x-sbc-pro.dtb
 
@@ -642,7 +645,9 @@ dtb-$(CONFIG_ARCH_IMX8M) += fsl-imx8mq-evk.dtb \
 		fsl-imx8mm-ddr4-val.dtb \
 		fsl-imx8mm-evk.dtb \
 		fsl-imx8mn-ddr4-evk.dtb \
-		fsl-imx8mq-aiy.dtb
+		fsl-imx8mn-evk.dtb \
+		fsl-imx8mq-aiy.dtb \
+		fsl-imx8mp-evk.dtb
 
 dtb-$(CONFIG_RCAR_GEN2) += \
 	r8a7790-lager-u-boot.dtb \

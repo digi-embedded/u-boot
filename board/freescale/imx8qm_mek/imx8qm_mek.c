@@ -18,6 +18,7 @@
 #include <asm/arch/clock.h>
 #include <asm/arch/sci/sci.h>
 #include <asm/arch/imx8-pins.h>
+#include <asm/arch/snvs_security_sc.h>
 #include <dm.h>
 #include <imx8_hsio.h>
 #include <usb.h>
@@ -373,6 +374,15 @@ int board_init(void)
 	setup_typec();
 #endif
 
+#ifdef CONFIG_SNVS_SEC_SC_AUTO
+	{
+		int ret = snvs_security_sc_init();
+
+		if (ret)
+			return ret;
+	}
+#endif
+
 	return 0;
 }
 
@@ -401,7 +411,8 @@ void detail_board_ddr_info(void)
  */
 void reset_cpu(ulong addr)
 {
-	/* TODO */
+	sc_pm_reboot(-1, SC_PM_RESET_TYPE_COLD);
+	while(1);
 }
 
 #ifdef CONFIG_OF_BOARD_SETUP
@@ -432,9 +443,9 @@ int board_late_init(void)
 
 	if (fdt_file && !strcmp(fdt_file, "undefined")) {
 		if (m4_boot)
-			env_set("fdt_file", "fsl-imx8qm-mek-rpmsg.dtb");
+			env_set("fdt_file", "imx8qm-mek-rpmsg.dtb");
 		else
-			env_set("fdt_file", "fsl-imx8qm-mek.dtb");
+			env_set("fdt_file", "imx8qm-mek.dtb");
 	}
 
 #ifdef CONFIG_ENV_IS_IN_MMC

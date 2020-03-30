@@ -13,6 +13,7 @@
 #include <asm/arch/clock.h>
 #include <asm/arch/sci/sci.h>
 #include <asm/arch/imx8-pins.h>
+#include <asm/arch/snvs_security_sc.h>
 #include <asm/arch/iomux.h>
 #include <asm/arch/sys_proto.h>
 #include <imx8_hsio.h>
@@ -234,7 +235,11 @@ int board_phy_config(struct phy_device *phydev)
 
 int checkboard(void)
 {
+#ifdef CONFIG_TARGET_IMX8DX_MEK
+	puts("Board: iMX8DX MEK\n");
+#else
 	puts("Board: iMX8QXP MEK\n");
+#endif
 
 	print_bootinfo();
 
@@ -384,6 +389,15 @@ int board_init(void)
 	setup_typec();
 #endif
 
+#ifdef CONFIG_SNVS_SEC_SC_AUTO
+	{
+		int ret = snvs_security_sc_init();
+
+		if (ret)
+			return ret;
+	}
+#endif
+
 	return 0;
 }
 
@@ -410,7 +424,9 @@ void detail_board_ddr_info(void)
  */
 void reset_cpu(ulong addr)
 {
-	/* TODO */
+	sc_pm_reboot(-1, SC_PM_RESET_TYPE_COLD);
+	while(1);
+
 }
 
 #ifdef CONFIG_OF_BOARD_SETUP
@@ -427,7 +443,11 @@ int board_late_init(void)
 
 #ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
 	env_set("board_name", "MEK");
+#ifdef CONFIG_TARGET_IMX8DX_MEK
+	env_set("board_rev", "iMX8DX");
+#else
 	env_set("board_rev", "iMX8QXP");
+#endif
 #endif
 
 	env_set("sec_boot", "no");
@@ -439,10 +459,17 @@ int board_late_init(void)
 	m4_boot = check_m4_parts_boot();
 
 	if (fdt_file && !strcmp(fdt_file, "undefined")) {
+#ifdef CONFIG_TARGET_IMX8DX_MEK
 		if (m4_boot)
-			env_set("fdt_file", "fsl-imx8qxp-mek-rpmsg.dtb");
+			env_set("fdt_file", "imx8dx-mek-rpmsg.dtb");
 		else
-			env_set("fdt_file", "fsl-imx8qxp-mek.dtb");
+			env_set("fdt_file", "imx8dx-mek.dtb");
+#else
+		if (m4_boot)
+			env_set("fdt_file", "imx8qxp-mek-rpmsg.dtb");
+		else
+			env_set("fdt_file", "imx8qxp-mek.dtb");
+#endif
 	}
 
 #ifdef CONFIG_ENV_IS_IN_MMC

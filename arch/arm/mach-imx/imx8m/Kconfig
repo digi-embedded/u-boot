@@ -21,6 +21,10 @@ config IMX8MN
 	bool
 	select IMX8M
 
+config IMX8MP
+	bool
+	select IMX8M
+
 config SECURE_STICKY_BITS_LOCKUP
 	bool "Enable workaround to fix sticky bits lock up issue"
 	depends on IMX8MQ && SECURE_BOOT
@@ -79,10 +83,22 @@ config TARGET_IMX8MM_DDR4_EVK
 	select IMX8M_DDR4
 
 config TARGET_IMX8MN_EVK
+	bool "imx8mn LPDDR4 EVK board"
+	select IMX8MN
+	select SUPPORT_SPL
+	select IMX8M_LPDDR4
+
+config TARGET_IMX8MN_DDR4_EVK
 	bool "imx8mn DDR4 EVK board"
 	select IMX8MN
 	select SUPPORT_SPL
 	select IMX8M_DDR4
+
+config TARGET_IMX8MP_EVK
+	bool "imx8mp LPDDR4 EVK board"
+	select IMX8MP
+	select SUPPORT_SPL
+	select IMX8M_LPDDR4
 
 endchoice
 
@@ -92,5 +108,6 @@ source "board/freescale/imx8mq_aiy/Kconfig"
 source "board/freescale/imx8mm_evk/Kconfig"
 source "board/freescale/imx8mm_val/Kconfig"
 source "board/freescale/imx8mn_evk/Kconfig"
+source "board/freescale/imx8mp_evk/Kconfig"
 
 endif

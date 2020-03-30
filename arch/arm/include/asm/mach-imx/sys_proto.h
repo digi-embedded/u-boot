@@ -2,7 +2,7 @@
 /*
  * (C) Copyright 2009
  * Stefano Babic, DENX Software Engineering, sbabic@denx.de.
- * Copyright 2018 NXP
+ * Copyright 2018-2020 NXP
  */
 
 #ifndef _SYS_PROTO_H_
@@ -62,9 +62,11 @@
 #define is_imx8mnl() (is_cpu_type(MXC_CPU_IMX8MNL))
 #define is_imx8mndl() (is_cpu_type(MXC_CPU_IMX8MNDL))
 #define is_imx8mnsl() (is_cpu_type(MXC_CPU_IMX8MNSL))
+#define is_imx8mp() (is_cpu_type(MXC_CPU_IMX8MP))
 #define is_imx8qm() (is_cpu_type(MXC_CPU_IMX8QM))
 #define is_imx8qxp() (is_cpu_type(MXC_CPU_IMX8QXP))
 #define is_imx8dx() (is_cpu_type(MXC_CPU_IMX8DX))
+#define is_imx8dxl() (is_cpu_type(MXC_CPU_IMX8DXL))
 
  /* gd->flags reserves high 16 bits for arch-specific flags */
 #define GD_FLG_ARCH_IMX_USB_BOOT		0x80000000	 /* Only used for MX6/7, If set, the u-boot is booting from USB serial download */
@@ -172,4 +174,10 @@ unsigned long call_imx_sip(unsigned long id, unsigned long reg0,
 			   unsigned long reg1, unsigned long reg2, unsigned long reg3);
 unsigned long call_imx_sip_ret2(unsigned long id, unsigned long reg0,
                                 unsigned long *reg1, unsigned long reg2, unsigned long reg3);
+
+void imx_get_mac_from_fuse(int dev_id, unsigned char *mac);
+
+int add_res_mem_dt_node(void *fdt, const char *name, phys_addr_t pa,
+			size_t size);
+int add_dt_path_subnode(void *fdt, const char *path, const char *subnode);
 #endif

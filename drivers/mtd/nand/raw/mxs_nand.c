@@ -708,7 +708,7 @@ static int mxs_nand_ecc_read_page(struct mtd_info *mtd, struct nand_chip *nand,
 	d->cmd.pio_words[4] = (dma_addr_t)nand_info->data_buf;
 	d->cmd.pio_words[5] = (dma_addr_t)nand_info->oob_buf;
 
-	if ((is_mx7() || is_imx8m()) && nand_info->en_randomizer) {
+	if (nand_info->en_randomizer) {
 		d->cmd.pio_words[2] |= GPMI_ECCCTRL_RANDOMIZER_ENABLE |
 				       GPMI_ECCCTRL_RANDOMIZER_TYPE2;
 		d->cmd.pio_words[3] |= (page % 256) << 16;
@@ -865,7 +865,7 @@ static int mxs_nand_ecc_write_page(struct mtd_info *mtd,
 	d->cmd.pio_words[4] = (dma_addr_t)nand_info->data_buf;
 	d->cmd.pio_words[5] = (dma_addr_t)nand_info->oob_buf;
 
-	if ((is_mx7() || is_imx8m()) && nand_info->en_randomizer) {
+	if (nand_info->en_randomizer) {
 		d->cmd.pio_words[2] |= GPMI_ECCCTRL_RANDOMIZER_ENABLE |
 				       GPMI_ECCCTRL_RANDOMIZER_TYPE2;
 		/*
@@ -1083,6 +1083,24 @@ static int mxs_nand_ecc_write_oob(struct mtd_info *mtd, struct nand_chip *nand,
 	return 0;
 }
 
+/*
+ * Claims all blocks are good.
+ *
+ * In principle, this function is *only* called when the NAND Flash MTD system
+ * isn't allowed to keep an in-memory bad block table, so it is forced to ask
+ * the driver for bad block information.
+ *
+ * In fact, we permit the NAND Flash MTD system to have an in-memory BBT, so
+ * this function is *only* called when we take it away.
+ *
+ * Thus, this function is only called when we want *all* blocks to look good,
+ * so it *always* return success.
+ */
+static int mxs_nand_block_bad(struct mtd_info *mtd, loff_t ofs)
+{
+	return 0;
+}
+
 static int mxs_nand_set_geometry(struct mtd_info *mtd, struct bch_geometry *geo)
 {
 	struct nand_chip *chip = mtd_to_nand(mtd);
@@ -1128,10 +1146,6 @@ int mxs_nand_setup_ecc(struct mtd_info *mtd)
 	uint32_t tmp;
 	int ret;
 
-	nand_info->en_randomizer = 0;
-	nand_info->oobsize = mtd->oobsize;
-	nand_info->writesize = mtd->writesize;
-
 	ret = mxs_nand_set_geometry(mtd, geo);
 	if (ret)
 		return ret;
@@ -1147,7 +1161,6 @@ int mxs_nand_setup_ecc(struct mtd_info *mtd)
 	tmp |= (geo->gf_len == 14 ? 1 : 0) <<
 		BCH_FLASHLAYOUT0_GF13_0_GF14_1_OFFSET;
 	writel(tmp, &bch_regs->hw_bch_flash0layout0);
-	nand_info->bch_flash0layout0 = tmp;
 
 	tmp = (mtd->writesize + mtd->oobsize)
 		<< BCH_FLASHLAYOUT1_PAGE_SIZE_OFFSET;
@@ -1156,7 +1169,6 @@ int mxs_nand_setup_ecc(struct mtd_info *mtd)
 	tmp |= (geo->gf_len == 14 ? 1 : 0) <<
 		BCH_FLASHLAYOUT1_GF13_0_GF14_1_OFFSET;
 	writel(tmp, &bch_regs->hw_bch_flash0layout1);
-	nand_info->bch_flash0layout1 = tmp;
 
 	/* Set erase threshold to ecc strength for mx6ul, mx6qp and mx7 */
 	if (is_mx6dqp() || is_mx7() ||
@@ -1185,7 +1197,6 @@ int mxs_nand_setup_ecc(struct mtd_info *mtd)
 		nand_info->hooked_block_markbad = mtd->_block_markbad;
 		mtd->_block_markbad = mxs_nand_hook_block_markbad;
 	}
-
 #ifdef CONFIG_SKIP_NAND_BBT_SCAN
 	nand->options |= NAND_SKIP_BBTSCAN;
 #endif
@@ -1373,6 +1384,7 @@ int mxs_nand_init_ctrl(struct mxs_nand_info *nand_info)
 
 	nand->dev_ready		= mxs_nand_device_ready;
 	nand->select_chip	= mxs_nand_select_chip;
+	nand->block_bad		= mxs_nand_block_bad;
 
 	nand->read_byte		= mxs_nand_read_byte;
 
@@ -1449,7 +1461,6 @@ err:
 }
 #endif
 
-#if defined(CONFIG_MX6) || defined(CONFIG_MX7) || defined(CONFIG_IMX8M)
 /*
  * Read NAND layout for FCB block generation.
  */
@@ -1480,7 +1491,7 @@ void mxs_nand_get_layout(struct mtd_info *mtd, struct mxs_nand_layout *l)
 /*
  * Set BCH to specific layout used by ROM bootloader to read FCB.
  */
-void mxs_nand_mode_fcb(struct mtd_info *mtd)
+void mxs_nand_mode_fcb_62bit(struct mtd_info *mtd)
 {
 	u32 tmp;
 	struct mxs_bch_regs *bch_regs = (struct mxs_bch_regs *)MXS_BCH_BASE;
@@ -1507,6 +1518,43 @@ void mxs_nand_mode_fcb(struct mtd_info *mtd)
 	tmp = 1862 << BCH_FLASHLAYOUT1_PAGE_SIZE_OFFSET;
 	/* using ECC62 level to be performed */
 	tmp |= 0x1F << BCH_FLASHLAYOUT1_ECCN_OFFSET;
+	/* 0x20 * 4 bytes of the data0 block */
+	tmp |= 0x20 << BCH_FLASHLAYOUT1_DATAN_SIZE_OFFSET;
+	tmp |= 0 << BCH_FLASHLAYOUT1_GF13_0_GF14_1_OFFSET;
+	writel(tmp, &bch_regs->hw_bch_flash0layout1);
+}
+
+/*
+ * Set BCH to specific layout used by ROM bootloader to read FCB.
+ */
+void mxs_nand_mode_fcb_40bit(struct mtd_info *mtd)
+{
+	u32 tmp;
+	struct mxs_bch_regs *bch_regs = (struct mxs_bch_regs *)MXS_BCH_BASE;
+	struct nand_chip *nand = mtd_to_nand(mtd);
+	struct mxs_nand_info *nand_info = nand_get_controller_data(nand);
+
+	/* no randomizer in this setting*/
+	nand_info->en_randomizer = 0;
+
+	mtd->writesize = 1024;
+	mtd->oobsize = 1576 - 1024;
+
+	/* 8 ecc_chunks_*/
+	tmp = 7	<< BCH_FLASHLAYOUT0_NBLOCKS_OFFSET;
+	/* 32 bytes for metadata */
+	tmp |= 32 << BCH_FLASHLAYOUT0_META_SIZE_OFFSET;
+	/* using ECC40 level to be performed */
+	tmp |= 0x14 << BCH_FLASHLAYOUT0_ECC0_OFFSET;
+	/* 0x20 * 4 bytes of the data0 block */
+	tmp |= 0x20 << BCH_FLASHLAYOUT0_DATA0_SIZE_OFFSET;
+	tmp |= 0 << BCH_FLASHLAYOUT0_GF13_0_GF14_1_OFFSET;
+	writel(tmp, &bch_regs->hw_bch_flash0layout0);
+
+	/* 1024 for data + 552 for OOB */
+	tmp = 1576 << BCH_FLASHLAYOUT1_PAGE_SIZE_OFFSET;
+	/* using ECC40 level to be performed */
+	tmp |= 0x14 << BCH_FLASHLAYOUT1_ECCN_OFFSET;
 	/* 0x20 * 4 bytes of the data0 block */
 	tmp |= 0x20 << BCH_FLASHLAYOUT1_DATAN_SIZE_OFFSET;
 	tmp |= 0 << BCH_FLASHLAYOUT1_GF13_0_GF14_1_OFFSET;
@@ -1548,4 +1596,3 @@ uint32_t mxs_nand_mark_bit_offset(struct mtd_info *mtd)
 
 	return geo->block_mark_bit_offset;
 }
-#endif /* CONFIG_IS_ENABLED(MX7) */
