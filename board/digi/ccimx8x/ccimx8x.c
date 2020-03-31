@@ -11,6 +11,7 @@
 #include <otf_update.h>
 #include <linux/ctype.h>
 #include <asm/arch-imx8/sci/sci.h>
+#include <asm/arch/snvs_security_sc.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/mach-imx/boot_mode.h>
 #include "../../freescale/common/tcpc.h"
@@ -239,6 +240,16 @@ int ccimx8_init(void)
 #ifdef CONFIG_MCA_TAMPER
 	mca_tamper_check_events();
 #endif
+
+#ifdef CONFIG_SNVS_SEC_SC_AUTO
+	{
+		int ret = snvs_security_sc_init();
+
+		if (ret)
+			return ret;
+	}
+#endif
+
 	return 0;
 }
 
