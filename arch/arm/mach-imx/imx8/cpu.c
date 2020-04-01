@@ -1740,7 +1740,7 @@ static int cpu_imx_get_count(struct udevice *dev)
 {
 	if (is_imx8qxp())
 		return 4;
-	else if (is_imx8dxl())
+	else if (is_imx8dxl() || is_imx8dx())
 		return 2;
 	else
 		return 6;
