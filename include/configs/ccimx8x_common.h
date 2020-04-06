@@ -100,8 +100,6 @@
 
 #define MAX_DEK_BLOB_SIZE	0
 
-#define CONFIG_SIGN_MODE 	AHAB
-
 /* Not used for this platform */
 #define CONFIG_TRUSTFENCE_DIRBTDIS_BANK			0
 #define CONFIG_TRUSTFENCE_DIRBTDIS_WORD			0

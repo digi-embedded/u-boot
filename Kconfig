@@ -352,6 +352,14 @@ config DEK_PATH
 	  Define to the DEK path to enable encryption of the signed U-boot
 	  image. Supported DEK sizes are 128, 192 and 256 bits.
 
+config SIGN_MODE
+	string "Sign mode"
+	depends on SIGN_IMAGE
+	help
+	  Sets the signing method to be one of "HAB" or "AHAB".
+	  HAB method is supported on i.MX6/7 and i.MX8M devices.
+	  AHAB method is supported on i.MX8X devices.
+
 config ANDROID_BOOT_IMAGE
 	bool "Enable support for Android Boot Images"
 	default y if FASTBOOT
