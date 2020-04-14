@@ -21,7 +21,7 @@
 #include <asm/mach-imx/mxc_i2c.h>
 #include <fsl_esdhc.h>
 #include <mmc.h>
-#include <asm/arch/imx8m_ddr.h>
+#include <asm/arch/ddr.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 

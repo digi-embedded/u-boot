@@ -8,7 +8,8 @@
  */
 
 #include <linux/kernel.h>
-#include <asm/arch/imx8m_ddr.h>
+#include <asm/arch/ddr.h>
+#include <asm/arch/lpddr4_define.h>
 
 struct dram_cfg_param ddr_ddrc_cfg[] = {
 	/** Initialize DDRC registers **/
@@ -1454,4 +1455,3 @@ struct dram_timing_info dram_timing = {
 	.ddrphy_pie_num = ARRAY_SIZE(ddr_phy_pie),
 	.fsp_table = { 3000, 400, 100, },
 };
-
