@@ -31,7 +31,6 @@
 #include <trusty/libtipc.h>
 #endif
 
-
 #ifndef TRUSTY_OS_MMC_BLKS
 #define TRUSTY_OS_MMC_BLKS 0x7FF
 #endif
@@ -48,31 +47,26 @@ enum {
 	PTN_BOOTLOADER_INDEX,
 };
 
+extern int mmc_get_bootdevindex(void);
+extern void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
+					    disk_partition_t *info);
 struct fastboot_ptentry g_ptable[MAX_PTN];
 unsigned int g_pcount;
 
 static ulong bootloader_mmc_offset(void)
 {
-	if (is_imx8mq() || is_imx8mm() || ((is_imx8qm() || is_imx8qxp()) && is_soc_rev(CHIP_REV_A)))
-		return 0x8400;
-	else if (is_imx8qm() || (is_imx8qxp() && !is_soc_rev(CHIP_REV_B))) {
-		if (MEK_8QM_EMMC == fastboot_devinfo.dev_id)
-		/* target device is eMMC boot0 partition, bootloader offset is 0x0 */
-			return 0x0;
-		else
-		/* target device is SD card, bootloader offset is 0x8000 */
-			return 0x8000;
-	} else if (is_imx8mn() || is_imx8mp() || is_imx8dxl()) {
-		/* target device is eMMC boot0 partition, bootloader offset is 0x0 */
-		if (env_get_ulong("emmc_dev", 10, 2) == fastboot_devinfo.dev_id)
-			return 0;
-		else
-			return 0x8000;
+	disk_partition_t info;
+	int mmc_dev_index = env_get_ulong("mmcdev", 16, mmc_get_bootdevindex());
+	struct blk_desc *mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC,
+							  mmc_dev_index);
+	if (NULL == mmc_dev) {
+		debug("Cannot determine sys storage device\n");
+		return (EMMC_BOOT_PART_OFFSET / mmc_dev->blksz);
 	}
-	else if (is_imx8())
-		return 0x8000;
-	else
-		return 0x400;
+
+	calculate_uboot_update_settings(mmc_dev, &info);
+
+	return info.start;
 }
 
 bool bootloader_gpt_overlay(void)
@@ -122,6 +116,8 @@ static int _fastboot_parts_add_ptable_entry(int ptable_index,
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_DATA))
 #else
 	if (!strcmp((const char *)info.name, FASTBOOT_PARTITION_SYSTEM) ||
+	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_OEM) ||
+	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_VENDOR) ||
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_DATA) ||
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_DEVICE) ||
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_CACHE))
@@ -396,4 +392,3 @@ bool fastboot_parts_is_slot(void)
 	}
 	return false;
 }
-
