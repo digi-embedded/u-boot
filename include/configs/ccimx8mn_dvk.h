@@ -26,6 +26,15 @@
 #define CONFIG_MALLOC_F_ADDR		0x184000 /* malloc f used before GD_FLG_FULL_MALLOC_INIT set */
 
 #undef CONFIG_DM_MMC
+#undef CONFIG_DM_PMIC
+#undef CONFIG_DM_PMIC_PFUZE100
+
+#define CONFIG_POWER
+#define CONFIG_POWER_I2C
+#define CONFIG_POWER_BD71837
+#define CONFIG_POWER_PCA9450
+
+#define CONFIG_SYS_I2C
 
 #endif
 
