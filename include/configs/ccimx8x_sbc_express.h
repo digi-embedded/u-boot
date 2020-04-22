@@ -93,8 +93,8 @@
 	"initrd_addr=0x8A100000\0"		\
 	"initrd_high=0xffffffffffffffff\0" \
 	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
-	"mmcbootpart=" __stringify(CONFIG_SYS_BOOT_PART_EMMC) "\0" \
-	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
+	"mmcbootpart=" __stringify(EMMC_BOOT_PART) "\0" \
+	"mmcdev="__stringify(EMMC_BOOT_DEV)"\0" \
 	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
 	"mmcroot=PARTUUID=1c606ef5-f1ac-43b9-9bb5-d5c578580b6b\0" \
 	"bootargs_tftp=" \

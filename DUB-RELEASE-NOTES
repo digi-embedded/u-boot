@@ -12,6 +12,12 @@ dub-2019.04-r1.4, released on 2020/02/12
 
 DUB-2018.03
 -----------
+dub-2018.03-r3.1, released on 2020/01/24
+	- Added suport for ConnectCore 8M Nano DVK.
+	- Update BSP to NXP latest tag 'rel_imx_4.14.98_2.3.0'.
+	- Other minor fixes.
+
+
 dub-2018.03-r2.2, released on 2019/08/28
 	- Update BSP to NXP latest tag 'rel_imx_4.14.98_2.1.0'.
 	- Added support for CC8X DualX variants.

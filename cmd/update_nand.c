@@ -16,9 +16,9 @@
 #include <otf_update.h>
 #include <ubi_uboot.h>
 
-#include "helper.h"
+#include "../board/digi/common/helper.h"
 #ifdef CONFIG_CMD_BOOTSTREAM
-#include "cmd_bootstream/cmd_bootstream.h"
+#include "../board/digi/common/cmd_bootstream/cmd_bootstream.h"
 #endif
 
 DECLARE_GLOBAL_DATA_PTR;

@@ -67,6 +67,7 @@
 #ifdef CONFIG_HAS_CARRIERBOARD_VERSION
 /* For the SBC, the carrier board version is stored in Bank 4 Word 6 (GP1)
  * in bits 3..0 */
+#define CONFIG_CARRIERBOARD_VERSION_ON_OTP
 #define CONFIG_CARRIERBOARD_VERSION_BANK	4
 #define CONFIG_CARRIERBOARD_VERSION_WORD	6
 #define CONFIG_CARRIERBOARD_VERSION_MASK	0xf
@@ -78,6 +79,7 @@
 #ifdef CONFIG_HAS_CARRIERBOARD_ID
 /* For the SBC, the carrier board ID is stored in Bank 4 Word 6 (GP1)
  * in bits 11..4 */
+#define CONFIG_CARRIERBOARD_ID_ON_OTP
 #define CONFIG_CARRIERBOARD_ID_BANK	4
 #define CONFIG_CARRIERBOARD_ID_WORD	6
 #define CONFIG_CARRIERBOARD_ID_MASK	0xff
@@ -116,7 +118,7 @@
 	"fdt_high=0xffffffff\0"	  \
 	"initrd_high=0xffffffff\0" \
 	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
-	"mmcbootpart=" __stringify(CONFIG_SYS_BOOT_PART_EMMC) "\0" \
+	"mmcbootpart=" __stringify(EMMC_BOOT_PART) "\0" \
 	"mmcdev=0\0" \
 	"mmcpart=" CONFIG_BOOT_PARTITION "\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} ${smp} " \

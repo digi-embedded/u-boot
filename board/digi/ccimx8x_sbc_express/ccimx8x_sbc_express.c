@@ -12,15 +12,15 @@
 #include <usb.h>
 #include <asm/arch/iomux.h>
 #include <asm/arch/sci/sci.h>
+#include <asm/arch/snvs_security_sc.h>
 #include <asm/arch/sys_proto.h>
 #include <power-domain.h>
 #include "../../freescale/common/tcpc.h"
 #include <bootm.h>
 
-#include "../ccimx8x/ccimx8x.h"
+#include "../ccimx8/ccimx8.h"
 #include "../common/carrier_board.h"
 #include "../common/helper.h"
-#include "../common/hwid.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -162,7 +162,7 @@ int checkboard(void)
 	board_version = get_carrierboard_version();
 	board_id = get_carrierboard_id();
 
-	print_ccimx8x_info();
+	print_som_info();
 	print_carrierboard_info();
 	print_bootinfo();
 
@@ -218,6 +218,15 @@ int board_init(void)
 	setup_fec(CONFIG_FEC_ENET_DEV);
 #endif
 
+#ifdef CONFIG_SNVS_SEC_SC_AUTO
+{
+	int ret = snvs_security_sc_init();
+
+	if (ret)
+		return ret;
+}
+#endif
+
 	return 0;
 }
 
@@ -238,8 +247,7 @@ void board_quiesce_devices()
 /* Platform function to modify the FDT as needed */
 int ft_board_setup(void *blob, bd_t *bd)
 {
-	fdt_fixup_hwid(blob);
-	fdt_fixup_ccimx8x(blob);
+	fdt_fixup_ccimx8(blob);
 	fdt_fixup_carrierboard(blob);
 
 	return 0;

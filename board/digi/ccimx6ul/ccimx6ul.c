@@ -39,7 +39,7 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 extern bool bmode_reset;
-struct digi_hwid my_hwid;
+static struct digi_hwid my_hwid;
 
 #define MDIO_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_PUE |     \
 	PAD_CTL_DSE_48ohm   | PAD_CTL_SRE_FAST | PAD_CTL_ODE)
@@ -77,28 +77,28 @@ static struct ccimx6_variant ccimx6ul_variants[] = {
 /* 0x02 - 55001944-01 */
 	{
 		IMX6UL,
-		MEM_256MB,
+		SZ_256M,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
 		"Industrial Ultralite 528MHz, 256MB NAND, 256MB DDR3, -40/+85C, Wireless, Bluetooth",
 	},
 /* 0x03 - 55001944-02 */
 	{
 		IMX6UL,
-		MEM_256MB,
+		SZ_256M,
 		0,
 		"Industrial Ultralite 528MHz, 256MB NAND, 256MB DDR3, -40/+85C",
 	},
 /* 0x04 - 55001944-04 */
 	{
 		IMX6UL,
-		MEM_1GB,
+		SZ_1G,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
 		"Industrial Ultralite 528MHz, 1GB NAND, 1GB DDR3, -40/+85C, Wireless, Bluetooth",
 	},
 /* 0x05 - 55001944-05 */
 	{
 		IMX6UL,
-		MEM_1GB,
+		SZ_1G,
 		0,
 		"Industrial Ultralite 528MHz, 1GB NAND, 1GB DDR3, -40/+85C",
 	},
@@ -106,7 +106,7 @@ static struct ccimx6_variant ccimx6ul_variants[] = {
 /* This variant is the same as 0x02, but with i.MX6UL silicon v1.2 */
 	{
 		IMX6UL,
-		MEM_256MB,
+		SZ_256M,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
 		"Industrial Ultralite 528MHz, 256MB NAND, 256MB DDR3, -40/+85C, Wireless, Bluetooth",
 	},
@@ -177,6 +177,33 @@ static void setup_gpmi_nand(void)
 	setbits_le32(&mxc_ccm->CCGR0, MXC_CCM_CCGR0_APBHDMA_MASK);
 }
 #endif
+
+static int is_valid_hwid(struct digi_hwid *hwid)
+{
+	if (hwid->variant < ARRAY_SIZE(ccimx6ul_variants))
+		if (ccimx6ul_variants[hwid->variant].cpu != IMX6_NONE)
+			return 1;
+
+	return 0;
+}
+
+static bool board_has_wireless(void)
+{
+	if (is_valid_hwid(&my_hwid))
+		return !!(ccimx6ul_variants[my_hwid.variant].capabilities &
+			  CCIMX6_HAS_WIRELESS);
+	else
+		return true; /* assume it has if invalid HWID */
+}
+
+static bool board_has_bluetooth(void)
+{
+	if (is_valid_hwid(&my_hwid))
+		return !!(ccimx6ul_variants[my_hwid.variant].capabilities &
+			  CCIMX6_HAS_BLUETOOTH);
+	else
+		return true; /* assume it has if invalid HWID */
+}
 
 #ifdef CONFIG_POWER
 #define I2C_PMIC	0
@@ -345,13 +372,13 @@ void som_default_environment(void)
 	}
 }
 
-void board_updated_hwid(void)
+void board_update_hwid(bool is_fuse)
 {
 	/* Update HWID-related variables in environment */
-	if (board_read_hwid(&my_hwid)) {
+	int ret = is_fuse ? board_sense_hwid(&my_hwid) : board_read_hwid(&my_hwid);
+
+	if (ret)
 		printf("Cannot read HWID\n");
-		return;
-	}
 
 	som_default_environment();
 }
@@ -392,33 +419,6 @@ u32 get_board_rev(void)
 	return get_cpu_rev();
 }
 
-static int is_valid_hwid(struct digi_hwid *hwid)
-{
-	if (hwid->variant < ARRAY_SIZE(ccimx6ul_variants))
-		if (ccimx6ul_variants[hwid->variant].cpu != IMX6_NONE)
-			return 1;
-
-	return 0;
-}
-
-int board_has_wireless(void)
-{
-	if (is_valid_hwid(&my_hwid))
-		return (ccimx6ul_variants[my_hwid.variant].capabilities &
-				    CCIMX6_HAS_WIRELESS);
-	else
-		return 1; /* assume it has if invalid HWID */
-}
-
-int board_has_bluetooth(void)
-{
-	if (is_valid_hwid(&my_hwid))
-		return (ccimx6ul_variants[my_hwid.variant].capabilities &
-				    CCIMX6_HAS_BLUETOOTH);
-	else
-		return 1; /* assume it has if invalid HWID */
-}
-
 void print_ccimx6ul_info(void)
 {
 	if (is_valid_hwid(&my_hwid))
@@ -453,6 +453,8 @@ void board_reset(void)
 
 void fdt_fixup_ccimx6ul(void *fdt)
 {
+	fdt_fixup_hwid(fdt, &my_hwid);
+
 	if (board_has_wireless()) {
 		/* Wireless MACs */
 		fdt_fixup_mac(fdt, "wlanaddr", "/wireless", "mac-address");

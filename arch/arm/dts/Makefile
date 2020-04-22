@@ -521,6 +521,7 @@ dtb-$(CONFIG_MX6S) += \
 	imx6dl-sabresd.dtb
 
 dtb-$(CONFIG_MX6QP) += \
+	imx6qp-ccimx6qpsbc.dtb \
 	imx6qp-sabreauto.dtb \
 	imx6qp-sabreauto-ecspi.dtb \
 	imx6qp-sabreauto-gpmi-weim.dtb \
@@ -647,7 +648,8 @@ dtb-$(CONFIG_ARCH_IMX8M) += fsl-imx8mq-evk.dtb \
 		fsl-imx8mn-ddr4-evk.dtb \
 		fsl-imx8mn-evk.dtb \
 		fsl-imx8mq-aiy.dtb \
-		fsl-imx8mp-evk.dtb
+		fsl-imx8mp-evk.dtb \
+		ccimx8mn-dvk.dtb
 
 dtb-$(CONFIG_RCAR_GEN2) += \
 	r8a7790-lager-u-boot.dtb \

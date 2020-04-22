@@ -90,8 +90,11 @@ static void mxs_lcd_init(GraphicDevice *panel,
 			struct ctfb_res_modes *mode, int bpp)
 {
 	struct mxs_lcdif_regs *regs = (struct mxs_lcdif_regs *)(ulong)(panel->isaBase);
-	uint32_t word_len = 0, bus_width = 0, vdctrl0;
+	uint32_t word_len = 0, bus_width = 0;
 	uint8_t valid_data = 0;
+#ifndef CONFIG_IMX_SEC_MIPI_DSI
+	uint32_t vdctrl0;
+#endif
 
 	/* Kick in the LCDIF clock */
 	mxs_set_lcdclk(panel->isaBase, PS2KHZ(mode->pixclock));

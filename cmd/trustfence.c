@@ -29,7 +29,6 @@
 #endif
 #include <asm/mach-imx/hab.h>
 #include <linux/errno.h>
-#include "helper.h"
 #include <u-boot/sha256.h>
 #include <watchdog.h>
 #include <malloc.h>
@@ -38,10 +37,13 @@
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
 #include <asm/gpio.h>
 #endif
-#include "trustfence.h"
 #include <u-boot/md5.h>
 #include <fsl_caam.h>
 #include <console.h>
+
+#include "../board/digi/common/helper.h"
+#include "../board/digi/common/trustfence.h"
+
 
 #define UBOOT_HEADER_SIZE	0xC00
 #define UBOOT_START_ADDR	(CONFIG_SYS_TEXT_BASE - UBOOT_HEADER_SIZE)
@@ -187,6 +189,19 @@ __weak int fuse_prog_srk(u32 addr, u32 size)
 	return 0;
 }
 
+#if defined(CONFIG_TRUSTFENCE_SRK_OTP_LOCK_BANK) && \
+    defined(CONFIG_TRUSTFENCE_SRK_OTP_LOCK_WORD) && \
+    defined(CONFIG_TRUSTFENCE_SRK_OTP_LOCK_OFFSET)
+__weak int lock_srk_otp(void)
+{
+	return fuse_prog(CONFIG_TRUSTFENCE_SRK_OTP_LOCK_BANK,
+			 CONFIG_TRUSTFENCE_SRK_OTP_LOCK_WORD,
+			 1 << CONFIG_TRUSTFENCE_SRK_OTP_LOCK_OFFSET);
+}
+#else
+__weak int lock_srk_otp(void)	{return 0;}
+#endif
+
 __weak int revoke_key_index(int i)
 {
 	u32 val = (1 << i) << CONFIG_TRUSTFENCE_SRK_REVOKE_OFFSET;
@@ -231,7 +246,8 @@ __weak int close_device(int confirmed)
 
 	puts("Before closing the device DIR_BT_DIS will be burned.\n");
 	puts("This permanently disables the ability to boot using external memory.\n");
-	puts("Please confirm the programming of DIR_BT_DIS and SEC_CONFIG[1]\n\n");
+	puts("The SRK_LOCK OTP bit will also be programmed, locking the SRK fields.\n");
+	puts("Please confirm the programming of SRK_LOCK, DIR_BT_DIS and SEC_CONFIG[1]\n\n");
 	if (!confirmed && !confirm_prog())
 		return CMD_RET_FAILURE;
 
@@ -239,8 +255,13 @@ __weak int close_device(int confirmed)
 	if (disable_ext_mem_boot())
 		goto err;
 	puts("[OK]\n");
-		puts("Closing device...\n");
 
+	puts("Programming SRK_LOCK eFuse...\n");
+	if (lock_srk_otp())
+		goto err;
+	puts("[OK]\n");
+
+	puts("Closing device...\n");
 	return fuse_prog(CONFIG_TRUSTFENCE_CLOSE_BIT_BANK,
 			 CONFIG_TRUSTFENCE_CLOSE_BIT_WORD,
 			 1 << CONFIG_TRUSTFENCE_CLOSE_BIT_OFFSET);

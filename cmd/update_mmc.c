@@ -7,15 +7,13 @@
  *  the Free Software Foundation.
 */
 #include <common.h>
-#include <asm/arch/sys_proto.h>
-#include <asm/arch-imx/cpu.h>
-#include <asm/mach-imx/boot_mode.h>
 #ifdef CONFIG_FASTBOOT_FLASH
 #include <image-sparse.h>
 #endif
+#include <mmc.h>
 #include <otf_update.h>
 #include <part.h>
-#include "helper.h"
+#include "../board/digi/common/helper.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -137,7 +135,7 @@ static int write_firmware(char *partname, unsigned long loadaddr,
 	 */
 	if (!strcmp(partname, "uboot") &&
 	    !strcmp(CONFIG_SYS_STORAGE_MEDIA, "mmc") &&
-	    board_has_emmc() && (mmc_dev_index == 0))
+	    board_has_emmc() && (mmc_dev_index == CONFIG_SYS_MMC_ENV_DEV))
 		strcat(cmd, " $mmcbootpart");
 
 	/* Change to storage device */
@@ -229,28 +227,13 @@ static int write_file(unsigned long loadaddr, unsigned long filesize,
 	return run_command(cmd, 0);
 }
 
-#define ECSD_PARTITION_CONFIG		179
-#define BOOT_ACK			(1 << 6)
-#define BOOT_PARTITION_ENABLE_OFF	3
-
 static int emmc_bootselect(void)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
-	int bootpart;
-
-	/* Prepare command to change to storage device */
-	sprintf(cmd, "mmc dev %d", mmc_dev_index);
-
-	/* Change to storage device */
-	if (run_command(cmd, 0)) {
-		debug("Cannot change to storage device\n");
-		return -1;
-	}
 
 	/* Select boot partition and enable boot acknowledge */
-	bootpart = env_get_ulong("mmcbootpart", 16, CONFIG_SYS_BOOT_PART_EMMC);
-	sprintf(cmd, "mmc ecsd write %x %x", ECSD_PARTITION_CONFIG,
-		BOOT_ACK | (bootpart << BOOT_PARTITION_ENABLE_OFF));
+	sprintf(cmd, "mmc partconf %x %x %x %x", EMMC_BOOT_DEV, EMMC_BOOT_ACK,
+		EMMC_BOOT_PART, EMMC_BOOT_PART);
 
 	return run_command(cmd, 0);
 }
@@ -286,6 +269,16 @@ static int init_mmc_globals(void)
 	return 0;
 }
 
+__weak void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
+					    disk_partition_t *info)
+{
+	struct mmc *mmc = find_mmc_device(EMMC_BOOT_DEV);
+
+	info->start = EMMC_BOOT_PART_OFFSET / mmc_dev->blksz;
+	/* Boot partition size - Start of boot image */
+	info->size = (mmc->capacity_boot / mmc_dev->blksz) - info->start;
+}
+
 static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 {
 	disk_partition_t info;
@@ -308,24 +301,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	/* Get data of partition to be updated */
 	if (!strcmp(argv[1], "uboot")) {
 		/* Simulate partition data for U-Boot */
-#ifdef CONFIG_ARCH_IMX8
-		/* Use a different offset depending on the i.MX8X QXP CPU revision */
-		u32 cpurev = get_cpu_rev();
-
-		switch (cpurev & 0xFFF) {
-		case CHIP_REV_A:
-			info.start = CONFIG_SYS_BOOT_PART_OFFSET_A0 / mmc_dev->blksz;
-			info.size = CONFIG_SYS_BOOT_PART_SIZE_A0 / mmc_dev->blksz;
-			break;
-		default:
-			info.start = CONFIG_SYS_BOOT_PART_OFFSET_B0 / mmc_dev->blksz;
-			info.size = CONFIG_SYS_BOOT_PART_SIZE_B0 / mmc_dev->blksz;
-			break;
-		}
-#else
-		info.start = CONFIG_SYS_BOOT_PART_OFFSET / mmc_dev->blksz;
-		info.size = CONFIG_SYS_BOOT_PART_SIZE / mmc_dev->blksz;
-#endif
+		calculate_uboot_update_settings(mmc_dev, &info);
 		strcpy((char *)info.name, argv[1]);
 	} else {
 		/* Not a reserved name. Must be a partition name or index */
@@ -473,7 +449,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	 */
 	if (!strcmp(argv[1], "uboot") &&
 	    !strcmp(CONFIG_SYS_STORAGE_MEDIA, "mmc") &&
-	    board_has_emmc() && (mmc_dev_index == 0)) {
+	    board_has_emmc() && (mmc_dev_index == CONFIG_SYS_MMC_ENV_DEV)) {
 		ret = emmc_bootselect();
 		if (ret) {
 			printf("Error changing eMMC boot partition\n");

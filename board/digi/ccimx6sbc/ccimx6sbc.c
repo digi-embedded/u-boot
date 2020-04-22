@@ -43,7 +43,6 @@
 #include "../ccimx6/ccimx6.h"
 #include "../common/carrier_board.h"
 #include "../common/helper.h"
-#include "../common/hwid.h"
 #include "../common/trustfence.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -475,7 +474,6 @@ int board_late_init(void)
 /* Platform function to modify the FDT as needed */
 int ft_board_setup(void *blob, bd_t *bd)
 {
-	fdt_fixup_hwid(blob);
 	fdt_fixup_ccimx6(blob);
 	fdt_fixup_carrierboard(blob);
 
