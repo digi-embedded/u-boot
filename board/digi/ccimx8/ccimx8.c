@@ -231,7 +231,7 @@ void som_default_environment(void)
 
 	/* Set soc_type variable (lowercase) */
 #ifdef CONFIG_CC8X
-	snprintf(var, sizeof(var), "imx%s", get_imx8_type(get_cpu_type()));
+	snprintf(var, sizeof(var), "imx8%s", get_imx8_type(get_cpu_type()));
 	for (i = 0; i < strlen(var); i++)
 		var[i] = tolower(var[i]);
 #else
