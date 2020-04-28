@@ -25,7 +25,9 @@
 #include <asm/armv8/mmu.h>
 #include <asm/setup.h>
 #include <asm/mach-imx/boot_mode.h>
+#ifdef CONFIG_IMX_OPTEE
 #include <asm/mach-imx/optee.h>
+#endif
 #include <asm/arch/video_common.h>
 #include <linux/libfdt.h>
 #include <fdt_support.h>
@@ -1196,7 +1198,9 @@ int ft_system_setup(void *blob, bd_t *bd)
 	config_smmu_fdt(blob);
 #endif
 
+#ifdef CONFIG_IMX_OPTEE
 	ft_add_optee_node(blob, bd);
+#endif
 	return 0;
 }
 #endif

@@ -12,7 +12,9 @@
 #include <asm/arch/sys_proto.h>
 #include <asm/mach-imx/hab.h>
 #include <asm/mach-imx/boot_mode.h>
+#ifdef CONFIG_IMX_OPTEE
 #include <asm/mach-imx/optee.h>
+#endif
 #include <asm/mach-imx/syscounter.h>
 #include <asm/armv8/mmu.h>
 #include <errno.h>
@@ -911,7 +913,11 @@ usb_modify_speed:
 		disable_cpu_nodes(blob, 3);
 #endif
 
+#ifdef CONFIG_IMX_OPTEE
 	return ft_add_optee_node(blob, bd);
+#else
+	return 0;
+#endif
 }
 #endif
 
