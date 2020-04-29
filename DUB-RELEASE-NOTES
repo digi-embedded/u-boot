@@ -4,6 +4,11 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2019.04
 -----------
+dub-2019.04-r1.5, released on 2020/04/29
+	- Fix on SCFW to prevent Cortex M4 from reserving certain
+          GPIO resources.
+
+
 dub-2019.04-r1.4, released on 2020/02/12
 	- Update ConnectCore 8X to v2019.04 BSP from NXP
           (tag 'rel_imx_4.19.35_1.1.0').
