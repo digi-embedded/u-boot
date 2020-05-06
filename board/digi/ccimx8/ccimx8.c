@@ -17,6 +17,7 @@
 #include "ccimx8.h"
 
 #ifdef CONFIG_CC8X
+extern const char *get_imx8_rev(u32 rev);
 extern const char *get_imx8_type(u32 imxtype);
 extern struct ccimx8_variant ccimx8x_variants[];
 #endif
@@ -261,6 +262,11 @@ void som_default_environment(void)
 	var[i] = 0;
 #endif
 	env_set("soc_type", var);
+
+#ifdef CONFIG_CC8X
+	snprintf(var, sizeof(var), "%s0", get_imx8_rev(get_cpu_rev() & 0xFFF));
+	env_set("soc_rev", var);
+#endif
 
 #ifdef CONFIG_CMD_MMC
 	/* Set $mmcbootdev to MMC boot device index */
