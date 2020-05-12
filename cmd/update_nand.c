@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 by Digi International Inc.
+ *  Copyright (C) 2016-2020 by Digi International Inc.
  *  All rights reserved.
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -304,6 +304,16 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 			goto _ret;
 		}
 
+	}
+
+	/* Validate U-Boot updates, to avoid writing the wrong image to flash */
+	if (!strcmp(argv[1], "uboot") &&
+	    env_get_yesno("skip-uboot-check") != 1 &&
+	    !validate_bootloader_image((void *)loadaddr)) {
+		printf("ERROR: Aborting update operation.\n"
+		       "To skip U-Boot validation, set variable 'skip-uboot-check' to 'yes' and repeat the update command.\n");
+		ret = CMD_RET_FAILURE;
+		goto _ret;
 	}
 
 	/* Write firmware file from RAM to storage */

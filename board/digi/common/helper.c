@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2017 by Digi International Inc.
+ *  Copyright (C) 2017-2020 by Digi International Inc.
  *  All rights reserved.
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -811,3 +811,17 @@ void set_verifyaddr(unsigned long loadaddr)
 	     verifyaddr < (PHYS_SDRAM + gd->ram_size))
 		 env_set_hex("verifyaddr", verifyaddr);
  }
+
+/**
+ * Validate a bootloader image in memory to see if it's apt for the board.
+ * This function can be redefined per platform, to implement specific
+ * validations.
+ *
+ * @param loadaddr pointer to the address where the bootloader has been loaded
+ * @return true if the validation is successful, false otherwise
+ */
+__weak bool validate_bootloader_image(void *loadaddr)
+{
+	/* Accept all bootloaders by default */
+	return true;
+}

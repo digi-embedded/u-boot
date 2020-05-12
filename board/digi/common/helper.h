@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2014 by Digi International Inc.
+ *  Copyright (C) 2014-2020 by Digi International Inc.
  *  All rights reserved.
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -74,5 +74,6 @@ size_t media_get_block_size(void);
 uint get_env_hwpart(void);
 u64 memsize_parse(const char *const ptr, const char **retptr);
 void set_verifyaddr(unsigned long loadaddr);
+bool validate_bootloader_image(void *loadaddr);
 
 #endif  /* __DIGI_HELPER_H */
