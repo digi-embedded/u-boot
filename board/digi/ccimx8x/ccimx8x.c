@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Digi International, Inc.
+ * Copyright (C) 2018-2020 Digi International, Inc.
  * Copyright 2017 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -14,10 +14,13 @@
 #include <asm/arch-imx8/sci/sci.h>
 #include <asm/mach-imx/boot_mode.h>
 
+#include "../common/helper.h"
 #include "../common/hwid.h"
 #include "../common/mca.h"
 
 DECLARE_GLOBAL_DATA_PTR;
+
+extern const char *get_imx8_rev(u32 rev);
 
 int confirm_close(void);
 
@@ -277,4 +280,84 @@ void board_print_trustfence_jtag_key(u32 *sjc)
 int get_dek_blob(char *output, u32 *size)
 {
 	return 1;
+}
+
+/*
+ * According to NXP, reading the imx-boot image at this offset will give us the
+ * hash of the config file used in the SECO fw compilation. This hash is
+ * guaranteed to be different in B0 and C0 versions of the fw, allowing us to
+ * verify the SECO fw against the SOC revision programatically.
+ *
+ * It's also likely that it won't change in future releases within the same BSP
+ * (such as v5.4), so we probably won't need to update it very often.
+ */
+#define SECO_CONFIG_HASH_OFFSET	8244
+
+/*
+ * List of currently known SECO watermarks. It needs to be updated if new
+ * watermarks appear in future SECO fw releases. Each watermark can be obtained
+ * with the following shell command:
+ *
+ * $ od -t x4 -j 8244 -N 4 imx-boot.bin
+ */
+#define C0_DEY_3_0_SECO		0x7ad5f995
+
+#define B0_DEY_3_0_SECO		0x0920f7b1
+#define B0_DEY_2_6_r3_SECO	0xce4ef011
+#define B0_DEY_2_6_r2_SECO	0xe83f52d7
+#define B0_DEY_2_6_r1_SECO	0x14955700
+#define B0_DEY_2_4_SECO		0x00000006
+
+/**
+ * Parse an imx-boot image in memory to try to identify which SOC revision the
+ * SECO fw is meant for. Then, compare that revision with the SOC revision on
+ * the hardware and print an error if they don't match.
+ */
+bool validate_bootloader_image(void *loadaddr)
+{
+	const char *soc_rev;
+	char seco_rev;
+	u32 *seco_watermark;
+
+	/* Pointer arithmetic adds in increments of 4, so divide offset by 4 */
+	seco_watermark = (u32 *)loadaddr + (SECO_CONFIG_HASH_OFFSET / 4);
+
+	switch (*seco_watermark) {
+	case C0_DEY_3_0_SECO:
+		seco_rev = 'C';
+		break;
+	case B0_DEY_3_0_SECO:
+	case B0_DEY_2_6_r3_SECO:
+	case B0_DEY_2_6_r2_SECO:
+	case B0_DEY_2_6_r1_SECO:
+	case B0_DEY_2_4_SECO:
+		seco_rev = 'B';
+		break;
+	default:
+		/*
+		 * Watermark not recognized, it's likely a newer imx-boot that
+		 * can be for either B0 or C0. In this case, print a different
+		 * error message with instructions on how to ensure a correct
+		 * update.
+		 */
+		seco_rev = '!';
+		break;
+	}
+
+	soc_rev = get_imx8_rev(get_cpu_rev() & 0xFFF);
+
+	if (*soc_rev != seco_rev) {
+		if (seco_rev == '!')
+			printf("ERROR: the bootloader image has an unknown version of the SECO firmware.\n"
+			       "If you're updating to a newer bootloader, make sure it matches your module's SOC revision (%s0).\n",
+			       soc_rev);
+		else
+			printf("ERROR: the bootloader image has %c0 SECO firmware, but the module's SOC revision is %s0.\n"
+			       "Proceeding with the update will result in a non-booting device.\n",
+			       seco_rev, soc_rev);
+
+		return false;
+	}
+
+	return true;
 }
