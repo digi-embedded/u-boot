@@ -10,7 +10,7 @@
 #include <common.h>
 #include <part.h>
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
-#include <mapmem.h>
+#include <stdlib.h>
 #endif
 #include "../board/digi/common/helper.h"
 
@@ -100,8 +100,9 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	int has_fdt = 0;
 	int has_initrd = 0;
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
-	char *overlay_list;
-	char *overlay;
+	char *original_overlay_list;
+	char *overlay_list = NULL;
+	char *overlay = NULL;
 	const char delim[2] = ",";
 #endif
 	struct load_fw fwinfo;
@@ -167,8 +168,14 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	fwinfo.loadaddr = "$initrd_addr";
 	fwinfo.compressed = false;
 
-	overlay_list = env_get("overlays");
-	overlay = strtok(overlay_list, delim);
+	/* Copy the variable to avoid modifying it in memory */
+	original_overlay_list = env_get("overlays");
+
+	if (original_overlay_list)
+		overlay_list = strdup(original_overlay_list);
+
+	if (overlay_list)
+		overlay = strtok(overlay_list, delim);
 
 	while (overlay != NULL) {
 		fwinfo.filename = overlay;
@@ -180,14 +187,19 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 
 			if (run_command("fdt apply $initrd_addr", 0)) {
 				printf("Failed to apply overlay %s\n", overlay);
+				free(overlay_list);
 				return CMD_RET_FAILURE;
 			}
 		} else {
 			printf("Error loading overlay %s\n", overlay);
+			free(overlay_list);
 			return CMD_RET_FAILURE;
 		}
 		overlay = strtok(NULL, delim);
 	}
+
+	if (overlay_list)
+		free(overlay_list);
 #endif
 
 	/* Get init ramdisk */
