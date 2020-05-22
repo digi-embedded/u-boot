@@ -198,7 +198,8 @@ __weak int close_device(void)
 
 __weak int revoke_key_index(int i)
 {
-	u32 val = (1 << i) << CONFIG_TRUSTFENCE_SRK_REVOKE_OFFSET;
+	u32 val = ((1 << i) & CONFIG_TRUSTFENCE_SRK_REVOKE_MASK) <<
+		    CONFIG_TRUSTFENCE_SRK_REVOKE_OFFSET;
 	return fuse_prog(CONFIG_TRUSTFENCE_SRK_REVOKE_BANK,
 			 CONFIG_TRUSTFENCE_SRK_REVOKE_WORD,
 			 val);
