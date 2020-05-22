@@ -121,7 +121,6 @@
 /* RAM memory reserved for U-Boot, stack, malloc pool... */
 #define CONFIG_UBOOT_RESERVED		(10 * 1024 * 1024)
 
-#define CONFIG_ENV_OVERWRITE
 
 #define CONFIG_SYS_STORAGE_MEDIA       "mmc"
 #define CONFIG_SYS_MMC_ENV_DEV		0   /* USDHC3 */
