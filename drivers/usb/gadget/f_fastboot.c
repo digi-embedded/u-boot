@@ -805,12 +805,12 @@ static ulong bootloader_mmc_offset(void)
 							  mmc_dev_index);
 	if (NULL == mmc_dev) {
 		debug("Cannot determine sys storage device\n");
-		return (EMMC_BOOT_PART_OFFSET / mmc_dev->blksz);
+		return EMMC_BOOT_PART_OFFSET;
 	}
 
 	calculate_uboot_update_settings(mmc_dev, &info);
 
-	return info.start;
+	return info.start * mmc_dev->blksz;
 }
 
 #if defined(CONFIG_FASTBOOT_STORAGE_MMC) || defined(CONFIG_FASTBOOT_STORAGE_SATA)
