@@ -75,7 +75,8 @@ static int get_dek_blob(char *output, u32 *size) {
 
 	if (*csf_addr) {
 		int blob_size = MAX_DEK_BLOB_SIZE;
-		uint8_t *dek_blob = (uint8_t *)(*csf_addr + CONFIG_CSF_SIZE - blob_size);
+		uint8_t *dek_blob = (uint8_t *)(uintptr_t)(*csf_addr +
+				    CONFIG_CSF_SIZE - blob_size);
 
 		/*
 		 * Several DEK sizes can be used.
