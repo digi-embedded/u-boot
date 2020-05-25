@@ -48,8 +48,6 @@
 #define UBOOT_HEADER_SIZE	0xC00
 #define UBOOT_START_ADDR	(CONFIG_SYS_TEXT_BASE - UBOOT_HEADER_SIZE)
 
-/* Location of the CSF pointer within the Image Vector Table */
-#define CSF_IVT_WORD_OFFSET	6
 #define BLOB_DEK_OFFSET		0x100
 
 /*
@@ -75,12 +73,18 @@
  *
  * Returns 0 if the DEK blob was found, 1 otherwise.
  */
-__weak int get_dek_blob(char *output, u32 *size) {
-	u32 *csf_addr = (u32 *)UBOOT_START_ADDR + CSF_IVT_WORD_OFFSET;
+__weak int get_dek_blob(char *output, u32 *size)
+{
+	struct ivt *ivt = (struct ivt *)UBOOT_START_ADDR;
 
-	if (*csf_addr) {
+	/* Verify the pointer is pointing at an actual IVT table */
+	if ((ivt->hdr.magic != IVT_HEADER_MAGIC) ||
+	    (be16_to_cpu(ivt->hdr.length) != IVT_TOTAL_LENGTH))
+		return 1;
+
+	if (ivt->csf) {
 		int blob_size = MAX_DEK_BLOB_SIZE;
-		uint8_t *dek_blob = (uint8_t *)(uintptr_t)(*csf_addr +
+		uint8_t *dek_blob = (uint8_t *)(uintptr_t)(ivt->csf +
 				    CONFIG_CSF_SIZE - blob_size);
 
 		/*
