@@ -40,9 +40,6 @@
 #include "../board/digi/common/helper.h"
 #include "../board/digi/common/trustfence.h"
 
-#define UBOOT_HEADER_SIZE	0xC00
-#define UBOOT_START_ADDR	(CONFIG_SYS_TEXT_BASE - UBOOT_HEADER_SIZE)
-
 #define BLOB_DEK_OFFSET		0x100
 
 /*
@@ -54,7 +51,15 @@
 #endif
 
 #define ALIGN_UP(x, a) (((x) + (a - 1)) & ~(a - 1))
+#define ALIGN_DN(x, a) (((x) - (a - 1)) & ~(a - 1))
 #define DMA_ALIGN_UP(x) ALIGN_UP(x, ARCH_DMA_MINALIGN)
+
+#ifdef CONFIG_SPL_LOAD_FIT
+#define IVT_ADDR  (ALIGN_DN(CONFIG_SYS_TEXT_BASE - CONFIG_CSF_SIZE - 512, 0x40))
+#else
+#define UBOOT_HEADER_SIZE	0xC00
+#define IVT_ADDR		(CONFIG_SYS_TEXT_BASE - UBOOT_HEADER_SIZE)
+#endif
 
 /*
  * Copy the DEK blob used by the current U-Boot image into a buffer. Also
@@ -70,7 +75,7 @@
  */
 static int get_dek_blob(char *output, u32 *size)
 {
-	struct ivt *ivt = (struct ivt *)UBOOT_START_ADDR;
+	struct ivt *ivt = (struct ivt *)IVT_ADDR;
 
 	/* Verify the pointer is pointing at an actual IVT table */
 	if ((ivt->hdr.magic != IVT_HEADER_MAGIC) ||
