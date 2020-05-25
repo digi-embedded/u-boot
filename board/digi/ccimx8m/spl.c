@@ -168,17 +168,12 @@ int power_init_board(void)
 		/* unlock the PMIC regs */
 		pmic_reg_write(p, BD71837_REGLOCK, 0x1);
 
-		/*
-		* increase VDD_SOC/VDD_DRAM to typical value 0.85v for 1.2Ghz
-		* DDR clock
-		*/
-		pmic_reg_write(p, BD71837_BUCK1_VOLT_RUN, 0x0F);
-
-		/* increase VDD_ARM to typical value 0.95v for Quad-A53, 1.4 GHz */
-		pmic_reg_write(p, BD71837_BUCK2_VOLT_RUN, 0x19);
-
-		/* Set VDD_SOC 0.85v for suspend */
+		/* VDD_SOC/DRAM to 0.95V for up to 1.6 GHz (0.85V on suspend) */
+		pmic_reg_write(p, BD71837_BUCK1_VOLT_RUN, 0x19);
 		pmic_reg_write(p, BD71837_BUCK1_VOLT_SUSP, 0xf);
+
+		/* VDD_ARM to 0.95V for Quad-A53, 1.4 GHz */
+		pmic_reg_write(p, BD71837_BUCK2_VOLT_RUN, 0x19);
 
 		/* lock the PMIC regs */
 		pmic_reg_write(p, BD71837_REGLOCK, 0x11);
@@ -193,12 +188,17 @@ int power_init_board(void)
 		/* BUCKxOUT_DVS0/1 control BUCK123 output */
 		pmic_reg_write(p, PCA9450_BUCK123_DVS, 0x29);
 
-		/* increase VDD_SOC/VDD_DRAM to typical value 0.95V before first DRAM access */
-		/* Set DVS1 to 0.85v for suspend */
-		/* Enable DVS control through PMIC_STBY_REQ and set B1_ENMODE=1 (ON by PMIC_ON_REQ=H) */
-		pmic_reg_write(p, PCA9450_BUCK1OUT_DVS0, 0x1C);
-		pmic_reg_write(p, PCA9450_BUCK1OUT_DVS1, 0x14);
-		pmic_reg_write(p, PCA9450_BUCK1CTRL, 0x59);
+		/* VDD_ARM to 0.95V for Quad-A53, 1.4 GHz (0.85V on suspend) */
+		pmic_reg_write(p, PCA9450_BUCK2OUT_DVS0, 0x1C);
+		pmic_reg_write(p, PCA9450_BUCK2OUT_DVS1, 0x14);
+		/* Enable DVS control through PMIC_STBY_REQ */
+		pmic_reg_write(p, PCA9450_BUCK2CTRL, 0x59);
+
+		/* VDD_DRAM to 0.95V for up to 1.6 GHz (0.85V on suspend) */
+		pmic_reg_write(p, PCA9450_BUCK3OUT_DVS0, 0x1C);
+		pmic_reg_write(p, PCA9450_BUCK3OUT_DVS1, 0x14);
+		/* Enable DVS control through PMIC_STBY_REQ */
+		pmic_reg_write(p, PCA9450_BUCK3CTRL, 0x59);
 
 		/* set VDD_SNVS_0V8 from default 0.85V */
 		pmic_reg_write(p, PCA9450_LDO2CTRL, 0xC0);
