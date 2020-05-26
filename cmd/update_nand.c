@@ -294,7 +294,7 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 		 * to the target media if OTF mechanism is enabled).
 		 */
 		fwinfo.loadaddr = "$update_addr";
-		ret = load_firmware(&fwinfo);
+		ret = load_firmware(&fwinfo, NULL);
 		if (ret == LDFW_ERROR) {
 			printf("Error loading firmware file to RAM\n");
 			ret = CMD_RET_FAILURE;

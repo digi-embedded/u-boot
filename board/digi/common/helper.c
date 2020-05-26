@@ -407,7 +407,7 @@ unsigned long get_firmware_size(const struct load_fw *fwinfo) {
  *	LDFW_NOT_LOADED if the file was not loaded, but isn't required
  *	LDFW_ERROR on error
  */
-int load_firmware(struct load_fw *fwinfo)
+int load_firmware(struct load_fw *fwinfo, char *msg)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	char def_devpartno[] = "0:1";
@@ -497,6 +497,9 @@ int load_firmware(struct load_fw *fwinfo)
 	default:
 		return -1;
 	}
+
+	if (msg)
+		printf("%s", msg);
 
 	ret = run_command(cmd, 0);
 	if (!ret && fwinfo->compressed) {

@@ -646,7 +646,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			/* Load firmware file to RAM */
 			fwinfo.loadaddr = "$loadaddr";
 			fwinfo.filename = (fwinfo.src == SRC_MMC) ? argv[4] : argv[3];
-			ret = load_firmware(&fwinfo);
+			ret = load_firmware(&fwinfo, NULL);
 			if (ret == LDFW_ERROR) {
 				printf("Error loading firmware file to RAM\n");
 				return CMD_RET_FAILURE;

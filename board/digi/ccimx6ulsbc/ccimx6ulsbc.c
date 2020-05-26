@@ -579,7 +579,7 @@ int board_load_logo(void)
 	fwinfo.loadaddr = "$loadaddr";
 
 	/* Load the bmp in memory */
-	ret = load_firmware(&fwinfo);
+	ret = load_firmware(&fwinfo, NULL);
 
 ll_exit:
 	free(r);
