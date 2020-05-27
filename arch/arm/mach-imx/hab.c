@@ -880,10 +880,12 @@ int imx_hab_authenticate_image(uint32_t ddr_start, uint32_t image_size,
 	struct ivt *ivt;
 	enum hab_status status;
 
-	if (!imx_hab_is_enabled())
-		puts("hab fuse not enabled\n");
+	if (!imx_hab_is_enabled()) {
+		debug("   Open device, skipping authentication...\n");
+		return 0;
+	}
 
-	printf("\nAuthenticate image from DDR location 0x%x...\n",
+	printf("   Authenticate image from DDR location 0x%x... ",
 	       ddr_start);
 
 	hab_caam_clock_enable(1);
@@ -904,13 +906,13 @@ int imx_hab_authenticate_image(uint32_t ddr_start, uint32_t image_size,
 		goto hab_authentication_exit;
 
 	if (hab_rvt_entry() != HAB_SUCCESS) {
-		puts("hab entry function fail\n");
+		puts("FAILED!\nhab entry function fail\n");
 		goto hab_exit_failure_print_status;
 	}
 
 	status = hab_rvt_check_target(HAB_TGT_MEMORY, (void *)(ulong)ddr_start, bytes);
 	if (status != HAB_SUCCESS) {
-		printf("HAB check target 0x%08x-0x%08lx fail\n",
+		printf("FAILED!\nHAB check target 0x%08x-0x%08lx fail\n",
 		       ddr_start, ddr_start + (ulong)bytes);
 		goto hab_exit_failure_print_status;
 	}
@@ -968,9 +970,14 @@ int imx_hab_authenticate_image(uint32_t ddr_start, uint32_t image_size,
 			HAB_CID_UBOOT,
 			ivt_offset, (void **)&start,
 			(size_t *)&bytes, NULL);
-	if (hab_rvt_exit() != HAB_SUCCESS) {
-		puts("hab exit function fail\n");
+	if (load_addr == 0) {
+		printf("FAILED!\n");
+	} else if (hab_rvt_exit() != HAB_SUCCESS) {
+		puts("FAILED!\nhab exit function fail\n");
 		load_addr = 0;
+	}
+	else {
+		goto hab_authentication_exit;
 	}
 
 hab_exit_failure_print_status:
@@ -980,8 +987,11 @@ hab_exit_failure_print_status:
 
 hab_authentication_exit:
 
-	if (load_addr != 0 || !imx_hab_is_enabled())
+	if (load_addr != 0 || !imx_hab_is_enabled()) {
+		/* Closed device, authentication successful, or Open device */
+		printf("OK\n");
 		result = 0;
+	}
 
 	return result;
 }
