@@ -167,6 +167,12 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
+#ifdef CONFIG_SIGN_IMAGE
+	if (fdt_file_authenticate(fwinfo.loadaddr) != 0) {
+		printf("Error authenticating FDT file\n");
+		return CMD_RET_FAILURE;
+	}
+#endif /* CONFIG_SIGN_IMAGE */
 	run_command("fdt addr $fdt_addr", 0);
 	/* get the right fdt_blob from the global working_fdt */
 	gd->fdt_blob = working_fdt;
@@ -194,6 +200,13 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		ret = load_firmware(&fwinfo, NULL);
 
 		if (ret == LDFW_LOADED) {
+#ifdef CONFIG_SIGN_IMAGE
+			if (fdt_file_authenticate(fwinfo.loadaddr) != 0) {
+				printf("Error authenticating FDT overlay file\n");
+				return CMD_RET_FAILURE;
+			}
+#endif /* CONFIG_SIGN_IMAGE */
+
 			/* Resize the base fdt to make room for the overlay */
 			run_command("fdt resize $filesize", 0);
 
