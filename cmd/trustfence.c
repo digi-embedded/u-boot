@@ -151,9 +151,13 @@ __weak int fuse_check_srk(void)
 {
 	int i;
 	u32 val;
+	int bank, word;
 
 	for (i = 0; i < CONFIG_TRUSTFENCE_SRK_WORDS; i++) {
-		if (fuse_sense(CONFIG_TRUSTFENCE_SRK_BANK, i, &val))
+		bank = CONFIG_TRUSTFENCE_SRK_BANK +
+		       (i / CONFIG_TRUSTFENCE_SRK_WORDS_PER_BANK);
+		word = i % CONFIG_TRUSTFENCE_SRK_WORDS_PER_BANK;
+		if (fuse_sense(bank, word, &val))
 			return -1;
 		if (val == 0)
 			return i + 1;
@@ -166,6 +170,7 @@ __weak int fuse_prog_srk(u32 addr, u32 size)
 {
 	int i;
 	int ret;
+	int bank, word;
 	uint32_t *src_addr = map_sysmem(addr, size);
 
 	if (size != CONFIG_TRUSTFENCE_SRK_WORDS * 4) {
@@ -174,7 +179,10 @@ __weak int fuse_prog_srk(u32 addr, u32 size)
 	}
 
 	for (i = 0; i < CONFIG_TRUSTFENCE_SRK_WORDS; i++) {
-		ret = fuse_prog(CONFIG_TRUSTFENCE_SRK_BANK, i, src_addr[i]);
+		bank = CONFIG_TRUSTFENCE_SRK_BANK +
+		       (i / CONFIG_TRUSTFENCE_SRK_WORDS_PER_BANK);
+		word = i % CONFIG_TRUSTFENCE_SRK_WORDS_PER_BANK;
+		ret = fuse_prog(bank, word, src_addr[i]);
 		if (ret)
 			return ret;
 	}
