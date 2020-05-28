@@ -12,6 +12,7 @@
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
 #include <stdlib.h>
 #endif
+#include <linux/libfdt.h>
 #include "../board/digi/common/helper.h"
 
 DECLARE_GLOBAL_DATA_PTR;
