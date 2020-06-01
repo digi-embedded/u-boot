@@ -78,7 +78,9 @@ int sc_pm_set_clock_parent(sc_ipc_t ipc, sc_rsrc_t resource, sc_pm_clk_t clk,
 			sc_pm_clk_parent_t parent);
 int sc_pm_cpu_start(sc_ipc_t ipc, sc_rsrc_t resource, sc_bool_t enable,
 			sc_faddr_t address);
+void sc_pm_reboot(sc_ipc_t ipc, sc_pm_reset_type_t type);
 sc_bool_t sc_pm_is_partition_started(sc_ipc_t ipc, sc_rm_pt_t pt);
+int sc_pm_resource_reset(sc_ipc_t ipc, sc_rsrc_t resource);
 
 /* MISC API */
 int sc_misc_set_control(sc_ipc_t ipc, sc_rsrc_t resource,
@@ -116,10 +118,14 @@ int sc_rm_get_resource_owner(sc_ipc_t ipc, sc_rsrc_t resource,
 
 /* PAD API */
 int sc_pad_set(sc_ipc_t ipc, sc_pad_t pad, u32 val);
+int sc_pad_get(sc_ipc_t ipc, sc_pad_t pad, uint32_t *val);
 
 /* SMMU API */
 int sc_rm_set_master_sid(sc_ipc_t ipc, sc_rsrc_t resource,
     sc_rm_sid_t sid);
+
+/* Timer API */
+int sc_timer_set_wdog_window(sc_ipc_t ipc, sc_timer_wdog_time_t window);
 
 /* SECO API */
 int sc_seco_authenticate(sc_ipc_t ipc,
@@ -133,5 +139,16 @@ int sc_seco_get_event(sc_ipc_t ipc, uint8_t idx,
 	uint32_t *event);
 int sc_seco_gen_key_blob(sc_ipc_t ipc, uint32_t id,
 	sc_faddr_t load_addr, sc_faddr_t export_addr, uint16_t max_size);
+int sc_seco_get_mp_key(sc_ipc_t ipc, sc_faddr_t dst_addr,
+			uint16_t dst_size);
+int sc_seco_update_mpmr(sc_ipc_t ipc, sc_faddr_t addr,
+			uint8_t size, uint8_t lock);
+int sc_seco_get_mp_sign(sc_ipc_t ipc, sc_faddr_t msg_addr,
+			uint16_t msg_size, sc_faddr_t dst_addr, uint16_t dst_size);
+int sc_seco_secvio_config(sc_ipc_t ipc, uint8_t id, uint8_t access,
+	uint32_t *data0, uint32_t *data1, uint32_t *data2, uint32_t *data3,
+	uint32_t *data4, uint8_t size);
+int sc_seco_secvio_dgo_config(sc_ipc_t ipc, uint8_t id, uint8_t access,
+	uint32_t *data);
 
 #endif

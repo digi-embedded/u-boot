@@ -13,15 +13,14 @@
 #include <cdns3-uboot.h>
 #include <asm/arch/iomux.h>
 #include <asm/arch/sci/sci.h>
+#include <asm/arch/snvs_security_sc.h>
 #include <asm/arch/sys_proto.h>
 #include <power-domain.h>
 #include "../../freescale/common/tcpc.h"
-#include <bootm.h>
 
-#include "../ccimx8x/ccimx8x.h"
+#include "../ccimx8/ccimx8.h"
 #include "../common/carrier_board.h"
 #include "../common/helper.h"
-#include "../common/hwid.h"
 #include "../common/mca_registers.h"
 #include "../common/mca.h"
 
@@ -182,7 +181,7 @@ int checkboard(void)
 	board_version = get_carrierboard_version();
 	board_id = get_carrierboard_id();
 
-	print_ccimx8x_info();
+	print_som_info();
 	print_carrierboard_info();
 	print_bootinfo();
 
@@ -237,24 +236,6 @@ static void setup_typec(void)
 }
 #endif
 
-#ifdef CONFIG_USB_CDNS3_GADGET
-static struct cdns3_device cdns3_device_data = {
-	.none_core_base = 0x5B110000,
-	.xhci_base = 0x5B130000,
-	.dev_base = 0x5B140000,
-	.phy_base = 0x5B160000,
-	.otg_base = 0x5B120000,
-	.dr_mode = USB_DR_MODE_PERIPHERAL,
-	.index = 1,
-};
-
-int usb_gadget_handle_interrupts(int index)
-{
-	cdns3_uboot_handle_interrupt(index);
-	return 0;
-}
-#endif
-
 static iomux_cfg_t usb_hub_gpio = {
 	SC_P_SPI3_SDI | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPIO_PAD_CTRL)
 };
@@ -291,40 +272,8 @@ int board_usb_init(int index, enum usb_init_type init)
 			ret = tcpc_setup_dfp_mode(&port);
 #endif
 		} else {
-#ifdef CONFIG_USB_CDNS3_GADGET
-#ifdef CONFIG_SPL_BUILD
-			ret = sc_pm_set_resource_power_mode(-1, SC_R_USB_2,
-							    SC_PM_PW_MODE_ON);
-			if (ret != SC_ERR_NONE)
-				printf("conn_usb2 Power up failed! (error = %d)\n",
-				       ret);
-
-			ret = sc_pm_set_resource_power_mode(-1,
-							    SC_R_USB_2_PHY,
-							    SC_PM_PW_MODE_ON);
-			if (ret != SC_ERR_NONE)
-				printf("conn_usb2_phy Power up failed! (error = %d)\n",
-				       ret);
-#else
-			struct power_domain pd;
-
-			/* Power on usb */
-			if (!power_domain_lookup_name("conn_usb2", &pd)) {
-				ret = power_domain_on(&pd);
-				if (ret)
-					printf("conn_usb2 Power up failed! (error = %d)\n", ret);
-			}
-
-			if (!power_domain_lookup_name("conn_usb2_phy", &pd)) {
-				ret = power_domain_on(&pd);
-				if (ret)
-					printf("conn_usb2_phy Power up failed! (error = %d)\n", ret);
-			}
-#endif
 #ifdef CONFIG_USB_TCPC
 			ret = tcpc_setup_ufp_mode(&port);
-#endif
-			ret = cdns3_uboot_init(&cdns3_device_data);
 #endif
 		}
 	}
@@ -340,41 +289,6 @@ int board_usb_cleanup(int index, enum usb_init_type init)
 		if (init == USB_INIT_HOST) {
 #ifdef CONFIG_USB_TCPC
 			ret = tcpc_disable_src_vbus(&port);
-#endif
-		} else {
-#ifdef CONFIG_USB_CDNS3_GADGET
-			cdns3_uboot_exit(1);
-
-#ifdef CONFIG_SPL_BUILD
-			ret = sc_pm_set_resource_power_mode(-1, SC_R_USB_2,
-							    SC_PM_PW_MODE_OFF);
-			if (ret != SC_ERR_NONE)
-				printf("conn_usb2 Power down failed! (error = %d)\n",
-				       ret);
-
-			ret = sc_pm_set_resource_power_mode(-1,
-							    SC_R_USB_2_PHY,
-							    SC_PM_PW_MODE_OFF);
-			if (ret != SC_ERR_NONE)
-				printf("conn_usb2_phy Power down failed! (error = %d)\n",
-				       ret);
-#else
-		       struct power_domain pd;
-		       int ret;
-
-			/* Power off usb */
-			if (!power_domain_lookup_name("conn_usb2", &pd)) {
-				ret = power_domain_off(&pd);
-				if (ret)
-					printf("conn_usb2 Power down failed! (error = %d)\n", ret);
-			}
-
-			if (!power_domain_lookup_name("conn_usb2_phy", &pd)) {
-				ret = power_domain_off(&pd);
-				if (ret)
-					printf("conn_usb2_phy Power down failed! (error = %d)\n", ret);
-			}
-#endif
 #endif
 		}
 	}
@@ -422,10 +336,19 @@ int board_init(void)
 #endif
 #endif
 
+#ifdef CONFIG_SNVS_SEC_SC_AUTO
+{
+	int ret = snvs_security_sc_init();
+
+	if (ret)
+		return ret;
+}
+#endif
+
 	return 0;
 }
 
-void board_quiesce_devices()
+void board_quiesce_devices(void)
 {
 	const char *power_on_devices[] = {
 		"dma_lpuart2",
@@ -443,8 +366,7 @@ void board_quiesce_devices()
 /* Platform function to modify the FDT as needed */
 int ft_board_setup(void *blob, bd_t *bd)
 {
-	fdt_fixup_hwid(blob);
-	fdt_fixup_ccimx8x(blob);
+	fdt_fixup_ccimx8(blob);
 	fdt_fixup_carrierboard(blob);
 
 	return 0;

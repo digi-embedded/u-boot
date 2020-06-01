@@ -57,6 +57,12 @@ config IMX8QXP
 	select RECOVER_SPL_DATA_SECTION
 	bool
 
+config IMX8DXL
+	select IMX8
+	select SUPPORT_SPL
+	select RECOVER_SPL_DATA_SECTION
+	bool
+
 config SYS_SOC
 	default "imx8"
 
@@ -122,6 +128,17 @@ config TARGET_IMX8DXL_PHANTOM_MEK
 	select BOARD_LATE_INIT
 	select IMX8QXP
 
+config TARGET_IMX8DX_MEK
+	bool "Support i.MX8DX MEK board"
+	select BOARD_LATE_INIT
+	select SUPPORT_SPL
+	select IMX8QXP
+
+config TARGET_IMX8DXL_EVK
+	bool "Support i.MX8DXL EVK board"
+	select BOARD_LATE_INIT
+	select IMX8DXL
+
 endchoice
 
 source "board/digi/ccimx8x_sbc_express/Kconfig"
@@ -131,5 +148,32 @@ source "board/freescale/imx8qm_mek/Kconfig"
 source "board/freescale/imx8qxp_arm2/Kconfig"
 source "board/freescale/imx8qm_arm2/Kconfig"
 source "board/freescale/imx8dxl_phantom_mek/Kconfig"
+source "board/freescale/imx8dxl_evk/Kconfig"
+
+config SNVS_SEC_SC
+	bool "Support SNVS configuration"
+	help
+	  Allow to configure the SNVS via SCU API to configure tampers and secure
+	  violation.
+
+config SNVS_SEC_SC_AUTO
+	bool "Support SNVS configuration command"
+	depends on SNVS_SEC_SC
+	help
+	  This configuration will apply the selected configurations automatically
+	  at boot.
+
+config SNVS_SEC_SC
+	bool "Support SNVS configuration"
+	help
+	  Allow to configure the SNVS via SCU API to configure tampers and secure
+	  violation.
+
+config SNVS_SEC_SC_AUTO
+	bool "Support SNVS configuration command"
+	depends on SNVS_SEC_SC
+	help
+	  This configuration will apply the selected configurations automatically
+	  at boot.
 
 endif

@@ -104,11 +104,11 @@
 
 #define JAILHOUSE_ENV \
 	"jh_mmcboot=" \
-		"setenv fdt_file fsl-imx8qxp-mek-root.dtb;"\
+		"setenv fdt_file imx8qxp-mek-root.dtb;"\
 		"setenv boot_os 'scu_rm dtb ${fdt_addr}; booti ${loadaddr} - ${fdt_addr};'; " \
 		"run mmcboot; \0" \
 	"jh_netboot=" \
-		"setenv fdt_file fsl-imx8qxp-mek-root.dtb;"\
+		"setenv fdt_file imx8qxp-mek-root.dtb;"\
 		"setenv boot_os 'scu_rm dtb ${fdt_addr}; booti ${loadaddr} - ${fdt_addr};'; " \
 		"run netboot; \0"
 
@@ -117,7 +117,7 @@
             "xenlinux_bootargs= \0" \
             "xenlinux_console=hvc0 earlycon=xen\0" \
             "xenlinux_addr=0x9e000000\0" \
-	    "dom0fdt_file=fsl-imx8qxp-mek-dom0.dtb\0" \
+	    "dom0fdt_file=imx8qxp-mek-dom0.dtb\0" \
             "xenboot_common=" \
                 "${get_cmd} ${loadaddr} xen;" \
                 "${get_cmd} ${fdt_addr} ${dom0fdt_file};" \
@@ -274,9 +274,15 @@
 #define CONFIG_SYS_SDRAM_BASE		0x80000000
 #define PHYS_SDRAM_1			0x80000000
 #define PHYS_SDRAM_2			0x880000000
+
+#ifdef CONFIG_TARGET_IMX8DX_MEK
+#define PHYS_SDRAM_1_SIZE		0x40000000	/* 1 GB */
+#define PHYS_SDRAM_2_SIZE		0x00000000	/* 0 GB */
+#else
 #define PHYS_SDRAM_1_SIZE		0x80000000	/* 2 GB */
 /* LPDDR4 board total DDR is 3GB */
 #define PHYS_SDRAM_2_SIZE		0x40000000	/* 1 GB */
+#endif
 
 #define CONFIG_SYS_MEMTEST_START    0xA0000000
 #define CONFIG_SYS_MEMTEST_END      (CONFIG_SYS_MEMTEST_START + (PHYS_SDRAM_1_SIZE >> 2))

@@ -27,7 +27,7 @@ size_t media_get_block_size(void)
 	size_t block_size = 0;
 	static struct blk_desc *mmc_dev;
 
-	mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV);
+	mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC, EMMC_BOOT_DEV);
 	if (!mmc_dev)
 		return block_size;
 
@@ -81,7 +81,7 @@ int media_read_block(uintptr_t addr, unsigned char *readbuf, uint hwpart)
 	if (len <= 0)
 		return ret;
 
-	mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV);
+	mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC, EMMC_BOOT_DEV);
 	if (!mmc_dev)
 		return ret;
 
@@ -121,7 +121,7 @@ int media_write_block(uintptr_t addr, unsigned char *writebuf, uint hwpart)
 	if (len <= 0)
 		return ret;
 
-	mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC, CONFIG_SYS_MMC_ENV_DEV);
+	mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC, EMMC_BOOT_DEV);
 	if (!mmc_dev)
 		return ret;
 

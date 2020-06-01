@@ -121,12 +121,12 @@
  */
 #define JAILHOUSE_ENV \
 	"jh_clk= \0 " \
-	"jh_mmcboot=mw 0x303d0518 0xff; setenv fdt_file fsl-imx8mm-evk-root.dtb;" \
+	"jh_mmcboot=mw 0x303d0518 0xff; setenv fdt_file imx8mm-evk-root.dtb;" \
 		"setenv jh_clk clk_ignore_unused; " \
 			   "if run loadimage; then " \
 				   "run mmcboot; " \
 			   "else run jh_netboot; fi; \0" \
-	"jh_netboot=mw 0x303d0518 0xff; setenv fdt_file fsl-imx8mm-evk-root.dtb; setenv jh_clk clk_ignore_unused; run netboot; \0 "
+	"jh_netboot=mw 0x303d0518 0xff; setenv fdt_file imx8mm-evk-root.dtb; setenv jh_clk clk_ignore_unused; run netboot; \0 "
 
 
 #define CONFIG_MFG_ENV_SETTINGS \
@@ -144,7 +144,7 @@
 	"fdt_high=0xffffffffffffffff\0" \
 	"mtdparts=" MFG_NAND_PARTITION "\0" \
 	"console=ttymxc1,115200 earlycon=ec_imx6q,0x30890000,115200\0" \
-	"bootargs=console=ttymxc1,115200 earlycon=ec_imx6q,0x30890000,115200 ubi.mtd=5 "  \
+	"bootargs=console=ttymxc1,115200 earlycon=ec_imx6q,0x30890000,115200 ubi.mtd=nandrootfs "  \
 		"root=ubi0:nandrootfs rootfstype=ubifs "		     \
 		MFG_NAND_PARTITION \
 		"\0" \
@@ -310,6 +310,7 @@
 #define CONFIG_SYS_NAND_BASE           0x20000000
 #define CONFIG_SYS_NAND_5_ADDR_CYCLE
 #define CONFIG_SYS_NAND_ONFI_DETECTION
+#define CONFIG_SYS_NAND_USE_FLASH_BBT
 
 #ifdef CONFIG_CMD_UBI
 #endif

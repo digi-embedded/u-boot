@@ -58,6 +58,10 @@ if [ -z "${CONFIG_SIGN_KEYS_PATH}" ]; then
 	exit 1
 fi
 [ -d "${CONFIG_SIGN_KEYS_PATH}" ] || mkdir -p "${CONFIG_SIGN_KEYS_PATH}"
+if [ -z "${CONFIG_SIGN_MODE}" ]; then
+	echo "Undefined CONFIG_SIGN_MODE";
+	exit 1
+fi
 
 if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 	HAB_VER="hab_ver 4"

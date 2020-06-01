@@ -59,6 +59,22 @@ config BROKEN
 	  This option cannot be enabled. It is used as dependency
 	  for broken and incomplete features.
 
+config ENV_AES
+	bool "Encrypt U-Boot environment"
+	select AES
+	help
+	  Define to encrypt the whole environment block with AES-128-CBC.
+
+config ENV_AES_CAAM_KEY
+	bool "Use CAAM internal key"
+	depends on ENV_AES
+	help
+	  Use the internal CAAM secure key for environment encryption which
+	  uses AES-256-CCM.
+
+	  This setting is only supported in closed devices (those which can
+	  only boot signed U-Boot images). It has no effect on open devices.
+
 config LOCALVERSION
 	string "Local version - append to U-Boot release"
 	help
@@ -335,6 +351,14 @@ config DEK_PATH
 	help
 	  Define to the DEK path to enable encryption of the signed U-boot
 	  image. Supported DEK sizes are 128, 192 and 256 bits.
+
+config SIGN_MODE
+	string "Sign mode"
+	depends on SIGN_IMAGE
+	help
+	  Sets the signing method to be one of "HAB" or "AHAB".
+	  HAB method is supported on i.MX6/7 and i.MX8M devices.
+	  AHAB method is supported on i.MX8X devices.
 
 config ANDROID_BOOT_IMAGE
 	bool "Enable support for Android Boot Images"

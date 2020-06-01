@@ -16,7 +16,7 @@
 #define CONFIG_CSF_SIZE			0x2000 /* 8K region */
 #endif
 
-#define CONFIG_SPL_MAX_SIZE		(148 * 1024)
+#define CONFIG_SPL_MAX_SIZE		(208 * 1024)
 #define CONFIG_SYS_MONITOR_LEN		(512 * 1024)
 #define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
 #define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR	0x300
@@ -30,18 +30,18 @@
 #define CONFIG_SPL_DRIVERS_MISC_SUPPORT
 #define CONFIG_SPL_I2C_SUPPORT
 #define CONFIG_SPL_LDSCRIPT		"arch/arm/cpu/armv8/u-boot-spl.lds"
-#define CONFIG_SPL_STACK		0x95fff0
+#define CONFIG_SPL_STACK		0x187FF0
 #define CONFIG_SPL_LIBCOMMON_SUPPORT
 #define CONFIG_SPL_LIBGENERIC_SUPPORT
 #define CONFIG_SPL_GPIO_SUPPORT
-#define CONFIG_SPL_BSS_START_ADDR      0x00950000
+#define CONFIG_SPL_BSS_START_ADDR      0x0095e000
 #define CONFIG_SPL_BSS_MAX_SIZE        0x2000	/* 8 KB */
-#define CONFIG_SYS_SPL_MALLOC_START    0x00940000
+#define CONFIG_SYS_SPL_MALLOC_START    0x42200000
 #define CONFIG_SYS_SPL_MALLOC_SIZE     0x10000	/* 64 KB */
 #define CONFIG_SYS_ICACHE_OFF
 #define CONFIG_SYS_DCACHE_OFF
 
-#define CONFIG_MALLOC_F_ADDR		0x00940000 /* malloc f used before GD_FLG_FULL_MALLOC_INIT set */
+#define CONFIG_MALLOC_F_ADDR		0x184000 /* malloc f used before GD_FLG_FULL_MALLOC_INIT set */
 
 #define CONFIG_SPL_ABORT_ON_RAW_IMAGE /* For RAW image gives a error info not panic */
 
@@ -51,7 +51,11 @@
 
 #define CONFIG_POWER
 #define CONFIG_POWER_I2C
+#ifdef CONFIG_IMX8M_DDR4
 #define CONFIG_POWER_BD71837
+#else
+#define CONFIG_POWER_PCA9450
+#endif
 
 #define CONFIG_SYS_I2C
 #define CONFIG_SYS_I2C_MXC_I2C1		/* enable I2C bus 1 */
@@ -114,12 +118,12 @@
 
 #define JAILHOUSE_ENV \
 	"jh_clk= \0 " \
-	"jh_mmcboot=mw 0x303d0518 0xff; setenv fdt_file fsl-imx8mn-ddr4-evk-root.dtb;" \
+	"jh_mmcboot=mw 0x303d0518 0xff; setenv fdt_file imx8mn-ddr4-evk-root.dtb;" \
 		"setenv jh_clk clk_ignore_unused; " \
 			   "if run loadimage; then " \
 				   "run mmcboot; " \
 			   "else run jh_netboot; fi; \0" \
-	"jh_netboot=mw 0x303d0518 0xff; setenv fdt_file fsl-imx8mn-ddr4-evk-root.dtb; setenv jh_clk clk_ignore_unused; run netboot; \0 "
+	"jh_netboot=mw 0x303d0518 0xff; setenv fdt_file imx8mn-ddr4-evk-root.dtb; setenv jh_clk clk_ignore_unused; run netboot; \0 "
 
 #define CONFIG_MFG_ENV_SETTINGS \
 	CONFIG_MFG_ENV_SETTINGS_DEFAULT \

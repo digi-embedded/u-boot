@@ -244,7 +244,7 @@ static int blob_encap_dek(uint32_t src_addr, uint32_t dst_addr, uint32_t len)
 	}
 
 	/* Flush output data before SECO operation */
-	flush_dcache_range(dst_ptr, dst_ptr +
+	flush_dcache_range((unsigned long)dst_ptr, (unsigned long)dst_ptr +
 			roundup(out_size, ARCH_DMA_MINALIGN));
 
 	/* Generate DEK blob */
@@ -255,12 +255,12 @@ static int blob_encap_dek(uint32_t src_addr, uint32_t dst_addr, uint32_t len)
 	}
 
 	/* Invalidate output buffer */
-	invalidate_dcache_range(dst_ptr, dst_ptr +
+	invalidate_dcache_range((unsigned long)dst_ptr, (unsigned long)dst_ptr +
 			roundup(out_size, ARCH_DMA_MINALIGN));
 
 	printf("DEK Blob\n");
 	for (i = 0; i < DEK_BLOB_HDR_SIZE + BLOB_SIZE(len / 8); i++)
-		printf("%02X", ((uint8_t *)(dst_ptr)[i]));
+		printf("%02X", dst_ptr[i]);
 	printf("\n");
 
 error:

@@ -34,6 +34,7 @@
 #define DEFAULT_MAC_WLANADDR	"00:04:f3:ff:ff:fb"
 #define DEFAULT_MAC_BTADDR	"00:04:f3:ff:ff:fc"
 #define DEFAULT_MAC_ETHADDR1	"00:04:f3:ff:ff:fd"
+#define CONFIG_NO_MAC_FROM_OTP
 
 #undef CONFIG_ENV_OVERWRITE
 #define CONFIG_OVERWRITE_ETHADDR_ONCE
@@ -148,10 +149,7 @@
 
 #ifndef __ASSEMBLY__		/* put C only stuff in this section */
 /* global functions */
-int board_has_emmc(void);
-int board_has_wireless(void);
-int board_has_bluetooth(void);
-int board_has_kinetis(void);
+bool board_has_emmc(void);
 #endif /* __ASSEMBLY__ */
 
 #endif /* __DIGI_COMMON_H */

@@ -57,6 +57,8 @@
 #define ZIMAGE_START_ADDR	10
 #define ZIMAGE_END_ADDR	11
 
+#define FDT_OFFSET_TO_KERNEL 0x3000000   /* device tree blob offset to the kernel image */
+
 /* Boot metric variables */
 boot_metric metrics = {
   .bll_1 = 0,
@@ -218,7 +220,7 @@ U_BOOT_CMD(
 );
 #endif
 
-#ifdef CONFIG_SYSTEM_RAMDISK_SUPPORT
+#if defined CONFIG_SYSTEM_RAMDISK_SUPPORT && defined CONFIG_ANDROID_AUTO_SUPPORT
 /* Setup booargs for taking the system parition as ramdisk */
 static void fastboot_setup_system_boot_args(const char *slot, bool append_root)
 {
@@ -249,12 +251,6 @@ static void fastboot_setup_system_boot_args(const char *slot, bool append_root)
 					ptentry->partition_index);
 		}
 		strcat(bootargs_3rd, "rootwait");
-
-		/* for standard android, recovery ramdisk will be used anyway, to
-		 * boot up Android, "androidboot.force_normal_boot=1" is needed */
-#ifndef CONFIG_ANDROID_AUTO_SUPPORT
-			strcat(bootargs_3rd, " androidboot.force_normal_boot=1");
-#endif
 
 		env_set("bootargs_3rd", bootargs_3rd);
 	} else {
@@ -416,6 +412,7 @@ int vbh_calculate(uint8_t *vbh, AvbSlotVerifyData *avb_out_data)
 		ret = -1;
 		goto fail;
 	}
+
 	/* Calculate VBH2 */
 	if (sha256_concatenation(hash_buf, vbh, image_hash)) {
 		ret = -1;
@@ -678,9 +675,14 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 		strcat(bootargs_sec, avb_out_data->cmdline);
 #else
 		strcat(bootargs_sec, strstr(avb_out_data->cmdline, "androidboot"));
+		/* for standard android, recovery ramdisk will be used anyway, to
+		 * boot up Android, "androidboot.force_normal_boot=1" is needed */
+		if(!is_recovery_mode) {
+			strcat(bootargs_sec, " androidboot.force_normal_boot=1");
+		}
 #endif
 		env_set("bootargs_sec", bootargs_sec);
-#ifdef CONFIG_SYSTEM_RAMDISK_SUPPORT
+#if defined CONFIG_SYSTEM_RAMDISK_SUPPORT && defined CONFIG_ANDROID_AUTO_SUPPORT
 		if(!is_recovery_mode) {
 			if(avb_out_data->cmdline != NULL && strstr(avb_out_data->cmdline, "root="))
 				fastboot_setup_system_boot_args(avb_out_data->ab_suffix, false);
@@ -737,10 +739,12 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 
 #ifdef CONFIG_OF_LIBFDT
 	/* load the dtb file */
+	u32 fdt_addr = 0;
 	u32 fdt_size = 0;
 	struct dt_table_header *dt_img = NULL;
 
 	if (is_load_fdt_from_part()) {
+		fdt_addr = (ulong)((ulong)(hdr->kernel_addr) + FDT_OFFSET_TO_KERNEL);
 #ifdef CONFIG_ANDROID_THINGS_SUPPORT
 		if (find_partition_data_by_name("oem_bootloader",
 					avb_out_data, &avb_loadpart)) {
@@ -785,15 +789,17 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 		dt_entry = (struct dt_table_entry *)((ulong)dt_img +
 				be32_to_cpu(dt_img->dt_entries_offset));
 		fdt_size = be32_to_cpu(dt_entry->dt_size);
-		memcpy((void *)(ulong)hdr->second_addr, (void *)((ulong)dt_img +
+		memcpy((void *)fdt_addr, (void *)((ulong)dt_img +
 				be32_to_cpu(dt_entry->dt_offset)), fdt_size);
 	} else {
-		if (hdr->second_size && hdr->second_addr) {
-			memcpy((void *)(ulong)hdr->second_addr,
+		fdt_addr = (ulong)(hdr->second_addr);
+		fdt_size = (ulong)(hdr->second_size);
+		if (fdt_size && fdt_addr) {
+			memcpy((void *)(ulong)fdt_addr,
 				(void *)(ulong)hdr + hdr->page_size
 				+ ALIGN(hdr->kernel_size, hdr->page_size)
 				+ ALIGN(hdr->ramdisk_size, hdr->page_size),
-				hdr->second_size);
+				fdt_size);
 		}
 	}
 #endif /*CONFIG_OF_LIBFDT*/
@@ -807,20 +813,15 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 	printf("kernel   @ %08x (%d)\n", hdr->kernel_addr, hdr->kernel_size);
 	printf("ramdisk  @ %08x (%d)\n", hdr->ramdisk_addr, hdr->ramdisk_size);
 #ifdef CONFIG_OF_LIBFDT
-	if (is_load_fdt_from_part()) {
-		if (fdt_size)
-			printf("fdt      @ %08x (%d)\n", hdr->second_addr, fdt_size);
-	} else {
-		if (hdr->second_size)
-			printf("fdt      @ %08x (%d)\n", hdr->second_addr, hdr->second_size);
-	}
+	if (fdt_size)
+		printf("fdt      @ %08x (%d)\n", fdt_addr, fdt_size);
 #endif /*CONFIG_OF_LIBFDT*/
 
 	char boot_addr_start[12];
 	char ramdisk_addr[25];
-	char fdt_addr[12];
+	char fdt_addr_start[12];
 
-	char *boot_args[] = { NULL, boot_addr_start, ramdisk_addr, fdt_addr};
+	char *boot_args[] = { NULL, boot_addr_start, ramdisk_addr, fdt_addr_start};
 	if (check_image_arm64)
 		boot_args[0] = "booti";
 	else
@@ -828,7 +829,7 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 
 	sprintf(boot_addr_start, "0x%lx", addr);
 	sprintf(ramdisk_addr, "0x%x:0x%x", hdr->ramdisk_addr, hdr->ramdisk_size);
-	sprintf(fdt_addr, "0x%x", hdr->second_addr);
+	sprintf(fdt_addr_start, "0x%x", fdt_addr);
 
 /* when CONFIG_SYSTEM_RAMDISK_SUPPORT is enabled and it's for Android Auto, if it's not recovery mode
  * do not pass ramdisk addr*/

@@ -111,11 +111,11 @@
 
 #define JAILHOUSE_ENV \
 	"jh_mmcboot=" \
-		"setenv fdt_file fsl-imx8qm-mek-root.dtb;"\
+		"setenv fdt_file imx8qm-mek-root.dtb;"\
 		"setenv boot_os 'scu_rm dtb ${fdt_addr}; booti ${loadaddr} - ${fdt_addr};'; " \
 		"run mmcboot; \0" \
 	"jh_netboot=" \
-		"setenv fdt_file fsl-imx8qm-mek-root.dtb;"\
+		"setenv fdt_file imx8qm-mek-root.dtb;"\
 		"setenv boot_os 'scu_rm dtb ${fdt_addr}; booti ${loadaddr} - ${fdt_addr};'; " \
 		"run netboot; \0"
 
@@ -125,7 +125,7 @@
             "xenlinux_bootargs= \0" \
             "xenlinux_console=hvc0 earlycon=xen\0" \
             "xenlinux_addr=0x9e000000\0" \
-	    "dom0fdt_file=fsl-imx8qm-mek-dom0.dtb\0" \
+	    "dom0fdt_file=imx8qm-mek-dom0.dtb\0" \
             "xenboot_common=" \
                 "${get_cmd} ${loadaddr} xen;" \
                 "${get_cmd} ${fdt_addr} ${dom0fdt_file};" \
@@ -215,7 +215,6 @@
 	"auth_os=auth_cntr ${cntr_addr}\0" \
 	"mmcboot=echo Booting from mmc ...; " \
 		"if run loadhdp; then; hdp load ${hdp_addr}; fi;" \
-		"if run loadhdprx; then; hdprx load ${hdprx_addr}; fi;" \
 		"run mmcargs; " \
 		"if test ${sec_boot} = yes; then " \
 			"if run auth_os; then " \

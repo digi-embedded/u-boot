@@ -31,10 +31,15 @@ obj-y	+= misc.o
 obj-$(CONFIG_CMD_PRIBLOB) += priblob.o
 obj-$(CONFIG_SPL_BUILD)	+= spl.o
 endif
+ifeq ($(SOC),$(filter $(SOC),imx8m imx8))
+obj-{CONFIG_IMX_OPTEE}	+= dt_optee.o
+endif
 ifeq ($(SOC),$(filter $(SOC),mx7))
 obj-y 	+= cpu.o
 obj-$(CONFIG_SYS_I2C_MXC) += i2c-mxv7.o
 obj-y += mmc_env.o
+endif
+ifeq ($(SOC),$(filter $(SOC),mx7 imx8))
 obj-$(CONFIG_FSL_MFGPROT) += cmd_mfgprot.o
 endif
 ifeq ($(SOC),$(filter $(SOC),mx5 mx6 mx7))

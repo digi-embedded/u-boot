@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2017-2019 NXP
+ * Copyright 2017-2020 NXP
  */
 
 #include <common.h>
@@ -20,10 +20,14 @@
 #include <elf.h>
 #include <asm/arch/sid.h>
 #include <asm/arch/sys_proto.h>
+#include <asm/arch-imx/cpu.h>
 #include <asm/armv8/cpu.h>
 #include <asm/armv8/mmu.h>
 #include <asm/setup.h>
 #include <asm/mach-imx/boot_mode.h>
+#ifdef CONFIG_IMX_OPTEE
+#include <asm/mach-imx/optee.h>
+#endif
 #include <asm/arch/video_common.h>
 #include <linux/libfdt.h>
 #include <fdt_support.h>
@@ -101,7 +105,7 @@ int arch_cpu_init_dm(void)
 
 	struct pass_over_info_t *pass_over;
 
-	if (is_soc_rev(CHIP_REV_A)) {
+	if ((is_imx8qm() || is_imx8qxp()) && is_soc_rev(CHIP_REV_A)) {
 		pass_over = get_pass_over_info();
 		if (pass_over && pass_over->g_ap_mu == 0) {
 			/*
@@ -180,7 +184,7 @@ int arch_auxiliary_core_up(u32 core_id, ulong boot_private_data)
 }
 #endif
 
-#ifdef CONFIG_IMX8QXP
+#if defined(CONFIG_IMX8QXP) || defined(CONFIG_IMX8DXL)
 static unsigned long load_elf_image_shdr(unsigned long addr)
 {
 	Elf32_Ehdr *ehdr; /* Elf header structure pointer */
@@ -372,15 +376,15 @@ int imx8_config_smmu_sid(struct smmu_sid *dev_sids, int size)
 		return 0;
 
 	for (i = 0; i < size; i++) {
-		if (!check_owned_resource(dev_sids[i].rsrc)) {
-			printf("%s rsrc[%d] not owned\n", __func__, dev_sids[i].rsrc);
-			continue;
-		}
 		sciErr = sc_rm_set_master_sid(-1,
 					      dev_sids[i].rsrc,
 					      dev_sids[i].sid);
 		if (sciErr) {
-			printf("set master sid error\n");
+			if (!check_owned_resource(dev_sids[i].rsrc)) {
+				printf("%s rsrc[%d] not owned\n", __func__, dev_sids[i].rsrc);
+				continue;
+			}
+			printf("set master sid error %d\n", sciErr);
 			return sciErr;
 		}
 	}
@@ -1068,13 +1072,13 @@ static int config_smmu_resource_sid(int rsrc, int sid)
 {
 	int err;
 
-	if (!check_owned_resource(rsrc)) {
-		printf("%s rsrc[%d] not owned\n", __func__, rsrc);
-		return -1;
-	}
 	err = sc_rm_set_master_sid(-1, rsrc, sid);
 	debug("set_master_sid rsrc=%d sid=0x%x err=%d\n", rsrc, sid, err);
 	if (err != SC_ERR_NONE) {
+		if (!check_owned_resource(rsrc)) {
+			printf("%s rsrc[%d] not owned\n", __func__, rsrc);
+			return -1;
+		}
 		pr_err("fail set_master_sid rsrc=%d sid=0x%x err=%d\n", rsrc, sid, err);
 		return -EINVAL;
 	}
@@ -1174,54 +1178,6 @@ static int config_smmu_fdt(void *blob)
 #endif
 
 #ifdef CONFIG_OF_SYSTEM_SETUP
-static int ft_add_optee_node(void *fdt, bd_t *bd)
-{
-	const char *path, *subpath;
-	int offs;
-
-	/*
-	 * No TEE space allocated indicating no TEE running, so no
-	 * need to add optee node in dts
-	 */
-	if (!rom_pointer[1])
-		return 0;
-
-	offs = fdt_increase_size(fdt, 512);
-	if (offs) {
-		printf("No Space for dtb\n");
-		return 1;
-	}
-
-	path = "/firmware";
-	offs = fdt_path_offset(fdt, path);
-	if (offs < 0) {
-		path = "/";
-		offs = fdt_path_offset(fdt, path);
-
-		if (offs < 0) {
-			printf("Could not find root node.\n");
-			return 1;
-		}
-
-		subpath = "firmware";
-		offs = fdt_add_subnode(fdt, offs, subpath);
-		if (offs < 0) {
-			printf("Could not create %s node.\n", subpath);
-		}
-	}
-
-	subpath = "optee";
-	offs = fdt_add_subnode(fdt, offs, subpath);
-	if (offs < 0) {
-		printf("Could not create %s node.\n", subpath);
-	}
-
-	fdt_setprop_string(fdt, offs, "compatible", "linaro,optee-tz");
-	fdt_setprop_string(fdt, offs, "method", "smc");
-
-	return 0;
-}
-
 int ft_system_setup(void *blob, bd_t *bd)
 {
 #if (CONFIG_BOOTAUX_RESERVED_MEM_SIZE != 0x00)
@@ -1242,7 +1198,9 @@ int ft_system_setup(void *blob, bd_t *bd)
 	config_smmu_fdt(blob);
 #endif
 
+#ifdef CONFIG_IMX_OPTEE
 	ft_add_optee_node(blob, bd);
+#endif
 	return 0;
 }
 #endif
@@ -1570,7 +1528,7 @@ u64 get_page_table_size(void)
 #define FUSE_MAC0_WORD1 453
 #define FUSE_MAC1_WORD0 454
 #define FUSE_MAC1_WORD1 455
-#elif defined(CONFIG_IMX8QXP)
+#elif defined(CONFIG_IMX8QXP) || defined (CONFIG_IMX8DXL)
 #define FUSE_MAC0_WORD0 708
 #define FUSE_MAC0_WORD1 709
 #define FUSE_MAC1_WORD0 710
@@ -1700,6 +1658,8 @@ const char *get_imx8_type(u32 imxtype)
 		return "QXP";
 	case MXC_CPU_IMX8DX:
 		return "DX";	/* i.MX8 Dual X */
+	case MXC_CPU_IMX8DXL:
+		return "DXL";
 	default:
 		return "??";
 	}
@@ -1784,6 +1744,8 @@ static int cpu_imx_get_count(struct udevice *dev)
 {
 	if (is_imx8qxp())
 		return 4;
+	else if (is_imx8dxl() || is_imx8dx())
+		return 2;
 	else
 		return 6;
 }
