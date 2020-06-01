@@ -64,7 +64,6 @@ static int do_hwid(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 		if (ret)
 			goto err;
 		printf("OK\n");
-		board_updated_hwid();
 	} else if (!strcmp(op, "prog_manuf")) {
 		if (board_parse_manufid(argc, argv, &hwid))
 			return CMD_RET_FAILURE;
@@ -75,7 +74,6 @@ static int do_hwid(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 		if (ret)
 			goto err;
 		printf("OK\n");
-		board_updated_hwid();
 	} else if (!strcmp(op, "override")) {
 		if (board_parse_hwid(argc, argv, &hwid))
 			return CMD_RET_USAGE;
@@ -84,7 +82,6 @@ static int do_hwid(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 		if (ret)
 			goto err;
 		printf("OK\n");
-		board_updated_hwid();
 	}  else if (!strcmp(op, "override_manuf")) {
 		if (board_parse_manufid(argc, argv, &hwid))
 			return CMD_RET_FAILURE;
@@ -93,7 +90,6 @@ static int do_hwid(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 		if (ret)
 			goto err;
 		printf("OK\n");
-		board_updated_hwid();
 	} else if (!strcmp(op, "lock")) {
 		if (!confirmed && !confirm_prog())
 			return CMD_RET_FAILURE;

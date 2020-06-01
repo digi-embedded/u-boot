@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2014 by Digi International Inc.
+ *  Copyright (C) 2014-2020 by Digi International Inc.
  *  All rights reserved.
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -9,7 +9,13 @@
 
 #include <common.h>
 #include <part.h>
+#ifdef CONFIG_OF_LIBFDT_OVERLAY
+#include <stdlib.h>
+#endif
+#include <linux/libfdt.h>
 #include "../board/digi/common/helper.h"
+
+DECLARE_GLOBAL_DATA_PTR;
 
 enum {
 	OS_UNDEFINED = -1,
@@ -96,6 +102,14 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	int ret;
 	int has_fdt = 0;
 	int has_initrd = 0;
+#ifdef CONFIG_OF_LIBFDT_OVERLAY
+	char *original_overlay_list;
+	char *overlay_list = NULL;
+	char *overlay = NULL;
+	char *overlay_desc = NULL;
+	int root_node;
+#define DELIM_OV_FILE		","
+#endif
 	struct load_fw fwinfo;
 
 	if (argc < 2)
@@ -130,7 +144,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	fwinfo.loadaddr = "$loadaddr";
 	fwinfo.lzipaddr = "$lzipaddr";
 
-	ret = load_firmware(&fwinfo);
+	ret = load_firmware(&fwinfo, "\n## Loading kernel\n");
 	if (ret == LDFW_ERROR) {
 		printf("Error loading firmware file to RAM\n");
 		return CMD_RET_FAILURE;
@@ -143,7 +157,8 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	fwinfo.loadaddr = "$fdt_addr";
 	fwinfo.filename = "$fdt_file";
 	fwinfo.compressed = false;
-	ret = load_firmware(&fwinfo);
+	ret = load_firmware(&fwinfo,
+		"\n## Loading device tree file in variable 'fdt_file'\n");
 	if (ret == LDFW_LOADED) {
 		has_fdt = 1;
 	} else if (ret == LDFW_ERROR) {
@@ -151,13 +166,79 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		return CMD_RET_FAILURE;
 	}
 
+#ifdef CONFIG_OF_LIBFDT_OVERLAY
+	run_command("fdt addr $fdt_addr", 0);
+	/* get the right fdt_blob from the global working_fdt */
+	gd->fdt_blob = working_fdt;
+	root_node = fdt_path_offset(gd->fdt_blob, "/");
+
+	/* Set firmware info common for all overlay files */
+	fwinfo.varload = "try";
+	fwinfo.loadaddr = "$initrd_addr";
+	fwinfo.compressed = false;
+
+	/* Copy the variable to avoid modifying it in memory */
+	original_overlay_list = env_get("overlays");
+	if (original_overlay_list)
+		overlay_list = strdup(original_overlay_list);
+
+	if (overlay_list) {
+		overlay = strtok(overlay_list, DELIM_OV_FILE);
+		printf("\n## Applying device tree overlays in variable 'overlays':\n");
+	} else {
+		printf("\n## No device tree overlays present in variable 'overlays'\n");
+	}
+
+	while (overlay != NULL) {
+		fwinfo.filename = overlay;
+		ret = load_firmware(&fwinfo, NULL);
+
+		if (ret == LDFW_LOADED) {
+			/* Resize the base fdt to make room for the overlay */
+			run_command("fdt resize $filesize", 0);
+
+			if (run_command("fdt apply $initrd_addr", 0)) {
+				printf("Failed to apply overlay %s\n", overlay);
+				free(overlay_list);
+				return CMD_RET_FAILURE;
+			}
+			/* Search for an overlay description */
+			overlay_desc = (char *)fdt_getprop(gd->fdt_blob,
+							root_node,
+							"overlay-description",
+							NULL);
+		} else {
+			printf("Error loading overlay %s\n", overlay);
+			free(overlay_list);
+			return CMD_RET_FAILURE;
+		}
+
+		/* Print the overlay filename (and description if available) */
+		printf("-> %-30s", overlay);
+		if (overlay_desc) {
+			printf("%s", overlay_desc);
+			/* remove property and reset pointer after printing */
+			fdt_delprop((void*)gd->fdt_blob, root_node,
+				    "overlay-description");
+			overlay_desc = NULL;
+		}
+		printf("\n");
+
+		overlay = strtok(NULL, DELIM_OV_FILE);
+	}
+	printf("\n");
+
+	if (overlay_list)
+		free(overlay_list);
+#endif
+
 	/* Get init ramdisk */
 	fwinfo.varload = env_get("boot_initrd");
 	if (NULL == fwinfo.varload && OS_LINUX == os)
 		fwinfo.varload = "no";	/* Linux default */
 	fwinfo.loadaddr = "$initrd_addr";
 	fwinfo.filename = "$initrd_file";
-	ret = load_firmware(&fwinfo);
+	ret = load_firmware(&fwinfo, "\n## Loading init ramdisk\n");
 	if (ret == LDFW_LOADED) {
 		has_initrd = 1;
 	} else if (ret == LDFW_ERROR) {

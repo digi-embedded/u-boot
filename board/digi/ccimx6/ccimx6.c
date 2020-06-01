@@ -55,7 +55,7 @@ extern unsigned int board_version;
 extern unsigned int board_id;
 extern void board_spurious_wakeup(void);
 
-struct digi_hwid my_hwid;
+static struct digi_hwid my_hwid;
 static int enet_xcv_type;
 
 #define UART_PAD_CTRL  (PAD_CTL_PKE | PAD_CTL_PUE |            \
@@ -1462,13 +1462,13 @@ void som_default_environment(void)
 	generate_partition_table();
 }
 
-void board_updated_hwid(void)
+void board_update_hwid(bool is_fuse)
 {
 	/* Update HWID-related variables in environment */
-	if (board_read_hwid(&my_hwid)) {
+	int ret = is_fuse ? board_sense_hwid(&my_hwid) : board_read_hwid(&my_hwid);
+
+	if (ret)
 		printf("Cannot read HWID\n");
-		return;
-	}
 
 	som_default_environment();
 }
@@ -1552,6 +1552,8 @@ int ccimx6_init(void)
 
 void fdt_fixup_ccimx6(void *fdt)
 {
+	fdt_fixup_hwid(fdt, &my_hwid);
+
 	if (board_has_wireless()) {
 		/* Wireless MACs */
 		fdt_fixup_mac(fdt, "wlanaddr", "/wireless", "mac-address");

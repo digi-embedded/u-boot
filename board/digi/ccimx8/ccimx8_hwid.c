@@ -11,8 +11,6 @@
 #include "../common/helper.h"
 #include "../common/hwid.h"
 
-extern struct digi_hwid my_hwid;
-
 const char *cert_regions[] = {
 	"U.S.A.",
 	"International",
@@ -68,6 +66,10 @@ int board_prog_hwid(const struct digi_hwid *hwid)
 #ifdef CONFIG_CC8X
 	fuse_allow_prog(false);
 #endif
+
+	/* Trigger a HWID-related variables update (from fuses) */
+	if(!ret)
+		board_update_hwid(true);
 
 	return ret;
 }
@@ -413,14 +415,7 @@ err:
 	return -EINVAL;
 }
 
-int board_lock_hwid(void)
-{
-	/* SCU performs automatic lock after programming */
-	printf("not supported. Fuses automatically locked after programming.\n");
-	return 1;
-}
-
-void fdt_fixup_hwid(void *fdt)
+void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 {
 	const char *propnames[] = {
 		"digi,hwid,year",
@@ -442,51 +437,45 @@ void fdt_fixup_hwid(void *fdt)
 	char str[20];
 	int i;
 	/* Capabilities fields available if RAM != 0 */
-	bool capabilities = !!my_hwid.ram;
-
-	/* Re-read HWID which might have been overridden by user */
-	if (board_read_hwid(&my_hwid)) {
-		printf("Cannot read HWID\n");
-		return;
-	}
+	bool capabilities = !!hwid->ram;
 
 	/* Register the HWID as main node properties in the FDT */
 	for (i = 0; i < ARRAY_SIZE(propnames); i++) {
 
 		/* Convert HWID fields to strings */
 		if (!strcmp("digi,hwid,year", propnames[i]))
-			sprintf(str, "20%02d", my_hwid.year);
+			sprintf(str, "20%02d", hwid->year);
 		else if (!strcmp("digi,hwid,month", propnames[i]))
-			sprintf(str, "%02d", my_hwid.month);
+			sprintf(str, "%02d", hwid->month);
 		else if (!strcmp("digi,hwid,genid", propnames[i]))
-			sprintf(str, "%02d", my_hwid.genid);
+			sprintf(str, "%02d", hwid->genid);
 		else if (!strcmp("digi,hwid,sn", propnames[i]))
-			sprintf(str, "%06d", my_hwid.sn);
+			sprintf(str, "%06d", hwid->sn);
 		else if (!strcmp("digi,hwid,macpool", propnames[i]))
-			sprintf(str, "%02d", my_hwid.mac_pool);
+			sprintf(str, "%02d", hwid->mac_pool);
 		else if (!strcmp("digi,hwid,macbase", propnames[i]))
-			sprintf(str, "%06x", my_hwid.mac_base);
+			sprintf(str, "%06x", hwid->mac_base);
 		else if (!strcmp("digi,hwid,variant", propnames[i]))
-			sprintf(str, "0x%02x", my_hwid.variant);
+			sprintf(str, "0x%02x", hwid->variant);
 		else if (!strcmp("digi,hwid,hv", propnames[i]))
-			sprintf(str, "0x%x", my_hwid.hv);
+			sprintf(str, "0x%x", hwid->hv);
 		else if (!strcmp("digi,hwid,cert", propnames[i]))
-			sprintf(str, "0x%x", my_hwid.cert);
+			sprintf(str, "0x%x", hwid->cert);
 		else if (!strcmp("digi,hwid,wid", propnames[i]))
-			sprintf(str, "0x%x", my_hwid.wid);
+			sprintf(str, "0x%x", hwid->wid);
 		/* capabilties fields */
 		else if (capabilities &&
 			 !strcmp("digi,hwid,ram_mb", propnames[i]))
-			sprintf(str, "%d", ram_sizes_mb[my_hwid.ram]);
+			sprintf(str, "%d", ram_sizes_mb[hwid->ram]);
 		else if (capabilities &&
 			 (((!strcmp("digi,hwid,has-mca", propnames[i]) &&
-			   my_hwid.mca) ||
+			   hwid->mca) ||
 			   (!strcmp("digi,hwid,has-wifi", propnames[i]) &&
-			   my_hwid.wifi) ||
+			   hwid->wifi) ||
 			   (!strcmp("digi,hwid,has-bt", propnames[i]) &&
-			   my_hwid.bt) ||
+			   hwid->bt) ||
 			   (!strcmp("digi,hwid,has-crypto", propnames[i]) &&
-			   my_hwid.crypto))))
+			   hwid->crypto))))
 			strcpy(str, "");
 		else
 			continue;
@@ -496,7 +485,7 @@ void fdt_fixup_hwid(void *fdt)
 	}
 }
 
-int hwid_get_ramsize(void)
+int hwid_get_ramsize(const struct digi_hwid *hwid)
 {
-	return ram_sizes_mb[my_hwid.ram];
+	return ram_sizes_mb[hwid->ram];
 }

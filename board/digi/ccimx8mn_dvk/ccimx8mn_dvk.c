@@ -36,7 +36,6 @@
 #include "../ccimx8/ccimx8.h"
 #include "../common/carrier_board.h"
 #include "../common/helper.h"
-#include "../common/hwid.h"
 #include "../common/mca_registers.h"
 #include "../common/mca.h"
 #include "../common/tamper.h"
@@ -82,7 +81,6 @@ int board_postclk_init(void)
 #ifdef CONFIG_OF_BOARD_SETUP
 int ft_board_setup(void *blob, bd_t *bd)
 {
-	fdt_fixup_hwid(blob);
 	fdt_fixup_ccimx8(blob);
 	fdt_fixup_carrierboard(blob);
 
@@ -224,6 +222,7 @@ int checkboard(void)
 
 	print_som_info();
 	print_carrierboard_info();
+	print_bootinfo();
 
 	return 0;
 }

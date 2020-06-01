@@ -87,6 +87,10 @@ extern void trusty_os_init(void);
 #include "u-boot/sha256.h"
 #endif
 
+extern int mmc_get_bootdevindex(void);
+extern void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
+					    disk_partition_t *info);
+
 #define FASTBOOT_VERSION		"0.4"
 
 #if defined(CONFIG_ANDROID_THINGS_SUPPORT) && defined(CONFIG_ARCH_IMX8M)
@@ -795,26 +799,18 @@ U_BOOT_CMD(
 
 static ulong bootloader_mmc_offset(void)
 {
-	if (is_imx8mq() || is_imx8mm() || (is_imx8() && is_soc_rev(CHIP_REV_A)))
-		return 0x8400;
-	else if (is_imx8qm() || (is_imx8qxp() && !is_soc_rev(CHIP_REV_B))) {
-		if (MEK_8QM_EMMC == fastboot_devinfo.dev_id)
-		/* target device is eMMC boot0 partition, bootloader offset is 0x0 */
-			return 0x0;
-		else
-		/* target device is SD card, bootloader offset is 0x8000 */
-			return 0x8000;
-	} else if (is_imx8mn()) {
-		/* target device is eMMC boot0 partition, bootloader offset is 0x0 */
-		if (env_get_ulong("emmc_dev", 10, 1) == fastboot_devinfo.dev_id)
-			return 0;
-		else
-			return 0x8000;
+	disk_partition_t info;
+	int mmc_dev_index = env_get_ulong("mmcdev", 16, mmc_get_bootdevindex());
+	struct blk_desc *mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC,
+							  mmc_dev_index);
+	if (NULL == mmc_dev) {
+		debug("Cannot determine sys storage device\n");
+		return EMMC_BOOT_PART_OFFSET;
 	}
-	else if (is_imx8())
-		return 0x8000;
-	else
-		return 0x400;
+
+	calculate_uboot_update_settings(mmc_dev, &info);
+
+	return info.start * mmc_dev->blksz;
 }
 
 #if defined(CONFIG_FASTBOOT_STORAGE_MMC) || defined(CONFIG_FASTBOOT_STORAGE_SATA)

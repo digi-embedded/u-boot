@@ -21,7 +21,6 @@
 #include "../ccimx8/ccimx8.h"
 #include "../common/carrier_board.h"
 #include "../common/helper.h"
-#include "../common/hwid.h"
 #include "../common/mca_registers.h"
 #include "../common/mca.h"
 
@@ -470,7 +469,6 @@ void board_quiesce_devices()
 /* Platform function to modify the FDT as needed */
 int ft_board_setup(void *blob, bd_t *bd)
 {
-	fdt_fixup_hwid(blob);
 	fdt_fixup_ccimx8(blob);
 	fdt_fixup_carrierboard(blob);
 

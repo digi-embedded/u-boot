@@ -278,6 +278,8 @@ static int env_nand_save(void)
 	ALLOC_CACHE_ALIGN_BUFFER(env_t, env_new, 1);
 	int	env_idx = 0;
 
+	location[0].erase_opts.offset = env_get_offset(CONFIG_ENV_OFFSET);
+
 	if (CONFIG_ENV_RANGE < CONFIG_ENV_SIZE)
 		return 1;
 

@@ -32,6 +32,7 @@
 #define CONFIG_POWER
 #define CONFIG_POWER_I2C
 #define CONFIG_POWER_BD71837
+#define CONFIG_POWER_PCA9450
 
 #define CONFIG_SYS_I2C
 #define CONFIG_SYS_I2C_MXC_I2C1		/* enable I2C bus 1 */
@@ -104,7 +105,7 @@
 	"fdt_high=0xffffffffffffffff\0"		\
 	"boot_fdt=try\0" \
 	"ip_dyn=yes\0" \
-	"fdt_file=ccimx8mn-dvk-wb.dtb\0" \
+	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"initrd_addr=0x43800000\0"		\
 	"initrd_high=0xffffffffffffffff\0" \
 	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \

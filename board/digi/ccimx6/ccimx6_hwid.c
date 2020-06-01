@@ -12,8 +12,6 @@
 #include "../common/helper.h"
 #include "../common/hwid.h"
 
-extern struct digi_hwid my_hwid;
-
 const char *cert_regions[] = {
 	"U.S.A.",
 	"International",
@@ -256,13 +254,7 @@ err:
 	return -EINVAL;
 }
 
-int board_lock_hwid(void)
-{
-	return fuse_prog(OCOTP_LOCK_BANK, OCOTP_LOCK_WORD,
-			CONFIG_HWID_LOCK_FUSE);
-}
-
-void fdt_fixup_hwid(void *fdt)
+void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 {
 	const char *propnames[] = {
 		"digi,hwid,location",
@@ -278,33 +270,27 @@ void fdt_fixup_hwid(void *fdt)
 	char str[20];
 	int i;
 
-	/* Re-read HWID which might have been overridden by user */
-	if (board_read_hwid(&my_hwid)) {
-		printf("Cannot read HWID\n");
-		return;
-	}
-
 	/* Register the HWID as main node properties in the FDT */
 	for (i = 0; i < ARRAY_SIZE(propnames); i++) {
 		/* Convert HWID fields to strings */
 		if (!strcmp("digi,hwid,location", propnames[i]))
-			sprintf(str, "%c", my_hwid.location + 'A');
+			sprintf(str, "%c", hwid->location + 'A');
 		else if (!strcmp("digi,hwid,genid", propnames[i]))
-			sprintf(str, "%02d", my_hwid.genid);
+			sprintf(str, "%02d", hwid->genid);
 		else if (!strcmp("digi,hwid,sn", propnames[i]))
-			sprintf(str, "%06d", my_hwid.sn);
+			sprintf(str, "%06d", hwid->sn);
 		else if (!strcmp("digi,hwid,year", propnames[i]))
-			sprintf(str, "20%02d", my_hwid.year);
+			sprintf(str, "20%02d", hwid->year);
 		else if (!strcmp("digi,hwid,week", propnames[i]))
-			sprintf(str, "%02d", my_hwid.week);
+			sprintf(str, "%02d", hwid->week);
 		else if (!strcmp("digi,hwid,variant", propnames[i]))
-			sprintf(str, "0x%02x", my_hwid.variant);
+			sprintf(str, "0x%02x", hwid->variant);
 		else if (!strcmp("digi,hwid,hv", propnames[i]))
-			sprintf(str, "0x%x", my_hwid.hv);
+			sprintf(str, "0x%x", hwid->hv);
 		else if (!strcmp("digi,hwid,cert", propnames[i]))
-			sprintf(str, "0x%x", my_hwid.cert);
+			sprintf(str, "0x%x", hwid->cert);
 		else if (!strcmp("digi,hwid,wid", propnames[i]))
-			sprintf(str, "0x%x", my_hwid.wid);
+			sprintf(str, "0x%x", hwid->wid);
 		else
 			continue;
 
