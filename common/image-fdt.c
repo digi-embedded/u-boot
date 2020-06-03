@@ -18,6 +18,9 @@
 #include <asm/io.h>
 #include <asm/mach-imx/hab.h>
 #include <asm/arch-imx8/image.h>
+#ifdef CONFIG_SIGN_IMAGE
+#include "../board/digi/common/auth.h"
+#endif
 
 #ifndef CONFIG_SYS_FDT_PAD
 #define CONFIG_SYS_FDT_PAD 0x3000
@@ -490,20 +493,10 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 	      (ulong)*of_flat_tree, *of_size);
 
 #ifdef CONFIG_SIGN_IMAGE
-#ifdef CONFIG_SECURE_BOOT
-	if (authenticate_image((uint32_t)*of_flat_tree, *of_size) != 0) {
+	if (digi_auth_image((ulong *)*of_flat_tree, *of_size) != 0) {
 		printf("Device Tree authentication failed\n");
 		goto error;
 	}
-#elif defined(CONFIG_AHAB_BOOT)
-	extern int authenticate_os_container(ulong addr);
-	if (authenticate_os_container((ulong)*of_flat_tree) != 0) {
-		printf("Device Tree authentication failed\n");
-		goto error;
-	}
-	/* update for the reallocation of the DT */
-	*of_flat_tree += CONTAINER_HEADER_SIZE;
-#endif
 #endif /* CONFIG_SIGN_IMAGE */
 
 	return 0;

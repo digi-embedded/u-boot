@@ -23,6 +23,9 @@
 #include <asm/io.h>
 #include <asm/arch-imx8/image.h>
 #include <asm/mach-imx/hab.h>
+#ifdef CONFIG_SIGN_IMAGE
+#include "../board/digi/common/auth.h"
+#endif
 
 #if defined(CONFIG_FIT)
 /**
@@ -183,26 +186,16 @@ static int do_source(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	}
 
 #ifdef CONFIG_SIGN_IMAGE
-#ifdef CONFIG_SECURE_BOOT
 	ulong img_size;
 	const image_header_t *img_hdr = (const image_header_t *)addr;
 	if (img_hdr == NULL)
 		return CMD_RET_FAILURE;
 
 	img_size = image_get_image_size(img_hdr);
-	if (authenticate_image(addr, img_size) != 0) {
+	if (digi_auth_image(&addr, img_size) != 0) {
 		printf("Authenticate Image Fail, Please check\n");
 		return CMD_RET_FAILURE;
 	}
-#elif defined(CONFIG_AHAB_BOOT)
-	extern int authenticate_os_container(ulong addr);
-	if (authenticate_os_container(addr)) {
-		printf("Authenticate Image Fail, Please check\n");
-		return CMD_RET_FAILURE;
-	}
-	/* Skip signed container header */
-	addr += CONTAINER_HEADER_SIZE;
-#endif
 #endif /* CONFIG_SIGN_IMAGE */
 	printf ("## Executing script at %08lx\n", addr);
 	rcode = source (addr, fit_uname);

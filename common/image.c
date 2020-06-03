@@ -33,6 +33,9 @@
 #include <asm/io.h>
 #include <asm/mach-imx/hab.h>
 #include <asm/arch-imx8/image.h>
+#ifdef CONFIG_SIGN_IMAGE
+#include "../board/digi/common/auth.h"
+#endif
 
 #ifdef CONFIG_CMD_BDI
 extern int do_bdinfo(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
@@ -1043,29 +1046,17 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 
 			bootstage_mark(BOOTSTAGE_ID_CHECK_RAMDISK);
 #ifdef CONFIG_SIGN_IMAGE
-#ifdef CONFIG_SECURE_BOOT
 			rd_hdr = (const image_header_t *)rd_addr;
 			if (rd_hdr == NULL)
 				return 1;
 
 			rd_len = image_get_image_size(rd_hdr);
-			if (authenticate_image(rd_addr, rd_len) != 0) {
+			if (digi_auth_image(&rd_addr, rd_len) != 0) {
 				printf("Ramdisk authentication failed\n");
 				return 1;
 			} else {
 				authenticated = 1;
 			}
-#elif defined(CONFIG_AHAB_BOOT)
-			extern int authenticate_os_container(ulong addr);
-			if (authenticate_os_container(rd_addr) != 0) {
-				printf("Ramdisk authentication failed\n");
-				return 1;
-			} else {
-				authenticated = 1;
-			}
-			/* skip container header */
-			rd_addr += CONTAINER_HEADER_SIZE;
-#endif
 #endif /* CONFIG_SIGN_IMAGE */
 
 			rd_hdr = image_get_ramdisk(rd_addr, arch,
