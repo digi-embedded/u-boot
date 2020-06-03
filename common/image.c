@@ -42,7 +42,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #if defined(CONFIG_IMAGE_FORMAT_LEGACY)
 static const image_header_t *image_get_ramdisk(ulong rd_addr, uint8_t arch,
-						int verify, int print_info);
+						int verify);
 #endif
 #else
 #include "mkimage.h"
@@ -396,7 +396,7 @@ void image_print_contents(const void *ptr)
  *     otherwise, return NULL
  */
 static const image_header_t *image_get_ramdisk(ulong rd_addr, uint8_t arch,
-						int verify, int print_info)
+						int verify)
 {
 	const image_header_t *rd_hdr = (const image_header_t *)rd_addr;
 
@@ -413,8 +413,7 @@ static const image_header_t *image_get_ramdisk(ulong rd_addr, uint8_t arch,
 	}
 
 	bootstage_mark(BOOTSTAGE_ID_RD_MAGIC);
-	if (print_info)
-		image_print_contents(rd_hdr);
+	image_print_contents(rd_hdr);
 
 	if (verify) {
 		puts("   Verifying Checksum ... ");
@@ -1045,20 +1044,11 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 			bootstage_mark(BOOTSTAGE_ID_CHECK_RAMDISK);
 #ifdef CONFIG_SIGN_IMAGE
 #ifdef CONFIG_SECURE_BOOT
-			/*
-			 * The checksum will fail if the ramdisk is encrypted,
-			 * so skip the checksum for now
-			 */
-			rd_hdr = image_get_ramdisk(rd_addr, arch, 0, 0);
+			rd_hdr = (const image_header_t *)rd_addr;
 			if (rd_hdr == NULL)
 				return 1;
 
-			/*
-			 * Add the size of the header, which is not included in
-			 * the image size field.
-			 */
-			rd_len = sizeof(image_header_t) + image_get_data_size(rd_hdr);
-
+			rd_len = image_get_image_size(rd_hdr);
 			if (authenticate_image(rd_addr, rd_len) != 0) {
 				printf("Ramdisk authentication failed\n");
 				return 1;
@@ -1079,7 +1069,7 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 #endif /* CONFIG_SIGN_IMAGE */
 
 			rd_hdr = image_get_ramdisk(rd_addr, arch,
-							images->verify, 1);
+							images->verify);
 			if (rd_hdr == NULL)
 				return 1;
 
