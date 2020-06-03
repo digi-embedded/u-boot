@@ -344,7 +344,7 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 		 * address provided in the second bootm argument
 		 * check image type, for FIT images get a FIT node.
 		 */
-#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_ARCH_IMX8)
+#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_AHAB_BOOT)
 		buf = map_sysmem(fdt_addr + CONTAINER_HEADER_SIZE, 0);
 #else
 		buf = map_sysmem(fdt_addr, 0);
@@ -489,13 +489,13 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 	debug("   of_flat_tree at 0x%08lx size 0x%08lx\n",
 	      (ulong)*of_flat_tree, *of_size);
 
+#ifdef CONFIG_SIGN_IMAGE
 #ifdef CONFIG_SECURE_BOOT
 	if (authenticate_image((uint32_t)*of_flat_tree, *of_size) != 0) {
 		printf("Device Tree authentication failed\n");
 		goto error;
 	}
-#endif
-#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_ARCH_IMX8)
+#elif defined(CONFIG_AHAB_BOOT)
 	extern int authenticate_os_container(ulong addr);
 	if (authenticate_os_container((ulong)*of_flat_tree) != 0) {
 		printf("Device Tree authentication failed\n");
@@ -504,6 +504,7 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 	/* update for the reallocation of the DT */
 	*of_flat_tree += CONTAINER_HEADER_SIZE;
 #endif
+#endif /* CONFIG_SIGN_IMAGE */
 
 	return 0;
 
