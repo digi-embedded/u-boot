@@ -173,7 +173,10 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		return CMD_RET_FAILURE;
 	}
 #endif /* CONFIG_SIGN_IMAGE */
-	run_command("fdt addr $fdt_addr", 0);
+	if (run_command("fdt addr $fdt_addr", 0)) {
+		printf("Failed to set base fdt address\n");
+		return CMD_RET_FAILURE;
+	}
 	/* get the right fdt_blob from the global working_fdt */
 	gd->fdt_blob = working_fdt;
 	root_node = fdt_path_offset(gd->fdt_blob, "/");
