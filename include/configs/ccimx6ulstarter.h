@@ -99,27 +99,10 @@
 #define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 
 #undef CONFIG_BOOTCOMMAND
-#ifdef CONFIG_SECURE_BOOT
-/*
- * Authenticate bootscript before running it. IVT offset is at
- * ${filesize} - CONFIG_CSF_SIZE - IVT_SIZE (0x20)
- * Use 0x4000 as CSF_SIZE, as this is the value used by the script
- * to sign / encrypt the bootscript
- */
-#define CONFIG_BOOTCOMMAND \
-	"if run loadscript; then " \
-		"setexpr bs_ivt_offset ${filesize} - 0x4020;" \
-		"if hab_auth_img ${loadaddr} ${filesize} ${bs_ivt_offset}; then " \
-			"source ${loadaddr};" \
-		"fi; " \
-	"fi;"
-#else
 #define CONFIG_BOOTCOMMAND \
 	"if run loadscript; then " \
 		"source ${loadaddr};" \
 	"fi;"
-
-#endif	/* CONFIG_SECURE_BOOT */
 
 #define CONFIG_COMMON_ENV	\
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
