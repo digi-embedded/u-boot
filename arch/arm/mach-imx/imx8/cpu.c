@@ -1726,8 +1726,6 @@ int cpu_imx_get_desc(struct udevice *dev, char *buf, int size)
 	}
 #endif
 
-	len += snprintf(buf + len, size, "\n");
-
 	return 0;
 }
 
