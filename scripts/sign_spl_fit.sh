@@ -149,10 +149,10 @@ ${SCRIPT_PATH}/csf_templates/sign_uboot_fit > csf_fit.txt
 
 # If requested, instruct HAB not to protect the SRK_REVOKE OTP field
 if [ -n "${CONFIG_UNLOCK_SRK_REVOKE}" ]; then
-	echo "" >> csf_fit.txt
-	echo "[Unlock]" >> csf_fit.txt
-	echo "    Engine = OCOTP" >> csf_fit.txt
-	echo "    Features = SRK Revoke" >> csf_fit.txt
+	echo "" >> csf_spl.txt
+	echo "[Unlock]" >> csf_spl.txt
+	echo "    Engine = OCOTP" >> csf_spl.txt
+	echo "    Features = SRK Revoke" >> csf_spl.txt
 fi
 
 # Generate SRK tables
