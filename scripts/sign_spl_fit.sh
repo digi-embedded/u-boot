@@ -119,6 +119,7 @@ atf_auth_len=$(awk -v first_row=${result_row} 'NR==first_row+2 {print $3}' ${MKI
 
 # Generate actual CSF descriptor files from templates
 sed -e "s,%srk_table%,${SRK_TABLE},g "			\
+    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
     -e "s,%cert_csf%,${CERT_CSF},g"			\
     -e "s,%cert_img%,${CERT_IMG},g"			\
     -e "s,%spl_ram_start%,${spl_ram_start},g"		\
@@ -128,6 +129,7 @@ sed -e "s,%srk_table%,${SRK_TABLE},g "			\
 ${SCRIPT_PATH}/csf_templates/sign_uboot_spl > csf_spl.txt
 
 sed -e "s,%srk_table%,${SRK_TABLE},g "			\
+    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
     -e "s,%cert_csf%,${CERT_CSF},g"			\
     -e "s,%cert_img%,${CERT_IMG},g"			\
     -e "s,%sld_ram_start%,${sld_ram_start},g"		\
