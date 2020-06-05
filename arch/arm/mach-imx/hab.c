@@ -880,10 +880,8 @@ int imx_hab_authenticate_image(uint32_t ddr_start, uint32_t image_size,
 	struct ivt *ivt;
 	enum hab_status status;
 
-	if (!imx_hab_is_enabled()) {
-		debug("   Open device, skipping authentication...\n");
-		return 0;
-	}
+	if (!imx_hab_is_enabled())
+		puts("hab fuse not enabled\n");
 
 	printf("   Authenticate image from DDR location 0x%x... ",
 	       ddr_start);
