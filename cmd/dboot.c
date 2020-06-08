@@ -199,32 +199,30 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		fwinfo.filename = overlay;
 		ret = load_firmware(&fwinfo, NULL);
 
-		if (ret == LDFW_LOADED) {
-#ifdef CONFIG_SECURE_BOOT
-			if (fdt_file_authenticate(fwinfo.loadaddr) != 0) {
-				printf("Error authenticating FDT overlay file\n");
-				return CMD_RET_FAILURE;
-			}
-#endif /* CONFIG_SECURE_BOOT */
-
-			/* Resize the base fdt to make room for the overlay */
-			run_command("fdt resize $filesize", 0);
-
-			if (run_command("fdt apply $initrd_addr", 0)) {
-				printf("Failed to apply overlay %s\n", overlay);
-				free(overlay_list);
-				return CMD_RET_FAILURE;
-			}
-			/* Search for an overlay description */
-			overlay_desc = (char *)fdt_getprop(gd->fdt_blob,
-							root_node,
-							"overlay-description",
-							NULL);
-		} else {
+		if (ret != LDFW_LOADED) {
 			printf("Error loading overlay %s\n", overlay);
 			free(overlay_list);
 			return CMD_RET_FAILURE;
 		}
+
+#ifdef CONFIG_SECURE_BOOT
+		if (fdt_file_authenticate(fwinfo.loadaddr) != 0) {
+			printf("Error authenticating FDT overlay file\n");
+			return CMD_RET_FAILURE;
+		}
+#endif /* CONFIG_SECURE_BOOT */
+
+		/* Resize the base fdt to make room for the overlay */
+		run_command("fdt resize $filesize", 0);
+
+		if (run_command("fdt apply $initrd_addr", 0)) {
+			printf("Failed to apply overlay %s\n", overlay);
+			free(overlay_list);
+			return CMD_RET_FAILURE;
+		}
+		/* Search for an overlay description */
+		overlay_desc = (char *)fdt_getprop(gd->fdt_blob, root_node,
+						   "overlay-description", NULL);
 
 		/* Print the overlay filename (and description if available) */
 		printf("-> %-30s", overlay);
