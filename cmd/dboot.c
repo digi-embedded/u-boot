@@ -144,7 +144,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	fwinfo.loadaddr = "$loadaddr";
 	fwinfo.lzipaddr = "$lzipaddr";
 
-	ret = load_firmware(&fwinfo, "\n## Loading kernel\n");
+	ret = load_firmware(&fwinfo, "\n## Loading kernel");
 	if (ret == LDFW_ERROR) {
 		printf("Error loading firmware file to RAM\n");
 		return CMD_RET_FAILURE;
@@ -158,7 +158,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	fwinfo.filename = "$fdt_file";
 	fwinfo.compressed = false;
 	ret = load_firmware(&fwinfo,
-		"\n## Loading device tree file in variable 'fdt_file'\n");
+		"\n## Loading device tree file in variable 'fdt_file'");
 	if (ret == LDFW_LOADED) {
 		has_fdt = 1;
 	} else if (ret == LDFW_ERROR) {
@@ -252,7 +252,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		fwinfo.varload = "no";	/* Linux default */
 	fwinfo.loadaddr = "$initrd_addr";
 	fwinfo.filename = "$initrd_file";
-	ret = load_firmware(&fwinfo, "\n## Loading init ramdisk\n");
+	ret = load_firmware(&fwinfo, "\n## Loading init ramdisk");
 	if (ret == LDFW_LOADED) {
 		has_initrd = 1;
 	} else if (ret == LDFW_ERROR) {
