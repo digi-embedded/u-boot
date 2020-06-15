@@ -503,7 +503,7 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 	 * authenticated while loading to ram already.
 	 */
 	if (!authenticated) {
-		if (digi_auth_image((ulong *)*of_flat_tree, *of_size) != 0) {
+		if (digi_auth_image((ulong *)of_flat_tree, *of_size) != 0) {
 			printf("Device Tree authentication failed\n");
 			goto error;
 		}
