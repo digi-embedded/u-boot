@@ -4,6 +4,11 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2017.03
 -----------
+dub-2017.03-r6.1, released on 2020/06/15
+	- Increase VBCORE1 and VBCORE2 to 1.45V on ConnectCore6 to account for
+	  tolerance of the regulators.
+
+
 dub-2017.03-r5.1, released on 2020/02/04
 	- Add ConnectCore 6 Plus variants 0x02 and 0x03.
 	- Add support to use 'trustfence update' files from RAM.
