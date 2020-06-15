@@ -4,6 +4,14 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2019.04
 -----------
+dub-2019.04-r2.1, released on 2020/06/15
+	- Update BSP to NXP tag 'imx_v2019.04_5.4.3_2.0.0'.
+	- Add support for i.MX8QXP Rev C0 silicon.
+	- Add support to 'dboot' command to apply a list of device tree
+	  overlays.
+	- Updated TrustFence support.
+
+
 dub-2019.04-r1.5, released on 2020/04/29
 	- Fix on SCFW to prevent Cortex M4 from reserving certain
           GPIO resources.
