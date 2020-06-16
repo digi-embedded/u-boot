@@ -9,7 +9,7 @@
 [Install SRK]
     # Index of the key location in the SRK table to be installed
     File = "%srk_table%"
-    Source index = 0
+    Source index = %key_index%
 
 [Install CSFK]
     # Key used to authenticate the CSF data

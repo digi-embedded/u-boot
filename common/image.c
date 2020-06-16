@@ -33,6 +33,10 @@
 #include <linux/errno.h>
 #include <asm/io.h>
 
+#ifdef CONFIG_SECURE_BOOT
+#include <asm/mach-imx/hab.h>
+#endif
+
 #ifdef CONFIG_CMD_BDI
 extern int do_bdinfo(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 #endif
@@ -41,7 +45,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #if defined(CONFIG_IMAGE_FORMAT_LEGACY)
 static const image_header_t *image_get_ramdisk(ulong rd_addr, uint8_t arch,
-						int verify);
+						int verify, int print_info);
 #endif
 #else
 #include "mkimage.h"
@@ -387,7 +391,7 @@ void image_print_contents(const void *ptr)
  *     otherwise, return NULL
  */
 static const image_header_t *image_get_ramdisk(ulong rd_addr, uint8_t arch,
-						int verify)
+						int verify, int print_info)
 {
 	const image_header_t *rd_hdr = (const image_header_t *)rd_addr;
 
@@ -404,7 +408,8 @@ static const image_header_t *image_get_ramdisk(ulong rd_addr, uint8_t arch,
 	}
 
 	bootstage_mark(BOOTSTAGE_ID_RD_MAGIC);
-	image_print_contents(rd_hdr);
+	if (print_info)
+		image_print_contents(rd_hdr);
 
 	if (verify) {
 		puts("   Verifying Checksum ... ");
@@ -939,6 +944,9 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 	ulong		default_addr;
 	int		rd_noffset;
 #endif
+#ifdef CONFIG_SECURE_BOOT
+	int authenticated = 0;
+#endif
 	const char *select = NULL;
 
 	*rd_start = 0;
@@ -1024,9 +1032,25 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 					"Image at %08lx ...\n", rd_addr);
 
 			bootstage_mark(BOOTSTAGE_ID_CHECK_RAMDISK);
-			rd_hdr = image_get_ramdisk(rd_addr, arch,
-							images->verify);
+#ifdef CONFIG_SECURE_BOOT
+			/*
+			 * The checksum will fail if the ramdisk is encrypted,
+			 * so skip the checksum for now
+			 */
+			rd_hdr = image_get_ramdisk(rd_addr, arch, 0, 0);
+			if (rd_hdr == NULL)
+				return 1;
+			rd_len =  image_get_data_size(rd_hdr);
 
+			if (authenticate_image(rd_addr, rd_len) != 0) {
+				printf("Ramdisk authentication failed\n");
+				return 1;
+			} else {
+				authenticated = 1;
+			}
+#endif
+			rd_hdr = image_get_ramdisk(rd_addr, arch,
+						   images->verify, 1);
 			if (rd_hdr == NULL)
 				return 1;
 
@@ -1105,6 +1129,12 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 	debug("   ramdisk start = 0x%08lx, ramdisk end = 0x%08lx\n",
 			*rd_start, *rd_end);
 
+#ifdef CONFIG_SECURE_BOOT
+	if (rd_data && imx_hab_is_enabled() && !authenticated) {
+		printf("Ramdisk authentication is not supported\n");
+		return 1;
+	}
+#endif
 	return 0;
 }
 

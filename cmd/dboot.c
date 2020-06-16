@@ -144,7 +144,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	fwinfo.loadaddr = "$loadaddr";
 	fwinfo.lzipaddr = "$lzipaddr";
 
-	ret = load_firmware(&fwinfo, "\n## Loading kernel\n");
+	ret = load_firmware(&fwinfo, "\n## Loading kernel");
 	if (ret == LDFW_ERROR) {
 		printf("Error loading firmware file to RAM\n");
 		return CMD_RET_FAILURE;
@@ -158,7 +158,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	fwinfo.filename = "$fdt_file";
 	fwinfo.compressed = false;
 	ret = load_firmware(&fwinfo,
-		"\n## Loading device tree file in variable 'fdt_file'\n");
+		"\n## Loading device tree file in variable 'fdt_file'");
 	if (ret == LDFW_LOADED) {
 		has_fdt = 1;
 	} else if (ret == LDFW_ERROR) {
@@ -167,6 +167,12 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
+#ifdef CONFIG_SECURE_BOOT
+	if (fdt_file_authenticate(fwinfo.loadaddr) != 0) {
+		printf("Error authenticating FDT file\n");
+		return CMD_RET_FAILURE;
+	}
+#endif /* CONFIG_SECURE_BOOT */
 	run_command("fdt addr $fdt_addr", 0);
 	/* get the right fdt_blob from the global working_fdt */
 	gd->fdt_blob = working_fdt;
@@ -193,28 +199,33 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		fwinfo.filename = overlay;
 		ret = load_firmware(&fwinfo, NULL);
 
-		if (ret == LDFW_LOADED) {
-			/* Resize the base fdt to make room for the overlay */
-			run_command("fdt resize $filesize", 0);
-
-			if (run_command("fdt apply $initrd_addr", 0)) {
-				printf("Failed to apply overlay %s\n", overlay);
-				free(overlay_list);
-				return CMD_RET_FAILURE;
-			}
-			/* Search for an overlay description */
-			overlay_desc = (char *)fdt_getprop(gd->fdt_blob,
-							root_node,
-							"overlay-description",
-							NULL);
-		} else {
+		if (ret != LDFW_LOADED) {
 			printf("Error loading overlay %s\n", overlay);
 			free(overlay_list);
 			return CMD_RET_FAILURE;
 		}
 
+#ifdef CONFIG_SECURE_BOOT
+		if (fdt_file_authenticate(fwinfo.loadaddr) != 0) {
+			printf("Error authenticating FDT overlay file\n");
+			return CMD_RET_FAILURE;
+		}
+#endif /* CONFIG_SECURE_BOOT */
+
+		/* Resize the base fdt to make room for the overlay */
+		run_command("fdt resize $filesize", 0);
+
+		if (run_command("fdt apply $initrd_addr", 0)) {
+			printf("Failed to apply overlay %s\n", overlay);
+			free(overlay_list);
+			return CMD_RET_FAILURE;
+		}
+		/* Search for an overlay description */
+		overlay_desc = (char *)fdt_getprop(gd->fdt_blob, root_node,
+						   "overlay-description", NULL);
+
 		/* Print the overlay filename (and description if available) */
-		printf("-> %-30s", overlay);
+		printf("-> %-45s", overlay);
 		if (overlay_desc) {
 			printf("%s", overlay_desc);
 			/* remove property and reset pointer after printing */
@@ -238,7 +249,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		fwinfo.varload = "no";	/* Linux default */
 	fwinfo.loadaddr = "$initrd_addr";
 	fwinfo.filename = "$initrd_file";
-	ret = load_firmware(&fwinfo, "\n## Loading init ramdisk\n");
+	ret = load_firmware(&fwinfo, "\n## Loading init ramdisk");
 	if (ret == LDFW_LOADED) {
 		has_initrd = 1;
 	} else if (ret == LDFW_ERROR) {

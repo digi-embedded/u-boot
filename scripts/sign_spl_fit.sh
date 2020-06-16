@@ -119,6 +119,7 @@ atf_auth_len=$(awk -v first_row=${result_row} 'NR==first_row+2 {print $3}' ${MKI
 
 # Generate actual CSF descriptor files from templates
 sed -e "s,%srk_table%,${SRK_TABLE},g "			\
+    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
     -e "s,%cert_csf%,${CERT_CSF},g"			\
     -e "s,%cert_img%,${CERT_IMG},g"			\
     -e "s,%spl_ram_start%,${spl_ram_start},g"		\
@@ -128,6 +129,7 @@ sed -e "s,%srk_table%,${SRK_TABLE},g "			\
 ${SCRIPT_PATH}/csf_templates/sign_uboot_spl > csf_spl.txt
 
 sed -e "s,%srk_table%,${SRK_TABLE},g "			\
+    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
     -e "s,%cert_csf%,${CERT_CSF},g"			\
     -e "s,%cert_img%,${CERT_IMG},g"			\
     -e "s,%sld_ram_start%,${sld_ram_start},g"		\
@@ -147,10 +149,10 @@ ${SCRIPT_PATH}/csf_templates/sign_uboot_fit > csf_fit.txt
 
 # If requested, instruct HAB not to protect the SRK_REVOKE OTP field
 if [ -n "${CONFIG_UNLOCK_SRK_REVOKE}" ]; then
-	echo "" >> csf_fit.txt
-	echo "[Unlock]" >> csf_fit.txt
-	echo "    Engine = OCOTP" >> csf_fit.txt
-	echo "    Features = SRK Revoke" >> csf_fit.txt
+	echo "" >> csf_spl.txt
+	echo "[Unlock]" >> csf_spl.txt
+	echo "    Engine = OCOTP" >> csf_spl.txt
+	echo "    Features = SRK Revoke" >> csf_spl.txt
 fi
 
 # Generate SRK tables

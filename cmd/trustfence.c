@@ -40,11 +40,6 @@
 #include "../board/digi/common/helper.h"
 #include "../board/digi/common/trustfence.h"
 
-#define UBOOT_HEADER_SIZE	0xC00
-#define UBOOT_START_ADDR	(CONFIG_SYS_TEXT_BASE - UBOOT_HEADER_SIZE)
-
-/* Location of the CSF pointer within the Image Vector Table */
-#define CSF_IVT_WORD_OFFSET	6
 #define BLOB_DEK_OFFSET		0x100
 
 /*
@@ -56,7 +51,15 @@
 #endif
 
 #define ALIGN_UP(x, a) (((x) + (a - 1)) & ~(a - 1))
+#define ALIGN_DN(x, a) (((x) - (a - 1)) & ~(a - 1))
 #define DMA_ALIGN_UP(x) ALIGN_UP(x, ARCH_DMA_MINALIGN)
+
+#ifdef CONFIG_SPL_LOAD_FIT
+#define IVT_ADDR  (ALIGN_DN(CONFIG_SYS_TEXT_BASE - CONFIG_CSF_SIZE - 512, 0x40))
+#else
+#define UBOOT_HEADER_SIZE	0xC00
+#define IVT_ADDR		(CONFIG_SYS_TEXT_BASE - UBOOT_HEADER_SIZE)
+#endif
 
 /*
  * Copy the DEK blob used by the current U-Boot image into a buffer. Also
@@ -70,12 +73,19 @@
  *
  * Returns 0 if the DEK blob was found, 1 otherwise.
  */
-static int get_dek_blob(char *output, u32 *size) {
-	u32 *csf_addr = (u32 *)UBOOT_START_ADDR + CSF_IVT_WORD_OFFSET;
+static int get_dek_blob(char *output, u32 *size)
+{
+	struct ivt *ivt = (struct ivt *)IVT_ADDR;
 
-	if (*csf_addr) {
+	/* Verify the pointer is pointing at an actual IVT table */
+	if ((ivt->hdr.magic != IVT_HEADER_MAGIC) ||
+	    (be16_to_cpu(ivt->hdr.length) != IVT_TOTAL_LENGTH))
+		return 1;
+
+	if (ivt->csf) {
 		int blob_size = MAX_DEK_BLOB_SIZE;
-		uint8_t *dek_blob = (uint8_t *)(*csf_addr + CONFIG_CSF_SIZE - blob_size);
+		uint8_t *dek_blob = (uint8_t *)(uintptr_t)(ivt->csf +
+				    CONFIG_CSF_SIZE - blob_size);
 
 		/*
 		 * Several DEK sizes can be used.
@@ -150,9 +160,13 @@ __weak int fuse_check_srk(void)
 {
 	int i;
 	u32 val;
+	int bank, word;
 
 	for (i = 0; i < CONFIG_TRUSTFENCE_SRK_WORDS; i++) {
-		if (fuse_sense(CONFIG_TRUSTFENCE_SRK_BANK, i, &val))
+		bank = CONFIG_TRUSTFENCE_SRK_BANK +
+		       (i / CONFIG_TRUSTFENCE_SRK_WORDS_PER_BANK);
+		word = i % CONFIG_TRUSTFENCE_SRK_WORDS_PER_BANK;
+		if (fuse_sense(bank, word, &val))
 			return -1;
 		if (val == 0)
 			return i + 1;
@@ -165,6 +179,7 @@ __weak int fuse_prog_srk(u32 addr, u32 size)
 {
 	int i;
 	int ret;
+	int bank, word;
 	uint32_t *src_addr = map_sysmem(addr, size);
 
 	if (size != CONFIG_TRUSTFENCE_SRK_WORDS * 4) {
@@ -173,7 +188,10 @@ __weak int fuse_prog_srk(u32 addr, u32 size)
 	}
 
 	for (i = 0; i < CONFIG_TRUSTFENCE_SRK_WORDS; i++) {
-		ret = fuse_prog(CONFIG_TRUSTFENCE_SRK_BANK, i, src_addr[i]);
+		bank = CONFIG_TRUSTFENCE_SRK_BANK +
+		       (i / CONFIG_TRUSTFENCE_SRK_WORDS_PER_BANK);
+		word = i % CONFIG_TRUSTFENCE_SRK_WORDS_PER_BANK;
+		ret = fuse_prog(bank, word, src_addr[i]);
 		if (ret)
 			return ret;
 	}
@@ -197,7 +215,8 @@ __weak int close_device(void)
 
 __weak int revoke_key_index(int i)
 {
-	u32 val = (1 << i) << CONFIG_TRUSTFENCE_SRK_REVOKE_OFFSET;
+	u32 val = ((1 << i) & CONFIG_TRUSTFENCE_SRK_REVOKE_MASK) <<
+		    CONFIG_TRUSTFENCE_SRK_REVOKE_OFFSET;
 	return fuse_prog(CONFIG_TRUSTFENCE_SRK_REVOKE_BANK,
 			 CONFIG_TRUSTFENCE_SRK_REVOKE_WORD,
 			 val);
