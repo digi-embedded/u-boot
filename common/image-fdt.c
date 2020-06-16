@@ -18,6 +18,9 @@
 #include <asm/io.h>
 #include <asm/mach-imx/hab.h>
 #include <asm/arch-imx8/image.h>
+#ifdef CONFIG_SIGN_IMAGE
+#include "../board/digi/common/auth.h"
+#endif
 
 #ifndef CONFIG_SYS_FDT_PAD
 #define CONFIG_SYS_FDT_PAD 0x3000
@@ -27,6 +30,11 @@
 #define FDT_RAMDISK_OVERHEAD	0x80
 
 DECLARE_GLOBAL_DATA_PTR;
+
+#ifdef CONFIG_SIGN_IMAGE
+static int authentication_failed = 0;
+static int authenticated = 0;
+#endif
 
 static void fdt_error(const char *msg)
 {
@@ -344,7 +352,7 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 		 * address provided in the second bootm argument
 		 * check image type, for FIT images get a FIT node.
 		 */
-#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_ARCH_IMX8)
+#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_AHAB_BOOT)
 		buf = map_sysmem(fdt_addr + CONTAINER_HEADER_SIZE, 0);
 #else
 		buf = map_sysmem(fdt_addr, 0);
@@ -489,21 +497,27 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 	debug("   of_flat_tree at 0x%08lx size 0x%08lx\n",
 	      (ulong)*of_flat_tree, *of_size);
 
-#ifdef CONFIG_SECURE_BOOT
-	if (authenticate_image((uint32_t)*of_flat_tree, *of_size) != 0) {
-		printf("Device Tree authentication failed\n");
-		goto error;
+#ifdef CONFIG_SIGN_IMAGE
+	/*
+	 * Authenticate during boot if device tree files have not been
+	 * authenticated while loading to ram already.
+	 */
+	if (!authenticated) {
+		if (digi_auth_image((ulong *)of_flat_tree, *of_size) != 0) {
+			printf("Device Tree authentication failed\n");
+			goto error;
+		}
+	}
+#ifdef CONFIG_AHAB_BOOT
+	else {
+		/*
+		 * For pre-authenticated fdt images, manually skip the
+		 * container header to proceed with the boot process.
+		 */
+		*of_flat_tree += CONTAINER_HEADER_SIZE;
 	}
 #endif
-#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_ARCH_IMX8)
-	extern int authenticate_os_container(ulong addr);
-	if (authenticate_os_container((ulong)*of_flat_tree) != 0) {
-		printf("Device Tree authentication failed\n");
-		goto error;
-	}
-	/* update for the reallocation of the DT */
-	*of_flat_tree += CONTAINER_HEADER_SIZE;
-#endif
+#endif /* CONFIG_SIGN_IMAGE */
 
 	return 0;
 
@@ -613,3 +627,37 @@ err:
 
 	return ret;
 }
+
+#ifdef CONFIG_SIGN_IMAGE
+/*
+ * Authenticate any number of fdt files on ram before booting. This allows to
+ * authenticate an fdt modified by overlays by having the base device tree and
+ * the overlays authenticated separately before thay are applied.
+ *
+ * If a single fdt file fails authentication, global authentication will be
+ * considered as false and the boot authentication will be attempted.
+ */
+int fdt_file_authenticate(char *loadaddr)
+{
+	char *fdt_blob = NULL;
+	ulong fdt_addr, raw_image_size;
+
+	fdt_addr = env_get_ulong(loadaddr + 1, 16, 0);
+	if (!fdt_addr)
+		return 1;
+
+	fdt_blob = map_sysmem(fdt_addr, 0);
+	raw_image_size = fdt_totalsize(fdt_blob);
+	if (digi_auth_image(&fdt_addr, raw_image_size) != 0) {
+		printf("Device Tree authentication failed\n");
+		authentication_failed = 1;
+		authenticated = 0;
+		return 1;
+	}
+
+	if (authentication_failed == 0)
+		authenticated = 1;
+
+	return 0;
+}
+#endif

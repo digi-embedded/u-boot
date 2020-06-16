@@ -498,8 +498,13 @@ int load_firmware(struct load_fw *fwinfo, char *msg)
 		return -1;
 	}
 
-	if (msg)
-		printf("%s", msg);
+	if (msg) {
+		char *fn = fwinfo->filename;
+
+		if (fwinfo->filename[0] == '$')
+			fn = env_get(&fwinfo->filename[1]);
+		printf("%s: %s\n", msg, fn);
+	}
 
 	ret = run_command(cmd, 0);
 	if (!ret && fwinfo->compressed) {

@@ -34,5 +34,6 @@ obj-$(CONFIG_CMD_UPDATE_NAND) += helper.o helper_nand.o
 obj-$(CONFIG_CMD_DBOOT) += helper.o
 obj-$(CONFIG_CMD_DIGI_PMIC) += cmd_pmic.o
 obj-$(CONFIG_MCA_TAMPER) += tamper.o
+obj-$(CONFIG_SIGN_IMAGE) += auth.o
 endif
 obj-$(CONFIG_MCA) += mca.o

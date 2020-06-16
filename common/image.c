@@ -33,6 +33,9 @@
 #include <asm/io.h>
 #include <asm/mach-imx/hab.h>
 #include <asm/arch-imx8/image.h>
+#ifdef CONFIG_SIGN_IMAGE
+#include "../board/digi/common/auth.h"
+#endif
 
 #ifdef CONFIG_CMD_BDI
 extern int do_bdinfo(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
@@ -42,7 +45,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #if defined(CONFIG_IMAGE_FORMAT_LEGACY)
 static const image_header_t *image_get_ramdisk(ulong rd_addr, uint8_t arch,
-						int verify, int print_info);
+						int verify);
 #endif
 #else
 #include "mkimage.h"
@@ -396,7 +399,7 @@ void image_print_contents(const void *ptr)
  *     otherwise, return NULL
  */
 static const image_header_t *image_get_ramdisk(ulong rd_addr, uint8_t arch,
-						int verify, int print_info)
+						int verify)
 {
 	const image_header_t *rd_hdr = (const image_header_t *)rd_addr;
 
@@ -413,8 +416,7 @@ static const image_header_t *image_get_ramdisk(ulong rd_addr, uint8_t arch,
 	}
 
 	bootstage_mark(BOOTSTAGE_ID_RD_MAGIC);
-	if (print_info)
-		image_print_contents(rd_hdr);
+	image_print_contents(rd_hdr);
 
 	if (verify) {
 		puts("   Verifying Checksum ... ");
@@ -950,7 +952,7 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 	ulong		default_addr;
 	int		rd_noffset;
 #endif
-#ifdef CONFIG_SECURE_BOOT
+#ifdef CONFIG_SIGN_IMAGE
 	int authenticated = 0;
 #endif
 	const char *select = NULL;
@@ -1030,7 +1032,7 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 		 * address provided in the second bootm argument
 		 * check image type, for FIT images get FIT node.
 		 */
-#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_ARCH_IMX8)
+#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_AHAB_BOOT)
 		/* Skip container header */
 		buf = map_sysmem(rd_addr + CONTAINER_HEADER_SIZE, 0);
 #else
@@ -1043,40 +1045,22 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 					"Image at %08lx ...\n", rd_addr);
 
 			bootstage_mark(BOOTSTAGE_ID_CHECK_RAMDISK);
-#ifdef CONFIG_SECURE_BOOT
-			/*
-			 * The checksum will fail if the ramdisk is encrypted,
-			 * so skip the checksum for now
-			 */
-			rd_hdr = image_get_ramdisk(rd_addr, arch, 0, 0);
+#ifdef CONFIG_SIGN_IMAGE
+			rd_hdr = (const image_header_t *)rd_addr;
 			if (rd_hdr == NULL)
 				return 1;
 
-			/*
-			 * Add the size of the header, which is not included in
-			 * the image size field.
-			 */
-			rd_len = sizeof(image_header_t) + image_get_data_size(rd_hdr);
-
-			if (authenticate_image(rd_addr, rd_len) != 0) {
+			rd_len = image_get_image_size(rd_hdr);
+			if (digi_auth_image(&rd_addr, rd_len) != 0) {
 				printf("Ramdisk authentication failed\n");
 				return 1;
 			} else {
 				authenticated = 1;
 			}
-#endif
-#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_ARCH_IMX8)
-			extern int authenticate_os_container(ulong addr);
-			if (authenticate_os_container(rd_addr) != 0) {
-				printf("Ramdisk authentication failed\n");
-				return 1;
-			}
-			/* skip container header */
-			rd_addr += CONTAINER_HEADER_SIZE;
-#endif
+#endif /* CONFIG_SIGN_IMAGE */
 
 			rd_hdr = image_get_ramdisk(rd_addr, arch,
-							images->verify, 1);
+							images->verify);
 			if (rd_hdr == NULL)
 				return 1;
 
@@ -1155,7 +1139,7 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 	debug("   ramdisk start = 0x%08lx, ramdisk end = 0x%08lx\n",
 			*rd_start, *rd_end);
 
-#ifdef CONFIG_SECURE_BOOT
+#ifdef CONFIG_SIGN_IMAGE
 	if (rd_data && imx_hab_is_enabled() && !authenticated) {
 		printf("Ramdisk authentication is not supported\n");
 		return 1;

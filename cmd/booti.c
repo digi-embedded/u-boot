@@ -13,6 +13,9 @@
 #include <linux/kernel.h>
 #include <linux/sizes.h>
 #include <asm/arch-imx8/image.h>
+#ifdef CONFIG_SIGN_IMAGE
+#include "../board/digi/common/auth.h"
+#endif
 
 /*
  * Image booting support
@@ -37,7 +40,7 @@ static int booti_start(cmd_tbl_t *cmdtp, int flag, int argc,
 		ld = simple_strtoul(argv[0], NULL, 16);
 		debug("*  kernel: cmdline image address = 0x%08lx\n", ld);
 	}
-#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_ARCH_IMX8)
+#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_AHAB_BOOT)
 	ret = booti_setup(ld + CONTAINER_HEADER_SIZE, &relocated_addr, &(image_size), false);
 #else
 	ret = booti_setup(ld, &relocated_addr, &(image_size), false);
@@ -45,25 +48,12 @@ static int booti_start(cmd_tbl_t *cmdtp, int flag, int argc,
 	if (ret != 0)
 		return 1;
 
-#ifdef CONFIG_SECURE_BOOT
-	extern int authenticate_image(
-		uint32_t ddr_start, uint32_t raw_image_size);
-	if (authenticate_image(ld, image_size) != 0) {
+#ifdef CONFIG_SIGN_IMAGE
+	if (digi_auth_image(&ld, image_size) != 0) {
 		printf("Authenticate Image Fail, Please check\n");
 		return 1;
 	}
-
-#endif
-
-#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_ARCH_IMX8)
-	extern int authenticate_os_container(ulong addr);
-	if (authenticate_os_container(ld)) {
-		printf("Authenticate Image Fail, Please check\n");
-		return CMD_RET_FAILURE;
-	}
-	/* skip image container */
-	ld += CONTAINER_HEADER_SIZE;
-#endif
+#endif /* CONFIG_SIGN_IMAGE */
 
 	/* Handle BOOTM_STATE_LOADOS */
 	if (relocated_addr != ld) {
