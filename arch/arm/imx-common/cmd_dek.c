@@ -47,8 +47,6 @@ static int blob_encap_dek(const u8 *src, u8 *dst, u32 len)
 	ret = blob_dek(src, dst, len);
 
 out:
-	hab_caam_clock_enable(0);
-
 	return ret;
 }
 
