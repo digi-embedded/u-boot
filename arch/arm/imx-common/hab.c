@@ -745,8 +745,6 @@ uint32_t authenticate_image(uint32_t ddr_start, uint32_t image_size)
 			puts("FAILED!\nhab entry function fail\n");
 		}
 
-		hab_caam_clock_enable(0);
-
 	} else {
 		debug("   Open device, skipping authentication...\n");
 		return 1;

@@ -112,23 +112,6 @@ mkimage-objs   := $(dumpimage-mkimage-objs) mkimage.o
 fit_info-objs   := $(dumpimage-mkimage-objs) fit_info.o
 fit_check_sign-objs   := $(dumpimage-mkimage-objs) fit_check_sign.o
 
-# Build a libfdt Python module if swig is available
-# Use 'sudo apt-get install swig libpython-dev' to enable this
-hostprogs-y += \
-	$(if $(shell which swig 2> /dev/null), $(if $(wildcard /usr/include/python2*/Python.h),_libfdt.so))
-_libfdt.so-sharedobjs += $(LIBFDT_OBJS)
-libfdt:
-
-tools/_libfdt.so: $(patsubst %.o,%.c,$(LIBFDT_OBJS)) tools/libfdt_wrap.c
-	LDFLAGS="$(HOSTLDFLAGS)" CFLAGS= ${PYTHON} $(srctree)/lib/libfdt/setup.py \
-		"$(_hostc_flags)" $^
-	mv _libfdt.so $@
-
-tools/libfdt_wrap.c: $(srctree)/lib/libfdt/libfdt.swig
-	swig -python -o $@ $<
-
-# TODO(sjg@chromium.org): Is this correct on Mac OS?
-
 ifneq ($(CONFIG_MX23)$(CONFIG_MX28),)
 # Add CONFIG_MXS into host CFLAGS, so we can check whether or not register
 # the mxsimage support within tools/mxsimage.c .
