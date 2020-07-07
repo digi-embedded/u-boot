@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 Digi International, Inc.
+ * Copyright (C) 2016-2020 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -106,13 +106,40 @@ static struct ccimx6_variant ccimx6ul_variants[] = {
 		0,
 		"Industrial Ultralite 528MHz, 1GB NAND, 1GB DDR3, -40/+85C",
 	},
-/* 0x06 - 55001944-06 */
-/* This variant is the same as 0x02, but with i.MX6UL silicon v1.2 */
+/* 0x06 - 55001944-06 (same as 0x02, but with i.MX6UL silicon v1.2) */
 	{
 		IMX6UL,
 		SZ_256M,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
 		"Industrial Ultralite 528MHz, 256MB NAND, 256MB DDR3, -40/+85C, Wireless, Bluetooth",
+	},
+/* 0x07 - 55001944-07 (same as 0x04) */
+	{
+		IMX6UL,
+		SZ_1G,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
+		"Industrial Ultralite 528MHz, 1GB NAND, 1GB DDR3, -40/+85C, Wireless, Bluetooth",
+	},
+/* 0x08 - 55001944-08 */
+	{
+		IMX6UL,
+		SZ_512M,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
+		"Industrial Ultralite 528MHz, 512MB NAND, 512MB DDR3, -40/+85C, Wireless, Bluetooth",
+	},
+/* 0x09 - 55001944-09 */
+	{
+		IMX6UL,
+		SZ_256M,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
+		"Industrial Ultralite 528MHz, 512MB NAND, 256MB DDR3, -40/+85C, Wireless, Bluetooth",
+	},
+/* 0x0A - 55001944-10 */
+	{
+		IMX6UL,
+		SZ_512M,
+		0,
+		"Industrial Ultralite 528MHz, 512MB NAND, 512MB DDR3, -40/+85C",
 	},
 };
 
