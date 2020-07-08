@@ -14,6 +14,7 @@
 		st,mem-speed = <DDR_MEM_SPEED>;
 		st,mem-size = <DDR_MEM_SIZE>;
 
+#ifdef CONFIG_SPL
 		st,ctl-reg = <
 			DDR_MSTR
 			DDR_MRCTRL0
@@ -115,7 +116,7 @@
 			DDR_MR2
 			DDR_MR3
 		>;
-
+#endif
 		status = "okay";
 	};
 };
