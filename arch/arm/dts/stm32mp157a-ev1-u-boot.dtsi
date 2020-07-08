@@ -16,6 +16,7 @@
 	};
 };
 
+#ifndef CONFIG_TFABOOT
 &flash0 {
 	u-boot,dm-spl;
 };
@@ -50,8 +51,6 @@
 		u-boot,dm-spl;
 	};
 };
-
-#ifndef CONFIG_TFABOOT
 &sai2 {
 	clocks = <&rcc SAI2>, <&rcc PLL3_Q>, <&rcc PLL3_R>;
 };

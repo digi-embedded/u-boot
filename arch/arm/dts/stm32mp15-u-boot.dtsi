@@ -125,14 +125,8 @@
 	u-boot,dm-pre-reloc;
 };
 
-&pwr_regulators {
-	u-boot,dm-pre-reloc;
-};
-
 &rcc {
 	u-boot,dm-pre-reloc;
-	#address-cells = <1>;
-	#size-cells = <0>;
 };
 
 #ifdef CONFIG_TFABOOT
@@ -260,6 +254,16 @@
 	opp-800000000 {
 		u-boot,dm-spl;
 	};
+};
+
+/* only for vdd-supply in sysconf_init() */
+&pwr_regulators {
+	u-boot,dm-pre-reloc;
+};
+
+&rcc {
+	#address-cells = <1>;
+	#size-cells = <0>;
 };
 
 &usart1 {

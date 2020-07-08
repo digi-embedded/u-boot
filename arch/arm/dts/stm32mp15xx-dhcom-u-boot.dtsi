@@ -171,6 +171,7 @@
 	};
 };
 
+#ifndef CONFIG_TFABOOT
 &rcc {
 	st,clksrc = <
 		CLK_MPU_PLL1P
@@ -262,6 +263,7 @@
 		u-boot,dm-pre-reloc;
 	};
 };
+#endif
 
 &sdmmc1 {
 	u-boot,dm-spl;

@@ -14,6 +14,7 @@
 		st,mem-speed = <DDR_MEM_SPEED>;
 		st,mem-size = <DDR_MEM_SIZE>;
 
+#ifndef CONFIG_TFABOOT
 		st,ctl-reg = <
 			DDR_MSTR
 			DDR_MRCTRL0
@@ -133,7 +134,7 @@
 		>;
 
 #endif
-
+#endif
 		status = "okay";
 	};
 };
