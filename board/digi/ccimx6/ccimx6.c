@@ -1129,7 +1129,7 @@ void ldo_mode_set(int ldo_bypass)
 			goto out;
 		}
 		value &= ~0x7f;
-		value |= 0x8e;
+		value |= 0x73;
 		if (pmic_write_reg(DA9063_VBCORE1_A_ADDR, value)) {
 			printf("Set BCORE1 error!\n");
 			goto out;
@@ -1141,7 +1141,7 @@ void ldo_mode_set(int ldo_bypass)
 			goto out;
 		}
 		value &= ~0x7f;
-		value |= 0x8e;
+		value |= 0x73;
 		if (pmic_write_reg(DA9063_VBCORE2_A_ADDR, value)) {
 			printf("Set BCORE2 error!\n");
 			goto out;
