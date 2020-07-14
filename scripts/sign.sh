@@ -63,24 +63,25 @@ if [ -z "${CONFIG_SIGN_MODE}" ]; then
 	exit 1
 fi
 
+# Get DEK key
+if [ -n "${CONFIG_DEK_PATH}" ] && [ -n "${ENABLE_ENCRYPTION}" ]; then
+	if [ ! -f "${CONFIG_DEK_PATH}" ]; then
+		echo "DEK not found. Generating random 256 bit DEK."
+		[ -d $(dirname ${CONFIG_DEK_PATH}) ] || mkdir -p $(dirname ${CONFIG_DEK_PATH})
+		dd if=/dev/urandom of="${CONFIG_DEK_PATH}" bs=32 count=1 >/dev/null 2>&1
+	fi
+	dek_size="$((8 * $(stat -L -c %s ${CONFIG_DEK_PATH})))"
+	if [ "${dek_size}" != "128" ] && [ "${dek_size}" != "192" ] && [ "${dek_size}" != "256" ]; then
+		echo "Invalid DEK size: ${dek_size} bits. Valid sizes are 128, 192 and 256 bits"
+		exit 1
+	fi
+	ENCRYPT="true"
+fi
+
 if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 	HAB_VER="hab_ver 4"
 	DIGEST="digest"
 	DIGEST_ALGO="sha256"
-	if [ -n "${CONFIG_DEK_PATH}" ] && [ -n "${ENABLE_ENCRYPTION}" ]; then
-		if [ ! -f "${CONFIG_DEK_PATH}" ]; then
-			echo "DEK not found. Generating random 256 bit DEK."
-			[ -d $(dirname ${CONFIG_DEK_PATH}) ] || mkdir -p $(dirname ${CONFIG_DEK_PATH})
-			dd if=/dev/urandom of="${CONFIG_DEK_PATH}" bs=32 count=1 >/dev/null 2>&1
-		fi
-		dek_size="$((8 * $(stat -L -c %s ${CONFIG_DEK_PATH})))"
-		if [ "${dek_size}" != "128" ] && [ "${dek_size}" != "192" ] && [ "${dek_size}" != "256" ]; then
-			echo "Invalid DEK size: ${dek_size} bits. Valid sizes are 128, 192 and 256 bits"
-			exit 1
-		fi
-		ENCRYPT="true"
-	fi
-
 	if [ -n "${NO_DCD}" ]; then
 		# Null the DCD pointer in the IVT.
 		ivt_dcd=$(hexdump -n 4 -s 12 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
@@ -247,13 +248,25 @@ else
 	signature_block_offset=$(awk '/CST: CONTAINER 0: Signature Block:/ {print $9}' ${MKIMAGE_LOG})
 
 	# Generate actual CSF descriptor file from template
-	sed -e "s,%srk_table%,${SRK_TABLE},g" \
-	-e "s,%cert_img%,${CERT_SRK},g" \
-	-e "s,%key_index%,${CONFIG_KEY_INDEX},g" \
-	-e "s,%u-boot-img%,${UBOOT_PATH},g"   \
-	-e "s,%container_offset%,${container_header_offset},g" \
-	-e "s,%block_offset%,${signature_block_offset},g" \
-	${SCRIPT_PATH}/csf_templates/sign_ahab_uboot > csf_descriptor
+	if [ "${ENCRYPT}" = "true" ]; then
+		sed -e "s,%srk_table%,${SRK_TABLE},g" \
+		-e "s,%cert_img%,${CERT_SRK},g" \
+		-e "s,%key_index%,${CONFIG_KEY_INDEX},g" \
+		-e "s,%u-boot-img%,${UBOOT_PATH},g"   \
+		-e "s,%container_offset%,${container_header_offset},g" \
+		-e "s,%block_offset%,${signature_block_offset},g" \
+		-e "s,%dek_len%,${dek_size},g" \
+		-e "s,%dek_path%,${CONFIG_DEK_PATH},g" \
+		${SCRIPT_PATH}/csf_templates/encrypt_ahab_uboot > csf_descriptor
+	else
+		sed -e "s,%srk_table%,${SRK_TABLE},g" \
+		-e "s,%cert_img%,${CERT_SRK},g" \
+		-e "s,%key_index%,${CONFIG_KEY_INDEX},g" \
+		-e "s,%u-boot-img%,${UBOOT_PATH},g"   \
+		-e "s,%container_offset%,${container_header_offset},g" \
+		-e "s,%block_offset%,${signature_block_offset},g" \
+		${SCRIPT_PATH}/csf_templates/sign_ahab_uboot > csf_descriptor
+	fi
 fi
 
 # Generate SRK tables
