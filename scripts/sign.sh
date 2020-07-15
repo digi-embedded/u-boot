@@ -41,7 +41,7 @@ SCRIPT_NAME="$(basename ${0})"
 SCRIPT_PATH="$(cd $(dirname ${0}) && pwd)"
 
 if [ "${#}" != "2" ]; then
-	echo "Usage: ${SCRIPT_NAME} input-unsigned-uboot.imx output-signed-uboot.imx"
+	echo "Usage: ${SCRIPT_NAME} <input-unsigned-uboot> <output-signed-uboot>"
 	exit 1
 fi
 
@@ -98,18 +98,15 @@ fi
 # Default values
 [ -z "${CONFIG_KEY_INDEX}" ] && CONFIG_KEY_INDEX="0"
 CONFIG_KEY_INDEX_1="$((CONFIG_KEY_INDEX + 1))"
-if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
-	[ -z "${CONFIG_CSF_SIZE}" ] && CONFIG_CSF_SIZE="0x4000"
-
-	CERT_CSF="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/CSF${CONFIG_KEY_INDEX_1}*crt.pem)"
-	CERT_IMG="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/IMG${CONFIG_KEY_INDEX_1}*crt.pem)"
-fi
 
 SRK_KEYS="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/SRK*crt.pem | sed s/\ /\,/g)"
-
 n_commas="$(echo ${SRK_KEYS} | grep -o "," | wc -l)"
 
 if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
+	[ -z "${CONFIG_CSF_SIZE}" ] && CONFIG_CSF_SIZE="0x4000"
+	CERT_CSF="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/CSF${CONFIG_KEY_INDEX_1}*crt.pem)"
+	CERT_IMG="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/IMG${CONFIG_KEY_INDEX_1}*crt.pem)"
+
 	if [ "${n_commas}" -eq 3 ] && [ -f "${CERT_CSF}" ] && [ -f "${CERT_IMG}" ]; then
 		# PKI tree already exists. Do nothing
 		echo "Using existing PKI tree"
@@ -124,15 +121,18 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 		echo "Inconsistent CST folder."
 		exit 1
 	fi
-elif [ "${CONFIG_SIGN_MODE}" = "AHAB" ]; then
-	if [ "${n_commas}" -eq 3 ]; then
+else
+	SRK_CERT_KEY_IMG="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/SRK${CONFIG_KEY_INDEX_1}*crt.pem | sed s/\ /\,/g)"
+
+	if [ "${n_commas}" -eq 3 ] && [ -f "${SRK_CERT_KEY_IMG}" ]; then
 		# PKI tree already exists. Do nothing
 		echo "Using existing PKI tree"
-	elif [ "${n_commas}" -eq 0 ]; then
+	elif [ "${n_commas}" -eq 0 ] || [ ! -f "${SRK_CERT_KEY_IMG}" ]; then
 		# Generate PKI
 		trustfence-gen-pki.sh "${CONFIG_SIGN_KEYS_PATH}"
 
 		SRK_KEYS="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/SRK*crt.pem | sed s/\ /\,/g)"
+		SRK_CERT_KEY_IMG="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/SRK${CONFIG_KEY_INDEX_1}*crt.pem | sed s/\ /\,/g)"
 	else
 		echo "Inconsistent CST folder."
 		exit 1
@@ -143,6 +143,7 @@ fi
 SRK_TABLE="$(pwd)/SRK_table.bin"
 SRK_EFUSES="$(pwd)/SRK_efuses.bin"
 
+# Parse data and generate CSF descriptor file
 if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 	# Separator between signed and encrypted zones
 	# According the HAB requirements, this should *not* contain the following regions:
@@ -247,8 +248,6 @@ else
 
 	UBOOT_NAME="${1}"
 
-	SRK_CERT_KEY_IMG="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/SRK${CONFIG_KEY_INDEX_1}*crt.pem | sed s/\ /\,/g)"
-
 	# Generate actual CSF descriptor file from template
 	sed -e "s,%srk_table%,${SRK_TABLE},g" \
 	-e "s,%cert_img%,${SRK_CERT_KEY_IMG},g" \
@@ -266,6 +265,7 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
+# Sign/encrypt and add padding to the resulting file
 if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 	# Generate signed uboot (add padding, generate signature and ensamble final image)
 	objcopy -I binary -O binary --pad-to "${pad_len}" --gap-fill="${GAP_FILLER}" "${UBOOT_PATH}" u-boot-pad.imx
