@@ -230,13 +230,19 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 		echo "    Features = SRK Revoke" >> csf_descriptor
 	fi
 else
-	UBOOT_START_OFFSET="0x400"
-	UBOOT_SIG_BLOCK_OFFSET="0x590"
-	UBOOT_NAME="${1}"
+	# Path to log file to parse
+	MKIMAGE_LOG="$(pwd)/mkimage.log"
 
-	# Compute the layout: sizes and offsets.
-	container_header_offset="${UBOOT_START_OFFSET}"
-	signature_block_offset="${UBOOT_SIG_BLOCK_OFFSET}"
+	if [ ! -e ${MKIMAGE_LOG} ]; then
+		echo "${MKIMAGE_LOG} does not exist."
+		exit 1
+	fi
+
+	# Parse Container and Signature block offsets
+	container_header_offset=$(awk '/CST: CONTAINER 0 offset:/ {print $5}' ${MKIMAGE_LOG})
+	signature_block_offset=$(awk '/CST: CONTAINER 0: Signature Block:/ {print $9}' ${MKIMAGE_LOG})
+
+	UBOOT_NAME="${1}"
 
 	SRK_CERT_KEY_IMG="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/SRK${CONFIG_KEY_INDEX_1}*crt.pem | sed s/\ /\,/g)"
 
