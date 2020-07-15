@@ -246,13 +246,11 @@ else
 	container_header_offset=$(awk '/CST: CONTAINER 0 offset:/ {print $5}' ${MKIMAGE_LOG})
 	signature_block_offset=$(awk '/CST: CONTAINER 0: Signature Block:/ {print $9}' ${MKIMAGE_LOG})
 
-	UBOOT_NAME="${1}"
-
 	# Generate actual CSF descriptor file from template
 	sed -e "s,%srk_table%,${SRK_TABLE},g" \
 	-e "s,%cert_img%,${CERT_SRK},g" \
 	-e "s,%key_index%,${CONFIG_KEY_INDEX},g" \
-	-e "s,%u-boot-img%,${UBOOT_NAME},g"   \
+	-e "s,%u-boot-img%,${UBOOT_PATH},g"   \
 	-e "s,%container_offset%,${container_header_offset},g" \
 	-e "s,%block_offset%,${signature_block_offset},g" \
 	${SCRIPT_PATH}/csf_templates/sign_ahab_uboot > csf_descriptor
