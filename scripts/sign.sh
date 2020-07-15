@@ -86,10 +86,13 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 		ivt_dcd=$(hexdump -n 4 -s 12 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
 		printf '\x0\x0\x0\x0' | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=3 >/dev/null 2>&1
 	fi
-else
+elif [ "${CONFIG_SIGN_MODE}" = "AHAB" ]; then
 	HAB_VER="ahab"
 	DIGEST="sign_digest"
 	DIGEST_ALGO="sha512"
+else
+	echo "Invalid CONFIG_SIGN_MODE."
+	exit 1
 fi
 
 # Default values
