@@ -122,17 +122,17 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 		exit 1
 	fi
 else
-	SRK_CERT_KEY_IMG="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/SRK${CONFIG_KEY_INDEX_1}*crt.pem | sed s/\ /\,/g)"
+	CERT_SRK="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/SRK${CONFIG_KEY_INDEX_1}*crt.pem | sed s/\ /\,/g)"
 
-	if [ "${n_commas}" -eq 3 ] && [ -f "${SRK_CERT_KEY_IMG}" ]; then
+	if [ "${n_commas}" -eq 3 ] && [ -f "${CERT_SRK}" ]; then
 		# PKI tree already exists. Do nothing
 		echo "Using existing PKI tree"
-	elif [ "${n_commas}" -eq 0 ] || [ ! -f "${SRK_CERT_KEY_IMG}" ]; then
+	elif [ "${n_commas}" -eq 0 ] || [ ! -f "${CERT_SRK}" ]; then
 		# Generate PKI
 		trustfence-gen-pki.sh "${CONFIG_SIGN_KEYS_PATH}"
 
 		SRK_KEYS="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/SRK*crt.pem | sed s/\ /\,/g)"
-		SRK_CERT_KEY_IMG="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/SRK${CONFIG_KEY_INDEX_1}*crt.pem | sed s/\ /\,/g)"
+		CERT_SRK="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/SRK${CONFIG_KEY_INDEX_1}*crt.pem | sed s/\ /\,/g)"
 	else
 		echo "Inconsistent CST folder."
 		exit 1
@@ -250,7 +250,7 @@ else
 
 	# Generate actual CSF descriptor file from template
 	sed -e "s,%srk_table%,${SRK_TABLE},g" \
-	-e "s,%cert_img%,${SRK_CERT_KEY_IMG},g" \
+	-e "s,%cert_img%,${CERT_SRK},g" \
 	-e "s,%key_index%,${CONFIG_KEY_INDEX},g" \
 	-e "s,%u-boot-img%,${UBOOT_NAME},g"   \
 	-e "s,%container_offset%,${container_header_offset},g" \
