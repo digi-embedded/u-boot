@@ -21,7 +21,7 @@
 #               signed images will be used to boot in a non-standard way (for example, USB).
 #		In those cases, the DCD data is copied to the On Chip RAM, which would
 #		invalidate the signature.
-#      CONFIG_UNLOCK_SRK_REVOKE: (optional) instruct HAB not to protect the SRK_REVOKE OTP 
+#      CONFIG_UNLOCK_SRK_REVOKE: (optional) instruct HAB not to protect the SRK_REVOKE OTP
 #				  field so that key revocation is possible in closed devices.
 #      ENABLE_ENCRYPTION: (optional) enable encryption of the images.
 #      CONFIG_DEK_PATH: (mandatory if ENCRYPT is defined) path to a Data Encryption Key.
@@ -97,7 +97,7 @@ fi
 CONFIG_KEY_INDEX_1="$((CONFIG_KEY_INDEX + 1))"
 if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 	[ -z "${CONFIG_CSF_SIZE}" ] && CONFIG_CSF_SIZE="0x4000"
-	
+
 	CERT_CSF="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/CSF${CONFIG_KEY_INDEX_1}*crt.pem)"
 	CERT_IMG="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/IMG${CONFIG_KEY_INDEX_1}*crt.pem)"
 fi
