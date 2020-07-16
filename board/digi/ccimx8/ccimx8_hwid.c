@@ -483,6 +483,12 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 		do_fixup_by_path(fdt, "/", propnames[i], str,
 				strlen(str) + 1, 1);
 	}
+
+	/* Register HWID words in the device tree */
+	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
+		sprintf(str, "digi,hwid_%d", i);
+		do_fixup_by_path_u32(fdt, "/", str, *((u32 *)hwid + i), 1);
+	}
 }
 
 int hwid_get_ramsize(const struct digi_hwid *hwid)
