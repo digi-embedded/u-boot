@@ -14,6 +14,7 @@
 #include "../common/hwid.h"
 #include "../common/mca.h"
 #include "../common/tamper.h"
+#include "../common/trustfence.h"
 #include "ccimx8.h"
 
 #ifdef CONFIG_CC8X
@@ -351,6 +352,7 @@ void fdt_fixup_ccimx8(void *fdt)
 	if (board_has_bluetooth())
 		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
 
+	fdt_fixup_trustfence(fdt);
 	fdt_fixup_uboot_info(fdt);
 }
 
