@@ -22,6 +22,7 @@
 
 #include <common.h>
 #include <command.h>
+#include <fdt_support.h>
 #include <fsl_sec.h>
 #include <fuse.h>
 #include <asm/mach-imx/hab.h>
@@ -441,9 +442,6 @@ uint8_t *env_aes_cbc_get_key(void)
 }
 #endif
 
-#ifdef CONFIG_ENV_AES_CAAM_KEY
-#include <fdt_support.h>
-
 void fdt_fixup_trustfence(void *fdt) {
 	/* Environment encryption is not enabled on open devices */
 	if (!imx_hab_is_enabled()) {
@@ -451,10 +449,11 @@ void fdt_fixup_trustfence(void *fdt) {
 		return;
 	}
 
+#ifdef CONFIG_ENV_AES_CAAM_KEY
 	do_fixup_by_path(fdt, "/", "digi,uboot-env,encrypted", NULL, 0, 1);
+#endif
 	do_fixup_by_path(fdt, "/", "digi,tf-closed", NULL, 0, 1);
 }
-#endif
 
 static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 {

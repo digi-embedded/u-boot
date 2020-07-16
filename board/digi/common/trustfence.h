@@ -22,11 +22,7 @@ int is_uboot_encrypted(void);
 void copy_dek(void);
 #endif /* CONFIG_HAS_TRUSTFENCE */
 
-#ifdef CONFIG_ENV_AES_CAAM_KEY
 void fdt_fixup_trustfence(void *fdt);
-#else
-static inline void fdt_fixup_trustfence(void *fdt) {}
-#endif
 
 int get_trustfence_key_modifier(unsigned char key_modifier[16]);
 #endif /* TRUSTFENCE_H */
