@@ -10,7 +10,6 @@
 #include <asm/gpio.h>
 #include <asm/arch/imx8-pins.h>
 #include <usb.h>
-#include <cdns3-uboot.h>
 #include <asm/arch/iomux.h>
 #include <asm/arch/sci/sci.h>
 #include <asm/arch/snvs_security_sc.h>
