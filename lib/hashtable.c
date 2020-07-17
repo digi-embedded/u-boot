@@ -451,7 +451,7 @@ static void _hdelete(const char *key, struct hsearch_data *htab,
 static void delete_unprotected_vars(struct hsearch_data *htab)
 {
 	int i;
-	ENTRY *entry;
+	struct env_entry *entry;
 
 	for (i = 1; i <= htab->size; ++i) {
 		if (htab->table[i].used > 0) {
