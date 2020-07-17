@@ -38,7 +38,6 @@
 #include <asm/gpio.h>
 #endif
 #include <u-boot/md5.h>
-#include <fsl_caam.h>
 #include <console.h>
 
 #include "../board/digi/common/helper.h"
