@@ -152,7 +152,6 @@
 	"mmcbootdev:so"
 
 /* Environment */
-#define CONFIG_ENV_OFFSET		(1792 * 1024)	/* 256kB below 2MiB */
 #define CONFIG_ENV_OFFSET_REDUND	(CONFIG_ENV_OFFSET + (128 * 1024))
 #define CONFIG_ENV_SIZE_REDUND		CONFIG_ENV_SIZE
 /* On CC8X, USDHC1 is for eMMC, USDHC2 is for SD on SBC Express */
