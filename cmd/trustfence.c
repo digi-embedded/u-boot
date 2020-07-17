@@ -141,7 +141,7 @@ int get_trustfence_key_modifier(unsigned char key_modifier[16])
  */
 void copy_dek(void)
 {
-	ulong loadaddr = env_get_ulong("loadaddr", 16, load_addr);
+	ulong loadaddr = env_get_ulong("loadaddr", 16, CONFIG_LOADADDR);
 	void *dek_blob_dst = (void *)(loadaddr - BLOB_DEK_OFFSET);
 	u32 dek_size;
 

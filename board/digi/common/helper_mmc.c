@@ -75,7 +75,7 @@ int media_read_block(uintptr_t addr, unsigned char *readbuf, uint hwpart)
 	int ret = -1;
 	static struct blk_desc *mmc_dev;
 	uint orig_part;
-	void *loadaddr = (void *) env_get_ulong("loadaddr", 16, load_addr);
+	void *loadaddr = (void *) env_get_ulong("loadaddr", 16, CONFIG_LOADADDR);
 
 	len = media_get_block_size();
 	if (len <= 0)
