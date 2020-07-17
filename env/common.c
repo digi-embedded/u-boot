@@ -199,7 +199,7 @@ int env_import(const char *buf, int check)
 		}
 #endif
 		pr_err("Failed to decrypt env!\n");
-		set_default_env("!import failed", 0);
+		env_set_default("!import failed", 0);
 		return ret;
 	} else {
 		if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE, '\0', 0, 0,
