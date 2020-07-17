@@ -10,7 +10,7 @@
 #ifdef CONFIG_FSL_ESDHC
 #include <fsl_esdhc.h>
 #endif
-#include <environment.h>
+#include <env.h>
 #include <mmc.h>
 #include <malloc.h>
 #include <otf_update.h>
