@@ -39,15 +39,6 @@
 	status = "okay";
 };
 
-/*
- * CSI camera conflicts with microSD/eMMC.
- * Before enabling the camera you need to disable
- * usdhc2 node.
- */
-//&csi {
-//	status = "okay";
-//};
-
 /* ECSPI1 (as master) */
 &ecspi1 {
 	status = "okay";
@@ -115,11 +106,6 @@
 	status = "okay";
 };
 
-/* Audio chip */
-&max98089 {
-	status = "okay";
-};
-
 /*
  * Uncomment to enable MCA ADC channels on GPIO connector:
  *  - MCA_IO1 (channel 1)
@@ -169,15 +155,6 @@
 //};
 
 /*
- * CSI camera conflicts with microSD/eMMC.
- * Before enabling the camera you need to disable
- * usdhc2 node.
- */
-//&ov5642 {
-//	status = "okay";
-//};
-
-/*
  * To use CSI camera with suspend/resume, uncomment ext_3v3
  * regulator to leave it ON in suspend
  */
@@ -196,19 +173,7 @@
 	status = "okay";
 };
 
-&pxp {
-	status = "okay";
-};
-
 &pxp_v4l2 {
-	status = "okay";
-};
-
-&sai2 {
-	status = "okay";
-};
-
-&sound_max98089 {
 	status = "okay";
 };
 
