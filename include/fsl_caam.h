@@ -41,6 +41,7 @@
 #define ERROR_ANY           (-1)
 #define ERROR_IN_PAGE_ALLOC (1)
 
+#define BLOB_SIZE(x)	((x) + 32 + 16) /* Blob buffer size */
 #define KEY_MODIFER_SIZE 16
 
 ////////////////////////////////////////////////////////////////////////////////
