@@ -51,8 +51,6 @@
 #define CARRIERBOARD_VERSION_UNDEFINED	0
 #define CARRIERBOARD_ID_UNDEFINED	0
 
-#define CONFIG_ENV_SIZE		SZ_16K
-
 /* ********** misc stuff ********** */
 #define CONFIG_CMD_ENV_FLAGS
 #undef CONFIG_SYS_MAXARGS
