@@ -36,6 +36,11 @@
 #include <u-boot/sha1.h>
 #include <linux/errno.h>
 #include <asm/io.h>
+#include <asm/mach-imx/hab.h>
+#include <asm/arch-imx8/image.h>
+#ifdef CONFIG_SIGN_IMAGE
+#include "../board/digi/common/auth.h"
+#endif
 
 #include <bzlib.h>
 #include <linux/lzo.h>
@@ -1067,6 +1072,9 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 	ulong		default_addr;
 	int		rd_noffset;
 #endif
+#ifdef CONFIG_SIGN_IMAGE
+	int authenticated = 0;
+#endif
 	const char *select = NULL;
 
 	*rd_start = 0;
@@ -1144,7 +1152,12 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 		 * address provided in the second bootm argument
 		 * check image type, for FIT images get FIT node.
 		 */
+#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_AHAB_BOOT)
+		/* Skip container header */
+		buf = map_sysmem(rd_addr + CONTAINER_HEADER_SIZE, 0);
+#else
 		buf = map_sysmem(rd_addr, 0);
+#endif
 		switch (genimg_get_format(buf)) {
 #if CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)
 		case IMAGE_FORMAT_LEGACY:
@@ -1152,6 +1165,20 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 					"Image at %08lx ...\n", rd_addr);
 
 			bootstage_mark(BOOTSTAGE_ID_CHECK_RAMDISK);
+#ifdef CONFIG_SIGN_IMAGE
+			rd_hdr = (const image_header_t *)rd_addr;
+			if (rd_hdr == NULL)
+				return 1;
+
+			rd_len = image_get_image_size(rd_hdr);
+			if (digi_auth_image(&rd_addr, rd_len) != 0) {
+				printf("Ramdisk authentication failed\n");
+				return 1;
+			} else {
+				authenticated = 1;
+			}
+#endif /* CONFIG_SIGN_IMAGE */
+
 			rd_hdr = image_get_ramdisk(rd_addr, arch,
 							images->verify);
 
@@ -1233,6 +1260,12 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 	debug("   ramdisk start = 0x%08lx, ramdisk end = 0x%08lx\n",
 			*rd_start, *rd_end);
 
+#ifdef CONFIG_SIGN_IMAGE
+	if (rd_data && imx_hab_is_enabled() && !authenticated) {
+		printf("Ramdisk authentication is not supported\n");
+		return 1;
+	}
+#endif
 	return 0;
 }
 

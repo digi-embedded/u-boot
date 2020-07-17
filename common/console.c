@@ -389,10 +389,8 @@ int fprintf(int file, const char *fmt, ...)
 
 int getc(void)
 {
-#ifdef CONFIG_DISABLE_CONSOLE
-	if (gd->flags & GD_FLG_DISABLE_CONSOLE)
+	if (gd->flags & GD_FLG_DISABLE_CONSOLE_INPUT)
 		return 0;
-#endif
 
 	if (!gd->have_console)
 		return 0;
@@ -417,10 +415,8 @@ int getc(void)
 
 int tstc(void)
 {
-#ifdef CONFIG_DISABLE_CONSOLE
-	if (gd->flags & GD_FLG_DISABLE_CONSOLE)
+	if (gd->flags & GD_FLG_DISABLE_CONSOLE_INPUT)
 		return 0;
-#endif
 
 	if (!gd->have_console)
 		return 0;
@@ -528,10 +524,8 @@ void putc(const char c)
 	}
 #endif
 
-#ifdef CONFIG_DISABLE_CONSOLE
-	if (gd->flags & GD_FLG_DISABLE_CONSOLE)
+	if (gd->flags & GD_FLG_DISABLE_CONSOLE_OUTPUT)
 		return;
-#endif
 
 	if (!gd->have_console)
 		return pre_console_putc(c);
@@ -579,10 +573,8 @@ void puts(const char *s)
 	}
 #endif
 
-#ifdef CONFIG_DISABLE_CONSOLE
-	if (gd->flags & GD_FLG_DISABLE_CONSOLE)
+	if (gd->flags & GD_FLG_DISABLE_CONSOLE_OUTPUT)
 		return;
-#endif
 
 	if (!gd->have_console)
 		return pre_console_puts(s);
@@ -756,12 +748,6 @@ static bool console_update_silent(void)
 #ifdef CONFIG_SILENT_CONSOLE
 	if (env_get("silent")) {
 		gd->flags |= GD_FLG_SILENT;
-	} else {
-		unsigned long flags = gd->flags;
-
-		gd->flags &= ~GD_FLG_SILENT;
-
-		return !!(flags & GD_FLG_SILENT);
 	}
 #endif
 

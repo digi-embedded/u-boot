@@ -628,6 +628,24 @@ static int get_bad_peb_limit(const struct ubi_device *ubi, int max_beb_per1024)
 	if (mult_frac(limit, 1024, max_beb_per1024) < device_pebs)
 		limit += 1;
 
+#ifdef CONFIG_MTD_UBI_MAXRSVDPEB_PCNT
+	if (limit > mult_frac(ubi->peb_count,
+			      CONFIG_MTD_UBI_MAXRSVDPEB_PCNT, 100)) {
+		/*
+		 * The conservative approach above may leave little space in
+		 * some small partitions for normal use. A configuration
+		 * variable can be defined to limit the percentage of blocks
+		 * to reserve for bad block handling.
+		 */
+		limit = mult_frac(ubi->peb_count,
+				  CONFIG_MTD_UBI_MAXRSVDPEB_PCNT, 100);
+		/* Round it up */
+		if (mult_frac(limit, 100, CONFIG_MTD_UBI_MAXRSVDPEB_PCNT) <
+		    ubi->peb_count)
+			limit += 1;
+	}
+#endif
+
 	return limit;
 }
 

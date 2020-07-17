@@ -1204,6 +1204,9 @@ int mxs_nand_setup_ecc(struct mtd_info *mtd)
 		nand_info->hooked_block_markbad = mtd->_block_markbad;
 		mtd->_block_markbad = mxs_nand_hook_block_markbad;
 	}
+#ifdef CONFIG_SKIP_NAND_BBT_SCAN
+	nand->options |= NAND_SKIP_BBTSCAN;
+#endif
 
 	return 0;
 }

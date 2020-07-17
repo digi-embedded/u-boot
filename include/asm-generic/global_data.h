@@ -155,7 +155,7 @@ typedef struct global_data {
 #define GD_FLG_POSTFAIL		0x00008	/* Critical POST test failed	   */
 #define GD_FLG_POSTSTOP		0x00010	/* POST seqeunce aborted	   */
 #define GD_FLG_LOGINIT		0x00020	/* Log Buffer has been initialized */
-#define GD_FLG_DISABLE_CONSOLE	0x00040	/* Disable console (in & out)	   */
+#define GD_FLG_DISABLE_CONSOLE_INPUT	0x00040	/* Disable console (in )   */
 #define GD_FLG_ENV_READY	0x00080	/* Env. imported into hash table   */
 #define GD_FLG_SERIAL_READY	0x00100	/* Pre-reloc serial console ready  */
 #define GD_FLG_FULL_MALLOC_INIT	0x00200	/* Full malloc() is ready	   */
@@ -166,5 +166,10 @@ typedef struct global_data {
 #define GD_FLG_SPL_EARLY_INIT	0x04000 /* Early SPL init is done	   */
 #define GD_FLG_LOG_READY	0x08000 /* Log system is ready for use	   */
 #define GD_FLG_WDT_READY	0x10000 /* Watchdog is ready for use	   */
+#define GD_FLG_DISABLE_CONSOLE_OUTPUT	0x20000	/* Disable console (out)   */
+
+/* Disable console (in & out) */
+#define GD_FLG_DISABLE_CONSOLE		(GD_FLG_DISABLE_CONSOLE_INPUT | \
+					GD_FLG_DISABLE_CONSOLE_OUTPUT)
 
 #endif /* __ASM_GENERIC_GBL_DATA_H */

@@ -604,6 +604,7 @@ dtb-y += \
 	imx6dl-aristainetos2c_4.dtb \
 	imx6dl-aristainetos2c_7.dtb \
 	imx6dl-brppt2.dtb \
+	imx6dl-ccimx6sbc.dtb \
 	imx6dl-cubox-i.dtb \
 	imx6dl-cubox-i-emmc-som-v15.dtb \
 	imx6dl-cubox-i-som-v15.dtb \
@@ -632,6 +633,7 @@ endif
 ifneq ($(CONFIG_MX6Q)$(CONFIG_MX6QDL),)
 dtb-y += \
 	imx6-apalis.dtb \
+	imx6q-ccimx6sbc.dtb \
 	imx6q-cm-fx6.dtb \
 	imx6q-cubox-i.dtb \
 	imx6q-cubox-i-emmc-som-v15.dtb \
@@ -662,6 +664,7 @@ dtb-y += \
 	imx6q-pop-arm2.dtb \
 	imx6q-tbs2910.dtb \
 	imx6q-wandboard-revb1.dtb \
+	imx6qp-ccimx6qpsbc.dtb \
 	imx6qp-sabreauto.dtb \
 	imx6qp-sabreauto-ecspi.dtb \
 	imx6qp-sabreauto-gpmi-weim.dtb \
@@ -706,7 +709,9 @@ dtb-$(CONFIG_MX6UL) += \
 	imx6ul-liteboard.dtb \
 	imx6ul-phytec-segin-ff-rdk-nand.dtb \
 	imx6ul-pico-hobbit.dtb \
-	imx6ul-pico-pi.dtb
+	imx6ul-pico-pi.dtb \
+	imx6ul-ccimx6ulsbc.dtb \
+	imx6ul-ccimx6ulstarter.dtb
 
 dtb-$(CONFIG_MX6ULL) += \
 	imx6ull-14x14-ddr3-val.dtb \
@@ -758,6 +763,8 @@ dtb-$(CONFIG_ARCH_MX7ULP) += imx7ulp-com.dtb \
 	imx7ulp-evk-qspi.dtb
 
 dtb-$(CONFIG_ARCH_IMX8) += \
+	ccimx8x-sbc-express.dtb \
+	ccimx8x-sbc-pro.dtb \
 	fsl-imx8qm-apalis.dtb \
 	fsl-imx8qm-mek.dtb \
 	fsl-imx8qm-ddr4-val.dtb \
@@ -782,6 +789,7 @@ dtb-$(CONFIG_ARCH_IMX8) += \
 	imx8-giedi.dtb
 
 dtb-$(CONFIG_ARCH_IMX8M) += \
+	ccimx8mn-dvk.dtb \
 	imx8mm-evk.dtb \
 	imx8mm-ddr4-evk.dtb \
 	imx8mm-ddr3l-val.dtb \
@@ -795,7 +803,7 @@ dtb-$(CONFIG_ARCH_IMX8M) += \
 	imx8mp-evk.dtb \
 	imx8mm-ab2.dtb \
 	imx8mn-ddr4-ab2.dtb \
-	imx8mn-ab2.dtb
+	imx8mn-ab2.dtb \
 
 dtb-$(CONFIG_ARCH_IMXRT) += imxrt1050-evk.dtb
 

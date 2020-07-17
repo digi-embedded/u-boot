@@ -729,6 +729,9 @@ int boot_get_cmdline(struct lmb *lmb, ulong *cmd_start, ulong *cmd_end);
 #ifdef CONFIG_SYS_BOOT_GET_KBD
 int boot_get_kbd(struct lmb *lmb, bd_t **kbd);
 #endif /* CONFIG_SYS_BOOT_GET_KBD */
+#ifdef CONFIG_SIGN_IMAGE
+int fdt_file_authenticate(char *loadaddr);
+#endif /* CONFIG_SIGN_IMAGE */
 #endif /* !USE_HOSTCC */
 
 /*******************************************************************/

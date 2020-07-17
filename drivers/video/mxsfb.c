@@ -72,6 +72,7 @@ static void mxs_lcd_init(phys_addr_t reg_base, u32 fb_addr, struct ctfb_res_mode
 	struct mxs_lcdif_regs *regs = (struct mxs_lcdif_regs *)(reg_base);
 	uint32_t word_len = 0, bus_width = 0;
 	uint8_t valid_data = 0;
+	uint32_t vdctrl0;
 
 	/* Kick in the LCDIF clock */
 	mxs_set_lcdclk((u32)reg_base, PS2KHZ(mode->pixclock));
@@ -117,16 +118,22 @@ static void mxs_lcd_init(phys_addr_t reg_base, u32 fb_addr, struct ctfb_res_mode
 	writel((mode->yres << LCDIF_TRANSFER_COUNT_V_COUNT_OFFSET) | mode->xres,
 		&regs->hw_lcdif_transfer_count);
 
-	if (!enable_pol)
+	if (!enable_pol) {
 		writel(LCDIF_VDCTRL0_ENABLE_PRESENT |
 			LCDIF_VDCTRL0_VSYNC_PERIOD_UNIT |
 			LCDIF_VDCTRL0_VSYNC_PULSE_WIDTH_UNIT |
 			mode->vsync_len, &regs->hw_lcdif_vdctrl0);
-	else
-		writel(LCDIF_VDCTRL0_ENABLE_PRESENT | LCDIF_VDCTRL0_ENABLE_POL |
+	} else {
+		vdctrl0 = LCDIF_VDCTRL0_ENABLE_PRESENT | LCDIF_VDCTRL0_ENABLE_POL |
 			LCDIF_VDCTRL0_VSYNC_PERIOD_UNIT |
 			LCDIF_VDCTRL0_VSYNC_PULSE_WIDTH_UNIT |
-			mode->vsync_len, &regs->hw_lcdif_vdctrl0);
+			mode->vsync_len;
+		vdctrl0 |= (mode->sync & FB_SYNC_CLK_LAT_FALL) ? LCDIF_VDCTRL0_DOTCLK_POL : 0;
+		vdctrl0 |= (mode->sync & FB_SYNC_HOR_HIGH_ACT) ? LCDIF_VDCTRL0_HSYNC_POL : 0;
+		vdctrl0 |= (mode->sync & FB_SYNC_VERT_HIGH_ACT) ? LCDIF_VDCTRL0_VSYNC_POL : 0;
+
+		writel(vdctrl0, &regs->hw_lcdif_vdctrl0);
+	}
 
 	writel(mode->upper_margin + mode->lower_margin +
 		mode->vsync_len + mode->yres,

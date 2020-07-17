@@ -718,7 +718,7 @@ static int mmc_complete_op_cond(struct mmc *mmc)
 }
 
 
-static int mmc_send_ext_csd(struct mmc *mmc, u8 *ext_csd)
+int mmc_send_ext_csd(struct mmc *mmc, u8 *ext_csd)
 {
 	struct mmc_cmd cmd;
 	struct mmc_data data;
@@ -962,6 +962,11 @@ static int mmc_set_capacity(struct mmc *mmc, int part_num)
 	mmc_get_blk_desc(mmc)->lba = lldiv(mmc->capacity, mmc->read_bl_len);
 
 	return 0;
+}
+
+int mmc_switch_any(struct mmc *mmc, unsigned int field, unsigned int val)
+{
+	return mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL, field, val);
 }
 
 int mmc_switch_part(struct mmc *mmc, unsigned int part_num)

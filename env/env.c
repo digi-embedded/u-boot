@@ -192,7 +192,7 @@ int env_load(void)
 		if (!env_has_inited(drv->location))
 			continue;
 
-		printf("Loading Environment from %s... ", drv->name);
+		pr_notice("Loading Environment from %s... ", drv->name);
 		/*
 		 * In error case, the error message must be printed during
 		 * drv->load() in some underlying API, and it must be exactly
@@ -200,14 +200,14 @@ int env_load(void)
 		 */
 		ret = drv->load();
 		if (!ret) {
-			printf("OK\n");
+			pr_notice("OK\n");
 			return 0;
 		} else if (ret == -ENOMSG) {
 			/* Handle "bad CRC" case */
 			if (best_prio == -1)
 				best_prio = prio;
 		} else {
-			debug("Failed (%d)\n", ret);
+			pr_notice("Failed (%d)\n", ret);
 		}
 	}
 

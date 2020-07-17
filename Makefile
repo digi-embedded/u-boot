@@ -424,7 +424,7 @@ KBUILD_AFLAGS	+= $(call cc-option,-fno-PIE)
 
 # Read UBOOTRELEASE from include/config/uboot.release (if it exists)
 UBOOTRELEASE = $(shell cat include/config/uboot.release 2> /dev/null)
-UBOOTVERSION = $(VERSION)$(if $(PATCHLEVEL),.$(PATCHLEVEL)$(if $(SUBLEVEL),.$(SUBLEVEL)))$(EXTRAVERSION)
+UBOOTVERSION = dub-$(VERSION)$(if $(PATCHLEVEL),.$(PATCHLEVEL)$(if $(SUBLEVEL),-$(SUBLEVEL)))$(EXTRAVERSION)
 
 export VERSION PATCHLEVEL SUBLEVEL UBOOTRELEASE UBOOTVERSION
 export ARCH CPU BOARD VENDOR SOC CPUDIR BOARDDIR
@@ -1156,6 +1156,15 @@ endif
 %.imx: $(IMX_DEPS) %.bin
 	$(Q)$(MAKE) $(build)=arch/arm/mach-imx $@
 	$(BOARD_SIZE_CHECK)
+
+%-signed.imx: %.imx
+	$(Q)$(MAKE) $(build)=arch/arm/mach-imx $@
+
+%-usb-signed.imx: %.imx %-signed.imx
+	$(Q)$(MAKE) $(build)=arch/arm/mach-imx $@
+
+%-encrypted.imx: %.imx %-usb-signed.imx
+	$(Q)$(MAKE) $(build)=arch/arm/mach-imx $@
 
 %.vyb: %.imx
 	$(Q)$(MAKE) $(build)=arch/arm/cpu/armv7/vf610 $@

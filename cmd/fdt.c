@@ -17,6 +17,9 @@
 #include <fdt_support.h>
 #include <mapmem.h>
 #include <asm/io.h>
+#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_AHAB_BOOT)
+#include <asm/arch-imx8/image.h>
+#endif
 
 #define MAX_LEVEL	32		/* how deeply nested we will go */
 #define SCRATCHPAD	1024		/* bytes of scratchpad memory */
@@ -150,6 +153,10 @@ static int do_fdt(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		}
 
 		addr = simple_strtoul(argv[0], NULL, 16);
+#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_AHAB_BOOT)
+		/* skip image container */
+		addr += CONTAINER_HEADER_SIZE;
+#endif
 		blob = map_sysmem(addr, 0);
 		if (!fdt_valid(&blob))
 			return 1;
@@ -703,6 +710,10 @@ static int do_fdt(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			return CMD_RET_FAILURE;
 
 		addr = simple_strtoul(argv[2], NULL, 16);
+#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_AHAB_BOOT)
+		/* skip image container */
+		addr += CONTAINER_HEADER_SIZE;
+#endif
 		blob = map_sysmem(addr, 0);
 		if (!fdt_valid(&blob))
 			return CMD_RET_FAILURE;

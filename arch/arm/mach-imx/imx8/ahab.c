@@ -22,6 +22,20 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define SECO_PT                 2U
 
+bool imx_hab_is_enabled(void)
+{
+	sc_err_t err;
+	uint16_t lc;
+
+	err = sc_seco_chip_info(-1, &lc, NULL, NULL, NULL);
+	if (err != SC_ERR_NONE) {
+		printf("Error in get lifecycle\n");
+		return true;
+	}
+
+	return ((lc & 0x80) == 0x80);
+}
+
 static inline bool check_in_dram(ulong addr)
 {
 	int i;
@@ -283,7 +297,7 @@ static int do_ahab_status(cmd_tbl_t *cmdtp, int flag, int argc,
 	return 0;
 }
 
-static int confirm_close(void)
+int confirm_close(void)
 {
 	puts("Warning: Please ensure your sample is in NXP closed state, "
 	     "OEM SRK hash has been fused, \n"

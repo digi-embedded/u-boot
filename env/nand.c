@@ -36,6 +36,10 @@
 #define CONFIG_ENV_RANGE	CONFIG_ENV_SIZE
 #endif
 
+#ifdef CONFIG_DYNAMIC_ENV_LOCATION
+#define ENV_FIRST_NOENV_SECTOR		(CONFIG_ENV_OFFSET + CONFIG_ENV_RANGE)
+#endif
+
 #if defined(ENV_IS_EMBEDDED)
 static env_t *env_ptr = &environment;
 #elif defined(CONFIG_NAND_ENV_DST)
@@ -43,6 +47,95 @@ static env_t *env_ptr = (env_t *)CONFIG_NAND_ENV_DST;
 #endif /* ENV_IS_EMBEDDED */
 
 DECLARE_GLOBAL_DATA_PTR;
+
+struct nand_env_location {
+	const char *name;
+	nand_erase_options_t erase_opts;
+};
+
+static struct nand_env_location location[] = {
+	{
+		.name = "NAND",
+		.erase_opts = {
+			.length = CONFIG_ENV_RANGE,
+			.offset = CONFIG_ENV_OFFSET,
+		},
+	},
+#ifdef CONFIG_ENV_OFFSET_REDUND
+	{
+		.name = "redundant NAND",
+		.erase_opts = {
+			.length = CONFIG_ENV_RANGE,
+			.offset = CONFIG_ENV_OFFSET_REDUND,
+		},
+	},
+#endif
+};
+
+#ifdef CONFIG_DYNAMIC_ENV_LOCATION
+/*
+ * Dynamically locate the environment and its redundant copy (if available)
+ * in the first available good sectors in the area starting at CONFIG_ENV_OFFSET
+ * and with a range defined by CONFIG_ENV_RANGE.
+ */
+static void env_set_dynamic_location(struct nand_env_location *location)
+{
+	loff_t off;
+	int i = 0;
+	int env_copies = 1;
+	struct mtd_info *mtd;
+
+	mtd = get_nand_dev_by_index(0);
+	if (!mtd)
+		return;
+
+	if (CONFIG_ENV_SIZE > mtd->erasesize)
+		printf("Warning: environment size larger than PEB size is not supported\n");
+
+#ifdef CONFIG_ENV_OFFSET_REDUND
+	env_copies++;
+
+	/* Init redundant copy offset */
+	if (location[1].erase_opts.offset == location[0].erase_opts.offset)
+		location[1].erase_opts.offset += mtd->erasesize;
+#endif
+
+	/*
+	 * Relocate (if needed) each copy on the first good block that is not
+	 * used by the other copy.
+	 */
+	for (i = 0; i < env_copies; i++) {
+		/* limit erase size to one erase block */
+		location[i].erase_opts.length = mtd->erasesize;
+
+		for (off = CONFIG_ENV_OFFSET;
+		     off < ENV_FIRST_NOENV_SECTOR;
+		     off += mtd->erasesize) {
+			if (!nand_block_isbad(mtd, off)) {
+				if (off == location[i].erase_opts.offset) {
+					/* already set in a good block */
+					break;
+				}
+#ifdef CONFIG_ENV_OFFSET_REDUND
+				if (off == location[!i].erase_opts.offset) {
+					/* skip block where the other copy is */
+					continue;
+				}
+#endif
+				/* assign good block to work on */
+				location[i].erase_opts.offset = off;
+				break;
+			}
+		}
+
+		if (off >= ENV_FIRST_NOENV_SECTOR)
+			printf("Warning: no available good sectors for %s environment\n",
+			       i ? "redundant" : "primary");
+		else
+			debug("env[%i].offset=%llx\n", i, off);
+	}
+}
+#endif /* CONFIG_DYNAMIC_ENV_LOCATION */
 
 /*
  * This is called before nand_init() so we can't read NAND to
@@ -130,6 +223,10 @@ static int writeenv(size_t offset, u_char *buf)
 	if (!mtd)
 		return 1;
 
+#ifdef CONFIG_DYNAMIC_ENV_LOCATION
+	end = offset + mtd->erasesize;
+#endif
+
 	blocksize = mtd->erasesize;
 	len = min(blocksize, (size_t)CONFIG_ENV_SIZE);
 
@@ -150,11 +247,6 @@ static int writeenv(size_t offset, u_char *buf)
 
 	return 0;
 }
-
-struct nand_env_location {
-	const char *name;
-	nand_erase_options_t erase_opts;
-};
 
 static int erase_and_write_env(const struct nand_env_location *location,
 		u_char *env_new)
@@ -182,17 +274,6 @@ static int env_nand_save(void)
 	int	ret = 0;
 	ALLOC_CACHE_ALIGN_BUFFER(env_t, env_new, 1);
 	int	env_idx = 0;
-	static struct nand_env_location location[2] = {0};
-
-	location[0].name = "NAND";
-	location[0].erase_opts.length = CONFIG_ENV_RANGE;
-	location[0].erase_opts.offset = env_get_offset(CONFIG_ENV_OFFSET);
-
-#ifdef CONFIG_ENV_OFFSET_REDUND
-	location[1].name = "redundant NAND";
-	location[1].erase_opts.length = CONFIG_ENV_RANGE;
-	location[1].erase_opts.offset = CONFIG_ENV_OFFSET_REDUND;
-#endif
 
 	if (CONFIG_ENV_RANGE < CONFIG_ENV_SIZE)
 		return 1;
@@ -203,6 +284,10 @@ static int env_nand_save(void)
 
 #ifdef CONFIG_ENV_OFFSET_REDUND
 	env_idx = (gd->env_valid == ENV_VALID);
+#endif
+
+#ifdef CONFIG_DYNAMIC_ENV_LOCATION
+	env_set_dynamic_location(location);
 #endif
 
 	ret = erase_and_write_env(&location[env_idx], (u_char *)env_new);
@@ -319,8 +404,17 @@ static int env_nand_load(void)
 		goto done;
 	}
 
+#ifdef CONFIG_DYNAMIC_ENV_LOCATION
+	env_set_dynamic_location(location);
+
+	read1_fail = readenv(location[0].erase_opts.offset,
+			     (u_char *)tmp_env1);
+	read2_fail = readenv(location[1].erase_opts.offset,
+			     (u_char *)tmp_env2);
+#else
 	read1_fail = readenv(env_get_offset(CONFIG_ENV_OFFSET), (u_char *) tmp_env1);
 	read2_fail = readenv(CONFIG_ENV_OFFSET_REDUND, (u_char *) tmp_env2);
+#endif
 
 	ret = env_import_redund((char *)tmp_env1, read1_fail, (char *)tmp_env2,
 				read2_fail);
@@ -358,7 +452,13 @@ static int env_nand_load(void)
 	}
 #endif
 
+#ifdef CONFIG_DYNAMIC_ENV_LOCATION
+	env_set_dynamic_location(location);
+
+	ret = readenv(location[0].erase_opts.offset, (u_char *)buf);
+#else
 	ret = readenv(env_get_offset(CONFIG_ENV_OFFSET), (u_char *)buf);
+#endif
 	if (ret) {
 		env_set_default("readenv() failed", 0);
 		return -EIO;

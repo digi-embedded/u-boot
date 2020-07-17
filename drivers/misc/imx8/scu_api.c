@@ -1019,7 +1019,7 @@ int sc_seco_get_event(sc_ipc_t ipc, u8 idx, u32 *event)
 	RPC_SIZE(&msg) = 2U;
 
 	ret = misc_call(dev, SC_FALSE, &msg, size, &msg, size);
-	if (ret)
+	if (ret && (event != NULL))
 		printf("%s: idx: %u, res:%d\n", __func__, idx, RPC_R8(&msg));
 
 	if (event)

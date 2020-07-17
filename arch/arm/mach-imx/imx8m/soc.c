@@ -13,7 +13,9 @@
 #include <asm/arch/sys_proto.h>
 #include <asm/mach-imx/hab.h>
 #include <asm/mach-imx/boot_mode.h>
+#ifdef CONFIG_IMX_OPTEE
 #include <asm/mach-imx/optee.h>
+#endif
 #include <asm/mach-imx/syscounter.h>
 #include <asm/armv8/mmu.h>
 #include <dm/uclass.h>
@@ -994,7 +996,11 @@ usb_modify_speed:
 		disable_cpu_nodes(blob, 2);
 #endif
 
+#ifdef CONFIG_IMX_OPTEE
 	return ft_add_optee_node(blob, bd);
+#else
+	return 0;
+#endif
 }
 #endif
 
@@ -1237,6 +1243,7 @@ enum env_location env_get_location(enum env_operation op, int prio)
 	case MMC1_BOOT:
 	case MMC2_BOOT:
 	case MMC3_BOOT:
+	case USB_BOOT:
 		env_loc =  ENVL_MMC;
 		break;
 #endif

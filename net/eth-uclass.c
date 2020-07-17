@@ -319,7 +319,7 @@ void eth_halt(void)
 	struct eth_device_priv *priv;
 
 	current = eth_get_dev();
-	if (!current || !eth_is_active(current))
+	if (!current || !device_active(current))
 		return;
 
 	eth_get_ops(current)->stop(current);

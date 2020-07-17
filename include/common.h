@@ -47,4 +47,9 @@
 # include <env_internal.h>
 #endif
 
+/* board/digi/common */
+#if defined(CONFIG_SOURCE) && defined(CONFIG_AUTO_BOOTSCRIPT)
+void run_auto_bootscript(void);
+#endif
+
 #endif	/* __COMMON_H_ */
