@@ -462,8 +462,9 @@ static int get_hab_status(void)
 				printf("--------- HAB Event %d -----------------\n",
 				       index + 1);
 				puts("event data:\n");
-				display_event(event_data, record_len);
+				display_event(event_data, bytes);
 				puts("\n");
+				bytes = sizeof(event_data);
 				index++;
 			}
 		} else {
@@ -475,8 +476,9 @@ static int get_hab_status(void)
 				printf("--------- HAB Event %d -----------------\n",
 				index + 1);
 				puts("event data:\n");
-				display_event(event_data, record_len);
+				display_event(event_data, bytes);
 				puts("\n");
+				bytes = sizeof(event_data);
 				index++;
 			}
 		}
