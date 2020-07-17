@@ -52,11 +52,4 @@
 # endif
 #endif
 
-#if defined(CONFIG_DYNAMIC_ENV_LOCATION) && \
-    defined(CONFIG_SYS_REDUNDANT_ENVIRONMENT)
-# ifndef CONFIG_ENV_OFFSET_REDUND
-#   define CONFIG_ENV_OFFSET_REDUND	CONFIG_ENV_OFFSET
-# endif
-#endif
-
 #endif	/* __CONFIG_FALLBACKS_H */
