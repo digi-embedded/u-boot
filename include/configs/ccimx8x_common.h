@@ -103,7 +103,7 @@
 #define OCOTP_LOCK_BANK		0
 #define OCOTP_LOCK_WORD		0
 
-#define MAX_DEK_BLOB_SIZE	0
+#define MAX_DEK_BLOB_SIZE	88
 
 /* Not used for this platform */
 #define CONFIG_TRUSTFENCE_DIRBTDIS_BANK			0

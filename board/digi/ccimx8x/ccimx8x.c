@@ -277,9 +277,58 @@ void board_print_trustfence_jtag_key(u32 *sjc)
 	return;
 }
 
+#define AHAB_AUTH_CONTAINER_TAG	0x87
+#define AHAB_AUTH_BLOB_TAG		0x81
+#define AHAB_VERSION			0x00
+
 int get_dek_blob(char *output, u32 *size)
 {
 	return 1;
+}
+
+int get_dek_blob_offset(char *address, u32 *offset)
+{
+	char *nd_cont_header;
+	char *nd_sig_block;
+	char *dek_blob;
+	int cont_header_offset = 0x400;
+	int sig_block_offset;
+	int blob_offset;
+
+	/* Second Container Header is set with a 1KB padding */
+	nd_cont_header = address + cont_header_offset;
+	debug("Second Container Header Address: 0x%lx\n", (long unsigned int)nd_cont_header);
+
+	if (address[0] != AHAB_VERSION || address[3] != AHAB_AUTH_CONTAINER_TAG) {
+		printf("Tag does not match as expected\n");
+		return -EINVAL;
+	}
+
+	sig_block_offset = (((nd_cont_header[13] & 0xff) << 8) | (nd_cont_header[12] & 0xff));
+	debug("Signature Block offset is 0x%04x \n", sig_block_offset);
+	nd_sig_block = nd_cont_header + sig_block_offset;
+	debug("Second Signature Block Address: 0x%lx\n", (long unsigned int)nd_sig_block);
+
+	blob_offset = (((nd_sig_block[11] & 0xff) << 8) | (nd_sig_block[10] & 0xff));
+	debug("DEK Blob offset is 0x%04x \n", blob_offset);
+	dek_blob = nd_sig_block + blob_offset;
+	debug("DEK Blob Address: 0x%lx\n", (long unsigned int)dek_blob);
+	*offset = dek_blob - address;
+
+	return 0;
+}
+
+int get_dek_blob_size(char *address, u32 *size)
+{
+	if (address[0] != AHAB_VERSION || address[3] != AHAB_AUTH_BLOB_TAG) {
+		printf("Tag does not match as expected\n");
+		return -EINVAL;
+	}
+
+	*size = (((address[2] & 0xff) << 8) | (address[1] & 0xff));
+	debug("DEK blob size is 0x%04x\n", *size);
+
+	return 0;
 }
 
 /*
