@@ -400,17 +400,13 @@ static const struct boot_mode board_boot_modes[] = {
 void generate_partition_table(void)
 {
 	struct mtd_info *nand = get_nand_dev_by_index(0);
-	uint32_t nand_size_mb = nand->size / SZ_1M;
 
-	switch (nand_size_mb) {
-	case 1024:
+	if (nand->size > SZ_512M)
 		env_set("mtdparts", MTDPARTS_1024MB);
-		break;
-	case 256:
-	default:
+	else if (nand->size > SZ_256M)
+		env_set("mtdparts", MTDPARTS_512MB);
+	else
 		env_set("mtdparts", MTDPARTS_256MB);
-		break;
-	}
 }
 
 void som_default_environment(void)

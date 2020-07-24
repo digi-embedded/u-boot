@@ -190,6 +190,14 @@
 					"14m(" CONFIG_RECOVERY_PARTITION ")," \
 					"122m(rootfs)," \
 					"-(update)"
+#define MTDPARTS_512MB			"mtdparts=" CONFIG_NAND_NAME ":" \
+					"5m(" CONFIG_UBOOT_PARTITION ")," \
+					"3m(environment)," \
+					"1m(safe)," \
+					"24m(" CONFIG_LINUX_PARTITION ")," \
+					"32m(" CONFIG_RECOVERY_PARTITION ")," \
+					"256m(rootfs)," \
+					"-(update)"
 #define MTDPARTS_1024MB			"mtdparts=" CONFIG_NAND_NAME ":" \
 					"5m(" CONFIG_UBOOT_PARTITION ")," \
 					"3m(environment)," \
