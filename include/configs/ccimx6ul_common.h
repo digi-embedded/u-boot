@@ -191,7 +191,7 @@
 					"122m(rootfs)," \
 					"-(update)"
 #define MTDPARTS_1024MB			"mtdparts=" CONFIG_NAND_NAME ":" \
-					"3m(" CONFIG_UBOOT_PARTITION ")," \
+					"5m(" CONFIG_UBOOT_PARTITION ")," \
 					"3m(environment)," \
 					"1m(safe)," \
 					"24m(" CONFIG_LINUX_PARTITION ")," \
