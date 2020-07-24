@@ -400,6 +400,56 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
 	fcb->FCB_Block.m_u32BadBlockMarkerStartBit     = mx28_nand_mark_bit_offset();
 	fcb->FCB_Block.m_u32BBMarkerPhysicalOffset     = mtd->writesize;
 
+	if (cfg->flags & F_VERBOSE) {
+		fprintf(stdout, "FCB:\n");
+		fprintf(stdout, "m_u8DataSetup: 0x%x\n",
+			fcb->FCB_Block.m_NANDTiming.m_u8DataSetup);
+		fprintf(stdout, "m_u8DataHold: 0x%x\n",
+			fcb->FCB_Block.m_NANDTiming.m_u8DataHold);
+		fprintf(stdout, "m_u8AddressSetup: 0x%x\n",
+			fcb->FCB_Block.m_NANDTiming.m_u8AddressSetup);
+		fprintf(stdout, "m_u8DSAMPLE_TIME: 0x%x\n",
+			fcb->FCB_Block.m_NANDTiming.m_u8DSAMPLE_TIME);
+
+		fprintf(stdout, "m_u32PageDataSize: 0x%x\n",
+			fcb->FCB_Block.m_u32PageDataSize);
+		fprintf(stdout, "m_u32TotalPageSize: 0x%x\n",
+			fcb->FCB_Block.m_u32TotalPageSize);
+		fprintf(stdout, "m_u32SectorsPerBlock: 0x%x\n",
+			fcb->FCB_Block.m_u32SectorsPerBlock);
+		fprintf(stdout, "m_u32NumEccBlocksPerPage: 0x%x\n",
+			fcb->FCB_Block.m_u32NumEccBlocksPerPage);
+		fprintf(stdout, "m_u32MetadataBytes: 0x%x\n",
+			fcb->FCB_Block.m_u32MetadataBytes);
+		fprintf(stdout, "m_u32EccBlock0Size: 0x%x\n",
+			fcb->FCB_Block.m_u32EccBlock0Size);
+		fprintf(stdout, "m_u32EccBlockNSize: 0x%x\n",
+			fcb->FCB_Block.m_u32EccBlockNSize);
+		fprintf(stdout, "m_u32EccBlock0EccType: 0x%x\n",
+			fcb->FCB_Block.m_u32EccBlock0EccType);
+		fprintf(stdout, "m_u32EccBlockNEccType: 0x%x\n",
+			fcb->FCB_Block.m_u32EccBlockNEccType);
+
+		fprintf(stdout, "m_u32BootPatch: 0x%x\n",
+			fcb->FCB_Block.m_u32BootPatch);
+		fprintf(stdout, "m_u32Firmware1_startingPage: 0x%x\n",
+			fcb->FCB_Block.m_u32Firmware1_startingPage);
+		fprintf(stdout, "m_u32Firmware2_startingPage: 0x%x\n",
+			fcb->FCB_Block.m_u32Firmware2_startingPage);
+		fprintf(stdout, "m_u32PagesInFirmware1: 0x%x\n",
+			fcb->FCB_Block.m_u32PagesInFirmware1);
+		fprintf(stdout, "m_u32PagesInFirmware2: 0x%x\n",
+			fcb->FCB_Block.m_u32PagesInFirmware2);
+		fprintf(stdout, "m_u32DBBTSearchAreaStartAddress: 0x%x\n",
+			fcb->FCB_Block.m_u32DBBTSearchAreaStartAddress);
+		fprintf(stdout, "m_u32BadBlockMarkerByte: 0x%x\n",
+			fcb->FCB_Block.m_u32BadBlockMarkerByte);
+		fprintf(stdout, "m_u32BadBlockMarkerStartBit: 0x%x\n",
+			fcb->FCB_Block.m_u32BadBlockMarkerStartBit);
+		fprintf(stdout, "m_u32BBMarkerPhysicalOffset: 0x%x\n",
+			fcb->FCB_Block.m_u32BBMarkerPhysicalOffset);
+	}
+
 	//----------------------------------------------------------------------
 	// Fill in the DBBT.
 	//----------------------------------------------------------------------
