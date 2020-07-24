@@ -260,6 +260,68 @@ _error:
 	return -1;
 }
 
+unsigned int calc_markbit_pos(struct mtd_info *mtd, unsigned int ecc_strength)
+{
+	unsigned int metadata_size_in_bytes = 10;
+	unsigned int gf_len = 13;
+	unsigned int ecc_chunkn_size_in_bytes = 512;
+	unsigned int ecc_chunk_count;
+
+	if (mtd->oobsize > ecc_chunkn_size_in_bytes) {
+		gf_len = 14;
+		ecc_chunkn_size_in_bytes *= 2;
+	}
+	ecc_chunk_count = mtd->writesize / ecc_chunkn_size_in_bytes;
+
+	/*
+	 * We need to compute the byte and bit offsets of
+	 * the physical block mark within the ECC-based view of the page.
+	 *
+	 * NAND chip with 2K page shows below:
+	 *                                             (Block Mark)
+	 *                                                   |      |
+	 *                                                   |  D   |
+	 *                                                   |<---->|
+	 *                                                   V      V
+	 *    +---+----------+-+----------+-+----------+-+----------+-+
+	 *    | M |   data   |E|   data   |E|   data   |E|   data   |E|
+	 *    +---+----------+-+----------+-+----------+-+----------+-+
+	 *
+	 * The position of block mark moves forward in the ECC-based view
+	 * of page, and the delta is:
+	 *
+	 *                   E * G * (N - 1)
+	 *             D = (---------------- + M)
+	 *                          8
+	 *
+	 * With the formula to compute the ECC strength, and the condition
+	 *       : C >= O         (C is the ecc chunk size)
+	 *
+	 * It's easy to deduce to the following result:
+	 *
+	 *         E * G       (O - M)      C - M
+	 *      ----------- <= ------- <  ---------
+	 *           8            N        (N - 1)
+	 *
+	 *  So, we get:
+	 *
+	 *                   E * G * (N - 1)
+	 *             D = (---------------- + M) < C
+	 *                          8
+	 *
+	 *  The above inequality means the position of block mark
+	 *  within the ECC-based view of the page is still in the data chunk,
+	 *  and it's NOT in the ECC bits of the chunk.
+	 *
+	 *  Use the following to compute the bit position of the
+	 *  physical block mark within the ECC-based view of the page:
+	 *          (page_size - D) * 8
+	 */
+	return mtd->writesize * 8 -
+		(ecc_strength * gf_len * (ecc_chunk_count - 1) +
+		(metadata_size_in_bytes * 8));
+}
+
 int v1_rom_mtd_init(struct mtd_info *mtd,
 		    struct mtd_config *cfg,
 		    struct mtd_bootblock *bootblock,
@@ -396,8 +458,8 @@ int v1_rom_mtd_init(struct mtd_info *mtd,
 #else
 	fcb->FCB_Block.m_u32DBBTSearchAreaStartAddress = 0;
 #endif
-	fcb->FCB_Block.m_u32BadBlockMarkerByte         = mx28_nand_mark_byte_offset();
-	fcb->FCB_Block.m_u32BadBlockMarkerStartBit     = mx28_nand_mark_bit_offset();
+	fcb->FCB_Block.m_u32BadBlockMarkerByte         = calc_markbit_pos(mtd, ecc_strength) / 8;
+	fcb->FCB_Block.m_u32BadBlockMarkerStartBit     = calc_markbit_pos(mtd, ecc_strength) % 8;
 	fcb->FCB_Block.m_u32BBMarkerPhysicalOffset     = mtd->writesize;
 
 	if (cfg->flags & F_VERBOSE) {
