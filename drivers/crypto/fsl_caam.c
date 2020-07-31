@@ -54,6 +54,10 @@ static int jr_reset(void);
 #endif
 #ifdef CONFIG_CAAM_KB_SELF_TEST
 static void caam_test(void);
+static u8 skeymod[] = {
+	0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08,
+	0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00
+};
 #endif
 
 /*
@@ -843,10 +847,10 @@ static void caam_blob_test(void)
 	memset(plain_bak, 0xff, sizeof(plain_bak));
 
 	/* encapsulate blob */
-	caam_gen_blob((ulong)plain, (ulong)blob, sizeof(plain));
+	caam_gen_blob((ulong)plain, (ulong)blob, skeymod, sizeof(plain));
 
 	/* decapsulate blob */
-	caam_decap_blob((ulong)plain_bak, (ulong)blob, sizeof(plain_bak));
+	caam_decap_blob((ulong)plain_bak, (ulong)blob, skeymod, sizeof(plain_bak));
 
 	if (memcmp(plain, plain_bak, sizeof(plain)))
 		printf("caam blob test fail!\n");
