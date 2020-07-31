@@ -41,6 +41,7 @@
 #include "fsl_caam_internal.h"
 #include "fsl/desc_constr.h"
 #include <fsl_caam.h>
+#include <fsl_sec.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
