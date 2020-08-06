@@ -36,6 +36,7 @@
 #include "../ccimx8/ccimx8.h"
 #include "../common/carrier_board.h"
 #include "../common/helper.h"
+#include "../common/hwid.h"
 #include "../common/mca_registers.h"
 #include "../common/mca.h"
 #include "../common/tamper.h"

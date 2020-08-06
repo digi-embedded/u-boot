@@ -20,7 +20,7 @@
 extern const char *get_imx8_type(u32 imxtype);
 extern struct ccimx8_variant ccimx8x_variants[];
 #endif
-static struct digi_hwid my_hwid;
+struct digi_hwid my_hwid;
 
 DECLARE_GLOBAL_DATA_PTR;
 
