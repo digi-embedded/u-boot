@@ -167,7 +167,7 @@ void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 	/* Use a different offset depending on the i.MX8X QXP CPU revision */
 	u32 cpurev = get_cpu_rev();
 	struct mmc *mmc = find_mmc_device(EMMC_BOOT_DEV);
-	int part = (mmc->part_config >> 3) & PART_ACCESS_MASK;
+	int part = env_get_ulong("mmcbootpart", 10, EMMC_BOOT_PART);
 
 	switch (cpurev & 0xFFF) {
 	case CHIP_REV_A:

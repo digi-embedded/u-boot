@@ -68,7 +68,7 @@ void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 				     disk_partition_t *info)
 {
 	struct mmc *mmc = find_mmc_device(EMMC_BOOT_DEV);
-	int part = (mmc->part_config >> 3) & PART_ACCESS_MASK;
+	int part = env_get_ulong("mmcbootpart", 10, EMMC_BOOT_PART);
 
 	/*
 	 * Use a different offset depending on the target device and partition:
