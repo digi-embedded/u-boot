@@ -40,9 +40,9 @@
  *
  *              MAC2[47:32] (Bank 0 Word 711)
  *
- *   |     31..16      |      15..3     |    2   | 1  |   0   |
+ *   |     31..16      | 15..9 |  8..3  |    2   | 1  |   0   |
  *   +-----------------+----------------+--------+----+-------+
- *   |     RESERVED    |       --       | Crypto | BT | Wi-Fi |
+ *   |     RESERVED    |   --  |  Week  | Crypto | BT | Wi-Fi |
  *   +-----------------+----------------+--------+----+-------+
  *
  */
@@ -63,7 +63,8 @@ struct __packed digi_hwid {
 	u32	wifi:1;		/* has Wi-Fi */
 	u32	bt:1;		/* has Bluetooth */
 	u32	crypto:1;	/* has crypto-authentication */
-	u32	spare:13;	/* spare */
+	u32	week:6;		/* manufacturing week */
+	u32	spare:7;	/* spare */
 	u32	reserved2:16;	/* reserved by NXP */
 };
 
@@ -85,7 +86,7 @@ struct ccimx8_variant {
 #define	CCIMX8_HAS_BLUETOOTH	(1 << 1)
 
 #define CONFIG_HWID_STRINGS_HELP	"<WWWW> <XXXXXXXX> <YYYY> <ZZZZZZZZ>"
-#define CONFIG_MANUF_STRINGS_HELP	"<YYMMGGXXXXXX> <PPAAAAAA> <VVHC> <K> <RMWBC>"
+#define CONFIG_MANUF_STRINGS_HELP	"<YYWWGGXXXXXX> <PPAAAAAA> <VVHC> <K> <RMWBC>"
 #define DIGICMD_HWID_SUPPORTED_OPTIONS_HELP \
 	     "read - sense HWID from fuses\n" \
 	"hwid read_manuf - sense HWID from fuses and print manufacturing ID\n" \

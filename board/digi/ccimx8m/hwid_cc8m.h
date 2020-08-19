@@ -33,10 +33,10 @@
  *
  *                    MAC_ADDR2[31..0]  (bank 9 word 2)
  *
- *   |   31..19  |   18   | 17 |   16  |  15 |14..11|  10..6  |5..3| 2..0 |
- *   +-----------+--------+----+-------+-----+------+---------+----+------+
- *   |    --     | Crypto | BT | Wi-Fi | MCA |  RAM | Variant | HV | Cert |
- *   +-----------+--------+----+-------+-----+------+---------+----+------+
+ *   | 31..25 | 24..19 |   18   | 17 |   16  |  15 |14..11|  10..6  |5..3| 2..0 |
+ *   +--------+--------+--------+----+-------+-----+------+---------+----+------+
+ *   |   --   |  Week  | Crypto | BT | Wi-Fi | MCA |  RAM | Variant | HV | Cert |
+ *   +--------+--------+--------+----+-------+-----+------+---------+----+------+
  */
 
  struct __packed digi_hwid {
@@ -55,11 +55,12 @@
 	u32	wifi:1;		/* has Wi-Fi */
 	u32	bt:1;		/* has Bluetooth */
 	u32	crypto:1;	/* has crypto-authentication */
-	u32	spare:13;	/* spare */
+	u32	week:6;		/* manufacturing week */
+	u32	spare:7;	/* spare */
 };
 
 #define CONFIG_HWID_STRINGS_HELP	"<XXXXXXXX> <YYYYYYYY> <ZZZZZZZZ>"
-#define CONFIG_MANUF_STRINGS_HELP	"<YYMMGGXXXXXX> <PPAAAAAA> <VVHC> <K> <RMWBC>"
+#define CONFIG_MANUF_STRINGS_HELP	"<YYWWGGXXXXXX> <PPAAAAAA> <VVHC> <K> <RMWBC>"
 #define DIGICMD_HWID_SUPPORTED_OPTIONS_HELP \
 	     "read - read HWID from shadow registers\n" \
 	"hwid read_manuf - read HWID from shadow registers and print manufacturing ID\n" \
