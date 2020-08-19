@@ -101,20 +101,32 @@ void board_print_hwid(struct digi_hwid *hwid)
 		cert_regions[hwid->cert] : "??");
 	printf("    Wireless ID:   0x%x\n", hwid->wid);
 	printf("    Year:          20%02d\n", hwid->year);
-	printf("    Month:         %02d\n", hwid->month);
+	/* If the week is not defined, print the month */
+	if (hwid->week)
+		printf("    Week:          %02d\n", hwid->week);
+	else
+		printf("    Month:         %02d\n", hwid->month);
 	printf("    S/N:           %06d\n", hwid->sn);
 }
 
 /* Print HWID info in MANUFID format */
 void board_print_manufid(struct digi_hwid *hwid)
 {
+	int week_month;
+
 	print_hwid_hex(hwid);
+
+	/* If the week is not defined, print the month */
+	if (hwid->week)
+		week_month = hwid->week;
+	else
+		week_month = hwid->month;
 
 	/* Formatted printout */
 	printf(" Manufacturing ID: %02d%02d%02d%06d %02d%06x %02x%x%x %x"
 	       " %x%x%x%x%x\n",
 		hwid->year,
-		hwid->month,
+		week_month,
 		hwid->genid,
 		hwid->sn,
 		hwid->mac_pool,
@@ -195,12 +207,12 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 
 	/*
 	 * Digi Manufacturing team produces a string in the form
-	 *     <YYMMGGXXXXXX> <PPAAAAAA> <VVHC> <K> <RMWBC>
+	 *     <YYWWGGXXXXXX> <PPAAAAAA> <VVHC> <K> <RMWBC>
 	 */
 
-	/* <YYMMGGXXXXXX>, where:
+	/* <YYWWGGXXXXXX>, where:
 	 *  - YY:	year (last two digits of XXI century, in decimal)
-	 *  - MM:	month of the year (in decimal)
+	 *  - WW:	week of year (in decimal)
 	 *  - GG:	generator ID (in decimal)
 	 *  - XXXXXX:	serial number (in decimal)
 	 */
@@ -257,16 +269,16 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	hwid->year = num;
 	printf("    Year:          20%02d\n", hwid->year);
 
-	/* Month */
+	/* Week */
 	strncpy(tmp, &argv[0][2], 2);
 	tmp[2] = 0;
 	num = simple_strtol(tmp, NULL, 10);
-	if (num < 1 || num > 12) {
-		printf("Invalid month\n");
+	if (num < 1 || num > 54) {
+		printf("Invalid week\n");
 		goto err;
 	}
-	hwid->month = num;
-	printf("    Month:         %02d\n", hwid->month);
+	hwid->week = num;
+	printf("    Week:          %02d\n", hwid->week);
 
 	/* Generator ID */
 	strncpy(tmp, &argv[0][4], 2);
@@ -420,6 +432,7 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 	const char *propnames[] = {
 		"digi,hwid,year",
 		"digi,hwid,month",
+		"digi,hwid,week",
 		"digi,hwid,genid",
 		"digi,hwid,sn",
 		"digi,hwid,macpool",
@@ -447,6 +460,8 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 			sprintf(str, "20%02d", hwid->year);
 		else if (!strcmp("digi,hwid,month", propnames[i]))
 			sprintf(str, "%02d", hwid->month);
+		else if (!strcmp("digi,hwid,week", propnames[i]))
+			sprintf(str, "%02d", hwid->week);
 		else if (!strcmp("digi,hwid,genid", propnames[i]))
 			sprintf(str, "%02d", hwid->genid);
 		else if (!strcmp("digi,hwid,sn", propnames[i]))
