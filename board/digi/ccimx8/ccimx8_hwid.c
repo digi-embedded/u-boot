@@ -151,8 +151,10 @@ int board_parse_hwid(int argc, char *const argv[], struct digi_hwid *hwid)
 	if (argc != CONFIG_HWID_WORDS_NUMBER)
 		goto err;
 
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++)
-		if (strlen(argv[i]) > hwid_word_lengths[i])
+	/* Parse backwards, from MSB to LSB */
+	word = CONFIG_HWID_WORDS_NUMBER - 1;
+	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word--)
+		if (strlen(argv[i]) > hwid_word_lengths[word])
 			goto err;
 
 	/*
