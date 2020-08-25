@@ -14,7 +14,6 @@
 #include "../common/hwid.h"
 
 DECLARE_GLOBAL_DATA_PTR;
-extern struct digi_hwid my_hwid;
 
 int mmc_get_bootdevindex(void)
 {
@@ -48,6 +47,8 @@ uint mmc_get_env_part(struct mmc *mmc)
 
 int dram_init(void)
 {
+	struct digi_hwid my_hwid;
+
 	/* Read HWID to be able to determine RAM size */
 	if (board_read_hwid(&my_hwid))
 		printf("Cannot read HWID\n");
