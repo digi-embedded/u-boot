@@ -148,6 +148,7 @@
 
 /* MMC Configs */
 #define CONFIG_SUPPORT_EMMC_BOOT	/* eMMC specific */
+#define CONFIG_SUPPORT_MMC_ECSD
 #define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 
 #define CONFIG_SYS_I2C_SPEED		100000
