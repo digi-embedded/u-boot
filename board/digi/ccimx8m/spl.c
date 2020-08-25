@@ -30,12 +30,17 @@ DECLARE_GLOBAL_DATA_PTR;
 
 extern struct dram_timing_info dram_timing_1G;
 extern struct dram_timing_info dram_timing_512M;
-static struct digi_hwid my_hwid;
 
 void spl_dram_init(void)
 {
 	/* Default to RAM size of DVK variant 0x01 (1 GiB) */
 	int ram = SZ_1G;
+	struct digi_hwid my_hwid;
+
+	if (board_read_hwid(&my_hwid)) {
+		debug("Cannot read HWID. Using default DDR configuration.\n");
+		my_hwid.ram = 0;
+	}
 
 	if (my_hwid.ram)
 		ram = hwid_get_ramsize(&my_hwid);
@@ -238,11 +243,6 @@ void board_init_f(ulong dummy)
 	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
 
 	power_init_board();
-
-	/* Read HWID */
-	if (board_read_hwid(&my_hwid)) {
-		debug("Cannot read HWID. Using default DDR configuration.\n");
-	}
 
 	/* DDR initialization */
 	spl_dram_init();
