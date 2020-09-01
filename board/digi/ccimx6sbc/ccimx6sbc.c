@@ -27,7 +27,7 @@
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>
 #endif
-#include <fsl_esdhc.h>
+#include <fsl_esdhc_imx.h>
 #include <fuse.h>
 #include <micrel.h>
 #include <miiphy.h>

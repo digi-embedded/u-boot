@@ -17,7 +17,7 @@
 #include <asm/mach-imx/mxc_i2c.h>
 #include <asm/io.h>
 #include <common.h>
-#include <fsl_esdhc.h>
+#include <fsl_esdhc_imx.h>
 #include <i2c.h>
 #include <linux/sizes.h>
 #include <linux/fb.h>
@@ -163,7 +163,7 @@ static void setup_iomux_uart(void)
 	imx_iomux_v3_setup_multiple_pads(uart5_pads, ARRAY_SIZE(uart5_pads));
 }
 
-#ifdef CONFIG_FSL_ESDHC
+#ifdef CONFIG_FSL_ESDHC_IMX
 static struct fsl_esdhc_cfg usdhc_cfg[] = {
 	{USDHC2_BASE_ADDR, 0, 4},
 };
@@ -225,7 +225,7 @@ int board_mmc_init(bd_t *bis)
 
 	return 0;
 }
-#endif
+#endif /* CONFIG_FSL_ESDHC_IMX */
 
 #ifdef CONFIG_FEC_MXC
 void reset_phy()

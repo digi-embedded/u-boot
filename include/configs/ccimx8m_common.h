@@ -168,10 +168,7 @@
 /* Tamper */
 #define CONFIG_MCA_TAMPER
 
-/* USDHC */
-#define CONFIG_FSL_ESDHC
-#define CONFIG_FSL_USDHC
-
+/* MMC Configs */
 #define CONFIG_SUPPORT_EMMC_BOOT	/* eMMC specific */
 #define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 

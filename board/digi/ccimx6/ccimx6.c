@@ -35,7 +35,7 @@
 #include <linux/ctype.h>
 #include <linux/sizes.h>
 #include <mmc.h>
-#include <fsl_esdhc.h>
+#include <fsl_esdhc_imx.h>
 #include <otf_update.h>
 #include <part.h>
 #include <recovery.h>
@@ -927,7 +927,7 @@ static bool board_has_kinetis(void)
 		return true; /* assume it has if invalid HWID */
 }
 
-#ifdef CONFIG_FSL_ESDHC
+#ifdef CONFIG_FSL_ESDHC_IMX
 
 /* The order of MMC controllers here must match that of CONFIG_MMCDEV_USDHCx
  * in the platform header
@@ -1044,7 +1044,7 @@ int board_mmc_init(bd_t *bis)
 
 	return 0;
 }
-#endif /* CONFIG_FSL_ESDHC */
+#endif /* CONFIG_FSL_ESDHC_IMX */
 
 #ifdef CONFIG_SATA
 int setup_iomux_sata(void)

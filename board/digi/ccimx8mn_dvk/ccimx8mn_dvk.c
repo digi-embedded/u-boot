@@ -13,7 +13,7 @@
 #include <netdev.h>
 #include <asm/mach-imx/iomux-v3.h>
 #include <asm-generic/gpio.h>
-#include <fsl_esdhc.h>
+#include <fsl_esdhc_imx.h>
 #include <mmc.h>
 #include <asm/arch/imx8mn_pins.h>
 #include <asm/arch/sys_proto.h>

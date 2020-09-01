@@ -7,8 +7,8 @@
  *  the Free Software Foundation.
 */
 #include <common.h>
-#ifdef CONFIG_FSL_ESDHC
-#include <fsl_esdhc.h>
+#ifdef CONFIG_FSL_ESDHC_IMX
+#include <fsl_esdhc_imx.h>
 #endif
 #include <env.h>
 #include <mmc.h>
@@ -145,7 +145,7 @@ uint get_env_hwpart(void)
 	return mmc_get_env_part(mmc);
 }
 
-#ifdef CONFIG_FSL_ESDHC
+#ifdef CONFIG_FSL_ESDHC_IMX
 extern int mmc_get_bootdevindex(void);
 
 static int write_chunk(struct mmc *mmc, struct blk_desc *mmc_dev,
@@ -596,4 +596,4 @@ int update_chunk(otf_data_t *otfd)
 
 	return 0;
 }
-#endif /* CONFIG_FSL_ESDHC */
+#endif /* CONFIG_FSL_ESDHC_IMX */

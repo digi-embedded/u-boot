@@ -4,7 +4,7 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 #include <common.h>
-#include <fsl_esdhc.h>
+#include <fsl_esdhc_imx.h>
 #include <i2c.h>
 #include <linux/ctype.h>
 #include <linux/sizes.h>
@@ -32,7 +32,7 @@ mac_base_t mac_pools[] = {
 	[2] = {{0x00, 0x40, 0x9d}},
 };
 
-#ifdef CONFIG_FSL_ESDHC
+#ifdef CONFIG_FSL_ESDHC_IMX
 int board_mmc_get_env_dev(int devno)
 {
 	return mmc_get_bootdevindex();
@@ -42,7 +42,7 @@ bool board_has_emmc(void)
 {
 	return 1;
 }
-#endif /* CONFIG_FSL_ESDHC */
+#endif /* CONFIG_FSL_ESDHC_IMX */
 
 static int use_mac_from_fuses(struct digi_hwid *hwid)
 {
