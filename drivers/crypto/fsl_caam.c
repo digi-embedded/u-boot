@@ -145,7 +145,7 @@ u32 caam_decap_blob(u32 plain_text, u32 blob_addr, void *key_modifier, u32 size)
 
 	/* prepare job descriptor */
 	init_job_desc(decap_desc, 0);
-	append_load(decap_desc, (uint32_t)key_modifier, key_sz,
+	append_load(decap_desc, (unsigned long)key_modifier, key_sz,
 		    LDST_CLASS_2_CCB | LDST_SRCDST_BYTE_KEY);
 	append_seq_in_ptr_intlen(decap_desc, blob_addr, (0x0000ffff & blob_size), 0);
 	append_seq_out_ptr_intlen(decap_desc, plain_text, (0x0000ffff & size), 0);
@@ -193,7 +193,7 @@ u32 caam_gen_blob(u32 plain_data_addr, u32 blob_addr, void *key_modifier, u32 si
 
 	/* prepare job descriptor */
 	init_job_desc(encap_desc, 0);
-	append_load(encap_desc, (uint32_t)key_modifier, key_sz,
+	append_load(encap_desc, (unsigned long)key_modifier, key_sz,
 		    LDST_CLASS_2_CCB | LDST_SRCDST_BYTE_KEY);
 	append_seq_out_ptr_intlen(encap_desc, PTR2CAAMDMA(blob), (0x0000ffff & blob_size), 0);
 	append_seq_in_ptr_intlen(encap_desc, plain_data_addr, (0x0000ffff & size), 0);
