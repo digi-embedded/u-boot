@@ -377,14 +377,6 @@ config SIGN_IMAGE
 	  * UBOOT_SIGN_KEYS_PATH must be defined to the path of the CST folder by NXP.
 	  * UBOOT_KEY_INDEX can be defined to the key index to use for signing.
 
-config CSF_SIZE
-	hex "CSF blob size (bytes)"
-	depends on SIGN_IMAGE
-	default 0x4000
-	help
-	  Configures the size of the Command Sequence File. A size of 0x4000
-	  is enough to fit up to 4096-bit cryptographic keys.
-
 config UNLOCK_SRK_REVOKE
 	bool "Unlock the SRK_REVOKE eFuse field"
 	depends on SIGN_IMAGE
