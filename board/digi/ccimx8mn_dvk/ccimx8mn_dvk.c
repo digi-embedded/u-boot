@@ -27,10 +27,6 @@
 #include <power/bd71837.h>
 #include "../../freescale/common/tcpc.h"
 #include <usb.h>
-#include <sec_mipi_dsim.h>
-#include <imx_mipi_dsi_bridge.h>
-#include <mipi_dsi_panel.h>
-#include <asm/mach-imx/video.h>
 #include <linux/ctype.h>
 
 #include "../ccimx8/ccimx8.h"
