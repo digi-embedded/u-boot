@@ -26,17 +26,6 @@
 #define CONFIG_MALLOC_F_ADDR		0x184000 /* malloc f used before GD_FLG_FULL_MALLOC_INIT set */
 
 #undef CONFIG_DM_MMC
-#undef CONFIG_DM_PMIC
-#undef CONFIG_DM_PMIC_PFUZE100
-
-#define CONFIG_POWER
-#define CONFIG_POWER_I2C
-#define CONFIG_POWER_BD71837
-
-#define CONFIG_SYS_I2C
-#define CONFIG_SYS_I2C_MXC_I2C1		/* enable I2C bus 1 */
-#define CONFIG_SYS_I2C_MXC_I2C2		/* enable I2C bus 2 */
-#define CONFIG_SYS_I2C_MXC_I2C3		/* enable I2C bus 3 */
 
 #endif
 
@@ -49,24 +38,20 @@
 
 /* ENET Config */
 /* ENET1 */
-#if defined(CONFIG_CMD_NET)
+#if defined(CONFIG_FEC_MXC)
 #define CONFIG_MII
 #define CONFIG_ETHPRIME                 "FEC"
+#define PHY_ANEG_TIMEOUT 20000
 
-#define CONFIG_FEC_MXC
 #define CONFIG_FEC_XCV_TYPE             RGMII
 #define CONFIG_FEC_MXC_PHYADDR          0
 #define FEC_QUIRK_ENET_MAC
 
-#define CONFIG_PHY_GIGE
 #define IMX_FEC_BASE			0x30BE0000
-
-#define CONFIG_PHY_ATHEROS
 #endif
 
 /* RAM */
 #define PHYS_SDRAM_SIZE			0x40000000 /* 1GB DDR */
-#define CONFIG_NR_DRAM_BANKS		1
 
 /* USDHC */
 #define CONFIG_SYS_FSL_USDHC_NUM	2
