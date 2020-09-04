@@ -94,57 +94,58 @@ if [ ! -e ${MKIMAGE_FIT_HAB_LOG} ]; then
 fi
 
 # Parse spl uboot HAB block and CSF offset
-spl_csf_off=$(awk '/ csf_off/ {print $2}' ${MKIMAGE_LOG})
+spl_image_offset=$(awk '/ image_off/ {print $2}' ${MKIMAGE_LOG})
+spl_csf_offset=$(awk '/ csf_off/ {print $2}' ${MKIMAGE_LOG})
 spl_ram_start=$(awk '/ spl hab block:/ {print $4}' ${MKIMAGE_LOG})
-spl_image_offset=$(awk '/ spl hab block:/ {print $5}' ${MKIMAGE_LOG})
-spl_auth_len=$(awk '/ spl hab block:/ {print $6}' ${MKIMAGE_LOG})
+spl_header_offset=$(awk '/ spl hab block:/ {print $5}' ${MKIMAGE_LOG})
+spl_image_len=$(awk '/ spl hab block:/ {print $6}' ${MKIMAGE_LOG})
 
 # Parse sld (Second Loader image) uboot HAB blocks and CSF offset
-sld_csf_off=$(awk '/ sld_csf_off/ {print $2}' ${MKIMAGE_LOG})
+sld_csf_offset=$(awk '/ sld_csf_off/ {print $2}' ${MKIMAGE_LOG})
 sld_ram_start=$(awk '/ sld hab block:/ {print $4}' ${MKIMAGE_LOG})
-sld_image_offset=$(awk '/ sld hab block:/ {print $5}' ${MKIMAGE_LOG})
-sld_auth_len=$(awk '/ sld hab block:/ {print $6}' ${MKIMAGE_LOG})
+sld_header_offset=$(awk '/ sld hab block:/ {print $5}' ${MKIMAGE_LOG})
+sld_image_len=$(awk '/ sld hab block:/ {print $6}' ${MKIMAGE_LOG})
 
 # Parse fit uboot HAB blocks
 result_row=$(awk '/print_fit_hab/ {print NR+1}' ${MKIMAGE_FIT_HAB_LOG})
 uboot_ram_start=$(awk -v first_row=${result_row} 'NR==first_row+0 {print $1}' ${MKIMAGE_FIT_HAB_LOG})
 uboot_image_offset=$(awk -v first_row=${result_row} 'NR==first_row+0 {print $2}' ${MKIMAGE_FIT_HAB_LOG})
-uboot_auth_len=$(awk -v first_row=${result_row} 'NR==first_row+0 {print $3}' ${MKIMAGE_FIT_HAB_LOG})
+uboot_image_len=$(awk -v first_row=${result_row} 'NR==first_row+0 {print $3}' ${MKIMAGE_FIT_HAB_LOG})
 dtb_ram_start=$(awk -v first_row=${result_row} 'NR==first_row+1 {print $1}' ${MKIMAGE_FIT_HAB_LOG})
 dtb_image_offset=$(awk -v first_row=${result_row} 'NR==first_row+1 {print $2}' ${MKIMAGE_FIT_HAB_LOG})
-dtb_auth_len=$(awk -v first_row=${result_row} 'NR==first_row+1 {print $3}' ${MKIMAGE_FIT_HAB_LOG})
+dtb_image_len=$(awk -v first_row=${result_row} 'NR==first_row+1 {print $3}' ${MKIMAGE_FIT_HAB_LOG})
 atf_ram_start=$(awk -v first_row=${result_row} 'NR==first_row+2 {print $1}' ${MKIMAGE_FIT_HAB_LOG})
 atf_image_offset=$(awk -v first_row=${result_row} 'NR==first_row+2 {print $2}' ${MKIMAGE_FIT_HAB_LOG})
-atf_auth_len=$(awk -v first_row=${result_row} 'NR==first_row+2 {print $3}' ${MKIMAGE_FIT_HAB_LOG})
+atf_image_len=$(awk -v first_row=${result_row} 'NR==first_row+2 {print $3}' ${MKIMAGE_FIT_HAB_LOG})
 
 # Generate actual CSF descriptor files from templates
 sed -e "s,%srk_table%,${SRK_TABLE},g "			\
     -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
     -e "s,%cert_csf%,${CERT_CSF},g"			\
     -e "s,%cert_img%,${CERT_IMG},g"			\
-    -e "s,%spl_ram_start%,${spl_ram_start},g"		\
-    -e "s,%spl_image_offset%,${spl_image_offset},g"	\
-    -e "s,%spl_auth_len%,${spl_auth_len},g"		\
-    -e "s,%imx-boot_path%,${UBOOT_PATH},g"		\
+    -e "s,%spl_auth_start%,${spl_ram_start},g"		\
+    -e "s,%spl_auth_offset%,${spl_header_offset},g"	\
+    -e "s,%spl_auth_len%,${spl_image_len},g"		\
+    -e "s,%imx-boot_path%,${TARGET},g"			\
 ${SCRIPT_PATH}/csf_templates/sign_uboot_spl > csf_spl.txt
 
 sed -e "s,%srk_table%,${SRK_TABLE},g "			\
     -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
     -e "s,%cert_csf%,${CERT_CSF},g"			\
     -e "s,%cert_img%,${CERT_IMG},g"			\
-    -e "s,%sld_ram_start%,${sld_ram_start},g"		\
-    -e "s,%sld_image_offset%,${sld_image_offset},g"	\
-    -e "s,%sld_auth_len%,${sld_auth_len},g"		\
-    -e "s,%uboot_ram_start%,${uboot_ram_start},g"	\
-    -e "s,%uboot_image_offset%,${uboot_image_offset},g"	\
-    -e "s,%uboot_auth_len%,${uboot_auth_len},g"		\
-    -e "s,%dtb_ram_start%,${dtb_ram_start},g"		\
-    -e "s,%dtb_image_offset%,${dtb_image_offset},g"	\
-    -e "s,%dtb_auth_len%,${dtb_auth_len},g"		\
-    -e "s,%atf_ram_start%,${atf_ram_start},g"		\
-    -e "s,%atf_image_offset%,${atf_image_offset},g"	\
-    -e "s,%atf_auth_len%,${atf_auth_len},g"		\
-    -e "s,%imx-boot_path%,${UBOOT_PATH},g"		\
+    -e "s,%sld_auth_start%,${sld_ram_start},g"		\
+    -e "s,%sld_auth_offset%,${sld_header_offset},g"	\
+    -e "s,%sld_auth_len%,${sld_image_len},g"		\
+    -e "s,%uboot_auth_start%,${uboot_ram_start},g"	\
+    -e "s,%uboot_auth_offset%,${uboot_image_offset},g"	\
+    -e "s,%uboot_auth_len%,${uboot_image_len},g"	\
+    -e "s,%dtb_auth_start%,${dtb_ram_start},g"		\
+    -e "s,%dtb_auth_offset%,${dtb_image_offset},g"	\
+    -e "s,%dtb_auth_len%,${dtb_image_len},g"		\
+    -e "s,%atf_auth_start%,${atf_ram_start},g"		\
+    -e "s,%atf_auth_offset%,${atf_image_offset},g"	\
+    -e "s,%atf_auth_len%,${atf_image_len},g"		\
+    -e "s,%imx-boot_path%,${TARGET},g"			\
 ${SCRIPT_PATH}/csf_templates/sign_uboot_fit > csf_fit.txt
 
 # If requested, instruct HAB not to protect the SRK_REVOKE OTP field
@@ -177,8 +178,8 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
-dd if=${CURRENT_PATH}/csf_spl.bin of=${TARGET} seek=$((${spl_csf_off})) bs=1 conv=notrunc > /dev/null 2>&1
-dd if=${CURRENT_PATH}/csf_fit.bin of=${TARGET} seek=$((${sld_csf_off})) bs=1 conv=notrunc > /dev/null 2>&1
+dd if=${CURRENT_PATH}/csf_spl.bin of=${TARGET} seek=$((${spl_csf_offset})) bs=1 conv=notrunc > /dev/null 2>&1
+dd if=${CURRENT_PATH}/csf_fit.bin of=${TARGET} seek=$((${sld_csf_offset})) bs=1 conv=notrunc > /dev/null 2>&1
 
 echo "Signed image ready: ${TARGET}"
 

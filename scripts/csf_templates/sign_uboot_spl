@@ -33,4 +33,4 @@
     # Key slot index used to authenticate the image data
     Verification index = 2
     # Authenticate Start Address, Offset, Length and file
-    Blocks = %spl_ram_start% %spl_image_offset% %spl_auth_len% "%imx-boot_path%"
+    Blocks = %spl_auth_start% %spl_auth_offset% %spl_auth_len% "%imx-boot_path%"
