@@ -19,6 +19,10 @@
 #      CONFIG_KEY_INDEX: (optional) key index to use for signing. Default is 0.
 #      CONFIG_UNLOCK_SRK_REVOKE: (optional) instruct HAB not to protect the SRK_REVOKE OTP
 #				  field so that key revocation is possible in closed devices.
+#      ENABLE_ENCRYPTION: (optional) enable encryption of the images.
+#      CONFIG_DEK_PATH: (mandatory if ENCRYPT is defined) path to a Data Encryption Key.
+#                       If defined, the signed	U-Boot image is encrypted with the
+#                       given key. Supported key sizes: 128 bits.
 #
 #===============================================================================
 
@@ -54,6 +58,21 @@ fi
 # Default values
 [ -z "${CONFIG_KEY_INDEX}" ] && CONFIG_KEY_INDEX="0"
 CONFIG_KEY_INDEX_1="$((CONFIG_KEY_INDEX + 1))"
+
+# Get DEK key
+if [ -n "${CONFIG_DEK_PATH}" ] && [ -n "${ENABLE_ENCRYPTION}" ]; then
+	if [ ! -f "${CONFIG_DEK_PATH}" ]; then
+		echo "DEK not found. Generating random 128 bit DEK."
+		[ -d $(dirname ${CONFIG_DEK_PATH}) ] || mkdir -p $(dirname ${CONFIG_DEK_PATH})
+		dd if=/dev/urandom of="${CONFIG_DEK_PATH}" bs=16 count=1 >/dev/null 2>&1
+	fi
+	dek_size="$((8 * $(stat -L -c %s ${CONFIG_DEK_PATH})))"
+	if [ "${dek_size}" != "128" ] && [ "${dek_size}" != "192" ] && [ "${dek_size}" != "256" ]; then
+		echo "Invalid DEK size: ${dek_size} bits. Valid sizes are 128, 192 and 256 bits"
+		exit 1
+	fi
+	ENCRYPT="true"
+fi
 
 SRK_KEYS="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/SRK*crt.pem | sed s/\ /\,/g)"
 CERT_CSF="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/CSF${CONFIG_KEY_INDEX_1}*crt.pem)"
@@ -270,10 +289,12 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
+CURRENT_PATH="$(pwd)"
+
+if [ "S{ENCRYPT}" != "true" ]; then
 # Generate signed uboot
 cp ${UBOOT_PATH} ${TARGET}
 
-CURRENT_PATH="$(pwd)"
 cst -o "${CURRENT_PATH}/csf_spl.bin" -i "${CURRENT_PATH}/csf_spl.txt" > /dev/null
 if [ $? -ne 0 ]; then
 	echo "[ERROR] Could not generate SPL CSF"
@@ -288,7 +309,7 @@ fi
 dd if=${CURRENT_PATH}/csf_spl.bin of=${TARGET} seek=$((${spl_csf_offset})) bs=1 conv=notrunc > /dev/null 2>&1
 dd if=${CURRENT_PATH}/csf_fit.bin of=${TARGET} seek=$((${sld_csf_offset})) bs=1 conv=notrunc > /dev/null 2>&1
 
-echo "Signed image ready: ${TARGET}"
+else
 
 # Generate encrypted uboot
 # Encrypt SPL
@@ -340,8 +361,12 @@ nonce_offset="$((csf_size - 36))"
 echo "FIT SIGN ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
 dd if=noncemac.bin of=csf_fit_sign_enc.bin bs=1 seek=${nonce_offset} count=36
 
-cp flash-spl-fit-enc.bin ${TARGET_ENCRYPT}
-dd if=${CURRENT_PATH}/csf_spl_sign_enc.bin of=${TARGET_ENCRYPT} seek=$((${spl_csf_offset})) bs=1 conv=notrunc > /dev/null 2>&1
-dd if=${CURRENT_PATH}/csf_fit_sign_enc.bin of=${TARGET_ENCRYPT} seek=$((${sld_csf_offset})) bs=1 conv=notrunc > /dev/null 2>&1
+cp flash-spl-fit-enc.bin ${TARGET}
+dd if=${CURRENT_PATH}/csf_spl_sign_enc.bin of=${TARGET} seek=$((${spl_csf_offset})) bs=1 conv=notrunc > /dev/null 2>&1
+dd if=${CURRENT_PATH}/csf_fit_sign_enc.bin of=${TARGET} seek=$((${sld_csf_offset})) bs=1 conv=notrunc > /dev/null 2>&1
+fi
 
-rm -f "${SRK_TABLE}" flash-spl-* dek_* csf_* 2> /dev/null
+[ "${ENCRYPT}" = "true" ] && ENCRYPTED_MSG="and encrypted "
+echo "Signed ${ENCRYPTED_MSG}image ready: ${TARGET}"
+
+rm -f "${SRK_TABLE}" flash-spl-* csf_* 2> /dev/null
