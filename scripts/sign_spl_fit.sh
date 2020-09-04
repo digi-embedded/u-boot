@@ -118,35 +118,86 @@ atf_ram_start=$(awk -v first_row=${result_row} 'NR==first_row+2 {print $1}' ${MK
 atf_image_offset=$(awk -v first_row=${result_row} 'NR==first_row+2 {print $2}' ${MKIMAGE_FIT_HAB_LOG})
 atf_image_len=$(awk -v first_row=${result_row} 'NR==first_row+2 {print $3}' ${MKIMAGE_FIT_HAB_LOG})
 
-# Generate actual CSF descriptor files from templates
-sed -e "s,%srk_table%,${SRK_TABLE},g "			\
-    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
-    -e "s,%cert_csf%,${CERT_CSF},g"			\
-    -e "s,%cert_img%,${CERT_IMG},g"			\
-    -e "s,%spl_auth_start%,${spl_ram_start},g"		\
-    -e "s,%spl_auth_offset%,${spl_header_offset},g"	\
-    -e "s,%spl_auth_len%,${spl_image_len},g"		\
-    -e "s,%imx-boot_path%,${TARGET},g"			\
-${SCRIPT_PATH}/csf_templates/sign_uboot_spl > csf_spl.txt
+# Compute SPL decryption variables
+# Dek Blob Addr = Authenticate Start Address +  SPL & DDR FW image length + CSF Padding (0x2000)
+spl_dek_offset=$((spl_ram_start + spl_image_len + 0x2000))
+# Decrypt Start Address = Start Address + SPL header
+# Decrypt Offset = Image offset (image_off)
+# Decrypt size = Image length - SPL heder
+spl_decrypt_start=$((spl_ram_start + spl_image_offset))
+spl_decrypt_len=$((spl_image_len - spl_image_offset))
 
-sed -e "s,%srk_table%,${SRK_TABLE},g "			\
-    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
-    -e "s,%cert_csf%,${CERT_CSF},g"			\
-    -e "s,%cert_img%,${CERT_IMG},g"			\
-    -e "s,%sld_auth_start%,${sld_ram_start},g"		\
-    -e "s,%sld_auth_offset%,${sld_header_offset},g"	\
-    -e "s,%sld_auth_len%,${sld_image_len},g"		\
-    -e "s,%uboot_auth_start%,${uboot_ram_start},g"	\
-    -e "s,%uboot_auth_offset%,${uboot_image_offset},g"	\
-    -e "s,%uboot_auth_len%,${uboot_image_len},g"	\
-    -e "s,%dtb_auth_start%,${dtb_ram_start},g"		\
-    -e "s,%dtb_auth_offset%,${dtb_image_offset},g"	\
-    -e "s,%dtb_auth_len%,${dtb_image_len},g"		\
-    -e "s,%atf_auth_start%,${atf_ram_start},g"		\
-    -e "s,%atf_auth_offset%,${atf_image_offset},g"	\
-    -e "s,%atf_auth_len%,${atf_image_len},g"		\
-    -e "s,%imx-boot_path%,${TARGET},g"			\
-${SCRIPT_PATH}/csf_templates/sign_uboot_fit > csf_fit.txt
+# Change values to hex strings
+spl_dek_offset="$(printf "0x%X" ${spl_dek_offset})"
+spl_decrypt_start="$(printf "0x%X" ${spl_decrypt_start})"
+spl_decrypt_len="$(printf "0x%X" ${spl_decrypt_len})"
+
+# Generate actual CSF descriptor files from templates
+if [ "${ENCRYPT}" = "true" ]; then
+	# SPL Encryption
+	sed -e "s,%srk_table%,${SRK_TABLE},g "			\
+	    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
+	    -e "s,%cert_csf%,${CERT_CSF},g"			\
+	    -e "s,%cert_img%,${CERT_IMG},g"			\
+	    -e "s,%spl_auth_start%,${spl_ram_start},g"		\
+	    -e "s,%spl_auth_offset%,${spl_header_offset},g"	\
+	    -e "s,%spl_auth_len%,${spl_image_offset},g"		\
+	    -e "s,%imx-boot_auth_path%,${UBOOT_PATH},g"		\
+	    -e "s,%dek_path%,${CONFIG_DEK_PATH},g"		\
+	    -e "s,%dek_len%,${dek_size},g"			\
+	    -e "s,%dek_offset%,${spl_dek_offset},g"		\
+	    -e "s,%spl_decrypt_start%,${spl_decrypt_start},g"	\
+	    -e "s,%spl_decrypt_offset%,${spl_image_offset},g"	\
+	    -e "s,%spl_decrypt_len%,${spl_decrypt_len},g"	\
+	    -e "s,%imx-boot_decrypt_path%,flash-spl-enc.bin,g"	\
+	${SCRIPT_PATH}/csf_templates/encrypt_uboot_spl > csf_spl_enc.txt
+
+	sed -e "s,%srk_table%,${SRK_TABLE},g "			\
+	    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
+	    -e "s,%cert_csf%,${CERT_CSF},g"			\
+	    -e "s,%cert_img%,${CERT_IMG},g"			\
+	    -e "s,%spl_auth_start%,${spl_ram_start},g"		\
+	    -e "s,%spl_auth_offset%,${spl_header_offset},g"	\
+	    -e "s,%spl_auth_len%,${spl_image_len},g"		\
+	    -e "s,%imx-boot_auth_path%,flash-spl-enc.bin,g"	\
+	    -e "s,%dek_path%,${CONFIG_DEK_PATH},g"		\
+	    -e "s,%dek_len%,${dek_size},g"			\
+	    -e "s,%dek_offset%,${spl_dek_offset},g"		\
+	    -e "s,%spl_decrypt_start%,${spl_decrypt_start},g"	\
+	    -e "s,%spl_decrypt_offset%,${spl_image_offset},g"	\
+	    -e "s,%spl_decrypt_len%,${spl_decrypt_len},g"	\
+	    -e "s,%imx-boot_decrypt_path%,flash-spl-enc-dummy.bin,g"	\
+	${SCRIPT_PATH}/csf_templates/encrypt_sign_uboot_spl > csf_spl_sign_enc.txt
+else
+	sed -e "s,%srk_table%,${SRK_TABLE},g "			\
+	    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
+	    -e "s,%cert_csf%,${CERT_CSF},g"			\
+	    -e "s,%cert_img%,${CERT_IMG},g"			\
+	    -e "s,%spl_auth_start%,${spl_ram_start},g"		\
+	    -e "s,%spl_auth_offset%,${spl_header_offset},g"	\
+	    -e "s,%spl_auth_len%,${spl_image_len},g"		\
+	    -e "s,%imx-boot_path%,${TARGET},g"			\
+	${SCRIPT_PATH}/csf_templates/sign_uboot_spl > csf_spl.txt
+
+	sed -e "s,%srk_table%,${SRK_TABLE},g "			\
+	    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
+	    -e "s,%cert_csf%,${CERT_CSF},g"			\
+	    -e "s,%cert_img%,${CERT_IMG},g"			\
+	    -e "s,%sld_auth_start%,${sld_ram_start},g"		\
+	    -e "s,%sld_auth_offset%,${sld_header_offset},g"	\
+	    -e "s,%sld_auth_len%,${sld_image_len},g"		\
+	    -e "s,%uboot_auth_start%,${uboot_ram_start},g"	\
+	    -e "s,%uboot_auth_offset%,${uboot_image_offset},g"	\
+	    -e "s,%uboot_auth_len%,${uboot_image_len},g"	\
+	    -e "s,%dtb_auth_start%,${dtb_ram_start},g"		\
+	    -e "s,%dtb_auth_offset%,${dtb_image_offset},g"	\
+	    -e "s,%dtb_auth_len%,${dtb_image_len},g"		\
+	    -e "s,%atf_auth_start%,${atf_ram_start},g"		\
+	    -e "s,%atf_auth_offset%,${atf_image_offset},g"	\
+	    -e "s,%atf_auth_len%,${atf_image_len},g"		\
+	    -e "s,%imx-boot_path%,${TARGET},g"			\
+	${SCRIPT_PATH}/csf_templates/sign_uboot_fit > csf_fit.txt
+fi
 
 # If requested, instruct HAB not to protect the SRK_REVOKE OTP field
 if [ -n "${CONFIG_UNLOCK_SRK_REVOKE}" ]; then
@@ -183,4 +234,33 @@ dd if=${CURRENT_PATH}/csf_fit.bin of=${TARGET} seek=$((${sld_csf_offset})) bs=1 
 
 echo "Signed image ready: ${TARGET}"
 
-rm -f "${SRK_TABLE}" csf_spl.txt csf_fit.txt csf_spl.bin csf_fit.bin 2> /dev/null
+# Generate encrypted uboot
+# Encrypt SPL
+cp ${UBOOT_PATH} flash-spl-enc.bin
+cst -o "${CURRENT_PATH}/csf_spl_enc.bin" -i "${CURRENT_PATH}/csf_spl_enc.txt" > /dev/null
+if [ $? -ne 0 ]; then
+	echo "[ERROR] Could not generate SPL ENC CSF"
+	exit 1
+fi
+# Sign encrypted SPL
+cp flash-spl-enc.bin flash-spl-enc-dummy.bin
+cst -o "${CURRENT_PATH}/csf_spl_sign_enc.bin" -i "${CURRENT_PATH}/csf_spl_sign_enc.txt" > /dev/null
+if [ $? -ne 0 ]; then
+	echo "[ERROR] Could not generate SPL SIGN ENC CSF"
+	exit 1
+fi
+
+# Create final CSF for SPL
+csf_size="$(stat -L -c %s csf_spl_enc.bin)"
+nonce_offset="$((csf_size - 36))"
+echo "SPL ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
+dd if=csf_spl_enc.bin of=noncemac.bin bs=1 skip=${nonce_offset} count=36
+csf_size="$(stat -L -c %s csf_spl_sign_enc.bin)"
+nonce_offset="$((csf_size - 36))"
+echo "SPL SIGN ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
+dd if=noncemac.bin of=csf_spl_sign_enc.bin bs=1 seek=${nonce_offset} count=36
+
+cp flash-spl-enc.bin ${TARGET_ENCRYPT}
+dd if=${CURRENT_PATH}/csf_spl_sign_enc.bin of=${TARGET_ENCRYPT} seek=$((${spl_csf_offset})) bs=1 conv=notrunc > /dev/null 2>&1
+
+rm -f "${SRK_TABLE}" flash-spl-* dek_* csf_* 2> /dev/null
