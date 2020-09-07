@@ -126,11 +126,17 @@ spl_dek_offset=$((spl_ram_start + spl_image_len + 0x2000))
 # Decrypt size = Image length - SPL heder
 spl_decrypt_start=$((spl_ram_start + spl_image_offset))
 spl_decrypt_len=$((spl_image_len - spl_image_offset))
+# Compute FIT decryption variables
+uboot_dtb_ram_start=${uboot_ram_start}
+uboot_dtb_image_offset=${uboot_image_offset}
+uboot_dtb_image_len=$((uboot_image_len + dtb_image_len))
+fit_dek_blob_addr=0x40400000
 
 # Change values to hex strings
 spl_dek_offset="$(printf "0x%X" ${spl_dek_offset})"
 spl_decrypt_start="$(printf "0x%X" ${spl_decrypt_start})"
 spl_decrypt_len="$(printf "0x%X" ${spl_decrypt_len})"
+uboot_dtb_image_len="$(printf "0x%X" ${uboot_dtb_image_len})"
 
 # Generate actual CSF descriptor files from templates
 if [ "${ENCRYPT}" = "true" ]; then
@@ -168,6 +174,56 @@ if [ "${ENCRYPT}" = "true" ]; then
 	    -e "s,%spl_decrypt_len%,${spl_decrypt_len},g"	\
 	    -e "s,%imx-boot_decrypt_path%,flash-spl-enc-dummy.bin,g"	\
 	${SCRIPT_PATH}/csf_templates/encrypt_sign_uboot_spl > csf_spl_sign_enc.txt
+
+	# FIT Encryption
+	sed -e "s,%srk_table%,${SRK_TABLE},g "			\
+	    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
+	    -e "s,%cert_csf%,${CERT_CSF},g"			\
+	    -e "s,%cert_img%,${CERT_IMG},g"			\
+	    -e "s,%sld_auth_start%,${sld_ram_start},g"		\
+	    -e "s,%sld_auth_offset%,${sld_header_offset},g"	\
+	    -e "s,%sld_auth_len%,${sld_image_len},g"		\
+	    -e "s,%imx-boot_auth_path%,flash-spl-enc.bin,g"	\
+	    -e "s,%dek_path%,${CONFIG_DEK_PATH},g"		\
+	    -e "s,%dek_len%,${dek_size},g"			\
+	    -e "s,%dek_offset%,${fit_dek_blob_addr},g"		\
+	    -e "s,%uboot_decrypt_start%,${uboot_dtb_ram_start},g"\
+	    -e "s,%uboot_decrypt_offset%,${uboot_dtb_image_offset},g"\
+	    -e "s,%uboot_decrypt_len%,${uboot_dtb_image_len},g"	\
+	    -e "s,%atf_decrypt_start%,${atf_ram_start},g"	\
+	    -e "s,%atf_decrypt_offset%,${atf_image_offset},g"	\
+	    -e "s,%atf_decrypt_len%,${atf_image_len},g"		\
+	    -e "s,%imx-boot_decrypt_path%,flash-spl-fit-enc.bin,g"	\
+	${SCRIPT_PATH}/csf_templates/encrypt_uboot_fit > csf_fit_enc.txt
+
+	sed -e "s,%srk_table%,${SRK_TABLE},g "			\
+	    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
+	    -e "s,%cert_csf%,${CERT_CSF},g"			\
+	    -e "s,%cert_img%,${CERT_IMG},g"			\
+	    -e "s,%sld_auth_start%,${sld_ram_start},g"		\
+	    -e "s,%sld_auth_offset%,${sld_header_offset},g"	\
+	    -e "s,%sld_auth_len%,${sld_image_len},g"		\
+	    -e "s,%uboot_auth_start%,${uboot_ram_start},g"	\
+	    -e "s,%uboot_auth_offset%,${uboot_image_offset},g"	\
+	    -e "s,%uboot_auth_len%,${uboot_image_len},g"	\
+	    -e "s,%dtb_auth_start%,${dtb_ram_start},g"		\
+	    -e "s,%dtb_auth_offset%,${dtb_image_offset},g"	\
+	    -e "s,%dtb_auth_len%,${dtb_image_len},g"		\
+	    -e "s,%atf_auth_start%,${atf_ram_start},g"		\
+	    -e "s,%atf_auth_offset%,${atf_image_offset},g"	\
+	    -e "s,%atf_auth_len%,${atf_image_len},g"		\
+	    -e "s,%imx-boot_auth_path%,flash-spl-fit-enc.bin,g"	\
+	    -e "s,%dek_path%,${CONFIG_DEK_PATH},g"		\
+	    -e "s,%dek_len%,${dek_size},g"			\
+	    -e "s,%dek_offset%,${fit_dek_blob_addr},g"		\
+	    -e "s,%uboot_decrypt_start%,${uboot_dtb_ram_start},g"\
+	    -e "s,%uboot_decrypt_offset%,${uboot_dtb_image_offset},g"\
+	    -e "s,%uboot_decrypt_len%,${uboot_dtb_image_len},g"	\
+	    -e "s,%atf_decrypt_start%,${atf_ram_start},g"	\
+	    -e "s,%atf_decrypt_offset%,${atf_image_offset},g"	\
+	    -e "s,%atf_decrypt_len%,${atf_image_len},g"		\
+	    -e "s,%imx-boot_decrypt_path%,flash-spl-fit-enc-dummy.bin,g"\
+	${SCRIPT_PATH}/csf_templates/encrypt_sign_uboot_fit > csf_fit_sign_enc.txt
 else
 	sed -e "s,%srk_table%,${SRK_TABLE},g "			\
 	    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
@@ -249,6 +305,20 @@ if [ $? -ne 0 ]; then
 	echo "[ERROR] Could not generate SPL SIGN ENC CSF"
 	exit 1
 fi
+# Encrypt FIT
+cp flash-spl-enc.bin flash-spl-fit-enc.bin
+cst -o "${CURRENT_PATH}/csf_fit_enc.bin" -i "${CURRENT_PATH}/csf_fit_enc.txt" > /dev/null
+if [ $? -ne 0 ]; then
+	echo "[ERROR] Could not generate FIT ENC CSF"
+	exit 1
+fi
+# Sign encrypted FIT
+cp flash-spl-fit-enc.bin flash-spl-fit-enc-dummy.bin
+cst -o "${CURRENT_PATH}/csf_fit_sign_enc.bin" -i "${CURRENT_PATH}/csf_fit_sign_enc.txt" > /dev/null
+if [ $? -ne 0 ]; then
+	echo "[ERROR] Could not generate FIT SIGN ENC CSF"
+	exit 1
+fi
 
 # Create final CSF for SPL
 csf_size="$(stat -L -c %s csf_spl_enc.bin)"
@@ -260,7 +330,18 @@ nonce_offset="$((csf_size - 36))"
 echo "SPL SIGN ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
 dd if=noncemac.bin of=csf_spl_sign_enc.bin bs=1 seek=${nonce_offset} count=36
 
-cp flash-spl-enc.bin ${TARGET_ENCRYPT}
+# Create final CSF for FIT
+csf_size="$(stat -L -c %s csf_fit_enc.bin)"
+nonce_offset="$((csf_size - 36))"
+echo "FIT ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
+dd if=csf_fit_enc.bin of=noncemac.bin bs=1 skip=${nonce_offset} count=36
+csf_size="$(stat -L -c %s csf_fit_sign_enc.bin)"
+nonce_offset="$((csf_size - 36))"
+echo "FIT SIGN ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
+dd if=noncemac.bin of=csf_fit_sign_enc.bin bs=1 seek=${nonce_offset} count=36
+
+cp flash-spl-fit-enc.bin ${TARGET_ENCRYPT}
 dd if=${CURRENT_PATH}/csf_spl_sign_enc.bin of=${TARGET_ENCRYPT} seek=$((${spl_csf_offset})) bs=1 conv=notrunc > /dev/null 2>&1
+dd if=${CURRENT_PATH}/csf_fit_sign_enc.bin of=${TARGET_ENCRYPT} seek=$((${sld_csf_offset})) bs=1 conv=notrunc > /dev/null 2>&1
 
 rm -f "${SRK_TABLE}" flash-spl-* dek_* csf_* 2> /dev/null

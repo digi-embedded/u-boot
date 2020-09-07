@@ -1,0 +1,54 @@
+[Header]
+    Version = 4.5
+    Hash Algorithm = sha256
+    Engine = CAAM
+    Engine Configuration = 0
+    Certificate Format = X509
+    Signature Format = CMS
+
+[Install SRK]
+    # Index of the key location in the SRK table to be installed
+    File = "%srk_table%"
+    Source index = %key_index%
+
+[Install CSFK]
+    # Key used to authenticate the CSF data
+    File = "%cert_csf%"
+
+[Authenticate CSF]
+
+[Unlock]
+    Engine = CAAM
+    Features = RNG
+
+[Install Key]
+    # Key slot index used to authenticate the key to be installed
+    Verification index = 0
+    # Target key slot in HAB key store where key will be installed
+    Target index = 2
+    # Key to install
+    File = "%cert_img%"
+
+[Authenticate Data]
+    # Key slot index used to authenticate the image data
+    Verification index = 2
+    # Authenticate Start Address, Offset, Length and file
+    Blocks = %sld_auth_start% %sld_auth_offset% %sld_auth_len% "%imx-boot_auth_path%", \
+             %uboot_auth_start% %uboot_auth_offset% %uboot_auth_len% "%imx-boot_auth_path%", \
+             %dtb_auth_start% %dtb_auth_offset% %dtb_auth_len% "%imx-boot_auth_path%", \
+             %atf_auth_start% %atf_auth_offset% %atf_auth_len% "%imx-boot_auth_path%"
+
+[Install Secret Key]
+    Verification index = 0
+    Target index = 0
+    Key = "%dek_path%"
+    Key Length = %dek_len%
+    # Fixed address defined in imx-mkimage project in iMX8M/soc.mak file
+    # DEK_BLOB_LOAD_ADDR = 0x40400000
+    Blob address = %dek_offset%
+
+[Decrypt Data]
+    Verification index = 0
+    Mac Bytes = 16
+    Blocks = %uboot_decrypt_start% %uboot_decrypt_offset% %uboot_decrypt_len% "%imx-boot_decrypt_path%", \
+             %atf_decrypt_start% %atf_decrypt_offset% %atf_decrypt_len% "%imx-boot_decrypt_path%"
