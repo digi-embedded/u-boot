@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Digi International, Inc.
+ * Copyright (C) 2019-2020 Digi International, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -16,6 +16,7 @@ void fdt_fixup_ccimx8(void *fdt);
 
 #ifdef CONFIG_CC8X
 int hwid_in_db(int variant);
+void fdt_fixup_ccimx8x(void *fdt);
 #endif
 
 #endif  /* CCIMX8_H */

@@ -5,8 +5,11 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 #include <common.h>
+#include <cpu.h>
 #include <fuse.h>
 #include <mmc.h>
+#include <fdt_support.h>
+#include <dm/device.h>
 #include <linux/ctype.h>
 #include <linux/sizes.h>
 #include <asm/arch/sys_proto.h>
@@ -409,4 +412,15 @@ bool validate_bootloader_image(void *loadaddr)
 	}
 
 	return true;
+}
+
+__weak void fdt_fixup_soc_revision(void *fdt)
+{
+	const char *rev = get_imx8_rev(get_cpu_rev() & 0xFFF);
+
+	do_fixup_by_path(fdt, "/cpus/", "rev", rev, strlen(rev) + 1, 1);
+}
+
+void fdt_fixup_ccimx8x(void *fdt) {
+	fdt_fixup_soc_revision(fdt);
 }

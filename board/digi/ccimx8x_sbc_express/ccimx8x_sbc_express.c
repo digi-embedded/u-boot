@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Digi International, Inc.
+ * Copyright (C) 2018-2020 Digi International, Inc.
  * Copyright 2017 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -248,6 +248,7 @@ void board_quiesce_devices()
 int ft_board_setup(void *blob, bd_t *bd)
 {
 	fdt_fixup_ccimx8(blob);
+	fdt_fixup_ccimx8x(blob);
 	fdt_fixup_carrierboard(blob);
 
 	return 0;
