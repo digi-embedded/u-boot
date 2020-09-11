@@ -240,20 +240,40 @@ void som_default_environment(void)
 #else
 	switch (get_cpu_type()) {
 		case MXC_CPU_IMX8MN:
-		case MXC_CPU_IMX8MND:
-		case MXC_CPU_IMX8MNS:
-		case MXC_CPU_IMX8MNL:
-		case MXC_CPU_IMX8MNDL:
-		case MXC_CPU_IMX8MNSL:
 			snprintf(var, sizeof(var), "imx8mn");
 			break;
+		case MXC_CPU_IMX8MND:
+			snprintf(var, sizeof(var), "imx8mnd");
+			break;
+		case MXC_CPU_IMX8MNS:
+			snprintf(var, sizeof(var), "imx8mns");
+			break;
+		case MXC_CPU_IMX8MNL:
+			snprintf(var, sizeof(var), "imx8mnl");
+			break;
+		case MXC_CPU_IMX8MNDL:
+			snprintf(var, sizeof(var), "imx8mndl");
+			break;
+		case MXC_CPU_IMX8MNSL:
+			snprintf(var, sizeof(var), "imx8mnsl");
+			break;
 		case MXC_CPU_IMX8MM:
-		case MXC_CPU_IMX8MML:
-		case MXC_CPU_IMX8MMD:
-		case MXC_CPU_IMX8MMDL:
-		case MXC_CPU_IMX8MMS:
-		case MXC_CPU_IMX8MMSL:
 			snprintf(var, sizeof(var), "imx8mm");
+			break;
+		case MXC_CPU_IMX8MML:
+			snprintf(var, sizeof(var), "imx8mml");
+			break;
+		case MXC_CPU_IMX8MMD:
+			snprintf(var, sizeof(var), "imx8mmd");
+			break;
+		case MXC_CPU_IMX8MMDL:
+			snprintf(var, sizeof(var), "imx8mmdl");
+			break;
+		case MXC_CPU_IMX8MMS:
+			snprintf(var, sizeof(var), "imx8mms");
+			break;
+		case MXC_CPU_IMX8MMSL:
+			snprintf(var, sizeof(var), "imx8mmsl");
 			break;
 		default:
 			snprintf(var, sizeof(var), "imx%s", get_imx_type(get_cpu_type()));
