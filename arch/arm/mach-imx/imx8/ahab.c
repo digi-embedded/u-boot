@@ -138,12 +138,17 @@ int authenticate_os_container(ulong addr)
 			goto exit;
 		}
 
+		printf("   Authenticate image from DDR location 0x%lx... ",
+		       addr);
+
 		err = sc_seco_authenticate(-1, SC_SECO_VERIFY_IMAGE,
 					   (1 << i));
 		if (err) {
-			printf("Authenticate img %d failed, return %d\n",
+			printf("FAILED!\nAuthenticate img %d failed, return %d\n",
 			       i, err);
 			ret = -EIO;
+		} else {
+			printf("OK\n");
 		}
 
 		err = sc_rm_set_memreg_permissions(-1, mr, SECO_PT,
