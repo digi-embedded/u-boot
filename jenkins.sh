@@ -38,6 +38,8 @@ done<<-_EOF_
 	ccimx6qpsbc2GB           u-boot.imx  cortexa9hf
 	ccimx6ulstarter          u-boot.imx  cortexa9hf
 	ccimx6ulsbc              u-boot.imx  cortexa9hf
+	ccimx6ulstarter512MB     u-boot.imx  cortexa9hf
+	ccimx6ulsbc512MB         u-boot.imx  cortexa9hf
 	ccimx6ulstarter1GB       u-boot.imx  cortexa9hf
 	ccimx6ulsbc1GB           u-boot.imx  cortexa9hf
 	ccimx8x_sbc_express1GB   u-boot-dtb.bin  aarch64
