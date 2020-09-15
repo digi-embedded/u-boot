@@ -92,7 +92,7 @@ void board_print_hwid(struct digi_hwid *hwid)
 		printf("      RAM:         %d MiB\n", ram_sizes_mb[hwid->ram]);
 		printf("      Wi-Fi:       %s\n", hwid->wifi ? "yes" : "-");
 		printf("      Bluetooth:   %s\n", hwid->bt ? "yes" : "-");
-		printf("      Cryto-chip:  %s\n", hwid->crypto ? "yes" : "-");
+		printf("      Crypto-chip: %s\n", hwid->crypto ? "yes" : "-");
 		printf("      MCA:         %s\n", hwid->mca ? "yes" : "-");
 	}
 	printf("    HW Version:    0x%x\n", hwid->hv);
@@ -417,7 +417,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	printf("    RAM:           %d MiB\n", ram_sizes_mb[hwid->ram]);
 	printf("    Wi-Fi:         %s\n", hwid->wifi ? "yes" : "-");
 	printf("    Bluetooth:     %s\n", hwid->bt ? "yes" : "-");
-	printf("    Cryto-chip:    %s\n", hwid->crypto ? "yes" : "-");
+	printf("    Crypto-chip:   %s\n", hwid->crypto ? "yes" : "-");
 	printf("    MCA:           %s\n", hwid->mca ? "yes" : "-");
 
 	return 0;
@@ -510,5 +510,5 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 
 int hwid_get_ramsize(const struct digi_hwid *hwid)
 {
-	return ram_sizes_mb[hwid->ram];
+	return ram_sizes_mb[hwid->ram] * SZ_1M;
 }

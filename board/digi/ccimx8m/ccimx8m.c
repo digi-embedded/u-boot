@@ -11,6 +11,8 @@
 #include <asm/mach-imx/boot_mode.h>
 #include <spl.h>
 
+#include "../common/hwid.h"
+
 DECLARE_GLOBAL_DATA_PTR;
 
 int mmc_get_bootdevindex(void)
@@ -45,11 +47,20 @@ uint mmc_get_env_part(struct mmc *mmc)
 
 int dram_init(void)
 {
-	/* rom_pointer[1] contains the size of TEE occupies */
-	if (rom_pointer[1])
-		gd->ram_size = PHYS_SDRAM_SIZE - rom_pointer[1];
+	struct digi_hwid my_hwid;
+
+	/* Read HWID to be able to determine RAM size */
+	if (board_read_hwid(&my_hwid))
+		printf("Cannot read HWID\n");
+
+	if (my_hwid.ram)
+		gd->ram_size = hwid_get_ramsize(&my_hwid);
 	else
 		gd->ram_size = PHYS_SDRAM_SIZE;
+
+	/* rom_pointer[1] contains the size of TEE occupies */
+	if (rom_pointer[1])
+		gd->ram_size -= rom_pointer[1];
 
 	return 0;
 }

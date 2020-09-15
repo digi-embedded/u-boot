@@ -143,7 +143,12 @@ extern unsigned long nand_env_oob_offset;
 # define ENV_HEADER_SIZE	(sizeof(uint32_t))
 #endif
 
+#if defined(CONFIG_ENV_AES) && !defined(CONFIG_ENV_AES_CAAM_KEY)
+/* Make sure the payload is multiple of AES block size */
+#define ENV_SIZE ((CONFIG_ENV_SIZE - ENV_HEADER_SIZE) & ~(16 - 1))
+#else
 #define ENV_SIZE (CONFIG_ENV_SIZE - ENV_HEADER_SIZE)
+#endif
 
 typedef struct environment_s {
 	uint32_t	crc;		/* CRC32 over data bytes	*/
@@ -151,7 +156,12 @@ typedef struct environment_s {
 	unsigned char	flags;		/* active/obsolete flags	*/
 #endif
 	unsigned char	data[ENV_SIZE]; /* Environment data		*/
-} env_t;
+} env_t
+#ifdef CONFIG_ENV_AES
+/* Make sure the env is aligned to block size. */
+__attribute__((aligned(16)))
+#endif
+;
 
 #ifdef ENV_IS_EMBEDDED
 extern env_t environment;

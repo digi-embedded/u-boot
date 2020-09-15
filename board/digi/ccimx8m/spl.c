@@ -23,13 +23,37 @@
 #include <fsl_esdhc.h>
 #include <mmc.h>
 #include <asm/arch/imx8m_ddr.h>
+
 #include "../common/hwid.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
+extern struct dram_timing_info dram_timing_1G;
+extern struct dram_timing_info dram_timing_512M;
+
 void spl_dram_init(void)
 {
-	ddr_init(&dram_timing);
+	/* Default to RAM size of DVK variant 0x01 (1 GiB) */
+	int ram = SZ_1G;
+	struct digi_hwid my_hwid;
+
+	if (board_read_hwid(&my_hwid)) {
+		debug("Cannot read HWID. Using default DDR configuration.\n");
+		my_hwid.ram = 0;
+	}
+
+	if (my_hwid.ram)
+		ram = hwid_get_ramsize(&my_hwid);
+
+	switch (ram) {
+	case SZ_512M:
+		ddr_init(&dram_timing_512M);
+		break;
+	case SZ_1G:
+	default:
+		ddr_init(&dram_timing_1G);
+		break;
+	}
 }
 
 #define I2C_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_HYS | PAD_CTL_PUE | PAD_CTL_PE)
