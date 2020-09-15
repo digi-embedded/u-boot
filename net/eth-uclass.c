@@ -445,6 +445,8 @@ int eth_initialize(void)
 
 			if (dev->seq != -1)
 				num_devices++;
+			else
+				break;
 			uclass_next_device_check(&dev);
 		} while (dev);
 
