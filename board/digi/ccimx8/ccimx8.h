@@ -12,6 +12,7 @@ int mmc_get_bootdevindex(void);
 int ccimx8_init(void);
 void print_som_info(void);
 void som_default_environment(void);
+int ccimx8_late_init(void);
 void fdt_fixup_ccimx8(void *fdt);
 
 #ifdef CONFIG_CC8X
