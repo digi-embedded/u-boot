@@ -20,6 +20,7 @@
 #include "../ccimx8/ccimx8.h"
 #include "../common/carrier_board.h"
 #include "../common/helper.h"
+#include "../common/trustfence.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -55,6 +56,20 @@ static iomux_cfg_t uart2_pads[] = {
 	SC_P_UART2_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
 };
 
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+#define GPI_PAD_CTRL	((SC_PAD_CONFIG_NORMAL << PADRING_CONFIG_SHIFT) | \
+			(SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
+			(SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) | \
+			(SC_PAD_28FDSOI_PS_PD << PADRING_PULL_SHIFT))
+
+static iomux_cfg_t const ext_gpios_pads[] = {
+	SC_P_FLEXCAN1_RX | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPI_PAD_CTRL),	/* GPIO1_IO17 */
+	SC_P_FLEXCAN1_TX | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPI_PAD_CTRL),	/* GPIO1_IO18 */
+	SC_P_FLEXCAN2_RX | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPI_PAD_CTRL),	/* GPIO1_IO19 */
+	SC_P_FLEXCAN2_TX | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPI_PAD_CTRL),	/* GPIO1_IO20 */
+};
+#endif /* CONFIG_CONSOLE_ENABLE_GPIO */
+
 static void setup_iomux_uart(void)
 {
 	imx8_iomux_setup_multiple_pads(uart2_pads, ARRAY_SIZE(uart2_pads));
@@ -64,7 +79,17 @@ int board_early_init_f(void)
 {
 	sc_ipc_t ipcHndl = 0;
 	sc_err_t sciErr = 0;
-
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+	const char *ext_gpios[] = {
+		"GPIO1_17",	/* J11.7 */
+		"GPIO1_18",	/* J11.11 */
+		"GPIO1_19",	/* J11.40 */
+		"GPIO1_20",	/* J11.13 */
+	};
+	const char *ext_gpio_name = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
+	imx8_iomux_setup_multiple_pads(ext_gpios_pads,
+				       ARRAY_SIZE(ext_gpios_pads));
+#endif /* CONFIG_CONSOLE_ENABLE_GPIO */
 	ipcHndl = gd->arch.ipc_channel_handle;
 
 	/* Power up UART2 */
@@ -84,6 +109,14 @@ int board_early_init_f(void)
 		return 0;
 
 	setup_iomux_uart();
+
+#ifdef CONFIG_CONSOLE_DISABLE
+	gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+	if (console_enable_gpio(ext_gpio_name))
+		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#endif /* CONFIG_CONSOLE_ENABLE_GPIO */
+#endif /* CONFIG_CONSOLE_DISABLE */
 
 	return 0;
 }
@@ -272,6 +305,9 @@ void platform_default_environment(void)
 
 int board_late_init(void)
 {
+	/* SOM late init */
+	ccimx8_late_init();
+
 	/* Set default dynamic variables */
 	platform_default_environment();
 
