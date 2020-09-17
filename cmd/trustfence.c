@@ -391,7 +391,7 @@ int console_enable_passphrase(void)
 {
 	char *pp = NULL;
 	unsigned char *sha256_pp = NULL;
-	unsigned long *pp_hash = NULL;
+	unsigned char *pp_hash = NULL;
 	int ret = -EINVAL;
 
 	pp = malloc(MAX_PP_LEN + 1);
@@ -424,7 +424,7 @@ int console_enable_passphrase(void)
 
 	memset(pp_hash, 0, SHA256_HASH_LEN);
 	strtohex(CONFIG_CONSOLE_ENABLE_PASSPHRASE_KEY, pp_hash,
-		 SHA256_HASH_LEN/sizeof(unsigned long));
+		 SHA256_HASH_LEN);
 	ret = memcmp(sha256_pp, pp_hash, SHA256_HASH_LEN);
 
 	free(pp_hash);

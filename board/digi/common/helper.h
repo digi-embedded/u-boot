@@ -64,7 +64,7 @@ void fdt_fixup_uboot_info(void *fdt);
 unsigned long get_firmware_size(const struct load_fw *fwinfo);
 int load_firmware(struct load_fw *fwinfo, char *msg);
 const char *get_filename_ext(const char *filename);
-void strtohex(char *in, unsigned long *out, int len);
+void strtohex(char *in, unsigned char *out, int len);
 void verify_mac_address(char *var, char *default_mac);
 int get_partition_offset(char *part_name, lbaint_t *offset);
 int media_block_is_empty(uintptr_t addr, uint hwpart);
