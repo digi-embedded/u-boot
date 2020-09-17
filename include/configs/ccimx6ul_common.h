@@ -73,7 +73,6 @@
  * Trustfence configs
  */
 #define CONFIG_HAS_TRUSTFENCE
-#define CONFIG_SHA256
 #define CONFIG_MCA_TAMPER
 
 /* Environment encryption support */
