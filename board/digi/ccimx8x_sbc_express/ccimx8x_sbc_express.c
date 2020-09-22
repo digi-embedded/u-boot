@@ -147,16 +147,6 @@ static void enet_device_phy_reset(void)
 	}
 }
 
-int board_phy_config(struct phy_device *phydev)
-{
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x8190);
-
-	if (phydev->drv->config)
-		phydev->drv->config(phydev);
-
-	return 0;
-}
-
 static int setup_fec(int ind)
 {
 	struct gpio_desc enet_pwr;
