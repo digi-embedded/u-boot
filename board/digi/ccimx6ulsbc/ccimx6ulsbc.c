@@ -308,17 +308,6 @@ static int setup_fec(int fec_id)
 
 	return 0;
 }
-
-int board_phy_config(struct phy_device *phydev)
-{
-
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x8190);
-
-	if (phydev->drv->config)
-		phydev->drv->config(phydev);
-
-	return 0;
-}
 #endif
 
 #ifdef CONFIG_USB_EHCI_MX6
