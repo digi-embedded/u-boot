@@ -9,10 +9,13 @@
 #include <fdtdec.h>
 #include <log.h>
 #include <remoteproc.h>
+#include <rproc_optee.h>
 #include <reset.h>
 #include <asm/io.h>
 #include <dm/device_compat.h>
 #include <linux/err.h>
+
+#define STM32MP15_M4_FW_ID 0
 
 /**
  * struct stm32_copro_privdata - power processor private data
@@ -53,6 +56,32 @@ static int stm32_copro_probe(struct udevice *dev)
 	dev_dbg(dev, "probed\n");
 
 	return 0;
+}
+
+/**
+ * stm32_copro_optee_probe() - Open a session toward rproc trusted application
+ * @dev:	corresponding STM32 remote processor device
+ * @return 0 if all went ok, else corresponding -ve error
+ */
+static int stm32_copro_optee_probe(struct udevice *dev)
+{
+	struct rproc_optee *trproc = dev_get_priv(dev);
+
+	trproc->fw_id = (u32)dev_get_driver_data(dev);
+
+	return rproc_optee_open(trproc);
+}
+
+/**
+ * stm32_copro_optee_remove() - Close the rproc trusted application session
+ * @dev:	corresponding STM32 remote processor device
+ * @return 0 if all went ok, else corresponding -ve error
+ */
+static int stm32_copro_optee_remove(struct udevice *dev)
+{
+	struct rproc_optee *trproc = dev_get_priv(dev);
+
+	return rproc_optee_close(trproc);
 }
 
 /**
@@ -120,6 +149,18 @@ static int stm32_copro_load(struct udevice *dev, ulong addr, ulong size)
 }
 
 /**
+ * stm32_copro_optee_load() - Request OP−TEE to load the remote processor firmware
+ * @dev:	corresponding OP-TEE remote processor device
+ * @return 0 if all went ok, else corresponding -ve error
+ */
+static int stm32_copro_optee_load(struct udevice *dev, ulong addr, ulong size)
+{
+	struct rproc_optee *trproc = dev_get_priv(dev);
+
+	return rproc_optee_load(trproc, addr, size);
+}
+
+/**
  * stm32_copro_start() - Start the STM32 remote processor
  * @dev:	corresponding STM32 remote processor device
  * @return 0 if all went ok, else corresponding -ve error
@@ -149,6 +190,34 @@ static int stm32_copro_start(struct udevice *dev)
 	writel(TAMP_COPRO_STATE_CRUN, TAMP_COPRO_STATE);
 	/* Store rsc_address in bkp register */
 	writel(priv->rsc_table_addr, TAMP_COPRO_RSC_TBL_ADDRESS);
+
+	return 0;
+}
+
+/**
+ * stm32_copro_optee_start() - Request OP−TEE to start the STM32 remote processor
+ * @dev:	corresponding OP-TEE remote processor device
+ * @return 0 if all went ok, else corresponding -ve error
+ */
+static int stm32_copro_optee_start(struct udevice *dev)
+{
+	struct rproc_optee *trproc = dev_get_priv(dev);
+	phys_addr_t rsc_addr;
+	phys_size_t rsc_size;
+	int ret;
+
+	ret = rproc_optee_get_rsc_table(trproc, &rsc_addr, &rsc_size);
+	if (ret)
+		return ret;
+
+	ret = rproc_optee_start(trproc);
+	if (ret)
+		return ret;
+
+	/* indicates that copro is running */
+	writel(TAMP_COPRO_STATE_CRUN, TAMP_COPRO_STATE);
+	/* Store rsc_address in bkp register */
+	writel(rsc_addr, TAMP_COPRO_RSC_TBL_ADDRESS);
 
 	return 0;
 }
@@ -193,6 +262,35 @@ static int stm32_copro_stop(struct udevice *dev)
 }
 
 /**
+ * stm32_copro_optee_reset() - Request OP−TEE to reset the STM32 remote processor
+ * @dev:	corresponding STM32 remote processor device
+ * @return 0 if all went ok, else corresponding -ve error
+ */
+static int stm32_copro_optee_reset(struct udevice *dev)
+{
+	struct rproc_optee *trproc = dev_get_priv(dev);
+	int ret;
+
+	ret = rproc_optee_stop(trproc);
+	if (ret)
+		return ret;
+
+	writel(TAMP_COPRO_STATE_OFF, TAMP_COPRO_STATE);
+
+	return 0;
+}
+
+/**
+ * stm32_copro_optee_stop() - Request OP−TEE to stop the STM32 remote processor
+ * @dev:	corresponding STM32 remote processor device
+ * @return 0 if all went ok, else corresponding -ve error
+ */
+static int stm32_copro_optee_stop(struct udevice *dev)
+{
+	return stm32_copro_optee_reset(dev);
+}
+
+/**
  * stm32_copro_is_running() - Is the STM32 remote processor running
  * @dev:	corresponding STM32 remote processor device
  * @return 0 if the remote processor is running, 1 otherwise
@@ -223,4 +321,29 @@ U_BOOT_DRIVER(stm32_copro) = {
 	.ops = &stm32_copro_ops,
 	.probe = stm32_copro_probe,
 	.priv_auto_alloc_size = sizeof(struct stm32_copro_privdata),
+};
+
+static const struct dm_rproc_ops stm32_copro_optee_ops = {
+	.load = stm32_copro_optee_load,
+	.start = stm32_copro_optee_start,
+	.stop = stm32_copro_optee_stop,
+	.reset = stm32_copro_optee_reset,
+	.is_running = stm32_copro_is_running,
+	.device_to_virt = stm32_copro_device_to_virt,
+};
+
+static const struct udevice_id stm32_copro_optee_ids[] = {
+	{ .compatible = "st,stm32mp1-m4_optee", .data = STM32MP15_M4_FW_ID },
+	{}
+};
+
+U_BOOT_DRIVER(stm32_copro_optee) = {
+	.name = "stm32_m4_proc_optee",
+	.of_match = stm32_copro_optee_ids,
+	.id = UCLASS_REMOTEPROC,
+	.ops = &stm32_copro_optee_ops,
+	.probe = stm32_copro_optee_probe,
+	.remove = stm32_copro_optee_remove,
+	.priv_auto_alloc_size = sizeof(struct rproc_optee),
+	.flags = DM_FLAG_OS_PREPARE,
 };
