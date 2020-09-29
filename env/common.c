@@ -143,9 +143,9 @@ static int env_aes_cbc_crypt(env_t *env, const int enc)
 	}
 
 	if (enc)
-		ret = caam_gen_blob((uint32_t)data, (uint32_t)buffer, key_modifier, ENV_SIZE - BLOB_OVERHEAD);
+		ret = caam_gen_blob((uintptr_t)data, (uintptr_t)buffer, key_modifier, ENV_SIZE - BLOB_OVERHEAD);
 	else
-		ret = caam_decap_blob((uint32_t)buffer, (uint32_t)data, key_modifier, ENV_SIZE - BLOB_OVERHEAD);
+		ret = caam_decap_blob((uintptr_t)buffer, (uintptr_t)data, key_modifier, ENV_SIZE - BLOB_OVERHEAD);
 
 	if (ret)
 		goto err;
