@@ -225,7 +225,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 						   "overlay-description", NULL);
 
 		/* Print the overlay filename (and description if available) */
-		printf("-> %-45s", overlay);
+		printf("-> %-50s", overlay);
 		if (overlay_desc) {
 			printf("%s", overlay_desc);
 			/* remove property and reset pointer after printing */
