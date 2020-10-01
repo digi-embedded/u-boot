@@ -4,6 +4,15 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2018.03
 -----------
+dub-2018.04-r5.1, released on 2020/10/01
+	- TrustFence: add support to secure console.
+	- TrustFence: add support to environment encryption.
+	- Add support for ConnectCore 8M Nano variants with 512MB SDRAM.
+	- Control ConnectCore 8M Nano DVK power LED.
+	- Other minor fixes.
+
+
+
 dub-2018.04-r4.1, released on 2020/06/15
 	- Update BSP to NXP tag 'rel_imx_4.14.98_2.3.2_patch'.
 	- Add support to 'dboot' command to apply a list of device tree
