@@ -21,6 +21,9 @@
 #include "../common/helper.h"
 #include "../common/hwid.h"
 #include "../common/mca.h"
+#ifdef CONFIG_HAS_TRUSTFENCE
+#include "../common/trustfence.h"
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -259,6 +262,9 @@ int trustfence_status(void)
 	uint8_t idx = 0U;
 	int err;
 
+	if (!is_usb_boot())
+		printf("* Encrypted U-Boot:\t%s\n", is_uboot_encrypted() ?
+				"[YES]" : "[NO]");
 	puts("* AHAB events:\t\t");
 	err = sc_seco_get_event(-1, idx, NULL);
 	if (err == SC_ERR_NONE)
