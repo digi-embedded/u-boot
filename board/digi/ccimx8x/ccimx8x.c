@@ -305,7 +305,7 @@ int get_dek_blob_offset(char *address, u32 *offset)
 	debug("Second Container Header Address: 0x%lx\n", (long unsigned int)nd_cont_header);
 
 	if (address[0] != AHAB_VERSION || address[3] != AHAB_AUTH_CONTAINER_TAG) {
-		printf("Tag does not match as expected\n");
+		debug("Tag does not match as expected\n");
 		return -EINVAL;
 	}
 
@@ -326,7 +326,7 @@ int get_dek_blob_offset(char *address, u32 *offset)
 int get_dek_blob_size(char *address, u32 *size)
 {
 	if (address[0] != AHAB_VERSION || address[3] != AHAB_AUTH_BLOB_TAG) {
-		printf("Tag does not match as expected\n");
+		debug("Tag does not match as expected\n");
 		return -EINVAL;
 	}
 
