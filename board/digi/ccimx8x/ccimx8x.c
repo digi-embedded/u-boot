@@ -16,6 +16,7 @@
 #include <asm/arch-imx/cpu.h>
 #include <asm/arch-imx8/sci/sci.h>
 #include <asm/mach-imx/boot_mode.h>
+#include <stdlib.h>
 
 #include "../common/helper.h"
 #include "../common/hwid.h"
@@ -284,11 +285,6 @@ void board_print_trustfence_jtag_key(u32 *sjc)
 #define AHAB_AUTH_BLOB_TAG		0x81
 #define AHAB_VERSION			0x00
 
-int get_dek_blob(char *output, u32 *size)
-{
-	return 1;
-}
-
 int get_dek_blob_offset(char *address, u32 *offset)
 {
 	char *nd_cont_header;
@@ -332,6 +328,87 @@ int get_dek_blob_size(char *address, u32 *size)
 	debug("DEK blob size is 0x%04x\n", *size);
 
 	return 0;
+}
+
+int get_dek_blob(char *output, u32 *size)
+{
+	int ret, mmc_dev_index, mmc_part;
+	disk_partition_t info;
+	struct blk_desc *mmc_dev;
+	uint blk_cnt, blk_start;
+	char *buffer = NULL;
+	char *dek_blob_src = NULL;
+	u32 buffer_size = 0;
+	u32 dek_blob_size = 0;
+	u32 dek_blob_offset = 0;
+
+	/* Obtain storage media settings */
+	mmc_dev_index = env_get_ulong("mmcbootdev", 0, mmc_get_bootdevindex());
+	if (mmc_dev_index == EMMC_BOOT_DEV) {
+		mmc_part = env_get_ulong("mmcbootpart", 0, EMMC_BOOT_PART);
+	} else {
+		/*
+		 * When booting from an SD card there is
+		 * a unique hardware partition: 0
+		 */
+		mmc_part = 0;
+	}
+	mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC, mmc_dev_index);
+	if (NULL == mmc_dev) {
+		debug("Cannot determine sys storage device\n");
+		return CMD_RET_FAILURE;
+	}
+	calculate_uboot_update_settings(mmc_dev, &info);
+	blk_start = info.start;
+	/* Second Container Header is set with a 1KB padding + 3KB Header info */
+	buffer_size = SZ_4K;
+	blk_cnt = buffer_size / mmc_dev->blksz;
+
+	/* Initialize boot partition */
+	ret = blk_select_hwpart_devnum(IF_TYPE_MMC, mmc_dev_index, mmc_part);
+	if (ret != 0) {
+		debug("Error to switch to partition %d on dev %d (%d)\n",
+			  mmc_part, mmc_dev_index, ret);
+		return CMD_RET_FAILURE;
+	}
+
+	/* Read from boot media */
+	buffer = malloc(roundup(buffer_size, mmc_dev->blksz));
+	if (!buffer)
+		return -ENOMEM;
+	debug("MMC read: dev # %u, block # %u, count %u ...\n",
+	       mmc_dev_index, blk_start, blk_cnt);
+	if (!blk_dread(mmc_dev, blk_start, blk_cnt, buffer)) {
+		ret = CMD_RET_FAILURE;
+		goto sanitize;
+	}
+
+	/* Recover DEK blob placed into the Signature Block */
+	debug("Recovering DEK blob...\n");
+	ret = get_dek_blob_offset(buffer, &dek_blob_offset);
+	if (ret != 0) {
+		debug("Error getting the DEK Blob offset (%d)\n", ret);
+		goto sanitize;
+	}
+
+	/* Obtain the DEK Blob size */
+	dek_blob_src = buffer + dek_blob_offset;
+	ret = get_dek_blob_size(dek_blob_src, &dek_blob_size);
+	if (ret != 0) {
+		debug("Error getting the DEK Blob size (%d)\n", ret);
+		goto sanitize;
+	}
+
+	/* Save DEK Blob */
+	memcpy(output, dek_blob_src, dek_blob_size);
+
+sanitize:
+	/* Sanitize memory */
+	memset(buffer, '\0', sizeof(buffer));
+	free(buffer);
+	buffer = NULL;
+
+	return ret;
 }
 
 /*
