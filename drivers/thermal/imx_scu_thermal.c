@@ -57,9 +57,9 @@ int imx_sc_thermal_get_temp(struct udevice *dev, int *temp)
 	if (ret)
 		return ret;
 
-	while (cpu_temp >= pdata->alert) {
-		printf("CPU Temperature (%dC) has beyond alert (%dC), close to critical (%dC)",
-		       cpu_temp, pdata->alert, pdata->critical);
+	while (cpu_temp >= pdata->critical) {
+		printf("CPU Temperature (%dC) is beyond critical (%dC)",
+		       cpu_temp, pdata->critical);
 		puts(" waiting...\n");
 		mdelay(pdata->polling_delay);
 		ret = read_temperature(dev, &cpu_temp);
