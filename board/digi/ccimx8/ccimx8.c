@@ -290,14 +290,14 @@ void som_default_environment(void)
 
 	/* Set module_ram variable */
 	if (my_hwid.ram) {
-		int ram = hwid_get_ramsize(&my_hwid);
+		u32 ram = hwid_get_ramsize(&my_hwid);
 
 		if (ram >= SZ_1G) {
 			ram /= SZ_1G;
-			snprintf(var, sizeof(var), "%dGB", ram);
+			snprintf(var, sizeof(var), "%uGB", ram);
 		} else {
 			ram /= SZ_1M;
-			snprintf(var, sizeof(var), "%dMB", ram);
+			snprintf(var, sizeof(var), "%uMB", ram);
 		}
 		env_set("module_ram", var);
 	}
