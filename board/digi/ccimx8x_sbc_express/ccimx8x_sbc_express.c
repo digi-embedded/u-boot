@@ -189,6 +189,7 @@ int checkboard(void)
 	print_som_info();
 	print_carrierboard_info();
 	print_bootinfo();
+	build_info();
 
 #ifdef SCI_FORCE_ABORT
 	sc_rpc_msg_t abort_msg;
