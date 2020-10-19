@@ -34,7 +34,7 @@ extern struct dram_timing_info dram_timing_512M;
 void spl_dram_init(void)
 {
 	/* Default to RAM size of DVK variant 0x01 (1 GiB) */
-	int ram = SZ_1G;
+	u32 ram = SZ_1G;
 	struct digi_hwid my_hwid;
 
 	if (board_read_hwid(&my_hwid)) {

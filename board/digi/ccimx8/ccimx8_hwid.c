@@ -89,7 +89,7 @@ void board_print_hwid(struct digi_hwid *hwid)
 	printf("    Variant:       0x%02x\n", hwid->variant);
 	/* New fields (supported if 'RAM' field != 0) */
 	if (hwid->ram) {
-		printf("      RAM:         %d MiB\n", ram_sizes_mb[hwid->ram]);
+		printf("      RAM:         %u MiB\n", ram_sizes_mb[hwid->ram]);
 		printf("      Wi-Fi:       %s\n", hwid->wifi ? "yes" : "-");
 		printf("      Bluetooth:   %s\n", hwid->bt ? "yes" : "-");
 		printf("      Crypto-chip: %s\n", hwid->crypto ? "yes" : "-");
@@ -414,7 +414,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 		}
 		hwid->crypto = v;
 	}
-	printf("    RAM:           %d MiB\n", ram_sizes_mb[hwid->ram]);
+	printf("    RAM:           %u MiB\n", ram_sizes_mb[hwid->ram]);
 	printf("    Wi-Fi:         %s\n", hwid->wifi ? "yes" : "-");
 	printf("    Bluetooth:     %s\n", hwid->bt ? "yes" : "-");
 	printf("    Crypto-chip:   %s\n", hwid->crypto ? "yes" : "-");
@@ -483,7 +483,7 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 		/* capabilties fields */
 		else if (capabilities &&
 			 !strcmp("digi,hwid,ram_mb", propnames[i]))
-			sprintf(str, "%d", ram_sizes_mb[hwid->ram]);
+			sprintf(str, "%u", ram_sizes_mb[hwid->ram]);
 		else if (capabilities &&
 			 (((!strcmp("digi,hwid,has-mca", propnames[i]) &&
 			   hwid->mca) ||
@@ -508,7 +508,7 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 	}
 }
 
-int hwid_get_ramsize(const struct digi_hwid *hwid)
+u32 hwid_get_ramsize(const struct digi_hwid *hwid)
 {
 	return ram_sizes_mb[hwid->ram] * SZ_1M;
 }
