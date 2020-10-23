@@ -4,7 +4,7 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2020.04
 -----------
-dub-2020.04-r1.2, released on 2020/10/16
+dub-2020.04-r1.3, released on 2020/10/23
 	- Update BSP to NXP tag 'rel_imx_5.4.24_2.1.0'.
 	- TrustFence: add support to secure console.
 	- TrustFence: add support to environment encryption.
