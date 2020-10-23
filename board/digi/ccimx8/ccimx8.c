@@ -121,8 +121,8 @@ void generate_partition_table(void)
 	if (mmc)
 		capacity_gb = mmc->capacity / SZ_1G;
 
-	/* eMMC capacity is not exact, so asume 16GB if larger than 15GB */
-	if (capacity_gb >= 15) {
+	/* eMMC capacity is not exact, so asume 16GB if larger than 14GB */
+	if (capacity_gb >= 14) {
 		linux_partition_table = LINUX_16GB_PARTITION_TABLE;
 		android_partition_table = ANDROID_16GB_PARTITION_TABLE;
 	} else if (capacity_gb >= 7) {
