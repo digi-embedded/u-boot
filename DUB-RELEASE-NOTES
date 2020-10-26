@@ -4,6 +4,15 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2017.03
 -----------
+dub-2017.03-r7.1, released on 2020/10/01
+	- Fix wrong VBCORE1 and VBCORE2 voltages on ConnectCore 6.
+	- Increase uboot partition of ConnectCore 6UL to 5MiB to support 256K
+	  eraseblock NANDs.
+	- Extend nand_decode_ext_id for Micron flashes.
+	- Other minor fixes.
+
+
+
 dub-2017.03-r6.2, released on 2020/06/25
 	- Increase VBCORE1 and VBCORE2 to 1.45V on ConnectCore6 to account for
 	  tolerance of the regulators.

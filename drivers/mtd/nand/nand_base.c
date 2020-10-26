@@ -3501,6 +3501,16 @@ static void nand_decode_ext_id(struct mtd_info *mtd, struct nand_chip *chip,
 				break;
 			}
 		}
+
+		if (id_data[0] == NAND_MFR_MICRON) {
+			switch (id_data[1]) {
+			case 0xda:
+				mtd->oobsize = 64;
+				chip->ecc_strength_ds = 4;
+				chip->ecc_step_ds = 512;
+				break;
+			}
+		}
 	}
 }
 
