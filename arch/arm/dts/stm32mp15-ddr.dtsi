@@ -4,17 +4,30 @@
  */
 #include <linux/stringify.h>
 
+#ifdef CONFIG_SPL
 &ddr {
+	clocks = <&rcc AXIDCG>,
+		 <&rcc DDRC1>,
+		 <&rcc DDRC2>,
+		 <&rcc DDRPHYC>,
+		 <&rcc DDRCAPB>,
+		 <&rcc DDRPHYCAPB>;
+
+	clock-names = "axidcg",
+		      "ddrc1",
+		      "ddrc2",
+		      "ddrphyc",
+		      "ddrcapb",
+		      "ddrphycapb";
+
 	config-DDR_MEM_COMPATIBLE {
 		u-boot,dm-pre-reloc;
-
 		compatible = __stringify(st,DDR_MEM_COMPATIBLE);
 
 		st,mem-name = DDR_MEM_NAME;
 		st,mem-speed = <DDR_MEM_SPEED>;
 		st,mem-size = <DDR_MEM_SIZE>;
 
-#ifdef CONFIG_SPL
 		st,ctl-reg = <
 			DDR_MSTR
 			DDR_MRCTRL0
@@ -116,10 +129,11 @@
 			DDR_MR2
 			DDR_MR3
 		>;
-#endif
+
 		status = "okay";
 	};
 };
+#endif
 
 #undef DDR_MEM_COMPATIBLE
 #undef DDR_MEM_NAME
