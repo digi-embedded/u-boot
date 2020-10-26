@@ -12,7 +12,7 @@
 
 #ifdef CONFIG_HAS_TRUSTFENCE
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
-int console_enable_gpio(int gpio);
+int console_enable_gpio(const char *name);
 #endif
 #ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
 int console_enable_passphrase(void);

@@ -35,6 +35,7 @@
 #include "../common/mca_registers.h"
 #include "../common/mca.h"
 #include "../common/tamper.h"
+#include "../common/trustfence.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -53,15 +54,45 @@ static iomux_v3_cfg_t const wdog_pads[] = {
 	IMX8MN_PAD_GPIO1_IO02__WDOG1_WDOG_B  | MUX_PAD_CTRL(WDOG_PAD_CTRL),
 };
 
+#if defined(CONFIG_CONSOLE_ENABLE_GPIO) && !defined(CONFIG_SPL_BUILD)
+#define GPI_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_FSEL2 | PAD_CTL_PE)
+
+static iomux_v3_cfg_t const ext_gpios_pads[] = {
+	IMX8MN_PAD_GPIO1_IO10__GPIO1_IO10 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	IMX8MN_PAD_GPIO1_IO11__GPIO1_IO11 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	IMX8MN_PAD_GPIO1_IO13__GPIO1_IO13 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	IMX8MN_PAD_GPIO1_IO14__GPIO1_IO14 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+};
+#endif /* CONFIG_CONSOLE_ENABLE_GPIO && !CONFIG_SPL_BUILD */
+
 int board_early_init_f(void)
 {
 	struct wdog_regs *wdog = (struct wdog_regs *)WDOG1_BASE_ADDR;
+#if defined(CONFIG_CONSOLE_ENABLE_GPIO) && !defined(CONFIG_SPL_BUILD)
+	const char *ext_gpios[] = {
+		"GPIO1_10",	/* J46.3 */
+		"GPIO1_11",	/* J46.5 */
+		"GPIO1_13",	/* J46.7 */
+		"GPIO1_14",	/* J46.9 */
+	};
+	const char *ext_gpio_name = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
+	imx_iomux_v3_setup_multiple_pads(ext_gpios_pads,
+					 ARRAY_SIZE(ext_gpios_pads));
+#endif /* CONFIG_CONSOLE_ENABLE_GPIO && !CONFIG_SPL_BUILD */
 
 	imx_iomux_v3_setup_multiple_pads(wdog_pads, ARRAY_SIZE(wdog_pads));
 
 	set_wdog_reset(wdog);
 
 	imx_iomux_v3_setup_multiple_pads(uart_pads, ARRAY_SIZE(uart_pads));
+
+#ifdef CONFIG_CONSOLE_DISABLE
+	gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#if defined(CONFIG_CONSOLE_ENABLE_GPIO) && !defined(CONFIG_SPL_BUILD)
+	if (console_enable_gpio(ext_gpio_name))
+		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#endif /* CONFIG_CONSOLE_ENABLE_GPIO && !CONFIG_SPL_BUILD */
+#endif /* CONFIG_CONSOLE_DISABLE */
 
 	return 0;
 }
@@ -91,6 +122,9 @@ void platform_default_environment(void)
 
 int board_late_init(void)
 {
+	/* SOM late init */
+	ccimx8_late_init();
+
 	/* Set default dynamic variables */
 	platform_default_environment();
 
@@ -219,6 +253,7 @@ int checkboard(void)
 	print_som_info();
 	print_carrierboard_info();
 	print_bootinfo();
+	build_info();
 
 	return 0;
 }

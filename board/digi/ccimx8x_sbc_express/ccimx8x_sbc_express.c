@@ -21,6 +21,7 @@
 #include "../ccimx8/ccimx8.h"
 #include "../common/carrier_board.h"
 #include "../common/helper.h"
+#include "../common/trustfence.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -56,6 +57,20 @@ static iomux_cfg_t uart2_pads[] = {
 	SC_P_UART2_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
 };
 
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+#define GPI_PAD_CTRL	((SC_PAD_CONFIG_NORMAL << PADRING_CONFIG_SHIFT) | \
+			(SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
+			(SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) | \
+			(SC_PAD_28FDSOI_PS_PD << PADRING_PULL_SHIFT))
+
+static iomux_cfg_t const ext_gpios_pads[] = {
+	SC_P_FLEXCAN1_RX | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPI_PAD_CTRL),	/* GPIO1_IO17 */
+	SC_P_FLEXCAN1_TX | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPI_PAD_CTRL),	/* GPIO1_IO18 */
+	SC_P_FLEXCAN2_RX | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPI_PAD_CTRL),	/* GPIO1_IO19 */
+	SC_P_FLEXCAN2_TX | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPI_PAD_CTRL),	/* GPIO1_IO20 */
+};
+#endif /* CONFIG_CONSOLE_ENABLE_GPIO */
+
 static void setup_iomux_uart(void)
 {
 	imx8_iomux_setup_multiple_pads(uart2_pads, ARRAY_SIZE(uart2_pads));
@@ -64,6 +79,17 @@ static void setup_iomux_uart(void)
 int board_early_init_f(void)
 {
 	int ret;
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+	const char *ext_gpios[] = {
+		"GPIO1_17",	/* J11.7 */
+		"GPIO1_18",	/* J11.11 */
+		"GPIO1_19",	/* J11.40 */
+		"GPIO1_20",	/* J11.13 */
+	};
+	const char *ext_gpio_name = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
+	imx8_iomux_setup_multiple_pads(ext_gpios_pads,
+				       ARRAY_SIZE(ext_gpios_pads));
+#endif /* CONFIG_CONSOLE_ENABLE_GPIO */
 
 	/* Power up UART2 */
 	ret = sc_pm_set_resource_power_mode(-1, SC_R_UART_2, SC_PM_PW_MODE_ON);
@@ -82,6 +108,14 @@ int board_early_init_f(void)
 		return ret;
 
 	setup_iomux_uart();
+
+#ifdef CONFIG_CONSOLE_DISABLE
+	gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+	if (console_enable_gpio(ext_gpio_name))
+		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#endif /* CONFIG_CONSOLE_ENABLE_GPIO */
+#endif /* CONFIG_CONSOLE_DISABLE */
 
 	return 0;
 }
@@ -110,16 +144,6 @@ static void enet_device_phy_reset(void)
 		dm_gpio_set_value(&desc, 1);
 		dm_gpio_free(dev, &desc);
 	}
-}
-
-int board_phy_config(struct phy_device *phydev)
-{
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x8190);
-
-	if (phydev->drv->config)
-		phydev->drv->config(phydev);
-
-	return 0;
 }
 
 static int setup_fec(int ind)
@@ -165,6 +189,7 @@ int checkboard(void)
 	print_som_info();
 	print_carrierboard_info();
 	print_bootinfo();
+	build_info();
 
 #ifdef SCI_FORCE_ABORT
 	sc_rpc_msg_t abort_msg;
@@ -262,6 +287,9 @@ void platform_default_environment(void)
 
 int board_late_init(void)
 {
+	/* SOM late init */
+	ccimx8_late_init();
+
 	/* Set default dynamic variables */
 	platform_default_environment();
 

@@ -687,21 +687,21 @@ const char *get_filename_ext(const char *filename)
 	return dot + 1;
 }
 
-#define STR_HEX_CHUNK			8
 /*
  * Convert string with hexadecimal characters into a hex number
  * @in: Pointer to input string
- * @out Pointer to output number array
+ * @out Pointer to output char array
  * @len Number of elements in the output array
 */
-void strtohex(char *in, unsigned long *out, int len)
+void strtohex(char *in, unsigned char *out, int len)
 {
-	char tmp[] = "ffffffff";
+	char tmp[3];
 	int i, j;
 
-	for (i = 0, j = 0; j < len; i += STR_HEX_CHUNK, j++) {
-		strncpy(tmp, &in[i], STR_HEX_CHUNK);
-		out[j] = cpu_to_be32(simple_strtol(tmp, NULL, 16));
+	for (i = 0, j = 0; j < len; i+=2, j++) {
+		strncpy(tmp, &in[i], 2);
+		tmp[2] = '\0';
+		out[j] = simple_strtoul(tmp, NULL, 16);
 	}
 }
 

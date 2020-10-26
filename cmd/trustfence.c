@@ -326,15 +326,30 @@ __weak void board_print_trustfence_jtag_key(u32 *sjc)
 }
 
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
-int console_enable_gpio(int gpio)
+/*
+ * Enable console when selected GPIO level is HIGH
+ * @name: Name of the GPIO to read
+ *
+ * Returns the GPIO level on success and 0 on error.
+ */
+int console_enable_gpio(const char *name)
 {
+	struct gpio_desc desc;
 	int ret = 0;
 
-	if (gpio_request(gpio, "console_enable") == 0) {
-		ret = gpio_get_value(gpio);
-		gpio_free(gpio);
-	}
+	if (dm_gpio_lookup_name(name, &desc))
+		goto error;
 
+	if (dm_gpio_request(&desc, "Console enable"))
+		goto error;
+
+	if (dm_gpio_set_dir_flags(&desc, GPIOD_IS_IN))
+		goto errfree;
+
+	ret = dm_gpio_get_value(&desc);
+errfree:
+	dm_gpio_free(NULL, &desc);
+error:
 	return ret;
 }
 #endif
@@ -420,7 +435,7 @@ int console_enable_passphrase(void)
 {
 	char *pp = NULL;
 	unsigned char *sha256_pp = NULL;
-	unsigned long *pp_hash = NULL;
+	unsigned char *pp_hash = NULL;
 	int ret = -EINVAL;
 
 	pp = malloc(MAX_PP_LEN + 1);
@@ -453,7 +468,7 @@ int console_enable_passphrase(void)
 
 	memset(pp_hash, 0, SHA256_HASH_LEN);
 	strtohex(CONFIG_CONSOLE_ENABLE_PASSPHRASE_KEY, pp_hash,
-		 SHA256_HASH_LEN/sizeof(unsigned long));
+		 SHA256_HASH_LEN);
 	ret = memcmp(sha256_pp, pp_hash, SHA256_HASH_LEN);
 
 	free(pp_hash);

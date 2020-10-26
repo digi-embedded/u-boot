@@ -100,7 +100,7 @@ static iomux_v3_cfg_t const ext_gpios_pads[] = {
 	MX6_PAD_JTAG_TRST_B__GPIO1_IO15 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 	MX6_PAD_JTAG_TCK__GPIO1_IO14 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 };
-#endif
+#endif /* CONFIG_CONSOLE_ENABLE_GPIO */
 
 /* micro SD */
 static iomux_v3_cfg_t const usdhc2_pads[] = {
@@ -313,17 +313,6 @@ static int setup_fec(int fec_id)
 
 	return 0;
 }
-
-int board_phy_config(struct phy_device *phydev)
-{
-
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x8190);
-
-	if (phydev->drv->config)
-		phydev->drv->config(phydev);
-
-	return 0;
-}
 #endif
 
 #ifdef CONFIG_USB_EHCI_MX6
@@ -366,41 +355,31 @@ int board_ehci_hcd_init(int port)
 }
 #endif
 
-#ifdef CONFIG_CONSOLE_ENABLE_GPIO
-static void setup_iomux_ext_gpios(void)
-{
-	imx_iomux_v3_setup_multiple_pads(ext_gpios_pads,
-					 ARRAY_SIZE(ext_gpios_pads));
-}
-#endif
-
 int board_early_init_f(void)
 {
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
-	int ext_gpios[] =  {
-		IMX_GPIO_NR(1, 4),
-		IMX_GPIO_NR(1, 12),
-		IMX_GPIO_NR(1, 13),
-		IMX_GPIO_NR(1, 11),
-		IMX_GPIO_NR(1, 15),
-		IMX_GPIO_NR(1, 14),
+	const char *ext_gpios[] = {
+		"GPIO1_4",	/* J8.7 */
+		"GPIO1_12",	/* J8.35 */
+		"GPIO1_13",	/* J8.12 */
+		"GPIO1_11",	/* J8.16 */
+		"GPIO1_15",	/* J8.38 */
+		"GPIO1_14",	/* J8.40 */
 	};
-	int console_enable_gpio_nr = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
-
-	setup_iomux_ext_gpios();
-	gpio_request(console_enable_gpio_nr, "Console enable");
-	gpio_direction_input(console_enable_gpio_nr);
-#endif
+	const char *ext_gpio_name = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
+	imx_iomux_v3_setup_multiple_pads(ext_gpios_pads,
+					 ARRAY_SIZE(ext_gpios_pads));
+#endif /* CONFIG_CONSOLE_ENABLE_GPIO */
 
 	setup_iomux_uart();
 
 #ifdef CONFIG_CONSOLE_DISABLE
 	gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
-	if (console_enable_gpio(console_enable_gpio_nr))
+	if (console_enable_gpio(ext_gpio_name))
 		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
-#endif
-#endif
+#endif /* CONFIG_CONSOLE_ENABLE_GPIO */
+#endif /* CONFIG_CONSOLE_DISABLE */
 
 	return 0;
 }

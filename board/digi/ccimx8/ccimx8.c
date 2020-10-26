@@ -121,8 +121,8 @@ void generate_partition_table(void)
 	if (mmc)
 		capacity_gb = mmc->capacity / SZ_1G;
 
-	/* eMMC capacity is not exact, so asume 16GB if larger than 15GB */
-	if (capacity_gb >= 15) {
+	/* eMMC capacity is not exact, so asume 16GB if larger than 14GB */
+	if (capacity_gb >= 14) {
 		linux_partition_table = LINUX_16GB_PARTITION_TABLE;
 		android_partition_table = ANDROID_16GB_PARTITION_TABLE;
 	} else if (capacity_gb >= 7) {
@@ -290,14 +290,14 @@ void som_default_environment(void)
 
 	/* Set module_ram variable */
 	if (my_hwid.ram) {
-		int ram = hwid_get_ramsize(&my_hwid);
+		u32 ram = hwid_get_ramsize(&my_hwid);
 
 		if (ram >= SZ_1G) {
 			ram /= SZ_1G;
-			snprintf(var, sizeof(var), "%dGB", ram);
+			snprintf(var, sizeof(var), "%uGB", ram);
 		} else {
 			ram /= SZ_1M;
-			snprintf(var, sizeof(var), "%dMB", ram);
+			snprintf(var, sizeof(var), "%uMB", ram);
 		}
 		env_set("module_ram", var);
 	}
@@ -335,6 +335,19 @@ void board_update_hwid(bool is_fuse)
 
 	mca_somver_update(&my_hwid);
 	som_default_environment();
+}
+
+int ccimx8_late_init(void)
+{
+#ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
+	gd->flags &= ~GD_FLG_DISABLE_CONSOLE_INPUT;
+	if (!console_enable_passphrase())
+		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+	else
+		gd->flags |= GD_FLG_DISABLE_CONSOLE_INPUT;
+#endif
+
+	return 0;
 }
 
 void fdt_fixup_ccimx8(void *fdt)
