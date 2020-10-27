@@ -253,7 +253,6 @@ int checkboard(void)
 	print_som_info();
 	print_carrierboard_info();
 	print_bootinfo();
-	build_info();
 
 	return 0;
 }
