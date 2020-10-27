@@ -16,17 +16,13 @@
 # SPDX-License-Identifier:      GPL-2.0+
 #
 
-ifdef CONFIG_SPL_BUILD
-# necessary to create built-in.o
-obj- := __dummy__.o
-else
+ifndef CONFIG_SPL_BUILD
 $(if $(CONFIG_CMD_BOOTSTREAM), $(shell mkdir -p $(obj)cmd_bootstream))
 obj-$(CONFIG_CMD_BOOTSTREAM) += cmd_bootstream/bch.o \
 				cmd_bootstream/ncb.o \
 				cmd_bootstream/cmd_bootstream.o \
 				cmd_bootstream/mxsboot.o
 obj-$(CONFIG_MXS_OTP) += cmd_mxsotp.o
-obj-$(CONFIG_HAS_HWID) += hwid.o
 obj-y += carrier_board.o
 obj-$(CONFIG_AUTO_BOOTSCRIPT) += helper.o
 obj-$(CONFIG_CMD_UPDATE_MMC) += helper.o helper_mmc.o
@@ -36,4 +32,5 @@ obj-$(CONFIG_CMD_DIGI_PMIC) += cmd_pmic.o
 obj-$(CONFIG_MCA_TAMPER) += tamper.o
 obj-$(CONFIG_SIGN_IMAGE) += auth.o
 endif
+obj-$(CONFIG_HAS_HWID) += hwid.o
 obj-$(CONFIG_MCA) += mca.o
