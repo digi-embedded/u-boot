@@ -94,6 +94,9 @@ int board_early_init_f(void)
 #endif /* CONFIG_CONSOLE_ENABLE_GPIO && !CONFIG_SPL_BUILD */
 #endif /* CONFIG_CONSOLE_DISABLE */
 
+	/* Init UART0 clock */
+	init_uart_clk(0);
+
 	return 0;
 }
 
