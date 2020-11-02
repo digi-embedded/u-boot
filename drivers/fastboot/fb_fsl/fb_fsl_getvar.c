@@ -223,6 +223,10 @@ static int get_single_var(char *cmd, char *response)
 	} else if (!strcmp_l1("erase-block-size", cmd)) {
 		mmc_dev_no = mmc_get_env_dev();
 		mmc = find_mmc_device(mmc_dev_no);
+		if (!mmc) {
+			strncat(response, "FAILCannot get dev", chars_left);
+			return -1;
+		}
 		blksz = get_block_size();
 		snprintf(response + strlen(response), chars_left, "0x%x",
 				(blksz * mmc->erase_grp_size));
@@ -452,7 +456,7 @@ void fastboot_getvar(char *cmd, char *response)
 	int status = 0;
 	int count = 0;
 	char var_name[FASTBOOT_RESPONSE_LEN];
-	char partition_base_name[MAX_PTN][16];
+	char partition_base_name[MAX_PTN][20];
 	char slot_suffix[2][5] = {"a","b"};
 
 	if (!cmd) {

@@ -49,6 +49,7 @@
 #endif
 
 #include "fb_fsl_common.h"
+#include "fb_fsl_virtual_ab.h"
 
 #define EP_BUFFER_SIZE			4096
 
@@ -380,6 +381,7 @@ static void wipe_all_userdata(void)
 	rbkidx_erase();
 	printf("Wipe stored_rollback_index completed.\n");
 #endif
+	process_erase_mmc(FASTBOOT_PARTITION_METADATA, response);
 	printf("Wipe userdata completed.\n");
 }
 
@@ -402,13 +404,21 @@ static FbLockState do_fastboot_unlock(bool force)
 			char *serial = get_serial();
 			status = trusty_verify_secure_unlock(fastboot_buf_addr,
 								fastboot_bytes_received,
-								serial, 16);
+								(uint8_t *)serial, 16);
 			if (status < 0) {
 				printf("verify secure unlock credential fail due Trusty return %d\n", status);
 				return FASTBOOT_LOCK_ERROR;
 			}
 		}
 #endif
+
+#ifdef CONFIG_VIRTUAL_AB_SUPPORT
+		if (virtual_ab_update_is_merging() || virtual_ab_update_is_snapshoted()) {
+			printf("Can not erase userdata while a snapshot update is in progress!\n");
+			return FASTBOOT_LOCK_ERROR;
+		}
+#endif
+
 		wipe_all_userdata();
 		status = fastboot_set_lock_stat(FASTBOOT_UNLOCK);
 		if (status < 0)
@@ -429,6 +439,13 @@ static FbLockState do_fastboot_lock(void)
 		printf("The device is already locked\n");
 		return FASTBOOT_LOCK;
 	}
+
+#ifdef CONFIG_VIRTUAL_AB_SUPPORT
+		if (virtual_ab_update_is_merging() || virtual_ab_update_is_snapshoted()) {
+			printf("Can not erase userdata while a snapshot update is in progress!\n");
+			return FASTBOOT_LOCK_ERROR;
+		}
+#endif
 
 	wipe_all_userdata();
 	status = fastboot_set_lock_stat(FASTBOOT_LOCK);
@@ -734,6 +751,20 @@ static void set_active_avb(char *cmd, char *response)
 		return;
 	}
 
+#ifdef CONFIG_VIRTUAL_AB_SUPPORT
+	if (virtual_ab_update_is_merging()) {
+		printf("Can not switch slot while snapshot merge is in progress!\n");
+		fastboot_fail("Snapshot merge is in progress!", response);
+		return;
+	}
+
+	/* Only output a warning when the image is snapshoted. */
+	if (virtual_ab_update_is_snapshoted())
+		printf("Warning: changing the active slot with a snapshot applied may cancel the update!\n");
+	else
+		printf("Warning: Virtual A/B is enabled, switch slot may make the system fail to boot. \n");
+#endif
+
 	slot = slotidx_from_suffix(cmd);
 
 	if (slot < 0) {
@@ -741,7 +772,7 @@ static void set_active_avb(char *cmd, char *response)
 		return;
 	}
 
-	ret = avb_ab_mark_slot_active(&fsl_avb_ab_ops, slot);
+	ret = fsl_avb_ab_mark_slot_active(&fsl_avb_ab_ops, slot);
 	if (ret != AVB_IO_RESULT_OK)
 		fastboot_fail("avb IO error", response);
 	else
@@ -778,8 +809,22 @@ static void flash(char *cmd, char *response)
 	}
 #endif
 
+#ifdef CONFIG_VIRTUAL_AB_SUPPORT
+	if (partition_is_protected_during_merge(cmd)) {
+		printf("Can not flash partition %s while a snapshot update is in progress!\n", cmd);
+		fastboot_fail("Snapshot update is in progress", response);
+		return;
+	}
+#endif
+
 	fastboot_process_flash(cmd, fastboot_buf_addr,
 		fastboot_bytes_received, response);
+
+#ifdef CONFIG_VIRTUAL_AB_SUPPORT
+	/* Cancel virtual AB update after image flash */
+	if (virtual_ab_update_is_merging() || virtual_ab_update_is_snapshoted())
+		virtual_ab_cancel_update();
+#endif
 
 #if defined(CONFIG_FASTBOOT_LOCK)
 	if (strncmp(cmd, "gpt", 3) == 0) {
@@ -820,6 +865,15 @@ static void erase(char *cmd, char *response)
 		return;
 	}
 #endif
+
+#ifdef CONFIG_VIRTUAL_AB_SUPPORT
+	if (partition_is_protected_during_merge(cmd)) {
+		printf("Can not erase partition %s while a snapshot update is in progress!", cmd);
+		fastboot_fail("Snapshot update is in progress", response);
+		return;
+	}
+#endif
+
 	fastboot_process_erase(cmd, response);
 }
 #endif
@@ -875,11 +929,18 @@ void fastboot_acmd_complete(void)
  */
 static void run_acmd(char *cmd_parameter, char *response)
 {
-        if (!cmd_parameter) {
-                pr_err("missing slot suffix\n");
-                fastboot_fail("missing command", response);
-                return;
-        }
+	if (!cmd_parameter) {
+		pr_err("missing slot suffix\n");
+		fastboot_fail("missing command", response);
+		return;
+	}
+
+	if (strlen(cmd_parameter) >= sizeof(g_a_cmd_buff)) {
+		pr_err("input acmd is too long\n");
+		fastboot_fail("too long command", response);
+		return;
+	}
+
 	strcpy(g_a_cmd_buff, cmd_parameter);
 	fastboot_okay(NULL, response);
 }
@@ -922,16 +983,8 @@ static const struct {
 			.command = "UCmd",
 			.dispatch = run_ucmd,
 		},
-		[FASTBOOT_COMMAND_OEM_UCMD] = {
-			.command = "oem ucmd",
-			.dispatch = run_ucmd,
-		},
 		[FASTBOOT_COMMAND_ACMD] = {
 			.command ="ACmd",
-			.dispatch = run_acmd,
-		},
-		[FASTBOOT_COMMAND_OEM_ACMD] = {
-			.command = "oem acmd",
 			.dispatch = run_acmd,
 		},
 #endif

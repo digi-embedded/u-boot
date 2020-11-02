@@ -50,6 +50,8 @@
 #define FASTBOOT_MCU_FIRMWARE_PARTITION "mcu_os"
 #endif
 
+#define FASTBOOT_PARTITION_METADATA "metadata"
+
 #ifdef CONFIG_ANDROID_AB_SUPPORT
 #define FASTBOOT_PARTITION_BOOT_A "boot_a"
 #define FASTBOOT_PARTITION_RECOVERY "recovery"
@@ -226,7 +228,7 @@ bool fastboot_parts_is_slot(void);
 bool fastboot_parts_is_raw(struct fastboot_ptentry *ptn);
 
 /*get partition base name from gpt without "_a/_b"*/
-int fastboot_parts_get_name(char (*partition_base_name)[16]);
+int fastboot_parts_get_name(char (*partition_base_name)[20]);
 
 void fastboot_load_partitions(void);
 

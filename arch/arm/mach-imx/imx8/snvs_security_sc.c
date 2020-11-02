@@ -23,9 +23,12 @@
 #include <log.h>
 #include <stddef.h>
 #include <common.h>
+#include <console.h>
 #include <asm/arch/sci/sci.h>
 #include <asm/arch-imx8/imx8-pins.h>
 #include <asm/arch-imx8/snvs_security_sc.h>
+#include <asm/arch/sys_proto.h>
+#include "snvs_security_sc_conf_board.h"
 
 #define SC_WRITE_CONF 1
 
@@ -33,258 +36,17 @@
 #define SRTC_EN 0x1
 #define DP_EN BIT(5)
 
-struct snvs_security_sc_conf {
-	struct snvs_hp_conf {
-		u32 lock;		/* HPLR - HP Lock */
-		u32 __cmd;		/* HPCOMR - HP Command */
-		u32 __ctl;		/* HPCR - HP Control */
-		u32 secvio_intcfg;	/* HPSICR - Security Violation Int
-					 * Config
-					 */
-		u32 secvio_ctl;		/* HPSVCR - Security Violation Control*/
-		u32 status;		/* HPSR - HP Status */
-		u32 secvio_status;	/* HPSVSR - Security Violation Status */
-		u32 __ha_counteriv;	/* High Assurance Counter IV */
-		u32 __ha_counter;		/* High Assurance Counter */
-		u32 __rtc_msb;		/* Real Time Clock/Counter MSB */
-		u32 __rtc_lsb;		/* Real Time Counter LSB */
-		u32 __time_alarm_msb;	/* Time Alarm MSB */
-		u32 __time_alarm_lsb;	/* Time Alarm LSB */
-	} hp;
-	struct snvs_lp_conf {
-		u32 lock;
-		u32 __ctl;
-		u32 __mstr_key_ctl;	/* Master Key Control */
-		u32 secvio_ctl;		/* Security Violation Control */
-		u32 tamper_filt_cfg;	/* Tamper Glitch Filters Configuration*/
-		u32 tamper_det_cfg;	/* Tamper Detectors Configuration */
-		u32 status;
-		u32 __srtc_msb;		/* Secure Real Time Clock/Counter MSB */
-		u32 __srtc_lsb;		/* Secure Real Time Clock/Counter LSB */
-		u32 __time_alarm;		/* Time Alarm */
-		u32 __smc_msb;		/* Secure Monotonic Counter MSB */
-		u32 __smc_lsb;		/* Secure Monotonic Counter LSB */
-		u32 __pwr_glitch_det;	/* Power Glitch Detector */
-		u32 __gen_purpose;
-		u8 __zmk[32];		/* Zeroizable Master Key */
-		u32 __rsvd0;
-		u32 __gen_purposes[4];	/* gp0_30 to gp0_33 */
-		u32 tamper_det_cfg2;	/* Tamper Detectors Configuration2 */
-		u32 tamper_det_status;	/* Tamper Detectors status */
-		u32 tamper_filt1_cfg;	/* Tamper Glitch Filter1 Configuration*/
-		u32 tamper_filt2_cfg;	/* Tamper Glitch Filter2 Configuration*/
-		u32 __rsvd1[4];
-		u32 act_tamper1_cfg;	/* Active Tamper1 Configuration */
-		u32 act_tamper2_cfg;	/* Active Tamper2 Configuration */
-		u32 act_tamper3_cfg;	/* Active Tamper3 Configuration */
-		u32 act_tamper4_cfg;	/* Active Tamper4 Configuration */
-		u32 act_tamper5_cfg;	/* Active Tamper5 Configuration */
-		u32 __rsvd2[3];
-		u32 act_tamper_ctl;	/* Active Tamper Control */
-		u32 act_tamper_clk_ctl;	/* Active Tamper Clock Control */
-		u32 act_tamper_routing_ctl1;/* Active Tamper Routing Control1 */
-		u32 act_tamper_routing_ctl2;/* Active Tamper Routing Control2 */
-	} lp;
-};
-
-static struct snvs_security_sc_conf snvs_default_config = {
-	.hp = {
-		.lock = 0x1f0703ff,
-		.secvio_intcfg = 0x8000002f,
-		.secvio_ctl = 0xC000007f,
-	},
-	.lp = {
-		.lock = 0x1f0003ff,
-		.secvio_ctl = 0x36,
-		.tamper_filt_cfg = 0,
-		.tamper_det_cfg = 0x76, /* analogic tampers
-					 * + rollover tampers
-					 */
-		.tamper_det_cfg2 = 0,
-		.tamper_filt1_cfg = 0,
-		.tamper_filt2_cfg = 0,
-		.act_tamper1_cfg = 0,
-		.act_tamper2_cfg = 0,
-		.act_tamper3_cfg = 0,
-		.act_tamper4_cfg = 0,
-		.act_tamper5_cfg = 0,
-		.act_tamper_ctl = 0,
-		.act_tamper_clk_ctl = 0,
-		.act_tamper_routing_ctl1 = 0,
-		.act_tamper_routing_ctl2 = 0,
-	}
-};
-
-static struct snvs_security_sc_conf snvs_passive_vcc_config = {
-	.hp = {
-		.lock = 0x1f0703ff,
-		.secvio_intcfg = 0x8000002f,
-		.secvio_ctl = 0xC000007f,
-	},
-	.lp = {
-		.lock = 0x1f0003ff,
-		.secvio_ctl = 0x36,
-		.tamper_filt_cfg = 0,
-		.tamper_det_cfg = 0x276, /* ET1 will trig on line at GND
-					  *  + analogic tampers
-					  *  + rollover tampers
-					  */
-		.tamper_det_cfg2 = 0,
-		.tamper_filt1_cfg = 0,
-		.tamper_filt2_cfg = 0,
-		.act_tamper1_cfg = 0,
-		.act_tamper2_cfg = 0,
-		.act_tamper3_cfg = 0,
-		.act_tamper4_cfg = 0,
-		.act_tamper5_cfg = 0,
-		.act_tamper_ctl = 0,
-		.act_tamper_clk_ctl = 0,
-		.act_tamper_routing_ctl1 = 0,
-		.act_tamper_routing_ctl2 = 0,
-	}
-};
-
-static struct snvs_security_sc_conf snvs_passive_gnd_config = {
-	.hp = {
-		.lock = 0x1f0703ff,
-		.secvio_intcfg = 0x8000002f,
-		.secvio_ctl = 0xC000007f,
-	},
-	.lp = {
-		.lock = 0x1f0003ff,
-		.secvio_ctl = 0x36,
-		.tamper_filt_cfg = 0,
-		.tamper_det_cfg = 0xa76, /* ET1 will trig on line at VCC
-					  *  + analogic tampers
-					  *  + rollover tampers
-					  */
-		.tamper_det_cfg2 = 0,
-		.tamper_filt1_cfg = 0,
-		.tamper_filt2_cfg = 0,
-		.act_tamper1_cfg = 0,
-		.act_tamper2_cfg = 0,
-		.act_tamper3_cfg = 0,
-		.act_tamper4_cfg = 0,
-		.act_tamper5_cfg = 0,
-		.act_tamper_ctl = 0,
-		.act_tamper_clk_ctl = 0,
-		.act_tamper_routing_ctl1 = 0,
-		.act_tamper_routing_ctl2 = 0,
-	}
-};
-
-static struct snvs_security_sc_conf snvs_active_config = {
-	.hp = {
-		.lock = 0x1f0703ff,
-		.secvio_intcfg = 0x8000002f,
-		.secvio_ctl = 0xC000007f,
-	},
-	.lp = {
-		.lock = 0x1f0003ff,
-		.secvio_ctl = 0x36,
-		.tamper_filt_cfg = 0x00800000, /* Enable filtering */
-		.tamper_det_cfg = 0x276, /* ET1 enabled + analogic tampers
-					  *  + rollover tampers
-					  */
-		.tamper_det_cfg2 = 0,
-		.tamper_filt1_cfg = 0,
-		.tamper_filt2_cfg = 0,
-		.act_tamper1_cfg = 0x84001111,
-		.act_tamper2_cfg = 0,
-		.act_tamper3_cfg = 0,
-		.act_tamper4_cfg = 0,
-		.act_tamper5_cfg = 0,
-		.act_tamper_ctl = 0x00010001,
-		.act_tamper_clk_ctl = 0,
-		.act_tamper_routing_ctl1 = 0x1,
-		.act_tamper_routing_ctl2 = 0,
-	}
-};
-
+#ifdef CONFIG_SNVS_SEC_SC_AUTO
 static struct snvs_security_sc_conf *get_snvs_config(void)
 {
 	return &snvs_default_config;
 }
 
-struct snvs_dgo_conf {
-	u32 tamper_offset_ctl;
-	u32 tamper_pull_ctl;
-	u32 tamper_ana_test_ctl;
-	u32 tamper_sensor_trim_ctl;
-	u32 tamper_misc_ctl;
-	u32 tamper_core_volt_mon_ctl;
-};
-
-static struct snvs_dgo_conf snvs_dgo_default_config = {
-	.tamper_misc_ctl = 0x80000000, /* Lock the DGO */
-};
-
-static struct snvs_dgo_conf snvs_dgo_passive_vcc_config = {
-	.tamper_misc_ctl = 0x80000000, /* Lock the DGO */
-	.tamper_pull_ctl = 0x00000001, /* Pull down ET1 */
-#ifdef CONFIG_TARGET_IMX8QXP_MEK
-	.tamper_ana_test_ctl = 0x20000000, /* Enable tamper */
-#endif /* CONFIG_TARGET_IMX8QXP_MEK */
-};
-
-static struct snvs_dgo_conf snvs_dgo_passive_gnd_config = {
-	.tamper_misc_ctl = 0x80000000, /* Lock the DGO */
-	.tamper_pull_ctl = 0x00000401, /* Pull up ET1 */
-#ifdef CONFIG_TARGET_IMX8QXP_MEK
-	.tamper_ana_test_ctl = 0x20000000, /* Enable tamper */
-#endif /* CONFIG_TARGET_IMX8QXP_MEK */
-};
-
-static struct snvs_dgo_conf snvs_dgo_active_config = {
-	.tamper_misc_ctl = 0x80000000, /* Lock the DGO */
-#ifdef CONFIG_TARGET_IMX8QXP_MEK
-	.tamper_ana_test_ctl = 0x20000000, /* Enable tamper */
-#endif /* CONFIG_TARGET_IMX8QXP_MEK */
-};
-
 static struct snvs_dgo_conf *get_snvs_dgo_config(void)
 {
 	return &snvs_dgo_default_config;
 }
-
-struct tamper_pin_cfg {
-	u32 pad;
-	u32 mux_conf;
-};
-
-static struct tamper_pin_cfg tamper_pin_list_default_config[] = {
-#ifdef CONFIG_TARGET_IMX8QXP_MEK
-	{SC_P_CSI_D00, 0}, /* Tamp_Out0 */
-	{SC_P_CSI_D01, 0}, /* Tamp_Out1 */
-	{SC_P_CSI_D02, 0}, /* Tamp_Out2 */
-	{SC_P_CSI_D03, 0}, /* Tamp_Out3 */
-	{SC_P_CSI_D04, 0}, /* Tamp_Out4 */
-	{SC_P_CSI_D05, 0}, /* Tamp_In0 */
-	{SC_P_CSI_D06, 0}, /* Tamp_In1 */
-	{SC_P_CSI_D07, 0}, /* Tamp_In2 */
-	{SC_P_CSI_HSYNC, 0}, /* Tamp_In3 */
-	{SC_P_CSI_VSYNC, 0}, /* Tamp_In4 */
-#endif /* CONFIG_TARGET_IMX8QXP_MEK */
-};
-
-static struct tamper_pin_cfg tamper_pin_list_passive_vcc_config[] = {
-#ifdef CONFIG_TARGET_IMX8QXP_MEK
-	{SC_P_CSI_D05, 0x1c000060}, /* Tamp_In0 */ /* Sel tamper + OD input */
-#endif /* CONFIG_TARGET_IMX8QXP_MEK */
-};
-
-static struct tamper_pin_cfg tamper_pin_list_passive_gnd_config[] = {
-#ifdef CONFIG_TARGET_IMX8QXP_MEK
-	{SC_P_CSI_D05, 0x1c000060}, /* Tamp_In0 */ /* Sel tamper + OD input */
-#endif /* CONFIG_TARGET_IMX8QXP_MEK */
-};
-
-static struct tamper_pin_cfg tamper_pin_list_active_config[] = {
-#ifdef CONFIG_TARGET_IMX8QXP_MEK
-	{SC_P_CSI_D00, 0x1a000060}, /* Tamp_Out0 */ /* Sel tamper + OD */
-	{SC_P_CSI_D05, 0x1c000060}, /* Tamp_In0 */ /* Sel tamper + OD input */
-#endif /* CONFIG_TARGET_IMX8QXP_MEK */
-};
+#endif
 
 #define TAMPER_PIN_LIST_CHOSEN tamper_pin_list_default_config
 
@@ -401,9 +163,9 @@ static int apply_snvs_config(struct snvs_security_sc_conf *cnf)
 	sciErr = check_write_secvio_config(SC_CONF_OFFSET_OF(lp.act_tamper1_cfg),
 					   &cnf->lp.act_tamper1_cfg,
 					   &cnf->lp.act_tamper2_cfg,
-					   &cnf->lp.act_tamper2_cfg,
-					   &cnf->lp.act_tamper2_cfg,
-					   &cnf->lp.act_tamper2_cfg, 5);
+					   &cnf->lp.act_tamper3_cfg,
+					   &cnf->lp.act_tamper4_cfg,
+					   &cnf->lp.act_tamper5_cfg, 5);
 	if (sciErr != SC_ERR_NONE)
 		goto exit;
 
@@ -469,9 +231,9 @@ exit:
 	return (sciErr == SC_ERR_NONE) ? 0 : -EIO;
 }
 
-static sc_err_t dgo_write(u32 _id, u8 _access, u32 *_pdata)
+static int dgo_write(u32 _id, u8 _access, u32 *_pdata)
 {
-	sc_err_t sciErr = sc_seco_secvio_dgo_config(-1, _id, _access, _pdata);
+	int sciErr = sc_seco_secvio_dgo_config(-1, _id, _access, _pdata);
 
 	if (sciErr != SC_ERR_NONE) {
 		printf("Failed to set dgo configuration\n");
@@ -483,7 +245,7 @@ static sc_err_t dgo_write(u32 _id, u8 _access, u32 *_pdata)
 
 static int apply_snvs_dgo_config(struct snvs_dgo_conf *cnf)
 {
-	sc_err_t sciErr = 0;
+	int sciErr = 0;
 
 	debug("%s\n", __func__);
 
@@ -501,28 +263,28 @@ static int apply_snvs_dgo_config(struct snvs_dgo_conf *cnf)
 			cnf->tamper_misc_ctl,
 			cnf->tamper_core_volt_mon_ctl);
 
-	dgo_write(0x04, 1, &cnf->tamper_offset_ctl);
+	sciErr = dgo_write(0x04, 1, &cnf->tamper_offset_ctl);
 	if (sciErr != SC_ERR_NONE)
 		goto exit;
 
-	dgo_write(0x14, 1, &cnf->tamper_pull_ctl);
+	sciErr = dgo_write(0x14, 1, &cnf->tamper_pull_ctl);
 	if (sciErr != SC_ERR_NONE)
 		goto exit;
 
-	dgo_write(0x24, 1, &cnf->tamper_ana_test_ctl);
+	sciErr = dgo_write(0x24, 1, &cnf->tamper_ana_test_ctl);
 	if (sciErr != SC_ERR_NONE)
 		goto exit;
 
-	dgo_write(0x34, 1, &cnf->tamper_sensor_trim_ctl);
+	sciErr = dgo_write(0x34, 1, &cnf->tamper_sensor_trim_ctl);
 	if (sciErr != SC_ERR_NONE)
 		goto exit;
 
-	dgo_write(0x54, 1, &cnf->tamper_core_volt_mon_ctl);
+	sciErr = dgo_write(0x54, 1, &cnf->tamper_core_volt_mon_ctl);
 	if (sciErr != SC_ERR_NONE)
 		goto exit;
 
 	/* Last as it could lock the writes */
-	dgo_write(0x44, 1, &cnf->tamper_misc_ctl);
+	sciErr = dgo_write(0x44, 1, &cnf->tamper_misc_ctl);
 	if (sciErr != SC_ERR_NONE)
 		goto exit;
 
@@ -530,9 +292,9 @@ exit:
 	return (sciErr == SC_ERR_NONE) ? 0 : -EIO;
 }
 
-static sc_err_t pad_write(u32 _pad, u32 _value)
+static int pad_write(u32 _pad, u32 _value)
 {
-	sc_err_t sciErr = sc_pad_set(-1, _pad, _value);
+	int sciErr = sc_pad_set(-1, _pad, _value);
 
 	if (sciErr != SC_ERR_NONE) {
 		printf("Failed to set pad configuration\n");
@@ -542,58 +304,38 @@ static sc_err_t pad_write(u32 _pad, u32 _value)
 	return sciErr;
 }
 
+static int pad_read(u32 _pad, u32 *_value)
+{
+	int sciErr = sc_pad_get(-1, _pad, _value);
+
+	if (sciErr != SC_ERR_NONE) {
+		printf("Failed to get pad configuration\n");
+		printf("Failed to get conf pad %d", _pad);
+	}
+
+	return sciErr;
+}
+
 static int apply_tamper_pin_list_config(struct tamper_pin_cfg *confs, u32 size)
 {
-	sc_err_t sciErr = 0;
+	int sciErr = 0;
 	u32 idx;
 
 	debug("%s\n", __func__);
 
 	for (idx = 0; idx < size; idx++) {
+		if (confs[idx].pad == TAMPER_NOT_DEFINED)
+			continue;
+
 		debug("\t idx %d: pad %d: 0x%.8x\n", idx, confs[idx].pad,
 		      confs[idx].mux_conf);
-		pad_write(confs[idx].pad, 3 << 30 | confs[idx].mux_conf);
+		sciErr = pad_write(confs[idx].pad, 3 << 30 | confs[idx].mux_conf);
 		if (sciErr != SC_ERR_NONE)
 			goto exit;
 	}
 
 exit:
 	return (sciErr == SC_ERR_NONE) ? 0 : -EIO;
-}
-
-int examples(void)
-{
-	u32 size;
-	struct snvs_security_sc_conf *snvs_conf;
-	struct snvs_dgo_conf *snvs_dgo_conf;
-	struct tamper_pin_cfg *tamper_pin_conf;
-
-	/* Caller */
-	snvs_conf = get_snvs_config();
-	snvs_dgo_conf = get_snvs_dgo_config();
-	tamper_pin_conf = get_tamper_pin_cfg_list(&size);
-
-	/* Default */
-	snvs_conf = &snvs_default_config;
-	snvs_dgo_conf = &snvs_dgo_default_config;
-	tamper_pin_conf = tamper_pin_list_default_config;
-
-	/* Passive tamper expecting VCC on the line */
-	snvs_conf = &snvs_passive_vcc_config;
-	snvs_dgo_conf = &snvs_dgo_passive_vcc_config;
-	tamper_pin_conf = tamper_pin_list_passive_vcc_config;
-
-	/* Passive tamper expecting GND on the line */
-	snvs_conf = &snvs_passive_gnd_config;
-	snvs_dgo_conf = &snvs_dgo_passive_gnd_config;
-	tamper_pin_conf = tamper_pin_list_passive_gnd_config;
-
-	/* Active tamper */
-	snvs_conf = &snvs_active_config;
-	snvs_dgo_conf = &snvs_dgo_active_config;
-	tamper_pin_conf = tamper_pin_list_active_config;
-
-	return !snvs_conf + !snvs_dgo_conf + !tamper_pin_conf;
 }
 
 #ifdef CONFIG_SNVS_SEC_SC_AUTO
@@ -827,23 +569,9 @@ static int do_snvs_sec_status(cmd_tbl_t *cmdtp, int flag, int argc,
 {
 	int sciErr;
 	u32 idx;
-
+	u32 nb_pins;
 	u32 data[5];
-
-	u32 pads[] = {
-#ifdef CONFIG_TARGET_IMX8QXP_MEK
-		SC_P_CSI_D00,
-		SC_P_CSI_D01,
-		SC_P_CSI_D02,
-		SC_P_CSI_D03,
-		SC_P_CSI_D04,
-		SC_P_CSI_D05,
-		SC_P_CSI_D06,
-		SC_P_CSI_D07,
-		SC_P_CSI_HSYNC,
-		SC_P_CSI_VSYNC,
-#endif /* CONFIG_TARGET_IMX8QXP_MEK */
-	};
+	struct tamper_pin_cfg *pin_cfg_list = get_tamper_pin_cfg_list(&nb_pins);
 
 	u32 fuses[] = {
 		14,
@@ -895,14 +623,17 @@ static int do_snvs_sec_status(cmd_tbl_t *cmdtp, int flag, int argc,
 
 	/* Pins */
 	printf("Pins:\n");
-	for (idx = 0; idx < ARRAY_SIZE(pads); idx++) {
-		u8 pad_id = pads[idx];
+	for (idx = 0; idx < nb_pins; idx++) {
+		struct tamper_pin_cfg *cfg = &pin_cfg_list[idx];
 
-		sciErr = sc_pad_get(-1, pad_id, &data[0]);
+		if (cfg->pad == TAMPER_NOT_DEFINED)
+			continue;
+
+		sciErr = sc_pad_get(-1, cfg->pad, &data[0]);
 		if (sciErr == 0)
-			printf("\t- Pin %d: %.8x\n", pad_id, data[0]);
+			printf("\t- Pin %d: %.8x\n", cfg->pad, data[0]);
 		else
-			printf("Failed to read Pin %d\n", pad_id);
+			printf("Failed to read Pin %d\n", cfg->pad);
 	}
 
 	/* Fuses */
@@ -956,4 +687,120 @@ U_BOOT_CMD(snvs_sec_status,
 	   1, 1, do_snvs_sec_status,
 	   "tamper pin configuration",
 	   snvs_sec_status_help_text
+);
+
+static char gpio_conf_help_text[] =
+	"gpio_conf <pad> <hexval>\n"
+	"Configure the GPIO of an IOMUX:\n"
+	" - pad:\n"
+	" - hexval:";
+
+static int do_gpio_conf(cmd_tbl_t *cmdtp, int flag, int argc,
+			char *const argv[])
+{
+	int err = -EIO;
+	int sciErr;
+	u32 pad, val, valcheck;
+
+	pad = simple_strtoul(argv[1], NULL, 10);
+	val = simple_strtoul(argv[2], NULL, 16);
+
+	printf("Configuring GPIO %d with %x\n", pad, val);
+
+	sciErr = pad_write(pad, 3 << 30 | val);
+	if (sciErr != SC_ERR_NONE) {
+		printf("Error writing conf\n");
+		goto exit;
+	}
+
+	sciErr = pad_read(pad, &valcheck);
+	if (sciErr != SC_ERR_NONE) {
+		printf("Error reading conf\n");
+		goto exit;
+	}
+
+	if (valcheck != val) {
+		printf("Error: configured %x instead of %x\n", valcheck, val);
+		goto exit;
+	}
+
+	err = 0;
+
+exit:
+	return err;
+}
+
+U_BOOT_CMD(gpio_conf,
+	   3, 1, do_gpio_conf,
+	   "gpio configuration",
+	   gpio_conf_help_text
+);
+
+#define FSL_SIP_FIPS_CONFIG		0xC200000D
+#define FSL_SIP_FIPS_CONFIG_SET		0x1
+
+static
+int do_set_fips_mode(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+{
+	int err = -EIO;
+	u8 fips_mode = 0;
+
+	if (argc < 2)
+		return CMD_RET_USAGE;
+
+	fips_mode = simple_strtoul(argv[1], NULL, 16);
+
+	if (argc == 2) {
+		printf("Warning: Setting FIPS mode [%x] will burn a fuse and\n"
+		       "is permanent\n"
+		       "Really perform this fuse programming? <y/N>\n",
+		       fips_mode);
+
+		/* If the user does not answer yes (1), we return */
+		if (confirm_yesno() != 1)
+			return 0;
+	}
+
+	if (argc == 3 && !(argv[2][0] == '-' && argv[2][1] == 'y'))
+		return CMD_RET_USAGE;
+
+	err = call_imx_sip(FSL_SIP_FIPS_CONFIG, FSL_SIP_FIPS_CONFIG_SET,
+			   fips_mode, 0, 0);
+	if (err) {
+		printf("Failed to set fips mode %d. err: %d\n",
+		       fips_mode, err);
+	}
+
+	return (err) ? CMD_RET_FAILURE : CMD_RET_SUCCESS;
+}
+
+U_BOOT_CMD(set_fips_mode,
+	   3, 0, do_set_fips_mode,
+	   "Set FIPS mode",
+	   "<mode in hex> [-y] \n"
+	   "    The SoC will be configured in FIPS <mode> (PERMANENT)\n"
+	   "    If \"-y\" is not passed, the function will ask for validation\n"
+	   "ex: set_fips_mode 1\n"
+);
+
+static
+int do_check_fips_mode(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+{
+	int err = -EIO;
+	u32 fuse_value = 0;
+
+	/* The FIPS bit is the bit 3 in the word 0xA */
+	err = sc_misc_otp_fuse_read(-1, 0xA, &fuse_value);
+	if (err)
+		return err;
+
+	printf("FIPS mode: %x\n", fuse_value >> 3 & 0x1);
+
+	return 0;
+}
+
+U_BOOT_CMD(check_fips_mode,
+	   1, 0, do_check_fips_mode,
+	   "Display the FIPS mode of the SoC by reading fuse 0xA, bit 3",
+	   NULL
 );

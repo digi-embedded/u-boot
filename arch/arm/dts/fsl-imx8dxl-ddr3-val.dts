@@ -280,7 +280,7 @@
 	clock-frequency = <100000>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lpi2c3>;
-	status = "okay";
+	status = "disabled";
 
 	i2cswitch@70 {
 		compatible = "nxp,pca9646";
@@ -352,6 +352,7 @@
 	cd-gpios = <&gpio5 1 GPIO_ACTIVE_LOW>;
 	wp-gpios = <&gpio5 0 GPIO_ACTIVE_HIGH>;
 	vmmc-supply = <&reg_usdhc2_vmmc>;
+	max-frequency = <100000000>;
 	status = "okay";
 };
 
