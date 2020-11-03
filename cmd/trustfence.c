@@ -655,7 +655,9 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		unsigned long dek_blob_final_dst;
 		unsigned long uboot_start;
 		u32 dek_blob_size;
+#ifdef CONFIG_AHAB_BOOT
 		u32 dek_blob_offset;
+#endif
 		int generate_dek_blob;
 		uint8_t *buffer = NULL;
 
@@ -833,7 +835,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			 * header (8 bytes) + random AES-256 key (32 bytes)
 			 * + DEK ('dek_size' bytes) + MAC (16 bytes)
 			 */
-			dek_blob_size = 8 + 32 + dek_size + 16
+			dek_blob_size = 8 + 32 + dek_size + 16;
 #endif
 			/* Copy DEK blob to its final destination */
 			memcpy((void *)dek_blob_final_dst, (void *)dek_blob_dst,
