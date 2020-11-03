@@ -41,7 +41,6 @@
 #include "fsl_caam_internal.h"
 #include "fsl/desc_constr.h"
 #include <fsl_caam.h>
-#include <fsl_sec.h>
 #include <cpu_func.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -92,11 +91,6 @@ static struct jr_data_st g_jrdata = {0};
 #else
 static struct jr_data_st g_jrdata = {0, 0, 0xFFFFFFFF};
 #endif
-
-static u8 skeymod[] = {
-	0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08,
-	0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00
-};
 
 /*
  * Local functions
