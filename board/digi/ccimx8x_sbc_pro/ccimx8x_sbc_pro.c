@@ -129,36 +129,6 @@ int board_early_init_f(void)
 #ifdef CONFIG_FEC_MXC
 #include <miiphy.h>
 
-static void enet_device_phy_reset(int iface)
-{
-	struct gpio_desc desc;
-	struct udevice *dev = NULL;
-	char *reset_gpio[] = { "gpio3_18", "gpio3_22" };
-	char *reset_gpio_lbl[] = { "enet0_reset", "enet1_reset" };
-	int ret;
-
-	if (iface > 1) {
-		printf("Error: invalid CONFIG_FEC_ENET_DEV\n");
-		return;
-	}
-
-	ret = dm_gpio_lookup_name(reset_gpio[iface], &desc);
-	if (ret)
-		return;
-
-	ret = dm_gpio_request(&desc, reset_gpio_lbl[iface]);
-	if (ret)
-		return;
-
-	dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT);
-	dm_gpio_set_value(&desc, 0);
-	udelay(50);
-	dm_gpio_set_value(&desc, 1);
-	dm_gpio_free(dev, &desc);
-
-	udelay(10);
-}
-
 int board_phy_config(struct phy_device *phydev)
 {
 	/* Set RGMII IO voltage to 1.8V */
@@ -175,30 +145,6 @@ int board_phy_config(struct phy_device *phydev)
 
 	if (phydev->drv->config)
 		phydev->drv->config(phydev);
-
-	return 0;
-}
-
-static int setup_fec(int ind)
-{
-	struct gpio_desc enet_pwr;
-	int ret;
-
-	/* Power up the PHY */
-	ret = dm_gpio_lookup_name("gpio3_13", &enet_pwr);
-	if (ret)
-		return -1;
-
-	ret = dm_gpio_request(&enet_pwr, "enet0_pwr");
-	if (ret)
-		return -1;
-
-	dm_gpio_set_dir_flags(&enet_pwr, GPIOD_IS_OUT);
-	dm_gpio_set_value(&enet_pwr, 1);
-	mdelay(1);	/* PHY power up time */
-
-	/* Reset ENET PHY */
-	enet_device_phy_reset(ind);
 
 	return 0;
 }
@@ -361,10 +307,6 @@ int board_init(void)
 
 #ifdef CONFIG_MXC_GPIO
 	board_gpio_init();
-#endif
-
-#ifdef CONFIG_FEC_MXC
-	setup_fec(CONFIG_FEC_ENET_DEV);
 #endif
 
 #if defined(CONFIG_USB)
