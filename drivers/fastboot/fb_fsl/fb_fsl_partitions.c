@@ -56,6 +56,7 @@ unsigned int g_pcount;
 
 static ulong bootloader_mmc_offset(void)
 {
+#if defined(CONFIG_CMD_UPDATE_MMC) && defined(EMMC_BOOT_PART_OFFSET)
 	disk_partition_t info;
 	int mmc_dev_index = env_get_ulong("mmcdev", 16, mmc_get_bootdevindex());
 	struct blk_desc *mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC,
@@ -68,6 +69,9 @@ static ulong bootloader_mmc_offset(void)
 	calculate_uboot_update_settings(mmc_dev, &info);
 
 	return info.start * mmc_dev->blksz;
+#else
+	return 0;
+#endif
 }
 
 bool bootloader_gpt_overlay(void)
