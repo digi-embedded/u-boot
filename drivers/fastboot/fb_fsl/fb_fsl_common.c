@@ -358,7 +358,7 @@ void fastboot_setup(void)
 {
 	int sw, ret;
 #if !defined(CONFIG_CC8)
-	struct tag_serialnr serialnr;
+	struct tag_serialnr serialnr = {0};
 	char serial[17];
 
 	get_board_serial(&serialnr);

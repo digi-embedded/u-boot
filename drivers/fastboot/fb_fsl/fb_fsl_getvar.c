@@ -114,11 +114,10 @@ static bool is_slotvar(char *cmd)
 	return false;
 }
 
-static char serial[IMX_SERIAL_LEN];
-
 char *get_serial(void)
 {
 #ifdef CONFIG_SERIAL_TAG
+	static char serial[IMX_SERIAL_LEN];
 	struct tag_serialnr serialnr;
 	memset(serial, 0, IMX_SERIAL_LEN);
 
