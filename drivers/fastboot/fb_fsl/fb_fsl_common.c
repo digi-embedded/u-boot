@@ -357,7 +357,7 @@ static int _fastboot_setup_dev(int *switched)
 void fastboot_setup(void)
 {
 	int sw, ret;
-#if !defined(CONFIG_CC8)
+#ifndef DIGI_PLATFORM
 	struct tag_serialnr serialnr = {0};
 	char serial[17];
 

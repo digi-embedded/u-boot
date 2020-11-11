@@ -19,6 +19,8 @@
 
 #include <linux/sizes.h>
 
+#define DIGI_PLATFORM
+
 /*
  * If we are developing, we might want to start armboot from ram
  * so we MUST NOT initialize critical regs like mem-timing ...
