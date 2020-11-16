@@ -22,6 +22,8 @@
 		st,stm32prog-gpios = <&gpioa 14 GPIO_ACTIVE_LOW>;
 	};
 
+#ifdef CONFIG_STM32MP15x_STM32IMAGE
+	/* only needed for boot with TF-A, witout FIP support */
 	firmware {
 		optee {
 			compatible = "linaro,optee-tz";
@@ -35,6 +37,7 @@
 			no-map;
 		};
 	};
+#endif
 
 	led {
 		led-red {
