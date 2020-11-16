@@ -23,7 +23,7 @@ config MTDPARTS_NAND0_BOOT
 config MTDPARTS_NAND0_TEE
 	string "mtd tee partitions for nand0"
 	default "512k(teeh),512k(teed),512k(teex)"
-	depends on SYS_MTDPARTS_RUNTIME && ARCH_STM32MP
+	depends on SYS_MTDPARTS_RUNTIME && ARCH_STM32MP && STM32MP15x_STM32IMAGE
 	help
 	  This define the tee partitions added in mtparts dynamically
 	  when tee is supported with boot from nand0.
@@ -46,7 +46,7 @@ config MTDPARTS_NOR0_BOOT
 config MTDPARTS_NOR0_TEE
 	string "mtd tee partitions for nor0"
 	default "256k(teeh),512k(teed),256k(teex)"
-	depends on SYS_MTDPARTS_RUNTIME && ARCH_STM32MP
+	depends on SYS_MTDPARTS_RUNTIME && ARCH_STM32MP && STM32MP15x_STM32IMAGE
 	help
 	  This define the tee partitions added in mtparts dynamically
 	  when tee is supported with boot from nor0.
@@ -66,7 +66,7 @@ config MTDPARTS_SPINAND0_BOOT
 config MTDPARTS_SPINAND0_TEE
 	string "mtd tee partitions for spi-nand0"
 	default "512k(teeh),512k(teed),512k(teex)"
-	depends on SYS_MTDPARTS_RUNTIME && ARCH_STM32MP
+	depends on SYS_MTDPARTS_RUNTIME && ARCH_STM32MP && STM32MP15x_STM32IMAGE
 	help
 	  This define the tee partitions added in mtparts dynamically
 	  when tee is supported with boot from spi-nand0,
