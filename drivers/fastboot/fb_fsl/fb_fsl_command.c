@@ -987,6 +987,14 @@ static const struct {
 			.command ="ACmd",
 			.dispatch = run_acmd,
 		},
+		[FASTBOOT_COMMAND_OEM_UCMD] = {
+			.command = "oem ucmd",
+			.dispatch = run_ucmd,
+		},
+		[FASTBOOT_COMMAND_OEM_ACMD] = {
+			.command = "oem acmd",
+			.dispatch = run_acmd,
+		},
 #endif
 		[FASTBOOT_COMMAND_REBOOT] = {
 			.command = "reboot",
