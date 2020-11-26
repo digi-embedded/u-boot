@@ -232,7 +232,7 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 		echo "" >> csf_descriptor
 		echo "[Unlock]" >> csf_descriptor
 		echo "    Engine = OCOTP" >> csf_descriptor
-		echo "    Features = SRK Revoke" >> csf_descriptor
+		echo "    Features = SRK REVOKE" >> csf_descriptor
 	fi
 else
 	# Path to log file to parse
