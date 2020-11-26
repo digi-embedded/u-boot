@@ -152,7 +152,7 @@ if [ -n "${CONFIG_UNLOCK_SRK_REVOKE}" ]; then
 	echo "" >> csf_spl.txt
 	echo "[Unlock]" >> csf_spl.txt
 	echo "    Engine = OCOTP" >> csf_spl.txt
-	echo "    Features = SRK Revoke" >> csf_spl.txt
+	echo "    Features = SRK REVOKE" >> csf_spl.txt
 fi
 
 # Generate SRK tables
