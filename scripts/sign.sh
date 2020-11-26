@@ -21,7 +21,7 @@
 #               signed images will be used to boot in a non-standard way (for example, USB).
 #		In those cases, the DCD data is copied to the On Chip RAM, which would
 #		invalidate the signature.
-#      CONFIG_UNLOCK_SRK_REVOKE: (optional) instruct HAB not to protect the SRK_REVOKE OTP 
+#      CONFIG_UNLOCK_SRK_REVOKE: (optional) instruct HAB not to protect the SRK_REVOKE OTP
 #				  field so that key revocation is possible in closed devices.
 #      ENABLE_ENCRYPTION: (optional) enable encryption of the images.
 #      CONFIG_DEK_PATH: (mandatory if ENCRYPT is defined) path to a Data Encryption Key.
@@ -195,7 +195,7 @@ if [ -n "${CONFIG_UNLOCK_SRK_REVOKE}" ]; then
 	echo "" >> csf_descriptor
 	echo "[Unlock]" >> csf_descriptor
 	echo "    Engine = OCOTP" >> csf_descriptor
-	echo "    Features = SRK Revoke" >> csf_descriptor
+	echo "    Features = SRK REVOKE" >> csf_descriptor
 fi
 
 # Generate SRK tables
