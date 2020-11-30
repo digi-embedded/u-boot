@@ -81,7 +81,6 @@ config IMX_HAB
 
 config CSF_SIZE
 	hex "Maximum size for Command Sequence File (CSF) binary"
-	depends on SIGN_IMAGE
 	default 0x2060
 	help
 	  Define the maximum size for Command Sequence File (CSF) binary
