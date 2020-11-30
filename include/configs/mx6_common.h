@@ -63,10 +63,6 @@
 /* MMC */
 #define CONFIG_SUPPORT_EMMC_BOOT
 
-/* Secure boot (HAB) support */
-#ifdef CONFIG_SIGN_IMAGE
-#define CONFIG_CSF_SIZE			0x4000
-#endif
 #ifdef CONFIG_SPL_BUILD
 #define CONFIG_SPL_DRIVERS_MISC_SUPPORT
 #endif
