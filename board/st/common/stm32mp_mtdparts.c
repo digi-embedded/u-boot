@@ -132,13 +132,11 @@ void board_mtdparts_default(const char **mtdids, const char **mtdparts)
 		pr_debug("mtd device = %s\n", dev->name);
 	}
 
-	if (nor || nand) {
+	if (nand) {
 		mtd = get_mtd_device_nm("nand0");
 		if (!IS_ERR_OR_NULL(mtd)) {
-			const char *mtd_boot = CONFIG_MTDPARTS_NAND0_BOOT;
-
 			board_set_mtdparts("nand0", ids, parts,
-					   !nor ? mtd_boot : NULL,
+					   CONFIG_MTDPARTS_NAND0_BOOT,
 #ifdef CONFIG_STM32MP15x_STM32IMAGE
 					   !nor && tee ? CONFIG_MTDPARTS_NAND0_TEE : NULL,
 #endif
@@ -147,13 +145,11 @@ void board_mtdparts_default(const char **mtdids, const char **mtdparts)
 		}
 	}
 
-	if (nor || spinand) {
+	if (spinand) {
 		mtd = get_mtd_device_nm("spi-nand0");
 		if (!IS_ERR_OR_NULL(mtd)) {
-			const char *mtd_boot = CONFIG_MTDPARTS_SPINAND0_BOOT;
-
 			board_set_mtdparts("spi-nand0", ids, parts,
-					   !nor ? mtd_boot : NULL,
+					   CONFIG_MTDPARTS_SPINAND0_BOOT,
 #ifdef CONFIG_STM32MP15x_STM32IMAGE
 					   !nor && tee ? CONFIG_MTDPARTS_SPINAND0_TEE : NULL,
 #endif
@@ -164,10 +160,8 @@ void board_mtdparts_default(const char **mtdids, const char **mtdparts)
 
 	if (nor) {
 		if (!uclass_get_device(UCLASS_SPI_FLASH, 0, &dev)) {
-			const char *mtd_boot = CONFIG_MTDPARTS_NOR0_BOOT;
-
 			board_set_mtdparts("nor0", ids, parts,
-					   mtd_boot,
+					   CONFIG_MTDPARTS_NOR0_BOOT,
 #ifdef CONFIG_STM32MP15x_STM32IMAGE
 					   tee ? CONFIG_MTDPARTS_NOR0_TEE : NULL,
 #endif
