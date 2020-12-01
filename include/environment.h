@@ -224,6 +224,10 @@ int env_import(const char *buf, int check);
 /* Export from hash table into binary representation */
 int env_export(env_t *env_out);
 
+/* Get environment offset */
+long long env_get_offset(long long default_offset);
+long long env_get_offset_redund(long long default_offset);
+
 #endif /* DO_DEPS_ONLY */
 
 #endif /* _ENVIRONMENT_H_ */

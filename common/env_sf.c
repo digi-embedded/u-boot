@@ -83,11 +83,11 @@ int saveenv(void)
 	env_new.flags	= ACTIVE_FLAG;
 
 	if (gd->env_valid == 1) {
-		env_new_offset = CONFIG_ENV_OFFSET_REDUND;
-		env_offset = CONFIG_ENV_OFFSET;
+		env_new_offset = env_get_offset_redund(CONFIG_ENV_OFFSET_REDUND);
+		env_offset = env_get_offset(CONFIG_ENV_OFFSET);
 	} else {
-		env_new_offset = CONFIG_ENV_OFFSET;
-		env_offset = CONFIG_ENV_OFFSET_REDUND;
+		env_new_offset = env_get_offset(CONFIG_ENV_OFFSET);
+		env_offset = env_get_offset_redund(CONFIG_ENV_OFFSET_REDUND);
 	}
 
 	/* Is the sector larger than the env (i.e. embedded) */
@@ -173,7 +173,7 @@ void env_relocate_spec(void)
 		goto out;
 	}
 
-	ret = spi_flash_read(env_flash, CONFIG_ENV_OFFSET,
+	ret = spi_flash_read(env_flash, env_get_offset(CONFIG_ENV_OFFSET),
 				CONFIG_ENV_SIZE, tmp_env1);
 	if (ret) {
 		set_default_env("!spi_flash_read() failed");
@@ -183,7 +183,7 @@ void env_relocate_spec(void)
 	if (crc32(0, tmp_env1->data, ENV_SIZE) == tmp_env1->crc)
 		crc1_ok = 1;
 
-	ret = spi_flash_read(env_flash, CONFIG_ENV_OFFSET_REDUND,
+	ret = spi_flash_read(env_flash, env_get_offset_redund(CONFIG_ENV_OFFSET_REDUND),
 				CONFIG_ENV_SIZE, tmp_env2);
 	if (!ret) {
 		if (crc32(0, tmp_env2->data, ENV_SIZE) == tmp_env2->crc)
@@ -270,7 +270,7 @@ int saveenv(void)
 	/* Is the sector larger than the env (i.e. embedded) */
 	if (CONFIG_ENV_SECT_SIZE > CONFIG_ENV_SIZE) {
 		saved_size = CONFIG_ENV_SECT_SIZE - CONFIG_ENV_SIZE;
-		saved_offset = CONFIG_ENV_OFFSET + CONFIG_ENV_SIZE;
+		saved_offset = env_get_offset(CONFIG_ENV_OFFSET) + CONFIG_ENV_SIZE;
 		saved_buffer = malloc(saved_size);
 		if (!saved_buffer)
 			goto done;
@@ -292,13 +292,13 @@ int saveenv(void)
 		goto done;
 
 	puts("Erasing SPI flash...");
-	ret = spi_flash_erase(env_flash, CONFIG_ENV_OFFSET,
+	ret = spi_flash_erase(env_flash, env_get_offset(CONFIG_ENV_OFFSET),
 		sector * CONFIG_ENV_SECT_SIZE);
 	if (ret)
 		goto done;
 
 	puts("Writing to SPI flash...");
-	ret = spi_flash_write(env_flash, CONFIG_ENV_OFFSET,
+	ret = spi_flash_write(env_flash, env_get_offset(CONFIG_ENV_OFFSET),
 		CONFIG_ENV_SIZE, &env_new);
 	if (ret)
 		goto done;
@@ -336,7 +336,7 @@ void env_relocate_spec(void)
 	}
 
 	ret = spi_flash_read(env_flash,
-		CONFIG_ENV_OFFSET, CONFIG_ENV_SIZE, buf);
+		env_get_offset(CONFIG_ENV_OFFSET), CONFIG_ENV_SIZE, buf);
 	if (ret) {
 		set_default_env("!spi_flash_read() failed");
 		goto out;

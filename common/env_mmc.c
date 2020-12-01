@@ -40,10 +40,10 @@ __weak int mmc_get_env_addr(struct mmc *mmc, int copy, u32 *env_addr)
 {
 	s64 offset;
 
-	offset = CONFIG_ENV_OFFSET;
+	offset = env_get_offset(CONFIG_ENV_OFFSET);
 #ifdef CONFIG_ENV_OFFSET_REDUND
 	if (copy)
-		offset = CONFIG_ENV_OFFSET_REDUND;
+		offset = env_get_offset_redund(CONFIG_ENV_OFFSET_REDUND);
 #endif
 
 	if (offset < 0)

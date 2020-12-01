@@ -190,9 +190,9 @@ static int env_aes_cbc_crypt(env_t *env, const int enc)
 
 	if (ret)
 		goto err;
-	
+
 	memcpy(data, buffer, ENV_SIZE);
-	
+
 err:
 	free(buffer);
 	return ret;
@@ -385,3 +385,13 @@ int env_complete(char *var, int maxv, char *cmdv[], int bufsz, char *buf)
 	return found;
 }
 #endif
+
+__weak long long env_get_offset(long long default_offset)
+{
+	return default_offset;
+}
+
+__weak long long env_get_offset_redund(long long default_offset)
+{
+	return default_offset;
+}
