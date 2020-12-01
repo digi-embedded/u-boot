@@ -533,3 +533,27 @@ void fdt_fixup_ccimx6ul(void *fdt)
 	fdt_fixup_trustfence(fdt);
 	fdt_fixup_uboot_info(fdt);
 }
+
+/* Determine env partition offset depending on NAND size */
+ long long env_get_offset(long long default_offset)
+ {
+	struct mtd_info *mtd;
+
+	mtd = get_nand_dev_by_index(0);
+	if (!mtd)
+		return default_offset;
+
+	if (mtd->size >= (512 * SZ_1M))
+		return UBOOT_PART_SIZE_BIG * SZ_1M;
+	else
+		return UBOOT_PART_SIZE_SMALL * SZ_1M;
+}
+
+long long env_get_offset_redund(long long default_offset)
+{
+#ifdef CONFIG_DYNAMIC_ENV_LOCATION
+	return env_get_offset_redund(default_offset);
+#else
+	return default_offset;
+#endif
+}
