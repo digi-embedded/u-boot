@@ -1294,7 +1294,7 @@ enum env_location env_get_location(enum env_operation op, int prio)
 }
 
 #ifndef ENV_IS_EMBEDDED
-long long env_get_offset(long long defautl_offset)
+long long env_get_offset(long long default_offset)
 {
 	enum boot_device dev = get_boot_device();
 
@@ -1305,7 +1305,7 @@ long long env_get_offset(long long defautl_offset)
 		break;
 	}
 
-	return defautl_offset;
+	return default_offset;
 }
 #endif
 #endif

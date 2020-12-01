@@ -312,9 +312,12 @@ int env_init(void)
 	return ret;
 }
 
-#ifndef ENV_IS_EMBEDDED
-__weak long long env_get_offset(long long defautl_offset)
+__weak long long env_get_offset(long long default_offset)
 {
-	return defautl_offset;
+	return default_offset;
 }
-#endif
+
+__weak long long env_get_offset_redund(long long default_offset)
+{
+	return default_offset;
+}
