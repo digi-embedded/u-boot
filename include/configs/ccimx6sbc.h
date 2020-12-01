@@ -192,6 +192,10 @@
 		"install_linux_fw_sd.scr;then " \
 			"source ${loadaddr};" \
 		"fi;\0" \
+	"install_linux_fw_usb=usb start;" \
+		"if load usb 0 ${loadaddr} install_linux_fw_usb.scr;then " \
+			"source ${loadaddr};" \
+		"fi;\0" \
 	""	/* end line */
 
 #undef CONFIG_BOOTCOMMAND
