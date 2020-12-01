@@ -39,10 +39,6 @@
 #define CONFIG_ENV_RANGE	CONFIG_ENV_SIZE
 #endif
 
-#ifdef CONFIG_DYNAMIC_ENV_LOCATION
-#define ENV_FIRST_NOENV_SECTOR		(CONFIG_ENV_OFFSET + CONFIG_ENV_RANGE)
-#endif
-
 char *env_name_spec = "NAND";
 
 #if defined(ENV_IS_EMBEDDED)
@@ -90,16 +86,21 @@ static void env_set_dynamic_location(struct env_location *location)
 	loff_t off;
 	int i = 0;
 	int env_copies = 1;
+	/* Determine offset of env partition depending on NAND size */
+	loff_t env_offset = env_get_offset(CONFIG_ENV_OFFSET);
+	loff_t env_first_noenv_sector = env_offset + CONFIG_ENV_RANGE;
 
 	if (CONFIG_ENV_SIZE > nand_info[0]->erasesize)
 		printf("Warning: environment size larger than PEB size is not supported\n");
+
+	/* Init env offsets */
+	location[0].erase_opts.offset = env_offset;
 
 #ifdef CONFIG_ENV_OFFSET_REDUND
 	env_copies++;
 
 	/* Init redundant copy offset */
-	if (location[1].erase_opts.offset == location[0].erase_opts.offset)
-		location[1].erase_opts.offset += nand_info[0]->erasesize;
+	location[1].erase_opts.offset = env_offset + nand_info[0]->erasesize;
 #endif
 
 	/*
@@ -110,8 +111,8 @@ static void env_set_dynamic_location(struct env_location *location)
 		/* limit erase size to one erase block */
 		location[i].erase_opts.length = nand_info[0]->erasesize;
 
-		for (off = CONFIG_ENV_OFFSET;
-		     off < ENV_FIRST_NOENV_SECTOR;
+		for (off = env_offset;
+		     off < env_first_noenv_sector;
 		     off += nand_info[0]->erasesize) {
 			if (!nand_block_isbad(nand_info[0], off)) {
 				if (off == location[i].erase_opts.offset) {
@@ -130,7 +131,7 @@ static void env_set_dynamic_location(struct env_location *location)
 			}
 		}
 
-		if (off >= ENV_FIRST_NOENV_SECTOR)
+		if (off >= env_first_noenv_sector)
 			printf("Warning: no available good sectors for %s environment\n",
 			       i ? "redundant" : "primary");
 		else
@@ -406,8 +407,10 @@ void env_relocate_spec(void)
 	read2_fail = readenv(location[1].erase_opts.offset,
 			     (u_char *)tmp_env2);
 #else
-	read1_fail = readenv(CONFIG_ENV_OFFSET, (u_char *) tmp_env1);
-	read2_fail = readenv(CONFIG_ENV_OFFSET_REDUND, (u_char *) tmp_env2);
+	read1_fail = readenv(env_get_offset(CONFIG_ENV_OFFSET),
+			     (u_char *)tmp_env1);
+	read2_fail = readenv(env_get_offset_redund(CONFIG_ENV_OFFSET_REDUND),
+			     (u_char *) tmp_env2);
 #endif
 
 	if (read1_fail && read2_fail)
@@ -489,7 +492,7 @@ void env_relocate_spec(void)
 
 	ret = readenv(location[0].erase_opts.offset, (u_char *)buf);
 #else
-	ret = readenv(CONFIG_ENV_OFFSET, (u_char *)buf);
+	ret = readenv(env_get_offset(CONFIG_ENV_OFFSET), (u_char *)buf);
 #endif
 	if (ret) {
 		set_default_env("!readenv() failed");
