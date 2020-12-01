@@ -193,29 +193,33 @@
 /* MTD (NAND) */
 #define CONFIG_SKIP_NAND_BBT_SCAN
 #define CONFIG_UBOOT_PARTITION		"bootloader"
+#define UBOOT_PART_SIZE_SMALL		3
+#define UBOOT_PART_SIZE_BIG		5
+#define ENV_PART_SIZE_SMALL		1
+#define ENV_PART_SIZE_BIG		3
 #define CONFIG_LINUX_PARTITION		"linux"
 #define CONFIG_RECOVERY_PARTITION	"recovery"
 #define CONFIG_NAND_NAME		"gpmi-nand"
 #define MTDIDS_DEFAULT			"nand0=" CONFIG_NAND_NAME
 #define MTDPARTS_256MB			"mtdparts=" CONFIG_NAND_NAME ":" \
-					"3m(" CONFIG_UBOOT_PARTITION ")," \
-					"1m(environment)," \
+					__stringify(UBOOT_PART_SIZE_SMALL) "m(" CONFIG_UBOOT_PARTITION ")," \
+					__stringify(ENV_PART_SIZE_SMALL) "m(environment)," \
 					"1m(safe)," \
 					"12m(" CONFIG_LINUX_PARTITION ")," \
 					"14m(" CONFIG_RECOVERY_PARTITION ")," \
 					"122m(rootfs)," \
 					"-(update)"
 #define MTDPARTS_512MB			"mtdparts=" CONFIG_NAND_NAME ":" \
-					"5m(" CONFIG_UBOOT_PARTITION ")," \
-					"3m(environment)," \
+					__stringify(UBOOT_PART_SIZE_BIG) "m(" CONFIG_UBOOT_PARTITION ")," \
+					__stringify(ENV_PART_SIZE_BIG) "m(environment)," \
 					"1m(safe)," \
 					"24m(" CONFIG_LINUX_PARTITION ")," \
 					"32m(" CONFIG_RECOVERY_PARTITION ")," \
 					"256m(rootfs)," \
 					"-(update)"
 #define MTDPARTS_1024MB			"mtdparts=" CONFIG_NAND_NAME ":" \
-					"5m(" CONFIG_UBOOT_PARTITION ")," \
-					"3m(environment)," \
+					__stringify(UBOOT_PART_SIZE_BIG) "m(" CONFIG_UBOOT_PARTITION ")," \
+					__stringify(ENV_PART_SIZE_BIG) "m(environment)," \
 					"1m(safe)," \
 					"24m(" CONFIG_LINUX_PARTITION ")," \
 					"32m(" CONFIG_RECOVERY_PARTITION ")," \
