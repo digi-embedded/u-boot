@@ -111,6 +111,11 @@ static iomux_v3_cfg_t const pcie_pwr_pads[] = {
 	MX6_PAD_NANDF_RB0__GPIO6_IO10 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 
+static iomux_v3_cfg_t const usb_rst_pads[] = {
+	/* USB hub reset line */
+	MX6_PAD_EIM_DA10__GPIO3_IO10 | MUX_PAD_CTRL(NO_PAD_CTRL),
+};
+
 #ifdef CONFIG_SYS_I2C_MXC
 int setup_pmic_voltages_carrierboard(void)
 {
@@ -354,6 +359,37 @@ int board_mmc_getcd(struct mmc *mmc)
 
 	return ret;
 }
+
+#ifdef CONFIG_USB_EHCI_MX6
+#ifndef CONFIG_DM_USB
+int board_ehci_hcd_init(int port)
+{
+	int usb_rst_gpio = IMX_GPIO_NR(3, 10);
+
+	switch (port) {
+	case 0:
+		/* USB OTG */
+		break;
+	case 1:
+		/* USB hub reset line IOMUX */
+		imx_iomux_v3_setup_multiple_pads(usb_rst_pads,
+						ARRAY_SIZE(usb_rst_pads));
+
+		/* Reset USB hub */
+		gpio_request(usb_rst_gpio, "USB hub reset");
+		gpio_direction_output(usb_rst_gpio, 0);
+		mdelay(2);
+		gpio_set_value(usb_rst_gpio, 1);
+		break;
+	default:
+		printf("MXC USB port %d not supported\n", port);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+#endif
+#endif
 
 int board_early_init_f(void)
 {

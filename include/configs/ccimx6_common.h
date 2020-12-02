@@ -202,6 +202,13 @@
 #define CONFIG_PMIC_I2C_ADDR		0x58	/* DA9063 PMIC i2c address */
 #define CONFIG_PMIC_NUMREGS		0x185
 
+/* USB Configs */
+#ifdef CONFIG_CMD_USB
+#define CONFIG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
+#define CONFIG_MXC_USB_FLAGS		0
+#define CONFIG_USB_MAX_CONTROLLER_COUNT	2 /* Enabled USB controller number */
+#endif
+
 /* Environment */
 #define CONFIG_ENV_IS_IN_MMC
 
