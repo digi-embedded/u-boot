@@ -533,6 +533,8 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_usbotg1>;
 	vbus-supply = <&reg_3v3_usb_hub>;
-	dr_mode = "peripheral";
+	fsl,reset-gpio = <&gpio5 10 GPIO_ACTIVE_LOW>;
+	dr_mode = "peripheral"; /* Set "host" to use a USB mass storage */
+	disable-over-current;
 	status = "okay";
 };
