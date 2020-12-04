@@ -437,21 +437,21 @@ int board_late_init(void)
 	int ret;
 
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
-	int ext_gpios[] =  {
-		IMX_GPIO_NR(2, 5),
-		IMX_GPIO_NR(2, 6),
-		IMX_GPIO_NR(2, 7),
-		IMX_GPIO_NR(2, 24),
-		IMX_GPIO_NR(2, 28),
-		IMX_GPIO_NR(2, 29),
-		IMX_GPIO_NR(7, 13),
-		IMX_GPIO_NR(4, 5)
+	const char *ext_gpios[] = {
+		"GPIO2_5",
+		"GPIO2_6",
+		"GPIO2_7",
+		"GPIO2_24",
+		"GPIO2_28",
+		"GPIO2_29",
+		"GPIO7_13",
+		"GPIO4_5",
 	};
-	int console_enable_gpio_nr = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
+	const char *ext_gpio_name = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
 
 	setup_iomux_ext_gpios();
 
-	if (console_enable_gpio(console_enable_gpio_nr))
+	if (console_enable_gpio(ext_gpio_name))
 		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
 #endif
 	/* SOM late init */
