@@ -160,6 +160,7 @@
 		"install_linux_fw_sd.scr;then " \
 			"source ${loadaddr};" \
 		"fi;\0" \
+	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
 	""	/* end line */
 
 #undef CONFIG_BOOTCOMMAND
