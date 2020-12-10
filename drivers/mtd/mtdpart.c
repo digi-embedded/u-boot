@@ -146,6 +146,10 @@ static int mtd_parse_partition(const char **_mtdparts,
 		mtdparts += 2;
 	}
 
+	/* Ignore partition 'enc' flag */
+	if (strncmp(mtdparts, "enc", 3) == 0)
+		mtdparts += 3;
+
 	/* Check for a potential next partition definition */
 	if (*mtdparts == ',') {
 		if (partition->size == MTD_SIZE_REMAINING) {
