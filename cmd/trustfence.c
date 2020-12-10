@@ -113,6 +113,9 @@ __weak int get_dek_blob(char *output, u32 *size)
 extern int get_dek_blob_offset(char *address, u32 *offset);
 extern int get_dek_blob_size(char *address, u32 *size);
 #endif
+#ifdef CONFIG_ARCH_IMX8M
+extern int get_dek_blob_offset(char *address, u32 *offset);
+#endif
 
 int is_uboot_encrypted() {
 	char dek_blob[MAX_DEK_BLOB_SIZE];

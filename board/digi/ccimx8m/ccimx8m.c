@@ -9,9 +9,12 @@
 #include <mmc.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/mach-imx/boot_mode.h>
+#include <asm/mach-imx/hab.h>
 #include <spl.h>
 
 DECLARE_GLOBAL_DATA_PTR;
+
+#define SPL_CSF_HEADER 0x40
 
 int mmc_get_bootdevindex(void)
 {
@@ -64,4 +67,21 @@ void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 	}
 	/* Boot partition size - Start of boot image */
 	info->size = (mmc->capacity_boot / mmc_dev->blksz) - info->start;
+}
+
+int get_dek_blob_offset(char *address, u32 *offset)
+{
+	struct ivt *ivt = (struct ivt *)(CONFIG_SPL_TEXT_BASE - SPL_CSF_HEADER);
+
+	/* Verify the pointer is pointing at an actual IVT table */
+	if ((ivt->hdr.magic != IVT_HEADER_MAGIC) ||
+	   (be16_to_cpu(ivt->hdr.length) != IVT_TOTAL_LENGTH))
+		return 1;
+
+	if (ivt->csf)
+		*offset = ivt->csf + CONFIG_CSF_SIZE;
+	else
+		return 1;
+
+	return 0;
 }
