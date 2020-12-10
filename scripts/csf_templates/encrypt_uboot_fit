@@ -48,4 +48,5 @@
     Verification index = 0
     Mac Bytes = 16
     Blocks = %uboot_decrypt_start% %uboot_decrypt_offset% %uboot_decrypt_len% "%imx-boot_decrypt_path%", \
-             %atf_decrypt_start% %atf_decrypt_offset% %atf_decrypt_len% "%imx-boot_decrypt_path%"
+             %atf_decrypt_start% %atf_decrypt_offset% %atf_decrypt_len% "%imx-boot_decrypt_path%", \
+             %optee_decrypt_start% %optee_decrypt_offset% %optee_decrypt_len% "%imx-boot_decrypt_path%"

@@ -32,4 +32,5 @@
     Blocks = %sld_auth_start% %sld_auth_offset% %sld_auth_len% "%imx-boot_path%", \
              %uboot_auth_start% %uboot_auth_offset% %uboot_auth_len% "%imx-boot_path%", \
              %dtb_auth_start% %dtb_auth_offset% %dtb_auth_len% "%imx-boot_path%", \
-             %atf_auth_start% %atf_auth_offset% %atf_auth_len% "%imx-boot_path%"
+             %atf_auth_start% %atf_auth_offset% %atf_auth_len% "%imx-boot_path%", \
+             %optee_auth_start% %optee_auth_offset% %optee_auth_len% "%imx-boot_path%"

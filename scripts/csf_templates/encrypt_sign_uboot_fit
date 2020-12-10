@@ -35,8 +35,8 @@
     # Authenticate Start Address, Offset, Length and file
     Blocks = %sld_auth_start% %sld_auth_offset% %sld_auth_len% "%imx-boot_auth_path%", \
              %uboot_auth_start% %uboot_auth_offset% %uboot_auth_len% "%imx-boot_auth_path%", \
-             %dtb_auth_start% %dtb_auth_offset% %dtb_auth_len% "%imx-boot_auth_path%", \
-             %atf_auth_start% %atf_auth_offset% %atf_auth_len% "%imx-boot_auth_path%"
+             %atf_auth_start% %atf_auth_offset% %atf_auth_len% "%imx-boot_auth_path%", \
+             %optee_auth_start% %optee_auth_offset% %optee_auth_len% "%imx-boot_auth_path%"
 
 [Install Secret Key]
     Verification index = 0
@@ -51,4 +51,5 @@
     Verification index = 0
     Mac Bytes = 16
     Blocks = %uboot_decrypt_start% %uboot_decrypt_offset% %uboot_decrypt_len% "%imx-boot_decrypt_path%", \
-             %atf_decrypt_start% %atf_decrypt_offset% %atf_decrypt_len% "%imx-boot_decrypt_path%"
+             %atf_decrypt_start% %atf_decrypt_offset% %atf_decrypt_len% "%imx-boot_decrypt_path%", \
+             %optee_decrypt_start% %optee_decrypt_offset% %optee_decrypt_len% "%imx-boot_decrypt_path%"

@@ -136,6 +136,9 @@ dtb_image_len=$(awk -v first_row=${result_row} 'NR==first_row+1 {print $3}' ${MK
 atf_ram_start=$(awk -v first_row=${result_row} 'NR==first_row+2 {print $1}' ${MKIMAGE_FIT_HAB_LOG})
 atf_image_offset=$(awk -v first_row=${result_row} 'NR==first_row+2 {print $2}' ${MKIMAGE_FIT_HAB_LOG})
 atf_image_len=$(awk -v first_row=${result_row} 'NR==first_row+2 {print $3}' ${MKIMAGE_FIT_HAB_LOG})
+optee_ram_start=$(awk -v first_row=${result_row} 'NR==first_row+3 {print $1}' ${MKIMAGE_FIT_HAB_LOG})
+optee_image_offset=$(awk -v first_row=${result_row} 'NR==first_row+3 {print $2}' ${MKIMAGE_FIT_HAB_LOG})
+optee_image_len=$(awk -v first_row=${result_row} 'NR==first_row+3 {print $3}' ${MKIMAGE_FIT_HAB_LOG})
 
 # Compute SPL decryption variables
 # Dek Blob Addr = Authenticate Start Address +  SPL & DDR FW image length + CSF Padding (0x2000)
@@ -212,6 +215,9 @@ if [ "${ENCRYPT}" = "true" ]; then
 	    -e "s,%atf_decrypt_start%,${atf_ram_start},g"	\
 	    -e "s,%atf_decrypt_offset%,${atf_image_offset},g"	\
 	    -e "s,%atf_decrypt_len%,${atf_image_len},g"		\
+	    -e "s,%optee_decrypt_start%,${optee_ram_start},g"       \
+	    -e "s,%optee_decrypt_offset%,${optee_image_offset},g"   \
+	    -e "s,%optee_decrypt_len%,${optee_image_len},g"         \
 	    -e "s,%imx-boot_decrypt_path%,flash-spl-fit-enc.bin,g"	\
 	${SCRIPT_PATH}/csf_templates/encrypt_uboot_fit > csf_fit_enc.txt
 
@@ -222,15 +228,15 @@ if [ "${ENCRYPT}" = "true" ]; then
 	    -e "s,%sld_auth_start%,${sld_ram_start},g"		\
 	    -e "s,%sld_auth_offset%,${sld_header_offset},g"	\
 	    -e "s,%sld_auth_len%,${sld_image_len},g"		\
-	    -e "s,%uboot_auth_start%,${uboot_ram_start},g"	\
-	    -e "s,%uboot_auth_offset%,${uboot_image_offset},g"	\
-	    -e "s,%uboot_auth_len%,${uboot_image_len},g"	\
-	    -e "s,%dtb_auth_start%,${dtb_ram_start},g"		\
-	    -e "s,%dtb_auth_offset%,${dtb_image_offset},g"	\
-	    -e "s,%dtb_auth_len%,${dtb_image_len},g"		\
+	    -e "s,%uboot_auth_start%,${uboot_dtb_ram_start},g"	\
+	    -e "s,%uboot_auth_offset%,${uboot_dtb_image_offset},g"	\
+	    -e "s,%uboot_auth_len%,${uboot_dtb_image_len},g"	\
 	    -e "s,%atf_auth_start%,${atf_ram_start},g"		\
 	    -e "s,%atf_auth_offset%,${atf_image_offset},g"	\
 	    -e "s,%atf_auth_len%,${atf_image_len},g"		\
+	    -e "s,%optee_auth_start%,${optee_ram_start},g"      \
+	    -e "s,%optee_auth_offset%,${optee_image_offset},g"  \
+	    -e "s,%optee_auth_len%,${optee_image_len},g"        \
 	    -e "s,%imx-boot_auth_path%,flash-spl-fit-enc.bin,g"	\
 	    -e "s,%dek_path%,${CONFIG_DEK_PATH},g"		\
 	    -e "s,%dek_len%,${dek_size},g"			\
@@ -241,6 +247,9 @@ if [ "${ENCRYPT}" = "true" ]; then
 	    -e "s,%atf_decrypt_start%,${atf_ram_start},g"	\
 	    -e "s,%atf_decrypt_offset%,${atf_image_offset},g"	\
 	    -e "s,%atf_decrypt_len%,${atf_image_len},g"		\
+	    -e "s,%optee_decrypt_start%,${optee_ram_start},g"   \
+	    -e "s,%optee_decrypt_offset%,${optee_image_offset},g" \
+	    -e "s,%optee_decrypt_len%,${optee_image_len},g"     \
 	    -e "s,%imx-boot_decrypt_path%,flash-spl-fit-enc-dummy.bin,g"\
 	${SCRIPT_PATH}/csf_templates/encrypt_sign_uboot_fit > csf_fit_sign_enc.txt
 else
@@ -270,6 +279,9 @@ else
 	    -e "s,%atf_auth_start%,${atf_ram_start},g"		\
 	    -e "s,%atf_auth_offset%,${atf_image_offset},g"	\
 	    -e "s,%atf_auth_len%,${atf_image_len},g"		\
+	    -e "s,%optee_auth_start%,${optee_ram_start},g"      \
+	    -e "s,%optee_auth_offset%,${optee_image_offset},g"  \
+	    -e "s,%optee_auth_len%,${optee_image_len},g"        \
 	    -e "s,%imx-boot_path%,${TARGET},g"			\
 	${SCRIPT_PATH}/csf_templates/sign_uboot_fit > csf_fit.txt
 fi
