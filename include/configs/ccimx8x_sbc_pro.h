@@ -71,6 +71,8 @@
 	"mfgtool_args=setenv bootargs console=${console},${baudrate} " \
 		"root=/dev/ram0 rw quiet\0" \
 	"fastboot_dev=mmc" __stringify(EMMC_BOOT_DEV) "\0" \
+	"emmc_dev=" __stringify(EMMC_BOOT_DEV) "\0" \
+	"sd_dev=1\0"
 
 /* Initial environment variables */
 #define CONFIG_EXTRA_ENV_SETTINGS		\
