@@ -186,35 +186,18 @@ static int stm32prog_read(struct stm32prog_data *data, u8 phase, u32 offset,
 int stm32prog_serial_init(struct stm32prog_data *data, int link_dev)
 {
 	struct udevice *dev = NULL;
-	int node;
-	char alias[10];
-	const char *path;
 	struct dm_serial_ops *ops;
 	/* no parity, 8 bits, 1 stop */
 	u32 serial_config = SERIAL_DEFAULT_CONFIG;
 
 	down_serial_dev = NULL;
 
-	sprintf(alias, "serial%d", link_dev);
-	path = fdt_get_alias(gd->fdt_blob, alias);
-	if (!path) {
-		pr_err("%s alias not found", alias);
+	if (uclass_get_device_by_seq(UCLASS_SERIAL, link_dev, &dev)) {
+		pr_err("serial %d device not found\n", link_dev);
 		return -ENODEV;
 	}
-	node = fdt_path_offset(gd->fdt_blob, path);
-	if (!uclass_get_device_by_of_offset(UCLASS_SERIAL, node,
-					    &dev)) {
-		down_serial_dev = dev;
-	} else if (node > 0 &&
-		   !lists_bind_fdt(gd->dm_root, offset_to_ofnode(node),
-				   &dev, false)) {
-		if (!device_probe(dev))
-			down_serial_dev = dev;
-	}
-	if (!down_serial_dev) {
-		pr_err("%s = %s device not found", alias, path);
-		return -ENODEV;
-	}
+
+	down_serial_dev = dev;
 
 	/* force silent console on uart only when used */
 	if (gd->cur_serial_dev == down_serial_dev)
@@ -225,11 +208,11 @@ int stm32prog_serial_init(struct stm32prog_data *data, int link_dev)
 	ops = serial_get_ops(down_serial_dev);
 
 	if (!ops) {
-		pr_err("%s = %s missing ops", alias, path);
+		pr_err("serial %d = %s missing ops\n", link_dev, dev->name);
 		return -ENODEV;
 	}
 	if (!ops->setconfig) {
-		pr_err("%s = %s missing setconfig", alias, path);
+		pr_err("serial %d = %s missing setconfig\n", link_dev, dev->name);
 		return -ENODEV;
 	}
 
