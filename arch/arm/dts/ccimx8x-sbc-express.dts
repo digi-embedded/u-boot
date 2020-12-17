@@ -19,6 +19,8 @@
 #include "fsl-imx8qxp.dtsi"
 /* Digi ConnectCore 8X SOM */
 #include "ccimx8x.dtsi"
+/* Digi ConnectCore 8X SBC Express */
+#include "ccimx8x-sbc-express-u-boot.dtsi"
 
 / {
 	model = "Digi International ConnectCore 8X SBC Express Board.";
