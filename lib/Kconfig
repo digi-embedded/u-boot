@@ -684,4 +684,11 @@ config LIB_ELF
 	  Supoort basic elf loading/validating functions.
 	  This supports fir 32 bit and 64 bit versions.
 
+config LMB
+	bool "Enable the logical memory blocks library (lmb)"
+	default y if ARC || ARM || M68K || MICROBLAZE || MIPS || NDS32 || \
+		     NIOS2 || PPC || RISCV || SANDBOX || SH || X86 || XTENSA
+	help
+	  Support the library logical memory blocks.
+
 endmenu
