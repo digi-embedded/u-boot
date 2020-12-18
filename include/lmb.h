@@ -12,8 +12,6 @@
  * Copyright (C) 2001 Peter Bergner, IBM Corp.
  */
 
-#define MAX_LMB_REGIONS 8
-
 /**
  * enum lmb_flags - definition of memory region attributes
  * @LMB_NONE: no special request
@@ -39,8 +37,8 @@ struct lmb_region {
 struct lmb {
 	struct lmb_region memory;
 	struct lmb_region reserved;
-	struct lmb_property memory_regions[MAX_LMB_REGIONS + 1];
-	struct lmb_property reserved_regions[MAX_LMB_REGIONS + 1];
+	struct lmb_property memory_regions[CONFIG_LMB_MEMORY_REGIONS + 1];
+	struct lmb_property reserved_regions[CONFIG_LMB_RESERVED_REGIONS + 1];
 };
 
 extern void lmb_init(struct lmb *lmb);
