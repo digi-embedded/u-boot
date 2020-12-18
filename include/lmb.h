@@ -31,13 +31,16 @@ struct lmb_property {
 };
 
 struct lmb_region {
-	unsigned long cnt;
-	struct lmb_property region[MAX_LMB_REGIONS+1];
+	unsigned long cnt;	/* number of regions */
+	unsigned long max;	/* size of the allocated array */
+	struct lmb_property *region;
 };
 
 struct lmb {
 	struct lmb_region memory;
 	struct lmb_region reserved;
+	struct lmb_property memory_regions[MAX_LMB_REGIONS + 1];
+	struct lmb_property reserved_regions[MAX_LMB_REGIONS + 1];
 };
 
 extern void lmb_init(struct lmb *lmb);
