@@ -16,7 +16,9 @@
 #include <malloc.h>
 #include <mapmem.h>
 #include <asm/io.h>
-#include <asm/mach-imx/hab.h>
+#ifdef CONFIG_SIGN_IMAGE
+#include "../board/digi/common/auth.h"
+#endif
 #if defined(CONFIG_CMD_USB)
 #include <usb.h>
 #endif
@@ -788,15 +790,16 @@ static const void *boot_get_kernel(cmd_tbl_t *cmdtp, int flag, int argc,
 	*os_data = *os_len = 0;
 	buf = map_sysmem(img_addr, 0);
 
-#ifdef CONFIG_IMX_HAB
 	switch (genimg_get_format(buf)) {
 #if defined(CONFIG_IMAGE_FORMAT_LEGACY)
 	case IMAGE_FORMAT_LEGACY:
-		if (authenticate_image((uint32_t) buf,
+#ifdef CONFIG_SIGN_IMAGE
+		if (digi_auth_image(&buf,
 			image_get_image_size((image_header_t *) buf)) == 0) {
 			printf("Authenticate uImage Fail, Please check\n");
 			return NULL;
 		}
+#endif /* CONFIG_SIGN_IMAGE */
 		break;
 #endif
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
@@ -808,7 +811,6 @@ static const void *boot_get_kernel(cmd_tbl_t *cmdtp, int flag, int argc,
 		printf("Not valid image format for Authentication, Please check\n");
 		return NULL;
 	}
-#endif
 
 	switch (genimg_get_format(buf)) {
 #if CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)
