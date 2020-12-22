@@ -435,6 +435,7 @@ sanitize:
  *
  * $ od -t x4 -j 8244 -N 4 imx-boot.bin
  */
+#define C0_DEY_NEXT_SECO	0xa1432215
 #define C0_DEY_3_0_r3_SECO	0xf93f6828
 #define C0_DEY_3_0_SECO		0x7ad5f995
 
@@ -460,6 +461,7 @@ bool validate_bootloader_image(void *loadaddr)
 	seco_watermark = (u32 *)loadaddr + (SECO_CONFIG_HASH_OFFSET / 4);
 
 	switch (*seco_watermark) {
+	case C0_DEY_NEXT_SECO:
 	case C0_DEY_3_0_r3_SECO:
 	case C0_DEY_3_0_SECO:
 		seco_rev = 'C';
