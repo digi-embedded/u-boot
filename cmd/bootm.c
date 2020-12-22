@@ -143,7 +143,7 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 	switch (genimg_get_format((const void *)tee_addr)) {
 	case IMAGE_FORMAT_LEGACY:
 #ifdef CONFIG_SIGN_IMAGE
-		if (authenticate_image(tee_addr,
+		if (digi_auth_image(&tee_addr,
 		       image_get_image_size((image_header_t *)tee_addr)) != 0) {
 		       printf("Authenticate uImage Fail, Please check\n");
 		       return 1;
