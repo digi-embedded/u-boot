@@ -158,6 +158,14 @@ void copy_dek(void)
 	get_dek_blob(dek_blob_dst, &dek_size);
 }
 
+void copy_spl_dek(void)
+{
+	ulong loadaddr = env_get_ulong("loadaddr", 16, CONFIG_LOADADDR);
+	void *dek_blob_dst = (void *)(loadaddr - (2 * BLOB_DEK_OFFSET));
+
+	get_dek_blob(dek_blob_dst, NULL);
+}
+
 /*
  * Check if all SRK words have been burned.
  *
@@ -902,11 +910,24 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			 * destination. (This fails if the running U-Boot does not
 			 * include a DEK)
 			 */
+#ifdef CONFIG_SPL
+			if (get_dek_blob((void *)dek_blob_spl_final_dst, &dek_blob_size)) {
+				printf("Current U-Boot does not contain an SPL DEK, and a new SPL DEK was not provided\n");
+				ret = CMD_RET_FAILURE;
+				goto tf_update_out;
+			}
 			if (get_dek_blob((void *)dek_blob_final_dst, &dek_blob_size)) {
 				printf("Current U-Boot does not contain a DEK, and a new DEK was not provided\n");
 				ret = CMD_RET_FAILURE;
 				goto tf_update_out;
 			}
+#else
+			if (get_dek_blob((void *)dek_blob_final_dst, &dek_blob_size)) {
+				printf("Current U-Boot does not contain a DEK, and a new DEK was not provided\n");
+				ret = CMD_RET_FAILURE;
+				goto tf_update_out;
+			}
+#endif
 			printf("Using current DEK\n");
 		}
 

@@ -20,6 +20,7 @@ int console_enable_passphrase(void);
 
 int is_uboot_encrypted(void);
 void copy_dek(void);
+void copy_spl_dek(void);
 #endif /* CONFIG_HAS_TRUSTFENCE */
 
 void fdt_fixup_trustfence(void *fdt);
