@@ -356,12 +356,8 @@ static u32 get_cpu_variant_type(u32 type)
 			switch (flag) {
 			case 7:
 				return MXC_CPU_IMX8MPL;
-			case 6:
-				return MXC_CPU_IMX8MP5;
 			case 2:
 				return MXC_CPU_IMX8MP6;
-			case 1:
-				return MXC_CPU_IMX8MP7;
 			default:
 				break;
 			}
@@ -485,9 +481,6 @@ static void secure_lockup(void)
 		clock_enable(CCGR_OCOTP, 1);
 		setbits_le32(&ocotp->sw_sticky, 0x6); /* Lock up field return and SRK revoke */
 		writel(0x80000000, &ocotp->scs_set); /* Lock up SCS */
-
-		/* Clear mfg prot private key in CAAM */
-		setbits_le32((ulong)(CONFIG_SYS_FSL_SEC_ADDR + 0xc), 0x08000000);
 #else
 		/* Check the Unique ID, if it is matched with UID config, then allow to leave sticky bits unlocked */
 		if (!is_uid_matched(CONFIG_IMX_UNIQUE_ID))
@@ -805,6 +798,40 @@ int disable_vpu_nodes(void *blob)
 
 }
 
+#ifdef CONFIG_IMX8MN_LOW_DRIVE_MODE
+static int low_drive_gpu_freq(void *blob)
+{
+	const char *nodes_path_8mn[] = {
+		"/gpu@38000000"
+	};
+
+	int nodeoff, cnt, i;
+	u32 assignedclks[7];
+
+	nodeoff = fdt_path_offset(blob, nodes_path_8mn[0]);
+	if (nodeoff < 0)
+		return nodeoff;
+
+	cnt = fdtdec_get_int_array_count(blob, nodeoff, "assigned-clock-rates", assignedclks, 7);
+	if (cnt < 0)
+		return cnt;
+
+	if (cnt != 7)
+		printf("Warning: %s, assigned-clock-rates count %d\n", nodes_path_8mn[0], cnt);
+
+	assignedclks[cnt - 1] = 200000000;
+	assignedclks[cnt - 2] = 200000000;
+
+	for (i = 0; i < cnt; i++) {
+		debug("<%u>, ", assignedclks[i]);
+		assignedclks[i] = cpu_to_fdt32(assignedclks[i]);
+	}
+	debug("\n");
+
+	return fdt_setprop(blob, nodeoff, "assigned-clock-rates", &assignedclks, sizeof(assignedclks));
+}
+#endif
+
 int disable_gpu_nodes(void *blob)
 {
 	const char *nodes_path_8mn[] = {
@@ -973,6 +1000,15 @@ usb_modify_speed:
 #elif defined(CONFIG_IMX8MN)
 	if (is_imx8mnl() || is_imx8mndl() ||  is_imx8mnsl())
 		disable_gpu_nodes(blob);
+#ifdef CONFIG_IMX8MN_LOW_DRIVE_MODE
+	else {
+		int ldm_gpu = low_drive_gpu_freq(blob);
+		if (ldm_gpu < 0)
+			printf("Update GPU node assigned-clock-rates failed\n");
+		else
+			printf("Update GPU node assigned-clock-rates ok\n");
+	}
+#endif
 
 	if (is_imx8mnd() || is_imx8mndl())
 		disable_cpu_nodes(blob, 2);
@@ -980,16 +1016,16 @@ usb_modify_speed:
 		disable_cpu_nodes(blob, 3);
 
 #elif defined(CONFIG_IMX8MP)
-	if (is_imx8mpl() || is_imx8mp7())
+	if (is_imx8mpl())
 		disable_vpu_nodes(blob);
 
-	if (is_imx8mpl() || is_imx8mp6() || is_imx8mp5())
+	if (is_imx8mpl() || is_imx8mp6())
 		disable_npu_nodes(blob);
 
-	if (is_imx8mpl() || is_imx8mp5())
+	if (is_imx8mpl())
 		disable_isp_nodes(blob);
 
-	if (is_imx8mpl() || is_imx8mp7() || is_imx8mp6() || is_imx8mp5())
+	if (is_imx8mpl() || is_imx8mp6())
 		disable_dsp_nodes(blob);
 
 	if (is_imx8mpd())
@@ -1258,7 +1294,7 @@ enum env_location env_get_location(enum env_operation op, int prio)
 }
 
 #ifndef ENV_IS_EMBEDDED
-long long env_get_offset(long long defautl_offset)
+long long env_get_offset(long long default_offset)
 {
 	enum boot_device dev = get_boot_device();
 
@@ -1269,7 +1305,7 @@ long long env_get_offset(long long defautl_offset)
 		break;
 	}
 
-	return defautl_offset;
+	return default_offset;
 }
 #endif
 #endif

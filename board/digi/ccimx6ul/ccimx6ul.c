@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 Digi International, Inc.
+ * Copyright (C) 2016-2020 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -15,6 +15,7 @@
 #include <asm/mach-imx/iomux-v3.h>
 #include <asm/mach-imx/boot_mode.h>
 #include <asm/mach-imx/mxc_i2c.h>
+#include <asm/mach-imx/hab.h>
 #include <asm/io.h>
 #include <common.h>
 #ifdef CONFIG_OF_LIBFDT
@@ -40,6 +41,9 @@ DECLARE_GLOBAL_DATA_PTR;
 
 extern bool bmode_reset;
 static struct digi_hwid my_hwid;
+#ifdef CONFIG_HAS_TRUSTFENCE
+extern int rng_swtest_status;
+#endif
 
 #define MDIO_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_PUE |     \
 	PAD_CTL_DSE_48ohm   | PAD_CTL_SRE_FAST | PAD_CTL_ODE)
@@ -102,13 +106,40 @@ static struct ccimx6_variant ccimx6ul_variants[] = {
 		0,
 		"Industrial Ultralite 528MHz, 1GB NAND, 1GB DDR3, -40/+85C",
 	},
-/* 0x06 - 55001944-06 */
-/* This variant is the same as 0x02, but with i.MX6UL silicon v1.2 */
+/* 0x06 - 55001944-06 (same as 0x02, but with i.MX6UL silicon v1.2) */
 	{
 		IMX6UL,
 		SZ_256M,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
 		"Industrial Ultralite 528MHz, 256MB NAND, 256MB DDR3, -40/+85C, Wireless, Bluetooth",
+	},
+/* 0x07 - 55001944-07 (same as 0x04) */
+	{
+		IMX6UL,
+		SZ_1G,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
+		"Industrial Ultralite 528MHz, 1GB NAND, 1GB DDR3, -40/+85C, Wireless, Bluetooth",
+	},
+/* 0x08 - 55001944-08 */
+	{
+		IMX6UL,
+		SZ_512M,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
+		"Industrial Ultralite 528MHz, 512MB NAND, 512MB DDR3, -40/+85C, Wireless, Bluetooth",
+	},
+/* 0x09 - 55001944-09 */
+	{
+		IMX6UL,
+		SZ_256M,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH,
+		"Industrial Ultralite 528MHz, 512MB NAND, 256MB DDR3, -40/+85C, Wireless, Bluetooth",
+	},
+/* 0x0A - 55001944-10 */
+	{
+		IMX6UL,
+		SZ_512M,
+		0,
+		"Industrial Ultralite 528MHz, 512MB NAND, 512MB DDR3, -40/+85C",
 	},
 };
 
@@ -236,7 +267,8 @@ int power_init_ccimx6ul(void)
 	pmic_reg_write(pfuze, PFUZE3000_SW1AMODE, reg);
 
 	/* SW1B step ramp up time from 2us to 4us/25mV */
-	reg = 0x40;
+	pmic_reg_read(pfuze, PFUZE3000_SW1BCONF, &reg);
+	reg |= (1 << 6); /* 0 = 2us/25mV , 1 = 4us/25mV */
 	pmic_reg_write(pfuze, PFUZE3000_SW1BCONF, reg);
 
 	/* SW1B mode to APS/PFM, to optimize performance */
@@ -298,6 +330,39 @@ void ldo_mode_set(int ldo_bypass)
 
 int ccimx6ul_init(void)
 {
+#ifdef CONFIG_HAS_TRUSTFENCE
+	uint32_t ret;
+	uint8_t event_data[36] = { 0 }; /* Event data buffer */
+	size_t bytes = sizeof(event_data); /* Event size in bytes */
+	enum hab_config config = 0;
+	enum hab_state state = 0;
+	hab_rvt_report_status_t *hab_report_status = (hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS;
+
+	/* HAB event verification */
+	ret = hab_report_status(&config, &state);
+	if (ret == HAB_WARNING) {
+		pr_debug("\nHAB Configuration: 0x%02x, HAB State: 0x%02x\n",
+		       config, state);
+		/* Verify RNG self test */
+		rng_swtest_status = hab_event_warning_check(event_data, &bytes);
+		if (rng_swtest_status == SW_RNG_TEST_PASSED) {
+			printf("RNG:   self-test failed, but software test passed.\n");
+		} else if (rng_swtest_status == SW_RNG_TEST_FAILED) {
+#ifdef CONFIG_RNG_SW_TEST
+			printf("WARNING: RNG self-test and software test failed!\n");
+#else
+			printf("WARNING: RNG self-test failed!\n");
+#endif
+			if (imx_hab_is_enabled()) {
+				printf("Aborting secure boot.\n");
+				run_command("reset", 0);
+			}
+		}
+	} else {
+		rng_swtest_status = SW_RNG_TEST_NA;
+	}
+#endif /* CONFIG_HAS_TRUSTFENCE */
+
 	/* Address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 
@@ -335,17 +400,13 @@ static const struct boot_mode board_boot_modes[] = {
 void generate_partition_table(void)
 {
 	struct mtd_info *nand = get_nand_dev_by_index(0);
-	uint32_t nand_size_mb = nand->size / SZ_1M;
 
-	switch (nand_size_mb) {
-	case 1024:
+	if (nand->size > SZ_512M)
 		env_set("mtdparts", MTDPARTS_1024MB);
-		break;
-	case 256:
-	default:
+	else if (nand->size > SZ_256M)
+		env_set("mtdparts", MTDPARTS_512MB);
+	else
 		env_set("mtdparts", MTDPARTS_256MB);
-		break;
-	}
 }
 
 void som_default_environment(void)
@@ -471,4 +532,28 @@ void fdt_fixup_ccimx6ul(void *fdt)
 
 	fdt_fixup_trustfence(fdt);
 	fdt_fixup_uboot_info(fdt);
+}
+
+/* Determine env partition offset depending on NAND size */
+ long long env_get_offset(long long default_offset)
+ {
+	struct mtd_info *mtd;
+
+	mtd = get_nand_dev_by_index(0);
+	if (!mtd)
+		return default_offset;
+
+	if (mtd->size >= (512 * SZ_1M))
+		return UBOOT_PART_SIZE_BIG * SZ_1M;
+	else
+		return UBOOT_PART_SIZE_SMALL * SZ_1M;
+}
+
+long long env_get_offset_redund(long long default_offset)
+{
+#ifdef CONFIG_DYNAMIC_ENV_LOCATION
+	return env_get_offset_redund(default_offset);
+#else
+	return default_offset;
+#endif
 }

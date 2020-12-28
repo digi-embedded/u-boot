@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Digi International Inc
+ * Copyright 2019,2020 Digi International Inc
  * Copyright 2018 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -94,6 +94,9 @@ int board_early_init_f(void)
 #endif /* CONFIG_CONSOLE_ENABLE_GPIO && !CONFIG_SPL_BUILD */
 #endif /* CONFIG_CONSOLE_DISABLE */
 
+	/* Init UART0 clock */
+	init_uart_clk(0);
+
 	return 0;
 }
 
@@ -127,6 +130,11 @@ int board_late_init(void)
 
 	/* Set default dynamic variables */
 	platform_default_environment();
+
+#ifdef CONFIG_HAS_TRUSTFENCE
+	copy_dek();
+	copy_spl_dek();
+#endif
 
 	return 0;
 }
@@ -224,10 +232,31 @@ int board_ehci_usb_phy_mode(struct udevice *dev)
 	return USB_INIT_DEVICE;
 }
 
+int board_power_led_init(void)
+{
+	/* MCA_IO13 (bank 1, bit 5) is connected to POWER_LED */
+	int prw_led_gpiobank = 1;
+	int pwr_led_gpiobit = (1 << 5);
+	int ret;
+
+	/* Configure as output */
+	ret = mca_update_bits(MCA_GPIO_DIR_0 + prw_led_gpiobank,
+			      pwr_led_gpiobit, pwr_led_gpiobit);
+	if (ret != 0)
+		return ret;
+
+	/* Turn on POWER_LED (high) */
+	ret = mca_update_bits(MCA_GPIO_DATA_0 + prw_led_gpiobank,
+			      pwr_led_gpiobit, pwr_led_gpiobit);
+	return ret;
+}
+
 int board_init(void)
 {
 	/* SOM init */
 	ccimx8_init();
+
+	board_power_led_init();
 
 #ifdef CONFIG_MXC_SPI
 	setup_spi();
@@ -253,7 +282,6 @@ int checkboard(void)
 	print_som_info();
 	print_carrierboard_info();
 	print_bootinfo();
-	build_info();
 
 	return 0;
 }

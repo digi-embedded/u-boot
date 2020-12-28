@@ -9,9 +9,19 @@
 #include <mmc.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/mach-imx/boot_mode.h>
+#include <asm/mach-imx/hab.h>
 #include <spl.h>
 
 DECLARE_GLOBAL_DATA_PTR;
+
+#define SPL_IVT_HEADER_SIZE 0x40
+/* The Blob Address is a fixed address defined in imx-mkimage
+ * project in iMX8M/soc.mak file
+ */
+#define DEK_BLOB_LOAD_ADDR 0x40400000
+
+#define HAB_AUTH_BLOB_TAG              0x81
+#define HAB_VERSION                    0x43
 
 int mmc_get_bootdevindex(void)
 {
@@ -64,4 +74,48 @@ void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 	}
 	/* Boot partition size - Start of boot image */
 	info->size = (mmc->capacity_boot / mmc_dev->blksz) - info->start;
+}
+
+int get_dek_blob_offset(char *address, u32 *offset)
+{
+	struct ivt *ivt = (struct ivt *)(CONFIG_SPL_TEXT_BASE - SPL_IVT_HEADER_SIZE);
+
+	/* Verify the pointer is pointing at an actual IVT table */
+	if ((ivt->hdr.magic != IVT_HEADER_MAGIC) ||
+	   (be16_to_cpu(ivt->hdr.length) != IVT_TOTAL_LENGTH))
+		return 1;
+
+	if (ivt->csf)
+		*offset = ivt->csf + CONFIG_CSF_SIZE;
+	else
+		return 1;
+
+	return 0;
+}
+
+int get_dek_blob_size(char *address, u32 *size)
+{
+	if (address[3] != HAB_VERSION || address[0] != HAB_AUTH_BLOB_TAG) {
+		printf("Tag does not match as expected\n");
+		return -EINVAL;
+	}
+
+	*size = address[2];
+	debug("DEK blob size is 0x%04x\n", *size);
+
+	return 0;
+}
+
+int get_dek_blob(char *output, u32 *size)
+{
+	/* Get DEK offset */
+	char *dek_blob_src = (void*)(DEK_BLOB_LOAD_ADDR);
+	u32 dek_blob_size;
+
+	/* Get Dek blob */
+	get_dek_blob_size((char *)dek_blob_src, &dek_blob_size);
+	memcpy(output, dek_blob_src, dek_blob_size);
+	*size = dek_blob_size;
+
+	return 0;
 }

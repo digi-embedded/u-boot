@@ -189,7 +189,6 @@ int checkboard(void)
 	print_som_info();
 	print_carrierboard_info();
 	print_bootinfo();
-	build_info();
 
 #ifdef SCI_FORCE_ABORT
 	sc_rpc_msg_t abort_msg;
@@ -287,6 +286,7 @@ void platform_default_environment(void)
 
 int board_late_init(void)
 {
+	build_info();
 	/* SOM late init */
 	ccimx8_late_init();
 

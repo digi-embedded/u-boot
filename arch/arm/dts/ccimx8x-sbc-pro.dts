@@ -35,11 +35,14 @@
 
 		reg_3v3_eth0: 3v3_eth0 {
 			compatible = "regulator-fixed";
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_reg_3v3_eth0>;
 			regulator-name = "3V3_ETH0";
 			regulator-min-microvolt = <3300000>;
 			regulator-max-microvolt = <3300000>;
 			gpio = <&gpio3 13 GPIO_ACTIVE_HIGH>;
 			enable-active-high;
+			startup-delay-us = <10000>;
 		};
 	};
 
@@ -178,6 +181,14 @@
 			>;
 		};
 
+		/* Ethernet PHYs regulator */
+		pinctrl_reg_3v3_eth0: pinctrl_reg_3v3_eth0grp {
+			fsl,pins = <
+				/* PHY power */
+				SC_P_QSPI0A_DQS_LSIO_GPIO3_IO13		0x06000021
+			>;
+		};
+
 		/* FEC shared MDIO bus */
 		pinctrl_fec_mdio: fecmdiogrp {
 			fsl,pins = <
@@ -190,8 +201,6 @@
 			fsl,pins = <
 				/* PHY reset */
 				SC_P_QSPI0B_DATA0_LSIO_GPIO3_IO18	0x06000021
-				/* PHY power */
-				SC_P_QSPI0A_DQS_LSIO_GPIO3_IO13		0x06000021
 				/* PHY interrupt */
 				SC_P_MIPI_DSI0_GPIO0_01_LSIO_GPIO1_IO28	0x06000021
 			>;
@@ -227,8 +236,6 @@
 			fsl,pins = <
 				/* PHY reset */
 				SC_P_QSPI0B_DQS_LSIO_GPIO3_IO22		0x06000021
-				/* PHY power */
-				SC_P_QSPI0A_DQS_LSIO_GPIO3_IO13		0x06000021
 				/* PHY interrupt */
 				SC_P_MIPI_DSI1_GPIO0_01_LSIO_GPIO2_IO00	0x06000021
 			>;

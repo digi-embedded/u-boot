@@ -53,7 +53,7 @@
 #define CONFIG_ENV_OVERWRITE
 
 /* Miscellaneous configurable options */
-#define CONFIG_SYS_CBSIZE	512
+#define CONFIG_SYS_CBSIZE	1024
 #define CONFIG_SYS_MAXARGS	32
 #define CONFIG_SYS_BARGSIZE	CONFIG_SYS_CBSIZE
 
@@ -63,10 +63,6 @@
 /* MMC */
 #define CONFIG_SUPPORT_EMMC_BOOT
 
-/* Secure boot (HAB) support */
-#ifdef CONFIG_SIGN_IMAGE
-#define CONFIG_CSF_SIZE			0x4000
-#endif
 #ifdef CONFIG_SPL_BUILD
 #define CONFIG_SPL_DRIVERS_MISC_SUPPORT
 #endif

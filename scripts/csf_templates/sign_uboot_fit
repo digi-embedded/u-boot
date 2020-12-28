@@ -29,7 +29,8 @@
     # Key slot index used to authenticate the image data
     Verification index = 2
     # Authenticate Start Address, Offset, Length and file
-    Blocks = %sld_ram_start% %sld_image_offset% %sld_auth_len% "%imx-boot_path%", \
-             %uboot_ram_start% %uboot_image_offset% %uboot_auth_len% "%imx-boot_path%", \
-             %dtb_ram_start% %dtb_image_offset% %dtb_auth_len% "%imx-boot_path%", \
-             %atf_ram_start% %atf_image_offset% %atf_auth_len% "%imx-boot_path%"
+    Blocks = %sld_auth_start% %sld_auth_offset% %sld_auth_len% "%imx-boot_path%", \
+             %uboot_auth_start% %uboot_auth_offset% %uboot_auth_len% "%imx-boot_path%", \
+             %dtb_auth_start% %dtb_auth_offset% %dtb_auth_len% "%imx-boot_path%", \
+             %atf_auth_start% %atf_auth_offset% %atf_auth_len% "%imx-boot_path%", \
+             %optee_auth_start% %optee_auth_offset% %optee_auth_len% "%imx-boot_path%"

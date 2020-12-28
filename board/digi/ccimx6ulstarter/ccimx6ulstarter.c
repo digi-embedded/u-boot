@@ -42,7 +42,7 @@
 #endif
 
 #ifdef CONFIG_FSL_FASTBOOT
-#include <fsl_fastboot.h>
+#include <fastboot.h>
 #ifdef CONFIG_ANDROID_RECOVERY
 #include <recovery.h>
 #endif
@@ -100,6 +100,12 @@ static iomux_v3_cfg_t const ext_gpios_pads[] = {
 	MX6_PAD_JTAG_TRST_B__GPIO1_IO15 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 	MX6_PAD_JTAG_TCK__GPIO1_IO14 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 };
+
+static void setup_iomux_ext_gpios(void)
+{
+	imx_iomux_v3_setup_multiple_pads(ext_gpios_pads,
+					 ARRAY_SIZE(ext_gpios_pads));
+}
 #endif /* CONFIG_CONSOLE_ENABLE_GPIO */
 
 /* micro SD */
@@ -357,29 +363,11 @@ int board_ehci_hcd_init(int port)
 
 int board_early_init_f(void)
 {
-#ifdef CONFIG_CONSOLE_ENABLE_GPIO
-	const char *ext_gpios[] = {
-		"GPIO1_4",	/* J8.7 */
-		"GPIO1_12",	/* J8.35 */
-		"GPIO1_13",	/* J8.12 */
-		"GPIO1_11",	/* J8.16 */
-		"GPIO1_15",	/* J8.38 */
-		"GPIO1_14",	/* J8.40 */
-	};
-	const char *ext_gpio_name = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
-	imx_iomux_v3_setup_multiple_pads(ext_gpios_pads,
-					 ARRAY_SIZE(ext_gpios_pads));
-#endif /* CONFIG_CONSOLE_ENABLE_GPIO */
-
 	setup_iomux_uart();
 
 #ifdef CONFIG_CONSOLE_DISABLE
 	gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
-#ifdef CONFIG_CONSOLE_ENABLE_GPIO
-	if (console_enable_gpio(ext_gpio_name))
-		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
-#endif /* CONFIG_CONSOLE_ENABLE_GPIO */
-#endif /* CONFIG_CONSOLE_DISABLE */
+#endif
 
 	return 0;
 }
@@ -442,6 +430,22 @@ void platform_default_environment(void)
 
 int board_late_init(void)
 {
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+	const char *ext_gpios[] = {
+		"GPIO1_4",	/* J8.7 */
+		"GPIO1_12",	/* J8.35 */
+		"GPIO1_13",	/* J8.12 */
+		"GPIO1_11",	/* J8.16 */
+		"GPIO1_15",	/* J8.38 */
+		"GPIO1_14",	/* J8.40 */
+	};
+	const char *ext_gpio_name = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
+
+	setup_iomux_ext_gpios();
+
+	if (console_enable_gpio(ext_gpio_name))
+		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#endif
 	/* SOM late init */
 	ccimx6ul_late_init();
 

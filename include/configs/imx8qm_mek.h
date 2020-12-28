@@ -37,7 +37,6 @@
 
 #define CONFIG_SPL_ABORT_ON_RAW_IMAGE
 
-#define CONFIG_OF_EMBED
 #endif
 
 #define CONFIG_REMAKE_ELF
@@ -363,6 +362,11 @@
 #include "imx8qm_mek_android.h"
 #elif defined (CONFIG_ANDROID_AUTO_SUPPORT)
 #include "imx8qm_mek_android_auto.h"
+<<<<<<< HEAD
+=======
+#elif defined(CONFIG_IMX8_TRUSTY_XEN)
+#include "imx8qm_mek_trusty_xen.h"
+>>>>>>> rel_imx_5.4.47_2.2.0
 #endif
 
 #endif /* __IMX8QM_MEK_H */

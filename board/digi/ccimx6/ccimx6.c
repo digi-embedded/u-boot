@@ -27,9 +27,11 @@
 #include <asm/arch/mx6-pins.h>
 #include <asm/arch/sys_proto.h>
 #include <linux/errno.h>
+#include <linux/mtd/mtd.h>
 #include <asm/gpio.h>
 #include <asm/mach-imx/iomux-v3.h>
 #include <asm/mach-imx/boot_mode.h>
+#include <asm/mach-imx/hab.h>
 #include <i2c.h>
 #include <asm/mach-imx/mxc_i2c.h>
 #include <linux/ctype.h>
@@ -54,6 +56,9 @@ DECLARE_GLOBAL_DATA_PTR;
 extern unsigned int board_version;
 extern unsigned int board_id;
 extern void board_spurious_wakeup(void);
+#ifdef CONFIG_HAS_TRUSTFENCE
+extern int rng_swtest_status;
+#endif
 
 static struct digi_hwid my_hwid;
 static int enet_xcv_type;
@@ -661,10 +666,17 @@ static struct ccimx6_variant ccimx6p_variants[] = {
 		SZ_2G,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
 		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
-		"Industrial QuadPlus-core 1GHz, 8GB eMMC, 2GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
+		"Automotive QuadPlus-core 1GHz, 8GB eMMC, 2GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
+	},
+/* 0x03 - 55001983-03 */
+	{
+		IMX6DP,
+		SZ_1G,
+		CCIMX6_HAS_EMMC,
+		"Industrial DualPlus-core 800MHz, 4GB eMMC, 1GB DDR3, -40/+85C",
 	},
 };
-#define NUM_VARIANTS_CC6P	3
+#define NUM_VARIANTS_CC6P	4
 
 /* DDR3 calibration values for the different CC6+ variants */
 static struct addrvalue ddr3_cal_cc6p[NUM_VARIANTS_CC6P + 1][DDR3_CAL_REGS] = {
@@ -707,6 +719,25 @@ static struct addrvalue ddr3_cal_cc6p[NUM_VARIANTS_CC6P + 1][DDR3_CAL_REGS] = {
 		{MX6_MMDC_P0_MPWRDLCTL, 0x3939423B},
 		{MX6_MMDC_P1_MPWRDLCTL, 0x46354840},
 	},
+        /* Variant 0x03 (copied from CC6 var 0x02 pending calibration) */
+        [0x03] = {
+                /* Write leveling */
+                {MX6_MMDC_P0_MPWLDECTRL0, 0x00070012},
+                {MX6_MMDC_P0_MPWLDECTRL1, 0x002C0020},
+                {MX6_MMDC_P1_MPWLDECTRL0, 0x001F0035},
+                {MX6_MMDC_P1_MPWLDECTRL1, 0x002E0030},
+                /* Read DQS gating */
+                {MX6_MMDC_P0_MPDGCTRL0, 0x432C0331},
+                {MX6_MMDC_P0_MPDGCTRL1, 0x03250328},
+                {MX6_MMDC_P1_MPDGCTRL0, 0x433E0346},
+                {MX6_MMDC_P1_MPDGCTRL1, 0x0336031C},
+                /* Read delay */
+                {MX6_MMDC_P0_MPRDDLCTL, 0x382B2F35},
+                {MX6_MMDC_P1_MPRDDLCTL, 0x31332A3B},
+                /* Write delay */
+                {MX6_MMDC_P0_MPWRDLCTL, 0x3938403A},
+                {MX6_MMDC_P1_MPWRDLCTL, 0x4430453D},
+        },
 };
 
 static struct ccimx6_variant * get_cc6_variant(u8 variant)
@@ -1092,25 +1123,25 @@ void ldo_mode_set(int ldo_bypass)
 	if (check_1_2G()) {
 		ldo_bypass = 0;	/* ldo_enable on 1.2G chip */
 		printf("1.2G chip, increase VDDARM_IN/VDDSOC_IN\n");
-		/* increase VDDARM to 1.425V */
+		/* increase VDDARM to 1.450V */
 		if (pmic_read_reg(DA9063_VBCORE1_A_ADDR, &value)) {
 			printf("Read BCORE1 error!\n");
 			goto out;
 		}
 		value &= ~0x7f;
-		value |= 0x71;
+		value |= 0x73;
 		if (pmic_write_reg(DA9063_VBCORE1_A_ADDR, value)) {
 			printf("Set BCORE1 error!\n");
 			goto out;
 		}
 
-		/* increase VDDSOC to 1.425V */
+		/* increase VDDSOC to 1.450V */
 		if (pmic_read_reg(DA9063_VBCORE2_A_ADDR, &value)) {
 			printf("Read BCORE2 error!\n");
 			goto out;
 		}
 		value &= ~0x7f;
-		value |= 0x71;
+		value |= 0x73;
 		if (pmic_write_reg(DA9063_VBCORE2_A_ADDR, value)) {
 			printf("Set BCORE2 error!\n");
 			goto out;
@@ -1531,6 +1562,40 @@ void print_ccimx6_info(void)
 
 int ccimx6_init(void)
 {
+#ifdef CONFIG_HAS_TRUSTFENCE
+	uint32_t ret;
+	uint8_t event_data[36] = { 0 }; /* Event data buffer */
+	size_t bytes = sizeof(event_data); /* Event size in bytes */
+	enum hab_config config = 0;
+	enum hab_state state = 0;
+	hab_rvt_report_status_t *hab_report_status =
+		(hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS;
+
+	/* HAB event verification */
+	ret = hab_report_status(&config, &state);
+	if (ret == HAB_WARNING) {
+		pr_debug("\nHAB Configuration: 0x%02x, HAB State: 0x%02x\n",
+		       config, state);
+		/* Verify RNG self test */
+		rng_swtest_status = hab_event_warning_check(event_data, &bytes);
+		if (rng_swtest_status == SW_RNG_TEST_PASSED) {
+			printf("RNG:   self-test failed, but software test passed.\n");
+		} else if (rng_swtest_status == SW_RNG_TEST_FAILED) {
+#ifdef CONFIG_RNG_SW_TEST
+			printf("WARNING: RNG self-test and software test failed!\n");
+#else
+			printf("WARNING: RNG self-test failed!\n");
+#endif
+			if (imx_hab_is_enabled()) {
+				printf("Aborting secure boot.\n");
+				run_command("reset", 0);
+			}
+		}
+	} else {
+		rng_swtest_status = SW_RNG_TEST_NA;
+	}
+#endif /* CONFIG_HAS_TRUSTFENCE */
+
 	if (board_read_hwid(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return -1;

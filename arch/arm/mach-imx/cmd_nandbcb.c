@@ -268,7 +268,7 @@ static int nandbcb_set_boot_config(int argc, char * const argv[], struct boot_co
 			       boot_stream1_address);
 
 	if (boot_cfg->secondary_boot_stream_off_in_MB) {
-		boot_stream2_address = boot_cfg->secondary_boot_stream_off_in_MB * 1024 * 1024;
+		boot_stream2_address = (loff_t)boot_cfg->secondary_boot_stream_off_in_MB * 1024 * 1024;
 	}
 
 	max_boot_stream_size = boot_stream2_address - boot_stream1_address;
@@ -470,7 +470,7 @@ static int fill_dbbt_data(struct mtd_info *mtd, void *buf, int num_blocks)
 	u32 *n_bad_blocksp = buf + 0x4;
 
 	for (n = 0; n < num_blocks; n++) {
-		loff_t offset = n * mtd->erasesize;
+		loff_t offset = (loff_t)n * mtd->erasesize;
 			if (mtd_block_isbad(mtd, offset)) {
 				n_bad_blocks++;
 				*bb = n;
@@ -497,11 +497,16 @@ static int read_fcb(struct boot_config *boot_cfg, struct fcb_block *fcb,
 	int ret = 0;
 
 	mtd = boot_cfg->mtd;
-	fcb_raw_page = kzalloc(mtd->writesize + mtd->oobsize, GFP_KERNEL);
-
 	if (mtd_block_isbad(mtd, off)) {
 		printf("Block %d is bad, skipped\n", (int)CONV_TO_BLOCKS(off));
 		return 1;
+	}
+
+	fcb_raw_page = kzalloc(mtd->writesize + mtd->oobsize, GFP_KERNEL);
+	if (!fcb_raw_page) {
+		debug("failed to allocate fcb_raw_page\n");
+		ret = -ENOMEM;
+		return ret;
 	}
 
 	/*
@@ -558,7 +563,7 @@ static int write_fcb(struct boot_config *boot_cfg, struct fcb_block *fcb)
 {
 	struct mtd_info *mtd;
 	void *fcb_raw_page = NULL;
-	int i, ret;
+	int i, ret = 0;
 	loff_t off;
 	size_t size;
 
@@ -650,8 +655,6 @@ static int write_fcb(struct boot_config *boot_cfg, struct fcb_block *fcb)
 		/* next writing location */
 		off += g_boot_search_stride;
 	}
-
-	return 0;
 
 fcb_raw_page_err:
 	if (fcb_raw_page)

@@ -56,6 +56,7 @@ unsigned int g_pcount;
 
 static ulong bootloader_mmc_offset(void)
 {
+#if defined(CONFIG_CMD_UPDATE_MMC) && defined(EMMC_BOOT_PART_OFFSET)
 	disk_partition_t info;
 	int mmc_dev_index = env_get_ulong("mmcdev", 16, mmc_get_bootdevindex());
 	struct blk_desc *mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC,
@@ -68,6 +69,9 @@ static ulong bootloader_mmc_offset(void)
 	calculate_uboot_update_settings(mmc_dev, &info);
 
 	return info.start * mmc_dev->blksz;
+#else
+	return 0;
+#endif
 }
 
 bool bootloader_gpt_overlay(void)
@@ -114,15 +118,16 @@ static int _fastboot_parts_add_ptable_entry(int ptable_index,
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_VENDOR_A) ||
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_OEM_B) ||
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_VENDOR_B) ||
-	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_DATA))
+	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_DATA) ||
 #else
 	if (!strcmp((const char *)info.name, FASTBOOT_PARTITION_SYSTEM) ||
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_OEM) ||
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_VENDOR) ||
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_DATA) ||
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_DEVICE) ||
-	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_CACHE))
+	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_CACHE) ||
 #endif
+	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_METADATA))
 		strcpy(ptable[ptable_index].fstype, "ext4");
 	else
 		strcpy(ptable[ptable_index].fstype, "raw");
@@ -341,7 +346,7 @@ bool fastboot_parts_is_raw(struct fastboot_ptentry *ptn)
 	 return false;
 }
 
-static bool is_exist(char (*partition_base_name)[16], char *buffer, int count)
+static bool is_exist(char (*partition_base_name)[20], char *buffer, int count)
 {
 	int n;
 
@@ -353,7 +358,7 @@ static bool is_exist(char (*partition_base_name)[16], char *buffer, int count)
 }
 
 /*get partition base name from gpt without "_a/_b"*/
-int fastboot_parts_get_name(char (*partition_base_name)[16])
+int fastboot_parts_get_name(char (*partition_base_name)[20])
 {
 	int n = 0;
 	int count = 0;

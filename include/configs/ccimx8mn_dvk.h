@@ -26,6 +26,15 @@
 #define CONFIG_MALLOC_F_ADDR		0x184000 /* malloc f used before GD_FLG_FULL_MALLOC_INIT set */
 
 #undef CONFIG_DM_MMC
+#undef CONFIG_DM_PMIC
+#undef CONFIG_DM_PMIC_PFUZE100
+
+#define CONFIG_POWER
+#define CONFIG_POWER_I2C
+#define CONFIG_POWER_BD71837
+#define CONFIG_POWER_PCA9450
+
+#define CONFIG_SYS_I2C
 
 #endif
 
@@ -156,13 +165,33 @@
 		"install_linux_fw_sd.scr;then " \
 			"source ${loadaddr};" \
 		"fi;\0" \
+	"install_linux_fw_usb=usb start;" \
+		"if load usb 0 ${loadaddr} install_linux_fw_usb.scr;then " \
+			"source ${loadaddr};" \
+		"fi;\0" \
 	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
 	""	/* end line */
 
 #undef CONFIG_BOOTCOMMAND
+#ifdef CONFIG_SECURE_BOOT
+/*
+ * Authenticate bootscript before running it. IVT offset is at
+ * ${filesize} - CONFIG_CSF_SIZE - IVT_SIZE (0x20)
+ * Use 0x2000 as CSF_SIZE, as this is the value used by the script
+ * to sign / encrypt the bootscript
+ */
+#define CONFIG_BOOTCOMMAND \
+	"if run loadscript; then " \
+		"setexpr bs_ivt_offset ${filesize} - 0x2020;" \
+		"if hab_auth_img ${loadaddr} ${filesize} ${bs_ivt_offset}; then " \
+			"source ${loadaddr};" \
+		"fi; " \
+	"fi;"
+#else
 #define CONFIG_BOOTCOMMAND \
 	"if run loadscript; then " \
 		"source ${loadaddr};" \
 	"fi;"
 
+#endif	/* CONFIG_SECURE_BOOT */
 #endif /* __CCIMX8MN_DVK_H */

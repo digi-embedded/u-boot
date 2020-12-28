@@ -14,8 +14,10 @@
 #include <asm/mach-imx/iomux-v3.h>
 #include <asm/arch/imx8mn_pins.h>
 #include <asm/arch/sys_proto.h>
+#include <asm/mach-imx/boot_mode.h>
 #include <power/pmic.h>
 #include <power/bd71837.h>
+#include <power/pca9450.h>
 #include <asm/arch/clock.h>
 #include <asm/mach-imx/gpio.h>
 #include <asm/gpio.h>
@@ -30,6 +32,32 @@ DECLARE_GLOBAL_DATA_PTR;
 
 extern struct dram_timing_info dram_timing_1G;
 extern struct dram_timing_info dram_timing_512M;
+
+int spl_board_boot_device(enum boot_device boot_dev_spl)
+{
+#ifdef CONFIG_SPL_BOOTROM_SUPPORT
+	return BOOT_DEVICE_BOOTROM;
+#else
+	switch (boot_dev_spl) {
+	case SD1_BOOT:
+	case MMC1_BOOT:
+	case SD2_BOOT:
+	case MMC2_BOOT:
+		return BOOT_DEVICE_MMC1;
+	case SD3_BOOT:
+	case MMC3_BOOT:
+		return BOOT_DEVICE_MMC2;
+	case QSPI_BOOT:
+		return BOOT_DEVICE_NOR;
+	case NAND_BOOT:
+		return BOOT_DEVICE_NAND;
+	case USB_BOOT:
+		return BOOT_DEVICE_BOARD;
+	default:
+		return BOOT_DEVICE_NONE;
+	}
+#endif
+}
 
 void spl_dram_init(void)
 {
@@ -165,37 +193,71 @@ int board_mmc_getcd(struct mmc *mmc)
 #define I2C_PMIC	0
 int power_init_board(void)
 {
+	struct digi_hwid my_hwid;
 	struct pmic *p;
 	int ret;
 
-	ret = power_bd71837_init(I2C_PMIC);
-	if (ret)
-		printf("power init failed");
-
-	p = pmic_get("BD71837");
-	pmic_probe(p);
-
-
-	/* decrease RESET key long push time from the default 10s to 10ms */
-	pmic_reg_write(p, BD71837_PWRONCONFIG1, 0x0);
-
-	/* unlock the PMIC regs */
-	pmic_reg_write(p, BD71837_REGLOCK, 0x1);
+	if (board_read_hwid(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		my_hwid.hv = 0;
+	}
 
 	/*
-	 * increase VDD_SOC/VDD_DRAM to typical value 0.85v for 1.2Ghz
-	 * DDR clock
+	 * Revision 1 of the ccimx8mn uses the bd71837 PMIC.
+	 * Revisions 2 and higher use the pca9450 PMIC
 	 */
-	pmic_reg_write(p, BD71837_BUCK1_VOLT_RUN, 0x0F);
+	if (my_hwid.hv == 1) {
+		ret = power_bd71837_init(I2C_PMIC);
+		if (ret)
+			printf("power init failed");
 
-	/* increase VDD_ARM to typical value 0.95v for Quad-A53, 1.4 GHz */
-	pmic_reg_write(p, BD71837_BUCK2_VOLT_RUN, 0x19);
+		p = pmic_get("BD71837");
+		pmic_probe(p);
 
-	/* Set VDD_SOC 0.85v for suspend */
-	pmic_reg_write(p, BD71837_BUCK1_VOLT_SUSP, 0xf);
+		/* decrease RESET key long push time from the default 10s to 10ms */
+		pmic_reg_write(p, BD71837_PWRONCONFIG1, 0x0);
 
-	/* lock the PMIC regs */
-	pmic_reg_write(p, BD71837_REGLOCK, 0x11);
+		/* unlock the PMIC regs */
+		pmic_reg_write(p, BD71837_REGLOCK, 0x1);
+
+		/*
+		* increase VDD_SOC/VDD_DRAM to typical value 0.85v for 1.2Ghz
+		* DDR clock
+		*/
+		pmic_reg_write(p, BD71837_BUCK1_VOLT_RUN, 0x0F);
+
+		/* increase VDD_ARM to typical value 0.95v for Quad-A53, 1.4 GHz */
+		pmic_reg_write(p, BD71837_BUCK2_VOLT_RUN, 0x19);
+
+		/* Set VDD_SOC 0.85v for suspend */
+		pmic_reg_write(p, BD71837_BUCK1_VOLT_SUSP, 0xf);
+
+		/* lock the PMIC regs */
+		pmic_reg_write(p, BD71837_REGLOCK, 0x11);
+	} else {
+		ret = power_pca9450b_init(I2C_PMIC);
+		if (ret)
+			printf("power init failed");
+
+		p = pmic_get("PCA9450");
+		pmic_probe(p);
+
+		/* BUCKxOUT_DVS0/1 control BUCK123 output */
+		pmic_reg_write(p, PCA9450_BUCK123_DVS, 0x29);
+
+		/* increase VDD_SOC/VDD_DRAM to typical value 0.95V before first DRAM access */
+		/* Set DVS1 to 0.85v for suspend */
+		/* Enable DVS control through PMIC_STBY_REQ and set B1_ENMODE=1 (ON by PMIC_ON_REQ=H) */
+		pmic_reg_write(p, PCA9450_BUCK1OUT_DVS0, 0x1C);
+		pmic_reg_write(p, PCA9450_BUCK1OUT_DVS1, 0x14);
+		pmic_reg_write(p, PCA9450_BUCK1CTRL, 0x59);
+
+		/* set VDD_SNVS_0V8 from default 0.85V */
+		pmic_reg_write(p, PCA9450_LDO2CTRL, 0xC0);
+
+		/* set WDOG_B_CFG to cold reset */
+		pmic_reg_write(p, PCA9450_RESET_CTRL, 0xA1);
+	}
 
 	return 0;
 }

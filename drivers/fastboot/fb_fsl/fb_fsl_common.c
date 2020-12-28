@@ -53,8 +53,8 @@ extern void trusty_os_init(void);
 
 #if defined(CONFIG_AVB_SUPPORT) && defined(CONFIG_MMC)
 AvbABOps fsl_avb_ab_ops = {
-	.read_ab_metadata = fsl_read_ab_metadata,
-	.write_ab_metadata = fsl_write_ab_metadata,
+	.read_ab_metadata = fsl_avb_ab_data_read,
+	.write_ab_metadata = fsl_avb_ab_data_write,
 	.ops = NULL
 };
 #ifdef CONFIG_AVB_ATX
@@ -357,8 +357,8 @@ static int _fastboot_setup_dev(int *switched)
 void fastboot_setup(void)
 {
 	int sw, ret;
-#if !defined(CONFIG_CC8)
-	struct tag_serialnr serialnr;
+#ifndef DIGI_PLATFORM
+	struct tag_serialnr serialnr = {0};
 	char serial[17];
 
 	get_board_serial(&serialnr);
@@ -406,7 +406,7 @@ static void fastboot_puts(struct stdio_dev *dev, const char *s)
 			left = FASTBOOT_MAX_LEN - 4;
 
 		memcpy(buff + 4, s + i, left);
-		buff[left + 4 + 1] = 0;
+		buff[left + 4] = 0;
 		fastboot_tx_write_more(buff);
 	}
 }

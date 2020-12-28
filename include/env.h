@@ -343,10 +343,7 @@ int env_get_char(int index);
  */
 void env_reloc(void);
 
-#ifdef ENV_IS_EMBEDDED
-#define env_get_offset(x) x
-#else
-long long env_get_offset(long long defautl_offset);
-#endif
+long long env_get_offset(long long default_offset);
+long long env_get_offset_redund(long long default_offset);
 
 #endif

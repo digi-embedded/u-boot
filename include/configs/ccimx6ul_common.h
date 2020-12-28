@@ -178,21 +178,33 @@
 /* MTD (NAND) */
 #define CONFIG_SKIP_NAND_BBT_SCAN
 #define CONFIG_UBOOT_PARTITION		"bootloader"
+#define UBOOT_PART_SIZE_SMALL		3
+#define UBOOT_PART_SIZE_BIG		5
+#define ENV_PART_SIZE_SMALL		1
+#define ENV_PART_SIZE_BIG		3
 #define CONFIG_LINUX_PARTITION		"linux"
 #define CONFIG_RECOVERY_PARTITION	"recovery"
 #define CONFIG_NAND_NAME		"gpmi-nand"
 #define MTDIDS_DEFAULT			"nand0=" CONFIG_NAND_NAME
 #define MTDPARTS_256MB			"mtdparts=" CONFIG_NAND_NAME ":" \
-					"3m(" CONFIG_UBOOT_PARTITION ")," \
-					"1m(environment)," \
+					__stringify(UBOOT_PART_SIZE_SMALL) "m(" CONFIG_UBOOT_PARTITION ")," \
+					__stringify(ENV_PART_SIZE_SMALL) "m(environment)," \
 					"1m(safe)," \
 					"12m(" CONFIG_LINUX_PARTITION ")," \
 					"14m(" CONFIG_RECOVERY_PARTITION ")," \
 					"122m(rootfs)," \
 					"-(update)"
+#define MTDPARTS_512MB			"mtdparts=" CONFIG_NAND_NAME ":" \
+					__stringify(UBOOT_PART_SIZE_BIG) "m(" CONFIG_UBOOT_PARTITION ")," \
+					__stringify(ENV_PART_SIZE_BIG) "m(environment)," \
+					"1m(safe)," \
+					"24m(" CONFIG_LINUX_PARTITION ")," \
+					"32m(" CONFIG_RECOVERY_PARTITION ")," \
+					"256m(rootfs)," \
+					"-(update)"
 #define MTDPARTS_1024MB			"mtdparts=" CONFIG_NAND_NAME ":" \
-					"3m(" CONFIG_UBOOT_PARTITION ")," \
-					"3m(environment)," \
+					__stringify(UBOOT_PART_SIZE_BIG) "m(" CONFIG_UBOOT_PARTITION ")," \
+					__stringify(ENV_PART_SIZE_BIG) "m(environment)," \
 					"1m(safe)," \
 					"24m(" CONFIG_LINUX_PARTITION ")," \
 					"32m(" CONFIG_RECOVERY_PARTITION ")," \
@@ -211,10 +223,12 @@
 #define CONFIG_SUPPORTED_SOURCES	((1 << SRC_TFTP) | \
 					 (1 << SRC_NFS) | \
 					 (1 << SRC_MMC) | \
+					 (1 << SRC_USB) | \
 					 (1 << SRC_NAND) | \
 					 (1 << SRC_RAM))
 #define CONFIG_SUPPORTED_SOURCES_NET	"tftp|nfs"
 #define CONFIG_SUPPORTED_SOURCES_BLOCK	"mmc"
+#define CONFIG_SUPPORTED_SOURCES_USB	"usb"
 #define CONFIG_SUPPORTED_SOURCES_NAND	"nand"
 #define CONFIG_SUPPORTED_SOURCES_RAM	"ram"
 
@@ -233,14 +247,17 @@
 #define CONFIG_UPDATE_SUPPORTED_SOURCES_LIST	\
 	CONFIG_SUPPORTED_SOURCES_NET "|" \
 	CONFIG_SUPPORTED_SOURCES_BLOCK "|" \
+	CONFIG_SUPPORTED_SOURCES_USB "|" \
 	CONFIG_SUPPORTED_SOURCES_RAM
 #define CONFIG_UPDATE_SUPPORTED_SOURCES_ARGS_HELP	\
 	DIGICMD_UPDATE_NET_ARGS_HELP "\n" \
 	DIGICMD_UPDATE_BLOCK_ARGS_HELP "\n" \
+	DIGICMD_UPDATE_USB_ARGS_HELP "\n" \
 	DIGICMD_UPDATE_RAM_ARGS_HELP
 #define CONFIG_UPDATEFILE_SUPPORTED_SOURCES_ARGS_HELP	\
 	DIGICMD_UPDATEFILE_NET_ARGS_HELP "\n" \
 	DIGICMD_UPDATEFILE_BLOCK_ARGS_HELP "\n" \
+	DIGICMD_UPDATEFILE_USB_ARGS_HELP "\n" \
 	DIGICMD_UPDATEFILE_RAM_ARGS_HELP
 #define CONFIG_OTF_CHUNK		(32 * 1024 * 1024)
 
