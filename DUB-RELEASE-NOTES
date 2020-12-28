@@ -4,6 +4,15 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2020.04
 -----------
+dub-2020.04-r2.1, released on 2020/12/29
+	- Update BSP to NXP tag 'rel_imx_5.4.47_2.2.0'.
+	- TrustFence: add support to encrypted artifacts on ConnectCore 8M Nano.
+	- Add support to ConnectCore 6UL.
+	- Add support to install firmware from a USB stick.
+	- Add support to ConnectCore 8X SBC Express 512MB variant.
+	- Other minor fixes.
+
+
 dub-2020.04-r1.3, released on 2020/10/23
 	- Update BSP to NXP tag 'rel_imx_5.4.24_2.1.0'.
 	- TrustFence: add support to secure console.
