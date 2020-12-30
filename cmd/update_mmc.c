@@ -503,7 +503,7 @@ static int get_arg_src(int argc, char * const argv[], int src, int index,
 	case SRC_MMC:
 	case SRC_USB:
 	case SRC_SATA:
-		index += 3;
+		index += 2;
 		break;
 	case SRC_RAM:
 		/* 2-(7-argc) */
