@@ -73,8 +73,6 @@
 /* Digi commands arguments help */
 #define DIGICMD_ARG_BLKDEV_HELP	\
 	"       - device:part: number of device and partition\n"
-#define DIGICMD_ARG_FILESYS_HELP	\
-	"       - filesystem: fat (default)|ext4\n"
 #define DIGICMD_ARG_FILENAME_UPDATE_HELP	\
 	"       - filename: file to transfer (if not provided, filename\n" \
 	"                   will be taken from variable $<partition>_file)\n"
@@ -105,15 +103,13 @@
 		DIGICMD_ARG_FILENAME_UPDATE_HELP
 #define DIGICMD_UPDATE_BLOCK_ARGS_HELP	\
 	"      source=" CONFIG_SUPPORTED_SOURCES_BLOCK " -> " \
-	"[device:part] [filesystem] [filename]\n" \
+	"[device:part] [filename]\n" \
 		DIGICMD_ARG_BLKDEV_HELP \
-		DIGICMD_ARG_FILESYS_HELP \
 		DIGICMD_ARG_FILENAME_UPDATE_HELP
 #define DIGICMD_UPDATE_USB_ARGS_HELP	\
 	"      source=" CONFIG_SUPPORTED_SOURCES_USB " -> " \
-	"[device:part] [filesystem] [filename]\n" \
+	"[device:part] [filename]\n" \
 		DIGICMD_ARG_BLKDEV_HELP \
-		DIGICMD_ARG_FILESYS_HELP \
 		DIGICMD_ARG_FILENAME_UPDATE_HELP
 #define DIGICMD_UPDATE_RAM_ARGS_HELP	\
 	"      source=ram -> [image_address] [image_size]\n" \
@@ -127,9 +123,8 @@
 		DIGICMD_ARG_FILENAME_DBOOT_HELP
 #define DIGICMD_DBOOT_BLOCK_ARGS_HELP	\
 	"      source=" CONFIG_SUPPORTED_SOURCES_BLOCK " -> " \
-	"[device:part] [filesystem] [filename]\n" \
+	"[device:part] [filename]\n" \
 		DIGICMD_ARG_BLKDEV_HELP \
-		DIGICMD_ARG_FILESYS_HELP \
 		DIGICMD_ARG_FILENAME_DBOOT_HELP
 #define DIGICMD_DBOOT_NAND_ARGS_HELP	\
 	"      source=" CONFIG_SUPPORTED_SOURCES_NAND " -> " \
@@ -146,17 +141,15 @@
 		DIGICMD_ARG_TARGETFILESYS_HELP
 #define DIGICMD_UPDATEFILE_BLOCK_ARGS_HELP	\
 	"      source=" CONFIG_SUPPORTED_SOURCES_BLOCK " -> " \
-	"[device:part] [filesystem] [source_file] [target_file] [target_fs]\n" \
+	"[device:part] [source_file] [target_file] [target_fs]\n" \
 		DIGICMD_ARG_BLKDEV_HELP \
-		DIGICMD_ARG_FILESYS_HELP \
 		DIGICMD_ARG_SOURCEFILE_HELP \
 		DIGICMD_ARG_TARGETFILE_HELP \
 		DIGICMD_ARG_TARGETFILESYS_HELP
 #define DIGICMD_UPDATEFILE_USB_ARGS_HELP	\
 	"      source=" CONFIG_SUPPORTED_SOURCES_USB " -> " \
-	"[device:part] [filesystem] [source_file] [target_file] [target_fs]\n" \
+	"[device:part] [source_file] [target_file] [target_fs]\n" \
 		DIGICMD_ARG_BLKDEV_HELP \
-		DIGICMD_ARG_FILESYS_HELP \
 		DIGICMD_ARG_SOURCEFILE_HELP \
 		DIGICMD_ARG_TARGETFILE_HELP \
 		DIGICMD_ARG_TARGETFILESYS_HELP
