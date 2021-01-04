@@ -51,11 +51,19 @@ int digi_auth_image(ulong *ddr_start, ulong raw_image_size)
 		ret = 0;
 #elif defined(CONFIG_AHAB_BOOT)
 	extern int authenticate_os_container(ulong addr);
+	struct boot_img_t *img;
 
 	if (authenticate_os_container((ulong)*ddr_start) == 0) {
 		ret = 0;
-		/* skip image container */
-		*ddr_start += CONTAINER_HEADER_SIZE;
+		/* Each OS container can have multiple images inside,
+		 * and to calculate the address the image index is required.
+		 * In this case each container will have only one image,
+		 * therefore the index is 0.
+		 */
+		img = (struct boot_img_t *)(*ddr_start +
+					    sizeof(struct container_hdr) +
+					    0 * sizeof(struct boot_img_t));
+		*ddr_start = img->dst;
 	}
 #endif
 

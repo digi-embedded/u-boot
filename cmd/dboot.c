@@ -104,6 +104,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	int has_initrd = 0;
 	char *var;
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
+	char cmd_buf[CONFIG_SYS_CBSIZE];
 	char *original_overlay_list;
 	char *overlay_list = NULL;
 	char *overlay = NULL;
@@ -181,7 +182,8 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		return CMD_RET_FAILURE;
 	}
 #endif /* CONFIG_SIGN_IMAGE */
-	if (run_command("fdt addr $fdt_addr", 0)) {
+	sprintf(cmd_buf, "fdt addr %s", fwinfo.loadaddr);
+	if (run_command(cmd_buf, 0)) {
 		printf("Failed to set base fdt address\n");
 		return CMD_RET_FAILURE;
 	}
@@ -191,7 +193,6 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 
 	/* Set firmware info common for all overlay files */
 	strcpy(fwinfo.varload, "try");
-	strcpy(fwinfo.loadaddr, "$initrd_addr");
 	fwinfo.compressed = false;
 
 	/* Copy the variable to avoid modifying it in memory */
@@ -208,6 +209,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 
 	while (overlay != NULL) {
 		strncpy(fwinfo.filename, overlay, sizeof(fwinfo.filename));
+		strcpy(fwinfo.loadaddr, "$initrd_addr");
 		ret = load_firmware(&fwinfo, NULL);
 
 		if (ret != LDFW_LOADED) {
@@ -218,7 +220,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 
 #ifdef CONFIG_SIGN_IMAGE
 		if (fdt_file_authenticate(fwinfo.loadaddr) != 0) {
-			printf("Error authenticating FDT overlay file\n");
+			printf("Error authenticating FDT overlay file '%s'\n", fwinfo.filename);
 			return CMD_RET_FAILURE;
 		}
 #endif /* CONFIG_SIGN_IMAGE */
@@ -226,7 +228,8 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		/* Resize the base fdt to make room for the overlay */
 		run_command("fdt resize $filesize", 0);
 
-		if (run_command("fdt apply $initrd_addr", 0)) {
+		sprintf(cmd_buf, "fdt apply %s", fwinfo.loadaddr);
+		if (run_command(cmd_buf, 0)) {
 			printf("Failed to apply overlay %s\n", overlay);
 			free(overlay_list);
 			return CMD_RET_FAILURE;
@@ -252,7 +255,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 
 	if (overlay_list)
 		free(overlay_list);
-#endif
+#endif /* CONFIG_OF_LIBFDT_OVERLAY */
 
 	/* Get init ramdisk */
 	var = env_get("boot_initrd");
