@@ -28,6 +28,35 @@
 #include <asm/arch-imx8/image.h>
 #endif
 
+#ifdef CONFIG_AHAB_BOOT
+static int container_is_encrypted(ulong addr, ulong *dek_addr)
+{
+	struct container_hdr *phdr;
+	struct signature_block_hdr *sign_hdr;
+
+	phdr = (struct container_hdr *)addr;
+	if (phdr->tag != 0x87 && phdr->version != 0x0) {
+		debug("Wrong container header at 0x%lx\n", addr);
+		return 0;
+	}
+
+	if (phdr->sig_blk_offset != 0) {
+		sign_hdr = (struct signature_block_hdr *)(addr + phdr->sig_blk_offset);
+		if (sign_hdr->tag != 0x90 && sign_hdr->version != 0x0) {
+			debug("Wrong Signature Block header at 0x%lx\n", addr + phdr->sig_blk_offset);
+			return 0;
+		}
+
+		if (sign_hdr->blob_offset != 0) {
+			*dek_addr = addr + phdr->sig_blk_offset + sign_hdr->blob_offset;
+			return 1;
+		}
+	}
+
+	return 0;
+}
+#endif
+
 /*
  * Authenticate an image in RAM.
  *
@@ -51,7 +80,27 @@ int digi_auth_image(ulong *ddr_start, ulong raw_image_size)
 		ret = 0;
 #elif defined(CONFIG_AHAB_BOOT)
 	extern int authenticate_os_container(ulong addr);
+	extern int get_dek_blob(char *output, u32 *size);
 	struct boot_img_t *img;
+	struct generate_key_blob_hdr *dek_hdr;
+	ulong dek_addr = 0;
+	u32 dek_blob_size;
+
+	if (container_is_encrypted((ulong)*ddr_start, &dek_addr)) {
+		if(dek_addr != 0) {
+			dek_hdr = (struct generate_key_blob_hdr *)dek_addr;
+			if (dek_hdr->tag != 0x81 && dek_hdr->version != 0x0) {
+				/* If there is not a valid DEK blob in the container, DEK blob
+				 * from the running U-Boot is recovered and copied into it.
+				 * (This fails if the running U-Boot does not include a DEK)
+				 */
+				if (!get_dek_blob((void *)dek_addr, &dek_blob_size))
+					printf("   Using current DEK\n");
+				else
+					printf("   ERROR: Current U-Boot does not contain a DEK\n");
+			}
+		}
+	}
 
 	if (authenticate_os_container((ulong)*ddr_start) == 0) {
 		ret = 0;
