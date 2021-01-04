@@ -102,6 +102,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	int ret;
 	int has_fdt = 0;
 	int has_initrd = 0;
+	char *var;
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
 	char *original_overlay_list;
 	char *overlay_list = NULL;
@@ -132,8 +133,10 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	ret = get_fw_filename(argc, argv, &fwinfo);
 	if (ret) {
 		/* Filename was not provided. Look for default one */
-		fwinfo.filename = get_default_filename(argv[1], CMD_DBOOT);
-		if (!fwinfo.filename) {
+		strncpy(fwinfo.filename,
+			get_default_filename(argv[1], CMD_DBOOT),
+			sizeof(fwinfo.filename));
+		if (strlen(fwinfo.filename) == 0) {
 			printf("Error: need a filename\n");
 			return CMD_RET_FAILURE;
 		}
@@ -141,8 +144,8 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 
 	/* Load firmware file to RAM */
 	fwinfo.compressed = is_image_compressed();
-	fwinfo.loadaddr = "$loadaddr";
-	fwinfo.lzipaddr = "$lzipaddr";
+	strncpy(fwinfo.loadaddr, "$loadaddr", sizeof(fwinfo.loadaddr));
+	strncpy(fwinfo.lzipaddr, "$lzipaddr", sizeof(fwinfo.lzipaddr));
 
 	ret = load_firmware(&fwinfo, "\n## Loading kernel");
 	if (ret == LDFW_ERROR) {
@@ -151,11 +154,16 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	/* Get flattened Device Tree */
-	fwinfo.varload = env_get("boot_fdt");
-	if (NULL == fwinfo.varload)
-		fwinfo.varload = "try";
-	fwinfo.loadaddr = "$fdt_addr";
-	fwinfo.filename = "$fdt_file";
+	var = env_get("boot_fdt");
+	if (var)
+		strncpy(fwinfo.varload, var, sizeof(fwinfo.varload));
+	else
+		strcpy(fwinfo.varload, "");
+
+	if (strlen(fwinfo.varload) == 0)
+		strcpy(fwinfo.varload, "try");
+	strncpy(fwinfo.loadaddr, "$fdt_addr", sizeof(fwinfo.loadaddr));
+	strncpy(fwinfo.filename, "$fdt_file", sizeof(fwinfo.filename));
 	fwinfo.compressed = false;
 	ret = load_firmware(&fwinfo,
 		"\n## Loading device tree file in variable 'fdt_file'");
@@ -182,8 +190,8 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	root_node = fdt_path_offset(gd->fdt_blob, "/");
 
 	/* Set firmware info common for all overlay files */
-	fwinfo.varload = "try";
-	fwinfo.loadaddr = "$initrd_addr";
+	strcpy(fwinfo.varload, "try");
+	strcpy(fwinfo.loadaddr, "$initrd_addr");
 	fwinfo.compressed = false;
 
 	/* Copy the variable to avoid modifying it in memory */
@@ -199,7 +207,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	while (overlay != NULL) {
-		fwinfo.filename = overlay;
+		strncpy(fwinfo.filename, overlay, sizeof(fwinfo.filename));
 		ret = load_firmware(&fwinfo, NULL);
 
 		if (ret != LDFW_LOADED) {
@@ -247,11 +255,16 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 #endif
 
 	/* Get init ramdisk */
-	fwinfo.varload = env_get("boot_initrd");
-	if (NULL == fwinfo.varload && OS_LINUX == os)
-		fwinfo.varload = "no";	/* Linux default */
-	fwinfo.loadaddr = "$initrd_addr";
-	fwinfo.filename = "$initrd_file";
+	var = env_get("boot_initrd");
+	if (var)
+		strncpy(fwinfo.varload, var, sizeof(fwinfo.varload));
+	else
+		strcpy(fwinfo.varload, "");
+
+	if (strlen(fwinfo.varload) == 0 && OS_LINUX == os)
+		strcpy(fwinfo.varload, "no");	/* Linux default */
+	strcpy(fwinfo.loadaddr, "$initrd_addr");
+	strcpy(fwinfo.filename, "$initrd_file");
 	ret = load_firmware(&fwinfo, "\n## Loading init ramdisk");
 	if (ret == LDFW_LOADED) {
 		has_initrd = 1;

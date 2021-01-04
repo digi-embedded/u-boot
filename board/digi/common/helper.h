@@ -38,11 +38,11 @@ enum {
 struct load_fw {
 	bool compressed;
 	int src;
-	char *filename;
-	char *devpartno;
-	char *loadaddr;
-	char *lzipaddr;
-	char *varload;
+	char filename[256];
+	char devpartno[10];
+	char loadaddr[20];
+	char lzipaddr[20];
+	char varload[20];
 	struct part_info *part;
 };
 

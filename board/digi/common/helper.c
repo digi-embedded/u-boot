@@ -214,7 +214,8 @@ int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 	case SRC_SATA:
 		/* Get device:partition */
 		if (argc > 3)
-			fwinfo->devpartno = (char *)argv[3];
+			strncpy(fwinfo->devpartno, argv[3],
+				sizeof(fwinfo->devpartno));
 		break;
 	case SRC_NAND:
 #ifdef CONFIG_CMD_MTDPARTS
@@ -266,7 +267,8 @@ int get_fw_filename(int argc, char * const argv[], struct load_fw *fwinfo)
 	case SRC_TFTP:
 	case SRC_NFS:
 		if (argc > 3) {
-			fwinfo->filename = argv[3];
+			strncpy(fwinfo->filename, argv[3],
+				sizeof(fwinfo->filename));
 			return 0;
 		}
 		break;
@@ -275,7 +277,8 @@ int get_fw_filename(int argc, char * const argv[], struct load_fw *fwinfo)
 	case SRC_SATA:
 	case SRC_NAND:
 		if (argc > 4) {
-			fwinfo->filename = argv[4];
+			strncpy(fwinfo->filename, argv[4],
+				sizeof(fwinfo->filename));
 			return 0;
 		}
 		break;
@@ -429,10 +432,11 @@ int load_firmware(struct load_fw *fwinfo, char *msg)
 	}
 
 	/* Use default values if not provided */
-	if (NULL == fwinfo->devpartno) {
+	if (strlen(fwinfo->devpartno) == 0) {
 		if (get_default_devpartno(fwinfo->src, def_devpartno))
 			strcpy(def_devpartno, "0:1");
-		fwinfo->devpartno = def_devpartno;
+		strncpy(fwinfo->devpartno, def_devpartno,
+			sizeof(fwinfo->devpartno));
 	}
 
 	/*

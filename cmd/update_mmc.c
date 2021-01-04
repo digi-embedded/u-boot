@@ -347,9 +347,10 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		ret = get_fw_filename(argc, argv, &fwinfo);
 		if (ret) {
 			/* Filename was not provided. Look for default one */
-			fwinfo.filename = get_default_filename(argv[1],
-							       CMD_UPDATE);
-			if (!fwinfo.filename) {
+			strncpy(fwinfo.filename,
+				get_default_filename(argv[1], CMD_UPDATE),
+				sizeof(fwinfo.filename));
+			if (strlen(fwinfo.filename) == 0) {
 				printf("Error: need a filename\n");
 				return CMD_RET_USAGE;
 			}
@@ -414,7 +415,7 @@ static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		 * Load firmware file to RAM (this process may write the file
 		 * to the target media if OTF mechanism is enabled).
 		 */
-		fwinfo.loadaddr = "$update_addr";
+		strcpy(fwinfo.loadaddr, "$update_addr");
 		ret = load_firmware(&fwinfo, NULL);
 
 		if (ret == LDFW_ERROR) {
@@ -543,6 +544,7 @@ static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 	unsigned long loadaddr;
 	unsigned long filesize = 0;
 	struct load_fw fwinfo;
+	char *str;
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -577,10 +579,11 @@ static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 			filesize = simple_strtol(argv[4], NULL, 16);
 	} else {
 		/* Get file name */
-		if (get_arg_src(argc, argv, fwinfo.src, 2, &fwinfo.filename)) {
+		if (get_arg_src(argc, argv, fwinfo.src, 2, &str)) {
 			printf("Error: need a filename\n");
 			return CMD_RET_USAGE;
 		}
+		strncpy(fwinfo.filename, str, sizeof(fwinfo.filename));
 	}
 
 	/* Get target file name. If not provided use fwinfo.filename by default */
@@ -607,7 +610,7 @@ static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
 	}
 
 	/* Load firmware file to RAM */
-	fwinfo.loadaddr = "$update_addr";
+	strcpy(fwinfo.loadaddr, "$update_addr");
 
 	if (LDFW_ERROR == load_firmware(&fwinfo, NULL)) {
 		printf("Error loading firmware file to RAM\n");
