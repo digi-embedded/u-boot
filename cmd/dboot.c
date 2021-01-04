@@ -73,7 +73,7 @@ static int set_bootargs(int os, int src)
 	return run_command(cmd, 0);
 }
 
-static int boot_os(int has_initrd, int has_fdt)
+static int boot_os(char* initrd_addr, char* fdt_addr)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	char *var;
@@ -90,8 +90,8 @@ static int boot_os(int has_initrd, int has_fdt)
 	}
 
 	sprintf(cmd, "%s $loadaddr %s %s", dboot_cmd,
-		has_initrd ? "$initrd_addr" : "-",
-		has_fdt ? "$fdt_addr" : "");
+		(initrd_addr && !initrd_addr[0]) ? "-" : initrd_addr,
+		(fdt_addr && !fdt_addr[0]) ? "" : fdt_addr);
 
 	return run_command(cmd, 0);
 }
@@ -100,8 +100,8 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 {
 	int os = SRC_UNDEFINED;
 	int ret;
-	int has_fdt = 0;
-	int has_initrd = 0;
+	char fdt_addr[20] = "";
+	char initrd_addr[20] = "";
 	char *var;
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
 	char cmd_buf[CONFIG_SYS_CBSIZE];
@@ -169,7 +169,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	ret = load_firmware(&fwinfo,
 		"\n## Loading device tree file in variable 'fdt_file'");
 	if (ret == LDFW_LOADED) {
-		has_fdt = 1;
+		strcpy(fdt_addr, fwinfo.loadaddr);
 	} else if (ret == LDFW_ERROR) {
 		printf("Error loading FDT file\n");
 		return CMD_RET_FAILURE;
@@ -181,6 +181,8 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		printf("Error authenticating FDT file\n");
 		return CMD_RET_FAILURE;
 	}
+	/* Set FDT start address */
+	strcpy(fdt_addr, fwinfo.loadaddr);
 #endif /* CONFIG_SIGN_IMAGE */
 	sprintf(cmd_buf, "fdt addr %s", fwinfo.loadaddr);
 	if (run_command(cmd_buf, 0)) {
@@ -270,7 +272,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	strcpy(fwinfo.filename, "$initrd_file");
 	ret = load_firmware(&fwinfo, "\n## Loading init ramdisk");
 	if (ret == LDFW_LOADED) {
-		has_initrd = 1;
+		strcpy(initrd_addr, fwinfo.loadaddr);
 	} else if (ret == LDFW_ERROR) {
 		printf("Error loading init ramdisk file\n");
 		return CMD_RET_FAILURE;
@@ -284,7 +286,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	/* Boot OS */
-	return boot_os(has_initrd, has_fdt);
+	return boot_os(initrd_addr, fdt_addr);
 }
 
 U_BOOT_CMD(
