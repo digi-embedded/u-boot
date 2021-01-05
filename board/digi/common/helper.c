@@ -164,6 +164,31 @@ static int write_file_fs_otf(int src, char *filename, char *devpartno)
 }
 #endif /* CONFIG_CMD_UPDATE */
 
+static int get_default_devpartno(int src, char *devpartno)
+{
+	char *dev, *part;
+
+	switch (src) {
+	case SRC_MMC:
+		dev = env_get("mmcdev");
+		if (dev == NULL)
+			return -1;
+		part = env_get("mmcpart");
+		/* If mmcpart not defined, default to 1 */
+		if (part == NULL)
+			sprintf(devpartno, "%s:1", dev);
+		else
+			sprintf(devpartno, "%s:%s", dev, part);
+		break;
+	case SRC_USB:	// TODO
+	case SRC_SATA:	// TODO
+	default:
+		return -1;
+	}
+
+	return 0;
+}
+
 #if defined(CONFIG_CMD_UPDATE) || defined(CONFIG_CMD_DBOOT)
 bool is_image_compressed(void)
 {
@@ -180,6 +205,7 @@ int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 {
 	int i;
 	char *src;
+	char def_devpartno[] = "0:1";
 #ifdef CONFIG_CMD_MTDPARTS
 	struct mtd_device *dev;
 	u8 pnum;
@@ -213,9 +239,14 @@ int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 	case SRC_MMC:
 	case SRC_SATA:
 		/* Get device:partition */
-		if (argc > 3)
+		if (argc > 3) {
 			strncpy(fwinfo->devpartno, argv[3],
 				sizeof(fwinfo->devpartno));
+		} else {
+			get_default_devpartno(fwinfo->src, def_devpartno);
+			strncpy(fwinfo->devpartno, def_devpartno,
+				sizeof(fwinfo->devpartno));
+		}
 		break;
 	case SRC_NAND:
 #ifdef CONFIG_CMD_MTDPARTS
@@ -322,31 +353,6 @@ char *get_default_filename(char *partname, int cmd)
 	}
 
 	return NULL;
-}
-
-int get_default_devpartno(int src, char *devpartno)
-{
-	char *dev, *part;
-
-	switch (src) {
-	case SRC_MMC:
-		dev = env_get("mmcdev");
-		if (dev == NULL)
-			return -1;
-		part = env_get("mmcpart");
-		/* If mmcpart not defined, default to 1 */
-		if (part == NULL)
-			sprintf(devpartno, "%s:1", dev);
-		else
-			sprintf(devpartno, "%s:%s", dev, part);
-		break;
-	case SRC_USB:	// TODO
-	case SRC_SATA:	// TODO
-	default:
-		return -1;
-	}
-
-	return 0;
 }
 
 #ifdef CONFIG_DIGI_UBI
