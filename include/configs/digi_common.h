@@ -99,11 +99,6 @@
 	"[device:part] [filename]\n" \
 		DIGICMD_ARG_BLKDEV_HELP \
 		DIGICMD_ARG_FILENAME_UPDATE_HELP
-#define DIGICMD_UPDATE_USB_ARGS_HELP	\
-	"      source=" CONFIG_SUPPORTED_SOURCES_USB " -> " \
-	"[device:part] [filename]\n" \
-		DIGICMD_ARG_BLKDEV_HELP \
-		DIGICMD_ARG_FILENAME_UPDATE_HELP
 #define DIGICMD_UPDATE_RAM_ARGS_HELP	\
 	"      source=ram -> [image_address] [image_size]\n" \
 		DIGICMD_ARG_IMGADDR_HELP \
@@ -134,13 +129,6 @@
 		DIGICMD_ARG_TARGETFILESYS_HELP
 #define DIGICMD_UPDATEFILE_BLOCK_ARGS_HELP	\
 	"      source=" CONFIG_SUPPORTED_SOURCES_BLOCK " -> " \
-	"[device:part] [source_file] [target_file] [target_fs]\n" \
-		DIGICMD_ARG_BLKDEV_HELP \
-		DIGICMD_ARG_SOURCEFILE_HELP \
-		DIGICMD_ARG_TARGETFILE_HELP \
-		DIGICMD_ARG_TARGETFILESYS_HELP
-#define DIGICMD_UPDATEFILE_USB_ARGS_HELP	\
-	"      source=" CONFIG_SUPPORTED_SOURCES_USB " -> " \
 	"[device:part] [source_file] [target_file] [target_fs]\n" \
 		DIGICMD_ARG_BLKDEV_HELP \
 		DIGICMD_ARG_SOURCEFILE_HELP \
