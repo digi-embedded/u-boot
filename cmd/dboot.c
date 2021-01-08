@@ -177,6 +177,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
 #ifdef CONFIG_SIGN_IMAGE
+	fdt_file_init_authentication();
 	if (fdt_file_authenticate(fwinfo.loadaddr) != 0) {
 		printf("Error authenticating FDT file\n");
 		return CMD_RET_FAILURE;

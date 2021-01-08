@@ -628,6 +628,13 @@ err:
 }
 
 #ifdef CONFIG_SIGN_IMAGE
+/* Reset the authentication variables to their initial state */
+void fdt_file_init_authentication(void)
+{
+	authentication_failed = 0;
+	authenticated = 0;
+}
+
 /*
  * Authenticate any number of fdt files on ram before booting. This allows to
  * authenticate an fdt modified by overlays by having the base device tree and
