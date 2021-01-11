@@ -4,6 +4,7 @@
  */
 
 #include <common.h>
+#include <clk.h>
 #include <dm.h>
 #include <log.h>
 #include <misc.h>
@@ -486,6 +487,15 @@ static int stm32mp_bsec_probe(struct udevice *dev)
 {
 	int otp;
 	struct stm32mp_bsec_platdata *plat;
+	struct clk_bulk clk_bulk;
+	int ret;
+
+	ret = clk_get_bulk(dev, &clk_bulk);
+	if (!ret) {
+		ret = clk_enable_bulk(&clk_bulk);
+		if (ret)
+			return ret;
+	}
 
 	/*
 	 * update unlocked shadow for OTP cleared by the rom code
