@@ -248,8 +248,8 @@ __weak int sense_key_status(u32 *val)
 			val))
 		return -1;
 
-	*val = (*val & CONFIG_TRUSTFENCE_SRK_REVOKE_MASK) >>
-		CONFIG_TRUSTFENCE_SRK_REVOKE_OFFSET;
+	*val = (*val >> CONFIG_TRUSTFENCE_SRK_REVOKE_OFFSET) &
+		CONFIG_TRUSTFENCE_SRK_REVOKE_MASK;
 
 	return 0;
 }
