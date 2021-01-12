@@ -246,12 +246,15 @@ int close_device(int confirmed_close)
 	return 0;
 }
 
-int sense_key_status(u32 *val)
+int revoke_keys(void)
 {
-	if (fuse_sense(CONFIG_TRUSTFENCE_SRK_BANK,
-		       CONFIG_TRUSTFENCE_SRK_REVOKE_WORD,
-		       val))
-		return -1;
+	int err;
+
+	err = seco_commit(-1, 0x10);
+	if (err != SC_ERR_NONE) {
+		printf("%s: Error in seco_commit\n", __func__);
+		return -EIO;
+	}
 
 	return 0;
 }

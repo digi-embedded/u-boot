@@ -241,6 +241,13 @@ __weak int revoke_key_index(int i)
 			 val);
 }
 
+#if defined(CONFIG_AHAB_BOOT)
+__weak int revoke_keys(void)
+{
+	return -1;
+}
+#endif
+
 __weak int sense_key_status(u32 *val)
 {
 	if (fuse_sense(CONFIG_TRUSTFENCE_SRK_REVOKE_BANK,
@@ -627,6 +634,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			goto err;
 		puts("[OK]\n");
 	} else if (!strcmp(op, "revoke")) {
+#if defined(CONFIG_IMX_HAB)
 		if (argc < 1)
 			return CMD_RET_USAGE;
 
@@ -648,6 +656,23 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 		if (revoke_key_index(val[0]))
 			goto err;
 		puts("[OK]\n");
+#elif defined(CONFIG_AHAB_BOOT)
+		if (!confirmed && !confirm_prog())
+			return CMD_RET_FAILURE;
+
+		printf("Revoking keys...");
+		if (revoke_keys())
+			goto err;
+		puts("[OK]\n");
+		if (sense_key_status(&val[0]))
+			goto err;
+		for (int i = 0; i < CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS; i++) {
+			if (val[0] & (1 << i))
+				printf("   Key %d revoked\n", i);
+		}
+#else
+		printf("Command not implemented\n");
+#endif
 	} else if (!strcmp(op, "status")) {
 		int key_index;
 
@@ -1111,7 +1136,11 @@ U_BOOT_CMD(
 	"trustfence prog_srk [-y] <ram addr> <size in bytes> - burn SRK efuses (PERMANENT)\n"
 	"trustfence close [-y] - close the device so that it can only boot "
 			      "signed images (PERMANENT)\n"
+#if defined(CONFIG_IMX_HAB)
 	"trustfence revoke [-y] <key index> - revoke one Super Root Key (PERMANENT)\n"
+#elif defined(CONFIG_AHAB_BOOT)
+	"trustfence revoke [-y] - revoke one or more Super Root Keys as per the SRK_REVOKE_MASK given at build time in the CSF (PERMANENT)\n"
+#endif
 	"trustfence update <source> [extra-args...]\n"
 	" Description: flash an encrypted U-Boot image.\n"
 	" Arguments:\n"
