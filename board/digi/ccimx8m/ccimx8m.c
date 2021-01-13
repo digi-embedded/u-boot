@@ -96,7 +96,7 @@ int get_dek_blob_offset(char *address, u32 *offset)
 int get_dek_blob_size(char *address, u32 *size)
 {
 	if (address[3] != HAB_VERSION || address[0] != HAB_AUTH_BLOB_TAG) {
-		printf("Tag does not match as expected\n");
+		debug("Tag does not match as expected\n");
 		return -EINVAL;
 	}
 
