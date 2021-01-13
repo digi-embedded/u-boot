@@ -112,6 +112,7 @@ __weak int get_dek_blob(char *output, u32 *size)
 #ifdef CONFIG_AHAB_BOOT
 extern int get_dek_blob_offset(char *address, u32 *offset);
 extern int get_dek_blob_size(char *address, u32 *size);
+extern int get_srk_revoke_mask(u32 *mask);
 #endif
 #ifdef CONFIG_ARCH_IMX8M
 extern int get_dek_blob_offset(char *address, u32 *offset);
@@ -657,6 +658,24 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			goto err;
 		puts("[OK]\n");
 #elif defined(CONFIG_AHAB_BOOT)
+		u32 revoke_mask = 0;
+		if (get_srk_revoke_mask(&revoke_mask) == CMD_RET_SUCCESS) {
+			if (revoke_mask) {
+				printf("Following keys will be permanently revoked:\n");
+				for (int i = 0; i <= CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS; i++) {
+					if (revoke_mask & (1 << i))
+						printf("   Key %d\n", i);
+				}
+				if (revoke_mask & (1 << CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS)) {
+					puts("Key 3 cannot be revoked. Abort.\n");
+					return CMD_RET_FAILURE;
+				}
+			} else {
+				printf("No Keys to be revoked.\n");
+				return CMD_RET_FAILURE;
+			}
+		}
+
 		if (!confirmed && !confirm_prog())
 			return CMD_RET_FAILURE;
 
