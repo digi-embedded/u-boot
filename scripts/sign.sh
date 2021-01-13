@@ -237,6 +237,10 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 	fi
 else
 	[ -z "${SRK_REVOKE_MASK}" ] && SRK_REVOKE_MASK="0x0"
+	if [ "$((SRK_REVOKE_MASK & 0x8))" != 0 ]; then
+		echo "Key 3 cannot be revoked. Removed from mask."
+		SRK_REVOKE_MASK=$((SRK_REVOKE_MASK - 8))
+	fi
 
 	# Path to log file to parse
 	MKIMAGE_LOG="$(pwd)/mkimage.log"
