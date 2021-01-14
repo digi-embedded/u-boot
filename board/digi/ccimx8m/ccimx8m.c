@@ -12,6 +12,8 @@
 #include <asm/mach-imx/hab.h>
 #include <spl.h>
 
+#include "../common/hwid.h"
+
 DECLARE_GLOBAL_DATA_PTR;
 
 #define SPL_IVT_HEADER_SIZE 0x40
@@ -22,6 +24,25 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define HAB_AUTH_BLOB_TAG              0x81
 #define HAB_VERSION                    0x43
+
+int board_phys_sdram_size(phys_size_t *size)
+{
+	/* Default to RAM size of DVK variant 0x01 (1 GiB) */
+	u32 ram = SZ_1G;
+	struct digi_hwid my_hwid;
+
+	if (board_read_hwid(&my_hwid)) {
+		debug("Cannot read HWID. Using default DDR configuration.\n");
+		my_hwid.ram = 0;
+	}
+
+	if (my_hwid.ram)
+		ram = hwid_get_ramsize(&my_hwid);
+
+	*size = ram;
+
+	return 0;
+}
 
 int mmc_get_bootdevindex(void)
 {
