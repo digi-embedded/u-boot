@@ -218,10 +218,23 @@ int dram_init(void)
 		return ret;
 
 	/* rom_pointer[1] contains the size of TEE occupies */
-	if (rom_pointer[1])
+	if (rom_pointer[1]) {
 		gd->ram_size = sdram_size - rom_pointer[1];
-	else
+#ifdef AUTODETECT_RAM_SIZE
+		/*
+		 * The optee start address is hardcoded at build time, but we
+		 * want it to be recalculated basing on real RAM size detected
+		 * by U-Boot.
+		 * Dynamically change the optee start address (rom_pointer[0])
+		 * as: base_addr + sdram_size - opteee size (rom_pointer[1]).
+		 * I.e. optee is a the end of the RAM.
+		 */
+		rom_pointer[0] = CONFIG_SYS_SDRAM_BASE + sdram_size -
+				 rom_pointer[1];
+#endif
+	} else {
 		gd->ram_size = sdram_size;
+	}
 
 #ifdef PHYS_SDRAM_2_SIZE
 	gd->ram_size += PHYS_SDRAM_2_SIZE;
@@ -242,9 +255,22 @@ int dram_init_banksize(void)
 
 	gd->bd->bi_dram[bank].start = PHYS_SDRAM;
 	if (rom_pointer[1]) {
-		phys_addr_t optee_start = (phys_addr_t)rom_pointer[0];
+		phys_addr_t optee_start;
 		phys_size_t optee_size = (size_t)rom_pointer[1];
 
+#ifdef AUTODETECT_RAM_SIZE
+		/*
+		 * The optee start address is hardcoded at build time, but we
+		 * want it to be recalculated basing on real RAM size detected
+		 * by U-Boot.
+		 * Dynamically change the optee start address (rom_pointer[0])
+		 * as: base_addr + sdram_size - opteee size (rom_pointer[1]).
+		 * I.e. optee is a the end of the RAM.
+		 */
+		rom_pointer[0] = CONFIG_SYS_SDRAM_BASE + sdram_size -
+				 rom_pointer[1];
+#endif
+		optee_start = (phys_addr_t)rom_pointer[0];
 		gd->bd->bi_dram[bank].size = optee_start -gd->bd->bi_dram[bank].start;
 		if ((optee_start + optee_size) < (PHYS_SDRAM + sdram_size)) {
 			if ( ++bank >= CONFIG_NR_DRAM_BANKS) {
