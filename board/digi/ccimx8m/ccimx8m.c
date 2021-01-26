@@ -107,7 +107,7 @@ int get_dek_blob_offset(char *address, u32 *offset)
 		return 1;
 
 	if (ivt->csf)
-		*offset = ivt->csf + CONFIG_CSF_SIZE;
+		*offset = ivt->csf - (CONFIG_SPL_TEXT_BASE - SPL_IVT_HEADER_SIZE) + CONFIG_CSF_SIZE;
 	else
 		return 1;
 
