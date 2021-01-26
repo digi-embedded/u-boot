@@ -4,6 +4,12 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2017.03
 -----------
+dub-2017.03-r8.1, released on 2020/12/30
+	- Add support to install firmware from a USB stick.
+	- Other minor fixes.
+
+
+
 dub-2017.03-r7.1, released on 2020/10/01
 	- Fix wrong VBCORE1 and VBCORE2 voltages on ConnectCore 6.
 	- Increase uboot partition of ConnectCore 6UL to 5MiB to support 256K
