@@ -303,7 +303,7 @@ fi
 
 CURRENT_PATH="$(pwd)"
 
-if [ "S{ENCRYPT}" != "true" ]; then
+if [ "${ENCRYPT}" != "true" ]; then
 # Generate signed uboot
 cp ${UBOOT_PATH} ${TARGET}
 
