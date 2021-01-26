@@ -61,6 +61,7 @@
 
 /* RAM */
 #define PHYS_SDRAM_SIZE			0x40000000 /* 1GB DDR */
+#define AUTODETECT_RAM_SIZE
 
 /* USDHC */
 #define CONFIG_SYS_FSL_USDHC_NUM	2

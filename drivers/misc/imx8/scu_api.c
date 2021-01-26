@@ -978,6 +978,27 @@ int sc_seco_forward_lifecycle(sc_ipc_t ipc, u32 change)
 	return ret;
 }
 
+int seco_commit(sc_ipc_t ipc, u32 change)
+{
+	struct udevice *dev = gd->arch.scu_dev;
+	struct sc_rpc_msg_s msg;
+	int size = sizeof(struct sc_rpc_msg_s);
+	int ret;
+
+	RPC_VER(&msg) = SC_RPC_VERSION;
+	RPC_SVC(&msg) = (u8)SC_RPC_SVC_SECO;
+	RPC_FUNC(&msg) = (u8)SECO_FUNC_COMMIT;
+	RPC_U32(&msg, 0U) = (u32)change;
+	RPC_SIZE(&msg) = 2U;
+
+	ret = misc_call(dev, SC_FALSE, &msg, size, &msg, size);
+	if (ret)
+		printf("%s: change:%u, res:%d\n", __func__,
+		       change, RPC_R8(&msg));
+
+	return ret;
+}
+
 int sc_seco_chip_info(sc_ipc_t ipc, u16 *lc, u16 *monotonic, u32 *uid_l,
 		      u32 *uid_h)
 {

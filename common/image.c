@@ -37,7 +37,6 @@
 #include <linux/errno.h>
 #include <asm/io.h>
 #include <asm/mach-imx/hab.h>
-#include <asm/arch-imx8/image.h>
 #ifdef CONFIG_SIGN_IMAGE
 #include "../board/digi/common/auth.h"
 #endif
@@ -1146,18 +1145,28 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 				return 1;
 		}
 #endif
+#if CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)
+#ifdef CONFIG_SIGN_IMAGE
+		rd_hdr = (const image_header_t *)rd_addr;
+		if (rd_hdr == NULL)
+			return 1;
+
+		rd_len = image_get_image_size(rd_hdr);
+		if (digi_auth_image(&rd_addr, rd_len) != 0) {
+			printf("Ramdisk authentication failed\n");
+			return 1;
+		} else {
+			authenticated = 1;
+		}
+#endif /* CONFIG_SIGN_IMAGE */
+#endif /* CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT) */
 
 		/*
 		 * Check if there is an initrd image at the
 		 * address provided in the second bootm argument
 		 * check image type, for FIT images get FIT node.
 		 */
-#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_AHAB_BOOT)
-		/* Skip container header */
-		buf = map_sysmem(rd_addr + CONTAINER_HEADER_SIZE, 0);
-#else
 		buf = map_sysmem(rd_addr, 0);
-#endif
 		switch (genimg_get_format(buf)) {
 #if CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)
 		case IMAGE_FORMAT_LEGACY:
@@ -1165,20 +1174,6 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 					"Image at %08lx ...\n", rd_addr);
 
 			bootstage_mark(BOOTSTAGE_ID_CHECK_RAMDISK);
-#ifdef CONFIG_SIGN_IMAGE
-			rd_hdr = (const image_header_t *)rd_addr;
-			if (rd_hdr == NULL)
-				return 1;
-
-			rd_len = image_get_image_size(rd_hdr);
-			if (digi_auth_image(&rd_addr, rd_len) != 0) {
-				printf("Ramdisk authentication failed\n");
-				return 1;
-			} else {
-				authenticated = 1;
-			}
-#endif /* CONFIG_SIGN_IMAGE */
-
 			rd_hdr = image_get_ramdisk(rd_addr, arch,
 							images->verify);
 

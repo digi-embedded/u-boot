@@ -153,10 +153,6 @@ static int do_fdt(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		}
 
 		addr = simple_strtoul(argv[0], NULL, 16);
-#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_AHAB_BOOT)
-		/* skip image container */
-		addr += CONTAINER_HEADER_SIZE;
-#endif
 		blob = map_sysmem(addr, 0);
 		if (!fdt_valid(&blob))
 			return 1;
@@ -710,10 +706,6 @@ static int do_fdt(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			return CMD_RET_FAILURE;
 
 		addr = simple_strtoul(argv[2], NULL, 16);
-#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_AHAB_BOOT)
-		/* skip image container */
-		addr += CONTAINER_HEADER_SIZE;
-#endif
 		blob = map_sysmem(addr, 0);
 		if (!fdt_valid(&blob))
 			return CMD_RET_FAILURE;

@@ -3,7 +3,7 @@
 #
 #  sign.sh
 #
-#  Copyright (C) 2016-2020 by Digi International Inc.
+#  Copyright (C) 2016-2021 by Digi International Inc.
 #  All rights reserved.
 #
 #  This program is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
 #		invalidate the signature.
 #      CONFIG_UNLOCK_SRK_REVOKE: (optional) instruct HAB not to protect the SRK_REVOKE OTP
 #				  field so that key revocation is possible in closed devices.
+#      SRK_REVOKE_MASK: (optional, AHAB only) set bitmask of the revoked SRKs.
 #      ENABLE_ENCRYPTION: (optional) enable encryption of the images.
 #      CONFIG_DEK_PATH: (mandatory if ENCRYPT is defined) path to a Data Encryption Key.
 #                       If defined, the signed	U-Boot image is encrypted with the
@@ -235,6 +236,12 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 		echo "    Features = SRK REVOKE" >> csf_descriptor
 	fi
 else
+	[ -z "${SRK_REVOKE_MASK}" ] && SRK_REVOKE_MASK="0x0"
+	if [ "$((SRK_REVOKE_MASK & 0x8))" != 0 ]; then
+		echo "Key 3 cannot be revoked. Removed from mask."
+		SRK_REVOKE_MASK=$((SRK_REVOKE_MASK - 8))
+	fi
+
 	# Path to log file to parse
 	MKIMAGE_LOG="$(pwd)/mkimage.log"
 
@@ -252,6 +259,7 @@ else
 		sed -e "s,%srk_table%,${SRK_TABLE},g" \
 		-e "s,%cert_img%,${CERT_SRK},g" \
 		-e "s,%key_index%,${CONFIG_KEY_INDEX},g" \
+		-e "s,%srk_rvk_mask%,${SRK_REVOKE_MASK},g" \
 		-e "s,%u-boot-img%,${UBOOT_PATH},g"   \
 		-e "s,%container_offset%,${container_header_offset},g" \
 		-e "s,%block_offset%,${signature_block_offset},g" \
@@ -262,6 +270,7 @@ else
 		sed -e "s,%srk_table%,${SRK_TABLE},g" \
 		-e "s,%cert_img%,${CERT_SRK},g" \
 		-e "s,%key_index%,${CONFIG_KEY_INDEX},g" \
+		-e "s,%srk_rvk_mask%,${SRK_REVOKE_MASK},g" \
 		-e "s,%u-boot-img%,${UBOOT_PATH},g"   \
 		-e "s,%container_offset%,${container_header_offset},g" \
 		-e "s,%block_offset%,${signature_block_offset},g" \

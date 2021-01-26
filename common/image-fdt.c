@@ -19,7 +19,6 @@
 #include <mapmem.h>
 #include <asm/io.h>
 #include <asm/mach-imx/hab.h>
-#include <asm/arch-imx8/image.h>
 #ifdef CONFIG_SIGN_IMAGE
 #include "../board/digi/common/auth.h"
 #endif
@@ -356,11 +355,7 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 		 * address provided in the second bootm argument
 		 * check image type, for FIT images get a FIT node.
 		 */
-#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_AHAB_BOOT)
-		buf = map_sysmem(fdt_addr + CONTAINER_HEADER_SIZE, 0);
-#else
 		buf = map_sysmem(fdt_addr, 0);
-#endif
 		switch (genimg_get_format(buf)) {
 #if CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)
 		case IMAGE_FORMAT_LEGACY:
@@ -519,15 +514,6 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 			goto error;
 		}
 	}
-#ifdef CONFIG_AHAB_BOOT
-	else {
-		/*
-		 * For pre-authenticated fdt images, manually skip the
-		 * container header to proceed with the boot process.
-		 */
-		*of_flat_tree += CONTAINER_HEADER_SIZE;
-	}
-#endif
 #endif /* CONFIG_SIGN_IMAGE */
 
 	return 0;
@@ -642,6 +628,13 @@ err:
 }
 
 #ifdef CONFIG_SIGN_IMAGE
+/* Reset the authentication variables to their initial state */
+void fdt_file_init_authentication(void)
+{
+	authentication_failed = 0;
+	authenticated = 0;
+}
+
 /*
  * Authenticate any number of fdt files on ram before booting. This allows to
  * authenticate an fdt modified by overlays by having the base device tree and
@@ -670,6 +663,9 @@ int fdt_file_authenticate(char *loadaddr)
 
 	if (authentication_failed == 0)
 		authenticated = 1;
+
+	/* Return destination address after authenticate fdt file */
+	sprintf(loadaddr, "0x%lx", fdt_addr);
 
 	return 0;
 }

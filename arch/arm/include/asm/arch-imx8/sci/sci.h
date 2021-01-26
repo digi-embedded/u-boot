@@ -126,6 +126,7 @@ int sc_timer_set_wdog_window(sc_ipc_t ipc, sc_timer_wdog_time_t window);
 int sc_seco_authenticate(sc_ipc_t ipc, sc_seco_auth_cmd_t cmd,
 			 sc_faddr_t addr);
 int sc_seco_forward_lifecycle(sc_ipc_t ipc, u32 change);
+int seco_commit(sc_ipc_t ipc, u32 change);
 int sc_seco_chip_info(sc_ipc_t ipc, u16 *lc, u16 *monotonic, u32 *uid_l,
 		      u32 *uid_h);
 void sc_seco_build_info(sc_ipc_t ipc, u32 *version, u32 *commit);

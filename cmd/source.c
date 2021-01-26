@@ -22,7 +22,6 @@
 #include <mapmem.h>
 #include <asm/byteorder.h>
 #include <asm/io.h>
-#include <asm/arch-imx8/image.h>
 #include <asm/mach-imx/hab.h>
 #ifdef CONFIG_SIGN_IMAGE
 #include "../board/digi/common/auth.h"

@@ -18,7 +18,6 @@
 #define CONTAINER_HDR_QSPI_OFFSET SZ_4K
 #define CONTAINER_HDR_NAND_OFFSET SZ_128M
 
-#define CONTAINER_HEADER_SIZE SZ_8K
 
 struct container_hdr {
 	u8 version;
@@ -49,10 +48,10 @@ struct signature_block_hdr {
 	u8 length_lsb;
 	u8 length_msb;
 	u8 tag;
-	u16 srk_table_offset;
 	u16 cert_offset;
-	u16 blob_offset;
+	u16 srk_table_offset;
 	u16 signature_offset;
+	u16 blob_offset;
 	u32 reserved;
 } __packed;
 

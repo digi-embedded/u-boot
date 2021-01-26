@@ -73,7 +73,7 @@ static int set_bootargs(int os, int src)
 	return run_command(cmd, 0);
 }
 
-static int boot_os(int has_initrd, int has_fdt)
+static int boot_os(char* initrd_addr, char* fdt_addr)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	char *var;
@@ -90,8 +90,8 @@ static int boot_os(int has_initrd, int has_fdt)
 	}
 
 	sprintf(cmd, "%s $loadaddr %s %s", dboot_cmd,
-		has_initrd ? "$initrd_addr" : "-",
-		has_fdt ? "$fdt_addr" : "");
+		(initrd_addr && !initrd_addr[0]) ? "-" : initrd_addr,
+		(fdt_addr && !fdt_addr[0]) ? "" : fdt_addr);
 
 	return run_command(cmd, 0);
 }
@@ -100,9 +100,11 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 {
 	int os = SRC_UNDEFINED;
 	int ret;
-	int has_fdt = 0;
-	int has_initrd = 0;
+	char fdt_addr[20] = "";
+	char initrd_addr[20] = "";
+	char *var;
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
+	char cmd_buf[CONFIG_SYS_CBSIZE];
 	char *original_overlay_list;
 	char *overlay_list = NULL;
 	char *overlay = NULL;
@@ -132,8 +134,10 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	ret = get_fw_filename(argc, argv, &fwinfo);
 	if (ret) {
 		/* Filename was not provided. Look for default one */
-		fwinfo.filename = get_default_filename(argv[1], CMD_DBOOT);
-		if (!fwinfo.filename) {
+		strncpy(fwinfo.filename,
+			get_default_filename(argv[1], CMD_DBOOT),
+			sizeof(fwinfo.filename));
+		if (strlen(fwinfo.filename) == 0) {
 			printf("Error: need a filename\n");
 			return CMD_RET_FAILURE;
 		}
@@ -141,8 +145,8 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 
 	/* Load firmware file to RAM */
 	fwinfo.compressed = is_image_compressed();
-	fwinfo.loadaddr = "$loadaddr";
-	fwinfo.lzipaddr = "$lzipaddr";
+	strncpy(fwinfo.loadaddr, "$loadaddr", sizeof(fwinfo.loadaddr));
+	strncpy(fwinfo.lzipaddr, "$lzipaddr", sizeof(fwinfo.lzipaddr));
 
 	ret = load_firmware(&fwinfo, "\n## Loading kernel");
 	if (ret == LDFW_ERROR) {
@@ -151,16 +155,21 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	/* Get flattened Device Tree */
-	fwinfo.varload = env_get("boot_fdt");
-	if (NULL == fwinfo.varload)
-		fwinfo.varload = "try";
-	fwinfo.loadaddr = "$fdt_addr";
-	fwinfo.filename = "$fdt_file";
+	var = env_get("boot_fdt");
+	if (var)
+		strncpy(fwinfo.varload, var, sizeof(fwinfo.varload));
+	else
+		strcpy(fwinfo.varload, "");
+
+	if (strlen(fwinfo.varload) == 0)
+		strcpy(fwinfo.varload, "try");
+	strncpy(fwinfo.loadaddr, "$fdt_addr", sizeof(fwinfo.loadaddr));
+	strncpy(fwinfo.filename, "$fdt_file", sizeof(fwinfo.filename));
 	fwinfo.compressed = false;
 	ret = load_firmware(&fwinfo,
 		"\n## Loading device tree file in variable 'fdt_file'");
 	if (ret == LDFW_LOADED) {
-		has_fdt = 1;
+		strcpy(fdt_addr, fwinfo.loadaddr);
 	} else if (ret == LDFW_ERROR) {
 		printf("Error loading FDT file\n");
 		return CMD_RET_FAILURE;
@@ -168,12 +177,16 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
 #ifdef CONFIG_SIGN_IMAGE
+	fdt_file_init_authentication();
 	if (fdt_file_authenticate(fwinfo.loadaddr) != 0) {
 		printf("Error authenticating FDT file\n");
 		return CMD_RET_FAILURE;
 	}
+	/* Set FDT start address */
+	strcpy(fdt_addr, fwinfo.loadaddr);
 #endif /* CONFIG_SIGN_IMAGE */
-	if (run_command("fdt addr $fdt_addr", 0)) {
+	sprintf(cmd_buf, "fdt addr %s", fwinfo.loadaddr);
+	if (run_command(cmd_buf, 0)) {
 		printf("Failed to set base fdt address\n");
 		return CMD_RET_FAILURE;
 	}
@@ -182,8 +195,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	root_node = fdt_path_offset(gd->fdt_blob, "/");
 
 	/* Set firmware info common for all overlay files */
-	fwinfo.varload = "try";
-	fwinfo.loadaddr = "$initrd_addr";
+	strcpy(fwinfo.varload, "try");
 	fwinfo.compressed = false;
 
 	/* Copy the variable to avoid modifying it in memory */
@@ -199,7 +211,8 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	while (overlay != NULL) {
-		fwinfo.filename = overlay;
+		strncpy(fwinfo.filename, overlay, sizeof(fwinfo.filename));
+		strcpy(fwinfo.loadaddr, "$initrd_addr");
 		ret = load_firmware(&fwinfo, NULL);
 
 		if (ret != LDFW_LOADED) {
@@ -210,7 +223,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 
 #ifdef CONFIG_SIGN_IMAGE
 		if (fdt_file_authenticate(fwinfo.loadaddr) != 0) {
-			printf("Error authenticating FDT overlay file\n");
+			printf("Error authenticating FDT overlay file '%s'\n", fwinfo.filename);
 			return CMD_RET_FAILURE;
 		}
 #endif /* CONFIG_SIGN_IMAGE */
@@ -218,7 +231,8 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		/* Resize the base fdt to make room for the overlay */
 		run_command("fdt resize $filesize", 0);
 
-		if (run_command("fdt apply $initrd_addr", 0)) {
+		sprintf(cmd_buf, "fdt apply %s", fwinfo.loadaddr);
+		if (run_command(cmd_buf, 0)) {
 			printf("Failed to apply overlay %s\n", overlay);
 			free(overlay_list);
 			return CMD_RET_FAILURE;
@@ -244,17 +258,22 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 
 	if (overlay_list)
 		free(overlay_list);
-#endif
+#endif /* CONFIG_OF_LIBFDT_OVERLAY */
 
 	/* Get init ramdisk */
-	fwinfo.varload = env_get("boot_initrd");
-	if (NULL == fwinfo.varload && OS_LINUX == os)
-		fwinfo.varload = "no";	/* Linux default */
-	fwinfo.loadaddr = "$initrd_addr";
-	fwinfo.filename = "$initrd_file";
+	var = env_get("boot_initrd");
+	if (var)
+		strncpy(fwinfo.varload, var, sizeof(fwinfo.varload));
+	else
+		strcpy(fwinfo.varload, "");
+
+	if (strlen(fwinfo.varload) == 0 && OS_LINUX == os)
+		strcpy(fwinfo.varload, "no");	/* Linux default */
+	strcpy(fwinfo.loadaddr, "$initrd_addr");
+	strcpy(fwinfo.filename, "$initrd_file");
 	ret = load_firmware(&fwinfo, "\n## Loading init ramdisk");
 	if (ret == LDFW_LOADED) {
-		has_initrd = 1;
+		strcpy(initrd_addr, fwinfo.loadaddr);
 	} else if (ret == LDFW_ERROR) {
 		printf("Error loading init ramdisk file\n");
 		return CMD_RET_FAILURE;
@@ -268,7 +287,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	/* Boot OS */
-	return boot_os(has_initrd, has_fdt);
+	return boot_os(initrd_addr, fdt_addr);
 }
 
 U_BOOT_CMD(
