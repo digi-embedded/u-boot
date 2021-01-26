@@ -204,10 +204,14 @@ int rproc_optee_open(struct rproc_optee *trproc)
 
 	tee_optee_ta_uuid_to_octets(arg.uuid, &uuid);
 	rc = tee_open_session(tee, &arg, 0, NULL);
-	if (!rc) {
-		trproc->tee = tee;
-		trproc->session = arg.session;
+	if (rc < 0 || arg.ret != 0) {
+		if (!rc)
+			rc = -EIO;
+		return rc;
 	}
+
+	trproc->tee = tee;
+	trproc->session = arg.session;
 
 	return 0;
 }
