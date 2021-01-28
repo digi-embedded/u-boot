@@ -38,6 +38,8 @@
 
 #endif
 
+#define EMMC_BOOT_PART_OFFSET		(32 * SZ_1K)
+
 /* Serial */
 #define CONFIG_MXC_UART
 #define CONFIG_MXC_UART_BASE		UART1_BASE_ADDR

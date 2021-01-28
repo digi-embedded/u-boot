@@ -126,7 +126,6 @@
 #define EMMC_BOOT_ACK			1
 #define EMMC_BOOT_DEV			0
 #define EMMC_BOOT_PART			1
-#define EMMC_BOOT_PART_OFFSET		(32 * SZ_1K)
 
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		SZ_32M
