@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Digi International Inc.
+ * Copyright 2019-2021 Digi International Inc.
  * Copyright 2018-2019 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -12,7 +12,11 @@
 #include <errno.h>
 #include <asm/io.h>
 #include <asm/mach-imx/iomux-v3.h>
+#ifdef CONFIG_IMX8MM
+#include <asm/arch/imx8mm_pins.h>
+#elif defined CONFIG_IMX8MN
 #include <asm/arch/imx8mn_pins.h>
+#endif
 #include <asm/arch/sys_proto.h>
 #include <asm/mach-imx/boot_mode.h>
 #include <power/pmic.h>
@@ -30,8 +34,10 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#ifdef CONFIG_IMX8MN
 extern struct dram_timing_info dram_timing_1G;
 extern struct dram_timing_info dram_timing_512M;
+#endif
 
 int spl_board_boot_device(enum boot_device boot_dev_spl)
 {
@@ -61,6 +67,7 @@ int spl_board_boot_device(enum boot_device boot_dev_spl)
 
 void spl_dram_init(void)
 {
+#ifdef CONFIG_IMX8MN
 	/* Default to RAM size of DVK variant 0x01 (1 GiB) */
 	u32 ram = SZ_1G;
 	struct digi_hwid my_hwid;
@@ -82,19 +89,32 @@ void spl_dram_init(void)
 		ddr_init(&dram_timing_1G);
 		break;
 	}
+#elif defined CONFIG_IMX8MM
+	ddr_init(&dram_timing);
+#endif
 }
 
 #define I2C_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_HYS | PAD_CTL_PUE | PAD_CTL_PE)
 #define PC MUX_PAD_CTRL(I2C_PAD_CTRL)
 struct i2c_pads_info i2c_pad_info1 = {
 	.scl = {
+#ifdef CONFIG_IMX8MM
+		.i2c_mode = IMX8MM_PAD_I2C1_SCL_I2C1_SCL | PC,
+		.gpio_mode = IMX8MM_PAD_I2C1_SCL_GPIO5_IO14 | PC,
+#elif defined CONFIG_IMX8MN
 		.i2c_mode = IMX8MN_PAD_I2C1_SCL__I2C1_SCL | PC,
 		.gpio_mode = IMX8MN_PAD_I2C1_SCL__GPIO5_IO14 | PC,
+#endif
 		.gp = IMX_GPIO_NR(5, 14),
 	},
 	.sda = {
+#ifdef CONFIG_IMX8MM
+		.i2c_mode = IMX8MM_PAD_I2C1_SDA_I2C1_SDA | PC,
+		.gpio_mode = IMX8MM_PAD_I2C1_SDA_GPIO5_IO15 | PC,
+#elif defined CONFIG_IMX8MN
 		.i2c_mode = IMX8MN_PAD_I2C1_SDA__I2C1_SDA | PC,
 		.gpio_mode = IMX8MN_PAD_I2C1_SDA__GPIO5_IO15 | PC,
+#endif
 		.gp = IMX_GPIO_NR(5, 15),
 	},
 };
@@ -107,6 +127,18 @@ struct i2c_pads_info i2c_pad_info1 = {
 #define USDHC_CD_PAD_CTRL (PAD_CTL_PE |PAD_CTL_PUE |PAD_CTL_HYS | PAD_CTL_DSE4)
 
 static iomux_v3_cfg_t const usdhc3_pads[] = {
+#ifdef CONFIG_IMX8MM
+	IMX8MM_PAD_NAND_WE_B_USDHC3_CLK | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	IMX8MM_PAD_NAND_WP_B_USDHC3_CMD | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	IMX8MM_PAD_NAND_DATA04_USDHC3_DATA0 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	IMX8MM_PAD_NAND_DATA05_USDHC3_DATA1 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	IMX8MM_PAD_NAND_DATA06_USDHC3_DATA2 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	IMX8MM_PAD_NAND_DATA07_USDHC3_DATA3 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	IMX8MM_PAD_NAND_RE_B_USDHC3_DATA4 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	IMX8MM_PAD_NAND_CE2_B_USDHC3_DATA5 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	IMX8MM_PAD_NAND_CE3_B_USDHC3_DATA6 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	IMX8MM_PAD_NAND_CLE_USDHC3_DATA7 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+#elif defined CONFIG_IMX8MN
 	IMX8MN_PAD_NAND_WE_B__USDHC3_CLK | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	IMX8MN_PAD_NAND_WP_B__USDHC3_CMD | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	IMX8MN_PAD_NAND_DATA04__USDHC3_DATA0 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
@@ -118,9 +150,19 @@ static iomux_v3_cfg_t const usdhc3_pads[] = {
 	IMX8MN_PAD_NAND_CE3_B__USDHC3_DATA6 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	IMX8MN_PAD_NAND_CLE__USDHC3_DATA7 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	IMX8MN_PAD_NAND_READY_B__USDHC3_RESET_B | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+#endif
 };
 
 static iomux_v3_cfg_t const usdhc2_pads[] = {
+#ifdef CONFIG_IMX8MM
+	IMX8MM_PAD_SD2_CLK_USDHC2_CLK | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	IMX8MM_PAD_SD2_CMD_USDHC2_CMD | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	IMX8MM_PAD_SD2_DATA0_USDHC2_DATA0 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	IMX8MM_PAD_SD2_DATA1_USDHC2_DATA1 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	IMX8MM_PAD_SD2_DATA2_USDHC2_DATA2 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	IMX8MM_PAD_SD2_DATA3_USDHC2_DATA3 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	IMX8MM_PAD_SD2_CD_B_GPIO2_IO12 | MUX_PAD_CTRL(USDHC_CD_PAD_CTRL),
+#elif defined CONFIG_IMX8MN
 	IMX8MN_PAD_SD2_CLK__USDHC2_CLK | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	IMX8MN_PAD_SD2_CMD__USDHC2_CMD | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	IMX8MN_PAD_SD2_DATA0__USDHC2_DATA0 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
@@ -128,6 +170,7 @@ static iomux_v3_cfg_t const usdhc2_pads[] = {
 	IMX8MN_PAD_SD2_DATA2__USDHC2_DATA2 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	IMX8MN_PAD_SD2_DATA3__USDHC2_DATA3 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	IMX8MN_PAD_SD2_CD_B__GPIO2_IO12 | MUX_PAD_CTRL(USDHC_CD_PAD_CTRL),
+#endif
 };
 
 static struct fsl_esdhc_cfg usdhc_cfg[2] = {
@@ -193,9 +236,10 @@ int board_mmc_getcd(struct mmc *mmc)
 #define I2C_PMIC	0
 int power_init_board(void)
 {
-	struct digi_hwid my_hwid;
 	struct pmic *p;
 	int ret;
+
+	struct digi_hwid my_hwid;
 
 	if (board_read_hwid(&my_hwid)) {
 		printf("Cannot read HWID\n");
@@ -206,7 +250,7 @@ int power_init_board(void)
 	 * Revision 1 of the ccimx8mn uses the bd71837 PMIC.
 	 * Revisions 2 and higher use the pca9450 PMIC
 	 */
-	if (my_hwid.hv == 1) {
+	if (is_imx8mn() && my_hwid.hv == 1) {
 		ret = power_bd71837_init(I2C_PMIC);
 		if (ret)
 			printf("power init failed");
@@ -265,6 +309,13 @@ int power_init_board(void)
 
 void spl_board_init(void)
 {
+#ifndef CONFIG_SPL_USB_SDP_SUPPORT
+	/* Serial download mode */
+	if (is_usb_boot()) {
+		puts("Back to ROM, SDP\n");
+		restore_boot_params();
+	}
+#endif
 	puts("Normal Boot\n");
 }
 

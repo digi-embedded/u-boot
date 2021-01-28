@@ -1,0 +1,16 @@
+if TARGET_CCIMX8MM_DVK
+
+config SYS_BOARD
+	default "ccimx8mm_dvk"
+
+config SYS_VENDOR
+	default "digi"
+
+config SYS_CONFIG_NAME
+	default "ccimx8mm_dvk"
+
+config MCA
+	bool
+	default y
+
+endif
