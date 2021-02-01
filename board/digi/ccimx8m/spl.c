@@ -289,15 +289,34 @@ int power_init_board(void)
 		/* BUCKxOUT_DVS0/1 control BUCK123 output */
 		pmic_reg_write(p, PCA9450_BUCK123_DVS, 0x29);
 
-		/* increase VDD_SOC/VDD_DRAM to typical value 0.95V before first DRAM access */
-		/* Set DVS1 to 0.85v for suspend */
-		/* Enable DVS control through PMIC_STBY_REQ and set B1_ENMODE=1 (ON by PMIC_ON_REQ=H) */
-		pmic_reg_write(p, PCA9450_BUCK1OUT_DVS0, 0x1C);
-		pmic_reg_write(p, PCA9450_BUCK1OUT_DVS1, 0x14);
+		/* Buck 1 DVS control through PMIC_STBY_REQ */
 		pmic_reg_write(p, PCA9450_BUCK1CTRL, 0x59);
+
+		/*
+		 * Set VDD_SOC to 0.825v on the Nano, leave default value of
+		 * 0.85v on the Mini
+		 */
+		if (is_imx8mn())
+			pmic_reg_write(p, PCA9450_BUCK1OUT_DVS0, 0x12);
+
+		/* Set DVS1 to 0.8v for suspend */
+		pmic_reg_write(p, PCA9450_BUCK1OUT_DVS1, 0x10);
+
+		/* increase VDD_DRAM to 0.95v for 3Ghz DDR */
+		pmic_reg_write(p, PCA9450_BUCK3OUT_DVS0, 0x1C);
+
+		/* VDD_DRAM needs off in suspend, set B1_ENMODE=10 (ON by PMIC_ON_REQ = H && PMIC_STBY_REQ = L) */
+		pmic_reg_write(p, PCA9450_BUCK3CTRL, 0x4a);
 
 		/* set VDD_SNVS_0V8 from default 0.85V */
 		pmic_reg_write(p, PCA9450_LDO2CTRL, 0xC0);
+
+		/*
+		 * Set VDD_MIPI_0P9 to 0.8v on the Nano, leave default value of
+		 * 0.9v on the Mini
+		 */
+		if (is_imx8mn())
+			pmic_reg_write(p, PCA9450_LDO4CTRL, 0x40);
 
 		/* set WDOG_B_CFG to cold reset */
 		pmic_reg_write(p, PCA9450_RESET_CTRL, 0xA1);
