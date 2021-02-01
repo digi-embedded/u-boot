@@ -61,8 +61,3 @@
 };
 #endif
 
-/* TEMP: force peripheral for USB OTG */
-&usbotg_hs {
-	dr_mode = "peripheral";
-};
-

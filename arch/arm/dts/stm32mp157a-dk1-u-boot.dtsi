@@ -207,6 +207,4 @@
 
 &usbotg_hs {
 	u-boot,force-b-session-valid;
-	/* TEMP: force peripheral for USB OTG */
-	dr_mode = "peripheral";
 };
