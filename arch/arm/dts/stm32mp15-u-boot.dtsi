@@ -207,10 +207,6 @@
 	resets = <&rcc UART8_R>;
 };
 
-&usbotg_hs {
-	compatible = "st,stm32mp1-hsotg", "snps,dwc2";
-};
-
 /* NO MORE USE SCMI SUPPORT for BASIC boot chain */
 #ifndef CONFIG_TFABOOT
 
