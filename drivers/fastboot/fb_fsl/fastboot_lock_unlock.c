@@ -43,6 +43,8 @@
 
 int fastboot_flash_find_index(const char *name);
 
+static uint8_t zero_key_modifier[KEY_MODIFER_SIZE] = {0};
+
 #if defined(CONFIG_IMX_TRUSTY_OS) && !defined(CONFIG_ARM64)
 #define IVT_HEADER_MAGIC       0xD1
 #define IVT_HDR_LEN       0x20
@@ -159,6 +161,7 @@ static __maybe_unused FbLockState decrypt_lock_store(unsigned char *bdata) {
 	caam_open();
 	ret = caam_decap_blob((uint32_t)(ulong)plain_data,
 			      (uint32_t)(ulong)bdata + ROUND(ENDATA_LEN, ARCH_DMA_MINALIGN),
+			      zero_key_modifier,
 			      ENDATA_LEN);
 	if (ret != 0) {
 		printf("Error during blob decap operation: 0x%x\n",ret);
@@ -219,6 +222,7 @@ static __maybe_unused int encrypt_lock_store(FbLockState lock, unsigned char* bd
 	caam_open();
 	ret = caam_gen_blob((uint32_t)(ulong)bdata,
 			(uint32_t)(ulong)bdata + ROUND(ENDATA_LEN, ARCH_DMA_MINALIGN),
+			zero_key_modifier,
 			ENDATA_LEN);
 	if (ret != 0) {
 		printf("error in caam_gen_blob:0x%x\n", ret);
