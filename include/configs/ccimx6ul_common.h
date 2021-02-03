@@ -272,4 +272,6 @@
 #undef CONFIG_CMD_EXPORTENV
 #undef CONFIG_CMD_IMPORTENV
 
+#define FSL_FASTBOOT_FB_DEV "nand"
+
 #endif /* CCIMX6UL_CONFIG_H */

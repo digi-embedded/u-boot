@@ -314,4 +314,6 @@
 /* Partition defines */
 #define CONFIG_RECOVERY_PARTITION	"2"
 
+#define FSL_FASTBOOT_FB_DEV "mmc"
+
 #endif /* CCIMX8X_COMMON_H */
