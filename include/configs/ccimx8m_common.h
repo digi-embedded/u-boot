@@ -340,4 +340,6 @@
 	"board_id:so,"			\
 	"mmcbootdev:so"
 
+#define FSL_FASTBOOT_FB_DEV "mmc"
+
 #endif /* __CCIMX8M_COMMON_H */

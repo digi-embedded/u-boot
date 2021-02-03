@@ -324,4 +324,6 @@
 #define CONFIG_SYS_CBSIZE              1024
 #define CONFIG_SYS_HZ                  1000
 
+#define FSL_FASTBOOT_FB_DEV "mmc"
+
 #endif	/* CCIMX6_COMMON_CONFIG_H */
