@@ -45,6 +45,7 @@
 #define RPMBKEY_BLOB_LEN ((RPMBKEY_LENGTH) + (CAAM_PAD))
 
 extern int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value);
+static uint8_t zero_key_modifier[KEY_MODIFER_SIZE] = {0};
 
 #if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_MMC_SUPPORT)
 int spl_get_mmc_dev(void)
@@ -305,7 +306,7 @@ int rpmb_read(struct mmc *mmc, uint8_t *buffer, size_t num_bytes, int64_t offset
 	memcpy(blob, kp.rpmb_keyblob, RPMBKEY_BLOB_LEN);
 	caam_open();
 	if (caam_decap_blob((ulong)extract_key, (ulong)blob,
-				RPMBKEY_LENGTH)) {
+				zero_key_modifier, RPMBKEY_LENGTH)) {
 		ERR("decap rpmb key error\n");
 		ret = -1;
 		goto fail;
@@ -405,7 +406,7 @@ int rpmb_write(struct mmc *mmc, uint8_t *buffer, size_t num_bytes, int64_t offse
 	memcpy(blob, kp.rpmb_keyblob, RPMBKEY_BLOB_LEN);
 	caam_open();
 	if (caam_decap_blob((ulong)extract_key, (ulong)blob,
-				RPMBKEY_LENGTH)) {
+				zero_key_modifier, RPMBKEY_LENGTH)) {
 		ERR("decap rpmb key error\n");
 		ret = -1;
 		goto fail;
@@ -641,7 +642,7 @@ int gen_rpmb_key(struct keyslot_package *kp) {
 
 	/* generate keyblob and program to boot1 partition */
 	if (caam_gen_blob((ulong)plain_key, (ulong)(kp->rpmb_keyblob),
-				RPMBKEY_LENGTH)) {
+				zero_key_modifier, RPMBKEY_LENGTH)) {
 		ERR("gen rpmb key blb error\n");
 		goto fail;
 	}
