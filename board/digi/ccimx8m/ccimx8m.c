@@ -87,7 +87,7 @@ void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 	 * - For eMMC User Data area.
 	 *	Offset = EMMC_BOOT_PART_OFFSET
 	 */
-	if (part == 1 || part == 2) {
+	if (is_imx8mn() && (part == 1 || part == 2)) {
 		/* eMMC BOOT1 or BOOT2 partitions */
 		info->start = 0;
 	} else {

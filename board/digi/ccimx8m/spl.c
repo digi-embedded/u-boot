@@ -401,7 +401,7 @@ unsigned long spl_mmc_get_uboot_raw_sector(struct mmc *mmc)
 			 * On the BOOT partitions, the bootloader is stored
 			 * at offset 0.
 			 */
-			if (part == 1 || part == 2)
+			if (is_imx8mn() && (part == 1 || part == 2))
 				return CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR -
 				       UBOOT_RAW_SECTOR_OFFSET;
 			/*
