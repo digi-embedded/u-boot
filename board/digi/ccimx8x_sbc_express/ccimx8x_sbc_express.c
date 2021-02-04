@@ -258,6 +258,7 @@ void board_quiesce_devices()
 {
 	const char *power_on_devices[] = {
 		"dma_lpuart2",
+		"PD_UART2_TX",
 
 		/* HIFI DSP boot */
 		"audio_sai0",
