@@ -335,7 +335,9 @@ void spl_board_init(void)
 		restore_boot_params();
 	}
 #endif
+#ifdef CONFIG_SPL_SERIAL_SUPPORT
 	puts("Normal Boot\n");
+#endif
 }
 
 #ifdef CONFIG_SPL_LOAD_FIT
@@ -361,7 +363,9 @@ void board_init_f(ulong dummy)
 
 	timer_init();
 
+#ifdef CONFIG_SPL_SERIAL_SUPPORT
 	preloader_console_init();
+#endif
 
 	ret = spl_init();
 	if (ret) {
