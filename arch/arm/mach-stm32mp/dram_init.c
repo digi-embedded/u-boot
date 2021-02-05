@@ -10,6 +10,7 @@
 #include <lmb.h>
 #include <log.h>
 #include <ram.h>
+#include <asm/system.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -38,6 +39,7 @@ int dram_init(void)
 
 ulong board_get_usable_ram_top(ulong total_size)
 {
+	phys_size_t size;
 	phys_addr_t reg;
 	struct lmb lmb;
 
@@ -45,10 +47,13 @@ ulong board_get_usable_ram_top(ulong total_size)
 	lmb_init(&lmb);
 	lmb_add(&lmb, gd->ram_base, gd->ram_size);
 	boot_fdt_add_mem_rsv_regions(&lmb, (void *)gd->fdt_blob);
-	reg = lmb_alloc(&lmb, CONFIG_SYS_MALLOC_LEN + total_size, SZ_4K);
+	size = ALIGN(CONFIG_SYS_MALLOC_LEN + total_size, MMU_SECTION_SIZE),
+	reg = lmb_alloc(&lmb, size, MMU_SECTION_SIZE);
 
-	if (reg)
-		return ALIGN(reg + CONFIG_SYS_MALLOC_LEN + total_size, SZ_4K);
+	if (!reg)
+		reg = gd->ram_top - size;
 
-	return gd->ram_top;
+	mmu_set_region_dcache_behaviour(reg, size, DCACHE_DEFAULT_OPTION);
+
+	return reg + size;
 }
