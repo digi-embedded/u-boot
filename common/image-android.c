@@ -80,8 +80,13 @@ static void append_kernel_cmdline(char *commandline)
 			" androidboot.btmacaddr=%c%c:%c%c:%c%c:%c%c:%c%c:%c%c",
 			bd_addr[0],bd_addr[1],bd_addr[2],bd_addr[3],bd_addr[4],bd_addr[5],
 			bd_addr[6],bd_addr[7],bd_addr[8],bd_addr[9],bd_addr[10],bd_addr[11]);
-		strncat(commandline, newbootargs, COMMANDLINE_LENGTH - strlen(commandline));
+	} else {
+		/* Some boards have serial number as all zeros (imx8mp),
+		 * hard code the bt mac address for such case. */
+		sprintf(newbootargs, " androidboot.btmacaddr=22:22:67:C6:69:73");
 	}
+
+	strncat(commandline, newbootargs, COMMANDLINE_LENGTH - strlen(commandline));
 #endif
 
 	/* append soc type into bootargs */
@@ -211,7 +216,7 @@ int android_image_get_kernel(const struct andr_img_hdr *hdr, int verify,
 	if (strlen(andr_tmp_str))
 		printf("Android's image name: %s\n", andr_tmp_str);
 
-	printf("Kernel load addr 0x%08x size %u KiB\n",
+	debug("Kernel load addr 0x%08x size %u KiB\n",
 	       kernel_addr, DIV_ROUND_UP(hdr->kernel_size, 1024));
 
 	char commandline[COMMANDLINE_LENGTH] = {0};

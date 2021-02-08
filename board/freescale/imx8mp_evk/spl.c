@@ -187,6 +187,7 @@ int power_init_board(void)
 	/* BUCKxOUT_DVS0/1 control BUCK123 output */
 	pmic_reg_write(p, PCA9450_BUCK123_DVS, 0x29);
 
+#ifdef CONFIG_IMX8M_LPDDR4
 	/*
 	 * increase VDD_SOC to typical value 0.95V before first
 	 * DRAM access, set DVS1 to 0.85v for suspend.
@@ -200,6 +201,13 @@ int power_init_board(void)
 	/* Kernel uses OD/OD freq for SOC */
 	/* To avoid timing risk from SOC to ARM,increase VDD_ARM to OD voltage 0.95v */
 	pmic_reg_write(p, PCA9450_BUCK2OUT_DVS0, 0x1C);
+#elif defined(CONFIG_IMX8M_DDR4)
+	/* DDR4 runs at 3200MTS, uses default ND 0.85v for VDD_SOC and VDD_ARM */
+	pmic_reg_write(p, PCA9450_BUCK1CTRL, 0x59);
+
+	/* Set NVCC_DRAM to 1.2v for DDR4 */
+	pmic_reg_write(p, PCA9450_BUCK6OUT, 0x18);
+#endif
 
 	/* set WDOG_B_CFG to cold reset */
 	pmic_reg_write(p, PCA9450_RESET_CTRL, 0xA1);
@@ -210,6 +218,16 @@ int power_init_board(void)
 
 void spl_board_init(void)
 {
+	/* Set GIC clock to 500Mhz for OD VDD_SOC. Kernel driver does not allow to change it.
+	 * Should set the clock after PMIC setting done.
+	 * Default is 400Mhz (system_pll1_800m with div = 2) set by ROM for ND VDD_SOC
+	 */
+#ifdef CONFIG_IMX8M_LPDDR4
+	clock_enable(CCGR_GIC, 0);
+	clock_set_target_val(GIC_CLK_ROOT, CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(5));
+	clock_enable(CCGR_GIC, 1);
+#endif
+
 	puts("Normal Boot\n");
 }
 
