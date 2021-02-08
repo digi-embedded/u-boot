@@ -9,6 +9,7 @@
 #include <env.h>
 #include <init.h>
 #include <log.h>
+#include <lmb.h>
 #include <misc.h>
 #include <net.h>
 #include <asm/io.h>
@@ -217,6 +218,9 @@ void dram_bank_mmu_setup(int bank)
 	int	i;
 	phys_addr_t start;
 	phys_size_t size;
+	struct lmb lmb;
+	bool use_lmb = false;
+	enum dcache_option option;
 
 	if (IS_ENABLED(CONFIG_SPL_BUILD)) {
 #ifdef CONFIG_SPL
@@ -227,6 +231,8 @@ void dram_bank_mmu_setup(int bank)
 		/* bd->bi_dram is available only after relocation */
 		start = bd->bi_dram[bank].start;
 		size =  bd->bi_dram[bank].size;
+		use_lmb = true;
+		lmb_init_and_reserve(&lmb, bd, (void *)gd->fdt_blob);
 	} else {
 		/* mark cacheable and executable the beggining of the DDR */
 		start = STM32_DDR_BASE;
@@ -235,8 +241,12 @@ void dram_bank_mmu_setup(int bank)
 
 	for (i = start >> MMU_SECTION_SHIFT;
 	     i < (start >> MMU_SECTION_SHIFT) + (size >> MMU_SECTION_SHIFT);
-	     i++)
-		set_section_dcache(i, DCACHE_DEFAULT_OPTION);
+	     i++) {
+		option = DCACHE_DEFAULT_OPTION;
+		if (use_lmb && lmb_is_reserved_flags(&lmb, i << MMU_SECTION_SHIFT, LMB_NOMAP))
+			option = INVALID_ENTRY;
+		set_section_dcache(i, option);
+	}
 }
 /*
  * initialize the MMU and activate cache in SPL or in U-Boot pre-reloc stage
