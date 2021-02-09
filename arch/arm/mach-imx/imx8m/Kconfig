@@ -162,6 +162,8 @@ config TARGET_VERDIN_IMX8MM
 
 endchoice
 
+source "board/digi/ccimx8mm_dvk/Kconfig"
+source "board/digi/ccimx8mn_dvk/Kconfig"
 source "board/freescale/imx8mq_evk/Kconfig"
 source "board/freescale/imx8mq_val/Kconfig"
 source "board/freescale/imx8mm_ab2/Kconfig"
