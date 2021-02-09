@@ -3,6 +3,21 @@
  * Copyright 2020 Digi International Inc.
  */
 
+/ {
+	aliases {
+		usbgadget0 = &usbg1;
+	};
+
+	usbg1: usbg1 {
+		compatible = "fsl,imx27-usb-gadget";
+		dr_mode = "peripheral";
+		chipidea,usb = <&usbotg1>;
+		status = "okay";
+		u-boot,dm-spl;
+	};
+
+};
+
 &{/imx8qx-pm} {
 	u-boot,dm-pre-proper;
 };
