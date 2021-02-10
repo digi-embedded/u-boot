@@ -13,6 +13,17 @@
 #define STM32_OTP_HASH_KEY_START 24
 #define STM32_OTP_HASH_KEY_SIZE 8
 
+static int get_misc_dev(struct udevice **dev)
+{
+	int ret;
+
+	ret = uclass_get_device_by_driver(UCLASS_MISC, DM_GET_DRIVER(stm32mp_bsec), dev);
+	if (ret)
+		pr_err("Can't find stm32mp_bsec driver\n");
+
+	return ret;
+}
+
 static void read_hash_value(u32 addr)
 {
 	int i;
@@ -30,13 +41,9 @@ static int fuse_hash_value(u32 addr, bool print)
 	u32 word, val;
 	int i, ret;
 
-	ret = uclass_get_device_by_driver(UCLASS_MISC,
-					  DM_GET_DRIVER(stm32mp_bsec),
-					  &dev);
-	if (ret) {
-		pr_err("Can't find stm32mp_bsec driver\n");
+	ret = get_misc_dev(&dev);
+	if (ret)
 		return ret;
-	}
 
 	for (i = 0; i < STM32_OTP_HASH_KEY_SIZE; i++) {
 		word = STM32_OTP_HASH_KEY_START + i;
