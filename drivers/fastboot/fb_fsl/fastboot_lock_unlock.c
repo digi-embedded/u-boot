@@ -25,6 +25,7 @@
 
 #include <hash.h>
 #include <fsl_caam.h>
+static __maybe_unused uint8_t zero_key_modifier[KEY_MODIFER_SIZE] = {0};
 
 //Encrypted data is 80bytes length.
 #define ENDATA_LEN 80
@@ -42,8 +43,6 @@
 #endif
 
 int fastboot_flash_find_index(const char *name);
-
-static uint8_t zero_key_modifier[KEY_MODIFER_SIZE] = {0};
 
 #if defined(CONFIG_IMX_TRUSTY_OS) && !defined(CONFIG_ARM64)
 #define IVT_HEADER_MAGIC       0xD1

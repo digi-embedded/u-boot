@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #ifdef CONFIG_FSL_CAAM_KB
 #include <fsl_caam.h>
+static __maybe_unused uint8_t zero_key_modifier[KEY_MODIFER_SIZE] = {0};
 #endif
 #include <fuse.h>
 #include <mmc.h>
@@ -45,7 +46,6 @@
 #define RPMBKEY_BLOB_LEN ((RPMBKEY_LENGTH) + (CAAM_PAD))
 
 extern int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value);
-static uint8_t zero_key_modifier[KEY_MODIFER_SIZE] = {0};
 
 #if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_MMC_SUPPORT)
 int spl_get_mmc_dev(void)
