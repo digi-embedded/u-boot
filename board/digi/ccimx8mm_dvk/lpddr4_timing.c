@@ -1,6 +1,5 @@
 /*
- * Copyright 2021 Digi International Inc
- * Copyright 2018-2019 NXP
+ * Copyright 2019 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
  *
@@ -13,7 +12,7 @@
 #include <asm/arch/ddr.h>
 #include <asm/arch/lpddr4_define.h>
 
-struct dram_cfg_param ddr_ddrc_cfg[] = {
+struct dram_cfg_param ddr_ddrc_cfg_1G[] = {
 	/** Initialize DDRC registers **/
 	{ 0x3d400304, 0x1 },
 	{ 0x3d400030, 0x1 },
@@ -1836,9 +1835,13 @@ struct dram_fsp_msg ddr_dram_fsp_msg[] = {
 };
 
 /* ddr timing config params */
-struct dram_timing_info dram_timing = {
-	.ddrc_cfg = ddr_ddrc_cfg,
-	.ddrc_cfg_num = ARRAY_SIZE(ddr_ddrc_cfg),
+struct dram_timing_info dram_timing_2G = {
+	/* placeholder */
+};
+
+struct dram_timing_info dram_timing_1G = {
+	.ddrc_cfg = ddr_ddrc_cfg_1G,
+	.ddrc_cfg_num = ARRAY_SIZE(ddr_ddrc_cfg_1G),
 	.ddrphy_cfg = ddr_ddrphy_cfg,
 	.ddrphy_cfg_num = ARRAY_SIZE(ddr_ddrphy_cfg),
 	.fsp_msg = ddr_dram_fsp_msg,
@@ -1848,4 +1851,8 @@ struct dram_timing_info dram_timing = {
 	.ddrphy_pie = ddr_phy_pie,
 	.ddrphy_pie_num = ARRAY_SIZE(ddr_phy_pie),
 	.fsp_table = { 3000, 400, 100, },
+};
+
+struct dram_timing_info dram_timing_512M[] = {
+	/* placeholder */
 };

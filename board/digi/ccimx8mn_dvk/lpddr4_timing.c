@@ -1551,6 +1551,10 @@ struct dram_fsp_msg ddr_dram_fsp_msg[] = {
 };
 
 /* ddr timing config params */
+struct dram_timing_info dram_timing_2G = {
+	/* placeholder */
+};
+
 struct dram_timing_info dram_timing_1G = {
 	.ddrc_cfg = ddr_ddrc_cfg_1G,
 	.ddrc_cfg_num = ARRAY_SIZE(ddr_ddrc_cfg_1G),

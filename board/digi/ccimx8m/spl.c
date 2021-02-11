@@ -34,10 +34,9 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#ifdef CONFIG_IMX8MN
-extern struct dram_timing_info dram_timing_1G;
 extern struct dram_timing_info dram_timing_512M;
-#endif
+extern struct dram_timing_info dram_timing_1G;
+extern struct dram_timing_info dram_timing_2G;
 
 int spl_board_boot_device(enum boot_device boot_dev_spl)
 {
@@ -67,10 +66,14 @@ int spl_board_boot_device(enum boot_device boot_dev_spl)
 
 void spl_dram_init(void)
 {
-#ifdef CONFIG_IMX8MN
-	/* Default to RAM size of DVK variant 0x01 (1 GiB) */
-	u32 ram = SZ_1G;
-	struct digi_hwid my_hwid;
+        u32 ram;
+        struct digi_hwid my_hwid;
+
+        /* Default to RAM size of each DVK variant */
+        if (is_imx8mn())
+                ram = SZ_1G;    /* ccimx8mn variant 0x01 (1GB) */
+        else
+                ram = SZ_2G;    /* ccimx8mm variant 0x03 (2GB) */
 
 	if (board_read_hwid(&my_hwid)) {
 		debug("Cannot read HWID. Using default DDR configuration.\n");
@@ -88,10 +91,10 @@ void spl_dram_init(void)
 	default:
 		ddr_init(&dram_timing_1G);
 		break;
+	case SZ_2G:
+		ddr_init(&dram_timing_2G);
+		break;
 	}
-#elif defined CONFIG_IMX8MM
-	ddr_init(&dram_timing);
-#endif
 }
 
 #define I2C_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_HYS | PAD_CTL_PUE | PAD_CTL_PE)
