@@ -14,5 +14,5 @@ obj-y += ../ccimx8m/ccimx8m.o \
 	 ../ccimx8/ccimx8.o
 else
 obj-y += ../ccimx8m/spl.o
-obj-$(CONFIG_IMX8M_LPDDR4) += ../ccimx8m/lpddr4_timing.o
+obj-$(CONFIG_IMX8M_LPDDR4) += lpddr4_timing.o
 endif
