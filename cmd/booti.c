@@ -62,7 +62,7 @@ static int booti_start(cmd_tbl_t *cmdtp, int flag, int argc,
 		return CMD_RET_FAILURE;
 
 	img_size = le64_to_cpu(img_hdr->image_size);
-	if (digi_auth_image(&ld, image_size) != 0) {
+	if (digi_auth_image(&ld, img_size) != 0) {
 		printf("Authenticate Image Fail, Please check\n");
 		return 1;
 	}
