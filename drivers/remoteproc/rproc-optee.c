@@ -218,8 +218,18 @@ int rproc_optee_open(struct rproc_optee *trproc)
 
 int rproc_optee_close(struct rproc_optee *trproc)
 {
+	int rc;
+
 	if (!trproc->tee)
 		return -ENODEV;
 
-	return tee_close_session(trproc->tee, trproc->session);
+	rc = tee_close_session(trproc->tee, trproc->session);
+	if (rc)
+		return rc;
+
+	trproc->tee = NULL;
+	trproc->session = 0;
+
+	return 0;
+
 }
