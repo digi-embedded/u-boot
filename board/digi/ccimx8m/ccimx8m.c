@@ -28,8 +28,14 @@ DECLARE_GLOBAL_DATA_PTR;
 int board_phys_sdram_size(phys_size_t *size)
 {
 	/* Default to RAM size of DVK variant 0x01 (1 GiB) */
-	u32 ram = SZ_1G;
+	u32 ram;
 	struct digi_hwid my_hwid;
+
+	/* Default to RAM size of each DVK variant */
+	if (is_imx8mn())
+		ram = SZ_1G;    /* ccimx8mn variant 0x01 (1GB) */
+	else
+		ram = SZ_2G;    /* ccimx8mm variant 0x03 (2GB) */
 
 	if (board_read_hwid(&my_hwid)) {
 		debug("Cannot read HWID. Using default DDR configuration.\n");
