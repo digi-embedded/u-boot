@@ -134,7 +134,9 @@ int get_dek_blob(char *output, u32 *size)
 	u32 dek_blob_size;
 
 	/* Get Dek blob */
-	get_dek_blob_size((char *)dek_blob_src, &dek_blob_size);
+	if (get_dek_blob_size((char *)dek_blob_src, &dek_blob_size))
+		return 1;
+
 	memcpy(output, dek_blob_src, dek_blob_size);
 	*size = dek_blob_size;
 
