@@ -66,14 +66,14 @@ int spl_board_boot_device(enum boot_device boot_dev_spl)
 
 void spl_dram_init(void)
 {
-        u32 ram;
-        struct digi_hwid my_hwid;
+	u32 ram;
+	struct digi_hwid my_hwid;
 
-        /* Default to RAM size of each DVK variant */
-        if (is_imx8mn())
-                ram = SZ_1G;    /* ccimx8mn variant 0x01 (1GB) */
-        else
-                ram = SZ_2G;    /* ccimx8mm variant 0x03 (2GB) */
+	/* Default to RAM size of each DVK variant */
+	if (is_imx8mn())
+		ram = SZ_1G;    /* ccimx8mn variant 0x01 (1GB) */
+	else
+		ram = SZ_2G;    /* ccimx8mm variant 0x03 (2GB) */
 
 	if (board_read_hwid(&my_hwid)) {
 		debug("Cannot read HWID. Using default DDR configuration.\n");
