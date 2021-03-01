@@ -37,6 +37,7 @@
  * hardware/interfaces/boot/1.1/default/boot_control/include/libboot_control/libboot_control.h
  */
 #define FSL_AB_METADATA_MISC_PARTITION_OFFSET 2048
+extern AvbABOps fsl_avb_ab_ops;
 
 static char *slot_suffix[AVB_AB_SLOT_NUM] = {"_a", "_b"};
 
@@ -59,6 +60,19 @@ int get_curr_slot(struct bootloader_control *ab_data) {
 		return 1;
 	else
 		return -1;
+}
+
+/* Return current slot without passing 'bootloader_control' struct */
+int current_slot(void) {
+	struct bootloader_control ab_data;
+
+	/* Load A/B metadata and decide which slot we are going to load */
+	if (fsl_avb_ab_ops.read_ab_metadata(&fsl_avb_ab_ops, &ab_data) !=
+					    AVB_IO_RESULT_OK) {
+		printf("Error loading AB metadata from misc!\n");
+		return -1;
+	}
+	return get_curr_slot(&ab_data);
 }
 
 int slotidx_from_suffix(char *suffix) {
@@ -448,6 +462,10 @@ out:
 
 #define PARTITION_NAME_LEN 13
 #define PARTITION_BOOTLOADER "bootloader"
+#ifdef CONFIG_ANDROID_AUTO_SUPPORT
+/* This should always sync with the gpt */
+#define PARTITION_MISC_ID 9
+#endif
 
 extern int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value);
 
@@ -469,7 +487,11 @@ int fsl_save_metadata_if_changed_dual_uboot(struct blk_desc *dev_desc,
 	/* Save metadata if changed. */
 	if (memcmp(ab_data, ab_data_orig, sizeof(struct bootloader_control)) != 0) {
 		/* Get misc partition info */
+#ifdef CONFIG_ANDROID_AUTO_SUPPORT
+		if (part_get_info(dev_desc, PARTITION_MISC_ID, &info) == -1) {
+#else
 		if (part_get_info_by_name(dev_desc, FASTBOOT_PARTITION_MISC, &info) == -1) {
+#endif
 			printf("Can't get partition info of partition: misc\n");
 			return -1;
 		}
@@ -497,7 +519,11 @@ int fsl_load_metadata_dual_uboot(struct blk_desc *dev_desc,
 	struct bootloader_control serialized;
 	size_t num_bytes;
 
+#ifdef CONFIG_ANDROID_AUTO_SUPPORT
+	if (part_get_info(dev_desc, PARTITION_MISC_ID, &info) == -1) {
+#else
 	if (part_get_info_by_name(dev_desc, FASTBOOT_PARTITION_MISC, &info) == -1) {
+#endif
 		printf("Can't get partition info of partition: misc\n");
 		return -1;
 	} else {
@@ -977,7 +1003,8 @@ AvbABFlowResult avb_flow_dual_uboot(AvbABOps* ab_ops,
 	/* Update stored rollback index only when the slot has been marked
 	 * as successful. Do this for every rollback index location.
 	*/
-	if (ab_data.slot_info[target_slot].successful_boot != 0) {
+	if ((ret == AVB_AB_FLOW_RESULT_OK) &&
+		(ab_data.slot_info[target_slot].successful_boot != 0)) {
 		for (n = 0; n < AVB_MAX_NUMBER_OF_ROLLBACK_INDEX_LOCATIONS; n++) {
 
 			rollback_index_value = slot_data->rollback_indexes[n];
@@ -1049,7 +1076,6 @@ out:
 	return ret;
 }
 
-extern AvbABOps fsl_avb_ab_ops;
 static bool spl_recovery_flag = false;
 bool is_spl_recovery(void)
 {
@@ -1232,6 +1258,7 @@ AvbABFlowResult avb_ab_flow_fast(AvbABOps* ab_ops,
 
 			case AVB_SLOT_VERIFY_RESULT_OK:
 				slot_index_to_boot = target_slot;
+				ret = AVB_AB_FLOW_RESULT_OK;
 				n = 2;
 				break;
 
@@ -1311,7 +1338,8 @@ AvbABFlowResult avb_ab_flow_fast(AvbABOps* ab_ops,
 	/* Update stored rollback index only when the slot has been marked
 	 * as successful. Do this for every rollback index location.
 	*/
-	if (ab_data.slot_info[slot_index_to_boot].successful_boot != 0) {
+	if ((ret == AVB_AB_FLOW_RESULT_OK) &&
+		(ab_data.slot_info[slot_index_to_boot].successful_boot != 0)) {
 		for (n = 0; n < AVB_MAX_NUMBER_OF_ROLLBACK_INDEX_LOCATIONS; n++) {
 
 			rollback_index_value = slot_data[slot_index_to_boot]->rollback_indexes[n];

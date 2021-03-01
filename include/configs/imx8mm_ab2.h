@@ -85,6 +85,41 @@
 			   "else run jh_netboot; fi; \0" \
 	"jh_netboot=mw 0x303d0518 0xff; setenv fdt_file imx8mm-ab2-root.dtb; setenv jh_clk clk_ignore_unused; run netboot; \0 "
 
+#define M4_BOOT_ENV \
+	"m4_boot=no\0" \
+	"m4_image=nxh3670.itb\0" \
+	"m4_loadaddr=0x80000000\0" \
+	"m4_nxh_app_loadaddr=0x81000000\0" \
+	"m4_nxh_rfmac_loadaddr=0x81012000\0" \
+	"m4_nxh_cf_loadaddr=0x81016000\0" \
+	"m4_nxh_data_loadaddr=0x8101E000\0" \
+	"m4_sf_loadaddr=0x08100000\0" \
+	"m4_fdt_file=imx8mm-ab2-m4.dtb\0" \
+	"m4_nxh_bin=main@1\0" \
+	"m4_nxh_app=app@1\0" \
+	"m4_nxh_rfmac=rfmac@1\0" \
+	"m4_nxh_cf=cf@1\0" \
+	"m4_nxh_data=data@1\0" \
+	"loadm4nxhfw=imxtract ${loadaddr} ${m4_nxh_bin} ${m4_loadaddr}; " \
+		"imxtract ${loadaddr} ${m4_nxh_app} ${m4_nxh_app_loadaddr}; " \
+		"imxtract ${loadaddr} ${m4_nxh_rfmac} ${m4_nxh_rfmac_loadaddr}; " \
+		"imxtract ${loadaddr} ${m4_nxh_cf} ${m4_nxh_cf_loadaddr}; " \
+		"imxtract ${loadaddr} ${m4_nxh_data} ${m4_nxh_data_loadaddr}\0" \
+	"loadm4image=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${m4_image}\0" \
+	"update_m4_from_sd=" \
+		"if sf probe 0:0; then " \
+			"if run loadm4image; then " \
+				"setexpr fw_sz ${filesize} + 0xffff; " \
+				"setexpr fw_sz ${fw_sz} / 0x10000; " \
+				"setexpr fw_sz ${fw_sz} * 0x10000; " \
+				"sf erase 0x100000 ${fw_sz}; " \
+				"sf write ${m4_loadaddr} 0x100000 ${filesize}; " \
+			"fi; " \
+		"fi\0" \
+	"m4boot=run loadm4image; run loadm4nxhfw; dcache flush; bootaux ${m4_loadaddr}\0" \
+	"m4netboot=${get_cmd} ${loaddadr} ${m4_image}; " \
+		"run loadm4nxhfw; dcache flush; bootaux ${m4_loadaddr}; \0" \
+	"m4boot_sf=sf probe 0:0; dcache flush; bootaux ${m4_sf_loadaddr}\0"
 
 #define CONFIG_MFG_ENV_SETTINGS \
 	CONFIG_MFG_ENV_SETTINGS_DEFAULT \
@@ -113,6 +148,7 @@
 #define CONFIG_EXTRA_ENV_SETTINGS		\
 	CONFIG_MFG_ENV_SETTINGS \
 	JAILHOUSE_ENV \
+	M4_BOOT_ENV \
 	"script=boot.scr\0" \
 	"image=Image\0" \
 	"console=ttymxc1,115200\0" \
@@ -134,6 +170,10 @@
 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
 	"mmcboot=echo Booting from mmc ...; " \
 		"run mmcargs; " \
+		"if test ${m4_boot} = yes || test ${m4_boot} = try; then "\
+			"echo Booting M4 aux core...; " \
+			"run m4boot; " \
+		"fi; " \
 		"if test ${boot_fit} = yes || test ${boot_fit} = try; then " \
 			"bootm ${loadaddr}; " \
 		"else " \
@@ -152,6 +192,10 @@
 			"setenv get_cmd dhcp; " \
 		"else " \
 			"setenv get_cmd tftp; " \
+		"fi; " \
+		"if test ${m4_boot} = yes || test ${m4_boot} = try; then " \
+			"echo Booting M4 aux core...;" \
+			"run m4netboot;" \
 		"fi; " \
 		"${get_cmd} ${loadaddr} ${image}; " \
 		"if test ${boot_fit} = yes || test ${boot_fit} = try; then " \
@@ -224,7 +268,7 @@
 /* USDHC */
 #define CONFIG_FSL_USDHC
 
-#ifdef CONFIG_TARGET_IMX8MM_DDR4_EVK
+#ifdef CONFIG_TARGET_IMX8MM_DDR4_AB2
 #define CONFIG_SYS_FSL_USDHC_NUM	1
 #else
 #define CONFIG_SYS_FSL_USDHC_NUM	2

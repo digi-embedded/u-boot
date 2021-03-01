@@ -314,6 +314,26 @@
 /* Partition defines */
 #define CONFIG_RECOVERY_PARTITION	"2"
 
+/* Android specific configuration */
+#ifdef CONFIG_ANDROID_SUPPORT
+#define CONFIG_ANDROID_AB_SUPPORT
+#ifdef CONFIG_ANDROID_AB_SUPPORT
+#define CONFIG_SYSTEM_RAMDISK_SUPPORT
+#endif
+
+/* Fastboot BCB support uses 'do_raw_read' */
+#define CONFIG_CMD_READ
+
+/*
+ * Do not use encrypted lock
+ *
+ * This setting controls whether fastboot lock status is encrypted or not
+ * using the CAAM. At the moment using the CAAM for such task is failing
+ * (in CAAM-based 'decrypt_lock_store' function).
+ */
+#define NON_SECURE_FASTBOOT
+#endif /* CONFIG_ANDROID_SUPPORT */
+
 #define FSL_FASTBOOT_FB_DEV "mmc"
 
 #endif /* CCIMX8X_COMMON_H */

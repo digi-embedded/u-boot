@@ -1,5 +1,5 @@
 /*
- * Copyright 2019,2020 Digi International Inc
+ * Copyright 2019-2021 Digi International Inc
  * Copyright 2018 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -15,7 +15,11 @@
 #include <asm-generic/gpio.h>
 #include <fsl_esdhc_imx.h>
 #include <mmc.h>
+#ifdef CONFIG_IMX8MM
+#include <asm/arch/imx8mm_pins.h>
+#elif defined CONFIG_IMX8MN
 #include <asm/arch/imx8mn_pins.h>
+#endif
 #include <asm/arch/sys_proto.h>
 #include <asm/mach-imx/boot_mode.h>
 #include <asm/mach-imx/gpio.h>
@@ -24,7 +28,6 @@
 #include <spl.h>
 #include <asm/mach-imx/dma.h>
 #include <power/pmic.h>
-#include <power/bd71837.h>
 #include "../../freescale/common/tcpc.h"
 #include <usb.h>
 #include <linux/ctype.h>
@@ -46,22 +49,38 @@ unsigned int board_id = CARRIERBOARD_ID_UNDEFINED;
 #define WDOG_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_ODE | PAD_CTL_PUE | PAD_CTL_PE)
 
 static iomux_v3_cfg_t const uart_pads[] = {
+#ifdef CONFIG_IMX8MM
+	IMX8MM_PAD_SAI2_RXC_UART1_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
+	IMX8MM_PAD_SAI2_RXFS_UART1_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
+#elif defined CONFIG_IMX8MN
 	IMX8MN_PAD_SAI2_RXC__UART1_DCE_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
 	IMX8MN_PAD_SAI2_RXFS__UART1_DCE_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
+#endif
 };
 
 static iomux_v3_cfg_t const wdog_pads[] = {
+#ifdef CONFIG_IMX8MM
+	IMX8MM_PAD_GPIO1_IO02_WDOG1_WDOG_B  | MUX_PAD_CTRL(WDOG_PAD_CTRL),
+#elif defined CONFIG_IMX8MN
 	IMX8MN_PAD_GPIO1_IO02__WDOG1_WDOG_B  | MUX_PAD_CTRL(WDOG_PAD_CTRL),
+#endif
 };
 
 #if defined(CONFIG_CONSOLE_ENABLE_GPIO) && !defined(CONFIG_SPL_BUILD)
 #define GPI_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_FSEL2 | PAD_CTL_PE)
 
 static iomux_v3_cfg_t const ext_gpios_pads[] = {
+#ifdef CONFIG_IMX8MM
+	IMX8MM_PAD_GPIO1_IO10_GPIO1_IO10 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	IMX8MM_PAD_GPIO1_IO11_GPIO1_IO11 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	IMX8MM_PAD_GPIO1_IO13_GPIO1_IO13 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+	IMX8MM_PAD_GPIO1_IO14_GPIO1_IO14 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+#elif defined CONFIG_IMX8MN
 	IMX8MN_PAD_GPIO1_IO10__GPIO1_IO10 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 	IMX8MN_PAD_GPIO1_IO11__GPIO1_IO11 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 	IMX8MN_PAD_GPIO1_IO13__GPIO1_IO13 | MUX_PAD_CTRL(GPI_PAD_CTRL),
 	IMX8MN_PAD_GPIO1_IO14__GPIO1_IO14 | MUX_PAD_CTRL(GPI_PAD_CTRL),
+#endif
 };
 #endif /* CONFIG_CONSOLE_ENABLE_GPIO && !CONFIG_SPL_BUILD */
 

@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #ifdef CONFIG_FSL_CAAM_KB
 #include <fsl_caam.h>
+static __maybe_unused uint8_t zero_key_modifier[KEY_MODIFER_SIZE] = {0};
 #endif
 #include <fuse.h>
 #include <mmc.h>
@@ -45,7 +46,6 @@
 #define RPMBKEY_BLOB_LEN ((RPMBKEY_LENGTH) + (CAAM_PAD))
 
 extern int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value);
-static uint8_t zero_key_modifier[KEY_MODIFER_SIZE] = {0};
 
 #if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_MMC_SUPPORT)
 int spl_get_mmc_dev(void)
@@ -154,6 +154,14 @@ int read_keyslot_package(struct keyslot_package* kp) {
 		ret = -1;
 		goto fail;
 	} else {
+		/* make sure keyslot package padding is reset to 0 */
+		uint8_t pad[KEYPACK_PAD_LENGTH];
+		memset(pad, 0, KEYPACK_PAD_LENGTH);
+		if (memcmp(pad, ((struct keyslot_package *)fill)->pad, KEYPACK_PAD_LENGTH)) {
+			memset(((struct keyslot_package *)fill)->pad, 0, KEYPACK_PAD_LENGTH);
+			blk_dwrite(dev_desc, KEYSLOT_BLKS, 1, fill);
+		}
+
 		memcpy(kp, fill, sizeof(struct keyslot_package));
 	}
 
@@ -713,6 +721,7 @@ int init_avbkey(void) {
 	read_keyslot_package(&kp);
 	if (strcmp(kp.magic, KEYPACK_MAGIC)) {
 		printf("keyslot package magic error. Will generate new one\n");
+		memset((void *)&kp, 0, sizeof(struct keyslot_package));
 		gen_rpmb_key(&kp);
 	}
 #ifndef CONFIG_IMX_TRUSTY_OS
@@ -1230,6 +1239,7 @@ int do_rpmb_key_set(uint8_t *key, uint32_t key_size)
 		printf("RPMB key programed successfully!\n");
 
 	/* Generate keyblob with CAAM. */
+	memset((void *)&kp, 0, sizeof(struct keyslot_package));
 	kp.rpmb_keyblob_len = RPMBKEY_LENGTH + CAAM_PAD;
 	strcpy(kp.magic, KEYPACK_MAGIC);
 	if (hwcrypto_gen_blob((uint32_t)(ulong)rpmb_key, RPMBKEY_LENGTH,
@@ -1241,6 +1251,10 @@ int do_rpmb_key_set(uint8_t *key, uint32_t key_size)
 		printf("RPMB key blob generated!\n");
 
 	memcpy(kp.rpmb_keyblob, blob, kp.rpmb_keyblob_len);
+
+	/* Reset key after use */
+	memset(rpmb_key, 0, RPMBKEY_LENGTH);
+	memset(key, 0, RPMBKEY_LENGTH);
 
 	/* Store the rpmb key blob to last block of boot1 partition. */
 	if (mmc_switch_part(mmc, KEYSLOT_HWPARTITION_ID) != 0) {
@@ -1261,10 +1275,6 @@ int do_rpmb_key_set(uint8_t *key, uint32_t key_size)
 		ret = -1;
 		goto fail;
 	}
-
-	/* Erase the key buffer. */
-	memset(rpmb_key, 0, RPMBKEY_LENGTH);
-	memset(key, 0, RPMBKEY_LENGTH);
 
 fail:
 	/* Return to original partition */

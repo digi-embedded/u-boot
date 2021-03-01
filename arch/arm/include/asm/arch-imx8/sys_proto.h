@@ -3,6 +3,9 @@
  * Copyright 2018 NXP
  */
 
+#ifndef ARCH_IMX8_SYS_PROTO_H
+#define ARCH_IMX8_SYS_PROTO_H
+
 #include <asm/arch/sci/sci.h>
 #include <asm/mach-imx/sys_proto.h>
 #include <linux/types.h>
@@ -23,3 +26,5 @@ int print_bootinfo(void);
 int sc_pm_setup_uart(sc_rsrc_t uart_rsrc, sc_pm_clock_rate_t clk_rate);
 void power_off_pd_devices(const char* permanent_on_devices[], int size);
 bool check_m4_parts_boot(void);
+
+#endif

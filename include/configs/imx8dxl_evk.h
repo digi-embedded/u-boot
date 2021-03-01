@@ -160,7 +160,7 @@
 	AHAB_ENV \
 	"script=boot.scr\0" \
 	"image=Image\0" \
-	"panel=NULL\0" \
+	"splashimage=0x9e000000\0" \
 	"console=ttyLP0\0" \
 	"fdt_addr=0x83000000\0"			\
 	"fdt_high=0xffffffffffffffff\0"		\
@@ -289,7 +289,7 @@
 #define PHYS_SDRAM_2			0x880000000
 
 /* total DDR is 1GB */
-#if defined(CONFIG_TARGET_IMX8DXL_DDR3_VAL)
+#if defined(CONFIG_TARGET_IMX8DXL_DDR3_EVK)
 #define PHYS_SDRAM_1_SIZE		0x20000000
 #else
 #define PHYS_SDRAM_1_SIZE		0x40000000	/* 1 GB */
@@ -326,7 +326,6 @@
 #define FSL_FSPI_FLASH_NUM		1
 #define FSPI0_BASE_ADDR			0x5d120000
 #define FSPI0_AMBA_BASE			0
-#define CONFIG_SYS_FSL_FSPI_AHB
 #endif
 
 #define CONFIG_SERIAL_TAG
@@ -375,5 +374,19 @@
 #endif
 #define CONFIG_ETHPRIME                 "eth1"
 #define PHY_ANEG_TIMEOUT 20000
+
+#if defined(CONFIG_DM_VIDEO)
+#define CONFIG_VIDEO_MXS
+#define CONFIG_VIDEO_LINK
+#define CONFIG_VIDEO_LOGO
+#define CONFIG_SPLASH_SCREEN
+#define CONFIG_SPLASH_SCREEN_ALIGN
+#define CONFIG_CMD_BMP
+#define CONFIG_BMP_16BPP
+#define CONFIG_BMP_24BPP
+#define CONFIG_BMP_32BPP
+#define CONFIG_VIDEO_BMP_RLE8
+#define CONFIG_VIDEO_BMP_LOGO
+#endif
 
 #endif /* __IMX8DXL_EVK_H */

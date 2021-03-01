@@ -62,6 +62,7 @@ config TARGET_IMX8MQ_DDR3L_VAL
 config TARGET_IMX8MQ_DDR4_VAL
 	bool "imx8mq_ddr4_val"
 	select IMX8MQ
+	select IMX8M_DDR4
 
 config TARGET_IMX8MM_DDR4_VAL
 	bool "imx8mm DDR4 validation board"
@@ -77,6 +78,12 @@ config TARGET_IMX8MM_DDR3L_VAL
 
 config TARGET_IMX8MM_EVK
 	bool "imx8mm LPDDR4 EVK board"
+	select IMX8MM
+	select SUPPORT_SPL
+	select IMX8M_LPDDR4
+
+config TARGET_IMX8MM_EVK_QCA
+	bool "imx8mm LPDDR4 EVK Legacy QCA WIFI board"
 	select IMX8MM
 	select SUPPORT_SPL
 	select IMX8M_LPDDR4
@@ -99,6 +106,18 @@ config TARGET_IMX8MN_DDR4_EVK
 	select SUPPORT_SPL
 	select IMX8M_DDR4
 
+config TARGET_IMX8MN_DDR3_EVK
+	bool "imx8mn 11x11 DDR3 EVK board"
+	select IMX8MN
+	select SUPPORT_SPL
+	select IMX8M_DDR3L
+
+config TARGET_CCIMX8MM_DVK
+	bool "Digi ConnectCore 8M Mini Development Kit"
+	select IMX8MM
+	select SUPPORT_SPL
+	select IMX8M_LPDDR4
+
 config TARGET_CCIMX8MN_DVK
 	bool "Digi ConnectCore 8M Nano Development Kit"
 	select IMX8MN
@@ -109,13 +128,19 @@ config TARGET_IMX8MP_EVK
 	bool "imx8mp LPDDR4 EVK board"
 	select IMX8MP
 	select SUPPORT_SPL
-	select IMX8M_LPDDR4
+	select IMX8M_DDR4
 
 config TARGET_IMX8MM_AB2
 	bool "imx8mm LPDDR4 Audio board 2.0"
 	select IMX8MM
 	select SUPPORT_SPL
 	select IMX8M_LPDDR4
+
+config TARGET_IMX8MM_DDR4_AB2
+	bool "imx8mm DDR4 Audio board 2.0"
+	select IMX8MM
+	select SUPPORT_SPL
+	select IMX8M_DDR4
 
 config TARGET_IMX8MN_AB2
 	bool "imx8mn LPDDR4 Audio board 2.0"
@@ -137,13 +162,15 @@ config TARGET_VERDIN_IMX8MM
 
 endchoice
 
+source "board/digi/ccimx8mm_dvk/Kconfig"
+source "board/digi/ccimx8mn_dvk/Kconfig"
 source "board/freescale/imx8mq_evk/Kconfig"
 source "board/freescale/imx8mq_val/Kconfig"
+source "board/freescale/imx8mm_ab2/Kconfig"
 source "board/freescale/imx8mm_evk/Kconfig"
 source "board/freescale/imx8mm_val/Kconfig"
 source "board/freescale/imx8mn_evk/Kconfig"
 source "board/freescale/imx8mp_evk/Kconfig"
 source "board/toradex/verdin-imx8mm/Kconfig"
-source "board/digi/ccimx8mn_dvk/Kconfig"
 
 endif
