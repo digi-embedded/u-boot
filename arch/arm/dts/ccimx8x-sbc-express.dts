@@ -145,6 +145,10 @@
 	status = "okay";
 };
 
+&usbphy1 {
+	status = "okay";
+};
+
 &iomuxc {
 	pinctrl-names = "default";
 	ccimx8x {
