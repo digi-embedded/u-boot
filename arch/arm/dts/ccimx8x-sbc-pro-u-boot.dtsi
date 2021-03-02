@@ -5,7 +5,16 @@
 
 / {
 	aliases {
-		usbgadget0 = &usbg3;
+		usbgadget0 = &usbg1;
+		usbgadget1 = &usbg3;
+	};
+
+	usbg1: usbg1 {
+		compatible = "fsl,imx27-usb-gadget";
+		dr_mode = "peripheral";
+		chipidea,usb = <&usbotg1>;
+		status = "okay";
+		u-boot,dm-spl;
 	};
 
 	usbg3: usbg3 {
