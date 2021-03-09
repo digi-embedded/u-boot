@@ -43,6 +43,14 @@ __weak void dfu_initiated_callback(struct dfu_entity *dfu)
 }
 
 /*
+ * The purpose of the dfu_error_callback() function is to
+ * provide callback for dfu user
+ */
+__weak void dfu_error_callback(struct dfu_entity *dfu, const char *msg)
+{
+}
+
+/*
  * The purpose of the dfu_usb_get_reset() function is to
  * provide information if after USB_DETACH request
  * being sent the dfu-util performed reset of USB
@@ -338,6 +346,7 @@ int dfu_write(struct dfu_entity *dfu, void *buf, int size, int blk_seq_num)
 		printf("%s: Wrong sequence number! [%d] [%d]\n",
 		       __func__, dfu->i_blk_seq_num, blk_seq_num);
 		dfu_transaction_cleanup(dfu);
+		dfu_error_callback(dfu, "Wrong sequence number");
 		return -1;
 	}
 
@@ -362,6 +371,7 @@ int dfu_write(struct dfu_entity *dfu, void *buf, int size, int blk_seq_num)
 		ret = dfu_write_buffer_drain(dfu);
 		if (ret) {
 			dfu_transaction_cleanup(dfu);
+			dfu_error_callback(dfu, "DFU write error");
 			return ret;
 		}
 	}
@@ -371,6 +381,7 @@ int dfu_write(struct dfu_entity *dfu, void *buf, int size, int blk_seq_num)
 		pr_err("Buffer overflow! (0x%p + 0x%x > 0x%p)\n", dfu->i_buf,
 		      size, dfu->i_buf_end);
 		dfu_transaction_cleanup(dfu);
+		dfu_error_callback(dfu, "Buffer overflow");
 		return -1;
 	}
 
@@ -382,6 +393,7 @@ int dfu_write(struct dfu_entity *dfu, void *buf, int size, int blk_seq_num)
 		ret = dfu_write_buffer_drain(dfu);
 		if (ret) {
 			dfu_transaction_cleanup(dfu);
+			dfu_error_callback(dfu, "DFU write error");
 			return ret;
 		}
 	}
