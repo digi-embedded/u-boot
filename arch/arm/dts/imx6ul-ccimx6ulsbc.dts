@@ -19,6 +19,13 @@
 /* ConnectCore 6UL SBC */
 #include "imx6ul-ccimx6ulsbc.dtsi"
 
+/ {
+	mca_gpio_uboot: mca_gpio {
+		compatible = "digi,mca-gpio";
+		gpio-controller;
+	};
+};
+
 /*
  * Uncomment to enable the i.MX6UL SoC ADCs on the GPIO connector:
  *  - EXP_GPIO_1 (channel 5)

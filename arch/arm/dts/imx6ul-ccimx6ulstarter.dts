@@ -19,6 +19,13 @@
 /* ConnectCore 6UL StarterBoard */
 #include "imx6ul-ccimx6ulstarter.dtsi"
 
+/ {
+	mca_gpio_uboot: mca_gpio {
+		compatible = "digi,mca-gpio";
+		gpio-controller;
+	};
+};
+
 /*
  * Include in adc-ch-list the ADC channels (from 0 to 9) that you want to
  * enable. Note that the iomux has to be configured accordingly in pinctrl_adc1
