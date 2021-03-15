@@ -149,6 +149,11 @@ config LPC32XX_GPIO
 	help
 	  Support for the LPC32XX GPIO driver.
 
+config MCA_GPIO
+	bool "Digi MCA GPIO driver"
+	help
+	  Support MCA GPIO controller on Digi modules
+
 config MSCC_SGPIO
 	bool "Microsemi Serial GPIO driver"
 	depends on DM_GPIO && SOC_VCOREIII
