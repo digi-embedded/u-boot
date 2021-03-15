@@ -65,6 +65,11 @@
 			};
 		};
 	};
+
+	mca_gpio_uboot: mca_gpio {
+		compatible = "digi,mca-gpio";
+		gpio-controller;
+	};
 };
 
 &lpuart2 {
