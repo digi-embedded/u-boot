@@ -235,22 +235,33 @@ int board_ehci_usb_phy_mode(struct udevice *dev)
 	return USB_INIT_DEVICE;
 }
 
-int board_power_led_init(void)
+static int board_power_led_init(void)
 {
-	/* MCA_IO13 (bank 1, bit 5) is connected to POWER_LED */
-	int prw_led_gpiobank = 1;
-	int pwr_led_gpiobit = (1 << 5);
+	/* MCA_IO13 is connected to POWER_LED */
+	const char *name = "MCA-GPIO_13";
+	struct gpio_desc desc;
 	int ret;
 
-	/* Configure as output */
-	ret = mca_update_bits(MCA_GPIO_DIR_0 + prw_led_gpiobank,
-			      pwr_led_gpiobit, pwr_led_gpiobit);
-	if (ret != 0)
-		return ret;
+	ret = dm_gpio_lookup_name(name, &desc);
+	if (ret)
+		goto error;
 
-	/* Turn on POWER_LED (high) */
-	ret = mca_update_bits(MCA_GPIO_DATA_0 + prw_led_gpiobank,
-			      pwr_led_gpiobit, pwr_led_gpiobit);
+	ret = dm_gpio_request(&desc, "Power LED");
+	if (ret)
+		goto error;
+
+	ret = dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT);
+	if (ret)
+		goto errfree;
+
+	ret = dm_gpio_set_value(&desc, 1);
+	if (ret)
+		goto errfree;
+
+	return 0;
+errfree:
+	dm_gpio_free(NULL, &desc);
+error:
 	return ret;
 }
 
