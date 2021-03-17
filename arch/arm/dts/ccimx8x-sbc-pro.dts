@@ -70,6 +70,12 @@
 		compatible = "digi,mca-gpio";
 		gpio-controller;
 	};
+
+	mca_wdt_uboot: mca_wdt {
+		compatible = "digi,mca-wdt";
+		digi,full-reset;
+		digi,no-way-out;
+	};
 };
 
 &lpuart2 {
