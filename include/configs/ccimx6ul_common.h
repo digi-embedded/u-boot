@@ -215,6 +215,10 @@
 #define CONFIG_ENV_MTD_ROOTFS_INDEX	"5"
 #define CONFIG_ENV_MTD_UPDATE_INDEX	"6"
 #define CONFIG_ENV_MTD_SETTINGS		"mtdids=" MTDIDS_DEFAULT "\0"
+/* Previous offset locations for the environment */
+#define OLD_ENV_OFFSET_1		(3 * SZ_1M)
+#define OLD_ENV_OFFSET_2		(5 * SZ_1M)
+#define OLD_ENV_OFFSET_LOCATIONS	2
 
 /* Max percentage of reserved blocks for bad block management per partition */
 #define CONFIG_MTD_UBI_MAXRSVDPEB_PCNT	4
