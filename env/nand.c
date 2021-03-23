@@ -44,6 +44,11 @@ static env_t *env_ptr = (env_t *)CONFIG_NAND_ENV_DST;
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#ifdef OLD_ENV_OFFSET_LOCATIONS
+extern void generate_partition_table(void);
+long long env_get_offset_old(int index);
+#endif
+
 struct nand_env_location {
 	const char *name;
 	nand_erase_options_t erase_opts;
@@ -74,15 +79,22 @@ static struct nand_env_location location[] = {
  * in the first available good sectors in the area starting at CONFIG_ENV_OFFSET
  * and with a range defined by CONFIG_ENV_RANGE.
  */
-static void env_set_dynamic_location(struct nand_env_location *location)
+static void env_set_dynamic_location(struct nand_env_location *location,
+				     int old_env)
 {
 	loff_t off;
 	int i = 0;
 	int env_copies = 1;
 	struct mtd_info *mtd;
+	loff_t env_offset;
+	loff_t env_first_noenv_sector;
+
 	/* Determine offset of env partition depending on NAND size */
-	loff_t env_offset = env_get_offset(CONFIG_ENV_OFFSET);
-	loff_t env_first_noenv_sector = env_offset + CONFIG_ENV_RANGE;
+	if (old_env)
+		env_offset = env_get_offset_old(old_env);
+	else
+		env_offset = env_get_offset(CONFIG_ENV_OFFSET);
+	env_first_noenv_sector = env_offset + CONFIG_ENV_RANGE;
 
 	mtd = get_nand_dev_by_index(0);
 	if (!mtd)
@@ -288,7 +300,7 @@ static int env_nand_save(void)
 #endif
 
 #ifdef CONFIG_DYNAMIC_ENV_LOCATION
-	env_set_dynamic_location(location);
+	env_set_dynamic_location(location, 0);
 #endif
 
 	ret = erase_and_write_env(&location[env_idx], (u_char *)env_new);
@@ -406,7 +418,7 @@ static int env_nand_load(void)
 	}
 
 #ifdef CONFIG_DYNAMIC_ENV_LOCATION
-	env_set_dynamic_location(location);
+	env_set_dynamic_location(location, 0);
 
 	read1_fail = readenv(location[0].erase_opts.offset,
 			     (u_char *)tmp_env1);
@@ -418,10 +430,70 @@ static int env_nand_load(void)
 	read2_fail = readenv(env_get_offset_redund(CONFIG_ENV_OFFSET_REDUND),
 			     (u_char *)tmp_env2);
 #endif
-
 	ret = env_import_redund((char *)tmp_env1, read1_fail, (char *)tmp_env2,
 				read2_fail);
+#if defined(OLD_ENV_OFFSET_LOCATIONS) && defined(CONFIG_DYNAMIC_ENV_LOCATION)
+	if (ret) {
+		/*
+		 * If a valid environment can't be read, try to recover it from
+		 * the old offset. This mechanism helps when we need to move
+		 * the offset of the environment, between versions of U-Boot.
+		 */
+		struct nand_env_location old_location[2];
+		int old_env = 1;
+		char mtdparts_old[256];
+		char mtdparts_new[256];
+		char *var;
 
+		do {
+			/* Init struct as a copy from the current one */
+			memcpy(old_location, location, sizeof(location));
+
+			/* Set offsets to old location */
+			env_set_dynamic_location(old_location, old_env);
+
+			/* Read from old environment offset */
+			debug("Checking env at offset 0x%llx (%d)\n",
+			      old_location[0].erase_opts.offset, old_env);
+			read1_fail = readenv(old_location[0].erase_opts.offset,
+					(u_char *)tmp_env1);
+			read2_fail = readenv(old_location[1].erase_opts.offset,
+					(u_char *)tmp_env2);
+			ret = env_import_redund((char *)tmp_env1, read1_fail,
+						(char *)tmp_env2, read2_fail);
+		} while (ret && old_env++ < OLD_ENV_OFFSET_LOCATIONS);
+
+		if (ret)
+			goto done;
+
+		/* Save environment after restoration in its proper place */
+		printf("Restoring environment from previous location\n");
+
+		/*
+		 * Restored environment may have a different partition table
+		 * than the one pre-compiled in this U-Boot, so re-generate it
+		 * and warn if there are changes.
+		 */
+		var = env_get("mtdparts");
+		strcpy(mtdparts_old, var);
+		generate_partition_table();
+		var = env_get("mtdparts");
+		strcpy(mtdparts_new, var);
+		if (strcmp(mtdparts_old, mtdparts_new)) {
+			printf("   WARNING: There is a new prebuilt partition table.\n" \
+			       "            Old partition table was not restored.\n" \
+			       "            Old: %s\n" \
+			       "            New: %s\n",
+			       mtdparts_old, mtdparts_new);
+		}
+
+		env_nand_save();
+#ifdef CONFIG_ENV_OFFSET_REDUND
+		/* The environment moved so we want to save twice */
+		env_nand_save();
+#endif
+	}
+#endif
 done:
 	free(tmp_env1);
 	free(tmp_env2);
