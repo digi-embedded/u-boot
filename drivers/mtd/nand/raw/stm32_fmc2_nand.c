@@ -876,12 +876,16 @@ static struct udevice *stm32_fmc2_nfc_get_cdev(struct udevice *dev)
 	struct udevice *cdev = NULL;
 	bool ebi_found = false;
 
-	if (pdev && ofnode_device_is_compatible(dev_ofnode(pdev),
-						"st,stm32mp1-fmc2-ebi"))
+	if (pdev && (ofnode_device_is_compatible(dev_ofnode(pdev),
+						 "st,stm32mp1-fmc2-ebi") ||
+		     ofnode_device_is_compatible(dev_ofnode(pdev),
+						 "st,stm32mp25-fmc2-ebi")))
 		ebi_found = true;
 
 	if (ofnode_device_is_compatible(dev_ofnode(dev),
-					"st,stm32mp1-fmc2-nfc")) {
+					"st,stm32mp1-fmc2-nfc") ||
+	    ofnode_device_is_compatible(dev_ofnode(dev),
+					"st,stm32mp25-fmc2-nfc")) {
 		if (ebi_found)
 			cdev = pdev;
 
@@ -1046,6 +1050,10 @@ static const struct stm32_fmc2_nfc_data stm32_fmc2_nfc_mp1_data = {
 	.max_ncs = 2,
 };
 
+static const struct stm32_fmc2_nfc_data stm32_fmc2_nfc_mp25_data = {
+	.max_ncs = 4,
+};
+
 static const struct udevice_id stm32_fmc2_nfc_match[] = {
 	{
 		.compatible = "st,stm32mp15-fmc2",
@@ -1054,6 +1062,14 @@ static const struct udevice_id stm32_fmc2_nfc_match[] = {
 	{
 		.compatible = "st,stm32mp1-fmc2-nfc",
 		.data = (ulong)&stm32_fmc2_nfc_mp1_data,
+	},
+	{
+		.compatible = "st,stm32mp25-fmc2",
+		.data = (ulong)&stm32_fmc2_nfc_mp25_data,
+	},
+	{
+		.compatible = "st,stm32mp25-fmc2-nfc",
+		.data = (ulong)&stm32_fmc2_nfc_mp25_data,
 	},
 	{ /* Sentinel */ }
 };
