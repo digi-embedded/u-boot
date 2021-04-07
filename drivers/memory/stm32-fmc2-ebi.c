@@ -135,9 +135,14 @@ enum stm32_fmc2_ebi_cpsize {
 	FMC2_CPSIZE_1024 = 1024
 };
 
+struct stm32_fmc2_ebi_data {
+	bool rnb_for_nand;
+};
+
 struct stm32_fmc2_ebi {
 	struct clk clk;
 	fdt_addr_t io_base;
+	const struct stm32_fmc2_ebi_data *data;
 	u8 bank_assigned;
 };
 
@@ -921,6 +926,9 @@ static bool stm32_fmc2_ebi_nwait_used_by_ctrls(struct stm32_fmc2_ebi *ebi)
 	unsigned int cs;
 	u32 bcr;
 
+	if (ebi->data->rnb_for_nand)
+		return false;
+
 	for (cs = 0; cs < FMC2_MAX_EBI_CE; cs++) {
 		if (!(ebi->bank_assigned & BIT(cs)))
 			continue;
@@ -1021,6 +1029,10 @@ static int stm32_fmc2_ebi_probe(struct udevice *dev)
 	struct reset_ctl reset;
 	int ret;
 
+	ebi->data = (void *)dev_get_driver_data(dev);
+	if (!ebi->data)
+		return -EINVAL;
+
 	ebi->io_base = dev_read_addr(dev);
 	if (ebi->io_base == FDT_ADDR_T_NONE)
 		return -EINVAL;
@@ -1043,8 +1055,15 @@ static int stm32_fmc2_ebi_probe(struct udevice *dev)
 	return stm32_fmc2_ebi_parse_dt(dev, ebi);
 }
 
+static const struct stm32_fmc2_ebi_data stm32_fmc2_ebi_mp1_data = {
+	.rnb_for_nand = false,
+};
+
 static const struct udevice_id stm32_fmc2_ebi_match[] = {
-	{.compatible = "st,stm32mp1-fmc2-ebi"},
+	{
+		.compatible = "st,stm32mp1-fmc2-ebi",
+		.data = (ulong)&stm32_fmc2_ebi_mp1_data,
+	},
 	{ /* Sentinel */ }
 };
 
