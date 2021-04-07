@@ -43,6 +43,7 @@
 
 /* FMC2 Controller Registers */
 #define FMC2_BCR1			0x0
+#define FMC2_CFGR			0x20
 #define FMC2_PCR			0x80
 #define FMC2_SR				0x84
 #define FMC2_PMEM			0x88
@@ -59,9 +60,13 @@
 #define FMC2_BCHDSR2			0x284
 #define FMC2_BCHDSR3			0x288
 #define FMC2_BCHDSR4			0x28c
+#define FMC2_VERR			0x3f4
 
 /* Register: FMC2_BCR1 */
 #define FMC2_BCR1_FMC2EN		BIT(31)
+
+/* Register: FMC2_CFGR */
+#define FMC2_CFGR_FMC2EN		BIT(31)
 
 /* Register: FMC2_PCR */
 #define FMC2_PCR_PWAITEN		BIT(1)
@@ -125,6 +130,10 @@
 /* Register: FMC2_BCHDSR4 */
 #define FMC2_BCHDSR4_EBP7		GENMASK(12, 0)
 #define FMC2_BCHDSR4_EBP8		GENMASK(28, 16)
+
+/* Register: FMC2_VERR */
+#define FMC2_VERR_MAJREV		GENMASK(7, 4)
+#define FMC2_VERR_MAJREV_2		2
 
 #define FMC2_NSEC_PER_SEC		1000000000L
 
@@ -592,8 +601,15 @@ static void stm32_fmc2_nfc_init(struct stm32_fmc2_nfc *nfc, bool has_parent)
 	pcr |= FIELD_PREP(FMC2_PCR_TAR, FMC2_PCR_TAR_DEFAULT);
 
 	/* Enable FMC2 controller */
-	if (!has_parent)
-		setbits_le32(nfc->io_base + FMC2_BCR1, FMC2_BCR1_FMC2EN);
+	if (!has_parent) {
+		u8 majrev = FIELD_GET(FMC2_VERR_MAJREV,
+				      readl(nfc->io_base + FMC2_VERR));
+		u32 reg = majrev < FMC2_VERR_MAJREV_2 ? FMC2_BCR1 : FMC2_CFGR;
+		u32 mask = majrev < FMC2_VERR_MAJREV_2 ? FMC2_BCR1_FMC2EN :
+							 FMC2_CFGR_FMC2EN;
+
+		setbits_le32(nfc->io_base + reg, mask);
+	}
 
 	writel(pcr, nfc->io_base + FMC2_PCR);
 	writel(FMC2_PMEM_DEFAULT, nfc->io_base + FMC2_PMEM);
