@@ -71,6 +71,10 @@
 		gpio-controller;
 	};
 
+	mca_rtc_uboot: mca_rtc {
+		compatible = "digi,mca-rtc";
+	};
+
 	mca_wdt_uboot: mca_wdt {
 		compatible = "digi,mca-wdt";
 		digi,full-reset;
