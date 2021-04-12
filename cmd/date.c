@@ -117,9 +117,10 @@ static int do_date(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	/* switch back to original I2C bus */
-#ifdef CONFIG_SYS_I2C
+#ifdef CONFIG_DM_RTC
+#elif defined(CONFIG_SYS_I2C)
 	i2c_set_bus_num(old_bus);
-#elif !defined(CONFIG_DM_RTC)
+#else
 	I2C_SET_BUS(old_bus);
 #endif
 
