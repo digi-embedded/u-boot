@@ -87,6 +87,8 @@
  */
 u8 early_tlb[PGTABLE_SIZE] __section(".data") __aligned(0x4000);
 
+struct lmb lmb;
+
 #if !defined(CONFIG_SPL) || defined(CONFIG_SPL_BUILD)
 #ifndef CONFIG_TFABOOT
 static void security_init(void)
@@ -218,7 +220,6 @@ void dram_bank_mmu_setup(int bank)
 	int	i;
 	phys_addr_t start;
 	phys_size_t size;
-	struct lmb lmb;
 	bool use_lmb = false;
 	enum dcache_option option;
 
@@ -232,7 +233,6 @@ void dram_bank_mmu_setup(int bank)
 		start = bd->bi_dram[bank].start;
 		size =  bd->bi_dram[bank].size;
 		use_lmb = true;
-		lmb_init_and_reserve(&lmb, bd, (void *)gd->fdt_blob);
 	} else {
 		/* mark cacheable and executable the beggining of the DDR */
 		start = STM32_DDR_BASE;
@@ -310,6 +310,9 @@ int arch_cpu_init(void)
 
 void enable_caches(void)
 {
+	/* parse device tree when data cache is still activated */
+	lmb_init_and_reserve(&lmb, gd->bd, (void *)gd->fdt_blob);
+
 	/* I-cache is already enabled in start.S: icache_enable() not needed */
 
 	/* deactivate the data cache, early enabled in arch_cpu_init() */
