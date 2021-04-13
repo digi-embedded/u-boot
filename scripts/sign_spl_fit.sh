@@ -288,10 +288,12 @@ fi
 
 # If requested, instruct HAB not to protect the SRK_REVOKE OTP field
 if [ -n "${CONFIG_UNLOCK_SRK_REVOKE}" ]; then
-	echo "" >> csf_spl.txt
-	echo "[Unlock]" >> csf_spl.txt
-	echo "    Engine = OCOTP" >> csf_spl.txt
-	echo "    Features = SRK REVOKE" >> csf_spl.txt
+	SIGN_CSF="csf_spl.txt"
+	[ "${ENCRYPT}" = "true" ] && SIGN_CSF="csf_spl_sign_enc.txt"
+	echo "" >> ${SIGN_CSF}
+	echo "[Unlock]" >> ${SIGN_CSF}
+	echo "    Engine = OCOTP" >> ${SIGN_CSF}
+	echo "    Features = SRK REVOKE" >> ${SIGN_CSF}
 fi
 
 # Generate SRK tables

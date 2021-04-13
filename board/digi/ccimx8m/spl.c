@@ -239,10 +239,9 @@ int board_mmc_getcd(struct mmc *mmc)
 #define I2C_PMIC	0
 int power_init_board(void)
 {
+	struct digi_hwid my_hwid;
 	struct pmic *p;
 	int ret;
-
-	struct digi_hwid my_hwid;
 
 	if (board_read_hwid(&my_hwid)) {
 		printf("Cannot read HWID\n");
