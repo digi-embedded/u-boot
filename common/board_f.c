@@ -454,10 +454,10 @@ static int reserve_uboot(void)
 	if (!(gd->flags & GD_FLG_SKIP_RELOC)) {
 		/*
 		 * reserve memory for U-Boot code, data & bss
-		 * round down to next 4 kB limit
+		 * round down to next 64 kB limit
 		 */
 		gd->relocaddr -= gd->mon_len;
-		gd->relocaddr &= ~(4096 - 1);
+		gd->relocaddr &= ~(65536 - 1);
 	#if defined(CONFIG_E500) || defined(CONFIG_MIPS)
 		/* round down to next 64 kB limit so that IVPR stays aligned */
 		gd->relocaddr &= ~(65536 - 1);
