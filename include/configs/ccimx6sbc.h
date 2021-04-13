@@ -99,9 +99,18 @@
 #define CCIMX6QPSBC_ID160	160
 #endif /* CONFIG_HAS_CARRIERBOARD_ID */
 
+#ifdef CONFIG_DIGI_DUALBOOT
+#define DUALBOOT_SETTINGS \
+       "dual_boot=yes\0"
+#else
+#define DUALBOOT_SETTINGS \
+       "dual_boot=no\0"
+#endif
+
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	RANDOM_UUIDS \
+	DUALBOOT_SETTINGS \
 	"dboot_kernel_var=zimage\0" \
 	"script=boot.scr\0" \
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
