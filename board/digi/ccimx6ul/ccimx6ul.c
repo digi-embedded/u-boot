@@ -557,3 +557,15 @@ long long env_get_offset_redund(long long default_offset)
 	return default_offset;
 #endif
 }
+
+long long env_get_offset_old(int index)
+{
+	switch(index) {
+	case 1:
+		return OLD_ENV_OFFSET_1;
+	case 2:
+		return OLD_ENV_OFFSET_2;
+	default:
+		return CONFIG_ENV_OFFSET;
+	};
+}

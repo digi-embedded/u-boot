@@ -252,6 +252,18 @@ int env_import_redund(const char *buf1, int buf1_read_fail,
 			tmp_env2->crc;
 
 	if (!crc1_ok && !crc2_ok) {
+#if defined(OLD_ENV_OFFSET_LOCATIONS)
+		static int old_env_tries = OLD_ENV_OFFSET_LOCATIONS;
+
+		/*
+		 * Return error but don't reset the environment yet.
+		 * We'll try to restore it from the old location.
+		 */
+		if (old_env_tries) {
+			old_env_tries--;
+			return -ENOMSG;
+		}
+#endif
 		env_set_default("bad CRC", 0);
 		return -ENOMSG; /* needed for env_load() */
 	} else if (crc1_ok && !crc2_ok) {
