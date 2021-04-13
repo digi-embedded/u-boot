@@ -82,11 +82,20 @@
 	"emmc_dev=" __stringify(EMMC_BOOT_DEV) "\0" \
 	"sd_dev=1\0"
 
+#ifdef CONFIG_DIGI_DUALBOOT
+#define DUALBOOT_SETTINGS \
+	"dual_boot=yes\0"
+#else
+#define DUALBOOT_SETTINGS \
+	"dual_boot=no\0"
+#endif
+
 /* Initial environment variables */
 #define CONFIG_EXTRA_ENV_SETTINGS		\
 	CONFIG_MFG_ENV_SETTINGS 		\
 	CONFIG_DEFAULT_NETWORK_SETTINGS		\
 	RANDOM_UUIDS \
+	DUALBOOT_SETTINGS \
 	"dboot_kernel_var=imagegz\0" \
 	"lzipaddr=" __stringify(CONFIG_DIGI_LZIPADDR) "\0" \
 	"script=boot.scr\0" \
