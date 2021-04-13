@@ -276,9 +276,17 @@ static struct ccimx6_variant ccimx6_variants[] = {
 		CCIMX6_HAS_EMMC,
 		"Industrial DualLite-core 800MHz, 4GB eMMC, 1GB DDR3, -40/+85C",
 	},
+/* 0x16 - 55001818-22 */
+	{
+		IMX6D,
+		MEM_1GB,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
+		CCIMX6_HAS_EMMC,
+		"Consumer dual-core 1GHz, 4GB eMMC, 1GB DDR3, 0/+70C, Wireless, Bluetooth",
+	},
 };
 
-#define NUM_VARIANTS_CC6	21
+#define NUM_VARIANTS_CC6	22
 
 #define DDR3_CAL_REGS	12
 /* DDR3 calibration values for the different CC6 variants */
@@ -643,6 +651,25 @@ static struct addrvalue ddr3_cal_cc6[NUM_VARIANTS_CC6 + 1][DDR3_CAL_REGS] = {
 		/* Write delay */
 		{MX6_MMDC_P0_MPWRDLCTL, 0x36352D31},
 		{MX6_MMDC_P1_MPWRDLCTL, 0x3130332D},
+	},
+	/* Variant 0x16 (similar to variant 0x05 and 0x14) */
+	[0x16] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x00080014},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x00300022},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x00200035},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x00300032},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x432F0332},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x03250328},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x433D0345},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x0339031C},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3B303438},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x32342D3C},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x3938433C},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x4433463D},
 	},
 };
 
