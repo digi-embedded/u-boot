@@ -300,7 +300,7 @@ struct eqos_ops {
 	int (*eqos_remove_resources)(struct udevice *dev);
 	int (*eqos_stop_resets)(struct udevice *dev);
 	int (*eqos_start_resets)(struct udevice *dev);
-	void (*eqos_stop_clks)(struct udevice *dev);
+	int (*eqos_stop_clks)(struct udevice *dev);
 	int (*eqos_start_clks)(struct udevice *dev);
 	int (*eqos_calibrate_pads)(struct udevice *dev);
 	int (*eqos_disable_calibration)(struct udevice *dev);
@@ -652,12 +652,7 @@ err:
 #endif
 }
 
-static int eqos_start_clks_imx(struct udevice *dev)
-{
-	return 0;
-}
-
-static void eqos_stop_clks_tegra186(struct udevice *dev)
+static int eqos_stop_clks_tegra186(struct udevice *dev)
 {
 #ifdef CONFIG_CLK
 	struct eqos_priv *eqos = dev_get_priv(dev);
@@ -672,9 +667,10 @@ static void eqos_stop_clks_tegra186(struct udevice *dev)
 #endif
 
 	debug("%s: OK\n", __func__);
+	return 0;
 }
 
-static void eqos_stop_clks_stm32(struct udevice *dev)
+static int eqos_stop_clks_stm32(struct udevice *dev)
 {
 #ifdef CONFIG_CLK
 	struct eqos_priv *eqos = dev_get_priv(dev);
@@ -689,11 +685,7 @@ static void eqos_stop_clks_stm32(struct udevice *dev)
 #endif
 
 	debug("%s: OK\n", __func__);
-}
-
-static void eqos_stop_clks_imx(struct udevice *dev)
-{
-	/* empty */
+	return 0;
 }
 
 static int eqos_start_resets_tegra186(struct udevice *dev)
@@ -735,16 +727,6 @@ static int eqos_start_resets_tegra186(struct udevice *dev)
 	return 0;
 }
 
-static int eqos_start_resets_stm32(struct udevice *dev)
-{
-	return 0;
-}
-
-static int eqos_start_resets_imx(struct udevice *dev)
-{
-	return 0;
-}
-
 static int eqos_stop_resets_tegra186(struct udevice *dev)
 {
 	struct eqos_priv *eqos = dev_get_priv(dev);
@@ -752,16 +734,6 @@ static int eqos_stop_resets_tegra186(struct udevice *dev)
 	reset_assert(&eqos->reset_ctl);
 	dm_gpio_set_value(&eqos->phy_reset_gpio, 1);
 
-	return 0;
-}
-
-static int eqos_stop_resets_stm32(struct udevice *dev)
-{
-	return 0;
-}
-
-static int eqos_stop_resets_imx(struct udevice *dev)
-{
 	return 0;
 }
 
@@ -851,26 +823,6 @@ __weak int imx_eqos_txclk_set_rate(unsigned long rate)
 static ulong eqos_get_tick_clk_rate_imx(struct udevice *dev)
 {
 	return imx_get_eqos_csr_clk();
-}
-
-static int eqos_calibrate_pads_stm32(struct udevice *dev)
-{
-	return 0;
-}
-
-static int eqos_calibrate_pads_imx(struct udevice *dev)
-{
-	return 0;
-}
-
-static int eqos_disable_calibration_stm32(struct udevice *dev)
-{
-	return 0;
-}
-
-static int eqos_disable_calibration_imx(struct udevice *dev)
-{
-	return 0;
 }
 
 static int eqos_set_full_duplex(struct udevice *dev)
@@ -966,11 +918,6 @@ static int eqos_set_tx_clk_speed_tegra186(struct udevice *dev)
 	}
 #endif
 
-	return 0;
-}
-
-static int eqos_set_tx_clk_speed_stm32(struct udevice *dev)
-{
 	return 0;
 }
 
@@ -1925,11 +1872,6 @@ static int eqos_remove_resources_stm32(struct udevice *dev)
 	return 0;
 }
 
-static int eqos_remove_resources_imx(struct udevice *dev)
-{
-	return 0;
-}
-
 static int eqos_probe(struct udevice *dev)
 {
 	struct eqos_priv *eqos = dev_get_priv(dev);
@@ -2018,6 +1960,11 @@ static int eqos_remove(struct udevice *dev)
 	return 0;
 }
 
+static int eqos_null_ops(struct udevice *dev)
+{
+	return 0;
+}
+
 static const struct eth_ops eqos_ops = {
 	.start = eqos_start,
 	.stop = eqos_stop,
@@ -2062,13 +2009,13 @@ static struct eqos_ops eqos_stm32_ops = {
 	.eqos_flush_buffer = eqos_flush_buffer_generic,
 	.eqos_probe_resources = eqos_probe_resources_stm32,
 	.eqos_remove_resources = eqos_remove_resources_stm32,
-	.eqos_stop_resets = eqos_stop_resets_stm32,
-	.eqos_start_resets = eqos_start_resets_stm32,
+	.eqos_stop_resets = eqos_null_ops,
+	.eqos_start_resets = eqos_null_ops,
 	.eqos_stop_clks = eqos_stop_clks_stm32,
 	.eqos_start_clks = eqos_start_clks_stm32,
-	.eqos_calibrate_pads = eqos_calibrate_pads_stm32,
-	.eqos_disable_calibration = eqos_disable_calibration_stm32,
-	.eqos_set_tx_clk_speed = eqos_set_tx_clk_speed_stm32,
+	.eqos_calibrate_pads = eqos_null_ops,
+	.eqos_disable_calibration = eqos_null_ops,
+	.eqos_set_tx_clk_speed = eqos_null_ops,
 	.eqos_get_tick_clk_rate = eqos_get_tick_clk_rate_stm32
 };
 
@@ -2088,13 +2035,13 @@ static struct eqos_ops eqos_imx_ops = {
 	.eqos_inval_buffer = eqos_inval_buffer_generic,
 	.eqos_flush_buffer = eqos_flush_buffer_generic,
 	.eqos_probe_resources = eqos_probe_resources_imx,
-	.eqos_remove_resources = eqos_remove_resources_imx,
-	.eqos_stop_resets = eqos_stop_resets_imx,
-	.eqos_start_resets = eqos_start_resets_imx,
-	.eqos_stop_clks = eqos_stop_clks_imx,
-	.eqos_start_clks = eqos_start_clks_imx,
-	.eqos_calibrate_pads = eqos_calibrate_pads_imx,
-	.eqos_disable_calibration = eqos_disable_calibration_imx,
+	.eqos_remove_resources = eqos_null_ops,
+	.eqos_stop_resets = eqos_null_ops,
+	.eqos_start_resets = eqos_null_ops,
+	.eqos_stop_clks = eqos_null_ops,
+	.eqos_start_clks = eqos_null_ops,
+	.eqos_calibrate_pads = eqos_null_ops,
+	.eqos_disable_calibration = eqos_null_ops,
 	.eqos_set_tx_clk_speed = eqos_set_tx_clk_speed_imx,
 	.eqos_get_tick_clk_rate = eqos_get_tick_clk_rate_imx
 };
