@@ -294,6 +294,8 @@ const char *get_source_string(int src)
 
 int get_fw_filename(int argc, char * const argv[], struct load_fw *fwinfo)
 {
+	int filename_index = 4;
+
 	switch (fwinfo->src) {
 	case SRC_TFTP:
 	case SRC_NFS:
@@ -307,8 +309,16 @@ int get_fw_filename(int argc, char * const argv[], struct load_fw *fwinfo)
 	case SRC_USB:
 	case SRC_SATA:
 	case SRC_NAND:
+		/*
+		 * For backwards compatibility, check if old 'fs' parameter
+		 * was passed before the filename.
+		 */
+		if ((argc > 5) &&
+		    (!strcmp(argv[4], "fat") || !strcmp(argv[4], "ext4")))
+			filename_index++;
+
 		if (argc > 4) {
-			strncpy(fwinfo->filename, argv[4],
+			strncpy(fwinfo->filename, argv[filename_index],
 				sizeof(fwinfo->filename));
 			return 0;
 		}
