@@ -2409,6 +2409,8 @@ unsigned long flash_init(void)
 
 #ifdef CONFIG_CFI_FLASH /* for driver model */
 	cfi_flash_init_dm();
+	if (!cfi_flash_num_flash_banks)
+		return 0;
 #endif
 
 	/* Init: no FLASHes known */
