@@ -60,6 +60,11 @@ static void append_kernel_cmdline(char *commandline)
 			COMMANDLINE_LENGTH - strlen(commandline));
 	}
 
+	/* Allow to configure Android's WiFi country code from the environment */
+	char *wificountrycode = env_get("wificountrycode");
+	sprintf(newbootargs, " androidboot.wificountrycode=%s", wificountrycode ?: "US");
+	strncat(commandline, newbootargs, COMMANDLINE_LENGTH - strlen(commandline));
+
 #ifdef CONFIG_SERIAL_TAG
 	struct tag_serialnr serialnr;
 	get_board_serial(&serialnr);
