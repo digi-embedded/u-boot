@@ -79,10 +79,6 @@
 			resets = <&rcc MCU_R>, <&rcc MCU_HOLD_BOOT_R>;
 
 			m4_system_resources {
-				m4_cec: cec@40016000 {
-					clocks = <&rcc CEC_K>, <&rcc CK_LSE>;
-				};
-
 				m4_m_can1: can@4400e000 {
 					clocks = <&rcc CK_HSE>, <&rcc FDCAN_K>;
 				};
@@ -101,8 +97,8 @@
 	/delete-node/ sram@2ffff000;
 };
 
-&cec {
-	clocks = <&rcc CEC_K>, <&clk_lse>;
+&bsec {
+	clocks = <&rcc BSEC>;
 };
 
 &gpioz {

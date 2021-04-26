@@ -647,7 +647,7 @@
 			compatible = "st,stm32-cec";
 			reg = <0x40016000 0x400>;
 			interrupts = <GIC_SPI 94 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&rcc CEC_K>, <&scmi0_clk CK_SCMI0_LSE>;
+			clocks = <&rcc CEC_K>, <&rcc CEC>;
 			clock-names = "cec", "hdmi-cec";
 			status = "disabled";
 		};
@@ -1181,6 +1181,8 @@
 				interrupts = <1>;
 				dmas = <&dmamux1 10 0x400 0x80000001>;
 				dma-names = "rx";
+				nvmem-cells = <&vrefint>;
+				nvmem-cell-names = "vrefint";
 				status = "disabled";
 			};
 		};
@@ -1212,6 +1214,7 @@
 			g-np-tx-fifo-size = <32>;
 			g-tx-fifo-size = <256 16 16 16 16 16 16 16>;
 			dr_mode = "otg";
+			otg-rev = <0x200>;
 			usb33d-supply = <&usb33>;
 			power-domains = <&pd_core>;
 			wakeup-source;
@@ -1266,6 +1269,7 @@
 				 <&scmi0_clk CK_SCMI0_CSI>,
 				 <&scmi0_clk CK_SCMI0_LSE>,
 				 <&scmi0_clk CK_SCMI0_LSI>;
+			clocks-boot-on = <LTDC_PX>;
 		};
 
 		pwr_regulators: pwr@50001000 {
@@ -1574,8 +1578,8 @@
 			reg = <0x58003000 0x1000>, <0x70000000 0x10000000>;
 			reg-names = "qspi", "qspi_mm";
 			interrupts = <GIC_SPI 92 IRQ_TYPE_LEVEL_HIGH>;
-			dmas = <&mdma1 22 0x2 0x100002 0x0 0x0 0x0>,
-			       <&mdma1 22 0x2 0x100008 0x0 0x0 0x0>;
+			dmas = <&mdma1 22 0x2 0x10100002 0x0 0x0 0x0>,
+			       <&mdma1 22 0x2 0x10100008 0x0 0x0 0x0>;
 			dma-names = "tx", "rx";
 			clocks = <&rcc QSPI_K>;
 			resets = <&rcc QSPI_R>;
@@ -1621,12 +1625,6 @@
 			status = "disabled";
 		};
 
-		stmmac_axi_config_0: stmmac-axi-config {
-			snps,wr_osr_lmt = <0x7>;
-			snps,rd_osr_lmt = <0x7>;
-			snps,blen = <0 0 0 0 16 8 4>;
-		};
-
 		ethernet0: ethernet@5800a000 {
 			compatible = "st,stm32mp1-dwmac", "snps,dwmac-4.20a";
 			reg = <0x5800a000 0x2000>;
@@ -1639,12 +1637,14 @@
 				      "mac-clk-tx",
 				      "mac-clk-rx",
 				      "eth-ck",
-				      "ethstp";
+				      "ethstp",
+				      "ptp_ref";
 			clocks = <&rcc ETHMAC>,
 				 <&rcc ETHTX>,
 				 <&rcc ETHRX>,
 				 <&rcc ETHCK_K>,
-				 <&rcc ETHSTP>;
+				 <&rcc ETHSTP>,
+				 <&rcc ETHPTP_K>;
 			st,syscon = <&syscfg 0x4>;
 			snps,mixed-burst;
 			snps,pbl = <2>;
@@ -1653,12 +1653,18 @@
 			snps,tso;
 			power-domains = <&pd_core>;
 			status = "disabled";
+
+			stmmac_axi_config_0: stmmac-axi-config {
+				snps,wr_osr_lmt = <0x7>;
+				snps,rd_osr_lmt = <0x7>;
+				snps,blen = <0 0 0 0 16 8 4>;
+			};
 		};
 
 		usbh_ohci: usbh-ohci@5800c000 {
 			compatible = "generic-ohci";
 			reg = <0x5800c000 0x1000>;
-			clocks = <&rcc USBH>;
+			clocks = <&rcc USBH>, <&usbphyc>;
 			resets = <&rcc USBH_R>;
 			interrupts = <GIC_SPI 74 IRQ_TYPE_LEVEL_HIGH>;
 			status = "disabled";
@@ -1728,6 +1734,7 @@
 			reg = <0x5a007000 0x400>;
 			clocks = <&rcc DDRPERFM>;
 			resets = <&rcc DDRPERFM_R>;
+			status = "disabled";
 		};
 
 		usart1: serial@5c000000 {
@@ -1789,10 +1796,14 @@
 		bsec: efuse@5c005000 {
 			compatible = "st,stm32mp15-bsec";
 			reg = <0x5c005000 0x400>;
+			clocks = <&scmi0_clk CK_SCMI0_BSEC>;
 			#address-cells = <1>;
 			#size-cells = <1>;
 			part_number_otp: part_number_otp@4 {
 				reg = <0x4 0x1>;
+			};
+			vrefint: calib@52 {
+				reg = <0x52 0x2>;
 			};
 			ts_cal1: calib@5c {
 				reg = <0x5c 0x2>;

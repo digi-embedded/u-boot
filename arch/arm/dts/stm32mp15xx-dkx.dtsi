@@ -12,6 +12,9 @@
 / {
 	aliases {
 		ethernet0 = &ethernet0;
+		serial0 = &uart4;
+		serial1 = &usart3;
+		serial2 = &uart7;
 	};
 
 	memory@c0000000 {
@@ -45,6 +48,12 @@
 		vdev0buffer: vdev0buffer@10042000 {
 			compatible = "shared-dma-pool";
 			reg = <0x10042000 0x4000>;
+			no-map;
+		};
+
+		mcu_rsc_table: mcu_rsc_table@10048000 {
+			compatible = "shared-dma-pool";
+			reg = <0x10048000 0x8000>;
 			no-map;
 		};
 
@@ -284,7 +293,7 @@
 	stusb1600@28 {
 		compatible = "st,stusb1600";
 		reg = <0x28>;
-		interrupts = <11 IRQ_TYPE_EDGE_FALLING>;
+		interrupts = <11 IRQ_TYPE_LEVEL_LOW>;
 		interrupt-parent = <&gpioi>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&stusb1600_pins_a>;
@@ -505,7 +514,7 @@
 
 &m4_rproc {
 	memory-region = <&retram>, <&mcuram>, <&mcuram2>, <&vdev0vring0>,
-			<&vdev0vring1>, <&vdev0buffer>;
+			<&vdev0vring1>, <&vdev0buffer>, <&mcu_rsc_table>;
 	mboxes = <&ipcc 0>, <&ipcc 1>, <&ipcc 2>;
 	mbox-names = "vq0", "vq1", "shutdown";
 	interrupt-parent = <&exti>;
@@ -755,6 +764,16 @@
 &usbphyc_port0 {
 	phy-supply = <&vdd_usb>;
 	st,phy-tuning = <&usb_phy_tuning>;
+
+	/*
+	 * Hack to keep hub active until all connected devices are suspended
+	 * otherwise the hub will be powered off as soon as the v3v3 is disabled
+	 * and it can disturb connected devices.
+	 */
+	connector {
+		compatible = "usb-a-connector";
+		vbus-supply = <&v3v3>;
+	};
 };
 
 &usbphyc_port1 {

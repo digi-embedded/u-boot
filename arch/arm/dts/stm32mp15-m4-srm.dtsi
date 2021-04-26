@@ -177,7 +177,7 @@
 			reg = <0x40016000 0x400>;
 			interrupt-parent = <&exti>;
 			interrupts = <69 1>;
-			clocks = <&rcc CEC_K>, <&scmi0_clk CK_SCMI0_LSE>;
+			clocks = <&rcc CEC_K>, <&rcc CEC>;
 			clock-names = "cec", "hdmi-cec";
 			status = "disabled";
 		};
@@ -414,6 +414,12 @@
 			reg = <0x50027000 0x4>;
 			clocks = <&rcc SAI4_K>;
 			clock-names = "sai_ck";
+			status = "disabled";
+			};
+		m4_fmc: memory-controller@58002000 {
+			compatible = "rproc-srm-dev";
+			reg = <0x5800200 0x1000>;
+			clocks = <&rcc FMC_K>;
 			status = "disabled";
 		};
 		m4_qspi: qspi@58003000 {

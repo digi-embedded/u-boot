@@ -16,11 +16,6 @@
 	chosen {
 		stdout-path = "serial0:115200n8";
 	};
-
-	aliases {
-		serial0 = &uart4;
-		serial1 = &usart3;
-	};
 };
 
 &ltdc {

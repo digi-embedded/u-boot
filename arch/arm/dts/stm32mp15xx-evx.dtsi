@@ -10,6 +10,7 @@
 / {
 	aliases {
 		ethernet0 = &ethernet0;
+		serial1 = &usart3;
 	};
 
 	clocks {
@@ -678,7 +679,16 @@
 
 &usbphyc_port0 {
 	st,phy-tuning = <&usb_phy_tuning>;
-	vbus-supply = <&vbus_sw>;
+
+	/*
+	 * Hack to keep hub active until all connected devices are suspended
+	 * otherwise the hub will be powered off as soon as the v3v3 is disabled
+	 * and it can disturb connected devices.
+	 */
+	connector {
+		compatible = "usb-a-connector";
+		vbus-supply = <&v3v3>;
+	};
 };
 
 &usbphyc_port1 {
