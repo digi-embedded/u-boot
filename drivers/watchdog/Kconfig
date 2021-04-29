@@ -121,7 +121,8 @@ config WDT_MCA
 	bool "Digi MCA watchdog timer support"
 	depends on WDT
 	help
-	  Select this to enable MCA watchdog timer on Digi modules
+	  Select this to enable MCA watchdog timer on Digi modules.
+	  Refresh of the watchdog can be done by software or through MCA GPIO lines.
 
 config WDT_MPC8xx
 	bool "MPC8xx watchdog timer support"
