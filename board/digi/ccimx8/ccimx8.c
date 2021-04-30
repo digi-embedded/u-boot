@@ -229,7 +229,7 @@ void som_default_environment(void)
 #ifdef CONFIG_CMD_MMC
 	char cmd[80];
 #endif
-	char var[20];
+	char var[200], somtype;
 	char hex_val[9]; // 8 hex chars + null byte
 	int i;
 
@@ -238,6 +238,7 @@ void som_default_environment(void)
 	snprintf(var, sizeof(var), "imx8%s", get_imx8_type(get_cpu_type()));
 	for (i = 0; i < strlen(var); i++)
 		var[i] = tolower(var[i]);
+	somtype = 'x';
 #else
 	switch (get_cpu_type()) {
 		case MXC_CPU_IMX8MN:
@@ -259,6 +260,7 @@ void som_default_environment(void)
 		default:
 			snprintf(var, sizeof(var), "imx%s", get_imx_type(get_cpu_type()));
 	}
+	somtype = 'm';
 	for (i = 0; i < strlen(var) && var[i] != ' '; i++)
 		var[i] = tolower(var[i]);
 	/* Terminate string on first white space (if any) */
@@ -323,6 +325,27 @@ void som_default_environment(void)
 
 	if (board_has_bluetooth())
 		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
+
+	/* Set 'som_overlays' variable (used to boot android) */
+	var[0] = 0;
+	switch (get_cpu_type()) {
+		case MXC_CPU_IMX8QXP:
+			snprintf(var, sizeof(var),
+				 "_ov_som_quad_ccimx8%c.dtbo,", somtype);
+			break;
+	}
+
+	if (board_has_wireless())
+		snprintf(var + strlen(var), sizeof(var) - strlen(var),
+			 "_ov_som_wifi_ccimx8%c.dtbo,", somtype);
+
+	if (board_has_bluetooth())
+		snprintf(var + strlen(var), sizeof(var) - strlen(var),
+			 "_ov_som_bt_ccimx8%c.dtbo,", somtype);
+
+	/* Remove the trailing comma */
+	var[strlen(var) - 1] = 0;
+	env_set("som_overlays", var);
 }
 
 void board_update_hwid(bool is_fuse)
