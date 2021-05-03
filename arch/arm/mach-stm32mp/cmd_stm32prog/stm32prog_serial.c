@@ -59,6 +59,9 @@ const u8 cmd_id[] = {
 
 #define NB_CMD sizeof(cmd_id)
 
+/* with 115200 bauds, 20 ms allow to receive the 256 bytes buffer */
+#define TIMEOUT_SERIAL_BUFFER	30
+
 /* DFU support for serial *********************************************/
 static struct dfu_entity *stm32prog_get_entity(struct stm32prog_data *data)
 {
@@ -263,6 +266,7 @@ static bool stm32prog_serial_get_buffer(u8 *buffer, u32 *count)
 {
 	struct dm_serial_ops *ops = serial_get_ops(down_serial_dev);
 	int err;
+	ulong start = get_timer(0);
 
 	do {
 		err = ops->getc(down_serial_dev);
@@ -272,6 +276,10 @@ static bool stm32prog_serial_get_buffer(u8 *buffer, u32 *count)
 		} else if (err == -EAGAIN) {
 			ctrlc();
 			WATCHDOG_RESET();
+			if (get_timer(start) > TIMEOUT_SERIAL_BUFFER) {
+				err = -ETIMEDOUT;
+				break;
+			}
 		} else {
 			break;
 		}
@@ -647,7 +655,7 @@ static void download_command(struct stm32prog_data *data)
 		printf("transmission error on packet %d, byte %d\n",
 		       packet_number, codesize - counter);
 		/* waiting end of packet before flush & NACK */
-		mdelay(30);
+		mdelay(TIMEOUT_SERIAL_BUFFER);
 		data->packet_number--;
 		result = NACK_BYTE;
 		goto end;
@@ -665,7 +673,7 @@ static void download_command(struct stm32prog_data *data)
 		/* wait to be sure that all data are received
 		 * in the FIFO before flush
 		 */
-		mdelay(30);
+		mdelay(TIMEOUT_SERIAL_BUFFER);
 		data->packet_number--;
 		result = NACK_BYTE;
 		goto end;
