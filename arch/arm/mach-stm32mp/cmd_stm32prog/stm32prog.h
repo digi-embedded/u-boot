@@ -144,6 +144,8 @@ struct stm32prog_data {
 	/* bootm information */
 	u32	uimage;
 	u32	dtb;
+	u32	initrd;
+	u32	initrd_size;
 };
 
 extern struct stm32prog_data *stm32prog_data;
