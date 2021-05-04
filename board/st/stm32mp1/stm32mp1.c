@@ -155,6 +155,7 @@ static void board_key_check(void)
 			debug("%s: could not find a /config/st,fastboot-gpios\n",
 			      __func__);
 		} else {
+			udelay(20);
 			if (dm_gpio_get_value(&gpio)) {
 				puts("Fastboot key pressed, ");
 				boot_mode = BOOT_FASTBOOT;
@@ -169,6 +170,7 @@ static void board_key_check(void)
 			debug("%s: could not find a /config/st,stm32prog-gpios\n",
 			      __func__);
 		} else {
+			udelay(20);
 			if (dm_gpio_get_value(&gpio)) {
 				puts("STM32Programmer key pressed, ");
 				boot_mode = BOOT_STM32PROG;
