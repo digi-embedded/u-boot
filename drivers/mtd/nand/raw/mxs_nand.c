@@ -1084,24 +1084,6 @@ static int mxs_nand_ecc_write_oob(struct mtd_info *mtd, struct nand_chip *nand,
 	return 0;
 }
 
-/*
- * Claims all blocks are good.
- *
- * In principle, this function is *only* called when the NAND Flash MTD system
- * isn't allowed to keep an in-memory bad block table, so it is forced to ask
- * the driver for bad block information.
- *
- * In fact, we permit the NAND Flash MTD system to have an in-memory BBT, so
- * this function is *only* called when we take it away.
- *
- * Thus, this function is only called when we want *all* blocks to look good,
- * so it *always* return success.
- */
-static int mxs_nand_block_bad(struct mtd_info *mtd, loff_t ofs)
-{
-	return 0;
-}
-
 static int mxs_nand_set_geometry(struct mtd_info *mtd, struct bch_geometry *geo)
 {
 	struct nand_chip *chip = mtd_to_nand(mtd);
@@ -1391,7 +1373,6 @@ int mxs_nand_init_ctrl(struct mxs_nand_info *nand_info)
 
 	nand->dev_ready		= mxs_nand_device_ready;
 	nand->select_chip	= mxs_nand_select_chip;
-	nand->block_bad		= mxs_nand_block_bad;
 
 	nand->read_byte		= mxs_nand_read_byte;
 

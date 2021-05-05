@@ -504,7 +504,15 @@ static int get_arg_src(int argc, char * const argv[], int src, int index,
 	case SRC_MMC:
 	case SRC_USB:
 	case SRC_SATA:
-		index += 2;
+		/*
+		 * For backwards compatibility, check if old 'fs' parameter
+		 * was passed before the filename.
+		 */
+		if ((argc > 5) &&
+		    (!strcmp(argv[4], "fat") || !strcmp(argv[4], "ext4")))
+			index += 3;
+		else
+			index += 2;
 		break;
 	case SRC_RAM:
 		/* 2-(7-argc) */

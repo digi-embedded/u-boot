@@ -4,6 +4,17 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2020.04
 -----------
+dub-2020.04-r3.3, released on 2021/04/22
+	- CC6UL: fix reporting of NAND bad blocks
+	- CC8X: add usb3 support to SBC Express
+	- Fix ATF console support
+
+
+dub-2020.04-r3.2, released on 2021/04/21
+	- CC6UL: mechanism to recover environment from old offset.
+	- CC8X: Updated SCFW to v1.7.1.1
+
+
 dub-2020.04-r3.1, released on 2021/03/08
 	- Update BSP to NXP tag 'rel_imx_5.4.70_2.3.0'.
 	- Fix support for CC8X and CC6UL SBC Express boards.

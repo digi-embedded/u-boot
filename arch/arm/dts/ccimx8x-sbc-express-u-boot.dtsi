@@ -6,6 +6,15 @@
 / {
 	aliases {
 		usbgadget0 = &usbg1;
+		usbhost1 = &usbh3;
+
+	};
+
+	usbh3: usbh3 {
+		compatible = "Cadence,usb3-host";
+		dr_mode = "host";
+		cdns3,usb = <&usbotg3>;
+		status = "okay";
 	};
 
 	usbg1: usbg1 {
@@ -13,7 +22,7 @@
 		dr_mode = "peripheral";
 		chipidea,usb = <&usbotg1>;
 		status = "okay";
-		u-boot,dm-spl;
+		u-boot,dm-pre-proper;
 	};
 
 };
@@ -127,6 +136,18 @@
 };
 
 &lpuart2 {
+	u-boot,dm-pre-proper;
+};
+
+&usbotg3 {
+	phys = <&usbphynop1>;
+	u-boot,dm-pre-proper;
+};
+
+&usbphynop1 {
+	compatible = "cdns,usb3-phy";
+	reg = <0x0 0x5B160000 0x0 0x40000>;
+	#phy-cells = <0>;
 	u-boot,dm-pre-proper;
 };
 
