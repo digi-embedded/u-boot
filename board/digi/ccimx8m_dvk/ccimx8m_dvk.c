@@ -299,7 +299,7 @@ int board_init(void)
 
 int mmc_map_to_kernel_blk(int devno)
 {
-	return devno + 1;
+	return devno;
 }
 
 int checkboard(void)
