@@ -105,19 +105,11 @@
 		"source ${loadaddr};" \
 	"fi;"
 
-#ifdef CONFIG_DIGI_DUALBOOT
-#define DUALBOOT_SETTINGS \
-       "dual_boot=yes\0"
-#else
-#define DUALBOOT_SETTINGS \
-       "dual_boot=no\0"
-#endif
-
 #define CONFIG_COMMON_ENV	\
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	CONFIG_EXTRA_NETWORK_SETTINGS \
 	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
-	DUALBOOT_SETTINGS \
+	"dualboot=no\0" \
 	"boot_fdt=yes\0" \
 	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} root=${mmcroot} ${mtdparts}" \
@@ -165,36 +157,6 @@
 
 #if defined(CONFIG_NAND_BOOT)
 
-#if defined(CONFIG_DIGI_DUALBOOT)
-#define ENV_MTD_INDEX \
-	"mtdlinux_a_index=" ENV_MTD_LINUX_A_INDEX "\0" \
-	"mtdlinux_b_index=" ENV_MTD_LINUX_B_INDEX "\0" \
-	"mtdrootfs_a_index=" ENV_MTD_ROOTFS_A_INDEX "\0" \
-	"mtdrootfs_b_index=" ENV_MTD_ROOTFS_B_INDEX "\0"
-	"mtdlinuxindex=" ENV_MTD_LINUX_A_INDEX "\0" \
-	"mtdrootfsindex=" ENV_MTD_ROOTFS_A_INDEX "\0"
-
-#define LINUX_DEFAULT_PARTITION \
-	"setenv mtdbootpart " LINUX_A_PARTITION ";"
-
-#define MTD_BOOT_PART \
-	"mtdbootpart=" LINUX_A_PARTITION "\0"
-
-#else
-#define ENV_MTD_INDEX \
-	"mtdlinuxindex=" CONFIG_ENV_MTD_LINUX_INDEX "\0" \
-	"mtdrecoveryindex=" CONFIG_ENV_MTD_RECOVERY_INDEX "\0" \
-	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
-	"mtdupdateindex=" CONFIG_ENV_MTD_UPDATE_INDEX "\0"
-
-#define LINUX_DEFAULT_PARTITION \
-	"setenv mtdbootpart " CONFIG_LINUX_PARTITION ";"
-
-#define MTD_BOOT_PART \
-	"mtdbootpart=" CONFIG_LINUX_PARTITION "\0"
-
-#endif
-
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_COMMON_ENV \
 	CONFIG_ENV_MTD_SETTINGS \
@@ -213,20 +175,34 @@
 		"fi;\0" \
 	"linux_file=core-image-base-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
 	"loadscript=" \
-		"if test -z \"${mtdbootpart}\"; then " \
-			LINUX_DEFAULT_PARTITION \
+		"if test ${dualboot} = yes; then " \
+			"if test -z \"${mtdbootpart}\"; then " \
+				"setenv mtdbootpart " LINUX_A_PARTITION ";" \
+			"fi;" \
+		"else " \
+			"if test -z \"${mtdbootpart}\"; then " \
+				"setenv mtdbootpart " CONFIG_LINUX_PARTITION ";" \
+			"fi;" \
 		"fi;" \
 		"if ubi part ${mtdbootpart}; then " \
 			"if ubifsmount ubi0:${mtdbootpart}; then " \
 				"ubifsload ${loadaddr} ${script};" \
 			"fi;" \
 		"fi;\0" \
-	MTD_BOOT_PART \
-	ENV_MTD_INDEX \
+	"mtdbootpart=" CONFIG_LINUX_PARTITION "\0" \
+	"mtdlinuxindex=" CONFIG_ENV_MTD_LINUX_INDEX "\0" \
+	"mtdrecoveryindex=" CONFIG_ENV_MTD_RECOVERY_INDEX "\0" \
+	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
+	"mtdupdateindex=" CONFIG_ENV_MTD_UPDATE_INDEX "\0" \
 	"recoverycmd=" \
 		"setenv mtdbootpart " CONFIG_RECOVERY_PARTITION ";" \
 		"boot\0" \
 	"rootfs_file=core-image-base-" CONFIG_SYS_BOARD ".ubifs\0" \
+	"mtdlinux_a_index=" ENV_MTD_LINUX_A_INDEX "\0" \
+	"mtdlinux_b_index=" ENV_MTD_LINUX_B_INDEX "\0" \
+	"mtdrootfs_a_index=" ENV_MTD_ROOTFS_A_INDEX "\0" \
+	"mtdrootfs_b_index=" ENV_MTD_ROOTFS_B_INDEX "\0" \
+	"active_system=" LINUX_A_PARTITION "\0" \
 	""	/* end line */
 #else
 #define CONFIG_EXTRA_ENV_SETTINGS \

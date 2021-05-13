@@ -400,13 +400,32 @@ static const struct boot_mode board_boot_modes[] = {
 void generate_partition_table(void)
 {
 	struct mtd_info *nand = get_nand_dev_by_index(0);
+	char *dualboot;
 
-	if (nand->size > SZ_512M)
-		env_set("mtdparts", MTDPARTS_1024MB);
-	else if (nand->size > SZ_256M)
-		env_set("mtdparts", MTDPARTS_512MB);
-	else
-		env_set("mtdparts", MTDPARTS_256MB);
+	dualboot = env_get("dualboot");
+	if (nand->size > SZ_512M) {
+		if (!strcmp(dualboot, "yes"))
+			env_set("mtdparts", MTDPARTS_DUALBOOT_1024MB);
+		else
+			env_set("mtdparts", MTDPARTS_1024MB);
+	} else if (nand->size > SZ_256M) {
+		if (!strcmp(dualboot, "yes"))
+			env_set("mtdparts", MTDPARTS_DUALBOOT_512MB);
+		else
+			env_set("mtdparts", MTDPARTS_512MB);
+	} else {
+		if (!strcmp(dualboot, "yes"))
+			env_set("mtdparts", MTDPARTS_DUALBOOT_256MB);
+		else
+			env_set("mtdparts", MTDPARTS_256MB);
+	}
+
+	/* set some dualboot environment variables */
+	if (!strcmp(dualboot, "yes")) {
+		env_set("mtdlinuxindex", ENV_MTD_LINUX_A_INDEX);
+		env_set("mtdrootfsindex", ENV_MTD_ROOTFS_A_INDEX);
+		env_set("mtdbootpart", LINUX_A_PARTITION);
+	}
 }
 
 void som_default_environment(void)
