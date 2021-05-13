@@ -82,20 +82,12 @@
 	"emmc_dev=" __stringify(EMMC_BOOT_DEV) "\0" \
 	"sd_dev=1\0"
 
-#ifdef CONFIG_DIGI_DUALBOOT
-#define DUALBOOT_SETTINGS \
-	"dual_boot=yes\0"
-#else
-#define DUALBOOT_SETTINGS \
-	"dual_boot=no\0"
-#endif
-
 /* Initial environment variables */
 #define CONFIG_EXTRA_ENV_SETTINGS		\
 	CONFIG_MFG_ENV_SETTINGS 		\
 	CONFIG_DEFAULT_NETWORK_SETTINGS		\
 	RANDOM_UUIDS \
-	DUALBOOT_SETTINGS \
+	"dualboot=no\0" \
 	"dboot_kernel_var=imagegz\0" \
 	"lzipaddr=" __stringify(CONFIG_DIGI_LZIPADDR) "\0" \
 	"script=boot.scr\0" \
@@ -164,6 +156,17 @@
 			"else;" \
 			"fi;" \
 		"fi;\0" \
+	"partition_mmc_linux_dualboot=mmc rescan;" \
+		"if mmc dev ${mmcdev} 0; then " \
+			"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
+			"mmc rescan;" \
+		"else " \
+			"if mmc dev ${mmcdev};then " \
+				"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
+				"mmc rescan;" \
+			"else;" \
+			"fi;" \
+		"fi;\0" \
 	"recoverycmd=setenv mmcpart " CONFIG_RECOVERY_PARTITION ";" \
 		"boot\0" \
 	"recovery_file=recovery.img\0" \
@@ -182,6 +185,7 @@
 			"source ${loadaddr};" \
 		"fi;\0" \
 	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
+	"active_system=linux_a\0" \
 	""	/* end line */
 
 #undef CONFIG_BOOTCOMMAND

@@ -116,6 +116,7 @@ void generate_partition_table(void)
 	unsigned int capacity_gb = 0;
 	const char *linux_partition_table;
 	const char *android_partition_table;
+	const char *linux_dualboot_partition_table;
 
 	/* Retrieve eMMC size in GiB */
 	if (mmc)
@@ -125,12 +126,15 @@ void generate_partition_table(void)
 	if (capacity_gb >= 14) {
 		linux_partition_table = LINUX_16GB_PARTITION_TABLE;
 		android_partition_table = ANDROID_16GB_PARTITION_TABLE;
+		linux_dualboot_partition_table = LINUX_DUALBOOT_16GB_PARTITION_TABLE;
 	} else if (capacity_gb >= 7) {
 		linux_partition_table = LINUX_8GB_PARTITION_TABLE;
 		android_partition_table = ANDROID_8GB_PARTITION_TABLE;
+		linux_dualboot_partition_table = LINUX_DUALBOOT_8GB_PARTITION_TABLE;
 	} else {
 		linux_partition_table = LINUX_4GB_PARTITION_TABLE;
 		android_partition_table = ANDROID_4GB_PARTITION_TABLE;
+		linux_dualboot_partition_table = LINUX_DUALBOOT_4GB_PARTITION_TABLE;
 	}
 
 	if (!env_get("parts_linux"))
@@ -138,6 +142,9 @@ void generate_partition_table(void)
 
 	if (!env_get("parts_android"))
 		env_set("parts_android", android_partition_table);
+
+	if (!env_get("parts_linux_dualboot"))
+		env_set("parts_linux_dualboot", linux_dualboot_partition_table);
 }
 
 static int set_mac_from_pool(uint32_t pool, uint8_t *mac)
