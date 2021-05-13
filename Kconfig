@@ -728,11 +728,6 @@ config ARCH_FIXUP_FDT_MEMORY
 
 endmenu		# Boot images
 
-config DIGI_DUALBOOT
-	bool "Enable Digi dual boot support"
-	help
-	  Enable Digi dual boot A/B system.
-
 source "api/Kconfig"
 
 source "common/Kconfig"
