@@ -4,6 +4,10 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2020.04
 -----------
+dub-2020.04-r3.4, released on 2021/05/14
+	- CC6UL: add DDR3 calibration for 512MB variants.
+
+
 dub-2020.04-r3.3, released on 2021/04/22
 	- CC6UL: fix reporting of NAND bad blocks
 	- CC8X: add usb3 support to SBC Express
