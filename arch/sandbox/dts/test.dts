@@ -589,9 +589,9 @@
 						regulator-min-microvolt = <1100000>;
 						regulator-max-microvolt = <3300000>;
 					};
-					regul1_scmi: reg@1 {
-						reg = <0x1>;
-						regulator-name = "sandbox-voltd1";
+					regul6_scmi: reg@6 {
+						regulator-name = "sandbox-voltd6";
+						voltd-name = "regu6";
 						regulator-min-microvolt = <1800000>;
 					};
 				};
@@ -1356,7 +1356,7 @@
 		clocks = <&clk_scmi 2>, <&clk_scmi 0>;
 		resets = <&reset_scmi 3>;
 		regul0-supply = <&regul0_scmi>;
-		regul1-supply = <&regul1_scmi>;
+		regul1-supply = <&regul6_scmi>;
 	};
 
 	pinctrl {

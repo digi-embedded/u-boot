@@ -239,6 +239,16 @@ enum scmi_voltage_domain_message_id {
 #define SCMI_VOLTD_CONFIG_ON		0x7
 
 /**
+ * struct scmi_clk_state_in - Message payload for CLOCK_CONFIG_SET command
+ * @status:	SCMI command status
+ * @attributes:	Attributes of the voltage domain protocol
+ */
+struct scmi_voltd_protocol_attr_out {
+	s32 status;
+	u32 attributes;
+};
+
+/**
  * struct scmi_voltd_attr_in - Payload for VOLTAGE_DOMAIN_ATTRIBUTES message
  * @domain_id:	SCMI voltage domain ID
  */

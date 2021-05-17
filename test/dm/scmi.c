@@ -58,7 +58,7 @@ static int ut_assert_scmi_state_postprobe(struct unit_test_state *uts,
 	ut_assertnonnull(agent->clk);
 	ut_asserteq(1, agent->reset_count);
 	ut_assertnonnull(agent->reset);
-	ut_asserteq(2, agent->voltd_count);
+	ut_asserteq(7, agent->voltd_count);
 	ut_assertnonnull(agent->voltd);
 
 	return 0;

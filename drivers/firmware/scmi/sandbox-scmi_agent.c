@@ -45,7 +45,16 @@ static struct sandbox_scmi_reset scmi_reset[] = {
 
 static struct sandbox_scmi_voltd scmi_voltd[] = {
 	{ .id = 0, .voltage_uv = 3300000 },
-	{ .id = 1, .voltage_uv = 1800000 },
+	{ .id = 6, .voltage_uv = 1800000 },
+	/*
+	 * Dummy unused regulators needed to be abled to
+	 * expose voltage domain of highest ID (6).
+	 */
+	{ .id = 1 },
+	{ .id = 2 },
+	{ .id = 3 },
+	{ .id = 4 },
+	{ .id = 5 },
 };
 
 static struct sandbox_scmi_service sandbox_scmi_service_state;
@@ -321,6 +330,22 @@ static int sandbox_scmi_rd_reset(struct udevice *dev, struct scmi_msg *msg)
 	return 0;
 }
 
+static int sandbox_scmi_voltd_protocol_attribs(struct udevice *dev,
+					       struct scmi_msg *msg)
+{
+	struct scmi_voltd_protocol_attr_out *out = NULL;
+
+	if (!msg->out_msg || msg->out_msg_sz < sizeof(*out))
+		return -EINVAL;
+
+	out = (struct scmi_voltd_protocol_attr_out *)msg->out_msg;
+
+	out->attributes = ARRAY_SIZE(scmi_voltd);
+	out->status = SCMI_SUCCESS;
+
+	return 0;
+}
+
 static int sandbox_scmi_voltd_attribs(struct udevice *dev, struct scmi_msg *msg)
 {
 	struct scmi_voltd_attr_in *in = NULL;
@@ -502,6 +527,8 @@ static int sandbox_scmi_test_process_msg(struct udevice *dev,
 		break;
 	case SCMI_PROTOCOL_ID_VOLTAGE_DOMAIN:
 		switch (msg->message_id) {
+		case SCMI_PROTOCOL_ATTRIBUTES:
+			return sandbox_scmi_voltd_protocol_attribs(dev, msg);
 		case SCMI_VOLTAGE_DOMAIN_ATTRIBUTES:
 			return sandbox_scmi_voltd_attribs(dev, msg);
 		case SCMI_VOLTAGE_DOMAIN_CONFIG_SET:
