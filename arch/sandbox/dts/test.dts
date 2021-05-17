@@ -593,6 +593,7 @@
 						regulator-name = "sandbox-voltd6";
 						voltd-name = "regu6";
 						regulator-min-microvolt = <1800000>;
+						regulator-supply = <&regul0_scmi>;
 					};
 				};
 			};

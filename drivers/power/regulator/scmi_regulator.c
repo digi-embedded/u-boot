@@ -24,10 +24,12 @@
  * struct scmi_regulator_platdata - Platform data for a scmi voltage domain regulator
  * @domain_id: ID representing the regulator for the related SCMI agent
  * @voltd_name: String ID representing the regulator in the SCMI server
+ * @supply: Regulator supply or NULL
  */
 struct scmi_regulator_platdata {
 	u32 domain_id;
 	const char *voltd_name;
+	struct udevice *supply;
 };
 
 static int scmi_voltd_set_enable(struct udevice *dev, bool enable)
@@ -42,6 +44,12 @@ static int scmi_voltd_set_enable(struct udevice *dev, bool enable)
 					  SCMI_VOLTAGE_DOMAIN_CONFIG_SET,
 					  in, out);
 	int ret;
+
+	if (pdata->supply && enable) {
+		ret = regulator_set_enable(pdata->supply, true);
+		if (ret)
+			return ret;
+	}
 
 	ret = devm_scmi_process_msg(dev, &msg);
 	if (ret)
@@ -220,6 +228,7 @@ static int scmi_regulator_probe(struct udevice *dev)
 		.out_msg = (u8 *)&out,
 		.out_msg_sz = sizeof(out),
 	};
+	struct udevice *supply;
 	int ret;
 
 	if (pdata->domain_id == VOLTD_INVALID_DOMAIN_ID) {
@@ -247,7 +256,13 @@ static int scmi_regulator_probe(struct udevice *dev)
 
 	dev_dbg(dev, "voltd %u: \"%s\"\n", pdata->domain_id, pdata->voltd_name);
 
-	return 0;
+	ret = device_get_supply_regulator(dev, "regulator-supply", &supply);
+	if (!ret)
+		pdata->supply = supply;
+	if (ret == -ENOENT)
+		ret = 0;
+
+	return ret;
 }
 
 static const struct dm_regulator_ops scmi_voltd_ops = {
