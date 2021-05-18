@@ -206,7 +206,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Generate signed uboot (add padding, generate signature and ensamble final image)
-objcopy -I binary -O binary --pad-to "${pad_len}" --gap-fill="${GAP_FILLER}" "${UBOOT_PATH}" u-boot-pad.imx
+objcopy -I binary -O binary --pad-to "${pad_len}" --gap-fill="${GAP_FILLER}" "${UBOOT_PATH}" "${PADDED_UBOOT_PATH}"
 
 CURRENT_PATH="$(pwd)"
 cst -o "${CURRENT_PATH}/u-boot_csf.bin" -i "${CURRENT_PATH}/csf_descriptor" > /dev/null
@@ -215,7 +215,7 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
-cat u-boot-pad.imx u-boot_csf.bin > u-boot-signed-no-pad.imx
+cat "${PADDED_UBOOT_PATH}" u-boot_csf.bin > u-boot-signed-no-pad.imx
 
 # When using encrypted uboot, we need to leave room for the DEK blob (will be appended manually)
 if [ "${ENCRYPT}" = "true" ]; then
@@ -250,4 +250,4 @@ printf $(printf "%08x" ${image_size} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x
 [ "${ENCRYPT}" = "true" ] && ENCRYPTED_MSG="and encrypted "
 echo "Signed ${ENCRYPTED_MSG}image ready: ${TARGET}"
 
-rm -f "${SRK_TABLE}" csf_descriptor u-boot_csf.bin u-boot-pad.imx u-boot-signed-no-pad.imx 2> /dev/null
+rm -f "${SRK_TABLE}" csf_descriptor u-boot_csf.bin "${PADDED_UBOOT_PATH}" u-boot-signed-no-pad.imx 2> /dev/null
