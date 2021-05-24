@@ -204,6 +204,9 @@
 	"mtdrecoveryindex=" CONFIG_ENV_MTD_RECOVERY_INDEX "\0" \
 	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
 	"mtdupdateindex=" CONFIG_ENV_MTD_UPDATE_INDEX "\0" \
+	"recoverycmd=" \
+		"setenv mtdbootpart " CONFIG_RECOVERY_PARTITION ";" \
+		"boot\0" \
 	"rootfs_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".ubifs\0" \
 	"mtdlinux_a_index=" ENV_MTD_LINUX_A_INDEX "\0" \
 	"mtdlinux_b_index=" ENV_MTD_LINUX_B_INDEX "\0" \
