@@ -188,4 +188,9 @@
 		"source ${loadaddr};" \
 	"fi;"
 
+/* Android specific configuration */
+#if defined(CONFIG_ANDROID_SUPPORT)
+#include "ccimx8x_sbc_pro_android.h"
+#endif
+
 #endif /* CCIMX8X_SBC_PRO_CONFIG_H */
