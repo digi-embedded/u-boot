@@ -9,6 +9,9 @@
 /* Fastboot BCB support uses 'do_raw_read' */
 #define CONFIG_CMD_READ
 
+/* Empty bootcmd to boot Android automatically */
+#undef CONFIG_BOOTCOMMAND
+
 /*
  * Do not use encrypted lock
  *
