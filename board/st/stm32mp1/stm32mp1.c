@@ -916,7 +916,7 @@ void board_quiesce_devices(void)
 
 /* eth init function : weak called in eqos driver */
 int board_interface_eth_init(struct udevice *dev,
-			     phy_interface_t interface_type)
+			     phy_interface_t interface_type, ulong rate)
 {
 	u8 *syscfg;
 	u32 value;

@@ -1372,7 +1372,7 @@ err_free_reset_eqos:
 
 /* board-specific Ethernet Interface initializations. */
 __weak int board_interface_eth_init(struct udevice *dev,
-				    phy_interface_t interface_type)
+				    phy_interface_t interface_type, ulong rate)
 {
 	return 0;
 }
@@ -1382,6 +1382,7 @@ static int eqos_probe_resources_stm32(struct udevice *dev)
 	struct eqos_priv *eqos = dev_get_priv(dev);
 	int ret;
 	phy_interface_t interface;
+	ulong rate = 0;
 
 	debug("%s(dev=%p):\n", __func__, dev);
 
@@ -1392,7 +1393,15 @@ static int eqos_probe_resources_stm32(struct udevice *dev)
 		return -EINVAL;
 	}
 
-	ret = board_interface_eth_init(dev, interface);
+	/*  Get ETH_CLK clocks (optional) */
+	ret = clk_get_by_name(dev, "eth-ck", &eqos->clk_ck);
+	if (ret)
+		debug("No phy clock provided %d", ret);
+	else
+		rate = clk_get_rate(&eqos->clk_ck);
+
+	/*  Initialize the soc for the PHY configuration */
+	ret = board_interface_eth_init(dev, interface, rate);
 	if (ret)
 		return -EINVAL;
 
@@ -1413,11 +1422,6 @@ static int eqos_probe_resources_stm32(struct udevice *dev)
 		pr_err("clk_get_by_name(tx) failed: %d", ret);
 		goto err_free_clk_rx;
 	}
-
-	/*  Get ETH_CLK clocks (optional) */
-	ret = clk_get_by_name(dev, "eth-ck", &eqos->clk_ck);
-	if (ret)
-		pr_warn("No phy clock provided %d", ret);
 
 	debug("%s: OK\n", __func__);
 	return 0;
