@@ -114,8 +114,9 @@ static int fuse_hash_value(u32 addr, bool print)
 	if (ret)
 		return ret;
 
-	for (i = 0; i < STM32_OTP_HASH_KEY_SIZE; i++) {
-		word = STM32_OTP_HASH_KEY_START + i;
+	for (i = 0, word = STM32_OTP_HASH_KEY_START;
+	     i < STM32_OTP_HASH_KEY_SIZE;
+	     i++, word++, addr += 4) {
 		val = __be32_to_cpu(*(u32 *)addr);
 		if (print)
 			printf("Fuse OTP %i : %x\n", word, val);
@@ -125,8 +126,13 @@ static int fuse_hash_value(u32 addr, bool print)
 			printf("Fuse OTP %i failed\n", word);
 			return ret;
 		}
-
-		addr += 4;
+		/* on success, lock the OTP for HASH key */
+		val = 1;
+		ret = misc_write(dev, STM32_BSEC_LOCK(word), &val, 4);
+		if (ret != 4) {
+			printf("Lock OTP %i failed\n", word);
+			return ret;
+		}
 	}
 
 	return 0;
