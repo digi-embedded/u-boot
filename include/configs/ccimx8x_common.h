@@ -311,28 +311,44 @@
 	"name=userdata,size=-,uuid=${part10_uuid};" \
 	"\""
 
+#define LINUX_DUALBOOT_4GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=linux_a,size=64MiB,uuid=${part1_uuid};" \
+	"name=linux_b,size=64MiB,uuid=${part2_uuid};" \
+	"name=rootfs_a,size=1536MiB,uuid=${part3_uuid};" \
+	"name=rootfs_b,size=1536MiB,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
+	"name=data,size=-,uuid=${part7_uuid};" \
+	"\""
+
+#define LINUX_DUALBOOT_8GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=linux_a,size=64MiB,uuid=${part1_uuid};" \
+	"name=linux_b,size=64MiB,uuid=${part2_uuid};" \
+	"name=rootfs_a,size=3GiB,uuid=${part3_uuid};" \
+	"name=rootfs_b,size=3GiB,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
+	"name=data,size=-,uuid=${part7_uuid};" \
+	"\""
+
+#define LINUX_DUALBOOT_16GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=linux_a,size=64MiB,uuid=${part1_uuid};" \
+	"name=linux_b,size=64MiB,uuid=${part2_uuid};" \
+	"name=rootfs_a,size=7GiB,uuid=${part3_uuid};" \
+	"name=rootfs_b,size=7GiB,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
+	"name=data,size=-,uuid=${part7_uuid};" \
+	"\""
+
 /* Partition defines */
 #define CONFIG_RECOVERY_PARTITION	"2"
-
-/* Android specific configuration */
-#ifdef CONFIG_ANDROID_SUPPORT
-#define CONFIG_ANDROID_AB_SUPPORT
-#ifdef CONFIG_ANDROID_AB_SUPPORT
-#define CONFIG_SYSTEM_RAMDISK_SUPPORT
-#endif
-
-/* Fastboot BCB support uses 'do_raw_read' */
-#define CONFIG_CMD_READ
-
-/*
- * Do not use encrypted lock
- *
- * This setting controls whether fastboot lock status is encrypted or not
- * using the CAAM. At the moment using the CAAM for such task is failing
- * (in CAAM-based 'decrypt_lock_store' function).
- */
-#define NON_SECURE_FASTBOOT
-#endif /* CONFIG_ANDROID_SUPPORT */
 
 #define FSL_FASTBOOT_FB_DEV "mmc"
 

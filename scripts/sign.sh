@@ -17,13 +17,10 @@
 #    The following Kconfig entries are used:
 #      CONFIG_SIGN_KEYS_PATH: (mandatory) path to the CST folder by NXP with keys generated.
 #      CONFIG_KEY_INDEX: (optional) key index to use for signing. Default is 0.
-#      NO_DCD: (optional) if defined, the DCD pointer is nulled. This is useful when the
-#               signed images will be used to boot in a non-standard way (for example, USB).
-#		In those cases, the DCD data is copied to the On Chip RAM, which would
-#		invalidate the signature.
 #      CONFIG_UNLOCK_SRK_REVOKE: (optional) instruct HAB not to protect the SRK_REVOKE OTP
 #				  field so that key revocation is possible in closed devices.
 #      SRK_REVOKE_MASK: (optional, AHAB only) set bitmask of the revoked SRKs.
+#      ENABLE_USB_SIGN: (optional) if defined, signed images could be used to boot via USB.
 #      ENABLE_ENCRYPTION: (optional) enable encryption of the images.
 #      CONFIG_DEK_PATH: (mandatory if ENCRYPT is defined) path to a Data Encryption Key.
 #                       If defined, the signed	U-Boot image is encrypted with the
@@ -83,10 +80,8 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 	HAB_VER="hab_ver 4"
 	DIGEST="digest"
 	DIGEST_ALGO="sha256"
-	if [ -n "${NO_DCD}" ]; then
-		# Null the DCD pointer in the IVT.
-		ivt_dcd=$(hexdump -n 4 -s 12 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
-		printf '\x0\x0\x0\x0' | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=3 >/dev/null 2>&1
+	if [ -n "${ENABLE_USB_SIGN}" ]; then
+		SIGN_DCD="true"
 	fi
 elif [ "${CONFIG_SIGN_MODE}" = "AHAB" ]; then
 	HAB_VER="ahab"
@@ -157,6 +152,8 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 	PADDED_UBOOT_PATH="$(pwd)/u-boot-pad.imx"
 	IVT_OFFSET="0"
 	UBOOT_START_OFFSET="0x400"
+	CONFIG_IMX_DCD_ADDR="0x00910000"
+	DCD_OFFSET="0x2C"
 
 	# Parse uboot IVT and size
 	ivt_self=$(hexdump -n 4 -s 20 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
@@ -181,6 +178,11 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 	# header (8) + 256-bit AES key (32) + MAC (16) + custom key size in bytes
 	dek_blob_size="$((8 + 32 + 16 + dek_size/8))"
 
+	# Parse uboot DCD size
+	dcd_len_h=$(hexdump -n 1 -s 45 -e '"%02x"' ${UBOOT_PATH})
+	dcd_len_l=$(hexdump -n 1 -s 46 -e '"%02x"' ${UBOOT_PATH})
+	dcd_len="0x${dcd_len_h}${dcd_len_l}"
+
 	# Compute the layout: sizes and offsets.
 	pad_len="$((ivt_csf - ivt_self))"
 	sig_len="$((pad_len + CONFIG_CSF_SIZE))"
@@ -198,9 +200,11 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 	ram_decrypt_start="$(printf "0x%X" ${ram_decrypt_start})"
 	decrypt_len="$(printf "0x%X" ${decrypt_len})"
 	dek_blob_offset="$(printf "0x%X" ${dek_blob_offset})"
+	dcd_len="$(printf "0x%X" ${dcd_len})"
 
 	# Generate actual CSF descriptor file from template
 	if [ "${ENCRYPT}" = "true" ]; then
+		# Sign and encrypt the U-Boot memory block
 		sed -e "s,%ram_start%,${ivt_start},g"		       \
 		-e "s,%srk_table%,${SRK_TABLE},g "		       \
 		-e "s,%image_offset%,${IVT_OFFSET},g"	       \
@@ -216,7 +220,22 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 		-e "s,%image_decrypt_offset%,${ENCRYPT_START},g"   \
 		-e "s,%decrypt_len%,${decrypt_len},g"	       \
 		${SCRIPT_PATH}/csf_templates/encrypt_uboot > csf_descriptor
+	elif [ "${SIGN_DCD}" = "true" ]; then
+		# Sign both U-Boot and DCD memory blocks
+		sed -e "s,%ram_start%,${ivt_start},g"		\
+		-e "s,%srk_table%,${SRK_TABLE},g"		\
+		-e "s,%image_offset%,${IVT_OFFSET},g"		\
+		-e "s,%auth_len%,${auth_len},g"			\
+		-e "s,%dcd_start%,${CONFIG_IMX_DCD_ADDR},g"	\
+		-e "s,%dcd_offset%,${DCD_OFFSET},g"		\
+		-e "s,%dcd_len%,${dcd_len},g"			\
+		-e "s,%cert_csf%,${CERT_CSF},g"			\
+		-e "s,%cert_img%,${CERT_IMG},g"			\
+		-e "s,%uboot_path%,${PADDED_UBOOT_PATH},g"	\
+		-e "s,%key_index%,${CONFIG_KEY_INDEX},g"	\
+		${SCRIPT_PATH}/csf_templates/sign_uboot_dcd > csf_descriptor
 	else
+		# Sign the U-Boot memory block
 		sed -e "s,%ram_start%,${ivt_start},g"	       \
 		-e "s,%srk_table%,${SRK_TABLE},g"	       \
 		-e "s,%image_offset%,${IVT_OFFSET},g"      \
@@ -288,7 +307,7 @@ fi
 # Sign/encrypt and add padding to the resulting file
 if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 	# Generate signed uboot (add padding, generate signature and ensamble final image)
-	objcopy -I binary -O binary --pad-to "${pad_len}" --gap-fill="${GAP_FILLER}" "${UBOOT_PATH}" u-boot-pad.imx
+	objcopy -I binary -O binary --pad-to "${pad_len}" --gap-fill="${GAP_FILLER}" "${UBOOT_PATH}" "${PADDED_UBOOT_PATH}"
 
 	CURRENT_PATH="$(pwd)"
 	cst -o "${CURRENT_PATH}/u-boot_csf.bin" -i "${CURRENT_PATH}/csf_descriptor" > /dev/null
@@ -297,7 +316,7 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 		exit 1
 	fi
 
-	cat u-boot-pad.imx u-boot_csf.bin > u-boot-signed-no-pad.imx
+	cat "${PADDED_UBOOT_PATH}" u-boot_csf.bin > u-boot-signed-no-pad.imx
 
 	# When using encrypted uboot, we need to leave room for the DEK blob (will be appended manually)
 	if [ "${ENCRYPT}" = "true" ]; then
@@ -305,11 +324,6 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 	fi
 
 	objcopy -I binary -O binary --pad-to "${sig_len}" --gap-fill="${GAP_FILLER}"  u-boot-signed-no-pad.imx "${TARGET}"
-
-	# If previously nulled, restore DCD pointer.
-	if [ -n "${NO_DCD}" ]; then
-		printf $(printf "%08x" ${ivt_dcd} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=3 >/dev/null 2>&1
-	fi
 
 	# When CONFIG_CSF_SIZE is defined, the CSF pointer on the
 	# IVT is set to the CSF future location. The final image has the CSF block
@@ -340,4 +354,4 @@ fi
 
 [ "${ENCRYPT}" = "true" ] && ENCRYPTED_MSG="and encrypted "
 echo "Signed ${ENCRYPTED_MSG}image ready: ${TARGET}"
-rm -f "${SRK_TABLE}" csf_descriptor u-boot_csf.bin u-boot-pad.imx u-boot-signed-no-pad.imx 2> /dev/null
+rm -f "${SRK_TABLE}" csf_descriptor u-boot_csf.bin "${PADDED_UBOOT_PATH}" u-boot-signed-no-pad.imx 2> /dev/null

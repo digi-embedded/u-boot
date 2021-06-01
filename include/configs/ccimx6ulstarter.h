@@ -109,6 +109,7 @@
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	CONFIG_EXTRA_NETWORK_SETTINGS \
 	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
+	"dualboot=no\0" \
 	"boot_fdt=yes\0" \
 	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} root=${mmcroot} ${mtdparts}" \
@@ -173,8 +174,14 @@
 		"fi;\0" \
 	"linux_file=core-image-base-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
 	"loadscript=" \
-		"if test -z \"${mtdbootpart}\"; then " \
-			"setenv mtdbootpart " CONFIG_LINUX_PARTITION ";" \
+		"if test ${dualboot} = yes; then " \
+			"if test -z \"${mtdbootpart}\"; then " \
+				"setenv mtdbootpart " LINUX_A_PARTITION ";" \
+			"fi;" \
+		"else " \
+			"if test -z \"${mtdbootpart}\"; then " \
+				"setenv mtdbootpart " CONFIG_LINUX_PARTITION ";" \
+			"fi;" \
 		"fi;" \
 		"if ubi part ${mtdbootpart}; then " \
 			"if ubifsmount ubi0:${mtdbootpart}; then " \
@@ -190,10 +197,16 @@
 		"setenv mtdbootpart " CONFIG_RECOVERY_PARTITION ";" \
 		"boot\0" \
 	"rootfs_file=core-image-base-" CONFIG_SYS_BOARD ".ubifs\0" \
+	"mtdlinux_a_index=" ENV_MTD_LINUX_A_INDEX "\0" \
+	"mtdlinux_b_index=" ENV_MTD_LINUX_B_INDEX "\0" \
+	"mtdrootfs_a_index=" ENV_MTD_ROOTFS_A_INDEX "\0" \
+	"mtdrootfs_b_index=" ENV_MTD_ROOTFS_B_INDEX "\0" \
+	"active_system=" LINUX_A_PARTITION "\0" \
 	""	/* end line */
 #else
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_COMMON_ENV \
+	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \

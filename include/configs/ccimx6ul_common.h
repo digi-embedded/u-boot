@@ -184,8 +184,38 @@
 #define ENV_PART_SIZE_BIG		3
 #define CONFIG_LINUX_PARTITION		"linux"
 #define CONFIG_RECOVERY_PARTITION	"recovery"
-#define CONFIG_NAND_NAME		"gpmi-nand"
-#define MTDIDS_DEFAULT			"nand0=" CONFIG_NAND_NAME
+/* Dualboot partition configuration */
+#define LINUX_A_PARTITION		"linux_a"
+#define LINUX_B_PARTITION		"linux_b"
+#define MTDPARTS_DUALBOOT_256MB		"mtdparts=" CONFIG_NAND_NAME ":" \
+					__stringify(UBOOT_PART_SIZE_SMALL) "m(" CONFIG_UBOOT_PARTITION ")," \
+					__stringify(ENV_PART_SIZE_SMALL) "m(environment)," \
+					"1m(safe)," \
+					"12m(" LINUX_A_PARTITION ")," \
+					"12m(" LINUX_B_PARTITION ")," \
+					"113m(rootfs_a)," \
+					"113m(rootfs_b)"
+#define MTDPARTS_DUALBOOT_512MB		"mtdparts=" CONFIG_NAND_NAME ":" \
+					__stringify(UBOOT_PART_SIZE_BIG) "m(" CONFIG_UBOOT_PARTITION ")," \
+					__stringify(ENV_PART_SIZE_BIG) "m(environment)," \
+					"1m(safe)," \
+					"24m(" LINUX_A_PARTITION ")," \
+					"24m(" LINUX_B_PARTITION ")," \
+					"230m(rootfs_a)," \
+					"230m(rootfs_b)"
+#define MTDPARTS_DUALBOOT_1024MB	"mtdparts=" CONFIG_NAND_NAME ":" \
+					__stringify(UBOOT_PART_SIZE_BIG) "m(" CONFIG_UBOOT_PARTITION ")," \
+					__stringify(ENV_PART_SIZE_BIG) "m(environment)," \
+					"1m(safe)," \
+					"24m(" LINUX_A_PARTITION ")," \
+					"24m(" LINUX_B_PARTITION ")," \
+					"256m(rootfs_a)," \
+					"256m(rootfs_b)"
+#define ENV_MTD_LINUX_A_INDEX		"3"
+#define ENV_MTD_LINUX_B_INDEX		"4"
+#define ENV_MTD_ROOTFS_A_INDEX		"5"
+#define ENV_MTD_ROOTFS_B_INDEX		"6"
+
 #define MTDPARTS_256MB			"mtdparts=" CONFIG_NAND_NAME ":" \
 					__stringify(UBOOT_PART_SIZE_SMALL) "m(" CONFIG_UBOOT_PARTITION ")," \
 					__stringify(ENV_PART_SIZE_SMALL) "m(environment)," \
@@ -214,6 +244,9 @@
 #define CONFIG_ENV_MTD_RECOVERY_INDEX	"4"
 #define CONFIG_ENV_MTD_ROOTFS_INDEX	"5"
 #define CONFIG_ENV_MTD_UPDATE_INDEX	"6"
+
+#define CONFIG_NAND_NAME                "gpmi-nand"
+#define MTDIDS_DEFAULT                  "nand0=" CONFIG_NAND_NAME
 #define CONFIG_ENV_MTD_SETTINGS		"mtdids=" MTDIDS_DEFAULT "\0"
 /* Previous offset locations for the environment */
 #define OLD_ENV_OFFSET_1		(3 * SZ_1M)

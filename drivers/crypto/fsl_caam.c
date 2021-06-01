@@ -294,7 +294,7 @@ void caam_open(void)
 	temp_reg = __raw_readl(CAAM_RDSTA);
 	init_mask = RDSTA_IF0 | RDSTA_IF1 | RDSTA_SKVN;
 	if ((temp_reg & init_mask) == init_mask) {
-		printf("RNG already instantiated 0x%X\n", temp_reg);
+		debug("RNG already instantiated 0x%X\n", temp_reg);
 		return;
 	}
 	rng_init();

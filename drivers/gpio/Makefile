@@ -23,6 +23,7 @@ obj-$(CONFIG_KIRKWOOD_GPIO)	+= kw_gpio.o
 obj-$(CONFIG_KONA_GPIO)	+= kona_gpio.o
 obj-$(CONFIG_MARVELL_GPIO)	+= mvgpio.o
 obj-$(CONFIG_MARVELL_MFP)	+= mvmfp.o
+obj-$(CONFIG_MCA_GPIO)	+= mca_gpio.o
 obj-$(CONFIG_MXC_GPIO)	+= mxc_gpio.o
 obj-$(CONFIG_MXS_GPIO)	+= mxs_gpio.o
 obj-$(CONFIG_PCA953X)		+= pca953x.o

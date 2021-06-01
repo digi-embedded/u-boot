@@ -60,6 +60,11 @@ static void append_kernel_cmdline(char *commandline)
 			COMMANDLINE_LENGTH - strlen(commandline));
 	}
 
+	/* Allow to configure Android's WiFi country code from the environment */
+	char *wificountrycode = env_get("wificountrycode");
+	sprintf(newbootargs, " androidboot.wificountrycode=%s", wificountrycode ?: "US");
+	strncat(commandline, newbootargs, COMMANDLINE_LENGTH - strlen(commandline));
+
 #ifdef CONFIG_SERIAL_TAG
 	struct tag_serialnr serialnr;
 	get_board_serial(&serialnr);
@@ -70,6 +75,11 @@ static void append_kernel_cmdline(char *commandline)
 					serialnr.low);
 	strncat(commandline, newbootargs, COMMANDLINE_LENGTH - strlen(commandline));
 
+#ifdef CONFIG_NO_MAC_FROM_OTP
+	char *btaddr = env_get("btaddr");
+	if (btaddr) {
+		sprintf(newbootargs, " androidboot.btmacaddr=%s", btaddr);
+#else
 	if (serialnr.high + serialnr.low != 0) {
 		char bd_addr[16]={0};
 		sprintf(bd_addr,
@@ -80,6 +90,7 @@ static void append_kernel_cmdline(char *commandline)
 			" androidboot.btmacaddr=%c%c:%c%c:%c%c:%c%c:%c%c:%c%c",
 			bd_addr[0],bd_addr[1],bd_addr[2],bd_addr[3],bd_addr[4],bd_addr[5],
 			bd_addr[6],bd_addr[7],bd_addr[8],bd_addr[9],bd_addr[10],bd_addr[11]);
+#endif
 	} else {
 		/* Some boards have serial number as all zeros (imx8mp),
 		 * hard code the bt mac address for such case. */

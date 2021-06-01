@@ -911,3 +911,264 @@ int hab_event_warning_check(uint8_t *event, size_t *bytes)
 	return ret;
 }
 #endif /* CONFIG_HAS_TRUSTFENCE */
+
+#ifdef CONFIG_ANDROID_LOAD_CONNECTCORE_FDT
+#include <dt_table.h>
+
+/**
+ * Dump information about the content of the dtbo partition
+ */
+void dump_fdt_part_info(struct dt_table_header *dtt_header)
+{
+#ifdef DEBUG_LOAD_CC_FDT
+	int i;
+	struct dt_table_entry *dtt_entry;
+	u32 entry_count;
+
+	dtt_entry = (struct dt_table_entry *)((ulong)dtt_header +
+			be32_to_cpu(dtt_header->dt_entries_offset));
+
+	entry_count = be32_to_cpu(dtt_header->dt_entry_count);
+
+	for (i = 0; i < entry_count; i++) {
+		printf("Entry %d - fname: %s\n", i, dtt_entry->fdt_fname);
+		dtt_entry++;
+	}
+#endif
+}
+
+/**
+ * Load into memory the fdt blob that matches the provided name.
+ *
+ * @param dt_fname file name of the devicetree to load
+ * @param fdt_addr memory address where the dt will be loaded
+ * @param dtt_header pointer to the dtbo partition header in memory
+ *
+ * @return the size in bytes of the device tree loaded
+ */
+u32 _load_fdt_by_name(char *dt_fname, ulong fdt_addr,
+		      struct dt_table_header *dtt_header)
+{
+	struct dt_table_entry *dtt_entry;
+	u32 i, entry_count, fdt_size = 0, fdt_offset;
+
+	dtt_entry = (struct dt_table_entry *)((ulong)dtt_header +
+			be32_to_cpu(dtt_header->dt_entries_offset));
+
+	entry_count = be32_to_cpu(dtt_header->dt_entry_count);
+
+	for (i = 0; i < entry_count; i++) {
+		if (!(strncmp(dtt_entry->fdt_fname,
+			      dt_fname, strlen(dt_fname)))) {
+			fdt_size = be32_to_cpu(dtt_entry->dt_size);
+			fdt_offset = be32_to_cpu(dtt_entry->dt_offset);
+
+			memcpy((void *)fdt_addr,
+			       (void *)((ulong)dtt_header + fdt_offset),
+			       fdt_size);
+			break;
+		}
+		dtt_entry++;
+	}
+
+	return fdt_size;
+}
+
+/**
+ * Load into memory the fdt blob that matches the provided name.
+ *
+ * @param index index of the of the devicetree entry to load
+ * @param fdt_addr memory address where the dt will be loaded
+ * @param dtt_header pointer to the dtbo partition header in memory
+ *
+ * @return 0 on success, error code otherwise
+ */
+int load_fdt_by_index(int index, ulong fdt_addr,
+		      struct dt_table_header *dtt_header)
+{
+	struct dt_table_entry *dtt_entry;
+	u32 entry_count, fdt_size, fdt_offset;
+
+	dtt_entry = (struct dt_table_entry *)((ulong)dtt_header +
+			be32_to_cpu(dtt_header->dt_entries_offset));
+
+	entry_count = be32_to_cpu(dtt_header->dt_entry_count);
+
+	if (index >= entry_count)
+		return -EINVAL;
+
+	dtt_entry += index;
+	fdt_size = be32_to_cpu(dtt_entry->dt_size);
+	fdt_offset = be32_to_cpu(dtt_entry->dt_offset);
+
+	memcpy((void *)fdt_addr,
+	       (void *)((ulong) dtt_header + fdt_offset), fdt_size);
+
+	return 0;
+}
+
+/**
+ * Wrapper arround _load_fdt_by_name to return 0 on success or the error code
+ * on failure
+ */
+int load_fdt_by_name(char *dt_fname, ulong fdt_addr,
+		     struct dt_table_header *dtt_header)
+{
+	if (!_load_fdt_by_name(dt_fname, fdt_addr, dtt_header))
+		return -EINVAL;
+
+	return 0;
+}
+
+/**
+ * Load and apply the device tree overlays included in the provided variable
+ *
+ * @param overlays_var environment variable containing the DT overlay list
+ * @param fdt_addr memory address of the DT to apply the overlays
+ * @param dtt_header pointer to the dtbo partition header in memory
+ *
+ * @return 0 on success, error code otherwise
+ */
+int apply_fdt_overlays(char *overlays_var, ulong fdt_addr,
+		       struct dt_table_header *dtt_header)
+{
+#define DELIM_OV_FILE		","
+#ifdef CONFIG_OF_LIBFDT_OVERLAY
+	char cmd_buf[CONFIG_SYS_CBSIZE];
+	char *env_overlay_list = NULL;
+	char *overlay_list_copy = NULL;
+	char *overlay_list = NULL;
+	char *overlay = NULL;
+	char *overlay_desc = NULL;
+	int root_node;
+	ulong loadaddr =
+	    env_get_ulong("initrd_addr", 16, CONFIG_DIGI_UPDATE_ADDR);
+	u32 fdt_size;
+
+	sprintf(cmd_buf, "fdt addr %lx", fdt_addr);
+	if (run_command(cmd_buf, 0)) {
+		printf("Failed to set base fdt address to %lx\n", fdt_addr);
+		return -EINVAL;
+	}
+	/* get the right fdt_blob from the global working_fdt */
+	gd->fdt_blob = working_fdt;
+	root_node = fdt_path_offset(gd->fdt_blob, "/");
+
+	/* Copy the variable to avoid modifying it in memory */
+	env_overlay_list = env_get(overlays_var);
+	if (env_overlay_list) {
+		printf("\n## Applying device tree overlays in variable '%s':\n", overlays_var);
+		overlay_list_copy = strdup(env_overlay_list);
+		if (overlay_list_copy) {
+			overlay_list = overlay_list_copy;
+			overlay = strtok(overlay_list, DELIM_OV_FILE);
+		} else {
+			printf("\n## Not enough memory to duplicate '%s'\n", overlays_var);
+			return -ENOMEM;
+		}
+	} else {
+		printf("\n## No device tree overlays present in variable '%s'\n", overlays_var);
+	}
+
+	while (overlay != NULL) {
+		/* Load the overlay */
+		fdt_size = _load_fdt_by_name(overlay, loadaddr, dtt_header);
+		if (!fdt_size) {
+			printf("Error loading overlay %s\n", overlay);
+			free(overlay_list_copy);
+			return -EINVAL;
+		}
+
+		/* Resize the base fdt to make room for the overlay */
+		sprintf(cmd_buf, "fdt resize %x", fdt_size);
+		if (run_command(cmd_buf, 0)) {
+			printf("Error failed to resize fdt\n");
+			free(overlay_list_copy);
+			return -EINVAL;
+		}
+
+		/* Apply the overlay */
+		sprintf(cmd_buf, "fdt apply %lx", loadaddr);
+		if (run_command(cmd_buf, 0)) {
+			printf("Error failed to apply overlay %s\n", overlay);
+			free(overlay_list_copy);
+			return -EINVAL;
+		}
+
+		/* Search for an overlay description */
+		overlay_desc = (char *)fdt_getprop(gd->fdt_blob, root_node,
+						   "overlay-description", NULL);
+
+		/* Print the overlay filename (and description if available) */
+		printf("-> %-50s", overlay);
+		if (overlay_desc) {
+			printf("%s", overlay_desc);
+			/* remove property and reset pointer after printing */
+			fdt_delprop((void *)gd->fdt_blob, root_node,
+				    "overlay-description");
+			overlay_desc = NULL;
+		}
+
+		overlay = strtok(NULL, DELIM_OV_FILE);
+		if (overlay)
+			printf("\n");
+	}
+	printf("\n");
+
+	free(overlay_list_copy);
+
+	return 0;
+#else
+	printf("Error overlay support not supported in this build\n");
+
+	return -ENOSUP;
+#endif /* CONFIG_OF_LIBFDT_OVERLAY */
+}
+
+/**
+ * Load the devicetree and the overlays from the content of environment
+ * varialbes
+ */
+int connectcore_load_fdt(ulong fdt_addr, struct dt_table_header *dtt_header)
+{
+#define MAIN_DTB_IDX	0
+	char *fdt_file;
+	int ret;
+	char *som_overlays_override;
+
+	dump_fdt_part_info(dtt_header);
+
+	fdt_file = env_get("fdt_file");
+	if (fdt_file) {
+		ret = load_fdt_by_name(fdt_file, fdt_addr, dtt_header);
+		if (ret) {
+			printf("Error loading devicetree file %s\n", fdt_file);
+			return -EINVAL;
+		}
+	} else {
+		ret = load_fdt_by_index(MAIN_DTB_IDX, fdt_addr, dtt_header);
+		if (ret) {
+			printf("Error loading devicetree with index %d\n",
+			       MAIN_DTB_IDX);
+			return -EINVAL;
+		}
+	}
+
+	som_overlays_override = env_get("som_overlays_override");
+	ret = apply_fdt_overlays(som_overlays_override ?
+				 "som_overlays_override" : "som_overlays",
+				 fdt_addr, dtt_header);
+	if (ret) {
+		printf("Error loading 'som_overlays' var overlays\n");
+		return -EINVAL;
+	}
+
+	ret = apply_fdt_overlays("overlays", fdt_addr, dtt_header);
+	if (ret) {
+		printf("Error loading 'overlays' var overlays\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+#endif /* CONFIG_ANDROID_LOAD_CONNECTCORE_FDT */

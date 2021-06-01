@@ -146,4 +146,11 @@ config RTC_STM32
 	help
 	  Enable STM32 RTC driver. This driver supports the rtc that is present
 	  on some STM32 SoCs.
+
+config RTC_MCA
+	bool "Enable MCA RTC driver"
+	depends on DM_RTC
+	help
+	  Enable MCA RTC driver. This driver supports the rtc that is present
+	  on some Digi modules.
 endmenu

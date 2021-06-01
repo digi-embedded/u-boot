@@ -116,6 +116,7 @@ void generate_partition_table(void)
 	unsigned int capacity_gb = 0;
 	const char *linux_partition_table;
 	const char *android_partition_table;
+	const char *linux_dualboot_partition_table;
 
 	/* Retrieve eMMC size in GiB */
 	if (mmc)
@@ -125,12 +126,15 @@ void generate_partition_table(void)
 	if (capacity_gb >= 14) {
 		linux_partition_table = LINUX_16GB_PARTITION_TABLE;
 		android_partition_table = ANDROID_16GB_PARTITION_TABLE;
+		linux_dualboot_partition_table = LINUX_DUALBOOT_16GB_PARTITION_TABLE;
 	} else if (capacity_gb >= 7) {
 		linux_partition_table = LINUX_8GB_PARTITION_TABLE;
 		android_partition_table = ANDROID_8GB_PARTITION_TABLE;
+		linux_dualboot_partition_table = LINUX_DUALBOOT_8GB_PARTITION_TABLE;
 	} else {
 		linux_partition_table = LINUX_4GB_PARTITION_TABLE;
 		android_partition_table = ANDROID_4GB_PARTITION_TABLE;
+		linux_dualboot_partition_table = LINUX_DUALBOOT_4GB_PARTITION_TABLE;
 	}
 
 	if (!env_get("parts_linux"))
@@ -138,6 +142,9 @@ void generate_partition_table(void)
 
 	if (!env_get("parts_android"))
 		env_set("parts_android", android_partition_table);
+
+	if (!env_get("parts_linux_dualboot"))
+		env_set("parts_linux_dualboot", linux_dualboot_partition_table);
 }
 
 static int set_mac_from_pool(uint32_t pool, uint8_t *mac)
@@ -229,7 +236,7 @@ void som_default_environment(void)
 #ifdef CONFIG_CMD_MMC
 	char cmd[80];
 #endif
-	char var[20];
+	char var[200], somtype;
 	char hex_val[9]; // 8 hex chars + null byte
 	int i;
 
@@ -238,6 +245,7 @@ void som_default_environment(void)
 	snprintf(var, sizeof(var), "imx8%s", get_imx8_type(get_cpu_type()));
 	for (i = 0; i < strlen(var); i++)
 		var[i] = tolower(var[i]);
+	somtype = 'x';
 #else
 	switch (get_cpu_type()) {
 		case MXC_CPU_IMX8MN:
@@ -259,6 +267,7 @@ void som_default_environment(void)
 		default:
 			snprintf(var, sizeof(var), "imx%s", get_imx_type(get_cpu_type()));
 	}
+	somtype = 'm';
 	for (i = 0; i < strlen(var) && var[i] != ' '; i++)
 		var[i] = tolower(var[i]);
 	/* Terminate string on first white space (if any) */
@@ -323,6 +332,27 @@ void som_default_environment(void)
 
 	if (board_has_bluetooth())
 		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
+
+	/* Set 'som_overlays' variable (used to boot android) */
+	var[0] = 0;
+	switch (get_cpu_type()) {
+		case MXC_CPU_IMX8QXP:
+			snprintf(var, sizeof(var),
+				 "_ov_som_quad_ccimx8%c.dtbo,", somtype);
+			break;
+	}
+
+	if (board_has_wireless())
+		snprintf(var + strlen(var), sizeof(var) - strlen(var),
+			 "_ov_som_wifi_ccimx8%c.dtbo,", somtype);
+
+	if (board_has_bluetooth())
+		snprintf(var + strlen(var), sizeof(var) - strlen(var),
+			 "_ov_som_bt_ccimx8%c.dtbo,", somtype);
+
+	/* Remove the trailing comma */
+	var[strlen(var) - 1] = 0;
+	env_set("som_overlays", var);
 }
 
 void board_update_hwid(bool is_fuse)

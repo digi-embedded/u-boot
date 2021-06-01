@@ -57,6 +57,8 @@
 #define ZIMAGE_START_ADDR	10
 #define ZIMAGE_END_ADDR	11
 
+extern int connectcore_load_fdt(ulong fdt_addr, struct dt_table_header *dtt_header);
+
 /* Boot metric variables */
 boot_metric metrics = {
   .bll_1 = 0,
@@ -835,12 +837,17 @@ int do_boota(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 		goto fail;
 	}
 
+#ifdef CONFIG_ANDROID_LOAD_CONNECTCORE_FDT
+	if (connectcore_load_fdt(fdt_addr, dt_img))
+		goto fail;
+#else
 	struct dt_table_entry *dt_entry;
 	dt_entry = (struct dt_table_entry *)((ulong)dt_img +
 			be32_to_cpu(dt_img->dt_entries_offset));
 	fdt_size = be32_to_cpu(dt_entry->dt_size);
 	memcpy((void *)(ulong)fdt_addr, (void *)((ulong)dt_img +
 			be32_to_cpu(dt_entry->dt_offset)), fdt_size);
+#endif
 
 	/* Combine cmdline and Print image info  */
 	if (gki_is_supported) {

@@ -80,6 +80,7 @@
 	CONFIG_DEFAULT_NETWORK_SETTINGS		\
 	CONFIG_EXTRA_NETWORK_SETTINGS		\
 	RANDOM_UUIDS \
+	"dualboot=no\0" \
 	"dboot_kernel_var=imagegz\0" \
 	"lzipaddr=" __stringify(CONFIG_DIGI_LZIPADDR) "\0" \
 	"script=boot.scr\0" \
@@ -149,6 +150,17 @@
 			"else;" \
 			"fi;" \
 		"fi;\0" \
+	"partition_mmc_linux_dualboot=mmc rescan;" \
+		"if mmc dev ${mmcdev} 0; then " \
+			"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
+			"mmc rescan;" \
+		"else " \
+			"if mmc dev ${mmcdev};then " \
+				"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
+				"mmc rescan;" \
+			"else;" \
+			"fi;" \
+		"fi;\0" \
 	"recoverycmd=setenv mmcpart " CONFIG_RECOVERY_PARTITION ";" \
 		"boot\0" \
 	"recovery_file=recovery.img\0" \
@@ -167,6 +179,7 @@
 			"source ${loadaddr};" \
 		"fi;\0" \
 	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
+	"active_system=linux_a\0" \
 	""	/* end line */
 
 #undef CONFIG_BOOTCOMMAND
@@ -174,5 +187,10 @@
 	"if run loadscript; then " \
 		"source ${loadaddr};" \
 	"fi;"
+
+/* Android specific configuration */
+#if defined(CONFIG_ANDROID_SUPPORT)
+#include "ccimx8x_sbc_pro_android.h"
+#endif
 
 #endif /* CCIMX8X_SBC_PRO_CONFIG_H */
