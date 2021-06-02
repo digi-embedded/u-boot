@@ -22,6 +22,12 @@
 #include <part.h>
 #include <vsprintf.h>
 
+enum cmd_part_info {
+	CMD_PART_INFO_START = 0,
+	CMD_PART_INFO_SIZE,
+	CMD_PART_INFO_NUMBER
+};
+
 static int do_part_uuid(int argc, char * const argv[])
 {
 	int part;
@@ -108,11 +114,12 @@ static int do_part_list(int argc, char * const argv[])
 	return 0;
 }
 
-static int do_part_start(int argc, char * const argv[])
+static int do_part_info(int argc, char * const argv[], enum cmd_part_info param)
 {
 	struct blk_desc *desc;
 	disk_partition_t info;
 	char buf[512] = { 0 };
+	char *endp;
 	int part;
 	int err;
 	int ret;
@@ -122,17 +129,35 @@ static int do_part_start(int argc, char * const argv[])
 	if (argc > 4)
 		return CMD_RET_USAGE;
 
-	part = simple_strtoul(argv[2], NULL, 0);
-
 	ret = blk_get_device_by_str(argv[0], argv[1], &desc);
 	if (ret < 0)
 		return 1;
 
-	err = part_get_info(desc, part, &info);
-	if (err)
-		return 1;
+	part = simple_strtoul(argv[2], &endp, 0);
+	if (*endp == '\0') {
+		err = part_get_info(desc, part, &info);
+		if (err)
+			return 1;
+	} else {
+		part = part_get_info_by_name(desc, argv[2], &info);
+		if (part == -1)
+			return 1;
+	}
 
-	snprintf(buf, sizeof(buf), LBAF, info.start);
+	switch (param) {
+	case CMD_PART_INFO_START:
+		snprintf(buf, sizeof(buf), LBAF, info.start);
+		break;
+	case CMD_PART_INFO_SIZE:
+		snprintf(buf, sizeof(buf), LBAF, info.size);
+		break;
+	case CMD_PART_INFO_NUMBER:
+		snprintf(buf, sizeof(buf), "0x%x", part);
+		break;
+	default:
+		printf("** Unknown cmd_part_info value: %d\n", param);
+		return 1;
+	}
 
 	if (argc > 3)
 		setenv(argv[3], buf);
@@ -142,38 +167,19 @@ static int do_part_start(int argc, char * const argv[])
 	return 0;
 }
 
+static int do_part_start(int argc, char * const argv[])
+{
+	return do_part_info(argc, argv, CMD_PART_INFO_START);
+}
+
 static int do_part_size(int argc, char * const argv[])
 {
-	struct blk_desc *desc;
-	disk_partition_t info;
-	char buf[512] = { 0 };
-	int part;
-	int err;
-	int ret;
+	return do_part_info(argc, argv, CMD_PART_INFO_SIZE);
+}
 
-	if (argc < 3)
-		return CMD_RET_USAGE;
-	if (argc > 4)
-		return CMD_RET_USAGE;
-
-	part = simple_strtoul(argv[2], NULL, 0);
-
-	ret = blk_get_device_by_str(argv[0], argv[1], &desc);
-	if (ret < 0)
-		return 1;
-
-	err = part_get_info(desc, part, &info);
-	if (err)
-		return 1;
-
-	snprintf(buf, sizeof(buf), LBAF, info.size);
-
-	if (argc > 3)
-		setenv(argv[3], buf);
-	else
-		printf("%s\n", buf);
-
-	return 0;
+static int do_part_number(int argc, char * const argv[])
+{
+	return do_part_info(argc, argv, CMD_PART_INFO_NUMBER);
 }
 
 static int do_part(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
@@ -189,6 +195,8 @@ static int do_part(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		return do_part_start(argc - 2, argv + 2);
 	else if (!strcmp(argv[1], "size"))
 		return do_part_size(argc - 2, argv + 2);
+	else if (!strcmp(argv[1], "number"))
+		return do_part_number(argc - 2, argv + 2);
 
 	return CMD_RET_USAGE;
 }
@@ -208,5 +216,8 @@ U_BOOT_CMD(
 	"part start <interface> <dev> <part> <varname>\n"
 	"    - set environment variable to the start of the partition (in blocks)\n"
 	"part size <interface> <dev> <part> <varname>\n"
-	"    - set environment variable to the size of the partition (in blocks)"
+	"    - set environment variable to the size of the partition (in blocks)\n"
+	"part number <interface> <dev> <part> <varname>\n"
+	"    - set environment variable to the partition number using the partition name\n"
+	"      part must be specified as partition name"
 );
