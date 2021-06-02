@@ -381,4 +381,7 @@
 #define CONFIG_SYS_HZ                  1000
 #define CONFIG_CMDLINE_EDITING
 
+#define CONFIG_BOOTCOUNT_LIMIT
+#define CONFIG_BOOTCOUNT_ENV
+
 #endif	/* CCIMX6_COMMON_CONFIG_H */
