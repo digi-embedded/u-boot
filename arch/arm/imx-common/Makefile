@@ -104,7 +104,7 @@ u-boot-dtb-signed.imx: u-boot-dtb.imx FORCE
 	$(srctree)/scripts/sign.sh $< $@
 
 u-boot-dtb-usb-signed.imx: u-boot-dtb.imx FORCE
-	NO_DCD=y $(srctree)/scripts/sign.sh $< $@
+	ENABLE_USB_SIGN=y $(srctree)/scripts/sign.sh $< $@
 
 u-boot-dtb-encrypted.imx: u-boot-dtb.imx FORCE
 	ENABLE_ENCRYPTION=y $(srctree)/scripts/sign.sh $< $@
@@ -113,7 +113,7 @@ u-boot-signed.imx: u-boot.imx FORCE
 	$(srctree)/scripts/sign.sh $< $@
 
 u-boot-usb-signed.imx: u-boot.imx FORCE
-	NO_DCD=y $(srctree)/scripts/sign.sh $< $@
+	ENABLE_USB_SIGN=y $(srctree)/scripts/sign.sh $< $@
 
 u-boot-encrypted.imx: u-boot.imx FORCE
 	ENABLE_ENCRYPTION=y $(srctree)/scripts/sign.sh $< $@

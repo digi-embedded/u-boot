@@ -1407,6 +1407,7 @@ void generate_partition_table(void)
 	unsigned int capacity_gb = 0;
 	const char *linux_partition_table;
 	const char *android_partition_table;
+	const char *linux_dualboot_partition_table;
 
 	/* Retrieve eMMC size in GiB */
 	if (mmc)
@@ -1416,9 +1417,11 @@ void generate_partition_table(void)
 	if (capacity_gb >= 7) {
 		linux_partition_table = LINUX_8GB_PARTITION_TABLE;
 		android_partition_table = ANDROID_8GB_PARTITION_TABLE;
+		linux_dualboot_partition_table = LINUX_DUALBOOT_8GB_PARTITION_TABLE;
 	} else {
 		linux_partition_table = LINUX_4GB_PARTITION_TABLE;
 		android_partition_table = ANDROID_4GB_PARTITION_TABLE;
+		linux_dualboot_partition_table = LINUX_DUALBOOT_4GB_PARTITION_TABLE;
 	}
 
 	if (!getenv("parts_linux"))
@@ -1426,6 +1429,9 @@ void generate_partition_table(void)
 
 	if (!getenv("parts_android"))
 		setenv("parts_android", android_partition_table);
+
+	if (!getenv("parts_linux_dualboot"))
+                setenv("parts_linux_dualboot", linux_dualboot_partition_table);
 }
 
 void som_default_environment(void)

@@ -102,6 +102,8 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	RANDOM_UUIDS \
+	"dualboot=no\0" \
+	"bootlimit=3\0" \
 	"dboot_kernel_var=zimage\0" \
 	"script=boot.scr\0" \
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
@@ -181,6 +183,17 @@
 			"else;" \
 			"fi;" \
 		"fi;\0" \
+	"partition_mmc_linux_dualboot=mmc rescan;" \
+		"if mmc dev ${mmcdev} 0; then " \
+			"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
+			"mmc rescan;" \
+		"else " \
+			"if mmc dev ${mmcdev};then " \
+				"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
+				"mmc rescan;" \
+			"else;" \
+			"fi;" \
+		"fi;\0" \
 	"recoverycmd=setenv mmcpart " CONFIG_RECOVERY_PARTITION ";" \
 		"boot\0" \
 	"recovery_file=recovery.img\0" \
@@ -196,6 +209,7 @@
 		"if load usb 0 ${loadaddr} install_linux_fw_usb.scr;then " \
 			"source ${loadaddr};" \
 		"fi;\0" \
+	"active_system=linux_a\0" \
 	""	/* end line */
 
 #ifdef CONFIG_SECURE_BOOT
