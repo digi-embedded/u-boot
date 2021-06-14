@@ -438,7 +438,7 @@ ulong bootm_disable_interrupts(void)
 
 #if defined(CONFIG_SILENT_CONSOLE) && !defined(CONFIG_SILENT_U_BOOT_ONLY)
 
-#define CONSOLE_ARG		"console="
+#define CONSOLE_ARG		"console=null"
 #define CONSOLE_INIT_ARG	"CONSOLE=/dev/null"
 
 /*
