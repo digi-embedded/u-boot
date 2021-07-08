@@ -153,16 +153,14 @@ static int mca_wdt_probe(struct udevice *dev)
 	struct mca_wdt_priv *priv = dev_get_priv(dev);
 	ofnode node;
 	ofnode soft_rfsh, gpio_rfsh;
-	const char *mode, *name;
+	const char *mode;
 	int ret;
 	u8 i = 0;
 
 	/* Parse standard soft-rfsh watchdog device tree entries */
 	soft_rfsh = dev_read_subnode(dev, "soft-rfsh");
-	/* Make sure soft_rfsh node was found. No Null check is available */
-	name = ofnode_get_name(soft_rfsh);
-	if (!strcmp(name, "soft-rfsh"))
-	{
+	/* Make sure soft_rfsh node was found */
+	if (ofnode_valid(soft_rfsh)) {
 		priv->wdt_soft.enabled = true;
 		priv->wdt_soft.full_reset = ofnode_read_bool(soft_rfsh, "digi,full-reset");
 		priv->wdt_soft.no_way_out = ofnode_read_bool(soft_rfsh, "digi,no-way-out");
@@ -170,6 +168,9 @@ static int mca_wdt_probe(struct udevice *dev)
 
 	/* Parse gpio-rfsh watchdog device tree entries */
 	gpio_rfsh = dev_read_subnode(dev, "gpio-rfsh");
+	/* Make sure gpio_rfsh node was found */
+	if (!ofnode_valid(gpio_rfsh))
+		goto no_gpio_rfsh;
 	ofnode_for_each_subnode(node, gpio_rfsh) {
 		if (i == MCA_NUM_GPIO_WDG) {
 			printf("%s: Exceeds max num of mca_wdt_gpio nodes (%d)\n",
@@ -224,6 +225,7 @@ static int mca_wdt_probe(struct udevice *dev)
 
 		i++;
 	}
+no_gpio_rfsh:
 	priv->wdt_gpio_num = i;
 
 	if (!priv->wdt_soft.enabled && !priv->wdt_gpio_num)
