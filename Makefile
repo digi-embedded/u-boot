@@ -1124,6 +1124,13 @@ ifneq ($(CONFIG_DM),y)
 	@echo >&2 "See doc/driver-model/migration.rst for more info."
 	@echo >&2 "===================================================="
 endif
+ifeq ($(CONFIG_STM32MP15x_STM32IMAGE),y)
+	@echo >&2 "===================== WARNING ======================"
+	@echo >&2 "This board uses CONFIG_STM32MP15x_STM32IMAGE for STM32 image"
+	@echo >&2 "support in TF-A and these configuration is deprecated."
+	@echo >&2 "Please migrate to FIP support in TF-A instead."
+	@echo >&2 "===================================================="
+endif
 	$(call deprecated,CONFIG_WDT,DM watchdog,v2019.10,\
 		$(CONFIG_WATCHDOG)$(CONFIG_HW_WATCHDOG))
 	$(call deprecated,CONFIG_DM_ETH,Ethernet drivers,v2020.07,$(CONFIG_NET))
