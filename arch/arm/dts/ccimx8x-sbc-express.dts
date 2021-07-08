@@ -78,8 +78,11 @@
 
 	mca_wdt_uboot: mca_wdt {
 		compatible = "digi,mca-wdt";
-		digi,full-reset;
-		digi,no-way-out;
+
+		soft-rfsh {
+			digi,full-reset;
+			digi,no-way-out;
+		};
 	};
 };
 
