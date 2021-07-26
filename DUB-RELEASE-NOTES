@@ -4,6 +4,20 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2017.03
 -----------
+dub-2017.03-r10.2, released on 2021/07/01
+	- Fix linux silent console with 'console=null' on kernel cmdline.
+
+
+dub-2017.03-r10.1, released on 2021/06/02
+	- Add dual boot (A/B update) support.
+
+
+
+dub-2017.03-r9.1, released on 2021/05/06
+	- Add support to ConnectCore6 variant 0x16.
+
+
+
 dub-2017.03-r8.1, released on 2020/12/30
 	- Add support to install firmware from a USB stick.
 	- Other minor fixes.

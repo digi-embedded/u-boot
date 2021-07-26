@@ -792,7 +792,12 @@ static void update_ddr3_calibration(u8 variant)
 	} else {
 		if (variant == 0 || variant > ARRAY_SIZE(ddr3_cal_cc6))
 			return;
-		ddr3_cal = ddr3_cal_cc6[variant];
+		if ((is_mx6dq() && (ccimx6_variants[variant].cpu == IMX6Q ||
+				    ccimx6_variants[variant].cpu == IMX6D)) ||
+		    (is_mx6dl() && ccimx6_variants[variant].cpu == IMX6DL))
+			ddr3_cal = ddr3_cal_cc6[variant];
+		else
+			return;
 	}
 
 	for (i = 0; i < DDR3_CAL_REGS; i++) {
