@@ -210,4 +210,10 @@
 	"fi;"
 
 #endif	/* CONFIG_SECURE_BOOT */
+
+/* Android specific configuration */
+#if defined(CONFIG_ANDROID_SUPPORT)
+#include "ccimx8mm_dvk_android.h"
+#endif
+
 #endif /* __CCIMX8MM_DVK_H */

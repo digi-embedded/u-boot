@@ -166,7 +166,6 @@
 	"zimage=zImage-" CONFIG_SYS_BOARD ".bin\0"
 
 #if defined(CONFIG_NAND_BOOT)
-
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_COMMON_ENV \
 	CONFIG_ENV_MTD_SETTINGS \
@@ -204,6 +203,9 @@
 	"mtdrecoveryindex=" CONFIG_ENV_MTD_RECOVERY_INDEX "\0" \
 	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
 	"mtdupdateindex=" CONFIG_ENV_MTD_UPDATE_INDEX "\0" \
+	"recoverycmd=" \
+		"setenv mtdbootpart " CONFIG_RECOVERY_PARTITION ";" \
+		"boot\0" \
 	"rootfs_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".ubifs\0" \
 	"mtdlinux_a_index=" ENV_MTD_LINUX_A_INDEX "\0" \
 	"mtdlinux_b_index=" ENV_MTD_LINUX_B_INDEX "\0" \
@@ -214,6 +216,7 @@
 #else
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_COMMON_ENV \
+	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \

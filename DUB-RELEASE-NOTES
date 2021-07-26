@@ -4,6 +4,27 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2020.04
 -----------
+dub-2020.04-r4.2, released on 2021/07/01
+	- Allow skipping fastboot lock state with 'skip-fblock-check' env var.
+	- Fix linux silent console with 'console=null' on kernel cmdline.
+	- CC8MM: enable MCU Firmware flash support for Android.
+	- CC8X: add watermarks for SECO firmware v3.8.1.
+
+
+dub-2020.04-r4.1, released on 2021/06/02
+	- Add support for the following MCA features:
+	  - Software-refreshed watchdog.
+	  - GPIO-refreshed watchdog.
+	  - RTC.
+	  - GPIO controller.
+	- Add dual boot (A/B update) support.
+	- Add Android r11 support for ConnectCore 8X and 8M Mini.
+
+
+dub-2020.04-r3.4, released on 2021/05/14
+	- CC6UL: add DDR3 calibration for 512MB variants.
+
+
 dub-2020.04-r3.3, released on 2021/04/22
 	- CC6UL: fix reporting of NAND bad blocks
 	- CC8X: add usb3 support to SBC Express
