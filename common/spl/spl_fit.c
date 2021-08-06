@@ -516,6 +516,15 @@ __weak bool spl_load_simple_fit_skip_processing(void)
 	return false;
 }
 
+/*
+ * Weak default function to allow fixes after fit header
+ * is loaded.
+ */
+__weak void *spl_load_simple_fit_fix_load(const void *fit)
+{
+	return (void *)fit;
+}
+
 int spl_load_simple_fit(struct spl_image_info *spl_image,
 			struct spl_load_info *info, ulong sector, void *fit)
 {
@@ -568,6 +577,8 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 	/* skip further processing if requested to enable load-only use cases */
 	if (spl_load_simple_fit_skip_processing())
 		return 0;
+
+	fit = spl_load_simple_fit_fix_load(fit);
 
 	/* find the node holding the images information */
 	images = fdt_path_offset(fit, FIT_IMAGES_PATH);
