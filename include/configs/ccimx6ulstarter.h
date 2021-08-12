@@ -156,9 +156,28 @@
 	"zimage=zImage-" CONFIG_SYS_BOARD ".bin\0"
 
 #if defined(CONFIG_NAND_BOOT)
+
+#define MTDPART_ENV_SETTINGS \
+	"mtdbootpart=" CONFIG_LINUX_PARTITION "\0" \
+	"mtdlinuxindex=" CONFIG_ENV_MTD_LINUX_INDEX "\0" \
+	"mtdrecoveryindex=" CONFIG_ENV_MTD_RECOVERY_INDEX "\0" \
+	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
+	"mtdupdateindex=" CONFIG_ENV_MTD_UPDATE_INDEX "\0" \
+	"recoverycmd=" \
+		"setenv mtdbootpart " CONFIG_RECOVERY_PARTITION ";" \
+		"boot\0"
+#define DUALBOOT_ENV_SETTINGS \
+	"mtdlinux_a_index=" ENV_MTD_LINUX_A_INDEX "\0" \
+	"mtdlinux_b_index=" ENV_MTD_LINUX_B_INDEX "\0" \
+	"mtdrootfs_a_index=" ENV_MTD_ROOTFS_A_INDEX "\0" \
+	"mtdrootfs_b_index=" ENV_MTD_ROOTFS_B_INDEX "\0" \
+	"active_system=" LINUX_A_PARTITION "\0"
+
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_COMMON_ENV \
 	CONFIG_ENV_MTD_SETTINGS \
+	DUALBOOT_ENV_SETTINGS \
+	MTDPART_ENV_SETTINGS \
 	"bootargs_linux=\0" \
 	"bootargs_nand_linux=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} ${mtdparts} ubi.mtd=${mtdlinuxindex} " \
@@ -188,20 +207,7 @@
 				"ubifsload ${loadaddr} ${script};" \
 			"fi;" \
 		"fi;\0" \
-	"mtdbootpart=" CONFIG_LINUX_PARTITION "\0" \
-	"mtdlinuxindex=" CONFIG_ENV_MTD_LINUX_INDEX "\0" \
-	"mtdrecoveryindex=" CONFIG_ENV_MTD_RECOVERY_INDEX "\0" \
-	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
-	"mtdupdateindex=" CONFIG_ENV_MTD_UPDATE_INDEX "\0" \
-	"recoverycmd=" \
-		"setenv mtdbootpart " CONFIG_RECOVERY_PARTITION ";" \
-		"boot\0" \
 	"rootfs_file=core-image-base-" CONFIG_SYS_BOARD ".ubifs\0" \
-	"mtdlinux_a_index=" ENV_MTD_LINUX_A_INDEX "\0" \
-	"mtdlinux_b_index=" ENV_MTD_LINUX_B_INDEX "\0" \
-	"mtdrootfs_a_index=" ENV_MTD_ROOTFS_A_INDEX "\0" \
-	"mtdrootfs_b_index=" ENV_MTD_ROOTFS_B_INDEX "\0" \
-	"active_system=" LINUX_A_PARTITION "\0" \
 	""	/* end line */
 #else
 #define CONFIG_EXTRA_ENV_SETTINGS \

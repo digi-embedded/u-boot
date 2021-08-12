@@ -397,31 +397,66 @@ static const struct boot_mode board_boot_modes[] = {
 };
 #endif
 
+void generate_ubi_volumes_script(void)
+{
+	struct mtd_info *nand = get_nand_dev_by_index(0);
+	// TODO: dualboot support
+	int dualboot = env_get_yesno("dualboot");
+	char script[CONFIG_SYS_CBSIZE] = "";
+
+	if (nand->size > SZ_512M) {
+		if (dualboot == 1)
+			env_set("ubivolscript", "TODO");
+		else
+			sprintf(script, CREATE_UBIVOLS_SCRIPT, UBIVOLS_1024MB);
+	} else if (nand->size > SZ_256M) {
+		if (dualboot == 1)
+			env_set("ubivolscript", "TODO");
+		else
+			sprintf(script, CREATE_UBIVOLS_SCRIPT, UBIVOLS_512MB);
+	} else {
+		if (dualboot == 1)
+			env_set("ubivolscript", "TODO");
+		else
+			sprintf(script, CREATE_UBIVOLS_SCRIPT, UBIVOLS_256MB);
+	}
+	env_set("ubivolscript", script);
+}
+
 void generate_partition_table(void)
 {
 	struct mtd_info *nand = get_nand_dev_by_index(0);
-	char *dualboot;
+	int dualboot = env_get_yesno("dualboot");
+	int ubisysvols = env_get_yesno("ubisysvols");
 
-	dualboot = env_get("dualboot");
-	if (nand->size > SZ_512M) {
-		if (!strcmp(dualboot, "yes"))
-			env_set("mtdparts", MTDPARTS_DUALBOOT_1024MB);
+	if (ubisysvols == 1) {
+		/* modern partitioning (same for regular or dual boot) */
+		if (nand->size > SZ_256M)
+			env_set("mtdparts", MTDPARTS_BIG);
 		else
-			env_set("mtdparts", MTDPARTS_1024MB);
-	} else if (nand->size > SZ_256M) {
-		if (!strcmp(dualboot, "yes"))
-			env_set("mtdparts", MTDPARTS_DUALBOOT_512MB);
-		else
-			env_set("mtdparts", MTDPARTS_512MB);
+			env_set("mtdparts", MTDPARTS_SMALL);
 	} else {
-		if (!strcmp(dualboot, "yes"))
-			env_set("mtdparts", MTDPARTS_DUALBOOT_256MB);
-		else
-			env_set("mtdparts", MTDPARTS_256MB);
+		/* traditional partitioning */
+		if (nand->size > SZ_512M) {
+			if (dualboot == 1)
+				env_set("mtdparts", MTDPARTS_DUALBOOT_1024MB);
+			else
+				env_set("mtdparts", MTDPARTS_1024MB);
+		} else if (nand->size > SZ_256M) {
+			if (dualboot == 1)
+				env_set("mtdparts", MTDPARTS_DUALBOOT_512MB);
+			else
+				env_set("mtdparts", MTDPARTS_512MB);
+		} else {
+			if (dualboot == 1)
+				env_set("mtdparts", MTDPARTS_DUALBOOT_256MB);
+			else
+				env_set("mtdparts", MTDPARTS_256MB);
+		}
 	}
 
 	/* set some dualboot environment variables */
-	if (!strcmp(dualboot, "yes")) {
+	if (dualboot == 1) {
 		env_set("mtdlinuxindex", ENV_MTD_LINUX_A_INDEX);
 		env_set("mtdrootfsindex", ENV_MTD_ROOTFS_A_INDEX);
 		env_set("mtdbootpart", LINUX_A_PARTITION);
@@ -432,13 +467,22 @@ void som_default_environment(void)
 {
 	char var[10];
 	char *parttable;
+	char *ubivolscript;
 	char hex_val[9]; // 8 hex chars + null byte
 	int i;
+	int ubisysvols = env_get_yesno("ubisysvols");
 
 	/* Partition table */
 	parttable = env_get("mtdparts");
 	if (!parttable)
 		generate_partition_table();
+
+	/* UBI volumes */
+	if (ubisysvols == 1) {
+		ubivolscript = env_get("ubivolscript");
+		if (!ubivolscript)
+			generate_ubi_volumes_script();
+	}
 
 	/* Set $module_variant variable */
 	sprintf(var, "0x%02x", my_hwid.variant);

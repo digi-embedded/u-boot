@@ -182,11 +182,48 @@
 #define UBOOT_PART_SIZE_BIG		5
 #define ENV_PART_SIZE_SMALL		1
 #define ENV_PART_SIZE_BIG		3
+
 #define CONFIG_LINUX_PARTITION		"linux"
 #define CONFIG_RECOVERY_PARTITION	"recovery"
+#define ROOTFS_PARTITION		"rootfs"
+#define SYSTEM_PARTITION		"system"
+
 /* Dualboot partition configuration */
 #define LINUX_A_PARTITION		"linux_a"
 #define LINUX_B_PARTITION		"linux_b"
+
+/* One 'system' partition containing many UBI volumes (modern layout) */
+#define MTDPARTS_SMALL			"mtdparts=" CONFIG_NAND_NAME ":" \
+					__stringify(UBOOT_PART_SIZE_SMALL) "m(" CONFIG_UBOOT_PARTITION ")," \
+					__stringify(ENV_PART_SIZE_SMALL) "m(environment)," \
+					"1m(safe)," \
+					"-(" SYSTEM_PARTITION ")"
+#define MTDPARTS_BIG			"mtdparts=" CONFIG_NAND_NAME ":" \
+					__stringify(UBOOT_PART_SIZE_BIG) "m(" CONFIG_UBOOT_PARTITION ")," \
+					__stringify(ENV_PART_SIZE_BIG) "m(environment)," \
+					"1m(safe)," \
+					"-(" SYSTEM_PARTITION ")"
+#define UBIVOLS_256MB			"ubi create " CONFIG_LINUX_PARTITION " c00000;" \
+					"ubi create " CONFIG_RECOVERY_PARTITION " e00000;" \
+					"ubi create " ROOTFS_PARTITION " 7e00000;" \
+					"ubi create update;"
+#define UBIVOLS_512MB			"ubi create " CONFIG_LINUX_PARTITION " 1800000;" \
+					"ubi create " CONFIG_RECOVERY_PARTITION " 2000000;" \
+					"ubi create " ROOTFS_PARTITION " 10000000;" \
+					"ubi create update;"
+#define UBIVOLS_1024MB			"ubi create " CONFIG_LINUX_PARTITION " 1800000;" \
+					"ubi create " CONFIG_RECOVERY_PARTITION " 2000000;" \
+					"ubi create " ROOTFS_PARTITION " 20000000;" \
+					"ubi create update;"
+#define CREATE_UBIVOLS_SCRIPT		"nand erase.part " SYSTEM_PARTITION ";" \
+					"if test $? = 1; then " \
+					"	echo \"** Error erasing '" SYSTEM_PARTITION "' partition\";" \
+					"else" \
+					"	ubi part " SYSTEM_PARTITION ";" \
+					"	%s" \
+					"fi"
+
+/* One partition for each UBI volume (traditional layout) */
 #define MTDPARTS_DUALBOOT_256MB		"mtdparts=" CONFIG_NAND_NAME ":" \
 					__stringify(UBOOT_PART_SIZE_SMALL) "m(" CONFIG_UBOOT_PARTITION ")," \
 					__stringify(ENV_PART_SIZE_SMALL) "m(environment)," \
@@ -222,7 +259,7 @@
 					"1m(safe)," \
 					"12m(" CONFIG_LINUX_PARTITION ")," \
 					"14m(" CONFIG_RECOVERY_PARTITION ")," \
-					"122m(rootfs)," \
+					"122m(" ROOTFS_PARTITION ")," \
 					"-(update)"
 #define MTDPARTS_512MB			"mtdparts=" CONFIG_NAND_NAME ":" \
 					__stringify(UBOOT_PART_SIZE_BIG) "m(" CONFIG_UBOOT_PARTITION ")," \
@@ -230,7 +267,7 @@
 					"1m(safe)," \
 					"24m(" CONFIG_LINUX_PARTITION ")," \
 					"32m(" CONFIG_RECOVERY_PARTITION ")," \
-					"256m(rootfs)," \
+					"256m(" ROOTFS_PARTITION ")," \
 					"-(update)"
 #define MTDPARTS_1024MB			"mtdparts=" CONFIG_NAND_NAME ":" \
 					__stringify(UBOOT_PART_SIZE_BIG) "m(" CONFIG_UBOOT_PARTITION ")," \
@@ -238,7 +275,7 @@
 					"1m(safe)," \
 					"24m(" CONFIG_LINUX_PARTITION ")," \
 					"32m(" CONFIG_RECOVERY_PARTITION ")," \
-					"512m(rootfs)," \
+					"512m(" ROOTFS_PARTITION ")," \
 					"-(update)"
 #define CONFIG_ENV_MTD_LINUX_INDEX	"3"
 #define CONFIG_ENV_MTD_RECOVERY_INDEX	"4"
