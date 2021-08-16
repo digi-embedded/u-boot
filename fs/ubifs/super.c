@@ -2418,7 +2418,7 @@ retry:
 		goto retry;
 #endif
 	}
-		
+
 	err = set(s, data);
 	if (err) {
 #ifndef __UBOOT__
@@ -2694,7 +2694,7 @@ int uboot_ubifs_mount(char *vol_name)
 			((struct ubifs_info *)(ubifs_sb->s_fs_info))->vi.name;
 
 		if (vname != NULL && !strcmp(vname + 1, mounted_val_name)) {
-			printf("Skipping mounting already mounted ubifs fs\n");
+			debug("Skipping mounting already mounted ubifs fs\n");
 			return 0;
 		}
 	}
