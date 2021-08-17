@@ -60,6 +60,30 @@ static int ubi_attach_getcreatevol(char *partname, const char **volname)
 	return ret;
 }
 
+static int write_firmware_ubi(unsigned long loadaddr, unsigned long filesize,
+			      struct part_info *part, char *ubivolname)
+{
+	char cmd[CONFIG_SYS_CBSIZE] = "";
+
+	/* If it is a UBIFS file system, verify it using a special function */
+	if (!ubivolname)
+		return ERR_WRITE;
+
+	/* A UBI volume exists in the partition, use 'ubi write' */
+	sprintf(cmd, "ubi write %lx %s %lx", loadaddr, ubivolname, filesize);
+	if (run_command(cmd, 0))
+		return ERR_WRITE;
+
+	printf("Verifying firmware...\n");
+	if (ubi_volume_verify(ubivolname, (char *)loadaddr, 0,
+				filesize, 0))
+		return ERR_VERIFY;
+
+	printf("Update was successful\n");
+
+	return 0;
+}
+
 static int write_firmware(unsigned long loadaddr, unsigned long filesize,
 			  struct part_info *part)
 {
@@ -212,6 +236,9 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	char *partname;
 	u8 pnum;
 	struct load_fw fwinfo;
+	char cmd[CONFIG_SYS_CBSIZE];
+	int ubisysvols = env_get_yesno("ubisysvols");
+	bool ubivol = false;
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -231,13 +258,38 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 		partname = argv[1];
 
 	if (find_dev_and_part(partname, &dev, &pnum, &part)) {
-		printf("Cannot find '%s' partition\n", partname);
-		return -1;
-	}
-
-	if (dev->id->type != MTD_DEV_TYPE_NAND) {
-		printf("not a NAND device\n");
-		return -1;
+		if (ubisysvols) {
+			/*
+			 * Check if the passed argument is a UBI volume in the
+			 * 'system' partition.
+			 */
+			if (find_dev_and_part(SYSTEM_PARTITION, &dev, &pnum,
+					      &part)) {
+				printf("Cannot find '%s' partition or UBI volume\n",
+					partname);
+				return -1;
+			}
+			if (run_command("ubi part " SYSTEM_PARTITION, 0)) {
+				printf("Cannot find '%s' partition or UBI volume\n",
+					partname);
+				return -1;
+			}
+			sprintf(cmd, "ubi check %s", partname);
+			if (run_command(cmd, 0)) {
+				printf("Cannot find '%s' partition or UBI volume\n",
+					partname);
+				return -1;
+			}
+			ubivol = true;
+		} else {
+			printf("Cannot find '%s' partition\n", partname);
+			return -1;
+		}
+	} else {
+		if (dev->id->type != MTD_DEV_TYPE_NAND) {
+			printf("not a NAND device\n");
+			return -1;
+		}
 	}
 
 	/* Ask for confirmation if needed */
@@ -326,7 +378,11 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 		goto _ret;
 	}
 #endif
-	ret = write_firmware(loadaddr, filesize, part);
+	if (ubivol)
+		ret = write_firmware_ubi(loadaddr, filesize, part, partname);
+	else
+		ret = write_firmware(loadaddr, filesize, part);
+
 	if (ret) {
 		if (ret == ERR_READ)
 			printf("Error while reading back written firmware!\n");
