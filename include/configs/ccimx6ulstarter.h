@@ -163,6 +163,47 @@
 	"mtdrecoveryindex=" CONFIG_ENV_MTD_RECOVERY_INDEX "\0" \
 	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
 	"mtdupdateindex=" CONFIG_ENV_MTD_UPDATE_INDEX "\0" \
+	"ubisysvols=no\0" \
+	"bootargs_nand_linux=" \
+		"if test ${ubisysvols} = yes; then " \
+			"setenv bootargs console=${console},${baudrate} " \
+			"${bootargs_linux} ${mtdparts} " \
+			"ubi.mtd=" SYSTEM_PARTITION " " \
+			"root=ubi0:rootfs rootfstype=ubifs rw " \
+			"${bootargs_once} ${extra_bootargs};" \
+		"else " \
+			"setenv bootargs console=${console},${baudrate} " \
+			"${bootargs_linux} ${mtdparts} ubi.mtd=${mtdlinuxindex} " \
+			"ubi.mtd=${mtdrootfsindex} root=ubi1_0 " \
+			"rootfstype=ubifs rw " \
+			"${bootargs_once} ${extra_bootargs};" \
+		"fi;\0" \
+	"loadscript=" \
+		"if test ${ubisysvols} = yes; then " \
+			"if test ${dualboot} = yes; then " \
+				"echo TODO;" \
+			"fi;" \
+			"if ubi part " SYSTEM_PARTITION "; then " \
+				"if ubifsmount ubi0:" CONFIG_LINUX_PARTITION "; then " \
+					"ubifsload ${loadaddr} ${script};" \
+				"fi;" \
+			"fi;" \
+		"else " \
+			"if test ${dualboot} = yes; then " \
+				"if test -z \"${mtdbootpart}\"; then " \
+					"setenv mtdbootpart " LINUX_A_PARTITION ";" \
+				"fi;" \
+			"else " \
+				"if test -z \"${mtdbootpart}\"; then " \
+					"setenv mtdbootpart " CONFIG_LINUX_PARTITION ";" \
+				"fi;" \
+			"fi;" \
+			"if ubi part ${mtdbootpart}; then " \
+				"if ubifsmount ubi0:${mtdbootpart}; then " \
+					"ubifsload ${loadaddr} ${script};" \
+				"fi;" \
+			"fi;" \
+		"fi;\0" \
 	"recoverycmd=" \
 		"setenv mtdbootpart " CONFIG_RECOVERY_PARTITION ";" \
 		"boot\0"
@@ -179,11 +220,6 @@
 	DUALBOOT_ENV_SETTINGS \
 	MTDPART_ENV_SETTINGS \
 	"bootargs_linux=\0" \
-	"bootargs_nand_linux=setenv bootargs console=${console},${baudrate} " \
-		"${bootargs_linux} ${mtdparts} ubi.mtd=${mtdlinuxindex} " \
-		"ubi.mtd=${mtdrootfsindex} root=ubi1_0 " \
-		"rootfstype=ubifs rw " \
-		"${bootargs_once} ${extra_bootargs}\0" \
 	"install_linux_fw_sd=if load mmc 0 ${loadaddr} install_linux_fw_sd.scr;then " \
 			"source ${loadaddr};" \
 		"fi;\0" \
@@ -192,21 +228,6 @@
 			"source ${loadaddr};" \
 		"fi;\0" \
 	"linux_file=core-image-base-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
-	"loadscript=" \
-		"if test ${dualboot} = yes; then " \
-			"if test -z \"${mtdbootpart}\"; then " \
-				"setenv mtdbootpart " LINUX_A_PARTITION ";" \
-			"fi;" \
-		"else " \
-			"if test -z \"${mtdbootpart}\"; then " \
-				"setenv mtdbootpart " CONFIG_LINUX_PARTITION ";" \
-			"fi;" \
-		"fi;" \
-		"if ubi part ${mtdbootpart}; then " \
-			"if ubifsmount ubi0:${mtdbootpart}; then " \
-				"ubifsload ${loadaddr} ${script};" \
-			"fi;" \
-		"fi;\0" \
 	"rootfs_file=core-image-base-" CONFIG_SYS_BOARD ".ubifs\0" \
 	""	/* end line */
 #else

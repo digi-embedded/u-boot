@@ -211,6 +211,7 @@ int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 	u8 pnum;
 	char *partname;
 #endif
+	int ubisysvols = env_get_yesno("ubisysvols");
 
 	if (argc < 3) {
 		fwinfo->src = SRC_TFTP;	/* default to TFTP */
@@ -265,13 +266,44 @@ int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 		else
 			partname = argv[1];
 		if (find_dev_and_part(partname, &dev, &pnum, &fwinfo->part)) {
-			printf("Cannot find '%s' partition\n", partname);
-			goto _err;
+			if (ubisysvols == 1) {
+				char cmd[CONFIG_SYS_CBSIZE] = "";
+
+				/*
+				 * Check if the passed argument is a UBI volume in the
+				 * 'system' partition.
+				 */
+				if (find_dev_and_part(SYSTEM_PARTITION, &dev,
+						      &pnum, &fwinfo->part)) {
+					printf("Cannot find '%s' partition or UBI volume\n",
+						partname);
+					return -1;
+				}
+				if (run_command("ubi part " SYSTEM_PARTITION,
+						0)) {
+					printf("Cannot find '%s' partition or UBI volume\n",
+						partname);
+					return -1;
+				}
+				sprintf(cmd, "ubi check %s", partname);
+				if (run_command(cmd, 0)) {
+					printf("Cannot find '%s' partition or UBI volume\n",
+						partname);
+					return -1;
+				}
+				fwinfo->ubivol = true;
+				strcpy(fwinfo->ubivolname, partname);
+				goto _ok;
+			} else {
+				printf("Cannot find '%s' partition\n", partname);
+				goto _err;
+			}
 		}
 #endif
 		break;
 	}
 
+_ok:
 	fwinfo->src = i;
 	return 0;
 
@@ -493,9 +525,9 @@ int load_firmware(struct load_fw *fwinfo, char *msg)
 		 * a file from the UBIFS file system. Otherwise use a raw
 		 * read using 'nand read'.
 		 */
-		if (is_ubi_partition(fwinfo->part)) {
+		if (fwinfo->ubivol) {
 			sprintf(cmd,
-				"if ubi part %s;then "
+				"if ubi part " SYSTEM_PARTITION ";then "
 					"if ubifsmount ubi0:%s;then "
 						"ubifsload 0x%lx %s;"
 #ifndef CONFIG_MTD_UBI_SKIP_REATTACH
@@ -503,14 +535,27 @@ int load_firmware(struct load_fw *fwinfo, char *msg)
 #endif
 					"fi;"
 				"fi;",
-				fwinfo->part->name, fwinfo->part->name,
+				fwinfo->ubivolname,
 				loadaddr, fwinfo->filename);
-		} else
-#endif
-		{
-			sprintf(cmd, "nand read %s 0x%lx %x", fwinfo->part->name,
-				loadaddr, (u32)fwinfo->part->size);
+		} else {
+			if (is_ubi_partition(fwinfo->part)) {
+				sprintf(cmd,
+					"if ubi part %s;then "
+ 						"if ubifsmount ubi0:%s;then "
+ 							"ubifsload 0x%lx %s;"
+ #ifndef CONFIG_MTD_UBI_SKIP_REATTACH
+ 							"ubifsumount;"
+ #endif
+						"fi;"
+					"fi;",
+					fwinfo->part->name, fwinfo->part->name,
+					loadaddr, fwinfo->filename);
+			} else {
+				sprintf(cmd, "nand read %s 0x%lx %x", fwinfo->part->name,
+					loadaddr, (u32)fwinfo->part->size);
+			}
 		}
+#endif
 		break;
 	case SRC_RAM:
 		ret = LDFW_NOT_LOADED;	/* file is already in RAM */

@@ -44,6 +44,8 @@ struct load_fw {
 	char lzipaddr[20];
 	char varload[20];
 	struct part_info *part;
+	bool ubivol;
+	char ubivolname[30];
 };
 
 #define SW_RNG_TEST_FAILED 	1
