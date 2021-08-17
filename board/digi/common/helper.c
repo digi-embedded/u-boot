@@ -15,6 +15,7 @@
 #include <malloc.h>
 #include <mapmem.h>
 #include <nand.h>
+#include <ubi_uboot.h>
 #include <version.h>
 #include <watchdog.h>
 #ifdef CONFIG_OF_LIBFDT
@@ -199,6 +200,18 @@ bool is_image_compressed(void)
 		return true;
 
 	return false;
+}
+
+int activate_ubi_part(char *partname)
+{
+	char cmd[CONFIG_SYS_CBSIZE] = "";
+	struct ubi_device *ubi = ubi_devices[0];
+
+	if (!strcmp(ubi->mtd->name, partname))
+		return 0;
+
+	sprintf(cmd, "ubi part %s", partname);
+	return run_command(cmd, 0);
 }
 
 int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
@@ -526,29 +539,27 @@ int load_firmware(struct load_fw *fwinfo, char *msg)
 		 * read using 'nand read'.
 		 */
 		if (fwinfo->ubivol) {
-			sprintf(cmd,
-				"if ubi part " SYSTEM_PARTITION ";then "
+			if (!activate_ubi_part(SYSTEM_PARTITION))
+				sprintf(cmd,
 					"if ubifsmount ubi0:%s;then "
 						"ubifsload 0x%lx %s;"
 #ifndef CONFIG_MTD_UBI_SKIP_REATTACH
 						"ubifsumount;"
 #endif
-					"fi;"
-				"fi;",
-				fwinfo->ubivolname,
-				loadaddr, fwinfo->filename);
+					"fi;",
+					fwinfo->ubivolname,
+					loadaddr, fwinfo->filename);
 		} else {
 			if (is_ubi_partition(fwinfo->part)) {
-				sprintf(cmd,
-					"if ubi part %s;then "
- 						"if ubifsmount ubi0:%s;then "
- 							"ubifsload 0x%lx %s;"
- #ifndef CONFIG_MTD_UBI_SKIP_REATTACH
- 							"ubifsumount;"
- #endif
-						"fi;"
-					"fi;",
-					fwinfo->part->name, fwinfo->part->name,
+				if (!activate_ubi_part(fwinfo->part->name))
+					sprintf(cmd,
+						"if ubifsmount ubi0:%s;then "
+							"ubifsload 0x%lx %s;"
+#ifndef CONFIG_MTD_UBI_SKIP_REATTACH
+							"ubifsumount;"
+#endif
+						"fi;",
+					fwinfo->part->name,
 					loadaddr, fwinfo->filename);
 			} else {
 				sprintf(cmd, "nand read %s 0x%lx %x", fwinfo->part->name,
