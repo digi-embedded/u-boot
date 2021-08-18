@@ -57,7 +57,9 @@
 #define ZIMAGE_START_ADDR	10
 #define ZIMAGE_END_ADDR	11
 
+#ifdef CONFIG_ANDROID_LOAD_CONNECTCORE_FDT
 extern int connectcore_load_fdt(ulong fdt_addr, struct dt_table_header *dtt_header);
+#endif
 
 /* Boot metric variables */
 boot_metric metrics = {
