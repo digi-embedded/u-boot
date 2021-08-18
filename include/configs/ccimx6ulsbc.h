@@ -174,12 +174,13 @@
 	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
 	"mtdupdateindex=" CONFIG_ENV_MTD_UPDATE_INDEX "\0" \
 	"ubisysvols=no\0" \
+	"rootfsvol=" ROOTFS_PARTITION "\0" \
 	"bootargs_nand_linux=" \
 		"if test ${ubisysvols} = yes; then " \
 			"setenv bootargs console=${console},${baudrate} " \
 			"${bootargs_linux} ${mtdparts} " \
 			"ubi.mtd=" SYSTEM_PARTITION " " \
-			"root=ubi0:rootfs rootfstype=ubifs rw " \
+			"root=ubi0:${rootfsvol} rootfstype=ubifs rw " \
 			"${bootargs_once} ${extra_bootargs};" \
 		"else " \
 			"setenv bootargs console=${console},${baudrate} " \
@@ -189,25 +190,22 @@
 			"${bootargs_once} ${extra_bootargs};" \
 		"fi;\0" \
 	"loadscript=" \
-		"if test ${ubisysvols} = yes; then " \
-			"if test ${dualboot} = yes; then " \
-				"echo TODO;" \
+		"if test ${dualboot} = yes; then " \
+			"if test -z \"${mtdbootpart}\"; then " \
+				"setenv mtdbootpart " LINUX_A_PARTITION ";" \
 			"fi;" \
+		"else " \
+			"if test -z \"${mtdbootpart}\"; then " \
+				"setenv mtdbootpart " CONFIG_LINUX_PARTITION ";" \
+			"fi;" \
+		"fi;" \
+		"if test ${ubisysvols} = yes; then " \
 			"if ubi part " SYSTEM_PARTITION "; then " \
-				"if ubifsmount ubi0:" CONFIG_LINUX_PARTITION "; then " \
+				"if ubifsmount ubi0:${mtdbootpart}; then " \
 					"ubifsload ${loadaddr} ${script};" \
 				"fi;" \
 			"fi;" \
 		"else " \
-			"if test ${dualboot} = yes; then " \
-				"if test -z \"${mtdbootpart}\"; then " \
-					"setenv mtdbootpart " LINUX_A_PARTITION ";" \
-				"fi;" \
-			"else " \
-				"if test -z \"${mtdbootpart}\"; then " \
-					"setenv mtdbootpart " CONFIG_LINUX_PARTITION ";" \
-				"fi;" \
-			"fi;" \
 			"if ubi part ${mtdbootpart}; then " \
 				"if ubifsmount ubi0:${mtdbootpart}; then " \
 					"ubifsload ${loadaddr} ${script};" \
@@ -222,6 +220,8 @@
 	"mtdlinux_b_index=" ENV_MTD_LINUX_B_INDEX "\0" \
 	"mtdrootfs_a_index=" ENV_MTD_ROOTFS_A_INDEX "\0" \
 	"mtdrootfs_b_index=" ENV_MTD_ROOTFS_B_INDEX "\0" \
+	"rootfsvol_a=" ROOTFS_A_PARTITION "\0" \
+	"rootfsvol_b=" ROOTFS_B_PARTITION "\0" \
 	"active_system=" LINUX_A_PARTITION "\0"
 
 #define CONFIG_EXTRA_ENV_SETTINGS \

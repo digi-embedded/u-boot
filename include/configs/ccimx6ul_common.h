@@ -191,6 +191,8 @@
 /* Dualboot partition configuration */
 #define LINUX_A_PARTITION		"linux_a"
 #define LINUX_B_PARTITION		"linux_b"
+#define ROOTFS_A_PARTITION		"rootfs_a"
+#define ROOTFS_B_PARTITION		"rootfs_b"
 
 /* One 'system' partition containing many UBI volumes (modern layout) */
 #define MTDPARTS_SMALL			"mtdparts=" CONFIG_NAND_NAME ":" \
@@ -215,12 +217,28 @@
 					"ubi create " CONFIG_RECOVERY_PARTITION " 2000000;" \
 					"ubi create " ROOTFS_PARTITION " 20000000;" \
 					"ubi create update;"
+#define UBIVOLS_DUALBOOT_256MB		"ubi create " LINUX_A_PARTITION " c00000;" \
+					"ubi create " LINUX_B_PARTITION " c00000;" \
+					"ubi create " ROOTFS_A_PARTITION " 7100000;" \
+					"ubi create " ROOTFS_B_PARTITION ";"
+#define UBIVOLS_DUALBOOT_512MB		"ubi create " LINUX_A_PARTITION " 4000000;" \
+					"ubi create " LINUX_B_PARTITION " 4000000;" \
+					"ubi create " ROOTFS_A_PARTITION " e600000;" \
+					"ubi create " ROOTFS_B_PARTITION ";"
+#define UBIVOLS_DUALBOOT_1024MB		"ubi create " LINUX_A_PARTITION " 4000000;" \
+					"ubi create " LINUX_B_PARTITION " 4000000;" \
+					"ubi create " ROOTFS_A_PARTITION " 10000000;" \
+					"ubi create " ROOTFS_B_PARTITION ";"
 #define CREATE_UBIVOLS_SCRIPT		"nand erase.part " SYSTEM_PARTITION ";" \
 					"if test $? = 1; then " \
 					"	echo \"** Error erasing '" SYSTEM_PARTITION "' partition\";" \
 					"else" \
 					"	ubi part " SYSTEM_PARTITION ";" \
-					"	%s" \
+					"	if test ${dualboot} = yes; then " \
+					"		%s" \
+					"	else " \
+					"		%s" \
+					"	fi;" \
 					"fi"
 
 /* One partition for each UBI volume (traditional layout) */

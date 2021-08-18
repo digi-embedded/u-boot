@@ -400,25 +400,20 @@ static const struct boot_mode board_boot_modes[] = {
 void generate_ubi_volumes_script(void)
 {
 	struct mtd_info *nand = get_nand_dev_by_index(0);
-	// TODO: dualboot support
-	int dualboot = env_get_yesno("dualboot");
 	char script[CONFIG_SYS_CBSIZE] = "";
 
 	if (nand->size > SZ_512M) {
-		if (dualboot == 1)
-			env_set("ubivolscript", "TODO");
-		else
-			sprintf(script, CREATE_UBIVOLS_SCRIPT, UBIVOLS_1024MB);
+		sprintf(script, CREATE_UBIVOLS_SCRIPT,
+				UBIVOLS_DUALBOOT_1024MB,
+				UBIVOLS_1024MB);
 	} else if (nand->size > SZ_256M) {
-		if (dualboot == 1)
-			env_set("ubivolscript", "TODO");
-		else
-			sprintf(script, CREATE_UBIVOLS_SCRIPT, UBIVOLS_512MB);
+		sprintf(script, CREATE_UBIVOLS_SCRIPT,
+				UBIVOLS_DUALBOOT_512MB,
+				UBIVOLS_512MB);
 	} else {
-		if (dualboot == 1)
-			env_set("ubivolscript", "TODO");
-		else
-			sprintf(script, CREATE_UBIVOLS_SCRIPT, UBIVOLS_256MB);
+		sprintf(script, CREATE_UBIVOLS_SCRIPT,
+				UBIVOLS_DUALBOOT_256MB,
+				UBIVOLS_256MB);
 	}
 	env_set("ubivolscript", script);
 }
