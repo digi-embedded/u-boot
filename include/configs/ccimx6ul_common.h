@@ -303,6 +303,15 @@
 #define CONFIG_ENV_MTD_RECOVERY_INDEX	"4"
 #define CONFIG_ENV_MTD_ROOTFS_INDEX	"5"
 #define CONFIG_ENV_MTD_UPDATE_INDEX	"6"
+#define CREATE_MTDPARTS_SCRIPT		"if test -n $ubisysvols && test $ubisysvols = yes; then " \
+						"setenv mtdparts %s;" \
+					"else " \
+						"if test ${dualboot} = yes; then " \
+							"setenv mtdparts %s;" \
+						"else " \
+							"setenv mtdparts %s;" \
+						"fi;" \
+					"fi"
 
 #define CONFIG_NAND_NAME                "gpmi-nand"
 #define MTDIDS_DEFAULT                  "nand0=" CONFIG_NAND_NAME

@@ -45,7 +45,6 @@ static env_t *env_ptr = (env_t *)CONFIG_NAND_ENV_DST;
 DECLARE_GLOBAL_DATA_PTR;
 
 #ifdef OLD_ENV_OFFSET_LOCATIONS
-extern void generate_partition_table(void);
 long long env_get_offset_old(int index);
 #endif
 
@@ -476,7 +475,8 @@ static int env_nand_load(void)
 		 */
 		var = env_get("mtdparts");
 		strcpy(mtdparts_old, var);
-		generate_partition_table();
+		if (env_get("partition_nand_linux"))
+			run_command("run partition_nand_linux", 0);
 		var = env_get("mtdparts");
 		strcpy(mtdparts_new, var);
 		if (strcmp(mtdparts_old, mtdparts_new)) {

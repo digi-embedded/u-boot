@@ -421,54 +421,39 @@ void generate_ubi_volumes_script(void)
 void generate_partition_table(void)
 {
 	struct mtd_info *nand = get_nand_dev_by_index(0);
-	int dualboot = env_get_yesno("dualboot");
-	int ubisysvols = env_get_yesno("ubisysvols");
+	char script[CONFIG_SYS_CBSIZE] = "";
 
-	if (ubisysvols == 1) {
-		/* modern partitioning (same for regular or dual boot) */
-		if (nand->size > SZ_256M)
-			env_set("mtdparts", MTDPARTS_BIG);
-		else
-			env_set("mtdparts", MTDPARTS_SMALL);
+	if (nand->size > SZ_512M) {
+		sprintf(script, CREATE_MTDPARTS_SCRIPT,
+				MTDPARTS_BIG,
+				MTDPARTS_DUALBOOT_1024MB,
+				MTDPARTS_1024MB);
+	} else if (nand->size > SZ_256M) {
+		sprintf(script, CREATE_MTDPARTS_SCRIPT,
+				MTDPARTS_BIG,
+				MTDPARTS_DUALBOOT_512MB,
+				MTDPARTS_512MB);
 	} else {
-		/* traditional partitioning */
-		if (nand->size > SZ_512M) {
-			if (dualboot == 1)
-				env_set("mtdparts", MTDPARTS_DUALBOOT_1024MB);
-			else
-				env_set("mtdparts", MTDPARTS_1024MB);
-		} else if (nand->size > SZ_256M) {
-			if (dualboot == 1)
-				env_set("mtdparts", MTDPARTS_DUALBOOT_512MB);
-			else
-				env_set("mtdparts", MTDPARTS_512MB);
-		} else {
-			if (dualboot == 1)
-				env_set("mtdparts", MTDPARTS_DUALBOOT_256MB);
-			else
-				env_set("mtdparts", MTDPARTS_256MB);
-		}
+		sprintf(script, CREATE_MTDPARTS_SCRIPT,
+				MTDPARTS_SMALL,
+				MTDPARTS_DUALBOOT_256MB,
+				MTDPARTS_256MB);
 	}
-
-	/* set some dualboot environment variables */
-	if (dualboot == 1) {
-		env_set("mtdlinuxindex", ENV_MTD_LINUX_A_INDEX);
-		env_set("mtdrootfsindex", ENV_MTD_ROOTFS_A_INDEX);
-		env_set("mtdbootpart", LINUX_A_PARTITION);
-	}
+	env_set("partition_nand_linux", script);
 }
 
 void som_default_environment(void)
 {
 	char var[10];
-	char *parttable;
 	char hex_val[9]; // 8 hex chars + null byte
 	int i;
 
-	/* Partition table */
-	parttable = env_get("mtdparts");
-	if (!parttable)
-		generate_partition_table();
+	/* Partition table script */
+	generate_partition_table();
+
+	/* Run script to generate partition table if there's none */
+	if (!env_get("mtdparts") && env_get("partition_nand_linux"))
+		run_command("run partition_nand_linux", 0);
 
 	/* UBI volumes */
 	generate_ubi_volumes_script();
