@@ -462,10 +462,8 @@ void som_default_environment(void)
 {
 	char var[10];
 	char *parttable;
-	char *ubivolscript;
 	char hex_val[9]; // 8 hex chars + null byte
 	int i;
-	int ubisysvols = env_get_yesno("ubisysvols");
 
 	/* Partition table */
 	parttable = env_get("mtdparts");
@@ -473,11 +471,7 @@ void som_default_environment(void)
 		generate_partition_table();
 
 	/* UBI volumes */
-	if (ubisysvols == 1) {
-		ubivolscript = env_get("ubivolscript");
-		if (!ubivolscript)
-			generate_ubi_volumes_script();
-	}
+	generate_ubi_volumes_script();
 
 	/* Set $module_variant variable */
 	sprintf(var, "0x%02x", my_hwid.variant);

@@ -229,16 +229,20 @@
 					"ubi create " LINUX_B_PARTITION " 4000000;" \
 					"ubi create " ROOTFS_A_PARTITION " 10000000;" \
 					"ubi create " ROOTFS_B_PARTITION ";"
-#define CREATE_UBIVOLS_SCRIPT		"nand erase.part " SYSTEM_PARTITION ";" \
-					"if test $? = 1; then " \
-					"	echo \"** Error erasing '" SYSTEM_PARTITION "' partition\";" \
-					"else" \
-					"	ubi part " SYSTEM_PARTITION ";" \
-					"	if test ${dualboot} = yes; then " \
-					"		%s" \
-					"	else " \
-					"		%s" \
-					"	fi;" \
+#define CREATE_UBIVOLS_SCRIPT		"if test $ubisysvols = yes; then " \
+						"nand erase.part " SYSTEM_PARTITION ";" \
+						"if test $? = 1; then " \
+						"	echo \"** Error erasing '" SYSTEM_PARTITION "' partition\";" \
+						"else" \
+						"	ubi part " SYSTEM_PARTITION ";" \
+						"	if test ${dualboot} = yes; then " \
+						"		%s" \
+						"	else " \
+						"		%s" \
+						"	fi;" \
+						"fi;" \
+					"else " \
+						"echo \"Set \'ubisysvols\' to \'yes\' first\";" \
 					"fi"
 
 /* One partition for each UBI volume (traditional layout) */
