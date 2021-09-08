@@ -207,7 +207,7 @@ static unsigned long get_boot_device_offset(void *dev, int dev_type)
 			u8 part = EXT_CSD_EXTRACT_BOOT_PART(mmc->part_config);
 
 			if (part == 1 || part == 2) {
-				if (is_imx8qxp() && is_soc_rev(CHIP_REV_B))
+				if ((is_imx8qxp() || is_imx8dx()) && is_soc_rev(CHIP_REV_B))
 					offset = CONTAINER_HDR_MMCSD_OFFSET;
 				else
 					offset = CONTAINER_HDR_EMMC_OFFSET;
