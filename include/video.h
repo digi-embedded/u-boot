@@ -243,6 +243,13 @@ static inline int video_sync_copy(struct udevice *dev, void *from, void *to)
 }
 #endif
 
+/**
+ * video_is_active() - Test if one video device it active
+ *
+ * @return true if at least one video device is active, else false.
+ */
+bool video_is_active(void);
+
 #endif /* CONFIG_DM_VIDEO */
 
 #ifndef CONFIG_DM_VIDEO
