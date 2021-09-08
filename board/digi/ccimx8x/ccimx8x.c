@@ -115,6 +115,27 @@ struct ccimx8_variant ccimx8x_variants[] = {
 	},
 };
 
+phys_size_t board_phys_sdram_1_size(void)
+{
+	struct digi_hwid my_hwid;
+        phys_size_t ramsize = 0;
+
+	if (!board_read_hwid(&my_hwid)) {
+		ramsize = hwid_get_ramsize(&my_hwid);
+
+		/* if RAM size was not coded, use variant to obtain RAM size */
+		if (!ramsize && my_hwid.variant < ARRAY_SIZE(ccimx8x_variants))
+			ramsize = (phys_size_t)ccimx8x_variants[my_hwid.variant].sdram;
+	}
+
+	if (!ramsize) {
+		/* Default to lowest RAM size supported (512 MB) */
+		printk("Cannot determine RAM size. Using default size (%d MiB).\n", PHYS_SDRAM_1_SIZE >> 20);
+		ramsize = PHYS_SDRAM_1_SIZE;
+	}
+	return ramsize;
+}
+
 int mmc_get_bootdevindex(void)
 {
 	switch(get_boot_device()) {
