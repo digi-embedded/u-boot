@@ -176,7 +176,7 @@
 	"ubisysvols=no\0" \
 	"rootfsvol=" ROOTFS_PARTITION "\0" \
 	"bootargs_nand_linux=" \
-		"if test ${ubisysvols} = yes; then " \
+		"if test -n ${ubisysvols} && test ${ubisysvols} = yes; then " \
 			"setenv bootargs console=${console},${baudrate} " \
 			"${bootargs_linux} ${mtdparts} " \
 			"ubi.mtd=" SYSTEM_PARTITION " " \
@@ -190,7 +190,7 @@
 			"${bootargs_once} ${extra_bootargs};" \
 		"fi;\0" \
 	"loadscript=" \
-		"if test ${dualboot} = yes; then " \
+		"if test -n ${dualboot} && test ${dualboot} = yes; then " \
 			"if test -z \"${mtdbootpart}\"; then " \
 				"setenv mtdbootpart " LINUX_A_PARTITION ";" \
 			"fi;" \
@@ -199,7 +199,7 @@
 				"setenv mtdbootpart " CONFIG_LINUX_PARTITION ";" \
 			"fi;" \
 		"fi;" \
-		"if test ${ubisysvols} = yes; then " \
+		"if test -n ${ubisysvols} && test ${ubisysvols} = yes; then " \
 			"if ubi part " SYSTEM_PARTITION "; then " \
 				"if ubifsmount ubi0:${mtdbootpart}; then " \
 					"ubifsload ${loadaddr} ${script};" \
