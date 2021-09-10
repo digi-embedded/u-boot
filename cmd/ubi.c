@@ -864,7 +864,19 @@ static int do_ubi(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		}
 		/* Use maximum available size */
 		if (!size) {
-			size = (int64_t)ubi->avail_pebs * ubi->leb_size;
+			/*
+			 * If available size is 5 times bigger than the
+			 * calculated space for bad blocks, subtract these from
+			 * the size, to allow those to be used for bad block
+			 * handling.
+			 * NOTE: 5 is a magic chosen number to make sure we
+			 * don't end up with a too small volume.
+			 */
+			if (ubi->avail_pebs > (5 * ubi->beb_rsvd_pebs))
+				size = ubi->avail_pebs - ubi->beb_rsvd_pebs;
+			else
+				size = ubi->avail_pebs;
+			size = (int64_t)(size * ubi->leb_size);
 			printf("No size specified -> Using max size (%lld)\n", size);
 		}
 		/* E.g., create volume */
