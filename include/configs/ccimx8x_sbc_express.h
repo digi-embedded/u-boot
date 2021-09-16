@@ -125,7 +125,7 @@
 	"loadbootscript=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
 	"loadimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
 	"loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
-		"partition_mmc_android=mmc rescan;" \
+	"partition_mmc_android=mmc rescan;" \
 		"if mmc dev ${mmcdev} 0; then " \
 			"gpt write mmc ${mmcdev} ${parts_android};" \
 			"mmc rescan;" \
