@@ -165,6 +165,7 @@
 #define CONFIG_DWC_AHSATA_BASE_ADDR     SATA_ARB_BASE_ADDR
 #define CONFIG_LBA48
 #define CONFIG_LIBATA
+#define CONFIG_FASTBOOT_SATA_NO 0
 #endif
 
 /* Ethernet */
@@ -209,6 +210,8 @@
 #define CONFIG_USB_MAX_CONTROLLER_COUNT	2 /* Enabled USB controller number */
 #endif
 
+#define CONFIG_SERIAL_TAG
+
 /* Environment */
 #define CONFIG_ENV_IS_IN_MMC
 
@@ -220,9 +223,6 @@
 #define CONFIG_SYS_MMC_ENV_DEV		0
 #define CONFIG_SYS_MMC_ENV_PART		2
 #endif
-
-/* Add support for sparse images */
-#define CONFIG_FASTBOOT_FLASH
 
 #define CONFIG_TFTP_UPDATE_ONTHEFLY      /* support to tftp and update on-the-fly */
 

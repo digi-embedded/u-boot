@@ -61,6 +61,10 @@ extern void trusty_os_init(void);
 #include <fsl_avb.h>
 #endif
 
+#ifdef CONFIG_CMD_SATA
+#include "sata.h"
+#endif
+
 #define FASTBOOT_VERSION		"0.4"
 
 #ifdef CONFIG_FASTBOOT_LOCK
@@ -1467,6 +1471,7 @@ void board_fastboot_setup(void)
 	case MMC2_BOOT:
 	case MMC3_BOOT:
 	case MMC4_BOOT:
+	case WEIM_NOR_BOOT:
 		dev_no = mmc_get_env_dev();
 		sprintf(boot_dev_part,"mmc%d",dev_no);
 		if (!getenv("fastboot_dev"))
