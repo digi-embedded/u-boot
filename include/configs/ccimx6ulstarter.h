@@ -181,9 +181,10 @@
 		"fi;\0" \
 	"loadscript=" \
 		"if test -n ${dualboot} && test ${dualboot} = yes; then " \
-			"if test -z \"${mtdbootpart}\"; then " \
-				"setenv mtdbootpart " LINUX_A_PARTITION ";" \
+			"if test -z \"${active_system}\"; then " \
+				"setenv active_system " LINUX_A_PARTITION ";" \
 			"fi;" \
+			"setenv mtdbootpart ${active_system};" \
 		"else " \
 			"if test -z \"${mtdbootpart}\"; then " \
 				"setenv mtdbootpart " CONFIG_LINUX_PARTITION ";" \
