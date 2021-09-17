@@ -595,6 +595,16 @@ error:
 	return ret;
 }
 
+static bool board_is_stm32mp13x_dk(void)
+{
+	if (CONFIG_IS_ENABLED(TARGET_ST_STM32MP13x) &&
+	    (of_machine_is_compatible("st,stm32mp135d-dk") ||
+	     of_machine_is_compatible("st,stm32mp135f-dk")))
+		return true;
+
+	return false;
+}
+
 static bool board_is_stm32mp15x_dk2(void)
 {
 	if (CONFIG_IS_ENABLED(TARGET_ST_STM32MP15x) &&
@@ -619,6 +629,7 @@ static bool board_is_stm32mp15x_ev1(void)
 
 /* touchscreen driver: only used for pincontrol configuration */
 static const struct udevice_id goodix_ids[] = {
+	{ .compatible = "goodix,gt911", },
 	{ .compatible = "goodix,gt9147", },
 	{ }
 };
@@ -637,6 +648,14 @@ static void board_stm32mp15x_ev1_init(void)
 	uclass_get_device_by_driver(UCLASS_NOP, DM_DRIVER_GET(goodix), &dev);
 }
 
+static void board_stm32mp13x_dk_init(void)
+{
+	struct udevice *dev;
+
+	/* configure IRQ line on DK for touchscreen before LCD reset */
+	uclass_get_device_by_driver(UCLASS_NOP, DM_DRIVER_GET(goodix), &dev);
+}
+
 /* board dependent setup after realloc */
 int board_init(void)
 {
@@ -650,6 +669,9 @@ int board_init(void)
 	}
 
 	board_key_check();
+
+	if (board_is_stm32mp13x_dk())
+		board_stm32mp13x_dk_init();
 
 	if (board_is_stm32mp15x_ev1())
 		board_stm32mp15x_ev1_init();
