@@ -229,13 +229,13 @@
 					"ubi create " LINUX_B_PARTITION " 4000000;" \
 					"ubi create " ROOTFS_A_PARTITION " 10000000;" \
 					"ubi create " ROOTFS_B_PARTITION ";"
-#define CREATE_UBIVOLS_SCRIPT		"if test $ubisysvols = yes; then " \
+#define CREATE_UBIVOLS_SCRIPT		"if test \"${ubisysvols}\" = yes; then " \
 						"nand erase.part " SYSTEM_PARTITION ";" \
 						"if test $? = 1; then " \
 						"	echo \"** Error erasing '" SYSTEM_PARTITION "' partition\";" \
 						"else" \
 						"	ubi part " SYSTEM_PARTITION ";" \
-						"	if test ${dualboot} = yes; then " \
+						"	if test \"${dualboot}\" = yes; then " \
 						"		%s" \
 						"	else " \
 						"		%s" \
@@ -303,10 +303,10 @@
 #define CONFIG_ENV_MTD_RECOVERY_INDEX	"4"
 #define CONFIG_ENV_MTD_ROOTFS_INDEX	"5"
 #define CONFIG_ENV_MTD_UPDATE_INDEX	"6"
-#define CREATE_MTDPARTS_SCRIPT		"if test -n $ubisysvols && test $ubisysvols = yes; then " \
+#define CREATE_MTDPARTS_SCRIPT		"if test \"${ubisysvols}\" = yes; then " \
 						"setenv mtdparts %s;" \
 					"else " \
-						"if test ${dualboot} = yes; then " \
+						"if test \"${dualboot}\" = yes; then " \
 							"setenv mtdparts %s;" \
 						"else " \
 							"setenv mtdparts %s;" \
