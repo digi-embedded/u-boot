@@ -207,7 +207,7 @@ int activate_ubi_part(char *partname)
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	struct ubi_device *ubi = ubi_devices[0];
 
-	if (!strcmp(ubi->mtd->name, partname))
+	if (ubi && !strcmp(ubi->mtd->name, partname))
 		return 0;
 
 	sprintf(cmd, "ubi part %s", partname);
