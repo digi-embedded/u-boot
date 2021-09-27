@@ -10,8 +10,10 @@
 #include <misc.h>
 #include <mmc.h>
 #include <part.h>
+#include <tee.h>
 #include <asm/arch/stm32mp1_smc.h>
 #include <asm/global_data.h>
+#include <dm/device_compat.h>
 #include <dm/uclass.h>
 #include <jffs2/load_kernel.h>
 #include <linux/list.h>
@@ -80,6 +82,109 @@ struct fip_toc_header {
 };
 
 DECLARE_GLOBAL_DATA_PTR;
+
+/* OPTEE TA NVMEM helpers fucntions */
+#define TA_NVMEM_UUID { 0x1a8342cc, 0x81a5, 0x4512, \
+		{ 0x99, 0xfe, 0x9e, 0x2b, 0x3e, 0x37, 0xd6, 0x26 } }
+
+/*
+ * Read NVMEM memory for STM32CubeProgrammer
+ *
+ * [in]	     value            a: Type
+ *                               0 to read OTP
+ * [out]     memref           buffer: Output buffer to store read values
+ *                            size: Size of buffer to be read
+ *
+ * Return codes:
+ * TEE_SUCCESS - Invoke command success
+ * TEE_ERROR_BAD_PARAMETERS - Incorrect input param
+ */
+#define TA_NVMEM_READ		0x0
+
+/*
+ * Write NVMEM memory for STM32CubeProgrammer
+ *
+ * [in]	     value            a: Type
+ *                               0 to read OTP
+ * [in]      memref           buffer: Input buffer to read values
+ *                            size: Size of buffer to be written
+ *
+ * Return codes:
+ * TEE_SUCCESS - Invoke command success
+ * TEE_ERROR_BAD_PARAMETERS - Incorrect input param
+ */
+#define TA_NVMEM_WRITE		0x1
+
+/* value of TA_NVMEM type = value[in] a */
+#define NVMEM_OTP		0
+
+static int optee_ta_open(struct stm32prog_data *data)
+{
+	const struct tee_optee_ta_uuid uuid = TA_NVMEM_UUID;
+	struct tee_open_session_arg arg;
+	struct udevice *tee = NULL;
+	int rc;
+
+	if (data->tee)
+		return 0;
+
+	tee = tee_find_device(NULL, NULL, NULL, NULL);
+	if (!tee)
+		return -ENODEV;
+
+	memset(&arg, 0, sizeof(arg));
+	tee_optee_ta_uuid_to_octets(arg.uuid, &uuid);
+	rc = tee_open_session(tee, &arg, 0, NULL);
+	if (rc < 0)
+		return -ENODEV;
+
+	data->tee = tee;
+	data->tee_session = arg.session;
+
+	return 0;
+}
+
+static int optee_ta_invoke(struct stm32prog_data *data, int cmd, int type,
+			   void *buff, ulong size)
+{
+	struct tee_invoke_arg arg;
+	struct tee_param param[2];
+	struct tee_shm *buff_shm;
+	int rc;
+
+	rc = tee_shm_register(data->tee, buff, size, 0, &buff_shm);
+	if (rc)
+		return rc;
+
+	memset(&arg, 0, sizeof(arg));
+	arg.func = cmd;
+	arg.session = data->tee_session;
+
+	memset(param, 0, sizeof(param));
+	param[0].attr = TEE_PARAM_ATTR_TYPE_VALUE_INPUT;
+	param[0].u.value.a = type;
+
+	if (cmd == TA_NVMEM_WRITE)
+		param[1].attr = TEE_PARAM_ATTR_TYPE_MEMREF_INPUT;
+	else
+		param[1].attr = TEE_PARAM_ATTR_TYPE_MEMREF_OUTPUT;
+
+	param[1].u.memref.shm = buff_shm;
+	param[1].u.memref.size = size;
+
+	rc = tee_invoke_func(data->tee, &arg, 2, param);
+	if (rc < 0 || arg.ret != 0) {
+		dev_err(data->tee,
+			"TA_NVMEM invoke failed TEE err: %x, err:%x\n",
+			arg.ret, rc);
+		if (!rc)
+			rc = -EIO;
+	}
+
+	tee_shm_free(buff_shm);
+
+	return rc;
+}
 
 /* partition handling routines : CONFIG_CMD_MTDPARTS */
 int mtdparts_init(void);
@@ -1154,7 +1259,9 @@ static int dfu_init_entities(struct stm32prog_data *data)
 	struct dfu_entity *dfu;
 	int alt_nb;
 
-	alt_nb = 2; /* number of virtual = CMD, OTP*/
+	alt_nb = 1; /* number of virtual = CMD*/
+	if (IS_ENABLED(CONFIG_CMD_STM32PROG_OTP))
+		alt_nb++; /* OTP*/
 	if (CONFIG_IS_ENABLED(DM_PMIC))
 		alt_nb++; /* PMIC NVMEM*/
 
@@ -1205,8 +1312,12 @@ static int dfu_init_entities(struct stm32prog_data *data)
 	if (!ret)
 		ret = stm32prog_alt_add_virt(dfu, "virtual", PHASE_CMD, CMD_SIZE);
 
-	if (!ret)
-		ret = stm32prog_alt_add_virt(dfu, "OTP", PHASE_OTP, OTP_SIZE);
+	if (!ret && IS_ENABLED(CONFIG_CMD_STM32PROG_OTP)) {
+		ret = optee_ta_open(data);
+		log_debug("optee_ta result %d\n", ret);
+		ret = stm32prog_alt_add_virt(dfu, "OTP", PHASE_OTP,
+					     data->tee ? OTP_SIZE_TA : OTP_SIZE_SMC);
+	}
 
 	if (!ret && CONFIG_IS_ENABLED(DM_PMIC))
 		ret = stm32prog_alt_add_virt(dfu, "PMIC", PHASE_PMIC, PMIC_SIZE);
@@ -1224,19 +1335,26 @@ static int dfu_init_entities(struct stm32prog_data *data)
 int stm32prog_otp_write(struct stm32prog_data *data, u32 offset, u8 *buffer,
 			long *size)
 {
+	u32 otp_size = data->tee ? OTP_SIZE_TA : OTP_SIZE_SMC;
 	log_debug("%s: %x %lx\n", __func__, offset, *size);
 
+	if (!IS_ENABLED(CONFIG_CMD_STM32PROG_OTP)) {
+		stm32prog_err("OTP update not supported");
+
+		return -ENOTSUPP;
+	}
+
 	if (!data->otp_part) {
-		data->otp_part = memalign(CONFIG_SYS_CACHELINE_SIZE, OTP_SIZE);
+		data->otp_part = memalign(CONFIG_SYS_CACHELINE_SIZE, otp_size);
 		if (!data->otp_part)
 			return -ENOMEM;
 	}
 
 	if (!offset)
-		memset(data->otp_part, 0, OTP_SIZE);
+		memset(data->otp_part, 0, otp_size);
 
-	if (offset + *size > OTP_SIZE)
-		*size = OTP_SIZE - offset;
+	if (offset + *size > otp_size)
+		*size = otp_size - offset;
 
 	memcpy((void *)((u32)data->otp_part + offset), buffer, *size);
 
@@ -1246,12 +1364,13 @@ int stm32prog_otp_write(struct stm32prog_data *data, u32 offset, u8 *buffer,
 int stm32prog_otp_read(struct stm32prog_data *data, u32 offset, u8 *buffer,
 		       long *size)
 {
+	u32 otp_size = data->tee ? OTP_SIZE_TA : OTP_SIZE_SMC;
 	int result = 0;
 
-	if (!IS_ENABLED(CONFIG_ARM_SMCCC)) {
+	if (!IS_ENABLED(CONFIG_CMD_STM32PROG_OTP)) {
 		stm32prog_err("OTP update not supported");
 
-		return -1;
+		return -ENOTSUPP;
 	}
 
 	log_debug("%s: %x %lx\n", __func__, offset, *size);
@@ -1259,7 +1378,7 @@ int stm32prog_otp_read(struct stm32prog_data *data, u32 offset, u8 *buffer,
 	if (!offset) {
 		if (!data->otp_part)
 			data->otp_part =
-				memalign(CONFIG_SYS_CACHELINE_SIZE, OTP_SIZE);
+				memalign(CONFIG_SYS_CACHELINE_SIZE, otp_size);
 
 		if (!data->otp_part) {
 			result = -ENOMEM;
@@ -1267,11 +1386,16 @@ int stm32prog_otp_read(struct stm32prog_data *data, u32 offset, u8 *buffer,
 		}
 
 		/* init struct with 0 */
-		memset(data->otp_part, 0, OTP_SIZE);
+		memset(data->otp_part, 0, otp_size);
 
 		/* call the service */
-		result = stm32_smc_exec(STM32_SMC_BSEC, STM32_SMC_READ_ALL,
-					(u32)data->otp_part, 0);
+		result = -ENOTSUPP;
+		if (data->tee && CONFIG_IS_ENABLED(OPTEE))
+			result = optee_ta_invoke(data, TA_NVMEM_READ, NVMEM_OTP,
+						 data->otp_part, OTP_SIZE_TA);
+		else if (IS_ENABLED(CONFIG_ARM_SMCCC))
+			result = stm32_smc_exec(STM32_SMC_BSEC, STM32_SMC_READ_ALL,
+						(u32)data->otp_part, 0);
 		if (result)
 			goto end_otp_read;
 	}
@@ -1281,8 +1405,8 @@ int stm32prog_otp_read(struct stm32prog_data *data, u32 offset, u8 *buffer,
 		goto end_otp_read;
 	}
 
-	if (offset + *size > OTP_SIZE)
-		*size = OTP_SIZE - offset;
+	if (offset + *size > otp_size)
+		*size = otp_size - offset;
 	memcpy(buffer, (void *)((u32)data->otp_part + offset), *size);
 
 end_otp_read:
@@ -1296,10 +1420,10 @@ int stm32prog_otp_start(struct stm32prog_data *data)
 	int result = 0;
 	struct arm_smccc_res res;
 
-	if (!IS_ENABLED(CONFIG_ARM_SMCCC)) {
+	if (!IS_ENABLED(CONFIG_CMD_STM32PROG_OTP)) {
 		stm32prog_err("OTP update not supported");
 
-		return -1;
+		return -ENOTSUPP;
 	}
 
 	if (!data->otp_part) {
@@ -1307,28 +1431,34 @@ int stm32prog_otp_start(struct stm32prog_data *data)
 		return -1;
 	}
 
-	arm_smccc_smc(STM32_SMC_BSEC, STM32_SMC_WRITE_ALL,
-		      (u32)data->otp_part, 0, 0, 0, 0, 0, &res);
+	result = -ENOTSUPP;
+	if (data->tee && CONFIG_IS_ENABLED(OPTEE)) {
+		result = optee_ta_invoke(data, TA_NVMEM_WRITE, NVMEM_OTP,
+					 data->otp_part, OTP_SIZE_TA);
+	} else if (IS_ENABLED(CONFIG_ARM_SMCCC)) {
+		arm_smccc_smc(STM32_SMC_BSEC, STM32_SMC_WRITE_ALL,
+			      (u32)data->otp_part, 0, 0, 0, 0, 0, &res);
 
-	if (!res.a0) {
-		switch (res.a1) {
-		case 0:
-			result = 0;
-			break;
-		case 1:
-			stm32prog_err("Provisioning");
-			result = 0;
-			break;
-		default:
-			log_err("%s: OTP incorrect value (err = %ld)\n",
-				__func__, res.a1);
+		if (!res.a0) {
+			switch (res.a1) {
+			case 0:
+				result = 0;
+				break;
+			case 1:
+				stm32prog_err("Provisioning");
+				result = 0;
+				break;
+			default:
+				log_err("%s: OTP incorrect value (err = %ld)\n",
+					__func__, res.a1);
+				result = -EINVAL;
+				break;
+			}
+		} else {
+			log_err("%s: Failed to exec svc=%x op=%x in secure mode (err = %ld)\n",
+				__func__, STM32_SMC_BSEC, STM32_SMC_WRITE_ALL, res.a0);
 			result = -EINVAL;
-			break;
 		}
-	} else {
-		log_err("%s: Failed to exec svc=%x op=%x in secure mode (err = %ld)\n",
-			__func__, STM32_SMC_BSEC, STM32_SMC_WRITE_ALL, res.a0);
-		result = -EINVAL;
 	}
 
 	free(data->otp_part);
@@ -1739,6 +1869,12 @@ void stm32prog_clean(struct stm32prog_data *data)
 	free(data->part_array);
 	free(data->otp_part);
 	free(data->buffer);
+
+	if (CONFIG_IS_ENABLED(OPTEE) && data->tee) {
+		tee_close_session(data->tee, data->tee_session);
+		data->tee = NULL;
+		data->tee_session = 0x0;
+	}
 }
 
 /* DFU callback: used after serial and direct DFU USB access */
