@@ -10,9 +10,11 @@
 #include <dm.h>
 #include <log.h>
 #include <misc.h>
+#include <tee.h>
 #include <asm/io.h>
 #include <asm/arch/bsec.h>
 #include <asm/arch/stm32mp1_smc.h>
+#include <dm/device.h>
 #include <dm/device_compat.h>
 #include <linux/arm-smccc.h>
 #include <linux/iopoll.h>
@@ -63,10 +65,47 @@
  */
 #define BSEC_LOCK_PROGRAM		0x04
 
+#define PTA_BSEC_UUID { 0x94cf71ad, 0x80e6, 0x40b5, \
+	{ 0xa7, 0xc6, 0x3d, 0xc5, 0x01, 0xeb, 0x28, 0x03 } }
+
 /*
- * OTP status: bit 0 permanent lock
+ * Read OTP memory
+ *
+ * [in]	     value            a: OTP start offset in byte
+ *                            b: access type
+ *                               0 to read from shadow
+ *                               1 to read from fuse
+ *                               2 to read lock status
+ * [out]     memref           buffer: Output buffer to store read values
+ *                            size: Size of OTP to be read
+ *
+ * Return codes:
+ * TEE_SUCCESS - Invoke command success
+ * TEE_ERROR_BAD_PARAMETERS - Incorrect input param
  */
-#define BSEC_LOCK_PERM			BIT(0)
+#define PTA_BSEC_READ_MEM		0x0 /* Read OTP */
+
+/*
+ * Write OTP memory
+ *
+ * [in]	     value            a: OTP start offset in byte
+ *                            b: access type
+ *                               0 to write to shadow
+ *                               1 to write to fuse
+ *                               2 to update the lock status
+ * [in]      memref           buffer: Input buffer to read values
+ *                            size: Size of OTP to be written
+ *
+ * Return codes:
+ * TEE_SUCCESS - Invoke command success
+ * TEE_ERROR_BAD_PARAMETERS - Incorrect input param
+ */
+#define PTA_BSEC_WRITE_MEM		0x1 /* Write OTP */
+
+/* value of PTA_BSEC access type = value[in] b */
+#define SHADOW_ACCESS			0
+#define FUSE_ACCESS			1
+#define LOCK_ACCESS			2
 
 /**
  * bsec_lock() - manage lock for each type SR/SP/SW
@@ -359,6 +398,11 @@ struct stm32mp_bsec_plat {
 	u32 base;
 };
 
+struct stm32mp_bsec_privdata {
+	struct udevice *tee;
+	u32 tee_session;
+};
+
 static int stm32mp_bsec_read_otp(struct udevice *dev, u32 *val, u32 otp)
 {
 	struct stm32mp_bsec_plat *plat;
@@ -468,18 +512,87 @@ static int stm32mp_bsec_write_lock(struct udevice *dev, u32 val, u32 otp)
 	plat = dev_get_plat(dev);
 
 	return bsec_permanent_lock_otp(dev, plat->base, otp);
+}
 
-	return -EINVAL;
+static int bsec_optee_pta_open(struct udevice *dev)
+{
+	struct stm32mp_bsec_privdata *priv = dev_get_priv(dev);
+	const struct tee_optee_ta_uuid uuid = PTA_BSEC_UUID;
+	struct tee_open_session_arg arg;
+	struct udevice *tee = NULL;
+	int rc;
+
+	tee = tee_find_device(NULL, NULL, NULL, NULL);
+	if (!tee)
+		return -ENODEV;
+
+	memset(&arg, 0, sizeof(arg));
+	tee_optee_ta_uuid_to_octets(arg.uuid, &uuid);
+	arg.clnt_login = TEE_LOGIN_REE_KERNEL;
+	rc = tee_open_session(tee, &arg, 0, NULL);
+	if (rc < 0)
+		return -ENODEV;
+
+	priv->tee = tee;
+	priv->tee_session = arg.session;
+
+	return 0;
+}
+
+static int bsec_optee_pta(struct udevice *dev, int cmd, int type, int offset,
+			  void *buff, ulong size)
+{
+	struct stm32mp_bsec_privdata *priv = dev_get_priv(dev);
+	struct tee_invoke_arg arg;
+	struct tee_param param[2];
+	struct tee_shm *fw_shm;
+	int rc;
+
+	rc = tee_shm_register(priv->tee, buff, size, 0, &fw_shm);
+	if (rc)
+		return rc;
+
+	memset(&arg, 0, sizeof(arg));
+	arg.func = cmd;
+	arg.session = priv->tee_session;
+
+	memset(param, 0, sizeof(param));
+
+	param[0].attr = TEE_PARAM_ATTR_TYPE_VALUE_INPUT;
+	param[0].u.value.a = offset;
+	param[0].u.value.b = type;
+
+	if (cmd == PTA_BSEC_WRITE_MEM)
+		param[1].attr = TEE_PARAM_ATTR_TYPE_MEMREF_INPUT;
+	else
+		param[1].attr = TEE_PARAM_ATTR_TYPE_MEMREF_OUTPUT;
+
+	param[1].u.memref.shm = fw_shm;
+	param[1].u.memref.size = size;
+
+	rc = tee_invoke_func(priv->tee, &arg, 2, param);
+	if (rc < 0 || arg.ret != 0) {
+		dev_err(priv->tee,
+			"PTA_BSEC invoke failed TEE err: %x, err:%x\n",
+			arg.ret, rc);
+		if (!rc)
+			rc = -EIO;
+	}
+
+	tee_shm_free(fw_shm);
+
+	return rc;
 }
 
 static int stm32mp_bsec_read(struct udevice *dev, int offset,
 			     void *buf, int size)
 {
+	struct stm32mp_bsec_privdata *priv = dev_get_priv(dev);
 	int ret;
 	int i;
 	bool shadow = true, lock = false;
 	int nb_otp = size / sizeof(u32);
-	int otp;
+	int otp, cmd;
 	unsigned int offs = offset;
 
 	if (offs >= STM32_BSEC_LOCK_OFFSET) {
@@ -492,6 +605,19 @@ static int stm32mp_bsec_read(struct udevice *dev, int offset,
 
 	if ((offs % 4) || (size % 4))
 		return -EINVAL;
+
+	if (IS_ENABLED(CONFIG_OPTEE) && priv->tee) {
+		cmd = FUSE_ACCESS;
+		if (shadow)
+			cmd = SHADOW_ACCESS;
+		if (lock)
+			cmd = LOCK_ACCESS;
+		ret = bsec_optee_pta(dev, PTA_BSEC_READ_MEM, cmd, offs, buf, size);
+		if (ret)
+			return ret;
+
+		return size;
+	}
 
 	otp = offs / sizeof(u32);
 
@@ -517,11 +643,12 @@ static int stm32mp_bsec_read(struct udevice *dev, int offset,
 static int stm32mp_bsec_write(struct udevice *dev, int offset,
 			      const void *buf, int size)
 {
+	struct stm32mp_bsec_privdata *priv = dev_get_priv(dev);
 	int ret = 0;
 	int i;
 	bool shadow = true, lock = false;
 	int nb_otp = size / sizeof(u32);
-	int otp;
+	int otp, cmd;
 	unsigned int offs = offset;
 
 	if (offs >= STM32_BSEC_LOCK_OFFSET) {
@@ -534,6 +661,19 @@ static int stm32mp_bsec_write(struct udevice *dev, int offset,
 
 	if ((offs % 4) || (size % 4))
 		return -EINVAL;
+
+	if (IS_ENABLED(CONFIG_OPTEE) && priv->tee) {
+		cmd = FUSE_ACCESS;
+		if (shadow)
+			cmd = SHADOW_ACCESS;
+		if (lock)
+			cmd = LOCK_ACCESS;
+		ret = bsec_optee_pta(dev, PTA_BSEC_WRITE_MEM, cmd, offs, (void *)buf, size);
+		if (ret)
+			return ret;
+
+		return size;
+	}
 
 	otp = offs / sizeof(u32);
 
@@ -583,6 +723,9 @@ static int stm32mp_bsec_probe(struct udevice *dev)
 			return ret;
 	}
 
+	if (IS_ENABLED(CONFIG_OPTEE))
+		bsec_optee_pta_open(dev);
+
 	/*
 	 * update unlocked shadow for OTP cleared by the rom code
 	 * only executed in SPL, it is done in TF-A for TFABOOT
@@ -598,6 +741,21 @@ static int stm32mp_bsec_probe(struct udevice *dev)
 	return 0;
 }
 
+static int stm32mp_bsec_remove(struct udevice *dev)
+{
+	struct stm32mp_bsec_privdata *priv = dev_get_priv(dev);
+	int ret;
+
+	if (IS_ENABLED(CONFIG_OPTEE) && priv && priv->tee) {
+		ret = tee_close_session(priv->tee, priv->tee_session);
+		if (ret)
+			return ret;
+		priv->tee = NULL;
+	}
+
+	return 0;
+}
+
 static const struct udevice_id stm32mp_bsec_ids[] = {
 	{ .compatible = "st,stm32mp15-bsec" },
 	{}
@@ -608,9 +766,11 @@ U_BOOT_DRIVER(stm32mp_bsec) = {
 	.id = UCLASS_MISC,
 	.of_match = stm32mp_bsec_ids,
 	.of_to_plat = stm32mp_bsec_of_to_plat,
-	.plat_auto	= sizeof(struct stm32mp_bsec_plat),
+	.plat_auto = sizeof(struct stm32mp_bsec_plat),
+	.priv_auto = sizeof(struct stm32mp_bsec_privdata),
 	.ops = &stm32mp_bsec_ops,
 	.probe = stm32mp_bsec_probe,
+	.remove = stm32mp_bsec_remove,
 };
 
 bool bsec_dbgswenable(void)
