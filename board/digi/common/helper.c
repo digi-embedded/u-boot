@@ -224,7 +224,7 @@ int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 	u8 pnum;
 	char *partname;
 #endif
-	int ubisysvols = env_get_yesno("ubisysvols");
+	int singlemtdsys = env_get_yesno("singlemtdsys");
 
 	if (argc < 3) {
 		fwinfo->src = SRC_TFTP;	/* default to TFTP */
@@ -279,7 +279,7 @@ int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 		else
 			partname = argv[1];
 		if (find_dev_and_part(partname, &dev, &pnum, &fwinfo->part)) {
-			if (ubisysvols == 1) {
+			if (singlemtdsys == 1) {
 				char cmd[CONFIG_SYS_CBSIZE] = "";
 
 				/*

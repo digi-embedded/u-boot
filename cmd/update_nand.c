@@ -237,7 +237,7 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	u8 pnum;
 	struct load_fw fwinfo;
 	char cmd[CONFIG_SYS_CBSIZE];
-	int ubisysvols = env_get_yesno("ubisysvols");
+	int singlemtdsys = env_get_yesno("singlemtdsys");
 	bool ubivol = false;
 	bool force_erase = false;
 
@@ -266,7 +266,7 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 		partname = argv[1];
 
 	if (find_dev_and_part(partname, &dev, &pnum, &part)) {
-		if (ubisysvols) {
+		if (singlemtdsys) {
 			/*
 			 * Check if the passed argument is a UBI volume in the
 			 * 'system' partition.

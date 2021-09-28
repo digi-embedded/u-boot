@@ -163,10 +163,10 @@
 	"mtdrecoveryindex=" CONFIG_ENV_MTD_RECOVERY_INDEX "\0" \
 	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
 	"mtdupdateindex=" CONFIG_ENV_MTD_UPDATE_INDEX "\0" \
-	"ubisysvols=no\0" \
+	"singlemtdsys=no\0" \
 	"rootfsvol=" ROOTFS_PARTITION "\0" \
 	"bootargs_nand_linux=" \
-		"if test \"${ubisysvols}\" = yes; then " \
+		"if test \"${singlemtdsys}\" = yes; then " \
 			"setenv bootargs console=${console},${baudrate} " \
 			"${bootargs_linux} ${mtdparts} " \
 			"ubi.mtd=" SYSTEM_PARTITION " " \
@@ -190,7 +190,7 @@
 				"setenv mtdbootpart " CONFIG_LINUX_PARTITION ";" \
 			"fi;" \
 		"fi;" \
-		"if test \"${ubisysvols}\" = yes; then " \
+		"if test \"${singlemtdsys}\" = yes; then " \
 			"if ubi part " SYSTEM_PARTITION "; then " \
 				"if ubifsmount ubi0:${mtdbootpart}; then " \
 					"ubifsload ${loadaddr} ${script};" \
