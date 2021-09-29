@@ -314,7 +314,7 @@ const char *bootdelay_process(void)
 	s = getenv("bootdelay");
 	bootdelay = s ? (int)simple_strtol(s, NULL, 10) : CONFIG_BOOTDELAY;
 
-#if !defined(CONFIG_FSL_FASTBOOT) && defined(is_boot_from_usb)
+#ifdef is_boot_from_usb
 	if (is_boot_from_usb()) {
 		disconnect_from_pc();
 		printf("Boot from USB for mfgtools\n");
@@ -348,7 +348,7 @@ const char *bootdelay_process(void)
 #endif /* CONFIG_BOOTCOUNT_LIMIT */
 		s = getenv("bootcmd");
 
-#if !defined(CONFIG_FSL_FASTBOOT) && defined(is_boot_from_usb)
+#ifdef is_boot_from_usb
 	if (is_boot_from_usb()) {
 		if ((s = getenv("bootcmd_mfg")) != NULL)
 		printf("Run bootcmd_mfg: %s\n", s);
