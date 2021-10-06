@@ -194,6 +194,27 @@
 #define ROOTFS_A_PARTITION		"rootfs_a"
 #define ROOTFS_B_PARTITION		"rootfs_b"
 
+#define ALTBOOTCMD	\
+	"altbootcmd=" \
+		"if test -z \"${active_system}\"; then " \
+			"setenv active_system " LINUX_A_PARTITION ";" \
+		"fi;" \
+		"setenv mtdbootpart ${active_system};" \
+		"if test \"${singlemtdsys}\" = yes; then " \
+			"if ubi part " SYSTEM_PARTITION "; then " \
+				"if ubifsmount ubi0:${mtdbootpart}; then " \
+					"ubifsload ${loadaddr} altboot.scr;" \
+				"fi;" \
+			"fi;" \
+		"else " \
+			"if ubi part ${mtdbootpart}; then " \
+				"if ubifsmount ubi0:${mtdbootpart}; then " \
+					"ubifsload ${loadaddr} altboot.scr;" \
+				"fi;" \
+			"fi;" \
+		"fi;" \
+		"source ${loadaddr}\0"
+
 /* One 'system' partition containing many UBI volumes (modern layout) */
 #define MTDPARTS_SMALL			"mtdparts=" CONFIG_NAND_NAME ":" \
 					__stringify(UBOOT_PART_SIZE_SMALL) "m(" CONFIG_UBOOT_PARTITION ")," \

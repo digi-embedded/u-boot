@@ -87,6 +87,7 @@
 	CONFIG_MFG_ENV_SETTINGS 		\
 	CONFIG_DEFAULT_NETWORK_SETTINGS		\
 	RANDOM_UUIDS \
+	ALTBOOTCMD \
 	"dualboot=no\0" \
 	"dboot_kernel_var=imagegz\0" \
 	"lzipaddr=" __stringify(CONFIG_DIGI_LZIPADDR) "\0" \

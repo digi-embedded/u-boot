@@ -102,6 +102,7 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	RANDOM_UUIDS \
+	ALTBOOTCMD \
 	"dboot_kernel_var=zimage\0" \
 	"script=boot.scr\0" \
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \

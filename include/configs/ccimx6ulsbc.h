@@ -118,6 +118,7 @@
 #define CONFIG_COMMON_ENV	\
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	CONFIG_EXTRA_NETWORK_SETTINGS \
+	ALTBOOTCMD \
 	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
 	"dualboot=no\0" \
 	"boot_fdt=yes\0" \

@@ -216,6 +216,12 @@
 /* Generic Timer Definitions */
 #define COUNTER_FREQUENCY		8000000	/* 8MHz */
 
+#define ALTBOOTCMD	\
+	"altbootcmd=" \
+	"if load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} altboot.scr; then " \
+		"source ${loadaddr};" \
+	"fi;\0"
+
 /* Pool of randomly generated UUIDs at host machine */
 #define RANDOM_UUIDS	\
 	"uuid_disk=075e2a9b-6af6-448c-a52a-3a6e69f0afff\0" \
