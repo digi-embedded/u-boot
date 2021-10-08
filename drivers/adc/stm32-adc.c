@@ -84,6 +84,10 @@ static int stm32_adc_exit_pwr_down(struct udevice *dev)
 	int ret;
 	u32 val;
 
+	/* return immediately if ADC is not in deep power down mode */
+	if (!(readl(adc->regs + STM32H7_ADC_CR) & STM32H7_DEEPPWD))
+		return 0;
+
 	/* Exit deep power down, then enable ADC voltage regulator */
 	clrbits_le32(adc->regs + STM32H7_ADC_CR, STM32H7_DEEPPWD);
 	setbits_le32(adc->regs + STM32H7_ADC_CR, STM32H7_ADVREGEN);
