@@ -757,6 +757,7 @@ static int stm32mp_bsec_remove(struct udevice *dev)
 }
 
 static const struct udevice_id stm32mp_bsec_ids[] = {
+	{ .compatible = "st,stm32mp13-bsec" },
 	{ .compatible = "st,stm32mp15-bsec" },
 	{}
 };
