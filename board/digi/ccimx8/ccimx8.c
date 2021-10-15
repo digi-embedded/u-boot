@@ -350,6 +350,11 @@ void som_default_environment(void)
 		snprintf(var + strlen(var), sizeof(var) - strlen(var),
 			 "_ov_som_bt_ccimx8%c.dtbo,", somtype);
 
+#ifdef CONFIG_IMX_TRUSTY_OS
+	snprintf(var + strlen(var), sizeof(var) - strlen(var),
+		 "_ov_som_trusty_ccimx8%c.dtbo,", somtype);
+#endif
+
 	/* Remove the trailing comma */
 	var[strlen(var) - 1] = 0;
 	env_set("som_overlays", var);
