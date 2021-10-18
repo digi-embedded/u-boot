@@ -843,6 +843,7 @@ libs-y += drivers/usb/mtu3/
 libs-y += drivers/usb/musb/
 libs-y += drivers/usb/musb-new/
 libs-y += drivers/usb/phy/
+libs-y += drivers/usb/typec/
 libs-y += drivers/usb/ulpi/
 ifdef CONFIG_POST
 libs-y += post/
