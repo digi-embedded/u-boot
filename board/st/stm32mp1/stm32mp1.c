@@ -19,6 +19,7 @@
 #include <generic-phy.h>
 #include <hang.h>
 #include <i2c.h>
+#include <regmap.h>
 #include <init.h>
 #include <led.h>
 #include <log.h>
@@ -57,7 +58,8 @@
 #define SYSCFG_ICNR		0x1C
 #define SYSCFG_CMPCR		0x20
 #define SYSCFG_CMPENSETR	0x24
-#define SYSCFG_PMCCLRR		0x44
+#define SYSCFG_PMCCLRR		0x08
+#define SYSCFG_MP13_PMCCLRR	0x44
 
 #define SYSCFG_BOOTR_BOOT_MASK		GENMASK(2, 0)
 #define SYSCFG_BOOTR_BOOTPD_SHIFT	4
@@ -72,16 +74,6 @@
 #define SYSCFG_CMPCR_READY		BIT(8)
 
 #define SYSCFG_CMPENSETR_MPU_EN		BIT(0)
-
-#define SYSCFG_PMCSETR_ETH_CLK_SEL	BIT(16)
-#define SYSCFG_PMCSETR_ETH_REF_CLK_SEL	BIT(17)
-
-#define SYSCFG_PMCSETR_ETH_SELMII	BIT(20)
-
-#define SYSCFG_PMCSETR_ETH_SEL_MASK	GENMASK(23, 21)
-#define SYSCFG_PMCSETR_ETH_SEL_GMII_MII	0
-#define SYSCFG_PMCSETR_ETH_SEL_RGMII	BIT(21)
-#define SYSCFG_PMCSETR_ETH_SEL_RMII	BIT(23)
 
 #define GOODIX_REG_ID		0x8140
 #define GOODIX_ID_LEN		4
@@ -914,58 +906,114 @@ void board_quiesce_devices(void)
 	setup_led(LEDST_OFF);
 }
 
+/* CLOCK feed to PHY*/
+#define ETH_CK_F_25M	25000000
+#define ETH_CK_F_50M	50000000
+#define ETH_CK_F_125M	125000000
+
+struct stm32_syscfg_pmcsetr {
+	u32 syscfg_clr_off;
+	u32 eth1_clk_sel;
+	u32 eth1_ref_clk_sel;
+	u32 eth1_sel_mii;
+	u32 eth1_sel_rgmii;
+	u32 eth1_sel_rmii;
+	u32 eth2_clk_sel;
+	u32 eth2_ref_clk_sel;
+	u32 eth2_sel_rgmii;
+	u32 eth2_sel_rmii;
+};
+
+const struct stm32_syscfg_pmcsetr stm32mp15_syscfg_pmcsetr = {
+	.syscfg_clr_off		= 0x44,
+	.eth1_clk_sel		= BIT(16),
+	.eth1_ref_clk_sel	= BIT(17),
+	.eth1_sel_mii		= BIT(20),
+	.eth1_sel_rgmii		= BIT(21),
+	.eth1_sel_rmii		= BIT(23),
+	.eth2_clk_sel		= 0,
+	.eth2_ref_clk_sel	= 0,
+	.eth2_sel_rgmii		= 0,
+	.eth2_sel_rmii		= 0
+};
+
+const struct stm32_syscfg_pmcsetr stm32mp13_syscfg_pmcsetr = {
+	.syscfg_clr_off		= 0x08,
+	.eth1_clk_sel		= BIT(16),
+	.eth1_ref_clk_sel	= BIT(17),
+	.eth1_sel_mii		= 0,
+	.eth1_sel_rgmii		= BIT(21),
+	.eth1_sel_rmii		= BIT(23),
+	.eth2_clk_sel		= BIT(24),
+	.eth2_ref_clk_sel	= BIT(25),
+	.eth2_sel_rgmii		= BIT(29),
+	.eth2_sel_rmii		= BIT(31)
+};
+
+#define SYSCFG_PMCSETR_ETH_MASK		GENMASK(23, 16)
+#define SYSCFG_PMCR_ETH_SEL_GMII	0
+
 /* eth init function : weak called in eqos driver */
 int board_interface_eth_init(struct udevice *dev,
 			     phy_interface_t interface_type, ulong rate)
 {
-	u8 *syscfg;
+	struct regmap *regmap;
+	uint regmap_mask;
+	int ret;
 	u32 value;
-	bool eth_clk_sel_reg = false;
-	bool eth_ref_clk_sel_reg = false;
+	bool ext_phyclk, eth_clk_sel_reg, eth_ref_clk_sel_reg;
+	const struct stm32_syscfg_pmcsetr *pmcsetr;
+
+	/* Ethernet PHY have no crystal */
+	ext_phyclk = dev_read_bool(dev, "st,ext-phyclk");
 
 	/* Gigabit Ethernet 125MHz clock selection. */
 	eth_clk_sel_reg = dev_read_bool(dev, "st,eth-clk-sel");
 
 	/* Ethernet 50Mhz RMII clock selection */
-	eth_ref_clk_sel_reg =
-		dev_read_bool(dev, "st,eth-ref-clk-sel");
+	eth_ref_clk_sel_reg = dev_read_bool(dev, "st,eth-ref-clk-sel");
 
-	syscfg = (u8 *)syscon_get_first_range(STM32MP_SYSCON_SYSCFG);
+	if (device_is_compatible(dev, "st,stm32mp13-dwmac"))
+		pmcsetr = &stm32mp13_syscfg_pmcsetr;
+	else
+		pmcsetr = &stm32mp15_syscfg_pmcsetr;
 
-	if (!syscfg)
+	regmap = syscon_regmap_lookup_by_phandle(dev, "st,syscon");
+	if (!IS_ERR(regmap)) {
+		u32 fmp[3];
+
+		ret = dev_read_u32_array(dev, "st,syscon", fmp, 3);
+		if (ret)
+			/*  If no mask in DT, it is MP15 (backward compatibility) */
+			regmap_mask = SYSCFG_PMCSETR_ETH_MASK;
+		else
+			regmap_mask = fmp[2];
+	} else {
 		return -ENODEV;
+	}
 
 	switch (interface_type) {
 	case PHY_INTERFACE_MODE_MII:
-		value = SYSCFG_PMCSETR_ETH_SEL_GMII_MII |
-			SYSCFG_PMCSETR_ETH_REF_CLK_SEL;
+		value = pmcsetr->eth1_sel_mii;
 		log_debug("PHY_INTERFACE_MODE_MII\n");
 		break;
 	case PHY_INTERFACE_MODE_GMII:
-		if (eth_clk_sel_reg)
-			value = SYSCFG_PMCSETR_ETH_SEL_GMII_MII |
-				SYSCFG_PMCSETR_ETH_CLK_SEL;
-		else
-			value = SYSCFG_PMCSETR_ETH_SEL_GMII_MII;
+		value = SYSCFG_PMCR_ETH_SEL_GMII;
 		log_debug("PHY_INTERFACE_MODE_GMII\n");
 		break;
 	case PHY_INTERFACE_MODE_RMII:
-		if (eth_ref_clk_sel_reg)
-			value = SYSCFG_PMCSETR_ETH_SEL_RMII |
-				SYSCFG_PMCSETR_ETH_REF_CLK_SEL;
-		else
-			value = SYSCFG_PMCSETR_ETH_SEL_RMII;
+		value = pmcsetr->eth1_sel_rmii | pmcsetr->eth2_sel_rmii;
+		if (rate == ETH_CK_F_50M && (eth_clk_sel_reg || ext_phyclk))
+			value |= pmcsetr->eth1_ref_clk_sel | pmcsetr->eth2_ref_clk_sel;
 		log_debug("PHY_INTERFACE_MODE_RMII\n");
 		break;
 	case PHY_INTERFACE_MODE_RGMII:
 	case PHY_INTERFACE_MODE_RGMII_ID:
 	case PHY_INTERFACE_MODE_RGMII_RXID:
 	case PHY_INTERFACE_MODE_RGMII_TXID:
-		if (eth_clk_sel_reg)
-			value = SYSCFG_PMCSETR_ETH_SEL_RGMII |
-				SYSCFG_PMCSETR_ETH_CLK_SEL;
-		else
-			value = SYSCFG_PMCSETR_ETH_SEL_RGMII;
+		value = pmcsetr->eth1_sel_rgmii | pmcsetr->eth2_sel_rgmii;
+		if (rate == ETH_CK_F_125M && (eth_clk_sel_reg || ext_phyclk))
+			value |= pmcsetr->eth1_clk_sel | pmcsetr->eth2_clk_sel;
 		log_debug("PHY_INTERFACE_MODE_RGMII\n");
 		break;
 	default:
@@ -975,13 +1023,12 @@ int board_interface_eth_init(struct udevice *dev,
 		return -EINVAL;
 	}
 
-	/* clear and set ETH configuration bits */
-	writel(SYSCFG_PMCSETR_ETH_SEL_MASK | SYSCFG_PMCSETR_ETH_SELMII |
-	       SYSCFG_PMCSETR_ETH_REF_CLK_SEL | SYSCFG_PMCSETR_ETH_CLK_SEL,
-	       syscfg + SYSCFG_PMCCLRR);
-	writel(value, syscfg + SYSCFG_PMCSETR);
+	/* Need to update PMCCLRR (clear register) */
+	regmap_write(regmap, pmcsetr->syscfg_clr_off, regmap_mask);
 
-	return 0;
+	ret = regmap_update_bits(regmap, SYSCFG_PMCSETR, regmap_mask, value);
+
+	return ret;
 }
 
 enum env_location env_get_location(enum env_operation op, int prio)
