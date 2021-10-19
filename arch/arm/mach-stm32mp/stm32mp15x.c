@@ -236,6 +236,11 @@ u32 get_cpu_rev(void)
 	return (read_idc() & DBGMCU_IDC_REV_ID_MASK) >> DBGMCU_IDC_REV_ID_SHIFT;
 }
 
+int get_eth_nb(void)
+{
+	return 1;
+}
+
 /* Get Package options from OTP */
 u32 get_cpu_package(void)
 {

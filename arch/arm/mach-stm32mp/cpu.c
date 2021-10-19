@@ -25,7 +25,8 @@
 
 /* Device Part Number (RPN) = OTP_DATA1 lower 8 bits */
 #define RPN_SHIFT	0
-#define RPN_MASK	GENMASK(7, 0)
+#define RPN_MASK_STM32MP13x	GENMASK(14, 0)
+#define RPN_MASK_STM32MP15x	GENMASK(7, 0)
 
 /*
  * early TLB into the .data section so that it not get cleared
@@ -56,8 +57,11 @@ void dram_bank_mmu_setup(int bank)
 	enum dcache_option option;
 
 	if (IS_ENABLED(CONFIG_SPL_BUILD)) {
+/* STM32_SYSRAM_BASE exist only when SPL is supported */
+#ifdef CONFIG_SPL
 		start = ALIGN_DOWN(STM32_SYSRAM_BASE, MMU_SECTION_SIZE);
 		size = ALIGN(STM32_SYSRAM_SIZE, MMU_SECTION_SIZE);
+#endif
 	} else if (gd->flags & GD_FLG_RELOC) {
 		/* bd->bi_dram is available only after relocation */
 		start = bd->bi_dram[bank].start;
@@ -153,7 +157,15 @@ void enable_caches(void)
 /* Get Device Part Number (RPN) from OTP */
 static u32 get_cpu_rpn(void)
 {
-	return get_otp(BSEC_OTP_RPN, RPN_SHIFT, RPN_MASK);
+	int mask;
+
+	if (IS_ENABLED(CONFIG_STM32MP13x))
+		mask = RPN_MASK_STM32MP13x;
+
+	if (IS_ENABLED(CONFIG_STM32MP15x))
+		mask = RPN_MASK_STM32MP15x;
+
+	return get_otp(BSEC_OTP_RPN, RPN_SHIFT, mask);
 }
 
 u32 get_cpu_type(void)
@@ -302,16 +314,18 @@ __weak int setup_mac_address(void)
 {
 	int ret;
 	int i;
-	u32 otp[2];
+	u32 otp[3];
 	uchar enetaddr[6];
 	struct udevice *dev;
+	int nb_eth, nb_otp, index;
 
 	if (!IS_ENABLED(CONFIG_NET))
 		return 0;
 
-	/* MAC already in environment */
-	if (eth_env_get_enetaddr("ethaddr", enetaddr))
-		return 0;
+	nb_eth = get_eth_nb();
+
+	/* 6 bytes for each MAC addr and 4 bytes for each OTP */
+	nb_otp = DIV_ROUND_UP(6 * nb_eth, 4);
 
 	ret = uclass_get_device_by_driver(UCLASS_MISC,
 					  DM_DRIVER_GET(stm32mp_bsec),
@@ -319,22 +333,31 @@ __weak int setup_mac_address(void)
 	if (ret)
 		return ret;
 
-	ret = misc_read(dev, STM32_BSEC_SHADOW(BSEC_OTP_MAC),
-			otp, sizeof(otp));
+	ret = misc_read(dev, STM32_BSEC_SHADOW(BSEC_OTP_MAC), otp, 4 * nb_otp);
 	if (ret < 0)
 		return ret;
 
-	for (i = 0; i < 6; i++)
-		enetaddr[i] = ((uint8_t *)&otp)[i];
+	for (index = 0; index < nb_eth; index++) {
+		/* MAC already in environment */
+		if (eth_env_get_enetaddr_by_index("eth", index, enetaddr))
+			continue;
 
-	if (!is_valid_ethaddr(enetaddr)) {
-		log_err("invalid MAC address in OTP %pM\n", enetaddr);
-		return -EINVAL;
+		for (i = 0; i < 6; i++)
+			enetaddr[i] = ((uint8_t *)&otp)[i + 6 * index];
+
+		if (!is_valid_ethaddr(enetaddr)) {
+			log_err("invalid MAC address %d in OTP %pM\n",
+				index, enetaddr);
+			return -EINVAL;
+		}
+		log_debug("OTP MAC address %d = %pM\n", index, enetaddr);
+		ret = eth_env_set_enetaddr_by_index("eth", index, enetaddr);
+		if (ret) {
+			log_err("Failed to set mac address %pM from OTP: %d\n",
+				enetaddr, ret);
+			return ret;
+		}
 	}
-	log_debug("OTP MAC address = %pM\n", enetaddr);
-	ret = eth_env_set_enetaddr("ethaddr", enetaddr);
-	if (ret)
-		log_err("Failed to set mac address %pM from OTP: %d\n", enetaddr, ret);
 
 	return 0;
 }
