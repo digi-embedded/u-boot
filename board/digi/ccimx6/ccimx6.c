@@ -1027,12 +1027,10 @@ int board_mmc_init(bd_t *bis)
 			/* USDHC2 (uSD) */
 
 			/*
-			 * On CC6PLUS enable LDO9 regulator powering USDHC2
-			 * (microSD)
+			 * On CC6PLUS and CC6N, enable LDO9 regulator powering
+			 * USDHC2 (microSD). No effect on legacy CC6.
 			 */
-			if (is_mx6dqp())
-				pmic_write_bitfield(DA9063_LDO9_CONT, 0x1, 0,
-						    0x1);
+			pmic_write_bitfield(DA9063_LDO9_CONT, 0x1, 0, 0x1);
 
 			imx_iomux_v3_setup_multiple_pads(
 					usdhc2_pads, ARRAY_SIZE(usdhc2_pads));
