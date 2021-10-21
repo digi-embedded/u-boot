@@ -945,6 +945,16 @@ static bool board_has_kinetis(void)
 		return true; /* assume it has if invalid HWID */
 }
 
+int is_ccimx6n(void)
+{
+#if !defined(CONFIG_MX6QP)
+	/* If HWID is empty, default to CC6N */
+	return my_hwid.hv ? my_hwid.hv >= CCIMX6N_BASE_HV : 1;
+#else
+	return 0;
+#endif
+}
+
 #ifdef CONFIG_FSL_ESDHC_IMX
 
 /* The order of MMC controllers here must match that of CONFIG_MMCDEV_USDHCx
@@ -1571,7 +1581,7 @@ void fdt_fixup_ccimx6(void *fdt)
 	if (board_has_wireless()) {
 		/* Wireless MACs */
 		fdt_fixup_mac(fdt, "wlanaddr", "/wireless", "mac-address");
-		if (is_mx6dqp()) {
+		if (is_mx6dqp() || is_ccimx6n()) {
 			fdt_fixup_mac(fdt, "wlan1addr", "/wireless", "mac-address1");
 			fdt_fixup_mac(fdt, "wlan2addr", "/wireless", "mac-address2");
 			fdt_fixup_mac(fdt, "wlan3addr", "/wireless", "mac-address3");
