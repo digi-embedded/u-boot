@@ -74,11 +74,15 @@
 #define DA9063_E_GPIO8			0x01
 #define DA9063_E_GPIO9			0x02
 
+/* Base CC6N Hardware Version */
+#define CCIMX6N_BASE_HV			0x0B
+
 /* Common ccimx6 functions */
 int pmic_read_reg(int reg, unsigned char *value);
 int pmic_write_reg(int reg, unsigned char value);
 int pmic_write_bitfield(int reg, unsigned char mask, unsigned char off,
 			       unsigned char bfval);
+int is_ccimx6n(void);
 int setup_iomux_sata(void);
 void setup_iomux_enet(void);
 int ccimx6_init(void);
