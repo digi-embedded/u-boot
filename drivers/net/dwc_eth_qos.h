@@ -238,6 +238,7 @@ struct eqos_ops {
 	int (*eqos_stop_clks)(struct udevice *dev);
 	int (*eqos_start_clks)(struct udevice *dev);
 	int (*eqos_calibrate_pads)(struct udevice *dev);
+	int (*eqos_phy_power_on)(struct udevice *dev);
 	int (*eqos_disable_calibration)(struct udevice *dev);
 	int (*eqos_set_tx_clk_speed)(struct udevice *dev);
 	int (*eqos_get_enetaddr)(struct udevice *dev);
@@ -273,6 +274,9 @@ struct eqos_priv {
 	bool started;
 	bool reg_access_ok;
 	bool clk_ck_enabled;
+#ifdef CONFIG_DM_REGULATOR
+	struct udevice *phy_supply;
+#endif
 };
 
 void eqos_inval_desc_generic(void *desc);

@@ -52,6 +52,7 @@
 #include <asm/mach-imx/sys_proto.h>
 #endif
 #include <linux/delay.h>
+#include <power/regulator.h>
 
 #include "dwc_eth_qos.h"
 
@@ -377,6 +378,27 @@ static int eqos_stop_clks_stm32(struct udevice *dev)
 	clk_disable(&eqos->clk_tx);
 	clk_disable(&eqos->clk_rx);
 	clk_disable(&eqos->clk_master_bus);
+#endif
+
+	debug("%s: OK\n", __func__);
+	return 0;
+}
+
+static int eqos_phy_power_on_stm32(struct udevice *dev)
+{
+	struct eqos_priv *eqos = dev_get_priv(dev);
+	int ret;
+
+	debug("%s(dev=%p):\n", __func__, dev);
+
+#ifdef CONFIG_DM_REGULATOR
+	if (eqos->phy_supply) {
+		ret = regulator_set_enable(eqos->phy_supply, true);
+		if (ret) {
+			printf("%s: Error enabling phy supply\n", dev->name);
+			return ret;
+		}
+	}
 #endif
 
 	debug("%s: OK\n", __func__);
@@ -753,6 +775,12 @@ static int eqos_start(struct udevice *dev)
 
 	eqos->tx_desc_idx = 0;
 	eqos->rx_desc_idx = 0;
+
+	ret = eqos->config->ops->eqos_phy_power_on(dev);
+	if (ret < 0) {
+		pr_err("eqos_phy_power_on() failed: %d", ret);
+		goto err;
+	}
 
 	ret = eqos->config->ops->eqos_start_resets(dev);
 	if (ret < 0) {
@@ -1423,6 +1451,15 @@ static int eqos_probe_resources_stm32(struct udevice *dev)
 		goto err_free_clk_rx;
 	}
 
+#ifdef CONFIG_DM_REGULATOR
+	/* check presence of optional regulator */
+	ret = device_get_supply_regulator(dev, "phy-supply", &eqos->phy_supply);
+	if (ret && ret != -ENOENT) {
+		pr_err("device_get_supply_regulator failed: %d", ret);
+		goto err_free_clk_rx;
+	}
+#endif
+
 	debug("%s: OK\n", __func__);
 	return 0;
 
@@ -1608,6 +1645,7 @@ static struct eqos_ops eqos_tegra186_ops = {
 	.eqos_stop_clks = eqos_stop_clks_tegra186,
 	.eqos_start_clks = eqos_start_clks_tegra186,
 	.eqos_calibrate_pads = eqos_calibrate_pads_tegra186,
+	.eqos_phy_power_on = eqos_null_ops,
 	.eqos_disable_calibration = eqos_disable_calibration_tegra186,
 	.eqos_set_tx_clk_speed = eqos_set_tx_clk_speed_tegra186,
 	.eqos_get_enetaddr = eqos_null_ops,
@@ -1637,6 +1675,7 @@ static struct eqos_ops eqos_stm32_ops = {
 	.eqos_stop_clks = eqos_stop_clks_stm32,
 	.eqos_start_clks = eqos_start_clks_stm32,
 	.eqos_calibrate_pads = eqos_null_ops,
+	.eqos_phy_power_on = eqos_phy_power_on_stm32,
 	.eqos_disable_calibration = eqos_null_ops,
 	.eqos_set_tx_clk_speed = eqos_null_ops,
 	.eqos_get_enetaddr = eqos_null_ops,
