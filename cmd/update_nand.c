@@ -145,7 +145,7 @@ static int write_firmware(unsigned long loadaddr, unsigned long filesize,
 			filesize);
 	} else {
 		/* raw-write firmware command */
-		sprintf(cmd, "nand write %lx %s %lx;fi", loadaddr, part->name,
+		sprintf(cmd, "nand write %lx %s %lx", loadaddr, part->name,
 			filesize);
 	}
 	if (run_command(cmd, 0))
