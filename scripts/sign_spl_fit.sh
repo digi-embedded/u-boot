@@ -160,6 +160,11 @@ spl_decrypt_start="$(printf "0x%X" ${spl_decrypt_start})"
 spl_decrypt_len="$(printf "0x%X" ${spl_decrypt_len})"
 uboot_dtb_image_len="$(printf "0x%X" ${uboot_dtb_image_len})"
 
+# SED filter for removing TEE entries on boot artifacts without TEE
+if grep -qsi "tee.*not[[:blank:]]\+found" "${MKIMAGE_FIT_HAB_LOG}"; then
+	NO_TEE_SED_FILTER="/%atf_\(auth\|decrypt\)_start%/s/, \\\\$//g;/%optee_\(auth\|decrypt\)_start%/d"
+fi
+
 # Generate actual CSF descriptor files from templates
 if [ "${ENCRYPT}" = "true" ]; then
 	# SPL Encryption
@@ -198,7 +203,8 @@ if [ "${ENCRYPT}" = "true" ]; then
 	"${SCRIPT_PATH}/csf_templates/encrypt_sign_uboot_spl" > csf_spl_sign_enc.txt
 
 	# FIT Encryption
-	sed -e "s,%srk_table%,${SRK_TABLE},g "			\
+	sed -e "${NO_TEE_SED_FILTER}"				\
+	    -e "s,%srk_table%,${SRK_TABLE},g "			\
 	    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
 	    -e "s,%cert_csf%,${CERT_CSF},g"			\
 	    -e "s,%cert_img%,${CERT_IMG},g"			\
@@ -221,7 +227,8 @@ if [ "${ENCRYPT}" = "true" ]; then
 	    -e "s,%imx-boot_decrypt_path%,flash-spl-fit-enc.bin,g"	\
 	"${SCRIPT_PATH}/csf_templates/encrypt_uboot_fit" > csf_fit_enc.txt
 
-	sed -e "s,%srk_table%,${SRK_TABLE},g "			\
+	sed -e "${NO_TEE_SED_FILTER}"				\
+	    -e "s,%srk_table%,${SRK_TABLE},g "			\
 	    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
 	    -e "s,%cert_csf%,${CERT_CSF},g"			\
 	    -e "s,%cert_img%,${CERT_IMG},g"			\
@@ -263,7 +270,8 @@ else
 	    -e "s,%imx-boot_path%,${TARGET},g"			\
 	"${SCRIPT_PATH}/csf_templates/sign_uboot_spl" > csf_spl.txt
 
-	sed -e "s,%srk_table%,${SRK_TABLE},g "			\
+	sed -e "${NO_TEE_SED_FILTER}"				\
+	    -e "s,%srk_table%,${SRK_TABLE},g "			\
 	    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
 	    -e "s,%cert_csf%,${CERT_CSF},g"			\
 	    -e "s,%cert_img%,${CERT_IMG},g"			\
