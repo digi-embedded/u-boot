@@ -290,15 +290,16 @@ fi
 if [ -n "${CONFIG_UNLOCK_SRK_REVOKE}" ]; then
 	SIGN_CSF="csf_spl.txt"
 	[ "${ENCRYPT}" = "true" ] && SIGN_CSF="csf_spl_sign_enc.txt"
-	echo "" >> ${SIGN_CSF}
-	echo "[Unlock]" >> ${SIGN_CSF}
-	echo "    Engine = OCOTP" >> ${SIGN_CSF}
-	echo "    Features = SRK REVOKE" >> ${SIGN_CSF}
+	{
+		echo ""
+		echo "[Unlock]"
+		echo "    Engine = OCOTP"
+		echo "    Features = SRK REVOKE"
+	} >> ${SIGN_CSF}
 fi
 
 # Generate SRK tables
-srktool --hab_ver 4 --certs "${SRK_KEYS}" --table "${SRK_TABLE}" --efuses "${SRK_EFUSES}" --digest sha256
-if [ $? -ne 0 ]; then
+if ! srktool --hab_ver 4 --certs "${SRK_KEYS}" --table "${SRK_TABLE}" --efuses "${SRK_EFUSES}" --digest sha256; then
 	echo "[ERROR] Could not generate SRK tables"
 	exit 1
 fi
@@ -309,46 +310,40 @@ if [ "${ENCRYPT}" != "true" ]; then
 	# Generate signed uboot
 	cp ${UBOOT_PATH} ${TARGET}
 
-	cst -o "${CURRENT_PATH}/csf_spl.bin" -i "${CURRENT_PATH}/csf_spl.txt" >/dev/null
-	if [ $? -ne 0 ]; then
+	if ! cst -o "${CURRENT_PATH}/csf_spl.bin" -i "${CURRENT_PATH}/csf_spl.txt" >/dev/null; then
 		echo "[ERROR] Could not generate SPL CSF"
 		exit 1
 	fi
-	cst -o "${CURRENT_PATH}/csf_fit.bin" -i "${CURRENT_PATH}/csf_fit.txt" >/dev/null
-	if [ $? -ne 0 ]; then
+	if ! cst -o "${CURRENT_PATH}/csf_fit.bin" -i "${CURRENT_PATH}/csf_fit.txt" >/dev/null; then
 		echo "[ERROR] Could not generate FIT CSF"
 		exit 1
 	fi
 
-	dd if=${CURRENT_PATH}/csf_spl.bin of=${TARGET} seek=$((${spl_csf_offset})) bs=1 conv=notrunc >/dev/null 2>&1
-	dd if=${CURRENT_PATH}/csf_fit.bin of=${TARGET} seek=$((${sld_csf_offset})) bs=1 conv=notrunc >/dev/null 2>&1
+	dd if=${CURRENT_PATH}/csf_spl.bin of=${TARGET} seek=$((spl_csf_offset)) bs=1 conv=notrunc >/dev/null 2>&1
+	dd if=${CURRENT_PATH}/csf_fit.bin of=${TARGET} seek=$((sld_csf_offset)) bs=1 conv=notrunc >/dev/null 2>&1
 else
 	# Generate encrypted uboot
 	# Encrypt SPL
 	cp ${UBOOT_PATH} flash-spl-enc.bin
-	cst -o "${CURRENT_PATH}/csf_spl_enc.bin" -i "${CURRENT_PATH}/csf_spl_enc.txt" >/dev/null
-	if [ $? -ne 0 ]; then
+	if ! cst -o "${CURRENT_PATH}/csf_spl_enc.bin" -i "${CURRENT_PATH}/csf_spl_enc.txt" >/dev/null; then
 		echo "[ERROR] Could not generate SPL ENC CSF"
 		exit 1
 	fi
 	# Sign encrypted SPL
 	cp flash-spl-enc.bin flash-spl-enc-dummy.bin
-	cst -o "${CURRENT_PATH}/csf_spl_sign_enc.bin" -i "${CURRENT_PATH}/csf_spl_sign_enc.txt" >/dev/null
-	if [ $? -ne 0 ]; then
+	if ! cst -o "${CURRENT_PATH}/csf_spl_sign_enc.bin" -i "${CURRENT_PATH}/csf_spl_sign_enc.txt" >/dev/null; then
 		echo "[ERROR] Could not generate SPL SIGN ENC CSF"
 		exit 1
 	fi
 	# Encrypt FIT
 	cp flash-spl-enc.bin flash-spl-fit-enc.bin
-	cst -o "${CURRENT_PATH}/csf_fit_enc.bin" -i "${CURRENT_PATH}/csf_fit_enc.txt" >/dev/null
-	if [ $? -ne 0 ]; then
+	if ! cst -o "${CURRENT_PATH}/csf_fit_enc.bin" -i "${CURRENT_PATH}/csf_fit_enc.txt" >/dev/null; then
 		echo "[ERROR] Could not generate FIT ENC CSF"
 		exit 1
 	fi
 	# Sign encrypted FIT
 	cp flash-spl-fit-enc.bin flash-spl-fit-enc-dummy.bin
-	cst -o "${CURRENT_PATH}/csf_fit_sign_enc.bin" -i "${CURRENT_PATH}/csf_fit_sign_enc.txt" >/dev/null
-	if [ $? -ne 0 ]; then
+	if ! cst -o "${CURRENT_PATH}/csf_fit_sign_enc.bin" -i "${CURRENT_PATH}/csf_fit_sign_enc.txt" >/dev/null; then
 		echo "[ERROR] Could not generate FIT SIGN ENC CSF"
 		exit 1
 	fi
@@ -374,8 +369,8 @@ else
 	dd if=noncemac.bin of=csf_fit_sign_enc.bin bs=1 seek=${nonce_offset} count=36
 
 	cp flash-spl-fit-enc.bin ${TARGET}
-	dd if=${CURRENT_PATH}/csf_spl_sign_enc.bin of=${TARGET} seek=$((${spl_csf_offset})) bs=1 conv=notrunc >/dev/null 2>&1
-	dd if=${CURRENT_PATH}/csf_fit_sign_enc.bin of=${TARGET} seek=$((${sld_csf_offset})) bs=1 conv=notrunc >/dev/null 2>&1
+	dd if=${CURRENT_PATH}/csf_spl_sign_enc.bin of=${TARGET} seek=$((spl_csf_offset)) bs=1 conv=notrunc >/dev/null 2>&1
+	dd if=${CURRENT_PATH}/csf_fit_sign_enc.bin of=${TARGET} seek=$((sld_csf_offset)) bs=1 conv=notrunc >/dev/null 2>&1
 fi
 
 [ "${ENCRYPT}" = "true" ] && ENCRYPTED_MSG="and encrypted "
