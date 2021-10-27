@@ -29,7 +29,7 @@
 # Avoid parallel execution of this script
 SINGLE_PROCESS_LOCK="/tmp/sign_script.lock.d"
 trap 'rm -rf "${SINGLE_PROCESS_LOCK}"' INT TERM EXIT
-while ! mkdir "${SINGLE_PROCESS_LOCK}" > /dev/null 2>&1; do
+while ! mkdir "${SINGLE_PROCESS_LOCK}" >/dev/null 2>&1; do
 	sleep 1
 done
 
@@ -306,81 +306,79 @@ fi
 CURRENT_PATH="$(pwd)"
 
 if [ "${ENCRYPT}" != "true" ]; then
-# Generate signed uboot
-cp ${UBOOT_PATH} ${TARGET}
+	# Generate signed uboot
+	cp ${UBOOT_PATH} ${TARGET}
 
-cst -o "${CURRENT_PATH}/csf_spl.bin" -i "${CURRENT_PATH}/csf_spl.txt" > /dev/null
-if [ $? -ne 0 ]; then
-	echo "[ERROR] Could not generate SPL CSF"
-	exit 1
-fi
-cst -o "${CURRENT_PATH}/csf_fit.bin" -i "${CURRENT_PATH}/csf_fit.txt" > /dev/null
-if [ $? -ne 0 ]; then
-	echo "[ERROR] Could not generate FIT CSF"
-	exit 1
-fi
+	cst -o "${CURRENT_PATH}/csf_spl.bin" -i "${CURRENT_PATH}/csf_spl.txt" >/dev/null
+	if [ $? -ne 0 ]; then
+		echo "[ERROR] Could not generate SPL CSF"
+		exit 1
+	fi
+	cst -o "${CURRENT_PATH}/csf_fit.bin" -i "${CURRENT_PATH}/csf_fit.txt" >/dev/null
+	if [ $? -ne 0 ]; then
+		echo "[ERROR] Could not generate FIT CSF"
+		exit 1
+	fi
 
-dd if=${CURRENT_PATH}/csf_spl.bin of=${TARGET} seek=$((${spl_csf_offset})) bs=1 conv=notrunc > /dev/null 2>&1
-dd if=${CURRENT_PATH}/csf_fit.bin of=${TARGET} seek=$((${sld_csf_offset})) bs=1 conv=notrunc > /dev/null 2>&1
-
+	dd if=${CURRENT_PATH}/csf_spl.bin of=${TARGET} seek=$((${spl_csf_offset})) bs=1 conv=notrunc >/dev/null 2>&1
+	dd if=${CURRENT_PATH}/csf_fit.bin of=${TARGET} seek=$((${sld_csf_offset})) bs=1 conv=notrunc >/dev/null 2>&1
 else
+	# Generate encrypted uboot
+	# Encrypt SPL
+	cp ${UBOOT_PATH} flash-spl-enc.bin
+	cst -o "${CURRENT_PATH}/csf_spl_enc.bin" -i "${CURRENT_PATH}/csf_spl_enc.txt" >/dev/null
+	if [ $? -ne 0 ]; then
+		echo "[ERROR] Could not generate SPL ENC CSF"
+		exit 1
+	fi
+	# Sign encrypted SPL
+	cp flash-spl-enc.bin flash-spl-enc-dummy.bin
+	cst -o "${CURRENT_PATH}/csf_spl_sign_enc.bin" -i "${CURRENT_PATH}/csf_spl_sign_enc.txt" >/dev/null
+	if [ $? -ne 0 ]; then
+		echo "[ERROR] Could not generate SPL SIGN ENC CSF"
+		exit 1
+	fi
+	# Encrypt FIT
+	cp flash-spl-enc.bin flash-spl-fit-enc.bin
+	cst -o "${CURRENT_PATH}/csf_fit_enc.bin" -i "${CURRENT_PATH}/csf_fit_enc.txt" >/dev/null
+	if [ $? -ne 0 ]; then
+		echo "[ERROR] Could not generate FIT ENC CSF"
+		exit 1
+	fi
+	# Sign encrypted FIT
+	cp flash-spl-fit-enc.bin flash-spl-fit-enc-dummy.bin
+	cst -o "${CURRENT_PATH}/csf_fit_sign_enc.bin" -i "${CURRENT_PATH}/csf_fit_sign_enc.txt" >/dev/null
+	if [ $? -ne 0 ]; then
+		echo "[ERROR] Could not generate FIT SIGN ENC CSF"
+		exit 1
+	fi
 
-# Generate encrypted uboot
-# Encrypt SPL
-cp ${UBOOT_PATH} flash-spl-enc.bin
-cst -o "${CURRENT_PATH}/csf_spl_enc.bin" -i "${CURRENT_PATH}/csf_spl_enc.txt" > /dev/null
-if [ $? -ne 0 ]; then
-	echo "[ERROR] Could not generate SPL ENC CSF"
-	exit 1
-fi
-# Sign encrypted SPL
-cp flash-spl-enc.bin flash-spl-enc-dummy.bin
-cst -o "${CURRENT_PATH}/csf_spl_sign_enc.bin" -i "${CURRENT_PATH}/csf_spl_sign_enc.txt" > /dev/null
-if [ $? -ne 0 ]; then
-	echo "[ERROR] Could not generate SPL SIGN ENC CSF"
-	exit 1
-fi
-# Encrypt FIT
-cp flash-spl-enc.bin flash-spl-fit-enc.bin
-cst -o "${CURRENT_PATH}/csf_fit_enc.bin" -i "${CURRENT_PATH}/csf_fit_enc.txt" > /dev/null
-if [ $? -ne 0 ]; then
-	echo "[ERROR] Could not generate FIT ENC CSF"
-	exit 1
-fi
-# Sign encrypted FIT
-cp flash-spl-fit-enc.bin flash-spl-fit-enc-dummy.bin
-cst -o "${CURRENT_PATH}/csf_fit_sign_enc.bin" -i "${CURRENT_PATH}/csf_fit_sign_enc.txt" > /dev/null
-if [ $? -ne 0 ]; then
-	echo "[ERROR] Could not generate FIT SIGN ENC CSF"
-	exit 1
-fi
+	# Create final CSF for SPL
+	csf_size="$(stat -L -c %s csf_spl_enc.bin)"
+	nonce_offset="$((csf_size - 36))"
+	echo "SPL ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
+	dd if=csf_spl_enc.bin of=noncemac.bin bs=1 skip=${nonce_offset} count=36
+	csf_size="$(stat -L -c %s csf_spl_sign_enc.bin)"
+	nonce_offset="$((csf_size - 36))"
+	echo "SPL SIGN ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
+	dd if=noncemac.bin of=csf_spl_sign_enc.bin bs=1 seek=${nonce_offset} count=36
 
-# Create final CSF for SPL
-csf_size="$(stat -L -c %s csf_spl_enc.bin)"
-nonce_offset="$((csf_size - 36))"
-echo "SPL ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
-dd if=csf_spl_enc.bin of=noncemac.bin bs=1 skip=${nonce_offset} count=36
-csf_size="$(stat -L -c %s csf_spl_sign_enc.bin)"
-nonce_offset="$((csf_size - 36))"
-echo "SPL SIGN ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
-dd if=noncemac.bin of=csf_spl_sign_enc.bin bs=1 seek=${nonce_offset} count=36
+	# Create final CSF for FIT
+	csf_size="$(stat -L -c %s csf_fit_enc.bin)"
+	nonce_offset="$((csf_size - 36))"
+	echo "FIT ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
+	dd if=csf_fit_enc.bin of=noncemac.bin bs=1 skip=${nonce_offset} count=36
+	csf_size="$(stat -L -c %s csf_fit_sign_enc.bin)"
+	nonce_offset="$((csf_size - 36))"
+	echo "FIT SIGN ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
+	dd if=noncemac.bin of=csf_fit_sign_enc.bin bs=1 seek=${nonce_offset} count=36
 
-# Create final CSF for FIT
-csf_size="$(stat -L -c %s csf_fit_enc.bin)"
-nonce_offset="$((csf_size - 36))"
-echo "FIT ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
-dd if=csf_fit_enc.bin of=noncemac.bin bs=1 skip=${nonce_offset} count=36
-csf_size="$(stat -L -c %s csf_fit_sign_enc.bin)"
-nonce_offset="$((csf_size - 36))"
-echo "FIT SIGN ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
-dd if=noncemac.bin of=csf_fit_sign_enc.bin bs=1 seek=${nonce_offset} count=36
-
-cp flash-spl-fit-enc.bin ${TARGET}
-dd if=${CURRENT_PATH}/csf_spl_sign_enc.bin of=${TARGET} seek=$((${spl_csf_offset})) bs=1 conv=notrunc > /dev/null 2>&1
-dd if=${CURRENT_PATH}/csf_fit_sign_enc.bin of=${TARGET} seek=$((${sld_csf_offset})) bs=1 conv=notrunc > /dev/null 2>&1
+	cp flash-spl-fit-enc.bin ${TARGET}
+	dd if=${CURRENT_PATH}/csf_spl_sign_enc.bin of=${TARGET} seek=$((${spl_csf_offset})) bs=1 conv=notrunc >/dev/null 2>&1
+	dd if=${CURRENT_PATH}/csf_fit_sign_enc.bin of=${TARGET} seek=$((${sld_csf_offset})) bs=1 conv=notrunc >/dev/null 2>&1
 fi
 
 [ "${ENCRYPT}" = "true" ] && ENCRYPTED_MSG="and encrypted "
 echo "Signed ${ENCRYPTED_MSG}image ready: ${TARGET}"
 
-rm -f "${SRK_TABLE}" flash-spl-* csf_* 2> /dev/null
+rm -f "${SRK_TABLE}" flash-spl-* csf_* 2>/dev/null
