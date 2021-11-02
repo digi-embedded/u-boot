@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 Digi International, Inc.
+ * Copyright (C) 2016-2021 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * Configuration settings for the Digi ConnecCore 6UL Starter board.
@@ -158,6 +158,16 @@
 
 #if defined(CONFIG_NAND_BOOT)
 
+#define ROOTARGS_SINGLEMTDSYSTEM_UBIFS \
+	"ubi.mtd=" SYSTEM_PARTITION " " \
+	"root=ubi0:${rootfsvol} " \
+	"rootfstype=ubifs rw"
+#define ROOTARGS_UBIFS \
+	"ubi.mtd=${mtdlinuxindex} " \
+	"ubi.mtd=${mtdrootfsindex} " \
+	"root=ubi1:${rootfsvol} " \
+	"rootfstype=ubifs rw"
+
 #define MTDPART_ENV_SETTINGS \
 	"mtdbootpart=" CONFIG_LINUX_PARTITION "\0" \
 	"mtdlinuxindex=" CONFIG_ENV_MTD_LINUX_INDEX "\0" \
@@ -168,18 +178,14 @@
 	"rootfsvol=" ROOTFS_PARTITION "\0" \
 	"bootargs_nand_linux=" \
 		"if test \"${singlemtdsys}\" = yes; then " \
-			"setenv bootargs console=${console},${baudrate} " \
-			"${bootargs_linux} ${mtdparts} " \
-			"ubi.mtd=" SYSTEM_PARTITION " " \
-			"root=ubi0:${rootfsvol} rootfstype=ubifs rw " \
-			"${bootargs_once} ${extra_bootargs};" \
+			"rootargs=\"" ROOTARGS_SINGLEMTDSYSTEM_UBIFS "\";" \
 		"else " \
-			"setenv bootargs console=${console},${baudrate} " \
-			"${bootargs_linux} ${mtdparts} ubi.mtd=${mtdlinuxindex} " \
-			"ubi.mtd=${mtdrootfsindex} root=ubi1_0 " \
-			"rootfstype=ubifs rw " \
-			"${bootargs_once} ${extra_bootargs};" \
-		"fi;\0" \
+			"rootargs=\"" ROOTARGS_UBIFS "\";" \
+		"fi;" \
+		"setenv bootargs console=${console},${baudrate} " \
+			"${bootargs_linux} ${mtdparts} " \
+			"${rootargs} " \
+			"${bootargs_once} ${extra_bootargs};\0" \
 	"loadscript=" \
 		"if test \"${dualboot}\" = yes; then " \
 			"if test -z \"${active_system}\"; then " \
