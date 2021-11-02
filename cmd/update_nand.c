@@ -23,7 +23,8 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#define UBIFS_MAGIC  0x06101831
+#define UBIFS_MAGIC		0x06101831
+#define SQUASHFS_MAGIC		0x73717368
 
 enum {
 	ERR_WRITE = 1,
@@ -99,9 +100,9 @@ static int write_firmware(unsigned long loadaddr, unsigned long filesize,
 	}
 
 #ifdef CONFIG_DIGI_UBI
-	/* Check if the file to write is UBIFS */
+	/* Check if the file to write is UBIFS or SQUASHFS */
 	magic = (uint32_t *)map_sysmem(loadaddr, 0);
-	if (*magic == UBIFS_MAGIC) {
+	if (*magic == UBIFS_MAGIC || *magic == SQUASHFS_MAGIC) {
 		/*
 		 * If the partition is not U-Boot (whose sectors must be raw-read),
 		 * ensure the partition is UBI formatted.
