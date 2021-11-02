@@ -163,17 +163,14 @@
 	"root=ubi0:${rootfsvol} " \
 	"rootfstype=ubifs rw"
 #define ROOTARGS_UBIFS \
-	"ubi.mtd=${mtdlinuxindex} " \
-	"ubi.mtd=${mtdrootfsindex} " \
+	"ubi.mtd=${mtdbootpart} " \
+	"ubi.mtd=${mtdrootfspart} " \
 	"root=ubi1:${rootfsvol} " \
 	"rootfstype=ubifs rw"
 
 #define MTDPART_ENV_SETTINGS \
 	"mtdbootpart=" CONFIG_LINUX_PARTITION "\0" \
-	"mtdlinuxindex=" CONFIG_ENV_MTD_LINUX_INDEX "\0" \
-	"mtdrecoveryindex=" CONFIG_ENV_MTD_RECOVERY_INDEX "\0" \
-	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
-	"mtdupdateindex=" CONFIG_ENV_MTD_UPDATE_INDEX "\0" \
+	"mtdrootfspart=" ROOTFS_PARTITION "\0" \
 	"singlemtdsys=no\0" \
 	"rootfsvol=" ROOTFS_PARTITION "\0" \
 	"bootargs_nand_linux=" \
@@ -214,10 +211,8 @@
 		"setenv mtdbootpart " CONFIG_RECOVERY_PARTITION ";" \
 		"boot\0"
 #define DUALBOOT_ENV_SETTINGS \
-	"mtdlinux_a_index=" ENV_MTD_LINUX_A_INDEX "\0" \
-	"mtdlinux_b_index=" ENV_MTD_LINUX_B_INDEX "\0" \
-	"mtdrootfs_a_index=" ENV_MTD_ROOTFS_A_INDEX "\0" \
-	"mtdrootfs_b_index=" ENV_MTD_ROOTFS_B_INDEX "\0" \
+	"linux_a=" LINUX_A_PARTITION "\0" \
+	"linux_b=" LINUX_B_PARTITION "\0" \
 	"rootfsvol_a=" ROOTFS_A_PARTITION "\0" \
 	"rootfsvol_b=" ROOTFS_B_PARTITION "\0" \
 	"active_system=" LINUX_A_PARTITION "\0"

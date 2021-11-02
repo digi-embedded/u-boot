@@ -291,10 +291,6 @@
 					"24m(" LINUX_B_PARTITION ")," \
 					"256m(rootfs_a)," \
 					"256m(rootfs_b)"
-#define ENV_MTD_LINUX_A_INDEX		"3"
-#define ENV_MTD_LINUX_B_INDEX		"4"
-#define ENV_MTD_ROOTFS_A_INDEX		"5"
-#define ENV_MTD_ROOTFS_B_INDEX		"6"
 
 #define MTDPARTS_256MB			"mtdparts=" CONFIG_NAND_NAME ":" \
 					__stringify(UBOOT_PART_SIZE_SMALL) "m(" CONFIG_UBOOT_PARTITION ")," \
@@ -320,10 +316,6 @@
 					"32m(" CONFIG_RECOVERY_PARTITION ")," \
 					"512m(" ROOTFS_PARTITION ")," \
 					"-(update)"
-#define CONFIG_ENV_MTD_LINUX_INDEX	"3"
-#define CONFIG_ENV_MTD_RECOVERY_INDEX	"4"
-#define CONFIG_ENV_MTD_ROOTFS_INDEX	"5"
-#define CONFIG_ENV_MTD_UPDATE_INDEX	"6"
 #define CREATE_MTDPARTS_SCRIPT		"if test \"${singlemtdsys}\" = yes; then " \
 						"setenv mtdparts %s;" \
 					"else " \
