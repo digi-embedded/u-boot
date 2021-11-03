@@ -52,6 +52,9 @@ struct load_fw {
 #define SW_RNG_TEST_PASSED 	2
 #define SW_RNG_TEST_NA 		3
 
+#define UBIFS_MAGIC		0x06101831
+#define SQUASHFS_MAGIC		0x73717368
+
 int confirm_msg(char *msg);
 int get_source(int argc, char * const argv[], struct load_fw *fwinfo);
 bool is_image_compressed(void);
