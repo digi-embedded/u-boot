@@ -292,8 +292,7 @@ int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 						partname);
 					return -1;
 				}
-				if (run_command("ubi part " SYSTEM_PARTITION,
-						0)) {
+				if (activate_ubi_part(SYSTEM_PARTITION)) {
 					printf("Cannot find '%s' partition or UBI volume\n",
 						partname);
 					return -1;
