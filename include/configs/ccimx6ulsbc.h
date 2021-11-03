@@ -172,11 +172,20 @@
 	"ubi.mtd=" SYSTEM_PARTITION " " \
 	"root=ubi0:${rootfsvol} " \
 	"rootfstype=ubifs rw"
-#define ROOTARGS_UBIFS \
+#define ROOTARGS_MULTIMTDSYSTEM_UBIFS \
 	"ubi.mtd=${mtdbootpart} " \
 	"ubi.mtd=${mtdrootfspart} " \
 	"root=ubi1:${rootfsvol} " \
 	"rootfstype=ubifs rw"
+#define ROOTARGS_SINGLEMTDSYSTEM_SQUASHFS \
+	"ubi.mtd=" SYSTEM_PARTITION " " \
+	"ubi.block=0,2 root=/dev/ubiblock0_2 " \
+	"rootfstype=squashfs ro"
+#define ROOTARGS_MULTIMTDSYSTEM_SQUASHFS \
+	"ubi.mtd=${mtdbootpart} " \
+	"ubi.mtd=${mtdrootfspart} " \
+	"ubi.block=1,0 root=/dev/ubiblock1_0 " \
+	"rootfstype=squashfs ro"
 
 #define MTDPART_ENV_SETTINGS \
 	"mtdbootpart=" CONFIG_LINUX_PARTITION "\0" \
@@ -185,9 +194,17 @@
 	"rootfsvol=" ROOTFS_PARTITION "\0" \
 	"bootargs_nand_linux=" \
 		"if test \"${singlemtdsys}\" = yes; then " \
-			"rootargs=\"" ROOTARGS_SINGLEMTDSYSTEM_UBIFS "\";" \
+			"if test \"${rootfstype}\" = squashfs; then " \
+				"setenv rootargs " ROOTARGS_SINGLEMTDSYSTEM_SQUASHFS ";" \
+			"else " \
+				"setenv rootargs " ROOTARGS_SINGLEMTDSYSTEM_UBIFS ";" \
+			"fi;" \
 		"else " \
-			"rootargs=\"" ROOTARGS_UBIFS "\";" \
+			"if test \"${rootfstype}\" = squashfs; then " \
+				"setenv rootargs " ROOTARGS_MULTIMTDSYSTEM_SQUASHFS ";" \
+			"else " \
+				"setenv rootargs " ROOTARGS_MULTIMTDSYSTEM_UBIFS ";" \
+			"fi;" \
 		"fi;" \
 		"setenv bootargs console=${console},${baudrate} " \
 			"${bootargs_linux} ${mtdparts} " \
