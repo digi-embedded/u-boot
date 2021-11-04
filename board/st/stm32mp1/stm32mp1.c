@@ -45,6 +45,7 @@
 #include <linux/err.h>
 #include <linux/iopoll.h>
 #include <power/regulator.h>
+#include <tee/optee.h>
 #include <usb/dwc2_udc.h>
 
 #include "../../st/common/stusb160x.h"
@@ -985,6 +986,89 @@ int mmc_get_env_dev(void)
 }
 
 #if defined(CONFIG_OF_BOARD_SETUP)
+
+/* update scmi nodes with information provided by SP-MIN */
+void stm32mp15_fdt_update_scmi_node(void *new_blob)
+{
+	ofnode node;
+	int nodeoff = 0;
+	const char *name;
+	u32 val;
+	int ret;
+
+	nodeoff = fdt_path_offset(new_blob, "/firmware/scmi");
+	if (nodeoff < 0)
+		return;
+
+	/* search scmi node in U-Boot device tree */
+	node = ofnode_path("/firmware/scmi");
+	if (!ofnode_valid(node)) {
+		log_warning("node not found");
+		return;
+	}
+	if (!ofnode_device_is_compatible(node, "arm,scmi-smc")) {
+		name = ofnode_get_property(node, "compatible", NULL);
+		log_warning("invalid compatible %s", name);
+		return;
+	}
+
+	/* read values updated by TF-A SP-MIN */
+	ret = ofnode_read_u32(node, "arm,smc-id", &val);
+	if (ret) {
+		log_warning("arm,smc-id missing");
+		return;
+	}
+	/* update kernel node */
+	fdt_setprop_string(new_blob, nodeoff, "compatible", "arm,scmi-smc");
+	fdt_delprop(new_blob, nodeoff, "linaro,optee-channel-id");
+	fdt_setprop_u32(new_blob, nodeoff, "arm,smc-id", val);
+}
+
+/*
+ * update the device tree to support boot with SP-MIN, using a device tree
+ * containing OPTE nodes:
+ * 1/ remove the OP-TEE related nodes
+ * 2/ copy SCMI nodes to kernel device tree to replace the OP-TEE agent
+ *
+ * SP-MIN boot is supported for STM32MP15 and it uses the SCMI SMC agent
+ * whereas Linux device tree defines an SCMI OP-TEE agent.
+ *
+ * This function allows to temporary support this legacy boot mode,
+ * with SP-MIN and without OP-TEE.
+ */
+void stm32mp15_fdt_update_optee_nodes(void *new_blob)
+{
+	ofnode node;
+	int nodeoff = 0, subnodeoff;
+
+	/* only proceed if /firmware/optee node is not present in U-Boot DT */
+	node = ofnode_path("/firmware/optee");
+	if (ofnode_valid(node)) {
+		log_debug("OP-TEE firmware found, nothing to do");
+		return;
+	}
+
+	/* remove OP-TEE memory regions in reserved-memory node */
+	nodeoff = fdt_path_offset(new_blob, "/reserved-memory");
+	if (nodeoff >= 0) {
+		fdt_for_each_subnode(subnodeoff, new_blob, nodeoff) {
+			const char *name = fdt_get_name(new_blob, subnodeoff, NULL);
+
+			/* only handle "optee" reservations */
+			if (name && !strncmp(name, "optee", 5))
+				fdt_del_node(new_blob, subnodeoff);
+		}
+	}
+
+	/* remove OP-TEE node  */
+	nodeoff = fdt_path_offset(new_blob, "/firmware/optee");
+	if (nodeoff >= 0)
+		fdt_del_node(new_blob, nodeoff);
+
+	/* update the scmi node */
+	stm32mp15_fdt_update_scmi_node(new_blob);
+}
+
 int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	static const struct node_info nodes[] = {
@@ -1004,6 +1088,9 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 
 	if (CONFIG_IS_ENABLED(FDT_SIMPLEFB))
 		fdt_simplefb_enable_and_mem_rsv(blob);
+
+	if (CONFIG_IS_ENABLED(TARGET_ST_STM32MP15x))
+		stm32mp15_fdt_update_optee_nodes(blob);
 
 	return 0;
 }
