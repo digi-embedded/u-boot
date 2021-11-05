@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2014 by Digi International Inc.
+ *  Copyright (C) 2014-2021 by Digi International Inc.
  *  All rights reserved.
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -10,6 +10,9 @@
 #include <common.h>
 #include <part.h>
 #include "helper.h"
+#ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
+#include <asm/imx-common/hab.h>
+#endif /* CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS */
 
 enum {
 	OS_UNDEFINED = -1,
@@ -97,6 +100,10 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 	int has_fdt = 0;
 	int has_initrd = 0;
 	struct load_fw fwinfo;
+#ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
+	unsigned long squashfs_raw_size;
+	unsigned long rootfs_auth_addr;
+#endif
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -164,6 +171,25 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		printf("Error loading init ramdisk file\n");
 		return CMD_RET_FAILURE;
 	}
+
+	/* Authenicate SQUASHFS rootfs */
+#ifdef CONFIG_SIGNED_READ_ONLY_ROOTFS
+	rootfs_auth_addr = getenv_ulong("initrd_addr", 16, ~0UL);
+	if (rootfs_auth_addr == ~0UL) {
+		printf("Wrong initrd_addr. Can't read root file system\n");
+		return CMD_RET_FAILURE;
+	}
+
+	if (read_squashfs_rootfs(rootfs_auth_addr, &squashfs_raw_size)) {
+		printf("Error reading SQUASHFS root file system\n");
+		return CMD_RET_FAILURE;
+	}
+
+	if (authenticate_image(rootfs_auth_addr, squashfs_raw_size) == 0) {
+		printf("Failed to authenticate rootfs image\n");
+		return CMD_RET_FAILURE;
+	}
+#endif /* CONFIG_SIGNED_READ_ONLY_ROOTFS */
 
 	/* Set boot arguments */
 	ret = set_bootargs(os, fwinfo.src);

@@ -80,5 +80,8 @@ uint get_env_hwpart(void);
 u64 memsize_parse(const char *const ptr, const char **retptr);
 void set_verifyaddr(unsigned long loadaddr);
 int hab_event_warning_check(uint8_t *event, size_t *bytes);
+#ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
+int read_squashfs_rootfs(unsigned long addr, unsigned long *size);
+#endif
 
 #endif  /* __DIGI_HELPER_H */
