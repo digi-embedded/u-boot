@@ -29,6 +29,13 @@ DECLARE_GLOBAL_DATA_PTR;
 #define CONFIG_CMD_UPDATE
 #endif
 
+#ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
+#define SQUASHFS_BYTES_USED_OFFSET	0x28
+#ifdef CONFIG_AHAB_BOOT
+#define AHAB_CONTAINER_SIZE		8192
+#endif
+#endif /* CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS */
+
 #if defined(CONFIG_CMD_UPDATE) || defined(CONFIG_CMD_DBOOT)
 enum {
 	FWLOAD_NO,
@@ -1230,3 +1237,120 @@ int connectcore_load_fdt(ulong fdt_addr, struct dt_table_header *dtt_header)
 	return 0;
 }
 #endif /* CONFIG_ANDROID_LOAD_CONNECTCORE_FDT */
+
+#ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
+int read_squashfs_rootfs(unsigned long addr, unsigned long *size)
+{
+	char cmd_buf[CONFIG_SYS_CBSIZE];
+	unsigned long squashfs_size = 0, squashfs_raw_size = 0, squashfs_temp_addr = 0, squashfs_ahab_addr = 0;
+	uint32_t *squashfs_size_addr = NULL;
+	uint32_t *squashfs_magic = NULL;
+	uint32_t *squashfs_ahab_addr_p = NULL;
+	uint32_t *p = NULL;
+
+#ifdef CONFIG_NAND_BOOT
+	int ret = 0;
+
+	/* Access ubi partition */
+	ret = activate_ubi_part(env_get_yesno("singlemtdsys") ?
+				SYSTEM_PARTITION : ROOTFS_PARTITION);
+	if (ret) {
+		debug("Error: cannot find root partition or ubi volume\n");
+		return -1;
+	}
+
+	/* Read squashfs header into RAM */
+	sprintf(cmd_buf, "ubi read %lx ${rootfsvol} 100", addr);
+	if (run_command(cmd_buf, 0)) {
+		debug("Failed to read from ubi partition\n");
+		return -1;
+	}
+#else
+	uint32_t blk_count;
+	char rootfspart[32];
+
+	if (env_get_yesno("dualboot")) {
+		strcpy(rootfspart,
+		       strcmp(env_get("active_system"), "linux_a") ?
+		       "rootfs_b" : "rootfs_a");
+	} else {
+		strcpy(rootfspart, "rootfs");
+	}
+
+	sprintf(cmd_buf, "part start mmc ${mmcbootdev} %s rootfs_start",
+		rootfspart);
+	if (run_command(cmd_buf, 0)) {
+		debug("Failed to get start offset of %s partition\n",
+		      rootfspart);
+		return -1;
+	}
+
+#endif /* CONFIG_NAND_BOOT */
+
+#ifdef CONFIG_AHAB_BOOT
+	/* We have placed signature container at the end of the image
+	 * Now we need to put on top of the image again for
+	 * authentication.
+	 */
+	squashfs_temp_addr = addr + AHAB_CONTAINER_SIZE;
+#else
+	squashfs_temp_addr = addr;
+#endif
+	/* read first 32 sectors of rootfs image into RAM */
+	sprintf(cmd_buf, "mmc read %lx ${rootfs_start} 20", squashfs_temp_addr);
+	if (run_command(cmd_buf, 0)) {
+		debug("Failed to read block from mmc\n");
+		return -1;
+	}
+
+	/* Check if this is a squashfs image */
+	squashfs_magic = (uint32_t *)map_sysmem(squashfs_temp_addr, 0);
+	if (*squashfs_magic != SQUASHFS_MAGIC) {
+		debug("Error: Rootfs is not Squashfs, abort authentication\n");
+		return -1;
+	}
+
+	squashfs_size_addr = (uint32_t *)map_sysmem(squashfs_temp_addr + SQUASHFS_BYTES_USED_OFFSET, 0);
+	if (squashfs_size_addr == NULL) {
+		debug("Error: Failed to allocate \n");
+		return -1;
+	}
+	squashfs_raw_size = *squashfs_size_addr;
+	/* align address to next 4K value */
+	squashfs_raw_size += 0xFFF;
+	squashfs_raw_size &= 0xFFFFF000;
+
+#ifdef CONFIG_AHAB_BOOT
+	/* add signature size */
+	squashfs_size = squashfs_raw_size + AHAB_CONTAINER_SIZE;
+#else
+	/* add signature size */
+	squashfs_size = squashfs_raw_size + CONFIG_CSF_SIZE + IVT_SIZE;
+#endif
+#ifdef CONFIG_NAND_BOOT
+	sprintf(cmd_buf, "ubi read %lx ${rootfsvol} %lx", addr, squashfs_size);
+	if (run_command(cmd_buf, 0)) {
+		debug("Failed to read squashfs image into RAM\n");
+		return -1;
+	}
+#else
+	blk_count = (squashfs_size / 0x200) + 1;
+	sprintf(cmd_buf, "mmc read %lx ${rootfs_start} %x", squashfs_temp_addr, blk_count);
+	if (run_command(cmd_buf, 0)) {
+		debug("Failed to read squashfs image into RAM\n");
+		return -1;
+	}
+#ifdef CONFIG_AHAB_BOOT
+	/* Now copy the signature container to the start */
+	squashfs_ahab_addr = squashfs_temp_addr + squashfs_raw_size;
+	memcpy((void *)addr,
+		   (void *)squashfs_ahab_addr,
+		   AHAB_CONTAINER_SIZE);
+#endif
+#endif /* CONFIG_NAND_BOOT */
+
+	*size = squashfs_raw_size;
+
+	return 0;
+}
+#endif /* CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS */

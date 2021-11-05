@@ -431,6 +431,11 @@ config ANDROID_BOOT_IMAGE
 	  This enables support for booting images which use the Android
 	  image format header.
 
+config AUTHENTICATE_SQUASHFS_ROOTFS
+	bool "Require authentication of SQUASHFS rootfs"
+	depends on SIGN_IMAGE
+	default n
+
 config FIT
 	bool "Support Flattened Image Tree"
 	select MD5
