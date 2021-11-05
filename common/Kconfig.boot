@@ -55,6 +55,10 @@ config SIGN_MODE
 	  HAB method is supported on i.MX6/7 and i.MX8M devices.
 	  AHAB method is supported on i.MX8X devices.
 
+config AUTHENTICATE_SQUASHFS_ROOTFS
+	bool "Require authentication of SQUASHFS rootfs"
+	default n
+
 endif # SIGN_IMAGE
 
 config ANDROID_BOOT_IMAGE
