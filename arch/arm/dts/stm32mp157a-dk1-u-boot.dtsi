@@ -200,6 +200,3 @@
 	};
 };
 
-&usbotg_hs {
-	u-boot,force-b-session-valid;
-};
