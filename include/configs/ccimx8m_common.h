@@ -35,7 +35,6 @@
 
 #endif
 
-#define CONFIG_CMD_READ
 #define CONFIG_SERIAL_TAG
 #define CONFIG_FASTBOOT_USB_DEV 0
 
@@ -228,6 +227,12 @@
 #define CONFIG_VIDEO_BMP_RLE8
 #define CONFIG_VIDEO_BMP_LOGO
 #endif
+
+#define ALTBOOTCMD	\
+	"altbootcmd=" \
+	"if load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} altboot.scr; then " \
+		"source ${loadaddr};" \
+	"fi;\0"
 
 /* Pool of randomly generated UUIDs at host machine */
 #define RANDOM_UUIDS	\

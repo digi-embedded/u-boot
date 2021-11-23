@@ -15,6 +15,32 @@
 #define CONFIG_CC8X
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 8X"
 
+#ifdef CONFIG_SPL_BUILD
+#define CONFIG_SPL_MAX_SIZE				(192 * 1024)
+#define CONFIG_SYS_MONITOR_LEN				(1024 * 1024)
+#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
+#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR		0x1040 /* (32K + 2Mb)/sector_size */
+
+/*
+ * 0x08081000 - 0x08180FFF is for m4_0 xip image,
+ * So 3rd container image may start from 0x8181000
+ */
+#define CONFIG_SYS_UBOOT_BASE 0x08181000
+#define CONFIG_SYS_MMCSD_FS_BOOT_PARTITION		0
+
+#define CONFIG_SPL_LDSCRIPT		"arch/arm/cpu/armv8/u-boot-spl.lds"
+#define CONFIG_SPL_STACK		0x013fff0
+#define CONFIG_SPL_BSS_START_ADDR	0x00130000
+#define CONFIG_SPL_BSS_MAX_SIZE		0x1000	/* 4 KB */
+#define CONFIG_SYS_SPL_MALLOC_START	0x82200000
+#define CONFIG_SYS_SPL_MALLOC_SIZE	0x80000	/* 512 KB */
+#define CONFIG_SERIAL_LPUART_BASE	0x5a060000
+#define CONFIG_MALLOC_F_ADDR		0x00138000
+
+#define CONFIG_SPL_RAW_IMAGE_ARM_TRUSTED_FIRMWARE
+#define CONFIG_SPL_ABORT_ON_RAW_IMAGE
+#endif /* CONFIG_SPL_BUILD */
+
 /* RAM */
 #define CONFIG_LOADADDR			0x88280000
 #define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
@@ -215,6 +241,12 @@
 
 /* Generic Timer Definitions */
 #define COUNTER_FREQUENCY		8000000	/* 8MHz */
+
+#define ALTBOOTCMD	\
+	"altbootcmd=" \
+	"if load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} altboot.scr; then " \
+		"source ${loadaddr};" \
+	"fi;\0"
 
 /* Pool of randomly generated UUIDs at host machine */
 #define RANDOM_UUIDS	\

@@ -77,6 +77,7 @@
 	CONFIG_DEFAULT_NETWORK_SETTINGS		\
 	CONFIG_EXTRA_NETWORK_SETTINGS		\
 	RANDOM_UUIDS \
+	ALTBOOTCMD \
 	"dualboot=no\0" \
 	"dboot_kernel_var=imagegz\0" \
 	"lzipaddr=" __stringify(CONFIG_DIGI_LZIPADDR) "\0" \
@@ -125,7 +126,7 @@
 	"loadbootscript=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
 	"loadimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
 	"loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
-		"partition_mmc_android=mmc rescan;" \
+	"partition_mmc_android=mmc rescan;" \
 		"if mmc dev ${mmcdev} 0; then " \
 			"gpt write mmc ${mmcdev} ${parts_android};" \
 			"mmc rescan;" \
@@ -138,22 +139,19 @@
 		"fi;\0" \
 	"partition_mmc_linux=mmc rescan;" \
 		"if mmc dev ${mmcdev} 0; then " \
-			"gpt write mmc ${mmcdev} ${parts_linux};" \
-			"mmc rescan;" \
-		"else " \
-			"if mmc dev ${mmcdev};then " \
-				"gpt write mmc ${mmcdev} ${parts_linux};" \
-				"mmc rescan;" \
-			"else;" \
-			"fi;" \
-		"fi;\0" \
-	"partition_mmc_linux_dualboot=mmc rescan;" \
-		"if mmc dev ${mmcdev} 0; then " \
-			"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
-			"mmc rescan;" \
-		"else " \
-			"if mmc dev ${mmcdev};then " \
+			"if test \"${dualboot}\" = yes; then " \
 				"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
+			"else " \
+				"gpt write mmc ${mmcdev} ${parts_linux};" \
+			"fi;" \
+			"mmc rescan;" \
+		"else " \
+			"if mmc dev ${mmcdev};then " \
+				"if test \"${dualboot}\" = yes; then " \
+					"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
+				"else " \
+					"gpt write mmc ${mmcdev} ${parts_linux};" \
+				"fi;" \
 				"mmc rescan;" \
 			"else;" \
 			"fi;" \

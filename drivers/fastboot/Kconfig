@@ -106,6 +106,7 @@ config CMD_BOOTA
 config BCB_SUPPORT
 	bool "Enable the boot control block support"
 	depends on FSL_FASTBOOT
+	select CMD_READ
 	help
 	  This enables the boot control block support for android reboot command
 

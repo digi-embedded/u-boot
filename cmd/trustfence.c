@@ -945,7 +945,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			/* Copy DEK blob to its final destination */
                         memcpy((void *)dek_blob_final_dst, (void *)dek_blob_dst,
                                 dek_blob_size);
-#ifdef CONFIG_SPL
+#if defined(CONFIG_ARCH_IMX8M) && defined(CONFIG_SPL)
 			/* Copy SPL DEK blob to its final destination */
 			memcpy((void *)dek_blob_spl_final_dst, (void *)dek_blob_dst,
 				dek_blob_size);
@@ -956,7 +956,7 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			 * destination. (This fails if the running U-Boot does not
 			 * include a DEK)
 			 */
-#ifdef CONFIG_SPL
+#if defined(CONFIG_ARCH_IMX8M) && defined(CONFIG_SPL)
 			if (get_dek_blob((void *)dek_blob_spl_final_dst, &dek_blob_size)) {
 				printf("Current U-Boot does not contain an SPL DEK, and a new SPL DEK was not provided\n");
 				ret = CMD_RET_FAILURE;

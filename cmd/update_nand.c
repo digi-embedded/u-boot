@@ -23,8 +23,6 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#define UBIFS_MAGIC  0x06101831
-
 enum {
 	ERR_WRITE = 1,
 	ERR_READ,
@@ -60,8 +58,32 @@ static int ubi_attach_getcreatevol(char *partname, const char **volname)
 	return ret;
 }
 
+static int write_firmware_ubi(unsigned long loadaddr, unsigned long filesize,
+			      struct part_info *part, char *ubivolname)
+{
+	char cmd[CONFIG_SYS_CBSIZE] = "";
+
+	/* If it is a UBIFS file system, verify it using a special function */
+	if (!ubivolname)
+		return ERR_WRITE;
+
+	/* A UBI volume exists in the partition, use 'ubi write' */
+	sprintf(cmd, "ubi write %lx %s %lx", loadaddr, ubivolname, filesize);
+	if (run_command(cmd, 0))
+		return ERR_WRITE;
+
+	printf("Verifying firmware...\n");
+	if (ubi_volume_verify(ubivolname, (char *)loadaddr, 0,
+				filesize, 0))
+		return ERR_VERIFY;
+
+	printf("Update was successful\n");
+
+	return 0;
+}
+
 static int write_firmware(unsigned long loadaddr, unsigned long filesize,
-			  struct part_info *part)
+			  struct part_info *part, bool force_erase)
 {
 	uint32_t *magic;
 	const char *ubivolname = NULL;
@@ -75,9 +97,9 @@ static int write_firmware(unsigned long loadaddr, unsigned long filesize,
 	}
 
 #ifdef CONFIG_DIGI_UBI
-	/* Check if the file to write is UBIFS */
+	/* Check if the file to write is UBIFS or SQUASHFS */
 	magic = (uint32_t *)map_sysmem(loadaddr, 0);
-	if (*magic == UBIFS_MAGIC) {
+	if (*magic == UBIFS_MAGIC || *magic == SQUASHFS_MAGIC) {
 		/*
 		 * If the partition is not U-Boot (whose sectors must be raw-read),
 		 * ensure the partition is UBI formatted.
@@ -86,16 +108,17 @@ static int write_firmware(unsigned long loadaddr, unsigned long filesize,
 			/* Silent UBI commands during the update */
 			run_command("ubi silent 1", 0);
 
-			if (is_ubi_partition(part)) {
+			if (!force_erase && is_ubi_partition(part)) {
 				/* Attach partition and get volume name */
 				ubi_attach_getcreatevol(part->name, &ubivolname);
 			}
 
 			/*
 			 * If the partition does not have a valid UBI volume,
-			 * erase the partition and create the UBI volume.
+			 * or we forced it from command line, erase the
+			 * partition and create the UBI volume.
 			 */
-			if (!ubivolname) {
+			if (!ubivolname || force_erase) {
 				sprintf(cmd, "nand erase.part %s", part->name);
 				if (run_command(cmd, 0))
 					return ERR_WRITE;
@@ -103,8 +126,7 @@ static int write_firmware(unsigned long loadaddr, unsigned long filesize,
 				ubi_attach_getcreatevol(part->name, &ubivolname);
 			}
 		}
-	}
-	else {
+	} else {
 		/*
 		 * If the file is not UBIFS, erase the entire partition before
 		 * raw-writing.
@@ -212,11 +234,22 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	char *partname;
 	u8 pnum;
 	struct load_fw fwinfo;
+	char cmd[CONFIG_SYS_CBSIZE];
+	int singlemtdsys = env_get_yesno("singlemtdsys");
+	bool ubivol = false;
+	bool force_erase = false;
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
 
 	memset(&fwinfo, 0, sizeof(fwinfo));
+
+	/* Check optional '-e' switch (at the end only) */
+	if (!strcmp(argv[argc - 1], "-e")) {
+		force_erase = true;
+		/* Drop off the '-e' argument */
+		argc--;
+	}
 
 	/* Initialize partitions */
 	if (mtdparts_init()) {
@@ -231,13 +264,38 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 		partname = argv[1];
 
 	if (find_dev_and_part(partname, &dev, &pnum, &part)) {
-		printf("Cannot find '%s' partition\n", partname);
-		return -1;
-	}
-
-	if (dev->id->type != MTD_DEV_TYPE_NAND) {
-		printf("not a NAND device\n");
-		return -1;
+		if (singlemtdsys) {
+			/*
+			 * Check if the passed argument is a UBI volume in the
+			 * 'system' partition.
+			 */
+			if (find_dev_and_part(SYSTEM_PARTITION, &dev, &pnum,
+					      &part)) {
+				printf("Cannot find '%s' partition or UBI volume\n",
+					partname);
+				return -1;
+			}
+			if (run_command("ubi part " SYSTEM_PARTITION, 0)) {
+				printf("Cannot find '%s' partition or UBI volume\n",
+					partname);
+				return -1;
+			}
+			sprintf(cmd, "ubi check %s", partname);
+			if (run_command(cmd, 0)) {
+				printf("Cannot find '%s' partition or UBI volume\n",
+					partname);
+				return -1;
+			}
+			ubivol = true;
+		} else {
+			printf("Cannot find '%s' partition\n", partname);
+			return -1;
+		}
+	} else {
+		if (dev->id->type != MTD_DEV_TYPE_NAND) {
+			printf("not a NAND device\n");
+			return -1;
+		}
 	}
 
 	/* Ask for confirmation if needed */
@@ -326,7 +384,11 @@ static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 		goto _ret;
 	}
 #endif
-	ret = write_firmware(loadaddr, filesize, part);
+	if (ubivol)
+		ret = write_firmware_ubi(loadaddr, filesize, part, partname);
+	else
+		ret = write_firmware(loadaddr, filesize, part, force_erase);
+
 	if (ret) {
 		if (ret == ERR_READ)
 			printf("Error while reading back written firmware!\n");
@@ -350,7 +412,7 @@ _ret:
 U_BOOT_CMD(
 	update,	6,	0,	do_update,
 	"Digi modules update command",
-	"<partition>  [source] [extra-args...]\n"
+	"<partition>  [source] [extra-args...] [-e]\n"
 	" Description: updates <partition> in NAND via <source>\n"
 	"              If a UBIFS file is given, it writes the file to the partition using UBI commands.\n"
 	"              Otherwise, this command raw-writes the file to the partition.\n"
@@ -362,4 +424,6 @@ U_BOOT_CMD(
 	"   - [extra-args]: extra arguments depending on 'source'\n"
 	"\n"
 	CONFIG_UPDATE_SUPPORTED_SOURCES_ARGS_HELP
+	"\n"
+	"   - [-e]:         force erase of the MTD partition before update\n"
 );

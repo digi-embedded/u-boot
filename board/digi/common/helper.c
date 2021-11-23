@@ -15,6 +15,7 @@
 #include <malloc.h>
 #include <mapmem.h>
 #include <nand.h>
+#include <ubi_uboot.h>
 #include <version.h>
 #include <watchdog.h>
 #ifdef CONFIG_OF_LIBFDT
@@ -201,6 +202,18 @@ bool is_image_compressed(void)
 	return false;
 }
 
+int activate_ubi_part(char *partname)
+{
+	char cmd[CONFIG_SYS_CBSIZE] = "";
+	struct ubi_device *ubi = ubi_devices[0];
+
+	if (ubi && !strcmp(ubi->mtd->name, partname))
+		return 0;
+
+	sprintf(cmd, "ubi part %s", partname);
+	return run_command(cmd, 0);
+}
+
 int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 {
 	int i;
@@ -211,6 +224,7 @@ int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 	u8 pnum;
 	char *partname;
 #endif
+	int singlemtdsys = env_get_yesno("singlemtdsys");
 
 	if (argc < 3) {
 		fwinfo->src = SRC_TFTP;	/* default to TFTP */
@@ -265,13 +279,43 @@ int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 		else
 			partname = argv[1];
 		if (find_dev_and_part(partname, &dev, &pnum, &fwinfo->part)) {
-			printf("Cannot find '%s' partition\n", partname);
-			goto _err;
+			if (singlemtdsys == 1) {
+				char cmd[CONFIG_SYS_CBSIZE] = "";
+
+				/*
+				 * Check if the passed argument is a UBI volume in the
+				 * 'system' partition.
+				 */
+				if (find_dev_and_part(SYSTEM_PARTITION, &dev,
+						      &pnum, &fwinfo->part)) {
+					printf("Cannot find '%s' partition or UBI volume\n",
+						partname);
+					return -1;
+				}
+				if (activate_ubi_part(SYSTEM_PARTITION)) {
+					printf("Cannot find '%s' partition or UBI volume\n",
+						partname);
+					return -1;
+				}
+				sprintf(cmd, "ubi check %s", partname);
+				if (run_command(cmd, 0)) {
+					printf("Cannot find '%s' partition or UBI volume\n",
+						partname);
+					return -1;
+				}
+				fwinfo->ubivol = true;
+				strcpy(fwinfo->ubivolname, partname);
+				goto _ok;
+			} else {
+				printf("Cannot find '%s' partition\n", partname);
+				goto _err;
+			}
 		}
 #endif
 		break;
 	}
 
+_ok:
 	fwinfo->src = i;
 	return 0;
 
@@ -493,24 +537,35 @@ int load_firmware(struct load_fw *fwinfo, char *msg)
 		 * a file from the UBIFS file system. Otherwise use a raw
 		 * read using 'nand read'.
 		 */
-		if (is_ubi_partition(fwinfo->part)) {
-			sprintf(cmd,
-				"if ubi part %s;then "
+		if (fwinfo->ubivol) {
+			if (!activate_ubi_part(SYSTEM_PARTITION))
+				sprintf(cmd,
 					"if ubifsmount ubi0:%s;then "
 						"ubifsload 0x%lx %s;"
 #ifndef CONFIG_MTD_UBI_SKIP_REATTACH
 						"ubifsumount;"
 #endif
-					"fi;"
-				"fi;",
-				fwinfo->part->name, fwinfo->part->name,
-				loadaddr, fwinfo->filename);
-		} else
+					"fi;",
+					fwinfo->ubivolname,
+					loadaddr, fwinfo->filename);
+		} else {
+			if (is_ubi_partition(fwinfo->part)) {
+				if (!activate_ubi_part(fwinfo->part->name))
+					sprintf(cmd,
+						"if ubifsmount ubi0:%s;then "
+							"ubifsload 0x%lx %s;"
+#ifndef CONFIG_MTD_UBI_SKIP_REATTACH
+							"ubifsumount;"
 #endif
-		{
-			sprintf(cmd, "nand read %s 0x%lx %x", fwinfo->part->name,
-				loadaddr, (u32)fwinfo->part->size);
+						"fi;",
+					fwinfo->part->name,
+					loadaddr, fwinfo->filename);
+			} else {
+				sprintf(cmd, "nand read %s 0x%lx %x", fwinfo->part->name,
+					loadaddr, (u32)fwinfo->part->size);
+			}
 		}
+#endif
 		break;
 	case SRC_RAM:
 		ret = LDFW_NOT_LOADED;	/* file is already in RAM */

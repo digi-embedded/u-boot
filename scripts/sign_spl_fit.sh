@@ -29,12 +29,12 @@
 # Avoid parallel execution of this script
 SINGLE_PROCESS_LOCK="/tmp/sign_script.lock.d"
 trap 'rm -rf "${SINGLE_PROCESS_LOCK}"' INT TERM EXIT
-while ! mkdir "${SINGLE_PROCESS_LOCK}" > /dev/null 2>&1; do
+while ! mkdir "${SINGLE_PROCESS_LOCK}" >/dev/null 2>&1; do
 	sleep 1
 done
 
-SCRIPT_NAME="$(basename ${0})"
-SCRIPT_PATH="$(cd $(dirname ${0}) && pwd)"
+SCRIPT_NAME="$(basename "${0}")"
+SCRIPT_PATH="$(cd "$(dirname "${0}")" && pwd)"
 
 if [ "${#}" != "2" ]; then
 	echo "Usage: ${SCRIPT_NAME} input-unsigned-imx-boot.bin output-signed-imx-boot.bin"
@@ -45,7 +45,7 @@ fi
 [ -f .config ] && . .config
 
 # External tools are used, so UBOOT_PATH has to be absolute
-UBOOT_PATH="$(readlink -e $1)"
+UBOOT_PATH="$(readlink -e "${1}")"
 TARGET="${2}"
 
 # Check arguments
@@ -63,10 +63,10 @@ CONFIG_KEY_INDEX_1="$((CONFIG_KEY_INDEX + 1))"
 if [ -n "${CONFIG_DEK_PATH}" ] && [ -n "${ENABLE_ENCRYPTION}" ]; then
 	if [ ! -f "${CONFIG_DEK_PATH}" ]; then
 		echo "DEK not found. Generating random 128 bit DEK."
-		[ -d $(dirname ${CONFIG_DEK_PATH}) ] || mkdir -p $(dirname ${CONFIG_DEK_PATH})
+		mkdir -p "$(dirname "${CONFIG_DEK_PATH}")"
 		dd if=/dev/urandom of="${CONFIG_DEK_PATH}" bs=16 count=1 >/dev/null 2>&1
 	fi
-	dek_size="$((8 * $(stat -L -c %s ${CONFIG_DEK_PATH})))"
+	dek_size="$((8 * $(stat -L -c %s "${CONFIG_DEK_PATH}")))"
 	if [ "${dek_size}" != "128" ] && [ "${dek_size}" != "192" ] && [ "${dek_size}" != "256" ]; then
 		echo "Invalid DEK size: ${dek_size} bits. Valid sizes are 128, 192 and 256 bits"
 		exit 1
@@ -74,11 +74,11 @@ if [ -n "${CONFIG_DEK_PATH}" ] && [ -n "${ENABLE_ENCRYPTION}" ]; then
 	ENCRYPT="true"
 fi
 
-SRK_KEYS="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/SRK*crt.pem | sed s/\ /\,/g)"
-CERT_CSF="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/CSF${CONFIG_KEY_INDEX_1}*crt.pem)"
-CERT_IMG="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/IMG${CONFIG_KEY_INDEX_1}*crt.pem)"
+SRK_KEYS="$(echo "${CONFIG_SIGN_KEYS_PATH}"/crts/SRK*crt.pem | sed s/\ /\,/g)"
+CERT_CSF="$(echo "${CONFIG_SIGN_KEYS_PATH}"/crts/CSF${CONFIG_KEY_INDEX_1}*crt.pem)"
+CERT_IMG="$(echo "${CONFIG_SIGN_KEYS_PATH}"/crts/IMG${CONFIG_KEY_INDEX_1}*crt.pem)"
 
-n_commas="$(echo ${SRK_KEYS} | grep -o "," | wc -l)"
+n_commas="$(echo "${SRK_KEYS}" | grep -o "," | wc -l)"
 
 if [ "${n_commas}" -eq 3 ] && [ -f "${CERT_CSF}" ] && [ -f "${CERT_IMG}" ]; then
 	# PKI tree already exists. Do nothing
@@ -87,9 +87,9 @@ elif [ "${n_commas}" -eq 0 ] || [ ! -f "${CERT_CSF}" ] || [ ! -f "${CERT_IMG}" ]
 	# Generate PKI
 	trustfence-gen-pki.sh "${CONFIG_SIGN_KEYS_PATH}"
 
-	SRK_KEYS="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/SRK*crt.pem | sed s/\ /\,/g)"
-	CERT_CSF="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/CSF${CONFIG_KEY_INDEX_1}*crt.pem)"
-	CERT_IMG="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/IMG${CONFIG_KEY_INDEX_1}*crt.pem)"
+	SRK_KEYS="$(echo "${CONFIG_SIGN_KEYS_PATH}"/crts/SRK*crt.pem | sed s/\ /\,/g)"
+	CERT_CSF="$(echo "${CONFIG_SIGN_KEYS_PATH}"/crts/CSF${CONFIG_KEY_INDEX_1}*crt.pem)"
+	CERT_IMG="$(echo "${CONFIG_SIGN_KEYS_PATH}"/crts/IMG${CONFIG_KEY_INDEX_1}*crt.pem)"
 else
 	echo "Inconsistent CST folder."
 	exit 1
@@ -103,42 +103,42 @@ SRK_EFUSES="$(pwd)/SRK_efuses.bin"
 MKIMAGE_LOG="$(pwd)/mkimage.log"
 MKIMAGE_FIT_HAB_LOG="$(pwd)/mkimage-print_fit_hab.log"
 
-if [ ! -e ${MKIMAGE_LOG} ]; then
+if [ ! -e "${MKIMAGE_LOG}" ]; then
 	echo "${MKIMAGE_LOG} does not exist."
 	exit 1
 fi
-if [ ! -e ${MKIMAGE_FIT_HAB_LOG} ]; then
+if [ ! -e "${MKIMAGE_FIT_HAB_LOG}" ]; then
 	echo "${MKIMAGE_FIT_HAB_LOG} does not exist."
 	exit 1
 fi
 
 # Parse spl uboot HAB block and CSF offset
-spl_image_offset=$(awk '/ image_off/ {print $2}' ${MKIMAGE_LOG})
-spl_csf_offset=$(awk '/ csf_off/ {print $2}' ${MKIMAGE_LOG})
-spl_ram_start=$(awk '/ spl hab block:/ {print $4}' ${MKIMAGE_LOG})
-spl_header_offset=$(awk '/ spl hab block:/ {print $5}' ${MKIMAGE_LOG})
-spl_image_len=$(awk '/ spl hab block:/ {print $6}' ${MKIMAGE_LOG})
+spl_image_offset=$(awk '/ image_off/ {print $2}' "${MKIMAGE_LOG}")
+spl_csf_offset=$(awk '/ csf_off/ {print $2}' "${MKIMAGE_LOG}")
+spl_ram_start=$(awk '/ spl hab block:/ {print $4}' "${MKIMAGE_LOG}")
+spl_header_offset=$(awk '/ spl hab block:/ {print $5}' "${MKIMAGE_LOG}")
+spl_image_len=$(awk '/ spl hab block:/ {print $6}' "${MKIMAGE_LOG}")
 
 # Parse sld (Second Loader image) uboot HAB blocks and CSF offset
-sld_csf_offset=$(awk '/ sld_csf_off/ {print $2}' ${MKIMAGE_LOG})
-sld_ram_start=$(awk '/ sld hab block:/ {print $4}' ${MKIMAGE_LOG})
-sld_header_offset=$(awk '/ sld hab block:/ {print $5}' ${MKIMAGE_LOG})
-sld_image_len=$(awk '/ sld hab block:/ {print $6}' ${MKIMAGE_LOG})
+sld_csf_offset=$(awk '/ sld_csf_off/ {print $2}' "${MKIMAGE_LOG}")
+sld_ram_start=$(awk '/ sld hab block:/ {print $4}' "${MKIMAGE_LOG}")
+sld_header_offset=$(awk '/ sld hab block:/ {print $5}' "${MKIMAGE_LOG}")
+sld_image_len=$(awk '/ sld hab block:/ {print $6}' "${MKIMAGE_LOG}")
 
 # Parse fit uboot HAB blocks
-result_row=$(awk '/print_fit_hab/ {print NR+1}' ${MKIMAGE_FIT_HAB_LOG})
-uboot_ram_start=$(awk -v first_row=${result_row} 'NR==first_row+0 {print $1}' ${MKIMAGE_FIT_HAB_LOG})
-uboot_image_offset=$(awk -v first_row=${result_row} 'NR==first_row+0 {print $2}' ${MKIMAGE_FIT_HAB_LOG})
-uboot_image_len=$(awk -v first_row=${result_row} 'NR==first_row+0 {print $3}' ${MKIMAGE_FIT_HAB_LOG})
-dtb_ram_start=$(awk -v first_row=${result_row} 'NR==first_row+1 {print $1}' ${MKIMAGE_FIT_HAB_LOG})
-dtb_image_offset=$(awk -v first_row=${result_row} 'NR==first_row+1 {print $2}' ${MKIMAGE_FIT_HAB_LOG})
-dtb_image_len=$(awk -v first_row=${result_row} 'NR==first_row+1 {print $3}' ${MKIMAGE_FIT_HAB_LOG})
-atf_ram_start=$(awk -v first_row=${result_row} 'NR==first_row+2 {print $1}' ${MKIMAGE_FIT_HAB_LOG})
-atf_image_offset=$(awk -v first_row=${result_row} 'NR==first_row+2 {print $2}' ${MKIMAGE_FIT_HAB_LOG})
-atf_image_len=$(awk -v first_row=${result_row} 'NR==first_row+2 {print $3}' ${MKIMAGE_FIT_HAB_LOG})
-optee_ram_start=$(awk -v first_row=${result_row} 'NR==first_row+3 {print $1}' ${MKIMAGE_FIT_HAB_LOG})
-optee_image_offset=$(awk -v first_row=${result_row} 'NR==first_row+3 {print $2}' ${MKIMAGE_FIT_HAB_LOG})
-optee_image_len=$(awk -v first_row=${result_row} 'NR==first_row+3 {print $3}' ${MKIMAGE_FIT_HAB_LOG})
+result_row=$(awk '/print_fit_hab/ {print NR+1}' "${MKIMAGE_FIT_HAB_LOG}")
+uboot_ram_start=$(awk -v first_row="${result_row}" 'NR==first_row+0 {print $1}' "${MKIMAGE_FIT_HAB_LOG}")
+uboot_image_offset=$(awk -v first_row="${result_row}" 'NR==first_row+0 {print $2}' "${MKIMAGE_FIT_HAB_LOG}")
+uboot_image_len=$(awk -v first_row="${result_row}" 'NR==first_row+0 {print $3}' "${MKIMAGE_FIT_HAB_LOG}")
+dtb_ram_start=$(awk -v first_row="${result_row}" 'NR==first_row+1 {print $1}' "${MKIMAGE_FIT_HAB_LOG}")
+dtb_image_offset=$(awk -v first_row="${result_row}" 'NR==first_row+1 {print $2}' "${MKIMAGE_FIT_HAB_LOG}")
+dtb_image_len=$(awk -v first_row="${result_row}" 'NR==first_row+1 {print $3}' "${MKIMAGE_FIT_HAB_LOG}")
+atf_ram_start=$(awk -v first_row="${result_row}" 'NR==first_row+2 {print $1}' "${MKIMAGE_FIT_HAB_LOG}")
+atf_image_offset=$(awk -v first_row="${result_row}" 'NR==first_row+2 {print $2}' "${MKIMAGE_FIT_HAB_LOG}")
+atf_image_len=$(awk -v first_row="${result_row}" 'NR==first_row+2 {print $3}' "${MKIMAGE_FIT_HAB_LOG}")
+optee_ram_start=$(awk -v first_row="${result_row}" 'NR==first_row+3 {print $1}' "${MKIMAGE_FIT_HAB_LOG}")
+optee_image_offset=$(awk -v first_row="${result_row}" 'NR==first_row+3 {print $2}' "${MKIMAGE_FIT_HAB_LOG}")
+optee_image_len=$(awk -v first_row="${result_row}" 'NR==first_row+3 {print $3}' "${MKIMAGE_FIT_HAB_LOG}")
 
 # Compute SPL decryption variables
 # Dek Blob Addr = Authenticate Start Address +  SPL & DDR FW image length + CSF Padding (0x2000)
@@ -160,6 +160,11 @@ spl_decrypt_start="$(printf "0x%X" ${spl_decrypt_start})"
 spl_decrypt_len="$(printf "0x%X" ${spl_decrypt_len})"
 uboot_dtb_image_len="$(printf "0x%X" ${uboot_dtb_image_len})"
 
+# SED filter for removing TEE entries on boot artifacts without TEE
+if grep -qsi "tee.*not[[:blank:]]\+found" "${MKIMAGE_FIT_HAB_LOG}"; then
+	NO_TEE_SED_FILTER="/%atf_\(auth\|decrypt\)_start%/s/, \\\\$//g;/%optee_\(auth\|decrypt\)_start%/d"
+fi
+
 # Generate actual CSF descriptor files from templates
 if [ "${ENCRYPT}" = "true" ]; then
 	# SPL Encryption
@@ -178,7 +183,7 @@ if [ "${ENCRYPT}" = "true" ]; then
 	    -e "s,%spl_decrypt_offset%,${spl_image_offset},g"	\
 	    -e "s,%spl_decrypt_len%,${spl_decrypt_len},g"	\
 	    -e "s,%imx-boot_decrypt_path%,flash-spl-enc.bin,g"	\
-	${SCRIPT_PATH}/csf_templates/encrypt_uboot_spl > csf_spl_enc.txt
+	"${SCRIPT_PATH}/csf_templates/encrypt_uboot_spl" > csf_spl_enc.txt
 
 	sed -e "s,%srk_table%,${SRK_TABLE},g "			\
 	    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
@@ -195,10 +200,11 @@ if [ "${ENCRYPT}" = "true" ]; then
 	    -e "s,%spl_decrypt_offset%,${spl_image_offset},g"	\
 	    -e "s,%spl_decrypt_len%,${spl_decrypt_len},g"	\
 	    -e "s,%imx-boot_decrypt_path%,flash-spl-enc-dummy.bin,g"	\
-	${SCRIPT_PATH}/csf_templates/encrypt_sign_uboot_spl > csf_spl_sign_enc.txt
+	"${SCRIPT_PATH}/csf_templates/encrypt_sign_uboot_spl" > csf_spl_sign_enc.txt
 
 	# FIT Encryption
-	sed -e "s,%srk_table%,${SRK_TABLE},g "			\
+	sed -e "${NO_TEE_SED_FILTER}"				\
+	    -e "s,%srk_table%,${SRK_TABLE},g "			\
 	    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
 	    -e "s,%cert_csf%,${CERT_CSF},g"			\
 	    -e "s,%cert_img%,${CERT_IMG},g"			\
@@ -219,9 +225,10 @@ if [ "${ENCRYPT}" = "true" ]; then
 	    -e "s,%optee_decrypt_offset%,${optee_image_offset},g"   \
 	    -e "s,%optee_decrypt_len%,${optee_image_len},g"         \
 	    -e "s,%imx-boot_decrypt_path%,flash-spl-fit-enc.bin,g"	\
-	${SCRIPT_PATH}/csf_templates/encrypt_uboot_fit > csf_fit_enc.txt
+	"${SCRIPT_PATH}/csf_templates/encrypt_uboot_fit" > csf_fit_enc.txt
 
-	sed -e "s,%srk_table%,${SRK_TABLE},g "			\
+	sed -e "${NO_TEE_SED_FILTER}"				\
+	    -e "s,%srk_table%,${SRK_TABLE},g "			\
 	    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
 	    -e "s,%cert_csf%,${CERT_CSF},g"			\
 	    -e "s,%cert_img%,${CERT_IMG},g"			\
@@ -251,7 +258,7 @@ if [ "${ENCRYPT}" = "true" ]; then
 	    -e "s,%optee_decrypt_offset%,${optee_image_offset},g" \
 	    -e "s,%optee_decrypt_len%,${optee_image_len},g"     \
 	    -e "s,%imx-boot_decrypt_path%,flash-spl-fit-enc-dummy.bin,g"\
-	${SCRIPT_PATH}/csf_templates/encrypt_sign_uboot_fit > csf_fit_sign_enc.txt
+	"${SCRIPT_PATH}/csf_templates/encrypt_sign_uboot_fit" > csf_fit_sign_enc.txt
 else
 	sed -e "s,%srk_table%,${SRK_TABLE},g "			\
 	    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
@@ -261,9 +268,10 @@ else
 	    -e "s,%spl_auth_offset%,${spl_header_offset},g"	\
 	    -e "s,%spl_auth_len%,${spl_image_len},g"		\
 	    -e "s,%imx-boot_path%,${TARGET},g"			\
-	${SCRIPT_PATH}/csf_templates/sign_uboot_spl > csf_spl.txt
+	"${SCRIPT_PATH}/csf_templates/sign_uboot_spl" > csf_spl.txt
 
-	sed -e "s,%srk_table%,${SRK_TABLE},g "			\
+	sed -e "${NO_TEE_SED_FILTER}"				\
+	    -e "s,%srk_table%,${SRK_TABLE},g "			\
 	    -e "s,%key_index%,${CONFIG_KEY_INDEX},g"		\
 	    -e "s,%cert_csf%,${CERT_CSF},g"			\
 	    -e "s,%cert_img%,${CERT_IMG},g"			\
@@ -283,22 +291,23 @@ else
 	    -e "s,%optee_auth_offset%,${optee_image_offset},g"  \
 	    -e "s,%optee_auth_len%,${optee_image_len},g"        \
 	    -e "s,%imx-boot_path%,${TARGET},g"			\
-	${SCRIPT_PATH}/csf_templates/sign_uboot_fit > csf_fit.txt
+	"${SCRIPT_PATH}/csf_templates/sign_uboot_fit" > csf_fit.txt
 fi
 
 # If requested, instruct HAB not to protect the SRK_REVOKE OTP field
 if [ -n "${CONFIG_UNLOCK_SRK_REVOKE}" ]; then
 	SIGN_CSF="csf_spl.txt"
 	[ "${ENCRYPT}" = "true" ] && SIGN_CSF="csf_spl_sign_enc.txt"
-	echo "" >> ${SIGN_CSF}
-	echo "[Unlock]" >> ${SIGN_CSF}
-	echo "    Engine = OCOTP" >> ${SIGN_CSF}
-	echo "    Features = SRK REVOKE" >> ${SIGN_CSF}
+	{
+		echo ""
+		echo "[Unlock]"
+		echo "    Engine = OCOTP"
+		echo "    Features = SRK REVOKE"
+	} >> ${SIGN_CSF}
 fi
 
 # Generate SRK tables
-srktool --hab_ver 4 --certs "${SRK_KEYS}" --table "${SRK_TABLE}" --efuses "${SRK_EFUSES}" --digest sha256
-if [ $? -ne 0 ]; then
+if ! srktool --hab_ver 4 --certs "${SRK_KEYS}" --table "${SRK_TABLE}" --efuses "${SRK_EFUSES}" --digest sha256; then
 	echo "[ERROR] Could not generate SRK tables"
 	exit 1
 fi
@@ -306,81 +315,73 @@ fi
 CURRENT_PATH="$(pwd)"
 
 if [ "${ENCRYPT}" != "true" ]; then
-# Generate signed uboot
-cp ${UBOOT_PATH} ${TARGET}
+	# Generate signed uboot
+	cp "${UBOOT_PATH}" "${TARGET}"
 
-cst -o "${CURRENT_PATH}/csf_spl.bin" -i "${CURRENT_PATH}/csf_spl.txt" > /dev/null
-if [ $? -ne 0 ]; then
-	echo "[ERROR] Could not generate SPL CSF"
-	exit 1
-fi
-cst -o "${CURRENT_PATH}/csf_fit.bin" -i "${CURRENT_PATH}/csf_fit.txt" > /dev/null
-if [ $? -ne 0 ]; then
-	echo "[ERROR] Could not generate FIT CSF"
-	exit 1
-fi
+	if ! cst -o "${CURRENT_PATH}/csf_spl.bin" -i "${CURRENT_PATH}/csf_spl.txt" >/dev/null; then
+		echo "[ERROR] Could not generate SPL CSF"
+		exit 1
+	fi
+	if ! cst -o "${CURRENT_PATH}/csf_fit.bin" -i "${CURRENT_PATH}/csf_fit.txt" >/dev/null; then
+		echo "[ERROR] Could not generate FIT CSF"
+		exit 1
+	fi
 
-dd if=${CURRENT_PATH}/csf_spl.bin of=${TARGET} seek=$((${spl_csf_offset})) bs=1 conv=notrunc > /dev/null 2>&1
-dd if=${CURRENT_PATH}/csf_fit.bin of=${TARGET} seek=$((${sld_csf_offset})) bs=1 conv=notrunc > /dev/null 2>&1
-
+	dd if="${CURRENT_PATH}/csf_spl.bin" of="${TARGET}" seek=$((spl_csf_offset)) bs=1 conv=notrunc >/dev/null 2>&1
+	dd if="${CURRENT_PATH}/csf_fit.bin" of="${TARGET}" seek=$((sld_csf_offset)) bs=1 conv=notrunc >/dev/null 2>&1
 else
+	# Generate encrypted uboot
+	# Encrypt SPL
+	cp "${UBOOT_PATH}" flash-spl-enc.bin
+	if ! cst -o "${CURRENT_PATH}/csf_spl_enc.bin" -i "${CURRENT_PATH}/csf_spl_enc.txt" >/dev/null; then
+		echo "[ERROR] Could not generate SPL ENC CSF"
+		exit 1
+	fi
+	# Sign encrypted SPL
+	cp flash-spl-enc.bin flash-spl-enc-dummy.bin
+	if ! cst -o "${CURRENT_PATH}/csf_spl_sign_enc.bin" -i "${CURRENT_PATH}/csf_spl_sign_enc.txt" >/dev/null; then
+		echo "[ERROR] Could not generate SPL SIGN ENC CSF"
+		exit 1
+	fi
+	# Encrypt FIT
+	cp flash-spl-enc.bin flash-spl-fit-enc.bin
+	if ! cst -o "${CURRENT_PATH}/csf_fit_enc.bin" -i "${CURRENT_PATH}/csf_fit_enc.txt" >/dev/null; then
+		echo "[ERROR] Could not generate FIT ENC CSF"
+		exit 1
+	fi
+	# Sign encrypted FIT
+	cp flash-spl-fit-enc.bin flash-spl-fit-enc-dummy.bin
+	if ! cst -o "${CURRENT_PATH}/csf_fit_sign_enc.bin" -i "${CURRENT_PATH}/csf_fit_sign_enc.txt" >/dev/null; then
+		echo "[ERROR] Could not generate FIT SIGN ENC CSF"
+		exit 1
+	fi
 
-# Generate encrypted uboot
-# Encrypt SPL
-cp ${UBOOT_PATH} flash-spl-enc.bin
-cst -o "${CURRENT_PATH}/csf_spl_enc.bin" -i "${CURRENT_PATH}/csf_spl_enc.txt" > /dev/null
-if [ $? -ne 0 ]; then
-	echo "[ERROR] Could not generate SPL ENC CSF"
-	exit 1
-fi
-# Sign encrypted SPL
-cp flash-spl-enc.bin flash-spl-enc-dummy.bin
-cst -o "${CURRENT_PATH}/csf_spl_sign_enc.bin" -i "${CURRENT_PATH}/csf_spl_sign_enc.txt" > /dev/null
-if [ $? -ne 0 ]; then
-	echo "[ERROR] Could not generate SPL SIGN ENC CSF"
-	exit 1
-fi
-# Encrypt FIT
-cp flash-spl-enc.bin flash-spl-fit-enc.bin
-cst -o "${CURRENT_PATH}/csf_fit_enc.bin" -i "${CURRENT_PATH}/csf_fit_enc.txt" > /dev/null
-if [ $? -ne 0 ]; then
-	echo "[ERROR] Could not generate FIT ENC CSF"
-	exit 1
-fi
-# Sign encrypted FIT
-cp flash-spl-fit-enc.bin flash-spl-fit-enc-dummy.bin
-cst -o "${CURRENT_PATH}/csf_fit_sign_enc.bin" -i "${CURRENT_PATH}/csf_fit_sign_enc.txt" > /dev/null
-if [ $? -ne 0 ]; then
-	echo "[ERROR] Could not generate FIT SIGN ENC CSF"
-	exit 1
-fi
+	# Create final CSF for SPL
+	csf_size="$(stat -L -c %s csf_spl_enc.bin)"
+	nonce_offset="$((csf_size - 36))"
+	echo "SPL ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
+	dd if=csf_spl_enc.bin of=noncemac.bin bs=1 skip=${nonce_offset} count=36
+	csf_size="$(stat -L -c %s csf_spl_sign_enc.bin)"
+	nonce_offset="$((csf_size - 36))"
+	echo "SPL SIGN ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
+	dd if=noncemac.bin of=csf_spl_sign_enc.bin bs=1 seek=${nonce_offset} count=36
 
-# Create final CSF for SPL
-csf_size="$(stat -L -c %s csf_spl_enc.bin)"
-nonce_offset="$((csf_size - 36))"
-echo "SPL ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
-dd if=csf_spl_enc.bin of=noncemac.bin bs=1 skip=${nonce_offset} count=36
-csf_size="$(stat -L -c %s csf_spl_sign_enc.bin)"
-nonce_offset="$((csf_size - 36))"
-echo "SPL SIGN ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
-dd if=noncemac.bin of=csf_spl_sign_enc.bin bs=1 seek=${nonce_offset} count=36
+	# Create final CSF for FIT
+	csf_size="$(stat -L -c %s csf_fit_enc.bin)"
+	nonce_offset="$((csf_size - 36))"
+	echo "FIT ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
+	dd if=csf_fit_enc.bin of=noncemac.bin bs=1 skip=${nonce_offset} count=36
+	csf_size="$(stat -L -c %s csf_fit_sign_enc.bin)"
+	nonce_offset="$((csf_size - 36))"
+	echo "FIT SIGN ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
+	dd if=noncemac.bin of=csf_fit_sign_enc.bin bs=1 seek=${nonce_offset} count=36
 
-# Create final CSF for FIT
-csf_size="$(stat -L -c %s csf_fit_enc.bin)"
-nonce_offset="$((csf_size - 36))"
-echo "FIT ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
-dd if=csf_fit_enc.bin of=noncemac.bin bs=1 skip=${nonce_offset} count=36
-csf_size="$(stat -L -c %s csf_fit_sign_enc.bin)"
-nonce_offset="$((csf_size - 36))"
-echo "FIT SIGN ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
-dd if=noncemac.bin of=csf_fit_sign_enc.bin bs=1 seek=${nonce_offset} count=36
-
-cp flash-spl-fit-enc.bin ${TARGET}
-dd if=${CURRENT_PATH}/csf_spl_sign_enc.bin of=${TARGET} seek=$((${spl_csf_offset})) bs=1 conv=notrunc > /dev/null 2>&1
-dd if=${CURRENT_PATH}/csf_fit_sign_enc.bin of=${TARGET} seek=$((${sld_csf_offset})) bs=1 conv=notrunc > /dev/null 2>&1
+	cp flash-spl-fit-enc.bin "${TARGET}"
+	dd if="${CURRENT_PATH}/csf_spl_sign_enc.bin" of="${TARGET}" seek=$((spl_csf_offset)) bs=1 conv=notrunc >/dev/null 2>&1
+	dd if="${CURRENT_PATH}/csf_fit_sign_enc.bin" of="${TARGET}" seek=$((sld_csf_offset)) bs=1 conv=notrunc >/dev/null 2>&1
 fi
 
 [ "${ENCRYPT}" = "true" ] && ENCRYPTED_MSG="and encrypted "
 echo "Signed ${ENCRYPTED_MSG}image ready: ${TARGET}"
 
-rm -f "${SRK_TABLE}" flash-spl-* csf_* 2> /dev/null
+rm -f "${SRK_TABLE}" flash-spl-* csf_* 2>/dev/null

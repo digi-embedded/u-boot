@@ -397,48 +397,66 @@ static const struct boot_mode board_boot_modes[] = {
 };
 #endif
 
+void generate_ubi_volumes_script(void)
+{
+	struct mtd_info *nand = get_nand_dev_by_index(0);
+	char script[CONFIG_SYS_CBSIZE] = "";
+
+	if (nand->size > SZ_512M) {
+		sprintf(script, CREATE_UBIVOLS_SCRIPT,
+				UBIVOLS_DUALBOOT_1024MB,
+				UBIVOLS_1024MB);
+	} else if (nand->size > SZ_256M) {
+		sprintf(script, CREATE_UBIVOLS_SCRIPT,
+				UBIVOLS_DUALBOOT_512MB,
+				UBIVOLS_512MB);
+	} else {
+		sprintf(script, CREATE_UBIVOLS_SCRIPT,
+				UBIVOLS_DUALBOOT_256MB,
+				UBIVOLS_256MB);
+	}
+	env_set("ubivolscript", script);
+}
+
 void generate_partition_table(void)
 {
 	struct mtd_info *nand = get_nand_dev_by_index(0);
-	char *dualboot;
+	char script[CONFIG_SYS_CBSIZE] = "";
 
-	dualboot = env_get("dualboot");
 	if (nand->size > SZ_512M) {
-		if (!strcmp(dualboot, "yes"))
-			env_set("mtdparts", MTDPARTS_DUALBOOT_1024MB);
-		else
-			env_set("mtdparts", MTDPARTS_1024MB);
+		sprintf(script, CREATE_MTDPARTS_SCRIPT,
+				MTDPARTS_BIG,
+				MTDPARTS_DUALBOOT_1024MB,
+				MTDPARTS_1024MB);
 	} else if (nand->size > SZ_256M) {
-		if (!strcmp(dualboot, "yes"))
-			env_set("mtdparts", MTDPARTS_DUALBOOT_512MB);
-		else
-			env_set("mtdparts", MTDPARTS_512MB);
+		sprintf(script, CREATE_MTDPARTS_SCRIPT,
+				MTDPARTS_BIG,
+				MTDPARTS_DUALBOOT_512MB,
+				MTDPARTS_512MB);
 	} else {
-		if (!strcmp(dualboot, "yes"))
-			env_set("mtdparts", MTDPARTS_DUALBOOT_256MB);
-		else
-			env_set("mtdparts", MTDPARTS_256MB);
+		sprintf(script, CREATE_MTDPARTS_SCRIPT,
+				MTDPARTS_SMALL,
+				MTDPARTS_DUALBOOT_256MB,
+				MTDPARTS_256MB);
 	}
-
-	/* set some dualboot environment variables */
-	if (!strcmp(dualboot, "yes")) {
-		env_set("mtdlinuxindex", ENV_MTD_LINUX_A_INDEX);
-		env_set("mtdrootfsindex", ENV_MTD_ROOTFS_A_INDEX);
-		env_set("mtdbootpart", LINUX_A_PARTITION);
-	}
+	env_set("partition_nand_linux", script);
 }
 
 void som_default_environment(void)
 {
 	char var[10];
-	char *parttable;
 	char hex_val[9]; // 8 hex chars + null byte
 	int i;
 
-	/* Partition table */
-	parttable = env_get("mtdparts");
-	if (!parttable)
-		generate_partition_table();
+	/* Partition table script */
+	generate_partition_table();
+
+	/* Run script to generate partition table if there's none */
+	if (!env_get("mtdparts") && env_get("partition_nand_linux"))
+		run_command("run partition_nand_linux", 0);
+
+	/* UBI volumes */
+	generate_ubi_volumes_script();
 
 	/* Set $module_variant variable */
 	sprintf(var, "0x%02x", my_hwid.variant);

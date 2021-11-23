@@ -9,3 +9,4 @@ obj-y += ../ccimx8x/ccimx8x.o \
 ifdef CONFIG_HAS_HWID
 obj-y += ../ccimx8/ccimx8_hwid.o
 endif
+obj-$(CONFIG_SPL_BUILD) += ../ccimx8x/spl.o

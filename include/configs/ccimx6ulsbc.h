@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 Digi International, Inc.
+ * Copyright (C) 2016-2021 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * Configuration settings for the Digi ConnecCore 6UL SBC board.
@@ -118,6 +118,7 @@
 #define CONFIG_COMMON_ENV	\
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	CONFIG_EXTRA_NETWORK_SETTINGS \
+	ALTBOOTCMD \
 	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
 	"dualboot=no\0" \
 	"boot_fdt=yes\0" \
@@ -166,15 +167,89 @@
 	"zimage=zImage-" CONFIG_SYS_BOARD ".bin\0"
 
 #if defined(CONFIG_NAND_BOOT)
+
+#define ROOTARGS_SINGLEMTDSYSTEM_UBIFS \
+	"ubi.mtd=" SYSTEM_PARTITION " " \
+	"root=ubi0:${rootfsvol} " \
+	"rootfstype=ubifs rw"
+#define ROOTARGS_MULTIMTDSYSTEM_UBIFS \
+	"ubi.mtd=${mtdbootpart} " \
+	"ubi.mtd=${mtdrootfspart} " \
+	"root=ubi1:${rootfsvol} " \
+	"rootfstype=ubifs rw"
+#define ROOTARGS_SINGLEMTDSYSTEM_SQUASHFS \
+	"ubi.mtd=" SYSTEM_PARTITION " " \
+	"ubi.block=0,2 root=/dev/ubiblock0_2 " \
+	"rootfstype=squashfs ro"
+#define ROOTARGS_MULTIMTDSYSTEM_SQUASHFS \
+	"ubi.mtd=${mtdbootpart} " \
+	"ubi.mtd=${mtdrootfspart} " \
+	"ubi.block=1,0 root=/dev/ubiblock1_0 " \
+	"rootfstype=squashfs ro"
+
+#define MTDPART_ENV_SETTINGS \
+	"mtdbootpart=" CONFIG_LINUX_PARTITION "\0" \
+	"mtdrootfspart=" ROOTFS_PARTITION "\0" \
+	"singlemtdsys=no\0" \
+	"rootfsvol=" ROOTFS_PARTITION "\0" \
+	"bootargs_nand_linux=" \
+		"if test \"${singlemtdsys}\" = yes; then " \
+			"if test \"${rootfstype}\" = squashfs; then " \
+				"setenv rootargs " ROOTARGS_SINGLEMTDSYSTEM_SQUASHFS ";" \
+			"else " \
+				"setenv rootargs " ROOTARGS_SINGLEMTDSYSTEM_UBIFS ";" \
+			"fi;" \
+		"else " \
+			"if test \"${rootfstype}\" = squashfs; then " \
+				"setenv rootargs " ROOTARGS_MULTIMTDSYSTEM_SQUASHFS ";" \
+			"else " \
+				"setenv rootargs " ROOTARGS_MULTIMTDSYSTEM_UBIFS ";" \
+			"fi;" \
+		"fi;" \
+		"setenv bootargs console=${console},${baudrate} " \
+			"${bootargs_linux} ${mtdparts} " \
+			"${rootargs} " \
+			"${bootargs_once} ${extra_bootargs};\0" \
+	"loadscript=" \
+		"if test \"${dualboot}\" = yes; then " \
+			"if test -z \"${active_system}\"; then " \
+				"setenv active_system " LINUX_A_PARTITION ";" \
+			"fi;" \
+			"setenv mtdbootpart ${active_system};" \
+		"else " \
+			"if test -z \"${mtdbootpart}\"; then " \
+				"setenv mtdbootpart " CONFIG_LINUX_PARTITION ";" \
+			"fi;" \
+		"fi;" \
+		"if test \"${singlemtdsys}\" = yes; then " \
+			"if ubi part " SYSTEM_PARTITION "; then " \
+				"if ubifsmount ubi0:${mtdbootpart}; then " \
+					"ubifsload ${loadaddr} ${script};" \
+				"fi;" \
+			"fi;" \
+		"else " \
+			"if ubi part ${mtdbootpart}; then " \
+				"if ubifsmount ubi0:${mtdbootpart}; then " \
+					"ubifsload ${loadaddr} ${script};" \
+				"fi;" \
+			"fi;" \
+		"fi;\0" \
+	"recoverycmd=" \
+		"setenv mtdbootpart " CONFIG_RECOVERY_PARTITION ";" \
+		"boot\0"
+#define DUALBOOT_ENV_SETTINGS \
+	"linux_a=" LINUX_A_PARTITION "\0" \
+	"linux_b=" LINUX_B_PARTITION "\0" \
+	"rootfsvol_a=" ROOTFS_A_PARTITION "\0" \
+	"rootfsvol_b=" ROOTFS_B_PARTITION "\0" \
+	"active_system=" LINUX_A_PARTITION "\0"
+
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_COMMON_ENV \
 	CONFIG_ENV_MTD_SETTINGS \
+	DUALBOOT_ENV_SETTINGS \
+	MTDPART_ENV_SETTINGS \
 	"bootargs_linux=\0" \
-	"bootargs_nand_linux=setenv bootargs console=${console},${baudrate} " \
-		"${bootargs_linux} ${mtdparts} ubi.mtd=${mtdlinuxindex} " \
-		"ubi.mtd=${mtdrootfsindex} root=ubi1_0 " \
-		"rootfstype=ubifs rw " \
-		"${bootargs_once} ${extra_bootargs}\0" \
 	"install_linux_fw_sd=if load mmc 0 ${loadaddr} install_linux_fw_sd.scr;then " \
 			"source ${loadaddr};" \
 		"fi;\0" \
@@ -183,35 +258,7 @@
 			"source ${loadaddr};" \
 		"fi;\0" \
 	"linux_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
-	"loadscript=" \
-		"if test ${dualboot} = yes; then " \
-			"if test -z \"${mtdbootpart}\"; then " \
-				"setenv mtdbootpart " LINUX_A_PARTITION ";" \
-			"fi;" \
-		"else " \
-			"if test -z \"${mtdbootpart}\"; then " \
-				"setenv mtdbootpart " CONFIG_LINUX_PARTITION ";" \
-			"fi;" \
-		"fi;" \
-		"if ubi part ${mtdbootpart}; then " \
-			"if ubifsmount ubi0:${mtdbootpart}; then " \
-				"ubifsload ${loadaddr} ${script};" \
-			"fi;" \
-		"fi;\0" \
-	"mtdbootpart=" CONFIG_LINUX_PARTITION "\0" \
-	"mtdlinuxindex=" CONFIG_ENV_MTD_LINUX_INDEX "\0" \
-	"mtdrecoveryindex=" CONFIG_ENV_MTD_RECOVERY_INDEX "\0" \
-	"mtdrootfsindex=" CONFIG_ENV_MTD_ROOTFS_INDEX "\0" \
-	"mtdupdateindex=" CONFIG_ENV_MTD_UPDATE_INDEX "\0" \
-	"recoverycmd=" \
-		"setenv mtdbootpart " CONFIG_RECOVERY_PARTITION ";" \
-		"boot\0" \
 	"rootfs_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".ubifs\0" \
-	"mtdlinux_a_index=" ENV_MTD_LINUX_A_INDEX "\0" \
-	"mtdlinux_b_index=" ENV_MTD_LINUX_B_INDEX "\0" \
-	"mtdrootfs_a_index=" ENV_MTD_ROOTFS_A_INDEX "\0" \
-	"mtdrootfs_b_index=" ENV_MTD_ROOTFS_B_INDEX "\0" \
-	"active_system=" LINUX_A_PARTITION "\0" \
 	""	/* end line */
 #else
 #define CONFIG_EXTRA_ENV_SETTINGS \
