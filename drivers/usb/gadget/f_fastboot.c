@@ -25,6 +25,8 @@
 #include <linux/compiler.h>
 #include <version.h>
 #include <g_dnl.h>
+#include <serial.h>
+#include <stdio_dev.h>
 #include "lib/avb/fsl/utils.h"
 #ifdef CONFIG_FASTBOOT_FLASH_MMC_DEV
 #include <fb_mmc.h>
@@ -59,6 +61,10 @@ extern void trusty_os_init(void);
 
 #ifdef CONFIG_AVB_SUPPORT
 #include <fsl_avb.h>
+#endif
+
+#ifdef CONFIG_CMD_SATA
+#include "sata.h"
 #endif
 
 #define FASTBOOT_VERSION		"0.4"
@@ -1181,7 +1187,7 @@ static void parameters_setup(void)
 {
 	interface.nand_block_size = 0;
 	interface.transfer_buffer =
-				(unsigned char *)CONFIG_FASTBOOT_BUF_ADDR;
+				(unsigned char *)getenv_ulong("fastboot_buffer", 16, CONFIG_FASTBOOT_BUF_ADDR);
 	interface.transfer_buffer_size =
 				CONFIG_FASTBOOT_BUF_SIZE;
 }
@@ -1467,6 +1473,7 @@ void board_fastboot_setup(void)
 	case MMC2_BOOT:
 	case MMC3_BOOT:
 	case MMC4_BOOT:
+	case WEIM_NOR_BOOT:
 		dev_no = mmc_get_env_dev();
 		sprintf(boot_dev_part,"mmc%d",dev_no);
 		if (!getenv("fastboot_dev"))
@@ -1676,23 +1683,26 @@ void fastboot_setup(void)
 /* Write the bcb with fastboot bootloader commands */
 static void enable_fastboot_command(void)
 {
+#ifdef CONFIG_BCB_SUPPORT
 	char fastboot_command[32] = {0};
 	strncpy(fastboot_command, FASTBOOT_BCB_CMD, 31);
 	bcb_write_command(fastboot_command);
+#endif
 }
 
 /* Get the Boot mode from BCB cmd or Key pressed */
 static FbBootMode fastboot_get_bootmode(void)
 {
-	int ret = 0;
 	int boot_mode = BOOTMODE_NORMAL;
-	char command[32];
 #ifdef CONFIG_ANDROID_RECOVERY
 	if(is_recovery_key_pressing()) {
 		boot_mode = BOOTMODE_RECOVERY_KEY_PRESSED;
 		return boot_mode;
 	}
 #endif
+#ifdef CONFIG_BCB_SUPPORT
+	int ret = 0;
+	char command[32];
 	ret = bcb_read_command(command);
 	if (ret < 0) {
 		printf("read command failed\n");
@@ -1711,6 +1721,7 @@ static FbBootMode fastboot_get_bootmode(void)
 	   no matter what in the mode string */
 	memset(command, 0, 32);
 	bcb_write_command(command);
+#endif
 	return boot_mode;
 }
 
@@ -2300,6 +2311,10 @@ U_BOOT_CMD(
 #endif
 
 #ifdef CONFIG_USB_GADGET
+#if CONFIG_IS_ENABLED(FSL_FASTBOOT)
+extern struct stdio_dev g_fastboot_stdio;
+#endif
+
 static void rx_handler_command(struct usb_ep *ep, struct usb_request *req);
 
 
@@ -2386,12 +2401,20 @@ static int fastboot_bind(struct usb_configuration *c, struct usb_function *f)
 	if (s)
 		g_dnl_set_serialnumber((char *)s);
 
+#if CONFIG_IS_ENABLED(FSL_FASTBOOT)
+	stdio_register(&g_fastboot_stdio);
+#endif
+
 	return 0;
 }
 
 static void fastboot_unbind(struct usb_configuration *c, struct usb_function *f)
 {
 	memset(fastboot_func, 0, sizeof(*fastboot_func));
+
+#if CONFIG_IS_ENABLED(FSL_FASTBOOT) && CONFIG_IS_ENABLED(SYS_STDIO_DEREGISTER)
+	stdio_deregister("fastboot", 1);
+#endif
 }
 
 static void fastboot_disable(struct usb_function *f)
@@ -2980,6 +3003,7 @@ static void rx_handler_dl_image(struct usb_ep *ep, struct usb_request *req)
 	const unsigned char *buffer = req->buf;
 	unsigned int buffer_size = req->actual;
 	unsigned int pre_dot_num, now_dot_num;
+	void * base_addr = (void*)getenv_ulong("fastboot_buffer", 16, CONFIG_FASTBOOT_BUF_ADDR);
 
 	if (req->status != 0) {
 		printf("Bad status: %d\n", req->status);
@@ -2989,7 +3013,7 @@ static void rx_handler_dl_image(struct usb_ep *ep, struct usb_request *req)
 	if (buffer_size < transfer_size)
 		transfer_size = buffer_size;
 
-	memcpy((void *)CONFIG_FASTBOOT_BUF_ADDR + download_bytes,
+	memcpy(base_addr + download_bytes,
 	       buffer, transfer_size);
 
 	pre_dot_num = download_bytes / BYTES_PER_DOT;
@@ -3354,6 +3378,47 @@ static void cb_erase(struct usb_ep *ep, struct usb_request *req)
 }
 #endif
 
+static void cb_run_uboot_cmd(struct usb_ep *ep, struct usb_request *req)
+{
+	char *cmd = req->buf;
+	strsep(&cmd, ":");
+	if (!cmd) {
+		pr_err("missing slot suffix\n");
+		fastboot_tx_write_str("FAILmissing command");
+		return;
+	}
+	if(run_command(cmd, 0))
+		fastboot_tx_write_str("FAIL");
+	else
+		fastboot_tx_write_str("OKAY");
+	return ;
+}
+
+static char g_a_cmd_buff[64];
+static void do_acmd_complete(struct usb_ep *ep, struct usb_request *req)
+{
+	/* When usb dequeue complete will be called
+	 * Meed status value before call run_command.
+	 * otherwise, host can't get last message.
+	 */
+	if(req->status == 0)
+		run_command(g_a_cmd_buff, 0);
+}
+
+static void cb_run_uboot_acmd(struct usb_ep *ep, struct usb_request *req)
+{
+	char *cmd = req->buf;
+        strsep(&cmd, ":");
+        if (!cmd) {
+                pr_err("missing slot suffix\n");
+                fastboot_tx_write_str("FAILmissing command");
+                return;
+        }
+	strcpy(g_a_cmd_buff, cmd);
+	fastboot_func->in_req->complete = do_acmd_complete;
+	fastboot_tx_write_str("OKAY");
+}
+
 #ifdef CONFIG_AVB_SUPPORT
 static void cb_set_active_avb(struct usb_ep *ep, struct usb_request *req)
 {
@@ -3406,6 +3471,13 @@ static const struct cmd_dispatch_info cmd_dispatch_info[] = {
 	{
 		.cmd = "reboot-bootloader",
 		.cb = cb_reboot_bootloader,
+	},
+	{
+		.cmd = "UCmd:",
+		.cb = cb_run_uboot_cmd,
+	},
+	{	.cmd ="ACmd:",
+		.cb = cb_run_uboot_acmd,
 	},
 #endif
 	{
@@ -3495,3 +3567,37 @@ static void rx_handler_command(struct usb_ep *ep, struct usb_request *req)
 	usb_ep_queue(ep, req, 0);
 }
 #endif
+
+static void fastboot_putc(struct stdio_dev *dev, const char c)
+{
+	char buff[6] = "INFO";
+	buff[4] = c;
+	buff[5] = 0;
+	fastboot_tx_write_more(buff);
+}
+
+#define FASTBOOT_MAX_LEN 64
+
+static void fastboot_puts(struct stdio_dev *dev, const char *s)
+{
+	char buff[FASTBOOT_MAX_LEN + 1] = "INFO";
+	int len = strlen(s);
+	int i, left;
+
+	for (i = 0; i < len; i += FASTBOOT_MAX_LEN - 4) {
+		left = len - i;
+		if (left > FASTBOOT_MAX_LEN - 4)
+			left = FASTBOOT_MAX_LEN - 4;
+
+		memcpy(buff + 4, s + i, left);
+		buff[left + 4 + 1] = 0;
+		fastboot_tx_write_more(buff);
+	}
+}
+
+struct stdio_dev g_fastboot_stdio = {
+	.name = "fastboot",
+	.flags = DEV_FLAGS_OUTPUT,
+	.putc = fastboot_putc,
+	.puts = fastboot_puts,
+};

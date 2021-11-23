@@ -49,7 +49,7 @@
 /* RAM memory reserved for U-Boot, stack, malloc pool... */
 #define CONFIG_UBOOT_RESERVED		(10 * 1024 * 1024)
 /* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + 2 * 1024 * 1024)
+#define CONFIG_SYS_MALLOC_LEN		(16 * SZ_1M)
 /* memtest */
 #define CONFIG_SYS_MEMTEST_START       0x10000000
 #define CONFIG_SYS_MEMTEST_END         0x10010000
@@ -165,6 +165,7 @@
 #define CONFIG_DWC_AHSATA_BASE_ADDR     SATA_ARB_BASE_ADDR
 #define CONFIG_LBA48
 #define CONFIG_LIBATA
+#define CONFIG_FASTBOOT_SATA_NO 0
 #endif
 
 /* Ethernet */
@@ -209,6 +210,8 @@
 #define CONFIG_USB_MAX_CONTROLLER_COUNT	2 /* Enabled USB controller number */
 #endif
 
+#define CONFIG_SERIAL_TAG
+
 /* Environment */
 #define CONFIG_ENV_IS_IN_MMC
 
@@ -220,9 +223,6 @@
 #define CONFIG_SYS_MMC_ENV_DEV		0
 #define CONFIG_SYS_MMC_ENV_PART		2
 #endif
-
-/* Add support for sparse images */
-#define CONFIG_FASTBOOT_FLASH
 
 #define CONFIG_TFTP_UPDATE_ONTHEFLY      /* support to tftp and update on-the-fly */
 
@@ -269,6 +269,12 @@
 	DIGICMD_UPDATEFILE_RAM_ARGS_HELP
 /* On the fly update chunk (must be a multiple of mmc block size) */
 #define CONFIG_OTF_CHUNK		(32 * 1024 * 1024)
+
+#define ALTBOOTCMD	\
+	"altbootcmd=" \
+		"if load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} altboot.scr; then " \
+			"source ${loadaddr};" \
+		"fi;\0"
 
 /* Pool of randomly generated UUIDs at host machine */
 #define RANDOM_UUIDS	\

@@ -102,6 +102,8 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	RANDOM_UUIDS \
+	ALTBOOTCMD \
+	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
 	"dualboot=no\0" \
 	"bootlimit=3\0" \
 	"dboot_kernel_var=zimage\0" \

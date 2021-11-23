@@ -40,7 +40,6 @@ struct load_fw {
 	int src;
 	char *filename;
 	char *devpartno;
-	char *fs;
 	char *loadaddr;
 	char *lzipaddr;
 	char *varload;

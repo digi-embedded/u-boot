@@ -26,6 +26,8 @@ config ANDROID_BOOT_IMAGE
 
 config FSL_FASTBOOT
 	bool "Enable FSL fastboot support"
+	select CONSOLE_MUX
+	select SYS_STDIO_DEREGISTER
 	help
 	  This enables FSL implementation for Android fastboot.
 

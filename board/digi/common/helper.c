@@ -211,11 +211,9 @@ int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 	case SRC_USB:
 	case SRC_MMC:
 	case SRC_SATA:
-		/* Get device:partition and file system */
+		/* Get device:partition */
 		if (argc > 3)
 			fwinfo->devpartno = (char *)argv[3];
-		if (argc > 4)
-			fwinfo->fs = (char *)argv[4];
 		break;
 	case SRC_NAND:
 #ifdef CONFIG_CMD_MTDPARTS
@@ -263,6 +261,8 @@ const char *get_source_string(int src)
 
 int get_fw_filename(int argc, char * const argv[], struct load_fw *fwinfo)
 {
+	int filename_index = 4;
+
 	switch (fwinfo->src) {
 	case SRC_TFTP:
 	case SRC_NFS:
@@ -274,14 +274,17 @@ int get_fw_filename(int argc, char * const argv[], struct load_fw *fwinfo)
 	case SRC_MMC:
 	case SRC_USB:
 	case SRC_SATA:
-		if (argc > 5) {
-			fwinfo->filename = argv[5];
-			return 0;
-		}
-		break;
 	case SRC_NAND:
+		/*
+		 * For backwards compatibility, check if old 'fs' parameter
+		 * was passed before the filename.
+		 */
+		if ((argc > 5) &&
+		    (!strcmp(argv[4], "fat") || !strcmp(argv[4], "ext4")))
+			filename_index++;
+
 		if (argc > 4) {
-			fwinfo->filename = argv[4];
+			fwinfo->filename = argv[filename_index];
 			return 0;
 		}
 		break;
