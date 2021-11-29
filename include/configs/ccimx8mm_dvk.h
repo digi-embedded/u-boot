@@ -136,34 +136,18 @@
 	"loadimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
 	"loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
 	"partition_mmc_android=mmc rescan;" \
-		"if mmc dev ${mmcdev} 0; then " \
+		"if mmc dev ${mmcdev}; then " \
 			"gpt write mmc ${mmcdev} ${parts_android};" \
 			"mmc rescan;" \
-		"else " \
-			"if mmc dev ${mmcdev}; then " \
-				"gpt write mmc ${mmcdev} ${parts_android};" \
-				"mmc rescan;" \
-			"else;" \
-			"fi;" \
 		"fi;\0" \
 	"partition_mmc_linux=mmc rescan;" \
-		"if mmc dev ${mmcdev} 0; then " \
+		"if mmc dev ${mmcdev}; then " \
 			"if test \"${dualboot}\" = yes; then " \
 				"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
 			"else " \
 				"gpt write mmc ${mmcdev} ${parts_linux};" \
 			"fi;" \
 			"mmc rescan;" \
-		"else " \
-			"if mmc dev ${mmcdev};then " \
-				"if test \"${dualboot}\" = yes; then " \
-					"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
-				"else " \
-					"gpt write mmc ${mmcdev} ${parts_linux};" \
-				"fi;" \
-				"mmc rescan;" \
-			"else;" \
-			"fi;" \
 		"fi;\0" \
 	"recoverycmd=setenv mmcpart " CONFIG_RECOVERY_PARTITION ";" \
 		"boot\0" \
