@@ -176,22 +176,19 @@
 	"rootfs_file=dey-image-qt-xwayland-" CONFIG_SYS_BOARD ".ext4\0" \
 	"partition_mmc_linux=mmc rescan;" \
 		"if mmc dev ${mmcdev} 0; then " \
-			"gpt write mmc ${mmcdev} ${parts_linux};" \
-			"mmc rescan;" \
-		"else " \
-			"if mmc dev ${mmcdev};then " \
-				"gpt write mmc ${mmcdev} ${parts_linux};" \
-				"mmc rescan;" \
-			"else;" \
-			"fi;" \
-		"fi;\0" \
-	"partition_mmc_linux_dualboot=mmc rescan;" \
-		"if mmc dev ${mmcdev} 0; then " \
-			"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
-			"mmc rescan;" \
-		"else " \
-			"if mmc dev ${mmcdev};then " \
+			"if test \"${dualboot}\" = yes; then " \
 				"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
+			"else " \
+				"gpt write mmc ${mmcdev} ${parts_linux};" \
+			"fi;" \
+			"mmc rescan;" \
+		"else " \
+			"if mmc dev ${mmcdev};then " \
+				"if test \"${dualboot}\" = yes; then " \
+					"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
+				"else " \
+					"gpt write mmc ${mmcdev} ${parts_linux};" \
+				"fi;" \
 				"mmc rescan;" \
 			"else;" \
 			"fi;" \
