@@ -2,6 +2,12 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
+dub-2015.04-r13.1, released on 2021/11/30
+	- Add support for the ConnectCore6N platform.
+	- Add support for CC6UL variant 0x05.
+	- Other minor fixes.
+
+
 dub-2015.04-r12.1, released on 2018/02/22
 	- Fixed bug in U-Boot programming for certain CC6UL NAND chips.
 
