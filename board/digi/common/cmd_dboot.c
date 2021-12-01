@@ -172,8 +172,9 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		return CMD_RET_FAILURE;
 	}
 
-	/* Authenicate SQUASHFS rootfs */
-#ifdef CONFIG_SIGNED_READ_ONLY_ROOTFS
+#ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
+	printf("## Loading squashfs: \n");
+	/* Authenticate SQUASHFS rootfs */
 	rootfs_auth_addr = getenv_ulong("initrd_addr", 16, ~0UL);
 	if (rootfs_auth_addr == ~0UL) {
 		printf("Wrong initrd_addr. Can't read root file system\n");
@@ -189,7 +190,7 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 		printf("Failed to authenticate rootfs image\n");
 		return CMD_RET_FAILURE;
 	}
-#endif /* CONFIG_SIGNED_READ_ONLY_ROOTFS */
+#endif /* CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS */
 
 	/* Set boot arguments */
 	ret = set_bootargs(os, fwinfo.src);
