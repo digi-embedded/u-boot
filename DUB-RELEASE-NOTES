@@ -4,6 +4,15 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2020.04
 -----------
+dub-2020.04-r5.1, released on 2021/12/02
+	- Add read-only rootfs authentication support.
+	- Improve dualboot support for NAND and eMMC devices.
+	- CC6UL: add support for one partition with many UBI volumes.
+	- CC8X: add Android SPL support.
+	- CC8MM: add Android Trusty support.
+	- Other minor fixes.
+
+
 dub-2020.04-r4.2, released on 2021/07/01
 	- Allow skipping fastboot lock state with 'skip-fblock-check' env var.
 	- Fix linux silent console with 'console=null' on kernel cmdline.
