@@ -49,7 +49,7 @@ ifndef CONFIG_DM_VIDEO
 obj-$(CONFIG_LCD) += lcd.o lcd_console.o
 endif
 obj-$(CONFIG_LCD_ROTATION) += lcd_console_rotation.o
-obj-$(CONFIG_LCD_DT_SIMPLEFB) += lcd_simplefb.o
+obj-$(CONFIG_FDT_SIMPLEFB) += lcd_simplefb.o
 obj-$(CONFIG_LYNXKDI) += lynxkdi.o
 obj-$(CONFIG_MENU) += menu.o
 obj-$(CONFIG_UPDATE_COMMON) += update.o
