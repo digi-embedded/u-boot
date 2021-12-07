@@ -1245,8 +1245,6 @@ int read_squashfs_rootfs(unsigned long addr, unsigned long *size)
 	unsigned long squashfs_size = 0, squashfs_raw_size = 0, squashfs_temp_addr = 0, squashfs_ahab_addr = 0;
 	uint32_t *squashfs_size_addr = NULL;
 	uint32_t *squashfs_magic = NULL;
-	uint32_t *squashfs_ahab_addr_p = NULL;
-	uint32_t *p = NULL;
 
 #ifdef CONFIG_NAND_BOOT
 	int ret = 0;
