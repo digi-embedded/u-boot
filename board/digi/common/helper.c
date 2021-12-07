@@ -1242,9 +1242,12 @@ int connectcore_load_fdt(ulong fdt_addr, struct dt_table_header *dtt_header)
 int read_squashfs_rootfs(unsigned long addr, unsigned long *size)
 {
 	char cmd_buf[CONFIG_SYS_CBSIZE];
-	unsigned long squashfs_size = 0, squashfs_raw_size = 0, squashfs_temp_addr = 0, squashfs_ahab_addr = 0;
+	unsigned long squashfs_size = 0, squashfs_raw_size = 0, squashfs_temp_addr = 0;
 	uint32_t *squashfs_size_addr = NULL;
 	uint32_t *squashfs_magic = NULL;
+#ifdef CONFIG_AHAB_BOOT
+	unsigned long squashfs_ahab_addr = 0;
+#endif
 
 #ifdef CONFIG_NAND_BOOT
 	int ret = 0;
