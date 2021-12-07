@@ -127,11 +127,15 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 #ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
 	printf("## Loading squashfs: \n");
 	/* Authenticate SQUASHFS rootfs */
+#ifdef CONFIG_AHAB_BOOT
+	rootfs_auth_addr = CONFIG_AUTH_SQUASHFS_ADDR;
+#else
 	rootfs_auth_addr = env_get_ulong("initrd_addr", 16, ~0UL);
 	if (rootfs_auth_addr == ~0UL) {
 		printf("Wrong initrd_addr. Can't read root file system\n");
 		return CMD_RET_FAILURE;
 	}
+#endif
 
 	if (read_squashfs_rootfs(rootfs_auth_addr, &squashfs_raw_size)) {
 		printf("Error reading SQUASHFS root file system\n");
