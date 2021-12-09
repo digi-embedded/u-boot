@@ -4,6 +4,10 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2020.04
 -----------
+dub-2020.04-r5.2, released on 2021/12/09
+	- CC8X: fix authentication of squashfs images.
+
+
 dub-2020.04-r5.1, released on 2021/12/02
 	- Add read-only rootfs authentication support.
 	- Improve dualboot support for NAND and eMMC devices.
