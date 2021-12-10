@@ -4,6 +4,10 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2020.04
 -----------
+dub-2020.04-r5.3, released on 2021/12/10
+	- CC8X: fix build when CONSOLE_ENABLE_GPIO and SPL are enabled
+
+
 dub-2020.04-r5.2, released on 2021/12/09
 	- CC8X: fix authentication of squashfs images.
 
