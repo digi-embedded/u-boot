@@ -1296,14 +1296,14 @@ int read_squashfs_rootfs(unsigned long addr, unsigned long *size)
 		return -1;
 	}
 
-#endif /* CONFIG_NAND_BOOT */
-
 	/* read first 32 sectors of rootfs image into RAM */
 	sprintf(cmd_buf, "mmc read %lx ${rootfs_start} 20", squashfs_temp_addr);
 	if (run_command(cmd_buf, 0)) {
 		debug("Failed to read block from mmc\n");
 		return -1;
 	}
+
+#endif /* CONFIG_NAND_BOOT */
 
 	/* Check if this is a squashfs image */
 	squashfs_magic = (uint32_t *)map_sysmem(squashfs_temp_addr, 0);
