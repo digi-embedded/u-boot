@@ -1249,6 +1249,16 @@ int read_squashfs_rootfs(unsigned long addr, unsigned long *size)
 	unsigned long squashfs_ahab_addr = 0;
 #endif
 
+#ifdef CONFIG_AHAB_BOOT
+	/* We have placed signature container at the end of the image
+	 * Now we need to put on top of the image again for
+	 * authentication.
+	 */
+	squashfs_temp_addr = addr + AHAB_CONTAINER_SIZE;
+#else
+	squashfs_temp_addr = addr;
+#endif
+
 #ifdef CONFIG_NAND_BOOT
 	int ret = 0;
 
@@ -1261,7 +1271,7 @@ int read_squashfs_rootfs(unsigned long addr, unsigned long *size)
 	}
 
 	/* Read squashfs header into RAM */
-	sprintf(cmd_buf, "ubi read %lx ${rootfsvol} 100", addr);
+	sprintf(cmd_buf, "ubi read %lx ${rootfsvol} 100", squashfs_temp_addr);
 	if (run_command(cmd_buf, 0)) {
 		debug("Failed to read from ubi partition\n");
 		return -1;
@@ -1288,15 +1298,6 @@ int read_squashfs_rootfs(unsigned long addr, unsigned long *size)
 
 #endif /* CONFIG_NAND_BOOT */
 
-#ifdef CONFIG_AHAB_BOOT
-	/* We have placed signature container at the end of the image
-	 * Now we need to put on top of the image again for
-	 * authentication.
-	 */
-	squashfs_temp_addr = addr + AHAB_CONTAINER_SIZE;
-#else
-	squashfs_temp_addr = addr;
-#endif
 	/* read first 32 sectors of rootfs image into RAM */
 	sprintf(cmd_buf, "mmc read %lx ${rootfs_start} 20", squashfs_temp_addr);
 	if (run_command(cmd_buf, 0)) {
