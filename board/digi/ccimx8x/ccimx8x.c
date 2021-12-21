@@ -511,12 +511,12 @@ sanitize:
  *
  * $ od -t x4 -j 8244 -N 4 imx-boot.bin
  */
-#define C0_DEY_NEXT_SECO	0xd9762199
+#define C0_DEY_NEXT_SECO	0x8f8d084a
 #define C0_DEY_3_2_SECO		0xa1432215
 #define C0_DEY_3_0_r3_SECO	0xf93f6828
 #define C0_DEY_3_0_SECO		0x7ad5f995
 
-#define B0_DEY_NEXT_SECO	0x5f300c56
+#define B0_DEY_NEXT_SECO	0x885b57e7
 #define B0_DEY_3_0_r3_SECO	0x86166309
 #define B0_DEY_3_0_SECO		0x0920f7b1
 #define B0_DEY_2_6_r3_SECO	0xce4ef011
