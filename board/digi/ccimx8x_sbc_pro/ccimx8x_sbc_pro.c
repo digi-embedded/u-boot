@@ -58,6 +58,10 @@ static iomux_cfg_t uart2_pads[] = {
 	SC_P_UART2_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
 };
 
+static iomux_cfg_t usdhc2_sd_cd = {
+	SC_P_USDHC1_CD_B | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPIO_PAD_CTRL)
+};
+
 #if defined(CONFIG_CONSOLE_ENABLE_GPIO) && !defined(CONFIG_SPL_BUILD)
 #define GPI_PAD_CTRL	((SC_PAD_CONFIG_NORMAL << PADRING_CONFIG_SHIFT) | \
 			(SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
@@ -109,6 +113,8 @@ int board_early_init_f(void)
 		return ret;
 
 	setup_iomux_uart();
+
+	imx8_iomux_setup_pad(usdhc2_sd_cd);
 
 #if defined(CONFIG_HAS_TRUSTFENCE) && defined(CONFIG_ENV_AES_CAAM_KEY)
 	sc_pm_set_resource_power_mode(-1, SC_R_CAAM_JR3, SC_PM_PW_MODE_ON);
