@@ -511,15 +511,15 @@ sanitize:
  *
  * $ od -t x4 -j 8244 -N 4 imx-boot.bin
  */
-#define C0_DEY_NEXT_SECO	0x8f8d084a
-#define C0_DEY_3_2_SECO		0xa1432215
-#define C0_DEY_3_0_r3_SECO	0xf93f6828
-#define C0_DEY_3_0_SECO		0x7ad5f995
+#define C0_DEY_NEXT_SECO	0x8f8d084a	/* v3.8.4 */
+#define C0_DEY_3_2_SECO		0xa1432215	/* v3.7.5 */
+#define C0_DEY_3_0_r3_SECO	0xf93f6828	/* v3.7.1 */
+#define C0_DEY_3_0_SECO		0x7ad5f995	/* v2.6.1 - v3.6.3 */
 
-#define B0_DEY_NEXT_SECO	0x885b57e7
-#define B0_DEY_3_0_r3_SECO	0x86166309
-#define B0_DEY_3_0_SECO		0x0920f7b1
-#define B0_DEY_2_6_r3_SECO	0xce4ef011
+#define B0_DEY_NEXT_SECO	0x885b57e7	/* v3.8.4 */
+#define B0_DEY_3_0_r3_SECO	0x86166309	/* v3.7.1 - v3.7.5 */
+#define B0_DEY_3_0_SECO		0x0920f7b1	/* v2.6.1 - v3.6.3 */
+#define B0_DEY_2_6_r3_SECO	0xce4ef011	/* v2.5.4 */
 #define B0_DEY_2_6_r2_SECO	0xe83f52d7
 #define B0_DEY_2_6_r1_SECO	0x14955700
 #define B0_DEY_2_4_SECO		0x00000006
