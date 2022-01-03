@@ -135,15 +135,9 @@
 	"boot_file=boot.img\0" \
 	"system_file=system.img\0" \
 	"partition_mmc_android=mmc rescan;" \
-		"if mmc dev ${mmcdev} 0; then " \
+		"if mmc dev ${mmcdev}; then " \
 			"gpt write mmc ${mmcdev} ${parts_android};" \
 			"mmc rescan;" \
-		"else " \
-			"if mmc dev ${mmcdev};then " \
-				"gpt write mmc ${mmcdev} ${parts_android};" \
-				"mmc rescan;" \
-			"else;" \
-			"fi;" \
 		"fi;\0" \
 	"bootargs_mmc_android=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_android} " \
@@ -175,26 +169,13 @@
 	"linux_file=dey-image-qt-xwayland-" CONFIG_SYS_BOARD ".boot.vfat\0" \
 	"rootfs_file=dey-image-qt-xwayland-" CONFIG_SYS_BOARD ".ext4\0" \
 	"partition_mmc_linux=mmc rescan;" \
-		"if mmc dev ${mmcdev} 0; then " \
-			"gpt write mmc ${mmcdev} ${parts_linux};" \
-			"mmc rescan;" \
-		"else " \
-			"if mmc dev ${mmcdev};then " \
-				"gpt write mmc ${mmcdev} ${parts_linux};" \
-				"mmc rescan;" \
-			"else;" \
-			"fi;" \
-		"fi;\0" \
-	"partition_mmc_linux_dualboot=mmc rescan;" \
-		"if mmc dev ${mmcdev} 0; then " \
-			"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
-			"mmc rescan;" \
-		"else " \
-			"if mmc dev ${mmcdev};then " \
+		"if mmc dev ${mmcdev}; then " \
+			"if test \"${dualboot}\" = yes; then " \
 				"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
-				"mmc rescan;" \
-			"else;" \
+			"else " \
+				"gpt write mmc ${mmcdev} ${parts_linux};" \
 			"fi;" \
+			"mmc rescan;" \
 		"fi;\0" \
 	"recoverycmd=setenv mmcpart " CONFIG_RECOVERY_PARTITION ";" \
 		"boot\0" \

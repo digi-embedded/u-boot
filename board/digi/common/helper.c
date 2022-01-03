@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2017 by Digi International Inc.
+ *  Copyright (C) 2017-2021 by Digi International Inc.
  *  All rights reserved.
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -25,6 +25,19 @@
 DECLARE_GLOBAL_DATA_PTR;
 #if defined(CONFIG_CMD_UPDATE_MMC) || defined(CONFIG_CMD_UPDATE_NAND)
 #define CONFIG_CMD_UPDATE
+#endif
+
+#ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
+#define IVT_HEADER_SIZE				0x20
+#define SQUASHFS_BYTES_USED_OFFSET	0x28
+#define SQUASHFS_MAGIC				0x73717368
+/*
+ * If CONFIG_CSF_SIZE is undefined, assume 0x4000. This value will be used
+ * in the signing script.
+ */
+#ifndef CONFIG_CSF_SIZE
+#define CONFIG_CSF_SIZE 0x4000
+#endif
 #endif
 
 #if defined(CONFIG_CMD_UPDATE) || defined(CONFIG_CMD_DBOOT)
@@ -878,3 +891,67 @@ int hab_event_warning_check(uint8_t *event, size_t *bytes)
 	return ret;
 }
 #endif /* CONFIG_HAS_TRUSTFENCE */
+
+#ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
+int read_squashfs_rootfs(unsigned long addr, unsigned long *size) {
+	char cmd_buf[CONFIG_SYS_CBSIZE];
+	unsigned long squashfs_size = 0, squashfs_raw_size = 0;
+	uint32_t *squashfs_size_addr = NULL;
+	uint32_t *squashfs_magic = NULL;
+	uint32_t blk_count;
+	char rootfspart[32];
+
+	if (strcmp(getenv("dualboot"), "yes") == 0) {
+		strcpy(rootfspart,
+		       strcmp(getenv("active_system"), "linux_a") ?
+		       "rootfs_b" : "rootfs_a");
+	} else {
+		strcpy(rootfspart, "rootfs");
+	}
+
+	sprintf(cmd_buf, "part start mmc ${mmcbootdev} %s rootfs_start",
+		rootfspart);
+	if (run_command(cmd_buf, 0)) {
+		debug("Failed to get start offset of %s partition\n",
+		      rootfspart);
+		return -1;
+	}
+
+	/* read squashfs header into RAM */
+	sprintf(cmd_buf, "mmc read %lx ${rootfs_start} 1", addr);
+	if (run_command(cmd_buf, 0)) {
+		debug("Failed to read block from mmc\n");
+		return -1;
+	}
+
+	/* Check if this is a squashfs image */
+	squashfs_magic = (uint32_t *)map_sysmem(addr, 0);
+	if (*squashfs_magic != SQUASHFS_MAGIC) {
+		printf("Error: Rootfs is not Squashfs, abort authentication\n");
+		return -1;
+	}
+
+	squashfs_size_addr = (uint32_t *)map_sysmem(addr + SQUASHFS_BYTES_USED_OFFSET, 0);
+	if (squashfs_size_addr == NULL) {
+		debug("Error: Failed to allocate \n");
+		return -1;
+	}
+	squashfs_raw_size = *squashfs_size_addr;
+	/* align address to next 4K value */
+	squashfs_raw_size += 0xFFF;
+	squashfs_raw_size &= 0xFFFFF000;
+	/* add signature size */
+	squashfs_size = squashfs_raw_size + CONFIG_CSF_SIZE + IVT_HEADER_SIZE;
+
+	blk_count = (squashfs_size / 0x200) + 1;
+	sprintf(cmd_buf, "mmc read %lx ${rootfs_start} %x", addr, blk_count);
+	if (run_command(cmd_buf, 0)) {
+		debug("Failed to read squashfs image into RAM\n");
+		return -1;
+	}
+
+	*size = squashfs_raw_size;
+
+	return 0;
+}
+#endif /* CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS */

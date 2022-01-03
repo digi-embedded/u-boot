@@ -230,12 +230,14 @@ int bootm_find_images(int flag, int argc, char * const argv[])
 	int ret;
 
 	/* find ramdisk */
+#ifndef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
 	ret = boot_get_ramdisk(argc, argv, &images, IH_INITRD_ARCH,
 			       &images.rd_start, &images.rd_end);
 	if (ret) {
 		puts("Ramdisk image is corrupt or invalid\n");
 		return 1;
 	}
+#endif
 
 #if IMAGE_ENABLE_OF_LIBFDT
 	/* find flattened device tree */

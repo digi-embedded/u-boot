@@ -267,6 +267,11 @@ config DEK_PATH
 	  Define to the DEK path to enable encryption of the signed U-boot
 	  image. Supported DEK sizes are 128, 192 and 256 bits.
 
+config AUTHENTICATE_SQUASHFS_ROOTFS
+	  bool "Require authentication of SQUASHFS rootfs"
+	  depends on SIGN_IMAGE
+	  default n
+  
 config FIT
 	bool "Support Flattened Image Tree"
 	help

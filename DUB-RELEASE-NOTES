@@ -4,6 +4,18 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2017.03
 -----------
+dub-2017.03-r11.2, released on 2021/12/02
+	- Fix for read-only rootfs authentication.
+
+
+dub-2017.03-r11.1, released on 2021/11/30
+	- Add support for the ConnectCore6N platform.
+	- Improvements for dualboot mode.
+	- Add fastboot support to cc6/cc6qp platforms.
+	- Add rootfs authentication support for read-only file systems.
+	- Other minor fixes.
+
+
 dub-2017.03-r10.2, released on 2021/07/01
 	- Fix linux silent console with 'console=null' on kernel cmdline.
 
