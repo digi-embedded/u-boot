@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2014-2020 by Digi International Inc.
+ *  Copyright (C) 2014-2021 by Digi International Inc.
  *  All rights reserved.
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -14,6 +14,9 @@
 #endif
 #include <linux/libfdt.h>
 #include "../board/digi/common/helper.h"
+#ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
+#include "../board/digi/common/auth.h"
+#endif /* CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS */
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -113,9 +116,37 @@ static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
 #define DELIM_OV_FILE		","
 #endif
 	struct load_fw fwinfo;
+#ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
+	unsigned long squashfs_raw_size;
+	unsigned long rootfs_auth_addr;
+#endif
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
+
+#ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
+	printf("## Loading squashfs: \n");
+	/* Authenticate SQUASHFS rootfs */
+#ifdef CONFIG_AHAB_BOOT
+	rootfs_auth_addr = CONFIG_AUTH_SQUASHFS_ADDR;
+#else
+	rootfs_auth_addr = env_get_ulong("initrd_addr", 16, ~0UL);
+	if (rootfs_auth_addr == ~0UL) {
+		printf("Wrong initrd_addr. Can't read root file system\n");
+		return CMD_RET_FAILURE;
+	}
+#endif
+
+	if (read_squashfs_rootfs(rootfs_auth_addr, &squashfs_raw_size)) {
+		printf("Error reading SQUASHFS root file system\n");
+		return CMD_RET_FAILURE;
+	}
+
+	if (digi_auth_image(&rootfs_auth_addr, squashfs_raw_size) != 0){
+		printf("Failed to authenticate rootfs image\n");
+		return CMD_RET_FAILURE;
+	}
+#endif /* CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS */
 
 	memset(&fwinfo, 0, sizeof(fwinfo));
 

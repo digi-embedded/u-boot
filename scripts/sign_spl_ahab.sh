@@ -21,6 +21,7 @@
 #      CONFIG_SIGN_KEYS_PATH: [mandatory] path for the AHAB PKI tree.
 #      CONFIG_KEY_INDEX: [optional] key index to use. Default is 0.
 #      SRK_REVOKE_MASK: [optional], bitmask of the revoked SRKs.
+#      CONFIG_MKIMAGE_LOG_PATH: [optional] path to the mkimage log file.
 #
 
 # Avoid parallel execution of this script
@@ -37,6 +38,7 @@ done
 SCRIPT_NAME="$(basename "${0}")"
 SCRIPT_PATH="$(cd "$(dirname "${0}")" && pwd)"
 MKIMAGE_LOG="$(pwd)/mkimage.log"
+[ -n "${CONFIG_MKIMAGE_LOG_PATH}" ] && MKIMAGE_LOG="${CONFIG_MKIMAGE_LOG_PATH}"
 
 to_hex() {
 	printf '0x%x' "${1}"
@@ -52,7 +54,7 @@ if [ "${#}" != "2" ]; then
 	echo "Usage: ${SCRIPT_NAME} <input-unsigned-uboot> <output-signed-uboot>"
 	exit 1
 elif [ ! -e "${MKIMAGE_LOG}" ]; then
-	echo "${MKIMAGE_LOG} does not exist."
+	echo "Make log '${MKIMAGE_LOG}' does not exist."
 	exit 1
 elif [ -z "${CONFIG_SIGN_KEYS_PATH}" ]; then
 	echo "Undefined CONFIG_SIGN_KEYS_PATH";
@@ -97,6 +99,7 @@ if ! srktool -a -s sha512 -c "${SRK_KEYS}" -t "${SRK_TABLE}" -e "${SRK_EFUSES}";
 fi
 
 # Parse mkimage log file to get the offsets for different containers
+echo "Using make log '${MKIMAGE_LOG}'"
 ATF_CONTAINER_OFFSET="$(sed -ne 's,^append[^[:digit:]]\+\([[:digit:]]\+\)[^[:digit:]]\+$,\1,g;T;p' "${MKIMAGE_LOG}")"
 ATF_HEADER_OFFSET="$(sed -ne '0,/^Output:[[:blank:]]\+flash\.bin/p' "${MKIMAGE_LOG}" | awk '/CST: CONTAINER 0 offset:/{print $NF}')"
 ATF_SIGNATURE_OFFSET="$(sed -ne '0,/^Output:[[:blank:]]\+flash\.bin/p' "${MKIMAGE_LOG}" | awk '/CST: CONTAINER 0: Signature Block:/{print $NF}')"

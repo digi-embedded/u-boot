@@ -23,6 +23,13 @@
 #      CONFIG_DEK_PATH: (mandatory if ENCRYPT is defined) path to a Data Encryption Key.
 #                       If defined, the signed	U-Boot image is encrypted with the
 #                       given key. Supported key sizes: 128 bits.
+#      CONFIG_MKIMAGE_LOG_PATH: (optional) path to the log generated when
+#                               imx-boot was compiled. If not provided, a default
+#                               'mkimage.log' file is expected in current directory.
+#      CONFIG_FIT_HAB_LOG_PATH: (optional) path to the print_fit_hab log generated
+#                               when imx-boot was compiled. If not provided, a default
+#                               'mkimage-print_fit_hab.log' file is expected in current
+#                               directory.
 #
 #===============================================================================
 
@@ -102,15 +109,19 @@ SRK_EFUSES="$(pwd)/SRK_efuses.bin"
 # Path to log files to parse
 MKIMAGE_LOG="$(pwd)/mkimage.log"
 MKIMAGE_FIT_HAB_LOG="$(pwd)/mkimage-print_fit_hab.log"
+[ -n "${CONFIG_MKIMAGE_LOG_PATH}" ] && MKIMAGE_LOG="${CONFIG_MKIMAGE_LOG_PATH}"
+[ -n "${CONFIG_FIT_HAB_LOG_PATH}" ] && MKIMAGE_FIT_HAB_LOG="${CONFIG_FIT_HAB_LOG_PATH}"
 
 if [ ! -e "${MKIMAGE_LOG}" ]; then
-	echo "${MKIMAGE_LOG} does not exist."
+	echo "Make log '${MKIMAGE_LOG}' does not exist."
 	exit 1
 fi
 if [ ! -e "${MKIMAGE_FIT_HAB_LOG}" ]; then
-	echo "${MKIMAGE_FIT_HAB_LOG} does not exist."
+	echo "FIT HAB log '${MKIMAGE_FIT_HAB_LOG}' does not exist."
 	exit 1
 fi
+echo "Using make log '${MKIMAGE_LOG}'"
+echo "Using FIT HAB log '${MKIMAGE_FIT_HAB_LOG}'"
 
 # Parse spl uboot HAB block and CSF offset
 spl_image_offset=$(awk '/ image_off/ {print $2}' "${MKIMAGE_LOG}")

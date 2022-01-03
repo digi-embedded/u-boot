@@ -25,6 +25,9 @@
 #      CONFIG_DEK_PATH: (mandatory if ENCRYPT is defined) path to a Data Encryption Key.
 #                       If defined, the signed	U-Boot image is encrypted with the
 #                       given key. Supported key sizes: 128, 192 and 256 bits.
+#      CONFIG_MKIMAGE_LOG_PATH: (optional, AHAB only) path to the log generated
+#                               when imx-boot was compiled. If not provided, a default
+#                               'mkimage.log' file is expected in current directory.
 #
 #===============================================================================
 
@@ -263,11 +266,13 @@ else
 
 	# Path to log file to parse
 	MKIMAGE_LOG="$(pwd)/mkimage.log"
+	[ -n "${CONFIG_MKIMAGE_LOG_PATH}" ] && MKIMAGE_LOG="${CONFIG_MKIMAGE_LOG_PATH}"
 
-	if [ ! -e ${MKIMAGE_LOG} ]; then
-		echo "${MKIMAGE_LOG} does not exist."
+	if [ ! -e "${MKIMAGE_LOG}" ]; then
+		echo "Make log '${MKIMAGE_LOG}' does not exist."
 		exit 1
 	fi
+	echo "Using make log '${MKIMAGE_LOG}'"
 
 	# Parse Container and Signature block offsets
 	container_header_offset=$(awk '/CST: CONTAINER 0 offset:/ {print $5}' ${MKIMAGE_LOG})
