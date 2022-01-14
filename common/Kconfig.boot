@@ -2,6 +2,59 @@ menu "Boot options"
 
 menu "Boot images"
 
+config SIGN_IMAGE
+	bool "Generate signed images"
+	help
+	  Enable this option to generate signed uboot images. When enabled:
+	  * UBOOT_SIGN_KEYS_PATH must be defined to the path of the CST folder by NXP.
+	  * UBOOT_KEY_INDEX can be defined to the key index to use for signing.
+
+if SIGN_IMAGE
+
+config UNLOCK_SRK_REVOKE
+	bool "Unlock the SRK_REVOKE eFuse field"
+	help
+	  In closed devices, HAB, by default, sets the SRK_REVOKE_LOCK sticky
+	  bit in the OCOTP controller to write protect the SRK_REVOKE eFuse
+	  field.
+	  Enable this option to instruct HAB not to lock the SRK_REVOKE eFuse.
+
+	  This seting has no effect on open devices.
+
+config SIGN_KEYS_PATH
+	string "Path to the signing keys"
+	help
+	  Sets the path to the folder containing the keys to be used for the
+	  signature. The structure of this folder must match the CST requirements.
+	  In particular, it must have two subfolders:
+	    * keys: with the SRK, CSF and IMG private keys, and the password
+	            in the key_pass.txt file.
+	    * crts: with all the certificates associated with the keys above.
+
+	  Refer to the CST documentation for a complete specification of the
+	  folder requirements.
+
+config KEY_INDEX
+	int "Key index to use for the signature"
+	default 0
+	help
+	  Defines the key index for the signature process.
+
+config DEK_PATH
+	string "Data Encription Key path for encryption of the signed image of the signed image"
+	help
+	  Define to the DEK path to enable encryption of the signed U-boot
+	  image. Supported DEK sizes are 128, 192 and 256 bits.
+
+config SIGN_MODE
+	string "Sign mode"
+	help
+	  Sets the signing method to be one of "HAB" or "AHAB".
+	  HAB method is supported on i.MX6/7 and i.MX8M devices.
+	  AHAB method is supported on i.MX8X devices.
+
+endif # SIGN_IMAGE
+
 config ANDROID_BOOT_IMAGE
 	bool "Enable support for Android Boot Images"
 	default y if FASTBOOT
