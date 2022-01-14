@@ -73,12 +73,21 @@ config TARGET_CCIMX8X_SBC_EXPRESS
 	select BOARD_LATE_INIT
 	select IMX8QXP
 	select MCA
+	select FSL_CAAM
+	select FSL_BLOB
+	select ARCH_MISC_INIT
+	select SPL_CRYPTO_SUPPORT if SPL
 
 config TARGET_CCIMX8X_SBC_PRO
 	bool "Digi ConnectCore 8X SBC Pro"
 	select BOARD_LATE_INIT
 	select IMX8QXP
 	select MCA
+	select FSL_CAAM
+	select FSL_BLOB
+	select ARCH_MISC_INIT
+	select SPL_CRYPTO_SUPPORT if SPL
+
 config TARGET_APALIS_IMX8
 	bool "Support Apalis iMX8 module"
 	select BOARD_LATE_INIT
