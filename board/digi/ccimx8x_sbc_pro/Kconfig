@@ -1,0 +1,16 @@
+if TARGET_CCIMX8X_SBC_PRO
+
+config MCA
+	bool
+	default y
+
+config SYS_BOARD
+	default "ccimx8x_sbc_pro"
+
+config SYS_VENDOR
+	default "digi"
+
+config SYS_CONFIG_NAME
+	default "ccimx8x_sbc_pro"
+
+endif

@@ -80,6 +80,7 @@ struct bd_info;
 #define is_imx8mpul() (is_cpu_type(MXC_CPU_IMX8MPUL))
 
 #define is_imx8qxp() (is_cpu_type(MXC_CPU_IMX8QXP))
+#define is_imx8dx() (is_cpu_type(MXC_CPU_IMX8DX))
 #define is_imx8dxl() (is_cpu_type(MXC_CPU_IMX8DXL))
 
  /* gd->flags reserves high 16 bits for arch-specific flags */
@@ -198,6 +199,7 @@ u32 get_cpu_rev(void);
 u32 get_cpu_speed_grade_hz(void);
 u32 get_cpu_temp_grade(int *minc, int *maxc);
 const char *get_imx_type(u32 imxtype);
+const char *get_imx_family(u32 imxtype);
 u32 imx_ddr_size(void);
 void sdelay(unsigned long);
 void set_chipselect_size(int const);

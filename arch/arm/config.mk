@@ -163,6 +163,14 @@ endif
 else
 ifeq ($(CONFIG_OF_SEPARATE),y)
 INPUTS-y += u-boot-dtb.imx
+ifeq ($(CONFIG_ARCH_MX6),y)
+INPUTS-$(CONFIG_SIGN_IMAGE) += u-boot-dtb-signed.imx u-boot-dtb-usb-signed.imx
+ifneq ($(CONFIG_DEK_PATH),)
+ifneq ($(CONFIG_DEK_PATH),"")
+INPUTS-y += u-boot-dtb-encrypted.imx
+endif
+endif
+endif
 else
 INPUTS-y += u-boot.imx
 endif

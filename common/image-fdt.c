@@ -21,6 +21,10 @@
 #include <linux/libfdt.h>
 #include <mapmem.h>
 #include <asm/io.h>
+#include <asm/mach-imx/hab.h>
+#ifdef CONFIG_SIGN_IMAGE
+#include "../board/digi/common/auth.h"
+#endif
 #include <tee/optee.h>
 
 #ifndef CONFIG_SYS_FDT_PAD
@@ -31,6 +35,11 @@
 #define FDT_RAMDISK_OVERHEAD	0x80
 
 DECLARE_GLOBAL_DATA_PTR;
+
+#ifdef CONFIG_SIGN_IMAGE
+static int authentication_failed = 0;
+static int authenticated = 0;
+#endif
 
 static void fdt_error(const char *msg)
 {
@@ -510,6 +519,19 @@ int boot_get_fdt(int flag, int argc, char *const argv[], uint8_t arch,
 	debug("   of_flat_tree at 0x%08lx size 0x%08lx\n",
 	      (ulong)*of_flat_tree, *of_size);
 
+#ifdef CONFIG_SIGN_IMAGE
+	/*
+	 * Authenticate during boot if device tree files have not been
+	 * authenticated while loading to ram already.
+	 */
+	if (!authenticated) {
+		if (digi_auth_image((ulong *)of_flat_tree, *of_size) != 0) {
+			printf("Device Tree authentication failed\n");
+			goto error;
+		}
+	}
+#endif /* CONFIG_SIGN_IMAGE */
+
 	return 0;
 
 no_fdt:
@@ -632,3 +654,47 @@ err:
 
 	return ret;
 }
+
+#ifdef CONFIG_SIGN_IMAGE
+/* Reset the authentication variables to their initial state */
+void fdt_file_init_authentication(void)
+{
+	authentication_failed = 0;
+	authenticated = 0;
+}
+
+/*
+ * Authenticate any number of fdt files on ram before booting. This allows to
+ * authenticate an fdt modified by overlays by having the base device tree and
+ * the overlays authenticated separately before thay are applied.
+ *
+ * If a single fdt file fails authentication, global authentication will be
+ * considered as false and the boot authentication will be attempted.
+ */
+int fdt_file_authenticate(char *loadaddr)
+{
+	char *fdt_blob = NULL;
+	ulong fdt_addr, raw_image_size;
+
+	fdt_addr = env_get_ulong(loadaddr + 1, 16, 0);
+	if (!fdt_addr)
+		return 1;
+
+	fdt_blob = map_sysmem(fdt_addr, 0);
+	raw_image_size = fdt_totalsize(fdt_blob);
+	if (digi_auth_image(&fdt_addr, raw_image_size) != 0) {
+		printf("Device Tree authentication failed\n");
+		authentication_failed = 1;
+		authenticated = 0;
+		return 1;
+	}
+
+	if (authentication_failed == 0)
+		authenticated = 1;
+
+	/* Return destination address after authenticate fdt file */
+	sprintf(loadaddr, "0x%lx", fdt_addr);
+
+	return 0;
+}
+#endif

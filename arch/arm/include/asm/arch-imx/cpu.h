@@ -52,6 +52,7 @@
 #define MXC_CPU_IMX8QXP_A0	0x90 /* dummy ID */
 #define MXC_CPU_IMX8QM		0x91 /* dummy ID */
 #define MXC_CPU_IMX8QXP		0x92 /* dummy ID */
+#define MXC_CPU_IMX8DX		0x93 /* dummy ID */
 #define MXC_CPU_IMX8DXL     0x9E /* dummy ID */
 #define MXC_CPU_IMX8ULP		0xA1 /* dummy ID */
 #define MXC_CPU_MX7ULP		0xE1 /* Temporally hard code */

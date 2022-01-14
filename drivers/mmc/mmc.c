@@ -1014,6 +1014,11 @@ static int mmc_set_capacity(struct mmc *mmc, int part_num)
 	return 0;
 }
 
+int mmc_switch_any(struct mmc *mmc, unsigned int field, unsigned int val)
+{
+	return mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL, field, val);
+}
+
 int mmc_switch_part(struct mmc *mmc, unsigned int part_num)
 {
 	int ret;

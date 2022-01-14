@@ -122,6 +122,8 @@ static int _fastboot_parts_add_ptable_entry(int ptable_index,
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_DATA) ||
 #else
 	if (!strcmp((const char *)info.name, FASTBOOT_PARTITION_SYSTEM) ||
+	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_OEM) ||
+	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_VENDOR) ||
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_DATA) ||
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_DEVICE) ||
 	    !strcmp((const char *)info.name, FASTBOOT_PARTITION_CACHE) ||
@@ -333,15 +335,7 @@ bool fastboot_parts_is_raw(struct fastboot_ptentry *ptn)
 			return true;
 #ifdef CONFIG_ANDROID_AB_SUPPORT
 		else if (!strncmp(ptn->name, FASTBOOT_PARTITION_GPT,
-			strlen(FASTBOOT_PARTITION_GPT)) ||
-			!strncmp(ptn->name, FASTBOOT_PARTITION_BOOT_A,
-			strlen(FASTBOOT_PARTITION_BOOT_A)) ||
-			!strncmp(ptn->name, FASTBOOT_PARTITION_BOOT_B,
-			strlen(FASTBOOT_PARTITION_BOOT_B)))
-			return true;
-#else
-		else if (!strncmp(ptn->name, FASTBOOT_PARTITION_BOOT,
-			strlen(FASTBOOT_PARTITION_BOOT)))
+			strlen(FASTBOOT_PARTITION_GPT)))
 			return true;
 #endif
 #if defined(CONFIG_FASTBOOT_LOCK)

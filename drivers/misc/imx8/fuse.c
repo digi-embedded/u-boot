@@ -32,6 +32,18 @@ DECLARE_GLOBAL_DATA_PTR;
 #define FSL_SIP_OTP_READ             0xc200000A
 #define FSL_SIP_OTP_WRITE            0xc200000B
 
+static bool allow_prog = false;
+
+void fuse_allow_prog(bool allow)
+{
+	allow_prog = allow;
+}
+
+bool fuse_is_prog_allowed(void)
+{
+	return allow_prog;
+}
+
 int fuse_read(u32 bank, u32 word, u32 *val)
 {
 	return fuse_sense(bank, word, val);
@@ -71,18 +83,20 @@ int fuse_prog(u32 bank, u32 word, u32 val)
 		}
 	}
 
-	force_prog = env_get_yesno("force_prog_ecc");
-	if (force_prog != 1) {
-		if ((word >= FSL_ECC_WORD_START_1 && word <= FSL_ECC_WORD_END_1) ||
-		    (word >= FSL_ECC_WORD_START_2 && word <= FSL_ECC_WORD_END_2)) {
-			puts("Warning: Words in this index range have ECC protection\n"
-			     "and can only be programmed once per word. Individual bit\n"
-			     "operations will be rejected after the first one.\n"
-			     "\n\n Really program this word? <y/N>\n");
+	if (!fuse_is_prog_allowed()) {
+		force_prog = env_get_yesno("force_prog_ecc");
+		if (force_prog != 1) {
+			if ((word >= FSL_ECC_WORD_START_1 && word <= FSL_ECC_WORD_END_1) ||
+			    (word >= FSL_ECC_WORD_START_2 && word <= FSL_ECC_WORD_END_2)) {
+				puts("Warning: Words in this index range have ECC protection\n"
+				     "and can only be programmed once per word. Individual bit\n"
+				     "operations will be rejected after the first one.\n"
+				     "\n\n Really program this word? <y/N>\n");
 
-			if (!confirm_yesno()) {
-				puts("Word programming aborted\n");
-				return -EPERM;
+				if (!confirm_yesno()) {
+					puts("Word programming aborted\n");
+					return -EPERM;
+				}
 			}
 		}
 	}

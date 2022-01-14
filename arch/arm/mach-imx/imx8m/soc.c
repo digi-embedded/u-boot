@@ -263,12 +263,25 @@ int dram_init_banksize(void)
 
 	gd->bd->bi_dram[bank].start = PHYS_SDRAM;
 	if (rom_pointer[1]) {
-		phys_addr_t optee_start = (phys_addr_t)rom_pointer[0];
+		phys_addr_t optee_start;
 		phys_size_t optee_size = (size_t)rom_pointer[1];
 
-		gd->bd->bi_dram[bank].size = optee_start - gd->bd->bi_dram[bank].start;
+#ifdef AUTODETECT_RAM_SIZE
+		/*
+		 * The optee start address is hardcoded at build time, but we
+		 * want it to be recalculated basing on real RAM size detected
+		 * by U-Boot.
+		 * Dynamically change the optee start address (rom_pointer[0])
+		 * as: base_addr + sdram_size - opteee size (rom_pointer[1]).
+		 * I.e. optee is a the end of the RAM.
+		 */
+		rom_pointer[0] = CONFIG_SYS_SDRAM_BASE + sdram_b1_size -
+				 rom_pointer[1];
+#endif
+		optee_start = (phys_addr_t)rom_pointer[0];
+		gd->bd->bi_dram[bank].size = optee_start -gd->bd->bi_dram[bank].start;
 		if ((optee_start + optee_size) < (PHYS_SDRAM + sdram_b1_size)) {
-			if (++bank >= CONFIG_NR_DRAM_BANKS) {
+			if ( ++bank >= CONFIG_NR_DRAM_BANKS) {
 				puts("CONFIG_NR_DRAM_BANKS is not enough\n");
 				return -1;
 			}
@@ -1352,7 +1365,11 @@ usb_modify_speed:
 #if defined(CONFIG_ANDROID_SUPPORT) || defined(CONFIG_ANDROID_AUTO_SUPPORT)
 	return 0;
 #else
+#ifdef CONFIG_IMX_OPTEE
 	return ft_add_optee_node(blob, bd);
+#else
+	return 0;
+#endif
 #endif
 }
 #endif
@@ -1634,6 +1651,7 @@ enum env_location env_get_location(enum env_operation op, int prio)
 	case MMC1_BOOT:
 	case MMC2_BOOT:
 	case MMC3_BOOT:
+	case USB_BOOT:
 		env_loc =  ENVL_MMC;
 		break;
 #endif
@@ -1648,7 +1666,7 @@ enum env_location env_get_location(enum env_operation op, int prio)
 }
 
 #ifndef ENV_IS_EMBEDDED
-long long env_get_offset(long long defautl_offset)
+long long env_get_offset(long long default_offset)
 {
 	enum boot_device dev = get_boot_device();
 
@@ -1659,7 +1677,7 @@ long long env_get_offset(long long defautl_offset)
 		break;
 	}
 
-	return defautl_offset;
+	return default_offset;
 }
 #endif
 #endif

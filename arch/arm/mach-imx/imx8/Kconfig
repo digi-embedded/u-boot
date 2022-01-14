@@ -68,6 +68,17 @@ choice
 	prompt "i.MX8 board select"
 	optional
 
+config TARGET_CCIMX8X_SBC_EXPRESS
+	bool "Digi ConnectCore 8X SBC Express"
+	select BOARD_LATE_INIT
+	select IMX8QXP
+	select MCA
+
+config TARGET_CCIMX8X_SBC_PRO
+	bool "Digi ConnectCore 8X SBC Pro"
+	select BOARD_LATE_INIT
+	select IMX8QXP
+	select MCA
 config TARGET_APALIS_IMX8
 	bool "Support Apalis iMX8 module"
 	select BOARD_LATE_INIT
@@ -191,6 +202,8 @@ config TARGET_IMX8DXL_DDR3_EVK
 
 endchoice
 
+source "board/digi/ccimx8x_sbc_express/Kconfig"
+source "board/digi/ccimx8x_sbc_pro/Kconfig"
 source "board/freescale/imx8qm_mek/Kconfig"
 source "board/freescale/imx8qxp_mek/Kconfig"
 source "board/freescale/imx8qm_val/Kconfig"

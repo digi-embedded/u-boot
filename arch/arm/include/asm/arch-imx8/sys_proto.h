@@ -3,6 +3,9 @@
  * Copyright 2018 NXP
  */
 
+#ifndef ARCH_IMX8_SYS_PROTO_H
+#define ARCH_IMX8_SYS_PROTO_H
+
 #include <asm/arch/sci/sci.h>
 #include <asm/mach-imx/sys_proto.h>
 #include <asm/arch/power-domain.h>
@@ -30,3 +33,5 @@ int imx8_power_domain_lookup_name(const char *name,
 				  struct power_domain *power_domain);
 void imx8_power_off_pd_devices(const char *permanent_on_devices[], int size);
 bool m4_parts_booted(void);
+
+#endif /* ARCH_IMX8_SYS_PROTO_H */

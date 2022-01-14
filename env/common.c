@@ -12,6 +12,7 @@
 #include <command.h>
 #include <env.h>
 #include <env_internal.h>
+#include <fsl_sec.h>
 #include <log.h>
 #include <sort.h>
 #include <asm/global_data.h>
@@ -64,6 +65,11 @@ char *env_get_default(const char *name)
 	return ret_val;
 }
 
+__weak void platform_default_environment(void)
+{
+	return;
+}
+
 void env_set_default(const char *s, int flags)
 {
 	if (sizeof(default_environment) > ENV_SIZE) {
@@ -89,6 +95,9 @@ void env_set_default(const char *s, int flags)
 		pr_err("## Error: Environment import failed: errno = %d\n",
 		       errno);
 
+	/* Platform-specific actions on default environment */
+	platform_default_environment();
+
 	gd->flags |= GD_FLG_ENV_READY;
 	gd->flags |= GD_FLG_ENV_DEFAULT;
 }
@@ -107,6 +116,59 @@ int env_set_default_vars(int nvars, char * const vars[], int flags)
 				flags, 0, nvars, vars);
 }
 
+#ifdef CONFIG_ENV_AES
+
+#ifdef CONFIG_ENV_AES_CAAM_KEY
+#include <fuse.h>
+#include <fsl_caam.h>
+#include <u-boot/md5.h>
+#include <asm/mach-imx/hab.h>
+#include "../board/digi/common/trustfence.h"
+
+static int env_aes_cbc_crypt(env_t *env, const int enc)
+{
+	unsigned char *data = env->data;
+	unsigned char *buffer;
+	int ret = 0;
+	unsigned char key_modifier[KEY_MODIFER_SIZE] = {0};
+
+	if (!imx_hab_is_enabled())
+		return 0;
+
+	ret = get_trustfence_key_modifier(key_modifier);
+	if (ret)
+		return ret;
+
+	caam_open();
+	buffer = malloc(ENV_SIZE);
+	if (!buffer) {
+		debug("Not enough memory for en/de-cryption buffer");
+		return -ENOMEM;
+	}
+
+	if (enc)
+		ret = caam_gen_blob((ulong)data, (ulong)buffer, key_modifier, ENV_SIZE - BLOB_OVERHEAD);
+	else
+		ret = caam_decap_blob((ulong)buffer, (ulong)data, key_modifier, ENV_SIZE - BLOB_OVERHEAD);
+
+	if (ret)
+		goto err;
+
+	memcpy(data, buffer, ENV_SIZE);
+
+err:
+	free(buffer);
+	return ret;
+}
+#endif /* CONFIG_ENV_AES_CAAM_KEY */
+
+#else
+static inline int env_aes_cbc_crypt(env_t *env, const int enc)
+{
+	return 0;
+}
+#endif
+
 /*
  * Check if CRC is valid and (if yes) import the environment.
  * Note that "buf" may or may not be aligned.
@@ -114,6 +176,7 @@ int env_set_default_vars(int nvars, char * const vars[], int flags)
 int env_import(const char *buf, int check, int flags)
 {
 	env_t *ep = (env_t *)buf;
+	int ret;
 
 	if (check) {
 		uint32_t crc;
@@ -126,10 +189,28 @@ int env_import(const char *buf, int check, int flags)
 		}
 	}
 
-	if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE, '\0', flags, 0,
+	/* Decrypt the env if desired. */
+	ret = env_aes_cbc_crypt(ep, 0);
+	if (ret) {
+#ifdef CONFIG_ENV_AES_CAAM_KEY
+		if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE,
+				'\0', 0, 0, 0, NULL)) {
+			printf("Environment is unencrypted!\n");
+			printf("Resetting to defaults (read-only variables like MAC addresses will be kept).\n");
+			gd->flags |= GD_FLG_ENV_READY;
+			run_command("env default -a", 0);
+			return 0;
+		}
+#endif
+		pr_err("Failed to decrypt env!\n");
+		env_set_default("!import failed", 0);
+		return ret;
+	} else {
+		if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE, '\0', 0, 0,
 			0, NULL)) {
-		gd->flags |= GD_FLG_ENV_READY;
-		return 0;
+			gd->flags |= GD_FLG_ENV_READY;
+			return 0;
+		}
 	}
 
 	pr_err("Cannot import environment: errno = %d\n", errno);
@@ -213,6 +294,18 @@ int env_import_redund(const char *buf1, int buf1_read_fail,
 	} else if (ret == -ENOENT) {
 		return env_import((char *)buf2, 1, flags);
 	} else if (ret == -ENOMSG) {
+#if defined(OLD_ENV_OFFSET_LOCATIONS)
+		static int old_env_tries = OLD_ENV_OFFSET_LOCATIONS;
+
+		/*
+		 * Return error but don't reset the environment yet.
+		 * We'll try to restore it from the old location.
+		 */
+		if (old_env_tries) {
+			old_env_tries--;
+			return -ENOMSG;
+		}
+#endif
 		env_set_default("bad CRC", 0);
 		return -ENOMSG;
 	}
@@ -233,6 +326,9 @@ int env_export(env_t *env_out)
 {
 	char *res;
 	ssize_t	len;
+#ifdef CONFIG_ENV_AES_CAAM_KEY
+	int ret;
+#endif
 
 	res = (char *)env_out->data;
 	len = hexport_r(&env_htab, '\0', 0, &res, ENV_SIZE, 0, NULL);
@@ -240,6 +336,13 @@ int env_export(env_t *env_out)
 		pr_err("Cannot export environment: errno = %d\n", errno);
 		return 1;
 	}
+
+	/* Encrypt the env if desired. */
+#ifdef CONFIG_ENV_AES_CAAM_KEY
+	ret = env_aes_cbc_crypt(env_out, 1);
+	if (ret)
+		return ret;
+#endif
 
 	env_out->crc = crc32(0, env_out->data, ENV_SIZE);
 

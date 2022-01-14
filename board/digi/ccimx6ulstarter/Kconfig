@@ -1,0 +1,19 @@
+if TARGET_CCIMX6ULSTARTER
+
+config MCA
+	bool
+	default y
+
+config SYS_BOARD
+	default "ccimx6ulstarter"
+
+config SYS_VENDOR
+	default "digi"
+
+config SYS_SOC
+	default "mx6"
+
+config SYS_CONFIG_NAME
+	default "ccimx6ulstarter"
+
+endif

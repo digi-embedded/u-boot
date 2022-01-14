@@ -380,6 +380,10 @@ FbLockState fastboot_get_lock_stat(void) {
 	if (is_boot_from_usb())
 		return g_lockstat;
 
+	/* Assume UNLOCK state, also if "skip-fblock-check" env var is true */
+	if (env_get_yesno("skip-fblock-check") == 1)
+		return g_lockstat;
+
 	bdata = (unsigned char *)memalign(ARCH_DMA_MINALIGN, SECTOR_SIZE);
 	if (bdata == NULL)
 		return g_lockstat;

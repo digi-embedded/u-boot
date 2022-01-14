@@ -35,6 +35,8 @@ const char *get_imx8_type(u32 imxtype)
 		return "QXP";
 	case MXC_CPU_IMX8QM:
 		return "QM";
+	case MXC_CPU_IMX8DX:
+		return "DX";	/* i.MX8 Dual X */
 	case MXC_CPU_IMX8DXL:
 		return "DXL";
 	default:
@@ -127,8 +129,6 @@ int cpu_imx_get_desc(const struct udevice *dev, char *buf, int size)
 		else
 			ret = snprintf(buf, size, " - invalid sensor data");
 	}
-
-	snprintf(buf + ret, size - ret, "\n");
 
 	return 0;
 }

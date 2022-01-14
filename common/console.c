@@ -542,7 +542,7 @@ int getchar(void)
 {
 	int ch;
 
-	if (IS_ENABLED(CONFIG_DISABLE_CONSOLE) && (gd->flags & GD_FLG_DISABLE_CONSOLE))
+	if (gd->flags & GD_FLG_DISABLE_CONSOLE_INPUT)
 		return 0;
 
 	if (!gd->have_console)
@@ -563,7 +563,7 @@ int getchar(void)
 
 int tstc(void)
 {
-	if (IS_ENABLED(CONFIG_DISABLE_CONSOLE) && (gd->flags & GD_FLG_DISABLE_CONSOLE))
+	if (gd->flags & GD_FLG_DISABLE_CONSOLE_INPUT)
 		return 0;
 
 	if (!gd->have_console)
@@ -663,7 +663,7 @@ void putc(const char c)
 		return;
 	}
 
-	if (IS_ENABLED(CONFIG_DISABLE_CONSOLE) && (gd->flags & GD_FLG_DISABLE_CONSOLE))
+	if (gd->flags & GD_FLG_DISABLE_CONSOLE_OUTPUT)
 		return;
 
 	if (!gd->have_console)
@@ -707,7 +707,7 @@ void puts(const char *s)
 		return;
 	}
 
-	if (IS_ENABLED(CONFIG_DISABLE_CONSOLE) && (gd->flags & GD_FLG_DISABLE_CONSOLE))
+	if (gd->flags & GD_FLG_DISABLE_CONSOLE_OUTPUT)
 		return;
 
 	if (!gd->have_console)
@@ -882,8 +882,6 @@ static bool console_update_silent(void)
 		gd->flags |= GD_FLG_SILENT;
 		return false;
 	}
-
-	gd->flags &= ~GD_FLG_SILENT;
 
 	return !!(flags & GD_FLG_SILENT);
 }

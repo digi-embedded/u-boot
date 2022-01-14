@@ -26,6 +26,7 @@ static int do_caam(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[
 {
 
 	int ret, i;
+	uint8_t zero_key_modifier[KEY_MODIFER_SIZE] = {0};
 
 	if (argc < 2)
 	return CMD_RET_USAGE;
@@ -46,7 +47,7 @@ static int do_caam(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[
 		return CMD_RET_USAGE;
 
 	caam_open();
-	ret = caam_gen_blob((uint32_t)data_addr, (uint32_t)blob_addr, (uint32_t)size);
+	ret = caam_gen_blob((uint32_t)data_addr, (uint32_t)blob_addr, zero_key_modifier, (uint32_t)size);
 
 	if(ret != SUCCESS){
 		printf("Error during blob encap operation: 0x%x\n", ret);
@@ -80,7 +81,7 @@ static int do_caam(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[
 		return CMD_RET_USAGE;
 
 	caam_open();
-	ret = caam_decap_blob((uint32_t)(data_addr), (uint32_t)(blob_addr), (uint32_t)size);
+	ret = caam_decap_blob((uint32_t)(data_addr), (uint32_t)(blob_addr), zero_key_modifier, (uint32_t)size);
 	if(ret != SUCCESS)
 		printf("Error during blob decap operation: 0x%x\n", ret);
 	else {

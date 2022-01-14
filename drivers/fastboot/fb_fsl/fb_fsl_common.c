@@ -195,6 +195,15 @@ void board_fastboot_setup(void)
 			env_set("soc_rev", "revb");
 		else if (is_soc_rev(CHIP_REV_C))
 			env_set("soc_rev", "revc");
+	} else if (is_imx8dx()) {
+		if (!env_get("soc_type"))
+			env_set("soc_type", "imx8dx");
+		if (is_soc_rev(CHIP_REV_A))
+			env_set("soc_rev", "reva");
+		else if (is_soc_rev(CHIP_REV_B))
+			env_set("soc_rev", "revb");
+		else if (is_soc_rev(CHIP_REV_C))
+			env_set("soc_rev", "revc");
 	} else if (is_imx8mq()) {
 		if (!env_get("soc_type"))
 			env_set("soc_type", "imx8mq");
@@ -365,7 +374,8 @@ static int _fastboot_setup_dev(int *switched)
 void fastboot_setup(void)
 {
 	int sw, ret;
-	struct tag_serialnr serialnr;
+#ifndef DIGI_PLATFORM
+	struct tag_serialnr serialnr = {0};
 	char serial[17];
 
 	if (!env_get("serial#")) {
@@ -373,6 +383,7 @@ void fastboot_setup(void)
 		sprintf(serial, "%08x%08x", serialnr.high, serialnr.low);
 		env_set("serial#", serial);
 	}
+#endif
 
 	/*execute board relevant initilizations for preparing fastboot */
 	board_fastboot_setup();

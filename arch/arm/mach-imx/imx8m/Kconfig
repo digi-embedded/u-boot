@@ -155,6 +155,18 @@ config TARGET_IMX8MN_DDR3_EVK
 	select MISC
 	select SPL_CRYPTO_SUPPORT if SPL
 
+config TARGET_CCIMX8MM_DVK
+	bool "Digi ConnectCore 8M Mini Development Kit"
+	select IMX8MM
+	select SUPPORT_SPL
+	select IMX8M_LPDDR4
+
+config TARGET_CCIMX8MN_DVK
+	bool "Digi ConnectCore 8M Nano Development Kit"
+	select IMX8MN
+	select SUPPORT_SPL
+	select IMX8M_LPDDR4
+
 config TARGET_IMX8MP_EVK
 	bool "imx8mp LPDDR4 EVK board"
 	select IMX8MP
@@ -261,6 +273,8 @@ config TARGET_PHYCORE_IMX8MP
 	select IMX8M_LPDDR4
 endchoice
 
+source "board/digi/ccimx8mm_dvk/Kconfig"
+source "board/digi/ccimx8mn_dvk/Kconfig"
 source "board/freescale/imx8mq_evk/Kconfig"
 source "board/freescale/imx8mq_val/Kconfig"
 source "board/freescale/imx8mm_ab2/Kconfig"

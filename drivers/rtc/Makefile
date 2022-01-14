@@ -35,6 +35,7 @@ obj-$(CONFIG_RTC_M48T35A) += m48t35ax.o
 obj-$(CONFIG_RTC_MAX6900) += max6900.o
 obj-$(CONFIG_RTC_MC13XXX) += mc13xxx-rtc.o
 obj-$(CONFIG_RTC_MC146818) += mc146818.o
+obj-$(CONFIG_RTC_MCA) += mca-rtc.o
 obj-$(CONFIG_RTC_MCP79411) += ds1307.o
 obj-$(CONFIG_MCFRTC) += mcfrtc.o
 obj-$(CONFIG_RTC_MK48T59) += mk48t59.o

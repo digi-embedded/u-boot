@@ -84,11 +84,6 @@ static struct jr_data_st g_jrdata = {0};
 static struct jr_data_st g_jrdata = {0, 0, 0xFFFFFFFF};
 #endif
 
-static u8 skeymod[] = {
-	0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08,
-	0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00
-};
-
 /*
  * Local functions
  */
@@ -137,18 +132,19 @@ u32 secmem_set_cmd_1(u32 sec_mem_cmd)
  *
  * @return  SUCCESS or ERROR_XXX
  */
-u32 caam_decap_blob(u32 plain_text, u32 blob_addr, u32 size)
+u32 caam_decap_blob(u32 plain_text, u32 blob_addr, void *key_modifier, u32 size)
 {
 	u32 ret = SUCCESS;
-	u32 key_sz = sizeof(skeymod);
+	u32 key_sz = KEY_MODIFER_SIZE;
 	u32 *decap_desc = g_jrdata.desc;
+	uint32_t blob_size = BLOB_SIZE(size);
 
 	/* prepare job descriptor */
 	init_job_desc(decap_desc, 0);
-	append_load(decap_desc, PTR2CAAMDMA(skeymod), key_sz,
+	append_load(decap_desc, PTR2CAAMDMA(key_modifier), key_sz,
 		    LDST_CLASS_2_CCB | LDST_SRCDST_BYTE_KEY);
-	append_seq_in_ptr_intlen(decap_desc, blob_addr, size + 48, 0);
-	append_seq_out_ptr_intlen(decap_desc, plain_text, size, 0);
+	append_seq_in_ptr_intlen(decap_desc, blob_addr, (0x0000ffff & blob_size), 0);
+	append_seq_out_ptr_intlen(decap_desc, plain_text, (0x0000ffff & size), 0);
 	append_operation(decap_desc, OP_TYPE_DECAP_PROTOCOL | OP_PCLID_BLOB);
 
 	flush_dcache_range((uintptr_t)blob_addr & ALIGN_MASK,
@@ -157,6 +153,9 @@ u32 caam_decap_blob(u32 plain_text, u32 blob_addr, u32 size)
 	flush_dcache_range((uintptr_t)plain_text & ALIGN_MASK,
 			   (plain_text & ALIGN_MASK)
 			   + ROUND(2 * size, ARCH_DMA_MINALIGN));
+	flush_dcache_range((unsigned long)key_modifier & ALIGN_MASK,
+			   ((unsigned long)key_modifier & ALIGN_MASK)
+			   + ROUND(key_sz + 256, ARCH_DMA_MINALIGN));
 
 	/* Run descriptor with result written to blob buffer */
 	ret = do_job(decap_desc);
@@ -176,23 +175,24 @@ u32 caam_decap_blob(u32 plain_text, u32 blob_addr, u32 size)
  *
  * @return  SUCCESS or ERROR_XXX
  */
-u32 caam_gen_blob(u32 plain_data_addr, u32 blob_addr, u32 size)
+u32 caam_gen_blob(u32 plain_data_addr, u32 blob_addr, void *key_modifier, u32 size)
 {
 	u32 ret = SUCCESS;
-	u32 key_sz = sizeof(skeymod);
+	u32 key_sz = KEY_MODIFER_SIZE;
 	u32 *encap_desc = g_jrdata.desc;
 	/* Buffer to hold the resulting blob */
 	u8 *blob = (u8 *)CAAMDMA2PTR(blob_addr);
+	uint32_t blob_size = BLOB_SIZE(size);
 
 	/* initialize the blob array */
 	memset(blob,0,size);
 
 	/* prepare job descriptor */
 	init_job_desc(encap_desc, 0);
-	append_load(encap_desc, PTR2CAAMDMA(skeymod), key_sz,
+	append_load(encap_desc, PTR2CAAMDMA(key_modifier), key_sz,
 		    LDST_CLASS_2_CCB | LDST_SRCDST_BYTE_KEY);
-	append_seq_in_ptr_intlen(encap_desc, plain_data_addr, size, 0);
-	append_seq_out_ptr_intlen(encap_desc, PTR2CAAMDMA(blob), size + 48, 0);
+	append_seq_out_ptr_intlen(encap_desc, PTR2CAAMDMA(blob), (0x0000ffff & blob_size), 0);
+	append_seq_in_ptr_intlen(encap_desc, plain_data_addr, (0x0000ffff & size), 0);
 	append_operation(encap_desc, OP_TYPE_ENCAP_PROTOCOL | OP_PCLID_BLOB);
 
 	flush_dcache_range((uintptr_t)plain_data_addr & ALIGN_MASK,
@@ -201,6 +201,9 @@ u32 caam_gen_blob(u32 plain_data_addr, u32 blob_addr, u32 size)
 	flush_dcache_range((uintptr_t)blob & ALIGN_MASK,
 			   ((uintptr_t)blob & ALIGN_MASK)
 			   + ROUND(2 * size, ARCH_DMA_MINALIGN));
+	flush_dcache_range((unsigned long)key_modifier & ALIGN_MASK,
+			   ((unsigned long)key_modifier & ALIGN_MASK)
+			   + ROUND(key_sz + 256, ARCH_DMA_MINALIGN));
 
 	ret = do_job(encap_desc);
 
@@ -280,7 +283,7 @@ void caam_open(void)
 	temp_reg = __raw_readl(CAAM_RDSTA);
 	init_mask = RDSTA_IF0 | RDSTA_IF1 | RDSTA_SKVN;
 	if ((temp_reg & init_mask) == init_mask) {
-		printf("RNG already instantiated 0x%X\n", temp_reg);
+		debug("RNG already instantiated 0x%X\n", temp_reg);
 		return;
 	}
 

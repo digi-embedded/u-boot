@@ -14,6 +14,10 @@
 #include <fuse.h>
 #include <linux/errno.h>
 
+__weak void fuse_allow_prog(bool allow) {
+	return;
+}
+
 static int strtou32(const char *str, unsigned int base, u32 *result)
 {
 	char *ep;
@@ -47,6 +51,31 @@ static int do_fuse(struct cmd_tbl *cmdtp, int flag, int argc,
 	int confirmed = argc >= 3 && !strcmp(argv[2], "-y");
 	u32 bank, word, cnt, val;
 	int ret, i;
+
+#if CONFIG_MX8_FUSE_PROG
+	/*
+	 * The fuse map of the i.mx8 processors is... a bit messy. By default
+	 * programming the eFuses is disabled to prevent users to accidentally
+	 * write an incorrect word (due to the weird mapping) what could be
+	 * catastrophic. This code provides an undocumented mechanism to allow
+	 * programming the eFuses with the fuse command.
+	 */
+	if (argc == 3 && !strcmp(argv[1], "_allow_prog")) {
+		bool allow;
+
+		if (!strcmp(argv[2], "on"))
+			allow = true;
+		else if (!strcmp(argv[2], "off"))
+			allow = false;
+		else
+			return CMD_RET_USAGE;
+
+		printf("%s fuse programming\n\n", allow ? "Enabling" : "Disabling");
+		fuse_allow_prog(allow);
+
+		return 0;
+	}
+#endif
 
 	argc -= 2 + confirmed;
 	argv += 2 + confirmed;

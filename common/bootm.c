@@ -22,6 +22,9 @@
 #include <asm/global_data.h>
 #include <asm/io.h>
 #include <linux/sizes.h>
+#ifdef CONFIG_SIGN_IMAGE
+#include "../board/digi/common/auth.h"
+#endif
 #if defined(CONFIG_CMD_USB)
 #include <usb.h>
 #endif
@@ -470,7 +473,7 @@ ulong bootm_disable_interrupts(void)
 	return iflag;
 }
 
-#define CONSOLE_ARG		"console="
+#define CONSOLE_ARG		"console=null"
 #define CONSOLE_ARG_SIZE	sizeof(CONSOLE_ARG)
 
 /**
@@ -870,6 +873,29 @@ static const void *boot_get_kernel(struct cmd_tbl *cmdtp, int flag, int argc,
 	/* check image type, for FIT images get FIT kernel node */
 	*os_data = *os_len = 0;
 	buf = map_sysmem(img_addr, 0);
+
+	switch (genimg_get_format(buf)) {
+#if defined(CONFIG_IMAGE_FORMAT_LEGACY)
+	case IMAGE_FORMAT_LEGACY:
+#ifdef CONFIG_SIGN_IMAGE
+		if (digi_auth_image(&buf,
+			image_get_image_size((image_header_t *) buf)) == 0) {
+			printf("Authenticate uImage Fail, Please check\n");
+			return NULL;
+		}
+#endif /* CONFIG_SIGN_IMAGE */
+		break;
+#endif
+#ifdef CONFIG_ANDROID_BOOT_IMAGE
+	case IMAGE_FORMAT_ANDROID:
+		/* Do this authentication in boota command */
+		break;
+#endif
+	default:
+		printf("Not valid image format for Authentication, Please check\n");
+		return NULL;
+	}
+
 	switch (genimg_get_format(buf)) {
 #if CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)
 	case IMAGE_FORMAT_LEGACY:

@@ -63,6 +63,9 @@ void fastboot_response(const char *tag, char *response,
  */
 void fastboot_fail(const char *reason, char *response)
 {
+	if (!response)
+                return;
+
 	fastboot_response("FAIL", response, "%s", reason);
 }
 
@@ -74,6 +77,9 @@ void fastboot_fail(const char *reason, char *response)
  */
 void fastboot_okay(const char *reason, char *response)
 {
+	if (!response)
+                return;
+
 	if (reason)
 		fastboot_response("OKAY", response, "%s", reason);
 	else

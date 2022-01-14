@@ -14,20 +14,29 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-u32 get_lpuart_clk(void)
+u32 get_lpuart_clk(u64 reg)
 {
-	return mxc_get_clock(MXC_UART_CLK);
+	unsigned int port = (reg - LPUART_BASE) / 0x10000;
+
+	if (port < 4)
+		return mxc_get_clock(MXC_UART0_CLK + port);
+	else
+		printf("Unsupported lpuart port %d\n", port);
+
+	return 0;
 }
 
 u32 mxc_get_clock(enum mxc_clock clk)
 {
 	sc_err_t err;
 	sc_pm_clock_rate_t clkrate;
+	unsigned int port;
 
 	switch (clk) {
-	case MXC_UART_CLK:
+	case MXC_UART0_CLK ... MXC_UART3_CLK:
+		port = clk - MXC_UART0_CLK;
 		err = sc_pm_get_clock_rate(-1,
-				SC_R_UART_0, 2, &clkrate);
+				SC_R_UART_0 + port, 2, &clkrate);
 		if (err != SC_ERR_NONE) {
 			printf("sc get UART clk failed! err=%d\n", err);
 			return 0;

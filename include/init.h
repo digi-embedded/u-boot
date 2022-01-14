@@ -314,6 +314,11 @@ void pci_init_board(void);
  */
 int arch_initr_trap(void);
 
+/* board/digi/common */
+#if defined(CONFIG_SOURCE) && defined(CONFIG_AUTO_BOOTSCRIPT)
+void run_auto_bootscript(void);
+#endif
+
 /**
  * main_loop() - Enter the main loop of U-Boot
  *

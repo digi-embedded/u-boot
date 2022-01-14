@@ -207,6 +207,10 @@ int setexpr_regex_sub(char *data, uint data_size, char *nbuf, uint nbuf_size,
 int do_raw_read(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[]);
 #endif
 
+#ifdef CONFIG_CMD_READ
+int do_raw_read(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+#endif
+
 /*
  * Error codes that commands return to cmd_process(). We use the standard 0
  * and 1 for success and failure, but add one more case - failure with a

@@ -21,6 +21,9 @@
 #include <linux/err.h>
 #include <u-boot/zlib.h>
 #include <mapmem.h>
+#ifdef CONFIG_SIGN_IMAGE
+#include "../board/digi/common/auth.h"
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -125,10 +128,6 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 			return do_bootm_subcommand(cmdtp, flag, argc, argv);
 	}
 
-#ifdef CONFIG_IMX_HAB
-	extern int authenticate_image(
-			uint32_t ddr_start, uint32_t raw_image_size);
-
 #ifdef CONFIG_IMX_OPTEE
 	ulong tee_addr = 0;
 	int ret;
@@ -142,11 +141,13 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 
 	switch (genimg_get_format((const void *)tee_addr)) {
 	case IMAGE_FORMAT_LEGACY:
+#ifdef CONFIG_SIGN_IMAGE
 		if (authenticate_image(tee_addr,
 		       image_get_image_size((image_header_t *)tee_addr)) != 0) {
 		       printf("Authenticate uImage Fail, Please check\n");
 		       return 1;
 		}
+#endif /* CONFIG_SIGN_IMAGE */
 		break;
 	default:
 		printf("Not valid image format for Authentication, Please check\n");
@@ -157,21 +158,25 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 	if (ret != 0)
 		return 1;
 
-	if (authenticate_image(image_load_addr, zi_end - zi_start) != 0) {
+#ifdef CONFIG_SIGN_IMAGE
+	if (digi_auth_image(&image_load_addr, zi_end - zi_start) != 0) {
 		printf("Authenticate zImage Fail, Please check\n");
 		return 1;
 	}
+#endif /* CONFIG_SIGN_IMAGE */
 
 #else
 
 	switch (genimg_get_format((const void *)image_load_addr)) {
 #if defined(CONFIG_LEGACY_IMAGE_FORMAT)
 	case IMAGE_FORMAT_LEGACY:
-		if (authenticate_image(image_load_addr,
+#ifdef CONFIG_SIGN_IMAGE
+		if (digi_auth_image(&image_load_addr,
 			image_get_image_size((image_header_t *)image_load_addr)) != 0) {
 			printf("Authenticate uImage Fail, Please check\n");
 			return 1;
 		}
+#endif /* CONFIG_SIGN_IMAGE */
 		break;
 #endif
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
@@ -183,7 +188,6 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 		printf("Not valid image format for Authentication, Please check\n");
 		return 1;
 	}
-#endif
 #endif
 
 	return do_bootm_states(cmdtp, flag, argc, argv, BOOTM_STATE_START |

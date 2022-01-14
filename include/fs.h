@@ -21,6 +21,11 @@ struct blk_desc;
 
 int do_fat_size(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[]);
 
+<<<<<<< HEAD
+int do_fat_size(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[]);
+
+=======
+>>>>>>> 328f0bd81323 (to amend merge)
 /**
  * do_fat_fsload - Run the fatload command
  *

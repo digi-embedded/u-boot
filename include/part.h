@@ -253,6 +253,8 @@ int part_get_info_by_dev_and_name_or_num(const char *dev_iface,
 void part_set_generic_name(const struct blk_desc *dev_desc,
 	int part_num, char *name);
 
+int get_partition_bynameorindex(const char *ifname, const char *dev_str,
+				char *part_nameorindex, disk_partition_t *info);
 extern const struct block_drvr block_drvr[];
 #else
 static inline struct blk_desc *blk_get_dev(const char *ifname, int dev)

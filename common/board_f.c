@@ -426,10 +426,10 @@ static int reserve_uboot(void)
 	if (!(gd->flags & GD_FLG_SKIP_RELOC)) {
 		/*
 		 * reserve memory for U-Boot code, data & bss
-		 * round down to next 4 kB limit
+		 * round down to next 64 kB limit
 		 */
 		gd->relocaddr -= gd->mon_len;
-		gd->relocaddr &= ~(4096 - 1);
+		gd->relocaddr &= ~(65536 - 1);
 	#if defined(CONFIG_E500) || defined(CONFIG_MIPS)
 		/* round down to next 64 kB limit so that IVPR stays aligned */
 		gd->relocaddr &= ~(65536 - 1);
@@ -863,7 +863,7 @@ static const init_fnc_t init_sequence_f[] = {
 #if defined(CONFIG_DTB_RESELECT)
 	embedded_dtb_select,
 #endif
-#if defined(CONFIG_DISPLAY_BOARDINFO)
+#if defined(CONFIG_DISPLAY_BOARDINFO) && !defined(CONFIG_DISPLAY_BOARDINFO_LATE)
 	show_board_info,
 #endif
 	INIT_FUNC_WATCHDOG_INIT

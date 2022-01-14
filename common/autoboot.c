@@ -113,6 +113,7 @@ static int passwd_abort_sha256(uint64_t etime)
 		return 0;
 	}
 
+	presskey = malloc_cache_aligned(MAX_DELAY_STOP_STR);
 	sha = malloc_cache_aligned(SHA256_SUM_LEN);
 	size = SHA256_SUM_LEN;
 	/*
@@ -357,7 +358,7 @@ const char *bootdelay_process(void)
 				 mfgtools\n", 0);
 	} else if (is_boot_from_usb()) {
 		printf("Boot from USB for uuu\n");
-		env_set("bootcmd", "fastboot 0");
+		env_set("bootcmd_mfg", "fastboot 0");
 	} else {
 		printf("Normal Boot\n");
 	}
@@ -385,6 +386,16 @@ const char *bootdelay_process(void)
 		printf("Run bootcmd_mfg: %s\n", s);
 	}
 #endif
+
+	/* Check if boot recovery is enabled */
+	if (env_get_yesno("boot_recovery") == 1) {
+		s = env_get("recoverycmd");
+		printf("\n"
+		       "******************************************\n"
+		       "* Warning: Booting into recovery mode... *\n"
+		       "******************************************\n"
+		       "\n");
+	}
 
 	if (IS_ENABLED(CONFIG_OF_CONTROL))
 		process_fdt_options(gd->fdt_blob);

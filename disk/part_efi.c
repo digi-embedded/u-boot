@@ -958,6 +958,7 @@ int write_mbr_and_gpt_partitions(struct blk_desc *dev_desc, void *buf)
 
 	return 0;
 }
+
 int write_backup_gpt_partitions(struct blk_desc *dev_desc, void *buf)
 {
 	gpt_header *gpt_h;

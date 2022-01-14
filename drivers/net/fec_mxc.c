@@ -242,6 +242,11 @@ static int fec_phy_write(struct mii_dev *bus, int phyaddr, int dev_addr,
 	return fec_mdio_write(bus->priv, phyaddr, regaddr, data);
 }
 
+static int fec_phy_reset(struct mii_dev *bus)
+{
+	return 0;
+}
+
 #ifndef CONFIG_PHYLIB
 static int miiphy_restart_aneg(struct eth_device *dev)
 {
@@ -403,7 +408,11 @@ static void fec_rbd_clean(int last, struct fec_bd *prbd)
 
 static int fec_get_hwaddr(int dev_id, unsigned char *mac)
 {
+#ifdef CONFIG_NO_MAC_FROM_OTP
+	memset(mac, 0, 6);
+#else
 	imx_get_mac_from_fuse(dev_id, mac);
+#endif
 	return !is_valid_ethaddr(mac);
 }
 
@@ -1087,6 +1096,7 @@ struct mii_dev *fec_get_miibus(ulong base_addr, int dev_id)
 	}
 	bus->read = fec_phy_read;
 	bus->write = fec_phy_write;
+	bus->reset = fec_phy_reset;
 	bus->priv = eth;
 	fec_set_dev_name(bus->name, dev_id);
 
@@ -1589,7 +1599,7 @@ static int fecmxc_of_to_plat(struct udevice *dev)
 
 #if CONFIG_IS_ENABLED(DM_GPIO)
 	ret = gpio_request_by_name(dev, "phy-reset-gpios", 0,
-				   &priv->phy_reset_gpio, GPIOD_IS_OUT);
+				   &priv->phy_reset_gpio, GPIOD_IS_OUT_ACTIVE);
 	if (ret < 0)
 		return 0; /* property is optional, don't return error! */
 
