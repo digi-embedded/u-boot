@@ -98,6 +98,18 @@
         u-boot,dm-spl;
 };
 
+&crypto {
+	u-boot,dm-spl;
+};
+
+&sec_jr0 {
+	u-boot,dm-spl;
+};
+
+&sec_jr1 {
+	u-boot,dm-spl;
+};
+
 &usdhc2 {
 	u-boot,dm-spl;
 };
