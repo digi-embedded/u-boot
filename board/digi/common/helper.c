@@ -623,7 +623,7 @@ _ret:
 }
 #endif /* CONFIG_CMD_UPDATE || CONFIG_CMD_DBOOT */
 
-#if defined(CONFIG_SOURCE) && defined(CONFIG_AUTO_BOOTSCRIPT)
+#if defined(CONFIG_CMD_SOURCE) && defined(CONFIG_AUTO_BOOTSCRIPT)
 void run_auto_bootscript(void)
 {
 #ifdef CONFIG_CMD_NET
