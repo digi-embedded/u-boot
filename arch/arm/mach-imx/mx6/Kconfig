@@ -133,6 +133,7 @@ config TARGET_CCIMX6SBC
 	select DM
 	select DM_THERMAL
 	select SUPPORT_SPL
+	imply CMD_DM
 
 config TARGET_MX6SABREAUTO_COMMON
     bool
@@ -230,6 +231,7 @@ config TARGET_CCIMX6ULSBC
 	select SUPPORT_SPL
 	select MCA
 	select MTD_UBI_SKIP_REATTACH
+	imply CMD_DM
 
 config TARGET_CCIMX6ULSTARTER
 	bool "Digi ConnectCore 6UL SBC Express"
@@ -241,6 +243,7 @@ config TARGET_CCIMX6ULSTARTER
 	select SUPPORT_SPL
 	select MCA
 	select MTD_UBI_SKIP_REATTACH
+	imply CMD_DM
 
 config TARGET_CGTQMX6EVAL
 	bool "cgtqmx6eval"
