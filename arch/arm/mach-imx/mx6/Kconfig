@@ -126,7 +126,7 @@ config CMD_BEE
 	help
 	  Set "Y" to enable the bee commands
 
-config TARGET_CCIMX6SBC
+config TARGET_CCIMX6SBC_COMMON
 	bool
 	select BOARD_EARLY_INIT_F
 	select BOARD_LATE_INIT
@@ -209,22 +209,22 @@ config TARGET_ARISTAINETOS2CCSLB
 
 config TARGET_CCIMX6DLSBC
 	bool "Digi ConnectCore 6 DualLite SBC"
-	select TARGET_CCIMX6SBC
-	select MX6DL
+	select TARGET_CCIMX6SBC_COMMON
+	depends on MX6DL
 
 config TARGET_CCIMX6QSBC
 	bool "Digi ConnectCore 6 Quad/Dual SBC"
-	select TARGET_CCIMX6SBC
-	select MX6Q
+	select TARGET_CCIMX6SBC_COMMON
+	depends on MX6Q
 
 config TARGET_CCIMX6QPSBC
 	bool "Digi ConnectCore 6 Plus SBC"
-	select TARGET_CCIMX6SBC
-	select MX6QP
+	select TARGET_CCIMX6SBC_COMMON
+	depends on MX6QP
 
 config TARGET_CCIMX6ULSBC
 	bool "Digi ConnectCore 6UL SBC Pro"
-	select MX6UL
+	depends on MX6UL
 	select BOARD_EARLY_INIT_F
 	select BOARD_LATE_INIT
 	select DM
@@ -239,7 +239,7 @@ config TARGET_CCIMX6ULSBC
 
 config TARGET_CCIMX6ULSTARTER
 	bool "Digi ConnectCore 6UL SBC Express"
-	select MX6UL
+	depends on MX6UL
 	select BOARD_EARLY_INIT_F
 	select BOARD_LATE_INIT
 	select DM
