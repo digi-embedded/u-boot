@@ -265,7 +265,8 @@ void board_quiesce_devices()
 		"audio_ocram",
 	};
 
-	power_off_pd_devices(power_on_devices, ARRAY_SIZE(power_on_devices));
+	imx8_power_off_pd_devices(power_on_devices,
+				  ARRAY_SIZE(power_on_devices));
 }
 
 #if defined(CONFIG_OF_BOARD_SETUP)
