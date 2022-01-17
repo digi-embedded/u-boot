@@ -22,7 +22,7 @@ int mca_get_device(struct udevice **devp)
 	if (ret)
 		return ret;
 
-	chip = dev_get_parent_platdata(*devp);
+	chip = dev_get_parent_plat(*devp);
 	if (chip->offset_len != CONFIG_MCA_OFFSET_LEN) {
 		printf("I2C chip %x: requested len %d does not match chip offset_len %d\n",
 		       CONFIG_MCA_I2C_ADDR, CONFIG_MCA_OFFSET_LEN,

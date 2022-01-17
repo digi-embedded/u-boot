@@ -899,7 +899,7 @@ static int fsl_fspi_nand_claim_bus(struct udevice *dev)
 {
 	struct fsl_fspi_priv *priv;
 	struct udevice *bus;
-	struct dm_spi_slave_platdata *slave_plat = dev_get_parent_platdata(dev);
+	struct dm_spi_slave_platdata *slave_plat = dev_get_parent_plat(dev);
 
 	bus = dev->parent;
 	priv = dev_get_priv(bus);
