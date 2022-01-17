@@ -117,22 +117,22 @@ config LDO_BYPASS_CHECK
 	default y if !MX6SLL
 	help
 	  This feature searches the gpc node in loaded DTB and checking the
-	  "fsl,ldo-bypass" property. When the property is set, board relevant 
-	  PMIC settings are called to adjust for LDO bypass. 
+	  "fsl,ldo-bypass" property. When the property is set, board relevant
+	  PMIC settings are called to adjust for LDO bypass.
 
 config CMD_BEE
 	bool "Enable commands for Bus Encryption Engine(BEE)"
 	depends on MX6UL
 	help
-	  Set "Y" to enable the bee commands 
+	  Set "Y" to enable the bee commands
 
 config TARGET_CCIMX6SBC
 	bool
+	select BOARD_EARLY_INIT_F
 	select BOARD_LATE_INIT
-	select SUPPORT_SPL
 	select DM
 	select DM_THERMAL
-	select BOARD_EARLY_INIT_F
+	select SUPPORT_SPL
 
 config TARGET_MX6SABREAUTO_COMMON
     bool
@@ -223,22 +223,22 @@ config TARGET_CCIMX6QPSBC
 config TARGET_CCIMX6ULSBC
 	bool "Digi ConnectCore 6UL SBC Pro"
 	select MX6UL
+	select BOARD_EARLY_INIT_F
 	select BOARD_LATE_INIT
-	select SUPPORT_SPL
 	select DM
 	select DM_THERMAL
-	select BOARD_EARLY_INIT_F
+	select SUPPORT_SPL
 	select MCA
 	select MTD_UBI_SKIP_REATTACH
 
 config TARGET_CCIMX6ULSTARTER
 	bool "Digi ConnectCore 6UL SBC Express"
 	select MX6UL
+	select BOARD_EARLY_INIT_F
 	select BOARD_LATE_INIT
-	select SUPPORT_SPL
 	select DM
 	select DM_THERMAL
-	select BOARD_EARLY_INIT_F
+	select SUPPORT_SPL
 	select MCA
 	select MTD_UBI_SKIP_REATTACH
 
