@@ -707,11 +707,11 @@ int confirm_prog(void)
 					"what you are doing!\n"
 			"\nReally perform this fuse programming? <y/N>\n");
 
-	if (getc() == 'y') {
+	if (getchar() == 'y') {
 		int c;
 
 		putc('y');
-		c = getc();
+		c = getchar();
 		putc('\n');
 		if (c == '\r')
 			return 1;

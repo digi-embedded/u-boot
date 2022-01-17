@@ -418,7 +418,7 @@ static int console_get_passphrase(int secs, char *buff, int len)
 		WATCHDOG_RESET();
 
 		if (tstc()) {
-			c = getc();
+			c = getchar();
 			i++;
 		} else {
 			continue;
