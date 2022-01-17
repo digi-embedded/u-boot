@@ -118,8 +118,6 @@
 
 
 #define CONFIG_SYS_STORAGE_MEDIA       "mmc"
-#define CONFIG_SYS_MMC_ENV_DEV		0   /* USDHC3 */
-#define CONFIG_SYS_MMC_ENV_PART		2   /* Boot2 partition of eMMC */
 
 /* MMC device and partition where U-Boot image is */
 #define EMMC_BOOT_ACK			1

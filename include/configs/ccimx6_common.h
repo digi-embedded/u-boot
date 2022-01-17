@@ -191,8 +191,6 @@
 /* Environment */
 #if defined(CONFIG_ENV_IS_IN_MMC)
 /* Default MMC device index/partition for location of environment */
-#define CONFIG_SYS_MMC_ENV_DEV		0
-#define CONFIG_SYS_MMC_ENV_PART		2
 #endif
 
 /* Add support for sparse images */
