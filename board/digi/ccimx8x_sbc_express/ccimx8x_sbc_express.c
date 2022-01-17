@@ -271,7 +271,7 @@ void board_quiesce_devices()
 
 #if defined(CONFIG_OF_BOARD_SETUP)
 /* Platform function to modify the FDT as needed */
-int ft_board_setup(void *blob, bd_t *bd)
+int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	fdt_fixup_ccimx8(blob);
 	fdt_fixup_ccimx8x(blob);

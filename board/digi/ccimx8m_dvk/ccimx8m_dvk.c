@@ -112,7 +112,7 @@ int board_postclk_init(void)
 #endif
 
 #ifdef CONFIG_OF_BOARD_SETUP
-int ft_board_setup(void *blob, bd_t *bd)
+int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	fdt_fixup_ccimx8(blob);
 	fdt_fixup_carrierboard(blob);

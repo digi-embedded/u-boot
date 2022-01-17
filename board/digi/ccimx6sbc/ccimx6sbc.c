@@ -263,7 +263,7 @@ static void setup_iomux_uart(void)
 	imx_iomux_v3_setup_multiple_pads(uart4_pads, ARRAY_SIZE(uart4_pads));
 }
 
-int board_eth_init(bd_t *bis)
+int board_eth_init(struct bd_info *bis)
 {
 	if (is_mx6dqp()) {
 		int ret;
@@ -467,7 +467,7 @@ int board_late_init(void)
 
 #if defined(CONFIG_OF_BOARD_SETUP)
 /* Platform function to modify the FDT as needed */
-int ft_board_setup(void *blob, bd_t *bd)
+int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	fdt_fixup_ccimx6(blob);
 	fdt_fixup_carrierboard(blob);

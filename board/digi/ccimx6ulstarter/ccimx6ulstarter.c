@@ -201,7 +201,7 @@ int board_mmc_getcd(struct mmc *mmc)
 	return 1;
 }
 
-int board_mmc_init(bd_t *bis)
+int board_mmc_init(struct bd_info *bis)
 {
 	int i, ret;
 
@@ -265,7 +265,7 @@ void reset_phy()
 	}
 }
 
-int board_eth_init(bd_t *bis)
+int board_eth_init(struct bd_info *bis)
 {
 	int ret;
 
@@ -459,7 +459,7 @@ int board_late_init(void)
 
 #if defined(CONFIG_OF_BOARD_SETUP)
 /* Platform function to modify the FDT as needed */
-int ft_board_setup(void *blob, bd_t *bd)
+int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	fdt_fixup_ccimx6ul(blob);
 	fdt_fixup_carrierboard(blob);

@@ -1029,7 +1029,7 @@ int board_mmc_get_env_part(int devno)
 	}
 }
 
-int board_mmc_init(bd_t *bis)
+int board_mmc_init(struct bd_info *bis)
 {
 	int ret;
 	int i;

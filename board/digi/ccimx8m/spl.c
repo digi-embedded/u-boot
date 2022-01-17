@@ -182,7 +182,7 @@ static struct fsl_esdhc_cfg usdhc_cfg[2] = {
 	{USDHC3_BASE_ADDR, 0, 8},
 };
 
-int board_mmc_init(bd_t *bis)
+int board_mmc_init(struct bd_info *bis)
 {
 	int i, ret;
 	/*
