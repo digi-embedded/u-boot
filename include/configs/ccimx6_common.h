@@ -48,9 +48,6 @@
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + 2 * 1024 * 1024)
 /* memtest */
-#define CONFIG_SYS_MEMTEST_START       0x10000000
-#define CONFIG_SYS_MEMTEST_END         0x10010000
-#define CONFIG_SYS_MEMTEST_SCRATCH     0x10800000
 /* Physical Memory Map */
 #define PHYS_SDRAM                     MMDC0_ARB_BASE_ADDR
 #define CONFIG_SYS_SDRAM_BASE          PHYS_SDRAM

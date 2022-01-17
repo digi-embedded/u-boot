@@ -35,10 +35,6 @@
 #define CONFIG_UBOOT_RESERVED		(10 * 1024 * 1024)
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		(16 * SZ_1M)
-/* memtest */
-#define CONFIG_SYS_MEMTEST_START	0x80000000
-#define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_MEMTEST_START + \
-					((CONFIG_DDR_MB * SZ_1M) >> 1))
 /* Physical Memory Map */
 #define PHYS_SDRAM			MMDC0_ARB_BASE_ADDR
 #define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM

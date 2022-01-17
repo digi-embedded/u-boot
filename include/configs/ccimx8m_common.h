@@ -130,8 +130,6 @@
 #define CONFIG_SYS_SDRAM_BASE           0x40000000
 #define PHYS_SDRAM                      0x40000000
 
-#define CONFIG_SYS_MEMTEST_START    PHYS_SDRAM
-#define CONFIG_SYS_MEMTEST_END      (CONFIG_SYS_MEMTEST_START + (PHYS_SDRAM_SIZE >> 1))
 
 /* Monitor Command Prompt */
 #define CONFIG_SYS_PROMPT_HUSH_PS2     "> "
