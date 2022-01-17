@@ -87,4 +87,5 @@ int hab_event_warning_check(uint8_t *event, size_t *bytes);
 #ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
 int read_squashfs_rootfs(unsigned long addr, unsigned long *size);
 #endif
+ulong bootloader_mmc_offset(void);
 #endif  /* __DIGI_HELPER_H */
