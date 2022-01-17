@@ -96,7 +96,7 @@ int confirm_msg(char *msg)
 
 #ifdef CONFIG_CMD_UPDATE
 void register_fs_otf_update_hook(int (*hook)(otf_data_t *data),
-				 disk_partition_t *partition)
+				 struct disk_partition *partition)
 {
 	otf_update_hook = hook;
 	/* Initialize data for new transfer */

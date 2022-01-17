@@ -176,7 +176,7 @@ void detail_board_ddr_info(void)
 }
 
 void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
-				     disk_partition_t *info)
+				     struct disk_partition *info)
 {
 	/* Use a different offset depending on the i.MX8X QXP CPU revision */
 	u32 cpurev = get_cpu_rev();
@@ -347,7 +347,7 @@ int get_srk_revoke_mask(u32 *mask)
 {
 	int ret = CMD_RET_SUCCESS;
 	int mmc_dev_index, mmc_part;
-	disk_partition_t info;
+	struct disk_partition info;
 	struct blk_desc *mmc_dev;
 	uint blk_cnt, blk_start;
 	char *buffer = NULL;
@@ -415,7 +415,7 @@ sanitize:
 int get_dek_blob(char *output, u32 *size)
 {
 	int ret, mmc_dev_index, mmc_part;
-	disk_partition_t info;
+	struct disk_partition info;
 	struct blk_desc *mmc_dev;
 	uint blk_cnt, blk_start;
 	char *buffer = NULL;

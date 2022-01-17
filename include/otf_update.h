@@ -45,7 +45,7 @@ typedef struct otf_data {
 	unsigned int offset;	/* offset in media to write data to */
 	unsigned char *buf;	/* buffer with data to write */
 	unsigned int len;	/* length of chunk to write */
-	disk_partition_t *part;	/* partition data */
+	struct disk_partition *part;	/* partition data */
 	unsigned int flags;	/* on-the-fly flags */
 #ifdef CONFIG_FASTBOOT_FLASH
 	otf_sparse_data_t sparse_data; /* info for sparse images */

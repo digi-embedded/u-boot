@@ -81,7 +81,7 @@ uint mmc_get_env_part(struct mmc *mmc)
 }
 
 void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
-				     disk_partition_t *info)
+				     struct disk_partition *info)
 {
 	struct mmc *mmc = find_mmc_device(EMMC_BOOT_DEV);
 	int part = env_get_ulong("mmcbootpart", 10, EMMC_BOOT_PART);

@@ -1203,7 +1203,7 @@ void tftp_start_server(void)
 #endif /* CONFIG_CMD_TFTPSRV */
 
 void register_tftp_otf_update_hook(int (*hook)(otf_data_t *data),
-				   disk_partition_t *partition)
+				   struct disk_partition *partition)
 {
 	otf_update_hook = hook;
 	/* Initialize data for new transfer */

@@ -27,14 +27,14 @@ static int mmc_dev_index;
 extern int mmc_get_bootdevindex(void);
 extern int update_chunk(otf_data_t *oftd);
 extern void register_tftp_otf_update_hook(int (*hook)(otf_data_t *oftd),
-					  disk_partition_t*);
+					  struct disk_partition*);
 extern void unregister_tftp_otf_update_hook(void);
 extern void register_fs_otf_update_hook(int (*hook)(otf_data_t *oftd),
-					disk_partition_t*);
+					struct disk_partition*);
 extern void unregister_fs_otf_update_hook(void);
 
 int register_otf_hook(int src, int (*hook)(otf_data_t *oftd),
-		       disk_partition_t *partition)
+		       struct disk_partition *partition)
 {
 	switch (src) {
 	case SRC_TFTP:
@@ -98,7 +98,7 @@ enum {
 };
 
 static int write_firmware(char *partname, unsigned long loadaddr,
-			  unsigned long filesize, disk_partition_t *info)
+			  unsigned long filesize, struct disk_partition *info)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	unsigned long size_blks, verifyaddr, u, m;
@@ -284,7 +284,7 @@ static int init_mmc_globals(void)
 }
 
 __weak void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
-					    disk_partition_t *info)
+					    struct disk_partition *info)
 {
 	struct mmc *mmc = find_mmc_device(EMMC_BOOT_DEV);
 
@@ -295,7 +295,7 @@ __weak void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 
 static int do_update(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv[])
 {
-	disk_partition_t info;
+	struct disk_partition info;
 	int ret;
 	int otf = 0;
 	int otf_enabled = 0;
@@ -562,7 +562,7 @@ static int get_arg_src(int argc, char * const argv[], int src, int index,
 static int do_updatefile(struct cmd_tbl* cmdtp, int flag, int argc,
 			 char * const argv[])
 {
-	disk_partition_t info;
+	struct disk_partition info;
 	char *targetfilename = NULL;
 	char *targetfs = NULL;
 	const char *default_fs = "fat";

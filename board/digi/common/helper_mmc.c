@@ -43,7 +43,7 @@ size_t media_get_block_size(void)
 */
 int get_partition_offset(char *part_name, lbaint_t *offset)
 {
-	disk_partition_t info;
+	struct disk_partition info;
 	char dev_index_str[2];
 	int r;
 
