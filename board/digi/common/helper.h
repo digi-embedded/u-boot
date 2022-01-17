@@ -10,6 +10,7 @@
 #ifndef __DIGI_HELPER_H
 #define __DIGI_HELPER_H
 
+#include <blk.h>
 #include <jffs2/load_kernel.h>
 
 enum {

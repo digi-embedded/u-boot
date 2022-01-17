@@ -6,7 +6,10 @@
  *  under the terms of the GNU General Public License version2  as published by
  *  the Free Software Foundation.
 */
+#include <asm/global_data.h>
+#include <command.h>
 #include <common.h>
+#include <env.h>
 #ifdef CONFIG_FASTBOOT_FLASH
 #include <image-sparse.h>
 #endif

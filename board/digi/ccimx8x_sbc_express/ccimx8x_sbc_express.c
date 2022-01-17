@@ -7,6 +7,7 @@
 #include <common.h>
 #include <fsl_esdhc_imx.h>
 
+#include <asm/global_data.h>
 #include <asm/gpio.h>
 #include <asm/arch/imx8-pins.h>
 #include <usb.h>
@@ -17,6 +18,7 @@
 #include <power-domain.h>
 #include "../../freescale/common/tcpc.h"
 #include <bootm.h>
+#include <linux/delay.h>
 
 #include "../ccimx8/ccimx8.h"
 #include "../common/carrier_board.h"

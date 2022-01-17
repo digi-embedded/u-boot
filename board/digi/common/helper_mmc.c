@@ -6,6 +6,7 @@
  *  under the terms of the GNU General Public License version2  as published by
  *  the Free Software Foundation.
 */
+#include <asm/cache.h>
 #include <common.h>
 #ifdef CONFIG_FSL_ESDHC_IMX
 #include <fsl_esdhc_imx.h>

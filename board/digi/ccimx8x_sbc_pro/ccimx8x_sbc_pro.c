@@ -7,6 +7,7 @@
 #include <common.h>
 #include <fsl_esdhc_imx.h>
 
+#include <asm/global_data.h>
 #include <asm/gpio.h>
 #include <asm/arch/imx8-pins.h>
 #include <usb.h>

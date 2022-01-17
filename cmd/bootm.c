@@ -17,6 +17,7 @@
 #include <nand.h>
 #include <asm/byteorder.h>
 #include <asm/global_data.h>
+#include <asm/mach-imx/hab.h>
 #include <linux/ctype.h>
 #include <linux/err.h>
 #include <u-boot/zlib.h>

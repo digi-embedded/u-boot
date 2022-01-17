@@ -7,7 +7,9 @@
  *  the Free Software Foundation.
 */
 
+#include <asm/global_data.h>
 #include <common.h>
+#include <linux/delay.h>
 #include <linux/libfdt.h>
 #include "../common/mca_registers.h"
 #include "../common/tamper.h"

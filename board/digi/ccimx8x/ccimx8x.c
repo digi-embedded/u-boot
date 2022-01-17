@@ -4,8 +4,10 @@
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
+#include <command.h>
 #include <common.h>
 #include <cpu.h>
+#include <env.h>
 #include <fuse.h>
 #include <mmc.h>
 #include <fdt_support.h>
@@ -16,6 +18,7 @@
 #include <asm/arch-imx/cpu.h>
 #include <asm/arch-imx8/sci/sci.h>
 #include <asm/mach-imx/boot_mode.h>
+#include <asm/global_data.h>
 #include <stdlib.h>
 
 #include "../common/helper.h"

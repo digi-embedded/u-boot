@@ -3,12 +3,16 @@
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
+#include <command.h>
 #include <common.h>
 #include <fsl_esdhc_imx.h>
 #include <i2c.h>
 #include <linux/ctype.h>
+#include <linux/delay.h>
 #include <linux/sizes.h>
 #include <asm/arch/sys_proto.h>
+#include <asm/global_data.h>
+#include <asm/system.h>
 
 #include "../common/helper.h"
 #include "../common/hwid.h"

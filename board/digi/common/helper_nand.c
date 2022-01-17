@@ -9,6 +9,7 @@
 #include <common.h>
 #include <nand.h>
 #include "helper.h"
+#include <env.h>
 
 /*
  * Get the block size of the storage media.

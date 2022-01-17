@@ -6,8 +6,11 @@
  *  under the terms of the GNU General Public License version2  as published by
  *  the Free Software Foundation.
 */
+#include <asm/global_data.h>
+#include <command.h>
 #include <common.h>
 #include <console.h>
+#include <env.h>
 #include <gzip.h>
 #include <linux/errno.h>
 #include <fsl_sec.h>
@@ -24,6 +27,8 @@
 #include <otf_update.h>
 #include "helper.h"
 #include "hwid.h"
+#include "../drivers/crypto/fsl/jr.h"
+
 DECLARE_GLOBAL_DATA_PTR;
 #if defined(CONFIG_CMD_UPDATE_MMC) || defined(CONFIG_CMD_UPDATE_NAND)
 #define CONFIG_CMD_UPDATE

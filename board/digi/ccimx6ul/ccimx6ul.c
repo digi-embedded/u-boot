@@ -11,17 +11,20 @@
 #include <asm/arch/crm_regs.h>
 #include <asm/arch/mx6-pins.h>
 #include <asm/arch/sys_proto.h>
+#include <asm/global_data.h>
 #include <asm/gpio.h>
 #include <asm/mach-imx/iomux-v3.h>
 #include <asm/mach-imx/boot_mode.h>
 #include <asm/mach-imx/mxc_i2c.h>
 #include <asm/mach-imx/hab.h>
 #include <asm/io.h>
+#include <command.h>
 #include <common.h>
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>
 #endif
 #include <i2c.h>
+#include <linux/delay.h>
 #include <linux/sizes.h>
 #include <nand.h>
 

@@ -7,7 +7,10 @@
  *  the Free Software Foundation.
 */
 
+#include <asm/global_data.h>
+#include <command.h>
 #include <common.h>
+#include <env.h>
 #include <part.h>
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
 #include <stdlib.h>

@@ -18,6 +18,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#include <command.h>
 #include <common.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>
@@ -26,6 +27,7 @@
 #include <asm/arch/mx6-ddr.h>
 #include <asm/arch/mx6-pins.h>
 #include <asm/arch/sys_proto.h>
+#include <asm/global_data.h>
 #include <linux/errno.h>
 #include <linux/mtd/mtd.h>
 #include <asm/gpio.h>

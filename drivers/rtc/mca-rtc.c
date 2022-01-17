@@ -10,6 +10,7 @@
 #include <common.h>
 #include <command.h>
 #include <dm.h>
+#include <linux/delay.h>
 #include <rtc.h>
 #include "../../board/digi/common/mca_registers.h"
 #include "../../board/digi/common/mca.h"

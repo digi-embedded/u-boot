@@ -21,6 +21,7 @@
 #include <asm/arch/imx8mn_pins.h>
 #endif
 #include <asm/arch/sys_proto.h>
+#include <asm/global_data.h>
 #include <asm/mach-imx/boot_mode.h>
 #include <asm/mach-imx/gpio.h>
 #include <asm/mach-imx/mxc_i2c.h>
@@ -31,6 +32,7 @@
 #include "../../freescale/common/tcpc.h"
 #include <usb.h>
 #include <linux/ctype.h>
+#include <linux/delay.h>
 
 #include "../ccimx8/ccimx8.h"
 #include "../common/carrier_board.h"
