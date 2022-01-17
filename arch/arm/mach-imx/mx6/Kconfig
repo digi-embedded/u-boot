@@ -134,6 +134,7 @@ config TARGET_CCIMX6SBC
 	select DM_THERMAL
 	select SUPPORT_SPL
 	imply CMD_DM
+	select RNG_SELF_TEST
 
 config TARGET_MX6SABREAUTO_COMMON
     bool
@@ -234,6 +235,7 @@ config TARGET_CCIMX6ULSBC
 	select IMX_MODULE_FUSE
 	select OF_SYSTEM_SETUP
 	imply CMD_DM
+	select RNG_SELF_TEST
 
 config TARGET_CCIMX6ULSTARTER
 	bool "Digi ConnectCore 6UL SBC Express"
@@ -248,6 +250,7 @@ config TARGET_CCIMX6ULSTARTER
 	select IMX_MODULE_FUSE
 	select OF_SYSTEM_SETUP
 	imply CMD_DM
+	select RNG_SELF_TEST
 
 config TARGET_CGTQMX6EVAL
 	bool "cgtqmx6eval"

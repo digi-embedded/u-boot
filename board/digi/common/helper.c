@@ -943,10 +943,6 @@ int hab_event_warning_check(uint8_t *event, size_t *bytes)
 {
 	int ret = SW_RNG_TEST_NA, i;
 	bool is_rng_fail_event = false;
-#ifdef CONFIG_RNG_SW_TEST
-	uint8_t *res_ptr;
-	uint32_t res_addr = env_get_ulong("loadaddr", 16, CONFIG_LOADADDR);
-#endif
 
 	/* Get HAB Event warning data */
 	hab_rvt_report_event(HAB_WARNING, 0, event, bytes);
@@ -961,16 +957,11 @@ int hab_event_warning_check(uint8_t *event, size_t *bytes)
 	}
 
 	if (is_rng_fail_event) {
-#ifdef CONFIG_RNG_SW_TEST
+#ifdef CONFIG_RNG_SELF_TEST
 		printf("RNG:   self-test failure detected, will run software self-test\n");
-		res_ptr = map_sysmem(res_addr, 32);
-		ret = rng_sw_test(res_ptr);
-
-		if (ret == 0)
-			ret = SW_RNG_TEST_PASSED;
-		else
+		rng_self_test();
+		ret = SW_RNG_TEST_PASSED;
 #endif
-			ret = SW_RNG_TEST_FAILED;
 	}
 
 	return ret;
