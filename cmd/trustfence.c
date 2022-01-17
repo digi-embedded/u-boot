@@ -570,7 +570,7 @@ __weak int trustfence_status()
 	return 0;
 }
 
-static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
 	const char *op;
 	int confirmed = argc >= 3 && !strcmp(argv[2], "-y");

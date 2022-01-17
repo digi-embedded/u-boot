@@ -293,7 +293,7 @@ __weak void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 	info->size = (mmc->capacity_boot / mmc_dev->blksz) - info->start;
 }
 
-static int do_update(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
+static int do_update(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv[])
 {
 	disk_partition_t info;
 	int ret;
@@ -559,7 +559,7 @@ static int get_arg_src(int argc, char * const argv[], int src, int index,
 	return -1;
 }
 
-static int do_updatefile(cmd_tbl_t* cmdtp, int flag, int argc,
+static int do_updatefile(struct cmd_tbl* cmdtp, int flag, int argc,
 			 char * const argv[])
 {
 	disk_partition_t info;

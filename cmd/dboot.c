@@ -99,7 +99,7 @@ static int boot_os(char* initrd_addr, char* fdt_addr)
 	return run_command(cmd, 0);
 }
 
-static int do_dboot(cmd_tbl_t* cmdtp, int flag, int argc, char * const argv[])
+static int do_dboot(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv[])
 {
 	int os = SRC_UNDEFINED;
 	int ret;

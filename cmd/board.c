@@ -38,7 +38,7 @@ __weak void print_board_version(u32 version)
 		printf("       Version: %d\n", version);
 }
 
-static int do_board_version(cmd_tbl_t *cmdtp, int flag, int argc,
+static int do_board_version(struct cmd_tbl *cmdtp, int flag, int argc,
 			    char *const argv[])
 {
 	const char *op;
@@ -161,7 +161,7 @@ __weak void print_board_id(u32 id)
 		printf("       ID: %d\n", id);
 }
 
-static int do_board_id(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+static int do_board_id(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
 	const char *op;
 	int confirmed = argc >= 3 && !strcmp(argv[2], "-y");

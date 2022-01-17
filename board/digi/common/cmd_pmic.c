@@ -28,7 +28,7 @@
 extern int pmic_read_reg(int reg, unsigned char *value);
 extern int pmic_write_reg(int reg, unsigned char value);
 
-int do_pmic(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+int do_pmic(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
 	unsigned int addr;
 	unsigned char val;

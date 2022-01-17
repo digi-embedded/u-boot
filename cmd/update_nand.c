@@ -222,7 +222,7 @@ static int write_firmware(unsigned long loadaddr, unsigned long filesize,
 	return 0;
 }
 
-static int do_update(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+static int do_update(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
 	int ret;
 	int otf = 0;

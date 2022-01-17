@@ -933,7 +933,7 @@ static int do_mmc_boot_wp(struct cmd_tbl *cmdtp, int flag,
 }
 
 #ifdef CONFIG_SUPPORT_MMC_ECSD
-static int do_mmcecsd_dump(cmd_tbl_t *cmdtp, int flag,
+static int do_mmcecsd_dump(struct cmd_tbl *cmdtp, int flag,
                            int argc, char * const argv[])
 {
         struct mmc *mmc = find_mmc_device(curr_device);
@@ -953,7 +953,7 @@ static int do_mmcecsd_dump(cmd_tbl_t *cmdtp, int flag,
         return 0;
 }
 
-static int do_mmcecsd_read(cmd_tbl_t *cmdtp, int flag,
+static int do_mmcecsd_read(struct cmd_tbl *cmdtp, int flag,
                            int argc, char * const argv[])
 {
         struct mmc *mmc = find_mmc_device(curr_device);
@@ -979,7 +979,7 @@ static int do_mmcecsd_read(cmd_tbl_t *cmdtp, int flag,
         return 0;
 }
 
-static int do_mmcecsd_write(cmd_tbl_t *cmdtp, int flag,
+static int do_mmcecsd_write(struct cmd_tbl *cmdtp, int flag,
                             int argc, char * const argv[])
 {
         struct mmc *mmc = find_mmc_device(curr_device);
@@ -1013,16 +1013,16 @@ static int do_mmcecsd_write(cmd_tbl_t *cmdtp, int flag,
         return 0;
 }
 
-static cmd_tbl_t cmd_ecsd[] = {
+static struct cmd_tbl cmd_ecsd[] = {
         U_BOOT_CMD_MKENT(dump, 1, 1, do_mmcecsd_dump, "", ""),
         U_BOOT_CMD_MKENT(read, 2, 1, do_mmcecsd_read, "", ""),
         U_BOOT_CMD_MKENT(write, 3, 0, do_mmcecsd_write, "", ""),
 };
 
-static int do_mmcecsd(cmd_tbl_t *cmdtp, int flag,
+static int do_mmcecsd(struct cmd_tbl *cmdtp, int flag,
                       int argc, char * const argv[])
 {
-        cmd_tbl_t *cp;
+        struct cmd_tbl *cp;
         struct mmc *mmc;
 
         cp = find_cmd_tbl(argv[1], cmd_ecsd, ARRAY_SIZE(cmd_ecsd));
