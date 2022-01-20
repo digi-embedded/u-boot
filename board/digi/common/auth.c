@@ -25,7 +25,7 @@
 #include <asm/mach-imx/hab.h>
 #endif
 #ifdef CONFIG_AHAB_BOOT
-#include <asm/arch-imx8/image.h>
+#include <asm/mach-imx/image.h>
 #endif
 
 #ifdef CONFIG_AHAB_BOOT

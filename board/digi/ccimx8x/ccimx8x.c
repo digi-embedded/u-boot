@@ -28,7 +28,7 @@
 #include "../common/trustfence.h"
 #endif
 #ifdef CONFIG_AHAB_BOOT
-#include <asm/arch-imx8/image.h>
+#include <asm/mach-imx/image.h>
 #endif
 
 DECLARE_GLOBAL_DATA_PTR;
