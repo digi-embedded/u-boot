@@ -19,8 +19,6 @@
 #define CONFIG_MXC_GPIO
 
 /* ENET Config */
-#define CONFIG_FEC_MXC
-#define CONFIG_MII
 #define FEC_QUIRK_ENET_MAC
 #define CONFIG_RESET_PHY_R
 #define CONFIG_PHY_SMSC
@@ -31,9 +29,6 @@
 #define CONFIG_ETHPRIME                 "FEC0"
 #define CONFIG_FEC_XCV_TYPE             RMII
 #endif
-
-/* ENET0 MDIO are shared */
-#define CONFIG_FEC_MXC_MDIO_BASE	0x5B040000
 
 /* Serial */
 #define CONSOLE_DEV			"ttyLP2"

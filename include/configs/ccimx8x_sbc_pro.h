@@ -19,11 +19,8 @@
 #define CONFIG_MXC_GPIO
 
 /* ENET Config */
-#define CONFIG_FEC_MXC
-#define CONFIG_MII
 #define FEC_QUIRK_ENET_MAC
 #define CONFIG_PHY_ATHEROS
-#define CONFIG_PHY_GIGE                 /* Support for 1000BASE-X */
 
 #define CONFIG_FEC_XCV_TYPE             RGMII
 #define CONFIG_FEC_ENET_DEV             0
@@ -34,9 +31,6 @@
 #define IMX_FEC_BASE                    0x5B050000
 #define CONFIG_ETHPRIME                 "eth1"
 #endif
-
-/* ENET0 MDIO are shared */
-#define CONFIG_FEC_MXC_MDIO_BASE	0x5B040000
 
 /* Serial */
 #define CONSOLE_DEV			"ttyLP2"
