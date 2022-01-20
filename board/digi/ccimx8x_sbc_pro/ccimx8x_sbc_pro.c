@@ -228,7 +228,11 @@ static void setup_typec(void)
 	gpio_request(USB_TYPEC_EN, "typec_en");
 	gpio_direction_output(USB_TYPEC_EN, 0);
 
-	tcpc_init(&port, port_config, &ss_mux_select);
+	ret = tcpc_init(&port, port_config, &ss_mux_select);
+	if (ret) {
+		printf("%s: tcpc init failed, err=%d\n", __func__, ret);
+		return;
+	}
 }
 #endif
 
