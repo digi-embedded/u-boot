@@ -136,8 +136,6 @@
 #define CONFIG_TRUSTFENCE_CLOSE_BIT_WORD	0
 #define CONFIG_TRUSTFENCE_CLOSE_BIT_OFFSET	0
 
-#define HDR_TAG					0
-
 /* MMC Configs */
 #define CONFIG_SYS_FSL_ESDHC_ADDR       0
 #define USDHC1_BASE_ADDR                0x5B010000
