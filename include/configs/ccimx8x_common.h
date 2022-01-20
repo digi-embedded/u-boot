@@ -84,7 +84,6 @@
 #define CONFIG_MCA_TAMPER
 
 #define CONFIG_FSL_CAAM_KB
-#define CONFIG_SYS_FSL_SEC_LE
 
 /* Secure boot configs */
 #define CONFIG_TRUSTFENCE_SRK_BANK			0

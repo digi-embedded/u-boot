@@ -11,7 +11,6 @@
 /* Disable some configs not needed for Android */
 #undef CONFIG_BOOTCOMMAND
 #undef CONFIG_FSL_CAAM_KB
-#undef CONFIG_SYS_FSL_SEC_LE
 
 #ifdef CONFIG_IMX_TRUSTY_OS
 #define AVB_RPMB
@@ -23,7 +22,6 @@
 #undef CONFIG_BLK
 #define CONFIG_FSL_CAAM_KB
 #define CONFIG_SPL_CRYPTO_SUPPORT
-#define CONFIG_SYS_FSL_SEC_LE
 #endif
 #endif
 
