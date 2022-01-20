@@ -21,7 +21,6 @@
 
 /* FLASH and environment organization */
 #if defined(CONFIG_NAND_BOOT)
-#define CONFIG_SYS_USE_NAND
 #define CONFIG_CMD_UPDATE_NAND
 #define CONFIG_SYS_STORAGE_MEDIA	"nand"
 #define CONFIG_CMD_BOOTSTREAM
@@ -30,7 +29,7 @@
 #define CONFIG_SYS_STORAGE_MEDIA	"mmc"
 #endif
 
-#ifdef CONFIG_SYS_USE_NAND
+#ifdef CONFIG_NAND_MXS
 #define CONFIG_CMD_NAND_TRIMFFS
 
 /* NAND stuff */
