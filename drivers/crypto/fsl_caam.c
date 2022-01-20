@@ -47,7 +47,9 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 static void rng_init(void);
+#ifndef CONFIG_ARCH_IMX8
 static void caam_clock_enable(void);
+#endif
 static int do_cfg_jrqueue(void);
 static int do_job(u32 *desc);
 static int jr_reset(void);
@@ -256,11 +258,10 @@ void caam_open(void)
 {
 	u32 temp_reg;
 	int ret;
+	u32 init_mask;
 
 	/* switch on the clock */
 #ifndef CONFIG_ARCH_IMX8
-	u32 init_mask;
-
 	caam_clock_enable();
 #endif
 
@@ -290,6 +291,7 @@ void caam_open(void)
 	rng_init();
 }
 
+#ifndef CONFIG_ARCH_IMX8
 static void caam_clock_enable(void)
 {
 #if defined(CONFIG_ARCH_MX6)
@@ -318,6 +320,7 @@ static void caam_clock_enable(void)
 	pcc_clock_enable(PER_CLK_CAAM, true);
 #endif
 }
+#endif /* CONFIG_ARCH_IMX8 */
 
 static void kick_trng(u32 ent_delay)
 {
@@ -424,7 +427,6 @@ static void kick_trng(u32 ent_delay)
 /*
  *  Descriptors to instantiate SH0, SH1, load the keys
  */
-#ifndef CONFIG_ARCH_IMX8
 static const u32 rng_inst_sh0_desc[] = {
 	/* Header, don't setup the size */
 	CAAM_HDR_CTYPE | CAAM_HDR_ONE | CAAM_HDR_START_INDEX(0),
@@ -455,7 +457,6 @@ static const u32 rng_inst_load_keys[] = {
 	/* Generate the Key */
 	CAAM_PROTOP_CTYPE | CAAM_C1_RNG | BM_ALGO_RNG_SK | ALGO_RNG_GENERATE,
 };
-#endif
 
 static void do_inst_desc(u32 *desc, u32 status)
 {
