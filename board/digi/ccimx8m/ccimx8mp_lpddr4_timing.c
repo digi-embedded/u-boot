@@ -1,11 +1,9 @@
 /*
- * Copyright 2019 NXP
+ * Copyright 2022 Digi International Inc
  *
  * SPDX-License-Identifier:	GPL-2.0+
  *
  * Generated code from MX8M_DDR_tool
- * Align with uboot version:
- * imx_v2018.03_4.14.78_1.0.0_ga ~ imx_v2018.04_4.19.35_1.1.0_ga
  */
 
 #include <linux/kernel.h>

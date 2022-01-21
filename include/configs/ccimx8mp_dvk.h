@@ -1,19 +1,18 @@
 /*
- * Copyright 2021 Digi International Inc
- * Copyright 2018 NXP
+ * Copyright 2022 Digi International Inc
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
-#ifndef __CCIMX8MM_DVK_H
-#define __CCIMX8MM_DVK_H
+#ifndef __CCIMX8MP_DVK_H
+#define __CCIMX8MP_DVK_H
 
 #include "ccimx8m_common.h"
 
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 8M Mini"
 #define CONFIG_BOARD_DESCRIPTION	"Development Kit"
-#define BOARD_DEY_NAME			"ccimx8mm-dvk"
-#define PRODUCT_NAME			"ccimx8mmdvk"  /* (== TARGET_BOOTLOADER_BOARD_NAME in Android) */
+#define BOARD_DEY_NAME			"ccimx8mp-dvk"
+#define PRODUCT_NAME			"ccimx8mpdvk"  /* (== TARGET_BOOTLOADER_BOARD_NAME in Android) */
 
 #ifdef CONFIG_SPL_BUILD
 #define CONFIG_SPL_STACK		0x91FFF0
@@ -32,7 +31,7 @@
 #define CONFIG_POWER_I2C
 #define CONFIG_POWER_PCA9450
 
-#define CONFIG_SYS_I2C
+#undef CONFIG_SYS_I2C
 
 #endif
 
@@ -193,7 +192,7 @@
 
 /* Android specific configuration */
 #if defined(CONFIG_ANDROID_SUPPORT)
-#include "ccimx8mm_dvk_android.h"
+#include "ccimx8mp_dvk_android.h"
 #endif
 
-#endif /* __CCIMX8MM_DVK_H */
+#endif /* __CCIMX8MP_DVK_H */

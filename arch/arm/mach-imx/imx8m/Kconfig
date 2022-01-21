@@ -177,6 +177,17 @@ config TARGET_CCIMX8MN_DVK
 	select MISC
 	select SPL_CRYPTO_SUPPORT if SPL
 
+config TARGET_CCIMX8MP_DVK
+	bool "Digi ConnectCore 8M Plus Development Kit"
+	select IMX8MP
+	select CC8M
+	select SUPPORT_SPL
+	select IMX8M_LPDDR4
+	select FSL_CAAM
+	select FSL_BLOB
+	select MISC
+	select SPL_CRYPTO_SUPPORT if SPL
+
 config TARGET_IMX8MP_EVK
 	bool "imx8mp LPDDR4 EVK board"
 	select IMX8MP
@@ -285,6 +296,7 @@ endchoice
 
 source "board/digi/ccimx8mm_dvk/Kconfig"
 source "board/digi/ccimx8mn_dvk/Kconfig"
+source "board/digi/ccimx8mp_dvk/Kconfig"
 source "board/freescale/imx8mq_evk/Kconfig"
 source "board/freescale/imx8mq_val/Kconfig"
 source "board/freescale/imx8mm_ab2/Kconfig"

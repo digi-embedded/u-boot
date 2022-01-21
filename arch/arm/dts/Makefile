@@ -863,6 +863,7 @@ dtb-$(CONFIG_ARCH_IMX8) += \
 dtb-$(CONFIG_ARCH_IMX8M) += \
 	ccimx8mm-dvk.dtb \
 	ccimx8mn-dvk.dtb \
+	ccimx8mp-dvk.dtb \
 	imx8mm-evk.dtb \
 	imx8mm-evk-qca-wifi.dtb \
 	imx8mm-ddr4-evk.dtb \

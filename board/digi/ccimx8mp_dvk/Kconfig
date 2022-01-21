@@ -1,15 +1,15 @@
-if TARGET_CCIMX8MM_DVK
+if TARGET_CCIMX8MP_DVK
 
 source "board/digi/common/Kconfig"
 
 config SYS_BOARD
-	default "ccimx8mm_dvk"
+	default "ccimx8mp_dvk"
 
 config SYS_VENDOR
 	default "digi"
 
 config SYS_CONFIG_NAME
-	default "ccimx8mm_dvk"
+	default "ccimx8mp_dvk"
 
 config MCA
 	bool
