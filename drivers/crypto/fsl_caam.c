@@ -33,9 +33,10 @@
 #include <malloc.h>
 #include <memalign.h>
 #include <asm/io.h>
-#ifndef CONFIG_ARCH_MX7ULP
+#if defined(CONFIG_ARCH_MX6) || defined(CONFIG_ARCH_MX8M)
 #include <asm/arch/crm_regs.h>
-#else
+#endif
+#ifdef CONFIG_ARCH_MX7ULP
 #include <asm/arch/pcc.h>
 #endif /* CONFIG_ARCH_MX7ULP */
 #include "fsl_caam_internal.h"
