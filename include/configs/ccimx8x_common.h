@@ -26,7 +26,6 @@
  * So 3rd container image may start from 0x8181000
  */
 #define CONFIG_SYS_UBOOT_BASE 0x08181000
-#define CONFIG_SYS_MMCSD_FS_BOOT_PARTITION		0
 
 #define CONFIG_SPL_LDSCRIPT		"arch/arm/cpu/armv8/u-boot-spl.lds"
 #define CONFIG_SPL_STACK		0x013fff0
