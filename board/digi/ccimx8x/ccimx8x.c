@@ -118,6 +118,34 @@ struct ccimx8_variant ccimx8x_variants[] = {
 	},
 };
 
+void board_mem_get_layout(u64 *phys_sdram_1_start,
+			  u64 *phys_sdram_1_size,
+			  u64 *phys_sdram_2_start,
+			  u64 *phys_sdram_2_size)
+{
+	struct digi_hwid my_hwid;
+
+	/* Default values */
+	*phys_sdram_1_start = PHYS_SDRAM_1;
+	*phys_sdram_1_size = 0;
+	*phys_sdram_2_start = PHYS_SDRAM_2;
+	*phys_sdram_2_size = PHYS_SDRAM_2_SIZE;
+
+	if (!board_read_hwid(&my_hwid)) {
+		*phys_sdram_1_size = (u64)hwid_get_ramsize(&my_hwid);
+		if (!*phys_sdram_1_size) {
+			/* if RAM size was not coded, use variant to obtain RAM size */
+			if (my_hwid.variant < ARRAY_SIZE(ccimx8x_variants))
+				*phys_sdram_1_size = (unsigned int)ccimx8x_variants[my_hwid.variant].sdram;
+		}
+	}
+
+	if (!*phys_sdram_1_size) {
+		*phys_sdram_1_size = PHYS_SDRAM_1_SIZE;
+		printk("Cannot determine RAM size. Using default size (%d MiB).\n", PHYS_SDRAM_1_SIZE >> 20);
+	}
+}
+
 int mmc_get_bootdevindex(void)
 {
 	switch(get_boot_device()) {
