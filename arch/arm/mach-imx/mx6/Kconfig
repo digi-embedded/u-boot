@@ -235,6 +235,10 @@ config TARGET_CCIMX6ULSBC
 	select IMX_MODULE_FUSE
 	select OF_SYSTEM_SETUP
 	imply CMD_DM
+	select FSL_CAAM
+	select FSL_BLOB
+	select MISC
+	select ARCH_MISC_INIT
 	select RNG_SELF_TEST
 
 config TARGET_CCIMX6ULSTARTER
@@ -250,6 +254,10 @@ config TARGET_CCIMX6ULSTARTER
 	select IMX_MODULE_FUSE
 	select OF_SYSTEM_SETUP
 	imply CMD_DM
+	select FSL_CAAM
+	select FSL_BLOB
+	select MISC
+	select ARCH_MISC_INIT
 	select RNG_SELF_TEST
 
 config TARGET_CGTQMX6EVAL
