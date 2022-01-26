@@ -54,7 +54,8 @@
 /* Physical Memory Map */
 #define CONFIG_SYS_SDRAM_BASE		0x80000000
 #define PHYS_SDRAM_1			0x80000000
-#define PHYS_SDRAM_1_SIZE		(CONFIG_DDR_MB * (unsigned int)SZ_1M)
+/* SDRAM1 size is defined based on the HWID. Set here the default fallback value */
+#define PHYS_SDRAM_1_SIZE		SZ_512M
 #define PHYS_SDRAM_2			0x880000000
 #define PHYS_SDRAM_2_SIZE		0
 #define PHYS_SDRAM			PHYS_SDRAM_1
