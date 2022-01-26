@@ -22,7 +22,7 @@ static int get_misc_dev(struct udevice **dev)
 {
 	int ret;
 
-	ret = uclass_get_device_by_driver(UCLASS_MISC, DM_GET_DRIVER(stm32mp_bsec), dev);
+	ret = uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(stm32mp_bsec), dev);
 	if (ret)
 		pr_err("Can't find stm32mp_bsec driver\n");
 
