@@ -87,4 +87,7 @@ int hab_event_warning_check(uint8_t *event, size_t *bytes);
 #ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
 int read_squashfs_rootfs(unsigned long addr, unsigned long *size);
 #endif
+#ifdef CONFIG_ANDROID_SUPPORT
+bool is_power_key_pressed(void);
+#endif
 #endif  /* __DIGI_HELPER_H */

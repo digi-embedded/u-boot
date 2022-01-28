@@ -1356,3 +1356,13 @@ int read_squashfs_rootfs(unsigned long addr, unsigned long *size)
 	return 0;
 }
 #endif /* CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS */
+
+#ifdef CONFIG_ANDROID_SUPPORT
+bool is_power_key_pressed(void) {
+	bool power_key_pressed;
+
+	mca_read_reg(MCA_PWR_STATUS_0, &power_key_pressed);
+
+	return power_key_pressed;
+}
+#endif
