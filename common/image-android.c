@@ -37,6 +37,11 @@
 
 static char andr_tmp_str[ANDR_BOOT_ARGS_SIZE + 1];
 
+__weak int mmc_map_to_kernel_blk(int devno)
+{
+	return devno;
+}
+
 /*
  * Simple checksum for a buffer.
  *
