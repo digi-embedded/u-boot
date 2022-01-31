@@ -140,7 +140,9 @@ static ulong android_image_get_kernel_addr(const struct andr_img_hdr *hdr)
 static void append_androidboot_args(char *args, uint32_t *len)
 {
 	char args_buf[512] = {0};
+#ifdef CONFIG_FSL_FASTBOOT
 	extern boot_metric metrics;
+#endif
 
 	/* Allow to configure Android's WiFi country code from the environment */
 	char *wificountrycode = env_get("wificountrycode");
@@ -200,6 +202,7 @@ static void append_androidboot_args(char *args, uint32_t *len)
 			" androidboot.boot_device_root=mmcblk%d", mmc_map_to_kernel_blk(mmc_get_env_dev()));
 	strncat(args, args_buf, *len - strlen(args));
 
+#ifdef CONFIG_FSL_FASTBOOT
 	/* boot metric variables */
 	metrics.ble_1 = get_timer(0);
 	sprintf(args_buf,
@@ -207,6 +210,7 @@ static void append_androidboot_args(char *args, uint32_t *len)
 		metrics.bll_1, metrics.ble_1, metrics.kl, metrics.kd, metrics.avb,
 		metrics.odt, metrics.sw);
 	strncat(args, args_buf, *len - strlen(args));
+#endif
 
 #if defined(CONFIG_ARCH_MX6) || defined(CONFIG_ARCH_MX7) || \
 	defined(CONFIG_ARCH_MX7ULP) || defined(CONFIG_ARCH_IMX8M)
