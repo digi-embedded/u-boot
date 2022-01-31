@@ -13,6 +13,7 @@
 
 #define CONFIG_CC8
 #define CONFIG_CC8X
+#define DIGI_IMX_FAMILY
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 8X"
 
 #ifdef CONFIG_SPL_BUILD

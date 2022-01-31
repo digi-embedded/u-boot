@@ -24,6 +24,7 @@
 #include "digi_common.h"		/* Load Digi common stuff... */
 
 #define CONFIG_CC6
+#define DIGI_IMX_FAMILY
 
 #ifdef CONFIG_MX6QP
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 6 Plus"
