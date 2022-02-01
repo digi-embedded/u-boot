@@ -17,7 +17,6 @@
 #include <mapmem.h>
 #include <linux/libfdt.h>
 #include <asm/bootm.h>
-#include <asm/mach-imx/boot_mode.h>
 #include <asm/arch/sys_proto.h>
 #include <fb_fsl.h>
 #include <asm/setup.h>
