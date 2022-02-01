@@ -3,11 +3,6 @@
 
 #define CONFIG_USB_GADGET_VBUS_DRAW	2
 
-#define CONFIG_ANDROID_AB_SUPPORT
-#ifdef CONFIG_ANDROID_AB_SUPPORT
-#define CONFIG_SYSTEM_RAMDISK_SUPPORT
-#endif
-
 /* Disable some configs not needed for Android */
 #undef CONFIG_BOOTCOMMAND
 #undef CONFIG_FSL_CAAM_KB
@@ -21,7 +16,6 @@
 #ifdef CONFIG_SPL_BUILD
 #undef CONFIG_BLK
 #define CONFIG_FSL_CAAM_KB
-#define CONFIG_SPL_CRYPTO_SUPPORT
 #endif
 #endif
 
