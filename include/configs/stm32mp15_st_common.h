@@ -8,6 +8,9 @@
 #ifndef __CONFIG_STM32MP15_ST_COMMON_H__
 #define __CONFIG_STM32MP15_ST_COMMON_H__
 
+#define STM32MP_BOARD_EXTRA_ENV \
+	"usb_pgood_delay=1000\0" \
+
 #include <configs/stm32mp15_common.h>
 
 #ifdef CONFIG_EXTRA_ENV_SETTINGS
@@ -40,7 +43,8 @@
 	ST_STM32MP1_BOOTCMD \
 	STM32MP_PARTS_DEFAULT \
 	BOOTENV \
-	STM32MP_EXTRA
+	STM32MP_EXTRA \
+	STM32MP_BOARD_EXTRA_ENV
 
 #endif
 #endif
