@@ -410,6 +410,9 @@ static int stmfx_pinctrl_bind(struct udevice *dev)
 	/* subnode name is not explicit: use father name */
 	device_set_name(dev, dev->parent->name);
 
+	/* subnode name is not explicit: use father name */
+	device_set_name(dev, dev->parent->name);
+
 	return device_bind_driver_to_node(dev->parent,
 					  "stmfx-gpio", dev->parent->name,
 					  dev_ofnode(dev), &plat->gpio);

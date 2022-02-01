@@ -400,14 +400,14 @@ static inline void set_cr(unsigned int val)
 static inline unsigned int get_dacr(void)
 {
 	unsigned int val;
-	asm("mrc p15, 0, %0, c3, c0, 0	@ get DACR" : "=r" (val) : : "cc");
+	asm("mrc p15, 0, %0, c3, c0, 0  @ get DACR" : "=r" (val) : : "cc");
 	return val;
 }
 
 static inline void set_dacr(unsigned int val)
 {
-	asm volatile("mcr p15, 0, %0, c3, c0, 0	@ set DACR"
-	  : : "r" (val) : "cc");
+	asm volatile("mcr p15, 0, %0, c3, c0, 0 @ set DACR"
+		     : : "r" (val) : "cc");
 	isb();
 }
 
@@ -458,6 +458,7 @@ static inline void set_dacr(unsigned int val)
 
 /* options available for data cache on each page */
 enum dcache_option {
+	INVALID_ENTRY = 0,
 	DCACHE_OFF = TTB_SECT | TTB_SECT_MAIR(0) | TTB_SECT_XN_MASK,
 	DCACHE_WRITETHROUGH = TTB_SECT | TTB_SECT_MAIR(1),
 	DCACHE_WRITEBACK = TTB_SECT | TTB_SECT_MAIR(2),
@@ -475,7 +476,7 @@ enum dcache_option {
 #define TTB_SECT_XN_MASK	(1 << 4)
 #define TTB_SECT_C_MASK		(1 << 3)
 #define TTB_SECT_B_MASK		(1 << 2)
-#define TTB_SECT			(2 << 0)
+#define TTB_SECT		(2 << 0)
 
 /*
  * Short-descriptor format memory region attributes, without TEX remap
@@ -488,8 +489,9 @@ enum dcache_option {
  *   1    1  1   Outer/Inner Write-Back, Read-Allocate Write-Allocate
  */
 enum dcache_option {
+	INVALID_ENTRY = 0,
 	DCACHE_OFF = TTB_SECT_DOMAIN(0) | TTB_SECT_XN_MASK | TTB_SECT,
-	DCACHE_WRITETHROUGH = DCACHE_OFF | TTB_SECT_C_MASK,
+	DCACHE_WRITETHROUGH = TTB_SECT_DOMAIN(0) | TTB_SECT | TTB_SECT_C_MASK,
 	DCACHE_WRITEBACK = DCACHE_WRITETHROUGH | TTB_SECT_B_MASK,
 #ifdef CONFIG_IMX_TRUSTY_OS
 	DCACHE_WRITEALLOC = DCACHE_WRITEBACK | TTB_SECT_TEX(1) | TTB_SECT_S_MASK,
@@ -501,6 +503,7 @@ enum dcache_option {
 #define TTB_SECT_AP		(3 << 10)
 /* options available for data cache on each page */
 enum dcache_option {
+	INVALID_ENTRY = 0,
 	DCACHE_OFF = 0x12,
 	DCACHE_WRITETHROUGH = 0x1a,
 	DCACHE_WRITEBACK = 0x1e,

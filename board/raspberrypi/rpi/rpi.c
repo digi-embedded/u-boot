@@ -502,7 +502,7 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 	 * should be more intelligent, and e.g. only do this if no enabled DT
 	 * node exists for the "real" graphics driver.
 	 */
-	lcd_dt_simplefb_add_node(blob);
+	fdt_simplefb_add_node(blob);
 
 #ifdef CONFIG_EFI_LOADER
 	/* Reserve the spin table */

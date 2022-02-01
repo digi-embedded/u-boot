@@ -13,9 +13,11 @@
 	};
 };
 
+#ifndef CONFIG_TFABOOT
 &clk_hse {
 	st,digbypass;
 };
+#endif
 
 &i2c2 {
 	u-boot,dm-pre-reloc;
@@ -32,6 +34,7 @@
 	u-boot,dm-pre-reloc;
 };
 
+#ifndef CONFIG_TFABOOT
 &rcc {
 	st,clksrc = <
 		CLK_MPU_PLL1P
@@ -123,3 +126,4 @@
 		u-boot,dm-pre-reloc;
 	};
 };
+#endif

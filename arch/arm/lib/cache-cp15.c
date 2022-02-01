@@ -6,6 +6,7 @@
 
 #include <common.h>
 #include <cpu_func.h>
+#include <lmb.h>
 #include <log.h>
 #include <asm/global_data.h>
 #include <asm/system.h>
@@ -19,10 +20,6 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #ifdef CONFIG_SYS_ARM_MMU
 __weak void arm_init_before_mmu(void)
-{
-}
-
-__weak void arm_init_domains(void)
 {
 }
 
@@ -97,27 +94,33 @@ void mmu_set_region_dcache_behaviour_phys(phys_addr_t start, phys_addr_t phys,
 	mmu_page_table_flush(startpt, stoppt);
 }
 
-void mmu_set_region_dcache_behaviour(phys_addr_t start, size_t size,
-				     enum dcache_option option)
-{
-	mmu_set_region_dcache_behaviour_phys(start, start, size, option);
-}
-
 __weak void dram_bank_mmu_setup(int bank)
 {
 	struct bd_info *bd = gd->bd;
+	struct lmb lmb;
 	int	i;
 
 	/* bd->bi_dram is available only after relocation */
 	if ((gd->flags & GD_FLG_RELOC) == 0)
 		return;
 
+	/*
+	 * don't allow cache on reserved memory tagged 'no-map' in DT
+	 * => avoid speculative access to "secure" data
+	 */
+	lmb_init_and_reserve(&lmb, bd, (void *)gd->fdt_blob);
+
 	debug("%s: bank: %d\n", __func__, bank);
 	for (i = bd->bi_dram[bank].start >> MMU_SECTION_SHIFT;
 	     i < (bd->bi_dram[bank].start >> MMU_SECTION_SHIFT) +
 		 (bd->bi_dram[bank].size >> MMU_SECTION_SHIFT);
-	     i++)
-		set_section_dcache(i, DCACHE_DEFAULT_OPTION);
+	     i++) {
+		if (lmb_is_reserved_flags(&lmb, i << MMU_SECTION_SHIFT,
+					  LMB_NOMAP))
+			set_section_dcache(i, INVALID_ENTRY);
+		else
+			set_section_dcache(i, DCACHE_DEFAULT_OPTION);
+	}
 }
 
 /* to activate the MMU we need to set up virtual memory: use 1M areas */
@@ -203,11 +206,12 @@ static inline void mmu_setup(void)
 	asm volatile("mcr p15, 0, %0, c2, c0, 0"
 		     : : "r" (gd->arch.tlb_addr) : "memory");
 #endif
-	/* Set the access control to all-supervisor */
+	/*
+	 * initial value of Domain Access Control Register (DACR)
+	 * Set the access control to client (1U) for each of the 16 domains
+	 */
 	asm volatile("mcr p15, 0, %0, c3, c0, 0"
-		     : : "r" (~0));
-
-	arm_init_domains();
+		     : : "r" (0x55555555));
 
 	/* and enable the mmu */
 	reg = get_cr();	/* get control reg. */
@@ -317,6 +321,12 @@ int dcache_status(void)
 {
 	return 0;					/* always off */
 }
+
+void mmu_set_region_dcache_behaviour(phys_addr_t start, size_t size,
+				     enum dcache_option option)
+{
+}
+
 #else
 void dcache_enable(void)
 {
@@ -331,5 +341,11 @@ void dcache_disable(void)
 int dcache_status(void)
 {
 	return (get_cr() & CR_C) != 0;
+}
+
+void mmu_set_region_dcache_behaviour(phys_addr_t start, size_t size,
+				     enum dcache_option option)
+{
+	mmu_set_region_dcache_behaviour_phys(start, start, size, option);
 }
 #endif

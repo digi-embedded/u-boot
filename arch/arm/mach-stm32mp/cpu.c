@@ -12,13 +12,13 @@
 #include <env.h>
 #include <init.h>
 #include <log.h>
+#include <lmb.h>
 #include <misc.h>
 #include <net.h>
 #include <asm/io.h>
 #include <asm/arch/bsec.h>
 #include <asm/arch/stm32.h>
 #include <asm/arch/sys_proto.h>
-#include <asm/global_data.h>
 #include <dm/device.h>
 #include <dm/uclass.h>
 #include <linux/bitops.h>
@@ -89,6 +89,8 @@
  * with 16kB allignment (see TTBR0_BASE_ADDR_MASK)
  */
 u8 early_tlb[PGTABLE_SIZE] __section(".data") __aligned(0x4000);
+
+struct lmb lmb;
 
 #if !defined(CONFIG_SPL) || defined(CONFIG_SPL_BUILD)
 #ifndef CONFIG_TFABOOT
@@ -212,6 +214,44 @@ u32 get_bootmode(void)
 }
 
 /*
+ * weak function overidde: set the DDR/SYSRAM executable before to enable the
+ * MMU and configure DACR, for early early_enable_caches (SPL or pre-reloc)
+ */
+void dram_bank_mmu_setup(int bank)
+{
+	struct bd_info *bd = gd->bd;
+	int	i;
+	phys_addr_t start;
+	phys_size_t size;
+	bool use_lmb = false;
+	enum dcache_option option;
+
+	if (IS_ENABLED(CONFIG_SPL_BUILD)) {
+#ifdef CONFIG_SPL
+		start = ALIGN_DOWN(STM32_SYSRAM_BASE, MMU_SECTION_SIZE);
+		size = ALIGN(STM32_SYSRAM_SIZE, MMU_SECTION_SIZE);
+#endif
+	} else if (gd->flags & GD_FLG_RELOC) {
+		/* bd->bi_dram is available only after relocation */
+		start = bd->bi_dram[bank].start;
+		size =  bd->bi_dram[bank].size;
+		use_lmb = true;
+	} else {
+		/* mark cacheable and executable the beggining of the DDR */
+		start = STM32_DDR_BASE;
+		size = CONFIG_DDR_CACHEABLE_SIZE;
+	}
+
+	for (i = start >> MMU_SECTION_SHIFT;
+	     i < (start >> MMU_SECTION_SHIFT) + (size >> MMU_SECTION_SHIFT);
+	     i++) {
+		option = DCACHE_DEFAULT_OPTION;
+		if (use_lmb && lmb_is_reserved_flags(&lmb, i << MMU_SECTION_SHIFT, LMB_NOMAP))
+			option = INVALID_ENTRY;
+		set_section_dcache(i, option);
+	}
+}
+/*
  * initialize the MMU and activate cache in SPL or in U-Boot pre-reloc stage
  * MMU/TLB is updated in enable_caches() for U-Boot after relocation
  * or is deactivated in U-Boot entry function start.S::cpu_init_cp15
@@ -223,22 +263,13 @@ static void early_enable_caches(void)
 	if (CONFIG_IS_ENABLED(SYS_DCACHE_OFF))
 		return;
 
-	if (!(CONFIG_IS_ENABLED(SYS_ICACHE_OFF) && CONFIG_IS_ENABLED(SYS_DCACHE_OFF))) {
-		gd->arch.tlb_size = PGTABLE_SIZE;
-		gd->arch.tlb_addr = (unsigned long)&early_tlb;
-	}
+#if !(CONFIG_IS_ENABLED(SYS_ICACHE_OFF) && CONFIG_IS_ENABLED(SYS_DCACHE_OFF))
+	gd->arch.tlb_size = PGTABLE_SIZE;
+	gd->arch.tlb_addr = (unsigned long)&early_tlb;
+#endif
 
+	/* enable MMU (default configuration) */
 	dcache_enable();
-
-	if (IS_ENABLED(CONFIG_SPL_BUILD))
-		mmu_set_region_dcache_behaviour(
-			ALIGN_DOWN(STM32_SYSRAM_BASE, MMU_SECTION_SIZE),
-			ALIGN(STM32_SYSRAM_SIZE, MMU_SECTION_SIZE),
-			DCACHE_DEFAULT_OPTION);
-	else
-		mmu_set_region_dcache_behaviour(STM32_DDR_BASE,
-						CONFIG_DDR_CACHEABLE_SIZE,
-						DCACHE_DEFAULT_OPTION);
 }
 
 /*
@@ -282,6 +313,9 @@ int arch_cpu_init(void)
 
 void enable_caches(void)
 {
+	/* parse device tree when data cache is still activated */
+	lmb_init_and_reserve(&lmb, gd->bd, (void *)gd->fdt_blob);
+
 	/* I-cache is already enabled in start.S: icache_enable() not needed */
 
 	/* deactivate the data cache, early enabled in arch_cpu_init() */
@@ -325,7 +359,7 @@ static u32 get_otp(int index, int shift, int mask)
 	u32 otp = 0;
 
 	ret = uclass_get_device_by_driver(UCLASS_MISC,
-					  DM_DRIVER_GET(stm32mp_bsec),
+					  DM_GET_DRIVER(stm32mp_bsec),
 					  &dev);
 
 	if (!ret)
@@ -483,7 +517,7 @@ static void setup_boot_mode(void)
 				gd->flags &= ~(GD_FLG_SILENT |
 					       GD_FLG_DISABLE_CONSOLE);
 			printf("uart%d = %s not found in device tree!\n",
-			       instance, cmd);
+			       instance + 1, cmd);
 			break;
 		}
 		sprintf(cmd, "%d", dev_seq(dev));
@@ -491,7 +525,8 @@ static void setup_boot_mode(void)
 		env_set("boot_instance", cmd);
 
 		/* restore console on uart when not used */
-		if (IS_ENABLED(CONFIG_CMD_STM32PROG_SERIAL) && gd->cur_serial_dev != dev) {
+		if (IS_ENABLED(CONFIG_CMD_STM32PROG_SERIAL) &&
+		    (gd->cur_serial_dev != dev)) {
 			gd->flags &= ~(GD_FLG_SILENT |
 				       GD_FLG_DISABLE_CONSOLE);
 			printf("serial boot with console enabled!\n");
@@ -520,6 +555,8 @@ static void setup_boot_mode(void)
 		env_set("boot_instance", "0");
 		break;
 	default:
+		env_set("boot_device", "invalid");
+		env_set("boot_instance", "");
 		log_debug("unexpected boot mode = %x\n", boot_mode);
 		break;
 	}
@@ -573,7 +610,7 @@ __weak int setup_mac_address(void)
 		return 0;
 
 	ret = uclass_get_device_by_driver(UCLASS_MISC,
-					  DM_DRIVER_GET(stm32mp_bsec),
+					  DM_GET_DRIVER(stm32mp_bsec),
 					  &dev);
 	if (ret)
 		return ret;
@@ -610,7 +647,7 @@ static int setup_serial_number(void)
 		return 0;
 
 	ret = uclass_get_device_by_driver(UCLASS_MISC,
-					  DM_DRIVER_GET(stm32mp_bsec),
+					  DM_GET_DRIVER(stm32mp_bsec),
 					  &dev);
 	if (ret)
 		return ret;

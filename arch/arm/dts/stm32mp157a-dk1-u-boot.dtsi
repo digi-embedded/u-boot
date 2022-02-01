@@ -16,12 +16,18 @@
 	config {
 		u-boot,boot-led = "heartbeat";
 		u-boot,error-led = "error";
-		u-boot,mmc-env-partition = "ssbl";
+		u-boot,mmc-env-partition = "fip";
 		st,adc_usb_pd = <&adc1 18>, <&adc1 19>;
-		st,fastboot-gpios = <&gpioa 13 GPIO_ACTIVE_LOW>;
-		st,stm32prog-gpios = <&gpioa 14 GPIO_ACTIVE_LOW>;
+		st,fastboot-gpios = <&gpioa 13 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+		st,stm32prog-gpios = <&gpioa 14 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 	};
 
+#ifdef CONFIG_STM32MP15x_STM32IMAGE
+	config {
+		u-boot,mmc-env-partition = "ssbl";
+	};
+
+	/* only needed for boot with TF-A, witout FIP support */
 	firmware {
 		optee {
 			compatible = "linaro,optee-tz";
@@ -35,9 +41,10 @@
 			no-map;
 		};
 	};
+#endif
 
 	led {
-		red {
+		led-red {
 			label = "error";
 			gpios = <&gpioa 13 GPIO_ACTIVE_LOW>;
 			default-state = "off";
@@ -50,6 +57,7 @@
 	status = "okay";
 };
 
+#ifndef CONFIG_TFABOOT
 &clk_hse {
 	st,digbypass;
 };
@@ -63,6 +71,10 @@
 	pins {
 		u-boot,dm-pre-reloc;
 	};
+};
+
+&i2s2 {
+	clocks = <&rcc SPI2>, <&rcc SPI2_K>, <&rcc PLL3_Q>, <&rcc PLL3_R>;
 };
 
 &pmic {
@@ -161,6 +173,10 @@
 	};
 };
 
+&sai2 {
+	clocks = <&rcc SAI2>, <&rcc PLL3_Q>, <&rcc PLL3_R>;
+};
+
 &sdmmc1 {
 	u-boot,dm-spl;
 };
@@ -174,6 +190,7 @@
 		u-boot,dm-spl;
 	};
 };
+#endif
 
 &uart4 {
 	u-boot,dm-pre-reloc;

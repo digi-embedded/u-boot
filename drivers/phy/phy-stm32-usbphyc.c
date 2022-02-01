@@ -17,6 +17,8 @@
 #include <usb.h>
 #include <asm/io.h>
 #include <dm/device_compat.h>
+#include <dm/of_access.h>
+#include <linux/bitfield.h>
 #include <linux/bitops.h>
 #include <linux/delay.h>
 #include <power/regulator.h>
@@ -24,6 +26,7 @@
 /* USBPHYC registers */
 #define STM32_USBPHYC_PLL	0x0
 #define STM32_USBPHYC_MISC	0x8
+#define STM32_USBPHYC_TUNE(X)	(0x10C + ((X) * 0x100))
 
 /* STM32_USBPHYC_PLL bit fields */
 #define PLLNDIV			GENMASK(6, 0)
@@ -40,6 +43,26 @@
 /* STM32_USBPHYC_MISC bit fields */
 #define SWITHOST		BIT(0)
 
+/* STM32_USBPHYC_TUNE bit fields */
+#define INCURREN		BIT(0)
+#define INCURRINT		BIT(1)
+#define LFSCAPEN		BIT(2)
+#define HSDRVSLEW		BIT(3)
+#define HSDRVDCCUR		BIT(4)
+#define HSDRVDCLEV		BIT(5)
+#define HSDRVCURINCR		BIT(6)
+#define FSDRVRFADJ		BIT(7)
+#define HSDRVRFRED		BIT(8)
+#define HSDRVCHKITRM		GENMASK(12, 9)
+#define HSDRVCHKZTRM		GENMASK(14, 13)
+#define OTPCOMP			GENMASK(19, 15)
+#define SQLCHCTL		GENMASK(21, 20)
+#define HDRXGNEQEN		BIT(22)
+#define HSRXOFF			GENMASK(24, 23)
+#define HSFALLPREEM		BIT(25)
+#define SHTCCTCTLPROT		BIT(26)
+#define STAGSEL			BIT(27)
+
 #define MAX_PHYS		2
 
 /* max 100 us for PLL lock and 100 us for PHY init */
@@ -48,6 +71,63 @@
 #define PLL_FVCO		2880	 /* in MHz */
 #define PLL_INFF_MIN_RATE	19200000 /* in Hz */
 #define PLL_INFF_MAX_RATE	38400000 /* in Hz */
+
+enum boosting_vals {
+	BOOST_1_MA = 1,
+	BOOST_2_MA,
+	BOOST_MAX,
+};
+
+enum dc_level_vals {
+	DC_MINUS_5_TO_7_MV,
+	DC_PLUS_5_TO_7_MV,
+	DC_PLUS_10_TO_14_MV,
+	DC_MAX,
+};
+
+enum current_trim {
+	CUR_NOMINAL,
+	CUR_PLUS_1_56_PCT,
+	CUR_PLUS_3_12_PCT,
+	CUR_PLUS_4_68_PCT,
+	CUR_PLUS_6_24_PCT,
+	CUR_PLUS_7_8_PCT,
+	CUR_PLUS_9_36_PCT,
+	CUR_PLUS_10_92_PCT,
+	CUR_PLUS_12_48_PCT,
+	CUR_PLUS_14_04_PCT,
+	CUR_PLUS_15_6_PCT,
+	CUR_PLUS_17_16_PCT,
+	CUR_PLUS_19_01_PCT,
+	CUR_PLUS_20_58_PCT,
+	CUR_PLUS_22_16_PCT,
+	CUR_PLUS_23_73_PCT,
+	CUR_MAX,
+};
+
+enum impedance_trim {
+	IMP_NOMINAL,
+	IMP_MINUS_2_OHMS,
+	IMP_MINUS_4_OMHS,
+	IMP_MINUS_6_OHMS,
+	IMP_MAX,
+};
+
+enum squelch_level {
+	SQLCH_NOMINAL,
+	SQLCH_PLUS_7_MV,
+	SQLCH_MINUS_5_MV,
+	SQLCH_PLUS_14_MV,
+	SQLCH_MAX,
+};
+
+enum rx_offset {
+	NO_RX_OFFSET,
+	RX_OFFSET_PLUS_5_MV,
+	RX_OFFSET_PLUS_10_MV,
+	RX_OFFSET_MINUS_5_MV,
+	RX_OFFSET_MAX,
+};
 
 struct pll_params {
 	u8 ndiv;
@@ -327,6 +407,98 @@ static int stm32_usbphyc_of_xlate(struct phy *phy,
 	return 0;
 }
 
+static void stm32_usbphyc_tuning(struct udevice *dev, ofnode node, u32 index)
+{
+	struct stm32_usbphyc *usbphyc = dev_get_priv(dev);
+	struct ofnode_phandle_args tune_phandle;
+	u32 reg = STM32_USBPHYC_TUNE(index);
+	u32 otpcomp, val, tune = 0;
+	int ret;
+
+	ret = ofnode_parse_phandle_with_args(node, "st,phy-tuning", NULL, 0,
+					     0, &tune_phandle);
+	if (ret) {
+		dev_dbg(dev, "phy%d: can't find phy tuning phandle\n", index);
+		return;
+	}
+
+	/* Backup OTP compensation code */
+	otpcomp = FIELD_GET(OTPCOMP, readl(usbphyc->base + reg));
+
+	ret = ofnode_read_u32(tune_phandle.node, "st,current-boost", &val);
+	if (!ret && val < BOOST_MAX) {
+		val = (val == BOOST_2_MA) ? 1 : 0;
+		tune |= INCURREN | FIELD_PREP(INCURRINT, val);
+	} else if (ret != -EINVAL) {
+		dev_warn(dev, "phy%d: invalid st,current-boost value\n", index);
+	}
+
+	if (!ofnode_read_bool(tune_phandle.node, "st,no-lsfs-fb-cap"))
+		tune |= LFSCAPEN;
+
+	if (ofnode_read_bool(tune_phandle.node, "st,hs-slew-ctrl"))
+		tune |= HSDRVSLEW;
+
+	ret = ofnode_read_u32(tune_phandle.node, "st,hs-dc-level", &val);
+	if (!ret && val < DC_MAX) {
+		if (val == DC_MINUS_5_TO_7_MV) {
+			tune |= HSDRVDCCUR;
+		} else {
+			val = (val == DC_PLUS_10_TO_14_MV) ? 1 : 0;
+			tune |= HSDRVCURINCR | FIELD_PREP(HSDRVDCLEV, val);
+		}
+	} else if (ret != -EINVAL) {
+		dev_warn(dev, "phy%d: invalid st,hs-dc-level value\n", index);
+	}
+
+	if (ofnode_read_bool(tune_phandle.node, "st,fs-rftime-tuning"))
+		tune |= FSDRVRFADJ;
+
+	if (ofnode_read_bool(tune_phandle.node, "st,hs-rftime-reduction"))
+		tune |= HSDRVRFRED;
+
+	ret = ofnode_read_u32(tune_phandle.node, "st,hs-current-trim", &val);
+	if (!ret && val < CUR_MAX)
+		tune |= FIELD_PREP(HSDRVCHKITRM, val);
+	else if (ret != -EINVAL)
+		dev_warn(dev, "phy%d: invalid st,hs-current-trim value\n", index);
+
+	ret = ofnode_read_u32(tune_phandle.node, "st,hs-impedance-trim", &val);
+	if (!ret && val < IMP_MAX)
+		tune |= FIELD_PREP(HSDRVCHKZTRM, val);
+	else if (ret != -EINVAL)
+		dev_warn(dev, "phy%d: invalid hs-impedance-trim value\n", index);
+
+	ret = ofnode_read_u32(tune_phandle.node, "st,squelch-level", &val);
+	if (!ret && val < SQLCH_MAX)
+		tune |= FIELD_PREP(SQLCHCTL, val);
+	else if (ret != -EINVAL)
+		dev_warn(dev, "phy%d: invalid st,squelch-level value\n", index);
+
+	if (ofnode_read_bool(tune_phandle.node, "st,hs-rx-gain-eq"))
+		tune |= HDRXGNEQEN;
+
+	ret = ofnode_read_u32(tune_phandle.node, "st,hs-rx-offset", &val);
+	if (!ret && val < RX_OFFSET_MAX)
+		tune |= FIELD_PREP(HSRXOFF, val);
+	else if (ret != -EINVAL)
+		dev_warn(dev, "phy%d: invalid st,hs-rx-offset value\n", index);
+
+	if (ofnode_read_bool(tune_phandle.node, "st,no-hs-ftime-ctrl"))
+		tune |= HSFALLPREEM;
+
+	if (!ofnode_read_bool(tune_phandle.node, "st,no-lsfs-sc"))
+		tune |= SHTCCTCTLPROT;
+
+	if (ofnode_read_bool(tune_phandle.node, "st,hs-tx-staggering"))
+		tune |= STAGSEL;
+
+	/* Restore OTP compensation code */
+	tune |= FIELD_PREP(OTPCOMP, otpcomp);
+
+	writel(tune, usbphyc->base + reg);
+}
+
 static const struct phy_ops stm32_usbphyc_phy_ops = {
 	.init = stm32_usbphyc_phy_init,
 	.exit = stm32_usbphyc_phy_exit,
@@ -339,8 +511,8 @@ static int stm32_usbphyc_probe(struct udevice *dev)
 {
 	struct stm32_usbphyc *usbphyc = dev_get_priv(dev);
 	struct reset_ctl reset;
-	ofnode node;
-	int i, ret;
+	ofnode node, connector;
+	int ret;
 
 	usbphyc->base = dev_read_addr(dev);
 	if (usbphyc->base == FDT_ADDR_T_NONE)
@@ -378,14 +550,22 @@ static int stm32_usbphyc_probe(struct udevice *dev)
 		return ret;
 	}
 
-	/*
-	 * parse all PHY subnodes in order to populate regulator associated
-	 * to each PHY port
-	 */
-	node = dev_read_first_subnode(dev);
-	for (i = 0; i < MAX_PHYS; i++) {
-		struct stm32_usbphyc_phy *usbphyc_phy = usbphyc->phys + i;
+	/* parse all PHY subnodes to populate regulator associated to each PHY port */
+	dev_for_each_subnode(node, dev) {
+		fdt_addr_t phy_id;
+		struct stm32_usbphyc_phy *usbphyc_phy;
 
+		phy_id = ofnode_read_u32_default(node, "reg", FDT_ADDR_T_NONE);
+		if (phy_id >= MAX_PHYS) {
+			dev_err(dev, "invalid reg value %lx for %s\n",
+				phy_id, ofnode_get_name(node));
+			return -ENOENT;
+		}
+
+		/* Configure phy tuning */
+		stm32_usbphyc_tuning(dev, node, phy_id);
+
+		usbphyc_phy = usbphyc->phys + phy_id;
 		usbphyc_phy->init = false;
 		usbphyc_phy->powered = false;
 		ret = stm32_usbphyc_get_regulator(node, "phy-supply",
@@ -395,12 +575,14 @@ static int stm32_usbphyc_probe(struct udevice *dev)
 			return ret;
 		}
 
-		ret = stm32_usbphyc_get_regulator(node, "vbus-supply",
-						  &usbphyc_phy->vbus);
-		if (ret)
-			usbphyc_phy->vbus = NULL;
-
-		node = dev_read_next_subnode(node);
+		usbphyc_phy->vbus = NULL;
+		connector = ofnode_find_subnode(node, "connector");
+		if (ofnode_valid(connector)) {
+			ret = stm32_usbphyc_get_regulator(connector, "vbus-supply",
+							  &usbphyc_phy->vbus);
+			if (ret)
+				usbphyc_phy->vbus = NULL;
+		}
 	}
 
 	/* Check if second port has to be used for host controller */

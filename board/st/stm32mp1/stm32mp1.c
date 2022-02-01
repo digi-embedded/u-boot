@@ -13,6 +13,7 @@
 #include <dm.h>
 #include <env.h>
 #include <env_internal.h>
+#include <fdt_simplefb.h>
 #include <fdt_support.h>
 #include <g_dnl.h>
 #include <generic-phy.h>
@@ -105,7 +106,9 @@ int checkboard(void)
 	const char *fdt_compat;
 	int fdt_compat_len;
 
-	if (IS_ENABLED(CONFIG_TFABOOT))
+	if (IS_ENABLED(CONFIG_STM32MP15x_STM32IMAGE))
+		mode = "trusted - stm32image";
+	else if (IS_ENABLED(CONFIG_TFABOOT))
 		mode = "trusted";
 	else
 		mode = "basic";
@@ -119,7 +122,7 @@ int checkboard(void)
 	/* display the STMicroelectronics board identification */
 	if (CONFIG_IS_ENABLED(CMD_STBOARD)) {
 		ret = uclass_get_device_by_driver(UCLASS_MISC,
-						  DM_DRIVER_GET(stm32mp_bsec),
+						  DM_GET_DRIVER(stm32mp_bsec),
 						  &dev);
 		if (!ret)
 			ret = misc_read(dev, STM32_BSEC_SHADOW(BSEC_OTP_BOARD),
@@ -155,6 +158,7 @@ static void board_key_check(void)
 					       &gpio, GPIOD_IS_IN)) {
 			log_debug("could not find a /config/st,fastboot-gpios\n");
 		} else {
+			udelay(20);
 			if (dm_gpio_get_value(&gpio)) {
 				log_notice("Fastboot key pressed, ");
 				boot_mode = BOOT_FASTBOOT;
@@ -168,6 +172,7 @@ static void board_key_check(void)
 					       &gpio, GPIOD_IS_IN)) {
 			log_debug("could not find a /config/st,stm32prog-gpios\n");
 		} else {
+			udelay(20);
 			if (dm_gpio_get_value(&gpio)) {
 				log_notice("STM32Programmer key pressed, ");
 				boot_mode = BOOT_STM32PROG;
@@ -197,7 +202,7 @@ int g_dnl_board_usb_cable_connected(void)
 		return ret;
 
 	ret = uclass_get_device_by_driver(UCLASS_USB_GADGET_GENERIC,
-					  DM_DRIVER_GET(dwc2_udc_otg),
+					  DM_GET_DRIVER(dwc2_udc_otg),
 					  &dwc2_udc_otg);
 	if (ret) {
 		log_debug("dwc2_udc_otg init failed\n");
@@ -347,6 +352,9 @@ static int board_check_usb_power(void)
 	u32 nb_blink;
 	u8 i;
 
+	if (!IS_ENABLED(CONFIG_ADC))
+		return -ENODEV;
+
 	node = ofnode_path("/config");
 	if (!ofnode_valid(node)) {
 		log_debug("no /config node?\n");
@@ -370,11 +378,7 @@ static int board_check_usb_power(void)
 
 	/* perform maximum of 2 ADC measurements to detect power supply current */
 	for (i = 0; i < 2; i++) {
-		if (IS_ENABLED(CONFIG_ADC))
-			ret = adc_measurement(node, adc_count, &min_uV, &max_uV);
-		else
-			ret = -ENODEV;
-
+		ret = adc_measurement(node, adc_count, &min_uV, &max_uV);
 		if (ret)
 			return ret;
 
@@ -483,11 +487,11 @@ static void sysconf_init(void)
 	 *      but this value need to be consistent with board design
 	 */
 	ret = uclass_get_device_by_driver(UCLASS_PMIC,
-					  DM_DRIVER_GET(stm32mp_pwr_pmic),
+					  DM_GET_DRIVER(stm32mp_pwr_pmic),
 					  &pwr_dev);
 	if (!ret && IS_ENABLED(CONFIG_DM_REGULATOR)) {
 		ret = uclass_get_device_by_driver(UCLASS_MISC,
-						  DM_DRIVER_GET(stm32mp_bsec),
+						  DM_GET_DRIVER(stm32mp_bsec),
 						  &dev);
 		if (ret) {
 			log_err("Can't find stm32mp_bsec driver\n");
@@ -600,7 +604,8 @@ error:
 static bool board_is_dk2(void)
 {
 	if (CONFIG_IS_ENABLED(TARGET_ST_STM32MP15x) &&
-	    of_machine_is_compatible("st,stm32mp157c-dk2"))
+	    (of_machine_is_compatible("st,stm32mp157c-dk2") ||
+	     of_machine_is_compatible("st,stm32mp157f-dk2")))
 		return true;
 
 	return false;
@@ -635,7 +640,7 @@ static void board_ev1_init(void)
 	struct udevice *dev;
 
 	/* configure IRQ line on EV1 for touchscreen before LCD reset */
-	uclass_get_device_by_driver(UCLASS_NOP, DM_DRIVER_GET(goodix), &dev);
+	uclass_get_device_by_driver(UCLASS_NOP, DM_GET_DRIVER(goodix), &dev);
 }
 
 /* board dependent setup after realloc */
@@ -643,9 +648,6 @@ int board_init(void)
 {
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = STM32_DDR_BASE + 0x100;
-
-	if (CONFIG_IS_ENABLED(DM_GPIO_HOG))
-		gpio_hog_probe_all();
 
 	board_key_check();
 
@@ -697,7 +699,7 @@ int board_late_init(void)
 			}
 		}
 		ret = uclass_get_device_by_driver(UCLASS_MISC,
-						  DM_DRIVER_GET(stm32mp_bsec),
+						  DM_GET_DRIVER(stm32mp_bsec),
 						  &dev);
 
 		if (!ret)
@@ -734,11 +736,11 @@ int board_interface_eth_init(struct udevice *dev,
 	bool eth_ref_clk_sel_reg = false;
 
 	/* Gigabit Ethernet 125MHz clock selection. */
-	eth_clk_sel_reg = dev_read_bool(dev, "st,eth_clk_sel");
+	eth_clk_sel_reg = dev_read_bool(dev, "st,eth-clk-sel");
 
 	/* Ethernet 50Mhz RMII clock selection */
 	eth_ref_clk_sel_reg =
-		dev_read_bool(dev, "st,eth_ref_clk_sel");
+		dev_read_bool(dev, "st,eth-ref-clk-sel");
 
 	syscfg = (u8 *)syscon_get_first_range(STM32MP_SYSCON_SYSCFG);
 
@@ -844,17 +846,7 @@ const char *env_ext4_get_intf(void)
 
 const char *env_ext4_get_dev_part(void)
 {
-	static char *const env_dev_part =
-#ifdef CONFIG_ENV_EXT4_DEVICE_AND_PART
-		CONFIG_ENV_EXT4_DEVICE_AND_PART;
-#else
-		"";
-#endif
 	static char *const dev_part[] = {"0:auto", "1:auto", "2:auto"};
-
-	if (strlen(env_dev_part) > 0)
-		return env_dev_part;
-
 	u32 bootmode = get_bootmode();
 
 	return dev_part[(bootmode & TAMP_BOOT_INSTANCE_MASK) - 1];
@@ -890,6 +882,9 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 	    (strcmp(boot_device, "serial") && strcmp(boot_device, "usb")))
 		if (IS_ENABLED(CONFIG_FDT_FIXUP_PARTITIONS))
 			fdt_fixup_mtdparts(blob, nodes, ARRAY_SIZE(nodes));
+
+	if (CONFIG_IS_ENABLED(FDT_SIMPLEFB))
+		fdt_simplefb_add_node_and_mem_rsv(blob);
 
 	return 0;
 }

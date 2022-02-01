@@ -16,6 +16,12 @@
 #include <watchdog.h>
 #include <asm/global_data.h>
 
+#ifdef CONFIG_SPL_BUILD
+#undef CONFIG_CMDLINE_EDITING
+#undef CONFIG_AUTO_COMPLETE
+#undef CONFIG_SHOW_ACTIVITY
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 static const char erase_seq[] = "\b \b";	/* erase sequence */

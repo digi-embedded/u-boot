@@ -31,7 +31,6 @@
 #include <trusty/libtipc.h>
 #endif
 
-
 #ifndef TRUSTY_OS_MMC_BLKS
 #define TRUSTY_OS_MMC_BLKS 0x7FF
 #endif

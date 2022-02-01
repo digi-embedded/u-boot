@@ -412,6 +412,9 @@ static int stm32_pinctrl_bind(struct udevice *dev)
 		if (!ofnode_is_enabled(node))
 			continue;
 
+		if (!ofnode_is_enabled(node))
+			continue;
+
 		ofnode_get_property(node, "gpio-controller", &ret);
 		if (ret < 0)
 			continue;

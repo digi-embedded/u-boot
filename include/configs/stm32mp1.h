@@ -162,6 +162,7 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"kernel_addr_r=0xc2000000\0" \
 	"fdt_addr_r=0xc4000000\0" \
+	"fdtoverlay_addr_r=0xc4100000\0" \
 	"scriptaddr=0xc4100000\0" \
 	"pxefile_addr_r=0xc4200000\0" \
 	"splashimage=0xc4300000\0"  \

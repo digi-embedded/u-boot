@@ -733,6 +733,29 @@ config LIB_ELF
 	  Support basic elf loading/validating functions.
 	  This supports for 32 bit and 64 bit versions.
 
+config LMB
+	bool "Enable the logical memory blocks library (lmb)"
+	default y if ARC || ARM || M68K || MICROBLAZE || MIPS || NDS32 || \
+		     NIOS2 || PPC || RISCV || SANDBOX || SH || X86 || XTENSA
+	help
+	  Support the library logical memory blocks.
+
+config LMB_MEMORY_REGIONS
+	int "Number of memory regions in lmb lib"
+	depends on LMB
+	default 8
+	help
+	  Define the number of supported memory regions in the library logical
+	  memory blocks.
+
+config LMB_RESERVED_REGIONS
+	int "Number of reserved regions in lmb lib"
+	depends on LMB
+	default 8
+	help
+	  Define the number of supported reserved regions in the library logical
+	  memory blocks.
+
 endmenu
 
 config PHANDLE_CHECK_SEQ
