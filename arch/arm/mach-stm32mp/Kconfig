@@ -67,6 +67,21 @@ choice
 	prompt "STM32MP15x board select"
 	optional
 
+config TARGET_CCMP15_DVK
+	bool "Digi International CCMP15 Development Kit (DVK)"
+	select STM32MP15x
+	imply BOOTCOUNT_LIMIT
+	imply BOOTSTAGE
+	imply CMD_BOOTCOUNT
+	imply CMD_BOOTSTAGE
+	imply CMD_CLS if CMD_BMP
+	imply DISABLE_CONSOLE
+	imply PRE_CONSOLE_BUFFER
+	imply SILENT_CONSOLE
+	help
+		Target Digi International ConnectCore MP15 Development Kit
+		board.
+
 config TARGET_ST_STM32MP15x
 	bool "STMicroelectronics STM32MP15x boards"
 	select STM32MP15x
@@ -172,5 +187,6 @@ endif
 source "arch/arm/mach-stm32mp/cmd_stm32prog/Kconfig"
 source "board/st/stm32mp1/Kconfig"
 source "board/dhelectronics/dh_stm32mp1/Kconfig"
+source "board/digi/ccmp15_dvk/Kconfig"
 
 endif
