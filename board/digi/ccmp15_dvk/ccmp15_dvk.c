@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
 /*
  * Copyright (C) 2018, STMicroelectronics - All Rights Reserved
+ * Copyright (C) 2022, Digi International Inc - All Rights Reserved
  */
 
 #define LOG_CATEGORY LOGC_BOARD
@@ -45,8 +46,6 @@
 #include <linux/iopoll.h>
 #include <power/regulator.h>
 #include <usb/dwc2_udc.h>
-
-#include "../../st/common/stusb160x.h"
 
 /* SYSCFG registers */
 #define SYSCFG_BOOTR		0x00
@@ -116,7 +115,7 @@ int checkboard(void)
 	fdt_compat = fdt_getprop(gd->fdt_blob, 0, "compatible",
 				 &fdt_compat_len);
 
-	log_info("Board: stm32mp1 in %s mode (%s)\n", mode,
+	log_info("Board: %s in %s mode (%s)\n", CONFIG_SYS_BOARD, mode,
 		 fdt_compat && fdt_compat_len ? fdt_compat : "");
 
 	/* display the STMicroelectronics board identification */
@@ -195,11 +194,6 @@ int g_dnl_board_usb_cable_connected(void)
 
 	if (!IS_ENABLED(CONFIG_USB_GADGET_DWC2_OTG))
 		return -ENODEV;
-
-	/* if typec stusb160x is present, means DK1 or DK2 board */
-	ret = stusb160x_cable_connected();
-	if (ret >= 0)
-		return ret;
 
 	ret = uclass_get_device_by_driver(UCLASS_USB_GADGET_GENERIC,
 					  DM_DRIVER_GET(dwc2_udc_otg),
@@ -544,105 +538,6 @@ static void sysconf_init(void)
 	clrbits_le32(syscfg + SYSCFG_CMPCR, SYSCFG_CMPCR_SW_CTRL);
 }
 
-/* Fix to make I2C1 usable on DK2 for touchscreen usage in kernel */
-static int dk2_i2c1_fix(void)
-{
-	ofnode node;
-	struct gpio_desc hdmi, audio;
-	int ret = 0;
-
-	if (!IS_ENABLED(CONFIG_DM_REGULATOR))
-		return -ENODEV;
-
-	node = ofnode_path("/soc/i2c@40012000/hdmi-transmitter@39");
-	if (!ofnode_valid(node)) {
-		log_debug("no hdmi-transmitter@39 ?\n");
-		return -ENOENT;
-	}
-
-	if (gpio_request_by_name_nodev(node, "reset-gpios", 0,
-				       &hdmi, GPIOD_IS_OUT)) {
-		log_debug("could not find reset-gpios\n");
-		return -ENOENT;
-	}
-
-	node = ofnode_path("/soc/i2c@40012000/cs42l51@4a");
-	if (!ofnode_valid(node)) {
-		log_debug("no cs42l51@4a ?\n");
-		return -ENOENT;
-	}
-
-	if (gpio_request_by_name_nodev(node, "reset-gpios", 0,
-				       &audio, GPIOD_IS_OUT)) {
-		log_debug("could not find reset-gpios\n");
-		return -ENOENT;
-	}
-
-	/* before power up, insure that HDMI and AUDIO IC is under reset */
-	ret = dm_gpio_set_value(&hdmi, 1);
-	if (ret) {
-		log_err("can't set_value for hdmi_nrst gpio");
-		goto error;
-	}
-	ret = dm_gpio_set_value(&audio, 1);
-	if (ret) {
-		log_err("can't set_value for audio_nrst gpio");
-		goto error;
-	}
-
-	/* power-up audio IC */
-	regulator_autoset_by_name("v1v8_audio", NULL);
-
-	/* power-up HDMI IC */
-	regulator_autoset_by_name("v1v2_hdmi", NULL);
-	regulator_autoset_by_name("v3v3_hdmi", NULL);
-
-error:
-	return ret;
-}
-
-static bool board_is_dk2(void)
-{
-	if (CONFIG_IS_ENABLED(TARGET_ST_STM32MP15x) &&
-	    (of_machine_is_compatible("st,stm32mp157c-dk2") ||
-	     of_machine_is_compatible("st,stm32mp157f-dk2")))
-		return true;
-
-	return false;
-}
-
-static bool board_is_ev1(void)
-{
-	if (CONFIG_IS_ENABLED(TARGET_ST_STM32MP15x) &&
-	    (of_machine_is_compatible("st,stm32mp157a-ev1") ||
-	     of_machine_is_compatible("st,stm32mp157c-ev1") ||
-	     of_machine_is_compatible("st,stm32mp157d-ev1") ||
-	     of_machine_is_compatible("st,stm32mp157f-ev1")))
-		return true;
-
-	return false;
-}
-
-/* touchscreen driver: only used for pincontrol configuration */
-static const struct udevice_id goodix_ids[] = {
-	{ .compatible = "goodix,gt9147", },
-	{ }
-};
-
-U_BOOT_DRIVER(goodix) = {
-	.name		= "goodix",
-	.id		= UCLASS_NOP,
-	.of_match	= goodix_ids,
-};
-
-static void board_ev1_init(void)
-{
-	struct udevice *dev;
-
-	/* configure IRQ line on EV1 for touchscreen before LCD reset */
-	uclass_get_device_by_driver(UCLASS_NOP, DM_DRIVER_GET(goodix), &dev);
-}
-
 /* board dependent setup after realloc */
 int board_init(void)
 {
@@ -650,12 +545,6 @@ int board_init(void)
 	gd->bd->bi_boot_params = STM32_DDR_BASE + 0x100;
 
 	board_key_check();
-
-	if (board_is_ev1())
-		board_ev1_init();
-
-	if (board_is_dk2())
-		dk2_i2c1_fix();
 
 	if (IS_ENABLED(CONFIG_DM_REGULATOR))
 		regulators_enable_boot_on(_DEBUG);
