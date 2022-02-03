@@ -2,10 +2,6 @@ if TARGET_CCMP15_DVK
 
 source "board/digi/common/Kconfig"
 
-config MCA
-	bool
-	default y
-
 config SYS_BOARD
 	default "ccmp15_dvk"
 

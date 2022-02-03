@@ -1,2 +1,20 @@
 config CCMP1
 	bool
+
+config MCA
+	bool "Support for the Micro Controller Assist (MCA)"
+
+if MCA
+config MCA_I2C_BUS
+	int "I2C bus index where the MCA is connected to"
+
+config MCA_I2C_ADDR
+	hex "I2C address of the Micro Controller Assist (MCA)"
+
+config MCA_OFFSET_LEN
+	int "Offset length value of the I2C bus when talking to the MCA"
+	default 2
+
+config MCA_TAMPER
+	bool "Support for the tamper pins of the MCA"
+endif
