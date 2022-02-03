@@ -39,6 +39,7 @@
 #include <asm/gpio.h>
 #include <asm/arch/stm32.h>
 #include <asm/arch/sys_proto.h>
+#include <configs/digi_common.h>
 #include <jffs2/load_kernel.h>
 #include <linux/bitops.h>
 #include <linux/delay.h>
@@ -46,6 +47,8 @@
 #include <linux/iopoll.h>
 #include <power/regulator.h>
 #include <usb/dwc2_udc.h>
+
+#include "../common/hwid.h"
 
 /* SYSCFG registers */
 #define SYSCFG_BOOTR		0x00

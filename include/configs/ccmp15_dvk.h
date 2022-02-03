@@ -9,6 +9,7 @@
 #define __CONFIG_H
 #include <linux/sizes.h>
 #include <asm/arch/stm32.h>
+#include <configs/ccmp1_common.h>
 
 #ifndef CONFIG_TFABOOT
 /* PSCI support */

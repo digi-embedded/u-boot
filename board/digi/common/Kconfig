@@ -1,0 +1,2 @@
+config CCMP1
+	bool
