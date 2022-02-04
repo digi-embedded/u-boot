@@ -895,9 +895,10 @@ u64 memsize_parse(const char *const ptr, const char **retptr)
  */
 void set_verifyaddr(unsigned long loadaddr)
 {
-	 unsigned long verifyaddr;
+	unsigned long verifyaddr;
 
-	 verifyaddr = loadaddr + ((gd->ram_size - (loadaddr - PHYS_SDRAM)) / 2);
+	verifyaddr = loadaddr + ((gd->ram_size -
+				   (loadaddr - CONFIG_SYS_SDRAM_BASE)) / 2);
 
 	 /* Skip reserved memory area */
 #if defined(RESERVED_MEM_START) && defined(RESERVED_MEM_END)
@@ -906,7 +907,7 @@ void set_verifyaddr(unsigned long loadaddr)
 #endif
 
 	 if (verifyaddr > loadaddr &&
-	     verifyaddr < (PHYS_SDRAM + gd->ram_size))
+	     verifyaddr < (CONFIG_SYS_SDRAM_BASE + gd->ram_size))
 		 env_set_hex("verifyaddr", verifyaddr);
  }
 
