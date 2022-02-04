@@ -103,4 +103,17 @@
 	DIGICMD_UPDATEFILE_RAM_ARGS_HELP
 #endif /* CONFIG_CMD_UPDATE */
 
+/* Partitions */
+#define UBOOT_PARTITION			"bootloader"
+#define LINUX_PARTITION			"linux"
+#define RECOVERY_PARTITION		"recovery"
+#define ROOTFS_PARTITION		"rootfs"
+#define SYSTEM_PARTITION		"system"
+
+/* Dualboot partition configuration */
+#define LINUX_A_PARTITION		"linux_a"
+#define LINUX_B_PARTITION		"linux_b"
+#define ROOTFS_A_PARTITION		"rootfs_a"
+#define ROOTFS_B_PARTITION		"rootfs_b"
+
 #endif /* __CCMP1_COMMON_H */
