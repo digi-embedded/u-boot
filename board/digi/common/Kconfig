@@ -28,3 +28,50 @@ config CMD_DBOOT
 	     specified media to RAM.
 	   - Composition of boot arguments.
 	   - Boot of the Operating System.
+
+config CMD_UPDATE
+	bool "Support for Digi 'update' command"
+	help
+	  Digi custom firmware update (update) command comprises in a single
+	  command:
+	   - Download of firmware image files from the specified media to RAM.
+	   - Programming of the firmware file on the specified partition.
+	   - Verification of the image programmed on the storage media.
+
+	  The command also allows for on-the-fly update (transfer and write
+	  chunks of the firmware image) when available RAM is small or the
+	  image file is very large).
+
+if CMD_UPDATE
+config CMD_UPDATE_NAND
+	bool
+	default y if CCMP1
+
+config CMD_UPDATE_MMC
+	bool
+
+config SYS_STORAGE_MEDIA
+	string
+	default "nand" if CMD_UPDATE_NAND
+	default "mmc" if CMD_UPDATE_MMC
+
+config CMD_BOOTSTREAM
+	bool
+	depends on CMD_UPDATE_NAND
+
+config DIGI_UPDATE_ADDR
+	hex "RAM address where to place the firmware image during update"
+	default 0xc2000000 if CCMP1
+
+config DIGI_LZIPADDR
+	hex "RAM address where to place compressed image (to be decompressed)"
+	default 0xc4000000 if CCMP1
+
+config OTF_CHUNK
+	hex "Chunk size (in bytes) for on-the-fly (OTF) updates"
+	default 0x2000000
+
+config UBOOT_RESERVED
+	hex "RAM memory reserved for U-Boot, stack, malloc pool..."
+	default 0xA00000
+endif

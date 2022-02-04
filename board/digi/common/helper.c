@@ -30,9 +30,6 @@
 #include "../drivers/crypto/fsl/jr.h"
 
 DECLARE_GLOBAL_DATA_PTR;
-#if defined(CONFIG_CMD_UPDATE_MMC) || defined(CONFIG_CMD_UPDATE_NAND)
-#define CONFIG_CMD_UPDATE
-#endif
 
 #ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
 #define SQUASHFS_BYTES_USED_OFFSET	0x28
