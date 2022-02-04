@@ -109,7 +109,7 @@ static int write_firmware(unsigned long loadaddr, unsigned long filesize,
 		 * If the partition is not U-Boot (whose sectors must be raw-read),
 		 * ensure the partition is UBI formatted.
 		 */
-		if (strcmp(part->name, CONFIG_UBOOT_PARTITION)) {
+		if (strcmp(part->name, UBOOT_PARTITION)) {
 			/* Silent UBI commands during the update */
 			run_command("ubi silent 1", 0);
 
@@ -235,7 +235,7 @@ static int do_update(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv
 	unsigned long filesize = 0;
 	struct mtd_device *dev;
 	struct part_info *part;
-	char *ubootpartname = CONFIG_UBOOT_PARTITION;
+	char *ubootpartname = UBOOT_PARTITION;
 	char *partname;
 	u8 pnum;
 	struct load_fw fwinfo;
@@ -306,7 +306,7 @@ static int do_update(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv
 	/* Ask for confirmation if needed */
 	if (env_get_yesno("forced_update") != 1) {
 		/* Confirm programming */
-		if (!strcmp(part->name, CONFIG_UBOOT_PARTITION) &&
+		if (!strcmp(part->name, UBOOT_PARTITION) &&
 		    !confirm_msg("Do you really want to program "
 				 "the boot loader? <y/N> "))
 			return CMD_RET_FAILURE;
@@ -384,7 +384,7 @@ static int do_update(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv
 		filesize = env_get_ulong("filesize", 16, 0);
 #ifdef CONFIG_CMD_BOOTSTREAM
 	/* U-Boot is written in a special way */
-	if (!strcmp(partname, CONFIG_UBOOT_PARTITION)) {
+	if (!strcmp(partname, UBOOT_PARTITION)) {
 		ret = write_bootstream(part, loadaddr, filesize);
 		goto _ret;
 	}

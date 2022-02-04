@@ -164,14 +164,14 @@
 
 /* MTD (NAND) */
 #define CONFIG_SKIP_NAND_BBT_SCAN
-#define CONFIG_UBOOT_PARTITION		"bootloader"
+#define UBOOT_PARTITION			"bootloader"
 #define UBOOT_PART_SIZE_SMALL		3
 #define UBOOT_PART_SIZE_BIG		5
 #define ENV_PART_SIZE_SMALL		1
 #define ENV_PART_SIZE_BIG		3
 
-#define CONFIG_LINUX_PARTITION		"linux"
-#define CONFIG_RECOVERY_PARTITION	"recovery"
+#define LINUX_PARTITION			"linux"
+#define RECOVERY_PARTITION		"recovery"
 #define ROOTFS_PARTITION		"rootfs"
 #define SYSTEM_PARTITION		"system"
 
@@ -204,25 +204,25 @@
 
 /* One 'system' partition containing many UBI volumes (modern layout) */
 #define MTDPARTS_SMALL			"mtdparts=" CONFIG_NAND_NAME ":" \
-					__stringify(UBOOT_PART_SIZE_SMALL) "m(" CONFIG_UBOOT_PARTITION ")," \
+					__stringify(UBOOT_PART_SIZE_SMALL) "m(" UBOOT_PARTITION ")," \
 					__stringify(ENV_PART_SIZE_SMALL) "m(environment)," \
 					"1m(safe)," \
 					"-(" SYSTEM_PARTITION ")"
 #define MTDPARTS_BIG			"mtdparts=" CONFIG_NAND_NAME ":" \
-					__stringify(UBOOT_PART_SIZE_BIG) "m(" CONFIG_UBOOT_PARTITION ")," \
+					__stringify(UBOOT_PART_SIZE_BIG) "m(" UBOOT_PARTITION ")," \
 					__stringify(ENV_PART_SIZE_BIG) "m(environment)," \
 					"1m(safe)," \
 					"-(" SYSTEM_PARTITION ")"
-#define UBIVOLS_256MB			"ubi create " CONFIG_LINUX_PARTITION " c00000;" \
-					"ubi create " CONFIG_RECOVERY_PARTITION " e00000;" \
+#define UBIVOLS_256MB			"ubi create " LINUX_PARTITION " c00000;" \
+					"ubi create " RECOVERY_PARTITION " e00000;" \
 					"ubi create " ROOTFS_PARTITION " 7e00000;" \
 					"ubi create update;"
-#define UBIVOLS_512MB			"ubi create " CONFIG_LINUX_PARTITION " 1800000;" \
-					"ubi create " CONFIG_RECOVERY_PARTITION " 2000000;" \
+#define UBIVOLS_512MB			"ubi create " LINUX_PARTITION " 1800000;" \
+					"ubi create " RECOVERY_PARTITION " 2000000;" \
 					"ubi create " ROOTFS_PARTITION " 10000000;" \
 					"ubi create update;"
-#define UBIVOLS_1024MB			"ubi create " CONFIG_LINUX_PARTITION " 1800000;" \
-					"ubi create " CONFIG_RECOVERY_PARTITION " 2000000;" \
+#define UBIVOLS_1024MB			"ubi create " LINUX_PARTITION " 1800000;" \
+					"ubi create " RECOVERY_PARTITION " 2000000;" \
 					"ubi create " ROOTFS_PARTITION " 20000000;" \
 					"ubi create update;"
 #define UBIVOLS_DUALBOOT_256MB		"ubi create " LINUX_A_PARTITION " c00000;" \
@@ -255,7 +255,7 @@
 
 /* One partition for each UBI volume (traditional layout) */
 #define MTDPARTS_DUALBOOT_256MB		"mtdparts=" CONFIG_NAND_NAME ":" \
-					__stringify(UBOOT_PART_SIZE_SMALL) "m(" CONFIG_UBOOT_PARTITION ")," \
+					__stringify(UBOOT_PART_SIZE_SMALL) "m(" UBOOT_PARTITION ")," \
 					__stringify(ENV_PART_SIZE_SMALL) "m(environment)," \
 					"1m(safe)," \
 					"12m(" LINUX_A_PARTITION ")," \
@@ -263,7 +263,7 @@
 					"113m(rootfs_a)," \
 					"113m(rootfs_b)"
 #define MTDPARTS_DUALBOOT_512MB		"mtdparts=" CONFIG_NAND_NAME ":" \
-					__stringify(UBOOT_PART_SIZE_BIG) "m(" CONFIG_UBOOT_PARTITION ")," \
+					__stringify(UBOOT_PART_SIZE_BIG) "m(" UBOOT_PARTITION ")," \
 					__stringify(ENV_PART_SIZE_BIG) "m(environment)," \
 					"1m(safe)," \
 					"24m(" LINUX_A_PARTITION ")," \
@@ -271,7 +271,7 @@
 					"230m(rootfs_a)," \
 					"230m(rootfs_b)"
 #define MTDPARTS_DUALBOOT_1024MB	"mtdparts=" CONFIG_NAND_NAME ":" \
-					__stringify(UBOOT_PART_SIZE_BIG) "m(" CONFIG_UBOOT_PARTITION ")," \
+					__stringify(UBOOT_PART_SIZE_BIG) "m(" UBOOT_PARTITION ")," \
 					__stringify(ENV_PART_SIZE_BIG) "m(environment)," \
 					"1m(safe)," \
 					"24m(" LINUX_A_PARTITION ")," \
@@ -280,27 +280,27 @@
 					"256m(rootfs_b)"
 
 #define MTDPARTS_256MB			"mtdparts=" CONFIG_NAND_NAME ":" \
-					__stringify(UBOOT_PART_SIZE_SMALL) "m(" CONFIG_UBOOT_PARTITION ")," \
+					__stringify(UBOOT_PART_SIZE_SMALL) "m(" UBOOT_PARTITION ")," \
 					__stringify(ENV_PART_SIZE_SMALL) "m(environment)," \
 					"1m(safe)," \
-					"12m(" CONFIG_LINUX_PARTITION ")," \
-					"14m(" CONFIG_RECOVERY_PARTITION ")," \
+					"12m(" LINUX_PARTITION ")," \
+					"14m(" RECOVERY_PARTITION ")," \
 					"122m(" ROOTFS_PARTITION ")," \
 					"-(update)"
 #define MTDPARTS_512MB			"mtdparts=" CONFIG_NAND_NAME ":" \
-					__stringify(UBOOT_PART_SIZE_BIG) "m(" CONFIG_UBOOT_PARTITION ")," \
+					__stringify(UBOOT_PART_SIZE_BIG) "m(" UBOOT_PARTITION ")," \
 					__stringify(ENV_PART_SIZE_BIG) "m(environment)," \
 					"1m(safe)," \
-					"24m(" CONFIG_LINUX_PARTITION ")," \
-					"32m(" CONFIG_RECOVERY_PARTITION ")," \
+					"24m(" LINUX_PARTITION ")," \
+					"32m(" RECOVERY_PARTITION ")," \
 					"256m(" ROOTFS_PARTITION ")," \
 					"-(update)"
 #define MTDPARTS_1024MB			"mtdparts=" CONFIG_NAND_NAME ":" \
-					__stringify(UBOOT_PART_SIZE_BIG) "m(" CONFIG_UBOOT_PARTITION ")," \
+					__stringify(UBOOT_PART_SIZE_BIG) "m(" UBOOT_PARTITION ")," \
 					__stringify(ENV_PART_SIZE_BIG) "m(environment)," \
 					"1m(safe)," \
-					"24m(" CONFIG_LINUX_PARTITION ")," \
-					"32m(" CONFIG_RECOVERY_PARTITION ")," \
+					"24m(" LINUX_PARTITION ")," \
+					"32m(" RECOVERY_PARTITION ")," \
 					"512m(" ROOTFS_PARTITION ")," \
 					"-(update)"
 #define CREATE_MTDPARTS_SCRIPT		"if test \"${singlemtdsys}\" = yes; then " \

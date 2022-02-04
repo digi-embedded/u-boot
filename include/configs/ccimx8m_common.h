@@ -338,7 +338,7 @@
 	"\""
 
 /* Partition defines */
-#define CONFIG_RECOVERY_PARTITION	"2"
+#define RECOVERY_PARTITION	"2"
 
 /* protected environment variables (besides ethaddr and serial#) */
 #define CONFIG_ENV_FLAGS_LIST_STATIC	\

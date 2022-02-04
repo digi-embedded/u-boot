@@ -165,7 +165,7 @@
 	"rootfstype=squashfs ro"
 
 #define MTDPART_ENV_SETTINGS \
-	"mtdbootpart=" CONFIG_LINUX_PARTITION "\0" \
+	"mtdbootpart=" LINUX_PARTITION "\0" \
 	"mtdrootfspart=" ROOTFS_PARTITION "\0" \
 	"singlemtdsys=no\0" \
 	"rootfsvol=" ROOTFS_PARTITION "\0" \
@@ -195,7 +195,7 @@
 			"setenv mtdbootpart ${active_system};" \
 		"else " \
 			"if test -z \"${mtdbootpart}\"; then " \
-				"setenv mtdbootpart " CONFIG_LINUX_PARTITION ";" \
+				"setenv mtdbootpart " LINUX_PARTITION ";" \
 			"fi;" \
 		"fi;" \
 		"if test \"${singlemtdsys}\" = yes; then " \
@@ -212,7 +212,7 @@
 			"fi;" \
 		"fi;\0" \
 	"recoverycmd=" \
-		"setenv mtdbootpart " CONFIG_RECOVERY_PARTITION ";" \
+		"setenv mtdbootpart " RECOVERY_PARTITION ";" \
 		"boot\0"
 #define DUALBOOT_ENV_SETTINGS \
 	"linux_a=" LINUX_A_PARTITION "\0" \
