@@ -7,7 +7,9 @@
  *  the Free Software Foundation.
 */
 #include <asm/global_data.h>
+#ifdef DIGI_IMX_FAMILY
 #include <asm/mach-imx/boot_mode.h>
+#endif
 #include <command.h>
 #include <common.h>
 #include <env.h>
