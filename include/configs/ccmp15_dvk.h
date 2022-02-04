@@ -7,60 +7,9 @@
 
 #ifndef __CONFIG_H
 #define __CONFIG_H
-#include <linux/sizes.h>
-#include <asm/arch/stm32.h>
+
 #include <configs/ccmp1_common.h>
 
-#ifndef CONFIG_TFABOOT
-/* PSCI support */
-#define CONFIG_ARMV7_SECURE_BASE		STM32_SYSRAM_BASE
-#define CONFIG_ARMV7_SECURE_MAX_SIZE		STM32_SYSRAM_SIZE
-#endif
-
-/*
- * Configuration of the external SRAM memory used by U-Boot
- */
-#define CONFIG_SYS_SDRAM_BASE			STM32_DDR_BASE
-#define CONFIG_SYS_INIT_SP_ADDR			CONFIG_SYS_TEXT_BASE
-
-/*
- * Console I/O buffer size
- */
-#define CONFIG_SYS_CBSIZE			SZ_1K
-
-/*
- * default load address used for command tftp,  bootm , loadb, ...
- */
-#define CONFIG_LOADADDR			0xc2000000
-#define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
-
-/* ATAGs */
-#define CONFIG_CMDLINE_TAG
-#define CONFIG_SETUP_MEMORY_TAGS
-#define CONFIG_INITRD_TAG
-
-/*
- * For booting Linux, use the first 256 MB of memory, since this is
- * the maximum mapped by the Linux kernel during initialization.
- */
-#define CONFIG_SYS_BOOTMAPSZ		SZ_256M
-
-/* Extend size of kernel image for uncompression */
-#define CONFIG_SYS_BOOTM_LEN		SZ_32M
-
-/* SPL support */
-#ifdef CONFIG_SPL
-/* SPL use DDR */
-#define CONFIG_SPL_BSS_START_ADDR	0xC0200000
-#define CONFIG_SPL_BSS_MAX_SIZE		0x00100000
-#define CONFIG_SYS_SPL_MALLOC_START	0xC0300000
-#define CONFIG_SYS_SPL_MALLOC_SIZE	0x00100000
-
-/* limit SYSRAM usage to first 128 KB */
-#define CONFIG_SPL_MAX_SIZE		0x00020000
-#define CONFIG_SPL_STACK		(STM32_SYSRAM_BASE + \
-					 STM32_SYSRAM_SIZE)
-#endif /* #ifdef CONFIG_SPL */
 /*MMC SD*/
 #define CONFIG_SYS_MMC_MAX_DEVICE	3
 
