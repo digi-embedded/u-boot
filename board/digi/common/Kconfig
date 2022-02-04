@@ -94,3 +94,6 @@ config UBOOT_RESERVED
 	hex "RAM memory reserved for U-Boot, stack, malloc pool..."
 	default 0xA00000
 endif
+
+config DIGI_UBI
+	bool "Support for Digi specific UBI functions"
