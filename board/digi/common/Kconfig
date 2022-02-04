@@ -18,3 +18,13 @@ config MCA_OFFSET_LEN
 config MCA_TAMPER
 	bool "Support for the tamper pins of the MCA"
 endif
+
+config CMD_DBOOT
+	bool "Support for Digi 'dboot' command"
+	help
+	  Digi custom direct boot (dboot) command comprises in a single
+	  command:
+	   - Download of firmware files (kernel, device tree) from the
+	     specified media to RAM.
+	   - Composition of boot arguments.
+	   - Boot of the Operating System.
