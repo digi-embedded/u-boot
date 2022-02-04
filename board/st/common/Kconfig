@@ -10,7 +10,7 @@ config MTDPARTS_NAND0_BOOT
 	string "mtd boot partitions for nand0"
 	default "2m(fsbl),2m(ssbl1),2m(ssbl2)" if STM32MP15X_STM32IMAGE || \
 						  !TFABOOT
-	default "2m(fsbl),4m(fip1),4m(fip2)"
+	default "512k(fsbl1),512k(fsbl2),512k(metadata1),512k(metadata2),4m(fip-a1),4m(fip-a2),4m(fip-b1),4m(fip-b2)"
 	depends on SYS_MTDPARTS_RUNTIME && ARCH_STM32MP
 	help
 	  This define the partitions of nand0 used to build mtparts dynamically
@@ -34,7 +34,7 @@ config MTDPARTS_NOR0_BOOT
 	string "mtd boot partitions for nor0"
 	default "256k(fsbl1),256k(fsbl2),2m(ssbl),512k(u-boot-env)" if STM32MP15X_STM32IMAGE || \
 								       !TFABOOT
-	default "256k(fsbl1),256k(fsbl2),4m(fip),512k(u-boot-env)"
+	default "256k(fsbl1),256k(fsbl2),256k(metadata1),256k(metadata2),4m(fip-a),4m(fip-b),512k(u-boot-env)"
 	depends on SYS_MTDPARTS_RUNTIME && ARCH_STM32MP
 	help
 	  This define the partitions of nand0 used to build mtparts dynamically
@@ -54,7 +54,7 @@ config MTDPARTS_NOR0_TEE
 config MTDPARTS_SPINAND0_BOOT
 	string "mtd boot partitions for spi-nand0"
 	default "2m(fsbl),2m(ssbl1),2m(ssbl2)" if STM32MP15X_STM32IMAGE || !TFABOOT
-	default "2m(fsbl),4m(fip1),4m(fip2)"
+	default "512k(fsbl1),512k(fsbl2),512k(metadata1),512k(metadata2),4m(fip-a1),4m(fip-a2),4m(fip-b1),4m(fip-b2)"
 	depends on SYS_MTDPARTS_RUNTIME && ARCH_STM32MP
 	help
 	  This define the partitions of nand0 used to build mtparts dynamically
