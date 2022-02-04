@@ -27,7 +27,9 @@
 #include <otf_update.h>
 #include "helper.h"
 #include "hwid.h"
+#ifdef CONFIG_FSL_CAAM
 #include "../drivers/crypto/fsl/jr.h"
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
