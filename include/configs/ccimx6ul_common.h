@@ -29,10 +29,6 @@
  */
 #define CONFIG_LOADADDR			0x80800000
 #define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
-#define CONFIG_DIGI_LZIPADDR		0x82000000
-#define CONFIG_DIGI_UPDATE_ADDR		CONFIG_LOADADDR
-/* RAM memory reserved for U-Boot, stack, malloc pool... */
-#define CONFIG_UBOOT_RESERVED		(10 * 1024 * 1024)
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		(16 * SZ_1M)
 /* Physical Memory Map */
@@ -66,7 +62,6 @@
  * Trustfence configs
  */
 #define CONFIG_HAS_TRUSTFENCE
-#define CONFIG_MCA_TAMPER
 
 /* Secure boot configs */
 #define CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS		3
@@ -149,9 +144,6 @@
 #define CONFIG_SYS_I2C_SPEED		100000
 
 /* MCA */
-#define CONFIG_MCA_I2C_BUS		0
-#define CONFIG_MCA_I2C_ADDR		0x7e
-#define CONFIG_MCA_OFFSET_LEN		2
 #define BOARD_MCA_DEVICE_ID		0x61
 
 /* PMIC */
@@ -345,7 +337,6 @@
 #define CONFIG_SUPPORTED_SOURCES_RAM	"ram"
 
 /* Digi boot command 'dboot' */
-#define CONFIG_CMD_DBOOT
 #define CONFIG_DBOOT_SUPPORTED_SOURCES_LIST	\
 	CONFIG_SUPPORTED_SOURCES_NET "|" \
 	CONFIG_SUPPORTED_SOURCES_NAND "|" \
@@ -368,7 +359,6 @@
 	DIGICMD_UPDATEFILE_NET_ARGS_HELP "\n" \
 	DIGICMD_UPDATEFILE_BLOCK_ARGS_HELP "\n" \
 	DIGICMD_UPDATEFILE_RAM_ARGS_HELP
-#define CONFIG_OTF_CHUNK		(32 * 1024 * 1024)
 
 /* Miscellaneous configurable options */
 #undef CONFIG_SYS_CBSIZE

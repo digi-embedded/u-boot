@@ -10,8 +10,6 @@
 
 #include "ccimx8m_common.h"
 
-#define CONFIG_CC8
-#define CONFIG_CC8M
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 8M Mini"
 #define CONFIG_BOARD_DESCRIPTION	"Development Kit"
 #define BOARD_DEY_NAME			"ccimx8mm-dvk"

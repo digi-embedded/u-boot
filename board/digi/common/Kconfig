@@ -1,6 +1,15 @@
 config CCMP1
 	bool
 
+config CC8M
+	bool
+
+config CC8X
+	bool
+
+config CC6UL
+	bool
+
 config MCA
 	bool "Support for the Micro Controller Assist (MCA)"
 
@@ -46,9 +55,12 @@ if CMD_UPDATE
 config CMD_UPDATE_NAND
 	bool
 	default y if CCMP1
+	default y if CC6UL
 
 config CMD_UPDATE_MMC
 	bool
+	default y if CC8M
+	default y if CC8X
 
 config SYS_STORAGE_MEDIA
 	string
@@ -58,14 +70,21 @@ config SYS_STORAGE_MEDIA
 config CMD_BOOTSTREAM
 	bool
 	depends on CMD_UPDATE_NAND
+	default y if CC6UL
 
 config DIGI_UPDATE_ADDR
 	hex "RAM address where to place the firmware image during update"
 	default 0xc2000000 if CCMP1
+	default 0x50000000 if CC8M
+	default 0x95000000 if CC8X
+	default 0x80800000 if CC6UL
 
 config DIGI_LZIPADDR
 	hex "RAM address where to place compressed image (to be decompressed)"
 	default 0xc4000000 if CCMP1
+	default 0x44000000 if CC8M
+	default 0x8C000000 if CC8X
+	default 0x82000000 if CC6UL
 
 config OTF_CHUNK
 	hex "Chunk size (in bytes) for on-the-fly (OTF) updates"

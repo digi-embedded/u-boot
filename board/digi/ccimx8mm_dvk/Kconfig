@@ -1,5 +1,7 @@
 if TARGET_CCIMX8MM_DVK
 
+source "board/digi/common/Kconfig"
+
 config SYS_BOARD
 	default "ccimx8mm_dvk"
 

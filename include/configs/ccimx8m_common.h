@@ -11,8 +11,6 @@
 #include <asm/arch/imx-regs.h>
 #include "digi_common.h"		/* Load Digi common stuff... */
 
-#define CONFIG_CC8
-#define CONFIG_CC8M
 #define DIGI_IMX_FAMILY
 #define CONFIG_DISPLAY_BOARDINFO_LATE
 
@@ -32,7 +30,6 @@
 #define CONFIG_POWER_PCA9450
 
 #define CONFIG_SYS_I2C
-
 #endif
 
 #define CONFIG_SERIAL_TAG
@@ -52,9 +49,6 @@
 #define OCOTP_LOCK_WORD		0
 
 /* MCA */
-#define CONFIG_MCA_I2C_BUS		0
-#define CONFIG_MCA_I2C_ADDR		0x63
-#define CONFIG_MCA_OFFSET_LEN           2
 #define BOARD_MCA_DEVICE_ID		0x4A
 
 /* Ethernet */
@@ -71,8 +65,6 @@
 #define CONFIG_SUPPORTED_SOURCES_RAM	"ram"
 
 /* Digi boot command 'dboot' */
-#define CONFIG_CMD_DBOOT
-
 #define CONFIG_DBOOT_SUPPORTED_SOURCES_LIST	\
 	CONFIG_SUPPORTED_SOURCES_NET "|" \
 	CONFIG_SUPPORTED_SOURCES_BLOCK
@@ -84,7 +76,6 @@
 #define CONFIG_TFTP_UPDATE_ONTHEFLY      /* support to tftp and update on-the-fly */
 
 /* Firmware update */
-#define CONFIG_CMD_UPDATE_MMC
 #define CONFIG_UPDATE_SUPPORTED_SOURCES_LIST	\
 	CONFIG_SUPPORTED_SOURCES_NET "|" \
 	CONFIG_SUPPORTED_SOURCES_BLOCK "|" \
@@ -97,14 +88,10 @@
 	DIGICMD_UPDATEFILE_NET_ARGS_HELP "\n" \
 	DIGICMD_UPDATEFILE_BLOCK_ARGS_HELP "\n" \
 	DIGICMD_UPDATEFILE_RAM_ARGS_HELP
-/* On the fly update chunk (must be a multiple of mmc block size) */
-#define CONFIG_OTF_CHUNK		(32 * 1024 * 1024)
 
 /* Link Definitions */
 #define CONFIG_LOADADDR			0x40480000
 #define CONFIG_SYS_LOAD_ADDR           CONFIG_LOADADDR
-#define CONFIG_DIGI_LZIPADDR		0x44000000
-#define CONFIG_DIGI_UPDATE_ADDR		0x50000000
 
 #define CONFIG_SYS_INIT_RAM_ADDR        0x40000000
 #define CONFIG_SYS_INIT_RAM_SIZE        0x80000
@@ -112,12 +99,6 @@
         (CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
 #define CONFIG_SYS_INIT_SP_ADDR \
         (CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
-
-/* RAM memory reserved for U-Boot, stack, malloc pool... */
-#define CONFIG_UBOOT_RESERVED		(10 * 1024 * 1024)
-
-
-#define CONFIG_SYS_STORAGE_MEDIA       "mmc"
 
 /* MMC device and partition where U-Boot image is */
 #define EMMC_BOOT_ACK			1
@@ -130,15 +111,11 @@
 #define CONFIG_SYS_SDRAM_BASE           0x40000000
 #define PHYS_SDRAM                      0x40000000
 
-
 /* Monitor Command Prompt */
 #define CONFIG_SYS_PROMPT_HUSH_PS2     "> "
 #define CONFIG_SYS_CBSIZE              2048
 
 #define CONFIG_IMX_BOOTAUX
-
-/* Tamper */
-#define CONFIG_MCA_TAMPER
 
 /*
  * Trustfence configs

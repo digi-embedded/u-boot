@@ -72,6 +72,7 @@ config TARGET_CCIMX8X_SBC_EXPRESS
 	bool "Digi ConnectCore 8X SBC Express"
 	select BOARD_LATE_INIT
 	select IMX8QXP
+	select CC8X
 	select MCA
 	select FSL_CAAM
 	select FSL_BLOB
@@ -82,6 +83,7 @@ config TARGET_CCIMX8X_SBC_PRO
 	bool "Digi ConnectCore 8X SBC Pro"
 	select BOARD_LATE_INIT
 	select IMX8QXP
+	select CC8X
 	select MCA
 	select FSL_CAAM
 	select FSL_BLOB

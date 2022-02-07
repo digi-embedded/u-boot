@@ -1,5 +1,7 @@
 if TARGET_CCIMX8X_SBC_PRO
 
+source "board/digi/common/Kconfig"
+
 config MCA
 	bool
 	default y
