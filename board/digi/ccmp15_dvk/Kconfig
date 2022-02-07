@@ -1,5 +1,6 @@
 if TARGET_CCMP15_DVK
 
+source "board/st/common/Kconfig"
 source "board/digi/common/Kconfig"
 
 config SYS_BOARD
