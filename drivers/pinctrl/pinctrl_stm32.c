@@ -50,13 +50,12 @@ static int stm32_pinctrl_get_access(struct udevice *gpio_dev, unsigned int gpio_
 #ifndef CONFIG_SPL_BUILD
 
 static char pin_name[PINNAME_SIZE];
-#define PINMUX_MODE_COUNT		5
-static const char * const pinmux_mode[PINMUX_MODE_COUNT] = {
-	"gpio input",
-	"gpio output",
-	"analog",
-	"unknown",
-	"alt function",
+static const char * const pinmux_mode[GPIOF_COUNT] = {
+	[GPIOF_INPUT] = "gpio input",
+	[GPIOF_OUTPUT] = "gpio output",
+	[GPIOF_UNUSED] = "analog",
+	[GPIOF_UNKNOWN] = "unknown",
+	[GPIOF_FUNC] = "alt function",
 };
 
 static const char * const pinmux_bias[] = {
