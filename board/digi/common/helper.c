@@ -30,6 +30,10 @@
 #ifdef CONFIG_FSL_CAAM
 #include "../drivers/crypto/fsl/jr.h"
 #endif
+#ifdef CONFIG_ANDROID_SUPPORT
+#include "mca.h"
+#include "mca_registers.h"
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -1355,10 +1359,10 @@ int read_squashfs_rootfs(unsigned long addr, unsigned long *size)
 
 #ifdef CONFIG_ANDROID_SUPPORT
 bool is_power_key_pressed(void) {
-	bool power_key_pressed;
+	unsigned char power_key_pressed;
 
 	mca_read_reg(MCA_PWR_STATUS_0, &power_key_pressed);
 
-	return power_key_pressed;
+	return (bool)power_key_pressed;
 }
 #endif
