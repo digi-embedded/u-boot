@@ -3,10 +3,12 @@
  * Copyright (C) 2022, Digi International Inc - All Rights Reserved
  */
 
-#include "stm32mp157c-ed1-u-boot.dtsi"
 #include <dt-bindings/clock/stm32mp1-clksrc.h>
 #include "stm32mp15-u-boot.dtsi"
-#include "stm32mp15-ddr3-2x4Gb-1066-binG.dtsi"
+#include "ccmp1-ddr3l-2x2Gb-1066-binG.dtsi"
+
+#define DDR_MEM_COMPATIBLE ddr3l-ccmp1
+#include "stm32mp15-ddr.dtsi"
 
 / {
 	aliases {
