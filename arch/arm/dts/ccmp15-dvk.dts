@@ -13,7 +13,7 @@
 
 / {
 	model = "Digi International ConnectCore MP15 Development Kit";
-	compatible = "digi,ccmp1", "digi,ccmp15", "digi,ccmp15-dvk";
+	compatible = "digi,ccmp15-dvk", "digi,ccmp15", "digi,ccmp1";
 
 	chosen {
 		stdout-path = "serial0:115200n8";
