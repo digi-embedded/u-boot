@@ -9,27 +9,28 @@
 
 //TODO: define HWID for CCMP1
 struct __packed digi_hwid {
+	/* Word 2 */
  	u32	sn:20;		/* serial number */
-	u32	month:4;	/* manufacturing month */
+	u32	week:6;		/* manufacturing week */
 	u32	year:6;		/* manufacturing year */
-	u32	wid:2;		/* wireless ID */
+	/* Word 1 */
 	u32	mac_base:24;	/* MAC base address */
 	u32	mac_pool:4;	/* MAC address pool */
 	u32	genid:4;	/* generator id */
+	/* Word 0 */
 	u32	cert:3;		/* type of wifi certification */
-	u32	hv:3;		/* hardware version */
+	u32	hv:4;		/* hardware version */
 	u32	variant:5;	/* module variant */
 	u32	ram:4;		/* RAM */
 	u32	mca:1;		/* has MCA */
 	u32	wifi:1;		/* has Wi-Fi */
 	u32	bt:1;		/* has Bluetooth */
 	u32	crypto:1;	/* has crypto-authentication */
-	u32	week:6;		/* manufacturing week */
-	u32	spare:7;	/* spare */
+	u32	spare:12;	/* spare */
 };
 
 #define CONFIG_HWID_STRINGS_HELP	"<XXXXXXXX> <YYYYYYYY> <ZZZZZZZZ>"
-#define CONFIG_MANUF_STRINGS_HELP	"<YYWWGGXXXXXX> <PPAAAAAA> <VVHC> <K> <RMWBC>"
+#define CONFIG_MANUF_STRINGS_HELP	"<YYWWGGXXXXXX> <PPAAAAAA> <VVHC> <RMWBC>"
 #define DIGICMD_HWID_SUPPORTED_OPTIONS_HELP \
 	     "read - read HWID from shadow registers\n" \
 	"hwid read_manuf - read HWID from shadow registers and print manufacturing ID\n" \

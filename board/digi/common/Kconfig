@@ -97,3 +97,20 @@ endif
 
 config DIGI_UBI
 	bool "Support for Digi specific UBI functions"
+
+config HAS_HWID
+	bool "Platform supports a Hardware ID (HWID) on the OTP bits"
+
+if HAS_HWID
+config HWID_BANK
+	int "OTP bank where the HWID is"
+	default 0 if CCMP1
+
+config HWID_START_WORD
+	int "Offset of the first OTP word where the HWID is"
+	default 59 if CCMP1
+
+config HWID_WORDS_NUMBER
+	int "Number of OTP words that form the HWID"
+	default 3 if CCMP1
+endif
