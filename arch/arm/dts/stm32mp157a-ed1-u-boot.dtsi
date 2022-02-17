@@ -5,34 +5,19 @@
 
 #include <dt-bindings/clock/stm32mp1-clksrc.h>
 #include "stm32mp15-u-boot.dtsi"
-#include "stm32mp15-ddr3-1x4Gb-1066-binG.dtsi"
+#include "stm32mp15-ddr3-2x4Gb-1066-binG.dtsi"
 
 / {
 	aliases {
 		i2c3 = &i2c4;
-		usb0 = &usbotg_hs;
 	};
+
 	config {
 		u-boot,boot-led = "heartbeat";
 		u-boot,error-led = "error";
 		u-boot,mmc-env-partition = "fip";
-		st,adc_usb_pd = <&adc1 18>, <&adc1 19>;
 		st,fastboot-gpios = <&gpioa 13 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 		st,stm32prog-gpios = <&gpioa 14 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
-	};
-
-#if defined(CONFIG_STM32MP15x_STM32IMAGE) || defined(CONFIG_SPL)
-	config {
-		u-boot,mmc-env-partition = "ssbl";
-	};
-#endif
-
-	reserved-memory {
-		u-boot,dm-spl;
-
-		optee@de000000 {
-			u-boot,dm-spl;
-		};
 	};
 
 	led {
@@ -43,10 +28,12 @@
 			status = "okay";
 		};
 	};
-};
 
-&adc {
-	status = "okay";
+#if defined(CONFIG_STM32MP15x_STM32IMAGE) || defined(CONFIG_SPL)
+	config {
+		u-boot,mmc-env-partition = "ssbl";
+	};
+#endif
 };
 
 #ifndef CONFIG_TFABOOT
@@ -65,12 +52,6 @@
 		u-boot,dm-pre-reloc;
 	};
 };
-
-#ifndef CONFIG_TFABOOT
-&i2s2 {
-	clocks = <&rcc SPI2>, <&rcc SPI2_K>, <&rcc PLL3_Q>, <&rcc PLL3_R>;
-};
-#endif
 
 &pmic {
 	u-boot,dm-pre-reloc;
@@ -168,12 +149,6 @@
 	};
 };
 
-#ifndef CONFIG_TFABOOT
-&sai2 {
-	clocks = <&rcc SAI2>, <&rcc PLL3_Q>, <&rcc PLL3_R>;
-};
-#endif
-
 &sdmmc1 {
 	u-boot,dm-spl;
 };
@@ -184,6 +159,37 @@
 		u-boot,dm-spl;
 	};
 	pins2 {
+		u-boot,dm-spl;
+	};
+};
+
+&sdmmc1_dir_pins_a {
+	u-boot,dm-spl;
+	pins1 {
+		u-boot,dm-spl;
+	};
+	pins2 {
+		u-boot,dm-spl;
+	};
+};
+
+&sdmmc2 {
+	u-boot,dm-spl;
+};
+
+&sdmmc2_b4_pins_a {
+	u-boot,dm-spl;
+	pins1 {
+		u-boot,dm-spl;
+	};
+	pins2 {
+		u-boot,dm-spl;
+	};
+};
+
+&sdmmc2_d47_pins_a {
+	u-boot,dm-spl;
+	pins {
 		u-boot,dm-spl;
 	};
 };
@@ -202,8 +208,4 @@
 		/* pull-up on rx to avoid floating level */
 		bias-pull-up;
 	};
-};
-
-&usbotg_hs {
-	u-boot,force-b-session-valid;
 };

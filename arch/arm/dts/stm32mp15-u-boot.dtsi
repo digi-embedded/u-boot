@@ -25,21 +25,15 @@
 		multiple-images;
 	};
 
-	clocks {
-		u-boot,dm-pre-reloc;
+	firmware {
+		optee {
+			u-boot,dm-pre-reloc;
+		};
 	};
 
 	/* need PSCI for sysreset during board_f */
 	psci {
 		u-boot,dm-pre-proper;
-	};
-
-	reboot {
-		u-boot,dm-pre-reloc;
-		compatible = "syscon-reboot";
-		regmap = <&rcc>;
-		offset = <0x404>;
-		mask = <0x1>;
 	};
 
 	soc {
@@ -74,36 +68,6 @@
 
 &bsec {
 	u-boot,dm-pre-reloc;
-};
-
-&clk_csi {
-	u-boot,dm-pre-reloc;
-};
-
-&clk_hsi {
-	u-boot,dm-pre-reloc;
-};
-
-&clk_hse {
-	u-boot,dm-pre-reloc;
-};
-
-&clk_lsi {
-	u-boot,dm-pre-reloc;
-};
-
-&clk_lse {
-	u-boot,dm-pre-reloc;
-};
-
-&cpu0_opp_table {
-	u-boot,dm-spl;
-	opp-650000000 {
-		u-boot,dm-spl;
-	};
-	opp-800000000 {
-		u-boot,dm-spl;
-	};
 };
 
 &gpioa {
@@ -163,13 +127,6 @@
 	u-boot,dm-pre-proper;
 };
 
-/* temp = waiting kernel update */
-&m4_rproc {
-	resets = <&rcc MCU_R>,
-		 <&rcc MCU_HOLD_BOOT_R>;
-	reset-names = "mcu_rst", "hold_boot";
-};
-
 &pinctrl {
 	u-boot,dm-pre-reloc;
 };
@@ -188,6 +145,28 @@
 	#size-cells = <0>;
 };
 
+#ifdef CONFIG_TFABOOT
+&scmi {
+	u-boot,dm-pre-reloc;
+};
+
+&scmi_clk {
+	u-boot,dm-pre-reloc;
+};
+
+&scmi_reset {
+	u-boot,dm-pre-reloc;
+};
+
+&scmi_shm {
+	u-boot,dm-pre-reloc;
+};
+
+&scmi_sram {
+	u-boot,dm-pre-reloc;
+};
+#endif
+
 &sdmmc1 {
 	compatible = "st,stm32-sdmmc2", "arm,pl18x", "arm,primecell";
 };
@@ -201,7 +180,7 @@
 };
 
 &usart1 {
-	resets = <&rcc USART1_R>;
+	resets = <&scmi_reset RST_SCMI_USART1>;
 };
 
 &usart2 {
@@ -257,3 +236,54 @@
 	};
 };
 #endif
+
+/* NO MORE USE SCMI SUPPORT for BASIC boot chain */
+#ifndef CONFIG_TFABOOT
+
+#include "stm32mp15-no-scmi.dtsi"
+
+/ {
+	clocks {
+		u-boot,dm-pre-reloc;
+
+		clk_hse: clk-hse {
+			u-boot,dm-pre-reloc;
+		};
+
+		clk_hsi: clk-hsi {
+			u-boot,dm-pre-reloc;
+		};
+
+		clk_lse: clk-lse {
+			u-boot,dm-pre-reloc;
+		};
+
+		clk_lsi: clk-lsi {
+			u-boot,dm-pre-reloc;
+		};
+
+		clk_csi: clk-csi {
+			u-boot,dm-pre-reloc;
+		};
+	};
+
+	reboot {
+		u-boot,dm-pre-reloc;
+	};
+};
+
+&cpu0_opp_table {
+	u-boot,dm-spl;
+	opp-650000000 {
+		u-boot,dm-spl;
+	};
+	opp-800000000 {
+		u-boot,dm-spl;
+	};
+};
+
+&usart1 {
+	resets = <&rcc USART1_R>;
+};
+
+#endif /* CONFIG_TFABOOT */
