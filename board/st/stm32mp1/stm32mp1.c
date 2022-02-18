@@ -645,6 +645,18 @@ static bool board_is_stm32mp15x_ev1(void)
 	return false;
 }
 
+/* touchscreen driver: used for focaltech touchscreen detection */
+static const struct udevice_id edt_ft6236_ids[] = {
+	{ .compatible = "focaltech,ft6236", },
+	{ }
+};
+
+U_BOOT_DRIVER(edt_ft6236) = {
+	.name		= "edt_ft6236",
+	.id		= UCLASS_I2C_GENERIC,
+	.of_match	= edt_ft6236_ids,
+};
+
 /* touchscreen driver: only used for pincontrol configuration */
 static const struct udevice_id goodix_ids[] = {
 	{ .compatible = "goodix,gt911", },
@@ -1085,6 +1097,32 @@ void stm32mp15_fdt_update_optee_nodes(void *new_blob)
 	stm32mp15_fdt_update_scmi_node(new_blob);
 }
 
+void stm32mp15x_dk2_fdt_update(void *new_blob)
+{
+	struct udevice *dev;
+	struct udevice *bus;
+	int nodeoff = 0;
+	int ret;
+
+	ret = uclass_get_device_by_driver(UCLASS_I2C_GENERIC, DM_DRIVER_GET(edt_ft6236), &dev);
+	if (ret)
+		return;
+
+	bus = dev_get_parent(dev);
+
+	ret = dm_i2c_probe(bus, 0x38, 0, &dev);
+	if (ret < 0) {
+		nodeoff = fdt_path_offset(new_blob, "/soc/i2c@40012000/touchscreen@38");
+		if (nodeoff < 0) {
+			log_warning("touchscreen@2a node not found\n");
+		} else {
+			fdt_set_name(new_blob, nodeoff, "touchscreen@2a");
+			fdt_setprop_u32(new_blob, nodeoff, "reg", 0x2a);
+			log_debug("touchscreen@38 node updated to @2a\n");
+		}
+	}
+}
+
 int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	static const struct node_info nodes[] = {
@@ -1107,6 +1145,9 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 
 	if (CONFIG_IS_ENABLED(TARGET_ST_STM32MP15x))
 		stm32mp15_fdt_update_optee_nodes(blob);
+
+	if (board_is_stm32mp15x_dk2())
+		stm32mp15x_dk2_fdt_update(blob);
 
 	return 0;
 }
