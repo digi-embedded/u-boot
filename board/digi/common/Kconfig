@@ -105,12 +105,34 @@ if HAS_HWID
 config HWID_BANK
 	int "OTP bank where the HWID is"
 	default 0 if CCMP1
+	default 9 if CC8M
+	default 0 if CC8X
+	default 4 if CC6UL
 
 config HWID_START_WORD
 	int "Offset of the first OTP word where the HWID is"
 	default 59 if CCMP1
+	default 0 if CC8M
+	default 708 if CC8X
+	default 2 if CC6UL
 
 config HWID_WORDS_NUMBER
 	int "Number of OTP words that form the HWID"
 	default 3 if CCMP1
+	default 3 if CC8M
+	default 4 if CC8X
+	default 2 if CC6UL
+
+config HAS_OTP_LOCK_FUSE
+	bool
+	default y if CC6UL
+	default y if CC8M
+
+if HAS_OTP_LOCK_FUSE
+config HWID_LOCK_FUSE
+	hex "HWID lock fuse mask"
+	default 0x100 if CC6UL
+	default 0x100000 if CC8M
+endif
+
 endif

@@ -29,13 +29,6 @@
 
 #define CONFIG_REMAKE_ELF
 
-/* HWID */
-#define CONFIG_HAS_HWID
-#define CONFIG_HWID_BANK		9
-#define CONFIG_HWID_START_WORD		0
-#define CONFIG_HWID_WORDS_NUMBER	3
-#define CONFIG_HWID_LOCK_FUSE		(0x1 << 14)
-
 /* Lock Fuses */
 #define OCOTP_LOCK_BANK		0
 #define OCOTP_LOCK_WORD		0
