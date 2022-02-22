@@ -71,11 +71,11 @@ void spl_dram_init(void)
 	u32 ram;
 	struct digi_hwid my_hwid;
 
-	/* Default to RAM size of each DVK variant */
+	/* Default to minimum RAM size for each platform */
 	if (is_imx8mn())
-		ram = SZ_1G;    /* ccimx8mn variant 0x01 (1GB) */
+		ram = SZ_512M;  /* ccimx8mn variant 0x03 (512MB) */
 	else
-		ram = SZ_2G;    /* ccimx8mm variant 0x03 (2GB) */
+		ram = SZ_1G;    /* ccimx8mm variant 0x01 (1GB) */
 
 	if (board_read_hwid(&my_hwid)) {
 		debug("Cannot read HWID. Using default DDR configuration.\n");
