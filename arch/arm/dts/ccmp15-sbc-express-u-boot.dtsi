@@ -116,7 +116,7 @@
 		CLK_CKPER_HSE
 		CLK_FMC_ACLK
 		CLK_QSPI_ACLK
-		CLK_ETH_DISABLED
+		CLK_ETH_PLL4P
 		CLK_SDMMC12_PLL4P
 		CLK_DSI_DSIPLL
 		CLK_STGEN_HSE
@@ -168,11 +168,11 @@
 		u-boot,dm-pre-reloc;
 	};
 
-	/* VCO = 594.0 MHz => P = 99, Q = 74, R = 74 */
+	/* VCO = 508.0 MHz => P = 50, Q = 60, R = 60 */
 	pll4: st,pll@3 {
 		compatible = "st,stm32mp1-pll";
 		reg = <3>;
-		cfg = < 3 98 5 7 7 PQR(1,1,1) >;
+		cfg = < 1 49 11 9 9 PQR(1,1,1) >;
 		u-boot,dm-pre-reloc;
 	};
 };
