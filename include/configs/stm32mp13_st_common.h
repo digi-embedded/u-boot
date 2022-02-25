@@ -10,6 +10,7 @@
 
 #define STM32MP_BOARD_EXTRA_ENV \
 	"usb_pgood_delay=1000\0" \
+	"console=ttySTM0\0"
 
 #include <configs/stm32mp13_common.h>
 
