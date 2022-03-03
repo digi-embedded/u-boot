@@ -1010,7 +1010,7 @@ static int nand_setup_data_interface(struct nand_chip *chip, int chipnr)
 		ret = chip->onfi_set_features(mtd, chip,
 				ONFI_FEATURE_ADDR_TIMING_MODE,
 				tmode_param);
-		if (ret)
+		if (ret && ret != -ENOTSUPP)
 			goto err;
 	}
 
