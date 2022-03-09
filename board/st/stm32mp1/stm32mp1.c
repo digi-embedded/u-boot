@@ -1097,6 +1097,133 @@ void stm32mp15_fdt_update_optee_nodes(void *new_blob)
 	stm32mp15_fdt_update_scmi_node(new_blob);
 }
 
+/* Galaxycore GC2145 sensor detection */
+static const struct udevice_id galaxycore_gc2145_ids[] = {
+	{ .compatible = "galaxycore,gc2145", },
+	{ }
+};
+
+U_BOOT_DRIVER(galaxycore_gc2145) = {
+	.name		= "galaxycore_gc2145",
+	.id		= UCLASS_I2C_GENERIC,
+	.of_match	= galaxycore_gc2145_ids,
+};
+
+#define GC2145_ID_REG_OFF	0xF0
+#define GC2145_ID	0x2145
+static bool stm32mp13x_is_gc2145_detected(void)
+{
+	struct udevice *dev, *bus, *supply;
+	struct dm_i2c_chip *chip;
+	struct gpio_desc gpio;
+	bool gpio_found = false;
+	bool gc2145_detected = false;
+	u16 id;
+	int ret;
+
+	/* Check if the GC2145 sensor is found */
+	ret = uclass_get_device_by_driver(UCLASS_I2C_GENERIC, DM_DRIVER_GET(galaxycore_gc2145),
+					  &dev);
+	if (ret)
+		return false;
+
+	/*
+	 * In order to get access to the sensor we need to enable regulators
+	 * and disable powerdown GPIO
+	 */
+	ret = device_get_supply_regulator(dev, "IOVDD-supply", &supply);
+	if (!ret && supply)
+		regulator_autoset(supply);
+
+	/* Request the powerdown GPIO */
+	ret = gpio_request_by_name(dev, "powerdown-gpios", 0, &gpio, GPIOD_IS_OUT);
+	if (!ret) {
+		gpio_found = true;
+		dm_gpio_set_value(&gpio, 0);
+	}
+
+	/* Wait a bit so that the device become visible on I2C */
+	mdelay(10);
+
+	bus = dev_get_parent(dev);
+
+	/* Probe the i2c device */
+	chip = dev_get_parent_plat(dev);
+	ret = dm_i2c_probe(bus, chip->chip_addr, 0, &dev);
+	if (ret)
+		goto out;
+
+	/* Read the value at 0xF0 - 0xF1 */
+	ret = dm_i2c_read(dev, GC2145_ID_REG_OFF, (uint8_t *)&id, sizeof(id));
+	if (ret)
+		goto out;
+
+	/* Check ID values - if GC2145 then nothing to do */
+	gc2145_detected = (be16_to_cpu(id) == GC2145_ID);
+
+out:
+	if (gpio_found) {
+		dm_gpio_set_value(&gpio, 1);
+		dm_gpio_free(NULL, &gpio);
+	}
+
+	return gc2145_detected;
+}
+
+void stm32mp13x_dk_fdt_update(void *new_blob)
+{
+	int nodeoff_gc2145 = 0, nodeoff_ov5640 = 0;
+	int nodeoff_ov5640_ep = 0, nodeoff_stmipi_ep = 0;
+	int phandle_ov5640_ep, phandle_stmipi_ep;
+
+	if (stm32mp13x_is_gc2145_detected())
+		return;
+
+	/*
+	 * By default the DT is written with GC2145 enabled.  If it isn't
+	 * detected, disable it within the DT and instead enable the OV5640
+	 */
+	nodeoff_gc2145 = fdt_path_offset(new_blob, "/soc/i2c@4c006000/gc2145@3c");
+	if (nodeoff_gc2145 < 0) {
+		log_err("gc2145@3c node not found - DT update aborted\n");
+		return;
+	}
+	fdt_setprop_string(new_blob, nodeoff_gc2145, "status", "disabled");
+
+	nodeoff_ov5640 = fdt_path_offset(new_blob, "/soc/i2c@4c006000/camera@3c");
+	if (nodeoff_ov5640 < 0) {
+		log_err("camera@3c node not found - DT update aborted\n");
+		return;
+	}
+	fdt_setprop_string(new_blob, nodeoff_ov5640, "status", "okay");
+
+	nodeoff_ov5640_ep = fdt_path_offset(new_blob, "/soc/i2c@4c006000/camera@3c/port/endpoint");
+	if (nodeoff_ov5640_ep < 0) {
+		log_err("camera@3c/port/endpoint node not found - DT update aborted\n");
+		return;
+	}
+
+	phandle_ov5640_ep = fdt_get_phandle(new_blob, nodeoff_ov5640_ep);
+
+	nodeoff_stmipi_ep =
+		fdt_path_offset(new_blob, "/soc/i2c@4c006000/stmipi@14/ports/port@0/endpoint");
+	if (nodeoff_stmipi_ep < 0) {
+		log_err("stmipi@14/ports/port@0/endpoint node not found - DT update aborted\n");
+		return;
+	}
+
+	fdt_setprop_u32(new_blob, nodeoff_stmipi_ep, "remote-endpoint", phandle_ov5640_ep);
+
+	/*
+	 * The OV5640 endpoint doesn't have remote-endpoint property in order to avoid
+	 * a device-tree warning due to non birectionnal graph connection.
+	 * When enabling the OV5640, add the remote-endpoint property as well, pointing
+	 * to the stmipi endpoint
+	 */
+	phandle_stmipi_ep = fdt_get_phandle(new_blob, nodeoff_stmipi_ep);
+	fdt_setprop_u32(new_blob, nodeoff_ov5640_ep, "remote-endpoint", phandle_stmipi_ep);
+}
+
 void stm32mp15x_dk2_fdt_update(void *new_blob)
 {
 	struct udevice *dev;
@@ -1145,6 +1272,9 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 
 	if (CONFIG_IS_ENABLED(TARGET_ST_STM32MP15x))
 		stm32mp15_fdt_update_optee_nodes(blob);
+
+	if (board_is_stm32mp13x_dk())
+		stm32mp13x_dk_fdt_update(blob);
 
 	if (board_is_stm32mp15x_dk2())
 		stm32mp15x_dk2_fdt_update(blob);
