@@ -418,7 +418,8 @@ config DEK_PATH
 
 config SIGN_MODE
 	string "Sign mode"
-	depends on SIGN_IMAGE
+	default "AHAB" if AHAB_BOOT
+	default "HAB" if IMX_HAB
 	help
 	  Sets the signing method to be one of "HAB" or "AHAB".
 	  HAB method is supported on i.MX6/7 and i.MX8M devices.
