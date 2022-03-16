@@ -338,7 +338,7 @@ static int bsec_program_otp(struct udevice *dev,void __iomem *base, u32 val, u32
  * @otp: otp number (0 - BSEC_OTP_MAX_VALUE)
  * Return: 0 if no error
  */
-static int bsec_permanent_lock_otp(struct udevice *dev, long base, uint32_t otp)
+static int bsec_permanent_lock_otp(struct udevice *dev, void __iomem *base, uint32_t otp)
 {
 	int ret;
 	bool power_up = false;
