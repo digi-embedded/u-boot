@@ -13,7 +13,7 @@
 #include <mapmem.h>
 #include <linux/kernel.h>
 #include <linux/sizes.h>
-#ifdef CONFIG_SIGN_IMAGE
+#ifdef CONFIG_AUTH_ARTIFACTS
 #include "../board/digi/common/auth.h"
 /* See Documentation/arm64/booting.txt in the Linux kernel */
 struct Image_header {
@@ -54,7 +54,7 @@ static int booti_start(cmd_tbl_t *cmdtp, int flag, int argc,
 		debug("*  kernel: cmdline image address = 0x%08lx\n", ld);
 	}
 
-#ifdef CONFIG_SIGN_IMAGE
+#ifdef CONFIG_AUTH_ARTIFACTS
 	uint64_t img_size;
 	struct Image_header *img_hdr = (struct Image_header *)ld;
 
@@ -66,7 +66,7 @@ static int booti_start(cmd_tbl_t *cmdtp, int flag, int argc,
 		printf("Authenticate Image Fail, Please check\n");
 		return 1;
 	}
-#endif /* CONFIG_SIGN_IMAGE */
+#endif /* CONFIG_AUTH_ARTIFACTS */
 
 	ret = booti_setup(ld, &relocated_addr, &(image_size), false);
 	if (ret != 0)

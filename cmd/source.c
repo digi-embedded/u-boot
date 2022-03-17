@@ -23,7 +23,7 @@
 #include <asm/byteorder.h>
 #include <asm/io.h>
 #include <asm/mach-imx/hab.h>
-#ifdef CONFIG_SIGN_IMAGE
+#ifdef CONFIG_AUTH_ARTIFACTS
 #include "../board/digi/common/auth.h"
 #endif
 
@@ -185,7 +185,7 @@ static int do_source(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		debug ("*  source: cmdline image address = 0x%08lx\n", addr);
 	}
 
-#ifdef CONFIG_SIGN_IMAGE
+#ifdef CONFIG_AUTH_ARTIFACTS
 	ulong img_size;
 	const image_header_t *img_hdr = (const image_header_t *)addr;
 	if (img_hdr == NULL)
@@ -196,7 +196,7 @@ static int do_source(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		printf("Authenticate Image Fail, Please check\n");
 		return CMD_RET_FAILURE;
 	}
-#endif /* CONFIG_SIGN_IMAGE */
+#endif /* CONFIG_AUTH_ARTIFACTS */
 	printf ("## Executing script at %08lx\n", addr);
 	rcode = image_source_script(addr, fit_uname);
 	return rcode;
