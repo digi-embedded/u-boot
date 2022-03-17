@@ -16,7 +16,7 @@
 #include <malloc.h>
 #include <mapmem.h>
 #include <asm/io.h>
-#ifdef CONFIG_SIGN_IMAGE
+#ifdef CONFIG_AUTH_ARTIFACTS
 #include "../board/digi/common/auth.h"
 #endif
 #if defined(CONFIG_CMD_USB)
@@ -793,13 +793,13 @@ static const void *boot_get_kernel(cmd_tbl_t *cmdtp, int flag, int argc,
 	switch (genimg_get_format(buf)) {
 #if defined(CONFIG_IMAGE_FORMAT_LEGACY)
 	case IMAGE_FORMAT_LEGACY:
-#ifdef CONFIG_SIGN_IMAGE
+#ifdef CONFIG_AUTH_ARTIFACTS
 		if (digi_auth_image(&buf,
 			image_get_image_size((image_header_t *) buf)) == 0) {
 			printf("Authenticate uImage Fail, Please check\n");
 			return NULL;
 		}
-#endif /* CONFIG_SIGN_IMAGE */
+#endif /* CONFIG_AUTH_ARTIFACTS */
 		break;
 #endif
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
