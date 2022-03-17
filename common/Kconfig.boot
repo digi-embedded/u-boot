@@ -2,8 +2,15 @@ menu "Boot options"
 
 menu "Boot images"
 
+config AUTH_ARTIFACTS
+	bool "Support boot artifact authentication"
+	help
+	  Enable this option to support authentication of signed/encrypted boot
+	  artifacts.
+
 config SIGN_IMAGE
 	bool "Generate signed images"
+	depends on AUTH_ARTIFACTS
 	help
 	  Enable this option to generate signed uboot images. When enabled:
 	  * UBOOT_SIGN_KEYS_PATH must be defined to the path of the CST folder by NXP.
@@ -60,7 +67,6 @@ config AUTHENTICATE_SQUASHFS_ROOTFS
 	default n
 
 config AUTH_SQUASHFS_ADDR
-	depends on AUTHENTICATE_SQUASHFS_ROOTFS
 	default 0x90000000 if AHAB_BOOT
 	default 0x0 if IMX_HAB
 	hex "Authenticate Squashfs address"
