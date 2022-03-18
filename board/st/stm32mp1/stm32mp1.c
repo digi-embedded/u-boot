@@ -40,6 +40,8 @@
 #include <asm/gpio.h>
 #include <asm/arch/stm32.h>
 #include <asm/arch/sys_proto.h>
+#include <dm/device.h>
+#include <dm/device-internal.h>
 #include <jffs2/load_kernel.h>
 #include <linux/bitops.h>
 #include <linux/delay.h>
@@ -72,6 +74,9 @@
 #define SYSCFG_CMPCR_READY		BIT(8)
 
 #define SYSCFG_CMPENSETR_MPU_EN		BIT(0)
+
+#define GOODIX_REG_ID		0x8140
+#define GOODIX_ID_LEN		4
 
 /*
  * Get a global data pointer
@@ -666,16 +671,171 @@ static const struct udevice_id goodix_ids[] = {
 
 U_BOOT_DRIVER(goodix) = {
 	.name		= "goodix",
-	.id		= UCLASS_NOP,
+	.id		= UCLASS_I2C_GENERIC,
 	.of_match	= goodix_ids,
+};
+
+static int goodix_i2c_read(struct udevice *dev, u16 reg, u8 *buf, int len)
+{
+	struct i2c_msg msgs[2];
+	__be16 wbuf = cpu_to_be16(reg);
+	int ret;
+
+	msgs[0].flags = 0;
+	msgs[0].addr  = 0x5d;
+	msgs[0].len   = 2;
+	msgs[0].buf   = (u8 *)&wbuf;
+
+	msgs[1].flags = I2C_M_RD;
+	msgs[1].addr  = 0x5d;
+	msgs[1].len   = len;
+	msgs[1].buf   = buf;
+
+	ret = dm_i2c_xfer(dev, msgs, 2);
+
+	return ret;
+}
+
+/* HELPER: search detected driver */
+struct detect_info_t {
+	bool (*detect)(void);
+	struct driver *drv;
+};
+
+static struct driver *detect_device(struct detect_info_t *info, u8 size)
+{
+	struct driver *drv = NULL;
+	u8 i;
+
+	for (i = 0; i < size && !drv; i++)
+		if (info[i].detect())
+			drv = info[i].drv;
+
+	return drv;
+}
+
+/* HELPER: force new driver binding, replace the existing one */
+static void bind_driver(struct driver *drv, const char *path)
+{
+	ofnode node;
+	struct udevice *dev;
+	struct udevice *parent;
+	int ret;
+
+	node = ofnode_path(path);
+	if (!ofnode_valid(node))
+		return;
+	if (!ofnode_is_enabled(node))
+		return;
+
+	ret = device_find_global_by_ofnode(ofnode_get_parent(node), &parent);
+	if (!parent || ret) {
+		log_debug("Unable to found parent. err:%d\n", ret);
+		return;
+	}
+
+	ret = device_find_global_by_ofnode(node, &dev);
+	/* remove the driver previously binded */
+	if (dev && !ret) {
+		if (dev->driver == drv) {
+			log_debug("nothing to do, %s already binded.\n", drv->name);
+			return;
+		}
+		log_debug("%s unbind\n", dev->driver->name);
+		device_remove(dev, DM_REMOVE_NORMAL);
+		device_unbind(dev);
+	}
+	/* bind the new driver */
+	ret = device_bind_with_driver_data(parent, drv, ofnode_get_name(node),
+					   0, node, &dev);
+	if (ret)
+		log_debug("Unable to bind %s, err:%d\n", drv->name, ret);
+}
+
+bool stm32mp15x_ev1_rm68200(void)
+{
+	struct udevice *dev;
+	struct udevice *bus;
+	struct dm_i2c_chip *chip;
+	char id[GOODIX_ID_LEN];
+	int ret;
+
+	ret = uclass_get_device_by_driver(UCLASS_I2C_GENERIC, DM_DRIVER_GET(goodix), &dev);
+	if (ret)
+		return false;
+
+	bus = dev_get_parent(dev);
+	chip = dev_get_parent_plat(dev);
+	ret = dm_i2c_probe(bus, chip->chip_addr, 0, &dev);
+	if (ret)
+		return false;
+
+	ret = goodix_i2c_read(dev, GOODIX_REG_ID, id, sizeof(id));
+	if (ret)
+		return false;
+
+	if (!strncmp(id, "9147", sizeof(id)))
+		return true;
+
+	return false;
+}
+
+bool stm32mp15x_ev1_hx8394(void)
+{
+	return true;
+}
+
+extern U_BOOT_DRIVER(rm68200_panel);
+extern U_BOOT_DRIVER(hx8394_panel);
+
+struct detect_info_t stm32mp15x_ev1_panels[] = {
+	CONFIG_IS_ENABLED(VIDEO_LCD_RAYDIUM_RM68200,
+			  ({ .detect = stm32mp15x_ev1_rm68200,
+			   .drv = DM_DRIVER_REF(rm68200_panel)
+			   },
+			   ))
+	CONFIG_IS_ENABLED(VIDEO_LCD_ROCKTECH_HX8394,
+			  ({ .detect = stm32mp15x_ev1_hx8394,
+			   .drv = DM_DRIVER_REF(hx8394_panel)
+			   },
+			   ))
 };
 
 static void board_stm32mp15x_ev1_init(void)
 {
 	struct udevice *dev;
+	struct driver *drv;
+	struct gpio_desc reset_gpio;
+	char path[40];
 
 	/* configure IRQ line on EV1 for touchscreen before LCD reset */
-	uclass_get_device_by_driver(UCLASS_NOP, DM_DRIVER_GET(goodix), &dev);
+	uclass_get_device_by_driver(UCLASS_I2C_GENERIC, DM_DRIVER_GET(goodix), &dev);
+
+	/* get & set reset gpio for panel */
+	uclass_get_device_by_driver(UCLASS_PANEL, DM_DRIVER_GET(rm68200_panel), &dev);
+
+	gpio_request_by_name(dev, "reset-gpios", 0, &reset_gpio, GPIOD_IS_OUT);
+
+	if (!dm_gpio_is_valid(&reset_gpio))
+		return;
+
+	dm_gpio_set_value(&reset_gpio, true);
+	mdelay(1);
+	dm_gpio_set_value(&reset_gpio, false);
+	mdelay(10);
+
+	/* auto detection of connected panel-dsi */
+	drv = detect_device(stm32mp15x_ev1_panels, ARRAY_SIZE(stm32mp15x_ev1_panels));
+	if (!drv)
+		return;
+	/* save the detected compatible in environment */
+	env_set("panel-dsi", drv->of_match->compatible);
+
+	dm_gpio_free(NULL, &reset_gpio);
+
+	/* select the driver for the detected PANEL */
+	ofnode_get_path(dev_ofnode(dev), path, sizeof(path));
+	bind_driver(drv, path);
 }
 
 static void board_stm32mp13x_dk_init(void)
@@ -699,15 +859,6 @@ int board_init(void)
 	}
 
 	board_key_check();
-
-	if (board_is_stm32mp13x_dk())
-		board_stm32mp13x_dk_init();
-
-	if (board_is_stm32mp15x_ev1())
-		board_stm32mp15x_ev1_init();
-
-	if (board_is_stm32mp15x_dk2())
-		board_stm32mp15x_dk2_init();
 
 	if (IS_ENABLED(CONFIG_DM_REGULATOR))
 		regulators_enable_boot_on(_DEBUG);
@@ -737,6 +888,15 @@ int board_late_init(void)
 	char buf[10];
 	char dtb_name[256];
 	int buf_len;
+
+	if (board_is_stm32mp13x_dk())
+		board_stm32mp13x_dk_init();
+
+	if (board_is_stm32mp15x_ev1())
+		board_stm32mp15x_ev1_init();
+
+	if (board_is_stm32mp15x_dk2())
+		board_stm32mp15x_dk2_init();
 
 	if (IS_ENABLED(CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG)) {
 		fdt_compat = fdt_getprop(gd->fdt_blob, 0, "compatible",
@@ -1250,6 +1410,31 @@ void stm32mp15x_dk2_fdt_update(void *new_blob)
 	}
 }
 
+void fdt_update_panel_dsi(void *new_blob)
+{
+	char const *panel = env_get("panel-dsi");
+	int nodeoff = 0;
+
+	if (!panel)
+		return;
+
+	if (!strcmp(panel, "rocktech,hx8394")) {
+		nodeoff = fdt_node_offset_by_compatible(new_blob, -1, "raydium,rm68200");
+		if (nodeoff < 0) {
+			log_warning("panel-dsi node not found");
+			return;
+		}
+		fdt_setprop_string(new_blob, nodeoff, "compatible", panel);
+
+		nodeoff = fdt_node_offset_by_compatible(new_blob, -1, "goodix,gt9147");
+		if (nodeoff < 0) {
+			log_warning("touchscreen node not found");
+			return;
+		}
+		fdt_setprop_string(new_blob, nodeoff, "compatible", "goodix,gt911");
+	}
+}
+
 int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	static const struct node_info nodes[] = {
@@ -1278,6 +1463,9 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 
 	if (board_is_stm32mp15x_dk2())
 		stm32mp15x_dk2_fdt_update(blob);
+
+	if (board_is_stm32mp15x_ev1())
+		fdt_update_panel_dsi(blob);
 
 	return 0;
 }
