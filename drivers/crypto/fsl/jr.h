@@ -40,6 +40,8 @@
 #define JQ_DEQ_TO_ERR		-2
 #define JQ_ENQ_ERR		-3
 
+#define RNG4_MAX_HANDLES	2
+
 struct op_ring {
 	u32 desc;
 	u32 status;
