@@ -1077,6 +1077,7 @@ dtb-$(CONFIG_ARCH_STI) += stih410-b2260.dtb
 
 dtb-$(CONFIG_STM32MP15x) += \
 	ccmp15-sbc-express.dtb \
+	ccmp15-sbc-pro.dtb \
 	ccmp15-dvk.dtb \
 	stm32mp157a-avenger96.dtb \
 	stm32mp157a-dk1.dtb \
