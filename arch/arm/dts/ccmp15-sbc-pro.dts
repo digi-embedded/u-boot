@@ -119,7 +119,7 @@
 	phy-mode = "rmii";
 	max-speed = <100>;
 	phy-handle = <&phy0>;
-	phy-reset-gpios = <&gpioh 15 GPIO_ACTIVE_LOW>;
+	phy-reset-gpios = <&gpioz 0 GPIO_ACTIVE_LOW>;
 	phy-reset-duration = <26>;
 	st,eth-ref-clk-sel;
 	local-mac-address = [00 04 F3 22 23 24];
@@ -132,8 +132,8 @@
 			reg = <0>;
 			compatible = "ethernet-phy-ieee802.3-c22";
 			smsc,disable-energy-detect;
-			interrupt-parent = <&gpioi>;
-			interrupts = <6 IRQ_TYPE_LEVEL_LOW>;
+			interrupt-parent = <&gpioa>;
+			interrupts = <14 IRQ_TYPE_LEVEL_LOW>;
 		};
 	};
 };
