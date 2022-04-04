@@ -139,9 +139,7 @@
 	pinctrl-2 = <&sdmmc1_b4_sleep_pins_a &sdmmc1_dir_sleep_pins_a>;
 	cd-gpios = <&gpiog 1 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 	disable-wp;
-	st,sig-dir;
-	st,neg-edge;
-	st,use-ckin;
+	no-1-8-v;
 	bus-width = <4>;
 	vmmc-supply = <&vdd_sd>;
 	sd-uhs-sdr12;

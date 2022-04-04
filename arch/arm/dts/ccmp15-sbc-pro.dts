@@ -146,9 +146,7 @@
 	pinctrl-2 = <&sdmmc2_b4_sleep_pins_a>;
 	broken-cd;
 	disable-wp;
-	st,sig-dir;
-	st,neg-edge;
-	st,use-ckin;
+	no-1-8-v;
 	bus-width = <4>;
 	sd-uhs-sdr12;
 	sd-uhs-sdr25;
