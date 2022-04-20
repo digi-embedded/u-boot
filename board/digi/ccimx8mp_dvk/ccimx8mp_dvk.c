@@ -31,7 +31,18 @@
 #include <linux/arm-smccc.h>
 #include <mmc.h>
 
+#include "../ccimx8/ccimx8.h"
+#include "../common/carrier_board.h"
+#include "../common/helper.h"
+#include "../common/mca_registers.h"
+#include "../common/mca.h"
+#include "../common/tamper.h"
+#include "../common/trustfence.h"
+
 DECLARE_GLOBAL_DATA_PTR;
+
+unsigned int board_version = CARRIERBOARD_VERSION_UNDEFINED;
+unsigned int board_id = CARRIERBOARD_ID_UNDEFINED;
 
 #define UART_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_FSEL1)
 #define WDOG_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_ODE | PAD_CTL_PUE | PAD_CTL_PE)
@@ -62,6 +73,10 @@ int board_early_init_f(void)
 	set_wdog_reset(wdog);
 
 	imx_iomux_v3_setup_multiple_pads(uart_pads, ARRAY_SIZE(uart_pads));
+
+#ifdef CONFIG_CONSOLE_DISABLE
+	gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#endif /* CONFIG_CONSOLE_DISABLE */
 
 	init_uart_clk(1);
 
@@ -108,6 +123,9 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 	}
 #endif
 #endif
+
+	fdt_fixup_ccimx8(blob);
+	fdt_fixup_carrierboard(blob);
 
 	return 0;
 }
@@ -439,6 +457,9 @@ int board_init(void)
 {
 	struct arm_smccc_res res;
 
+	/* SOM init */
+	ccimx8_init();
+
 #ifdef CONFIG_USB_TCPC
 	setup_typec();
 
@@ -472,14 +493,22 @@ int board_init(void)
 	return 0;
 }
 
+void platform_default_environment(void)
+{
+	som_default_environment();
+}
+
 int board_late_init(void)
 {
-// #ifdef CONFIG_ENV_IS_IN_MMC
-// 	board_late_mmc_env_init();
-// #endif
-#ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
-	env_set("board_name", "EVK");
-	env_set("board_rev", "iMX8MP");
+	/* SOM late init */
+	ccimx8_late_init();
+
+	/* Set default dynamic variables */
+	platform_default_environment();
+
+#ifdef CONFIG_HAS_TRUSTFENCE
+	copy_dek();
+	copy_spl_dek();
 #endif
 
 	return 0;
