@@ -39,8 +39,6 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-extern struct dram_timing_info dram_timing_2G;
-
 int spl_board_boot_device(enum boot_device boot_dev_spl)
 {
 #ifdef CONFIG_SPL_BOOTROM_SUPPORT
@@ -69,20 +67,7 @@ int spl_board_boot_device(enum boot_device boot_dev_spl)
 
 void spl_dram_init(void)
 {
-	struct digi_hwid my_hwid;
-	u32 ram = 0;
-
-	if (!board_read_hwid(&my_hwid))
-		ram = hwid_get_ramsize(&my_hwid);
-	else
-		debug("Cannot read HWID. Using default DDR configuration.\n");
-
-	switch (ram) {
-	case SZ_2G:
-	default:
-		ddr_init(&dram_timing_2G);
-		break;
-	}
+	ddr_init(&dram_timing);
 }
 
 #if CONFIG_IS_ENABLED(DM_PMIC_PCA9450)
