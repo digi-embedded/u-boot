@@ -12,7 +12,6 @@
 #include <command.h>
 #include <env.h>
 #include <env_internal.h>
-#include <fsl_sec.h>
 #include <log.h>
 #include <sort.h>
 #include <asm/global_data.h>
