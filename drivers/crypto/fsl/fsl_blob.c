@@ -63,6 +63,7 @@ int blob_decap(u8 *key_mod, u8 *src, u8 *dst, u32 len)
 	flush_dcache_range((unsigned long)desc,
 			   (unsigned long)desc + size);
 
+	size = ALIGN(len, ARCH_DMA_MINALIGN);
 	flush_dcache_range((unsigned long)dst,
 			   (unsigned long)dst + size);
 
@@ -131,6 +132,7 @@ int blob_encap(u8 *key_mod, u8 *src, u8 *dst, u32 len)
 	flush_dcache_range((unsigned long)desc,
 			   (unsigned long)desc + size);
 
+	size = ALIGN(BLOB_SIZE(len), ARCH_DMA_MINALIGN);
 	flush_dcache_range((unsigned long)dst,
 			   (unsigned long)dst + size);
 
