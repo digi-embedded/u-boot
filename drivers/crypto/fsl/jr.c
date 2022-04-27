@@ -659,7 +659,7 @@ int sec_init_idx(uint8_t sec_idx)
 				printf("SEC%u: RNG instantiation failed\n", sec_idx);
 				return -1;
 			}
-			printf("SEC%u: RNG instantiated\n", sec_idx);
+			debug("SEC%u: RNG instantiated\n", sec_idx);
 		}
 	}
 #endif

@@ -54,3 +54,6 @@ config SYS_FSL_SEC_LE
 
 config RNG_SW_TEST
 	bool "Include RNG software self-test"
+
+config FSL_BLOB
+	bool "Enable Blob Encap/Decap support"
