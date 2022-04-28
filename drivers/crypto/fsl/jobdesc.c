@@ -225,9 +225,15 @@ void inline_cnstr_jobdesc_blob_encap(uint32_t *desc, uint8_t *key_idnfr,
 
 	append_key(desc, dma_addr_key_idnfr, key_sz, CLASS_2);
 
-	append_seq_in_ptr(desc, dma_addr_in, in_sz, 0);
+	/*
+	 * Mask block sizes to be < 64KB for compatibility with
+	 * older U-Boot versions that encrypt the environment
+	 * using 'caam_gen_blob'.
+	 * TODO: support bigger blob sizes and remove this mask.
+	 */
+	append_seq_in_ptr(desc, dma_addr_in, (0x0000ffff & in_sz), 0);
 
-	append_seq_out_ptr(desc, dma_addr_out, out_sz, 0);
+	append_seq_out_ptr(desc, dma_addr_out, (0x0000ffff & out_sz), 0);
 
 	append_operation(desc, OP_TYPE_ENCAP_PROTOCOL | OP_PCLID_BLOB);
 }
@@ -248,9 +254,15 @@ void inline_cnstr_jobdesc_blob_decap(uint32_t *desc, uint8_t *key_idnfr,
 
 	append_key(desc, dma_addr_key_idnfr, key_sz, CLASS_2);
 
-	append_seq_in_ptr(desc, dma_addr_in, in_sz, 0);
+	/*
+	 * Mask block sizes to be < 64KB for compatibility with
+	 * older U-Boot versions that encrypt the environment
+	 * using 'caam_gen_blob'.
+	 * TODO: support bigger blob sizes and remove this mask.
+	 */
+	append_seq_in_ptr(desc, dma_addr_in, (0x0000ffff & in_sz), 0);
 
-	append_seq_out_ptr(desc, dma_addr_out, out_sz, 0);
+	append_seq_out_ptr(desc, dma_addr_out, (0x0000ffff & out_sz), 0);
 
 	append_operation(desc, OP_TYPE_DECAP_PROTOCOL | OP_PCLID_BLOB);
 }
