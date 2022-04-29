@@ -511,10 +511,12 @@ retry_cmd:
  */
 static void stm32_sdmmc2_reset(struct stm32_sdmmc2_plat *plat)
 {
-	/* Reset */
-	reset_assert(&plat->reset_ctl);
-	udelay(2);
-	reset_deassert(&plat->reset_ctl);
+	if (reset_valid(&plat->reset_ctl)) {
+		/* Reset */
+		reset_assert(&plat->reset_ctl);
+		udelay(2);
+		reset_deassert(&plat->reset_ctl);
+	}
 
 	/* init the needed SDMMC register after reset */
 	writel(plat->pwr_reg_msk, plat->base + SDMMC_POWER);
@@ -676,8 +678,7 @@ static int stm32_sdmmc2_of_to_plat(struct udevice *dev)
 
 	ret = reset_get_by_index(dev, 0, &plat->reset_ctl);
 	if (ret) {
-		clk_free(&plat->clk);
-		return ret;
+		dev_dbg(dev, "No reset provided\n");
 	}
 
 	gpio_request_by_name(dev, "cd-gpios", 0, &plat->cd_gpio,
