@@ -994,6 +994,12 @@ static int stm32_fmc2_nfc_probe(struct udevice *dev)
 		return ret;
 	}
 
+	/* Use the ECC strength reported by the NAND via ONFI if available */
+	if (chip->ecc_strength_ds > 0) {
+		chip->ecc.strength = chip->ecc_strength_ds;
+		stm32_fmc2_nfc_setup(chip);
+	}
+
 	if (chip->bbt_options & NAND_BBT_USE_FLASH)
 		chip->bbt_options |= NAND_BBT_NO_OOB;
 
