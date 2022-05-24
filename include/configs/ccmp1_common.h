@@ -203,4 +203,40 @@
 #define ROOTFS_A_PARTITION		"rootfs_a"
 #define ROOTFS_B_PARTITION		"rootfs_b"
 
+#define ALTBOOTCMD	\
+	"altbootcmd=" \
+		"if test -z \"${active_system}\"; then " \
+			"setenv active_system " LINUX_A_PARTITION ";" \
+		"fi;" \
+		"setenv mtdbootpart ${active_system};" \
+		"if test \"${singlemtdsys}\" = yes; then " \
+			"if ubi part " SYSTEM_PARTITION "; then " \
+				"if ubifsmount ubi0:${mtdbootpart}; then " \
+					"ubifsload ${loadaddr} altboot.scr;" \
+				"fi;" \
+			"fi;" \
+		"else " \
+			"if ubi part ${mtdbootpart}; then " \
+				"if ubifsmount ubi0:${mtdbootpart}; then " \
+					"ubifsload ${loadaddr} altboot.scr;" \
+				"fi;" \
+			"fi;" \
+		"fi;" \
+		"source ${loadaddr}\0"
+
+/* Extra network settings for second Ethernet */
+#define CONFIG_EXTRA_NETWORK_SETTINGS \
+	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"
+
+#define CONFIG_ENV_FLAGS_LIST_STATIC	\
+	"eth1addr:mc,"			\
+	"wlanaddr:mc,"			\
+	"wlan1addr:mc,"			\
+	"wlan2addr:mc,"			\
+	"wlan3addr:mc,"			\
+	"btaddr:mc,"			\
+	"bootargs_once:sr,"		\
+	"board_version:so,"		\
+	"board_id:so,"
+
 #endif /* __CCMP1_COMMON_H */
