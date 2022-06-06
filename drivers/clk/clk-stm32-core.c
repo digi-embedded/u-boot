@@ -273,6 +273,9 @@ struct clk *clk_stm32_register_composite(const char *name,
 		div->width = dcfg->width;
 		div->flags = dcfg->div_flags;
 		div->table = dcfg->table;
+
+		div_clk = &div->clk;
+		div_ops = &clk_divider_ops;
 	}
 
 	if (gcfg) {
