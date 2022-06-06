@@ -231,7 +231,7 @@ struct clk *clk_stm32_register_composite(const char *name,
 					 int num_parents,
 					 unsigned long flags,
 					 void __iomem *base,
-					 const struct stm32_mux_cfg *pcfg,
+					 const struct stm32_mux_cfg *mcfg,
 					 const struct stm32_div_cfg *dcfg,
 					 const struct stm32_gate_cfg *gcfg)
 {
@@ -246,17 +246,17 @@ struct clk *clk_stm32_register_composite(const char *name,
 	struct clk *div_clk = NULL;
 	const struct clk_ops *div_ops = NULL;
 
-	if (pcfg) {
+	if (mcfg) {
 		mux = kzalloc(sizeof(*mux), GFP_KERNEL);
 		if (!mux)
 			goto fail;
 
-		mux->reg = base + pcfg->reg_off;
-		mux->shift = pcfg->shift;
-		mux->mask = BIT(pcfg->width) - 1;
-		mux->num_parents = pcfg->num_parents;
+		mux->reg = base + mcfg->reg_off;
+		mux->shift = mcfg->shift;
+		mux->mask = BIT(mcfg->width) - 1;
+		mux->num_parents = mcfg->num_parents;
 		mux->flags = 0;
-		mux->parent_names = pcfg->parent_names;
+		mux->parent_names = mcfg->parent_names;
 
 		mux_clk = &mux->clk;
 		mux_ops = &clk_mux_ops;
