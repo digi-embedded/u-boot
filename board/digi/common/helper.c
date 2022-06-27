@@ -901,8 +901,10 @@ void set_verifyaddr(unsigned long loadaddr)
 
 	 /* Skip reserved memory area */
 #if defined(RESERVED_MEM_START) && defined(RESERVED_MEM_END)
-	if (verifyaddr >= RESERVED_MEM_START && verifyaddr < RESERVED_MEM_END)
+	if (verifyaddr >= RESERVED_MEM_START && verifyaddr < RESERVED_MEM_END) {
 		verifyaddr = RESERVED_MEM_END;
+		printf("Skip reserved memory area, verifyaddr set to 0x%lx\n", verifyaddr);
+	}
 #endif
 
 	 if (verifyaddr > loadaddr &&
