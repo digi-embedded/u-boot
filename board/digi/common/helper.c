@@ -412,10 +412,16 @@ char *get_default_filename(char *partname, int cmd)
 			return "$uboot_file";
 		} else {
 			/* Read the default filename from a variable called
-			 * after the partition name: <partname>_file
+			 * after the partition name: <partname>_file,
+			 * returning an empty string in case of partitions name is
+			 * not found.
 			 */
 			sprintf(varname, "%s_file", partname);
-			return env_get(varname);
+			var = env_get(varname);
+			if (!var)
+				return "";
+			else
+				return var;
 		}
 		break;
 	}
