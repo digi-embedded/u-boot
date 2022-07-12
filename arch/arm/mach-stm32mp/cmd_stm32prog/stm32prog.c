@@ -1091,7 +1091,6 @@ static int create_gpt_partitions(struct stm32prog_data *data)
 	if (!buf)
 		return -ENOMEM;
 
-	puts("partitions : ");
 	/* initialize the selected device */
 	for (i = 0; i < data->dev_nb; i++) {
 		/* create gpt partition support only for full update on MMC */
@@ -1099,6 +1098,7 @@ static int create_gpt_partitions(struct stm32prog_data *data)
 		    !data->dev[i].full_update)
 			continue;
 
+		printf("partitions on mmc%d: ", data->dev[i].dev_id);
 		offset = 0;
 		rootfs_found = false;
 		memset(buf, 0, buflen);
@@ -1198,8 +1198,8 @@ static int create_gpt_partitions(struct stm32prog_data *data)
 		sprintf(buf, "part list mmc %d", data->dev[i].dev_id);
 		run_command(buf, 0);
 #endif
+		puts("done\n");
 	}
-	puts("done\n");
 
 #ifdef DEBUG
 	run_command("mtd list", 0);
@@ -1893,6 +1893,10 @@ static void stm32prog_devices_init(struct stm32prog_data *data)
 	ret = treat_partition_list(data);
 	if (ret)
 		goto error;
+
+	/* empty flashlayout */
+	if (!data->dev_nb)
+		return;
 
 	/* initialize the selected device */
 	for (i = 0; i < data->dev_nb; i++) {
