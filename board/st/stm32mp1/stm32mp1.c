@@ -1434,8 +1434,8 @@ void fdt_update_panel_dsi(void *new_blob)
 int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	static const struct node_info nodes[] = {
-		{ "st,stm32f469-qspi",		MTD_DEV_TYPE_NOR,  },
-		{ "st,stm32f469-qspi",		MTD_DEV_TYPE_SPINAND},
+		{ "jedec,spi-nor",		MTD_DEV_TYPE_NOR,  },
+		{ "spi-nand",			MTD_DEV_TYPE_SPINAND},
 		{ "st,stm32mp15-fmc2",		MTD_DEV_TYPE_NAND, },
 		{ "st,stm32mp1-fmc2-nfc",	MTD_DEV_TYPE_NAND, },
 	};
