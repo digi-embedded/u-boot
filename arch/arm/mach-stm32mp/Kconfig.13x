@@ -4,6 +4,19 @@ choice
 	prompt "STM32MP13x board select"
 	optional
 
+config TARGET_CCMP13_DVK
+	bool "Digi International CCMP13 Development Kit (DVK)"
+	imply BOOTSTAGE
+	imply CMD_BOOTCOUNT
+	imply CMD_BOOTSTAGE
+	imply CMD_CLS if CMD_BMP
+	imply DISABLE_CONSOLE
+	imply PRE_CONSOLE_BUFFER
+	imply SILENT_CONSOLE
+	help
+		Target Digi International ConnectCore MP13 Development Kit
+		board.
+
 config TARGET_ST_STM32MP13x
 	bool "STMicroelectronics STM32MP13x boards"
 	imply BOOTSTAGE
@@ -53,5 +66,6 @@ config DEBUG_UART_CLOCK
 endif
 
 source "board/st/stm32mp1/Kconfig"
+source "board/digi/ccmp13_dvk/Kconfig"
 
 endif

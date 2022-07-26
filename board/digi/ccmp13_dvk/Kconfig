@@ -1,28 +1,13 @@
-if TARGET_ST_STM32MP15x
+if TARGET_CCMP13_DVK
 
 config SYS_BOARD
-	default "stm32mp1"
+	default "ccmp13_dvk"
 
 config SYS_VENDOR
-	default "st"
+	default "digi"
 
 config SYS_CONFIG_NAME
-	default "stm32mp15_st_common"
+	default "ccmp13_dvk"
 
-source "board/st/common/Kconfig"
-endif
-
-if TARGET_ST_STM32MP13x
-
-config SYS_BOARD
-	default "stm32mp1"
-
-config SYS_VENDOR
-	default "st"
-
-config SYS_CONFIG_NAME
-	default "stm32mp13_st_common"
-
-source "board/st/common/Kconfig"
-
+source "board/digi/common/Kconfig"
 endif
