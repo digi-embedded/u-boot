@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
 /*
- * Copyright (C) STMicroelectronics 2022 - All Rights Reserved
- * Author: Alexandre Torgue <alexandre.torgue@foss.st.com> for STMicroelectronics.
+ * Copyright (C) 2022, Digi International Inc - All Rights Reserved
  */
 
 /dts-v1/;
@@ -10,13 +9,11 @@
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/leds/common.h>
 #include <dt-bindings/rtc/rtc-stm32.h>
-#include "stm32mp135.dtsi"
-#include "stm32mp13xd.dtsi"
-#include "stm32mp13-pinctrl.dtsi"
+#include "ccmp13.dtsi"
 
 / {
-	model = "STMicroelectronics STM32MP135D-DK Discovery Board";
-	compatible = "st,stm32mp135d-dk", "st,stm32mp135";
+	model = "Digi International ConnectCore MP13 Development Kit";
+	compatible = "digi,ccmp13-dvk", "digi,ccmp13", "digi,ccmp1";
 
 	aliases {
 		ethernet0 = &eth1;
@@ -32,31 +29,6 @@
 		#size-cells = <1>;
 		ranges;
 		stdout-path = "serial0:115200n8";
-
-		framebuffer {
-			compatible = "simple-framebuffer";
-			clocks = <&rcc LTDC_PX>;
-			status = "disabled";
-		};
-	};
-
-	clocks {
-		clk_ext_camera: clk-ext-camera {
-			#clock-cells = <0>;
-			compatible = "fixed-clock";
-			clock-frequency = <24000000>;
-		};
-
-		clk_mco1: clk-mco1 {
-			#clock-cells = <0>;
-			compatible = "fixed-clock";
-			clock-frequency = <24000000>;
-		};
-	};
-
-	memory@c0000000 {
-		device_type = "memory";
-		reg = <0xc0000000 0x20000000>;
 	};
 
 	gpio-keys {
@@ -81,129 +53,10 @@
 		};
 	};
 
-	reserved-memory {
-		#address-cells = <1>;
-		#size-cells = <1>;
-		ranges;
-
-		optee_framebuffer@dd000000 {
-			reg = <0xdd000000 0x1000000>;
-			no-map;
-		};
-
-		optee@de000000 {
-			reg = <0xde000000 0x2000000>;
-			no-map;
-		};
-	};
-
-	v3v3_ao: v3v3_ao {
-		compatible = "regulator-fixed";
-		regulator-name = "v3v3_ao";
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		regulator-always-on;
-	};
-
-	panel_backlight: panel-backlight {
-		compatible = "gpio-backlight";
-		gpios = <&gpioe 12 GPIO_ACTIVE_HIGH>;
-		default-on;
-		default-brightness-level = <0>;
-		status = "okay";
-	};
-
-	panel_rgb: panel-rgb {
-		compatible = "rocktech,rk043fn48h", "panel-dpi";
-		enable-gpios = <&gpioi 7 GPIO_ACTIVE_HIGH>;
-		backlight = <&panel_backlight>;
-		power-supply = <&scmi_v3v3_sw>;
-		data-mapping = "bgr666";
-		status = "okay";
-
-		width-mm = <105>;
-		height-mm = <67>;
-
-		port {
-			panel_in_rgb: endpoint {
-				remote-endpoint = <&ltdc_out_rgb>;
-			};
-		};
-
-		panel-timing {
-			clock-frequency = <10000000>;
-			hactive = <480>;
-			vactive = <272>;
-			hsync-len = <52>;
-			hfront-porch = <10>;
-			hback-porch = <10>;
-			vsync-len = <10>;
-			vfront-porch = <10>;
-			vback-porch = <10>;
-			hsync-active = <0>;
-			vsync-active = <0>;
-			de-active = <1>;
-			pixelclk-active = <1>;
-		};
-	};
-
 	wifi_pwrseq: wifi-pwrseq {
 		compatible = "mmc-pwrseq-simple";
 		reset-gpios = <&mcp23017 11 GPIO_ACTIVE_LOW>;
 	};
-};
-
-&adc_1 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&adc1_usb_cc_pins_a>;
-	vdda-supply = <&scmi_vdd_adc>;
-	vref-supply = <&scmi_vdd_adc>;
-	status = "okay";
-	adc1: adc@0 {
-		/*
-		 * Type-C USB_PWR_CC1 & USB_PWR_CC2 on in6 & in12.
-		 * Use at least 5 * RC time, e.g. 5 * (Rp + Rd) * C:
-		 * 5 * (5.1 + 47kOhms) * 5pF => 1.3us.
-		 * Use arbitrary margin here (e.g. 5us).
-		 */
-		st,min-sample-time-nsecs = <5000>;
-		/* USB Type-C CC1 & CC2 */
-		st,adc-channels = <6 12>;
-		status = "okay";
-	};
-};
-
-&crc1 {
-	status = "okay";
-};
-
-&dcmipp {
-	status = "okay";
-	pinctrl-names = "default", "sleep";
-	pinctrl-0 = <&dcmipp_pins_a>;
-	pinctrl-1 = <&dcmipp_sleep_pins_a>;
-	port {
-		dcmipp_0: endpoint {
-			remote-endpoint = <&mipid02_2>;
-			bus-width = <8>;
-			hsync-active = <0>;
-			vsync-active = <0>;
-			pclk-sample = <0>;
-			pclk-max-frequency = <120000000>;
-		};
-	};
-};
-
-&dma1 {
-	sram = <&dma_pool>;
-};
-
-&dma2 {
-	sram = <&dma_pool>;
-};
-
-&dts {
-	status = "okay";
 };
 
 &eth1 {
@@ -315,99 +168,10 @@
 	i2c-scl-rising-time-ns = <170>;
 	i2c-scl-falling-time-ns = <5>;
 	clock-frequency = <400000>;
-	status = "okay";
+	status = "disabled";
 	/* spare dmas for other usage */
 	/delete-property/dmas;
 	/delete-property/dma-names;
-
-	gc2145: gc2145@3c {
-		compatible = "galaxycore,gc2145";
-		reg = <0x3c>;
-		clocks = <&clk_ext_camera>;
-		IOVDD-supply = <&scmi_v3v3_sw>;
-		AVDD-supply = <&scmi_v3v3_sw>;
-		DVDD-supply = <&scmi_v3v3_sw>;
-		powerdown-gpios = <&mcp23017 3 (GPIO_ACTIVE_LOW | GPIO_PUSH_PULL)>;
-		reset-gpios = <&mcp23017 4 (GPIO_ACTIVE_LOW | GPIO_PUSH_PULL)>;
-		status = "okay";
-
-		port {
-			gc2145_ep: endpoint {
-				remote-endpoint = <&mipid02_0>;
-				clock-lanes = <0>;
-				data-lanes = <1 2>;
-			};
-		};
-	};
-
-	goodix: goodix_ts@5d {
-		compatible = "goodix,gt911";
-		reg = <0x5d>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&goodix_pins_a>;
-		interrupt-parent = <&gpiof>;
-		interrupts = <5 IRQ_TYPE_EDGE_FALLING>;
-		reset-gpios = <&gpioh 2 GPIO_ACTIVE_LOW>;
-		AVDD28-supply = <&scmi_v3v3_sw>;
-		VDDIO-supply = <&scmi_v3v3_sw>;
-		touchscreen-size-x = <480>;
-		touchscreen-size-y = <272>;
-		status = "okay" ;
-	};
-
-	ov5640: camera@3c {
-		compatible = "ovti,ov5640";
-		reg = <0x3c>;
-		clocks = <&clk_ext_camera>;
-		clock-names = "xclk";
-		DOVDD-supply = <&scmi_v3v3_sw>;
-		status = "disabled";
-		powerdown-gpios = <&mcp23017 3 (GPIO_ACTIVE_LOW | GPIO_PUSH_PULL)>;
-		reset-gpios = <&mcp23017 4 (GPIO_ACTIVE_LOW | GPIO_PUSH_PULL)>;
-
-		port {
-			ov5640_0: endpoint {
-				clock-lanes = <0>;
-				data-lanes = <1 2>;
-			};
-		};
-	};
-
-	stmipi: stmipi@14 {
-		compatible = "st,st-mipid02";
-		reg = <0x14>;
-		status = "okay";
-		clocks = <&clk_mco1>;
-		clock-names = "xclk";
-		VDDE-supply = <&scmi_v1v8_periph>;
-		VDDIN-supply = <&scmi_v1v8_periph>;
-		reset-gpios = <&mcp23017 2 (GPIO_ACTIVE_LOW | GPIO_PUSH_PULL)>;
-
-		ports {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			port@0 {
-				reg = <0>;
-
-				mipid02_0: endpoint {
-					data-lanes = <1 2>;
-					lane-polarities = <0 0 0>;
-					remote-endpoint = <&gc2145_ep>;
-				};
-			};
-			port@2 {
-				reg = <2>;
-
-				mipid02_2: endpoint {
-					bus-width = <8>;
-					hsync-active = <0>;
-					vsync-active = <0>;
-					pclk-sample = <0>;
-					remote-endpoint = <&dcmipp_0>;
-				};
-			};
-		};
-	};
 };
 
 &iwdg2 {
@@ -415,22 +179,6 @@
 	status = "okay";
 };
 
-&ltdc {
-	pinctrl-names = "default", "sleep";
-	pinctrl-0 = <&ltdc_pins_a>;
-	pinctrl-1 = <&ltdc_sleep_pins_a>;
-	status = "okay";
-
-	port {
-		#address-cells = <1>;
-		#size-cells = <0>;
-
-		ltdc_out_rgb: endpoint@0 {
-			reg = <0>;
-			remote-endpoint = <&panel_in_rgb>;
-		};
-	};
-};
 
 &rtc {
 	st,lsco = <RTC_OUT2_RMP>;
@@ -487,40 +235,11 @@
 	status = "okay";
 };
 
-/* Wifi */
-&sdmmc2 {
-	arm,primecell-periphid = <0x10153180>;
-	pinctrl-names = "default", "opendrain", "sleep";
-	pinctrl-0 = <&sdmmc2_b4_pins_a &sdmmc2_clk_pins_a>;
-	pinctrl-1 = <&sdmmc2_b4_od_pins_a &sdmmc2_clk_pins_a>;
-	pinctrl-2 = <&sdmmc2_b4_sleep_pins_a>;
-	non-removable;
-	st,neg-edge;
-	bus-width = <4>;
-	vmmc-supply = <&v3v3_ao>;
-	mmc-pwrseq = <&wifi_pwrseq>;
-	#address-cells = <1>;
-	#size-cells = <0>;
-	status = "okay";
-
-	brcmf: bcrmf@1 {
-		reg = <1>;
-		compatible = "brcm,bcm4329-fmac";
-	};
-};
-
 &spi5 {
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&spi5_pins_a>;
 	pinctrl-1 = <&spi5_sleep_pins_a>;
 	status = "disabled";
-};
-
-&sram {
-	dma_pool: dma-sram@0 {
-		reg = <0x0 0x4000>;
-		pool;
-	};
 };
 
 &timers3 {
