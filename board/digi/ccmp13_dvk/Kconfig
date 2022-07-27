@@ -9,5 +9,6 @@ config SYS_VENDOR
 config SYS_CONFIG_NAME
 	default "ccmp13_dvk"
 
+source "board/st/common/Kconfig"
 source "board/digi/common/Kconfig"
 endif

@@ -11,7 +11,7 @@
 #include <asm/arch/sys_proto.h>
 #include <linux/bitops.h>
 #include <linux/delay.h>
-#include "../common/stpmic1.h"
+#include "../../common/stpmic1.h"
 
 /* board early initialisation in board_f: need to use global variable */
 static u32 opp_voltage_mv __section(".data");
