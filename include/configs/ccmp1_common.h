@@ -34,6 +34,26 @@
 #define CONFIG_LOADADDR			0xc2000000
 #define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
 
+/*
+ * memory layout for 32M uncompressed/compressed kernel,
+ * 1M fdt, 1M script, 1M pxe and 1M for overlay
+ * and the ramdisk at the end.
+ */
+#define __KERNEL_ADDR_R     __stringify(0xc2000000)
+#define __FDT_ADDR_R        __stringify(0xc4000000)
+#define __SCRIPT_ADDR_R     __stringify(0xc4100000)
+#define __PXEFILE_ADDR_R    __stringify(0xc4200000)
+#define __FDTOVERLAY_ADDR_R __stringify(0xc4300000)
+#define __RAMDISK_ADDR_R    __stringify(0xc4400000)
+
+#define STM32MP_MEM_LAYOUT \
+	"kernel_addr_r=" __KERNEL_ADDR_R "\0" \
+	"fdt_addr_r=" __FDT_ADDR_R "\0" \
+	"scriptaddr=" __SCRIPT_ADDR_R "\0" \
+	"pxefile_addr_r=" __PXEFILE_ADDR_R "\0" \
+	"fdtoverlay_addr_r=" __FDTOVERLAY_ADDR_R "\0" \
+	"ramdisk_addr_r=" __RAMDISK_ADDR_R "\0"
+
 /* ATAGs */
 #define CONFIG_CMDLINE_TAG
 #define CONFIG_SETUP_MEMORY_TAGS
