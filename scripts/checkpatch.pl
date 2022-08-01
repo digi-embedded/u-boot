@@ -2326,13 +2326,15 @@ sub get_raw_comment {
 #   suffix: Suffix to expect on member, e.g. "_priv"
 #   warning: Warning name, e.g. "PRIV_AUTO"
 sub u_boot_struct_name {
-	my ($line, $auto, $suffix, $warning) = @_;
+	my ($line, $auto, $suffix, $warning, $herecurr) = @_;
 
 	# Use _priv as a suffix for the device-private data struct
 	if ($line =~ /^\+\s*\.${auto}\s*=\s*sizeof\(struct\((\w+)\).*/) {
 		my $struct_name = $1;
 		if ($struct_name !~ /^\w+${suffix}/) {
-			WARN($warning, "struct \'$struct_name\' should have a ${suffix} suffix");
+			WARN($warning,
+				 "struct \'$struct_name\' should have a ${suffix} suffix\n"
+				 . $herecurr);
 		}
 	}
 }
@@ -2363,6 +2365,12 @@ sub u_boot_line {
 	if ($realfile =~ /\.c$/ && $line =~ /^\+#if.*CONFIG.*/) {
 		WARN("PREFER_IF",
 		     "Use 'if (IS_ENABLED(CONFIG...))' instead of '#if or #ifdef' where possible\n" . $herecurr);
+	}
+
+	# prefer strl(cpy|cat) over strn(cpy|cat)
+	if ($line =~ /\bstrn(cpy|cat)\s*\(/) {
+		WARN("STRL",
+		     "strl$1 is preferred over strn$1 because it always produces a nul-terminated string\n" . $herecurr);
 	}
 
 	# use defconfig to manage CONFIG_CMD options
@@ -2404,17 +2412,17 @@ sub u_boot_line {
 	}
 
 	# Check struct names for the 'auto' members of struct driver
-	u_boot_struct_name($line, "priv_auto", "_priv", "PRIV_AUTO");
-	u_boot_struct_name($line, "plat_auto", "_plat", "PLAT_AUTO");
-	u_boot_struct_name($line, "per_child_auto", "_priv", "CHILD_PRIV_AUTO");
+	u_boot_struct_name($line, "priv_auto", "_priv", "PRIV_AUTO", $herecurr);
+	u_boot_struct_name($line, "plat_auto", "_plat", "PLAT_AUTO", $herecurr);
+	u_boot_struct_name($line, "per_child_auto", "_priv", "CHILD_PRIV_AUTO", $herecurr);
 	u_boot_struct_name($line, "per_child_plat_auto", "_plat",
-		"CHILD_PLAT_AUTO");
+		"CHILD_PLAT_AUTO", $herecurr);
 
 	# Now the ones for struct uclass, skipping those in common with above
 	u_boot_struct_name($line, "per_device_auto", "_priv",
-		"DEVICE_PRIV_AUTO");
+		"DEVICE_PRIV_AUTO", $herecurr);
 	u_boot_struct_name($line, "per_device_plat_auto", "_plat",
-		"DEVICE_PLAT_AUTO");
+		"DEVICE_PLAT_AUTO", $herecurr);
 }
 
 sub process {
@@ -6065,7 +6073,7 @@ sub process {
 			my $old = substr($rawline, $-[1], $+[1] - $-[1]);
 			my $new = substr($old, 1, -1);
 			if (WARN("PREFER_SECTION",
-				 "__section($new) is preferred over __attribute__((section($old)))\n" . $herecurr) &&
+				 "__section(\"$new\") is preferred over __attribute__((section($old)))\n" . $herecurr) &&
 			    $fix) {
 				$fixed[$fixlinenr] =~ s/\b__attribute__\s*\(\s*\(\s*_*section_*\s*\(\s*\Q$old\E\s*\)\s*\)\s*\)/__section($new)/;
 			}

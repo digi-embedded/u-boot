@@ -338,7 +338,7 @@ int stdio_add_devices(void)
 				       dev->name);
 		}
 	}
-#ifdef CONFIG_SYS_I2C
+#ifdef CONFIG_SYS_I2C_LEGACY
 	i2c_init_all();
 #endif
 	if (IS_ENABLED(CONFIG_DM_VIDEO)) {

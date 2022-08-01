@@ -1147,41 +1147,11 @@ int file_fat_detectfs(void)
 		return 1;
 	}
 
-#if defined(CONFIG_IDE) || \
-    defined(CONFIG_SATA) || \
-    defined(CONFIG_SCSI) || \
-    defined(CONFIG_CMD_USB) || \
-    defined(CONFIG_MMC)
-	printf("Interface:  ");
-	switch (cur_dev->if_type) {
-	case IF_TYPE_IDE:
-		printf("IDE");
-		break;
-	case IF_TYPE_SATA:
-		printf("SATA");
-		break;
-	case IF_TYPE_SCSI:
-		printf("SCSI");
-		break;
-	case IF_TYPE_ATAPI:
-		printf("ATAPI");
-		break;
-	case IF_TYPE_USB:
-		printf("USB");
-		break;
-	case IF_TYPE_DOC:
-		printf("DOC");
-		break;
-	case IF_TYPE_MMC:
-		printf("MMC");
-		break;
-	default:
-		printf("Unknown");
+	if (IS_ENABLED(CONFIG_HAVE_BLOCK_DEVICE)) {
+		printf("Interface:  %s\n", blk_get_if_type_name(cur_dev->if_type));
+		printf("  Device %d: ", cur_dev->devnum);
+		dev_print(cur_dev);
 	}
-
-	printf("\n  Device %d: ", cur_dev->devnum);
-	dev_print(cur_dev);
-#endif
 
 	if (read_bootsectandvi(&bs, &volinfo, &fatsize)) {
 		printf("\nNo valid FAT fs found\n");
@@ -1215,6 +1185,28 @@ int fat_exists(const char *filename)
 out:
 	free(itr);
 	return ret == 0;
+}
+
+/**
+ * fat2rtc() - convert FAT time stamp to RTC file stamp
+ *
+ * @date:	FAT date
+ * @time:	FAT time
+ * @tm:		RTC time stamp
+ */
+static void __maybe_unused fat2rtc(u16 date, u16 time, struct rtc_time *tm)
+{
+	tm->tm_mday = date & 0x1f;
+	tm->tm_mon = (date & 0x1e0) >> 4;
+	tm->tm_year = (date >> 9) + 1980;
+
+	tm->tm_sec = (time & 0x1f) << 1;
+	tm->tm_min = (time & 0x7e0) >> 5;
+	tm->tm_hour = time >> 11;
+
+	rtc_calc_weekday(tm);
+	tm->tm_yday = 0;
+	tm->tm_isdst = 0;
 }
 
 int fat_size(const char *filename, loff_t *size)
@@ -1355,7 +1347,15 @@ int fat_readdir(struct fs_dir_stream *dirs, struct fs_dirent **dentp)
 
 	memset(dent, 0, sizeof(*dent));
 	strcpy(dent->name, dir->itr.name);
-
+	if (CONFIG_IS_ENABLED(EFI_LOADER)) {
+		dent->attr = dir->itr.dent->attr;
+		fat2rtc(le16_to_cpu(dir->itr.dent->cdate),
+			le16_to_cpu(dir->itr.dent->ctime), &dent->create_time);
+		fat2rtc(le16_to_cpu(dir->itr.dent->date),
+			le16_to_cpu(dir->itr.dent->time), &dent->change_time);
+		fat2rtc(le16_to_cpu(dir->itr.dent->adate),
+			0, &dent->access_time);
+	}
 	if (fat_itr_isdir(&dir->itr)) {
 		dent->type = FS_DT_DIR;
 	} else {

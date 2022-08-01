@@ -24,7 +24,6 @@ endif
 ifdef CONFIG_DM_SERIAL
 obj-$(CONFIG_PL01X_SERIAL) += serial_pl01x.o
 else
-obj-$(CONFIG_PL010_SERIAL) += serial_pl01x.o
 obj-$(CONFIG_PL011_SERIAL) += serial_pl01x.o
 obj-$(CONFIG_SYS_NS16550_SERIAL) += serial_ns16550.o
 endif
@@ -66,6 +65,8 @@ obj-$(CONFIG_MSM_SERIAL) += serial_msm.o
 obj-$(CONFIG_MVEBU_A3700_UART) += serial_mvebu_a3700.o
 obj-$(CONFIG_MPC8XX_CONS) += serial_mpc8xx.o
 obj-$(CONFIG_NULLDEV_SERIAL) += serial_nulldev.o
+obj-$(CONFIG_OCTEON_SERIAL_BOOTCMD) += serial_octeon_bootcmd.o
+obj-$(CONFIG_OCTEON_SERIAL_PCIE_CONSOLE) += serial_octeon_pcie_console.o
 obj-$(CONFIG_OWL_SERIAL) += serial_owl.o
 obj-$(CONFIG_OMAP_SERIAL) += serial_omap.o
 obj-$(CONFIG_MTK_SERIAL) += serial_mtk.o

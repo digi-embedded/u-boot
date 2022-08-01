@@ -21,6 +21,16 @@
 		pinctrl1 = &pinctrl_z;
 	};
 
+	binman: binman {
+		multiple-images;
+	};
+
+	firmware {
+		optee {
+			u-boot,dm-pre-reloc;
+		};
+	};
+
 	/* need PSCI for sysreset during board_f */
 	psci {
 		u-boot,dm-pre-proper;
@@ -36,20 +46,6 @@
 
 			reg = <0x5A003000 0x550
 			       0x5A004000 0x234>;
-
-			clocks = <&rcc AXIDCG>,
-				 <&rcc DDRC1>,
-				 <&rcc DDRC2>,
-				 <&rcc DDRPHYC>,
-				 <&rcc DDRCAPB>,
-				 <&rcc DDRPHYCAPB>;
-
-			clock-names = "axidcg",
-				      "ddrc1",
-				      "ddrc2",
-				      "ddrphyc",
-				      "ddrcapb",
-				      "ddrphycapb";
 
 			status = "okay";
 		};
@@ -130,31 +126,19 @@
 };
 
 #ifdef CONFIG_TFABOOT
-&scmi0 {
+&scmi {
 	u-boot,dm-pre-reloc;
 };
 
-&scmi0_clk {
+&scmi_clk {
 	u-boot,dm-pre-reloc;
 };
 
-&scmi0_reset {
+&scmi_reset {
 	u-boot,dm-pre-reloc;
 };
 
-&scmi0_shm {
-	u-boot,dm-pre-reloc;
-};
-
-&scmi1 {
-	u-boot,dm-pre-reloc;
-};
-
-&scmi1_clk {
-	u-boot,dm-pre-reloc;
-};
-
-&scmi1_shm {
+&scmi_shm {
 	u-boot,dm-pre-reloc;
 };
 
@@ -163,20 +147,8 @@
 };
 #endif
 
-&sdmmc1 {
-	compatible = "st,stm32-sdmmc2", "arm,pl18x", "arm,primecell";
-};
-
-&sdmmc2 {
-	compatible = "st,stm32-sdmmc2", "arm,pl18x", "arm,primecell";
-};
-
-&sdmmc3 {
-	compatible = "st,stm32-sdmmc2", "arm,pl18x", "arm,primecell";
-};
-
 &usart1 {
-	resets = <&scmi0_reset RST_SCMI0_USART1>;
+	resets = <&scmi_reset RST_SCMI_USART1>;
 };
 
 &usart2 {
@@ -206,6 +178,32 @@
 &uart8{
 	resets = <&rcc UART8_R>;
 };
+
+#if defined(CONFIG_STM32MP15x_STM32IMAGE)
+&binman {
+	u-boot-stm32 {
+		filename = "u-boot.stm32";
+		mkimage {
+			args = "-T stm32image -a 0xC0100000 -e 0xC0100000";
+			u-boot {
+			};
+		};
+	};
+};
+#endif
+
+#if defined(CONFIG_SPL)
+&binman {
+	spl-stm32 {
+		filename = "u-boot-spl.stm32";
+		mkimage {
+			args = "-T stm32image -a 0x2FFC2500 -e 0x2FFC2500";
+			u-boot-spl {
+			};
+		};
+	};
+};
+#endif
 
 /* NO MORE USE SCMI SUPPORT for BASIC boot chain */
 #ifndef CONFIG_TFABOOT

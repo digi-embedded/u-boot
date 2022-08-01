@@ -16,7 +16,7 @@ config DM_GPIO
 
 config SPL_DM_GPIO
 	bool "Enable Driver Model for GPIO drivers in SPL"
-	depends on DM_GPIO && SPL_DM && SPL_GPIO_SUPPORT
+	depends on DM_GPIO && SPL_DM && SPL_GPIO
 	default y
 	help
 	  Enable driver model for GPIO access in SPL. The standard GPIO
@@ -27,7 +27,7 @@ config SPL_DM_GPIO
 
 config TPL_DM_GPIO
 	bool "Enable Driver Model for GPIO drivers in TPL"
-	depends on DM_GPIO && TPL_DM && TPL_GPIO_SUPPORT
+	depends on DM_GPIO && TPL_DM && TPL_GPIO
 	default y
 	help
 	  Enable driver model for GPIO access in TPL. The standard GPIO
@@ -58,7 +58,7 @@ config DM_GPIO_LOOKUP_LABEL
 
 config SPL_DM_GPIO_LOOKUP_LABEL
 	bool "Enable searching for gpio labelnames"
-	depends on DM_GPIO && SPL_DM && SPL_GPIO_SUPPORT
+	depends on DM_GPIO && SPL_DM && SPL_GPIO
 	help
 	  This option enables searching for gpio names in
 	  the defined gpio labels, if the search for the
@@ -183,6 +183,16 @@ config MCA_GPIO
 	bool "Digi MCA GPIO driver"
 	help
 	  Support MCA GPIO controller on Digi modules
+
+config MCP230XX_GPIO
+	bool "MCP230XX GPIO driver"
+	depends on DM
+	help
+	  Support for Microchip's MCP230XX I2C connected GPIO devices.
+	  The following chips are supported:
+	   - MCP23008
+	   - MCP23017
+	   - MCP23018
 
 config MSCC_SGPIO
 	bool "Microsemi Serial GPIO driver"
@@ -353,7 +363,7 @@ config PIC32_GPIO
 
 config OCTEON_GPIO
 	bool "Octeon II/III/TX/TX2 GPIO driver"
-	depends on DM_GPIO && DM_PCI &&	(ARCH_OCTEON || ARCH_OCTEONTX || ARCH_OCTEONTX2)
+	depends on DM_GPIO && PCI && (ARCH_OCTEON || ARCH_OCTEONTX || ARCH_OCTEONTX2)
 	default y
 	help
 	  Add support for the Marvell Octeon GPIO driver. This is used with
@@ -401,7 +411,7 @@ config DM_74X164
 
 config DM_PCA953X
 	bool "PCA95[357]x, PCA9698, TCA64xx, and MAX7310 I/O ports"
-	depends on DM_GPIO
+	depends on DM_GPIO && DM_I2C
 	help
 	  Say yes here to provide access to several register-oriented
 	  SMBus I/O expanders, made mostly by NXP or TI.  Compatible
@@ -499,5 +509,13 @@ config NX_GPIO
 	  a number of banks (different for each SoC type) each with 32 GPIOs.
 	  The GPIOs for a device are defined in the device tree with one node
 	  for each bank.
+
+config NOMADIK_GPIO
+	bool "Nomadik GPIO driver"
+	depends on DM_GPIO
+	help
+	  Support GPIO access on ST-Ericsson Ux500 SoCs. The GPIOs are arranged
+	  into a number of banks each with 32 GPIOs. The GPIOs for a device are
+	  defined in the device tree with one node for each bank.
 
 endmenu

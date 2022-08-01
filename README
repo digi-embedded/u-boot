@@ -128,7 +128,7 @@ Examples:
 Directory Hierarchy:
 ====================
 
-/arch			Architecture specific files
+/arch			Architecture-specific files
   /arc			Files generic to ARC architecture
   /arm			Files generic to ARM architecture
   /m68k			Files generic to m68k architecture
@@ -142,16 +142,16 @@ Directory Hierarchy:
   /sh			Files generic to SH architecture
   /x86			Files generic to x86 architecture
   /xtensa		Files generic to Xtensa architecture
-/api			Machine/arch independent API for external apps
-/board			Board dependent files
+/api			Machine/arch-independent API for external apps
+/board			Board-dependent files
 /cmd			U-Boot commands functions
-/common			Misc architecture independent functions
+/common			Misc architecture-independent functions
 /configs		Board default configuration files
 /disk			Code for disk drive partition handling
-/doc			Documentation (don't expect too much)
-/drivers		Commonly used device drivers
-/dts			Contains Makefile for building internal U-Boot fdt.
-/env			Environment files
+/doc			Documentation (a mix of ReST and READMEs)
+/drivers		Device drivers
+/dts			Makefile for building internal U-Boot fdt.
+/env			Environment support
 /examples		Example code for standalone applications, etc.
 /fs			Filesystem code (cramfs, ext2, jffs2, etc.)
 /include		Header Files
@@ -161,7 +161,7 @@ Directory Hierarchy:
 /post			Power On Self Test
 /scripts		Various build scripts and Makefiles
 /test			Various unit test files
-/tools			Tools to build S-Record or U-Boot images, etc.
+/tools			Tools to build and sign FIT images, etc.
 
 Software Configuration:
 =======================
@@ -423,8 +423,7 @@ The following options need to be configured:
 
 		CONFIG_SYS_FSL_DDR
 		Freescale DDR driver in use. This type of DDR controller is
-		found in mpc83xx, mpc85xx, mpc86xx as well as some ARM core
-		SoCs.
+		found in mpc83xx, mpc85xx as well as some ARM core SoCs.
 
 		CONFIG_SYS_FSL_DDR_ADDR
 		Freescale DDR memory-mapped register base.
@@ -630,10 +629,6 @@ The following options need to be configured:
 					controller register space
 
 - Serial Ports:
-		CONFIG_PL010_SERIAL
-
-		Define this if you want support for Amba PrimeCell PL010 UARTs.
-
 		CONFIG_PL011_SERIAL
 
 		Define this if you want support for Amba PrimeCell PL011 UARTs.
@@ -746,6 +741,15 @@ The following options need to be configured:
 		When using a watchdog circuitry external to the used
 		SoC, then define this variable and provide board
 		specific code for the "hw_watchdog_reset" function.
+
+		CONFIG_SYS_WATCHDOG_FREQ
+		Some platforms automatically call WATCHDOG_RESET()
+		from the timer interrupt handler every
+		CONFIG_SYS_WATCHDOG_FREQ interrupts. If not set by the
+		board configuration file, a default of CONFIG_SYS_HZ/2
+		(i.e. 500) is used. Setting CONFIG_SYS_WATCHDOG_FREQ
+		to 0 disables calling WATCHDOG_RESET() from the timer
+		interrupt.
 
 - Real-Time Clock:
 
@@ -1457,9 +1461,12 @@ The following options need to be configured:
 		In such cases CONFIG_GPIO_LED_INVERTED_TABLE may be defined
 		with a list of GPIO LEDs that have inverted polarity.
 
-- I2C Support:	CONFIG_SYS_I2C
+- I2C Support:	CONFIG_SYS_I2C_LEGACY
 
-		This enable the NEW i2c subsystem, and will allow you to use
+		Note: This is deprecated in favour of driver model. Use
+		CONFIG_DM_I2C instead.
+
+		This enable the legacy i2c subsystem, and will allow you to use
 		i2c commands at the u-boot command line (as long as you set
 		    CONFIG_SYS_I2C_SOFT_SPEED and CONFIG_SYS_I2C_SOFT_SLAVE
 		    for defining speed and slave address
@@ -2769,9 +2776,6 @@ Low Level (hardware related) configuration options:
   CONFIG_SYS_OR3_PRELIM, CONFIG_SYS_BR3_PRELIM:
 		Memory Controller Definitions: BR2/3 and OR2/3 (SDRAM)
 
-- CONFIG_PCI_INDIRECT_BRIDGE:
-		Enable support for indirect PCI bridges.
-
 - CONFIG_SYS_SRIO:
 		Chip has SRIO or not
 
@@ -3503,47 +3507,6 @@ The signature of the callback functions is:
 
 The return value is 0 if the variable change is accepted and 1 otherwise.
 
-Command Line Parsing:
-=====================
-
-There are two different command line parsers available with U-Boot:
-the old "simple" one, and the much more powerful "hush" shell:
-
-Old, simple command line parser:
---------------------------------
-
-- supports environment variables (through setenv / saveenv commands)
-- several commands on one line, separated by ';'
-- variable substitution using "... ${name} ..." syntax
-- special characters ('$', ';') can be escaped by prefixing with '\',
-  for example:
-	setenv bootcmd bootm \${address}
-- You can also escape text by enclosing in single apostrophes, for example:
-	setenv addip 'setenv bootargs $bootargs ip=$ipaddr:$serverip:$gatewayip:$netmask:$hostname::off'
-
-Hush shell:
------------
-
-- similar to Bourne shell, with control structures like
-  if...then...else...fi, for...do...done; while...do...done,
-  until...do...done, ...
-- supports environment ("global") variables (through setenv / saveenv
-  commands) and local shell variables (through standard shell syntax
-  "name=value"); only environment variables can be used with "run"
-  command
-
-General rules:
---------------
-
-(1) If a command line (or an environment variable executed by a "run"
-    command) contains several commands separated by semicolon, and
-    one of these commands fails, then the remaining commands will be
-    executed anyway.
-
-(2) If you execute several variables with one call to run (i. e.
-    calling run with a list of variables as arguments), any failing
-    command will cause "run" to terminate, i. e. the remaining
-    variables are not executed.
 
 Note for Redundant Ethernet Interfaces:
 =======================================

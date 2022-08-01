@@ -28,7 +28,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 const char * const boot_devices[BROM_LAST_BOOTSOURCE + 1] = {
 	[BROM_BOOTSOURCE_EMMC] = "/sdhci@fe330000",
-	[BROM_BOOTSOURCE_SPINOR] = "/spi@ff1d0000",
+	[BROM_BOOTSOURCE_SPINOR] = "/spi@ff1d0000/flash@0",
 	[BROM_BOOTSOURCE_SD] = "/mmc@fe320000",
 };
 
@@ -218,7 +218,7 @@ void spl_perform_fixups(struct spl_image_info *spl_image)
 			   "u-boot,spl-boot-device", boot_ofpath);
 }
 
-#if defined(SPL_GPIO_SUPPORT)
+#if defined(SPL_GPIO)
 static void rk3399_force_power_on_reset(void)
 {
 	ofnode node;
@@ -250,7 +250,7 @@ void spl_board_init(void)
 {
 	led_setup();
 
-#if defined(SPL_GPIO_SUPPORT)
+#if defined(SPL_GPIO)
 	struct rockchip_cru *cru = rockchip_get_cru();
 
 	/*

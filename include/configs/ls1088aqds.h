@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
- * Copyright 2017-2021 NXP
+ * Copyright 2017, 2020-2021 NXP
  */
 
 #ifndef __LS1088A_QDS_H
@@ -361,7 +361,6 @@ unsigned long get_board_ddr_clk(void);
 #define CONFIG_FSL_MEMAC
 
 /*  MMC  */
-#define CONFIG_SYS_FSL_MMC_HAS_CAPBLT_VS33
 #define CONFIG_ESDHC_DETECT_QUIRK ((readb(QIXIS_BASE + QIXIS_STAT_PRES1) & \
 	QIXIS_SDID_MASK) != QIXIS_ESDHC_NO_ADAPTER)
 
@@ -370,7 +369,6 @@ unsigned long get_board_ddr_clk(void);
 	"fdtheader_addr_r=0x80100000\0"		\
 	"kernel_addr_r=0x81000000\0"		\
 	"fdt_addr_r=0x90000000\0"		\
-	"fdt_addr=0x90000000\0"                 \
 	"load_addr=0xa0000000\0"
 
 /* Initial environment variables */

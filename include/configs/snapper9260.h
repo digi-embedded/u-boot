@@ -49,7 +49,6 @@
 #define CONFIG_RESET_PHY_R
 #define CONFIG_AT91_WANTS_COMMON_PHY
 #define CONFIG_TFTP_PORT
-#define CONFIG_TFTP_TSIZE
 
 /* USB */
 #define CONFIG_USB_ATMEL
@@ -74,7 +73,7 @@
 #endif
 
 /* I2C - Bit-bashed */
-#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_LEGACY
 #define CONFIG_SYS_I2C_SOFT		/* I2C bit-banged */
 #define CONFIG_SYS_I2C_SOFT_SPEED	100000
 #define CONFIG_SYS_I2C_SOFT_SLAVE	0x7F

@@ -73,6 +73,11 @@
 			reg = <0xd4000000 0x4000000>;
 			no-map;
 		};
+
+		optee@de000000 {
+			reg = <0xde000000 0x2000000>;
+			no-map;
+		};
 	};
 
 	led {
@@ -85,7 +90,7 @@
 		};
 	};
 
-	sound {
+	sound: sound {
 		compatible = "audio-graph-card";
 		label = "STM32MP15-DK";
 		routing =
@@ -94,17 +99,6 @@
 			"MICL" , "Mic Bias";
 		dais = <&sai2a_port &sai2b_port &i2s2_port>;
 		status = "okay";
-	};
-
-	usb_phy_tuning: usb-phy-tuning {
-		st,hs-dc-level = <2>;
-		st,fs-rftime-tuning;
-		st,hs-rftime-reduction;
-		st,hs-current-trim = <15>;
-		st,hs-impedance-trim = <1>;
-		st,squelch-level = <3>;
-		st,hs-rx-offset = <2>;
-		st,no-lsfs-sc;
 	};
 
 	vin: vin {
@@ -118,11 +112,11 @@
 
 &adc {
 	pinctrl-names = "default";
-	pinctrl-0 = <&adc12_ain_pins_a>, <&adc12_usb_cc_pins_a>;
+	pinctrl-0 = <&adc12_usb_cc_pins_a>;
 	vdd-supply = <&vdd>;
 	vdda-supply = <&vdd>;
 	vref-supply = <&vrefbuf>;
-	status = "disabled";
+	status = "okay";
 	adc1: adc@0 {
 		/*
 		 * Type-C USB_PWR_CC1 & USB_PWR_CC2 on in18 & in19.
@@ -131,13 +125,13 @@
 		 * Use arbitrary margin here (e.g. 5us).
 		 */
 		st,min-sample-time-nsecs = <5000>;
-		/* AIN connector, USB Type-C CC1 & CC2 */
-		st,adc-channels = <0 1 6 13 18 19>;
+		/* USB Type-C CC1 & CC2 */
+		st,adc-channels = <18 19>;
 		status = "okay";
 	};
 	adc2: adc@100 {
-		/* AIN connector, USB Type-C CC1 & CC2 */
-		st,adc-channels = <0 1 2 6 18 19>;
+		/* USB Type-C CC1 & CC2 */
+		st,adc-channels = <18 19>;
 		st,min-sample-time-nsecs = <5000>;
 		status = "okay";
 	};
@@ -264,15 +258,15 @@
 			cs42l51_tx_endpoint: endpoint@0 {
 				reg = <0>;
 				remote-endpoint = <&sai2a_endpoint>;
-				frame-master;
-				bitclock-master;
+				frame-master = <&cs42l51_tx_endpoint>;
+				bitclock-master = <&cs42l51_tx_endpoint>;
 			};
 
 			cs42l51_rx_endpoint: endpoint@1 {
 				reg = <1>;
 				remote-endpoint = <&sai2b_endpoint>;
-				frame-master;
-				bitclock-master;
+				frame-master = <&cs42l51_rx_endpoint>;
+				bitclock-master = <&cs42l51_rx_endpoint>;
 			};
 		};
 	};
@@ -424,7 +418,6 @@
 			vref_ddr: vref_ddr {
 				regulator-name = "vref_ddr";
 				regulator-always-on;
-				regulator-over-current-protection;
 			};
 
 			bst_out: boost {
@@ -515,8 +508,8 @@
 &m4_rproc {
 	memory-region = <&retram>, <&mcuram>, <&mcuram2>, <&vdev0vring0>,
 			<&vdev0vring1>, <&vdev0buffer>, <&mcu_rsc_table>;
-	mboxes = <&ipcc 0>, <&ipcc 1>, <&ipcc 2>;
-	mbox-names = "vq0", "vq1", "shutdown";
+	mboxes = <&ipcc 0>, <&ipcc 1>, <&ipcc 2>, <&ipcc 3>;
+	mbox-names = "vq0", "vq1", "shutdown", "detach";
 	interrupt-parent = <&exti>;
 	interrupts = <68 1>;
 	wakeup-source;
@@ -526,10 +519,6 @@
 &pwr_regulators {
 	vdd-supply = <&vdd>;
 	vdd_3v3_usbfs-supply = <&vdd_usb>;
-};
-
-&rng1 {
-	status = "okay";
 };
 
 &rtc {
@@ -763,7 +752,14 @@
 
 &usbphyc_port0 {
 	phy-supply = <&vdd_usb>;
-	st,phy-tuning = <&usb_phy_tuning>;
+	st,tune-hs-dc-level = <2>;
+	st,enable-fs-rftime-tuning;
+	st,enable-hs-rftime-reduction;
+	st,trim-hs-current = <15>;
+	st,trim-hs-impedance = <1>;
+	st,tune-squelch-level = <3>;
+	st,tune-hs-rx-offset = <2>;
+	st,no-lsfs-sc;
 
 	/*
 	 * Hack to keep hub active until all connected devices are suspended
@@ -778,7 +774,14 @@
 
 &usbphyc_port1 {
 	phy-supply = <&vdd_usb>;
-	st,phy-tuning = <&usb_phy_tuning>;
+	st,tune-hs-dc-level = <2>;
+	st,enable-fs-rftime-tuning;
+	st,enable-hs-rftime-reduction;
+	st,trim-hs-current = <15>;
+	st,trim-hs-impedance = <1>;
+	st,tune-squelch-level = <3>;
+	st,tune-hs-rx-offset = <2>;
+	st,no-lsfs-sc;
 };
 
 &vrefbuf {

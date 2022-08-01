@@ -6,6 +6,9 @@
 #ifndef _CONFIG_SYNOLOGY_DS414_H
 #define _CONFIG_SYNOLOGY_DS414_H
 
+/* Vendor kernel expects this MACH_TYPE */
+#define CONFIG_MACH_TYPE	3036
+
 /*
  * High Level Configuration Options (easy to change)
  */
@@ -15,10 +18,9 @@
  * for DDR ECC byte filling in the SPL before loading the main
  * U-Boot into it.
  */
-#define CONFIG_SYS_TCLK		250000000	/* 250MHz */
 
 /* I2C */
-#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_LEGACY
 #define CONFIG_SYS_I2C_MVTWSI
 #define CONFIG_I2C_MVTWSI_BASE0		MVEBU_TWSI_BASE
 #define CONFIG_SYS_I2C_SLAVE		0x0
@@ -65,17 +67,27 @@
 #define CONFIG_SPL_STACK		(0x40000000 + ((192 - 16) << 10))
 #define CONFIG_SPL_BOOTROM_SAVE		(CONFIG_SPL_STACK + 4)
 
-#if defined(CONFIG_MVEBU_SPL_BOOT_DEVICE_SPI)
-/* SPL related SPI defines */
-#define CONFIG_SYS_U_BOOT_OFFS		CONFIG_SYS_SPI_U_BOOT_OFFS
-#endif
-
 /* DS414 bus width is 32bits */
 #define CONFIG_DDR_32BIT
 
 /* Default Environment */
-#define CONFIG_BOOTCOMMAND	"sf read ${loadaddr} 0xd0000 0x700000; bootm"
 #define CONFIG_LOADADDR		0x80000
+#define CONFIG_BOOTCOMMAND					\
+	"sf probe; "						\
+	"sf read ${loadaddr} 0xd0000 0x2d0000; "		\
+	"sf read ${ramdisk_addr_r} 0x3a0000 0x430000; "		\
+	"bootm ${loadaddr} ${ramdisk_addr_r}"
+
+#define CONFIG_EXTRA_ENV_SETTINGS				\
+	"initrd_high=0xffffffff\0"				\
+	"ramdisk_addr_r=0x8000000\0"				\
+	"usb0Mode=host\0usb1Mode=host\0usb2Mode=device\0"	\
+	"ethmtu=1500\0eth1mtu=1500\0"				\
+	"update_uboot=sf probe; dhcp; "				\
+		"mw.b ${loadaddr} 0x0 0xd0000; "		\
+		"tftpboot ${loadaddr} u-boot-spl.kwb; "		\
+		"sf update ${loadaddr} 0x0 0xd0000\0"
+
 
 /* increase autoneg timeout, my NIC sucks */
 #define PHY_ANEG_TIMEOUT	16000

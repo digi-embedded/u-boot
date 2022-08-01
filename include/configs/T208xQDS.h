@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
  * Copyright 2011-2013 Freescale Semiconductor, Inc.
- * Copyright 2020 NXP
+ * Copyright 2020-2021 NXP
  */
 
 /*
@@ -19,7 +19,6 @@
 #define CONFIG_SYS_SRIO		/* Enable Serial RapidIO Support */
 #define CONFIG_SRIO1		/* SRIO port 1 */
 #define CONFIG_SRIO2		/* SRIO port 2 */
-#elif defined(CONFIG_ARCH_T2081)
 #endif
 
 /* High Level Configuration Options */
@@ -50,8 +49,6 @@
 #define CONFIG_SYS_NAND_U_BOOT_OFFS	(256 << 10)
 #if defined(CONFIG_ARCH_T2080)
 #define CONFIG_SYS_FSL_PBL_RCW board/freescale/t208xqds/t2080_nand_rcw.cfg
-#elif defined(CONFIG_ARCH_T2081)
-#define CONFIG_SYS_FSL_PBL_RCW board/freescale/t208xqds/t2081_nand_rcw.cfg
 #endif
 #endif
 
@@ -67,8 +64,6 @@
 #endif
 #if defined(CONFIG_ARCH_T2080)
 #define CONFIG_SYS_FSL_PBL_RCW board/freescale/t208xqds/t2080_spi_rcw.cfg
-#elif defined(CONFIG_ARCH_T2081)
-#define CONFIG_SYS_FSL_PBL_RCW board/freescale/t208xqds/t2081_spi_rcw.cfg
 #endif
 #endif
 
@@ -83,8 +78,6 @@
 #endif
 #if defined(CONFIG_ARCH_T2080)
 #define CONFIG_SYS_FSL_PBL_RCW board/freescale/t208xqds/t2080_sd_rcw.cfg
-#elif defined(CONFIG_ARCH_T2081)
-#define CONFIG_SYS_FSL_PBL_RCW board/freescale/t208xqds/t2081_sd_rcw.cfg
 #endif
 #endif
 
@@ -378,7 +371,7 @@ unsigned long get_board_ddr_clk(void);
  * I2C
  */
 #if !CONFIG_IS_ENABLED(DM_I2C)
-#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_LEGACY
 #define CONFIG_SYS_FSL_I2C_SLAVE   0x7F
 #define CONFIG_SYS_FSL_I2C2_SLAVE  0x7F
 #define CONFIG_SYS_FSL_I2C3_SLAVE  0x7F
@@ -493,26 +486,6 @@ unsigned long get_board_ddr_clk(void);
 #define CONFIG_SYS_PCIE4_IO_PHYS	0xff8030000ull
 
 #ifdef CONFIG_PCI
-#if !defined(CONFIG_DM_PCI)
-#define CONFIG_FSL_PCI_INIT	/* Use common FSL init code */
-#define CONFIG_SYS_PCIE1_MEM_BUS	0xe0000000
-#define CONFIG_SYS_PCIE1_MEM_SIZE	0x20000000      /* 512M */
-#define CONFIG_SYS_PCIE1_IO_BUS		0x00000000
-#define CONFIG_SYS_PCIE1_IO_SIZE	0x00010000	/* 64k */
-#define CONFIG_SYS_PCIE2_MEM_BUS	0xe0000000
-#define CONFIG_SYS_PCIE2_MEM_SIZE	0x10000000 /* 256M */
-#define CONFIG_SYS_PCIE2_IO_BUS		0x00000000
-#define CONFIG_SYS_PCIE2_IO_SIZE	0x00010000	/* 64k */
-#define CONFIG_SYS_PCIE3_MEM_BUS	0xe0000000
-#define CONFIG_SYS_PCIE3_MEM_SIZE	0x10000000	/* 256M */
-#define CONFIG_SYS_PCIE3_IO_BUS		0x00000000
-#define CONFIG_SYS_PCIE3_IO_SIZE	0x00010000	/* 64k */
-#define CONFIG_SYS_PCIE4_MEM_BUS	0xe0000000
-#define CONFIG_SYS_PCIE4_MEM_SIZE	0x10000000	/* 256M */
-#define CONFIG_SYS_PCIE4_IO_BUS		0x00000000
-#define CONFIG_SYS_PCIE4_IO_SIZE	0x00010000	/* 64k */
-#define CONFIG_PCI_INDIRECT_BRIDGE
-#endif
 #define CONFIG_PCI_SCAN_SHOW	/* show pci devices on startup */
 #endif
 
@@ -625,7 +598,6 @@ unsigned long get_board_ddr_clk(void);
 #ifdef CONFIG_MMC
 #define CONFIG_SYS_FSL_ESDHC_ADDR	CONFIG_SYS_MPC85xx_ESDHC_ADDR
 #define CONFIG_SYS_FSL_ESDHC_BROKEN_TIMEOUT
-#define CONFIG_SYS_FSL_MMC_HAS_CAPBLT_VS33
 #endif
 
 /*

@@ -409,6 +409,45 @@ static efi_status_t efi_get_file_size(struct file_handle *fh,
 	return EFI_SUCCESS;
 }
 
+/**
+ * efi_file_size() - Get the size of a file using an EFI file handle
+ *
+ * @fh:		EFI file handle
+ * @size:	buffer to fill in the discovered size
+ *
+ * Return:	size of the file
+ */
+efi_status_t efi_file_size(struct efi_file_handle *fh, efi_uintn_t *size)
+{
+	struct efi_file_info *info = NULL;
+	efi_uintn_t bs = 0;
+	efi_status_t ret;
+
+	*size = 0;
+	ret = EFI_CALL(fh->getinfo(fh, (efi_guid_t *)&efi_file_info_guid, &bs,
+				   info));
+	if (ret != EFI_BUFFER_TOO_SMALL) {
+		ret = EFI_DEVICE_ERROR;
+		goto out;
+	}
+
+	info = malloc(bs);
+	if (!info) {
+		ret = EFI_OUT_OF_RESOURCES;
+		goto out;
+	}
+	ret = EFI_CALL(fh->getinfo(fh, (efi_guid_t *)&efi_file_info_guid, &bs,
+				   info));
+	if (ret != EFI_SUCCESS)
+		goto out;
+
+	*size = info->file_size;
+
+out:
+	free(info);
+	return ret;
+}
+
 static efi_status_t file_read(struct file_handle *fh, u64 *buffer_size,
 		void *buffer)
 {
@@ -439,6 +478,17 @@ static efi_status_t file_read(struct file_handle *fh, u64 *buffer_size,
 	fh->offset += actread;
 
 	return EFI_SUCCESS;
+}
+
+static void rtc2efi(struct efi_time *time, struct rtc_time *tm)
+{
+	memset(time, 0, sizeof(struct efi_time));
+	time->year = tm->tm_year;
+	time->month = tm->tm_mon;
+	time->day = tm->tm_mday;
+	time->hour = tm->tm_hour;
+	time->minute = tm->tm_min;
+	time->second = tm->tm_sec;
 }
 
 static efi_status_t dir_read(struct file_handle *fh, u64 *buffer_size,
@@ -496,6 +546,10 @@ static efi_status_t dir_read(struct file_handle *fh, u64 *buffer_size,
 	info->size = required_size;
 	info->file_size = dent->size;
 	info->physical_size = dent->size;
+	info->attribute = dent->attr;
+	rtc2efi(&info->create_time, &dent->create_time);
+	rtc2efi(&info->modification_time, &dent->change_time);
+	rtc2efi(&info->last_access_time, &dent->access_time);
 
 	if (dent->type == FS_DT_DIR)
 		info->attribute |= EFI_FILE_DIRECTORY;

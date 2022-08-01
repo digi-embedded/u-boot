@@ -114,7 +114,7 @@ static bool ich9_can_do_33mhz(struct udevice *dev)
 	struct ich_spi_priv *priv = dev_get_priv(dev);
 	u32 fdod, speed;
 
-	if (!CONFIG_IS_ENABLED(PCI))
+	if (!CONFIG_IS_ENABLED(PCI) || !priv->pch)
 		return false;
 	/* Observe SPI Descriptor Component Section 0 */
 	dm_pci_write_config32(priv->pch, 0xb0, 0x1000);
@@ -632,7 +632,7 @@ static int ich_spi_get_basics(struct udevice *bus, bool can_probe,
 		if (device_get_uclass_id(pch) != UCLASS_PCH) {
 			uclass_first_device(UCLASS_PCH, &pch);
 			if (!pch)
-				return log_msg_ret("uclass", -EPROTOTYPE);
+				; /* ignore this error since we don't need it */
 		}
 	}
 
@@ -918,12 +918,14 @@ static int ich_spi_child_pre_probe(struct udevice *dev)
 	struct spi_slave *slave = dev_get_parent_priv(dev);
 
 	/*
-	 * Yes this controller can only write a small number of bytes at
+	 * Yes this controller can only transfer a small number of bytes at
 	 * once! The limit is typically 64 bytes. For hardware sequencing a
 	 * a loop is used to get around this.
 	 */
-	if (!plat->hwseq)
+	if (!plat->hwseq) {
+		slave->max_read_size = priv->databytes;
 		slave->max_write_size = priv->databytes;
+	}
 	/*
 	 * ICH 7 SPI controller only supports array read command
 	 * and byte program command for SST flash

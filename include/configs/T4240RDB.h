@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
  * Copyright 2014 Freescale Semiconductor, Inc.
- * Copyright 2020 NXP
+ * Copyright 2020-2021 NXP
  */
 
 /*
@@ -155,7 +155,7 @@
 
 /* I2C */
 #if !CONFIG_IS_ENABLED(DM_I2C)
-#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_LEGACY
 #define CONFIG_SYS_FSL_I2C_SLAVE	0x7F
 #define CONFIG_SYS_FSL_I2C_OFFSET	0x118000
 #define CONFIG_SYS_FSL_I2C2_SLAVE	0x7F
@@ -196,27 +196,6 @@
 #define CONFIG_SYS_PCIE4_IO_PHYS	0xff8030000ull
 
 #ifdef CONFIG_PCI
-#if !defined(CONFIG_DM_PCI)
-#define CONFIG_FSL_PCI_INIT	/* Use common FSL init code */
-#define CONFIG_SYS_PCIE1_MEM_BUS	0xe0000000
-#define CONFIG_SYS_PCIE1_MEM_SIZE	0x20000000      /* 512M */
-#define CONFIG_SYS_PCIE1_IO_BUS		0x00000000
-#define CONFIG_SYS_PCIE1_IO_SIZE	0x00010000	/* 64k */
-#define CONFIG_SYS_PCIE2_MEM_BUS	0xe0000000
-#define CONFIG_SYS_PCIE2_MEM_SIZE	0x20000000	/* 512M */
-#define CONFIG_SYS_PCIE2_IO_BUS		0x00000000
-#define CONFIG_SYS_PCIE2_IO_SIZE	0x00010000	/* 64k */
-#define CONFIG_SYS_PCIE3_MEM_BUS	0xe0000000
-#define CONFIG_SYS_PCIE3_MEM_SIZE	0x20000000	/* 512M */
-#define CONFIG_SYS_PCIE3_IO_BUS		0x00000000
-#define CONFIG_SYS_PCIE3_IO_SIZE	0x00010000	/* 64k */
-#define CONFIG_SYS_PCIE4_MEM_BUS	0xe0000000
-#define CONFIG_SYS_PCIE4_MEM_SIZE	0x20000000	/* 512M */
-#define CONFIG_SYS_PCIE4_IO_BUS		0x00000000
-#define CONFIG_SYS_PCIE4_IO_SIZE	0x00010000	/* 64k */
-#define CONFIG_PCI_INDIRECT_BRIDGE
-#endif
-
 #define CONFIG_PCI_SCAN_SHOW		/* show pci devices on startup */
 #endif	/* CONFIG_PCI */
 
@@ -538,8 +517,6 @@ unsigned long get_board_ddr_clk(void);
 #endif /* CONFIG_NOBQFMAN */
 
 #ifdef CONFIG_SYS_DPAA_FMAN
-#define CONFIG_CORTINA_FW_ADDR		0xefe00000
-#define CONFIG_CORTINA_FW_LENGTH	0x40000
 #define SGMII_PHY_ADDR1 0x0
 #define SGMII_PHY_ADDR2 0x1
 #define SGMII_PHY_ADDR3 0x2
@@ -585,7 +562,6 @@ unsigned long get_board_ddr_clk(void);
 #ifdef CONFIG_MMC
 #define CONFIG_SYS_FSL_ESDHC_ADDR       CONFIG_SYS_MPC85xx_ESDHC_ADDR
 #define CONFIG_SYS_FSL_ESDHC_BROKEN_TIMEOUT
-#define CONFIG_SYS_FSL_MMC_HAS_CAPBLT_VS33
 #endif
 
 

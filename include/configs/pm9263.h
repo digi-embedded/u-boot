@@ -5,7 +5,7 @@
  * Lead Tech Design <www.leadtechdesign.com>
  * Ilko Iliev <www.ronetix.at>
  *
- * Configuation settings for the RONETIX PM9263 board.
+ * Configuration settings for the RONETIX PM9263 board.
  */
 
 #ifndef __CONFIG_H
@@ -145,7 +145,6 @@
 #define CONFIG_INITRD_TAG	1
 
 #undef CONFIG_SKIP_LOWLEVEL_INIT
-#define CONFIG_USER_LOWLEVEL_INIT	1
 
 /*
  * Hardware drivers
@@ -203,12 +202,6 @@
 					 AT91_MATRIX_SCFG_FIXED_DEFMSTR(5)	| \
 					 AT91_MATRIX_SCFG_DEFMSTR_TYPE_FIXED	| \
 					 AT91_MATRIX_SCFG_SLOT_CYCLE(255))
-
-/* Ethernet */
-#define CONFIG_MACB			1
-#define CONFIG_RMII			1
-#define CONFIG_NET_RETRY_COUNT		20
-#define CONFIG_RESET_PHY_R		1
 
 /* USB */
 #define CONFIG_USB_ATMEL

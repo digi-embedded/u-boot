@@ -65,7 +65,7 @@ config SYS_PROMPT_HUSH_PS2
 	  to complete a command. Usually "> ".
 
 config SYS_XTRACE
-	string "Command execution tracer"
+	bool "Command execution tracer"
 	depends on CMDLINE
 	default y if CMDLINE
 	help
@@ -167,7 +167,7 @@ config CMD_TLV_EEPROM
 config SPL_CMD_TLV_EEPROM
 	bool "tlv_eeprom for SPL"
 	depends on SPL_I2C_EEPROM
-	select SPL_DRIVERS_MISC_SUPPORT
+	select SPL_DRIVERS_MISC
 	help
 	  Read system EEPROM data block in ONIE Tlvinfo format from SPL.
 
@@ -331,6 +331,18 @@ config CMD_FDT
 	depends on OF_LIBFDT
 	help
 	  Do FDT related setup before booting into the Operating System.
+
+config SUPPORT_EXTENSION_SCAN
+	bool
+
+config CMD_EXTENSION
+	bool "Extension board management command"
+	select CMD_FDT
+	depends on SUPPORT_EXTENSION_SCAN
+	help
+	  Enables the "extension" command, which allows to detect
+	  extension boards connected to the system, and apply
+	  corresponding Device Tree overlays.
 
 config CMD_GO
 	bool "go"
@@ -1073,6 +1085,7 @@ config CMD_MISC
 
 config CMD_MMC
 	bool "mmc"
+	depends on MMC
 	help
 	  MMC memory mapped support.
 
@@ -1315,7 +1328,7 @@ config CMD_UNIVERSE
 
 config CMD_USB
 	bool "usb"
-	depends on USB
+	depends on USB_HOST
 	select HAVE_BLOCK_DEVICE
 	help
 	  USB support.
@@ -1338,9 +1351,13 @@ config CMD_ROCKUSB
 
 config CMD_USB_MASS_STORAGE
 	bool "UMS usb mass storage"
+	depends on USB_GADGET_DOWNLOAD
 	select USB_FUNCTION_MASS_STORAGE
+	depends on BLK && USB_GADGET
 	help
-	  USB mass storage support
+	  Enables the command "ums" and the USB mass storage support to the
+	  export a block device: U-Boot, the USB device, acts as a simple
+	  external hard drive plugged on the host USB port.
 
 config CMD_PVBLOCK
 	bool "Xen para-virtualized block device"
@@ -1402,6 +1419,14 @@ config CMD_SETEXPR
 	    variable.
 	  Also supports loading the value at a memory location into a variable.
 	  If CONFIG_REGEX is enabled, setexpr also supports a gsub function.
+
+config CMD_SETEXPR_FMT
+	bool "setexpr_fmt"
+	default n
+	depends on CMD_SETEXPR
+	help
+	  Evaluate format string expression and store result in an environment
+	    variable.
 
 endmenu
 
@@ -2040,12 +2065,19 @@ config HASH_VERIFY
 	help
 	  Add -v option to verify data against a hash.
 
+config CMD_SCP03
+	bool "scp03 - SCP03 enable and rotate/provision operations"
+	depends on SCP03
+	help
+	  This command provides access to a Trusted Application
+	  running in a TEE to request Secure Channel Protocol 03
+	  (SCP03) enablement and/or rotation of its SCP03 keys.
+
 config CMD_TPM_V1
 	bool
 
 config CMD_TPM_V2
 	bool
-	select CMD_LOG
 
 config CMD_TPM
 	bool "Enable the 'tpm' command"
@@ -2260,6 +2292,15 @@ config CMD_BEDBUG
 	  for some PowerPC processors. For details please see the
 	  documentation in doc/README.bedbug.
 
+config CMD_CBSYSINFO
+	bool "cbsysinfo"
+	depends on X86
+	default y if SYS_COREBOOT
+	help
+	  This provides information about the coreboot sysinfo table stored in
+	  memory by coreboot before jumping to U-Boot. It can be useful for
+	  debugging the beaaviour of coreboot or U-Boot.
+
 config CMD_DIAG
 	bool "diag - Board diagnostics"
 	help
@@ -2321,6 +2362,15 @@ config CMD_AVB
 	    avb read_part_hex - read data from partition and output to stdout
 	    avb write_part - write data to partition
 	    avb verify - run full verification chain
+
+config CMD_STACKPROTECTOR_TEST
+	bool "Test command for stack protector"
+	depends on STACKPROTECTOR
+	help
+	  Enable stackprot_test command
+	  The stackprot_test command will force a stack overrun to test
+	  the stack smashing detection mechanisms.
+
 endmenu
 
 config CMD_UBI
@@ -2352,4 +2402,14 @@ config CMD_UBIFS
 	help
 	  UBIFS is a file system for flash devices which works on top of UBI.
 
+config MMC_SPEED_MODE_SET
+	bool "set speed mode using mmc command"
+	depends on CMD_MMC
+	default n
+	help
+	  Enable setting speed mode using mmc rescan and mmc dev commands.
+	  The speed mode is provided as the last argument in these commands
+	  and is indicated using the index from enum bus_mode in
+	  include/mmc.h. A speed mode can be set only if it has already
+	  been enabled in the device tree.
 endmenu

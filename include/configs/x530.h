@@ -12,8 +12,6 @@
 
 #define CONFIG_DISPLAY_BOARDINFO_LATE
 
-#define CONFIG_SYS_TCLK		250000000	/* 250MHz */
-
 /*
  * NS16550 Configuration
  */
@@ -96,8 +94,5 @@
 
 #define CONFIG_SPL_STACK		(0x40000000 + ((192 - 16) << 10))
 #define CONFIG_SPL_BOOTROM_SAVE		(CONFIG_SPL_STACK + 4)
-
-/* SPL related SPI defines */
-#define CONFIG_SYS_U_BOOT_OFFS		CONFIG_SYS_SPI_U_BOOT_OFFS
 
 #endif /* _CONFIG_X530_H */

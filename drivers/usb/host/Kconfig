@@ -5,9 +5,11 @@ comment "USB Host Controller Drivers"
 
 config USB_HOST
 	bool
+	select DM_USB
 
 config USB_XHCI_HCD
 	bool "xHCI HCD (USB 3.0) support"
+	depends on DM && OF_CONTROL
 	select USB_HOST
 	---help---
 	  The eXtensible Host Controller Interface (xHCI) is standard for USB 3.0
@@ -102,27 +104,12 @@ config USB_XHCI_BRCM
 	  USB controller based on the Broadcom USB3 IP Core.
 	  Supports USB2/3 functionality.
 
-config USB_XHCI_IMX8
-	bool "XHCI support for i.MX8"
-	depends on ARCH_IMX8
-	default y
-	help
-	  Enables support for the on-chip xHCI controller on i.MX8QM and
-	  i.MX8QXP SoCs.
-
-config USB_XHCI_IMX8M
-	bool "XHCI support for imx8M(mscale)"
-	depends on ARCH_IMX8M
-	select MISC if IMX8MP
-	default y
-	help
-	  Enables support for the on-chip xHCI controller on imx8m(mscale) SoC.
-
 endif # USB_XHCI_HCD
 
 config USB_EHCI_HCD
 	bool "EHCI HCD (USB 2.0) support"
-	default y if ARCH_MX5 || ARCH_MX6 || ARCH_IMX8
+	default y if ARCH_MX5 || ARCH_MX6
+	depends on DM && OF_CONTROL
 	select USB_HOST
 	---help---
 	  The Enhanced Host Controller Interface (EHCI) is standard for USB 2.0
@@ -164,15 +151,17 @@ config USB_EHCI_MX5
 	  Enables support for the on-chip EHCI controller on i.MX5 SoCs.
 
 config USB_EHCI_MX6
-	bool "Support for i.MX6/i.MX7ULP/i.MX8 on-chip EHCI USB controller"
-	depends on ARCH_MX6 || ARCH_MX7ULP || ARCH_IMX8 || ARCH_IMX8ULP
+	bool "Support for i.MX6/i.MX7ULP on-chip EHCI USB controller"
+	depends on ARCH_MX6 || ARCH_MX7ULP || ARCH_IMXRT
 	default y
 	---help---
 	  Enables support for the on-chip EHCI controller on i.MX6 SoCs.
 
 config USB_EHCI_MX7
 	bool "Support for i.MX7 on-chip EHCI USB controller"
-	depends on ARCH_MX7 || IMX8MM || IMX8MN
+	depends on ARCH_MX7 || IMX8M
+	select PHY if IMX8M
+	select NOP_PHY if IMX8M
 	default y
 	---help---
 	  Enables support for the on-chip EHCI controller on i.MX7 SoCs.
@@ -231,7 +220,6 @@ config USB_EHCI_ZYNQ
 
 config USB_EHCI_GENERIC
 	bool "Support for generic EHCI USB controller"
-	depends on OF_CONTROL
 	depends on DM_USB
 	default ARCH_SUNXI
 	default n
@@ -248,6 +236,8 @@ endif # USB_EHCI_HCD
 
 config USB_OHCI_HCD
 	bool "OHCI HCD (USB 1.1) support"
+	depends on DM && OF_CONTROL
+	select USB_HOST
 	---help---
 	  The Open Host Controller Interface (OHCI) is a standard for accessing
 	  USB 1.1 host controller hardware.  It does more in hardware than Intel's
@@ -258,21 +248,17 @@ config USB_OHCI_HCD
 	  based system where you're not sure, the "lspci -v" entry will list the
 	  right "prog-if" for your USB controller(s):  EHCI, OHCI, or UHCI.
 
+if USB_OHCI_HCD
+
 config USB_OHCI_PCI
 	bool "Support for PCI-based OHCI USB controller"
-	depends on DM_USB
-	default n
+	depends on PCI
 	help
 	  Enables support for the PCI-based OHCI controller.
 
-if USB_OHCI_HCD
-
 config USB_OHCI_GENERIC
 	bool "Support for generic OHCI USB controller"
-	depends on OF_CONTROL
-	depends on DM_USB
 	default ARCH_SUNXI
-	select USB_HOST
 	---help---
 	  Enables support for generic OHCI controller.
 
@@ -303,6 +289,7 @@ endif # USB_UHCI_HCD
 
 config USB_DWC2
 	bool "DesignWare USB2 Core support"
+	depends on DM && OF_CONTROL
 	select USB_HOST
 	---help---
 	  The DesignWare USB 2.0 controller is compliant with the
@@ -325,8 +312,7 @@ endif # USB_DWC2
 
 config USB_R8A66597_HCD
 	bool "Renesas R8A66597 USB Core support"
-	depends on OF_CONTROL
-	depends on DM_USB
+	depends on DM && OF_CONTROL
 	select USB_HOST
 	---help---
 	  This enables support for the on-chip Renesas R8A66597 USB 2.0

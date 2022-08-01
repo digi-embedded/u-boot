@@ -56,7 +56,7 @@
 
 /* I2C */
 #if !CONFIG_IS_ENABLED(DM_I2C)
-#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_LEGACY
 #else
 #define CONFIG_I2C_SET_DEFAULT_BUS_NUM
 #define CONFIG_I2C_DEFAULT_BUS_NUMBER 0
@@ -102,11 +102,11 @@
 
 #undef CONFIG_BOOTCOMMAND
 #ifdef CONFIG_TFABOOT
-#define QSPI_NOR_BOOTCOMMAND	"pfe stop; sf probe 0:0; sf read $kernel_load "\
+#define QSPI_NOR_BOOTCOMMAND	"sf probe 0:0; sf read $kernel_load "\
 				"$kernel_start $kernel_size && "\
 				"bootm $kernel_load"
 #else
-#define CONFIG_BOOTCOMMAND	"pfe stop; sf probe 0:0; sf read $kernel_load "\
+#define CONFIG_BOOTCOMMAND	"sf probe 0:0; sf read $kernel_load "\
 				"$kernel_start $kernel_size && "\
 				"bootm $kernel_load"
 #endif

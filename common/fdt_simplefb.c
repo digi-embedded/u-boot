@@ -63,40 +63,8 @@ int fdt_simplefb_add_node(void *blob)
 	static const char compat[] = "simple-framebuffer";
 	static const char disabled[] = "disabled";
 	int off, ret;
-	int na, ns, len;
-	fdt32_t value;
-	const fdt32_t *c;
 
-	/* find or create "/chosen" node. */
-	off = fdt_find_or_add_subnode(blob, 0, "chosen");
-	if (off < 0)
-		return off;
-
-	/* inherit #address-cells and #size-cells from the root node */
-	c = fdt_getprop(blob, off, "#address-cells", &len);
-	if (!c && len == -FDT_ERR_NOTFOUND) {
-		na = fdt_address_cells(blob, 0);
-		value = cpu_to_fdt32(na);
-		ret = fdt_setprop(blob, off, "#address-cells", &value, sizeof(value));
-		if (ret < 0)
-			return ret;
-	}
-
-	c = fdt_getprop(blob, off, "#size-cells", &len);
-	if (!c && len == -FDT_ERR_NOTFOUND) {
-		ns = fdt_size_cells(blob, 0);
-		value = cpu_to_fdt32(ns);
-		ret = fdt_setprop(blob, off, "#size-cells", &value, sizeof(value));
-		if (ret < 0)
-			return ret;
-	}
-
-	/* add empty "ranges" property to indicate 1:1 translation */
-	ret = fdt_setprop_empty(blob, off, "ranges");
-	if (ret < 0)
-		return ret;
-
-	off = fdt_add_subnode(blob, off, "framebuffer");
+	off = fdt_add_subnode(blob, 0, "framebuffer");
 	if (off < 0)
 		return -1;
 
@@ -111,28 +79,6 @@ int fdt_simplefb_add_node(void *blob)
 	return fdt_simplefb_configure_node(blob, off);
 }
 
-#if CONFIG_IS_ENABLED(DM_VIDEO)
-int fdt_simplefb_add_node_and_mem_rsv(void *blob)
-{
-	struct fdt_memory mem;
-	int ret;
-
-	/* nothing to do when no the frame buffer or video is not active */
-	if (gd->video_bottom == gd->video_top || !video_is_active())
-		return 0;
-
-	ret = fdt_simplefb_add_node(blob);
-	if (ret)
-		return ret;
-
-	/* reserved with no-map tag the video buffer */
-	mem.start = gd->video_bottom;
-	mem.end = gd->video_top - 1;
-
-	return fdtdec_add_reserved_memory(blob, "framebuffer", &mem, NULL, true);
-}
-#endif
-
 int fdt_simplefb_enable_existing_node(void *blob)
 {
 	int off;
@@ -143,3 +89,29 @@ int fdt_simplefb_enable_existing_node(void *blob)
 
 	return fdt_simplefb_configure_node(blob, off);
 }
+
+#if CONFIG_IS_ENABLED(DM_VIDEO)
+int fdt_simplefb_enable_and_mem_rsv(void *blob)
+{
+	struct fdt_memory mem;
+	int ret;
+
+	/* nothing to do when video is not active */
+	if (!video_is_active())
+		return 0;
+
+	ret = fdt_simplefb_enable_existing_node(blob);
+	if (ret)
+		return ret;
+
+	/* nothing to do when the frame buffer is not defined */
+	if (gd->video_bottom == gd->video_top)
+		return 0;
+
+	/* reserved with no-map tag the video buffer */
+	mem.start = gd->video_bottom;
+	mem.end = gd->video_top - 1;
+
+	return fdtdec_add_reserved_memory(blob, "framebuffer", &mem, NULL, true);
+}
+#endif

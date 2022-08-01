@@ -10,8 +10,6 @@
  * High Level Configuration Options (easy to change)
  */
 
-#define CONFIG_SYS_TCLK		200000000	/* 200MHz */
-
 /* USB/EHCI configuration */
 #define CONFIG_EHCI_IS_TDI
 
@@ -58,11 +56,6 @@
 
 #define CONFIG_SPL_STACK		(0x40000000 + ((192 - 16) << 10))
 #define CONFIG_SPL_BOOTROM_SAVE		(CONFIG_SPL_STACK + 4)
-
-#if CONFIG_SPL_BOOT_DEVICE == SPL_BOOT_SPI_NOR_FLASH
-/* SPL related SPI defines */
-#define CONFIG_SYS_U_BOOT_OFFS		CONFIG_SYS_SPI_U_BOOT_OFFS
-#endif
 
 /*
  * mv-common.h should be defined after CMD configs since it used them

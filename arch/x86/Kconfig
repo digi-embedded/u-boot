@@ -364,7 +364,6 @@ config HAVE_FSP
 	depends on !EFI
 	select USE_HOB
 	select HAS_ROM
-	select ROM_NEEDS_BLOBS
 	help
 	  Select this option to add an Firmware Support Package binary to
 	  the resulting U-Boot image. It is a binary blob which U-Boot uses
@@ -525,7 +524,6 @@ config ENABLE_MRC_CACHE
 config HAVE_MRC
 	bool "Add a System Agent binary"
 	select HAS_ROM
-	select ROM_NEEDS_BLOBS
 	depends on !HAVE_FSP
 	help
 	  Select this option to add a System Agent binary to
@@ -1046,5 +1044,26 @@ config INTEL_GMA_SWSMISCI
 	  register (0xe0) rather than the SWSCI register (0xe8).
 
 endif # INTEL_SOC
+
+config COREBOOT_SYSINFO
+	bool "Support reading coreboot sysinfo"
+	default y if SYS_COREBOOT
+	help
+	  Select this option to read the coreboot sysinfo table on start-up,
+	  if present. This is written by coreboot before it exits and provides
+	  various pieces of information about the running system, including
+	  display, memory and build information. It is stored in
+	  struct sysinfo_t after parsing by get_coreboot_info().
+
+config SPL_COREBOOT_SYSINFO
+	bool "Support reading coreboot sysinfo"
+	depends on SPL
+	default y if COREBOOT_SYSINFO
+	help
+	  Select this option to read the coreboot sysinfo table in SPL,
+	  if present. This is written by coreboot before it exits and provides
+	  various pieces of information about the running system, including
+	  display, memory and build information. It is stored in
+	  struct sysinfo_t after parsing by get_coreboot_info().
 
 endmenu

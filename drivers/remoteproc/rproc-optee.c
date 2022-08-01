@@ -4,6 +4,8 @@
  * Authors: Arnaud Pouliquen <arnaud.pouliquen@st.com>
  */
 
+#define LOG_CATEGORY UCLASS_REMOTEPROC
+
 #include <dm.h>
 #include <errno.h>
 #include <remoteproc.h>

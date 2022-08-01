@@ -20,8 +20,6 @@
 #include <exports.h>
 #include <fdtdec.h>
 
-DECLARE_GLOBAL_DATA_PTR;
-
 /**
  * fdt_getprop_u32_default_node - Return a node's property or a default
  *
@@ -269,6 +267,15 @@ int fdt_initrd(void *fdt, ulong initrd_start, ulong initrd_end)
 	return 0;
 }
 
+/**
+ * board_fdt_chosen_bootargs - boards may override this function to use
+ *                             alternative kernel command line arguments
+ */
+__weak char *board_fdt_chosen_bootargs(void)
+{
+	return env_get("bootargs");
+}
+
 int fdt_chosen(void *fdt)
 {
 	int   nodeoffset;
@@ -286,7 +293,8 @@ int fdt_chosen(void *fdt)
 	if (nodeoffset < 0)
 		return nodeoffset;
 
-	str = env_get("bootargs");
+	str = board_fdt_chosen_bootargs();
+
 	if (str) {
 		err = fdt_setprop(fdt, nodeoffset, "bootargs", str,
 				  strlen(str) + 1);
@@ -412,6 +420,24 @@ static int fdt_pack_reg(const void *fdt, void *buf, u64 *address, u64 *size,
 #else
 #define MEMORY_BANKS_MAX 4
 #endif
+
+/**
+ * fdt_fixup_memory_banks - Update DT memory node
+ * @blob: Pointer to DT blob
+ * @start: Pointer to memory start addresses array
+ * @size: Pointer to memory sizes array
+ * @banks: Number of memory banks
+ *
+ * Return: 0 on success, negative value on failure
+ *
+ * Based on the passed number of banks and arrays, the function is able to
+ * update existing DT memory nodes to match run time detected/changed memory
+ * configuration. Implementation is handling one specific case with only one
+ * memory node where multiple tuples could be added/updated.
+ * The case where multiple memory nodes with a single tuple (base, size) are
+ * used, this function is only updating the first memory node without removing
+ * others.
+ */
 int fdt_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks)
 {
 	int err, nodeoffset;
@@ -571,7 +597,7 @@ void fdt_fixup_ethernet(void *fdt)
 
 			for (j = 0; j < 6; j++) {
 				mac_addr[j] = tmp ?
-					      simple_strtoul(tmp, &end, 16) : 0;
+					      hextoul(tmp, &end) : 0;
 				if (tmp)
 					tmp = (*end) ? end + 1 : end;
 			}
@@ -586,7 +612,7 @@ void fdt_fixup_ethernet(void *fdt)
 
 int fdt_record_loadable(void *blob, u32 index, const char *name,
 			uintptr_t load_addr, u32 size, uintptr_t entry_point,
-			const char *type, const char *os)
+			const char *type, const char *os, const char *arch)
 {
 	int err, node;
 
@@ -614,6 +640,8 @@ int fdt_record_loadable(void *blob, u32 index, const char *name,
 		fdt_setprop_string(blob, node, "type", type);
 	if (os)
 		fdt_setprop_string(blob, node, "os", os);
+	if (arch)
+		fdt_setprop_string(blob, node, "arch", arch);
 
 	return node;
 }
@@ -991,8 +1019,8 @@ void fdt_del_node_and_alias(void *blob, const char *alias)
 /* Max address size we deal with */
 #define OF_MAX_ADDR_CELLS	4
 #define OF_BAD_ADDR	FDT_ADDR_T_NONE
-#define OF_CHECK_COUNTS(na, ns) (((na) > 0 && (na) <= OF_MAX_ADDR_CELLS) && \
-			 ((ns) > 0 || gd_size_cells_0()))
+#define OF_CHECK_COUNTS(na, ns)	((na) > 0 && (na) <= OF_MAX_ADDR_CELLS && \
+			(ns) > 0)
 
 /* Debug utility */
 #ifdef DEBUG
@@ -1896,3 +1924,49 @@ int fdt_overlay_apply_verbose(void *fdt, void *fdto)
 	return err;
 }
 #endif
+
+/**
+ * fdt_valid() - Check if an FDT is valid. If not, change it to NULL
+ *
+ * @blobp: Pointer to FDT pointer
+ * @return 1 if OK, 0 if bad (in which case *blobp is set to NULL)
+ */
+int fdt_valid(struct fdt_header **blobp)
+{
+	const void *blob = *blobp;
+	int err;
+
+	if (!blob) {
+		printf("The address of the fdt is invalid (NULL).\n");
+		return 0;
+	}
+
+	err = fdt_check_header(blob);
+	if (err == 0)
+		return 1;	/* valid */
+
+	if (err < 0) {
+		printf("libfdt fdt_check_header(): %s", fdt_strerror(err));
+		/*
+		 * Be more informative on bad version.
+		 */
+		if (err == -FDT_ERR_BADVERSION) {
+			if (fdt_version(blob) <
+			    FDT_FIRST_SUPPORTED_VERSION) {
+				printf(" - too old, fdt %d < %d",
+				       fdt_version(blob),
+				       FDT_FIRST_SUPPORTED_VERSION);
+			}
+			if (fdt_last_comp_version(blob) >
+			    FDT_LAST_SUPPORTED_VERSION) {
+				printf(" - too new, fdt %d > %d",
+				       fdt_version(blob),
+				       FDT_LAST_SUPPORTED_VERSION);
+			}
+		}
+		printf("\n");
+		*blobp = NULL;
+		return 0;
+	}
+	return 1;
+}

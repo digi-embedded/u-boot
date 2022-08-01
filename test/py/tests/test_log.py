@@ -27,13 +27,13 @@ def test_log_format(u_boot_console):
 
     cons = u_boot_console
     with cons.log.section('format'):
-        run_with_format('all', 'NOTICE.arch,file.c:123-func() msg')
+        run_with_format('all', 'NOTICE.arch,file.c:123-                func() msg')
         output = cons.run_command('log format')
         assert output == 'Log format: clFLfm'
 
-        run_with_format('fm', 'func() msg')
-        run_with_format('clfm', 'NOTICE.arch,func() msg')
-        run_with_format('FLfm', 'file.c:123-func() msg')
+        run_with_format('fm', '                func() msg')
+        run_with_format('clfm', 'NOTICE.arch,                func() msg')
+        run_with_format('FLfm', 'file.c:123-                func() msg')
         run_with_format('lm', 'NOTICE. msg')
         run_with_format('m', 'msg')
 
@@ -45,5 +45,4 @@ def test_log_dropped(u_boot_console):
     cons = u_boot_console
     cons.restart_uboot()
     output = cons.get_spawn_output().replace('\r', '')
-    assert 'sandbox: starting...' in output
     assert (not 'debug: main' in output)

@@ -396,7 +396,7 @@ int blk_get_device_by_str(const char *ifname, const char *dev_hwpart_str,
 		hwpart = 0;
 	}
 
-	dev = simple_strtoul(dev_str, &ep, 16);
+	dev = hextoul(dev_str, &ep);
 	if (*ep) {
 		printf("** Bad device specification %s %s **\n",
 		       ifname, dev_str);
@@ -405,7 +405,7 @@ int blk_get_device_by_str(const char *ifname, const char *dev_hwpart_str,
 	}
 
 	if (hwpart_str) {
-		hwpart = simple_strtoul(hwpart_str, &ep, 16);
+		hwpart = hextoul(hwpart_str, &ep);
 		if (*ep) {
 			printf("** Bad HW partition specification %s %s **\n",
 			    ifname, hwpart_str);
@@ -534,7 +534,7 @@ int blk_get_device_part_str(const char *ifname, const char *dev_part_str,
 		part = PART_AUTO;
 	} else {
 		/* Something specified -> use exactly that */
-		part = (int)simple_strtoul(part_str, &ep, 16);
+		part = (int)hextoul(part_str, &ep);
 		/*
 		 * Less than whole string converted,
 		 * or request for whole device, but caller requires partition.
@@ -714,7 +714,11 @@ static int part_get_info_by_dev_and_name(const char *dev_iface,
 	int ret;
 
 	/* Separate device and partition name specification */
-	part_str = strchr(dev_part_str, '#');
+	if (dev_part_str)
+		part_str = strchr(dev_part_str, '#');
+	else
+		part_str = NULL;
+
 	if (part_str) {
 		dup_str = strdup(dev_part_str);
 		dup_str[part_str - dev_part_str] = 0;
@@ -725,7 +729,7 @@ static int part_get_info_by_dev_and_name(const char *dev_iface,
 	}
 
 	ret = blk_get_device_by_str(dev_iface, dev_str, dev_desc);
-	if (ret)
+	if (ret < 0)
 		goto cleanup;
 
 	ret = part_get_info_by_name(*dev_desc, part_str, part_info);

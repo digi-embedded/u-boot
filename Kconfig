@@ -112,6 +112,21 @@ config LOCALVERSION_AUTO
 
 	  which is done within the script "scripts/setlocalversion".)
 
+config CC_IS_GCC
+	def_bool $(success,$(CC) --version | head -n 1 | grep -q gcc)
+
+config GCC_VERSION
+	int
+	default $(shell,$(srctree)/scripts/gcc-version.sh -p $(CC) | sed 's/^0*//') if CC_IS_GCC
+	default 0
+
+config CC_IS_CLANG
+	def_bool $(success,$(CC) --version | head -n 1 | grep -q clang)
+
+config CLANG_VERSION
+	int
+	default $(shell,$(srctree)/scripts/clang-version.sh $(CC))
+
 config CC_OPTIMIZE_FOR_SIZE
 	bool "Optimize for size"
 	default y
@@ -139,6 +154,30 @@ config SPL_OPTIMIZE_INLINING
 	  developers have marked 'inline'. Doing so takes away freedom from gcc to
 	  do what it thinks is best, which is desirable in some cases for size
 	  reasons.
+
+config ARCH_SUPPORTS_LTO
+	bool
+
+config LTO
+	bool "Enable Link Time Optimizations"
+	depends on ARCH_SUPPORTS_LTO
+	default n
+	help
+	  This option enables Link Time Optimization (LTO), a mechanism which
+	  allows the compiler to optimize between different compilation units.
+
+	  This can optimize away dead code paths, resulting in smaller binary
+	  size (if CC_OPTIMIZE_FOR_SIZE is enabled).
+
+	  This option is not available for every architecture and may
+	  introduce bugs.
+
+	  Currently, when compiling with GCC, due to a weird bug regarding
+	  jobserver, the final linking will not respect make's --jobs argument.
+	  Instead all available processors will be used (as reported by the
+	  nproc command).
+
+	  If unsure, say n.
 
 config TPL_OPTIMIZE_INLINING
 	bool "Allow compiler to uninline functions marked 'inline' in TPL"
@@ -358,27 +397,6 @@ config HAS_ROM
 	help
 	  Enables building of a u-boot.rom target. This collects U-Boot and
 	  any necessary binary blobs.
-
-config ROM_NEEDS_BLOBS
-	bool
-	depends on HAS_ROM
-	help
-	  Enable this if building the u-boot.rom target needs binary blobs, and
-	  so cannot be done normally. In this case, U-Boot will only build the
-	  ROM if the required blobs exist. If not, you will see an warning like:
-
-	    Image 'main-section' is missing external blobs and is non-functional:
-	      intel-descriptor intel-me intel-refcode intel-vga intel-mrc
-
-config BUILD_ROM
-	bool "Build U-Boot as BIOS replacement"
-	depends on HAS_ROM
-	default y if !ROM_NEEDS_BLOBS
-	help
-	  This option allows to build a ROM version of U-Boot.
-	  The build process generally requires several binary blobs
-	  which are not shipped in the U-Boot source tree.
-	  Please, see doc/arch/x86.rst for details.
 
 config SPL_IMAGE
 	string "SPL image used in the combined SPL+U-Boot image"

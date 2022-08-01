@@ -1,7 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright 2019 NXP
- *
- * SPDX-License-Identifier:	GPL-2.0+
  *
  * Generated code from MX8M_DDR_tool
  * Align with uboot version:

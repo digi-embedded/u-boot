@@ -16,6 +16,7 @@
 #include <init.h>
 #include <irq_func.h>
 #include <log.h>
+#include <mapmem.h>
 #include <serial.h>
 #include <spl.h>
 #include <asm/global_data.h>
@@ -54,10 +55,15 @@ binman_sym_declare(ulong, spl, image_pos);
 binman_sym_declare(ulong, spl, size);
 #endif
 
+/* Define board data structure */
+static struct bd_info bdata __attribute__ ((section(".data")));
+
+#if CONFIG_IS_ENABLED(BOOTSTAGE)
 /*
  * Board-specific Platform code can reimplement show_boot_progress () if needed
  */
 __weak void show_boot_progress(int val) {}
+#endif
 
 #if defined(CONFIG_SPL_OS_BOOT) || CONFIG_IS_ENABLED(HANDOFF) || \
 	defined(CONFIG_SPL_ATF)
@@ -161,6 +167,10 @@ __weak void spl_board_prepare_for_linux(void)
 	/* Nothing to do! */
 }
 
+__weak void spl_board_prepare_for_optee(void *fdt)
+{
+}
+
 __weak void spl_board_prepare_for_boot(void)
 {
 	/* Nothing to do! */
@@ -168,7 +178,7 @@ __weak void spl_board_prepare_for_boot(void)
 
 __weak struct image_header *spl_get_load_buffer(ssize_t offset, size_t size)
 {
-	return (struct image_header *)(CONFIG_SYS_TEXT_BASE + offset);
+	return map_sysmem(CONFIG_SYS_TEXT_BASE + offset, 0);
 }
 
 void spl_set_header_raw_uboot(struct spl_image_info *spl_image)
@@ -194,14 +204,14 @@ void spl_set_header_raw_uboot(struct spl_image_info *spl_image)
 	spl_image->name = "U-Boot";
 }
 
-#ifdef CONFIG_SPL_LOAD_FIT_FULL
+#if CONFIG_IS_ENABLED(LOAD_FIT_FULL)
 /* Parse and load full fitImage in SPL */
 static int spl_load_fit_image(struct spl_image_info *spl_image,
 			      const struct image_header *header)
 {
 	bootm_headers_t images;
 	const char *fit_uname_config = NULL;
-	const char *fit_uname_fdt = FIT_FDT_PROP;
+	uintptr_t fdt_hack;
 	const char *uname;
 	ulong fw_data = 0, dt_data = 0, img_data = 0;
 	ulong fw_len = 0, dt_len = 0, img_len = 0;
@@ -214,15 +224,33 @@ static int spl_load_fit_image(struct spl_image_info *spl_image,
 	ret = fit_image_load(&images, (ulong)header,
 			     NULL, &fit_uname_config,
 			     IH_ARCH_DEFAULT, IH_TYPE_STANDALONE, -1,
-			     FIT_LOAD_REQUIRED, &fw_data, &fw_len);
+			     FIT_LOAD_OPTIONAL, &fw_data, &fw_len);
+	if (ret >= 0) {
+		printf("DEPRECATED: 'standalone = ' property.");
+		printf("Please use either 'firmware =' or 'kernel ='\n");
+	} else {
+		ret = fit_image_load(&images, (ulong)header, NULL,
+				     &fit_uname_config, IH_ARCH_DEFAULT,
+				     IH_TYPE_FIRMWARE, -1, FIT_LOAD_OPTIONAL,
+				     &fw_data, &fw_len);
+	}
+
+	if (ret < 0) {
+		ret = fit_image_load(&images, (ulong)header, NULL,
+				     &fit_uname_config, IH_ARCH_DEFAULT,
+				     IH_TYPE_KERNEL, -1, FIT_LOAD_OPTIONAL,
+				     &fw_data, &fw_len);
+	}
+
 	if (ret < 0)
 		return ret;
 
 	spl_image->size = fw_len;
 	spl_image->entry_point = fw_data;
 	spl_image->load_addr = fw_data;
-	spl_image->os = IH_OS_U_BOOT;
-	spl_image->name = "U-Boot";
+	if (fit_image_get_os(header, ret, &spl_image->os))
+		spl_image->os = IH_OS_INVALID;
+	spl_image->name = genimg_get_os_name(spl_image->os);
 
 	debug(SPL_TPL_PROMPT "payload image: %32s load addr: 0x%lx size: %d\n",
 	      spl_image->name, spl_image->load_addr, spl_image->size);
@@ -230,12 +258,20 @@ static int spl_load_fit_image(struct spl_image_info *spl_image,
 #ifdef CONFIG_SPL_FIT_SIGNATURE
 	images.verify = 1;
 #endif
-	ret = fit_image_load(&images, (ulong)header,
-		       &fit_uname_fdt, &fit_uname_config,
+	ret = fit_image_load(&images, (ulong)header, NULL, &fit_uname_config,
 		       IH_ARCH_DEFAULT, IH_TYPE_FLATDT, -1,
 		       FIT_LOAD_OPTIONAL, &dt_data, &dt_len);
-	if (ret >= 0)
+	if (ret >= 0) {
 		spl_image->fdt_addr = (void *)dt_data;
+
+		if (spl_image->os == IH_OS_U_BOOT) {
+			/* HACK: U-boot expects FDT at a specific address */
+			fdt_hack = spl_image->load_addr + spl_image->size;
+			fdt_hack = (fdt_hack + 3) & ~3;
+			debug("Relocating FDT to %p\n", spl_image->fdt_addr);
+			memcpy((void *)fdt_hack, spl_image->fdt_addr, dt_len);
+		}
+	}
 
 	conf_noffset = fit_conf_get_node((const void *)header,
 					 fit_uname_config);
@@ -264,6 +300,12 @@ static int spl_load_fit_image(struct spl_image_info *spl_image,
 }
 #endif
 
+__weak int spl_parse_board_header(struct spl_image_info *spl_image,
+				  const void *image_header, size_t size)
+{
+	return -EINVAL;
+}
+
 __weak int spl_parse_legacy_header(struct spl_image_info *spl_image,
 				   const struct image_header *header)
 {
@@ -275,7 +317,7 @@ __weak int spl_parse_legacy_header(struct spl_image_info *spl_image,
 int spl_parse_image_header(struct spl_image_info *spl_image,
 			   const struct image_header *header)
 {
-#ifdef CONFIG_SPL_LOAD_FIT_FULL
+#if CONFIG_IS_ENABLED(LOAD_FIT_FULL)
 	int ret = spl_load_fit_image(spl_image, header);
 
 	if (!ret)
@@ -315,6 +357,9 @@ int spl_parse_image_header(struct spl_image_info *spl_image,
 			return 0;
 		}
 #endif
+
+		if (!spl_parse_board_header(spl_image, (const void *)header, sizeof(*header)))
+			return 0;
 
 #ifdef CONFIG_SPL_RAW_IMAGE_SUPPORT
 		/* Signature not found - assume u-boot.bin */
@@ -386,6 +431,22 @@ static inline int write_spl_handoff(void) { return 0; }
 
 #endif /* HANDOFF */
 
+/**
+ * get_bootstage_id() - Get the bootstage ID to emit
+ *
+ * @start: true if this is for starting SPL, false for ending it
+ * @return bootstage ID to use
+ */
+static enum bootstage_id get_bootstage_id(bool start)
+{
+	enum u_boot_phase phase = spl_phase();
+
+	if (IS_ENABLED(CONFIG_TPL_BUILD) && phase == PHASE_TPL)
+		return start ? BOOTSTAGE_ID_START_TPL : BOOTSTAGE_ID_END_TPL;
+	else
+		return start ? BOOTSTAGE_ID_START_SPL : BOOTSTAGE_ID_END_SPL;
+}
+
 static int spl_common_init(bool setup_malloc)
 {
 	int ret;
@@ -416,8 +477,8 @@ static int spl_common_init(bool setup_malloc)
 			      __func__, ret);
 	}
 #endif /* CONFIG_BOOTSTAGE_STASH */
-	bootstage_mark_name(spl_phase() == PHASE_TPL ? BOOTSTAGE_ID_START_TPL :
-			    BOOTSTAGE_ID_START_SPL, SPL_TPL_NAME);
+	bootstage_mark_name(get_bootstage_id(true),
+			    spl_phase_name(spl_phase()));
 #if CONFIG_IS_ENABLED(LOG)
 	ret = log_init();
 	if (ret) {
@@ -447,19 +508,14 @@ static int spl_common_init(bool setup_malloc)
 	return 0;
 }
 
-int spl_alloc_bd(void)
+void spl_set_bd(void)
 {
 	/*
 	 * NOTE: On some platforms (e.g. x86) bdata may be in flash and not
 	 * writeable.
 	 */
-	if (!gd->bd) {
-		gd->bd = malloc(sizeof(*gd->bd));
-		if (!gd->bd)
-			return -ENOMEM;
-	}
-
-	return 0;
+	if (!gd->bd)
+		gd->bd = &bdata;
 }
 
 int spl_early_init(void)
@@ -550,32 +606,42 @@ static int spl_load_image(struct spl_image_info *spl_image,
  * @spl_image: Place to put the image details if successful
  * @spl_boot_list: List of boot devices to try
  * @count: Number of elements in spl_boot_list
- * @return 0 if OK, -ve on error
+ * @return 0 if OK, -ENODEV if there were no boot devices
+ *	if CONFIG_SHOW_ERRORS is enabled, returns -ENXIO if there were
+ *	devices but none worked
  */
 static int boot_from_devices(struct spl_image_info *spl_image,
 			     u32 spl_boot_list[], int count)
 {
+	int ret = -ENODEV;
 	int i;
 
 	for (i = 0; i < count && spl_boot_list[i] != BOOT_DEVICE_NONE; i++) {
 		struct spl_image_loader *loader;
+		int bootdev = spl_boot_list[i];
 
-		loader = spl_ll_find_loader(spl_boot_list[i]);
-#if defined(CONFIG_SPL_SERIAL_SUPPORT) \
-    && defined(CONFIG_SPL_LIBCOMMON_SUPPORT)    \
-    && !defined(CONFIG_SILENT_CONSOLE)
-		if (loader)
-			printf("Trying to boot from %s\n", loader->name);
-		else
-			puts(SPL_TPL_PROMPT "Unsupported Boot Device!\n");
-#endif
+		if (CONFIG_IS_ENABLED(SHOW_ERRORS))
+			ret = -ENXIO;
+		loader = spl_ll_find_loader(bootdev);
+		if (CONFIG_IS_ENABLED(SERIAL_SUPPORT) &&
+		    CONFIG_IS_ENABLED(LIBCOMMON_SUPPORT) &&
+		    !IS_ENABLED(CONFIG_SILENT_CONSOLE)) {
+			if (loader)
+				printf("Trying to boot from %s\n",
+				       spl_loader_name(loader));
+			else if (CONFIG_IS_ENABLED(SHOW_ERRORS))
+				printf(SPL_TPL_PROMPT
+				       "Unsupported Boot Device %d\n", bootdev);
+			else
+				puts(SPL_TPL_PROMPT "Unsupported Boot Device!\n");
+		}
 		if (loader && !spl_load_image(spl_image, loader)) {
-			spl_image->boot_device = spl_boot_list[i];
+			spl_image->boot_device = bootdev;
 			return 0;
 		}
 	}
 
-	return -ENODEV;
+	return ret;
 }
 
 #if defined(CONFIG_SPL_FRAMEWORK_BOARD_INIT_F)
@@ -609,6 +675,8 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 
 	debug(">>" SPL_TPL_PROMPT "board_init_r()\n");
 
+	spl_set_bd();
+
 #if defined(CONFIG_SYS_SPL_MALLOC_START)
 	mem_malloc_init(CONFIG_SYS_SPL_MALLOC_START,
 			CONFIG_SYS_SPL_MALLOC_SIZE);
@@ -617,10 +685,6 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 	if (!(gd->flags & GD_FLG_SPL_INIT)) {
 		if (spl_init())
 			hang();
-	}
-	if (IS_ENABLED(CONFIG_SPL_ALLOC_BD) && spl_alloc_bd()) {
-		puts("Cannot alloc bd\n");
-		hang();
 	}
 #if !defined(CONFIG_PPC) && !defined(CONFIG_ARCH_MX6)
 	/*
@@ -652,7 +716,7 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 	spl_board_init();
 #endif
 
-#if defined(CONFIG_SPL_WATCHDOG_SUPPORT) && CONFIG_IS_ENABLED(WDT)
+#if defined(CONFIG_SPL_WATCHDOG) && CONFIG_IS_ENABLED(WDT)
 	initr_watchdog();
 #endif
 
@@ -669,9 +733,15 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 	spl_image.boot_device = BOOT_DEVICE_NONE;
 	board_boot_order(spl_boot_list);
 
-	if (boot_from_devices(&spl_image, spl_boot_list,
-			      ARRAY_SIZE(spl_boot_list))) {
-		puts(SPL_TPL_PROMPT "failed to boot from all boot devices\n");
+	ret = boot_from_devices(&spl_image, spl_boot_list,
+				ARRAY_SIZE(spl_boot_list));
+	if (ret) {
+		if (CONFIG_IS_ENABLED(SHOW_ERRORS) &&
+		    CONFIG_IS_ENABLED(LIBCOMMON_SUPPORT))
+			printf(SPL_TPL_PROMPT "failed to boot from all boot devices (err=%d)\n",
+			       ret);
+		else
+			puts(SPL_TPL_PROMPT "failed to boot from all boot devices\n");
 		hang();
 	}
 
@@ -694,7 +764,7 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 #endif
 	switch (spl_image.os) {
 	case IH_OS_U_BOOT:
-		debug("Jumping to U-Boot\n");
+		debug("Jumping to %s...\n", spl_phase_name(spl_next_phase()));
 		break;
 #if CONFIG_IS_ENABLED(ATF)
 	case IH_OS_ARM_TRUSTED_FIRMWARE:
@@ -706,6 +776,7 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 #if CONFIG_IS_ENABLED(OPTEE)
 	case IH_OS_TEE:
 		debug("Jumping to U-Boot via OP-TEE\n");
+		spl_board_prepare_for_optee(spl_image.fdt_addr);
 		spl_optee_entry(NULL, NULL, spl_image.fdt_addr,
 				(void *)spl_image.entry_point);
 		break;
@@ -732,8 +803,7 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 	debug("SPL malloc() used 0x%lx bytes (%ld KB)\n", gd->malloc_ptr,
 	      gd->malloc_ptr / 1024);
 #endif
-	bootstage_mark_name(spl_phase() == PHASE_TPL ? BOOTSTAGE_ID_END_TPL :
-			    BOOTSTAGE_ID_END_SPL, "end " SPL_TPL_NAME);
+	bootstage_mark_name(get_bootstage_id(false), "end phase");
 #ifdef CONFIG_BOOTSTAGE_STASH
 	ret = bootstage_stash((void *)CONFIG_BOOTSTAGE_STASH_ADDR,
 			      CONFIG_BOOTSTAGE_STASH_SIZE);
@@ -741,7 +811,6 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 		debug("Failed to stash bootstage: err=%d\n", ret);
 #endif
 
-	debug("loaded - jumping to %s...\n", spl_phase_name(spl_next_phase()));
 	spl_board_prepare_for_boot();
 	jump_to_image_no_args(&spl_image);
 }

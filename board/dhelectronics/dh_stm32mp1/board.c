@@ -86,6 +86,8 @@ DECLARE_GLOBAL_DATA_PTR;
 #define KS_CCR_EEPROM	BIT(9)
 #define KS_BE0		BIT(12)
 #define KS_BE1		BIT(13)
+#define KS_CIDER	0xC0
+#define CIDER_ID	0x8870
 
 int setup_mac_address(void)
 {
@@ -123,10 +125,17 @@ int setup_mac_address(void)
 	 * is present. If EEPROM is present, it must contain valid
 	 * MAC address.
 	 */
-	u32 reg, ccr;
+	u32 reg, cider, ccr;
 	reg = fdt_get_base_address(gd->fdt_blob, off);
 	if (!reg)
 		goto out_set_ethaddr;
+
+	writew(KS_BE0 | KS_BE1 | KS_CIDER, reg + 2);
+	cider = readw(reg);
+	if ((cider & 0xfff0) != CIDER_ID) {
+		skip_eth1 = true;
+		goto out_set_ethaddr;
+	}
 
 	writew(KS_BE0 | KS_BE1 | KS_CCR, reg + 2);
 	ccr = readw(reg);
@@ -202,15 +211,15 @@ static void board_get_coding_straps(void)
 	ofnode node;
 	int i, ret;
 
+	brdcode = 0;
+	ddr3code = 0;
+	somcode = 0;
+
 	node = ofnode_path("/config");
 	if (!ofnode_valid(node)) {
 		printf("%s: no /config node?\n", __func__);
 		return;
 	}
-
-	brdcode = 0;
-	ddr3code = 0;
-	somcode = 0;
 
 	ret = gpio_request_list_by_name_nodev(node, "dh,som-coding-gpios",
 					      gpio, ARRAY_SIZE(gpio),
@@ -218,17 +227,23 @@ static void board_get_coding_straps(void)
 	for (i = 0; i < ret; i++)
 		somcode |= !!dm_gpio_get_value(&(gpio[i])) << i;
 
+	gpio_free_list_nodev(gpio, ret);
+
 	ret = gpio_request_list_by_name_nodev(node, "dh,ddr3-coding-gpios",
 					      gpio, ARRAY_SIZE(gpio),
 					      GPIOD_IS_IN);
 	for (i = 0; i < ret; i++)
 		ddr3code |= !!dm_gpio_get_value(&(gpio[i])) << i;
 
+	gpio_free_list_nodev(gpio, ret);
+
 	ret = gpio_request_list_by_name_nodev(node, "dh,board-coding-gpios",
 					      gpio, ARRAY_SIZE(gpio),
 					      GPIOD_IS_IN);
 	for (i = 0; i < ret; i++)
 		brdcode |= !!dm_gpio_get_value(&(gpio[i])) << i;
+
+	gpio_free_list_nodev(gpio, ret);
 
 	printf("Code:  SoM:rev=%d,ddr3=%d Board:rev=%d\n",
 		somcode, ddr3code, brdcode);
@@ -581,9 +596,6 @@ static void board_init_fmc2(void)
 /* board dependent setup after realloc */
 int board_init(void)
 {
-	/* address of boot parameters */
-	gd->bd->bi_boot_params = STM32_DDR_BASE + 0x100;
-
 	board_key_check();
 
 #ifdef CONFIG_DM_REGULATOR
@@ -640,7 +652,7 @@ void board_quiesce_devices(void)
 
 /* eth init function : weak called in eqos driver */
 int board_interface_eth_init(struct udevice *dev,
-			     phy_interface_t interface_type)
+			     phy_interface_t interface_type, ulong rate)
 {
 	u8 *syscfg;
 	u32 value;

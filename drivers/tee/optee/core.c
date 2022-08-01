@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright (c) 2018 Linaro Limited
+ * Copyright (c) 2018-2020 Linaro Limited
  */
 
 #include <common.h>
+#include <cpu_func.h>
 #include <dm.h>
 #include <dm/device_compat.h>
+#include <dm/lists.h>
 #include <log.h>
 #include <malloc.h>
 #include <tee.h>
@@ -295,6 +297,16 @@ static u32 call_err_to_res(u32 call_err)
 	}
 }
 
+static void flush_shm_dcache(struct udevice *dev, struct optee_msg_arg *arg)
+{
+	size_t sz = OPTEE_MSG_GET_ARG_SIZE(arg->num_params);
+
+	flush_dcache_range(rounddown((ulong)arg, CONFIG_SYS_CACHELINE_SIZE),
+			   roundup((ulong)arg + sz, CONFIG_SYS_CACHELINE_SIZE));
+
+	tee_flush_all_shm_dcache(dev);
+}
+
 static u32 do_call_with_arg(struct udevice *dev, struct optee_msg_arg *arg)
 {
 	struct optee_pdata *pdata = dev_get_plat(dev);
@@ -305,8 +317,16 @@ static u32 do_call_with_arg(struct udevice *dev, struct optee_msg_arg *arg)
 	while (true) {
 		struct arm_smccc_res res;
 
+		/* If cache are off from U-Boot, sync the cache shared with OP-TEE */
+		if (!dcache_status())
+			flush_shm_dcache(dev, arg);
+
 		pdata->invoke_fn(param.a0, param.a1, param.a2, param.a3,
 				 param.a4, param.a5, param.a6, param.a7, &res);
+
+		/* If cache are off from U-Boot, sync the cache shared with OP-TEE */
+		if (!dcache_status())
+			flush_shm_dcache(dev, arg);
 
 		free(page_list);
 		page_list = NULL;
@@ -622,16 +642,18 @@ static int optee_probe(struct udevice *dev)
 {
 	struct optee_pdata *pdata = dev_get_plat(dev);
 	u32 sec_caps;
+	struct udevice *child;
+	int ret;
 
 	if (!is_optee_api(pdata->invoke_fn)) {
-		debug("%s: OP-TEE api uid mismatch\n", __func__);
+		dev_err(dev, "OP-TEE api uid mismatch\n");
 		return -ENOENT;
 	}
 
 	print_os_revision(dev, pdata->invoke_fn);
 
 	if (!api_revision_is_compatible(pdata->invoke_fn)) {
-		debug("%s: OP-TEE api revision mismatch\n", __func__);
+		dev_err(dev, "OP-TEE api revision mismatch\n");
 		return -ENOENT;
 	}
 
@@ -642,8 +664,18 @@ static int optee_probe(struct udevice *dev)
 	 */
 	if (!exchange_capabilities(pdata->invoke_fn, &sec_caps) ||
 	    !(sec_caps & OPTEE_SMC_SEC_CAP_DYNAMIC_SHM)) {
-		debug("%s: OP-TEE capabilities mismatch\n", __func__);
+		dev_err(dev, "OP-TEE capabilities mismatch\n");
 		return -ENOENT;
+	}
+
+	/*
+	 * in U-Boot, the discovery of TA on the TEE bus is not supported:
+	 * only bind the drivers associated to the supported OP-TEE TA
+	 */
+	if (IS_ENABLED(CONFIG_RNG_OPTEE)) {
+		ret = device_bind_driver(dev, "optee-rng", "optee-rng", &child);
+		if (ret)
+			return ret;
 	}
 
 	return 0;

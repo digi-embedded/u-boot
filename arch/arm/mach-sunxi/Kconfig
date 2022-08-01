@@ -152,6 +152,7 @@ config SUN50I_GEN_H6
 	bool
 	select FIT
 	select SPL_LOAD_FIT
+	select MMC_SUNXI_HAS_NEW_MODE
 	select SUPPORT_SPL
 	---help---
 	Select this for sunxi SoCs which have H6 like peripherals, clocks
@@ -190,10 +191,10 @@ config MACH_SUNXI_H3_H5
 	select SUPPORT_SPL
 
 # TODO: try out A80's 8GiB DRAM space
-# TODO: H616 supports 4 GiB DRAM space
 config SUNXI_DRAM_MAX_SIZE
 	hex
-	default 0xC0000000 if MACH_SUN50I || MACH_SUN50I_H5 || MACH_SUN50I_H6 || MACH_SUN50I_H616
+	default 0x100000000 if MACH_SUN50I_H616
+	default 0xC0000000 if MACH_SUN50I || MACH_SUN50I_H5 || MACH_SUN50I_H6
 	default 0x80000000
 
 choice
@@ -297,6 +298,7 @@ config MACH_SUN8I_R40
 	select CPU_V7_HAS_VIRT
 	select ARCH_SUPPORT_PSCI
 	select SUNXI_GEN_SUN6I
+	select MMC_SUNXI_HAS_NEW_MODE
 	select SUPPORT_SPL
 	select SUNXI_DRAM_DW
 	select SUNXI_DRAM_DW_32BIT
@@ -346,6 +348,7 @@ config MACH_SUN50I_H5
 	bool "sun50i (Allwinner H5)"
 	select ARM64
 	select MACH_SUNXI_H3_H5
+	select MMC_SUNXI_HAS_NEW_MODE
 	select FIT
 	select SPL_LOAD_FIT
 
@@ -816,13 +819,14 @@ config VIDEO_SUNXI
 	depends on !MACH_SUN9I
 	depends on !MACH_SUN50I
 	depends on !SUN50I_GEN_H6
-	select VIDEO
+	select DM_VIDEO
+	select DISPLAY
 	imply VIDEO_DT_SIMPLEFB
 	default y
 	---help---
-	Say Y here to add support for using a cfb console on the HDMI, LCD
-	or VGA output found on most sunxi devices. See doc/README.video for
-	info on how to select the video output and mode.
+	Say Y here to add support for using a graphical console on the HDMI,
+	LCD or VGA output found on older sunxi devices. This will also provide
+	a simple_framebuffer device for Linux.
 
 config VIDEO_HDMI
 	bool "HDMI output support"
@@ -972,6 +976,7 @@ config VIDEO_DE2
 	depends on SUNXI_DE2
 	select DM_VIDEO
 	select DISPLAY
+	select VIDEO_DW_HDMI
 	imply VIDEO_DT_SIMPLEFB
 	default y
 	---help---
@@ -1087,3 +1092,12 @@ config BLUETOOTH_DT_DEVICE_FIXUP
 	  flipped elsewise.
 
 endif
+
+config CHIP_DIP_SCAN
+	bool "Enable DIPs detection for CHIP board"
+	select SUPPORT_EXTENSION_SCAN
+	select W1
+	select W1_GPIO
+	select W1_EEPROM
+	select W1_EEPROM_DS24XXX
+	select CMD_EXTENSION

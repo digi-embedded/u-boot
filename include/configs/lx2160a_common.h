@@ -140,11 +140,6 @@
 #define CONFIG_PCI_SCAN_SHOW
 #endif
 
-/* MMC */
-#ifdef CONFIG_MMC
-#define CONFIG_SYS_FSL_MMC_HAS_CAPBLT_VS33
-#endif
-
 /* SATA */
 
 #ifdef CONFIG_SCSI
@@ -158,8 +153,7 @@
 #endif
 
 /* USB */
-#ifdef CONFIG_USB
-#define CONFIG_HAS_FSL_XHCI_USB
+#ifdef CONFIG_USB_HOST
 #ifndef CONFIG_TARGET_LX2162AQDS
 #define CONFIG_USB_MAX_CONTROLLER_COUNT	2
 #endif

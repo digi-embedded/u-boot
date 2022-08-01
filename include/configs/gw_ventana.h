@@ -35,21 +35,14 @@
 /* Serial */
 #define CONFIG_MXC_UART_BASE	       UART2_BASE
 
-#if !defined(CONFIG_SPI_FLASH) && defined(CONFIG_SPL_NAND_SUPPORT)
-/* Enable NAND support */
-#ifdef CONFIG_CMD_NAND
-  #define CONFIG_SYS_MAX_NAND_DEVICE	1
-  #define CONFIG_SYS_NAND_BASE		0x40000000
-  #define CONFIG_SYS_NAND_5_ADDR_CYCLE
-  #define CONFIG_SYS_NAND_ONFI_DETECTION
+/* NAND */
+#define CONFIG_SYS_MAX_NAND_DEVICE	1
 
-  /* DMA stuff, needed for GPMI/MXS NAND support */
-#endif
-
-#endif /* CONFIG_SPI_FLASH */
+#undef CONFIG_SYS_BOOTM_LEN
+#define CONFIG_SYS_BOOTM_LEN		(64 << 20)
 
 /* I2C Configs */
-#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_LEGACY
 #define CONFIG_SYS_I2C_MXC
 #define CONFIG_SYS_I2C_MXC_I2C1		/* enable I2C bus 1 */
 #define CONFIG_SYS_I2C_MXC_I2C2		/* enable I2C bus 2 */
@@ -75,8 +68,6 @@
  * PCI express
  */
 #ifdef CONFIG_CMD_PCI
-#define CONFIG_PCI_SCAN_SHOW
-#define CONFIG_PCI_FIXUP_DEV
 #define CONFIG_PCIE_IMX
 #endif
 
@@ -92,15 +83,7 @@
 
 /* Various command support */
 
-/* Ethernet support */
-#define CONFIG_FEC_MXC
-#define IMX_FEC_BASE             ENET_BASE_ADDR
-#define CONFIG_FEC_XCV_TYPE      RGMII
-#define CONFIG_FEC_MXC_PHYADDR   0
-#define CONFIG_ARP_TIMEOUT       200UL
-
 /* USB Configs */
-#define CONFIG_USB_MAX_CONTROLLER_COUNT 2
 #define CONFIG_EHCI_HCD_INIT_AFTER_RESET  /* For OTG port */
 #define CONFIG_MXC_USB_PORTSC     (PORT_PTS_UTMI | PORT_PTS_PTW)
 #define CONFIG_MXC_USB_FLAGS      0
@@ -140,7 +123,6 @@
 #define CONFIG_SERVERIP           192.168.1.146
 
 #define CONFIG_EXTRA_ENV_SETTINGS_COMMON \
-	"pcidisable=1\0" \
 	"splashpos=m,m\0" \
 	"usb_pgood_delay=2000\0" \
 	"console=ttymxc1\0" \

@@ -33,6 +33,7 @@ config ARC
 
 config ARM
 	bool "ARM architecture"
+	select ARCH_SUPPORTS_LTO
 	select CREATE_ARCH_SYMLINK
 	select HAVE_PRIVATE_LIBGCC if !ARM64
 	select SUPPORT_OF_CONTROL
@@ -101,6 +102,7 @@ config RISCV
 
 config SANDBOX
 	bool "Sandbox"
+	select ARCH_SUPPORTS_LTO
 	select BOARD_LATE_INIT
 	select BZIP2
 	select CMD_POWEROFF
@@ -121,8 +123,10 @@ config SANDBOX
 	select SUPPORT_OF_CONTROL
 	select SYSRESET_CMD_POWEROFF
 	select IRQ
+	select SUPPORT_EXTENSION_SCAN
 	imply BITREVERSE
 	select BLOBLIST
+	imply LTO
 	imply CMD_DM
 	imply CMD_EXCEPTION
 	imply CMD_GETTIME
@@ -143,6 +147,8 @@ config SANDBOX
 	imply AVB_VERIFY
 	imply LIBAVB
 	imply CMD_AVB
+	imply SCP03
+	imply CMD_SCP03
 	imply UDP_FUNCTION_FASTBOOT
 	imply VIRTIO_MMIO
 	imply VIRTIO_PCI
@@ -163,6 +169,7 @@ config SANDBOX
 	imply BOOTARGS_SUBST
 	imply PHY_FIXED
 	imply DM_DSA
+	imply CMD_EXTENSION
 
 config SH
 	bool "SuperH architecture"
@@ -175,7 +182,6 @@ config X86
 	select SUPPORT_TPL
 	select CREATE_ARCH_SYMLINK
 	select DM
-	select DM_PCI
 	select HAVE_ARCH_IOMAP
 	select HAVE_PRIVATE_LIBGCC
 	select OF_CONTROL
@@ -222,8 +228,8 @@ config X86
 	# Thing to enable for when SPL/TPL are enabled: SPL
 	imply SPL_DM
 	imply SPL_OF_LIBFDT
-	imply SPL_DRIVERS_MISC_SUPPORT
-	imply SPL_GPIO_SUPPORT
+	imply SPL_DRIVERS_MISC
+	imply SPL_GPIO
 	imply SPL_PINCTRL
 	imply SPL_LIBCOMMON_SUPPORT
 	imply SPL_LIBGENERIC_SUPPORT
@@ -236,8 +242,8 @@ config X86
 	imply SPL_SYSCON
 	# TPL
 	imply TPL_DM
-	imply TPL_DRIVERS_MISC_SUPPORT
-	imply TPL_GPIO_SUPPORT
+	imply TPL_DRIVERS_MISC
+	imply TPL_GPIO
 	imply TPL_PINCTRL
 	imply TPL_LIBCOMMON_SUPPORT
 	imply TPL_LIBGENERIC_SUPPORT

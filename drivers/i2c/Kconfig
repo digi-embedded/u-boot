@@ -2,7 +2,29 @@
 # I2C subsystem configuration
 #
 
-menu "I2C support"
+menuconfig I2C
+	bool "I2C support"
+	default y
+	help
+	  Note:
+	  This is a stand-in for an option to enable I2C support. In fact this
+	  simply enables building of the I2C directory for U-Boot. The actual
+	  I2C feature is enabled by DM_I2C (for driver model) and
+	  the #define CONFIG_SYS_I2C_LEGACY (for the legacy I2C stack).
+
+	  So at present there is no need to ever disable this option.
+
+	  Eventually it will:
+
+	  Enable support for the I2C (Inter-Integrated Circuit) bus in U-Boot.
+	  I2C works with a clock and data line which can be driven by a
+	  one or more masters or slaves. It is a fairly complex bus but is
+	  widely used as it only needs two lines for communication. Speeds of
+	  400kbps are typical but up to 3.4Mbps is supported by some
+	  hardware. Enable this option to build the drivers in drivers/i2c as
+	  part of a U-Boot build.
+
+if I2C
 
 config DM_I2C
 	bool "Enable Driver Model for I2C drivers"
@@ -74,7 +96,7 @@ config DM_I2C_GPIO
 
 config SPL_DM_I2C_GPIO
 	bool "Enable Driver Model for software emulated I2C bus driver in SPL"
-	depends on SPL_DM && DM_I2C_GPIO && SPL_DM_GPIO && SPL_GPIO_SUPPORT
+	depends on SPL_DM && DM_I2C_GPIO && SPL_DM_GPIO && SPL_GPIO
 	default y
 	help
 	  Enable the i2c bus driver emulation by using the GPIOs. The bus GPIO
@@ -136,16 +158,6 @@ config SYS_I2C_DW
 	  controller is used in various SoCs, e.g. the ST SPEAr, Altera
 	  SoCFPGA, Synopsys ARC700 and some Intel x86 SoCs.
 
-config SYS_I2C_DW_ENABLE_STATUS_UNSUPPORTED
-	bool "DW I2C Enable Status Register not supported"
-	depends on SYS_I2C_DW && (TARGET_SPEAR300 || TARGET_SPEAR310 || \
-		TARGET_SPEAR320 || TARGET_SPEAR600 || TARGET_X600)
-	default y
-	help
-	  Some versions of the Designware I2C controller do not support the
-	  enable status register. This config option can be enabled in such
-	  cases.
-
 config SYS_I2C_ASPEED
 	bool "Aspeed I2C Controller"
 	depends on DM_I2C && ARCH_ASPEED
@@ -169,17 +181,11 @@ config SYS_I2C_IMX_LPI2C
 	help
 	  Add support for the NXP i.MX LPI2C driver.
 
-config SYS_I2C_IMX_I3C
-	bool "NXP i.MX I3C driver"
+config SYS_I2C_LPC32XX
+	bool "LPC32XX I2C driver"
+	depends on ARCH_LPC32XX
 	help
-	  Add support for the NXP i.MX I3C driver.
-
-config SYS_I2C_IMX_VIRT_I2C
-	bool "NXP i.MX Virtual I2C driver"
-	select IMX_VSERVICE
-	help
-	  Add support for the NXP i.MX Virtual I2C which needs AMP communtication
-	  to work with remote core to access i2c bus.
+	  Enable support for the LPC32xx I2C driver.
 
 config SYS_I2C_MESON
 	bool "Amlogic Meson I2C driver"
@@ -467,6 +473,13 @@ config SYS_I2C_STM32F7
 	   _ Optional clock stretching
 	   _ Software reset
 
+config SYS_I2C_SYNQUACER
+	bool "Socionext SynQuacer I2C controller"
+	depends on ARCH_SYNQUACER && DM_I2C
+	help
+	  Support for Socionext Synquacer I2C controller. This I2C controller
+	  will be used for RTC and LS-connector on DeveloperBox.
+
 config SYS_I2C_TEGRA
 	bool "NVIDIA Tegra internal I2C controller"
 	depends on ARCH_TEGRA
@@ -491,7 +504,7 @@ config SYS_I2C_UNIPHIER_F
 
 config SYS_I2C_VERSATILE
 	bool "Arm Ltd Versatile I2C bus driver"
-	depends on DM_I2C && (TARGET_VEXPRESS_CA15_TC2 || TARGET_VEXPRESS64_JUNO)
+	depends on DM_I2C && TARGET_VEXPRESS64_JUNO
 	help
 	  Add support for the Arm Ltd Versatile Express I2C driver. The I2C host
 	  controller is present in the development boards manufactured by Arm Ltd.
@@ -537,4 +550,4 @@ config SYS_I2C_IHS
 
 source "drivers/i2c/muxes/Kconfig"
 
-endmenu
+endif

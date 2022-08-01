@@ -14,6 +14,10 @@
 #define SMBIOS_MAJOR_VER	3
 #define SMBIOS_MINOR_VER	0
 
+enum {
+	SMBIOS_STR_MAX	= 64,	/* Maximum length allowed for a string */
+};
+
 /* SMBIOS structure types */
 enum {
 	SMBIOS_BIOS_INFORMATION = 0,
@@ -56,7 +60,7 @@ struct __packed smbios_entry {
 #define BIOS_CHARACTERISTICS_SELECTABLE_BOOT	(1 << 16)
 
 #define BIOS_CHARACTERISTICS_EXT1_ACPI		(1 << 0)
-#define BIOS_CHARACTERISTICS_EXT1_UEFI		(1 << 3)
+#define BIOS_CHARACTERISTICS_EXT2_UEFI		(1 << 3)
 #define BIOS_CHARACTERISTICS_EXT2_TARGET	(1 << 2)
 
 struct __packed smbios_type0 {
@@ -225,8 +229,11 @@ static inline void fill_smbios_header(void *table, int type,
  * This writes SMBIOS table at a given address.
  *
  * @addr:	start address to write SMBIOS table. If this is not
- *	16-byte-aligned then it will be aligned before the table is written
- * @return:	end address of SMBIOS table (and start address for next entry)
+ *		16-byte-aligned then it will be aligned before the table is
+ *		written.
+ * Return:	end address of SMBIOS table (and start address for next entry)
+ *		or NULL in case of an error
+ *
  */
 ulong write_smbios_table(ulong addr);
 
@@ -268,5 +275,21 @@ const char *smbios_string(const struct smbios_header *header, int index);
  *	-ENOSPC if the new string is too large to fit
  */
 int smbios_update_version(const char *version);
+
+/**
+ * smbios_update_version_full() - Update the version string
+ *
+ * This can be called after the SMBIOS tables are written (e.g. after the U-Boot
+ * main loop has started) to update the BIOS version string (SMBIOS table 0).
+ * It scans for the correct place to put the version, so does not need U-Boot
+ * to have actually written the tables itself (e.g. if a previous bootloader
+ * did it).
+ *
+ * @smbios_tab: Start of SMBIOS tables
+ * @version: New version string to use
+ * @return 0 if OK, -ENOENT if no version string was previously written,
+ *	-ENOSPC if the new string is too large to fit
+ */
+int smbios_update_version_full(void *smbios_tab, const char *version);
 
 #endif /* _SMBIOS_H_ */

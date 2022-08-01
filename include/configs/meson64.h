@@ -32,7 +32,9 @@
 #define CONFIG_CPU_ARMV8
 #define CONFIG_REMAKE_ELF
 #define CONFIG_SYS_MAXARGS		32
+#ifndef CONFIG_SYS_MALLOC_LEN
 #define CONFIG_SYS_MALLOC_LEN		(32 << 20)
+#endif
 #define CONFIG_SYS_CBSIZE		1024
 
 #define CONFIG_SYS_SDRAM_BASE		0
@@ -58,6 +60,12 @@
 #define BOOT_TARGET_DEVICES_USB(func)
 #endif
 
+#ifdef CONFIG_CMD_NVME
+	#define BOOT_TARGET_NVME(func) func(NVME, nvme, 0)
+#else
+	#define BOOT_TARGET_NVME(func)
+#endif
+
 #ifndef BOOT_TARGET_DEVICES
 #define BOOT_TARGET_DEVICES(func) \
 	func(ROMUSB, romusb, na)  \
@@ -65,6 +73,7 @@
 	func(MMC, mmc, 1) \
 	func(MMC, mmc, 2) \
 	BOOT_TARGET_DEVICES_USB(func) \
+	BOOT_TARGET_NVME(func) \
 	func(PXE, pxe, na) \
 	func(DHCP, dhcp, na)
 #endif
@@ -76,6 +85,8 @@
 	"stdin=" STDIN_CFG "\0" \
 	"stdout=" STDOUT_CFG "\0" \
 	"stderr=" STDOUT_CFG "\0" \
+	"kernel_comp_addr_r=0x0d080000\0" \
+	"kernel_comp_size=0x2000000\0" \
 	"fdt_addr_r=0x08008000\0" \
 	"scriptaddr=0x08000000\0" \
 	"kernel_addr_r=0x08080000\0" \

@@ -16,6 +16,10 @@
 	model = "STMicroelectronics STM32MP157D-DK1 Discovery Board";
 	compatible = "st,stm32mp157d-dk1", "st,stm32mp157";
 
+	aliases {
+		ethernet0 = &ethernet0;
+	};
+
 	chosen {
 		stdout-path = "serial0:115200n8";
 	};

@@ -40,7 +40,7 @@ static int raw_part_get_info_by_name(struct blk_desc *dev_desc,
 
 	/* check for raw partition descriptor */
 	strcpy(env_desc_name, "fastboot_raw_partition_");
-	strncat(env_desc_name, name, PART_NAME_LEN);
+	strlcat(env_desc_name, name, PART_NAME_LEN);
 	raw_part_desc = strdup(env_get(env_desc_name));
 	if (raw_part_desc == NULL)
 		return -ENODEV;
@@ -61,7 +61,7 @@ static int raw_part_get_info_by_name(struct blk_desc *dev_desc,
 	info->start = simple_strtoul(argv[0], NULL, 0);
 	info->size = simple_strtoul(argv[1], NULL, 0);
 	info->blksz = dev_desc->blksz;
-	strncpy((char *)info->name, name, PART_NAME_LEN);
+	strlcpy((char *)info->name, name, PART_NAME_LEN);
 
 	if (raw_part_desc) {
 		if (strcmp(strsep(&raw_part_desc, " "), "mmcpart") == 0) {
@@ -114,7 +114,7 @@ static int part_get_info_by_name_or_alias(struct blk_desc **dev_desc,
 
 		/* check for alias */
 		strcpy(env_alias_name, "fastboot_partition_alias_");
-		strncat(env_alias_name, name, PART_NAME_LEN);
+		strlcat(env_alias_name, name, PART_NAME_LEN);
 		aliased_part_name = env_get(env_alias_name);
 		if (aliased_part_name != NULL)
 			ret = do_get_part_info(dev_desc, aliased_part_name,
@@ -512,7 +512,7 @@ void fastboot_mmc_flash_write(const char *cmd, void *download_buffer,
 			      u32 download_bytes, char *response)
 {
 	struct blk_desc *dev_desc;
-	struct disk_partition info;
+	struct disk_partition info = {0};
 
 #ifdef CONFIG_FASTBOOT_MMC_BOOT_SUPPORT
 	if (strcmp(cmd, CONFIG_FASTBOOT_MMC_BOOT1_NAME) == 0) {
@@ -525,19 +525,14 @@ void fastboot_mmc_flash_write(const char *cmd, void *download_buffer,
 	if (strcmp(cmd, CONFIG_FASTBOOT_MMC_BOOT2_NAME) == 0) {
 		dev_desc = fastboot_mmc_get_dev(response);
 		if (dev_desc)
-			fb_mmc_boot_ops(dev_desc, download_buffer, 1,
+			fb_mmc_boot_ops(dev_desc, download_buffer, 2,
 					download_bytes, response);
 		return;
 	}
 #endif
 
 #if CONFIG_IS_ENABLED(EFI_PARTITION)
-#ifndef CONFIG_FASTBOOT_MMC_USER_SUPPORT
 	if (strcmp(cmd, CONFIG_FASTBOOT_GPT_NAME) == 0) {
-#else
-	if (strcmp(cmd, CONFIG_FASTBOOT_GPT_NAME) == 0 ||
-	    strcmp(cmd, CONFIG_FASTBOOT_MMC_USER_NAME) == 0) {
-#endif
 		dev_desc = fastboot_mmc_get_dev(response);
 		if (!dev_desc)
 			return;
@@ -599,7 +594,20 @@ void fastboot_mmc_flash_write(const char *cmd, void *download_buffer,
 	}
 #endif
 
-	if (fastboot_mmc_get_part_info(cmd, &dev_desc, &info, response) < 0)
+#if CONFIG_IS_ENABLED(FASTBOOT_MMC_USER_SUPPORT)
+	if (strcmp(cmd, CONFIG_FASTBOOT_MMC_USER_NAME) == 0) {
+		dev_desc = fastboot_mmc_get_dev(response);
+		if (!dev_desc)
+			return;
+
+		strlcpy((char *)&info.name, cmd, sizeof(info.name));
+		info.size	= dev_desc->lba;
+		info.blksz	= dev_desc->blksz;
+	}
+#endif
+
+	if (!info.name[0] &&
+	    fastboot_mmc_get_part_info(cmd, &dev_desc, &info, response) < 0)
 		return;
 
 	if (is_sparse_image(download_buffer)) {
@@ -655,7 +663,7 @@ void fastboot_mmc_erase(const char *cmd, char *response)
 		/* erase EMMC boot2 */
 		dev_desc = fastboot_mmc_get_dev(response);
 		if (dev_desc)
-			fb_mmc_boot_ops(dev_desc, NULL, 1, 0, response);
+			fb_mmc_boot_ops(dev_desc, NULL, 2, 0, response);
 		return;
 	}
 #endif

@@ -7,6 +7,8 @@
  * Bernecker & Rainer Industrieelektronik GmbH - http://www.br-automation.com
  */
 
+#define LOG_CATEGORY UCLASS_VIDEO_CONSOLE
+
 #include <common.h>
 #include <command.h>
 #include <console.h>
@@ -690,8 +692,8 @@ static int do_video_setcursor(struct cmd_tbl *cmdtp, int flag, int argc,
 
 	if (uclass_first_device_err(UCLASS_VIDEO_CONSOLE, &dev))
 		return CMD_RET_FAILURE;
-	col = simple_strtoul(argv[1], NULL, 10);
-	row = simple_strtoul(argv[2], NULL, 10);
+	col = dectoul(argv[1], NULL);
+	row = dectoul(argv[2], NULL);
 	vidconsole_position_cursor(dev, col, row);
 
 	return 0;

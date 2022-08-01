@@ -16,7 +16,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #include <fdt_region.h>
 #include <image.h>
 #include <u-boot/rsa.h>
-#include <u-boot/rsa-checksum.h>
+#include <u-boot/hash-checksum.h>
 
 #define IMAGE_MAX_HASHED_NODES		100
 
@@ -245,7 +245,13 @@ static int fit_config_check_sig(const void *fit, int noffset,
 				int required_keynode, int conf_noffset,
 				char **err_msgp)
 {
-	char * const exc_prop[] = {"data", "data-size", "data-position"};
+	static char * const exc_prop[] = {
+		"data",
+		"data-size",
+		"data-position",
+		"data-offset"
+	};
+
 	const char *prop, *end, *name;
 	struct image_sign_info info;
 	const uint32_t *strings;

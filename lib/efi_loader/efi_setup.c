@@ -5,15 +5,14 @@
  *  Copyright (c) 2016-2018 Alexander Graf et al.
  */
 
+#define LOG_CATEGORY LOGC_EFI
+
 #include <common.h>
-#include <mapmem.h>
 #include <efi_loader.h>
 #include <efi_variable.h>
-#include <asm/global_data.h>
+#include <log.h>
 
 #define OBJ_LIST_NOT_INITIALIZED 1
-
-DECLARE_GLOBAL_DATA_PTR;
 
 efi_status_t efi_obj_list_initialized = OBJ_LIST_NOT_INITIALIZED;
 
@@ -175,65 +174,34 @@ static efi_status_t efi_init_os_indications(void)
 				    &os_indications_supported, false);
 }
 
+
 /**
- * efi_init_memory_only_reset_control() - indicate supported features for
- * OS requests
+ * efi_clear_os_indications() - clear OsIndications
  *
- * Set the MemoryOverwriteRequestControl variable.
- *
- * Return:	status code
+ * Clear EFI_OS_INDICATIONS_FILE_CAPSULE_DELIVERY_SUPPORTED
  */
-static efi_status_t efi_init_memory_only_reset_control(void)
+static efi_status_t efi_clear_os_indications(void)
 {
-	u8 memory_only_reset_control = 0;
+	efi_uintn_t size;
+	u64 os_indications;
 	efi_status_t ret;
-	efi_uintn_t data_size = 0;
 
-	data_size = sizeof(memory_only_reset_control);
-	ret = efi_get_variable_int(L"MemoryOverwriteRequestControl",
-				   &efi_memory_only_reset_control_guid,
-				   NULL, &data_size,
-				   &memory_only_reset_control, NULL);
-	if (ret == EFI_SUCCESS) {
-		if (memory_only_reset_control & 0x01) {
-			struct bd_info *bd = gd->bd;
-			int i;
-			void *start, *buf;
-			ulong count;
-
-			memory_only_reset_control = memory_only_reset_control & (~(0x01));
-			ret = efi_set_variable_int(L"MemoryOverwriteRequestControl",
-						   &efi_memory_only_reset_control_guid,
-						   EFI_VARIABLE_BOOTSERVICE_ACCESS |
-						   EFI_VARIABLE_RUNTIME_ACCESS |
-						   EFI_VARIABLE_NON_VOLATILE,
-						   sizeof(memory_only_reset_control),
-						   &memory_only_reset_control, 0);
-
-			for (i = CONFIG_NR_DRAM_BANKS - 1; i > 0; --i) {
-				count = bd->bi_dram[i].size;
-				if (!count)
-					continue;
-				start = map_sysmem(bd->bi_dram[i].start, count);
-				buf = start;
-				while (count > 0) {
-					*((u8 *)buf) = 0;
-					buf += 1;
-					count--;
-				}
-				unmap_sysmem(start);
-			}
-		}
-		return ret;
-	}
-
-	ret = efi_set_variable_int(L"MemoryOverwriteRequestControl",
-				   &efi_memory_only_reset_control_guid,
+	size = sizeof(os_indications);
+	ret = efi_get_variable_int(L"OsIndications", &efi_global_variable_guid,
+				   NULL, &size, &os_indications, NULL);
+	if (ret != EFI_SUCCESS)
+		os_indications = 0;
+	else
+		os_indications &=
+			~EFI_OS_INDICATIONS_FILE_CAPSULE_DELIVERY_SUPPORTED;
+	ret = efi_set_variable_int(L"OsIndications", &efi_global_variable_guid,
+				   EFI_VARIABLE_NON_VOLATILE |
 				   EFI_VARIABLE_BOOTSERVICE_ACCESS |
-				   EFI_VARIABLE_RUNTIME_ACCESS |
-				   EFI_VARIABLE_NON_VOLATILE,
-				   sizeof(memory_only_reset_control),
-				   &memory_only_reset_control, 0);
+				   EFI_VARIABLE_RUNTIME_ACCESS,
+				   sizeof(os_indications), &os_indications,
+				   false);
+	if (ret != EFI_SUCCESS)
+		log_err("Setting %ls failed\n", L"OsIndications");
 	return ret;
 }
 
@@ -244,7 +212,7 @@ static efi_status_t efi_init_memory_only_reset_control(void)
  */
 efi_status_t efi_init_obj_list(void)
 {
-	efi_status_t ret = EFI_SUCCESS;
+	efi_status_t r, ret = EFI_SUCCESS;
 
 	/* Initialize once only */
 	if (efi_obj_list_initialized != OBJ_LIST_NOT_INITIALIZED)
@@ -288,15 +256,16 @@ efi_status_t efi_init_obj_list(void)
 	if (ret != EFI_SUCCESS)
 		goto out;
 
-	/* Platform Reset Attack features */
-	ret = efi_init_memory_only_reset_control();
-	if (ret != EFI_SUCCESS)
-		goto out;
-
 	/* Initialize system table */
 	ret = efi_initialize_system_table();
 	if (ret != EFI_SUCCESS)
 		goto out;
+
+	if (IS_ENABLED(CONFIG_EFI_ESRT)) {
+		ret = efi_esrt_register();
+		if (ret != EFI_SUCCESS)
+			goto out;
+	}
 
 	if (IS_ENABLED(CONFIG_EFI_TCG2_PROTOCOL)) {
 		ret = efi_tcg2_register();
@@ -318,6 +287,12 @@ efi_status_t efi_init_obj_list(void)
 	ret = efi_driver_init();
 	if (ret != EFI_SUCCESS)
 		goto out;
+
+	if (IS_ENABLED(CONFIG_EFI_HAVE_CAPSULE_SUPPORT)) {
+		ret = efi_load_capsule_drivers();
+		if (ret != EFI_SUCCESS)
+			goto out;
+	}
 
 #if defined(CONFIG_LCD) || defined(CONFIG_DM_VIDEO)
 	ret = efi_gop_register();
@@ -356,7 +331,11 @@ efi_status_t efi_init_obj_list(void)
 	if (IS_ENABLED(CONFIG_EFI_CAPSULE_ON_DISK) &&
 	    !IS_ENABLED(CONFIG_EFI_CAPSULE_ON_DISK_EARLY))
 		ret = efi_launch_capsules();
+
 out:
+	r = efi_clear_os_indications();
+	if (ret == EFI_SUCCESS)
+		ret = r;
 	efi_obj_list_initialized = ret;
 	return ret;
 }

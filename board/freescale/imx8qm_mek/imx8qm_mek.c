@@ -430,7 +430,7 @@ void board_quiesce_devices(void)
 /*
  * Board specific reset that is system reset.
  */
-void reset_cpu(ulong addr)
+void reset_cpu(void)
 {
 	sc_pm_reboot(-1, SC_PM_RESET_TYPE_COLD);
 	while(1);

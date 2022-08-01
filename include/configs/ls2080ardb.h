@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
- * Copyright 2017-2021 NXP
+ * Copyright 2017, 2019-2021 NXP
  * Copyright 2015 Freescale Semiconductor
  */
 
@@ -300,11 +300,6 @@ unsigned long get_board_sys_clk(void);
 #define CONFIG_PCI_SCAN_SHOW
 #endif
 
-/*  MMC  */
-#ifdef CONFIG_MMC
-#define CONFIG_SYS_FSL_MMC_HAS_CAPBLT_VS33
-#endif
-
 #define BOOT_TARGET_DEVICES(func) \
 	func(USB, usb, 0) \
 	func(MMC, mmc, 0) \
@@ -376,6 +371,7 @@ unsigned long get_board_sys_clk(void);
 	"ramdisk_size=0x2000000\0"		\
 	"fdt_high=0xa0000000\0"			\
 	"initrd_high=0xffffffffffffffff\0"	\
+	"fdt_addr=0x64f00000\0"			\
 	"kernel_addr=0x581000000\0"		\
 	"kernel_start=0x1000000\0"		\
 	"kernelheader_start=0x800000\0"		\
@@ -387,7 +383,6 @@ unsigned long get_board_sys_clk(void);
 	"kernel_addr_r=0x81000000\0"		\
 	"kernelheader_size=0x40000\0"		\
 	"fdt_addr_r=0x90000000\0"		\
-	"fdt_addr=0x90000000\0"                 \
 	"load_addr=0xa0000000\0"		\
 	"kernel_size=0x2800000\0"		\
 	"kernel_addr_sd=0x8000\0"		\
@@ -439,6 +434,7 @@ unsigned long get_board_sys_clk(void);
 	"ramdisk_size=0x2000000\0"		\
 	"fdt_high=0xa0000000\0"			\
 	"initrd_high=0xffffffffffffffff\0"	\
+	"fdt_addr=0x64f00000\0"			\
 	"kernel_addr=0x581000000\0"		\
 	"kernel_start=0x1000000\0"		\
 	"kernelheader_start=0x600000\0"		\
@@ -450,7 +446,6 @@ unsigned long get_board_sys_clk(void);
 	"kernel_addr_r=0x81000000\0"		\
 	"kernelheader_size=0x40000\0"		\
 	"fdt_addr_r=0x90000000\0"		\
-	"fdt_addr=0x90000000\0"                 \
 	"load_addr=0xa0000000\0"		\
 	"kernel_size=0x2800000\0"		\
 	"kernel_addr_sd=0x8000\0"		\
@@ -565,14 +560,6 @@ unsigned long get_board_sys_clk(void);
 #endif
 
 /* MAC/PHY configuration */
-#ifdef CONFIG_FSL_MC_ENET
-#ifdef CONFIG_QSPI_BOOT
-#define CONFIG_CORTINA_FW_ADDR		0x20980000
-#else
-#define CONFIG_CORTINA_FW_ADDR		0x580980000
-#endif
-#define CONFIG_CORTINA_FW_LENGTH	0x40000
-
 #define CORTINA_PHY_ADDR1	0x10
 #define CORTINA_PHY_ADDR2	0x11
 #define CORTINA_PHY_ADDR3	0x12
@@ -582,9 +569,7 @@ unsigned long get_board_sys_clk(void);
 #define AQ_PHY_ADDR3		0x02
 #define AQ_PHY_ADDR4		0x03
 #define AQR405_IRQ_MASK		0x36
-
 #define CONFIG_ETHPRIME		"DPMAC1@xgmii"
-#endif
 
 #include <asm/fsl_secure_boot.h>
 

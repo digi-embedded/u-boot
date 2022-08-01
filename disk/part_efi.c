@@ -29,12 +29,13 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-/*
- * GUID for basic data partions.
- */
-static const efi_guid_t partition_basic_data_guid = PARTITION_BASIC_DATA_GUID;
-
 #ifdef CONFIG_HAVE_BLOCK_DEVICE
+
+/* GUID for basic data partitons */
+#if CONFIG_IS_ENABLED(EFI_PARTITION)
+static const efi_guid_t partition_basic_data_guid = PARTITION_BASIC_DATA_GUID;
+#endif
+
 /**
  * efi_crc32() - EFI version of crc32 function
  * @buf: buffer to calculate crc32 of
@@ -777,6 +778,15 @@ int gpt_verify_headers(struct blk_desc *dev_desc, gpt_header *gpt_head,
 	/* Free pte before allocating again */
 	free(*gpt_pte);
 
+	/*
+	 * Check that the alternate_lba entry points to the last LBA
+	 */
+	if (le64_to_cpu(gpt_head->alternate_lba) != (dev_desc->lba - 1)) {
+		printf("%s: *** ERROR: Misplaced Backup GPT ***\n",
+		       __func__);
+		return -1;
+	}
+
 	if (is_gpt_valid(dev_desc, (dev_desc->lba - 1),
 			 gpt_head, gpt_pte) != 1) {
 		printf("%s: *** ERROR: Invalid Backup GPT ***\n",
@@ -1266,4 +1276,4 @@ U_BOOT_PART_TYPE(a_efi) = {
 	.print		= part_print_ptr(part_print_efi),
 	.test		= part_test_efi,
 };
-#endif
+#endif /* CONFIG_HAVE_BLOCK_DEVICE */

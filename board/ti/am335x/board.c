@@ -44,6 +44,7 @@
 #include <env_internal.h>
 #include <watchdog.h>
 #include "../common/board_detect.h"
+#include "../common/cape_detect.h"
 #include "board.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -77,8 +78,10 @@ static struct ctrl_dev *cdev = (struct ctrl_dev *)CTRL_DEVICE_BASE;
 void do_board_detect(void)
 {
 	enable_i2c0_pin_mux();
+	enable_i2c2_pin_mux();
 #if !CONFIG_IS_ENABLED(DM_I2C)
 	i2c_init(CONFIG_SYS_OMAP24_I2C_SPEED, CONFIG_SYS_OMAP24_I2C_SLAVE);
+	i2c_init(CONFIG_SYS_OMAP24_I2C_SPEED2, CONFIG_SYS_OMAP24_I2C_SLAVE2);
 #endif
 	if (ti_i2c_eeprom_am_get(CONFIG_EEPROM_BUS_ADDRESS,
 				 CONFIG_EEPROM_CHIP_ADDRESS))
@@ -585,7 +588,7 @@ void sdram_init(void)
 #endif
 
 #if defined(CONFIG_CLOCK_SYNTHESIZER) && (!defined(CONFIG_SPL_BUILD) || \
-	(defined(CONFIG_SPL_ETH_SUPPORT) && defined(CONFIG_SPL_BUILD)))
+	(defined(CONFIG_SPL_ETH) && defined(CONFIG_SPL_BUILD)))
 static void request_and_set_gpio(int gpio, char *name, int val)
 {
 	int ret;
@@ -721,7 +724,7 @@ int board_init(void)
 #endif
 
 #if defined(CONFIG_CLOCK_SYNTHESIZER) && (!defined(CONFIG_SPL_BUILD) || \
-	(defined(CONFIG_SPL_ETH_SUPPORT) && defined(CONFIG_SPL_BUILD)))
+	(defined(CONFIG_SPL_ETH) && defined(CONFIG_SPL_BUILD)))
 	if (board_is_icev2()) {
 		int rv;
 		u32 reg;
@@ -951,13 +954,16 @@ int board_fit_config_name_match(const char *name)
 		return 0;
 	else if (board_is_icev2() && !strcmp(name, "am335x-icev2"))
 		return 0;
+	else if (board_is_bben() && !strcmp(name, "am335x-sancloud-bbe"))
+		return 0;
 	else
 		return -1;
 }
 #endif
 
 #ifdef CONFIG_TI_SECURE_DEVICE
-void board_fit_image_post_process(void **p_image, size_t *p_size)
+void board_fit_image_post_process(const void *fit, int node, void **p_image,
+				  size_t *p_size)
 {
 	secure_boot_verify_image(p_image, p_size);
 }

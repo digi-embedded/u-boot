@@ -18,6 +18,15 @@ any password.
 * Commands like pcr_setauthpolicy and pcr_resetauthpolicy are not implemented
 here because they would fail the tests in most cases (TPMs do not implement them
 and return an error).
+
+
+Note:
+This test doesn't rely on boardenv_* configuration value but can change test
+behavior.
+
+* Setup env__tpm_device_test_skip to True if tests with TPM devices should be
+skipped.
+
 """
 
 updates = 0
@@ -29,6 +38,9 @@ def force_init(u_boot_console, force=False):
     twice will spawn an error used to detect that the TPM was not reset and no
     initialization code should be run.
     """
+    skip_test = u_boot_console.config.env.get('env__tpm_device_test_skip', False)
+    if skip_test:
+        pytest.skip('skip TPM device test')
     output = u_boot_console.run_command('tpm2 init')
     if force or not 'Error' in output:
         u_boot_console.run_command('echo --- start of init ---')
@@ -44,6 +56,10 @@ def force_init(u_boot_console, force=False):
 def test_tpm2_init(u_boot_console):
     """Init the software stack to use TPMv2 commands."""
 
+    skip_test = u_boot_console.config.env.get('env__tpm_device_test_skip', False)
+    if skip_test:
+        pytest.skip('skip TPM device test')
+
     u_boot_console.run_command('tpm2 init')
     output = u_boot_console.run_command('echo $?')
     assert output.endswith('0')
@@ -55,6 +71,9 @@ def test_tpm2_startup(u_boot_console):
     Initiate the TPM internal state machine.
     """
 
+    skip_test = u_boot_console.config.env.get('env__tpm_device_test_skip', False)
+    if skip_test:
+        pytest.skip('skip TPM device test')
     u_boot_console.run_command('tpm2 startup TPM2_SU_CLEAR')
     output = u_boot_console.run_command('echo $?')
     assert output.endswith('0')
@@ -66,6 +85,9 @@ def test_tpm2_self_test_full(u_boot_console):
     Ask the TPM to perform all self tests to also enable full capabilities.
     """
 
+    skip_test = u_boot_console.config.env.get('env__tpm_device_test_skip', False)
+    if skip_test:
+        pytest.skip('skip TPM device test')
     u_boot_console.run_command('tpm2 self_test full')
     output = u_boot_console.run_command('echo $?')
     assert output.endswith('0')
@@ -78,6 +100,9 @@ def test_tpm2_continue_self_test(u_boot_console):
     to enter a fully operational state.
     """
 
+    skip_test = u_boot_console.config.env.get('env__tpm_device_test_skip', False)
+    if skip_test:
+        pytest.skip('skip TPM device test')
     u_boot_console.run_command('tpm2 self_test continue')
     output = u_boot_console.run_command('echo $?')
     assert output.endswith('0')
@@ -95,6 +120,9 @@ def test_tpm2_clear(u_boot_console):
     PLATFORM hierarchies are also available.
     """
 
+    skip_test = u_boot_console.config.env.get('env__tpm_device_test_skip', False)
+    if skip_test:
+        pytest.skip('skip TPM device test')
     u_boot_console.run_command('tpm2 clear TPM2_RH_LOCKOUT')
     output = u_boot_console.run_command('echo $?')
     assert output.endswith('0')
@@ -216,7 +244,9 @@ def test_tpm2_pcr_extend(u_boot_console):
     output = u_boot_console.run_command('echo $?')
     assert output.endswith('0')
 
-    read_pcr = u_boot_console.run_command('tpm2 pcr_read 0 0x%x' % ram)
+    # Read the value back into a different place so we can still use 'ram' as
+    # our zero bytes
+    read_pcr = u_boot_console.run_command('tpm2 pcr_read 0 0x%x' % (ram + 0x20))
     output = u_boot_console.run_command('echo $?')
     assert output.endswith('0')
     assert 'f5 a5 fd 42 d1 6a 20 30 27 98 ef 6e d3 09 97 9b' in read_pcr
@@ -225,6 +255,20 @@ def test_tpm2_pcr_extend(u_boot_console):
     str = re.findall(r'\d+ known updates', read_pcr)[0]
     new_updates = int(re.findall(r'\d+', str)[0])
     assert (updates + 1) == new_updates
+
+    u_boot_console.run_command('tpm2 pcr_extend 0 0x%x' % ram)
+    output = u_boot_console.run_command('echo $?')
+    assert output.endswith('0')
+
+    read_pcr = u_boot_console.run_command('tpm2 pcr_read 0 0x%x' % (ram + 0x20))
+    output = u_boot_console.run_command('echo $?')
+    assert output.endswith('0')
+    assert '7a 05 01 f5 95 7b df 9c b3 a8 ff 49 66 f0 22 65' in read_pcr
+    assert 'f9 68 65 8b 7a 9c 62 64 2c ba 11 65 e8 66 42 f5' in read_pcr
+
+    str = re.findall(r'\d+ known updates', read_pcr)[0]
+    new_updates = int(re.findall(r'\d+', str)[0])
+    assert (updates + 2) == new_updates
 
 @pytest.mark.buildconfigspec('cmd_tpm_v2')
 def test_tpm2_cleanup(u_boot_console):

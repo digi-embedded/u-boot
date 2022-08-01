@@ -15,10 +15,9 @@
  * for DDR ECC byte filling in the SPL before loading the main
  * U-Boot into it.
  */
-#define CONFIG_SYS_TCLK		250000000	/* 250MHz */
 
 /* I2C */
-#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_LEGACY
 #define CONFIG_SYS_I2C_MVTWSI
 #define CONFIG_I2C_MVTWSI_BASE0		MVEBU_TWSI_BASE
 #define CONFIG_SYS_I2C_SLAVE		0x0

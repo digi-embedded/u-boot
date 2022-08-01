@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright 2007, 2010-2011 Freescale Semiconductor, Inc
- * Copyright 2019 NXP Semiconductors
+ * Copyright 2019, 2021 NXP
  * Andy Fleming
  * Yangbo Lu <yangbo.lu@nxp.com>
  *
@@ -874,7 +874,7 @@ static void esdhc_stop_tuning(struct mmc *mmc)
 	cmd.cmdarg = 0;
 	cmd.resp_type = MMC_RSP_R1b;
 
-	dm_mmc_send_cmd(mmc->dev, &cmd, NULL);
+	mmc_send_cmd(mmc, &cmd, NULL);
 }
 
 static int fsl_esdhc_execute_tuning(struct udevice *dev, uint32_t opcode)
@@ -1243,11 +1243,6 @@ static int fsl_esdhc_init(struct fsl_esdhc_priv *priv,
 			ESDHC_HOSTCAPBLT_VS18 | ESDHC_HOSTCAPBLT_VS30);
 #endif
 
-/* T4240 host controller capabilities register should have VS33 bit */
-#ifdef CONFIG_SYS_FSL_MMC_HAS_CAPBLT_VS33
-	caps = caps | ESDHC_HOSTCAPBLT_VS33;
-#endif
-
 	if (caps & ESDHC_HOSTCAPBLT_VS18)
 		voltage_caps |= MMC_VDD_165_195;
 	if (caps & ESDHC_HOSTCAPBLT_VS30)
@@ -1570,8 +1565,7 @@ static int fsl_esdhc_probe(struct udevice *dev)
 	if (CONFIG_IS_ENABLED(DM_GPIO) && !priv->non_removable) {
 		struct udevice *gpiodev;
 
-		ret = device_get_by_driver_info_idx(dtplat->cd_gpios->idx,
-						    &gpiodev);
+		ret = device_get_by_ofplat_idx(dtplat->cd_gpios->idx, &gpiodev);
 		if (ret)
 			return ret;
 

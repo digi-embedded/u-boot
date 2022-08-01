@@ -7,6 +7,7 @@
 
 #include <common.h>
 #include <clk.h>
+#include <clk-uclass.h>
 #include <div64.h>
 #include <dm.h>
 #include <fdtdec.h>
@@ -17,6 +18,7 @@
 #include <usb.h>
 #include <asm/io.h>
 #include <dm/device_compat.h>
+#include <dm/lists.h>
 #include <dm/of_access.h>
 #include <linux/bitfield.h>
 #include <linux/bitops.h>
@@ -73,9 +75,8 @@
 #define PLL_INFF_MAX_RATE	38400000 /* in Hz */
 
 enum boosting_vals {
-	BOOST_1_MA = 1,
-	BOOST_2_MA,
-	BOOST_MAX,
+	BOOST_1000_UA = 1000,
+	BOOST_2000_UA = 2000,
 };
 
 enum dc_level_vals {
@@ -145,6 +146,7 @@ struct stm32_usbphyc {
 		bool init;
 		bool powered;
 	} phys[MAX_PHYS];
+	int n_pll_cons;
 };
 
 static void stm32_usbphyc_get_pll_params(u32 clk_rate,
@@ -204,18 +206,6 @@ static int stm32_usbphyc_pll_init(struct stm32_usbphyc *usbphyc)
 	return 0;
 }
 
-static bool stm32_usbphyc_is_init(struct stm32_usbphyc *usbphyc)
-{
-	int i;
-
-	for (i = 0; i < MAX_PHYS; i++) {
-		if (usbphyc->phys[i].init)
-			return true;
-	}
-
-	return false;
-}
-
 static bool stm32_usbphyc_is_powered(struct stm32_usbphyc *usbphyc)
 {
 	int i;
@@ -228,18 +218,17 @@ static bool stm32_usbphyc_is_powered(struct stm32_usbphyc *usbphyc)
 	return false;
 }
 
-static int stm32_usbphyc_phy_init(struct phy *phy)
+static int stm32_usbphyc_pll_enable(struct stm32_usbphyc *usbphyc)
 {
-	struct stm32_usbphyc *usbphyc = dev_get_priv(phy->dev);
-	struct stm32_usbphyc_phy *usbphyc_phy = usbphyc->phys + phy->id;
 	bool pllen = readl(usbphyc->base + STM32_USBPHYC_PLL) & PLLEN ?
 		     true : false;
 	int ret;
 
-	dev_dbg(phy->dev, "phy ID = %lu\n", phy->id);
-	/* Check if one phy port has already configured the pll */
-	if (pllen && stm32_usbphyc_is_init(usbphyc))
-		goto initialized;
+	/* Check if one consumer has already configured the pll */
+	if (pllen && usbphyc->n_pll_cons) {
+		usbphyc->n_pll_cons++;
+		return 0;
+	}
 
 	if (usbphyc->vdda1v1) {
 		ret = regulator_set_enable(usbphyc->vdda1v1, true);
@@ -270,23 +259,19 @@ static int stm32_usbphyc_phy_init(struct phy *phy)
 	if (!(readl(usbphyc->base + STM32_USBPHYC_PLL) & PLLEN))
 		return -EIO;
 
-initialized:
-	usbphyc_phy->init = true;
+	usbphyc->n_pll_cons++;
 
 	return 0;
 }
 
-static int stm32_usbphyc_phy_exit(struct phy *phy)
+static int stm32_usbphyc_pll_disable(struct stm32_usbphyc *usbphyc)
 {
-	struct stm32_usbphyc *usbphyc = dev_get_priv(phy->dev);
-	struct stm32_usbphyc_phy *usbphyc_phy = usbphyc->phys + phy->id;
 	int ret;
 
-	dev_dbg(phy->dev, "phy ID = %lu\n", phy->id);
-	usbphyc_phy->init = false;
+	usbphyc->n_pll_cons--;
 
-	/* Check if other phy port requires pllen */
-	if (stm32_usbphyc_is_init(usbphyc))
+	/* Check if other consumer requires pllen */
+	if (usbphyc->n_pll_cons)
 		return 0;
 
 	clrbits_le32(usbphyc->base + STM32_USBPHYC_PLL, PLLEN);
@@ -313,6 +298,42 @@ static int stm32_usbphyc_phy_exit(struct phy *phy)
 	}
 
 	return 0;
+}
+
+static int stm32_usbphyc_phy_init(struct phy *phy)
+{
+	struct stm32_usbphyc *usbphyc = dev_get_priv(phy->dev);
+	struct stm32_usbphyc_phy *usbphyc_phy = usbphyc->phys + phy->id;
+	int ret;
+
+	dev_dbg(phy->dev, "phy ID = %lu\n", phy->id);
+	if (usbphyc_phy->init)
+		return 0;
+
+	ret = stm32_usbphyc_pll_enable(usbphyc);
+	if (ret)
+		return log_ret(ret);
+
+	usbphyc_phy->init = true;
+
+	return 0;
+}
+
+static int stm32_usbphyc_phy_exit(struct phy *phy)
+{
+	struct stm32_usbphyc *usbphyc = dev_get_priv(phy->dev);
+	struct stm32_usbphyc_phy *usbphyc_phy = usbphyc->phys + phy->id;
+	int ret;
+
+	dev_dbg(phy->dev, "phy ID = %lu\n", phy->id);
+	if (!usbphyc_phy->init)
+		return 0;
+
+	ret = stm32_usbphyc_pll_disable(usbphyc);
+
+	usbphyc_phy->init = false;
+
+	return log_ret(ret);
 }
 
 static int stm32_usbphyc_phy_power_on(struct phy *phy)
@@ -351,7 +372,7 @@ static int stm32_usbphyc_phy_power_off(struct phy *phy)
 		return 0;
 
 	if (usbphyc_phy->vbus) {
-		ret = regulator_set_enable(usbphyc_phy->vbus, false);
+		ret = regulator_set_enable_if_allowed(usbphyc_phy->vbus, false);
 		if (ret)
 			return ret;
 	}
@@ -410,36 +431,28 @@ static int stm32_usbphyc_of_xlate(struct phy *phy,
 static void stm32_usbphyc_tuning(struct udevice *dev, ofnode node, u32 index)
 {
 	struct stm32_usbphyc *usbphyc = dev_get_priv(dev);
-	struct ofnode_phandle_args tune_phandle;
 	u32 reg = STM32_USBPHYC_TUNE(index);
 	u32 otpcomp, val, tune = 0;
 	int ret;
 
-	ret = ofnode_parse_phandle_with_args(node, "st,phy-tuning", NULL, 0,
-					     0, &tune_phandle);
-	if (ret) {
-		dev_dbg(dev, "phy%d: can't find phy tuning phandle\n", index);
-		return;
-	}
-
 	/* Backup OTP compensation code */
 	otpcomp = FIELD_GET(OTPCOMP, readl(usbphyc->base + reg));
 
-	ret = ofnode_read_u32(tune_phandle.node, "st,current-boost", &val);
-	if (!ret && val < BOOST_MAX) {
-		val = (val == BOOST_2_MA) ? 1 : 0;
+	ret = ofnode_read_u32(node, "st,current-boost-microamp", &val);
+	if (!ret && (val == BOOST_1000_UA || val == BOOST_2000_UA)) {
+		val = (val == BOOST_2000_UA) ? 1 : 0;
 		tune |= INCURREN | FIELD_PREP(INCURRINT, val);
 	} else if (ret != -EINVAL) {
-		dev_warn(dev, "phy%d: invalid st,current-boost value\n", index);
+		dev_warn(dev, "phy%d: invalid st,current-boost-microamp value\n", index);
 	}
 
-	if (!ofnode_read_bool(tune_phandle.node, "st,no-lsfs-fb-cap"))
+	if (!ofnode_read_bool(node, "st,no-lsfs-fb-cap"))
 		tune |= LFSCAPEN;
 
-	if (ofnode_read_bool(tune_phandle.node, "st,hs-slew-ctrl"))
+	if (ofnode_read_bool(node, "st,decrease-hs-slew-rate"))
 		tune |= HSDRVSLEW;
 
-	ret = ofnode_read_u32(tune_phandle.node, "st,hs-dc-level", &val);
+	ret = ofnode_read_u32(node, "st,tune-hs-dc-level", &val);
 	if (!ret && val < DC_MAX) {
 		if (val == DC_MINUS_5_TO_7_MV) {
 			tune |= HSDRVDCCUR;
@@ -448,49 +461,49 @@ static void stm32_usbphyc_tuning(struct udevice *dev, ofnode node, u32 index)
 			tune |= HSDRVCURINCR | FIELD_PREP(HSDRVDCLEV, val);
 		}
 	} else if (ret != -EINVAL) {
-		dev_warn(dev, "phy%d: invalid st,hs-dc-level value\n", index);
+		dev_warn(dev, "phy%d: invalid st,tune-hs-dc-level value\n", index);
 	}
 
-	if (ofnode_read_bool(tune_phandle.node, "st,fs-rftime-tuning"))
+	if (ofnode_read_bool(node, "st,enable-fs-rftime-tuning"))
 		tune |= FSDRVRFADJ;
 
-	if (ofnode_read_bool(tune_phandle.node, "st,hs-rftime-reduction"))
+	if (ofnode_read_bool(node, "st,enable-hs-rftime-reduction"))
 		tune |= HSDRVRFRED;
 
-	ret = ofnode_read_u32(tune_phandle.node, "st,hs-current-trim", &val);
+	ret = ofnode_read_u32(node, "st,trim-hs-current", &val);
 	if (!ret && val < CUR_MAX)
 		tune |= FIELD_PREP(HSDRVCHKITRM, val);
 	else if (ret != -EINVAL)
-		dev_warn(dev, "phy%d: invalid st,hs-current-trim value\n", index);
+		dev_warn(dev, "phy%d: invalid st,trim-hs-current value\n", index);
 
-	ret = ofnode_read_u32(tune_phandle.node, "st,hs-impedance-trim", &val);
+	ret = ofnode_read_u32(node, "st,trim-hs-impedance", &val);
 	if (!ret && val < IMP_MAX)
 		tune |= FIELD_PREP(HSDRVCHKZTRM, val);
 	else if (ret != -EINVAL)
-		dev_warn(dev, "phy%d: invalid hs-impedance-trim value\n", index);
+		dev_warn(dev, "phy%d: invalid trim-hs-impedance value\n", index);
 
-	ret = ofnode_read_u32(tune_phandle.node, "st,squelch-level", &val);
+	ret = ofnode_read_u32(node, "st,tune-squelch-level", &val);
 	if (!ret && val < SQLCH_MAX)
 		tune |= FIELD_PREP(SQLCHCTL, val);
 	else if (ret != -EINVAL)
-		dev_warn(dev, "phy%d: invalid st,squelch-level value\n", index);
+		dev_warn(dev, "phy%d: invalid st,tune-squelch-level value\n", index);
 
-	if (ofnode_read_bool(tune_phandle.node, "st,hs-rx-gain-eq"))
+	if (ofnode_read_bool(node, "st,enable-hs-rx-gain-eq"))
 		tune |= HDRXGNEQEN;
 
-	ret = ofnode_read_u32(tune_phandle.node, "st,hs-rx-offset", &val);
+	ret = ofnode_read_u32(node, "st,tune-hs-rx-offset", &val);
 	if (!ret && val < RX_OFFSET_MAX)
 		tune |= FIELD_PREP(HSRXOFF, val);
 	else if (ret != -EINVAL)
-		dev_warn(dev, "phy%d: invalid st,hs-rx-offset value\n", index);
+		dev_warn(dev, "phy%d: invalid st,tune-hs-rx-offset value\n", index);
 
-	if (ofnode_read_bool(tune_phandle.node, "st,no-hs-ftime-ctrl"))
+	if (ofnode_read_bool(node, "st,no-hs-ftime-ctrl"))
 		tune |= HSFALLPREEM;
 
-	if (!ofnode_read_bool(tune_phandle.node, "st,no-lsfs-sc"))
+	if (!ofnode_read_bool(node, "st,no-lsfs-sc"))
 		tune |= SHTCCTCTLPROT;
 
-	if (ofnode_read_bool(tune_phandle.node, "st,hs-tx-staggering"))
+	if (ofnode_read_bool(node, "st,enable-hs-tx-staggering"))
 		tune |= STAGSEL;
 
 	/* Restore OTP compensation code */
@@ -506,6 +519,16 @@ static const struct phy_ops stm32_usbphyc_phy_ops = {
 	.power_off = stm32_usbphyc_phy_power_off,
 	.of_xlate = stm32_usbphyc_of_xlate,
 };
+
+static int stm32_usbphyc_bind(struct udevice *dev)
+{
+	int ret;
+
+	ret = device_bind_driver_to_node(dev, "stm32-usbphyc-clk", "ck_usbo_48m",
+					 dev_ofnode(dev), NULL);
+
+	return log_ret(ret);
+}
 
 static int stm32_usbphyc_probe(struct udevice *dev)
 {
@@ -580,8 +603,6 @@ static int stm32_usbphyc_probe(struct udevice *dev)
 		if (ofnode_valid(connector)) {
 			ret = stm32_usbphyc_get_regulator(connector, "vbus-supply",
 							  &usbphyc_phy->vbus);
-			if (ret)
-				usbphyc_phy->vbus = NULL;
 		}
 	}
 
@@ -602,6 +623,70 @@ U_BOOT_DRIVER(stm32_usb_phyc) = {
 	.id = UCLASS_PHY,
 	.of_match = stm32_usbphyc_of_match,
 	.ops = &stm32_usbphyc_phy_ops,
+	.bind = stm32_usbphyc_bind,
 	.probe = stm32_usbphyc_probe,
 	.priv_auto	= sizeof(struct stm32_usbphyc),
+};
+
+struct stm32_usbphyc_clk {
+	bool enable;
+};
+
+static ulong stm32_usbphyc_clk48_get_rate(struct clk *clk)
+{
+	return 48000000;
+}
+
+static int stm32_usbphyc_clk48_enable(struct clk *clk)
+{
+	struct stm32_usbphyc_clk *usbphyc_clk = dev_get_priv(clk->dev);
+	struct stm32_usbphyc *usbphyc;
+	int ret;
+
+	if (usbphyc_clk->enable)
+		return 0;
+
+	usbphyc = dev_get_priv(clk->dev->parent);
+
+	/* ck_usbo_48m is generated by usbphyc PLL */
+	ret = stm32_usbphyc_pll_enable(usbphyc);
+	if (ret)
+		return ret;
+
+	usbphyc_clk->enable = true;
+
+	return 0;
+}
+
+static int stm32_usbphyc_clk48_disable(struct clk *clk)
+{
+	struct stm32_usbphyc_clk *usbphyc_clk = dev_get_priv(clk->dev);
+	struct stm32_usbphyc *usbphyc;
+	int ret;
+
+	if (!usbphyc_clk->enable)
+		return 0;
+
+	usbphyc = dev_get_priv(clk->dev->parent);
+
+	ret = stm32_usbphyc_pll_disable(usbphyc);
+	if (ret)
+		return ret;
+
+	usbphyc_clk->enable = false;
+
+	return 0;
+}
+
+const struct clk_ops usbphyc_clk48_ops = {
+	.get_rate = stm32_usbphyc_clk48_get_rate,
+	.enable = stm32_usbphyc_clk48_enable,
+	.disable = stm32_usbphyc_clk48_disable,
+};
+
+U_BOOT_DRIVER(stm32_usb_phyc_clk) = {
+	.name = "stm32-usbphyc-clk",
+	.id = UCLASS_CLK,
+	.ops = &usbphyc_clk48_ops,
+	.priv_auto = sizeof(struct stm32_usbphyc_clk),
 };

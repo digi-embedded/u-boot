@@ -122,9 +122,6 @@
  */
 #ifdef CONFIG_IDE
 #define __io
-#define CONFIG_IDE_PREINIT
-/* ED Mini V has an IDE-compatible SATA connector for port 1 */
-#define CONFIG_MVSATA_IDE_USE_PORT1
 /* Needs byte-swapping for ATA data register */
 #define CONFIG_IDE_SWAP_IO
 /* Data, registers and alternate blocks are at the same offset */
@@ -156,7 +153,7 @@
  * I2C related stuff
  */
 #ifdef CONFIG_CMD_I2C
-#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_LEGACY
 #define CONFIG_SYS_I2C_MVTWSI
 #define CONFIG_I2C_MVTWSI_BASE0		ORION5X_TWSI_BASE
 #define CONFIG_SYS_I2C_SLAVE		0x0

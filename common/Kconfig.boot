@@ -84,8 +84,10 @@ config ANDROID_BOOT_IMAGE
 
 config FIT
 	bool "Support Flattened Image Tree"
+	select HASH
 	select MD5
 	select SHA1
+	imply SHA256
 	help
 	  This option allows you to boot the new uImage structure,
 	  Flattened Image Tree.  FIT is formally a FDT, which can include
@@ -108,34 +110,6 @@ config FIT_EXTERNAL_OFFSET
 	  could be put in the hole between data payload and fit image
 	  header, such as CSF data on i.MX platform.
 
-config FIT_ENABLE_SHA256_SUPPORT
-	bool "Support SHA256 checksum of FIT image contents"
-	default y
-	select SHA256
-	help
-	  Enable this to support SHA256 checksum of FIT image contents. A
-	  SHA256 checksum is a 256-bit (32-byte) hash value used to check that
-	  the image contents have not been corrupted.
-
-config FIT_ENABLE_SHA384_SUPPORT
-	bool "Support SHA384 checksum of FIT image contents"
-	default n
-	select SHA384
-	help
-	  Enable this to support SHA384 checksum of FIT image contents. A
-	  SHA384 checksum is a 384-bit (48-byte) hash value used to check that
-	  the image contents have not been corrupted. Use this for the highest
-	  security.
-
-config FIT_ENABLE_SHA512_SUPPORT
-	bool "Support SHA512 checksum of FIT image contents"
-	default n
-	select SHA512
-	help
-	  Enable this to support SHA512 checksum of FIT image contents. A
-	  SHA512 checksum is a 512-bit (64-byte) hash value used to check that
-	  the image contents have not been corrupted.
-
 config FIT_FULL_CHECK
 	bool "Do a full check of the FIT before using it"
 	default y
@@ -149,8 +123,8 @@ config FIT_SIGNATURE
 	bool "Enable signature verification of FIT uImages"
 	depends on DM
 	select HASH
-	select RSA
-	select RSA_VERIFY
+	imply RSA
+	imply RSA_VERIFY
 	select IMAGE_SIGN_INFO
 	select FIT_FULL_CHECK
 	help
@@ -176,7 +150,7 @@ config FIT_SIGNATURE_MAX_SIZE
 	  device memory. Assure this size does not extend past expected storage
 	  space.
 
-config FIT_ENABLE_RSASSA_PSS_SUPPORT
+config FIT_RSASSA_PSS
 	bool "Support rsassa-pss signature scheme of FIT image contents"
 	depends on FIT_SIGNATURE
 	default n
@@ -234,6 +208,7 @@ if SPL
 config SPL_FIT
 	bool "Support Flattened Image Tree within SPL"
 	depends on SPL
+	select SPL_HASH
 	select SPL_OF_LIBFDT
 
 config SPL_FIT_PRINT
@@ -257,10 +232,10 @@ config SPL_FIT_SIGNATURE
 	depends on SPL_LOAD_FIT || SPL_LOAD_FIT_FULL
 	select FIT_SIGNATURE
 	select SPL_FIT
-	select SPL_CRYPTO_SUPPORT
-	select SPL_HASH_SUPPORT
-	select SPL_RSA
-	select SPL_RSA_VERIFY
+	select SPL_CRYPTO
+	select SPL_HASH
+	imply SPL_RSA
+	imply SPL_RSA_VERIFY
 	select SPL_IMAGE_SIGN_INFO
 	select SPL_FIT_FULL_CHECK
 
@@ -274,6 +249,16 @@ config SPL_LOAD_FIT
 	  of a FIT (Flat Image Tree) which provides more flexibility. In
 	  particular it can handle selecting from multiple device tree
 	  and passing the correct one to U-Boot.
+
+	  This path has the following limitations:
+
+	  1. "loadables" images, other than FDTs, which do not have a "load"
+	     property will not be loaded. This limitation also applies to FPGA
+	     images with the correct "compatible" string.
+	  2. For FPGA images, only the "compatible" = "u-boot,fpga-legacy"
+	     loading method is supported.
+	  3. FDTs are only loaded for images with an "os" property of "u-boot".
+	     "linux" images are also supported with Falcon boot mode.
 
 config SPL_LOAD_FIT_ADDRESS
 	hex "load address of fit image"
@@ -336,14 +321,13 @@ config SPL_FIT_SOURCE
 
 config USE_SPL_FIT_GENERATOR
 	bool "Use a script to generate the .its script"
-	default y if SPL_FIT && !ARCH_SUNXI
+	default y if SPL_FIT && (!ARCH_SUNXI && !RISCV)
 
 config SPL_FIT_GENERATOR
 	string ".its file generator script for U-Boot FIT image"
 	depends on USE_SPL_FIT_GENERATOR
 	default "arch/arm/mach-rockchip/make_fit_atf.py" if SPL_LOAD_FIT && ARCH_ROCKCHIP
 	default "arch/arm/mach-zynqmp/mkimage_fit_atf.sh" if SPL_LOAD_FIT && ARCH_ZYNQMP
-	default "arch/riscv/lib/mkimage_fit_opensbi.sh" if SPL_LOAD_FIT && RISCV
 	help
 	  Specifies a (platform specific) script file to generate the FIT
 	  source file used to build the U-Boot FIT image file. This gets
@@ -422,6 +406,7 @@ config HAVE_SYS_TEXT_BASE
 
 config SYS_TEXT_BASE
 	depends on HAVE_SYS_TEXT_BASE
+	default 0x0 if POSITION_INDEPENDENT
 	default 0x80800000 if ARCH_OMAP2PLUS || ARCH_K3
 	default 0x4a000000 if ARCH_SUNXI && !MACH_SUN9I && !MACH_SUN8I_V3S
 	default 0x2a000000 if ARCH_SUNXI && MACH_SUN9I
@@ -854,6 +839,15 @@ config AUTOBOOT_KEYED
 	  U-Boot automatic booting process and bring the device
 	  to the U-Boot prompt for user input.
 
+config AUTOBOOT_FLUSH_STDIN
+	bool "Enable flushing stdin before starting to read the password"
+	depends on AUTOBOOT_KEYED && !SANDBOX
+	help
+	  When this option is enabled stdin buffer will be flushed before
+	  starting to read the password.
+	  This can't be enabled for the sandbox as flushing stdin would
+	  break the autoboot unit tests.
+
 config AUTOBOOT_PROMPT
 	string "Autoboot stop prompt"
 	depends on AUTOBOOT_KEYED
@@ -875,12 +869,27 @@ config AUTOBOOT_ENCRYPTION
 	depends on AUTOBOOT_KEYED
 	help
 	  This option allows a string to be entered into U-Boot to stop the
-	  autoboot. The string itself is hashed and compared against the hash
-	  in the environment variable 'bootstopkeysha256'. If it matches then
-	  boot stops and a command-line prompt is presented.
-
+	  autoboot.
+	  The behavior depends whether CONFIG_CRYPT_PW from lib is enabled
+	  or not.
+	  In case CONFIG_CRYPT_PW is enabled, the string will be forwarded
+	  to the crypt-based functionality and be compared against the
+	  string in the environment variable 'bootstopkeycrypt'.
+	  In case CONFIG_CRYPT_PW is disabled the string itself is hashed
+	  and compared against the hash in the environment variable
+	  'bootstopkeysha256'.
+	  If it matches in either case then boot stops and
+	  a command-line prompt is presented.
 	  This provides a way to ship a secure production device which can also
 	  be accessed at the U-Boot command line.
+
+config AUTOBOOT_SHA256_FALLBACK
+	bool "Allow fallback from crypt-hashed password to sha256"
+	depends on AUTOBOOT_ENCRYPTION && CRYPT_PW
+	help
+	  This option adds support to fall back from crypt-hashed
+	  passwords to checking a SHA256 hashed password in case the
+	  'bootstopusesha256' environment variable is set to 'true'.
 
 config AUTOBOOT_DELAY_STR
 	string "Delay autobooting via specific input key / string"
@@ -916,9 +925,38 @@ config AUTOBOOT_KEYED_CTRLC
 	  Setting this variable	provides an escape sequence from the
 	  limited "password" strings.
 
-config AUTOBOOT_STOP_STR_SHA256
-	string "Stop autobooting via SHA256 encrypted password"
+config AUTOBOOT_NEVER_TIMEOUT
+	bool "Make the password entry never time-out"
+	depends on AUTOBOOT_KEYED && AUTOBOOT_ENCRYPTION && CRYPT_PW
+	help
+	  This option removes the timeout from the password entry
+	  when the user first presses the <Enter> key before entering
+	  any other character.
+
+config AUTOBOOT_STOP_STR_ENABLE
+	bool "Enable fixed string to stop autobooting"
 	depends on AUTOBOOT_KEYED && AUTOBOOT_ENCRYPTION
+	help
+	  This option enables the feature to add a fixed stop
+	  string that is defined at compile time.
+	  In every case it will be tried to load the stop
+	  string from the environment.
+	  In case this is enabled and there is no stop string
+	  in the environment, this will be used as default value.
+
+config AUTOBOOT_STOP_STR_CRYPT
+	string "Stop autobooting via crypt-hashed password"
+	depends on AUTOBOOT_STOP_STR_ENABLE && CRYPT_PW
+	help
+	  This option adds the feature to only stop the autobooting,
+	  and therefore boot into the U-Boot prompt, when the input
+	  string / password matches a values that is hashed via
+	  one of the supported crypt-style password hashing options
+	  and saved in the environment variable "bootstopkeycrypt".
+
+config AUTOBOOT_STOP_STR_SHA256
+	string "Stop autobooting via SHA256 hashed password"
+	depends on AUTOBOOT_STOP_STR_ENABLE
 	help
 	  This option adds the feature to only stop the autobooting,
 	  and therefore boot into the U-Boot prompt, when the input

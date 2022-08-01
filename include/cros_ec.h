@@ -199,15 +199,6 @@ int cros_ec_flash_protect(struct udevice *dev, uint32_t set_mask,
 			  struct ec_response_flash_protect *resp);
 
 /**
- * Notify EC of current boot mode
- *
- * @param dev		CROS-EC device
- * @param vboot_mode    Verified boot mode
- * @return 0 if ok, <0 on error
- */
-int cros_ec_entering_mode(struct udevice *dev, int mode);
-
-/**
  * Run internal tests on the cros_ec interface.
  *
  * @param dev		CROS-EC device
@@ -513,6 +504,19 @@ int cros_ec_efs_verify(struct udevice *dev, enum ec_flash_region region);
 int cros_ec_battery_cutoff(struct udevice *dev, uint8_t flags);
 
 /**
+ * cros_ec_set_pwm_duty() - Set duty cycle of a generic pwm
+ *
+ * Note that duty value needs to be passed to the EC as a 16 bit number
+ * for increased precision.
+ *
+ * @param dev		CROS-EC device
+ * @param index		Index of the pwm
+ * @param duty		Desired duty cycle, in 0..EC_PWM_MAX_DUTY range.
+ * @return 0 if OK, -ve on error
+ */
+int cros_ec_set_pwm_duty(struct udevice *dev, uint8_t index, uint16_t duty);
+
+/**
  * cros_ec_read_limit_power() - Check if power is limited by batter/charger
  *
  * Sometimes the battery is low and / or the device is connected to a charger
@@ -638,5 +642,13 @@ int cros_ec_vstore_read(struct udevice *dev, int slot, uint8_t *data);
  */
 int cros_ec_vstore_write(struct udevice *dev, int slot, const uint8_t *data,
 			 size_t size);
+
+/**
+ * cros_ec_read_batt_charge() - Read the battery-charge state
+ *
+ * @dev: CROS-EC device
+ * @chargep: Return battery-charge state as a percentage
+ */
+int cros_ec_read_batt_charge(struct udevice *dev, uint *chargep);
 
 #endif

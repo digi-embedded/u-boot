@@ -137,7 +137,7 @@ static ulong get_load_addr(void)
 
 	addr_str = env_get("loadaddr");
 	if (addr_str)
-		addr = simple_strtoul(addr_str, NULL, 16);
+		addr = hextoul(addr_str, NULL);
 	else
 		addr = CONFIG_SYS_LOAD_ADDR;
 
@@ -798,7 +798,7 @@ struct bubt_dev *find_bubt_dev(char *dev_name)
 #define DEFAULT_BUBT_DST "nand"
 #elif defined(CONFIG_MVEBU_MMC_BOOT)
 #define DEFAULT_BUBT_DST "mmc"
-else
+#else
 #define DEFAULT_BUBT_DST "error"
 #endif
 #endif /* DEFAULT_BUBT_DST */

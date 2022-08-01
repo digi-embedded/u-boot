@@ -4,6 +4,7 @@ config MMC
 	bool "MMC/SD/SDIO card support"
 	default ARM || PPC || SANDBOX
 	select HAVE_BLOCK_DEVICE
+	select DM_MMC if DM
 	help
 	  This selects MultiMediaCard, Secure Digital and Secure
 	  Digital I/O support.
@@ -33,6 +34,7 @@ config MMC_BROKEN_CD
 config DM_MMC
 	bool "Enable MMC controllers using Driver Model"
 	depends on DM
+	select BLK
 	help
 	  This enables the MultiMediaCard (MMC) uclass which supports MMC and
 	  Secure Digital I/O (SDIO) cards. Both removable (SD, micro-SD, etc.)
@@ -319,18 +321,28 @@ config MMC_MXS
 
 config MMC_PCI
 	bool "Support for MMC controllers on PCI"
+	depends on MMC_SDHCI
 	help
 	  This selects PCI-based MMC controllers.
 	  If you have an MMC controller on a PCI bus, say Y here.
 
 config MMC_OCTEONTX
-	bool "Marvell OcteonTX Multimedia Card Interface support"
-	depends on (ARCH_OCTEONTX || ARCH_OCTEONTX2)
+	bool "Marvell Octeon Multimedia Card Interface support"
+	depends on (ARCH_OCTEON || ARCH_OCTEONTX || ARCH_OCTEONTX2)
 	depends on DM_MMC
 	help
-	  This selects the OcteonTX Multimedia card Interface.
-	  If you have an OcteonTX/TX2 board with a Multimedia Card slot,
-	  say Y here.
+	  This selects the Octeon Multimedia card Interface.
+	  If you have an OcteonTX/TX2 or MIPS Octeon board with a
+	  Multimedia Card slot, say Y here.
+
+	  If unsure, say N.
+
+config MVEBU_MMC
+	bool "Kirkwood MMC controller support"
+	depends on DM_MMC && BLK && ARCH_KIRKWOOD
+	help
+	  Support for MMC host controller on Kirkwood SoCs.
+	  If you are on a Kirkwood architecture, say Y here.
 
 	  If unsure, say N.
 
@@ -557,6 +569,16 @@ config MMC_SDHCI_IPROC
 
 	  If unsure, say N.
 
+config MMC_SDHCI_F_SDH30
+	bool "SDHCI support for Fujitsu Semiconductor F_SDH30"
+	depends on BLK && DM_MMC
+	depends on MMC_SDHCI
+	help
+	  This selects the Secure Digital Host Controller Interface (SDHCI)
+	  Needed by some Fujitsu SoC for MMC / SD / SDIO support.
+	  If you have a controller with this interface, say Y or M here.
+	  If unsure, say N.
+
 config MMC_SDHCI_KONA
 	bool "SDHCI support on Broadcom KONA platform"
 	depends on MMC_SDHCI
@@ -723,6 +745,15 @@ config MMC_SUNXI_HAS_MODE_SWITCH
 	bool
 	depends on MMC_SUNXI
 
+config MMC_PITON
+	bool "MMC support for OpenPiton SoC"
+	depends on DM_MMC && BLK
+	help
+	  This selects support for the SD host controller on OpenPiton SoC.
+	  Note that this SD controller directly exposes the contents of the
+	  SD card as memory mapped, so there is no manual configuration
+	  required
+
 config GENERIC_ATMEL_MCI
 	bool "Atmel Multimedia Card Interface support"
 	depends on DM_MMC && BLK && ARCH_AT91
@@ -809,7 +840,7 @@ config FSL_ESDHC_IMX
 
 config FSL_USDHC
 	bool "Freescale/NXP i.MX uSDHC controller support"
-	depends on MX6 || MX7 ||ARCH_MX7ULP || IMX8 || IMX8M || IMX8ULP || IMXRT || TARGET_S32V234EVB
+	depends on MX6 || MX7 ||ARCH_MX7ULP || IMX8 || IMX8M || IMX8ULP || IMXRT
 	select FSL_ESDHC_IMX
 	help
 	  This enables the Ultra Secured Digital Host Controller enhancements

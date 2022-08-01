@@ -28,16 +28,12 @@ struct wdog_regs {
 #define UNLOCK_WORD0 0xC520 /* 1st unlock word */
 #define UNLOCK_WORD1 0xD928 /* 2nd unlock word */
 
-#define UNLOCK_WORD 0xD928C520 /* unlock word */
-#define REFRESH_WORD 0xB480A602 /* refresh word */
+#define WDGCS_WDGE                      BIT(7)
+#define WDGCS_WDGUPDATE                 BIT(5)
 
-#define WDGCS_WDGE                      (1<<7)
-#define WDGCS_WDGUPDATE                 (1<<5)
-
-#define WDGCS_RCS                       (1<<10)
-#define WDGCS_ULK                       (1<<11)
-#define WDGCS_CMD32EN                   (1<<13)
-#define WDGCS_FLG                       (1<<14)
+#define WDGCS_RCS                       BIT(10)
+#define WDGCS_ULK                       BIT(11)
+#define WDGCS_FLG                       BIT(14)
 
 #define WDG_BUS_CLK                      (0x0)
 #define WDG_LPO_CLK                      (0x1)
@@ -56,72 +52,60 @@ void hw_watchdog_reset(void)
 {
 	struct wdog_regs *wdog = (struct wdog_regs *)WDOG_BASE_ADDR;
 
-	if (readl(&wdog->cs) & WDGCS_CMD32EN) {
-		writel(REFRESH_WORD, &wdog->cnt);
-	} else {
-		dmb();
-		__raw_writel(REFRESH_WORD0, &wdog->cnt);
-		__raw_writel(REFRESH_WORD1, &wdog->cnt);
-		dmb();
-	}
+	dmb();
+	__raw_writel(REFRESH_WORD0, &wdog->cnt);
+	__raw_writel(REFRESH_WORD1, &wdog->cnt);
+	dmb();
 }
 
 void hw_watchdog_init(void)
 {
 	struct wdog_regs *wdog = (struct wdog_regs *)WDOG_BASE_ADDR;
-	u32 cmd32 = 0;
 
-	if (readl(&wdog->cs) & WDGCS_CMD32EN) {
-		writel(UNLOCK_WORD, &wdog->cnt);
-		cmd32 = WDGCS_CMD32EN;
-	} else {
-		dmb();
-		__raw_writel(UNLOCK_WORD0, &wdog->cnt);
-		__raw_writel(UNLOCK_WORD1, &wdog->cnt);
-		dmb();
-	}
+	dmb();
+	__raw_writel(UNLOCK_WORD0, &wdog->cnt);
+	__raw_writel(UNLOCK_WORD1, &wdog->cnt);
+	dmb();
 
 	/* Wait WDOG Unlock */
-	while (!(readl(&wdog->cs) & WDGCS_ULK));
+	while (!(readl(&wdog->cs) & WDGCS_ULK))
+		;
 
 	hw_watchdog_set_timeout(CONFIG_WATCHDOG_TIMEOUT_MSECS);
 	writel(0, &wdog->win);
 
 	/* setting 1-kHz clock source, enable counter running, and clear interrupt */
-	writel((cmd32 | WDGCS_WDGE | WDGCS_WDGUPDATE |(WDG_LPO_CLK << 8) | WDGCS_FLG), &wdog->cs);
+	writel((WDGCS_WDGE | WDGCS_WDGUPDATE |(WDG_LPO_CLK << 8) | WDGCS_FLG), &wdog->cs);
 
 	/* Wait WDOG reconfiguration */
-	while (!(readl(&wdog->cs) & WDGCS_RCS));
+	while (!(readl(&wdog->cs) & WDGCS_RCS))
+		;
 
 	hw_watchdog_reset();
 }
 
-void reset_cpu(ulong addr)
+void reset_cpu(void)
 {
 	struct wdog_regs *wdog = (struct wdog_regs *)WDOG_BASE_ADDR;
-	u32 cmd32 = 0;
 
-	if (readl(&wdog->cs) & WDGCS_CMD32EN) {
-		writel(UNLOCK_WORD, &wdog->cnt);
-		cmd32 = WDGCS_CMD32EN;
-	} else {
-		dmb();
-		__raw_writel(UNLOCK_WORD0, &wdog->cnt);
-		__raw_writel(UNLOCK_WORD1, &wdog->cnt);
-		dmb();
-	}
+	dmb();
+	__raw_writel(UNLOCK_WORD0, &wdog->cnt);
+	__raw_writel(UNLOCK_WORD1, &wdog->cnt);
+	dmb();
 
 	/* Wait WDOG Unlock */
-	while (!(readl(&wdog->cs) & WDGCS_ULK));
+	while (!(readl(&wdog->cs) & WDGCS_ULK))
+		;
 
 	hw_watchdog_set_timeout(5); /* 5ms timeout */
 	writel(0, &wdog->win);
 
 	/* enable counter running */
-	writel((cmd32| WDGCS_WDGE | (WDG_LPO_CLK << 8)), &wdog->cs);
+	writel((WDGCS_WDGE | (WDG_LPO_CLK << 8)), &wdog->cs);
 
 	/* Wait WDOG reconfiguration */
-	while (!(readl(&wdog->cs) & WDGCS_RCS));
+	while (!(readl(&wdog->cs) & WDGCS_RCS))
+		;
 
 	hw_watchdog_reset();
 

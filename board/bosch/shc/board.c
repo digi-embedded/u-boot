@@ -45,7 +45,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-static struct shc_eeprom __attribute__((section(".data"))) header;
+static struct shc_eeprom __section(".data") header;
 static int shc_eeprom_valid;
 
 /*
@@ -188,7 +188,7 @@ static void __maybe_unused leds_set_booting(void)
 /*
  * Function to set the LEDs in the state "Bootloader error"
  */
-static void leds_set_failure(int state)
+static void __maybe_unused leds_set_failure(int state)
 {
 #if defined(CONFIG_B_SAMPLE)
 	/* Turn all blue and green LEDs off */
@@ -479,14 +479,14 @@ int board_eth_init(struct bd_info *bis)
 }
 #endif
 
-#ifdef CONFIG_SHOW_BOOT_PROGRESS
+#if CONFIG_IS_ENABLED(BOOTSTAGE)
 static void bosch_check_reset_pin(void)
 {
 	if (readl(GPIO1_BASE + OMAP_GPIO_IRQSTATUS_SET_0) & RESET_MASK) {
 		printf("Resetting ...\n");
 		writel(RESET_MASK, GPIO1_BASE + OMAP_GPIO_IRQSTATUS_SET_0);
 		disable_interrupts();
-		reset_cpu(0);
+		reset_cpu();
 		/*NOTREACHED*/
 	}
 }
@@ -525,9 +525,9 @@ void show_boot_progress(int val)
 		break;
 	}
 }
+#endif
 
 void arch_preboot_os(void)
 {
 	leds_set_finish();
 }
-#endif

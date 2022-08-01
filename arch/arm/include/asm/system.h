@@ -80,6 +80,12 @@
 #define HCR_EL2_HCD_DIS		(1 << 29) /* Hypervisor Call disabled         */
 
 /*
+ * ID_AA64PFR0_EL1 bits definitions
+ */
+#define ID_AA64PFR0_EL1_EL3	(0xF << 12) /* EL3 implemented                */
+#define ID_AA64PFR0_EL1_EL2	(0xF << 8)  /* EL2 implemented                */
+
+/*
  * CPACR_EL1 bits definitions
  */
 #define CPACR_EL1_FPEN_EN	(3 << 20) /* SIMD and FP instruction enabled  */
@@ -397,20 +403,6 @@ static inline void set_cr(unsigned int val)
 	isb();
 }
 
-static inline unsigned int get_dacr(void)
-{
-	unsigned int val;
-	asm("mrc p15, 0, %0, c3, c0, 0  @ get DACR" : "=r" (val) : : "cc");
-	return val;
-}
-
-static inline void set_dacr(unsigned int val)
-{
-	asm volatile("mcr p15, 0, %0, c3, c0, 0 @ set DACR"
-		     : : "r" (val) : "cc");
-	isb();
-}
-
 #ifdef CONFIG_ARMV7_LPAE
 /* Long-Descriptor Translation Table Level 1/2 Bits */
 #define TTB_SECT_XN_MASK	(1ULL << 54)
@@ -458,7 +450,6 @@ static inline void set_dacr(unsigned int val)
 
 /* options available for data cache on each page */
 enum dcache_option {
-	INVALID_ENTRY = 0,
 	DCACHE_OFF = TTB_SECT | TTB_SECT_MAIR(0) | TTB_SECT_XN_MASK,
 	DCACHE_WRITETHROUGH = TTB_SECT | TTB_SECT_MAIR(1),
 	DCACHE_WRITEBACK = TTB_SECT | TTB_SECT_MAIR(2),
@@ -489,21 +480,15 @@ enum dcache_option {
  *   1    1  1   Outer/Inner Write-Back, Read-Allocate Write-Allocate
  */
 enum dcache_option {
-	INVALID_ENTRY = 0,
 	DCACHE_OFF = TTB_SECT_DOMAIN(0) | TTB_SECT_XN_MASK | TTB_SECT,
 	DCACHE_WRITETHROUGH = TTB_SECT_DOMAIN(0) | TTB_SECT | TTB_SECT_C_MASK,
 	DCACHE_WRITEBACK = DCACHE_WRITETHROUGH | TTB_SECT_B_MASK,
-#ifdef CONFIG_IMX_TRUSTY_OS
-	DCACHE_WRITEALLOC = DCACHE_WRITEBACK | TTB_SECT_TEX(1) | TTB_SECT_S_MASK,
-#else
 	DCACHE_WRITEALLOC = DCACHE_WRITEBACK | TTB_SECT_TEX(1),
-#endif
 };
 #else
 #define TTB_SECT_AP		(3 << 10)
 /* options available for data cache on each page */
 enum dcache_option {
-	INVALID_ENTRY = 0,
 	DCACHE_OFF = 0x12,
 	DCACHE_WRITETHROUGH = 0x1a,
 	DCACHE_WRITEBACK = 0x1e,

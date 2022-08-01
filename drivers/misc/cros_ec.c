@@ -754,17 +754,6 @@ int cros_ec_flash_protect(struct udevice *dev, uint32_t set_mask,
 	return 0;
 }
 
-int cros_ec_entering_mode(struct udevice *dev, int mode)
-{
-	int rc;
-
-	rc = ec_command(dev, EC_CMD_ENTERING_MODE, 0, &mode, sizeof(mode),
-			NULL, 0);
-	if (rc)
-		return -1;
-	return 0;
-}
-
 static int cros_ec_check_version(struct udevice *dev)
 {
 	struct cros_ec_dev *cdev = dev_get_uclass_priv(dev);
@@ -1167,6 +1156,23 @@ int cros_ec_battery_cutoff(struct udevice *dev, uint8_t flags)
 
 	if (len < 0)
 		return -1;
+	return 0;
+}
+
+int cros_ec_set_pwm_duty(struct udevice *dev, uint8_t index, uint16_t duty)
+{
+	struct ec_params_pwm_set_duty p;
+	int ret;
+
+	p.duty = duty;
+	p.pwm_type = EC_PWM_TYPE_GENERIC;
+	p.index = index;
+
+	ret = ec_command(dev, EC_CMD_PWM_SET_DUTY, 0, &p, sizeof(p),
+			 NULL, 0);
+	if (ret < 0)
+		return ret;
+
 	return 0;
 }
 
@@ -1642,6 +1648,23 @@ int cros_ec_get_switches(struct udevice *dev)
 		return log_msg_ret("get", ret);
 
 	return ret;
+}
+
+int cros_ec_read_batt_charge(struct udevice *dev, uint *chargep)
+{
+	struct ec_params_charge_state req;
+	struct ec_response_charge_state resp;
+	int ret;
+
+	req.cmd = CHARGE_STATE_CMD_GET_STATE;
+	ret = ec_command(dev, EC_CMD_CHARGE_STATE, 0, &req, sizeof(req),
+			 &resp, sizeof(resp));
+	if (ret)
+		return log_msg_ret("read", ret);
+
+	*chargep = resp.get_state.batt_state_of_charge;
+
+	return 0;
 }
 
 UCLASS_DRIVER(cros_ec) = {

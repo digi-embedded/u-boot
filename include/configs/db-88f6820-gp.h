@@ -10,19 +10,12 @@
  * High Level Configuration Options (easy to change)
  */
 
-#define CONFIG_SYS_TCLK		250000000	/* 250MHz */
-
 /* I2C */
-#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_LEGACY
 #define CONFIG_SYS_I2C_MVTWSI
 #define CONFIG_I2C_MVTWSI_BASE0		MVEBU_TWSI_BASE
 #define CONFIG_SYS_I2C_SLAVE		0x0
 #define CONFIG_SYS_I2C_SPEED		100000
-
-/*
- * SDIO/MMC Card Configuration
- */
-#define CONFIG_SYS_MMC_BASE		MVEBU_SDIO_BASE
 
 /*
  * SATA/SCSI/AHCI configuration
@@ -76,15 +69,8 @@
 #define CONFIG_SPL_STACK		(0x40000000 + ((192 - 16) << 10))
 #define CONFIG_SPL_BOOTROM_SAVE		(CONFIG_SPL_STACK + 4)
 
-#if CONFIG_SPL_BOOT_DEVICE == SPL_BOOT_SPI_NOR_FLASH
-/* SPL related SPI defines */
-#define CONFIG_SYS_U_BOOT_OFFS		CONFIG_SYS_SPI_U_BOOT_OFFS
-#endif
-
 #if CONFIG_SPL_BOOT_DEVICE == SPL_BOOT_SDIO_MMC_CARD
 /* SPL related MMC defines */
-#define CONFIG_SYS_MMC_U_BOOT_OFFS		(160 << 10)
-#define CONFIG_SYS_U_BOOT_OFFS			CONFIG_SYS_MMC_U_BOOT_OFFS
 #ifdef CONFIG_SPL_BUILD
 #define CONFIG_FIXED_SDHCI_ALIGNED_BUFFER	0x00180000	/* in SDRAM */
 #endif

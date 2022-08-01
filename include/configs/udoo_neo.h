@@ -71,7 +71,7 @@
 	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
 
 /* I2C configs */
-#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_LEGACY
 #define CONFIG_SYS_I2C_MXC
 #define CONFIG_SYS_I2C_MXC_I2C1
 #define CONFIG_SYS_I2C_SPEED		100000
@@ -82,15 +82,5 @@
 #define CONFIG_POWER_PFUZE3000
 #define CONFIG_POWER_PFUZE3000_I2C_ADDR	0x08
 #define PFUZE3000_I2C_BUS	0
-
-/* Network */
-#define CONFIG_FEC_MXC
-
-#define CONFIG_FEC_ENET_DEV 0
-#define IMX_FEC_BASE			ENET_BASE_ADDR
-#define CONFIG_FEC_MXC_PHYADDR          0x0
-
-#define CONFIG_FEC_XCV_TYPE             RMII
-#define CONFIG_ETHPRIME                 "FEC0"
 
 #endif				/* __CONFIG_H */

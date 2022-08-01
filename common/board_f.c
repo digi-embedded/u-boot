@@ -244,7 +244,7 @@ __weak int dram_init_banksize(void)
 	return 0;
 }
 
-#if defined(CONFIG_SYS_I2C)
+#if defined(CONFIG_SYS_I2C_LEGACY)
 static int init_func_i2c(void)
 {
 	puts("I2C:   ");
@@ -265,7 +265,9 @@ static int setup_mon_len(void)
 {
 #if defined(__ARM__) || defined(__MICROBLAZE__)
 	gd->mon_len = (ulong)&__bss_end - (ulong)_start;
-#elif defined(CONFIG_SANDBOX) || defined(CONFIG_EFI_APP)
+#elif defined(CONFIG_SANDBOX)
+	gd->mon_len = 0;
+#elif defined(CONFIG_EFI_APP)
 	gd->mon_len = (ulong)&_end - (ulong)_init;
 #elif defined(CONFIG_NIOS2) || defined(CONFIG_XTENSA)
 	gd->mon_len = CONFIG_SYS_MONITOR_LEN;
@@ -394,7 +396,7 @@ static int reserve_video(void)
 	if (ret)
 		return ret;
 	debug("Reserving %luk for video at: %08lx\n",
-	      (unsigned long)gd->relocaddr - addr, addr);
+	      ((unsigned long)gd->relocaddr - addr) >> 10, addr);
 	gd->relocaddr = addr;
 #elif defined(CONFIG_LCD)
 #  ifdef CONFIG_FB_ADDR
@@ -871,7 +873,7 @@ static const init_fnc_t init_sequence_f[] = {
 	misc_init_f,
 #endif
 	INIT_FUNC_WATCHDOG_RESET
-#if defined(CONFIG_SYS_I2C)
+#if defined(CONFIG_SYS_I2C_LEGACY)
 	init_func_i2c,
 #endif
 #if defined(CONFIG_VID) && !defined(CONFIG_SPL)

@@ -47,8 +47,6 @@ static const char * const compat_names[COMPAT_COUNT] = {
 	COMPAT(NVIDIA_TEGRA20_NAND, "nvidia,tegra20-nand"),
 	COMPAT(NVIDIA_TEGRA124_XUSB_PADCTL, "nvidia,tegra124-xusb-padctl"),
 	COMPAT(NVIDIA_TEGRA210_XUSB_PADCTL, "nvidia,tegra210-xusb-padctl"),
-	COMPAT(SMSC_LAN9215, "smsc,lan9215"),
-	COMPAT(SAMSUNG_EXYNOS5_SROMC, "samsung,exynos-sromc"),
 	COMPAT(SAMSUNG_EXYNOS_USB_PHY, "samsung,exynos-usb-phy"),
 	COMPAT(SAMSUNG_EXYNOS5_USB3_PHY, "samsung,exynos5250-usb3-phy"),
 	COMPAT(SAMSUNG_EXYNOS_TMU, "samsung,exynos-tmu"),
@@ -192,7 +190,6 @@ fdt_addr_t fdtdec_get_addr(const void *blob, int node, const char *prop_name)
 	return fdtdec_get_addr_size(blob, node, prop_name, NULL);
 }
 
-#if CONFIG_IS_ENABLED(PCI) && defined(CONFIG_DM_PCI)
 int fdtdec_get_pci_vendev(const void *blob, int node, u16 *vendor, u16 *device)
 {
 	const char *list, *end;
@@ -240,7 +237,15 @@ int fdtdec_get_pci_bar32(const struct udevice *dev, struct fdt_pci_addr *addr,
 		return -EINVAL;
 
 	barnum = (barnum - PCI_BASE_ADDRESS_0) / 4;
+
+	/*
+	 * There is a strange toolchain bug with nds32 which complains about
+	 * an undefined reference here, even if fdtdec_get_pci_bar32() is never
+	 * called. An #ifdef seems to be the only fix!
+	 */
+#if !IS_ENABLED(CONFIG_NDS32)
 	*bar = dm_pci_read_bar32(dev, barnum);
+#endif
 
 	return 0;
 }
@@ -260,7 +265,6 @@ int fdtdec_get_pci_bus_range(const void *blob, int node,
 
 	return 0;
 }
-#endif
 
 uint64_t fdtdec_get_uint64(const void *blob, int node, const char *prop_name,
 			   uint64_t default_val)
@@ -405,7 +409,7 @@ int fdtdec_add_aliases_for_id(const void *blob, const char *name,
 			continue;
 
 		/* Get the alias number */
-		number = simple_strtoul(path + name_len, NULL, 10);
+		number = dectoul(path + name_len, NULL);
 		if (number < 0 || number >= maxcount) {
 			debug("%s: warning: alias '%s' is out of range\n",
 			      __func__, path);
@@ -942,7 +946,11 @@ int fdt_get_resource(const void *fdt, int node, const char *property,
 
 	while (ptr + na + ns <= end) {
 		if (i == index) {
-			res->start = fdtdec_get_number(ptr, na);
+			if (CONFIG_IS_ENABLED(OF_TRANSLATE))
+				res->start = fdt_translate_address(fdt, node, ptr);
+			else
+				res->start = fdtdec_get_number(ptr, na);
+
 			res->end = res->start;
 			res->end += fdtdec_get_number(&ptr[na], ns) - 1;
 			return 0;

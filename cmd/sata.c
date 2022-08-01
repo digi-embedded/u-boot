@@ -88,11 +88,9 @@ static int do_sata(struct cmd_tbl *cmdtp, int flag, int argc,
 		int devnum = 0;
 
 		if (argc == 3)
-			devnum = (int)simple_strtoul(argv[2], NULL, 10);
-		if (!strcmp(argv[1], "stop")) {
-			sata_curr_device = -1;
+			devnum = (int)dectoul(argv[2], NULL);
+		if (!strcmp(argv[1], "stop"))
 			return sata_remove(devnum);
-		}
 
 		if (!strcmp(argv[1], "init")) {
 			if (sata_curr_device != -1) {
@@ -101,11 +99,7 @@ static int do_sata(struct cmd_tbl *cmdtp, int flag, int argc,
 					return rc;
 			}
 
-			rc = sata_probe(devnum);
-			if (rc < 0)
-				return CMD_RET_FAILURE;
-			sata_curr_device = rc;
-			return CMD_RET_SUCCESS;
+			return sata_probe(devnum);
 		}
 	}
 

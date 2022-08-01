@@ -3,6 +3,8 @@
  * Copyright (C) 2015 Thomas Chou <thomas@wytron.com.tw>
  */
 
+#define LOG_CATEGORY UCLASS_TIMER
+
 #include <common.h>
 #include <clk.h>
 #include <cpu.h>
@@ -83,11 +85,7 @@ static int timer_post_probe(struct udevice *dev)
 	return 0;
 }
 
-/*
- * TODO: should be CONFIG_IS_ENABLED(CPU), but the SPL config has _SUPPORT on
- * the end...
- */
-#if defined(CONFIG_CPU) || defined(CONFIG_SPL_CPU_SUPPORT)
+#if CONFIG_IS_ENABLED(CPU)
 int timer_timebase_fallback(struct udevice *dev)
 {
 	struct udevice *cpu;
@@ -148,7 +146,7 @@ int notrace dm_timer_init(void)
 		 * If the timer is not marked to be bound before
 		 * relocation, bind it anyway.
 		 */
-		if (!lists_bind_fdt(dm_root(), node, &dev, false)) {
+		if (!lists_bind_fdt(dm_root(), node, &dev, NULL, false)) {
 			ret = device_probe(dev);
 			if (ret)
 				return ret;

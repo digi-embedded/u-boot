@@ -27,7 +27,6 @@
  * assume U-Boot is less than 0.5MB
  */
 
-#define CONFIG_PCI_INDIRECT_BRIDGE
 #define CONFIG_SYS_PCI_64BIT	1	/* enable 64-bit PCI resources */
 #undef CONFIG_ETHER_ON_FCC             /* cpm FCC ethernet support */
 #define CONFIG_RESET_PHY_R	1	/* Call reset_phy() */
@@ -203,7 +202,7 @@
 /*
  * I2C
  */
-#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_LEGACY
 #define CONFIG_SYS_I2C_FSL
 #define CONFIG_SYS_FSL_I2C_SPEED	400000
 #define CONFIG_SYS_FSL_I2C_SLAVE	0x7F
@@ -238,7 +237,6 @@
 #endif
 
 #undef CONFIG_PCI_SCAN_SHOW		/* show pci devices on startup */
-#define CONFIG_SYS_PCI_SUBSYS_VENDORID 0x1057  /* Motorola */
 
 #endif	/* CONFIG_PCI */
 

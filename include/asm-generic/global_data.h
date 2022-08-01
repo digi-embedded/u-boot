@@ -23,6 +23,8 @@
 #include <fdtdec.h>
 #include <membuff.h>
 #include <linux/list.h>
+#include <linux/build_bug.h>
+#include <asm-offsets.h>
 
 struct acpi_ctx;
 struct driver_rt;
@@ -184,12 +186,6 @@ struct global_data {
 
 #ifdef CONFIG_DM
 	/**
-	 * @dm_flags: additional flags for Driver Model
-	 *
-	 * See &enum gd_dm_flags
-	 */
-	unsigned long dm_flags;
-	/**
 	 * @dm_root: root instance for Driver Model
 	 */
 	struct udevice *dm_root;
@@ -215,9 +211,19 @@ struct global_data {
 	 * @uclass_root_s.
 	 */
 	struct list_head *uclass_root;
-# if CONFIG_IS_ENABLED(OF_PLATDATA)
+# if CONFIG_IS_ENABLED(OF_PLATDATA_DRIVER_RT)
 	/** @dm_driver_rt: Dynamic info about the driver */
 	struct driver_rt *dm_driver_rt;
+# endif
+#if CONFIG_IS_ENABLED(OF_PLATDATA_RT)
+	/** @dm_udevice_rt: Dynamic info about the udevice */
+	struct udevice_rt *dm_udevice_rt;
+	/**
+	 * @dm_priv_base: Base address of the priv/plat region used when
+	 * udevices and uclasses are in read-only memory. This is NULL if not
+	 * used
+	 */
+	void *dm_priv_base;
 # endif
 #endif
 #ifdef CONFIG_TIMER
@@ -271,7 +277,7 @@ struct global_data {
 	 */
 	void *trace_buff;
 #endif
-#if defined(CONFIG_SYS_I2C)
+#if defined(CONFIG_SYS_I2C_LEGACY)
 	/**
 	 * @cur_i2c_bus: currently used I2C bus
 	 */
@@ -410,6 +416,12 @@ struct global_data {
 	 * This value is used as logging level for continuation messages.
 	 */
 	int logl_prev;
+	/**
+	 * @log_cont: Previous log line did not finished wtih \n
+	 *
+	 * This allows for chained log messages on the same line
+	 */
+	bool log_cont;
 #endif
 #if CONFIG_IS_ENABLED(BLOBLIST)
 	/**
@@ -454,6 +466,9 @@ struct global_data {
 	char *smbios_version;
 #endif
 };
+#ifndef DO_DEPS_ONLY
+static_assert(sizeof(struct global_data) == GD_SIZE);
+#endif
 
 /**
  * gd_board_type() - retrieve board type
@@ -477,7 +492,7 @@ struct global_data {
 #define gd_set_of_root(_root)
 #endif
 
-#if CONFIG_IS_ENABLED(OF_PLATDATA)
+#if CONFIG_IS_ENABLED(OF_PLATDATA_DRIVER_RT)
 #define gd_set_dm_driver_rt(dyn)	gd->dm_driver_rt = dyn
 #define gd_dm_driver_rt()		gd->dm_driver_rt
 #else
@@ -485,16 +500,22 @@ struct global_data {
 #define gd_dm_driver_rt()		NULL
 #endif
 
+#if CONFIG_IS_ENABLED(OF_PLATDATA_RT)
+#define gd_set_dm_udevice_rt(dyn)	gd->dm_udevice_rt = dyn
+#define gd_dm_udevice_rt()		gd->dm_udevice_rt
+#define gd_set_dm_priv_base(dyn)	gd->dm_priv_base = dyn
+#define gd_dm_priv_base()		gd->dm_priv_base
+#else
+#define gd_set_dm_udevice_rt(dyn)
+#define gd_dm_udevice_rt()		NULL
+#define gd_set_dm_priv_base(dyn)
+#define gd_dm_priv_base()		NULL
+#endif
+
 #ifdef CONFIG_GENERATE_ACPI_TABLE
 #define gd_acpi_ctx()		gd->acpi_ctx
 #else
 #define gd_acpi_ctx()		NULL
-#endif
-
-#if CONFIG_IS_ENABLED(DM)
-#define gd_size_cells_0()	(gd->dm_flags & GD_DM_FLG_SIZE_CELLS_0)
-#else
-#define gd_size_cells_0()	(0)
 #endif
 
 /**
@@ -556,50 +577,42 @@ enum gd_flags {
 	 */
 	GD_FLG_RECORD = 0x01000,
 	/**
+	 * @GD_FLG_RECORD_OVF: record console overflow
+	 */
+	GD_FLG_RECORD_OVF = 0x02000,
+	/**
 	 * @GD_FLG_ENV_DEFAULT: default variable flag
 	 */
-	GD_FLG_ENV_DEFAULT = 0x02000,
+	GD_FLG_ENV_DEFAULT = 0x04000,
 	/**
 	 * @GD_FLG_SPL_EARLY_INIT: early SPL initialization is done
 	 */
-	GD_FLG_SPL_EARLY_INIT = 0x04000,
+	GD_FLG_SPL_EARLY_INIT = 0x08000,
 	/**
 	 * @GD_FLG_LOG_READY: log system is ready for use
 	 */
-	GD_FLG_LOG_READY = 0x08000,
+	GD_FLG_LOG_READY = 0x10000,
 	/**
 	 * @GD_FLG_WDT_READY: watchdog is ready for use
 	 */
-	GD_FLG_WDT_READY = 0x10000,
+	GD_FLG_WDT_READY = 0x20000,
 	/**
 	 * @GD_FLG_SKIP_LL_INIT: don't perform low-level initialization
 	 */
-	GD_FLG_SKIP_LL_INIT = 0x20000,
+	GD_FLG_SKIP_LL_INIT = 0x40000,
 	/**
 	 * @GD_FLG_SMP_READY: SMP initialization is complete
 	 */
-	GD_FLG_SMP_READY = 0x40000,
+	GD_FLG_SMP_READY = 0x80000,
 	/**
 	 * @GD_FLG_DISABLE_CONSOLE_OUTPUT: disable console (out)
 	 */
-	GD_FLG_DISABLE_CONSOLE_OUTPUT = 0x80000,
+	GD_FLG_DISABLE_CONSOLE_OUTPUT = 0x100000,
 };
 
 /* Disable console (in & out) */
 #define GD_FLG_DISABLE_CONSOLE		(GD_FLG_DISABLE_CONSOLE_INPUT | \
 					GD_FLG_DISABLE_CONSOLE_OUTPUT)
-
-/**
- * enum gd_dm_flags - global data flags for Driver Model
- *
- * See field dm_flags of &struct global_data.
- */
-enum gd_dm_flags {
-	/**
-	 * @GD_DM_FLG_SIZE_CELLS_0: Enable #size-cells=<0> translation
-	 */
-	GD_DM_FLG_SIZE_CELLS_0 = 0x00001,
-};
 
 #endif /* __ASSEMBLY__ */
 

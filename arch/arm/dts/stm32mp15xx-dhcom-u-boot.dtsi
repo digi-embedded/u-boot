@@ -50,15 +50,6 @@
 	};
 };
 
-&gpiof {
-	snor-nwp {
-		gpio-hog;
-		gpios = <7 0>;
-		output-high;
-		line-name = "spi-nor-nwp";
-	};
-};
-
 &i2c4 {
 	u-boot,dm-pre-reloc;
 };
@@ -76,7 +67,7 @@
 	pinctrl-1 = <&fmc_sleep_pins_b>;
 	pinctrl-names = "default", "sleep";
 
-	fmc_pins_b: fmc-0 {
+	fmc-0 {
 		pins1 {
 			pinmux = <STM32_PINMUX('D', 4, AF12)>, /* FMC_NOE */
 				 <STM32_PINMUX('D', 5, AF12)>, /* FMC_NWE */
@@ -105,7 +96,7 @@
 		};
 	};
 
-	fmc_sleep_pins_b: fmc-sleep-0 {
+	fmc-sleep-0 {
 		pins {
 			pinmux = <STM32_PINMUX('D', 4, ANALOG)>, /* FMC_NOE */
 				 <STM32_PINMUX('D', 5, ANALOG)>, /* FMC_NWE */
@@ -267,6 +258,10 @@
 
 &sdmmc1 {
 	u-boot,dm-spl;
+	st,use-ckin;
+	st,cmd-gpios = <&gpiod 2 0>;
+	st,ck-gpios = <&gpioc 12 0>;
+	st,ckin-gpios = <&gpioe 4 0>;
 };
 
 &sdmmc1_b4_pins_a {

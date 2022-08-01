@@ -11,6 +11,7 @@
 #include <image.h>
 #include <log.h>
 #include <malloc.h>
+#include <mapmem.h>
 #include <spl.h>
 #include <sysinfo.h>
 #include <asm/cache.h>
@@ -34,7 +35,7 @@ struct spl_fit_info {
 	int conf_node;		/* FDT offset to selected configuration node */
 };
 
-__weak void board_spl_fit_post_load(const void *fit, struct spl_image_info *spl_image)
+__weak void board_spl_fit_post_load(const void *fit)
 {
 }
 
@@ -65,10 +66,6 @@ static int find_node_from_desc(const void *fit, int node, const char *str)
 
 	return -ENOENT;
 }
-
-#ifdef CONFIG_DUAL_BOOTLOADER
-extern int spl_fit_get_rbindex(const void *fit);
-#endif
 
 /**
  * spl_fit_get_image_name(): By using the matching configuration subnode,
@@ -113,6 +110,10 @@ static int spl_fit_get_image_name(const struct spl_fit_info *ctx,
 		 * no string in the property for this index. Check if the
 		 * sysinfo-level code can supply one.
 		 */
+		rc = sysinfo_detect(sysinfo);
+		if (rc)
+			return rc;
+
 		rc = sysinfo_get_fit_loadable(sysinfo, index - i - 1, type,
 					      &str);
 		if (rc && rc != -ENOENT)
@@ -217,15 +218,6 @@ static int get_aligned_image_size(struct spl_load_info *info, int data_size,
 	return (data_size + info->bl_len - 1) / info->bl_len;
 }
 
-#if defined(CONFIG_DUAL_BOOTLOADER) && defined(CONFIG_IMX_TRUSTY_OS)
-__weak int get_tee_load(ulong *load)
-{
-	/* default return ok */
-	return 0;
-}
-
-#endif
-
 /**
  * spl_load_fit_image(): load the image described in a certain FIT node
  * @info:	points to information about the device to load data from
@@ -236,7 +228,7 @@ __weak int get_tee_load(ulong *load)
  * @image_info:	will be filled with information about the loaded image
  *		If the FIT node does not contain a "load" (address) property,
  *		the image gets loaded to the address pointed to by the
- *		load_addr member in this struct.
+ *		load_addr member in this struct, if load_addr is not 0
  *
  * Return:	0 on success or a negative error number.
  */
@@ -248,11 +240,11 @@ static int spl_load_fit_image(struct spl_load_info *info, ulong sector,
 	size_t length;
 	int len;
 	ulong size;
-	ulong load_addr, load_ptr;
+	ulong load_addr;
+	void *load_ptr;
 	void *src;
 	ulong overhead;
 	int nr_sectors;
-	int align_len = ARCH_DMA_MINALIGN - 1;
 	uint8_t image_comp = -1, type = -1;
 	const void *data;
 	const void *fit = ctx->fit;
@@ -271,23 +263,14 @@ static int spl_load_fit_image(struct spl_load_info *info, ulong sector,
 		debug("%s ", genimg_get_comp_name(image_comp));
 	}
 
-	if (fit_image_get_load(fit, node, &load_addr))
-		load_addr = image_info->load_addr;
-
-#if defined(CONFIG_DUAL_BOOTLOADER) && defined(CONFIG_IMX_TRUSTY_OS)
-	char *desc = NULL;
-
-	if (fit_get_desc(fit, node, &desc)) {
-		printf("can't found node description!\n");
-		return -ENOENT;
-	} else if (!strncmp(desc, "TEE firmware",
-				strlen("TEE firmware"))) {
-		if (get_tee_load(&load_addr)) {
-			printf("Failed to get TEE load address!\n");
-			return -ENOENT;
+	if (fit_image_get_load(fit, node, &load_addr)) {
+		if (!image_info->load_addr) {
+			printf("Can't load %s: No load address and no buffer\n",
+			       fit_get_name(fit, node, NULL));
+			return -ENOBUFS;
 		}
+		load_addr = image_info->load_addr;
 	}
-#endif
 
 	if (!fit_image_get_data_position(fit, node, &offset)) {
 		external_data = true;
@@ -297,11 +280,13 @@ static int spl_load_fit_image(struct spl_load_info *info, ulong sector,
 	}
 
 	if (external_data) {
+		void *src_ptr;
+
 		/* External data */
 		if (fit_image_get_data_size(fit, node, &len))
 			return -ENOENT;
 
-		load_ptr = (load_addr + align_len) & ~align_len;
+		src_ptr = map_sysmem(ALIGN(load_addr, ARCH_DMA_MINALIGN), len);
 		length = len;
 
 		overhead = get_aligned_image_overhead(info, offset);
@@ -309,12 +294,12 @@ static int spl_load_fit_image(struct spl_load_info *info, ulong sector,
 
 		if (info->read(info,
 			       sector + get_aligned_image_offset(info, offset),
-			       nr_sectors, (void *)load_ptr) != nr_sectors)
+			       nr_sectors, src_ptr) != nr_sectors)
 			return -EIO;
 
-		debug("External data: dst=%lx, offset=%x, size=%lx\n",
-		      load_ptr, offset, (unsigned long)length);
-		src = (void *)load_ptr + overhead;
+		debug("External data: dst=%p, offset=%x, size=%lx\n",
+		      src_ptr, offset, (unsigned long)length);
+		src = src_ptr + overhead;
 	} else {
 		/* Embedded data */
 		if (fit_image_get_data(fit, node, &data, &length)) {
@@ -323,7 +308,7 @@ static int spl_load_fit_image(struct spl_load_info *info, ulong sector,
 		}
 		debug("Embedded data: dst=%lx, size=%lx\n", load_addr,
 		      (unsigned long)length);
-		src = (void *)data;
+		src = (void *)data;	/* cast away const */
 	}
 
 	if (CONFIG_IS_ENABLED(FIT_SIGNATURE)) {
@@ -335,18 +320,18 @@ static int spl_load_fit_image(struct spl_load_info *info, ulong sector,
 	}
 
 	if (CONFIG_IS_ENABLED(FIT_IMAGE_POST_PROCESS))
-		board_fit_image_post_process(&src, &length);
+		board_fit_image_post_process(fit, node, &src, &length);
 
+	load_ptr = map_sysmem(load_addr, length);
 	if (IS_ENABLED(CONFIG_SPL_GZIP) && image_comp == IH_COMP_GZIP) {
 		size = length;
-		if (gunzip((void *)load_addr, CONFIG_SYS_BOOTM_LEN,
-			   src, &size)) {
+		if (gunzip(load_ptr, CONFIG_SYS_BOOTM_LEN, src, &size)) {
 			puts("Uncompressing error\n");
 			return -EIO;
 		}
 		length = size;
 	} else {
-		memcpy((void *)load_addr, src, length);
+		memcpy(load_ptr, src, length);
 	}
 
 	if (image_info) {
@@ -411,7 +396,7 @@ static int spl_fit_append_fdt(struct spl_image_info *spl_image,
 	}
 
 	/* Make the load-address of the FDT available for the SPL framework */
-	spl_image->fdt_addr = (void *)image_info.load_addr;
+	spl_image->fdt_addr = map_sysmem(image_info.load_addr, 0);
 	if (CONFIG_IS_ENABLED(FIT_IMAGE_TINY))
 		return 0;
 
@@ -495,8 +480,23 @@ static int spl_fit_record_loadable(const struct spl_fit_info *ctx, int index,
 	ret = fdt_record_loadable(blob, index, name, image->load_addr,
 				  image->size, image->entry_point,
 				  fdt_getprop(ctx->fit, node, "type", NULL),
-				  fdt_getprop(ctx->fit, node, "os", NULL));
+				  fdt_getprop(ctx->fit, node, "os", NULL),
+				  fdt_getprop(ctx->fit, node, "arch", NULL));
 	return ret;
+}
+
+static int spl_fit_image_is_fpga(const void *fit, int node)
+{
+	const char *type;
+
+	if (!IS_ENABLED(CONFIG_SPL_FPGA))
+		return 0;
+
+	type = fdt_getprop(fit, node, FIT_TYPE_PROP, NULL);
+	if (!type)
+		return 0;
+
+	return !strcmp(type, "fpga");
 }
 
 static int spl_fit_image_get_os(const void *fit, int noffset, uint8_t *os)
@@ -538,11 +538,6 @@ static void *spl_get_fit_load_buffer(size_t size)
 	return buf;
 }
 
-__weak void* board_spl_fit_buffer_addr(ulong fit_size, int sectors, int bl_len)
-{
-	return spl_get_fit_load_buffer(sectors * bl_len);
-}
-
 /*
  * Weak default function to allow customizing SPL fit loading for load-only
  * use cases by allowing to skip the parsing/processing of the FIT contents
@@ -551,6 +546,64 @@ __weak void* board_spl_fit_buffer_addr(ulong fit_size, int sectors, int bl_len)
 __weak bool spl_load_simple_fit_skip_processing(void)
 {
 	return false;
+}
+
+static void warn_deprecated(const char *msg)
+{
+	printf("DEPRECATED: %s\n", msg);
+	printf("\tSee doc/uImage.FIT/source_file_format.txt\n");
+}
+
+static int spl_fit_upload_fpga(struct spl_fit_info *ctx, int node,
+			       struct spl_image_info *fpga_image)
+{
+	const char *compatible;
+	int ret;
+
+	debug("FPGA bitstream at: %x, size: %x\n",
+	      (u32)fpga_image->load_addr, fpga_image->size);
+
+	compatible = fdt_getprop(ctx->fit, node, "compatible", NULL);
+	if (!compatible)
+		warn_deprecated("'fpga' image without 'compatible' property");
+	else if (strcmp(compatible, "u-boot,fpga-legacy"))
+		printf("Ignoring compatible = %s property\n", compatible);
+
+	ret = fpga_load(0, (void *)fpga_image->load_addr, fpga_image->size,
+			BIT_FULL);
+	if (ret) {
+		printf("%s: Cannot load the image to the FPGA\n", __func__);
+		return ret;
+	}
+
+	puts("FPGA image loaded from FIT\n");
+
+	return 0;
+}
+
+static int spl_fit_load_fpga(struct spl_fit_info *ctx,
+			     struct spl_load_info *info, ulong sector)
+{
+	int node, ret;
+
+	struct spl_image_info fpga_image = {
+		.load_addr = 0,
+	};
+
+	node = spl_fit_get_image_node(ctx, "fpga", 0);
+	if (node < 0)
+		return node;
+
+	warn_deprecated("'fpga' property in config node. Use 'loadables'");
+
+	/* Load the image and set up the fpga_image structure */
+	ret = spl_load_fit_image(info, sector, ctx, node, &fpga_image);
+	if (ret) {
+		printf("%s: Cannot load the FPGA: %i\n", __func__, ret);
+		return ret;
+	}
+
+	return spl_fit_upload_fpga(ctx, node, &fpga_image);
 }
 
 static int spl_simple_fit_read(struct spl_fit_info *ctx,
@@ -578,7 +631,7 @@ static int spl_simple_fit_read(struct spl_fit_info *ctx,
 	 * For FIT with external data, data is not loaded in this step.
 	 */
 	sectors = get_aligned_image_size(info, size, 0);
-	buf = board_spl_fit_buffer_addr(size, sectors, info->bl_len);
+	buf = spl_get_fit_load_buffer(sectors * info->bl_len);
 
 	count = info->read(info, sector, sectors, buf);
 	ctx->fit = buf;
@@ -636,41 +689,8 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 	if (ret < 0)
 		return ret;
 
-#if defined(CONFIG_DUAL_BOOTLOADER) && defined(CONFIG_IMX_TRUSTY_OS)
-    int rbindex;
-    rbindex = spl_fit_get_rbindex(ctx.fit);
-    if (rbindex < 0) {
-        printf("Error! Can't get rollback index!\n");
-        return -1;
-    } else
-        spl_image->rbindex = rbindex;
-#endif
-
-#ifdef CONFIG_SPL_FPGA
-	node = spl_fit_get_image_node(&ctx, "fpga", 0);
-	if (node >= 0) {
-		/* Load the image and set up the spl_image structure */
-		ret = spl_load_fit_image(info, sector, &ctx, node, spl_image);
-		if (ret) {
-			printf("%s: Cannot load the FPGA: %i\n", __func__, ret);
-			return ret;
-		}
-
-		debug("FPGA bitstream at: %x, size: %x\n",
-		      (u32)spl_image->load_addr, spl_image->size);
-
-		ret = fpga_load(0, (const void *)spl_image->load_addr,
-				spl_image->size, BIT_FULL);
-		if (ret) {
-			printf("%s: Cannot load the image to the FPGA\n",
-			       __func__);
-			return ret;
-		}
-
-		puts("FPGA image loaded from FIT\n");
-		node = -1;
-	}
-#endif
+	if (IS_ENABLED(CONFIG_SPL_FPGA))
+		spl_fit_load_fpga(&ctx, info, sector);
 
 	/*
 	 * Find the U-Boot image using the following search order:
@@ -740,12 +760,16 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 		if (firmware_node == node)
 			continue;
 
+		image_info.load_addr = 0;
 		ret = spl_load_fit_image(info, sector, &ctx, node, &image_info);
 		if (ret < 0) {
 			printf("%s: can't load image loadables index %d (ret = %d)\n",
 			       __func__, index, ret);
 			return ret;
 		}
+
+		if (spl_fit_image_is_fpga(ctx.fit, node))
+			spl_fit_upload_fpga(&ctx, node, &image_info);
 
 		if (!spl_fit_image_get_os(ctx.fit, node, &os_type))
 			debug("Loadable is %s\n", genimg_get_os_name(os_type));
@@ -780,9 +804,8 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 
 	spl_image->flags |= SPL_FIT_FOUND;
 
-#if defined(CONFIG_IMX_HAB) && defined(CONFIG_AUTH_ARTIFACTS)
-	board_spl_fit_post_load(ctx.fit, spl_image);
-#endif
+	if (IS_ENABLED(CONFIG_IMX_HAB) && defined(CONFIG_AUTH_ARTIFACTS))
+		board_spl_fit_post_load(ctx.fit);
 
 	return 0;
 }

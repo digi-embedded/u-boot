@@ -3,6 +3,8 @@
  * Copyright 2020 NXP
  */
 
+#define LOG_CATEGORY UCLASS_ETH_PHY
+
 #include <common.h>
 #include <dm.h>
 #include <log.h>
@@ -129,6 +131,9 @@ static int eth_phy_of_to_plat(struct udevice *dev)
 	struct eth_phy_device_priv *uc_priv = dev_get_uclass_priv(dev);
 	int ret;
 
+	if (!CONFIG_IS_ENABLED(DM_GPIO))
+		return 0;
+
 	/* search "reset-gpios" in phy node */
 	ret = gpio_request_by_name(dev, "reset-gpios", 0,
 				   &uc_priv->reset_gpio,
@@ -146,6 +151,9 @@ void eth_phy_reset(struct udevice *dev, int value)
 {
 	struct eth_phy_device_priv *uc_priv = dev_get_uclass_priv(dev);
 	u32 delay;
+
+	if (!CONFIG_IS_ENABLED(DM_GPIO))
+		return;
 
 	if (!dm_gpio_is_valid(&uc_priv->reset_gpio))
 		return;

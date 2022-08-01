@@ -8,7 +8,6 @@ ifndef CONFIG_SPL_BUILD
 obj-y += init/
 obj-y += main.o
 obj-y += exports.o
-obj-$(CONFIG_HASH) += hash.o
 obj-$(CONFIG_HUSH_PARSER) += cli_hush.o
 obj-$(CONFIG_AUTOBOOT) += autoboot.o
 
@@ -66,13 +65,11 @@ ifdef CONFIG_SPL_BUILD
 ifdef CONFIG_SPL_DFU
 obj-$(CONFIG_DFU_OVER_USB) += dfu.o
 endif
-obj-$(CONFIG_SPL_HASH_SUPPORT) += hash.o
-obj-$(CONFIG_TPL_HASH_SUPPORT) += hash.o
 obj-$(CONFIG_SPL_LOAD_FIT) += common_fit.o
 obj-$(CONFIG_SPL_NET_SUPPORT) += miiphyutil.o
 obj-$(CONFIG_$(SPL_TPL_)OF_LIBFDT) += fdt_support.o
 
-ifdef CONFIG_SPL_USB_HOST_SUPPORT
+ifdef CONFIG_SPL_USB_HOST
 obj-y += usb.o
 obj-y += usb_hub.o
 obj-$(CONFIG_SPL_USB_STORAGE) += usb_storage.o
@@ -105,6 +102,7 @@ endif
 endif
 
 obj-y += image.o
+obj-$(CONFIG_$(SPL_TPL_)HASH) += hash.o
 obj-$(CONFIG_ANDROID_AB) += android_ab.o
 obj-$(CONFIG_ANDROID_BOOT_IMAGE) += image-android.o image-android-dt.o
 obj-$(CONFIG_$(SPL_TPL_)OF_LIBFDT) += image-fdt.o
@@ -137,3 +135,7 @@ obj-$(CONFIG_CMD_LOADB) += xyzModem.o
 obj-$(CONFIG_$(SPL_TPL_)YMODEM_SUPPORT) += xyzModem.o
 
 obj-$(CONFIG_AVB_VERIFY) += avb_verify.o
+obj-$(CONFIG_$(SPL_TPL_)STACKPROTECTOR) += stackprot.o
+obj-$(CONFIG_SCP03) += scp03.o
+
+obj-$(CONFIG_QFW) += qfw.o

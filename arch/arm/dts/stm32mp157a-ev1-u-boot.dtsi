@@ -59,4 +59,3 @@
 	clocks = <&rcc SAI4>, <&rcc PLL3_Q>, <&rcc PLL3_R>;
 };
 #endif
-

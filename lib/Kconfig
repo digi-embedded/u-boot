@@ -25,7 +25,7 @@ config BCH
 config BINMAN_FDT
 	bool "Allow access to binman information in the device tree"
 	depends on BINMAN && DM && OF_CONTROL
-	default y
+	default y if OF_SEPARATE || OF_EMBED
 	help
 	  This enables U-Boot to access information about binman entries,
 	  stored in the device tree in a binman node. Typical uses are to
@@ -39,6 +39,14 @@ config CC_OPTIMIZE_LIBS_FOR_SPEED
 	  under "lib" directory.
 
 	  If unsure, say N.
+
+config CHARSET
+	bool
+	default y if UT_UNICODE || EFI_LOADER || UFS
+	help
+	  Enables support for various conversions between different
+	  character sets, such as between unicode representations and
+	  different 'code pages'.
 
 config DYNAMIC_CRC_TABLE
 	bool "Enable Dynamic tables for CRC"
@@ -295,8 +303,10 @@ config AES
 	  supported by the algorithm but only a 128-bit key is supported at
 	  present.
 
+source lib/ecdsa/Kconfig
 source lib/rsa/Kconfig
 source lib/crypto/Kconfig
+source lib/crypt/Kconfig
 
 config TPM
 	bool "Trusted Platform Module (TPM) Support"
@@ -345,38 +355,6 @@ config LIBAVB
 	  device. Introduces such features as boot chain of trust, rollback
 	  protection etc.
 
-config AVB_SUPPORT
-	bool "Enable Android AVB lib support"
-	select LIBAVB
-
-config AVB_ATX
-	bool "Enable AVB_ATX support"
-	depends on AVB_SUPPORT
-
-config AVB_WARNING_LOGO
-	bool "Enable avb warning show logo on screen"
-	help
-	  Enable avb warning show logo on screen
-
-config AVB_WARNING_LOGO_COLS
-	hex "x resolution on the screen"
-	default 0x1E0
-	depends on AVB_WARNING_LOGO
-	help
-	  The x resolution on the screen.
-
-config AVB_WARNING_LOGO_ROWS
-	hex "y resolution on the screen"
-	default 0x60
-	depends on AVB_WARNING_LOGO
-	help
-	  The y resolution on the screen.
-
-config AVB_WARNING_TIME_LAST
-	hex "the time of avb warning logo will last"
-	default 0x3
-	help
-	  The time of avb warning logo will last (s).
 endmenu
 
 menu "Hashing Support"
@@ -397,14 +375,9 @@ config SHA256
 	  The SHA256 algorithm produces a 256-bit (32-byte) hash value
 	  (digest).
 
-config SHA512_ALGO
-	bool "Enable SHA512 algorithm"
-	help
-	  This option enables support of internal SHA512 algorithm.
 
 config SHA512
 	bool "Enable SHA512 support"
-	depends on SHA512_ALGO
 	help
 	  This option enables support of hashing using SHA512 algorithm.
 	  The hash is calculated in software.
@@ -413,29 +386,40 @@ config SHA512
 
 config SHA384
 	bool "Enable SHA384 support"
-	depends on SHA512_ALGO
+	select SHA512
 	help
 	  This option enables support of hashing using SHA384 algorithm.
-	  The hash is calculated in software.
+	  The hash is calculated in software. This is also selects SHA512,
+	  because these implementations share the bulk of the code..
 	  The SHA384 algorithm produces a 384-bit (48-byte) hash value
 	  (digest).
 
 config SHA_HW_ACCEL
-	bool "Enable hashing using hardware"
+	bool "Enable hardware acceleration for SHA hash functions"
 	help
-	  This option enables hardware acceleration
-	  for SHA1/SHA256 hashing.
-	  This affects the 'hash' command and also the
+	  This option enables hardware acceleration for the SHA1 and SHA256
+	  hashing algorithms. This affects the 'hash' command and also the
+	  hash_lookup_algo() function.
+
+if SHA_HW_ACCEL
+
+config SHA512_HW_ACCEL
+	bool "Enable hardware acceleration for SHA512"
+	depends on SHA512
+	help
+	  This option enables hardware acceleration for the SHA384 and SHA512
+	  hashing algorithms. This affects the 'hash' command and also the
 	  hash_lookup_algo() function.
 
 config SHA_PROG_HW_ACCEL
 	bool "Enable Progressive hashing support using hardware"
-	depends on SHA_HW_ACCEL
 	help
-	  This option enables hardware-acceleration for
-	  SHA1/SHA256 progressive hashing.
-	  Data can be streamed in a block at a time and the hashing
-	  is performed in hardware.
+	  This option enables hardware-acceleration for SHA progressive
+	  hashing.
+	  Data can be streamed in a block at a time and the hashing is
+	  performed in hardware.
+
+endif
 
 config MD5
 	bool "Support MD5 algorithm"
@@ -490,7 +474,7 @@ config LZMA
 config LZO
 	bool "Enable LZO decompression support"
 	help
-	  This enables support for LZO compression algorithm.r
+	  This enables support for the LZO compression algorithm.
 
 config GZIP
 	bool "Enable gzip decompression support"
@@ -549,7 +533,7 @@ config SPL_GZIP
 	bool "Enable gzip decompression support for SPL build"
 	select SPL_ZLIB
 	help
-	  This enables support for GZIP compression altorithm for SPL boot.
+	  This enables support for the GZIP compression algorithm for SPL boot.
 
 config SPL_ZLIB
 	bool
@@ -579,8 +563,7 @@ config HEXDUMP
 
 config SPL_HEXDUMP
 	bool "Enable hexdump in SPL"
-	depends on HEXDUMP
-	default y
+	depends on SPL && HEXDUMP
 	help
 	  This enables functions for printing dumps of binary data in
 	  SPL.
@@ -674,7 +657,7 @@ menu "System tables"
 
 config BLOBLIST_TABLES
 	bool "Put tables in a bloblist"
-	depends on X86
+	depends on X86 && BLOBLIST
 	help
 	  Normally tables are placed at address 0xf0000 and can be up to 64KB
 	  long. With this option, tables are instead placed in the bloblist
@@ -695,6 +678,13 @@ config GENERATE_SMBIOS_TABLE
 
 	  See also SMBIOS_SYSINFO which allows SMBIOS values to be provided in
 	  the devicetree.
+
+config LIB_RATIONAL
+	bool "enable continued fraction calculation routines"
+
+config SPL_LIB_RATIONAL
+	bool "enable continued fraction calculation routines for SPL"
+	depends on SPL
 
 endmenu
 
@@ -740,17 +730,36 @@ config LMB
 	help
 	  Support the library logical memory blocks.
 
+config LMB_USE_MAX_REGIONS
+	bool "Use a commun number of memory and reserved regions in lmb lib"
+	depends on LMB
+	default y
+	help
+	  Define the number of supported memory regions in the library logical
+	  memory blocks.
+	  This feature allow to reduce the lmb library size by using compiler
+	  optimization when LMB_MEMORY_REGIONS == LMB_RESERVED_REGIONS.
+
+config LMB_MAX_REGIONS
+	int "Number of memory and reserved regions in lmb lib"
+	depends on LMB && LMB_USE_MAX_REGIONS
+	default 8
+	help
+	  Define the number of supported regions, memory and reserved, in the
+	  library logical memory blocks.
+
 config LMB_MEMORY_REGIONS
 	int "Number of memory regions in lmb lib"
-	depends on LMB
+	depends on LMB && !LMB_USE_MAX_REGIONS
 	default 8
 	help
 	  Define the number of supported memory regions in the library logical
 	  memory blocks.
+	  The minimal value is CONFIG_NR_DRAM_BANKS.
 
 config LMB_RESERVED_REGIONS
 	int "Number of reserved regions in lmb lib"
-	depends on LMB
+	depends on LMB && !LMB_USE_MAX_REGIONS
 	default 8
 	help
 	  Define the number of supported reserved regions in the library logical

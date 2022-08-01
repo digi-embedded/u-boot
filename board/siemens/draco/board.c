@@ -41,7 +41,7 @@
 #include <nand.h>
 
 #ifdef CONFIG_SPL_BUILD
-static struct draco_baseboard_id __attribute__((section(".data"))) settings;
+static struct draco_baseboard_id __section(".data") settings;
 
 #if DDR_PLL_FREQ == 303
 #if !defined(CONFIG_TARGET_ETAMIN)
@@ -288,7 +288,7 @@ int board_late_init(void)
 #endif
 
 #if (defined(CONFIG_DRIVER_TI_CPSW) && !defined(CONFIG_SPL_BUILD)) || \
-	(defined(CONFIG_SPL_ETH_SUPPORT) && defined(CONFIG_SPL_BUILD))
+	(defined(CONFIG_SPL_ETH) && defined(CONFIG_SPL_BUILD))
 static void cpsw_control(int enabled)
 {
 	/* VTP can be added here */

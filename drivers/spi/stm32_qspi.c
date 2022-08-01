@@ -148,10 +148,7 @@ static int _stm32_qspi_wait_cmd(struct stm32_qspi_priv *priv,
 				const struct spi_mem_op *op)
 {
 	u32 sr;
-	int ret;
-
-	if (!op->data.nbytes)
-		return _stm32_qspi_wait_for_not_busy(priv);
+	int ret = 0;
 
 	ret = readl_poll_timeout(&priv->regs->sr, sr,
 				 sr & STM32_QSPI_SR_TCF,
@@ -165,6 +162,9 @@ static int _stm32_qspi_wait_cmd(struct stm32_qspi_priv *priv,
 
 	/* clear flags */
 	writel(STM32_QSPI_FCR_CTCF | STM32_QSPI_FCR_CTEF, &priv->regs->fcr);
+
+	if (!ret)
+		ret = _stm32_qspi_wait_for_not_busy(priv);
 
 	return ret;
 }
@@ -254,10 +254,6 @@ static int stm32_qspi_exec_op(struct spi_slave *slave,
 		op->cmd.opcode, op->cmd.buswidth, op->addr.buswidth,
 		op->dummy.buswidth, op->data.buswidth,
 		op->addr.val, op->data.nbytes);
-
-	ret = _stm32_qspi_wait_for_not_busy(priv);
-	if (ret)
-		return ret;
 
 	addr_max = op->addr.val + op->data.nbytes + 1;
 

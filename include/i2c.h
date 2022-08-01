@@ -20,7 +20,7 @@
 
 /*
  * For now there are essentially two parts to this file - driver model
- * here at the top, and the older code below (with CONFIG_SYS_I2C being
+ * here at the top, and the older code below (with CONFIG_SYS_I2C_LEGACY being
  * most recent). The plan is to migrate everything to driver model.
  * The driver model structures and API are separate as they are different
  * enough as to be incompatible for compilation purposes.
@@ -93,6 +93,8 @@ struct udevice;
  *			   datasheet explains it's usage of this addressing
  *			   mode.
  * @emul: Emulator for this chip address (only used for emulation)
+ * @emul_idx: Emulator index, used for of-platdata and set by each i2c chip's
+ *	bind() method. This allows i2c_emul_find() to work with of-platdata.
  */
 struct dm_i2c_chip {
 	uint chip_addr;
@@ -102,6 +104,7 @@ struct dm_i2c_chip {
 #ifdef CONFIG_SANDBOX
 	struct udevice *emul;
 	bool test_mode;
+	int emul_idx;
 #endif
 };
 
@@ -238,6 +241,20 @@ int dm_i2c_reg_read(struct udevice *dev, uint offset);
  * @return 0 on success, -ve on error
  */
 int dm_i2c_reg_write(struct udevice *dev, uint offset, unsigned int val);
+
+/**
+ * dm_i2c_reg_clrset() - Apply bitmask to an I2C register
+ *
+ * Read value, apply bitmask and write modified value back to the
+ * given address in an I2C chip
+ *
+ * @dev:	Device to use for transfer
+ * @offset:	Address for the R/W operation
+ * @clr:	Bitmask of bits that should be cleared
+ * @set:	Bitmask of bits that should be set
+ * @return 0 on success, -ve on error
+ */
+int dm_i2c_reg_clrset(struct udevice *dev, uint offset, u32 clr, u32 set);
 
 /**
  * dm_i2c_xfer() - Transfer messages over I2C
@@ -555,6 +572,18 @@ void i2c_dump_msgs(struct i2c_msg *msg, int nmsgs);
 int i2c_emul_find(struct udevice *dev, struct udevice **emulp);
 
 /**
+ * i2c_emul_set_idx() - Set the emulator index for an i2c sandbox device
+ *
+ * With of-platdata we cannot find the emulator using the device tree, so rely
+ * on the bind() method of each i2c driver calling this function to tell us
+ * the of-platdata idx of the emulator
+ *
+ * @dev: i2c device to set the emulator for
+ * @emul_idx: of-platdata index for that emulator
+ */
+void i2c_emul_set_idx(struct udevice *dev, int emul_idx);
+
+/**
  * i2c_emul_get_device() - Find the device being emulated
  *
  * Given an emulator this returns the associated device
@@ -733,7 +762,7 @@ void i2c_early_init_f(void);
 void i2c_init(int speed, int slaveaddr);
 void i2c_init_board(void);
 
-#ifdef CONFIG_SYS_I2C
+#ifdef CONFIG_SYS_I2C_LEGACY
 /*
  * i2c_get_bus_num:
  *
@@ -907,13 +936,13 @@ int i2c_set_bus_speed(unsigned int);
  */
 
 unsigned int i2c_get_bus_speed(void);
-#endif /* CONFIG_SYS_I2C */
+#endif /* CONFIG_SYS_I2C_LEGACY */
 
 /*
  * only for backwardcompatibility, should go away if we switched
  * completely to new multibus support.
  */
-#if defined(CONFIG_SYS_I2C) || defined(CONFIG_I2C_MULTI_BUS)
+#if defined(CONFIG_SYS_I2C_LEGACY) || defined(CONFIG_I2C_MULTI_BUS)
 # if !defined(CONFIG_SYS_MAX_I2C_BUS)
 #  define CONFIG_SYS_MAX_I2C_BUS		2
 # endif

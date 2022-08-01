@@ -2773,7 +2773,7 @@ static int mmc_power_cycle(struct mmc *mmc)
 	return mmc_power_on(mmc);
 }
 
-int mmc_get_op_cond(struct mmc *mmc)
+int mmc_get_op_cond(struct mmc *mmc, bool quiet)
 {
 	bool uhs_en = supports_uhs(mmc->cfg->host_caps);
 	int err;
@@ -2849,7 +2849,8 @@ retry:
 
 		if (err) {
 #if !defined(CONFIG_SPL_BUILD) || defined(CONFIG_SPL_LIBCOMMON_SUPPORT)
-			pr_err("Card did not respond to voltage select! : %d\n", err);
+			if (!quiet)
+				pr_err("Card did not respond to voltage select! : %d\n", err);
 #endif
 			return -EOPNOTSUPP;
 		}
@@ -2868,7 +2869,25 @@ int mmc_start_init(struct mmc *mmc)
 	 * timings.
 	 */
 	mmc->host_caps = mmc->cfg->host_caps | MMC_CAP(MMC_LEGACY) |
-			 MMC_CAP(MMC_LEGACY) | MMC_MODE_1BIT;
+			 MMC_MODE_1BIT;
+
+	if (IS_ENABLED(CONFIG_MMC_SPEED_MODE_SET)) {
+		if (mmc->user_speed_mode != MMC_MODES_END) {
+			int i;
+			/* set host caps */
+			if (mmc->host_caps & MMC_CAP(mmc->user_speed_mode)) {
+				/* Remove all existing speed capabilities */
+				for (i = MMC_LEGACY; i < MMC_MODES_END; i++)
+					mmc->host_caps &= ~MMC_CAP(i);
+				mmc->host_caps |= (MMC_CAP(mmc->user_speed_mode)
+						   | MMC_CAP(MMC_LEGACY) |
+						   MMC_MODE_1BIT);
+			} else {
+				pr_err("bus_mode requested is not supported\n");
+				return -EINVAL;
+			}
+		}
+	}
 #if CONFIG_IS_ENABLED(DM_MMC)
 	mmc_deferred_probe(mmc);
 #endif
@@ -2889,7 +2908,7 @@ int mmc_start_init(struct mmc *mmc)
 		return -ENOMEDIUM;
 	}
 
-	err = mmc_get_op_cond(mmc);
+	err = mmc_get_op_cond(mmc, false);
 
 	if (!err)
 		mmc->init_in_progress = 1;
@@ -3059,11 +3078,15 @@ int mmc_init_device(int num)
 	struct mmc *m;
 	int ret;
 
-	ret = uclass_get_device(UCLASS_MMC, num, &dev);
-	if (ret)
-		return ret;
+	if (uclass_get_device_by_seq(UCLASS_MMC, num, &dev)) {
+		ret = uclass_get_device(UCLASS_MMC, num, &dev);
+		if (ret)
+			return ret;
+	}
 
 	m = mmc_get_mmc_dev(dev);
+	m->user_speed_mode = MMC_MODES_END; /* Initialising user set speed mode */
+
 	if (!m)
 		return 0;
 	if (m->preinit)

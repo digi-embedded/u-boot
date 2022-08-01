@@ -9,6 +9,6 @@
 #ifndef _FDT_SIMPLEFB_H_
 #define _FDT_SIMPLEFB_H_
 int fdt_simplefb_add_node(void *blob);
-int fdt_simplefb_add_node_and_mem_rsv(void *blob);
 int fdt_simplefb_enable_existing_node(void *blob);
+int fdt_simplefb_enable_and_mem_rsv(void *blob);
 #endif

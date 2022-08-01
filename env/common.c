@@ -20,6 +20,7 @@
 #include <errno.h>
 #include <malloc.h>
 #include <u-boot/crc.h>
+#include <dm/ofnode.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -225,7 +226,7 @@ static unsigned char env_flags;
 int env_check_redund(const char *buf1, int buf1_read_fail,
 		     const char *buf2, int buf2_read_fail)
 {
-	int crc1_ok, crc2_ok;
+	int crc1_ok = 0, crc2_ok = 0;
 	env_t *tmp_env1, *tmp_env2;
 
 	tmp_env1 = (env_t *)buf1;
@@ -233,25 +234,18 @@ int env_check_redund(const char *buf1, int buf1_read_fail,
 
 	if (buf1_read_fail && buf2_read_fail) {
 		puts("*** Error - No Valid Environment Area found\n");
+		return -EIO;
 	} else if (buf1_read_fail || buf2_read_fail) {
 		puts("*** Warning - some problems detected ");
 		puts("reading environment; recovered successfully\n");
 	}
 
-	if (buf1_read_fail && buf2_read_fail) {
-		return -EIO;
-	} else if (!buf1_read_fail && buf2_read_fail) {
-		gd->env_valid = ENV_VALID;
-		return -EINVAL;
-	} else if (buf1_read_fail && !buf2_read_fail) {
-		gd->env_valid = ENV_REDUND;
-		return -ENOENT;
-	}
-
-	crc1_ok = crc32(0, tmp_env1->data, ENV_SIZE) ==
-			tmp_env1->crc;
-	crc2_ok = crc32(0, tmp_env2->data, ENV_SIZE) ==
-			tmp_env2->crc;
+	if (!buf1_read_fail)
+		crc1_ok = crc32(0, tmp_env1->data, ENV_SIZE) ==
+				tmp_env1->crc;
+	if (!buf2_read_fail)
+		crc2_ok = crc32(0, tmp_env2->data, ENV_SIZE) ==
+				tmp_env2->crc;
 
 	if (!crc1_ok && !crc2_ok) {
 		return -ENOMSG; /* needed for env_load() */
@@ -288,10 +282,6 @@ int env_import_redund(const char *buf1, int buf1_read_fail,
 	if (ret == -EIO) {
 		env_set_default("bad env area", 0);
 		return -EIO;
-	} else if (ret == -EINVAL) {
-		return env_import((char *)buf1, 1, flags);
-	} else if (ret == -ENOENT) {
-		return env_import((char *)buf2, 1, flags);
 	} else if (ret == -ENOMSG) {
 #if defined(OLD_ENV_OFFSET_LOCATIONS)
 		static int old_env_tries = OLD_ENV_OFFSET_LOCATIONS;
@@ -445,5 +435,34 @@ int env_complete(char *var, int maxv, char *cmdv[], int bufsz, char *buf,
 
 	cmdv[found] = NULL;
 	return found;
+}
+#endif
+
+#ifdef CONFIG_ENV_IMPORT_FDT
+void env_import_fdt(void)
+{
+	const char *path;
+	struct ofprop prop;
+	ofnode node;
+	int res;
+
+	path = env_get("env_fdt_path");
+	if (!path || !path[0])
+		return;
+
+	node = ofnode_path(path);
+	if (!ofnode_valid(node)) {
+		printf("Warning: device tree node '%s' not found\n", path);
+		return;
+	}
+
+	for (res = ofnode_get_first_property(node, &prop);
+	     !res;
+	     res = ofnode_get_next_property(&prop)) {
+		const char *name, *val;
+
+		val = ofnode_get_property_by_prop(&prop, &name, NULL);
+		env_set(name, val);
+	}
 }
 #endif

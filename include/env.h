@@ -328,8 +328,6 @@ int env_export(struct environment_s *env_out);
  * @buf2_read_fail: 0 if buf2 is valid, non-zero if invalid
  * @return 0 if OK,
  *	-EIO if no environment is valid,
- *	-EINVAL if read of second entry is good
- *	-ENOENT if read of first entry is good
  *	-ENOMSG if the CRC was bad
  */
 
@@ -380,5 +378,18 @@ void env_reloc(void);
 
 long long env_get_offset(long long default_offset);
 long long env_get_offset_redund(long long default_offset);
+
+/**
+ * env_import_fdt() - Import environment values from device tree blob
+ *
+ * This uses the value of the environment variable "env_fdt_path" as a
+ * path to an fdt node, whose property/value pairs are added to the
+ * environment.
+ */
+#ifdef CONFIG_ENV_IMPORT_FDT
+void env_import_fdt(void);
+#else
+static inline void env_import_fdt(void) {}
+#endif
 
 #endif

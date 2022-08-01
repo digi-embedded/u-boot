@@ -180,8 +180,6 @@ void xhci_cleanup(struct xhci_ctrl *ctrl)
 	xhci_free_virt_devices(ctrl);
 	free(ctrl->erst.entries);
 	free(ctrl->dcbaa);
-	if (reset_valid(&ctrl->reset))
-		reset_free(&ctrl->reset);
 	memset(ctrl, '\0', sizeof(struct xhci_ctrl));
 }
 
@@ -434,9 +432,9 @@ static struct xhci_container_ctx
 	BUG_ON((type != XHCI_CTX_TYPE_DEVICE) && (type != XHCI_CTX_TYPE_INPUT));
 	ctx->type = type;
 	ctx->size = (MAX_EP_CTX_NUM + 1) *
-			CTX_SIZE(readl(&ctrl->hccr->cr_hccparams));
+			CTX_SIZE(xhci_readl(&ctrl->hccr->cr_hccparams));
 	if (type == XHCI_CTX_TYPE_INPUT)
-		ctx->size += CTX_SIZE(readl(&ctrl->hccr->cr_hccparams));
+		ctx->size += CTX_SIZE(xhci_readl(&ctrl->hccr->cr_hccparams));
 
 	ctx->bytes = xhci_malloc(ctx->size);
 
@@ -636,7 +634,7 @@ struct xhci_slot_ctx *xhci_get_slot_ctx(struct xhci_ctrl *ctrl,
 		return (struct xhci_slot_ctx *)ctx->bytes;
 
 	return (struct xhci_slot_ctx *)
-		(ctx->bytes + CTX_SIZE(readl(&ctrl->hccr->cr_hccparams)));
+		(ctx->bytes + CTX_SIZE(xhci_readl(&ctrl->hccr->cr_hccparams)));
 }
 
 /**
@@ -658,7 +656,7 @@ struct xhci_ep_ctx *xhci_get_ep_ctx(struct xhci_ctrl *ctrl,
 
 	return (struct xhci_ep_ctx *)
 		(ctx->bytes +
-		(ep_index * CTX_SIZE(readl(&ctrl->hccr->cr_hccparams))));
+		(ep_index * CTX_SIZE(xhci_readl(&ctrl->hccr->cr_hccparams))));
 }
 
 /**

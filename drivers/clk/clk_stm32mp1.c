@@ -27,11 +27,9 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#ifndef CONFIG_TFABOOT
-#if !defined(CONFIG_SPL) || defined(CONFIG_SPL_BUILD)
+#if defined(CONFIG_SPL_BUILD)
 /* activate clock tree initialization in the driver */
 #define STM32MP1_CLOCK_TREE_INIT
-#endif
 #endif
 
 #define MAX_HSI_HZ		64000000
@@ -560,6 +558,7 @@ static const struct stm32mp1_clk_gate stm32mp1_clk_gate[] = {
 	STM32MP1_CLK_SET_CLR(RCC_MP_APB5ENSETR, 2, I2C4_K, _I2C46_SEL),
 	STM32MP1_CLK_SET_CLR(RCC_MP_APB5ENSETR, 3, I2C6_K, _I2C46_SEL),
 	STM32MP1_CLK_SET_CLR(RCC_MP_APB5ENSETR, 8, RTCAPB, _PCLK5),
+	STM32MP1_CLK_SET_CLR(RCC_MP_APB5ENSETR, 16, BSEC, _UNKNOWN_SEL),
 	STM32MP1_CLK_SET_CLR(RCC_MP_APB5ENSETR, 20, STGEN_K, _STGEN_SEL),
 
 	STM32MP1_CLK_SET_CLR_F(RCC_MP_AHB2ENSETR, 5, ADC12, _HCLK2),
@@ -963,6 +962,24 @@ static ulong stm32mp1_read_pll_freq(struct stm32mp1_clk_priv *priv,
 	return dfout;
 }
 
+static ulong stm32mp1_clk_get_by_name(const char *name)
+{
+	struct clk clk;
+	struct udevice *dev = NULL;
+	ulong clock = 0;
+
+	if (!uclass_get_device_by_name(UCLASS_CLK, name, &dev)) {
+		if (clk_request(dev, &clk)) {
+			log_err("%s request", name);
+		} else {
+			clk.id = 0;
+			clock = clk_get_rate(&clk);
+		}
+	}
+
+	return clock;
+}
+
 static ulong stm32mp1_clk_get(struct stm32mp1_clk_priv *priv, int p)
 {
 	u32 reg;
@@ -1128,24 +1145,11 @@ static ulong stm32mp1_clk_get(struct stm32mp1_clk_priv *priv, int p)
 		break;
 	/* other */
 	case _USB_PHY_48:
-		clock = 48000000;
+		clock = stm32mp1_clk_get_by_name("ck_usbo_48m");
 		break;
 	case _DSI_PHY:
-	{
-		struct clk clk;
-		struct udevice *dev = NULL;
-
-		if (!uclass_get_device_by_name(UCLASS_CLK, "ck_dsi_phy",
-					       &dev)) {
-			if (clk_request(dev, &clk)) {
-				log_err("ck_dsi_phy request");
-			} else {
-				clk.id = 0;
-				clock = clk_get_rate(&clk);
-			}
-		}
+		clock = stm32mp1_clk_get_by_name("ck_dsi_phy");
 		break;
-	}
 	default:
 		break;
 	}

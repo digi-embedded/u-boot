@@ -6,7 +6,6 @@
 
 #include <common.h>
 #include <cpu_func.h>
-#include <lmb.h>
 #include <log.h>
 #include <asm/global_data.h>
 #include <asm/system.h>
@@ -97,30 +96,18 @@ void mmu_set_region_dcache_behaviour_phys(phys_addr_t start, phys_addr_t phys,
 __weak void dram_bank_mmu_setup(int bank)
 {
 	struct bd_info *bd = gd->bd;
-	struct lmb lmb;
 	int	i;
 
 	/* bd->bi_dram is available only after relocation */
 	if ((gd->flags & GD_FLG_RELOC) == 0)
 		return;
 
-	/*
-	 * don't allow cache on reserved memory tagged 'no-map' in DT
-	 * => avoid speculative access to "secure" data
-	 */
-	lmb_init_and_reserve(&lmb, bd, (void *)gd->fdt_blob);
-
 	debug("%s: bank: %d\n", __func__, bank);
 	for (i = bd->bi_dram[bank].start >> MMU_SECTION_SHIFT;
 	     i < (bd->bi_dram[bank].start >> MMU_SECTION_SHIFT) +
 		 (bd->bi_dram[bank].size >> MMU_SECTION_SHIFT);
-	     i++) {
-		if (lmb_is_reserved_flags(&lmb, i << MMU_SECTION_SHIFT,
-					  LMB_NOMAP))
-			set_section_dcache(i, INVALID_ENTRY);
-		else
-			set_section_dcache(i, DCACHE_DEFAULT_OPTION);
-	}
+	     i++)
+		set_section_dcache(i, DCACHE_DEFAULT_OPTION);
 }
 
 /* to activate the MMU we need to set up virtual memory: use 1M areas */
@@ -262,14 +249,11 @@ static void cache_disable(uint32_t cache_bit)
 	reg = get_cr();
 
 #ifdef CONFIG_SYS_ARM_MMU
-	if (cache_bit == (CR_C | CR_M)) {
+	if (cache_bit == (CR_C | CR_M))
 #elif defined(CONFIG_SYS_ARM_MPU)
-	if (cache_bit == CR_C) {
+	if (cache_bit == CR_C)
 #endif
 		flush_dcache_all();
-		set_cr(reg & ~CR_C);
-		flush_dcache_all();
-	}
 	set_cr(reg & ~cache_bit);
 }
 #endif

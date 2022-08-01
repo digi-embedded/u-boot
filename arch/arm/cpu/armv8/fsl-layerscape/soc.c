@@ -277,7 +277,7 @@ static unsigned long get_internval_val_mhz(void)
 	ulong interval_mhz = get_bus_freq(0) / (1000 * 1000);
 
 	if (interval)
-		interval_mhz = simple_strtoul(interval, NULL, 10);
+		interval_mhz = dectoul(interval, NULL);
 
 	return interval_mhz;
 }
@@ -329,7 +329,7 @@ static void erratum_rcw_src(void)
 #ifdef CONFIG_SYS_FSL_ERRATUM_A009203
 static void erratum_a009203(void)
 {
-#ifdef CONFIG_SYS_I2C
+#ifdef CONFIG_SYS_I2C_LEGACY
 	u8 __iomem *ptr;
 #ifdef I2C1_BASE_ADDR
 	ptr = (u8 __iomem *)(I2C1_BASE_ADDR + I2C_DEBUG_REG);

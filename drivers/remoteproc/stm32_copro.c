@@ -274,6 +274,6 @@ U_BOOT_DRIVER(stm32_copro) = {
 	.ops = &stm32_copro_ops,
 	.probe = stm32_copro_probe,
 	.remove = stm32_copro_remove,
-	.priv_auto	= sizeof(struct stm32_copro_privdata),
+	.priv_auto = sizeof(struct stm32_copro_privdata),
 	.flags = DM_FLAG_OS_PREPARE,
 };

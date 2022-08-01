@@ -72,11 +72,10 @@
 #define CONFIG_PHY_BASE_ADR	0
 #endif /* CONFIG_CMD_NET */
 
-/*
- *  * SATA Driver configuration
- *   */
-#ifdef CONFIG_MVSATA_IDE
-#define CONFIG_SYS_ATA_IDE0_OFFSET      MV_SATA_PORT0_OFFSET
-#endif /*CONFIG_MVSATA_IDE*/
+/* SATA driver configuration */
+#ifdef CONFIG_SATA
+#define CONFIG_SYS_SATA_MAX_DEVICE	1
+#define CONFIG_LBA48
+#endif /* CONFIG_SATA */
 
 #endif /* _CONFIG_GOFLEXHOME_H */

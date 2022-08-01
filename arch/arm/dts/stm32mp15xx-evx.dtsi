@@ -23,7 +23,6 @@
 
 	joystick {
 		compatible = "gpio-keys";
-		#size-cells = <0>;
 		pinctrl-0 = <&joystick_pins>;
 		pinctrl-names = "default";
 		button-0 {
@@ -58,13 +57,6 @@
 		};
 	};
 
-	panel_backlight: panel-backlight {
-		compatible = "gpio-backlight";
-		gpios = <&gpiod 13 GPIO_ACTIVE_LOW>;
-		default-on;
-		status = "okay";
-	};
-
 	spdif_out: spdif-out {
 		#sound-dai-cells = <0>;
 		compatible = "linux,spdif-dit";
@@ -89,7 +81,7 @@
 		};
 	};
 
-	sound {
+	sound: sound {
 		compatible = "audio-graph-card";
 		label = "STM32MP15-EV";
 		routing =
@@ -155,16 +147,6 @@
 		};
 	};
 
-	usb_phy_tuning: usb-phy-tuning {
-		st,hs-dc-level = <2>;
-		st,fs-rftime-tuning;
-		st,hs-rftime-reduction;
-		st,hs-current-trim = <15>;
-		st,hs-impedance-trim = <1>;
-		st,squelch-level = <3>;
-		st,hs-rx-offset = <2>;
-		st,no-lsfs-sc;
-	};
 };
 
 &cec {
@@ -307,8 +289,6 @@
 	phy-mode = "rgmii-id";
 	max-speed = <1000>;
 	phy-handle = <&phy0>;
-	nvmem-cells = <&ethernet_mac_address>;
-	nvmem-cell-names = "mac-address";
 
 	mdio0 {
 		#address-cells = <1>;
@@ -678,7 +658,14 @@
 };
 
 &usbphyc_port0 {
-	st,phy-tuning = <&usb_phy_tuning>;
+	st,tune-hs-dc-level = <2>;
+	st,enable-fs-rftime-tuning;
+	st,enable-hs-rftime-reduction;
+	st,trim-hs-current = <15>;
+	st,trim-hs-impedance = <1>;
+	st,tune-squelch-level = <3>;
+	st,tune-hs-rx-offset = <2>;
+	st,no-lsfs-sc;
 
 	/*
 	 * Hack to keep hub active until all connected devices are suspended
@@ -692,5 +679,12 @@
 };
 
 &usbphyc_port1 {
-	st,phy-tuning = <&usb_phy_tuning>;
+	st,tune-hs-dc-level = <2>;
+	st,enable-fs-rftime-tuning;
+	st,enable-hs-rftime-reduction;
+	st,trim-hs-current = <15>;
+	st,trim-hs-impedance = <1>;
+	st,tune-squelch-level = <3>;
+	st,tune-hs-rx-offset = <2>;
+	st,no-lsfs-sc;
 };

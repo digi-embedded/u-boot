@@ -227,6 +227,10 @@ int board_usb_init(int index, enum usb_init_type init)
 		return ret;
 	}
 
+#if defined(CONFIG_USB_DWC3) || defined(CONFIG_USB_XHCI_DWC3)
+	init_usb_clk();
+#endif
+
 	return 0;
 }
 

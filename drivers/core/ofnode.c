@@ -18,6 +18,19 @@
 #include <linux/ioport.h>
 #include <asm/global_data.h>
 
+bool ofnode_name_eq(ofnode node, const char *name)
+{
+	const char *node_name;
+	size_t len;
+
+	assert(ofnode_valid(node));
+
+	node_name = ofnode_get_name(node);
+	len = strchrnul(node_name, '@') - node_name;
+
+	return (strlen(name) == len) && !strncmp(node_name, name, len);
+}
+
 int ofnode_read_u32(ofnode node, const char *propname, u32 *outp)
 {
 	return ofnode_read_u32_index(node, propname, 0, outp);
@@ -286,6 +299,31 @@ const char *ofnode_get_name(ofnode node)
 	return fdt_get_name(gd->fdt_blob, ofnode_to_offset(node), NULL);
 }
 
+int ofnode_get_path(ofnode node, char *buf, int buflen)
+{
+	assert(ofnode_valid(node));
+
+	if (ofnode_is_np(node)) {
+		if (strlen(node.np->full_name) >= buflen)
+			return -ENOSPC;
+
+		strcpy(buf, node.np->full_name);
+
+		return 0;
+	} else {
+		int res;
+
+		res = fdt_get_path(gd->fdt_blob, ofnode_to_offset(node), buf,
+				   buflen);
+		if (!res)
+			return res;
+		else if (res == -FDT_ERR_NOSPACE)
+			return -ENOSPC;
+		else
+			return -EINVAL;
+	}
+}
+
 ofnode ofnode_get_by_phandle(uint phandle)
 {
 	ofnode node;
@@ -299,9 +337,13 @@ ofnode ofnode_get_by_phandle(uint phandle)
 	return node;
 }
 
-fdt_addr_t ofnode_get_addr_size_index(ofnode node, int index, fdt_size_t *size)
+static fdt_addr_t __ofnode_get_addr_size_index(ofnode node, int index,
+					       fdt_size_t *size, bool translate)
 {
 	int na, ns;
+
+	if (size)
+		*size = FDT_SIZE_T_NONE;
 
 	if (ofnode_is_np(node)) {
 		const __be32 *prop_val;
@@ -312,13 +354,13 @@ fdt_addr_t ofnode_get_addr_size_index(ofnode node, int index, fdt_size_t *size)
 					  &flags);
 		if (!prop_val)
 			return FDT_ADDR_T_NONE;
+
 		if (size)
 			*size = size64;
 
 		ns = of_n_size_cells(ofnode_to_np(node));
 
-		if (IS_ENABLED(CONFIG_OF_TRANSLATE) &&
-		    (ns > 0 || gd_size_cells_0())) {
+		if (translate && IS_ENABLED(CONFIG_OF_TRANSLATE) && ns > 0) {
 			return of_translate_address(ofnode_to_np(node), prop_val);
 		} else {
 			na = of_n_addr_cells(ofnode_to_np(node));
@@ -329,10 +371,20 @@ fdt_addr_t ofnode_get_addr_size_index(ofnode node, int index, fdt_size_t *size)
 		ns = ofnode_read_simple_size_cells(ofnode_get_parent(node));
 		return fdtdec_get_addr_size_fixed(gd->fdt_blob,
 						  ofnode_to_offset(node), "reg",
-						  index, na, ns, size, true);
+						  index, na, ns, size,
+						  translate);
 	}
+}
 
-	return FDT_ADDR_T_NONE;
+fdt_addr_t ofnode_get_addr_size_index(ofnode node, int index, fdt_size_t *size)
+{
+	return __ofnode_get_addr_size_index(node, index, size, true);
+}
+
+fdt_addr_t ofnode_get_addr_size_index_notrans(ofnode node, int index,
+					      fdt_size_t *size)
+{
+	return __ofnode_get_addr_size_index(node, index, size, false);
 }
 
 fdt_addr_t ofnode_get_addr_index(ofnode node, int index)
@@ -345,6 +397,15 @@ fdt_addr_t ofnode_get_addr_index(ofnode node, int index)
 fdt_addr_t ofnode_get_addr(ofnode node)
 {
 	return ofnode_get_addr_index(node, 0);
+}
+
+fdt_size_t ofnode_get_size(ofnode node)
+{
+	fdt_size_t size;
+
+	ofnode_get_addr_size_index(node, 0, &size);
+
+	return size;
 }
 
 int ofnode_stringlist_search(ofnode node, const char *property,
@@ -692,10 +753,8 @@ fdt_addr_t ofnode_get_addr_size(ofnode node, const char *property,
 		ns = of_n_size_cells(np);
 		*sizep = of_read_number(prop + na, ns);
 
-		if (CONFIG_IS_ENABLED(OF_TRANSLATE) &&
-		    (ns > 0 || gd_size_cells_0())) {
+		if (CONFIG_IS_ENABLED(OF_TRANSLATE) && ns > 0)
 			return of_translate_address(np, prop);
-		}
 		else
 			return of_read_number(prop, na);
 	} else {

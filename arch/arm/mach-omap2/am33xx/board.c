@@ -23,7 +23,11 @@
 #include <asm/arch/clock.h>
 #include <asm/arch/gpio.h>
 #include <asm/arch/i2c.h>
+#if IS_ENABLED(CONFIG_TARGET_AM335X_GUARDIAN)
+#include <asm/arch/mem-guardian.h>
+#else
 #include <asm/arch/mem.h>
+#endif
 #include <asm/arch/mmc_host_def.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/global_data.h>
@@ -205,7 +209,7 @@ int cpu_mmc_init(struct bd_info *bis)
 #if (defined(CONFIG_USB_MUSB_GADGET) || defined(CONFIG_USB_MUSB_HOST)) && \
 	(defined(CONFIG_AM335X_USB0) || defined(CONFIG_AM335X_USB1)) && \
 	(!CONFIG_IS_ENABLED(DM_USB) || !CONFIG_IS_ENABLED(OF_CONTROL)) && \
-	(!defined(CONFIG_SPL_BUILD) || defined(CONFIG_SPL_MUSB_NEW_SUPPORT))
+	(!defined(CONFIG_SPL_BUILD) || defined(CONFIG_SPL_MUSB_NEW))
 
 static struct musb_hdrc_config musb_config = {
 	.multipoint     = 1,

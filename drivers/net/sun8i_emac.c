@@ -211,7 +211,9 @@ static int sun8i_mdio_read(struct mii_dev *bus, int addr, int devad, int reg)
 	 * The EMAC clock is either 200 or 300 MHz, so we need a divider
 	 * of 128 to get the MDIO frequency below the required 2.5 MHz.
 	 */
-	mii_cmd |= MDIO_CMD_MII_CLK_CSR_DIV_128 << MDIO_CMD_MII_CLK_CSR_SHIFT;
+	if (!priv->use_internal_phy)
+		mii_cmd |= MDIO_CMD_MII_CLK_CSR_DIV_128 <<
+			   MDIO_CMD_MII_CLK_CSR_SHIFT;
 
 	mii_cmd |= MDIO_CMD_MII_BUSY;
 
@@ -242,7 +244,9 @@ static int sun8i_mdio_write(struct mii_dev *bus, int addr, int devad, int reg,
 	 * The EMAC clock is either 200 or 300 MHz, so we need a divider
 	 * of 128 to get the MDIO frequency below the required 2.5 MHz.
 	 */
-	mii_cmd |= MDIO_CMD_MII_CLK_CSR_DIV_128 << MDIO_CMD_MII_CLK_CSR_SHIFT;
+	if (!priv->use_internal_phy)
+		mii_cmd |= MDIO_CMD_MII_CLK_CSR_DIV_128 <<
+			   MDIO_CMD_MII_CLK_CSR_SHIFT;
 
 	mii_cmd |= MDIO_CMD_MII_WRITE;
 	mii_cmd |= MDIO_CMD_MII_BUSY;
@@ -554,7 +558,7 @@ static int parse_phy_pins(struct udevice *dev)
 	 * The GPIO pinmux value is an integration choice, so depends on the
 	 * SoC, not the EMAC variant.
 	 */
-	if (IS_ENABLED(CONFIG_MACH_SUN8I_H3))
+	if (IS_ENABLED(CONFIG_MACH_SUNXI_H3_H5))
 		iomux = SUN8I_IOMUX_H3;
 	else if (IS_ENABLED(CONFIG_MACH_SUN8I_R40))
 		iomux = SUN8I_IOMUX_R40;
@@ -562,8 +566,12 @@ static int parse_phy_pins(struct udevice *dev)
 		iomux = SUN8I_IOMUX_H6;
 	else if (IS_ENABLED(CONFIG_MACH_SUN50I_H616))
 		iomux = SUN8I_IOMUX_H616;
-	else
+	else if (IS_ENABLED(CONFIG_MACH_SUN8I_A83T))
 		iomux = SUN8I_IOMUX;
+	else if (IS_ENABLED(CONFIG_MACH_SUN50I))
+		iomux = SUN8I_IOMUX;
+	else
+		BUILD_BUG_ON_MSG(1, "missing pinmux value for Ethernet pins");
 
 	for (i = 0; ; i++) {
 		int pin;

@@ -180,6 +180,13 @@ config CORTINA_NI_ENET
 	  This driver supports the Cortina-Access Ethernet MAC for
 	  all supported CAxxxx SoCs.
 
+config CALXEDA_XGMAC
+	bool "Calxeda XGMAC support"
+	depends on DM_ETH
+	help
+	  This driver supports the XGMAC in Calxeda Highbank and Midway
+	  machines.
+
 config DWC_ETH_QOS
 	bool "Synopsys DWC Ethernet QOS device support"
 	depends on DM_ETH
@@ -215,7 +222,6 @@ config DWC_ETH_QOS_TEGRA186
 
 config E1000
 	bool "Intel PRO/1000 Gigabit Ethernet support"
-	depends on (DM_ETH && DM_PCI) || !DM_ETH
 	help
 	  This driver supports Intel(R) PRO/1000 gigabit ethernet family of
 	  adapters.  For more information on how to identify your adapter, go
@@ -280,6 +286,14 @@ config ETH_DESIGNWARE
 	  This MAC is present in SoCs from various vendors. It supports
 	  100Mbit and 1 Gbit operation. You must enable CONFIG_PHYLIB to
 	  provide the PHY (physical media interface).
+
+config ETH_DESIGNWARE_MESON8B
+	bool "Amlogic Meson8b and later glue driver for Synopsys Designware Ethernet MAC"
+	depends on DM_ETH
+	select ETH_DESIGNWARE
+	help
+	  This provides glue layer to use Synopsys Designware Ethernet MAC
+	  present on the Amlogic Meson8b, GX, AXG & G12A SoCs.
 
 config ETH_DESIGNWARE_SOCFPGA
 	select REGMAP
@@ -388,6 +402,13 @@ config KS8851_MLL_BASEADDR
 endif #DM_ETH
 endif #KS8851_MLL
 
+config KSZ9477
+	bool "Microchip KSZ9477 I2C controller driver"
+	depends on DM_DSA && DM_I2C
+	help
+	  This driver implements a DSA switch driver for the KSZ9477 family
+	  of GbE switches using the I2C interface.
+
 config MVGBE
 	bool "Marvell Orion5x/Kirkwood network interface support"
 	depends on ARCH_KIRKWOOD || ARCH_ORION5X
@@ -484,7 +505,7 @@ config OCTEONTX2_CGX_INTF
 
 config PCH_GBE
 	bool "Intel Platform Controller Hub EG20T GMAC driver"
-	depends on DM_ETH && DM_PCI
+	depends on DM_ETH
 	select PHYLIB
 	help
 	  This MAC is present in Intel Platform Controller Hub EG20T. It
@@ -534,21 +555,14 @@ config SMC911X_BASE
 	  of the device (I/O space)
 endif #DM_ETH
 
-choice
-	prompt "SMC911X bus width"
-	default SMC911X_16_BIT
-
 config SMC911X_32_BIT
-	bool "Enable 32-bit interface"
-
-config SMC911X_16_BIT
-	bool "Enable 16-bit interface"
+	bool "Enable SMC911X 32-bit interface"
+	default n
 	help
-	  Define this if data bus is 16 bits. If your processor
-	  automatically converts one 32 bit word to two 16 bit
-	  words you may also try CONFIG_SMC911X_32_BIT.
+	  Define this if data bus is 32 bits. If your processor use a
+	  narrower 16 bit bus or cannot convert one 32 bit word to two 16 bit
+	  words, leave this to "n".
 
-endchoice
 endif #SMC911X
 
 config SUN7I_GMAC
@@ -591,7 +605,6 @@ source "drivers/net/ti/Kconfig"
 
 config TULIP
 	bool "DEC Tulip DC2114x Ethernet support"
-	depends on (DM_ETH && DM_PCI) || !DM_ETH
 	help
 	  This driver supports DEC DC2114x Fast ethernet chips.
 
@@ -602,6 +615,15 @@ config XILINX_AXIEMAC
 	bool "Xilinx AXI Ethernet"
 	help
 	  This MAC is present in Xilinx Microblaze, Zynq and ZynqMP SoCs.
+
+config XILINX_AXIMRMAC
+	depends on DM_ETH && ARCH_VERSAL
+	bool "Xilinx AXI MRMAC"
+	help
+	  MRMAC is a high performance, low latency, adaptable Ethernet
+	  integrated hard IP. This can be configured up to four ports with MAC
+	  rates from 10GE to 100GE. This could be present in some of the Xilinx
+	  Versal designs.
 
 config XILINX_EMACLITE
 	depends on DM_ETH
@@ -658,6 +680,14 @@ config SNI_AVE
 	help
 	  This driver implements support for the Socionext AVE Ethernet
 	  controller, as found on the Socionext UniPhier family.
+
+config SNI_NETSEC
+	bool "Socionext NETSEC Ethernet support"
+	depends on DM_ETH && SYNQUACER_SPI
+	select PHYLIB
+	help
+	  This driver implements support for the Socionext SynQuacer NETSEC
+	  ethernet controller, as found on the Socionext SynQuacer family.
 
 source "drivers/net/mscc_eswitch/Kconfig"
 
@@ -718,18 +748,14 @@ config SYS_DPAA_QBMAN
 		     ARCH_B4420 || \
 		     ARCH_P1023 || \
 		     ARCH_P2041 || \
-		     ARCH_T1023 || \
 		     ARCH_T1024 || \
 		     ARCH_T1040 || \
 		     ARCH_T1042 || \
 		     ARCH_T2080 || \
-		     ARCH_T2081 || \
 		     ARCH_T4240 || \
-		     ARCH_T4160 || \
 		     ARCH_P4080 || \
 		     ARCH_P3041 || \
 		     ARCH_P5040 || \
-		     ARCH_P5020 || \
 		     ARCH_LS1043A || \
 		     ARCH_LS1046A
 	help
@@ -763,7 +789,7 @@ config HIGMACV300_ETH
 
 config FSL_ENETC
 	bool "NXP ENETC Ethernet controller"
-	depends on DM_PCI && DM_ETH && DM_MDIO
+	depends on DM_ETH && DM_MDIO
 	help
 	  This driver supports the NXP ENETC Ethernet controller found on some
 	  of the NXP SoCs.
@@ -799,5 +825,19 @@ config FSL_LS_MDIO
 	help
 	  This driver supports the MDIO bus found on the Fman 10G Ethernet MACs and
 	  on the mEMAC (which supports both Clauses 22 and 45).
+
+config MDIO_MUX_MMIOREG
+	bool "MDIO MUX accessed as a MMIO register access"
+	depends on DM_MDIO_MUX
+	help
+	  This driver is used for MDIO muxes driven by writing to a register in
+	  the MMIO physical memory.
+
+config MDIO_MUX_MESON_G12A
+	bool "MDIO MUX for Amlogic Meson G12A SoCs"
+	depends on DM_MDIO_MUX
+	help
+	  This driver is used for the MDIO mux found on the Amlogic G12A & compatible
+	  SoCs.
 
 endif # NETDEVICES

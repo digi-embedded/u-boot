@@ -3,6 +3,8 @@
  * Copyright (c) 2014 Google, Inc
  */
 
+#define LOG_CATEGORY UCLASS_I2C
+
 #include <common.h>
 #include <dm.h>
 #include <errno.h>
@@ -241,6 +243,21 @@ int dm_i2c_reg_read(struct udevice *dev, uint offset)
 int dm_i2c_reg_write(struct udevice *dev, uint offset, uint value)
 {
 	uint8_t val = value;
+
+	return dm_i2c_write(dev, offset, &val, 1);
+}
+
+int dm_i2c_reg_clrset(struct udevice *dev, uint offset, u32 clr, u32 set)
+{
+	uint8_t val;
+	int ret;
+
+	ret = dm_i2c_read(dev, offset, &val, 1);
+	if (ret < 0)
+		return ret;
+
+	val &= ~clr;
+	val |= set;
 
 	return dm_i2c_write(dev, offset, &val, 1);
 }

@@ -100,13 +100,16 @@ static void lmb_coalesce_regions(struct lmb_region *rgn, unsigned long r1,
 
 void lmb_init(struct lmb *lmb)
 {
-	/* Hookup the initial arrays */
+#if IS_ENABLED(CONFIG_LMB_USE_MAX_REGIONS)
+	lmb->memory.max = CONFIG_LMB_MAX_REGIONS;
+	lmb->reserved.max = CONFIG_LMB_MAX_REGIONS;
+#else
+	lmb->memory.max = CONFIG_LMB_MEMORY_REGIONS;
+	lmb->reserved.max = CONFIG_LMB_RESERVED_REGIONS;
 	lmb->memory.region = lmb->memory_regions;
-	lmb->memory.max = ARRAY_SIZE(lmb->memory_regions) - 1;
-	lmb->memory.cnt = 0;
-
 	lmb->reserved.region = lmb->reserved_regions;
-	lmb->reserved.max = ARRAY_SIZE(lmb->reserved_regions) - 1;
+#endif
+	lmb->memory.cnt = 0;
 	lmb->reserved.cnt = 0;
 }
 
@@ -190,7 +193,7 @@ static long lmb_add_region_flags(struct lmb_region *rgn, phys_addr_t base,
 			break;
 		} else if (lmb_addrs_overlap(base, size, rgnbase, rgnsize)) {
 			/* regions overlap */
-			return -2;
+			return -1;
 		}
 	}
 
@@ -323,41 +326,6 @@ static long lmb_overlaps_region(struct lmb_region *rgn, phys_addr_t base,
 	return (i < rgn->cnt) ? i : -1;
 }
 
-long lmb_reserve_overlap(struct lmb *lmb, phys_addr_t base, phys_size_t size)
-{
-	struct lmb_region *_rgn = &(lmb->reserved);
-	long ret = lmb_add_region(_rgn, base, size);
-	long overlap_rgn;
-	phys_addr_t res_base;
-	phys_size_t res_size;
-
-	/* Handle the overlap */
-	if (ret == -2) {
-		overlap_rgn = lmb_overlaps_region(_rgn, base, size);
-		res_base = lmb->reserved.region[overlap_rgn].base;
-		res_size = lmb->reserved.region[overlap_rgn].size;
-
-		if ((base >= res_base) && ((base + size) <= (res_base + res_size))) {
-			/* new region is inside reserved region, so it is already reserved */
-			return 0;
-		} else {
-			if (base < res_base) {
-				ret = lmb_reserve(lmb, base, res_base - base);
-				if (ret < 0)
-					return ret;
-			}
-
-			if ((base + size) > (res_base + res_size)) {
-				ret = lmb_reserve(lmb, res_base + res_size, (base + size) - (res_base + res_size));
-				if (ret < 0)
-					return ret;
-			}
-		}
-	}
-
-	return ret;
-}
-
 phys_addr_t lmb_alloc(struct lmb *lmb, phys_size_t size, ulong align)
 {
 	return lmb_alloc_base(lmb, size, align, LMB_ALLOC_ANYWHERE);
@@ -483,8 +451,7 @@ int lmb_is_reserved_flags(struct lmb *lmb, phys_addr_t addr, int flags)
 		phys_addr_t upper = lmb->reserved.region[i].base +
 			lmb->reserved.region[i].size - 1;
 		if ((addr >= lmb->reserved.region[i].base) && (addr <= upper))
-			return !!((lmb->reserved.region[i].flags & flags)
-				   == flags);
+			return (lmb->reserved.region[i].flags & flags) == flags;
 	}
 	return 0;
 }

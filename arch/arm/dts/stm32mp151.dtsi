@@ -7,8 +7,6 @@
 #include <dt-bindings/clock/stm32mp1-clks.h>
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/reset/stm32mp1-resets.h>
-#include <dt-bindings/thermal/thermal.h>
-
 
 / {
 	#address-cells = <1>;
@@ -22,7 +20,7 @@
 			compatible = "arm,cortex-a7";
 			device_type = "cpu";
 			reg = <0>;
-			clocks = <&scmi0_clk CK_SCMI0_MPU>;
+			clocks = <&scmi_clk CK_SCMI_MPU>;
 			clock-names = "cpu";
 			operating-points-v2 = <&cpu0_opp_table>;
 			nvmem-cells = <&part_number_otp>;
@@ -50,45 +48,33 @@
 		#size-cells = <1>;
 		ranges = <0 0x2ffff000 0x1000>;
 
-		scmi0_shm: scmi_shm@0 {
+		scmi_shm: scmi_shm@0 {
+			compatible = "arm,scmi-shmem";
 			reg = <0 0x80>;
-		};
-
-		scmi1_shm: scmi_shm@200 {
-			reg = <0x200 0x80>;
 		};
 	};
 
 	firmware {
-		scmi0: scmi0 {
-			compatible = "arm,scmi-smc";
-			#address-cells = <1>;
-			#size-cells = <0>;
-			arm,smc-id = <0x82002000>;
-			shmem = <&scmi0_shm>;
-
-			scmi0_clk: protocol@14 {
-				reg = <0x14>;
-				#clock-cells = <1>;
-			};
-
-			scmi0_reset: protocol@16 {
-				reg = <0x16>;
-				#reset-cells = <1>;
-			};
+		optee {
+			compatible = "linaro,optee-tz";
+			method = "smc";
 		};
 
-		scmi1: scmi1 {
-			compatible = "arm,scmi-smc";
+		scmi: scmi {
+			compatible = "linaro,scmi-optee";
 			#address-cells = <1>;
 			#size-cells = <0>;
-			arm,smc-id = <0x82002001>;
-			shmem = <&scmi1_shm>;
-			status = "disabled";
+			linaro,optee-channel-id = <0>;
+			shmem = <&scmi_shm>;
 
-			scmi1_clk: protocol@14 {
+			scmi_clk: protocol@14 {
 				reg = <0x14>;
 				#clock-cells = <1>;
+			};
+
+			scmi_reset: protocol@16 {
+				reg = <0x16>;
+				#reset-cells = <1>;
 			};
 		};
 	};
@@ -108,12 +94,11 @@
 
 	timer {
 		compatible = "arm,armv7-timer";
-		interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
-			     <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
-			     <GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
-			     <GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>;
+		interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(1) | IRQ_TYPE_LEVEL_LOW)>,
+			     <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(1) | IRQ_TYPE_LEVEL_LOW)>,
+			     <GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(1) | IRQ_TYPE_LEVEL_LOW)>,
+			     <GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(1) | IRQ_TYPE_LEVEL_LOW)>;
 		interrupt-parent = <&intc>;
-		always-on;
 	};
 
 	thermal-zones {
@@ -457,7 +442,6 @@
 			dmas = <&dmamux1 39 0x400 0x01>,
 			       <&dmamux1 40 0x400 0x01>;
 			dma-names = "rx", "tx";
-			power-domains = <&pd_core>;
 			status = "disabled";
 		};
 
@@ -483,7 +467,6 @@
 			dmas = <&dmamux1 61 0x400 0x01>,
 			       <&dmamux1 62 0x400 0x01>;
 			dma-names = "rx", "tx";
-			power-domains = <&pd_core>;
 			status = "disabled";
 		};
 
@@ -798,7 +781,6 @@
 			dmas = <&dmamux1 37 0x400 0x01>,
 			       <&dmamux1 38 0x400 0x01>;
 			dma-names = "rx", "tx";
-			power-domains = <&pd_core>;
 			status = "disabled";
 		};
 
@@ -824,7 +806,6 @@
 			dmas = <&dmamux1 83 0x400 0x01>,
 			       <&dmamux1 84 0x400 0x01>;
 			dma-names = "rx", "tx";
-			power-domains = <&pd_core>;
 			status = "disabled";
 		};
 
@@ -915,7 +896,6 @@
 			dmas = <&dmamux1 85 0x400 0x01>,
 			       <&dmamux1 86 0x400 0x01>;
 			dma-names = "rx", "tx";
-			power-domains = <&pd_core>;
 			status = "disabled";
 		};
 
@@ -1187,8 +1167,8 @@
 			};
 		};
 
-		sdmmc3: sdmmc@48004000 {
-			compatible = "arm,pl18x", "arm,primecell";
+		sdmmc3: mmc@48004000 {
+			compatible = "st,stm32-sdmmc2", "arm,pl18x", "arm,primecell";
 			arm,primecell-periphid = <0x00253180>;
 			reg = <0x48004000 0x400>;
 			interrupts = <GIC_SPI 137 IRQ_TYPE_LEVEL_HIGH>;
@@ -1261,15 +1241,13 @@
 			reg = <0x50000000 0x1000>;
 			#clock-cells = <1>;
 			#reset-cells = <1>;
-			interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
 
 			clock-names = "hse", "hsi", "csi", "lse", "lsi";
-			clocks = <&scmi0_clk CK_SCMI0_HSE>,
-				 <&scmi0_clk CK_SCMI0_HSI>,
-				 <&scmi0_clk CK_SCMI0_CSI>,
-				 <&scmi0_clk CK_SCMI0_LSE>,
-				 <&scmi0_clk CK_SCMI0_LSI>;
-			clocks-boot-on = <LTDC_PX>;
+			clocks = <&scmi_clk CK_SCMI_HSE>,
+				 <&scmi_clk CK_SCMI_HSI>,
+				 <&scmi_clk CK_SCMI_CSI>,
+				 <&scmi_clk CK_SCMI_LSE>,
+				 <&scmi_clk CK_SCMI_LSI>;
 		};
 
 		pwr_regulators: pwr@50001000 {
@@ -1308,12 +1286,12 @@
 			interrupt-controller;
 			#interrupt-cells = <3>;
 
-			wakeup-gpios = <&gpioa 0 GPIO_ACTIVE_HIGH>,
-				       <&gpioa 2 GPIO_ACTIVE_HIGH>,
-				       <&gpioc 13 GPIO_ACTIVE_HIGH>,
-				       <&gpioi 8 GPIO_ACTIVE_HIGH>,
-				       <&gpioi 11 GPIO_ACTIVE_HIGH>,
-				       <&gpioc 1 GPIO_ACTIVE_HIGH>;
+			st,wakeup-pins = <&gpioa 0 GPIO_ACTIVE_HIGH>,
+					 <&gpioa 2 GPIO_ACTIVE_HIGH>,
+					 <&gpioc 13 GPIO_ACTIVE_HIGH>,
+					 <&gpioi 8 GPIO_ACTIVE_HIGH>,
+					 <&gpioi 11 GPIO_ACTIVE_HIGH>,
+					 <&gpioc 1 GPIO_ACTIVE_HIGH>;
 		};
 
 		exti: interrupt-controller@5000d000 {
@@ -1512,8 +1490,8 @@
 			compatible = "st,stm32f756-hash";
 			reg = <0x54002000 0x400>;
 			interrupts = <GIC_SPI 80 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&scmi0_clk CK_SCMI0_HASH1>;
-			resets = <&scmi0_reset RST_SCMI0_HASH1>;
+			clocks = <&scmi_clk CK_SCMI_HASH1>;
+			resets = <&scmi_reset RST_SCMI_HASH1>;
 			dmas = <&mdma1 31 0x2 0x1000A02 0x0 0x0 0x0>;
 			dma-names = "in";
 			dma-maxburst = <2>;
@@ -1523,8 +1501,8 @@
 		rng1: rng@54003000 {
 			compatible = "st,stm32-rng";
 			reg = <0x54003000 0x400>;
-			clocks = <&scmi0_clk CK_SCMI0_RNG1>;
-			resets = <&scmi0_reset RST_SCMI0_RNG1>;
+			clocks = <&scmi_clk CK_SCMI_RNG1>;
+			resets = <&scmi_reset RST_SCMI_RNG1>;
 			status = "disabled";
 		};
 
@@ -1533,7 +1511,7 @@
 			reg = <0x58000000 0x1000>;
 			interrupts = <GIC_SPI 122 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&rcc MDMA>;
-			resets = <&scmi0_reset RST_SCMI0_MDMA>;
+			resets = <&scmi_reset RST_SCMI_MDMA>;
 			#dma-cells = <6>;
 			dma-channels = <32>;
 			dma-requests = <48>;
@@ -1588,8 +1566,8 @@
 			status = "disabled";
 		};
 
-		sdmmc1: sdmmc@58005000 {
-			compatible = "arm,pl18x", "arm,primecell";
+		sdmmc1: mmc@58005000 {
+			compatible = "st,stm32-sdmmc2", "arm,pl18x", "arm,primecell";
 			arm,primecell-periphid = <0x00253180>;
 			reg = <0x58005000 0x1000>;
 			interrupts = <GIC_SPI 49 IRQ_TYPE_LEVEL_HIGH>;
@@ -1603,8 +1581,8 @@
 			status = "disabled";
 		};
 
-		sdmmc2: sdmmc@58007000 {
-			compatible = "arm,pl18x", "arm,primecell";
+		sdmmc2: mmc@58007000 {
+			compatible = "st,stm32-sdmmc2", "arm,pl18x", "arm,primecell";
 			arm,primecell-periphid = <0x00253180>;
 			reg = <0x58007000 0x1000>;
 			interrupts = <GIC_SPI 124 IRQ_TYPE_LEVEL_HIGH>;
@@ -1637,22 +1615,22 @@
 				      "mac-clk-tx",
 				      "mac-clk-rx",
 				      "eth-ck",
-				      "ethstp",
-				      "ptp_ref";
+				      "ptp_ref",
+				      "ethstp";
 			clocks = <&rcc ETHMAC>,
 				 <&rcc ETHTX>,
 				 <&rcc ETHRX>,
 				 <&rcc ETHCK_K>,
-				 <&rcc ETHSTP>,
-				 <&rcc ETHPTP_K>;
+				 <&rcc ETHPTP_K>,
+				 <&rcc ETHSTP>;
 			st,syscon = <&syscfg 0x4>;
 			snps,mixed-burst;
 			snps,pbl = <2>;
 			snps,en-tx-lpi-clockgating;
 			snps,axi-config = <&stmmac_axi_config_0>;
 			snps,tso;
-			power-domains = <&pd_core>;
 			status = "disabled";
+			power-domains = <&pd_core>;
 
 			stmmac_axi_config_0: stmmac-axi-config {
 				snps,wr_osr_lmt = <0x7>;
@@ -1661,19 +1639,19 @@
 			};
 		};
 
-		usbh_ohci: usbh-ohci@5800c000 {
+		usbh_ohci: usb@5800c000 {
 			compatible = "generic-ohci";
 			reg = <0x5800c000 0x1000>;
-			clocks = <&rcc USBH>, <&usbphyc>;
+			clocks = <&usbphyc>, <&rcc USBH>;
 			resets = <&rcc USBH_R>;
 			interrupts = <GIC_SPI 74 IRQ_TYPE_LEVEL_HIGH>;
 			status = "disabled";
 		};
 
-		usbh_ehci: usbh-ehci@5800d000 {
+		usbh_ehci: usb@5800d000 {
 			compatible = "generic-ehci";
 			reg = <0x5800d000 0x1000>;
-			clocks = <&rcc USBH>;
+			clocks = <&usbphyc>, <&rcc USBH>;
 			resets = <&rcc USBH_R>;
 			interrupts-extended = <&exti 43 IRQ_TYPE_LEVEL_HIGH>;
 			companion = <&usbh_ohci>;
@@ -1701,7 +1679,7 @@
 		iwdg2: watchdog@5a002000 {
 			compatible = "st,stm32mp1-iwdg";
 			reg = <0x5a002000 0x400>;
-			clocks = <&rcc IWDG2>, <&scmi0_clk CK_SCMI0_LSI>;
+			clocks = <&rcc IWDG2>, <&scmi_clk CK_SCMI_LSI>;
 			clock-names = "pclk", "lsi";
 			status = "disabled";
 		};
@@ -1741,8 +1719,8 @@
 			compatible = "st,stm32h7-uart";
 			reg = <0x5c000000 0x400>;
 			interrupts-extended = <&exti 26 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&scmi0_clk CK_SCMI0_USART1>;
-			resets = <&scmi0_reset RST_SCMI0_USART1>;
+			clocks = <&scmi_clk CK_SCMI_USART1>;
+			resets = <&scmi_reset RST_SCMI_USART1>;
 			wakeup-source;
 			power-domains = <&pd_core>;
 			status = "disabled";
@@ -1754,12 +1732,11 @@
 			compatible = "st,stm32h7-spi";
 			reg = <0x5c001000 0x400>;
 			interrupts = <GIC_SPI 86 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&scmi0_clk CK_SCMI0_SPI6>;
-			resets = <&scmi0_reset RST_SCMI0_SPI6>;
+			clocks = <&scmi_clk CK_SCMI_SPI6>;
+			resets = <&scmi_reset RST_SCMI_SPI6>;
 			dmas = <&mdma1 34 0x0 0x40008 0x0 0x0 0x0>,
 			       <&mdma1 35 0x0 0x40002 0x0 0x0 0x0>;
 			dma-names = "rx", "tx";
-			power-domains = <&pd_core>;
 			status = "disabled";
 		};
 
@@ -1769,8 +1746,8 @@
 			interrupt-names = "event", "error";
 			interrupts-extended = <&exti 24 IRQ_TYPE_LEVEL_HIGH>,
 					      <&intc GIC_SPI 96 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&scmi0_clk CK_SCMI0_I2C4>;
-			resets = <&scmi0_reset RST_SCMI0_I2C4>;
+			clocks = <&scmi_clk CK_SCMI_I2C4>;
+			resets = <&scmi_reset RST_SCMI_I2C4>;
 			#address-cells = <1>;
 			#size-cells = <0>;
 			dmas = <&mdma1 36 0x0 0x40008 0x0 0x0 0>,
@@ -1786,8 +1763,8 @@
 		rtc: rtc@5c004000 {
 			compatible = "st,stm32mp1-rtc";
 			reg = <0x5c004000 0x400>;
-			clocks = <&scmi0_clk CK_SCMI0_RTCAPB>,
-				 <&scmi0_clk CK_SCMI0_RTC>;
+			clocks = <&scmi_clk CK_SCMI_RTCAPB>,
+				 <&scmi_clk CK_SCMI_RTC>;
 			clock-names = "pclk", "rtc_ck";
 			interrupts-extended = <&exti 19 IRQ_TYPE_LEVEL_HIGH>;
 			status = "disabled";
@@ -1796,7 +1773,7 @@
 		bsec: efuse@5c005000 {
 			compatible = "st,stm32mp15-bsec";
 			reg = <0x5c005000 0x400>;
-			clocks = <&scmi0_clk CK_SCMI0_BSEC>;
+			clocks = <&scmi_clk CK_SCMI_BSEC>;
 			#address-cells = <1>;
 			#size-cells = <1>;
 			part_number_otp: part_number_otp@4 {
@@ -1822,8 +1799,8 @@
 			interrupt-names = "event", "error";
 			interrupts-extended = <&exti 54 IRQ_TYPE_LEVEL_HIGH>,
 					      <&intc GIC_SPI 136 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&scmi0_clk CK_SCMI0_I2C6>;
-			resets = <&scmi0_reset RST_SCMI0_I2C6>;
+			clocks = <&scmi_clk CK_SCMI_I2C6>;
+			resets = <&scmi_reset RST_SCMI_I2C6>;
 			#address-cells = <1>;
 			#size-cells = <0>;
 			dmas = <&mdma1 38 0x0 0x40008 0x0 0x0 0>,
@@ -1834,6 +1811,24 @@
 			wakeup-source;
 			i2c-analog-filter;
 			status = "disabled";
+		};
+
+		tamp: tamp@5c00a000 {
+			compatible = "st,stm32-tamp", "syscon", "simple-mfd";
+			reg = <0x5c00a000 0x400>;
+
+			reboot-mode {
+				compatible = "syscon-reboot-mode";
+				offset = <0x150>; /* reg20 */
+				mask = <0xff>;
+				mode-normal = <0>;
+				mode-fastboot = <0x1>;
+				mode-recovery = <0x2>;
+				mode-stm32cubeprogrammer = <0x3>;
+				mode-ums_mmc0 = <0x10>;
+				mode-ums_mmc1 = <0x11>;
+				mode-ums_mmc2 = <0x12>;
+			};
 		};
 
 		/*
@@ -1988,28 +1983,10 @@
 				interrupt-controller;
 				#interrupt-cells = <2>;
 				reg = <0 0x400>;
-				clocks = <&scmi0_clk CK_SCMI0_GPIOZ>;
+				clocks = <&scmi_clk CK_SCMI_GPIOZ>;
 				st,bank-name = "GPIOZ";
 				st,bank-ioport = <11>;
 				status = "disabled";
-			};
-		};
-
-		tamp: tamp@5c00a000 {
-			compatible = "simple-bus", "syscon", "simple-mfd";
-			reg = <0x5c00a000 0x400>;
-
-			reboot-mode {
-				compatible = "syscon-reboot-mode";
-				offset = <0x150>; /* reg20 */
-				mask = <0xff>;
-				mode-normal = <0>;
-				mode-fastboot = <0x1>;
-				mode-recovery = <0x2>;
-				mode-stm32cubeprogrammer = <0x3>;
-				mode-ums_mmc0 = <0x10>;
-				mode-ums_mmc1 = <0x11>;
-				mode-ums_mmc2 = <0x12>;
 			};
 		};
 	};
@@ -2028,8 +2005,8 @@
 			reg = <0x10000000 0x40000>,
 			      <0x30000000 0x40000>,
 			      <0x38000000 0x10000>;
-			resets = <&scmi0_reset RST_SCMI0_MCU>,
-				 <&scmi0_reset RST_SCMI0_MCU_HOLD_BOOT>;
+			resets = <&scmi_reset RST_SCMI_MCU>,
+				 <&scmi_reset RST_SCMI_MCU_HOLD_BOOT>;
 			reset-names = "mcu_rst", "hold_boot";
 			st,syscfg-pdds = <&pwr_mcu 0x0 0x1>;
 			st,syscfg-rsc-tbl = <&tamp 0x144 0xFFFFFFFF>;

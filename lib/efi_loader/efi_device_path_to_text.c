@@ -34,7 +34,7 @@ static u16 *efi_str_to_u16(char *str)
 	efi_status_t ret;
 
 	len = sizeof(u16) * (utf8_utf16_strlen(str) + 1);
-	ret = efi_allocate_pool(EFI_ALLOCATE_ANY_PAGES, len, (void **)&out);
+	ret = efi_allocate_pool(EFI_BOOT_SERVICES_DATA, len, (void **)&out);
 	if (ret != EFI_SUCCESS)
 		return NULL;
 	dst = out;
@@ -188,6 +188,19 @@ static char *dp_msging(char *s, struct efi_device_path *dp)
 				     ndp->eui64[i]);
 		s += sprintf(s, ")");
 
+		break;
+	}
+	case DEVICE_PATH_SUB_TYPE_MSG_URI: {
+		struct efi_device_path_uri *udp =
+			(struct efi_device_path_uri *)dp;
+		int n;
+
+		n = (int)udp->dp.length - sizeof(struct efi_device_path_uri);
+
+		s += sprintf(s, "Uri(");
+		if (n > 0 && n < MAX_NODE_LEN - 6)
+			s += snprintf(s, n, "%s", (char *)udp->uri);
+		s += sprintf(s, ")");
 		break;
 	}
 	case DEVICE_PATH_SUB_TYPE_MSG_SD:

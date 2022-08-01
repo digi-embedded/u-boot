@@ -80,9 +80,15 @@ static int scmi_bind_protocols(struct udevice *dev)
 			if (IS_ENABLED(CONFIG_RESET_SCMI))
 				drv = DM_DRIVER_GET(scmi_reset_domain);
 			break;
-		case SCMI_PROTOCOL_ID_POWER_DOMAIN:
-			if (IS_ENABLED(CONFIG_POWER_DOMAIN))
-				drv = DM_DRIVER_GET(scmi_power_domain);
+		case SCMI_PROTOCOL_ID_VOLTAGE_DOMAIN:
+			if (IS_ENABLED(CONFIG_DM_REGULATOR_SCMI)) {
+				node = ofnode_find_subnode(node, "regulators");
+				if (!ofnode_valid(node)) {
+					dev_err(dev, "no regulators node\n");
+					return -ENXIO;
+				}
+				drv = DM_DRIVER_GET(scmi_voltage_domain);
+			}
 			break;
 		default:
 			break;
@@ -110,10 +116,23 @@ static const struct scmi_agent_ops *transport_dev_ops(struct udevice *dev)
 
 int devm_scmi_process_msg(struct udevice *dev, struct scmi_msg *msg)
 {
-	const struct scmi_agent_ops *ops = transport_dev_ops(dev);
+	const struct scmi_agent_ops *ops;
+	struct udevice *parent = dev;
+
+	/* Find related SCMI agent device */
+	do {
+		parent = dev_get_parent(parent);
+	} while (parent && device_get_uclass_id(parent) != UCLASS_SCMI_AGENT);
+
+	if (!parent) {
+		dev_err(dev, "Invalid SCMI device, agent not found\n");
+		return -ENODEV;
+	}
+
+	ops = transport_dev_ops(parent);
 
 	if (ops->process_msg)
-		return ops->process_msg(dev, msg);
+		return ops->process_msg(parent, msg);
 
 	return -EPROTONOSUPPORT;
 }

@@ -43,6 +43,7 @@
 #include <hang.h>
 
 #include "../common/board_detect.h"
+#include "../common/cape_detect.h"
 #include "mux_data.h"
 
 #ifdef CONFIG_SUPPORT_EMMC_BOOT
@@ -1198,7 +1199,8 @@ static int board_bootmode_has_emmc(void)
 #endif
 
 #ifdef CONFIG_TI_SECURE_DEVICE
-void board_fit_image_post_process(void **p_image, size_t *p_size)
+void board_fit_image_post_process(const void *fit, int node, void **p_image,
+				  size_t *p_size)
 {
 	secure_boot_verify_image(p_image, p_size);
 }

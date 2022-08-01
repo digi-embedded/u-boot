@@ -323,7 +323,7 @@ unsigned long get_board_ddr_clk(void);
  * I2C
  */
 #if !CONFIG_IS_ENABLED(DM_I2C)
-#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_LEGACY
 #define CONFIG_SYS_FSL_I2C_SLAVE   0x7F
 #define CONFIG_SYS_FSL_I2C2_SLAVE  0x7F
 #define CONFIG_SYS_FSL_I2C3_SLAVE  0x7F
@@ -435,26 +435,6 @@ unsigned long get_board_ddr_clk(void);
 #define CONFIG_SYS_PCIE4_IO_PHYS	0xff8030000ull
 
 #ifdef CONFIG_PCI
-#if !defined(CONFIG_DM_PCI)
-#define CONFIG_FSL_PCI_INIT	/* Use common FSL init code */
-#define CONFIG_SYS_PCIE1_MEM_BUS	0xe0000000
-#define CONFIG_SYS_PCIE1_MEM_SIZE	0x20000000      /* 512M */
-#define CONFIG_SYS_PCIE1_IO_BUS		0x00000000
-#define CONFIG_SYS_PCIE1_IO_SIZE	0x00010000	/* 64k */
-#define CONFIG_SYS_PCIE2_MEM_BUS	0xe0000000
-#define CONFIG_SYS_PCIE2_MEM_SIZE	0x10000000 /* 256M */
-#define CONFIG_SYS_PCIE2_IO_BUS		0x00000000
-#define CONFIG_SYS_PCIE2_IO_SIZE	0x00010000	/* 64k */
-#define CONFIG_SYS_PCIE3_MEM_BUS	0xe0000000
-#define CONFIG_SYS_PCIE3_MEM_SIZE	0x10000000	/* 256M */
-#define CONFIG_SYS_PCIE3_IO_BUS		0x00000000
-#define CONFIG_SYS_PCIE3_IO_SIZE	0x00010000	/* 64k */
-#define CONFIG_SYS_PCIE4_MEM_BUS	0xe0000000
-#define CONFIG_SYS_PCIE4_MEM_SIZE	0x10000000	/* 256M */
-#define CONFIG_SYS_PCIE4_IO_BUS		0x00000000
-#define CONFIG_SYS_PCIE4_IO_SIZE	0x00010000	/* 64k */
-#define CONFIG_PCI_INDIRECT_BRIDGE
-#endif
 #define CONFIG_PCI_SCAN_SHOW	/* show pci devices on startup */
 #endif
 
@@ -499,7 +479,6 @@ unsigned long get_board_ddr_clk(void);
  * env, so we got 0x110000.
  */
 #define CONFIG_SYS_FMAN_FW_ADDR		0x110000
-#define CONFIG_CORTINA_FW_ADDR		0x120000
 
 #elif defined(CONFIG_SDCARD)
 /*
@@ -508,11 +487,9 @@ unsigned long get_board_ddr_clk(void);
  * 0x2000 (16 blocks), 8 + 2048 + 16 = 2072, enlarge it to 2080.
  */
 #define CONFIG_SYS_FMAN_FW_ADDR		(512 * 0x820)
-#define CONFIG_CORTINA_FW_ADDR		(512 * 0x8a0)
 
 #elif defined(CONFIG_MTD_RAW_NAND)
 #define CONFIG_SYS_FMAN_FW_ADDR		(3 * CONFIG_SYS_NAND_BLOCK_SIZE)
-#define CONFIG_CORTINA_FW_ADDR		(4 * CONFIG_SYS_NAND_BLOCK_SIZE)
 #elif defined(CONFIG_SRIO_PCIE_BOOT_SLAVE)
 /*
  * Slave has no ucode locally, it can fetch this from remote. When implementing
@@ -522,17 +499,14 @@ unsigned long get_board_ddr_clk(void);
  * master LAW->the ucode address in master's memory space.
  */
 #define CONFIG_SYS_FMAN_FW_ADDR		0xFFE00000
-#define CONFIG_CORTINA_FW_ADDR		0xFFE10000
 #else
 #define CONFIG_SYS_FMAN_FW_ADDR		0xEFF00000
-#define CONFIG_CORTINA_FW_ADDR		0xEFE00000
 #endif
 #define CONFIG_SYS_QE_FMAN_FW_LENGTH	0x10000
 #define CONFIG_SYS_FDT_PAD		(0x3000 + CONFIG_SYS_QE_FMAN_FW_LENGTH)
 #endif /* CONFIG_NOBQFMAN */
 
 #ifdef CONFIG_SYS_DPAA_FMAN
-#define CONFIG_CORTINA_FW_LENGTH	0x40000
 #define RGMII_PHY1_ADDR		0x01  /* RealTek RTL8211E */
 #define RGMII_PHY2_ADDR		0x02
 #define CORTINA_PHY_ADDR1	0x0c  /* Cortina CS4315 */
@@ -578,7 +552,6 @@ unsigned long get_board_ddr_clk(void);
 #ifdef CONFIG_MMC
 #define CONFIG_SYS_FSL_ESDHC_ADDR	CONFIG_SYS_MPC85xx_ESDHC_ADDR
 #define CONFIG_SYS_FSL_ESDHC_BROKEN_TIMEOUT
-#define CONFIG_SYS_FSL_MMC_HAS_CAPBLT_VS33
 #endif
 
 /*

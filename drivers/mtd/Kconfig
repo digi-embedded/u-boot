@@ -42,6 +42,7 @@ config FLASH_CFI_DRIVER
 config CFI_FLASH
 	bool "Enable Driver Model for CFI Flash driver"
 	depends on DM_MTD
+	select FLASH_CFI_DRIVER
 	help
 	  The Common Flash Interface specification was developed by Intel,
 	  AMD and other flash manufactures. It provides a universal method
@@ -107,6 +108,13 @@ config HBMC_AM654
 	help
 	 This is the driver for HyperBus controller on TI's AM65x and
 	 other SoCs
+
+config STM32_FLASH
+	bool "STM32 MCU Flash driver"
+	depends on ARCH_STM32
+	help
+	 This is the driver of embedded flash for some STMicroelectronics
+	 STM32 MCU.
 
 source "drivers/mtd/nand/Kconfig"
 

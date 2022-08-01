@@ -13,18 +13,27 @@
 	compatible = "st,stm32mp157a-ev1", "st,stm32mp157a-ed1", "st,stm32mp157";
 
 	chosen {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
 		stdout-path = "serial0:115200n8";
-	};
-};
 
-&ltdc {
-	status = "okay";
-
-	port {
-		ltdc_ep0_out: endpoint@0 {
-			reg = <0>;
-			remote-endpoint = <&dsi_in>;
+		framebuffer {
+			compatible = "simple-framebuffer";
+			clocks = <&rcc LTDC_PX>;
+			status = "disabled";
 		};
+	};
+
+	aliases {
+		ethernet0 = &ethernet0;
+	};
+
+	panel_backlight: panel-backlight {
+		compatible = "gpio-backlight";
+		gpios = <&gpiod 13 GPIO_ACTIVE_LOW>;
+		default-on;
+		status = "okay";
 	};
 };
 
@@ -79,5 +88,16 @@
 
 		interrupts = <14 IRQ_TYPE_EDGE_RISING>;
 		interrupt-parent = <&stmfx_pinctrl>;
+	};
+};
+
+&ltdc {
+	status = "okay";
+
+	port {
+		ltdc_ep0_out: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&dsi_in>;
+		};
 	};
 };

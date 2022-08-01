@@ -30,10 +30,8 @@ struct fdt_region;
 #define IMAGE_ENABLE_FIT	1
 #define IMAGE_ENABLE_OF_LIBFDT	1
 #define CONFIG_FIT_VERBOSE	1 /* enable fit_format_{error,warning}() */
-#define CONFIG_FIT_ENABLE_RSASSA_PSS_SUPPORT 1
-#define CONFIG_FIT_ENABLE_SHA256_SUPPORT
-#define CONFIG_FIT_ENABLE_SHA384_SUPPORT
-#define CONFIG_FIT_ENABLE_SHA512_SUPPORT
+#define CONFIG_FIT_RSASSA_PSS 1
+#define CONFIG_MD5
 #define CONFIG_SHA1
 #define CONFIG_SHA256
 #define CONFIG_SHA384
@@ -47,6 +45,7 @@ struct fdt_region;
 #include <lmb.h>
 #include <asm/u-boot.h>
 #include <command.h>
+#include <linker_lists.h>
 
 /* Take notice of the 'ignore' property for hashes */
 #define IMAGE_ENABLE_IGNORE	1
@@ -61,55 +60,6 @@ struct fdt_region;
 #include <hash.h>
 #include <linux/libfdt.h>
 #include <fdt_support.h>
-# ifdef CONFIG_SPL_BUILD
-#  ifdef CONFIG_SPL_CRC32_SUPPORT
-#   define IMAGE_ENABLE_CRC32	1
-#  endif
-#  ifdef CONFIG_SPL_MD5_SUPPORT
-#   define IMAGE_ENABLE_MD5	1
-#  endif
-#  ifdef CONFIG_SPL_SHA1_SUPPORT
-#   define IMAGE_ENABLE_SHA1	1
-#  endif
-# else
-#  define IMAGE_ENABLE_CRC32	1
-#  define IMAGE_ENABLE_MD5	1
-#  define IMAGE_ENABLE_SHA1	1
-# endif
-
-#ifndef IMAGE_ENABLE_CRC32
-#define IMAGE_ENABLE_CRC32	0
-#endif
-
-#ifndef IMAGE_ENABLE_MD5
-#define IMAGE_ENABLE_MD5	0
-#endif
-
-#ifndef IMAGE_ENABLE_SHA1
-#define IMAGE_ENABLE_SHA1	0
-#endif
-
-#if defined(CONFIG_FIT_ENABLE_SHA256_SUPPORT) || \
-	defined(CONFIG_SPL_SHA256_SUPPORT)
-#define IMAGE_ENABLE_SHA256	1
-#else
-#define IMAGE_ENABLE_SHA256	0
-#endif
-
-#if defined(CONFIG_FIT_ENABLE_SHA384_SUPPORT) || \
-	defined(CONFIG_SPL_SHA384_SUPPORT)
-#define IMAGE_ENABLE_SHA384	1
-#else
-#define IMAGE_ENABLE_SHA384	0
-#endif
-
-#if defined(CONFIG_FIT_ENABLE_SHA512_SUPPORT) || \
-	defined(CONFIG_SPL_SHA512_SUPPORT)
-#define IMAGE_ENABLE_SHA512	1
-#else
-#define IMAGE_ENABLE_SHA512	0
-#endif
-
 #endif /* IMAGE_ENABLE_FIT */
 
 #ifdef CONFIG_SYS_BOOT_GET_CMDLINE
@@ -890,6 +840,11 @@ static inline int image_check_type(const image_header_t *hdr, uint8_t type)
 }
 static inline int image_check_arch(const image_header_t *hdr, uint8_t arch)
 {
+#ifndef USE_HOSTCC
+	/* Let's assume that sandbox can load any architecture */
+	if (IS_ENABLED(CONFIG_SANDBOX))
+		return true;
+#endif
 	return (image_get_arch(hdr) == arch) ||
 		(image_get_arch(hdr) == IH_ARCH_ARM && arch == IH_ARCH_ARM64);
 }
@@ -1135,9 +1090,10 @@ int fit_cipher_data(const char *keydir, void *keydest, void *fit,
  *     0, on success
  *     libfdt error code, on failure
  */
-int fit_add_verification_data(const char *keydir, void *keydest, void *fit,
-			      const char *comment, int require_keys,
-			      const char *engine_id, const char *cmdname);
+int fit_add_verification_data(const char *keydir, const char *keyfile,
+			      void *keydest, void *fit, const char *comment,
+			      int require_keys, const char *engine_id,
+			      const char *cmdname);
 
 int fit_image_verify_with_data(const void *fit, int image_noffset,
 			       const void *data, size_t size);
@@ -1222,17 +1178,14 @@ int calculate_hash(const void *data, int data_len, const char *algo,
 #if defined(USE_HOSTCC)
 # if defined(CONFIG_FIT_SIGNATURE)
 #  define IMAGE_ENABLE_SIGN	1
-#  define IMAGE_ENABLE_VERIFY	1
 #  define FIT_IMAGE_ENABLE_VERIFY	1
 #  include <openssl/evp.h>
 # else
 #  define IMAGE_ENABLE_SIGN	0
-#  define IMAGE_ENABLE_VERIFY	0
 #  define FIT_IMAGE_ENABLE_VERIFY	0
 # endif
 #else
 # define IMAGE_ENABLE_SIGN	0
-# define IMAGE_ENABLE_VERIFY		CONFIG_IS_ENABLED(RSA_VERIFY)
 # define FIT_IMAGE_ENABLE_VERIFY	CONFIG_IS_ENABLED(FIT_SIGNATURE)
 #endif
 
@@ -1245,17 +1198,19 @@ void image_set_host_blob(void *host_blob);
 # define gd_fdt_blob()		(gd->fdt_blob)
 #endif
 
-#ifdef CONFIG_FIT_BEST_MATCH
-#define IMAGE_ENABLE_BEST_MATCH	1
-#else
-#define IMAGE_ENABLE_BEST_MATCH	0
-#endif
 #endif /* IMAGE_ENABLE_FIT */
 
-/* Information passed to the signing routines */
+/*
+ * Information passed to the signing routines
+ *
+ * Either 'keydir',  'keyname', or 'keyfile' can be NULL. However, either
+ * 'keyfile', or both 'keydir' and 'keyname' should have valid values. If
+ * neither are valid, some operations might fail with EINVAL.
+ */
 struct image_sign_info {
 	const char *keydir;		/* Directory conaining keys */
 	const char *keyname;		/* Name of key to use */
+	const char *keyfile;		/* Filename of private or public key */
 	void *fit;			/* Pointer to FIT blob */
 	int node_offset;		/* Offset of signature node */
 	const char *name;		/* Algorithm name */
@@ -1281,8 +1236,8 @@ struct image_region {
 	int size;
 };
 
-#if IMAGE_ENABLE_VERIFY
-# include <u-boot/rsa-checksum.h>
+#if FIT_IMAGE_ENABLE_VERIFY
+# include <u-boot/hash-checksum.h>
 #endif
 struct checksum_algo {
 	const char *name;
@@ -1350,12 +1305,20 @@ struct crypto_algo {
 		      uint8_t *sig, uint sig_len);
 };
 
+/* Declare a new U-Boot crypto algorithm handler */
+#define U_BOOT_CRYPTO_ALGO(__name)						\
+ll_entry_declare(struct crypto_algo, __name, cryptos)
+
 struct padding_algo {
 	const char *name;
 	int (*verify)(struct image_sign_info *info,
 		      uint8_t *pad, int pad_len,
 		      const uint8_t *hash, int hash_len);
 };
+
+/* Declare a new U-Boot padding algorithm handler */
+#define U_BOOT_PADDING_ALGO(__name)						\
+ll_entry_declare(struct padding_algo, __name, paddings)
 
 /**
  * image_get_checksum_algo() - Look up a checksum algorithm
@@ -1580,11 +1543,14 @@ int board_fit_config_name_match(const char *name);
  * into the FIT creation (i.e. the binary blobs would have been pre-processed
  * before being added to the FIT image).
  *
+ * @fit: pointer to fit image
+ * @node: offset of image node
  * @image: pointer to the image start pointer
  * @size: pointer to the image size
  * @return no return value (failure should be handled internally)
  */
-void board_fit_image_post_process(void **p_image, size_t *p_size);
+void board_fit_image_post_process(const void *fit, int node, void **p_image,
+				  size_t *p_size);
 
 #define FDT_ERROR	((ulong)(-1))
 
