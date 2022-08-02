@@ -20,6 +20,7 @@
 #include <generic-phy.h>
 #include <hang.h>
 #include <i2c.h>
+#include <regmap.h>
 #include <init.h>
 #include <led.h>
 #include <log.h>
@@ -32,6 +33,7 @@
 #include <remoteproc.h>
 #include <reset.h>
 #include <syscon.h>
+#include <typec.h>
 #include <usb.h>
 #include <watchdog.h>
 #include <asm/global_data.h>
@@ -40,12 +42,15 @@
 #include <asm/arch/stm32.h>
 #include <asm/arch/sys_proto.h>
 #include <configs/digi_common.h>
+#include <dm/device.h>
+#include <dm/device-internal.h>
 #include <jffs2/load_kernel.h>
 #include <linux/bitops.h>
 #include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/iopoll.h>
 #include <power/regulator.h>
+#include <tee/optee.h>
 #include <usb/dwc2_udc.h>
 
 #include "../common/hwid.h"
@@ -57,7 +62,6 @@
 #define SYSCFG_ICNR		0x1C
 #define SYSCFG_CMPCR		0x20
 #define SYSCFG_CMPENSETR	0x24
-#define SYSCFG_PMCCLRR		0x44
 
 #define SYSCFG_BOOTR_BOOT_MASK		GENMASK(2, 0)
 #define SYSCFG_BOOTR_BOOTPD_SHIFT	4
@@ -108,12 +112,14 @@ int checkboard(void)
 	const char *fdt_compat;
 	int fdt_compat_len;
 
-	if (IS_ENABLED(CONFIG_STM32MP15x_STM32IMAGE))
-		mode = "trusted - stm32image";
-	else if (IS_ENABLED(CONFIG_TFABOOT))
-		mode = "trusted";
-	else
+	if (IS_ENABLED(CONFIG_TFABOOT)) {
+		if (IS_ENABLED(CONFIG_STM32MP15x_STM32IMAGE))
+			mode = "trusted - stm32image";
+		else
+			mode = "trusted";
+	} else {
 		mode = "basic";
+	}
 
 	fdt_compat = fdt_getprop(gd->fdt_blob, 0, "compatible",
 				 &fdt_compat_len);
@@ -349,9 +355,6 @@ static int board_check_usb_power(void)
 	u32 nb_blink;
 	u8 i;
 
-	if (!IS_ENABLED(CONFIG_ADC))
-		return -ENODEV;
-
 	node = ofnode_path("/config");
 	if (!ofnode_valid(node)) {
 		log_debug("no /config node?\n");
@@ -544,6 +547,15 @@ static void sysconf_init(void)
 /* board dependent setup after realloc */
 int board_init(void)
 {
+	struct udevice *dev;
+	int ret;
+
+	/* probe RCC to avoid circular access with usbphyc probe as clk provider */
+	if (IS_ENABLED(CONFIG_CLK_STM32MP13)) {
+		ret = uclass_get_device_by_driver(UCLASS_CLK, DM_DRIVER_GET(stm32mp1_clock), &dev);
+		log_debug("Clock init failed: %d\n", ret);
+	}
+
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = STM32_DDR_BASE + 0x100;
 
@@ -552,7 +564,11 @@ int board_init(void)
 	if (IS_ENABLED(CONFIG_DM_REGULATOR))
 		regulators_enable_boot_on(_DEBUG);
 
-	if (!IS_ENABLED(CONFIG_TFABOOT))
+	/*
+	 * sysconf initialisation done only when U-Boot is running in secure
+	 * done in TF-A for TFABOOT.
+	 */
+	if (IS_ENABLED(CONFIG_ARMV7_NONSEC))
 		sysconf_init();
 
 	if (CONFIG_IS_ENABLED(LED))
@@ -607,8 +623,14 @@ int board_late_init(void)
 		}
 	}
 
-	/* for DK1/DK2 boards */
-	board_check_usb_power();
+	if (IS_ENABLED(CONFIG_ADC)) {
+		/* probe all ADC for calibration */
+		uclass_foreach_dev_probe(UCLASS_ADC, dev) {
+			log_debug("ACD probe for calibration: %s\n", dev->name);
+		}
+		/* for DK1/DK2 boards */
+		board_check_usb_power();
+	}
 
 	return 0;
 }
@@ -618,58 +640,114 @@ void board_quiesce_devices(void)
 	setup_led(LEDST_OFF);
 }
 
+/* CLOCK feed to PHY*/
+#define ETH_CK_F_25M	25000000
+#define ETH_CK_F_50M	50000000
+#define ETH_CK_F_125M	125000000
+
+struct stm32_syscfg_pmcsetr {
+	u32 syscfg_clr_off;
+	u32 eth1_clk_sel;
+	u32 eth1_ref_clk_sel;
+	u32 eth1_sel_mii;
+	u32 eth1_sel_rgmii;
+	u32 eth1_sel_rmii;
+	u32 eth2_clk_sel;
+	u32 eth2_ref_clk_sel;
+	u32 eth2_sel_rgmii;
+	u32 eth2_sel_rmii;
+};
+
+const struct stm32_syscfg_pmcsetr stm32mp15_syscfg_pmcsetr = {
+	.syscfg_clr_off		= 0x44,
+	.eth1_clk_sel		= BIT(16),
+	.eth1_ref_clk_sel	= BIT(17),
+	.eth1_sel_mii		= BIT(20),
+	.eth1_sel_rgmii		= BIT(21),
+	.eth1_sel_rmii		= BIT(23),
+	.eth2_clk_sel		= 0,
+	.eth2_ref_clk_sel	= 0,
+	.eth2_sel_rgmii		= 0,
+	.eth2_sel_rmii		= 0
+};
+
+const struct stm32_syscfg_pmcsetr stm32mp13_syscfg_pmcsetr = {
+	.syscfg_clr_off		= 0x08,
+	.eth1_clk_sel		= BIT(16),
+	.eth1_ref_clk_sel	= BIT(17),
+	.eth1_sel_mii		= 0,
+	.eth1_sel_rgmii		= BIT(21),
+	.eth1_sel_rmii		= BIT(23),
+	.eth2_clk_sel		= BIT(24),
+	.eth2_ref_clk_sel	= BIT(25),
+	.eth2_sel_rgmii		= BIT(29),
+	.eth2_sel_rmii		= BIT(31)
+};
+
+#define SYSCFG_PMCSETR_ETH_MASK		GENMASK(23, 16)
+#define SYSCFG_PMCR_ETH_SEL_GMII	0
+
 /* eth init function : weak called in eqos driver */
 int board_interface_eth_init(struct udevice *dev,
-			     phy_interface_t interface_type)
+			     phy_interface_t interface_type, ulong rate)
 {
-	u8 *syscfg;
+	struct regmap *regmap;
+	uint regmap_mask;
+	int ret;
 	u32 value;
-	bool eth_clk_sel_reg = false;
-	bool eth_ref_clk_sel_reg = false;
+	bool ext_phyclk, eth_clk_sel_reg, eth_ref_clk_sel_reg;
+	const struct stm32_syscfg_pmcsetr *pmcsetr;
+
+	/* Ethernet PHY have no crystal */
+	ext_phyclk = dev_read_bool(dev, "st,ext-phyclk");
 
 	/* Gigabit Ethernet 125MHz clock selection. */
 	eth_clk_sel_reg = dev_read_bool(dev, "st,eth-clk-sel");
 
 	/* Ethernet 50Mhz RMII clock selection */
-	eth_ref_clk_sel_reg =
-		dev_read_bool(dev, "st,eth-ref-clk-sel");
+	eth_ref_clk_sel_reg = dev_read_bool(dev, "st,eth-ref-clk-sel");
 
-	syscfg = (u8 *)syscon_get_first_range(STM32MP_SYSCON_SYSCFG);
+	if (device_is_compatible(dev, "st,stm32mp13-dwmac"))
+		pmcsetr = &stm32mp13_syscfg_pmcsetr;
+	else
+		pmcsetr = &stm32mp15_syscfg_pmcsetr;
 
-	if (!syscfg)
+	regmap = syscon_regmap_lookup_by_phandle(dev, "st,syscon");
+	if (!IS_ERR(regmap)) {
+		u32 fmp[3];
+
+		ret = dev_read_u32_array(dev, "st,syscon", fmp, 3);
+		if (ret)
+			/*  If no mask in DT, it is MP15 (backward compatibility) */
+			regmap_mask = SYSCFG_PMCSETR_ETH_MASK;
+		else
+			regmap_mask = fmp[2];
+	} else {
 		return -ENODEV;
+	}
 
 	switch (interface_type) {
 	case PHY_INTERFACE_MODE_MII:
-		value = SYSCFG_PMCSETR_ETH_SEL_GMII_MII |
-			SYSCFG_PMCSETR_ETH_REF_CLK_SEL;
+		value = pmcsetr->eth1_sel_mii;
 		log_debug("PHY_INTERFACE_MODE_MII\n");
 		break;
 	case PHY_INTERFACE_MODE_GMII:
-		if (eth_clk_sel_reg)
-			value = SYSCFG_PMCSETR_ETH_SEL_GMII_MII |
-				SYSCFG_PMCSETR_ETH_CLK_SEL;
-		else
-			value = SYSCFG_PMCSETR_ETH_SEL_GMII_MII;
+		value = SYSCFG_PMCR_ETH_SEL_GMII;
 		log_debug("PHY_INTERFACE_MODE_GMII\n");
 		break;
 	case PHY_INTERFACE_MODE_RMII:
-		if (eth_ref_clk_sel_reg)
-			value = SYSCFG_PMCSETR_ETH_SEL_RMII |
-				SYSCFG_PMCSETR_ETH_REF_CLK_SEL;
-		else
-			value = SYSCFG_PMCSETR_ETH_SEL_RMII;
+		value = pmcsetr->eth1_sel_rmii | pmcsetr->eth2_sel_rmii;
+		if (rate == ETH_CK_F_50M && (eth_clk_sel_reg || ext_phyclk))
+			value |= pmcsetr->eth1_ref_clk_sel | pmcsetr->eth2_ref_clk_sel;
 		log_debug("PHY_INTERFACE_MODE_RMII\n");
 		break;
 	case PHY_INTERFACE_MODE_RGMII:
 	case PHY_INTERFACE_MODE_RGMII_ID:
 	case PHY_INTERFACE_MODE_RGMII_RXID:
 	case PHY_INTERFACE_MODE_RGMII_TXID:
-		if (eth_clk_sel_reg)
-			value = SYSCFG_PMCSETR_ETH_SEL_RGMII |
-				SYSCFG_PMCSETR_ETH_CLK_SEL;
-		else
-			value = SYSCFG_PMCSETR_ETH_SEL_RGMII;
+		value = pmcsetr->eth1_sel_rgmii | pmcsetr->eth2_sel_rgmii;
+		if (rate == ETH_CK_F_125M && (eth_clk_sel_reg || ext_phyclk))
+			value |= pmcsetr->eth1_clk_sel | pmcsetr->eth2_clk_sel;
 		log_debug("PHY_INTERFACE_MODE_RGMII\n");
 		break;
 	default:
@@ -679,13 +757,12 @@ int board_interface_eth_init(struct udevice *dev,
 		return -EINVAL;
 	}
 
-	/* clear and set ETH configuration bits */
-	writel(SYSCFG_PMCSETR_ETH_SEL_MASK | SYSCFG_PMCSETR_ETH_SELMII |
-	       SYSCFG_PMCSETR_ETH_REF_CLK_SEL | SYSCFG_PMCSETR_ETH_CLK_SEL,
-	       syscfg + SYSCFG_PMCCLRR);
-	writel(value, syscfg + SYSCFG_PMCSETR);
+	/* Need to update PMCCLRR (clear register) */
+	regmap_write(regmap, pmcsetr->syscfg_clr_off, regmap_mask);
 
-	return 0;
+	ret = regmap_update_bits(regmap, SYSCFG_PMCSETR, regmap_mask, value);
+
+	return ret;
 }
 
 enum env_location env_get_location(enum env_operation op, int prio)
@@ -723,41 +800,116 @@ enum env_location env_get_location(enum env_operation op, int prio)
 	}
 }
 
-const char *env_ext4_get_intf(void)
-{
-	u32 bootmode = get_bootmode();
+#if defined(CONFIG_OF_BOARD_SETUP)
 
-	switch (bootmode & TAMP_BOOT_DEVICE_MASK) {
-	case BOOT_FLASH_SD:
-	case BOOT_FLASH_EMMC:
-		return "mmc";
-	default:
-		return "";
+/* update scmi nodes with information provided by SP-MIN */
+void stm32mp15_fdt_update_scmi_node(void *new_blob)
+{
+	ofnode node;
+	int nodeoff = 0;
+	const char *name;
+	u32 val;
+	int ret;
+
+	nodeoff = fdt_path_offset(new_blob, "/firmware/scmi");
+	if (nodeoff < 0)
+		return;
+
+	/* search scmi node in U-Boot device tree */
+	node = ofnode_path("/firmware/scmi");
+	if (!ofnode_valid(node)) {
+		log_warning("node not found");
+		return;
+	}
+	if (!ofnode_device_is_compatible(node, "arm,scmi-smc")) {
+		name = ofnode_get_property(node, "compatible", NULL);
+		log_warning("invalid compatible %s", name);
+		return;
+	}
+
+	/* read values updated by TF-A SP-MIN */
+	ret = ofnode_read_u32(node, "arm,smc-id", &val);
+	if (ret) {
+		log_warning("arm,smc-id missing");
+		return;
+	}
+	/* update kernel node */
+	fdt_setprop_string(new_blob, nodeoff, "compatible", "arm,scmi-smc");
+	fdt_delprop(new_blob, nodeoff, "linaro,optee-channel-id");
+	fdt_setprop_u32(new_blob, nodeoff, "arm,smc-id", val);
+}
+
+/*
+ * update the device tree to support boot with SP-MIN, using a device tree
+ * containing OPTE nodes:
+ * 1/ remove the OP-TEE related nodes
+ * 2/ copy SCMI nodes to kernel device tree to replace the OP-TEE agent
+ *
+ * SP-MIN boot is supported for STM32MP15 and it uses the SCMI SMC agent
+ * whereas Linux device tree defines an SCMI OP-TEE agent.
+ *
+ * This function allows to temporary support this legacy boot mode,
+ * with SP-MIN and without OP-TEE.
+ */
+void stm32mp15_fdt_update_optee_nodes(void *new_blob)
+{
+	ofnode node;
+	int nodeoff = 0, subnodeoff;
+
+	/* only proceed if /firmware/optee node is not present in U-Boot DT */
+	node = ofnode_path("/firmware/optee");
+	if (ofnode_valid(node)) {
+		log_debug("OP-TEE firmware found, nothing to do");
+		return;
+	}
+
+	/* remove OP-TEE memory regions in reserved-memory node */
+	nodeoff = fdt_path_offset(new_blob, "/reserved-memory");
+	if (nodeoff >= 0) {
+		fdt_for_each_subnode(subnodeoff, new_blob, nodeoff) {
+			const char *name = fdt_get_name(new_blob, subnodeoff, NULL);
+
+			/* only handle "optee" reservations */
+			if (name && !strncmp(name, "optee", 5))
+				fdt_del_node(new_blob, subnodeoff);
+		}
+	}
+
+	/* remove OP-TEE node  */
+	nodeoff = fdt_path_offset(new_blob, "/firmware/optee");
+	if (nodeoff >= 0)
+		fdt_del_node(new_blob, nodeoff);
+
+	/* update the scmi node */
+	stm32mp15_fdt_update_scmi_node(new_blob);
+}
+
+
+void fdt_update_panel_dsi(void *new_blob)
+{
+	char const *panel = env_get("panel-dsi");
+	int nodeoff = 0;
+
+	if (!panel)
+		return;
+
+	if (!strcmp(panel, "rocktech,hx8394")) {
+		nodeoff = fdt_node_offset_by_compatible(new_blob, -1, "raydium,rm68200");
+		if (nodeoff < 0) {
+			log_warning("panel-dsi node not found");
+			return;
+		}
+		fdt_setprop_string(new_blob, nodeoff, "compatible", panel);
+
+		nodeoff = fdt_node_offset_by_compatible(new_blob, -1, "goodix,gt9147");
+		if (nodeoff < 0) {
+			log_warning("touchscreen node not found");
+			return;
+		}
+		fdt_setprop_string(new_blob, nodeoff, "compatible", "goodix,gt911");
 	}
 }
 
-const char *env_ext4_get_dev_part(void)
-{
-	static char *const dev_part[] = {"0:auto", "1:auto", "2:auto"};
-	u32 bootmode = get_bootmode();
-
-	return dev_part[(bootmode & TAMP_BOOT_INSTANCE_MASK) - 1];
-}
-
-int mmc_get_env_dev(void)
-{
-	u32 bootmode;
-
-	if (CONFIG_SYS_MMC_ENV_DEV >= 0)
-		return CONFIG_SYS_MMC_ENV_DEV;
-
-	bootmode = get_bootmode();
-
-	/* use boot instance to select the correct mmc device identifier */
-	return (bootmode & TAMP_BOOT_INSTANCE_MASK) - 1;
-}
-
-#if defined(CONFIG_OF_BOARD_SETUP)
 int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	static const struct node_info nodes[] = {
@@ -776,8 +928,10 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 			fdt_fixup_mtdparts(blob, nodes, ARRAY_SIZE(nodes));
 
 	if (CONFIG_IS_ENABLED(FDT_SIMPLEFB))
-		fdt_simplefb_add_node_and_mem_rsv(blob);
+		fdt_simplefb_enable_and_mem_rsv(blob);
 
+
+	stm32mp15_fdt_update_optee_nodes(blob);
 	return 0;
 }
 #endif
