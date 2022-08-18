@@ -33,11 +33,11 @@
 	status = "okay";
 };
 
-&uart4 {
+&uart5 {
 	u-boot,dm-pre-reloc;
 };
 
-&uart4_pins_a {
+&uart5_pins_a {
 	u-boot,dm-pre-reloc;
 	pins1 {
 		u-boot,dm-pre-reloc;
