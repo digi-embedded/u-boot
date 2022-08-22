@@ -33,9 +33,18 @@ uint32_t sec_offset[CONFIG_SYS_FSL_MAX_NUM_OF_SEC] = {
 #define SEC_ADDR(idx)	\
 	(ulong)((CONFIG_SYS_FSL_SEC_ADDR + sec_offset[idx]))
 
-#define SEC_JR0_ADDR(idx)	\
+#ifndef CONFIG_IMX8M
+#define SEC_JR_ADDR(idx)	\
 	(ulong)(SEC_ADDR(idx) +	\
 	 (CONFIG_SYS_FSL_JR0_OFFSET - CONFIG_SYS_FSL_SEC_OFFSET))
+#define JR_ID 0
+#else
+#define SEC_JR_ADDR(idx)       \
+       (ulong)(SEC_ADDR(idx) + \
+        (CONFIG_SYS_FSL_JR1_OFFSET - CONFIG_SYS_FSL_SEC_OFFSET))
+#define JR_ID 1
+#endif
+
 
 struct jobring jr0[CONFIG_SYS_FSL_MAX_NUM_OF_SEC];
 extern int rng_swtest_status;
@@ -52,11 +61,11 @@ static inline void start_jr0(uint8_t sec_idx)
 		 */
 		if ((ctpr_ms & SEC_CTPR_MS_VIRT_EN_POR) ||
 		    (scfgr & SEC_SCFGR_VIRT_EN))
-			sec_out32(&sec->jrstartr, CONFIG_JRSTARTR_JR0);
+			sec_out32(&sec->jrstartr, 1 << JR_ID);
 	} else {
 		/* VIRT_EN_INCL = 0 && VIRT_EN_POR_VALUE = 1 */
 		if (ctpr_ms & SEC_CTPR_MS_VIRT_EN_POR)
-			sec_out32(&sec->jrstartr, CONFIG_JRSTARTR_JR0);
+			sec_out32(&sec->jrstartr, 1 << JR_ID);
 	}
 }
 
@@ -68,7 +77,7 @@ static inline void jr_reset_liodn(uint8_t sec_idx)
 
 static inline void jr_disable_irq(uint8_t sec_idx)
 {
-	struct jr_regs *regs = (struct jr_regs *)SEC_JR0_ADDR(sec_idx);
+	struct jr_regs *regs = (struct jr_regs *)SEC_JR_ADDR(sec_idx);
 	uint32_t jrcfg = sec_in32(&regs->jrcfg1);
 
 	jrcfg = jrcfg | JR_INTMASK;
@@ -78,7 +87,7 @@ static inline void jr_disable_irq(uint8_t sec_idx)
 
 static void jr_initregs(uint8_t sec_idx)
 {
-	struct jr_regs *regs = (struct jr_regs *)SEC_JR0_ADDR(sec_idx);
+	struct jr_regs *regs = (struct jr_regs *)SEC_JR_ADDR(sec_idx);
 	struct jobring *jr = &jr0[sec_idx];
 	caam_dma_addr_t ip_base = virt_to_phys((void *)jr->input_ring);
 	caam_dma_addr_t op_base = virt_to_phys((void *)jr->output_ring);
@@ -108,7 +117,7 @@ static int jr_init(uint8_t sec_idx)
 
 	memset(jr, 0, sizeof(struct jobring));
 
-	jr->jq_id = DEFAULT_JR_ID;
+	jr->jq_id = JR_ID;
 	jr->irq = DEFAULT_IRQ;
 
 #ifdef CONFIG_FSL_CORENET
@@ -154,7 +163,7 @@ static int jr_sw_cleanup(uint8_t sec_idx)
 
 static int jr_hw_reset(uint8_t sec_idx)
 {
-	struct jr_regs *regs = (struct jr_regs *)SEC_JR0_ADDR(sec_idx);
+	struct jr_regs *regs = (struct jr_regs *)SEC_JR_ADDR(sec_idx);
 	uint32_t timeout = 100000;
 	uint32_t jrint, jrcr;
 
@@ -186,7 +195,7 @@ static int jr_enqueue(uint32_t *desc_addr,
 	       void (*callback)(uint32_t status, void *arg),
 	       void *arg, uint8_t sec_idx)
 {
-	struct jr_regs *regs = (struct jr_regs *)SEC_JR0_ADDR(sec_idx);
+	struct jr_regs *regs = (struct jr_regs *)SEC_JR_ADDR(sec_idx);
 	struct jobring *jr = &jr0[sec_idx];
 	int head = jr->head;
 	uint32_t desc_word;
@@ -261,7 +270,7 @@ static int jr_enqueue(uint32_t *desc_addr,
 
 static int jr_dequeue(int sec_idx)
 {
-	struct jr_regs *regs = (struct jr_regs *)SEC_JR0_ADDR(sec_idx);
+	struct jr_regs *regs = (struct jr_regs *)SEC_JR_ADDR(sec_idx);
 	struct jobring *jr = &jr0[sec_idx];
 	int head = jr->head;
 	int tail = jr->tail;
@@ -626,14 +635,14 @@ int sec_init_idx(uint8_t sec_idx)
 	liodn_ns = CONFIG_SPL_JR0_LIODN_NS & JRNSLIODN_MASK;
 	liodn_s = CONFIG_SPL_JR0_LIODN_S & JRSLIODN_MASK;
 
-	liodnr = sec_in32(&sec->jrliodnr[0].ls) &
+	liodnr = sec_in32(&sec->jrliodnr[JR_ID].ls) &
 		 ~(JRNSLIODN_MASK | JRSLIODN_MASK);
 	liodnr = liodnr |
 		 (liodn_ns << JRNSLIODN_SHIFT) |
 		 (liodn_s << JRSLIODN_SHIFT);
-	sec_out32(&sec->jrliodnr[0].ls, liodnr);
+	sec_out32(&sec->jrliodnr[JR_ID].ls, liodnr);
 #else
-	liodnr = sec_in32(&sec->jrliodnr[0].ls);
+	liodnr = sec_in32(&sec->jrliodnr[JR_ID].ls);
 	liodn_ns = (liodnr & JRNSLIODN_MASK) >> JRNSLIODN_SHIFT;
 	liodn_s = (liodnr & JRSLIODN_MASK) >> JRSLIODN_SHIFT;
 #endif
