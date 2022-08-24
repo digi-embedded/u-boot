@@ -695,6 +695,12 @@ int board_postclk_init(void)
 
 	set_ldo_voltage(LDO_SOC, 1175);	/* Set VDDSOC to 1.175V */
 
+	/* Increase VPU and ARM voltage on MX6QP SOMs */
+	if (is_mx6dqp()) {
+		set_ldo_voltage(LDO_PU, 1175);	/* Set VDDVPU to 1.175V */
+		set_ldo_voltage(LDO_ARM, 1175);	/* Set VDDARM to 1.175V */
+	}
+
 	return 0;
 }
 
