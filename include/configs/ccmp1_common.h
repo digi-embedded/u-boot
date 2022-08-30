@@ -21,7 +21,11 @@
  * Configuration of the external SRAM memory used by U-Boot
  */
 #define CONFIG_SYS_SDRAM_BASE			STM32_DDR_BASE
+#ifdef CONFIG_STM32MP13x
+#define CONFIG_SYS_INIT_SP_ADDR			(CONFIG_SYS_TEXT_BASE + SZ_4M)
+#else
 #define CONFIG_SYS_INIT_SP_ADDR			CONFIG_SYS_TEXT_BASE
+#endif
 
 /*
  * Console I/O buffer size
