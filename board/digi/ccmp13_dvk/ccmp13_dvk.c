@@ -41,6 +41,7 @@
 #include <asm/gpio.h>
 #include <asm/arch/stm32.h>
 #include <asm/arch/sys_proto.h>
+#include <configs/digi_common.h>
 #include <dm/device.h>
 #include <dm/device-internal.h>
 #include <jffs2/load_kernel.h>
@@ -51,6 +52,8 @@
 #include <power/regulator.h>
 #include <tee/optee.h>
 #include <usb/dwc2_udc.h>
+
+#include "../common/hwid.h"
 
 /* SYSCFG registers */
 #define SYSCFG_BOOTR		0x00
