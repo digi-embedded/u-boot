@@ -100,27 +100,27 @@
 	};
 };
 
+/* 10/100 Ethernet */
 &eth2 {
-	status = "okay";
-	pinctrl-0 = <&eth2_rmii_pins_a>;
-	pinctrl-1 = <&eth2_rmii_sleep_pins_a>;
+	status = "disabled";
+	pinctrl-0 = <&ccmp13_eth2_rmii_pins>;
+	pinctrl-1 = <&ccmp13_eth2_rmii_sleep_pins>;
 	pinctrl-names = "default", "sleep";
 	phy-mode = "rmii";
 	max-speed = <100>;
 	phy-handle = <&phy0_eth2>;
 	st,ext-phyclk;
-	phy-supply = <&scmi_v3v3_sw>;
-	nvmem-cells = <&ethernet_mac2_address>;
-	nvmem-cell-names = "mac-address";
+	phy-supply = <&reg_3v3_eth_pwr>;
 
 	mdio1 {
 		#address-cells = <1>;
 		#size-cells = <0>;
 		compatible = "snps,dwmac-mdio";
+
 		phy0_eth2: ethernet-phy@0 {
-			compatible = "ethernet-phy-id0007.c131";
-			reset-gpios = <&mcp23017 10 GPIO_ACTIVE_LOW>;
 			reg = <0>;
+			compatible = "ethernet-phy-id0007.c0f0"; /* PHY ID for SMSC LAN8720Ai */
+			reset-gpios = <&gpioi 2 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 		};
 	};
 };
@@ -434,6 +434,41 @@
 				 <STM32_PINMUX('D', 7,  ANALOG)>, /* ETH1_REF_CLK */
 				 <STM32_PINMUX('A', 7,  ANALOG)>; /* ETH1_RX_DV */
 		 };
+	};
+
+	ccmp13_eth2_rmii_pins: ccmp13-eth2-rmii-1 {
+		pins1 {
+			pinmux = <STM32_PINMUX('F', 7,  AF11)>, /* ETH2_TXD0 */
+				 <STM32_PINMUX('G', 11, AF10)>, /* ETH2_TXD1 */
+				 <STM32_PINMUX('H', 11, AF11)>, /* ETH2_REF_CLK */
+				 <STM32_PINMUX('F', 6,  AF11)>, /* ETH2_TX_EN */
+				 <STM32_PINMUX('B', 2,  AF11)>, /* ETH2_MDIO */
+				 <STM32_PINMUX('G', 5,  AF10)>; /* ETH2_MDC */
+			bias-disable;
+			drive-push-pull;
+			slew-rate = <1>;
+		};
+
+		pins2 {
+			pinmux = <STM32_PINMUX('F', 4,  AF11)>, /* ETH2_RXD0 */
+				 <STM32_PINMUX('E', 2,  AF10)>, /* ETH2_RXD1 */
+				 <STM32_PINMUX('A', 12, AF11)>; /* ETH2_RX_DV */
+			bias-disable;
+		};
+	};
+
+	ccmp13_eth2_rmii_sleep_pins: ccmp13-eth2-rmii-sleep-1 {
+		pins1 {
+			pinmux = <STM32_PINMUX('F', 7,  ANALOG)>, /* ETH2_TXD0 */
+				 <STM32_PINMUX('G', 11, ANALOG)>, /* ETH2_TXD1 */
+				 <STM32_PINMUX('H', 11, ANALOG)>, /* ETH2_REF_CLK */
+				 <STM32_PINMUX('F', 6,  ANALOG)>, /* ETH2_TX_EN */
+				 <STM32_PINMUX('B', 2,  ANALOG)>, /* ETH2_MDIO */
+				 <STM32_PINMUX('G', 5,  ANALOG)>, /* ETH2_MDC */
+				 <STM32_PINMUX('F', 4,  ANALOG)>, /* ETH2_RXD0 */
+				 <STM32_PINMUX('E', 2,  ANALOG)>, /* ETH2_RXD1 */
+				 <STM32_PINMUX('A', 12, ANALOG)>; /* ETH2_RX_DV */
+		};
 	};
 
 	uart5_pins_a: uart5-0 {
