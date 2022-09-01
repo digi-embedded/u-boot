@@ -39,6 +39,7 @@
 			regulator-name = "3v3_eth_pwr";
 			regulator-min-microvolt = <3300000>;
 			regulator-max-microvolt = <3300000>;
+			regulator-always-on;
 			gpio = <&gpioh 3 GPIO_ACTIVE_HIGH>;
 			enable-active-high;
 			status = "okay";
