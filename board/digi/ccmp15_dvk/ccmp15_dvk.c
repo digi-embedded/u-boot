@@ -765,41 +765,6 @@ int board_interface_eth_init(struct udevice *dev,
 	return ret;
 }
 
-enum env_location env_get_location(enum env_operation op, int prio)
-{
-	u32 bootmode = get_bootmode();
-
-	if (prio)
-		return ENVL_UNKNOWN;
-
-	switch (bootmode & TAMP_BOOT_DEVICE_MASK) {
-	case BOOT_FLASH_SD:
-	case BOOT_FLASH_EMMC:
-		if (CONFIG_IS_ENABLED(ENV_IS_IN_MMC))
-			return ENVL_MMC;
-		else if (CONFIG_IS_ENABLED(ENV_IS_IN_EXT4))
-			return ENVL_EXT4;
-		else
-			return ENVL_NOWHERE;
-
-	case BOOT_FLASH_NAND:
-	case BOOT_FLASH_SPINAND:
-		if (CONFIG_IS_ENABLED(ENV_IS_IN_UBI))
-			return ENVL_UBI;
-		else
-			return ENVL_NOWHERE;
-
-	case BOOT_FLASH_NOR:
-		if (CONFIG_IS_ENABLED(ENV_IS_IN_SPI_FLASH))
-			return ENVL_SPI_FLASH;
-		else
-			return ENVL_NOWHERE;
-
-	default:
-		return ENVL_NOWHERE;
-	}
-}
-
 #if defined(CONFIG_OF_BOARD_SETUP)
 
 /* update scmi nodes with information provided by SP-MIN */

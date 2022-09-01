@@ -14,6 +14,8 @@ ifdef CONFIG_HAS_HWID
 obj-y += ../ccmp1/ccmp1_hwid.o
 endif
 
+obj-y += ../ccmp1/ccmp1.o
+
 # ST common
 obj-$(CONFIG_CMD_STBOARD) += ../../st/common/cmd_stboard.o
 obj-$(CONFIG_PMIC_STPMIC1) += ../../st/common/stpmic1.o
