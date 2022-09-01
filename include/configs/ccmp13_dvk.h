@@ -144,3 +144,8 @@
 	BOOTENV \
 
 #endif
+
+/* Ethernet */
+#ifdef CONFIG_DWC_ETH_QOS
+#define CONFIG_SYS_NONCACHED_MEMORY    (1 * SZ_1M)
+#endif
