@@ -406,7 +406,7 @@ void do_enable_parallel_lcd(struct display_info_t const *dev)
 	board_video_bl_enable(false);
 }
 
-static struct display_info_t const displays[] = {
+struct display_info_t const displays[] = {
 	{
 		.bus = MX6UL_LCDIF1_BASE_ADDR,
 		.addr = 0,
@@ -452,43 +452,7 @@ static struct display_info_t const displays[] = {
 	},
 };
 
-int board_video_skip(void)
-{
-	int i;
-	int ret;
-	char const *panel = env_get("panel");
-
-	if (!panel) {
-		panel = displays[0].mode.name;
-		printf("No panel detected: default to %s\n", panel);
-		i = 0;
-	} else {
-		for (i = 0; i < ARRAY_SIZE(displays); i++) {
-			if (!strcmp(panel, displays[i].mode.name))
-				break;
-		}
-	}
-
-	if (i < ARRAY_SIZE(displays)) {
-		ret = mxs_lcd_panel_setup(displays[i].mode, displays[i].pixfmt,
-					  displays[i].bus);
-		if (!ret) {
-			if (displays[i].enable)
-				displays[i].enable(displays+i);
-			printf("Display: %s (%ux%u)\n",
-			       displays[i].mode.name,
-			       displays[i].mode.xres,
-			       displays[i].mode.yres);
-		} else
-			printf("LCD %s cannot be configured: %d\n",
-			       displays[i].mode.name, ret);
-	} else {
-		printf("unsupported panel %s\n", panel);
-		return -EINVAL;
-	}
-
-	return 0;
-}
+size_t display_count = ARRAY_SIZE(displays);
 
 /* We do not want any output on the display, just the splash or logo */
 int board_cfb_skip(void)
@@ -567,10 +531,10 @@ int board_load_logo(void)
 	ret = get_fw_filename(argc, source, &fwinfo);
 	if (ret) {
 		/* Filename was not provided. Look for default one */
-		fwinfo.filename = "logo.bmp";
+		strncpy(fwinfo.filename, "logo.bmp", sizeof(fwinfo.filename));
 	}
 
-	fwinfo.loadaddr = "$loadaddr";
+	strncpy(fwinfo.loadaddr, "$loadaddr", sizeof(fwinfo.loadaddr));
 
 	/* Load the bmp in memory */
 	ret = load_firmware(&fwinfo, NULL);

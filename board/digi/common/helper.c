@@ -412,10 +412,16 @@ char *get_default_filename(char *partname, int cmd)
 			return "$uboot_file";
 		} else {
 			/* Read the default filename from a variable called
-			 * after the partition name: <partname>_file
+			 * after the partition name: <partname>_file,
+			 * returning an empty string in case of partitions name is
+			 * not found.
 			 */
 			sprintf(varname, "%s_file", partname);
-			return env_get(varname);
+			var = env_get(varname);
+			if (!var)
+				return "";
+			else
+				return var;
 		}
 		break;
 	}
@@ -901,8 +907,10 @@ void set_verifyaddr(unsigned long loadaddr)
 
 	 /* Skip reserved memory area */
 #if defined(RESERVED_MEM_START) && defined(RESERVED_MEM_END)
-	if (verifyaddr >= RESERVED_MEM_START && verifyaddr < RESERVED_MEM_END)
+	if (verifyaddr >= RESERVED_MEM_START && verifyaddr < RESERVED_MEM_END) {
 		verifyaddr = RESERVED_MEM_END;
+		printf("Skip reserved memory area, verifyaddr set to 0x%lx\n", verifyaddr);
+	}
 #endif
 
 	 if (verifyaddr > loadaddr &&

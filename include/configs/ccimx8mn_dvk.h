@@ -10,6 +10,10 @@
 
 #include "ccimx8m_common.h"
 
+/* RAM memory reserved for OPTEE (32 MiB) */
+#define RESERVED_MEM_START		0x56000000
+#define RESERVED_MEM_END		0x58000000
+
 #define CONFIG_CC8
 #define CONFIG_CC8M
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 8M Nano"

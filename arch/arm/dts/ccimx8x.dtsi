@@ -38,6 +38,14 @@
 	status = "okay";
 };
 
+&gpio6 {
+	status = "disabled";
+};
+
+&gpio7 {
+	status = "disabled";
+};
+
 /* IOMUX */
 &iomuxc {
 	pinctrl-names = "default";

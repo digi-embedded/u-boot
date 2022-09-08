@@ -38,7 +38,7 @@ int blob_decap(u8 *key_mod, u8 *src, u8 *dst, u32 len)
 		return -EINVAL;
 	}
 
-	printf("\nDecapsulating blob to get data\n");
+	debug("\nDecapsulating blob to get data\n");
 	desc = malloc_cache_aligned(sizeof(int) * MAX_CAAM_DESCSIZE);
 	if (!desc) {
 		debug("Not enough memory for descriptor allocation\n");
@@ -76,7 +76,7 @@ int blob_decap(u8 *key_mod, u8 *src, u8 *dst, u32 len)
 		invalidate_dcache_range((unsigned long)dst,
 					(unsigned long)dst + size);
 
-		puts("Blob decapsulation successful.\n");
+		debug("Blob decapsulation successful.\n");
 	}
 
 	free(desc);
@@ -107,7 +107,7 @@ int blob_encap(u8 *key_mod, u8 *src, u8 *dst, u32 len)
 		return -EINVAL;
 	}
 
-	printf("\nEncapsulating data to form blob\n");
+	debug("\nEncapsulating data to form blob\n");
 	desc = malloc_cache_aligned(sizeof(int) * MAX_CAAM_DESCSIZE);
 	if (!desc) {
 		debug("Not enough memory for descriptor allocation\n");
@@ -145,7 +145,7 @@ int blob_encap(u8 *key_mod, u8 *src, u8 *dst, u32 len)
 		invalidate_dcache_range((unsigned long)dst,
 					(unsigned long)dst + size);
 
-		puts("Blob encapsulation successful.\n");
+		debug("Blob encapsulation successful.\n");
 	}
 
 	free(desc);

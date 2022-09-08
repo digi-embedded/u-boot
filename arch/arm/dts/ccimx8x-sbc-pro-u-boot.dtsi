@@ -74,14 +74,6 @@
 	u-boot,dm-pre-proper;
 };
 
-&pd_lsio_gpio6 {
-	u-boot,dm-pre-proper;
-};
-
-&pd_lsio_gpio7 {
-	u-boot,dm-pre-proper;
-};
-
 &pd_dma {
 	u-boot,dm-pre-proper;
 };
@@ -127,14 +119,6 @@
 };
 
 &gpio5 {
-	u-boot,dm-pre-proper;
-};
-
-&gpio6 {
-	u-boot,dm-pre-proper;
-};
-
-&gpio7 {
 	u-boot,dm-pre-proper;
 };
 
