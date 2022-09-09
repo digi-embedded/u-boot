@@ -125,6 +125,15 @@ config DDR_CACHEABLE_SIZE
 		The areas marked "no-map" in device tree should be located
 		before this limit: STM32_DDR_BASE + DDR_CACHEABLE_SIZE.
 
+config TOP_UNMAPPED_SIZE
+	hex "Size of top DDR area which is reserved"
+	default 0
+	help
+		On all STM32MP SoCs family, it allows to reserve the top of DDR
+		( see board_get_usable_ram_top() )
+		On STM32MP25, this area will also be not mapped by ARM64 MMU.
+		This option can be useful to reserve top DDR area for firmware as OP-TEE.
+
 config SYS_MMCSD_RAW_MODE_U_BOOT_PARTITION_MMC2
 	hex "Partition on MMC2 to use to load U-Boot from"
 	depends on SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION
