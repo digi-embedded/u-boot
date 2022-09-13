@@ -22,7 +22,7 @@
 #include <linux/err.h>
 #include <u-boot/zlib.h>
 #include <mapmem.h>
-#ifdef CONFIG_SIGN_IMAGE
+#ifdef CONFIG_AUTH_ARTIFACTS
 #include "../board/digi/common/auth.h"
 #endif
 
@@ -142,13 +142,13 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 
 	switch (genimg_get_format((const void *)tee_addr)) {
 	case IMAGE_FORMAT_LEGACY:
-#ifdef CONFIG_SIGN_IMAGE
-		if (authenticate_image(tee_addr,
+#ifdef CONFIG_AUTH_ARTIFACTS
+		if (digi_auth_image(&tee_addr,
 		       image_get_image_size((image_header_t *)tee_addr)) != 0) {
 		       printf("Authenticate uImage Fail, Please check\n");
 		       return 1;
 		}
-#endif /* CONFIG_SIGN_IMAGE */
+#endif /* CONFIG_AUTH_ARTIFACTS */
 		break;
 	default:
 		printf("Not valid image format for Authentication, Please check\n");
@@ -159,25 +159,25 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 	if (ret != 0)
 		return 1;
 
-#ifdef CONFIG_SIGN_IMAGE
+#ifdef CONFIG_AUTH_ARTIFACTS
 	if (digi_auth_image(&image_load_addr, zi_end - zi_start) != 0) {
 		printf("Authenticate zImage Fail, Please check\n");
 		return 1;
 	}
-#endif /* CONFIG_SIGN_IMAGE */
+#endif /* CONFIG_AUTH_ARTIFACTS */
 
 #else
 
 	switch (genimg_get_format((const void *)image_load_addr)) {
 #if defined(CONFIG_LEGACY_IMAGE_FORMAT)
 	case IMAGE_FORMAT_LEGACY:
-#ifdef CONFIG_SIGN_IMAGE
+#ifdef CONFIG_AUTH_ARTIFACTS
 		if (digi_auth_image(&image_load_addr,
 			image_get_image_size((image_header_t *)image_load_addr)) != 0) {
 			printf("Authenticate uImage Fail, Please check\n");
 			return 1;
 		}
-#endif /* CONFIG_SIGN_IMAGE */
+#endif /* CONFIG_AUTH_ARTIFACTS */
 		break;
 #endif
 #ifdef CONFIG_ANDROID_BOOT_IMAGE

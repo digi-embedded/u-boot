@@ -12,7 +12,6 @@
 #include <command.h>
 #include <env.h>
 #include <env_internal.h>
-#include <fsl_sec.h>
 #include <log.h>
 #include <sort.h>
 #include <asm/global_data.h>
@@ -120,10 +119,74 @@ int env_set_default_vars(int nvars, char * const vars[], int flags)
 
 #ifdef CONFIG_ENV_AES_CAAM_KEY
 #include <fuse.h>
-#include <fsl_caam.h>
 #include <u-boot/md5.h>
 #include <asm/mach-imx/hab.h>
 #include "../board/digi/common/trustfence.h"
+#if defined(CONFIG_ARCH_MX6) || defined(CONFIG_ARCH_MX7) || \
+	defined(CONFIG_ARCH_MX7ULP) || defined(CONFIG_ARCH_IMX8M)
+#include <fsl_sec.h>
+#include <asm/arch/clock.h>
+
+static int env_aes_cbc_crypt(env_t *env, const int enc)
+{
+	unsigned char *data = env->data;
+	int ret = 0;
+	uint8_t *src_ptr, *dst_ptr, *key_mod;
+
+	if (!imx_hab_is_enabled())
+		return 0;
+
+	/* Buffers must be aligned */
+	key_mod = memalign(ARCH_DMA_MINALIGN, KEY_MODIFER_SIZE);
+	if (!key_mod) {
+		debug("Not enough memory to encrypt the environment\n");
+		return -ENOMEM;
+	}
+	ret = get_trustfence_key_modifier(key_mod);
+	if (ret)
+		goto freekm;
+
+	src_ptr = memalign(ARCH_DMA_MINALIGN, ENV_SIZE);
+	if (!src_ptr) {
+		debug("Not enough memory to encrypt the environment\n");
+		ret = -ENOMEM;
+		goto freekm;
+	}
+	dst_ptr = memalign(ARCH_DMA_MINALIGN, ENV_SIZE);
+	if (!dst_ptr) {
+		debug("Not enough memory to encrypt the environment\n");
+		ret = -ENOMEM;
+		goto freesrc;
+	}
+	memcpy(src_ptr, data, ENV_SIZE);
+
+	hab_caam_clock_enable(1);
+
+	u32 out_jr_size = sec_in32(CONFIG_SYS_FSL_JR0_ADDR +
+				   FSL_CAAM_ORSR_JRa_OFFSET);
+	if (out_jr_size != FSL_CAAM_MAX_JR_SIZE)
+		sec_init();
+
+	if (enc)
+		ret = blob_encap(key_mod, src_ptr, dst_ptr, ENV_SIZE - BLOB_OVERHEAD);
+	else
+		ret = blob_decap(key_mod, src_ptr, dst_ptr, ENV_SIZE - BLOB_OVERHEAD);
+
+	if (ret)
+		goto err;
+
+	memcpy(data, dst_ptr, ENV_SIZE);
+
+err:
+	free(dst_ptr);
+freesrc:
+	free(src_ptr);
+freekm:
+	free(key_mod);
+	return ret;
+}
+#else /* CONFIG_ARCH_IMX8 */
+#include <fsl_caam.h>
 
 static int env_aes_cbc_crypt(env_t *env, const int enc)
 {
@@ -160,6 +223,7 @@ err:
 	free(buffer);
 	return ret;
 }
+#endif /* CONFIG_ARCH_IMX8 */
 #endif /* CONFIG_ENV_AES_CAAM_KEY */
 
 #else

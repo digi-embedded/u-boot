@@ -18,7 +18,7 @@
 #include <fdt_support.h>
 #include <mapmem.h>
 #include <asm/io.h>
-#if defined(CONFIG_SIGN_IMAGE) && defined(CONFIG_AHAB_BOOT)
+#if defined(CONFIG_AUTH_ARTIFACTS) && defined(CONFIG_AHAB_BOOT)
 #include <asm/mach-imx/image.h>
 #endif
 

@@ -135,6 +135,7 @@ config TARGET_CCIMX6SBC_COMMON
 	select SUPPORT_SPL
 	imply CMD_DM
 	select RNG_SELF_TEST
+	select FSL_BLOB
 
 config TARGET_MX6SABREAUTO_COMMON
     bool

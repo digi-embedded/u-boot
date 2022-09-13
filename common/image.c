@@ -42,7 +42,7 @@
 #include <linux/errno.h>
 #include <asm/io.h>
 #include <asm/mach-imx/hab.h>
-#ifdef CONFIG_SIGN_IMAGE
+#ifdef CONFIG_AUTH_ARTIFACTS
 #include "../board/digi/common/auth.h"
 #endif
 
@@ -1180,7 +1180,7 @@ int boot_get_ramdisk(int argc, char *const argv[], bootm_headers_t *images,
 	ulong		default_addr;
 	int		rd_noffset;
 #endif
-#ifdef CONFIG_SIGN_IMAGE
+#ifdef CONFIG_AUTH_ARTIFACTS
 	int authenticated = 0;
 #endif
 	const char *select = NULL;
@@ -1255,7 +1255,7 @@ int boot_get_ramdisk(int argc, char *const argv[], bootm_headers_t *images,
 		}
 #endif
 #if CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)
-#ifdef CONFIG_SIGN_IMAGE
+#ifdef CONFIG_AUTH_ARTIFACTS
 		rd_hdr = (const image_header_t *)rd_addr;
 		if (rd_hdr == NULL)
 			return 1;
@@ -1267,7 +1267,7 @@ int boot_get_ramdisk(int argc, char *const argv[], bootm_headers_t *images,
 		} else {
 			authenticated = 1;
 		}
-#endif /* CONFIG_SIGN_IMAGE */
+#endif /* CONFIG_AUTH_ARTIFACTS */
 #endif /* CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT) */
 
 		/*
@@ -1364,7 +1364,7 @@ int boot_get_ramdisk(int argc, char *const argv[], bootm_headers_t *images,
 	debug("   ramdisk start = 0x%08lx, ramdisk end = 0x%08lx\n",
 			*rd_start, *rd_end);
 
-#ifdef CONFIG_SIGN_IMAGE
+#ifdef CONFIG_AUTH_ARTIFACTS
 	if (rd_data && imx_hab_is_enabled() && !authenticated) {
 		printf("Ramdisk authentication is not supported\n");
 		return 1;

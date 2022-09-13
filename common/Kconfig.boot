@@ -2,8 +2,15 @@ menu "Boot options"
 
 menu "Boot images"
 
+config AUTH_ARTIFACTS
+	bool "Support boot artifact authentication"
+	help
+	  Enable this option to support authentication of signed/encrypted boot
+	  artifacts.
+
 config SIGN_IMAGE
 	bool "Generate signed images"
+	depends on AUTH_ARTIFACTS
 	help
 	  Enable this option to generate signed uboot images. When enabled:
 	  * UBOOT_SIGN_KEYS_PATH must be defined to the path of the CST folder by NXP.
@@ -48,12 +55,25 @@ config DEK_PATH
 
 config SIGN_MODE
 	string "Sign mode"
+	default "AHAB" if AHAB_BOOT
+	default "HAB" if IMX_HAB
 	help
 	  Sets the signing method to be one of "HAB" or "AHAB".
 	  HAB method is supported on i.MX6/7 and i.MX8M devices.
 	  AHAB method is supported on i.MX8X devices.
 
+config AUTHENTICATE_SQUASHFS_ROOTFS
+	bool "Require authentication of SQUASHFS rootfs"
+	default n
+
 endif # SIGN_IMAGE
+
+config AUTH_SQUASHFS_ADDR
+	default 0x90000000 if AHAB_BOOT
+	default 0x0 if IMX_HAB
+	hex "Authenticate Squashfs address"
+	help
+	  Address where the Squashfs image is loaded prior to authentication.
 
 config ANDROID_BOOT_IMAGE
 	bool "Enable support for Android Boot Images"

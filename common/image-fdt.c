@@ -22,7 +22,7 @@
 #include <mapmem.h>
 #include <asm/io.h>
 #include <asm/mach-imx/hab.h>
-#ifdef CONFIG_SIGN_IMAGE
+#ifdef CONFIG_AUTH_ARTIFACTS
 #include "../board/digi/common/auth.h"
 #endif
 #include <tee/optee.h>
@@ -36,7 +36,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#ifdef CONFIG_SIGN_IMAGE
+#ifdef CONFIG_AUTH_ARTIFACTS
 static int authentication_failed = 0;
 static int authenticated = 0;
 #endif
@@ -519,7 +519,7 @@ int boot_get_fdt(int flag, int argc, char *const argv[], uint8_t arch,
 	debug("   of_flat_tree at 0x%08lx size 0x%08lx\n",
 	      (ulong)*of_flat_tree, *of_size);
 
-#ifdef CONFIG_SIGN_IMAGE
+#ifdef CONFIG_AUTH_ARTIFACTS
 	/*
 	 * Authenticate during boot if device tree files have not been
 	 * authenticated while loading to ram already.
@@ -530,7 +530,7 @@ int boot_get_fdt(int flag, int argc, char *const argv[], uint8_t arch,
 			goto error;
 		}
 	}
-#endif /* CONFIG_SIGN_IMAGE */
+#endif /* CONFIG_AUTH_ARTIFACTS */
 
 	return 0;
 
@@ -655,7 +655,7 @@ err:
 	return ret;
 }
 
-#ifdef CONFIG_SIGN_IMAGE
+#ifdef CONFIG_AUTH_ARTIFACTS
 /* Reset the authentication variables to their initial state */
 void fdt_file_init_authentication(void)
 {

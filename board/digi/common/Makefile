@@ -1,5 +1,5 @@
 #
-# Copyright 2015-2019, Digi International Inc.
+# Copyright 2015-2022, Digi International Inc.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -30,7 +30,7 @@ obj-$(CONFIG_CMD_UPDATE_NAND) += helper.o helper_nand.o
 obj-$(CONFIG_CMD_DBOOT) += helper.o
 obj-$(CONFIG_CMD_DIGI_PMIC) += cmd_pmic.o
 obj-$(CONFIG_MCA_TAMPER) += tamper.o
-obj-$(CONFIG_SIGN_IMAGE) += auth.o
+obj-$(CONFIG_AUTH_ARTIFACTS) += auth.o
 endif
 obj-$(CONFIG_HAS_HWID) += hwid.o
 obj-$(CONFIG_MCA) += mca.o

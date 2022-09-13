@@ -29,6 +29,11 @@
 #include "hwid.h"
 #include "../drivers/crypto/fsl/jr.h"
 
+#ifdef CONFIG_ANDROID_SUPPORT
+#include "mca.h"
+#include "mca_registers.h"
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 #if defined(CONFIG_CMD_UPDATE_MMC) || defined(CONFIG_CMD_UPDATE_NAND)
 #define CONFIG_CMD_UPDATE
@@ -413,10 +418,16 @@ char *get_default_filename(char *partname, int cmd)
 			return "$uboot_file";
 		} else {
 			/* Read the default filename from a variable called
-			 * after the partition name: <partname>_file
+			 * after the partition name: <partname>_file,
+			 * returning an empty string in case of partitions name is
+			 * not found.
 			 */
 			sprintf(varname, "%s_file", partname);
-			return env_get(varname);
+			var = env_get(varname);
+			if (!var)
+				return "";
+			else
+				return var;
 		}
 		break;
 	}
@@ -902,8 +913,10 @@ void set_verifyaddr(unsigned long loadaddr)
 
 	 /* Skip reserved memory area */
 #if defined(RESERVED_MEM_START) && defined(RESERVED_MEM_END)
-	if (verifyaddr >= RESERVED_MEM_START && verifyaddr < RESERVED_MEM_END)
+	if (verifyaddr >= RESERVED_MEM_START && verifyaddr < RESERVED_MEM_END) {
 		verifyaddr = RESERVED_MEM_END;
+		printf("Skip reserved memory area, verifyaddr set to 0x%lx\n", verifyaddr);
+	}
 #endif
 
 	 if (verifyaddr > loadaddr &&
@@ -1352,3 +1365,13 @@ int read_squashfs_rootfs(unsigned long addr, unsigned long *size)
 	return 0;
 }
 #endif /* CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS */
+
+#ifdef CONFIG_ANDROID_SUPPORT
+bool is_power_key_pressed(void) {
+	unsigned char power_key_pressed;
+
+	mca_read_reg(MCA_PWR_STATUS_0, &power_key_pressed);
+
+	return (bool)power_key_pressed;
+}
+#endif

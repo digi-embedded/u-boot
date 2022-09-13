@@ -771,10 +771,10 @@ int boot_get_cmdline(struct lmb *lmb, ulong *cmd_start, ulong *cmd_end);
 #ifdef CONFIG_SYS_BOOT_GET_KBD
 int boot_get_kbd(struct lmb *lmb, struct bd_info **kbd);
 #endif /* CONFIG_SYS_BOOT_GET_KBD */
-#ifdef CONFIG_SIGN_IMAGE
+#ifdef CONFIG_AUTH_ARTIFACTS
 void fdt_file_init_authentication(void);
 int fdt_file_authenticate(char *loadaddr);
-#endif /* CONFIG_SIGN_IMAGE */
+#endif /* CONFIG_AUTH_ARTIFACTS */
 #endif /* !USE_HOSTCC */
 
 /*******************************************************************/

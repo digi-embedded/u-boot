@@ -604,38 +604,41 @@ static int do_cfg_jrqueue(void)
 	phys_addr_t ip_base;
 	phys_addr_t op_base;
 
-	/* check if already configured after relocation */
-	if (g_jrdata.status == RING_RELOC_INIT)
-		return 0;
-
 	/*
-	 * jr configuration needs to be updated once, after relocation to ensure
-	 * using the right buffers.
-	 * When buffers are updated after relocation the flag RING_RELOC_INIT
-	 * is used to prevent extra updates
+	 * Ensure the buffers are allocated just once after relocation, and
+	 * after that, reconfigure the CAAM registers every time, in case
+	 * 'sec_init' or 'hab_auth' have modified them during other CAAM operations.
 	 */
-	if (gd->flags & GD_FLG_RELOC) {
-		g_jrdata.inrings  = (struct inring_entry *)
-				    memalign(ARCH_DMA_MINALIGN,
-					     ARCH_DMA_MINALIGN);
-		g_jrdata.outrings = (struct outring_entry *)
-				    memalign(ARCH_DMA_MINALIGN,
-					     ARCH_DMA_MINALIGN);
-		g_jrdata.desc = (u32 *)
-				memalign(ARCH_DMA_MINALIGN, ARCH_DMA_MINALIGN);
-		g_jrdata.status = RING_RELOC_INIT;
-	} else {
-		u32 align_idx = 0;
+	if (g_jrdata.status != RING_RELOC_INIT) {
+		/*
+		 * jr configuration needs to be updated once, after relocation to ensure
+		 * using the right buffers.
+		 * When buffers are updated after relocation the flag RING_RELOC_INIT
+		 * is used to prevent extra updates
+		 */
+		if (gd->flags & GD_FLG_RELOC) {
+			g_jrdata.inrings  = (struct inring_entry *)
+					memalign(ARCH_DMA_MINALIGN,
+						ARCH_DMA_MINALIGN);
+			g_jrdata.outrings = (struct outring_entry *)
+					memalign(ARCH_DMA_MINALIGN,
+						ARCH_DMA_MINALIGN);
+			g_jrdata.desc = (u32 *)
+					memalign(ARCH_DMA_MINALIGN, ARCH_DMA_MINALIGN);
+			g_jrdata.status = RING_RELOC_INIT;
+		} else {
+			u32 align_idx = 0;
 
-		/* Ensure 64bits buffers addresses alignment */
-		if ((uintptr_t)g_jrdata.raw_addr & 0x7)
-			align_idx = 1;
-		g_jrdata.inrings  = (struct inring_entry *)
-				    (&g_jrdata.raw_addr[align_idx]);
-		g_jrdata.outrings = (struct outring_entry *)
-				    (&g_jrdata.raw_addr[align_idx + 2]);
-		g_jrdata.desc = (u32 *)(&g_jrdata.raw_addr[align_idx + 4]);
-		g_jrdata.status = RING_EARLY_INIT;
+			/* Ensure 64bits buffers addresses alignment */
+			if ((uintptr_t)g_jrdata.raw_addr & 0x7)
+				align_idx = 1;
+			g_jrdata.inrings  = (struct inring_entry *)
+					(&g_jrdata.raw_addr[align_idx]);
+			g_jrdata.outrings = (struct outring_entry *)
+					(&g_jrdata.raw_addr[align_idx + 2]);
+			g_jrdata.desc = (u32 *)(&g_jrdata.raw_addr[align_idx + 4]);
+			g_jrdata.status = RING_EARLY_INIT;
+		}
 	}
 
 	if (!g_jrdata.inrings || !g_jrdata.outrings)
