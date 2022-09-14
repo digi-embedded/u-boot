@@ -121,7 +121,7 @@
 	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
 	"mmcbootpart=" __stringify(EMMC_BOOT_PART) "\0" \
 	"mmcdev=0\0" \
-	"mmcpart=" CONFIG_BOOT_PARTITION "\0" \
+	"mmcpart=" BOOT_PARTITION "\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} ${smp} " \
 		"root=/dev/mmcblk0p2 rootwait rw\0" \
 	"loaduimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uimage}\0" \
@@ -182,7 +182,7 @@
 			"else;" \
 			"fi;" \
 		"fi;\0" \
-	"recoverycmd=setenv mmcpart " CONFIG_RECOVERY_PARTITION ";" \
+	"recoverycmd=setenv mmcpart " RECOVERY_PARTITION ";" \
 		"boot\0" \
 	"recovery_file=recovery.img\0" \
 	"install_android_fw_sd=if load mmc 1 ${loadaddr} " \

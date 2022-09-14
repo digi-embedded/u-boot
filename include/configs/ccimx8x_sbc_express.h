@@ -135,7 +135,7 @@
 			"fi;" \
 			"mmc rescan;" \
 		"fi;\0" \
-	"recoverycmd=setenv mmcpart " CONFIG_RECOVERY_PARTITION ";" \
+	"recoverycmd=setenv mmcpart " RECOVERY_PARTITION ";" \
 		"boot\0" \
 	"recovery_file=recovery.img\0" \
 	"linux_file=dey-image-qt-xwayland-" BOARD_DEY_NAME ".boot.vfat\0" \

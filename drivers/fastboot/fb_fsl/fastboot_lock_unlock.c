@@ -3,6 +3,7 @@
  * Copyright (c) 2016, Freescale Semiconductor, Inc.
  */
 #include <common.h>
+#include <env.h>
 #include <mapmem.h>
 #include <linux/types.h>
 #include <linux/delay.h>

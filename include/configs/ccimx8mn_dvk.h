@@ -14,8 +14,6 @@
 #define RESERVED_MEM_START		0x56000000
 #define RESERVED_MEM_END		0x58000000
 
-#define CONFIG_CC8
-#define CONFIG_CC8M
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 8M Nano"
 #define CONFIG_BOARD_DESCRIPTION	"Development Kit"
 #define BOARD_DEY_NAME			"ccimx8mn-dvk"
@@ -153,7 +151,7 @@
 			"fi;" \
 			"mmc rescan;" \
 		"fi;\0" \
-	"recoverycmd=setenv mmcpart " CONFIG_RECOVERY_PARTITION ";" \
+	"recoverycmd=setenv mmcpart " RECOVERY_PARTITION ";" \
 		"boot\0" \
 	"recovery_file=recovery.img\0" \
 	"linux_file=dey-image-qt-xwayland-" BOARD_DEY_NAME ".boot.vfat\0" \

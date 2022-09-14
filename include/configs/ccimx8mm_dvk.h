@@ -10,8 +10,6 @@
 
 #include "ccimx8m_common.h"
 
-#define CONFIG_CC8
-#define CONFIG_CC8M
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 8M Mini"
 #define CONFIG_BOARD_DESCRIPTION	"Development Kit"
 #define BOARD_DEY_NAME			"ccimx8mm-dvk"
@@ -32,6 +30,7 @@
 
 #define CONFIG_POWER
 #define CONFIG_POWER_I2C
+#define CONFIG_POWER_BD71837
 #define CONFIG_POWER_PCA9450
 
 #define CONFIG_SYS_I2C
@@ -149,7 +148,7 @@
 			"fi;" \
 			"mmc rescan;" \
 		"fi;\0" \
-	"recoverycmd=setenv mmcpart " CONFIG_RECOVERY_PARTITION ";" \
+	"recoverycmd=setenv mmcpart " RECOVERY_PARTITION ";" \
 		"boot\0" \
 	"recovery_file=recovery.img\0" \
 	"linux_file=dey-image-qt-xwayland-" BOARD_DEY_NAME ".boot.vfat\0" \

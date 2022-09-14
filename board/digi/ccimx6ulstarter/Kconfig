@@ -1,5 +1,7 @@
 if TARGET_CCIMX6ULSTARTER
 
+source "board/digi/common/Kconfig"
+
 config MCA
 	bool
 	default y

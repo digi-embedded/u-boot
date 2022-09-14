@@ -24,6 +24,7 @@
 #include "digi_common.h"		/* Load Digi common stuff... */
 
 #define CONFIG_CC6
+#define DIGI_IMX_FAMILY
 
 #ifdef CONFIG_MX6QP
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 6 Plus"
@@ -58,13 +59,6 @@
 	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
 #define CONFIG_SYS_INIT_SP_ADDR \
 	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
-
-/* HWID */
-#define CONFIG_HAS_HWID
-#define CONFIG_HWID_BANK		4
-#define CONFIG_HWID_START_WORD		2
-#define CONFIG_HWID_WORDS_NUMBER	2
-#define CONFIG_HWID_LOCK_FUSE		(1 << 8)
 
 /* Lock Fuses */
 #define OCOTP_LOCK_BANK		0
@@ -309,8 +303,8 @@
 	"\""
 
 /* Partition defines */
-#define CONFIG_BOOT_PARTITION		"1"
-#define CONFIG_RECOVERY_PARTITION	"2"
+#define BOOT_PARTITION		"1"
+#define RECOVERY_PARTITION	"2"
 
 /* Helper strings for extra env settings */
 #define CALCULATE_FILESIZE_IN_BLOCKS	\

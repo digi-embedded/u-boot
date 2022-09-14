@@ -66,14 +66,14 @@ config AUTHENTICATE_SQUASHFS_ROOTFS
 	bool "Require authentication of SQUASHFS rootfs"
 	default n
 
-endif # SIGN_IMAGE
-
 config AUTH_SQUASHFS_ADDR
 	default 0x90000000 if AHAB_BOOT
 	default 0x0 if IMX_HAB
 	hex "Authenticate Squashfs address"
 	help
 	  Address where the Squashfs image is loaded prior to authentication.
+
+endif # SIGN_IMAGE
 
 config ANDROID_BOOT_IMAGE
 	bool "Enable support for Android Boot Images"

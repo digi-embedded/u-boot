@@ -1593,7 +1593,6 @@ static void eqos_stop(struct udevice *dev)
 		phy_shutdown(eqos->phy);
 	}
 	eqos->config->ops->eqos_stop_resets(dev);
-	eqos->config->ops->eqos_stop_clks(dev);
 
 	debug("%s: OK\n", __func__);
 }
@@ -1770,6 +1769,7 @@ static int eqos_remove_resources_core(struct udevice *dev)
 
 	debug("%s(dev=%p):\n", __func__, dev);
 
+	eqos->config->ops->eqos_stop_clks(dev);
 	free(eqos->rx_pkt);
 	free(eqos->rx_dma_buf);
 	free(eqos->tx_dma_buf);
@@ -2144,6 +2144,12 @@ static int eqos_probe(struct udevice *dev)
 	ret = eqos->config->ops->eqos_probe_resources(dev);
 	if (ret < 0) {
 		pr_err("eqos_probe_resources() failed: %d", ret);
+		goto err_remove_resources_core;
+	}
+
+	ret = eqos->config->ops->eqos_start_clks(dev);
+	if (ret < 0) {
+		pr_err("eqos_start_clks() failed: %d", ret);
 		goto err_remove_resources_core;
 	}
 

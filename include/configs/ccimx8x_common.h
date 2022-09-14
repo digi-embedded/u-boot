@@ -11,8 +11,7 @@
 #include <asm/arch/imx-regs.h>
 #include "digi_common.h"		/* Load Digi common stuff... */
 
-#define CONFIG_CC8
-#define CONFIG_CC8X
+#define DIGI_IMX_FAMILY
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 8X"
 
 #ifdef CONFIG_SPL_BUILD
@@ -43,11 +42,8 @@
 /* RAM */
 #define CONFIG_LOADADDR			0x88280000
 #define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
-#define CONFIG_DIGI_LZIPADDR		0x8C000000
-#define CONFIG_DIGI_UPDATE_ADDR		0x95000000
 #define CONFIG_SYS_INIT_SP_ADDR		0x88200000
 /* RAM memory reserved for U-Boot, stack, malloc pool... */
-#define CONFIG_UBOOT_RESERVED		(10 * 1024 * 1024)
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		((CONFIG_ENV_SIZE + (32*1024)) * 1024)
 /* memtest */
@@ -66,22 +62,12 @@
 #define CONFIG_SYS_UBOOT_BASE 0x08181000
 
 #define CONFIG_OF_SYSTEM_SETUP
-
-/* HWID */
-#define CONFIG_HAS_HWID
-#define CONFIG_HWID_BANK		0
-#define CONFIG_HWID_START_WORD		708
-#define CONFIG_HWID_WORDS_NUMBER	4
 #define CONFIG_NO_MAC_FROM_OTP
-
-/* Media type for firmware updates */
-#define CONFIG_SYS_STORAGE_MEDIA       "mmc"
 
 /*
  * Trustfence configs
  */
 #define CONFIG_HAS_TRUSTFENCE
-#define CONFIG_MCA_TAMPER
 
 #define CONFIG_FSL_CAAM_KB
 
@@ -172,9 +158,6 @@
 #define CONFIG_SYS_FSL_USDHC_NUM	2
 
 /* MCA */
-#define CONFIG_MCA_I2C_BUS		0
-#define CONFIG_MCA_I2C_ADDR		0x63
-#define CONFIG_MCA_OFFSET_LEN		2
 #define BOARD_MCA_DEVICE_ID		0x4A
 
 #define CONFIG_TFTP_UPDATE_ONTHEFLY      /* support to tftp and update on-the-fly */
@@ -190,8 +173,6 @@
 #define CONFIG_SUPPORTED_SOURCES_RAM	"ram"
 
 /* Digi boot command 'dboot' */
-#define CONFIG_CMD_DBOOT
-
 #define CONFIG_DBOOT_SUPPORTED_SOURCES_LIST	\
 	CONFIG_SUPPORTED_SOURCES_NET "|" \
 	CONFIG_SUPPORTED_SOURCES_BLOCK
@@ -203,7 +184,6 @@
 #define CONFIG_TFTP_UPDATE_ONTHEFLY      /* support to tftp and update on-the-fly */
 
 /* Firmware update */
-#define CONFIG_CMD_UPDATE_MMC
 #define CONFIG_UPDATE_SUPPORTED_SOURCES_LIST	\
 	CONFIG_SUPPORTED_SOURCES_NET "|" \
 	CONFIG_SUPPORTED_SOURCES_BLOCK "|" \
@@ -216,8 +196,6 @@
 	DIGICMD_UPDATEFILE_NET_ARGS_HELP "\n" \
 	DIGICMD_UPDATEFILE_BLOCK_ARGS_HELP "\n" \
 	DIGICMD_UPDATEFILE_RAM_ARGS_HELP
-/* On the fly update chunk (must be a multiple of mmc block size) */
-#define CONFIG_OTF_CHUNK		(32 * 1024 * 1024)
 
 /* Monitor Command Prompt */
 #define CONFIG_SYS_PROMPT_HUSH_PS2     "> "
@@ -372,7 +350,7 @@
 	"\""
 
 /* Partition defines */
-#define CONFIG_RECOVERY_PARTITION	"2"
+#define RECOVERY_PARTITION	"2"
 
 #define FSL_FASTBOOT_FB_DEV "mmc"
 

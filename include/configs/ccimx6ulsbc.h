@@ -19,26 +19,13 @@
 /* uncomment for BEE support, needs to enable CONFIG_CMD_FUSE */
 /* #define CONFIG_CMD_BEE */
 
-/* FLASH and environment organization */
-#if defined(CONFIG_NAND_BOOT)
-#define CONFIG_CMD_UPDATE_NAND
-#define CONFIG_SYS_STORAGE_MEDIA	"nand"
-#define CONFIG_CMD_BOOTSTREAM
-#else
-#define CONFIG_CMD_UPDATE_MMC
-#define CONFIG_SYS_STORAGE_MEDIA	"mmc"
-#endif
-
+/* NAND stuff */
 #ifdef CONFIG_NAND_MXS
 #define CONFIG_CMD_NAND_TRIMFFS
-
-/* NAND stuff */
 #define CONFIG_SYS_MAX_NAND_DEVICE	1
 #define CONFIG_SYS_NAND_BASE		0x40000000
 #define CONFIG_SYS_NAND_5_ADDR_CYCLE
 #define CONFIG_SYS_NAND_ONFI_DETECTION
-
-/* DMA stuff, needed for GPMI/MXS NAND support */
 #endif
 
 #define CONFIG_SYS_FSL_USDHC_NUM	1
@@ -192,7 +179,7 @@
 	"rootfstype=squashfs ro"
 
 #define MTDPART_ENV_SETTINGS \
-	"mtdbootpart=" CONFIG_LINUX_PARTITION "\0" \
+	"mtdbootpart=" LINUX_PARTITION "\0" \
 	"mtdrootfspart=" ROOTFS_PARTITION "\0" \
 	"singlemtdsys=no\0" \
 	"rootfsvol=" ROOTFS_PARTITION "\0" \
@@ -222,7 +209,7 @@
 			"setenv mtdbootpart ${active_system};" \
 		"else " \
 			"if test -z \"${mtdbootpart}\"; then " \
-				"setenv mtdbootpart " CONFIG_LINUX_PARTITION ";" \
+				"setenv mtdbootpart " LINUX_PARTITION ";" \
 			"fi;" \
 		"fi;" \
 		"if test \"${singlemtdsys}\" = yes; then " \
@@ -239,7 +226,7 @@
 			"fi;" \
 		"fi;\0" \
 	"recoverycmd=" \
-		"setenv mtdbootpart " CONFIG_RECOVERY_PARTITION ";" \
+		"setenv mtdbootpart " RECOVERY_PARTITION ";" \
 		"boot\0"
 #define DUALBOOT_ENV_SETTINGS \
 	"linux_a=" LINUX_A_PARTITION "\0" \
@@ -307,8 +294,5 @@
 #define CONFIG_CARRIERBOARD_ID_MASK	0xff
 #define CONFIG_CARRIERBOARD_ID_OFFSET	4
 #endif /* CONFIG_HAS_CARRIERBOARD_ID */
-
-/* UBI and UBIFS support */
-#define CONFIG_DIGI_UBI
 
 #endif /* CCIMX6ULSBC_CONFIG_H */

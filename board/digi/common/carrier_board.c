@@ -24,6 +24,7 @@
 #include <env.h>
 #include <fdt_support.h>
 #include <fuse.h>
+#include <configs/digi_common.h>
 #include "carrier_board.h"
 #include "helper.h"
 
