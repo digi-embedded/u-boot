@@ -52,12 +52,16 @@
 
 /*
  * default bootcmd for stm32mp13:
+ * for serial/usb: execute the stm32prog command
  * for mmc boot (eMMC, SD card), distro boot on the same mmc device
  * for nand or spi-nand boot, distro boot with ubifs on UBI partition
  * for nor boot, use the default distro order in ${boot_targets}
  */
 #define STM32MP_BOOTCMD "bootcmd_stm32mp=" \
 	"echo \"Boot over ${boot_device}${boot_instance}!\";" \
+	"if test ${boot_device} = serial || test ${boot_device} = usb;" \
+	"then stm32prog ${boot_device} ${boot_instance}; " \
+	"else " \
 		"run env_check;" \
 		"if test ${boot_device} = mmc;" \
 		"then env set boot_targets \"mmc${boot_instance}\"; fi;" \
