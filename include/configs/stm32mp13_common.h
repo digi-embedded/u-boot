@@ -54,6 +54,7 @@
  * default bootcmd for stm32mp13:
  * for mmc boot (eMMC, SD card), distro boot on the same mmc device
  * for nand or spi-nand boot, distro boot with ubifs on UBI partition
+ * for nor boot, use the default distro order in ${boot_targets}
  */
 #define STM32MP_BOOTCMD "bootcmd_stm32mp=" \
 	"echo \"Boot over ${boot_device}${boot_instance}!\";" \
