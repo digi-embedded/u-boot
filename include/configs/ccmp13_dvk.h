@@ -8,7 +8,13 @@
 
 #include <configs/ccmp1_common.h>
 
+#define CONFIG_SOM_DESCRIPTION		"ConnectCore MP13"
+#define CONFIG_BOARD_DESCRIPTION	"Development Kit"
+#define BOARD_DEY_NAME			"ccmp13-dvk"
+
+/* Serial */
 #define CONSOLE_DEV			"ttySTM0"
+
 #define CONFIG_MMCROOT			"/dev/mmcblk0p2"  /* USDHC1 */
 
 #define CONFIG_COMMON_ENV	\
@@ -60,7 +66,7 @@
 	"recovery_file=recovery.img\0" \
 	"script=boot.scr\0" \
 	"uboot_file=u-boot.imx\0" \
-	"zimage=zImage-" CONFIG_SYS_BOARD ".bin\0"
+	"zimage=zImage-" BOARD_DEY_NAME ".bin\0"
 
 #define ROOTARGS_SINGLEMTDSYSTEM_UBIFS \
 	"ubi.mtd=" SYSTEM_PARTITION " " \
@@ -84,7 +90,7 @@
 #define MTDPART_ENV_SETTINGS \
 	"mtdbootpart=" LINUX_PARTITION "\0" \
 	"mtdrootfspart=" ROOTFS_PARTITION "\0" \
-	"singlemtdsys=no\0" \
+	"singlemtdsys=yes\0" \
 	"rootfsvol=" ROOTFS_PARTITION "\0" \
 	"bootargs_nand_linux=" \
 		"if test \"${singlemtdsys}\" = yes; then " \
@@ -140,6 +146,7 @@
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_COMMON_ENV \
+	MTDPART_ENV_SETTINGS \
 	STM32MP_MEM_LAYOUT \
 	BOOTENV \
 
