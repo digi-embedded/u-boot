@@ -27,6 +27,12 @@
 /* NAND support */
 #define CONFIG_SYS_MAX_NAND_DEVICE	1
 
+/* Ethernet need */
+#ifdef CONFIG_DWC_ETH_QOS
+#define CONFIG_SYS_NONCACHED_MEMORY	(1 * SZ_1M)
+#define CONFIG_SERVERIP                 192.168.1.1
+#endif
+
 /*****************************************************************************/
 #ifdef CONFIG_DISTRO_DEFAULTS
 /*****************************************************************************/
@@ -37,6 +43,12 @@
 #else
 #define BOOT_TARGET_MMC0(func)
 #define BOOT_TARGET_MMC1(func)
+#endif
+
+#ifdef CONFIG_NET
+#define BOOT_TARGET_PXE(func)	func(PXE, pxe, na)
+#else
+#define BOOT_TARGET_PXE(func)
 #endif
 
 #ifdef CONFIG_CMD_UBIFS
@@ -55,7 +67,8 @@
 	BOOT_TARGET_MMC1(func)		\
 	BOOT_TARGET_UBIFS(func)		\
 	BOOT_TARGET_MMC0(func)		\
-	BOOT_TARGET_USB(func)
+	BOOT_TARGET_USB(func)		\
+	BOOT_TARGET_PXE(func)
 
 /*
  * default bootcmd for stm32mp13:
