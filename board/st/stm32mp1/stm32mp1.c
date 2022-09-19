@@ -618,8 +618,7 @@ error:
 static bool board_is_stm32mp13x_dk(void)
 {
 	if (CONFIG_IS_ENABLED(TARGET_ST_STM32MP13x) &&
-	    (of_machine_is_compatible("st,stm32mp135d-dk") ||
-	     of_machine_is_compatible("st,stm32mp135f-dk")))
+	     of_machine_is_compatible("st,stm32mp135f-dk"))
 		return true;
 
 	return false;
