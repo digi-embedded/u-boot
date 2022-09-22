@@ -513,7 +513,7 @@ int load_firmware(struct load_fw *fwinfo, char *msg)
 	 * - try: the file may be loaded. Return ok even if load fails.
 	 * - no: skip the load.
 	 */
-	if (NULL != fwinfo->varload) {
+	if (strlen(fwinfo->varload) > 0) {
 		if (!strcmp(fwinfo->varload, "no"))
 			return LDFW_NOT_LOADED;	/* skip load and return ok */
 		else if (!strcmp(fwinfo->varload, "try"))
