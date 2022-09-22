@@ -24,6 +24,7 @@
  */
 
 #include <common.h>
+#include <linux/mtd/rawnand.h>
 #include <nand.h>
 
 /*
