@@ -111,6 +111,13 @@
 	};
 };
 
+&flexcan1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_flexcan1>;
+	xceiver-supply = <&reg_can1_stby>;
+	status = "okay";
+};
+
 &eqos {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_eqos>;
@@ -129,13 +136,6 @@
 			eee-broken-1000t;
 		};
 	};
-};
-
-&flexcan1 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_flexcan1>;
-	xceiver-supply = <&reg_can1_stby>;
-	status = "okay";
 };
 
 &flexcan2 {
@@ -308,7 +308,7 @@
 	status = "okay";
 
 	adv_bridge: adv7535@3d {
-		compatible = "adi,adv7533";
+		compatible = "adi,adv7535";
 		reg = <0x3d>;
 		adi,addr-cec = <0x3c>;
 		adi,dsi-lanes = <4>;
@@ -646,8 +646,8 @@
 
 	pinctrl_uart2: uart2grp {
 		fsl,pins = <
-			MX8MP_IOMUXC_UART2_RXD__UART2_DCE_RX	0x49
-			MX8MP_IOMUXC_UART2_TXD__UART2_DCE_TX	0x49
+			MX8MP_IOMUXC_UART2_RXD__UART2_DCE_RX	0x140
+			MX8MP_IOMUXC_UART2_TXD__UART2_DCE_TX	0x140
 		>;
 	};
 

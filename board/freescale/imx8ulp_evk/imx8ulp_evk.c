@@ -18,7 +18,6 @@
 #include <dt-bindings/power/imx8ulp-power.h>
 
 DECLARE_GLOBAL_DATA_PTR;
-
 #if defined(CONFIG_NXP_FSPI) || defined(CONFIG_FSL_FSPI_NAND)
 #define FSPI_PAD_CTRL	(PAD_CTL_PUS_UP | PAD_CTL_DSE)
 static iomux_cfg_t const flexspi0_pads[] = {
@@ -83,13 +82,13 @@ int board_phy_config(struct phy_device *phydev)
 #endif
 
 #define I2C_PAD_CTRL	(PAD_CTL_ODE)
-static iomux_cfg_t const lpi2c0_pads[] = {
+static const iomux_cfg_t lpi2c0_pads[] = {
 	IMX8ULP_PAD_PTA8__LPI2C0_SCL | MUX_PAD_CTRL(I2C_PAD_CTRL),
 	IMX8ULP_PAD_PTA9__LPI2C0_SDA | MUX_PAD_CTRL(I2C_PAD_CTRL),
 };
 
 #define TPM_PAD_CTRL	(PAD_CTL_DSE)
-static iomux_cfg_t const tpm0_pads[] = {
+static const iomux_cfg_t tpm0_pads[] = {
 	IMX8ULP_PAD_PTA3__TPM0_CH2 | MUX_PAD_CTRL(TPM_PAD_CTRL),
 };
 
@@ -215,6 +214,16 @@ int board_late_init(void)
 	return 0;
 }
 
+#ifdef CONFIG_FSL_FASTBOOT
+#ifdef CONFIG_ANDROID_RECOVERY
+int is_recovery_key_pressing(void)
+{
+	return 0; /*TODO*/
+}
+#endif /*CONFIG_ANDROID_RECOVERY*/
+#endif /*CONFIG_FSL_FASTBOOT*/
+
+
 void board_quiesce_devices(void)
 {
 	/* Disable the power domains may used in u-boot before entering kernel */
@@ -243,12 +252,3 @@ void board_quiesce_devices(void)
 	}
 #endif
 }
-
-#ifdef CONFIG_FSL_FASTBOOT
-#ifdef CONFIG_ANDROID_RECOVERY
-int is_recovery_key_pressing(void)
-{
-	return 0; /*TODO*/
-}
-#endif /*CONFIG_ANDROID_RECOVERY*/
-#endif /*CONFIG_FSL_FASTBOOT*/

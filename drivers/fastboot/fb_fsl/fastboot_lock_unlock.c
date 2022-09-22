@@ -90,9 +90,9 @@ bool valid_tos() {
 	 */
 	bool valid = false;
 #ifdef CONFIG_IMX_HAB
-	if (imx_hab_is_enabled())
+	if (imx_hab_is_enabled()) {
 		valid = authenticate_image(TRUSTY_OS_ENTRY, TRUSTY_OS_PADDED_SZ);
-	else
+	} else
 #endif
 	valid = tos_ivt_check(TRUSTY_OS_ENTRY, TRUSTY_OS_PADDED_SZ);
 

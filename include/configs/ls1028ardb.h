@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
- * Copyright 2019, 2021 NXP
+ * Copyright 2019 NXP
  */
 
 #ifndef __LS1028A_RDB_H
@@ -8,9 +8,7 @@
 
 #include "ls1028a_common.h"
 
-#define CONFIG_SYS_CLK_FREQ		100000000
-#define CONFIG_DDR_CLK_FREQ		100000000
-#define COUNTER_FREQUENCY_REAL		(CONFIG_SYS_CLK_FREQ / 4)
+#define COUNTER_FREQUENCY_REAL		(get_board_sys_clk() / 4)
 
 #define CONFIG_SYS_RTC_BUS_NUM         0
 
@@ -59,14 +57,9 @@
 #endif
 
 /* SATA */
-#define CONFIG_SYS_SCSI_MAX_SCSI_ID		1
-#define CONFIG_SYS_SCSI_MAX_LUN			1
-#define CONFIG_SYS_SCSI_MAX_DEVICE		(CONFIG_SYS_SCSI_MAX_SCSI_ID * \
-						CONFIG_SYS_SCSI_MAX_LUN)
 #define SCSI_VEND_ID 0x1b4b
 #define SCSI_DEV_ID  0x9170
 #define CONFIG_SCSI_DEV_LIST {SCSI_VEND_ID, SCSI_DEV_ID}
-#define CONFIG_SCSI_AHCI_PLAT
 #define CONFIG_SYS_SATA1                        AHCI_BASE_ADDR1
 
 /* Initial environment variables */
@@ -78,6 +71,7 @@
 	"ramdisk_addr=0x800000\0"		\
 	"ramdisk_size=0x2000000\0"		\
 	"bootm_size=0x10000000\0"		\
+	"fdt_addr=0x00f00000\0"                 \
 	"kernel_addr=0x01000000\0"              \
 	"scriptaddr=0x80000000\0"               \
 	"scripthdraddr=0x80080000\0"		\
@@ -86,7 +80,6 @@
 	"load_addr=0xa0000000\0"            \
 	"kernel_addr_r=0x81000000\0"            \
 	"fdt_addr_r=0x90000000\0"               \
-	"fdt_addr=0x90000000\0"                 \
 	"ramdisk_addr_r=0xa0000000\0"           \
 	"kernel_start=0x1000000\0"		\
 	"kernelheader_start=0x600000\0"		\

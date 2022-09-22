@@ -12,12 +12,13 @@
 #include <spl.h>
 #include <asm/mach-imx/image.h>
 #include <asm/arch/sys_proto.h>
+#include <asm/cache.h>
+#include <malloc.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
 /* Caller need ensure the offset and size to align with page size */
-ulong spl_romapi_raw_seekable_read(u32 offset, u32 size,
-				      void *buf)
+ulong spl_romapi_raw_seekable_read(u32 offset, u32 size, void *buf)
 {
 	volatile gd_t *pgd = gd;
 	int ret;
@@ -26,7 +27,8 @@ ulong spl_romapi_raw_seekable_read(u32 offset, u32 size,
 
 	ret = g_rom_api->download_image(buf, offset, size,
 					((uintptr_t)buf) ^ offset ^ size);
-	gd = pgd;
+
+	set_gd(pgd);
 
 	if (ret == ROM_API_OKAY)
 		return size;
@@ -36,15 +38,14 @@ ulong spl_romapi_raw_seekable_read(u32 offset, u32 size,
 	return 0;
 }
 
-u32 __weak spl_romapi_get_uboot_base(u32 image_offset, u32 rom_bt_dev)
+ulong __weak spl_romapi_get_uboot_base(u32 image_offset, u32 rom_bt_dev)
 {
 	u32 offset;
 
 	if (((rom_bt_dev >> 16) & 0xff) ==  BT_DEV_TYPE_FLEXSPINOR)
 		offset = CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512;
 	else
-		offset = image_offset +
-			CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512 - 0x8000;
+		offset = image_offset + CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512 - 0x8000;
 
 	return offset;
 }
@@ -73,6 +74,38 @@ static ulong spl_romapi_read_seekable(struct spl_load_info *load,
 
 	offset = sector * pagesize;
 
+	/* Handle corner case for ocram 0x980000 to 0x98ffff ecc region, ROM does not allow to access it */
+	if (is_imx8mp()) {
+		ulong ret;
+		void *new_buf;
+		if (((ulong)buf >= 0x980000 && (ulong)buf <= 0x98ffff)) {
+			new_buf = memalign(ARCH_DMA_MINALIGN, byte);
+			if (!new_buf) {
+				printf("Fail to allocate read buffer\n");
+				return 0;
+			}
+			ret = spl_romapi_raw_seekable_read(offset, byte, new_buf);
+			memcpy(buf, new_buf, ret);
+			free(new_buf);
+			return ret / pagesize;
+		} else if ((ulong)(buf + byte) >= 0x980000 && (ulong)(buf + byte) <= 0x98ffff) {
+			u32 over_size = (ulong)(buf + byte) - 0x97ffff;
+			over_size = (over_size + pagesize - 1) / pagesize * pagesize;
+
+			ret = spl_romapi_raw_seekable_read(offset, byte - over_size, buf);
+			new_buf = memalign(ARCH_DMA_MINALIGN, over_size);
+			if (!new_buf) {
+				printf("Fail to allocate read buffer\n");
+				return 0;
+			}
+
+			ret += spl_romapi_raw_seekable_read(offset + byte - over_size, over_size, new_buf);
+			memcpy(buf + byte - over_size, new_buf, ret);
+			free(new_buf);
+			return ret / pagesize;
+		}
+	}
+
 	return spl_romapi_raw_seekable_read(offset, byte, buf) / pagesize;
 }
 
@@ -94,7 +127,7 @@ static int spl_romapi_load_image_seekable(struct spl_image_info *spl_image,
 	ret |= g_rom_api->query_boot_infor(QUERY_IMG_OFF, &image_offset,
 					   ((uintptr_t)&image_offset) ^ QUERY_IMG_OFF);
 
-	gd = pgd;
+	set_gd(pgd);
 
 	if (ret != ROM_API_OKAY) {
 		puts("ROMAPI: Failure query boot infor pagesize/offset\n");
@@ -111,7 +144,7 @@ static int spl_romapi_load_image_seekable(struct spl_image_info *spl_image,
 	size = ALIGN(sizeof(struct image_header), pagesize);
 	ret = g_rom_api->download_image((u8 *)header, offset, size,
 					((uintptr_t)header) ^ offset ^ size);
-	gd = pgd;
+	set_gd(pgd);
 
 	if (ret != ROM_API_OKAY) {
 		printf("ROMAPI: download failure offset 0x%x size 0x%x\n",
@@ -119,16 +152,14 @@ static int spl_romapi_load_image_seekable(struct spl_image_info *spl_image,
 		return -1;
 	}
 
-	if (IS_ENABLED(CONFIG_SPL_LOAD_FIT) &&
-	    image_get_magic(header) == FDT_MAGIC) {
+	if (IS_ENABLED(CONFIG_SPL_LOAD_FIT) && image_get_magic(header) == FDT_MAGIC) {
 		struct spl_load_info load;
 
 		memset(&load, 0, sizeof(load));
 		load.bl_len = pagesize;
 		load.read = spl_romapi_read_seekable;
 		load.priv = &pagesize;
-		return spl_load_simple_fit(spl_image, &load,
-					   offset / pagesize, header);
+		return spl_load_simple_fit(spl_image, &load, offset / pagesize, header);
 	} else if (IS_ENABLED(CONFIG_SPL_LOAD_IMX_CONTAINER)) {
 		struct spl_load_info load;
 
@@ -199,11 +230,11 @@ static u8 *search_container_header(u8 *p, int size)
 {
 	int i = 0;
 	u8 *hdr;
+
 	for (i = 0; i < size; i += 4) {
 		hdr = p + i;
-		if (*(hdr + 3) == 0x87 && *hdr == 0 &&
-			(*(hdr + 1) != 0 || *(hdr + 2) != 0))
-                        return p +i;
+		if (*(hdr + 3) == 0x87 && *hdr == 0 && (*(hdr + 1) != 0 || *(hdr + 2) != 0))
+			return p + i;
 	}
 
 	return NULL;
@@ -211,36 +242,35 @@ static u8 *search_container_header(u8 *p, int size)
 
 static u8 *search_img_header(u8 *p, int size)
 {
-	if (IS_ENABLED(CONFIG_SPL_LOAD_FIT)) {
+	if (IS_ENABLED(CONFIG_SPL_LOAD_FIT))
 		return search_fit_header(p, size);
-	} else if (IS_ENABLED(CONFIG_SPL_LOAD_IMX_CONTAINER)) {
+	else if (IS_ENABLED(CONFIG_SPL_LOAD_IMX_CONTAINER))
 		return search_container_header(p, size);
-	}
 
 	return NULL;
 }
 
 static u32 img_header_size(void)
 {
-	if (IS_ENABLED(CONFIG_SPL_LOAD_FIT)) {
+	if (IS_ENABLED(CONFIG_SPL_LOAD_FIT))
 		return sizeof(struct fdt_header);
-	} else if (IS_ENABLED(CONFIG_SPL_LOAD_IMX_CONTAINER)) {
+	else if (IS_ENABLED(CONFIG_SPL_LOAD_IMX_CONTAINER))
 		return sizeof(struct container_hdr);
-	}
 
 	return 0;
 }
 
 static int img_info_size(void *img_hdr)
 {
-#if IS_ENABLED(CONFIG_SPL_LOAD_FIT)
+#ifdef CONFIG_SPL_LOAD_FIT
 	return fit_get_size(img_hdr);
-#elif IS_ENABLED(CONFIG_SPL_LOAD_IMX_CONTAINER)
+#elif defined CONFIG_SPL_LOAD_IMX_CONTAINER
 	struct container_hdr *container = img_hdr;
-	return (container->length_lsb + (container->length_msb << 8));
-#endif
 
+	return (container->length_lsb + (container->length_msb << 8));
+#else
 	return 0;
+#endif
 }
 
 static int img_total_size(void *img_hdr)
@@ -249,6 +279,7 @@ static int img_total_size(void *img_hdr)
 		return get_fit_image_size(img_hdr);
 	} else if (IS_ENABLED(CONFIG_SPL_LOAD_IMX_CONTAINER)) {
 		int total = get_container_size((ulong)img_hdr, NULL);
+
 		if (total < 0) {
 			printf("invalid container image\n");
 			return 0;
@@ -275,7 +306,7 @@ static int spl_romapi_load_image_stream(struct spl_image_info *spl_image,
 
 	ret = g_rom_api->query_boot_infor(QUERY_PAGE_SZ, &pagesize,
 					  ((uintptr_t)&pagesize) ^ QUERY_PAGE_SZ);
-	gd = pgd;
+	set_gd(pgd);
 
 	if (ret != ROM_API_OKAY)
 		puts("failure at query_boot_info\n");
@@ -287,7 +318,7 @@ static int spl_romapi_load_image_stream(struct spl_image_info *spl_image,
 	for (i = 0; i < 640; i++) {
 		ret = g_rom_api->download_image(p, 0, pg,
 						((uintptr_t)p) ^ pg);
-		gd = pgd;
+		set_gd(pgd);
 
 		if (ret != ROM_API_OKAY) {
 			puts("Steam(USB) download failure\n");
@@ -302,13 +333,13 @@ static int spl_romapi_load_image_stream(struct spl_image_info *spl_image,
 	}
 
 	if (!phdr) {
-		puts("Can't found uboot image in 640K range \n");
+		puts("Can't found uboot image in 640K range\n");
 		return -1;
 	}
 
 	if (p - phdr < img_header_size()) {
 		ret = g_rom_api->download_image(p, 0, pg,  ((uintptr_t)p) ^ pg);
-		gd = pgd;
+		set_gd(pgd);
 
 		if (ret != ROM_API_OKAY) {
 			puts("Steam(USB) download failure\n");
@@ -332,7 +363,7 @@ static int spl_romapi_load_image_stream(struct spl_image_info *spl_image,
 
 		ret = g_rom_api->download_image(p, 0, imagesize,
 						((uintptr_t)p) ^ imagesize);
-		gd = pgd;
+		set_gd(pgd);
 
 		p += imagesize;
 
@@ -356,7 +387,7 @@ static int spl_romapi_load_image_stream(struct spl_image_info *spl_image,
 
 	ret = g_rom_api->download_image(p, 0, imagesize,
 					((uintptr_t)p) ^ imagesize);
-	gd = pgd;
+	set_gd(pgd);
 	if (ret != ROM_API_OKAY)
 		printf("ROM download failure %d\n", imagesize);
 
@@ -364,11 +395,10 @@ static int spl_romapi_load_image_stream(struct spl_image_info *spl_image,
 	load.bl_len = 1;
 	load.read = spl_ram_load_read;
 
-	if (IS_ENABLED(CONFIG_SPL_LOAD_FIT)) {
+	if (IS_ENABLED(CONFIG_SPL_LOAD_FIT))
 		return spl_load_simple_fit(spl_image, &load, (ulong)phdr, phdr);
-	} else if (IS_ENABLED(CONFIG_SPL_LOAD_IMX_CONTAINER)) {
+	else if (IS_ENABLED(CONFIG_SPL_LOAD_IMX_CONTAINER))
 		return spl_load_imx_container(spl_image, &load, (ulong)phdr);
-	}
 
 	return -1;
 }
@@ -382,7 +412,7 @@ int board_return_to_bootrom(struct spl_image_info *spl_image,
 
 	ret = g_rom_api->query_boot_infor(QUERY_BT_DEV, &boot,
 					  ((uintptr_t)&boot) ^ QUERY_BT_DEV);
-	gd =  pgd;
+	set_gd(pgd);
 
 	if (ret != ROM_API_OKAY) {
 		puts("ROMAPI: failure at query_boot_info\n");

@@ -507,6 +507,7 @@
 	pinctrl-0 = <&pinctrl_gpmi_nand>;
 	status = "disabled"; /* pin conflict with uart3 */
 	nand-on-flash-bbt;
+	fsl,use-minimum-ecc;
 };
 
 &hdmi_audio {

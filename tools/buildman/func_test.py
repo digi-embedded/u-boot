@@ -16,6 +16,7 @@ from buildman import toolchain
 from patman import command
 from patman import gitutil
 from patman import terminal
+from patman import test_util
 from patman import tools
 
 settings_data = '''
@@ -181,11 +182,11 @@ class TestFunctional(unittest.TestCase):
         self._buildman_pathname = sys.argv[0]
         self._buildman_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
         command.test_result = self._HandleCommand
+        bsettings.Setup(None)
+        bsettings.AddFile(settings_data)
         self.setupToolchains()
         self._toolchains.Add('arm-gcc', test=False)
         self._toolchains.Add('powerpc-gcc', test=False)
-        bsettings.Setup(None)
-        bsettings.AddFile(settings_data)
         self._boards = board.Boards()
         for brd in boards:
             self._boards.AddBoard(board.Board(*brd))
@@ -204,8 +205,8 @@ class TestFunctional(unittest.TestCase):
         self._test_branch = TEST_BRANCH
 
         # Avoid sending any output and clear all terminal output
-        terminal.SetPrintTestMode()
-        terminal.GetPrintTestLines()
+        terminal.set_print_test_mode()
+        terminal.get_print_test_lines()
 
     def tearDown(self):
         shutil.rmtree(self._base_dir)
@@ -216,15 +217,31 @@ class TestFunctional(unittest.TestCase):
         self._toolchains.Add('gcc', test=False)
 
     def _RunBuildman(self, *args):
-        return command.RunPipe([[self._buildman_pathname] + list(args)],
+        return command.run_pipe([[self._buildman_pathname] + list(args)],
                 capture=True, capture_stderr=True)
 
-    def _RunControl(self, *args, clean_dir=False, boards=None):
+    def _RunControl(self, *args, boards=None, clean_dir=False,
+                    test_thread_exceptions=False):
+        """Run buildman
+
+        Args:
+            args: List of arguments to pass
+            boards:
+            clean_dir: Used for tests only, indicates that the existing output_dir
+                should be removed before starting the build
+            test_thread_exceptions: Uses for tests only, True to make the threads
+                raise an exception instead of reporting their result. This simulates
+                a failure in the code somewhere
+
+        Returns:
+            result code from buildman
+        """
         sys.argv = [sys.argv[0]] + list(args)
         options, args = cmdline.ParseArgs()
         result = control.DoBuildman(options, args, toolchains=self._toolchains,
                 make_func=self._HandleMake, boards=boards or self._boards,
-                clean_dir=clean_dir)
+                clean_dir=clean_dir,
+                test_thread_exceptions=test_thread_exceptions)
         self._builder = control.builder
         return result
 
@@ -250,11 +267,11 @@ class TestFunctional(unittest.TestCase):
     def testGitSetup(self):
         """Test gitutils.Setup(), from outside the module itself"""
         command.test_result = command.CommandResult(return_code=1)
-        gitutil.Setup()
+        gitutil.setup()
         self.assertEqual(gitutil.use_no_decorate, False)
 
         command.test_result = command.CommandResult(return_code=0)
-        gitutil.Setup()
+        gitutil.setup()
         self.assertEqual(gitutil.use_no_decorate, True)
 
     def _HandleCommandGitLog(self, args):
@@ -390,7 +407,7 @@ class TestFunctional(unittest.TestCase):
             stage: Stage that we are at (mrproper, config, build)
             cwd: Directory where make should be run
             args: Arguments to pass to make
-            kwargs: Arguments to pass to command.RunPipe()
+            kwargs: Arguments to pass to command.run_pipe()
         """
         self._make_calls += 1
         if stage == 'mrproper':
@@ -405,7 +422,7 @@ class TestFunctional(unittest.TestCase):
                 if arg.startswith('O='):
                     out_dir = arg[2:]
             fname = os.path.join(cwd or '', out_dir, 'u-boot')
-            tools.WriteFile(fname, b'U-Boot')
+            tools.write_file(fname, b'U-Boot')
             if type(commit) is not str:
                 stderr = self._error.get((brd.target, commit.sequence))
             if stderr:
@@ -421,7 +438,7 @@ class TestFunctional(unittest.TestCase):
         print(len(lines))
         for line in lines:
             print(line)
-        #self.print_lines(terminal.GetPrintTestLines())
+        #self.print_lines(terminal.get_print_test_lines())
 
     def testNoBoards(self):
         """Test that buildman aborts when there are no boards"""
@@ -433,7 +450,7 @@ class TestFunctional(unittest.TestCase):
         """Very simple test to invoke buildman on the current source"""
         self.setupToolchains();
         self._RunControl('-o', self._output_dir)
-        lines = terminal.GetPrintTestLines()
+        lines = terminal.get_print_test_lines()
         self.assertIn('Building current source for %d boards' % len(boards),
                       lines[0].text)
 
@@ -446,7 +463,7 @@ class TestFunctional(unittest.TestCase):
         """Test that missing toolchains are detected"""
         self.setupToolchains();
         ret_code = self._RunControl('-b', TEST_BRANCH, '-o', self._output_dir)
-        lines = terminal.GetPrintTestLines()
+        lines = terminal.get_print_test_lines()
 
         # Buildman always builds the upstream commit as well
         self.assertIn('Building %d commits for %d boards' %
@@ -555,6 +572,18 @@ class TestFunctional(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(board0_dir, 'done')))
         self.assertTrue(os.path.exists(os.path.join(board0_dir, 'out-env')))
 
+    def testEnvironmentUnicode(self):
+        """Test there are no unicode errors when the env has non-ASCII chars"""
+        try:
+            varname = b'buildman_test_var'
+            os.environb[varname] = b'strange\x80chars'
+            self.assertEqual(0, self._RunControl('-o', self._output_dir))
+            board0_dir = os.path.join(self._output_dir, 'current', 'board0')
+            self.assertTrue(os.path.exists(os.path.join(board0_dir, 'done')))
+            self.assertTrue(os.path.exists(os.path.join(board0_dir, 'out-env')))
+        finally:
+            del os.environb[varname]
+
     def testWorkInOutput(self):
         """Test the -w option which should write directly to the output dir"""
         board_list = board.Boards()
@@ -588,3 +617,12 @@ class TestFunctional(unittest.TestCase):
         with self.assertRaises(SystemExit) as e:
             self._RunControl('-w', clean_dir=False)
         self.assertIn("specify -o", str(e.exception))
+
+    def testThreadExceptions(self):
+        """Test that exceptions in threads are reported"""
+        with test_util.capture_sys_output() as (stdout, stderr):
+            self.assertEqual(102, self._RunControl('-o', self._output_dir,
+                                                   test_thread_exceptions=True))
+        self.assertIn(
+            'Thread exception (use -T0 to run without threads): test exception',
+            stdout.getvalue())

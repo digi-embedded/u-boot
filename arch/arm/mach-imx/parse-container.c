@@ -120,7 +120,7 @@ static int read_auth_container(struct spl_image_info *spl_image,
 #ifdef CONFIG_AHAB_BOOT
 	ret = ahab_auth_cntr_hdr(container, length);
 	if (ret)
-		goto end;
+		goto end_auth;
 #endif
 
 	for (i = 0; i < container->num_images; i++) {
@@ -144,6 +144,7 @@ static int read_auth_container(struct spl_image_info *spl_image,
 	/* Everything checks out, get the sw_version now. */
 	spl_image->rbindex = (uint64_t)container->sw_version;
 #endif
+
 
 end_auth:
 #ifdef CONFIG_AHAB_BOOT

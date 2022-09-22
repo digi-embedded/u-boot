@@ -11,16 +11,13 @@
 #include <asm/arch/imx-regs.h>
 #include "imx_env.h"
 
-#define CONFIG_SYS_BOOTM_LEN		(32 * SZ_1M)
+#define CONFIG_SYS_BOOTM_LEN		(64 * SZ_1M)
 
 #define CONFIG_SPL_MAX_SIZE		(148 * 1024)
 #define CONFIG_SYS_MONITOR_LEN		(512 * 1024)
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR	(0x300 + CONFIG_SECONDARY_BOOT_SECTOR_OFFSET)
 
 #ifdef CONFIG_SPL_BUILD
 /*#define CONFIG_ENABLE_DDR_TRAINING_DEBUG*/
-#define CONFIG_SPL_LDSCRIPT		"arch/arm/cpu/armv8/u-boot-spl.lds"
 #define CONFIG_SPL_STACK		0x187FF0
 #define CONFIG_SPL_BSS_START_ADDR      0x00180000
 #define CONFIG_SPL_BSS_MAX_SIZE        0x2000	/* 8 KB */
@@ -34,18 +31,10 @@
 #define CONFIG_SPL_ABORT_ON_RAW_IMAGE
 
 #undef CONFIG_DM_MMC
-#undef CONFIG_DM_PMIC
-#undef CONFIG_DM_PMIC_PFUZE100
 
-#define CONFIG_SYS_I2C
-
-#define CONFIG_POWER
-#define CONFIG_POWER_I2C
 #define CONFIG_POWER_PFUZE100
 #define CONFIG_POWER_PFUZE100_I2C_ADDR 0x08
 #endif
-
-#define CONFIG_REMAKE_ELF
 
 /* ENET Config */
 /* ENET1 */
@@ -77,11 +66,11 @@
 #define JAILHOUSE_ENV \
 	"jh_clk= \0 " \
 	"jh_mmcboot=setenv fdtfile imx8mq-evk-root.dtb; " \
-		"setenv jh_clk clk_ignore_unused mem=2000M; " \
+		"setenv jh_clk clk_ignore_unused mem=1872M; " \
 			   "if run loadimage; then " \
 				   "run mmcboot; " \
 			   "else run jh_netboot; fi; \0" \
-	"jh_netboot=setenv fdtfile imx8mq-evk-root.dtb; setenv jh_clk clk_ignore_unused mem=2000M; run netboot; \0 "
+	"jh_netboot=setenv fdtfile imx8mq-evk-root.dtb; setenv jh_clk clk_ignore_unused mem=1872MB; run netboot; \0 "
 
 #define CONFIG_MFG_ENV_SETTINGS \
 	CONFIG_MFG_ENV_SETTINGS_DEFAULT \
@@ -96,7 +85,7 @@
 	BOOTENV \
 	JAILHOUSE_ENV \
 	"scriptaddr=0x43500000\0" \
-	"kernel_addr_r=" __stringify(CONFIG_LOADADDR) "\0" \
+	"kernel_addr_r=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
 	"bsp_script=boot.scr\0" \
 	"image=Image\0" \
 	"splashimage=0x50000000\0" \
@@ -108,7 +97,7 @@
 	"fdtfile=imx8mq-evk.dtb\0" \
 	"bootm_size=0x10000000\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
-	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
+	"mmcpart=1\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs ${jh_clk} console=${console} root=${mmcroot}\0 " \
@@ -161,9 +150,6 @@
 		   "fi;"
 
 /* Link Definitions */
-#define CONFIG_LOADADDR			0x40480000
-
-#define CONFIG_SYS_LOAD_ADDR           CONFIG_LOADADDR
 
 #define CONFIG_SYS_INIT_RAM_ADDR        0x40000000
 #define CONFIG_SYS_INIT_RAM_SIZE        0x80000
@@ -174,9 +160,6 @@
 
 #define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
 
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		SZ_32M
-
 #define CONFIG_SYS_SDRAM_BASE           0x40000000
 #define PHYS_SDRAM                      0x40000000
 #define PHYS_SDRAM_SIZE			0xC0000000 /* 3GB DDR */
@@ -184,55 +167,23 @@
 #define CONFIG_MXC_UART_BASE		UART1_BASE_ADDR
 
 /* Monitor Command Prompt */
-#define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
 #define CONFIG_SYS_CBSIZE		1024
 #define CONFIG_SYS_MAXARGS		64
 #define CONFIG_SYS_BARGSIZE		CONFIG_SYS_CBSIZE
 #define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + \
 					sizeof(CONFIG_SYS_PROMPT) + 16)
 
-#define CONFIG_IMX_BOOTAUX
-
 #define CONFIG_SYS_FSL_USDHC_NUM	2
 #define CONFIG_SYS_FSL_ESDHC_ADDR       0
 
-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
-
-/* I2C Configs */
-#define CONFIG_SYS_I2C_SPEED		  100000
-
-/* USB configs */
-#ifndef CONFIG_SPL_BUILD
-
-#define CONFIG_CMD_USB_MASS_STORAGE
-#define CONFIG_USB_GADGET_MASS_STORAGE
-#define CONFIG_USB_FUNCTION_MASS_STORAGE
-
 #define CONFIG_CMD_READ
-
-#endif
-
 #define CONFIG_SERIAL_TAG
 #define CONFIG_FASTBOOT_USB_DEV 0
-
 
 #define CONFIG_USB_MAX_CONTROLLER_COUNT         2
 
 #define CONFIG_USBD_HS
 #define CONFIG_USB_GADGET_VBUS_DRAW 2
-
-#ifndef CONFIG_SPL_BUILD
-#define CONFIG_DM_PMIC
-#endif
-
-#ifdef CONFIG_DM_VIDEO
-#define CONFIG_VIDEO_LOGO
-#define CONFIG_BMP_16BPP
-#define CONFIG_BMP_24BPP
-#define CONFIG_BMP_32BPP
-#define CONFIG_VIDEO_BMP_RLE8
-#define CONFIG_VIDEO_BMP_LOGO
-#endif
 
 #ifdef CONFIG_ANDROID_SUPPORT
 #include "imx8mq_evk_android.h"

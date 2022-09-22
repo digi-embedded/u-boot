@@ -18,7 +18,6 @@
 #include <fsl_avb.h>
 #include <image.h>
 #include <hang.h>
-#include "fsl_caam.h"
 #include "fsl_avbkey.h"
 #include "hang.h"
 #include "fsl_bootctrl.h"
@@ -869,9 +868,10 @@ AvbABFlowResult avb_flow_dual_uboot(AvbABOps* ab_ops,
 	AvbOps* ops = ab_ops->ops;
 	AvbSlotVerifyData* slot_data = NULL;
 	AvbSlotVerifyData* data = NULL;
-	AvbABFlowResult ret = 0;
+	AvbABFlowResult ret;
 	struct bootloader_control ab_data, ab_data_orig;
 	AvbIOResult io_ret;
+	bool saw_and_allowed_verification_error = false;
 	AvbSlotVerifyResult verify_result;
 	bool set_slot_unbootable = false;
 	int target_slot, n;
@@ -940,7 +940,8 @@ AvbABFlowResult avb_flow_dual_uboot(AvbABOps* ab_ops,
 					   "AVB_SLOT_VERIFY_FLAGS_ALLOW_VERIFICATION_ERROR "
 					   "is set.\n",
 					   NULL);
-				ret = AVB_AB_FLOW_RESULT_OK_WITH_VERIFICATION_ERROR;
+				saw_and_allowed_verification_error =
+					 true;
 			} else {
 				set_slot_unbootable = true;
 			}
@@ -1019,6 +1020,13 @@ AvbABFlowResult avb_flow_dual_uboot(AvbABOps* ab_ops,
 	avb_assert(slot_data != NULL);
 	data = slot_data;
 	slot_data = NULL;
+	if (saw_and_allowed_verification_error) {
+		avb_assert(
+			flags & AVB_SLOT_VERIFY_FLAGS_ALLOW_VERIFICATION_ERROR);
+		ret = AVB_AB_FLOW_RESULT_OK_WITH_VERIFICATION_ERROR;
+	} else {
+		ret = AVB_AB_FLOW_RESULT_OK;
+	}
 
 out:
 	io_ret = fsl_save_metadata_if_changed(ab_ops, &ab_data, &ab_data_orig);
@@ -1184,10 +1192,11 @@ AvbABFlowResult avb_ab_flow_fast(AvbABOps* ab_ops,
 	AvbOps* ops = ab_ops->ops;
 	AvbSlotVerifyData* slot_data[2] = {NULL, NULL};
 	AvbSlotVerifyData* data = NULL;
-	AvbABFlowResult ret = 0;
+	AvbABFlowResult ret;
 	struct bootloader_control ab_data, ab_data_orig;
 	size_t slot_index_to_boot, n;
 	AvbIOResult io_ret;
+	bool saw_and_allowed_verification_error = false;
 	size_t target_slot;
 	AvbSlotVerifyResult verify_result;
 	bool set_slot_unbootable = false;
@@ -1256,8 +1265,9 @@ AvbABFlowResult avb_ab_flow_fast(AvbABOps* ab_ops,
 						   "AVB_SLOT_VERIFY_FLAGS_ALLOW_VERIFICATION_ERROR "
 						   "is set.\n",
 						   NULL);
+					saw_and_allowed_verification_error =
+						 true;
 					slot_index_to_boot = target_slot;
-					ret = AVB_AB_FLOW_RESULT_OK_WITH_VERIFICATION_ERROR;
 					n = 2;
 				} else {
 					set_slot_unbootable = true;
@@ -1345,6 +1355,13 @@ AvbABFlowResult avb_ab_flow_fast(AvbABOps* ab_ops,
 	avb_assert(slot_data[slot_index_to_boot] != NULL);
 	data = slot_data[slot_index_to_boot];
 	slot_data[slot_index_to_boot] = NULL;
+	if (saw_and_allowed_verification_error) {
+		avb_assert(
+			flags & AVB_SLOT_VERIFY_FLAGS_ALLOW_VERIFICATION_ERROR);
+		ret = AVB_AB_FLOW_RESULT_OK_WITH_VERIFICATION_ERROR;
+	} else {
+		ret = AVB_AB_FLOW_RESULT_OK;
+	}
 
 	/* ... and decrement tries remaining, if applicable. */
 	if (!ab_data.slot_info[slot_index_to_boot].successful_boot &&

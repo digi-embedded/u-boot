@@ -79,7 +79,7 @@ DECLARE_GLOBAL_DATA_PTR;
 	PAD_CTL_PUS_47K_UP  | PAD_CTL_SPEED_LOW |		\
 	PAD_CTL_DSE_80ohm   | PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
 
-#ifdef CONFIG_SYS_I2C
+#ifdef CONFIG_SYS_I2C_LEGACY
 #define PC MUX_PAD_CTRL(I2C_PAD_CTRL)
 /* I2C1 for PMIC */
 struct i2c_pads_info i2c_pad_info1 = {
@@ -110,7 +110,7 @@ struct i2c_pads_info i2c_pad_info2 = {
 };
 #endif
 
-#ifdef CONFIG_POWER
+#ifdef CONFIG_POWER_LEGACY
 #define I2C_PMIC 0
 int power_init_board(void)
 {
@@ -283,131 +283,6 @@ static iomux_v3_cfg_t const usdhc1_pads[] = {
 	MX6_PAD_SD1_DATA2__USDHC1_DATA2 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX6_PAD_SD1_DATA3__USDHC1_DATA3 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 };
-
-#ifdef CONFIG_VIDEO_MXS
-static iomux_v3_cfg_t const lvds_ctrl_pads[] = {
-	/* CABC enable */
-	MX6_PAD_KEY_ROW1__GPIO2_IO_16 | MUX_PAD_CTRL(NO_PAD_CTRL),
-
-	/* Use GPIO for Brightness adjustment, duty cycle = period */
-	MX6_PAD_GPIO1_IO12__GPIO1_IO_12 | MUX_PAD_CTRL(NO_PAD_CTRL),
-};
-
-static iomux_v3_cfg_t const lcd_pads[] = {
-	MX6_PAD_LCD1_CLK__LCDIF1_CLK | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_ENABLE__LCDIF1_ENABLE | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_HSYNC__LCDIF1_HSYNC | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_VSYNC__LCDIF1_VSYNC | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA00__LCDIF1_DATA_0 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA01__LCDIF1_DATA_1 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA02__LCDIF1_DATA_2 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA03__LCDIF1_DATA_3 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA04__LCDIF1_DATA_4 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA05__LCDIF1_DATA_5 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA06__LCDIF1_DATA_6 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA07__LCDIF1_DATA_7 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA08__LCDIF1_DATA_8 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA09__LCDIF1_DATA_9 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA10__LCDIF1_DATA_10 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA11__LCDIF1_DATA_11 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA12__LCDIF1_DATA_12 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA13__LCDIF1_DATA_13 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA14__LCDIF1_DATA_14 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA15__LCDIF1_DATA_15 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA16__LCDIF1_DATA_16 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA17__LCDIF1_DATA_17 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA18__LCDIF1_DATA_18 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA19__LCDIF1_DATA_19 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA20__LCDIF1_DATA_20 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA21__LCDIF1_DATA_21 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA22__LCDIF1_DATA_22 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_DATA23__LCDIF1_DATA_23 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	MX6_PAD_LCD1_RESET__GPIO3_IO_27 | MUX_PAD_CTRL(NO_PAD_CTRL),
-
-	/* Use GPIO for Brightness adjustment, duty cycle = period */
-	MX6_PAD_GPIO1_IO12__GPIO1_IO_12 | MUX_PAD_CTRL(NO_PAD_CTRL),
-};
-
-
-struct lcd_panel_info_t {
-	unsigned int lcdif_base_addr;
-	int depth;
-	void	(*enable)(struct lcd_panel_info_t const *dev);
-	struct fb_videomode mode;
-};
-
-void do_enable_lvds(struct display_info_t const *dev)
-{
-	enable_lcdif_clock(dev->bus, 1);
-	enable_lvds_bridge(dev->bus);
-
-	SETUP_IOMUX_PADS(lvds_ctrl_pads);
-
-	/* Enable CABC */
-	gpio_request(IMX_GPIO_NR(2, 16), "cabc enable");
-	gpio_direction_output(IMX_GPIO_NR(2, 16) , 1);
-
-	/* Set Brightness to high */
-	gpio_request(IMX_GPIO_NR(1, 12), "backlight");
-	gpio_direction_output(IMX_GPIO_NR(1, 12) , 1);
-}
-
-void do_enable_parallel_lcd(struct display_info_t const *dev)
-{
-	enable_lcdif_clock(dev->bus, 1);
-
-	SETUP_IOMUX_PADS(lcd_pads);
-
-	/* Power up the LCD */
-	gpio_request(IMX_GPIO_NR(3, 27), "lcd pwr");
-	gpio_direction_output(IMX_GPIO_NR(3, 27) , 1);
-
-	/* Set Brightness to high */
-		gpio_request(IMX_GPIO_NR(1, 12), "backlight");
-	gpio_direction_output(IMX_GPIO_NR(1, 12) , 1);
-}
-
-struct display_info_t const displays[] = {{
-	.bus = LCDIF2_BASE_ADDR,
-	.addr = 0,
-	.pixfmt = 18,
-	.enable	= do_enable_lvds,
-	.detect = NULL,
-	.mode	= {
-		.name			= "Hannstar-XGA",
-		.xres           = 1024,
-		.yres           = 768,
-		.pixclock       = 15385,
-		.left_margin    = 220,
-		.right_margin   = 40,
-		.upper_margin   = 21,
-		.lower_margin   = 7,
-		.hsync_len      = 60,
-		.vsync_len      = 10,
-		.sync           = 0,
-		.vmode          = FB_VMODE_NONINTERLACED
-} }, {
-	.bus = MX6SX_LCDIF1_BASE_ADDR,
-	.pixfmt = 24,
-	.addr = 0,
-	.detect = NULL,
-	.enable	= do_enable_parallel_lcd,
-	.mode	= {
-		.name			= "MCIMX28LCD",
-		.xres           = 800,
-		.yres           = 480,
-		.pixclock       = 29850,
-		.left_margin    = 89,
-		.right_margin   = 164,
-		.upper_margin   = 23,
-		.lower_margin   = 10,
-		.hsync_len      = 10,
-		.vsync_len      = 10,
-		.sync           = 0,
-		.vmode          = FB_VMODE_NONINTERLACED
-} } };
-size_t display_count = ARRAY_SIZE(displays);
-#endif
 
 #ifdef CONFIG_FEC_MXC
 static iomux_v3_cfg_t const fec1_pads[] = {
@@ -763,7 +638,7 @@ int board_init(void)
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 
-#ifdef CONFIG_SYS_I2C
+#ifdef CONFIG_SYS_I2C_LEGACY
 	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
 	setup_i2c(1, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info2);
 #endif

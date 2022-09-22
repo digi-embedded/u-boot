@@ -8,8 +8,8 @@
 #include <asm/types.h>
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/sys_proto.h>
-#include <asm/arch/mu_hal.h>
-#include <asm/arch/s400_api.h>
+#include <asm/mach-imx/mu_hal.h>
+#include <asm/mach-imx/s400_api.h>
 #include <asm/arch/rdc.h>
 #include <div64.h>
 
@@ -181,18 +181,17 @@ int xrdc_config_pdac(u32 bridge, u32 index, u32 dom, u32 perm)
 	return 0;
 }
 
-
 int release_rdc(enum rdc_type type)
 {
 	ulong s_mu_base = 0x27020000UL;
-	struct imx8ulp_s400_msg msg;
+	struct sentinel_msg msg;
 	int ret;
 	u32 rdc_id = (type == RDC_XRDC) ? 0x78 : 0x74;
 
 	msg.version = AHAB_VERSION;
 	msg.tag = AHAB_CMD_TAG;
 	msg.size = 2;
-	msg.command = AHAB_RELEASE_RDC_REQ_CID;
+	msg.command = ELE_RELEASE_RDC_REQ;
 	msg.data[0] = (rdc_id << 8) | 0x2; /* A35 XRDC */
 
 	mu_hal_init(s_mu_base);
@@ -354,7 +353,7 @@ int trdc_mrc_region_set_access(u32 mrc_x, u32 dom_x, u32 addr_start, u32 addr_en
 	struct mrc_rgn_dom *mrc_dom;
 	u32 *desc_w;
 	u32 start, end;
-	u32 i, free = 8;;
+	u32 i, free = 8;
 	bool vld, hit = false;
 
 	mrc_dom = &trdc_base->mrc_dom[mrc_x][dom_x];

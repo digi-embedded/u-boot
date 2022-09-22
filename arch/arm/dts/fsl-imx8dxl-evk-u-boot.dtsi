@@ -192,6 +192,10 @@
 	u-boot,dm-spl;
 };
 
+&usbmisc1 {
+	u-boot,dm-spl;
+};
+
 &usbotg1 {
 	u-boot,dm-spl;
 };
@@ -206,6 +210,10 @@
 };
 
 &ethphy0 {
+	reset-gpios = <&pca6416_a 2 GPIO_ACTIVE_LOW>;
+	reset-assert-us = <10000>;
+	reset-deassert-us = <150000>;
+
 	vddio0: vddio-regulator {
 		regulator-name = "VDDIO";
 		regulator-min-microvolt = <1800000>;
@@ -223,6 +231,10 @@
 
 &usbphy2 {
         u-boot,dm-spl;
+};
+
+&usbmisc2 {
+	u-boot,dm-spl;
 };
 
 &usbotg2 {

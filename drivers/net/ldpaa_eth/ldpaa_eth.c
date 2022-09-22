@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright 2014-2016 Freescale Semiconductor, Inc.
- * Copyright 2017-2021 NXP
+ * Copyright 2017 NXP
  */
 
 #include <common.h>
@@ -25,11 +25,11 @@
 
 #ifdef CONFIG_PHYLIB
 #ifdef CONFIG_DM_ETH
-static void init_phy(struct udevice *dev, int i)
+static void init_phy(struct udevice *dev)
 {
 	struct ldpaa_eth_priv *priv = dev_get_priv(dev);
 
-	priv->phy = dm_eth_phy_connect_index(dev, i);
+	priv->phy = dm_eth_phy_connect(dev);
 
 	if (!priv->phy)
 		return;
@@ -1101,17 +1101,14 @@ static int ldpaa_dpni_bind(struct ldpaa_eth_priv *priv)
 static int ldpaa_eth_probe(struct udevice *dev)
 {
 	struct ofnode_phandle_args phandle;
-	int i;
 
-	for (i = 0; i < WRIOP_MAX_PHY_NUM; i++) {
-		/* Nothing to do if there is no "phy-handle" in the DTS node */
-		if (dev_read_phandle_with_args(dev, "phy-handle", NULL,
-					       0, i, &phandle)) {
-			return 0;
-		}
-
-		init_phy(dev, i);
+	/* Nothing to do if there is no "phy-handle" in the DTS node */
+	if (dev_read_phandle_with_args(dev, "phy-handle", NULL,
+				       0, 0, &phandle)) {
+		return 0;
 	}
+
+	init_phy(dev);
 
 	return 0;
 }

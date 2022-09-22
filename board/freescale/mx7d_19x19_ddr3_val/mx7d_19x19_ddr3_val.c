@@ -54,7 +54,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define SPI_PAD_CTRL (PAD_CTL_DSE_3P3V_49OHM | PAD_CTL_SRE_SLOW | PAD_CTL_HYS)
 
-#ifdef CONFIG_SYS_I2C
+#ifdef CONFIG_SYS_I2C_LEGACY
 #define PC MUX_PAD_CTRL(I2C_PAD_CTRL)
 /* I2C1 for PMIC */
 struct i2c_pads_info i2c_pad_info1 = {
@@ -485,7 +485,7 @@ int board_early_init_f(void)
 {
 	setup_iomux_uart();
 
-#ifdef CONFIG_SYS_I2C
+#ifdef CONFIG_SYS_I2C_LEGACY
 	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
 	setup_i2c(1, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info2);
 #endif

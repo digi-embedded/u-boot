@@ -1,7 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright 2018-2019 NXP
+ * Copyright 2018-2019, 2021 NXP
  *
- * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -21,13 +21,13 @@
 #include <asm/mach-imx/boot_mode.h>
 #include <asm/arch/ddr.h>
 
-#include <power/pmic.h>
-#include <power/bd71837.h>
-#include <power/pca9450.h>
 #include <dm/uclass.h>
 #include <dm/device.h>
 #include <dm/uclass-internal.h>
 #include <dm/device-internal.h>
+#include <power/pmic.h>
+#include <power/pca9450.h>
+#include <power/bd71837.h>
 #include <asm/mach-imx/gpio.h>
 #include <asm/mach-imx/mxc_i2c.h>
 #include <fsl_esdhc_imx.h>
@@ -165,11 +165,12 @@ int power_init_board(void)
 void spl_board_init(void)
 {
 	struct udevice *dev;
-	uclass_find_first_device(UCLASS_MISC, &dev);
+	int ret;
 
-	for (; dev; uclass_find_next_device(&dev)) {
-		if (device_probe(dev))
-			continue;
+	if (IS_ENABLED(CONFIG_FSL_CAAM)) {
+		ret = uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(caam_jr), &dev);
+		if (ret)
+			printf("Failed to initialize caam_jr: %d\n", ret);
 	}
 	puts("Normal Boot\n");
 }
@@ -223,8 +224,8 @@ void board_init_f(ulong dummy)
 
 	board_init_r(NULL, 0);
 }
-#ifdef CONFIG_SPL_MMC_SUPPORT
 
+#ifdef CONFIG_SPL_MMC
 #define UBOOT_RAW_SECTOR_OFFSET 0x40
 unsigned long spl_mmc_get_uboot_raw_sector(struct mmc *mmc)
 {

@@ -78,5 +78,5 @@ typedef u64 iomux_cfg_t;
 #define IOMUXC_PSMI_IMUX_ALT_SHIFT	(0)
 
 void imx8ulp_iomux_setup_pad(iomux_cfg_t pad);
-void imx8ulp_iomux_setup_multiple_pads(iomux_cfg_t const *pad_list, unsigned count);
+void imx8ulp_iomux_setup_multiple_pads(iomux_cfg_t const *pad_list, unsigned int count);
 #endif

@@ -43,23 +43,6 @@
 #undef CONFIG_FEC_MXC
 #endif
 
-#ifndef CONFIG_DM_I2C
-#define CONFIG_SYS_I2C
-#endif
-#ifdef CONFIG_CMD_I2C
-#define CONFIG_SYS_I2C_MXC_I2C1		/* enable I2C bus 1 */
-#define CONFIG_SYS_I2C_MXC_I2C2		/* enable I2C bus 2 */
-#endif
-
-/* PMIC */
-#ifndef CONFIG_DM_PMIC
-#define CONFIG_POWER
-#define CONFIG_POWER_I2C
-#define CONFIG_POWER_PFUZE3000
-#define CONFIG_POWER_PFUZE3000_I2C_ADDR	0x08
-#endif
-
-
 #include "mx7d_val.h"
 
 #endif

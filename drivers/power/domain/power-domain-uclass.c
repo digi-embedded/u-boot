@@ -2,6 +2,9 @@
 /*
  * Copyright (c) 2016, NVIDIA CORPORATION.
  */
+
+#define LOG_CATEGORY UCLASS_POWER_DOMAIN
+
 #include <common.h>
 #include <dm.h>
 #include <log.h>
@@ -149,7 +152,7 @@ int power_domain_off(struct power_domain *power_domain)
 	return ops->off(power_domain);
 }
 
-#if (CONFIG_IS_ENABLED(OF_CONTROL) && !CONFIG_IS_ENABLED(OF_PLATDATA))
+#if CONFIG_IS_ENABLED(OF_REAL)
 static int dev_power_domain_ctrl(struct udevice *dev, bool on)
 {
 	struct power_domain pd;
@@ -174,8 +177,7 @@ static int dev_power_domain_ctrl(struct udevice *dev, bool on)
 	 * off their power-domain parent. So we will get here again and
 	 * again and will be stuck in an endless loop.
 	 */
-	if (!on && dev_get_parent(dev) == pd.dev &&
-	    device_get_uclass_id(dev) == UCLASS_POWER_DOMAIN)
+	if (!on && dev_get_parent(dev) == pd.dev)
 		return ret;
 
 	/*
@@ -199,7 +201,7 @@ int dev_power_domain_off(struct udevice *dev)
 {
 	return dev_power_domain_ctrl(dev, false);
 }
-#endif
+#endif  /* OF_REAL */
 
 UCLASS_DRIVER(power_domain) = {
 	.id		= UCLASS_POWER_DOMAIN,

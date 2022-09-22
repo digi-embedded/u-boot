@@ -404,20 +404,6 @@ static int pcie_phy_write(void __iomem *dbi_base, int addr, int data)
 	return 0;
 }
 
-#if !CONFIG_IS_ENABLED(DM_PCI)
-void imx_pcie_gpr_read(struct imx_pcie_priv *priv, uint offset, uint *valp)
-{
-	struct iomuxc *iomuxc_regs = (struct iomuxc *)IOMUXC_BASE_ADDR;
-	*valp = readl(&iomuxc_regs->gpr[offset >> 2]);
-}
-
-void imx_pcie_gpr_update_bits(struct imx_pcie_priv *priv, uint offset, uint mask, uint val)
-{
-	struct iomuxc *iomuxc_regs = (struct iomuxc *)IOMUXC_BASE_ADDR;
-	clrsetbits_32(&iomuxc_regs->gpr[offset >> 2], mask, val);
-}
-
-#else
 void imx_pcie_gpr_read(struct imx_pcie_priv *priv, uint offset, uint *valp)
 {
 	regmap_read(priv->iomuxc_gpr, offset, valp);
@@ -427,8 +413,6 @@ void imx_pcie_gpr_update_bits(struct imx_pcie_priv *priv, uint offset, uint mask
 {
 	regmap_update_bits(priv->iomuxc_gpr, offset, mask, val);
 }
-
-#endif
 
 static int imx6_pcie_link_up(struct imx_pcie_priv *priv)
 {
@@ -721,6 +705,58 @@ static int imx_pcie_write_cfg(struct imx_pcie_priv *priv, pci_dev_t d,
 	imx_pcie_fix_dabt_handler(true);
 	writel(val, va_address);
 	imx_pcie_fix_dabt_handler(false);
+
+	return 0;
+}
+
+__weak int imx_pcie_toggle_reset(struct gpio_desc *gpio)
+{
+	/*
+	 * See 'PCI EXPRESS BASE SPECIFICATION, REV 3.0, SECTION 6.6.1'
+	 * for detailed understanding of the PCIe CR reset logic.
+	 *
+	 * The PCIe #PERST reset line _MUST_ be connected, otherwise your
+	 * design does not conform to the specification. You must wait at
+	 * least 20 ms after de-asserting the #PERST so the EP device can
+	 * do self-initialisation.
+	 *
+	 * In case your #PERST pin is connected to a plain GPIO pin of the
+	 * CPU, you can define CONFIG_PCIE_IMX_PERST_GPIO in your board's
+	 * configuration file and the condition below will handle the rest
+	 * of the reset toggling.
+	 *
+	 * In case your #PERST toggling logic is more complex, for example
+	 * connected via CPLD or somesuch, you can override this function
+	 * in your board file and implement reset logic as needed. You must
+	 * not forget to wait at least 20 ms after de-asserting #PERST in
+	 * this case either though.
+	 *
+	 * In case your #PERST line of the PCIe EP device is not connected
+	 * at all, your design is broken and you should fix your design,
+	 * otherwise you will observe problems like for example the link
+	 * not coming up after rebooting the system back from running Linux
+	 * that uses the PCIe as well OR the PCIe link might not come up in
+	 * Linux at all in the first place since it's in some non-reset
+	 * state due to being previously used in U-Boot.
+	 */
+#ifdef CONFIG_PCIE_IMX_PERST_GPIO
+	gpio_request(CONFIG_PCIE_IMX_PERST_GPIO, "pcie_reset");
+	gpio_direction_output(CONFIG_PCIE_IMX_PERST_GPIO, 0);
+	mdelay(20);
+	gpio_set_value(CONFIG_PCIE_IMX_PERST_GPIO, 1);
+	mdelay(20);
+	gpio_free(CONFIG_PCIE_IMX_PERST_GPIO);
+#else
+	if (dm_gpio_is_valid(gpio)) {
+		/* Assert PERST# for 20ms then de-assert */
+		dm_gpio_set_value(gpio, 1);
+		mdelay(20);
+		dm_gpio_set_value(gpio, 0);
+		mdelay(20);
+	} else {
+		puts("WARNING: Make sure the PCIe #PERST line is connected!\n");
+	}
+#endif
 
 	return 0;
 }
@@ -1175,55 +1211,9 @@ __weak int imx6_pcie_toggle_power(void)
 	return 0;
 }
 
-__weak int imx6_pcie_toggle_reset(void)
-{
-	/*
-	 * See 'PCI EXPRESS BASE SPECIFICATION, REV 3.0, SECTION 6.6.1'
-	 * for detailed understanding of the PCIe CR reset logic.
-	 *
-	 * The PCIe #PERST reset line _MUST_ be connected, otherwise your
-	 * design does not conform to the specification. You must wait at
-	 * least 20 ms after de-asserting the #PERST so the EP device can
-	 * do self-initialisation.
-	 *
-	 * In case your #PERST pin is connected to a plain GPIO pin of the
-	 * CPU, you can define CONFIG_PCIE_IMX_PERST_GPIO in your board's
-	 * configuration file and the condition below will handle the rest
-	 * of the reset toggling.
-	 *
-	 * In case your #PERST toggling logic is more complex, for example
-	 * connected via CPLD or somesuch, you can override this function
-	 * in your board file and implement reset logic as needed. You must
-	 * not forget to wait at least 20 ms after de-asserting #PERST in
-	 * this case either though.
-	 *
-	 * In case your #PERST line of the PCIe EP device is not connected
-	 * at all, your design is broken and you should fix your design,
-	 * otherwise you will observe problems like for example the link
-	 * not coming up after rebooting the system back from running Linux
-	 * that uses the PCIe as well OR the PCIe link might not come up in
-	 * Linux at all in the first place since it's in some non-reset
-	 * state due to being previously used in U-Boot.
-	 */
-#ifdef CONFIG_PCIE_IMX_PERST_GPIO
-	gpio_request(CONFIG_PCIE_IMX_PERST_GPIO, "pcie_reset");
-	gpio_direction_output(CONFIG_PCIE_IMX_PERST_GPIO, 0);
-	mdelay(20);
-	gpio_set_value(CONFIG_PCIE_IMX_PERST_GPIO, 1);
-	mdelay(20);
-	gpio_free(CONFIG_PCIE_IMX_PERST_GPIO);
-#else
-	puts("WARNING: Make sure the PCIe #PERST line is connected!\n");
-#endif
-
-	return 0;
-}
-
 static int imx6_pcie_deassert_core_reset(struct imx_pcie_priv *priv)
 {
-#if !CONFIG_IS_ENABLED(DM_PCI)
 	imx6_pcie_toggle_power();
-#endif
 
 	enable_pcie_clock();
 
@@ -1247,16 +1237,7 @@ static int imx6_pcie_deassert_core_reset(struct imx_pcie_priv *priv)
 		imx_pcie_gpr_update_bits(priv, 4, IOMUXC_GPR1_REF_SSP_EN, IOMUXC_GPR1_REF_SSP_EN);
 	}
 
-#if !CONFIG_IS_ENABLED(DM_PCI)
-	imx6_pcie_toggle_reset();
-#else
-	if (dm_gpio_is_valid(&priv->reset_gpio)) {
-		dm_gpio_set_value(&priv->reset_gpio, 1);
-		mdelay(20);
-		dm_gpio_set_value(&priv->reset_gpio, 0);
-		mdelay(20);
-	}
-#endif
+	imx_pcie_toggle_reset(&priv->reset_gpio);
 
 	return 0;
 }
@@ -1399,17 +1380,7 @@ static int imx_pcie_link_up(struct imx_pcie_priv *priv)
 			print_regs(1);
 			/* link down, try reset ep, and re-try link here */
 			DBGF("pcie link is down, reset ep, then retry!\n");
-
-#if CONFIG_IS_ENABLED(DM_PCI)
-			if (dm_gpio_is_valid(&priv->reset_gpio)) {
-				dm_gpio_set_value(&priv->reset_gpio, 1);
-				mdelay(20);
-				dm_gpio_set_value(&priv->reset_gpio, 0);
-				mdelay(20);
-			}
-#elif defined(CONFIG_MX6)
-			imx6_pcie_toggle_reset();
-#endif
+			imx_pcie_toggle_reset(&priv->reset_gpio);
 			continue;
 		}
 #ifdef DEBUG
@@ -1437,118 +1408,6 @@ static int imx_pcie_link_up(struct imx_pcie_priv *priv)
 	return 0;
 }
 
-#if !CONFIG_IS_ENABLED(DM_PCI)
-static struct imx_pcie_priv imx_pcie_priv = {
-	.dbi_base	= (void __iomem *)MX6_DBI_ADDR,
-	.cfg_base	= (void __iomem *)MX6_ROOT_ADDR,
-	.cfg1_base 	= (void __iomem *)(MX6_ROOT_ADDR + MX6_ROOT_SIZE / 2),
-	.cfg_size		= MX6_ROOT_SIZE,
-	.lanes		= 1,
-};
-
-static struct imx_pcie_priv *priv = &imx_pcie_priv;
-
-
-static int imx_pcie_read_config(struct pci_controller *hose, pci_dev_t d,
-				int where, u32 *val)
-{
-	struct imx_pcie_priv *priv = hose->priv_data;
-
-	return imx_pcie_read_cfg(priv, d, where, val);
-}
-
-static int imx_pcie_write_config(struct pci_controller *hose, pci_dev_t d,
-				 int where, u32 val)
-{
-	struct imx_pcie_priv *priv = hose->priv_data;
-
-	return imx_pcie_write_cfg(priv, d, where, val);
-}
-
-void imx_pcie_init(void)
-{
-	/* Static instance of the controller. */
-	static struct pci_controller	pcc;
-	struct pci_controller		*hose = &pcc;
-	int ret;
-#ifdef DEBUG_STRESS_WR
-	u32 dbg_reg_addr = SNVS_LPGRP;
-	u32 dbg_reg = readl(dbg_reg_addr) + 1;
-#endif
-
-	memset(&pcc, 0, sizeof(pcc));
-
-	if (is_mx6sx())
-		priv->variant = IMX6SX;
-	else if (is_mx6dqp())
-		priv->variant = IMX6QP;
-	else
-		priv->variant = IMX6Q;
-
-	hose->priv_data = priv;
-
-	/* PCI I/O space */
-	pci_set_region(&hose->regions[0],
-		       0, MX6_IO_ADDR,
-		       MX6_IO_SIZE, PCI_REGION_IO);
-
-	/* PCI memory space */
-	pci_set_region(&hose->regions[1],
-		       MX6_MEM_ADDR, MX6_MEM_ADDR,
-		       MX6_MEM_SIZE, PCI_REGION_MEM);
-
-	/* System memory space */
-	pci_set_region(&hose->regions[2],
-		       MMDC0_ARB_BASE_ADDR, MMDC0_ARB_BASE_ADDR,
-		       0xefffffff, PCI_REGION_MEM | PCI_REGION_SYS_MEMORY);
-
-	priv->io = &hose->regions[0];
-	priv->mem = &hose->regions[1];
-
-	hose->region_count = 3;
-
-	pci_set_ops(hose,
-		    pci_hose_read_config_byte_via_dword,
-		    pci_hose_read_config_word_via_dword,
-		    imx_pcie_read_config,
-		    pci_hose_write_config_byte_via_dword,
-		    pci_hose_write_config_word_via_dword,
-		    imx_pcie_write_config);
-
-	/* Start the controller. */
-	ret = imx_pcie_link_up(priv);
-
-	if (!ret) {
-		pci_register_hose(hose);
-		hose->last_busno = pci_hose_scan(hose);
-#ifdef DEBUG_STRESS_WR
-		dbg_reg += 1<<16;
-#endif
-	}
-#ifdef DEBUG_STRESS_WR
-	writel(dbg_reg, dbg_reg_addr);
-	DBGF("PCIe Successes/Attempts: %d/%d\n",
-			dbg_reg >> 16, dbg_reg & 0xffff);
-#endif
-}
-
-void imx_pcie_remove(void)
-{
-	imx6_pcie_assert_core_reset(priv, true);
-}
-
-/* Probe function. */
-void pci_init_board(void)
-{
-	imx_pcie_init();
-}
-
-int pci_skip_dev(struct pci_controller *hose, pci_dev_t dev)
-{
-	return 0;
-}
-
-#else
 static int imx_pcie_dm_read_config(const struct udevice *dev, pci_dev_t bdf,
 				   uint offset, ulong *value,
 				   enum pci_size_t size)
@@ -1811,4 +1670,3 @@ U_BOOT_DRIVER(imx_pcie) = {
 	.priv_auto	= sizeof(struct imx_pcie_priv),
 	.flags			= DM_FLAG_OS_PREPARE,
 };
-#endif

@@ -1,8 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright 2016 Freescale Semiconductor, Inc.
  * Copyright 2017 NXP
- *
- * SPDX-License-Identifier: GPL-2.0+
  *
  * These commands enable the use of the CAAM MPPubK-generation and MPSign
  * functions in supported i.MX devices.
@@ -76,8 +75,8 @@ static int do_mfgprot(struct cmd_tbl *cmdtp, int flag, int argc, char *const arg
 		if (argc != 4)
 			return CMD_RET_USAGE;
 
-		m_addr = simple_strtoul(argv[2], NULL, 16);
-		m_size = simple_strtoul(argv[3], NULL, 10);
+		m_addr = hextoul(argv[2], NULL);
+		m_size = dectoul(argv[3], NULL);
 		m_ptr = map_physmem(m_addr, m_size, MAP_NOCACHE);
 		if (!m_ptr)
 			return -ENOMEM;

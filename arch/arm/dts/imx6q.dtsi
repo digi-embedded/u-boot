@@ -140,7 +140,7 @@
 			overw_reg = <&ocram 0x905000 0x33000>;
 		};
 
-		aips-bus@2000000 { /* AIPS1 */
+		bus@2000000  { /* AIPS1 */
 			spba-bus@2000000 {
 				ecspi5: spi@2018000 {
 					#address-cells = <1>;
@@ -158,7 +158,7 @@
 			};
 		};
 
-		aips-bus@2100000 { /* AIPS2 */
+		bus@2100000 { /* AIPS2 */
 			mipi_dsi: mipi@21e0000 {
 				compatible = "fsl,imx6q-mipi-dsi";
 				reg = <0x21e0000 0x4000>;

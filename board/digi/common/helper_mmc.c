@@ -346,7 +346,7 @@ static uint32_t write_sparse_chunks(otf_data_t *otfd, lbaint_t *dstblk,
 			 */
 			if (write_sparse_chunk(&sp_data->storage_info, &sp_data->hdr,
 					       &data, dstblk, &sp_data->blks_written,
-					       &sp_data->bytes_written))
+					       &sp_data->bytes_written, NULL))
 				return -1;
 
 			debug("Chunk %d completed\n", sp_data->current_chunk);

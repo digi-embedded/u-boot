@@ -16,9 +16,15 @@ import unittest
 our_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, os.path.join(our_path, '..'))
 
+# Bring in the libfdt module
+sys.path.insert(2, 'scripts/dtc/pylibfdt')
+sys.path.insert(2, os.path.join(our_path, '../../scripts/dtc/pylibfdt'))
+sys.path.insert(2, os.path.join(our_path,
+                '../../build-sandbox_spl/scripts/dtc/pylibfdt'))
+
 from dtoc import fdt
 from dtoc import fdt_util
-from dtoc.fdt_util import fdt32_to_cpu
+from dtoc.fdt_util import fdt32_to_cpu, fdt64_to_cpu
 from fdt import Type, BytesToValue
 import libfdt
 from patman import command
@@ -48,6 +54,17 @@ def _GetPropertyValue(dtb, node, prop_name):
     data = dtb.GetContents()[offset:offset + len(prop.value)]
     return prop, [chr(x) for x in data]
 
+def find_dtb_file(dts_fname):
+    """Locate a test file in the test/ directory
+
+    Args:
+        dts_fname (str): Filename to find, e.g. 'dtoc_test_simple.dts]
+
+    Returns:
+        str: Path to the test filename
+    """
+    return os.path.join('tools/dtoc/test', dts_fname)
+
 
 class TestFdt(unittest.TestCase):
     """Tests for the Fdt module
@@ -57,14 +74,14 @@ class TestFdt(unittest.TestCase):
     """
     @classmethod
     def setUpClass(cls):
-        tools.PrepareOutputDir(None)
+        tools.prepare_output_dir(None)
 
     @classmethod
     def tearDownClass(cls):
-        tools.FinaliseOutputDir()
+        tools.finalise_output_dir()
 
     def setUp(self):
-        self.dtb = fdt.FdtScan('tools/dtoc/dtoc_test_simple.dts')
+        self.dtb = fdt.FdtScan(find_dtb_file('dtoc_test_simple.dts'))
 
     def testFdt(self):
         """Test that we can open an Fdt"""
@@ -111,8 +128,9 @@ class TestFdt(unittest.TestCase):
         node = self.dtb.GetNode('/spl-test')
         props = self.dtb.GetProps(node)
         self.assertEqual(['boolval', 'bytearray', 'byteval', 'compatible',
-                          'intarray', 'intval', 'longbytearray', 'notstring',
-                          'stringarray', 'stringval', 'u-boot,dm-pre-reloc'],
+                          'int64val', 'intarray', 'intval', 'longbytearray',
+                          'maybe-empty-int', 'notstring', 'stringarray',
+                          'stringval', 'u-boot,dm-pre-reloc'],
                          sorted(props.keys()))
 
     def testCheckError(self):
@@ -134,15 +152,16 @@ class TestNode(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        tools.PrepareOutputDir(None)
+        tools.prepare_output_dir(None)
 
     @classmethod
     def tearDownClass(cls):
-        tools.FinaliseOutputDir()
+        tools.finalise_output_dir()
 
     def setUp(self):
-        self.dtb = fdt.FdtScan('tools/dtoc/dtoc_test_simple.dts')
+        self.dtb = fdt.FdtScan(find_dtb_file('dtoc_test_simple.dts'))
         self.node = self.dtb.GetNode('/spl-test')
+        self.fdt = self.dtb.GetFdtObj()
 
     def testOffset(self):
         """Tests that we can obtain the offset of a node"""
@@ -186,7 +205,7 @@ class TestNode(unittest.TestCase):
     def testRefreshExtraNode(self):
         """Test refreshing offsets when an expected node is missing"""
         # Delete it from the device tre, not our tables
-        self.dtb.GetFdtObj().del_node(self.node.Offset())
+        self.fdt.del_node(self.node.Offset())
         with self.assertRaises(ValueError) as e:
             self.dtb.Refresh()
         self.assertIn('Internal error, node name mismatch '
@@ -198,16 +217,87 @@ class TestNode(unittest.TestCase):
         del self.node.props['notstring']
         with self.assertRaises(ValueError) as e:
             self.dtb.Refresh()
-        self.assertIn("Internal error, property 'notstring' missing, offset ",
+        self.assertIn("Internal error, node '/spl-test' property 'notstring' missing, offset ",
                       str(e.exception))
 
     def testLookupPhandle(self):
         """Test looking up a single phandle"""
-        dtb = fdt.FdtScan('tools/dtoc/dtoc_test_phandle.dts')
+        dtb = fdt.FdtScan(find_dtb_file('dtoc_test_phandle.dts'))
         node = dtb.GetNode('/phandle-source2')
         prop = node.props['clocks']
         target = dtb.GetNode('/phandle-target')
         self.assertEqual(target, dtb.LookupPhandle(fdt32_to_cpu(prop.value)))
+
+    def testAddNodeSpace(self):
+        """Test adding a single node when out of space"""
+        self.fdt.pack()
+        self.node.AddSubnode('subnode')
+        with self.assertRaises(libfdt.FdtException) as e:
+            self.dtb.Sync(auto_resize=False)
+        self.assertIn('FDT_ERR_NOSPACE', str(e.exception))
+
+        self.dtb.Sync(auto_resize=True)
+        offset = self.fdt.path_offset('/spl-test/subnode')
+        self.assertTrue(offset > 0)
+
+    def testAddNodes(self):
+        """Test adding various subnode and properies"""
+        node = self.dtb.GetNode('/i2c@0')
+
+        # Add one more node next to the pmic one
+        sn1 = node.AddSubnode('node-one')
+        sn1.AddInt('integer-a', 12)
+        sn1.AddInt('integer-b', 23)
+
+        # Sync so that everything is clean
+        self.dtb.Sync(auto_resize=True)
+
+        # Add two subnodes next to pmic and node-one
+        sn2 = node.AddSubnode('node-two')
+        sn2.AddInt('integer-2a', 34)
+        sn2.AddInt('integer-2b', 45)
+
+        sn3 = node.AddSubnode('node-three')
+        sn3.AddInt('integer-3', 123)
+
+        # Add a property to the node after i2c@0 to check that this is not
+        # disturbed by adding a subnode to i2c@0
+        orig_node = self.dtb.GetNode('/orig-node')
+        orig_node.AddInt('integer-4', 456)
+
+        # Add a property to the pmic node to check that pmic properties are not
+        # disturbed
+        pmic = self.dtb.GetNode('/i2c@0/pmic@9')
+        pmic.AddInt('integer-5', 567)
+
+        self.dtb.Sync(auto_resize=True)
+
+    def testAddOneNode(self):
+        """Testing deleting and adding a subnode before syncing"""
+        subnode = self.node.AddSubnode('subnode')
+        self.node.AddSubnode('subnode2')
+        self.dtb.Sync(auto_resize=True)
+
+        # Delete a node and add a new one
+        subnode.Delete()
+        self.node.AddSubnode('subnode3')
+        self.dtb.Sync()
+
+    def testRefreshNameMismatch(self):
+        """Test name mismatch when syncing nodes and properties"""
+        prop = self.node.AddInt('integer-a', 12)
+
+        wrong_offset = self.dtb.GetNode('/i2c@0')._offset
+        self.node._offset = wrong_offset
+        with self.assertRaises(ValueError) as e:
+            self.dtb.Sync()
+        self.assertIn("Internal error, node '/spl-test' name mismatch 'i2c@0'",
+                      str(e.exception))
+
+        with self.assertRaises(ValueError) as e:
+            self.node.Refresh(wrong_offset)
+        self.assertIn("Internal error, node '/spl-test' name mismatch 'i2c@0'",
+                      str(e.exception))
 
 
 class TestProp(unittest.TestCase):
@@ -215,14 +305,14 @@ class TestProp(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        tools.PrepareOutputDir(None)
+        tools.prepare_output_dir(None)
 
     @classmethod
     def tearDownClass(cls):
-        tools.FinaliseOutputDir()
+        tools.finalise_output_dir()
 
     def setUp(self):
-        self.dtb = fdt.FdtScan('tools/dtoc/dtoc_test_simple.dts')
+        self.dtb = fdt.FdtScan(find_dtb_file('dtoc_test_simple.dts'))
         self.node = self.dtb.GetNode('/spl-test')
         self.fdt = self.dtb.GetFdtObj()
 
@@ -230,7 +320,7 @@ class TestProp(unittest.TestCase):
         self.assertEqual(None, self.dtb.GetNode('missing'))
 
     def testPhandle(self):
-        dtb = fdt.FdtScan('tools/dtoc/dtoc_test_phandle.dts')
+        dtb = fdt.FdtScan(find_dtb_file('dtoc_test_phandle.dts'))
         node = dtb.GetNode('/phandle-source2')
         prop = node.props['clocks']
         self.assertTrue(fdt32_to_cpu(prop.value) > 0)
@@ -255,6 +345,10 @@ class TestProp(unittest.TestCase):
         prop = self._ConvertProp('intval')
         self.assertEqual(Type.INT, prop.type)
         self.assertEqual(1, fdt32_to_cpu(prop.value))
+
+        prop = self._ConvertProp('int64val')
+        self.assertEqual(Type.INT, prop.type)
+        self.assertEqual(0x123456789abcdef0, fdt64_to_cpu(prop.value))
 
         prop = self._ConvertProp('intarray')
         self.assertEqual(Type.INT, prop.type)
@@ -287,7 +381,7 @@ class TestProp(unittest.TestCase):
         """Tests the GetEmpty() function for the various supported types"""
         self.assertEqual(True, fdt.Prop.GetEmpty(Type.BOOL))
         self.assertEqual(chr(0), fdt.Prop.GetEmpty(Type.BYTE))
-        self.assertEqual(tools.GetBytes(0, 4), fdt.Prop.GetEmpty(Type.INT))
+        self.assertEqual(tools.get_bytes(0, 4), fdt.Prop.GetEmpty(Type.INT))
         self.assertEqual('', fdt.Prop.GetEmpty(Type.STRING))
 
     def testGetOffset(self):
@@ -307,7 +401,7 @@ class TestProp(unittest.TestCase):
         self.assertEqual(Type.INT, prop.type)
         self.assertEqual(1, fdt32_to_cpu(prop.value))
 
-        # Convert singla value to array
+        # Convert single value to array
         prop2 = self.node.props['intarray']
         prop.Widen(prop2)
         self.assertEqual(Type.INT, prop.type)
@@ -350,6 +444,28 @@ class TestProp(unittest.TestCase):
         self.assertTrue(isinstance(prop.value, list))
         self.assertEqual(3, len(prop.value))
 
+        # Widen an array of ints with an int (should do nothing)
+        prop = self.node.props['intarray']
+        prop2 = node2.props['intval']
+        self.assertEqual(Type.INT, prop.type)
+        self.assertEqual(3, len(prop.value))
+        prop.Widen(prop2)
+        self.assertEqual(Type.INT, prop.type)
+        self.assertEqual(3, len(prop.value))
+
+        # Widen an empty bool to an int
+        prop = self.node.props['maybe-empty-int']
+        prop3 = node3.props['maybe-empty-int']
+        self.assertEqual(Type.BOOL, prop.type)
+        self.assertEqual(True, prop.value)
+        self.assertEqual(Type.INT, prop3.type)
+        self.assertFalse(isinstance(prop.value, list))
+        self.assertEqual(4, len(prop3.value))
+        prop.Widen(prop3)
+        self.assertEqual(Type.INT, prop.type)
+        self.assertTrue(isinstance(prop.value, list))
+        self.assertEqual(1, len(prop.value))
+
     def testAdd(self):
         """Test adding properties"""
         self.fdt.pack()
@@ -374,17 +490,6 @@ class TestProp(unittest.TestCase):
         self.assertIn('FDT_ERR_NOSPACE', str(e.exception))
         self.dtb.Sync(auto_resize=True)
 
-    def testAddNode(self):
-        self.fdt.pack()
-        self.node.AddSubnode('subnode')
-        with self.assertRaises(libfdt.FdtException) as e:
-            self.dtb.Sync(auto_resize=False)
-        self.assertIn('FDT_ERR_NOSPACE', str(e.exception))
-
-        self.dtb.Sync(auto_resize=True)
-        offset = self.fdt.path_offset('/spl-test/subnode')
-        self.assertTrue(offset > 0)
-
     def testAddMore(self):
         """Test various other methods for adding and setting properties"""
         self.node.AddZeroProp('one')
@@ -407,7 +512,7 @@ class TestProp(unittest.TestCase):
         self.node.AddString('string', val)
         self.dtb.Sync(auto_resize=True)
         data = self.fdt.getprop(self.node.Offset(), 'string')
-        self.assertEqual(tools.ToBytes(val) + b'\0', data)
+        self.assertEqual(tools.to_bytes(val) + b'\0', data)
 
         self.fdt.pack()
         self.node.SetString('string', val + 'x')
@@ -417,25 +522,42 @@ class TestProp(unittest.TestCase):
         self.node.SetString('string', val[:-1])
 
         prop = self.node.props['string']
-        prop.SetData(tools.ToBytes(val))
+        prop.SetData(tools.to_bytes(val))
         self.dtb.Sync(auto_resize=False)
         data = self.fdt.getprop(self.node.Offset(), 'string')
-        self.assertEqual(tools.ToBytes(val), data)
+        self.assertEqual(tools.to_bytes(val), data)
 
         self.node.AddEmptyProp('empty', 5)
         self.dtb.Sync(auto_resize=True)
         prop = self.node.props['empty']
-        prop.SetData(tools.ToBytes(val))
+        prop.SetData(tools.to_bytes(val))
         self.dtb.Sync(auto_resize=False)
         data = self.fdt.getprop(self.node.Offset(), 'empty')
-        self.assertEqual(tools.ToBytes(val), data)
+        self.assertEqual(tools.to_bytes(val), data)
 
         self.node.SetData('empty', b'123')
         self.assertEqual(b'123', prop.bytes)
 
         # Trying adding a lot of data at once
-        self.node.AddData('data', tools.GetBytes(65, 20000))
+        self.node.AddData('data', tools.get_bytes(65, 20000))
         self.dtb.Sync(auto_resize=True)
+
+    def test_string_list(self):
+        """Test adding string-list property to a node"""
+        val = ['123', '456']
+        self.node.AddStringList('stringlist', val)
+        self.dtb.Sync(auto_resize=True)
+        data = self.fdt.getprop(self.node.Offset(), 'stringlist')
+        self.assertEqual(b'123\x00456\0', data)
+
+    def test_delete_node(self):
+        """Test deleting a node"""
+        old_offset = self.fdt.path_offset('/spl-test')
+        self.assertGreater(old_offset, 0)
+        self.node.Delete()
+        self.dtb.Sync()
+        new_offset = self.fdt.path_offset('/spl-test', libfdt.QUIET_NOTFOUND)
+        self.assertEqual(-libfdt.NOTFOUND, new_offset)
 
     def testFromData(self):
         dtb2 = fdt.Fdt.FromData(self.dtb.GetContents())
@@ -468,7 +590,7 @@ class TestProp(unittest.TestCase):
 
     def testGetFilename(self):
         """Test the dtb filename can be provided"""
-        self.assertEqual(tools.GetOutputFilename('source.dtb'),
+        self.assertEqual(tools.get_output_filename('source.dtb'),
                          self.dtb.GetFilename())
 
 
@@ -481,14 +603,14 @@ class TestFdtUtil(unittest.TestCase):
     """
     @classmethod
     def setUpClass(cls):
-        tools.PrepareOutputDir(None)
+        tools.prepare_output_dir(None)
 
     @classmethod
     def tearDownClass(cls):
-        tools.FinaliseOutputDir()
+        tools.finalise_output_dir()
 
     def setUp(self):
-        self.dtb = fdt.FdtScan('tools/dtoc/dtoc_test_simple.dts')
+        self.dtb = fdt.FdtScan(find_dtb_file('dtoc_test_simple.dts'))
         self.node = self.dtb.GetNode('/spl-test')
 
     def testGetInt(self):
@@ -496,9 +618,20 @@ class TestFdtUtil(unittest.TestCase):
         self.assertEqual(3, fdt_util.GetInt(self.node, 'missing', 3))
 
         with self.assertRaises(ValueError) as e:
-            self.assertEqual(3, fdt_util.GetInt(self.node, 'intarray'))
+            fdt_util.GetInt(self.node, 'intarray')
         self.assertIn("property 'intarray' has list value: expecting a single "
                       'integer', str(e.exception))
+
+    def testGetInt64(self):
+        self.assertEqual(0x123456789abcdef0,
+                         fdt_util.GetInt64(self.node, 'int64val'))
+        self.assertEqual(3, fdt_util.GetInt64(self.node, 'missing', 3))
+
+        with self.assertRaises(ValueError) as e:
+            fdt_util.GetInt64(self.node, 'intarray')
+        self.assertIn(
+            "property 'intarray' should be a list with 2 items for 64-bit values",
+            str(e.exception))
 
     def testGetString(self):
         self.assertEqual('message', fdt_util.GetString(self.node, 'stringval'))
@@ -509,6 +642,30 @@ class TestFdtUtil(unittest.TestCase):
             self.assertEqual(3, fdt_util.GetString(self.node, 'stringarray'))
         self.assertIn("property 'stringarray' has list value: expecting a "
                       'single string', str(e.exception))
+
+    def testGetStringList(self):
+        self.assertEqual(['message'],
+                         fdt_util.GetStringList(self.node, 'stringval'))
+        self.assertEqual(
+            ['multi-word', 'message'],
+            fdt_util.GetStringList(self.node, 'stringarray'))
+        self.assertEqual(['test'],
+                         fdt_util.GetStringList(self.node, 'missing', ['test']))
+
+    def testGetArgs(self):
+        node = self.dtb.GetNode('/orig-node')
+        self.assertEqual(['message'], fdt_util.GetArgs(self.node, 'stringval'))
+        self.assertEqual(
+            ['multi-word', 'message'],
+            fdt_util.GetArgs(self.node, 'stringarray'))
+        self.assertEqual([], fdt_util.GetArgs(self.node, 'boolval'))
+        self.assertEqual(['-n', 'first', 'second', '-p', '123,456', '-x'],
+                         fdt_util.GetArgs(node, 'args'))
+        with self.assertRaises(ValueError) as exc:
+            fdt_util.GetArgs(self.node, 'missing')
+        self.assertIn(
+            "Node '/spl-test': Expected property 'missing'",
+            str(exc.exception))
 
     def testGetBool(self):
         self.assertEqual(True, fdt_util.GetBool(self.node, 'boolval'))
@@ -530,8 +687,25 @@ class TestFdtUtil(unittest.TestCase):
         self.assertIn("property 'intval' has length 4, expecting 1",
                       str(e.exception))
 
+    def testGetBytes(self):
+        self.assertEqual(bytes([5]), fdt_util.GetBytes(self.node, 'byteval', 1))
+        self.assertEqual(None, fdt_util.GetBytes(self.node, 'missing', 3))
+        self.assertEqual(
+            bytes([3]), fdt_util.GetBytes(self.node, 'missing', 3,  bytes([3])))
+
+        with self.assertRaises(ValueError) as e:
+            fdt_util.GetBytes(self.node, 'longbytearray', 7)
+        self.assertIn(
+            "Node 'spl-test' property 'longbytearray' has length 9, expecting 7",
+             str(e.exception))
+
+        self.assertEqual(
+            bytes([0, 0, 0, 1]), fdt_util.GetBytes(self.node, 'intval', 4))
+        self.assertEqual(
+            bytes([3]), fdt_util.GetBytes(self.node, 'missing', 3,  bytes([3])))
+
     def testGetPhandleList(self):
-        dtb = fdt.FdtScan('tools/dtoc/dtoc_test_phandle.dts')
+        dtb = fdt.FdtScan(find_dtb_file('dtoc_test_phandle.dts'))
         node = dtb.GetNode('/phandle-source2')
         self.assertEqual([1], fdt_util.GetPhandleList(node, 'clocks'))
         node = dtb.GetNode('/phandle-source')
@@ -551,7 +725,7 @@ class TestFdtUtil(unittest.TestCase):
         self.assertEqual(0, fdt_util.fdt_cells_to_cpu(val, 0))
         self.assertEqual(2, fdt_util.fdt_cells_to_cpu(val, 1))
 
-        dtb2 = fdt.FdtScan('tools/dtoc/dtoc_test_addr64.dts')
+        dtb2 = fdt.FdtScan(find_dtb_file('dtoc_test_addr64.dts'))
         node1 = dtb2.GetNode('/test1')
         val = node1.props['reg'].value
         self.assertEqual(0x1234, fdt_util.fdt_cells_to_cpu(val, 2))
@@ -565,7 +739,7 @@ class TestFdtUtil(unittest.TestCase):
 
     def testEnsureCompiled(self):
         """Test a degenerate case of this function (file already compiled)"""
-        dtb = fdt_util.EnsureCompiled('tools/dtoc/dtoc_test_simple.dts')
+        dtb = fdt_util.EnsureCompiled(find_dtb_file('dtoc_test_simple.dts'))
         self.assertEqual(dtb, fdt_util.EnsureCompiled(dtb))
 
     def testEnsureCompiledTmpdir(self):
@@ -574,7 +748,7 @@ class TestFdtUtil(unittest.TestCase):
             old_outdir = tools.outdir
             tools.outdir= None
             tmpdir = tempfile.mkdtemp(prefix='test_fdt.')
-            dtb = fdt_util.EnsureCompiled('tools/dtoc/dtoc_test_simple.dts',
+            dtb = fdt_util.EnsureCompiled(find_dtb_file('dtoc_test_simple.dts'),
                                           tmpdir)
             self.assertEqual(tmpdir, os.path.dirname(dtb))
             shutil.rmtree(tmpdir)
@@ -584,7 +758,7 @@ class TestFdtUtil(unittest.TestCase):
 
 def RunTestCoverage():
     """Run the tests and check that we get 100% coverage"""
-    test_util.RunTestCoverage('tools/dtoc/test_fdt.py', None,
+    test_util.run_test_coverage('tools/dtoc/test_fdt.py', None,
             ['tools/patman/*.py', '*test_fdt.py'], options.build_dir)
 
 

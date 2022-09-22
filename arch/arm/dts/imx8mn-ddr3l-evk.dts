@@ -4,7 +4,6 @@
   */
 
 #include "imx8mn-evk.dts"
-#include "imx8mn-evk-u-boot.dtsi"
 
 #include "imx8mn-sec-def.h"
 

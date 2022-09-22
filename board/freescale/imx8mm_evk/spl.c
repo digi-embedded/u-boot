@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2019 NXP
+ * Copyright 2019, 2021 NXP
  */
 
 #include <common.h>
@@ -29,9 +29,9 @@
 #include <asm/mach-imx/gpio.h>
 #include <asm/mach-imx/mxc_i2c.h>
 #include <fsl_esdhc_imx.h>
-#include <fsl_sec.h>
 #include <mmc.h>
 #include <linux/delay.h>
+#include <fsl_sec.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -190,7 +190,7 @@ int board_mmc_getcd(struct mmc *mmc)
 	return 1;
 }
 
-#ifdef CONFIG_POWER
+#if CONFIG_IS_ENABLED(POWER_LEGACY)
 #define I2C_PMIC	0
 #ifdef CONFIG_POWER_PCA9450
 int power_init_board(void)
@@ -198,7 +198,7 @@ int power_init_board(void)
 	struct pmic *p;
 	int ret;
 
-	ret = power_pca9450_init(I2C_PMIC);
+	ret = power_pca9450_init(I2C_PMIC, 0x25);
 	if (ret)
 		printf("power init failed");
 	p = pmic_get("PCA9450");
@@ -268,11 +268,11 @@ int power_init_board(void)
 
 void spl_board_init(void)
 {
-#ifdef CONFIG_FSL_CAAM
-	if (sec_init()) {
-		printf("\nsec_init failed!\n");
+	if (IS_ENABLED(CONFIG_FSL_CAAM)) {
+		if (sec_init())
+			printf("\nsec_init failed!\n");
 	}
-#endif
+
 #ifndef CONFIG_SPL_USB_SDP_SUPPORT
 	/* Serial download mode */
 	if (is_usb_boot()) {

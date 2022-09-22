@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2018 NXP
+ * Copyright 2018, 2021 NXP
  *
- * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -32,6 +31,7 @@
 #include "../common/pfuze.h"
 #include <asm/arch/imx8mq_sec_def.h>
 #include <asm/arch/imx8m_csu.h>
+#include <asm/arch/imx8m_rdc.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -160,7 +160,7 @@ int board_mmc_init(struct bd_info *bis)
 	return 0;
 }
 
-#ifdef CONFIG_POWER
+#if CONFIG_IS_ENABLED(POWER_LEGACY)
 #define I2C_PMIC	0
 int power_init_board(void)
 {
@@ -203,11 +203,11 @@ int power_init_board(void)
 
 void spl_board_init(void)
 {
-#ifdef CONFIG_FSL_CAAM
-	if (sec_init()) {
-		printf("\nsec_init failed!\n");
+	if (IS_ENABLED(CONFIG_FSL_CAAM)) {
+		if (sec_init())
+			printf("\nsec_init failed!\n");
 	}
-#endif
+
 #ifndef CONFIG_SPL_USB_SDP_SUPPORT
 	/* Serial download mode */
 	if (is_usb_boot()) {
@@ -310,12 +310,28 @@ void spl_board_prepare_for_boot(void)
 		CSU_SA(CSU_SA_HUGO, 1, LOCKED),
 		CSU_SA(CSU_SA_DAP, 1, LOCKED),
 		CSU_SA(CSU_SA_SDMA2, 1, LOCKED),
-
+#ifdef CONFIG_IMX_TRUSTY_OS
+		CSU_CSLx(CSU_CSL_VPU_SEC, CSU_SEC_LEVEL_5, LOCKED),
+#endif
 		{0}
+	};
+
+	struct imx_rdc_cfg rdc_cfg[] = {
+		RDC_MDAn(RDC_MDA_DCSS, DID2),
+		/* memory region */
+		RDC_MEM_REGIONn(1, 0x00000000, 0xA0000000, LCK|ENA|D3R|D3W|D2R|/*D2W|*/D1R|D1W|D0R|D0W),
+		RDC_MEM_REGIONn(2, 0xA0000000, 0xB0000000, LCK|ENA|D3R|D3W|D2R|D2W|D1R|D1W|/*D0R|*/D0W),
+		RDC_MEM_REGIONn(3, 0xB0000000, 0xBE000000, LCK|ENA|D3R|D3W|D2R|/*D2W|*/D1R|D1W|D0R|D0W),
+		RDC_MEM_REGIONn(4, 0xBE000000, 0xC0000000, LCK|ENA|D3R|D3W|D2R|/*D2W|D1R|D1W|*/D0R|D0W),
+		RDC_MEM_REGIONn(5, 0xC0000000, 0xFFFFFFFF, LCK|ENA|D3R|D3W|D2R|/*D2W|*/D1R|D1W|D0R|D0W),
+		{0},
 	};
 
 	/* csu config */
 	imx_csu_init(csu_cfg);
+
+	/* rdc config */
+	imx_rdc_init(rdc_cfg);
 
 	/* config the ocram memory range for secure access */
 	setbits_le32(IOMUXC_GPR_BASE_ADDR + 0x2c, 0x421);

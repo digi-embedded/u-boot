@@ -11,17 +11,15 @@
 
 #define CONFIG_SPL_MAX_SIZE		(148 * 1024)
 #define CONFIG_SYS_MONITOR_LEN		SZ_512K
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR	0x300
 #define CONFIG_SYS_UBOOT_BASE	\
 	(QSPI0_AMBA_BASE + CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512)
 
 #ifdef CONFIG_SPL_BUILD
 #define CONFIG_SPL_STACK		0x920000
 #define CONFIG_SPL_BSS_START_ADDR	0x910000
-#define CONFIG_SPL_BSS_MAX_SIZE		SZ_8K	/* 8 KB */
+#define CONFIG_SPL_BSS_MAX_SIZE		SZ_8K
 #define CONFIG_SYS_SPL_MALLOC_START	0x42200000
-#define CONFIG_SYS_SPL_MALLOC_SIZE	SZ_512K	/* 512 KB */
+#define CONFIG_SYS_SPL_MALLOC_SIZE	SZ_1M
 
 /* malloc f used before GD_FLG_FULL_MALLOC_INIT set */
 #define CONFIG_MALLOC_F_ADDR		0x930000
@@ -35,10 +33,6 @@
 	"kernel_addr_r=0x42000000\0" \
 	"ramdisk_addr_r=0x46400000\0" \
 	"scriptaddr=0x46000000\0"
-
-/* Link Definitions */
-#define CONFIG_LOADADDR			0x40480000
-#define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
 
 /* Enable Distro Boot */
 #ifndef CONFIG_SPL_BUILD
@@ -58,8 +52,6 @@
 	MEM_LAYOUT_ENV_SETTINGS \
 	"script=boot.scr\0" \
 	"bootm_size=0x10000000\0" \
-	"ipaddr=192.168.1.22\0" \
-	"serverip=192.168.1.146\0" \
 	"dev=2\0" \
 	"preboot=gsc wd-disable\0" \
 	"console=ttymxc1,115200\0" \
@@ -87,20 +79,17 @@
 #define CONFIG_SYS_INIT_SP_ADDR \
 	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
 
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		SZ_32M
 #define CONFIG_SYS_SDRAM_BASE           0x40000000
 
 /* SDRAM configuration */
 #define PHYS_SDRAM                      0x40000000
-#define PHYS_SDRAM_SIZE			SZ_1G /* 1GB DDR */
+#define PHYS_SDRAM_SIZE			SZ_4G
 #define CONFIG_SYS_BOOTM_LEN		SZ_256M
 
 /* UART */
 #define CONFIG_MXC_UART_BASE		UART2_BASE_ADDR
 
 /* Monitor Command Prompt */
-#define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
 #define CONFIG_SYS_CBSIZE		SZ_2K
 #define CONFIG_SYS_MAXARGS		64
 #define CONFIG_SYS_BARGSIZE		CONFIG_SYS_CBSIZE
@@ -110,16 +99,11 @@
 /* USDHC */
 #define CONFIG_SYS_FSL_USDHC_NUM	2
 #define CONFIG_SYS_FSL_ESDHC_ADDR	0
-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
-
-/* I2C */
-#define CONFIG_SYS_I2C_SPEED		100000
 
 /* FEC */
 #define CONFIG_ETHPRIME                 "eth0"
 #define CONFIG_FEC_XCV_TYPE             RGMII
 #define CONFIG_FEC_MXC_PHYADDR          0
 #define FEC_QUIRK_ENET_MAC
-#define IMX_FEC_BASE			0x30BE0000
 
 #endif

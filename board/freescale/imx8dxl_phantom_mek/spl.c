@@ -22,17 +22,11 @@ DECLARE_GLOBAL_DATA_PTR;
 void spl_board_init(void)
 {
 	struct udevice *dev;
-	int node, ret;
 
-	node = fdt_node_offset_by_compatible(gd->fdt_blob, -1, "fsl,imx8-mu");
-
-	ret = uclass_get_device_by_of_offset(UCLASS_MISC, node, &dev);
-	if (ret) {
-		return;
-	}
-	device_probe(dev);
+	uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(imx8_scu), &dev);
 
 	uclass_find_first_device(UCLASS_MISC, &dev);
+
 	for (; dev; uclass_find_next_device(&dev)) {
 		if (device_probe(dev))
 			continue;

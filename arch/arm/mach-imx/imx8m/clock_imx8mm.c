@@ -73,7 +73,7 @@ static int fracpll_configure(enum pll_clocks pll, u32 freq)
 	}
 
 	if (i == ARRAY_SIZE(imx8mm_fracpll_tbl)) {
-		printf("No matched freq table %u\n", freq);
+		printf("%s: No matched freq table %u\n", __func__, freq);
 		return -EINVAL;
 	}
 
@@ -150,7 +150,7 @@ void dram_enable_bypass(ulong clk_val)
 	}
 
 	if (i == ARRAY_SIZE(imx8mm_dram_bypass_tbl)) {
-		printf("No matched freq table %lu\n", clk_val);
+		printf("%s: No matched freq table %lu\n", __func__, clk_val);
 		return;
 	}
 
@@ -246,9 +246,29 @@ int intpll_configure(enum pll_clocks pll, ulong freq)
 			INTPLL_PRE_DIV_VAL(3) | INTPLL_POST_DIV_VAL(1);
 		break;
 	case MHZ(1200):
-		/* 24 * 0xc8 / 2 / 2 ^ 1 */
+		/* 24 * 0x12c / 3 / 2 ^ 1 */
+		pll_div_ctl_val = INTPLL_MAIN_DIV_VAL(0x12c) |
+			INTPLL_PRE_DIV_VAL(3) | INTPLL_POST_DIV_VAL(1);
+		break;
+	case MHZ(1400):
+		/* 24 * 0x15e / 3 / 2 ^ 1 */
+		pll_div_ctl_val = INTPLL_MAIN_DIV_VAL(0x15e) |
+			INTPLL_PRE_DIV_VAL(3) | INTPLL_POST_DIV_VAL(1);
+		break;
+	case MHZ(1500):
+		/* 24 * 0x177 / 3 / 2 ^ 1 */
+		pll_div_ctl_val = INTPLL_MAIN_DIV_VAL(0x177) |
+			INTPLL_PRE_DIV_VAL(3) | INTPLL_POST_DIV_VAL(1);
+		break;
+	case MHZ(1600):
+		/* 24 * 0xc8 / 3 / 2 ^ 0 */
 		pll_div_ctl_val = INTPLL_MAIN_DIV_VAL(0xc8) |
-			INTPLL_PRE_DIV_VAL(2) | INTPLL_POST_DIV_VAL(1);
+			INTPLL_PRE_DIV_VAL(3) | INTPLL_POST_DIV_VAL(0);
+		break;
+	case MHZ(1800):
+		/* 24 * 0xe1 / 3 / 2 ^ 0 */
+		pll_div_ctl_val = INTPLL_MAIN_DIV_VAL(0xe1) |
+			INTPLL_PRE_DIV_VAL(3) | INTPLL_POST_DIV_VAL(0);
 		break;
 	case MHZ(2000):
 		/* 24 * 0xfa / 3 / 2 ^ 0 */
@@ -538,6 +558,7 @@ int clock_init(void)
 
 #ifdef CONFIG_IMX8MP
 	/* 8MP ROM already set NOC to 800Mhz, only need to configure NOC_IO clk to 600Mhz */
+	/* 8MP ROM already set GIC to 400Mhz, system_pll1_800m with div = 2 */
 	clock_set_target_val(NOC_IO_CLK_ROOT, CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(2));
 #else
 	clock_set_target_val(NOC_CLK_ROOT, CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(2));
@@ -628,7 +649,7 @@ int set_clk_eqos(enum enet_freq type)
 	return 0;
 }
 
-int imx_eqos_txclk_set_rate(unsigned long rate)
+int imx_eqos_txclk_set_rate(ulong rate)
 {
 	u32 val;
 	u32 eqos_post_div;
@@ -894,7 +915,7 @@ static u32 decode_fracpll(enum clk_root_src frac_pll)
 		pll_fdiv_ctl1 = readl(&ana_pll->video_pll1_fdiv_ctl1);
 		break;
 	default:
-		printf("Not supported\n");
+		printf("Unsupported clk_root_src %d\n", frac_pll);
 		return 0;
 	}
 

@@ -16,19 +16,7 @@
 #define CONFIG_SERIAL_TAG
 #define CONFIG_FASTBOOT_USB_DEV 0
 
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		(16 * SZ_1M)
-
 #define CONFIG_MXC_UART_BASE		UART1_BASE
-
-/* I2C Configs */
-#ifdef CONFIG_CMD_I2C
-#define CONFIG_SYS_I2C_MXC
-#define CONFIG_SYS_I2C_MXC_I2C1		/* enable I2C bus 1 */
-#define CONFIG_SYS_I2C_MXC_I2C2		/* enable I2C bus 2 */
-#define CONFIG_SYS_I2C_MXC_I2C3		/* enable I2C bus 3 */
-#define CONFIG_SYS_I2C_SPEED		  100000
-#endif
 
 #define CONFIG_MFG_ENV_SETTINGS \
 	CONFIG_MFG_ENV_SETTINGS_DEFAULT \
@@ -121,20 +109,6 @@
 			"setenv fdt_file imx6sll-evk.dtb; " \
 		"fi;\0" \
 
-#define CONFIG_BOOTCOMMAND \
-	   "run findfdt;" \
-	   "mmc dev ${mmcdev};" \
-	   "mmc dev ${mmcdev}; if mmc rescan; then " \
-		   "if run loadbootscript; then " \
-			   "run bootscript; " \
-		   "else " \
-			   "if run loadimage; then " \
-				   "run mmcboot; " \
-			   "else run netboot; " \
-			   "fi; " \
-		   "fi; " \
-	   "else run netboot; fi"
-
 /* Miscellaneous configurable options */
 
 /* Physical Memory Map */
@@ -165,12 +139,7 @@
 #endif
 
 #ifdef CONFIG_DM_VIDEO
-#define CONFIG_VIDEO_MXS
 #define CONFIG_VIDEO_LINK
-#define CONFIG_VIDEO_LOGO
-#define CONFIG_BMP_16BPP
-#define CONFIG_VIDEO_BMP_RLE8
-#define CONFIG_VIDEO_BMP_LOGO
 #endif
 
 /*

@@ -101,7 +101,7 @@ static int dm_mdio_post_probe(struct udevice *dev)
 	pdata->mii_bus->write = mdio_write;
 	pdata->mii_bus->reset = mdio_reset;
 	pdata->mii_bus->priv = dev;
-	strncpy(pdata->mii_bus->name, dev->name, MDIO_NAME_LEN - 1);
+	strlcpy(pdata->mii_bus->name, dev->name, MDIO_NAME_LEN);
 
 	return mdio_register(pdata->mii_bus);
 }
@@ -132,8 +132,7 @@ struct phy_device *dm_mdio_phy_connect(struct udevice *mdiodev, int phyaddr,
 }
 
 static struct phy_device *dm_eth_connect_phy_handle(struct udevice *ethdev,
-						    phy_interface_t interface,
-						    int phy_index)
+						    phy_interface_t interface)
 {
 	u32 phy_addr;
 	struct udevice *mdiodev;
@@ -151,7 +150,7 @@ static struct phy_device *dm_eth_connect_phy_handle(struct udevice *ethdev,
 
 	for (i = 0; i < PHY_HANDLE_STR_CNT; i++)
 		if (!dev_read_phandle_with_args(ethdev, phy_handle_str[i], NULL,
-						0, phy_index, &phandle))
+						0, 0, &phandle))
 			break;
 
 	if (!ofnode_valid(phandle.node)) {
@@ -185,8 +184,8 @@ out:
 	return phy;
 }
 
-/* Connect to the #phy_index PHY linked in eth DT node */
-struct phy_device *dm_eth_phy_connect_index(struct udevice *ethdev, int phy_index)
+/* Connect to a PHY linked in eth DT node */
+struct phy_device *dm_eth_phy_connect(struct udevice *ethdev)
 {
 	const char *if_str;
 	phy_interface_t interface;
@@ -211,7 +210,7 @@ struct phy_device *dm_eth_phy_connect_index(struct udevice *ethdev, int phy_inde
 	if (interface == PHY_INTERFACE_MODE_NONE)
 		dev_dbg(ethdev, "can't find interface mode, default to NONE\n");
 
-	phy = dm_eth_connect_phy_handle(ethdev, interface, phy_index);
+	phy = dm_eth_connect_phy_handle(ethdev, interface);
 
 	if (!phy)
 		return NULL;
@@ -219,12 +218,6 @@ struct phy_device *dm_eth_phy_connect_index(struct udevice *ethdev, int phy_inde
 	phy->interface = interface;
 
 	return phy;
-}
-
-/* Connect to a PHY linked in eth DT node */
-struct phy_device *dm_eth_phy_connect(struct udevice *ethdev)
-{
-	return dm_eth_phy_connect_index(ethdev, 0);
 }
 
 UCLASS_DRIVER(mdio) = {

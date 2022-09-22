@@ -33,9 +33,6 @@
 /* SPL options */
 #include "imx6_spl.h"
 
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		(16 * SZ_1M)
-
 #define CONFIG_MXC_UART_BASE		UART1_BASE
 
 /* MMC Configs */
@@ -51,15 +48,6 @@
 
 #endif
 
-/* I2C configs */
-#ifdef CONFIG_CMD_I2C
-#define CONFIG_SYS_I2C_MXC
-#define CONFIG_SYS_I2C_MXC_I2C1		/* enable I2C bus 1 */
-#define CONFIG_SYS_I2C_MXC_I2C2		/* enable I2C bus 2 */
-#define CONFIG_SYS_I2C_SPEED		100000
-#endif
-
-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 
 #ifdef CONFIG_NAND_BOOT
 #define MFG_NAND_PARTITION "mtdparts=gpmi-nand:64m(nandboot),16m(nandkernel),16m(nanddtb),16m(nandtee),-(nandrootfs)"
@@ -121,7 +109,7 @@
 	"ip_dyn=yes\0" \
 	"splashimage=0x8c000000\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
-	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
+	"mmcpart=1\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} " \
@@ -204,26 +192,9 @@
 				"fi; " \
 			"fi;\0" \
 
-#define CONFIG_BOOTCOMMAND \
-	   "run findfdt;" \
-	   "run findtee;" \
-	   "mmc dev ${mmcdev};" \
-	   "mmc dev ${mmcdev}; if mmc rescan; then " \
-		   "if run loadbootscript; then " \
-			   "run bootscript; " \
-		   "else " \
-			   "if run loadimage; then " \
-				   "run mmcboot; " \
-			   "else run netboot; " \
-			   "fi; " \
-		   "fi; " \
-	   "else run netboot; fi"
 #endif
 
 /* Miscellaneous configurable options */
-
-#define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
-#define CONFIG_SYS_HZ			1000
 
 /* Physical Memory Map */
 #define PHYS_SDRAM			MMDC0_ARB_BASE_ADDR
@@ -245,17 +216,9 @@
 #ifdef CONFIG_NAND_MXS
 #define CONFIG_SYS_MAX_NAND_DEVICE	1
 #define CONFIG_SYS_NAND_BASE		0x40000000
-#define CONFIG_SYS_NAND_5_ADDR_CYCLE
-#define CONFIG_SYS_NAND_ONFI_DETECTION
 #define CONFIG_SYS_NAND_USE_FLASH_BBT
 
 /* DMA stuff, needed for GPMI/MXS NAND support */
-#endif
-#if defined(CONFIG_ENV_IS_IN_SPI_FLASH)
-#define CONFIG_ENV_SPI_BUS		CONFIG_SF_DEFAULT_BUS
-#define CONFIG_ENV_SPI_CS		CONFIG_SF_DEFAULT_CS
-#define CONFIG_ENV_SPI_MODE		CONFIG_SF_DEFAULT_MODE
-#define CONFIG_ENV_SPI_MAX_HZ		CONFIG_SF_DEFAULT_SPEED
 #endif
 
 /* USB Configs */
@@ -271,10 +234,7 @@
 
 #ifndef CONFIG_SPL_BUILD
 #if defined(CONFIG_DM_VIDEO)
-#define CONFIG_VIDEO_MXS
 #define CONFIG_VIDEO_LINK
-#define CONFIG_VIDEO_LOGO
-#define CONFIG_VIDEO_BMP_LOGO
 #endif
 #endif
 

@@ -289,8 +289,16 @@ static struct clk_ops imx8mp_clk_ops = {
 static int imx8mp_clk_probe(struct udevice *dev)
 {
 	void __iomem *base;
+	struct clk osc_24m_clk;
+	int ret;
 
 	base = (void *)ANATOP_BASE_ADDR;
+
+	ret = clk_get_by_name(dev, "osc_24m", &osc_24m_clk);
+	if (ret)
+		return ret;
+
+	clk_dm(IMX8MP_CLK_24M, dev_get_clk_ptr(osc_24m_clk.dev));
 
 	clk_dm(IMX8MP_DRAM_PLL_REF_SEL, imx_clk_mux("dram_pll_ref_sel", base + 0x50, 0, 2, pll_ref_sels, ARRAY_SIZE(pll_ref_sels)));
 	clk_dm(IMX8MP_ARM_PLL_REF_SEL, imx_clk_mux("arm_pll_ref_sel", base + 0x84, 0, 2, pll_ref_sels, ARRAY_SIZE(pll_ref_sels)));

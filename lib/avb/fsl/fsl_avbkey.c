@@ -46,7 +46,7 @@
 
 extern int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value);
 
-#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_MMC_SUPPORT)
+#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_MMC)
 int spl_get_mmc_dev(void)
 {
 	u32 dev_no = spl_boot_device();
@@ -75,7 +75,7 @@ static u8 skeymod[] = {
 struct mmc *get_mmc(void) {
 	int mmc_dev_no;
 	struct mmc *mmc;
-#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_MMC_SUPPORT)
+#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_MMC)
 	mmc_dev_no = spl_get_mmc_dev();
 #else
 	mmc_dev_no = mmc_get_env_dev();
@@ -103,7 +103,7 @@ int read_keyslot_package(struct keyslot_package* kp) {
 	unsigned char* fill = NULL;
 	int ret = 0;
 	/* load tee from boot1 of eMMC. */
-#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_MMC_SUPPORT)
+#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_MMC)
 	int mmcc = spl_get_mmc_dev();
 #else
 	int mmcc = mmc_get_env_dev();
@@ -192,7 +192,7 @@ bool rpmbkey_is_set(void)
 	struct blk_desc *desc = NULL;
 
 	/* Get current mmc device. */
-#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_MMC_SUPPORT)
+#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_MMC)
 	mmcc = spl_get_mmc_dev();
 #else
 	mmcc = mmc_get_env_dev();
@@ -611,7 +611,7 @@ int gen_rpmb_key(struct keyslot_package *kp) {
 
 	int ret = -1;
 	/* load tee from boot1 of eMMC. */
-#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_MMC_SUPPORT)
+#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_MMC)
 	int mmcc = spl_get_mmc_dev();
 #else
 	int mmcc = mmc_get_env_dev();
@@ -1181,6 +1181,13 @@ bool hab_is_enabled(void)
 	}
 
 	if (lc != 0x80)
+#elif CONFIG_IMX8ULP
+	uint32_t lc;
+
+	lc = readl(FSB_BASE_ADDR + 0x41c);
+	lc &= 0x3f;
+
+	if (lc != 0x20)
 #elif CONFIG_ARCH_IMX8M
 	struct imx_sec_config_fuse_t *fuse =
 		(struct imx_sec_config_fuse_t *)&imx_sec_config_fuse;
@@ -1219,7 +1226,7 @@ int do_rpmb_key_set(uint8_t *key, uint32_t key_size)
 	memcpy(rpmb_key, key, RPMBKEY_LENGTH);
 
 	/* Get current mmc device. */
-#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_MMC_SUPPORT)
+#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_MMC)
 	mmcc = spl_get_mmc_dev();
 #else
 	mmcc = mmc_get_env_dev();

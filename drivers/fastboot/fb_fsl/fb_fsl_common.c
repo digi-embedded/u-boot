@@ -195,15 +195,6 @@ void board_fastboot_setup(void)
 			env_set("soc_rev", "revb");
 		else if (is_soc_rev(CHIP_REV_C))
 			env_set("soc_rev", "revc");
-	} else if (is_imx8dx()) {
-		if (!env_get("soc_type"))
-			env_set("soc_type", "imx8dx");
-		if (is_soc_rev(CHIP_REV_A))
-			env_set("soc_rev", "reva");
-		else if (is_soc_rev(CHIP_REV_B))
-			env_set("soc_rev", "revb");
-		else if (is_soc_rev(CHIP_REV_C))
-			env_set("soc_rev", "revc");
 	} else if (is_imx8mq()) {
 		if (!env_get("soc_type"))
 			env_set("soc_type", "imx8mq");
@@ -219,6 +210,9 @@ void board_fastboot_setup(void)
 	} else if (is_imx8ulp()) {
 		if (!env_get("soc_type"))
 			env_set("soc_type", "imx8ulp");
+	} else if (is_imx93()) {
+		if (!env_get("soc_type"))
+			env_set("soc_type", "imx93");
 	}
 }
 

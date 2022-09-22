@@ -1,6 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright 2018 NXP
- * SPDX-License-Identifier: GPL-2.0+
  */
 
 /*
@@ -9,6 +9,7 @@
  * encrypted boot image is ready, to prevent the generation of blobs usable
  * to decrypt an encrypted boot image.
  */
+
 #include <asm/io.h>
 #include <common.h>
 #include <command.h>

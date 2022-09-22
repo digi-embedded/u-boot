@@ -3,6 +3,8 @@
  * Copyright 2020 NXP
  */
 
+#include "imx8mm-u-boot.dtsi"
+
 / {
 	wdt-reboot {
 		compatible = "wdt-reboot";
@@ -35,41 +37,6 @@
 			method = "smc";
 		};
 	};
-};
-
-&{/soc@0} {
-	u-boot,dm-pre-reloc;
-	u-boot,dm-spl;
-};
-
-&clk {
-	u-boot,dm-spl;
-	u-boot,dm-pre-reloc;
-	/delete-property/ assigned-clocks;
-	/delete-property/ assigned-clock-parents;
-	/delete-property/ assigned-clock-rates;
-};
-
-&osc_24m {
-	u-boot,dm-spl;
-	u-boot,dm-pre-reloc;
-};
-
-&aips1 {
-	u-boot,dm-spl;
-	u-boot,dm-pre-reloc;
-};
-
-&aips2 {
-	u-boot,dm-spl;
-};
-
-&aips3 {
-	u-boot,dm-spl;
-};
-
-&iomuxc {
-	u-boot,dm-spl;
 };
 
 &reg_usdhc2_vmmc {
@@ -131,6 +98,7 @@
 	assigned-clocks = <&clk IMX8MM_CLK_USDHC2>;
 	assigned-clock-rates = <400000000>;
 	assigned-clock-parents = <&clk IMX8MM_SYS_PLL1_400M>;
+	fsl,signal-voltage-switch-extra-delay-ms = <8>;
 };
 
 &i2c1 {
@@ -184,4 +152,20 @@
 	/delete-property/ assigned-clocks;
 	/delete-property/ assigned-clock-parents;
 	/delete-property/ assigned-clock-rates;
+};
+
+&blob_1d_imem {
+			filename = "ddr4_imem_1d.bin";
+};
+
+&blob_1d_dmem {
+			filename = "ddr4_dmem_1d.bin";
+};
+
+&blob_2d_imem {
+			filename = "ddr4_imem_2d.bin";
+};
+
+&blob_2d_dmem {
+			filename = "ddr4_dmem_2d.bin";
 };

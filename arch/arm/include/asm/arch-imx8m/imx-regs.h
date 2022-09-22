@@ -230,14 +230,15 @@
 #define CONFIG_SYS_FSL_JR0_ADDR         (CONFIG_SYS_FSL_SEC_ADDR + \
 					 CONFIG_SYS_FSL_JR0_OFFSET)
 #define CONFIG_SYS_FSL_MAX_NUM_OF_SEC   1
-
 #if !defined(__ASSEMBLY__)
 #include <asm/types.h>
 #include <linux/bitops.h>
 #include <stdbool.h>
 
-#define GPR_TZASC_EN		BIT(0)
-#define GPR_TZASC_EN_LOCK	BIT(16)
+#define GPR_TZASC_EN					BIT(0)
+#define GPR_TZASC_ID_SWAP_BYPASS		BIT(1)
+#define GPR_TZASC_EN_LOCK				BIT(16)
+#define GPR_TZASC_ID_SWAP_BYPASS_LOCK	BIT(17)
 
 #define SRC_SCR_M4_ENABLE_OFFSET	3
 #define SRC_SCR_M4_ENABLE_MASK		BIT(3)

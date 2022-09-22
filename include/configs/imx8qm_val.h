@@ -14,16 +14,14 @@
 #ifdef CONFIG_SPL_BUILD
 #define CONFIG_SPL_MAX_SIZE				(192 * 1024)
 #define CONFIG_SYS_MONITOR_LEN				(1024 * 1024)
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR                0x1040 /* (flash.bin_offset + 2Mb)/sector_size */
+
+/*
+ * 0x08081000 - 0x08180FFF is for m4_0 xip image,
+ * 0x08181000 - 0x008280FFF is for m4_1 xip image
+  * So 3rd container image may start from 0x8281000
+ */
 #define CONFIG_SYS_UBOOT_BASE 0x08281000
 
-#define CONFIG_SPL_LDSCRIPT		"arch/arm/cpu/armv8/u-boot-spl.lds"
-/*
- * The memory layout on stack:  DATA section save + gd + early malloc
- * the idea is re-use the early malloc (CONFIG_SYS_MALLOC_F_LEN) with
- * CONFIG_SYS_SPL_MALLOC_START
- */
 #define CONFIG_SPL_STACK		0x013fff0
 #define CONFIG_SPL_BSS_START_ADDR      0x00130000
 #define CONFIG_SPL_BSS_MAX_SIZE		0x1000	/* 4 KB */
@@ -42,9 +40,6 @@
 
 #define CONFIG_CMD_READ
 
-/* Flat Device Tree Definitions */
-#define CONFIG_OF_BOARD_SETUP
-
 #define CONFIG_SYS_FSL_ESDHC_ADDR       0
 #define USDHC1_BASE_ADDR                0x5B010000
 #define USDHC2_BASE_ADDR                0x5B020000
@@ -53,8 +48,6 @@
 #define CONFIG_PCIE_IMX
 #define CONFIG_CMD_PCI
 #define CONFIG_PCI_SCAN_SHOW
-
-#define CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
 
 #define CONFIG_FEC_XCV_TYPE             RGMII
 #define FEC_QUIRK_ENET_MAC
@@ -120,7 +113,7 @@
 	"initrd_addr=0x83100000\0" \
 	"initrd_high=0xffffffffffffffff\0" \
 	"emmc_dev=0\0" \
-	"sd_dev=1\0" \
+	"sd_dev=1\0"
 
 /* Initial environment variables */
 #define CONFIG_EXTRA_ENV_SETTINGS		\
@@ -139,7 +132,7 @@
 	"boot_fdt=try\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
-	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
+	"mmcpart=1\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} earlycon root=${mmcroot}\0 " \
@@ -204,41 +197,9 @@
 			"fi;" \
 		"fi;\0"
 
-#define CONFIG_BOOTCOMMAND \
-	   "mmc dev ${mmcdev}; if mmc rescan; then " \
-		   "if run loadbootscript; then " \
-			   "run bootscript; " \
-		   "else " \
-			   "if test ${sec_boot} = yes; then " \
-				   "if run loadcntr; then " \
-					   "run mmcboot; " \
-				   "else run netboot; " \
-				   "fi; " \
-			    "else " \
-				   "if run loadimage; then " \
-					   "run mmcboot; " \
-				   "else run netboot; " \
-				   "fi; " \
-			 "fi; " \
-		   "fi; " \
-	   "else booti ${loadaddr} - ${fdt_addr}; fi"
-
 /* Link Definitions */
-#define CONFIG_LOADADDR			0x80280000
-
-#define CONFIG_SYS_LOAD_ADDR           CONFIG_LOADADDR
 
 #define CONFIG_SYS_INIT_SP_ADDR         0x80200000
-
-
-#ifdef CONFIG_QSPI_BOOT
-#define CONFIG_ENV_SPI_BUS	CONFIG_SF_DEFAULT_BUS
-#define CONFIG_ENV_SPI_CS	CONFIG_SF_DEFAULT_CS
-#define CONFIG_ENV_SPI_MODE	CONFIG_SF_DEFAULT_MODE
-#define CONFIG_ENV_SPI_MAX_HZ	CONFIG_SF_DEFAULT_SPEED
-#endif
-
-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 
 /* On LPDDR4 board, eMMC0 is for eMMC, USDHC1 is for SD on CPU board, USDHC2 is for SD on base board
   * On DDR4 board, eMMC0 and USDHC1 is mux for NAND, USDHC2 is for SD
@@ -255,9 +216,6 @@
 #define CONFIG_SYS_FSL_USDHC_NUM	1
 
 #endif
-
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		((CONFIG_ENV_SIZE + (32*1024)) * 1024)
 
 #define CONFIG_SYS_SDRAM_BASE		0x80000000
 #define PHYS_SDRAM_1			0x80000000
@@ -294,13 +252,7 @@
 
 /* USB Config */
 #ifndef CONFIG_SPL_BUILD
-#define CONFIG_CMD_USB
-#define CONFIG_USB_STORAGE
 #define CONFIG_USBD_HS
-
-#define CONFIG_CMD_USB_MASS_STORAGE
-#define CONFIG_USB_GADGET_MASS_STORAGE
-#define CONFIG_USB_FUNCTION_MASS_STORAGE
 
 #endif
 

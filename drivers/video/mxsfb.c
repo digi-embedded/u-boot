@@ -32,6 +32,7 @@
 #include <panel.h>
 #include <video_bridge.h>
 #include <video_link.h>
+#include <display.h>
 
 #include "videomodes.h"
 #include <linux/string.h>
@@ -72,7 +73,7 @@ __weak void mxsfb_system_setup(void)
  * Freescale mx23evk/mx28evk with a Seiko 4.3'' WVGA panel:
  * setenv videomode
  * video=ctfb:x:800,y:480,depth:24,mode:0,pclk:29851,
- * 	 le:89,ri:164,up:23,lo:10,hs:10,vs:10,sync:0,vmode:0
+ *	 le:89,ri:164,up:23,lo:10,hs:10,vs:10,sync:0,vmode:0
  */
 
 static void mxs_lcd_init(phys_addr_t reg_base, u32 fb_addr,
@@ -578,6 +579,16 @@ static int mxs_video_probe(struct udevice *dev)
 #endif
 
 	if (priv->disp_dev) {
+#if IS_ENABLED(CONFIG_DISPLAY)
+		if (device_get_uclass_id(priv->disp_dev) == UCLASS_DISPLAY) {
+			ret = display_enable(priv->disp_dev, bpp, &timings);
+			if (ret) {
+				dev_err(dev, "fail to enable display\n");
+				return ret;
+			}
+		}
+#endif
+
 #if IS_ENABLED(CONFIG_VIDEO_BRIDGE)
 		if (device_get_uclass_id(priv->disp_dev) == UCLASS_VIDEO_BRIDGE) {
 			ret = video_bridge_attach(priv->disp_dev);
@@ -600,7 +611,6 @@ static int mxs_video_probe(struct udevice *dev)
 
 		}
 #endif
-
 		if (device_get_uclass_id(priv->disp_dev) == UCLASS_PANEL) {
 			ret = panel_enable_backlight(priv->disp_dev);
 			if (ret) {

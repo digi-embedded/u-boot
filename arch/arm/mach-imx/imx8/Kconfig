@@ -44,7 +44,7 @@ config IMX8QXP
 config IMX8DXL
 	select IMX8
 	select SUPPORT_SPL
-	select RECOVER_SPL_DATA_SECTION
+	select SPL_RECOVER_DATA_SECTION
 	bool
 
 config SYS_SOC
@@ -122,7 +122,7 @@ config TARGET_IMX8QM_MEK
 	select FSL_CAAM
 	select FSL_BLOB
 	select ARCH_MISC_INIT
-	select SPL_CRYPTO_SUPPORT if SPL
+	select SPL_CRYPTO if SPL
 
 config TARGET_IMX8QM_LPDDR4_VAL
 	bool "Support i.MX8QM lpddr4 validation board"
@@ -132,6 +132,12 @@ config TARGET_IMX8QM_LPDDR4_VAL
 config TARGET_IMX8QM_DDR4_VAL
 	bool "Support i.MX8QM ddr4 validation board"
 	select BOARD_LATE_INIT
+	select IMX8QM
+
+config TARGET_CONGA_QMX8
+	bool "Support congatec conga-QMX8 board"
+	select BOARD_LATE_INIT
+	select SUPPORT_SPL
 	select IMX8QM
 
 config TARGET_IMX8QM_ROM7720_A1
@@ -147,7 +153,7 @@ config TARGET_IMX8QXP_MEK
 	select FSL_CAAM
 	select FSL_BLOB
 	select ARCH_MISC_INIT
-	select SPL_CRYPTO_SUPPORT if SPL
+	select SPL_CRYPTO if SPL
 
 config TARGET_IMX8QM_MEK_A53_ONLY
         bool "Support i.MX8QM MEK board, cluster A53 only"
@@ -181,7 +187,7 @@ config TARGET_IMX8DXL_PHANTOM_MEK
 	select FSL_CAAM
 	select FSL_BLOB
 	select ARCH_MISC_INIT
-	select SPL_CRYPTO_SUPPORT if SPL
+	select SPL_CRYPTO if SPL
 
 config TARGET_IMX8DX_MEK
 	bool "Support i.MX8DX MEK board"
@@ -191,7 +197,7 @@ config TARGET_IMX8DX_MEK
 	select FSL_CAAM
 	select FSL_BLOB
 	select ARCH_MISC_INIT
-	select SPL_CRYPTO_SUPPORT if SPL
+	select SPL_CRYPTO if SPL
 
 config TARGET_IMX8DXL_EVK
 	bool "Support i.MX8DXL EVK board"
@@ -200,7 +206,7 @@ config TARGET_IMX8DXL_EVK
 	select FSL_CAAM
 	select FSL_BLOB
 	select ARCH_MISC_INIT
-	select SPL_CRYPTO_SUPPORT if SPL
+	select SPL_CRYPTO if SPL
 
 config TARGET_IMX8DXL_DDR3_EVK
 	bool "Support i.MX8DXL EVK board"
@@ -209,7 +215,7 @@ config TARGET_IMX8DXL_DDR3_EVK
 	select FSL_CAAM
 	select FSL_BLOB
 	select ARCH_MISC_INIT
-	select SPL_CRYPTO_SUPPORT if SPL
+	select SPL_CRYPTO if SPL
 
 endchoice
 
@@ -217,6 +223,7 @@ source "board/digi/ccimx8x_sbc_express/Kconfig"
 source "board/digi/ccimx8x_sbc_pro/Kconfig"
 source "board/freescale/imx8qm_mek/Kconfig"
 source "board/freescale/imx8qxp_mek/Kconfig"
+source "board/congatec/cgtqmx8/Kconfig"
 source "board/freescale/imx8qm_val/Kconfig"
 source "board/freescale/imx8qxp_val/Kconfig"
 source "board/freescale/imx8dxl_phantom_mek/Kconfig"

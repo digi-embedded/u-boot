@@ -146,7 +146,7 @@ struct list_head* stdio_get_list(void)
  * @name:	stdio device name (e.g. "vidconsole")
  * id:		Uclass ID of device to look for (e.g. UCLASS_VIDEO)
  * @sdevp:	Returns stdout device, if found, else NULL
- * @return 0 if found, -ENOENT if no device found with that name, other -ve
+ * Return: 0 if found, -ENOENT if no device found with that name, other -ve
  *	   on other error
  */
 static int stdio_probe_device(const char *name, enum uclass_id id,
@@ -338,7 +338,7 @@ int stdio_add_devices(void)
 				       dev->name);
 		}
 	}
-#ifdef CONFIG_SYS_I2C
+#if CONFIG_IS_ENABLED(SYS_I2C_LEGACY)
 	i2c_init_all();
 #endif
 	if (IS_ENABLED(CONFIG_DM_VIDEO)) {
@@ -385,6 +385,9 @@ int stdio_add_devices(void)
 	serial_stdio_init();
 #ifdef CONFIG_USB_TTY
 	drv_usbtty_init();
+#endif
+#ifdef CONFIG_USB_FUNCTION_ACM
+	drv_usbacm_init ();
 #endif
 	if (IS_ENABLED(CONFIG_NETCONSOLE))
 		drv_nc_init();

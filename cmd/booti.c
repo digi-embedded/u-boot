@@ -59,7 +59,7 @@ static int booti_start(struct cmd_tbl *cmdtp, int flag, int argc,
 		debug("*  kernel: default image load address = 0x%08lx\n",
 				image_load_addr);
 	} else {
-		ld = simple_strtoul(argv[0], NULL, 16);
+		ld = hextoul(argv[0], NULL);
 		debug("*  kernel: cmdline image address = 0x%08lx\n", ld);
 	}
 
@@ -107,6 +107,16 @@ static int booti_start(struct cmd_tbl *cmdtp, int flag, int argc,
 	ret = booti_setup(ld, &relocated_addr, &image_size, false);
 	if (ret != 0)
 		return 1;
+
+#if defined(CONFIG_IMX_HAB) && !defined(CONFIG_AVB_SUPPORT)
+	extern int authenticate_image(
+		uint32_t ddr_start, uint32_t raw_image_size);
+	if (authenticate_image(ld, image_size) != 0) {
+		printf("Authenticate Image Fail, Please check\n");
+		return 1;
+	}
+
+#endif
 
 	/* Handle BOOTM_STATE_LOADOS */
 	if (relocated_addr != ld) {

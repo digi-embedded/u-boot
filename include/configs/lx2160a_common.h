@@ -10,19 +10,12 @@
 #include <asm/arch/config.h>
 #include <asm/arch/soc.h>
 
-#define CONFIG_REMAKE_ELF
-#define CONFIG_FSL_LAYERSCAPE
-#define CONFIG_GICV3
-#define CONFIG_FSL_TZPC_BP147
 #define CONFIG_FSL_MEMAC
 
 #define CONFIG_SYS_INIT_SP_ADDR		CONFIG_SYS_TEXT_BASE
 #define CONFIG_SYS_FLASH_BASE		0x20000000
 
-#define CONFIG_SKIP_LOWLEVEL_INIT
-
 /* DDR */
-#define CONFIG_FSL_DDR_INTERACTIVE	/* Interactive debugging */
 #define CONFIG_SYS_FSL_DDR_INTLV_256B	/* force 256 byte interleaving */
 #define CONFIG_VERY_BIG_RAM
 #define CONFIG_SYS_DDR_SDRAM_BASE		0x80000000UL
@@ -30,9 +23,6 @@
 #define CONFIG_SYS_DDR_BLOCK2_BASE		0x2080000000ULL
 #define CONFIG_SYS_FSL_DDR_MAIN_NUM_CTRLS	2
 #define CONFIG_SYS_SDRAM_SIZE			0x200000000UL
-#define CONFIG_DDR_SPD
-#define CONFIG_DDR_ECC
-#define CONFIG_ECC_INIT_VIA_DDRCONTROLLER
 #define CONFIG_SYS_SDRAM_BASE		CONFIG_SYS_DDR_SDRAM_BASE
 #define CONFIG_MEM_INIT_VALUE		0xdeadbeef
 #define SPD_EEPROM_ADDRESS1		0x51
@@ -45,11 +35,9 @@
 #define CONFIG_SYS_SPD_BUS_NUM		0	/* SPD on I2C bus 0 */
 #define CONFIG_DIMM_SLOTS_PER_CTLR	2
 #define CONFIG_CHIP_SELECTS_PER_CTRL	4
-#define CONFIG_FSL_DDR_BIST	/* enable built-in memory test */
 #define CONFIG_SYS_MONITOR_LEN		(936 * 1024)
 
 /* Miscellaneous configurable options */
-#define CONFIG_SYS_LOAD_ADDR	(CONFIG_SYS_DDR_SDRAM_BASE + 0x10000000)
 
 /* SMP Definitinos  */
 #define CPU_RELEASE_ADDR		secondary_boot_addr
@@ -62,11 +50,7 @@
 
 #define COUNTER_FREQUENCY		25000000	/* 25MHz */
 
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + 2048 * 1024)
-
 /* Serial Port */
-#define CONFIG_PL01X_SERIAL
 #define CONFIG_PL011_CLOCK		(get_bus_freq(0) / 4)
 #define CONFIG_SYS_SERIAL0		0x21c0000
 #define CONFIG_SYS_SERIAL1		0x21d0000
@@ -77,7 +61,6 @@
 					(void *)CONFIG_SYS_SERIAL1, \
 					(void *)CONFIG_SYS_SERIAL2, \
 					(void *)CONFIG_SYS_SERIAL3 }
-#define CONFIG_SYS_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200 }
 
 /* MC firmware */
 #define CONFIG_SYS_LS_MC_DPC_MAX_LENGTH		0x20000
@@ -103,31 +86,15 @@
 
 /* I2C bus multiplexer */
 #define I2C_MUX_PCA_ADDR_PRI		0x77 /* Primary Mux*/
-#define I2C_MUX_PCA_ADDR_SEC		0x75 /* Secondary Mux*/
 #define I2C_MUX_CH_DEFAULT		0x8
-#define I2C_MUX_CH_SEC			0xF
-
-/* QSFP+/SFP+ I2C MUX related */
-#define I2C_MUX_CH_QSFP			0x8
-#define I2C_MUX_CH_SFP1			0xC
-#define I2C_MUX_CH_SFP2			0xD
 
 /* RTC */
 #define RTC
 #define CONFIG_SYS_I2C_RTC_ADDR		0x51  /* Channel 3*/
 
 /* EEPROM */
-#define CONFIG_ID_EEPROM
 #define CONFIG_SYS_I2C_EEPROM_NXID
 #define CONFIG_SYS_EEPROM_BUS_NUM		0
-#define CONFIG_SYS_I2C_EEPROM_ADDR		0x57
-#define CONFIG_SYS_I2C_EEPROM_ADDR_LEN		1
-#define CONFIG_SYS_EEPROM_PAGE_WRITE_BITS	3
-#define CONFIG_SYS_EEPROM_PAGE_WRITE_DELAY_MS	5
-
-/* QSFP/SFP module EEPROMs */
-#define I2C_SFP_EEPROM_ADDR	0x50
-#define I2C_SFP_EEPROM_ADDR_LEN	1
 
 /* Qixis */
 #define CONFIG_FSL_QIXIS
@@ -136,52 +103,24 @@
 
 /* PCI */
 #ifdef CONFIG_PCI
-#define CONFIG_SYS_PCI_64BIT
 #define CONFIG_PCI_SCAN_SHOW
-#endif
-
-/* MMC */
-#ifdef CONFIG_MMC
-#define CONFIG_SYS_FSL_MMC_HAS_CAPBLT_VS33
 #endif
 
 /* SATA */
 
 #ifdef CONFIG_SCSI
-#define CONFIG_SCSI_AHCI_PLAT
 #define CONFIG_SYS_SATA1		AHCI_BASE_ADDR1
 #define CONFIG_SYS_SATA2		AHCI_BASE_ADDR2
-#define CONFIG_SYS_SCSI_MAX_SCSI_ID	1
-#define CONFIG_SYS_SCSI_MAX_LUN		1
-#define CONFIG_SYS_SCSI_MAX_DEVICE	(CONFIG_SYS_SCSI_MAX_SCSI_ID * \
-					CONFIG_SYS_SCSI_MAX_LUN)
 #endif
 
 /* USB */
-#ifdef CONFIG_USB
-#define CONFIG_HAS_FSL_XHCI_USB
+#ifdef CONFIG_USB_HOST
 #ifndef CONFIG_TARGET_LX2162AQDS
 #define CONFIG_USB_MAX_CONTROLLER_COUNT	2
 #endif
 #endif
 
-/* GPIO */
-#ifdef CONFIG_DM_GPIO
-#ifndef CONFIG_MPC8XXX_GPIO
-#define CONFIG_MPC8XXX_GPIO
-#endif
-#endif
-
-#ifndef __ASSEMBLY__
-unsigned long get_board_sys_clk(void);
-unsigned long get_board_ddr_clk(void);
-int select_i2c_ch_pca9547(unsigned char ch);
-int select_i2c_ch_pca9547_sec(unsigned char ch);
-#endif
-
-#define CONFIG_SYS_CLK_FREQ		get_board_sys_clk()
-#define CONFIG_DDR_CLK_FREQ		get_board_ddr_clk()
-#define COUNTER_FREQUENCY_REAL		(CONFIG_SYS_CLK_FREQ / 4)
+#define COUNTER_FREQUENCY_REAL		(get_board_sys_clk() / 4)
 
 #define CONFIG_HWCONFIG
 #define HWCONFIG_BUFFER_SIZE		128
@@ -235,6 +174,7 @@ int select_i2c_ch_pca9547_sec(unsigned char ch);
 	"ramdisk_size=0x2000000\0"		\
 	"fdt_high=0xa0000000\0"			\
 	"initrd_high=0xffffffffffffffff\0"	\
+	"fdt_addr=0x64f00000\0"			\
 	"kernel_start=0x1000000\0"		\
 	"kernelheader_start=0x600000\0"		\
 	"scriptaddr=0x80000000\0"		\
@@ -244,7 +184,6 @@ int select_i2c_ch_pca9547_sec(unsigned char ch);
 	"kernel_addr_r=0x81000000\0"		\
 	"kernelheader_size=0x40000\0"		\
 	"fdt_addr_r=0x90000000\0"		\
-	"fdt_addr=0x90000000\0"                 \
 	"load_addr=0xa0000000\0"		\
 	"kernel_size=0x2800000\0"		\
 	"kernel_addr_sd=0x8000\0"		\
@@ -305,12 +244,36 @@ int select_i2c_ch_pca9547_sec(unsigned char ch);
 		"run distro_bootcmd;run sd2_bootcmd;"		\
 		"env exists secureboot && esbc_halt;"
 
+#ifdef CONFIG_CMD_USB
+#define BOOT_TARGET_DEVICES_USB(func) func(USB, usb, 0)
+#else
+#define BOOT_TARGET_DEVICES_USB(func)
+#endif
+
+#ifdef CONFIG_MMC
+#define BOOT_TARGET_DEVICES_MMC(func, instance) func(MMC, mmc, instance)
+#else
+#define BOOT_TARGET_DEVICES_MMC(func)
+#endif
+
+#ifdef CONFIG_SCSI
+#define BOOT_TARGET_DEVICES_SCSI(func) func(SCSI, scsi, 0)
+#else
+#define BOOT_TARGET_DEVICES_SCSI(func)
+#endif
+
+#ifdef CONFIG_CMD_DHCP
+#define BOOT_TARGET_DEVICES_DHCP(func) func(DHCP, dhcp, na)
+#else
+#define BOOT_TARGET_DEVICES_DHCP(func)
+#endif
+
 #define BOOT_TARGET_DEVICES(func) \
-	func(USB, usb, 0) \
-	func(MMC, mmc, 0) \
-	func(MMC, mmc, 1) \
-	func(SCSI, scsi, 0) \
-	func(DHCP, dhcp, na)
+	BOOT_TARGET_DEVICES_USB(func) \
+	BOOT_TARGET_DEVICES_MMC(func, 0) \
+	BOOT_TARGET_DEVICES_MMC(func, 1) \
+	BOOT_TARGET_DEVICES_SCSI(func) \
+	BOOT_TARGET_DEVICES_DHCP(func)
 #include <config_distro_bootcmd.h>
 
 #endif /* __LX2_COMMON_H */

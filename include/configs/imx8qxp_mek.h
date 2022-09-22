@@ -15,8 +15,6 @@
 #ifdef CONFIG_SPL_BUILD
 #define CONFIG_SPL_MAX_SIZE				(192 * 1024)
 #define CONFIG_SYS_MONITOR_LEN				(1024 * 1024)
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR		0x1040 /* (32K + 2Mb)/sector_size */
 
 /*
  * 0x08081000 - 0x08180FFF is for m4_0 xip image,
@@ -24,7 +22,6 @@
  */
 #define CONFIG_SYS_UBOOT_BASE 0x08181000
 
-#define CONFIG_SPL_LDSCRIPT		"arch/arm/cpu/armv8/u-boot-spl.lds"
 #define CONFIG_SPL_STACK		0x013fff0
 #define CONFIG_SPL_BSS_START_ADDR      0x00130000
 #define CONFIG_SPL_BSS_MAX_SIZE		0x1000	/* 4 KB */
@@ -39,12 +36,7 @@
 
 #endif
 
-#define CONFIG_REMAKE_ELF
-
 #define CONFIG_CMD_READ
-
-/* Flat Device Tree Definitions */
-#define CONFIG_OF_BOARD_SETUP
 
 #define CONFIG_SYS_FSL_ESDHC_ADDR       0
 #define USDHC1_BASE_ADDR                0x5B010000
@@ -53,8 +45,6 @@
 #define CONFIG_PCIE_IMX
 #define CONFIG_CMD_PCI
 #define CONFIG_PCI_SCAN_SHOW
-
-#define CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
 
 #ifdef CONFIG_AHAB_BOOT
 #define AHAB_ENV "sec_boot=yes\0"
@@ -73,7 +63,7 @@
 	"initrd_addr=0x83100000\0" \
 	"initrd_high=0xffffffffffffffff\0" \
 	"emmc_dev=0\0" \
-	"sd_dev=1\0" \
+	"sd_dev=1\0"
 
 #define JAILHOUSE_ENV \
 	"jh_mmcboot=" \
@@ -133,7 +123,7 @@
 	"boot_fdt=try\0" \
 	"fdt_file=undefined\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
-	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
+	"mmcpart=1\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} earlycon root=${mmcroot}\0 " \
@@ -194,48 +184,13 @@
 			"fi;" \
 		"fi;\0"
 
-#define CONFIG_BOOTCOMMAND \
-	   "mmc dev ${mmcdev}; if mmc rescan; then " \
-		   "if run loadbootscript; then " \
-			   "run bootscript; " \
-		   "else " \
-			   "if test ${sec_boot} = yes; then " \
-				   "if run loadcntr; then " \
-					   "run mmcboot; " \
-				   "else run netboot; " \
-				   "fi; " \
-			    "else " \
-				   "if run loadimage; then " \
-					   "run mmcboot; " \
-				   "else run netboot; " \
-				   "fi; " \
-			 "fi; " \
-		   "fi; " \
-	   "else booti ${loadaddr} - ${fdt_addr}; fi"
-
 /* Link Definitions */
-#define CONFIG_LOADADDR			0x80280000
-
-#define CONFIG_SYS_LOAD_ADDR           CONFIG_LOADADDR
 
 #define CONFIG_SYS_INIT_SP_ADDR         0x80200000
-
-#ifdef CONFIG_QSPI_BOOT
-#define CONFIG_ENV_SECT_SIZE	(128 * 1024)
-#define CONFIG_ENV_SPI_BUS	CONFIG_SF_DEFAULT_BUS
-#define CONFIG_ENV_SPI_CS	CONFIG_SF_DEFAULT_CS
-#define CONFIG_ENV_SPI_MODE	CONFIG_SF_DEFAULT_MODE
-#define CONFIG_ENV_SPI_MAX_HZ	CONFIG_SF_DEFAULT_SPEED
-#endif
-
-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 
 /* On LPDDR4 board, USDHC1 is for eMMC, USDHC2 is for SD on CPU board */
 #define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
 #define CONFIG_SYS_FSL_USDHC_NUM	2
-
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		((CONFIG_ENV_SIZE + (32 * 1024)) * 1024)
 
 #define CONFIG_SYS_SDRAM_BASE		0x80000000
 #define PHYS_SDRAM_1			0x80000000
@@ -264,21 +219,11 @@
 /* Generic Timer Definitions */
 #define COUNTER_FREQUENCY		8000000	/* 8MHz */
 
-#ifndef CONFIG_DM_PCA953X
-#define CONFIG_PCA953X
-#endif
-
 #define CONFIG_SERIAL_TAG
 
 /* USB Config */
 #ifndef CONFIG_SPL_BUILD
-#define CONFIG_CMD_USB
-#define CONFIG_USB_STORAGE
 #define CONFIG_USBD_HS
-
-#define CONFIG_CMD_USB_MASS_STORAGE
-#define CONFIG_USB_GADGET_MASS_STORAGE
-#define CONFIG_USB_FUNCTION_MASS_STORAGE
 
 #endif
 
@@ -306,15 +251,6 @@
 
 #define CONFIG_FEC_XCV_TYPE		RGMII
 #define PHY_ANEG_TIMEOUT 20000
-
-#ifdef CONFIG_DM_VIDEO
-#define CONFIG_VIDEO_LOGO
-#define CONFIG_BMP_16BPP
-#define CONFIG_BMP_24BPP
-#define CONFIG_BMP_32BPP
-#define CONFIG_VIDEO_BMP_RLE8
-#define CONFIG_VIDEO_BMP_LOGO
-#endif
 
 #if defined(CONFIG_ANDROID_SUPPORT)
 #include "imx8qxp_mek_android.h"

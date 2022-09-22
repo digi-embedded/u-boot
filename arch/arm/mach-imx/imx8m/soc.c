@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2017-2019 NXP
+ * Copyright 2017-2019, 2021 NXP
  *
  * Peng Fan <peng.fan@nxp.com>
  */
@@ -21,9 +21,7 @@
 #include <asm/ptrace.h>
 #include <asm/armv8/mmu.h>
 #include <dm/uclass.h>
-#include <dm/platdata.h>
-#include <dm/uclass-internal.h>
-#include <dm/device-internal.h>
+#include <dm/device.h>
 #include <efi_loader.h>
 #include <env.h>
 #include <env_internal.h>
@@ -72,8 +70,19 @@ void enable_tzc380(void)
 	/* Enable TZASC and lock setting */
 	setbits_le32(&gpr->gpr[10], GPR_TZASC_EN);
 	setbits_le32(&gpr->gpr[10], GPR_TZASC_EN_LOCK);
-	if (is_imx8mm() || is_imx8mn() || is_imx8mp())
-		setbits_le32(&gpr->gpr[10], BIT(1));
+
+	/*
+	 * According to TRM, TZASC_ID_SWAP_BYPASS should be set in
+	 * order to avoid AXI Bus errors when GPU is in use
+	 */
+	setbits_le32(&gpr->gpr[10], GPR_TZASC_ID_SWAP_BYPASS);
+
+	/*
+	 * imx8m implements the lock bit for
+	 * TZASC_ID_SWAP_BYPASS, enable it to lock settings
+	 */
+	setbits_le32(&gpr->gpr[10], GPR_TZASC_ID_SWAP_BYPASS_LOCK);
+
 	/*
 	 * set Region 0 attribute to allow secure and non-secure
 	 * read/write permission. Found some masters like usb dwc3
@@ -110,6 +119,13 @@ static struct mm_region imx8m_mem_map[] = {
 		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
 			 PTE_BLOCK_NON_SHARE |
 			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
+	}, {
+		/* OCRAM_S */
+		.virt = 0x180000UL,
+		.phys = 0x180000UL,
+		.size = 0x8000UL,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
+			 PTE_BLOCK_OUTER_SHARE
 	}, {
 		/* TCM */
 		.virt = 0x7C0000UL,
@@ -279,9 +295,9 @@ int dram_init_banksize(void)
 				 rom_pointer[1];
 #endif
 		optee_start = (phys_addr_t)rom_pointer[0];
-		gd->bd->bi_dram[bank].size = optee_start -gd->bd->bi_dram[bank].start;
+		gd->bd->bi_dram[bank].size = optee_start - gd->bd->bi_dram[bank].start;
 		if ((optee_start + optee_size) < (PHYS_SDRAM + sdram_b1_size)) {
-			if ( ++bank >= CONFIG_NR_DRAM_BANKS) {
+			if (++bank >= CONFIG_NR_DRAM_BANKS) {
 				puts("CONFIG_NR_DRAM_BANKS is not enough\n");
 				return -1;
 			}
@@ -645,7 +661,7 @@ enum boot_device get_boot_device(void)
 
 	ret = g_rom_api->query_boot_infor(QUERY_BT_DEV, &boot,
 					  ((uintptr_t)&boot) ^ QUERY_BT_DEV);
-	gd = pgd;
+	set_gd(pgd);
 
 	if (ret != ROM_API_OKAY) {
 		puts("ROMAPI: failure at query_boot_info\n");
@@ -676,6 +692,67 @@ enum boot_device get_boot_device(void)
 	}
 
 	return boot_dev;
+}
+#endif
+
+#if defined(CONFIG_IMX8M)
+#include <spl.h>
+int spl_mmc_emmc_boot_partition(struct mmc *mmc)
+{
+	u32 *rom_log_addr = (u32 *)0x9e0;
+	u32 *rom_log;
+	u8 event_id;
+	int i, part;
+
+	part = default_spl_mmc_emmc_boot_partition(mmc);
+
+	/* If the ROM event log pointer is not valid. */
+	if (*rom_log_addr < 0x900000 || *rom_log_addr >= 0xb00000 ||
+	    *rom_log_addr & 0x3)
+		return part;
+
+	/* Parse the ROM event ID version 2 log */
+	rom_log = (u32 *)(uintptr_t)(*rom_log_addr);
+	for (i = 0; i < 128; i++) {
+		event_id = rom_log[i] >> 24;
+		switch (event_id) {
+		case 0x00: /* End of list */
+			return part;
+		/* Log entries with 1 parameter, skip 1 */
+		case 0x80: /* Start to perform the device initialization */
+		case 0x81: /* The boot device initialization completes */
+		case 0x8f: /* The boot device initialization fails */
+		case 0x90: /* Start to read data from boot device */
+		case 0x91: /* Reading data from boot device completes */
+		case 0x9f: /* Reading data from boot device fails */
+			i += 1;
+			continue;
+		/* Log entries with 2 parameters, skip 2 */
+		case 0xa0: /* Image authentication result */
+		case 0xc0: /* Jump to the boot image soon */
+			i += 2;
+			continue;
+		/* Boot from the secondary boot image */
+		case 0x51:
+			/*
+			 * Swap the eMMC boot partitions in case there was a
+			 * fallback event (i.e. primary image was corrupted
+			 * and that corruption was recognized by the BootROM),
+			 * so the SPL loads the rest of the U-Boot from the
+			 * correct eMMC boot partition, since the BootROM
+			 * leaves the boot partition set to the corrupted one.
+			 */
+			if (part == 1)
+				part = 2;
+			else if (part == 2)
+				part = 1;
+			continue;
+		default:
+			continue;
+		}
+	}
+
+	return part;
 }
 #endif
 
@@ -889,7 +966,7 @@ int disable_vpu_nodes(void *blob)
 #ifdef CONFIG_IMX8MN_LOW_DRIVE_MODE
 static int low_drive_gpu_freq(void *blob)
 {
-	const char *nodes_path_8mn[] = {
+	static const char *nodes_path_8mn[] = {
 		"/gpu@38000000",
 		"/soc@0/gpu@38000000"
 	};
@@ -1058,7 +1135,7 @@ int disable_dsp_nodes(void *blob)
 
 static void disable_thermal_cpu_nodes(void *blob, u32 disabled_cores)
 {
-	const char *thermal_path[] = {
+	static const char * const thermal_path[] = {
 		"/thermal-zones/cpu-thermal/cooling-maps/map0"
 	};
 
@@ -1077,13 +1154,14 @@ static void disable_thermal_cpu_nodes(void *blob, u32 disabled_cores)
 		if (cnt != 12)
 			printf("Warning: %s, cooling-device count %d\n", thermal_path[i], cnt);
 
-		for (j = 0; j < cnt; j++) {
+		for (j = 0; j < cnt; j++)
 			cooling_dev[j] = cpu_to_fdt32(cooling_dev[j]);
-		}
 
-		ret= fdt_setprop(blob, nodeoff, "cooling-device", &cooling_dev, sizeof(u32) * (12 - disabled_cores * 3));
+		ret = fdt_setprop(blob, nodeoff, "cooling-device", &cooling_dev,
+				  sizeof(u32) * (12 - disabled_cores * 3));
 		if (ret < 0) {
-			printf("Warning: %s, cooling-device setprop failed %d\n", thermal_path[i], ret);
+			printf("Warning: %s, cooling-device setprop failed %d\n",
+			       thermal_path[i], ret);
 			continue;
 		}
 
@@ -1093,7 +1171,7 @@ static void disable_thermal_cpu_nodes(void *blob, u32 disabled_cores)
 
 static void disable_pmu_cpu_nodes(void *blob, u32 disabled_cores)
 {
-	const char *pmu_path[] = {
+	static const char * const pmu_path[] = {
 		"/pmu"
 	};
 
@@ -1105,20 +1183,22 @@ static void disable_pmu_cpu_nodes(void *blob, u32 disabled_cores)
 		if (nodeoff < 0)
 			continue; /* Not found, skip it */
 
-		cnt = fdtdec_get_int_array_count(blob, nodeoff, "interrupt-affinity", irq_affinity, 4);
+		cnt = fdtdec_get_int_array_count(blob, nodeoff, "interrupt-affinity",
+						 irq_affinity, 4);
 		if (cnt < 0)
 			continue;
 
 		if (cnt != 4)
 			printf("Warning: %s, interrupt-affinity count %d\n", pmu_path[i], cnt);
 
-		for (j = 0; j < cnt; j++) {
+		for (j = 0; j < cnt; j++)
 			irq_affinity[j] = cpu_to_fdt32(irq_affinity[j]);
-		}
 
-		ret= fdt_setprop(blob, nodeoff, "interrupt-affinity", &irq_affinity, sizeof(u32) * (4 - disabled_cores));
+		ret = fdt_setprop(blob, nodeoff, "interrupt-affinity", &irq_affinity,
+				 sizeof(u32) * (4 - disabled_cores));
 		if (ret < 0) {
-			printf("Warning: %s, interrupt-affinity setprop failed %d\n", pmu_path[i], ret);
+			printf("Warning: %s, interrupt-affinity setprop failed %d\n",
+			       pmu_path[i], ret);
 			continue;
 		}
 
@@ -1318,6 +1398,7 @@ usb_modify_speed:
 #ifdef CONFIG_IMX8MN_LOW_DRIVE_MODE
 	else {
 		int ldm_gpu = low_drive_gpu_freq(blob);
+
 		if (ldm_gpu < 0)
 			printf("Update GPU node assigned-clock-rates failed\n");
 		else
@@ -1409,7 +1490,7 @@ set_status:
 #endif
 
 #if !CONFIG_IS_ENABLED(SYSRESET)
-void reset_cpu(ulong addr)
+void reset_cpu(void)
 {
 	struct watchdog_regs *wdog = (struct watchdog_regs *)WDOG1_BASE_ADDR;
 
@@ -1425,7 +1506,7 @@ void reset_cpu(ulong addr)
 #endif
 
 #if defined(CONFIG_ARCH_MISC_INIT)
-static void acquire_buildinfo(void)
+static __maybe_unused void acquire_buildinfo(void)
 {
 	u64 atf_commit = 0;
 	struct arm_smccc_res res;
@@ -1445,12 +1526,13 @@ static void acquire_buildinfo(void)
 int arch_misc_init(void)
 {
 #ifndef CONFIG_ANDROID_SUPPORT
-	struct udevice *dev;
+	if (IS_ENABLED(CONFIG_FSL_CAAM)) {
+		struct udevice *dev;
+		int ret;
 
-	uclass_find_first_device(UCLASS_MISC, &dev);
-	for (; dev; uclass_find_next_device(&dev)) {
-		if (device_probe(dev))
-			continue;
+		ret = uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(caam_jr), &dev);
+		if (ret)
+			printf("Failed to initialize caam_jr: %d\n", ret);
 	}
 #endif
 	acquire_buildinfo();
@@ -1460,6 +1542,12 @@ int arch_misc_init(void)
 #endif
 
 #ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_IMX8MP
+#define HSIO_GPR_BASE                               (0x32F10000U)
+#define HSIO_GPR_REG_0_USB_CLOCK_MODULE_EN_SHIFT    (1)
+#define HSIO_GPR_REG_0_USB_CLOCK_MODULE_EN          (0x1U << HSIO_GPR_REG_0_USB_CLOCK_MODULE_EN_SHIFT)
+#endif
+
 static uint32_t gpc_pu_m_core_offset[11] = {
 	0xc00, 0xc40, 0xc80, 0xcc0,
 	0xdc0, 0xe00, 0xe40, 0xe80,
@@ -1485,6 +1573,15 @@ void imx8m_usb_power_domain(uint32_t domain_id, bool on)
 {
 	uint32_t val;
 	uintptr_t reg;
+
+#ifdef CONFIG_IMX8MP
+	if (on) {
+		/* enable usb clock via hsio gpr */
+		reg = readl(HSIO_GPR_BASE);
+		reg |= HSIO_GPR_REG_0_USB_CLOCK_MODULE_EN;
+		writel(reg, HSIO_GPR_BASE);
+	}
+#endif
 
 	imx_gpc_set_m_core_pgc(gpc_pu_m_core_offset[domain_id], true);
 
@@ -1628,23 +1725,19 @@ void do_error(struct pt_regs *pt_regs, unsigned int esr)
 enum env_location env_get_location(enum env_operation op, int prio)
 {
 	enum boot_device dev = get_boot_device();
-	enum env_location env_loc = ENVL_UNKNOWN;
 
 	if (prio)
-		return env_loc;
+		return ENVL_UNKNOWN;
 
 	switch (dev) {
-#ifdef CONFIG_ENV_IS_IN_SPI_FLASH
 	case QSPI_BOOT:
-		env_loc = ENVL_SPI_FLASH;
-		break;
-#endif
-#ifdef CONFIG_ENV_IS_IN_NAND
+		if (IS_ENABLED(CONFIG_ENV_IS_IN_SPI_FLASH))
+			return ENVL_SPI_FLASH;
+		return ENVL_NOWHERE;
 	case NAND_BOOT:
-		env_loc = ENVL_NAND;
-		break;
-#endif
-#ifdef CONFIG_ENV_IS_IN_MMC
+		if (IS_ENABLED(CONFIG_ENV_IS_IN_NAND))
+			return ENVL_NAND;
+		return ENVL_NOWHERE;
 	case SD1_BOOT:
 	case SD2_BOOT:
 	case SD3_BOOT:
@@ -1652,34 +1745,18 @@ enum env_location env_get_location(enum env_operation op, int prio)
 	case MMC2_BOOT:
 	case MMC3_BOOT:
 	case USB_BOOT:
-		env_loc =  ENVL_MMC;
-		break;
-#endif
+		if (IS_ENABLED(CONFIG_ENV_IS_IN_MMC))
+			return ENVL_MMC;
+		else if (IS_ENABLED(CONFIG_ENV_IS_IN_EXT4))
+			return ENVL_EXT4;
+		else if (IS_ENABLED(CONFIG_ENV_IS_IN_FAT))
+			return ENVL_FAT;
+		return ENVL_NOWHERE;
 	default:
-#if defined(CONFIG_ENV_IS_NOWHERE)
-		env_loc = ENVL_NOWHERE;
-#endif
-		break;
+		return ENVL_NOWHERE;
 	}
-
-	return env_loc;
 }
 
-#ifndef ENV_IS_EMBEDDED
-long long env_get_offset(long long default_offset)
-{
-	enum boot_device dev = get_boot_device();
-
-	switch (dev) {
-	case NAND_BOOT:
-		return (60 << 20);  /* 60MB offset for NAND */
-	default:
-		break;
-	}
-
-	return default_offset;
-}
-#endif
 #endif
 
 #ifdef CONFIG_IMX8MQ

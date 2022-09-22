@@ -9,6 +9,9 @@ config SYS_VENDOR
 config SYS_CONFIG_NAME
 	default "mx6sllevk"
 
+config IMX_CONFIG
+	default "board/freescale/mx6sllevk/imximage.cfg"
+
 config SYS_TEXT_BASE
 	default 0x87800000
 endif

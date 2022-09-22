@@ -56,7 +56,8 @@ u32 spl_boot_device(void)
 		defined(CONFIG_TARGET_CHROMEBIT_MICKEY) || \
 		defined(CONFIG_TARGET_CHROMEBOOK_MINNIE) || \
 		defined(CONFIG_TARGET_CHROMEBOOK_SPEEDY) || \
-		defined(CONFIG_TARGET_CHROMEBOOK_BOB)
+		defined(CONFIG_TARGET_CHROMEBOOK_BOB) || \
+		defined(CONFIG_TARGET_CHROMEBOOK_KEVIN)
 	return BOOT_DEVICE_SPI;
 #endif
 	if (CONFIG_IS_ENABLED(ROCKCHIP_BACK_TO_BROM))
@@ -151,13 +152,3 @@ void board_init_f(ulong dummy)
 #endif
 	preloader_console_init();
 }
-
-#ifdef CONFIG_SPL_LOAD_FIT
-int __weak board_fit_config_name_match(const char *name)
-{
-	/* Just empty function now - can't decide what to choose */
-	debug("%s: %s\n", __func__, name);
-
-	return 0;
-}
-#endif

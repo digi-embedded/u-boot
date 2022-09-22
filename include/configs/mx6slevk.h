@@ -15,32 +15,13 @@
 #include "imx6_spl.h"
 #endif
 
-#define CONFIG_MACH_TYPE		MACH_TYPE_MX6SL_EVK
-
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		(16 * SZ_1M)
-
 #define CONFIG_MXC_UART_BASE		UART1_IPS_BASE_ADDR
 
 /* MMC Configs */
 #define CONFIG_SYS_FSL_ESDHC_ADDR	USDHC2_BASE_ADDR
 
-/* I2C Configs */
-#ifndef CONFIG_DM_I2C
-#define CONFIG_SYS_I2C
-#endif
-#ifdef CONFIG_CMD_I2C
-#define CONFIG_SYS_I2C_MXC
-#define CONFIG_SYS_I2C_MXC_I2C1		/* enable I2C bus 1 */
-#define CONFIG_SYS_I2C_MXC_I2C2		/* enable I2C bus 2 */
-#define CONFIG_SYS_I2C_MXC_I2C3		/* enable I2C bus 3 */
-#define CONFIG_SYS_I2C_SPEED		  100000
-#endif
-
 /* PMIC */
 #ifndef CONFIG_DM_PMIC
-#define CONFIG_POWER
-#define CONFIG_POWER_I2C
 #define CONFIG_POWER_PFUZE100
 #define CONFIG_POWER_PFUZE100_I2C_ADDR	0x08
 #endif
@@ -143,20 +124,6 @@
 			"setenv fdt_file imx6sl-evk.dtb; " \
 		"fi;\0" \
 
-#define CONFIG_BOOTCOMMAND \
-	   "run findfdt;" \
-	   "mmc dev ${mmcdev};" \
-	   "mmc dev ${mmcdev}; if mmc rescan; then " \
-		   "if run loadbootscript; then " \
-			   "run bootscript; " \
-		   "else " \
-			   "if run loadimage; then " \
-				   "run mmcboot; " \
-			   "else run netboot; " \
-			   "fi; " \
-		   "fi; " \
-	   "else run netboot; fi"
-
 /* Miscellaneous configurable options */
 
 /* Physical Memory Map */
@@ -181,6 +148,7 @@
 
 #define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
 #define CONFIG_SYS_FSL_USDHC_NUM	3
+#define CONFIG_SYS_MMC_ENV_DEV 1
 
 /*
  * SPLASH SCREEN Configs

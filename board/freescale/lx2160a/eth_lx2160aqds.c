@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2018-2021 NXP
+ * Copyright 2018-2020 NXP
  *
  */
 
@@ -25,7 +25,6 @@
 #include <fsl-mc/ldpaa_wriop.h>
 #include <linux/libfdt.h>
 
-#include "lx2160a.h"
 #include "../common/qixis.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -417,7 +416,7 @@ static inline void do_dpmac_config(int dpmac, const char *arg_dpmacid,
 			       env_dpmac, phy_num + 1, arg_dpmacid);
 		else
 			wriop_set_phy_address(dpmac, phy_num,
-					      simple_strtoul(ret, NULL, 16));
+					      hextoul(ret, NULL));
 	}
 
 	/*search mdio in dpmac arg*/
@@ -776,10 +775,11 @@ int fdt_fixup_board_phy(void *fdt)
 	int fpga_offset, offset, subnodeoffset;
 	struct mii_dev *mii_dev;
 	struct list_head *mii_devs, *entry;
-	int ret, dpmac_id, phandle, i;
+	int ret, dpmac_id, i;
 	struct phy_device *phy_dev;
 	char ethname[ETH_NAME_LEN];
 	phy_interface_t	phy_iface;
+	uint32_t phandle;
 
 	ret = 0;
 	/* we know FPGA is connected to i2c0, therefore search path directly,
@@ -795,7 +795,10 @@ int fdt_fixup_board_phy(void *fdt)
 		return fpga_offset;
 	}
 
-	phandle = fdt_alloc_phandle(fdt);
+	ret = fdt_generate_phandle(fdt, &phandle);
+	if (ret < 0)
+		return ret;
+
 	mii_devs = mdio_get_list_head();
 
 	list_for_each(entry, mii_devs) {
@@ -875,8 +878,6 @@ static struct serdes_configuration {
 	/* Serdes block #1 */
 	{1, 3, true},
 	{1, 7, true},
-	{1, 13, true},
-	{1, 14, true},
 	{1, 19, true},
 	{1, 20, true},
 

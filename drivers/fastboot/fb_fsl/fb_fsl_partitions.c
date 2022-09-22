@@ -62,7 +62,7 @@ __weak ulong bootloader_mmc_offset(void)
 		else
 		/* target device is SD card, bootloader offset is 0x8000 */
 			return 0x8000;
-	} else if (is_imx8mn() || is_imx8mp() || is_imx8dxl() || is_imx8ulp()) {
+	} else if (is_imx8mn() || is_imx8mp() || is_imx8dxl() || is_imx8ulp() || is_imx93()) {
 		/* target device is eMMC boot0 partition, bootloader offset is 0x0 */
 		if (env_get_ulong("emmc_dev", 10, 2) == fastboot_devinfo.dev_id)
 			return 0;
@@ -335,7 +335,15 @@ bool fastboot_parts_is_raw(struct fastboot_ptentry *ptn)
 			return true;
 #ifdef CONFIG_ANDROID_AB_SUPPORT
 		else if (!strncmp(ptn->name, FASTBOOT_PARTITION_GPT,
-			strlen(FASTBOOT_PARTITION_GPT)))
+			strlen(FASTBOOT_PARTITION_GPT)) ||
+			!strncmp(ptn->name, FASTBOOT_PARTITION_BOOT_A,
+			strlen(FASTBOOT_PARTITION_BOOT_A)) ||
+			!strncmp(ptn->name, FASTBOOT_PARTITION_BOOT_B,
+			strlen(FASTBOOT_PARTITION_BOOT_B)))
+			return true;
+#else
+		else if (!strncmp(ptn->name, FASTBOOT_PARTITION_BOOT,
+			strlen(FASTBOOT_PARTITION_BOOT)))
 			return true;
 #endif
 #if defined(CONFIG_FASTBOOT_LOCK)

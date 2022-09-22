@@ -157,7 +157,6 @@ enum pcc5_entry {
 	RGPIOD_PCC5_SLOT = 69,
 };
 
-
 /* PCC registers */
 #define PCC_PR_OFFSET	31
 #define PCC_PR_MASK		(0x1 << PCC_PR_OFFSET)

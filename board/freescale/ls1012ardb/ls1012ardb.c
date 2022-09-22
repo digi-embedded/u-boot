@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright 2016 Freescale Semiconductor, Inc.
+ * Copyright 2021 NXP
  */
 
 #include <common.h>
@@ -27,6 +28,7 @@
 #include <env_internal.h>
 #include <fsl_mmdc.h>
 #include <netdev.h>
+#include <net/pfe_eth/pfe/pfe_hw.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -171,15 +173,18 @@ int board_init(void)
 	erratum_a010315();
 #endif
 
-#ifdef CONFIG_ENV_IS_NOWHERE
-	gd->env_addr = (ulong)&default_environment[0];
-#endif
-
 #ifdef CONFIG_FSL_LS_PPA
 	ppa_init();
 #endif
 	return 0;
 }
+
+#ifdef CONFIG_FSL_PFE
+void board_quiesce_devices(void)
+{
+	pfe_command_stop(0, NULL);
+}
+#endif
 
 #ifdef CONFIG_TARGET_LS1012ARDB
 int esdhc_status_fixup(void *blob, const char *compat)

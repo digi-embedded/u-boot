@@ -61,4 +61,6 @@ int power_bd71837_init(unsigned char bus);
 
 int power_bd71837_init(unsigned char bus);
 
+int power_bd71837_init(unsigned char bus);
+
 #endif

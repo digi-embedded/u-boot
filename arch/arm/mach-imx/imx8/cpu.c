@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2017-2020 NXP
+ * Copyright 2017-2021 NXP
  */
 
 #include <common.h>
@@ -106,17 +106,14 @@ int arch_cpu_init_dm(void)
 int arch_misc_init(void)
 {
 #if !defined(CONFIG_ANDROID_SUPPORT) && !defined(CONFIG_ANDROID_AUTO_SUPPORT)
-	struct udevice *dev;
-	int node, ret;
+	if (IS_ENABLED(CONFIG_FSL_CAAM)) {
+		struct udevice *dev;
+		int ret;
 
-	node = fdt_node_offset_by_compatible(gd->fdt_blob, -1, "fsl,sec-v4.0");
-
-	ret = uclass_get_device_by_of_offset(UCLASS_MISC, node, &dev);
-	if (ret) {
-		printf("could not get caam jr device %d\n", ret);
-		return ret;
+		ret = uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(caam_jr), &dev);
+		if (ret)
+			printf("Failed to initialize caam_jr: %d\n", ret);
 	}
-	device_probe(dev);
 #endif
 
 	return 0;
@@ -160,10 +157,10 @@ int arch_auxiliary_core_up(u32 core_id, ulong boot_private_data)
 
 	printf("Power on M4 and MU\n");
 
-	if (sc_pm_set_resource_power_mode(-1, core_rsrc, SC_PM_PW_MODE_ON) != SC_ERR_NONE)
+	if (sc_pm_set_resource_power_mode(-1, core_rsrc, SC_PM_PW_MODE_ON))
 		return -EIO;
 
-	if (sc_pm_set_resource_power_mode(-1, mu_rsrc, SC_PM_PW_MODE_ON) != SC_ERR_NONE)
+	if (sc_pm_set_resource_power_mode(-1, mu_rsrc, SC_PM_PW_MODE_ON))
 		return -EIO;
 
 	printf("Copy M4 image from 0x%lx to TCML 0x%lx\n", addr, (ulong)tcml_addr);
@@ -172,7 +169,7 @@ int arch_auxiliary_core_up(u32 core_id, ulong boot_private_data)
 		memcpy((void *)tcml_addr, (void *)addr, tcm_size);
 
 	printf("Start M4 %u\n", core_id);
-	if (sc_pm_cpu_start(-1, core_rsrc, true, tcml_addr) != SC_ERR_NONE)
+	if (sc_pm_cpu_start(-1, core_rsrc, true, tcml_addr))
 		return -EIO;
 
 	printf("bootaux complete\n");
@@ -215,18 +212,18 @@ int arch_auxiliary_core_up(u32 core_id, ulong boot_private_data)
 
 	printf("Power on aux core %d\n", core_id);
 
-	if (sc_pm_set_resource_power_mode(-1, core_rsrc, SC_PM_PW_MODE_ON) != SC_ERR_NONE)
+	if (sc_pm_set_resource_power_mode(-1, core_rsrc, SC_PM_PW_MODE_ON))
 		return -EIO;
 
 	if (mu_rsrc != SC_R_NONE) {
-		if (sc_pm_set_resource_power_mode(-1, mu_rsrc, SC_PM_PW_MODE_ON) != SC_ERR_NONE)
+		if (sc_pm_set_resource_power_mode(-1, mu_rsrc, SC_PM_PW_MODE_ON))
 			return -EIO;
 	}
 
 	if (core_id == 1) {
 		struct power_domain pd;
 
-		if (sc_pm_clock_enable(-1, core_rsrc, SC_PM_CLK_PER, true, false) != SC_ERR_NONE) {
+		if (sc_pm_clock_enable(-1, core_rsrc, SC_PM_CLK_PER, true, false)) {
 			printf("Error enable clock\n");
 			return -EIO;
 		}
@@ -259,7 +256,7 @@ int arch_auxiliary_core_up(u32 core_id, ulong boot_private_data)
 
 	printf("Start %s\n", core_id == 0 ? "M4" : "HIFI");
 
-	if (sc_pm_cpu_start(-1, core_rsrc, true, aux_core_ram) != SC_ERR_NONE)
+	if (sc_pm_cpu_start(-1, core_rsrc, true, aux_core_ram))
 		return -EIO;
 
 	printf("bootaux complete\n");
@@ -286,7 +283,7 @@ int arch_auxiliary_core_check_up(u32 core_id)
 		return 0;
 	}
 
-	if (sc_pm_get_resource_power_mode(-1, core_rsrc, &power_mode) != SC_ERR_NONE)
+	if (sc_pm_get_resource_power_mode(-1, core_rsrc, &power_mode))
 		return 0;
 
 	if (power_mode != SC_PM_PW_MODE_OFF)
@@ -393,12 +390,12 @@ bool is_usb_boot(void)
 	return get_boot_device() == USB_BOOT;
 }
 
-#ifdef CONFIG_SERIAL_TAG
+#if defined(CONFIG_SERIAL_TAG) || defined(CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG)
 #define FUSE_UNIQUE_ID_WORD0 16
 #define FUSE_UNIQUE_ID_WORD1 17
 void get_board_serial(struct tag_serialnr *serialnr)
 {
-	sc_err_t err;
+	int err;
 	u32 val1 = 0, val2 = 0;
 	u32 word1, word2;
 
@@ -409,20 +406,20 @@ void get_board_serial(struct tag_serialnr *serialnr)
 	word2 = FUSE_UNIQUE_ID_WORD1;
 
 	err = sc_misc_otp_fuse_read(-1, word1, &val1);
-	if (err != SC_ERR_NONE) {
+	if (err) {
 		printf("%s fuse %d read error: %d\n", __func__, word1, err);
 		return;
 	}
 
 	err = sc_misc_otp_fuse_read(-1, word2, &val2);
-	if (err != SC_ERR_NONE) {
+	if (err) {
 		printf("%s fuse %d read error: %d\n", __func__, word2, err);
 		return;
 	}
 	serialnr->low = val1;
 	serialnr->high = val2;
 }
-#endif /*CONFIG_SERIAL_TAG*/
+#endif /*CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG*/
 
 __weak int board_mmc_get_env_dev(int devno)
 {
@@ -943,11 +940,14 @@ u32 get_cpu_rev(void)
 	u32 id = 0, rev = 0;
 	int ret;
 
+	/* returns ID - chip id [4:0], chip revision [9:5]*/
 	ret = sc_misc_get_control(-1, SC_R_SYSTEM, SC_C_ID, &id);
 	if (ret)
 		return 0;
 
+	/* Extract silicon version */
 	rev = (id >> 5)  & 0xf;
+	/* Extract chip ID and add dummy */
 	id = (id & 0x1f) + MXC_SOC_IMX8;  /* Dummy ID for chip */
 
 	/*
@@ -956,11 +956,16 @@ u32 get_cpu_rev(void)
 	 */
 	if (id == MXC_CPU_IMX8QXP && get_imx8_cores() == 2)
 		id = MXC_CPU_IMX8DX;
-	/* 8DXL uses A1/A2, so generate dummy rev to differentiate with B/C */
-	if (id == MXC_CPU_IMX8DXL && rev != 0)
-		rev = 0x10 + rev;
 
-	return (id << 12) | rev;
+	/* 8DXL A1: use dummy rev to differentiate from B */
+	if (id == MXC_CPU_IMX8DXL && rev == CHIP_REV_B)
+		rev = CHIP_REV_A1;
+	/* 8DXL B0: detect as B instead of C */
+	else if (id == MXC_CPU_IMX8DXL && rev == CHIP_REV_C)
+		rev = CHIP_REV_B;
+
+	/* return Chip ID in [31:12] and silicon ver in [11:0]*/
+	return (id << 12) | (rev & 0xfff);
 }
 
 void board_boot_order(u32 *spl_boot_list)
@@ -1086,7 +1091,7 @@ struct udevice * board_imx_vservice_find_mu(struct udevice *dev)
 	}
 
 	err = sc_rm_get_resource_owner(-1, resource_id, &resource_part);
-	if (err != SC_ERR_NONE) {
+	if (err) {
 		printf("%s get resource [%d] owner error: %d\n", __func__, resource_id, err);
 		return NULL;
 	}
@@ -1095,7 +1100,7 @@ struct udevice * board_imx_vservice_find_mu(struct udevice *dev)
 
 	/* MU8 for communication between M4_0 and u-boot, MU9 for M4_1 and u-boot */
 	err = sc_rm_get_resource_owner(-1, SC_R_M4_0_PID0, &m4_parts[0]);
-	if (err != SC_ERR_NONE) {
+	if (err) {
 		printf("%s get resource [%d] owner error: %d\n", __func__, SC_R_M4_0_PID0, err);
 		return NULL;
 	}
@@ -1109,7 +1114,7 @@ struct udevice * board_imx_vservice_find_mu(struct udevice *dev)
 
 	if (is_imx8qm()) {
 		err = sc_rm_get_resource_owner(-1, SC_R_M4_1_PID0, &m4_parts[1]);
-		if (err != SC_ERR_NONE) {
+		if (err) {
 			printf("%s get resource [%d] owner error: %d\n", __func__, SC_R_M4_1_PID0, err);
 			return NULL;
 		}
@@ -1173,6 +1178,7 @@ static int usb_port_auto_check(void)
 	u32 usb2_data;
 	struct power_domain pd;
 	struct power_domain phy_pd;
+	struct ehci_mx6_phy_data phy_data;
 
 	if (!power_domain_lookup_name("conn_usb0", &pd)) {
 		ret = power_domain_on(&pd);
@@ -1191,8 +1197,12 @@ static int usb_port_auto_check(void)
 			return -1;
 		}
 
+		phy_data.phy_addr = (void __iomem *)(ulong)USB_PHY0_BASE_ADDR;
+		phy_data.misc_addr = (void __iomem *)(ulong)(USB_BASE_ADDR + 0x200);
+		phy_data.anatop_addr = NULL;
+
 		enable_usboh3_clk(1);
-		usb2_data = ci_udc_check_bus_active(USB_BASE_ADDR, USB_PHY0_BASE_ADDR, 0);
+		usb2_data = ci_udc_check_bus_active(USB_BASE_ADDR, &phy_data, 0);
 
 		ret = power_domain_off(&phy_pd);
 		if (ret) {

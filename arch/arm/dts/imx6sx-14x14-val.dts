@@ -216,6 +216,7 @@
 	pinctrl-0 = <&pinctrl_gpmi_nand_1>;
 	status = "disabled"; /* pin conflict with qspi*/
 	nand-on-flash-bbt;
+	fsl,use-minimum-ecc;
 };
 
 &i2c1 {
@@ -434,6 +435,7 @@
 };
 
 &pwm3 {
+	#pwm-cells = <2>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_pwm3_0>;
 	status = "okay";

@@ -171,7 +171,7 @@ static void enable_lvds(struct display_info_t const *dev)
 	enable_backlight();
 }
 
-#ifdef CONFIG_SYS_I2C
+#ifdef CONFIG_SYS_I2C_LEGACY
 static struct i2c_pads_info i2c_pad_info1 = {
 	.scl = {
 		.i2c_mode = MX6_PAD_KEY_COL3__I2C2_SCL | I2C_PAD,
@@ -184,20 +184,6 @@ static struct i2c_pads_info i2c_pad_info1 = {
 		.gp = IMX_GPIO_NR(4, 13)
 	}
 };
-#endif
-
-#if defined(CONFIG_PCIE_IMX) && !defined(CONFIG_DM_PCI)
-iomux_v3_cfg_t const pcie_pads[] = {
-	IOMUX_PADS(PAD_EIM_D19__GPIO3_IO19 | MUX_PAD_CTRL(NO_PAD_CTRL)),	/* POWER */
-	IOMUX_PADS(PAD_GPIO_17__GPIO7_IO12 | MUX_PAD_CTRL(NO_PAD_CTRL)),	/* RESET */
-};
-
-static void setup_pcie(void)
-{
-	SETUP_IOMUX_PADS(pcie_pads);
-	gpio_request(CONFIG_PCIE_IMX_POWER_GPIO, "PCIE Power Enable");
-	gpio_request(CONFIG_PCIE_IMX_PERST_GPIO, "PCIE Reset");
-}
 #endif
 
 iomux_v3_cfg_t const di0_pads[] = {
@@ -834,12 +820,8 @@ int board_init(void)
 	setup_spi();
 #endif
 
-#ifdef CONFIG_SYS_I2C
+#ifdef CONFIG_SYS_I2C_LEGACY
 	setup_i2c(1, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
-#endif
-
-#if defined(CONFIG_PCIE_IMX) && !defined(CONFIG_DM_PCI)
-	setup_pcie();
 #endif
 
 #if defined(CONFIG_MX6DL) && defined(CONFIG_MXC_EPDC)
@@ -853,7 +835,7 @@ int board_init(void)
 	return 0;
 }
 
-#ifdef CONFIG_POWER
+#ifdef CONFIG_POWER_LEGACY
 int power_init_board(void)
 {
 	struct pmic *pfuze;
@@ -1027,7 +1009,7 @@ int power_init_board(void)
 #endif
 
 #ifdef CONFIG_LDO_BYPASS_CHECK
-#ifdef CONFIG_POWER
+#ifdef CONFIG_POWER_LEGACY
 void ldo_mode_set(int ldo_bypass)
 {
 	unsigned int value;

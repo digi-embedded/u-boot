@@ -1,7 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright 2019 NXP
- *
- * SPDX-License-Identifier:	GPL-2.0+
  *
  * Generated code from MX8M_DDR_tool
  * Align with uboot version:
@@ -1054,4 +1053,3 @@ struct dram_timing_info dram_timing = {
 	.ddrphy_pie_num = ARRAY_SIZE(ddr_phy_pie),
 	.fsp_table = { 2400, 1066, },
 };
-

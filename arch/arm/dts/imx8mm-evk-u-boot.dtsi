@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2019 NXP
+ * Copyright 2019, 2021 NXP
  */
+
+#include "imx8mm-u-boot.dtsi"
 
 / {
 	wdt-reboot {
@@ -35,41 +37,6 @@
 			method = "smc";
 		};
 	};
-};
-
-&{/soc@0} {
-	u-boot,dm-pre-reloc;
-	u-boot,dm-spl;
-};
-
-&clk {
-	u-boot,dm-spl;
-	u-boot,dm-pre-reloc;
-	/delete-property/ assigned-clocks;
-	/delete-property/ assigned-clock-parents;
-	/delete-property/ assigned-clock-rates;
-};
-
-&osc_24m {
-	u-boot,dm-spl;
-	u-boot,dm-pre-reloc;
-};
-
-&aips1 {
-	u-boot,dm-spl;
-	u-boot,dm-pre-reloc;
-};
-
-&aips2 {
-	u-boot,dm-spl;
-};
-
-&aips3 {
-	u-boot,dm-spl;
-};
-
-&iomuxc {
-	u-boot,dm-spl;
 };
 
 &reg_usdhc2_vmmc {
@@ -118,6 +85,22 @@
 };
 
 &uart2 {
+	u-boot,dm-spl;
+};
+
+&crypto {
+	u-boot,dm-spl;
+};
+
+&sec_jr0 {
+	u-boot,dm-spl;
+};
+
+&sec_jr1 {
+	u-boot,dm-spl;
+};
+
+&sec_jr2 {
 	u-boot,dm-spl;
 };
 

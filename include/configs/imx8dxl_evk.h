@@ -14,8 +14,6 @@
 #ifdef CONFIG_SPL_BUILD
 #define CONFIG_SPL_MAX_SIZE				(128 * 1024)
 #define CONFIG_SYS_MONITOR_LEN				(1024 * 1024)
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR		0x1040 /* (32K + 2Mb)/sector_size */
 
 /*
  * 0x08081000 - 0x08180FFF is for m4_0 xip image,
@@ -27,12 +25,6 @@
 #define CONFIG_SPL_NAND_BASE
 #define CONFIG_SPL_NAND_IDENT
 
-#define CONFIG_SPL_LDSCRIPT		"arch/arm/cpu/armv8/u-boot-spl.lds"
-/*
- * The memory layout on stack:  DATA section save + gd + early malloc
- * the idea is re-use the early malloc (CONFIG_SYS_MALLOC_F_LEN) with
- * CONFIG_SYS_SPL_MALLOC_START
- */
 #define CONFIG_SPL_STACK		0x822ffff0
 #define CONFIG_SPL_BSS_START_ADDR      0x82280000
 #define CONFIG_SPL_BSS_MAX_SIZE		0x1000	/* 4 KB */
@@ -51,9 +43,6 @@
 
 #define CONFIG_CMD_READ
 
-/* Flat Device Tree Definitions */
-#define CONFIG_OF_BOARD_SETUP
-
 #define CONFIG_SYS_FSL_ESDHC_ADDR       0
 #define USDHC1_BASE_ADDR                0x5B010000
 #define USDHC2_BASE_ADDR                0x5B020000
@@ -61,8 +50,6 @@
 #define CONFIG_PCIE_IMX
 #define CONFIG_CMD_PCI
 #define CONFIG_PCI_SCAN_SHOW
-
-#define CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
 
 #ifdef CONFIG_AHAB_BOOT
 #define AHAB_ENV "sec_boot=yes\0"
@@ -85,7 +72,7 @@
 	"initrd_addr=0x83100000\0" \
 	"initrd_high=0xffffffffffffffff\0" \
 	"emmc_dev=0\0" \
-	"sd_dev=1\0" \
+	"sd_dev=1\0"
 
 #define JAILHOUSE_ENV \
 	"jh_mmcboot=" \
@@ -156,7 +143,7 @@
 	"boot_fdt=try\0" \
 	"fdt_file=undefined\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
-	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
+	"mmcpart=1\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} earlycon root=${mmcroot}\0 " \
@@ -218,56 +205,15 @@
 		"fi;\0"
 #endif
 
-#ifdef CONFIG_NAND_BOOT
-#define CONFIG_BOOTCOMMAND \
-	"nand read ${loadaddr} 0x9000000 0x2000000;"\
-	"nand read ${fdt_addr} 0xB000000 0x100000;"\
-	"booti ${loadaddr} - ${fdt_addr}"
-#else
-#define CONFIG_BOOTCOMMAND \
-	   "mmc dev ${mmcdev}; if mmc rescan; then " \
-		   "if run loadbootscript; then " \
-			   "run bootscript; " \
-		   "else " \
-			   "if test ${sec_boot} = yes; then " \
-				   "if run loadcntr; then " \
-					   "run mmcboot; " \
-				   "else run netboot; " \
-				   "fi; " \
-			    "else " \
-				   "if run loadimage; then " \
-					   "run mmcboot; " \
-				   "else run netboot; " \
-				   "fi; " \
-			 "fi; " \
-		   "fi; " \
-	   "else booti ${loadaddr} - ${fdt_addr}; fi"
-#endif
-
 /* Link Definitions */
-#define CONFIG_LOADADDR			0x80280000
-
-#define CONFIG_SYS_LOAD_ADDR           CONFIG_LOADADDR
 
 #define CONFIG_SYS_INIT_SP_ADDR         0x80200000
 
-#ifdef CONFIG_QSPI_BOOT
-#define CONFIG_ENV_SECT_SIZE	(128 * 1024)
-#define CONFIG_ENV_SPI_BUS	CONFIG_SF_DEFAULT_BUS
-#define CONFIG_ENV_SPI_CS	CONFIG_SF_DEFAULT_CS
-#define CONFIG_ENV_SPI_MODE	CONFIG_SF_DEFAULT_MODE
-#define CONFIG_ENV_SPI_MAX_HZ	CONFIG_SF_DEFAULT_SPEED
-#endif
-
-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 
 /* USDHC2 for SD */
 #define CONFIG_SYS_MMC_ENV_DEV      1   /* USDHC2 */
 #define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
 #define CONFIG_SYS_FSL_USDHC_NUM	2
-
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		((CONFIG_ENV_SIZE + (32 * 1024)) * 1024)
 
 #define CONFIG_SYS_SDRAM_BASE		0x80000000
 #define PHYS_SDRAM_1			0x80000000
@@ -275,9 +221,9 @@
 
 /* total DDR is 1GB */
 #if defined(CONFIG_TARGET_IMX8DXL_DDR3_EVK)
-#define PHYS_SDRAM_1_SIZE		0x20000000
+#define PHYS_SDRAM_1_SIZE		0x1FF00000	/* 512MB - ECC region 1MB */
 #else
-#define PHYS_SDRAM_1_SIZE		0x40000000	/* 1 GB */
+#define PHYS_SDRAM_1_SIZE		0x3FE00000	/* 1 GB - ECC region 2MB */
 #endif
 
 #define PHYS_SDRAM_2_SIZE		0x00000000
@@ -310,21 +256,13 @@
 /* NAND stuff */
 #define CONFIG_SYS_MAX_NAND_DEVICE     1
 #define CONFIG_SYS_NAND_BASE           0x40000000
-#define CONFIG_SYS_NAND_5_ADDR_CYCLE
-#define CONFIG_SYS_NAND_ONFI_DETECTION
 #define CONFIG_SYS_NAND_USE_FLASH_BBT
 
 #endif
 
 /* USB Config */
 #ifndef CONFIG_SPL_BUILD
-#define CONFIG_CMD_USB
-#define CONFIG_USB_STORAGE
 #define CONFIG_USBD_HS
-
-#define CONFIG_CMD_USB_MASS_STORAGE
-#define CONFIG_USB_GADGET_MASS_STORAGE
-#define CONFIG_USB_FUNCTION_MASS_STORAGE
 
 #endif
 
@@ -348,14 +286,7 @@
 #define PHY_ANEG_TIMEOUT 20000
 
 #if defined(CONFIG_DM_VIDEO)
-#define CONFIG_VIDEO_MXS
 #define CONFIG_VIDEO_LINK
-#define CONFIG_VIDEO_LOGO
-#define CONFIG_BMP_16BPP
-#define CONFIG_BMP_24BPP
-#define CONFIG_BMP_32BPP
-#define CONFIG_VIDEO_BMP_RLE8
-#define CONFIG_VIDEO_BMP_LOGO
 #endif
 
 #endif /* __IMX8DXL_EVK_H */

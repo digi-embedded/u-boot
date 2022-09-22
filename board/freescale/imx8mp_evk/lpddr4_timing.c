@@ -1298,7 +1298,6 @@ struct dram_cfg_param ddr_fsp0_2d_cfg[] = {
 	{ 0x54008, 0x61 },
 	{ 0x54009, 0xc8 },
 	{ 0x5400b, 0x2 },
-	{ 0x5400d, 0x100 },
 	{ 0x5400f, 0x100 },
 	{ 0x54010, 0x1f7f },
 	{ 0x54012, 0x310 },
@@ -1987,11 +1986,11 @@ struct dram_fsp_msg ddr_dram_fsp_msg[] = {
 	},
 	{
 #ifdef CONFIG_IMX8M_LPDDR4_FREQ0_2400MTS
-                /* P0 2400mts 2D */
-                .drate = 2400,
+		/* P0 2400mts 2D */
+		.drate = 2400,
 #else
-                /* P0 4000mts 2D */
-                .drate = 4000,
+		/* P0 4000mts 2D */
+		.drate = 4000,
 #endif
 		.fw_type = FW_2D_IMAGE,
 		.fsp_cfg = ddr_fsp0_2d_cfg,
@@ -2014,7 +2013,7 @@ struct dram_timing_info dram_timing = {
 #ifdef CONFIG_IMX8M_LPDDR4_FREQ0_2400MTS
 	.fsp_table = { 2400, 400, 100, },
 #else
-        .fsp_table = { 4000, 400, 100, },
+	.fsp_table = { 4000, 400, 100, },
 #endif
 };
 
@@ -2022,28 +2021,28 @@ struct dram_timing_info dram_timing = {
 #ifdef CONFIG_IMX8M_DRAM_INLINE_ECC
 void board_dram_ecc_scrub(void)
 {
-	ddrc_inline_ecc_scrub(0x0,0x3ffffff);
-	ddrc_inline_ecc_scrub(0x20000000,0x23ffffff);
-	ddrc_inline_ecc_scrub(0x40000000,0x43ffffff);
-	ddrc_inline_ecc_scrub(0x4000000,0x7ffffff);
-	ddrc_inline_ecc_scrub(0x24000000,0x27ffffff);
-	ddrc_inline_ecc_scrub(0x44000000,0x47ffffff);
-	ddrc_inline_ecc_scrub(0x8000000,0xbffffff);
-	ddrc_inline_ecc_scrub(0x28000000,0x2bffffff);
-	ddrc_inline_ecc_scrub(0x48000000,0x4bffffff);
-	ddrc_inline_ecc_scrub(0xc000000,0xfffffff);
-	ddrc_inline_ecc_scrub(0x2c000000,0x2fffffff);
-	ddrc_inline_ecc_scrub(0x4c000000,0x4fffffff);
-	ddrc_inline_ecc_scrub(0x10000000,0x13ffffff);
-	ddrc_inline_ecc_scrub(0x30000000,0x33ffffff);
-	ddrc_inline_ecc_scrub(0x50000000,0x53ffffff);
-	ddrc_inline_ecc_scrub(0x14000000,0x17ffffff);
-	ddrc_inline_ecc_scrub(0x34000000,0x37ffffff);
-	ddrc_inline_ecc_scrub(0x54000000,0x57ffffff);
-	ddrc_inline_ecc_scrub(0x18000000,0x1bffffff);
-	ddrc_inline_ecc_scrub(0x38000000,0x3bffffff);
-	ddrc_inline_ecc_scrub(0x58000000,0x5bffffff);
-	ddrc_inline_ecc_scrub_end(0x0,0x5fffffff);
+	ddrc_inline_ecc_scrub(0x0, 0x3ffffff);
+	ddrc_inline_ecc_scrub(0x20000000, 0x23ffffff);
+	ddrc_inline_ecc_scrub(0x40000000, 0x43ffffff);
+	ddrc_inline_ecc_scrub(0x4000000, 0x7ffffff);
+	ddrc_inline_ecc_scrub(0x24000000, 0x27ffffff);
+	ddrc_inline_ecc_scrub(0x44000000, 0x47ffffff);
+	ddrc_inline_ecc_scrub(0x8000000, 0xbffffff);
+	ddrc_inline_ecc_scrub(0x28000000, 0x2bffffff);
+	ddrc_inline_ecc_scrub(0x48000000, 0x4bffffff);
+	ddrc_inline_ecc_scrub(0xc000000, 0xfffffff);
+	ddrc_inline_ecc_scrub(0x2c000000, 0x2fffffff);
+	ddrc_inline_ecc_scrub(0x4c000000, 0x4fffffff);
+	ddrc_inline_ecc_scrub(0x10000000, 0x13ffffff);
+	ddrc_inline_ecc_scrub(0x30000000, 0x33ffffff);
+	ddrc_inline_ecc_scrub(0x50000000, 0x53ffffff);
+	ddrc_inline_ecc_scrub(0x14000000, 0x17ffffff);
+	ddrc_inline_ecc_scrub(0x34000000, 0x37ffffff);
+	ddrc_inline_ecc_scrub(0x54000000, 0x57ffffff);
+	ddrc_inline_ecc_scrub(0x18000000, 0x1bffffff);
+	ddrc_inline_ecc_scrub(0x38000000, 0x3bffffff);
+	ddrc_inline_ecc_scrub(0x58000000, 0x5bffffff);
+	ddrc_inline_ecc_scrub_end(0x0, 0x5fffffff);
 }
 #endif
 #endif

@@ -16,20 +16,11 @@
 
 #define CONFIG_MXC_UART_BASE            UART1_IPS_BASE_ADDR
 
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		(32 * SZ_1M)
-
 /* MMC Config*/
 #define CONFIG_SYS_FSL_ESDHC_ADDR       0
 
 /* Default ETH port */
 #define CONFIG_ETHPRIME                 "eth0"
-
-/* I2C configs */
-#define CONFIG_SYS_I2C_MXC
-#define CONFIG_SYS_I2C_SPEED		100000
-
-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 
 #ifdef CONFIG_IMX_BOOTAUX
 
@@ -123,7 +114,7 @@
 	"ip_dyn=yes\0" \
 	"splashimage=0x8c000000\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
-	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
+	"mmcpart=1\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} " \
@@ -189,23 +180,7 @@
 				"setenv fdt_file imx7d-sdb.dtb; " \
 			"fi;\0" \
 
-#define CONFIG_BOOTCOMMAND \
-	   "run findfdt;" \
-	   "mmc dev ${mmcdev};" \
-	   "mmc dev ${mmcdev}; if mmc rescan; then " \
-		   "if run loadbootscript; then " \
-			   "run bootscript; " \
-		   "else " \
-			   "if run loadimage; then " \
-				   "run mmcboot; " \
-			   "else run netboot; " \
-			   "fi; " \
-		   "fi; " \
-	   "else run netboot; fi"
 #endif
-
-#define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
-#define CONFIG_SYS_HZ			1000
 
 /* Physical Memory Map */
 #define PHYS_SDRAM			MMDC0_ARB_BASE_ADDR
@@ -221,12 +196,6 @@
 
 /* environment organization */
 
-#if defined(CONFIG_ENV_IS_IN_SPI_FLASH)
-#define CONFIG_ENV_SPI_BUS		CONFIG_SF_DEFAULT_BUS
-#define CONFIG_ENV_SPI_CS		CONFIG_SF_DEFAULT_CS
-#define CONFIG_ENV_SPI_MODE		CONFIG_SF_DEFAULT_MODE
-#define CONFIG_ENV_SPI_MAX_HZ		CONFIG_SF_DEFAULT_SPEED
-#endif
 
 #ifdef CONFIG_FSL_QSPI
 #define CONFIG_SYS_AUXCORE_BOOTDATA 0x60100000 /* Set to QSPI1 A flash, offset 1M */
@@ -242,8 +211,6 @@
 /* NAND stuff */
 #define CONFIG_SYS_MAX_NAND_DEVICE	1
 #define CONFIG_SYS_NAND_BASE		0x40000000
-#define CONFIG_SYS_NAND_5_ADDR_CYCLE
-#define CONFIG_SYS_NAND_ONFI_DETECTION
 #define CONFIG_SYS_NAND_USE_FLASH_BBT
 
 /* DMA stuff, needed for GPMI/MXS NAND support */
@@ -265,9 +232,6 @@
 
 #ifdef CONFIG_DM_VIDEO
 #define CONFIG_VIDEO_LINK
-#define CONFIG_VIDEO_MXS
-#define CONFIG_VIDEO_LOGO
-#define CONFIG_VIDEO_BMP_LOGO
 #endif
 
 /*

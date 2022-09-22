@@ -53,7 +53,7 @@
 			status = "disabled";
 		};
 
-		aips-bus@2100000 { /* AIPS2 */
+		bus@2100000 { /* AIPS2 */
 			pre1: pre@21c8000 {
 				compatible = "fsl,imx6q-pre";
 				reg = <0x021c8000 0x1000>;

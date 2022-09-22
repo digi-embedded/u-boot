@@ -31,7 +31,7 @@ typedef struct otf_sparse_data {
 
 	/* status info for the complete sparse image */
 	uint32_t blks_written;			/* blocks written so far */
-	uint32_t bytes_written;			/* bytes written so far */
+	uint64_t bytes_written;			/* bytes written so far */
 
 	/* status info for RAW block currently being flashed (if any) */
 	uint32_t ongoing_bytes_written;		/* bytes written so far */

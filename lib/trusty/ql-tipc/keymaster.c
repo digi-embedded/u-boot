@@ -247,7 +247,7 @@ static int km_get_version(int32_t *version)
 
     rc = km_send_request(KM_GET_VERSION, NULL, 0);
     if (rc < 0) {
-        trusty_error("failed (%d) to send km version request", rc);
+        trusty_error("failed to send km version request", rc);
         return rc;
     }
 
@@ -524,7 +524,7 @@ int trusty_get_mppubk(uint8_t *mppubk, uint32_t *size)
 
     rc = km_send_request(KM_GET_MPPUBK, NULL, 0);
     if (rc < 0) {
-        trusty_error("%s: failed (%d) to send km mppubk request\n", __func__, rc);
+        trusty_error("failed to send km mppubk request\n", rc);
         return rc;
     }
 
@@ -586,7 +586,6 @@ int trusty_set_attestation_id(void)
 {
     uint8_t *req = NULL, *tmp = NULL;
     uint32_t req_size = 0;
-    char *serial = NULL;
     int rc;
 
     req = trusty_calloc(1024, 1); // 1024 bytes buffer should be enough.
@@ -621,14 +620,10 @@ int trusty_set_attestation_id(void)
     }
 
     /* serial number, bail out when fail because it's a MUST. */
-    serial = get_serial();
-    if (serial != NULL) {
-        rc = km_attestation_id_data_serialize((uint8_t *)serial, 16, &tmp, &req_size);
-        if (rc < 0) {
-	    trusty_error("%s: failed (%d) to set id serial.\n", __func__, rc);
-            goto end;
-        }
-    } else {
+    char *serial = get_serial();
+    if (serial)
+        km_attestation_id_data_serialize((uint8_t *)serial, 16, &tmp, &req_size);
+    else {
         trusty_error("%s: failed to get serial number.\n", __func__);
         goto end;
     }

@@ -5,10 +5,13 @@
  *  Copyright (c) 2016-2018 Alexander Graf et al.
  */
 
+#define LOG_CATEGORY LOGC_EFI
+
 #include <common.h>
 #include <mapmem.h>
 #include <efi_loader.h>
 #include <efi_variable.h>
+#include <log.h>
 #include <asm/global_data.h>
 
 #define OBJ_LIST_NOT_INITIALIZED 1
@@ -44,7 +47,7 @@ static efi_status_t efi_init_platform_lang(void)
 	 * Variable PlatformLangCodes defines the language codes that the
 	 * machine can support.
 	 */
-	ret = efi_set_variable_int(L"PlatformLangCodes",
+	ret = efi_set_variable_int(u"PlatformLangCodes",
 				   &efi_global_variable_guid,
 				   EFI_VARIABLE_BOOTSERVICE_ACCESS |
 				   EFI_VARIABLE_RUNTIME_ACCESS |
@@ -58,7 +61,7 @@ static efi_status_t efi_init_platform_lang(void)
 	 * Variable PlatformLang defines the language that the machine has been
 	 * configured for.
 	 */
-	ret = efi_get_variable_int(L"PlatformLang",
+	ret = efi_get_variable_int(u"PlatformLang",
 				   &efi_global_variable_guid,
 				   NULL, &data_size, &pos, NULL);
 	if (ret == EFI_BUFFER_TOO_SMALL) {
@@ -75,7 +78,7 @@ static efi_status_t efi_init_platform_lang(void)
 	if (pos)
 		*pos = 0;
 
-	ret = efi_set_variable_int(L"PlatformLang",
+	ret = efi_set_variable_int(u"PlatformLang",
 				   &efi_global_variable_guid,
 				   EFI_VARIABLE_NON_VOLATILE |
 				   EFI_VARIABLE_BOOTSERVICE_ACCESS |
@@ -101,7 +104,7 @@ static efi_status_t efi_init_secure_boot(void)
 	};
 	efi_status_t ret;
 
-	ret = efi_set_variable_int(L"SignatureSupport",
+	ret = efi_set_variable_int(u"SignatureSupport",
 				   &efi_global_variable_guid,
 				   EFI_VARIABLE_READ_ONLY |
 				   EFI_VARIABLE_BOOTSERVICE_ACCESS |
@@ -130,12 +133,12 @@ static efi_status_t efi_init_capsule(void)
 	efi_status_t ret = EFI_SUCCESS;
 
 	if (IS_ENABLED(CONFIG_EFI_HAVE_CAPSULE_UPDATE)) {
-		ret = efi_set_variable_int(L"CapsuleMax",
+		ret = efi_set_variable_int(u"CapsuleMax",
 					   &efi_guid_capsule_report,
 					   EFI_VARIABLE_READ_ONLY |
 					   EFI_VARIABLE_BOOTSERVICE_ACCESS |
 					   EFI_VARIABLE_RUNTIME_ACCESS,
-					   22, L"CapsuleFFFF", false);
+					   22, u"CapsuleFFFF", false);
 		if (ret != EFI_SUCCESS)
 			printf("EFI: cannot initialize CapsuleMax variable\n");
 	}
@@ -166,7 +169,7 @@ static efi_status_t efi_init_os_indications(void)
 		os_indications_supported |=
 			EFI_OS_INDICATIONS_FMP_CAPSULE_SUPPORTED;
 
-	return efi_set_variable_int(L"OsIndicationsSupported",
+	return efi_set_variable_int(u"OsIndicationsSupported",
 				    &efi_global_variable_guid,
 				    EFI_VARIABLE_BOOTSERVICE_ACCESS |
 				    EFI_VARIABLE_RUNTIME_ACCESS |
@@ -174,6 +177,7 @@ static efi_status_t efi_init_os_indications(void)
 				    sizeof(os_indications_supported),
 				    &os_indications_supported, false);
 }
+
 
 /**
  * efi_init_memory_only_reset_control() - indicate supported features for
@@ -298,8 +302,24 @@ efi_status_t efi_init_obj_list(void)
 	if (ret != EFI_SUCCESS)
 		goto out;
 
+	if (IS_ENABLED(CONFIG_EFI_ESRT)) {
+		ret = efi_esrt_register();
+		if (ret != EFI_SUCCESS)
+			goto out;
+	}
+
 	if (IS_ENABLED(CONFIG_EFI_TCG2_PROTOCOL)) {
 		ret = efi_tcg2_register();
+		if (ret != EFI_SUCCESS)
+			goto out;
+
+		ret = efi_tcg2_do_initial_measurement();
+		if (ret == EFI_SECURITY_VIOLATION)
+			goto out;
+	}
+
+	if (IS_ENABLED(CONFIG_EFI_RISCV_BOOT_PROTOCOL)) {
+		ret = efi_riscv_register();
 		if (ret != EFI_SUCCESS)
 			goto out;
 	}
@@ -318,6 +338,12 @@ efi_status_t efi_init_obj_list(void)
 	ret = efi_driver_init();
 	if (ret != EFI_SUCCESS)
 		goto out;
+
+	if (IS_ENABLED(CONFIG_EFI_HAVE_CAPSULE_SUPPORT)) {
+		ret = efi_load_capsule_drivers();
+		if (ret != EFI_SUCCESS)
+			goto out;
+	}
 
 #if defined(CONFIG_LCD) || defined(CONFIG_DM_VIDEO)
 	ret = efi_gop_register();

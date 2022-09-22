@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2020 NXP
+ * Copyright 2021 NXP
  */
 
 #include <common.h>
@@ -18,17 +18,26 @@
 #include <dm/device-internal.h>
 #include <dm/lists.h>
 #include <asm/arch/ddr.h>
-#include <asm/arch/upower.h>
 #include <asm/arch/rdc.h>
+#include <asm/arch/upower.h>
 #include <asm/mach-imx/boot_mode.h>
-#include <asm/arch/s400_api.h>
+#include <asm/mach-imx/s400_api.h>
+#include <asm/arch/clock.h>
+#include <asm/arch/pcc.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
 void spl_dram_init(void)
 {
-	init_clk_ddr();
-	ddr_init(&dram_timing);
+	/* Reboot in dual boot setting no need to init ddr again */
+	bool ddr_enable = pcc_clock_is_enable(5, LPDDR4_PCC5_SLOT);
+	if (!ddr_enable) {
+		init_clk_ddr();
+		ddr_init(&dram_timing);
+	} else {
+		/* reinit pfd/pfddiv and lpavnic except pll4*/
+		cgc2_pll4_init(false);
+	}
 }
 
 u32 spl_boot_device(void)
@@ -80,10 +89,10 @@ int power_init_board(void)
 {
 	if (IS_ENABLED(CONFIG_IMX8ULP_LD_MODE)) {
 		/* Set buck3 to 0.9v LD */
-		upower_pmic_i2c_write(0x18, 0x28);
+		upower_pmic_i2c_write(0x22, 0x18);
 	} else if (IS_ENABLED(CONFIG_IMX8ULP_ND_MODE)) {
 		/* Set buck3 to 1.0v ND */
-		upower_pmic_i2c_write(0x20, 0x28);
+		upower_pmic_i2c_write(0x22, 0x20);
 	} else {
 		/* Set buck3 to 1.1v OD */
 		upower_pmic_i2c_write(0x22, 0x28);
@@ -91,6 +100,23 @@ int power_init_board(void)
 	}
 
 	return 0;
+}
+
+void display_ele_fw_version(void)
+{
+	u32 fw_version, sha1, res;
+	int ret;
+
+	ret = ahab_get_fw_version(&fw_version, &sha1, &res);
+	if (ret) {
+		printf("ahab get firmware version failed %d, 0x%x\n", ret, res);
+	} else {
+		printf("ELE firmware version %u.%u.%u-%x",
+		       (fw_version & (0x00ff0000)) >> 16,
+		       (fw_version & (0x0000ff00)) >> 8,
+		       (fw_version & (0x000000ff)), sha1);
+		((fw_version & (0x80000000)) >> 31) == 1 ? puts("-dirty\n") : puts("\n");
+	}
 }
 
 void spl_board_init(void)
@@ -112,14 +138,16 @@ void spl_board_init(void)
 
 	puts("Normal Boot\n");
 
+	display_ele_fw_version();
+
 	/* Set iomuxc0 for pmic when m33 is not booted */
 	if (!m33_image_booted())
 		setup_iomux_pmic();
 
-	/* Load the lposc fuse for single boot to work around ROM issue,
-	*  The fuse depends on S400 to read.
-	*/
-	if (is_soc_rev(CHIP_REV_1_0) && get_boot_mode() == SINGLE_BOOT)
+	/* Load the lposc fuse to work around ROM issue,
+	 *  The fuse depends on S400 to read.
+	 */
+	if (is_soc_rev(CHIP_REV_1_0))
 		load_lposc_fuse();
 
 	upower_init();
@@ -149,24 +177,13 @@ void spl_board_init(void)
 		 * are MU and CAAM. Here we initialize CAAM once it's released by
 		 * S400 firmware..
 		 */
-		node = fdt_node_offset_by_compatible(gd->fdt_blob, -1, "fsl,sec-v4.0");
-		ret = uclass_get_device_by_of_offset(UCLASS_MISC, node, &dev);
-		if (ret) {
-			return;
+		if (IS_ENABLED(CONFIG_FSL_CAAM)) {
+			ret = uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(caam_jr), &dev);
+			if (ret)
+				printf("Failed to initialize caam_jr: %d\n", ret);
 		}
-		device_probe(dev);
 	}
 }
-
-#ifdef CONFIG_SPL_LOAD_FIT
-int board_fit_config_name_match(const char *name)
-{
-	/* Just empty function now - can't decide what to choose */
-	debug("%s: %s\n", __func__, name);
-
-	return 0;
-}
-#endif
 
 void board_init_f(ulong dummy)
 {

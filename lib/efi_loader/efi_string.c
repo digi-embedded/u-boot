@@ -7,6 +7,7 @@
 
 #include <common.h>
 #include <charset.h>
+#include <efi_loader.h>
 
 /**
  * efi_create_indexed_name - create a string name with an index
@@ -15,7 +16,7 @@
  * @index:	Index
  *
  * Create a utf-16 string with @name, appending @index.
- * For example, L"Capsule0001"
+ * For example, u"Capsule0001"
  *
  * The caller must ensure that the buffer has enough space for the resulting
  * string including the trailing L'\0'.

@@ -66,5 +66,4 @@ struct generate_key_blob_hdr {
 } __packed;
 
 int get_container_size(ulong addr, u16 *header_length);
-
 #endif

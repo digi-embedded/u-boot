@@ -351,7 +351,7 @@
 			clock-frequency = <8000000>;
 		};
 
-		aips1: aips-bus@30000000 {
+		aips1: bus@30000000 {
 			compatible = "fsl,aips-bus", "simple-bus";
 			#address-cells = <1>;
 			#size-cells = <1>;
@@ -730,7 +730,7 @@
 			};
 		};
 
-		aips2: aips-bus@30400000 {
+		aips2: bus@30400000 {
 			compatible = "fsl,aips-bus", "simple-bus";
 			#address-cells = <1>;
 			#size-cells = <1>;
@@ -875,7 +875,7 @@
 			};
 		};
 
-		aips3: aips-bus@30800000 {
+		aips3: bus@30800000 {
 			compatible = "fsl,aips-bus", "simple-bus";
 			#address-cells = <1>;
 			#size-cells = <1>;

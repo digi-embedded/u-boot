@@ -31,38 +31,6 @@ static const struct efi_runtime_services *rs;
  */
 
 /**
- * get_var() - get UEFI variable
- *
- * It is the caller's duty to free the returned buffer.
- *
- * @name:	name of variable
- * @vendor:	vendor GUID of variable
- * @size:	size of allocated buffer
- * Return:	buffer with variable data or NULL
- */
-static void *get_var(u16 *name, const efi_guid_t *vendor,
-		     efi_uintn_t *size)
-{
-	efi_status_t ret;
-	void *buf = NULL;
-
-	*size = 0;
-	ret = efi_get_variable_int(name, vendor, NULL, size, buf, NULL);
-	if (ret == EFI_BUFFER_TOO_SMALL) {
-		buf = malloc(*size);
-		ret = efi_get_variable_int(name, vendor, NULL, size, buf, NULL);
-	}
-
-	if (ret != EFI_SUCCESS) {
-		free(buf);
-		*size = 0;
-		return NULL;
-	}
-
-	return buf;
-}
-
-/**
  * try_load_entry() - try to load image for boot option
  *
  * Attempt to load load-option number 'n', returning device_path and file_path
@@ -78,8 +46,8 @@ static efi_status_t try_load_entry(u16 n, efi_handle_t *handle,
 				   void **load_options)
 {
 	struct efi_load_option lo;
-	u16 varname[] = L"Boot0000";
-	u16 hexmap[] = L"0123456789ABCDEF";
+	u16 varname[] = u"Boot0000";
+	u16 hexmap[] = u"0123456789ABCDEF";
 	void *load_option;
 	efi_uintn_t size;
 	efi_status_t ret;
@@ -89,7 +57,7 @@ static efi_status_t try_load_entry(u16 n, efi_handle_t *handle,
 	varname[6] = hexmap[(n & 0x00f0) >> 4];
 	varname[7] = hexmap[(n & 0x000f) >> 0];
 
-	load_option = get_var(varname, &efi_global_variable_guid, &size);
+	load_option = efi_get_var(varname, &efi_global_variable_guid, &size);
 	if (!load_option)
 		return EFI_LOAD_ERROR;
 
@@ -115,14 +83,16 @@ static efi_status_t try_load_entry(u16 n, efi_handle_t *handle,
 
 		attributes = EFI_VARIABLE_BOOTSERVICE_ACCESS |
 			     EFI_VARIABLE_RUNTIME_ACCESS;
-		ret = efi_set_variable_int(L"BootCurrent",
+		ret = efi_set_variable_int(u"BootCurrent",
 					   &efi_global_variable_guid,
 					   attributes, sizeof(n), &n, false);
-		if (ret != EFI_SUCCESS) {
-			if (EFI_CALL(efi_unload_image(*handle))
-			    != EFI_SUCCESS)
-				log_err("Unloading image failed\n");
-			goto error;
+		if (ret != EFI_SUCCESS)
+			goto unload;
+		/* try to register load file2 for initrd's */
+		if (IS_ENABLED(CONFIG_EFI_LOAD_FILE2_INITRD)) {
+			ret = efi_initrd_register();
+			if (ret != EFI_SUCCESS)
+				goto unload;
 		}
 
 		log_info("Booting: %ls\n", lo.label);
@@ -144,6 +114,13 @@ static efi_status_t try_load_entry(u16 n, efi_handle_t *handle,
 	}
 
 error:
+	free(load_option);
+
+	return ret;
+
+unload:
+	if (EFI_CALL(efi_unload_image(*handle)) != EFI_SUCCESS)
+		log_err("Unloading image failed\n");
 	free(load_option);
 
 	return ret;
@@ -172,7 +149,7 @@ efi_status_t efi_bootmgr_load(efi_handle_t *handle, void **load_options)
 
 	/* BootNext */
 	size = sizeof(bootnext);
-	ret = efi_get_variable_int(L"BootNext",
+	ret = efi_get_variable_int(u"BootNext",
 				   &efi_global_variable_guid,
 				   NULL, &size, &bootnext, NULL);
 	if (ret == EFI_SUCCESS || ret == EFI_BUFFER_TOO_SMALL) {
@@ -181,7 +158,7 @@ efi_status_t efi_bootmgr_load(efi_handle_t *handle, void **load_options)
 			log_err("BootNext must be 16-bit integer\n");
 
 		/* delete BootNext */
-		ret = efi_set_variable_int(L"BootNext",
+		ret = efi_set_variable_int(u"BootNext",
 					   &efi_global_variable_guid,
 					   0, 0, NULL, false);
 
@@ -201,7 +178,7 @@ efi_status_t efi_bootmgr_load(efi_handle_t *handle, void **load_options)
 	}
 
 	/* BootOrder */
-	bootorder = get_var(L"BootOrder", &efi_global_variable_guid, &size);
+	bootorder = efi_get_var(u"BootOrder", &efi_global_variable_guid, &size);
 	if (!bootorder) {
 		log_info("BootOrder not defined\n");
 		ret = EFI_NOT_FOUND;

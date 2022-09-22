@@ -9,6 +9,9 @@ config SYS_VENDOR
 config SYS_CONFIG_NAME
 	default "imx8mm_val"
 
+config IMX_CONFIG
+	default "board/freescale/imx8mm_val/imximage-8mm.cfg"
+
 source "board/freescale/common/Kconfig"
 
 endif

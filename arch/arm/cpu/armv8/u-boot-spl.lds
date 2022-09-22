@@ -77,10 +77,15 @@ SECTIONS
 		KEEP(*(.__bss_end));
 	} >.sdram
 
+	/DISCARD/ : { *(.rela*) }
 	/DISCARD/ : { *(.dynsym) }
 	/DISCARD/ : { *(.dynstr*) }
 	/DISCARD/ : { *(.dynamic*) }
 	/DISCARD/ : { *(.plt*) }
 	/DISCARD/ : { *(.interp*) }
 	/DISCARD/ : { *(.gnu*) }
+
+#ifdef CONFIG_LINUX_KERNEL_IMAGE_HEADER
+#include "linux-kernel-image-header-vars.h"
+#endif
 }

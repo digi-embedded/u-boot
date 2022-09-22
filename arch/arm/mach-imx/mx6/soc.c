@@ -4,7 +4,7 @@
  * Sascha Hauer, Pengutronix
  *
  * (C) Copyright 2009 Freescale Semiconductor, Inc.
- * Copyright 2018 NXP
+ * Copyright 2018-2021 NXP
  */
 
 #include <common.h>
@@ -24,8 +24,7 @@
 #include <asm/arch/mxc_hdmi.h>
 #include <asm/arch/crm_regs.h>
 #include <dm.h>
-#include <dm/uclass-internal.h>
-#include <dm/device-internal.h>
+#include <fsl_sec.h>
 #include <imx_thermal.h>
 #include <mmc.h>
 #include <asm/setup.h>
@@ -393,14 +392,14 @@ static void init_bandgap(void)
 	/*
 	 * On i.MX6ULL,we need to set VBGADJ bits according to the
 	 * REFTOP_TRIM[3:0] in fuse table
-	 *	000 - set REFTOP_VBGADJ[2:0] to 3b'110,
-	 *	110 - set REFTOP_VBGADJ[2:0] to 3b'000,
-	 *	001 - set REFTOP_VBGADJ[2:0] to 3b'001,
-	 *	010 - set REFTOP_VBGADJ[2:0] to 3b'010,
-	 *	011 - set REFTOP_VBGADJ[2:0] to 3b'011,
-	 *	100 - set REFTOP_VBGADJ[2:0] to 3b'100,
-	 *	101 - set REFTOP_VBGADJ[2:0] to 3b'101,
-	 *	111 - set REFTOP_VBGADJ[2:0] to 3b'111,
+	 *	000 - set REFTOP_VBGADJ[2:0] to 3'b000
+	 *	001 - set REFTOP_VBGADJ[2:0] to 3'b001
+	 *	010 - set REFTOP_VBGADJ[2:0] to 3'b010
+	 *	011 - set REFTOP_VBGADJ[2:0] to 3'b011
+	 *	100 - set REFTOP_VBGADJ[2:0] to 3'b100
+	 *	101 - set REFTOP_VBGADJ[2:0] to 3'b101
+	 *	110 - set REFTOP_VBGADJ[2:0] to 3'b110
+	 *	111 - set REFTOP_VBGADJ[2:0] to 3'b111
 	 */
 	if (is_mx6ull()) {
 		val = readl(&fuse->mem0);
@@ -573,7 +572,7 @@ int arch_cpu_init(void)
 		if (val & (0x1 << 16)) {
 			val &= ~(0x1 << 16);
 			writel(val, IOMUXC_BASE_ADDR + 0x4);
-			reset_cpu(0);
+			reset_cpu();
 		}
 	}
 
@@ -666,6 +665,8 @@ int arch_cpu_init(void)
 		enable_ipu_clock();
 	}
 #endif
+
+	enable_ca7_smp();
 	configure_tzc380();
 
 	return 0;
@@ -682,8 +683,7 @@ __weak int board_mmc_get_env_dev(int devno)
 
 static int mmc_get_boot_dev(void)
 {
-	struct src *src_regs = (struct src *)SRC_BASE_ADDR;
-	u32 soc_sbmr = readl(&src_regs->sbmr1);
+	u32 soc_sbmr = imx6_src_get_boot_mode();
 	u32 bootsel;
 	int devno;
 
@@ -1035,14 +1035,14 @@ static void setup_serial_number(void)
 
 int arch_misc_init(void)
 {
-	struct udevice *dev;
+	if (IS_ENABLED(CONFIG_FSL_CAAM)) {
+		struct udevice *dev;
+		int ret;
 
-	uclass_find_first_device(UCLASS_MISC, &dev);
-	for (; dev; uclass_find_next_device(&dev)) {
-		if (device_probe(dev))
-			continue;
+		ret = uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(caam_jr), &dev);
+		if (ret)
+			printf("Failed to initialize caam_jr: %d\n", ret);
 	}
-
 	setup_serial_number();
 	return 0;
 }

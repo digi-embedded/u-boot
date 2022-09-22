@@ -9,6 +9,8 @@
 
 #ifndef __ASSEMBLY__
 
+#include <config.h>
+
 #include <asm/types.h>
 #include <linux/types.h>
 
@@ -88,15 +90,18 @@ struct arch_global_data {
 	struct udevice *scu_dev;
 #endif
 
-#ifdef CONFIG_ARCH_IMX8ULP
+#ifdef CONFIG_IMX_SENTINEL
 	struct udevice *s400_dev;
+	u32 soc_rev;
+	u32 lifecycle;
+	u32 uid[4];
 #endif
 
 };
 
 #include <asm-generic/global_data.h>
 
-#ifdef __clang__
+#if defined(__clang__) || defined(CONFIG_LTO)
 
 #define DECLARE_GLOBAL_DATA_PTR
 #define gd	get_gd()
@@ -127,8 +132,10 @@ static inline void set_gd(volatile gd_t *gd_ptr)
 {
 #ifdef CONFIG_ARM64
 	__asm__ volatile("ldr x18, %0\n" : : "m"(gd_ptr));
-#else
+#elif __ARM_ARCH >= 7
 	__asm__ volatile("ldr r9, %0\n" : : "m"(gd_ptr));
+#else
+	__asm__ volatile("mov r9, %0\n" : : "r"(gd_ptr));
 #endif
 }
 

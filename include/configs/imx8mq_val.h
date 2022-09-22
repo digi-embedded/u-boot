@@ -16,12 +16,9 @@
 
 #define CONFIG_SPL_MAX_SIZE		(148 * 1024)
 #define CONFIG_SYS_MONITOR_LEN		(512 * 1024)
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR	(0x300 + CONFIG_SECONDARY_BOOT_SECTOR_OFFSET)
 
 #ifdef CONFIG_SPL_BUILD
 /*#define CONFIG_ENABLE_DDR_TRAINING_DEBUG*/
-#define CONFIG_SPL_LDSCRIPT		"arch/arm/cpu/armv8/u-boot-spl.lds"
 #define CONFIG_SPL_STACK		0x187FF0
 #define CONFIG_SPL_BSS_START_ADDR      0x00180000
 #define CONFIG_SPL_BSS_MAX_SIZE        0x2000	/* 8 KB */
@@ -33,20 +30,10 @@
 #define CONFIG_SPL_ABORT_ON_RAW_IMAGE /* For RAW image gives a error info not panic */
 
 #undef CONFIG_DM_MMC
-#undef CONFIG_DM_PMIC
-#undef CONFIG_DM_PMIC_PFUZE100
 
-#define CONFIG_SYS_I2C
-
-#define CONFIG_POWER
-#define CONFIG_POWER_I2C
 #define CONFIG_POWER_PFUZE100
 #define CONFIG_POWER_PFUZE100_I2C_ADDR 0x08
 
-#if defined(CONFIG_NAND_BOOT)
-#define CONFIG_SPL_NAND_SUPPORT
-#define CONFIG_SPL_DMA
-#define CONFIG_SPL_NAND_MXS
 #define CONFIG_SPL_NAND_BASE
 #define CONFIG_SPL_NAND_IDENT
 #define CONFIG_SYS_NAND_U_BOOT_OFFS 	0x4000000 /* Put the FIT out of first 64MB boot area */
@@ -54,7 +41,6 @@
 /* Set a redundant offset in nand FIT mtdpart. The new uuu will burn full boot image (not only FIT part) to the mtdpart, so we check both two offsets */
 #define CONFIG_SYS_NAND_U_BOOT_OFFS_REDUND \
 	(CONFIG_SYS_NAND_U_BOOT_OFFS + CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512 - 0x8400)
-#endif
 
 #endif /* CONFIG_SPL_BUILD*/
 
@@ -120,7 +106,7 @@
 	"initrd_addr=0x43800000\0"		\
 	"initrd_high=0xffffffffffffffff\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
-	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
+	"mmcpart=1\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console} root=${mmcroot}\0 " \
@@ -161,23 +147,9 @@
 			"booti; " \
 		"fi;\0"
 
-#define CONFIG_BOOTCOMMAND \
-	   "mmc dev ${mmcdev}; if mmc rescan; then " \
-		   "if run loadbootscript; then " \
-			   "run bootscript; " \
-		   "else " \
-			   "if run loadimage; then " \
-				   "run mmcboot; " \
-			   "else run netboot; " \
-			   "fi; " \
-		   "fi; " \
-	   "else booti ${loadaddr} - ${fdt_addr}; fi"
 #endif
 
 /* Link Definitions */
-#define CONFIG_LOADADDR			0x40480000
-
-#define CONFIG_SYS_LOAD_ADDR           CONFIG_LOADADDR
 
 #define CONFIG_SYS_INIT_RAM_ADDR        0x40000000
 #define CONFIG_SYS_INIT_RAM_SIZE        0x80000
@@ -189,9 +161,6 @@
 #define CONFIG_SYS_MMC_ENV_DEV         1   /* USDHC2 */
 #define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
 
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		((CONFIG_ENV_SIZE + (2*1024)) * 1024)
-
 #define CONFIG_SYS_SDRAM_BASE           0x40000000
 #define PHYS_SDRAM                      0x40000000
 #ifdef CONFIG_TARGET_IMX8MQ_DDR3L_VAL
@@ -202,27 +171,17 @@
 #define PHYS_SDRAM_2_SIZE			0x40000000 /* 1GB */
 #endif
 
-#define CONFIG_BAUDRATE			115200
-
 #define CONFIG_MXC_UART_BASE		UART1_BASE_ADDR
 
 /* Monitor Command Prompt */
-#define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
 #define CONFIG_SYS_CBSIZE		1024
 #define CONFIG_SYS_MAXARGS		64
 #define CONFIG_SYS_BARGSIZE		CONFIG_SYS_CBSIZE
 #define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + \
 					sizeof(CONFIG_SYS_PROMPT) + 16)
 
-#define CONFIG_IMX_BOOTAUX
-
 #define CONFIG_SYS_FSL_USDHC_NUM	2
 #define CONFIG_SYS_FSL_ESDHC_ADDR       0
-
-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
-
-/* I2C Configs */
-#define CONFIG_SYS_I2C_SPEED		  100000
 
 #ifdef CONFIG_NAND_MXS
 #define CONFIG_CMD_NAND_TRIMFFS
@@ -230,8 +189,6 @@
 /* NAND stuff */
 #define CONFIG_SYS_MAX_NAND_DEVICE     1
 #define CONFIG_SYS_NAND_BASE           0x20000000
-#define CONFIG_SYS_NAND_5_ADDR_CYCLE
-#define CONFIG_SYS_NAND_ONFI_DETECTION
 #define CONFIG_SYS_NAND_USE_FLASH_BBT
 #endif /* CONFIG_NAND_MXS */
 
@@ -239,14 +196,9 @@
 #ifndef CONFIG_SPL_BUILD
 #define CONFIG_USB_MAX_CONTROLLER_COUNT         1
 
-#define CONFIG_CMD_USB
-
 #define CONFIG_USBD_HS
 
-#define CONFIG_CMD_USB_MASS_STORAGE
-#define CONFIG_USB_GADGET_MASS_STORAGE
 #define CONFIG_USB_GADGET_VBUS_DRAW 2
-#define CONFIG_USB_FUNCTION_MASS_STORAGE
 
 #endif
 

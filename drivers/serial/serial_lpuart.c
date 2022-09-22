@@ -5,6 +5,7 @@
  */
 
 #include <common.h>
+#include <clock_legacy.h>
 #include <clk.h>
 #include <dm.h>
 #include <fsl_lpuart.h>
@@ -53,11 +54,7 @@
 #define FIFO_RXSIZE_MASK	0x7
 #define FIFO_RXSIZE_OFF	0
 #define FIFO_TXFE		0x80
-#if defined(CONFIG_ARCH_IMX8) || defined(CONFIG_ARCH_IMXRT)
 #define FIFO_RXFE		0x08
-#else
-#define FIFO_RXFE		0x40
-#endif
 
 #define WATER_TXWATER_OFF	0
 #define WATER_RXWATER_OFF	16
@@ -102,13 +99,9 @@ static void lpuart_write32(u32 flags, u32 *addr, u32 val)
 }
 
 
-#ifndef CONFIG_SYS_CLK_FREQ
-#define CONFIG_SYS_CLK_FREQ	0
-#endif
-
 u32 __weak get_lpuart_clk(u64 reg)
 {
-	return CONFIG_SYS_CLK_FREQ;
+	return get_board_sys_clk();
 }
 
 #if CONFIG_IS_ENABLED(CLK)
@@ -565,6 +558,8 @@ static const struct dm_serial_ops lpuart_serial_ops = {
 static const struct udevice_id lpuart_serial_ids[] = {
 	{ .compatible = "fsl,ls1021a-lpuart", .data =
 		LPUART_FLAG_REGMAP_32BIT_REG | LPUART_FLAG_REGMAP_ENDIAN_BIG },
+	{ .compatible = "fsl,ls1028a-lpuart",
+		.data = LPUART_FLAG_REGMAP_32BIT_REG },
 	{ .compatible = "fsl,imx7ulp-lpuart",
 		.data = LPUART_FLAG_REGMAP_32BIT_REG },
 	{ .compatible = "fsl,vf610-lpuart"},

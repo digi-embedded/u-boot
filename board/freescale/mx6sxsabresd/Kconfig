@@ -9,6 +9,9 @@ config SYS_VENDOR
 config SYS_CONFIG_NAME
 	default "mx6sxsabresd"
 
+config IMX_CONFIG
+	default "board/freescale/mx6sxsabresd/imximage.cfg"
+
 config MX6SXSABRESD_EMMC_REWORK
 	bool "Select for the board with eMMC rework"
 

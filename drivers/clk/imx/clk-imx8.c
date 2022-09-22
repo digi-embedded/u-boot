@@ -128,6 +128,9 @@ static ulong __imx8_clk_get_rate(struct udevice *dev, ulong id)
 
 static ulong imx8_clk_get_rate(struct clk *clk)
 {
+	if (clk->id == 0)
+		return 0;
+
 	return __imx8_clk_get_rate(clk->dev, clk->id);
 }
 
@@ -204,6 +207,9 @@ static ulong __imx8_clk_set_rate(struct udevice *dev, ulong id, unsigned long ra
 
 static ulong imx8_clk_set_rate(struct clk *clk, unsigned long rate)
 {
+	if (clk->id == 0)
+		return 0;
+
 	return __imx8_clk_set_rate(clk->dev, clk->id, rate);
 
 }
@@ -259,11 +265,17 @@ static int __imx8_clk_enable(struct udevice *dev, ulong id, bool enable)
 
 static int imx8_clk_disable(struct clk *clk)
 {
+	if (clk->id == 0)
+		return 0;
+
 	return __imx8_clk_enable(clk->dev, clk->id, 0);
 }
 
 static int imx8_clk_enable(struct clk *clk)
 {
+	if (clk->id == 0)
+		return 0;
+
 	return __imx8_clk_enable(clk->dev, clk->id, 1);
 }
 
@@ -295,6 +307,9 @@ static int imx8_set_parent_mux(struct udevice *dev, struct imx8_mux_clks *mux_cl
 static int imx8_clk_set_parent(struct clk *clk, struct clk *parent)
 {
 	void* clkdata;
+
+	if (clk->id == 0)
+		return 0;
 
 	clkdata = check_imx8_clk(clk->dev, IMX8_CLK_MUX, clk->id, sizeof(struct imx8_mux_clks));
 	if (clkdata) {
@@ -346,7 +361,7 @@ int soc_clk_dump(void)
 
 		clk_free(&clk);
 
-		if (ret == -ENOTSUPP) {
+		if (ret == -EINVAL) {
 			printf("clk ID %lu not supported yet\n",
 			       clks[i].hdr.id);
 			continue;

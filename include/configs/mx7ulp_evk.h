@@ -18,28 +18,16 @@
 #define CONFIG_SERIAL_TAG
 
 #define CONFIG_MMCROOT                  "/dev/mmcblk0p2"  /* USDHC1 */
-#define CONFIG_SYS_MMC_IMG_LOAD_PART    1
 
 /* Using ULP WDOG for reset */
 #define WDOG_BASE_ADDR			WDG1_RBASE
 
 #define CONFIG_SYS_HZ_CLOCK		1000000 /* Fixed at 1Mhz from TSTMR */
 
-#define CONFIG_INITRD_TAG
-#define CONFIG_CMDLINE_TAG
-#define CONFIG_SETUP_MEMORY_TAGS
-/*#define CONFIG_REVISION_TAG*/
-
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		(8 * SZ_1M)
-
 /* UART */
 #define LPUART_BASE			LPUART4_RBASE
 
-#define CONFIG_SYS_CACHELINE_SIZE      64
-
 /* Miscellaneous configurable options */
-#define CONFIG_SYS_PROMPT		"=> "
 #define CONFIG_SYS_CBSIZE		512
 
 #define CONFIG_SYS_MAXARGS		256
@@ -49,8 +37,6 @@
 #define PHYS_SDRAM			0x60000000
 #define PHYS_SDRAM_SIZE			SZ_1G
 #define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM
-
-#define CONFIG_LOADADDR             0x60800000
 
 #define CONFIG_MFG_ENV_SETTINGS \
 	CONFIG_MFG_ENV_SETTINGS_DEFAULT  \
@@ -76,7 +62,7 @@
 	"earlycon=lpuart32,0x402D0000\0" \
 	"ip_dyn=yes\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
-	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
+	"mmcpart=1\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} " \
@@ -139,21 +125,6 @@
 			"fi; " \
 		"fi;\0" \
 
-#define CONFIG_BOOTCOMMAND \
-	   "mmc dev ${mmcdev}; if mmc rescan; then " \
-		   "if run loadbootscript; then " \
-			   "run bootscript; " \
-		   "else " \
-			   "if run loadimage; then " \
-				   "run mmcboot; " \
-			   "else run netboot; " \
-			   "fi; " \
-		   "fi; " \
-	   "fi"
-
-#define CONFIG_SYS_HZ			1000
-#define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
-
 #define CONFIG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
 #define CONFIG_SYS_INIT_RAM_SIZE	SZ_256K
 
@@ -169,16 +140,6 @@
 #define TEE_ENV "tee=yes\0"
 #else
 #define TEE_ENV "tee=no\0"
-#endif
-
-#ifdef CONFIG_DM_VIDEO
-#define CONFIG_VIDEO_MXS
-#define CONFIG_VIDEO_LOGO
-#define CONFIG_BMP_16BPP
-#define CONFIG_BMP_24BPP
-#define CONFIG_BMP_32BPP
-#define CONFIG_VIDEO_BMP_RLE8
-#define CONFIG_VIDEO_BMP_LOGO
 #endif
 
 #endif	/* __CONFIG_H */

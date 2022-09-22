@@ -3,6 +3,7 @@
  * Freescale ls1021a SOC common device tree source
  *
  * Copyright 2013-2015 Freescale Semiconductor, Inc.
+ * Copyright 2021 NXP
  */
 
 #include "skeleton.dtsi"
@@ -100,7 +101,7 @@
 
 		gpio0: gpio@2300000 {
 			compatible = "fsl,ls1021a-gpio", "fsl,qoriq-gpio";
-			reg = <0x0 0x2300000 0x0 0x10000>;
+			reg = <0x2300000 0x10000>;
 			interrupts = <GIC_SPI 98 IRQ_TYPE_LEVEL_HIGH>;
 			gpio-controller;
 			#gpio-cells = <2>;
@@ -110,7 +111,7 @@
 
 		gpio1: gpio@2310000 {
 			compatible = "fsl,ls1021a-gpio", "fsl,qoriq-gpio";
-			reg = <0x0 0x2310000 0x0 0x10000>;
+			reg = <0x2310000 0x10000>;
 			interrupts = <GIC_SPI 99 IRQ_TYPE_LEVEL_HIGH>;
 			gpio-controller;
 			#gpio-cells = <2>;
@@ -120,7 +121,7 @@
 
 		gpio2: gpio@2320000 {
 			compatible = "fsl,ls1021a-gpio", "fsl,qoriq-gpio";
-			reg = <0x0 0x2320000 0x0 0x10000>;
+			reg = <0x2320000 0x10000>;
 			interrupts = <GIC_SPI 100 IRQ_TYPE_LEVEL_HIGH>;
 			gpio-controller;
 			#gpio-cells = <2>;
@@ -130,7 +131,7 @@
 
 		gpio3: gpio@2330000 {
 			compatible = "fsl,ls1021a-gpio", "fsl,qoriq-gpio";
-			reg = <0x0 0x2330000 0x0 0x10000>;
+			reg = <0x2330000 0x10000>;
 			interrupts = <GIC_SPI 166 IRQ_TYPE_LEVEL_HIGH>;
 			gpio-controller;
 			#gpio-cells = <2>;
@@ -229,7 +230,7 @@
 			interrupts = <GIC_SPI 96 IRQ_TYPE_LEVEL_HIGH>;
 			clock-names = "dspi";
 			clocks = <&platform_clk 1>;
-			num-cs = <6>;
+			spi-num-chipselects = <6>;
 			big-endian;
 			status = "disabled";
 		};
@@ -242,7 +243,7 @@
 			interrupts = <GIC_SPI 97 IRQ_TYPE_LEVEL_HIGH>;
 			clock-names = "dspi";
 			clocks = <&platform_clk 1>;
-			num-cs = <6>;
+			spi-num-chipselects = <6>;
 			big-endian;
 			status = "disabled";
 		};
@@ -508,7 +509,7 @@
 		sata: sata@3200000 {
 			compatible = "fsl,ls1021a-ahci";
 			reg = <0x3200000 0x10000 0x20220520 0x4>;
-			reg-names = "sata-base", "ecc-addr";
+			reg-names = "ahci", "sata-ecc";
 			interrupts = <0 101 4>;
 			status = "disabled";
 		};

@@ -12,6 +12,7 @@
 #include <asm/arch/clock.h>
 #include <asm/arch/soc.h>
 #include <linux/libfdt.h>
+#include <fdt_support.h>
 #include "pcie_layerscape_fixup_common.h"
 
 extern int next_stream_id;
@@ -31,7 +32,7 @@ void ft_pci_setup(void *blob, struct bd_info *bd)
 }
 
 #if defined(CONFIG_FSL_LAYERSCAPE)
-int lx2_board_fix_fdt(void *fdt)
+static int lx2_board_fix_fdt(void *fdt)
 {
 	char *reg_name, *old_str, *new_str;
 	const char *reg_names;
@@ -47,8 +48,7 @@ int lx2_board_fix_fdt(void *fdt)
 	const fdt32_t *prop;
 	u32 ob_wins, ib_wins;
 
-	off = fdt_node_offset_by_compatible(fdt, -1, "fsl,lx2160a-pcie");
-	while (off != -FDT_ERR_NOTFOUND) {
+	fdt_for_each_node_by_compatible(off, fdt, -1, "fsl,lx2160a-pcie") {
 		fdt_setprop(fdt, off, "compatible", "fsl,ls2088a-pcie",
 			    strlen("fsl,ls2088a-pcie") + 1);
 
@@ -88,14 +88,10 @@ int lx2_board_fix_fdt(void *fdt)
 		fdt_setprop(fdt, off, "reg-names", reg_names, names_len);
 		fdt_delprop(fdt, off, "apio-wins");
 		fdt_delprop(fdt, off, "ppio-wins");
-		off = fdt_node_offset_by_compatible(fdt, off,
-						    "fsl,lx2160a-pcie");
 	}
 
 	/* Fixup PCIe EP nodes */
-	off = -1;
-	off = fdt_node_offset_by_compatible(fdt, off, "fsl,lx2160a-pcie-ep");
-	while (off != -FDT_ERR_NOTFOUND) {
+	fdt_for_each_node_by_compatible(off, fdt, -1, "fsl,lx2160a-pcie-ep") {
 		fdt_setprop_string(fdt, off, "compatible",
 				   "fsl,lx2160ar2-pcie-ep");
 		prop = fdt_getprop(fdt, off, "apio-wins", NULL);
@@ -112,9 +108,6 @@ int lx2_board_fix_fdt(void *fdt)
 		fdt_setprop_u32(fdt, off, "num-ib-windows", ib_wins);
 		fdt_setprop_u32(fdt, off, "num-ob-windows", ob_wins);
 		fdt_delprop(fdt, off, "apio-wins");
-
-		off = fdt_node_offset_by_compatible(fdt, off,
-						    "fsl,lx2160a-pcie-ep");
 	}
 
 	return 0;

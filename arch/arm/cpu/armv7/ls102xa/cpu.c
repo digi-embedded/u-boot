@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright 2014 Freescale Semiconductor, Inc.
+ * Copyright 2021 NXP
  */
 
 #include <common.h>
@@ -20,8 +21,8 @@
 #include <config.h>
 #include <fsl_wdog.h>
 #include <linux/delay.h>
-#include <dm/uclass-internal.h>
-#include <dm/device-internal.h>
+#include <dm.h>
+
 #include "fsl_epu.h"
 
 #define DCSR_RCPM2_BLOCK_OFFSET	0x223000
@@ -376,7 +377,7 @@ void smp_kick_all_cpus(void)
 }
 #endif
 
-void reset_cpu(ulong addr)
+void reset_cpu(void)
 {
 	struct watchdog_regs *wdog = (struct watchdog_regs *)WDOG1_BASE_ADDR;
 
@@ -402,12 +403,13 @@ void arch_preboot_os(void)
 #ifdef CONFIG_ARCH_MISC_INIT
 int arch_misc_init(void)
 {
-	struct udevice *dev;
+	if (IS_ENABLED(CONFIG_FSL_CAAM)) {
+		struct udevice *dev;
+		int ret;
 
-	uclass_find_first_device(UCLASS_MISC, &dev);
-	for (; dev; uclass_find_next_device(&dev)) {
-		if (device_probe(dev))
-			continue;
+		ret = uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(caam_jr), &dev);
+		if (ret)
+			printf("Failed to initialize caam_jr: %d\n", ret);
 	}
 
 	return 0;

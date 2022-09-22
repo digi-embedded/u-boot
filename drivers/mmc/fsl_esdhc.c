@@ -27,6 +27,7 @@
 #include <dm/device_compat.h>
 #include <linux/bitops.h>
 #include <linux/delay.h>
+#include <linux/iopoll.h>
 #include <linux/dma-mapping.h>
 #include <sdhci.h>
 
@@ -360,13 +361,6 @@ static int esdhc_send_cmd_common(struct fsl_esdhc_priv *priv, struct mmc *mmc,
 
 	while (esdhc_read32(&regs->prsstat) & PRSSTAT_DLA)
 		;
-
-	/* Wait at least 8 SD clock cycles before the next command */
-	/*
-	 * Note: This is way more than 8 cycles, but 1ms seems to
-	 * resolve timing issues with some cards
-	 */
-	udelay(1000);
 
 	/* Set up for a data transfer if we have one */
 	if (data) {
@@ -796,8 +790,17 @@ static void fsl_esdhc_get_cfg_common(struct fsl_esdhc_priv *priv,
 
 	caps = esdhc_read32(&regs->hostcapblt);
 
-	if (!IS_ENABLED(CONFIG_FSL_ESDHC_VS33_NOT_SUPPORT))
-		caps |= HOSTCAPBLT_VS33;
+	/*
+	 * For eSDHC, power supply is through peripheral circuit. Some eSDHC
+	 * versions have value 0 of the bit but that does not reflect the
+	 * truth. 3.3V is common for SD/MMC, and is supported for all boards
+	 * with eSDHC in current u-boot. So, make 3.3V is supported in
+	 * default in code. CONFIG_FSL_ESDHC_VS33_NOT_SUPPORT can be enabled
+	 * if future board does not support 3.3V.
+	 */
+	caps |= HOSTCAPBLT_VS33;
+	if (IS_ENABLED(CONFIG_FSL_ESDHC_VS33_NOT_SUPPORT))
+		caps &= ~HOSTCAPBLT_VS33;
 
 	if (IS_ENABLED(CONFIG_SYS_FSL_ERRATUM_ESDHC135))
 		caps &= ~(HOSTCAPBLT_SRS | HOSTCAPBLT_VS18 | HOSTCAPBLT_VS30);
@@ -1136,6 +1139,20 @@ int fsl_esdhc_hs400_prepare_ddr(struct udevice *dev)
 	return 0;
 }
 
+static int fsl_esdhc_wait_dat0(struct udevice *dev, int state,
+			       int timeout_us)
+{
+	int ret;
+	u32 tmp;
+	struct fsl_esdhc_priv *priv = dev_get_priv(dev);
+	struct fsl_esdhc *regs = priv->esdhc_regs;
+
+	ret = readx_poll_timeout(esdhc_read32, &regs->prsstat, tmp,
+				 !!(tmp & PRSSTAT_DAT0) == !!state,
+				 timeout_us);
+	return ret;
+}
+
 static const struct dm_mmc_ops fsl_esdhc_ops = {
 	.get_cd		= fsl_esdhc_get_cd,
 	.send_cmd	= fsl_esdhc_send_cmd,
@@ -1145,6 +1162,7 @@ static const struct dm_mmc_ops fsl_esdhc_ops = {
 #endif
 	.reinit = fsl_esdhc_reinit,
 	.hs400_prepare_ddr = fsl_esdhc_hs400_prepare_ddr,
+	.wait_dat0 = fsl_esdhc_wait_dat0,
 };
 
 static const struct udevice_id fsl_esdhc_ids[] = {

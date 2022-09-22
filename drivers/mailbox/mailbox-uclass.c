@@ -3,6 +3,8 @@
  * Copyright (c) 2016, NVIDIA CORPORATION.
  */
 
+#define LOG_CATEGORY UCLASS_MAILBOX
+
 #include <common.h>
 #include <dm.h>
 #include <log.h>
@@ -22,7 +24,7 @@ static int mbox_of_xlate_default(struct mbox_chan *chan,
 	debug("%s(chan=%p)\n", __func__, chan);
 
 	if (args->args_count != 1) {
-		debug("Invaild args_count: %d\n", args->args_count);
+		debug("Invalid args_count: %d\n", args->args_count);
 		return -EINVAL;
 	}
 
@@ -113,13 +115,29 @@ int mbox_free(struct mbox_chan *chan)
 	return 0;
 }
 
-int mbox_send(struct mbox_chan *chan, const void *data)
+int mbox_send(struct mbox_chan *chan, const void *data, ulong timeout_us)
 {
 	struct mbox_ops *ops = mbox_dev_ops(chan->dev);
+	ulong start_time;
+	int ret;
 
 	debug("%s(chan=%p, data=%p)\n", __func__, chan, data);
 
-	return ops->send(chan, data);
+	start_time = timer_get_us();
+	/*
+	 * Account for partial us ticks, but if timeout_us is 0, ensure we
+	 * still don't wait at all.
+	 */
+	if (timeout_us)
+		timeout_us++;
+
+	for (;;) {
+		ret = ops->send(chan, data);
+		if (ret != -EBUSY)
+			return ret;
+		if ((timer_get_us() - start_time) >= timeout_us)
+			return -ETIMEDOUT;
+	}
 }
 
 int mbox_recv(struct mbox_chan *chan, void *data, ulong timeout_us)

@@ -11,11 +11,11 @@
 #include <asm/arch/imx-regs.h>
 #include "imx_env.h"
 
+#define CONFIG_SYS_BOOTM_LEN		(64 * SZ_1M)
+
 #ifdef CONFIG_SPL_BUILD
 #define CONFIG_SPL_MAX_SIZE				(192 * 1024)
 #define CONFIG_SYS_MONITOR_LEN				(1024 * 1024)
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR                0x1040 /* (flash.bin_offset + 2Mb)/sector_size */
 
 /*
  * 0x08081000 - 0x08180FFF is for m4_0 xip image,
@@ -24,7 +24,6 @@
  */
 #define CONFIG_SYS_UBOOT_BASE 0x08281000
 
-#define CONFIG_SPL_LDSCRIPT		"arch/arm/cpu/armv8/u-boot-spl.lds"
 #define CONFIG_SPL_STACK		0x013fff0
 #define CONFIG_SPL_BSS_START_ADDR      0x00130000
 #define CONFIG_SPL_BSS_MAX_SIZE		0x1000	/* 4 KB */
@@ -41,7 +40,6 @@
 #define CONFIG_SPL_RAW_IMAGE_ARM_TRUSTED_FIRMWARE
 
 #define CONFIG_SPL_ABORT_ON_RAW_IMAGE
-
 #endif
 
 #ifdef CONFIG_TARGET_IMX8QM_MEK_A53_ONLY
@@ -50,12 +48,7 @@
 #define IMX_HDMIRX_FIRMWARE_SIZE 0x20000
 #endif
 
-#define CONFIG_REMAKE_ELF
-
 #define CONFIG_CMD_READ
-
-/* Flat Device Tree Definitions */
-#define CONFIG_OF_BOARD_SETUP
 
 #define CONFIG_SYS_FSL_ESDHC_ADDR       0
 #define USDHC1_BASE_ADDR                0x5B010000
@@ -66,7 +59,6 @@
 #define CONFIG_CMD_PCI
 #define CONFIG_PCI_SCAN_SHOW
 #endif
-#define CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
 
 #define CONFIG_FEC_XCV_TYPE             RGMII
 #define FEC_QUIRK_ENET_MAC
@@ -154,10 +146,13 @@
 
 #ifdef CONFIG_TARGET_IMX8QM_MEK_A72_ONLY
 #define HDP_LOAD_ENV
+#define HDPRX_LOAD_ENV
 #define INITRD_ADDR_ENV "initrd_addr=0xC3100000\0"
 #else
 #define HDP_LOAD_ENV \
 	"if run loadhdp; then; hdp load ${hdp_addr}; fi;"
+#define HDPRX_LOAD_ENV \
+	"if test ${hdprx_enable} = yes; then if run loadhdprx; then; hdprx load ${hdprx_addr}; fi; fi; "
 #define INITRD_ADDR_ENV "initrd_addr=0x83100000\0"
 #endif
 
@@ -186,7 +181,7 @@
 	"boot_fdt=try\0" \
 	FDT_FILE \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
-	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
+	"mmcpart=1\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} earlycon root=${mmcroot} " \
@@ -200,6 +195,7 @@
 	"hdprx_addr=0x9c800000\0" \
 	"hdp_file=hdmitxfw.bin\0" \
 	"hdprx_file=hdmirxfw.bin\0" \
+	"hdprx_enable=no\0" \
 	"loadhdp=fatload mmc ${mmcdev}:${mmcpart} ${hdp_addr} ${hdp_file}\0" \
 	"loadhdprx=fatload mmc ${mmcdev}:${mmcpart} ${hdprx_addr} ${hdprx_file}\0" \
 	"boot_os=booti ${loadaddr} - ${fdt_addr};\0" \
@@ -207,6 +203,7 @@
 	"auth_os=auth_cntr ${cntr_addr}\0" \
 	"mmcboot=echo Booting from mmc ...; " \
 		HDP_LOAD_ENV \
+		HDPRX_LOAD_ENV \
 		"run mmcargs; " \
 		"if test ${sec_boot} = yes; then " \
 			"if run auth_os; then " \
@@ -257,33 +254,10 @@
 			"fi;" \
 		"fi;\0"
 
-#define CONFIG_BOOTCOMMAND \
-	   "mmc dev ${mmcdev}; if mmc rescan; then " \
-		   "if run loadbootscript; then " \
-			   "run bootscript; " \
-		   "else " \
-			   "if test ${sec_boot} = yes; then " \
-				   "if run loadcntr; then " \
-					   "run mmcboot; " \
-				   "else run netboot; " \
-				   "fi; " \
-			    "else " \
-				   "if run loadimage; then " \
-					   "run mmcboot; " \
-				   "else run netboot; " \
-				   "fi; " \
-			 "fi; " \
-		   "fi; " \
-	   "else booti ${loadaddr} - ${fdt_addr}; fi"
-
 /* Link Definitions */
 #ifdef CONFIG_TARGET_IMX8QM_MEK_A72_ONLY
-	#define CONFIG_LOADADDR			0xC0280000
-	#define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
 	#define CONFIG_SYS_INIT_SP_ADDR		0xC0200000
 #else
-	#define CONFIG_LOADADDR			0x80280000
-	#define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
 	#define CONFIG_SYS_INIT_SP_ADDR		0x80200000
 #endif
 
@@ -297,16 +271,6 @@
 	#define FDT_ADDR	"fdt_addr=0x83000000\0"
 	#define FDT_FILE	"fdt_file=undefined\0"
 #endif
-
-#ifdef CONFIG_QSPI_BOOT
-#define CONFIG_ENV_SECT_SIZE	(128 * 1024)
-#define CONFIG_ENV_SPI_BUS	CONFIG_SF_DEFAULT_BUS
-#define CONFIG_ENV_SPI_CS	CONFIG_SF_DEFAULT_CS
-#define CONFIG_ENV_SPI_MODE	CONFIG_SF_DEFAULT_MODE
-#define CONFIG_ENV_SPI_MAX_HZ	CONFIG_SF_DEFAULT_SPEED
-#endif
-
-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 
 /* On LPDDR4 board, USDHC1 is for eMMC, USDHC2 is for SD on CPU board */
 #if defined(CONFIG_TARGET_IMX8QM_MEK_A72_ONLY)
@@ -328,9 +292,6 @@
 #define CONFIG_CONSOLE "console=ttyLP0\0"
 #define SPLASH_IMAGE_ADDR	"splashimage=0x9e000000\0"
 #endif
-
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		((CONFIG_ENV_SIZE + (32 * 1024)) * 1024)
 
 #define CONFIG_NR_DRAM_BANKS		4
 #if defined(CONFIG_TARGET_IMX8QM_MEK_A53_ONLY)
@@ -371,13 +332,7 @@
 
 /* USB Config */
 #ifndef CONFIG_SPL_BUILD
-#define CONFIG_CMD_USB
-#define CONFIG_USB_STORAGE
 #define CONFIG_USBD_HS
-
-#define CONFIG_CMD_USB_MASS_STORAGE
-#define CONFIG_USB_GADGET_MASS_STORAGE
-#define CONFIG_USB_FUNCTION_MASS_STORAGE
 
 #endif
 
@@ -388,15 +343,6 @@
 #define CONFIG_USB_HOST_ETHER
 #define CONFIG_USB_ETHER_ASIX
 #define CONFIG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
-#endif
-
-#ifdef CONFIG_DM_VIDEO
-#define CONFIG_VIDEO_LOGO
-#define CONFIG_BMP_16BPP
-#define CONFIG_BMP_24BPP
-#define CONFIG_BMP_32BPP
-#define CONFIG_VIDEO_BMP_RLE8
-#define CONFIG_VIDEO_BMP_LOGO
 #endif
 
 #if defined(CONFIG_ANDROID_SUPPORT)

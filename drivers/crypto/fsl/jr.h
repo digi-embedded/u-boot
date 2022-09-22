@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
  * Copyright 2008-2014 Freescale Semiconductor, Inc.
+ * Copyright 2021 NXP
  *
  */
 
@@ -40,16 +41,21 @@
 #ifdef CONFIG_IMX8ULP
 #define JRDID_MS_PRIM_DID	7
 #else
-#define JRDID_MS_PRIM_DID	1
+#define JRDID_MS_PRIM_DID	BIT(0)
 #endif
-#define JRDID_MS_PRIM_TZ	(1 << 4)
-#define JRDID_MS_TZ_OWN		(1 << 15)
+#define JRDID_MS_PRIM_TZ	BIT(4)
+#define JRDID_MS_TZ_OWN		BIT(15)
 
-#define JQ_DEQ_ERR		-1
-#define JQ_DEQ_TO_ERR		-2
-#define JQ_ENQ_ERR		-3
+#define JQ_DEQ_ERR		(-1)
+#define JQ_DEQ_TO_ERR		(-2)
+#define JQ_ENQ_ERR		(-3)
 
 #define RNG4_MAX_HANDLES	2
+
+enum {
+	/* Run caam jobring descriptor(in buf) */
+	CAAM_JR_RUN_DESC,
+};
 
 struct op_ring {
 	caam_dma_addr_t desc;
@@ -112,10 +118,16 @@ struct result {
 	uint32_t status;
 };
 
+/*
+ * struct caam_regs - CAAM initialization register interface
+ *
+ * Interface to caam memory map, jobring register, jobring storage.
+ */
 struct caam_regs {
-	ccsr_sec_t *sec;
-	struct jr_regs *regs;
-	u8 jrid;
+	ccsr_sec_t *sec;	/*caam initialization registers*/
+	struct jr_regs *regs;	/*jobring configuration registers*/
+	u8 jrid;		/*id to identify a jobring*/
+	/*Private sub-storage for a single JobR*/
 	struct jobring jr[CONFIG_SYS_FSL_MAX_NUM_OF_SEC];
 };
 

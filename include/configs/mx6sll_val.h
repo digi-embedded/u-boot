@@ -12,30 +12,15 @@
 #include "mx6_common.h"
 
 
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		(16 * SZ_1M)
-
 #define CONFIG_MXC_UART_BASE		UART1_BASE
 
 /* MMC Configs */
 #define CONFIG_SYS_FSL_ESDHC_ADDR	USDHC1_BASE_ADDR
 #define CONFIG_SYS_FSL_USDHC_NUM	3
 
-/* I2C Configs */
-#ifndef CONFIG_DM_I2C
-#define CONFIG_SYS_I2C
-#endif
-#ifdef CONFIG_CMD_I2C
-#define CONFIG_SYS_I2C_MXC
-#define CONFIG_SYS_I2C_MXC_I2C1		/* enable I2C bus 1 */
-#define CONFIG_SYS_I2C_MXC_I2C2		/* enable I2C bus 2 */
-#define CONFIG_SYS_I2C_MXC_I2C3		/* enable I2C bus 3 */
-#define CONFIG_SYS_I2C_SPEED		  100000
-#endif
-
 /* PMIC */
 #ifndef CONFIG_DM_PMIC
-#define CONFIG_POWER
+#define CONFIG_POWER_LEGACY
 #define CONFIG_POWER_I2C
 #define CONFIG_POWER_PFUZE100
 #define CONFIG_POWER_PFUZE100_I2C_ADDR	0x08
@@ -118,18 +103,6 @@
 			"bootz; " \
 		"fi;\0"
 
-#define CONFIG_BOOTCOMMAND \
-	   "mmc dev ${mmcdev};" \
-	   "mmc dev ${mmcdev}; if mmc rescan; then " \
-		   "if run loadbootscript; then " \
-			   "run bootscript; " \
-		   "else " \
-			   "if run loadimage; then " \
-				   "run mmcboot; " \
-			   "else run netboot; " \
-			   "fi; " \
-		   "fi; " \
-	   "else run netboot; fi"
 
 /* Miscellaneous configurable options */
 
@@ -153,17 +126,6 @@
 /* Environment organization */
 #define CONFIG_MMCROOT			"/dev/mmcblk0p2"  /* USDHC1 */
 
-#if defined(CONFIG_ENV_IS_IN_SPI_FLASH)
-#define CONFIG_ENV_SPI_BUS		CONFIG_SF_DEFAULT_BUS
-#define CONFIG_ENV_SPI_CS		CONFIG_SF_DEFAULT_CS
-#define CONFIG_ENV_SPI_MODE		CONFIG_SF_DEFAULT_MODE
-#define CONFIG_ENV_SPI_MAX_HZ		CONFIG_SF_DEFAULT_SPEED
-#endif
-
-/* USB Configs */
-#ifdef CONFIG_CMD_USB
-#define CONFIG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
-#endif
 
 #define CONFIG_IOMUX_LPSR
 
@@ -189,8 +151,6 @@
 	/*
 	 * Framebuffer and LCD
 	 */
-	#define CONFIG_SPLASH_SCREEN
-	#define CONFIG_CMD_BMP
 	#undef LCD_TEST_PATTERN
 	#define LCD_BPP					LCD_MONOCHROME
 

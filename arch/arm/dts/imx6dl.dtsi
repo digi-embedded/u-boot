@@ -121,7 +121,7 @@
 			power-domains = <&pd_pu>;
 		};
 
-		aips1: aips-bus@2000000 {
+		aips1: bus@2000000 {
 			pxp: pxp@20f0000 {
 				compatible = "fsl,imx6dl-pxp-dma";
 				reg = <0x20f0000 0x4000>;
@@ -145,7 +145,7 @@
 			};
 		};
 
-		aips2: aips-bus@2100000 {
+		aips2: bus@2100000 {
 			mipi_dsi: mipi@21e0000 {
 				compatible = "fsl,imx6dl-mipi-dsi";
 				reg = <0x21e0000 0x4000>;

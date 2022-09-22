@@ -266,8 +266,6 @@ static int imx8m_hdmi_probe(struct udevice *dev)
 	struct imx8m_hdmi_priv *priv = dev_get_priv(dev);
 	int ret;
 
-	printf("%s\n", __func__);
-
 	priv->base = dev_read_addr(dev);
 	if (priv->base == FDT_ADDR_T_NONE)
 		return -EINVAL;

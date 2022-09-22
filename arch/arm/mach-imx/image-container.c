@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2018-2020 NXP
+ * Copyright 2019 NXP
  */
 
 #include <common.h>
@@ -92,7 +92,7 @@ static int get_dev_container_size(void *dev, int dev_type, unsigned long offset,
 		return -ENOMEM;
 	}
 
-#ifdef CONFIG_SPL_MMC_SUPPORT
+#ifdef CONFIG_SPL_MMC
 	if (dev_type == MMC_DEV) {
 		unsigned long count = 0;
 		struct mmc *mmc = (struct mmc *)dev;
@@ -139,9 +139,8 @@ static int get_dev_container_size(void *dev, int dev_type, unsigned long offset,
 
 #ifdef CONFIG_SPL_BOOTROM_SUPPORT
 	if (dev_type == ROM_API_DEV) {
-		ret = spl_romapi_raw_seekable_read(offset, CONTAINER_HDR_ALIGNMENT,
-					  buf);
-		if (ret == 0) {
+		ret = spl_romapi_raw_seekable_read(offset, CONTAINER_HDR_ALIGNMENT, buf);
+		if (!ret) {
 			printf("Read container image from ROM API failed\n");
 			return -EIO;
 		}
@@ -232,7 +231,7 @@ static unsigned long get_boot_device_offset(void *dev, int dev_type)
 	return offset;
 }
 
-static ulong get_imageset_end(void *dev, int dev_type)
+static __maybe_unused ulong get_imageset_end(void *dev, int dev_type)
 {
 	unsigned long offset[3] = {};
 	int value_container[3] = {};
@@ -293,7 +292,7 @@ unsigned long spl_spi_get_uboot_offs(struct spi_flash *flash)
 }
 #endif
 
-#ifdef CONFIG_SPL_MMC_SUPPORT
+#ifdef CONFIG_SPL_MMC
 unsigned long spl_mmc_get_uboot_raw_sector(struct mmc *mmc,
 					   unsigned long raw_sect)
 {

@@ -12,11 +12,9 @@
 #include <asm/arch/imx-regs.h>
 #include "imx_env.h"
 
-#define CONFIG_SYS_BOOTM_LEN		(32 * SZ_1M)
+#define CONFIG_SYS_BOOTM_LEN		(64 * SZ_1M)
 #define CONFIG_SPL_MAX_SIZE		(148 * 1024)
 #define CONFIG_SYS_MONITOR_LEN		SZ_512K
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR	(0x300 + CONFIG_SECONDARY_BOOT_SECTOR_OFFSET)
 #define CONFIG_SYS_UBOOT_BASE	\
 	(QSPI0_AMBA_BASE + CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512)
 
@@ -28,15 +26,11 @@
 #define CONFIG_SYS_SPL_MALLOC_SIZE	SZ_512K	/* 512 KB */
 
 /* malloc f used before GD_FLG_FULL_MALLOC_INIT set */
-#define CONFIG_MALLOC_F_ADDR		0x912000
+#define CONFIG_MALLOC_F_ADDR		0x930000
 /* For RAW image gives a error info not panic */
 #define CONFIG_SPL_ABORT_ON_RAW_IMAGE
 
-#define CONFIG_POWER
-#define CONFIG_POWER_I2C
 #define CONFIG_POWER_BD71837
-
-#define CONFIG_SYS_I2C
 #endif
 
 
@@ -125,22 +119,8 @@
 			"booti; " \
 		"fi;\0"
 
-#define CONFIG_BOOTCOMMAND \
-	   "mmc dev ${mmcdev}; if mmc rescan; then " \
-		   "if run loadbootscript; then " \
-			   "run bootscript; " \
-		   "else " \
-			   "if run loadimage; then " \
-				   "run mmcboot; " \
-			   "else run netboot; " \
-			   "fi; " \
-		   "fi; " \
-	   "else booti ${loadaddr} - ${fdt_addr}; fi"
 
 /* Link Definitions */
-#define CONFIG_LOADADDR			0x40480000
-
-#define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
 
 #define CONFIG_SYS_INIT_RAM_ADDR        0x40000000
 #define CONFIG_SYS_INIT_RAM_SIZE        0x80000
@@ -149,17 +129,8 @@
 #define CONFIG_SYS_INIT_SP_ADDR \
 	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
 
-#if defined(CONFIG_ENV_IS_IN_SPI_FLASH)
-#define CONFIG_ENV_SPI_BUS		CONFIG_SF_DEFAULT_BUS
-#define CONFIG_ENV_SPI_CS		CONFIG_SF_DEFAULT_CS
-#define CONFIG_ENV_SPI_MODE		CONFIG_SF_DEFAULT_MODE
-#define CONFIG_ENV_SPI_MAX_HZ		CONFIG_SF_DEFAULT_SPEED
-#endif
 #define CONFIG_SYS_MMC_ENV_DEV		1   /* USDHC2 */
 #define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
-
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		SZ_32M
 
 #define CONFIG_SYS_SDRAM_BASE           0x40000000
 #define PHYS_SDRAM                      0x40000000
@@ -177,7 +148,6 @@
 #define CONFIG_IMX_BOOTAUX
 
 /* USDHC */
-#define CONFIG_FSL_USDHC
 
 #ifdef CONFIG_TARGET_IMX8MM_DDR3L_VAL
 #define CONFIG_SYS_FSL_USDHC_NUM	1
@@ -185,8 +155,6 @@
 #define CONFIG_SYS_FSL_USDHC_NUM	2
 #endif
 #define CONFIG_SYS_FSL_ESDHC_ADDR       0
-
-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 
 #ifdef CONFIG_FSL_FSPI
 #define FSL_FSPI_FLASH_SIZE		SZ_32M
@@ -204,22 +172,12 @@
 /* NAND stuff */
 #define CONFIG_SYS_MAX_NAND_DEVICE     1
 #define CONFIG_SYS_NAND_BASE           0x20000000
-#define CONFIG_SYS_NAND_5_ADDR_CYCLE
-#define CONFIG_SYS_NAND_ONFI_DETECTION
 #define CONFIG_SYS_NAND_USE_FLASH_BBT
 #endif /* CONFIG_NAND_MXS */
 
-#define CONFIG_SYS_I2C_SPEED		100000
-
 /* USB configs */
 #ifndef CONFIG_SPL_BUILD
-#define CONFIG_CMD_USB
-#define CONFIG_USB_STORAGE
 #define CONFIG_USBD_HS
-
-#define CONFIG_CMD_USB_MASS_STORAGE
-#define CONFIG_USB_GADGET_MASS_STORAGE
-#define CONFIG_USB_FUNCTION_MASS_STORAGE
 
 #endif
 

@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright 2008-2014 Freescale Semiconductor, Inc.
- * Copyright 2018 NXP
+ * Copyright 2018, 2021 NXP
  *
  * Based on CAAM driver in drivers/crypto/caam in Linux
  */
 
 #include <common.h>
 #include <cpu_func.h>
-#include <linux/delay.h>
 #include <linux/kernel.h>
 #include <log.h>
 #include <malloc.h>
+#include <power-domain.h>
 #include "jr.h"
 #include "jobdesc.h"
 #include "desc_constr.h"
@@ -25,7 +25,7 @@
 #include <dm/lists.h>
 #include <dm/root.h>
 #include <dm/device-internal.h>
-#include <power-domain.h>
+#include <linux/delay.h>
 
 #define CIRC_CNT(head, tail, size)	(((head) - (tail)) & (size - 1))
 #define CIRC_SPACE(head, tail, size)	CIRC_CNT((tail), (head) + 1, (size))
@@ -63,7 +63,6 @@ static inline u32 jr_start_reg(u8 jrid)
 	return (1 << jrid);
 }
 
-#ifndef CONFIG_ARCH_IMX8
 static inline void start_jr(struct caam_regs *caam)
 {
 	ccsr_sec_t *sec = caam->sec;
@@ -84,7 +83,6 @@ static inline void start_jr(struct caam_regs *caam)
 			sec_out32(&sec->jrstartr, jrstart);
 	}
 }
-#endif
 
 static inline void jr_disable_irq(struct jr_regs *regs)
 {
@@ -124,7 +122,9 @@ static void jr_initregs(uint8_t sec_idx, struct caam_regs *caam)
 static int jr_init(uint8_t sec_idx, struct caam_regs *caam)
 {
 	struct jobring *jr = &caam->jr[sec_idx];
-
+#if CONFIG_IS_ENABLED(OF_CONTROL)
+	ofnode scu_node = ofnode_by_compatible(ofnode_null(), "fsl,imx8-mu");
+#endif
 	memset(jr, 0, sizeof(struct jobring));
 
 	jr->jq_id = caam->jrid;
@@ -149,9 +149,11 @@ static int jr_init(uint8_t sec_idx, struct caam_regs *caam)
 	memset(jr->input_ring, 0, JR_SIZE * sizeof(caam_dma_addr_t));
 	memset(jr->output_ring, 0, jr->op_size);
 
-#ifndef CONFIG_ARCH_IMX8
-	start_jr(caam);
+#if CONFIG_IS_ENABLED(OF_CONTROL)
+	if (!ofnode_valid(scu_node))
 #endif
+	start_jr(caam);
+
 	jr_initregs(sec_idx, caam);
 
 	return 0;
@@ -378,7 +380,6 @@ int run_descriptor_jr(uint32_t *desc)
 	return run_descriptor_jr_idx(desc, 0);
 }
 
-#ifndef CONFIG_ARCH_IMX8
 static int jr_sw_cleanup(uint8_t sec_idx, struct caam_regs *caam)
 {
 	struct jobring *jr = &caam->jr[sec_idx];
@@ -400,9 +401,9 @@ static int jr_hw_reset(struct jr_regs *regs)
 	uint32_t jrint, jrcr;
 
 	sec_out32(&regs->jrcr, JRCR_RESET);
-        do {
+	do {
 		jrint = sec_in32(&regs->jrint);
-        } while (((jrint & JRINT_ERR_HALT_MASK) ==
+	} while (((jrint & JRINT_ERR_HALT_MASK) ==
 		  JRINT_ERR_HALT_INPROGRESS) && --timeout);
 
 	jrint = sec_in32(&regs->jrint);
@@ -448,7 +449,7 @@ int sec_reset(void)
 {
 	struct caam_regs *caam;
 #if CONFIG_IS_ENABLED(DM)
-        caam = dev_get_priv(caam_dev);
+	caam = dev_get_priv(caam_dev);
 #else
 	caam = &caam_st;
 #endif
@@ -740,7 +741,7 @@ static void kick_trng(int ent_delay, ccsr_sec_t *sec)
 
 static int rng_init(uint8_t sec_idx, ccsr_sec_t *sec)
 {
-	int ret, gen_sk, ent_delay = RTSDCTL_ENT_DLY_MIN;
+	int ret, gen_sk, ent_delay = RTSDCTL_ENT_DLY;
 	struct rng4tst __iomem *rng =
 			(struct rng4tst __iomem *)&sec->rng;
 	u32 inst_handles;
@@ -769,6 +770,15 @@ static int rng_init(uint8_t sec_idx, ccsr_sec_t *sec)
 		 * the RNG.
 		 */
 		ret = instantiate_rng(sec_idx, sec, gen_sk);
+		/*
+		 * entropy delay is calculated via self-test method.
+		 * self-test are run across different volatge, temp.
+		 * if worst case value for ent_dly is identified,
+		 * loop can be skipped for that platform.
+		 */
+		if (IS_ENABLED(CONFIG_MX6SX))
+			break;
+
 	} while ((ret == -1) && (ent_delay < RTSDCTL_ENT_DLY_MAX));
 	if (ret) {
 		printf("SEC%u:  Failed to instantiate RNG\n", sec_idx);
@@ -780,14 +790,13 @@ static int rng_init(uint8_t sec_idx, ccsr_sec_t *sec)
 
 	return ret;
 }
-#endif
 
 int sec_init_idx(uint8_t sec_idx)
 {
 	int ret = 0;
 	struct caam_regs *caam;
 #if CONFIG_IS_ENABLED(DM)
-	if (caam_dev == NULL) {
+	if (!caam_dev) {
 		printf("caam_jr: caam not found\n");
 		return -1;
 	}
@@ -798,7 +807,13 @@ int sec_init_idx(uint8_t sec_idx)
 	caam_st.jrid = JR_ID;
 	caam = &caam_st;
 #endif
-#ifndef CONFIG_ARCH_IMX8
+#if CONFIG_IS_ENABLED(OF_CONTROL)
+	ofnode scu_node = ofnode_by_compatible(ofnode_null(), "fsl,imx8-mu");
+
+	if (ofnode_valid(scu_node))
+		goto init;
+#endif
+
 	ccsr_sec_t *sec = caam->sec;
 	uint32_t mcr = sec_in32(&sec->mcfgr);
 #if defined(CONFIG_SPL_BUILD) && (defined(CONFIG_IMX8M) || defined(CONFIG_IMX8ULP))
@@ -864,14 +879,26 @@ int sec_init_idx(uint8_t sec_idx)
 	liodn_s = (liodnr & JRSLIODN_MASK) >> JRSLIODN_SHIFT;
 #endif
 #endif
+#if CONFIG_IS_ENABLED(OF_CONTROL)
+init:
 #endif
 	ret = jr_init(sec_idx, caam);
 	if (ret < 0) {
 		printf("SEC%u:  initialization failed\n", sec_idx);
 		return -1;
 	}
+#if CONFIG_IS_ENABLED(OF_CONTROL)
+	if (ofnode_valid(scu_node)) {
+		if (IS_ENABLED(CONFIG_DM_RNG)) {
+			ret = device_bind_driver(NULL, "caam-rng", "caam-rng", NULL);
+			if (ret)
+				printf("Couldn't bind rng driver (%d)\n", ret);
+		}
 
-#ifndef CONFIG_ARCH_IMX8
+		return ret;
+	}
+#endif
+
 #ifdef CONFIG_FSL_CORENET
 	ret = sec_config_pamu_table(liodn_ns, liodn_s);
 	if (ret < 0)
@@ -891,7 +918,7 @@ int sec_init_idx(uint8_t sec_idx)
 
 		printf("SEC%u:  RNG instantiated\n", sec_idx);
 	}
-#endif
+
 	if (IS_ENABLED(CONFIG_DM_RNG)) {
 		ret = device_bind_driver(NULL, "caam-rng", "caam-rng", NULL);
 		if (ret)
@@ -906,16 +933,16 @@ int sec_init(void)
 	return sec_init_idx(0);
 }
 
-#ifdef CONFIG_ARCH_IMX8
-static int jr_power_on(int subnode)
+#if CONFIG_IS_ENABLED(DM)
+static int jr_power_on(ofnode node)
 {
 #if CONFIG_IS_ENABLED(POWER_DOMAIN)
 	struct udevice __maybe_unused jr_dev;
 	struct power_domain pd;
 
-	dev_set_ofnode(&jr_dev, offset_to_ofnode(subnode));
+	dev_set_ofnode(&jr_dev, node);
 
-	/* Need to power on Job Ring before access it */
+	/* Power on Job Ring before access it */
 	if (!power_domain_get(&jr_dev, &pd)) {
 		if (power_domain_on(&pd))
 			return -EINVAL;
@@ -923,52 +950,55 @@ static int jr_power_on(int subnode)
 #endif
 	return 0;
 }
-#endif
 
-#if CONFIG_IS_ENABLED(DM)
+static int caam_jr_ioctl(struct udevice *dev, unsigned long request, void *buf)
+{
+	if (request != CAAM_JR_RUN_DESC)
+		return -ENOSYS;
+
+	return run_descriptor_jr(buf);
+}
+
 static int caam_jr_probe(struct udevice *dev)
 {
 	struct caam_regs *caam = dev_get_priv(dev);
-	const void *fdt = gd->fdt_blob;
-	int node = dev_of_offset(dev);
-	struct fdt_resource res;
-	int subnode, ret;
+	fdt_addr_t addr;
+	ofnode node, scu_node;
 	unsigned int jr_node = 0;
 
 	caam_dev = dev;
 
-	ret = fdt_get_resource(fdt, node, "reg", 0, &res);
-	if (ret) {
-		printf("caam_jr: resource not found\n");
-		return ret;
+	addr = dev_read_addr(dev);
+	if (addr == FDT_ADDR_T_NONE) {
+		printf("caam_jr: crypto not found\n");
+		return -EINVAL;
 	}
-	caam->sec = (ccsr_sec_t *)res.start;
+	caam->sec = (ccsr_sec_t *)(uintptr_t)addr;
 	caam->regs = (struct jr_regs *)caam->sec;
 
-	/* Check for enabled job ring subnode */
-	fdt_for_each_subnode(subnode, fdt, node) {
-		if (!fdtdec_get_is_enabled(fdt, subnode)) {
+	/* Check for enabled job ring node */
+	ofnode_for_each_subnode(node, dev_ofnode(dev)) {
+		if (!ofnode_is_available(node))
 			continue;
-		}
-		jr_node = fdtdec_get_uint(fdt, subnode, "reg", -1);
+
+		jr_node = ofnode_read_u32_default(node, "reg", -1);
 		if (jr_node > 0) {
 			caam->regs = (struct jr_regs *)((ulong)caam->sec + jr_node);
-			while (!(jr_node & 0x0F)) {
+			while (!(jr_node & 0x0F))
 				jr_node = jr_node >> 4;
-			}
+
 			caam->jrid = jr_node - 1;
-#ifdef CONFIG_ARCH_IMX8
-			ret = jr_power_on(subnode);
-			if (ret)
-				return ret;
-#endif
+			scu_node = ofnode_by_compatible(ofnode_null(), "fsl,imx8-mu");
+			if (ofnode_valid(scu_node)) {
+				if (jr_power_on(node))
+					return -EINVAL;
+			}
 			break;
 		}
 	}
 
-	if (sec_init()) {
+	if (sec_init())
 		printf("\nsec_init failed!\n");
-	}
 
 	return 0;
 }
@@ -977,6 +1007,10 @@ static int caam_jr_bind(struct udevice *dev)
 {
 	return 0;
 }
+
+static const struct misc_ops caam_jr_ops = {
+	.ioctl = caam_jr_ioctl,
+};
 
 static const struct udevice_id caam_jr_match[] = {
 	{ .compatible = "fsl,sec-v4.0" },
@@ -987,6 +1021,7 @@ U_BOOT_DRIVER(caam_jr) = {
 	.name		= "caam_jr",
 	.id		= UCLASS_MISC,
 	.of_match	= caam_jr_match,
+	.ops		= &caam_jr_ops,
 	.bind		= caam_jr_bind,
 	.probe		= caam_jr_probe,
 	.priv_auto	= sizeof(struct caam_regs),

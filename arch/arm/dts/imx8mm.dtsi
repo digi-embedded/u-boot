@@ -350,6 +350,7 @@
 	};
 
 	usbphynop1: usbphynop1 {
+		#phy-cells = <0>;
 		compatible = "usb-nop-xceiv";
 		clocks = <&clk IMX8MM_CLK_USB_PHY_REF>;
 		assigned-clocks = <&clk IMX8MM_CLK_USB_PHY_REF>;
@@ -358,6 +359,7 @@
 	};
 
 	usbphynop2: usbphynop2 {
+		#phy-cells = <0>;
 		compatible = "usb-nop-xceiv";
 		clocks = <&clk IMX8MM_CLK_USB_PHY_REF>;
 		assigned-clocks = <&clk IMX8MM_CLK_USB_PHY_REF>;
@@ -1199,7 +1201,7 @@
 						<&clk IMX8MM_CLK_USB_CORE_REF>;
 				assigned-clock-parents = <&clk IMX8MM_SYS_PLL2_500M>,
 							<&clk IMX8MM_SYS_PLL1_100M>;
-				fsl,usbphy = <&usbphynop1>;
+				phys = <&usbphynop1>;
 				fsl,usbmisc = <&usbmisc1 0>;
 				status = "disabled";
 			};
@@ -1220,7 +1222,7 @@
 						<&clk IMX8MM_CLK_USB_CORE_REF>;
 				assigned-clock-parents = <&clk IMX8MM_SYS_PLL2_500M>,
 						<&clk IMX8MM_SYS_PLL1_100M>;
-				fsl,usbphy = <&usbphynop2>;
+				phys = <&usbphynop2>;
 				fsl,usbmisc = <&usbmisc2 0>;
 				status = "disabled";
 			};
@@ -1232,8 +1234,17 @@
 			};
 
 			pcie_phy: pcie-phy@32f00000 {
-				  compatible = "fsl,imx7d-pcie-phy";
-				  reg = <0x32f00000 0x10000>;
+				compatible = "fsl,imx8mm-pcie-phy";
+				reg = <0x32f00000 0x10000>;
+				clocks = <&clk IMX8MM_CLK_PCIE1_PHY>;
+				clock-names = "ref";
+				assigned-clocks = <&clk IMX8MM_CLK_PCIE1_PHY>;
+				assigned-clock-rates = <100000000>;
+				assigned-clock-parents = <&clk IMX8MM_SYS_PLL2_100M>;
+				resets = <&src IMX8MQ_RESET_PCIEPHY>;
+				reset-names = "pciephy";
+				#phy-cells = <0>;
+				status = "disabled";
 			};
 		};
 
@@ -1267,9 +1278,8 @@
 		};
 
 		pcie0: pcie@33800000 {
-			compatible = "fsl,imx8mm-pcie", "snps,dw-pcie";
-			reg = <0x33800000 0x400000>,
-				<0x1ff00000 0x80000>;
+			compatible = "fsl,imx8mm-pcie";
+			reg = <0x33800000 0x400000>, <0x1ff00000 0x80000>;
 			reg-names = "dbi", "config";
 			#address-cells = <3>;
 			#size-cells = <2>;
@@ -1287,15 +1297,16 @@
 					<0 0 0 2 &gic GIC_SPI 124 IRQ_TYPE_LEVEL_HIGH>,
 					<0 0 0 3 &gic GIC_SPI 123 IRQ_TYPE_LEVEL_HIGH>,
 					<0 0 0 4 &gic GIC_SPI 122 IRQ_TYPE_LEVEL_HIGH>;
-			linux,pci-domain = <0>;
 			fsl,max-link-speed = <2>;
+			linux,pci-domain = <0>;
 			power-domains = <&pcie_pd>;
 			resets = <&src IMX8MQ_RESET_PCIEPHY>,
 				 <&src IMX8MQ_RESET_PCIE_CTRL_APPS_EN>,
 				 <&src IMX8MQ_RESET_PCIE_CTRL_APPS_CLK_REQ>,
 				 <&src IMX8MQ_RESET_PCIE_CTRL_APPS_TURNOFF>;
 			reset-names = "pciephy", "apps", "clkreq", "turnoff";
-			fsl,imx7d-pcie-phy = <&pcie_phy>;
+			phys = <&pcie_phy>;
+			phy-names = "pcie-phy";
 			status = "disabled";
 		};
 

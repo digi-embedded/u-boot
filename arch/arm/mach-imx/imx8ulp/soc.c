@@ -4,15 +4,17 @@
  */
 
 #include <asm/io.h>
-#include <asm/global_data.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/armv8/mmu.h>
 #include <asm/mach-imx/boot_mode.h>
+#include <asm/global_data.h>
 #include <efi_loader.h>
 #include <spl.h>
 #include <asm/arch/rdc.h>
+#include <asm/mach-imx/s400_api.h>
+#include <asm/mach-imx/mu_hal.h>
 #include <cpu_func.h>
 #include <asm/setup.h>
 #include <dm.h>
@@ -22,8 +24,8 @@
 #include <dm/device.h>
 #include <dm/uclass-internal.h>
 #include <asm/arch/pcc.h>
-#include <asm/arch/s400_api.h>
 #include <fuse.h>
+#include <thermal.h>
 #include <asm/mach-imx/optee.h>
 #include <env.h>
 #include <env_internal.h>
@@ -45,7 +47,7 @@ enum boot_device get_boot_device(void)
 
 	ret = g_rom_api->query_boot_infor(QUERY_BT_DEV, &boot,
 					  ((uintptr_t)&boot) ^ QUERY_BT_DEV);
-	gd = pgd;
+	set_gd(pgd);
 
 	if (ret != ROM_API_OKAY) {
 		puts("ROMAPI: failure at query_boot_info\n");
@@ -114,7 +116,7 @@ int mmc_get_env_dev(void)
 
 	ret = g_rom_api->query_boot_infor(QUERY_BT_DEV, &boot,
 					  ((uintptr_t)&boot) ^ QUERY_BT_DEV);
-	gd = pgd;
+	set_gd(pgd);
 
 	if (ret != ROM_API_OKAY) {
 		puts("ROMAPI: failure at query_boot_info\n");
@@ -593,7 +595,7 @@ phys_size_t get_effective_memsize(void)
 	return gd->ram_size;
 }
 
-#ifdef CONFIG_SERIAL_TAG
+#if defined(CONFIG_SERIAL_TAG) || defined(CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG)
 void get_board_serial(struct tag_serialnr *serialnr)
 {
 	u32 uid[4];
@@ -604,7 +606,7 @@ void get_board_serial(struct tag_serialnr *serialnr)
 	if (ret)
 		printf("ahab read fuse failed %d, 0x%x\n", ret, res);
 	else
-		debug("UID 0x%x,0x%x,0x%x,0x%x\n", uid[0], uid[1], uid[2], uid[3]);
+		printf("UID 0x%x,0x%x,0x%x,0x%x\n", uid[0], uid[1], uid[2], uid[3]);
 
 	serialnr->low = uid[0];
 	serialnr->high = uid[3];
@@ -630,13 +632,13 @@ static void set_core0_reset_vector(u32 entry)
 	setbits_le32(SIM1_BASE_ADDR + 0x8, (0x1 << 26));
 }
 
-int trdc_set_access(void)
+static int trdc_set_access(void)
 {
 	/*
-	* TRDC mgr + 4 MBC + 2 MRC.
-	* S400 should already configure when release RDC
-	* A35 only map non-secure region for pbridge0 and 1, set sec_access to false
-	*/
+	 * TRDC mgr + 4 MBC + 2 MRC.
+	 * S400 should already configure when release RDC
+	 * A35 only map non-secure region for pbridge0 and 1, set sec_access to false
+	 */
 	trdc_mbc_set_access(2, 7, 0, 49, false);
 	trdc_mbc_set_access(2, 7, 0, 50, false);
 	trdc_mbc_set_access(2, 7, 0, 51, false);
@@ -660,10 +662,10 @@ int trdc_set_access(void)
 	return 0;
 }
 
-void lpav_configure(void)
+void lpav_configure(bool lpav_to_m33)
 {
-	/* LPAV to APD */
-	setbits_le32(SIM_SEC_BASE_ADDR + 0x44, BIT(7));
+	if (!lpav_to_m33)
+		setbits_le32(SIM_SEC_BASE_ADDR + 0x44, BIT(7)); /* LPAV to APD */
 
 	/* PXP/GPU 2D/3D/DCNANO/MIPI_DSI/EPDC/HIFI4 to APD */
 	setbits_le32(SIM_SEC_BASE_ADDR + 0x4c, 0x7F);
@@ -678,6 +680,7 @@ void load_lposc_fuse(void)
 {
 	int ret;
 	u32 val = 0, val2 = 0, reg;
+
 	ret = fuse_read(25, 0, &val);
 	if (ret)
 		return; /* failed */
@@ -732,7 +735,10 @@ int arch_cpu_init(void)
 				release_rdc(RDC_TRDC);
 
 			trdc_set_access();
-			lpav_configure();
+
+			lpav_configure(false);
+		} else {
+			lpav_configure(true);
 		}
 
 		/* Release xrdc, then allow A35 to write SRAM2 */
@@ -769,17 +775,14 @@ int arch_cpu_init_dm(void)
 #if defined(CONFIG_ARCH_MISC_INIT)
 int arch_misc_init(void)
 {
-	struct udevice *dev;
-	int node, ret;
+	if (IS_ENABLED(CONFIG_FSL_CAAM)) {
+		struct udevice *dev;
+		int ret;
 
-	node = fdt_node_offset_by_compatible(gd->fdt_blob, -1, "fsl,sec-v4.0");
-
-	ret = uclass_get_device_by_of_offset(UCLASS_MISC, node, &dev);
-	if (ret) {
-		printf("could not get caam jr device %d\n", ret);
-		return ret;
+		ret = uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(caam_jr), &dev);
+		if (ret)
+			printf("Failed to initialize caam_jr: %d\n", ret);
 	}
-	device_probe(dev);
 
 	return 0;
 }
@@ -861,6 +864,37 @@ u32 spl_arch_boot_image_offset(u32 image_offset, u32 rom_bt_dev)
 
 int ft_system_setup(void *blob, struct bd_info *bd)
 {
+	u32 uid[4];
+	u32 res;
+	int ret;
+	int nodeoff = fdt_path_offset(blob, "/soc");
+	/* Nibble 1st for major version
+	 * Nibble 0th for minor version.
+	 */
+	const u32 rev = 0x10;
+
+	if (nodeoff < 0) {
+		printf("Node to update the SoC serial number is not found.\n");
+		goto skip_upt;
+	}
+
+	ret = ahab_read_common_fuse(1, uid, 4, &res);
+	if (ret) {
+		printf("ahab read fuse failed %d, 0x%x\n", ret, res);
+		memset(uid, 0x0, 4 * sizeof(u32));
+	}
+
+	ret = fdt_setprop_u32(blob, nodeoff, "soc-rev", rev);
+	if (ret)
+		printf("Error[0x%x] fdt_setprop revision-number.\n", ret);
+
+	ret = fdt_setprop_u64(blob, nodeoff, "soc-serial",
+				(u64)uid[3] << 32 | uid[0]);
+	if (ret)
+		printf("Error[0x%x] fdt_setprop serial-number.\n", ret);
+
+
+skip_upt:
 	return ft_add_optee_node(blob, bd);
 }
 

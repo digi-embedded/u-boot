@@ -201,6 +201,7 @@
 	pinctrl-0 = <&pinctrl_gpmi_nand_1>;
 	status = "disabled";
 	nand-on-flash-bbt;
+	fsl,use-minimum-ecc;
 };
 
 &i2c1 {
@@ -485,7 +486,7 @@
 				MX6ULL_PAD_CSI_DATA01__ESAI_RX_HF_CLK     0x1b0b0
 				MX6ULL_PAD_CSI_DATA04__ESAI_TX_FS         0x1b0b0
 				MX6ULL_PAD_CSI_DATA05__ESAI_TX_CLK        0x1b0b0
-				MX6ULL_PAD_CSI_DATA07__ESAI_T0            0x1b0b0
+				MX6ULL_PAD_CSI_DATA07__ESAI_TX0           0x1b0b0
 				MX6ULL_PAD_CSI_HSYNC__ESAI_TX1            0x1b0b0
 				MX6ULL_PAD_CSI_PIXCLK__ESAI_TX2_RX3       0x1b0b0
 				MX6ULL_PAD_CSI_MCLK__ESAI_TX3_RX2         0x1b0b0

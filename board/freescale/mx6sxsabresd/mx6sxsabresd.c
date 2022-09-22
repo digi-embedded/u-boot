@@ -155,31 +155,6 @@ static iomux_v3_cfg_t const peri_3v3_pads[] = {
 	MX6_PAD_QSPI1A_DATA0__GPIO4_IO_16 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 
-static iomux_v3_cfg_t const phy_control_pads[] = {
-	/* 25MHz Ethernet PHY Clock */
-	MX6_PAD_ENET2_RX_CLK__ENET2_REF_CLK_25M | MUX_PAD_CTRL(ENET_CLK_PAD_CTRL),
-
-	/* ENET PHY Power */
-	MX6_PAD_ENET2_COL__GPIO2_IO_6 | MUX_PAD_CTRL(NO_PAD_CTRL),
-
-	/* AR8031 PHY Reset */
-	MX6_PAD_ENET2_CRS__GPIO2_IO_7 | MUX_PAD_CTRL(NO_PAD_CTRL),
-};
-
-#if defined(CONFIG_PCIE_IMX) && !defined(CONFIG_DM_PCI)
-iomux_v3_cfg_t const pcie_pads[] = {
-	MX6_PAD_ENET1_COL__GPIO2_IO_0 | MUX_PAD_CTRL(NO_PAD_CTRL),	/* POWER */
-	MX6_PAD_ENET1_CRS__GPIO2_IO_1 | MUX_PAD_CTRL(NO_PAD_CTRL),	/* RESET */
-};
-
-static void setup_pcie(void)
-{
-	imx_iomux_v3_setup_multiple_pads(pcie_pads, ARRAY_SIZE(pcie_pads));
-	gpio_request(CONFIG_PCIE_IMX_POWER_GPIO, "PCIE Power Enable");
-	gpio_request(CONFIG_PCIE_IMX_PERST_GPIO, "PCIE Reset");
-}
-#endif
-
 static void setup_iomux_uart(void)
 {
 	imx_iomux_v3_setup_multiple_pads(uart1_pads, ARRAY_SIZE(uart1_pads));
@@ -190,7 +165,6 @@ static int setup_fec(void)
 	struct iomuxc *iomuxc_regs = (struct iomuxc *)IOMUXC_BASE_ADDR;
 	struct anatop_regs *anatop = (struct anatop_regs *)ANATOP_BASE_ADDR;
 	int reg, ret;
-	struct gpio_desc desc;
 
 	/* Use 125M anatop loopback REF_CLK1 for ENET1, clear gpr1[13], gpr1[17]*/
 	clrsetbits_le32(&iomuxc_regs->gpr[1], IOMUX_GPR1_FEC1_MASK, 0);
@@ -206,42 +180,6 @@ static int setup_fec(void)
 	if (ret)
 		return ret;
 
-	imx_iomux_v3_setup_multiple_pads(phy_control_pads,
-					 ARRAY_SIZE(phy_control_pads));
-
-	/* Enable the ENET power, active low */
-	ret = dm_gpio_lookup_name("GPIO2_6", &desc);
-	if (ret) {
-		printf("%s lookup GPIO2_6 failed ret = %d\n", __func__, ret);
-		return ret;
-	}
-
-	ret = dm_gpio_request(&desc, "fec power en");
-	if (ret) {
-		printf("%s request fec power en failed ret = %d\n", __func__, ret);
-		return ret;
-	}
-
-	dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT);
-	dm_gpio_set_value(&desc, 0);
-
-	ret = dm_gpio_lookup_name("GPIO2_7", &desc);
-	if (ret) {
-		printf("%s lookup GPIO2_7 failed ret = %d\n", __func__, ret);
-		return ret;
-	}
-
-	ret = dm_gpio_request(&desc, "ar8031 reset");
-	if (ret) {
-		printf("%s request ar8031 reset failed ret = %d\n", __func__, ret);
-		return ret;
-	}
-
-	dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT);
-	dm_gpio_set_value(&desc, 0);
-	mdelay(10);
-	dm_gpio_set_value(&desc, 1);
-
 	reg = readl(&anatop->pll_enet);
 	reg |= BM_ANADIG_PLL_ENET_REF_25M_ENABLE;
 	writel(reg, &anatop->pll_enet);
@@ -249,7 +187,7 @@ static int setup_fec(void)
 	return 0;
 }
 
-#ifdef CONFIG_SYS_I2C
+#ifdef CONFIG_SYS_I2C_LEGACY
 #define PC MUX_PAD_CTRL(I2C_PAD_CTRL)
 /* I2C1 for PMIC */
 static struct i2c_pads_info i2c_pad_info1 = {
@@ -280,7 +218,7 @@ struct i2c_pads_info i2c_pad_info2 = {
 };
 #endif
 
-#ifdef CONFIG_POWER
+#ifdef CONFIG_POWER_LEGACY
 int power_init_board(void)
 {
 	struct pmic *pfuze;
@@ -376,7 +314,7 @@ int power_init_board(void)
 #endif
 
 #ifdef CONFIG_LDO_BYPASS_CHECK
-#ifdef CONFIG_POWER
+#ifdef CONFIG_POWER_LEGACY
 void ldo_mode_set(int ldo_bypass)
 {
 	unsigned int value;
@@ -723,16 +661,16 @@ static iomux_v3_cfg_t const lcd_pads[] = {
 	MX6_PAD_SD1_DATA2__GPIO6_IO_4 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 
-void do_enable_lvds(struct display_info_t const *dev)
+void setup_lvds(void)
 {
 	int ret;
 
-	ret = enable_lcdif_clock(dev->bus, 1);
+	ret = enable_lcdif_clock(LCDIF2_BASE_ADDR, 1);
 	if (ret) {
 		printf("Enable LCDIF clock failed, %d\n", ret);
 		return;
 	}
-	ret = enable_lvds_bridge(dev->bus);
+	ret = enable_lvds_clock(LCDIF2_BASE_ADDR);
 	if (ret) {
 		printf("Enable LVDS bridge failed, %d\n", ret);
 		return;
@@ -750,12 +688,11 @@ void do_enable_lvds(struct display_info_t const *dev)
 	gpio_direction_output(IMX_GPIO_NR(6, 3) , 1);
 }
 
-void do_enable_parallel_lcd(struct display_info_t const *dev)
-
+void setup_lcd(void)
 {
 	int ret;
 
-	ret = enable_lcdif_clock(dev->bus, 1);
+	ret = enable_lcdif_clock(MX6SX_LCDIF1_BASE_ADDR, 1);
 	if (ret) {
 		printf("Enable LCDIF clock failed, %d\n", ret);
 		return;
@@ -773,47 +710,6 @@ void do_enable_parallel_lcd(struct display_info_t const *dev)
 	gpio_request(IMX_GPIO_NR(6, 4), "lcd_bright");
 	gpio_direction_output(IMX_GPIO_NR(6, 4) , 1);
 }
-
-struct display_info_t const displays[] = {{
-	.bus = LCDIF2_BASE_ADDR,
-	.addr = 0,
-	.pixfmt = 18,
-	.detect = NULL,
-	.enable	= do_enable_lvds,
-	.mode	= {
-		.name			= "Hannstar-XGA",
-		.xres           = 1024,
-		.yres           = 768,
-		.pixclock       = 15385,
-		.left_margin    = 220,
-		.right_margin   = 40,
-		.upper_margin   = 21,
-		.lower_margin   = 7,
-		.hsync_len      = 60,
-		.vsync_len      = 10,
-		.sync           = 0,
-		.vmode          = FB_VMODE_NONINTERLACED
-} }, {
-	.bus = MX6SX_LCDIF1_BASE_ADDR,
-	.addr = 0,
-	.pixfmt = 24,
-	.detect = NULL,
-	.enable	= do_enable_parallel_lcd,
-	.mode	= {
-		.name			= "MCIMX28LCD",
-		.xres           = 800,
-		.yres           = 480,
-		.pixclock       = 29850,
-		.left_margin    = 89,
-		.right_margin   = 164,
-		.upper_margin   = 23,
-		.lower_margin   = 10,
-		.hsync_len      = 10,
-		.vsync_len      = 10,
-		.sync           = 0,
-		.vmode          = FB_VMODE_NONINTERLACED
-} } };
-size_t display_count = ARRAY_SIZE(displays);
 #endif
 
 int board_init(void)
@@ -834,7 +730,7 @@ int board_init(void)
 	regulators_enable_boot_on(false);
 #endif
 
-#ifdef CONFIG_SYS_I2C
+#ifdef CONFIG_SYS_I2C_LEGACY
 	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
 	setup_i2c(1, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info2);
 #endif
@@ -849,13 +745,14 @@ int board_init(void)
 	board_qspi_init();
 #endif
 
-#if defined(CONFIG_PCIE_IMX) && !defined(CONFIG_DM_PCI)
-	setup_pcie();
-#endif
-
 	/* Also used for OF_CONTROL enabled */
 #ifdef CONFIG_FEC_MXC
 	setup_fec();
+#endif
+
+#ifdef CONFIG_VIDEO_MXS
+	setup_lvds();
+	setup_lcd();
 #endif
 
 	return 0;
@@ -890,7 +787,10 @@ int board_late_init(void)
 
 int checkboard(void)
 {
+#ifdef CONFIG_NXP_BOARD_REVISION
 	printf("Board: MX6SX SABRE SDB rev%c\n", nxp_board_rev_string());
-
+#else
+       puts("Board: MX6SX SABRE SDB");
+#endif
 	return 0;
 }

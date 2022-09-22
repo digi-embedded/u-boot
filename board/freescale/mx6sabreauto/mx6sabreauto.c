@@ -98,7 +98,7 @@ static iomux_v3_cfg_t const uart4_pads[] = {
 	IOMUX_PADS(PAD_KEY_ROW0__UART4_RX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL)),
 };
 
-#ifdef CONFIG_SYS_I2C
+#ifdef CONFIG_SYS_I2C_LEGACY
 /* I2C2 PMIC, iPod, Tuner, Codec, Touch, HDMI EDID, MIPI CSI2 card */
 static struct i2c_pads_info i2c_pad_info1 = {
 	.scl = {
@@ -404,12 +404,14 @@ static void setup_fec(void)
 		printf("Error fec anatop clock settings!\n");
 }
 
+#ifdef CONFIG_REVISION_TAG
 u32 get_board_rev(void)
 {
 	int rev = nxp_board_rev();
 
 	return (get_cpu_rev() & ~(0xF << 8)) | rev;
 }
+#endif
 
 static int ar8031_phy_fixup(struct phy_device *phydev)
 {
@@ -645,7 +647,7 @@ int board_init(void)
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 
-#ifdef CONFIG_SYS_I2C
+#ifdef CONFIG_SYS_I2C_LEGACY
 	/* I2C 2 and 3 setup - I2C 3 hw mux with EIM */
 	setup_i2c(1, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
 #ifndef CONFIG_SYS_FLASH_CFI
@@ -685,7 +687,7 @@ int board_init(void)
 	return 0;
 }
 
-#ifdef CONFIG_POWER
+#ifdef CONFIG_POWER_LEGACY
 int power_init_board(void)
 {
 	struct pmic *pfuze;
@@ -829,7 +831,7 @@ int power_init_board(void)
 #endif
 
 #ifdef CONFIG_LDO_BYPASS_CHECK
-#ifdef CONFIG_POWER
+#ifdef CONFIG_POWER_LEGACY
 void ldo_mode_set(int ldo_bypass)
 {
 	unsigned int value;

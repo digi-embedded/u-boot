@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2018 NXP
+ * Copyright 2018, 2021 NXP
  */
 
 / {
@@ -139,22 +139,6 @@
 	u-boot,dm-spl;
 };
 
-&pd_conn_usbotg0 {
-	u-boot,dm-spl;
-};
-
-&pd_conn_usbotg0_phy {
-	u-boot,dm-spl;
-};
-
-&pd_conn_usb2 {
-	u-boot,dm-spl;
-};
-
-&pd_conn_usb2_phy {
-	u-boot,dm-spl;
-};
-
 &pd_caam {
 	u-boot,dm-spl;
 };
@@ -168,6 +152,22 @@
 };
 
 &pd_caam_jr3 {
+	u-boot,dm-spl;
+};
+
+&pd_conn_usbotg0 {
+	u-boot,dm-spl;
+};
+
+&pd_conn_usbotg0_phy {
+	u-boot,dm-spl;
+};
+
+&pd_conn_usb2 {
+	u-boot,dm-spl;
+};
+
+&pd_conn_usb2_phy {
 	u-boot,dm-spl;
 };
 
@@ -242,6 +242,22 @@
 	sd-uhs-ddr50;
 };
 
+&crypto {
+	u-boot,dm-spl;
+};
+
+&sec_jr1 {
+	u-boot,dm-spl;
+};
+
+&sec_jr2 {
+	u-boot,dm-spl;
+};
+
+&sec_jr3 {
+	u-boot,dm-spl;
+};
+
 &flexspi0 {
 	u-boot,dm-spl;
 };
@@ -276,20 +292,4 @@
 		regulator-min-microvolt = <1800000>;
 		regulator-max-microvolt = <1800000>;
 	};
-};
-
-&crypto {
-	u-boot,dm-spl;
-};
-
-&sec_jr1 {
-	u-boot,dm-spl;
-};
-
-&sec_jr2 {
-	u-boot,dm-spl;
-};
-
-&sec_jr3 {
-	u-boot,dm-spl;
 };

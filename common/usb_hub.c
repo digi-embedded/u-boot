@@ -144,7 +144,8 @@ int usb_get_port_status(struct usb_device *dev, int port, void *data)
 
 	if (!usb_hub_is_root_hub(dev->dev) && usb_hub_is_superspeed(dev)) {
 		struct usb_port_status *status = (struct usb_port_status *)data;
-		u16 tmp = (status->wPortStatus) & USB_SS_PORT_STAT_MASK;
+		u16 tmp = le16_to_cpu(status->wPortStatus) &
+			USB_SS_PORT_STAT_MASK;
 
 		if (status->wPortStatus & USB_SS_PORT_STAT_POWER)
 			tmp |= USB_PORT_STAT_POWER;
@@ -152,7 +153,7 @@ int usb_get_port_status(struct usb_device *dev, int port, void *data)
 		    USB_SS_PORT_STAT_SPEED_5GBPS)
 			tmp |= USB_PORT_STAT_SUPER_SPEED;
 
-		status->wPortStatus = tmp;
+		status->wPortStatus = cpu_to_le16(tmp);
 	}
 #endif
 
@@ -949,7 +950,7 @@ U_BOOT_DRIVER(usb_generic_hub) = {
 	.name	= "usb_hub",
 	.id	= UCLASS_USB_HUB,
 	.of_match = usb_hub_ids,
-	.flags	= DM_FLAG_ALLOC_PRIV_DMA,
+	.flags	= DM_FLAG_ALLOC_PRIV_DMA | DM_FLAG_DEFAULT_PD_CTRL_OFF,
 };
 
 UCLASS_DRIVER(usb_hub) = {

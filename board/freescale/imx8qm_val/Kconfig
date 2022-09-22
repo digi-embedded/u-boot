@@ -9,4 +9,7 @@ config SYS_VENDOR
 config SYS_CONFIG_NAME
 	default "imx8qm_val"
 
+config IMX_CONFIG
+	default "board/freescale/imx8qm_val/imximage.cfg"
+
 endif
