@@ -77,10 +77,6 @@
 #define CONFIG_FEC_XCV_TYPE             RMII
 #endif
 
-/* I2C */
-#define CONFIG_SYS_I2C_MXC_I2C1
-#define CONFIG_SYS_I2C_MXC_I2C2
-
 #undef CONFIG_DEFAULT_FDT_FILE
 #define CONFIG_DEFAULT_FDT_FILE		"imx6ul-" CONFIG_SYS_BOARD ".dtb"
 
