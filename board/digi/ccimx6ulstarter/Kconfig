@@ -18,4 +18,6 @@ config SYS_SOC
 config SYS_CONFIG_NAME
 	default "ccimx6ulstarter"
 
+source "board/digi/ccimx6ul/Kconfig"
+
 endif
