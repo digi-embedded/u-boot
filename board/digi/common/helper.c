@@ -19,7 +19,7 @@
 #include <mapmem.h>
 #include <nand.h>
 #include <ubi_uboot.h>
-#include <version.h>
+#include <version_string.h>
 #include <watchdog.h>
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>
