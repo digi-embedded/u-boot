@@ -152,7 +152,7 @@ int get_trustfence_key_modifier(unsigned char key_modifier[16])
  */
 void copy_dek(void)
 {
-	ulong loadaddr = env_get_ulong("loadaddr", 16, CONFIG_LOADADDR);
+	ulong loadaddr = env_get_ulong("loadaddr", 16, CONFIG_SYS_LOAD_ADDR);
 	void *dek_blob_dst = (void *)(loadaddr - BLOB_DEK_OFFSET);
 	u32 dek_size;
 
@@ -161,7 +161,7 @@ void copy_dek(void)
 
 void copy_spl_dek(void)
 {
-	ulong loadaddr = env_get_ulong("loadaddr", 16, CONFIG_LOADADDR);
+	ulong loadaddr = env_get_ulong("loadaddr", 16, CONFIG_SYS_LOAD_ADDR);
 	void *dek_blob_dst = (void *)(loadaddr - (2 * BLOB_DEK_OFFSET));
 
 	get_dek_blob(dek_blob_dst, NULL);
@@ -721,7 +721,7 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 	} else if (!strcmp(op, "update")) {
 		char cmd_buf[CONFIG_SYS_CBSIZE];
 		unsigned long loadaddr = env_get_ulong("loadaddr", 16,
-						      CONFIG_LOADADDR);
+						      CONFIG_SYS_LOAD_ADDR);
 		unsigned long uboot_size;
 		unsigned long dek_size;
 		unsigned long dek_blob_src;

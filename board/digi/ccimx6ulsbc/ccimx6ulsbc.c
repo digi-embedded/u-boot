@@ -544,7 +544,7 @@ int board_display_logo(void)
 	}
 
 	/* Check the format and get the size */
-	loadaddr = env_get_ulong("loadaddr", 16, CONFIG_LOADADDR);
+	loadaddr = env_get_ulong("loadaddr", 16, CONFIG_SYS_LOAD_ADDR);
 	ret = check_bmp(loadaddr, &logowidth, &logoheight);
 	if (ret) {
 		printf("ERR: invalid logo bmp image\n");
