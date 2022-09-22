@@ -106,7 +106,7 @@ static int boot_os(char* initrd_addr, char* fdt_addr)
 
 	if (!strcmp(var, "fitimage")) {
 		/* Compose the FIT boot command with appended default FIT-conf and overlays */
-		loadaddr = env_get_ulong("loadaddr", 16, CONFIG_LOADADDR);
+		loadaddr = env_get_ulong("loadaddr", 16, CONFIG_SYS_LOAD_ADDR);
 		fit_hdr = map_sysmem(loadaddr, 0);
 		/* get default FIT configuration */
 		cfg_noffset = fit_conf_get_node(fit_hdr, NULL);

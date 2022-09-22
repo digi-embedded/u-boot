@@ -27,8 +27,7 @@
 /*
  * RAM
  */
-#define CONFIG_LOADADDR			0x80800000
-#define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
+#define CONFIG_SYS_LOAD_ADDR		0x80800000
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		(16 * SZ_1M)
 /* Physical Memory Map */

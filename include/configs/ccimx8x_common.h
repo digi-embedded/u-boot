@@ -40,8 +40,7 @@
 #endif /* CONFIG_SPL_BUILD */
 
 /* RAM */
-#define CONFIG_LOADADDR			0x88280000
-#define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
+#define CONFIG_SYS_LOAD_ADDR		0x88280000
 #define CONFIG_SYS_INIT_SP_ADDR		0x88200000
 /* RAM memory reserved for U-Boot, stack, malloc pool... */
 /* Size of malloc() pool */
