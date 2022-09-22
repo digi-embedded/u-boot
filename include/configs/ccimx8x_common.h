@@ -153,7 +153,6 @@
 
 /* Environment */
 /* On CC8X, USDHC1 is for eMMC, USDHC2 is for SD on SBC Express */
-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 #define CONFIG_SYS_FSL_USDHC_NUM	2
 
 /* MCA */
