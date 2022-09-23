@@ -590,7 +590,7 @@ u32 imx_get_i2cclk(u32 i2c_num)
 	return ccm_clk_root_get_rate(LPI2C1_CLK_ROOT + i2c_num);
 }
 
-u32 get_lpuart_clk(void)
+u32 get_lpuart_clk(u64 reg)
 {
 	return mxc_get_clock(MXC_UART_CLK);
 }

@@ -208,7 +208,7 @@ struct clk_root_map {
 
 int clock_init(void);
 u32 get_clk_src_rate(enum ccm_clk_src source);
-u32 get_lpuart_clk(void);
+u32 get_lpuart_clk(u64 reg);
 void init_uart_clk(u32 index);
 void init_clk_usdhc(u32 index);
 int enable_i2c_clk(unsigned char enable, u32 i2c_num);
