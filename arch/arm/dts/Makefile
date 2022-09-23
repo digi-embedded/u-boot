@@ -1015,6 +1015,7 @@ dtb-$(CONFIG_ARCH_IMX8M) += \
 	imx8mq-kontron-pitx-imx8m.dtb
 
 dtb-$(CONFIG_ARCH_IMX9) += \
+	ccimx93-dvk.dtb \
 	imx93-11x11-evk.dtb
 
 dtb-$(CONFIG_ARCH_IMXRT) += imxrt1050-evk.dtb \

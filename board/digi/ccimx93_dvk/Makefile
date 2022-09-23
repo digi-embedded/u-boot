@@ -8,5 +8,5 @@ obj-y += imx93_evk.o
 
 ifdef CONFIG_SPL_BUILD
 obj-y += spl.o
-obj-$(CONFIG_IMX93_EVK_LPDDR4X) += lpddr4x_timing.o
+obj-$(CONFIG_CCIMX93_DVK_LPDDR4X) += lpddr4x_timing.o
 endif

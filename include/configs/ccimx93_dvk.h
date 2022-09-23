@@ -3,8 +3,8 @@
  * Copyright 2022 NXP
  */
 
-#ifndef __IMX93_EVK_H
-#define __IMX93_EVK_H
+#ifndef CCIMX93_DVK_H
+#define CCIMX93_DVK_H
 
 #include <linux/sizes.h>
 #include <linux/stringify.h>
