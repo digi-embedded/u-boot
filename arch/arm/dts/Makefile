@@ -1201,7 +1201,8 @@ dtb-$(CONFIG_STM32MP15x) += \
 	stm32mp15xx-dhcom-pdk2.dtb \
 	stm32mp15xx-dhcom-picoitx.dtb \
 	stm32mp15xx-dhcor-avenger96.dtb \
-	stm32mp15xx-dhcor-drc-compact.dtb
+	stm32mp15xx-dhcor-drc-compact.dtb \
+	stm32mp15xx-dhcor-testbench.dtb
 
 dtb-$(CONFIG_SOC_K3_AM654) += \
 	k3-am654-base-board.dtb \
