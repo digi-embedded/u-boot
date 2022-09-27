@@ -1,10 +1,12 @@
 /* SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause */
 /*
  * Copyright (C) 2022, Digi International Inc
+ * Copyright (C) 2022, STMicroelectronics - All Rights Reserved
+ *
  */
 
-#ifndef __CONFIG_STM32MP13_ST_COMMON_H__
-#define __CONFIG_STM32MP13_ST_COMMON_H__
+#ifndef __CCMP13_DVK_CONFIG_H__
+#define __CCMP13_DVK_CONFIG_H__
 
 #include <configs/ccmp1_common.h>
 
@@ -150,9 +152,10 @@
 	STM32MP_MEM_LAYOUT \
 	BOOTENV \
 
-#endif
 
 /* Ethernet */
 #ifdef CONFIG_DWC_ETH_QOS
 #define CONFIG_SYS_NONCACHED_MEMORY    (1 * SZ_1M)
 #endif
+
+#endif /* __CCMP13_DVK_CONFIG_H__ */

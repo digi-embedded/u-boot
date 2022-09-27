@@ -1,12 +1,12 @@
 /* SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause */
 /*
+ * Copyright (C) 2022, Digi International Inc
  * Copyright (C) 2018, STMicroelectronics - All Rights Reserved
  *
- * Configuration settings for the STM32MP15x CPU
  */
 
-#ifndef __CONFIG_H
-#define __CONFIG_H
+#ifndef __CCMP15_DVK_CONFIG_H__
+#define __CCMP15_DVK_CONFIG_H__
 
 #include <configs/ccmp1_common.h>
 
@@ -181,4 +181,4 @@
 	BOOTENV \
 	"boot_net_usb_start=true\0"
 
-#endif /* __CONFIG_H */
+#endif /* __CCMP15_DVK_CONFIG_H__ */
