@@ -176,9 +176,14 @@
 	"ramdisk_addr_r=0xc4400000\0" \
 	"altbootcmd=run bootcmd\0" \
 	"env_check=if env info -p -d -q; then env save; fi\0" \
-	STM32MP_BOOTCMD \
 	PARTS_DEFAULT \
 	BOOTENV \
 	"boot_net_usb_start=true\0"
+
+#undef CONFIG_BOOTCOMMAND
+#define CONFIG_BOOTCOMMAND \
+	"if run loadscript; then " \
+		"source ${loadaddr};" \
+	"fi;"
 
 #endif /* __CCMP15_DVK_CONFIG_H__ */

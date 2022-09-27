@@ -141,29 +141,6 @@
 	BOOT_TARGET_USB(func)		\
 	BOOT_TARGET_PXE(func)
 
-/*
- * bootcmd for stm32mp1:
- * for serial/usb: execute the stm32prog command
- * for mmc boot (eMMC, SD card), boot only on the same device
- * for nand or spi-nand boot, boot with on ubifs partition on UBI partition
- * for nor boot, use SD card = mmc0
- */
-#define STM32MP_BOOTCMD "bootcmd_stm32mp=" \
-	"echo \"Boot over ${boot_device}${boot_instance}!\";" \
-	"if test ${boot_device} = serial || test ${boot_device} = usb;" \
-	"then stm32prog ${boot_device} ${boot_instance}; " \
-	"else " \
-		"run env_check;" \
-		"if test ${boot_device} = mmc;" \
-		"then env set boot_targets \"mmc${boot_instance}\"; fi;" \
-		"if test ${boot_device} = nand ||" \
-		  " test ${boot_device} = spi-nand ;" \
-		"then env set boot_targets ubifs0; fi;" \
-		"if test ${boot_device} = nor;" \
-		"then env set boot_targets mmc0; fi;" \
-		"run distro_bootcmd;" \
-	"fi;\0"
-
 #include <config_distro_bootcmd.h>
 
 #endif /* ifndef CONFIG_SPL_BUILD */

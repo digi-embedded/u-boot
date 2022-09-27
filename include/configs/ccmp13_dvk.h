@@ -152,6 +152,11 @@
 	STM32MP_MEM_LAYOUT \
 	BOOTENV \
 
+#undef CONFIG_BOOTCOMMAND
+#define CONFIG_BOOTCOMMAND \
+	"if run loadscript; then " \
+		"source ${loadaddr};" \
+	"fi;"
 
 /* Ethernet */
 #ifdef CONFIG_DWC_ETH_QOS
