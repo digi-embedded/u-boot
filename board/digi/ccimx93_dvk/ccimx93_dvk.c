@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
+ * Copyright 2022 Digi International Inc
  * Copyright 2022 NXP
  */
 
@@ -14,7 +15,7 @@
 #include <asm/arch-imx9/imx93_pins.h>
 #include <asm/arch/clock.h>
 #include <power/pmic.h>
-#include "../common/tcpc.h"
+#include "../../freescale/common/tcpc.h"
 #include <dm/device.h>
 #include <dm/uclass.h>
 #include <usb.h>

@@ -1,10 +1,10 @@
 #
-# Copyright 2022 NXP
+# Copyright 2022 Digi International Inc
 #
 # SPDX-License-Identifier:      GPL-2.0+
 #
 
-obj-y += imx93_evk.o
+obj-y += ccimx93_dvk.o
 
 ifdef CONFIG_SPL_BUILD
 obj-y += spl.o
