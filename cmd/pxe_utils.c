@@ -466,11 +466,30 @@ static int label_boot(struct cmd_tbl *cmdtp, struct pxe_label *label)
 		return 1;
 	}
 
+	if (get_relfile_envaddr(cmdtp, label->kernel, "kernel_addr_r") < 0) {
+		printf("Skipping %s for failure retrieving kernel\n",
+		       label->name);
+		return 1;
+	}
+	bootm_argv[1] = env_get("kernel_addr_r");
+	/* for FIT, append the configuration identifier */
+	if (label->config) {
+		int len = strlen(bootm_argv[1]) + strlen(label->config) + 1;
+
+		fit_addr = malloc(len);
+		if (!fit_addr) {
+			printf("malloc fail (FIT address)\n");
+			return 1;
+		}
+		snprintf(fit_addr, len, "%s%s", bootm_argv[1], label->config);
+		bootm_argv[1] = fit_addr;
+	}
+
 	if (label->initrd) {
 		if (get_relfile_envaddr(cmdtp, label->initrd, "ramdisk_addr_r") < 0) {
 			printf("Skipping %s for failure retrieving initrd\n",
 			       label->name);
-			return 1;
+			goto cleanup;
 		}
 
 		bootm_argv[2] = initrd_str;
@@ -478,12 +497,6 @@ static int label_boot(struct cmd_tbl *cmdtp, struct pxe_label *label)
 		strcat(bootm_argv[2], ":");
 		strncat(bootm_argv[2], env_get("filesize"), 9);
 		bootm_argc = 3;
-	}
-
-	if (get_relfile_envaddr(cmdtp, label->kernel, "kernel_addr_r") < 0) {
-		printf("Skipping %s for failure retrieving kernel\n",
-		       label->name);
-		return 1;
 	}
 
 	if (label->ipappend & 0x1) {
@@ -513,7 +526,7 @@ static int label_boot(struct cmd_tbl *cmdtp, struct pxe_label *label)
 			       strlen(label->append ?: ""),
 			       strlen(ip_str), strlen(mac_str),
 			       sizeof(bootargs));
-			return 1;
+			goto cleanup;
 		}
 
 		if (label->append)
@@ -526,20 +539,6 @@ static int label_boot(struct cmd_tbl *cmdtp, struct pxe_label *label)
 					  sizeof(finalbootargs));
 		env_set("bootargs", finalbootargs);
 		printf("append: %s\n", finalbootargs);
-	}
-
-	bootm_argv[1] = env_get("kernel_addr_r");
-	/* for FIT, append the configuration identifier */
-	if (label->config) {
-		int len = strlen(bootm_argv[1]) + strlen(label->config) + 1;
-
-		fit_addr = malloc(len);
-		if (!fit_addr) {
-			printf("malloc fail (FIT address)\n");
-			return 1;
-		}
-		snprintf(fit_addr, len, "%s%s", bootm_argv[1], label->config);
-		bootm_argv[1] = fit_addr;
 	}
 
 	/*
