@@ -268,6 +268,9 @@ static void label_destroy(struct pxe_label *label)
 	if (label->name)
 		free(label->name);
 
+	if (label->kernel_label)
+		free(label->kernel_label);
+
 	if (label->kernel)
 		free(label->kernel);
 
@@ -449,6 +452,7 @@ static int label_boot(struct cmd_tbl *cmdtp, struct pxe_label *label)
 	int len = 0;
 	ulong kernel_addr;
 	void *buf;
+	bool fdt_use_kernel = false, initrd_use_kernel = false;
 
 	label_print(label);
 
@@ -465,6 +469,13 @@ static int label_boot(struct cmd_tbl *cmdtp, struct pxe_label *label)
 		       label->name);
 		return 1;
 	}
+
+	/* For FIT, the label can be identical to kernel one */
+	if (label->fdt && !strcmp(label->kernel_label, label->fdt))
+		fdt_use_kernel = true;
+
+	if (label->initrd && !strcmp(label->kernel_label, label->initrd))
+		initrd_use_kernel = true;
 
 	if (get_relfile_envaddr(cmdtp, label->kernel, "kernel_addr_r") < 0) {
 		printf("Skipping %s for failure retrieving kernel\n",
@@ -485,7 +496,9 @@ static int label_boot(struct cmd_tbl *cmdtp, struct pxe_label *label)
 		bootm_argv[1] = fit_addr;
 	}
 
-	if (label->initrd) {
+	if (initrd_use_kernel) {
+		bootm_argv[2] =  bootm_argv[1];
+	} else if (label->initrd) {
 		if (get_relfile_envaddr(cmdtp, label->initrd, "ramdisk_addr_r") < 0) {
 			printf("Skipping %s for failure retrieving initrd\n",
 			       label->name);
@@ -563,7 +576,9 @@ static int label_boot(struct cmd_tbl *cmdtp, struct pxe_label *label)
 	bootm_argv[3] = env_get("fdt_addr_r");
 
 	/* if fdt label is defined then get fdt from server */
-	if (bootm_argv[3]) {
+	if (fdt_use_kernel) {
+		bootm_argv[3] = bootm_argv[1];
+	} else if (bootm_argv[3]) {
 		char *fdtfile = NULL;
 		char *fdtfilefree = NULL;
 
@@ -1081,6 +1096,10 @@ static int parse_label_kernel(char **c, struct pxe_label *label)
 	if (err < 0)
 		return err;
 
+	/* copy the kernel label to compare with FDT / INITRD when FIT is used */
+	label->kernel_label = strdup(label->kernel);
+	if (!label->kernel_label)
+		return -ENOMEM;
 	s = strstr(label->kernel, "#");
 	if (!s)
 		return 1;
