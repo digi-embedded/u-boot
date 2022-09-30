@@ -658,6 +658,7 @@ static int dwc2_ep_enable(struct usb_ep *_ep,
 
 	ep->stopped = 0;
 	ep->desc = desc;
+	_ep->desc = desc;
 	ep->pio_irqs = 0;
 	ep->ep.maxpacket = le16_to_cpu(get_unaligned(&desc->wMaxPacketSize));
 
