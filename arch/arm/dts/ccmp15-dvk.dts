@@ -226,6 +226,11 @@
 	status = "okay";
 };
 
+&usbh_ehci {
+	phys = <&usbphyc_port0>;
+	status = "okay";
+};
+
 &usbotg_hs {
 	pinctrl-0 = <&usbotg_hs_pins_a>;
 	pinctrl-names = "default";
