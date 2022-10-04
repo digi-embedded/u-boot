@@ -3363,7 +3363,7 @@ static int nand_flash_detect_jedec(struct mtd_info *mtd, struct nand_chip *chip,
 	}
 
 	if (i == 3) {
-		pr_err("Could not find valid JEDEC parameter page; aborting\n");
+		pr_info("Could not find valid JEDEC parameter page; aborting\n");
 		return 0;
 	}
 
@@ -3733,6 +3733,15 @@ static bool find_full_id_nand(struct mtd_info *mtd, struct nand_chip *chip,
 }
 
 /*
+ * Sets default ECC parameters when the NAND doesn't report preferred ones.
+ */
+__weak void set_default_ecc_parameters(struct nand_chip *chip)
+{
+	chip->ecc_strength_ds = 1;
+	chip->ecc_step_ds = 512;
+}
+
+/*
  * Get the flash and manufacturer id and lookup if the type is supported.
  */
 static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
@@ -3829,6 +3838,13 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 	if (*maf_id != NAND_MFR_SAMSUNG && !type->pagesize)
 		chip->options &= ~NAND_SAMSUNG_LP_OPTIONS;
 ident_done:
+	/*
+	 * Some NANDs report 0 bits of ECC strength because they
+	 * can work with any number of ECC bits. Use 1-bit by default
+	 * on such cases, because drivers may not accept a value of 0.
+	 */
+	if (chip->ecc_strength_ds == 0 || chip->ecc_step_ds == 0)
+		set_default_ecc_parameters(chip);
 
 	/* Try to identify manufacturer */
 	for (maf_idx = 0; nand_manuf_ids[maf_idx].id != 0x0; maf_idx++) {
