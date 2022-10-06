@@ -27,7 +27,7 @@ struct __packed digi_hwid {
 	u32	bt:1;		/* has Bluetooth */
 	u32	crypto:1;	/* has crypto-authentication */
 	u32	spare:12;	/* spare */
-};
+}__aligned(4);
 
 #define CONFIG_HWID_STRINGS_HELP	"<XXXXXXXX> <YYYYYYYY> <ZZZZZZZZ>"
 #define CONFIG_MANUF_STRINGS_HELP	"<YYWWGGXXXXXX> <PPAAAAAA> <VVHC> <RMWBC>"

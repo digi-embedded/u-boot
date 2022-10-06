@@ -41,7 +41,7 @@ struct __packed digi_hwid {
 	u32	wid:4;		/* wireless ID */
 	u32	week:6;		/* manufacturing week */
 	u32	year:6;		/* manufacturing year */
-};
+}__aligned(4);
 
 enum imx6_cpu {
 	IMX6_NONE = 0,	/* Reserved */
