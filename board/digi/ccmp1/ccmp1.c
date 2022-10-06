@@ -7,7 +7,11 @@
 #include <env_internal.h>
 
 #include "../common/helper.h"
+#include "../common/hwid.h"
 #include "ccmp1.h"
+
+static struct digi_hwid my_hwid;
+
 enum env_location env_get_location(enum env_operation op, int prio)
 {
 	if (prio)
@@ -21,16 +25,28 @@ enum env_location env_get_location(enum env_operation op, int prio)
 
 static bool board_has_wireless(void)
 {
-	return true; /* assume it has, by default */
+	return my_hwid.wifi;
 }
 
 static bool board_has_bluetooth(void)
 {
-	return true; /* assume it has, by default */
+	return my_hwid.bt;
+}
+
+int ccmp1_init(void)
+{
+	if (board_read_hwid(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return -1;
+	}
+
+	return 0;
 }
 
 void fdt_fixup_ccmp1(void *fdt)
 {
+	fdt_fixup_hwid(fdt, &my_hwid);
+
 	if (board_has_wireless()) {
 		/* Wireless MACs */
 		fdt_fixup_mac(fdt, "wlanaddr", "/wireless", "mac-address");

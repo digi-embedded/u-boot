@@ -505,6 +505,9 @@ int board_init(void)
 
 	setup_led(LEDST_ON);
 
+	/* SOM init */
+	ccmp1_init();
+
 	return 0;
 }
 
