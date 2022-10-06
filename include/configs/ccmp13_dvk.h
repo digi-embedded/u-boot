@@ -19,6 +19,9 @@
 
 #define CONFIG_MMCROOT			"/dev/mmcblk0p2"  /* USDHC1 */
 
+/* Carrier board version in environment */
+#define CONFIG_HAS_CARRIERBOARD_VERSION
+
 #define CONFIG_COMMON_ENV	\
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	CONFIG_EXTRA_NETWORK_SETTINGS \

@@ -19,6 +19,9 @@
 
 #define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
 
+/* Carrier board version in environment */
+#define CONFIG_HAS_CARRIERBOARD_VERSION
+
 #ifdef CONFIG_FASTBOOT_CMD_OEM_FORMAT
 /* eMMC default partitions for fastboot command: oem format */
 #define PARTS_DEFAULT \

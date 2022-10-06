@@ -53,6 +53,9 @@
 #include <usb/dwc2_udc.h>
 
 #include "../ccmp1/ccmp1.h"
+#include "../common/carrier_board.h"
+
+unsigned int board_version = CARRIERBOARD_VERSION_UNDEFINED;
 
 /* SYSCFG registers */
 #define SYSCFG_BOOTR		0x00
@@ -810,6 +813,7 @@ void fdt_update_panel_dsi(void *new_blob)
 int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	fdt_fixup_ccmp1(blob);
+	fdt_fixup_carrierboard(blob);
 
 	static const struct node_info nodes[] = {
 		{ "st,stm32f469-qspi",		MTD_DEV_TYPE_NOR,  },
