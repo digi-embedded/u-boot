@@ -66,7 +66,7 @@ struct __packed digi_hwid {
 	u32	week:6;		/* manufacturing week */
 	u32	spare:7;	/* spare */
 	u32	reserved2:16;	/* reserved by NXP */
-};
+}__aligned(4);
 
 enum imx8_cpu {
 	IMX8_NONE = 0,	/* Reserved */

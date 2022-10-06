@@ -26,7 +26,7 @@ struct __packed digi_hwid {
 	u32	crypto:1;	/* has crypto-authentication */
 	u32	week:6;		/* manufacturing week */
 	u32	spare:7;	/* spare */
-};
+}__aligned(4);
 
 #define CONFIG_HWID_STRINGS_HELP	"<XXXXXXXX> <YYYYYYYY> <ZZZZZZZZ>"
 #define CONFIG_MANUF_STRINGS_HELP	"<YYWWGGXXXXXX> <PPAAAAAA> <VVHC> <K> <RMWBC>"
