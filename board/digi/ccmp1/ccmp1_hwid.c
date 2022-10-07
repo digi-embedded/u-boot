@@ -39,29 +39,6 @@ u32 ram_sizes_mb[16] = {
 	0,	/* F */
 };
 
-/* Program HWID into efuses */
-int board_prog_hwid(const struct digi_hwid *hwid)
-{
-	u32 bank = CONFIG_HWID_BANK;
-	u32 word = CONFIG_HWID_START_WORD;
-	u32 cnt = CONFIG_HWID_WORDS_NUMBER;
-	u32 fuseword;
-	int ret, i;
-
-	for (i = 0; i < cnt; i++, word++) {
-		fuseword = ((u32 *)hwid)[i];
-		ret = fuse_prog(bank, word, fuseword);
-		if (ret)
-			break;
-	}
-
-	/* Trigger a HWID-related variables update (from fuses) */
-	if(!ret)
-		board_update_hwid(true);
-
-	return ret;
-}
-
 /* Print HWID info */
 void board_print_hwid(struct digi_hwid *hwid)
 {
