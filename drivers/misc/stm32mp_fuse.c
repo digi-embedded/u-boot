@@ -11,6 +11,7 @@
 #include <dm/device.h>
 #include <dm/uclass.h>
 #include <power/stpmic1.h>
+#include <asm/arch/bsec.h>
 
 #define STM32MP_OTP_BANK	0
 #define STM32MP_NVM_BANK	1
@@ -189,6 +190,71 @@ int fuse_override(u32 bank, u32 word, u32 val)
 	default:
 		printf("stm32mp %s: wrong value for bank %i\n",
 		       __func__, bank);
+		ret = -EINVAL;
+		break;
+	}
+
+	return ret;
+}
+
+int fuse_lock(u32 bank, u32 word)
+{
+	struct udevice *dev;
+	int ret;
+	u32 val = BSEC_LOCK_PERM;
+
+	switch (bank) {
+	case STM32MP_OTP_BANK:
+		ret = uclass_get_device_by_driver(UCLASS_MISC,
+						  DM_DRIVER_GET(stm32mp_bsec),
+						  &dev);
+		if (ret)
+			return ret;
+		ret = misc_write(dev, word * 4 + STM32_BSEC_LOCK_OFFSET,
+				 &val, 4);
+		if (ret != 4)
+			ret = -EINVAL;
+		else
+			ret = 0;
+		break;
+
+	default:
+		printf("stm32mp %s: wrong value for bank %i\n",
+		       __func__, bank);
+		ret = -EINVAL;
+		break;
+	}
+
+	return ret;
+}
+
+int fuse_lock_status(u32 bank, u32 word, u32 *val)
+{
+	int ret;
+	struct udevice *dev;
+
+	switch (bank) {
+	case STM32MP_OTP_BANK:
+		ret = uclass_get_device_by_driver(UCLASS_MISC,
+						  DM_DRIVER_GET(stm32mp_bsec),
+						  &dev);
+		if (ret)
+			return ret;
+		ret = misc_read(dev, word * 4 + STM32_BSEC_LOCK_OFFSET,
+				val, 4);
+		if (ret != 4) {
+			ret = -EINVAL;
+		} else {
+			ret = 0;
+			if (*val & BSEC_LOCK_PERM)
+				*val = 1;
+			else
+				*val = 0;
+		}
+		break;
+
+	default:
+		printf("stm32mp %s: wrong value for bank %i\n", __func__, bank);
 		ret = -EINVAL;
 		break;
 	}

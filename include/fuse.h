@@ -25,5 +25,15 @@ int fuse_prog(u32 bank, u32 word, u32 val);
 int fuse_override(u32 bank, u32 word, u32 val);
 void fuse_allow_prog(bool allow);
 bool fuse_is_prog_allowed(void);
+/*
+ * Lock interface:
+ *   bank:    Fuse bank
+ *   word:    Fuse word within the bank
+ *   val:     Fuse lock status
+ *
+ *   Returns: 0 on success, not 0 on failure
+ */
+int fuse_lock(u32 bank, u32 word);
+int fuse_lock_status(u32 bank, u32 word, u32 *val);
 
 #endif	/* _FUSE_H_ */
