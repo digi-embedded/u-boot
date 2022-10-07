@@ -7,9 +7,32 @@
 #ifndef __HWID_CCMP1_H_
 #define __HWID_CCMP1_H_
 
-//TODO: define HWID for CCMP1
+/*
+ * On the CCMP1 the HWID is stored in 3 consecutive Fuse Words, being:
+ *
+ *                    XK27[31..0]  (bank 0 word 59)
+ *
+ *   |  31..26  |  25..20  |            19..0           |
+ *   +----------+----------+----------------------------+
+ *   |   Year   |   Week   |        Serial number       |
+ *   +----------+----------+----------------------------+
+ *
+ *                    XK28[31..0]  (bank 0 word 60)
+ *
+ *   | 31..28 |  27..24  |             23..0            |
+ *   +--------+----------+------------------------------+
+ *   |  GenID | MAC pool |            MAC base          |
+ *   +--------+----------+------------------------------+
+ *
+ *                    XK29[31..0]  (bank 0 word 61)
+ *
+ *   | 31..20 |   19   | 18 |   17  |  16 |15..12|  11..7  |6..3| 2..0 |
+ *   +--------+--------+----+-------+-----+------+---------+----+------+
+ *   |   --   | Crypto | BT | Wi-Fi | MCA |  RAM | Variant | HV | Cert |
+ *   +--------+--------+----+-------+-----+------+---------+----+------+
+ */
 struct __packed digi_hwid {
-	/* Word 2 */
+	/* Word 0 */
  	u32	sn:20;		/* serial number */
 	u32	week:6;		/* manufacturing week */
 	u32	year:6;		/* manufacturing year */
@@ -17,7 +40,7 @@ struct __packed digi_hwid {
 	u32	mac_base:24;	/* MAC base address */
 	u32	mac_pool:4;	/* MAC address pool */
 	u32	genid:4;	/* generator id */
-	/* Word 0 */
+	/* Word 2 */
 	u32	cert:3;		/* type of wifi certification */
 	u32	hv:4;		/* hardware version */
 	u32	variant:5;	/* module variant */

@@ -63,3 +63,32 @@ void fdt_fixup_ccmp1(void *fdt)
 
 	fdt_fixup_uboot_info(fdt);
 }
+
+void som_default_environment(void)
+{
+	char var[10];
+	char hex_val[9]; // 8 hex chars + null byte
+	int i;
+
+	/* Set $module_variant variable */
+	sprintf(var, "0x%02x", my_hwid.variant);
+	env_set("module_variant", var);
+
+	/* Set $hwid_n variables */
+	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
+		snprintf(var, sizeof(var), "hwid_%d", i);
+		snprintf(hex_val, sizeof(hex_val), "%08x", ((u32 *) &my_hwid)[i]);
+		env_set(var, hex_val);
+	}
+}
+
+void board_update_hwid(bool is_fuse)
+{
+	/* Update HWID-related variables in environment */
+	int ret = is_fuse ? board_sense_hwid(&my_hwid) : board_read_hwid(&my_hwid);
+
+	if (ret)
+		printf("Cannot read HWID\n");
+
+	som_default_environment();
+}

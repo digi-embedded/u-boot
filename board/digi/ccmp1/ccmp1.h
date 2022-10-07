@@ -10,5 +10,6 @@
 /* Common ccmp1 functions */
 int ccmp1_init(void);
 void fdt_fixup_ccmp1(void *fdt);
+void som_default_environment(void);
 
 #endif  /* CCMP1_H */
