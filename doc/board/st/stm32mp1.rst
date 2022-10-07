@@ -69,23 +69,21 @@ a Cortex-A frequency option:
  - D : Cortex-A7 @ 800 MHz
  - F : Secure Boot + HW Crypto + Cortex-A7 @ 800 MHz
 
-Currently the following boards are supported:
+Currently the following STMIcroelectronics boards are supported:
 
  + stm32mp157a-dk1.dts
  + stm32mp157c-dk2.dts
  + stm32mp157c-ed1.dts
  + stm32mp157c-ev1.dts
+
+These board with SCMI support are only managed with stm32mp15_defconfig,
+when the resources are secured with RCC_TZCR.TZEN=1 in OP-TEE. The access to
+these reset and clock resources are provided by OP-TEE and the associated SCMI
+services.
+
+Currently the following customer boards are supported:
+
  + stm32mp15xx-dhcor-avenger96.dts
-
-The SCMI variant of each board is supported by a specific "scmi" device tree:
- + stm32mp157a-dk1-scmi.dts
- + stm32mp157c-dk2-scmi.dts
- + stm32mp157c-ed1-scmi.dts
- + stm32mp157c-ev1-scmi.dts
-
-SCMI variant is used only with stm32mp15_defconfig, when the resources are
-secured with RCC_TZCR.TZEN=1 in OP-TEE. The access to these reset and clock
-resources are provided by OP-TEE and the associated SCMI services.
 
 STM32MP13x
 ``````````
@@ -146,7 +144,7 @@ TF-A_ (BL2) initialize the DDR and loads the next stage binaries from a FIP file
      the secure monitor to access to secure resources.
    + HW_CONFIG: The hardware configuration file = the U-Boot device tree
 
-The scmi variant of each device tree is only support with OP-TEE as secure
+The SCMI variant of each device tree is only support with OP-TEE as secure
 monitor, with stm32mp15_defconfig.
 
 The **Basic** boot chain with SPL (for STM32MP15x)
@@ -260,12 +258,6 @@ Build Procedure
    Examples:
 
   a) trusted boot with FIP on STM32MP15x ev1::
-
-     # export KBUILD_OUTPUT=stm32mp15
-     # make stm32mp15_defconfig
-     # make DEVICE_TREE=stm32mp157c-ev1-scmi all
-
-    or without SCMI support
 
      # export KBUILD_OUTPUT=stm32mp15
      # make stm32mp15_defconfig

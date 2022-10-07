@@ -7,9 +7,6 @@
 #include "stm32mp15-scmi.dtsi"
 
 / {
-	model = "STMicroelectronics STM32MP157C-ED1 SCMI eval daughter";
-	compatible = "st,stm32mp157c-ed1-scmi", "st,stm32mp157c-ed1", "st,stm32mp157";
-
 	reserved-memory {
 		optee@fe000000 {
 			reg = <0xfe000000 0x2000000>;
