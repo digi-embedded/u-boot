@@ -75,6 +75,7 @@ Currently the following STMIcroelectronics boards are supported:
  + stm32mp157c-dk2.dts
  + stm32mp157c-ed1.dts
  + stm32mp157c-ev1.dts
+ + stm32mp157d-dk1.dts
  + stm32mp157f-dk2.dts
 
 These board with SCMI support are only managed with stm32mp15_defconfig,
@@ -192,6 +193,7 @@ The supported device trees for STM32MP15x (stm32mp15_trusted_defconfig and stm32
 + dk1: Discovery board
 
    + stm32mp157a-dk1
+   + stm32mp157d-dk1
 
 + dk2: Discovery board = dk1 with a BT/WiFI combo and a DSI panel
 
