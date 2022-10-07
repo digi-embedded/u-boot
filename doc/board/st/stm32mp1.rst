@@ -72,11 +72,14 @@ a Cortex-A frequency option:
 Currently the following STMIcroelectronics boards are supported:
 
  + stm32mp157a-dk1.dts
+ + stm32mp157a-ed1.dts
  + stm32mp157c-dk2.dts
  + stm32mp157c-ed1.dts
  + stm32mp157c-ev1.dts
  + stm32mp157d-dk1.dts
+ + stm32mp157d-ed1.dts
  + stm32mp157f-dk2.dts
+ + stm32mp157f-ed1.dts
 
 These board with SCMI support are only managed with stm32mp15_defconfig,
 when the resources are secured with RCC_TZCR.TZEN=1 in OP-TEE. The access to
@@ -188,7 +191,10 @@ The supported device trees for STM32MP15x (stm32mp15_trusted_defconfig and stm32
 
 + ed1: daughter board with pmic stpmic1
 
+   + stm32mp157a-ed1
    + stm32mp157c-ed1
+   + stm32mp157d-ed1
+   + stm32mp157f-ed1
 
 + dk1: Discovery board
 
