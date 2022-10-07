@@ -75,6 +75,7 @@ Currently the following STMIcroelectronics boards are supported:
  + stm32mp157c-dk2.dts
  + stm32mp157c-ed1.dts
  + stm32mp157c-ev1.dts
+ + stm32mp157f-dk2.dts
 
 These board with SCMI support are only managed with stm32mp15_defconfig,
 when the resources are secured with RCC_TZCR.TZEN=1 in OP-TEE. The access to
@@ -195,6 +196,7 @@ The supported device trees for STM32MP15x (stm32mp15_trusted_defconfig and stm32
 + dk2: Discovery board = dk1 with a BT/WiFI combo and a DSI panel
 
    + stm32mp157c-dk2
+   + stm32mp157f-dk2
 
 + avenger96: Avenger96 board from Arrow Electronics based on DH Elec. DHCOR SoM
 
