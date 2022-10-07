@@ -458,12 +458,16 @@ u32 hwid_get_ramsize(const struct digi_hwid *hwid)
 
 int board_lock_hwid(void)
 {
-	int i;
-	u32 lock_off = 0x10000000;	/* Offset to add to word for locking it */
+	u32 bank = CONFIG_HWID_BANK;
+	u32 word = CONFIG_HWID_START_WORD;
+	u32 cnt = CONFIG_HWID_WORDS_NUMBER;
+	int ret, i;
 
-	for (i=0; i < CONFIG_HWID_WORDS_NUMBER; i++)
-		if (fuse_prog(CONFIG_HWID_BANK, lock_off + i, 1))
-			return 1;
+	for (i = 0; i < cnt; i++, word++) {
+		ret = fuse_lock(bank, word);
+		if (ret)
+			return ret;
+	}
 
 	return 0;
 }
