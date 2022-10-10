@@ -429,9 +429,6 @@ static void display_life_cycle(u32 lc)
 	case 0x8:
 		printf("OEM Open\n\n");
 		break;
-	case 0x10:
-		printf("OEM Secure World Closed\n\n");
-		break;
 	case 0x20:
 		printf("OEM closed\n\n");
 		break;
@@ -474,9 +471,19 @@ static int do_ahab_close(struct cmd_tbl *cmdtp, int flag, int argc,
 {
 	int err;
 	u32 resp;
+	u32 lc;
 
 	if (!confirm_close())
 		return -EACCES;
+
+	lc = readl(FSB_BASE_ADDR + 0x41c);
+	lc &= 0x3ff;
+
+	if (lc != 0x8) {
+		puts("Current lifecycle is NOT OEM open, can't move to OEM closed\n");
+		display_life_cycle(lc);
+		return -EPERM;
+	}
 
 	err = ahab_forward_lifecycle(8, &resp);
 	if (err != 0) {

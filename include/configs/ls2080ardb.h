@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
- * Copyright 2017, 2019-2021 NXP
+ * Copyright 2017, 2019-2022 NXP
  * Copyright 2015 Freescale Semiconductor
  */
 
@@ -76,6 +76,8 @@
 				FTIM2_NOR_TWP(0x1c))
 #define CONFIG_SYS_NOR_FTIM3	0x04000000
 #define CONFIG_SYS_IFC_CCR	0x01000000
+
+#define CONFIG_SYS_FLASH_CFI_WIDTH  FLASH_CFI_16BIT
 
 #ifdef CONFIG_MTD_NOR_FLASH
 #define CONFIG_SYS_FLASH_QUIET_TEST
@@ -333,7 +335,6 @@
 	"ramdisk_size=0x2000000\0"		\
 	"fdt_high=0xa0000000\0"			\
 	"initrd_high=0xffffffffffffffff\0"	\
-	"fdt_addr=0x64f00000\0"			\
 	"kernel_addr=0x581000000\0"		\
 	"kernel_start=0x1000000\0"		\
 	"kernelheader_start=0x800000\0"		\
@@ -345,6 +346,7 @@
 	"kernel_addr_r=0x81000000\0"		\
 	"kernelheader_size=0x40000\0"		\
 	"fdt_addr_r=0x90000000\0"		\
+	"fdt_addr=0x90000000\0"                 \
 	"load_addr=0xa0000000\0"		\
 	"kernel_size=0x2800000\0"		\
 	"kernel_addr_sd=0x8000\0"		\
@@ -396,7 +398,6 @@
 	"ramdisk_size=0x2000000\0"		\
 	"fdt_high=0xa0000000\0"			\
 	"initrd_high=0xffffffffffffffff\0"	\
-	"fdt_addr=0x64f00000\0"			\
 	"kernel_addr=0x581000000\0"		\
 	"kernel_start=0x1000000\0"		\
 	"kernelheader_start=0x600000\0"		\
@@ -408,6 +409,7 @@
 	"kernel_addr_r=0x81000000\0"		\
 	"kernelheader_size=0x40000\0"		\
 	"fdt_addr_r=0x90000000\0"		\
+	"fdt_addr=0x90000000\0"                 \
 	"load_addr=0xa0000000\0"		\
 	"kernel_size=0x2800000\0"		\
 	"kernel_addr_sd=0x8000\0"		\

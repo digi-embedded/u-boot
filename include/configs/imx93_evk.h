@@ -24,8 +24,6 @@
 #define CONFIG_SYS_SPL_MALLOC_START	0x83200000 /* Need disable simple malloc where still uses malloc_f area */
 #define CONFIG_SYS_SPL_MALLOC_SIZE	SZ_512K	/* 512 KB */
 
-/* malloc f used before GD_FLG_FULL_MALLOC_INIT set.  */
-#define CONFIG_MALLOC_F_ADDR		0x204D0000
 /* For RAW image gives a error info not panic */
 #define CONFIG_SPL_ABORT_ON_RAW_IMAGE
 
@@ -53,11 +51,11 @@
 
 #define JAILHOUSE_ENV \
 	"jh_mmcboot=setenv fdtfile imx93-11x11-evk-root.dtb; " \
-		    "setenv jh_clk clk_ignore_unused mem=1GB kvm-arm.mode=nvhe; " \
+		    "setenv jh_clk clk_ignore_unused mem=1280MB kvm-arm.mode=nvhe; " \
 		    "if run loadimage; then run mmcboot;" \
 		    "else run jh_netboot; fi; \0" \
 	"jh_netboot=setenv fdtfile imx93-11x11-evk-root.dtb; " \
-		    "setenv jh_clk clk_ignore_unused mem=1GB kvm-arm.mode=nvhe; run netboot; \0 "
+		    "setenv jh_clk clk_ignore_unused mem=1280MB kvm-arm.mode=nvhe; run netboot; \0 "
 
 #define CONFIG_MFG_ENV_SETTINGS \
 	CONFIG_MFG_ENV_SETTINGS_DEFAULT \
@@ -200,7 +198,7 @@
 #define CONFIG_USB_MAX_CONTROLLER_COUNT         2
 
 #if defined(CONFIG_CMD_NET)
-#define CONFIG_ETHPRIME                 "eth0"
+#define CONFIG_ETHPRIME                 "eth1"
 
 #define CONFIG_FEC_XCV_TYPE             RGMII
 #define CONFIG_FEC_MXC_PHYADDR          2
