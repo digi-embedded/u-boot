@@ -22,18 +22,6 @@
 /* Carrier board version in environment */
 #define CONFIG_HAS_CARRIERBOARD_VERSION
 
-#ifdef CONFIG_FASTBOOT_CMD_OEM_FORMAT
-/* eMMC default partitions for fastboot command: oem format */
-#define PARTS_DEFAULT \
-	"partitions=" \
-	"name=ssbl,size=2M;" \
-	"name=bootfs,size=64MB,bootable;" \
-	"name=vendorfs,size=16M;" \
-	"name=rootfs,size=746M;" \
-	"name=userfs,size=-\0"
-#else
-#define PARTS_DEFAULT
-#endif
 
 #define CONFIG_COMMON_ENV	\
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
@@ -179,7 +167,6 @@
 	"ramdisk_addr_r=0xc4400000\0" \
 	"altbootcmd=run bootcmd\0" \
 	"env_check=if env info -p -d -q; then env save; fi\0" \
-	PARTS_DEFAULT \
 	BOOTENV \
 	"boot_net_usb_start=true\0"
 
