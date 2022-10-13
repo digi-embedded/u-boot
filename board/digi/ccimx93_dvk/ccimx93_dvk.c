@@ -14,12 +14,15 @@
 #include <asm/arch/sys_proto.h>
 #include <asm/arch-imx9/imx93_pins.h>
 #include <asm/arch/clock.h>
+#include <configs/digi_common.h>
 #include <power/pmic.h>
 #include "../../freescale/common/tcpc.h"
 #include <dm/device.h>
 #include <dm/uclass.h>
 #include <usb.h>
 #include <dwc3-uboot.h>
+
+#include "../common/hwid.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 

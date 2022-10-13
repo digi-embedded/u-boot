@@ -1,3 +1,6 @@
+config CC93
+	bool
+
 config CC8M
 	bool
 

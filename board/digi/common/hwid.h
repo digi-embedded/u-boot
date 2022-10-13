@@ -20,6 +20,8 @@
 #include "../ccimx8x/hwid_cc8x.h"
 #elif defined(CONFIG_CC8M)
 #include "../ccimx8m/hwid_cc8m.h"
+#elif defined(CONFIG_CC93)
+#include "../ccimx93/hwid_ccimx93.h"
 #endif
 
 enum digi_cert {
