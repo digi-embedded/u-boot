@@ -185,6 +185,7 @@ static int write_file_fs_otf(int src, char *filename, char *devpartno)
 }
 #endif /* CONFIG_CMD_UPDATE */
 
+#if defined(CONFIG_CMD_UPDATE) || defined(CONFIG_CMD_DBOOT)
 static int get_default_devpartno(int src, char *devpartno)
 {
 	char *dev, *part;
@@ -210,7 +211,6 @@ static int get_default_devpartno(int src, char *devpartno)
 	return 0;
 }
 
-#if defined(CONFIG_CMD_UPDATE) || defined(CONFIG_CMD_DBOOT)
 bool is_image_compressed(void)
 {
 	char *var;
