@@ -5,10 +5,10 @@
  */
 /dts-v1/;
 
-#include "stm32mp157.dtsi"
-#include "stm32mp15xc.dtsi"
-#include "stm32mp15-pinctrl.dtsi"
-#include "stm32mp15xxac-pinctrl.dtsi"
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
+#include <dt-bindings/rtc/rtc-stm32.h>
 #include "ccmp15.dtsi"
 
 / {
