@@ -54,12 +54,14 @@ config CMD_UPDATE
 if CMD_DBOOT || CMD_UPDATE
 config DIGI_UPDATE_ADDR
 	hex "RAM address where to place the firmware image during update"
+	default 0x90000000 if CC93
 	default 0x50000000 if CC8M
 	default 0x95000000 if CC8X
 	default 0x80800000 if CC6UL
 
 config DIGI_LZIPADDR
 	hex "RAM address where to place compressed image (to be decompressed)"
+	default 0x84000000 if CC93
 	default 0x44000000 if CC8M
 	default 0x8C000000 if CC8X
 	default 0x82000000 if CC6UL
