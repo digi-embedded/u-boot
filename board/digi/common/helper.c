@@ -812,49 +812,6 @@ void verify_mac_address(char *var, char *default_mac)
 		printf("   WARNING: Dummy default MAC in '%s'\n", var);
 }
 
-/*
- * Check if the storage media address/block is empty
- * @in: Address/offset in media
- * @in: Partition index, only applies for MMC
- * The function returns:
- *	1 if the block is empty
- *	0 if the block is not empty
- *	-1 on error
- */
-int media_block_is_empty(uintptr_t addr, uint hwpart)
-{
-	size_t len;
-	int ret = -1;
-	int i;
-	uint64_t empty_pattern = 0;
-	uint64_t *readbuf = NULL;
-
-	if (strcmp(CONFIG_SYS_STORAGE_MEDIA, "nand") == 0)
-		empty_pattern = ~0;
-
-	len = media_get_block_size();
-	if (!len)
-		return ret;
-
-	readbuf = malloc(len);
-	if (!readbuf)
-		return ret;
-
-	if (media_read_block(addr, (unsigned char *)readbuf, hwpart))
-		goto out_free;
-
-	ret = 1;	/* media block empty */
-	for (i = 0; i < len / 8; i++) {
-		if (readbuf[i] != empty_pattern) {
-			ret = 0;	/* media block not empty */
-			break;
-		}
-	}
-out_free:
-	free(readbuf);
-	return ret;
-}
-
 /**
  * Parses a string into a number. The number stored at ptr is
  * potentially suffixed with K (for kilobytes, or 1024 bytes),

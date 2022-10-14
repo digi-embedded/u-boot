@@ -37,29 +37,6 @@ size_t media_get_block_size(void)
 }
 
 /*
- * Get the offset of a partition in the mmc
- * @in: Partition name
- * @in: Offset of the partition in mmc block units
- * return 0 if success
-*/
-int get_partition_offset(char *part_name, lbaint_t *offset)
-{
-	struct disk_partition info;
-	char dev_index_str[2];
-	int r;
-
-	sprintf(dev_index_str, "%d", mmc_get_bootdevindex());
-	r = get_partition_bynameorindex(CONFIG_SYS_STORAGE_MEDIA,
-					dev_index_str,
-					part_name,
-					&info);
-	if (r < 0)
-		return r;
-	*offset = info.start;
-	return 0;
-}
-
-/*
  * Read a data block from the storage media.
  * This function only reads one mmc block
  * @in: Address in media (must be aligned to block size)
@@ -136,14 +113,6 @@ int media_write_block(uintptr_t addr, unsigned char *writebuf, uint hwpart)
 
 	blk_dselect_hwpart(mmc_dev, orig_part);
 	return ret;
-}
-
-uint get_env_hwpart(void)
-{
-	struct mmc *mmc;
-
-	mmc = find_mmc_device(mmc_get_bootdevindex());
-	return mmc_get_env_part(mmc);
 }
 
 // #ifdef CONFIG_FSL_ESDHC_IMX
