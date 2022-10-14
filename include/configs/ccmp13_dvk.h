@@ -27,7 +27,7 @@
 	CONFIG_EXTRA_NETWORK_SETTINGS \
 	ALTBOOTCMD \
 	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
-	"dualboot=no\0" \
+	"dualboot=yes\0" \
 	"boot_fdt=yes\0" \
 	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} root=${mmcroot} ${mtdparts}" \
