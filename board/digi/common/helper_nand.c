@@ -20,53 +20,6 @@ size_t media_get_block_size(void)
 }
 
 /*
- * Get the offset of a partition in the nand by parsing the mtdparts
- * @in: Partition name
- * return 0 if found or -1 if error
-*/
-int get_partition_offset(char *part_name, lbaint_t *offset)
-{
-	char *parts, *parttable;
-	char *aux = NULL;
-	char *name_partition = NULL;
-	int ret = -1;
-
-	parttable = strdup(env_get("mtdparts"));
-	if (!parttable)
-		goto end;
-	aux = parttable;
-	/*
-	 * parttable = "mtdparts=mtdparts=gpmi-nand:3m(bootloader),1m(environment),
-	 *		1m(safe),12m(linux),14m(recovery),122m(rootfs),-(update)";
-	 */
-	parts = strsep(&parttable, ":");
-	if (!parts)
-		goto end;
-	/*
-	 *  3m(bootloader),1m(environment),1m(safe),12m(linux),
-	 *   14m(recovery),122m(rootfs),-(update)";
-	 */
-	parts = strsep(&parttable, "(");
-	*offset = 0;
-	while (parts) {
-		name_partition = strsep(&parttable, ")");
-		if (!name_partition)
-			break;
-		if (!strcmp(name_partition, part_name)) {
-			ret = 0;
-			break;
-		}
-		*offset += memsize_parse(parts, (const char **)&parts);
-		if (!strsep(&parttable, ","))
-			break;
-		parts = strsep(&parttable, "(");
-	}
-end:
-	free(aux);
-	return ret;
-}
-
-/*
  * Read data from the storage media.
  * This function only reads one nand erase block
  * @in: Address in media (must be aligned to block size)
@@ -118,10 +71,4 @@ int media_write_block(uintptr_t addr, unsigned char *writebuf, uint hwpart)
 				   get_nand_dev_by_index(0)->size,
 				   writebuf,
 				   WITH_WR_VERIFY);
-}
-
-/* Dummy function for compatibility with MMC */
-uint get_env_hwpart(void)
-{
-	return 0;
 }
