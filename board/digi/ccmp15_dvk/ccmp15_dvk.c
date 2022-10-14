@@ -7,7 +7,6 @@
 #define LOG_CATEGORY LOGC_BOARD
 
 #include <common.h>
-#include <adc.h>
 #include <bootm.h>
 #include <clk.h>
 #include <config.h>
@@ -33,7 +32,6 @@
 #include <remoteproc.h>
 #include <reset.h>
 #include <syscon.h>
-#include <usb.h>
 #include <watchdog.h>
 #include <asm/global_data.h>
 #include <asm/io.h>
@@ -50,7 +48,6 @@
 #include <linux/iopoll.h>
 #include <power/regulator.h>
 #include <tee/optee.h>
-#include <usb/dwc2_udc.h>
 
 #include "../ccmp1/ccmp1.h"
 #include "../common/carrier_board.h"
@@ -230,157 +227,6 @@ static void __maybe_unused led_error_blink(u32 nb_blink)
 	/* infinite: the boot process must be stopped */
 	if (nb_blink == U32_MAX)
 		hang();
-}
-
-static int adc_measurement(ofnode node, int adc_count, int *min_uV, int *max_uV)
-{
-	struct ofnode_phandle_args adc_args;
-	struct udevice *adc;
-	unsigned int raw;
-	int ret, uV;
-	int i;
-
-	for (i = 0; i < adc_count; i++) {
-		if (ofnode_parse_phandle_with_args(node, "st,adc_usb_pd",
-						   "#io-channel-cells", 0, i,
-						   &adc_args)) {
-			log_debug("can't find /config/st,adc_usb_pd\n");
-			return 0;
-		}
-
-		ret = uclass_get_device_by_ofnode(UCLASS_ADC, adc_args.node,
-						  &adc);
-
-		if (ret) {
-			log_err("Can't get adc device(%d)\n", ret);
-			return ret;
-		}
-
-		ret = adc_channel_single_shot(adc->name, adc_args.args[0],
-					      &raw);
-		if (ret) {
-			log_err("single shot failed for %s[%d]!\n",
-				adc->name, adc_args.args[0]);
-			return ret;
-		}
-		/* Convert to uV */
-		if (!adc_raw_to_uV(adc, raw, &uV)) {
-			if (uV > *max_uV)
-				*max_uV = uV;
-			if (uV < *min_uV)
-				*min_uV = uV;
-			log_debug("%s[%02d] = %u, %d uV\n",
-				  adc->name, adc_args.args[0], raw, uV);
-		} else {
-			log_err("Can't get uV value for %s[%d]\n",
-				adc->name, adc_args.args[0]);
-		}
-	}
-
-	return 0;
-}
-
-static int board_check_usb_power(void)
-{
-	ofnode node;
-	int max_uV = 0;
-	int min_uV = USB_START_HIGH_THRESHOLD_UV;
-	int adc_count, ret;
-	u32 nb_blink;
-	u8 i;
-
-	node = ofnode_path("/config");
-	if (!ofnode_valid(node)) {
-		log_debug("no /config node?\n");
-		return -ENOENT;
-	}
-
-	/*
-	 * Retrieve the ADC channels devices and get measurement
-	 * for each of them
-	 */
-	adc_count = ofnode_count_phandle_with_args(node, "st,adc_usb_pd",
-						   "#io-channel-cells", 0);
-	if (adc_count < 0) {
-		if (adc_count == -ENOENT)
-			return 0;
-
-		log_err("Can't find adc channel (%d)\n", adc_count);
-
-		return adc_count;
-	}
-
-	/* perform maximum of 2 ADC measurements to detect power supply current */
-	for (i = 0; i < 2; i++) {
-		ret = adc_measurement(node, adc_count, &min_uV, &max_uV);
-		if (ret)
-			return ret;
-
-		/*
-		 * If highest value is inside 1.23 Volts and 2.10 Volts, that means
-		 * board is plugged on an USB-C 3A power supply and boot process can
-		 * continue.
-		 */
-		if (max_uV > USB_START_LOW_THRESHOLD_UV &&
-		    max_uV <= USB_START_HIGH_THRESHOLD_UV &&
-		    min_uV <= USB_LOW_THRESHOLD_UV)
-			return 0;
-
-		if (i == 0) {
-			log_err("Previous ADC measurements was not the one expected, retry in 20ms\n");
-			mdelay(20);  /* equal to max tPDDebounce duration (min 10ms - max 20ms) */
-		}
-	}
-
-	log_notice("****************************************************\n");
-	/*
-	 * If highest and lowest value are either both below
-	 * USB_LOW_THRESHOLD_UV or both above USB_LOW_THRESHOLD_UV, that
-	 * means USB TYPE-C is in unattached mode, this is an issue, make
-	 * u-boot,error-led blinking and stop boot process.
-	 */
-	if ((max_uV > USB_LOW_THRESHOLD_UV &&
-	     min_uV > USB_LOW_THRESHOLD_UV) ||
-	     (max_uV <= USB_LOW_THRESHOLD_UV &&
-	     min_uV <= USB_LOW_THRESHOLD_UV)) {
-		log_notice("* ERROR USB TYPE-C connection in unattached mode   *\n");
-		log_notice("* Check that USB TYPE-C cable is correctly plugged *\n");
-		/* with 125ms interval, led will blink for 17.02 years ....*/
-		nb_blink = U32_MAX;
-	}
-
-	if (max_uV > USB_LOW_THRESHOLD_UV &&
-	    max_uV <= USB_WARNING_LOW_THRESHOLD_UV &&
-	    min_uV <= USB_LOW_THRESHOLD_UV) {
-		log_notice("*        WARNING 500mA power supply detected       *\n");
-		nb_blink = 2;
-	}
-
-	if (max_uV > USB_WARNING_LOW_THRESHOLD_UV &&
-	    max_uV <= USB_START_LOW_THRESHOLD_UV &&
-	    min_uV <= USB_LOW_THRESHOLD_UV) {
-		log_notice("*       WARNING 1.5A power supply detected        *\n");
-		nb_blink = 3;
-	}
-
-	/*
-	 * If highest value is above 2.15 Volts that means that the USB TypeC
-	 * supplies more than 3 Amp, this is not compliant with TypeC specification
-	 */
-	if (max_uV > USB_START_HIGH_THRESHOLD_UV) {
-		log_notice("*      USB TYPE-C charger not compliant with       *\n");
-		log_notice("*                   specification                  *\n");
-		log_notice("****************************************************\n\n");
-		/* with 125ms interval, led will blink for 17.02 years ....*/
-		nb_blink = U32_MAX;
-	} else {
-		log_notice("*     Current too low, use a 3A power supply!      *\n");
-		log_notice("****************************************************\n\n");
-	}
-
-	led_error_blink(nb_blink);
-
-	return 0;
 }
 
 static void sysconf_init(void)
