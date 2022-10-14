@@ -22,6 +22,7 @@
 #include <usb.h>
 #include <dwc3-uboot.h>
 
+#include "../ccimx93/ccimx93.h"
 #include "../common/hwid.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -270,8 +271,16 @@ int board_init(void)
 	return 0;
 }
 
+void platform_default_environment(void)
+{
+	som_default_environment();
+}
+
 int board_late_init(void)
 {
+	/* Set default dynamic variables */
+	platform_default_environment();
+
 	return 0;
 }
 

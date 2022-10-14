@@ -74,6 +74,7 @@ config CMD_UPDATE_NAND
 
 config CMD_UPDATE_MMC
 	bool
+	default y if CC93
 	default y if CC8M
 	default y if CC8X
 

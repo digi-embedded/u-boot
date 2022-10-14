@@ -9,4 +9,6 @@ obj-y += ccimx93_dvk.o
 ifdef CONFIG_SPL_BUILD
 obj-y += spl.o
 obj-$(CONFIG_CCIMX93_DVK_LPDDR4X) += lpddr4x_timing.o
+else
+obj-y += ../ccimx93/ccimx93.o
 endif
