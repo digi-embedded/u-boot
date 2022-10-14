@@ -5,6 +5,7 @@
 #include <common.h>
 #include <env.h>
 #include <env_internal.h>
+#include <nand.h>
 
 #include "../common/helper.h"
 #include "../common/hwid.h"
@@ -64,6 +65,23 @@ void fdt_fixup_ccmp1(void *fdt)
 	fdt_fixup_uboot_info(fdt);
 }
 
+void generate_ubi_volumes_script(void)
+{
+	struct mtd_info *nand = get_nand_dev_by_index(0);
+	char script[CONFIG_SYS_CBSIZE] = "";
+
+	if (nand->size > SZ_256M) {
+		sprintf(script, CREATE_UBIVOLS_SCRIPT,
+				UBIVOLS_DUALBOOT_512MB,
+				UBIVOLS_512MB);
+	} else {
+		sprintf(script, CREATE_UBIVOLS_SCRIPT,
+				UBIVOLS_DUALBOOT_256MB,
+				UBIVOLS_256MB);
+	}
+	env_set("ubivolscript", script);
+}
+
 void som_default_environment(void)
 {
 	char var[10];
@@ -73,6 +91,9 @@ void som_default_environment(void)
 	/* Set $module_variant variable */
 	sprintf(var, "0x%02x", my_hwid.variant);
 	env_set("module_variant", var);
+
+	/* UBI volumes */
+	generate_ubi_volumes_script();
 
 	/* Set $hwid_n variables */
 	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {

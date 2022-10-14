@@ -166,4 +166,43 @@
 #define CONFIG_SYS_NONCACHED_MEMORY    (1 * SZ_1M)
 #endif
 
+/* UBI volumes layout */
+#define UBIVOLS_UBOOTENV		"ubi create uboot_config 20000;" \
+					"ubi create uboot_config_r 20000;"
+#define UBIVOLS_256MB			"ubi create " LINUX_PARTITION " 1800000;" \
+					"ubi create " RECOVERY_PARTITION " 2000000;" \
+					"ubi create " ROOTFS_PARTITION " b600000;" \
+					"ubi create update;"
+#define UBIVOLS_512MB			"ubi create " LINUX_PARTITION " 1800000;" \
+					"ubi create " RECOVERY_PARTITION " 2000000;" \
+					"ubi create " ROOTFS_PARTITION " 10000000;" \
+					"ubi create update;"
+#define UBIVOLS_DUALBOOT_256MB		"ubi create " LINUX_A_PARTITION " c00000;" \
+					"ubi create " LINUX_B_PARTITION " c00000;" \
+					"ubi create " ROOTFS_A_PARTITION " 7100000;" \
+					"ubi create " ROOTFS_B_PARTITION ";"
+#define UBIVOLS_DUALBOOT_512MB		"ubi create " LINUX_A_PARTITION " 2000000;" \
+					"ubi create " LINUX_B_PARTITION " 2000000;" \
+					"ubi create " ROOTFS_A_PARTITION " dc00000;" \
+					"ubi create " ROOTFS_B_PARTITION ";"
+#define CREATE_UBIVOLS_SCRIPT		"ubi detach;" \
+					"nand erase.part " SYSTEM_PARTITION ";" \
+					"if test $? = 1; then " \
+					"	echo \"** Error erasing '" SYSTEM_PARTITION "' partition\";" \
+					"else" \
+					"	ubi part " SYSTEM_PARTITION ";" \
+					"	if test $? = 1; then " \
+					"		echo \"Error attaching '" SYSTEM_PARTITION "' partition\";" \
+					"	else " \
+							UBIVOLS_UBOOTENV \
+					"		if test \"${dualboot}\" = yes; then " \
+					"			%s" \
+					"		else " \
+					"			%s" \
+					"		fi;" \
+					"		saveenv;" \
+					"		saveenv;" \
+					"	fi;" \
+					"fi"
+
 #endif /* __CCMP13_DVK_CONFIG_H__ */
