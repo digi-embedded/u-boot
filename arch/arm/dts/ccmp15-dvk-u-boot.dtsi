@@ -25,21 +25,6 @@
 		multiple-images;
 	};
 
-	config {
-		u-boot,boot-led = "heartbeat";
-		u-boot,error-led = "error";
-		u-boot,mmc-env-partition = "fip";
-	};
-
-	led {
-		led-red {
-			label = "error";
-			gpios = <&gpioa 13 GPIO_ACTIVE_LOW>;
-			default-state = "off";
-			status = "okay";
-		};
-	};
-
 #if defined(CONFIG_STM32MP15x_STM32IMAGE) || defined(CONFIG_SPL)
 	config {
 		u-boot,mmc-env-partition = "ssbl";

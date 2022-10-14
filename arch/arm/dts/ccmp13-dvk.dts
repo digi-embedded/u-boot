@@ -59,11 +59,9 @@
 	leds {
 		compatible = "gpio-leds";
 
-		led-blue {
-			function = LED_FUNCTION_HEARTBEAT;
-			color = <LED_COLOR_ID_BLUE>;
-			gpios = <&gpioa 14 GPIO_ACTIVE_LOW>;
-			linux,default-trigger = "heartbeat";
+		uled {
+			label = "ULED";
+			gpios = <&gpiog 0 GPIO_ACTIVE_HIGH>;
 			default-state = "off";
 		};
 	};
