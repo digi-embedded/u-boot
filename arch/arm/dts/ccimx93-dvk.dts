@@ -87,6 +87,24 @@
 			};
 		};
 	};
+
+	mca_gpio_uboot: mca_gpio {
+		compatible = "digi,mca-gpio";
+		gpio-controller;
+	};
+
+	mca_rtc_uboot: mca_rtc {
+		compatible = "digi,mca-rtc";
+	};
+
+	mca_wdt_uboot: mca_wdt {
+		compatible = "digi,mca-wdt";
+
+		soft-rfsh {
+			digi,full-reset;
+			digi,no-way-out;
+		};
+	};
 };
 
 &dphy {
