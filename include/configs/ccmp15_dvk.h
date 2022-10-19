@@ -22,7 +22,6 @@
 /* Carrier board version in environment */
 #define CONFIG_HAS_CARRIERBOARD_VERSION
 
-
 #define CONFIG_COMMON_ENV	\
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	CONFIG_EXTRA_NETWORK_SETTINGS \
@@ -74,43 +73,24 @@
 	"uboot_file=u-boot.imx\0" \
 	"zimage=zImage-" BOARD_DEY_NAME ".bin\0"
 
-#define ROOTARGS_SINGLEMTDSYSTEM_UBIFS \
+#define ROOTARGS_UBIFS \
 	"ubi.mtd=" SYSTEM_PARTITION " " \
 	"root=ubi0:${rootfsvol} " \
 	"rootfstype=ubifs rw"
-#define ROOTARGS_MULTIMTDSYSTEM_UBIFS \
-	"ubi.mtd=${mtdbootpart} " \
-	"ubi.mtd=${mtdrootfspart} " \
-	"root=ubi1:${rootfsvol} " \
-	"rootfstype=ubifs rw"
-#define ROOTARGS_SINGLEMTDSYSTEM_SQUASHFS \
+#define ROOTARGS_SQUASHFS \
 	"ubi.mtd=" SYSTEM_PARTITION " " \
 	"ubi.block=0,2 root=/dev/ubiblock0_2 " \
-	"rootfstype=squashfs ro"
-#define ROOTARGS_MULTIMTDSYSTEM_SQUASHFS \
-	"ubi.mtd=${mtdbootpart} " \
-	"ubi.mtd=${mtdrootfspart} " \
-	"ubi.block=1,0 root=/dev/ubiblock1_0 " \
 	"rootfstype=squashfs ro"
 
 #define MTDPART_ENV_SETTINGS \
 	"mtdbootpart=" LINUX_PARTITION "\0" \
 	"mtdrootfspart=" ROOTFS_PARTITION "\0" \
-	"singlemtdsys=yes\0" \
 	"rootfsvol=" ROOTFS_PARTITION "\0" \
 	"bootargs_nand_linux=" \
-		"if test \"${singlemtdsys}\" = yes; then " \
-			"if test \"${rootfstype}\" = squashfs; then " \
-				"setenv rootargs " ROOTARGS_SINGLEMTDSYSTEM_SQUASHFS ";" \
-			"else " \
-				"setenv rootargs " ROOTARGS_SINGLEMTDSYSTEM_UBIFS ";" \
-			"fi;" \
+		"if test \"${rootfstype}\" = squashfs; then " \
+			"setenv rootargs " ROOTARGS_SQUASHFS ";" \
 		"else " \
-			"if test \"${rootfstype}\" = squashfs; then " \
-				"setenv rootargs " ROOTARGS_MULTIMTDSYSTEM_SQUASHFS ";" \
-			"else " \
-				"setenv rootargs " ROOTARGS_MULTIMTDSYSTEM_UBIFS ";" \
-			"fi;" \
+			"setenv rootargs " ROOTARGS_UBIFS ";" \
 		"fi;" \
 		"setenv bootargs console=${console},${baudrate} " \
 			"${bootargs_linux} ${mtdparts} " \
@@ -127,17 +107,9 @@
 				"setenv mtdbootpart " LINUX_PARTITION ";" \
 			"fi;" \
 		"fi;" \
-		"if test \"${singlemtdsys}\" = yes; then " \
-			"if ubi part " SYSTEM_PARTITION "; then " \
-				"if ubifsmount ubi0:${mtdbootpart}; then " \
-					"ubifsload ${loadaddr} ${script};" \
-				"fi;" \
-			"fi;" \
-		"else " \
-			"if ubi part ${mtdbootpart}; then " \
-				"if ubifsmount ubi0:${mtdbootpart}; then " \
-					"ubifsload ${loadaddr} ${script};" \
-				"fi;" \
+		"if ubi part " SYSTEM_PARTITION "; then " \
+			"if ubifsmount ubi0:${mtdbootpart}; then " \
+				"ubifsload ${loadaddr} ${script};" \
 			"fi;" \
 		"fi;\0" \
 	"recoverycmd=" \

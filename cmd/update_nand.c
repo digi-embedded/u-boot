@@ -240,7 +240,6 @@ static int do_update(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv
 	u8 pnum;
 	struct load_fw fwinfo;
 	char cmd[CONFIG_SYS_CBSIZE];
-	int singlemtdsys = env_get_yesno("singlemtdsys");
 	bool ubivol = false;
 	bool force_erase = false;
 
@@ -269,33 +268,28 @@ static int do_update(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv
 		partname = argv[1];
 
 	if (find_dev_and_part(partname, &dev, &pnum, &part)) {
-		if (singlemtdsys) {
-			/*
-			 * Check if the passed argument is a UBI volume in the
-			 * 'system' partition.
-			 */
-			if (find_dev_and_part(SYSTEM_PARTITION, &dev, &pnum,
-					      &part)) {
-				printf("Cannot find '%s' partition or UBI volume\n",
-					partname);
-				return -1;
-			}
-			if (run_command("ubi part " SYSTEM_PARTITION, 0)) {
-				printf("Cannot find '%s' partition or UBI volume\n",
-					partname);
-				return -1;
-			}
-			sprintf(cmd, "ubi check %s", partname);
-			if (run_command(cmd, 0)) {
-				printf("Cannot find '%s' partition or UBI volume\n",
-					partname);
-				return -1;
-			}
-			ubivol = true;
-		} else {
-			printf("Cannot find '%s' partition\n", partname);
+		/*
+		 * Check if the passed argument is a UBI volume in the
+		 * 'system' partition.
+		 */
+		if (find_dev_and_part(SYSTEM_PARTITION, &dev, &pnum,
+					&part)) {
+			printf("Cannot find '%s' partition or UBI volume\n",
+				partname);
 			return -1;
 		}
+		if (run_command("ubi part " SYSTEM_PARTITION, 0)) {
+			printf("Cannot find '%s' partition or UBI volume\n",
+				partname);
+			return -1;
+		}
+		sprintf(cmd, "ubi check %s", partname);
+		if (run_command(cmd, 0)) {
+			printf("Cannot find '%s' partition or UBI volume\n",
+				partname);
+			return -1;
+		}
+		ubivol = true;
 	} else {
 		if (dev->id->type != MTD_DEV_TYPE_NAND) {
 			printf("not a NAND device\n");
