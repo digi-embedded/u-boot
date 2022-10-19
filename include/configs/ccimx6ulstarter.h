@@ -188,7 +188,9 @@
 			"fi;" \
 			"setenv mtdbootpart ${active_system};" \
 		"else " \
-			"if test -z \"${mtdbootpart}\"; then " \
+			"if test -z \"${mtdbootpart}\" || " \
+			"   test \"${mtdbootpart}\" = " LINUX_A_PARTITION " || " \
+			"   test \"${mtdbootpart}\" = " LINUX_B_PARTITION "; then " \
 				"setenv mtdbootpart " LINUX_PARTITION ";" \
 			"fi;" \
 		"fi;" \
