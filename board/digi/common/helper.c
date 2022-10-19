@@ -298,39 +298,32 @@ int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 		else
 			partname = argv[1];
 		if (find_dev_and_part(partname, &dev, &pnum, &fwinfo->part)) {
-			int singlemtdsys = env_get_yesno("singlemtdsys");
+			char cmd[CONFIG_SYS_CBSIZE] = "";
 
-			if (singlemtdsys == 1) {
-				char cmd[CONFIG_SYS_CBSIZE] = "";
-
-				/*
-				 * Check if the passed argument is a UBI volume in the
-				 * 'system' partition.
-				 */
-				if (find_dev_and_part(SYSTEM_PARTITION, &dev,
-						      &pnum, &fwinfo->part)) {
-					printf("Cannot find '%s' partition or UBI volume\n",
-						partname);
-					return -1;
-				}
-				if (activate_ubi_part(SYSTEM_PARTITION)) {
-					printf("Cannot find '%s' partition or UBI volume\n",
-						partname);
-					return -1;
-				}
-				sprintf(cmd, "ubi check %s", partname);
-				if (run_command(cmd, 0)) {
-					printf("Cannot find '%s' partition or UBI volume\n",
-						partname);
-					return -1;
-				}
-				fwinfo->ubivol = true;
-				strcpy(fwinfo->ubivolname, partname);
-				goto _ok;
-			} else {
-				printf("Cannot find '%s' partition\n", partname);
-				goto _err;
+			/*
+			 * Check if the passed argument is a UBI volume in the
+			 * 'system' partition.
+			 */
+			if (find_dev_and_part(SYSTEM_PARTITION, &dev,
+						&pnum, &fwinfo->part)) {
+				printf("Cannot find '%s' partition or UBI volume\n",
+					partname);
+				return -1;
 			}
+			if (activate_ubi_part(SYSTEM_PARTITION)) {
+				printf("Cannot find '%s' partition or UBI volume\n",
+					partname);
+				return -1;
+			}
+			sprintf(cmd, "ubi check %s", partname);
+			if (run_command(cmd, 0)) {
+				printf("Cannot find '%s' partition or UBI volume\n",
+					partname);
+				return -1;
+			}
+			fwinfo->ubivol = true;
+			strcpy(fwinfo->ubivolname, partname);
+			goto _ok;
 		}
 #endif
 		break;
@@ -1233,8 +1226,12 @@ int read_squashfs_rootfs(unsigned long addr, unsigned long *size)
 	int ret = 0;
 
 	/* Access ubi partition */
-	ret = activate_ubi_part(env_get_yesno("singlemtdsys") ?
-				SYSTEM_PARTITION : ROOTFS_PARTITION);
+	if (of_machine_is_compatible("digi,ccimx6ul")
+		ret = activate_ubi_part(env_get_yesno("singlemtdsys") ?
+					SYSTEM_PARTITION : ROOTFS_PARTITION);
+	else
+		ret = activate_ubi_part(SYSTEM_PARTITION);
+
 	if (ret) {
 		debug("Error: cannot find root partition or ubi volume\n");
 		return -1;
