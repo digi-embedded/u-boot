@@ -83,9 +83,8 @@
 	"rootfstype=squashfs ro"
 
 #define MTDPART_ENV_SETTINGS \
-	"mtdbootpart=" LINUX_PARTITION "\0" \
-	"mtdrootfspart=" ROOTFS_PARTITION "\0" \
-	"rootfsvol=" ROOTFS_PARTITION "\0" \
+	"mtdbootpart=" LINUX_A_PARTITION "\0" \
+	"rootfsvol=" ROOTFS_A_PARTITION "\0" \
 	"bootargs_nand_linux=" \
 		"if test \"${rootfstype}\" = squashfs; then " \
 			"setenv rootargs " ROOTARGS_SQUASHFS ";" \
@@ -127,6 +126,7 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_COMMON_ENV \
 	MTDPART_ENV_SETTINGS \
+	DUALBOOT_ENV_SETTINGS \
 	STM32MP_MEM_LAYOUT \
 	BOOTENV \
 
