@@ -1104,12 +1104,12 @@ int mtd_id_parse(const char *id, const char **ret_id, u8 *dev_type,
 		*dev_type = MTD_DEV_TYPE_SPINAND;
 		p += 8;
 	} else {
-		printf("incorrect device type in %s\n", id);
+		debug("incorrect device type in %s\n", id);
 		return 1;
 	}
 
 	if (!isdigit(*p)) {
-		printf("incorrect device number in %s\n", id);
+		debug("incorrect device number in %s\n", id);
 		return 1;
 	}
 
