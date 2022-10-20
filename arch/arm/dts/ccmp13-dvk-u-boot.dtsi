@@ -10,6 +10,11 @@
 		mmc0 = &sdmmc1;
 		usb0 = &usbotg_hs;
 	};
+
+	config {
+		u-boot,boot-led = "USER1";
+		u-boot,error-led = "USER2";
+	};
 };
 
 &adc_1 {

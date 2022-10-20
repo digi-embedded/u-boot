@@ -68,6 +68,18 @@
 			gpios = <&gpioc 3 GPIO_ACTIVE_HIGH>;
 			default-state = "off";
 		};
+
+		user1 {
+			label = "USER1";
+			gpios = <&gpioa 13 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+
+		user2 {
+			label = "USER2";
+			gpios = <&gpioa 14 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
 	};
 
 	panel_backlight: panel-backlight {

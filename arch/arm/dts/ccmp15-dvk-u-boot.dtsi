@@ -31,6 +31,11 @@
 	};
 #endif
 
+	config {
+		u-boot,boot-led = "USER1";
+		u-boot,error-led = "USER2";
+	};
+
 	reserved-memory {
 		u-boot,dm-spl;
 
