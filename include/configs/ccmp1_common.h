@@ -197,6 +197,7 @@
 #define RECOVERY_PARTITION		"recovery"
 #define ROOTFS_PARTITION		"rootfs"
 #define SYSTEM_PARTITION		"UBI"
+#define DATA_PARTITION			"data"
 
 /* Dualboot partition configuration */
 #define LINUX_A_PARTITION		"linux_a"
