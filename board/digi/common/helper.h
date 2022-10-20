@@ -92,4 +92,5 @@ ulong bootloader_mmc_offset(void);
 #ifdef CONFIG_ANDROID_SUPPORT
 bool is_power_key_pressed(void);
 #endif
+bool proceed_with_update(char *name);
 #endif  /* __DIGI_HELPER_H */

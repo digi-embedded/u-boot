@@ -241,4 +241,16 @@
 	"board_version:so,"		\
 	"board_id:so,"
 
+/*
+ * 'update' command will Ask for confirmation before updating any partition
+ * in this list
+ */
+#define SENSITIVE_PARTITIONS \
+	"fsbl1," \
+	"fsbl2," \
+	"metadata1," \
+	"metadata2," \
+	"fip-a," \
+	"fip-b"
+
 #endif /* __CCMP1_COMMON_H */

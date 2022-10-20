@@ -1363,3 +1363,28 @@ bool is_power_key_pressed(void) {
 	return (bool)power_key_pressed;
 }
 #endif
+
+/*
+ * Checks if the partition is a sensitive one and asks for confirmation if so.
+ * Returns true if we can proceed with the update.
+ */
+bool proceed_with_update(char *name)
+{
+	char sensitive[256];
+	char *part;
+	char msg[256];
+
+	strcpy(sensitive, SENSITIVE_PARTITIONS);
+	part = strtok(sensitive, ",");
+	while(part) {
+		if (!strcmp(name, part)) {
+			sprintf(msg,
+				"Do you really want to program '%s' partition? <y/N> ",
+				name);
+			return confirm_msg(msg);
+		}
+		part = strtok(NULL, ",");
+	}
+
+	return true;
+}
