@@ -13,7 +13,7 @@
 	compatible = "digi,ccimx93-dvk", "digi,ccimx93", "fsl,imx93";
 
 	chosen {
-		stdout-path = &lpuart1;
+		stdout-path = &lpuart6;
 	};
 
 	aliases {
@@ -344,18 +344,18 @@
 	};
 };
 
-&lpuart1 { /* console */
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_uart1>;
-	clocks = <&clk IMX93_CLK_LPUART1_GATE>, <&clk IMX93_CLK_LPUART1_GATE>;
-	clock-names = "ipg", "per";
-	status = "okay";
-};
-
 &lpuart2 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart2>;
 	status = "disabled";
+};
+
+&lpuart6 { /* console */
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart6>;
+	clocks = <&clk IMX93_CLK_LPUART6_GATE>, <&clk IMX93_CLK_LPUART6_GATE>;
+	clock-names = "ipg", "per";
+	status = "okay";
 };
 
 &usbotg1 {
@@ -583,17 +583,17 @@
 		>;
 	};
 
-	pinctrl_uart1: uart1grp {
-		fsl,pins = <
-			MX93_PAD_UART1_RXD__LPUART1_RX			0x31e
-			MX93_PAD_UART1_TXD__LPUART1_TX			0x31e
-		>;
-	};
-
 	pinctrl_uart2: uart2grp {
 		fsl,pins = <
 			MX93_PAD_UART2_TXD__LPUART2_TX			0x31e
 			MX93_PAD_UART2_RXD__LPUART2_RX			0x31e
+		>;
+	};
+
+	pinctrl_uart6: uart6grp {
+		fsl,pins = <
+			MX93_PAD_GPIO_IO04__LPUART6_TX			0x31e
+			MX93_PAD_GPIO_IO05__LPUART6_RX			0x31e
 		>;
 	};
 

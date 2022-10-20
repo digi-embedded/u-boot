@@ -68,7 +68,7 @@
 	u-boot,dm-spl;
 };
 
-&pinctrl_uart1 {
+&pinctrl_uart6 {
 	u-boot,dm-spl;
 };
 
@@ -96,7 +96,7 @@
 	u-boot,dm-spl;
 };
 
-&lpuart1 {
+&lpuart6 {
 	u-boot,dm-spl;
 };
 
