@@ -102,10 +102,7 @@ int board_early_init_f(void)
 
 int checkboard(void)
 {
-	int ret;
 	char *mode;
-	u32 otp;
-	struct udevice *dev;
 	const char *fdt_compat;
 	int fdt_compat_len;
 
@@ -123,23 +120,6 @@ int checkboard(void)
 
 	log_info("Board: %s in %s mode (%s)\n", CONFIG_SYS_BOARD, mode,
 		 fdt_compat && fdt_compat_len ? fdt_compat : "");
-
-	/* display the STMicroelectronics board identification */
-	if (CONFIG_IS_ENABLED(CMD_STBOARD)) {
-		ret = uclass_get_device_by_driver(UCLASS_MISC,
-						  DM_DRIVER_GET(stm32mp_bsec),
-						  &dev);
-		if (!ret)
-			ret = misc_read(dev, STM32_BSEC_SHADOW(BSEC_OTP_BOARD),
-					&otp, sizeof(otp));
-		if (ret > 0 && otp)
-			log_info("Board: MB%04x Var%d.%d Rev.%c-%02d\n",
-				 otp >> 16,
-				 (otp >> 12) & 0xF,
-				 (otp >> 4) & 0xF,
-				 ((otp >> 8) & 0xF) - 1 + 'A',
-				 otp & 0xF);
-	}
 
 	return 0;
 }
