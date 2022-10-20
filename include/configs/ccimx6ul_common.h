@@ -363,4 +363,12 @@
 
 #define FSL_FASTBOOT_FB_DEV "nand"
 
+/*
+ * 'update' command will Ask for confirmation before updating any partition
+ * in this comma-separated list
+ */
+#define SENSITIVE_PARTITIONS \
+	UBOOT_PARTITION "," \
+	"environment"
+
 #endif /* CCIMX6UL_CONFIG_H */

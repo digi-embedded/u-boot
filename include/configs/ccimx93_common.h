@@ -101,4 +101,10 @@
 	"board_id:so,"			\
 	"mmcbootdev:so"
 
+/*
+ * 'update' command will ask for confirmation before updating any partition
+ * in this comma-separated list
+ */
+#define SENSITIVE_PARTITIONS		"uboot"
+
 #endif /* CCIMX93_COMMON_H */

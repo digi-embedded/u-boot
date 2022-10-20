@@ -352,4 +352,10 @@
 
 #define FSL_FASTBOOT_FB_DEV "mmc"
 
+/*
+ * 'update' command will Ask for confirmation before updating any partition
+ * in this comma-separated list
+ */
+#define SENSITIVE_PARTITIONS 	"uboot"
+
 #endif /* CCIMX8X_COMMON_H */

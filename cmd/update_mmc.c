@@ -350,9 +350,7 @@ static int do_update(struct cmd_tbl* cmdtp, int flag, int argc, char * const arg
 	/* Ask for confirmation if needed */
 	if (env_get_yesno("forced_update") != 1) {
 		/* Confirm programming */
-		if (!strcmp((char *)info.name, "uboot") &&
-		    !confirm_msg("Do you really want to program "
-				 "the boot loader? <y/N> "))
+		if (!proceed_with_update((char *)info.name))
 			return CMD_RET_FAILURE;
 	}
 

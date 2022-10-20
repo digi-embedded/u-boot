@@ -306,9 +306,7 @@ static int do_update(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv
 	/* Ask for confirmation if needed */
 	if (env_get_yesno("forced_update") != 1) {
 		/* Confirm programming */
-		if (!strcmp(part->name, UBOOT_PARTITION) &&
-		    !confirm_msg("Do you really want to program "
-				 "the boot loader? <y/N> "))
+		if (!proceed_with_update(part->name))
 			return CMD_RET_FAILURE;
 	}
 
