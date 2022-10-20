@@ -101,6 +101,20 @@ void som_default_environment(void)
 		snprintf(hex_val, sizeof(hex_val), "%08x", ((u32 *) &my_hwid)[i]);
 		env_set(var, hex_val);
 	}
+
+	/* Set module_ram variable */
+	if (my_hwid.ram) {
+		u32 ram = hwid_get_ramsize(&my_hwid);
+
+		if (ram >= SZ_1G) {
+			ram /= SZ_1G;
+			snprintf(var, sizeof(var), "%uGB", ram);
+		} else {
+			ram /= SZ_1M;
+			snprintf(var, sizeof(var), "%uMB", ram);
+		}
+		env_set("module_ram", var);
+	}
 }
 
 void board_update_hwid(bool is_fuse)
