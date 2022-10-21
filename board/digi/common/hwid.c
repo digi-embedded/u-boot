@@ -218,3 +218,22 @@ void hwid_get_macs(uint32_t pool, uint32_t base)
 			       ret);
 	}
 }
+
+void hwid_get_serial_number(uint32_t year, uint32_t week, uint32_t genid, uint32_t serial)
+{
+	char cmd[CONFIG_SYS_CBSIZE] = "";
+	int ret;
+
+	/* If year is not set avoid setting this variable */
+	if (year == 0)
+		return;
+
+	sprintf(cmd, "setenv -f serial# %02d%02d%02d%06d",
+		year,
+		week,
+		genid,
+		serial);
+	ret = run_command(cmd, 0);
+	if (ret)
+		printf("ERROR setting 'serial#' from fuses (%d)\n", ret);
+}
