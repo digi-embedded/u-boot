@@ -132,17 +132,8 @@
 	CONFIG_COMMON_ENV \
 	MTDPART_ENV_SETTINGS \
 	DUALBOOT_ENV_SETTINGS \
-	"kernel_addr_r=0xc2000000\0" \
-	"fdt_addr_r=0xc4000000\0" \
-	"fdtoverlay_addr_r=0xc4100000\0" \
-	"scriptaddr=0xc4100000\0" \
-	"pxefile_addr_r=0xc4200000\0" \
-	"splashimage=0xc4300000\0"  \
-	"ramdisk_addr_r=0xc4400000\0" \
-	"altbootcmd=run bootcmd\0" \
-	"env_check=if env info -p -d -q; then env save; fi\0" \
+	STM32MP_MEM_LAYOUT \
 	BOOTENV \
-	"boot_net_usb_start=true\0"
 
 #undef CONFIG_BOOTCOMMAND
 #define CONFIG_BOOTCOMMAND \
