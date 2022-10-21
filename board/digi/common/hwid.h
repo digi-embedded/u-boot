@@ -43,5 +43,6 @@ int board_lock_hwid(void);
 void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid);
 u64 hwid_get_ramsize(const struct digi_hwid *hwid);
 void print_hwid_hex(struct digi_hwid *hwid);
+void hwid_get_macs(uint32_t pool, uint32_t base);
 
 #endif	/* __HWID_H_ */
