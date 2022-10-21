@@ -24,12 +24,20 @@ enum env_location env_get_location(enum env_operation op, int prio)
 		return ENVL_NOWHERE;
 }
 
-static bool board_has_wireless(void)
+bool board_has_eth1(void)
+{
+	if (CONFIG_IS_ENABLED(TARGET_CCMP13_DVK))
+		return true;
+	else
+		return false;
+}
+
+bool board_has_wireless(void)
 {
 	return my_hwid.wifi;
 }
 
-static bool board_has_bluetooth(void)
+bool board_has_bluetooth(void)
 {
 	return my_hwid.bt;
 }
@@ -115,6 +123,22 @@ void som_default_environment(void)
 		}
 		env_set("module_ram", var);
 	}
+
+	/* Get MAC address from fuses unless indicated otherwise */
+	if (env_get_yesno("use_fused_macs"))
+		hwid_get_macs(my_hwid.mac_pool, my_hwid.mac_base);
+
+	/* Verify MAC addresses */
+	verify_mac_address("ethaddr", DEFAULT_MAC_ETHADDR);
+
+	if (board_has_eth1())
+		verify_mac_address("eth1addr", DEFAULT_MAC_ETHADDR1);
+
+	if (board_has_wireless())
+		verify_mac_address("wlanaddr", DEFAULT_MAC_WLANADDR);
+
+	if (board_has_bluetooth())
+		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
 }
 
 void board_update_hwid(bool is_fuse)
