@@ -41,17 +41,6 @@
 		enable-active-low;
 	};
 
-	reg_usdhc2_vmmc: regulator-usdhc2 {
-		compatible = "regulator-fixed";
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_reg_usdhc2_vmmc>;
-		regulator-name = "VSD_3V3";
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		gpio = <&gpio3 7 GPIO_ACTIVE_HIGH>;
-		enable-active-high;
-	};
-
 	usdhc3_pwrseq: usdhc3_pwrseq {
 		compatible = "mmc-pwrseq-simple";
 		reset-gpios = <&pcal6524 20 GPIO_ACTIVE_LOW>;
@@ -409,8 +398,13 @@
 	pinctrl-0 = <&pinctrl_usdhc2>, <&pinctrl_usdhc2_gpio>;
 	pinctrl-1 = <&pinctrl_usdhc2>, <&pinctrl_usdhc2_gpio>;
 	pinctrl-2 = <&pinctrl_usdhc2>, <&pinctrl_usdhc2_gpio>;
-	cd-gpios = <&gpio3 00 GPIO_ACTIVE_LOW>;
-	vmmc-supply = <&reg_usdhc2_vmmc>;
+	/*
+	 * On the CC8MM_DVK the card detect line is not connected.
+	 * @TODO: revisit on the CC93_DVK
+	 */
+// 	cd-gpios = <&gpio3 00 GPIO_ACTIVE_LOW>;
+	broken-cd;	/* no carrier detect line (use polling) */
+	no-1-8-v;
 	bus-width = <4>;
 	status = "okay";
 	no-sdio;
@@ -610,12 +604,6 @@
 			MX93_PAD_SD1_DATA6__USDHC1_DATA6        	0x13fe
 			MX93_PAD_SD1_DATA7__USDHC1_DATA7        	0x13fe
 			MX93_PAD_SD1_STROBE__USDHC1_STROBE		0x17fe
-		>;
-	};
-
-	pinctrl_reg_usdhc2_vmmc: regusdhc2vmmcgrp {
-		fsl,pins = <
-			MX93_PAD_SD2_RESET_B__GPIO3_IO07		0x31e
 		>;
 	};
 
