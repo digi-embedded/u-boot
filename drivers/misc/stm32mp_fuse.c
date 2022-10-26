@@ -76,6 +76,25 @@ int fuse_prog(u32 bank, u32 word, u32 val)
 						  &dev);
 		if (ret)
 			return ret;
+
+		if (word > 31) {
+			/*
+			 * Prevent writing upper words twice. Upper words are
+			 * CRC protected and writing them twice makes them
+			 * impossible to read back, and useless.
+			 */
+			u32 previous_val;
+
+			ret = misc_read(dev, word * 4 + STM32_BSEC_OTP_OFFSET,
+					&previous_val, 4);
+			if (ret != 4)
+				ret = -EINVAL;
+			if (previous_val != 0) {
+				printf("stm32mp %s: word %i already written and cannot be written twice.\n",
+				       __func__, word);
+				return -EPERM;
+			}
+		}
 		ret = misc_write(dev, word * 4 + STM32_BSEC_OTP_OFFSET,
 				 &val, 4);
 		if (ret != 4)
