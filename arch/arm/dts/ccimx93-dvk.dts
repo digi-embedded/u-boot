@@ -37,13 +37,13 @@
 		regulator-name = "can2-stby";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
-		gpio = <&adp5585gpio 5 GPIO_ACTIVE_LOW>;
+// 		gpio = <&adp5585gpio 5 GPIO_ACTIVE_LOW>;
 		enable-active-low;
 	};
 
 	usdhc3_pwrseq: usdhc3_pwrseq {
 		compatible = "mmc-pwrseq-simple";
-		reset-gpios = <&pcal6524 20 GPIO_ACTIVE_LOW>;
+// 		reset-gpios = <&pcal6524 20 GPIO_ACTIVE_LOW>;
 	};
 
 	reg_vref_1v8: regulator-adc-vref {
@@ -60,7 +60,7 @@
 
 	rm67199_panel {
 		compatible = "raydium,rm67199";
-		reset-gpio = <&adp5585gpio 6 GPIO_ACTIVE_LOW>;
+// 		reset-gpio = <&adp5585gpio 6 GPIO_ACTIVE_LOW>;
 		dsi-lanes = <4>;
 		video-mode = <2>;	/* 0: burst mode
 					 * 1: non-burst mode with sync event
@@ -160,7 +160,7 @@
 		compatible = "nxp,pca9451a";
 		reg = <0x25>;
 		pinctrl-names = "default";
-		interrupt-parent = <&pcal6524>;
+// 		interrupt-parent = <&pcal6524>;
 		interrupts = <12 IRQ_TYPE_LEVEL_LOW>;
 
 		regulators {
@@ -247,26 +247,6 @@
 			};
 		};
 	};
-
-	pcal6524: gpio@22 {
-		compatible = "nxp,pcal6524";
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_pcal6524>;
-		reg = <0x22>;
-		gpio-controller;
-		#gpio-cells = <2>;
-		interrupt-controller;
-		#interrupt-cells = <2>;
-		interrupt-parent = <&gpio3>;
-		interrupts = <27 IRQ_TYPE_LEVEL_LOW>;
-	};
-
-	adp5585gpio: gpio@34 {
-		compatible = "adp5585";
-		reg = <0x34>;
-		gpio-controller;
-		#gpio-cells = <2>;
-	};
 };
 
 &lpi2c3 {
@@ -277,60 +257,6 @@
 	pinctrl-0 = <&pinctrl_lpi2c3>;
 	pinctrl-1 = <&pinctrl_lpi2c3>;
 	status = "okay";
-
-	ptn5110: tcpc@50 {
-		compatible = "nxp,ptn5110";
-		reg = <0x50>;
-		interrupt-parent = <&pcal6524>;
-		interrupts = <1 IRQ_TYPE_EDGE_FALLING>;
-		status = "okay";
-
-		port {
-			typec1_dr_sw: endpoint {
-				remote-endpoint = <&usb1_drd_sw>;
-			};
-		};
-
-		typec1_con: connector {
-			compatible = "usb-c-connector";
-			label = "USB-C";
-			power-role = "dual";
-			data-role = "dual";
-			try-power-role = "sink";
-			source-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;
-			sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)
-				     PDO_VAR(5000, 20000, 3000)>;
-			op-sink-microwatt = <15000000>;
-			self-powered;
-		};
-	};
-
-	ptn5110_2: tcpc@51 {
-		compatible = "nxp,ptn5110";
-		reg = <0x51>;
-		interrupt-parent = <&pcal6524>;
-		interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
-		status = "okay";
-
-		port {
-			typec2_dr_sw: endpoint {
-				remote-endpoint = <&usb2_drd_sw>;
-			};
-		};
-
-		typec2_con: connector {
-			compatible = "usb-c-connector";
-			label = "USB-C";
-			power-role = "dual";
-			data-role = "dual";
-			try-power-role = "sink";
-			source-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;
-			sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)
-				     PDO_VAR(5000, 20000, 3000)>;
-			op-sink-microwatt = <15000000>;
-			self-powered;
-		};
-	};
 };
 
 &lpuart2 {
@@ -360,7 +286,7 @@
 
 	port {
 		usb1_drd_sw: endpoint {
-			remote-endpoint = <&typec1_dr_sw>;
+// 			remote-endpoint = <&typec1_dr_sw>;
 		};
 	};
 };
@@ -378,7 +304,7 @@
 
 	port {
 		usb2_drd_sw: endpoint {
-			remote-endpoint = <&typec2_dr_sw>;
+// 			remote-endpoint = <&typec2_dr_sw>;
 		};
 	};
 };
@@ -568,12 +494,6 @@
 		fsl,pins = <
 			MX93_PAD_GPIO_IO28__LPI2C3_SDA			0x40000b9e
 			MX93_PAD_GPIO_IO29__LPI2C3_SCL			0x40000b9e
-		>;
-	};
-
-	pinctrl_pcal6524: pcal6524grp {
-		fsl,pins = <
-			MX93_PAD_CCM_CLKO2__GPIO3_IO27			0x31e
 		>;
 	};
 

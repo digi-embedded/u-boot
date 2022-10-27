@@ -133,7 +133,7 @@
 };
 
 &fec {
-	phy-reset-gpios = <&pcal6524 16 GPIO_ACTIVE_LOW>;
+// 	phy-reset-gpios = <&pcal6524 16 GPIO_ACTIVE_LOW>;
 	phy-reset-duration = <15>;
 	phy-reset-post-delay = <100>;
 };
@@ -143,19 +143,19 @@
 };
 
 &ethphy1 {
-	reset-gpios = <&pcal6524 15 GPIO_ACTIVE_LOW>;
+// 	reset-gpios = <&pcal6524 15 GPIO_ACTIVE_LOW>;
 	reset-assert-us = <15000>;
 	reset-deassert-us = <100000>;
 };
 
 &usbotg1 {
 	status = "okay";
-	extcon = <&ptn5110>;
+// 	extcon = <&ptn5110>;
 };
 
 &usbotg2 {
 	status = "okay";
-	extcon = <&ptn5110_2>;
+// 	extcon = <&ptn5110_2>;
 };
 
 &s4muap {
