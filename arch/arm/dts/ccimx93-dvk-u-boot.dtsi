@@ -112,11 +112,11 @@
 	u-boot,dm-spl;
 };
 
-&{/soc@0/bus@44000000/i2c@44350000/pmic@25} {
+&{/soc@0/bus@44000000/i2c@44340000/pmic@25} {
 	u-boot,dm-spl;
 };
 
-&{/soc@0/bus@44000000/i2c@44350000/pmic@25/regulators} {
+&{/soc@0/bus@44000000/i2c@44340000/pmic@25/regulators} {
 	u-boot,dm-spl;
 };
 
