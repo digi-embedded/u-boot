@@ -219,19 +219,28 @@ void hwid_get_macs(uint32_t pool, uint32_t base)
 	}
 }
 
-void hwid_get_serial_number(uint32_t year, uint32_t week, uint32_t genid, uint32_t serial)
+void hwid_get_serial_number(uint32_t year, uint32_t week, uint32_t serial)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
-	int ret;
+	int family_id = 0, ret;
 
 	/* If year is not set avoid setting this variable */
 	if (year == 0)
 		return;
 
+	if (IS_ENABLED(CONFIG_CC8X))
+		family_id = 1;
+	else if (IS_ENABLED(CONFIG_CC8M) && IS_ENABLED(CONFIG_IMX8MN))
+		family_id = 2;
+	else if (IS_ENABLED(CONFIG_CC8M) && IS_ENABLED(CONFIG_IMX8MM))
+		family_id = 3;
+	else if (IS_ENABLED(CONFIG_CCMP1))
+		family_id = 4;
+
 	sprintf(cmd, "setenv -f serial# %02d%02d%02d%06d",
 		year,
 		week,
-		genid,
+		family_id,
 		serial);
 	ret = run_command(cmd, 0);
 	if (ret)
