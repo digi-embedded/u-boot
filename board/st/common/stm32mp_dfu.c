@@ -107,9 +107,6 @@ void set_dfu_alt_info(char *interface, char *devstr)
 
 	ALLOC_CACHE_ALIGN_BUFFER(char, buf, DFU_ALT_BUF_LEN);
 
-	if (env_get("dfu_alt_info"))
-		return;
-
 	memset(buf, 0, sizeof(buf));
 
 	snprintf(buf, DFU_ALT_BUF_LEN,
