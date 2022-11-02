@@ -136,3 +136,11 @@ config HWID_LOCK_FUSE
 endif
 
 endif
+
+config DIGI_FAMILY_ID
+	int "Digi Family ID for Serial Number composition"
+	default 1 if CC8X
+	default 2 if CC8M && IMX8MN
+	default 3 if CC8M && IMX8MM
+	default 4 if CCMP1
+	default 0
