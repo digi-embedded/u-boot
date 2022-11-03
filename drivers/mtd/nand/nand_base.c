@@ -3620,7 +3620,7 @@ static bool find_full_id_nand(struct mtd_info *mtd, struct nand_chip *chip,
  */
 __weak void set_default_ecc_parameters(struct nand_chip *chip)
 {
-	chip->ecc_strength_ds = 1;
+	chip->ecc_strength_ds = 8;
 	chip->ecc_step_ds = 512;
 }
 
