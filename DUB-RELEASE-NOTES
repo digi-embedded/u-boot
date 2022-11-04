@@ -2,6 +2,15 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
+DUB-2021.10
+-----------
+dub-2021.10-r1.1, released on 2022/11/04
+	- Based on BSP from STMicroelectronics tag 'v2021.10-stm32mp-r1'.
+	- Built along custom ATF v2.6.
+	- Built along custom OPTEE v3.16.0.
+	- Add support to ConnectCore MP15 (only supported platform).
+
+
 DUB-2020.04
 -----------
 dub-2020.04-r5.3, released on 2021/12/10
