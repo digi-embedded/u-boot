@@ -1396,6 +1396,17 @@ int mxs_nand_init_ctrl(struct mxs_nand_info *nand_info)
 	nand->ecc.size		= nand_info->bch_geometry.ecc_chunkn_size;
 	nand->ecc.strength	= nand_info->bch_geometry.ecc_strength;
 
+	/*
+	 * Some NAND chips with on-die ECC report an ECC strength of 0 on the
+	 * ONFI parameters table. In that case, we want to set the ECC params
+	 * of 'nand_chip' structure with the calculated ECC that the driver
+	 * will work with.
+	 */
+	if (nand->ecc_strength_ds == 0 || nand->ecc_step_ds == 0) {
+		nand->ecc_strength_ds = nand->ecc.strength;
+		nand->ecc_step_ds = nand->ecc.size;
+	}
+
 	/* second phase scan */
 	err = nand_scan_tail(mtd);
 	if (err)
@@ -1583,4 +1594,13 @@ uint32_t mxs_nand_mark_bit_offset(struct mtd_info *mtd)
 	struct bch_geometry *geo = &nand_info->bch_geometry;
 
 	return geo->block_mark_bit_offset;
+}
+
+void set_default_ecc_parameters(struct nand_chip *chip)
+{
+	/*
+	 * Intentionally do nothing. Just avoid the weak function from
+	 * setting default values. The mxs_nand driver will take care of
+	 * calculating appropriate ECC strength and setting the structures.
+	 */
 }
