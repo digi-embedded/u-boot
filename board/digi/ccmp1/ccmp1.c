@@ -154,3 +154,25 @@ void board_update_hwid(bool is_fuse)
 
 	som_default_environment();
 }
+
+void print_som_info(void)
+{
+	if (my_hwid.variant)
+		printf("%s SOM variant 0x%02X: ", CONFIG_SOM_DESCRIPTION,
+		       my_hwid.variant);
+	else
+		return;
+
+	if (my_hwid.ram) {
+		print_size(gd->ram_size, " DDR3");
+		if (my_hwid.wifi)
+			printf(", Wi-Fi");
+		if (my_hwid.bt)
+			printf(", Bluetooth");
+		if (my_hwid.mca)
+			printf(", MCA");
+		if (my_hwid.crypto)
+			printf(", Crypto-auth");
+	}
+	printf("\n");
+}

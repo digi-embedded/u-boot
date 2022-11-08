@@ -104,24 +104,9 @@ int board_early_init_f(void)
 
 int checkboard(void)
 {
-	char *mode;
-	const char *fdt_compat;
-	int fdt_compat_len;
-
-	if (IS_ENABLED(CONFIG_TFABOOT)) {
-		if (IS_ENABLED(CONFIG_STM32MP15x_STM32IMAGE))
-			mode = "trusted - stm32image";
-		else
-			mode = "trusted";
-	} else {
-		mode = "basic";
-	}
-
-	fdt_compat = fdt_getprop(gd->fdt_blob, 0, "compatible",
-				 &fdt_compat_len);
-
-	log_info("Board: %s in %s mode (%s)\n", CONFIG_SYS_BOARD, mode,
-		 fdt_compat && fdt_compat_len ? fdt_compat : "");
+	board_version = get_carrierboard_version();
+	print_som_info();
+	print_carrierboard_info();
 
 	return 0;
 }
