@@ -6,6 +6,7 @@
 #include <env.h>
 #include <env_internal.h>
 #include <nand.h>
+#include <asm/arch/sys_proto.h>
 
 #include "../common/helper.h"
 #include "../common/hwid.h"
@@ -175,4 +176,55 @@ void print_som_info(void)
 			printf(", Crypto-auth");
 	}
 	printf("\n");
+}
+
+void print_bootinfo(void)
+{
+	u32 bootmode = get_bootmode();
+
+	puts("Boot:  ");
+	switch (bootmode & TAMP_BOOT_DEVICE_MASK) {
+		case BOOT_FLASH_SD:
+		case BOOT_FLASH_SD_1:
+		case BOOT_FLASH_SD_2:
+		case BOOT_FLASH_SD_3:
+			puts("SD\n");
+			break;
+		case BOOT_FLASH_EMMC:
+		case BOOT_FLASH_EMMC_1:
+		case BOOT_FLASH_EMMC_2:
+		case BOOT_FLASH_EMMC_3:
+			puts("MMC\n");
+			break;
+		case BOOT_FLASH_NAND:
+		case BOOT_FLASH_NAND_FMC:
+			puts("NAND\n");
+			break;
+		case BOOT_FLASH_NOR:
+		case BOOT_FLASH_NOR_QSPI:
+			puts("NOR\n");
+			break;
+		case BOOT_SERIAL_UART:
+		case BOOT_SERIAL_UART_1:
+		case BOOT_SERIAL_UART_2:
+		case BOOT_SERIAL_UART_3:
+		case BOOT_SERIAL_UART_4:
+		case BOOT_SERIAL_UART_5:
+		case BOOT_SERIAL_UART_6:
+		case BOOT_SERIAL_UART_7:
+		case BOOT_SERIAL_UART_8:
+			puts("SERIAL\n");
+			break;
+		case BOOT_SERIAL_USB:
+		case BOOT_SERIAL_USB_OTG:
+			puts("USB\n");
+			break;
+		case BOOT_FLASH_SPINAND:
+		case BOOT_FLASH_SPINAND_1:
+			puts("SPI-NAND\n");
+			break;
+		default:
+			printf("Unknown device %u\n", bootmode);
+			break;
+	}
 }

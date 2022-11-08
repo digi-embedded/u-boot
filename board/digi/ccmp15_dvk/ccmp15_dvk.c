@@ -107,6 +107,7 @@ int checkboard(void)
 	board_version = get_carrierboard_version();
 	print_som_info();
 	print_carrierboard_info();
+	print_bootinfo();
 
 	return 0;
 }
