@@ -388,7 +388,8 @@ int ubi_volume_read(char *volume, char *buf, size_t size)
 		size = vol->used_bytes;
 	}
 
-	printf("Read %zu bytes from volume %s to %p\n", size, volume, buf);
+	if (strcmp(volume, CONFIG_ENV_UBI_VOLUME) && strcmp(volume, CONFIG_ENV_UBI_VOLUME_REDUND))
+		printf("Read %zu bytes from volume %s to %p\n", size, volume, buf);
 
 	if (vol->corrupted)
 		printf("read from corrupted volume %d", vol->vol_id);
