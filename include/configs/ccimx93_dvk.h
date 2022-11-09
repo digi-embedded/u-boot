@@ -12,6 +12,10 @@
 #include <configs/ccimx93_common.h>
 #include "imx_env.h"
 
+#define CONFIG_SOM_DESCRIPTION		"ConnectCore 93"
+#define CONFIG_BOARD_DESCRIPTION	"Development Kit"
+#define BOARD_DEY_NAME			"ccimx93-dvk"
+
 #define CONFIG_SYS_BOOTM_LEN		(SZ_64M)
 #define CONFIG_SPL_MAX_SIZE		(148 * 1024)
 #define CONFIG_SYS_MONITOR_LEN		SZ_512K
@@ -71,11 +75,15 @@
 	CONFIG_MFG_ENV_SETTINGS \
 	BOOTENV \
 	AHAB_ENV \
+	RANDOM_UUIDS \
 	"scriptaddr=0x83500000\0" \
 	"kernel_addr_r=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
-	"image=Image\0" \
+	"dboot_kernel_var=imagegz\0" \
+	"lzipaddr=" __stringify(CONFIG_DIGI_LZIPADDR) "\0" \
+	"image=Image-" BOARD_DEY_NAME ".bin\0" \
+	"imagegz=Image.gz-" BOARD_DEY_NAME ".bin\0" \
 	"splashimage=0x90000000\0" \
-	"console=ttyLP0,115200 earlycon\0" \
+	"console=ttyLP5,115200 earlycon\0" \
 	"fdt_addr_r=0x83000000\0"			\
 	"fdt_addr=0x83000000\0"			\
 	"fdt_high=0xffffffffffffffff\0"		\
@@ -87,7 +95,7 @@
 	"mmcbootpart=" __stringify(EMMC_BOOT_PART) "\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=1\0" \
-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+	"mmcroot=PARTUUID=1c606ef5-f1ac-43b9-9bb5-d5c578580b6b\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs ${jh_clk} console=${console} root=${mmcroot}\0 " \
 	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
@@ -98,6 +106,9 @@
 	"loadcntr=fatload mmc ${mmcdev}:${mmcpart} ${cntr_addr} ${cntr_file}\0" \
 	"auth_os=auth_cntr ${cntr_addr}\0" \
 	"boot_os=booti ${loadaddr} - ${fdt_addr_r};\0" \
+	"bootargs_mmc_linux=setenv bootargs console=${console} " \
+		"${bootargs_linux} root=${mmcroot} rootwait rw " \
+		"${bootargs_once} ${extra_bootargs}\0" \
 	"mmcboot=echo Booting from mmc ...; " \
 		"run mmcargs; " \
 		"if test ${sec_boot} = yes; then " \
@@ -146,6 +157,16 @@
 				"fi; " \
 			"fi;" \
 		"fi;\0" \
+	"parts_linux=" LINUX_8GB_PARTITION_TABLE "\0" \
+	"partition_mmc_linux=mmc rescan;" \
+		"if mmc dev ${mmcdev}; then " \
+			"if test \"${dualboot}\" = yes; then " \
+				"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
+			"else " \
+				"gpt write mmc ${mmcdev} ${parts_linux};" \
+			"fi;" \
+			"mmc rescan;" \
+		"fi;\0" \
 	"bsp_bootcmd=echo Running BSP bootcmd ...; " \
 		"mmc dev ${mmcdev}; if mmc rescan; then " \
 		   "if run loadbootscript; then " \
@@ -173,8 +194,6 @@
 	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
 #define CONFIG_SYS_INIT_SP_ADDR \
 	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
-
-#define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
 
 /* Monitor Command Prompt */
 #define CONFIG_SYS_CBSIZE		2048

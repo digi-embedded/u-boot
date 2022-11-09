@@ -63,8 +63,42 @@
 #define PHYS_SDRAM			0x80000000
 #define PHYS_SDRAM_SIZE			0x40000000  /* 1GB DDR */
 
-/* protected environment variables */
+/* Pool of randomly generated UUIDs at host machine */
+#define RANDOM_UUIDS	\
+	"uuid_disk=075e2a9b-6af6-448c-a52a-3a6e69f0afff\0" \
+	"part1_uuid=43f1961b-ce4c-4e6c-8f22-2230c5d532bd\0" \
+	"part2_uuid=f241b915-4241-47fd-b4de-ab5af832a0f6\0" \
+	"part3_uuid=1c606ef5-f1ac-43b9-9bb5-d5c578580b6b\0" \
+	"part4_uuid=c7d8648b-76f7-4e2b-b829-e95a83cc7b32\0" \
+	"part5_uuid=ebae5694-6e56-497c-83c6-c4455e12d727\0" \
+	"part6_uuid=3845c9fc-e581-49f3-999f-86c9bab515ef\0" \
+	"part7_uuid=3fcf7bf1-b6fe-419d-9a14-f87950727bc0\0" \
+	"part8_uuid=12c08a28-fb40-430a-a5bc-7b4f015b0b3c\0" \
+	"part9_uuid=dc83dea8-c467-45dc-84eb-5e913daec17e\0" \
+	"part10_uuid=df0dba76-d5e0-11e8-9f8b-f2801f1b9fd1\0"
+
+#define LINUX_8GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=linux,size=64MiB,uuid=${part1_uuid};" \
+	"name=recovery,size=64MiB,uuid=${part2_uuid};" \
+	"name=rootfs,size=3GiB,uuid=${part3_uuid};" \
+	"name=update,size=3GiB,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
+	"name=data,size=-,uuid=${part7_uuid};" \
+	"\""
+
+/* protected environment variables (besides ethaddr and serial#) */
 #define CONFIG_ENV_FLAGS_LIST_STATIC	\
+	"wlanaddr:mc,"			\
+	"wlan1addr:mc,"			\
+	"wlan2addr:mc,"			\
+	"wlan3addr:mc,"			\
+	"btaddr:mc,"			\
+	"bootargs_once:sr,"		\
+	"board_version:so,"		\
+	"board_id:so,"			\
 	"mmcbootdev:so"
 
 #endif /* CCIMX93_COMMON_H */
