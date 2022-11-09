@@ -59,6 +59,10 @@
 #define EMMC_BOOT_PART			1
 #define EMMC_BOOT_PART_OFFSET		(32 * SZ_1K)
 
+#define CONFIG_SYS_SDRAM_BASE		0x80000000
+#define PHYS_SDRAM			0x80000000
+#define PHYS_SDRAM_SIZE			0x40000000  /* 1GB DDR */
+
 /* protected environment variables */
 #define CONFIG_ENV_FLAGS_LIST_STATIC	\
 	"mmcbootdev:so"
