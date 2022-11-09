@@ -10,7 +10,23 @@
 #include <asm/mach-imx/boot_mode.h>
 #include <command.h>
 #include <env.h>
+#include <env_internal.h>
 #include <mmc.h>
+
+enum env_location env_get_location(enum env_operation op, int prio)
+{
+	enum env_location env_loc = ENVL_UNKNOWN;
+
+	if (prio)
+		return env_loc;
+
+	if (CONFIG_IS_ENABLED(ENV_IS_IN_MMC))
+		env_loc = ENVL_MMC;
+	else if (CONFIG_IS_ENABLED(ENV_IS_NOWHERE))
+		env_loc = ENVL_NOWHERE;
+
+	return env_loc;
+}
 
 int mmc_get_bootdevindex(void)
 {
