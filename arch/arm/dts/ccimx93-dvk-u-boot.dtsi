@@ -132,18 +132,12 @@
 	u-boot,dm-spl;
 };
 
-&fec {
-// 	phy-reset-gpios = <&pcal6524 16 GPIO_ACTIVE_LOW>;
-	phy-reset-duration = <15>;
-	phy-reset-post-delay = <100>;
-};
-
 &eqos {
 	compatible = "fsl,imx-eqos";
 };
 
-&ethphy1 {
-// 	reset-gpios = <&pcal6524 15 GPIO_ACTIVE_LOW>;
+&ethphy0 {
+	reset-gpios = <&gpio4 15 GPIO_ACTIVE_LOW>;
 	reset-assert-us = <15000>;
 	reset-deassert-us = <100000>;
 };

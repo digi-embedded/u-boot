@@ -278,34 +278,11 @@
 	status = "disabled";
 };
 
-&fec {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_fec>;
-	phy-mode = "rgmii-id";
-	phy-handle = <&ethphy2>;
-	fsl,magic-packet;
-	status = "okay";
-
-	mdio {
-		#address-cells = <1>;
-		#size-cells = <0>;
-		clock-frequency = <5000000>;
-
-		ethphy2: ethernet-phy@2 {
-			compatible = "ethernet-phy-ieee802.3-c22";
-			reg = <2>;
-			eee-broken-1000t;
-			rtl821x,aldps-disable;
-			rtl821x,clkout-disable;
-		};
-	};
-};
-
 &eqos {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_eqos>;
 	phy-mode = "rgmii-id";
-	phy-handle = <&ethphy1>;
+	phy-handle = <&ethphy0>;
 	status = "okay";
 
 	mdio {
@@ -314,12 +291,13 @@
 		#size-cells = <0>;
 		clock-frequency = <5000000>;
 
-		ethphy1: ethernet-phy@1 {
+		ethphy0: ethernet-phy@0 {
 			compatible = "ethernet-phy-ieee802.3-c22";
-			reg = <1>;
+			reg = <0>;
 			eee-broken-1000t;
-			rtl821x,aldps-disable;
-			rtl821x,clkout-disable;
+			at803x,led-act-blind-workaround;
+			at803x,eee-okay;
+			at803x,vddio-1p8v;
 		};
 	};
 };
@@ -410,6 +388,8 @@
 			MX93_PAD_ENET1_TD3__ENET_QOS_RGMII_TD3			0x57e
 			MX93_PAD_ENET1_TXC__CCM_ENET_QOS_CLOCK_GENERATE_TX_CLK	0x5fe
 			MX93_PAD_ENET1_TX_CTL__ENET_QOS_RGMII_TX_CTL		0x57e
+			/* PHY reset */
+			MX93_PAD_ENET2_MDIO__GPIO4_IO15				0x31e
 		>;
 	};
 
