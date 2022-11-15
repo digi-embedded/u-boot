@@ -132,7 +132,7 @@ if HAS_OTP_LOCK_FUSE
 config HWID_LOCK_FUSE
 	hex "HWID lock fuse mask"
 	default 0x100 if CC6UL
-	default 0x100000 if CC8M
+	default 0x4000 if CC8M
 endif
 
 endif
