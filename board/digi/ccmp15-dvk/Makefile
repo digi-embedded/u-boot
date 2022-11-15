@@ -7,7 +7,7 @@
 ifdef CONFIG_SPL_BUILD
 obj-y += spl.o
 else
-obj-y += ccmp13_dvk.o
+obj-y += ccmp15-dvk.o
 endif
 
 ifdef CONFIG_HAS_HWID
@@ -24,3 +24,4 @@ ifeq ($(CONFIG_ARCH_STM32MP),y)
 obj-$(CONFIG_SYS_MTDPARTS_RUNTIME) += ../../st/common/stm32mp_mtdparts.o
 obj-$(CONFIG_SET_DFU_ALT_INFO) += ../../st/common/stm32mp_dfu.o
 endif
+

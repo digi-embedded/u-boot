@@ -67,6 +67,6 @@ config DEBUG_UART_CLOCK
 endif
 
 source "board/st/stm32mp1/Kconfig"
-source "board/digi/ccmp13_dvk/Kconfig"
+source "board/digi/ccmp13-dvk/Kconfig"
 
 endif
