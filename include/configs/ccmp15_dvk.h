@@ -75,7 +75,9 @@
 		"fi;\0" \
 	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+	"linux_file=dey-image-qt-wayland-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
 	"recovery_file=recovery.img\0" \
+	"rootfs_file=dey-image-qt-wayland-" CONFIG_SYS_BOARD ".ubifs\0" \
 	"script=boot.scr\0" \
 	"uboot_file=u-boot.imx\0" \
 	"zimage=zImage-" BOARD_DEY_NAME ".bin\0"
