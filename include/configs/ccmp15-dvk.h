@@ -94,7 +94,6 @@
 #define MTDPART_ENV_SETTINGS \
 	"mtdbootpart=" LINUX_A_PARTITION "\0" \
 	"rootfsvol=" ROOTFS_A_PARTITION "\0" \
-	"singlemtdsys=yes\0" \
 	"bootargs_nand_linux=" \
 		"if test \"${rootfstype}\" = squashfs; then " \
 			"setenv rootargs " ROOTARGS_SQUASHFS ";" \
