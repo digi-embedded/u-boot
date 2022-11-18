@@ -9,6 +9,10 @@
 
 #include "digi_common.h"
 
+/* Lock Fuses */
+#define OCOTP_LOCK_BANK		0
+#define OCOTP_LOCK_WORD		1
+
 /* MCA */
 #ifdef CONFIG_MCA
 #define BOARD_MCA_DEVICE_ID		0x4A

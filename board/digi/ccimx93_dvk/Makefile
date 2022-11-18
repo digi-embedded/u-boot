@@ -5,6 +5,9 @@
 #
 
 obj-y += ccimx93_dvk.o
+ifdef CONFIG_HAS_HWID
+obj-y += ../ccimx93/ccimx93_hwid.o
+endif
 
 ifdef CONFIG_SPL_BUILD
 obj-y += spl.o
