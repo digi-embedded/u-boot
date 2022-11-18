@@ -75,6 +75,7 @@
 	CONFIG_MFG_ENV_SETTINGS \
 	BOOTENV \
 	AHAB_ENV \
+	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	RANDOM_UUIDS \
 	"scriptaddr=0x83500000\0" \
 	"kernel_addr_r=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \

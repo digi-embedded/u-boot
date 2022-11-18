@@ -7,6 +7,7 @@
 #ifndef CCIMX93_H
 #define CCIMX93_H
 
+int ccimx93_init(void);
 void som_default_environment(void);
 
 #endif  /* CCIMX93_H */

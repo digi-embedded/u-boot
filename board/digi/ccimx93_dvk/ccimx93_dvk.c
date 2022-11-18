@@ -23,7 +23,6 @@
 #include <dwc3-uboot.h>
 
 #include "../ccimx93/ccimx93.h"
-#include "../common/hwid.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -261,6 +260,9 @@ int board_init(void)
 #ifdef CONFIG_USB_TCPC
 	setup_typec();
 #endif
+
+	/* SOM init */
+	ccimx93_init();
 
 	if (CONFIG_IS_ENABLED(FEC_MXC))
 		setup_fec();
