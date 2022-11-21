@@ -271,8 +271,15 @@ int fuse_prog(u32 bank, u32 word, u32 val)
 	u32 res;
 	int ret;
 
+#ifdef DIGI_PLATFORM
+	if (bank >= FUSE_BANKS || word >= WORDS_PER_BANKS)
+		return -EINVAL;
+	if (!val)
+		return 0;
+#else
 	if (bank >= FUSE_BANKS || word >= WORDS_PER_BANKS || !val)
 		return -EINVAL;
+#endif
 
 	ret = ahab_write_fuse((bank * 8 + word), val, false, &res);
 	if (ret) {
