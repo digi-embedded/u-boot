@@ -1,23 +1,23 @@
 /* SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause */
 /*
  * Copyright (C) 2022, Digi International Inc
- * Copyright (C) 2018, STMicroelectronics - All Rights Reserved
+ * Copyright (C) 2022, STMicroelectronics - All Rights Reserved
  *
  */
 
-#ifndef __CCMP15_DVK_CONFIG_H__
-#define __CCMP15_DVK_CONFIG_H__
+#ifndef __CCMP13_DVK_CONFIG_H__
+#define __CCMP13_DVK_CONFIG_H__
 
 #include <configs/ccmp1_common.h>
 
-#define CONFIG_SOM_DESCRIPTION		"ConnectCore MP15"
+#define CONFIG_SOM_DESCRIPTION		"ConnectCore MP13"
 #define CONFIG_BOARD_DESCRIPTION	"Development Kit"
-#define BOARD_DEY_NAME			"ccmp15-dvk"
+#define BOARD_DEY_NAME			"ccmp13-dvk"
 
 /* Serial */
 #define CONSOLE_DEV			"ttySTM0"
 
-#define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
+#define CONFIG_MMCROOT			"/dev/mmcblk0p2"  /* USDHC1 */
 
 /* Carrier board version in environment */
 #define CONFIG_HAS_CARRIERBOARD_VERSION
@@ -66,9 +66,18 @@
 	"initrd_addr=0xc4400000\0" \
 	"initrd_file=uramdisk.img\0" \
 	"initrd_high=0xffffffff\0" \
+	"install_linux_fw_sd=if load mmc 1 ${loadaddr} install_linux_fw_sd.scr;then " \
+			"source ${loadaddr};" \
+		"fi;\0" \
+	"install_linux_fw_usb=usb start;" \
+		"if load usb 0 ${loadaddr} install_linux_fw_usb.scr;then " \
+			"source ${loadaddr};" \
+		"fi;\0" \
 	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+	"linux_file=core-image-base-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
 	"recovery_file=recovery.img\0" \
+	"rootfs_file=core-image-base-" CONFIG_SYS_BOARD ".ubifs\0" \
 	"script=boot.scr\0" \
 	"uboot_file=u-boot.imx\0" \
 	"zimage=zImage-" BOARD_DEY_NAME ".bin\0"
@@ -123,11 +132,6 @@
 	"rootfsvol_b=" ROOTFS_B_PARTITION "\0" \
 	"active_system=" LINUX_A_PARTITION "\0"
 
-/*
- * memory layout for 32M uncompressed/compressed kernel,
- * 1M fdt, 1M script, 1M pxe and 1M for splashimage
- * and the ramdisk at the end.
- */
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_COMMON_ENV \
 	MTDPART_ENV_SETTINGS \
@@ -141,6 +145,11 @@
 		"source ${loadaddr};" \
 	"fi;"
 
+/* Ethernet */
+#ifdef CONFIG_DWC_ETH_QOS
+#define CONFIG_SYS_NONCACHED_MEMORY    (1 * SZ_1M)
+#endif
+
 /* UBI volumes layout */
 #define UBIVOLS_UBOOTENV		"ubi create uboot_config 20000;" \
 					"ubi create uboot_config_r 20000;"
@@ -148,13 +157,13 @@
 #define UBIVOLS_256MB			"ubi create " LINUX_PARTITION " 1800000;" \
 					"ubi create " RECOVERY_PARTITION " 2000000;" \
 					"ubi create " ROOTFS_PARTITION " bb00000;" \
-					"ubi create " DATA_PARTITION "500000;" \
+					"ubi create " DATA_PARTITION " 500000;" \
 					"ubi create update;"
 
 #define UBIVOLS_512MB			"ubi create " LINUX_PARTITION " 1800000;" \
 					"ubi create " RECOVERY_PARTITION " 2000000;" \
 					"ubi create " ROOTFS_PARTITION " 10000000;" \
-					"ubi create " DATA_PARTITION "2000000;" \
+					"ubi create " DATA_PARTITION " 2000000;" \
 					"ubi create update;"
 
 #define UBIVOLS_DUALBOOT_256MB		"ubi create " LINUX_A_PARTITION " c00000;" \
@@ -189,4 +198,4 @@
 					"	fi;" \
 					"fi"
 
-#endif /* __CCMP15_DVK_CONFIG_H__ */
+#endif /* __CCMP13_DVK_CONFIG_H__ */

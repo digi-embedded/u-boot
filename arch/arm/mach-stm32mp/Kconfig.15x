@@ -143,7 +143,7 @@ endif
 
 source "board/st/stm32mp1/Kconfig"
 source "board/dhelectronics/dh_stm32mp1/Kconfig"
-source "board/digi/ccmp15_dvk/Kconfig"
+source "board/digi/ccmp15-dvk/Kconfig"
 source "board/engicam/stm32mp1/Kconfig"
 
 endif

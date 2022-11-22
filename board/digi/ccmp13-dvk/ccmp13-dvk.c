@@ -7,6 +7,7 @@
 #define LOG_CATEGORY LOGC_BOARD
 
 #include <common.h>
+#include <adc.h>
 #include <bootm.h>
 #include <clk.h>
 #include <config.h>
@@ -32,6 +33,7 @@
 #include <remoteproc.h>
 #include <reset.h>
 #include <syscon.h>
+#include <usb.h>
 #include <watchdog.h>
 #include <asm/global_data.h>
 #include <asm/io.h>
@@ -48,6 +50,7 @@
 #include <linux/iopoll.h>
 #include <power/regulator.h>
 #include <tee/optee.h>
+#include <usb/dwc2_udc.h>
 
 #include "../ccmp1/ccmp1.h"
 #include "../common/carrier_board.h"
@@ -61,6 +64,8 @@ unsigned int board_version = CARRIERBOARD_VERSION_UNDEFINED;
 #define SYSCFG_ICNR		0x1C
 #define SYSCFG_CMPCR		0x20
 #define SYSCFG_CMPENSETR	0x24
+#define SYSCFG_PMCCLRR		0x08
+#define SYSCFG_MP13_PMCCLRR	0x44
 
 #define SYSCFG_BOOTR_BOOT_MASK		GENMASK(2, 0)
 #define SYSCFG_BOOTR_BOOTPD_SHIFT	4
@@ -76,15 +81,8 @@ unsigned int board_version = CARRIERBOARD_VERSION_UNDEFINED;
 
 #define SYSCFG_CMPENSETR_MPU_EN		BIT(0)
 
-#define SYSCFG_PMCSETR_ETH_CLK_SEL	BIT(16)
-#define SYSCFG_PMCSETR_ETH_REF_CLK_SEL	BIT(17)
-
-#define SYSCFG_PMCSETR_ETH_SELMII	BIT(20)
-
-#define SYSCFG_PMCSETR_ETH_SEL_MASK	GENMASK(23, 21)
-#define SYSCFG_PMCSETR_ETH_SEL_GMII_MII	0
-#define SYSCFG_PMCSETR_ETH_SEL_RGMII	BIT(21)
-#define SYSCFG_PMCSETR_ETH_SEL_RMII	BIT(23)
+#define GOODIX_REG_ID		0x8140
+#define GOODIX_ID_LEN		4
 
 /*
  * Get a global data pointer
@@ -104,24 +102,10 @@ int board_early_init_f(void)
 
 int checkboard(void)
 {
-	char *mode;
-	const char *fdt_compat;
-	int fdt_compat_len;
-
-	if (IS_ENABLED(CONFIG_TFABOOT)) {
-		if (IS_ENABLED(CONFIG_STM32MP15x_STM32IMAGE))
-			mode = "trusted - stm32image";
-		else
-			mode = "trusted";
-	} else {
-		mode = "basic";
-	}
-
-	fdt_compat = fdt_getprop(gd->fdt_blob, 0, "compatible",
-				 &fdt_compat_len);
-
-	log_info("Board: %s in %s mode (%s)\n", CONFIG_SYS_BOARD, mode,
-		 fdt_compat && fdt_compat_len ? fdt_compat : "");
+	board_version = get_carrierboard_version();
+	print_som_info();
+	print_carrierboard_info();
+	print_bootinfo();
 
 	return 0;
 }
@@ -316,9 +300,6 @@ int board_init(void)
 		log_debug("Clock init failed: %d\n", ret);
 	}
 
-	/* address of boot parameters */
-	gd->bd->bi_boot_params = STM32_DDR_BASE + 0x100;
-
 	if (IS_ENABLED(CONFIG_DM_REGULATOR))
 		regulators_enable_boot_on(_DEBUG);
 
@@ -376,19 +357,6 @@ struct stm32_syscfg_pmcsetr {
 	u32 eth2_sel_rmii;
 };
 
-const struct stm32_syscfg_pmcsetr stm32mp15_syscfg_pmcsetr = {
-	.syscfg_clr_off		= 0x44,
-	.eth1_clk_sel		= BIT(16),
-	.eth1_ref_clk_sel	= BIT(17),
-	.eth1_sel_mii		= BIT(20),
-	.eth1_sel_rgmii		= BIT(21),
-	.eth1_sel_rmii		= BIT(23),
-	.eth2_clk_sel		= 0,
-	.eth2_ref_clk_sel	= 0,
-	.eth2_sel_rgmii		= 0,
-	.eth2_sel_rmii		= 0
-};
-
 const struct stm32_syscfg_pmcsetr stm32mp13_syscfg_pmcsetr = {
 	.syscfg_clr_off		= 0x08,
 	.eth1_clk_sel		= BIT(16),
@@ -427,8 +395,10 @@ int board_interface_eth_init(struct udevice *dev,
 
 	if (device_is_compatible(dev, "st,stm32mp13-dwmac"))
 		pmcsetr = &stm32mp13_syscfg_pmcsetr;
-	else
-		pmcsetr = &stm32mp15_syscfg_pmcsetr;
+	else {
+		log_err("ERROR: DT compatible incorrect\n");
+		return -EINVAL;
+	}
 
 	regmap = syscon_regmap_lookup_by_phandle(dev, "st,syscon");
 	if (!IS_ERR(regmap)) {
@@ -483,114 +453,75 @@ int board_interface_eth_init(struct udevice *dev,
 	return ret;
 }
 
+const char *env_ext4_get_intf(void)
+{
+	u32 bootmode = get_bootmode();
+
+	switch (bootmode & TAMP_BOOT_DEVICE_MASK) {
+	case BOOT_FLASH_SD:
+	case BOOT_FLASH_EMMC:
+		return "mmc";
+	default:
+		return "";
+	}
+}
+
+int mmc_get_boot(void)
+{
+	struct udevice *dev;
+	u32 boot_mode = get_bootmode();
+	unsigned int instance = (boot_mode & TAMP_BOOT_INSTANCE_MASK) - 1;
+	char cmd[20];
+	const u32 sdmmc_addr[] = {
+		STM32_SDMMC1_BASE,
+		STM32_SDMMC2_BASE,
+		STM32_SDMMC3_BASE
+	};
+
+	if (instance > ARRAY_SIZE(sdmmc_addr))
+		return 0;
+
+	/* search associated sdmmc node in devicetree */
+	snprintf(cmd, sizeof(cmd), "mmc@%x", sdmmc_addr[instance]);
+	if (uclass_get_device_by_name(UCLASS_MMC, cmd, &dev)) {
+		log_err("mmc%d = %s not found in device tree!\n", instance, cmd);
+		return 0;
+	}
+
+	return dev_seq(dev);
+};
+
+const char *env_ext4_get_dev_part(void)
+{
+	static char *const env_dev_part =
+#ifdef CONFIG_ENV_EXT4_DEVICE_AND_PART
+		CONFIG_ENV_EXT4_DEVICE_AND_PART;
+#else
+		"";
+#endif
+	static char *const dev_part[] = {"0:auto", "1:auto", "2:auto"};
+
+	if (strlen(env_dev_part) > 0)
+		return env_dev_part;
+
+	return dev_part[mmc_get_boot()];
+}
+
+int mmc_get_env_dev(void)
+{
+	const int mmc_env_dev = CONFIG_IS_ENABLED(ENV_IS_IN_MMC, (CONFIG_SYS_MMC_ENV_DEV), (-1));
+
+	if (mmc_env_dev >= 0)
+		return mmc_env_dev;
+
+	/* use boot instance to select the correct mmc device identifier */
+	return mmc_get_boot();
+}
+
 #if defined(CONFIG_OF_BOARD_SETUP)
 
-/* update scmi nodes with information provided by SP-MIN */
-void stm32mp15_fdt_update_scmi_node(void *new_blob)
+void stm32mp13x_dk_fdt_update(void *new_blob)
 {
-	ofnode node;
-	int nodeoff = 0;
-	const char *name;
-	u32 val;
-	int ret;
-
-	nodeoff = fdt_path_offset(new_blob, "/firmware/scmi");
-	if (nodeoff < 0)
-		return;
-
-	/* search scmi node in U-Boot device tree */
-	node = ofnode_path("/firmware/scmi");
-	if (!ofnode_valid(node)) {
-		log_warning("node not found");
-		return;
-	}
-	if (!ofnode_device_is_compatible(node, "arm,scmi-smc")) {
-		name = ofnode_get_property(node, "compatible", NULL);
-		log_warning("invalid compatible %s", name);
-		return;
-	}
-
-	/* read values updated by TF-A SP-MIN */
-	ret = ofnode_read_u32(node, "arm,smc-id", &val);
-	if (ret) {
-		log_warning("arm,smc-id missing");
-		return;
-	}
-	/* update kernel node */
-	fdt_setprop_string(new_blob, nodeoff, "compatible", "arm,scmi-smc");
-	fdt_delprop(new_blob, nodeoff, "linaro,optee-channel-id");
-	fdt_setprop_u32(new_blob, nodeoff, "arm,smc-id", val);
-}
-
-/*
- * update the device tree to support boot with SP-MIN, using a device tree
- * containing OPTE nodes:
- * 1/ remove the OP-TEE related nodes
- * 2/ copy SCMI nodes to kernel device tree to replace the OP-TEE agent
- *
- * SP-MIN boot is supported for STM32MP15 and it uses the SCMI SMC agent
- * whereas Linux device tree defines an SCMI OP-TEE agent.
- *
- * This function allows to temporary support this legacy boot mode,
- * with SP-MIN and without OP-TEE.
- */
-void stm32mp15_fdt_update_optee_nodes(void *new_blob)
-{
-	ofnode node;
-	int nodeoff = 0, subnodeoff;
-
-	/* only proceed if /firmware/optee node is not present in U-Boot DT */
-	node = ofnode_path("/firmware/optee");
-	if (ofnode_valid(node)) {
-		log_debug("OP-TEE firmware found, nothing to do");
-		return;
-	}
-
-	/* remove OP-TEE memory regions in reserved-memory node */
-	nodeoff = fdt_path_offset(new_blob, "/reserved-memory");
-	if (nodeoff >= 0) {
-		fdt_for_each_subnode(subnodeoff, new_blob, nodeoff) {
-			const char *name = fdt_get_name(new_blob, subnodeoff, NULL);
-
-			/* only handle "optee" reservations */
-			if (name && !strncmp(name, "optee", 5))
-				fdt_del_node(new_blob, subnodeoff);
-		}
-	}
-
-	/* remove OP-TEE node  */
-	nodeoff = fdt_path_offset(new_blob, "/firmware/optee");
-	if (nodeoff >= 0)
-		fdt_del_node(new_blob, nodeoff);
-
-	/* update the scmi node */
-	stm32mp15_fdt_update_scmi_node(new_blob);
-}
-
-
-void fdt_update_panel_dsi(void *new_blob)
-{
-	char const *panel = env_get("panel-dsi");
-	int nodeoff = 0;
-
-	if (!panel)
-		return;
-
-	if (!strcmp(panel, "rocktech,hx8394")) {
-		nodeoff = fdt_node_offset_by_compatible(new_blob, -1, "raydium,rm68200");
-		if (nodeoff < 0) {
-			log_warning("panel-dsi node not found");
-			return;
-		}
-		fdt_setprop_string(new_blob, nodeoff, "compatible", panel);
-
-		nodeoff = fdt_node_offset_by_compatible(new_blob, -1, "goodix,gt9147");
-		if (nodeoff < 0) {
-			log_warning("touchscreen node not found");
-			return;
-		}
-		fdt_setprop_string(new_blob, nodeoff, "compatible", "goodix,gt911");
-	}
 }
 
 int ft_board_setup(void *blob, struct bd_info *bd)
@@ -616,8 +547,6 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 	if (CONFIG_IS_ENABLED(FDT_SIMPLEFB))
 		fdt_simplefb_enable_and_mem_rsv(blob);
 
-
-	stm32mp15_fdt_update_optee_nodes(blob);
 	return 0;
 }
 #endif

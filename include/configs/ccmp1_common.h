@@ -211,17 +211,9 @@
 			"setenv active_system " LINUX_A_PARTITION ";" \
 		"fi;" \
 		"setenv mtdbootpart ${active_system};" \
-		"if test \"${singlemtdsys}\" = yes; then " \
-			"if ubi part " SYSTEM_PARTITION "; then " \
-				"if ubifsmount ubi0:${mtdbootpart}; then " \
-					"ubifsload ${loadaddr} altboot.scr;" \
-				"fi;" \
-			"fi;" \
-		"else " \
-			"if ubi part ${mtdbootpart}; then " \
-				"if ubifsmount ubi0:${mtdbootpart}; then " \
-					"ubifsload ${loadaddr} altboot.scr;" \
-				"fi;" \
+		"if ubi part " SYSTEM_PARTITION "; then " \
+			"if ubifsmount ubi0:${mtdbootpart}; then " \
+				"ubifsload ${loadaddr} altboot.scr;" \
 			"fi;" \
 		"fi;" \
 		"source ${loadaddr}\0"

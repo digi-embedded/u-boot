@@ -4,12 +4,12 @@ source "board/st/common/Kconfig"
 source "board/digi/common/Kconfig"
 
 config SYS_BOARD
-	default "ccmp15_dvk"
+	default "ccmp15-dvk"
 
 config SYS_VENDOR
 	default "digi"
 
 config SYS_CONFIG_NAME
-	default "ccmp15_dvk"
+	default "ccmp15-dvk"
 
 endif
