@@ -1103,7 +1103,11 @@ static int eqos_read_rom_hwaddr(struct udevice *dev)
 	struct eth_pdata *pdata = dev_get_plat(dev);
 
 #if defined(CONFIG_IMX8MP) || defined(CONFIG_IMX8DXL) || defined(CONFIG_IMX93)
+#ifdef CONFIG_NO_MAC_FROM_OTP
+	memset(pdata->enetaddr, 0, sizeof(pdata->enetaddr));
+#else
 	imx_get_mac_from_fuse(dev_seq(dev), pdata->enetaddr);
+#endif
 #endif
 	return !is_valid_ethaddr(pdata->enetaddr);
 }
