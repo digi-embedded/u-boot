@@ -170,6 +170,17 @@ void som_default_environment(void)
 
 	if (board_has_bluetooth())
 		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
+
+	/* Set 'som_overlays' variable */
+	var[0] = 0;
+	if (board_has_wireless())
+		strlcat(var, "_ov_som_wifi_ccimx93.dtbo,", sizeof(var));
+	if (board_has_bluetooth())
+		strlcat(var, "_ov_som_bt_ccimx93.dtbo,", sizeof(var));
+	/* Remove the trailing comma */
+	if (var[0])
+		var[strlen(var) - 1] = 0;
+	env_set("som_overlays", var);
 }
 
 void board_update_hwid(bool is_fuse)
