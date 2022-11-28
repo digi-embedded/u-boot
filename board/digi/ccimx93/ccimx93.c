@@ -9,7 +9,7 @@
 #include <asm/global_data.h>
 #include <asm/mach-imx/boot_mode.h>
 #include <command.h>
-#include <env.h>
+#include <common.h>
 #include <env_internal.h>
 #include <mmc.h>
 
@@ -18,6 +18,8 @@
 #include "../common/mca.h"
 
 static struct digi_hwid my_hwid;
+
+DECLARE_GLOBAL_DATA_PTR;
 
 enum env_location env_get_location(enum env_operation op, int prio)
 {
@@ -194,4 +196,48 @@ void board_update_hwid(bool is_fuse)
 
 	mca_somver_update(&my_hwid);
 	som_default_environment();
+}
+
+void fdt_fixup_ccimx93(void *fdt)
+{
+	fdt_fixup_hwid(fdt, &my_hwid);
+
+	if (board_has_wireless()) {
+		/* Wireless MACs */
+		fdt_fixup_mac(fdt, "wlanaddr", "/wireless", "mac-address");
+		fdt_fixup_mac(fdt, "wlan1addr", "/wireless", "mac-address1");
+		fdt_fixup_mac(fdt, "wlan2addr", "/wireless", "mac-address2");
+		fdt_fixup_mac(fdt, "wlan3addr", "/wireless", "mac-address3");
+
+		/* Regulatory domain */
+		fdt_fixup_regulatory(fdt);
+	}
+
+	if (board_has_bluetooth())
+		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
+
+#ifdef CONFIG_HAS_TRUSTFENCE
+	fdt_fixup_trustfence(fdt);
+#endif
+	fdt_fixup_uboot_info(fdt);
+}
+
+void print_som_info(void)
+{
+	if (my_hwid.variant)
+		printf("%s SOM variant 0x%02X: ", CONFIG_SOM_DESCRIPTION,
+		       my_hwid.variant);
+	else
+		return;
+
+	print_size(gd->ram_size, " LPDDR4");
+	if (my_hwid.wifi)
+		printf(", Wi-Fi");
+	if (my_hwid.bt)
+		printf(", Bluetooth");
+	if (my_hwid.mca)
+		printf(", MCA");
+	if (my_hwid.crypto)
+		printf(", Crypto-auth");
+	printf("\n");
 }

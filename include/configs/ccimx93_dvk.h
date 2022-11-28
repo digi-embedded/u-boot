@@ -16,6 +16,10 @@
 #define CONFIG_BOARD_DESCRIPTION	"Development Kit"
 #define BOARD_DEY_NAME			"ccimx93-dvk"
 
+/* Carrier board version in environment */
+#define CONFIG_HAS_CARRIERBOARD_VERSION
+#define CONFIG_HAS_CARRIERBOARD_ID
+
 #define CONFIG_SYS_BOOTM_LEN		(SZ_64M)
 #define CONFIG_SPL_MAX_SIZE		(148 * 1024)
 #define CONFIG_SYS_MONITOR_LEN		SZ_512K

@@ -23,8 +23,12 @@
 #include <dwc3-uboot.h>
 
 #include "../ccimx93/ccimx93.h"
+#include "../common/carrier_board.h"
 
 DECLARE_GLOBAL_DATA_PTR;
+
+unsigned int board_version = CARRIERBOARD_VERSION_UNDEFINED;
+unsigned int board_id = CARRIERBOARD_ID_UNDEFINED;
 
 #define UART_PAD_CTRL	(PAD_CTL_DSE(6) | PAD_CTL_FSEL2)
 #define WDOG_PAD_CTRL	(PAD_CTL_DSE(6) | PAD_CTL_ODE | PAD_CTL_PUE | PAD_CTL_PE)
@@ -273,6 +277,16 @@ int board_init(void)
 	return 0;
 }
 
+#ifdef CONFIG_OF_BOARD_SETUP
+int ft_board_setup(void *blob, struct bd_info *bd)
+{
+	fdt_fixup_ccimx93(blob);
+	fdt_fixup_carrierboard(blob);
+
+	return 0;
+}
+#endif
+
 void platform_default_environment(void)
 {
 	som_default_environment();
@@ -289,4 +303,15 @@ int board_late_init(void)
 int mmc_map_to_kernel_blk(int dev_no)
 {
 	return dev_no;
+}
+
+int checkboard(void)
+{
+	board_version = get_carrierboard_version();
+	board_id = get_carrierboard_id();
+
+	print_som_info();
+	print_carrierboard_info();
+
+	return 0;
 }
