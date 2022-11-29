@@ -4,6 +4,10 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2020.04
 -----------
+dub-2020.04-r5.6, released on 2022/11/29
+	- CC6UL: add support to SkyHigh NANDs
+
+
 dub-2020.04-r5.5, released on 2022/11/22
 	- TrustFence: improvements and fixes.
 	- CC6UL: fixes to support boot logo.
