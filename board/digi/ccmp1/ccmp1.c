@@ -228,3 +228,16 @@ void print_bootinfo(void)
 			break;
 	}
 }
+
+bool is_usb_boot(void)
+{
+	u32 bootmode = get_bootmode();
+
+	switch (bootmode & TAMP_BOOT_DEVICE_MASK) {
+		case BOOT_SERIAL_USB:
+		case BOOT_SERIAL_USB_OTG:
+			return true;
+		default:
+			return false;
+	}
+}

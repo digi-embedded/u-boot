@@ -169,5 +169,9 @@ enum forced_boot_mode {
 #define BSEC_OTP_BOARD	60
 #endif
 
+bool is_usb_boot(void);
+#define	is_boot_from_usb  is_usb_boot
+#define disconnect_from_pc()
+
 #endif /* __ASSEMBLY__ */
 #endif /* _MACH_STM32_H_ */
