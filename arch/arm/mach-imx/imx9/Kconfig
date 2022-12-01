@@ -35,7 +35,7 @@ config TARGET_CCIMX93_DVK
 endchoice
 
 source "board/freescale/imx93_evk/Kconfig"
-source "board/digi/ccimx93_dvk/Kconfig"
+source "board/digi/ccimx93-dvk/Kconfig"
 
 endif
 

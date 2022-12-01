@@ -4,7 +4,7 @@
 # SPDX-License-Identifier:      GPL-2.0+
 #
 
-obj-y += ccimx93_dvk.o
+obj-y += ccimx93-dvk.o
 ifdef CONFIG_HAS_HWID
 obj-y += ../ccimx93/ccimx93_hwid.o
 endif
