@@ -41,32 +41,9 @@
 		#size-cells = <1>;
 		ranges;
 
-		gpu_reserved: gpu@f6000000 {
-			reg = <0xf6000000 0x8000000>;
-			no-map;
-		};
-
-		mcu_rsc_table: mcu_rsc_table@10048000 {
-			compatible = "shared-dma-pool";
-			reg = <0x10048000 0x8000>;
-			no-map;
-		};
-
-		mcuram: mcuram@30000000 {
-			compatible = "shared-dma-pool";
-			reg = <0x30000000 0x40000>;
-			no-map;
-		};
-
 		mcuram2: mcuram2@10000000 {
 			compatible = "shared-dma-pool";
 			reg = <0x10000000 0x40000>;
-			no-map;
-		};
-
-		retram: retram@38000000 {
-			compatible = "shared-dma-pool";
-			reg = <0x38000000 0x10000>;
 			no-map;
 		};
 
@@ -85,6 +62,34 @@
 		vdev0buffer: vdev0buffer@10042000 {
 			compatible = "shared-dma-pool";
 			reg = <0x10042000 0x4000>;
+			no-map;
+		};
+
+		mcu_rsc_table: mcu_rsc_table@10048000 {
+			compatible = "shared-dma-pool";
+			reg = <0x10048000 0x8000>;
+			no-map;
+		};
+
+		mcuram: mcuram@30000000 {
+			compatible = "shared-dma-pool";
+			reg = <0x30000000 0x40000>;
+			no-map;
+		};
+
+		retram: retram@38000000 {
+			compatible = "shared-dma-pool";
+			reg = <0x38000000 0x10000>;
+			no-map;
+		};
+
+		gpu_reserved: gpu@da000000 {
+			reg = <0xda000000 0x4000000>;
+			no-map;
+		};
+
+		optee@de000000 {
+			reg = <0xde000000 0x2000000>;
 			no-map;
 		};
 	};
