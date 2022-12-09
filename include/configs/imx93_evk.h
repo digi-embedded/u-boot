@@ -18,8 +18,8 @@
 	(QSPI0_AMBA_BASE + CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512)
 
 #ifdef CONFIG_SPL_BUILD
-#define CONFIG_SPL_STACK		0x2051ddd0
-#define CONFIG_SPL_BSS_START_ADDR	0x2051e000
+#define CONFIG_SPL_STACK		0x20519dd0
+#define CONFIG_SPL_BSS_START_ADDR	0x2051a000
 #define CONFIG_SPL_BSS_MAX_SIZE		SZ_8K	/* 8 KB */
 #define CONFIG_SYS_SPL_MALLOC_START	0x83200000 /* Need disable simple malloc where still uses malloc_f area */
 #define CONFIG_SYS_SPL_MALLOC_SIZE	SZ_512K	/* 512 KB */
@@ -51,11 +51,11 @@
 
 #define JAILHOUSE_ENV \
 	"jh_mmcboot=setenv fdtfile imx93-11x11-evk-root.dtb; " \
-		    "setenv jh_clk clk_ignore_unused mem=1280MB kvm-arm.mode=nvhe; " \
+		    "setenv jh_clk clk_ignore_unused mem=1248MB kvm-arm.mode=nvhe; " \
 		    "if run loadimage; then run mmcboot;" \
 		    "else run jh_netboot; fi; \0" \
 	"jh_netboot=setenv fdtfile imx93-11x11-evk-root.dtb; " \
-		    "setenv jh_clk clk_ignore_unused mem=1280MB kvm-arm.mode=nvhe; run netboot; \0 "
+		    "setenv jh_clk clk_ignore_unused mem=1248MB kvm-arm.mode=nvhe; run netboot; \0 "
 
 #define CONFIG_MFG_ENV_SETTINGS \
 	CONFIG_MFG_ENV_SETTINGS_DEFAULT \
@@ -176,7 +176,11 @@
 
 #define CONFIG_SYS_SDRAM_BASE           0x80000000
 #define PHYS_SDRAM                      0x80000000
+#ifdef CONFIG_IMX9_DRAM_INLINE_ECC
+#define PHYS_SDRAM_SIZE			0x70000000 /* 1/8 DDR is used by ECC */
+#else
 #define PHYS_SDRAM_SIZE			0x80000000 /* 2GB DDR */
+#endif
 
 /* Monitor Command Prompt */
 #define CONFIG_SYS_CBSIZE		2048

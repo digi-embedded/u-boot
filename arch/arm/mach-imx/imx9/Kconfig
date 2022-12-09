@@ -5,6 +5,11 @@ config AHAB_BOOT
     help
     This option enables the support for AHAB secure boot.
 
+config IMX9_LOW_DRIVE_MODE
+    bool "Configure to i.MX9 low drive mode"
+    help
+    This option enables the settings for iMX9 low drive mode.
+
 config IMX9
 	bool
 	select ARCH_EARLY_INIT_R
@@ -27,6 +32,11 @@ config TARGET_IMX93_11X11_EVK
 	bool "imx93_11x11_evk"
 	select IMX93
 
+config TARGET_IMX93_9X9_QSB
+	bool "imx93_9x9_qsb"
+	select IMX93
+	select IMX9_LPDDR4X
+
 config TARGET_CCIMX93_DVK
 	bool "Digi ConnectCore 93 Development Kit"
 	select IMX93
@@ -35,6 +45,7 @@ config TARGET_CCIMX93_DVK
 endchoice
 
 source "board/freescale/imx93_evk/Kconfig"
+source "board/freescale/imx93_qsb/Kconfig"
 source "board/digi/ccimx93-dvk/Kconfig"
 
 endif
