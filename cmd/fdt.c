@@ -18,9 +18,6 @@
 #include <fdt_support.h>
 #include <mapmem.h>
 #include <asm/io.h>
-#if defined(CONFIG_AUTH_ARTIFACTS) && defined(CONFIG_AHAB_BOOT)
-#include <asm/mach-imx/image.h>
-#endif
 
 #define MAX_LEVEL	32		/* how deeply nested we will go */
 #define SCRATCHPAD	1024		/* bytes of scratchpad memory */
