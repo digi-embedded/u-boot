@@ -2,6 +2,13 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
+dub-2015.04-r14.1, released on 2022/12/14
+	- Add support for NAND chips with on-die ECC that
+	  don't report valid ECC strength on ONFI.
+	- Increase DDR3 lines strength for CC6.
+	- Increase LDO_PU voltage to 1.175V (CC6Plus).
+
+
 dub-2015.04-r13.1, released on 2021/11/30
 	- Add support for the ConnectCore6N platform.
 	- Add support for CC6UL variant 0x05.
