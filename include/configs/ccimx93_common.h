@@ -93,6 +93,9 @@
 	"name=data,size=-,uuid=${part7_uuid};" \
 	"\""
 
+/* Partition defines */
+#define RECOVERY_PARTITION	"2"
+
 /* Extra network settings for second Ethernet */
 #define CONFIG_EXTRA_NETWORK_SETTINGS \
 	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"

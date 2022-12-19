@@ -173,6 +173,8 @@
 			"fi;" \
 			"mmc rescan;" \
 		"fi;\0" \
+	"recoverycmd=setenv mmcpart " RECOVERY_PARTITION ";" \
+		"boot\0" \
 	"bsp_bootcmd=echo Running BSP bootcmd ...; " \
 		"mmc dev ${mmcdev}; if mmc rescan; then " \
 		   "if run loadbootscript; then " \
