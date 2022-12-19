@@ -1086,7 +1086,6 @@ dtb-$(CONFIG_ARCH_STI) += stih410-b2260.dtb
 
 dtb-$(CONFIG_STM32MP13x) += \
 	ccmp13-dvk.dtb \
-	stm32mp135d-dk.dtb \
 	stm32mp135f-dk.dtb
 
 dtb-$(CONFIG_STM32MP15x) += \

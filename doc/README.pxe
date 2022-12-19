@@ -169,6 +169,9 @@ fdt <path>	    - if this label is chosen, use tftp to retrieve the fdt blob
 		      at <path>. it will be stored at the address indicated in
 		      the fdt_addr_r environment variable, and that address will
 		      be passed to bootm.
+		      For FIT image, the device tree can be provided with the same value
+		      than kernel, including configuration:
+		        <path>#<conf>[#<extra-conf[#...]]
 
 fdtdir <path>	    - if this label is chosen, use tftp to retrieve a fdt blob
 		      relative to <path>. If the fdtfile environment variable
