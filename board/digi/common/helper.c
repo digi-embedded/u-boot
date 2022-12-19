@@ -497,16 +497,14 @@ int load_firmware(struct load_fw *fwinfo, char *msg)
 	ulong loadaddr;
 
 	/* 'fwinfo->varload' determines if the file must be loaded:
-	 * - yes|NULL: the file must be loaded. Return error otherwise.
+	 * - yes: the file must be loaded. Return error otherwise.
 	 * - try: the file may be loaded. Return ok even if load fails.
 	 * - no: skip the load.
 	 */
-	if (NULL != fwinfo->varload) {
-		if (!strcmp(fwinfo->varload, "no"))
-			return LDFW_NOT_LOADED;	/* skip load and return ok */
-		else if (!strcmp(fwinfo->varload, "try"))
-			fwload = FWLOAD_TRY;
-	}
+	if (!strcmp(fwinfo->varload, "no"))
+		return LDFW_NOT_LOADED;	/* skip load and return ok */
+	else if (!strcmp(fwinfo->varload, "try"))
+		fwload = FWLOAD_TRY;
 
 	/* Use default values if not provided */
 	if (strlen(fwinfo->devpartno) == 0) {
