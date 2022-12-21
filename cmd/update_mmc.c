@@ -306,6 +306,8 @@ static int do_update(struct cmd_tbl* cmdtp, int flag, int argc, char * const arg
 	unsigned long loadaddr;
 	unsigned long filesize = 0;
 	struct load_fw fwinfo;
+	char *partname;
+	char str[10];
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -338,10 +340,22 @@ static int do_update(struct cmd_tbl* cmdtp, int flag, int argc, char * const arg
 		/* Not a reserved name. Must be a partition name or index */
 		char dev_index_str[2];
 
+		partname = argv[1];
+		if (env_get_yesno("dualboot")) {
+			strcpy(str, env_get("active_system"));
+			if (!strcmp(partname, "linux")) {
+				partname = str;
+			} else if (!strcmp(partname, "rootfs")) {
+				strcpy(str, strcmp(str, "linux_a") ?
+				       "rootfs_b" : "rootfs_a");
+				partname = str;
+			}
+		}
+
 		/* Look up partition on the device */
 		sprintf(dev_index_str, "%d", mmc_dev_index);
 		if (get_partition_bynameorindex(CONFIG_SYS_STORAGE_MEDIA,
-					dev_index_str, argv[1], &info) < 0) {
+					dev_index_str, partname, &info) < 0) {
 			printf("Error: partition '%s' not found\n", argv[1]);
 			return CMD_RET_FAILURE;
 		}
