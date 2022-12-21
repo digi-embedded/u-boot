@@ -242,6 +242,7 @@ static int do_update(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv
 	char cmd[CONFIG_SYS_CBSIZE];
 	bool ubivol = false;
 	bool force_erase = false;
+	char str[10];
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -262,10 +263,26 @@ static int do_update(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv
 	}
 
 	/* Get data of partition to be updated (might be a reserved name) */
-	if (!strcmp(argv[1], "uboot"))
+	if (!strcmp(argv[1], "uboot")) {
 		partname = ubootpartname;
-	else
+	} else {
+		/*
+		 * If dualboot is enabled and 'partname' is "linux" or "rootfs"
+		 * check the active partition name (linux_a/linux_b or
+		 * rootfs_a/rootfs_b).
+		 */
 		partname = argv[1];
+		if (env_get_yesno("dualboot")) {
+			strcpy(str, env_get("active_system"));
+			if (!strcmp(partname, "linux")) {
+				partname = str;
+			} else if (!strcmp(partname, "rootfs")) {
+				strcpy(str, strcmp(str, "linux_a") ?
+				       "rootfs_b" : "rootfs_a");
+				partname = str;
+			}
+		}
+	}
 
 	if (find_dev_and_part(partname, &dev, &pnum, &part)) {
 		/*
