@@ -214,12 +214,6 @@ static int mxs_nand_get_ecc_strength(struct mtd_info *mtd)
 		return -EINVAL;
 	}
 
-	if (!(chip->ecc_strength_ds > 0 && chip->ecc_step_ds > 0) &&
-			!(page_oob_size > 1024)) {
-		printf("cannot support the NAND, missing necessary info\n");
-		return -EINVAL;
-	}
-
 	/* set some parameters according to NAND chip parameters */
 	chunk_data_size = chip->ecc_step_ds;
 	if (1024 == chunk_data_size)
@@ -255,12 +249,19 @@ static int mxs_nand_get_ecc_strength(struct mtd_info *mtd)
 	} else {
 		ecc_strength = chip->ecc_strength_ds;
 		ecc_strength += ecc_strength & 1;
-#if defined(CONFIG_NAND_MXS_BCH_LEGACY_GEO)
-		ecc_strength = ((page_oob_size - MXS_NAND_METADATA_SIZE) * 8)
-			/(galois_field * mxs_nand_ecc_chunk_cnt(mtd->writesize));
-		ecc_strength += ecc_strength & 1;
-		ecc_strength = min(ecc_strength, MXS_NAND_MAX_ECC_STRENGTH);
-#endif
+		if (ecc_strength == 0) {
+			/* Use legacy geometry calculation */
+			ecc_strength = ((page_oob_size - MXS_NAND_METADATA_SIZE) * 8)
+				/(galois_field * mxs_nand_ecc_chunk_cnt(mtd->writesize));
+			ecc_strength += ecc_strength & 1;
+			ecc_strength = min(ecc_strength,
+					   max_ecc_strength_supported);
+		}
+	}
+
+	if (chip->ecc_strength_ds == 0 || chip->ecc_step_ds == 0) {
+		chip->ecc_strength_ds = ecc_strength;
+		chip->ecc_step_ds = chip->ecc.size;
 	}
 	return 0;
 };
@@ -1347,4 +1348,13 @@ err2:
 err1:
 	free(nand_info);
 	return err;
+}
+
+void set_default_ecc_parameters(struct nand_chip *chip)
+{
+	/*
+	 * Intentionally do nothing. Just avoid the weak function from
+	 * setting default values. The mxs_nand driver will take care of
+	 * calculating appropriate ECC strength and setting the structures.
+	 */
 }
