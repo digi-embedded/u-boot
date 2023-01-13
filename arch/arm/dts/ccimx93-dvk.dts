@@ -278,6 +278,7 @@
 	status = "disabled";
 };
 
+#if defined(CONFIG_DWC_ETH_QOS)
 &eqos {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_eqos>;
@@ -294,13 +295,33 @@
 		ethphy0: ethernet-phy@0 {
 			compatible = "ethernet-phy-ieee802.3-c22";
 			reg = <0>;
-			eee-broken-1000t;
-			at803x,led-act-blind-workaround;
-			at803x,eee-okay;
-			at803x,vddio-1p8v;
 		};
 	};
 };
+#endif
+
+#if defined(CONFIG_FEC_MXC)
+&fec {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_fec>;
+	phy-mode = "rgmii-id";
+	phy-handle = <&ethphy1>;
+	fsl,magic-packet;
+	status = "okay";
+
+	mdio {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		clock-frequency = <5000000>;
+
+		ethphy1: ethernet-phy@1 {
+			/* PHY ID for Marvell 88E1512 */
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <1>;
+		};
+	};
+};
+#endif
 
 &flexcan2 {
 	pinctrl-names = "default";
@@ -382,8 +403,6 @@
 			MX93_PAD_ENET1_TD3__ENET_QOS_RGMII_TD3			0x57e
 			MX93_PAD_ENET1_TXC__CCM_ENET_QOS_CLOCK_GENERATE_TX_CLK	0x5fe
 			MX93_PAD_ENET1_TX_CTL__ENET_QOS_RGMII_TX_CTL		0x57e
-			/* PHY reset */
-			MX93_PAD_ENET2_MDIO__GPIO4_IO15				0x31e
 		>;
 	};
 

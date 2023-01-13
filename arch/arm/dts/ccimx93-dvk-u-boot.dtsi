@@ -13,6 +13,10 @@
 	aliases {
 		usbgadget0 = &usbg1;
 		usbgadget1 = &usbg2;
+#if defined(CONFIG_DWC_ETH_QOS)
+		ethernet0 = &eqos;
+		ethernet1 = &fec;
+#endif
 	};
 
 	usbg1: usbg1 {
@@ -134,12 +138,6 @@
 
 &eqos {
 	compatible = "fsl,imx-eqos";
-};
-
-&ethphy0 {
-	reset-gpios = <&gpio4 15 GPIO_ACTIVE_LOW>;
-	reset-assert-us = <15000>;
-	reset-deassert-us = <100000>;
 };
 
 &usbotg1 {
