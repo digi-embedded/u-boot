@@ -119,3 +119,8 @@
 &syscfg {
 	u-boot,dm-pre-reloc;
 };
+
+&usbphyc {
+	/* stm32-usbphyc-clk = ck_usbo_48m is a source clock of RCC CCF */
+	u-boot,dm-pre-reloc;
+};
