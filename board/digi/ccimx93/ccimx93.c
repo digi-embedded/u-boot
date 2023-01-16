@@ -90,6 +90,11 @@ bool board_has_eth1(void)
 	return true;
 }
 
+static bool board_has_mca(void)
+{
+	return my_hwid.mca;
+}
+
 bool board_has_wireless(void)
 {
 	return my_hwid.wifi;
@@ -107,12 +112,14 @@ int ccimx93_init(void)
 		return -1;
 	}
 
-	mca_init();
-	mca_somver_update(&my_hwid);
-
+	if (board_has_mca()) {
+		mca_init();
+		mca_somver_update(&my_hwid);
 #ifdef CONFIG_MCA_TAMPER
-	mca_tamper_check_events();
+		mca_tamper_check_events();
 #endif
+	}
+
 	return 0;
 }
 
@@ -175,6 +182,8 @@ void som_default_environment(void)
 
 	/* Set 'som_overlays' variable */
 	var[0] = 0;
+	if (board_has_mca())
+		strlcat(var, "_ov_som_mca_ccimx93.dtbo,", sizeof(var));
 	if (board_has_wireless())
 		strlcat(var, "_ov_som_wifi_ccimx93.dtbo,", sizeof(var));
 	if (board_has_bluetooth())
@@ -194,7 +203,9 @@ void board_update_hwid(bool is_fuse)
 	if (ret)
 		printf("Cannot read HWID\n");
 
-	mca_somver_update(&my_hwid);
+	if (board_has_mca())
+		mca_somver_update(&my_hwid);
+
 	som_default_environment();
 }
 
