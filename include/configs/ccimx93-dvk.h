@@ -82,6 +82,8 @@
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	CONFIG_EXTRA_NETWORK_SETTINGS \
 	RANDOM_UUIDS \
+	ALTBOOTCMD \
+	"dualboot=yes\0" \
 	"scriptaddr=0x83500000\0" \
 	"kernel_addr_r=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
 	"dboot_kernel_var=imagegz\0" \
@@ -163,6 +165,7 @@
 				"fi; " \
 			"fi;" \
 		"fi;\0" \
+	"parts_linux_dualboot=" LINUX_DUALBOOT_8GB_PARTITION_TABLE "\0" \
 	"parts_linux=" LINUX_8GB_PARTITION_TABLE "\0" \
 	"partition_mmc_linux=mmc rescan;" \
 		"if mmc dev ${mmcdev}; then " \

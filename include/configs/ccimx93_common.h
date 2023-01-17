@@ -93,8 +93,26 @@
 	"name=data,size=-,uuid=${part7_uuid};" \
 	"\""
 
+#define LINUX_DUALBOOT_8GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=linux_a,size=64MiB,uuid=${part1_uuid};" \
+	"name=linux_b,size=64MiB,uuid=${part2_uuid};" \
+	"name=rootfs_a,size=3GiB,uuid=${part3_uuid};" \
+	"name=rootfs_b,size=3GiB,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
+	"name=data,size=-,uuid=${part7_uuid};" \
+	"\""
+
 /* Partition defines */
 #define RECOVERY_PARTITION	"2"
+
+#define ALTBOOTCMD \
+	"altbootcmd=" \
+	"if load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} altboot.scr; then " \
+		"source ${loadaddr};" \
+	"fi;\0"
 
 /* Extra network settings for second Ethernet */
 #define CONFIG_EXTRA_NETWORK_SETTINGS \
