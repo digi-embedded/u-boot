@@ -1194,12 +1194,12 @@
 			status = "disabled";
 		};
 
-		hwspinlock: hwspinlock@4c000000 {
+		hsem: hwspinlock@4c000000 {
 			compatible = "st,stm32-hwspinlock";
-			#hwlock-cells = <1>;
+			#hwlock-cells = <2>;
 			reg = <0x4c000000 0x400>;
 			clocks = <&rcc HSEM>;
-			clock-names = "hwspinlock";
+			clock-names = "hsem";
 		};
 
 		ipcc: mailbox@4c001000 {
@@ -1208,7 +1208,7 @@
 			reg = <0x4c001000 0x400>;
 			st,proc-id = <0>;
 			interrupts-extended =
-				<&exti 61 1>,
+				<&exti 61 IRQ_TYPE_LEVEL_HIGH>,
 				<&intc GIC_SPI 101 IRQ_TYPE_LEVEL_HIGH>;
 			interrupt-names = "rx", "tx";
 			clocks = <&rcc IPCC>;
@@ -1289,6 +1289,7 @@
 			#interrupt-cells = <2>;
 			#address-cells = <0>;
 			reg = <0x5000d000 0x400>;
+			hwlocks = <&hsem 1 1>;
 			wakeup-parent = <&pwr_irq>;
 
 			exti-interrupt-map {
@@ -1817,7 +1818,7 @@
 			ranges = <0 0x50002000 0xa400>;
 			interrupt-parent = <&exti>;
 			st,syscfg = <&exti 0x60 0xff>;
-			hwlocks = <&hwspinlock 0>;
+			hwlocks = <&hsem 0 1>;
 			pins-are-numbered;
 
 			gpioa: gpio@50002000 {
@@ -1950,7 +1951,7 @@
 			pins-are-numbered;
 			interrupt-parent = <&exti>;
 			st,syscfg = <&exti 0x60 0xff>;
-			hwlocks = <&hwspinlock 0>;
+			hwlocks = <&hsem 0 1>;
 
 			gpioz: gpio@54004000 {
 				gpio-controller;
