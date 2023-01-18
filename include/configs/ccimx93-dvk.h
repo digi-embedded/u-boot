@@ -114,6 +114,7 @@
 	"loadcntr=fatload mmc ${mmcdev}:${mmcpart} ${cntr_addr} ${cntr_file}\0" \
 	"auth_os=auth_cntr ${cntr_addr}\0" \
 	"boot_os=booti ${loadaddr} - ${fdt_addr_r};\0" \
+	"bootargs_linux=fbcon=logo-pos:center fbcon=logo-count:1\0" \
 	"bootargs_mmc_linux=setenv bootargs console=${console} " \
 		"${bootargs_linux} root=${mmcroot} rootwait rw " \
 		"${bootargs_once} ${extra_bootargs}\0" \
