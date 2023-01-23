@@ -153,6 +153,10 @@
 	};
 };
 
+&crc1 {
+	status = "okay";
+};
+
 &cryp {
 	status = "okay";
 };
