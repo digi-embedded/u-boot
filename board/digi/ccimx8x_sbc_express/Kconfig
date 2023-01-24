@@ -2,10 +2,6 @@ if TARGET_CCIMX8X_SBC_EXPRESS
 
 source "board/digi/common/Kconfig"
 
-config MCA
-	bool
-	default y
-
 config SYS_BOARD
 	default "ccimx8x_sbc_express"
 

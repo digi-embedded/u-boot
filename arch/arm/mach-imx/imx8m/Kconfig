@@ -228,6 +228,7 @@ config TARGET_CCIMX8MM_DVK
 	bool "Digi ConnectCore 8M Mini Development Kit"
 	select IMX8MM
 	select CC8M
+	select MCA
 	select SUPPORT_SPL
 	select IMX8M_LPDDR4
 	select FSL_CAAM
@@ -239,6 +240,7 @@ config TARGET_CCIMX8MN_DVK
 	bool "Digi ConnectCore 8M Nano Development Kit"
 	select IMX8MN
 	select CC8M
+	select MCA
 	select SUPPORT_SPL
 	select IMX8M_LPDDR4
 	select FSL_CAAM

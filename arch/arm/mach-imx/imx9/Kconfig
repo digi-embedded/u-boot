@@ -41,6 +41,7 @@ config TARGET_CCIMX93_DVK
 	bool "Digi ConnectCore 93 Development Kit"
 	select IMX93
 	select CC93
+	select MCA
 
 endchoice
 
