@@ -1166,8 +1166,6 @@
 			reg = <0x50000000 0x1000>;
 			#clock-cells = <1>;
 			#reset-cells = <1>;
-			interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
-
 			clock-names = "hse", "hsi", "csi", "lse", "lsi";
 			clocks = <&scmi_clk CK_SCMI_HSE>,
 				 <&scmi_clk CK_SCMI_HSI>,
@@ -1464,7 +1462,6 @@
 			clocks = <&rcc SDMMC2_K>;
 			clock-names = "apb_pclk";
 			resets = <&rcc SDMMC2_R>;
-
 			cap-sd-highspeed;
 			cap-mmc-highspeed;
 			max-frequency = <130000000>;
