@@ -11,7 +11,7 @@ int stm32prog_read_medium_virt(struct dfu_entity *dfu, u64 offset,
 			       void *buf, long *len);
 int stm32prog_get_medium_size_virt(struct dfu_entity *dfu, u64 *size);
 
-#ifdef CONFIG_STM32MP15x_STM32IMAGE
+#ifdef CONFIG_STM32MP15X_STM32IMAGE
 bool stm32prog_get_tee_partitions(void);
 #endif
 

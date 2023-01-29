@@ -11,7 +11,7 @@
 #include <log.h>
 #include <mtd.h>
 #include <mtd_node.h>
-#ifdef CONFIG_STM32MP15x_STM32IMAGE
+#ifdef CONFIG_STM32MP15X_STM32IMAGE
 #include <tee.h>
 #endif
 #include <asm/arch/stm32prog.h>
@@ -33,7 +33,7 @@ static void board_set_mtdparts(const char *dev,
 			       char *mtdids,
 			       char *mtdparts,
 			       const char *boot,
-#ifdef CONFIG_STM32MP15x_STM32IMAGE
+#ifdef CONFIG_STM32MP15X_STM32IMAGE
 			       const char *tee,
 #endif
 			       const char *user)
@@ -59,7 +59,7 @@ static void board_set_mtdparts(const char *dev,
 		strncat(mtdparts, ",", MTDPARTS_LEN);
 	}
 
-#ifdef CONFIG_STM32MP15x_STM32IMAGE
+#ifdef CONFIG_STM32MP15X_STM32IMAGE
 	if (tee) {
 		strncat(mtdparts, tee, MTDPARTS_LEN);
 		strncat(mtdparts, ",", MTDPARTS_LEN);
@@ -77,7 +77,7 @@ void board_mtdparts_default(const char **mtdids, const char **mtdparts)
 	static char ids[MTDIDS_LEN + 1];
 	static bool mtd_initialized;
 	bool nor, nand, spinand, serial;
-#ifdef CONFIG_STM32MP15x_STM32IMAGE
+#ifdef CONFIG_STM32MP15X_STM32IMAGE
 	bool tee = false;
 #endif
 
@@ -97,7 +97,7 @@ void board_mtdparts_default(const char **mtdids, const char **mtdparts)
 	case BOOT_SERIAL_USB:
 		serial = true;
 		if (CONFIG_IS_ENABLED(CMD_STM32PROG)) {
-#ifdef CONFIG_STM32MP15x_STM32IMAGE
+#ifdef CONFIG_STM32MP15X_STM32IMAGE
 			tee = stm32prog_get_tee_partitions();
 #endif
 			nor = stm32prog_get_fsbl_nor();
@@ -118,7 +118,7 @@ void board_mtdparts_default(const char **mtdids, const char **mtdparts)
 		break;
 	}
 
-#ifdef CONFIG_STM32MP15x_STM32IMAGE
+#ifdef CONFIG_STM32MP15X_STM32IMAGE
 	if (!serial && tee_find_device(NULL, NULL, NULL, NULL))
 		tee = true;
 #endif
@@ -138,7 +138,7 @@ void board_mtdparts_default(const char **mtdids, const char **mtdparts)
 		if (!IS_ERR_OR_NULL(mtd)) {
 			board_set_mtdparts("nand0", ids, parts,
 					   CONFIG_MTDPARTS_NAND0_BOOT,
-#ifdef CONFIG_STM32MP15x_STM32IMAGE
+#ifdef CONFIG_STM32MP15X_STM32IMAGE
 					   !nor && tee ? CONFIG_MTDPARTS_NAND0_TEE : NULL,
 #endif
 					   "-(UBI)");
@@ -151,7 +151,7 @@ void board_mtdparts_default(const char **mtdids, const char **mtdparts)
 		if (!IS_ERR_OR_NULL(mtd)) {
 			board_set_mtdparts("spi-nand0", ids, parts,
 					   CONFIG_MTDPARTS_SPINAND0_BOOT,
-#ifdef CONFIG_STM32MP15x_STM32IMAGE
+#ifdef CONFIG_STM32MP15X_STM32IMAGE
 					   !nor && tee ? CONFIG_MTDPARTS_SPINAND0_TEE : NULL,
 #endif
 					   "-(UBI)");
@@ -163,7 +163,7 @@ void board_mtdparts_default(const char **mtdids, const char **mtdparts)
 		if (!uclass_get_device(UCLASS_SPI_FLASH, 0, &dev)) {
 			board_set_mtdparts("nor0", ids, parts,
 					   CONFIG_MTDPARTS_NOR0_BOOT,
-#ifdef CONFIG_STM32MP15x_STM32IMAGE
+#ifdef CONFIG_STM32MP15X_STM32IMAGE
 					   tee ? CONFIG_MTDPARTS_NOR0_TEE : NULL,
 #endif
 					   "-(nor_user)");

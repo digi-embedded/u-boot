@@ -180,7 +180,7 @@ U_BOOT_CMD(stm32prog, 5, 0, do_stm32prog,
 	   "  <size> = size of flashlayout (optional for image with STM32 header)\n"
 );
 
-#ifdef CONFIG_STM32MP15x_STM32IMAGE
+#ifdef CONFIG_STM32MP15X_STM32IMAGE
 bool stm32prog_get_tee_partitions(void)
 {
 	if (stm32prog_data)
