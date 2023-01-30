@@ -41,6 +41,14 @@
 		};
 	};
 
+	intc: interrupt-controller@a0021000 {
+		compatible = "arm,cortex-a7-gic";
+		#interrupt-cells = <3>;
+		interrupt-controller;
+		reg = <0xa0021000 0x1000>,
+		      <0xa0022000 0x2000>;
+	};
+
 	arm-pmu {
 		compatible = "arm,cortex-a7-pmu";
 		interrupts = <GIC_SPI 200 IRQ_TYPE_LEVEL_HIGH>;
@@ -53,14 +61,6 @@
 		method = "smc";
 	};
 
-	intc: interrupt-controller@a0021000 {
-		compatible = "arm,cortex-a7-gic";
-		#interrupt-cells = <3>;
-		interrupt-controller;
-		reg = <0xa0021000 0x1000>,
-		      <0xa0022000 0x2000>;
-	};
-
 	timer {
 		compatible = "arm,armv7-timer";
 		interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(1) | IRQ_TYPE_LEVEL_LOW)>,
@@ -71,6 +71,12 @@
 	};
 
 	clocks {
+		clk_csi: clk-csi {
+			#clock-cells = <0>;
+			compatible = "fixed-clock";
+			clock-frequency = <4000000>;
+		};
+
 		clk_hse: clk-hse {
 			#clock-cells = <0>;
 			compatible = "fixed-clock";
@@ -94,12 +100,12 @@
 			compatible = "fixed-clock";
 			clock-frequency = <32000>;
 		};
+	};
 
-		clk_csi: clk-csi {
-			#clock-cells = <0>;
-			compatible = "fixed-clock";
-			clock-frequency = <4000000>;
-		};
+	booster: regulator-booster {
+		compatible = "st,stm32mp1-booster";
+		st,syscfg = <&syscfg>;
+		status = "disabled";
 	};
 
 	thermal-zones {
@@ -125,12 +131,6 @@
 			cooling-maps {
 			};
 		};
-	};
-
-	booster: regulator-booster {
-		compatible = "st,stm32mp1-booster";
-		st,syscfg = <&syscfg>;
-		status = "disabled";
 	};
 
 	soc {
@@ -1230,7 +1230,7 @@
 			};
 		};
 
-		pwr_mcu: pwr_mcu@50001014 {
+		pwr_mcu: pwr-mcu@50001014 {
 			compatible = "st,stm32mp151-pwr-mcu", "syscon";
 			reg = <0x50001014 0x4>;
 		};
@@ -1389,7 +1389,7 @@
 			interrupts = <GIC_SPI 80 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&rcc HASH1>;
 			resets = <&rcc HASH1_R>;
-			dmas = <&mdma1 31 0x2 0x1000A02 0x0 0x0>;
+			dmas = <&mdma1 31 0x2 0x1000a02 0x0 0x0>;
 			dma-names = "in";
 			dma-maxburst = <2>;
 			status = "disabled";
@@ -1650,7 +1650,7 @@
 			reg = <0x5c005000 0x400>;
 			#address-cells = <1>;
 			#size-cells = <1>;
-			part_number_otp: part_number_otp@4 {
+			part_number_otp: part-number-otp@4 {
 				reg = <0x4 0x1>;
 			};
 			ts_cal1: calib@5c {
@@ -1855,11 +1855,11 @@
 			      <0x30000000 0x40000>,
 			      <0x38000000 0x10000>;
 			resets = <&rcc MCU_R>;
-			st,syscfg-holdboot = <&rcc 0x10C 0x1>;
+			st,syscfg-holdboot = <&rcc 0x10c 0x1>;
 			st,syscfg-tz = <&rcc 0x000 0x1>;
 			st,syscfg-pdds = <&pwr_mcu 0x0 0x1>;
-			st,syscfg-rsc-tbl = <&tamp 0x144 0xFFFFFFFF>;
-			st,syscfg-m4-state = <&tamp 0x148 0xFFFFFFFF>;
+			st,syscfg-rsc-tbl = <&tamp 0x144 0xffffffff>;
+			st,syscfg-m4-state = <&tamp 0x148 0xffffffff>;
 			status = "disabled";
 		};
 	};
