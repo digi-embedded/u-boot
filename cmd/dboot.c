@@ -17,6 +17,7 @@
 #endif
 #include <linux/libfdt.h>
 #include "../board/digi/common/helper.h"
+#include <image.h>
 #ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
 #include "../board/digi/common/auth.h"
 #endif /* CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS */
