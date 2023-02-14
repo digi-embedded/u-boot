@@ -20,7 +20,9 @@
 #include <watchdog.h>
 #include <asm/cache.h>
 #include <asm/global_data.h>
+#if defined(CONFIG_IMX_HAB) || defined(CONFIG_AHAB_BOOT)
 #include <asm/mach-imx/hab.h>
+#endif
 #ifdef CONFIG_AUTH_ARTIFACTS
 #include "../board/digi/common/auth.h"
 #endif
@@ -571,10 +573,12 @@ int boot_get_ramdisk(int argc, char *const argv[], bootm_headers_t *images,
 	      *rd_start, *rd_end);
 
 #ifdef CONFIG_AUTH_ARTIFACTS
+#if defined(CONFIG_IMX_HAB) || defined(CONFIG_AHAB_BOOT)
 	if (rd_data && imx_hab_is_enabled() && !authenticated) {
 		printf("Ramdisk authentication is not supported\n");
 		return 1;
 	}
+#endif /* CONFIG_IMX_HAB || CONFIG_AHAB_BOOT */
 #endif /* CONFIG_AUTH_ARTIFACTS */
 
 	return 0;
