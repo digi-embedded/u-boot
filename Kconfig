@@ -74,7 +74,7 @@ config ENV_AES
 
 config ENV_AES_CAAM_KEY
 	bool "Use CAAM internal key"
-	depends on ENV_AES
+	depends on HAS_CAAM
 	help
 	  Use the internal CAAM secure key for environment encryption which
 	  uses AES-256-CCM.
