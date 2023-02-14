@@ -71,7 +71,7 @@ config AUTHENTICATE_SQUASHFS_ROOTFS
 
 config AUTH_SQUASHFS_ADDR
 	default 0x90000000 if AHAB_BOOT
-	default 0x0 if IMX_HAB
+	default 0x0
 	hex "Authenticate Squashfs address"
 	help
 	  Address where the Squashfs image is loaded prior to authentication.
