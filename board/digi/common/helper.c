@@ -1290,10 +1290,14 @@ int read_squashfs_rootfs(unsigned long addr, unsigned long *size)
 #ifdef CONFIG_AHAB_BOOT
 	/* add signature size */
 	squashfs_size = squashfs_raw_size + AHAB_CONTAINER_SIZE;
-#else
+#elif defined(CONFIG_IMX_HAB)
 	/* add signature size */
 	squashfs_size = squashfs_raw_size + CONFIG_CSF_SIZE + IVT_SIZE;
+#else
+	/* TODO: add signature size */
+	squashfs_size = squashfs_raw_size;
 #endif
+
 #ifdef CONFIG_NAND_BOOT
 	sprintf(cmd_buf, "ubi read %lx ${rootfsvol} %lx", addr, squashfs_size);
 	if (run_command(cmd_buf, 0)) {
