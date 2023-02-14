@@ -66,14 +66,8 @@ config DEPRECATED
 	  code that relies on deprecated features that will be removed and
 	  the conversion deadline has passed.
 
-config ENV_AES
-	bool "Encrypt U-Boot environment"
-	select AES
-	help
-	  Define to encrypt the whole environment block with AES-128-CBC.
-
 config ENV_AES_CAAM_KEY
-	bool "Use CAAM internal key"
+	bool "Encrypt U-Boot environment with CAAM internal key"
 	depends on HAS_CAAM
 	help
 	  Use the internal CAAM secure key for environment encryption which
