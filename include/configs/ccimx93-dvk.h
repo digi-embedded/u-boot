@@ -73,10 +73,14 @@
 	"emmc_dev=0\0"\
 	"sd_dev=1\0" \
 
+#define DUALBOOT_ENV_SETTINGS \
+	"active_system=linux_a\0"
+
 /* Initial environment variables */
 #define CONFIG_EXTRA_ENV_SETTINGS		\
 	JAILHOUSE_ENV \
 	CONFIG_MFG_ENV_SETTINGS \
+	DUALBOOT_ENV_SETTINGS \
 	BOOTENV \
 	AHAB_ENV \
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
@@ -106,7 +110,12 @@
 	"mmcroot=PARTUUID=1c606ef5-f1ac-43b9-9bb5-d5c578580b6b\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs ${jh_clk} console=${console} root=${mmcroot}\0 " \
-	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
+	"loadbootscript=" \
+		"if test \"${dualboot}\" = yes; then " \
+			"env exists active_system || setenv active_system linux_a; " \
+			"part number mmc ${mmcbootdev} ${active_system} mmcpart; " \
+		"fi;" \
+		"load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script};\0" \
 	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr_r} ${fdt_file}\0" \
 	"loadcntr=fatload mmc ${mmcdev}:${mmcpart} ${cntr_addr} ${cntr_file}\0" \
@@ -177,6 +186,7 @@
 		"fi;\0" \
 	"recoverycmd=setenv mmcpart " RECOVERY_PARTITION ";" \
 		"boot\0" \
+	"script=boot.scr\0" \
 	"bsp_bootcmd=echo Running BSP bootcmd ...; " \
 		"mmc dev ${mmcdev}; if mmc rescan; then " \
 		   "if run loadbootscript; then " \
