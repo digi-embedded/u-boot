@@ -142,7 +142,7 @@ void fastboot_boot(void)
 	s = env_get("fastboot_bootcmd");
 	if (s) {
 		run_command(s, CMD_FLAG_ENV);
-	} else {
+	} else if (IS_ENABLED(CONFIG_CMD_BOOTM)) {
 		static char boot_addr_start[20];
 #ifdef CONFIG_FSL_FASTBOOT
 		static char *const bootm_args[] = {
