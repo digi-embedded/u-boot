@@ -20,12 +20,20 @@
 #include <watchdog.h>
 #include <asm/cache.h>
 #include <asm/global_data.h>
+#include <asm/mach-imx/hab.h>
+#ifdef CONFIG_AUTH_ARTIFACTS
+#include "../board/digi/common/auth.h"
+#endif
 
 #ifndef CONFIG_SYS_BARGSIZE
 #define CONFIG_SYS_BARGSIZE 512
 #endif
 
 DECLARE_GLOBAL_DATA_PTR;
+
+#ifdef CONFIG_AUTH_ARTIFACTS
+static int authenticated = 0;
+#endif
 
 #if CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)
 /**
@@ -329,6 +337,12 @@ static int select_ramdisk(bootm_headers_t *images, const char *select, u8 arch,
 {
 	ulong rd_addr;
 	char *buf;
+#if CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)
+	const image_header_t *rd_hdr;
+#ifdef CONFIG_AUTH_ARTIFACTS
+	ulong raw_image_size = 0;
+#endif
+#endif
 
 #if CONFIG_IS_ENABLED(FIT)
 		const char *fit_uname_config = images->fit_uname_cfg;
@@ -381,6 +395,22 @@ static int select_ramdisk(bootm_headers_t *images, const char *select, u8 arch,
 		}
 #endif
 
+#if CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)
+#ifdef CONFIG_AUTH_ARTIFACTS
+		rd_hdr = (const image_header_t *)rd_addr;
+		if (!rd_hdr)
+			return -ENOENT;
+
+		raw_image_size = image_get_image_size(rd_hdr);
+		if (digi_auth_image(&rd_addr, raw_image_size) != 0) {
+			printf("Ramdisk authentication failed\n");
+			return 1;
+		} else {
+			authenticated = 1;
+		}
+#endif /* CONFIG_AUTH_ARTIFACTS */
+#endif /* CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT) */
+
 		/*
 		 * Check if there is an initrd image at the
 		 * address provided in the second bootm argument
@@ -390,8 +420,6 @@ static int select_ramdisk(bootm_headers_t *images, const char *select, u8 arch,
 		switch (genimg_get_format(buf)) {
 #if CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)
 		case IMAGE_FORMAT_LEGACY: {
-			const image_header_t *rd_hdr;
-
 			printf("## Loading init Ramdisk from Legacy Image at %08lx ...\n",
 			       rd_addr);
 
@@ -480,6 +508,10 @@ int boot_get_ramdisk(int argc, char *const argv[], bootm_headers_t *images,
 	*rd_start = 0;
 	*rd_end = 0;
 
+#ifdef CONFIG_AUTH_ARTIFACTS
+	authenticated = 0;
+#endif
+
 	if (IS_ENABLED(CONFIG_ANDROID_BOOT_IMAGE)) {
 		char *buf;
 
@@ -537,6 +569,13 @@ int boot_get_ramdisk(int argc, char *const argv[], bootm_headers_t *images,
 	}
 	debug("   ramdisk start = 0x%08lx, ramdisk end = 0x%08lx\n",
 	      *rd_start, *rd_end);
+
+#ifdef CONFIG_AUTH_ARTIFACTS
+	if (rd_data && imx_hab_is_enabled() && !authenticated) {
+		printf("Ramdisk authentication is not supported\n");
+		return 1;
+	}
+#endif /* CONFIG_AUTH_ARTIFACTS */
 
 	return 0;
 }

@@ -354,9 +354,9 @@ static int env_aes_cbc_crypt(env_t *env, const int enc)
 		sec_init();
 
 	if (enc)
-		ret = blob_encap(key_mod, src_ptr, dst_ptr, ENV_SIZE - BLOB_OVERHEAD);
+		ret = blob_encap(key_mod, src_ptr, dst_ptr, ENV_SIZE - BLOB_OVERHEAD, 0);
 	else
-		ret = blob_decap(key_mod, src_ptr, dst_ptr, ENV_SIZE - BLOB_OVERHEAD);
+		ret = blob_decap(key_mod, src_ptr, dst_ptr, ENV_SIZE - BLOB_OVERHEAD, 0);
 
 	if (ret)
 		goto err;
