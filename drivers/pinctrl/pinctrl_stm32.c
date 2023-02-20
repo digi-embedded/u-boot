@@ -285,7 +285,8 @@ static int stm32_pinctrl_probe(struct udevice *dev)
 	return 0;
 }
 
-static int stm32_gpio_config(struct gpio_desc *desc,
+static int stm32_gpio_config(ofnode node,
+			     struct gpio_desc *desc,
 			     const struct stm32_gpio_ctl *ctl)
 {
 	struct stm32_gpio_priv *priv = dev_get_priv(desc->dev);
@@ -327,6 +328,8 @@ static int stm32_gpio_config(struct gpio_desc *desc,
 
 	index = desc->offset;
 	clrsetbits_le32(&regs->otyper, OTYPE_MSK << index, ctl->otype << index);
+
+	uc_priv->name[desc->offset] = strdup(ofnode_get_name(node));
 
 	hwspinlock_unlock(&ctrl_priv->hws);
 
@@ -422,7 +425,7 @@ static int stm32_pinctrl_config(ofnode node)
 			if (rv)
 				return rv;
 			desc.offset = gpio_dsc.pin;
-			rv = stm32_gpio_config(&desc, &gpio_ctl);
+			rv = stm32_gpio_config(node, &desc, &gpio_ctl);
 			log_debug("rv = %d\n\n", rv);
 			if (rv)
 				return rv;

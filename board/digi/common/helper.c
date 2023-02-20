@@ -497,16 +497,14 @@ int load_firmware(struct load_fw *fwinfo, char *msg)
 	ulong loadaddr;
 
 	/* 'fwinfo->varload' determines if the file must be loaded:
-	 * - yes|NULL: the file must be loaded. Return error otherwise.
+	 * - yes: the file must be loaded. Return error otherwise.
 	 * - try: the file may be loaded. Return ok even if load fails.
 	 * - no: skip the load.
 	 */
-	if (NULL != fwinfo->varload) {
-		if (!strcmp(fwinfo->varload, "no"))
-			return LDFW_NOT_LOADED;	/* skip load and return ok */
-		else if (!strcmp(fwinfo->varload, "try"))
-			fwload = FWLOAD_TRY;
-	}
+	if (!strcmp(fwinfo->varload, "no"))
+		return LDFW_NOT_LOADED;	/* skip load and return ok */
+	else if (!strcmp(fwinfo->varload, "try"))
+		fwload = FWLOAD_TRY;
 
 	/* Use default values if not provided */
 	if (strlen(fwinfo->devpartno) == 0) {
@@ -1328,10 +1326,14 @@ int read_squashfs_rootfs(unsigned long addr, unsigned long *size)
 #ifdef CONFIG_AHAB_BOOT
 	/* add signature size */
 	squashfs_size = squashfs_raw_size + AHAB_CONTAINER_SIZE;
-#else
+#elif defined(CONFIG_IMX_HAB)
 	/* add signature size */
 	squashfs_size = squashfs_raw_size + CONFIG_CSF_SIZE + IVT_SIZE;
+#else
+	/* TODO: add signature size */
+	squashfs_size = squashfs_raw_size;
 #endif
+
 #ifdef CONFIG_NAND_BOOT
 	sprintf(cmd_buf, "ubi read %lx ${rootfsvol} %lx", addr, squashfs_size);
 	if (run_command(cmd_buf, 0)) {

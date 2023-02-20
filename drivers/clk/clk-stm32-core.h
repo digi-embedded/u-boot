@@ -74,6 +74,15 @@ int stm32_rcc_init(struct device *dev,
 #define NO_STM32_DIV	-1
 #define NO_STM32_GATE	-1
 
+struct clk_stm32_gate {
+	struct clk clk;
+	void __iomem *base;
+	const struct stm32_gate_cfg *gate;
+	u8 cpt;
+};
+
+#define to_clk_stm32_gate(_clk) container_of(_clk, struct clk_stm32_gate, clk)
+
 struct clk *
 _clk_stm32_gate_register(struct device *dev,
 			 const struct stm32_clock_match_data *data,
@@ -141,13 +150,7 @@ struct stm32_clk_composite_cfg {
 }
 
 extern const struct clk_ops stm32_clk_ops;
-extern const struct clk_ops clk_stm32_setclr_gate_ops;
+
 ulong clk_stm32_get_rate_by_name(const char *name);
 int clk_stm32_get_by_name(const char *name, struct clk **clkp);
-struct clk *clk_stm32_register_setclr_gate(struct device *dev,
-					   const char *name,
-					   const char *parent_name,
-					   unsigned long flags,
-					   void __iomem *reg, u8 bit_idx,
-					   u8 clk_gate_flags, spinlock_t *lock);
 

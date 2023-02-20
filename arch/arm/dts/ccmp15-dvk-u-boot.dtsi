@@ -220,11 +220,6 @@
 	};
 };
 
-&usbotg_hs {
-	u-boot,force-b-session-valid;
-	dr_mode = "peripheral";
-};
-
 #if defined(CONFIG_STM32MP15x_STM32IMAGE)
 &binman {
 	u-boot-stm32 {

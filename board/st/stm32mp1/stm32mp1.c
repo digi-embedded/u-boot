@@ -506,7 +506,7 @@ static void sysconf_init(void)
 	ret = uclass_get_device_by_driver(UCLASS_PMIC,
 					  DM_DRIVER_GET(stm32mp_pwr_pmic),
 					  &pwr_dev);
-	if (!ret && IS_ENABLED(CONFIG_DM_REGULATOR)) {
+	if (!ret) {
 		ret = uclass_get_device_by_driver(UCLASS_MISC,
 						  DM_DRIVER_GET(stm32mp_bsec),
 						  &dev);
@@ -567,9 +567,6 @@ static int board_stm32mp15x_dk2_init(void)
 	struct gpio_desc hdmi, audio;
 	int ret = 0;
 
-	if (!IS_ENABLED(CONFIG_DM_REGULATOR))
-		return -ENODEV;
-
 	/* Fix to make I2C1 usable on DK2 for touchscreen usage in kernel */
 	node = ofnode_path("/soc/i2c@40012000/hdmi-transmitter@39");
 	if (!ofnode_valid(node)) {
@@ -621,8 +618,7 @@ error:
 static bool board_is_stm32mp13x_dk(void)
 {
 	if (CONFIG_IS_ENABLED(TARGET_ST_STM32MP13x) &&
-	    (of_machine_is_compatible("st,stm32mp135d-dk") ||
-	     of_machine_is_compatible("st,stm32mp135f-dk")))
+	     of_machine_is_compatible("st,stm32mp135f-dk"))
 		return true;
 
 	return false;
@@ -860,8 +856,7 @@ int board_init(void)
 
 	board_key_check();
 
-	if (IS_ENABLED(CONFIG_DM_REGULATOR))
-		regulators_enable_boot_on(_DEBUG);
+	regulators_enable_boot_on(_DEBUG);
 
 	/*
 	 * sysconf initialisation done only when U-Boot is running in secure
@@ -1438,8 +1433,8 @@ void fdt_update_panel_dsi(void *new_blob)
 int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	static const struct node_info nodes[] = {
-		{ "st,stm32f469-qspi",		MTD_DEV_TYPE_NOR,  },
-		{ "st,stm32f469-qspi",		MTD_DEV_TYPE_SPINAND},
+		{ "jedec,spi-nor",		MTD_DEV_TYPE_NOR,  },
+		{ "spi-nand",			MTD_DEV_TYPE_SPINAND},
 		{ "st,stm32mp15-fmc2",		MTD_DEV_TYPE_NAND, },
 		{ "st,stm32mp1-fmc2-nfc",	MTD_DEV_TYPE_NAND, },
 	};

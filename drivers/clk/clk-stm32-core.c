@@ -152,92 +152,112 @@ const struct clk_ops stm32_clk_ops = {
 	.set_rate = stm32_clk_set_rate,
 };
 
-#define UBOOT_DM_CLK_STM32_SETCLR_GATE "clk_stm32_setclr_gate"
-
 #define RCC_MP_ENCLRR_OFFSET	4
 
-static void clk_setclr_gate_endisable(struct clk *clk, int enable)
+static void clk_stm32_endisable_gate(const struct stm32_gate_cfg *gate_cfg,
+				     void __iomem *base, u8 *cpt, int enable)
 {
-	struct clk_gate *gate = to_clk_gate(clk);
+	void __iomem *addr = base + gate_cfg->reg_off;
+	u8 set_clr = gate_cfg->set_clr ? RCC_MP_ENCLRR_OFFSET : 0;
 
-	if (enable)
-		writel(BIT(gate->bit_idx), gate->reg);
-	else
-		writel(BIT(gate->bit_idx), gate->reg + RCC_MP_ENCLRR_OFFSET);
+	if (enable) {
+		if (*cpt++ > 0)
+			return;
+
+		if (set_clr)
+			writel(BIT(gate_cfg->bit_idx), addr);
+		else
+			writel(readl(addr) | BIT(gate_cfg->bit_idx), addr);
+	} else {
+		if (--*cpt > 0)
+			return;
+
+		if (set_clr)
+			writel(BIT(gate_cfg->bit_idx), addr + set_clr);
+		else
+			writel(readl(addr) & ~BIT(gate_cfg->bit_idx), addr);
+	}
 }
 
-static int clk_setclr_gate_enable(struct clk *clk)
+static void clk_stm32_gate_endisable(struct clk *clk, int enable)
 {
-	clk_setclr_gate_endisable(clk, 1);
+	struct clk_stm32_gate *stm32_gate = to_clk_stm32_gate(clk);
+
+	clk_stm32_endisable_gate(stm32_gate->gate, stm32_gate->base,
+				 &stm32_gate->cpt, enable);
+}
+
+static int clk_stm32_gate_enable(struct clk *clk)
+{
+	clk_stm32_gate_endisable(clk, 1);
 
 	return 0;
 }
 
-static int clk_setclr_gate_disable(struct clk *clk)
+static int clk_stm32_gate_disable(struct clk *clk)
 {
-	clk_setclr_gate_endisable(clk, 0);
+	clk_stm32_gate_endisable(clk, 0);
 
 	return 0;
 }
 
-const struct clk_ops clk_stm32_setclr_gate_ops = {
-	.enable = clk_setclr_gate_enable,
-	.disable = clk_setclr_gate_disable,
+static const struct clk_ops clk_stm32_gate_ops = {
+	.enable = clk_stm32_gate_enable,
+	.disable = clk_stm32_gate_disable,
 	.get_rate = clk_generic_get_rate,
 };
 
-struct clk *clk_stm32_register_setclr_gate(struct device *dev,
-					   const char *name,
-					   const char *parent_name,
-					   unsigned long flags,
-					   void __iomem *reg, u8 bit_idx,
-					   u8 clk_gate_flags, spinlock_t *lock)
+#define UBOOT_DM_CLK_STM32_GATE "clk_stm32_gate"
+
+U_BOOT_DRIVER(clk_stm32_gate) = {
+	.name	= UBOOT_DM_CLK_STM32_GATE,
+	.id	= UCLASS_CLK,
+	.ops	= &clk_stm32_gate_ops,
+};
+
+struct clk *clk_stm32_gate_register(struct device *dev,
+				    const char *name,
+				    const char *parent_name,
+				    unsigned long flags,
+				    void __iomem *base,
+				    const struct stm32_gate_cfg *gate_cfg,
+				    spinlock_t *lock)
 {
-	struct clk_gate *gate;
+	struct clk_stm32_gate *stm32_gate;
 	struct clk *clk;
 	int ret;
 
-	/* allocate the gate */
-	gate = kzalloc(sizeof(*gate), GFP_KERNEL);
-	if (!gate)
+	stm32_gate = kzalloc(sizeof(*stm32_gate), GFP_KERNEL);
+	if (!stm32_gate)
 		return ERR_PTR(-ENOMEM);
 
-	/* struct clk_gate assignments */
-	gate->reg = reg;
-	gate->bit_idx = bit_idx;
-	gate->flags = clk_gate_flags;
+	stm32_gate->base = base;
+	stm32_gate->gate = gate_cfg;
 
-	clk = &gate->clk;
+	clk = &stm32_gate->clk;
 	clk->flags = flags;
 
-	ret = clk_register(clk, UBOOT_DM_CLK_STM32_SETCLR_GATE, name,
-			   parent_name);
+	ret = clk_register(clk, UBOOT_DM_CLK_STM32_GATE, name, parent_name);
 	if (ret) {
-		kfree(gate);
+		kfree(stm32_gate);
 		return ERR_PTR(ret);
 	}
 
 	return clk;
 }
 
-U_BOOT_DRIVER(clk_stm32_setclr_gate) = {
-	.name	= UBOOT_DM_CLK_STM32_SETCLR_GATE,
-	.id	= UCLASS_CLK,
-	.ops	= &clk_stm32_setclr_gate_ops,
-};
-
 struct clk *clk_stm32_register_composite(const char *name,
 					 const char * const *parent_names,
 					 int num_parents,
 					 unsigned long flags,
 					 void __iomem *base,
-					 const struct stm32_mux_cfg *pcfg,
+					 const struct stm32_mux_cfg *mcfg,
 					 const struct stm32_div_cfg *dcfg,
 					 const struct stm32_gate_cfg *gcfg)
 {
 	struct clk *clk = ERR_PTR(-ENOMEM);
 	struct clk_mux *mux = NULL;
-	struct clk_gate *gate = NULL;
+	struct clk_stm32_gate *gate = NULL;
 	struct clk_divider *div = NULL;
 	struct clk *mux_clk = NULL;
 	const struct clk_ops *mux_ops = NULL;
@@ -246,17 +266,17 @@ struct clk *clk_stm32_register_composite(const char *name,
 	struct clk *div_clk = NULL;
 	const struct clk_ops *div_ops = NULL;
 
-	if (pcfg) {
+	if (mcfg) {
 		mux = kzalloc(sizeof(*mux), GFP_KERNEL);
 		if (!mux)
 			goto fail;
 
-		mux->reg = base + pcfg->reg_off;
-		mux->shift = pcfg->shift;
-		mux->mask = BIT(pcfg->width) - 1;
-		mux->num_parents = pcfg->num_parents;
+		mux->reg = base + mcfg->reg_off;
+		mux->shift = mcfg->shift;
+		mux->mask = BIT(mcfg->width) - 1;
+		mux->num_parents = mcfg->num_parents;
 		mux->flags = 0;
-		mux->parent_names = pcfg->parent_names;
+		mux->parent_names = mcfg->parent_names;
 
 		mux_clk = &mux->clk;
 		mux_ops = &clk_mux_ops;
@@ -273,6 +293,9 @@ struct clk *clk_stm32_register_composite(const char *name,
 		div->width = dcfg->width;
 		div->flags = dcfg->div_flags;
 		div->table = dcfg->table;
+
+		div_clk = &div->clk;
+		div_ops = &clk_divider_ops;
 	}
 
 	if (gcfg) {
@@ -280,15 +303,11 @@ struct clk *clk_stm32_register_composite(const char *name,
 		if (!gate)
 			goto fail;
 
-		gate->reg = base + gcfg->reg_off;
-		gate->bit_idx = gcfg->bit_idx;
-		gate->flags = gcfg->gate_flags;
+		gate->base = base;
+		gate->gate = gcfg;
 
 		gate_clk = &gate->clk;
-		gate_ops = &clk_gate_ops;
-
-		if (gcfg->set_clr)
-			gate_ops = &clk_stm32_setclr_gate_ops;
+		gate_ops = &clk_stm32_gate_ops;
 	}
 
 	clk = clk_register_composite(NULL, name,
@@ -317,25 +336,9 @@ struct clk *_clk_stm32_gate_register(struct device *dev,
 {
 	struct stm32_clk_gate_cfg *clk_cfg = cfg->clock_cfg;
 	const struct stm32_gate_cfg *gate_cfg = &data->gates[clk_cfg->gate_id];
-	struct clk *clk;
 
-	if (gate_cfg->set_clr) {
-		clk = clk_stm32_register_setclr_gate(dev, cfg->name,
-						     cfg->parent_name,
-						     cfg->flags,
-						     base + gate_cfg->reg_off,
-						     gate_cfg->bit_idx,
-						     gate_cfg->gate_flags,
-						     lock);
-	} else {
-		clk = clk_register_gate(dev, cfg->name, cfg->parent_name,
-					cfg->flags,
-					base + gate_cfg->reg_off,
-					gate_cfg->bit_idx,
-					gate_cfg->gate_flags,
-					lock);
-	}
-	return clk;
+	return clk_stm32_gate_register(dev, cfg->name, cfg->parent_name,
+				       cfg->flags, base, gate_cfg, lock);
 }
 
 struct clk *

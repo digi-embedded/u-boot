@@ -511,10 +511,12 @@ retry_cmd:
  */
 static void stm32_sdmmc2_reset(struct stm32_sdmmc2_plat *plat)
 {
-	/* Reset */
-	reset_assert(&plat->reset_ctl);
-	udelay(2);
-	reset_deassert(&plat->reset_ctl);
+	if (reset_valid(&plat->reset_ctl)) {
+		/* Reset */
+		reset_assert(&plat->reset_ctl);
+		udelay(2);
+		reset_deassert(&plat->reset_ctl);
+	}
 
 	/* init the needed SDMMC register after reset */
 	writel(plat->pwr_reg_msk, plat->base + SDMMC_POWER);
@@ -596,12 +598,15 @@ static int stm32_sdmmc2_set_ios(struct udevice *dev)
 	 * clk_div > 0 and NEGEDGE = 1 => command and data generated on
 	 * SDMMCCLK falling edge
 	 */
-	if (desired && ((sys_clock > desired) ||
+	if (desired && (sys_clock > desired || mmc->ddr_mode ||
 			IS_RISING_EDGE(plat->clk_reg_msk))) {
 		clk = DIV_ROUND_UP(sys_clock, 2 * desired);
 		if (clk > SDMMC_CLKCR_CLKDIV_MAX)
 			clk = SDMMC_CLKCR_CLKDIV_MAX;
 	}
+
+	if (mmc->ddr_mode)
+		clk |= SDMMC_CLKCR_DDR;
 
 	if (mmc->bus_width == 4)
 		clk |= SDMMC_CLKCR_WIDBUS_4;
@@ -670,14 +675,15 @@ static int stm32_sdmmc2_of_to_plat(struct udevice *dev)
 	if (ret)
 		return ret;
 
+	cfg->host_caps &= ~(UHS_CAPS | MMC_MODE_HS200 | MMC_MODE_HS400 | MMC_MODE_HS400_ES);
+
 	ret = clk_get_by_index(dev, 0, &plat->clk);
 	if (ret)
 		return ret;
 
 	ret = reset_get_by_index(dev, 0, &plat->reset_ctl);
 	if (ret) {
-		clk_free(&plat->clk);
-		return ret;
+		dev_dbg(dev, "No reset provided\n");
 	}
 
 	gpio_request_by_name(dev, "cd-gpios", 0, &plat->cd_gpio,

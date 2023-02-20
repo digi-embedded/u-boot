@@ -29,6 +29,7 @@
 	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
 	"dualboot=yes\0" \
 	"boot_fdt=yes\0" \
+	"bootargs_linux=fbcon=logo-pos:center fbcon=logo-count:1\0" \
 	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_linux} root=${mmcroot} ${mtdparts}" \
 		"${bootargs_once} ${extra_bootargs}\0" \
@@ -156,7 +157,7 @@
 
 #define UBIVOLS_256MB			"ubi create " LINUX_PARTITION " 1800000;" \
 					"ubi create " RECOVERY_PARTITION " 2000000;" \
-					"ubi create " ROOTFS_PARTITION " bb00000;" \
+					"ubi create " ROOTFS_PARTITION " aa00000;" \
 					"ubi create " DATA_PARTITION " 500000;" \
 					"ubi create update;"
 
@@ -166,10 +167,10 @@
 					"ubi create " DATA_PARTITION " 2000000;" \
 					"ubi create update;"
 
-#define UBIVOLS_DUALBOOT_256MB		"ubi create " LINUX_A_PARTITION " c00000;" \
-					"ubi create " LINUX_B_PARTITION " c00000;" \
-					"ubi create " ROOTFS_A_PARTITION " 6d80000;" \
-					"ubi create " ROOTFS_B_PARTITION " 6d80000;" \
+#define UBIVOLS_DUALBOOT_256MB		"ubi create " LINUX_A_PARTITION " b00000;" \
+					"ubi create " LINUX_B_PARTITION " b00000;" \
+					"ubi create " ROOTFS_A_PARTITION " 6800000;" \
+					"ubi create " ROOTFS_B_PARTITION " 6800000;" \
 					"ubi create " DATA_PARTITION ";"
 
 #define UBIVOLS_DUALBOOT_512MB		"ubi create " LINUX_A_PARTITION " 1000000;" \

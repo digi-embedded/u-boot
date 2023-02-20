@@ -116,8 +116,6 @@ int env_set_default_vars(int nvars, char * const vars[], int flags)
 				flags, 0, nvars, vars);
 }
 
-#ifdef CONFIG_ENV_AES
-
 #ifdef CONFIG_ENV_AES_CAAM_KEY
 #include <fuse.h>
 #include <fsl_caam.h>
@@ -160,14 +158,12 @@ err:
 	free(buffer);
 	return ret;
 }
-#endif /* CONFIG_ENV_AES_CAAM_KEY */
-
 #else
 static inline int env_aes_cbc_crypt(env_t *env, const int enc)
 {
 	return 0;
 }
-#endif
+#endif /* CONFIG_ENV_AES_CAAM_KEY */
 
 /*
  * Check if CRC is valid and (if yes) import the environment.

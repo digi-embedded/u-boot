@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright (C) 2019-2020 Linaro Limited
+ * Copyright (C) 2019-2022 Linaro Limited
  */
 
 #define LOG_CATEGORY UCLASS_CLK
@@ -12,6 +12,7 @@
 #include <scmi_protocols.h>
 #include <asm/types.h>
 #include <linux/clk-provider.h>
+#include <linux/string.h>
 
 static int scmi_clk_get_num_clock(struct udevice *dev, size_t *num_clocks)
 {
@@ -53,7 +54,9 @@ static int scmi_clk_get_attibute(struct udevice *dev, int clkid, char **name)
 	if (ret)
 		return ret;
 
-	*name = out.clock_name;
+	*name = strdup(out.clock_name);
+	if (!*name)
+		return -ENOMEM;
 
 	return 0;
 }
@@ -152,21 +155,20 @@ static int scmi_clk_probe(struct udevice *dev)
 		return ret;
 
 	for (i = 0; i < num_clocks; i++) {
+		/* Clock name is allocated from scmi_clk_get_attibute() */
 		char *name;
 
 		if (!scmi_clk_get_attibute(dev, i, &name)) {
-			char *clock_name = strdup(name);
-
 			clk = kzalloc(sizeof(*clk), GFP_KERNEL);
-			if (!clk || !clock_name)
+			if (!clk)
 				ret = -ENOMEM;
 			else
 				ret = clk_register(clk, dev->driver->name,
-						   clock_name, dev->name);
+						   name, dev->name);
 
 			if (ret) {
 				free(clk);
-				free(clock_name);
+				free(name);
 				return ret;
 			}
 

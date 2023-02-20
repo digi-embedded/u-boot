@@ -92,7 +92,6 @@ The STM32MP13x is a single Cortex-A7 MPU aimed at various applications.
 
 Currently the following boards are supported:
 
- + stm32mp135d-dk.dts
  + stm32mp135f-dk.dts
 
 
@@ -212,7 +211,6 @@ The supported device trees for STM32MP13x (stm32mp13_defconfig) are:
 
 + dk: Discovery board
 
-   + stm32mp135d-dk
    + stm32mp135f-dk
 
 
@@ -274,7 +272,7 @@ Build Procedure
 
      # export KBUILD_OUTPUT=stm32mp13
      # make stm32mp13_defconfig
-     # make DEVICE_TREE=stm32mp135d-dk all
+     # make DEVICE_TREE=stm32mp135f-dk all
 
     DEVICE_TEE selection is optional as stm32mp135f-dk is the default board of the defconfig::
 

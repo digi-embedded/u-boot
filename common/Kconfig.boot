@@ -20,6 +20,7 @@ if SIGN_IMAGE
 
 config UNLOCK_SRK_REVOKE
 	bool "Unlock the SRK_REVOKE eFuse field"
+	depends on CC6UL
 	help
 	  In closed devices, HAB, by default, sets the SRK_REVOKE_LOCK sticky
 	  bit in the OCOTP controller to write protect the SRK_REVOKE eFuse
@@ -48,13 +49,15 @@ config KEY_INDEX
 	  Defines the key index for the signature process.
 
 config DEK_PATH
+	depends on HAS_CAAM
 	string "Data Encription Key path for encryption of the signed image of the signed image"
 	help
 	  Define to the DEK path to enable encryption of the signed U-boot
 	  image. Supported DEK sizes are 128, 192 and 256 bits.
 
 config SIGN_MODE
-	string "Sign mode"
+	string
+	depends on AHAB_BOOT || IMX_HAB
 	default "AHAB" if AHAB_BOOT
 	default "HAB" if IMX_HAB
 	help
@@ -68,7 +71,7 @@ config AUTHENTICATE_SQUASHFS_ROOTFS
 
 config AUTH_SQUASHFS_ADDR
 	default 0x90000000 if AHAB_BOOT
-	default 0x0 if IMX_HAB
+	default 0x0
 	hex "Authenticate Squashfs address"
 	help
 	  Address where the Squashfs image is loaded prior to authentication.
