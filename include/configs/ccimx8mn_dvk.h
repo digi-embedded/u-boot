@@ -94,7 +94,12 @@
 	"dboot_kernel_var=imagegz\0" \
 	"lzipaddr=" __stringify(CONFIG_DIGI_LZIPADDR) "\0" \
 	"script=boot.scr\0" \
-	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
+	"loadscript=" \
+		"if test \"${dualboot}\" = yes; then " \
+			"env exists active_system || setenv active_system linux_a; " \
+			"part number mmc ${mmcbootdev} ${active_system} mmcpart; " \
+		"fi;" \
+		"load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
 	"image=Image-" BOARD_DEY_NAME ".bin\0" \
 	"imagegz=Image.gz-" BOARD_DEY_NAME ".bin\0" \
 	"uboot_file=imx-boot-" BOARD_DEY_NAME ".bin\0" \
