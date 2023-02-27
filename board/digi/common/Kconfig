@@ -147,4 +147,5 @@ config DIGI_FAMILY_ID
 	default 2 if CC8M && IMX8MN
 	default 3 if CC8M && IMX8MM
 	default 4 if CCMP1
+	default 5 if CC93
 	default 0
