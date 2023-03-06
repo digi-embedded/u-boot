@@ -323,6 +323,31 @@ int board_init(void)
 	/* SOM init */
 	ccmp1_init();
 
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+	struct gpio_desc desc;
+	const char *ext_gpio_name = CONFIG_CONSOLE_ENABLE_GPIO_NAME;
+	ret = -1;
+
+	if (dm_gpio_lookup_name(ext_gpio_name, &desc))
+		goto error;
+
+	if (dm_gpio_request(&desc, "Console enable"))
+		goto error_free;
+
+	if (dm_gpio_set_dir_flags(&desc, GPIOD_IS_IN))
+		goto error_free;
+
+	ret = dm_gpio_get_value(&desc);
+	if ( ret )
+		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+
+	ret = 0;
+
+error_free:
+	dm_gpio_free(NULL, &desc);
+error:
+	return ret;
+#endif /* CONFIG_CONSOLE_ENABLE_GPIO */
 	return 0;
 }
 
