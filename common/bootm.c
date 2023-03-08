@@ -473,7 +473,11 @@ ulong bootm_disable_interrupts(void)
 	return iflag;
 }
 
+#ifdef CONFIG_CONSOLE_DISABLE
+#define CONSOLE_ARG		"console=\0"
+#else
 #define CONSOLE_ARG		"console=null"
+#endif
 #define CONSOLE_ARG_SIZE	sizeof(CONSOLE_ARG)
 
 /**
