@@ -202,6 +202,7 @@
 	};
 };
 
+/* Micro SD */
 &sdmmc1 {
 	pinctrl-names = "default", "opendrain", "sleep";
 	pinctrl-0 = <&sdmmc1_b4_pins_a &sdmmc1_clk_pins_a>;
@@ -211,7 +212,9 @@
 	disable-wp;
 	st,neg-edge;
 	bus-width = <4>;
-	vmmc-supply = <&scmi_vdd_sd>;
+	no-1-8-v;
+	vmmc-supply = <&scmi_vdd>;
+	vqmmc-supply = <&scmi_vdd_sd>;
 	status = "okay";
 };
 
