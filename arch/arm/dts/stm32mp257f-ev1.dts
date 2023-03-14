@@ -107,8 +107,20 @@
 	status = "okay";
 };
 
+&usb2_phy1 {
+	status = "okay";
+};
+
 &usb2_phy2 {
 	status = "okay";
+};
+
+&usb2h {
+	status = "okay";
+
+	usb2h_ohci: usb@482e0000 {
+		status = "disabled";
+	};
 };
 
 &usb3dr {
