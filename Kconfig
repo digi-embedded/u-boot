@@ -89,6 +89,13 @@ config ENV_AES_CAAM_KEY
 	  This setting is only supported in closed devices (those which can
 	  only boot signed U-Boot images). It has no effect on open devices.
 
+config ENV_AES_CCMP1
+	bool "Encrypt U-Boot environment for CCMP1 platform"
+	depends on CCMP1
+	help
+	  Use the STM32MP cryp AES support for environment encryption which
+	  can use AES-128, AES-192 and AES-256.
+
 config LOCALVERSION
 	string "Local version - append to U-Boot release"
 	help
