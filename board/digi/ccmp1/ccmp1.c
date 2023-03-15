@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
 /*
- * Copyright (C) 2022, Digi International Inc - All Rights Reserved
+ * Copyright (C) 2022-2023, Digi International Inc - All Rights Reserved
  */
 #include <common.h>
 #include <env.h>
 #include <env_internal.h>
+#include <fdt_support.h>
 #include <nand.h>
 #include <asm/arch/sys_proto.h>
 
@@ -72,6 +73,11 @@ void fdt_fixup_ccmp1(void *fdt)
 		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
 
 	fdt_fixup_uboot_info(fdt);
+
+	/* Add DT entry to detect environment encryption in Linux */
+#ifdef CONFIG_ENV_AES_CCMP1
+	do_fixup_by_path(fdt, "/", "digi,uboot-env,encrypted", NULL, 0, 1);
+#endif
 }
 
 void generate_ubi_volumes_script(void)
