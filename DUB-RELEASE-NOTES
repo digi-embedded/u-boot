@@ -4,6 +4,10 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2020.04
 -----------
+dub-2020.04-r5.7, released on 2023/02/27
+	- CC8X, CC8MM, CC8MN: fixes on dual-boot mode
+
+
 dub-2020.04-r5.6, released on 2022/11/29
 	- CC6UL: add support to SkyHigh NANDs
 
