@@ -104,12 +104,20 @@
 			reset-assert-us = <1000>;
 			reset-deassert-us = <2000>;
 		};
+
+		phy0_eth2: ethernet-phy@1 {
+			reg = <1>;
+			compatible = "ethernet-phy-id0007.c0f0"; /* PHY ID for SMSC LAN8720Ai */
+			reset-gpios = <&gpioh 7 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+			interrupt-parent = <&gpioh>;
+			interrupts = <2 IRQ_TYPE_LEVEL_LOW>;
+		};
 	};
 };
 
 /* 10/100 Ethernet */
 &eth2 {
-	status = "disabled";
+	status = "okay";
 	pinctrl-0 = <&ccmp13_eth2_rmii_pins>;
 	pinctrl-1 = <&ccmp13_eth2_rmii_sleep_pins>;
 	pinctrl-names = "default", "sleep";
@@ -118,18 +126,6 @@
 	phy-handle = <&phy0_eth2>;
 	st,ext-phyclk;
 	phy-supply = <&reg_3v3_eth_pwr>;
-
-	mdio1 {
-		#address-cells = <1>;
-		#size-cells = <0>;
-		compatible = "snps,dwmac-mdio";
-
-		phy0_eth2: ethernet-phy@0 {
-			reg = <0>;
-			compatible = "ethernet-phy-id0007.c0f0"; /* PHY ID for SMSC LAN8720Ai */
-			reset-gpios = <&gpioh 7 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
-		};
-	};
 };
 
 &i2c2 {
@@ -172,21 +168,17 @@
 };
 
 &scmi_regu {
-	scmi_vddcpu: voltd-vddcpu {
-		voltd-name = "vddcpu";
-		regulator-name = "vddcpu";
-	};
 	scmi_vdd: voltd-vdd {
 		voltd-name = "vdd";
 		regulator-name = "vdd";
 	};
-	scmi_vddcore: voltd-vddcore {
-		voltd-name = "vddcore";
-		regulator-name = "vddcore";
-	};
 	scmi_vdd_adc: voltd-vdd_adc {
 		voltd-name = "vdd_adc";
 		regulator-name = "vdd_adc";
+	};
+	scmi_ldo2: voltd-ldo2 {
+		voltd-name = "ldo2";
+		regulator-name = "ldo2";
 	};
 	scmi_vdd_usb: voltd-vdd_usb {
 		voltd-name = "vdd_usb";
@@ -196,13 +188,17 @@
 		voltd-name = "vdd_sd";
 		regulator-name = "vdd_sd";
 	};
-	scmi_v1v8_periph: voltd-v1v8_periph {
-		voltd-name = "v1v8_periph";
-		regulator-name = "v1v8_periph";
+	scmi_ldo6: voltd-ldo6 {
+		voltd-name = "ldo6";
+		regulator-name = "ldo6";
 	};
-	scmi_v3v3_sw: voltd-v3v3_sw {
-		voltd-name = "v3v3_sw";
-		regulator-name = "v3v3_sw";
+	scmi_vbus_otg: voltd-vbus_otg {
+		voltd-name = "vbus_otg";
+		regulator-name = "vbus_otg";
+	};
+	scmi_vbus_sw: voltd-vbus_sw {
+		voltd-name = "vbus_sw";
+		regulator-name = "vbus_sw";
 	};
 };
 
@@ -328,11 +324,11 @@
 
 	/*
 	 * Hack to keep hub active if wakeup source is enabled
-	 * otherwise the hub will wakeup the port0 as soon as the v3v3_sw is disabled
+	 * otherwise the hub will wakeup the port0 as soon as the vbus_sw is disabled
 	 */
 	connector {
 		compatible = "usb-a-connector";
-		vbus-supply = <&scmi_v3v3_sw>;
+		vbus-supply = <&scmi_vbus_sw>;
 	};
 };
 
@@ -441,9 +437,7 @@
 			pinmux = <STM32_PINMUX('F', 7,  AF11)>, /* ETH2_TXD0 */
 				 <STM32_PINMUX('G', 11, AF10)>, /* ETH2_TXD1 */
 				 <STM32_PINMUX('A', 11, AF13)>, /* ETH2_CLK */
-				 <STM32_PINMUX('F', 6,  AF11)>, /* ETH2_TX_EN */
-				 <STM32_PINMUX('B', 2,  AF11)>, /* ETH2_MDIO */
-				 <STM32_PINMUX('G', 5,  AF10)>; /* ETH2_MDC */
+				 <STM32_PINMUX('F', 6,  AF11)>; /* ETH2_TX_EN */
 			bias-disable;
 			drive-push-pull;
 			slew-rate = <1>;
@@ -464,8 +458,6 @@
 				 <STM32_PINMUX('G', 11, ANALOG)>, /* ETH2_TXD1 */
 				 <STM32_PINMUX('A', 11, ANALOG)>, /* ETH2_CLK */
 				 <STM32_PINMUX('F', 6,  ANALOG)>, /* ETH2_TX_EN */
-				 <STM32_PINMUX('B', 2,  ANALOG)>, /* ETH2_MDIO */
-				 <STM32_PINMUX('G', 5,  ANALOG)>, /* ETH2_MDC */
 				 <STM32_PINMUX('F', 4,  ANALOG)>, /* ETH2_RXD0 */
 				 <STM32_PINMUX('E', 2,  ANALOG)>, /* ETH2_RXD1 */
 				 <STM32_PINMUX('A', 12, ANALOG)>, /* ETH2_RX_DV */

@@ -7,7 +7,7 @@
 
 / {
 	aliases {
-		mmc0 = &sdmmc1;
+		mmc1 = &sdmmc1;
 		usb0 = &usbotg_hs;
 	};
 
