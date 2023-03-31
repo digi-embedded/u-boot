@@ -66,6 +66,11 @@
 	"jh_netboot=setenv fdt_file ccimx93-dvk-root.dtb; " \
 		    "setenv jh_clk clk_ignore_unused mem=1248MB kvm-arm.mode=nvhe; run netboot; \0 "
 
+/* Override CONFIG_MFG_ENV_SETTINGS_DEFAULT from imx_env.h */
+#undef CONFIG_MFG_ENV_SETTINGS_DEFAULT
+#define CONFIG_MFG_ENV_SETTINGS_DEFAULT \
+	"bootcmd_mfg=" FASTBOOT_CMD "\0"
+
 #define CONFIG_MFG_ENV_SETTINGS \
 	CONFIG_MFG_ENV_SETTINGS_DEFAULT \
 	"initrd_addr=0x83800000\0" \
