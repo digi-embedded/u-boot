@@ -31,9 +31,20 @@
 #define CONFIG_SYS_MAX_FLASH_BANKS	1
 #define CONFIG_CFI_FLASH_USE_WEAK_ACCESSORS
 
+/* Ethernet need */
+#ifdef CONFIG_DWC_ETH_QOS
+#define CONFIG_SERVERIP                 192.168.1.1
+#endif
+
 /*****************************************************************************/
 #ifdef CONFIG_DISTRO_DEFAULTS
 /*****************************************************************************/
+
+#ifdef CONFIG_NET
+#define BOOT_TARGET_PXE(func)	func(PXE, pxe, na)
+#else
+#define BOOT_TARGET_PXE(func)
+#endif
 
 #ifdef CONFIG_CMD_MMC
 #define BOOT_TARGET_MMC0(func)	func(MMC, mmc, 0)
@@ -56,6 +67,7 @@
 	BOOT_TARGET_UBIFS(func)		\
 	BOOT_TARGET_MMC0(func)		\
 	BOOT_TARGET_MMC2(func)		\
+	BOOT_TARGET_PXE(func)
 
 /*
  * default bootcmd for stm32mp25:
