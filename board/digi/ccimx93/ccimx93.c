@@ -255,3 +255,41 @@ void print_som_info(void)
 		printf(", Crypto-auth");
 	printf("\n");
 }
+
+int print_bootinfo(void)
+{
+	enum boot_device bt_dev = get_boot_device();
+
+	puts("Boot:  ");
+	switch (bt_dev) {
+	case SD1_BOOT:
+		puts("SD0\n");
+		break;
+	case SD2_BOOT:
+		puts("SD1\n");
+		break;
+	case SD3_BOOT:
+		puts("SD2\n");
+		break;
+	case MMC1_BOOT:
+		puts("MMC0\n");
+		break;
+	case MMC2_BOOT:
+		puts("MMC1\n");
+		break;
+	case MMC3_BOOT:
+		puts("MMC2\n");
+		break;
+	case NAND_BOOT:
+		puts("NAND\n");
+		break;
+	case USB_BOOT:
+		puts("USB\n");
+		break;
+	default:
+		printf("Unknown device %u\n", bt_dev);
+		break;
+	}
+
+	return 0;
+}
