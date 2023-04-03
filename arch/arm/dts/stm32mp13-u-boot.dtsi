@@ -113,14 +113,6 @@
 	u-boot,dm-pre-reloc;
 };
 
-&scmi_shm {
-	u-boot,dm-pre-reloc;
-};
-
-&scmi_sram {
-	u-boot,dm-pre-reloc;
-};
-
 &syscfg {
 	u-boot,dm-pre-reloc;
 };
