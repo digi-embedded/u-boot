@@ -48,6 +48,10 @@
 	u-boot,dm-pre-reloc;
 };
 
+&etzpc {
+	u-boot,dm-pre-reloc;
+};
+
 &gpioa {
 	u-boot,dm-pre-reloc;
 };
