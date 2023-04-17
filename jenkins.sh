@@ -1,9 +1,7 @@
 #!/bin/bash
 #===============================================================================
 #
-#  jenkins.sh
-#
-#  Copyright (C) 2015 by Digi International Inc.
+#  Copyright (C) 2015-2023 by Digi International Inc.
 #  All rights reserved.
 #
 #  This program is free software; you can redistribute it and/or modify it
@@ -22,41 +20,41 @@
 
 set -e
 
-# <platform> <uboot_make_target> <toolchain_type>
-while read pl mt tt; do
+# <platform> <uboot_make_target> <toolchain_type> <post-script>
+while read -r pl mt tt ps; do
 	AVAILABLE_PLATFORMS="${AVAILABLE_PLATFORMS:+${AVAILABLE_PLATFORMS} }${pl}"
-	eval "${pl}_make_target=\"${mt}\""
-	eval "${pl}_toolchain_type=\"${tt}\""
+	# Dashes are not allowed in variables so let's substitute them on
+	# the fly with underscores.
+	eval "${pl//-/_}_make_target=\"${mt}\""
+	eval "${pl//-/_}_toolchain_type=\"${tt}\""
+	eval "${pl//-/_}_post_script=\"${ps}\""
 done<<-_EOF_
-	ccimx6dlsbc256MB         u-boot.imx  cortexa9hf
-	ccimx6dlsbc512MB         u-boot.imx  cortexa9hf
-	ccimx6dlsbc              u-boot.imx  cortexa9hf
-	ccimx6qsbc2GB            u-boot.imx  cortexa9hf
-	ccimx6qsbc512MB          u-boot.imx  cortexa9hf
-	ccimx6qsbc               u-boot.imx  cortexa9hf
-	ccimx6qpsbc1GB           u-boot.imx  cortexa9hf
-	ccimx6qpsbc2GB           u-boot.imx  cortexa9hf
-	ccimx6ulstarter          u-boot.imx  cortexa9hf
-	ccimx6ulsbc              u-boot.imx  cortexa9hf
-	ccimx6ulstarter512MB     u-boot.imx  cortexa9hf
-	ccimx6ulsbc512MB         u-boot.imx  cortexa9hf
-	ccimx6ulstarter1GB       u-boot.imx  cortexa9hf
-	ccimx6ulsbc1GB           u-boot.imx  cortexa9hf
-	ccimx8x_sbc_express512MB u-boot-dtb.bin  aarch64
-	ccimx8x_sbc_express1GB   u-boot-dtb.bin  aarch64
-	ccimx8x_sbc_express2GB   u-boot-dtb.bin  aarch64
-	ccimx8x_sbc_pro512MB     u-boot-dtb.bin  aarch64
-	ccimx8x_sbc_pro1GB       u-boot-dtb.bin  aarch64
-	ccimx8x_sbc_pro2GB       u-boot-dtb.bin  aarch64
+	ccimx93-dvk    all    aarch64    "make_imxboot_ccimx93.sh"
 _EOF_
 
 # Set default values if not provided by Jenkins
 DUB_GIT_URL="${DUB_GIT_URL:-ssh://git@stash.digi.com/uboot/u-boot-denx.git}"
-DUB_TOOLCHAIN_URL="${DUB_TOOLCHAIN_URL:-http://build-linux.digi.com/yocto/toolchain}"
-DUB_PLATFORMS="${DUB_PLATFORMS:-$(echo ${AVAILABLE_PLATFORMS})}"
+DUB_TOOLCHAIN_URL="${DUB_TOOLCHAIN_URL:-http://10.101.8.63/exports/tftpboot/toolchain}"
+DUB_PLATFORMS="${DUB_PLATFORMS:-${AVAILABLE_PLATFORMS}}"
+
+clone_uboot_repo()
+{
+	if [ ! -d "${DUB_UBOOT_DIR}/.git" ]; then
+		echo "- Clone U-Boot repository:"
+		git clone "${DUB_GIT_URL}" "${DUB_UBOOT_DIR}"
+	fi
+
+	(
+		cd "${DUB_UBOOT_DIR}" || exit 1
+		git clean -ffdx && git restore .
+		echo "- Update U-Boot repository:"
+		git pull "$(git remote)"
+		git -c core.fsync=loose-object -c gc.autoDetach=false -c core.pager=cat checkout -B "${DUB_REVISION}" "$(git remote)"/"${DUB_REVISION}"
+	)
+}
 
 error() {
-	printf "${1}"
+	printf "%s\n" "${1}"
 	exit 1
 }
 
@@ -66,63 +64,70 @@ error() {
 # Unset BUILD_TAG from Jenkins so U-Boot does not show it
 unset BUILD_TAG
 
-printf "\n[INFO] Build U-Boot \"${DUB_REVISION}\" for \"${DUB_PLATFORMS}\"\n\n"
+printf "\n[INFO] Build U-Boot \"%s\" for \"%s\"\n\n" "${DUB_REVISION}" "${DUB_PLATFORMS}"
 
 # Remove nested directories from the revision
-DUB_REVISION_SANE="$(echo ${DUB_REVISION} | tr '/' '_')"
+DUB_REVISION_SANE="$(echo "${DUB_REVISION}" | tr '/' '_')"
 
 DUB_IMGS_DIR="${WORKSPACE}/images"
 DUB_TOOLCHAIN_DIR="${WORKSPACE}/toolchain"
 DUB_UBOOT_DIR="${WORKSPACE}/u-boot${DUB_REVISION_SANE:+-${DUB_REVISION_SANE}}.git"
-rm -rf ${DUB_IMGS_DIR} ${DUB_TOOLCHAIN_DIR} ${DUB_UBOOT_DIR}
+rm -rf "${DUB_IMGS_DIR}" "${DUB_TOOLCHAIN_DIR}" "${DUB_UBOOT_DIR}"
+mkdir -p "${DUB_IMGS_DIR}" "${DUB_TOOLCHAIN_DIR}"
 
-mkdir -p ${DUB_IMGS_DIR} ${DUB_TOOLCHAIN_DIR} ${DUB_UBOOT_DIR}
-if pushd ${DUB_UBOOT_DIR}; then
-	# Install U-Boot
-	git clone ${DUB_GIT_URL} .
-	if [ -n "${DUB_REVISION}" -a "${DUB_REVISION}" != "master" ]; then
-		git checkout ${DUB_REVISION}
-	fi
+# clone/update U-Boot repository
+clone_uboot_repo
 
-	CPUS="$(echo /sys/devices/system/cpu/cpu[0-9]* | wc -w)"
-	[ ${CPUS} -gt 1 ] && MAKE_JOBS="-j${CPUS}"
+CPUS="$(echo /sys/devices/system/cpu/cpu[0-9]* | wc -w)"
+[ "${CPUS}" -gt 1 ] && MAKE_JOBS="-j${CPUS}"
+MAKE="make ${MAKE_JOBS}"
 
-	for platform in ${DUB_PLATFORMS}; do
-		# Build in a sub-shell to avoid mixing environments for different platform
-		(
-			printf "\n[PLATFORM: ${platform} - CPUS: ${CPUS}]\n"
+for platform in ${DUB_PLATFORMS}; do
+	# Build in a sub-shell to avoid mixing environments for different platform
+	(
+		cd "${DUB_UBOOT_DIR}" || exit 1
+		printf "\n[PLATFORM: %s - CPUS: %s]\n" "${platform}" "${CPUS}"
 
-			# Install toolchain
-			eval TOOLCHAIN_TYPE=\"\${${platform}_toolchain_type}\"
-			for TLABEL in ${DUB_REVISION_SANE} default; do
-				TLABEL="${TLABEL}-${TOOLCHAIN_TYPE}"
-				# If the toolchain is already installed exit the loop
-				[ -d "${DUB_TOOLCHAIN_DIR}/${TLABEL}" ] && break
-				if wget -q --spider "${DUB_TOOLCHAIN_URL}/toolchain-${TLABEL}.sh"; then
-					printf "\n[INFO] Installing toolchain-${TLABEL}.sh\n\n"
-					tmp_toolchain="$(mktemp /tmp/toolchain.XXXXXX)"
-					wget -q -O ${tmp_toolchain} "${DUB_TOOLCHAIN_URL}/toolchain-${TLABEL}.sh" && chmod +x ${tmp_toolchain}
-					rm -rf ${DUB_TOOLCHAIN_DIR}/${TLABEL} && sh ${tmp_toolchain} -y -d ${DUB_TOOLCHAIN_DIR}/${TLABEL}
-					rm -f ${tmp_toolchain}
-					break
-				fi
-			done
+		# Install toolchain
+		eval "TOOLCHAIN_TYPE=\"\${${platform//-/_}_toolchain_type}\""
+		for TLABEL in ${DUB_REVISION_SANE}-${platform} ${DUB_REVISION_SANE} ${platform} default; do
+			TLABEL="${TLABEL}-${TOOLCHAIN_TYPE}"
+			# If the toolchain is already installed exit the loop
+			[ -d "${DUB_TOOLCHAIN_DIR}/${TLABEL}" ] && break
+			if wget -q --spider "${DUB_TOOLCHAIN_URL}/toolchain-${TLABEL}.sh"; then
+				printf "\n[INFO] Installing toolchain-%s.sh\n\n" "${TLABEL}"
+				tmp_toolchain="$(mktemp /tmp/toolchain.XXXXXX)"
+				wget -q -O "${tmp_toolchain}" "${DUB_TOOLCHAIN_URL}/toolchain-${TLABEL}.sh" && chmod +x "${tmp_toolchain}"
+				rm -rf "${DUB_TOOLCHAIN_DIR}"/"${TLABEL:?}" && sh "${tmp_toolchain}" -y -d "${DUB_TOOLCHAIN_DIR}"/"${TLABEL}"
+				rm -f "${tmp_toolchain}"
+				break
+			fi
+		done
 
-			eval $(grep "^export CROSS_COMPILE=" ${DUB_TOOLCHAIN_DIR}/${TLABEL}/environment-setup-*)
-			eval $(grep "^export PATH=" ${DUB_TOOLCHAIN_DIR}/${TLABEL}/environment-setup-*)
-			eval $(grep "^export SDKTARGETSYSROOT=" ${DUB_TOOLCHAIN_DIR}/${TLABEL}/environment-setup-*)
+		eval "$(grep "^export CROSS_COMPILE=" "${DUB_TOOLCHAIN_DIR}"/"${TLABEL}"/environment-setup-*)"
+		eval "$(grep "^export PATH=" "${DUB_TOOLCHAIN_DIR}"/"${TLABEL}"/environment-setup-*)"
+		eval "$(grep "^export SDKTARGETSYSROOT=" "${DUB_TOOLCHAIN_DIR}"/"${TLABEL}"/environment-setup-*)"
 
-			# We need to explicitly pass the CC variable. Otherwise u-boot discards the
-			# '--sysroot' option and the build fails
-			eval UBOOT_MAKE_TARGET=\"\${${platform}_make_target}\"
-			make distclean
-			make ${platform}_defconfig
-			make ${MAKE_JOBS} CC="${CROSS_COMPILE}gcc --sysroot=${SDKTARGETSYSROOT}" ${UBOOT_MAKE_TARGET}
+		# We need to explicitly pass the CC variable. Otherwise u-boot discards the
+		# '--sysroot' option and the build fails
+		eval "UBOOT_MAKE_TARGET=\"\${${platform//-/_}_make_target}\""
+		${MAKE} distclean
+		${MAKE} "${platform}"_defconfig
+		${MAKE} CC="${CROSS_COMPILE}gcc --sysroot=${SDKTARGETSYSROOT}" "${UBOOT_MAKE_TARGET}"
 
+		eval "BOOT_POST_SCRIPT=\"\${${platform//-/_}_post_script}\""
+		if [ -z "${BOOT_POST_SCRIPT}" ]; then
 			# Copy u-boot image
-			cp ${UBOOT_MAKE_TARGET} ${DUB_IMGS_DIR}/${UBOOT_MAKE_TARGET/u-boot/u-boot-${platform}}
-		)
-	done
-
-	popd
-fi
+			cp --remove-destination "${UBOOT_MAKE_TARGET}" "${DUB_IMGS_DIR}"/"${UBOOT_MAKE_TARGET/u-boot/u-boot-${platform}}"
+		else
+			# Some extra environment needed to build optee-os
+			eval "$(grep "^export OECORE_NATIVE_SYSROOT=" "${DUB_TOOLCHAIN_DIR}"/"${TLABEL}"/environment-setup-*)"
+			export OPENSSL_MODULES="${OECORE_NATIVE_SYSROOT}/usr/lib/ossl-modules"
+			export LIBGCC_LOCATE_CFLAGS="--sysroot=${SDKTARGETSYSROOT}"
+			# Build the boot artifacts
+			./tools/digi/"${BOOT_POST_SCRIPT}" -u "${DUB_UBOOT_DIR}"
+			# Copy boot artifacts
+			cp --remove-destination tools/digi/output/* "${DUB_IMGS_DIR}"/
+		fi
+	)
+done
