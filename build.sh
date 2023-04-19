@@ -107,13 +107,12 @@ for platform in ${DUB_PLATFORMS}; do
 		eval "$(grep "^export CROSS_COMPILE=" "${DUB_TOOLCHAIN_DIR}"/"${TLABEL}"/environment-setup-*)"
 		eval "$(grep "^export PATH=" "${DUB_TOOLCHAIN_DIR}"/"${TLABEL}"/environment-setup-*)"
 		eval "$(grep "^export SDKTARGETSYSROOT=" "${DUB_TOOLCHAIN_DIR}"/"${TLABEL}"/environment-setup-*)"
+		eval "$(grep "^export KCFLAGS=" "${DUB_TOOLCHAIN_DIR}"/"${TLABEL}"/environment-setup-*)"
 
-		# We need to explicitly pass the CC variable. Otherwise u-boot discards the
-		# '--sysroot' option and the build fails
 		eval "UBOOT_MAKE_TARGET=\"\${${platform//-/_}_make_target}\""
 		${MAKE} distclean
 		${MAKE} "${platform}"_defconfig
-		${MAKE} CC="${CROSS_COMPILE}gcc --sysroot=${SDKTARGETSYSROOT}" "${UBOOT_MAKE_TARGET}"
+		${MAKE} "${UBOOT_MAKE_TARGET}"
 
 		eval "BOOT_POST_SCRIPT=\"\${${platform//-/_}_post_script}\""
 		if [ -z "${BOOT_POST_SCRIPT}" ]; then
