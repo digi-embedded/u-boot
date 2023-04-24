@@ -11,5 +11,6 @@ int ccimx93_init(void);
 void som_default_environment(void);
 void fdt_fixup_ccimx93(void *fdt);
 void print_som_info(void);
+void print_bootinfo(void);
 
 #endif  /* CCIMX93_H */
