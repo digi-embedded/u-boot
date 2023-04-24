@@ -49,7 +49,9 @@ clone_uboot_repo()
 		git clean -ffdx && git restore .
 		echo "- Update U-Boot repository:"
 		git pull "$(git remote)"
-		git -c core.fsync=loose-object -c gc.autoDetach=false -c core.pager=cat checkout -B "${DUB_REVISION}" "$(git remote)"/"${DUB_REVISION}"
+		git show-ref --verify --quiet refs/tags/"${DUB_REVISION}" || DUB_REMOTE="$(git remote)/"
+		git -c core.fsync=loose-object -c gc.autoDetach=false -c core.pager=cat checkout -B "${DUB_REVISION}" "${DUB_REMOTE}${DUB_REVISION}"
+		unset DUB_REMOTE
 	)
 }
 
