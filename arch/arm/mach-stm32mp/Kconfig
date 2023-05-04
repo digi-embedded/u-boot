@@ -102,6 +102,14 @@ config STM32MP25X
 		STMicroelectronics MPU with 2 * A53 core and 1 M33 core
 endchoice
 
+if STM32MP25X
+config STM32MP25_REVA
+	prompt "STM32MP25 RevA SoC support"
+	def_bool n
+	help
+	  This enables support for ARMv8 STM32MP25 RevA SoC.
+endif
+
 config NR_DRAM_BANKS
 	default 1
 
