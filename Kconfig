@@ -38,6 +38,17 @@ config CONSOLE_ENABLE_GPIO_NR
 	    On the ConnectCore 6UL Starter Board, on Raspberry-Pi expansion connector
 	    On the ConnectCore 6UL SBC, on GPIO connector
 
+config CONSOLE_ENABLE_GPIO_NAME
+	string "Console enable GPIO name"
+	depends on CONSOLE_ENABLE_GPIO
+	default "GPIOB6" if TARGET_CCMP13_DVK
+	default "GPIOA5" if TARGET_CCMP15_DVK
+	help
+	  Use the GPIO line available on the board to enable the console port:
+	    On the ConnectCore MP15 DVK GPIOA5, on J31
+	    On the ConnectCore MP13 DVK GPIOB6, on J31
+	  Use any GPIO line available on the SOM by name.
+
 config CONSOLE_ENABLE_PASSPHRASE
 	bool "Passphrase console enable support"
 	depends on CONSOLE_DISABLE

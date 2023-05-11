@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause */
 /*
- * Copyright (C) 2022, Digi International Inc
+ * Copyright (C) 2022-2023, Digi International Inc
  * Copyright (C) 2018, STMicroelectronics - All Rights Reserved
  *
  */
@@ -145,6 +145,14 @@
 	"rootfsvol_b=" ROOTFS_B_PARTITION "\0" \
 	"active_system=" LINUX_A_PARTITION "\0"
 
+#ifdef CONFIG_CONSOLE_DISABLE
+#define ENV_SILENT_CONSOLE \
+	"silent=yes\0" \
+	"silent_linux=yes\0"
+#else
+#define ENV_SILENT_CONSOLE
+#endif
+
 /*
  * memory layout for 32M uncompressed/compressed kernel,
  * 1M fdt, 1M script, 1M pxe and 1M for splashimage
@@ -155,7 +163,8 @@
 	MTDPART_ENV_SETTINGS \
 	DUALBOOT_ENV_SETTINGS \
 	STM32MP_MEM_LAYOUT \
-	BOOTENV \
+	ENV_SILENT_CONSOLE \
+	BOOTENV
 
 #undef CONFIG_BOOTCOMMAND
 #define CONFIG_BOOTCOMMAND \
