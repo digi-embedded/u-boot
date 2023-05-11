@@ -147,7 +147,6 @@
 
 &usbotg2 {
 	status = "okay";
-// 	extcon = <&ptn5110_2>;
 };
 
 &s4muap {
