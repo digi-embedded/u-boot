@@ -16,6 +16,10 @@ endif
 
 obj-y += ../ccmp1/ccmp1.o
 
+ifdef CONFIG_ENV_AES_CCMP1
+obj-y += ../ccmp1/ta_ccmp1.o
+endif
+
 # ST common
 obj-$(CONFIG_CMD_STBOARD) += ../../st/common/cmd_stboard.o
 obj-$(CONFIG_PMIC_STPMIC1) += ../../st/common/stpmic1.o

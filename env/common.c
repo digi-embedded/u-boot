@@ -22,6 +22,12 @@
 #include <u-boot/crc.h>
 #include <dm/ofnode.h>
 
+#ifdef CONFIG_ENV_AES_CCMP1
+/* CCMP1 AES encryption support */
+#include <nand.h>
+#include "../board/digi/ccmp1/ta_ccmp1.h"
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 /************************************************************************
@@ -158,6 +164,22 @@ err:
 	free(buffer);
 	return ret;
 }
+#elif CONFIG_ENV_AES_CCMP1
+static int env_aes_cbc_crypt(env_t *env, const int enc)
+{
+	unsigned char *data = env->data;
+	int ret = 0;
+	/* get NAND geometrics */
+	struct mtd_info *mtd = get_nand_dev_by_index(0);
+
+	if (enc) {
+		crypt_cipher_data(TA_AES_MODE_ENCODE, data, mtd->erasesize);
+	} else {
+		crypt_cipher_data(TA_AES_MODE_DECODE, data, mtd->erasesize);
+	}
+
+	return ret;
+}
 #else
 static inline int env_aes_cbc_crypt(env_t *env, const int enc)
 {
@@ -188,7 +210,7 @@ int env_import(const char *buf, int check, int flags)
 	/* Decrypt the env if desired. */
 	ret = env_aes_cbc_crypt(ep, 0);
 	if (ret) {
-#ifdef CONFIG_ENV_AES_CAAM_KEY
+#if defined(CONFIG_ENV_AES_CAAM_KEY) || defined(CONFIG_ENV_AES_CCMP1)
 		if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE,
 				'\0', 0, 0, 0, NULL)) {
 			printf("Environment is unencrypted!\n");
@@ -311,7 +333,7 @@ int env_export(env_t *env_out)
 {
 	char *res;
 	ssize_t	len;
-#ifdef CONFIG_ENV_AES_CAAM_KEY
+#if defined(CONFIG_ENV_AES_CAAM_KEY) || defined(CONFIG_ENV_AES_CCMP1)
 	int ret;
 #endif
 
@@ -323,7 +345,7 @@ int env_export(env_t *env_out)
 	}
 
 	/* Encrypt the env if desired. */
-#ifdef CONFIG_ENV_AES_CAAM_KEY
+#if defined(CONFIG_ENV_AES_CAAM_KEY) || defined(CONFIG_ENV_AES_CCMP1)
 	ret = env_aes_cbc_crypt(env_out, 1);
 	if (ret)
 		return ret;
