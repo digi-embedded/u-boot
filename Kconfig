@@ -42,8 +42,8 @@ config CONSOLE_ENABLE_GPIO_NR
 config CONSOLE_ENABLE_GPIO_NAME
 	string "Console enable GPIO name"
 	depends on CONSOLE_ENABLE_GPIO
-	default "GPIOB6" if TARGET_CCMP13_DVK
-	default "GPIOA5" if TARGET_CCMP15_DVK
+	default "GPIOA5" if TARGET_CCMP13_DVK
+	default "GPIOB6" if TARGET_CCMP15_DVK
 	default "0"
 	help
 	  Use the GPIO line available on the board to enable the console port:
