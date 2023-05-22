@@ -192,6 +192,8 @@ int board_early_init_f(void)
 
 int board_late_init(void)
 {
+	ulong addr;
+
 #ifdef CONFIG_ENV_IS_IN_MMC
 	board_late_mmc_env_init();
 #endif
@@ -205,16 +207,24 @@ int board_late_init(void)
 	reset_lsm6dsx(8, 0x9);
 #endif
 
+	/* clear fdtaddr to avoid obsolete data */
+	addr = env_get_hex("fdt_addr_r", 0);
+	if (addr)
+		memset((void *)addr, 0, 0x400);
+
 	return 0;
 }
 
 #ifdef CONFIG_FSL_FASTBOOT
 #ifdef CONFIG_ANDROID_RECOVERY
+#ifdef CONFIG_TARGET_IMX8ULP_EVK
 static iomux_cfg_t const recovery_pad[] = {
 	IMX8ULP_PAD_PTF7__PTF7 | MUX_PAD_CTRL(PAD_CTL_IBE_ENABLE),
 };
+#endif
 int is_recovery_key_pressing(void)
 {
+#ifdef CONFIG_TARGET_IMX8ULP_EVK
 	int ret;
 	struct gpio_desc desc;
 
@@ -243,6 +253,9 @@ int is_recovery_key_pressing(void)
 	dm_gpio_free(desc.dev, &desc);
 
 	return !ret;
+#else
+	return 0;
+#endif
 }
 #endif /*CONFIG_ANDROID_RECOVERY*/
 #endif /*CONFIG_FSL_FASTBOOT*/

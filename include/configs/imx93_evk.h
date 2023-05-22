@@ -49,12 +49,15 @@
 #define BOOTENV
 #endif
 
+#define JH_ROOT_DTB    "imx93-11x11-evk-root.dtb"
+
 #define JAILHOUSE_ENV \
-	"jh_mmcboot=setenv fdtfile imx93-11x11-evk-root.dtb; " \
+	"jh_root_dtb=" JH_ROOT_DTB "\0" \
+	"jh_mmcboot=setenv fdtfile ${jh_root_dtb}; " \
 		    "setenv jh_clk clk_ignore_unused mem=1248MB kvm-arm.mode=nvhe; " \
 		    "if run loadimage; then run mmcboot;" \
 		    "else run jh_netboot; fi; \0" \
-	"jh_netboot=setenv fdtfile imx93-11x11-evk-root.dtb; " \
+	"jh_netboot=setenv fdtfile ${jh_root_dtb}; " \
 		    "setenv jh_clk clk_ignore_unused mem=1248MB kvm-arm.mode=nvhe; run netboot; \0 "
 
 #define CONFIG_MFG_ENV_SETTINGS \
@@ -211,6 +214,10 @@
 
 #define PHY_ANEG_TIMEOUT 20000
 
+#endif
+
+#ifdef CONFIG_ANDROID_SUPPORT
+#include "imx93_evk_android.h"
 #endif
 
 #endif

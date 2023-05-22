@@ -163,24 +163,19 @@ int board_usb_gadget_port_auto(void)
 u32 get_cpu_speed_grade_hz(void)
 {
 	u32 speed, max_speed;
-	u32 grade;
 	u32 val = readl((ulong)FSB_BASE_ADDR + 0x8000 + (19 << 2));
 	val >>= 6;
 	val &= 0xf;
 
-	speed = 2300000000 - val * 100000000;
+	max_speed = 2300000000;
+	speed = max_speed - val * 100000000;
 
-	if (is_imx93()) {
-		grade = get_cpu_temp_grade(NULL, NULL);
-		if (grade == TEMP_INDUSTRIAL)
-			max_speed = 1500000000;
-		else
-			max_speed = 1700000000;
+	if (is_imx93())
+		max_speed = 1700000000;
 
-		/* In case the fuse of speed grade not programmed */
-		if (speed > max_speed)
-			speed = max_speed;
-	}
+	/* In case the fuse of speed grade not programmed */
+	if (speed > max_speed)
+		speed = max_speed;
 
 	return speed;
 }
@@ -200,8 +195,14 @@ u32 get_cpu_temp_grade(int *minc, int *maxc)
 			*minc = -40;
 			*maxc = 105;
 		} else if (val == TEMP_EXTCOMMERCIAL) {
-			*minc = -20;
-			*maxc = 105;
+			if (is_imx93()){
+				/* imx93 only has extended industrial*/
+				*minc = -40;
+				*maxc = 125;
+			} else {
+				*minc = -20;
+				*maxc = 105;
+			}
 		} else {
 			*minc = 0;
 			*maxc = 95;
@@ -224,7 +225,7 @@ static u32 get_cpu_variant_type(u32 type)
 	u32 val2 = readl((ulong)FSB_BASE_ADDR + 0x8000 + (20 << 2));
 	bool npu_disable = !!(val & BIT(13));
 	bool core1_disable = !!(val & BIT(15));
-	u32 pack_9x9_fused = BIT(4) | BIT(17) | BIT(19) | BIT(24);
+	u32 pack_9x9_fused = BIT(4) | BIT(5) | BIT(17) | BIT(19) | BIT(24);
 
 	if ((val2 & pack_9x9_fused) == pack_9x9_fused)
 		type = MXC_CPU_IMX9322;
@@ -644,7 +645,10 @@ int print_cpuinfo(void)
 		puts("Industrial temperature grade ");
 		break;
 	case TEMP_EXTCOMMERCIAL:
-		puts("Extended Consumer temperature grade ");
+		if (is_imx93())
+			puts("Extended Industrial temperature grade ");
+		else
+			puts("Extended Consumer temperature grade ");
 		break;
 	default:
 		puts("Consumer temperature grade ");
