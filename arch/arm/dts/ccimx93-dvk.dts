@@ -13,6 +13,7 @@
 	compatible = "digi,ccimx93-dvk", "digi,ccimx93", "fsl,imx93";
 
 	chosen {
+		bootargs = "console=ttyLP5,115200";
 		stdout-path = &lpuart6;
 	};
 
