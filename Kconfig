@@ -31,6 +31,7 @@ config CONSOLE_ENABLE_GPIO
 config CONSOLE_ENABLE_GPIO_NR
 	int "Console enable GPIO number"
 	depends on CONSOLE_ENABLE_GPIO
+	default 0
 	help
 	  Use one of the GPIO_N lines available on the board to enable the console port:
 	  GPIO_N lines are available:
@@ -41,8 +42,9 @@ config CONSOLE_ENABLE_GPIO_NR
 config CONSOLE_ENABLE_GPIO_NAME
 	string "Console enable GPIO name"
 	depends on CONSOLE_ENABLE_GPIO
-	default "GPIOB6" if TARGET_CCMP13_DVK
-	default "GPIOA5" if TARGET_CCMP15_DVK
+	default "GPIOA5" if TARGET_CCMP13_DVK
+	default "GPIOB6" if TARGET_CCMP15_DVK
+	default "0"
 	help
 	  Use the GPIO line available on the board to enable the console port:
 	    On the ConnectCore MP15 DVK GPIOA5, on J31
