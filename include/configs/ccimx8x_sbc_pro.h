@@ -167,6 +167,7 @@
 		"fi;\0" \
 	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
 	"active_system=linux_a\0" \
+	"usb_pgood_delay=2000\0" \
 	""	/* end line */
 
 #undef CONFIG_BOOTCOMMAND
