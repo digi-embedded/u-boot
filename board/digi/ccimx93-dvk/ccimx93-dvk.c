@@ -293,6 +293,11 @@ void platform_default_environment(void)
 
 int board_late_init(void)
 {
+	env_set("sec_boot", "no");
+#ifdef CONFIG_AHAB_BOOT
+	env_set("sec_boot", "yes");
+#endif
+
 	/* Set default dynamic variables */
 	platform_default_environment();
 
@@ -314,3 +319,12 @@ int checkboard(void)
 
 	return 0;
 }
+
+#ifdef CONFIG_FSL_FASTBOOT
+#ifdef CONFIG_ANDROID_RECOVERY
+int is_recovery_key_pressing(void)
+{
+	return 0;
+}
+#endif /*CONFIG_ANDROID_RECOVERY*/
+#endif /*CONFIG_FSL_FASTBOOT*/

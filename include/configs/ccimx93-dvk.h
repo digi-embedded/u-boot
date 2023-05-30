@@ -57,12 +57,15 @@
 #define BOOTENV
 #endif
 
+#define JH_ROOT_DTB    "ccimx93-dvk-root.dtb"
+
 #define JAILHOUSE_ENV \
-	"jh_mmcboot=setenv fdt_file ccimx93-dvk-root.dtb; " \
+	"jh_root_dtb=" JH_ROOT_DTB "\0" \
+	"jh_mmcboot=setenv fdt_file ${jh_root_dtb}; " \
 		    "setenv jh_clk clk_ignore_unused mem=1248MB kvm-arm.mode=nvhe; " \
 		    "if run loadimage; then run mmcboot;" \
 		    "else run jh_netboot; fi; \0" \
-	"jh_netboot=setenv fdt_file ccimx93-dvk-root.dtb; " \
+	"jh_netboot=setenv fdt_file ${jh_root_dtb}; " \
 		    "setenv jh_clk clk_ignore_unused mem=1248MB kvm-arm.mode=nvhe; run netboot; \0 "
 
 /* Override CONFIG_MFG_ENV_SETTINGS_DEFAULT from imx_env.h */
