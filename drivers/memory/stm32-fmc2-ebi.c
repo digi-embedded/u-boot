@@ -84,6 +84,7 @@
 
 /* Register: FMC2_SEMCR */
 #define FMC2_SEMCR_SEM_MUTEX		BIT(0)
+#define FMC2_SEMCR_SEMCID_REVA		GENMASK(7, 5)
 #define FMC2_SEMCR_SEMCID		GENMASK(6, 4)
 
 /* Register: FMC2_VERR */
@@ -1041,7 +1042,9 @@ static int stm32_fmc2_ebi_check_rif(struct stm32_fmc2_ebi *ebi, u32 resource)
 		semcr = readl(ebi->io_base + FMC2_SEMCR(resource));
 	}
 
-	cid = FIELD_GET(FMC2_SEMCR_SEMCID, semcr);
+	cid = CONFIG_IS_ENABLED(STM32MP25_REVA) ?
+	      FIELD_GET(FMC2_SEMCR_SEMCID_REVA, semcr) :
+	      FIELD_GET(FMC2_SEMCR_SEMCID, semcr);
 	if (cid != FMC2_CID1) {
 		if (resource)
 			log_err("resource %d is already used by CID%d\n",
