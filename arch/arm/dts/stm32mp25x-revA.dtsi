@@ -13,3 +13,8 @@
 	/delete-property/dmas;
 	/delete-property/dma-names;
 };
+
+&spi8 {
+	/delete-property/dmas;
+	/delete-property/dma-names;
+};
