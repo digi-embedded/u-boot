@@ -109,6 +109,10 @@
 	status = "okay";
 };
 
+&cryp1 {
+	status = "okay";
+};
+
 &dsi {
 	#address-cells = <1>;
 	#size-cells = <0>;
