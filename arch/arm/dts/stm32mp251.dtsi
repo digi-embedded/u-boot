@@ -417,6 +417,14 @@
 				status = "disabled";
 			};
 
+			crc: crc@404c0000 {
+				compatible = "st,stm32f7-crc";
+				reg = <0x404c0000 0x400>;
+				clocks = <&rcc CK_BUS_CRC>;
+				feature-domains = <&rifsc STM32MP25_RIFSC_CRC_ID>;
+				status = "disabled";
+			};
+
 			i2c8: i2c@46040000 {
 				compatible = "st,stm32mp25-i2c";
 				reg = <0x46040000 0x400>;
