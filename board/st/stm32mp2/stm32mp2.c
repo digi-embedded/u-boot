@@ -328,6 +328,10 @@ static bool board_is_stm32mp257_eval(void)
 	    (of_machine_is_compatible("st,stm32mp257f-ev1")))
 		return true;
 
+	if (CONFIG_IS_ENABLED(STM32MP25_REVA) &&
+	    (of_machine_is_compatible("st,stm32mp257f-ev1-revB")))
+		return true;
+
 	return false;
 }
 
