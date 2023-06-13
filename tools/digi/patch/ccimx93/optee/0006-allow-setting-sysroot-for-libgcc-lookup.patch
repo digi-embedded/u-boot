@@ -14,9 +14,11 @@ Signed-off-by: Ross Burton <ross.burton@arm.com>
  mk/gcc.mk | 6 +++---
  1 file changed, 3 insertions(+), 3 deletions(-)
 
+diff --git a/mk/gcc.mk b/mk/gcc.mk
+index adc77a24..81bfa78a 100644
 --- a/mk/gcc.mk
 +++ b/mk/gcc.mk
-@@ -13,11 +13,11 @@ nostdinc$(sm)	:= -nostdinc -isystem $(sh
+@@ -13,11 +13,11 @@ nostdinc$(sm)	:= -nostdinc -isystem $(shell $(CC$(sm)) \
  			-print-file-name=include 2> /dev/null)
  
  # Get location of libgcc from gcc

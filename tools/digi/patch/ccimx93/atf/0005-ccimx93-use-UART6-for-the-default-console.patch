@@ -8,10 +8,10 @@ Signed-off-by: Javier Viguera <javier.viguera@digi.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/plat/imx/imx93/include/platform_def.h b/plat/imx/imx93/include/platform_def.h
-index a820c27a5b49..a563d8852d23 100644
+index 988fce1416d4..d4e694fe403c 100644
 --- a/plat/imx/imx93/include/platform_def.h
 +++ b/plat/imx/imx93/include/platform_def.h
-@@ -47,7 +47,7 @@
+@@ -48,7 +48,7 @@
  #define MAX_XLAT_TABLES			12
  #define MAX_MMAP_REGIONS		16
  

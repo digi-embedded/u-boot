@@ -117,7 +117,7 @@ build_optee()
 	echo "- Build OPTEE binary for: ${SOC}"
 	(
 		cd "${OPTEE_DIR}" || { echo "build_optee: OPTEE_DIR not found"; exit 1; }
-		${MAKE} PLATFORM=imx-mx93evk \
+		${MAKE} PLATFORM=imx-ccimx93dvk \
 			CROSS_COMPILE=${CROSS_COMPILE} \
 			CROSS_COMPILE64=${CROSS_COMPILE} \
 			CFG_TEE_TA_LOG_LEVEL=0 \
@@ -233,18 +233,17 @@ build_imxboot()
 WORKSPACE="$(cd "$(dirname "$0")" && pwd)"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
-MKIMAGE_BRANCH="lf-5.15.71_2.2.0"
-# Tag: lf-5.15.71-2.2.0
-MKIMAGE_REV="3bfcfccb71ddf894be9c402732ccb229fe72099e"
+MKIMAGE_BRANCH="lf-6.1.1_1.0.0"
+# Tag: lf-6.1.1-1.0.0
+MKIMAGE_REV="d489494622585a47b4be88988595b0e4f9598f39"
 MKIMAGE_DIR="${WORKSPACE}/imx-mkimage"
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
 ATF_BRANCH="lf_v2.6"
-# Tag: lf-5.15.71-2.2.0
-ATF_REV="3c1583ba0a5d11e5116332e91065cb3740153a46"
+# Tag: lf-6.1.1-1.0.0
+ATF_REV="616a4588f333522d50a55bedd2b9a90a51474a75"
 ATF_DIR="${WORKSPACE}/imx-atf"
 ATF_PATCHES=" \
-	atf/0001-Makefile-Suppress-array-bounds-error.patch \
 	atf/0001-imx8mm-Define-UART1-as-console-for-boot-stage.patch \
 	atf/0002-imx8mm-Disable-M4-debug-console.patch \
 	atf/0003-imx8mn-Define-UART1-as-console-for-boot-stage.patch \
@@ -253,22 +252,22 @@ ATF_PATCHES=" \
 "
 
 OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
-OPTEE_BRANCH="lf-5.15.71_2.2.0"
-# Tag: lf-5.15.71-2.2.0
-OPTEE_REV="00919403f040fad4f8603e605932281ff8451b1d"
+OPTEE_BRANCH="lf-6.1.1_1.0.0"
+# Tag: lf-6.1.1-1.0.0
+OPTEE_REV="ad4e8389bb2c38efe39853925eec571ac778c575"
 OPTEE_DIR="${WORKSPACE}/imx-optee-os"
 OPTEE_PATCHES=" \
-	optee/0001-core-Define-section-attributes-for-clang.patch \
 	optee/0006-allow-setting-sysroot-for-libgcc-lookup.patch \
 	optee/0007-allow-setting-sysroot-for-clang.patch \
-	optee/0010-add-note-GNU-stack-section.patch \
+	optee/0001-core-Define-section-attributes-for-clang.patch \
+	optee/0001-core-imx-support-ccimx93-dvk.patch \
 "
 
-FIRMWARE_IMX="firmware-imx-8.18"
+FIRMWARE_IMX="firmware-imx-8.19"
 FIRMWARE_IMX_DIR="${WORKSPACE}/${FIRMWARE_IMX}"
 FIRMWARE_IMX_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_IMX}.bin"
 
-FIRMWARE_SENTINEL="firmware-sentinel-0.8"
+FIRMWARE_SENTINEL="firmware-sentinel-0.9"
 FIRMWARE_SENTINEL_DIR="${WORKSPACE}/${FIRMWARE_SENTINEL}"
 FIRMWARE_SENTINEL_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_SENTINEL}.bin"
 
