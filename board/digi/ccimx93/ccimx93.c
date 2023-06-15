@@ -105,6 +105,11 @@ bool board_has_bluetooth(void)
 	return my_hwid.bt;
 }
 
+bool board_has_npu(void)
+{
+	return is_imx9321() || is_imx9322() || is_imx9351() || is_imx9352();
+}
+
 int ccimx93_init(void)
 {
 	if (board_read_hwid(&my_hwid)) {
@@ -191,6 +196,8 @@ void som_default_environment(void)
 		strlcat(var, "_ov_som_wifi_ccimx93.dtbo,", sizeof(var));
 	if (board_has_bluetooth())
 		strlcat(var, "_ov_som_bt_ccimx93.dtbo,", sizeof(var));
+	if (board_has_npu())
+		strlcat(var, "_ov_som_npu_ccimx93.dtbo,", sizeof(var));
 	/* Remove the trailing comma */
 	if (var[0])
 		var[strlen(var) - 1] = 0;
