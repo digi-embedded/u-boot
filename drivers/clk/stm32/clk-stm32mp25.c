@@ -488,10 +488,7 @@ static const struct clock_config stm32mp25_clock_cfg[] = {
 		   SEC_RIFSC(CRYP2)),
 
 	/* DBG & TRACE*/
-	STM32_GATE(CK_KER_TSDBG, "ck_ker_tsdbg", "ck_flexgen_43", 0, GATE_DBG, SEC_RIFRCC(DBG)),
-	STM32_GATE(CK_KER_TPIU, "ck_ker_tpiu", "ck_flexgen_44", 0, GATE_TRACE, SEC_RIFRCC(DBG)),
-	STM32_GATE(CK_BUS_SYSATB, "ck_sys_atb", "ck_flexgen_45", 0, GATE_DBG, SEC_RIFRCC(DBG)),
-	STM32_GATE(CK_BUS_ETR, "ck_icn_m_etr", "ck_flexgen_45", 0, GATE_ETR, SEC_RIFRCC(DBG)),
+	/* Trace and debug clocks are managed by SCMI */
 
 	/* Display subsystem */
 	/* LTDC */
@@ -556,6 +553,7 @@ static const struct clock_config stm32mp25_clock_cfg[] = {
 
 	/* GPU */
 	STM32_GATE(CK_BUS_GPU, "ck_icn_m_gpu", "ck_flexgen_59", 0, GATE_GPU, SEC_RIFSC(GPU)),
+	STM32_GATE(CK_KER_GPU, "ck_ker_gpu", "ck_pll3", 0, GATE_GPU, SEC_RIFSC(GPU)),
 
 	/* HASH */
 	STM32_GATE(CK_BUS_HASH, "ck_icn_p_hash", "ck_icn_ls_mcu", 0, GATE_HASH, SEC_RIFSC(HASH)),
@@ -614,18 +612,6 @@ static const struct clock_config stm32mp25_clock_cfg[] = {
 	STM32_GATE(CK_KER_MDF1, "ck_ker_mdf1", "ck_flexgen_23", 0, GATE_MDF1, SEC_RIFSC(MDF1)),
 
 	/* OCTOSPI */
-	STM32_GATE(CK_BUS_OSPI1, "ck_icn_s_ospi1,", "ck_icn_hs_mcu", 0, GATE_OSPI1,
-		   SEC_RIFRCC(OSPI1)),
-	STM32_GATE(CK_BUS_OTFD1, "ck_icn_p_otfd1,", "ck_icn_hs_mcu", 0, GATE_OSPI1,
-		   SEC_RIFRCC(OSPI1)),
-	STM32_GATE(CK_KER_OSPI1, "ck_ker_ospi1", "ck_flexgen_48", 0, GATE_OSPI1,
-		   SEC_RIFRCC(OSPI1)),
-	STM32_GATE(CK_BUS_OSPI2, "ck_icn_s_ospi2,", "ck_icn_hs_mcu", 0, GATE_OSPI2,
-		   SEC_RIFRCC(OSPI2)),
-	STM32_GATE(CK_BUS_OTFD2, "ck_icn_p_otfd2,", "ck_icn_hs_mcu", 0, GATE_OSPI2,
-		   SEC_RIFRCC(OSPI2)),
-	STM32_GATE(CK_KER_OSPI2, "ck_ker_ospi2", "ck_flexgen_49", 0, GATE_OSPI2,
-		   SEC_RIFRCC(OSPI2)),
 	STM32_GATE(CK_BUS_OSPIIOM, "ck_icn_p_ospiiom", "ck_icn_ls_mcu", 0, GATE_OSPIIOM,
 		   SEC_RIFSC(OCTOSPIM)),
 
@@ -680,10 +666,6 @@ static const struct clock_config stm32mp25_clock_cfg[] = {
 	/* STGEN */
 	STM32_GATE(CK_KER_STGEN, "ck_ker_stgen", "ck_flexgen_33", CLK_IGNORE_UNUSED, GATE_STGEN,
 		   SEC_RIFSC(STGEN)),
-
-	/* STM500 */
-	STM32_GATE(CK_BUS_STM500, "ck_icn_s_stm500", "ck_icn_ls_mcu", 0, GATE_STM500,
-		   SEC_RIFRCC(DBG)),
 
 	/* Timers */
 	STM32_GATE(CK_KER_TIM2, "ck_ker_tim2", "timg1_ck", 0, GATE_TIM2, SEC_RIFSC(TIM2)),
