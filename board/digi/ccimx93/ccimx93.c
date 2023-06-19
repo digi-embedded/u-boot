@@ -110,6 +110,32 @@ bool board_has_npu(void)
 	return is_imx9321() || is_imx9322() || is_imx9351() || is_imx9352();
 }
 
+static const char *get_cpu_type_str(void)
+{
+	u32 cpu_type = get_cpu_type();
+
+	switch (cpu_type) {
+	case MXC_CPU_IMX93:
+		return "imx9352";
+	case MXC_CPU_IMX9351:
+		return "imx9351";
+	case MXC_CPU_IMX9332:
+		return "imx9332";
+	case MXC_CPU_IMX9331:
+		return "imx9331";
+	case MXC_CPU_IMX9322:
+		return "imx9322";
+	case MXC_CPU_IMX9321:
+		return "imx9321";
+	case MXC_CPU_IMX9312:
+		return "imx9312";
+	case MXC_CPU_IMX9311:
+		return "imx9311";
+	default:
+		return "";
+	}
+}
+
 int ccimx93_init(void)
 {
 	if (board_read_hwid(&my_hwid)) {
@@ -202,6 +228,8 @@ void som_default_environment(void)
 	if (var[0])
 		var[strlen(var) - 1] = 0;
 	env_set("som_overlays", var);
+
+	env_set("cpu_type", get_cpu_type_str());
 }
 
 void board_update_hwid(bool is_fuse)
