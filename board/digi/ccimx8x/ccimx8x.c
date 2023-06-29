@@ -115,6 +115,7 @@ struct ccimx8_variant ccimx8x_variants[] = {
 	},
 };
 
+#ifdef CONFIG_SPL
 phys_size_t board_phys_sdram_1_size(void)
 {
 	struct digi_hwid my_hwid;
@@ -135,6 +136,7 @@ phys_size_t board_phys_sdram_1_size(void)
 	}
 	return ramsize;
 }
+#endif
 
 int mmc_get_bootdevindex(void)
 {
