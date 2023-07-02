@@ -17,6 +17,8 @@
 #include <asm/mach-imx/boot_mode.h>
 #include <g_dnl.h>
 #include <mmc.h>
+#include <u-boot/sha256.h>
+#include <asm/sections.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -320,6 +322,11 @@ __weak void __noreturn jump_to_image_no_args(struct spl_image_info *spl_image)
 }
 
 #if !defined(CONFIG_SPL_FIT_SIGNATURE)
+
+#ifndef CONFIG_SYS_BOOTM_LEN
+#define CONFIG_SYS_BOOTM_LEN     0x2000000
+#endif
+
 ulong board_spl_fit_size_align(ulong size)
 {
 	/*
@@ -329,6 +336,9 @@ ulong board_spl_fit_size_align(ulong size)
 
 	size = ALIGN(size, 0x1000);
 	size += CONFIG_CSF_SIZE;
+
+	if (size > CONFIG_SYS_BOOTM_LEN)
+		panic("spl: ERROR: image too big\n");
 
 	return size;
 }
@@ -393,5 +403,55 @@ int mmc_image_load_late(struct mmc *mmc)
 #endif
 	/* Check the rpmb key blob for trusty enabled platfrom. */
 	return check_rpmb_blob(rpmb_mmc);
+}
+#endif
+
+#if IS_ENABLED(CONFIG_SPL_LOAD_FIT)
+static int spl_verify_fit_hash(const void *fit)
+{
+	unsigned long size;
+	u8 value[SHA256_SUM_LEN];
+	int value_len;
+	ulong fit_hash;
+
+#if CONFIG_IS_ENABLED(OF_CONTROL)
+	if (gd->fdt_blob && !fdt_check_header(gd->fdt_blob)) {
+		fit_hash = roundup((unsigned long)&_end +
+				     fdt_totalsize(gd->fdt_blob), 4) + 0x18000;
+	}
+#else
+	fit_hash = (unsigned long)&_end + 0x18000;
+#endif
+
+	size = fdt_totalsize(fit);
+
+	if (calculate_hash(fit, size, "sha256", value, &value_len)) {
+		printf("Unsupported hash algorithm\n");
+		return -1;
+	}
+
+	if (value_len != SHA256_SUM_LEN) {
+		printf("Bad hash value len\n");
+		return -1;
+	} else if (memcmp(value, (const void *)fit_hash, value_len) != 0) {
+		printf("Bad hash value\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+void *spl_load_simple_fit_fix_load(const void *fit)
+{
+	if (IS_ENABLED(CONFIG_IMX_HAB)) {
+		int ret = spl_verify_fit_hash(fit);
+
+		if (ret && imx_hab_is_enabled())
+			panic("spl: ERROR:  FIT hash verify unsuccessful\n");
+
+		debug("spl_verify_fit_hash %d\n", ret);
+	}
+
+	return (void *)fit;
 }
 #endif
