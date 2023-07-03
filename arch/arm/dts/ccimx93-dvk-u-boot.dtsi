@@ -132,16 +132,8 @@
 	u-boot,dm-spl;
 };
 
-&pinctrl_lpi2c2 {
-	u-boot,dm-spl;
-};
-
 &pinctrl_lpi2c3 {
 	u-boot,dm-spl;
-};
-
-&eqos {
-	compatible = "fsl,imx-eqos";
 };
 
 &usbotg1 {
@@ -163,6 +155,7 @@
 	u-boot,dm-spl;
 	/delete-property/ assigned-clocks;
 	/delete-property/ assigned-clock-rates;
+	/delete-property/ assigned-clock-parents;
 };
 
 &osc_32k {
