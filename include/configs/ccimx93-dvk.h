@@ -19,26 +19,8 @@
 /* Carrier board version in environment */
 #define CONFIG_HAS_CARRIERBOARD_VERSION
 
-#define CONFIG_SYS_BOOTM_LEN		(SZ_64M)
-#define CONFIG_SPL_MAX_SIZE		(148 * 1024)
-#define CONFIG_SYS_MONITOR_LEN		SZ_512K
-#define CONFIG_SYS_UBOOT_BASE	\
+#define CFG_SYS_UBOOT_BASE	\
 	(QSPI0_AMBA_BASE + CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512)
-
-#ifdef CONFIG_SPL_BUILD
-#define CONFIG_SPL_STACK		0x20519dd0
-#define CONFIG_SPL_BSS_START_ADDR	0x2051a000
-#define CONFIG_SPL_BSS_MAX_SIZE		SZ_8K	/* 8 KB */
-#define CONFIG_SYS_SPL_MALLOC_START	0x83200000 /* Need disable simple malloc where still uses malloc_f area */
-#define CONFIG_SYS_SPL_MALLOC_SIZE	SZ_512K	/* 512 KB */
-
-/* For RAW image gives a error info not panic */
-#define CONFIG_SPL_ABORT_ON_RAW_IMAGE
-
-#endif
-
-#define CONFIG_CMD_READ
-#define CONFIG_SERIAL_TAG
 
 #ifdef CONFIG_AHAB_BOOT
 #define AHAB_ENV "sec_boot=yes\0"
@@ -68,13 +50,13 @@
 	"jh_netboot=setenv fdt_file ${jh_root_dtb}; " \
 		    "setenv jh_clk clk_ignore_unused mem=1248MB kvm-arm.mode=nvhe; run netboot; \0 "
 
-/* Override CONFIG_MFG_ENV_SETTINGS_DEFAULT from imx_env.h */
-#undef CONFIG_MFG_ENV_SETTINGS_DEFAULT
-#define CONFIG_MFG_ENV_SETTINGS_DEFAULT \
+/* Override CFG_MFG_ENV_SETTINGS_DEFAULT from imx_env.h */
+#undef CFG_MFG_ENV_SETTINGS_DEFAULT
+#define CFG_MFG_ENV_SETTINGS_DEFAULT \
 	"bootcmd_mfg=" FASTBOOT_CMD "\0"
 
-#define CONFIG_MFG_ENV_SETTINGS \
-	CONFIG_MFG_ENV_SETTINGS_DEFAULT \
+#define CFG_MFG_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS_DEFAULT \
 	"initrd_addr=0x83800000\0" \
 	"initrd_high=0xffffffffffffffff\0" \
 	"emmc_dev=0\0"\
@@ -84,9 +66,9 @@
 	"active_system=linux_a\0"
 
 /* Initial environment variables */
-#define CONFIG_EXTRA_ENV_SETTINGS		\
+#define CFG_EXTRA_ENV_SETTINGS		\
 	JAILHOUSE_ENV \
-	CONFIG_MFG_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS \
 	DUALBOOT_ENV_SETTINGS \
 	BOOTENV \
 	AHAB_ENV \
@@ -112,7 +94,7 @@
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"bootm_size=0x10000000\0" \
 	"mmcbootpart=" __stringify(EMMC_BOOT_PART) "\0" \
-	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
+	"mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=1\0" \
 	"mmcroot=PARTUUID=1c606ef5-f1ac-43b9-9bb5-d5c578580b6b\0" \
 	"mmcautodetect=yes\0" \
@@ -224,36 +206,13 @@
 
 /* Link Definitions */
 
-#define CONFIG_SYS_INIT_RAM_ADDR        0x80000000
-#define CONFIG_SYS_INIT_RAM_SIZE        0x200000
-#define CONFIG_SYS_INIT_SP_OFFSET \
-	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
-#define CONFIG_SYS_INIT_SP_ADDR \
-	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
-
-/* Monitor Command Prompt */
-#define CONFIG_SYS_CBSIZE		2048
-#define CONFIG_SYS_BARGSIZE		CONFIG_SYS_CBSIZE
-#define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + \
-					sizeof(CONFIG_SYS_PROMPT) + 16)
-
-#define CONFIG_IMX_BOOTAUX
+#define CFG_SYS_INIT_RAM_ADDR        0x80000000
+#define CFG_SYS_INIT_RAM_SIZE        0x200000
 
 /* Using ULP WDOG for reset */
 #define WDOG_BASE_ADDR          WDG3_BASE_ADDR
 
-#define CONFIG_SYS_I2C_SPEED		100000
-
-/* USB configs */
-#define CONFIG_USB_MAX_CONTROLLER_COUNT         2
-
 #if defined(CONFIG_CMD_NET)
-#define CONFIG_ETHPRIME                 "eth0"
-
-#define CONFIG_FEC_XCV_TYPE             RGMII
-#define CONFIG_FEC_MXC_PHYADDR          1
-
-#define DWC_NET_PHYADDR			0
 #define PHY_ANEG_TIMEOUT 20000
 #endif
 

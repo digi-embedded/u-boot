@@ -10,6 +10,7 @@
 #include <asm/mach-imx/boot_mode.h>
 #include <command.h>
 #include <common.h>
+#include <display_options.h>
 #include <env_internal.h>
 #include <mmc.h>
 
