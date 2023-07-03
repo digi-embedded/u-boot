@@ -478,10 +478,11 @@ extern void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 ulong bootloader_mmc_offset(void)
 {
 #if defined(CONFIG_CMD_UPDATE_MMC) && defined(EMMC_BOOT_PART_OFFSET)
+	struct blk_desc *mmc_dev;
 	struct disk_partition info;
 	int mmc_dev_index = env_get_ulong("mmcdev", 16, mmc_get_bootdevindex());
-	struct blk_desc *mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC,
-							  mmc_dev_index);
+
+	mmc_dev = blk_get_devnum_by_uclass_id(UCLASS_MMC, mmc_dev_index);
 	if (NULL == mmc_dev) {
 		debug("Cannot determine sys storage device\n");
 		return EMMC_BOOT_PART_OFFSET;

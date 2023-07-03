@@ -302,7 +302,7 @@ int dram_init_banksize(void)
 		 * as: base_addr + sdram_size - opteee size (rom_pointer[1]).
 		 * I.e. optee is a the end of the RAM.
 		 */
-		rom_pointer[0] = CONFIG_SYS_SDRAM_BASE + sdram_b1_size -
+		rom_pointer[0] = CFG_SYS_SDRAM_BASE + sdram_b1_size -
 				 rom_pointer[1];
 #endif
 		optee_start = (phys_addr_t)rom_pointer[0];

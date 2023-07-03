@@ -861,7 +861,7 @@ void set_verifyaddr(unsigned long loadaddr)
 	unsigned long verifyaddr;
 
 	verifyaddr = loadaddr + ((gd->ram_size -
-				   (loadaddr - CONFIG_SYS_SDRAM_BASE)) / 2);
+				   (loadaddr - CFG_SYS_SDRAM_BASE)) / 2);
 
 	 /* Skip reserved memory area */
 #if defined(RESERVED_MEM_START) && defined(RESERVED_MEM_END)
@@ -872,7 +872,7 @@ void set_verifyaddr(unsigned long loadaddr)
 #endif
 
 	 if (verifyaddr > loadaddr &&
-	     verifyaddr < (CONFIG_SYS_SDRAM_BASE + gd->ram_size))
+	     verifyaddr < (CFG_SYS_SDRAM_BASE + gd->ram_size))
 		 env_set_hex("verifyaddr", verifyaddr);
  }
 
