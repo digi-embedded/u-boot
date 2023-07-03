@@ -60,7 +60,7 @@ static Altera_desc altera_fpga[] = {
 
 #if defined(CONFIG_SPL_BUILD)
 static struct pl310_regs *const pl310 =
-	(struct pl310_regs *)CONFIG_SYS_PL310_BASE;
+	(struct pl310_regs *)CFG_SYS_PL310_BASE;
 static const struct socfpga_noc_fw_ocram *noc_fw_ocram_base =
 	(void *)SOCFPGA_SDR_FIREWALL_OCRAM_ADDRESS;
 
@@ -246,3 +246,29 @@ int qspi_flash_software_reset(void)
 	return 0;
 }
 #endif
+
+void dram_bank_mmu_setup(int bank)
+{
+	struct bd_info *bd = gd->bd;
+	u32 start, size;
+	int i;
+
+	/* If we're still in OCRAM, don't set the XN bit on it */
+	if (!(gd->flags & GD_FLG_RELOC)) {
+		set_section_dcache(
+			CFG_SYS_INIT_RAM_ADDR >> MMU_SECTION_SHIFT,
+			DCACHE_WRITETHROUGH);
+	}
+
+	/*
+	 * The default implementation of this function allows the DRAM dcache
+	 * to be enabled only after relocation. However, to speed up ECC
+	 * initialization, we want to be able to enable DRAM dcache before
+	 * relocation, so we don't check GD_FLG_RELOC (this assumes bd->bi_dram
+	 * is set first).
+	 */
+	start = bd->bi_dram[bank].start >> MMU_SECTION_SHIFT;
+	size = bd->bi_dram[bank].size >> MMU_SECTION_SHIFT;
+	for (i = start; i < start + size; i++)
+		set_section_dcache(i, DCACHE_DEFAULT_OPTION);
+}

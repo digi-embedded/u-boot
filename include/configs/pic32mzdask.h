@@ -13,25 +13,17 @@
 /*--------------------------------------------
  * CPU configuration
  */
-/* CPU Timer rate */
-#define CONFIG_SYS_MIPS_TIMER_FREQ	100000000
 
 /*----------------------------------------------------------------------
  * Memory Layout
  */
 /* Initial RAM for temporary stack, global data */
-#define CONFIG_SYS_INIT_RAM_SIZE	0x10000
-#define CONFIG_SYS_INIT_RAM_ADDR	\
-	(CONFIG_SYS_SRAM_BASE + CONFIG_SYS_SRAM_SIZE - CONFIG_SYS_INIT_RAM_SIZE)
-#define CONFIG_SYS_INIT_SP_ADDR		\
-	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_RAM_SIZE - 1)
+#define CFG_SYS_INIT_RAM_SIZE	0x10000
+#define CFG_SYS_INIT_RAM_ADDR	\
+	(CONFIG_SYS_SRAM_BASE + CONFIG_SYS_SRAM_SIZE - CFG_SYS_INIT_RAM_SIZE)
 
 /* SDRAM Configuration (for final code, data, stack, heap) */
-#define CONFIG_SYS_SDRAM_BASE		0x88000000
-#define CONFIG_SYS_BOOTPARAMS_LEN	(4 << 10)
-
-#define CONFIG_SYS_MONITOR_BASE		CONFIG_SYS_TEXT_BASE
-#define CONFIG_SYS_MONITOR_LEN		(192 << 10)
+#define CFG_SYS_SDRAM_BASE		0x88000000
 
 /* Memory Test */
 
@@ -42,19 +34,6 @@
 /*------------------------------------------------------------
  * Console Configuration
  */
-#define CONFIG_SYS_CBSIZE		1024 /* Console I/O Buffer Size   */
-
-/*-----------------------------------------------------------------------
- * Networking Configuration
- */
-#define CONFIG_SYS_RX_ETH_BUFFER	8
-#define CONFIG_NET_RETRY_COUNT		20
-#define CONFIG_ARP_TIMEOUT		500 /* millisec */
-
-/*
- * BOOTP options
- */
-#define CONFIG_BOOTP_BOOTFILESIZE
 
 /*--------------------------------------------------
  * USB Configuration
@@ -73,7 +52,7 @@
 	"fdt_addr_r=0x89d00000\0"				\
 	"scriptaddr=0x88300000\0"				\
 
-#define CONFIG_LEGACY_BOOTCMD_ENV					\
+#define CFG_LEGACY_BOOTCMD_ENV					\
 	"legacy_bootcmd= "						\
 		"if load mmc 0 ${scriptaddr} uEnv.txt; then "		\
 			"env import -tr ${scriptaddr} ${filesize}; "	\
@@ -90,9 +69,9 @@
 
 #include <config_distro_bootcmd.h>
 
-#define CONFIG_EXTRA_ENV_SETTINGS	\
+#define CFG_EXTRA_ENV_SETTINGS	\
 	MEM_LAYOUT_ENV_SETTINGS		\
-	CONFIG_LEGACY_BOOTCMD_ENV	\
+	CFG_LEGACY_BOOTCMD_ENV	\
 	BOOTENV
 
 #endif	/* __PIC32MZDASK_CONFIG_H */

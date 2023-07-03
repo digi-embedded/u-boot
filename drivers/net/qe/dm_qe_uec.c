@@ -20,8 +20,8 @@
 #define QE_UEC_DRIVER_NAME	"ucc_geth"
 
 /* Default UTBIPAR SMI address */
-#ifndef CONFIG_UTBIPAR_INIT_TBIPA
-#define CONFIG_UTBIPAR_INIT_TBIPA 0x1F
+#ifndef CFG_UTBIPAR_INIT_TBIPA
+#define CFG_UTBIPAR_INIT_TBIPA 0x1F
 #endif
 
 static int uec_mac_enable(struct uec_priv *uec, comm_dir_e mode)
@@ -840,10 +840,10 @@ static int uec_startup(struct udevice *dev)
 	utbipar = in_be32(&uec_regs->utbipar);
 	utbipar &= ~UTBIPAR_PHY_ADDRESS_MASK;
 
-	/* Initialize UTBIPAR address to CONFIG_UTBIPAR_INIT_TBIPA for ALL UEC.
+	/* Initialize UTBIPAR address to CFG_UTBIPAR_INIT_TBIPA for ALL UEC.
 	 * This frees up the remaining SMI addresses for use.
 	 */
-	utbipar |= CONFIG_UTBIPAR_INIT_TBIPA << UTBIPAR_PHY_ADDRESS_SHIFT;
+	utbipar |= CFG_UTBIPAR_INIT_TBIPA << UTBIPAR_PHY_ADDRESS_SHIFT;
 	out_be32(&uec_regs->utbipar, utbipar);
 
 	/* Allocate Tx BDs */
@@ -1133,19 +1133,12 @@ static int qe_uec_remove(struct udevice *dev)
 static int qe_uec_of_to_plat(struct udevice *dev)
 {
 	struct eth_pdata *pdata = dev_get_plat(dev);
-	const char *phy_mode;
 
 	pdata->iobase = (phys_addr_t)devfdt_get_addr(dev);
 
-	pdata->phy_interface = -1;
-	phy_mode = fdt_getprop(gd->fdt_blob, dev_of_offset(dev),
-			       "phy-connection-type", NULL);
-	if (phy_mode)
-		pdata->phy_interface = phy_get_interface_by_name(phy_mode);
-	if (pdata->phy_interface == -1) {
-		debug("%s: Invalid PHY interface '%s'\n", __func__, phy_mode);
+	pdata->phy_interface = dev_read_phy_mode(dev);
+	if (pdata->phy_interface == PHY_INTERFACE_MODE_NA)
 		return -EINVAL;
-	}
 
 	return 0;
 }

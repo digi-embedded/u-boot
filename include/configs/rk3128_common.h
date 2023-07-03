@@ -8,30 +8,12 @@
 
 #include "rockchip-common.h"
 
-#define CONFIG_SYS_MAXARGS		16
-#define CONFIG_SYS_CBSIZE		1024
+#define CFG_SYS_HZ_CLOCK		24000000
 
-#define CONFIG_ROCKCHIP_STIMER_BASE	0x200440a0
-#define COUNTER_FREQUENCY		24000000
-#define CONFIG_SYS_HZ_CLOCK		24000000
+#define CFG_IRAM_BASE		0x10080000
 
-#define CONFIG_IRAM_BASE		0x10080000
-
-#define CONFIG_SYS_INIT_SP_ADDR		0x60100000
-
-#define CONFIG_SYS_BOOTM_LEN	(64 << 20)	/* 64M */
-
-/* RAW SD card / eMMC locations. */
-
-#define CONFIG_SYS_SDRAM_BASE		0x60000000
+#define CFG_SYS_SDRAM_BASE		0x60000000
 #define SDRAM_MAX_SIZE			0x80000000
-
-#define CONFIG_USB_OHCI_NEW
-#define CONFIG_SYS_USB_OHCI_MAX_ROOT_PORTS     1
-
-#ifndef CONFIG_SPL_BUILD
-
-/* usb mass storage */
 
 #define ENV_MEM_LAYOUT_SETTINGS \
 	"scriptaddr=0x60500000\0" \
@@ -41,12 +23,10 @@
 	"ramdisk_addr_r=0x64000000\0"
 
 #include <config_distro_bootcmd.h>
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	ENV_MEM_LAYOUT_SETTINGS \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"partitions=" PARTS_DEFAULT \
 	BOOTENV
-
-#endif
 
 #endif

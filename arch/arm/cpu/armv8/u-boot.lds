@@ -51,10 +51,12 @@ SECTIONS
 	}
 
 #ifndef CONFIG_ARMV8_SECURE_BASE
-#define CONFIG_ARMV8_SECURE_BASE
+#define __ARMV8_SECURE_BASE
 #define __ARMV8_PSCI_STACK_IN_RAM
+#else
+#define __ARMV8_SECURE_BASE	CONFIG_ARMV8_SECURE_BASE
 #endif
-	.secure_text CONFIG_ARMV8_SECURE_BASE :
+	.secure_text __ARMV8_SECURE_BASE :
 		AT(ADDR(.__secure_start) + SIZEOF(.__secure_start))
 	{
 		*(._secure.text)
@@ -109,8 +111,8 @@ SECTIONS
 	. = .;
 
 	. = ALIGN(8);
-	.u_boot_list : {
-		KEEP(*(SORT(.u_boot_list*)));
+	__u_boot_list : {
+		KEEP(*(SORT(__u_boot_list*)));
 	}
 
 	. = ALIGN(8);

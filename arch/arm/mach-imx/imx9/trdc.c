@@ -10,14 +10,14 @@
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/sys_proto.h>
 #include <div64.h>
-#include <asm/mach-imx/s400_api.h>
+#include <asm/mach-imx/ele_api.h>
 #include <asm/mach-imx/mu_hal.h>
 
 #define DID_NUM 16
 #define MBC_MAX_NUM 4
 #define MRC_MAX_NUM 2
-#define MBC_NUM(HWCFG) ((HWCFG >> 16) & 0xF)
-#define MRC_NUM(HWCFG) ((HWCFG >> 24) & 0x1F)
+#define MBC_NUM(HWCFG) (((HWCFG) >> 16) & 0xF)
+#define MRC_NUM(HWCFG) (((HWCFG) >> 24) & 0x1F)
 
 struct mbc_mem_dom {
 	u32 mem_glbcfg[4];
@@ -73,8 +73,8 @@ struct trdc_mrc {
 	struct mrc_rgn_dom mrc_dom[DID_NUM];
 };
 
-
-int trdc_mda_set_cpu(ulong trdc_reg, u32 mda_inst, u32 mda_reg, u8 sa, u8 dids, u8 did, u8 pe, u8 pidm, u8 pid)
+int trdc_mda_set_cpu(ulong trdc_reg, u32 mda_inst, u32 mda_reg, u8 sa, u8 dids,
+		     u8 did, u8 pe, u8 pidm, u8 pid)
 {
 	struct trdc_mgr *trdc_base = (struct trdc_mgr *)trdc_reg;
 	u32 *mda_w = &trdc_base->mda[mda_inst].mda_w[mda_reg];
@@ -83,14 +83,17 @@ int trdc_mda_set_cpu(ulong trdc_reg, u32 mda_inst, u32 mda_reg, u8 sa, u8 dids, 
 	if (val & BIT(29)) /* non-cpu */
 		return -EINVAL;
 
-	val = BIT(31) | ((pid & 0x3f) << 16) | ((pidm & 0x3f) << 8) | ((pe & 0x3) << 6) | ((sa & 0x3) << 14) | ((dids & 0x3) << 4) | (did & 0xf);
+	val = BIT(31) | ((pid & 0x3f) << 16) | ((pidm & 0x3f) << 8) |
+		((pe & 0x3) << 6) | ((sa & 0x3) << 14) | ((dids & 0x3) << 4) |
+		(did & 0xf);
 
 	writel(val, mda_w);
 
 	return 0;
 }
 
-int trdc_mda_set_noncpu(ulong trdc_reg, u32 mda_inst, u32 mda_reg, bool did_bypass, u8 sa, u8 pa, u8 did)
+int trdc_mda_set_noncpu(ulong trdc_reg, u32 mda_inst, u32 mda_reg,
+			bool did_bypass, u8 sa, u8 pa, u8 did)
 {
 	struct trdc_mgr *trdc_base = (struct trdc_mgr *)trdc_reg;
 	u32 *mda_w = &trdc_base->mda[mda_inst].mda_w[mda_reg];
@@ -149,7 +152,8 @@ int trdc_mbc_set_control(ulong trdc_reg, u32 mbc_x, u32 glbac_id, u32 glbac_val)
 	return 0;
 }
 
-int trdc_mbc_blk_config(ulong trdc_reg, u32 mbc_x, u32 dom_x, u32 mem_x, u32 blk_x, bool sec_access, u32 glbac_id)
+int trdc_mbc_blk_config(ulong trdc_reg, u32 mbc_x, u32 dom_x, u32 mem_x,
+			u32 blk_x, bool sec_access, u32 glbac_id)
 {
 	struct trdc_mbc *mbc_base = (struct trdc_mbc *)trdc_get_mbc_base(trdc_reg, mbc_x);
 	struct mbc_mem_dom *mbc_dom;
@@ -224,13 +228,14 @@ int trdc_mrc_set_control(ulong trdc_reg, u32 mrc_x, u32 glbac_id, u32 glbac_val)
 	return 0;
 }
 
-int trdc_mrc_region_config(ulong trdc_reg, u32 mrc_x, u32 dom_x, u32 addr_start, u32 addr_end, bool sec_access, u32 glbac_id)
+int trdc_mrc_region_config(ulong trdc_reg, u32 mrc_x, u32 dom_x, u32 addr_start,
+			   u32 addr_end, bool sec_access, u32 glbac_id)
 {
 	struct trdc_mrc *mrc_base = (struct trdc_mrc *)trdc_get_mrc_base(trdc_reg, mrc_x);
 	struct mrc_rgn_dom *mrc_dom;
 	u32 *desc_w;
 	u32 start, end;
-	u32 i, free = 8;;
+	u32 i, free = 8;
 	bool vld, hit = false;
 
 	if (mrc_base == 0 || glbac_id >= 8)
@@ -310,7 +315,7 @@ bool trdc_mbc_enabled(ulong trdc_base)
 int release_rdc(u8 xrdc)
 {
 	ulong s_mu_base = 0x47520000UL;
-	struct sentinel_msg msg;
+	struct ele_msg msg;
 	int ret;
 	u32 rdc_id;
 
@@ -358,6 +363,7 @@ int release_rdc(u8 xrdc)
 void trdc_early_init(void)
 {
 	int ret = 0, i;
+
 	ret |= release_rdc(0);
 	ret |= release_rdc(2);
 	ret |= release_rdc(1);
@@ -367,21 +373,17 @@ void trdc_early_init(void)
 		/* Set OCRAM to RWX for secure, when OEM_CLOSE, the image is RX only */
 		trdc_mbc_set_control(0x49010000, 3, 0, 0x7700);
 
-		for (i = 0; i < 40; i++) {
+		for (i = 0; i < 40; i++)
 			trdc_mbc_blk_config(0x49010000, 3, 3, 0, i, true, 0);
-		}
 
-		for (i = 0; i < 40; i++) {
+		for (i = 0; i < 40; i++)
 			trdc_mbc_blk_config(0x49010000, 3, 3, 1, i, true, 0);
-		}
 
-		for (i = 0; i < 40; i++) {
+		for (i = 0; i < 40; i++)
 			trdc_mbc_blk_config(0x49010000, 3, 0, 0, i, true, 0);
-		}
 
-		for (i = 0; i < 40; i++) {
+		for (i = 0; i < 40; i++)
 			trdc_mbc_blk_config(0x49010000, 3, 0, 1, i, true, 0);
-		}
 	}
 }
 
@@ -389,7 +391,6 @@ void trdc_init(void)
 {
 	/* TRDC mega */
 	if (trdc_mrc_enabled(0x49010000)) {
-
 		/* DDR */
 		trdc_mrc_set_control(0x49010000, 0, 0, 0x7777);
 
@@ -425,7 +426,6 @@ void trdc_init(void)
 
 		/*USB*/
 		trdc_mrc_region_config(0x49010000, 0, 11, 0x80000000, 0xFFFFFFFF, false, 0);
-
 	}
 }
 
@@ -441,7 +441,8 @@ int trdc_mbc_control_dump(ulong trdc_reg, u32 mbc_x, u32 glbac_id)
 	/* only first dom has the glbac */
 	mbc_dom = &mbc_base->mem_dom[0];
 
-	printf("mbc_dom %u glbac %u: 0x%x\n", mbc_x, glbac_id, readl(&mbc_dom->memn_glbac[glbac_id]));
+	printf("mbc_dom %u glbac %u: 0x%x\n",
+	       mbc_x, glbac_id, readl(&mbc_dom->memn_glbac[glbac_id]));
 
 	return 0;
 }
@@ -474,7 +475,8 @@ int trdc_mbc_mem_dump(ulong trdc_reg, u32 mbc_x, u32 dom_x, u32 mem_x, u32 word)
 		return -EINVAL;
 	};
 
-	printf("mbc_dom %u dom %u mem %u word %u: 0x%x\n", mbc_x, dom_x, mem_x, word, readl((void __iomem *)cfg_w));
+	printf("mbc_dom %u dom %u mem %u word %u: 0x%x\n",
+	       mbc_x, dom_x, mem_x, word, readl((void __iomem *)cfg_w));
 
 	return 0;
 }
@@ -490,7 +492,8 @@ int trdc_mrc_control_dump(ulong trdc_reg, u32 mrc_x, u32 glbac_id)
 	/* only first dom has the glbac */
 	mrc_dom = &mrc_base->mrc_dom[0];
 
-	printf("mrc_dom %u glbac %u: 0x%x\n", mrc_x, glbac_id, readl(&mrc_dom->memn_glbac[glbac_id]));
+	printf("mrc_dom %u glbac %u: 0x%x\n",
+	       mrc_x, glbac_id, readl(&mrc_dom->memn_glbac[glbac_id]));
 
 	return 0;
 }
@@ -498,39 +501,36 @@ int trdc_mrc_control_dump(ulong trdc_reg, u32 mrc_x, u32 glbac_id)
 void trdc_dump(void)
 {
 	u32 i;
+
 	printf("TRDC AONMIX MBC\n");
 
 	trdc_mbc_control_dump(0x44270000, 0, 0);
 	trdc_mbc_control_dump(0x44270000, 1, 0);
 
-	for (i = 0; i < 11; i++) {
+	for (i = 0; i < 11; i++)
 		trdc_mbc_mem_dump(0x44270000, 0, 3, 0, i);
-	}
-	for (i = 0; i < 1; i++) {
+	for (i = 0; i < 1; i++)
 		trdc_mbc_mem_dump(0x44270000, 0, 3, 1, i);
-	}
 
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < 4; i++)
 		trdc_mbc_mem_dump(0x44270000, 1, 3, 0, i);
-	}
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < 4; i++)
 		trdc_mbc_mem_dump(0x44270000, 1, 3, 1, i);
-	}
 
 	printf("TRDC WAKEUP MBC\n");
 
 	trdc_mbc_control_dump(0x42460000, 0, 0);
 	trdc_mbc_control_dump(0x42460000, 1, 0);
 
-	for (i = 0; i < 15; i++) {
+	for (i = 0; i < 15; i++)
 		trdc_mbc_mem_dump(0x42460000, 0, 3, 0, i);
-	}
+
 	trdc_mbc_mem_dump(0x42460000, 0, 3, 1, 0);
 	trdc_mbc_mem_dump(0x42460000, 0, 3, 2, 0);
 
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < 2; i++)
 		trdc_mbc_mem_dump(0x42460000, 1, 3, 0, i);
-	}
+
 	trdc_mbc_mem_dump(0x42460000, 1, 3, 1, 0);
 	trdc_mbc_mem_dump(0x42460000, 1, 3, 2, 0);
 	trdc_mbc_mem_dump(0x42460000, 1, 3, 3, 0);
@@ -542,52 +542,40 @@ void trdc_dump(void)
 	trdc_mbc_control_dump(0x49010000, 2, 0);
 	trdc_mbc_control_dump(0x49010000, 3, 0);
 
-	for (i = 0; i < 7; i++) {
+	for (i = 0; i < 7; i++)
 		trdc_mbc_mem_dump(0x49010000, 0, 3, 0, i);
-	}
 
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < 2; i++)
 		trdc_mbc_mem_dump(0x49010000, 0, 3, 1, i);
-	}
 
-	for (i = 0; i < 5; i++) {
+	for (i = 0; i < 5; i++)
 		trdc_mbc_mem_dump(0x49010000, 0, 3, 2, i);
-	}
 
-	for (i = 0; i < 6; i++) {
+	for (i = 0; i < 6; i++)
 		trdc_mbc_mem_dump(0x49010000, 0, 3, 3, i);
-	}
 
-	for (i = 0; i < 1; i++) {
+	for (i = 0; i < 1; i++)
 		trdc_mbc_mem_dump(0x49010000, 1, 3, 0, i);
-	}
 
-	for (i = 0; i < 1; i++) {
+	for (i = 0; i < 1; i++)
 		trdc_mbc_mem_dump(0x49010000, 1, 3, 1, i);
-	}
 
-	for (i = 0; i < 3; i++) {
+	for (i = 0; i < 3; i++)
 		trdc_mbc_mem_dump(0x49010000, 1, 3, 2, i);
-	}
 
-	for (i = 0; i < 3; i++) {
+	for (i = 0; i < 3; i++)
 		trdc_mbc_mem_dump(0x49010000, 1, 3, 3, i);
-	}
 
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < 2; i++)
 		trdc_mbc_mem_dump(0x49010000, 2, 3, 0, i);
-	}
 
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < 2; i++)
 		trdc_mbc_mem_dump(0x49010000, 2, 3, 1, i);
-	}
 
-	for (i = 0; i < 5; i++) {
+	for (i = 0; i < 5; i++)
 		trdc_mbc_mem_dump(0x49010000, 3, 3, 0, i);
-	}
 
-	for (i = 0; i < 5; i++) {
+	for (i = 0; i < 5; i++)
 		trdc_mbc_mem_dump(0x49010000, 3, 3, 1, i);
-	}
 }
 #endif

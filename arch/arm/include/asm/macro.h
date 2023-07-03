@@ -3,7 +3,6 @@
  * include/asm-arm/macro.h
  *
  * Copyright (C) 2009 Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
- * Copyright 2022 NXP
  */
 
 #ifndef __ASM_ARM_MACRO_H__
@@ -70,12 +69,10 @@ lr	.req	x30
  */
 .macro	switch_el, xreg, el3_label, el2_label, el1_label
 	mrs	\xreg, CurrentEL
-	cmp	\xreg, 0xc
-	b.eq	\el3_label
-	cmp	\xreg, 0x8
+	cmp	\xreg, #0x8
+	b.gt	\el3_label
 	b.eq	\el2_label
-	cmp	\xreg, 0x4
-	b.eq	\el1_label
+	b.lt	\el1_label
 .endm
 
 /*
@@ -124,19 +121,10 @@ lr	.req	x30
  */
 .macro	branch_if_slave, xreg, slave_label
 #ifdef CONFIG_ARMV8_MULTIENTRY
-	/* NOTE: MPIDR handling will be erroneous on multi-cluster machines */
 	mrs	\xreg, mpidr_el1
-	tst	\xreg, #0xff		/* Test Affinity 0 */
-	b.ne	\slave_label
-	lsr	\xreg, \xreg, #8
-	tst	\xreg, #0xff		/* Test Affinity 1 */
-	b.ne	\slave_label
-	lsr	\xreg, \xreg, #8
-	tst	\xreg, #0xff		/* Test Affinity 2 */
-	b.ne	\slave_label
-	lsr	\xreg, \xreg, #16
-	tst	\xreg, #0xff		/* Test Affinity 3 */
-	b.ne	\slave_label
+	and	\xreg, \xreg,  0xffffffffff	/* clear bits [63:40] */
+	and	\xreg, \xreg, ~0x00ff000000	/* also clear bits [31:24] */
+	cbnz	\xreg, \slave_label
 #endif
 .endm
 
@@ -144,16 +132,12 @@ lr	.req	x30
  * Branch if current processor is a master,
  * choose processor with all zero affinity value as the master.
  */
-.macro	branch_if_master, xreg1, xreg2, master_label
+.macro	branch_if_master, xreg, master_label
 #ifdef CONFIG_ARMV8_MULTIENTRY
-	/* NOTE: MPIDR handling will be erroneous on multi-cluster machines */
-	mrs	\xreg1, mpidr_el1
-	lsr	\xreg2, \xreg1, #32
-	lsl	\xreg2, \xreg2, #32
-	lsl	\xreg1, \xreg1, #40
-	lsr	\xreg1, \xreg1, #40
-	orr	\xreg1, \xreg1, \xreg2
-	cbz	\xreg1, \master_label
+	mrs	\xreg, mpidr_el1
+	and	\xreg, \xreg,  0xffffffffff	/* clear bits [63:40] */
+	and	\xreg, \xreg, ~0x00ff000000	/* also clear bits [31:24] */
+	cbz	\xreg, \master_label
 #else
 	b	\master_label
 #endif
@@ -356,45 +340,6 @@ lr	.req	x30
 	cbnz    \wreg2, 0b
 .endm
 #endif
-
-/*
- * Select code when configured for LE.
- */
-#ifdef CONFIG_CPU_BIG_ENDIAN
-#define CPU_LE(code...)
-#else
-#define CPU_LE(code...) code
-#endif
-
-/*
- * Pseudo-ops for PC-relative adr/ldr <reg>, <symbol> where
- * <symbol> is within the range +/- 4 GB of the PC.
- */
-	/*
-	 * @dst: destination register (64 bit wide)
-	 * @sym: name of the symbol
-	 */
-	.macro	adr_l, dst, sym
-	adrp	\dst, \sym
-	add	\dst, \dst, :lo12:\sym
-	.endm
-
-	/*
-	 * @dst: destination register (32 or 64 bit wide)
-	 * @sym: name of the symbol
-	 * @tmp: optional 64-bit scratch register to be used if <dst> is a
-	 *       32-bit wide register, in which case it cannot be used to hold
-	 *       the address
-	 */
-	.macro	ldr_l, dst, sym, tmp=
-	.ifb	\tmp
-	adrp	\dst, \sym
-	ldr	\dst, [\dst, :lo12:\sym]
-	.else
-	adrp	\tmp, \sym
-	ldr	\dst, [\tmp, :lo12:\sym]
-	.endif
-	.endm
 
 #endif /* CONFIG_ARM64 */
 

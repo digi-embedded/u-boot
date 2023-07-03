@@ -25,7 +25,6 @@
 #include <linux/delay.h>
 #include <miiphy.h>
 #include <mmc.h>
-#include <mxsfb.h>
 #include <netdev.h>
 #include <power/pmic.h>
 #include <power/pfuze100_pmic.h>
@@ -33,7 +32,6 @@
 #include <usb.h>
 #include <usb/ehci-ci.h>
 #if defined(CONFIG_MXC_EPDC)
-#include <lcd.h>
 #include <mxc_epdc_fb.h>
 #endif
 #include <asm/mach-imx/video.h>
@@ -262,24 +260,6 @@ int board_spi_cs_gpio(unsigned bus, unsigned cs)
 #endif
 
 #ifdef CONFIG_FEC_MXC
-/*
- * pin conflicts for fec1 and fec2, GPIO1_IO06 and GPIO1_IO07 can only
- * be used for ENET1 or ENET2, cannot be used for both.
- */
-static iomux_v3_cfg_t const fec1_pads[] = {
-	MX6_PAD_GPIO1_IO06__ENET1_MDIO | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_GPIO1_IO07__ENET1_MDC | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_TX_DATA0__ENET1_TDATA00 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_TX_DATA1__ENET1_TDATA01 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_TX_EN__ENET1_TX_EN | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_TX_CLK__ENET1_REF_CLK1 | MUX_PAD_CTRL(ENET_CLK_PAD_CTRL),
-	/* Pin conflicts with LCD PWM1 */
-	MX6_PAD_ENET1_RX_DATA0__ENET1_RDATA00 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_RX_DATA1__ENET1_RDATA01 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_RX_ER__ENET1_RX_ER | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_RX_EN__ENET1_RX_EN | MUX_PAD_CTRL(ENET_PAD_CTRL),
-};
-
 static iomux_v3_cfg_t const fec1_phy_rst[] = {
 	/*
 	 * ALT5 mode is only valid when TAMPER pin is used for GPIO.
@@ -290,29 +270,6 @@ static iomux_v3_cfg_t const fec1_phy_rst[] = {
 	MX6_PAD_SNVS_TAMPER2__GPIO5_IO02 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 
-static iomux_v3_cfg_t const fec2_pads[] = {
-	MX6_PAD_GPIO1_IO06__ENET2_MDIO | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_GPIO1_IO07__ENET2_MDC | MUX_PAD_CTRL(ENET_PAD_CTRL),
-
-	MX6_PAD_ENET2_RX_DATA0__ENET2_RDATA00 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET2_RX_DATA1__ENET2_RDATA01 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_UART3_TX_DATA__ENET2_RDATA02 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_UART3_RX_DATA__ENET2_RDATA03 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET2_RX_EN__ENET2_RX_EN | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET2_RX_ER__ENET2_RX_ER | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_UART3_CTS_B__ENET2_RX_CLK | MUX_PAD_CTRL(ENET_PAD_CTRL),
-
-	MX6_PAD_ENET2_TX_DATA0__ENET2_TDATA00 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET2_TX_DATA1__ENET2_TDATA01 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_UART4_TX_DATA__ENET2_TDATA02 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_UART4_RX_DATA__ENET2_TDATA03 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET2_TX_CLK__ENET2_TX_CLK | MUX_PAD_CTRL(ENET_CLK_PAD_CTRL),
-	MX6_PAD_ENET2_TX_EN__ENET2_TX_EN | MUX_PAD_CTRL(ENET_PAD_CTRL),
-
-	MX6_PAD_UART5_RX_DATA__ENET2_COL | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_UART5_TX_DATA__ENET2_CRS | MUX_PAD_CTRL(ENET_PAD_CTRL),
-};
-
 static iomux_v3_cfg_t const fec2_phy_rst[] = {
 	/*
 	 * ENET2_RST
@@ -321,15 +278,6 @@ static iomux_v3_cfg_t const fec2_phy_rst[] = {
 	 */
 	MX6_PAD_SNVS_TAMPER4__GPIO5_IO04 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
-
-static void setup_iomux_fec(int fec_id)
-{
-	if (fec_id == 0) {
-		SETUP_IOMUX_PADS(fec1_pads);
-	} else {
-		SETUP_IOMUX_PADS(fec2_pads);
-	}
-}
 #endif
 
 static void setup_iomux_uart(void)
@@ -429,7 +377,7 @@ int board_mmc_init(struct bd_info *bis)
 	 * mmc0                    USDHC1
 	 * mmc1                    USDHC2
 	 */
-	for (i = 0; i < CONFIG_SYS_FSL_USDHC_NUM; i++) {
+	for (i = 0; i < CFG_SYS_FSL_USDHC_NUM; i++) {
 		switch (i) {
 		case 0:
 #ifdef CONFIG_MX6ULL_DDR3_VAL_EMMC_REWORK
@@ -745,59 +693,42 @@ void epdc_power_off(void)
 #endif
 
 #ifdef CONFIG_FEC_MXC
-int board_eth_init(struct bd_info *bis)
-{
-	int ret;
-
-	setup_iomux_fec(CONFIG_FEC_ENET_DEV);
-
-	ret = fecmxc_initialize_multi(bis, CONFIG_FEC_ENET_DEV,
-		CONFIG_FEC_MXC_PHYADDR, IMX_FEC_BASE);
-	if (ret)
-		printf("FEC%d MXC: %s:failed\n", CONFIG_FEC_ENET_DEV, __func__);
-
-	return 0;
-}
-
-static int setup_fec(int fec_id)
+static int setup_fec(void)
 {
 	struct iomuxc_gpr_base_regs *const iomuxc_gpr_regs
 		= (struct iomuxc_gpr_base_regs *)IOMUXC_GPR_BASE_ADDR;
 	int ret;
 
-	if (0 == fec_id) {
-		if (check_module_fused(MODULE_ENET1))
-			return -1;
-		/*
-		 * Use 50M anatop loopback REF_CLK1 for ENET1,
-		 * clear gpr1[13], set gpr1[17]
-		 */
-		clrsetbits_le32(&iomuxc_gpr_regs->gpr[1], IOMUX_GPR1_FEC1_MASK,
-				IOMUX_GPR1_FEC1_CLOCK_MUX1_SEL_MASK);
-		ret = enable_fec_anatop_clock(fec_id, ENET_50MHZ);
-		if (ret)
-			return ret;
+	if (check_module_fused(MODULE_ENET1))
+		return -1;
+	/*
+	 * Use 50M anatop loopback REF_CLK1 for ENET1,
+	 * clear gpr1[13], set gpr1[17]
+	 */
+	clrsetbits_le32(&iomuxc_gpr_regs->gpr[1], IOMUX_GPR1_FEC1_MASK,
+			IOMUX_GPR1_FEC1_CLOCK_MUX1_SEL_MASK);
+	ret = enable_fec_anatop_clock(0, ENET_50MHZ);
+	if (ret)
+		return ret;
 
-		SETUP_IOMUX_PADS(fec1_phy_rst);
-		gpio_request(IMX_GPIO_NR(5, 2), "fec1 reset");
-		gpio_direction_output(IMX_GPIO_NR(5, 2), 0);
-		udelay(50);
-		gpio_direction_output(IMX_GPIO_NR(5, 2), 1);
+	SETUP_IOMUX_PADS(fec1_phy_rst);
+	gpio_request(IMX_GPIO_NR(5, 2), "fec1 reset");
+	gpio_direction_output(IMX_GPIO_NR(5, 2), 0);
+	udelay(50);
+	gpio_direction_output(IMX_GPIO_NR(5, 2), 1);
 
-	} else {
-		if (check_module_fused(MODULE_ENET2))
-			return -1;
+	if (check_module_fused(MODULE_ENET2))
+		return -1;
 
-		/* clk from phy, set gpr1[14], clear gpr1[18]*/
-		clrsetbits_le32(&iomuxc_gpr_regs->gpr[1], IOMUX_GPR1_FEC2_MASK,
-				IOMUX_GPR1_FEC2_CLOCK_MUX2_SEL_MASK);
+	/* clk from phy, set gpr1[14], clear gpr1[18]*/
+	clrsetbits_le32(&iomuxc_gpr_regs->gpr[1], IOMUX_GPR1_FEC2_MASK,
+			IOMUX_GPR1_FEC2_CLOCK_MUX2_SEL_MASK);
 
-		SETUP_IOMUX_PADS(fec2_phy_rst);
-		gpio_request(IMX_GPIO_NR(5, 4), "fec2 reset");
-		gpio_direction_output(IMX_GPIO_NR(5, 4), 0);
-		udelay(50);
-		gpio_direction_output(IMX_GPIO_NR(5, 4), 1);
-	}
+	SETUP_IOMUX_PADS(fec2_phy_rst);
+	gpio_request(IMX_GPIO_NR(5, 4), "fec2 reset");
+	gpio_direction_output(IMX_GPIO_NR(5, 4), 0);
+	udelay(50);
+	gpio_direction_output(IMX_GPIO_NR(5, 4), 1);
 
 	enable_enet_clk(1);
 
@@ -806,10 +737,10 @@ static int setup_fec(int fec_id)
 
 int board_phy_config(struct phy_device *phydev)
 {
-	if (CONFIG_FEC_ENET_DEV == 0) {
+	if (phydev->addr == 1) {
 		phy_write(phydev, MDIO_DEVAD_NONE, 0x16, 0x202);
 		phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x8190);
-	} else if (CONFIG_FEC_ENET_DEV == 1) {
+	} else if (phydev->addr == 2) {
 		phy_write(phydev, MDIO_DEVAD_NONE, 0x16, 0x201);
 		phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x8110);
 	}
@@ -1052,7 +983,7 @@ int board_init(void)
 #endif
 
 #ifdef CONFIG_FEC_MXC
-	setup_fec(CONFIG_FEC_ENET_DEV);
+	setup_fec();
 #endif
 
 #ifdef CONFIG_MXC_SPI

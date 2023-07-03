@@ -8,6 +8,7 @@ config RCAR_GEN2
 	bool "Renesas RCar Gen2"
 	select PHY
 	select PHY_RCAR_GEN2
+	select TMU_TIMER
 
 config R8A7740
 	bool "Renesas SoC R8A7740"
@@ -50,9 +51,6 @@ choice
 	prompt "Renesas ARM SoCs board select"
 	optional
 
-config TARGET_ARMADILLO_800EVA
-	bool "armadillo 800 eva board"
-
 config TARGET_BLANCHE
 	bool "Blanche board"
 	select DM
@@ -85,9 +83,6 @@ config TARGET_LAGER
 	select SUPPORT_SPL
 	select SPL_USE_TINY_PRINTF
 	imply CMD_DM
-
-config TARGET_KZM9G
-	bool "KZM9D board"
 
 config TARGET_ALT
 	bool "Alt board"
@@ -127,6 +122,9 @@ config TARGET_STOUT
 
 endchoice
 
+config TMU_TIMER
+	bool
+
 config SYS_SOC
 	default "rmobile"
 
@@ -156,12 +154,10 @@ config QOS_PRI_GFX
 
 endchoice
 
-source "board/atmark-techno/armadillo-800eva/Kconfig"
 source "board/renesas/blanche/Kconfig"
 source "board/renesas/gose/Kconfig"
 source "board/renesas/koelsch/Kconfig"
 source "board/renesas/lager/Kconfig"
-source "board/kmc/kzm9g/Kconfig"
 source "board/renesas/alt/Kconfig"
 source "board/renesas/silk/Kconfig"
 source "board/renesas/porter/Kconfig"

@@ -21,7 +21,7 @@
 #include <asm/arch/rdc.h>
 #include <asm/arch/upower.h>
 #include <asm/mach-imx/boot_mode.h>
-#include <asm/mach-imx/s400_api.h>
+#include <asm/mach-imx/ele_api.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/pcc.h>
 
@@ -121,11 +121,11 @@ void display_ele_fw_version(void)
 
 void spl_board_init(void)
 {
-	struct udevice *dev;
 	u32 res;
 	int ret;
+	struct udevice *dev;
 
-	ret = arch_cpu_init_dm();
+	ret = imx8ulp_dm_post_init();
 	if (ret)
 		return;
 

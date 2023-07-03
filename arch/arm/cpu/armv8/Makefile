@@ -39,9 +39,9 @@ obj-$(CONFIG_SPL_RECOVER_DATA_SECTION) += spl_data.o
 endif
 
 obj-$(CONFIG_FSL_LAYERSCAPE) += fsl-layerscape/
-obj-$(CONFIG_S32V234) += s32v234/
 obj-$(CONFIG_TARGET_HIKEY) += hisilicon/
 obj-$(CONFIG_ARMV8_PSCI) += psci.o
 obj-$(CONFIG_TARGET_BCMNS3) += bcmns3/
 obj-$(CONFIG_XEN) += xen/
-obj-$(CONFIG_CRYPTO_SHA2_ARM64_CE) += crypto/
+obj-$(CONFIG_ARMV8_CE_SHA1) += sha1_ce_glue.o sha1_ce_core.o
+obj-$(CONFIG_ARMV8_CE_SHA256) += sha256_ce_glue.o sha256_ce_core.o

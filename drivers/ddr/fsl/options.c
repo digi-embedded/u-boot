@@ -753,7 +753,7 @@ unsigned int populate_memctl_options(const common_timing_params_t *common_dimm,
 	defined(CONFIG_SYS_FSL_DDR4)
 	const struct dynamic_odt *pdodt = odt_unknown;
 #endif
-#if (CONFIG_FSL_SDRAM_TYPE != SDRAM_TYPE_DDR4)
+#if (CFG_FSL_SDRAM_TYPE != SDRAM_TYPE_DDR4)
 	ulong ddr_freq;
 #endif
 
@@ -761,7 +761,9 @@ unsigned int populate_memctl_options(const common_timing_params_t *common_dimm,
 	 * Extract hwconfig from environment since we have not properly setup
 	 * the environment but need it for ddr config params
 	 */
+#if CONFIG_IS_ENABLED(ENV_SUPPORT)
 	if (env_get_f("hwconfig", buf, sizeof(buf)) < 0)
+#endif
 		buf[0] = '\0';
 
 #if defined(CONFIG_SYS_FSL_DDR3) || \
@@ -1022,7 +1024,7 @@ unsigned int populate_memctl_options(const common_timing_params_t *common_dimm,
 	if (hwconfig_sub_f("fsl_ddr", "parity", buf)) {
 		if (hwconfig_subarg_cmp_f("fsl_ddr", "parity", "on", buf)) {
 			if (popts->registered_dimm_en ||
-			    (CONFIG_FSL_SDRAM_TYPE == SDRAM_TYPE_DDR4))
+			    (CFG_FSL_SDRAM_TYPE == SDRAM_TYPE_DDR4))
 				popts->ap_en = 1;
 		}
 	}
@@ -1300,7 +1302,7 @@ done:
 
 	popts->package_3ds = pdimm->package_3ds;
 
-#if (CONFIG_FSL_SDRAM_TYPE != SDRAM_TYPE_DDR4)
+#if (CFG_FSL_SDRAM_TYPE != SDRAM_TYPE_DDR4)
 	ddr_freq = get_ddr_freq(ctrl_num) / 1000000;
 	if (popts->registered_dimm_en) {
 		popts->rcw_override = 1;
@@ -1408,7 +1410,9 @@ int fsl_use_spd(void)
 	 * Extract hwconfig from environment since we have not properly setup
 	 * the environment but need it for ddr config params
 	 */
+#if CONFIG_IS_ENABLED(ENV_SUPPORT)
 	if (env_get_f("hwconfig", buf, sizeof(buf)) < 0)
+#endif
 		buf[0] = '\0';
 
 	/* if hwconfig is not enabled, or "sdram" is not defined, use spd */

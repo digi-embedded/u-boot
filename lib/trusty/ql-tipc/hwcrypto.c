@@ -32,6 +32,8 @@
 #include <cpu_func.h>
 #include <hang.h>
 #include <trusty/keymaster_serializable.h>
+#include <env.h>
+#include <mmc.h>
 
 #define LOCAL_LOG 0
 #define CAAM_KB_HEADER_LEN 48
@@ -321,6 +323,106 @@ int hwcrypto_provision_wv_key_enc(const char *data, uint32_t data_size)
 
     int rc = hwcrypto_do_tipc(HWCRYPTO_PROVISION_WV_KEY_ENC, (void*)req,
                               data_size + sizeof(data_size), NULL, 0);
+
+    if (req)
+        trusty_free(req);
+
+    return rc;
+}
+
+#define CAAM_KB_HEADER_LEN 48
+#define HAB_DEK_BLOB_HEADER_LEN 8
+int hwcrypto_gen_dek_blob(char *data, uint32_t *data_size)
+{
+    uint8_t *req = NULL, *resp = NULL, *tmp = NULL;
+    uint32_t out_data_size;
+
+    /* sanity check */
+    if (!data || ((*data_size != 16) && (*data_size != 24) && (*data_size != 32))) {
+        trusty_error("Wrong input parameters!\n");
+        return TRUSTY_ERR_INVALID_ARGS;
+    }
+
+    /* serialize the request */
+    req = trusty_calloc(*data_size + sizeof(*data_size), 1);
+    if (!req) {
+        return TRUSTY_ERR_NO_MEMORY;
+    }
+    tmp = append_sized_buf_to_buf(req, (uint8_t *)data, *data_size);
+
+    /* allocate memory for result */
+    out_data_size = *data_size + CAAM_KB_HEADER_LEN + HAB_DEK_BLOB_HEADER_LEN;
+    resp = trusty_calloc(out_data_size + sizeof(*data_size), 1);
+    if (!resp) {
+        goto exit;
+    }
+
+    int rc = hwcrypto_do_tipc(HWCRYPTO_GEN_DEK_BLOB, (void*)req,
+                              *data_size + sizeof(data_size), resp, &out_data_size);
+    if (!rc) {
+        memcpy(data, resp, out_data_size);
+        *data_size = out_data_size;
+    }
+
+exit:
+    if (req)
+        trusty_free(req);
+
+    if (resp)
+        trusty_free(resp);
+
+    return rc;
+}
+
+#define INVALID_MMC_ID 100
+#define RPMB_EMMC_CID_SIZE 16
+#define RPMB_CID_PRV_OFFSET 9
+#define RPMB_CID_CRC_OFFSET 15
+int hwcrypto_commit_emmc_cid(void)
+{
+    struct mmc *mmc = NULL;
+    uint8_t cid[RPMB_EMMC_CID_SIZE];
+    uint8_t *req = NULL, *tmp;
+    int emmc_dev, i;
+
+    emmc_dev = env_get_ulong("emmc_dev", 10, INVALID_MMC_ID);
+    if (emmc_dev == INVALID_MMC_ID) {
+        trusty_error("environment variable 'emmc_dev' is not set!\n");
+        return TRUSTY_ERR_GENERIC;
+    }
+    mmc = find_mmc_device(emmc_dev);
+    if (!mmc) {
+        trusty_error("failed to get mmc device.\n");
+        return TRUSTY_ERR_GENERIC;
+    }
+    if (!(mmc->has_init) && mmc_init(mmc)) {
+        trusty_error("failed to init eMMC device.\n");
+        return TRUSTY_ERR_GENERIC;
+    }
+    /* Get mmc card id (in big endian) */
+    /*
+     * PRV/CRC would be changed when doing eMMC FFU
+     * The following fields should be masked off when deriving RPMB key
+     *
+     * CID [55: 48]: PRV (Product revision)
+     * CID [07: 01]: CRC (CRC7 checksum)
+     * CID [00]: not used
+     */
+    for (i = 0; i < ARRAY_SIZE(mmc->cid); i++)
+        ((uint32_t *)cid)[i] = cpu_to_be32(mmc->cid[i]);
+
+    memset(cid + RPMB_CID_PRV_OFFSET, 0, 1);
+    memset(cid + RPMB_CID_CRC_OFFSET, 0, 1);
+
+    /* serialize the request */
+    req = trusty_calloc(RPMB_EMMC_CID_SIZE + sizeof(uint32_t), 1);
+    if (!req) {
+        return TRUSTY_ERR_NO_MEMORY;
+    }
+    tmp = append_sized_buf_to_buf(req, cid, RPMB_EMMC_CID_SIZE);
+
+    int rc = hwcrypto_do_tipc(HWCRYPTO_SET_EMMC_CID, (void*)req,
+                              RPMB_EMMC_CID_SIZE + sizeof(uint32_t), NULL, 0);
 
     if (req)
         trusty_free(req);

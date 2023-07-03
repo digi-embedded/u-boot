@@ -1,3 +1,8 @@
+config POST
+	bool "Power On Self Test support"
+	help
+	  See doc/README.POST for more details
+
 menuconfig UNIT_TEST
 	bool "Unit tests"
 	help
@@ -8,6 +13,7 @@ menuconfig UNIT_TEST
 
 config SPL_UNIT_TEST
 	bool "Unit tests in SPL"
+	depends on SPL
 	# We need to be able to unbind devices for tests to work
 	select SPL_DM_DEVICE_REMOVE
 	help
@@ -19,7 +25,7 @@ config SPL_UNIT_TEST
 config UT_LIB
 	bool "Unit tests for library functions"
 	depends on UNIT_TEST
-	default y
+	default y if !SANDBOX_VPL
 	help
 	  Enables the 'ut lib' command which tests library functions like
 	  memcat(), memcyp(), memmove() and ASN1 compiler/decoder.
@@ -63,7 +69,7 @@ endif
 config UT_COMPRESSION
 	bool "Unit test for compression"
 	depends on UNIT_TEST
-	depends on CMDLINE && GZIP_COMPRESSED && BZIP2 && LZMA && LZO && LZ4
+	depends on CMDLINE && GZIP_COMPRESSED && BZIP2 && LZMA && LZO && LZ4 && ZSTD
 	default y
 	help
 	  Enables tests for compression and decompression routines for simple
@@ -91,11 +97,13 @@ config UT_UNICODE
 	bool "Unit tests for Unicode functions"
 	depends on UNIT_TEST
 	default y
+	select CHARSET
 	help
 	  Enables the 'ut unicode' command which tests that the functions for
 	  manipulating Unicode strings work correctly.
 
 source "test/dm/Kconfig"
 source "test/env/Kconfig"
+source "test/lib/Kconfig"
 source "test/optee/Kconfig"
 source "test/overlay/Kconfig"

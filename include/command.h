@@ -18,8 +18,8 @@
 #endif
 
 /* Default to a width of 8 characters for help message command width */
-#ifndef CONFIG_SYS_HELP_CMD_WIDTH
-#define CONFIG_SYS_HELP_CMD_WIDTH	10
+#ifndef CFG_SYS_HELP_CMD_WIDTH
+#define CFG_SYS_HELP_CMD_WIDTH	10
 #endif
 
 #ifndef	__ASSEMBLY__
@@ -148,9 +148,9 @@ int cmd_get_data_size(char *arg, int default_size);
 int do_bootd(struct cmd_tbl *cmdtp, int flag, int argc,
 	     char *const argv[]);
 #endif
-#ifdef CONFIG_CMD_BOOTM
 int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc,
 	     char *const argv[]);
+#ifdef CONFIG_CMD_BOOTM
 int bootm_maybe_autostart(struct cmd_tbl *cmdtp, const char *cmd);
 #else
 static inline int bootm_maybe_autostart(struct cmd_tbl *cmdtp, const char *cmd)
@@ -233,10 +233,10 @@ enum command_ret_t {
  *			is left unchanged.
  * @param ticks		If ticks is not null, this function set it to the
  *			number of ticks the command took to complete.
- * Return: 0 if the command succeeded, 1 if it failed
+ * Return: 0 if command succeeded, else non-zero (CMD_RET_...)
  */
-int cmd_process(int flag, int argc, char *const argv[], int *repeatable,
-		unsigned long *ticks);
+enum command_ret_t cmd_process(int flag, int argc, char *const argv[],
+			       int *repeatable, unsigned long *ticks);
 
 void fixup_cmdtable(struct cmd_tbl *cmdtp, int size);
 
@@ -262,6 +262,16 @@ int run_command(const char *cmd, int flag);
 int run_command_repeatable(const char *cmd, int flag);
 
 /**
+ * run_commandf() - Run a command created by a format string
+ *
+ * The command cannot be larger than 127 characters
+ *
+ * @fmt: printf() format string
+ * @...: Arguments to use (flag is always 0)
+ */
+int run_commandf(const char *fmt, ...);
+
+/**
  * Run a list of commands separated by ; or even \0
  *
  * Note that if 'len' is not -1, then the command does not need to be nul
@@ -273,6 +283,18 @@ int run_command_repeatable(const char *cmd, int flag);
  * Return: 0 on success, or != 0 on error.
  */
 int run_command_list(const char *cmd, int len, int flag);
+
+/**
+ * cmd_source_script() - Execute a script
+ *
+ * Executes a U-Boot script at a particular address in memory. The script should
+ * have a header (FIT or legacy) with the script type (IH_TYPE_SCRIPT).
+ *
+ * @addr: Address of script
+ * @fit_uname: FIT subimage name
+ * Return: result code (enum command_ret_t)
+ */
+int cmd_source_script(ulong addr, const char *fit_uname, const char *confname);
 #endif	/* __ASSEMBLY__ */
 
 /*

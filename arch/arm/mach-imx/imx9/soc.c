@@ -31,7 +31,7 @@
 #include <asm/setup.h>
 #include <asm/bootm.h>
 #include <asm/arch-imx/cpu.h>
-#include <asm/mach-imx/s400_api.h>
+#include <asm/mach-imx/ele_api.h>
 #include <asm/mach-imx/optee.h>
 #include <linux/delay.h>
 #include <fuse.h>
@@ -39,56 +39,11 @@
 #include <thermal.h>
 #include <imx_sip.h>
 #include <linux/arm-smccc.h>
+#include <asm/arch/ddr.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
 struct rom_api *g_rom_api = (struct rom_api *)0x1980;
-
-enum boot_device get_boot_device(void)
-{
-	volatile gd_t *pgd = gd;
-	int ret;
-	u32 boot;
-	u16 boot_type;
-	u8 boot_instance;
-	enum boot_device boot_dev = SD1_BOOT;
-
-	ret = g_rom_api->query_boot_infor(QUERY_BT_DEV, &boot,
-					  ((uintptr_t)&boot) ^ QUERY_BT_DEV);
-	set_gd(pgd);
-
-	if (ret != ROM_API_OKAY) {
-		puts("ROMAPI: failure at query_boot_info\n");
-		return -1;
-	}
-
-	boot_type = boot >> 16;
-	boot_instance = (boot >> 8) & 0xff;
-
-	switch (boot_type) {
-	case BT_DEV_TYPE_SD:
-		boot_dev = boot_instance + SD1_BOOT;
-		break;
-	case BT_DEV_TYPE_MMC:
-		boot_dev = boot_instance + MMC1_BOOT;
-		break;
-	case BT_DEV_TYPE_NAND:
-		boot_dev = NAND_BOOT;
-		break;
-	case BT_DEV_TYPE_FLEXSPINOR:
-		boot_dev = QSPI_BOOT;
-		break;
-	case BT_DEV_TYPE_USB:
-		boot_dev = boot_instance + USB_BOOT;
-		break;
-	default:
-		break;
-	}
-
-	debug("boot dev %d\n", boot_dev);
-
-	return boot_dev;
-}
 
 bool is_usb_boot(void)
 {
@@ -116,15 +71,12 @@ __weak int board_mmc_get_env_dev(int devno)
 
 int mmc_get_env_dev(void)
 {
-	volatile gd_t *pgd = gd;
 	int ret;
 	u32 boot;
 	u16 boot_type;
 	u8 boot_instance;
 
-	ret = g_rom_api->query_boot_infor(QUERY_BT_DEV, &boot,
-					  ((uintptr_t)&boot) ^ QUERY_BT_DEV);
-	set_gd(pgd);
+	ret = rom_api_query_boot_infor(QUERY_BT_DEV, &boot);
 
 	if (ret != ROM_API_OKAY) {
 		puts("ROMAPI: failure at query_boot_info\n");
@@ -137,11 +89,10 @@ int mmc_get_env_dev(void)
 	debug("boot_type %d, instance %d\n", boot_type, boot_instance);
 
 	/* If not boot from sd/mmc, use default value */
-	if ((boot_type != BOOT_TYPE_SD) && (boot_type != BOOT_TYPE_MMC))
+	if (boot_type != BOOT_TYPE_SD && boot_type != BOOT_TYPE_MMC)
 		return env_get_ulong("mmcdev", 10, CONFIG_SYS_MMC_ENV_DEV);
 
 	return board_mmc_get_env_dev(boot_instance);
-
 }
 #endif
 
@@ -211,7 +162,7 @@ u32 get_cpu_temp_grade(int *minc, int *maxc)
 	return val;
 }
 
-static void set_cpu_info(struct sentinel_get_info_data *info)
+static void set_cpu_info(struct ele_get_info_data *info)
 {
 	gd->arch.soc_rev = info->soc;
 	gd->arch.lifecycle = info->lc;
@@ -243,6 +194,7 @@ static u32 get_cpu_variant_type(u32 type)
 u32 get_cpu_rev(void)
 {
 	u32 rev = (gd->arch.soc_rev >> 24) - 0xa0;
+
 	return (get_cpu_variant_type(MXC_CPU_IMX93) << 12) |
 		(CHIP_REV_1_0 + rev);
 }
@@ -331,7 +283,11 @@ static struct mm_region imx93_mem_map[] = {
 		.phys = 0x80000000UL,
 		.size = PHYS_SDRAM_SIZE,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
+#ifdef CONFIG_IMX_TRUSTY_OS
+			 PTE_BLOCK_INNER_SHARE
+#else
 			 PTE_BLOCK_OUTER_SHARE
+#endif
 	}, {
 		/* empty entrie to split table entry 5 if needed when TEEs are used */
 		0,
@@ -348,7 +304,7 @@ static unsigned int imx9_find_dram_entry_in_mem_map(void)
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(imx93_mem_map); i++)
-		if (imx93_mem_map[i].phys == CONFIG_SYS_SDRAM_BASE)
+		if (imx93_mem_map[i].phys == CFG_SYS_SDRAM_BASE)
 			return i;
 
 	hang();	/* Entry not found, this must never happen. */
@@ -385,16 +341,28 @@ void enable_caches(void)
 	dcache_enable();
 }
 
-__weak int board_phys_sdram_size(phys_size_t *size)
-{
+__weak int board_phys_sdram_size(phys_size_t *size){
+
+	phys_size_t start, end;
+	phys_size_t val;
+
 	if (!size)
 		return -EINVAL;
 
-	*size = PHYS_SDRAM_SIZE;
+	val = readl(REG_DDR_CS0_BNDS);
+	start = (val >> 16) << 24;
+	end   = (val & 0xFFFF);
+	end   = end ? end + 1 : 0;
+	end   = end << 24;
+	*size = end - start;
 
-#ifdef PHYS_SDRAM_2_SIZE
-	*size += PHYS_SDRAM_2_SIZE;
-#endif
+	val = readl(REG_DDR_CS1_BNDS);
+	start = (val >> 16) << 24;
+	end   = (val & 0xFFFF);
+	end   = end ? end + 1 : 0;
+	end   = end << 24;
+	*size += end - start;
+
 	return 0;
 }
 
@@ -918,11 +886,11 @@ int ft_system_setup(void *blob, struct bd_info *bd)
 #endif
 }
 
-#if defined(CONFIG_SERIAL_TAG) || defined(CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG)
+#if defined(CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG)
 void get_board_serial(struct tag_serialnr *serialnr)
 {
 	printf("UID: 0x%x 0x%x 0x%x 0x%x\n",
-		gd->arch.uid[0], gd->arch.uid[1], gd->arch.uid[2], gd->arch.uid[3]);
+	       gd->arch.uid[0], gd->arch.uid[1], gd->arch.uid[2], gd->arch.uid[3]);
 
 	serialnr->low = gd->arch.uid[0];
 	serialnr->high = gd->arch.uid[3];
@@ -946,18 +914,21 @@ int arch_cpu_init(void)
 	return 0;
 }
 
-int arch_cpu_init_dm(void)
+int imx9_probe_mu(void *ctx, struct event *event)
 {
 	struct udevice *devp;
 	int node, ret;
 	u32 res;
-	struct sentinel_get_info_data info;
+	struct ele_get_info_data info;
 
 	node = fdt_node_offset_by_compatible(gd->fdt_blob, -1, "fsl,imx93-mu-s4");
 
 	ret = uclass_get_device_by_of_offset(UCLASS_MISC, node, &devp);
 	if (ret)
 		return ret;
+
+	if (gd->flags & GD_FLG_RELOC)
+		return 0;
 
 	ret = ahab_get_info(&info, &res);
 	if (ret)
@@ -967,24 +938,7 @@ int arch_cpu_init_dm(void)
 
 	return 0;
 }
-
-#ifdef CONFIG_ARCH_EARLY_INIT_R
-int arch_early_init_r(void)
-{
-	struct udevice *devp;
-	int node, ret;
-
-	node = fdt_node_offset_by_compatible(gd->fdt_blob, -1, "fsl,imx93-mu-s4");
-
-	ret = uclass_get_device_by_of_offset(UCLASS_MISC, node, &devp);
-	if (ret) {
-		printf("could not get S400 mu %d\n", ret);
-		return ret;
-	}
-
-	return 0;
-}
-#endif
+EVENT_SPY(EVT_DM_POST_INIT, imx9_probe_mu);
 
 int timer_init(void)
 {
@@ -1014,12 +968,12 @@ __weak enum env_location env_get_location(enum env_operation op, int prio)
 		return env_loc;
 
 	switch (dev) {
-#ifdef CONFIG_ENV_IS_IN_SPI_FLASH
+#if defined(CONFIG_ENV_IS_IN_SPI_FLASH)
 	case QSPI_BOOT:
 		env_loc = ENVL_SPI_FLASH;
 		break;
 #endif
-#ifdef CONFIG_ENV_IS_IN_MMC
+#if defined(CONFIG_ENV_IS_IN_MMC)
 	case SD1_BOOT:
 	case SD2_BOOT:
 	case SD3_BOOT:
@@ -1039,7 +993,7 @@ __weak enum env_location env_get_location(enum env_operation op, int prio)
 	return env_loc;
 }
 
-int mix_power_init(enum mix_power_domain pd)
+static int mix_power_init(enum mix_power_domain pd)
 {
 	enum src_mix_slice_id mix_id;
 	enum src_mem_slice_id mem_id;
@@ -1075,7 +1029,8 @@ int mix_power_init(enum mix_power_domain pd)
 	}
 
 	mix_regs = (struct src_mix_slice_regs *)(ulong)(SRC_IPS_BASE_ADDR + 0x400 * (mix_id + 1));
-	mem_regs = (struct src_mem_slice_regs *)(ulong)(SRC_IPS_BASE_ADDR + 0x3800 + 0x400 * mem_id);
+	mem_regs =
+		(struct src_mem_slice_regs *)(ulong)(SRC_IPS_BASE_ADDR + 0x3800 + 0x400 * mem_id);
 	global_regs = (struct src_general_regs *)(ulong)SRC_GLOBAL_RBASE;
 
 	/* Allow NS to set it */
@@ -1100,9 +1055,8 @@ int mix_power_init(enum mix_power_domain pd)
 
 		/* Since PSW_STAT is 1, can't be used for power off status (SW_CTRL BIT31 set)) */
 		/* Check the MEM STAT change to ensure SSAR is completed */
-		while (!(val & SRC_MIX_SLICE_FUNC_STAT_MEM_STAT)) {
+		while (!(val & SRC_MIX_SLICE_FUNC_STAT_MEM_STAT))
 			val = readl(&mix_regs->func_stat);
-		}
 
 		/* wait few ipg clock cycles to ensure FSM done and power off status is correct */
 		/* About 5 cycles at 24Mhz, 1us is enough  */
@@ -1111,17 +1065,15 @@ int mix_power_init(enum mix_power_domain pd)
 		/*  The mix is default power on, Do mix power cycle */
 		setbits_le32(&mix_regs->slice_sw_ctrl, BIT(31));
 		val = readl(&mix_regs->func_stat);
-		while (!(val & SRC_MIX_SLICE_FUNC_STAT_PSW_STAT)) {
+		while (!(val & SRC_MIX_SLICE_FUNC_STAT_PSW_STAT))
 			val = readl(&mix_regs->func_stat);
-		}
 	}
 
 	/* power on */
 	clrbits_le32(&mix_regs->slice_sw_ctrl, BIT(31));
 	val = readl(&mix_regs->func_stat);
-	while (val & SRC_MIX_SLICE_FUNC_STAT_ISO_STAT) {
+	while (val & SRC_MIX_SLICE_FUNC_STAT_ISO_STAT)
 		val = readl(&mix_regs->func_stat);
-	}
 
 	return 0;
 }
@@ -1146,7 +1098,7 @@ bool m33_is_rom_kicked(void)
 	struct blk_ctrl_s_aonmix_regs *s_regs =
 			(struct blk_ctrl_s_aonmix_regs *)BLK_CTRL_S_ANOMIX_BASE_ADDR;
 
-	if (!(readl(&s_regs->m33_cfg) & BCTRL_S_ANOMIX_M33_CPU_WAIT_MASK))
+	if (!(readl(&s_regs->m33_cfg) & BIT(2)))
 		return true;
 
 	return false;
@@ -1162,9 +1114,6 @@ int m33_prepare(void)
 			(struct blk_ctrl_s_aonmix_regs *)BLK_CTRL_S_ANOMIX_BASE_ADDR;
 	u32 val;
 
-	/* Allow NS to set it */
-	setbits_le32(&mix_regs->authen_ctrl, BIT(9));
-
 	if (m33_is_rom_kicked())
 		return -EPERM;
 
@@ -1173,12 +1122,10 @@ int m33_prepare(void)
 
 	/* Check the reset released in M33 MIX func stat */
 	val = readl(&mix_regs->func_stat);
-	while (!(val & SRC_MIX_SLICE_FUNC_STAT_RST_STAT)) {
+	while (!(val & SRC_MIX_SLICE_FUNC_STAT_RST_STAT))
 		val = readl(&mix_regs->func_stat);
-	}
 
-	/* Because CPUWAIT is default set, so M33 won't run, Clear it when kick M33 */
-	/* Release Sentinel TROUT */
+	/* Release ELE TROUT */
 	ahab_release_m33_trout();
 
 	/* Mask WDOG1 IRQ from A55, we use it for M33 reset */
@@ -1187,7 +1134,7 @@ int m33_prepare(void)
 	/* Turn on WDOG1 clock */
 	ccm_lpcg_on(CCGR_WDG1, 1);
 
-	/* Set sentinel LP handshake for M33 reset */
+	/* Set ELE LP handshake for M33 reset */
 	setbits_le32(&s_regs->lp_handshake[0], BIT(6));
 
 	/* Clear M33 TCM for ECC */

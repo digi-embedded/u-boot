@@ -9,34 +9,12 @@
 #include <asm/arch-rockchip/hardware.h>
 #include "rockchip-common.h"
 
-#define CONFIG_SYS_BOOTM_LEN		(64 << 20) /* 64MB */
+#define CFG_SYS_HZ_CLOCK		24000000
 
-#define CONFIG_SYS_CBSIZE		1024
+#define CFG_IRAM_BASE		0xff700000
 
-#define CONFIG_ROCKCHIP_STIMER_BASE	0xff810020
-#define COUNTER_FREQUENCY		24000000
-#define CONFIG_SYS_HZ_CLOCK		24000000
-
-#ifdef CONFIG_SPL_ROCKCHIP_BACK_TO_BROM
-/* Bootrom will load u-boot binary to 0x0 once return from SPL */
-#endif
-#define CONFIG_SYS_INIT_SP_ADDR		0x00100000
-#define CONFIG_SPL_STACK		0xff718000
-
-#define CONFIG_IRAM_BASE		0xff700000
-
-/* RAW SD card / eMMC locations. */
-
-/* FAT sd card locations. */
-#define CONFIG_SPL_FS_LOAD_PAYLOAD_NAME		"u-boot.img"
-
-#define CONFIG_SYS_SDRAM_BASE		0
-#define SDRAM_BANK_SIZE			(2UL << 30)
+#define CFG_SYS_SDRAM_BASE		0
 #define SDRAM_MAX_SIZE			0xfe000000
-
-#define CONFIG_SYS_MONITOR_LEN (600 * 1024)
-
-#ifndef CONFIG_SPL_BUILD
 
 #define ENV_MEM_LAYOUT_SETTINGS \
 	"scriptaddr=0x00000000\0" \
@@ -49,7 +27,7 @@
 
 /* Linux fails to load the fdt if it's loaded above 256M on a Rock 2 board, so
  * limit the fdt reallocation to that */
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	"fdt_high=0x0fffffff\0" \
 	"initrd_high=0x0fffffff\0" \
 	"fdtfile=" CONFIG_DEFAULT_FDT_FILE "\0" \
@@ -57,6 +35,5 @@
 	ENV_MEM_LAYOUT_SETTINGS \
 	ROCKCHIP_DEVICE_SETTINGS \
 	BOOTENV
-#endif
 
 #endif

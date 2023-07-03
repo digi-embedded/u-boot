@@ -68,7 +68,7 @@ struct lmb_region {
 struct lmb {
 	struct lmb_region memory;
 	struct lmb_region reserved;
-#if !IS_ENABLED(CONFIG_LMB_USE_MAX_REGIONS)
+#ifdef CONFIG_LMB_MEMORY_REGIONS
 	struct lmb_property memory_regions[CONFIG_LMB_MEMORY_REGIONS];
 	struct lmb_property reserved_regions[CONFIG_LMB_RESERVED_REGIONS];
 #endif
@@ -80,6 +80,7 @@ void lmb_init_and_reserve_range(struct lmb *lmb, phys_addr_t base,
 				phys_size_t size, void *fdt_blob);
 long lmb_add(struct lmb *lmb, phys_addr_t base, phys_size_t size);
 long lmb_reserve(struct lmb *lmb, phys_addr_t base, phys_size_t size);
+long lmb_reserve_nonoverlap(struct lmb *lmb, phys_addr_t base, phys_size_t size);
 /**
  * lmb_reserve_flags - Reserve one region with a specific flags bitfield.
  *
@@ -90,8 +91,6 @@ long lmb_reserve(struct lmb *lmb, phys_addr_t base, phys_size_t size);
  * Return:	0 if OK, > 0 for coalesced region or a negative error code.
  */
 long lmb_reserve_flags(struct lmb *lmb, phys_addr_t base,
-		       phys_size_t size, enum lmb_flags flags);
-long lmb_reserve_overlap(struct lmb *lmb, phys_addr_t base,
 		       phys_size_t size, enum lmb_flags flags);
 phys_addr_t lmb_alloc(struct lmb *lmb, phys_size_t size, ulong align);
 phys_addr_t lmb_alloc_base(struct lmb *lmb, phys_size_t size, ulong align,

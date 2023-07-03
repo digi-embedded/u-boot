@@ -15,6 +15,9 @@ config IMX_CONFIG
 config MX6SXSABRESD_EMMC_REWORK
 	bool "Select for the board with eMMC rework"
 
-config SYS_TEXT_BASE
+config SYS_AUXCORE_FASTUP
+	bool "Enable to fast boot up M core"
+
+config TEXT_BASE
 	default 0x87800000
 endif

@@ -15,25 +15,4 @@
 
 #define PHYS_SDRAM_SIZE			SZ_1G
 
-
-#ifdef CONFIG_DM_ETH
-#define CONFIG_CMD_MII
-#define CONFIG_FEC_MXC
-#define CONFIG_FEC_ENET_DEV 1
-
-#if (CONFIG_FEC_ENET_DEV == 0)
-#define IMX_FEC_BASE			ENET_BASE_ADDR
-#define CONFIG_FEC_MXC_PHYADDR          0x1
-#define CONFIG_FEC_XCV_TYPE             RMII
-#define CONFIG_ETHPRIME			"eth0"
-#elif (CONFIG_FEC_ENET_DEV == 1)
-#define IMX_FEC_BASE			ENET2_BASE_ADDR
-#define CONFIG_FEC_MXC_PHYADDR          0x2
-#define CONFIG_FEC_XCV_TYPE             MII100
-#define CONFIG_ETHPRIME			"eth1"
-#endif
-
-#define CONFIG_FEC_MXC_MDIO_BASE ENET2_BASE_ADDR
-#endif
-
 #endif

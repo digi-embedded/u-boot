@@ -14,13 +14,7 @@
 #include "imx_env.h"
 
 /* MMC Configs */
-#define CONFIG_SYS_FSL_ESDHC_ADDR      0
-
-#define CONFIG_FEC_MXC
-#define CONFIG_FEC_XCV_TYPE		RGMII
-#define CONFIG_ETHPRIME			"eth0"
-
-#define CONFIG_PHY_ATHEROS
+#define CFG_SYS_FSL_ESDHC_ADDR      0
 
 #ifdef CONFIG_MX6S
 #define SYS_NOSMP "nosmp"
@@ -34,12 +28,8 @@
 #define MFG_NAND_PARTITION ""
 #endif
 
-#define CONFIG_CMD_READ
-#define CONFIG_SERIAL_TAG
-#define CONFIG_FASTBOOT_USB_DEV 0
-
-#define CONFIG_MFG_ENV_SETTINGS \
-	CONFIG_MFG_ENV_SETTINGS_DEFAULT \
+#define CFG_MFG_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS_DEFAULT \
 	"initrd_addr=0x12C00000\0" \
 	"initrd_high=0xffffffff\0" \
 	"emmc_dev=3\0"\
@@ -71,8 +61,6 @@
 #define EMMC_ENV ""
 #endif
 
-#define CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
-
 #if defined(CONFIG_NAND_BOOT)
 	/*
 	 * The dts also enables the WEIN NOR which is mtd0.
@@ -82,8 +70,8 @@
 	 *     mtd3: 16M      (dtb)
 	 *     mtd4: left     (rootfs)
 	 */
-#define CONFIG_EXTRA_ENV_SETTINGS \
-	CONFIG_MFG_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS \
 	TEE_ENV \
 	"fdt_addr=0x18000000\0" \
 	"tee_addr=0x20000000\0" \
@@ -105,8 +93,8 @@
 
 #elif defined(CONFIG_SATA_BOOT)
 
-#define CONFIG_EXTRA_ENV_SETTINGS \
-		CONFIG_MFG_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
+		CFG_MFG_ENV_SETTINGS \
 		TEE_ENV \
 		"image=zImage\0" \
 		"fdt_file=undefined\0" \
@@ -167,8 +155,8 @@
 
 #else
 
-#define CONFIG_EXTRA_ENV_SETTINGS \
-	CONFIG_MFG_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS \
 	TEE_ENV \
 	"epdc_waveform=epdc_splash.bin\0" \
 	"script=boot.scr\0" \
@@ -190,7 +178,7 @@
 	"mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV) "\0" \
 	"mmcpart=1\0" \
 	"finduuid=part uuid mmc ${mmcdev}:2 uuid\0" \
-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+	"mmcroot=/dev/mmcblk2p2 rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"update_sd_firmware=" \
 		"if test ${ip_dyn} = yes; then " \
@@ -306,56 +294,11 @@
 
 #endif
 
-#define CONFIG_ARP_TIMEOUT     200UL
-
 /* Physical Memory Map */
 #define PHYS_SDRAM                     MMDC0_ARB_BASE_ADDR
 
-#define CONFIG_SYS_SDRAM_BASE          PHYS_SDRAM
-#define CONFIG_SYS_INIT_RAM_ADDR       IRAM_BASE_ADDR
-#define CONFIG_SYS_INIT_RAM_SIZE       IRAM_SIZE
+#define CFG_SYS_SDRAM_BASE          PHYS_SDRAM
+#define CFG_SYS_INIT_RAM_ADDR       IRAM_BASE_ADDR
+#define CFG_SYS_INIT_RAM_SIZE       IRAM_SIZE
 
-#define CONFIG_SYS_INIT_SP_OFFSET \
-	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
-#define CONFIG_SYS_INIT_SP_ADDR \
-	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
-
-#ifdef CONFIG_MTD_NOR_FLASH
-#define CONFIG_SYS_FLASH_BASE           WEIM_ARB_BASE_ADDR
-#define CONFIG_SYS_FLASH_SECT_SIZE      (128 * 1024)
-#define CONFIG_SYS_MAX_FLASH_SECT 256   /* max number of sectors on one chip */
-#define CONFIG_SYS_FLASH_EMPTY_INFO
-#define CONFIG_SYS_FLASH_CFI_WIDTH	FLASH_CFI_16BIT
-#endif
-
-#ifdef CONFIG_NAND_MXS
-
-#define CONFIG_SYS_MAX_NAND_DEVICE     1
-#define CONFIG_SYS_NAND_BASE           0x40000000
-#define CONFIG_SYS_NAND_USE_FLASH_BBT
-
-/* DMA stuff, needed for GPMI/MXS NAND support */
-#endif
-
-#if defined(CONFIG_ENV_IS_IN_SATA)
-#define CONFIG_SYS_SATA_ENV_DEV		0
-#endif
-
-
-/* PMIC */
-#ifndef CONFIG_DM_PMIC
-#define CONFIG_POWER_PFUZE100
-#define CONFIG_POWER_PFUZE100_I2C_ADDR 0x08
-#endif
-
-/* Framebuffer */
-#define CONFIG_IMX_HDMI
-#define CONFIG_IMX_VIDEO_SKIP
-
-#if defined(CONFIG_ANDROID_SUPPORT)
-#include "mx6sabreandroid_common.h"
-#else
-#define CONFIG_USBD_HS
-
-#endif /* CONFIG_ANDROID_SUPPORT */
 #endif                         /* __MX6QSABRE_COMMON_CONFIG_H */

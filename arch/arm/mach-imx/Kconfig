@@ -23,6 +23,9 @@ config SYSCOUNTER_TIMER
 config GPT_TIMER
 	bool
 
+config MXC_GPT_HCLK
+	bool
+
 config IMX_RDC
 	bool "i.MX Resource domain controller driver"
 	depends on ARCH_MX6 || ARCH_MX7
@@ -160,6 +163,7 @@ config CMD_HDMIDETECT
 config CMD_NANDBCB
 	bool "i.MX6 NAND Boot Control Block(BCB) command"
 	depends on MTD_RAW_NAND && CMD_MTDPARTS
+	select BCH if MX6UL || MX6ULL
 	default y if ((ARCH_MX6 || ARCH_MX7 || ARCH_IMX8M || ARCH_IMX8) && NAND_MXS)
 	help
 	  Unlike normal 'nand write/erase' commands, this command update
@@ -233,9 +237,14 @@ config DDRMC_VF610_CALIBRATION
 	  shall perform it on a new PCB and then use those values to program
 	  the ddrmc_cr_setting on relevant board file.
 
+config IMX8_ROMAPI
+	def_bool y
+	depends on IMX8MN || IMX8MP || IMX8ULP || IMX9
+
 config SPL_IMX_ROMAPI_LOADADDR
 	hex "Default load address to load image through ROM API"
-	depends on IMX8MN || IMX8MP || IMX8ULP || IMX9
+	depends on IMX8_ROMAPI || SPL_BOOTROM_SUPPORT
+	default 0
 
 config IMX_DCD_ADDR
 	hex "DCD Blocks location on the image"
@@ -260,6 +269,12 @@ config IMX_CONTAINER_CFG
 	help
 	  This is to specific the cfg file for generating container
 	  image which will be loaded by SPL.
+
+config IOMUX_LPSR
+	bool
+
+config IOMUX_SHARE_CONF_REG
+	bool
 
 config CMD_PROVISION_KEY
 	bool "Support to provision a encrypted key as black blob"
@@ -386,6 +401,11 @@ config GENERATE_MPPUBK
 config SECURE_UNLOCK
 	bool "Enable secure unlock for Android devices, it can only be enabled on HAB closed board"
 	depends on IMX_TRUSTY_OS
+
+config IMX_MATTER_TRUSTY
+	bool "Enable Trusty OS feature for Matter"
+	depends on IMX_TRUSTY_OS
+	default n
 
 endmenu
 

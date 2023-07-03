@@ -12,26 +12,14 @@
 #include <asm/arch/imx-regs.h>
 
 #ifdef CONFIG_SPL_BUILD
-#define CONFIG_SPL_MAX_SIZE				(124 * 1024)
-#define CONFIG_SYS_MONITOR_LEN				(1024 * 1024)
+#define CFG_MALLOC_F_ADDR		0x00120000
 
-#define CONFIG_SPL_STACK		0x013E000
-#define CONFIG_SPL_BSS_START_ADDR	0x00128000
-#define CONFIG_SPL_BSS_MAX_SIZE		0x1000	/* 4 KB */
-#define CONFIG_SYS_SPL_MALLOC_START	0x00120000
-#define CONFIG_SYS_SPL_MALLOC_SIZE	0x3000	/* 12 KB */
-#define CONFIG_SERIAL_LPUART_BASE	0x5a060000
-#define CONFIG_MALLOC_F_ADDR		0x00120000
-
-#define CONFIG_SPL_RAW_IMAGE_ARM_TRUSTED_FIRMWARE
-
-#define CONFIG_SPL_ABORT_ON_RAW_IMAGE
 #endif
 
 /* Flat Device Tree Definitions */
 
-#define CONFIG_SYS_BOOTMAPSZ		(256 << 20)
-#define CONFIG_SYS_FSL_ESDHC_ADDR	0
+#define CFG_SYS_BOOTMAPSZ		(256 << 20)
+#define CFG_SYS_FSL_ESDHC_ADDR	0
 #define USDHC1_BASE_ADDR		0x5B010000
 #define USDHC2_BASE_ADDR		0x5B020000
 #define USDHC3_BASE_ADDR		0x5B030000
@@ -53,7 +41,7 @@
 #define FEC0_RESET IMX_GPIO_NR(2, 5)
 #define FEC0_PDOMAIN "conn_enet0"
 
-#define CONFIG_MFG_ENV_SETTINGS \
+#define CFG_MFG_ENV_SETTINGS \
 	"mfgtool_args=setenv bootargs console=${console},${baudrate} " \
 		"rdinit=/linuxrc " \
 		"g_mass_storage.stall=0 g_mass_storage.removable=1 " \
@@ -66,8 +54,8 @@
 	"bootcmd_mfg=run mfgtool_args;booti ${loadaddr} ${initrd_addr} ${fdt_addr};\0" \
 
 /* Initial environment variables */
-#define CONFIG_EXTRA_ENV_SETTINGS		\
-	CONFIG_MFG_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS		\
+	CFG_MFG_ENV_SETTINGS \
 	M4_BOOT_ENV \
 	"script=boot.scr\0" \
 	"image=Image\0" \
@@ -78,7 +66,7 @@
 	"fdt_file=imx8qm-cgt-qmx8.dtb\0" \
 	"mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV) "\0" \
 	"mmcpart=1\0" \
-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+	"mmcroot=/dev/mmcblk1p2 rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} root=${mmcroot} earlycon\0 " \
 	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
@@ -120,23 +108,15 @@
 
 /* Link Definitions */
 
-#define CONFIG_SYS_INIT_SP_ADDR		0x80200000
+#define CFG_SYS_FSL_USDHC_NUM	3
 
-#define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
-#define CONFIG_SYS_FSL_USDHC_NUM	3
-
-#define CONFIG_SYS_SDRAM_BASE		0x80000000
+#define CFG_SYS_SDRAM_BASE		0x80000000
 #define PHYS_SDRAM_1			0x80000000
 #define PHYS_SDRAM_2			0x880000000
 #define PHYS_SDRAM_1_SIZE		0x80000000	/* 2 GB */
 #define PHYS_SDRAM_2_SIZE		0x100000000	/* 4 GB */
 
-/* Generic Timer Definitions */
-#define COUNTER_FREQUENCY		8000000	/* 8MHz */
-
 /* Networking */
-#define CONFIG_FEC_MXC_PHYADDR		-1
-#define CONFIG_FEC_XCV_TYPE		RGMII
-#define FEC_QUIRK_ENET_MAC
+#define CFG_FEC_MXC_PHYADDR		-1
 
 #endif /* __CGTQMX8_H */

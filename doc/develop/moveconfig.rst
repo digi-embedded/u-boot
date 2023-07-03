@@ -20,10 +20,10 @@ First, you must edit the Kconfig to add the menu entries for the configs
 you are moving.
 
 Then run this tool giving CONFIG names you want to move.
-For example, if you want to move CONFIG_CMD_USB and CONFIG_SYS_TEXT_BASE,
+For example, if you want to move CONFIG_CMD_USB and CONFIG_TEXT_BASE,
 simply type as follows::
 
-  $ tools/moveconfig.py CONFIG_CMD_USB CONFIG_SYS_TEXT_BASE
+  $ tools/moveconfig.py CONFIG_CMD_USB CONFIG_TEXT_BASE
 
 The tool walks through all the defconfig files and move the given CONFIGs.
 
@@ -295,8 +295,7 @@ Available options
 
  -y, --yes
    Instead of prompting, automatically go ahead with all operations. This
-   includes cleaning up headers, CONFIG_SYS_EXTRA_OPTIONS, the config whitelist
-   and the README.
+   includes cleaning up headers, the config whitelist and the README.
 
 To see the complete list of supported options, run::
 

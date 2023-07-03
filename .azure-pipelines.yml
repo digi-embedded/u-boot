@@ -1,8 +1,8 @@
 variables:
   windows_vm: windows-2019
-  ubuntu_vm: ubuntu-18.04
-  macos_vm: macOS-10.15
-  ci_runner_image: trini/u-boot-gitlab-ci-runner:focal-20220113-03Feb2022
+  ubuntu_vm: ubuntu-22.04
+  macos_vm: macOS-12
+  ci_runner_image: trini/u-boot-gitlab-ci-runner:jammy-20230126-10Feb2023
   # Add '-u 0' options for Azure pipelines, otherwise we get "permission
   # denied" error when it tries to "useradd -m -u 1001 vsts_azpcontainer",
   # since our $(ci_runner_image) user is not root.
@@ -22,14 +22,15 @@ stages:
         displayName: 'Install MSYS2'
       - script: |
           sfx.exe -y -o%CD:~0,2%\
-          %CD:~0,2%\msys64\usr\bin\bash -lc "pacman --noconfirm -Syyuu"
-          %CD:~0,2%\msys64\usr\bin\bash -lc "pacman --noconfirm -Su"
+          %CD:~0,2%\msys64\usr\bin\bash -lc " "
+          %CD:~0,2%\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu"
+          %CD:~0,2%\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu"
         displayName: 'Update MSYS2'
       - script: |
           %CD:~0,2%\msys64\usr\bin\bash -lc "pacman --noconfirm --needed -Sy make gcc bison flex diffutils openssl-devel libgnutls-devel libutil-linux-devel"
         displayName: 'Install Toolchain'
       - script: |
-          echo make tools-only_defconfig tools-only NO_SDL=1 > build-tools.sh
+          echo make tools-only_defconfig tools-only > build-tools.sh
           %CD:~0,2%\msys64\usr\bin\bash -lc "bash build-tools.sh"
         displayName: 'Build Host Tools'
         env:
@@ -46,38 +47,25 @@ stages:
       - script: brew install make ossp-uuid
         displayName: Brew install dependencies
       - script: |
-          gmake tools-only_config tools-only NO_SDL=1 \
+          gmake tools-only_config tools-only \
             HOSTCFLAGS="-I/usr/local/opt/openssl@1.1/include" \
             HOSTLDFLAGS="-L/usr/local/opt/openssl@1.1/lib" \
             -j$(sysctl -n hw.logicalcpu)
         displayName: 'Perform tools-only build'
 
-  - job: check_for_migrated_symbols_in_board_header
-    displayName: 'Check for migrated symbols in board header'
+  - job: check_for_new_CONFIG_symbols_outside_Kconfig
+    displayName: 'Check for new CONFIG symbols outside Kconfig'
     pool:
       vmImage: $(ubuntu_vm)
     container:
       image: $(ci_runner_image)
       options: $(container_option)
     steps:
-      - script: |
-          KSYMLST=`mktemp`
-          KUSEDLST=`mktemp`
-          cat `find . -name "Kconfig*"` | \
-             sed -n -e 's/^\s*config *\([A-Za-z0-9_]*\).*$/CONFIG_\1/p' \
-             -e 's/^\s*menuconfig *\([A-Za-z0-9_]*\).*$/CONFIG_\1/p' \
-             | sort -u > $KSYMLST
-          for CFG in `find include/configs -name "*.h"`; do
-             grep '#define[[:blank:]]CONFIG_' $CFG | \
-                sed -n 's/#define.\(CONFIG_[A-Za-z0-9_]*\).*/\1/p' | \
-                sort -u > ${KUSEDLST} || true
-             NUM=`comm -12 --total --output-delimiter=, ${KSYMLST} ${KUSEDLST} | \
-                cut -d , -f 3`
-             if [[ $NUM -ne 0 ]]; then
-                echo "Unmigrated symbols found in $CFG"
-                exit 1
-             fi
-          done
+      # If grep succeeds and finds a match the test fails as we should
+      # have no matches.
+      - script: git grep -E '^#[[:blank:]]*(define|undef)[[:blank:]]*CONFIG_'
+                  :^doc/ :^arch/arm/dts/ :^scripts/kconfig/lkc.h
+                  :^include/linux/kconfig.h :^tools/ && exit 1 || exit 0
 
   - job: cppcheck
     displayName: 'Static code analysis with cppcheck'
@@ -89,8 +77,8 @@ stages:
     steps:
       - script: cppcheck -j$(nproc) --force --quiet --inline-suppr .
 
-  - job: htmldocs
-    displayName: 'Build HTML documentation'
+  - job: docs
+    displayName: 'Build documentation'
     pool:
       vmImage: $(ubuntu_vm)
     container:
@@ -102,6 +90,7 @@ stages:
           . /tmp/venvhtml/bin/activate
           pip install -r doc/sphinx/requirements.txt
           make htmldocs
+          make infodocs
 
   - job: todo
     displayName: 'Search for TODO within source tree'
@@ -134,7 +123,7 @@ stages:
       options: $(container_option)
     steps:
       - script: |
-          if [ `./tools/genboardscfg.py -f 2>&1 | wc -l` -ne 0 ]; then exit 1; fi
+          ./tools/buildman/buildman -R
 
   - job: tools_only
     displayName: 'Ensure host tools build'
@@ -164,13 +153,11 @@ stages:
       vmImage: $(ubuntu_vm)
     steps:
       - script: |
-          cat << EOF > build.sh
-          set -ex
-          cd ${WORK_DIR}
-          EOF
-          cat << "EOF" >> build.sh
+          cat << "EOF" > build.sh
+          cd $(work_dir)
           git config --global user.name "Azure Pipelines"
           git config --global user.email bmeng.cn@gmail.com
+          git config --global --add safe.directory $(work_dir)
           export USER=azure
           virtualenv -p /usr/bin/python3 /tmp/venv
           . /tmp/venv/bin/activate
@@ -179,6 +166,7 @@ stages:
           export PYTHONPATH=${UBOOT_TRAVIS_BUILD_DIR}/scripts/dtc/pylibfdt
           export PATH=${UBOOT_TRAVIS_BUILD_DIR}/scripts/dtc:${PATH}
           ./tools/buildman/buildman -T0 -o ${UBOOT_TRAVIS_BUILD_DIR} -w --board sandbox_spl
+          set -ex
           ./tools/binman/binman --toolpath ${UBOOT_TRAVIS_BUILD_DIR}/tools test
           ./tools/buildman/buildman -t
           ./tools/dtoc/dtoc -t
@@ -199,8 +187,31 @@ stages:
       options: $(container_option)
     steps:
       - script: |
-          export PATH=/opt/gcc-11.1.0-nolibc/arm-linux-gnueabi/bin:$PATH
+          export PATH=/opt/gcc-12.2.0-nolibc/arm-linux-gnueabi/bin:$PATH
           test/nokia_rx51_test.sh
+
+  - job: pylint
+    displayName: Check for any pylint regressions
+    pool:
+      vmImage: $(ubuntu_vm)
+    container:
+      image: $(ci_runner_image)
+      options: $(container_option)
+    steps:
+      - script: |
+          git config --global --add safe.directory $(work_dir)
+          export USER=azure
+          pip install -r test/py/requirements.txt
+          pip install asteval pylint==2.12.2 pyopenssl
+          export PATH=${PATH}:~/.local/bin
+          echo "[MASTER]" >> .pylintrc
+          echo "load-plugins=pylint.extensions.docparams" >> .pylintrc
+          export UBOOT_TRAVIS_BUILD_DIR=/tmp/sandbox_spl
+          ./tools/buildman/buildman -T0 -o ${UBOOT_TRAVIS_BUILD_DIR} -w --board sandbox_spl
+          set -ex
+          pylint --version
+          export PYTHONPATH=${UBOOT_TRAVIS_BUILD_DIR}/scripts/dtc/pylibfdt
+          make pylint_err
 
 - stage: test_py
   jobs:
@@ -214,21 +225,35 @@ stages:
           TEST_PY_BD: "sandbox"
         sandbox_clang:
           TEST_PY_BD: "sandbox"
-          OVERRIDE: "-O clang-13"
+          OVERRIDE: "-O clang-14"
+        sandbox_nolto:
+          TEST_PY_BD: "sandbox"
+          BUILD_ENV: "NO_LTO=1"
         sandbox_spl:
           TEST_PY_BD: "sandbox_spl"
           TEST_PY_TEST_SPEC: "test_ofplatdata or test_handoff or test_spl"
+        sandbox_vpl:
+          TEST_PY_BD: "sandbox_vpl"
+          TEST_PY_TEST_SPEC: "test_vpl_help or test_spl"
         sandbox_noinst:
           TEST_PY_BD: "sandbox_noinst"
           TEST_PY_TEST_SPEC: "test_ofplatdata or test_handoff or test_spl"
         sandbox_flattree:
           TEST_PY_BD: "sandbox_flattree"
+        sandbox_trace:
+          TEST_PY_BD: "sandbox"
+          BUILD_ENV: "FTRACE=1 NO_LTO=1"
+          TEST_PY_TEST_SPEC: "trace"
+          OVERRIDE: "-a CONFIG_TRACE=y -a CONFIG_TRACE_EARLY=y -a CONFIG_TRACE_EARLY_SIZE=0x01000000"
         coreboot:
           TEST_PY_BD: "coreboot"
           TEST_PY_ID: "--id qemu"
           TEST_PY_TEST_SPEC: "not sleep"
         evb_ast2500:
           TEST_PY_BD: "evb-ast2500"
+          TEST_PY_ID: "--id qemu"
+        evb_ast2600:
+          TEST_PY_BD: "evb-ast2600"
           TEST_PY_ID: "--id qemu"
         vexpress_ca9x4:
           TEST_PY_BD: "vexpress_ca9x4"
@@ -320,10 +345,12 @@ stages:
           export TEST_PY_ID="${TEST_PY_ID}"
           export TEST_PY_TEST_SPEC="${TEST_PY_TEST_SPEC}"
           export OVERRIDE="${OVERRIDE}"
+          export BUILD_ENV="${BUILD_ENV}"
           EOF
           cat << "EOF" >> test.sh
           # the below corresponds to .gitlab-ci.yml "before_script"
           cd ${WORK_DIR}
+          git config --global --add safe.directory ${WORK_DIR}
           git clone --depth=1 https://source.denx.de/u-boot/u-boot-test-hooks /tmp/uboot-test-hooks
           ln -s travis-ci /tmp/uboot-test-hooks/bin/`hostname`
           ln -s travis-ci /tmp/uboot-test-hooks/py/`hostname`
@@ -340,6 +367,9 @@ stages:
           # the below corresponds to .gitlab-ci.yml "script"
           cd ${WORK_DIR}
           export UBOOT_TRAVIS_BUILD_DIR=/tmp/${TEST_PY_BD};
+          if [ -n "${BUILD_ENV}" ]; then
+              export ${BUILD_ENV};
+          fi
           tools/buildman/buildman -o ${UBOOT_TRAVIS_BUILD_DIR} -w -E -W -e --board ${TEST_PY_BD} ${OVERRIDE}
           cp ~/grub_x86.efi ${UBOOT_TRAVIS_BUILD_DIR}/
           cp ~/grub_x64.efi ${UBOOT_TRAVIS_BUILD_DIR}/
@@ -404,10 +434,12 @@ stages:
       vmImage: $(ubuntu_vm)
     strategy:
       # Use almost the same target division in .travis.yml, only merged
-      # 4 small build jobs (arc/microblaze/nds32/xtensa) into one.
+      # 3 small build jobs (arc/microblaze/xtensa) into one.
       matrix:
-        arc_microblaze_nds32_xtensa:
-          BUILDMAN: "arc microblaze nds32 xtensa"
+        arc_microblaze_xtensa:
+          BUILDMAN: "arc microblaze xtensa"
+        amlogic:
+          BUILDMAN: "amlogic"
         arm11_arm7_arm920t_arm946es:
           BUILDMAN: "arm11 arm7 arm920t arm946es"
         arm926ejs:
@@ -437,11 +469,17 @@ stages:
         imx6:
           BUILDMAN: "mx6 -x boundary,engicam,freescale,technexion,toradex"
         imx:
-          BUILDMAN: "mx -x mx6,freescale,technexion,toradex"
-        imx8:
-          BUILDMAN: "imx8"
+          BUILDMAN: "mx -x mx6,imx8,freescale,technexion,toradex"
+        imx8_imx9:
+          BUILDMAN: "imx8 imx9"
         keystone2_keystone3:
           BUILDMAN: "k2 k3"
+        sandbox_asan:
+          BUILDMAN: "sandbox"
+          OVERRIDE: "-a ASAN"
+        sandbox_clang_asan:
+          BUILDMAN: "sandbox"
+          OVERRIDE: "-O clang-14 -a ASAN"
         samsung_socfpga:
           BUILDMAN: "samsung socfpga"
         sun4i:
@@ -474,20 +512,8 @@ stages:
           BUILDMAN: "m68k"
         mips:
           BUILDMAN: "mips"
-        non_fsl_ppc:
-          BUILDMAN: "powerpc -x freescale"
-        mpc85xx_freescale:
-          BUILDMAN: "mpc85xx&freescale -x t208xrdb -x t102* -x p1_p2_rdb_pc -x p1010rdb -x corenet_ds -x bsc91*"
-        t208xrdb_corenet_ds:
-          BUILDMAN: "t208xrdb corenet_ds"
-        fsl_ppc:
-          BUILDMAN: "mpc83xx&freescale"
-        t102x:
-          BUILDMAN: "t102*"
-        p1_p2_rdb_pc:
-          BUILDMAN: "p1_p2_rdb_pc"
-        p1010rdb_bsc91:
-          BUILDMAN: "p1010rdb bsc91"
+        powerpc:
+          BUILDMAN: "powerpc"
         siemens:
           BUILDMAN: "siemens"
         tegra:
@@ -499,9 +525,11 @@ stages:
         uniphier:
           BUILDMAN: "uniphier"
         aarch64_catch_all:
-          BUILDMAN: "aarch64 -x bcm,imx8,k3,tegra,ls1,ls2,lx216,mvebu,uniphier,renesas,sunxi,samsung,socfpga,rk,versal,zynq"
-        rockchip:
-          BUILDMAN: "rk"
+          BUILDMAN: "aarch64 -x amlogic,bcm,imx8,imx9,k3,tegra,ls1,ls2,lx216,mvebu,uniphier,renesas,sunxi,samsung,socfpga,rk,versal,zynq"
+        rockchip_32bit:
+          BUILDMAN: "rk -x aarch64"
+        rockchip_64bit:
+          BUILDMAN: "rk&aarch64"
         renesas:
           BUILDMAN: "renesas"
         zynq:
@@ -517,11 +545,12 @@ stages:
           cd ${WORK_DIR}
           # make environment variables available as tests are running inside a container
           export BUILDMAN="${BUILDMAN}"
+          git config --global --add safe.directory ${WORK_DIR}
           EOF
           cat << "EOF" >> build.sh
           if [[ "${BUILDMAN}" != "" ]]; then
               ret=0;
-              tools/buildman/buildman -o /tmp -P -E -W ${BUILDMAN} ${OVERRIDE} || ret=$?;
+              tools/buildman/buildman -o /tmp -PEWM ${BUILDMAN} ${OVERRIDE} || ret=$?;
               if [[ $ret -ne 0 ]]; then
                   tools/buildman/buildman -o /tmp -seP ${BUILDMAN};
                   exit $ret;

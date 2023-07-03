@@ -52,7 +52,7 @@
 
 #endif
 
-#define CONFIG_MFG_ENV_SETTINGS_DEFAULT \
+#define CFG_MFG_ENV_SETTINGS_DEFAULT \
 	"mfgtool_args=setenv bootargs console=${console},${baudrate} " \
 		"rdinit=/linuxrc " \
 		"clk_ignore_unused "\

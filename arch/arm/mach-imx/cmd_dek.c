@@ -22,7 +22,7 @@
 #include <asm/mach-imx/image.h>
 #endif
 #ifdef CONFIG_IMX_ELE_DEK_ENCAP
-#include <asm/mach-imx/s400_api.h>
+#include <asm/mach-imx/ele_api.h>
 #include <asm/mach-imx/image.h>
 #endif
 
@@ -46,7 +46,7 @@ static int blob_encap_dek(u32 src_addr, u32 dst_addr, u32 len)
 
 	hab_caam_clock_enable(1);
 
-	u32 out_jr_size = sec_in32(CONFIG_SYS_FSL_JR0_ADDR +
+	u32 out_jr_size = sec_in32(CFG_SYS_FSL_JR0_ADDR +
 				   FSL_CAAM_ORSR_JRa_OFFSET);
 	if (out_jr_size != FSL_CAAM_MAX_JR_SIZE)
 		sec_init();
@@ -392,6 +392,47 @@ static int do_dek_blob(struct cmd_tbl *cmdtp, int flag, int argc,
 
 	return blob_encap_dek(src_addr, dst_addr, len);
 }
+
+#if defined(CONFIG_ANDROID_SUPPORT) || defined(CONFIG_ANDROID_AUTO_SUPPORT)
+#ifdef CONFIG_AHAB_BOOT
+int generate_dek_blob(char *data, uint32_t *data_size)
+{
+	int ret = 0;
+	uint8_t *buf;
+	uint32_t out_data_size = BLOB_SIZE(*data_size) + DEK_BLOB_HDR_SIZE;
+
+	buf = malloc(out_data_size);
+	if(!buf)
+	{
+		printf("malloc failed!\n");
+		ret = -1;
+		goto exit;
+	}
+
+	if (!data || ((*data_size != 16) && (*data_size != 24) && (*data_size != 32))) {
+		printf("input_data or data_size invalid!\n");
+		ret = -1;
+		goto exit;
+	}
+
+	if (blob_encap_dek((u32)(unsigned long)data, (u32)(unsigned long)buf, *data_size * 8)) {
+		printf("can not generate dek blob!\n");
+		ret = -1;
+		goto exit;
+	}
+
+	memcpy(data, buf, out_data_size);
+
+	*data_size = out_data_size;
+
+exit:
+	if(buf)
+		free(buf);
+
+	return ret;
+}
+#endif /* CONFIG_AHAB_BOOT */
+#endif /* CONFIG_ANDROID_SUPPORT || CONFIG_ANDROID_AUTO_SUPPORT */
 
 /***************************************************/
 static char dek_blob_help_text[] =

@@ -197,6 +197,11 @@ struct device_node *of_get_parent(const struct device_node *np);
 /**
  * of_find_node_opts_by_path() - Find a node matching a full OF path
  *
+ * Note that alias processing is only available on the control FDT (gd->of_root).
+ * For other trees it is skipped, so any attempt to obtain an alias will result
+ * in returning NULL.
+ *
+ * @root: Root node of the tree to use. If this is NULL, then gd->of_root is used
  * @path: Either the full path to match, or if the path does not start with
  *	'/', the name of a property of the /aliases node (an alias). In the
  *	case of an alias, the node matching the alias' value will be returned.
@@ -210,12 +215,13 @@ struct device_node *of_get_parent(const struct device_node *np);
  *
  * Return: a node pointer or NULL if not found
  */
-struct device_node *of_find_node_opts_by_path(const char *path,
+struct device_node *of_find_node_opts_by_path(struct device_node *root,
+					      const char *path,
 					      const char **opts);
 
 static inline struct device_node *of_find_node_by_path(const char *path)
 {
-	return of_find_node_opts_by_path(path, NULL);
+	return of_find_node_opts_by_path(NULL, path, NULL);
 }
 
 /**
@@ -252,11 +258,45 @@ struct device_node *of_find_node_by_prop_value(struct device_node *from,
 /**
  * of_find_node_by_phandle() - Find a node given a phandle
  *
+ * @root:	root node to start from (NULL for default device tree)
  * @handle:	phandle of the node to find
  *
  * Return: node pointer, or NULL if not found
  */
-struct device_node *of_find_node_by_phandle(phandle handle);
+struct device_node *of_find_node_by_phandle(struct device_node *root,
+					    phandle handle);
+
+/**
+ * of_read_u8() - Find and read a 8-bit integer from a property
+ *
+ * Search for a property in a device node and read a 8-bit value from
+ * it.
+ *
+ * @np:		device node from which the property value is to be read.
+ * @propname:	name of the property to be searched.
+ * @outp:	pointer to return value, modified only if return value is 0.
+ *
+ * Return: 0 on success, -EINVAL if the property does not exist,
+ * -ENODATA if property does not have a value, and -EOVERFLOW if the
+ * property data isn't large enough.
+ */
+int of_read_u8(const struct device_node *np, const char *propname, u8 *outp);
+
+/**
+ * of_read_u16() - Find and read a 16-bit integer from a property
+ *
+ * Search for a property in a device node and read a 16-bit value from
+ * it.
+ *
+ * @np:		device node from which the property value is to be read.
+ * @propname:	name of the property to be searched.
+ * @outp:	pointer to return value, modified only if return value is 0.
+ *
+ * Return: 0 on success, -EINVAL if the property does not exist,
+ * -ENODATA if property does not have a value, and -EOVERFLOW if the
+ * property data isn't large enough.
+ */
+int of_read_u16(const struct device_node *np, const char *propname, u16 *outp);
 
 /**
  * of_read_u32() - Find and read a 32-bit integer from a property
@@ -287,8 +327,7 @@ int of_read_u32(const struct device_node *np, const char *propname, u32 *outp);
  * @outp:	pointer to return value, modified only if return value is 0.
  *
  * Return:
- *   0 on success, -EINVAL if the property does not exist,
- *   -ENODATA if property does not have a value, and -EOVERFLOW if the
+ *   0 on success, -EINVAL if the property does not exist, or -EOVERFLOW if the
  *   property data isn't large enough.
  */
 int of_read_u32_index(const struct device_node *np, const char *propname,
@@ -305,8 +344,7 @@ int of_read_u32_index(const struct device_node *np, const char *propname,
  * @outp:	pointer to return value, modified only if return value is 0.
  *
  * Return:
- *   0 on success, -EINVAL if the property does not exist,
- *   -ENODATA if property does not have a value, and -EOVERFLOW if the
+ *   0 on success, -EINVAL if the property does not exist, or -EOVERFLOW if the
  *   property data isn't large enough.
  */
 int of_read_u64(const struct device_node *np, const char *propname, u64 *outp);
@@ -322,8 +360,8 @@ int of_read_u64(const struct device_node *np, const char *propname, u64 *outp);
  * @out_values:	pointer to return value, modified only if return value is 0.
  * @sz:		number of array elements to read
  * Return:
- *   0 on success, -EINVAL if the property does not exist, -ENODATA
- *   if property does not have a value, and -EOVERFLOW is longer than sz.
+ *   0 on success, -EINVAL if the property does not exist, or -EOVERFLOW if
+ *   longer than sz.
  */
 int of_read_u32_array(const struct device_node *np, const char *propname,
 		      u32 *out_values, size_t sz);
@@ -512,5 +550,32 @@ int of_alias_get_highest_id(const char *stem);
  * Return: node referred to by stdout-path alias, or NULL if none
  */
 struct device_node *of_get_stdout(void);
+
+/**
+ * of_write_prop() - Write a property to the device tree
+ *
+ * @np:		device node to which the property value is to be written
+ * @propname:	name of the property to write
+ * @value:	value of the property
+ * @len:	length of the property in bytes
+ * Returns: 0 if OK, -ve on error
+ */
+int of_write_prop(struct device_node *np, const char *propname, int len,
+		  const void *value);
+
+/**
+ * of_add_subnode() - add a new subnode to a node
+ *
+ * @node:	parent node to add to
+ * @name:	name of subnode
+ * @len:	length of name (so the caller does not need to nul-terminate a
+ *	partial string), or -1 for strlen(@name)
+ * @subnodep:	returns pointer to new subnode (valid if the function returns 0
+ *	or -EEXIST)
+ * Returns 0 if OK, -EEXIST if already exists, -ENOMEM if out of memory, other
+ * -ve on other error
+ */
+int of_add_subnode(struct device_node *node, const char *name, int len,
+		   struct device_node **subnodep);
 
 #endif

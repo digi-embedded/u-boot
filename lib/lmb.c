@@ -7,7 +7,9 @@
  */
 
 #include <common.h>
+#include <efi_loader.h>
 #include <image.h>
+#include <mapmem.h>
 #include <lmb.h>
 #include <log.h>
 #include <malloc.h>
@@ -108,7 +110,7 @@ void lmb_init(struct lmb *lmb)
 #if IS_ENABLED(CONFIG_LMB_USE_MAX_REGIONS)
 	lmb->memory.max = CONFIG_LMB_MAX_REGIONS;
 	lmb->reserved.max = CONFIG_LMB_MAX_REGIONS;
-#else
+#elif defined(CONFIG_LMB_MEMORY_REGIONS)
 	lmb->memory.max = CONFIG_LMB_MEMORY_REGIONS;
 	lmb->reserved.max = CONFIG_LMB_RESERVED_REGIONS;
 	lmb->memory.region = lmb->memory_regions;
@@ -153,6 +155,40 @@ void arch_lmb_reserve_generic(struct lmb *lmb, ulong sp, ulong end, ulong align)
 	}
 }
 
+/**
+ * efi_lmb_reserve() - add reservations for EFI memory
+ *
+ * Add reservations for all EFI memory areas that are not
+ * EFI_CONVENTIONAL_MEMORY.
+ *
+ * @lmb:	lmb environment
+ * Return:	0 on success, 1 on failure
+ */
+static __maybe_unused int efi_lmb_reserve(struct lmb *lmb)
+{
+	struct efi_mem_desc *memmap = NULL, *map;
+	efi_uintn_t i, map_size = 0;
+	efi_status_t ret;
+
+	ret = efi_get_memory_map_alloc(&map_size, &memmap);
+	if (ret != EFI_SUCCESS)
+		return 1;
+
+	for (i = 0, map = memmap; i < map_size / sizeof(*map); ++map, ++i) {
+		if (map->type != EFI_CONVENTIONAL_MEMORY) {
+			lmb_reserve_flags(lmb,
+					  map_to_sysmem((void *)(uintptr_t)
+							map->physical_start),
+					  map->num_pages * EFI_PAGE_SIZE,
+					  map->type == EFI_RESERVED_MEMORY_TYPE
+					      ? LMB_NOMAP : LMB_NONE);
+		}
+	}
+	efi_free_pool(memmap);
+
+	return 0;
+}
+
 static void lmb_reserve_common(struct lmb *lmb, void *fdt_blob)
 {
 	arch_lmb_reserve(lmb);
@@ -160,6 +196,9 @@ static void lmb_reserve_common(struct lmb *lmb, void *fdt_blob)
 
 	if (CONFIG_IS_ENABLED(OF_LIBFDT) && fdt_blob)
 		boot_fdt_add_mem_rsv_regions(lmb, fdt_blob);
+
+	if (CONFIG_IS_ENABLED(EFI_LOADER))
+		efi_lmb_reserve(lmb);
 }
 
 /* Initialize the struct, add memory and call arch/board reserve functions */
@@ -189,7 +228,7 @@ void lmb_init_and_reserve_range(struct lmb *lmb, phys_addr_t base,
 }
 
 /* This routine called with relocation disabled. */
-static long lmb_add_region_flags(struct lmb_region *rgn, phys_addr_t base,
+static long lmb_add_region_flags_nonoverlap(struct lmb_region *rgn, phys_addr_t base,
 				 phys_size_t size, enum lmb_flags flags)
 {
 	unsigned long coalesced = 0;
@@ -212,7 +251,7 @@ static long lmb_add_region_flags(struct lmb_region *rgn, phys_addr_t base,
 		if (rgnbase == base && rgnsize == size) {
 			if (flags == rgnflags)
 				/* Already have this region, so we're done */
-				return 0;
+				return -2;
 			else
 				return -1; /* regions with new flags */
 		}
@@ -272,6 +311,57 @@ static long lmb_add_region_flags(struct lmb_region *rgn, phys_addr_t base,
 	rgn->cnt++;
 
 	return 0;
+}
+
+static long lmb_overlaps_region(struct lmb_region *rgn, phys_addr_t base,
+				phys_size_t size)
+{
+	unsigned long i;
+
+	for (i = 0; i < rgn->cnt; i++) {
+		phys_addr_t rgnbase = rgn->region[i].base;
+		phys_size_t rgnsize = rgn->region[i].size;
+		if (lmb_addrs_overlap(base, size, rgnbase, rgnsize))
+			break;
+	}
+
+	return (i < rgn->cnt) ? i : -1;
+}
+
+static long lmb_add_region_flags(struct lmb_region *rgn, phys_addr_t base,
+				 phys_size_t size, enum lmb_flags flags)
+{
+	long ret = lmb_add_region_flags_nonoverlap(rgn, base, size, flags);
+	long overlap_rgn;
+	phys_addr_t res_base;
+	phys_size_t res_size;
+
+	/* Handle the overlap */
+	if (ret == -2) {
+		overlap_rgn = lmb_overlaps_region(rgn, base, size);
+		res_base = rgn->region[overlap_rgn].base;
+		res_size = rgn->region[overlap_rgn].size;
+
+		if ((base >= res_base) && ((base + size) <= (res_base + res_size))) {
+			/* new region is inside reserved region, so it is already reserved */
+			return 0;
+		} else {
+			if (base < res_base) {
+				ret = lmb_add_region_flags(rgn, base, res_base - base, flags);
+				if (ret < 0)
+					return ret;
+			}
+
+			if ((base + size) > (res_base + res_size)) {
+				ret = lmb_add_region_flags(rgn, res_base + res_size,
+					(base + size) - (res_base + res_size), flags);
+				if (ret < 0)
+					return ret;
+			}
+		}
+	}
+
+	return ret;
 }
 
 static long lmb_add_region(struct lmb_region *rgn, phys_addr_t base,
@@ -351,56 +441,11 @@ long lmb_reserve(struct lmb *lmb, phys_addr_t base, phys_size_t size)
 	return lmb_reserve_flags(lmb, base, size, LMB_NONE);
 }
 
-static long lmb_overlaps_region(struct lmb_region *rgn, phys_addr_t base,
-				phys_size_t size)
-{
-	unsigned long i;
-
-	for (i = 0; i < rgn->cnt; i++) {
-		phys_addr_t rgnbase = rgn->region[i].base;
-		phys_size_t rgnsize = rgn->region[i].size;
-		if (lmb_addrs_overlap(base, size, rgnbase, rgnsize))
-			break;
-	}
-
-	return (i < rgn->cnt) ? i : -1;
-}
-
-long lmb_reserve_overlap(struct lmb *lmb, phys_addr_t base, phys_size_t size,
-		       enum lmb_flags flags)
+long lmb_reserve_nonoverlap(struct lmb *lmb, phys_addr_t base, phys_size_t size)
 {
 	struct lmb_region *_rgn = &(lmb->reserved);
-	long ret = lmb_add_region_flags(_rgn, base, size, flags);
-	long overlap_rgn;
-	phys_addr_t res_base;
-	phys_size_t res_size;
 
-	/* Handle the overlap */
-	if (ret == -2) {
-		overlap_rgn = lmb_overlaps_region(_rgn, base, size);
-		res_base = lmb->reserved.region[overlap_rgn].base;
-		res_size = lmb->reserved.region[overlap_rgn].size;
-
-		if ((base >= res_base) && ((base + size) <= (res_base + res_size))) {
-			/* new region is inside reserved region, so it is already reserved */
-			return 0;
-		} else {
-			if (base < res_base) {
-				ret = lmb_reserve_flags(lmb, base, res_base - base, flags);
-				if (ret < 0)
-					return ret;
-			}
-
-			if ((base + size) > (res_base + res_size)) {
-				ret = lmb_reserve_flags(lmb, res_base + res_size,
-					(base + size) - (res_base + res_size), flags);
-				if (ret < 0)
-					return ret;
-			}
-		}
-	}
-
-	return ret;
+	return lmb_add_region_flags_nonoverlap(_rgn, base, size, LMB_NONE);
 }
 
 phys_addr_t lmb_alloc(struct lmb *lmb, phys_size_t size, ulong align)
@@ -486,7 +531,7 @@ phys_addr_t lmb_alloc_addr(struct lmb *lmb, phys_addr_t base, phys_size_t size)
 				      lmb->memory.region[rgn].size,
 				      base + size - 1, 1)) {
 			/* ok, reserve the memory */
-			if (lmb_reserve(lmb, base, size) >= 0)
+			if (lmb_reserve_nonoverlap(lmb, base, size) >= 0)
 				return base;
 		}
 	}

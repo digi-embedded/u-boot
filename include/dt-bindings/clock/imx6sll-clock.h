@@ -1,9 +1,7 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Copyright (C) 2016 Freescale Semiconductor, Inc.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+ * Copyright 2017-2018 NXP.
  *
  */
 
@@ -200,6 +198,14 @@
 #define IMX6SLL_CLK_EXTERN_AUDIO        172
 #define IMX6SLL_CLK_GPT_3M		173
 
-#define IMX6SLL_CLK_END			174
+#define IMX6SLL_CLK_GPIO1               173
+#define IMX6SLL_CLK_GPIO2               174
+#define IMX6SLL_CLK_GPIO3               175
+#define IMX6SLL_CLK_GPIO4               176
+#define IMX6SLL_CLK_GPIO5               177
+#define IMX6SLL_CLK_GPIO6               178
+#define IMX6SLL_CLK_MMDC_P1_IPG		179
+
+#define IMX6SLL_CLK_END			180
 
 #endif /* __DT_BINDINGS_CLOCK_IMX6SLL_H */

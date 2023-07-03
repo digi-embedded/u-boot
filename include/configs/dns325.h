@@ -17,13 +17,6 @@
 /* Remove or override few declarations from mv-common.h */
 
 /*
- * Ethernet Driver configuration
- */
-#ifdef CONFIG_CMD_NET
-#define CONFIG_MVGBE_PORTS		{1, 0} /* enable port 0 only */
-#endif
-
-/*
  * Enable GPI0 support
  */
 
@@ -35,14 +28,12 @@
  * Default environment variables
  */
 
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	"stdin=serial\0" \
 	"stdout=serial\0" \
 	"stderr=serial\0" \
 	"loadaddr=0x800000\0" \
-	"autoload=no\0" \
 	"console=ttyS0,115200\0" \
-	"mtdparts="CONFIG_MTDPARTS_DEFAULT \
 	"optargs=\0" \
 	"bootenv=uEnv.txt\0" \
 	"importbootenv=echo Importing environment ...; " \

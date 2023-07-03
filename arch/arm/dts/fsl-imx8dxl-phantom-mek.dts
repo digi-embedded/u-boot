@@ -32,16 +32,17 @@
 			off-on-delay-us = <12000>;
 		};
 
-		epdev_on: fixedregulator@100 {
+		reg_pcieb: fixedregulator@100 {
 			compatible = "regulator-fixed";
 			pinctrl-names = "default", "sleep";
 			pinctrl-0 = <&pinctrl_wlreg_on>;
 			pinctrl-1 = <&pinctrl_wlreg_on_sleep>;
 			regulator-min-microvolt = <3300000>;
 			regulator-max-microvolt = <3300000>;
-			regulator-name = "epdev_on";
-			gpio = <&gpio4 18 GPIO_ACTIVE_HIGH>;
+			regulator-name = "reg_pcieb";
+			gpio = <&gpio3 3 GPIO_ACTIVE_HIGH>;
 			enable-active-high;
+			regulator-always-on;
 		};
 
 		reg_usb_otg1_vbus: regulator@0 {
@@ -161,13 +162,13 @@
 
 		pinctrl_wlreg_on: wlregongrp{
 			fsl,pins = <
-				SC_P_EMMC0_RESET_B_LSIO_GPIO4_IO18		0x06000000
+				SC_P_CSI_RESET_LSIO_GPIO3_IO03		0x06000000
 			>;
 		};
 
 		pinctrl_wlreg_on_sleep: wlregon_sleepgrp{
 			fsl,pins = <
-				SC_P_EMMC0_RESET_B_LSIO_GPIO4_IO18		0x07800000
+				SC_P_CSI_RESET_LSIO_GPIO3_IO03		0x07800000
 			>;
 		};
 	};
@@ -265,9 +266,8 @@
 &pcieb{
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_pcieb>;
-	clkreq-gpio = <&gpio4 1 GPIO_ACTIVE_LOW>;
 	reset-gpio = <&gpio4 0 GPIO_ACTIVE_LOW>;
-	epdev_on = <&epdev_on>;
+	vpcie-supply = <&reg_pcieb>;
 	ext_osc = <1>;
 	status = "okay";
 };

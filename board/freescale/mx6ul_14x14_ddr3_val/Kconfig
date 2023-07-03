@@ -12,7 +12,7 @@ config SYS_CONFIG_NAME
 config MX6UL_DDR3_VAL_EMMC_REWORK
 	bool "Select this for the board with eMMC rework"
 
-config SYS_TEXT_BASE
+config TEXT_BASE
 	default 0x87800000
 
 config MX6UL_DDR3_VAL_USDHC2_REWORK

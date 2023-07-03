@@ -74,6 +74,18 @@ static const struct soc_attr ti_k3_soc_clk_data[] = {
 		.data = &j721s2_clk_platdata,
 	},
 #endif
+#ifdef CONFIG_SOC_K3_AM625
+	{
+		.family = "AM62X",
+		.data = &am62x_clk_platdata,
+	},
+#endif
+#ifdef CONFIG_SOC_K3_AM62A7
+	{
+		.family = "AM62AX",
+		.data = &am62ax_clk_platdata,
+	},
+#endif
 	{ /* sentinel */ }
 };
 

@@ -10,6 +10,30 @@
 
 };
 
+&soc {
+	u-boot,dm-spl;
+};
+
+&aips1 {
+	u-boot,dm-spl;
+};
+
+&aips2 {
+	u-boot,dm-spl;
+};
+
+&aips3 {
+	u-boot,dm-spl;
+};
+
+&aips4 {
+	u-boot,dm-spl;
+};
+
+&iomuxc {
+	u-boot,dm-spl;
+};
+
 &binman {
 	u-boot-spl-ddr {
 		align = <4>;
@@ -22,27 +46,27 @@
 			filename = "u-boot-spl.bin";
 		};
 
-		1d-imem {
+		ddr-1d-imem-fw {
 			filename = "lpddr4_pmu_train_1d_imem.bin";
-			size = <0x8000>;
+			align-end = <4>;
 			type = "blob-ext";
 		};
 
-		1d-dmem {
+		ddr-1d-dmem-fw {
 			filename = "lpddr4_pmu_train_1d_dmem.bin";
-			size = <0x4000>;
+			align-end = <4>;
 			type = "blob-ext";
 		};
 
-		2d-imem {
+		ddr-2d-imem-fw {
 			filename = "lpddr4_pmu_train_2d_imem.bin";
-			size = <0x8000>;
+			align-end = <4>;
 			type = "blob-ext";
 		};
 
-		2d-dmem {
+		ddr-2d-dmem-fw {
 			filename = "lpddr4_pmu_train_2d_dmem.bin";
-			size = <0x4000>;
+			align-end = <4>;
 			type = "blob-ext";
 		};
 	};
@@ -81,7 +105,7 @@
 					arch = "arm64";
 					compression = "none";
 					description = "U-Boot (64-bit)";
-					load = <CONFIG_SYS_TEXT_BASE>;
+					load = <CONFIG_TEXT_BASE>;
 					type = "standalone";
 
 					uboot-blob {
@@ -90,6 +114,7 @@
 					};
 				};
 
+#ifndef CONFIG_ARMV8_PSCI
 				atf {
 					arch = "arm64";
 					compression = "none";
@@ -103,6 +128,7 @@
 						type = "blob-ext";
 					};
 				};
+#endif
 
 				fdt {
 					compression = "none";
@@ -123,7 +149,9 @@
 					description = "NAME";
 					fdt = "fdt";
 					firmware = "uboot";
+#ifndef CONFIG_ARMV8_PSCI
 					loadables = "atf";
+#endif
 				};
 			};
 		};

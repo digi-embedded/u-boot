@@ -12,6 +12,7 @@
 #include <image.h>
 #include <init.h>
 #include <log.h>
+#include <semihosting.h>
 #include <spl.h>
 #include <asm/cache.h>
 #include <asm/global_data.h>
@@ -27,6 +28,8 @@ DECLARE_GLOBAL_DATA_PTR;
 
 u32 spl_boot_device(void)
 {
+	if (semihosting_enabled())
+		return BOOT_DEVICE_SMH;
 #ifdef CONFIG_SPL_MMC
 	return BOOT_DEVICE_MMC1;
 #endif
@@ -64,11 +67,24 @@ void spl_board_init(void)
 #endif
 }
 
+void tzpc_init(void)
+{
+	/*
+	 * Mark the whole OCRAM as non-secure, otherwise DMA devices cannot
+	 * access it. This is for example necessary for MMC boot.
+	 */
+#ifdef TZPCR0SIZE_BASE
+	out_le32(TZPCR0SIZE_BASE, 0);
+#endif
+}
+
 void board_init_f(ulong dummy)
 {
 	int ret;
 
 	icache_enable();
+	tzpc_init();
+
 	/* Clear global data */
 	memset((void *)gd, 0, sizeof(gd_t));
 	if (IS_ENABLED(CONFIG_DEBUG_UART))
@@ -100,7 +116,7 @@ void board_init_f(ulong dummy)
 #endif
 	dram_init();
 #ifdef CONFIG_SPL_FSL_LS_PPA
-#ifndef CONFIG_SYS_MEM_RESERVE_SECURE
+#ifndef CFG_SYS_MEM_RESERVE_SECURE
 #error Need secure RAM for PPA
 #endif
 	/*

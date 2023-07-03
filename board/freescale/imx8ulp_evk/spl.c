@@ -20,10 +20,8 @@
 #include <asm/arch/ddr.h>
 #include <asm/arch/rdc.h>
 #include <asm/arch/upower.h>
+#include <asm/mach-imx/ele_api.h>
 #include <asm/mach-imx/boot_mode.h>
-#include <asm/mach-imx/s400_api.h>
-#include <asm/arch/clock.h>
-#include <asm/arch/pcc.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -31,6 +29,7 @@ void spl_dram_init(void)
 {
 	/* Reboot in dual boot setting no need to init ddr again */
 	bool ddr_enable = pcc_clock_is_enable(5, LPDDR4_PCC5_SLOT);
+
 	if (!ddr_enable) {
 		init_clk_ddr();
 		ddr_init(&dram_timing);
@@ -87,16 +86,12 @@ void setup_iomux_pmic(void)
 
 int power_init_board(void)
 {
-	if (IS_ENABLED(CONFIG_IMX8ULP_LD_MODE)) {
-		/* Set buck3 to 0.9v LD */
-		upower_pmic_i2c_write(0x22, 0x18);
-	} else if (IS_ENABLED(CONFIG_IMX8ULP_ND_MODE)) {
+	if (IS_ENABLED(CONFIG_IMX8ULP_ND_MODE)) {
 		/* Set buck3 to 1.0v ND */
 		upower_pmic_i2c_write(0x22, 0x20);
 	} else {
 		/* Set buck3 to 1.1v OD */
 		upower_pmic_i2c_write(0x22, 0x28);
-
 	}
 
 	return 0;
@@ -121,11 +116,11 @@ void display_ele_fw_version(void)
 
 void spl_board_init(void)
 {
-	struct udevice *dev;
 	u32 res;
 	int ret;
+	struct udevice *dev;
 
-	ret = arch_cpu_init_dm();
+	ret = imx8ulp_dm_post_init();
 	if (ret)
 		return;
 
@@ -141,9 +136,7 @@ void spl_board_init(void)
 	if (!m33_image_booted())
 		setup_iomux_pmic();
 
-	/* Load the lposc fuse to work around ROM issue,
-	 *  The fuse depends on S400 to read.
-	 */
+	/* Load the lposc fuse to work around ROM issue. The fuse depends on S400 to read. */
 	if (is_soc_rev(CHIP_REV_1_0))
 		load_lposc_fuse();
 

@@ -132,7 +132,7 @@ int board_mmc_init(struct bd_info *bis)
 	 * mmc0                    USDHC1
 	 * mmc1                    USDHC2
 	 */
-	for (i = 0; i < CONFIG_SYS_FSL_USDHC_NUM; i++) {
+	for (i = 0; i < CFG_SYS_FSL_USDHC_NUM; i++) {
 		switch (i) {
 		case 0:
 			init_clk_usdhc(1);
@@ -266,7 +266,7 @@ int power_init_board(void)
 	struct udevice *dev;
 	int ret;
 
-	ret = pmic_get("pca9450@25", &dev);
+	ret = pmic_get("pmic@25", &dev);
 	if (ret == -ENODEV) {
 		puts("No pca9450@25\n");
 		return 0;
@@ -317,9 +317,6 @@ int power_init_board(void)
 	/* enable LDO4 to 1.2v */
 	pmic_reg_write(dev, PCA9450_LDO4CTRL, 0x44);
 #endif /* CONFIG_IMX8MN */
-
-	/* set WDOG_B_CFG to cold reset */
-	pmic_reg_write(dev, PCA9450_RESET_CTRL, 0xA1);
 
 	return 0;
 }
@@ -380,14 +377,7 @@ int power_init_board(void)
 void spl_board_init(void)
 {
 #if defined(CONFIG_IMX8MN)
-	struct udevice *dev;
-	int ret;
-
-	if (IS_ENABLED(CONFIG_FSL_CAAM)) {
-		ret = uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(caam_jr), &dev);
-		if (ret)
-			printf("Failed to initialize %d\n", ret);
-	}
+	arch_misc_init();
 #else
 	if (IS_ENABLED(CONFIG_FSL_CAAM)) {
 		if (sec_init())
@@ -420,8 +410,6 @@ void board_init_f(ulong dummy)
 
 	timer_init();
 
-	preloader_console_init();
-
 	ret = spl_early_init();
 	if (ret) {
 		debug("spl_early_init() failed: %d\n", ret);
@@ -439,6 +427,8 @@ void board_init_f(ulong dummy)
 		hang();
 	}
 #endif
+
+	preloader_console_init();
 
 	enable_tzc380();
 

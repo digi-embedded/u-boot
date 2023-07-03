@@ -20,7 +20,7 @@
 #include <asm/mach-imx/mxc_i2c.h>
 #include <asm/arch-mx7ulp/gpio.h>
 #include <asm/mach-imx/syscounter.h>
-#include <asm/mach-imx/s400_api.h>
+#include <asm/mach-imx/ele_api.h>
 #include <dm/uclass.h>
 #include <dm/device.h>
 #include <dm/uclass-internal.h>
@@ -42,7 +42,13 @@ int spl_board_boot_device(enum boot_device boot_dev_spl)
 
 void spl_board_init(void)
 {
+	int ret;
+
 	puts("Normal Boot\n");
+
+	ret = ahab_start_rng();
+	if (ret)
+		printf("Fail to start RNG: %d\n", ret);
 }
 
 void spl_dram_init(void)
@@ -55,6 +61,7 @@ int power_init_board(void)
 {
 	struct udevice *dev;
 	int ret;
+	unsigned int val;
 
 	ret = pmic_get("pmic@25", &dev);
 	if (ret == -ENODEV) {
@@ -70,12 +77,26 @@ int power_init_board(void)
 	/* enable DVS control through PMIC_STBY_REQ */
 	pmic_reg_write(dev, PCA9450_BUCK1CTRL, 0x59);
 
+	ret = pmic_reg_read(dev, PCA9450_PWR_CTRL);
+	if (ret < 0)
+		return ret;
+	else
+		val = ret;
+
 	/* 0.9v: for LPDDR4X 3722 */
-	pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, 0x18);
-	pmic_reg_write(dev, PCA9450_BUCK3OUT_DVS0, 0x18);
+	if (val & PCA9450_REG_PWRCTRL_TOFF_DEB) {
+		pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, 0x14);
+		pmic_reg_write(dev, PCA9450_BUCK3OUT_DVS0, 0x14);
+	} else {
+		pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, 0x18);
+		pmic_reg_write(dev, PCA9450_BUCK3OUT_DVS0, 0x18);
+	}
 
 	/* set standby voltage to 0.65v */
-	pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS1, 0x4);
+	if (val & PCA9450_REG_PWRCTRL_TOFF_DEB)
+		pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS1, 0x0);
+	else
+		pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS1, 0x4);
 
 	/* 1.1v for LPDDR4 */
 	pmic_reg_write(dev, PCA9450_BUCK2OUT_DVS0, 0x28);
@@ -89,6 +110,7 @@ int power_init_board(void)
 }
 #endif
 
+extern int imx9_probe_mu(void *ctx, struct event *event);
 void board_init_f(ulong dummy)
 {
 	int ret;
@@ -106,9 +128,9 @@ void board_init_f(ulong dummy)
 
 	preloader_console_init();
 
-	ret = arch_cpu_init_dm();
+	ret = imx9_probe_mu(NULL, NULL);
 	if (ret) {
-		printf("Fail to init Sentinel API\n");
+		printf("Fail to init ELE API\n");
 	} else {
 		printf("SOC: 0x%x\n", gd->arch.soc_rev);
 		printf("LC: 0x%x\n", gd->arch.lifecycle);

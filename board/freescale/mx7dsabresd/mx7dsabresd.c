@@ -28,7 +28,6 @@
 #include <asm/mach-imx/mxc_i2c.h>
 #include <asm/arch/crm_regs.h>
 #if defined(CONFIG_MXC_EPDC)
-#include <lcd.h>
 #include <mxc_epdc_fb.h>
 #endif
 #include <asm/mach-imx/video.h>
@@ -166,7 +165,7 @@ static void setup_gpmi_nand(void)
 }
 #endif
 
-#ifdef CONFIG_DM_VIDEO
+#ifdef CONFIG_VIDEO
 static iomux_v3_cfg_t const lcd_pads[] = {
 	MX7D_PAD_LCD_RESET__GPIO3_IO4	| MUX_PAD_CTRL(LCD_PAD_CTRL),
 };
@@ -641,7 +640,7 @@ int board_late_init(void)
 	env_set("tee", "yes");
 #endif
 
-#ifdef CONFIG_ENV_IS_IN_MMC
+#if CONFIG_IS_ENABLED(ENV_IS_IN_MMC)
 	board_late_mmc_env_init();
 #endif
 

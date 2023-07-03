@@ -40,7 +40,6 @@
 #include <asm/arch/mx6-ddr.h>
 #include <power/regulator.h>
 #if defined(CONFIG_MX6DL) && defined(CONFIG_MXC_EPDC)
-#include <lcd.h>
 #include <mxc_epdc_fb.h>
 #endif
 #ifdef CONFIG_FSL_FASTBOOT
@@ -106,6 +105,7 @@ static void setup_spi(void)
 }
 #endif
 
+#if defined(CONFIG_VIDEO_IPUV3)
 static iomux_v3_cfg_t const rgb_pads[] = {
 	IOMUX_PADS(PAD_DI0_DISP_CLK__IPU1_DI0_DISP_CLK | MUX_PAD_CTRL(NO_PAD_CTRL)),
 	IOMUX_PADS(PAD_DI0_PIN15__IPU1_DI0_PIN15 | MUX_PAD_CTRL(NO_PAD_CTRL)),
@@ -170,6 +170,7 @@ static void enable_lvds(struct display_info_t const *dev)
 {
 	enable_backlight();
 }
+#endif
 
 #ifdef CONFIG_SYS_I2C_LEGACY
 static struct i2c_pads_info i2c_pad_info1 = {

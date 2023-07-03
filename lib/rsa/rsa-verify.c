@@ -23,18 +23,6 @@
 #include <u-boot/rsa-mod-exp.h>
 #include <u-boot/rsa.h>
 
-#ifndef __UBOOT__
-/*
- * NOTE:
- * Since host tools, like mkimage, make use of openssl library for
- * RSA encryption, rsa_verify_with_pkey()/rsa_gen_key_prop() are
- * of no use and should not be compiled in.
- * So just turn off CONFIG_RSA_VERIFY_WITH_PKEY.
- */
-
-#undef CONFIG_RSA_VERIFY_WITH_PKEY
-#endif
-
 /* Default public exponent for backward compatibility */
 #define RSA_DEFAULT_PUBEXP	65537
 
@@ -73,7 +61,7 @@ static int rsa_verify_padding(const uint8_t *msg, const int pad_len,
 }
 
 int padding_pkcs_15_verify(struct image_sign_info *info,
-			   uint8_t *msg, int msg_len,
+			   const uint8_t *msg, int msg_len,
 			   const uint8_t *hash, int hash_len)
 {
 	struct checksum_algo *checksum = info->checksum;
@@ -125,7 +113,7 @@ static void u32_i2osp(uint32_t val, uint8_t *buf)
  * Return: 0 if the octet string was correctly generated, others on error
  */
 static int mask_generation_function1(struct checksum_algo *checksum,
-				     uint8_t *seed, int seed_len,
+				     const uint8_t *seed, int seed_len,
 				     uint8_t *output, int output_len)
 {
 	struct image_region region[2];
@@ -176,9 +164,9 @@ out:
 }
 
 static int compute_hash_prime(struct checksum_algo *checksum,
-			      uint8_t *pad, int pad_len,
-			      uint8_t *hash, int hash_len,
-			      uint8_t *salt, int salt_len,
+			      const uint8_t *pad, int pad_len,
+			      const uint8_t *hash, int hash_len,
+			      const uint8_t *salt, int salt_len,
 			      uint8_t *hprime)
 {
 	struct image_region region[3];
@@ -204,41 +192,46 @@ out:
 /*
  * padding_pss_verify() - verify the pss padding of a signature
  *
- * Only works with a rsa_pss_saltlen:-2 (default value) right now
- * saltlen:-1 "set the salt length to the digest length" is currently
- * not supported.
+ * Works with any salt length
+ *
+ * msg is a concatenation of : masked_db + h + 0xbc
+ * Once unmasked, db is a concatenation of : [0x00]* + 0x01 + salt
+ * Length of 0-padding at begin of db depends on salt length.
  *
  * @info:	Specifies key and FIT information
  * @msg:	byte array of message, len equal to msg_len
  * @msg_len:	Message length
  * @hash:	Pointer to the expected hash
  * @hash_len:	Length of the hash
+ *
+ * Return:	0 if padding is correct, non-zero otherwise
  */
 int padding_pss_verify(struct image_sign_info *info,
-		       uint8_t *msg, int msg_len,
+		       const uint8_t *msg, int msg_len,
 		       const uint8_t *hash, int hash_len)
 {
-	uint8_t *masked_db = NULL;
-	int masked_db_len = msg_len - hash_len - 1;
-	uint8_t *h = NULL, *hprime = NULL;
-	int h_len = hash_len;
+	const uint8_t *masked_db = NULL;
 	uint8_t *db_mask = NULL;
-	int db_mask_len = masked_db_len;
-	uint8_t *db = NULL, *salt = NULL;
-	int db_len = masked_db_len, salt_len = msg_len - hash_len - 2;
+	uint8_t *db = NULL;
+	int db_len = msg_len - hash_len - 1;
+	const uint8_t *h = NULL;
+	uint8_t *hprime = NULL;
+	int h_len = hash_len;
+	uint8_t *db_nopad = NULL, *salt = NULL;
+	int db_padlen, salt_len;
 	uint8_t pad_zero[8] = { 0 };
 	int ret, i, leftmost_bits = 1;
 	uint8_t leftmost_mask;
 	struct checksum_algo *checksum = info->checksum;
 
+	if (db_len <= 0)
+		return -EINVAL;
+
 	/* first, allocate everything */
-	masked_db = malloc(masked_db_len);
-	h = malloc(h_len);
-	db_mask = malloc(db_mask_len);
+	db_mask = malloc(db_len);
 	db = malloc(db_len);
-	salt = malloc(salt_len);
 	hprime = malloc(hash_len);
-	if (!masked_db || !h || !db_mask || !db || !salt || !hprime) {
+	if (!db_mask || !db || !hprime) {
 		printf("%s: can't allocate some buffer\n", __func__);
 		ret = -ENOMEM;
 		goto out;
@@ -252,8 +245,8 @@ int padding_pss_verify(struct image_sign_info *info,
 	}
 
 	/* step 5 */
-	memcpy(masked_db, msg, masked_db_len);
-	memcpy(h, msg + masked_db_len, h_len);
+	masked_db = &msg[0];
+	h = &msg[db_len];
 
 	/* step 6 */
 	leftmost_mask = (0xff >> (8 - leftmost_bits)) << (8 - leftmost_bits);
@@ -265,7 +258,7 @@ int padding_pss_verify(struct image_sign_info *info,
 	}
 
 	/* step 7 */
-	mask_generation_function1(checksum, h, h_len, db_mask, db_mask_len);
+	mask_generation_function1(checksum, h, h_len, db_mask, db_len);
 
 	/* step 8 */
 	for (i = 0; i < db_len; i++)
@@ -275,19 +268,24 @@ int padding_pss_verify(struct image_sign_info *info,
 	db[0] &= 0xff >> leftmost_bits;
 
 	/* step 10 */
-	if (db[0] != 0x01) {
+	db_padlen = 0;
+	while (db[db_padlen] == 0x00 && db_padlen < (db_len - 1))
+		db_padlen++;
+	db_nopad = &db[db_padlen];
+	if (db_nopad[0] != 0x01) {
 		printf("%s: invalid pss padding ", __func__);
-		printf("(leftmost byte of db isn't 0x01)\n");
+		printf("(leftmost byte of db after 0-padding isn't 0x01)\n");
 		ret = EINVAL;
 		goto out;
 	}
 
 	/* step 11 */
-	memcpy(salt, &db[1], salt_len);
+	salt_len = db_len - db_padlen - 1;
+	salt = &db_nopad[1];
 
 	/* step 12 & 13 */
 	compute_hash_prime(checksum, pad_zero, 8,
-			   (uint8_t *)hash, hash_len,
+			   hash, hash_len,
 			   salt, salt_len, hprime);
 
 	/* step 14 */
@@ -295,11 +293,8 @@ int padding_pss_verify(struct image_sign_info *info,
 
 out:
 	free(hprime);
-	free(salt);
 	free(db);
 	free(db_mask);
-	free(h);
-	free(masked_db);
 
 	return ret;
 }
@@ -499,7 +494,13 @@ int rsa_verify_hash(struct image_sign_info *info,
 {
 	int ret = -EACCES;
 
-	if (CONFIG_IS_ENABLED(RSA_VERIFY_WITH_PKEY) && !info->fdt_blob) {
+	/*
+	 * Since host tools, like mkimage, make use of openssl library for
+	 * RSA encryption, rsa_verify_with_pkey()/rsa_gen_key_prop() are
+	 * of no use and should not be compiled in.
+	 */
+	if (!tools_build() && CONFIG_IS_ENABLED(RSA_VERIFY_WITH_PKEY) &&
+			!info->fdt_blob) {
 		/* don't rely on fdt properties */
 		ret = rsa_verify_with_pkey(info, hash, sig, sig_len);
 		if (ret)

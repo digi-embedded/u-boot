@@ -13,12 +13,9 @@
  * low-level initialization and rely on configuration provided by the Samsung
  * bootloader. New images are loaded at the same address for compatibility.
  */
-#define CONFIG_SYS_INIT_SP_ADDR		CONFIG_SYS_TEXT_BASE
-#define CONFIG_SYS_BOOTM_LEN		SZ_64M
 
 /* FIXME: This should be loaded from device tree... */
-#define CONFIG_SYS_L2_PL310
-#define CONFIG_SYS_PL310_BASE		0xa0412000
+#define CFG_SYS_PL310_BASE		0xa0412000
 
 /* Linux does not boot if FDT / initrd is loaded to end of RAM */
 #define BOOT_ENV \
@@ -41,7 +38,7 @@
 #define BOOTCMD_ENV \
 	"fastbootcmd=echo '*** FASTBOOT MODE ***'; fastboot usb 0\0"
 
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	BOOT_ENV \
 	CONSOLE_ENV \
 	FASTBOOT_ENV \

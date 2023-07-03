@@ -34,7 +34,7 @@
 #endif
 
 #ifdef CONFIG_AVB_WARNING_LOGO
-#include "lcd.h"
+#include "mxc_epdc_fb.h"
 #include "video.h"
 #include "dm/uclass.h"
 #include "fsl_avb_logo.h"
@@ -425,7 +425,7 @@ fail:
  * which is managed by PresistDataService
  */
 
-#ifdef CONFIG_ENABLE_LOCKSTATUS_SUPPORT
+#ifdef CFG_ENABLE_LOCKSTATUS_SUPPORT
 //Brillo has no presist data partition
 FbLockEnableResult fastboot_lock_enable(void) {
 	return FASTBOOT_UL_ENABLE;

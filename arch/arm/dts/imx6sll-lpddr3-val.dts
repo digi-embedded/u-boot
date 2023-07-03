@@ -16,6 +16,10 @@
 	model = "i.MX6SLL Validation Board";
 	compatible = "fsl,imx6sll-lpddr3-val", "fsl,imx6sll";
 
+	chosen {
+		stdout-path = &uart1;
+	};
+
 	memory {
 		reg = <0x80000000 0x80000000>;
 	};
@@ -761,6 +765,7 @@
 };
 
 &pwm1 {
+	#pwm-cells = <2>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_pwm1>;
 	status = "okay";

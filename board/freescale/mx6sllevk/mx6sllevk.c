@@ -20,23 +20,17 @@
 #include <linux/sizes.h>
 #include <linux/delay.h>
 #include <mmc.h>
-#include <mxsfb.h>
 #include <power/pmic.h>
 #include <power/pfuze100_pmic.h>
 #include "../common/pfuze.h"
 
 #if defined(CONFIG_MXC_EPDC)
-#include <lcd.h>
 #include <mxc_epdc_fb.h>
 #endif
 #include <asm/mach-imx/video.h>
 #include <env.h>
 
 DECLARE_GLOBAL_DATA_PTR;
-
-#define UART_PAD_CTRL  (PAD_CTL_PKE | PAD_CTL_PUE |		\
-	PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED |		\
-	PAD_CTL_DSE_40ohm   | PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
 
 #define LCD_PAD_CTRL    (PAD_CTL_HYS | PAD_CTL_PUS_100K_UP | PAD_CTL_PUE | \
 	PAD_CTL_PKE | PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm)
@@ -51,19 +45,9 @@ int dram_init(void)
 	return 0;
 }
 
-static iomux_v3_cfg_t const uart1_pads[] = {
-	MX6_PAD_UART1_TXD__UART1_DCE_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
-	MX6_PAD_UART1_RXD__UART1_DCE_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
-};
-
 static iomux_v3_cfg_t const wdog_pads[] = {
 	MX6_PAD_WDOG_B__WDOG1_B | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
-
-static void setup_iomux_uart(void)
-{
-	imx_iomux_v3_setup_multiple_pads(uart1_pads, ARRAY_SIZE(uart1_pads));
-}
 
 #ifdef CONFIG_DM_PMIC_PFUZE100
 int power_init_board(void)
@@ -108,7 +92,7 @@ int power_init_board(void)
 }
 #endif
 
-#ifdef CONFIG_DM_VIDEO
+#if defined(CONFIG_VIDEO_MXS)
 static iomux_v3_cfg_t const lcd_pads[] = {
 	MX6_PAD_KEY_ROW5__GPIO4_IO03 | MUX_PAD_CTRL(NO_PAD_CTRL),
 	MX6_PAD_LCD_RESET__GPIO2_IO19 | MUX_PAD_CTRL(NO_PAD_CTRL),
@@ -363,8 +347,6 @@ void epdc_power_off(void)
 
 int board_early_init_f(void)
 {
-	setup_iomux_uart();
-
 	return 0;
 }
 

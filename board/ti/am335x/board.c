@@ -33,7 +33,6 @@
 #include <asm/emif.h>
 #include <asm/gpio.h>
 #include <asm/omap_common.h>
-#include <asm/omap_sec_common.h>
 #include <asm/omap_mmc.h>
 #include <i2c.h>
 #include <miiphy.h>
@@ -704,7 +703,7 @@ int board_init(void)
 	hw_watchdog_init();
 #endif
 
-	gd->bd->bi_boot_params = CONFIG_SYS_SDRAM_BASE + 0x100;
+	gd->bd->bi_boot_params = CFG_SYS_SDRAM_BASE + 0x100;
 #if defined(CONFIG_NOR) || defined(CONFIG_MTD_RAW_NAND)
 	gpmc_init();
 #endif
@@ -825,8 +824,20 @@ int board_late_init(void)
 
 	if (board_is_bbg1())
 		name = "BBG1";
-	if (board_is_bben())
-		name = "BBEN";
+	if (board_is_bben()) {
+		char subtype_id = board_ti_get_config()[1];
+
+		switch (subtype_id) {
+		case 'L':
+			name = "BBELITE";
+			break;
+		case 'I':
+			name = "BBE_EX_WIFI";
+			break;
+		default:
+			name = "BBEN";
+		}
+	}
 	set_board_info_env(name);
 
 	/*
@@ -890,7 +901,7 @@ int board_late_init(void)
 #endif
 
 /* CPSW plat */
-#if !CONFIG_IS_ENABLED(OF_CONTROL)
+#if CONFIG_IS_ENABLED(NET) && !CONFIG_IS_ENABLED(OF_CONTROL)
 struct cpsw_slave_data slave_data[] = {
 	{
 		.slave_reg_ofs  = CPSW_SLAVE0_OFFSET,
@@ -954,18 +965,20 @@ int board_fit_config_name_match(const char *name)
 		return 0;
 	else if (board_is_icev2() && !strcmp(name, "am335x-icev2"))
 		return 0;
-	else if (board_is_bben() && !strcmp(name, "am335x-sancloud-bbe"))
-		return 0;
-	else
-		return -1;
-}
-#endif
+	else if (board_is_bben()) {
+		char subtype_id = board_ti_get_config()[1];
 
-#ifdef CONFIG_TI_SECURE_DEVICE
-void board_fit_image_post_process(const void *fit, int node, void **p_image,
-				  size_t *p_size)
-{
-	secure_boot_verify_image(p_image, p_size);
+		if (subtype_id == 'L') {
+			if (!strcmp(name, "am335x-sancloud-bbe-lite"))
+				return 0;
+		} else if (subtype_id == 'I') {
+			if (!strcmp(name, "am335x-sancloud-bbe-extended-wifi"))
+				return 0;
+		} else if (!strcmp(name, "am335x-sancloud-bbe")) {
+			return 0;
+		}
+	}
+	return -1;
 }
 #endif
 

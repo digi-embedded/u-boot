@@ -1,13 +1,7 @@
 /*
- * Video uclass and legacy implementation
+ * Video uclass to support displays (see also vidconsole for text)
  *
  * Copyright (c) 2015 Google, Inc
- *
- * MPC823 Video Controller
- * =======================
- * (C) 2000 by Paolo Scaffardi (arsenio@tin.it)
- * AIRVENT SAM s.p.a - RIMINI(ITALY)
- *
  */
 
 #ifndef _VIDEO_H_
@@ -137,6 +131,41 @@ struct video_ops {
 
 #define video_get_ops(dev)        ((struct video_ops *)(dev)->driver->ops)
 
+/** enum colour_idx - the 16 colors supported by consoles */
+enum colour_idx {
+	VID_BLACK = 0,
+	VID_RED,
+	VID_GREEN,
+	VID_BROWN,
+	VID_BLUE,
+	VID_MAGENTA,
+	VID_CYAN,
+	VID_LIGHT_GRAY,
+	VID_GRAY,
+	VID_LIGHT_RED,
+	VID_LIGHT_GREEN,
+	VID_YELLOW,
+	VID_LIGHT_BLUE,
+	VID_LIGHT_MAGENTA,
+	VID_LIGHT_CYAN,
+	VID_WHITE,
+
+	VID_COLOUR_COUNT
+};
+
+/**
+ * video_index_to_colour() - convert a color code to a pixel's internal
+ * representation
+ *
+ * The caller has to guarantee that the color index is less than
+ * VID_COLOR_COUNT.
+ *
+ * @priv	private data of the console device
+ * @idx		color index
+ * Return:	color value
+ */
+u32 video_index_to_colour(struct video_priv *priv, unsigned int idx);
+
 /**
  * video_reserve() - Reserve frame-buffer memory for video devices
  *
@@ -155,15 +184,22 @@ struct video_ops {
  */
 int video_reserve(ulong *addrp);
 
-#ifdef CONFIG_DM_VIDEO
 /**
- * video_clear() - Clear a device's frame buffer to background color.
+ * video_clear() - Clear a device's frame buffer to background colour.
  *
  * @dev:	Device to clear
- * Return: 0
+ * Return: 0 on success
  */
 int video_clear(struct udevice *dev);
-#endif /* CONFIG_DM_VIDEO */
+
+/**
+ * video_fill() - Fill a device's frame buffer to a colour.
+ *
+ * @dev:	Device to fill
+ * @colour:	Colour to use, in the frame buffer's format
+ * Return: 0 on success
+ */
+int video_fill(struct udevice *dev, u32 colour);
 
 /**
  * video_sync() - Sync a device's frame buffer with its hardware
@@ -188,6 +224,17 @@ int video_sync(struct udevice *vid, bool force);
 void video_sync_all(void);
 
 /**
+ * video_bmp_get_info() - Get information about a bitmap image
+ *
+ * @bmp_image: Pointer to BMP image to check
+ * @widthp: Returns width in pixels
+ * @heightp: Returns height in pixels
+ * @bpixp: Returns log2 of bits per pixel
+ */
+void video_bmp_get_info(void *bmp_image, ulong *widthp, ulong *heightp,
+			uint *bpixp);
+
+/**
  * video_bmp_display() - Display a BMP file
  *
  * @dev:	Device to display the bitmap on
@@ -201,7 +248,7 @@ void video_sync_all(void);
  *		  that direction
  *		- if a coordinate is -ve then it will be offset to the
  *		  left/top of the centre by that many pixels
- *		- if a coordinate is positive it will be used unchnaged.
+ *		- if a coordinate is positive it will be used unchanged.
  * Return: 0 if OK, -ve on error
  */
 int video_bmp_display(struct udevice *dev, ulong bmp_image, int x, int y,
@@ -238,6 +285,15 @@ void video_set_flush_dcache(struct udevice *dev, bool flush);
  * @invert	true to invert colours
  */
 void video_set_default_colors(struct udevice *dev, bool invert);
+
+/**
+ * video_default_font_height() - Get the default font height
+ *
+ * @dev:	video device
+ * Returns: Default font height in pixels, which depends on which console driver
+ * is in use
+ */
+int video_default_font_height(struct udevice *dev);
 
 #ifdef CONFIG_VIDEO_COPY
 /**
@@ -283,78 +339,20 @@ static inline int video_sync_copy_all(struct udevice *dev)
  */
 bool video_is_active(void);
 
-#ifndef CONFIG_DM_VIDEO
-
-/* Video functions */
-
 /**
- * Display a BMP format bitmap on the screen
+ * video_get_u_boot_logo() - Get a pointer to the U-Boot logo
  *
- * @param bmp_image	Address of BMP image
- * @param x		X position to draw image
- * @param y		Y position to draw image
+ * Returns: Pointer to logo
  */
-int video_display_bitmap(ulong bmp_image, int x, int y);
-
-/**
- * Get the width of the screen in pixels
- *
- * Return: width of screen in pixels
- */
-int video_get_pixel_width(void);
-
-/**
- * Get the height of the screen in pixels
- *
- * Return: height of screen in pixels
- */
-int video_get_pixel_height(void);
-
-/**
- * Get the number of text lines/rows on the screen
- *
- * Return: number of rows
- */
-int video_get_screen_rows(void);
-
-/**
- * Get the number of text columns on the screen
- *
- * Return: number of columns
- */
-int video_get_screen_columns(void);
-
-/**
- * Set the position of the text cursor
- *
- * @param col	Column to place cursor (0 = left side)
- * @param row	Row to place cursor (0 = top line)
- */
-void video_position_cursor(unsigned col, unsigned row);
-
-/* Clear the display */
-void video_clear(void);
-
-#if defined(CONFIG_FORMIKE)
-int kwh043st20_f01_spi_startup(unsigned int bus, unsigned int cs,
-	unsigned int max_hz, unsigned int spi_mode);
-#endif
-#if defined(CONFIG_LG4573)
-int lg4573_spi_startup(unsigned int bus, unsigned int cs,
-	unsigned int max_hz, unsigned int spi_mode);
-#endif
+void *video_get_u_boot_logo(void);
 
 /*
- * video_get_info_str() - obtain a board string: type, speed, etc.
+ * bmp_display() - Display BMP (bitmap) data located in memory
  *
- * This is called if CONFIG_CONSOLE_EXTRA_INFO is enabled.
- *
- * line_number:	location to place info string beside logo
- * info:	buffer for info string (empty if nothing to display on this
- * line)
+ * @addr: address of the bmp data
+ * @x: Position of bitmap from the left side, in pixels
+ * @y: Position of bitmap from the top, in pixels
  */
-void video_get_info_str(int line_number, char *info);
-
-#endif /* !CONFIG_DM_VIDEO */
+int bmp_display(ulong addr, int x, int y);
 
 #endif

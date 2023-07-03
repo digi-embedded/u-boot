@@ -9,7 +9,7 @@ config SYS_VENDOR
 config SYS_CONFIG_NAME
 	default "mx7d_19x19_lpddr3_val"
 
-config SYS_TEXT_BASE
+config TEXT_BASE
 	default 0x87800000
 
 config NOR

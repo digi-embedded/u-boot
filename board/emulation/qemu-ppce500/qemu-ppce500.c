@@ -32,12 +32,16 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+/* Virtual address range for PCI region maps */
+#define SYS_PCI_MAP_START	0x80000000
+#define SYS_PCI_MAP_END		0xe0000000
+
 static void *get_fdt_virt(void)
 {
 	if (gd->flags & GD_FLG_RELOC)
 		return (void *)gd->fdt_blob;
 	else
-		return (void *)CONFIG_SYS_TMPVIRT;
+		return (void *)CFG_SYS_TMPVIRT;
 }
 
 static uint64_t get_fdt_phys(void)
@@ -101,7 +105,7 @@ static int pci_map_region(phys_addr_t paddr, phys_size_t size, ulong *pmap_addr)
 	map_addr += size - 1;
 	map_addr &= ~(size - 1);
 
-	if (map_addr + size >= CONFIG_SYS_PCI_MAP_END)
+	if (map_addr + size >= SYS_PCI_MAP_END)
 		return -1;
 
 	/* Map virtual memory for range */
@@ -137,7 +141,7 @@ int misc_init_r(void)
 	pci_get_regions(dev, &io, &mem, &pre);
 
 	/* Start MMIO and PIO range maps above RAM */
-	map_addr = CONFIG_SYS_PCI_MAP_START;
+	map_addr = SYS_PCI_MAP_START;
 
 	/* Map MMIO range */
 	ret = pci_map_region(mem->phys_start, mem->size, &map_addr);
@@ -159,7 +163,7 @@ int misc_init_r(void)
 	 * U-Boot is relocated to RAM already, let's delete the temporary FDT
 	 * virtual-physical mapping that was used in the pre-relocation phase.
 	 */
-	disable_tlb(find_tlb_idx((void *)CONFIG_SYS_TMPVIRT, 1));
+	disable_tlb(find_tlb_idx((void *)CFG_SYS_TMPVIRT, 1));
 
 	/*
 	 * Detect the presence of the platform bus node, and
@@ -244,7 +248,7 @@ void init_tlbs(void)
 	init_used_tlb_cams();
 
 	/* Create a dynamic AS=0 CCSRBAR mapping */
-	assert(!tlb_map_range(CONFIG_SYS_CCSRBAR, CONFIG_SYS_CCSRBAR_PHYS,
+	assert(!tlb_map_range(CFG_SYS_CCSRBAR, CFG_SYS_CCSRBAR_PHYS,
 			      1024 * 1024, TLB_MAP_IO));
 
 	/* Create a RAM map that spans all accessible RAM */
@@ -339,7 +343,7 @@ void *board_fdt_blob_setup(int *err)
 	return get_fdt_virt();
 }
 
-/* See CONFIG_SYS_NS16550_CLK in arch/powerpc/include/asm/config.h */
+/* See CFG_SYS_NS16550_CLK in arch/powerpc/include/asm/config.h */
 int get_serial_clock(void)
 {
 	return get_bus_freq(0);

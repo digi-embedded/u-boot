@@ -4,31 +4,28 @@
  */
 
 #include <common.h>
-#include <malloc.h>
 #include <efi_loader.h>
-#include <errno.h>
+#include <env.h>
+#include <init.h>
+#include <asm/global_data.h>
 #include <miiphy.h>
 #include <netdev.h>
-#include <fsl_esdhc.h>
-#include <mmc.h>
-#include <asm/io.h>
-#include <asm/arch/clock.h>
+#include <asm/mach-imx/iomux-v3.h>
+#include <asm-generic/gpio.h>
 #include <power/regulator.h>
 #if defined(CONFIG_IMX8MM)
 #include <asm/arch/imx8mm_pins.h>
 #else
 #include <asm/arch/imx8mn_pins.h>
 #endif
-#include <asm/global_data.h>
+#include <asm/arch/clock.h>
 #include <asm/arch/sys_proto.h>
-#include <asm-generic/gpio.h>
-#include <asm/mach-imx/dma.h>
 #include <asm/mach-imx/gpio.h>
-#include <asm/mach-imx/iomux-v3.h>
 #include <asm/mach-imx/mxc_i2c.h>
-#include <spl.h>
-#include <usb.h>
+#include <i2c.h>
+#include <asm/io.h>
 #include "../common/tcpc.h"
+#include <usb.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -139,7 +136,7 @@ int board_early_init_f(void)
 	return 0;
 }
 
-#ifdef CONFIG_FEC_MXC
+#if IS_ENABLED(CONFIG_FEC_MXC)
 static int setup_fec(void)
 {
 	struct iomuxc_gpr_base_regs *gpr =
@@ -149,11 +146,13 @@ static int setup_fec(void)
 	clrsetbits_le32(&gpr->gpr[1],
 			IOMUXC_GPR_GPR1_GPR_ENET1_TX_CLK_SEL_MASK, 0);
 
-	return set_clk_enet(ENET_125MHZ);
+	return 0;
 }
 
 int board_phy_config(struct phy_device *phydev)
 {
+	phy_set_supported(phydev, SPEED_100);
+
 	if (phydev->drv->config)
 		phydev->drv->config(phydev);
 

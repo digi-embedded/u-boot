@@ -193,3 +193,9 @@ int ddr_init(struct dram_timing_info *timing_info)
 
 	return 0;
 }
+
+ulong ddrphy_addr_remap(uint32_t paddr_apb_from_ctlr)
+{
+	return 4 * paddr_apb_from_ctlr;
+}
+

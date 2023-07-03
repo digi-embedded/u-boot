@@ -11,30 +11,16 @@
 #include "mx6_common.h"
 #include "imx_env.h"
 
-#ifdef CONFIG_SPL
-#include "imx6_spl.h"
-#endif
-
-#define CONFIG_MXC_UART_BASE		UART1_IPS_BASE_ADDR
+#define CFG_MXC_UART_BASE		UART1_IPS_BASE_ADDR
 
 /* MMC Configs */
-#define CONFIG_SYS_FSL_ESDHC_ADDR	USDHC2_BASE_ADDR
+#define CFG_SYS_FSL_ESDHC_ADDR	USDHC2_BASE_ADDR
 
 /* PMIC */
-#ifndef CONFIG_DM_PMIC
-#define CONFIG_POWER_PFUZE100
-#define CONFIG_POWER_PFUZE100_I2C_ADDR	0x08
-#endif
+#define CFG_POWER_PFUZE100_I2C_ADDR	0x08
 
-#define CONFIG_FEC_XCV_TYPE		RMII
-#define CONFIG_ETHPRIME			"eth0"
-
-#define CONFIG_CMD_READ
-#define CONFIG_SERIAL_TAG
-#define CONFIG_FASTBOOT_USB_DEV 0
-
-#define CONFIG_MFG_ENV_SETTINGS \
-	CONFIG_MFG_ENV_SETTINGS_DEFAULT \
+#define CFG_MFG_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS_DEFAULT \
 	"initrd_addr=0x86800000\0" \
 	"initrd_high=0xffffffff\0" \
     "emmc_dev=2\0"\
@@ -42,8 +28,8 @@
 	"spi_bus=1\0"\
 	"spi_uboot=0x400\0"
 
-#define CONFIG_EXTRA_ENV_SETTINGS \
-	CONFIG_MFG_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS \
 	TEE_ENV \
 	"epdc_waveform=epdc_splash.bin\0" \
 	"script=boot.scr\0" \
@@ -59,7 +45,7 @@
 	"ip_dyn=yes\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=1\0" \
-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+	"mmcroot=/dev/mmcblk1p2 rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} " \
 		"root=${mmcroot}\0" \
@@ -129,38 +115,16 @@
 /* Physical Memory Map */
 #define PHYS_SDRAM			MMDC0_ARB_BASE_ADDR
 
-#define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM
-#define CONFIG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
-#define CONFIG_SYS_INIT_RAM_SIZE	IRAM_SIZE
-
-#define CONFIG_SYS_INIT_SP_OFFSET \
-	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
-#define CONFIG_SYS_INIT_SP_ADDR \
-	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
+#define CFG_SYS_SDRAM_BASE		PHYS_SDRAM
+#define CFG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
+#define CFG_SYS_INIT_RAM_SIZE	IRAM_SIZE
 
 /* USB Configs */
 #ifdef CONFIG_CMD_USB
-#define CONFIG_EHCI_HCD_INIT_AFTER_RESET
-#define CONFIG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
-#define CONFIG_MXC_USB_FLAGS		0
-#define CONFIG_USB_MAX_CONTROLLER_COUNT	2
+#define CFG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
+#define CFG_MXC_USB_FLAGS		0
 #endif
 
-#define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
-#define CONFIG_SYS_FSL_USDHC_NUM	3
-#define CONFIG_SYS_MMC_ENV_DEV 1
-
-/*
- * SPLASH SCREEN Configs
- */
-#ifdef CONFIG_MXC_EPDC
-	/*
-	 * Framebuffer and LCD
-	 */
-	#undef LCD_TEST_PATTERN
-	#define LCD_BPP					LCD_MONOCHROME
-
-	#define CONFIG_WAVEFORM_BUF_SIZE		0x400000
-#endif /* CONFIG_SPLASH_SCREEN */
+#define CFG_SYS_FSL_USDHC_NUM	3
 
 #endif				/* __CONFIG_H */

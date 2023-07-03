@@ -9,14 +9,20 @@
 
 #define FSL_FASTBOOT_FB_DEV "mmc"
 
-#undef CONFIG_EXTRA_ENV_SETTINGS
+#undef CFG_EXTRA_ENV_SETTINGS
 #undef CONFIG_BOOTCOMMAND
 
-#define CONFIG_EXTRA_ENV_SETTINGS		\
+#ifdef CONFIG_SPL_BUILD
+#define CFG_MALLOC_F_ADDR 0x970000
+#endif
+
+#define CFG_EXTRA_ENV_SETTINGS		\
 	"splashpos=m,m\0"			\
 	"splashimage=0x50000000\0"		\
 	"fdt_high=0xffffffffffffffff\0"		\
 	"initrd_high=0xffffffffffffffff\0"	\
+	"emmc_dev=2\0"\
+	"sd_dev=1\0" \
 
 /* Enable mcu firmware flash */
 #ifdef CONFIG_FLASH_MCUFIRMWARE_SUPPORT
@@ -27,7 +33,7 @@
 #define ANDROID_MCU_FIRMWARE_HEADER_STACK 0x20020000
 #endif
 
-#define CONFIG_SYS_SPL_PTE_RAM_BASE    0x41580000
+#define CFG_SYS_SPL_PTE_RAM_BASE    0x41580000
 
 #ifdef CONFIG_IMX_TRUSTY_OS
 #define BOOTLOADER_RBIDX_OFFSET  0x3FE000

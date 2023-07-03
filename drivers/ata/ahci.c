@@ -416,8 +416,8 @@ static int ahci_init_one(struct ahci_uc_priv *uc_priv, struct udevice *dev)
 	uc_priv->udma_mask = 0x7f;	/*Fixme,assume to support UDMA6 */
 
 #if !defined(CONFIG_DM_SCSI)
-	uc_priv->mmio_base = dm_pci_map_bar(dev, PCI_BASE_ADDRESS_5,
-					      PCI_REGION_MEM);
+	uc_priv->mmio_base = dm_pci_map_bar(dev, PCI_BASE_ADDRESS_5, 0, 0,
+					    PCI_REGION_TYPE, PCI_REGION_MEM);
 
 	/* Take from kernel:
 	 * JMicron-specific fixup:
@@ -674,6 +674,12 @@ static int ata_scsiop_inquiry(struct ahci_uc_priv *uc_priv,
 
 	/* Read id from sata */
 	port = pccb->target;
+
+	/* If this port number is not valid, give up */
+	if (!(uc_priv->port_map & (1 << port))) {
+		debug("Port %x not valid in map %x\n", port, uc_priv->port_map);
+		return -ENODEV;
+	}
 
 	if (ahci_device_data_io(uc_priv, port, (u8 *)&fis, sizeof(fis),
 				(u8 *)tmpid, ATA_ID_WORDS * 2, 0)) {
@@ -1148,8 +1154,8 @@ int ahci_probe_scsi_pci(struct udevice *ahci_dev)
 	ulong base;
 	u16 vendor, device;
 
-	base = (ulong)dm_pci_map_bar(ahci_dev, PCI_BASE_ADDRESS_5,
-				     PCI_REGION_MEM);
+	base = (ulong)dm_pci_map_bar(ahci_dev, PCI_BASE_ADDRESS_5, 0, 0,
+				     PCI_REGION_TYPE, PCI_REGION_MEM);
 
 	/*
 	 * Note:
@@ -1164,6 +1170,7 @@ int ahci_probe_scsi_pci(struct udevice *ahci_dev)
 	if (vendor == PCI_VENDOR_ID_CAVIUM &&
 	    device == PCI_DEVICE_ID_CAVIUM_SATA)
 		base = (uintptr_t)dm_pci_map_bar(ahci_dev, PCI_BASE_ADDRESS_0,
+						 0, 0, PCI_REGION_TYPE,
 						 PCI_REGION_MEM);
 	return ahci_probe_scsi(ahci_dev, base);
 }

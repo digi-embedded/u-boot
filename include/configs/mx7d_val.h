@@ -12,12 +12,12 @@
 #include "mx7_common.h"
 #include "imx_env.h"
 
-#define CONFIG_MXC_UART_BASE		UART1_IPS_BASE_ADDR
+#define CFG_MXC_UART_BASE		UART1_IPS_BASE_ADDR
 
 /* MMC Configs */
-#define CONFIG_SYS_FSL_ESDHC_ADDR	0
+#define CFG_SYS_FSL_ESDHC_ADDR	0
 
-#define CONFIG_SYS_AUXCORE_BOOTDATA 0x68000000 /* Set to QSPI1 B flash at default */
+#define CFG_SYS_AUXCORE_BOOTDATA 0x68000000 /* Set to QSPI1 B flash at default */
 #define SF_QSPI1_B_CS_NUM 2
 #define SF_QSPI1_B_BUS_NUM 0
 
@@ -38,7 +38,7 @@
 				"sf write ${loadaddr} 0x0 ${filesize}; " \
 			"fi; " \
 		"fi\0" \
-	"m4boot=sf probe ${m4_qspi_bus}:${m4_qspi_cs}; bootaux "__stringify(CONFIG_SYS_AUXCORE_BOOTDATA)"\0"
+	"m4boot=sf probe ${m4_qspi_bus}:${m4_qspi_cs}; bootaux "__stringify(CFG_SYS_AUXCORE_BOOTDATA)"\0"
 #else
 #define UPDATE_M4_ENV ""
 #endif
@@ -49,8 +49,8 @@
 #define MFG_NAND_PARTITION ""
 #endif
 
-#define CONFIG_MFG_ENV_SETTINGS \
-	CONFIG_MFG_ENV_SETTINGS_DEFAULT \
+#define CFG_MFG_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS_DEFAULT \
 	"initrd_addr=0x86800000\0" \
 	"initrd_high=0xffffffff\0" \
 	"emmc_dev=2\0"\
@@ -59,8 +59,8 @@
 	"\0"\
 
 #if defined(CONFIG_NAND_BOOT)
-#define CONFIG_EXTRA_ENV_SETTINGS \
-	CONFIG_MFG_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS \
 	"panel=MCIMX28LCD\0" \
 	"fdt_addr=0x83000000\0" \
 	"fdt_high=0xffffffff\0"	  \
@@ -74,8 +74,8 @@
 		"bootz ${loadaddr} - ${fdt_addr}\0"
 
 #else
-#define CONFIG_EXTRA_ENV_SETTINGS \
-	CONFIG_MFG_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS \
 	UPDATE_M4_ENV \
 	"epdc_waveform=epdc_splash.bin\0" \
 	"panel=MCIMX28LCD\0" \
@@ -90,7 +90,7 @@
 	"ip_dyn=yes\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=1\0" \
-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+	"mmcroot=" CFG_MMCROOT " rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} " \
 		"root=${mmcroot}\0" \
@@ -145,57 +145,23 @@
 /* Physical Memory Map */
 #define PHYS_SDRAM			MMDC0_ARB_BASE_ADDR
 
-#define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM
-#define CONFIG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
-#define CONFIG_SYS_INIT_RAM_SIZE	IRAM_SIZE
-
-#define CONFIG_SYS_INIT_SP_OFFSET \
-	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
-#define CONFIG_SYS_INIT_SP_ADDR \
-	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
+#define CFG_SYS_SDRAM_BASE		PHYS_SDRAM
+#define CFG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
+#define CFG_SYS_INIT_RAM_SIZE	IRAM_SIZE
 
 #ifdef CONFIG_MTD_NOR_FLASH
-#define CONFIG_SYS_FLASH_BASE           WEIM_ARB_BASE_ADDR
-#define CONFIG_SYS_FLASH_SECT_SIZE	(256 * 1024)
-#define CONFIG_SYS_MAX_FLASH_BANKS 1    /* max number of memory banks */
-#define CONFIG_SYS_MAX_FLASH_SECT  512  /* max number of sectors on one chip */
-#define CONFIG_SYS_FLASH_CFI            /* Flash memory is CFI compliant */
-#define CONFIG_FLASH_CFI_DRIVER         /* Use drivers/cfi_flash.c */
-#define CONFIG_SYS_FLASH_USE_BUFFER_WRITE /* Use buffered writes*/
-#define CONFIG_SYS_FLASH_EMPTY_INFO
-#define CONFIG_SYS_FLASH_PROTECTION
+#define CFG_SYS_FLASH_BASE           WEIM_ARB_BASE_ADDR
 #endif
 
 #ifdef CONFIG_NAND_MXS
 
 /* NAND stuff */
-#define CONFIG_SYS_MAX_NAND_DEVICE	1
-#define CONFIG_SYS_NAND_BASE		0x40000000
-#define CONFIG_SYS_NAND_USE_FLASH_BBT
+#define CFG_SYS_NAND_BASE		0x40000000
 
 /* DMA stuff, needed for GPMI/MXS NAND support */
 #endif
 
-#ifdef CONFIG_VIDEO
-#define	CONFIG_VIDEO_MXS
-#define	CONFIG_VIDEO_LOGO
-#define CONFIG_BMP_16BPP
-#define CONFIG_VIDEO_BMP_RLE8
-#define CONFIG_VIDEO_BMP_LOGO
-#define CONFIG_IMX_VIDEO_SKIP
-#endif
-
-#if defined(CONFIG_MXC_EPDC)
-/*
- * Framebuffer and LCD
- */
-
-#undef LCD_TEST_PATTERN
-/* #define CONFIG_SPLASH_IS_IN_MMC			1 */
-#define LCD_BPP					LCD_MONOCHROME
-/* #define CONFIG_SPLASH_SCREEN_ALIGN		1 */
-
-#define CONFIG_WAVEFORM_BUF_SIZE		0x400000
-#endif
+/* USB Configs */
+#define CFG_MXC_USB_PORTSC  (PORT_PTS_UTMI | PORT_PTS_PTW)
 
 #endif				/* __CONFIG_H */

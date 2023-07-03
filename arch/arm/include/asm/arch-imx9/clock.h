@@ -205,7 +205,6 @@ struct clk_root_map {
 	u32 mux_type;
 };
 
-
 int clock_init(void);
 u32 get_clk_src_rate(enum ccm_clk_src source);
 u32 get_lpuart_clk(u64 reg);
@@ -226,25 +225,22 @@ int ccm_clk_src_auto(enum ccm_clk_src oscpll, bool enable);
 int ccm_clk_src_lpm(enum ccm_clk_src oscpll, bool enable);
 int ccm_clk_src_config_lpm(enum ccm_clk_src oscpll, u32 domain, u32 lpm_val);
 bool ccm_clk_src_is_clk_on(enum ccm_clk_src oscpll);
-int ccm_clk_src_tz_access(enum ccm_clk_src oscpll,
-	bool non_secure, bool user_mode, bool lock_tz);
+int ccm_clk_src_tz_access(enum ccm_clk_src oscpll, bool non_secure, bool user_mode, bool lock_tz);
 int ccm_clk_root_cfg(u32 clk_root_id, enum ccm_clk_src src, u32 div);
 u32 ccm_clk_root_get_rate(u32 clk_root_id);
-int ccm_clk_root_tz_access(u32 clk_root_id,
-	bool non_secure, bool user_mode, bool lock_tz);
+int ccm_clk_root_tz_access(u32 clk_root_id, bool non_secure, bool user_mode, bool lock_tz);
 int ccm_lpcg_on(u32 lpcg, bool enable);
 int ccm_lpcg_lpm(u32 lpcg, bool enable);
 int ccm_lpcg_config_lpm(u32 lpcg, u32 domain, u32 lpm_val);
 bool ccm_lpcg_is_clk_on(u32 lpcg);
-int ccm_lpcg_tz_access(u32 lpcg,
-	bool non_secure, bool user_mode, bool lock_tz);
+int ccm_lpcg_tz_access(u32 lpcg, bool non_secure, bool user_mode, bool lock_tz);
 int ccm_shared_gpr_set(u32 gpr, u32 val);
 int ccm_shared_gpr_get(u32 gpr, u32 *val);
-int ccm_shared_gpr_tz_access(u32 gpr,
-	bool non_secure, bool user_mode, bool lock_tz);
+int ccm_shared_gpr_tz_access(u32 gpr, bool non_secure, bool user_mode, bool lock_tz);
 
 void enable_usboh3_clk(unsigned char enable);
 int set_clk_enet(enum enet_freq type);
 int set_clk_eqos(enum enet_freq type);
+void set_arm_clk(ulong freq);
 void mxs_set_lcdclk(u32 base_addr, u32 freq);
 #endif

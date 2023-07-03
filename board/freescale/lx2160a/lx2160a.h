@@ -71,7 +71,7 @@ enum qsfp_compat_codes {
 };
 #endif /* CONFIG_QSFP_EEPROM && CONFIG_PHY_CORTINA */
 
-#if CONFIG_IS_ENABLED(TARGET_LX2160ARDB)
+#if IS_ENABLED(CONFIG_TARGET_LX2160ARDB)
 u8 get_board_rev(void);
 int fdt_fixup_board_phy_revc(void *fdt);
 #endif

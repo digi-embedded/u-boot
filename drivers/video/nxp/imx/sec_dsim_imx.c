@@ -11,7 +11,6 @@
 #include <dsi_host.h>
 #include <mipi_dsi.h>
 #include <panel.h>
-#include <reset.h>
 #include <video.h>
 #include <video_bridge.h>
 #include <video_link.h>
@@ -21,81 +20,14 @@
 #include <linux/iopoll.h>
 #include <linux/err.h>
 #include <power/regulator.h>
-#include <regmap.h>
-#include <syscon.h>
 
 struct imx_sec_dsim_priv {
 	struct mipi_dsi_device device;
 	void __iomem *base;
 	struct udevice *panel;
 	struct udevice *dsi_host;
-	struct reset_ctl_bulk soft_resetn;
-	struct reset_ctl_bulk clk_enable;
-	struct reset_ctl_bulk mipi_reset;
 	struct display_timing adj;
 };
-
-#if IS_ENABLED(CONFIG_DM_RESET)
-static int sec_dsim_rstc_reset(struct reset_ctl_bulk *rstc, bool assert)
-{
-	int ret;
-
-	if (!rstc)
-		return 0;
-
-	ret = assert ? reset_assert_bulk(rstc)	:
-		       reset_deassert_bulk(rstc);
-
-	return ret;
-}
-
-static int sec_dsim_of_parse_resets(struct udevice *dev)
-{
-	int ret;
-	ofnode parent, child;
-	struct ofnode_phandle_args args;
-	struct reset_ctl_bulk rstc;
-	const char *compat;
-	uint32_t rstc_num = 0;
-
-	struct imx_sec_dsim_priv *priv = dev_get_priv(dev);
-
-	ret = dev_read_phandle_with_args(dev, "resets", "#reset-cells", 0,
-					 0, &args);
-	if (ret)
-		return ret;
-
-	parent = args.node;
-	ofnode_for_each_subnode(child, parent) {
-		compat = ofnode_get_property(child, "compatible", NULL);
-		if (!compat)
-			continue;
-
-		ret = reset_get_bulk_nodev(child, &rstc);
-		if (ret)
-			continue;
-
-		if (!of_compat_cmp("dsi,soft-resetn", compat, 0)) {
-			priv->soft_resetn = rstc;
-			rstc_num++;
-		} else if (!of_compat_cmp("dsi,clk-enable", compat, 0)) {
-			priv->clk_enable = rstc;
-			rstc_num++;
-		} else if (!of_compat_cmp("dsi,mipi-reset", compat, 0)) {
-			priv->mipi_reset = rstc;
-			rstc_num++;
-		} else
-			dev_warn(dev, "invalid dsim reset node: %s\n", compat);
-	}
-
-	if (!rstc_num) {
-		dev_err(dev, "no invalid reset control exists\n");
-		return -EINVAL;
-	}
-
-	return 0;
-}
-#endif
 
 static int imx_sec_dsim_attach(struct udevice *dev)
 {
@@ -166,31 +98,6 @@ static int imx_sec_dsim_probe(struct udevice *dev)
 	struct mipi_dsi_device *device = &priv->device;
 
 	device->dev = dev;
-
-#if IS_ENABLED(CONFIG_DM_RESET)
-	int ret;
-	/* Allow to not have resets */
-	ret = sec_dsim_of_parse_resets(dev);
-	if (!ret) {
-		ret = sec_dsim_rstc_reset(&priv->soft_resetn, false);
-		if (ret) {
-			dev_err(dev, "deassert soft_resetn failed\n");
-			return ret;
-		}
-
-		ret = sec_dsim_rstc_reset(&priv->clk_enable, true);
-		if (ret) {
-			dev_err(dev, "assert clk_enable failed\n");
-			return ret;
-		}
-
-		ret = sec_dsim_rstc_reset(&priv->mipi_reset, false);
-		if (ret) {
-			dev_err(dev, "deassert mipi_reset failed\n");
-			return ret;
-		}
-	}
-#endif
 
 	return 0;
 }

@@ -10,18 +10,14 @@
 #include "ls1012a_common.h"
 
 /* DDR */
-#define CONFIG_DIMM_SLOTS_PER_CTLR	1
-#define CONFIG_CHIP_SELECTS_PER_CTRL	1
-#define CONFIG_SYS_SDRAM_SIZE		0x40000000
+#define CFG_SYS_SDRAM_SIZE		0x40000000
 
 /*
  * QIXIS Definitions
  */
-#define CONFIG_FSL_QIXIS
 
 #ifdef CONFIG_FSL_QIXIS
-#define CONFIG_QIXIS_I2C_ACCESS
-#define CONFIG_SYS_I2C_FPGA_ADDR	0x66
+#define CFG_SYS_I2C_FPGA_ADDR	0x66
 #define QIXIS_LBMAP_BRDCFG_REG		0x04
 #define QIXIS_LBMAP_SWITCH		6
 #define QIXIS_LBMAP_MASK		0x08
@@ -50,12 +46,7 @@
 /*
 * RTC configuration
 */
-#define RTC
-#define CONFIG_SYS_I2C_RTC_ADDR         0x51  /* Channel 3*/
-
-/* EEPROM */
-#define CONFIG_SYS_I2C_EEPROM_NXID
-#define CONFIG_SYS_EEPROM_BUS_NUM    0
+#define CFG_SYS_I2C_RTC_ADDR         0x51  /* Channel 3*/
 
 
 /* Voltage monitor on channel 2*/
@@ -64,34 +55,8 @@
 #define I2C_VOL_MONITOR_BUS_V_OVF      0x1
 #define I2C_VOL_MONITOR_BUS_V_SHIFT    3
 
-/* DSPI */
-#define CONFIG_FSL_DSPI1
-
-#define MMAP_DSPI          DSPI1_BASE_ADDR
-
-#define CONFIG_SYS_DSPI_CTAR0   1
-
-#define CONFIG_SYS_DSPI_CTAR1	(DSPI_CTAR_TRSZ(7) | DSPI_CTAR_PCSSCK_1CLK |\
-				DSPI_CTAR_PASC(0) | DSPI_CTAR_PDT(0) | \
-				DSPI_CTAR_CSSCK(2) | DSPI_CTAR_ASC(0) | \
-				DSPI_CTAR_DT(0))
-
-#define CONFIG_SYS_DSPI_CTAR2	(DSPI_CTAR_TRSZ(7) | DSPI_CTAR_PCSSCK_1CLK |\
-				DSPI_CTAR_PASC(0) | DSPI_CTAR_PDT(0) | \
-				DSPI_CTAR_CSSCK(0) | DSPI_CTAR_ASC(0) | \
-				DSPI_CTAR_DT(0))
-
-#define CONFIG_SYS_DSPI_CTAR3	(DSPI_CTAR_TRSZ(7) | DSPI_CTAR_PCSSCK_1CLK |\
-				DSPI_CTAR_PASC(0) | DSPI_CTAR_PDT(0) | \
-				DSPI_CTAR_CSSCK(2) | DSPI_CTAR_ASC(0) | \
-				DSPI_CTAR_DT(0))
-
-#define CONFIG_PCIE1		/* PCIE controller 1 */
-
-#define CONFIG_PCI_SCAN_SHOW
-
-#undef CONFIG_EXTRA_ENV_SETTINGS
-#define CONFIG_EXTRA_ENV_SETTINGS		\
+#undef CFG_EXTRA_ENV_SETTINGS
+#define CFG_EXTRA_ENV_SETTINGS		\
 	"verify=no\0"				\
 	"kernel_addr=0x01000000\0"		\
 	"kernelheader_addr=0x600000\0"		\

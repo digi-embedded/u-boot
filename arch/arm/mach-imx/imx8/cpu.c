@@ -8,6 +8,7 @@
 #include <cpu.h>
 #include <cpu_func.h>
 #include <dm.h>
+#include <event.h>
 #include <init.h>
 #include <log.h>
 #include <asm/cache.h>
@@ -59,7 +60,7 @@ int arch_cpu_init(void)
 
 static void power_off_all_usb(void);
 
-int arch_cpu_init_dm(void)
+static int imx8_init_mu(void *ctx, struct event *event)
 {
 	struct udevice *devp;
 	int node, ret;
@@ -71,6 +72,9 @@ int arch_cpu_init_dm(void)
 		printf("could not get scu %d\n", ret);
 		return ret;
 	}
+
+	if (gd->flags & GD_FLG_RELOC) /* Skip others for board_r */
+		return 0;
 
 	if (IS_ENABLED(CONFIG_XEN))
 		return 0;
@@ -101,6 +105,7 @@ int arch_cpu_init_dm(void)
 
 	return 0;
 }
+EVENT_SPY(EVT_DM_POST_INIT, imx8_init_mu);
 
 #if defined(CONFIG_ARCH_MISC_INIT)
 int arch_misc_init(void)
@@ -540,8 +545,8 @@ phys_size_t get_effective_memsize(void)
 
 			/* Find the memory region runs the U-Boot */
 			if (start >= phys_sdram_1_start && start <= end1 &&
-			    (start <= CONFIG_SYS_TEXT_BASE &&
-			    end >= CONFIG_SYS_TEXT_BASE)) {
+			    (start <= CONFIG_TEXT_BASE &&
+			    end >= CONFIG_TEXT_BASE)) {
 				if ((end + 1) <=
 				    ((sc_faddr_t)phys_sdram_1_start +
 				    phys_sdram_1_size))

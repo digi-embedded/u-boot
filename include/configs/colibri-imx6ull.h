@@ -11,20 +11,14 @@
 #define __COLIBRI_IMX6ULL_CONFIG_H
 
 #include "mx6_common.h"
-#define CONFIG_IOMUX_LPSR
 
 #define PHYS_SDRAM_SIZE			SZ_1G
 
 /* ENET1 */
-#define IMX_FEC_BASE			ENET2_BASE_ADDR
 
 /* MMC Config */
-#define CONFIG_SYS_FSL_ESDHC_ADDR	0
-#define CONFIG_SYS_FSL_USDHC_NUM	1
-
-#define CONFIG_IPADDR			192.168.10.2
-#define CONFIG_NETMASK			255.255.255.0
-#define CONFIG_SERVERIP			192.168.10.1
+#define CFG_SYS_FSL_ESDHC_ADDR	0
+#define CFG_SYS_FSL_USDHC_NUM	1
 
 #if defined(CONFIG_TARGET_COLIBRI_IMX6ULL_EMMC)
 #define UBOOT_UPDATE \
@@ -44,20 +38,11 @@
 
 #define MEM_LAYOUT_ENV_SETTINGS \
 	"bootm_size=0x10000000\0" \
-	"fdt_addr_r=0x82100000\0" \
-	"kernel_addr_r=0x81000000\0" \
-	"pxefile_addr_r=0x87100000\0" \
-	"ramdisk_addr_r=0x82200000\0" \
-	"scriptaddr=0x87000000\0"
-
-#define NFS_BOOTCMD \
-	"nfsargs=ip=:::::eth0: root=/dev/nfs\0" \
-	"nfsboot=run setup; " \
-		"setenv bootargs ${defargs} ${nfsargs} " \
-		"${setupargs} ${vidargs}; echo Booting from NFS...;" \
-		"dhcp ${kernel_addr_r} && " \
-		"tftp ${fdt_addr_r} ${fdtfile} && " \
-		"run fdt_fixup && bootz ${kernel_addr_r} - ${fdt_addr_r}\0" \
+	"fdt_addr_r=0x88200000\0" \
+	"kernel_addr_r=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
+	"pxefile_addr_r=0x88300000\0" \
+	"ramdisk_addr_r=0x88400000\0" \
+	"scriptaddr=0x88280000\0"
 
 #define UBI_BOOTCMD \
 	"ubiargs=ubi.mtd=ubi root=ubi0:rootfs rw rootfstype=ubifs " \
@@ -75,7 +60,6 @@
 #define DFU_ALT_NAND_INFO "imx6ull-bcb part 0,1;u-boot1 part 0,2;u-boot2 part 0,3;u-boot-env part 0,4;ubi partubi 0,5"
 #define MODULE_EXTRA_ENV_SETTINGS \
 	"dfu_alt_info=" DFU_ALT_NAND_INFO "\0" \
-	"mtdparts=" CONFIG_MTDPARTS_DEFAULT "\0" \
 	UBI_BOOTCMD
 #else
 #define	MODULE_EXTRA_ENV_SETTINGS ""
@@ -95,13 +79,12 @@
 #endif
 #include <config_distro_bootcmd.h>
 
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	BOOTENV \
 	MEM_LAYOUT_ENV_SETTINGS \
-	NFS_BOOTCMD \
 	UBI_BOOTCMD \
 	UBOOT_UPDATE \
-	"bootubipart=ubi\0" \
+	"boot_script_dhcp=boot.scr\0" \
 	"console=ttymxc0\0" \
 	"defargs=user_debug=30\0" \
 	"fdt_board=eval-v3\0" \
@@ -123,49 +106,31 @@
 		"${board}/flash_blk.img && source ${loadaddr}\0" \
 	"splashpos=m,m\0" \
 	"splashimage=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
-	"videomode=video=ctfb:x:640,y:480,depth:18,pclk:39722,le:48,ri:16,up:33,lo:10,hs:96,vs:2,sync:0,vmode:0\0" \
-	"vidargs=video=mxsfb:640x480M-16@60"
-
+	"videomode=video=ctfb:x:640,y:480,depth:18,pclk:39722,le:48,ri:16,up:33,lo:10,hs:96,vs:2,sync:0,vmode:0\0"
 
 /* Physical Memory Map */
 #define PHYS_SDRAM			MMDC0_ARB_BASE_ADDR
 
-#define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM
-#define CONFIG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
-#define CONFIG_SYS_INIT_RAM_SIZE	IRAM_SIZE
-
-#define CONFIG_SYS_INIT_SP_OFFSET \
-	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
-#define CONFIG_SYS_INIT_SP_ADDR \
-	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
-
-/* environment organization */
-#if defined(CONFIG_ENV_IS_IN_NAND)
-#define CONFIG_ENV_RANGE	(4 * CONFIG_ENV_SIZE)
-#endif
+#define CFG_SYS_SDRAM_BASE		PHYS_SDRAM
+#define CFG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
+#define CFG_SYS_INIT_RAM_SIZE	IRAM_SIZE
 
 #ifdef CONFIG_TARGET_COLIBRI_IMX6ULL_NAND
 /* NAND stuff */
-#define CONFIG_SYS_MAX_NAND_DEVICE	1
-/* used to initialize CONFIG_SYS_NAND_BASE_LIST which is unused */
-#define CONFIG_SYS_NAND_BASE		-1
+/* used to initialize CFG_SYS_NAND_BASE_LIST which is unused */
+#define CFG_SYS_NAND_BASE		-1
 #endif
 
 /* USB Configs */
-#define CONFIG_EHCI_HCD_INIT_AFTER_RESET
 
-#define CONFIG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
-#define CONFIG_MXC_USB_FLAGS		0
-#define CONFIG_USB_MAX_CONTROLLER_COUNT 2
-
-#define CONFIG_USBD_HS
+#define CFG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
+#define CFG_MXC_USB_FLAGS		0
 
 /* USB Device Firmware Update support */
 #define DFU_DEFAULT_POLL_TIMEOUT	300
 
-#if defined(CONFIG_DM_VIDEO)
+#if defined(CONFIG_VIDEO)
 #define MXS_LCDIF_BASE MX6UL_LCDIF1_BASE_ADDR
-#define CONFIG_VIDEO_BMP_LOGO
 #endif
 
 #endif /* __COLIBRI_IMX6ULL_CONFIG_H */

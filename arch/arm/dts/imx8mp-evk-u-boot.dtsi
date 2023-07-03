@@ -92,6 +92,10 @@
 	u-boot,dm-spl;
 };
 
+&pinctrl_wdog {
+	u-boot,dm-spl;
+};
+
 &gpio1 {
 	u-boot,dm-spl;
 };
@@ -181,11 +185,11 @@
 	u-boot,dm-spl;
 };
 
-&{/soc@0/bus@30800000/i2c@30a20000/pca9450@25} {
+&{/soc@0/bus@30800000/i2c@30a20000/pmic@25} {
 	u-boot,dm-spl;
 };
 
-&{/soc@0/bus@30800000/i2c@30a20000/pca9450@25/regulators} {
+&{/soc@0/bus@30800000/i2c@30a20000/pmic@25/regulators} {
 	u-boot,dm-spl;
 };
 
@@ -194,7 +198,6 @@
 };
 
 &eqos {
-	compatible = "fsl,imx-eqos";
 	/delete-property/ assigned-clocks;
 	/delete-property/ assigned-clock-parents;
 	/delete-property/ assigned-clock-rates;
@@ -216,24 +219,10 @@
 	assigned-clock-parents = <&clk IMX8MP_SYS_PLL1_400M>;
 };
 
-&lcdif1 {
-	/delete-property/ assigned-clocks;
-	/delete-property/ assigned-clock-parents;
-	/delete-property/ assigned-clock-rates;
-};
-
 &mipi_dsi {
 	/delete-property/ assigned-clocks;
 	/delete-property/ assigned-clock-parents;
 	/delete-property/ assigned-clock-rates;
-};
-
-&usb3_0 {
-	/delete-property/ power-domains;
-};
-
-&usb3_1 {
-	/delete-property/ power-domains;
 };
 
 &usb_dwc3_0 {

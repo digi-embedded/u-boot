@@ -16,6 +16,4 @@ config IMX93_EVK_LPDDR4X
 	help
 	  Select the LPDDR4X timing and 0.6V VDDQ
 
-source "board/freescale/common/Kconfig"
-
 endif

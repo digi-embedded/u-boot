@@ -304,12 +304,7 @@ static void usb_oc_config(void __iomem *usbnc_base, int index)
 	void __iomem *ctrl = (void __iomem *)(&usbnc->ctrl[0]);
 #endif
 
-#if CONFIG_MACH_TYPE == MACH_TYPE_MX6Q_ARM2
-	/* mx6qarm2 seems to required a different setting*/
-	clrbits_le32(ctrl, UCTRL_OVER_CUR_POL);
-#else
 	setbits_le32(ctrl, UCTRL_OVER_CUR_POL);
-#endif
 
 	setbits_le32(ctrl, UCTRL_OVER_CUR_DIS);
 

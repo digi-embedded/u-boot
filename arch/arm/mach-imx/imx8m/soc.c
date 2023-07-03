@@ -7,6 +7,7 @@
 
 #include <common.h>
 #include <cpu_func.h>
+#include <event.h>
 #include <init.h>
 #include <log.h>
 #include <asm/arch/imx-regs.h>
@@ -34,6 +35,9 @@
 #include <asm/setup.h>
 #include <asm/bootm.h>
 #include <kaslr.h>
+#include <stdlib.h>
+#include <power-domain.h>
+#include <dt-bindings/power/imx8mp-power.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -79,7 +83,7 @@ void enable_tzc380(void)
 	setbits_le32(&gpr->gpr[10], GPR_TZASC_ID_SWAP_BYPASS);
 
 	/*
-	 * imx8m implements the lock bit for
+	 * imx8mn and imx8mp implements the lock bit for
 	 * TZASC_ID_SWAP_BYPASS, enable it to lock settings
 	 */
 	setbits_le32(&gpr->gpr[10], GPR_TZASC_ID_SWAP_BYPASS_LOCK);
@@ -104,6 +108,12 @@ void set_wdog_reset(struct wdog_regs *wdog)
 	setbits_le16(&wdog->wcr, WDOG_WDT_MASK | WDOG_WDZST_MASK);
 }
 
+#ifdef CONFIG_ARMV8_PSCI
+#define PTE_MAP_NS	PTE_BLOCK_NS
+#else
+#define PTE_MAP_NS	0
+#endif
+
 static struct mm_region imx8m_mem_map[] = {
 	{
 		/* ROM */
@@ -126,7 +136,7 @@ static struct mm_region imx8m_mem_map[] = {
 		.phys = 0x180000UL,
 		.size = 0x8000UL,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
-			 PTE_BLOCK_OUTER_SHARE
+			 PTE_BLOCK_OUTER_SHARE | PTE_MAP_NS
 	}, {
 		/* TCM */
 		.virt = 0x7C0000UL,
@@ -134,14 +144,14 @@ static struct mm_region imx8m_mem_map[] = {
 		.size = 0x80000UL,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
 			 PTE_BLOCK_NON_SHARE |
-			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
+			 PTE_BLOCK_PXN | PTE_BLOCK_UXN | PTE_MAP_NS
 	}, {
 		/* OCRAM */
 		.virt = 0x900000UL,
 		.phys = 0x900000UL,
 		.size = 0x200000UL,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
-			 PTE_BLOCK_OUTER_SHARE
+			 PTE_BLOCK_OUTER_SHARE | PTE_MAP_NS
 	}, {
 		/* AIPS */
 		.virt = 0xB00000UL,
@@ -157,9 +167,9 @@ static struct mm_region imx8m_mem_map[] = {
 		.size = PHYS_SDRAM_SIZE,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
 #ifdef CONFIG_IMX_TRUSTY_OS
-			 PTE_BLOCK_INNER_SHARE
+			 PTE_BLOCK_INNER_SHARE | PTE_MAP_NS
 #else
-			 PTE_BLOCK_OUTER_SHARE
+			 PTE_BLOCK_OUTER_SHARE | PTE_MAP_NS
 #endif
 #ifdef PHYS_SDRAM_2_SIZE
 	}, {
@@ -169,9 +179,9 @@ static struct mm_region imx8m_mem_map[] = {
 		.size = PHYS_SDRAM_2_SIZE,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
 #ifdef CONFIG_IMX_TRUSTY_OS
-			 PTE_BLOCK_INNER_SHARE
+			 PTE_BLOCK_INNER_SHARE | PTE_MAP_NS
 #else
-			 PTE_BLOCK_OUTER_SHARE
+			 PTE_BLOCK_OUTER_SHARE | PTE_MAP_NS
 #endif
 #endif
 	}, {
@@ -190,7 +200,7 @@ static unsigned int imx8m_find_dram_entry_in_mem_map(void)
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(imx8m_mem_map); i++)
-		if (imx8m_mem_map[i].phys == CONFIG_SYS_SDRAM_BASE)
+		if (imx8m_mem_map[i].phys == CFG_SYS_SDRAM_BASE)
 			return i;
 
 	hang();	/* Entry not found, this must never happen. */
@@ -250,7 +260,7 @@ int dram_init(void)
 		return ret;
 
 	/* rom_pointer[1] contains the size of TEE occupies */
-	if (rom_pointer[1])
+	if (!IS_ENABLED(CONFIG_ARMV8_PSCI) && rom_pointer[1])
 		gd->ram_size = sdram_size - rom_pointer[1];
 	else
 		gd->ram_size = sdram_size;
@@ -279,7 +289,7 @@ int dram_init_banksize(void)
 	}
 
 	gd->bd->bi_dram[bank].start = PHYS_SDRAM;
-	if (rom_pointer[1]) {
+	if (!IS_ENABLED(CONFIG_ARMV8_PSCI) && rom_pointer[1]) {
 		phys_addr_t optee_start;
 		phys_size_t optee_size = (size_t)rom_pointer[1];
 
@@ -337,7 +347,7 @@ phys_size_t get_effective_memsize(void)
 			sdram_b1_size = sdram_size;
 		}
 
-		if (rom_pointer[1]) {
+		if (!IS_ENABLED(CONFIG_ARMV8_PSCI) && rom_pointer[1]) {
 			/* We will relocate u-boot to Top of dram1. Tee position has two cases:
 			 * 1. At the top of dram1,  Then return the size removed optee size.
 			 * 2. In the middle of dram1, return the size of dram1.
@@ -417,32 +427,47 @@ static u32 get_cpu_variant_type(u32 type)
 		u32 value0 = readl(&fuse->tester3);
 		u32 flag = 0;
 
+		/* dual core */
 		if ((value0 & 0xc0000) == 0x80000)
-			return MXC_CPU_IMX8MPD;
+			flag |= (1 << 10);
 
-			/* vpu disabled */
+		/* vpu disabled, g1, g2 and vc8000e */
 		if ((value0 & 0x43000000) == 0x43000000)
 			flag = 1;
+		else if ((value0 & 0x40000000) == 0x40000000)
+			flag |= (1 << 9);/*vc8000e only*/
 
 		/* npu disabled*/
 		if ((value & 0x8) == 0x8)
-			flag |= (1 << 1);
+			flag |= BIT(1);
 
 		/* isp disabled */
 		if ((value & 0x3) == 0x3)
-			flag |= (1 << 2);
+			flag |= BIT(2);
 
 		/* gpu disabled */
 		if ((value & 0xc0) == 0xc0)
-			flag |= (1 << 3);
+			flag |= BIT(3);
 
 		/* lvds disabled */
 		if ((value & 0x180000) == 0x180000)
-			flag |= (1 << 4);
+			flag |= BIT(4);
 
 		/* mipi dsi disabled */
 		if ((value & 0x60000) == 0x60000)
-			flag |= (1 << 5);
+			flag |= BIT(5);
+
+		/* mipi csi disabled */
+		if ((value & 0x18000) == 0x18000)
+			flag |= (1 << 6);
+
+		/* HDMI TX & EARC disabled */
+		if ((value & 0xc0200000) == 0xc0200000)
+			flag |= (1 << 7);
+
+		/* M7 disabled */
+		if ((value0 & 0x200000) == 0x200000)
+			flag |= (1 << 8);
 
 		switch (flag) {
 		case 0x3f:
@@ -451,6 +476,12 @@ static u32 get_cpu_variant_type(u32 type)
 			return MXC_CPU_IMX8MPL;
 		case 2:
 			return MXC_CPU_IMX8MP6;
+		case 0x400:
+			return MXC_CPU_IMX8MPD;
+		case 0x7d6:
+			return MXC_CPU_IMX8MPDSC;
+		case 0x3d6:
+			return MXC_CPU_IMX8MPSC;
 		default:
 			break;
 		}
@@ -527,7 +558,7 @@ static void imx_set_wdog_powerdown(bool enable)
 	writew(enable, &wdog3->wmcr);
 }
 
-int arch_cpu_init_dm(void)
+static int imx8m_check_clock(void *ctx, struct event *event)
 {
 	struct udevice *dev;
 	int ret;
@@ -543,6 +574,40 @@ int arch_cpu_init_dm(void)
 	}
 
 	return 0;
+}
+EVENT_SPY(EVT_DM_POST_INIT, imx8m_check_clock);
+
+static void imx8m_setup_snvs(void)
+{
+	/* Enable SNVS clock */
+	clock_enable(CCGR_SNVS, 1);
+	/* Initialize glitch detect */
+	writel(SNVS_LPPGDR_INIT, SNVS_BASE_ADDR + SNVS_LPLVDR);
+	/* Clear interrupt status */
+	writel(0xffffffff, SNVS_BASE_ADDR + SNVS_LPSR);
+}
+
+static void imx8m_setup_csu_tzasc(void)
+{
+	const uintptr_t tzasc_base[4] = {
+		0x301f0000, 0x301f0000, 0x301f0000, 0x301f0000
+	};
+	int i, j;
+
+	if (!IS_ENABLED(CONFIG_ARMV8_PSCI))
+		return;
+
+	/* CSU */
+	for (i = 0; i < 64; i++)
+		writel(0x00ff00ff, (void *)CSU_BASE_ADDR + (4 * i));
+
+	/* TZASC */
+	for (j = 0; j < 4; j++) {
+		writel(0x77777777, (void *)(tzasc_base[j]));
+		writel(0x77777777, (void *)(tzasc_base[j]) + 0x4);
+		for (i = 0; i <= 0x10; i += 4)
+			writel(0, (void *)(tzasc_base[j]) + 0x40 + i);
+	}
 }
 
 #if defined(CONFIG_IMX_HAB) && defined(CONFIG_IMX8MQ)
@@ -595,6 +660,11 @@ static void secure_lockup(void)
 int arch_cpu_init(void)
 {
 	struct ocotp_regs *ocotp = (struct ocotp_regs *)OCOTP_BASE_ADDR;
+
+#if !CONFIG_IS_ENABLED(SYS_ICACHE_OFF)
+	icache_enable();
+#endif
+
 	/*
 	 * ROM might disable clock for SCTR,
 	 * enable the clock before timer_init.
@@ -645,55 +715,15 @@ int arch_cpu_init(void)
 			writel(0x200, &ocotp->ctrl_clr);
 	}
 
+	imx8m_setup_snvs();
+
+	imx8m_setup_csu_tzasc();
+
 	return 0;
 }
 
 #if defined(CONFIG_IMX8MN) || defined(CONFIG_IMX8MP)
 struct rom_api *g_rom_api = (struct rom_api *)0x980;
-
-enum boot_device get_boot_device(void)
-{
-	volatile gd_t *pgd = gd;
-	int ret;
-	u32 boot;
-	u16 boot_type;
-	u8 boot_instance;
-	enum boot_device boot_dev = SD1_BOOT;
-
-	ret = g_rom_api->query_boot_infor(QUERY_BT_DEV, &boot,
-					  ((uintptr_t)&boot) ^ QUERY_BT_DEV);
-	set_gd(pgd);
-
-	if (ret != ROM_API_OKAY) {
-		puts("ROMAPI: failure at query_boot_info\n");
-		return -1;
-	}
-
-	boot_type = boot >> 16;
-	boot_instance = (boot >> 8) & 0xff;
-
-	switch (boot_type) {
-	case BT_DEV_TYPE_SD:
-		boot_dev = boot_instance + SD1_BOOT;
-		break;
-	case BT_DEV_TYPE_MMC:
-		boot_dev = boot_instance + MMC1_BOOT;
-		break;
-	case BT_DEV_TYPE_NAND:
-		boot_dev = NAND_BOOT;
-		break;
-	case BT_DEV_TYPE_FLEXSPINOR:
-		boot_dev = QSPI_BOOT;
-		break;
-	case BT_DEV_TYPE_USB:
-		boot_dev = USB_BOOT;
-		break;
-	default:
-		break;
-	}
-
-	return boot_dev;
-}
 #endif
 
 #if defined(CONFIG_IMX8M)
@@ -761,7 +791,8 @@ bool is_usb_boot(void)
 {
 	return get_boot_device() == USB_BOOT;
 }
-#ifdef CONFIG_SERIAL_TAG
+
+#ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
 void get_board_serial(struct tag_serialnr *serialnr)
 {
 	struct ocotp_regs *ocotp = (struct ocotp_regs *)OCOTP_BASE_ADDR;
@@ -799,7 +830,7 @@ static int disable_fdt_nodes(void *blob, const char *const nodes_path[], int siz
 		if (nodeoff < 0)
 			continue; /* Not found, skip it */
 
-		debug("Found %s node\n", nodes_path[i]);
+		printf("Found %s node\n", nodes_path[i]);
 
 add_status:
 		rc = fdt_setprop(blob, nodeoff, "status", status, strlen(status) + 1);
@@ -945,23 +976,143 @@ int disable_vpu_nodes(void *blob)
 	static const char * const nodes_path_8mm[] = {
 		"/vpu_g1@38300000",
 		"/vpu_g2@38310000",
-		"/vpu_h1@38320000"
+		"/vpu_h1@38320000",
+		"/soc@0/blk-ctrl@38330000"
 	};
 
 	static const char * const nodes_path_8mp[] = {
 		"/vpu_g1@38300000",
 		"/vpu_g2@38310000",
-		"/vpu_vc8000e@38320000"
+		"/vpu_vc8000e@38320000",
+		"/soc@0/blk-ctl@38330000",
+		"/soc@0/bus@30000000/gpc@303a0000/pgc/power-domain@19",
+		"/soc@0/bus@30000000/gpc@303a0000/pgc/power-domain@20",
+		"/soc@0/bus@30000000/gpc@303a0000/pgc/power-domain@21",
+		"/soc@0/bus@30000000/gpc@303a0000/pgc/power-domain@22"
 	};
 
 	if (is_imx8mq())
 		return disable_fdt_nodes(blob, nodes_path_8mq, ARRAY_SIZE(nodes_path_8mq));
 	else if (is_imx8mm())
 		return disable_fdt_nodes(blob, nodes_path_8mm, ARRAY_SIZE(nodes_path_8mm));
+	else if (is_imx8mpsc() || is_imx8mpdsc()) /*vc8000e only*/
+		return disable_fdt_nodes(blob, &nodes_path_8mp[2], 1);
 	else if (is_imx8mp())
 		return disable_fdt_nodes(blob, nodes_path_8mp, ARRAY_SIZE(nodes_path_8mp));
 	else
 		return -EPERM;
+}
+
+static int remove_phandle_from_node(void *blob, const char *const blkctrl_path,
+	const char *name_property, const char * name, const char *phandle_property, const char *cell_name)
+{
+	int nodeoff, index, ret, j;
+	struct fdtdec_phandle_args args;
+	u32 arrays[16];
+	int cnt, cell_size, list_len, length;
+	const char *list, *str_p;
+	char *new_list, *end, *new_str_p;
+
+	nodeoff = fdt_path_offset(blob, blkctrl_path);
+	if (nodeoff < 0) {
+		printf("Fail to get node %s: %d\n", blkctrl_path, nodeoff);
+		return nodeoff;
+	}
+
+	index = fdt_stringlist_search(blob, nodeoff, name_property, name);
+	if (index < 0) {
+		printf("Fail to find power domain name %s from %s: %d\n", name, blkctrl_path, index);
+		return index;
+	}
+
+	ret = fdtdec_parse_phandle_with_args(blob,
+				nodeoff, phandle_property, cell_name,
+				0, index, &args);
+	if (ret < 0) {
+		printf("Fail to get power domain %d from %s: %d\n", index, blkctrl_path, ret);
+		return ret;
+	}
+
+	cnt = fdtdec_get_int_array_count(blob, nodeoff, phandle_property, arrays, 16);
+	if (cnt < 0)
+		return cnt;
+
+	cell_size = args.args_count + 1;
+	memmove((void *)&arrays[cell_size * index], (void *)&arrays[cell_size * (index + 1)],
+		(cnt - (index + 1) * cell_size) * sizeof(u32));
+
+	for (j = 0; j < cnt - cell_size; j++) {
+		debug("<%u>, ", arrays[j]);
+		arrays[j] = cpu_to_fdt32(arrays[j]);
+	}
+	debug("\n");
+
+	/* remove from phandle list*/
+	ret = fdt_setprop(blob, nodeoff, phandle_property, &arrays, (cnt - cell_size) * sizeof(u32));
+	if (ret < 0) {
+		printf("Fail to fdt_setprop for %s: %d\n", phandle_property, ret);
+		return ret;
+	}
+
+	/* try to remove the name from name list */
+	list = fdt_getprop(blob, nodeoff, name_property, &list_len);
+	new_list = (char *)malloc(list_len);
+	if (!new_list) {
+		printf("Fail to malloc for string list %d\n", list_len);
+		return -ENOMEM;
+	}
+	memcpy(new_list, list, list_len);
+	end = new_list + list_len;
+
+	str_p = fdt_stringlist_get(blob, nodeoff, name_property, index, &length);
+	new_str_p = new_list + (str_p - list);
+
+	memmove((void *)new_str_p, (void *)new_str_p + length + 1, end - (new_str_p + length + 1));
+
+	ret = fdt_setprop(blob, nodeoff, name_property, new_list, list_len - (length + 1));
+	if (ret < 0)
+		printf("Fail to fdt_setprop for %s: %d\n", name_property, ret);
+
+	free(new_list);
+
+	return ret;
+}
+
+/* Only remove vc8000e*/
+int disable_vpu_blk_ctrl_vc8000e(void *blob)
+{
+	int ret;
+
+	ret = remove_phandle_from_node(blob, "/soc@0/blk-ctl@38330000",
+		"power-domain-names", "h1", "power-domains", "#power-domain-cells");
+	if (!ret)
+		printf("removed power-domain h1\n");
+
+	ret = remove_phandle_from_node(blob, "/soc@0/blk-ctl@38330000",
+		"clock-names", "h1", "clocks", "#clock-cells");
+	if (!ret)
+		printf("removed clocks h1\n");
+
+	return ret;
+}
+
+int disable_media_blk_ctrl_mipi_phy2(void *blob)
+{
+	int ret, i;
+
+	static const char * const pd_names[] = {
+		"mipi-csi2",
+		"mipi-dsi2"
+	};
+
+	for (i = 0; i < ARRAY_SIZE(pd_names); i++) {
+		ret = remove_phandle_from_node(blob, "/soc@0/bus@32c00000/blk-ctrl@32ec0000",
+			"power-domain-names", pd_names[i], "power-domains", "#power-domain-cells");
+		if (!ret)
+			printf("removed power-domain %s\n", pd_names[i]);
+	}
+
+	return ret;
 }
 
 #ifdef CONFIG_IMX8MN_LOW_DRIVE_MODE
@@ -1013,12 +1164,69 @@ static bool check_remote_endpoint(void *blob, const char *ep1, const char *ep2)
 		lookup_node = fdtdec_lookup_phandle(blob, nodeoff, "remote-endpoint");
 		nodeoff = fdt_path_offset(blob, ep2);
 
-		if (nodeoff > 0 && nodeoff == lookup_node) {
+		if (nodeoff > 0 && nodeoff == lookup_node)
 			return true;
-		}
 	}
 
 	return false;
+}
+
+int disable_csi_nodes(void *blob)
+{
+	static const char * const nodes_path_8mp[] = {
+		"/soc@0/bus@32c00000/camera/csi@32e40000",
+		"/soc@0/bus@32c00000/camera/csi@32e50000"
+	};
+
+	return disable_fdt_nodes(blob, nodes_path_8mp, ARRAY_SIZE(nodes_path_8mp));
+}
+
+int disable_cm7_nodes(void *blob)
+{
+	static const char * const nodes_path_8mp[] = {
+		"/imx8mp-cm7"
+	};
+
+	return disable_fdt_nodes(blob, nodes_path_8mp, ARRAY_SIZE(nodes_path_8mp));
+}
+
+int disable_hdmi_lcdif_nodes(void *blob)
+{
+	int ret;
+
+	static const char * const hdmi_path_8mp[] = {
+		"/soc@0/bus@30c00000/hdmi@32fd8000",
+		"/soc@0/bus@30c00000/hdmiphy@32fdff00",
+		"/soc@0/bus@30c00000/irqsteer@32fc2000",
+		"/soc@0/bus@30c00000/hdmi-pai-pvi@32fc4000",
+		"/soc@0/bus@32c00000/blk-ctrl@32fc0000",
+		"/soc@0/bus@30c00000/spba-bus@30c00000/aud2htx@30cb0000",
+		"/soc@0/bus@30c00000/spba-bus@30c00000/xcvr@30cc0000",
+		"/sound-hdmi",
+		"/sound-xcvr",
+	};
+
+	static const char * const lcdif_path_8mp[] = {
+		"/soc@0/bus@30c00000/lcd-controller@32fc6000",
+	};
+
+	static const char * const lcdif_ep_path_8mp[] = {
+		"/soc@0/bus@30c00000/lcd-controller@32fc6000/port@0/endpoint",
+	};
+	static const char * const hdmi_ep_path_8mp[] = {
+		"/soc@0/bus@30c00000/hdmi@32fd8000/port@0/endpoint",
+	};
+
+	ret = disable_fdt_nodes(blob, hdmi_path_8mp, ARRAY_SIZE(hdmi_path_8mp));
+	if (ret)
+		return ret;
+
+	if (check_remote_endpoint(blob, hdmi_ep_path_8mp[0], lcdif_ep_path_8mp[0])) {
+		/* Disable lcdif node */
+		return disable_fdt_nodes(blob, lcdif_path_8mp, ARRAY_SIZE(lcdif_path_8mp));
+	}
+
+	return 0;
 }
 
 int disable_dsi_lcdif_nodes(void *blob)
@@ -1299,6 +1507,48 @@ static int cleanup_nodes_for_efi(void *blob)
 	return 0;
 }
 
+static int fixup_thermal_trips(void *blob, const char *name)
+{
+	int minc, maxc;
+	int node, trip;
+
+	node = fdt_path_offset(blob, "/thermal-zones");
+	if (node < 0)
+		return node;
+
+	node = fdt_subnode_offset(blob, node, name);
+	if (node < 0)
+		return node;
+
+	node = fdt_subnode_offset(blob, node, "trips");
+	if (node < 0)
+		return node;
+
+	get_cpu_temp_grade(&minc, &maxc);
+
+	fdt_for_each_subnode(trip, blob, node) {
+		const char *type;
+		int temp, ret;
+
+		type = fdt_getprop(blob, trip, "type", NULL);
+		if (!type)
+			continue;
+
+		temp = 0;
+		if (!strcmp(type, "critical"))
+			temp = 1000 * maxc;
+		else if (!strcmp(type, "passive"))
+			temp = 1000 * (maxc - 10);
+		if (temp) {
+			ret = fdt_setprop_u32(blob, trip, "temperature", temp);
+			if (ret)
+				return ret;
+		}
+	}
+
+	return 0;
+}
+
 int ft_system_setup(void *blob, struct bd_info *bd)
 {
 #ifdef CONFIG_IMX8MQ
@@ -1424,19 +1674,43 @@ usb_modify_speed:
 		disable_lvds_lcdif_nodes(blob);
 	}
 
-	if (is_imx8mpul() || is_imx8mpl())
+	if (is_imx8mpsc() || is_imx8mpdsc()) {
+		/* Disable CSI */
+		disable_csi_nodes(blob);
+
+		/* Disable LVDS */
+		disable_lvds_lcdif_nodes(blob);
+
+		/* Disable CM7 */
+		disable_cm7_nodes(blob);
+
+		/* Disable HDMI */
+		disable_hdmi_lcdif_nodes(blob);
+
+		/* remove pgc for vc8000e only */
+		disable_vpu_blk_ctrl_vc8000e(blob);
+
+		/* remove pgc for mipi csi2 only */
+		disable_media_blk_ctrl_mipi_phy2(blob);
+	}
+
+	if (is_imx8mpul() || is_imx8mpl() ||
+		is_imx8mpsc() || is_imx8mpdsc())
 		disable_vpu_nodes(blob);
 
-	if (is_imx8mpul() || is_imx8mpl() || is_imx8mp6())
+	if (is_imx8mpul() || is_imx8mpl() || is_imx8mp6() ||
+		is_imx8mpsc() || is_imx8mpdsc())
 		disable_npu_nodes(blob);
 
-	if (is_imx8mpul() || is_imx8mpl())
+	if (is_imx8mpul() || is_imx8mpl() ||
+		is_imx8mpsc() || is_imx8mpdsc())
 		disable_isp_nodes(blob);
 
-	if (is_imx8mpul() || is_imx8mpl() || is_imx8mp6())
+	if (is_imx8mpul() || is_imx8mpl() || is_imx8mp6() ||
+		is_imx8mpsc() || is_imx8mpdsc())
 		disable_dsp_nodes(blob);
 
-	if (is_imx8mpd())
+	if (is_imx8mpd() || is_imx8mpdsc())
 		disable_cpu_nodes(blob, 2);
 #endif
 
@@ -1444,12 +1718,18 @@ usb_modify_speed:
 
 	delete_u_boot_nodes(blob);
 
-if (IS_ENABLED(CONFIG_KASLR)) {
+	if (fixup_thermal_trips(blob, "cpu-thermal"))
+		printf("Failed to update cpu-thermal trip(s)");
+	if (IS_ENABLED(CONFIG_IMX8MP) &&
+	    fixup_thermal_trips(blob, "soc-thermal"))
+		printf("Failed to update soc-thermal trip(s)");
+
+	if (IS_ENABLED(CONFIG_KASLR)) {
        int ret = do_generate_kaslr(blob);
        if (ret)
            printf("Unable to set property %s, err=%s\n",
                        "kaslr-seed", fdt_strerror(ret));
-       }
+	}
 
 #if defined(CONFIG_ANDROID_SUPPORT) || defined(CONFIG_ANDROID_AUTO_SUPPORT)
 	return 0;
@@ -1471,7 +1751,7 @@ int board_fix_fdt(void *fdt)
 		int i = 0;
 		int nodeoff, ret;
 		const char *status = "disabled";
-		static const char * dsi_nodes[] = {
+		static const char * const dsi_nodes[] = {
 			"/soc@0/bus@32c00000/mipi_dsi@32e60000",
 			"/soc@0/bus@32c00000/lcd-controller@32e80000",
 			"/dsi-host"
@@ -1482,7 +1762,7 @@ int board_fix_fdt(void *fdt)
 			if (nodeoff > 0) {
 set_status:
 				ret = fdt_setprop(fdt, nodeoff, "status", status,
-					strlen(status) + 1);
+						  strlen(status) + 1);
 				if (ret == -FDT_ERR_NOSPACE) {
 					ret = fdt_increase_size(fdt, 512);
 					if (!ret)
@@ -1514,26 +1794,9 @@ void reset_cpu(void)
 #endif
 
 #if defined(CONFIG_ARCH_MISC_INIT)
-static __maybe_unused void acquire_buildinfo(void)
-{
-	u64 atf_commit = 0;
-	struct arm_smccc_res res;
-
-	/* Get ARM Trusted Firmware commit id */
-	arm_smccc_smc(IMX_SIP_BUILDINFO, IMX_SIP_BUILDINFO_GET_COMMITHASH,
-		      0, 0, 0, 0, 0, 0, &res);
-	atf_commit = res.a0;
-	if (atf_commit == 0xffffffff) {
-		debug("ATF does not support build info\n");
-		atf_commit = 0x30; /* Display 0, 0 ascii is 0x30 */
-	}
-
-	printf("\n BuildInfo:\n  - ATF %s\n\n", (char *)&atf_commit);
-}
-
 int arch_misc_init(void)
 {
-#ifndef CONFIG_ANDROID_SUPPORT
+#if !defined(CONFIG_ANDROID_SUPPORT) || defined(CONFIG_SPL_BUILD)
 	if (IS_ENABLED(CONFIG_FSL_CAAM)) {
 		struct udevice *dev;
 		int ret;
@@ -1543,7 +1806,6 @@ int arch_misc_init(void)
 			printf("Failed to initialize caam_jr: %d\n", ret);
 	}
 #endif
-	acquire_buildinfo();
 
 	return 0;
 }
@@ -1610,11 +1872,24 @@ int imx8m_usb_power(int usb_id, bool on)
 #ifdef CONFIG_SPL_BUILD
 	imx8m_usb_power_domain(2 + usb_id, on);
 #else
-	struct arm_smccc_res res;
-	arm_smccc_smc(IMX_SIP_GPC, IMX_SIP_GPC_PM_DOMAIN,
-			2 + usb_id, on, 0, 0, 0, 0, &res);
-	if (res.a0)
-		return -EPERM;
+#if IS_ENABLED(CONFIG_POWER_DOMAIN)
+	if (is_imx8mq() || is_imx8mp()) {
+		struct power_domain pd;
+		if (!power_domain_lookup_name((usb_id == 0)? "power-domain@2": "power-domain@3", &pd)) {
+			if (on) {
+				if (power_domain_on(&pd)) {
+					printf("Error power on usb %d\n", usb_id);
+					return -EIO;
+				}
+			} else {
+				if (power_domain_off(&pd)) {
+					printf("Error power off usb %d\n", usb_id);
+					return -EIO;
+				}
+			}
+		}
+	}
+#endif
 #endif
 
 	return 0;
@@ -1697,7 +1972,7 @@ void imx_tmu_arch_init(void *reg_base)
 #if defined(CONFIG_IMX8MQ) || defined(CONFIG_IMX8MM) || defined(CONFIG_IMX8MN)
 bool serror_need_skip = true;
 
-void do_error(struct pt_regs *pt_regs, unsigned int esr)
+void do_error(struct pt_regs *pt_regs)
 {
 	/*
 	 * If stack is still in ROM reserved OCRAM not switch to SPL,
@@ -1722,7 +1997,7 @@ void do_error(struct pt_regs *pt_regs, unsigned int esr)
 	}
 
 	efi_restore_gd();
-	printf("\"Error\" handler, esr 0x%08x\n", esr);
+	printf("\"Error\" handler, esr 0x%08lx\n", pt_regs->esr);
 	show_regs(pt_regs);
 	panic("Resetting CPU ...\n");
 }
@@ -1730,7 +2005,7 @@ void do_error(struct pt_regs *pt_regs, unsigned int esr)
 #endif
 
 #if defined(CONFIG_IMX8MN) || defined(CONFIG_IMX8MP)
-enum env_location env_get_location(enum env_operation op, int prio)
+enum env_location arch_env_get_location(enum env_operation op, int prio)
 {
 	enum boot_device dev = get_boot_device();
 
@@ -1739,6 +2014,7 @@ enum env_location env_get_location(enum env_operation op, int prio)
 
 	switch (dev) {
 	case QSPI_BOOT:
+	case SPI_NOR_BOOT:
 		if (IS_ENABLED(CONFIG_ENV_IS_IN_SPI_FLASH))
 			return ENVL_SPI_FLASH;
 		return ENVL_NOWHERE;
@@ -1765,6 +2041,37 @@ enum env_location env_get_location(enum env_operation op, int prio)
 	}
 }
 
+#endif
+
+#ifdef CONFIG_IMX_BOOTAUX
+const struct rproc_att hostmap[] = {
+	/* aux core , host core,  size */
+	{ 0x00000000, 0x007e0000, 0x00020000 },
+	/* OCRAM_S */
+	{ 0x00180000, 0x00180000, 0x00008000 },
+	/* OCRAM */
+	{ 0x00900000, 0x00900000, 0x00020000 },
+	/* OCRAM */
+	{ 0x00920000, 0x00920000, 0x00020000 },
+	/* QSPI Code - alias */
+	{ 0x08000000, 0x08000000, 0x08000000 },
+	/* DDR (Code) - alias */
+	{ 0x10000000, 0x80000000, 0x0FFE0000 },
+	/* TCML */
+	{ 0x1FFE0000, 0x007E0000, 0x00040000 },
+	/* OCRAM_S */
+	{ 0x20180000, 0x00180000, 0x00008000 },
+	/* OCRAM */
+	{ 0x20200000, 0x00900000, 0x00040000 },
+	/* DDR (Data) */
+	{ 0x40000000, 0x40000000, 0x80000000 },
+	{ /* sentinel */ }
+};
+
+const struct rproc_att *imx_bootaux_get_hostmap(void)
+{
+	return hostmap;
+}
 #endif
 
 #ifdef CONFIG_IMX8MQ

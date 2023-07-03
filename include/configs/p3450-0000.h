@@ -11,10 +11,9 @@
 #include "tegra210-common.h"
 
 /* High-level configuration options */
-#define CONFIG_TEGRA_BOARD_STRING	"NVIDIA P3450-0000"
+#define CFG_TEGRA_BOARD_STRING	"NVIDIA P3450-0000"
 
 /* Board-specific serial config */
-#define CONFIG_TEGRA_ENABLE_UARTA
 
 /* Only MMC/PXE/DHCP for now, add USB back in later when supported */
 #define BOOT_TARGET_DEVICES(func) \
@@ -23,9 +22,6 @@
 	func(PXE, pxe, na) \
 	func(DHCP, dhcp, na)
 
-/* Environment at end of QSPI, in the VER partition */
-#define CONFIG_SPI_FLASH_SIZE		(4 << 20)
-
 #define BOARD_EXTRA_ENV_SETTINGS \
 	"preboot=if test -e mmc 1:1 /u-boot-preboot.scr; then " \
 		"load mmc 1:1 ${scriptaddr} /u-boot-preboot.scr; " \
@@ -33,10 +29,6 @@
 	"fi\0"
 
 /* General networking support */
-#include "tegra-common-usb-gadget.h"
 #include "tegra-common-post.h"
-
-/* Crystal is 38.4MHz. clk_m runs at half that rate */
-#define COUNTER_FREQUENCY	19200000
 
 #endif /* _P3450_0000_H */

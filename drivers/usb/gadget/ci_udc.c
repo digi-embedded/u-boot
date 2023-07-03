@@ -109,7 +109,7 @@ static int ci_udc_gadget_start(struct usb_gadget *g,
 static int ci_udc_gadget_stop(struct usb_gadget *g);
 #endif
 
-static struct usb_gadget_ops ci_udc_ops = {
+static const struct usb_gadget_ops ci_udc_ops = {
 	.pullup = ci_pullup,
 #if CONFIG_IS_ENABLED(DM_USB_GADGET)
 	.udc_start		= ci_udc_gadget_start,
@@ -117,7 +117,7 @@ static struct usb_gadget_ops ci_udc_ops = {
 #endif
 };
 
-static struct usb_ep_ops ci_ep_ops = {
+static const struct usb_ep_ops ci_ep_ops = {
 	.enable         = ci_ep_enable,
 	.disable        = ci_ep_disable,
 	.queue          = ci_ep_queue,
@@ -341,7 +341,7 @@ static void ep_enable(int num, int in, int maxpacket)
 	if (num != 0) {
 		struct ept_queue_head *head = ci_get_qh(num, in);
 
-		head->config = CONFIG_MAX_PKT(maxpacket) | CONFIG_ZLT;
+		head->config = CFG_MAX_PKT(maxpacket) | CFG_ZLT;
 		ci_flush_qh(num);
 	}
 	writel(n, &udc->epctrl[num]);
@@ -978,11 +978,11 @@ static int ci_udc_probe(void)
 		 */
 		head = controller.epts + i;
 		if (i < 2)
-			head->config = CONFIG_MAX_PKT(EP0_MAX_PACKET_SIZE)
-				| CONFIG_ZLT | CONFIG_IOS;
+			head->config = CFG_MAX_PKT(EP0_MAX_PACKET_SIZE)
+				| CFG_ZLT | CFG_IOS;
 		else
-			head->config = CONFIG_MAX_PKT(EP_MAX_PACKET_SIZE)
-				| CONFIG_ZLT;
+			head->config = CFG_MAX_PKT(EP_MAX_PACKET_SIZE)
+				| CFG_ZLT;
 		head->next = TERMINATE;
 		head->info = 0;
 
@@ -1316,9 +1316,7 @@ static int ci_udc_phy_shutdown(struct ci_udc_priv_data *priv)
 		if (ret)
 			return ret;
 
-		ret = clk_free(&priv->phy_clk);
-		if (ret)
-			return ret;
+		clk_free(&priv->phy_clk);
 	}
 #endif
 
@@ -1421,9 +1419,7 @@ static int ci_udc_otg_probe(struct udevice *dev)
 
 	ehci = (struct usb_ehci *)devfdt_get_addr(&priv->otgdev);
 
-	ret = pinctrl_select_state(&priv->otgdev, "default");
-	if (ret)
-		DBG("Failed to configure default pinctrl\n");
+	pinctrl_select_state(&priv->otgdev, "default");
 
 #if defined(CONFIG_MX6)
 	if (usb_fused((u32)ehci)) {

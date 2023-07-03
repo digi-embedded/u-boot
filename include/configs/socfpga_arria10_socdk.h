@@ -18,8 +18,7 @@
 /*
  * Serial / UART configurations
  */
-#define CONFIG_SYS_NS16550_MEM32
-#define CONFIG_SYS_BAUDRATE_TABLE {4800, 9600, 19200, 38400, 57600, 115200}
+#define CFG_SYS_BAUDRATE_TABLE {4800, 9600, 19200, 38400, 57600, 115200}
 
 /*
  * L4 OSC1 Timer 0
@@ -32,7 +31,6 @@
  */
 
 /* SPL memory allocation configuration, this is for FAT implementation */
-#define CONFIG_SYS_SPL_MALLOC_SIZE	0x00015000
 
 /* The rest of the configuration is shared */
 #include <configs/socfpga_common.h>

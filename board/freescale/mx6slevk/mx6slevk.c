@@ -32,7 +32,6 @@
 #include <usb.h>
 #include <usb/ehci-ci.h>
 #if defined(CONFIG_MXC_EPDC)
-#include <lcd.h>
 #include <mxc_epdc_fb.h>
 #endif
 
@@ -82,7 +81,7 @@ phys_size_t get_effective_memsize(void)
 
 int dram_init_banksize(void)
 {
-	gd->bd->bi_dram[0].start = CONFIG_SYS_SDRAM_BASE;
+	gd->bd->bi_dram[0].start = CFG_SYS_SDRAM_BASE;
 	gd->bd->bi_dram[0].size = gd->ram_size;
 
 	return 0;
@@ -717,30 +716,6 @@ int checkboard(void)
 
 	return 0;
 }
-
-#ifdef CONFIG_MXC_KPD
-#define MX6SL_KEYPAD_CTRL (PAD_CTL_HYS | PAD_CTL_PKE | PAD_CTL_PUE | \
-			   PAD_CTL_PUS_100K_UP | PAD_CTL_DSE_120ohm)
-
-iomux_v3_cfg_t const mxc_kpd_pads[] = {
-	(MX6_PAD_KEY_COL0__KPP_COL_0 | MUX_PAD_CTRL(NO_PAD_CTRL)),
-	(MX6_PAD_KEY_COL1__KPP_COL_1 | MUX_PAD_CTRL(NO_PAD_CTRL)),
-	(MX6_PAD_KEY_COL2__KPP_COL_2 | MUX_PAD_CTRL(NO_PAD_CTRL)),
-	(MX6_PAD_KEY_COL3__KPP_COL_3 | MUX_PAD_CTRL(NO_PAD_CTRL)),
-
-	(MX6_PAD_KEY_ROW0__KPP_ROW_0 | MUX_PAD_CTRL(MX6SL_KEYPAD_CTRL)),
-	(MX6_PAD_KEY_ROW1__KPP_ROW_1 | MUX_PAD_CTRL(MX6SL_KEYPAD_CTRL)),
-	(MX6_PAD_KEY_ROW2__KPP_ROW_2 | MUX_PAD_CTRL(MX6SL_KEYPAD_CTRL)),
-	(MX6_PAD_KEY_ROW3__KPP_ROW_3 | MUX_PAD_CTRL(MX6SL_KEYPAD_CTRL)),
-};
-int setup_mxc_kpd(void)
-{
-	imx_iomux_v3_setup_multiple_pads(mxc_kpd_pads,
-					 ARRAY_SIZE(mxc_kpd_pads));
-
-	return 0;
-}
-#endif /*CONFIG_MXC_KPD*/
 
 #ifdef CONFIG_SPL_BUILD
 #include <spl.h>

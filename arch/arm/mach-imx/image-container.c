@@ -33,6 +33,8 @@
 #define SND_IMG_NUM_TO_OFF(num) \
         ((1UL << ((0 == (num)) ? 2 : (2 == (num)) ? 0 : (num))) * SND_IMG_OFF_UNIT)
 
+#define GET_SND_IMG_NUM(fuse) \
+        (((fuse) >> 24) & 0x1F)
 
 #if defined(CONFIG_IMX8QM)
 #define FUSE_IMG_SET_OFF_WORD 464
@@ -175,7 +177,7 @@ static bool check_secondary_cnt_set(unsigned long *set_off)
 				ret = sc_misc_otp_fuse_read(-1, FUSE_IMG_SET_OFF_WORD, &fuse_val);
 				if (!ret) {
 					if (set_off)
-						*set_off = SND_IMG_NUM_TO_OFF(fuse_val);
+						*set_off = SND_IMG_NUM_TO_OFF(GET_SND_IMG_NUM(fuse_val));
 					return true;
 				}
 			}
@@ -355,13 +357,13 @@ unsigned long spl_nor_get_uboot_base(void)
 	ulong end;
 
 	/* Calculate the image set end,
-	 * if it is less than CONFIG_SYS_UBOOT_BASE(0x8281000),
-	 * we use CONFIG_SYS_UBOOT_BASE
+	 * if it is less than CFG_SYS_UBOOT_BASE(0x8281000),
+	 * we use CFG_SYS_UBOOT_BASE
 	 * Otherwise, use the calculated address
 	 */
 	end = get_imageset_end((void *)NULL, QSPI_NOR_DEV);
-	if (end <= CONFIG_SYS_UBOOT_BASE)
-		end = CONFIG_SYS_UBOOT_BASE;
+	if (end <= CFG_SYS_UBOOT_BASE)
+		end = CFG_SYS_UBOOT_BASE;
 	else
 		end = ROUND(end, SZ_1K);
 

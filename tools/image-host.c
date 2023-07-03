@@ -14,6 +14,9 @@
 #include <image.h>
 #include <version.h>
 
+#include <openssl/pem.h>
+#include <openssl/evp.h>
+
 /**
  * fit_set_hash_value - set hash value in requested has node
  * @fit: pointer to the FIT format image header
@@ -912,7 +915,12 @@ static int fit_config_get_regions(const void *fit, int conf_noffset,
 				  int *region_countp, char **region_propp,
 				  int *region_proplen)
 {
-	char * const exc_prop[] = {"data"};
+	char * const exc_prop[] = {
+		FIT_DATA_PROP,
+		FIT_DATA_SIZE_PROP,
+		FIT_DATA_POSITION_PROP,
+		FIT_DATA_OFFSET_PROP,
+	};
 	struct strlist node_inc;
 	struct image_region *region;
 	struct fdt_region fdt_regions[100];
@@ -1111,6 +1119,115 @@ static int fit_config_add_verification_data(const char *keydir,
 	return 0;
 }
 
+/*
+ * 0) open file (open)
+ * 1) read certificate (PEM_read_X509)
+ * 2) get public key (X509_get_pubkey)
+ * 3) provide der format (d2i_RSAPublicKey)
+ */
+static int read_pub_key(const char *keydir, const void *name,
+			unsigned char **pubkey, int *pubkey_len)
+{
+	char path[1024];
+	EVP_PKEY *key = NULL;
+	X509 *cert;
+	FILE *f;
+	int ret;
+
+	memset(path, 0, 1024);
+	snprintf(path, sizeof(path), "%s/%s.crt", keydir, (char *)name);
+
+	/* Open certificate file */
+	f = fopen(path, "r");
+	if (!f) {
+		fprintf(stderr, "Couldn't open RSA certificate: '%s': %s\n",
+			path, strerror(errno));
+		return -EACCES;
+	}
+
+	/* Read the certificate */
+	cert = NULL;
+	if (!PEM_read_X509(f, &cert, NULL, NULL)) {
+		printf("Couldn't read certificate");
+		ret = -EINVAL;
+		goto err_cert;
+	}
+
+	/* Get the public key from the certificate. */
+	key = X509_get_pubkey(cert);
+	if (!key) {
+		printf("Couldn't read public key\n");
+		ret = -EINVAL;
+		goto err_pubkey;
+	}
+
+	/* Get DER form */
+	ret = i2d_PublicKey(key, pubkey);
+	if (ret < 0) {
+		printf("Couldn't get DER form\n");
+		ret = -EINVAL;
+		goto err_pubkey;
+	}
+
+	*pubkey_len = ret;
+	ret = 0;
+
+err_pubkey:
+	X509_free(cert);
+err_cert:
+	fclose(f);
+	return ret;
+}
+
+int fit_pre_load_data(const char *keydir, void *keydest, void *fit)
+{
+	int pre_load_noffset;
+	const void *algo_name;
+	const void *key_name;
+	unsigned char *pubkey = NULL;
+	int ret, pubkey_len;
+
+	if (!keydir || !keydest || !fit)
+		return 0;
+
+	/* Search node pre-load sig */
+	pre_load_noffset = fdt_path_offset(keydest, IMAGE_PRE_LOAD_PATH);
+	if (pre_load_noffset < 0) {
+		ret = 0;
+		goto out;
+	}
+
+	algo_name = fdt_getprop(keydest, pre_load_noffset, "algo-name", NULL);
+	key_name  = fdt_getprop(keydest, pre_load_noffset, "key-name", NULL);
+
+	/* Check that all mandatory properties are present */
+	if (!algo_name || !key_name) {
+		if (!algo_name)
+			printf("The property algo-name is missing in the node %s\n",
+			       IMAGE_PRE_LOAD_PATH);
+		if (!key_name)
+			printf("The property key-name is missing in the node %s\n",
+			       IMAGE_PRE_LOAD_PATH);
+		ret = -EINVAL;
+		goto out;
+	}
+
+	/* Read public key */
+	ret = read_pub_key(keydir, key_name, &pubkey, &pubkey_len);
+	if (ret < 0)
+		goto out;
+
+	/* Add the public key to the device tree */
+	ret = fdt_setprop(keydest, pre_load_noffset, "public-key",
+			  pubkey, pubkey_len);
+	if (ret)
+		printf("Can't set public-key in node %s (ret = %d)\n",
+		       IMAGE_PRE_LOAD_PATH, ret);
+
+ out:
+	return ret;
+}
+
 int fit_cipher_data(const char *keydir, void *keydest, void *fit,
 		    const char *comment, int require_keys,
 		    const char *engine_id, const char *cmdname)
@@ -1175,8 +1292,12 @@ int fit_add_verification_data(const char *keydir, const char *keyfile,
 		ret = fit_image_add_verification_data(keydir, keyfile, keydest,
 				fit, noffset, comment, require_keys, engine_id,
 				cmdname, algo_name);
-		if (ret)
+		if (ret) {
+			printf("Can't add verification data for node '%s' (%s)\n",
+			       fdt_get_name(fit, noffset, NULL),
+			       fdt_strerror(ret));
 			return ret;
+		}
 	}
 
 	/* If there are no keys, we can't sign configurations */

@@ -10,13 +10,9 @@
 #include <linux/sizes.h>
 #include <linux/stringify.h>
 
-#define CONFIG_SYS_FSL_ESDHC_ADDR	0
+#define CFG_SYS_FSL_ESDHC_ADDR	0
 #define USDHC1_BASE_ADDR		0x5b010000
 #define USDHC2_BASE_ADDR		0x5b020000
-
-#define CONFIG_IPADDR			192.168.10.2
-#define CONFIG_NETMASK			255.255.255.0
-#define CONFIG_SERVERIP			192.168.10.1
 
 #define MEM_LAYOUT_ENV_SETTINGS \
 	"fdt_addr_r=0x83000000\0" \
@@ -47,7 +43,7 @@
 #undef BOOTENV_RUN_NET_USB_START
 #define BOOTENV_RUN_NET_USB_START ""
 
-#define CONFIG_MFG_ENV_SETTINGS \
+#define CFG_MFG_ENV_SETTINGS \
 	"mfgtool_args=setenv bootargs ${consoleargs} " \
 		"rdinit=/linuxrc g_mass_storage.stall=0 " \
 		"g_mass_storage.removable=1 g_mass_storage.idVendor=0x066F " \
@@ -60,13 +56,14 @@
 		"${fdt_addr};\0" \
 
 /* Initial environment variables */
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	AHAB_ENV \
 	BOOTENV \
-	CONFIG_MFG_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS \
 	M4_BOOT_ENV \
 	MEM_LAYOUT_ENV_SETTINGS \
 	"boot_file=Image\0" \
+	"boot_script_dhcp=boot.scr\0" \
 	"consoleargs=console=ttyLP3,${baudrate} earlycon\0" \
 	"fdt_addr=0x83000000\0"	\
 	"fdt_file=fsl-imx8qxp-colibri-dsihdmi-eval-v3.dtb\0" \
@@ -79,14 +76,7 @@
 		"root=PARTUUID=${uuid} rootwait " \
 	"mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV) "\0" \
 	"mmcpart=1\0" \
-	"netargs=setenv bootargs ${consoleargs} " \
-		"root=/dev/nfs ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp " \
-		"${vidargs}\0" \
-	"nfsboot=run netargs; dhcp ${loadaddr} ${image}; tftp ${fdt_addr} " \
-		"colibri-imx8x/${fdt_file}; booti ${loadaddr} - " \
-		"${fdt_addr}\0" \
 	"panel=NULL\0" \
-	"script=boot.scr\0" \
 	"update_uboot=askenv confirm Did you load u-boot-dtb.imx (y/N)?; " \
 		"if test \"$confirm\" = \"y\"; then " \
 		"setexpr blkcnt ${filesize} + 0x1ff && setexpr blkcnt " \
@@ -96,30 +86,18 @@
 
 /* Link Definitions */
 
-#define CONFIG_SYS_INIT_SP_ADDR		0x80200000
-
 /* Environment in eMMC, before config block at the end of 1st "boot sector" */
 
 /* On Colibri iMX8X USDHC1 is eMMC, USDHC2 is 4-bit SD */
-#define CONFIG_SYS_FSL_USDHC_NUM	2
+#define CFG_SYS_FSL_USDHC_NUM	2
 
-#define CONFIG_SYS_BOOTM_LEN		SZ_64M /* Increase max gunzip size */
-
-#define CONFIG_SYS_SDRAM_BASE		0x80000000
+#define CFG_SYS_SDRAM_BASE		0x80000000
 #define PHYS_SDRAM_1			0x80000000
 #define PHYS_SDRAM_2			0x880000000
 #define PHYS_SDRAM_1_SIZE		SZ_2G		/* 2 GB */
 #define PHYS_SDRAM_2_SIZE		0x00000000	/* 0 GB */
 
-/* Monitor Command Prompt */
-#define CONFIG_SYS_CBSIZE		SZ_2K
-#define CONFIG_SYS_MAXARGS		64
-#define CONFIG_SYS_BARGSIZE		CONFIG_SYS_CBSIZE
-#define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + \
-					sizeof(CONFIG_SYS_PROMPT) + 16)
-
 /* Generic Timer Definitions */
-#define COUNTER_FREQUENCY		8000000	/* 8MHz */
 
 #define BOOTAUX_RESERVED_MEM_BASE 0x88000000
 #define BOOTAUX_RESERVED_MEM_SIZE SZ_128M /* Reserve from second 128MB */

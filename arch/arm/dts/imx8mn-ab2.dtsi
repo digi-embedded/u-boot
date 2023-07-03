@@ -25,26 +25,30 @@
 		regulator-max-microvolt = <12000000>;
 		gpio = <&gpio1 10 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
+		regulator-always-on;
+		regulator-boot-on;
 	};
 
 	reg_ab2_vdd_pwr_5v0: regulator-ab2-vdd-pwr-5v0 {
 		compatible = "regulator-fixed";
 		regulator-name = "VDD_5V0";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_ab2_vdd_pwr_5v0>;
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 		gpio = <&gpio1 7 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
 		regulator-always-on;
 		regulator-boot-on;
-		enable-active-high;
 	};
 };
 
 &fec1 {
-	phy-reset-gpios = <&gpio1 5 GPIO_ACTIVE_LOW>;
-
 	mdio {
 		ethphy0: ethernet-phy@0 {
-			max-speed = <100>;
+			reset-gpios = <&gpio1 5 GPIO_ACTIVE_LOW>;
+			reset-deassert-us = <150000>;
+			reset-assert-us = <15000>;
 		};
 	};
 };
@@ -87,6 +91,18 @@
 };
 
 &iomuxc {
+	pinctrl_ab2_ana_pwr: ab2anapwrgrp {
+		fsl,pins = <
+			MX8MN_IOMUXC_GPIO1_IO10_GPIO1_IO10	0x41
+		>;
+	};
+
+	pinctrl_ab2_vdd_pwr_5v0: ab2vddpwr5v0grp {
+		fsl,pins = <
+			MX8MN_IOMUXC_GPIO1_IO07_GPIO1_IO7	0x41
+		>;
+	};
+
 	pinctrl_fec1: fec1grp {
 		fsl,pins = <
 			MX8MN_IOMUXC_ENET_MDC_ENET1_MDC		0x3
@@ -103,19 +119,7 @@
 			MX8MN_IOMUXC_ENET_RXC_ENET1_RGMII_RXC	0x91
 			MX8MN_IOMUXC_ENET_RX_CTL_ENET1_RGMII_RX_CTL	0x91
 			MX8MN_IOMUXC_ENET_TX_CTL_ENET1_RGMII_TX_CTL	0x1f
-			MX8MN_IOMUXC_GPIO1_IO05_GPIO1_IO5	0x16
-		>;
-	};
-
-	pinctrl_ab2_ana_pwr: ab2anapwrgrp {
-		fsl,pins = <
-			MX8MN_IOMUXC_GPIO1_IO10_GPIO1_IO10	0x41
-		>;
-	};
-
-	pinctrl_ab2_vdd_pwr_5v0: ab2vddpwr5v0grp {
-		fsl,pins = <
-			MX8MN_IOMUXC_GPIO1_IO07_GPIO1_IO7	0x41
+			MX8MN_IOMUXC_GPIO1_IO05_GPIO1_IO5	0x19
 		>;
 	};
 

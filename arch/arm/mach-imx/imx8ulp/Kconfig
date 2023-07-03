@@ -6,15 +6,10 @@ config AHAB_BOOT
 	  This option enables the support for AHAB secure boot.
 
 config IMX8ULP
-	select ARCH_EARLY_INIT_R
 	bool
 
 config SYS_SOC
 	default "imx8ulp"
-
-config IMX8ULP_LD_MODE
-	bool
-	default n
 
 config IMX8ULP_ND_MODE
 	bool "i.MX8ULP Low Driver Mode"
@@ -40,6 +35,7 @@ config TARGET_IMX8ULP_9X9_EVK
 	select IMX8ULP_DRAM
 	select FSL_CAAM
 	select FSL_BLOB
+	select MISC
 	select ARCH_MISC_INIT
 	select SPL_CRYPTO_SUPPORT if SPL
 

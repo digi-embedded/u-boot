@@ -41,10 +41,6 @@
 	(CONFIG_SYS_MONITOR_BASE + CONFIG_SYS_MONITOR_LEN)
 #  define ENV_IS_EMBEDDED
 # endif
-# ifdef CONFIG_ENV_IS_EMBEDDED
-#  error "do not define CONFIG_ENV_IS_EMBEDDED in your board config"
-#  error "it is calculated automatically for you"
-# endif
 #endif	/* CONFIG_ENV_IS_IN_FLASH */
 
 #if defined(CONFIG_ENV_IS_IN_NAND)
@@ -56,23 +52,6 @@
 extern unsigned long nand_env_oob_offset;
 # endif /* CONFIG_ENV_OFFSET_OOB */
 #endif /* CONFIG_ENV_IS_IN_NAND */
-
-/*
- * For the flash types where embedded env is supported, but it cannot be
- * calculated automatically (i.e. NAND), take the board opt-in.
- */
-#if defined(CONFIG_ENV_IS_EMBEDDED) && !defined(ENV_IS_EMBEDDED)
-# define ENV_IS_EMBEDDED
-#endif
-
-/* The build system likes to know if the env is embedded */
-#ifdef DO_DEPS_ONLY
-# ifdef ENV_IS_EMBEDDED
-#  ifndef CONFIG_ENV_IS_EMBEDDED
-#   define CONFIG_ENV_IS_EMBEDDED
-#  endif
-# endif
-#endif
 
 #include "compiler.h"
 
@@ -88,7 +67,7 @@ extern unsigned long nand_env_oob_offset;
  * If the environment is in RAM, allocate extra space for it in the malloc
  * region.
  */
-#if defined(CONFIG_ENV_IS_EMBEDDED)
+#if defined(ENV_IS_EMBEDDED)
 #define TOTAL_MALLOC_LEN	CONFIG_SYS_MALLOC_LEN
 #elif (CONFIG_ENV_ADDR + CONFIG_ENV_SIZE < CONFIG_SYS_MONITOR_BASE) || \
       (CONFIG_ENV_ADDR >= CONFIG_SYS_MONITOR_BASE + CONFIG_SYS_MONITOR_LEN) || \
@@ -216,7 +195,7 @@ struct env_driver {
 #endif
 
 #define ENV_SAVE_PTR(x) (CONFIG_IS_ENABLED(SAVEENV) ? (x) : NULL)
-#define ENV_ERASE_PTR(x) (CONFIG_IS_ENABLED(CMD_ERASEENV) ? (x) : NULL)
+#define ENV_ERASE_PTR(x) (IS_ENABLED(CONFIG_CMD_ERASEENV) ? (x) : NULL)
 
 extern struct hsearch_data env_htab;
 
@@ -241,9 +220,25 @@ const char *env_ext4_get_intf(void);
 const char *env_ext4_get_dev_part(void);
 
 /**
+ * arch_env_get_location()- Provide the best location for the U-Boot environment
+ *
+ * It is a weak function allowing board to overidde the environment location
+ * on architecture level. This has lower priority than env_get_location(),
+ * which can be defined on board level.
+ *
+ * @op: operations performed on the environment
+ * @prio: priority between the multiple environments, 0 being the
+ *        highest priority
+ * Return:  an enum env_location value on success, or -ve error code.
+ */
+enum env_location arch_env_get_location(enum env_operation op, int prio);
+
+/**
  * env_get_location()- Provide the best location for the U-Boot environment
  *
  * It is a weak function allowing board to overidde the environment location
+ * on board level. This has higher priority than arch_env_get_location(),
+ * which can be defined on architecture level.
  *
  * @op: operations performed on the environment
  * @prio: priority between the multiple environments, 0 being the
@@ -251,6 +246,26 @@ const char *env_ext4_get_dev_part(void);
  * Return:  an enum env_location value on success, or -ve error code.
  */
 enum env_location env_get_location(enum env_operation op, int prio);
+
+/**
+ * env_fat_get_intf() - Provide the interface for env in FAT
+ *
+ * It is a weak function allowing board to overidde the default interface for
+ * U-Boot env in FAT: CONFIG_ENV_FAT_INTERFACE
+ *
+ * Return: string of interface, empty if not supported
+ */
+const char *env_fat_get_intf(void);
+
+/**
+ * env_fat_get_dev_part() - Provide the device and partition for env in FAT
+ *
+ * It is a weak function allowing board to overidde the default device and
+ * partition used for U-Boot env in FAT: CONFIG_ENV_FAT_DEVICE_AND_PART
+ *
+ * Return: string of device and partition
+ */
+char *env_fat_get_dev_part(void);
 #endif /* DO_DEPS_ONLY */
 
 #endif /* _ENV_INTERNAL_H_ */

@@ -32,19 +32,19 @@ config MU_BASE_SPL
 config IMX8QM
 	select IMX8
 	select SUPPORT_SPL
-	select SPL_RECOVER_DATA_SECTION
+	select SPL_RECOVER_DATA_SECTION if SPL
 	bool
 
 config IMX8QXP
 	select IMX8
 	select SUPPORT_SPL
-	select SPL_RECOVER_DATA_SECTION
+	select SPL_RECOVER_DATA_SECTION if SPL
 	bool
 
 config IMX8DXL
 	select IMX8
 	select SUPPORT_SPL
-	select SPL_RECOVER_DATA_SECTION
+	select SPL_RECOVER_DATA_SECTION if SPL
 	bool
 
 config SYS_SOC
@@ -97,22 +97,22 @@ config TARGET_APALIS_IMX8
 
 config TARGET_COLIBRI_IMX8X
 	bool "Support Colibri iMX8X module"
-	select BOARD_LATE_INIT
-	select IMX8QXP
-
-config TARGET_APALIS_IMX8X
-	bool "Support Apalis iMX8X module"
+	select BINMAN
 	select BOARD_LATE_INIT
 	select IMX8QXP
 
 config TARGET_DENEB
 	bool "Support i.MX8QXP Capricorn Deneb board"
+	select BINMAN
 	select BOARD_LATE_INIT
+	select FACTORYSET
 	select IMX8QXP
 
 config TARGET_GIEDI
 	bool "Support i.MX8QXP Capricorn Giedi board"
+	select BINMAN
 	select BOARD_LATE_INIT
+	select FACTORYSET
 	select IMX8QXP
 
 config TARGET_IMX8QM_MEK
@@ -136,12 +136,14 @@ config TARGET_IMX8QM_DDR4_VAL
 
 config TARGET_CONGA_QMX8
 	bool "Support congatec conga-QMX8 board"
+	select BINMAN
 	select BOARD_LATE_INIT
 	select SUPPORT_SPL
 	select IMX8QM
 
 config TARGET_IMX8QM_ROM7720_A1
 	bool "Support i.MX8QM ROM-7720-A1"
+	select BINMAN
 	select BOARD_LATE_INIT
 	select SUPPORT_SPL
 	select IMX8QM
@@ -203,7 +205,6 @@ config TARGET_IMX8DXL_EVK
 	bool "Support i.MX8DXL EVK board"
 	select BOARD_LATE_INIT
 	select IMX8DXL
-	select CRYPTO_SHA2_ARM64_CE
 	select FSL_CAAM
 	select FSL_BLOB
 	select ARCH_MISC_INIT
@@ -242,8 +243,13 @@ source "board/freescale/imx8dxl_orangebox/Kconfig"
 source "board/advantech/imx8qm_rom7720_a1/Kconfig"
 source "board/toradex/apalis-imx8/Kconfig"
 source "board/toradex/colibri-imx8x/Kconfig"
-source "board/toradex/apalis-imx8x/Kconfig"
 source "board/siemens/capricorn/Kconfig"
+
+config SKIP_RESOURCE_CHECKING
+	bool "Skip resource owner checking to kernel FDT nodes"
+	help
+	  By default the kernel FDT nodes are checked if belong to current partition.
+	  Set the config to skip this checking.
 
 config IMX_SNVS_SEC_SC
 	bool "Support SNVS configuration"

@@ -18,7 +18,7 @@ obj-spl-$(CONFIG_ROCKCHIP_RK3036) += rk3036-board-spl.o
 ifeq ($(CONFIG_SPL_BUILD)$(CONFIG_TPL_BUILD),)
 
 # Always include boot_mode.o, as we bypass it (i.e. turn it off)
-# inside of boot_mode.c when CONFIG_BOOT_MODE_REG is 0.  This way,
+# inside of boot_mode.c when CONFIG_ROCKCHIP_BOOT_MODE_REG is 0.  This way,
 # we can have the preprocessor correctly recognise both 0x0 and 0
 # meaning "turn it off".
 obj-y += boot_mode.o
@@ -34,6 +34,7 @@ obj-$(CONFIG_$(SPL_TPL_)RAM) += sdram.o
 
 obj-$(CONFIG_ROCKCHIP_PX30) += px30/
 obj-$(CONFIG_ROCKCHIP_RK3036) += rk3036/
+obj-$(CONFIG_ROCKCHIP_RK3066) += rk3066/
 obj-$(CONFIG_ROCKCHIP_RK3128) += rk3128/
 obj-$(CONFIG_ROCKCHIP_RK3188) += rk3188/
 obj-$(CONFIG_ROCKCHIP_RK322X) += rk322x/
@@ -43,7 +44,9 @@ obj-$(CONFIG_ROCKCHIP_RK3328) += rk3328/
 obj-$(CONFIG_ROCKCHIP_RK3368) += rk3368/
 obj-$(CONFIG_ROCKCHIP_RK3399) += rk3399/
 obj-$(CONFIG_ROCKCHIP_RK3568) += rk3568/
+obj-$(CONFIG_ROCKCHIP_RK3588) += rk3588/
 obj-$(CONFIG_ROCKCHIP_RV1108) += rv1108/
+obj-$(CONFIG_ROCKCHIP_RV1126) += rv1126/
 
 # Clear out SPL objects, in case this is a TPL build
 obj-spl-$(CONFIG_TPL_BUILD) =

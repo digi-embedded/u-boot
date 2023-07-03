@@ -23,6 +23,16 @@ config TPL_SYS_NAND_SELF_INIT
 	  This option, if enabled, provides more flexible and linux-like
 	  NAND initialization process, in SPL.
 
+config TPL_NAND_INIT
+	bool
+
+config SPL_NAND_INIT
+	bool
+
+config SYS_MAX_NAND_DEVICE
+	int "Maximum number of NAND devices to support"
+	default 1
+
 config SYS_NAND_DRIVER_ECC_LAYOUT
 	bool "Omit standard ECC layouts to save space"
 	help
@@ -33,6 +43,18 @@ config SYS_NAND_USE_FLASH_BBT
 	bool "Enable BBT (Bad Block Table) support"
 	help
 	  Enable the BBT (Bad Block Table) usage.
+
+config SYS_NAND_NO_SUBPAGE_WRITE
+	bool "Disable subpage write support"
+	depends on NAND_ARASAN || NAND_DAVINCI || NAND_KIRKWOOD
+
+config DM_NAND_ATMEL
+       bool "Support Atmel NAND controller with DM support"
+       select SYS_NAND_SELF_INIT
+       imply SYS_NAND_USE_FLASH_BBT
+       help
+         Enable this driver for NAND flash platforms using an Atmel NAND
+         controller.
 
 config NAND_ATMEL
 	bool "Support Atmel NAND controller"
@@ -70,10 +92,23 @@ config PMECC_SECTOR_SIZE
 
 config SPL_GENERATE_ATMEL_PMECC_HEADER
 	bool "Atmel PMECC Header Generation"
+	depends on SPL
 	select ATMEL_NAND_HWECC
 	select ATMEL_NAND_HW_PMECC
 	help
 	  Generate Programmable Multibit ECC (PMECC) header for SPL image.
+
+choice
+	prompt "NAND bus width (bits)"
+	default SYS_NAND_DBW_8
+
+config SYS_NAND_DBW_8
+	bool "NAND bus width is 8 bits"
+
+config SYS_NAND_DBW_16
+	bool "NAND bus width is 16 bits"
+
+endchoice
 
 endif
 
@@ -91,9 +126,15 @@ config NAND_BRCMNAND_6368
 	help
 	  Enable support for broadcom nand driver on bcm6368.
 
+config NAND_BRCMNAND_6753
+	bool "Support Broadcom NAND controller on bcm6753"
+	depends on NAND_BRCMNAND && BCM6855
+	help
+	  Enable support for broadcom nand driver on bcm6753.
+
 config NAND_BRCMNAND_68360
        bool "Support Broadcom NAND controller on bcm68360"
-       depends on NAND_BRCMNAND && ARCH_BCM68360
+       depends on NAND_BRCMNAND && BCM6856
        help
          Enable support for broadcom nand driver on bcm68360.
 
@@ -105,13 +146,13 @@ config NAND_BRCMNAND_6838
 
 config NAND_BRCMNAND_6858
        bool "Support Broadcom NAND controller on bcm6858"
-       depends on NAND_BRCMNAND && ARCH_BCM6858
+       depends on NAND_BRCMNAND && BCM6858
        help
          Enable support for broadcom nand driver on bcm6858.
 
 config NAND_BRCMNAND_63158
        bool "Support Broadcom NAND controller on bcm63158"
-       depends on NAND_BRCMNAND && ARCH_BCM63158
+       depends on NAND_BRCMNAND && BCM63158
        help
          Enable support for broadcom nand driver on bcm63158.
 
@@ -121,6 +162,35 @@ config NAND_DAVINCI
 	help
 	  Enable this driver for NAND flash controllers available in TI Davinci
 	  and Keystone2 platforms
+
+choice
+	prompt "Type of ECC used on NAND"
+	default SYS_NAND_4BIT_HW_ECC_OOBFIRST
+	depends on NAND_DAVINCI
+
+config SYS_NAND_HW_ECC
+	bool "Use 1-bit HW ECC"
+
+config SYS_NAND_4BIT_HW_ECC_OOBFIRST
+	bool "Use 4-bit HW ECC with OOB at the front"
+
+config SYS_NAND_SOFT_ECC
+	bool "Use software ECC"
+
+endchoice
+
+choice
+	prompt "NAND page size"
+	depends on NAND_DAVINCI
+	default SYS_NAND_PAGE_2K
+
+config SYS_NAND_PAGE_2K
+	bool "Page size is 2K"
+
+config SYS_NAND_PAGE_4K
+	bool "Page size is 4K"
+
+endchoice
 
 config KEYSTONE_RBL_NAND
 	depends on ARCH_KEYSTONE
@@ -138,6 +208,7 @@ config NAND_DENALI
 config NAND_DENALI_DT
 	bool "Support Denali NAND controller as a DT device"
 	select NAND_DENALI
+	select SPL_SYS_NAND_SELF_INIT
 	depends on OF_CONTROL && DM_MTD
 	help
 	  Enable the driver for NAND flash on platforms using a Denali NAND
@@ -152,14 +223,32 @@ config NAND_FSL_ELBC
 	help
 	  Enable the Freescale Enhanced Local Bus Controller FCM NAND driver.
 
+config NAND_FSL_ELBC_DT
+	bool "Support Freescale Enhanced Local Bus Controller FCM NAND driver (DT mode)"
+	depends on NAND_FSL_ELBC
+
 config NAND_FSL_IFC
 	bool "Support Freescale Integrated Flash Controller NAND driver"
 	select TPL_SYS_NAND_SELF_INIT if TPL_NAND_SUPPORT
+	select TPL_NAND_INIT if TPL && !TPL_FRAMEWORK
 	select SPL_SYS_NAND_SELF_INIT
 	select SYS_NAND_SELF_INIT
 	select FSL_IFC
 	help
 	  Enable the Freescale Integrated Flash Controller NAND driver.
+
+config NAND_KIRKWOOD
+	bool "Support for Kirkwood NAND controller"
+	depends on ARCH_KIRKWOOD
+	default y
+
+config NAND_ECC_BCH
+	bool
+
+config NAND_KMETER1
+	bool "Support KMETER1 NAND controller"
+	depends on VENDOR_KM
+	select NAND_ECC_BCH
 
 config NAND_LPC32XX_MLC
 	bool "Support LPC32XX_MLC controller"
@@ -174,7 +263,10 @@ config NAND_LPC32XX_SLC
 
 config NAND_OMAP_GPMC
 	bool "Support OMAP GPMC NAND controller"
-	depends on ARCH_OMAP2PLUS
+	depends on ARCH_OMAP2PLUS || ARCH_KEYSTONE || ARCH_K3
+	select SYS_NAND_SELF_INIT if ARCH_K3
+	select SPL_NAND_INIT if ARCH_K3
+	select SPL_SYS_NAND_SELF_INIT if ARCH_K3
 	help
 	  Enables omap_gpmc.c driver for OMAPx and AMxxxx platforms.
 	  GPMC controller is used for parallel NAND flash devices, and can
@@ -397,6 +489,15 @@ config NAND_MXC
 	  This enables the NAND driver for the NAND flash controller on the
 	  i.MX27 / i.MX31 / i.MX5 processors.
 
+config SYS_NAND_SIZE
+	int "Size of NAND in kilobytes"
+	depends on NAND_MXC && SPL_NAND_SUPPORT
+	default 268435456
+
+config MXC_NAND_HWECC
+	bool "Hardware ECC support in MXC NAND"
+	depends on NAND_MXC
+
 config NAND_MXS
 	bool "MXS NAND support"
 	depends on MX23 || MX28 || MX6 || MX7 || IMX8 || IMX8M
@@ -511,12 +612,25 @@ config TEGRA_NAND
 	help
 	  Enables support for NAND Flash chips on Tegra SoCs platforms.
 
+config NAND_MT7621
+	bool "Support for MediaTek MT7621 NAND flash controller"
+	depends on SOC_MT7621
+	select SYS_NAND_SELF_INIT
+	select SPL_SYS_NAND_SELF_INIT
+	imply CMD_NAND
+	help
+	  This enables NAND driver for the NAND flash controller on MediaTek
+	  MT7621 platform.
+	  The controller supports 4~12 bits correction per 512 bytes with a
+	  maximum 4KB page size.
+
 comment "Generic NAND options"
 
 config SYS_NAND_BLOCK_SIZE
 	hex "NAND chip eraseblock size"
 	depends on ARCH_SUNXI || SPL_NAND_SUPPORT || TPL_NAND_SUPPORT
-	depends on !NAND_MXS && !NAND_DENALI_DT && !NAND_LPC32XX_MLC && !NAND_FSL_IFC
+	depends on !NAND_MXS && !NAND_DENALI_DT && !NAND_LPC32XX_MLC && \
+		!NAND_FSL_IFC && !NAND_MT7621
 	help
 	  Number of data bytes in one eraseblock for the NAND chip on the
 	  board. This is the multiple of NAND_PAGE_SIZE and the number of
@@ -532,7 +646,8 @@ config SYS_NAND_ONFI_DETECTION
 config SYS_NAND_PAGE_COUNT
 	hex "NAND chip page count"
 	depends on SPL_NAND_SUPPORT && (NAND_ATMEL || NAND_MXC || \
-		SPL_NAND_AM33XX_BCH || SPL_NAND_LOAD || SPL_NAND_SIMPLE)
+		SPL_NAND_AM33XX_BCH || SPL_NAND_LOAD || SPL_NAND_SIMPLE || \
+		NAND_OMAP_GPMC)
 	help
 	  Number of pages in the NAND chip.
 
@@ -541,7 +656,7 @@ config SYS_NAND_PAGE_SIZE
 	depends on ARCH_SUNXI || NAND_OMAP_GPMC || NAND_LPC32XX_SLC || \
 		SPL_NAND_SIMPLE || (NAND_MXC && SPL_NAND_SUPPORT) || \
 		(NAND_ATMEL && SPL_NAND_SUPPORT) || SPL_GENERATE_ATMEL_PMECC_HEADER
-	depends on !NAND_MXS && !NAND_DENALI_DT && !NAND_LPC32XX_MLC
+	depends on !NAND_MXS && !NAND_DENALI_DT && !NAND_LPC32XX_MLC && !NAND_MT7621
 	help
 	  Number of data bytes in one page for the NAND chip on the
 	  board, not including the OOB area.
@@ -633,7 +748,7 @@ config SYS_NAND_U_BOOT_OFFS_REDUND
 
 config SPL_NAND_AM33XX_BCH
 	bool "Enables SPL-NAND driver which supports ELM based"
-	depends on NAND_OMAP_GPMC && !OMAP34XX
+	depends on SPL_NAND_SUPPORT && NAND_OMAP_GPMC && !OMAP34XX
 	default y
         help
 	  Hardware ECC correction. This is useful for platforms which have ELM
@@ -644,6 +759,7 @@ config SPL_NAND_AM33XX_BCH
 
 config SPL_NAND_DENALI
 	bool "Support Denali NAND controller for SPL"
+	depends on SPL_NAND_SUPPORT
 	help
 	  This is a small implementation of the Denali NAND controller
 	  for use on SPL.
@@ -659,10 +775,15 @@ config NAND_DENALI_SPARE_AREA_SKIP_BYTES
 
 config SPL_NAND_SIMPLE
 	bool "Use simple SPL NAND driver"
-	depends on !SPL_NAND_AM33XX_BCH
+	depends on !SPL_NAND_AM33XX_BCH && SPL_NAND_SUPPORT
 	help
 	  Support for NAND boot using simple NAND drivers that
 	  expose the cmd_ctrl() interface.
+
+config SYS_NAND_HW_ECC_OOBFIRST
+	bool "In SPL, read the OOB first and then the data from NAND"
+	depends on SPL_NAND_SIMPLE
+
 endif
 
 endif   # if NAND

@@ -9,7 +9,6 @@
 / {
 	aliases {
 		ipu1 = &ipu2;
-		video1 = &ipu2;
 		spi4 = &ecspi5;
 	};
 
@@ -39,6 +38,7 @@
 				396000	1175000
 			>;
 			clock-latency = <61036>; /* two CLK32 periods */
+			#cooling-cells = <2>;
 			clocks = <&clks IMX6QDL_CLK_ARM>,
 				 <&clks IMX6QDL_CLK_PLL2_PFD2_396M>,
 				 <&clks IMX6QDL_CLK_STEP>,
@@ -46,91 +46,155 @@
 				 <&clks IMX6QDL_CLK_PLL1_SYS>,
 				 <&clks IMX6QDL_CLK_PLL1>,
 				 <&clks IMX6QDL_PLL1_BYPASS>,
-				 <&clks IMX6QDL_PLL1_BYPASS_SRC>,
-				 <&clks IMX6QDL_CLK_VPU_AXI_PODF>;
+				 <&clks IMX6QDL_PLL1_BYPASS_SRC>;
 			clock-names = "arm", "pll2_pfd2_396m", "step",
 				      "pll1_sw", "pll1_sys", "pll1",
-				      "pll1_bypass", "pll1_bypass_src",
-				      "vpu_axi_podf";
+				      "pll1_bypass", "pll1_bypass_src";
+			arm-supply = <&reg_arm>;
+			pu-supply = <&reg_pu>;
+			soc-supply = <&reg_soc>;
+			nvmem-cells = <&cpu_speed_grade>;
+			nvmem-cell-names = "speed_grade";
+		};
+
+		cpu1: cpu@1 {
+			compatible = "arm,cortex-a9";
+			device_type = "cpu";
+			reg = <1>;
+			next-level-cache = <&L2>;
+			operating-points = <
+				/* kHz    uV */
+				1200000 1275000
+				996000  1250000
+				852000  1250000
+				792000  1175000
+				396000  975000
+			>;
+			fsl,soc-operating-points = <
+				/* ARM kHz  SOC-PU uV */
+				1200000 1275000
+				996000	1250000
+				852000	1250000
+				792000	1175000
+				396000	1175000
+			>;
+			clock-latency = <61036>; /* two CLK32 periods */
+			#cooling-cells = <2>;
+			clocks = <&clks IMX6QDL_CLK_ARM>,
+				 <&clks IMX6QDL_CLK_PLL2_PFD2_396M>,
+				 <&clks IMX6QDL_CLK_STEP>,
+				 <&clks IMX6QDL_CLK_PLL1_SW>,
+				 <&clks IMX6QDL_CLK_PLL1_SYS>;
+			clock-names = "arm", "pll2_pfd2_396m", "step",
+				      "pll1_sw", "pll1_sys";
 			arm-supply = <&reg_arm>;
 			pu-supply = <&reg_pu>;
 			soc-supply = <&reg_soc>;
 		};
 
-		cpu@1 {
-			compatible = "arm,cortex-a9";
-			device_type = "cpu";
-			reg = <1>;
-			next-level-cache = <&L2>;
-		};
-
-		cpu@2 {
+		cpu2: cpu@2 {
 			compatible = "arm,cortex-a9";
 			device_type = "cpu";
 			reg = <2>;
 			next-level-cache = <&L2>;
+			operating-points = <
+				/* kHz    uV */
+				1200000 1275000
+				996000  1250000
+				852000  1250000
+				792000  1175000
+				396000  975000
+			>;
+			fsl,soc-operating-points = <
+				/* ARM kHz  SOC-PU uV */
+				1200000 1275000
+				996000	1250000
+				852000	1250000
+				792000	1175000
+				396000	1175000
+			>;
+			clock-latency = <61036>; /* two CLK32 periods */
+			#cooling-cells = <2>;
+			clocks = <&clks IMX6QDL_CLK_ARM>,
+				 <&clks IMX6QDL_CLK_PLL2_PFD2_396M>,
+				 <&clks IMX6QDL_CLK_STEP>,
+				 <&clks IMX6QDL_CLK_PLL1_SW>,
+				 <&clks IMX6QDL_CLK_PLL1_SYS>;
+			clock-names = "arm", "pll2_pfd2_396m", "step",
+				      "pll1_sw", "pll1_sys";
+			arm-supply = <&reg_arm>;
+			pu-supply = <&reg_pu>;
+			soc-supply = <&reg_soc>;
 		};
 
-		cpu@3 {
+		cpu3: cpu@3 {
 			compatible = "arm,cortex-a9";
 			device_type = "cpu";
 			reg = <3>;
 			next-level-cache = <&L2>;
+			operating-points = <
+				/* kHz    uV */
+				1200000 1275000
+				996000  1250000
+				852000  1250000
+				792000  1175000
+				396000  975000
+			>;
+			fsl,soc-operating-points = <
+				/* ARM kHz  SOC-PU uV */
+				1200000 1275000
+				996000	1250000
+				852000	1250000
+				792000	1175000
+				396000	1175000
+			>;
+			clock-latency = <61036>; /* two CLK32 periods */
+			#cooling-cells = <2>;
+			clocks = <&clks IMX6QDL_CLK_ARM>,
+				 <&clks IMX6QDL_CLK_PLL2_PFD2_396M>,
+				 <&clks IMX6QDL_CLK_STEP>,
+				 <&clks IMX6QDL_CLK_PLL1_SW>,
+				 <&clks IMX6QDL_CLK_PLL1_SYS>;
+			clock-names = "arm", "pll2_pfd2_396m", "step",
+				      "pll1_sw", "pll1_sys";
+			arm-supply = <&reg_arm>;
+			pu-supply = <&reg_pu>;
+			soc-supply = <&reg_soc>;
 		};
 	};
 
-	reserved-memory {
-		#address-cells = <1>;
-		#size-cells = <1>;
-		ranges;
+        reserved-memory {
+                #address-cells = <1>;
+                #size-cells = <1>;
+                ranges;
 
-		/* global autoconfigured region for contiguous allocations */
-		linux,cma {
-			compatible = "shared-dma-pool";
-			reusable;
-			size = <0x14000000>;
-			linux,cma-default;
-		};
-	};
+                /* global autoconfigured region for contiguous allocations */
+                linux,cma {
+                        compatible = "shared-dma-pool";
+                        reusable;
+                        size = <0x14000000>;
+                        linux,cma-default;
+                };
+        };
 
-	soc {
+	soc: soc {
 		busfreq: busfreq {
 			compatible = "fsl,imx_busfreq";
 			clocks = <&clks 171>, <&clks 6>, <&clks 11>, <&clks 104>, <&clks 172>, <&clks 58>,
 				<&clks 18>, <&clks 60>, <&clks 20>, <&clks 3>;
-			clock-names = "pll2_bus", "pll2_pfd2_396m", "pll2_198m", "arm", "pll3_usb_otg", "periph",
-				"periph_pre", "periph_clk2", "periph_clk2_sel", "osc";
+			clock-names = "pll2_bus", "pll2_pfd2_396m", "pll2_198m", "arm", "pll3_usb_otg",
+					"periph", "periph_pre", "periph_clk2", "periph_clk2_sel", "osc";
 			interrupts = <0 107 0x04>, <0 112 0x4>, <0 113 0x4>, <0 114 0x4>;
 			interrupt-names = "irq_busfreq_0", "irq_busfreq_1", "irq_busfreq_2", "irq_busfreq_3";
 			fsl,max_ddr_freq = <528000000>;
 		};
 
-                gpu: gpu@00130000 {
-			compatible = "fsl,imx6q-gpu";
-			reg = <0x00130000 0x4000>, <0x00134000 0x4000>,
-			      <0x02204000 0x4000>, <0x10000000 0x0>,
-			      <0x0 0x8000000>;
-			reg-names = "iobase_3d", "iobase_2d",
-				    "iobase_vg", "phys_baseaddr",
-				    "contiguous_mem";
-			interrupts = <0 9 IRQ_TYPE_LEVEL_HIGH>,
-				     <0 10 IRQ_TYPE_LEVEL_HIGH>,
-				     <0 11 IRQ_TYPE_LEVEL_HIGH>;
-			interrupt-names = "irq_3d", "irq_2d", "irq_vg";
-			clocks = <&clks IMX6QDL_CLK_GPU2D_AXI>, <&clks IMX6QDL_CLK_OPENVG_AXI>,
-				 <&clks IMX6QDL_CLK_GPU3D_AXI>, <&clks IMX6QDL_CLK_GPU2D_CORE>,
-				 <&clks IMX6QDL_CLK_GPU3D_CORE>, <&clks IMX6QDL_CLK_GPU3D_SHADER>;
-			clock-names = "gpu2d_axi_clk", "openvg_axi_clk",
-				      "gpu3d_axi_clk", "gpu2d_clk",
-				      "gpu3d_clk", "gpu3d_shader_clk";
-			resets = <&src 0>, <&src 3>, <&src 3>;
-			reset-names = "gpu3d", "gpu2d", "gpuvg";
-			power-domains = <&pd_pu>;
-		};
-
 		ocram: sram@905000 {
 			compatible = "mmio-sram";
 			reg = <0x905000 0x3B000>;
+			ranges = <0 0x905000 0x3B000>;
+			#address-cells = <1>;
+			#size-cells = <1>;
 			clocks = <&clks IMX6QDL_CLK_OCRAM>;
 		};
 
@@ -140,7 +204,7 @@
 			overw_reg = <&ocram 0x905000 0x33000>;
 		};
 
-		bus@2000000  { /* AIPS1 */
+		aips1: bus@2000000 { /* AIPS1 */
 			spba-bus@2000000 {
 				ecspi5: spi@2018000 {
 					#address-cells = <1>;
@@ -191,6 +255,30 @@
 			clock-names = "bus", "core";
 			power-domains = <&pd_pu>;
 			#cooling-cells = <2>;
+			status = "disabled";
+		};
+
+		gpu: gpu@00130000 {
+			compatible = "fsl,imx6q-gpu";
+			reg = <0x00130000 0x4000>, <0x00134000 0x4000>,
+				<0x02204000 0x4000>, <0x10000000 0x0>,
+				<0x0 0x8000000>;
+			reg-names = "iobase_3d", "iobase_2d",
+				"iobase_vg", "phys_baseaddr",
+				"contiguous_mem";
+			interrupts = <0 9 IRQ_TYPE_LEVEL_HIGH>,
+				<0 10 IRQ_TYPE_LEVEL_HIGH>,
+				<0 11 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "irq_3d", "irq_2d", "irq_vg";
+			clocks = <&clks IMX6QDL_CLK_GPU2D_AXI>, <&clks IMX6QDL_CLK_OPENVG_AXI>,
+				<&clks IMX6QDL_CLK_GPU3D_AXI>, <&clks IMX6QDL_CLK_GPU2D_CORE>,
+				<&clks IMX6QDL_CLK_GPU3D_CORE>, <&clks IMX6QDL_CLK_GPU3D_SHADER>;
+			clock-names = "gpu2d_axi_clk", "openvg_axi_clk",
+				"gpu3d_axi_clk", "gpu2d_clk",
+				"gpu3d_clk", "gpu3d_shader_clk";
+			resets = <&src 0>, <&src 3>, <&src 3>;
+			reset-names = "gpu3d", "gpu2d", "gpuvg";
+			power-domains = <&pd_pu>;
 		};
 
 		ipu2: ipu@2800000 {
@@ -211,7 +299,6 @@
 				      "di0", "di1",
 				      "di0_sel", "di1_sel",
 				      "ldb_di0", "ldb_di1";
-
 			resets = <&src 4>;
 			bypass_reset = <0>;
 
@@ -297,11 +384,6 @@
 	display-subsystem {
 		compatible = "fsl,imx-display-subsystem";
 		ports = <&ipu1_di0>, <&ipu1_di1>, <&ipu2_di0>, <&ipu2_di1>;
-	};
-
-	gpu-subsystem {
-		compatible = "fsl,imx-gpu-subsystem";
-		cores = <&gpu_2d>, <&gpu_3d>, <&gpu_vg>;
 	};
 };
 
@@ -407,19 +489,21 @@
 &hdmi {
 	compatible = "fsl,imx6q-hdmi";
 
-	port@2 {
-		reg = <2>;
+	ports {
+		port@2 {
+			reg = <2>;
 
-		hdmi_mux_2: endpoint {
-			remote-endpoint = <&ipu2_di0_hdmi>;
+			hdmi_mux_2: endpoint {
+				remote-endpoint = <&ipu2_di0_hdmi>;
+			};
 		};
-	};
 
-	port@3 {
-		reg = <3>;
+		port@3 {
+			reg = <3>;
 
-		hdmi_mux_3: endpoint {
-			remote-endpoint = <&ipu2_di1_hdmi>;
+			hdmi_mux_3: endpoint {
+				remote-endpoint = <&ipu2_di1_hdmi>;
+			};
 		};
 	};
 };

@@ -287,18 +287,18 @@ static int felix_probe(struct udevice *dev)
 	int err;
 
 	if (ofnode_valid(dev_ofnode(dev)) &&
-	    !ofnode_is_available(dev_ofnode(dev))) {
+	    !ofnode_is_enabled(dev_ofnode(dev))) {
 		dev_dbg(dev, "switch disabled\n");
 		return -ENODEV;
 	}
 
-	priv->imdio_base = dm_pci_map_bar(dev, PCI_BASE_ADDRESS_0, 0);
+	priv->imdio_base = dm_pci_map_bar(dev, PCI_BASE_ADDRESS_0, 0, 0, PCI_REGION_TYPE, 0);
 	if (!priv->imdio_base) {
 		dev_err(dev, "failed to map BAR0\n");
 		return -EINVAL;
 	}
 
-	priv->regs_base = dm_pci_map_bar(dev, PCI_BASE_ADDRESS_4, 0);
+	priv->regs_base = dm_pci_map_bar(dev, PCI_BASE_ADDRESS_4, 0, 0, PCI_REGION_TYPE, 0);
 	if (!priv->regs_base) {
 		dev_err(dev, "failed to map BAR4\n");
 		return -EINVAL;

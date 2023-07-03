@@ -59,9 +59,8 @@ def ParseArgs():
     parser.add_option('-i', '--in-tree', dest='in_tree',
           action='store_true', default=False,
           help='Build in the source tree instead of a separate directory')
-    # -I will be removed after April 2021
-    parser.add_option('-I', '--incremental', action='store_true',
-          default=False, help='Deprecated, does nothing. See -m')
+    parser.add_option('-I', '--ide', action='store_true', default=False,
+          help='Create build output that can be parsed by an IDE')
     parser.add_option('-j', '--jobs', dest='jobs', type='int',
           default=None, help='Number of jobs to run at once (passed to make)')
     parser.add_option('-k', '--keep-outputs', action='store_true',
@@ -76,6 +75,12 @@ def ParseArgs():
           help='List available tool chains (use -v to see probing detail)')
     parser.add_option('-m', '--mrproper', action='store_true',
           default=False, help="Run 'make mrproper before reconfiguring")
+    parser.add_option(
+          '-M', '--allow-missing', action='store_true', default=False,
+          help='Tell binman to allow missing blobs and generate fake ones as needed'),
+    parser.add_option(
+          '--no-allow-missing', action='store_true', default=False,
+          help='Disable telling binman to allow missing blobs'),
     parser.add_option('-n', '--dry-run', action='store_true', dest='dry_run',
           default=False, help="Do a dry run (describe actions, but do nothing)")
     parser.add_option('-N', '--no-subdirs', action='store_true', dest='no_subdirs',
@@ -90,6 +95,8 @@ def ParseArgs():
           default=False, help="Use full toolchain path in CROSS_COMPILE")
     parser.add_option('-P', '--per-board-out-dir', action='store_true',
           default=False, help="Use an O= (output) directory per board rather than per thread")
+    parser.add_option('-R', '--regen-board-list', action='store_true',
+          help='Force regeneration of the list of boards, like the old boards.cfg file')
     parser.add_option('-s', '--summary', action='store_true',
           default=False, help='Show a build summary')
     parser.add_option('-S', '--show-sizes', action='store_true',

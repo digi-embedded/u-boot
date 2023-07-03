@@ -6,7 +6,6 @@
 #include <common.h>
 #include <malloc.h>
 #include <video.h>
-#include <video_fb.h>
 #include <video_bridge.h>
 #include <video_link.h>
 
@@ -140,13 +139,13 @@ static void dcnano_init(struct udevice *dev,
 	writel(plat->base, (ulong)(priv->reg_base + DCNANO_FRAMEBUFFERADDRESS));
 
 	switch (format) {
-	case GDF_16BIT_565RGB:
+	case VIDEO_BPP16:
 		/* 16 bpp */
 		writel(ALIGN(timing->hactive.typ * 2, 128),
 			(ulong)(priv->reg_base + DCNANO_FRAMEBUFFERSTRIDE));
 		primary_fb_fmt = FBCFG_FORMAT_R5G6B5;
 		break;
-	case GDF_32BIT_X888RGB:
+	case VIDEO_BPP32:
 		/* 32 bpp */
 		writel(ALIGN(timing->hactive.typ * 4, 128),
 			(ulong)(priv->reg_base + DCNANO_FRAMEBUFFERSTRIDE));
@@ -240,7 +239,7 @@ static int dcnano_video_probe(struct udevice *dev)
 #endif
 	}
 
-	dcnano_init(dev, &timings, GDF_32BIT_X888RGB);
+	dcnano_init(dev, &timings, VIDEO_BPP32);
 
 	uc_priv->bpix = VIDEO_BPP32; /* only support 32 BPP now */
 	uc_priv->xsize = timings.hactive.typ;

@@ -10,7 +10,6 @@
 #include <linux/err.h>
 #include <malloc.h>
 #include <video.h>
-#include <video_fb.h>
 #include <display.h>
 
 #include <asm/cache.h>
@@ -159,13 +158,6 @@ static int imx8_dc_soc_setup(struct udevice *dev, sc_pm_clock_rate_t pixel_clock
 	lpcg_clock_on(dc_lpcg, disp_id);
 	while (!lpcg_is_clock_on(dc_lpcg, disp_id))
 		;
-
-	err = sc_misc_set_control(-1, dc_rsrc, SC_C_MODE, 0);
-	if (err) {
-		printf("DC%d Set control mode failed! (error = %d)\n",
-		       dc_rsrc, err);
-		return -EIO;
-	}
 
 	err = sc_misc_set_control(-1, dc_rsrc, link_addr, 0);
 	if (err) {

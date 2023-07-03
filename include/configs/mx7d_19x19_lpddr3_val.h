@@ -9,38 +9,13 @@
 #ifndef __MX7D_19X19_LPDDR3_VAL_CONFIG_H
 #define __MX7D_19X19_LPDDR3_VAL_CONFIG_H
 
-#define CONFIG_SYS_FSL_USDHC_NUM	1
-#define CONFIG_SYS_MMC_ENV_DEV		0	/* USDHC1 */
-#define CONFIG_SYS_MMC_ENV_PART		0	/* user area */
-#define CONFIG_MMCROOT			"/dev/mmcblk0p2"  /* USDHC1 */
+#define CFG_SYS_FSL_USDHC_NUM	1
+#define CFG_MMCROOT			"/dev/mmcblk0p2"  /* USDHC1 */
 
 #ifdef CONFIG_TARGET_MX7D_19X19_LPDDR2_VAL
 #define PHYS_SDRAM_SIZE			SZ_512M
 #else
 #define PHYS_SDRAM_SIZE			SZ_2G
-#endif
-
-#define CONFIG_FEC_MXC
-#define CONFIG_FEC_XCV_TYPE             RGMII
-#ifdef CONFIG_DM_ETH
-#define CONFIG_ETHPRIME                 "eth0"
-#else
-#define CONFIG_ETHPRIME                 "FEC"
-#endif
-#define CONFIG_FEC_MXC_PHYADDR          0
-
-#define CONFIG_PHY_ATHEROS
-
-/* ENET2 */
-#define IMX_FEC_BASE			ENET2_IPS_BASE_ADDR
-
-#define CONFIG_FEC_MXC_MDIO_BASE	ENET_IPS_BASE_ADDR
-
-/* QSPI conflict with EIMNOR */
-/* FEC0 conflict with EIMNOR */
-/* ECSPI conflict with UART */
-#ifdef CONFIG_MTD_NOR_FLASH
-#undef CONFIG_FEC_MXC
 #endif
 
 #include "mx7d_val.h"

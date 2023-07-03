@@ -10,23 +10,16 @@
 /* Memory configuration */
 #define PHYS_SDRAM_1			0x40000000	/* Base address */
 #define PHYS_SDRAM_1_SIZE		0x08000000	/* Max 128 MB RAM */
-#define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM_1
+#define CFG_SYS_SDRAM_BASE		PHYS_SDRAM_1
 
 /* Status LED */
 
 /* USB */
-#ifdef CONFIG_CMD_USB
-#define CONFIG_EHCI_MXS_PORT0
-#define CONFIG_USB_MAX_CONTROLLER_COUNT 1
-#endif
 
 /* Ethernet */
 
-/* Booting Linux */
-#define CONFIG_BOOTFILE		"uImage"
-
 /* Extra Environment */
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	"update_sd_firmware_filename=u-boot.sd\0" \
 	"update_sd_firmware="		/* Update the SD firmware partition */ \
 		"if mmc rescan ; then "	\

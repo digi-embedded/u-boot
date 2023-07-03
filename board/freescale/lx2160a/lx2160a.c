@@ -5,6 +5,7 @@
 
 #include <common.h>
 #include <clock_legacy.h>
+#include <display_options.h>
 #include <dm.h>
 #include <init.h>
 #include <asm/global_data.h>
@@ -58,9 +59,9 @@ DECLARE_GLOBAL_DATA_PTR;
 
 static struct pl01x_serial_plat serial0 = {
 #if CONFIG_CONS_INDEX == 0
-	.base = CONFIG_SYS_SERIAL0,
+	.base = CFG_SYS_SERIAL0,
 #elif CONFIG_CONS_INDEX == 1
-	.base = CONFIG_SYS_SERIAL1,
+	.base = CFG_SYS_SERIAL1,
 #else
 #error "Unsupported console index value."
 #endif
@@ -73,7 +74,7 @@ U_BOOT_DRVINFO(nxp_serial0) = {
 };
 
 static struct pl01x_serial_plat serial1 = {
-	.base = CONFIG_SYS_SERIAL1,
+	.base = CFG_SYS_SERIAL1,
 	.type = TYPE_PL011,
 };
 
@@ -186,7 +187,7 @@ void esdhc_dspi_status_fixup(void *blob)
 	const char dspi1_path[] = "/soc/spi@2110000";
 	const char dspi2_path[] = "/soc/spi@2120000";
 
-	struct ccsr_gur __iomem *gur = (void *)(CONFIG_SYS_FSL_GUTS_ADDR);
+	struct ccsr_gur __iomem *gur = (void *)(CFG_SYS_FSL_GUTS_ADDR);
 	u32 sdhc1_base_pmux;
 	u32 sdhc2_base_pmux;
 	u32 iic5_pmux;
@@ -363,27 +364,6 @@ int checkboard(void)
 }
 
 #if defined(CONFIG_TARGET_LX2160AQDS) || defined(CONFIG_TARGET_LX2162AQDS)
-/*
- * implementation of CONFIG_ESDHC_DETECT_QUIRK Macro.
- */
-u8 qixis_esdhc_detect_quirk(void)
-{
-	/*
-	 * SDHC1 Card ID:
-	 * Specifies the type of card installed in the SDHC1 adapter slot.
-	 * 000= (reserved)
-	 * 001= eMMC V4.5 adapter is installed.
-	 * 010= SD/MMC 3.3V adapter is installed.
-	 * 011= eMMC V4.4 adapter is installed.
-	 * 100= eMMC V5.0 adapter is installed.
-	 * 101= MMC card/Legacy (3.3V) adapter is installed.
-	 * 110= SDCard V2/V3 adapter installed.
-	 * 111= no adapter is installed.
-	 */
-	return ((QIXIS_READ(sdhc1) & QIXIS_SDID_MASK) !=
-		 QIXIS_ESDHC_NO_ADAPTER);
-}
-
 static void esdhc_adapter_card_ident(void)
 {
 	u8 card_id, val;
@@ -412,7 +392,7 @@ static void esdhc_adapter_card_ident(void)
 int config_board_mux(void)
 {
 	u8 reg11, reg5, reg13;
-	struct ccsr_gur __iomem *gur = (void *)(CONFIG_SYS_FSL_GUTS_ADDR);
+	struct ccsr_gur __iomem *gur = (void *)(CFG_SYS_FSL_GUTS_ADDR);
 	u32 sdhc1_base_pmux;
 	u32 sdhc2_base_pmux;
 	u32 iic5_pmux;
@@ -548,7 +528,7 @@ int config_board_mux(void)
 }
 #endif
 
-#if CONFIG_IS_ENABLED(TARGET_LX2160ARDB)
+#if IS_ENABLED(CONFIG_TARGET_LX2160ARDB)
 u8 get_board_rev(void)
 {
 	u8 board_rev = (QIXIS_READ(arch) & 0xf) - 1 + 'A';
@@ -745,7 +725,7 @@ void board_quiesce_devices(void)
 }
 #endif
 
-#if CONFIG_IS_ENABLED(TARGET_LX2160ARDB)
+#if IS_ENABLED(CONFIG_TARGET_LX2160ARDB)
 int fdt_fixup_add_thermal(void *blob, int mux_node, int channel, int reg)
 {
 	int err;
@@ -928,7 +908,7 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 #endif
 	fdt_fixup_icid(blob);
 
-#if CONFIG_IS_ENABLED(TARGET_LX2160ARDB)
+#if IS_ENABLED(CONFIG_TARGET_LX2160ARDB)
 	if (get_board_rev() >= 'C')
 		fdt_fixup_i2c_thermal_node(blob);
 #endif

@@ -553,8 +553,6 @@ static int do_qspihdr(struct cmd_tbl *cmdtp, int flag, int argc, char * const ar
 	char *cmd;
 	unsigned int bus = CONFIG_SF_DEFAULT_BUS;
 	unsigned int cs = CONFIG_SF_DEFAULT_CS;
-	unsigned int speed = CONFIG_SF_DEFAULT_SPEED;
-	unsigned int mode = CONFIG_SF_DEFAULT_MODE;
 	int flags = 0;
 	int ret;
 
@@ -568,7 +566,7 @@ static int do_qspihdr(struct cmd_tbl *cmdtp, int flag, int argc, char * const ar
 	if (!ret)
 		device_remove(new, DM_REMOVE_NORMAL);
 	flash = NULL;
-	ret = spi_flash_probe_bus_cs(bus, cs, speed, mode, &new);
+	ret = spi_flash_probe_bus_cs(bus, cs, &new);
 	if (ret) {
 		printf("Failed to initialize SPI flash at %u:%u (error %d)\n",
 		       bus, cs, ret);

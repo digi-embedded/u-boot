@@ -14,15 +14,13 @@
   #define HWCONFIG_BUFFER_SIZE 256
 #endif
 
-#define CONFIG_SYS_BOOT_RAMDISK_HIGH
-
-#ifndef CONFIG_MAX_MEM_MAPPED
+#ifndef CFG_MAX_MEM_MAPPED
 #if	defined(CONFIG_E500)		|| \
 	defined(CONFIG_MPC86xx)		|| \
 	defined(CONFIG_E300)
-#define CONFIG_MAX_MEM_MAPPED	((phys_size_t)2 << 30)
+#define CFG_MAX_MEM_MAPPED	((phys_size_t)2 << 30)
 #else
-#define CONFIG_MAX_MEM_MAPPED	(256 << 20)
+#define CFG_MAX_MEM_MAPPED	(256 << 20)
 #endif
 #endif
 
@@ -31,17 +29,7 @@
  * Freescale's default e500 reset page.
  */
 #if (defined(CONFIG_E500) && defined(CONFIG_MP))
-#ifndef CONFIG_BPTR_VIRT_ADDR
-#define CONFIG_BPTR_VIRT_ADDR	0xfffff000
-#endif
-#endif
-
-/* Since so many PPC SOCs have a semi-common LBC, define this here */
-#if defined(CONFIG_MPC85xx) || defined(CONFIG_MPC86xx) || \
-	defined(CONFIG_MPC83xx)
-#if !defined(CONFIG_FSL_IFC)
-#define CONFIG_FSL_LBC
-#endif
+#define BPTR_VIRT_ADDR	0xfffff000
 #endif
 
 /* The TSEC driver uses the PHYLIB infrastructure */
@@ -56,7 +44,7 @@
  * TODO: Convert this to a clock driver exists that can give us the UART
  * clock here.
  */
-#define CONFIG_SYS_NS16550_CLK		get_serial_clock()
+#define CFG_SYS_NS16550_CLK		get_serial_clock()
 #endif
 
 #endif /* _ASM_CONFIG_H_ */

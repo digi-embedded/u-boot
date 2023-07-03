@@ -81,7 +81,7 @@ config FASTBOOT_FLASH
 	  this to enable the "fastboot flash" command.
 
 config FASTBOOT_UUU_SUPPORT
-	bool "Enable FASTBOOT i.MX UUU special command"
+	bool "Enable UUU support"
 	default y if ARCH_MX7 || ARCH_MX6 || ARCH_IMX8 || ARCH_IMX8M || ARCH_MX7ULP
 	select FSL_FASTBOOT
 	select FAT_WRITE
@@ -91,14 +91,17 @@ config FASTBOOT_UUU_SUPPORT
 	select CONSOLE_MUX
 	select SYS_STDIO_DEREGISTER
 	help
-	  The fastboot protocol includes "UCmd" and "ACmd" command.
-	  Be aware that you provide full access to any U-Boot command,
-	  including working with memory and may open a huge backdoor,
-	  when enabling this option.
+	  This extends the fastboot protocol with the "UCmd" and "ACmd"
+	  commands, which are used by NXP's "universal update utility" (UUU).
+	  These commands allow running any shell command. Do not enable this
+	  feature if you are using verified boot, as it will allow an attacker
+	  to bypass any restrictions you have in place.
 
 config FSL_FASTBOOT
 	bool "Enable FSL fastboot support"
 	depends on FASTBOOT_FLASH
+	select CMD_READ
+	select ENV_VARS_UBOOT_RUNTIME_CONFIG
 	help
 	  This enables FSL implementation for Android fastboot.
 
@@ -128,14 +131,6 @@ config FASTBOOT_LOCK
 	depends on FSL_FASTBOOT
 	help
 	  This enables the lock support for android flashing command
-
-config FASTBOOT_USB_DEV
-	int "USB controller number"
-	default 0
-	help
-	  Some boards have USB OTG controller other than 0. Define this
-	  option so it can be used in compiled environment (e.g. in
-	  CONFIG_BOOTCOMMAND).
 
 choice
 	prompt "Flash provider for FASTBOOT"
@@ -267,6 +262,14 @@ config FASTBOOT_CMD_OEM_BOOTBUS
 	help
 	  Add support for the "oem bootbus" command from a client. This set
 	  the mmc boot configuration for the selecting eMMC device.
+
+config FASTBOOT_OEM_RUN
+	bool "Enable the 'oem run' command"
+	help
+	  This extends the fastboot protocol with an "oem run" command. This
+	  command allows running arbitrary U-Boot shell commands. Do not enable
+	  this feature if you are using verified boot, as it will allow an
+	  attacker to bypass any restrictions you have in place.
 
 endif # FASTBOOT
 

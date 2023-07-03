@@ -4,11 +4,11 @@
  * Written by Simon Glass <sjg@chromium.org>
  */
 
-#define LOG_DEBUG
 #define LOG_CATEGORY	LOGC_BLOBLIST
 
 #include <common.h>
 #include <bloblist.h>
+#include <display_options.h>
 #include <log.h>
 #include <malloc.h>
 #include <mapmem.h>

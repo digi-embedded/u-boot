@@ -11,6 +11,7 @@
 #include <efi_loader.h>
 #include <efi_variable.h>
 #include <log.h>
+#include <asm-generic/unaligned.h>
 
 #define OBJ_LIST_NOT_INITIALIZED 1
 
@@ -128,13 +129,18 @@ static efi_status_t efi_init_capsule(void)
 {
 	efi_status_t ret = EFI_SUCCESS;
 
-	if (IS_ENABLED(CONFIG_EFI_HAVE_CAPSULE_UPDATE)) {
+	if (IS_ENABLED(CONFIG_EFI_HAVE_CAPSULE_SUPPORT)) {
+		u16 var_name16[12];
+
+		efi_create_indexed_name(var_name16, sizeof(var_name16),
+					"Capsule", CONFIG_EFI_CAPSULE_MAX);
+
 		ret = efi_set_variable_int(u"CapsuleMax",
 					   &efi_guid_capsule_report,
 					   EFI_VARIABLE_READ_ONLY |
 					   EFI_VARIABLE_BOOTSERVICE_ACCESS |
 					   EFI_VARIABLE_RUNTIME_ACCESS,
-					   22, u"CapsuleFFFF", false);
+					   22, var_name16, false);
 		if (ret != EFI_SUCCESS)
 			printf("EFI: cannot initialize CapsuleMax variable\n");
 	}
@@ -174,6 +180,41 @@ static efi_status_t efi_init_os_indications(void)
 				    &os_indications_supported, false);
 }
 
+/**
+ * efi_init_early() - handle initialization at early stage
+ *
+ * expected to be called in board_init_r().
+ *
+ * Return:	status code
+ */
+int efi_init_early(void)
+{
+	efi_status_t ret;
+
+	/* Allow unaligned memory access */
+	allow_unaligned();
+
+	/* Initialize root node */
+	ret = efi_root_node_register();
+	if (ret != EFI_SUCCESS)
+		goto out;
+
+	ret = efi_console_register();
+	if (ret != EFI_SUCCESS)
+		goto out;
+
+	/* Initialize EFI driver uclass */
+	ret = efi_driver_init();
+	if (ret != EFI_SUCCESS)
+		goto out;
+
+	return 0;
+out:
+	/* never re-init UEFI subsystem */
+	efi_obj_list_initialized = ret;
+
+	return -1;
+}
 
 /**
  * efi_init_obj_list() - Initialize and populate EFI object list
@@ -188,28 +229,16 @@ efi_status_t efi_init_obj_list(void)
 	if (efi_obj_list_initialized != OBJ_LIST_NOT_INITIALIZED)
 		return efi_obj_list_initialized;
 
-	/* Allow unaligned memory access */
-	allow_unaligned();
+	/* Set up console modes */
+	efi_setup_console_size();
 
-	/* Initialize root node */
-	ret = efi_root_node_register();
+	/*
+	 * Probe block devices to find the ESP.
+	 * efi_disks_register() must be called before efi_init_variables().
+	 */
+	ret = efi_disks_register();
 	if (ret != EFI_SUCCESS)
 		goto out;
-
-	ret = efi_console_register();
-	if (ret != EFI_SUCCESS)
-		goto out;
-
-#ifdef CONFIG_PARTITIONS
-	ret = efi_disk_register();
-	if (ret != EFI_SUCCESS)
-		goto out;
-#endif
-	if (IS_ENABLED(CONFIG_EFI_RNG_PROTOCOL)) {
-		ret = efi_rng_register();
-		if (ret != EFI_SUCCESS)
-			goto out;
-	}
 
 	/* Initialize variable services */
 	ret = efi_init_variables();
@@ -231,6 +260,12 @@ efi_status_t efi_init_obj_list(void)
 	if (ret != EFI_SUCCESS)
 		goto out;
 
+	if (IS_ENABLED(CONFIG_EFI_ECPT)) {
+		ret = efi_ecpt_register();
+		if (ret != EFI_SUCCESS)
+			goto out;
+	}
+
 	if (IS_ENABLED(CONFIG_EFI_ESRT)) {
 		ret = efi_esrt_register();
 		if (ret != EFI_SUCCESS)
@@ -244,6 +279,13 @@ efi_status_t efi_init_obj_list(void)
 
 		ret = efi_tcg2_do_initial_measurement();
 		if (ret == EFI_SECURITY_VIOLATION)
+			goto out;
+	}
+
+	/* Install EFI_RNG_PROTOCOL */
+	if (IS_ENABLED(CONFIG_EFI_RNG_PROTOCOL)) {
+		ret = efi_rng_register();
+		if (ret != EFI_SUCCESS)
 			goto out;
 	}
 
@@ -263,23 +305,18 @@ efi_status_t efi_init_obj_list(void)
 	if (ret != EFI_SUCCESS)
 		goto out;
 
-	/* Initialize EFI driver uclass */
-	ret = efi_driver_init();
-	if (ret != EFI_SUCCESS)
-		goto out;
-
 	if (IS_ENABLED(CONFIG_EFI_HAVE_CAPSULE_SUPPORT)) {
 		ret = efi_load_capsule_drivers();
 		if (ret != EFI_SUCCESS)
 			goto out;
 	}
 
-#if defined(CONFIG_LCD) || defined(CONFIG_DM_VIDEO)
-	ret = efi_gop_register();
-	if (ret != EFI_SUCCESS)
-		goto out;
-#endif
-#ifdef CONFIG_NET
+	if (IS_ENABLED(CONFIG_VIDEO)) {
+		ret = efi_gop_register();
+		if (ret != EFI_SUCCESS)
+			goto out;
+	}
+#ifdef CONFIG_NETDEVICES
 	ret = efi_net_register();
 	if (ret != EFI_SUCCESS)
 		goto out;

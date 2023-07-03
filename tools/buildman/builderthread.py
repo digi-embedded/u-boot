@@ -40,7 +40,7 @@ class BuilderJob:
     """Holds information about a job to be performed by a thread
 
     Members:
-        board: Board object to build
+        brd: Board object to build
         commits: List of Commit objects to build
         keep_outputs: True to save build output files
         step: 1 to process every commit, n to process every nth commit
@@ -48,7 +48,7 @@ class BuilderJob:
             don't write to a separate output directory.
     """
     def __init__(self):
-        self.board = None
+        self.brd = None
         self.commits = []
         self.keep_outputs = False
         self.step = 1
@@ -253,6 +253,8 @@ class BuilderThread(threading.Thread):
                     args.extend(['-j', str(self.builder.num_jobs)])
                 if self.builder.warnings_as_errors:
                     args.append('KCFLAGS=-Werror')
+                if self.builder.allow_missing:
+                    args.append('BINMAN_ALLOW_MISSING=1')
                 config_args = ['%s_defconfig' % brd.target]
                 config_out = ''
                 args.extend(self.builder.toolchains.GetMakeArguments(brd))
@@ -288,10 +290,14 @@ class BuilderThread(threading.Thread):
                         args.append('cfg')
                     result = self.Make(commit, brd, 'build', cwd, *args,
                             env=env)
+                    if (result.return_code == 2 and
+                        ('Some images are invalid' in result.stderr)):
+                        # This is handled later by the check for output in
+                        # stderr
+                        result.return_code = 0
                     if adjust_cfg:
                         errs = cfgutil.check_cfg_file(cfg_file, adjust_cfg)
                         if errs:
-                            print('errs', errs)
                             result.stderr += errs
                             result.return_code = 1
                 result.stderr = result.stderr.replace(src_dir + '/', '')
@@ -491,7 +497,7 @@ class BuilderThread(threading.Thread):
         Returns:
             List of Result objects
         """
-        brd = job.board
+        brd = job.brd
         work_dir = self.builder.GetThreadDir(self.thread_num)
         self.toolchain = None
         if job.commits:

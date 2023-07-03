@@ -17,7 +17,7 @@ Get and Build the ARM Trusted firmware
 --------------------------------------
 
 Note: srctree is U-Boot source directory
-Get ATF from: https://source.codeaurora.org/external/imx/imx-atf
+Get ATF from: https://github.com/nxp-imx/imx-atf
 branch: imx_5.4.47_2.2.0
 
 .. code-block:: bash
@@ -42,7 +42,6 @@ Build U-Boot
 
    $ export CROSS_COMPILE=aarch64-poky-linux-
    $ make imx8mn_ddr4_evk_defconfig
-   $ export ATF_LOAD_ADDR=0x960000
    $ make
 
 Burn the flash.bin to MicroSD card offset 32KB:

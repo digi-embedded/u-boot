@@ -30,8 +30,6 @@
 #define EMI1_SLOT4	5
 #define EMI2		6
 
-static int mdio_mux[NUM_FM_PORTS];
-
 static const char * const mdio_names[] = {
 	"LS1043AQDS_MDIO_RGMII1",
 	"LS1043AQDS_MDIO_RGMII2",
@@ -43,7 +41,11 @@ static const char * const mdio_names[] = {
 };
 
 /* Map SerDes1 4 lanes to default slot, will be initialized dynamically */
+#ifdef CONFIG_FMAN_ENET
+static int mdio_mux[NUM_FM_PORTS];
+
 static u8 lane_to_slot[] = {1, 2, 3, 4};
+#endif
 
 static const char *ls1043aqds_mdio_name_for_muxval(u8 muxval)
 {
@@ -75,6 +77,7 @@ struct mii_dev *mii_dev_for_muxval(u8 muxval)
 	return bus;
 }
 
+#ifdef CONFIG_FMAN_ENET
 struct ls1043aqds_mdio {
 	u8 muxval;
 	struct mii_dev *realbus;
@@ -258,7 +261,7 @@ void board_ft_fman_fixup_port(void *fdt, char *compat, phys_addr_t addr,
 void fdt_fixup_board_enet(void *fdt)
 {
 	int i;
-	struct ccsr_gur *gur = (void *)(CONFIG_SYS_FSL_GUTS_ADDR);
+	struct ccsr_gur *gur = (void *)(CFG_SYS_FSL_GUTS_ADDR);
 	u32 srds_s1;
 
 	srds_s1 = in_be32(&gur->rcwsr[4]) &
@@ -296,11 +299,10 @@ void fdt_fixup_board_enet(void *fdt)
 
 int board_eth_init(struct bd_info *bis)
 {
-#ifdef CONFIG_FMAN_ENET
 	int i, idx, lane, slot, interface;
 	struct memac_mdio_info dtsec_mdio_info;
 	struct memac_mdio_info tgec_mdio_info;
-	struct ccsr_gur *gur = (void *)(CONFIG_SYS_FSL_GUTS_ADDR);
+	struct ccsr_gur *gur = (void *)(CFG_SYS_FSL_GUTS_ADDR);
 	u32 srds_s1;
 
 	srds_s1 = in_be32(&gur->rcwsr[4]) &
@@ -312,7 +314,7 @@ int board_eth_init(struct bd_info *bis)
 		mdio_mux[i] = EMI_NONE;
 
 	dtsec_mdio_info.regs =
-		(struct memac_mdio_controller *)CONFIG_SYS_FM1_DTSEC_MDIO_ADDR;
+		(struct memac_mdio_controller *)CFG_SYS_FM1_DTSEC_MDIO_ADDR;
 
 	dtsec_mdio_info.name = DEFAULT_FM_MDIO_NAME;
 
@@ -320,7 +322,7 @@ int board_eth_init(struct bd_info *bis)
 	fm_memac_mdio_init(bis, &dtsec_mdio_info);
 
 	tgec_mdio_info.regs =
-		(struct memac_mdio_controller *)CONFIG_SYS_FM1_TGEC_MDIO_ADDR;
+		(struct memac_mdio_controller *)CFG_SYS_FM1_TGEC_MDIO_ADDR;
 	tgec_mdio_info.name = DEFAULT_FM_TGEC_MDIO_NAME;
 
 	/* Register the 10G MDIO bus */
@@ -425,7 +427,7 @@ int board_eth_init(struct bd_info *bis)
 		break;
 	}
 
-	for (i = FM1_DTSEC1; i < FM1_DTSEC1 + CONFIG_SYS_NUM_FM1_DTSEC; i++) {
+	for (i = FM1_DTSEC1; i < FM1_DTSEC1 + CFG_SYS_NUM_FM1_DTSEC; i++) {
 		idx = i - FM1_DTSEC1;
 		interface = fm_info_get_enet_if(i);
 		switch (interface) {
@@ -493,7 +495,7 @@ int board_eth_init(struct bd_info *bis)
 	}
 
 	cpu_eth_init(bis);
-#endif /* CONFIG_FMAN_ENET */
 
 	return pci_eth_init(bis);
 }
+#endif /* CONFIG_FMAN_ENET */

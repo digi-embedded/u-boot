@@ -18,70 +18,50 @@
 /* CPU information */
 
 /* ARM asynchronous clock */
-#define CONFIG_SYS_AT91_SLOW_CLOCK	32768	/* slow clock xtal */
-#define CONFIG_SYS_AT91_MAIN_CLOCK	18432000 /* 18.432 MHz crystal */
+#define CFG_SYS_AT91_SLOW_CLOCK	32768	/* slow clock xtal */
+#define CFG_SYS_AT91_MAIN_CLOCK	18432000 /* 18.432 MHz crystal */
 
 /* 32kB internal SRAM */
-#define CONFIG_SRAM_BASE	0x00300000 /*AT91SAM9XE_SRAM_BASE */
-#define CONFIG_SRAM_SIZE	(32 << 10)
-#define CONFIG_SYS_INIT_SP_ADDR	(CONFIG_SRAM_BASE + CONFIG_SRAM_SIZE - \
-				GENERATED_GBL_DATA_SIZE)
+#define CFG_SYS_INIT_RAM_ADDR	0x00300000 /*AT91SAM9XE_SRAM_BASE */
+#define CFG_SYS_INIT_RAM_SIZE	(32 << 10)
 
 /* 128MB SDRAM in 1 bank */
-#define CONFIG_SYS_SDRAM_BASE		0x20000000
-#define CONFIG_SYS_SDRAM_SIZE		(128 << 20)
+#define CFG_SYS_SDRAM_BASE		0x20000000
+#define CFG_SYS_SDRAM_SIZE		(128 << 20)
 
 /* 512kB on-chip NOR flash */
-# define CONFIG_SYS_FLASH_BASE		0x00200000 /* AT91SAM9XE_FLASH_BASE */
-# define CONFIG_SYS_MAX_FLASH_SECT	32
-# define CONFIG_EFLASH_PROTSECTORS	1
+# define CFG_SYS_FLASH_BASE		0x00200000 /* AT91SAM9XE_FLASH_BASE */
 
 
 /* bootstrap + u-boot + env + linux in dataflash on CS0 */
 
 /* NAND flash */
 #ifdef CONFIG_CMD_NAND
-#define CONFIG_SYS_MAX_NAND_DEVICE	1
-#define CONFIG_SYS_NAND_BASE		0x40000000
-#define CONFIG_SYS_NAND_DBW_8
+#define CFG_SYS_NAND_BASE		0x40000000
 /* our ALE is AD21 */
-#define CONFIG_SYS_NAND_MASK_ALE	(1 << 21)
+#define CFG_SYS_NAND_MASK_ALE	(1 << 21)
 /* our CLE is AD22 */
-#define CONFIG_SYS_NAND_MASK_CLE	(1 << 22)
-#define CONFIG_SYS_NAND_ENABLE_PIN	GPIO_PIN_PC(14)
+#define CFG_SYS_NAND_MASK_CLE	(1 << 22)
+#define CFG_SYS_NAND_ENABLE_PIN	GPIO_PIN_PC(14)
 #endif
 
 /* JFFS2 */
 
 /* Ethernet */
-#define CONFIG_NET_RETRY_COUNT		20
-#define CONFIG_RMII
-#define CONFIG_PHY_ID			0
-#define CONFIG_MACB_SEARCH_PHY
+#define CFG_PHY_ID			0
 
 /* MMC */
 #ifdef CONFIG_CMD_MMC
-#define CONFIG_SYS_MMC_CD_PIN		AT91_PIO_PORTC, 8
-#endif
-
-/* USB */
-#ifdef CONFIG_CMD_USB
-#define CONFIG_USB_ATMEL
-#define CONFIG_USB_ATMEL_CLK_SEL_PLLB
-#define CONFIG_USB_OHCI_NEW
-#define CONFIG_SYS_USB_OHCI_CPU_INIT
-#define CONFIG_SYS_USB_OHCI_REGS_BASE	0x00500000
-#define CONFIG_SYS_USB_OHCI_SLOT_NAME	"host"
-#define CONFIG_SYS_USB_OHCI_MAX_ROOT_PORTS	2
+#define CFG_SYS_MMC_CD_PIN		AT91_PIO_PORTC, 8
 #endif
 
 /* RTC */
 #if defined(CONFIG_CMD_DATE) || defined(CONFIG_CMD_SNTP)
-#define CONFIG_SYS_I2C_RTC_ADDR		0x51
+#define CFG_SYS_I2C_RTC_ADDR		0x51
 #endif
 
 /* I2C */
-#define CONFIG_SYS_MAX_I2C_BUS	1
+#define CFG_SYS_MAX_I2C_BUS	1
 
 #define I2C_SOFT_DECLARATIONS
 
@@ -102,12 +82,6 @@
 #define I2C_SDA(bit)	at91_set_pio_value(AT91_PIO_PORTA, 23, bit)
 #define I2C_DELAY	udelay(100)
 #define I2C_READ	at91_get_pio_value(AT91_PIO_PORTA, 23)
-
-/* DHCP/BOOTP options */
-#ifdef CONFIG_CMD_DHCP
-#define CONFIG_BOOTP_BOOTFILESIZE
-#define CONFIG_SYS_AUTOLOAD	"n"
-#endif
 
 /* File systems */
 

@@ -15,6 +15,10 @@
 	model = "i.MX7 DDR3L 19x19 VAL Board";
 	compatible = "fsl,imx7d-19x19-ddr3-val", "fsl,imx7d";
 
+	chosen {
+		stdout-path = &uart1;
+	};
+
 	max7322_reset: max7322-reset {
 		compatible = "gpio-reset";
 		reset-gpios = <&gpio1 3 GPIO_ACTIVE_LOW>;
@@ -688,8 +692,8 @@
 				MX7D_PAD_SD3_DATA7__SD3_DATA7 0x5b
 			>;
 		};
-		
-		pinctrl_qspi1_1: qspi1grp_1 {
+
+		pinctrl_qspi_1: qspigrp_1 {
 			fsl,pins = <
 				MX7D_PAD_EPDC_DATA00__QSPI_A_DATA0 0x51
 				MX7D_PAD_EPDC_DATA01__QSPI_A_DATA1 0x51
@@ -836,10 +840,10 @@
 	status = "okay";
 };
 
-&qspi1 {
+&qspi {
 	pinctrl-names = "default", "sleep";
-	pinctrl-0 = <&pinctrl_qspi1_1>;
-	pinctrl-1 = <&pinctrl_qspi1_1>;
+	pinctrl-0 = <&pinctrl_qspi_1>;
+	pinctrl-1 = <&pinctrl_qspi_1>;
 	status = "okay";
 	fsl,qspi-has-second-chip = <1>;
 	ddrsmp=<0>;

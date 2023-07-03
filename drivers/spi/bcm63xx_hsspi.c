@@ -210,7 +210,7 @@ static void bcm63xx_hsspi_deactivate_cs(struct bcm63xx_hsspi_priv *priv)
  * claimed. This way, the dummy CS is restored to its inactive value when
  * transfers are issued and the desired CS is preserved in its active value
  * all the time. This hack is also used in the upstream linux driver and
- * allows keeping CS active between trasnfers even if the HW doesn't give
+ * allows keeping CS active between transfers even if the HW doesn't give
  * this possibility.
  */
 static int bcm63xx_hsspi_xfer(struct udevice *dev, unsigned int bitlen,
@@ -355,9 +355,7 @@ static int bcm63xx_hsspi_probe(struct udevice *dev)
 	if (ret < 0 && ret != -ENOSYS)
 		return ret;
 
-	ret = clk_free(&clk);
-	if (ret < 0 && ret != -ENOSYS)
-		return ret;
+	clk_free(&clk);
 
 	/* get clock rate */
 	ret = clk_get_by_name(dev, "pll", &clk);
@@ -366,9 +364,7 @@ static int bcm63xx_hsspi_probe(struct udevice *dev)
 
 	priv->clk_rate = clk_get_rate(&clk);
 
-	ret = clk_free(&clk);
-	if (ret < 0 && ret != -ENOSYS)
-		return ret;
+	clk_free(&clk);
 
 	/* perform reset */
 	ret = reset_get_by_index(dev, 0, &rst_ctl);

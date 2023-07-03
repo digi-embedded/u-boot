@@ -66,8 +66,6 @@ do {									\
 
 #define NET_SKB_PAD	max(32, MVPP2_CPU_D_CACHE_LINE_SIZE)
 
-#define CONFIG_NR_CPUS		1
-
 /* 2(HW hdr) 14(MAC hdr) 4(CRC) 32(extra for cache prefetch) */
 #define WRAP			(2 + ETH_HLEN + 4 + 32)
 #define MTU			1500
@@ -589,7 +587,7 @@ enum mv_netc_lanes {
 
 /* Default number of RXQs in use */
 #define MVPP2_DEFAULT_RXQ		1
-#define CONFIG_MV_ETH_RXQ		8	/* increment by 8 */
+#define CFG_MV_ETH_RXQ		8	/* increment by 8 */
 
 /* Max number of Rx descriptors */
 #define MVPP2_MAX_RXD			16
@@ -4786,11 +4784,9 @@ static int mvpp2_port_init(struct udevice *dev, struct mvpp2_port *port)
 static int phy_info_parse(struct udevice *dev, struct mvpp2_port *port)
 {
 	int port_node = dev_of_offset(dev);
-	const char *phy_mode_str;
 	int phy_node;
 	u32 id;
 	u32 phyaddr = 0;
-	int phy_mode = -1;
 	int fixed_link = 0;
 	int ret;
 
@@ -4821,10 +4817,8 @@ static int phy_info_parse(struct udevice *dev, struct mvpp2_port *port)
 		phyaddr = PHY_MAX_ADDR;
 	}
 
-	phy_mode_str = fdt_getprop(gd->fdt_blob, port_node, "phy-mode", NULL);
-	if (phy_mode_str)
-		phy_mode = phy_get_interface_by_name(phy_mode_str);
-	if (phy_mode == -1) {
+	port->phy_interface = dev_read_phy_mode(dev);
+	if (port->phy_interface == PHY_INTERFACE_MODE_NA) {
 		dev_err(dev, "incorrect phy mode\n");
 		return -EINVAL;
 	}
@@ -4847,7 +4841,6 @@ static int phy_info_parse(struct udevice *dev, struct mvpp2_port *port)
 		port->first_rxq = port->id * rxq_number;
 	else
 		port->first_rxq = port->id * port->priv->max_port_rxqs;
-	port->phy_interface = phy_mode;
 	port->phyaddr = phyaddr;
 
 	return 0;

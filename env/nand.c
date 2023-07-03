@@ -33,10 +33,6 @@
 #error CONFIG_ENV_OFFSET_REDUND must have CONFIG_CMD_SAVEENV & CONFIG_CMD_NAND
 #endif
 
-#ifndef CONFIG_ENV_RANGE
-#define CONFIG_ENV_RANGE	CONFIG_ENV_SIZE
-#endif
-
 #if defined(ENV_IS_EMBEDDED)
 static env_t *env_ptr = &environment;
 #elif defined(CONFIG_NAND_ENV_DST)
@@ -287,9 +283,6 @@ static int env_nand_save(void)
 	ALLOC_CACHE_ALIGN_BUFFER(env_t, env_new, 1);
 	int	env_idx = 0;
 
-	if (CONFIG_ENV_RANGE < CONFIG_ENV_SIZE)
-		return 1;
-
 	ret = env_export(env_new);
 	if (ret)
 		return ret;
@@ -418,7 +411,6 @@ static int env_nand_load(void)
 
 #ifdef CONFIG_DYNAMIC_ENV_LOCATION
 	env_set_dynamic_location(location, 0);
-
 	read1_fail = readenv(location[0].erase_opts.offset,
 			     (u_char *)tmp_env1);
 	read2_fail = readenv(location[1].erase_opts.offset,
@@ -429,6 +421,7 @@ static int env_nand_load(void)
 	read2_fail = readenv(env_get_offset_redund(CONFIG_ENV_OFFSET_REDUND),
 			     (u_char *)tmp_env2);
 #endif
+
 	ret = env_import_redund((char *)tmp_env1, read1_fail, (char *)tmp_env2,
 				read2_fail, H_EXTERNAL);
 #if defined(OLD_ENV_OFFSET_LOCATIONS) && defined(CONFIG_DYNAMIC_ENV_LOCATION)
@@ -530,7 +523,6 @@ static int env_nand_load(void)
 
 #ifdef CONFIG_DYNAMIC_ENV_LOCATION
 	env_set_dynamic_location(location);
-
 	ret = readenv(location[0].erase_opts.offset, (u_char *)buf);
 #else
 	ret = readenv(env_get_offset(CONFIG_ENV_OFFSET), (u_char *)buf);

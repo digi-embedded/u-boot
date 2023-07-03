@@ -6,7 +6,6 @@
 #include <common.h>
 #include <malloc.h>
 #include <video.h>
-#include <video_fb.h>
 #include <video_bridge.h>
 #include <video_link.h>
 
@@ -53,10 +52,10 @@ static int lcdifv3_set_pix_fmt(struct lcdifv3_priv *priv, unsigned int format)
 	ctrldescl0_5 &= ~(CTRLDESCL0_5_BPP(0xf) | CTRLDESCL0_5_YUV_FORMAT(0x3));
 
 	switch (format) {
-	case GDF_16BIT_565RGB:
+	case VIDEO_BPP16:
 		ctrldescl0_5 |= CTRLDESCL0_5_BPP(BPP16_RGB565);
 		break;
-	case GDF_32BIT_X888RGB:
+	case VIDEO_BPP32:
 		ctrldescl0_5 |= CTRLDESCL0_5_BPP(BPP32_ARGB8888);
 		break;
 	default:
@@ -391,7 +390,7 @@ static int lcdifv3_video_probe(struct udevice *dev)
 	if (timings.flags & DISPLAY_FLAGS_VSYNC_LOW )
 		mode.sync &= ~FB_SYNC_VERT_HIGH_ACT;
 
-	lcdifv3_init(dev, &mode, GDF_32BIT_X888RGB);
+	lcdifv3_init(dev, &mode, VIDEO_BPP32);
 
 	uc_priv->bpix = VIDEO_BPP32; /* only support 32 BPP now */
 	uc_priv->xsize = mode.xres;

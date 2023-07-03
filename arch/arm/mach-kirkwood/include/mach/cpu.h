@@ -144,16 +144,13 @@ struct kwgpio_registers {
 	u32 irq_level;
 };
 
-/* Needed for dynamic (board-specific) mbus configuration */
-extern struct mvebu_mbus_state mbus_state;
-
 /*
  * functions
  */
 unsigned int mvebu_sdram_bar(enum memory_bank bank);
 unsigned int mvebu_sdram_bs(enum memory_bank bank);
 void mvebu_sdram_size_adjust(enum memory_bank bank);
-int mvebu_mbus_probe(struct mbus_win windows[], int count);
+int mvebu_mbus_probe(const struct mbus_win windows[], int count);
 void mvebu_config_gpio(unsigned int gpp0_oe_val, unsigned int gpp1_oe_val,
 		unsigned int gpp0_oe, unsigned int gpp1_oe);
 int kw_config_mpp(unsigned int mpp0_7, unsigned int mpp8_15,

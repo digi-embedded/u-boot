@@ -12,6 +12,10 @@
 #include <dm/device-internal.h>
 #include <dm/device.h>
 
+struct scmi_power_domain_priv {
+	struct scmi_channel *channel;
+};
+
 static int scmi_power_domain_request(struct power_domain *power_domain)
 {
 	return 0;
@@ -24,6 +28,7 @@ static int scmi_power_domain_free(struct power_domain *power_domain)
 
 static int scmi_power_state_set(struct power_domain *power_domain, u32 state)
 {
+	struct scmi_power_domain_priv *priv = dev_get_priv(power_domain->dev);
 	struct scmi_power_set_state in = {
 		.domain = power_domain->id,
 		.flags = 0,
@@ -35,7 +40,7 @@ static int scmi_power_state_set(struct power_domain *power_domain, u32 state)
 					  in, out);
 	int ret;
 
-	ret = devm_scmi_process_msg(power_domain->dev->parent, &msg);
+	ret = devm_scmi_process_msg(power_domain->dev, priv->channel, &msg);
 	if (ret)
 		return ret;
 
@@ -44,6 +49,7 @@ static int scmi_power_state_set(struct power_domain *power_domain, u32 state)
 
 static int scmi_power_state_get(struct power_domain *power_domain, u32 *state)
 {
+	struct scmi_power_domain_priv *priv = dev_get_priv(power_domain->dev);
 	struct scmi_power_get_state in = {
 		.domain = power_domain->id,
 	};
@@ -54,7 +60,7 @@ static int scmi_power_state_get(struct power_domain *power_domain, u32 *state)
 					  in, out);
 	int ret;
 
-	ret = devm_scmi_process_msg(power_domain->dev->parent, &msg);
+	ret = devm_scmi_process_msg(power_domain->dev, priv->channel, &msg);
 	if (ret)
 		return ret;
 
@@ -100,6 +106,13 @@ static int scmi_power_domain_off(struct power_domain *power_domain)
 	return scmi_power_domain_power(power_domain, false);
 }
 
+static int scmi_power_domain_probe(struct udevice *dev)
+{
+	struct scmi_power_domain_priv *priv = dev_get_priv(dev);
+
+	return devm_scmi_of_get_channel(dev, &priv->channel);
+}
+
 struct power_domain_ops scmi_power_domain_ops = {
 	.request = scmi_power_domain_request,
 	.rfree = scmi_power_domain_free,
@@ -111,4 +124,6 @@ U_BOOT_DRIVER(scmi_power_domain) = {
 	.name = "scmi_power_domain",
 	.id = UCLASS_POWER_DOMAIN,
 	.ops = &scmi_power_domain_ops,
+	.probe = scmi_power_domain_probe,
+	.priv_auto = sizeof(struct scmi_power_domain_priv *),
 };

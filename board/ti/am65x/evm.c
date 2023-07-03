@@ -61,7 +61,7 @@ int dram_init(void)
 	return 0;
 }
 
-ulong board_get_usable_ram_top(ulong total_size)
+phys_size_t board_get_usable_ram_top(phys_size_t total_size)
 {
 #ifdef CONFIG_PHYS_64BIT
 	/* Limit RAM used by U-Boot to the DDR low region */
@@ -75,13 +75,13 @@ ulong board_get_usable_ram_top(ulong total_size)
 int dram_init_banksize(void)
 {
 	/* Bank 0 declares the memory available in the DDR low region */
-	gd->bd->bi_dram[0].start = CONFIG_SYS_SDRAM_BASE;
+	gd->bd->bi_dram[0].start = CFG_SYS_SDRAM_BASE;
 	gd->bd->bi_dram[0].size = 0x80000000;
 	gd->ram_size = 0x80000000;
 
 #ifdef CONFIG_PHYS_64BIT
 	/* Bank 1 declares the memory available in the DDR high region */
-	gd->bd->bi_dram[1].start = CONFIG_SYS_SDRAM_BASE1;
+	gd->bd->bi_dram[1].start = CFG_SYS_SDRAM_BASE1;
 	gd->bd->bi_dram[1].size = 0x80000000;
 	gd->ram_size = 0x100000000;
 #endif
@@ -114,16 +114,6 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 		printf("%s: fixing up msmc ram failed %d\n", __func__, ret);
 		return ret;
 	}
-
-#if defined(CONFIG_TI_SECURE_DEVICE)
-	/* Make Crypto HW reserved for secure world use */
-	ret = fdt_disable_node(blob, "/bus@100000/crypto@4e00000");
-	if (ret < 0)
-		ret = fdt_disable_node(blob,
-				       "/interconnect@100000/crypto@4E00000");
-	if (ret)
-		printf("%s: disabling SA2UL failed %d\n", __func__, ret);
-#endif
 
 	return 0;
 }

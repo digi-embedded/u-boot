@@ -63,14 +63,8 @@ void spl_dram_init(void)
 
 void spl_board_init(void)
 {
-	if (IS_ENABLED(CONFIG_FSL_CAAM)) {
-		struct udevice *dev;
-		int ret;
+	arch_misc_init();
 
-		ret = uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(caam_jr), &dev);
-		if (ret)
-			printf("Failed to initialize caam_jr: %d\n", ret);
-	}
 	/*
 	 * Set GIC clock to 500Mhz for OD VDD_SOC. Kernel driver does
 	 * not allow to change it. Should set the clock after PMIC
@@ -92,7 +86,7 @@ int power_init_board(void)
 	struct udevice *dev;
 	int ret;
 
-	ret = pmic_get("pca9450@25", &dev);
+	ret = pmic_get("pmic@25", &dev);
 	if (ret == -ENODEV) {
 		puts("No pca9450@25\n");
 		return 0;
@@ -130,9 +124,6 @@ int power_init_board(void)
 	pmic_reg_write(dev, PCA9450_BUCK6OUT, 0x18);
 #endif
 
-	/* set WDOG_B_CFG to cold reset */
-	pmic_reg_write(dev, PCA9450_RESET_CTRL, 0xA1);
-
 	return 0;
 }
 #endif
@@ -161,8 +152,6 @@ void board_init_f(ulong dummy)
 
 	timer_init();
 
-	preloader_console_init();
-
 	ret = spl_early_init();
 	if (ret) {
 		debug("spl_early_init() failed: %d\n", ret);
@@ -176,6 +165,8 @@ void board_init_f(ulong dummy)
 		printf("Failed to find clock node. Check device tree\n");
 		hang();
 	}
+
+	preloader_console_init();
 
 	enable_tzc380();
 

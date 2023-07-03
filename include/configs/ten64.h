@@ -9,12 +9,8 @@
 
 #include "ls1088a_common.h"
 
-#define CONFIG_SYS_CLK_FREQ		100000000
-#define COUNTER_FREQUENCY		25000000	/* 25MHz */
 
-#define CONFIG_DIMM_SLOTS_PER_CTLR	1
-
-#define CONFIG_SYS_LS_MC_BOOT_TIMEOUT_MS 5000
+#define CFG_SYS_LS_MC_BOOT_TIMEOUT_MS 5000
 
 #define QSPI_NOR_BOOTCOMMAND	"run distro_bootcmd"
 #define SD_BOOTCOMMAND		"run distro_bootcmd"
@@ -38,9 +34,9 @@
 	func(PXE, pxe, 0)
 #include <config_distro_bootcmd.h>
 
-#undef CONFIG_EXTRA_ENV_SETTINGS
+#undef CFG_EXTRA_ENV_SETTINGS
 
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	"BOARD=ten64\0"					\
 	"fdt_addr_r=0x90000000\0"		\
 	"fdt_high=0xa0000000\0"			\

@@ -10,21 +10,14 @@
 #include <asm/arch/config.h>
 #include <asm/arch/soc.h>
 
-#define CONFIG_FSL_MEMAC
-
-#define CONFIG_SYS_INIT_SP_ADDR		CONFIG_SYS_TEXT_BASE
-#define CONFIG_SYS_FLASH_BASE		0x20000000
+#define CFG_SYS_FLASH_BASE		0x20000000
 
 /* DDR */
-#define CONFIG_SYS_FSL_DDR_INTLV_256B	/* force 256 byte interleaving */
-#define CONFIG_VERY_BIG_RAM
-#define CONFIG_SYS_DDR_SDRAM_BASE		0x80000000UL
-#define CONFIG_SYS_FSL_DDR_SDRAM_BASE_PHY	0
-#define CONFIG_SYS_DDR_BLOCK2_BASE		0x2080000000ULL
-#define CONFIG_SYS_FSL_DDR_MAIN_NUM_CTRLS	2
-#define CONFIG_SYS_SDRAM_SIZE			0x200000000UL
-#define CONFIG_SYS_SDRAM_BASE		CONFIG_SYS_DDR_SDRAM_BASE
-#define CONFIG_MEM_INIT_VALUE		0xdeadbeef
+#define CFG_SYS_DDR_SDRAM_BASE		0x80000000UL
+#define CFG_SYS_FSL_DDR_SDRAM_BASE_PHY	0
+#define CFG_SYS_DDR_BLOCK2_BASE		0x2080000000ULL
+#define CFG_SYS_SDRAM_SIZE			0x200000000UL
+#define CFG_SYS_SDRAM_BASE		CFG_SYS_DDR_SDRAM_BASE
 #define SPD_EEPROM_ADDRESS1		0x51
 #define SPD_EEPROM_ADDRESS2		0x52
 #define SPD_EEPROM_ADDRESS3		0x53
@@ -32,10 +25,6 @@
 #define SPD_EEPROM_ADDRESS5		0x55
 #define SPD_EEPROM_ADDRESS6		0x56
 #define SPD_EEPROM_ADDRESS		SPD_EEPROM_ADDRESS1
-#define CONFIG_SYS_SPD_BUS_NUM		0	/* SPD on I2C bus 0 */
-#define CONFIG_DIMM_SLOTS_PER_CTLR	2
-#define CONFIG_CHIP_SELECTS_PER_CTRL	4
-#define CONFIG_SYS_MONITOR_LEN		(936 * 1024)
 
 /* Miscellaneous configurable options */
 
@@ -48,31 +37,25 @@
  * will be udpated later when get_bus_freq(0) is available.
  */
 
-#define COUNTER_FREQUENCY		25000000	/* 25MHz */
 
 /* Serial Port */
-#define CONFIG_PL011_CLOCK		(get_bus_freq(0) / 4)
-#define CONFIG_SYS_SERIAL0		0x21c0000
-#define CONFIG_SYS_SERIAL1		0x21d0000
-#define CONFIG_SYS_SERIAL2		0x21e0000
-#define CONFIG_SYS_SERIAL3		0x21f0000
+#define CFG_PL011_CLOCK		(get_bus_freq(0) / 4)
+#define CFG_SYS_SERIAL0		0x21c0000
+#define CFG_SYS_SERIAL1		0x21d0000
+#define CFG_SYS_SERIAL2		0x21e0000
+#define CFG_SYS_SERIAL3		0x21f0000
 /*below might needs to be removed*/
-#define CONFIG_PL01x_PORTS		{(void *)CONFIG_SYS_SERIAL0, \
-					(void *)CONFIG_SYS_SERIAL1, \
-					(void *)CONFIG_SYS_SERIAL2, \
-					(void *)CONFIG_SYS_SERIAL3 }
+#define CFG_PL01x_PORTS		{(void *)CFG_SYS_SERIAL0, \
+					(void *)CFG_SYS_SERIAL1, \
+					(void *)CFG_SYS_SERIAL2, \
+					(void *)CFG_SYS_SERIAL3 }
 
 /* MC firmware */
-#define CONFIG_SYS_LS_MC_DPC_MAX_LENGTH		0x20000
-#define CONFIG_SYS_LS_MC_DRAM_DPC_OFFSET	0x00F00000
-#define CONFIG_SYS_LS_MC_DPL_MAX_LENGTH		0x20000
-#define CONFIG_SYS_LS_MC_DRAM_DPL_OFFSET	0x00F20000
-#define CONFIG_SYS_LS_MC_BOOT_TIMEOUT_MS	5000
-
-/* Define phy_reset function to boot the MC based on mcinitcmd.
- * This happens late enough to properly fixup u-boot env MAC addresses.
- */
-#define CONFIG_RESET_PHY_R
+#define CFG_SYS_LS_MC_DPC_MAX_LENGTH		0x20000
+#define CFG_SYS_LS_MC_DRAM_DPC_OFFSET	0x00F00000
+#define CFG_SYS_LS_MC_DPL_MAX_LENGTH		0x20000
+#define CFG_SYS_LS_MC_DRAM_DPL_OFFSET	0x00F20000
+#define CFG_SYS_LS_MC_BOOT_TIMEOUT_MS	5000
 
 /*
  * Carve out a DDR region which will not be used by u-boot/Linux
@@ -81,7 +64,7 @@
  * 512MB aligned, so the min size to hide is 512MB.
  */
 #ifdef CONFIG_FSL_MC_ENET
-#define CONFIG_SYS_LS_MC_DRAM_BLOCK_MIN_SIZE	(256UL * 1024 * 1024)
+#define CFG_SYS_LS_MC_DRAM_BLOCK_MIN_SIZE	(256UL * 1024 * 1024)
 #endif
 
 /* I2C bus multiplexer */
@@ -96,54 +79,20 @@
 #define I2C_MUX_CH_SFP2			0xD
 
 /* RTC */
-#define RTC
-#define CONFIG_SYS_I2C_RTC_ADDR		0x51  /* Channel 3*/
-
-/* EEPROM */
-#define CONFIG_SYS_I2C_EEPROM_NXID
-#define CONFIG_SYS_EEPROM_BUS_NUM		0
+#define CFG_SYS_I2C_RTC_ADDR		0x51  /* Channel 3*/
 
 /* QSFP/SFP module EEPROMs */
 #define I2C_SFP_EEPROM_ADDR	0x50
 #define I2C_SFP_EEPROM_ADDR_LEN	1
 
 /* Qixis */
-#define CONFIG_FSL_QIXIS
-#define CONFIG_QIXIS_I2C_ACCESS
-#define CONFIG_SYS_I2C_FPGA_ADDR		0x66
-
-/* PCI */
-#ifdef CONFIG_PCI
-#define CONFIG_PCI_SCAN_SHOW
-#endif
-
-/* SATA */
-
-#ifdef CONFIG_SCSI
-#define CONFIG_SYS_SATA1		AHCI_BASE_ADDR1
-#define CONFIG_SYS_SATA2		AHCI_BASE_ADDR2
-#endif
+#define CFG_SYS_I2C_FPGA_ADDR		0x66
 
 /* USB */
-#ifdef CONFIG_USB_HOST
-#ifndef CONFIG_TARGET_LX2162AQDS
-#define CONFIG_USB_MAX_CONTROLLER_COUNT	2
-#endif
-#endif
 
 #define COUNTER_FREQUENCY_REAL		(get_board_sys_clk() / 4)
 
-#define CONFIG_HWCONFIG
 #define HWCONFIG_BUFFER_SIZE		128
-
-/* Monitor Command Prompt */
-#define CONFIG_SYS_CBSIZE		512	/* Console I/O Buffer Size */
-#define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + \
-					sizeof(CONFIG_SYS_PROMPT) + 16)
-#define CONFIG_SYS_BARGSIZE		CONFIG_SYS_CBSIZE /* Boot args buffer */
-#define CONFIG_SYS_MAXARGS		64	/* max command args */
-
-#define CONFIG_SYS_BOOTM_LEN   (64 << 20)      /* Increase max gunzip size */
 
 /* Initial environment variables */
 #define XSPI_MC_INIT_CMD				\

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 //
 // Copyright 2013 Freescale Semiconductor, Inc.
-// Copyright 2018 NXP
 
 #include <dt-bindings/interrupt-controller/irq.h>
 #include "imx6dl-pinfunc.h"
@@ -34,6 +33,7 @@
 				396000	1175000
 			>;
 			clock-latency = <61036>; /* two CLK32 periods */
+			#cooling-cells = <2>;
 			clocks = <&clks IMX6QDL_CLK_ARM>,
 				 <&clks IMX6QDL_CLK_PLL2_PFD2_396M>,
 				 <&clks IMX6QDL_CLK_STEP>,
@@ -48,6 +48,8 @@
 			arm-supply = <&reg_arm>;
 			pu-supply = <&reg_pu>;
 			soc-supply = <&reg_soc>;
+			nvmem-cells = <&cpu_speed_grade>;
+			nvmem-cell-names = "speed_grade";
 		};
 
 		cpu@1 {
@@ -55,24 +57,48 @@
 			device_type = "cpu";
 			reg = <1>;
 			next-level-cache = <&L2>;
+			operating-points = <
+				/* kHz    uV */
+				996000  1250000
+				792000  1175000
+				396000  1150000
+			>;
+			fsl,soc-operating-points = <
+				/* ARM kHz  SOC-PU uV */
+				996000	1175000
+				792000	1175000
+				396000	1175000
+			>;
+			clock-latency = <61036>; /* two CLK32 periods */
+			#cooling-cells = <2>;
+			clocks = <&clks IMX6QDL_CLK_ARM>,
+				 <&clks IMX6QDL_CLK_PLL2_PFD2_396M>,
+				 <&clks IMX6QDL_CLK_STEP>,
+				 <&clks IMX6QDL_CLK_PLL1_SW>,
+				 <&clks IMX6QDL_CLK_PLL1_SYS>;
+			clock-names = "arm", "pll2_pfd2_396m", "step",
+				      "pll1_sw", "pll1_sys";
+			arm-supply = <&reg_arm>;
+			pu-supply = <&reg_pu>;
+			soc-supply = <&reg_soc>;
 		};
 	};
 
-	reserved-memory {
-		#address-cells = <1>;
-		#size-cells = <1>;
-		ranges;
+        reserved-memory {
+                #address-cells = <1>;
+                #size-cells = <1>;
+                ranges;
 
-		/* global autoconfigured region for contiguous allocations */
-		linux,cma {
-			compatible = "shared-dma-pool";
-			reusable;
-			size = <0x14000000>;
-			linux,cma-default;
-		};
-	};
+                /* global autoconfigured region for contiguous allocations */
+                linux,cma {
+                        compatible = "shared-dma-pool";
+                        reusable;
+                        size = <0x14000000>;
+                        linux,cma-default;
+                };
+        };
 
-	soc {
+	soc: soc {
 		busfreq {
 			compatible = "fsl,imx_busfreq";
 			clocks = <&clks IMX6QDL_CLK_PLL2_BUS>, <&clks IMX6QDL_CLK_PLL2_PFD2_396M>,
@@ -82,9 +108,11 @@
 				<&clks IMX6QDL_CLK_PERIPH_CLK2_SEL>, <&clks IMX6QDL_CLK_OSC>,
 				<&clks IMX6QDL_CLK_AXI_ALT_SEL>, <&clks IMX6QDL_CLK_AXI_SEL> ,
 				<&clks IMX6QDL_CLK_PLL3_PFD1_540M>;
-			clock-names = "pll2_bus", "pll2_pfd2_396m", "pll2_198m", "arm", "pll3_usb_otg", "periph",
-				"periph_pre", "periph_clk2", "periph_clk2_sel", "osc", "axi_alt_sel", "axi_sel", "pll3_pfd1_540m";
-			interrupts = <0 107 0x04>, <0 112 0x4>;
+			clock-names = "pll2_bus", "pll2_pfd2_396m", "pll2_198m", "arm",
+					 "pll3_usb_otg", "periph", "periph_pre", "periph_clk2",
+					 "periph_clk2_sel", "osc", "axi_alt_sel", "axi_sel",
+					 "pll3_pfd1_540m";
+			interrupts = <0 107 0x4>, <0 112 0x4>;
 			interrupt-names = "irq_busfreq_0", "irq_busfreq_1";
 			fsl,max_ddr_freq = <400000000>;
 		};
@@ -92,6 +120,9 @@
 		ocram: sram@905000 {
 			compatible = "mmio-sram";
 			reg = <0x905000 0x1B000>;
+			ranges = <0 0x905000 0x1B000>;
+			#address-cells = <1>;
+			#size-cells = <1>;
 			clocks = <&clks IMX6QDL_CLK_OCRAM>;
 		};
 
@@ -104,18 +135,18 @@
 		gpu: gpu@00130000 {
 			compatible = "fsl,imx6dl-gpu", "fsl,imx6q-gpu";
 			reg = <0x00130000 0x4000>, <0x00134000 0x4000>,
-			      <0x10000000 0x0>, <0x0 0x8000000>;
+				<0x10000000 0x0>, <0x0 0x8000000>;
 			reg-names = "iobase_3d", "iobase_2d",
-				    "phys_baseaddr", "contiguous_mem";
+				"phys_baseaddr", "contiguous_mem";
 			interrupts = <0 9 IRQ_TYPE_LEVEL_HIGH>,
-				     <0 10 IRQ_TYPE_LEVEL_HIGH>;
+				<0 10 IRQ_TYPE_LEVEL_HIGH>;
 			interrupt-names = "irq_3d", "irq_2d";
 			clocks = <&clks IMX6QDL_CLK_OPENVG_AXI>, <&clks IMX6QDL_CLK_GPU3D_AXI>,
-				 <&clks IMX6QDL_CLK_GPU2D_CORE>, <&clks IMX6QDL_CLK_GPU3D_CORE>,
-				 <&clks IMX6QDL_CLK_DUMMY>;
+				<&clks IMX6QDL_CLK_GPU2D_CORE>, <&clks IMX6QDL_CLK_GPU3D_CORE>,
+				<&clks IMX6QDL_CLK_DUMMY>;
 			clock-names = "gpu2d_axi_clk", "gpu3d_axi_clk",
-				      "gpu2d_clk", "gpu3d_clk",
-				      "gpu3d_shader_clk";
+				"gpu2d_clk", "gpu3d_clk",
+				"gpu3d_shader_clk";
 			resets = <&src 0>, <&src 3>;
 			reset-names = "gpu3d", "gpu2d";
 			power-domains = <&pd_pu>;
@@ -137,11 +168,6 @@
 				interrupts = <0 97 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&clks IMX6QDL_CLK_IPU2>, <&clks IMX6QDL_CLK_IPU2_DI1>;
 				clock-names = "epdc_axi", "epdc_pix";
-			};
-
-			lcdif: lcdif@20f8000 {
-				reg = <0x20f8000 0x4000>;
-				interrupts = <0 39 IRQ_TYPE_LEVEL_HIGH>;
 			};
 		};
 
@@ -176,11 +202,6 @@
 	display-subsystem {
 		compatible = "fsl,imx-display-subsystem";
 		ports = <&ipu1_di0>, <&ipu1_di1>;
-	};
-
-	gpu-subsystem {
-		compatible = "fsl,imx-gpu-subsystem";
-		cores = <&gpu_2d>, <&gpu_3d>;
 	};
 };
 

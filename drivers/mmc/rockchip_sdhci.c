@@ -61,6 +61,7 @@
 #define DWCMSHC_EMMC_DLL_RXCLK		0x804
 #define DWCMSHC_EMMC_DLL_TXCLK		0x808
 #define DWCMSHC_EMMC_DLL_STRBIN		0x80c
+#define DECMSHC_EMMC_DLL_CMDOUT		0x810
 #define DWCMSHC_EMMC_DLL_STATUS0	0x840
 #define DWCMSHC_EMMC_DLL_STATUS1	0x844
 #define DWCMSHC_EMMC_DLL_START		BIT(0)
@@ -69,6 +70,7 @@
 #define DWCMSHC_EMMC_DLL_START_DEFAULT	5
 #define DWCMSHC_EMMC_DLL_INC_VALUE	2
 #define DWCMSHC_EMMC_DLL_INC		8
+#define DWCMSHC_EMMC_DLL_BYPASS		BIT(24)
 #define DWCMSHC_EMMC_DLL_DLYENA		BIT(27)
 #define DLL_TXCLK_TAPNUM_DEFAULT	0xA
 
@@ -83,6 +85,7 @@
 #define DWCMSHC_EMMC_DLL_TIMEOUT	BIT(9)
 #define DLL_RXCLK_NO_INVERTER		1
 #define DLL_RXCLK_INVERTER		0
+#define DLL_RXCLK_ORI_GATE		BIT(31)
 #define DWCMSHC_ENHANCED_STROBE		BIT(8)
 #define DLL_LOCK_WO_TMOUT(x) \
 	((((x) & DWCMSHC_EMMC_DLL_LOCKED) == DWCMSHC_EMMC_DLL_LOCKED) && \
@@ -202,8 +205,8 @@ static void rk3399_emmc_phy_power_on(struct rockchip_emmc_phy *phy, u32 clock)
 	/* REN Enable on STRB Line for HS400 */
 	writel(RK_CLRSETBITS(0, 1 << 9), &phy->emmcphy_con[2]);
 
-	read_poll_timeout(readl, &phy->emmcphy_status, dllrdy,
-			  PHYCTRL_DLL_LOCK_WO_TMOUT(dllrdy), 1, 5000);
+	read_poll_timeout(readl, dllrdy, PHYCTRL_DLL_LOCK_WO_TMOUT(dllrdy), 1,
+			  5000, &phy->emmcphy_status);
 }
 
 static void rk3399_emmc_phy_power_off(struct rockchip_emmc_phy *phy)
@@ -227,7 +230,7 @@ static int rk3399_emmc_get_phy(struct udevice *dev)
 	}
 
 	grf_base = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
-	if (grf_base < 0) {
+	if (IS_ERR_OR_NULL(grf_base)) {
 		printf("%s Get syscon grf failed", __func__);
 		return -ENODEV;
 	}
@@ -328,8 +331,9 @@ static int rk3568_sdhci_emmc_set_clock(struct sdhci_host *host, unsigned int clo
 			DWCMSHC_EMMC_DLL_START;
 		sdhci_writel(host, extra, DWCMSHC_EMMC_DLL_CTRL);
 
-		ret = read_poll_timeout(readl, host->ioaddr + DWCMSHC_EMMC_DLL_STATUS0,
-					val, DLL_LOCK_WO_TMOUT(val), 1, 500);
+		ret = read_poll_timeout(readl, val, DLL_LOCK_WO_TMOUT(val), 1,
+					500,
+					host->ioaddr + DWCMSHC_EMMC_DLL_STATUS0);
 		if (ret)
 			return ret;
 
@@ -347,10 +351,14 @@ static int rk3568_sdhci_emmc_set_clock(struct sdhci_host *host, unsigned int clo
 			DLL_STRBIN_TAPNUM_FROM_SW;
 		sdhci_writel(host, extra, DWCMSHC_EMMC_DLL_STRBIN);
 	} else {
-		/* reset the clock phase when the frequency is lower than 100MHz */
-		sdhci_writel(host, 0, DWCMSHC_EMMC_DLL_CTRL);
-		extra = DLL_RXCLK_NO_INVERTER << DWCMSHC_EMMC_DLL_RXCLK_SRCSEL;
-		sdhci_writel(host, extra, DWCMSHC_EMMC_DLL_RXCLK);
+		/*
+		 * Disable DLL and reset both of sample and drive clock.
+		 * The bypass bit and start bit need to be set if DLL is not locked.
+		 */
+		sdhci_writel(host, DWCMSHC_EMMC_DLL_BYPASS | DWCMSHC_EMMC_DLL_START,
+			     DWCMSHC_EMMC_DLL_CTRL);
+		sdhci_writel(host, DLL_RXCLK_ORI_GATE, DWCMSHC_EMMC_DLL_RXCLK);
+		sdhci_writel(host, 0, DECMSHC_EMMC_DLL_CMDOUT);
 		sdhci_writel(host, 0, DWCMSHC_EMMC_DLL_TXCLK);
 		/*
 		 * Before switching to hs400es mode, the driver will enable

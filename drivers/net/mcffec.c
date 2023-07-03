@@ -39,11 +39,11 @@ DECLARE_GLOBAL_DATA_PTR;
 
 static void init_eth_info(struct fec_info_s *info)
 {
-#ifdef CONFIG_SYS_FEC_BUF_USE_SRAM
+#ifdef CFG_SYS_FEC_BUF_USE_SRAM
 	static u32 tmp;
 
 	if (info->index == 0)
-		tmp = CONFIG_SYS_INIT_RAM_ADDR + 0x1000;
+		tmp = CFG_SYS_INIT_RAM_ADDR + 0x1000;
 	else
 		info->rxbd = (cbd_t *)DBUF_LENGTH;
 
@@ -56,7 +56,7 @@ static void init_eth_info(struct fec_info_s *info)
 	tmp = (u32)info->txbd;
 	info->txbuf =
 	    (char *)((u32)info->txbuf + tmp +
-	    (CONFIG_SYS_TX_ETH_BUFFER * sizeof(cbd_t)));
+	    (CFG_SYS_TX_ETH_BUFFER * sizeof(cbd_t)));
 	tmp = (u32)info->txbuf;
 #else
 	info->rxbd =
@@ -278,17 +278,9 @@ int mcffec_init(struct udevice *dev)
 	fecpin_setclear(info, 1);
 	fec_reset(info);
 
-#if defined(CONFIG_CMD_MII) || defined (CONFIG_MII) || \
-	defined (CONFIG_SYS_DISCOVER_PHY)
-
 	mii_init();
 
 	set_fec_duplex_speed(fecp, info->dup_spd);
-#else
-#ifndef CONFIG_SYS_DISCOVER_PHY
-	set_fec_duplex_speed(fecp, (FECDUPLEX << 16) | FECSPEED);
-#endif	/* ifndef CONFIG_SYS_DISCOVER_PHY */
-#endif	/* CONFIG_CMD_MII || CONFIG_MII */
 
 	/* We use strictly polling mode only */
 	fecp->eimr = 0;
@@ -395,7 +387,7 @@ static int mcffec_send(struct udevice *dev, void *packet, int length)
 	/* Activate transmit Buffer Descriptor polling */
 	fecp->tdar = 0x01000000;	/* Descriptor polling active    */
 
-#ifndef CONFIG_SYS_FEC_BUF_USE_SRAM
+#ifndef CFG_SYS_FEC_BUF_USE_SRAM
 	/*
 	 * FEC unable to initial transmit data packet.
 	 * A nop will ensure the descriptor polling active completed.

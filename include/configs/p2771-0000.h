@@ -11,7 +11,7 @@
 #include "tegra186-common.h"
 
 /* High-level configuration options */
-#define CONFIG_TEGRA_BOARD_STRING	"NVIDIA P2771-0000"
+#define CFG_TEGRA_BOARD_STRING	"NVIDIA P2771-0000"
 
 /* Environment in eMMC, at the end of 2nd "boot sector" */
 
@@ -36,8 +36,5 @@
 	"ramdisk_addr_r_size=02000000\0"
 
 #include "tegra-common-post.h"
-
-/* Crystal is 38.4MHz. clk_m runs at half that rate */
-#define COUNTER_FREQUENCY	19200000
 
 #endif

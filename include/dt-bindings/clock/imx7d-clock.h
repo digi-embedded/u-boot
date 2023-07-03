@@ -1,11 +1,15 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (C) 2014-2015 Freescale Semiconductor, Inc.
+<<<<<<< HEAD
+=======
  * Copyright 2017 NXP.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  *
+>>>>>>> 2875b7e... MLK-18151-1 dts: mx7d: Update imx7d dts and binding files
  */
 
 #ifndef __DT_BINDINGS_CLOCK_IMX7D_H

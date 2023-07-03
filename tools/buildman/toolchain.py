@@ -265,7 +265,7 @@ class Toolchains:
             print(("Warning: No tool chains. Please run 'buildman "
                    "--fetch-arch all' to download all available toolchains, or "
                    "add a [toolchain] section to your buildman config file "
-                   "%s. See README for details" %
+                   "%s. See buildman.rst for details" %
                    bsettings.config_fname))
 
         paths = []
@@ -420,7 +420,7 @@ class Toolchains:
         Returns:
             Resolved string
 
-        >>> bsettings.Setup()
+        >>> bsettings.Setup(None)
         >>> tcs = Toolchains()
         >>> tcs.Add('fred', False)
         >>> var_dict = {'oblique' : 'OBLIQUE', 'first' : 'fi${second}rst', \
@@ -441,7 +441,7 @@ class Toolchains:
             args = args[:m.start(0)] + value + args[m.end(0):]
         return args
 
-    def GetMakeArguments(self, board):
+    def GetMakeArguments(self, brd):
         """Returns 'make' arguments for a given board
 
         The flags are in a section called 'make-flags'. Flags are named
@@ -462,13 +462,13 @@ class Toolchains:
         A special 'target' variable is set to the board target.
 
         Args:
-            board: Board object for the board to check.
+            brd: Board object for the board to check.
         Returns:
             'make' flags for that board, or '' if none
         """
-        self._make_flags['target'] = board.target
+        self._make_flags['target'] = brd.target
         arg_str = self.ResolveReferences(self._make_flags,
-                           self._make_flags.get(board.target, ''))
+                           self._make_flags.get(brd.target, ''))
         args = re.findall("(?:\".*?\"|\S)+", arg_str)
         i = 0
         while i < len(args):
@@ -498,7 +498,7 @@ class Toolchains:
         if arch == 'aarch64':
             arch = 'arm64'
         base = 'https://www.kernel.org/pub/tools/crosstool/files/bin'
-        versions = ['11.1.0', '9.2.0', '7.3.0', '6.4.0', '4.9.4']
+        versions = ['12.2.0', '11.1.0']
         links = []
         for version in versions:
             url = '%s/%s/%s/' % (base, arch, version)

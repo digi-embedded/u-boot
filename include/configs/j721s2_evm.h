@@ -17,57 +17,25 @@
 #include <environment/ti/k3_dfu.h>
 
 /* DDR Configuration */
-#define CONFIG_SYS_SDRAM_BASE1		0x880000000
+#define CFG_SYS_SDRAM_BASE1		0x880000000
 
 /* SPL Loader Configuration */
 #if defined(CONFIG_TARGET_J721S2_A72_EVM) || defined(CONFIG_TARGET_J7200_A72_EVM)
-#define CONFIG_SYS_INIT_SP_ADDR         (CONFIG_SPL_TEXT_BASE +	\
-					 CONFIG_SYS_K3_NON_SECURE_MSRAM_SIZE)
-#define CONFIG_SYS_UBOOT_BASE		0x50280000
+#define CFG_SYS_UBOOT_BASE		0x50280000
 /* Image load address in RAM for DFU boot*/
 #else
-#define CONFIG_SYS_UBOOT_BASE		0x50080000
-/*
- * Maximum size in memory allocated to the SPL BSS. Keep it as tight as
- * possible (to allow the build to go through), as this directly affects
- * our memory footprint. The less we use for BSS the more we have available
- * for everything else.
- */
-#define CONFIG_SPL_BSS_MAX_SIZE		0xA000
-/*
- * Link BSS to be within SPL in a dedicated region located near the top of
- * the MCU SRAM, this way making it available also before relocation. Note
- * that we are not using the actual top of the MCU SRAM as there is a memory
- * location filled in by the boot ROM that we want to read out without any
- * interference from the C context.
- */
-#define CONFIG_SPL_BSS_START_ADDR	(0x41c80000 -\
-					 CONFIG_SPL_BSS_MAX_SIZE)
-/* Set the stack right below the SPL BSS section */
-#define CONFIG_SYS_INIT_SP_ADDR         CONFIG_SPL_BSS_START_ADDR
-/* Configure R5 SPL post-relocation malloc pool in DDR */
-#define CONFIG_SYS_SPL_MALLOC_START	0x84000000
-#define CONFIG_SYS_SPL_MALLOC_SIZE	SZ_16M
-/* Image load address in RAM for DFU boot*/
+#define CFG_SYS_UBOOT_BASE		0x50080000
 #endif
-
-#ifdef CONFIG_SYS_K3_SPL_ATF
-#define CONFIG_SPL_FS_LOAD_PAYLOAD_NAME	"tispl.bin"
-#endif
-
-#define CONFIG_SPL_MAX_SIZE		CONFIG_SYS_K3_MAX_DOWNLODABLE_IMAGE_SIZE
-
-#define CONFIG_SYS_BOOTM_LEN		SZ_64M
-#define CONFIG_CQSPI_REF_CLK		133333333
-
-/* HyperFlash related configuration */
-#define CONFIG_SYS_MAX_FLASH_BANKS_DETECT 1
 
 /* U-Boot general configuration */
 #define EXTRA_ENV_J721S2_BOARD_SETTINGS					\
 	"default_device_tree=" CONFIG_DEFAULT_DEVICE_TREE ".dtb\0"	\
 	"findfdt="							\
 		"setenv name_fdt ${default_device_tree};"		\
+		"if test $board_name = j721s2; then "			\
+			"setenv name_fdt k3-j721s2-common-proc-board.dtb; fi;" \
+		"if test $board_name = am68-sk; then "			\
+			"setenv name_fdt k3-am68-sk-base-board.dtb; fi;"\
 		"setenv fdtfile ${name_fdt}\0"				\
 	"name_kern=Image\0"						\
 	"console=ttyS2,115200n8\0"					\
@@ -162,16 +130,8 @@
 	DFU_ALT_INFO_RAM \
 	DFU_ALT_INFO_OSPI
 
-#if defined(CONFIG_TARGET_J721S2_A72_EVM) || defined(CONFIG_TARGET_J7200_A72_EVM)
-#define EXTRA_ENV_J721S2_BOARD_SETTINGS_MTD				\
-	"mtdids=" CONFIG_MTDIDS_DEFAULT "\0"				\
-	"mtdparts=" CONFIG_MTDPARTS_DEFAULT "\0"
-#else
-#define EXTRA_ENV_J721S2_BOARD_SETTINGS_MTD
-#endif
-
 /* Incorporate settings into the U-Boot environment */
-#define CONFIG_EXTRA_ENV_SETTINGS					\
+#define CFG_EXTRA_ENV_SETTINGS					\
 	DEFAULT_LINUX_BOOT_ENV						\
 	DEFAULT_MMC_TI_ARGS						\
 	DEFAULT_FIT_TI_ARGS						\
@@ -180,7 +140,6 @@
 	EXTRA_ENV_RPROC_SETTINGS					\
 	EXTRA_ENV_DFUARGS						\
 	DEFAULT_UFS_TI_ARGS						\
-	EXTRA_ENV_J721S2_BOARD_SETTINGS_MTD				\
 	EXTRA_ENV_CONFIG_MAIN_CPSW0_QSGMII_PHY
 
 /* Now for the remaining common defines */

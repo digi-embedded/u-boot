@@ -4,6 +4,9 @@
 # ==========================================================================
 
 # Modified for U-Boot
+prefix := vpl
+src := $(patsubst $(prefix)/%,%,$(obj))
+ifeq ($(obj),$(src))
 prefix := tpl
 src := $(patsubst $(prefix)/%,%,$(obj))
 ifeq ($(obj),$(src))
@@ -11,6 +14,7 @@ prefix := spl
 src := $(patsubst $(prefix)/%,%,$(obj))
 ifeq ($(obj),$(src))
 prefix := .
+endif
 endif
 endif
 
@@ -44,7 +48,6 @@ subdir-ccflags-y :=
 # Modified for U-Boot
 -include include/config/auto.conf
 -include $(prefix)/include/autoconf.mk
-include scripts/Makefile.uncmd_spl
 
 include scripts/Kbuild.include
 

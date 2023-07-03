@@ -709,7 +709,7 @@ int mmc_load_image_raw_sector_dual_uboot(struct spl_image_info *spl_image,
 	int ret = 0, n = 0;
 	char partition_name[PARTITION_NAME_LEN];
 	struct blk_desc *dev_desc;
-	struct image_header *header;
+	struct legacy_img_hdr *header;
 	struct spl_load_info load;
 	struct bootloader_control ab_data, ab_data_orig;
 	size_t slot_index_to_boot, target_slot;
@@ -767,8 +767,8 @@ int mmc_load_image_raw_sector_dual_uboot(struct spl_image_info *spl_image,
 			ret = -1;
 			goto end;
 		} else {
-			header = (struct image_header *)(CONFIG_SYS_TEXT_BASE -
-				 sizeof(struct image_header));
+			header = (struct legacy_img_hdr *)(CONFIG_TEXT_BASE -
+				 sizeof(struct legacy_img_hdr));
 
 			/* read image header to find the image size & load address */
 			count = blk_dread(dev_desc, info.start, 1, header);
@@ -849,8 +849,8 @@ int mmc_load_image_raw_sector_dual_uboot(struct spl_image_info *spl_image,
 			ret = -1;
 			goto end;
 		} else {
-			header = (struct image_header *)(CONFIG_SYS_TEXT_BASE -
-				 sizeof(struct image_header));
+			header = (struct legacy_img_hdr *)(CONFIG_TEXT_BASE -
+				 sizeof(struct legacy_img_hdr));
 
 			/* read image header to find the image size & load address */
 			count = blk_dread(dev_desc, info.start, 1, header);

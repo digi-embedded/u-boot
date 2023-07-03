@@ -18,47 +18,28 @@
 		ocram2: sram@940000 {
 			compatible = "mmio-sram";
 			reg = <0x00940000 0x20000>;
+			ranges = <0 0x00940000 0x20000>;
+			#address-cells = <1>;
+			#size-cells = <1>;
 			clocks = <&clks IMX6QDL_CLK_OCRAM>;
 		};
 
 		ocram3: sram@960000 {
 			compatible = "mmio-sram";
 			reg = <0x00960000 0x20000>;
+			ranges = <0 0x00960000 0x20000>;
+			#address-cells = <1>;
+			#size-cells = <1>;
 			clocks = <&clks IMX6QDL_CLK_OCRAM>;
 		};
 
-		pcie: pcie@1ffc000 {
-			compatible = "fsl,imx6qp-pcie", "snps,dw-pcie";
-			reg = <0x01ffc000 0x4000>, <0x01f00000 0x80000>;
-			reg-names = "dbi", "config";
-			#address-cells = <3>;
-			#size-cells = <2>;
-			device_type = "pci";
-			bus-range = <0x00 0xff>;
-			ranges = <0x81000000 0 0          0x01f80000 0 0x00010000 /* downstream I/O */
-				  0x82000000 0 0x01000000 0x01000000 0 0x00f00000>; /* non-prefetchable memory */
-			num-lanes = <1>;
-			interrupts = <0 120 IRQ_TYPE_LEVEL_HIGH>;
-			interrupt-names = "msi";
-			#interrupt-cells = <1>;
-			interrupt-map-mask = <0 0 0 0x7>;
-			interrupt-map = <0 0 0 1 &intc 0 123 IRQ_TYPE_LEVEL_HIGH>,
-			                <0 0 0 2 &intc 0 122 IRQ_TYPE_LEVEL_HIGH>,
-			                <0 0 0 3 &intc 0 121 IRQ_TYPE_LEVEL_HIGH>,
-			                <0 0 0 4 &intc 0 120 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&clks IMX6QDL_CLK_PCIE_REF_125M>, <&clks IMX6QDL_PLL6_BYPASS>,
-				 <&clks IMX6QDL_PLL6_BYPASS_SRC>,
-				 <&clks IMX6QDL_CLK_LVDS1_GATE>, <&clks IMX6QDL_CLK_PCIE_AXI>;
-			clock-names = "pcie_phy", "pcie_ext", "pcie_ext_src", "pcie_bus", "pcie";
-			status = "disabled";
-		};
-
-		bus@2100000 { /* AIPS2 */
+		bus@2100000 {
 			pre1: pre@21c8000 {
 				compatible = "fsl,imx6q-pre";
 				reg = <0x021c8000 0x1000>;
+				interrupts = <GIC_SPI 90 IRQ_TYPE_EDGE_RISING>;
 				clocks = <&clks IMX6QDL_CLK_PRE0>;
-				interrupts = <0 90 IRQ_TYPE_EDGE_RISING>;
+				clock-names = "axi";
 				ocram = <&ocram2>;
 				status = "disabled";
 			};
@@ -66,8 +47,9 @@
 			pre2: pre@21c9000 {
 				compatible = "fsl,imx6q-pre";
 				reg = <0x021c9000 0x1000>;
+				interrupts = <GIC_SPI 97 IRQ_TYPE_EDGE_RISING>;
 				clocks = <&clks IMX6QDL_CLK_PRE1>;
-				interrupts = <0 97 IRQ_TYPE_EDGE_RISING>;
+				clock-names = "axi";
 				ocram = <&ocram2>;
 				status = "disabled";
 			};
@@ -75,8 +57,9 @@
 			pre3: pre@21ca000 {
 				compatible = "fsl,imx6q-pre";
 				reg = <0x021ca000 0x1000>;
+				interrupts = <GIC_SPI 98 IRQ_TYPE_EDGE_RISING>;
 				clocks = <&clks IMX6QDL_CLK_PRE2>;
-				interrupts = <0 98 IRQ_TYPE_EDGE_RISING>;
+				clock-names = "axi";
 				ocram = <&ocram3>;
 				status = "disabled";
 			};
@@ -84,8 +67,9 @@
 			pre4: pre@21cb000 {
 				compatible = "fsl,imx6q-pre";
 				reg = <0x021cb000 0x1000>;
+				interrupts = <GIC_SPI 99 IRQ_TYPE_EDGE_RISING>;
 				clocks = <&clks IMX6QDL_CLK_PRE3>;
-				interrupts = <0 99 IRQ_TYPE_EDGE_RISING>;
+				clock-names = "axi";
 				ocram = <&ocram3>;
 				status = "disabled";
 			};
@@ -93,9 +77,9 @@
 			prg1: prg@21cc000 {
 				compatible = "fsl,imx6q-prg";
 				reg = <0x021cc000 0x1000>;
-				clocks = <&clks IMX6QDL_CLK_PRG0_AXI>,
-					 <&clks IMX6QDL_CLK_PRG0_APB>;
-				clock-names = "axi", "apb";
+				clocks = <&clks IMX6QDL_CLK_PRG0_APB>,
+					 <&clks IMX6QDL_CLK_PRG0_AXI>;
+				clock-names = "apb", "axi";
 				gpr = <&gpr>;
 				status = "disabled";
 			};
@@ -103,9 +87,9 @@
 			prg2: prg@21cd000 {
 				compatible = "fsl,imx6q-prg";
 				reg = <0x021cd000 0x1000>;
-				clocks = <&clks IMX6QDL_CLK_PRG1_AXI>,
-					 <&clks IMX6QDL_CLK_PRG1_APB>;
-				clock-names = "axi", "apb";
+				clocks = <&clks IMX6QDL_CLK_PRG1_APB>,
+					 <&clks IMX6QDL_CLK_PRG1_AXI>;
+				clock-names = "apb", "axi";
 				gpr = <&gpr>;
 				status = "disabled";
 			};
@@ -114,7 +98,6 @@
 };
 
 &fec {
-	/delete-property/interrupts-extended;
 	interrupts = <0 118 IRQ_TYPE_LEVEL_HIGH>,
 		     <0 119 IRQ_TYPE_LEVEL_HIGH>;
 };
@@ -160,5 +143,9 @@
 };
 
 &pcie {
-	compatible = "fsl,imx6qp-pcie", "snps,dw-pcie";
+	compatible = "fsl,imx6qp-pcie";
+};
+
+&pcie_ep {
+	compatible = "fsl,imx6qp-pcie-ep";
 };

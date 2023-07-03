@@ -22,6 +22,7 @@ xilinx_desc fpga = {
 	.family = xilinx_zynq,
 	.iface = devcfg,
 	.operations = &zynq_op,
+	.flags = FPGA_LEGACY,
 };
 #endif
 
@@ -53,7 +54,7 @@ int arch_cpu_init(void)
 	writel(0x757BDF0D, &devcfg_base->unlock);
 	writel(0xFFFFFFFF, &devcfg_base->rom_shadow);
 
-#if (CONFIG_SYS_SDRAM_BASE == 0)
+#if (CFG_SYS_SDRAM_BASE == 0)
 	/* remap DDR to zero, FILTERSTART */
 	writel(0, &scu_base->filter_start);
 

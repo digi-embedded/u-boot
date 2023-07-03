@@ -891,20 +891,25 @@ int add_mtd_partitions_of(struct mtd_info *master)
 	ofnode parts, child;
 	int i = 0;
 
-	if (!master->dev)
+	if (!master->dev && !ofnode_valid(master->flash_node))
 		return 0;
 
-	parts = ofnode_find_subnode(mtd_get_ofnode(master), "partitions");
-	if (!ofnode_valid(parts) || !ofnode_is_available(parts) ||
+	if (master->dev)
+		parts = ofnode_find_subnode(mtd_get_ofnode(master), "partitions");
+	else
+		parts = ofnode_find_subnode(master->flash_node, "partitions");
+
+	if (!ofnode_valid(parts) || !ofnode_is_enabled(parts) ||
 	    !ofnode_device_is_compatible(parts, "fixed-partitions"))
 		return 0;
 
 	ofnode_for_each_subnode(child, parts) {
 		struct mtd_partition part = { 0 };
 		struct mtd_info *slave;
-		fdt_addr_t offset, size;
+		fdt_addr_t offset;
+		fdt_size_t size;
 
-		if (!ofnode_is_available(child))
+		if (!ofnode_is_enabled(child))
 			continue;
 
 		offset = ofnode_get_addr_size_index_notrans(child, 0, &size);

@@ -14,9 +14,13 @@
 #define CCM_CCGR_BASE_ADDR	0x44458000UL
 #define SYSCNT_CTRL_BASE_ADDR	0x44290000
 
+#define ANATOP_BASE_ADDR    0x44480000UL
+
 #define WDG3_BASE_ADDR      0x42490000UL
 #define WDG4_BASE_ADDR      0x424a0000UL
 #define WDG5_BASE_ADDR      0x424b0000UL
+
+#define FSB_BASE_ADDR       0x47510000UL
 
 #define ANATOP_BASE_ADDR    0x44480000UL
 
@@ -25,18 +29,16 @@
 
 #define USB_BASE_ADDR		USB1_BASE_ADDR
 
-#define FSB_BASE_ADDR   0x47510000
-
 #define BLK_CTRL_WAKEUPMIX_BASE_ADDR 0x42420000
 #define BLK_CTRL_S_ANOMIX_BASE_ADDR  0x444f0000
 
-#define SRC_IPS_BASE_ADDR			(0x44460000)
-#define SRC_GLOBAL_RBASE			(SRC_IPS_BASE_ADDR + 0x0000)
+#define SRC_IPS_BASE_ADDR	(0x44460000)
+#define SRC_GLOBAL_RBASE	(SRC_IPS_BASE_ADDR + 0x0000)
 
-#define SRC_DDR_RBASE				(SRC_IPS_BASE_ADDR + 0x1000)
-#define SRC_ML_RBASE				(SRC_IPS_BASE_ADDR + 0x1800)
-#define SRC_MEDIA_RBASE				(SRC_IPS_BASE_ADDR + 0x2400)
-#define SRC_M33P_RBASE				(SRC_IPS_BASE_ADDR + 0x2800)
+#define SRC_DDR_RBASE		(SRC_IPS_BASE_ADDR + 0x1000)
+#define SRC_ML_RBASE		(SRC_IPS_BASE_ADDR + 0x1800)
+#define SRC_MEDIA_RBASE		(SRC_IPS_BASE_ADDR + 0x2400)
+#define SRC_M33P_RBASE		(SRC_IPS_BASE_ADDR + 0x2800)
 
 #define TCML_BASE_ADDR              (0x201E0000UL)
 #define TCML_BASE_MCORE_SEC_ADDR    (0x1FFE0000UL)
@@ -57,17 +59,40 @@
 
 #define IMG_CONTAINER_BASE             (0x80000000UL)
 
-#if !(defined(__KERNEL_STRICT_NAMES) || defined(__ASSEMBLY__))
-#include <asm/types.h>
-#include <stdbool.h>
-
 #define BCTRL_GPR_ENET_QOS_INTF_MODE_MASK        GENMASK(3, 1)
 #define BCTRL_GPR_ENET_QOS_INTF_SEL_MII          (0x0 << 1)
 #define BCTRL_GPR_ENET_QOS_INTF_SEL_RMII         (0x4 << 1)
 #define BCTRL_GPR_ENET_QOS_INTF_SEL_RGMII        (0x1 << 1)
 #define BCTRL_GPR_ENET_QOS_CLK_GEN_EN            (0x1 << 0)
 
-#define BCTRL_S_ANOMIX_M33_CPU_WAIT_MASK 		BIT(2)
+#if !(defined(__KERNEL_STRICT_NAMES) || defined(__ASSEMBLY__))
+#include <asm/types.h>
+#include <stdbool.h>
+
+struct mu_type {
+	u32 ver;
+	u32 par;
+	u32 cr;
+	u32 sr;
+	u32 reserved0[60];
+	u32 fcr;
+	u32 fsr;
+	u32 reserved1[2];
+	u32 gier;
+	u32 gcr;
+	u32 gsr;
+	u32 reserved2;
+	u32 tcr;
+	u32 tsr;
+	u32 rcr;
+	u32 rsr;
+	u32 reserved3[52];
+	u32 tr[16];
+	u32 reserved4[16];
+	u32 rr[16];
+	u32 reserved5[14];
+	u32 mu_attr;
+};
 
 enum mix_power_domain {
 	MIX_PD_MEDIAMIX,
@@ -154,31 +179,6 @@ struct blk_ctrl_wakeupmix_regs {
 	u32 ipg_debug_ca55c1;
 	u32 axi_attr_cfg;
 	u32 i3c2_sda_irq;
-};
-
-struct mu_type {
-	u32 ver;
-	u32 par;
-	u32 cr;
-	u32 sr;
-	u32 reserved0[60];
-	u32 fcr;
-	u32 fsr;
-	u32 reserved1[2];
-	u32 gier;
-	u32 gcr;
-	u32 gsr;
-	u32 reserved2;
-	u32 tcr;
-	u32 tsr;
-	u32 rcr;
-	u32 rsr;
-	u32 reserved3[52];
-	u32 tr[16];
-	u32 reserved4[16];
-	u32 rr[16];
-	u32 reserved5[14];
-	u32 mu_attr;
 };
 
 struct src_general_regs {

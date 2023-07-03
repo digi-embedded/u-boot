@@ -122,8 +122,7 @@ class Series(dict):
             cc_list = list(self._generated_cc[commit.patch])
             for email in sorted(set(cc_list) - to_set - cc_set):
                 if email == None:
-                    email = col.build(col.YELLOW, "<alias '%s' not found>"
-                            % tag)
+                    email = col.build(col.YELLOW, '<alias not found>')
                 if email:
                     print('      Cc: ', email)
         print
@@ -236,7 +235,7 @@ class Series(dict):
             print(col.build(col.RED, str))
 
     def MakeCcFile(self, process_tags, cover_fname, warn_on_error,
-                   add_maintainers, limit):
+                   add_maintainers, limit, get_maintainer_script):
         """Make a cc file for us to use for per-commit Cc automation
 
         Also stores in self._generated_cc to make ShowActions() faster.
@@ -250,6 +249,8 @@ class Series(dict):
                 True/False to call the get_maintainers to CC maintainers
                 List of maintainers to include (for testing)
             limit: Limit the length of the Cc list (None if no limit)
+            get_maintainer_script: The file name of the get_maintainer.pl
+                script (or compatible).
         Return:
             Filename of temp file created
         """
@@ -268,8 +269,9 @@ class Series(dict):
             if type(add_maintainers) == type(cc):
                 cc += add_maintainers
             elif add_maintainers:
-                dir_list = [os.path.join(gitutil.get_top_level(), 'scripts')]
-                cc += get_maintainer.get_maintainer(dir_list, commit.patch)
+
+                cc += get_maintainer.get_maintainer(get_maintainer_script,
+                                                    commit.patch)
             for x in set(cc) & set(settings.bounces):
                 print(col.build(col.YELLOW, 'Skipping "%s"' % x))
             cc = list(set(cc) - set(settings.bounces))

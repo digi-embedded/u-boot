@@ -11,41 +11,21 @@
 #include <asm/arch/imx-regs.h>
 #include "imx_env.h"
 
-#define CONFIG_SYS_BOOTM_LEN		(64 * SZ_1M)
-
-#define CONFIG_SPL_MAX_SIZE		(156 * 1024)
-#define CONFIG_SYS_MONITOR_LEN		(512 * 1024)
-
 #ifdef CONFIG_SPL_BUILD
 /*#define CONFIG_ENABLE_DDR_TRAINING_DEBUG*/
-#define CONFIG_SPL_STACK		0x187FF0
-#define CONFIG_SPL_BSS_START_ADDR      0x00180000
-#define CONFIG_SPL_BSS_MAX_SIZE        0x2000	/* 8 KB */
-#define CONFIG_SYS_SPL_MALLOC_START    0x42200000
-#define CONFIG_SYS_SPL_MALLOC_SIZE    0x80000	/* 512 KB */
-#define CONFIG_SYS_SPL_PTE_RAM_BASE    0x41580000
 
 /* malloc f used before GD_FLG_FULL_MALLOC_INIT set */
-#define CONFIG_MALLOC_F_ADDR		0x182000
+#define CFG_MALLOC_F_ADDR		0x182000
 /* For RAW image gives a error info not panic */
-#define CONFIG_SPL_ABORT_ON_RAW_IMAGE
 
-#undef CONFIG_DM_MMC
-
-#define CONFIG_POWER_PFUZE100
-#define CONFIG_POWER_PFUZE100_I2C_ADDR 0x08
+#define CFG_POWER_PFUZE100_I2C_ADDR 0x08
 #endif
 
 /* ENET Config */
 /* ENET1 */
 #if defined(CONFIG_FEC_MXC)
-#define CONFIG_ETHPRIME                 "FEC"
+#define CFG_FEC_MXC_PHYADDR          0
 #define PHY_ANEG_TIMEOUT 20000
-
-#define CONFIG_FEC_XCV_TYPE             RGMII
-#define CONFIG_FEC_MXC_PHYADDR          0
-
-#define IMX_FEC_BASE			0x30BE0000
 #endif
 
 #ifdef CONFIG_DISTRO_DEFAULTS
@@ -73,23 +53,23 @@
 	"jh_netboot=setenv fdtfile imx8mq-evk-root.dtb; setenv jh_clk clk_ignore_unused mem=1872MB; run netboot; \0 "
 
 #define SR_IR_V2_COMMAND \
-	"nodes=/soc@0/caam-sm@100000 /soc@0/bus@30000000/caam_secvio /soc@0/bus@30000000/caam-snvs@30370000 /soc@0/bus@32c00000/hdmi@32c00000 /soc@0/bus@32c00000/display-controller@32e00000 /soc@0/vpu@38300000 /audio-codec /sound-wm8524 /sound-spdif /sound-hdmi-arc /soc@0/pcie@33800000 /binman \0" \
+	"nodes=/soc@0/caam-sm@100000 /soc@0/bus@30000000/caam_secvio /soc@0/bus@30000000/caam-snvs@30370000 /soc@0/bus@32c00000/hdmi@32c00000 /soc@0/bus@32c00000/display-controller@32e00000 /soc@0/vpu@38300000 /soc@0/vpu_v4l2 /gpu3d@38000000 /audio-codec-bt-sco /audio-codec /sound-bt-sco /sound-wm8524 /sound-spdif /sound-hdmi-arc /binman \0" \
 	"sr_ir_v2_cmd=cp.b ${fdtcontroladdr} ${fdt_addr_r} 0x10000;"\
 	"fdt addr ${fdt_addr_r};"\
 	"fdt set /soc@0/usb@38100000 compatible snps,dwc3;" \
 	"fdt set /soc@0/usb@38200000 compatible snps,dwc3;" \
 	"for i in ${nodes}; do fdt rm ${i}; done \0"
 
-#define CONFIG_MFG_ENV_SETTINGS \
-	CONFIG_MFG_ENV_SETTINGS_DEFAULT \
+#define CFG_MFG_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS_DEFAULT \
 	"initrd_addr=0x43800000\0" \
 	"initrd_high=0xffffffffffffffff\0" \
 	"emmc_dev=0\0"\
 	"sd_dev=1\0" \
 
 /* Initial environment variables */
-#define CONFIG_EXTRA_ENV_SETTINGS		\
-	CONFIG_MFG_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS		\
+	CFG_MFG_ENV_SETTINGS \
 	BOOTENV \
 	SR_IR_V2_COMMAND \
 	JAILHOUSE_ENV \
@@ -108,7 +88,7 @@
 	"bootm_size=0x10000000\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=1\0" \
-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+	"mmcroot=/dev/mmcblk1p2 rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} root=${mmcroot}\0 " \
 	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bsp_script};\0" \
@@ -161,39 +141,18 @@
 
 /* Link Definitions */
 
-#define CONFIG_SYS_INIT_RAM_ADDR        0x40000000
-#define CONFIG_SYS_INIT_RAM_SIZE        0x80000
-#define CONFIG_SYS_INIT_SP_OFFSET \
-	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
-#define CONFIG_SYS_INIT_SP_ADDR \
-	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
+#define CFG_SYS_INIT_RAM_ADDR        0x40000000
+#define CFG_SYS_INIT_RAM_SIZE        0x80000
 
-#define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
 
-#define CONFIG_SYS_SDRAM_BASE           0x40000000
+#define CFG_SYS_SDRAM_BASE           0x40000000
 #define PHYS_SDRAM                      0x40000000
 #define PHYS_SDRAM_SIZE			0xC0000000 /* 3GB DDR */
 
-#define CONFIG_MXC_UART_BASE		UART1_BASE_ADDR
+#define CFG_MXC_UART_BASE		UART_BASE_ADDR(1)
 
-/* Monitor Command Prompt */
-#define CONFIG_SYS_CBSIZE		1024
-#define CONFIG_SYS_MAXARGS		64
-#define CONFIG_SYS_BARGSIZE		CONFIG_SYS_CBSIZE
-#define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + \
-					sizeof(CONFIG_SYS_PROMPT) + 16)
-
-#define CONFIG_SYS_FSL_USDHC_NUM	2
-#define CONFIG_SYS_FSL_ESDHC_ADDR       0
-
-#define CONFIG_CMD_READ
-#define CONFIG_SERIAL_TAG
-#define CONFIG_FASTBOOT_USB_DEV 0
-
-#define CONFIG_USB_MAX_CONTROLLER_COUNT         2
-
-#define CONFIG_USBD_HS
-#define CONFIG_USB_GADGET_VBUS_DRAW 2
+#define CFG_SYS_FSL_USDHC_NUM	2
+#define CFG_SYS_FSL_ESDHC_ADDR       0
 
 #ifdef CONFIG_ANDROID_SUPPORT
 #include "imx8mq_evk_android.h"

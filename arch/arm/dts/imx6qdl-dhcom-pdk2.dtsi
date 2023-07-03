@@ -5,9 +5,9 @@
  */
 
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
 #include <dt-bindings/leds/common.h>
 #include <dt-bindings/pwm/pwm.h>
-#include <dt-bindings/input/input.h>
 
 / {
 	chosen {
@@ -256,12 +256,15 @@
 };
 
 &pwm1 {
-	#pwm-cells = <3>;
 	status = "okay";
 };
 
 &ssi1 {
 	status = "okay";
+};
+
+&usbh1 {
+	disable-over-current;
 };
 
 &usdhc2 { /* SD card */

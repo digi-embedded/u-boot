@@ -9,8 +9,6 @@
 
 #include <asm/arch/imx-regs.h>
 
-#define CONFIG_SYS_INIT_SP_ADDR		0x20280000
-
 #define ESDHCI_QUIRK_BROKEN_TIMEOUT_VALUE	1
 
 #define PHYS_SDRAM			0x80000000
@@ -20,10 +18,8 @@
 #define DMAMEM_BASE			(PHYS_SDRAM + PHYS_SDRAM_SIZE - \
 					 DMAMEM_SZ_ALL)
 
-#ifdef CONFIG_DM_VIDEO
-#define CONFIG_VIDEO_BMP_LOGO
-
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#ifdef CONFIG_VIDEO
+#define CFG_EXTRA_ENV_SETTINGS \
 		"stdin=serial\0" \
 		"stdout=serial,vidconsole\0" \
 		"stderr=serial,vidconsole\0"
@@ -33,12 +29,6 @@
  * Configuration of the external SDRAM memory
  */
 
-/* For SPL */
-#ifdef CONFIG_SUPPORT_SPL
-#define CONFIG_SPL_STACK		CONFIG_SYS_INIT_SP_ADDR
-#define CONFIG_SYS_SPL_LEN		0x00008000
-#define CONFIG_SYS_UBOOT_START		0x800023FD
-#endif
-/* For SPL ends */
+#define CFG_SYS_UBOOT_START		0x800023FD
 
 #endif /* __IMXRT1050_EVK_H */

@@ -26,8 +26,6 @@
 #include "../common/tcpc.h"
 #include <usb.h>
 #include <dwc3-uboot.h>
-#include <imx_sip.h>
-#include <linux/arm-smccc.h>
 #include <mmc.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -356,9 +354,9 @@ static void dwc3_nxp_usb_phy_init(struct dwc3_device *dwc3)
 int board_usb_init(int index, enum usb_init_type init)
 {
 	int ret = 0;
-	imx8m_usb_power(index, true);
 
 	if (index == 0 && init == USB_INIT_DEVICE) {
+		imx8m_usb_power(index, true);
 #ifdef CONFIG_USB_TCPC
 		ret = tcpc_setup_ufp_mode(&port1);
 		if (ret)
@@ -381,13 +379,12 @@ int board_usb_cleanup(int index, enum usb_init_type init)
 	int ret = 0;
 	if (index == 0 && init == USB_INIT_DEVICE) {
 		dwc3_uboot_exit(index);
+		imx8m_usb_power(index, false);
 	} else if (index == 0 && init == USB_INIT_HOST) {
 #ifdef CONFIG_USB_TCPC
 		ret = tcpc_disable_src_vbus(&port1);
 #endif
 	}
-
-	imx8m_usb_power(index, false);
 
 	return ret;
 }
@@ -448,26 +445,17 @@ int board_phy_config(struct phy_device *phydev)
 }
 #endif
 
-#define DISPMIX				13
-#define MIPI				15
-
 int board_init(void)
 {
-	struct arm_smccc_res res;
-
 #ifdef CONFIG_USB_TCPC
 	setup_typec();
-
-	/* Enable USB power default */
-	imx8m_usb_power(0, true);
-	imx8m_usb_power(1, true);
 #endif
 
-	if (CONFIG_IS_ENABLED(FEC_MXC)) {
+	if (IS_ENABLED(CONFIG_FEC_MXC)) {
 		setup_fec();
 	}
 
-	if (CONFIG_IS_ENABLED(DWC_ETH_QOS)) {
+	if (IS_ENABLED(CONFIG_DWC_ETH_QOS)) {
 		setup_eqos();
 	}
 
@@ -478,12 +466,6 @@ int board_init(void)
 #if defined(CONFIG_USB_DWC3) || defined(CONFIG_USB_XHCI_IMX8M)
 	init_usb_clk();
 #endif
-
-	/* enable the dispmix & mipi phy power domain */
-	arm_smccc_smc(IMX_SIP_GPC, IMX_SIP_GPC_PM_DOMAIN,
-		      DISPMIX, true, 0, 0, 0, 0, &res);
-	arm_smccc_smc(IMX_SIP_GPC, IMX_SIP_GPC_PM_DOMAIN,
-		      MIPI, true, 0, 0, 0, 0, &res);
 
 	return 0;
 }

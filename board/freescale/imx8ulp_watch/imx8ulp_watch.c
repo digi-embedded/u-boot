@@ -63,7 +63,7 @@ void mipi_dsi_panel_reset(void)
 int board_init(void)
 {
 	/* When sync with M33 is failed, use local driver to set for video */
-	if (!is_m33_handshake_necessary() && IS_ENABLED(CONFIG_DM_VIDEO)) {
+	if (!is_m33_handshake_necessary() && IS_ENABLED(CONFIG_VIDEO)) {
 		mipi_dsi_mux_panel();
 		mipi_dsi_panel_reset();
 	}
@@ -78,7 +78,7 @@ int board_early_init_f(void)
 
 int board_late_init(void)
 {
-#ifdef CONFIG_ENV_IS_IN_MMC
+#if CONFIG_IS_ENABLED(ENV_IS_IN_MMC)
 	board_late_mmc_env_init();
 #endif
 

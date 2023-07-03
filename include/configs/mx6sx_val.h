@@ -11,31 +11,19 @@
 
 #include "mx6_common.h"
 
-#define CONFIG_DBG_MONITOR
-
-#define CONFIG_MXC_UART_BASE		UART1_BASE
+#define CFG_MXC_UART_BASE		UART1_BASE
 
 /* MMC Configs */
-#define CONFIG_SYS_FSL_ESDHC_ADDR	0
+#define CFG_SYS_FSL_ESDHC_ADDR	0
 
-#define CONFIG_FEC_MXC
-#define IMX_FEC_BASE			ENET_BASE_ADDR
-#define CONFIG_FEC_XCV_TYPE             RGMII
-#ifdef CONFIG_DM_ETH
-#define CONFIG_ETHPRIME                 "eth0"
-#else
-#define CONFIG_ETHPRIME                 "FEC"
-#endif
-#define CONFIG_FEC_MXC_PHYADDR          1
-
-#define CONFIG_PHY_ATHEROS
+#define CFG_FEC_MXC_PHYADDR          0x1
 
 #ifdef CONFIG_IMX_BOOTAUX
 #ifdef CONFIG_DM_SPI
-#define CONFIG_SYS_AUXCORE_BOOTDATA 0x78000000 /* Set to QSPI2 B flash at default */
+#define CFG_SYS_AUXCORE_BOOTDATA 0x78000000 /* Set to QSPI2 B flash at default */
 #define SF_QSPI2_B_CS_NUM 2
 #else
-#define CONFIG_SYS_AUXCORE_BOOTDATA 0x72000000 /* Set to QSPI2 B flash at default */
+#define CFG_SYS_AUXCORE_BOOTDATA 0x72000000 /* Set to QSPI2 B flash at default */
 #define SF_QSPI2_B_CS_NUM 1
 #endif
 
@@ -53,7 +41,7 @@
 				"sf write ${loadaddr} 0x0 ${filesize}; " \
 			"fi; " \
 		"fi\0" \
-	"m4boot=sf probe 1:${m4_qspi_cs}; bootaux "__stringify(CONFIG_SYS_AUXCORE_BOOTDATA)"\0"
+	"m4boot=sf probe 1:${m4_qspi_cs}; bootaux "__stringify(CFG_SYS_AUXCORE_BOOTDATA)"\0"
 #else
 #define UPDATE_M4_ENV ""
 #endif
@@ -64,7 +52,7 @@
 #define MFG_NAND_PARTITION ""
 #endif
 
-#define CONFIG_MFG_ENV_SETTINGS \
+#define CFG_MFG_ENV_SETTINGS \
 	"mfgtool_args=setenv bootargs console=${console},${baudrate} " \
 		"rdinit=/linuxrc " \
 		"g_mass_storage.stall=0 g_mass_storage.removable=1 " \
@@ -78,8 +66,8 @@
 	"bootcmd_mfg=run mfgtool_args;bootz ${loadaddr} ${initrd_addr} ${fdt_addr};\0" \
 
 #if defined(CONFIG_NAND_BOOT)
-#define CONFIG_EXTRA_ENV_SETTINGS \
-	CONFIG_MFG_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS \
 	"panel=Hannstar-XGA\0" \
 	"fdt_addr=0x83000000\0" \
 	"fdt_high=0xffffffff\0"	  \
@@ -92,8 +80,8 @@
 		"bootz ${loadaddr} - ${fdt_addr}\0"
 
 #else
-#define CONFIG_EXTRA_ENV_SETTINGS \
-	CONFIG_MFG_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS \
 	UPDATE_M4_ENV \
 	"panel=Hannstar-XGA\0" \
 	"script=boot.scr\0" \
@@ -107,7 +95,7 @@
 	"ip_dyn=yes\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=1\0" \
-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+	"mmcroot=" CFG_MMCROOT " rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} " \
 		"root=${mmcroot}\0" \
@@ -163,52 +151,17 @@
 #define PHYS_SDRAM			MMDC0_ARB_BASE_ADDR
 #define PHYS_SDRAM_SIZE			SZ_1G
 
-#define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM
-#define CONFIG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
-#define CONFIG_SYS_INIT_RAM_SIZE	IRAM_SIZE
-
-#define CONFIG_SYS_INIT_SP_OFFSET \
-	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
-#define CONFIG_SYS_INIT_SP_ADDR \
-	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
+#define CFG_SYS_SDRAM_BASE		PHYS_SDRAM
+#define CFG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
+#define CFG_SYS_INIT_RAM_SIZE	IRAM_SIZE
 
 #ifdef CONFIG_NOR_BOOT
-#define CONFIG_SYS_FLASH_BASE           WEIM_ARB_BASE_ADDR
-#define CONFIG_SYS_FLASH_SECT_SIZE	(128 * 1024)
-#define CONFIG_SYS_MAX_FLASH_BANKS 1    /* max number of memory banks */
-#define CONFIG_SYS_MAX_FLASH_SECT 256   /* max number of sectors on one chip */
-#define CONFIG_SYS_FLASH_CFI            /* Flash memory is CFI compliant */
-#define CONFIG_FLASH_CFI_DRIVER         /* Use drivers/cfi_flash.c */
-#define CONFIG_SYS_FLASH_USE_BUFFER_WRITE /* Use buffered writes*/
-#define CONFIG_SYS_FLASH_EMPTY_INFO
+#define CFG_SYS_FLASH_BASE           WEIM_ARB_BASE_ADDR
 #endif
 
 #ifdef CONFIG_NAND_MXS
-
 /* NAND stuff */
-#define CONFIG_SYS_MAX_NAND_DEVICE	1
-#define CONFIG_SYS_NAND_BASE		0x40000000
-#define CONFIG_SYS_NAND_USE_FLASH_BBT
-
-/* DMA stuff, needed for GPMI/MXS NAND support */
+#define CFG_SYS_NAND_BASE		0x40000000
 #endif
 
-
-#ifdef CONFIG_VIDEO
-#define CONFIG_VIDEO_MXS
-#define CONFIG_VIDEO_LOGO
-#define CONFIG_SPLASH_SCREEN
-#define CONFIG_SPLASH_SCREEN_ALIGN
-#define CONFIG_BMP_16BPP
-#define CONFIG_VIDEO_BMP_RLE8
-#define CONFIG_VIDEO_BMP_LOGO
-#define CONFIG_IMX_VIDEO_SKIP
-#define CONFIG_SYS_CONSOLE_BG_COL            0x00
-#define CONFIG_SYS_CONSOLE_FG_COL            0xa0
-#ifdef CONFIG_VIDEO_GIS
-#define CONFIG_VIDEO_CSI
-#define CONFIG_VIDEO_PXP
-#define CONFIG_VIDEO_VADC
-#endif
-#endif
 #endif				/* __CONFIG_H */

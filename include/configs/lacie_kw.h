@@ -15,25 +15,6 @@
  */
 
 /*
- * Ethernet Driver configuration
- */
-#ifdef CONFIG_CMD_NET
-#define CONFIG_MVGBE_PORTS		{1, 0} /* enable port 0 only */
-#endif
-
-/*
- * SATA Driver configuration
- */
-
-#ifdef CONFIG_SATA
-#define CONFIG_SYS_64BIT_LBA
-#define CONFIG_LBA48
-#if defined(CONFIG_NETSPACE_MAX_V2) || defined(CONFIG_D2NET_V2) || \
-	defined(CONFIG_NET2BIG_V2)
-#endif
-#endif /* CONFIG_SATA */
-
-/*
  * Enable GPI0 support
  */
 
@@ -43,7 +24,7 @@
 #ifdef CONFIG_CMD_I2C
 /* I2C EEPROM HT24LC04 (512B - 32 pages of 16 Bytes) */
 #if defined(CONFIG_NET2BIG_V2)
-#define CONFIG_SYS_I2C_G762_ADDR		0x3e
+#define CFG_SYS_I2C_G762_ADDR		0x3e
 #endif
 #endif /* CONFIG_CMD_I2C */
 
@@ -63,13 +44,12 @@
  * Default environment variables
  */
 
-#define CONFIG_EXTRA_ENV_SETTINGS				\
+#define CFG_EXTRA_ENV_SETTINGS				\
 	"stdin=serial\0"					\
 	"stdout=serial\0"					\
 	"stderr=serial\0"					\
 	"bootfile=uImage\0"					\
 	"loadaddr=0x800000\0"					\
-	"autoload=no\0"						\
 	"netconsole="						\
 		"set stdin $stdin,nc; "				\
 		"set stdout $stdout,nc; "			\

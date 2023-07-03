@@ -32,12 +32,16 @@ struct Image_header {
 };
 #endif
 
+#ifdef CONFIG_IMX_MATTER_TRUSTY
+#include <trusty/libtipc.h>
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 /*
  * Image booting support
  */
 static int booti_start(struct cmd_tbl *cmdtp, int flag, int argc,
-		       char *const argv[], bootm_headers_t *images)
+		       char *const argv[], struct bootm_headers *images)
 {
 	int ret;
 	ulong ld;
@@ -147,6 +151,10 @@ int do_booti(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 
 	/* Consume 'booti' */
 	argc--; argv++;
+
+#ifdef CONFIG_IMX_MATTER_TRUSTY
+	trusty_ipc_shutdown();
+#endif
 
 	if (booti_start(cmdtp, flag, argc, argv, &images))
 		return 1;

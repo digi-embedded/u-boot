@@ -120,7 +120,7 @@ int board_early_init_f(void)
 #if CONFIG_IS_ENABLED(DM_GPIO)
 static void board_gpio_init(void)
 {
-#if defined(CONFIG_DM_VIDEO)
+#if defined(CONFIG_VIDEO)
 	int ret;
 	struct gpio_desc desc;
 

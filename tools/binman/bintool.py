@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0+
 # Copyright 2022 Google LLC
+# Copyright (C) 2022 Weidmüller Interface GmbH & Co. KG
+# Stefan Herbrechtsmeier <stefan.herbrechtsmeier@weidmueller.com>
 #
 """Base class for all bintools
 
@@ -51,9 +53,11 @@ class Bintool:
     # List of bintools to regard as missing
     missing_list = []
 
-    def __init__(self, name, desc):
+    def __init__(self, name, desc, version_regex=None, version_args='-V'):
         self.name = name
         self.desc = desc
+        self.version_regex = version_regex
+        self.version_args = version_args
 
     @staticmethod
     def find_bintool_class(btype):
@@ -71,17 +75,24 @@ class Bintool:
         # interested in the type.
         module_name = btype.replace('-', '_')
         module = modules.get(module_name)
+        class_name = f'Bintool{module_name}'
 
         # Import the module if we have not already done so
         if not module:
             try:
                 module = importlib.import_module('binman.btool.' + module_name)
             except ImportError as exc:
-                return module_name, exc
+                try:
+                    # Deal with classes which must be renamed due to conflicts
+                    # with Python libraries
+                    module = importlib.import_module('binman.btool.btool_' +
+                                                     module_name)
+                except ImportError:
+                    return module_name, exc
             modules[module_name] = module
 
         # Look up the expected class name
-        return getattr(module, 'Bintool%s' % module_name)
+        return getattr(module, class_name)
 
     @staticmethod
     def create(name):
@@ -125,6 +136,8 @@ class Bintool:
         names = [os.path.splitext(os.path.basename(fname))[0]
                  for fname in files]
         names = [name for name in names if name[0] != '_']
+        names = [name[6:] if name.startswith('btool_') else name
+                 for name in names]
         if include_testing:
             names.append('_testing')
         return sorted(names)
@@ -307,7 +320,7 @@ class Bintool:
             return result.stdout
 
     @classmethod
-    def build_from_git(cls, git_repo, make_target, bintool_path):
+    def build_from_git(cls, git_repo, make_target, bintool_path, flags=None):
         """Build a bintool from a git repo
 
         This clones the repo in a temporary directory, builds it with 'make',
@@ -318,6 +331,7 @@ class Bintool:
             make_target (str): Target to pass to 'make' to build the tool
             bintool_path (str): Relative path of the tool in the repo, after
                 build is complete
+            flags (list of str): Flags or variables to pass to make, or None
 
         Returns:
             tuple:
@@ -329,8 +343,11 @@ class Bintool:
         print(f"- clone git repo '{git_repo}' to '{tmpdir}'")
         tools.run('git', 'clone', '--depth', '1', git_repo, tmpdir)
         print(f"- build target '{make_target}'")
-        tools.run('make', '-C', tmpdir, '-j', f'{multiprocessing.cpu_count()}',
-                  make_target)
+        cmd = ['make', '-C', tmpdir, '-j', f'{multiprocessing.cpu_count()}',
+               make_target]
+        if flags:
+            cmd += flags
+        tools.run(*cmd)
         fname = os.path.join(tmpdir, bintool_path)
         if not os.path.exists(fname):
             print(f"- File '{fname}' was not produced")
@@ -454,13 +471,106 @@ binaries. It is fairly easy to create new bintools. Just add a new file to the
         print(f"No method to fetch bintool '{self.name}'")
         return False
 
-    # pylint: disable=R0201
     def version(self):
         """Version handler for a bintool
-
-        This should be implemented by the base class
 
         Returns:
             str: Version string for this bintool
         """
-        return 'unknown'
+        if self.version_regex is None:
+            return 'unknown'
+
+        import re
+
+        result = self.run_cmd_result(self.version_args)
+        out = result.stdout.strip()
+        if not out:
+            out = result.stderr.strip()
+        if not out:
+            return 'unknown'
+
+        m_version = re.search(self.version_regex, out)
+        return m_version.group(1) if m_version else out
+
+
+class BintoolPacker(Bintool):
+    """Tool which compression / decompression entry contents
+
+    This is a bintools base class for compression / decompression packer
+
+    Properties:
+        name: Name of packer tool
+        compression: Compression type (COMPRESS_...), value of 'name' property
+            if none
+        compress_args: List of positional args provided to tool for compress,
+            ['--compress'] if none
+        decompress_args: List of positional args provided to tool for
+            decompress, ['--decompress'] if none
+        fetch_package: Name of the tool installed using the apt, value of 'name'
+            property if none
+        version_regex: Regular expressions to extract the version from tool
+            version output,  '(v[0-9.]+)' if none
+    """
+    def __init__(self, name, compression=None, compress_args=None,
+                 decompress_args=None, fetch_package=None,
+                 version_regex=r'(v[0-9.]+)', version_args='-V'):
+        desc = '%s compression' % (compression if compression else name)
+        super().__init__(name, desc, version_regex, version_args)
+        if compress_args is None:
+            compress_args = ['--compress']
+        self.compress_args = compress_args
+        if decompress_args is None:
+            decompress_args = ['--decompress']
+        self.decompress_args = decompress_args
+        if fetch_package is None:
+            fetch_package = name
+        self.fetch_package = fetch_package
+
+    def compress(self, indata):
+        """Compress data
+
+        Args:
+            indata (bytes): Data to compress
+
+        Returns:
+            bytes: Compressed data
+        """
+        with tempfile.NamedTemporaryFile(prefix='comp.tmp',
+                                         dir=tools.get_output_dir()) as tmp:
+            tools.write_file(tmp.name, indata)
+            args = self.compress_args + ['--stdout', tmp.name]
+            return self.run_cmd(*args, binary=True)
+
+    def decompress(self, indata):
+        """Decompress data
+
+        Args:
+            indata (bytes): Data to decompress
+
+        Returns:
+            bytes: Decompressed data
+        """
+        with tempfile.NamedTemporaryFile(prefix='decomp.tmp',
+                                         dir=tools.get_output_dir()) as inf:
+            tools.write_file(inf.name, indata)
+            args = self.decompress_args + ['--stdout', inf.name]
+            return self.run_cmd(*args, binary=True)
+
+    def fetch(self, method):
+        """Fetch handler
+
+        This installs the gzip package using the apt utility.
+
+        Args:
+            method (FETCH_...): Method to use
+
+        Returns:
+            True if the file was fetched and now installed, None if a method
+            other than FETCH_BIN was requested
+
+        Raises:
+            Valuerror: Fetching could not be completed
+        """
+        if method != FETCH_BIN:
+            return None
+        return self.apt_install(self.fetch_package)

@@ -3,6 +3,7 @@ menu "Watchdog Timer Support"
 config WATCHDOG
 	bool "Enable U-Boot watchdog reset"
 	depends on !HW_WATCHDOG
+	select CYCLIC
 	help
 	  This option enables U-Boot watchdog support where U-Boot is using
 	  watchdog_reset function to service watchdog device in U-Boot. Enable
@@ -30,6 +31,7 @@ config WATCHDOG_TIMEOUT_MSECS
 	default 128000 if ARCH_MX7 || ARCH_VF610
 	default 30000 if ARCH_SOCFPGA
 	default 16000 if ARCH_SUNXI
+	default 5376 if ULP_WATCHDOG
 	default 60000
 	help
 	  Watchdog timeout in msec
@@ -65,8 +67,8 @@ config ULP_WATCHDOG
 
 config DESIGNWARE_WATCHDOG
 	bool "Designware watchdog timer support"
-	select HW_WATCHDOG if !WDT
-	default y if WDT && ROCKCHIP_RK3399
+	depends on WDT
+	default y if ROCKCHIP_RK3399
 	help
 	  Enable this to support Designware Watchdog Timer IP, present e.g.
 	  on Altera SoCFPGA SoCs.
@@ -75,6 +77,7 @@ config WDT
 	bool "Enable driver model for watchdog timer drivers"
 	depends on DM
 	imply WATCHDOG
+	select CYCLIC
 	help
 	  Enable driver model for watchdog timer. At the moment the API
 	  is very simple and only supports four operations:
@@ -129,8 +132,8 @@ config WDT_AT91
 
 config WDT_BCM6345
 	bool "BCM6345 watchdog timer support"
-	depends on WDT && (ARCH_BMIPS || ARCH_BCM68360 || \
-			   ARCH_BCM6858 || ARCH_BCM63158)
+	depends on WDT && (ARCH_BMIPS || BCM6856 || \
+			   BCM6858 || BCM63158 || BCM6855)
 	help
 	  Select this to enable watchdog timer for BCM6345 SoCs.
 	  The watchdog timer is stopped when initialized.
@@ -168,12 +171,26 @@ config WDT_GPIO
 	  doc/device-tree-bindings/watchdog/gpio-wdt.txt for
 	  information on how to describe the watchdog in device tree.
 
+config WDT_MAX6370
+	bool "MAX6370 watchdog timer support"
+	depends on WDT
+	select DM_GPIO
+	help
+	  Select this to enable max6370 watchdog timer.
+
 config WDT_MCA
 	bool "Digi MCA watchdog timer support"
 	depends on WDT
 	help
 	  Select this to enable MCA watchdog timer on Digi modules.
 	  Refresh of the watchdog can be done by software or through MCA GPIO lines.
+
+config WDT_MESON_GXBB
+	bool "Amlogic watchdog timer support"
+	depends on WDT
+	help
+	  Select this to enable Meson watchdog timer,
+	  which can be found on some Amlogic platforms.
 
 config WDT_MPC8xx
 	bool "MPC8xx watchdog timer support"
@@ -191,7 +208,7 @@ config WDT_MT7620
 
 config WDT_MT7621
 	bool "MediaTek MT7621 watchdog timer support"
-	depends on WDT && SOC_MT7628
+	depends on WDT && (SOC_MT7621 || SOC_MT7628)
 	help
 	  Select this to enable Ralink / Mediatek watchdog timer,
 	  which can be found on some MediaTek chips.
@@ -204,15 +221,22 @@ config WDT_MTK
 	  The watchdog timer is stopped when initialized.
 	  It performs full SoC reset.
 
+config WDT_NPCM
+	bool "Nuvoton watchdog timer support"
+	depends on WDT && ARCH_NPCM
+	help
+	  This enables Nuvoton npcm7xx/npcm8xx watchdog timer driver,
+	  The watchdog timer is stopped when initialized.
+	  It performs full SoC reset.
+
 config WDT_OCTEONTX
-	bool "OcteonTX core watchdog support"
-	depends on WDT && (ARCH_OCTEONTX || ARCH_OCTEONTX2)
+	bool "Octeon core watchdog support"
+	depends on WDT && (ARCH_OCTEON || ARCH_OCTEONTX || ARCH_OCTEONTX2)
 	default y
 	imply WATCHDOG
 	help
-	  This enables OcteonTX watchdog driver, which can be
-	  found on OcteonTX/TX2 chipsets and inline with driver model.
-	  Only supports watchdog reset.
+	  This enables the Octeon watchdog driver, which can be found on
+	  various Octeon parts such as Octeon II/III and OcteonTX/TX2.
 
 config WDT_OMAP3
 	bool "TI OMAP watchdog timer support"
@@ -264,6 +288,14 @@ config WDT_SANDBOX
 	  Enable Watchdog Timer support in Sandbox. This is a dummy device that
 	  can be probed and supports all of the methods of WDT, but does not
 	  really do anything.
+
+config WDT_ALARM_SANDBOX
+	bool "Enable SIGALRM-based Watchdog Timer support for Sandbox"
+	depends on SANDBOX && WDT
+	help
+	  Enable support for a SIGALRM-based watchdog timer in Sandbox. This is
+	  a watchdog device based on the host OS' alarm() function, which will
+	  kill the sandbox with SIGALRM unless properly maintained.
 
 config WDT_SBSA
 	bool "SBSA watchdog timer support"

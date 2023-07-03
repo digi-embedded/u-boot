@@ -8,6 +8,8 @@
 #include <i2c.h>
 #include <fdt_support.h>
 #include <init.h>
+#include <semihosting.h>
+#include <serial.h>
 #include <asm/global_data.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>
@@ -26,6 +28,15 @@
 #include "cpld.h"
 
 DECLARE_GLOBAL_DATA_PTR;
+
+struct serial_device *default_serial_console(void)
+{
+#if IS_ENABLED(CONFIG_SEMIHOSTING_SERIAL)
+	if (semihosting_enabled())
+		return &serial_smh_device;
+#endif
+	return &eserial1_device;
+}
 
 int board_early_init_f(void)
 {
@@ -69,7 +80,7 @@ int checkboard(void)
 
 int board_init(void)
 {
-	struct ccsr_scfg *scfg = (struct ccsr_scfg *)CONFIG_SYS_FSL_SCFG_ADDR;
+	struct ccsr_scfg *scfg = (struct ccsr_scfg *)CFG_SYS_FSL_SCFG_ADDR;
 
 #ifdef CONFIG_NXP_ESBC
 	/*
@@ -135,7 +146,7 @@ int power_init_board(void)
 void config_board_mux(void)
 {
 #ifdef CONFIG_HAS_FSL_XHCI_USB
-	struct ccsr_scfg *scfg = (struct ccsr_scfg *)CONFIG_SYS_FSL_SCFG_ADDR;
+	struct ccsr_scfg *scfg = (struct ccsr_scfg *)CFG_SYS_FSL_SCFG_ADDR;
 	u32 usb_pwrfault;
 
 	/* USB3 is not used, configure mux to IIC4_SCL/IIC4_SDA */

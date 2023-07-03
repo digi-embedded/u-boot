@@ -13,42 +13,12 @@
 /* Memory configuration */
 #define PHYS_SDRAM_1			0x40000000	/* Base address */
 #define PHYS_SDRAM_1_SIZE		0x40000000	/* Max 1 GB RAM */
-#define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM_1
-
-/* Environment */
-
-/* Environment is in MMC */
-
-/* Environment is in NAND */
-#if defined(CONFIG_CMD_NAND) && defined(CONFIG_ENV_IS_IN_NAND)
-#define CONFIG_ENV_RANGE		(512 * 1024)
-#endif
-
-/* Environment is in SPI flash */
+#define CFG_SYS_SDRAM_BASE		PHYS_SDRAM_1
 
 /* UBI and NAND partitioning */
 
-/* RTC */
-#ifdef	CONFIG_CMD_DATE
-#define	CONFIG_RTC_MXS
-#endif
-
-/* USB */
-#ifdef	CONFIG_CMD_USB
-#define CONFIG_EHCI_MXS_PORT1
-#define CONFIG_USB_MAX_CONTROLLER_COUNT	1
-#endif
-
-/* Framebuffer support */
-#ifdef CONFIG_DM_VIDEO
-#define CONFIG_SYS_VIDEO_LOGO_MAX_SIZE	(512 << 10)
-#endif
-
-/* Boot Linux */
-#define CONFIG_BOOTFILE		"uImage"
-
 /* Extra Environment */
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	"ubifs_file=filesystem.ubifs\0" \
 	"update_nand_full_filename=u-boot.nand\0" \
 	"update_nand_firmware_filename=u-boot.sb\0"	\

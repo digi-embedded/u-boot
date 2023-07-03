@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright (C) 2018 Marek Behun <marek.behun@nic.cz>
+ * Copyright (C) 2018 Marek Behún <kabel@kernel.org>
  */
 
 #include <common.h>
@@ -13,6 +13,7 @@
 #include <button.h>
 #include <clk.h>
 #include <dm.h>
+#include <dm/of_extra.h>
 #include <env.h>
 #include <fdt_support.h>
 #include <init.h>
@@ -22,6 +23,7 @@
 #include <linux/string.h>
 #include <miiphy.h>
 #include <spi.h>
+#include <spi_flash.h>
 
 #include "mox_sp.h"
 
@@ -137,7 +139,7 @@ int board_fix_fdt(void *blob)
 int board_init(void)
 {
 	/* address of boot parameters */
-	gd->bd->bi_boot_params = CONFIG_SYS_SDRAM_BASE + 0x100;
+	gd->bd->bi_boot_params = CFG_SYS_SDRAM_BASE + 0x100;
 
 	return 0;
 }
@@ -148,9 +150,9 @@ static int mox_do_spi(u8 *in, u8 *out, size_t size)
 	struct udevice *dev;
 	int ret;
 
-	ret = spi_get_bus_and_cs(0, 1, 1000000, SPI_CPHA | SPI_CPOL,
-				 "spi_generic_drv", "moxtet@1", &dev,
-				 &slave);
+	ret = _spi_get_bus_and_cs(0, 1, 1000000, SPI_CPHA | SPI_CPOL,
+				  "spi_generic_drv", "moxtet@1", &dev,
+				  &slave);
 	if (ret)
 		goto fail;
 
@@ -216,35 +218,35 @@ static int mox_get_topology(const u8 **ptopology, int *psize, int *pis_sd)
 #define SW_SMI_CMD_R(d, r)	(0x9800 | (((d) & 0x1f) << 5) | ((r) & 0x1f))
 #define SW_SMI_CMD_W(d, r)	(0x9400 | (((d) & 0x1f) << 5) | ((r) & 0x1f))
 
-static int sw_multi_read(struct mii_dev *bus, int sw, int dev, int reg)
+static int sw_multi_read(struct udevice *bus, int sw, int dev, int reg)
 {
-	bus->write(bus, sw, 0, 0, SW_SMI_CMD_R(dev, reg));
+	dm_mdio_write(bus, sw, MDIO_DEVAD_NONE, 0, SW_SMI_CMD_R(dev, reg));
 	mdelay(5);
-	return bus->read(bus, sw, 0, 1);
+	return dm_mdio_read(bus, sw, MDIO_DEVAD_NONE, 1);
 }
 
-static void sw_multi_write(struct mii_dev *bus, int sw, int dev, int reg,
+static void sw_multi_write(struct udevice *bus, int sw, int dev, int reg,
 			   u16 val)
 {
-	bus->write(bus, sw, 0, 1, val);
-	bus->write(bus, sw, 0, 0, SW_SMI_CMD_W(dev, reg));
+	dm_mdio_write(bus, sw, MDIO_DEVAD_NONE, 1, val);
+	dm_mdio_write(bus, sw, MDIO_DEVAD_NONE, 0, SW_SMI_CMD_W(dev, reg));
 	mdelay(5);
 }
 
-static int sw_scratch_read(struct mii_dev *bus, int sw, int reg)
+static int sw_scratch_read(struct udevice *bus, int sw, int reg)
 {
 	sw_multi_write(bus, sw, 0x1c, 0x1a, (reg & 0x7f) << 8);
 	return sw_multi_read(bus, sw, 0x1c, 0x1a) & 0xff;
 }
 
-static void sw_led_write(struct mii_dev *bus, int sw, int port, int reg,
+static void sw_led_write(struct udevice *bus, int sw, int port, int reg,
 			 u16 val)
 {
 	sw_multi_write(bus, sw, port, 0x16, 0x8000 | ((reg & 7) << 12)
 					    | (val & 0x7ff));
 }
 
-static void sw_blink_leds(struct mii_dev *bus, int peridot, int topaz)
+static void sw_blink_leds(struct udevice *bus, int peridot, int topaz)
 {
 	int i, p;
 	struct {
@@ -275,7 +277,7 @@ static void sw_blink_leds(struct mii_dev *bus, int peridot, int topaz)
 	}
 }
 
-static void check_switch_address(struct mii_dev *bus, int addr)
+static void check_switch_address(struct udevice *bus, int addr)
 {
 	if (sw_scratch_read(bus, addr, 0x70) >> 3 != addr)
 		printf("Check of switch MDIO address failed for 0x%02x\n",
@@ -338,6 +340,51 @@ static int get_reset_gpio(struct gpio_desc *reset_gpio)
 	return 0;
 }
 
+/* Load default system DTB binary to $fdr_addr */
+static void load_spi_dtb(void)
+{
+	const char *const env_name[1] = { "fdt_addr" };
+	unsigned long size, offset;
+	struct udevice *spi_dev;
+	struct spi_flash *flash;
+	const char *addr_str;
+	unsigned long addr;
+	void *buf;
+
+	addr_str = env_get(env_name[0]);
+	if (!addr_str) {
+		env_set_default_vars(1, (char * const *)env_name, 0);
+		addr_str = env_get(env_name[0]);
+	}
+
+	if (!addr_str)
+		return;
+
+	addr = hextoul(addr_str, NULL);
+	if (!addr)
+		return;
+
+	spi_flash_probe_bus_cs(CONFIG_SF_DEFAULT_BUS, CONFIG_SF_DEFAULT_CS, &spi_dev);
+	flash = dev_get_uclass_priv(spi_dev);
+	if (!flash)
+		return;
+
+	/*
+	 * SPI NOR "dtb" partition offset & size hardcoded for now because the
+	 * mtd subsystem does not offer finding the partition yet and we do not
+	 * want to reimplement OF partition parser here.
+	 */
+	offset = 0x7f0000;
+	size = 0x10000;
+
+	buf = map_physmem(addr, size, MAP_WRBACK);
+	if (!buf)
+		return;
+
+	spi_flash_read(flash, offset, size, buf);
+	unmap_physmem(buf, size);
+}
+
 int misc_init_r(void)
 {
 	u8 mac[2][6];
@@ -357,6 +404,8 @@ int misc_init_r(void)
 			eth_env_set_enetaddr_by_index("eth", i, mac[i]);
 	}
 
+	load_spi_dtb();
+
 	return 0;
 }
 
@@ -374,36 +423,22 @@ static void mox_phy_modify(struct phy_device *phydev, int page, int reg,
 static void mox_phy_leds_start_blinking(void)
 {
 	struct phy_device *phydev;
-	struct mii_dev *bus;
-	const char *node_name;
-	int node;
+	ofnode phy_node;
 
-	node = fdt_path_offset(gd->fdt_blob, "ethernet0");
-	if (node < 0) {
-		printf("Cannot get eth0!\n");
-		return;
-	}
+	phy_node = ofnode_get_phy_node(ofnode_path("ethernet0"));
+	if (!ofnode_valid(phy_node))
+		goto err;
 
-	node_name = fdt_get_name(gd->fdt_blob, node, NULL);
-	if (!node_name) {
-		printf("Cannot get eth0 node name!\n");
-		return;
-	}
-
-	bus = miiphy_get_dev_by_name(node_name);
-	if (!bus) {
-		printf("Cannot get MDIO bus device!\n");
-		return;
-	}
-
-	phydev = phy_find_by_mask(bus, BIT(1), PHY_INTERFACE_MODE_RGMII);
-	if (!phydev) {
-		printf("Cannot get ethernet PHY!\n");
-		return;
-	}
+	phydev = dm_phy_find_by_ofnode(phy_node);
+	if (!phydev)
+		goto err;
 
 	mox_phy_modify(phydev, 3, 0x12, 0x700, 0x400);
 	mox_phy_modify(phydev, 3, 0x10, 0xff, 0xbb);
+
+	return;
+err:
+	printf("Cannot get ethernet PHY!\n");
 }
 
 static bool read_reset_button(void)
@@ -453,8 +488,9 @@ static void handle_reset_button(void)
 	env_set_default_vars(1, (char * const *)vars, 0);
 
 	if (read_reset_button()) {
-		const char * const vars[2] = {
+		const char * const vars[3] = {
 			"bootcmd",
+			"bootdelay",
 			"distro_bootcmd",
 		};
 
@@ -462,7 +498,7 @@ static void handle_reset_button(void)
 		 * Set the above envs to their default values, in case the user
 		 * managed to break them.
 		 */
-		env_set_default_vars(2, (char * const *)vars, 0);
+		env_set_default_vars(3, (char * const *)vars, 0);
 
 		/* Ensure bootcmd_rescue is used by distroboot */
 		env_set("boot_targets", "rescue");
@@ -611,6 +647,26 @@ int show_board_info(void)
 	return 0;
 }
 
+static struct udevice *mox_mdio_bus(void)
+{
+	struct udevice *bus;
+	ofnode node;
+
+	node = ofnode_by_compatible(ofnode_null(), "marvell,orion-mdio");
+	if (!ofnode_valid(node))
+		goto err;
+
+	dm_mdio_probe_devices();
+
+	if (uclass_get_device_by_ofnode(UCLASS_MDIO, node, &bus))
+		goto err;
+
+	return bus;
+err:
+	printf("Cannot get MDIO bus device!\n");
+	return NULL;
+}
+
 int last_stage_init(void)
 {
 	struct gpio_desc reset_gpio = {};
@@ -636,16 +692,9 @@ int last_stage_init(void)
 	 * 0x70 of Peridot (and potentially Topaz) modules
 	 */
 	if (peridot || topaz) {
-		struct mii_dev *bus;
-		const char *node_name;
-		int node;
+		struct udevice *bus = mox_mdio_bus();
 
-		node = fdt_path_offset(gd->fdt_blob, "ethernet0");
-		node_name = (node >= 0) ? fdt_get_name(gd->fdt_blob, node, NULL) : NULL;
-		bus = node_name ? miiphy_get_dev_by_name(node_name) : NULL;
-		if (!bus) {
-			printf("Cannot get MDIO bus device!\n");
-		} else {
+		if (bus) {
 			int i;
 
 			for (i = 0; i < peridot; ++i)
@@ -819,6 +868,11 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 
 			res = fdt_setprop_string(blob, node, "phy-mode",
 						 "sgmii");
+			if (res < 0)
+				return res;
+
+			res = fdt_setprop_string(blob, node, "label",
+						 "sfp");
 			if (res < 0)
 				return res;
 		}

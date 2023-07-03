@@ -12,7 +12,7 @@ config SYS_CONFIG_NAME
 config LPDDR2_BOARD
 	bool "set if the board uses the LPDDR2 not default LPDDR3" 
 
-config SYS_TEXT_BASE
+config TEXT_BASE
 	default 0x87800000
 
 endif

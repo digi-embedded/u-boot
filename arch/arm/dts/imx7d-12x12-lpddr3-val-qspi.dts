@@ -14,8 +14,8 @@
 };
 
 &iomuxc {
-	qspi1 {
-		pinctrl_qspi1_1: qspi1grp_1 {
+	qspi {
+		pinctrl_qspi_1: qspigrp_1 {
 			fsl,pins = <
 				MX7D_PAD_EPDC_DATA00__QSPI_A_DATA0 0x51
 				MX7D_PAD_EPDC_DATA01__QSPI_A_DATA1 0x51
@@ -38,10 +38,10 @@
 	};
 };
 
-&qspi1 {
+&qspi {
 	pinctrl-names = "default", "sleep";
-	pinctrl-0 = <&pinctrl_qspi1_1>;
-	pinctrl-1 = <&pinctrl_qspi1_1>;
+	pinctrl-0 = <&pinctrl_qspi_1>;
+	pinctrl-1 = <&pinctrl_qspi_1>;
 	status = "okay";
 	fsl,qspi-has-second-chip = <1>;
 	ddrsmp=<0>;

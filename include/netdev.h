@@ -47,7 +47,6 @@ int eepro100_initialize(struct bd_info *bis);
 int ep93xx_eth_initialize(u8 dev_num, int base_addr);
 int eth_3com_initialize (struct bd_info * bis);
 int ethoc_initialize(u8 dev_num, int base_addr);
-int fec_initialize (struct bd_info *bis);
 int fecmxc_initialize(struct bd_info *bis);
 int fecmxc_initialize_multi(struct bd_info *bis, int dev_id, int phy_id,
 			    uint32_t addr);
@@ -76,9 +75,7 @@ int sh_eth_initialize(struct bd_info *bis);
 int skge_initialize(struct bd_info *bis);
 int smc91111_initialize(u8 dev_num, phys_addr_t base_addr);
 int smc911x_initialize(u8 dev_num, phys_addr_t base_addr);
-int uec_standard_init(struct bd_info *bis);
 int uli526x_initialize(struct bd_info *bis);
-int armada100_fec_register(unsigned long base_addr);
 
 /* Boards with PCI network controllers can call this from their board_eth_init()
  * function to initialize whatever's on board.

@@ -53,3 +53,7 @@
 	clock-lanes = <0>;
 	data-lanes = <1 2>;
 };
+
+&pcie {
+	status = "okay";
+};

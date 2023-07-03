@@ -5,6 +5,7 @@
 # Test for the Entry class
 
 import collections
+import importlib
 import os
 import sys
 import unittest
@@ -32,11 +33,7 @@ class TestEntry(unittest.TestCase):
     def _ReloadEntry(self):
         global entry
         if entry:
-            if sys.version_info[0] >= 3:
-                import importlib
-                importlib.reload(entry)
-            else:
-                reload(entry)
+            importlib.reload(entry)
         else:
             from binman import entry
 
@@ -107,6 +104,34 @@ class TestEntry(unittest.TestCase):
                                  missing_etype=True)
         self.assertTrue(isinstance(ent, Entry_blob))
         self.assertEquals('missing', ent.etype)
+
+    def testDecompressData(self):
+        """Test the DecompressData() method of the base class"""
+        base = entry.Entry.Create(None, self.GetNode(), 'blob-dtb')
+        base.compress = 'lz4'
+        bintools = {}
+        base.comp_bintool = base.AddBintool(bintools, '_testing')
+        self.assertEquals(tools.get_bytes(0, 1024), base.CompressData(b'abc'))
+        self.assertEquals(tools.get_bytes(0, 1024), base.DecompressData(b'abc'))
+
+    def testLookupOffset(self):
+        """Test the lookup_offset() method of the base class"""
+        def MyFindEntryByNode(node):
+            return self.found
+
+        base = entry.Entry.Create(None, self.GetNode(), 'blob-dtb')
+        base.FindEntryByNode = MyFindEntryByNode
+        base.section = base
+        self.found = None
+        base.offset_from_elf = [self.GetNode(), 'start', 0]
+        with self.assertRaises(ValueError) as e:
+            base.lookup_offset()
+        self.assertIn("Cannot find entry for node 'u-boot'", str(e.exception))
+
+        self.found = base
+        with self.assertRaises(ValueError) as e:
+            base.lookup_offset()
+        self.assertIn("Need elf-fname property 'u-boot'", str(e.exception))
 
 
 if __name__ == "__main__":

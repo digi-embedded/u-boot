@@ -6,14 +6,52 @@
 #include <common.h>
 #include <cpu_func.h>
 #include <dm.h>
+#include <efi.h>
+#include <efi_loader.h>
 #include <fdtdec.h>
 #include <init.h>
 #include <log.h>
 #include <virtio_types.h>
 #include <virtio.h>
 
+#include <linux/kernel.h>
+#include <linux/sizes.h>
+
+/* GUIDs for capsule updatable firmware images */
+#define QEMU_ARM_UBOOT_IMAGE_GUID \
+	EFI_GUID(0xf885b085, 0x99f8, 0x45af, 0x84, 0x7d, \
+		 0xd5, 0x14, 0x10, 0x7a, 0x4a, 0x2c)
+
+#define QEMU_ARM64_UBOOT_IMAGE_GUID \
+	EFI_GUID(0x058b7d83, 0x50d5, 0x4c47, 0xa1, 0x95, \
+		 0x60, 0xd8, 0x6a, 0xd3, 0x41, 0xc4)
+
 #ifdef CONFIG_ARM64
 #include <asm/armv8/mmu.h>
+
+#if IS_ENABLED(CONFIG_EFI_HAVE_CAPSULE_SUPPORT)
+struct efi_fw_image fw_images[] = {
+#if defined(CONFIG_TARGET_QEMU_ARM_32BIT)
+	{
+		.image_type_id = QEMU_ARM_UBOOT_IMAGE_GUID,
+		.fw_name = u"Qemu-Arm-UBOOT",
+		.image_index = 1,
+	},
+#elif defined(CONFIG_TARGET_QEMU_ARM_64BIT)
+	{
+		.image_type_id = QEMU_ARM64_UBOOT_IMAGE_GUID,
+		.fw_name = u"Qemu-Arm-UBOOT",
+		.image_index = 1,
+	},
+#endif
+};
+
+struct efi_capsule_update_info update_info = {
+	.images = fw_images,
+};
+
+u8 num_image_type_guids = ARRAY_SIZE(fw_images);
+#endif /* EFI_HAVE_CAPSULE_SUPPORT */
 
 static struct mm_region qemu_arm64_mem_map[] = {
 	{
@@ -98,7 +136,7 @@ void *board_fdt_blob_setup(int *err)
 {
 	*err = 0;
 	/* QEMU loads a generated DTB for us at the start of RAM. */
-	return (void *)CONFIG_SYS_SDRAM_BASE;
+	return (void *)CFG_SYS_SDRAM_BASE;
 }
 
 void enable_caches(void)

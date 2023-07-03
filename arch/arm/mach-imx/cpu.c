@@ -126,6 +126,10 @@ const char *get_imx_type(u32 imxtype)
 		return "8MP[6]";	/* Quad-core version of the imx8mp, NPU fused */
 	case MXC_CPU_IMX8MPUL:
 		return "8MP UltraLite";	/* Quad-core UltraLite version of the imx8mp */
+	case MXC_CPU_IMX8MPSC:
+		return "8MP[8] SC";	/* Quad-core SC version of the imx8mp */
+	case MXC_CPU_IMX8MPDSC:
+		return "8MP Dual[3] SC";	/* Dual-core SC version of the imx8mp */
 	case MXC_CPU_IMX8MN:
 		return "8MNano Quad"; /* Quad-core version */
 	case MXC_CPU_IMX8MND:
@@ -361,7 +365,7 @@ void arch_preboot_os(void)
 	/* Entry for GIS */
 	mxc_disable_gis();
 #endif
-#if defined(CONFIG_VIDEO_MXS) && !defined(CONFIG_DM_VIDEO) && \
+#if defined(CONFIG_VIDEO_MXS) && !defined(CONFIG_VIDEO) && \
     !defined(VIDEO_MXS_SKIP_DISABLING_ON_BOOT)
 	lcdif_power_down();
 #endif

@@ -226,8 +226,6 @@ int reset_get_by_index_nodev(ofnode node, int index,
  */
 int reset_get_bulk(struct udevice *dev, struct reset_ctl_bulk *bulk);
 
-int reset_get_bulk_nodev(ofnode node, struct reset_ctl_bulk *bulk);
-
 /**
  * reset_get_by_name - Get/request a reset signal by name.
  *
@@ -240,7 +238,8 @@ int reset_get_bulk_nodev(ofnode node, struct reset_ctl_bulk *bulk);
  *
  * @dev:	The client device.
  * @name:	The name of the reset signal to request, within the client's
- *		list of reset signals.
+ *		list of reset signals, or NULL to request the first reset
+ *		signal in the list.
  * @reset_ctl:	A pointer to a reset control struct to initialize.
  * Return: 0 if OK, or a negative error code.
  */

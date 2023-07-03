@@ -77,6 +77,13 @@ static char *dp_hardware(char *s, struct efi_device_path *dp)
 		s += sprintf(s, ")");
 		break;
 	}
+	case DEVICE_PATH_SUB_TYPE_CONTROLLER: {
+		struct efi_device_path_controller *cdp =
+			(struct efi_device_path_controller *)dp;
+
+		s += sprintf(s, "Ctrl(0x%0x)", cdp->controller_number);
+		break;
+	}
 	default:
 		s = dp_unknown(s, dp);
 		break;
@@ -190,13 +197,14 @@ static char *dp_msging(char *s, struct efi_device_path *dp)
 		struct efi_device_path_nvme *ndp =
 			(struct efi_device_path_nvme *)dp;
 		u32 ns_id;
-		int i;
 
 		memcpy(&ns_id, &ndp->ns_id, sizeof(ns_id));
 		s += sprintf(s, "NVMe(0x%x,", ns_id);
-		for (i = 0; i < sizeof(ndp->eui64); ++i)
+
+		/* Display byte 7 first, byte 0 last */
+		for (int i = 0; i < 8; ++i)
 			s += sprintf(s, "%s%02x", i ? "-" : "",
-				     ndp->eui64[i]);
+				     ndp->eui64[i ^ 7]);
 		s += sprintf(s, ")");
 
 		break;
@@ -432,6 +440,7 @@ static uint16_t EFIAPI *efi_convert_device_path_to_text(
 		*(u8 **)&device_path += device_path->length;
 	}
 
+	*str = 0;
 	text = efi_str_to_u16(buffer);
 
 out:

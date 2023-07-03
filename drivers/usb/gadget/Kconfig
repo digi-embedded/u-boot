@@ -40,6 +40,7 @@ if USB_GADGET
 
 config USB_GADGET_MANUFACTURER
 	string "Vendor name of the USB device"
+	default "NVIDIA" if ARCH_TEGRA
 	default "Allwinner Technology" if ARCH_SUNXI
 	default "Rockchip" if ARCH_ROCKCHIP
 	default "U-Boot"
@@ -49,6 +50,7 @@ config USB_GADGET_MANUFACTURER
 
 config USB_GADGET_VENDOR_NUM
 	hex "Vendor ID of the USB device"
+	default 0x0955 if ARCH_TEGRA
 	default 0x1f3a if ARCH_SUNXI
 	default 0x2207 if ARCH_ROCKCHIP
 	default 0x0
@@ -59,8 +61,10 @@ config USB_GADGET_VENDOR_NUM
 
 config USB_GADGET_PRODUCT_NUM
 	hex "Product ID of the USB device"
+	default 0x701a if ARCH_TEGRA
 	default 0x1010 if ARCH_SUNXI
 	default 0x310a if ROCKCHIP_RK3036
+	default 0x300a if ROCKCHIP_RK3066
 	default 0x310c if ROCKCHIP_RK3128
 	default 0x320a if ROCKCHIP_RK3229 || ROCKCHIP_RK3288
 	default 0x330a if ROCKCHIP_RK3328
@@ -81,6 +85,10 @@ config USB_GADGET_BCM_UDC_OTG_PHY
 	help
 	  Enable the Broadcom UDC OTG physical device interface.
 
+config USB_GADGET_AT91
+	bool "Atmel AT91 USB Gadget Controller"
+	depends on ARCH_AT91
+
 config USB_GADGET_DWC2_OTG
 	bool "DesignWare USB2.0 HS OTG controller (gadget mode)"
 	select USB_GADGET_DUALSPEED
@@ -91,6 +99,11 @@ config USB_GADGET_DWC2_OTG
 	  USB_GADGET to be enabled.
 
 if USB_GADGET_DWC2_OTG
+
+config USB_GADGET_DWC2_OTG_PHY
+	bool "DesignWare USB2.0 HS OTG PHY"
+	help
+	  Enable the DesignWare USB2.0 HS OTG physical device interface.
 
 config USB_GADGET_DWC2_OTG_PHY_BUS_WIDTH_8
 	bool "DesignWare USB2.0 HS OTG controller 8-bit PHY bus width"
@@ -194,7 +207,7 @@ config USB_FUNCTION_ACM
 
 config USB_PORT_AUTO
 	bool "Enable USB port autodetect"
-	depends on CI_UDC
+	depends on CI_UDC 
 	help
 	  Enable usb port autodetect function for i.MX8. There two usb ports -
 	  usb2 and usb3 on i.MX8, when use SDP or fastboot which runs automatically
@@ -245,7 +258,7 @@ config USB_ETH_RNDIS
 
 endchoice
 
-config USBNET_DEVADDR
+config USBNET_DEV_ADDR
 	string "USB Gadget Ethernet device mac address"
 	default "de:ad:be:ef:00:01"
 	help

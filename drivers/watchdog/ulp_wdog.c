@@ -25,10 +25,6 @@ struct ulp_wdt_priv {
 	u32 clk_rate;
 };
 
-#ifndef CONFIG_WATCHDOG_TIMEOUT_MSECS
-#define CONFIG_WATCHDOG_TIMEOUT_MSECS 0x1500
-#endif
-
 #define REFRESH_WORD0 0xA602 /* 1st refresh word */
 #define REFRESH_WORD1 0xB480 /* 2nd refresh word */
 
@@ -46,6 +42,7 @@ struct ulp_wdt_priv {
 #define WDOG_CS_PRES                    BIT(12)
 #define WDGCS_CMD32EN                   BIT(13)
 #define WDGCS_FLG                       BIT(14)
+#define WDGCS_INT			BIT(6)
 
 #define WDG_BUS_CLK                      (0x0)
 #define WDG_LPO_CLK                      (0x1)
@@ -97,11 +94,12 @@ void ulp_watchdog_init(struct wdog_regs *wdog, u16 timeout)
 	writel(0, &wdog->win);
 
 	/* setting 1-kHz clock source, enable counter running, and clear interrupt */
-#if defined(CONFIG_ARCH_IMX9)
-	writel((cmd32 | WDGCS_WDGE | WDGCS_WDGUPDATE |(WDG_LPO_CLK << 8) | WDGCS_FLG | WDOG_CS_PRES), &wdog->cs);
-#else
-	writel((cmd32 | WDGCS_WDGE | WDGCS_WDGUPDATE |(WDG_LPO_CLK << 8) | WDGCS_FLG), &wdog->cs);
-#endif
+	if (IS_ENABLED(CONFIG_ARCH_IMX9))
+		writel((cmd32 | WDGCS_WDGE | WDGCS_WDGUPDATE | (WDG_LPO_CLK << 8) |
+		       WDGCS_FLG | WDOG_CS_PRES | WDGCS_INT), &wdog->cs);
+	else
+		writel((cmd32 | WDGCS_WDGE | WDGCS_WDGUPDATE | (WDG_LPO_CLK << 8) |
+		       WDGCS_FLG), &wdog->cs);
 
 	/* Wait WDOG reconfiguration */
 	while (!(readl(&wdog->cs) & WDGCS_RCS))
@@ -144,15 +142,14 @@ void reset_cpu(void)
 		;
 
 	hw_watchdog_set_timeout(5); /* 5ms timeout for general; 40ms timeout for imx93 */
-
 	writel(0, &wdog->win);
 
 	/* enable counter running */
-#if defined(CONFIG_ARCH_IMX9)
-	writel((cmd32 | WDGCS_WDGE | (WDG_LPO_CLK << 8) | WDOG_CS_PRES), &wdog->cs);
-#else	
-	writel((cmd32| WDGCS_WDGE | (WDG_LPO_CLK << 8)), &wdog->cs);
-#endif
+	if (IS_ENABLED(CONFIG_ARCH_IMX9))
+		writel((cmd32 | WDGCS_WDGE | (WDG_LPO_CLK << 8) | WDOG_CS_PRES |
+		       WDGCS_INT), &wdog->cs);
+	else
+		writel((cmd32 | WDGCS_WDGE | (WDG_LPO_CLK << 8)), &wdog->cs);
 
 	/* Wait WDOG reconfiguration */
 	while (!(readl(&wdog->cs) & WDGCS_RCS))

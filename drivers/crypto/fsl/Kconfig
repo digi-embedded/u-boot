@@ -10,6 +10,11 @@ config FSL_CAAM
 	  Module (CAAM), also known as the SEC version 4 (SEC4). The driver uses
 	  Job Ring as interface to communicate with CAAM.
 
+config SYS_FSL_MAX_NUM_OF_SEC
+	int "Number of job rings in the CAAM"
+	depends on FSL_CAAM
+	default 1
+
 config CAAM_64BIT
 	bool
 	default y if PHYS_64BIT && !ARCH_IMX8M && !ARCH_IMX8 && !ARCH_IMX8ULP
@@ -102,7 +107,7 @@ config FSL_DCP_RNG
 	depends on DM_RNG
 	default n
 	help
-	Enable support for the hardware based random number generator
-	module of the DCP.It uses the True Random Number Generator (TRNG)
-	and a Pseudo-Random Number Generator (PRNG) to achieve a true
-	randomness and cryptographic strength.
+	  Enable support for the hardware based random number generator
+	  module of the DCP. It uses the True Random Number Generator (TRNG)
+	  and a Pseudo-Random Number Generator (PRNG) to achieve a true
+	  randomness and cryptographic strength.

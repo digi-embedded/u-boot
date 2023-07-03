@@ -49,6 +49,12 @@ int imagetool_verify_print_header(
 		return imagetool_verify_print_header_by_type(ptr, sbuf, tparams, params);
 
 	for (curr = start; curr != end; curr++) {
+		/*
+		 * Basically every data file can be guessed / verified as gpimage,
+		 * so skip autodetection of data file as gpimage as it does not work.
+		 */
+		if ((*curr)->check_image_type && (*curr)->check_image_type(IH_TYPE_GPIMAGE) == 0)
+			continue;
 		if ((*curr)->verify_header) {
 			retval = (*curr)->verify_header((unsigned char *)ptr,
 						     sbuf->st_size, params);
@@ -71,6 +77,11 @@ int imagetool_verify_print_header(
 		}
 	}
 
+	if (retval != 0) {
+		fprintf(stderr, "%s: cannot detect image type\n",
+			params->cmdname);
+	}
+
 	return retval;
 }
 
@@ -80,27 +91,33 @@ static int imagetool_verify_print_header_by_type(
 	struct image_type_params *tparams,
 	struct image_tool_params *params)
 {
-	int retval;
+	int retval = -1;
 
-	retval = tparams->verify_header((unsigned char *)ptr, sbuf->st_size,
-			params);
+	if (tparams->verify_header) {
+		retval = tparams->verify_header((unsigned char *)ptr,
+						sbuf->st_size, params);
 
-	if (retval == 0) {
-		/*
-		 * Print the image information if verify is successful
-		 */
-		if (tparams->print_header) {
-			if (!params->quiet)
-				tparams->print_header(ptr);
+		if (retval == 0) {
+			/*
+			 * Print the image information if verify is successful
+			 */
+			if (tparams->print_header) {
+				if (!params->quiet)
+					tparams->print_header(ptr);
+			} else {
+				fprintf(stderr,
+					"%s: print_header undefined for %s\n",
+					params->cmdname, tparams->name);
+			}
 		} else {
 			fprintf(stderr,
-				"%s: print_header undefined for %s\n",
-				params->cmdname, tparams->name);
+				"%s: verify_header failed for %s with exit code %d\n",
+				params->cmdname, tparams->name, retval);
 		}
+
 	} else {
-		fprintf(stderr,
-			"%s: verify_header failed for %s with exit code %d\n",
-			params->cmdname, tparams->name, retval);
+		fprintf(stderr, "%s: verify_header undefined for %s\n",
+			params->cmdname, tparams->name);
 	}
 
 	return retval;

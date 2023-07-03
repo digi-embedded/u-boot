@@ -88,7 +88,6 @@
 		internal-regs {
 			serial@12000 {
 				status = "okay";
-				u-boot,dm-pre-reloc;
 			};
 
 			serial@12100 {
@@ -108,20 +107,6 @@
 				status = "okay";
 			};
 
-			mdio {
-				#address-cells = <1>;
-				#size-cells = <0>;
-				phy0: ethernet-phy@0 {
-					reg = <0>;
-				};
-			};
-
-			ethernet@70000 {
-				status = "okay";
-				phy = <&phy0>;
-				phy-mode = "sgmii";
-			};
-
 			usb@50000 {
 				status = "okay";
 			};
@@ -135,7 +120,6 @@
 				compatible = "marvell,armada-xp-lcd";
 				reg = <0xe0000 0x10000>;
 				status = "okay";
-				u-boot,dm-pre-reloc;
 
 				display-timings {
 					native-mode = <&timing0>;
@@ -168,12 +152,22 @@
 	clock-frequency = <100000>;
 };
 
+&mdio {
+	phy0: ethernet-phy@0 {
+		reg = <0>;
+	};
+};
+
+&eth0 {
+	status = "okay";
+	phy = <&phy0>;
+	phy-mode = "sgmii";
+};
+
 &spi0 {
 	status = "okay";
-	u-boot,dm-pre-reloc;
 
 	spi-flash@0 {
-		u-boot,dm-pre-reloc;
 		#address-cells = <1>;
 		#size-cells = <1>;
 		compatible = "n25q128a13", "jedec,spi-nor";
@@ -201,7 +195,6 @@
 		spi-max-frequency = <27777777>;
 	};
 };
-
 
 &pciec {
 	status = "okay";

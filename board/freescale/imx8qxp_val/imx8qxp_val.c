@@ -139,118 +139,6 @@ int board_early_init_f(void)
 #if IS_ENABLED(CONFIG_FEC_MXC)
 #include <miiphy.h>
 
-#ifndef CONFIG_DM_ETH
-static iomux_cfg_t pad_enet1[] = {
-	SC_P_SPDIF0_TX | MUX_MODE_ALT(3) | MUX_PAD_CTRL(ENET_INPUT_PAD_CTRL),
-	SC_P_SPDIF0_RX | MUX_MODE_ALT(3) | MUX_PAD_CTRL(ENET_INPUT_PAD_CTRL),
-	SC_P_ESAI0_TX3_RX2 | MUX_MODE_ALT(3) | MUX_PAD_CTRL(ENET_INPUT_PAD_CTRL),
-	SC_P_ESAI0_TX2_RX3 | MUX_MODE_ALT(3) | MUX_PAD_CTRL(ENET_INPUT_PAD_CTRL),
-	SC_P_ESAI0_TX1 | MUX_MODE_ALT(3) | MUX_PAD_CTRL(ENET_INPUT_PAD_CTRL),
-	SC_P_ESAI0_TX0 | MUX_MODE_ALT(3) | MUX_PAD_CTRL(ENET_INPUT_PAD_CTRL),
-	SC_P_ESAI0_SCKR | MUX_MODE_ALT(3) | MUX_PAD_CTRL(ENET_NORMAL_PAD_CTRL),
-	SC_P_ESAI0_TX4_RX1 | MUX_MODE_ALT(3) | MUX_PAD_CTRL(ENET_NORMAL_PAD_CTRL),
-	SC_P_ESAI0_TX5_RX0 | MUX_MODE_ALT(3) | MUX_PAD_CTRL(ENET_NORMAL_PAD_CTRL),
-	SC_P_ESAI0_FST  | MUX_MODE_ALT(3) | MUX_PAD_CTRL(ENET_NORMAL_PAD_CTRL),
-	SC_P_ESAI0_SCKT | MUX_MODE_ALT(3) | MUX_PAD_CTRL(ENET_NORMAL_PAD_CTRL),
-	SC_P_ESAI0_FSR  | MUX_MODE_ALT(3) | MUX_PAD_CTRL(ENET_NORMAL_PAD_CTRL),
-
-	/* Shared MDIO */
-	SC_P_ENET0_MDC | MUX_PAD_CTRL(ENET_NORMAL_PAD_CTRL),
-	SC_P_ENET0_MDIO | MUX_PAD_CTRL(ENET_NORMAL_PAD_CTRL),
-};
-
-static iomux_cfg_t pad_enet0[] = {
-	SC_P_ENET0_RGMII_RX_CTL | MUX_PAD_CTRL(ENET_INPUT_PAD_CTRL),
-	SC_P_ENET0_RGMII_RXD0 | MUX_PAD_CTRL(ENET_INPUT_PAD_CTRL),
-	SC_P_ENET0_RGMII_RXD1 | MUX_PAD_CTRL(ENET_INPUT_PAD_CTRL),
-	SC_P_ENET0_RGMII_RXD2 | MUX_PAD_CTRL(ENET_INPUT_PAD_CTRL),
-	SC_P_ENET0_RGMII_RXD3 | MUX_PAD_CTRL(ENET_INPUT_PAD_CTRL),
-	SC_P_ENET0_RGMII_RXC | MUX_PAD_CTRL(ENET_INPUT_PAD_CTRL),
-	SC_P_ENET0_RGMII_TX_CTL | MUX_PAD_CTRL(ENET_NORMAL_PAD_CTRL),
-	SC_P_ENET0_RGMII_TXD0 | MUX_PAD_CTRL(ENET_NORMAL_PAD_CTRL),
-	SC_P_ENET0_RGMII_TXD1 | MUX_PAD_CTRL(ENET_NORMAL_PAD_CTRL),
-	SC_P_ENET0_RGMII_TXD2 | MUX_PAD_CTRL(ENET_NORMAL_PAD_CTRL),
-	SC_P_ENET0_RGMII_TXD3 | MUX_PAD_CTRL(ENET_NORMAL_PAD_CTRL),
-	SC_P_ENET0_RGMII_TXC | MUX_PAD_CTRL(ENET_NORMAL_PAD_CTRL),
-
-	/* Shared MDIO */
-	SC_P_ENET0_MDC | MUX_PAD_CTRL(ENET_NORMAL_PAD_CTRL),
-	SC_P_ENET0_MDIO | MUX_PAD_CTRL(ENET_NORMAL_PAD_CTRL),
-};
-
-static void setup_iomux_fec(void)
-{
-	if (0 == CONFIG_FEC_ENET_DEV)
-		imx8_iomux_setup_multiple_pads(pad_enet0, ARRAY_SIZE(pad_enet0));
-	else
-		imx8_iomux_setup_multiple_pads(pad_enet1, ARRAY_SIZE(pad_enet1));
-}
-
-static void enet_device_phy_reset(void)
-{
-	struct gpio_desc desc_enet0;
-	struct gpio_desc desc_enet1;
-	int ret;
-
-	ret = dm_gpio_lookup_name("gpio@18_1", &desc_enet0);
-	if (ret)
-		return;
-
-	ret = dm_gpio_request(&desc_enet0, "enet0_reset");
-	if (ret)
-		return;
-
-	ret = dm_gpio_lookup_name("gpio@18_4", &desc_enet1);
-	if (ret)
-		return;
-
-	ret = dm_gpio_request(&desc_enet1, "enet1_reset");
-	if (ret)
-		return;
-
-	dm_gpio_set_dir_flags(&desc_enet0, GPIOD_IS_OUT);
-	dm_gpio_set_value(&desc_enet0, 0);
-	udelay(50);
-	dm_gpio_set_value(&desc_enet0, 1);
-
-	dm_gpio_set_dir_flags(&desc_enet1, GPIOD_IS_OUT);
-	dm_gpio_set_value(&desc_enet1, 0);
-	udelay(50);
-	dm_gpio_set_value(&desc_enet1, 1);
-
-	/* The board has a long delay for this reset to become stable */
-	mdelay(200);
-}
-
-int board_eth_init(bd_t *bis)
-{
-	int ret;
-	struct power_domain pd;
-
-	printf("[%s] %d\n", __func__, __LINE__);
-
-	/* Reset ENET PHY */
-	enet_device_phy_reset();
-
-	if (CONFIG_FEC_ENET_DEV) {
-		if (!power_domain_lookup_name("conn_enet1", &pd))
-			power_domain_on(&pd);
-	} else {
-		if (!power_domain_lookup_name("conn_enet0", &pd))
-			power_domain_on(&pd);
-	}
-
-	setup_iomux_fec();
-
-	ret = fecmxc_initialize_multi(bis, CONFIG_FEC_ENET_DEV,
-		CONFIG_FEC_MXC_PHYADDR, IMX_FEC_BASE);
-	if (ret)
-		printf("FEC1 MXC: %s:failed\n", __func__);
-
-	return ret;
-}
-#endif
-
 #define MAX7322_I2C_ADDR		0x68
 #define MAX7322_I2C_BUS		0 /* I2C1 */
 int board_phy_config(struct phy_device *phydev)
@@ -290,16 +178,6 @@ int board_phy_config(struct phy_device *phydev)
 
 	if (phydev->drv->config)
 		phydev->drv->config(phydev);
-
-#ifndef CONFIG_DM_ETH
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x1f);
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x8);
-
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x00);
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x82ee);
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x05);
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x100);
-#endif
 
 	return 0;
 }

@@ -8,31 +8,16 @@
 #ifndef __CONFIG_AM43XX_EVM_H
 #define __CONFIG_AM43XX_EVM_H
 
-#define CONFIG_MAX_RAM_BANK_SIZE	(1024 << 21)	/* 2GB */
-#define CONFIG_SYS_TIMERBASE		0x48040000	/* Use Timer2 */
+#define CFG_MAX_RAM_BANK_SIZE	(1024 << 21)	/* 2GB */
+#define CFG_SYS_TIMERBASE		0x48040000	/* Use Timer2 */
 
 #include <asm/arch/omap.h>
 
 /* NS16550 Configuration */
-#define CONFIG_SYS_NS16550_CLK		48000000
-#if !defined(CONFIG_SPL_DM) || !defined(CONFIG_DM_SERIAL)
-#define CONFIG_SYS_NS16550_REG_SIZE    (-4)
-#define CONFIG_SYS_NS16550_SERIAL
-#endif
-
-/* I2C Configuration */
-
-/* Power */
-#define CONFIG_POWER_TPS65218
-#define CONFIG_POWER_TPS62362
-
-/* SPL defines. */
-#define CONFIG_SYS_SPL_ARGS_ADDR	(CONFIG_SYS_SDRAM_BASE + \
-					 (128 << 20))
+#define CFG_SYS_NS16550_CLK		48000000
 
 /* Enabling L2 Cache */
-#define CONFIG_SYS_L2_PL310
-#define CONFIG_SYS_PL310_BASE	0x48242000
+#define CFG_SYS_PL310_BASE	0x48242000
 
 /*
  * When building U-Boot such that there is no previous loader
@@ -48,35 +33,7 @@
 #define V_SCLK				(V_OSCK)
 
 /* NS16550 Configuration */
-#define CONFIG_SYS_NS16550_COM1		0x44e09000	/* Base EVM has UART0 */
-
-/* SPL USB Support */
-
-#if defined(CONFIG_SPL_USB_HOST) || !defined(CONFIG_SPL_BUILD)
-#define CONFIG_SYS_USB_FAT_BOOT_PARTITION		1
-#endif
-
-#if defined(CONFIG_SPL_BUILD) && !defined(CONFIG_SPL_USB_GADGET)
-#undef CONFIG_USB_DWC3_PHY_OMAP
-#undef CONFIG_USB_DWC3_OMAP
-#undef CONFIG_USB_DWC3
-#undef CONFIG_USB_DWC3_GADGET
-
-#undef CONFIG_USB_GADGET_DOWNLOAD
-#undef CONFIG_USB_GADGET_VBUS_DRAW
-#undef CONFIG_USB_GADGET_MANUFACTURER
-#undef CONFIG_USB_GADGET_VENDOR_NUM
-#undef CONFIG_USB_GADGET_PRODUCT_NUM
-#undef CONFIG_USB_GADGET_DUALSPEED
-#endif
-
-/*
- * Disable MMC DM for SPL build and can be re-enabled after adding
- * DM support in SPL
- */
-#ifdef CONFIG_SPL_BUILD
-#undef CONFIG_TIMER
-#endif
+#define CFG_SYS_NS16550_COM1		0x44e09000	/* Base EVM has UART0 */
 
 #ifndef CONFIG_SPL_BUILD
 /* USB Device Firmware Update support */
@@ -109,7 +66,7 @@
 #ifndef CONFIG_SPL_BUILD
 #include <environment/ti/dfu.h>
 
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	DEFAULT_LINUX_BOOT_ENV \
 	"fdtfile=undefined\0" \
 	"finduuid=part uuid mmc 0:2 uuid\0" \
@@ -145,20 +102,13 @@
 
 #endif
 
-#ifndef CONFIG_SPL_BUILD
-/* CPSW Ethernet */
-#define CONFIG_NET_RETRY_COUNT		10
-#endif
-
 #define PHY_ANEG_TIMEOUT	8000 /* PHY needs longer aneg time at 1G */
-
-#define CONFIG_SYS_RX_ETH_BUFFER	64
 
 /* NAND support */
 #ifdef CONFIG_MTD_RAW_NAND
 /* NAND: device related configs */
 /* NAND: driver related configs */
-#define CONFIG_SYS_NAND_ECCPOS	{ 2, 3, 4, 5, 6, 7, 8, 9, \
+#define CFG_SYS_NAND_ECCPOS	{ 2, 3, 4, 5, 6, 7, 8, 9, \
 				10, 11, 12, 13, 14, 15, 16, 17, 18, 19, \
 				20, 21, 22, 23, 24, 25, 26, 27, 28, 29, \
 				30, 31, 32, 33, 34, 35, 36, 37, 38, 39, \
@@ -180,22 +130,15 @@
 			190, 191, 192, 193, 194, 195, 196, 197, 198, 199, \
 			200, 201, 202, 203, 204, 205, 206, 207, 208, 209, \
 			}
-#define CONFIG_SYS_NAND_ECCSIZE		512
-#define CONFIG_SYS_NAND_ECCBYTES	26
-/* NAND: SPL related configs */
-/* NAND: SPL falcon mode configs */
-#ifdef CONFIG_SPL_OS_BOOT
-#define CONFIG_SYS_NAND_SPL_KERNEL_OFFS	0x00300000 /* kernel offset */
-#endif
+#define CFG_SYS_NAND_ECCSIZE		512
+#define CFG_SYS_NAND_ECCBYTES	26
 #define NANDARGS \
-	"mtdids=" CONFIG_MTDIDS_DEFAULT "\0" \
-	"mtdparts=" CONFIG_MTDPARTS_DEFAULT "\0" \
 	"nandargs=setenv bootargs console=${console} " \
 		"${optargs} " \
 		"root=${nandroot} " \
 		"rootfstype=${nandrootfstype}\0" \
 	"nandroot=ubi0:rootfs rw ubi.mtd=NAND.file-system,4096\0" \
-	"nandrootfstype=ubifs rootwait=1\0" \
+	"nandrootfstype=ubifs rootwait\0" \
 	"nandboot=echo Booting from nand ...; " \
 		"run nandargs; " \
 		"nand read ${fdtaddr} NAND.u-boot-spl-os; " \
@@ -209,7 +152,7 @@
 
 #if defined(CONFIG_TI_SECURE_DEVICE)
 /* Avoid relocating onto firewalled area at end of DRAM */
-#define CONFIG_PRAM (64 * 1024)
+#define CFG_PRAM (64 * 1024)
 #endif /* CONFIG_TI_SECURE_DEVICE */
 
 #endif	/* __CONFIG_AM43XX_EVM_H */

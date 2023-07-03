@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: (GPL-2.0 OR MIT)
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
- * Copyright 2022 NXP
+ * Copyright 2021 NXP
  */
 
 /dts-v1/;
@@ -16,6 +16,11 @@
 		bootargs = "console=ttyLP1,115200 earlycon";
 	};
 
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x0 0x80000000 0 0x80000000>;
+	};
+
 	reserved-memory {
 		#address-cells = <2>;
 		#size-cells = <2>;
@@ -27,7 +32,21 @@
 			size = <0 0x28000000>;
 			linux,cma-default;
 		};
+	};
 
+	clock_ext_rmii: clock-ext-rmii {
+		compatible = "fixed-clock";
+		clock-frequency = <50000000>;
+		clock-output-names = "ext_rmii_clk";
+		#clock-cells = <0>;
+	};
+
+	clock_ext_ts: clock-ext-ts {
+		compatible = "fixed-clock";
+		/* External ts clock is 50MHZ from PHY on EVK board. */
+		clock-frequency = <50000000>;
+		clock-output-names = "ext_ts_clk";
+		#clock-cells = <0>;
 	};
 
 	reg_5v: regulator-5v {
@@ -37,12 +56,7 @@
 		regulator-max-microvolt = <5000000>;
 		regulator-always-on;
 	};
-};
 
-
-&clock_ext_ts {
-	/* External ts clock is 50MHZ from PHY on EVK board. */
-	clock-frequency = <50000000>;
 };
 
 &lpuart5 {
@@ -94,7 +108,7 @@
 
 	pinctrl_otgid1: usb1grp {
 		fsl,pins = <
-			MX8ULP_PAD_PTE16__USB0_ID	0x10003
+			MX8ULP_PAD_PTE16__USB0_ID       0x10003
 		>;
 	};
 

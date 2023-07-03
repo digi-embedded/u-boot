@@ -494,7 +494,7 @@ bool is_usb_boot(void)
 	return get_boot_device() == USB_BOOT;
 }
 
-#if defined(CONFIG_SERIAL_TAG) || defined(CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG)
+#ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
 /*
  * OCOTP_CFG (SJC CHALLENGE, Unique ID)
  * i.MX 7ULP Applications Processor Reference Manual, Rev. 0, 09/2020

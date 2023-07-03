@@ -105,7 +105,7 @@ void build_info(void)
 	/* Get imx-mkimage commit id.
 	 * The imx-mkimage puts the commit hash behind the end of u-boot.bin
 	 */
-	mkimage_commit = (char *)(ulong)(CONFIG_SYS_TEXT_BASE +
+	mkimage_commit = (char *)(ulong)(CONFIG_TEXT_BASE +
 		_end_ofs + fdt_totalsize(gd->fdt_blob));
 	temp = mkimage_commit + 8;
 	*temp = '\0';

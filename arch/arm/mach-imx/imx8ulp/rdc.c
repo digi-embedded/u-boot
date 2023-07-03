@@ -9,7 +9,7 @@
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/mach-imx/mu_hal.h>
-#include <asm/mach-imx/s400_api.h>
+#include <asm/mach-imx/ele_api.h>
 #include <asm/arch/rdc.h>
 #include <div64.h>
 
@@ -203,7 +203,7 @@ int xrdc_config_msc(u32 msc, u32 index, u32 dom, u32 perm)
 int release_rdc(enum rdc_type type)
 {
 	ulong s_mu_base = 0x27020000UL;
-	struct sentinel_msg msg;
+	struct ele_msg msg;
 	int ret;
 	u32 rdc_id = (type == RDC_XRDC) ? 0x78 : 0x74;
 
@@ -311,18 +311,19 @@ void xrdc_init_mrc(void)
 	xrdc_config_mrc_w3_w4(3, 3, 0x0, 0x0);
 
 	/* Set MRC4 and MRC5 for DDR access from A35 and AP NIC PER masters */
-	xrdc_config_mrc_w0_w1(4, 0, CONFIG_SYS_SDRAM_BASE, PHYS_SDRAM_SIZE);
+	xrdc_config_mrc_w0_w1(4, 0, CFG_SYS_SDRAM_BASE, PHYS_SDRAM_SIZE);
 	xrdc_config_mrc_dx_perm(4, 0, 1, 1);
 	xrdc_config_mrc_dx_perm(4, 0, 7, 1);
 	xrdc_config_mrc_w3_w4(4, 0, 0x0, 0x80000FFF);
 
-	xrdc_config_mrc_w0_w1(5, 0, CONFIG_SYS_SDRAM_BASE, PHYS_SDRAM_SIZE);
+	xrdc_config_mrc_w0_w1(5, 0, CFG_SYS_SDRAM_BASE, PHYS_SDRAM_SIZE);
 	xrdc_config_mrc_dx_perm(5, 0, 1, 1);
 	xrdc_config_mrc_w3_w4(5, 0, 0x0, 0x80000FFF);
 
-	/* Set MRC6 for DDR access from Sentinel */
-	xrdc_config_mrc_w0_w1(6, 0, CONFIG_SYS_SDRAM_BASE, PHYS_SDRAM_SIZE);
+	/* Set MRC6 for DDR access from ELE */
+	xrdc_config_mrc_w0_w1(6, 0, CFG_SYS_SDRAM_BASE, PHYS_SDRAM_SIZE);
 	xrdc_config_mrc_dx_perm(6, 0, 4, 1);
+	xrdc_config_mrc_dx_perm(6, 0, 7, 1);
 	xrdc_config_mrc_w3_w4(6, 0, 0x0, 0x80000FFF);
 
 	/* The MRC8 is for SRAM1 */

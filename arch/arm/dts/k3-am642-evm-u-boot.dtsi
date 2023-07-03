@@ -8,6 +8,10 @@
 		stdout-path = "serial2:115200n8";
 		tick-timer = &timer1;
 	};
+
+	memory@80000000 {
+		u-boot,dm-spl;
+	};
 };
 
 &cbass_main{
@@ -16,7 +20,7 @@
 		compatible = "ti,omap5430-timer";
 		reg = <0x0 0x2400000 0x0 0x80>;
 		ti,timer-alwon;
-		clock-frequency = <250000000>;
+		clock-frequency = <200000000>;
 		u-boot,dm-spl;
 	};
 };
@@ -40,6 +44,7 @@
 };
 
 &main_i2c0 {
+	status = "okay";
 	u-boot,dm-spl;
 	pinctrl-names = "default";
 	pinctrl-0 = <&main_i2c0_pins_default>;
@@ -108,6 +113,9 @@
 	      <0x0 0x43000200 0x0 0x8>;
 	reg-names = "cpsw_nuss", "mac_efuse";
 	/delete-property/ ranges;
+	pinctrl-0 = <&mdio1_pins_default	/* HACK: as MDIO driver is not DM enabled */
+		     &rgmii1_pins_default
+		     &rgmii2_pins_default>;
 
 	cpsw-phy-sel@04044 {
 		compatible = "ti,am64-phy-gmii-sel";

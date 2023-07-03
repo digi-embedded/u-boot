@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0+
+// SPDX-License-Identifier: BSD-3-Clause
 /*
  * Copyright 2021 NXP
  */
@@ -32,6 +32,8 @@
 #define PS_FUSE		BIT(18)
 #define PS_UPOWER	BIT(19)
 
+#define RETRY_TIMES 3
+
 static struct MU_tag *muptr = (struct MU_tag *)UPOWER_AP_MU1_ADDR;
 
 extern void upwr_txrx_isr(void);
@@ -43,12 +45,12 @@ void upower_apd_inst_isr(upwr_isr_callb txrx_isr, upwr_isr_callb excp_isr)
 
 void upower_wait_resp(void)
 {
-    while(muptr->RSR.B.RF0 == 0) {
-        debug("%s: poll the mu:%x\n", __func__, muptr->RSR.R);
-        udelay(100);
-    }
+	while (muptr->RSR.B.RF0 == 0) {
+		debug("%s: poll the mu:%x\n", __func__, muptr->RSR.R);
+		udelay(100);
+	}
 
-    upwr_txrx_isr();
+	upwr_txrx_isr();
 }
 
 void usr_upwr_callb(upwr_sg_t sg, uint32_t func, upwr_resp_t errcode, int ret)
@@ -58,26 +60,27 @@ void usr_upwr_callb(upwr_sg_t sg, uint32_t func, upwr_resp_t errcode, int ret)
 
 u32 upower_status(int status)
 {
-    u32 ret = -1;
-    switch(status) {
-        case 0:
-            debug("%s: finished successfully!\n", __func__);
-            ret = 0;
-            break;
-        case -1:
-            printf("%s: memory allocation or resource failed!\n", __func__);
-            break;
-        case -2:
-            printf("%s: invalid argument!\n", __func__);
-            break;
-        case -3:
-            printf("%s: called in an invalid API state!\n", __func__);
-            break;
-        default:
-            printf("%s: invalid return status\n", __func__);
-            break;
-    }
-    return ret;
+	u32 ret = -1;
+
+	switch (status) {
+	case 0:
+		debug("%s: finished successfully!\n", __func__);
+		ret = 0;
+		break;
+	case -1:
+		printf("%s: memory allocation or resource failed!\n", __func__);
+		break;
+	case -2:
+		printf("%s: invalid argument!\n", __func__);
+		break;
+	case -3:
+		printf("%s: called in an invalid API state!\n", __func__);
+		break;
+	default:
+		printf("%s: invalid return status\n", __func__);
+		break;
+	}
+	return ret;
 }
 
 void user_upwr_rdy_callb(uint32_t soc, uint32_t vmajor, uint32_t vminor)
@@ -93,14 +96,14 @@ int upower_pmic_i2c_write(u32 reg_addr, u32 reg_val)
 
 	ret = upwr_xcp_i2c_access(0x32, 1, 1, reg_addr, reg_val, NULL);
 	if (ret) {
-		printf("pmic i2c read failed ret %d\n", ret);
+		printf("pmic i2c write failed ret %d\n", ret);
 		return ret;
 	}
 
 	upower_wait_resp();
 	ret = upwr_poll_req_status(UPWR_SG_EXCEPT, NULL, &err_code, &ret_val, 1000);
 	if (ret != UPWR_REQ_OK) {
-		printk("i2c poll Faliure %d, err_code %d, ret_val 0x%x\n", ret, err_code, ret_val);
+		printf("i2c poll Failure %d, err_code %d, ret_val 0x%x\n", ret, err_code, ret_val);
 		return ret;
 	}
 
@@ -126,7 +129,7 @@ int upower_pmic_i2c_read(u32 reg_addr, u32 *reg_val)
 	upower_wait_resp();
 	ret = upwr_poll_req_status(UPWR_SG_EXCEPT, NULL, &err_code, &ret_val, 1000);
 	if (ret != UPWR_REQ_OK) {
-		printk("i2c poll Faliure %d, err_code %d, ret_val 0x%x\n", ret, err_code, ret_val);
+		printf("i2c poll Failure %d, err_code %d, ret_val 0x%x\n", ret, err_code, ret_val);
 		return ret;
 	}
 
@@ -146,7 +149,7 @@ int upower_init(void)
 
 	uint32_t swton;
 	uint64_t memon;
-	int ret, ret_val;
+	int ret, ret_val, retry;
 
 	struct upwr_dom_bias_cfg_t bias;
 
@@ -158,13 +161,13 @@ int upower_init(void)
 		}
 
 		soc_id = upwr_rom_version(&fw_major, &fw_minor, &fw_vfixes);
-		if (soc_id == 0) {
+		if (!soc_id) {
 			printf("%s:, soc_id not initialized\n", __func__);
 			break;
-		} else {
-			printf("%s: soc_id=%d\n", __func__, soc_id);
-			printf("%s: version:%d.%d.%d\n", __func__, fw_major, fw_minor, fw_vfixes);
 		}
+
+		printf("%s: soc_id=%d\n", __func__, soc_id);
+		printf("%s: version:%d.%d.%d\n", __func__, fw_major, fw_minor, fw_vfixes);
 
 		printf("%s: start uPower RAM service\n", __func__);
 		status = upwr_start(1, user_upwr_rdy_callb);
@@ -173,11 +176,15 @@ int upower_init(void)
 			printf("%s: upower init failure\n", __func__);
 			break;
 		}
-	} while(0);
+	} while (0);
 
-	swton = PS_UPOWER | PS_FUSE | PS_FUSION_AO | PS_NIC_LPAV | PS_PXP_EPDC | PS_DDR |
-		PS_HIFI4 | PS_GPU3D | PS_MIPI_DSI;
-	ret = upwr_pwm_power_on(&swton, NULL /* no memories */, NULL /* no callback */);
+	retry = RETRY_TIMES;
+PS_PWR_ON:
+	swton = PS_UPOWER | PS_FUSE | PS_FUSION_AO | PS_NIC_LPAV | PS_DDR |
+		PS_HIFI4 | PS_MIPI_DSI;
+	if (is_imx8ulpd7())
+		swton |= PS_PXP_EPDC; /* Work around for EPDC+PXP on M33 */
+	ret = upwr_pwm_power_on(&swton, NULL, NULL);
 	if (ret)
 		printf("Turn on switches fail %d\n", ret);
 	else
@@ -185,10 +192,15 @@ int upower_init(void)
 
 	upower_wait_resp();
 	ret = upwr_poll_req_status(UPWR_SG_PWRMGMT, NULL, &err_code, &ret_val, 1000);
-	if (ret != UPWR_REQ_OK)
+	if (ret != UPWR_REQ_OK) {
 		printf("Turn on switches faliure %d, err_code %d, ret_val 0x%x\n", ret, err_code, ret_val);
-	else
+		if (err_code == UPWR_RESP_RESOURCE && retry--) {
+			mdelay(10); /* delay 10ms, then retry  */
+			goto PS_PWR_ON;
+		}
+	} else {
 		printf("Turn on switches ok\n");
+	}
 
 	/*
 	 * Ascending Order -> bit [0:54)
@@ -232,8 +244,8 @@ int upower_init(void)
 	 * CM33 Cache
 	 * PowerQuad RAM
 	 * ETF RAM
-	 * Sentinel PKC, Data RAM1, Inst RAM0/1
-	 * Sentinel ROM
+	 * ELE PKC, Data RAM1, Inst RAM0/1
+	 * ELE ROM
 	 * uPower IRAM/DRAM
 	 * uPower ROM
 	 * CM33 ROM
@@ -245,11 +257,14 @@ int upower_init(void)
 	 * SSRAM Partition 7_a(128KB)
 	 * SSRAM Partition 7_b(64KB)
 	 * SSRAM Partition 7_c(64KB)
-	 * Sentinel Data RAM0, Inst RAM2
+	 * ELE Data RAM0, Inst RAM2
 	 */
+
+	retry = RETRY_TIMES;
+MEM_PWR_ON:
 	/* MIPI-CSI FIFO BIT28 not set */
-	memon = 0x3FFFFFEFFFFFFCUL;
-	ret = upwr_pwm_power_on(NULL, (const uint32_t *)&memon /* no memories */, NULL /* no callback */);
+	memon = 0x3FFFFFAC27FFFCUL;
+	ret = upwr_pwm_power_on(NULL, (const uint32_t *)&memon, NULL);
 	if (ret)
 		printf("Turn on memories fail %d\n", ret);
 	else
@@ -257,11 +272,15 @@ int upower_init(void)
 
 	upower_wait_resp();
 	ret = upwr_poll_req_status(UPWR_SG_PWRMGMT, NULL, &err_code, &ret_val, 1000);
-	if (ret != UPWR_REQ_OK)
+	if (ret != UPWR_REQ_OK) {
 		printf("Turn on memories faliure %d, err_code %d, ret_val 0x%x\n", ret, err_code, ret_val);
-	else
+		if (err_code == UPWR_RESP_RESOURCE && retry--) {
+			mdelay(10); /* delay 10ms, then retry  */
+			goto MEM_PWR_ON;
+		}
+	} else {
 		printf("Turn on memories ok\n");
-
+	}
 	mdelay(1);
 
 	ret = upwr_xcp_set_ddr_retention(APD_DOMAIN, 0, NULL);

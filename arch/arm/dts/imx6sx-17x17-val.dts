@@ -14,6 +14,10 @@
 	model = "i.MX6 SoloX 17x17 VAL Board";
 	compatible = "fsl,imx6sx-17x17-val", "fsl,imx6sx";
 
+	chosen {
+		stdout-path = &uart1;
+	};
+
 	backlight {
 		compatible = "pwm-backlight";
 		pwms = <&pwm3 0 5000000>;

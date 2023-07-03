@@ -47,7 +47,7 @@
 #define IOMUXC_GPR_BASE_ADDR	0x30340000
 #define OCOTP_BASE_ADDR		0x30350000
 #define ANATOP_BASE_ADDR	0x30360000
-#define SNVS_HP_BASE_ADDR	0x30370000
+#define SNVS_BASE_ADDR		0x30370000
 #define CCM_BASE_ADDR		0x30380000
 #define SRC_BASE_ADDR		0x30390000
 #define GPC_BASE_ADDR		0x303A0000
@@ -168,15 +168,21 @@
 #define PLAT_CTRL_BASE_ADDR	0x32FE0000
 #endif
 
-#define MXS_APBH_BASE		0x33000000
-#define MXS_GPMI_BASE		0x33002000
-#define MXS_BCH_BASE		0x33004000
-
+#define UART_BASE_ADDR(n)	(			\
+	!!sizeof(struct {				\
+		static_assert((n) >= 1 && (n) <= 4);	\
+		int pad;				\
+		}) * (					\
+	(n) == 1 ? UART1_BASE_ADDR :			\
+	(n) == 2 ? UART2_BASE_ADDR :			\
+	(n) == 3 ? UART3_BASE_ADDR :			\
+	UART4_BASE_ADDR)				\
+	)
 
 #define USB_BASE_ADDR		USB1_BASE_ADDR
 
-#define MXS_LCDIF_BASE		IS_ENABLED(CONFIG_IMX8MQ) ? \
-								LCDIF_BASE_ADDR_IMX8MQ : LCDIF_BASE_ADDR
+#define MXS_LCDIF_BASE		(IS_ENABLED(CONFIG_IMX8MQ) ? \
+								LCDIF_BASE_ADDR_IMX8MQ : LCDIF_BASE_ADDR)
 
 #define IOMUXC_GPR0		(IOMUXC_GPR_BASE_ADDR + 0x00)
 #define IOMUXC_GPR1		(IOMUXC_GPR_BASE_ADDR + 0x04)
@@ -215,21 +221,34 @@
 #define SRC_DDRC2_RCR_ADDR	0x30391004
 #define SRC_DDR1_ENABLE_MASK		0x8F000000UL
 
+#define APBH_DMA_ARB_BASE_ADDR	0x33000000
+#define APBH_DMA_ARB_END_ADDR	0x33007FFF
+#define MXS_APBH_BASE		APBH_DMA_ARB_BASE_ADDR
+
+#define MXS_GPMI_BASE		(APBH_DMA_ARB_BASE_ADDR + 0x02000)
+#define MXS_BCH_BASE		(APBH_DMA_ARB_BASE_ADDR + 0x04000)
+
+#define GICD_BASE		0x38800000
+#define GICR_BASE		0x38880000
+
 #define DDRC_DDR_SS_GPR0	0x3d000000
 #define DDRC_IPS_BASE_ADDR(X)	(0x3d400000 + ((X) * 0x2000000))
 #define DDR_CSD1_BASE_ADDR	0x40000000
 
+#ifdef CONFIG_ARMV8_PSCI	/* Final jump location */
+#define CPU_RELEASE_ADDR               0x900000
+#endif
+
 #define CAAM_ARB_BASE_ADDR              (0x00100000)
 #define CAAM_ARB_END_ADDR               (0x00107FFF)
 #define CAAM_IPS_BASE_ADDR              (0x30900000)
-#define CONFIG_SYS_FSL_SEC_OFFSET       (0)
-#define CONFIG_SYS_FSL_SEC_ADDR         (CAAM_IPS_BASE_ADDR + \
-					 CONFIG_SYS_FSL_SEC_OFFSET)
-#define CONFIG_SYS_FSL_JR0_OFFSET       (0x1000)
-#define CONFIG_SYS_FSL_JR1_OFFSET       (0x2000)
-#define CONFIG_SYS_FSL_JR0_ADDR         (CONFIG_SYS_FSL_SEC_ADDR + \
-					 CONFIG_SYS_FSL_JR0_OFFSET)
-#define CONFIG_SYS_FSL_MAX_NUM_OF_SEC   1
+#define CFG_SYS_FSL_SEC_OFFSET       (0)
+#define CFG_SYS_FSL_SEC_ADDR         (CAAM_IPS_BASE_ADDR + \
+					 CFG_SYS_FSL_SEC_OFFSET)
+#define CFG_SYS_FSL_JR0_OFFSET       (0x1000)
+#define CFG_SYS_FSL_JR1_OFFSET       (0x2000)
+#define CFG_SYS_FSL_JR0_ADDR         (CFG_SYS_FSL_SEC_ADDR + \
+					 CFG_SYS_FSL_JR0_OFFSET)
 #if !defined(__ASSEMBLY__)
 #include <asm/types.h>
 #include <linux/bitops.h>
@@ -251,12 +270,16 @@
 #define SRC_DDR1_RCR_CORE_RESET_N_MASK	BIT(1)
 #define SRC_DDR1_RCR_PRESET_N_MASK	BIT(0)
 
+#define SNVS_LPSR			0x4c
+#define SNVS_LPLVDR			0x64
+#define SNVS_LPPGDR_INIT		0x41736166
+
 #define FEC_QUIRK_ENET_MAC
 #define IOMUXC_GPR_GPR1_GPR_ENET1_TX_CLK_SEL_MASK 0x2000u
 #define IOMUXC_GPR_GPR1_GPR_ENET1_TX_CLK_SEL_SHIFT 13
 #define IOMUXC_GPR_GPR1_GPR_ENET_QOS_INTF_SEL_MASK 0x70000
 
-#define SNVS_HPSR              (SNVS_HP_BASE_ADDR + 0x14)
+#define SNVS_HPSR              (SNVS_BASE_ADDR + 0x14)
 
 struct iomuxc_gpr_base_regs {
 	u32 gpr[48];
@@ -488,6 +511,23 @@ struct src {
 	u32 reserved5[985];
 	u32 ddr1_rcr;
 	u32 ddr2_rcr;
+};
+
+#define PWMCR_PRESCALER(x)	(((x - 1) & 0xFFF) << 4)
+#define PWMCR_DOZEEN		(1 << 24)
+#define PWMCR_WAITEN		(1 << 23)
+#define PWMCR_DBGEN		(1 << 22)
+#define PWMCR_CLKSRC_IPG_HIGH	(2 << 16)
+#define PWMCR_CLKSRC_IPG	(1 << 16)
+#define PWMCR_EN		(1 << 0)
+
+struct pwm_regs {
+	u32	cr;
+	u32	sr;
+	u32	ir;
+	u32	sar;
+	u32	pr;
+	u32	cnr;
 };
 
 #define WDOG_WDT_MASK	BIT(3)

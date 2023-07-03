@@ -10,20 +10,14 @@
 
 #define COUNTER_FREQUENCY_REAL		(get_board_sys_clk() / 4)
 
-/* DDR */
-#define CONFIG_DIMM_SLOTS_PER_CTLR		2
-
-#define CONFIG_QIXIS_I2C_ACCESS
-
 /*
  * QIXIS Definitions
  */
-#define CONFIG_FSL_QIXIS
 
 #ifdef CONFIG_FSL_QIXIS
 #define QIXIS_BASE			0x7fb00000
 #define QIXIS_BASE_PHYS			QIXIS_BASE
-#define CONFIG_SYS_I2C_FPGA_ADDR	0x66
+#define CFG_SYS_I2C_FPGA_ADDR	0x66
 #define QIXIS_LBMAP_SWITCH		1
 #define QIXIS_LBMAP_MASK		0x0f
 #define QIXIS_LBMAP_SHIFT		5
@@ -41,42 +35,34 @@
 #define QIXIS_RCFG_CTL_WATCHDOG_ENBLE	0x08
 #define QIXIS_RST_FORCE_MEM		0x01
 
-#define CONFIG_SYS_FPGA_CSPR_EXT	(0x0)
-#define CONFIG_SYS_FPGA_CSPR		(CSPR_PHYS_ADDR(QIXIS_BASE_PHYS) | \
+#define CFG_SYS_FPGA_CSPR_EXT	(0x0)
+#define CFG_SYS_FPGA_CSPR		(CSPR_PHYS_ADDR(QIXIS_BASE_PHYS) | \
 					CSPR_PORT_SIZE_8 | \
 					CSPR_MSEL_GPCM | \
 					CSPR_V)
-#define CONFIG_SYS_FPGA_AMASK		IFC_AMASK(64 * 1024)
-#define CONFIG_SYS_FPGA_CSOR		(CSOR_NOR_ADM_SHIFT(4) | \
+#define CFG_SYS_FPGA_AMASK		IFC_AMASK(64 * 1024)
+#define CFG_SYS_FPGA_CSOR		(CSOR_NOR_ADM_SHIFT(4) | \
 					CSOR_NOR_NOR_MODE_AVD_NOR | \
 					CSOR_NOR_TRHZ_80)
 #endif
 
 /* RTC */
-#define CONFIG_SYS_RTC_BUS_NUM         1
+#define CFG_SYS_RTC_BUS_NUM         1
 #define I2C_MUX_CH_RTC                 0xB
 
 /* Store environment at top of flash */
 
-#ifdef CONFIG_SPL_BUILD
-#define CONFIG_SYS_MONITOR_BASE CONFIG_SPL_TEXT_BASE
-#else
-#define CONFIG_SYS_MONITOR_BASE CONFIG_SYS_TEXT_BASE
-#endif
-
 /* LPUART */
 #ifdef CONFIG_LPUART
-#define CONFIG_LPUART_32B_REG
 #define CFG_LPUART_MUX_MASK	0xf0
 #define CFG_LPUART_EN		0xf0
 #endif
 
 /* SATA */
 
-#define CONFIG_SYS_SATA1			AHCI_BASE_ADDR1
 #ifndef SPL_NO_ENV
-#undef CONFIG_EXTRA_ENV_SETTINGS
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#undef CFG_EXTRA_ENV_SETTINGS
+#define CFG_EXTRA_ENV_SETTINGS \
 	"board=ls1028aqds\0" \
 	"hwconfig=fsl_ddr:bank_intlv=auto\0" \
 	"ramdisk_addr=0x800000\0" \
@@ -102,7 +88,6 @@
 	"kernelhdr_addr_sd=0x3000\0" \
 	"kernelhdr_size_sd=0x10\0" \
 	"console=ttyS0,115200\0" \
-	"mtdparts=" CONFIG_MTDPARTS_DEFAULT "\0" \
 	BOOTENV \
 	"boot_scripts=ls1028aqds_boot.scr\0" \
 	"boot_script_hdr=hdr_ls1028aqds_bs.out\0" \

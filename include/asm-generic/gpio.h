@@ -127,8 +127,7 @@ struct gpio_desc {
 #define GPIOD_OPEN_SOURCE	BIT(6)	/* GPIO is open source type */
 #define GPIOD_PULL_UP		BIT(7)	/* GPIO has pull-up enabled */
 #define GPIOD_PULL_DOWN		BIT(8)	/* GPIO has pull-down enabled */
-#define GPIOD_MASK_DIR		(GPIOD_IS_OUT | GPIOD_IS_IN | \
-					GPIOD_IS_OUT_ACTIVE)
+#define GPIOD_IS_AF		BIT(9)	/* GPIO is an alternate function */
 
 /* Flags for updating the above */
 #define GPIOD_MASK_DIR		(GPIOD_IS_OUT | GPIOD_IS_IN | \
@@ -463,14 +462,6 @@ int dm_gpio_lookup_name(const char *name, struct gpio_desc *desc);
 int gpio_hog_lookup_name(const char *name, struct gpio_desc **desc);
 
 /**
- * gpio_hog_probe_all() - probe all gpio devices with
- * gpio-hog subnodes.
- *
- * @return:	Returns return value from device_probe()
- */
-int gpio_hog_probe_all(void);
-
-/**
  * gpio_lookup_name - Look up a GPIO name and return its details
  *
  * This is used to convert a named GPIO into a device, offset and GPIO
@@ -580,6 +571,25 @@ int gpio_claim_vector(const int *gpio_num_array, const char *fmt);
  */
 int gpio_request_by_name(struct udevice *dev, const char *list_name,
 			 int index, struct gpio_desc *desc, int flags);
+
+/* gpio_request_by_line_name - Locate and request a GPIO by line name
+ *
+ * Request a GPIO using the offset of the provided line name in the
+ * gpio-line-names property found in the OF node of the GPIO udevice.
+ *
+ * This allows boards to implement common behaviours using GPIOs while not
+ * requiring specific GPIO offsets be used.
+ *
+ * @dev:	An instance of a GPIO controller udevice
+ * @line_name:	The name of the GPIO (e.g. "bmc-secure-boot")
+ * @desc:	A GPIO descriptor that is populated with the requested GPIO
+ *              upon return
+ * @flags:	The GPIO settings apply to the request
+ * @return 0 if the named line was found and requested successfully, or a
+ * negative error code if the GPIO cannot be found or the request failed.
+ */
+int gpio_request_by_line_name(struct udevice *dev, const char *line_name,
+			      struct gpio_desc *desc, int flags);
 
 /**
  * gpio_request_list_by_name() - Request a list of GPIOs

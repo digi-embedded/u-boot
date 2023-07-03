@@ -11,7 +11,7 @@
 
 struct imx8_clk_header {
 	ulong id;
-#if CONFIG_IS_ENABLED(CMD_CLK)
+#if IS_ENABLED(CONFIG_CMD_CLK)
 	const char *name;
 #endif
 };
@@ -66,7 +66,7 @@ struct imx8_clks_collect {
 	ulong match_flag;
 };
 
-#if CONFIG_IS_ENABLED(CMD_CLK)
+#if IS_ENABLED(CONFIG_CMD_CLK)
 #define CLK_3(ID, NAME, MEM2) \
 	{ { ID, NAME, }, MEM2, }
 #define CLK_4(ID, NAME, MEM2, MEM3) \

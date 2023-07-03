@@ -9,6 +9,9 @@
 #define __ASM_TEST_H
 
 #include <video.h>
+#include <pci_ids.h>
+
+struct unit_test_state;
 
 /* The sandbox driver always permits an I2C device with this address */
 #define SANDBOX_I2C_TEST_ADDR		0x59
@@ -17,8 +20,8 @@
 #define SANDBOX_PCI_SWAP_CASE_EMUL_ID	0x5678
 #define SANDBOX_PCI_PMC_EMUL_ID		0x5677
 #define SANDBOX_PCI_P2SB_EMUL_ID	0x5676
-#define SANDBOX_PCI_CLASS_CODE		PCI_CLASS_CODE_COMM
-#define SANDBOX_PCI_CLASS_SUB_CODE	PCI_CLASS_SUB_CODE_COMM_SERIAL
+#define SANDBOX_PCI_CLASS_CODE		(PCI_CLASS_COMMUNICATION_SERIAL >> 8)
+#define SANDBOX_PCI_CLASS_SUB_CODE	(PCI_CLASS_COMMUNICATION_SERIAL & 0xff)
 
 #define PCI_CAP_ID_PM_OFFSET		0x50
 #define PCI_CAP_ID_EXP_OFFSET		0x60
@@ -186,6 +189,16 @@ int sandbox_get_setup_called(struct udevice *dev);
 int sandbox_get_sound_active(struct udevice *dev);
 
 /**
+ * sandbox_get_sound_count() - Read back the count of the sound data so far
+ *
+ * This data is provided to the sandbox driver by the sound play() method.
+ *
+ * @dev: Device to check
+ * Return: count of audio data
+ */
+int sandbox_get_sound_count(struct udevice *dev);
+
+/**
  * sandbox_get_sound_sum() - Read back the sum of the sound data so far
  *
  * This data is provided to the sandbox driver by the sound play() method.
@@ -302,5 +315,63 @@ int sandbox_cros_ec_get_pwm_duty(struct udevice *dev, uint index, uint *duty);
  * after the change
  */
 int sandbox_sdl_set_bpp(struct udevice *dev, enum video_log2_bpp l2bpp);
+
+/**
+ * sandbox_set_fake_efi_mgr_dev() - Control EFI bootmgr producing valid bootflow
+ *
+ * This is only used for testing.
+ *
+ * @dev: efi_mgr bootmeth device
+ * @fake_dev: true to produce a valid bootflow when requested, false to produce
+ * an error
+ */
+void sandbox_set_fake_efi_mgr_dev(struct udevice *dev, bool fake_dev);
+
+/**
+ * sandbox_load_other_fdt() - load the 'other' FDT into the test state
+ *
+ * This copies the other.dtb file into the test state, so that a fresh version
+ * can be used for a test that is about to run.
+ *
+ * If @uts->other_fdt is NULL, as it is when first set up, this allocates a
+ * buffer for the other FDT and sets @uts->other_fdt_size to its size.
+ *
+ * In any case, the other FDT is copied from the sandbox state into
+ * @uts->other_fdt ready for use.
+ *
+ * @uts: Unit test state
+ * @return 0 if OK, -ve on error
+ */
+int sandbox_load_other_fdt(void **fdtp, int *sizep);
+
+/**
+ * sandbox_set_eth_enable() - Enable / disable Ethernet
+ *
+ * Allows control of whether Ethernet packets are actually send/received
+ *
+ * @enable: true to enable Ethernet, false to disable
+ */
+void sandbox_set_eth_enable(bool enable);
+
+/**
+ * sandbox_eth_enabled() - Check if Ethernet is enabled
+ *
+ * Returns: true if Ethernet is enabled on sandbox, False if not
+ */
+bool sandbox_eth_enabled(void);
+
+/**
+ * sandbox_sf_bootdev_enabled() - Check if SPI flash bootdevs should be bound
+ *
+ * Returns: true if sandbox should bind bootdevs for SPI flash, false if not
+ */
+bool sandbox_sf_bootdev_enabled(void);
+
+/**
+ * sandbox_sf_set_enable_bootdevs() - Enable / disable the SPI flash bootdevs
+ *
+ * @enable: true to bind the SPI flash bootdevs, false to skip
+ */
+void sandbox_sf_set_enable_bootdevs(bool enable);
 
 #endif

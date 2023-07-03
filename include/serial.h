@@ -14,7 +14,7 @@ struct serial_device {
 	int	(*tstc)(void);
 	void	(*putc)(const char c);
 	void	(*puts)(const char *s);
-#if CONFIG_POST & CONFIG_SYS_POST_UART
+#if CFG_POST & CFG_SYS_POST_UART
 	void	(*loop)(int);
 #endif
 	struct serial_device	*next;
@@ -23,6 +23,7 @@ struct serial_device {
 void default_serial_puts(const char *s);
 
 extern struct serial_device serial_smc_device;
+extern struct serial_device serial_smh_device;
 extern struct serial_device serial_scc_device;
 extern struct serial_device *default_serial_console(void);
 
@@ -187,14 +188,6 @@ struct dm_serial_ops {
 	 */
 	int (*getc)(struct udevice *dev);
 	/**
-	 * puts() - puts a string
-	 *
-	 * @dev: Device pointer
-	 * @str: string to write
-	 * @return 0 if OK, -ve on error
-	 */
-	int (*puts)(struct udevice *dev, const char *str);
-	/**
 	 * putc() - Write a character
 	 *
 	 * @dev: Device pointer
@@ -202,6 +195,24 @@ struct dm_serial_ops {
 	 * @return 0 if OK, -ve on error
 	 */
 	int (*putc)(struct udevice *dev, const char ch);
+	/**
+	 * puts() - Write a string
+	 *
+	 * This writes a string. This function should be implemented only if
+	 * writing multiple characters at once is more performant than just
+	 * calling putc() in a loop.
+	 *
+	 * If the whole string cannot be written at once, then this function
+	 * should return the number of characters written. Returning a negative
+	 * error code implies that no characters were written. If this function
+	 * returns 0, then it will be called again with the same arguments.
+	 *
+	 * @dev: Device pointer
+	 * @s: The string to write
+	 * @len: The length of the string to write.
+	 * @return The number of characters written on success, or -ve on error
+	 */
+	ssize_t (*puts)(struct udevice *dev, const char *s, size_t len);
 	/**
 	 * pending() - Check if input/output characters are waiting
 	 *
@@ -231,7 +242,7 @@ struct dm_serial_ops {
 	 * @return 0 if OK, -ve on error
 	 */
 	int (*clear)(struct udevice *dev);
-#if CONFIG_POST & CONFIG_SYS_POST_UART
+#if CFG_POST & CFG_SYS_POST_UART
 	/**
 	 * loop() - Control serial device loopback mode
 	 *
@@ -351,6 +362,11 @@ void serial_setbrg(void);
 void serial_putc(const char ch);
 void serial_putc_raw(const char ch);
 void serial_puts(const char *str);
+#if defined(CONFIG_CONSOLE_FLUSH_SUPPORT) && CONFIG_IS_ENABLED(DM_SERIAL)
+void serial_flush(void);
+#else
+static inline void serial_flush(void) {}
+#endif
 int serial_getc(void);
 int serial_tstc(void);
 

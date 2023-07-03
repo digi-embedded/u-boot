@@ -12,54 +12,6 @@
 	compatible = "fsl,imx6qp-sabreauto", "fsl,imx6qp";
 };
 
-&ldb {
-	lvds-channel@0 {
-		crtc = "ipu2-di0";
-	};
-
-	lvds-channel@1 {
-		crtc = "ipu2-di1";
-	};
-};
-
-&mxcfb1 {
-	prefetch;
-	status = "okay";
-};
-
-&mxcfb2 {
-	prefetch;
-	status = "okay";
-};
-
-&mxcfb3 {
-	prefetch;
-	status = "okay";
-};
-
-&mxcfb4 {
-	prefetch;
-	status = "okay";
-};
-
-&fec {
-	pinctrl-assert-gpios = <&max7322 0 GPIO_ACTIVE_HIGH>;
-};
-
-&i2c2 {
-	max7322: gpio@68 {
-		compatible = "maxim,max7322";
-		reg = <0x68>;
-		gpio-controller;
-		#gpio-cells = <2>;
-	};
-};
-
-&pcie {
-	reset-gpio = <&max7310_c 5 GPIO_ACTIVE_LOW>;
-	status = "okay";
-};
-
 &pre1 {
 	status = "okay";
 };
@@ -86,16 +38,52 @@
 	status = "okay";
 };
 
-&reg_sd3_vmmc {
+&mxcfb1 {
+	prefetch;
+	status = "okay";
+};
+
+&mxcfb2 {
+	prefetch;
+	status = "okay";
+};
+
+&mxcfb3 {
+	prefetch;
+	status = "okay";
+};
+
+&mxcfb4 {
+	prefetch;
+	status = "okay";
+};
+
+&ldb {
+	lvds-channel@0 {
+		crtc = "ipu2-di0";
+	};
+
+	lvds-channel@1 {
+		crtc = "ipu2-di1";
+	};
+};
+
+&i2c2 {
+	max7322: gpio@68 {
+		compatible = "maxim,max7322";
+		reg = <0x68>;
+		gpio-controller;
+		#gpio-cells = <2>;
+	};
+};
+
+&pcie {
+	reset-gpio = <&max7310_c 5 GPIO_ACTIVE_LOW>;
 	status = "okay";
 };
 
 &sata {
 	status = "okay";
-};
-
-&usdhc3 {
-	vmmc-supply = <&reg_sd3_vmmc>;
 };
 
 &vgen3_reg {

@@ -229,7 +229,7 @@ int find_device_by_ofnode(ofnode node, struct udevice **pdev)
 {
 	int ret;
 
-	if (!ofnode_is_available(node))
+	if (!ofnode_is_enabled(node))
 		return -2;
 
 	ret = uclass_find_device_by_ofnode(UCLASS_DISPLAY, node, pdev);

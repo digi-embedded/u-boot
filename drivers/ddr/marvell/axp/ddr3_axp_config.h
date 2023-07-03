@@ -59,12 +59,10 @@
 
 /* Marvell boards specific configurations */
 #if defined(DB_78X60_PCAC)
-#undef CONFIG_SPD_EEPROM
 #define STATIC_TRAINING
 #endif
 
 #if defined(DB_78X60_AMC)
-#undef CONFIG_SPD_EEPROM
 #undef  DRAM_ECC
 #define DRAM_ECC				1
 #endif
@@ -138,7 +136,7 @@
  * Enables I2C auto detection different options
  */
 #if defined(CONFIG_DB_88F78X60) || defined(CONFIG_DB_88F78X60_REV2) || \
-    defined(CONFIG_DB_784MP_GP)
+    defined(CONFIG_TARGET_DB_MV784MP_GP)
 #define AUTO_DETECTION_SUPPORT
 #endif
 #endif

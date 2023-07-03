@@ -25,14 +25,12 @@
 #include <linux/delay.h>
 #include <miiphy.h>
 #include <mmc.h>
-#include <mxsfb.h>
 #include <power/pmic.h>
 #include <power/pfuze100_pmic.h>
 #include "../common/pfuze.h"
 #include <usb.h>
 #include <usb/ehci-ci.h>
 #if defined(CONFIG_MXC_EPDC)
-#include <lcd.h>
 #include <mxc_epdc_fb.h>
 #endif
 #include <asm/mach-imx/video.h>
@@ -186,7 +184,7 @@ static void setup_iomux_uart(void)
 }
 
 #ifdef CONFIG_FSL_ESDHC_IMX
-static struct fsl_esdhc_cfg usdhc_cfg[CONFIG_SYS_FSL_USDHC_NUM] = {
+static struct fsl_esdhc_cfg usdhc_cfg[CFG_SYS_FSL_USDHC_NUM] = {
 	{USDHC1_BASE_ADDR, 0, 8, 1},
 	{USDHC2_BASE_ADDR, 0, 8, 0, 1}, /* fixed 1.8v IO voltage for eMMC chip */
 	{USDHC3_BASE_ADDR, 0, 4},
@@ -227,7 +225,7 @@ int board_mmc_init(struct bd_info *bis)
 	 * mmc1                    USDHC2
 	 * mmc2                    USDHC3
 	 */
-	for (i = 0; i < CONFIG_SYS_FSL_USDHC_NUM; i++) {
+	for (i = 0; i < CFG_SYS_FSL_USDHC_NUM; i++) {
 		switch (i) {
 		case 0:
 			SETUP_IOMUX_PADS(usdhc1_pads);

@@ -8,7 +8,7 @@
 
 /* disable epdc, conflict with qspi */
 &epdc {
-        status = "disabled";
+	status = "disabled";
 };
 
 &iomuxc {
@@ -24,7 +24,7 @@
 	};
 };
 
-&qspi1 {
+&qspi {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_qspi1_1>;
 	status = "okay";
@@ -35,6 +35,8 @@
 		#size-cells = <1>;
 		compatible = "jedec,spi-nor";
 		spi-max-frequency = <29000000>;
+		spi-rx-bus-width = <4>;
+		spi-tx-bus-width = <1>;
 		reg = <0>;
 	};
 };

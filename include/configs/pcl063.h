@@ -11,9 +11,6 @@
 #include <linux/sizes.h>
 #include "mx6_common.h"
 
-/* SPL options */
-#include "imx6_spl.h"
-
 /*
  * There is a bug in some i.MX6UL processors that results in the initial
  * portion of OCRAM being unavailable when booting from (at least) an SD
@@ -22,14 +19,14 @@
  * Tweak the SPL text base address to avoid this.
  */
 
-#define CONFIG_SYS_FSL_USDHC_NUM	1
+#define CFG_SYS_FSL_USDHC_NUM	1
 
 /* Console configs */
-#define CONFIG_MXC_UART_BASE		UART1_BASE
+#define CFG_MXC_UART_BASE		UART1_BASE
 
 /* MMC Configs */
 
-#define CONFIG_SYS_FSL_ESDHC_ADDR	USDHC1_BASE_ADDR
+#define CFG_SYS_FSL_ESDHC_ADDR	USDHC1_BASE_ADDR
 
 /* Miscellaneous configurable options */
 
@@ -37,29 +34,19 @@
 #define PHYS_SDRAM			MMDC0_ARB_BASE_ADDR
 #define PHYS_SDRAM_SIZE			SZ_256M
 
-#define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM
-#define CONFIG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
-#define CONFIG_SYS_INIT_RAM_SIZE	IRAM_SIZE
-
-#define CONFIG_SYS_INIT_SP_OFFSET \
-	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
-#define CONFIG_SYS_INIT_SP_ADDR \
-	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
+#define CFG_SYS_SDRAM_BASE		PHYS_SDRAM
+#define CFG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
+#define CFG_SYS_INIT_RAM_SIZE	IRAM_SIZE
 
 /* NAND */
-#define CONFIG_SYS_MAX_NAND_DEVICE	1
-#define CONFIG_SYS_NAND_BASE		0x40000000
+#define CFG_SYS_NAND_BASE		0x40000000
 
 /* USB Configs */
-#define CONFIG_EHCI_HCD_INIT_AFTER_RESET
-#define CONFIG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
-#define CONFIG_MXC_USB_FLAGS		0
-#define CONFIG_USB_MAX_CONTROLLER_COUNT	1
+#define CFG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
+#define CFG_MXC_USB_FLAGS		0
 
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	"console=ttymxc0,115200n8\0" \
-	"mtdids=" CONFIG_MTDIDS_DEFAULT "\0" \
-	"mtdparts=" CONFIG_MTDPARTS_DEFAULT "\0" \
 	"fdt_addr_r=0x82000000\0" \
 	"fdt_high=0xffffffff\0" \
 	"initrd_high=0xffffffff\0" \
@@ -71,7 +58,7 @@
 
 #define BOOT_TARGET_DEVICES(func) \
 	func(MMC, mmc, 0) \
-	func(UBIFS, ubifs, 0) \
+	func(UBIFS, ubifs, 0, UBI, boot) \
 	func(PXE, pxe, na) \
 	func(DHCP, dhcp, na)
 

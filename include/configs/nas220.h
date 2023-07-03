@@ -35,26 +35,8 @@
  * Default environment variables
  */
 
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	"bootargs=console=ttyS0,115200\0" \
-	"mtdparts=mtdparts=orion_nand:0xa0000@0x0(uboot),"\
-	"0x010000@0xa0000(env),"\
-	"0x500000@0xc0000(uimage),"\
-	"0x1a40000@0x5c0000(rootfs)\0" \
-	"mtdids=nand0=orion_nand\0"\
-	"autostart=no\0"\
-	"autoload=no\0"
-
-/*
- * Ethernet Driver configuration
- */
-#ifdef CONFIG_CMD_NET
-#define CONFIG_MVGBE_PORTS {1, 0}	/* enable port 0 only */
-#define CONFIG_PHY_BASE_ADR 8
-#endif /* CONFIG_CMD_NET */
-
-/*
- * EFI partition
- */
+	"autostart=no\0"
 
 #endif /* _CONFIG_NAS220_H */

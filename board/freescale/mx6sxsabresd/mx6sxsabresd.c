@@ -483,7 +483,7 @@ int board_early_init_f(void)
 #endif
 
 #ifdef CONFIG_SYS_AUXCORE_FASTUP
-	arch_auxiliary_core_up(0, CONFIG_SYS_AUXCORE_BOOTDATA);
+	arch_auxiliary_core_up(0, CFG_SYS_AUXCORE_BOOTDATA);
 #endif
 
 	setup_iomux_uart();
@@ -552,7 +552,7 @@ int board_mmc_init(struct bd_info *bis)
 	 * mmc1                    USDHC3
 	 * mmc2                    USDHC4
 	 */
-	for (i = 0; i < CONFIG_SYS_FSL_USDHC_NUM; i++) {
+	for (i = 0; i < CFG_SYS_FSL_USDHC_NUM; i++) {
 		switch (i) {
 		case 0:
 			imx_iomux_v3_setup_multiple_pads(

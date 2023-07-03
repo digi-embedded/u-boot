@@ -32,10 +32,6 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#define UART_PAD_CTRL  (PAD_CTL_PKE | PAD_CTL_PUE |		\
-	PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED |		\
-	PAD_CTL_DSE_40ohm   | PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
-
 #define I2C_PAD_CTRL    (PAD_CTL_PKE | PAD_CTL_PUE |            \
 	PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED |               \
 	PAD_CTL_DSE_40ohm | PAD_CTL_HYS |			\
@@ -130,14 +126,9 @@ int dram_init(void)
 	return 0;
 }
 
-static iomux_v3_cfg_t const uart1_pads[] = {
-	MX6_PAD_UART1_TX_DATA__UART1_DCE_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
-	MX6_PAD_UART1_RX_DATA__UART1_DCE_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
-};
-
-static void setup_iomux_uart(void)
+int board_mmc_get_env_dev(int devno)
 {
-	imx_iomux_v3_setup_multiple_pads(uart1_pads, ARRAY_SIZE(uart1_pads));
+	return devno;
 }
 
 #ifdef CONFIG_FSL_QSPI
@@ -255,7 +246,7 @@ int board_phy_config(struct phy_device *phydev)
 }
 #endif
 
-#ifdef CONFIG_DM_VIDEO
+#ifdef CONFIG_VIDEO
 static iomux_v3_cfg_t const lcd_pads[] = {
 	/* Use GPIO for Brightness adjustment, duty cycle = period. */
 	MX6_PAD_GPIO1_IO08__GPIO1_IO08 | MUX_PAD_CTRL(NO_PAD_CTRL),
@@ -285,8 +276,6 @@ static inline int setup_lcd(void) { return 0; }
 
 int board_early_init_f(void)
 {
-	setup_iomux_uart();
-
 	return 0;
 }
 

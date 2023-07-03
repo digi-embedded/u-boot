@@ -8,6 +8,7 @@ Test operation of shell commands relating to environment variables.
 
 import os
 import os.path
+import re
 from subprocess import call, CalledProcessError
 import tempfile
 
@@ -172,6 +173,29 @@ def validate_set(state_test_env, var, value):
     # value. printenv does, and hence allows more complete testing.
     response = state_test_env.u_boot_console.run_command('printenv %s' % var)
     assert response == ('%s=%s' % (var, value))
+
+@pytest.mark.boardspec('sandbox')
+def test_env_initial_env_file(u_boot_console):
+    """Test that the u-boot-initial-env make target works"""
+    cons = u_boot_console
+    builddir = 'O=' + cons.config.build_dir
+    envfile = cons.config.build_dir + '/u-boot-initial-env'
+
+    # remove if already exists from an older run
+    try:
+        os.remove(envfile)
+    except:
+        pass
+
+    u_boot_utils.run_and_log(cons, ['make', builddir, 'u-boot-initial-env'])
+
+    assert os.path.exists(envfile)
+
+    # assume that every environment has a board variable, e.g. board=sandbox
+    with open(envfile, 'r') as file:
+        env = file.read()
+    regex = re.compile('board=.+\\n')
+    assert re.search(regex, env)
 
 def test_env_echo_exists(state_test_env):
     """Test echoing a variable that exists."""
@@ -554,42 +578,42 @@ def test_env_text(u_boot_console):
 
     # two vars
     check_script('''fred=123
-ernie=456''', 'fred=123\\0ernie=456\\0')
+mary=456''', 'fred=123\\0mary=456\\0')
 
     # blank lines
     check_script('''fred=123
 
 
-ernie=456
+mary=456
 
-''', 'fred=123\\0ernie=456\\0')
+''', 'fred=123\\0mary=456\\0')
 
     # append
     check_script('''fred=123
-ernie=456
-fred+= 456''', 'fred=123 456\\0ernie=456\\0')
+mary=456
+fred+= 456''', 'fred=123 456\\0mary=456\\0')
 
     # append from empty
     check_script('''fred=
-ernie=456
-fred+= 456''', 'fred= 456\\0ernie=456\\0')
+mary=456
+fred+= 456''', 'fred= 456\\0mary=456\\0')
 
     # variable with + in it
-    check_script('fred+ernie=123', 'fred+ernie=123\\0')
+    check_script('fred+mary=123', 'fred+mary=123\\0')
 
     # ignores variables that are empty
     check_script('''fred=
 fred+=
-ernie=456''', 'ernie=456\\0')
+mary=456''', 'mary=456\\0')
 
     # single-character env name
-    check_script('''f=123
+    check_script('''m=123
 e=456
-f+= 456''', 'e=456\\0f=123 456\\0')
+m+= 456''', 'e=456\\0m=123 456\\0')
 
     # contains quotes
     check_script('''fred="my var"
-ernie=another"''', 'fred=\\"my var\\"\\0ernie=another\\"\\0')
+mary=another"''', 'fred=\\"my var\\"\\0mary=another\\"\\0')
 
     # variable name ending in +
     check_script('''fred\\+=my var
@@ -598,7 +622,7 @@ fred++= again''', 'fred+=my var again\\0')
     # variable name containing +
     check_script('''fred+jane=both
 fred+jane+=again
-ernie=456''', 'fred+jane=bothagain\\0ernie=456\\0')
+mary=456''', 'fred+jane=bothagain\\0mary=456\\0')
 
     # multi-line vars - new vars always start at column 1
     check_script('''fred=first
@@ -607,7 +631,7 @@ ernie=456''', 'fred+jane=bothagain\\0ernie=456\\0')
 
    after blank
  confusing=oops
-ernie=another"''', 'fred=first second third with tab after blank confusing=oops\\0ernie=another\\"\\0')
+mary=another"''', 'fred=first second third with tab after blank confusing=oops\\0mary=another\\"\\0')
 
     # real-world example
     check_script('''ubifs_boot=

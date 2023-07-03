@@ -4,7 +4,7 @@
  *
  * ADP5585 I/O Expander Controller
  *
- * Author: Alice Guo (alice.guo@nxp.com)
+ * Author: Alice Guo <alice.guo@nxp.com>
  */
 
 #include <asm/gpio.h>
@@ -76,20 +76,20 @@
 
 #define ADP5585_MAXGPIO			10
 #define ADP5585_BANK(offs)		((offs) > 4)
-#define ADP5585_BIT(offs)		(offs > 4 ? \
-					1u << (offs - 5) : 1u << (offs))
+#define ADP5585_BIT(offs)		((offs) > 4 ? \
+					1u << ((offs) - 5) : 1u << (offs))
 
 struct adp5585_plat {
 	fdt_addr_t addr;
-	uint8_t id;
-	uint8_t dat_out[2];
-	uint8_t dir[2];
+	u8 id;
+	u8 dat_out[2];
+	u8 dir[2];
 };
 
-static int adp5585_direction_input(struct udevice *dev, unsigned offset)
+static int adp5585_direction_input(struct udevice *dev, unsigned int offset)
 {
 	int ret;
-	unsigned bank;
+	unsigned int bank;
 	struct adp5585_plat *plat = dev_get_plat(dev);
 
 	bank = ADP5585_BANK(offset);
@@ -100,11 +100,11 @@ static int adp5585_direction_input(struct udevice *dev, unsigned offset)
 	return ret;
 }
 
-static int adp5585_direction_output(struct udevice *dev, unsigned offset,
+static int adp5585_direction_output(struct udevice *dev, unsigned int offset,
 				    int value)
 {
 	int ret;
-	unsigned bank, bit;
+	unsigned int bank, bit;
 	struct adp5585_plat *plat = dev_get_plat(dev);
 
 	bank =  ADP5585_BANK(offset);
@@ -123,12 +123,12 @@ static int adp5585_direction_output(struct udevice *dev, unsigned offset,
 	return ret;
 }
 
-static int adp5585_get_value(struct udevice *dev, unsigned offset)
+static int adp5585_get_value(struct udevice *dev, unsigned int offset)
 {
 	struct adp5585_plat *plat = dev_get_plat(dev);
-	unsigned bank = ADP5585_BANK(offset);
-	unsigned bit = ADP5585_BIT(offset);
-	uint8_t val;
+	unsigned int bank = ADP5585_BANK(offset);
+	unsigned int bit = ADP5585_BIT(offset);
+	u8 val;
 
 	if (plat->dir[bank] & bit)
 		val = plat->dat_out[bank];
@@ -138,10 +138,10 @@ static int adp5585_get_value(struct udevice *dev, unsigned offset)
 	return !!(val & bit);
 }
 
-static int adp5585_set_value(struct udevice *dev, unsigned offset, int value)
+static int adp5585_set_value(struct udevice *dev, unsigned int offset, int value)
 {
 	int ret;
-	unsigned bank, bit;
+	unsigned int bank, bit;
 	struct adp5585_plat *plat = dev_get_plat(dev);
 
 	bank =  ADP5585_BANK(offset);
@@ -157,9 +157,9 @@ static int adp5585_set_value(struct udevice *dev, unsigned offset, int value)
 	return ret;
 }
 
-static int adp5585_get_function(struct udevice *dev, unsigned offset)
+static int adp5585_get_function(struct udevice *dev, unsigned int offset)
 {
-	unsigned bank, bit, dir;
+	unsigned int bank, bit, dir;
 	struct adp5585_plat *plat = dev_get_plat(dev);
 
 	bank =  ADP5585_BANK(offset);
@@ -210,7 +210,7 @@ static int adp5585_probe(struct udevice *dev)
 	uc_priv->gpio_count = ADP5585_MAXGPIO;
 	uc_priv->bank_name = "adp5585-gpio";
 
-	for(int i = 0; i < 2; i++) {
+	for (int i = 0; i < 2; i++) {
 		ret = dm_i2c_read(dev, ADP5585_GPO_DATA_OUT_A + i, &plat->dat_out[i], 1);
 		if (ret)
 			return ret;
@@ -229,10 +229,10 @@ static const struct udevice_id adp5585_ids[] = {
 };
 
 U_BOOT_DRIVER(adp5585) = {
-        .name           = "adp5585",
-        .id             = UCLASS_GPIO,
-        .of_match       = adp5585_ids,
-        .probe          = adp5585_probe,
-        .ops            = &adp5585_ops,
-        .plat_auto      = sizeof(struct adp5585_plat),
+	.name	= "adp5585",
+	.id	= UCLASS_GPIO,
+	.of_match	= adp5585_ids,
+	.probe	= adp5585_probe,
+	.ops	= &adp5585_ops,
+	.plat_auto	= sizeof(struct adp5585_plat),
 };

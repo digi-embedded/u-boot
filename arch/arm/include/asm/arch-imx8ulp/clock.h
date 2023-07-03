@@ -6,6 +6,9 @@
 #ifndef _ASM_ARCH_IMX8ULP_CLOCK_H
 #define _ASM_ARCH_IMX8ULP_CLOCK_H
 
+#include <asm/arch/pcc.h>
+#include <asm/arch/cgc.h>
+
 #define MHZ(X)	((X) * 1000000UL)
 
 /* Mainly for compatible to imx common code. */

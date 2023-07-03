@@ -10,23 +10,15 @@
 #include <linux/stringify.h>
 #include "mx6_common.h"
 
-/* SPL options */
-#include "imx6_spl.h"
-
 /* NAND pin conflicts with usdhc2 */
 #ifdef CONFIG_CMD_NAND
-#define CONFIG_SYS_FSL_USDHC_NUM        1
+#define CFG_SYS_FSL_USDHC_NUM        1
 #else
-#define CONFIG_SYS_FSL_USDHC_NUM        2
+#define CFG_SYS_FSL_USDHC_NUM        2
 #endif
 
 #ifdef CONFIG_CMD_NET
-#define CONFIG_FEC_ENET_DEV		0
-#if (CONFIG_FEC_ENET_DEV == 0)
-#define CONFIG_ETHPRIME			"eth0"
-#elif (CONFIG_FEC_ENET_DEV == 1)
-#define CONFIG_ETHPRIME			"eth1"
-#endif
+#define CFG_FEC_ENET_DEV		0
 #endif
 
 /* Environment settings */
@@ -36,11 +28,11 @@
 #define MMC_ROOTFS_PART			2
 
 /* Console configs */
-#define CONFIG_MXC_UART_BASE		UART1_BASE
+#define CFG_MXC_UART_BASE		UART1_BASE
 
 /* MMC Configs */
 
-#define CONFIG_SYS_FSL_ESDHC_ADDR	USDHC2_BASE_ADDR
+#define CFG_SYS_FSL_ESDHC_ADDR	USDHC2_BASE_ADDR
 
 /* I2C configs */
 
@@ -50,20 +42,13 @@
 #define PHYS_SDRAM			MMDC0_ARB_BASE_ADDR
 #define PHYS_SDRAM_SIZE			SZ_512M
 
-#define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM
-#define CONFIG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
-#define CONFIG_SYS_INIT_RAM_SIZE	IRAM_SIZE
-
-#define CONFIG_SYS_INIT_SP_OFFSET \
-	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
-#define CONFIG_SYS_INIT_SP_ADDR \
-	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
+#define CFG_SYS_SDRAM_BASE		PHYS_SDRAM
+#define CFG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
+#define CFG_SYS_INIT_RAM_SIZE	IRAM_SIZE
 
 /* USB Configs */
-#define CONFIG_EHCI_HCD_INIT_AFTER_RESET
-#define CONFIG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
-#define CONFIG_MXC_USB_FLAGS		0
-#define CONFIG_USB_MAX_CONTROLLER_COUNT	2
+#define CFG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
+#define CFG_MXC_USB_FLAGS		0
 
 #define ENV_MMC \
 	"mmcdev=" __stringify(MMC_ROOTFS_DEV) "\0" \
@@ -83,7 +68,7 @@
 	"mmc_mmc_fit=run mmcloadfit;run mmcargs addcon; bootm ${fit_addr}\0" \
 
 /* Default environment */
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	"fdt_high=0xffffffff\0" \
 	"console=ttymxc0,115200n8\0" \
 	"addcon=setenv bootargs ${bootargs} console=${console},${baudrate}\0" \

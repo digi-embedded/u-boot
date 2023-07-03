@@ -10,8 +10,6 @@ arch-$(CONFIG_CPU_ARM720T)	=-march=armv4
 arch-$(CONFIG_CPU_ARM920T)	=-march=armv4t
 arch-$(CONFIG_CPU_ARM926EJS)	=-march=armv5te
 arch-$(CONFIG_CPU_ARM946ES)	=-march=armv5te
-arch-$(CONFIG_CPU_SA1100)	=-march=armv4
-arch-$(CONFIG_CPU_PXA)		=
 arch-$(CONFIG_CPU_ARM1136)	=-march=armv5t
 arch-$(CONFIG_CPU_ARM1176)	=-march=armv5t
 arch-$(CONFIG_CPU_V7A)		=$(call cc-option, -march=armv7-a, \
@@ -32,7 +30,7 @@ else
 arch-y += -D__LINUX_ARM_ARCH__=$(CONFIG_SYS_ARM_ARCH)
 endif
 
-ifneq ($(CONFIG_ARCH_IMX8)$(CONFIG_ARCH_IMX8M)$(CONFIG_ARCH_IMX8ULP)$(CONFIG_ARCH_IMX9),)
+ifneq ($(CONFIG_ARCH_IMX8)$(CONFIG_ARCH_IMX8M)$(CONFIG_ARCH_IMX8ULP),)
 arch-y += -mgeneral-regs-only
 endif
 
@@ -44,8 +42,6 @@ tune-$(CONFIG_CPU_ARM720T)	=-mtune=arm7tdmi
 tune-$(CONFIG_CPU_ARM920T)	=
 tune-$(CONFIG_CPU_ARM926EJS)	=
 tune-$(CONFIG_CPU_ARM946ES)	=
-tune-$(CONFIG_CPU_SA1100)	=-mtune=strongarm1100
-tune-$(CONFIG_CPU_PXA)		=-mcpu=xscale
 tune-$(CONFIG_CPU_ARM1136)	=
 tune-$(CONFIG_CPU_ARM1176)	=
 tune-$(CONFIG_CPU_V7A)		=-mtune=generic-armv7-a
@@ -63,9 +59,11 @@ machine-$(CONFIG_ARCH_APPLE)		+= apple
 machine-$(CONFIG_ARCH_ASPEED)		+= aspeed
 machine-$(CONFIG_ARCH_AT91)		+= at91
 machine-$(CONFIG_ARCH_BCM283X)		+= bcm283x
+machine-$(CONFIG_ARCH_BCMBCA)		+= bcmbca
 machine-$(CONFIG_ARCH_BCMSTB)		+= bcmstb
 machine-$(CONFIG_ARCH_DAVINCI)		+= davinci
 machine-$(CONFIG_ARCH_EXYNOS)		+= exynos
+machine-$(CONFIG_ARCH_GXP)		+= hpe
 machine-$(CONFIG_ARCH_HIGHBANK)		+= highbank
 machine-$(CONFIG_ARCH_IPQ40XX)		+= ipq40xx
 machine-$(CONFIG_ARCH_K3)		+= k3
@@ -76,6 +74,7 @@ machine-$(CONFIG_ARCH_MEDIATEK)		+= mediatek
 machine-$(CONFIG_ARCH_MESON)		+= meson
 machine-$(CONFIG_ARCH_MVEBU)		+= mvebu
 machine-$(CONFIG_ARCH_NEXELL)		+= nexell
+machine-$(CONFIG_ARCH_NPCM)             += npcm
 machine-$(CONFIG_ARCH_OMAP2PLUS)	+= omap2
 machine-$(CONFIG_ARCH_ORION5X)		+= orion5x
 machine-$(CONFIG_ARCH_OWL)		+= owl
@@ -93,9 +92,12 @@ machine-$(CONFIG_ARCH_OCTEONTX)		+= octeontx
 machine-$(CONFIG_ARCH_OCTEONTX2)	+= octeontx2
 machine-$(CONFIG_ARCH_UNIPHIER)		+= uniphier
 machine-$(CONFIG_ARCH_VERSAL)		+= versal
+machine-$(CONFIG_ARCH_VERSAL_NET)	+= versal-net
 machine-$(CONFIG_ARCH_ZYNQ)		+= zynq
 machine-$(CONFIG_ARCH_ZYNQMP)		+= zynqmp
 machine-$(CONFIG_ARCH_ZYNQMP_R5)	+= zynqmp-r5
+
+machine-$(CONFIG_MACH_IMX)		+= imx
 
 machdirs := $(patsubst %,arch/arm/mach-%/,$(machine-y))
 
@@ -106,24 +108,14 @@ libs-y += $(machdirs)
 head-y := arch/arm/cpu/$(CPU)/start.o
 
 ifeq ($(CONFIG_SPL_BUILD),y)
-ifneq ($(CONFIG_SPL_START_S_PATH),)
-head-y := $(CONFIG_SPL_START_S_PATH:"%"=%)/start.o
+ifeq ($(CONFIG_SYS_SOC)$(CONFIG_SPL_FRAMEWORK),"mxs")
+head-y := arch/arm/cpu/arm926ejs/mxs/start.o
 endif
 endif
 
 libs-y += arch/arm/cpu/$(CPU)/
 libs-y += arch/arm/cpu/
 libs-y += arch/arm/lib/
-
-ifeq ($(CONFIG_SPL_BUILD),y)
-ifneq (,$(CONFIG_MX23)$(CONFIG_MX28)$(filter $(SOC), mx25 mx5 mx6 mx7 mx35 imx8m imx8 imx8ulp imx9 imxrt))
-libs-y += arch/arm/mach-imx/
-endif
-else
-ifneq (,$(filter $(SOC), mx25 mx27 mx5 mx6 mx7 mx7ulp mx31 mx35 mxs imx8m imx8 imx8ulp imx9 imxrt vf610))
-libs-y += arch/arm/mach-imx/
-endif
-endif
 
 ifneq (,$(filter $(SOC), kirkwood))
 libs-y += arch/arm/mach-mvebu/

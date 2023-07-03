@@ -10,17 +10,11 @@
 #include <linux/stringify.h>
 #include <asm/arch/imx-regs.h>
 
-#define CONFIG_SPL_MAX_SIZE		(124 * 1024)
-#define CONFIG_SPL_BSS_START_ADDR	0x00128000
-#define CONFIG_SPL_BSS_MAX_SIZE	0x1000  /* 4 KB */
-
-#define CONFIG_SYS_BOOTMAPSZ		(256 << 20)
-#define CONFIG_SYS_FSL_ESDHC_ADDR	0
+#define CFG_SYS_BOOTMAPSZ		(256 << 20)
+#define CFG_SYS_FSL_ESDHC_ADDR	0
 #define USDHC1_BASE_ADDR		0x5B010000
 #define USDHC2_BASE_ADDR		0x5B020000
 #define USDHC3_BASE_ADDR		0x5B030000
-
-#define CONFIG_SYS_BOOTM_LEN		SZ_64M
 
 /* FUSE command */
 
@@ -39,7 +33,7 @@
 #define MFG_NAND_PARTITION ""
 #endif
 
-#define CONFIG_MFG_ENV_SETTINGS \
+#define CFG_MFG_ENV_SETTINGS \
 	"mfgtool_args=setenv bootargs console=${console},${baudrate} " \
 		"rdinit=/linuxrc " \
 		"g_mass_storage.stall=0 g_mass_storage.removable=1 " \
@@ -53,8 +47,8 @@
 	"bootcmd_mfg=run mfgtool_args;booti ${loadaddr} ${initrd_addr} ${fdt_addr};\0" \
 
 /* Initial environment variables */
-#define CONFIG_EXTRA_ENV_SETTINGS		\
-	CONFIG_MFG_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS		\
+	CFG_MFG_ENV_SETTINGS \
 	M4_BOOT_ENV \
 	"script=boot.scr\0" \
 	"image=Image\0" \
@@ -66,7 +60,7 @@
 	"initrd_addr=0x83800000\0"		\
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=1\0" \
-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+	"mmcroot=/dev/mmcblk2p2 rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} root=${mmcroot} earlycon\0 " \
 	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
@@ -108,27 +102,18 @@
 
 /* Link Definitions */
 
-#define CONFIG_SYS_INIT_SP_ADDR		0x80200000
-
 /* On LPDDR4 board, USDHC1 is for eMMC, USDHC2 is for SD on CPU board,
  * USDHC3 is for SD on base board On DDR4 board, USDHC1 is mux for NAND,
  * USDHC2 is for SD, USDHC3 is for SD on base board
  */
-#define CONFIG_MMCROOT			"/dev/mmcblk2p2"  /* USDHC3 */
-#define CONFIG_SYS_FSL_USDHC_NUM	3
+#define CFG_SYS_FSL_USDHC_NUM	3
 
-#define CONFIG_SYS_SDRAM_BASE		0x80000000
+#define CFG_SYS_SDRAM_BASE		0x80000000
 #define PHYS_SDRAM_1			0x80000000
 #define PHYS_SDRAM_2			0x880000000
 #define PHYS_SDRAM_1_SIZE		0x80000000	/* 2 GB */
 /* LPDDR4 board total DDR is 6GB, DDR4 board total DDR is 4 GB */
 #define PHYS_SDRAM_2_SIZE		0x80000000	/* 2 GB */
-
-/* Generic Timer Definitions */
-#define COUNTER_FREQUENCY		8000000	/* 8MHz */
-
-/* Networking */
-#define CONFIG_FEC_XCV_TYPE		RGMII
 
 #include <linux/stringify.h>
 #endif /* __IMX8QM_ROM7720_H */

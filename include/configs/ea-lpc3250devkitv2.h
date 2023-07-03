@@ -11,19 +11,13 @@
 #include <asm/arch/cpu.h>
 
 /*
- * SoC and board defines
- */
-#define CONFIG_BOARD_SIZE_LIMIT 0x000fffff /* maximum allowable size for full U-Boot binary */
-
-/*
  * RAM
  */
-#define CONFIG_SYS_SDRAM_BASE EMC_DYCS0_BASE
+#define CFG_SYS_SDRAM_BASE EMC_DYCS0_BASE
 
 /*
  * cmd
  */
-#define CONFIG_SYS_INIT_SP_ADDR (CONFIG_SYS_SDRAM_BASE + SZ_4K - GENERATED_GBL_DATA_SIZE)
 
 /*
  * SoC-specific config

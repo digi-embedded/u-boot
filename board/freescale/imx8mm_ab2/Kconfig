@@ -24,6 +24,4 @@ config IMX_CONFIG
 	default "board/freescale/imx8mm_ab2/imximage-8mn.cfg"
 endif
 
-source "board/freescale/common/Kconfig"
-
 endif

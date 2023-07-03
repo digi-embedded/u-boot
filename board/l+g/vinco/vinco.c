@@ -24,7 +24,6 @@
 #include <asm/arch/sama5d4.h>
 #include <atmel_hlcdc.h>
 #include <atmel_mci.h>
-#include <lcd.h>
 #include <mmc.h>
 #include <net.h>
 #include <netdev.h>
@@ -165,7 +164,7 @@ int board_early_init_f(void)
 int board_init(void)
 {
 	/* adress of boot parameters */
-	gd->bd->bi_boot_params = CONFIG_SYS_SDRAM_BASE + 0x100;
+	gd->bd->bi_boot_params = CFG_SYS_SDRAM_BASE + 0x100;
 
 #if !CONFIG_IS_ENABLED(DM_SPI)
 	vinco_spi0_hw_init();
@@ -189,8 +188,8 @@ int board_init(void)
 
 int dram_init(void)
 {
-	gd->ram_size = get_ram_size((void *)CONFIG_SYS_SDRAM_BASE,
-				    CONFIG_SYS_SDRAM_SIZE);
+	gd->ram_size = get_ram_size((void *)CFG_SYS_SDRAM_BASE,
+				    CFG_SYS_SDRAM_SIZE);
 	return 0;
 }
 
@@ -204,9 +203,6 @@ int board_eth_init(struct bd_info *bis)
 
 #ifdef CONFIG_USB_GADGET_ATMEL_USBA
 	usba_udc_probe(&pdata);
-#ifdef CONFIG_USB_ETH_RNDIS
-	usb_eth_initialize(bis);
-#endif
 #endif
 
 	return rc;

@@ -10,25 +10,18 @@
 
 #define COUNTER_FREQUENCY_REAL		(get_board_sys_clk() / 4)
 
-#define CONFIG_SYS_RTC_BUS_NUM         0
+#define CFG_SYS_RTC_BUS_NUM         0
 
 /* Store environment at top of flash */
-
-#define CONFIG_DIMM_SLOTS_PER_CTLR          1
-
-#define CONFIG_SYS_MONITOR_BASE CONFIG_SYS_TEXT_BASE
-
-#define CONFIG_QIXIS_I2C_ACCESS
 
 /*
  * QIXIS Definitions
  */
-#define CONFIG_FSL_QIXIS
 
 #ifdef CONFIG_FSL_QIXIS
 #define QIXIS_BASE			0x7fb00000
 #define QIXIS_BASE_PHYS			QIXIS_BASE
-#define CONFIG_SYS_I2C_FPGA_ADDR	0x66
+#define CFG_SYS_I2C_FPGA_ADDR	0x66
 #define QIXIS_LBMAP_SWITCH		2
 #define QIXIS_LBMAP_MASK		0xe0
 #define QIXIS_LBMAP_SHIFT		0x5
@@ -46,12 +39,12 @@
 #define QIXIS_RCFG_CTL_WATCHDOG_ENBLE	0x08
 #define QIXIS_RST_FORCE_MEM		0x01
 
-#define CONFIG_SYS_FPGA_CSPR_EXT	(0x0)
-#define CONFIG_SYS_FPGA_CSPR		(CSPR_PHYS_ADDR(QIXIS_BASE_PHYS) | \
+#define CFG_SYS_FPGA_CSPR_EXT	(0x0)
+#define CFG_SYS_FPGA_CSPR		(CSPR_PHYS_ADDR(QIXIS_BASE_PHYS) | \
 					CSPR_PORT_SIZE_8 | \
 					CSPR_MSEL_GPCM | \
 					CSPR_V)
-#define CONFIG_SYS_FPGA_CSOR		(CSOR_NOR_ADM_SHIFT(4) | \
+#define CFG_SYS_FPGA_CSOR		(CSOR_NOR_ADM_SHIFT(4) | \
 					CSOR_NOR_NOR_MODE_AVD_NOR | \
 					CSOR_NOR_TRHZ_80)
 #endif
@@ -59,13 +52,12 @@
 /* SATA */
 #define SCSI_VEND_ID 0x1b4b
 #define SCSI_DEV_ID  0x9170
-#define CONFIG_SCSI_DEV_LIST {SCSI_VEND_ID, SCSI_DEV_ID}
-#define CONFIG_SYS_SATA1                        AHCI_BASE_ADDR1
+#define CFG_SCSI_DEV_LIST {SCSI_VEND_ID, SCSI_DEV_ID}
 
 /* Initial environment variables */
 #ifndef SPL_NO_ENV
-#undef CONFIG_EXTRA_ENV_SETTINGS
-#define CONFIG_EXTRA_ENV_SETTINGS		\
+#undef CFG_EXTRA_ENV_SETTINGS
+#define CFG_EXTRA_ENV_SETTINGS		\
 	"board=ls1028ardb\0"			\
 	"hwconfig=fsl_ddr:bank_intlv=auto\0"	\
 	"ramdisk_addr=0x800000\0"		\
@@ -91,7 +83,6 @@
 	"kernelhdr_addr_sd=0x3000\0"		\
 	"kernelhdr_size_sd=0x20\0"		\
 	"console=ttyS0,115200\0"                \
-	"mtdparts=" CONFIG_MTDPARTS_DEFAULT "\0"	\
 	BOOTENV					\
 	"boot_scripts=ls1028ardb_boot.scr\0"    \
 	"boot_script_hdr=hdr_ls1028ardb_bs.out\0"	\

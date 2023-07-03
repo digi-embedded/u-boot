@@ -11,9 +11,7 @@
 #include "mx6_common.h"
 #include "imx_env.h"
 
-#define CONFIG_DBG_MONITOR
-
-#define CONFIG_MXC_UART_BASE		UART1_BASE
+#define CFG_MXC_UART_BASE		UART1_BASE
 
 #ifdef CONFIG_NAND_BOOT
 #define MFG_NAND_PARTITION "mtdparts=gpmi-nand:64m(nandboot),16m(nandkernel),16m(nanddtb),16m(nandtee),-(nandrootfs)"
@@ -25,10 +23,10 @@
 
 /* Set to QSPI1 B flash at default */
 #ifdef CONFIG_DM_SPI
-#define CONFIG_SYS_AUXCORE_BOOTDATA 0x68000000
+#define CFG_SYS_AUXCORE_BOOTDATA 0x68000000
 #define SF_QSPI1_B_CS_NUM 2
 #else
-#define CONFIG_SYS_AUXCORE_BOOTDATA 0x62000000
+#define CFG_SYS_AUXCORE_BOOTDATA 0x62000000
 #define SF_QSPI1_B_CS_NUM 1
 #endif
 
@@ -47,14 +45,14 @@
 				"sf write ${loadaddr} 0x0 ${filesize}; " \
 			"fi; " \
 		"fi\0" \
-	"m4boot=sf probe 0:${m4_qspi_cs}; bootaux "__stringify(CONFIG_SYS_AUXCORE_BOOTDATA)"\0"
+	"m4boot=sf probe 0:${m4_qspi_cs}; bootaux "__stringify(CFG_SYS_AUXCORE_BOOTDATA)"\0"
 #else
 #define UPDATE_M4_ENV ""
 #endif
 
 
-#define CONFIG_MFG_ENV_SETTINGS \
-	CONFIG_MFG_ENV_SETTINGS_DEFAULT \
+#define CFG_MFG_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS_DEFAULT \
 	"initrd_addr=0x86800000\0" \
 	"initrd_high=0xffffffff\0" \
 	"sd_dev=2\0" \
@@ -62,8 +60,8 @@
 	"\0"\
 
 #if defined(CONFIG_NAND_BOOT)
-#define CONFIG_EXTRA_ENV_SETTINGS \
-	CONFIG_MFG_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS \
 	TEE_ENV \
 	"tee_addr=0x84000000\0" \
 	"splashimage=0x8c000000\0" \
@@ -84,9 +82,9 @@
 		"fi\0"
 
 #else
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	UPDATE_M4_ENV \
-	CONFIG_MFG_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS \
 	TEE_ENV \
 	"script=boot.scr\0" \
 	"image=zImage\0" \
@@ -102,7 +100,7 @@
 	"splashimage=0x8c000000\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=1\0" \
-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+	"mmcroot=/dev/mmcblk2p2 rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} " \
 		"root=${mmcroot}\0" \
@@ -174,45 +172,27 @@
 /* Physical Memory Map */
 #define PHYS_SDRAM			MMDC0_ARB_BASE_ADDR
 
-#define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM
-#define CONFIG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
-#define CONFIG_SYS_INIT_RAM_SIZE	IRAM_SIZE
-
-#define CONFIG_SYS_INIT_SP_OFFSET \
-	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
-#define CONFIG_SYS_INIT_SP_ADDR \
-	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
+#define CFG_SYS_SDRAM_BASE		PHYS_SDRAM
+#define CFG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
+#define CFG_SYS_INIT_RAM_SIZE	IRAM_SIZE
 
 /* MMC Configuration */
-#define CONFIG_SYS_FSL_ESDHC_ADDR	USDHC3_BASE_ADDR
+#define CFG_SYS_FSL_ESDHC_ADDR	USDHC3_BASE_ADDR
 
 /* NAND stuff */
-#define CONFIG_SYS_MAX_NAND_DEVICE     1
-#define CONFIG_SYS_NAND_BASE           0x40000000
-#define CONFIG_SYS_NAND_USE_FLASH_BBT
+#define CFG_SYS_NAND_BASE           0x40000000
 
 /* DMA stuff, needed for GPMI/MXS NAND support */
 
 /* Network */
-#define CONFIG_ETHPRIME                 "eth1"
-#define CONFIG_FEC_XCV_TYPE             RGMII
-
-#define CONFIG_SERIAL_TAG
 
 #ifdef CONFIG_CMD_USB
-#define CONFIG_EHCI_HCD_INIT_AFTER_RESET
-#define CONFIG_MXC_USB_PORTSC  (PORT_PTS_UTMI | PORT_PTS_PTW)
-#define CONFIG_MXC_USB_FLAGS   0
-#define CONFIG_USB_MAX_CONTROLLER_COUNT 2
+#define CFG_MXC_USB_PORTSC  (PORT_PTS_UTMI | PORT_PTS_PTW)
+#define CFG_MXC_USB_FLAGS   0
 #endif
 
-#define CONFIG_SYS_FSL_USDHC_NUM	2
-#define CONFIG_MMCROOT			"/dev/mmcblk2p2"  /* USDHC3 */
-#define CONFIG_SYS_MMC_ENV_DEV		2  /*USDHC3*/
+#define CFG_SYS_FSL_USDHC_NUM	2
 
-#ifndef CONFIG_DM_PCA953X
-#define CONFIG_PCA953X
-#define CONFIG_SYS_I2C_PCA953X_WIDTH	{ {0x30, 8}, {0x32, 8}, {0x34, 8} }
-#endif
+#define CFG_SYS_I2C_PCA953X_WIDTH	{ {0x30, 8}, {0x32, 8}, {0x34, 8} }
 
 #endif				/* __CONFIG_H */

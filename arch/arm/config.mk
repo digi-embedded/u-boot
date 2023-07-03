@@ -3,23 +3,15 @@
 # (C) Copyright 2000-2002
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 
-ifndef CONFIG_STANDALONE_LOAD_ADDR
-ifneq ($(CONFIG_ARCH_OMAP2PLUS),)
-CONFIG_STANDALONE_LOAD_ADDR = 0x80300000
-else
-CONFIG_STANDALONE_LOAD_ADDR = 0xc100000
-endif
-endif
-
 CFLAGS_NON_EFI := -fno-pic -ffixed-r9 -ffunction-sections -fdata-sections \
 		  -fstack-protector-strong
 CFLAGS_EFI := -fpic -fshort-wchar
 
-ifneq ($(CONFIG_LTO)$(CONFIG_USE_PRIVATE_LIBGCC),yy)
+ifneq ($(LTO_ENABLE)$(CONFIG_USE_PRIVATE_LIBGCC),yy)
 LDFLAGS_FINAL += --gc-sections
 endif
 
-ifndef CONFIG_LTO
+ifneq ($(LTO_ENABLE),y)
 PLATFORM_RELFLAGS += -ffunction-sections -fdata-sections
 endif
 
@@ -141,11 +133,11 @@ endif
 # limit ourselves to the sections we want in the .bin.
 ifdef CONFIG_ARM64
 OBJCOPYFLAGS += -j .text -j .secure_text -j .secure_data -j .rodata -j .data \
-		-j .u_boot_list -j .rela.dyn -j .got -j .got.plt \
+		-j __u_boot_list -j .rela.dyn -j .got -j .got.plt \
 		-j .binman_sym_table -j .text_rest
 else
 OBJCOPYFLAGS += -j .text -j .secure_text -j .secure_data -j .rodata -j .hash \
-		-j .data -j .got -j .got.plt -j .u_boot_list -j .rel.dyn \
+		-j .data -j .got -j .got.plt -j __u_boot_list -j .rel.dyn \
 		-j .binman_sym_table -j .text_rest
 endif
 

@@ -22,9 +22,7 @@
 #include <config_distro_bootcmd.h>
 #include <configs/x86-common.h>
 
-#define CONFIG_SYS_MONITOR_LEN		(1 << 20)
-
-#define CONFIG_STD_DEVICES_SETTINGS	"stdin=serial,i8042-kbd\0" \
+#define CFG_STD_DEVICES_SETTINGS	"stdin=serial,i8042-kbd\0" \
 					"stdout=serial,vidconsole\0" \
 					"stderr=serial,vidconsole\0"
 
@@ -33,7 +31,5 @@
  *   - Only legacy IDE controller is supported for QEMU '-M pc' target
  *   - AHCI controller is supported for QEMU '-M q35' target
  */
-
-#define CONFIG_SPL_BOARD_LOAD_IMAGE
 
 #endif	/* __CONFIG_H */

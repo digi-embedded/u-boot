@@ -199,30 +199,6 @@ static iomux_v3_cfg_t const wdog_pads[] = {
 	MX7D_PAD_ENET1_COL__WDOG1_WDOG_ANY | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 
-#ifdef CONFIG_FEC_MXC
-static iomux_v3_cfg_t const fec2_pads[] = {
-	MX7D_PAD_GPIO1_IO11__ENET1_MDC  | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX7D_PAD_GPIO1_IO10__ENET1_MDIO | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX7D_PAD_EPDC_SDCE0__ENET2_RGMII_RX_CTL | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
-	MX7D_PAD_EPDC_SDCLK__ENET2_RGMII_RD0 | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
-	MX7D_PAD_EPDC_SDLE__ENET2_RGMII_RD1  | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
-	MX7D_PAD_EPDC_SDOE__ENET2_RGMII_RD2  | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
-	MX7D_PAD_EPDC_SDSHR__ENET2_RGMII_RD3 | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
-	MX7D_PAD_EPDC_SDCE1__ENET2_RGMII_RXC | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
-	MX7D_PAD_EPDC_GDRL__ENET2_RGMII_TX_CTL | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX7D_PAD_EPDC_SDCE2__ENET2_RGMII_TD0 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX7D_PAD_EPDC_SDCE3__ENET2_RGMII_TD1 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX7D_PAD_EPDC_GDCLK__ENET2_RGMII_TD2 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX7D_PAD_EPDC_GDOE__ENET2_RGMII_TD3  | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX7D_PAD_EPDC_GDSP__ENET2_RGMII_TXC  | MUX_PAD_CTRL(ENET_PAD_CTRL),
-};
-
-static void setup_iomux_fec2(void)
-{
-	imx_iomux_v3_setup_multiple_pads(fec2_pads, ARRAY_SIZE(fec2_pads));
-}
-#endif
-
 static void setup_iomux_uart(void)
 {
 	imx_iomux_v3_setup_multiple_pads(uart1_pads, ARRAY_SIZE(uart1_pads));
@@ -339,7 +315,7 @@ int board_mmc_init(struct bd_info *bis)
 	 * (U-boot device node)    (Physical Port)
 	 * mmc0                    USDHC1
 	 */
-	for (i = 0; i < CONFIG_SYS_FSL_USDHC_NUM; i++) {
+	for (i = 0; i < CFG_SYS_FSL_USDHC_NUM; i++) {
 		switch (i) {
 		case 0:
 			imx_iomux_v3_setup_multiple_pads(
@@ -364,58 +340,6 @@ int board_mmc_init(struct bd_info *bis)
 				return ret;
 			}
 	}
-
-	return 0;
-}
-#endif
-
-#ifdef CONFIG_FEC_MXC
-int board_eth_init(struct bd_info *bis)
-{
-	int ret;
-
-	setup_iomux_fec2();
-
-	ret = fecmxc_initialize_multi(bis, 0,
-		CONFIG_FEC_MXC_PHYADDR, IMX_FEC_BASE);
-	if (ret)
-		printf("FEC1 MXC: %s:failed\n", __func__);
-
-	return 0;
-}
-
-static int setup_fec(void)
-{
-	struct iomuxc_gpr_base_regs *const iomuxc_gpr_regs
-		= (struct iomuxc_gpr_base_regs *) IOMUXC_GPR_BASE_ADDR;
-	int ret;
-
-	/* Use 125M anatop REF_CLK for ENET2, clear gpr1[14], gpr1[18]*/
-	clrsetbits_le32(&iomuxc_gpr_regs->gpr[1],
-		(IOMUXC_GPR_GPR1_GPR_ENET2_TX_CLK_SEL_MASK |
-		 IOMUXC_GPR_GPR1_GPR_ENET2_CLK_DIR_MASK), 0);
-
-	ret = set_clk_enet(ENET_125MHZ);
-	if (ret)
-		return ret;
-
-	return 0;
-}
-
-
-int board_phy_config(struct phy_device *phydev)
-{
-	/* Enable 1.8V(SEL_1P5_1P8_POS_REG) on
-	   Phy control debug reg 0 */
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x1f);
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x8);
-
-	/* rgmii tx clock delay enable */
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x05);
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x100);
-
-	if (phydev->drv->config)
-		phydev->drv->config(phydev);
 
 	return 0;
 }
@@ -507,10 +431,6 @@ int board_init(void)
 
 #ifdef CONFIG_NAND_MXS
 	setup_gpmi_nand();
-#endif
-
-#ifdef CONFIG_FEC_MXC
-	setup_fec();
 #endif
 
 #ifdef CONFIG_FSL_QSPI

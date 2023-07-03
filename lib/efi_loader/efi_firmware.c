@@ -10,6 +10,7 @@
 #include <charset.h>
 #include <dfu.h>
 #include <efi_loader.h>
+#include <fwu.h>
 #include <image.h>
 #include <signatures.h>
 
@@ -130,9 +131,6 @@ static efi_status_t efi_fill_image_desc_array(
 	struct efi_fw_image *fw_array;
 	int i;
 
-	fw_array = update_info.images;
-	*descriptor_count = num_image_type_guids;
-
 	total_size = sizeof(*image_info) * num_image_type_guids;
 
 	if (*image_info_size < total_size) {
@@ -142,6 +140,8 @@ static efi_status_t efi_fill_image_desc_array(
 	}
 	*image_info_size = total_size;
 
+	fw_array = update_info.images;
+	*descriptor_count = num_image_type_guids;
 	*descriptor_version = EFI_FIRMWARE_IMAGE_DESCRIPTOR_VERSION;
 	*descriptor_size = sizeof(*image_info);
 	*package_version = 0xffffffff; /* not supported */
@@ -178,18 +178,72 @@ static efi_status_t efi_fill_image_desc_array(
 	return EFI_SUCCESS;
 }
 
-#ifdef CONFIG_EFI_CAPSULE_FIRMWARE_FIT
-/*
- * This FIRMWARE_MANAGEMENT_PROTOCOL driver provides a firmware update
- * method with existing FIT image format, and handles
- *   - multiple regions of firmware via DFU
- * but doesn't support
- *   - versioning of firmware image
- *   - package information
+/**
+ * efi_firmware_capsule_authenticate - authenticate the capsule if enabled
+ * @p_image:		Pointer to new image
+ * @p_image_size:	Pointer to size of new image
+ *
+ * Authenticate the capsule if authentication is enabled.
+ * The image pointer and the image size are updated in case of success.
+ *
+ * Return:		status code
  */
+static
+efi_status_t efi_firmware_capsule_authenticate(const void **p_image,
+					       efi_uintn_t *p_image_size)
+{
+	const void *image = *p_image;
+	efi_uintn_t image_size = *p_image_size;
+	u32 fmp_hdr_signature;
+	struct fmp_payload_header *header;
+	void *capsule_payload;
+	efi_status_t status;
+	efi_uintn_t capsule_payload_size;
+
+	if (IS_ENABLED(CONFIG_EFI_CAPSULE_AUTHENTICATE)) {
+		capsule_payload = NULL;
+		capsule_payload_size = 0;
+		status = efi_capsule_authenticate(image, image_size,
+						  &capsule_payload,
+						  &capsule_payload_size);
+
+		if (status == EFI_SECURITY_VIOLATION) {
+			printf("Capsule authentication check failed. Aborting update\n");
+			return status;
+		} else if (status != EFI_SUCCESS) {
+			return status;
+		}
+
+		debug("Capsule authentication successful\n");
+		image = capsule_payload;
+		image_size = capsule_payload_size;
+	} else {
+		debug("Capsule authentication disabled. ");
+		debug("Updating capsule without authenticating.\n");
+	}
+
+	fmp_hdr_signature = FMP_PAYLOAD_HDR_SIGNATURE;
+	header = (void *)image;
+
+	if (!memcmp(&header->signature, &fmp_hdr_signature,
+		    sizeof(fmp_hdr_signature))) {
+		/*
+		 * When building the capsule with the scripts in
+		 * edk2, a FMP header is inserted above the capsule
+		 * payload. Compensate for this header to get the
+		 * actual payload that is to be updated.
+		 */
+		image += header->header_size;
+		image_size -= header->header_size;
+	}
+
+	*p_image = image;
+	*p_image_size = image_size;
+	return EFI_SUCCESS;
+}
 
 /**
- * efi_firmware_fit_get_image_info - return information about the current
+ * efi_firmware_get_image_info - return information about the current
  *				     firmware image
  * @this:			Protocol instance
  * @image_info_size:		Size of @image_info
@@ -197,8 +251,8 @@ static efi_status_t efi_fill_image_desc_array(
  * @descriptor_version:		Pointer to version number
  * @descriptor_count:		Pointer to number of descriptors
  * @descriptor_size:		Pointer to descriptor size
- * package_version:		Package version
- * package_version_name:	Package version's name
+ * @package_version:		Package version
+ * @package_version_name:	Package version's name
  *
  * Return information bout the current firmware image in @image_info.
  * @image_info will consist of a number of descriptors.
@@ -207,7 +261,7 @@ static efi_status_t efi_fill_image_desc_array(
  * Return		status code
  */
 static
-efi_status_t EFIAPI efi_firmware_fit_get_image_info(
+efi_status_t EFIAPI efi_firmware_get_image_info(
 	struct efi_firmware_management_protocol *this,
 	efi_uintn_t *image_info_size,
 	struct efi_firmware_image_descriptor *image_info,
@@ -240,6 +294,16 @@ efi_status_t EFIAPI efi_firmware_fit_get_image_info(
 	return EFI_EXIT(ret);
 }
 
+#ifdef CONFIG_EFI_CAPSULE_FIRMWARE_FIT
+/*
+ * This FIRMWARE_MANAGEMENT_PROTOCOL driver provides a firmware update
+ * method with existing FIT image format, and handles
+ *   - multiple regions of firmware via DFU
+ * but doesn't support
+ *   - versioning of firmware image
+ *   - package information
+ */
+
 /**
  * efi_firmware_fit_set_image - update the firmware image
  * @this:		Protocol instance
@@ -266,11 +330,17 @@ efi_status_t EFIAPI efi_firmware_fit_set_image(
 	efi_status_t (*progress)(efi_uintn_t completion),
 	u16 **abort_reason)
 {
+	efi_status_t status;
+
 	EFI_ENTRY("%p %d %p %zu %p %p %p\n", this, image_index, image,
 		  image_size, vendor_code, progress, abort_reason);
 
 	if (!image || image_index != 1)
 		return EFI_EXIT(EFI_INVALID_PARAMETER);
+
+	status = efi_firmware_capsule_authenticate(&image, &image_size);
+	if (status != EFI_SUCCESS)
+		return EFI_EXIT(status);
 
 	if (fit_update(image))
 		return EFI_EXIT(EFI_DEVICE_ERROR);
@@ -279,7 +349,7 @@ efi_status_t EFIAPI efi_firmware_fit_set_image(
 }
 
 const struct efi_firmware_management_protocol efi_fmp_fit = {
-	.get_image_info = efi_firmware_fit_get_image_info,
+	.get_image_info = efi_firmware_get_image_info,
 	.get_image = efi_firmware_get_image_unsupported,
 	.set_image = efi_firmware_fit_set_image,
 	.check_image = efi_firmware_check_image_unsupported,
@@ -293,58 +363,6 @@ const struct efi_firmware_management_protocol efi_fmp_fit = {
  * This FIRMWARE_MANAGEMENT_PROTOCOL driver provides a firmware update
  * method with raw data.
  */
-
-/**
- * efi_firmware_raw_get_image_info - return information about the current
-				     firmware image
- * @this:			Protocol instance
- * @image_info_size:		Size of @image_info
- * @image_info:			Image information
- * @descriptor_version:		Pointer to version number
- * @descriptor_count:		Pointer to number of descriptors
- * @descriptor_size:		Pointer to descriptor size
- * package_version:		Package version
- * package_version_name:	Package version's name
- *
- * Return information bout the current firmware image in @image_info.
- * @image_info will consist of a number of descriptors.
- * Each descriptor will be created based on "dfu_alt_info" variable.
- *
- * Return		status code
- */
-static
-efi_status_t EFIAPI efi_firmware_raw_get_image_info(
-	struct efi_firmware_management_protocol *this,
-	efi_uintn_t *image_info_size,
-	struct efi_firmware_image_descriptor *image_info,
-	u32 *descriptor_version,
-	u8 *descriptor_count,
-	efi_uintn_t *descriptor_size,
-	u32 *package_version,
-	u16 **package_version_name)
-{
-	efi_status_t ret = EFI_SUCCESS;
-
-	EFI_ENTRY("%p %p %p %p %p %p %p %p\n", this,
-		  image_info_size, image_info,
-		  descriptor_version, descriptor_count, descriptor_size,
-		  package_version, package_version_name);
-
-	if (!image_info_size)
-		return EFI_EXIT(EFI_INVALID_PARAMETER);
-
-	if (*image_info_size &&
-	    (!image_info || !descriptor_version || !descriptor_count ||
-	     !descriptor_size || !package_version || !package_version_name))
-		return EFI_EXIT(EFI_INVALID_PARAMETER);
-
-	ret = efi_fill_image_desc_array(image_info_size, image_info,
-					descriptor_version, descriptor_count,
-					descriptor_size, package_version,
-					package_version_name);
-
-	return EFI_EXIT(ret);
-}
 
 /**
  * efi_firmware_raw_set_image - update the firmware image
@@ -372,11 +390,8 @@ efi_status_t EFIAPI efi_firmware_raw_set_image(
 	efi_status_t (*progress)(efi_uintn_t completion),
 	u16 **abort_reason)
 {
-	u32 fmp_hdr_signature;
-	struct fmp_payload_header *header;
-	void *capsule_payload;
+	int ret;
 	efi_status_t status;
-	efi_uintn_t capsule_payload_size;
 
 	EFI_ENTRY("%p %d %p %zu %p %p %p\n", this, image_index, image,
 		  image_size, vendor_code, progress, abort_reason);
@@ -384,43 +399,20 @@ efi_status_t EFIAPI efi_firmware_raw_set_image(
 	if (!image)
 		return EFI_EXIT(EFI_INVALID_PARAMETER);
 
-	/* Authenticate the capsule if authentication enabled */
-	if (IS_ENABLED(CONFIG_EFI_CAPSULE_AUTHENTICATE)) {
-		capsule_payload = NULL;
-		capsule_payload_size = 0;
-		status = efi_capsule_authenticate(image, image_size,
-						  &capsule_payload,
-						  &capsule_payload_size);
+	status = efi_firmware_capsule_authenticate(&image, &image_size);
+	if (status != EFI_SUCCESS)
+		return EFI_EXIT(status);
 
-		if (status == EFI_SECURITY_VIOLATION) {
-			printf("Capsule authentication check failed. Aborting update\n");
-			return EFI_EXIT(status);
-		} else if (status != EFI_SUCCESS) {
-			return EFI_EXIT(status);
-		}
-
-		debug("Capsule authentication successfull\n");
-		image = capsule_payload;
-		image_size = capsule_payload_size;
-	} else {
-		debug("Capsule authentication disabled. ");
-		debug("Updating capsule without authenticating.\n");
-	}
-
-	fmp_hdr_signature = FMP_PAYLOAD_HDR_SIGNATURE;
-	header = (void *)image;
-
-	if (!memcmp(&header->signature, &fmp_hdr_signature,
-		    sizeof(fmp_hdr_signature))) {
+	if (IS_ENABLED(CONFIG_FWU_MULTI_BANK_UPDATE)) {
 		/*
-		 * When building the capsule with the scripts in
-		 * edk2, a FMP header is inserted above the capsule
-		 * payload. Compensate for this header to get the
-		 * actual payload that is to be updated.
+		 * Based on the value of update bank, derive the
+		 * image index value.
 		 */
-		image += header->header_size;
-		image_size -= header->header_size;
-
+		ret = fwu_get_image_index(&image_index);
+		if (ret) {
+			log_debug("Unable to get FWU image_index\n");
+			return EFI_EXIT(EFI_DEVICE_ERROR);
+		}
 	}
 
 	if (dfu_write_by_alt(image_index - 1, (void *)image, image_size,
@@ -431,7 +423,7 @@ efi_status_t EFIAPI efi_firmware_raw_set_image(
 }
 
 const struct efi_firmware_management_protocol efi_fmp_raw = {
-	.get_image_info = efi_firmware_raw_get_image_info,
+	.get_image_info = efi_firmware_get_image_info,
 	.get_image = efi_firmware_get_image_unsupported,
 	.set_image = efi_firmware_raw_set_image,
 	.check_image = efi_firmware_check_image_unsupported,

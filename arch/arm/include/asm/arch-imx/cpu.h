@@ -49,16 +49,24 @@
 #define MXC_CPU_IMX8MPL		0x187 /* dummy ID */
 #define MXC_CPU_IMX8MPD		0x188 /* dummy ID */
 #define MXC_CPU_IMX8MPUL	0x189 /* dummy ID */
+#define MXC_CPU_IMX8MPSC	0x18a /* dummy ID */
+#define MXC_CPU_IMX8MPDSC	0x18b /* dummy ID */
 #define MXC_CPU_IMX8QXP_A0	0x90 /* dummy ID */
 #define MXC_CPU_IMX8QM		0x91 /* dummy ID */
 #define MXC_CPU_IMX8QXP		0x92 /* dummy ID */
-#define MXC_CPU_IMX8DX		0x93 /* dummy ID */
+#define MXC_CPU_IMX8DX          0x93 /* dummy ID */
 #define MXC_CPU_IMX8DXL     0x9E /* dummy ID */
 
 #define MXC_CPU_IMX8ULP		0xA1 /* dummy ID */
+#define MXC_CPU_IMX8ULPD5	0xA2 /* dummy ID */
+#define MXC_CPU_IMX8ULPS5	0xA3 /* dummy ID */
+#define MXC_CPU_IMX8ULPD3	0xA4 /* dummy ID */
+#define MXC_CPU_IMX8ULPS3	0xA5 /* dummy ID */
+#define MXC_CPU_IMX8ULPSC	0xA6 /* dummy ID */
 
 #define MXC_CPU_IMXRT1020	0xB4 /* dummy ID */
 #define MXC_CPU_IMXRT1050	0xB6 /* dummy ID */
+#define MXC_CPU_IMXRT1170	0xBA /* dummy ID */
 
 #define MXC_CPU_MX7ULP		0xE1 /* Temporally hard code */
 #define MXC_CPU_VF610		0xF6 /* dummy ID */

@@ -31,8 +31,6 @@
 #include <hang.h>
 #include <cpu_func.h>
 #include <env.h>
-#include<dm/device-internal.h>
-#include<dm/lists.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -747,7 +745,7 @@ int board_postclk_init(void)
 	return 0;
 }
 
-#ifdef CONFIG_SERIAL_TAG
+#ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
 void get_board_serial(struct tag_serialnr *serialnr)
 {
 	struct ocotp_regs *ocotp = (struct ocotp_regs *)OCOTP_BASE_ADDR;
@@ -893,7 +891,7 @@ void reset_misc(void)
 	board_reset();
 
 #ifndef CONFIG_SPL_BUILD
-#if defined(CONFIG_VIDEO_MXS) && !defined(CONFIG_DM_VIDEO)
+#if defined(CONFIG_VIDEO_MXS) && !defined(CONFIG_VIDEO)
 	lcdif_power_down();
 #endif
 #endif
@@ -1049,10 +1047,6 @@ int arch_misc_init(void)
 	if (IS_ENABLED(CONFIG_FSL_DCP_RNG)) {
 		struct udevice *dev;
 		int ret;
-
-		ret = device_bind_driver(NULL, "dcp_rng", "dcp_rng", NULL);
-		if (ret)
-			printf("Couldn't bind dcp rng driver (%d)\n", ret);
 
 		ret = uclass_get_device_by_driver(UCLASS_RNG, DM_DRIVER_GET(dcp_rng), &dev);
 		if (ret)

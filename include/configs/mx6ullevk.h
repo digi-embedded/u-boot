@@ -19,20 +19,16 @@
 #define is_mx6ull_9x9_evk()	CONFIG_IS_ENABLED(TARGET_MX6ULL_9X9_EVK)
 
 #ifdef CONFIG_TARGET_MX6ULL_9X9_EVK
-#define PHYS_SDRAM_SIZE		SZ_256M
 #define BOOTARGS_CMA_SIZE   "cma=96M "
 #else
-#define PHYS_SDRAM_SIZE		SZ_512M
 #define BOOTARGS_CMA_SIZE   ""
-/* DCDC used on 14x14 EVK, no PMIC */
-#undef CONFIG_LDO_BYPASS_CHECK
 #endif
 
-#define CONFIG_MXC_UART_BASE		UART1_BASE
+#define CFG_MXC_UART_BASE		UART1_BASE
 
 /* MMC Configs */
 #ifdef CONFIG_FSL_USDHC
-#define CONFIG_SYS_FSL_ESDHC_ADDR	USDHC2_BASE_ADDR
+#define CFG_SYS_FSL_ESDHC_ADDR	USDHC2_BASE_ADDR
 
 /* NAND pin conflicts with usdhc2 */
 #ifdef CONFIG_NAND_MXS
@@ -40,9 +36,7 @@
 #else
 #define CONFIG_SYS_FSL_USDHC_NUM	2
 #endif
-
 #endif
-
 
 #ifdef CONFIG_NAND_BOOT
 #define MFG_NAND_PARTITION "mtdparts=gpmi-nand:64m(nandboot),16m(nandkernel),16m(nanddtb),16m(nandtee),-(nandrootfs)"
@@ -50,12 +44,8 @@
 #define MFG_NAND_PARTITION ""
 #endif
 
-#define CONFIG_CMD_READ
-#define CONFIG_SERIAL_TAG
-#define CONFIG_FASTBOOT_USB_DEV 0
-
-#define CONFIG_MFG_ENV_SETTINGS \
-	CONFIG_MFG_ENV_SETTINGS_DEFAULT \
+#define CFG_MFG_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS_DEFAULT \
 	"initrd_addr=0x86800000\0" \
 	"initrd_high=0xffffffff\0" \
 	"emmc_dev=1\0"\
@@ -65,8 +55,8 @@
 	"\0"\
 
 #if defined(CONFIG_NAND_BOOT)
-#define CONFIG_EXTRA_ENV_SETTINGS \
-	CONFIG_MFG_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS \
 	TEE_ENV \
 	"splashimage=0x8c000000\0" \
 	"fdt_addr=0x83000000\0" \
@@ -88,8 +78,8 @@
 		"fi\0"
 
 #else
-#define CONFIG_EXTRA_ENV_SETTINGS \
-	CONFIG_MFG_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS \
 	TEE_ENV \
 	"script=boot.scr\0" \
 	"image=zImage\0" \
@@ -105,7 +95,7 @@
 	"splashimage=0x8c000000\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=1\0" \
-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+	"mmcroot=/dev/mmcblk1p2 rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} " \
 		BOOTARGS_CMA_SIZE \
@@ -200,45 +190,12 @@
 /* Physical Memory Map */
 #define PHYS_SDRAM			MMDC0_ARB_BASE_ADDR
 
-#define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM
-#define CONFIG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
-#define CONFIG_SYS_INIT_RAM_SIZE	IRAM_SIZE
-
-#define CONFIG_SYS_INIT_SP_OFFSET \
-	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
-#define CONFIG_SYS_INIT_SP_ADDR \
-	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
+#define CFG_SYS_SDRAM_BASE		PHYS_SDRAM
+#define CFG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
+#define CFG_SYS_INIT_RAM_SIZE	IRAM_SIZE
 
 /* environment organization */
-#define CONFIG_SYS_MMC_ENV_DEV		1	/* USDHC2 */
-#define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
-
-#define CONFIG_IOMUX_LPSR
 
 /* NAND stuff */
-#ifdef CONFIG_NAND_MXS
-#define CONFIG_SYS_MAX_NAND_DEVICE	1
-#define CONFIG_SYS_NAND_BASE		0x40000000
-#define CONFIG_SYS_NAND_USE_FLASH_BBT
-
-/* DMA stuff, needed for GPMI/MXS NAND support */
-#endif
-
-/* USB Configs */
-#ifdef CONFIG_CMD_USB
-#define CONFIG_EHCI_HCD_INIT_AFTER_RESET
-#define CONFIG_MXC_USB_PORTSC  (PORT_PTS_UTMI | PORT_PTS_PTW)
-#define CONFIG_MXC_USB_FLAGS   0
-#define CONFIG_USB_MAX_CONTROLLER_COUNT 2
-#endif
-
-#define CONFIG_FEC_XCV_TYPE             RMII
-#define CONFIG_ETHPRIME			"eth1"
-
-#ifndef CONFIG_SPL_BUILD
-#if defined(CONFIG_DM_VIDEO)
-#define CONFIG_VIDEO_LINK
-#endif
-#endif
-
+#define CFG_SYS_NAND_BASE		0x40000000
 #endif

@@ -39,6 +39,14 @@ struct content_info {
 	const char *fname;
 };
 
+/* FIT auto generation modes */
+enum af_mode {
+	AF_OFF = 0,	/* Needs .its or existing FIT to be provided */
+	AF_HASHED_IMG,	/* Auto FIT with crc32 hashed images subnodes */
+	AF_SIGNED_IMG,	/* Auto FIT with signed images subnodes */
+	AF_SIGNED_CONF,	/* Auto FIT with sha1 images and signed configs */
+};
+
 /*
  * This structure defines all such variables those are initialized by
  * mkimage and dumpimage main core and need to be referred by image
@@ -53,6 +61,7 @@ struct image_tool_params {
 	int pflag;
 	int vflag;
 	int xflag;
+	int Aflag;
 	int skipcpy;
 	int os;
 	int arch;
@@ -70,6 +79,7 @@ struct image_tool_params {
 	const char *keydir;	/* Directory holding private keys */
 	const char *keydest;	/* Destination .dtb for public key */
 	const char *keyfile;	/* Filename of private or public key */
+	const char *keyname;	/* Key name "hint" */
 	const char *comment;	/* Comment to add to signature node */
 	/* Algorithm name to use for hashing/signing or NULL to use the one
 	 * specified in the its */
@@ -77,7 +87,7 @@ struct image_tool_params {
 	int require_keys;	/* 1 to mark signing keys as 'required' */
 	int file_size;		/* Total size of output file */
 	int orig_file_size;	/* Original size for file before padding */
-	bool auto_its;		/* Automatically create the .its file */
+	enum af_mode auto_fit;	/* Automatically create the FIT */
 	int fit_image_type;	/* Image type to put into the FIT */
 	char *fit_ramdisk;	/* Ramdisk file to include */
 	struct content_info *content_head;	/* List of files to include */

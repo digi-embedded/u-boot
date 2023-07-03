@@ -53,7 +53,15 @@ struct bd_info;
 #define is_imx8md() (is_cpu_type(MXC_CPU_IMX8MD))
 #define is_imx8mql() (is_cpu_type(MXC_CPU_IMX8MQL))
 #define is_imx8qm() (is_cpu_type(MXC_CPU_IMX8QM))
-#define is_imx8ulp() (is_cpu_type(MXC_CPU_IMX8ULP))
+#define is_imx8ulp() (is_cpu_type(MXC_CPU_IMX8ULP) || is_cpu_type(MXC_CPU_IMX8ULPD5) || is_cpu_type(MXC_CPU_IMX8ULPS5) || \
+	is_cpu_type(MXC_CPU_IMX8ULPD3) || is_cpu_type(MXC_CPU_IMX8ULPS3) || \
+	is_cpu_type(MXC_CPU_IMX8ULPSC))
+#define is_imx8ulpd7() (is_cpu_type(MXC_CPU_IMX8ULP))
+#define is_imx8ulpd5() (is_cpu_type(MXC_CPU_IMX8ULPD5))
+#define is_imx8ulpd3() (is_cpu_type(MXC_CPU_IMX8ULPD3))
+#define is_imx8ulps5() (is_cpu_type(MXC_CPU_IMX8ULPS5))
+#define is_imx8ulps3() (is_cpu_type(MXC_CPU_IMX8ULPS3))
+#define is_imx8ulpsc() (is_cpu_type(MXC_CPU_IMX8ULPSC))
 #define is_imx8mm() (is_cpu_type(MXC_CPU_IMX8MM) || is_cpu_type(MXC_CPU_IMX8MML) ||\
 	is_cpu_type(MXC_CPU_IMX8MMD) || is_cpu_type(MXC_CPU_IMX8MMDL) || \
 	is_cpu_type(MXC_CPU_IMX8MMS) || is_cpu_type(MXC_CPU_IMX8MMSL))
@@ -75,11 +83,14 @@ struct bd_info;
 #define is_imx8mnud() (is_cpu_type(MXC_CPU_IMX8MNUD))
 #define is_imx8mnus() (is_cpu_type(MXC_CPU_IMX8MNUS))
 #define is_imx8mp() (is_cpu_type(MXC_CPU_IMX8MP)  || is_cpu_type(MXC_CPU_IMX8MPD) || \
-	is_cpu_type(MXC_CPU_IMX8MPL) || is_cpu_type(MXC_CPU_IMX8MP6) || is_cpu_type(MXC_CPU_IMX8MPUL))
+	is_cpu_type(MXC_CPU_IMX8MPL) || is_cpu_type(MXC_CPU_IMX8MP6) || is_cpu_type(MXC_CPU_IMX8MPUL) || \
+	is_cpu_type(MXC_CPU_IMX8MPSC) || is_cpu_type(MXC_CPU_IMX8MPDSC))
 #define is_imx8mpd() (is_cpu_type(MXC_CPU_IMX8MPD))
 #define is_imx8mpl() (is_cpu_type(MXC_CPU_IMX8MPL))
 #define is_imx8mp6() (is_cpu_type(MXC_CPU_IMX8MP6))
 #define is_imx8mpul() (is_cpu_type(MXC_CPU_IMX8MPUL))
+#define is_imx8mpsc() (is_cpu_type(MXC_CPU_IMX8MPSC))
+#define is_imx8mpdsc() (is_cpu_type(MXC_CPU_IMX8MPDSC))
 
 #define is_imx8qxp() (is_cpu_type(MXC_CPU_IMX8QXP))
 #define is_imx8dx() (is_cpu_type(MXC_CPU_IMX8DX))
@@ -165,7 +176,8 @@ struct rproc_att {
 	u32 size; /* size of reg range */
 };
 
-#if defined(CONFIG_IMX8M) || defined(CONFIG_IMX8ULP) || defined(CONFIG_IMX9)
+const struct rproc_att *imx_bootaux_get_hostmap(void);
+
 struct rom_api {
 	u16 ver;
 	u16 tag;
@@ -179,6 +191,7 @@ enum boot_dev_type_e {
 	BT_DEV_TYPE_MMC = 2,
 	BT_DEV_TYPE_NAND = 3,
 	BT_DEV_TYPE_FLEXSPINOR = 4,
+	BT_DEV_TYPE_SPI_NOR = 6,
 
 	BT_DEV_TYPE_USB = 0xE,
 	BT_DEV_TYPE_MEM_DEV = 0xF,
@@ -203,7 +216,13 @@ enum boot_stage_type {
 #define ROM_API_OKAY		0xF0
 
 extern struct rom_api *g_rom_api;
-#endif
+extern unsigned long rom_pointer[];
+
+ulong spl_romapi_raw_seekable_read(u32 offset, u32 size, void *buf);
+ulong spl_romapi_get_uboot_base(u32 image_offset, u32 rom_bt_dev);
+
+u32 rom_api_download_image(u8 *dest, u32 offset, u32 size);
+u32 rom_api_query_boot_infor(u32 info_type, u32 *info);
 
 /* For i.MX ULP */
 #define BT0CFG_LPBOOT_MASK	0x1
@@ -258,7 +277,6 @@ int mxs_wait_mask_set(struct mxs_register_32 *reg, u32 mask, u32 timeout);
 int mxs_wait_mask_clr(struct mxs_register_32 *reg, u32 mask, u32 timeout);
 
 void board_late_mmc_env_init(void);
-
 void vadc_power_up(void);
 void vadc_power_down(void);
 
@@ -278,8 +296,13 @@ void imx_get_mac_from_fuse(int dev_id, unsigned char *mac);
 void enable_ca7_smp(void);
 #endif
 
+enum boot_device get_boot_device(void);
+
 int add_res_mem_dt_node(void *fdt, const char *name, phys_addr_t pa,
 			size_t size);
 int add_dt_path_subnode(void *fdt, const char *path, const char *subnode);
 void configure_tzc380(void);
+
+/* Generate dek blob, return 0 if success, non 0 if fail. */
+int generate_dek_blob(char *data, uint32_t *data_size);
 #endif

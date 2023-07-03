@@ -46,8 +46,8 @@ static int do_spi_xfer(int bus, int cs)
 	str = strdup(name);
 	if (!str)
 		return -ENOMEM;
-	ret = spi_get_bus_and_cs(bus, cs, freq, mode, "spi_generic_drv",
-				 str, &dev, &slave);
+	ret = _spi_get_bus_and_cs(bus, cs, freq, mode, "spi_generic_drv",
+				  str, &dev, &slave);
 	if (ret)
 		return ret;
 #else
@@ -112,6 +112,9 @@ int do_spi(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 
 	if ((flag & CMD_FLAG_REPEAT) == 0)
 	{
+		if (argc < 2)
+			return CMD_RET_USAGE;
+
 		if (argc >= 2) {
 			mode = CONFIG_DEFAULT_SPI_MODE;
 			bus = dectoul(argv[1], &cp);

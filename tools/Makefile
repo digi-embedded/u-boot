@@ -25,34 +25,29 @@
 # Enable all the config-independent tools
 ifneq ($(HOST_TOOLS_ALL),)
 CONFIG_ARCH_KIRKWOOD = y
-CONFIG_LCD_LOGO = y
 CONFIG_CMD_LOADS = y
 CONFIG_CMD_NET = y
-CONFIG_XWAY_SWAP_BYTES = y
 CONFIG_NETCONSOLE = y
-CONFIG_SHA1_CHECK_UB_IMG = y
 CONFIG_ARCH_SUNXI = y
 endif
 
 subdir-$(HOST_TOOLS_ALL) += gdb
 
 # Merge all the different vars for envcrc into one
-ENVCRC-$(CONFIG_ENV_IS_EMBEDDED) = y
 ENVCRC-$(CONFIG_ENV_IS_IN_EEPROM) = y
 ENVCRC-$(CONFIG_ENV_IS_IN_FLASH) = y
 ENVCRC-$(CONFIG_ENV_IS_IN_ONENAND) = y
 ENVCRC-$(CONFIG_ENV_IS_IN_NAND) = y
 ENVCRC-$(CONFIG_ENV_IS_IN_NVRAM) = y
 ENVCRC-$(CONFIG_ENV_IS_IN_SPI_FLASH) = y
-CONFIG_BUILD_ENVCRC ?= $(ENVCRC-y)
+BUILD_ENVCRC ?= $(ENVCRC-y)
 
 hostprogs-$(CONFIG_SPL_GENERATE_ATMEL_PMECC_HEADER) += atmel_pmecc_params
 
-hostprogs-$(CONFIG_LCD_LOGO) += bmp_logo
 hostprogs-$(CONFIG_VIDEO_LOGO) += bmp_logo
 HOSTCFLAGS_bmp_logo.o := -pedantic
 
-hostprogs-$(CONFIG_BUILD_ENVCRC) += envcrc
+hostprogs-$(BUILD_ENVCRC) += envcrc
 envcrc-objs := envcrc.o lib/crc32.o env/embedded.o lib/sha1.o
 
 hostprogs-$(CONFIG_CMD_NET) += gen_eth_addr
@@ -65,16 +60,15 @@ HOSTCFLAGS_gen_ethaddr_crc.o := -pedantic
 hostprogs-$(CONFIG_CMD_LOADS) += img2srec
 HOSTCFLAGS_img2srec.o := -pedantic
 
-hostprogs-$(CONFIG_XWAY_SWAP_BYTES) += xway-swap-bytes
-HOSTCFLAGS_xway-swap-bytes.o := -pedantic
-
 hostprogs-y += mkenvimage
 mkenvimage-objs := mkenvimage.o os_support.o lib/crc32.o
 
 hostprogs-y += dumpimage mkimage
 hostprogs-$(CONFIG_TOOLS_LIBCRYPTO) += fit_info fit_check_sign
 
-hostprogs-$(CONFIG_CMD_BOOTEFI_SELFTEST) += file2include
+ifneq ($(CONFIG_CMD_BOOTEFI_SELFTEST)$(CONFIG_FWU_MDATA_GPT_BLK),)
+hostprogs-y += file2include
+endif
 
 FIT_OBJS-y := fit_common.o fit_image.o image-host.o boot/image-fit.o
 FIT_SIG_OBJS-$(CONFIG_TOOLS_LIBCRYPTO) := image-sig-host.o boot/image-fit-sig.o
@@ -94,9 +88,10 @@ ECDSA_OBJS-$(CONFIG_TOOLS_LIBCRYPTO) := $(addprefix lib/ecdsa/, ecdsa-libcrypto.
 AES_OBJS-$(CONFIG_TOOLS_LIBCRYPTO) := $(addprefix lib/aes/, \
 					aes-encrypt.o aes-decrypt.o)
 
-# Cryptographic helpers that depend on openssl/libcrypto
-LIBCRYPTO_OBJS-$(CONFIG_TOOLS_LIBCRYPTO) := $(addprefix lib/, \
-					fdt-libcrypto.o)
+# Cryptographic helpers and image types that depend on openssl/libcrypto
+LIBCRYPTO_OBJS-$(CONFIG_TOOLS_LIBCRYPTO) := \
+			lib/fdt-libcrypto.o \
+			sunxi_toc0.o
 
 ROCKCHIP_OBS = lib/rc4.o rkcommon.o rkimage.o rksd.o rkspi.o
 
@@ -131,7 +126,7 @@ dumpimage-mkimage-objs := aisimage.o \
 			$(ROCKCHIP_OBS) \
 			socfpgaimage.o \
 			sunxi_egon.o \
-			lib/crc16.o \
+			lib/crc16-ccitt.o \
 			lib/hash-checksum.o \
 			lib/sha1.o \
 			lib/sha256.o \
@@ -146,6 +141,7 @@ dumpimage-mkimage-objs := aisimage.o \
 			gpimage.o \
 			gpimage-common.o \
 			mtk_image.o \
+			mtk_nand_headers.o \
 			$(ECDSA_OBJS-y) \
 			$(RSA_OBJS-y) \
 			$(AES_OBJS-y)
@@ -157,9 +153,9 @@ fit_check_sign-objs   := $(dumpimage-mkimage-objs) fit_check_sign.o
 file2include-objs := file2include.o
 
 ifneq ($(CONFIG_MX23)$(CONFIG_MX28)$(CONFIG_TOOLS_LIBCRYPTO),)
-# Add CONFIG_MXS into host CFLAGS, so we can check whether or not register
+# Add CFG_MXS into host CFLAGS, so we can check whether or not register
 # the mxsimage support within tools/mxsimage.c .
-HOSTCFLAGS_mxsimage.o += -DCONFIG_MXS
+HOSTCFLAGS_mxsimage.o += -DCFG_MXS
 endif
 
 ifdef CONFIG_TOOLS_LIBCRYPTO
@@ -197,7 +193,9 @@ hostprogs-$(CONFIG_EXYNOS5420) += mkexynosspl
 HOSTCFLAGS_mkexynosspl.o := -pedantic
 
 HOSTCFLAGS_kwboot.o += -pthread
-HOSTLDLIBS_kwboot += -pthread -ltinfo
+HOSTLDLIBS_kwboot += -pthread
+HOSTLDLIBS_kwboot += \
+	$(shell pkg-config --libs tinfo 2> /dev/null || echo "-ltinfo")
 
 ifdtool-objs := $(LIBFDT_OBJS) ifdtool.o
 hostprogs-$(CONFIG_X86) += ifdtool
@@ -214,15 +212,13 @@ hostprogs-$(CONFIG_ARCH_SUNXI) += sunxi-spl-image-builder
 sunxi-spl-image-builder-objs := sunxi-spl-image-builder.o lib/bch.o
 
 hostprogs-$(CONFIG_NETCONSOLE) += ncb
-hostprogs-$(CONFIG_SHA1_CHECK_UB_IMG) += ubsha1
-
-ubsha1-objs := os_support.o ubsha1.o lib/sha1.o
-
-HOSTCFLAGS_ubsha1.o := -pedantic
 
 hostprogs-$(CONFIG_ARCH_KIRKWOOD) += kwboot
 hostprogs-$(CONFIG_ARCH_MVEBU) += kwboot
+
 hostprogs-y += proftool
+proftool-objs = proftool.o lib/abuf.o
+
 hostprogs-$(CONFIG_STATIC_RELA) += relocate-rela
 hostprogs-$(CONFIG_RISCV) += prelink-riscv
 
@@ -241,7 +237,14 @@ hostprogs-$(CONFIG_MIPS) += mips-relocs
 hostprogs-$(CONFIG_ASN1_COMPILER)	+= asn1_compiler
 HOSTCFLAGS_asn1_compiler.o = -idirafter $(srctree)/include
 
-HOSTLDLIBS_mkeficapsule += -lgnutls -luuid
+HOSTCFLAGS_mkeficapsule.o += \
+	$(shell pkg-config --cflags gnutls 2> /dev/null || echo "")
+HOSTCFLAGS_mkeficapsule.o += \
+	$(shell pkg-config --cflags uuid 2> /dev/null || echo "")
+HOSTLDLIBS_mkeficapsule += \
+	$(shell pkg-config --libs gnutls 2> /dev/null || echo "-lgnutls")
+HOSTLDLIBS_mkeficapsule += \
+	$(shell pkg-config --libs uuid 2> /dev/null || echo "-luuid")
 hostprogs-$(CONFIG_TOOLS_MKEFICAPSULE) += mkeficapsule
 
 # We build some files with extra pedantic flags to try to minimize things
@@ -264,11 +267,13 @@ clean-dirs := lib common
 
 always := $(hostprogs-y)
 
+# Host tool to dump the currently configured default environment,
+# build it on demand, i.e. not add it to 'always'.
+hostprogs-y += printinitialenv
+
 # Generated LCD/video logo
 LOGO_H = $(objtree)/include/bmp_logo.h
 LOGO_DATA_H = $(objtree)/include/bmp_logo_data.h
-LOGO-$(CONFIG_LCD_LOGO) += $(LOGO_H)
-LOGO-$(CONFIG_LCD_LOGO) += $(LOGO_DATA_H)
 LOGO-$(CONFIG_VIDEO_LOGO) += $(LOGO_H)
 LOGO-$(CONFIG_VIDEO_LOGO) += $(LOGO_DATA_H)
 
@@ -305,7 +310,7 @@ __build:	$(LOGO-y)
 $(LOGO_H):	$(obj)/bmp_logo $(LOGO_BMP)
 	$(obj)/bmp_logo --gen-info $(LOGO_BMP) > $@
 
-ifeq ($(CONFIG_DM_VIDEO),y)
+ifeq ($(CONFIG_VIDEO),y)
 $(LOGO_DATA_H):	$(obj)/bmp_logo $(LOGO_BMP)
 	$(obj)/bmp_logo --gen-bmp $(LOGO_BMP) > $@
 else

@@ -38,9 +38,10 @@
 #define TAG_SIZE		20
 #define MAX_BLOB_SIZE		(AES256_KEY_SZ + CCM_OVERHEAD +\
 				BLOB_OVERHEAD + TAG_SIZE)
+
 /* Header (8) + BKEK (32) + MAC (16) + MAX_KEY_SIZE (256 bits) */
-#define MAX_DEK_BLOB_SIZE       (8 + 32 + 16 + (256 / 8))
-#define KEY_MODIFER_SIZE 16
+#define MAX_DEK_BLOB_SIZE	(8 + 32 + 16 + (256 / 8))
+#define KEY_MODIFER_SIZE	16
 
 /* Security Engine Block (MS = Most Sig., LS = Least Sig.) */
 #if CONFIG_SYS_FSL_SEC_COMPAT >= 4
@@ -289,7 +290,7 @@ struct sg_entry {
 	 defined(CONFIG_MX7ULP) || defined(CONFIG_IMX8M) || defined(CONFIG_IMX8) || \
 	 defined(CONFIG_IMX8ULP)
 /* Job Ring Base Address */
-#define JR_BASE_ADDR(x) (CONFIG_SYS_FSL_SEC_ADDR + 0x1000 * (x + 1))
+#define JR_BASE_ADDR(x) (CFG_SYS_FSL_SEC_ADDR + 0x1000 * (x + 1))
 /* Secure Memory Offset varies accross versions */
 #define SM_V1_OFFSET 0x0f4
 #define SM_V2_OFFSET 0xa00
@@ -304,7 +305,7 @@ struct sg_entry {
 /* JR Allocation Error */
 #define SMCSJR_AERR		(3 << 12)
 /* Secure memory partition 0 page 0 owner register */
-#define CAAM_SMPO_0	    (CONFIG_SYS_FSL_SEC_ADDR + 0x1FBC)
+#define CAAM_SMPO_0	    (CFG_SYS_FSL_SEC_ADDR + 0x1FBC)
 /* Secure memory command register */
 #define CAAM_SMCJR(v, jr)   (JR_BASE_ADDR(jr) + SM_OFFSET(v) + SM_CMD(v))
 /* Secure memory command status register */

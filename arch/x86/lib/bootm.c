@@ -39,7 +39,7 @@ void bootm_announce_and_cleanup(void)
 	timestamp_add_now(TS_START_KERNEL);
 #endif
 	bootstage_mark_name(BOOTSTAGE_ID_BOOTM_HANDOFF, "start_kernel");
-#if CONFIG_IS_ENABLED(BOOTSTAGE_REPORT)
+#if IS_ENABLED(CONFIG_BOOTSTAGE_REPORT)
 	bootstage_report();
 #endif
 
@@ -69,24 +69,23 @@ int arch_fixup_memory_node(void *blob)
 #endif
 
 /* Subcommand: PREP */
-static int boot_prep_linux(bootm_headers_t *images)
+static int boot_prep_linux(struct bootm_headers *images)
 {
 	char *cmd_line_dest = NULL;
-	image_header_t *hdr;
+	struct legacy_img_hdr *hdr;
 	int is_zimage = 0;
 	void *data = NULL;
 	size_t len;
 	int ret;
 
-#ifdef CONFIG_OF_LIBFDT
-	if (images->ft_len) {
+	if (CONFIG_IS_ENABLED(OF_LIBFDT) && IS_ENABLED(CONFIG_LMB) && images->ft_len) {
 		debug("using: FDT\n");
 		if (image_setup_linux(images)) {
 			puts("FDT creation failed! hanging...");
 			hang();
 		}
 	}
-#endif
+
 	if (images->legacy_hdr_valid) {
 		hdr = images->legacy_hdr_os;
 		if (image_check_type(hdr, IH_TYPE_MULTI)) {
@@ -202,7 +201,7 @@ int boot_linux_kernel(ulong setup_base, ulong load_address, bool image_64bit)
 }
 
 /* Subcommand: GO */
-static int boot_jump_linux(bootm_headers_t *images)
+static int boot_jump_linux(struct bootm_headers *images)
 {
 	debug("## Transferring control to Linux (at address %08lx, kernel %08lx) ...\n",
 	      images->ep, images->os.load);
@@ -212,7 +211,7 @@ static int boot_jump_linux(bootm_headers_t *images)
 }
 
 int do_bootm_linux(int flag, int argc, char *const argv[],
-		   bootm_headers_t *images)
+		   struct bootm_headers *images)
 {
 	/* No need for those on x86 */
 	if (flag & BOOTM_STATE_OS_BD_T || flag & BOOTM_STATE_OS_CMDLINE)

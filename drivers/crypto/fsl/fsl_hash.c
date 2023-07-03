@@ -134,7 +134,7 @@ static int caam_hash_finish(void *hash_ctx, void *dest_buf,
 	uint32_t len = 0, sg_entry_len;
 	struct sha_ctx *ctx = hash_ctx;
 	int i = 0, ret = 0;
-	ulong addr;
+	caam_dma_addr_t addr;
 
 	if (size < driver_hash[caam_algo].digestsize) {
 		return -EINVAL;
