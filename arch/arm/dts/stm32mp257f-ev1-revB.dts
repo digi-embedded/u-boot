@@ -109,6 +109,10 @@
 	status = "okay";
 };
 
+&crc {
+	status = "okay";
+};
+
 &cryp1 {
 	status = "okay";
 };
