@@ -126,7 +126,7 @@ phys_size_t board_phys_sdram_1_size(void)
 
 		/* if RAM size was not coded, use variant to obtain RAM size */
 		if (!ramsize && my_hwid.variant < ARRAY_SIZE(ccimx8x_variants))
-			ramsize = (phys_size_t)ccimx8x_variants[my_hwid.variant].sdram;
+			ramsize = ccimx8x_variants[my_hwid.variant].sdram;
 	}
 
 	if (!ramsize) {
