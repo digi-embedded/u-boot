@@ -153,6 +153,14 @@
 		interrupt-parent = <&intc>;
 		ranges;
 
+		sram: sram@10000000 {
+			compatible = "mmio-sram";
+			reg = <0x10000000 0x60000>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0 0x10000000 0x60000>;
+		};
+
 		hsem: hwspinlock@4c000000 {
 			compatible = "st,stm32-hwspinlock";
 			#hwlock-cells = <2>;
