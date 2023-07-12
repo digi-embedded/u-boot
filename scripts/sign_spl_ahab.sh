@@ -23,7 +23,7 @@
 #      SRK_REVOKE_MASK: [optional], bitmask of the revoked SRKs.
 #      ENABLE_ENCRYPTION: (optional) enable encryption of the images.
 #      CONFIG_DEK_PATH: (mandatory if ENCRYPT is defined) path to a Data Encryption Key.
-#                       If defined, the signed	U-Boot image is encrypted with the
+#                       If defined, the signed U-Boot image is encrypted with the
 #                       given key. Supported key sizes: 128 bits.
 #      CONFIG_MKIMAGE_LOG_PATH: [optional] path to the mkimage log file.
 #
