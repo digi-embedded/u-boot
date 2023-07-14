@@ -113,6 +113,20 @@ struct ccimx8_variant ccimx8x_variants[] = {
 		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
 		"Industrial DualX, 8GB eMMC, 1GB LPDDR4, -40/+85C, Wireless, Bluetooth",
 	},
+/* 0x0C - 55001984-12 */
+	{
+		IMX8QXP,
+		SZ_2G,
+		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
+		"Industrial QuadXPlus, 16GB eMMC, 2GB LPDDR4, -40/+85C, Wireless, Bluetooth",
+	},
+/* 0x0D - 55001984-13 */
+	{
+		IMX8QXP,
+		SZ_4G,
+		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
+		"Industrial QuadXPlus, 32GB eMMC, 4GB LPDDR4, -40/+85C, Wireless, Bluetooth",
+	},
 };
 
 #ifdef CONFIG_SPL
