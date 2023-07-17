@@ -130,25 +130,34 @@ struct ccimx8_variant ccimx8x_variants[] = {
 };
 
 #ifdef CONFIG_SPL
-phys_size_t board_phys_sdram_1_size(void)
+void board_phys_sdram_size(phys_size_t *sdram1_size, phys_size_t *sdram2_size)
 {
 	struct digi_hwid my_hwid;
-        phys_size_t ramsize = 0;
+	*sdram1_size = 0;
+	/* PHYS_SDRAM_2_SIZE defaults to 0 */
+	*sdram2_size = PHYS_SDRAM_2_SIZE;
 
 	if (!board_read_hwid(&my_hwid)) {
-		ramsize = hwid_get_ramsize(&my_hwid);
+		*sdram1_size = hwid_get_ramsize(&my_hwid);
 
 		/* if RAM size was not coded, use variant to obtain RAM size */
-		if (!ramsize && my_hwid.variant < ARRAY_SIZE(ccimx8x_variants))
-			ramsize = ccimx8x_variants[my_hwid.variant].sdram;
+		if (!(*sdram1_size) && my_hwid.variant < ARRAY_SIZE(ccimx8x_variants))
+			*sdram1_size = ccimx8x_variants[my_hwid.variant].sdram;
 	}
 
-	if (!ramsize) {
+	if (*sdram1_size > SZ_2G) {
+		/* 
+		 * Special case: split the size between the two SDRAM banks:
+		 *     * First 2 GiB go in bank 1
+		 *     * Remaining size goes in bank 2
+		 */
+		*sdram2_size = *sdram1_size - SZ_2G;
+		*sdram1_size = SZ_2G;
+	} else if (!(*sdram1_size)) {
 		/* Default to lowest RAM size supported (512 MB) */
 		printk("Cannot determine RAM size. Using default size (%d MiB).\n", PHYS_SDRAM_1_SIZE >> 20);
-		ramsize = PHYS_SDRAM_1_SIZE;
+		*sdram1_size = PHYS_SDRAM_1_SIZE;
 	}
-	return ramsize;
 }
 #endif
 
