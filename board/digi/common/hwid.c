@@ -31,7 +31,7 @@
 
 extern struct digi_hwid_fuse hwid_fuse_map[];
 extern unsigned int hwid_nwords;
-extern u32 ram_sizes_mb[16];
+extern u64 ram_sizes_mb[16];
 typedef struct mac_base { uint8_t mbase[3]; } mac_base_t;
 
 mac_base_t mac_pools[] = {
@@ -212,7 +212,7 @@ __weak void board_hwid_print_hex(const struct digi_hwid *hwid)
 }
 
 #if !defined(CONFIG_CC6) && !defined(CONFIG_CC6UL)
-u32 hwid_get_ramsize(const struct digi_hwid *hwid)
+u64 hwid_get_ramsize(const struct digi_hwid *hwid)
 {
 #ifdef CONFIG_CC8X
 	/*

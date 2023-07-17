@@ -30,7 +30,7 @@ DECLARE_GLOBAL_DATA_PTR;
 int board_phys_sdram_size(phys_size_t *size)
 {
 	/* Default to RAM size of DVK variant 0x01 (1 GiB) */
-	u32 ram;
+	u64 ram;
 	struct digi_hwid my_hwid;
 
 	/* Default to minimum RAM size for each platform */

@@ -17,7 +17,7 @@ const char *cert_regions[] = {
 	"Japan",
 };
 
-u32 ram_sizes_mb[16] = {
+u64 ram_sizes_mb[16] = {
 	0,	/* 0 */
 	16,	/* 1 */
 	32,	/* 2 */
@@ -66,7 +66,7 @@ void board_hwid_print(const struct digi_hwid *hwid)
 	printf("    Variant:       0x%02x\n", hwid->variant);
 	/* New fields (supported if 'RAM' field != 0) */
 	if (hwid->ram) {
-		printf("      RAM:         %u MiB\n", ram_sizes_mb[hwid->ram]);
+		printf("      RAM:         %llu MiB\n", ram_sizes_mb[hwid->ram]);
 		printf("      Wi-Fi:       %s\n", hwid->wifi ? "yes" : "-");
 		printf("      Bluetooth:   %s\n", hwid->bt ? "yes" : "-");
 	}
@@ -297,7 +297,7 @@ int board_hwid_parse_manuf(int argc, char *const argv[], struct digi_hwid *hwid)
 		}
 		hwid->bt = v;
 	}
-	printf("    RAM:           %u MiB\n", ram_sizes_mb[hwid->ram]);
+	printf("    RAM:           %llu MiB\n", ram_sizes_mb[hwid->ram]);
 	printf("    Wi-Fi:         %s\n", hwid->wifi ? "yes" : "-");
 	printf("    Bluetooth:     %s\n", hwid->bt ? "yes" : "-");
 
@@ -356,7 +356,7 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 		/* capabilties fields */
 		else if (capabilities &&
 			 !strcmp("digi,hwid,ram_mb", propnames[i]))
-			sprintf(str, "%u", ram_sizes_mb[hwid->ram]);
+			sprintf(str, "%llu", ram_sizes_mb[hwid->ram]);
 		else if (capabilities &&
 			 ((!strcmp("digi,hwid,has-wifi", propnames[i]) &&
 			   hwid->wifi) ||
