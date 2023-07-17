@@ -122,8 +122,12 @@ void generate_partition_table(void)
 	if (mmc)
 		capacity_gb = mmc->capacity / SZ_1G;
 
-	/* eMMC capacity is not exact, so asume 16GB if larger than 14GB */
-	if (capacity_gb >= 14) {
+	/* eMMC capacity is not exact, so asume 32GB if larger than 28GB */
+	if (capacity_gb >= 28) {
+		linux_partition_table = LINUX_32GB_PARTITION_TABLE;
+		android_partition_table = ANDROID_32GB_PARTITION_TABLE;
+		linux_dualboot_partition_table = LINUX_DUALBOOT_32GB_PARTITION_TABLE;
+	} else if (capacity_gb >= 14) {
 		linux_partition_table = LINUX_16GB_PARTITION_TABLE;
 		android_partition_table = ANDROID_16GB_PARTITION_TABLE;
 		linux_dualboot_partition_table = LINUX_DUALBOOT_16GB_PARTITION_TABLE;
