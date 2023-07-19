@@ -6,7 +6,7 @@
 #include "stm32mp253.dtsi"
 
 / {
-	soc@0 {
+	soc {
 		rifsc: rifsc@42080000 {
 			vdec: vdec@480d0000 {
 				compatible = "st,stm32mp25-vdec";

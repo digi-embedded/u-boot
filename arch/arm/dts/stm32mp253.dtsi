@@ -23,7 +23,7 @@
 		interrupt-affinity = <&cpu0>, <&cpu1>;
 	};
 
-	soc@0 {
+	soc {
 		rifsc: rifsc@42080000 {
 			lvds: lvds@48060000 {
 				#clock-cells = <0>;
