@@ -34,3 +34,4 @@ obj-$(CONFIG_AUTH_ARTIFACTS) += auth.o
 endif
 obj-$(CONFIG_HAS_HWID) += hwid.o
 obj-$(CONFIG_MCA) += mca.o
+obj-y += env.o
