@@ -13,6 +13,12 @@
 	model = "Digi International ConnectCore 6UL Starter Board.";
 	compatible = "digi,ccimx6ulstarter", "digi,ccimx6ul", "fsl,imx6ul";
 	digi,machine,name = "ccimx6ulstarter";
+
+	bootcount {
+		compatible = "u-boot,bootcount-rtc";
+		rtc = <&mca_rtc>;
+		offset = <0x00b0>;
+	};
 };
 
 /* ECSPI3 (Raspberry PI Expansion header) */

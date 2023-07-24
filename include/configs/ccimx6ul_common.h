@@ -148,7 +148,6 @@
 	"board_id:so,"
 
 /* I2C configs */
-#define CONFIG_SYS_I2C
 #define CONFIG_SYS_I2C_MXC
 #define CONFIG_I2C_MULTI_BUS
 #define CONFIG_SYS_I2C_SPEED		100000
