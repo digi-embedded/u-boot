@@ -1,6 +1,6 @@
 CCIMX6ULSTARTER BOARD
-M:	Hector Palacios <hector.palacios@digi.com>
+M:	Nathaly Saldarriaga <nsaldarriaga@alvic.com>
 S:	Supported
-F:	board/digi/ccimx6ulstarter/
-F:	include/configs/ccimx6ulstarter.h
-F:	configs/ccimx6ulstarter_defconfig
+F:	board/digi/ccimx6ulalvic/
+F:	include/configs/ccimx6ulalvic.h
+F:	configs/ccimx6ulalvic_defconfig

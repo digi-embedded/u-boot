@@ -1,0 +1,19 @@
+if TARGET_CCIMX6ULALVIC
+
+source "board/digi/common/Kconfig"
+
+config SYS_BOARD
+	default "ccimx6ulalvic"
+
+config SYS_VENDOR
+	default "digi"
+
+config SYS_SOC
+	default "mx6"
+
+config SYS_CONFIG_NAME
+	default "ccimx6ulalvic"
+
+source "board/digi/ccimx6ul/Kconfig"
+
+endif
