@@ -89,18 +89,18 @@
 	"rootfstype=ubifs rw"
 #define ROOTARGS_SQUASHFS_A_PARTITION \
 	"ubi.mtd=" SYSTEM_PARTITION " " \
-	"ubi.block=0,4 root=/dev/ubiblock0_4 " \
-	"rootfstype=squashfs ro"
+	"ubi.block=0,${rootfsvol} root=/dev/ubiblock0_4 "
 #define ROOTARGS_SQUASHFS_B_PARTITION \
 	"ubi.mtd=" SYSTEM_PARTITION " " \
-	"ubi.block=0,5 root=/dev/ubiblock0_5 " \
-	"rootfstype=squashfs ro"
+	"ubi.block=0,${rootfsvol} root=/dev/ubiblock0_5 "
 
 #define MTDPART_ENV_SETTINGS \
 	"mtdbootpart=" LINUX_A_PARTITION "\0" \
 	"rootfsvol=" ROOTFS_A_PARTITION "\0" \
 	"bootargs_nand_linux=" \
-		"if test \"${rootfstype}\" = squashfs; then " \
+		"ubi read ${update_addr} ${rootfsvol} 0x04; " \
+		"setexpr.l magic_number *${update_addr}; " \
+		"if test \"${magic_number}\" = " SQUASHFS_MAGIC_NUMBER "; then " \
 			"if test \"${dualboot}\" = yes; then " \
 				"if test \"${active_system}\" = linux_a; then " \
 					"setenv rootargs " ROOTARGS_SQUASHFS_A_PARTITION ";" \
