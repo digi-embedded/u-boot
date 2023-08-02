@@ -84,14 +84,11 @@
 	"zimage=zImage-" BOARD_DEY_NAME ".bin\0"
 
 #define ROOTARGS_UBIFS \
-	"ubi.mtd=" SYSTEM_PARTITION " " \
 	"root=ubi0:${rootfsvol} " \
 	"rootfstype=ubifs rw"
 #define ROOTARGS_SQUASHFS_A_PARTITION \
-	"ubi.mtd=" SYSTEM_PARTITION " " \
 	"ubi.block=0,${rootfsvol} root=/dev/ubiblock0_4 "
 #define ROOTARGS_SQUASHFS_B_PARTITION \
-	"ubi.mtd=" SYSTEM_PARTITION " " \
 	"ubi.block=0,${rootfsvol} root=/dev/ubiblock0_5 "
 
 #define MTDPART_ENV_SETTINGS \
@@ -113,6 +110,7 @@
 		"else " \
 			"setenv rootargs " ROOTARGS_UBIFS ";" \
 		"fi;" \
+		"setenv rootargs ${rootargs} ubi.mtd=" SYSTEM_PARTITION ";" \
 		"setenv bootargs console=${console},${baudrate} " \
 			"${bootargs_linux} ${mtdparts} " \
 			"${rootargs} " \
