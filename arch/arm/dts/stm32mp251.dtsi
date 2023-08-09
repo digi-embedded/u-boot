@@ -540,6 +540,16 @@
 				status = "disabled";
 			};
 
+			rng: rng@42020000 {
+				compatible = "st,stm32mp25-rng";
+				reg = <0x42020000 0x400>;
+				clocks = <&clk_security>, <&rcc CK_BUS_RNG>;
+				clock-names = "rng_clk", "rng_hclk";
+				resets = <&rcc RNG_R>;
+				feature-domains = <&rifsc STM32MP25_RIFSC_RNG_ID>;
+				status = "disabled";
+			};
+
 			i2s1: audio-controller@40230000 {
 				compatible = "st,stm32mp25-i2s";
 				reg = <0x40230000 0x400>;
