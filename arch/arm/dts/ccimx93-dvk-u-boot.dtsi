@@ -4,6 +4,12 @@
  */
 
 / {
+	bootcount {
+		compatible = "u-boot,bootcount-rtc";
+		rtc = <&rv3028>;
+		offset = <0x1f>;
+	};
+
 	wdt-reboot {
 		compatible = "wdt-reboot";
 		wdt = <&wdog3>;
