@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
- * Copyright 2022 Digi International Inc
- * Copyright 2021 NXP
+ * Copyright 2022-2023 Digi International Inc
  */
 
 /dts-v1/;
@@ -36,17 +35,8 @@
 		regulator-name = "can2-stby";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
-// 		gpio = <&adp5585gpio 5 GPIO_ACTIVE_LOW>;
+		gpio = <&gpio1 13 GPIO_ACTIVE_LOW>;
 		enable-active-low;
-	};
-
-	reg_vdd_12v: regulator-vdd-12v {
-		compatible = "regulator-fixed";
-		regulator-name = "reg_vdd_12v";
-		regulator-min-microvolt = <12000000>;
-		regulator-max-microvolt = <12000000>;
-// 		gpio = <&pcal6524 14 GPIO_ACTIVE_HIGH>;
-		enable-active-high;
 	};
 
 	reg_vref_1v8: regulator-adc-vref {
@@ -54,11 +44,6 @@
 		regulator-name = "vref_1v8";
 		regulator-min-microvolt = <1800000>;
 		regulator-max-microvolt = <1800000>;
-	};
-
-	usdhc3_pwrseq: usdhc3_pwrseq {
-		compatible = "mmc-pwrseq-simple";
-// 		reset-gpios = <&pcal6524 20 GPIO_ACTIVE_LOW>;
 	};
 
 	mca_gpio_uboot: mca_gpio {
@@ -141,7 +126,8 @@
 	pmic@25 {
 		compatible = "nxp,pca9451a";
 		reg = <0x25>;
-		pinctrl-names = "default";
+		interrupt-parent = <&gpio2>;
+		interrupts = <29 IRQ_TYPE_LEVEL_LOW>;
 
 		regulators {
 			buck1: BUCK1 {
@@ -221,12 +207,35 @@
 	pinctrl-0 = <&pinctrl_lpi2c3>;
 	pinctrl-1 = <&pinctrl_lpi2c3>;
 	status = "okay";
-};
 
-&lpuart2 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_uart2>;
-	status = "disabled";
+	ptn5110: tcpc@53 {
+		compatible = "nxp,ptn5110";
+		reg = <0x53>;
+		interrupt-parent = <&gpio4>;
+		interrupts = <21 IRQ_TYPE_LEVEL_LOW>;
+		status = "okay";
+
+		port {
+			typec1_dr_sw: endpoint {
+				remote-endpoint = <&usb1_drd_sw>;
+			};
+		};
+
+		typec1_con: connector {
+			compatible = "usb-c-connector";
+			label = "USB-C";
+			power-role = "dual";
+			data-role = "dual";
+			try-power-role = "sink";
+			source-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;
+			sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)
+				     PDO_VAR(5000, 20000, 3000)>;
+			op-sink-microwatt = <15000000>;
+			self-powered;
+		};
+	};
+
+
 };
 
 &lpuart6 { /* console */
@@ -237,6 +246,7 @@
 	status = "okay";
 };
 
+/* USB_OTG1 - USB TypeC */
 &usbotg1 {
 	dr_mode = "otg";
 	hnp-disable;
@@ -250,7 +260,7 @@
 
 	port {
 		usb1_drd_sw: endpoint {
-// 			remote-endpoint = <&typec1_dr_sw>;
+			remote-endpoint = <&typec1_dr_sw>;
 		};
 	};
 };
@@ -277,13 +287,7 @@
 	pinctrl-0 = <&pinctrl_usdhc2>, <&pinctrl_usdhc2_gpio>;
 	pinctrl-1 = <&pinctrl_usdhc2>, <&pinctrl_usdhc2_gpio>;
 	pinctrl-2 = <&pinctrl_usdhc2>, <&pinctrl_usdhc2_gpio>;
-	/*
-	 * On the CC8MM_DVK the card detect line is not connected.
-	 * @TODO: revisit on the CC93_DVK
-	 */
-// 	cd-gpios = <&gpio3 00 GPIO_ACTIVE_LOW>;
-	broken-cd;	/* no carrier detect line (use polling) */
-	no-1-8-v;
+	cd-gpios = <&gpio3 00 GPIO_ACTIVE_HIGH>;
 	bus-width = <4>;
 	status = "okay";
 	no-sdio;
@@ -319,13 +323,17 @@
 };
 
 &iomuxc {
-	pinctrl-names = "default";
-	status = "okay";
-
 	pinctrl_flexcan2: flexcan2grp {
 		fsl,pins = <
 			MX93_PAD_GPIO_IO25__CAN2_TX	0x139e
 			MX93_PAD_GPIO_IO27__CAN2_RX	0x139e
+		>;
+	};
+
+	pinctrl_lpi2c1: lpi2c1grp {
+		fsl,pins = <
+			MX93_PAD_I2C1_SCL__LPI2C1_SCL		0x40000b9e
+			MX93_PAD_I2C1_SDA__LPI2C1_SDA		0x40000b9e
 		>;
 	};
 
@@ -359,17 +367,10 @@
 		>;
 	};
 
-	pinctrl_lpi2c1: lpi2c1grp {
-		fsl,pins = <
-			MX93_PAD_I2C1_SCL__LPI2C1_SCL		0x40000b9e
-			MX93_PAD_I2C1_SDA__LPI2C1_SDA		0x40000b9e
-		>;
-	};
-
 	pinctrl_lpi2c3: lpi2c3grp {
 		fsl,pins = <
-			MX93_PAD_GPIO_IO28__LPI2C3_SDA		0x40000b9e
-			MX93_PAD_GPIO_IO29__LPI2C3_SCL		0x40000b9e
+			MX93_PAD_GPIO_IO00__LPI2C3_SDA		0x40000b9e
+			MX93_PAD_GPIO_IO01__LPI2C3_SCL		0x40000b9e
 		>;
 	};
 
@@ -392,17 +393,10 @@
 		>;
 	};
 
-	pinctrl_uart2: uart2grp {
-		fsl,pins = <
-			MX93_PAD_UART2_TXD__LPUART2_TX		0x31e
-			MX93_PAD_UART2_RXD__LPUART2_RX		0x31e
-		>;
-	};
-
 	pinctrl_uart6: uart6grp {
 		fsl,pins = <
-			MX93_PAD_GPIO_IO04__LPUART6_TX		0x31e
 			MX93_PAD_GPIO_IO05__LPUART6_RX		0x31e
+			MX93_PAD_GPIO_IO04__LPUART6_TX		0x31e
 		>;
 	};
 
