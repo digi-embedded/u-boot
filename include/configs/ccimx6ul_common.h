@@ -196,8 +196,12 @@
 
 #define ALTBOOTCMD	\
 	"altbootcmd=" \
-		"if test -z \"${active_system}\"; then " \
-			"setenv active_system " LINUX_A_PARTITION ";" \
+		"if test \"${dualboot}\" = yes; then " \
+			"if test -z \"${active_system}\"; then " \
+				"setenv active_system " LINUX_A_PARTITION ";" \
+			"fi;" \
+		"else " \
+			"setenv active_system " CONFIG_LINUX_PARTITION ";" \
 		"fi;" \
 		"setenv mtdbootpart ${active_system};" \
 		"if test \"${singlemtdsys}\" = yes; then " \
