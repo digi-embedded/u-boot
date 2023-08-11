@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Digi International Inc
+ * Copyright 2022-2023 Digi International Inc
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -207,8 +207,12 @@
 
 #define ALTBOOTCMD	\
 	"altbootcmd=" \
-		"if test -z \"${active_system}\"; then " \
-			"setenv active_system " LINUX_A_PARTITION ";" \
+		"if test \"${dualboot}\" = yes; then " \
+			"if test -z \"${active_system}\"; then " \
+				"setenv active_system " LINUX_A_PARTITION ";" \
+			"fi;" \
+		"else " \
+			"setenv active_system " LINUX_PARTITION ";" \
 		"fi;" \
 		"setenv mtdbootpart ${active_system};" \
 		"if ubi part " SYSTEM_PARTITION "; then " \
