@@ -80,6 +80,34 @@ void fdt_fixup_ccmp1(void *fdt)
 #endif
 }
 
+#define MTDPARTS_LEN		256
+void board_mtdparts_default(const char **mtdids, const char **mtdparts)
+{
+	struct mtd_info *nand = get_nand_dev_by_index(0);
+	static char parts[3 * MTDPARTS_LEN + 1];
+	static char ids[] = CONFIG_MTDIDS_DEFAULT;
+	static bool mtd_initialized;
+
+	if (mtd_initialized) {
+		*mtdids = ids;
+		*mtdparts = parts;
+		return;
+	}
+
+	memset(parts, 0, sizeof(parts));
+
+	if (nand->size > SZ_256M)
+		strcat(parts, "mtdparts=nand0:" CONFIG_MTDPARTS_NAND0_BOOT ","
+		       MTDPARTS_512M);
+	else
+		strcat(parts, "mtdparts=nand0:" CONFIG_MTDPARTS_NAND0_BOOT ","
+		       MTDPARTS_256M);
+
+	*mtdparts = parts;
+	*mtdids = ids;
+	mtd_initialized = true;
+}
+
 void generate_ubi_volumes_script(void)
 {
 	struct mtd_info *nand = get_nand_dev_by_index(0);
@@ -87,12 +115,16 @@ void generate_ubi_volumes_script(void)
 
 	if (nand->size > SZ_256M) {
 		sprintf(script, CREATE_UBIVOLS_SCRIPT,
-				UBIVOLS_DUALBOOT_512MB,
-				UBIVOLS_512MB);
+				UBIVOLS1_DUALBOOT_512MB,
+				UBIVOLS1_512MB,
+				UBIVOLS2_DUALBOOT_512MB,
+				UBIVOLS2_512MB);
 	} else {
 		sprintf(script, CREATE_UBIVOLS_SCRIPT,
-				UBIVOLS_DUALBOOT_256MB,
-				UBIVOLS_256MB);
+				UBIVOLS1_DUALBOOT_256MB,
+				UBIVOLS1_256MB,
+				UBIVOLS2_DUALBOOT_256MB,
+				UBIVOLS2_256MB);
 	}
 	env_set("ubivolscript", script);
 }

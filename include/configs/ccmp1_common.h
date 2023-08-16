@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Digi International Inc
+ * Copyright 2022, 2023 Digi International Inc
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -196,6 +196,7 @@
 #define LINUX_PARTITION			"linux"
 #define RECOVERY_PARTITION		"recovery"
 #define ROOTFS_PARTITION		"rootfs"
+#define UPDATE_PARTITION		"update"
 #define SYSTEM_PARTITION		"UBI"
 #define DATA_PARTITION			"data"
 
