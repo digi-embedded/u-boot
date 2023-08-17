@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016-2020 by Digi International Inc.
+ *  Copyright (C) 2016-2023 by Digi International Inc.
  *  All rights reserved.
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -242,7 +242,7 @@ static int do_update(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv
 	char cmd[CONFIG_SYS_CBSIZE];
 	bool ubivol = false;
 	bool force_erase = false;
-	char str[10];
+	char str[20];
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
