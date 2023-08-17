@@ -200,6 +200,8 @@
 #define SYSTEM_PARTITION		"UBI"
 #define DATA_PARTITION			"data"
 
+#define NUM_SYSTEM_PARTITIONS		2
+
 /* Dualboot partition configuration */
 #define LINUX_A_PARTITION		"linux_a"
 #define LINUX_B_PARTITION		"linux_b"
