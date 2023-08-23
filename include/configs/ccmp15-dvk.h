@@ -98,12 +98,8 @@
 		"ubi read ${update_addr} ${rootfsvol} 0x04; " \
 		"setexpr.l magic_number *${update_addr}; " \
 		"if test \"${magic_number}\" = " SQUASHFS_MAGIC_NUMBER "; then " \
-			"if test \"${dualboot}\" = yes; then " \
-				"if test \"${active_system}\" = linux_a; then " \
-					"setenv rootargs " ROOTARGS_SQUASHFS_A_PARTITION ";" \
-				"else " \
-					"setenv rootargs " ROOTARGS_SQUASHFS_B_PARTITION ";" \
-				"fi;" \
+			"if test \"${active_system}\" = linux_b; then " \
+				"setenv rootargs " ROOTARGS_SQUASHFS_B_PARTITION ";" \
 			"else " \
 				"setenv rootargs " ROOTARGS_SQUASHFS_A_PARTITION ";" \
 			"fi;" \
