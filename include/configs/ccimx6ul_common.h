@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Digi International, Inc.
+ * Copyright (C) 2016-2023 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * Configuration settings for the Digi ConnecCore 6UL System-On-Module.
@@ -281,8 +281,8 @@
 					"1m(safe)," \
 					"24m(" LINUX_A_PARTITION ")," \
 					"24m(" LINUX_B_PARTITION ")," \
-					"230m(rootfs_a)," \
-					"230m(rootfs_b)"
+					"226m(rootfs_a)," \
+					"226m(rootfs_b)"
 #define MTDPARTS_DUALBOOT_1024MB	"mtdparts=" CONFIG_NAND_NAME ":" \
 					__stringify(UBOOT_PART_SIZE_BIG) "m(" CONFIG_UBOOT_PARTITION ")," \
 					__stringify(ENV_PART_SIZE_BIG) "m(environment)," \
