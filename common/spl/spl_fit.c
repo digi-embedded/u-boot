@@ -579,6 +579,9 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 		return 0;
 
 	fit = spl_load_simple_fit_fix_load(fit);
+	if (fit == NULL) {
+		return -1;
+	}
 
 	/* find the node holding the images information */
 	images = fdt_path_offset(fit, FIT_IMAGES_PATH);
