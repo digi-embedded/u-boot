@@ -40,6 +40,14 @@
 		status = "disabled";
 	};
 
+	clocks {
+		clk_security: clk-security {
+			#clock-cells = <0>;
+			compatible = "fixed-clock";
+			clock-frequency = <64000000>;
+		};
+	};
+
 	firmware {
 		optee {
 			compatible = "linaro,optee-tz";
