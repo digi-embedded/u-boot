@@ -249,9 +249,17 @@
 
 #define ALTBOOTCMD	\
 	"altbootcmd=" \
-	"if load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} altboot.scr; then " \
-		"source ${loadaddr};" \
-	"fi;\0"
+		"if test \"${dualboot}\" = yes; then " \
+			"if test \"${active_system}\" = linux_a; then " \
+				"setenv active_system linux_b;" \
+			"else " \
+				"setenv active_system linux_a;" \
+			"fi;" \
+			"saveenv;" \
+			"echo \"## System boot failed; Switching active partitions bank to ${active_system}...\";" \
+		"fi;" \
+		"bootcount reset;" \
+		"reset;\0"
 
 /* Pool of randomly generated UUIDs at host machine */
 #define RANDOM_UUIDS	\

@@ -196,27 +196,16 @@
 #define ALTBOOTCMD	\
 	"altbootcmd=" \
 		"if test \"${dualboot}\" = yes; then " \
-			"if test -z \"${active_system}\"; then " \
-				"setenv active_system " LINUX_A_PARTITION ";" \
+			"if test \"${active_system}\" = linux_a; then " \
+				"setenv active_system linux_b;" \
+			"else " \
+				"setenv active_system linux_a;" \
 			"fi;" \
-		"else " \
-			"setenv active_system " CONFIG_LINUX_PARTITION ";" \
+			"saveenv;" \
+			"echo \"## System boot failed; Switching active partitions bank to ${active_system}...\";" \
 		"fi;" \
-		"setenv mtdbootpart ${active_system};" \
-		"if test \"${singlemtdsys}\" = yes; then " \
-			"if ubi part " SYSTEM_PARTITION "; then " \
-				"if ubifsmount ubi0:${mtdbootpart}; then " \
-					"ubifsload ${loadaddr} altboot.scr;" \
-				"fi;" \
-			"fi;" \
-		"else " \
-			"if ubi part ${mtdbootpart}; then " \
-				"if ubifsmount ubi0:${mtdbootpart}; then " \
-					"ubifsload ${loadaddr} altboot.scr;" \
-				"fi;" \
-			"fi;" \
-		"fi;" \
-		"source ${loadaddr}\0"
+		"bootcount reset;" \
+		"reset;\0"
 
 /* One 'system' partition containing many UBI volumes (modern layout) */
 #define MTDPARTS_SMALL			"mtdparts=" CONFIG_NAND_NAME ":" \
