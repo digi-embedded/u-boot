@@ -277,8 +277,8 @@
 				"setenv active_system linux_b;" \
 			"else " \
 				"setenv active_system linux_a;" \
-			"fi;"\
-			"echo \"## System boot failed; Switching active partitions bank to ${active_system}...\"; \
+			"fi;" \
+			"echo \"## System boot failed; Switching active partitions bank to ${active_system}...\";" \
 		"fi;" \
 		"setenv upgrade_available;" \
 		"setenv bootcount 0;" \
