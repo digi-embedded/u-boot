@@ -116,6 +116,20 @@ struct ccimx8_variant ccimx8x_variants[] = {
 		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
 		"Industrial DualX, 8GB eMMC, 1GB LPDDR4, -40/+85C, Wireless, Bluetooth",
 	},
+/* 0x0C - 55001984-12 */
+	{
+		IMX8QXP,
+		SZ_2G,
+		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
+		"Industrial QuadXPlus, 16GB eMMC, 2GB LPDDR4, -40/+85C, Wireless, Bluetooth",
+	},
+/* 0x0D - 55001984-13 */
+	{
+		IMX8QXP,
+		SZ_4G,
+		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
+		"Industrial QuadXPlus, 32GB eMMC, 4GB LPDDR4, -40/+85C, Wireless, Bluetooth",
+	},
 };
 
 void board_mem_get_layout(u64 *phys_sdram_1_start,
@@ -140,7 +154,15 @@ void board_mem_get_layout(u64 *phys_sdram_1_start,
 		}
 	}
 
-	if (!*phys_sdram_1_size) {
+	if (*phys_sdram_1_size > SZ_2G) {
+		/*
+		 * Special case: split the size between the two SDRAM banks:
+		 *     * First 2 GiB go in bank 1
+		 *     * Remaining size goes in bank 2
+		 */
+		*phys_sdram_2_size = *phys_sdram_1_size - SZ_2G;
+		*phys_sdram_1_size = SZ_2G;
+	} else if (!*phys_sdram_1_size) {
 		*phys_sdram_1_size = PHYS_SDRAM_1_SIZE;
 		printk("Cannot determine RAM size. Using default size (%d MiB).\n", PHYS_SDRAM_1_SIZE >> 20);
 	}

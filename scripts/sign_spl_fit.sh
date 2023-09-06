@@ -3,7 +3,7 @@
 #
 #  sign_spl_fit.sh
 #
-#  Copyright (C) 2020 by Digi International Inc.
+#  Copyright (C) 2020-2023 by Digi International Inc.
 #  All rights reserved.
 #
 #  This program is free software; you can redistribute it and/or modify it
@@ -21,7 +21,7 @@
 #				  field so that key revocation is possible in closed devices.
 #      ENABLE_ENCRYPTION: (optional) enable encryption of the images.
 #      CONFIG_DEK_PATH: (mandatory if ENCRYPT is defined) path to a Data Encryption Key.
-#                       If defined, the signed	U-Boot image is encrypted with the
+#                       If defined, the signed U-Boot image is encrypted with the
 #                       given key. Supported key sizes: 128 bits.
 #      CONFIG_MKIMAGE_LOG_PATH: (optional) path to the log generated when
 #                               imx-boot was compiled. If not provided, a default

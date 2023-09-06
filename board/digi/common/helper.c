@@ -858,23 +858,30 @@ u64 memsize_parse(const char *const ptr, const char **retptr)
  */
 void set_verifyaddr(unsigned long loadaddr)
 {
-	unsigned long verifyaddr;
+	unsigned long verifyaddr, ram_size = gd->ram_size;
+#if defined(CONFIG_IMX8QXP)
+	/*
+	 * On the ccimx8x, use only the first SDRAM bank for update
+	 * operations
+	 */
+	ram_size = gd->bd->bi_dram[0].size;
+#endif
+	verifyaddr =
+	    loadaddr + ((ram_size - (loadaddr - CFG_SYS_SDRAM_BASE)) / 2);
 
-	verifyaddr = loadaddr + ((gd->ram_size -
-				   (loadaddr - CFG_SYS_SDRAM_BASE)) / 2);
-
-	 /* Skip reserved memory area */
+	/* Skip reserved memory area */
 #if defined(RESERVED_MEM_START) && defined(RESERVED_MEM_END)
 	if (verifyaddr >= RESERVED_MEM_START && verifyaddr < RESERVED_MEM_END) {
 		verifyaddr = RESERVED_MEM_END;
-		printf("Skip reserved memory area, verifyaddr set to 0x%lx\n", verifyaddr);
+		printf("Skip reserved memory area, verifyaddr set to 0x%lx\n",
+		       verifyaddr);
 	}
 #endif
 
-	 if (verifyaddr > loadaddr &&
-	     verifyaddr < (CFG_SYS_SDRAM_BASE + gd->ram_size))
-		 env_set_hex("verifyaddr", verifyaddr);
- }
+	if (verifyaddr > loadaddr &&
+	    verifyaddr < (CFG_SYS_SDRAM_BASE + ram_size))
+		env_set_hex("verifyaddr", verifyaddr);
+}
 
 /**
  * Validate a bootloader image in memory to see if it's apt for the board.

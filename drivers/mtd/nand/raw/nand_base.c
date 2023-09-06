@@ -4414,7 +4414,7 @@ int nand_detect(struct nand_chip *chip, int *maf_id,
 ident_done:
 	/*
 	 * Some NANDs report 0 bits of ECC strength because they
-	 * can work with any number of ECC bits. Use 1-bit by default
+	 * can work with any number of ECC bits. Set default ECC parameters
 	 * on such cases, because drivers may not accept a value of 0.
 	 */
 	if (chip->ecc_strength_ds == 0 || chip->ecc_step_ds == 0)

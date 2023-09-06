@@ -10,8 +10,10 @@
 #include <common.h>
 #include <command.h>
 #include <dm.h>
+#include <i2c.h>
 #include <linux/delay.h>
 #include <rtc.h>
+#include <dm/device_compat.h>
 #include "../../board/digi/common/mca_registers.h"
 #include "../../board/digi/common/mca.h"
 
@@ -167,9 +169,27 @@ static int mca_rtc_reset(struct udevice *dev)
 	return __mca_rtc_reset();
 }
 
+static int mca_rtc_read8(struct udevice *dev, unsigned int reg)
+{
+	u8 data;
+	int ret;
+
+	ret = dm_i2c_read(dev, reg, &data, sizeof(data));
+	return ret < 0 ? ret : data;
+}
+
+static int mca_rtc_write8(struct udevice *dev, unsigned int reg, int val)
+{
+	u8 data = val;
+
+	return dm_i2c_write(dev, reg, &data, 1);
+}
+
 static const struct rtc_ops mca_rtc_ops = {
 	.get = mca_rtc_get,
 	.set = mca_rtc_set,
+	.read8 = mca_rtc_read8,
+	.write8 = mca_rtc_write8,
 	.reset = mca_rtc_reset,
 };
 
