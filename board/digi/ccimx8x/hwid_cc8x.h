@@ -75,10 +75,10 @@ enum imx8_cpu {
 };
 
 struct ccimx8_variant {
-	enum imx8_cpu	cpu;
-	const int	sdram;
-	u8		capabilities;
-	const char	*id_string;
+	enum imx8_cpu		cpu;
+	const phys_size_t	sdram;
+	u8			capabilities;
+	const char		*id_string;
 };
 
 /* Capabilities */

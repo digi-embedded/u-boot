@@ -113,7 +113,53 @@ struct ccimx8_variant ccimx8x_variants[] = {
 		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
 		"Industrial DualX, 8GB eMMC, 1GB LPDDR4, -40/+85C, Wireless, Bluetooth",
 	},
+/* 0x0C - 55001984-12 */
+	{
+		IMX8QXP,
+		SZ_2G,
+		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
+		"Industrial QuadXPlus, 16GB eMMC, 2GB LPDDR4, -40/+85C, Wireless, Bluetooth",
+	},
+/* 0x0D - 55001984-13 */
+	{
+		IMX8QXP,
+		SZ_4G,
+		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
+		"Industrial QuadXPlus, 32GB eMMC, 4GB LPDDR4, -40/+85C, Wireless, Bluetooth",
+	},
 };
+
+#ifdef CONFIG_SPL
+void board_phys_sdram_size(phys_size_t *sdram1_size, phys_size_t *sdram2_size)
+{
+	struct digi_hwid my_hwid;
+	*sdram1_size = 0;
+	/* PHYS_SDRAM_2_SIZE defaults to 0 */
+	*sdram2_size = PHYS_SDRAM_2_SIZE;
+
+	if (!board_read_hwid(&my_hwid)) {
+		*sdram1_size = hwid_get_ramsize(&my_hwid);
+
+		/* if RAM size was not coded, use variant to obtain RAM size */
+		if (!(*sdram1_size) && my_hwid.variant < ARRAY_SIZE(ccimx8x_variants))
+			*sdram1_size = ccimx8x_variants[my_hwid.variant].sdram;
+	}
+
+	if (*sdram1_size > SZ_2G) {
+		/* 
+		 * Special case: split the size between the two SDRAM banks:
+		 *     * First 2 GiB go in bank 1
+		 *     * Remaining size goes in bank 2
+		 */
+		*sdram2_size = *sdram1_size - SZ_2G;
+		*sdram1_size = SZ_2G;
+	} else if (!(*sdram1_size)) {
+		/* Default to lowest RAM size supported (512 MB) */
+		printk("Cannot determine RAM size. Using default size (%d MiB).\n", PHYS_SDRAM_1_SIZE >> 20);
+		*sdram1_size = PHYS_SDRAM_1_SIZE;
+	}
+}
+#endif
 
 int mmc_get_bootdevindex(void)
 {

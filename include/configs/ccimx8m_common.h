@@ -230,9 +230,17 @@
 
 #define ALTBOOTCMD	\
 	"altbootcmd=" \
-	"if load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} altboot.scr; then " \
-		"source ${loadaddr};" \
-	"fi;\0"
+		"if test \"${dualboot}\" = yes; then " \
+			"if test \"${active_system}\" = linux_a; then " \
+				"setenv active_system linux_b;" \
+			"else " \
+				"setenv active_system linux_a;" \
+			"fi;" \
+			"saveenv;" \
+			"echo \"## System boot failed; Switching active partitions bank to ${active_system}...\";" \
+		"fi;" \
+		"bootcount reset;" \
+		"reset;\0"
 
 /* Pool of randomly generated UUIDs at host machine */
 #define RANDOM_UUIDS	\
@@ -284,6 +292,18 @@
 	"name=data,size=-,uuid=${part7_uuid};" \
 	"\""
 
+#define LINUX_32GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=linux,size=64MiB,uuid=${part1_uuid};" \
+	"name=recovery,size=64MiB,uuid=${part2_uuid};" \
+	"name=rootfs,size=14GiB,uuid=${part3_uuid};" \
+	"name=update,size=14GiB,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
+	"name=data,size=-,uuid=${part7_uuid};" \
+	"\""
+
 #define ANDROID_4GB_PARTITION_TABLE \
 	"\"uuid_disk=${uuid_disk};" \
 	"start=2MiB," \
@@ -329,6 +349,21 @@
 	"name=userdata,size=-,uuid=${part10_uuid};" \
 	"\""
 
+#define ANDROID_32GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=boot,size=32MiB,uuid=${part1_uuid};" \
+	"name=recovery,size=32MiB,uuid=${part2_uuid};" \
+	"name=system,size=2GiB,uuid=${part3_uuid};" \
+	"name=cache,size=2GiB,uuid=${part4_uuid};" \
+	"name=vendor,size=112MiB,uuid=${part5_uuid};" \
+	"name=datafooter,size=16MiB,uuid=${part6_uuid};" \
+	"name=safe,size=16MiB,uuid=${part7_uuid};" \
+	"name=frp,size=1MiB,uuid=${part8_uuid};" \
+	"name=metadata,size=16MiB,uuid=${part9_uuid};" \
+	"name=userdata,size=-,uuid=${part10_uuid};" \
+	"\""
+
 #define LINUX_DUALBOOT_4GB_PARTITION_TABLE \
 	"\"uuid_disk=${uuid_disk};" \
 	"start=2MiB," \
@@ -360,6 +395,18 @@
 	"name=linux_b,size=64MiB,uuid=${part2_uuid};" \
 	"name=rootfs_a,size=7GiB,uuid=${part3_uuid};" \
 	"name=rootfs_b,size=7GiB,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
+	"name=data,size=-,uuid=${part7_uuid};" \
+	"\""
+
+#define LINUX_DUALBOOT_32GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=linux_a,size=64MiB,uuid=${part1_uuid};" \
+	"name=linux_b,size=64MiB,uuid=${part2_uuid};" \
+	"name=rootfs_a,size=14GiB,uuid=${part3_uuid};" \
+	"name=rootfs_b,size=14GiB,uuid=${part4_uuid};" \
 	"name=safe,size=16MiB,uuid=${part5_uuid};" \
 	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
 	"name=data,size=-,uuid=${part7_uuid};" \

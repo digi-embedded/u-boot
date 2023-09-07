@@ -446,6 +446,11 @@
 
 		};
 	};
+
+	mca_rtc: rtc@63 {
+		compatible = "digi,mca-rtc";
+		reg = <0x63>;
+	};
 };
 
 &i2c2 {

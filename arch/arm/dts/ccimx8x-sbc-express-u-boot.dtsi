@@ -4,6 +4,12 @@
  */
 
 / {
+	bootcount {
+		compatible = "u-boot,bootcount-rtc";
+		rtc = <&mca_rtc>;
+		offset = <0x00b0>;
+	};
+
 	aliases {
 		usbgadget0 = &usbg1;
 		usbhost1 = &usbh3;

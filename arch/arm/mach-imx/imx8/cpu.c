@@ -538,16 +538,24 @@ static int get_owned_memreg(sc_rm_mr_t mr, sc_faddr_t *addr_start,
 	return -EINVAL;
 }
 
+__weak void board_phys_sdram_size(phys_size_t *sdram1_size, phys_size_t *sdram2_size)
+{
+	*sdram1_size = PHYS_SDRAM_1_SIZE;
+	*sdram2_size = PHYS_SDRAM_2_SIZE;
+}
+
 phys_size_t get_effective_memsize(void)
 {
 	sc_rm_mr_t mr;
 	sc_faddr_t start, end, end1, start_aligned;
 	int err;
+	phys_size_t sdram_1_size, sdram_2_size;
+	board_phys_sdram_size(&sdram_1_size, &sdram_2_size);
 
 	if (IS_ENABLED(CONFIG_XEN))
-		return PHYS_SDRAM_1_SIZE;
+		return sdram_1_size;
 
-	end1 = (sc_faddr_t)PHYS_SDRAM_1 + PHYS_SDRAM_1_SIZE;
+	end1 = (sc_faddr_t)PHYS_SDRAM_1 + sdram_1_size;
 	for (mr = 0; mr < 64; mr++) {
 		err = get_owned_memreg(mr, &start, &end);
 		if (!err) {
@@ -561,15 +569,15 @@ phys_size_t get_effective_memsize(void)
 			    (start <= CONFIG_SYS_TEXT_BASE &&
 			    end >= CONFIG_SYS_TEXT_BASE)) {
 				if ((end + 1) <= ((sc_faddr_t)PHYS_SDRAM_1 +
-				    PHYS_SDRAM_1_SIZE))
+				    sdram_1_size))
 					return (end - PHYS_SDRAM_1 + 1);
 				else
-					return PHYS_SDRAM_1_SIZE;
+					return sdram_1_size;
 			}
 		}
 	}
 
-	return PHYS_SDRAM_1_SIZE;
+	return sdram_1_size;
 }
 
 int dram_init(void)
@@ -577,16 +585,18 @@ int dram_init(void)
 	sc_rm_mr_t mr;
 	sc_faddr_t start, end, end1, end2;
 	int err;
+	phys_size_t sdram_1_size, sdram_2_size;
+	board_phys_sdram_size(&sdram_1_size, &sdram_2_size);
 
 	if (IS_ENABLED(CONFIG_XEN)) {
-		gd->ram_size = PHYS_SDRAM_1_SIZE;
-		gd->ram_size += PHYS_SDRAM_2_SIZE;
+		gd->ram_size = sdram_1_size;
+		gd->ram_size += sdram_2_size;
 
 		return 0;
 	}
 
-	end1 = (sc_faddr_t)PHYS_SDRAM_1 + PHYS_SDRAM_1_SIZE;
-	end2 = (sc_faddr_t)PHYS_SDRAM_2 + PHYS_SDRAM_2_SIZE;
+	end1 = (sc_faddr_t)PHYS_SDRAM_1 + sdram_1_size;
+	end2 = (sc_faddr_t)PHYS_SDRAM_2 + sdram_2_size;
 	for (mr = 0; mr < 64; mr++) {
 		err = get_owned_memreg(mr, &start, &end);
 		if (!err) {
@@ -611,8 +621,8 @@ int dram_init(void)
 
 	/* If error, set to the default value */
 	if (!gd->ram_size) {
-		gd->ram_size = PHYS_SDRAM_1_SIZE;
-		gd->ram_size += PHYS_SDRAM_2_SIZE;
+		gd->ram_size = sdram_1_size;
+		gd->ram_size += sdram_2_size;
 	}
 	return 0;
 }
@@ -646,18 +656,20 @@ int dram_init_banksize(void)
 	sc_faddr_t start, end, end1, end2;
 	int i = 0;
 	int err;
+	phys_size_t sdram_1_size, sdram_2_size;
+	board_phys_sdram_size(&sdram_1_size, &sdram_2_size);
 
 	if (IS_ENABLED(CONFIG_XEN)) {
 		gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
-		gd->bd->bi_dram[0].size = PHYS_SDRAM_1_SIZE;
+		gd->bd->bi_dram[0].size = sdram_1_size;
 		gd->bd->bi_dram[1].start = PHYS_SDRAM_2;
-		gd->bd->bi_dram[1].size = PHYS_SDRAM_2_SIZE;
+		gd->bd->bi_dram[1].size = sdram_2_size;
 
 		return 0;
 	}
 
-	end1 = (sc_faddr_t)PHYS_SDRAM_1 + PHYS_SDRAM_1_SIZE;
-	end2 = (sc_faddr_t)PHYS_SDRAM_2 + PHYS_SDRAM_2_SIZE;
+	end1 = (sc_faddr_t)PHYS_SDRAM_1 + sdram_1_size;
+	end2 = (sc_faddr_t)PHYS_SDRAM_2 + sdram_2_size;
 	for (mr = 0; mr < 64 && i < CONFIG_NR_DRAM_BANKS; mr++) {
 		err = get_owned_memreg(mr, &start, &end);
 		if (!err) {
@@ -694,9 +706,9 @@ int dram_init_banksize(void)
 	/* If error, set to the default value */
 	if (!i) {
 		gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
-		gd->bd->bi_dram[0].size = PHYS_SDRAM_1_SIZE;
+		gd->bd->bi_dram[0].size = sdram_1_size;
 		gd->bd->bi_dram[1].start = PHYS_SDRAM_2;
-		gd->bd->bi_dram[1].size = PHYS_SDRAM_2_SIZE;
+		gd->bd->bi_dram[1].size = sdram_2_size;
 	}
 
 	return 0;
@@ -706,11 +718,13 @@ static u64 get_block_attrs(sc_faddr_t addr_start)
 {
 	u64 attr = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) | PTE_BLOCK_NON_SHARE |
 		PTE_BLOCK_PXN | PTE_BLOCK_UXN;
+	phys_size_t sdram_1_size, sdram_2_size;
+	board_phys_sdram_size(&sdram_1_size, &sdram_2_size);
 
 	if ((addr_start >= PHYS_SDRAM_1 &&
-	     addr_start <= ((sc_faddr_t)PHYS_SDRAM_1 + PHYS_SDRAM_1_SIZE)) ||
+	     addr_start <= ((sc_faddr_t)PHYS_SDRAM_1 + sdram_1_size)) ||
 	    (addr_start >= PHYS_SDRAM_2 &&
-	     addr_start <= ((sc_faddr_t)PHYS_SDRAM_2 + PHYS_SDRAM_2_SIZE)))
+	     addr_start <= ((sc_faddr_t)PHYS_SDRAM_2 + sdram_2_size)))
 #ifdef CONFIG_IMX_TRUSTY_OS
 		return (PTE_BLOCK_MEMTYPE(MT_NORMAL) | PTE_BLOCK_INNER_SHARE);
 #else
@@ -723,9 +737,11 @@ static u64 get_block_attrs(sc_faddr_t addr_start)
 static u64 get_block_size(sc_faddr_t addr_start, sc_faddr_t addr_end)
 {
 	sc_faddr_t end1, end2;
+	phys_size_t sdram_1_size, sdram_2_size;
+	board_phys_sdram_size(&sdram_1_size, &sdram_2_size);
 
-	end1 = (sc_faddr_t)PHYS_SDRAM_1 + PHYS_SDRAM_1_SIZE;
-	end2 = (sc_faddr_t)PHYS_SDRAM_2 + PHYS_SDRAM_2_SIZE;
+	end1 = (sc_faddr_t)PHYS_SDRAM_1 + sdram_1_size;
+	end2 = (sc_faddr_t)PHYS_SDRAM_2 + sdram_2_size;
 
 	if (addr_start >= PHYS_SDRAM_1 && addr_start <= end1) {
 		if ((addr_end + 1) > end1)

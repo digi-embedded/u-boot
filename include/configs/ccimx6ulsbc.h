@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 Digi International, Inc.
+ * Copyright (C) 2016-2023 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * Configuration settings for the Digi ConnecCore 6UL SBC board.
@@ -164,6 +164,7 @@
 	"initrd_addr=0x83800000\0" \
 	"initrd_file=uramdisk.img\0" \
 	"initrd_high=0xffffffff\0" \
+	"usb_pgood_delay=2000\0" \
 	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"recovery_file=recovery.img\0" \
@@ -184,13 +185,14 @@
 	"rootfstype=ubifs rw"
 #define ROOTARGS_SINGLEMTDSYSTEM_SQUASHFS \
 	"ubi.mtd=" SYSTEM_PARTITION " " \
-	"ubi.block=0,2 root=/dev/ubiblock0_2 " \
-	"rootfstype=squashfs ro"
+	"ubi.block=0,${rootfsvol} root=/dev/ubiblock0_2 "
+#define ROOTARGS_SINGLEMTDSYSTEM_SQUASHFS_B \
+	"ubi.mtd=" SYSTEM_PARTITION " " \
+	"ubi.block=0,${rootfsvol} root=/dev/ubiblock0_3 "
 #define ROOTARGS_MULTIMTDSYSTEM_SQUASHFS \
 	"ubi.mtd=${mtdbootpart} " \
 	"ubi.mtd=${mtdrootfspart} " \
-	"ubi.block=1,0 root=/dev/ubiblock1_0 " \
-	"rootfstype=squashfs ro"
+	"ubi.block=1,${rootfsvol} root=/dev/ubiblock1_0 "
 
 #define MTDPART_ENV_SETTINGS \
 	"mtdbootpart=" CONFIG_LINUX_PARTITION "\0" \
@@ -200,7 +202,11 @@
 	"bootargs_nand_linux=" \
 		"if test \"${singlemtdsys}\" = yes; then " \
 			"if test \"${rootfstype}\" = squashfs; then " \
-				"setenv rootargs " ROOTARGS_SINGLEMTDSYSTEM_SQUASHFS ";" \
+				"if test \"${active_system}\" = linux_b; then " \
+					"setenv rootargs " ROOTARGS_SINGLEMTDSYSTEM_SQUASHFS_B ";" \
+				"else " \
+					"setenv rootargs " ROOTARGS_SINGLEMTDSYSTEM_SQUASHFS ";" \
+				"fi;" \
 			"else " \
 				"setenv rootargs " ROOTARGS_SINGLEMTDSYSTEM_UBIFS ";" \
 			"fi;" \

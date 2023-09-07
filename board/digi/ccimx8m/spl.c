@@ -66,7 +66,7 @@ int spl_board_boot_device(enum boot_device boot_dev_spl)
 
 void spl_dram_init(void)
 {
-	u32 ram;
+	u64 ram;
 	struct digi_hwid my_hwid;
 
 	/* Default to minimum RAM size for each platform */
