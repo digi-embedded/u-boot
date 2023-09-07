@@ -144,3 +144,12 @@ config DIGI_FAMILY_ID
 	default 3 if CC8M && IMX8MM
 	default 4 if CCMP1
 	default 0
+
+config MTD_UBI_MAXRSVDPEB_PCNT
+	int "Percentage of MTD partition reserved for bad blocks on a UBI volume"
+	default 4
+	help
+	  Standard U-Boot code uses a very conservative approach of reserving
+	  bad blocks basing on the full NAND size, instead of the size of the
+	  MTD partition. This setting allows to limit the number of reserved
+	  blocks for bad block handling to a percentage of the MTD partition size.

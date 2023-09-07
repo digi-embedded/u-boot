@@ -106,7 +106,7 @@ typedef struct environment_s {
 #endif
 	unsigned char	data[ENV_SIZE]; /* Environment data		*/
 } env_t
-#ifdef CONFIG_ENV_AES_CAAM_KEY
+#if defined(CONFIG_ENV_AES_CAAM_KEY) || defined(CONFIG_ENV_AES_CCMP1)
 /* Make sure the env is aligned to block size. */
 __attribute__((aligned(16)))
 #endif

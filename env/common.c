@@ -22,6 +22,12 @@
 #include <u-boot/crc.h>
 #include <dm/ofnode.h>
 
+#ifdef CONFIG_ENV_AES_CCMP1
+/* CCMP1 AES encryption support */
+#include <nand.h>
+#include "../board/digi/ccmp1/ta_ccmp1.h"
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 /************************************************************************
@@ -116,54 +122,10 @@ int env_set_default_vars(int nvars, char * const vars[], int flags)
 				flags, 0, nvars, vars);
 }
 
-#ifdef CONFIG_ENV_AES_CAAM_KEY
-#include <fuse.h>
-#include <fsl_caam.h>
-#include <u-boot/md5.h>
-#include <asm/mach-imx/hab.h>
-#include "../board/digi/common/trustfence.h"
-
-static int env_aes_cbc_crypt(env_t *env, const int enc)
-{
-	unsigned char *data = env->data;
-	unsigned char *buffer;
-	int ret = 0;
-	unsigned char key_modifier[KEY_MODIFER_SIZE] = {0};
-
-	if (!imx_hab_is_enabled())
-		return 0;
-
-	ret = get_trustfence_key_modifier(key_modifier);
-	if (ret)
-		return ret;
-
-	caam_open();
-	buffer = malloc(ENV_SIZE);
-	if (!buffer) {
-		debug("Not enough memory for en/de-cryption buffer");
-		return -ENOMEM;
-	}
-
-	if (enc)
-		ret = caam_gen_blob((ulong)data, (ulong)buffer, key_modifier, ENV_SIZE - BLOB_OVERHEAD);
-	else
-		ret = caam_decap_blob((ulong)buffer, (ulong)data, key_modifier, ENV_SIZE - BLOB_OVERHEAD);
-
-	if (ret)
-		goto err;
-
-	memcpy(data, buffer, ENV_SIZE);
-
-err:
-	free(buffer);
-	return ret;
-}
-#else
-static inline int env_aes_cbc_crypt(env_t *env, const int enc)
+__weak int env_aes_cbc_crypt(env_t *env, const int enc)
 {
 	return 0;
 }
-#endif /* CONFIG_ENV_AES_CAAM_KEY */
 
 /*
  * Check if CRC is valid and (if yes) import the environment.
@@ -188,7 +150,7 @@ int env_import(const char *buf, int check, int flags)
 	/* Decrypt the env if desired. */
 	ret = env_aes_cbc_crypt(ep, 0);
 	if (ret) {
-#ifdef CONFIG_ENV_AES_CAAM_KEY
+#if defined(CONFIG_ENV_AES_CAAM_KEY) || defined(CONFIG_ENV_AES_CCMP1)
 		if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE,
 				'\0', 0, 0, 0, NULL)) {
 			printf("Environment is unencrypted!\n");
@@ -311,7 +273,7 @@ int env_export(env_t *env_out)
 {
 	char *res;
 	ssize_t	len;
-#ifdef CONFIG_ENV_AES_CAAM_KEY
+#if defined(CONFIG_ENV_AES_CAAM_KEY) || defined(CONFIG_ENV_AES_CCMP1)
 	int ret;
 #endif
 
@@ -323,7 +285,7 @@ int env_export(env_t *env_out)
 	}
 
 	/* Encrypt the env if desired. */
-#ifdef CONFIG_ENV_AES_CAAM_KEY
+#if defined(CONFIG_ENV_AES_CAAM_KEY) || defined(CONFIG_ENV_AES_CCMP1)
 	ret = env_aes_cbc_crypt(env_out, 1);
 	if (ret)
 		return ret;

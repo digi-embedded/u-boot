@@ -16,12 +16,15 @@ endif
 
 obj-y += ../ccmp1/ccmp1.o
 
+ifdef CONFIG_ENV_AES_CCMP1
+obj-y += ../ccmp1/ta_ccmp1.o
+endif
+
 # ST common
 obj-$(CONFIG_CMD_STBOARD) += ../../st/common/cmd_stboard.o
 obj-$(CONFIG_PMIC_STPMIC1) += ../../st/common/stpmic1.o
 
 ifeq ($(CONFIG_ARCH_STM32MP),y)
-obj-$(CONFIG_SYS_MTDPARTS_RUNTIME) += ../../st/common/stm32mp_mtdparts.o
 obj-$(CONFIG_SET_DFU_ALT_INFO) += ../../st/common/stm32mp_dfu.o
 endif
 

@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR BSD-3-Clause
 /*
- * Copyright (C) 2022, Digi International Inc - All Rights Reserved
+ * Copyright (C) 2022-2023, Digi International Inc - All Rights Reserved
  */
 
 #include "stm32mp13-u-boot.dtsi"
 
 / {
+	bootcount {
+		compatible = "u-boot,bootcount-rtc";
+		rtc = <&rv3028>;
+		offset = <0x1f>;
+	};
+
 	aliases {
 		mmc1 = &sdmmc1;
 		usb0 = &usbotg_hs;
@@ -14,6 +20,13 @@
 	config {
 		u-boot,boot-led = "USER1";
 		u-boot,error-led = "USER2";
+	};
+};
+
+&i2c2 {
+	rv3028: rtc@52 {
+		compatible = "microcrystal,rv3028";
+		reg = <0x52>;
 	};
 };
 

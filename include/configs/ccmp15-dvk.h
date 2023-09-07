@@ -85,15 +85,18 @@
 
 #define ROOTARGS_UBIFS \
 	"ubi.mtd=" SYSTEM_PARTITION " " \
-	"root=ubi0:${rootfsvol} " \
+	"ubi.mtd=" SYSTEM_PARTITION "_2 " \
+	"root=ubi1:${rootfsvol} " \
 	"rootfstype=ubifs rw"
 #define ROOTARGS_SQUASHFS_A_PARTITION \
 	"ubi.mtd=" SYSTEM_PARTITION " " \
-	"ubi.block=0,4 root=/dev/ubiblock0_4 " \
+	"ubi.mtd=" SYSTEM_PARTITION "_2 " \
+	"ubi.block=1,${rootfsvol} root=/dev/ubiblock1_0 " \
 	"rootfstype=squashfs ro"
 #define ROOTARGS_SQUASHFS_B_PARTITION \
 	"ubi.mtd=" SYSTEM_PARTITION " " \
-	"ubi.block=0,5 root=/dev/ubiblock0_5 " \
+	"ubi.mtd=" SYSTEM_PARTITION "_2 " \
+	"ubi.block=1,${rootfsvol} root=/dev/ubiblock1_1 " \
 	"rootfstype=squashfs ro"
 
 #define MTDPART_ENV_SETTINGS \
@@ -153,11 +156,6 @@
 #define ENV_SILENT_CONSOLE
 #endif
 
-/*
- * memory layout for 32M uncompressed/compressed kernel,
- * 1M fdt, 1M script, 1M pxe and 1M for splashimage
- * and the ramdisk at the end.
- */
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_COMMON_ENV \
 	MTDPART_ENV_SETTINGS \
@@ -172,31 +170,35 @@
 		"source ${loadaddr};" \
 	"fi;"
 
+/* MTD partition layout (after the boot partitions) */
+#define MTDPARTS_256M		"25m(" SYSTEM_PARTITION "),-(" SYSTEM_PARTITION "_2)"
+#define MTDPARTS_512M		"35m(" SYSTEM_PARTITION "),-(" SYSTEM_PARTITION "_2)"
+
 /* UBI volumes layout */
 #define UBIVOLS_UBOOTENV		"ubi create uboot_config 20000;" \
 					"ubi create uboot_config_r 20000;"
 
-#define UBIVOLS_256MB			"ubi create " LINUX_PARTITION " 1800000;" \
-					"ubi create " RECOVERY_PARTITION " 2000000;" \
-					"ubi create " ROOTFS_PARTITION " aa00000;" \
-					"ubi create " DATA_PARTITION " 500000;" \
-					"ubi create update;"
+#define UBIVOLS1_256MB			"ubi create " LINUX_PARTITION " 900000;" \
+					"ubi create " RECOVERY_PARTITION ";"
+#define UBIVOLS2_256MB			"ubi create " ROOTFS_PARTITION " 7000000;" \
+					"ubi create " UPDATE_PARTITION " 6000000;" \
+					"ubi create " DATA_PARTITION ";"
 
-#define UBIVOLS_512MB			"ubi create " LINUX_PARTITION " 1800000;" \
-					"ubi create " RECOVERY_PARTITION " 2000000;" \
-					"ubi create " ROOTFS_PARTITION " 10000000;" \
-					"ubi create " DATA_PARTITION " 2000000;" \
-					"ubi create update;"
+#define UBIVOLS1_512MB			"ubi create " LINUX_PARTITION " 1000000;" \
+					"ubi create " RECOVERY_PARTITION ";"
+#define UBIVOLS2_512MB			"ubi create " ROOTFS_PARTITION " 10000000;" \
+					"ubi create " UPDATE_PARTITION " b800000;" \
+					"ubi create " DATA_PARTITION ";"
 
-#define UBIVOLS_DUALBOOT_256MB		"ubi create " LINUX_A_PARTITION " b00000;" \
-					"ubi create " LINUX_B_PARTITION " b00000;" \
-					"ubi create " ROOTFS_A_PARTITION " 6800000;" \
+#define UBIVOLS1_DUALBOOT_256MB		"ubi create " LINUX_A_PARTITION " b00000;" \
+					"ubi create " LINUX_B_PARTITION ";"
+#define UBIVOLS2_DUALBOOT_256MB		"ubi create " ROOTFS_A_PARTITION " 6800000;" \
 					"ubi create " ROOTFS_B_PARTITION " 6800000;" \
 					"ubi create " DATA_PARTITION ";"
 
-#define UBIVOLS_DUALBOOT_512MB		"ubi create " LINUX_A_PARTITION " 1000000;" \
-					"ubi create " LINUX_B_PARTITION " 1000000;" \
-					"ubi create " ROOTFS_A_PARTITION " dc00000;" \
+#define UBIVOLS1_DUALBOOT_512MB		"ubi create " LINUX_A_PARTITION " 1000000;" \
+					"ubi create " LINUX_B_PARTITION ";"
+#define UBIVOLS2_DUALBOOT_512MB		"ubi create " ROOTFS_A_PARTITION " dc00000;" \
 					"ubi create " ROOTFS_B_PARTITION " dc00000;" \
 					"ubi create " DATA_PARTITION ";"
 
@@ -215,9 +217,24 @@
 					"		else " \
 					"			%s" \
 					"		fi;" \
-					"		saveenv;" \
-					"		saveenv;" \
 					"	fi;" \
-					"fi"
+					"fi;" \
+					"ubi detach;" \
+					"nand erase.part " SYSTEM_PARTITION "_2;" \
+					"if test $? = 1; then " \
+					"	echo \"** Error erasing '" SYSTEM_PARTITION "_2' partition\";" \
+					"else" \
+					"	ubi part " SYSTEM_PARTITION "_2;" \
+					"	if test $? = 1; then " \
+					"		echo \"Error attaching '" SYSTEM_PARTITION "_2' partition\";" \
+					"	else " \
+					"		if test \"${dualboot}\" = yes; then " \
+					"			%s" \
+					"		else " \
+					"			%s" \
+					"		fi;" \
+					"	fi;" \
+					"fi;" \
+					"saveenv"
 
 #endif /* __CCMP15_DVK_CONFIG_H__ */

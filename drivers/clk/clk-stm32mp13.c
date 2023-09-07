@@ -1,7 +1,7 @@
-// SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
+// SPDX-License-Identifier: GPL-2.0-or-later OR BSD-3-Clause
 /*
- * Copyright (C) 2018, STMicroelectronics - All Rights Reserved
- * Author: Gabriel Fernandez <gabriel.fernandez@st.com> for STMicroelectronics.
+ * Copyright (C) 2022, STMicroelectronics - All Rights Reserved
+ * Author: Gabriel Fernandez <gabriel.fernandez@foss.st.com> for STMicroelectronics.
  */
 
 #define LOG_CATEGORY UCLASS_CLK
@@ -18,10 +18,6 @@
 #include "stm32mp13_rcc.h"
 
 DECLARE_GLOBAL_DATA_PTR;
-
-struct stm32mp1_clk_priv {
-	fdt_addr_t base;
-};
 
 static const char * const adc12_src[] = {
 	"pll4_r", "ck_per", "pll3_q"
@@ -176,13 +172,14 @@ enum enum_mux_cfg {
 	MUX_MCO2
 };
 
-#define MUX_CFG(id, src, _offset, _shift, _witdh)[id] = {\
-		.num_parents	= ARRAY_SIZE(src),\
-		.parent_names	= src,\
-		.reg_off	= (_offset),\
-		.shift		= (_shift),\
-		.width		= (_witdh),\
-}
+#define MUX_CFG(id, src, _offset, _shift, _witdh) \
+	[id] = { \
+		.num_parents	= ARRAY_SIZE(src), \
+		.parent_names	= (src), \
+		.reg_off	= (_offset), \
+		.shift		= (_shift), \
+		.width		= (_witdh), \
+	}
 
 static const struct stm32_mux_cfg stm32mp13_muxes[] = {
 	MUX_CFG(MUX_I2C12,	i2c12_src,	RCC_I2C12CKSELR, 0, 3),
@@ -344,11 +341,12 @@ enum enum_gate_cfg {
 	GATE_MDMA
 };
 
-#define GATE_CFG(id, _offset, _bit_idx, _offset_clr)[id] = {\
-	.reg_off	= (_offset),\
-	.bit_idx	= (_bit_idx),\
-	.set_clr	= (_offset_clr),\
-}
+#define GATE_CFG(id, _offset, _bit_idx, _offset_clr) \
+	[id] = { \
+		.reg_off	= (_offset), \
+		.bit_idx	= (_bit_idx), \
+		.set_clr	= (_offset_clr), \
+	}
 
 static const struct stm32_gate_cfg stm32mp13_gates[] = {
 	GATE_CFG(GATE_MCO1,		RCC_MCO1CFGR,	12,	0),
@@ -483,13 +481,14 @@ enum enum_div_cfg {
 	LAST_DIV
 };
 
-#define DIV_CFG(id, _offset, _shift, _width, _flags, _table)[id] = {\
-		.reg_off	= _offset,\
-		.shift	= _shift,\
-		.width	= _width,\
-		.div_flags	= _flags,\
-		.table	= _table,\
-}
+#define DIV_CFG(id, _offset, _shift, _width, _flags, _table) \
+	[id] = { \
+		.reg_off	= _offset, \
+		.shift	= _shift, \
+		.width	= _width, \
+		.div_flags	= _flags, \
+		.table	= _table, \
+	}
 
 static const struct stm32_div_cfg stm32mp13_dividers[LAST_DIV] = {
 	DIV_CFG(DIV_MCO1, RCC_MCO1CFGR, 4, 4, 0, NULL),
@@ -562,10 +561,11 @@ enum securit_clk {
 	SECF_MCO2
 };
 
-#define SECF(_sec_id, _offset, _bit_idx)[_sec_id] = {\
-	.offset	= _offset,\
-	.bit_idx	= _bit_idx,\
-}
+#define SECF(_sec_id, _offset, _bit_idx) \
+	[_sec_id] = { \
+		.offset	= _offset, \
+		.bit_idx	= _bit_idx, \
+	}
 
 static const struct clk_stm32_securiy stm32mp13_security[] = {
 	SECF(SECF_LPTIM2, RCC_APB3SECSR, RCC_APB3SECSR_LPTIM2SECF),
@@ -624,15 +624,15 @@ static const struct clk_stm32_securiy stm32mp13_security[] = {
 	SECF(SECF_MCO2, RCC_SECCFGR, RCC_SECCFGR_MCO2SECF),
 };
 
-#define PCLK(_id, _name, _parent, _flags, _gate_id, _sec_id)\
+#define PCLK(_id, _name, _parent, _flags, _gate_id, _sec_id) \
 	STM32_GATE(_id, _name, _parent, _flags, _gate_id, _sec_id)
 
-#define TIMER(_id, _name, _parent, _flags, _gate_id, _sec_id)\
-	STM32_GATE(_id, _name, _parent, ((_flags) | CLK_SET_RATE_PARENT),\
+#define TIMER(_id, _name, _parent, _flags, _gate_id, _sec_id) \
+	STM32_GATE(_id, _name, _parent, ((_flags) | CLK_SET_RATE_PARENT), \
 		   _gate_id, _sec_id)
 
-#define KCLK(_id, _name, _flags, _gate_id, _mux_id, _sec_id)\
-	STM32_COMPOSITE(_id, _name, _flags, _sec_id,\
+#define KCLK(_id, _name, _flags, _gate_id, _mux_id, _sec_id) \
+	STM32_COMPOSITE(_id, _name, _flags, _sec_id, \
 			_gate_id, _mux_id, NO_STM32_DIV)
 
 static const struct clock_config stm32mp13_clock_cfg[] = {
@@ -789,48 +789,45 @@ static int stm32mp13_check_security(void __iomem *base,
 static const struct stm32_clock_match_data stm32mp13_data = {
 	.tab_clocks	= stm32mp13_clock_cfg,
 	.num_clocks	= ARRAY_SIZE(stm32mp13_clock_cfg),
-	.gates		= stm32mp13_gates,
-	.muxes		= stm32mp13_muxes,
-	.dividers	= stm32mp13_dividers,
-	.check_security = &stm32mp13_check_security
+	.clock_data = &(const struct clk_stm32_clock_data) {
+		.num_gates	= ARRAY_SIZE(stm32mp13_gates),
+		.gates		= stm32mp13_gates,
+		.muxes		= stm32mp13_muxes,
+		.dividers	= stm32mp13_dividers,
+	},
+	.check_security = stm32mp13_check_security,
 };
 
 static int stm32mp1_clk_probe(struct udevice *dev)
 {
-	fdt_addr_t base = dev_read_addr(dev->parent);
 	struct udevice *scmi;
-
-	if (base == FDT_ADDR_T_NONE)
-		return -EINVAL;
+	int err;
 
 	/* force SCMI probe to register all SCMI clocks */
 	uclass_get_device_by_driver(UCLASS_CLK, DM_DRIVER_GET(scmi_clock), &scmi);
 
-	stm32_rcc_init(NULL, &stm32mp13_data, (void __iomem *)base);
+	err = stm32_rcc_init(dev, &stm32mp13_data);
+	if (err)
+		return err;
 
-#if defined(DEBUG)
-	/* display debug information for probe after relocation */
-	if (gd->flags & GD_FLG_RELOC)
-		stm32mp1_clk_dump(priv);
-#endif
 	gd->cpu_clk = clk_stm32_get_rate_by_name("ck_mpu");
 	gd->bus_clk = clk_stm32_get_rate_by_name("ck_axi");
 
 	/* DDRPHYC father */
 	gd->mem_clk = clk_stm32_get_rate_by_name("pll2_r");
 
-#if defined(CONFIG_DISPLAY_CPUINFO)
-	if (gd->flags & GD_FLG_RELOC) {
-		char buf[32];
+	if (IS_ENABLED(CONFIG_DISPLAY_CPUINFO)) {
+		if (gd->flags & GD_FLG_RELOC) {
+			char buf[32];
 
-		log_info("Clocks:\n");
-		log_info("- MPU : %s MHz\n", strmhz(buf, gd->cpu_clk));
-		log_info("- AXI : %s MHz\n", strmhz(buf, gd->bus_clk));
-		log_info("- PER : %s MHz\n",
-			 strmhz(buf, clk_stm32_get_rate_by_name("ck_per")));
-		log_info("- DDR : %s MHz\n", strmhz(buf, gd->mem_clk));
+			log_info("Clocks:\n");
+			log_info("- MPU : %s MHz\n", strmhz(buf, gd->cpu_clk));
+			log_info("- AXI : %s MHz\n", strmhz(buf, gd->bus_clk));
+			log_info("- PER : %s MHz\n",
+				 strmhz(buf, clk_stm32_get_rate_by_name("ck_per")));
+			log_info("- DDR : %s MHz\n", strmhz(buf, gd->mem_clk));
+		}
 	}
-#endif /* CONFIG_DISPLAY_CPUINFO */
 
 	return 0;
 }
@@ -839,6 +836,6 @@ U_BOOT_DRIVER(stm32mp1_clock) = {
 	.name = "stm32mp13_clk",
 	.id = UCLASS_CLK,
 	.ops = &stm32_clk_ops,
-	.priv_auto = sizeof(struct stm32mp1_clk_priv),
+	.priv_auto = sizeof(struct stm32mp_rcc_priv),
 	.probe = stm32mp1_clk_probe,
 };

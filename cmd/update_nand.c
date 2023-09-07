@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016-2020 by Digi International Inc.
+ *  Copyright (C) 2016-2023 by Digi International Inc.
  *  All rights reserved.
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -242,7 +242,9 @@ static int do_update(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv
 	char cmd[CONFIG_SYS_CBSIZE];
 	bool ubivol = false;
 	bool force_erase = false;
-	char str[10];
+	char str[20];
+	char syspart[20];
+	int i;
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -286,27 +288,37 @@ static int do_update(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv
 
 	if (find_dev_and_part(partname, &dev, &pnum, &part)) {
 		/*
-		 * Check if the passed argument is a UBI volume in the
-		 * 'system' partition.
+		 * Check if the passed argument is a UBI volume in any of
+		 * the system partitions.
 		 */
-		if (find_dev_and_part(SYSTEM_PARTITION, &dev, &pnum,
-					&part)) {
+		for (i = 0; i < NUM_SYSTEM_PARTITIONS; i++) {
+			if (i > 0)
+				sprintf(syspart, SYSTEM_PARTITION "_%d", i + 1);
+			else
+				strcpy(syspart, SYSTEM_PARTITION);
+			if (find_dev_and_part(syspart, &dev, &pnum,
+						&part)) {
+				printf("Cannot find '%s' partition or UBI volume\n",
+					partname);
+				return -1;
+			}
+			sprintf(cmd, "ubi part %s", syspart);
+			if (run_command(cmd, 0)) {
+				printf("Cannot find '%s' partition or UBI volume\n",
+					partname);
+				return -1;
+			}
+			sprintf(cmd, "ubi check %s", partname);
+			if (run_command(cmd, 0))
+				continue;
+			ubivol = true;
+			break;
+		}
+		if (!ubivol) {
 			printf("Cannot find '%s' partition or UBI volume\n",
 				partname);
 			return -1;
 		}
-		if (run_command("ubi part " SYSTEM_PARTITION, 0)) {
-			printf("Cannot find '%s' partition or UBI volume\n",
-				partname);
-			return -1;
-		}
-		sprintf(cmd, "ubi check %s", partname);
-		if (run_command(cmd, 0)) {
-			printf("Cannot find '%s' partition or UBI volume\n",
-				partname);
-			return -1;
-		}
-		ubivol = true;
 	} else {
 		if (dev->id->type != MTD_DEV_TYPE_NAND) {
 			printf("not a NAND device\n");

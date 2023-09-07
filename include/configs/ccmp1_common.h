@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Digi International Inc
+ * Copyright 2022, 2023 Digi International Inc
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -196,8 +196,11 @@
 #define LINUX_PARTITION			"linux"
 #define RECOVERY_PARTITION		"recovery"
 #define ROOTFS_PARTITION		"rootfs"
+#define UPDATE_PARTITION		"update"
 #define SYSTEM_PARTITION		"UBI"
 #define DATA_PARTITION			"data"
+
+#define NUM_SYSTEM_PARTITIONS		2
 
 /* Dualboot partition configuration */
 #define LINUX_A_PARTITION		"linux_a"
@@ -207,16 +210,17 @@
 
 #define ALTBOOTCMD	\
 	"altbootcmd=" \
-		"if test -z \"${active_system}\"; then " \
-			"setenv active_system " LINUX_A_PARTITION ";" \
-		"fi;" \
-		"setenv mtdbootpart ${active_system};" \
-		"if ubi part " SYSTEM_PARTITION "; then " \
-			"if ubifsmount ubi0:${mtdbootpart}; then " \
-				"ubifsload ${loadaddr} altboot.scr;" \
+		"if test \"${dualboot}\" = yes; then " \
+			"if test \"${active_system}\" = linux_a; then " \
+				"setenv active_system linux_b;" \
+			"else " \
+				"setenv active_system linux_a;" \
 			"fi;" \
+			"saveenv;" \
+			"echo \"## System boot failed; Switching active partitions bank to ${active_system}...\";" \
 		"fi;" \
-		"source ${loadaddr}\0"
+		"bootcount reset;" \
+		"reset;\0"
 
 /* Extra network settings for second Ethernet */
 #define CONFIG_EXTRA_NETWORK_SETTINGS \

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Digi International, Inc.
+ * Copyright (C) 2016-2023 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * Configuration settings for the Digi ConnecCore 6UL System-On-Module.
@@ -167,6 +167,8 @@
 #define RECOVERY_PARTITION		"recovery"
 #define ROOTFS_PARTITION		"rootfs"
 #define SYSTEM_PARTITION		"system"
+
+#define NUM_SYSTEM_PARTITIONS		1
 
 /* Dualboot partition configuration */
 #define LINUX_A_PARTITION		"linux_a"
