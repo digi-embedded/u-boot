@@ -17,7 +17,9 @@
 /* Serial */
 #define CONSOLE_DEV			"ttySTM0"
 
-#define CONFIG_MMCROOT			"/dev/mmcblk0p2"  /* USDHC1 */
+#define CONFIG_MMCROOT		"/dev/mmcblk0p9"	/* microSD rootfs partition */
+#define MMCDEV_DEFAULT		"0"	/* microSD dev index */
+#define MMCPART_DEFAULT		"8"	/* default microSD partition index */
 
 /* Carrier board version in environment */
 #define CONFIG_HAS_CARRIERBOARD_VERSION
@@ -75,6 +77,8 @@
 			"source ${loadaddr};" \
 		"fi;\0" \
 	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
+	"mmcdev=" MMCDEV_DEFAULT "\0" \
+	"mmcpart=" MMCPART_DEFAULT "\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"linux_file=core-image-base-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
 	"recovery_file=recovery.img\0" \
