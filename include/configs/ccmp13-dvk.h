@@ -137,9 +137,13 @@
 				"setenv mtdbootpart " LINUX_PARTITION ";" \
 			"fi;" \
 		"fi;" \
-		"if ubi part " SYSTEM_PARTITION "; then " \
-			"if ubifsmount ubi0:${mtdbootpart}; then " \
-				"ubifsload ${loadaddr} ${script};" \
+		"if test \"${boot_device}\" = mmc; then " \
+			"load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};" \
+		"else " \
+			"if ubi part " SYSTEM_PARTITION "; then " \
+				"if ubifsmount ubi0:${mtdbootpart}; then " \
+					"ubifsload ${loadaddr} ${script};" \
+				"fi;" \
 			"fi;" \
 		"fi;\0" \
 	"recoverycmd=" \
