@@ -17,8 +17,8 @@
 /* Serial */
 #define CONSOLE_DEV			"ttySTM0"
 
-#define CONFIG_MMCROOT		"/dev/mmcblk0p9"	/* microSD rootfs partition */
-#define MMCDEV_DEFAULT		"0"	/* microSD dev index */
+#define CONFIG_MMCROOT		"/dev/mmcblk1p9"	/* microSD rootfs partition */
+#define MMCDEV_DEFAULT		"1"	/* microSD dev index */
 #define MMCPART_DEFAULT		"8"	/* default microSD partition index */
 
 /* Carrier board version in environment */
