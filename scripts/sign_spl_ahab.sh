@@ -112,7 +112,17 @@ fi
 # Generate SRK tables
 SRK_EFUSES="$(pwd)/SRK_efuses.bin"
 SRK_TABLE="$(pwd)/SRK_table.bin"
-if ! srktool -a -s sha512 -c "${SRK_KEYS}" -t "${SRK_TABLE}" -e "${SRK_EFUSES}"; then
+#
+# srktool v3.3.2 added a parameter to set the digest algorithm used to generate the SRK efuses hash.
+#
+#   -d, --digest <digestalg>:
+#       Message Digest algorithm.
+#           - sha512 (default): Supported in 8/8x devices
+#           - sha256: Supported in 8ULP/9x
+#
+# @TODO: CCIMX8X uses sha512 while CCIMX93 uses sha256. For the moment hardcode for the CCIMX93.
+#
+if ! srktool -a -d sha256 -s sha512 -c "${SRK_KEYS}" -t "${SRK_TABLE}" -e "${SRK_EFUSES}"; then
 	echo "[ERROR] Could not generate SRK tables"
 	exit 1
 fi
