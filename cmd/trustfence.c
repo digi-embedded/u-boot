@@ -343,6 +343,7 @@ err:
 __weak int close_device(int confirmed) { return -1; }
 #endif
 
+#if 0 /* CCIMX93_NOT_SUPPORTED */
 __weak void board_print_trustfence_jtag_mode(u32 *sjc)
 {
 	u32 sjc_mode;
@@ -380,6 +381,7 @@ __weak void board_print_trustfence_jtag_key(u32 *sjc)
 	/* Formatted printout */
 	printf("    Secure JTAG response Key: 0x%x%x\n", sjc[1], sjc[0]);
 }
+#endif /* CCIMX93_NOT_SUPPORTED */
 
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
 /*
@@ -660,6 +662,7 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 		if (close_device(confirmed))
 			goto err;
 		puts("[OK]\n");
+#if 0 /* CCIMX93_NOT_SUPPORTED */
 	} else if (!strcmp(op, "revoke")) {
 #if defined(CONFIG_IMX_HAB)
 		if (argc < 1)
@@ -718,6 +721,7 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 #else
 		printf("Command not implemented\n");
 #endif
+#endif /* CCIMX93_NOT_SUPPORTED */
 	} else if (!strcmp(op, "status")) {
 		int key_index;
 
@@ -744,6 +748,7 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 		printf("* Secure boot:\t\t%s", imx_hab_is_enabled() ?
 		       "[CLOSED]\n" : "[OPEN]\n");
 		trustfence_status();
+#if 0 /* CCIMX93_NOT_SUPPORTED */
 	} else if (!strcmp(op, "update")) {
 		char cmd_buf[CONFIG_SYS_CBSIZE];
 		unsigned long loadaddr = env_get_ulong("loadaddr", 16,
@@ -1164,6 +1169,7 @@ tf_update_out:
 		} else {
 			return CMD_RET_USAGE;
 		}
+#endif /* CCIMX93_NOT_SUPPORTED */
 	} else {
 		printf("[ERROR]\n");
 		return CMD_RET_USAGE;
@@ -1184,6 +1190,7 @@ U_BOOT_CMD(
 	"trustfence prog_srk [-y] <ram addr> <size in bytes> - burn SRK efuses (PERMANENT)\n"
 	"trustfence close [-y] - close the device so that it can only boot "
 			      "signed images (PERMANENT)\n"
+#if 0 /* CCIMX93_NOT_SUPPORTED */
 #if defined(CONFIG_IMX_HAB)
 	"trustfence revoke [-y] <key index> - revoke one Super Root Key (PERMANENT)\n"
 #elif defined(CONFIG_AHAB_BOOT)
@@ -1236,4 +1243,5 @@ U_BOOT_CMD(
 				"OTP bits (PERMANENT)\n"
 	"trustfence jtag [-y] lock_key - lock Secure JTAG key OTP bits (PERMANENT)\n"
 #endif
+#endif /* CCIMX93_NOT_SUPPORTED */
 );

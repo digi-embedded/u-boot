@@ -450,7 +450,7 @@ static void display_life_cycle(u32 lc)
 	}
 }
 
-static int confirm_close(void)
+int confirm_close(void)
 {
 	puts("Warning: Please ensure your sample is in NXP closed state, "
 	     "OEM SRK hash has been fused, \n"

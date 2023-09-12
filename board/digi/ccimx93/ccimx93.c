@@ -17,6 +17,7 @@
 #include "../common/helper.h"
 #include "../common/hwid.h"
 #include "../common/mca.h"
+#include "../common/trustfence.h"
 
 static struct digi_hwid my_hwid;
 

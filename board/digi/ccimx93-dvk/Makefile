@@ -12,4 +12,5 @@ obj-y += spl.o
 obj-$(CONFIG_CCIMX93_DVK_LPDDR4X) += lpddr4x_timing.o
 else
 obj-y += ../ccimx93/ccimx93.o
+obj-$(CONFIG_HAS_TRUSTFENCE) += ../ccimx93/ccimx93_trustfence.o
 endif
