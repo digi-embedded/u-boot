@@ -75,6 +75,8 @@ extern int rng_swtest_status;
  *
  * Returns 0 if the DEK blob was found, 1 otherwise.
  */
+ /* TODO: also CONFIG_CC6 but still not migrated */
+#if defined(CONFIG_CC6UL)
 __weak int get_dek_blob(char *output, u32 *size)
 {
 	struct ivt *ivt = (struct ivt *)UBOOT_START_ADDR;
@@ -108,6 +110,12 @@ __weak int get_dek_blob(char *output, u32 *size)
 
 	return 1;
 }
+#else
+__weak int get_dek_blob(char *output, u32 * size)
+{
+	return 1;
+}
+#endif
 
 #ifdef CONFIG_AHAB_BOOT
 extern int get_dek_blob_offset(char *address, u32 *offset);
@@ -233,6 +241,7 @@ __weak int lock_srk_otp(void)
 __weak int lock_srk_otp(void)	{return 0;}
 #endif
 
+#if defined(CONFIG_IMX_HAB)
 __weak int revoke_key_index(int i)
 {
 	u32 val = ((1 << i) & CONFIG_TRUSTFENCE_SRK_REVOKE_MASK) <<
@@ -241,6 +250,7 @@ __weak int revoke_key_index(int i)
 			 CONFIG_TRUSTFENCE_SRK_REVOKE_WORD,
 			 val);
 }
+#endif
 
 #if defined(CONFIG_AHAB_BOOT)
 __weak int revoke_keys(void)
@@ -249,6 +259,10 @@ __weak int revoke_keys(void)
 }
 #endif
 
+#if defined(CONFIG_TRUSTFENCE_SRK_REVOKE_BANK) && \
+    defined(CONFIG_TRUSTFENCE_SRK_REVOKE_WORD) && \
+    defined(CONFIG_TRUSTFENCE_SRK_REVOKE_MASK) && \
+    defined(CONFIG_TRUSTFENCE_SRK_REVOKE_OFFSET)
 __weak int sense_key_status(u32 *val)
 {
 	if (fuse_sense(CONFIG_TRUSTFENCE_SRK_REVOKE_BANK,
@@ -261,14 +275,26 @@ __weak int sense_key_status(u32 *val)
 
 	return 0;
 }
+#else
+__weak int sense_key_status(u32 * val) { return -1; }
+#endif
 
+#if defined(CONFIG_TRUSTFENCE_DIRBTDIS_BANK) && \
+    defined(CONFIG_TRUSTFENCE_DIRBTDIS_WORD) && \
+    defined(CONFIG_TRUSTFENCE_DIRBTDIS_OFFSET)
 __weak int disable_ext_mem_boot(void)
 {
 	return fuse_prog(CONFIG_TRUSTFENCE_DIRBTDIS_BANK,
 			 CONFIG_TRUSTFENCE_DIRBTDIS_WORD,
 			 1 << CONFIG_TRUSTFENCE_DIRBTDIS_OFFSET);
 }
+#else
+__weak int disable_ext_mem_boot(void) { return -1; }
+#endif
 
+#if defined(CONFIG_TRUSTFENCE_CLOSE_BIT_BANK) && \
+    defined(CONFIG_TRUSTFENCE_CLOSE_BIT_WORD) && \
+    defined(CONFIG_TRUSTFENCE_CLOSE_BIT_OFFSET)
 __weak int close_device(int confirmed)
 {
 	hab_rvt_report_status_t *hab_report_status = (hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS;
@@ -313,6 +339,9 @@ __weak int close_device(int confirmed)
 err:
 	return ret;
 }
+#else
+__weak int close_device(int confirmed) { return -1; }
+#endif
 
 __weak void board_print_trustfence_jtag_mode(u32 *sjc)
 {
