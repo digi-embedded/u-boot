@@ -574,10 +574,7 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 {
 	const char *op;
 	int confirmed = argc >= 3 && !strcmp(argv[2], "-y");
-	u32 bank = CONFIG_TRUSTFENCE_JTAG_MODE_BANK;
-	u32 word = CONFIG_TRUSTFENCE_JTAG_MODE_START_WORD;
 	u32 val[2], addr;
-	char jtag_op[15];
 	int ret = -1, i = 0;
 	struct load_fw fwinfo;
 
@@ -1004,6 +1001,9 @@ tf_update_out:
 			return CMD_RET_FAILURE;
 		}
 	} else if (!strcmp(op, "jtag")) {
+		char jtag_op[15];
+		u32 bank = CONFIG_TRUSTFENCE_JTAG_MODE_BANK;
+		u32 word = CONFIG_TRUSTFENCE_JTAG_MODE_START_WORD;
 		if (!strcmp(argv[0], "read")) {
 			printf("Reading Secure JTAG mode: ");
 			ret = fuse_read(bank, word, &val[0]);
