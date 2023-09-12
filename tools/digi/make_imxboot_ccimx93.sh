@@ -143,6 +143,23 @@ clone_mkimage_repo()
 	)
 }
 
+patch_mkimage_repo()
+{
+	if [ ! -d "${MKIMAGE_DIR}" ]; then
+		echo "- Missing imx-mkimage repository"
+		exit 1
+	fi
+
+	echo "- Patch imx-mkimage repository:"
+	(
+		cd "${MKIMAGE_DIR}" || exit 1
+		for p in ${MKIMAGE_PATCHES}; do
+			echo "- Apply patch: ${p}"
+			patch -p1 < "${WORKSPACE}"/patch/ccimx93/"${p}" || exit 2
+		done
+	)
+}
+
 download_firmware_imx()
 {
 	[ -d "${FIRMWARE_IMX_DIR}" ] && { echo "- IMX firmware already downloaded"; return 0; }
@@ -177,6 +194,7 @@ download_firmware_sentinel()
 
 copy_artifacts_mkimage_folder()
 {
+	( cd "${MKIMAGE_DIR}" && git clean -ffdx )
 	echo "- Copy U-Boot binaries from ${UBOOT_DIR}"
 	if [ ! -d "${UBOOT_DIR}" ]; then
 		echo "- Missing u-boot directory: ${UBOOT_DIR}"
@@ -217,8 +235,10 @@ build_imxboot()
 		echo "- Build imx-boot binary for: ${SOC}"
 		${MAKE} SOC="${SOC}" clean
 		[ -f "${SOC}"/bl31-imx93.bin ] && ln -sf bl31-imx93.bin "${SOC}"/bl31.bin
+		rm -f "${SOC}"/tee.bin
 		${MAKE} SOC="${SOC}" flash_singleboot
 		cp --remove-destination "${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx93-dvk.bin
+		cp --remove-destination "${SOC}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-flash_singleboot.log
 
 		echo "- Build imx-boot (OPTEE) binary for: ${SOC}"
 		${MAKE} SOC="${SOC}" clean
@@ -226,6 +246,7 @@ build_imxboot()
 		[ -f "${SOC}"/tee-raw.bin ] && ln -sf tee-raw.bin "${SOC}"/tee.bin
 		${MAKE} SOC="${SOC}" flash_singleboot
 		cp --remove-destination "${MKIMAGE_DIR}"/"${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx93-dvk.bin-optee
+		cp --remove-destination "${SOC}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-flash_singleboot.log-optee
 	)
 }
 
@@ -237,6 +258,9 @@ MKIMAGE_BRANCH="lf-6.1.22_2.0.0"
 # Tag: lf-6.1.22-2.0.0
 MKIMAGE_REV="5cfd218012e080fb907d9cc301fbb4ece9bc17a9"
 MKIMAGE_DIR="${WORKSPACE}/imx-mkimage"
+MKIMAGE_PATCHES=" \
+	mkimage/0001-imx9-soc.mak-capture-commands-output-into-a-log-file.patch \
+"
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
 ATF_BRANCH="lf_v2.8"
@@ -298,5 +322,6 @@ clone_optee_repo
 patch_optee_repo
 build_optee
 clone_mkimage_repo
+patch_mkimage_repo
 copy_artifacts_mkimage_folder
 build_imxboot
