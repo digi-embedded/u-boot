@@ -29,11 +29,16 @@
 #define OTYPE_MSK			1
 #define AFR_MASK			0xF
 #define SECCFG_MSK			1
+/* MP25 RevA: PIOCFGR_MASK */
 #define ADVCFGR_MASK			0xF
 #define DELAYR_MASK			0xF
+/* MP25 RevA: PIOCFGR_CFG[0]_POS */
 #define ADVCFGR_DLYPATH_POS		0
+/* MP25 RevA: PIOCFGR_CFG[1]_POS */
 #define ADVCFGR_DE_POS			1
+/* MP25 RevA: PIOCFGR_CFG[2]_POS */
 #define ADVCFGR_INVCLK_POS		2
+/* MP25 RevA: PIOCFGR_CFG[3]_POS */
 #define ADVCFGR_RET_POS			3
 
 struct stm32_pinctrl_priv {
