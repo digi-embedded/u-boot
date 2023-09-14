@@ -4,7 +4,7 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2021.10
 -----------
-dub-2021.10-r4.1, released on 2023/09/13
+dub-2021.10-r4.2, released on 2023/09/14
 	- Based on BSP from STMicroelectronics tag 'v2021.10-stm32mp-r2.1'
 	- Add support to bootcmd to boot from sdcard
 	- Reworked default NAND partition layout for CCMP1
@@ -15,6 +15,7 @@ dub-2021.10-r4.1, released on 2023/09/13
 	- Enable bootcount feature (saved on external RTC)
 	- Add internal pull-up to console RX line
 	- Add environment encryption support
+	- CCMP1: Fix USB storage devices initialization that require longer warm-up time
 
 
 dub-2021.10-r3.2, released on 2023/05/17
