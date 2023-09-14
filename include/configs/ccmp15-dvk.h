@@ -76,6 +76,7 @@
 		"if load usb 0 ${loadaddr} install_linux_fw_usb.scr;then " \
 			"source ${loadaddr};" \
 		"fi;\0" \
+	"usb_pgood_delay=2000\0" \
 	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
 	"mmcdev=" MMCDEV_DEFAULT "\0" \
 	"mmcpart=" MMCPART_DEFAULT "\0" \
