@@ -29,7 +29,8 @@ while read -r pl mt tt ps; do
 	eval "${pl//-/_}_toolchain_type=\"${tt}\""
 	eval "${pl//-/_}_post_script=\"${ps}\""
 done<<-_EOF_
-	ccimx93-dvk    all    aarch64    "make_imxboot_ccimx93.sh"
+	ccimx8x_sbc_pro    all    aarch64    "make_imxboot_ccimx8x.sh"
+	ccimx93-dvk        all    aarch64    "make_imxboot_ccimx93.sh"
 _EOF_
 
 # Set default values if not provided by Jenkins
@@ -126,6 +127,7 @@ for platform in ${DUB_PLATFORMS}; do
 			export OPENSSL_MODULES="${OECORE_NATIVE_SYSROOT}/usr/lib/ossl-modules"
 			export LIBGCC_LOCATE_CFLAGS="--sysroot=${SDKTARGETSYSROOT}"
 			# Build the boot artifacts
+			( cd tools/digi && git clean -ffdx )
 			./tools/digi/"${BOOT_POST_SCRIPT}" -u "${DUB_UBOOT_DIR}"
 			# Copy boot artifacts
 			cp --remove-destination tools/digi/output/* "${DUB_IMGS_DIR}"/
