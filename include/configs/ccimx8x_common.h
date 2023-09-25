@@ -15,39 +15,16 @@
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 8X"
 
 #ifdef CONFIG_SPL_BUILD
-#define CONFIG_SPL_MAX_SIZE				(192 * 1024)
-#define CONFIG_SYS_MONITOR_LEN				(1024 * 1024)
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR		0x1040 /* (32K + 2Mb)/sector_size */
-
+#define CFG_MALLOC_F_ADDR		0x00138000
 /*
  * 0x08081000 - 0x08180FFF is for m4_0 xip image,
  * So 3rd container image may start from 0x8181000
  */
-#define CONFIG_SYS_UBOOT_BASE 0x08181000
-
-#define CONFIG_SPL_LDSCRIPT		"arch/arm/cpu/armv8/u-boot-spl.lds"
-#define CONFIG_SPL_STACK		0x013fff0
-#define CONFIG_SPL_BSS_START_ADDR	0x00130000
-#define CONFIG_SPL_BSS_MAX_SIZE		0x1000	/* 4 KB */
-#define CONFIG_SYS_SPL_MALLOC_START	0x82200000
-#define CONFIG_SYS_SPL_MALLOC_SIZE	0x80000	/* 512 KB */
-#define CONFIG_SERIAL_LPUART_BASE	0x5a060000
-#define CONFIG_MALLOC_F_ADDR		0x00138000
-
-#define CONFIG_SPL_RAW_IMAGE_ARM_TRUSTED_FIRMWARE
-#define CONFIG_SPL_ABORT_ON_RAW_IMAGE
+#define CFG_SYS_UBOOT_BASE 0x08181000
 #endif /* CONFIG_SPL_BUILD */
 
-/* RAM */
-#define CONFIG_SYS_LOAD_ADDR		0x88280000
-#define CONFIG_SYS_INIT_SP_ADDR		0x88200000
-/* RAM memory reserved for U-Boot, stack, malloc pool... */
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		((CONFIG_ENV_SIZE + (32*1024)) * 1024)
-/* memtest */
 /* Physical Memory Map */
-#define CONFIG_SYS_SDRAM_BASE		0x80000000
+#define CFG_SYS_SDRAM_BASE		0x80000000
 #define PHYS_SDRAM_1			0x80000000
 #ifdef CONFIG_SPL
 /* SDRAM1 size is defined based on the HWID. Set here the default fallback value */
@@ -58,14 +35,6 @@
 #define PHYS_SDRAM_2			0x880000000
 #define PHYS_SDRAM_2_SIZE		0
 #define PHYS_SDRAM			PHYS_SDRAM_1
-/*
- * 0x08081000 - 0x08180FFF is for m4_0 xip image,
- * So 3rd container image may start from 0x8181000
- */
-#define CONFIG_SYS_UBOOT_BASE 0x08181000
-
-#define CONFIG_OF_SYSTEM_SETUP
-#define CONFIG_NO_MAC_FROM_OTP
 
 /*
  * Trustfence configs
@@ -198,12 +167,6 @@
 	DIGICMD_UPDATEFILE_NET_ARGS_HELP "\n" \
 	DIGICMD_UPDATEFILE_BLOCK_ARGS_HELP "\n" \
 	DIGICMD_UPDATEFILE_RAM_ARGS_HELP
-
-/* Monitor Command Prompt */
-#define CONFIG_SYS_PROMPT_HUSH_PS2     "> "
-#define CONFIG_SYS_CBSIZE              1024
-#define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + \
-					sizeof(CONFIG_SYS_PROMPT) + 16)
 
 #undef CONFIG_CMD_EXPORTENV
 #undef CONFIG_CMD_IMPORTENV
