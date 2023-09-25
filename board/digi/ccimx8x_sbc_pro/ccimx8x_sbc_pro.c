@@ -147,16 +147,6 @@ int board_phy_config(struct phy_device *phydev)
 }
 #endif
 
-#ifdef CONFIG_MXC_GPIO
-static iomux_cfg_t board_gpios[] = {
-};
-
-static void board_gpio_init(void)
-{
-	imx8_iomux_setup_multiple_pads(board_gpios, ARRAY_SIZE(board_gpios));
-}
-#endif
-
 int mmc_map_to_kernel_blk(int devno)
 {
 	return devno;
@@ -170,16 +160,6 @@ int checkboard(void)
 	print_som_info();
 	print_carrierboard_info();
 	print_bootinfo();
-
-#ifdef SCI_FORCE_ABORT
-	sc_rpc_msg_t abort_msg;
-
-	puts("Send abort request\n");
-	RPC_SIZE(&abort_msg) = 1;
-	RPC_SVC(&abort_msg) = SC_RPC_SVC_ABORT;
-	sc_ipc_write(-1, &abort_msg);
-
-#endif /* SCI_FORCE_ABORT */
 
 	return 0;
 }
@@ -352,10 +332,6 @@ int board_init(void)
 	ccimx8_init();
 
 	board_power_led_init();
-
-#ifdef CONFIG_MXC_GPIO
-	board_gpio_init();
-#endif
 
 #if defined(CONFIG_USB)
 	setup_usb_hub();
