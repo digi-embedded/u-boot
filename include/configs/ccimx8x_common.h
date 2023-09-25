@@ -125,7 +125,7 @@
 #define CONFIG_TRUSTFENCE_CLOSE_BIT_OFFSET	0
 
 /* MMC Configs */
-#define CONFIG_SYS_FSL_ESDHC_ADDR       0
+#define CFG_SYS_FSL_ESDHC_ADDR       0
 #define USDHC1_BASE_ADDR                0x5B010000
 #define USDHC2_BASE_ADDR                0x5B020000
 #define CONFIG_SUPPORT_MMC_ECSD
@@ -157,7 +157,7 @@
 
 /* Environment */
 /* On CC8X, USDHC1 is for eMMC, USDHC2 is for SD on SBC Express */
-#define CONFIG_SYS_FSL_USDHC_NUM	2
+#define CFG_SYS_FSL_USDHC_NUM	2
 
 /* MCA */
 #define BOARD_MCA_DEVICE_ID		0x4A

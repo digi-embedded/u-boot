@@ -192,7 +192,7 @@ int board_mmc_init(struct bd_info *bis)
 	 * mmc0                    USDHC3 (eMMC)
 	 * mmc1                    USDHC2 (microSD)
 	 */
-	for (i = 0; i < CONFIG_SYS_FSL_USDHC_NUM; i++) {
+	for (i = 0; i < CFG_SYS_FSL_USDHC_NUM; i++) {
 		switch (i) {
 		case 0:
 			usdhc_cfg[i].sdhc_clk = mxc_get_clock(MXC_ESDHC3_CLK);

@@ -28,7 +28,7 @@
 #define CONFIG_SYS_NAND_ONFI_DETECTION
 #endif
 
-#define CONFIG_SYS_FSL_USDHC_NUM	1
+#define CFG_SYS_FSL_USDHC_NUM	1
 
 /* U-Boot Environment */
 #if defined(CONFIG_ENV_IS_IN_MMC)

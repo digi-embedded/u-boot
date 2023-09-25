@@ -965,7 +965,7 @@ static bool board_has_kinetis(void)
 /* The order of MMC controllers here must match that of CONFIG_MMCDEV_USDHCx
  * in the platform header
  */
-static struct fsl_esdhc_cfg usdhc_cfg[CONFIG_SYS_FSL_USDHC_NUM] = {
+static struct fsl_esdhc_cfg usdhc_cfg[CFG_SYS_FSL_USDHC_NUM] = {
 	{USDHC4_BASE_ADDR},
 	{USDHC2_BASE_ADDR},
 };
@@ -1036,7 +1036,7 @@ int board_mmc_init(struct bd_info *bis)
 	int ret;
 	int i;
 
-	for (i = 0; i < CONFIG_SYS_FSL_USDHC_NUM; i++) {
+	for (i = 0; i < CFG_SYS_FSL_USDHC_NUM; i++) {
 		switch (i) {
 		case 0:
 			if (board_has_emmc()) {
