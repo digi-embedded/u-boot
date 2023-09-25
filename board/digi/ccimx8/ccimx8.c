@@ -5,6 +5,7 @@
  */
 #include <command.h>
 #include <common.h>
+#include <display_options.h>
 #include <fsl_esdhc_imx.h>
 #include <i2c.h>
 #include <linux/ctype.h>

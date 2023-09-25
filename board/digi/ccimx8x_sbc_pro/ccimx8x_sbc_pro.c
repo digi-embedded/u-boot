@@ -84,6 +84,7 @@ static void setup_iomux_uart(void)
 
 int board_early_init_f(void)
 {
+	sc_pm_clock_rate_t rate = SC_80MHZ;
 	int ret;
 #if defined(CONFIG_CONSOLE_ENABLE_GPIO) && !defined(CONFIG_SPL_BUILD)
 	const char *ext_gpios[] = {
@@ -97,19 +98,8 @@ int board_early_init_f(void)
 				       ARRAY_SIZE(ext_gpios_pads));
 #endif /* CONFIG_CONSOLE_ENABLE_GPIO && !CONFIG_SPL_BUILD */
 
-	/* Power up UART2 */
-	ret = sc_pm_set_resource_power_mode(-1, SC_R_UART_2, SC_PM_PW_MODE_ON);
-	if (ret)
-		return ret;
-
 	/* Set UART2 clock root to 80 MHz */
-	sc_pm_clock_rate_t rate = 80000000;
-	ret = sc_pm_set_clock_rate(-1, SC_R_UART_2, 2, &rate);
-	if (ret)
-		return ret;
-
-	/* Enable UART2 clock root */
-	ret = sc_pm_clock_enable(-1, SC_R_UART_2, 2, true, false);
+	ret = sc_pm_setup_uart(SC_R_UART_2, rate);
 	if (ret)
 		return ret;
 
@@ -197,9 +187,7 @@ int checkboard(void)
 #ifdef CONFIG_USB
 
 #ifdef CONFIG_USB_TCPC
-#define USB_TYPEC_SEL IMX_GPIO_NR(4, 6)
-#define USB_TYPEC_EN IMX_GPIO_NR(4, 5)
-
+struct gpio_desc type_sel_desc;
 static iomux_cfg_t ss_gpios[] = {
 	SC_P_USB_SS3_TC3 | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPIO_PAD_CTRL),
 	SC_P_USB_SS3_TC2 | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPIO_PAD_CTRL),
@@ -215,18 +203,45 @@ struct tcpc_port_config port_config = {
 void ss_mux_select(enum typec_cc_polarity pol)
 {
 	if (pol == TYPEC_POLARITY_CC1)
-		gpio_direction_output(USB_TYPEC_SEL, 0);
+		dm_gpio_set_value(&type_sel_desc, 0);
 	else
-		gpio_direction_output(USB_TYPEC_SEL, 1);
+		dm_gpio_set_value(&type_sel_desc, 1);
 }
 
 static void setup_typec(void)
 {
+	int ret;
+	struct gpio_desc typec_en_desc;
+
 	imx8_iomux_setup_multiple_pads(ss_gpios, ARRAY_SIZE(ss_gpios));
-	gpio_request(USB_TYPEC_SEL, "typec_sel");
-	/* USB_SS3_SW_PWR (Active LOW) */
-	gpio_request(USB_TYPEC_EN, "typec_en");
-	gpio_direction_output(USB_TYPEC_EN, 0);
+	ret = dm_gpio_lookup_name("GPIO4_6", &type_sel_desc);
+	if (ret) {
+		printf("%s lookup GPIO4_6 failed ret = %d\n", __func__, ret);
+		return;
+	}
+
+	ret = dm_gpio_request(&type_sel_desc, "typec_sel");
+	if (ret) {
+		printf("%s request typec_sel failed ret = %d\n", __func__, ret);
+		return;
+	}
+
+	dm_gpio_set_dir_flags(&type_sel_desc, GPIOD_IS_OUT);
+
+	ret = dm_gpio_lookup_name("GPIO4_5", &typec_en_desc);
+	if (ret) {
+		printf("%s lookup GPIO4_5 failed ret = %d\n", __func__, ret);
+		return;
+	}
+
+	ret = dm_gpio_request(&typec_en_desc, "typec_en");
+	if (ret) {
+		printf("%s request typec_en failed ret = %d\n", __func__, ret);
+		return;
+	}
+
+	/* Enable SS MUX */
+	dm_gpio_set_dir_flags(&typec_en_desc, GPIOD_IS_OUT | GPIOD_IS_OUT_ACTIVE);
 
 	ret = tcpc_init(&port, port_config, &ss_mux_select);
 	if (ret) {
@@ -271,14 +286,18 @@ int board_usb_init(int index, enum usb_init_type init)
 #ifdef CONFIG_USB_TCPC
 			ret = tcpc_setup_dfp_mode(&port);
 #endif
+#ifdef CONFIG_USB_CDNS3_GADGET
 		} else {
 #ifdef CONFIG_USB_TCPC
 			ret = tcpc_setup_ufp_mode(&port);
+			printf("%d setufp mode %d\n", index, ret);
+#endif
 #endif
 		}
 	}
 
 	return ret;
+
 }
 
 int board_usb_cleanup(int index, enum usb_init_type init)
@@ -345,13 +364,13 @@ int board_init(void)
 #endif
 #endif
 
-#ifdef CONFIG_SNVS_SEC_SC_AUTO
-{
-	int ret = snvs_security_sc_init();
+#ifdef CONFIG_IMX_SNVS_SEC_SC_AUTO
+	{
+		int ret = snvs_security_sc_init();
 
-	if (ret)
-		return ret;
-}
+		if (ret)
+			return ret;
+	}
 #endif
 
 	return 0;

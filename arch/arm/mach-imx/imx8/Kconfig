@@ -77,7 +77,7 @@ config TARGET_CCIMX8X_SBC_EXPRESS
 	select FSL_CAAM
 	select FSL_BLOB
 	select ARCH_MISC_INIT
-	select SPL_CRYPTO_SUPPORT if SPL
+	select SPL_CRYPTO if SPL
 
 config TARGET_CCIMX8X_SBC_PRO
 	bool "Digi ConnectCore 8X SBC Pro"
@@ -88,7 +88,7 @@ config TARGET_CCIMX8X_SBC_PRO
 	select FSL_CAAM
 	select FSL_BLOB
 	select ARCH_MISC_INIT
-	select SPL_CRYPTO_SUPPORT if SPL
+	select SPL_CRYPTO if SPL
 
 config TARGET_APALIS_IMX8
 	bool "Support Apalis iMX8 module"

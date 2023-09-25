@@ -217,7 +217,7 @@ int board_lock_hwid(void)
 /*
  * Board specific reset that is system reset.
  */
-void reset_cpu(ulong addr)
+void reset_cpu(void)
 {
 	sc_pm_reboot(-1, SC_PM_RESET_TYPE_COLD);
 	while(1);
@@ -422,7 +422,7 @@ int get_srk_revoke_mask(u32 *mask)
 		 */
 		mmc_part = 0;
 	}
-	mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC, mmc_dev_index);
+	mmc_dev = blk_get_devnum_by_uclass_id(UCLASS_MMC, mmc_dev_index);
 	if (NULL == mmc_dev) {
 		debug("Cannot determine sys storage device\n");
 		return CMD_RET_FAILURE;
@@ -434,7 +434,7 @@ int get_srk_revoke_mask(u32 *mask)
 	blk_cnt = buffer_size / mmc_dev->blksz;
 
 	/* Initialize boot partition */
-	ret = blk_select_hwpart_devnum(IF_TYPE_MMC, mmc_dev_index, mmc_part);
+	ret = blk_select_hwpart_devnum(UCLASS_MMC, mmc_dev_index, mmc_part);
 	if (ret != 0) {
 		debug("Error to switch to partition %d on dev %d (%d)\n",
 			  mmc_part, mmc_dev_index, ret);
@@ -488,7 +488,7 @@ int get_dek_blob(char *output, u32 *size)
 		 */
 		mmc_part = 0;
 	}
-	mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC, mmc_dev_index);
+	mmc_dev = blk_get_devnum_by_uclass_id(UCLASS_MMC, mmc_dev_index);
 	if (NULL == mmc_dev) {
 		debug("Cannot determine sys storage device\n");
 		return CMD_RET_FAILURE;
@@ -500,7 +500,7 @@ int get_dek_blob(char *output, u32 *size)
 	blk_cnt = buffer_size / mmc_dev->blksz;
 
 	/* Initialize boot partition */
-	ret = blk_select_hwpart_devnum(IF_TYPE_MMC, mmc_dev_index, mmc_part);
+	ret = blk_select_hwpart_devnum(UCLASS_MMC, mmc_dev_index, mmc_part);
 	if (ret != 0) {
 		debug("Error to switch to partition %d on dev %d (%d)\n",
 			  mmc_part, mmc_dev_index, ret);
