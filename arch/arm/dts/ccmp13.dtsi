@@ -54,6 +54,12 @@
 		regulator-max-microvolt = <3300000>;
 		regulator-always-on;
 	};
+
+#if defined(CONFIG_FIT_SIGNATURE)
+	signature {
+	};
+#endif
+
 };
 
 &adc_1 {
