@@ -62,7 +62,7 @@
 		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
 		"${mtdparts} ${bootargs_once} ${extra_bootargs}\0" \
 	"console=" CONSOLE_DEV "\0" \
-	"dboot_kernel_var=zimage\0" \
+	"dboot_kernel_var=" KERNEL_IMG_TYPE "\0" \
 	"fdt_addr=0xc4000000\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"fdt_high=0xffffffff\0"	  \

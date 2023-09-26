@@ -88,7 +88,7 @@ static int boot_os(char* initrd_addr, char* fdt_addr)
 
 	var = env_get("dboot_kernel_var");
 	if (var) {
-		if (!strcmp(var, "uimage"))
+		if (!strcmp(var, "uimage") || !strcmp(var, "fit"))
 			strcpy(dboot_cmd, "bootm");
 		else if (!strcmp(var, "image"))
 			strcpy(dboot_cmd, "booti");

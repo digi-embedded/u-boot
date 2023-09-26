@@ -249,4 +249,11 @@
 	"fip-a," \
 	"fip-b"
 
+/* Change kernel image */
+#ifdef CONFIG_FIT
+#define KERNEL_IMG_TYPE "fit"
+#else
+#define KERNEL_IMG_TYPE "zimage"
+#endif
+
 #endif /* __CCMP1_COMMON_H */
