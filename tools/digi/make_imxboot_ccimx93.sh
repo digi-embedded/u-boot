@@ -238,7 +238,7 @@ build_imxboot()
 		rm -f "${SOC}"/tee.bin
 		${MAKE} SOC="${SOC}" flash_singleboot
 		cp --remove-destination "${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx93-dvk.bin
-		cp --remove-destination "${SOC}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-flash_singleboot.log
+		cp --remove-destination "${SOC}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-ccimx93-dvk-flash_singleboot.log
 
 		echo "- Build imx-boot (OPTEE) binary for: ${SOC}"
 		${MAKE} SOC="${SOC}" clean
@@ -246,7 +246,7 @@ build_imxboot()
 		[ -f "${SOC}"/tee-raw.bin ] && ln -sf tee-raw.bin "${SOC}"/tee.bin
 		${MAKE} SOC="${SOC}" flash_singleboot
 		cp --remove-destination "${MKIMAGE_DIR}"/"${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx93-dvk.bin-optee
-		cp --remove-destination "${SOC}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-flash_singleboot.log-optee
+		cp --remove-destination "${SOC}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-ccimx93-dvk-flash_singleboot.log-optee
 	)
 }
 
