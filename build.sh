@@ -73,7 +73,7 @@ printf "\n[INFO] Build U-Boot \"%s\" for \"%s\"\n\n" "${DUB_REVISION}" "${DUB_PL
 DUB_REVISION_SANE="$(echo "${DUB_REVISION}" | tr '/' '_')"
 
 DUB_IMGS_DIR="${WORKSPACE}/images"
-DUB_TOOLCHAIN_DIR="${WORKSPACE}/toolchain"
+DUB_TOOLCHAIN_DIR="${WORKSPACE}/sdk"
 DUB_UBOOT_DIR="${WORKSPACE}/u-boot${DUB_REVISION_SANE:+-${DUB_REVISION_SANE}}.git"
 rm -rf "${DUB_IMGS_DIR}" "${DUB_TOOLCHAIN_DIR}" "${DUB_UBOOT_DIR}"
 mkdir -p "${DUB_IMGS_DIR}" "${DUB_TOOLCHAIN_DIR}"
