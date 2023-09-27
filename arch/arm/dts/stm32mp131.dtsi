@@ -1646,30 +1646,46 @@
 
 		tamp: tamp@5c00a000 {
 			compatible = "st,stm32-tamp", "syscon", "simple-mfd";
-			reg = <0x5c00a000 0x400>;
-			ranges;
 			#address-cells = <1>;
 			#size-cells = <1>;
+			reg = <0x5c00a000 0x400>;
+			ranges;
 
 			nvram: nvram@5c00a100 {
 				compatible = "st,stm32mp15-tamp-nvram";
-				reg = <0x5c00a100 0x80>;
 				#address-cells = <1>;
 				#size-cells = <1>;
+				reg = <0x5c00a100 0x80>;
+
 				saes_secret_key: tamp-bkp@0 {
-					/*see  saes secret key feature */
+					/* see saes secret key feature */
 					reg = <0x0 0x20>;
 				};
 				boot_mode: tamp-bkp@78 {
-					/*see boot mode selection feature*/
+					/* see boot mode selection feature */
 					reg = <0x78 0x4>;
 				};
 				boot_counter: tamp-bkp@7c {
-					/*see boot counter feature*/
+					/* see boot counter feature */
 					reg = <0x7c 0x4>;
 				};
 			};
+
+			reboot_mode: reboot_mode {
+				compatible = "nvmem-reboot-mode";
+				nvmem-cells = <&boot_mode>;
+				nvmem-cell-names = "reboot-mode";
+				mode-normal = <0>;
+				mode-fastboot = <0x1>;
+				mode-recovery = <0x2>;
+				mode-stm32cubeprogrammer = <0x3>;
+				mode-ums_mmc0 = <0x10>;
+				mode-ums_mmc1 = <0x11>;
+				mode-ums_mmc2 = <0x12>;
+				mode-romcode_serial = <0xFF>;
+			};
 		};
+
 		/*
 		 * Break node order to solve dependency probe issue between
 		 * pinctrl and exti.

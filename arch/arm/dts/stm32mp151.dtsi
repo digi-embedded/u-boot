@@ -153,12 +153,12 @@
 		interrupt-parent = <&intc>;
 		ranges;
 
-		sram: sram@10000000 {
+		sram4: sram@10050000 {
 			compatible = "mmio-sram";
-			reg = <0x10000000 0x60000>;
+			reg = <0x10050000 0x10000>;
 			#address-cells = <1>;
 			#size-cells = <1>;
-			ranges = <0 0x10000000 0x60000>;
+			ranges = <0 0x10050000 0x10000>;
 		};
 
 		hsem: hwspinlock@4c000000 {
@@ -1951,72 +1951,99 @@
 
 		tamp: tamp@5c00a000 {
 			compatible = "st,stm32-tamp", "syscon", "simple-mfd";
-			reg = <0x5c00a000 0x400>;
-			ranges;
 			#address-cells = <1>;
 			#size-cells = <1>;
+			reg = <0x5c00a000 0x400>;
+			ranges;
 
 			nvram: nvram@5c00a100 {
 				compatible = "st,stm32mp15-tamp-nvram";
-				reg = <0x5c00a100 0x80>;
 				#address-cells = <1>;
 				#size-cells = <1>;
+				reg = <0x5c00a100 0x80>;
+
 				wakeup_sec: tamp-bkp@0 {
-					/**/
 					reg = <0x0 0x4>;
 				};
+
 				m4_security_perimeter_exti1: tamp-bkp@4 {
-					/*see cortex-m4 wake up feature*/
+					/* see cortex-m4 wake up feature */
 					reg = <0x4 0x4>;
 				};
+
 				m4_security_perimeter_exti2: tamp-bkp@8 {
-					/*see cortex-m4 wake up feature*/
+					/* see cortex-m4 wake up feature */
 					reg = <0x8 0x4>;
 				};
+
 				m4_security_perimeter_exti3: tamp-bkp@c {
-					/*see cortex-m4 wtake up feature*/
+					/* see cortex-m4 wtake up feature */
 					reg = <0xc 0x4>;
 				};
+
 				magic_number: tamp-bkp@10 {
-					/*see ddr and cpu wake up management feature*/
+					/* see ddr and cpu wake up management feature */
 					reg = <0x10 0x4>;
 				};
+
 				branch_address: tamp-bkp@14 {
-					/*see ddr and cpu wake up management feature*/
+					/* see ddr and cpu wake up management feature */
 					reg = <0x14 0x4>;
 				};
+
 				fwu_info: tamp-bkp@28 {
-					/*see firmware update info feature*/
+					/* see firmware update info feature */
 					reg = <0x28 0x4>;
 				};
+
 				copro_rsc_tbl_address: tamp-bkp@44 {
-					/*see cortex-m4 management feature*/
+					/* see cortex-m4 management feature */
 					reg = <0x44 0x4>;
 				};
+
 				cortex_m_state: tamp-bkp@48 {
-					/*see cortex-m4 management feature*/
+					/* see cortex-m4 management feature */
 					reg = <0x48 0x4>;
 				};
+
 				boot_mode: tamp-bkp@50 {
-					/*see boot mode selection feature*/
+					/* see boot mode selection feature */
 					reg = <0x50 0x4>;
 				};
+
 				boot_counter: tamp-bkp@54 {
-					/*see boot counter feature*/
+					/* see boot counter feature */
 					reg = <0x54 0x4>;
 				};
+
 				m4_wakeup_area_start: tamp-bkp@58 {
-					/*see cortex-m4 wake up feature*/
+					/* see cortex-m4 wake up feature */
 					reg = <0x58 0x4>;
 				};
+
 				m4_wakeup_area_length: tamp-bkp@5c {
-					/*see cortex-m4 wake up feature*/
+					/* see cortex-m4 wake up feature */
 					reg = <0x5c 0x4>;
 				};
+
 				m4_wakeup_area_hash: tamp-bkp@60 {
 					/* SHA-0x100 value see Cortex-M4 wake up feature */
 					reg = <0x60 0x20>;
 				};
+			};
+
+			reboot_mode: reboot_mode {
+				compatible = "nvmem-reboot-mode";
+				nvmem-cells = <&boot_mode>;
+				nvmem-cell-names = "reboot-mode";
+				mode-normal = <0>;
+				mode-fastboot = <0x1>;
+				mode-recovery = <0x2>;
+				mode-stm32cubeprogrammer = <0x3>;
+				mode-ums_mmc0 = <0x10>;
+				mode-ums_mmc1 = <0x11>;
+				mode-ums_mmc2 = <0x12>;
+				mode-romcode_serial = <0xFF>;
 			};
 		};
 

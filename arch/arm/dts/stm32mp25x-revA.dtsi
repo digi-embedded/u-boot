@@ -9,12 +9,86 @@
 / {
 };
 
+&adc_12{
+	adc2: adc@100 {
+		/delete-node/channel@17;
+		/delete-node/channel@18;
+	};
+};
+
+&adc_3 {
+	adc3: adc@0 {
+		/delete-node/channel@17;
+		/delete-node/channel@18;
+	};
+};
+
+&eth1 {
+	/delete-property/snps,mixed-burst;
+	snps,fixed-burst;
+
+	/delete-node/stmmac-axi-config;
+	stmmac_axi_config_1: stmmac-axi-config {
+		snps,wr_osr_lmt = <0x7>;
+		snps,rd_osr_lmt = <0x7>;
+		snps,blen = <0 0 0 0 0 0 4>;
+	};
+
+	/delete-node/tx-queues-config;
+	mtl_tx_setup_1: tx-queues-config {
+		snps,tx-queues-to-use = <2>;
+		queue0 {};
+		queue1 {};
+	};
+};
+
+&eth2 {
+	/delete-property/snps,mixed-burst;
+	snps,fixed-burst;
+
+	/delete-node/stmmac-axi-config;
+	stmmac_axi_config_2: stmmac-axi-config {
+		snps,wr_osr_lmt = <0x7>;
+		snps,rd_osr_lmt = <0x7>;
+		snps,blen = <0 0 0 0 0 0 4>;
+	};
+
+	/delete-node/tx-queues-config;
+	mtl_tx_setup_2: tx-queues-config {
+		snps,tx-queues-to-use = <2>;
+		queue0 {};
+		queue1 {};
+	};
+};
+
 &i2c8 {
 	/delete-property/dmas;
 	/delete-property/dma-names;
 };
 
+&ltdc {
+	st,burstlen = <32>;
+};
+
+&pcie_rc {
+	resets = <&scmi_reset RST_SCMI_PCIE>;
+};
+
+&pcie_ep {
+	resets = <&scmi_reset RST_SCMI_PCIE>;
+};
+
 &spi8 {
 	/delete-property/dmas;
 	/delete-property/dma-names;
+};
+
+/delete-node/&timers13;
+
+&vdec {
+	maxburstlen = <24>;
+};
+
+&venc {
+	maxburstlen = <16>;
 };

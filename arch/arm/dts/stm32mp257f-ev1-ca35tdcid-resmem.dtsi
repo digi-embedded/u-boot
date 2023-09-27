@@ -92,41 +92,49 @@
 
 		/* DDR reserved memory declaration */
 		tfm_code: tfm-code@80000000 {
+			compatible = "shared-dma-pool";
 			reg = <0x0 0x80000000 0x0 0x100000>;
 			no-map;
 		};
 
 		cm33_cube_fw: cm33-cube-fw@80100000 {
+			compatible = "shared-dma-pool";
 			reg = <0x0 0x80100000 0x0 0x800000>;
 			no-map;
 		};
 
 		tfm_data: tfm-data@80900000 {
+			compatible = "shared-dma-pool";
 			reg = <0x0 0x80900000 0x0 0x100000>;
 			no-map;
 		};
 
 		cm33_cube_data: cm33-cube-data@80a00000 {
+			compatible = "shared-dma-pool";
 			reg = <0x0 0x80a00000 0x0 0x800000>;
 			no-map;
 		};
 
 		ipc_shmem_1: ipc-shmem-1@81200000 {
+			compatible = "shared-dma-pool";
 			reg = <0x0 0x81200000 0x0 0xf8000>;
 			no-map;
 		};
 
 		vdev0vring0: vdev0vring0@812f8000 {
+			compatible = "shared-dma-pool";
 			reg = <0x0 0x812f8000 0x0 0x1000>;
 			no-map;
 		};
 
 		vdev0vring1: vdev0vring1@812f9000 {
+			compatible = "shared-dma-pool";
 			reg = <0x0 0x812f9000 0x0 0x1000>;
 			no-map;
 		};
 
 		vdev0buffer: vdev0buffer@812fa000 {
+			compatible = "shared-dma-pool";
 			reg = <0x0 0x812fa000 0x0 0x6000>;
 			no-map;
 		};
