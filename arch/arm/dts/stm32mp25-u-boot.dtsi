@@ -40,7 +40,7 @@
 		u-boot,dm-pre-reloc;
 	};
 
-	soc {
+	soc@0 {
 		u-boot,dm-pre-reloc;
 	};
 };
