@@ -147,4 +147,6 @@
 bool board_has_emmc(void);
 #endif /* __ASSEMBLY__ */
 
+#define DELIM_OV_FILE           ","
+
 #endif /* __DIGI_COMMON_H */
