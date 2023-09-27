@@ -232,21 +232,21 @@ build_imxboot()
 	mkdir -p "${OUTPUT_PATH}"
 
 	(
-		echo "- Build imx-boot binary for: ${SOC}"
+		echo "- Build imx-boot (NO-OPTEE) binary for: ${SOC}"
 		${MAKE} SOC="${SOC}" clean
 		[ -f "${SOC}"/bl31-imx93.bin ] && ln -sf bl31-imx93.bin "${SOC}"/bl31.bin
 		rm -f "${SOC}"/tee.bin
 		${MAKE} SOC="${SOC}" flash_singleboot
-		cp --remove-destination "${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx93-dvk.bin
-		cp --remove-destination "${SOC}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-ccimx93-dvk-flash_singleboot.log
+		cp --remove-destination "${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx93-dvk-nooptee.bin
+		cp --remove-destination "${SOC}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-ccimx93-dvk-nooptee-flash_singleboot.log
 
 		echo "- Build imx-boot (OPTEE) binary for: ${SOC}"
 		${MAKE} SOC="${SOC}" clean
 		[ -f "${SOC}"/bl31-imx93.bin-optee ] && ln -sf bl31-imx93.bin-optee "${SOC}"/bl31.bin
 		[ -f "${SOC}"/tee-raw.bin ] && ln -sf tee-raw.bin "${SOC}"/tee.bin
 		${MAKE} SOC="${SOC}" flash_singleboot
-		cp --remove-destination "${MKIMAGE_DIR}"/"${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx93-dvk.bin-optee
-		cp --remove-destination "${SOC}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-ccimx93-dvk-flash_singleboot.log-optee
+		cp --remove-destination "${MKIMAGE_DIR}"/"${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx93-dvk.bin
+		cp --remove-destination "${SOC}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-ccimx93-dvk-flash_singleboot.log
 	)
 }
 
