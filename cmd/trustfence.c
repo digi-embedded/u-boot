@@ -688,21 +688,24 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 		puts("[OK]\n");
 #elif defined(CONFIG_AHAB_BOOT)
 		u32 revoke_mask = 0;
-		if (get_srk_revoke_mask(&revoke_mask) == CMD_RET_SUCCESS) {
-			if (revoke_mask) {
-				printf("Following keys will be permanently revoked:\n");
-				for (int i = 0; i <= CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS; i++) {
-					if (revoke_mask & (1 << i))
-						printf("   Key %d\n", i);
-				}
-				if (revoke_mask & (1 << CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS)) {
-					puts("Key 3 cannot be revoked. Abort.\n");
-					return CMD_RET_FAILURE;
-				}
-			} else {
-				printf("No Keys to be revoked.\n");
+		if (get_srk_revoke_mask(&revoke_mask) != CMD_RET_SUCCESS) {
+			printf("Failed to get revoke mask.\n");
+			return CMD_RET_FAILURE;
+		}
+
+		if (revoke_mask) {
+			printf("Following keys will be permanently revoked:\n");
+			for (int i = 0; i <= CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS; i++) {
+				if (revoke_mask & (1 << i))
+					printf("   Key %d\n", i);
+			}
+			if (revoke_mask & (1 << CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS)) {
+				puts("Key 3 cannot be revoked. Abort.\n");
 				return CMD_RET_FAILURE;
 			}
+		} else {
+			printf("No Keys to be revoked.\n");
+			return CMD_RET_FAILURE;
 		}
 
 		if (!confirmed && !confirm_prog())
