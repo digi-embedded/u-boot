@@ -712,15 +712,8 @@ int confirm_prog(void)
 					"what you are doing!\n"
 			"\nReally perform this fuse programming? <y/N>\n");
 
-	if (getchar() == 'y') {
-		int c;
-
-		putc('y');
-		c = getchar();
-		putc('\n');
-		if (c == '\r')
-			return 1;
-	}
+	if (confirm_yesno())
+		return 1;
 
 	puts("Fuse programming aborted\n");
 	return 0;
