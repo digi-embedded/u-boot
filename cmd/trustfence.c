@@ -662,7 +662,6 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 		if (close_device(confirmed))
 			goto err;
 		puts("[OK]\n");
-#if 0 /* CCIMX93_NOT_SUPPORTED */
 	} else if (!strcmp(op, "revoke")) {
 #if defined(CONFIG_IMX_HAB)
 		if (argc < 1)
@@ -724,7 +723,6 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 #else
 		printf("Command not implemented\n");
 #endif
-#endif /* CCIMX93_NOT_SUPPORTED */
 	} else if (!strcmp(op, "status")) {
 		int key_index;
 
@@ -1193,12 +1191,12 @@ U_BOOT_CMD(
 	"trustfence prog_srk [-y] <ram addr> <size in bytes> - burn SRK efuses (PERMANENT)\n"
 	"trustfence close [-y] - close the device so that it can only boot "
 			      "signed images (PERMANENT)\n"
-#if 0 /* CCIMX93_NOT_SUPPORTED */
 #if defined(CONFIG_IMX_HAB)
 	"trustfence revoke [-y] <key index> - revoke one Super Root Key (PERMANENT)\n"
 #elif defined(CONFIG_AHAB_BOOT)
 	"trustfence revoke [-y] - revoke one or more Super Root Keys as per the SRK_REVOKE_MASK given at build time in the CSF (PERMANENT)\n"
 #endif
+#if 0 /* CCIMX93_NOT_SUPPORTED */
 	"trustfence update <source> [extra-args...]\n"
 	" Description: flash an encrypted U-Boot image.\n"
 	" Arguments:\n"
