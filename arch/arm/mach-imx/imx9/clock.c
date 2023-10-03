@@ -30,6 +30,7 @@ static struct imx_intpll_rate_table imx9_intpll_tbl[] = {
 	INT_PLL_RATE(1400000000U, 1, 175, 3), /* 1.4Ghz */
 	INT_PLL_RATE(1000000000U, 1, 166, 4), /* 1000Mhz */
 	INT_PLL_RATE(900000000U, 1, 150, 4), /* 900Mhz */
+	INT_PLL_RATE(800000000U, 1, 200, 6), /* 800Mhz */
 };
 
 static struct imx_fracpll_rate_table imx9_fracpll_tbl[] = {
@@ -37,11 +38,13 @@ static struct imx_fracpll_rate_table imx9_fracpll_tbl[] = {
 	FRAC_PLL_RATE(933000000U, 1, 155, 4, 1, 2), /* 933Mhz */
 	FRAC_PLL_RATE(800000000U, 1, 200, 6, 0, 1), /* 800Mhz */
 	FRAC_PLL_RATE(700000000U, 1, 145, 5, 5, 6), /* 700Mhz */
+	FRAC_PLL_RATE(600000000U, 1, 200, 8, 0, 1), /* 600Mhz */
 	FRAC_PLL_RATE(484000000U, 1, 121, 6, 0, 1),
 	FRAC_PLL_RATE(445333333U, 1, 167, 9, 0, 1),
 	FRAC_PLL_RATE(466000000U, 1, 155, 8, 1, 3), /* 466Mhz */
 	FRAC_PLL_RATE(400000000U, 1, 200, 12, 0, 1), /* 400Mhz */
 	FRAC_PLL_RATE(300000000U, 1, 150, 12, 0, 1),
+	FRAC_PLL_RATE(200000000U, 1, 200, 24, 0, 1), /* 200Mhz */
 };
 
 /* return in khz */
@@ -542,13 +545,6 @@ void set_arm_core_max_clk(void)
 	ccm_shared_gpr_set(SHARED_GPR_A55_CLK, SHARED_GPR_A55_CLK_SEL_PLL);
 }
 
-void set_arm_core_low_drive_clk(void)
-{
-	ccm_shared_gpr_set(SHARED_GPR_A55_CLK, SHARED_GPR_A55_CLK_SEL_CCM);
-	configure_intpll(ARM_PLL_CLK, 900000000);
-	ccm_shared_gpr_set(SHARED_GPR_A55_CLK, SHARED_GPR_A55_CLK_SEL_PLL);
-}
-
 unsigned int mxc_get_clock(enum mxc_clock clk)
 {
 	switch (clk) {
@@ -622,7 +618,7 @@ void init_uart_clk(u32 index)
 void init_clk_usdhc(u32 index)
 {
 	u32 div;
-	if (IS_ENABLED(CONFIG_IMX9_LOW_DRIVE_MODE))
+	if (is_voltage_mode(VOLT_LOW_DRIVE))
 		div = 3; /* 266.67 Mhz */
 	else
 		div = 2; /* 400 Mhz */
@@ -776,16 +772,9 @@ void bus_clock_init(void)
 	ccm_clk_root_cfg(NIC_APB_CLK_ROOT, SYS_PLL_PFD1_DIV2, 3);
 }
 
-int clock_init(void)
+int clock_init_early(void)
 {
 	int i;
-
-	if (IS_ENABLED(CONFIG_IMX9_LOW_DRIVE_MODE)){
-		bus_clock_init_low_drive();
-		set_arm_core_low_drive_clk();
-	} else {
-		bus_clock_init();
-	}
 
 	/* allow for non-secure access */
 	for (i = 0; i < OSCPLL_END; i++)
@@ -799,6 +788,19 @@ int clock_init(void)
 
 	for (i = 0; i < SHARED_GPR_NUM; i++)
 		ccm_shared_gpr_tz_access(i, true, false, false);
+
+	return 0;
+}
+
+/* Set bus and A55 core clock per voltage mode */
+int clock_init_late(void)
+{
+	if (is_voltage_mode(VOLT_LOW_DRIVE)){
+		bus_clock_init_low_drive();
+		set_arm_core_max_clk();
+	} else {
+		bus_clock_init();
+	}
 
 	return 0;
 }

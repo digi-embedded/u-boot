@@ -225,30 +225,33 @@ int hwcrypto_gen_blob(uint32_t plain_pa,
     return rc;
 }
 
-int hwcrypto_gen_rng(uint32_t buf, uint32_t len)
+int hwcrypto_gen_rng(uint8_t *buf, uint32_t len)
 {
-    hwcrypto_rng_msg req;
-    unsigned long start, end;
+    hwcrypto_rng_req req;
+    uint8_t *resp = NULL;
+    int resp_len;
+    int rc = 0;
 
-    /* check the address */
-    if (buf == 0)
-        return TRUSTY_ERR_INVALID_ARGS;
-    /* fill the request buffer */
-    req.buf = buf;
     req.len = len;
+    resp = trusty_calloc(len, 1);
+    if (!resp) {
+        trusty_error("Failed to allocate memory!\n");
+        return TRUSTY_ERR_NO_MEMORY;
+    }
+    resp_len = len;
 
-    /* invalidate dcache for output buffer */
-    start = (unsigned long)buf & ~(ARCH_DMA_MINALIGN - 1);
-    end   = ALIGN((unsigned long)buf + len, ARCH_DMA_MINALIGN);
-    invalidate_dcache_range(start, end);
+    rc = hwcrypto_do_tipc(HWCRYPTO_GEN_RNG, (void*)&req, sizeof(req), resp, &resp_len);
+    if (rc && (resp_len != len)) {
+        trusty_error("Failed to generate RNG!\n");
+        goto exit;
+    }
+    memcpy(buf, resp, resp_len);
+    rc = TRUSTY_ERR_NONE;
 
-    int rc = hwcrypto_do_tipc(HWCRYPTO_GEN_RNG, (void*)&req,
-                              sizeof(req), NULL, 0);
+exit:
+    if (resp)
+        free(resp);
 
-    /* invalidate the dcache again before read to avoid coherency
-     * problem caused by speculative memory access by the CPU.
-     */
-    invalidate_dcache_range(start, end);
     return rc;
 }
 
@@ -423,6 +426,52 @@ int hwcrypto_commit_emmc_cid(void)
 
     int rc = hwcrypto_do_tipc(HWCRYPTO_SET_EMMC_CID, (void*)req,
                               RPMB_EMMC_CID_SIZE + sizeof(uint32_t), NULL, 0);
+
+    if (req)
+        trusty_free(req);
+
+    return rc;
+}
+
+int hwcrypto_provision_firmware_sign_key(const char *data, uint32_t data_size)
+{
+    uint8_t *req = NULL, *tmp;
+    /* sanity check */
+    if (!data || !data_size)
+        return TRUSTY_ERR_INVALID_ARGS;
+
+    /* serialize the request */
+    req = trusty_calloc(data_size + sizeof(data_size), 1);
+    if (!req) {
+        return TRUSTY_ERR_NO_MEMORY;
+    }
+    tmp = append_sized_buf_to_buf(req, (uint8_t *)data, data_size);
+
+    int rc = hwcrypto_do_tipc(HWCRYPTO_PROVISION_FIRMWARE_SIGN_KEY, (void*)req,
+                              data_size + sizeof(data_size), NULL, 0);
+
+    if (req)
+        trusty_free(req);
+
+    return rc;
+}
+
+int hwcrypto_provision_firmware_encrypt_key(const char *data, uint32_t data_size)
+{
+    uint8_t *req = NULL, *tmp;
+    /* sanity check */
+    if (!data || !data_size)
+        return TRUSTY_ERR_INVALID_ARGS;
+
+    /* serialize the request */
+    req = trusty_calloc(data_size + sizeof(data_size), 1);
+    if (!req) {
+        return TRUSTY_ERR_NO_MEMORY;
+    }
+    tmp = append_sized_buf_to_buf(req, (uint8_t *)data, data_size);
+
+    int rc = hwcrypto_do_tipc(HWCRYPTO_PROVISION_FIRMWARE_ENCRYPT_KEY, (void*)req,
+                              data_size + sizeof(data_size), NULL, 0);
 
     if (req)
         trusty_free(req);

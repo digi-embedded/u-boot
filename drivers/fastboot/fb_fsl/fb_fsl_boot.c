@@ -708,6 +708,10 @@ int do_boota(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]) {
 			with_init_boot = true;
 	}
 
+#ifdef CONFIG_AUTO_SET_RPMB_KEY
+	if (trusty_rpmb_init())
+		goto fail;
+#endif
 	/* For imx6 on Android, we don't have a/b slot and we want to verify boot/recovery with AVB.
 	 * For imx8 and Android Things we don't have recovery and support a/b slot for boot */
 #ifdef CONFIG_DUAL_BOOTLOADER
@@ -1137,10 +1141,6 @@ int do_boota(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]) {
 
 	/* lock the boot status and rollback_idx preventing Linux modify it */
 	trusty_lock_boot_state();
-	/* lock the boot state so linux can't use some hwcrypto commands. */
-	hwcrypto_lock_boot_state();
-	/* put ql-tipc to release resource for Linux */
-	trusty_ipc_shutdown();
 #endif
 
 #if defined(CONFIG_IMX_HAB) && defined(CONFIG_CMD_PRIBLOB)

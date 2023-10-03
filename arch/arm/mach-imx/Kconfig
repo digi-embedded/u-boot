@@ -84,6 +84,14 @@ config IMX_HAB
 	  This option enables the support for secure boot (HAB).
 	  See doc/imx/habv4/* for more details.
 
+config IMX_SPL_FIT_FDT_SIGNATURE
+	bool "Enable to verify signature of FIT FDT"
+	depends on IMX_HAB
+	depends on ARCH_IMX8M
+	help
+	  Enable SPL to verify signature of FIT FDT during FIT loading.
+	  This needs additional signing to FIT FDT part.
+
 config CSF_SIZE
 	hex "Maximum size for Command Sequence File (CSF) binary"
 	depends on IMX_HAB
@@ -179,6 +187,14 @@ config CMD_QSPIHDR
 	help
 	  Boot from Q(F)SPI need a boot config header, this command can
 	  help to check if header already exists or add one if not.
+
+config CMD_FSPINAND
+	bool "FSPINAND Boot Control Block(BCB) command"
+	depends on MTD
+	default y
+	help
+	  Boot from FSPI NAND need extra boot control Blocks which contains
+	  both Firmware Configuration Block(FCB), Discovered Bad Block Table(DBBT).
 
 config FSL_MFGPROT
 	bool "Support the 'mfgprot' command"
@@ -296,6 +312,7 @@ config ANDROID_SUPPORT
 	select SUPPORT_RAW_INITRD
 	select LIBAVB
 	select AVB_SUPPORT
+	imply IMX_SPL_FIT_FDT_SIGNATURE
 
 config ANDROID_AUTO_SUPPORT
 	bool "Android Automotive features support"
@@ -405,6 +422,21 @@ config SECURE_UNLOCK
 config IMX_MATTER_TRUSTY
 	bool "Enable Trusty OS feature for Matter"
 	depends on IMX_TRUSTY_OS
+	default n
+
+config AUTO_SET_RPMB_KEY
+	bool "Set RPMB key automatically"
+	depends on IMX_TRUSTY_OS
+	help
+	  Automatically set the rpmb key which is derived from the hardware
+	  unique key in Trusty OS.
+
+config VPU_SECURE_HEAP
+	bool "Memory need by WIDEVINE_L1"
+	depends on IMX_TRUSTY_OS && (IMX8QM)
+	help
+	  if enable widevine L1 on imx8qm, need to pass secure memory and vpu memory
+	  to linux. It is only used by imx8qm.
 	default n
 
 endmenu

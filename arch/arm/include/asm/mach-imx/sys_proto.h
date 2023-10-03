@@ -98,7 +98,8 @@ struct bd_info;
 
 #define is_imx93() (is_cpu_type(MXC_CPU_IMX93) || is_cpu_type(MXC_CPU_IMX9331) || \
 	is_cpu_type(MXC_CPU_IMX9332) || is_cpu_type(MXC_CPU_IMX9351) || is_cpu_type(MXC_CPU_IMX9322) || \
-	is_cpu_type(MXC_CPU_IMX9321) || is_cpu_type(MXC_CPU_IMX9312) || is_cpu_type(MXC_CPU_IMX9311))
+	is_cpu_type(MXC_CPU_IMX9321) || is_cpu_type(MXC_CPU_IMX9312) || is_cpu_type(MXC_CPU_IMX9311) || \
+	is_cpu_type(MXC_CPU_IMX91P3) || is_cpu_type(MXC_CPU_IMX91P1) || is_cpu_type(MXC_CPU_IMX91P0))
 #define is_imx9352() (is_cpu_type(MXC_CPU_IMX93))
 #define is_imx9351() (is_cpu_type(MXC_CPU_IMX9351))
 #define is_imx9332() (is_cpu_type(MXC_CPU_IMX9332))
@@ -107,6 +108,9 @@ struct bd_info;
 #define is_imx9321() (is_cpu_type(MXC_CPU_IMX9321))
 #define is_imx9312() (is_cpu_type(MXC_CPU_IMX9312))
 #define is_imx9311() (is_cpu_type(MXC_CPU_IMX9311))
+#define is_imx91p3() (is_cpu_type(MXC_CPU_IMX91P3))
+#define is_imx91p1() (is_cpu_type(MXC_CPU_IMX91P1))
+#define is_imx91p0() (is_cpu_type(MXC_CPU_IMX91P0))
 
 #define is_imxrt1020() (is_cpu_type(MXC_CPU_IMXRT1020))
 #define is_imxrt1050() (is_cpu_type(MXC_CPU_IMXRT1050))
@@ -192,6 +196,7 @@ enum boot_dev_type_e {
 	BT_DEV_TYPE_NAND = 3,
 	BT_DEV_TYPE_FLEXSPINOR = 4,
 	BT_DEV_TYPE_SPI_NOR = 6,
+	BT_DEV_TYPE_FLEXSPINAND = 8,
 
 	BT_DEV_TYPE_USB = 0xE,
 	BT_DEV_TYPE_MEM_DEV = 0xF,
@@ -218,8 +223,8 @@ enum boot_stage_type {
 extern struct rom_api *g_rom_api;
 extern unsigned long rom_pointer[];
 
-ulong spl_romapi_raw_seekable_read(u32 offset, u32 size, void *buf);
-ulong spl_romapi_get_uboot_base(u32 image_offset, u32 rom_bt_dev);
+ulong spl_romapi_read(u32 offset, u32 size, void *buf);
+ulong spl_romapi_get_uboot_base(u32 image_offset, u32 rom_bt_dev, u32 pagesize);
 
 u32 rom_api_download_image(u8 *dest, u32 offset, u32 size);
 u32 rom_api_query_boot_infor(u32 info_type, u32 *info);

@@ -2,7 +2,6 @@
 /*
  * Copyright 2022 NXP
  */
-
 #include <common.h>
 #include <errno.h>
 #include <log.h>
@@ -337,9 +336,11 @@ int ddr_init(struct dram_timing_info *dram_timing)
 	unsigned int initial_drate;
 	struct dram_timing_info *saved_timing;
 	void *fsp;
-	int ret;
+	int i, ret;
 	u32 mr12, mr14;
 	u32 regval;
+	struct dram_cfg_param *ddrc_cfg;
+	unsigned int ddrc_cfg_num;
 
 	debug("DDRINFO: start DRAM init\n");
 
@@ -352,21 +353,38 @@ int ddr_init(struct dram_timing_info *dram_timing)
 	/* default to the frequency point 0 clock */
 	ddrphy_init_set_dfi_clk(initial_drate);
 
+#if defined(CONFIG_IMX_SNPS_DDR_PHY_QB)
+	/* Configure PHY in QuickBoot mode */
+	ret = ddr_cfg_phy_qb(dram_timing, 0);
+	if (ret)
+		return ret;
+#else
 	/*
 	 * Start PHY initialization and training by
 	 * accessing relevant PUB registers
 	 */
 	debug("DDRINFO:ddrphy config start\n");
 
+#if defined(CONFIG_IMX_SNPS_DDR_PHY_QB_GEN)
+	qb_state.flags = 0;
+#endif
+
 	ret = ddr_cfg_phy(dram_timing);
 	if (ret)
 		return ret;
+
+#if defined(CONFIG_IMX_SNPS_DDR_PHY_QB_GEN)
+	ddrphy_qb_save();
+#endif
+#endif
+	/* save the ddr PHY trained CSR in memory for low power use */
+	ddrphy_trained_csr_save(ddrphy_trained_csr, ddrphy_trained_csr_num);
 
 	debug("DDRINFO: ddrphy config done\n");
 
 	update_umctl2_rank_space_setting(dram_timing, dram_timing->fsp_msg_num - 1);
 
-	/* rogram the ddrc registers */
+	/* program the ddrc registers */
 	debug("DDRINFO: ddrc config start\n");
 	ddrc_config(dram_timing);
 	debug("DDRINFO: ddrc config done\n");
@@ -381,6 +399,20 @@ int ddr_init(struct dram_timing_info *dram_timing)
 	writel((regval | 0x80000000), REG_DDR_SDRAM_CFG);
 
 	check_ddrc_idle();
+
+	/* if DRAM Data INIT set, wait it be completed */
+	ddrc_cfg = dram_timing->ddrc_cfg;
+	ddrc_cfg_num = dram_timing->ddrc_cfg_num;
+	for (i = 0; i < ddrc_cfg_num; i++) {
+		if (ddrc_cfg->reg == REG_DDR_SDRAM_CFG2) {
+			if (ddrc_cfg->val & 0x10) {
+				while (readl(REG_DDR_SDRAM_CFG2) & 0x10)
+					;
+			}
+			break;
+		}
+		ddrc_cfg++;
+	}
 
 	mr12 = lpddr4_mr_read(1, 12);
 	mr14 = lpddr4_mr_read(1, 14);
@@ -407,6 +439,10 @@ int ddr_init(struct dram_timing_info *dram_timing)
 				 ARRAY_SIZE(saved_timing->fsp_cfg[1].mr_cfg));
 	}
 
+#if defined(CONFIG_IMX_SNPS_DDR_PHY_QB_GEN)
+	memcpy((struct ddrphy_qb_state *)CONFIG_SAVED_QB_STATE_BASE,
+		&qb_state, sizeof(struct ddrphy_qb_state));
+#endif
 	return 0;
 }
 
