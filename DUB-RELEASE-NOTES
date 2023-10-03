@@ -2,6 +2,13 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
+DUB-2023.04
+-----------
+dub-2023.04-r1.1, released on 2023/09/07
+	- Based on BSP from NXP (tag 'lf-6.1.22-2.0.0')
+	- Support ConnectCore 93.
+	- Enabled bootcounter using RTC's nvmem
+
 DUB-2022.04
 -----------
 dub-2022.04-r2.1, released on 2023/xx/xx
