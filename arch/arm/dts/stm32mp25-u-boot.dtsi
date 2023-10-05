@@ -91,6 +91,8 @@
 
 /* pre-reloc probe = reserve video frame buffer in video_reserve() */
 &ltdc {
+	clocks = <&rcc CK_BUS_LTDC>, <&rcc CK_KER_LTDC>;
+	clock-names = "bus", "lcd";
 	u-boot,dm-pre-reloc;
 };
 
