@@ -74,7 +74,7 @@ int power_init_board(void)
 {
 	struct udevice *dev;
 	int ret;
-	unsigned int val = 0;
+	unsigned int val = 0, buck_val;
 
 	ret = pmic_get("pmic@25", &dev);
 	if (ret == -ENODEV) {
@@ -96,26 +96,23 @@ int power_init_board(void)
 	else
 		val = ret;
 
-	if (IS_ENABLED(CONFIG_IMX9_LOW_DRIVE_MODE)){
-		/* 0.8v for Low drive mode
-		 */
-		if (val & PCA9450_REG_PWRCTRL_TOFF_DEB) {
-			pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, 0x0c);
-			pmic_reg_write(dev, PCA9450_BUCK3OUT_DVS0, 0x0c);
-		} else {
-			pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, 0x10);
-			pmic_reg_write(dev, PCA9450_BUCK3OUT_DVS0, 0x10);
-		}
+	if (is_voltage_mode(VOLT_LOW_DRIVE)) {
+		buck_val = 0x0c;	/* 0.8v for Low drive mode */
+		printf("PMIC: Low Drive Voltage Mode\n");
+	} else if (is_voltage_mode(VOLT_NOMINAL_DRIVE)) {
+		buck_val = 0x10;	/* 0.85v for Nominal drive mode */
+		printf("PMIC: Nominal Voltage Mode\n");
 	} else {
-		/* 0.9v for Over drive mode
-		 */
-		if (val & PCA9450_REG_PWRCTRL_TOFF_DEB) {
-			pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, 0x14);
-			pmic_reg_write(dev, PCA9450_BUCK3OUT_DVS0, 0x14);
-		} else {
-			pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, 0x18);
-			pmic_reg_write(dev, PCA9450_BUCK3OUT_DVS0, 0x18);
-		}
+		buck_val = 0x14;	/* 0.9v for Over drive mode */
+		printf("PMIC: Over Drive Voltage Mode\n");
+	}
+
+	if (val & PCA9450_REG_PWRCTRL_TOFF_DEB) {
+		pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, buck_val);
+		pmic_reg_write(dev, PCA9450_BUCK3OUT_DVS0, buck_val);
+	} else {
+		pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, buck_val + 0x4);
+		pmic_reg_write(dev, PCA9450_BUCK3OUT_DVS0, buck_val + 0x4);
 	}
 
 	/* set standby voltage to 0.65v */
@@ -124,7 +121,7 @@ int power_init_board(void)
 	else
 		pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS1, 0x4);
 
-	/* I2C_LT_EN*/
+	/* I2C_LT_EN */
 	pmic_reg_write(dev, 0xa, 0x3);
 	return 0;
 }
@@ -156,9 +153,11 @@ void board_init_f(ulong dummy)
 		printf("LC: 0x%x\n", gd->arch.lifecycle);
 	}
 
+	clock_init_late();
+
 	power_init_board();
 
-	if (!IS_ENABLED(CONFIG_IMX9_LOW_DRIVE_MODE))
+	if (!is_voltage_mode(VOLT_LOW_DRIVE))
 		set_arm_core_max_clk();
 
 	/* Init power of mix */
