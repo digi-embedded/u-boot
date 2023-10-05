@@ -254,9 +254,9 @@ build_imxboot()
 WORKSPACE="$(cd "$(dirname "$0")" && pwd)"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
-MKIMAGE_BRANCH="lf-6.1.22_2.0.0"
-# Tag: lf-6.1.22-2.0.0
-MKIMAGE_REV="5cfd218012e080fb907d9cc301fbb4ece9bc17a9"
+MKIMAGE_BRANCH="lf-6.1.36_2.1.0"
+# Tag: lf-6.1.36-2.1.0
+MKIMAGE_REV="5a0faefc223e51e088433663b6e7d6fbce89bf59"
 MKIMAGE_DIR="${WORKSPACE}/imx-mkimage"
 MKIMAGE_PATCHES=" \
 	mkimage/0001-imx9-soc.mak-capture-commands-output-into-a-log-file.patch \
@@ -264,8 +264,8 @@ MKIMAGE_PATCHES=" \
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
 ATF_BRANCH="lf_v2.8"
-# Tag: lf-6.1.22-2.0.0
-ATF_REV="99195a23d3aef485fb8f10939583b1bdef18881c"
+# Tag: lf-6.1.36-2.1.0
+ATF_REV="1a3beeab6484343a4bd0ee08e947d142db4a5ae6"
 ATF_DIR="${WORKSPACE}/imx-atf"
 ATF_PATCHES=" \
 	atf/0001-imx8mm-Define-UART1-as-console-for-boot-stage.patch \
@@ -276,20 +276,20 @@ ATF_PATCHES=" \
 "
 
 OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
-OPTEE_BRANCH="lf-6.1.22_2.0.0"
-# Tag: lf-6.1.22-2.0.0
-OPTEE_REV="1962aec9581760803b1485d455cd62cb11c14870"
+OPTEE_BRANCH="lf-6.1.36_2.1.0"
+# Tag: lf-6.1.36-2.1.0
+OPTEE_REV="4e32281904b15af9ddbdf00f73e1c08eae21c695"
 OPTEE_DIR="${WORKSPACE}/imx-optee-os"
 OPTEE_PATCHES=" \
 	optee/0007-allow-setting-sysroot-for-clang.patch \
 	optee/0001-core-imx-support-ccimx93-dvk.patch \
 "
 
-FIRMWARE_IMX="firmware-imx-8.20"
+FIRMWARE_IMX="firmware-imx-8.21"
 FIRMWARE_IMX_DIR="${WORKSPACE}/${FIRMWARE_IMX}"
 FIRMWARE_IMX_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_IMX}.bin"
 
-FIRMWARE_SENTINEL="firmware-sentinel-0.10"
+FIRMWARE_SENTINEL="firmware-sentinel-0.11"
 FIRMWARE_SENTINEL_DIR="${WORKSPACE}/${FIRMWARE_SENTINEL}"
 FIRMWARE_SENTINEL_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_SENTINEL}.bin"
 
