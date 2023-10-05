@@ -1210,7 +1210,6 @@ dtb-$(CONFIG_STM32MP15X) += \
 
 ifeq ($(CONFIG_STM32MP25_REVA), y)
 dtb-$(CONFIG_STM32MP25X) += \
-	stm32mp257f-dk-revA.dtb \
 	stm32mp257f-ev1-revB.dtb
 else
 dtb-$(CONFIG_STM32MP25X) += \
