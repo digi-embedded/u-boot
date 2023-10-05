@@ -4,3 +4,7 @@
  */
 
 #include "stm32mp257f-ev1-u-boot.dtsi"
+
+&usb2_phy2 {
+	st,internal-vbus-comp;
+};
