@@ -33,7 +33,12 @@
 #include <power/pca9450.h>
 #include <asm/arch/trdc.h>
 
+#include "../common/hwid.h"
+
 DECLARE_GLOBAL_DATA_PTR;
+
+extern struct dram_timing_info dram_timing_512M;
+extern struct dram_timing_info dram_timing_1G;
 
 int spl_board_boot_device(enum boot_device boot_dev_spl)
 {
@@ -66,7 +71,29 @@ void spl_board_init(void)
 
 void spl_dram_init(void)
 {
-	ddr_init(&dram_timing);
+	struct dram_timing_info *dram_timing;
+	struct digi_hwid my_hwid;
+	u64 ram;
+
+	if (board_read_hwid(&my_hwid))
+		my_hwid.ram = 0;
+	ram = hwid_get_ramsize(&my_hwid);
+
+	switch (ram) {
+	case SZ_512M:
+		debug("Using 512MB DDR configuration.\n");
+		dram_timing = &dram_timing_512M;
+		break;
+	case SZ_1G:
+		debug("Using 1GB DDR configuration.\n");
+		dram_timing = &dram_timing_1G;
+		break;
+	default:
+		debug("Using default DDR configuration.\n");
+		dram_timing = &dram_timing_512M;
+	}
+
+	ddr_init(dram_timing);
 }
 
 #if CONFIG_IS_ENABLED(DM_PMIC_PCA9450)
