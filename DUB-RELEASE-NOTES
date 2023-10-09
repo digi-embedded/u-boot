@@ -4,6 +4,16 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2020.04
 -----------
+dub-2020.04-r6.1, released on 2023/09/13
+	- Fix use of default dev:part when using mmc on dboot/update commands
+	- Integrate 'altboot' script functionality in 'altbootcmd'
+	- Enable bootcount feature (saved on MCA NVRAM)
+	- Fix USB storage devices initialization that require longer warm-up time
+	- CC6UL: Fix dualboot partitions size for 512 MiB and 1 GiB variants
+	- CC8X: Add SPL imx-boot support to use a single binary to boot in any SOM variant
+	- CC8X: Add support for 4 GiB RAM variants
+
+
 dub-2020.04-r5.7, released on 2023/02/27
 	- CC8X, CC8MM, CC8MN: fixes on dual-boot mode
 
