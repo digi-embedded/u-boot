@@ -221,7 +221,7 @@
 	u-boot,dm-pre-reloc;
 };
 
-&uart4_pins_a {
+&ccmp15_uart4_pins_a {
 	u-boot,dm-pre-reloc;
 	pins1 {
 		u-boot,dm-pre-reloc;

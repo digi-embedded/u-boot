@@ -17,7 +17,9 @@
 /* Serial */
 #define CONSOLE_DEV			"ttySTM0"
 
-#define CONFIG_MMCROOT			"/dev/mmcblk0p2"  /* USDHC1 */
+#define CONFIG_MMCROOT		"/dev/mmcblk1p9"	/* microSD rootfs partition */
+#define MMCDEV_DEFAULT		"1"	/* microSD dev index */
+#define MMCPART_DEFAULT		"8"	/* default microSD partition index */
 
 /* Carrier board version in environment */
 #define CONFIG_HAS_CARRIERBOARD_VERSION
@@ -74,7 +76,10 @@
 		"if load usb 0 ${loadaddr} install_linux_fw_usb.scr;then " \
 			"source ${loadaddr};" \
 		"fi;\0" \
+	"usb_pgood_delay=2000\0" \
 	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
+	"mmcdev=" MMCDEV_DEFAULT "\0" \
+	"mmcpart=" MMCPART_DEFAULT "\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	"linux_file=core-image-base-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
 	"recovery_file=recovery.img\0" \
@@ -133,9 +138,13 @@
 				"setenv mtdbootpart " LINUX_PARTITION ";" \
 			"fi;" \
 		"fi;" \
-		"if ubi part " SYSTEM_PARTITION "; then " \
-			"if ubifsmount ubi0:${mtdbootpart}; then " \
-				"ubifsload ${loadaddr} ${script};" \
+		"if test \"${boot_device}\" = mmc; then " \
+			"load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};" \
+		"else " \
+			"if ubi part " SYSTEM_PARTITION "; then " \
+				"if ubifsmount ubi0:${mtdbootpart}; then " \
+					"ubifsload ${loadaddr} ${script};" \
+				"fi;" \
 			"fi;" \
 		"fi;\0" \
 	"recoverycmd=" \
