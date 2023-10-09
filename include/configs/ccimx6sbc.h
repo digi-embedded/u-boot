@@ -105,7 +105,7 @@
 	ALTBOOTCMD \
 	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
 	"dualboot=no\0" \
-	"bootlimit=3\0" \
+	"bootlimit=0\0" \
 	"dboot_kernel_var=zimage\0" \
 	"script=boot.scr\0" \
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
