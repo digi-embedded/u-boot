@@ -4,6 +4,11 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2017.03
 -----------
+dub-2017.03-r15.1, released on 2023/09/13
+	- Fix use of default dev:part when using mmc on dboot/update commands
+	- Integrate 'altboot' script functionality in 'altbootcmd'
+
+
 dub-2017.03-r14.1, released on 2022/12/14
 	- Add support for NAND chips with on-die ECC that
 	  don't report valid ECC strength on ONFI.

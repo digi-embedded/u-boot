@@ -219,8 +219,9 @@ int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 		fwinfo->src = SRC_UNDEFINED;
 		goto _err;
 	}
+	fwinfo->src = i;
 
-	switch (i) {
+	switch (fwinfo->src) {
 	case SRC_USB:
 	case SRC_MMC:
 	case SRC_SATA:
@@ -252,7 +253,6 @@ int get_source(int argc, char * const argv[], struct load_fw *fwinfo)
 		break;
 	}
 
-	fwinfo->src = i;
 	return 0;
 
 _err:
