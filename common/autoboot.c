@@ -301,14 +301,14 @@ const char *bootdelay_process(void)
 #ifdef CONFIG_BOOTCOUNT_LIMIT
 	unsigned long bootcount = 0;
 	unsigned long bootlimit = 0;
-#endif /* CONFIG_BOOTCOUNT_LIMIT */
 
-#ifdef CONFIG_BOOTCOUNT_LIMIT
-	bootcount = bootcount_load();
-	bootcount++;
-	bootcount_store(bootcount);
-	setenv_ulong("bootcount", bootcount);
 	bootlimit = getenv_ulong("bootlimit", 10, 0);
+	if (bootlimit) {
+		bootcount = bootcount_load();
+		bootcount++;
+		bootcount_store(bootcount);
+		setenv_ulong("bootcount", bootcount);
+	}
 #endif /* CONFIG_BOOTCOUNT_LIMIT */
 
 	s = getenv("bootdelay");
