@@ -153,3 +153,10 @@ config MTD_UBI_MAXRSVDPEB_PCNT
 	  bad blocks basing on the full NAND size, instead of the size of the
 	  MTD partition. This setting allows to limit the number of reserved
 	  blocks for bad block handling to a percentage of the MTD partition size.
+
+config HAS_TRUSTFENCE
+	bool
+	default y if CC8X
+	default y if CC8M
+	default y if CC6UL
+	default y if CCMP1

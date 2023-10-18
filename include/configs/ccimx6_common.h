@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012-2013 Freescale Semiconductor, Inc.
- * Copyright (C) 2013-2018 Digi International, Inc.
+ * Copyright (C) 2013-2023 Digi International, Inc.
  *
  * Configuration settings for the Freescale i.MX6Q SabreSD board.
  *
@@ -67,7 +67,6 @@
 /*
  * Trustfence configs
  */
-#define CONFIG_HAS_TRUSTFENCE
 
 /* Environment encryption support */
 #define CONFIG_MD5

@@ -54,7 +54,6 @@
 /*
  * Trustfence configs
  */
-#define CONFIG_HAS_TRUSTFENCE
 
 /* Secure boot configs */
 #define CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS		3
