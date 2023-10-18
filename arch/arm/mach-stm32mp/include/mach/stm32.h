@@ -201,8 +201,15 @@ enum forced_boot_mode {
 #define BSEC_OTP_SERIAL	5
 #define BSEC_OTP_RPN	9
 #define BSEC_OTP_PKG	122
+
+#ifdef CONFIG_STM32MP25_REVA
 #define BSEC_OTP_MAC	152
 #define BSEC_OTP_BOARD	255
+#else
+#define BSEC_OTP_BOARD	246
+#define BSEC_OTP_MAC	247
+#endif /* CONFIG_STM32MP25_REVA */
+
 #endif
 
 #ifndef __ASSEMBLY__
