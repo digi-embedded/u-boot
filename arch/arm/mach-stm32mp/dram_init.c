@@ -50,11 +50,17 @@ ulong board_get_usable_ram_top(ulong total_size)
 	struct lmb lmb;
 
 	if (!total_size)
-		return gd->ram_top - CONFIG_TOP_UNMAPPED_SIZE;
+		return gd->ram_top;
+
+	/*
+	 * make sure U-Boot uses address space below 4GB boundaries even
+	 * if the effective available memory is bigger
+	 */
+	gd->ram_top = clamp_val((gd->ram_base + gd->ram_size), 0, SZ_4G - 1);
 
 	/* found enough not-reserved memory to relocated U-Boot */
 	lmb_init(&lmb);
-	lmb_add(&lmb, gd->ram_base, gd->ram_size - CONFIG_TOP_UNMAPPED_SIZE);
+	lmb_add(&lmb, gd->ram_base, gd->ram_top - gd->ram_base);
 	boot_fdt_add_mem_rsv_regions(&lmb, (void *)gd->fdt_blob);
 	/* add 8M for reserved memory for display, fdt, gd,... */
 	size = ALIGN(SZ_8M + CONFIG_SYS_MALLOC_LEN + total_size, MMU_SECTION_SIZE),

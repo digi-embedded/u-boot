@@ -56,7 +56,7 @@ struct mm_region stm32mp2_mem_map[MP2_MEM_MAP_MAX] = {
 		 */
 		.virt = CONFIG_SYS_TEXT_BASE,
 		.phys = CONFIG_SYS_TEXT_BASE,
-		.size = (STM32_DDR_SIZE - CONFIG_TOP_UNMAPPED_SIZE) -
+		.size = STM32_DDR_SIZE -
 			(CONFIG_SYS_TEXT_BASE - STM32_DDR_BASE),
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
 			 PTE_BLOCK_INNER_SHARE
