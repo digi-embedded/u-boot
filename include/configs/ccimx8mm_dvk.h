@@ -16,32 +16,14 @@
 #define PRODUCT_NAME			"ccimx8mmdvk"  /* (== TARGET_BOOTLOADER_BOARD_NAME in Android) */
 
 #ifdef CONFIG_SPL_BUILD
-#define CONFIG_SPL_STACK		0x91FFF0
-#define CONFIG_SPL_BSS_START_ADDR	0x00910000
-#define CONFIG_SPL_BSS_MAX_SIZE		0x2000	/* 8 KB */
-#define CONFIG_SYS_SPL_MALLOC_START	0x42200000
-#define CONFIG_SYS_SPL_MALLOC_SIZE	0x80000	/*512 KB */
-
-#define CONFIG_MALLOC_F_ADDR		0x912000 /* malloc f used before GD_FLG_FULL_MALLOC_INIT set */
-
-#undef CONFIG_DM_MMC
-#undef CONFIG_DM_PMIC
-#undef CONFIG_DM_PMIC_PFUZE100
-
-#define CONFIG_POWER
-#define CONFIG_POWER_I2C
-#define CONFIG_POWER_BD71837
-#define CONFIG_POWER_PCA9450
-
-#define CONFIG_SYS_I2C
-
+/* malloc f used before GD_FLG_FULL_MALLOC_INIT set */
+#define CFG_MALLOC_F_ADDR		0x930000
 #endif
 
 #define EMMC_BOOT_PART_OFFSET		(33 * SZ_1K)
 
 /* Serial */
-#define CONFIG_MXC_UART
-#define CONFIG_MXC_UART_BASE		UART1_BASE_ADDR
+#define CFG_MXC_UART_BASE		UART1_BASE_ADDR
 #define CONSOLE_DEV			"ttymxc0"
 #define EARLY_CONSOLE			"ec_imx6q,0x30860000"
 #define CONFIG_BAUDRATE			115200
@@ -72,7 +54,7 @@
 #define CONFIG_HAS_CARRIERBOARD_VERSION
 #define CONFIG_HAS_CARRIERBOARD_ID
 
-#define CONFIG_MFG_ENV_SETTINGS \
+#define CFG_MFG_ENV_SETTINGS \
 	"mfgtool_args=setenv bootargs console=${console},${baudrate} " \
 		"root=/dev/ram0 rw quiet\0" \
 	"fastboot_dev=mmc" __stringify(EMMC_BOOT_DEV) "\0" \
@@ -82,8 +64,8 @@
 	"sd_dev=1\0"
 
 /* Initial environment variables */
-#define CONFIG_EXTRA_ENV_SETTINGS		\
-	CONFIG_MFG_ENV_SETTINGS 		\
+#define CFG_EXTRA_ENV_SETTINGS		\
+	CFG_MFG_ENV_SETTINGS 		\
 	CONFIG_DEFAULT_NETWORK_SETTINGS		\
 	RANDOM_UUIDS \
 	ALTBOOTCMD \
