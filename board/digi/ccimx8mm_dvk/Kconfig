@@ -11,4 +11,7 @@ config SYS_VENDOR
 config SYS_CONFIG_NAME
 	default "ccimx8mm_dvk"
 
+config IMX_CONFIG
+	default "arch/arm/mach-imx/imx8m/imximage-8mm-lpddr4.cfg"
+
 endif
