@@ -154,7 +154,6 @@ enum enum_gate_cfg {
 	GATE_ETHSWREF,
 	GATE_ETR,
 	GATE_FDCAN,
-	GATE_GICV2M,
 	GATE_GPU,
 	GATE_HASH,
 	GATE_HDP,
@@ -380,7 +379,6 @@ static const struct stm32_gate_cfg stm32mp25_gates[GATE_NB] = {
 	GATE_CFG(GATE_CRC,		RCC_CRCCFGR,		1,	0),
 	GATE_CFG(GATE_SERC,		RCC_SERCCFGR,		1,	0),
 	GATE_CFG(GATE_OSPIIOM,		RCC_OSPIIOMCFGR,	1,	0),
-	GATE_CFG(GATE_GICV2M,		RCC_GICV2MCFGR,		1,	0),
 	GATE_CFG(GATE_I3C1,		RCC_I3C1CFGR,		1,	0),
 	GATE_CFG(GATE_I3C2,		RCC_I3C2CFGR,		1,	0),
 	GATE_CFG(GATE_I3C3,		RCC_I3C3CFGR,		1,	0),
@@ -546,10 +544,6 @@ static const struct clock_config stm32mp25_clock_cfg[] = {
 	/* FDCAN */
 	STM32_GATE(CK_BUS_FDCAN, "ck_icn_p_fdcan", "ck_icn_apb2", 0, GATE_FDCAN, SEC_RIFSC(FDCAN)),
 	STM32_GATE(CK_KER_FDCAN, "ck_ker_fdcan", "ck_flexgen_26", 0, GATE_FDCAN, SEC_RIFSC(FDCAN)),
-
-	/* GICV2M */
-	STM32_GATE(CK_BUS_GICV2M, "ck_icn_p_gicv2m", "ck_icn_apb4", 0, GATE_GICV2M,
-		   SEC_RIFSC(GICV2M)),
 
 	/* GPU */
 	STM32_GATE(CK_BUS_GPU, "ck_icn_m_gpu", "ck_flexgen_59", 0, GATE_GPU, SEC_RIFSC(GPU)),
