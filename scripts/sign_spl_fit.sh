@@ -172,7 +172,7 @@ spl_decrypt_len="$(printf "0x%X" ${spl_decrypt_len})"
 uboot_dtb_image_len="$(printf "0x%X" ${uboot_dtb_image_len})"
 
 # SED filter for removing TEE entries on boot artifacts without TEE
-if grep -qsi "tee.*not[[:blank:]]\+found" "${MKIMAGE_FIT_HAB_LOG}"; then
+if grep -qsi "tee.*not[[:blank:]]\+found\|not[[:blank:]]\+find.*tee" "${MKIMAGE_FIT_HAB_LOG}"; then
 	NO_TEE_SED_FILTER="/%atf_\(auth\|decrypt\)_start%/s/, \\\\$//g;/%optee_\(auth\|decrypt\)_start%/d"
 fi
 
