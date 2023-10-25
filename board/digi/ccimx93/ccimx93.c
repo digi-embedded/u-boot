@@ -12,6 +12,7 @@
 #include <common.h>
 #include <display_options.h>
 #include <env_internal.h>
+#include <fdt_support.h>
 #include <mmc.h>
 
 #include "../common/helper.h"
@@ -20,6 +21,7 @@
 #include "../common/trustfence.h"
 
 static struct digi_hwid my_hwid;
+static u32 soc_rev;
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -153,6 +155,8 @@ int ccimx93_init(void)
 #endif
 	}
 
+	soc_rev = soc_rev();
+
 	return 0;
 }
 
@@ -174,6 +178,10 @@ void som_default_environment(void)
 	/* Set module_variant variable */
 	sprintf(var, "0x%02x", my_hwid.variant);
 	env_set("module_variant", var);
+
+	/* Set soc_rev variable */
+	sprintf(var, "0x%02x", soc_rev);
+	env_set("soc_rev", var);
 
 	/* Set hwid_n variables */
 	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
@@ -226,6 +234,8 @@ void som_default_environment(void)
 		strlcat(var, "_ov_som_bt_ccimx93.dtbo,", sizeof(var));
 	if (board_has_npu())
 		strlcat(var, "_ov_som_npu_ccimx93.dtbo,", sizeof(var));
+	if ((soc_rev == CHIP_REV_1_0))
+		strlcat(var, "_ov_som_cpu_a0_ccimx93.dtbo,", sizeof(var));
 	/* Remove the trailing comma */
 	if (var[0])
 		var[strlen(var) - 1] = 0;
@@ -252,6 +262,13 @@ void board_update_hwid(bool is_fuse)
 void fdt_fixup_ccimx93(void *fdt)
 {
 	fdt_fixup_hwid(fdt, &my_hwid);
+
+	if (soc_rev) {
+		char hex_rev[5]; // 4 hex chars + null byte
+		snprintf(hex_rev, sizeof(hex_rev), "0x%02x", soc_rev);
+		do_fixup_by_path(fdt, "/soc", "revision", hex_rev,
+				 sizeof(hex_rev), 1);
+	}
 
 	if (board_has_wireless()) {
 		/* Wireless MACs */
