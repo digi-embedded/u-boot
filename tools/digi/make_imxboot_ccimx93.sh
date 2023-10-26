@@ -216,7 +216,7 @@ copy_artifacts_mkimage_folder()
 	)
 
 	# AHAB container
-	cp --remove-destination "${FIRMWARE_SENTINEL_DIR}"/mx93a0-ahab-container.img "${MKIMAGE_DIR}"/"${SOC}"
+	cp --remove-destination "${FIRMWARE_SENTINEL_DIR}"/mx93??-ahab-container.img "${MKIMAGE_DIR}"/"${SOC}"
 
 	# ATF
 	cp --remove-destination "${ATF_DIR}"/build/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_DIR}"/"${SOC}"/bl31-imx93.bin
@@ -232,21 +232,23 @@ build_imxboot()
 	mkdir -p "${OUTPUT_PATH}"
 
 	(
-		echo "- Build imx-boot (NO-OPTEE) binary for: ${SOC}"
-		${MAKE} SOC="${SOC}" clean
-		[ -f "${SOC}"/bl31-imx93.bin ] && ln -sf bl31-imx93.bin "${SOC}"/bl31.bin
-		rm -f "${SOC}"/tee.bin
-		${MAKE} SOC="${SOC}" flash_singleboot
-		cp --remove-destination "${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx93-dvk-nooptee.bin
-		cp --remove-destination "${SOC}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-ccimx93-dvk-nooptee-flash_singleboot.log
+		for rev in A0 A1; do
+			echo "- Build imx-boot (NO-OPTEE) binary for: ${SOC} (${rev})"
+			${MAKE} SOC="${SOC}" REV="${rev}" clean
+			[ -f "${SOC}"/bl31-imx93.bin ] && ln -sf bl31-imx93.bin "${SOC}"/bl31.bin
+			rm -f "${SOC}"/tee.bin
+			${MAKE} SOC="${SOC}" REV="${rev}" flash_singleboot
+			cp --remove-destination "${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx93-dvk-${rev}-nooptee.bin
+			cp --remove-destination "${SOC}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-ccimx93-dvk-${rev}-nooptee-flash_singleboot.log
 
-		echo "- Build imx-boot (OPTEE) binary for: ${SOC}"
-		${MAKE} SOC="${SOC}" clean
-		[ -f "${SOC}"/bl31-imx93.bin-optee ] && ln -sf bl31-imx93.bin-optee "${SOC}"/bl31.bin
-		[ -f "${SOC}"/tee-raw.bin ] && ln -sf tee-raw.bin "${SOC}"/tee.bin
-		${MAKE} SOC="${SOC}" flash_singleboot
-		cp --remove-destination "${MKIMAGE_DIR}"/"${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx93-dvk.bin
-		cp --remove-destination "${SOC}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-ccimx93-dvk-flash_singleboot.log
+			echo "- Build imx-boot (OPTEE) binary for: ${SOC} (${rev})"
+			${MAKE} SOC="${SOC}" REV="${rev}" clean
+			[ -f "${SOC}"/bl31-imx93.bin-optee ] && ln -sf bl31-imx93.bin-optee "${SOC}"/bl31.bin
+			[ -f "${SOC}"/tee-raw.bin ] && ln -sf tee-raw.bin "${SOC}"/tee.bin
+			${MAKE} SOC="${SOC}" REV="${rev}" flash_singleboot
+			cp --remove-destination "${MKIMAGE_DIR}"/"${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx93-dvk-${rev}.bin
+			cp --remove-destination "${SOC}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-ccimx93-dvk-${rev}-flash_singleboot.log
+		done
 	)
 }
 
