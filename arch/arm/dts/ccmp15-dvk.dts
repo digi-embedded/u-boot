@@ -78,17 +78,6 @@
 		status = "okay";
 	};
 
-	usb_phy_tuning: usb-phy-tuning {
-		st,hs-dc-level = <2>;
-		st,fs-rftime-tuning;
-		st,hs-rftime-reduction;
-		st,hs-current-trim = <15>;
-		st,hs-impedance-trim = <1>;
-		st,squelch-level = <3>;
-		st,hs-rx-offset = <2>;
-		st,no-lsfs-sc;
-	};
-
 	vin: vin {
 		compatible = "regulator-fixed";
 		regulator-name = "vin";
@@ -275,7 +264,14 @@
 
 &usbphyc_port0 {
 	phy-supply = <&vdd_usb>;
-	st,phy-tuning = <&usb_phy_tuning>;
+	st,tune-hs-dc-level = <2>;
+	st,enable-fs-rftime-tuning;
+	st,enable-hs-rftime-reduction;
+	st,trim-hs-current = <15>;
+	st,trim-hs-impedance = <1>;
+	st,tune-squelch-level = <3>;
+	st,tune-hs-rx-offset = <2>;
+	st,no-lsfs-sc;
 
 	/*
 	 * Hack to keep hub active until all connected devices are suspended
@@ -289,8 +285,15 @@
 };
 
 &usbphyc_port1 {
-	st,phy-tuning = <&usb_phy_tuning>;
 	phy-supply = <&vdd_usb>;
+	st,tune-hs-dc-level = <2>;
+	st,enable-fs-rftime-tuning;
+	st,enable-hs-rftime-reduction;
+	st,trim-hs-current = <15>;
+	st,trim-hs-impedance = <1>;
+	st,tune-squelch-level = <3>;
+	st,tune-hs-rx-offset = <2>;
+	st,no-lsfs-sc;
 };
 
 &pinctrl {
