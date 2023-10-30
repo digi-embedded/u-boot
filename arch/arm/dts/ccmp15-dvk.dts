@@ -248,8 +248,6 @@
 };
 
 &usbotg_hs {
-	pinctrl-0 = <&usbotg_hs_pins_a>;
-	pinctrl-names = "default";
 	u-boot,force-b-session-valid;
 	dr_mode = "peripheral";
 	phys = <&usbphyc_port1 0>;
