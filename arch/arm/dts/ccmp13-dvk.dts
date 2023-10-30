@@ -305,7 +305,7 @@
 	dr_mode = "peripheral";
 	phys = <&usbphyc_port1 0>;
 	phy-names = "usb2-phy";
-	usb-role-switch;
+	vbus-supply = <&scmi_vbus_otg>;
 	status = "okay";
 };
 
