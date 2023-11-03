@@ -64,6 +64,7 @@ error() {
 
 # Sanity check (Jenkins environment)
 [ -z "${WORKSPACE}" ] && error "WORKSPACE not specified"
+[ -z "${DUB_REVISION}" ] && error "DUB_REVISION not specified"
 
 # Unset BUILD_TAG from Jenkins so U-Boot does not show it
 unset BUILD_TAG
@@ -131,7 +132,8 @@ for platform in ${DUB_PLATFORMS}; do
 			( cd tools/digi && git clean -ffdx )
 			./tools/digi/"${BOOT_POST_SCRIPT}" -u "${DUB_UBOOT_DIR}"
 			# Copy boot artifacts
-			cp --remove-destination tools/digi/output/* "${DUB_IMGS_DIR}"/
+			mkdir -p "${DUB_IMGS_DIR}/${platform}"
+			\cp --remove-destination tools/digi/output/* "${DUB_IMGS_DIR}"/"${platform}"/
 		fi
 	)
 done
