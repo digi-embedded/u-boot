@@ -221,7 +221,6 @@
 		};
 	};
 
-
 	ospi1_clk_sleep_pins_a: ospi1-clk-sleep-0 {
 		pins {
 			pinmux = <STM32_PINMUX('D', 0, ANALOG)>; /* OSPI1_CLK */
@@ -236,7 +235,6 @@
 			slew-rate = <0>;
 		};
 	};
-
 
 	ospi1_cs0_sleep_pins_a: ospi1-cs0-sleep-0 {
 		pins {

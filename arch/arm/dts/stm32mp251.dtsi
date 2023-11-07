@@ -44,7 +44,7 @@
 	};
 
 	clocks {
-		clk_security: clk-security {
+		clk_rcbsec: clk-rcbsec {
 			#clock-cells = <0>;
 			compatible = "fixed-clock";
 			clock-frequency = <64000000>;
@@ -515,6 +515,11 @@
 				power-domains = <&CLUSTER_PD>;
 				status = "disabled";
 
+				counter {
+					compatible = "st,stm32mp25-timer-counter";
+					status = "disabled";
+				};
+
 				timer@5 {
 					compatible = "st,stm32mp25-timer-trigger";
 					reg = <5>;
@@ -535,6 +540,11 @@
 				power-domains = <&CLUSTER_PD>;
 				status = "disabled";
 
+				counter {
+					compatible = "st,stm32mp25-timer-counter";
+					status = "disabled";
+				};
+
 				timer@6 {
 					compatible = "st,stm32mp25-timer-trigger";
 					reg = <6>;
@@ -553,6 +563,11 @@
 				#size-cells = <0>;
 				feature-domains = <&rifsc STM32MP25_RIFSC_TIM12_ID>;
 				status = "disabled";
+
+				counter {
+					compatible = "st,stm32mp25-timer-counter";
+					status = "disabled";
+				};
 
 				pwm {
 					compatible = "st,stm32mp25-pwm";
@@ -579,6 +594,11 @@
 				feature-domains = <&rifsc STM32MP25_RIFSC_TIM13_ID>;
 				status = "disabled";
 
+				counter {
+					compatible = "st,stm32mp25-timer-counter";
+					status = "disabled";
+				};
+
 				pwm {
 					compatible = "st,stm32mp25-pwm";
 					#pwm-cells = <3>;
@@ -603,6 +623,11 @@
 				#size-cells = <0>;
 				feature-domains = <&rifsc STM32MP25_RIFSC_TIM14_ID>;
 				status = "disabled";
+
+				counter {
+					compatible = "st,stm32mp25-timer-counter";
+					status = "disabled";
+				};
 
 				pwm {
 					compatible = "st,stm32mp25-pwm";
@@ -985,6 +1010,11 @@
 				power-domains = <&CLUSTER_PD>;
 				status = "disabled";
 
+				counter {
+					compatible = "st,stm32mp25-timer-counter";
+					status = "disabled";
+				};
+
 				pwm {
 					compatible = "st,stm32mp25-pwm";
 					#pwm-cells = <3>;
@@ -1009,6 +1039,11 @@
 				#size-cells = <0>;
 				feature-domains = <&rifsc STM32MP25_RIFSC_TIM11_ID>;
 				status = "disabled";
+
+				counter {
+					compatible = "st,stm32mp25-timer-counter";
+					status = "disabled";
+				};
 
 				pwm {
 					compatible = "st,stm32mp25-pwm";
@@ -1164,6 +1199,11 @@
 				feature-domains = <&rifsc STM32MP25_RIFSC_TIM15_ID>;
 				status = "disabled";
 
+				counter {
+					compatible = "st,stm32mp25-timer-counter";
+					status = "disabled";
+				};
+
 				pwm {
 					compatible = "st,stm32mp25-pwm";
 					#pwm-cells = <3>;
@@ -1188,6 +1228,11 @@
 				#size-cells = <0>;
 				feature-domains = <&rifsc STM32MP25_RIFSC_TIM16_ID>;
 				status = "disabled";
+
+				counter {
+					compatible = "st,stm32mp25-timer-counter";
+					status = "disabled";
+				};
 
 				pwm {
 					compatible = "st,stm32mp25-pwm";
@@ -1214,6 +1259,11 @@
 				feature-domains = <&rifsc STM32MP25_RIFSC_TIM17_ID>;
 				power-domains = <&CLUSTER_PD>;
 				status = "disabled";
+
+				counter {
+					compatible = "st,stm32mp25-timer-counter";
+					status = "disabled";
+				};
 
 				pwm {
 					compatible = "st,stm32mp25-pwm";
@@ -1786,7 +1836,7 @@
 			rng: rng@42020000 {
 				compatible = "st,stm32mp25-rng";
 				reg = <0x42020000 0x400>;
-				clocks = <&clk_security>, <&rcc CK_BUS_RNG>;
+				clocks = <&clk_rcbsec>, <&rcc CK_BUS_RNG>;
 				clock-names = "rng_clk", "rng_hclk";
 				resets = <&rcc RNG_R>;
 				feature-domains = <&rifsc STM32MP25_RIFSC_RNG_ID>;
@@ -2261,7 +2311,7 @@
 		};
 
 		exti1: interrupt-controller@44220000 {
-			compatible = "st,stm32mp1-exti", "syscon";
+			compatible = "st,stm32mp1-exti";
 			interrupt-controller;
 			#interrupt-cells = <2>;
 			#address-cells = <0>;
@@ -2345,7 +2395,6 @@
 		syscfg: syscon@44230000 {
 			compatible = "st,stm32mp25-syscfg", "syscon";
 			reg = <0x44230000 0x10000>;
-			clocks = <&scmi_clk CK_SCMI_SYSCPU1>;
 			#clock-cells = <1>;
 		};
 
@@ -2373,23 +2422,23 @@
 				};
 			};
 
-			reboot_mode: reboot_mode {
+			reboot_mode: reboot-mode {
 				compatible = "nvmem-reboot-mode";
 				nvmem-cells = <&boot_mode>;
 				nvmem-cell-names = "reboot-mode";
-				mode-normal = <0>;
-				mode-fastboot = <0x1>;
-				mode-recovery = <0x2>;
-				mode-stm32cubeprogrammer = <0x3>;
+				mode-normal = <0x00>;
+				mode-fastboot = <0x01>;
+				mode-recovery = <0x02>;
+				mode-stm32cubeprogrammer = <0x03>;
 				mode-ums_mmc0 = <0x10>;
 				mode-ums_mmc1 = <0x11>;
 				mode-ums_mmc2 = <0x12>;
-				mode-romcode_serial = <0xFF>;
+				mode-romcode_serial = <0xff>;
 			};
 		};
 
 		exti2: interrupt-controller@46230000 {
-			compatible = "st,stm32mp1-exti", "syscon";
+			compatible = "st,stm32mp1-exti";
 			interrupt-controller;
 			#interrupt-cells = <2>;
 			#address-cells = <0>;
@@ -2400,6 +2449,22 @@
 				#interrupt-cells = <2>;
 				interrupt-map-mask = <0xffffffff 0>;
 				interrupt-map =
+					<0  0 &intc 0 0 GIC_SPI 17  IRQ_TYPE_LEVEL_HIGH>,
+					<1  0 &intc 0 0 GIC_SPI 18  IRQ_TYPE_LEVEL_HIGH>,
+					<2  0 &intc 0 0 GIC_SPI 19  IRQ_TYPE_LEVEL_HIGH>,
+					<3  0 &intc 0 0 GIC_SPI 20  IRQ_TYPE_LEVEL_HIGH>,
+					<4  0 &intc 0 0 GIC_SPI 21  IRQ_TYPE_LEVEL_HIGH>,
+					<5  0 &intc 0 0 GIC_SPI 22  IRQ_TYPE_LEVEL_HIGH>,
+					<6  0 &intc 0 0 GIC_SPI 23  IRQ_TYPE_LEVEL_HIGH>,
+					<7  0 &intc 0 0 GIC_SPI 24  IRQ_TYPE_LEVEL_HIGH>,
+					<8  0 &intc 0 0 GIC_SPI 25  IRQ_TYPE_LEVEL_HIGH>,
+					<9  0 &intc 0 0 GIC_SPI 26  IRQ_TYPE_LEVEL_HIGH>,
+					<10 0 &intc 0 0 GIC_SPI 27  IRQ_TYPE_LEVEL_HIGH>,
+					<11 0 &intc 0 0 GIC_SPI 28  IRQ_TYPE_LEVEL_HIGH>,
+					<12 0 &intc 0 0 GIC_SPI 29  IRQ_TYPE_LEVEL_HIGH>,
+					<13 0 &intc 0 0 GIC_SPI 30  IRQ_TYPE_LEVEL_HIGH>,
+					<14 0 &intc 0 0 GIC_SPI 31  IRQ_TYPE_LEVEL_HIGH>,
+					<15 0 &intc 0 0 GIC_SPI 32  IRQ_TYPE_LEVEL_HIGH>,
 					<16 0 &intc 0 0 GIC_SPI 12  IRQ_TYPE_LEVEL_HIGH>,
 					<17 0 &intc 0 0 GIC_SPI 13  IRQ_TYPE_LEVEL_HIGH>,
 					<21 0 &intc 0 0 GIC_SPI 14  IRQ_TYPE_LEVEL_HIGH>,
@@ -2442,8 +2507,16 @@
 			compatible = "st,stm32mp257-pinctrl";
 			ranges = <0 0x44240000 0xa0400>;
 			interrupt-parent = <&exti1>;
-			st,syscfg = <&exti1 0x60 0xff>;
 			pins-are-numbered;
+			interrupts-extended =
+				<&exti1  0 0>, <&exti1  1 0>, <&exti1  2 0>, <&exti1  3 0>,
+				<&exti1  4 0>, <&exti1  5 0>, <&exti1  6 0>, <&exti1  7 0>,
+				<&exti1  8 0>, <&exti1  9 0>, <&exti1 10 0>, <&exti1 11 0>,
+				<&exti1 12 0>, <&exti1 13 0>, <&exti1 14 0>, <&exti1 15 0>,
+				<&exti2  0 0>, <&exti2  1 0>, <&exti2  2 0>, <&exti2  3 0>,
+				<&exti2  4 0>, <&exti2  5 0>, <&exti2  6 0>, <&exti2  7 0>,
+				<&exti2  8 0>, <&exti2  9 0>, <&exti2 10 0>, <&exti2 11 0>,
+				<&exti2 12 0>, <&exti2 13 0>, <&exti2 14 0>, <&exti2 15 0>;
 
 			gpioa: gpio@44240000 {
 				gpio-controller;
@@ -2583,7 +2656,6 @@
 			compatible = "st,stm32mp257-z-pinctrl";
 			ranges = <0 0x46200000 0x400>;
 			interrupt-parent = <&exti1>;
-			st,syscfg = <&exti1 0x60 0xff>;
 			pins-are-numbered;
 
 			gpioz: gpio@46200000 {

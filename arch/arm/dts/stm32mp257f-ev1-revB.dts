@@ -73,6 +73,14 @@
 		reg = <0x0 0x80000000 0x0 0x80000000>;
 	};
 
+	panel_dsi_backlight: panel-dsi-backlight {
+		compatible = "gpio-backlight";
+		gpios = <&gpioi 5 GPIO_ACTIVE_LOW>;
+		default-on;
+		default-brightness-level = <0>;
+		status = "disabled";
+	};
+
 	panel_lvds: panel-lvds {
 		compatible = "edt,etml0700z9ndha", "panel-lvds";
 		enable-gpios = <&gpiog 15 GPIO_ACTIVE_HIGH>;
@@ -440,16 +448,16 @@
 };
 
 &mlahb {
-	intc_rpmsg: interrupt-controller@0 {
+	intc_rpmsg: interrupt-controller@1 {
 		compatible = "rpmsg,intc";
-		reg = <0 0>;
+		reg = <1 0>;
 		#interrupt-cells = <1>;
 		interrupt-controller;
 	};
 
-	i2c_rpmsg: i2c@1 {
+	i2c_rpmsg: i2c@2 {
 		compatible = "rpmsg,i2c-controller";
-		reg = <1 0>;
+		reg = <2 0>;
 		rpmsg,dev-id = "rpmsg_i2c";
 		#address-cells = <1>;
 		#size-cells = <0>;

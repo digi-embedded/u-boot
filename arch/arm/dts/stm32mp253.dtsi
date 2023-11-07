@@ -19,17 +19,17 @@
 		};
 	};
 
+	arm-pmu {
+		interrupts = <GIC_SPI 368 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 369 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-affinity = <&cpu0>, <&cpu1>;
+	};
+
 	psci {
 		CPU_PD1: power-domain-cpu1 {
 			#power-domain-cells = <0>;
 			power-domains = <&CLUSTER_PD>;
 		};
-	};
-
-	arm-pmu {
-		interrupts = <GIC_SPI 368 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 369 IRQ_TYPE_LEVEL_HIGH>;
-		interrupt-affinity = <&cpu0>, <&cpu1>;
 	};
 
 	soc@0 {
@@ -137,6 +137,6 @@
 };
 
 &ltdc {
-	clocks = <&rcc CK_BUS_LTDC>, <&syscfg 0>;
-	clock-names = "bus", "lcd";
+	clocks = <&rcc CK_BUS_LTDC>, <&rcc CK_KER_LTDC>, <&syscfg 0>;
+	clock-names = "bus", "ref", "lcd";
 };
