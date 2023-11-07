@@ -397,8 +397,7 @@ char *get_default_filename(char *partname, int cmd)
 		if (!strcmp(partname, "linux") ||
 		    !strcmp(partname, "android")) {
 			var = env_get("dboot_kernel_var");
-			/* only enter if not FIT image */
-			if (strcmp(var, "fit") != 0)
+			if (var)
 				return env_get(var);
 			else
 				return "$zimage";

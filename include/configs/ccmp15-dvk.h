@@ -145,7 +145,7 @@
 		"else " \
 			"if ubi part " SYSTEM_PARTITION "; then " \
 				"if ubifsmount ubi0:${mtdbootpart}; then " \
-					"if test \"${dboot_kernel_var}\" = fit; then " \
+					"if test \"${dboot_kernel_var}\" = fitimage; then " \
 						"ubifsload ${loadaddr} ${fitimage};" \
 					"else " \
 						"ubifsload ${loadaddr} ${script};" \
@@ -182,7 +182,7 @@
 #undef CONFIG_BOOTCOMMAND
 #define CONFIG_BOOTCOMMAND \
 	"if run loadscript; then " \
-    	"if test \"${dboot_kernel_var}\" = fit; then " \
+    	"if test \"${dboot_kernel_var}\" = fitimage; then " \
         	"source ${loadaddr}:${fit-script};" \
     	"else " \
         	"source ${loadaddr};" \

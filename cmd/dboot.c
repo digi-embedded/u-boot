@@ -96,7 +96,7 @@ static int boot_os(char* initrd_addr, char* fdt_addr)
 
 	var = env_get("dboot_kernel_var");
 	if (var) {
-		if (!strcmp(var, "uimage") || !strcmp(var, "fit"))
+		if (!strcmp(var, "uimage") || !strcmp(var, "fitimage"))
 			strcpy(dboot_cmd, "bootm");
 		else if (!strcmp(var, "image"))
 			strcpy(dboot_cmd, "booti");
@@ -104,7 +104,7 @@ static int boot_os(char* initrd_addr, char* fdt_addr)
 			strcpy(dboot_cmd, "booti");
 	}
 
-	if (!strcmp(var, "fit")) {
+	if (!strcmp(var, "fitimage")) {
 		/* Compose the FIT boot command with appended default FIT-conf and overlays */
 		loadaddr = env_get_ulong("loadaddr", 16, CONFIG_LOADADDR);
 		fit_hdr = map_sysmem(loadaddr, 0);
@@ -228,7 +228,7 @@ static int do_dboot(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv
 
 	/* skip if fit image */
 	var = env_get("dboot_kernel_var");
-	if (strcmp(var, "fit")) {
+	if (strcmp(var, "fitimage")) {
 		/* Get flattened Device Tree */
 		var = env_get("boot_fdt");
 		if (var)
