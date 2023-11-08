@@ -398,7 +398,7 @@ static int select_ramdisk(struct bootm_headers *images, const char *select, u8 a
 
 #ifdef CONFIG_AUTH_ARTIFACTS
 	if (CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)) {
-		rd_hdr = (const image_header_t *)rd_addr;
+		rd_hdr = (const struct legacy_img_hdr *)rd_addr;
 		if (!rd_hdr)
 			return -ENOENT;
 
