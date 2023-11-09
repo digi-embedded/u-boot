@@ -439,7 +439,7 @@ ulong bootm_disable_interrupts(void)
 #if defined(CONFIG_SILENT_CONSOLE) && !defined(CONFIG_SILENT_U_BOOT_ONLY)
 
 #define CONSOLE_ARG		"console=null"
-#define CONSOLE_INIT_ARG	"CONSOLE=/dev/null"
+#define CONSOLE_INIT_ARG	"console=/dev/null"
 
 /*
  * Modifies the command line to remove all instances of the specified arg
