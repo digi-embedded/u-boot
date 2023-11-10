@@ -182,11 +182,11 @@
 #undef CONFIG_BOOTCOMMAND
 #define CONFIG_BOOTCOMMAND \
 	"if run loadscript; then " \
-    	"if test \"${dboot_kernel_var}\" = fitimage; then " \
-        	"source ${loadaddr}:${fit-script};" \
-    	"else " \
-        	"source ${loadaddr};" \
-    	"fi;" \
+		"if test \"${dboot_kernel_var}\" = fitimage; then " \
+			"source ${loadaddr}:${fit-script};" \
+		"else " \
+			"source ${loadaddr};" \
+		"fi;" \
 	"fi;"
 
 /* Ethernet */
