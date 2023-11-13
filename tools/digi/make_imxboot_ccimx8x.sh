@@ -3,9 +3,9 @@
 usage() {
         cat <<EOF
 
-Usage: $(basename "$0") [OPTIONS]
+Usage: $(basename "$0")
 
-    -u,--uboot <u-boot directory>       u-boot build directory
+Generate bootloader for i.MX devices.
 
 EOF
 }
@@ -210,11 +210,11 @@ SOC="iMX8QX"
 ATF_PLAT="imx8qx"
 
 OUTPUT_PATH="${WORKSPACE}/output"
+UBOOT_DIR="${UBOOT_DIR:-$(realpath "${WORKSPACE}"/../..)}"
 
 # Parse command line arguments
 while [ "${1}" != "" ]; do
 	case ${1} in
-		-u|--uboot) shift; UBOOT_DIR="${1}";;
 		-h|--help) usage; exit 0;;
 		*) echo "[ERROR] Unknown option"; usage; exit 1;;
 	esac

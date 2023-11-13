@@ -130,7 +130,7 @@ for platform in ${DUB_PLATFORMS}; do
 			export LIBGCC_LOCATE_CFLAGS="--sysroot=${SDKTARGETSYSROOT}"
 			# Build the boot artifacts
 			( cd tools/digi && git clean -ffdx )
-			./tools/digi/"${BOOT_POST_SCRIPT}" -u "${DUB_UBOOT_DIR}"
+			./tools/digi/"${BOOT_POST_SCRIPT}"
 			# Copy boot artifacts
 			mkdir -p "${DUB_IMGS_DIR}/${platform}"
 			\cp --remove-destination tools/digi/output/* "${DUB_IMGS_DIR}"/"${platform}"/
