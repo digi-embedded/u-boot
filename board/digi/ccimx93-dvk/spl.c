@@ -39,6 +39,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 extern struct dram_timing_info dram_timing_512M;
 extern struct dram_timing_info dram_timing_1G;
+extern struct dram_timing_info dram_timing_2G;
 
 int spl_board_boot_device(enum boot_device boot_dev_spl)
 {
@@ -87,6 +88,10 @@ void spl_dram_init(void)
 	case SZ_1G:
 		debug("Using 1GB DDR configuration.\n");
 		dram_timing = &dram_timing_1G;
+		break;
+	case SZ_2G:
+		debug("Using 2GB DDR configuration.\n");
+		dram_timing = &dram_timing_2G;
 		break;
 	default:
 		debug("Using default DDR configuration.\n");
