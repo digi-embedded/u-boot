@@ -106,7 +106,9 @@ obj-y += hashtable.o
 obj-y += errno.o
 obj-y += display_options.o
 CFLAGS_display_options.o := $(if $(BUILD_TAG),-DBUILD_TAG='"$(BUILD_TAG)"')
+ifndef CONFIG_CMD_BOOTSTREAM
 obj-$(CONFIG_BCH) += bch.o
+endif
 obj-$(CONFIG_MMC_SPI) += crc7.o
 obj-$(CONFIG_$(SPL_TPL_)CRC32) += crc32.o
 obj-$(CONFIG_CRC32C) += crc32c.o
