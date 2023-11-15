@@ -58,7 +58,7 @@ patch_atf_repo()
 		cd "${ATF_DIR}" || exit 1
 		for p in ${ATF_PATCHES}; do
 			echo "- Apply patch: ${p}"
-			patch -p1 < "${WORKSPACE}"/patch/ccimx8x/"${p}" || exit 2
+			patch -p1 < "${BASEDIR}"/patch/ccimx8x/"${p}" || exit 2
 		done
 	)
 }
@@ -101,7 +101,7 @@ patch_mkimage_repo()
 		cd "${MKIMAGE_DIR}" || exit 1
 		for p in ${MKIMAGE_PATCHES}; do
 			echo "- Apply patch: ${p}"
-			patch -p1 < "${WORKSPACE}"/patch/ccimx8x/"${p}" || exit 2
+			patch -p1 < "${BASEDIR}"/patch/ccimx8x/"${p}" || exit 2
 		done
 	)
 }
@@ -111,7 +111,7 @@ download_digi_sc_firmware()
 	[ -d "${DIGI_SC_FW_DIR}" ] && { echo "- Digi SC firmware already downloaded"; return 0; }
 
 	(
-		cd "${WORKSPACE}" || { echo "download_digi_sc_firmware: WORKSPACE not found"; exit 1; }
+		cd "${BASEDIR}" || { echo "download_digi_sc_firmware: BASEDIR not found"; exit 1; }
 		if [ ! -f "${DIGI_SC_FW}.tar.gz" ]; then
 			if ! wget "${DIGI_SC_FW_URL}"; then
 				echo "- Unable to download Digi SC firmware from ${DIGI_SC_FW_URL}"
@@ -127,7 +127,7 @@ download_firmware_seco()
 	[ -d "${IMX_SECO_DIR}" ] && { echo "- SECO firmware already downloaded"; return 0; }
 
 	(
-		cd "${WORKSPACE}" || { echo "download_firmware_seco: WORKSPACE not found"; exit 1; }
+		cd "${BASEDIR}" || { echo "download_firmware_seco: BASEDIR not found"; exit 1; }
 		if [ ! -f "${IMX_SECO}.bin" ]; then
 			if ! wget "${IMX_SECO_URL}"; then
 				echo "- Unable to download SECO firmware from ${IMX_SECO_URL}"
@@ -181,13 +181,13 @@ build_imxboot()
 }
 
 ##### Main
-WORKSPACE="$(cd "$(dirname "$0")" && pwd)"
+BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
 MKIMAGE_BRANCH="lf-6.1.36_2.1.0"
 # Tag: lf-6.1.36-2.1.0
 MKIMAGE_REV="5a0faefc223e51e088433663b6e7d6fbce89bf59"
-MKIMAGE_DIR="${WORKSPACE}/imx-mkimage"
+MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
 MKIMAGE_PATCHES=" \
 	mkimage/0001-iMX8QX-soc.mak-capture-commands-output-into-a-log-fi.patch \
 "
@@ -196,21 +196,21 @@ ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
 ATF_BRANCH="lf_v2.8"
 # Tag: lf-6.1.36-2.1.0
 ATF_REV="1a3beeab6484343a4bd0ee08e947d142db4a5ae6"
-ATF_DIR="${WORKSPACE}/imx-atf"
+ATF_DIR="${BASEDIR}/imx-atf"
 
 DIGI_SC_FW="digi-sc-firmware-1.15.0"
-DIGI_SC_FW_DIR="${WORKSPACE}/${DIGI_SC_FW}"
+DIGI_SC_FW_DIR="${BASEDIR}/${DIGI_SC_FW}"
 DIGI_SC_FW_URL="https://ftp1.digi.com/support/digiembeddedyocto/source/${DIGI_SC_FW}.tar.gz"
 
 IMX_SECO="imx-seco-5.9.0"
-IMX_SECO_DIR="${WORKSPACE}/${IMX_SECO}"
+IMX_SECO_DIR="${BASEDIR}/${IMX_SECO}"
 IMX_SECO_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${IMX_SECO}.bin"
 
 SOC="iMX8QX"
 ATF_PLAT="imx8qx"
 
-OUTPUT_PATH="${WORKSPACE}/output"
-UBOOT_DIR="${UBOOT_DIR:-$(realpath "${WORKSPACE}"/../..)}"
+OUTPUT_PATH="${BASEDIR}/output"
+UBOOT_DIR="${UBOOT_DIR:-$(realpath "${BASEDIR}"/../..)}"
 
 # Parse command line arguments
 while [ "${1}" != "" ]; do

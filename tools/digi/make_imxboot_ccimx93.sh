@@ -58,7 +58,7 @@ patch_atf_repo()
 		cd "${ATF_DIR}" || exit 1
 		for p in ${ATF_PATCHES}; do
 			echo "- Apply patch: ${p}"
-			patch -p1 < "${WORKSPACE}"/patch/ccimx93/"${p}" || exit 2
+			patch -p1 < "${BASEDIR}"/patch/ccimx93/"${p}" || exit 2
 		done
 	)
 }
@@ -109,7 +109,7 @@ patch_optee_repo()
 		cd "${OPTEE_DIR}" || exit 1
 		for p in ${OPTEE_PATCHES}; do
 			echo "- Apply patch: ${p}"
-			patch -p1 < "${WORKSPACE}"/patch/ccimx93/"${p}" || exit 2
+			patch -p1 < "${BASEDIR}"/patch/ccimx93/"${p}" || exit 2
 		done
 	)
 }
@@ -161,7 +161,7 @@ patch_mkimage_repo()
 		cd "${MKIMAGE_DIR}" || exit 1
 		for p in ${MKIMAGE_PATCHES}; do
 			echo "- Apply patch: ${p}"
-			patch -p1 < "${WORKSPACE}"/patch/ccimx93/"${p}" || exit 2
+			patch -p1 < "${BASEDIR}"/patch/ccimx93/"${p}" || exit 2
 		done
 	)
 }
@@ -171,7 +171,7 @@ download_firmware_imx()
 	[ -d "${FIRMWARE_IMX_DIR}" ] && { echo "- IMX firmware already downloaded"; return 0; }
 
 	(
-		cd "${WORKSPACE}" || { echo "download_firmware_imx: WORKSPACE not found"; exit 1; }
+		cd "${BASEDIR}" || { echo "download_firmware_imx: BASEDIR not found"; exit 1; }
 		if [ ! -f "${FIRMWARE_IMX}.bin" ]; then
 			if ! wget "${FIRMWARE_IMX_URL}"; then
 				echo "- Unable to download IMX firmware from ${FIRMWARE_IMX_URL}"
@@ -187,7 +187,7 @@ download_firmware_sentinel()
 	[ -d "${FIRMWARE_SENTINEL_DIR}" ] && { echo "- Sentinel firmware already downloaded"; return 0; }
 
 	(
-		cd "${WORKSPACE}" || { echo "download_firmware_sentinel: WORKSPACE not found"; exit 1; }
+		cd "${BASEDIR}" || { echo "download_firmware_sentinel: BASEDIR not found"; exit 1; }
 		if [ ! -f "${FIRMWARE_SENTINEL}.bin" ]; then
 			if ! wget "${FIRMWARE_SENTINEL_URL}"; then
 				echo "- Unable to download Sentinel firmware from ${FIRMWARE_SENTINEL_URL}"
@@ -265,13 +265,13 @@ build_imxboot()
 }
 
 ##### Main
-WORKSPACE="$(cd "$(dirname "$0")" && pwd)"
+BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
 MKIMAGE_BRANCH="lf-6.1.36_2.1.0"
 # Tag: lf-6.1.36-2.1.0
 MKIMAGE_REV="5a0faefc223e51e088433663b6e7d6fbce89bf59"
-MKIMAGE_DIR="${WORKSPACE}/imx-mkimage"
+MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
 MKIMAGE_PATCHES=" \
 	mkimage/0001-imx9-soc.mak-capture-commands-output-into-a-log-file.patch \
 "
@@ -280,7 +280,7 @@ ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
 ATF_BRANCH="lf_v2.8"
 # Tag: lf-6.1.36-2.1.0
 ATF_REV="1a3beeab6484343a4bd0ee08e947d142db4a5ae6"
-ATF_DIR="${WORKSPACE}/imx-atf"
+ATF_DIR="${BASEDIR}/imx-atf"
 ATF_PATCHES=" \
 	atf/0001-imx8mm-Define-UART1-as-console-for-boot-stage.patch \
 	atf/0002-imx8mm-Disable-M4-debug-console.patch \
@@ -294,25 +294,25 @@ OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
 OPTEE_BRANCH="lf-6.1.36_2.1.0"
 # Tag: lf-6.1.36-2.1.0
 OPTEE_REV="4e32281904b15af9ddbdf00f73e1c08eae21c695"
-OPTEE_DIR="${WORKSPACE}/imx-optee-os"
+OPTEE_DIR="${BASEDIR}/imx-optee-os"
 OPTEE_PATCHES=" \
 	optee/0007-allow-setting-sysroot-for-clang.patch \
 	optee/0001-core-imx-support-ccimx93-dvk.patch \
 "
 
 FIRMWARE_IMX="firmware-imx-8.21"
-FIRMWARE_IMX_DIR="${WORKSPACE}/${FIRMWARE_IMX}"
+FIRMWARE_IMX_DIR="${BASEDIR}/${FIRMWARE_IMX}"
 FIRMWARE_IMX_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_IMX}.bin"
 
 FIRMWARE_SENTINEL="firmware-sentinel-0.11"
-FIRMWARE_SENTINEL_DIR="${WORKSPACE}/${FIRMWARE_SENTINEL}"
+FIRMWARE_SENTINEL_DIR="${BASEDIR}/${FIRMWARE_SENTINEL}"
 FIRMWARE_SENTINEL_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_SENTINEL}.bin"
 
 SOC="iMX9"
 ATF_PLAT="imx93"
 
-OUTPUT_PATH="${WORKSPACE}/output"
-UBOOT_DIR="${UBOOT_DIR:-$(realpath "${WORKSPACE}"/../..)}"
+OUTPUT_PATH="${BASEDIR}/output"
+UBOOT_DIR="${UBOOT_DIR:-$(realpath "${BASEDIR}"/../..)}"
 
 # Parse command line arguments
 while [ "${1}" != "" ]; do
