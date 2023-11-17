@@ -30,6 +30,7 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 unsigned int board_version = CARRIERBOARD_VERSION_UNDEFINED;
+unsigned int board_id = CARRIERBOARD_ID_UNDEFINED;
 
 #define UART_PAD_CTRL	(PAD_CTL_DSE(6) | PAD_CTL_FSEL2)
 #define WDOG_PAD_CTRL	(PAD_CTL_DSE(6) | PAD_CTL_ODE | PAD_CTL_PUE | PAD_CTL_PE)
@@ -398,6 +399,7 @@ int mmc_map_to_kernel_blk(int dev_no)
 int checkboard(void)
 {
 	board_version = get_carrierboard_version();
+	board_id = get_carrierboard_id();
 
 	print_som_info();
 	print_carrierboard_info();
