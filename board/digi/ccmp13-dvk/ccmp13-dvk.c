@@ -56,6 +56,7 @@
 #include "../common/carrier_board.h"
 
 unsigned int board_version = CARRIERBOARD_VERSION_UNDEFINED;
+unsigned int board_id = CARRIERBOARD_ID_UNDEFINED;
 
 /* SYSCFG registers */
 #define SYSCFG_BOOTR		0x00
@@ -103,6 +104,8 @@ int board_early_init_f(void)
 int checkboard(void)
 {
 	board_version = get_carrierboard_version();
+	board_id = get_carrierboard_id();
+
 	print_som_info();
 	print_carrierboard_info();
 	print_bootinfo();
