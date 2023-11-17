@@ -182,6 +182,13 @@ static int write_firmware(char *partname, unsigned long loadaddr,
 	 */
 	verifyaddr = env_get_ulong("verifyaddr", 16, 0);
 	m = CFG_SYS_SDRAM_BASE + gd->ram_size;
+#if defined(CONFIG_IMX8QXP)
+	/*
+	 * On the ccimx8x, use only the first SDRAM bank for update
+	 * operations
+	 */
+	m = CFG_SYS_SDRAM_BASE + gd->bd->bi_dram[0].size;
+#endif
 	u = m - CONFIG_UBOOT_RESERVED;
 
 	/* ($loadaddr + firmware size) must not exceed $verifyaddr

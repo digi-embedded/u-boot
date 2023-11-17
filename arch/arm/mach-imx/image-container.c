@@ -2,7 +2,6 @@
 /*
  * Copyright 2019 NXP
  */
-
 #include <common.h>
 #include <errno.h>
 #include <log.h>
@@ -42,11 +41,19 @@
 #define FUSE_IMG_SET_OFF_WORD 720
 #endif
 
+#ifdef CONFIG_AHAB_BOOT
+u16 dek_blob_size = 0;
+char *dek_blob_ptr = NULL;
+#endif
+
 int get_container_size(ulong addr, u16 *header_length)
 {
 	struct container_hdr *phdr;
 	struct boot_img_t *img_entry;
 	struct signature_block_hdr *sign_hdr;
+#ifdef CONFIG_AHAB_BOOT
+	struct generate_key_blob_hdr *blob_hdr;
+#endif
 	u8 i = 0;
 	u32 max_offset = 0, img_end;
 
@@ -79,6 +86,28 @@ int get_container_size(ulong addr, u16 *header_length)
 			max_offset = phdr->sig_blk_offset + len;
 
 		debug("sigblk, end = 0x%x\n", phdr->sig_blk_offset + len);
+#ifdef CONFIG_AHAB_BOOT
+		if (sign_hdr->blob_offset) {
+			blob_hdr = (struct generate_key_blob_hdr *)((ulong)sign_hdr +
+			                                            sign_hdr->blob_offset);
+			if (blob_hdr->version == 0x0 &&
+			    blob_hdr->tag == 0x81) {
+				/*
+				 * This container has a DEK blob, save it in
+				 * case the next container needs it.
+				 */
+				dek_blob_size = blob_hdr->length_lsb +
+				                (blob_hdr->length_msb << 8);
+				dek_blob_ptr = malloc(dek_blob_size);
+				if (dek_blob_ptr) {
+					memcpy(dek_blob_ptr,
+					       (char *)((ulong)sign_hdr +
+					                sign_hdr->blob_offset),
+					       dek_blob_size);
+				}
+			}
+		}
+#endif
 	}
 
 	return max_offset;
@@ -86,7 +115,12 @@ int get_container_size(ulong addr, u16 *header_length)
 
 static int get_dev_container_size(void *dev, int dev_type, unsigned long offset, u16 *header_length)
 {
-	u8 *buf = malloc(CONTAINER_HDR_ALIGNMENT);
+	u16 size = CONTAINER_HDR_ALIGNMENT;
+#ifdef CONFIG_AHAB_BOOT
+	/* Add 80 bytes to make room for DEK blob if there is one */
+	size += 80;
+#endif
+	u8 *buf = malloc(size);
 	int ret = 0;
 
 	if (!buf) {
@@ -97,11 +131,22 @@ static int get_dev_container_size(void *dev, int dev_type, unsigned long offset,
 #ifdef CONFIG_SPL_MMC
 	if (dev_type == MMC_DEV) {
 		unsigned long count = 0;
+		u16 original_size = size;
 		struct mmc *mmc = (struct mmc *)dev;
+
+		/* Resize buffer to align to block size */
+		size = roundup(size, mmc->read_bl_len);
+		if (size != original_size) {
+			buf = realloc(buf, size);
+			if (!buf) {
+				printf("Malloc buffer failed\n");
+				return -ENOMEM;
+			}
+		}
 
 		count = blk_dread(mmc_get_blk_desc(mmc),
 				  offset / mmc->read_bl_len,
-				  CONTAINER_HDR_ALIGNMENT / mmc->read_bl_len,
+				  size / mmc->read_bl_len,
 				  buf);
 		if (count == 0) {
 			printf("Read container image from MMC/SD failed\n");
@@ -115,7 +160,7 @@ static int get_dev_container_size(void *dev, int dev_type, unsigned long offset,
 		struct spi_flash *flash = (struct spi_flash *)dev;
 
 		ret = spi_flash_read(flash, offset,
-				     CONTAINER_HDR_ALIGNMENT, buf);
+				     size, buf);
 		if (ret != 0) {
 			printf("Read container image from QSPI failed\n");
 			return -EIO;
@@ -125,7 +170,7 @@ static int get_dev_container_size(void *dev, int dev_type, unsigned long offset,
 
 #ifdef CONFIG_SPL_NAND_SUPPORT
 	if (dev_type == NAND_DEV) {
-		ret = nand_spl_load_image(offset, CONTAINER_HDR_ALIGNMENT,
+		ret = nand_spl_load_image(offset, size,
 					  buf);
 		if (ret != 0) {
 			printf("Read container image from NAND failed\n");
@@ -136,12 +181,12 @@ static int get_dev_container_size(void *dev, int dev_type, unsigned long offset,
 
 #ifdef CONFIG_SPL_NOR_SUPPORT
 	if (dev_type == QSPI_NOR_DEV)
-		memcpy(buf, (const void *)offset, CONTAINER_HDR_ALIGNMENT);
+		memcpy(buf, (const void *)offset, size);
 #endif
 
 #ifdef CONFIG_SPL_BOOTROM_SUPPORT
 	if (dev_type == ROM_API_DEV) {
-		ret = spl_romapi_raw_seekable_read(offset, CONTAINER_HDR_ALIGNMENT, buf);
+		ret = spl_romapi_read(offset, CONTAINER_HDR_ALIGNMENT, buf);
 		if (!ret) {
 			printf("Read container image from ROM API failed\n");
 			return -EIO;
@@ -379,7 +424,7 @@ u32 __weak spl_arch_boot_image_offset(u32 image_offset, u32 rom_bt_dev)
 	return image_offset;
 }
 
-ulong spl_romapi_get_uboot_base(u32 image_offset, u32 rom_bt_dev)
+ulong spl_romapi_get_uboot_base(u32 image_offset, u32 rom_bt_dev, u32 pagesize)
 {
 	ulong end;
 
@@ -387,6 +432,7 @@ ulong spl_romapi_get_uboot_base(u32 image_offset, u32 rom_bt_dev)
 
 	end = get_imageset_end((void *)(ulong)image_offset, ROM_API_DEV);
 	end = ROUND(end, SZ_1K);
+	end = ROUND(end, pagesize);
 
 	printf("Load image from 0x%lx by ROM_API\n", end);
 

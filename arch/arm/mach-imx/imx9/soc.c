@@ -114,7 +114,12 @@ int board_usb_gadget_port_auto(void)
 u32 get_cpu_speed_grade_hz(void)
 {
 	u32 speed, max_speed;
-	u32 val = readl((ulong)FSB_BASE_ADDR + 0x8000 + (19 << 2));
+	int ret;
+	u32 val;
+	ret = fuse_read(2, 3, &val);
+	if (ret)
+		val = 0; /* If read fuse failed, return as blank fuse */
+
 	val >>= 6;
 	val &= 0xf;
 
@@ -133,7 +138,11 @@ u32 get_cpu_speed_grade_hz(void)
 
 u32 get_cpu_temp_grade(int *minc, int *maxc)
 {
-	u32 val = readl((ulong)FSB_BASE_ADDR + 0x8000 + (19 << 2));
+	int ret;
+	u32 val;
+	ret = fuse_read(2, 3, &val);
+	if (ret)
+		val = 0; /* If read fuse failed, return as blank fuse */
 
 	val >>= 4;
 	val &= 0x3;
@@ -171,12 +180,38 @@ static void set_cpu_info(struct ele_get_info_data *info)
 
 static u32 get_cpu_variant_type(u32 type)
 {
-	/* word 19 */
-	u32 val = readl((ulong)FSB_BASE_ADDR + 0x8000 + (19 << 2));
-	u32 val2 = readl((ulong)FSB_BASE_ADDR + 0x8000 + (20 << 2));
+	u32 val, val2;
+	int ret;
+	ret = fuse_read(2, 3, &val);
+	if (ret)
+		val = 0; /* If read fuse failed, return as blank fuse */
+
+	ret = fuse_read(2, 4, &val2);
+	if (ret)
+		val2 = 0; /* If read fuse failed, return as blank fuse */
+
 	bool npu_disable = !!(val & BIT(13));
 	bool core1_disable = !!(val & BIT(15));
 	u32 pack_9x9_fused = BIT(4) | BIT(5) | BIT(17) | BIT(19) | BIT(24);
+	u32 phantom_fused = BIT(10) | BIT(17) | BIT(19) | BIT(24);
+	u32 phantom_9x9_fused = BIT(4) | BIT(5);
+	u32 can_fused = BIT(28) | BIT(29) | BIT(30) | BIT(31);
+	bool enet2_disable = !!(val2 & BIT(6));
+
+	/* For iMX91P */
+	if (((val2 & phantom_fused) == phantom_fused)
+		&& npu_disable && core1_disable) {
+		type = MXC_CPU_IMX91P3;
+
+		if ((val2 & phantom_9x9_fused) == phantom_9x9_fused) {
+			type = MXC_CPU_IMX91P1;
+
+			if ((val & can_fused) == can_fused && enet2_disable)
+				type = MXC_CPU_IMX91P0;
+		}
+
+		return type;
+	}
 
 	if ((val2 & pack_9x9_fused) == pack_9x9_fused)
 		type = MXC_CPU_IMX9322;
@@ -496,12 +531,21 @@ void imx_get_mac_from_fuse(int dev_id, unsigned char *mac)
 		if (ret)
 			goto err;
 
-		mac[0] = val[1] >> 24;
-		mac[1] = val[1] >> 16;
-		mac[2] = val[0] >> 24;
-		mac[3] = val[0] >> 16;
-		mac[4] = val[0] >> 8;
-		mac[5] = val[0];
+		if (is_soc_rev(CHIP_REV_1_0)) {
+			mac[0] = val[1] >> 24;
+			mac[1] = val[1] >> 16;
+			mac[2] = val[0] >> 24;
+			mac[3] = val[0] >> 16;
+			mac[4] = val[0] >> 8;
+			mac[5] = val[0];
+		} else {
+			mac[0] = val[0] >> 24;
+			mac[1] = val[0] >> 16;
+			mac[2] = val[0] >> 8;
+			mac[3] = val[0];
+			mac[4] = val[1] >> 24;
+			mac[5] = val[1] >> 16;
+		}
 	}
 
 	debug("%s: MAC%d: %02x.%02x.%02x.%02x.%02x.%02x\n",
@@ -531,6 +575,12 @@ const char *get_imx_type(u32 imxtype)
 		return "93(12)";/* iMX93 9x9 Dual core without NPU */
 	case MXC_CPU_IMX9311:
 		return "93(11)";/* iMX93 9x9 Single core without NPU */
+	case MXC_CPU_IMX91P3:
+		return "91P(31)";/* iMX91P 11x11 Full feature */
+	case MXC_CPU_IMX91P1:
+		return "91P(11)";/* iMX91P 9x9 Reduced feature */
+	case MXC_CPU_IMX91P0:
+		return "91P(01)";/* iMX91P 9x9 Specific feature */
 	default:
 		return "??";
 	}
@@ -706,6 +756,35 @@ static int delete_fdt_nodes(void *blob, const char *const nodes_path[], int size
 	return 0;
 }
 
+static int disable_eqos_nodes(void *blob)
+{
+	static const char * const nodes_path_eqos[] = {
+		"/soc@0/bus@42800000/ethernet@428a0000"
+	};
+
+	return delete_fdt_nodes(blob, nodes_path_eqos, ARRAY_SIZE(nodes_path_eqos));
+}
+
+static int disable_flexcan_nodes(void *blob)
+{
+	static const char * const nodes_path_flexcan[] = {
+		"/soc@0/bus@44000000/can@443a0000",
+		"/soc@0/bus@42000000/can@425b0000"
+	};
+
+	return delete_fdt_nodes(blob, nodes_path_flexcan, ARRAY_SIZE(nodes_path_flexcan));
+}
+
+static int disable_parallel_display_nodes(void *blob)
+{
+	static const char * const nodes_path_display[] = {
+		"/soc@0/system-controller@4ac10000/dpi",
+		"/soc@0/lcd-controller@4ae30000"
+	};
+
+	return delete_fdt_nodes(blob, nodes_path_display, ARRAY_SIZE(nodes_path_display));
+}
+
 static int disable_npu_nodes(void *blob)
 {
 	static const char * const nodes_path_npu[] = {
@@ -845,7 +924,7 @@ static int low_drive_freq_update(void *blob)
 int board_fix_fdt(void *fdt)
 {
 	/* Update u-boot dtb clocks for low drive mode */
-	if (IS_ENABLED(CONFIG_IMX9_LOW_DRIVE_MODE)){
+	if (is_voltage_mode(VOLT_LOW_DRIVE)){
 		int nodeoff;
 		int i;
 
@@ -863,6 +942,31 @@ int board_fix_fdt(void *fdt)
 		}
 	}
 
+	if (is_imx91p0()) {
+		int i = 0;
+		int nodeoff, ret;
+		const char *status = "disabled";
+		static const char * const nodes[] = {
+			"/soc@0/bus@42800000/ethernet@428a0000",
+			"/soc@0/system-controller@4ac10000/dpi",
+			"/soc@0/lcd-controller@4ae30000"
+		};
+
+		for (i = 0; i < ARRAY_SIZE(nodes); i++) {
+			nodeoff = fdt_path_offset(fdt, nodes[i]);
+			if (nodeoff > 0) {
+set_status:
+				ret = fdt_setprop(fdt, nodeoff, "status", status,
+						  strlen(status) + 1);
+				if (ret == -FDT_ERR_NOSPACE) {
+					ret = fdt_increase_size(fdt, 512);
+					if (!ret)
+						goto set_status;
+				}
+			}
+		}
+	}
+
 	return 0;
 }
 #endif
@@ -876,7 +980,13 @@ int ft_system_setup(void *blob, struct bd_info *bd)
 	if (is_imx9332() || is_imx9331() || is_imx9312() || is_imx9311())
 		disable_npu_nodes(blob);
 
-	if (IS_ENABLED(CONFIG_IMX9_LOW_DRIVE_MODE))
+	if (is_imx91p0()) {
+		disable_eqos_nodes(blob);
+		disable_flexcan_nodes(blob);
+		disable_parallel_display_nodes(blob);
+	}
+
+	if (is_voltage_mode(VOLT_LOW_DRIVE))
 		low_drive_freq_update(blob);
 
 #ifdef CONFIG_IMX_OPTEE
@@ -903,7 +1013,7 @@ int arch_cpu_init(void)
 		/* Disable wdog */
 		init_wdog();
 
-		clock_init();
+		clock_init_early();
 
 		trdc_early_init();
 
@@ -980,6 +1090,7 @@ __weak enum env_location env_get_location(enum env_operation op, int prio)
 	case MMC1_BOOT:
 	case MMC2_BOOT:
 	case MMC3_BOOT:
+	case FLEXSPI_NAND_BOOT:
 		env_loc =  ENVL_MMC;
 		break;
 #endif
@@ -1112,7 +1223,10 @@ int m33_prepare(void)
 		(struct src_general_regs *)(ulong)SRC_GLOBAL_RBASE;
 	struct blk_ctrl_s_aonmix_regs *s_regs =
 			(struct blk_ctrl_s_aonmix_regs *)BLK_CTRL_S_ANOMIX_BASE_ADDR;
-	u32 val;
+	u32 val, i;
+
+	if (is_imx91p3() || is_imx91p1() || is_imx91p0())
+		return -ENODEV;
 
 	if (m33_is_rom_kicked())
 		return -EPERM;
@@ -1137,8 +1251,39 @@ int m33_prepare(void)
 	/* Set ELE LP handshake for M33 reset */
 	setbits_le32(&s_regs->lp_handshake[0], BIT(6));
 
+	/* OSCCA enabled, need to reconfigure TRDC for TCM access, otherwise ECC init will raise error */
+	val = readl(BLK_CTRL_NS_ANOMIX_BASE_ADDR + 0x28);
+	if (val & BIT(0)) {
+		trdc_mbc_set_control(0x44270000, 1, 0, 0x6600);
+
+		for (i = 0; i < 32; i++)
+			trdc_mbc_blk_config(0x44270000, 1, 3, 0, i, true, 0);
+
+		for (i = 0; i < 32; i++)
+			trdc_mbc_blk_config(0x44270000, 1, 3, 1, i, true, 0);
+	}
+
 	/* Clear M33 TCM for ECC */
 	memset((void *)(ulong)0x201e0000, 0, 0x40000);
 
 	return 0;
+}
+
+enum imx9_soc_voltage_mode soc_target_voltage_mode(void)
+{
+	u32 speed = get_cpu_speed_grade_hz();
+	enum imx9_soc_voltage_mode voltage = VOLT_OVER_DRIVE;
+
+	if (is_imx93()) {
+		if (speed == 1700000000)
+			voltage = VOLT_OVER_DRIVE;
+		else if (speed == 1400000000)
+			voltage = VOLT_NOMINAL_DRIVE;
+		else if (speed == 900000000 || speed == 800000000)
+			voltage = VOLT_LOW_DRIVE;
+		else
+			printf("Unexpected A55 freq %u, default to OD\n", speed);
+	}
+
+	return voltage;
 }

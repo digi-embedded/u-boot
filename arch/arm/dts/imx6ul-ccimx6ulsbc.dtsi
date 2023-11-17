@@ -39,6 +39,12 @@
 	xbee {
 		digi,reset-gpio = <&mca_ioexp_gpio 7 GPIO_ACTIVE_HIGH>;
 	};
+
+	bootcount {
+		compatible = "u-boot,bootcount-rtc";
+		rtc = <&mca_rtc>;
+		offset = <0x00b0>;
+	};
 };
 
 /* ECSPI1 */

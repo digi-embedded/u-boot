@@ -124,7 +124,7 @@
 #define CONFIG_MXC_UART
 
 /* MMC Configs */
-#define CONFIG_SYS_FSL_ESDHC_ADDR      0
+#define CFG_SYS_FSL_ESDHC_ADDR      0
 
 #define CONFIG_SUPPORT_EMMC_RPMB
 #define CONFIG_SUPPORT_MMC_ECSD
@@ -153,7 +153,7 @@
 #define CONFIG_ARP_TIMEOUT     200UL
 
 /* protected environment variables (besides ethaddr and serial#) */
-#define CONFIG_ENV_FLAGS_LIST_STATIC	\
+#define CFG_ENV_FLAGS_LIST_STATIC	\
 	"wlanaddr:mc,"			\
 	"wlan1addr:mc,"			\
 	"wlan2addr:mc,"			\

@@ -51,9 +51,17 @@ void spl_board_init(void)
 		printf("Fail to start RNG: %d\n", ret);
 }
 
+extern struct dram_timing_info dram_timing_1600mts;
 void spl_dram_init(void)
 {
-	ddr_init(&dram_timing);
+	struct dram_timing_info *ptiming = &dram_timing;
+#if IS_ENABLED(CONFIG_TARGET_IMX91P_9X9_QSB)
+	if (is_voltage_mode(VOLT_LOW_DRIVE))
+		ptiming = &dram_timing_1600mts;
+#endif
+
+	printf("DDR: %uMTS\n", ptiming->fsp_msg[0].drate);
+	ddr_init(ptiming);
 }
 
 #if CONFIG_IS_ENABLED(DM_PMIC_PCA9450)
@@ -61,7 +69,7 @@ int power_init_board(void)
 {
 	struct udevice *dev;
 	int ret;
-	unsigned int val;
+	unsigned int val, buck_val;
 
 	ret = pmic_get("pmic@25", &dev);
 	if (ret == -ENODEV) {
@@ -83,13 +91,23 @@ int power_init_board(void)
 	else
 		val = ret;
 
-	/* 0.9v: for LPDDR4X 3722 */
-	if (val & PCA9450_REG_PWRCTRL_TOFF_DEB) {
-		pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, 0x14);
-		pmic_reg_write(dev, PCA9450_BUCK3OUT_DVS0, 0x14);
+	if (is_voltage_mode(VOLT_LOW_DRIVE)) {
+		buck_val = 0x0c; /* 0.8v for Low drive mode */
+		printf("PMIC: Low Drive Voltage Mode\n");
+	} else if (is_voltage_mode(VOLT_NOMINAL_DRIVE)) {
+		buck_val = 0x10; /* 0.85v for Nominal drive mode */
+		printf("PMIC: Nominal Voltage Mode\n");
 	} else {
-		pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, 0x18);
-		pmic_reg_write(dev, PCA9450_BUCK3OUT_DVS0, 0x18);
+		buck_val = 0x14; /* 0.9v for Over drive mode */
+		printf("PMIC: Over Drive Voltage Mode\n");
+	}
+
+	if (val & PCA9450_REG_PWRCTRL_TOFF_DEB) {
+		pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, buck_val);
+		pmic_reg_write(dev, PCA9450_BUCK3OUT_DVS0, buck_val);
+	} else {
+		pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, buck_val + 0x4);
+		pmic_reg_write(dev, PCA9450_BUCK3OUT_DVS0, buck_val + 0x4);
 	}
 
 	/* set standby voltage to 0.65v */
@@ -135,9 +153,13 @@ void board_init_f(ulong dummy)
 		printf("SOC: 0x%x\n", gd->arch.soc_rev);
 		printf("LC: 0x%x\n", gd->arch.lifecycle);
 	}
+
+	clock_init_late();
+
 	power_init_board();
 
-	set_arm_core_max_clk();
+	if (!is_voltage_mode(VOLT_LOW_DRIVE))
+		set_arm_core_max_clk();
 
 	/* Init power of mix */
 	soc_power_init();

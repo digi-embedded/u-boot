@@ -43,7 +43,7 @@
 #define CONFIG_DEFAULT_FDT_FILE		"imx6q-" CONFIG_SYS_BOARD ".dtb"
 #endif
 
-#define CONFIG_SYS_FSL_USDHC_NUM	2
+#define CFG_SYS_FSL_USDHC_NUM	2
 
 /* Media type for firmware updates */
 #define CONFIG_SYS_STORAGE_MEDIA	"mmc"

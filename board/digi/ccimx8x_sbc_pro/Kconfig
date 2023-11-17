@@ -11,4 +11,7 @@ config SYS_VENDOR
 config SYS_CONFIG_NAME
 	default "ccimx8x_sbc_pro"
 
+config IMX_CONFIG
+	default "board/digi/ccimx8x/imximage.cfg"
+
 endif

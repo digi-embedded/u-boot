@@ -29,7 +29,9 @@ while read -r pl mt tt ps; do
 	eval "${pl//-/_}_toolchain_type=\"${tt}\""
 	eval "${pl//-/_}_post_script=\"${ps}\""
 done<<-_EOF_
-	ccimx93-dvk    all    aarch64    "make_imxboot_ccimx93.sh"
+	ccimx8mm_dvk       all    aarch64    "make_imxboot_ccimx8mm.sh"
+	ccimx8x_sbc_pro    all    aarch64    "make_imxboot_ccimx8x.sh"
+	ccimx93-dvk        all    aarch64    "make_imxboot_ccimx93.sh"
 _EOF_
 
 # Set default values if not provided by Jenkins
@@ -62,6 +64,7 @@ error() {
 
 # Sanity check (Jenkins environment)
 [ -z "${WORKSPACE}" ] && error "WORKSPACE not specified"
+[ -z "${DUB_REVISION}" ] && error "DUB_REVISION not specified"
 
 # Unset BUILD_TAG from Jenkins so U-Boot does not show it
 unset BUILD_TAG
@@ -72,7 +75,7 @@ printf "\n[INFO] Build U-Boot \"%s\" for \"%s\"\n\n" "${DUB_REVISION}" "${DUB_PL
 DUB_REVISION_SANE="$(echo "${DUB_REVISION}" | tr '/' '_')"
 
 DUB_IMGS_DIR="${WORKSPACE}/images"
-DUB_TOOLCHAIN_DIR="${WORKSPACE}/toolchain"
+DUB_TOOLCHAIN_DIR="${WORKSPACE}/sdk"
 DUB_UBOOT_DIR="${WORKSPACE}/u-boot${DUB_REVISION_SANE:+-${DUB_REVISION_SANE}}.git"
 rm -rf "${DUB_IMGS_DIR}" "${DUB_TOOLCHAIN_DIR}" "${DUB_UBOOT_DIR}"
 mkdir -p "${DUB_IMGS_DIR}" "${DUB_TOOLCHAIN_DIR}"
@@ -126,9 +129,11 @@ for platform in ${DUB_PLATFORMS}; do
 			export OPENSSL_MODULES="${OECORE_NATIVE_SYSROOT}/usr/lib/ossl-modules"
 			export LIBGCC_LOCATE_CFLAGS="--sysroot=${SDKTARGETSYSROOT}"
 			# Build the boot artifacts
-			./tools/digi/"${BOOT_POST_SCRIPT}" -u "${DUB_UBOOT_DIR}"
+			( cd tools/digi && git clean -ffdx )
+			./tools/digi/"${BOOT_POST_SCRIPT}"
 			# Copy boot artifacts
-			cp --remove-destination tools/digi/output/* "${DUB_IMGS_DIR}"/
+			mkdir -p "${DUB_IMGS_DIR}/${platform}"
+			\cp --remove-destination tools/digi/output/* "${DUB_IMGS_DIR}"/"${platform}"/
 		fi
 	)
 done

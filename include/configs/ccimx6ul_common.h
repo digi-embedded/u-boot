@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Digi International, Inc.
+ * Copyright (C) 2016-2023 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * Configuration settings for the Digi ConnecCore 6UL System-On-Module.
@@ -103,7 +103,7 @@
 #define TRUSTFENCE_JTAG_DISABLE_DEBUG			(TRUSTFENCE_JTAG_SMODE_NO_DEBUG << TRUSTFENCE_JTAG_SMODE_OFFSET)
 
 /* MMC Configs */
-#define CONFIG_SYS_FSL_ESDHC_ADDR	USDHC2_BASE_ADDR
+#define CFG_SYS_FSL_ESDHC_ADDR	USDHC2_BASE_ADDR
 #define CONFIG_SUPPORT_EMMC_RPMB
 #define CONFIG_SUPPORT_MMC_ECSD
 
@@ -116,7 +116,7 @@
 #define CONFIG_EXTRA_NETWORK_SETTINGS \
 	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"
 
-#define CONFIG_ENV_FLAGS_LIST_STATIC	\
+#define CFG_ENV_FLAGS_LIST_STATIC	\
 	"eth1addr:mc,"			\
 	"wlanaddr:mc,"			\
 	"wlan1addr:mc,"			\
@@ -169,24 +169,17 @@
 
 #define ALTBOOTCMD	\
 	"altbootcmd=" \
-		"if test -z \"${active_system}\"; then " \
-			"setenv active_system " LINUX_A_PARTITION ";" \
-		"fi;" \
-		"setenv mtdbootpart ${active_system};" \
-		"if test \"${singlemtdsys}\" = yes; then " \
-			"if ubi part " SYSTEM_PARTITION "; then " \
-				"if ubifsmount ubi0:${mtdbootpart}; then " \
-					"ubifsload ${loadaddr} altboot.scr;" \
-				"fi;" \
+		"if test \"${dualboot}\" = yes; then " \
+			"if test \"${active_system}\" = linux_a; then " \
+				"setenv active_system linux_b;" \
+			"else " \
+				"setenv active_system linux_a;" \
 			"fi;" \
-		"else " \
-			"if ubi part ${mtdbootpart}; then " \
-				"if ubifsmount ubi0:${mtdbootpart}; then " \
-					"ubifsload ${loadaddr} altboot.scr;" \
-				"fi;" \
-			"fi;" \
+			"saveenv;" \
+			"echo \"## System boot failed; Switching active partitions bank to ${active_system}...\";" \
 		"fi;" \
-		"source ${loadaddr}\0"
+		"bootcount reset;" \
+		"reset;\0"
 
 /* One 'system' partition containing many UBI volumes (modern layout) */
 #define MTDPARTS_SMALL			"mtdparts=" CONFIG_NAND_NAME ":" \
@@ -254,16 +247,16 @@
 					"1m(safe)," \
 					"24m(" LINUX_A_PARTITION ")," \
 					"24m(" LINUX_B_PARTITION ")," \
-					"230m(rootfs_a)," \
-					"230m(rootfs_b)"
+					"226m(rootfs_a)," \
+					"226m(rootfs_b)"
 #define MTDPARTS_DUALBOOT_1024MB	"mtdparts=" CONFIG_NAND_NAME ":" \
 					__stringify(UBOOT_PART_SIZE_BIG) "m(" UBOOT_PARTITION ")," \
 					__stringify(ENV_PART_SIZE_BIG) "m(environment)," \
 					"1m(safe)," \
-					"24m(" LINUX_A_PARTITION ")," \
-					"24m(" LINUX_B_PARTITION ")," \
-					"256m(rootfs_a)," \
-					"256m(rootfs_b)"
+					"46m(" LINUX_A_PARTITION ")," \
+					"46m(" LINUX_B_PARTITION ")," \
+					"450m(rootfs_a)," \
+					"450m(rootfs_b)"
 
 #define MTDPARTS_256MB			"mtdparts=" CONFIG_NAND_NAME ":" \
 					__stringify(UBOOT_PART_SIZE_SMALL) "m(" UBOOT_PARTITION ")," \

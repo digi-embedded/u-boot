@@ -76,6 +76,8 @@ int digi_auth_image(ulong *ddr_start, ulong raw_image_size)
 	int ret = 1;
 
 #if defined(CONFIG_IMX_HAB)
+	extern int authenticate_image(uint32_t ddr_start,
+				      uint32_t raw_image_size);
 	if (authenticate_image((uint32_t)*ddr_start, raw_image_size) == 0)
 		ret = 0;
 #elif defined(CONFIG_AHAB_BOOT)

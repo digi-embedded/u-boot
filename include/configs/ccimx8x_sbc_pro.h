@@ -8,19 +8,14 @@
 #ifndef CCIMX8X_SBC_PRO_CONFIG_H
 #define CCIMX8X_SBC_PRO_CONFIG_H
 
+#include <linux/stringify.h>
 #include "ccimx8x_common.h"
 
 #define CONFIG_BOARD_DESCRIPTION	"SBC Pro"
 #define BOARD_DEY_NAME			"ccimx8x-sbc-pro"
 
-#define CONFIG_REMAKE_ELF
-
-/* GPIO configs */
-#define CONFIG_MXC_GPIO
-
 /* ENET Config */
 #define FEC_QUIRK_ENET_MAC
-#define CONFIG_PHY_ATHEROS
 
 #define CONFIG_FEC_XCV_TYPE             RGMII
 #define CONFIG_FEC_ENET_DEV             0
@@ -38,30 +33,13 @@
 #define CONFIG_BAUDRATE			115200
 
 /* Fastboot */
-#define CONFIG_SERIAL_TAG
 #define PRODUCT_NAME			"ccimx8xsbcpro"  /* (== TARGET_BOOTLOADER_BOARD_NAME in Android) */
-
-/* USB Config */
-#ifdef CONFIG_CMD_USB
-#define CONFIG_USB_MAX_CONTROLLER_COUNT 2
-
-/* USB OTG controller configs */
-#ifdef CONFIG_USB_EHCI_HCD
-#define CONFIG_USB_HOST_ETHER
-#define CONFIG_USB_ETHER_ASIX
-#define CONFIG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
-#endif
-#endif /* CONFIG_CMD_USB */
-
-#ifdef CONFIG_USB_GADGET
-#define CONFIG_USBD_HS
-#endif
 
 /* Carrier board version in environment */
 #define CONFIG_HAS_CARRIERBOARD_VERSION
 #define CONFIG_HAS_CARRIERBOARD_ID
 
-#define CONFIG_MFG_ENV_SETTINGS \
+#define CFG_MFG_ENV_SETTINGS \
 	"mfgtool_args=setenv bootargs console=${console},${baudrate} " \
 		"root=/dev/ram0 rw quiet\0" \
 	"fastboot_dev=mmc" __stringify(EMMC_BOOT_DEV) "\0" \
@@ -69,8 +47,8 @@
 	"sd_dev=1\0"
 
 /* Initial environment variables */
-#define CONFIG_EXTRA_ENV_SETTINGS		\
-	CONFIG_MFG_ENV_SETTINGS			\
+#define CFG_EXTRA_ENV_SETTINGS		\
+	CFG_MFG_ENV_SETTINGS			\
 	CONFIG_DEFAULT_NETWORK_SETTINGS		\
 	CONFIG_EXTRA_NETWORK_SETTINGS		\
 	RANDOM_UUIDS \
@@ -161,6 +139,7 @@
 		"fi;\0" \
 	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
 	"active_system=linux_a\0" \
+	"usb_pgood_delay=2000\0" \
 	""	/* end line */
 
 #undef CONFIG_BOOTCOMMAND

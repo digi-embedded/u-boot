@@ -3,7 +3,7 @@
 #
 #  sign.sh
 #
-#  Copyright (C) 2016-2021 by Digi International Inc.
+#  Copyright (C) 2016-2023 by Digi International Inc.
 #  All rights reserved.
 #
 #  This program is free software; you can redistribute it and/or modify it
@@ -23,7 +23,7 @@
 #      ENABLE_USB_SIGN: (optional) if defined, signed images could be used to boot via USB.
 #      ENABLE_ENCRYPTION: (optional) enable encryption of the images.
 #      CONFIG_DEK_PATH: (mandatory if ENCRYPT is defined) path to a Data Encryption Key.
-#                       If defined, the signed	U-Boot image is encrypted with the
+#                       If defined, the signed U-Boot image is encrypted with the
 #                       given key. Supported key sizes: 128, 192 and 256 bits.
 #      CONFIG_MKIMAGE_LOG_PATH: (optional, AHAB only) path to the log generated
 #                               when imx-boot was compiled. If not provided, a default

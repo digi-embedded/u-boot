@@ -131,6 +131,11 @@
 		};
 	};
 
+	mca_rtc: rtc@7e {
+		compatible = "digi,mca-rtc";
+		reg = <0x7e>;
+	};
+
 	pmic: pfuze3000@08 {
 		compatible = "fsl,pfuze3000";
 		reg = <0x08>;

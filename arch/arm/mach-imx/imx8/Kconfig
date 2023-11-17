@@ -64,6 +64,23 @@ config PSCI_BOARD_REBOOT
 	help
 	  This is a optional command used to trigger system board reboot on imx8.
 
+config SECURE_HEAP_BASE
+	hex "secure heap base addr"
+	default 0xe0000000
+
+config SECURE_HEAP_SIZE
+	hex "secure heap base size"
+	default 0x10000000
+
+config VPU_BOOT_BASE
+	hex "vpu boot memory addr"
+	default 0x96000000
+
+config VPU_BOOT_SIZE
+	hex "vpu boot memory size"
+	default 0x2000000
+
+
 choice
 	prompt "i.MX8 board select"
 	optional
@@ -77,7 +94,7 @@ config TARGET_CCIMX8X_SBC_EXPRESS
 	select FSL_CAAM
 	select FSL_BLOB
 	select ARCH_MISC_INIT
-	select SPL_CRYPTO_SUPPORT if SPL
+	select SPL_CRYPTO if SPL
 
 config TARGET_CCIMX8X_SBC_PRO
 	bool "Digi ConnectCore 8X SBC Pro"
@@ -88,7 +105,7 @@ config TARGET_CCIMX8X_SBC_PRO
 	select FSL_CAAM
 	select FSL_BLOB
 	select ARCH_MISC_INIT
-	select SPL_CRYPTO_SUPPORT if SPL
+	select SPL_CRYPTO if SPL
 
 config TARGET_APALIS_IMX8
 	bool "Support Apalis iMX8 module"

@@ -116,6 +116,20 @@ struct ccimx8_variant ccimx8x_variants[] = {
 		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
 		"Industrial DualX, 8GB eMMC, 1GB LPDDR4, -40/+85C, Wireless, Bluetooth",
 	},
+/* 0x0C - 55001984-12 */
+	{
+		IMX8QXP,
+		SZ_2G,
+		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
+		"Industrial QuadXPlus, 16GB eMMC, 2GB LPDDR4, -40/+85C, Wireless, Bluetooth",
+	},
+/* 0x0D - 55001984-13 */
+	{
+		IMX8QXP,
+		SZ_4G,
+		CCIMX8_HAS_WIRELESS | CCIMX8_HAS_BLUETOOTH,
+		"Industrial QuadXPlus, 32GB eMMC, 4GB LPDDR4, -40/+85C, Wireless, Bluetooth",
+	},
 };
 
 void board_mem_get_layout(u64 *phys_sdram_1_start,
@@ -140,7 +154,15 @@ void board_mem_get_layout(u64 *phys_sdram_1_start,
 		}
 	}
 
-	if (!*phys_sdram_1_size) {
+	if (*phys_sdram_1_size > SZ_2G) {
+		/*
+		 * Special case: split the size between the two SDRAM banks:
+		 *     * First 2 GiB go in bank 1
+		 *     * Remaining size goes in bank 2
+		 */
+		*phys_sdram_2_size = *phys_sdram_1_size - SZ_2G;
+		*phys_sdram_1_size = SZ_2G;
+	} else if (!*phys_sdram_1_size) {
 		*phys_sdram_1_size = PHYS_SDRAM_1_SIZE;
 		printk("Cannot determine RAM size. Using default size (%d MiB).\n", PHYS_SDRAM_1_SIZE >> 20);
 	}
@@ -195,7 +217,7 @@ int board_lock_hwid(void)
 /*
  * Board specific reset that is system reset.
  */
-void reset_cpu(ulong addr)
+void reset_cpu(void)
 {
 	sc_pm_reboot(-1, SC_PM_RESET_TYPE_COLD);
 	while(1);
@@ -400,7 +422,7 @@ int get_srk_revoke_mask(u32 *mask)
 		 */
 		mmc_part = 0;
 	}
-	mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC, mmc_dev_index);
+	mmc_dev = blk_get_devnum_by_uclass_id(UCLASS_MMC, mmc_dev_index);
 	if (NULL == mmc_dev) {
 		debug("Cannot determine sys storage device\n");
 		return CMD_RET_FAILURE;
@@ -412,7 +434,7 @@ int get_srk_revoke_mask(u32 *mask)
 	blk_cnt = buffer_size / mmc_dev->blksz;
 
 	/* Initialize boot partition */
-	ret = blk_select_hwpart_devnum(IF_TYPE_MMC, mmc_dev_index, mmc_part);
+	ret = blk_select_hwpart_devnum(UCLASS_MMC, mmc_dev_index, mmc_part);
 	if (ret != 0) {
 		debug("Error to switch to partition %d on dev %d (%d)\n",
 			  mmc_part, mmc_dev_index, ret);
@@ -466,7 +488,7 @@ int get_dek_blob(char *output, u32 *size)
 		 */
 		mmc_part = 0;
 	}
-	mmc_dev = blk_get_devnum_by_type(IF_TYPE_MMC, mmc_dev_index);
+	mmc_dev = blk_get_devnum_by_uclass_id(UCLASS_MMC, mmc_dev_index);
 	if (NULL == mmc_dev) {
 		debug("Cannot determine sys storage device\n");
 		return CMD_RET_FAILURE;
@@ -478,7 +500,7 @@ int get_dek_blob(char *output, u32 *size)
 	blk_cnt = buffer_size / mmc_dev->blksz;
 
 	/* Initialize boot partition */
-	ret = blk_select_hwpart_devnum(IF_TYPE_MMC, mmc_dev_index, mmc_part);
+	ret = blk_select_hwpart_devnum(UCLASS_MMC, mmc_dev_index, mmc_part);
 	if (ret != 0) {
 		debug("Error to switch to partition %d on dev %d (%d)\n",
 			  mmc_part, mmc_dev_index, ret);

@@ -24,6 +24,11 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lpi2c0>;
 	status = "okay";
+
+	mca_rtc: rtc@63 {
+		compatible = "digi,mca-rtc";
+		reg = <0x63>;
+	};
 };
 
 /* eMMC */

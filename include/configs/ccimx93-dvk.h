@@ -18,6 +18,7 @@
 
 /* Carrier board version in environment */
 #define CONFIG_HAS_CARRIERBOARD_VERSION
+#define CONFIG_HAS_CARRIERBOARD_ID
 
 #define CFG_SYS_UBOOT_BASE	\
 	(QSPI0_AMBA_BASE + CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512)
@@ -72,6 +73,7 @@
 	DUALBOOT_ENV_SETTINGS \
 	BOOTENV \
 	AHAB_ENV \
+	"prepare_mcore=setenv mcore_clk clk-imx93.mcore_booted;\0" \
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	CONFIG_EXTRA_NETWORK_SETTINGS \
 	RANDOM_UUIDS \
@@ -98,7 +100,7 @@
 	"mmcpart=1\0" \
 	"mmcroot=PARTUUID=1c606ef5-f1ac-43b9-9bb5-d5c578580b6b\0" \
 	"mmcautodetect=yes\0" \
-	"mmcargs=setenv bootargs ${jh_clk} console=${console} root=${mmcroot}\0 " \
+	"mmcargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} root=${mmcroot}\0 " \
 	"loadbootscript=" \
 		"if test \"${dualboot}\" = yes; then " \
 			"env exists active_system || setenv active_system linux_a; " \
@@ -133,7 +135,7 @@
 				"fi; " \
 			"fi;" \
 		"fi;\0" \
-	"netargs=setenv bootargs ${jh_clk} console=${console} " \
+	"netargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} " \
 		"root=/dev/nfs " \
 		"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
 	"netboot=echo Booting from net ...; " \

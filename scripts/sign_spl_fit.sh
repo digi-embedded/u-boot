@@ -3,7 +3,7 @@
 #
 #  sign_spl_fit.sh
 #
-#  Copyright (C) 2020 by Digi International Inc.
+#  Copyright (C) 2020-2023 by Digi International Inc.
 #  All rights reserved.
 #
 #  This program is free software; you can redistribute it and/or modify it
@@ -21,7 +21,7 @@
 #				  field so that key revocation is possible in closed devices.
 #      ENABLE_ENCRYPTION: (optional) enable encryption of the images.
 #      CONFIG_DEK_PATH: (mandatory if ENCRYPT is defined) path to a Data Encryption Key.
-#                       If defined, the signed	U-Boot image is encrypted with the
+#                       If defined, the signed U-Boot image is encrypted with the
 #                       given key. Supported key sizes: 128 bits.
 #      CONFIG_MKIMAGE_LOG_PATH: (optional) path to the log generated when
 #                               imx-boot was compiled. If not provided, a default
@@ -172,7 +172,7 @@ spl_decrypt_len="$(printf "0x%X" ${spl_decrypt_len})"
 uboot_dtb_image_len="$(printf "0x%X" ${uboot_dtb_image_len})"
 
 # SED filter for removing TEE entries on boot artifacts without TEE
-if grep -qsi "tee.*not[[:blank:]]\+found" "${MKIMAGE_FIT_HAB_LOG}"; then
+if grep -qsi "tee.*not[[:blank:]]\+found\|not[[:blank:]]\+find.*tee" "${MKIMAGE_FIT_HAB_LOG}"; then
 	NO_TEE_SED_FILTER="/%atf_\(auth\|decrypt\)_start%/s/, \\\\$//g;/%optee_\(auth\|decrypt\)_start%/d"
 fi
 

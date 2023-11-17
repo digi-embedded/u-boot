@@ -4,13 +4,13 @@ menu "Boot images"
 
 config AUTH_ARTIFACTS
 	bool "Support boot artifact authentication"
+	select SIGN_IMAGE
 	help
 	  Enable this option to support authentication of signed/encrypted boot
 	  artifacts.
 
 config SIGN_IMAGE
 	bool "Generate signed images"
-	depends on AUTH_ARTIFACTS
 	help
 	  Enable this option to generate signed uboot images. When enabled:
 	  * UBOOT_SIGN_KEYS_PATH must be defined to the path of the CST folder by NXP.

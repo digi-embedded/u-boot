@@ -68,7 +68,7 @@ int spl_board_boot_device(enum boot_device boot_dev_spl)
 
 void spl_dram_init(void)
 {
-	u32 ram;
+	u64 ram;
 	struct digi_hwid my_hwid;
 
 	/* Default to minimum RAM size for each platform */
@@ -192,7 +192,7 @@ int board_mmc_init(struct bd_info *bis)
 	 * mmc0                    USDHC3 (eMMC)
 	 * mmc1                    USDHC2 (microSD)
 	 */
-	for (i = 0; i < CONFIG_SYS_FSL_USDHC_NUM; i++) {
+	for (i = 0; i < CFG_SYS_FSL_USDHC_NUM; i++) {
 		switch (i) {
 		case 0:
 			usdhc_cfg[i].sdhc_clk = mxc_get_clock(MXC_ESDHC3_CLK);
@@ -237,7 +237,7 @@ int board_mmc_getcd(struct mmc *mmc)
 	return 1;
 }
 
-#ifdef CONFIG_POWER
+#if CONFIG_IS_ENABLED(POWER_LEGACY)
 #define I2C_PMIC	0
 int power_init_board(void)
 {
@@ -263,27 +263,27 @@ int power_init_board(void)
 		pmic_probe(p);
 
 		/* decrease RESET key long push time from the default 10s to 10ms */
-		pmic_reg_write(p, BD71837_PWRONCONFIG1, 0x0);
+		pmic_reg_write(p, BD718XX_PWRONCONFIG1, 0x0);
 
 		/* unlock the PMIC regs */
-		pmic_reg_write(p, BD71837_REGLOCK, 0x1);
+		pmic_reg_write(p, BD718XX_REGLOCK, 0x1);
 
 		/*
-		* increase VDD_SOC/VDD_DRAM to typical value 0.85v for 1.2Ghz
-		* DDR clock
-		*/
-		pmic_reg_write(p, BD71837_BUCK1_VOLT_RUN, 0x0F);
+		 * increase VDD_SOC/VDD_DRAM to typical value 0.85v for 1.2Ghz
+		 * DDR clock
+		 */
+		pmic_reg_write(p, BD718XX_BUCK1_VOLT_RUN, 0x0F);
 
 		/* increase VDD_ARM to typical value 0.95v for Quad-A53, 1.4 GHz */
-		pmic_reg_write(p, BD71837_BUCK2_VOLT_RUN, 0x19);
+		pmic_reg_write(p, BD718XX_BUCK2_VOLT_RUN, 0x19);
 
 		/* Set VDD_SOC 0.85v for suspend */
-		pmic_reg_write(p, BD71837_BUCK1_VOLT_SUSP, 0xf);
+		pmic_reg_write(p, BD718XX_BUCK1_VOLT_SUSP, 0xf);
 
 		/* lock the PMIC regs */
-		pmic_reg_write(p, BD71837_REGLOCK, 0x11);
+		pmic_reg_write(p, BD718XX_REGLOCK, 0x11);
 	} else {
-		ret = power_pca9450_init(I2C_PMIC);
+		ret = power_pca9450_init(I2C_PMIC, 0x25);
 		if (ret)
 			printf("power init failed");
 
@@ -332,23 +332,12 @@ int power_init_board(void)
 
 void spl_board_init(void)
 {
-#if defined(CONFIG_IMX8MM)
-#ifdef CONFIG_FSL_CAAM
-	if (sec_init()) {
-		printf("\nsec_init failed!\n");
+	if (IS_ENABLED(CONFIG_FSL_CAAM)) {
+		if (sec_init())
+			printf("\nsec_init failed!\n");
 	}
-#endif
 
-#if !defined(CONFIG_SPL_USB_SDP_SUPPORT)
-	/* Serial download mode */
-	if (is_usb_boot()) {
-		puts("Back to ROM, SDP\n");
-		restore_boot_params();
-	}
-#endif
-#endif /* CONFIG_IMX8MM */
-
-#ifdef CONFIG_SPL_SERIAL_SUPPORT
+#ifdef CONFIG_SPL_SERIAL
 	puts("Normal Boot\n");
 #endif
 }
@@ -376,7 +365,7 @@ void board_init_f(ulong dummy)
 
 	timer_init();
 
-#ifdef CONFIG_SPL_SERIAL_SUPPORT
+#ifdef CONFIG_SPL_SERIAL
 	preloader_console_init();
 #endif
 

@@ -55,7 +55,7 @@ static int do_source(struct cmd_tbl *cmdtp, int flag, int argc,
 
 #ifdef CONFIG_AUTH_ARTIFACTS
 	ulong img_size;
-	const image_header_t *img_hdr = (const image_header_t *)addr;
+	const struct legacy_img_hdr *img_hdr = (const struct legacy_img_hdr *)addr;
 	if (img_hdr == NULL)
 		return CMD_RET_FAILURE;
 

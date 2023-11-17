@@ -22,6 +22,21 @@ dub-2022.04-r1.3, released on 2023/05/11
 
 DUB-2020.04
 -----------
+dub-2020.04-r5.7, released on 2023/02/27
+	- CC8X, CC8MM, CC8MN: fixes on dual-boot mode
+
+
+dub-2020.04-r5.6, released on 2022/11/29
+	- CC6UL: add support to SkyHigh NANDs
+
+
+dub-2020.04-r5.5, released on 2022/11/22
+	- TrustFence: improvements and fixes.
+	- CC6UL: fixes to support boot logo.
+	- CC6UL: fixes for some NAND chips.
+	- CC8MN: fix reset during update command.
+
+
 dub-2020.04-r5.4, released on 2022/06/21
 	- TrustFence: improvements and fixes.
 	- CC8X: disable unavailable GPIO banks 6 and 7.

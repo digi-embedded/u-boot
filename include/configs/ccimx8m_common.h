@@ -14,20 +14,7 @@
 #define DIGI_IMX_FAMILY
 #define CONFIG_DISPLAY_BOARDINFO_LATE
 
-#define CONFIG_SPL_MAX_SIZE		(208 * 1024)
-#define CONFIG_SYS_MONITOR_LEN		(512 * 1024)
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR	0x300
-#define CONFIG_SYS_UBOOT_BASE		(QSPI0_AMBA_BASE + CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512)
-
-#ifdef CONFIG_SPL_BUILD
-#define CONFIG_SPL_ABORT_ON_RAW_IMAGE /* For RAW image gives a error info not panic */
-#endif
-
-#define CONFIG_SERIAL_TAG
-#define CONFIG_FASTBOOT_USB_DEV 0
-
-#define CONFIG_REMAKE_ELF
+#define CFG_SYS_UBOOT_BASE		(QSPI0_AMBA_BASE + CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512)
 
 /* Lock Fuses */
 #define OCOTP_LOCK_BANK		0
@@ -74,32 +61,15 @@
 	DIGICMD_UPDATEFILE_BLOCK_ARGS_HELP "\n" \
 	DIGICMD_UPDATEFILE_RAM_ARGS_HELP
 
-/* Link Definitions */
-#define CONFIG_SYS_LOAD_ADDR		0x40480000
-
-#define CONFIG_SYS_INIT_RAM_ADDR        0x40000000
-#define CONFIG_SYS_INIT_RAM_SIZE        0x80000
-#define CONFIG_SYS_INIT_SP_OFFSET \
-        (CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
-#define CONFIG_SYS_INIT_SP_ADDR \
-        (CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
+#define CFG_SYS_INIT_RAM_ADDR		0x40000000
+#define CFG_SYS_INIT_RAM_SIZE		0x80000
+#define CFG_SYS_SDRAM_BASE		0x40000000
+#define PHYS_SDRAM			0x40000000
 
 /* MMC device and partition where U-Boot image is */
 #define EMMC_BOOT_ACK			1
 #define EMMC_BOOT_DEV			0
 #define EMMC_BOOT_PART			1
-
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		SZ_32M
-
-#define CONFIG_SYS_SDRAM_BASE           0x40000000
-#define PHYS_SDRAM                      0x40000000
-
-/* Monitor Command Prompt */
-#define CONFIG_SYS_PROMPT_HUSH_PS2     "> "
-#define CONFIG_SYS_CBSIZE              2048
-
-#define CONFIG_IMX_BOOTAUX
 
 /*
  * Trustfence configs
@@ -158,18 +128,6 @@
 /* MMC Configs */
 #define CONFIG_SUPPORT_MMC_ECSD
 
-#define CONFIG_SYS_I2C_SPEED		100000
-
-/* USB configs */
-#ifndef CONFIG_SPL_BUILD
-#define CONFIG_USBD_HS
-#endif
-
-#define CONFIG_USB_GADGET_VBUS_DRAW 2
-
-#define CONFIG_MXC_USB_PORTSC  (PORT_PTS_UTMI | PORT_PTS_PTW)
-#define CONFIG_USB_MAX_CONTROLLER_COUNT         2
-
 #ifdef CONFIG_DM_VIDEO
 #define CONFIG_VIDEO_MXS
 #define CONFIG_VIDEO_LOGO
@@ -185,9 +143,17 @@
 
 #define ALTBOOTCMD	\
 	"altbootcmd=" \
-	"if load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} altboot.scr; then " \
-		"source ${loadaddr};" \
-	"fi;\0"
+		"if test \"${dualboot}\" = yes; then " \
+			"if test \"${active_system}\" = linux_a; then " \
+				"setenv active_system linux_b;" \
+			"else " \
+				"setenv active_system linux_a;" \
+			"fi;" \
+			"saveenv;" \
+			"echo \"## System boot failed; Switching active partitions bank to ${active_system}...\";" \
+		"fi;" \
+		"bootcount reset;" \
+		"reset;\0"
 
 /* Pool of randomly generated UUIDs at host machine */
 #define RANDOM_UUIDS	\
@@ -239,6 +205,18 @@
 	"name=data,size=-,uuid=${part7_uuid};" \
 	"\""
 
+#define LINUX_32GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=linux,size=64MiB,uuid=${part1_uuid};" \
+	"name=recovery,size=64MiB,uuid=${part2_uuid};" \
+	"name=rootfs,size=14GiB,uuid=${part3_uuid};" \
+	"name=update,size=14GiB,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
+	"name=data,size=-,uuid=${part7_uuid};" \
+	"\""
+
 #define ANDROID_4GB_PARTITION_TABLE \
 	"\"uuid_disk=${uuid_disk};" \
 	"start=2MiB," \
@@ -270,6 +248,21 @@
 	"\""
 
 #define ANDROID_16GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=boot,size=32MiB,uuid=${part1_uuid};" \
+	"name=recovery,size=32MiB,uuid=${part2_uuid};" \
+	"name=system,size=2GiB,uuid=${part3_uuid};" \
+	"name=cache,size=2GiB,uuid=${part4_uuid};" \
+	"name=vendor,size=112MiB,uuid=${part5_uuid};" \
+	"name=datafooter,size=16MiB,uuid=${part6_uuid};" \
+	"name=safe,size=16MiB,uuid=${part7_uuid};" \
+	"name=frp,size=1MiB,uuid=${part8_uuid};" \
+	"name=metadata,size=16MiB,uuid=${part9_uuid};" \
+	"name=userdata,size=-,uuid=${part10_uuid};" \
+	"\""
+
+#define ANDROID_32GB_PARTITION_TABLE \
 	"\"uuid_disk=${uuid_disk};" \
 	"start=2MiB," \
 	"name=boot,size=32MiB,uuid=${part1_uuid};" \
@@ -320,11 +313,23 @@
 	"name=data,size=-,uuid=${part7_uuid};" \
 	"\""
 
+#define LINUX_DUALBOOT_32GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=linux_a,size=64MiB,uuid=${part1_uuid};" \
+	"name=linux_b,size=64MiB,uuid=${part2_uuid};" \
+	"name=rootfs_a,size=14GiB,uuid=${part3_uuid};" \
+	"name=rootfs_b,size=14GiB,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
+	"name=data,size=-,uuid=${part7_uuid};" \
+	"\""
+
 /* Partition defines */
 #define RECOVERY_PARTITION	"2"
 
 /* protected environment variables (besides ethaddr and serial#) */
-#define CONFIG_ENV_FLAGS_LIST_STATIC	\
+#define CFG_ENV_FLAGS_LIST_STATIC	\
 	"wlanaddr:mc,"			\
 	"wlan1addr:mc,"			\
 	"wlan2addr:mc,"			\

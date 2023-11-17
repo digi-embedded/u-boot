@@ -3,9 +3,9 @@
 usage() {
         cat <<EOF
 
-Usage: $(basename "$0") [OPTIONS]
+Usage: $(basename "$0")
 
-    -u,--uboot <u-boot directory>       u-boot build directory
+Generate bootloader for i.MX devices.
 
 EOF
 }
@@ -58,7 +58,7 @@ patch_atf_repo()
 		cd "${ATF_DIR}" || exit 1
 		for p in ${ATF_PATCHES}; do
 			echo "- Apply patch: ${p}"
-			patch -p1 < "${WORKSPACE}"/patch/ccimx93/"${p}" || exit 2
+			patch -p1 < "${BASEDIR}"/patch/ccimx93/"${p}" || exit 2
 		done
 	)
 }
@@ -72,6 +72,12 @@ build_atf()
 		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" bl31
 		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" BUILD_BASE=build-optee realclean
 		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" BUILD_BASE=build-optee SPD=opteed bl31
+
+		# Build ATF with workaround for SOC revision A0
+		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" SOC_REV_A0=1 BUILD_BASE=build-A0 realclean
+		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" SOC_REV_A0=1 BUILD_BASE=build-A0 bl31
+		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" SOC_REV_A0=1 BUILD_BASE=build-A0-optee realclean
+		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" SOC_REV_A0=1 BUILD_BASE=build-A0-optee SPD=opteed bl31
 	)
 }
 
@@ -103,7 +109,7 @@ patch_optee_repo()
 		cd "${OPTEE_DIR}" || exit 1
 		for p in ${OPTEE_PATCHES}; do
 			echo "- Apply patch: ${p}"
-			patch -p1 < "${WORKSPACE}"/patch/ccimx93/"${p}" || exit 2
+			patch -p1 < "${BASEDIR}"/patch/ccimx93/"${p}" || exit 2
 		done
 	)
 }
@@ -143,12 +149,29 @@ clone_mkimage_repo()
 	)
 }
 
+patch_mkimage_repo()
+{
+	if [ ! -d "${MKIMAGE_DIR}" ]; then
+		echo "- Missing imx-mkimage repository"
+		exit 1
+	fi
+
+	echo "- Patch imx-mkimage repository:"
+	(
+		cd "${MKIMAGE_DIR}" || exit 1
+		for p in ${MKIMAGE_PATCHES}; do
+			echo "- Apply patch: ${p}"
+			patch -p1 < "${BASEDIR}"/patch/ccimx93/"${p}" || exit 2
+		done
+	)
+}
+
 download_firmware_imx()
 {
 	[ -d "${FIRMWARE_IMX_DIR}" ] && { echo "- IMX firmware already downloaded"; return 0; }
 
 	(
-		cd "${WORKSPACE}" || { echo "download_firmware_imx: WORKSPACE not found"; exit 1; }
+		cd "${BASEDIR}" || { echo "download_firmware_imx: BASEDIR not found"; exit 1; }
 		if [ ! -f "${FIRMWARE_IMX}.bin" ]; then
 			if ! wget "${FIRMWARE_IMX_URL}"; then
 				echo "- Unable to download IMX firmware from ${FIRMWARE_IMX_URL}"
@@ -164,7 +187,7 @@ download_firmware_sentinel()
 	[ -d "${FIRMWARE_SENTINEL_DIR}" ] && { echo "- Sentinel firmware already downloaded"; return 0; }
 
 	(
-		cd "${WORKSPACE}" || { echo "download_firmware_sentinel: WORKSPACE not found"; exit 1; }
+		cd "${BASEDIR}" || { echo "download_firmware_sentinel: BASEDIR not found"; exit 1; }
 		if [ ! -f "${FIRMWARE_SENTINEL}.bin" ]; then
 			if ! wget "${FIRMWARE_SENTINEL_URL}"; then
 				echo "- Unable to download Sentinel firmware from ${FIRMWARE_SENTINEL_URL}"
@@ -177,6 +200,7 @@ download_firmware_sentinel()
 
 copy_artifacts_mkimage_folder()
 {
+	( cd "${MKIMAGE_DIR}" && git clean -ffdx )
 	echo "- Copy U-Boot binaries from ${UBOOT_DIR}"
 	if [ ! -d "${UBOOT_DIR}" ]; then
 		echo "- Missing u-boot directory: ${UBOOT_DIR}"
@@ -198,11 +222,13 @@ copy_artifacts_mkimage_folder()
 	)
 
 	# AHAB container
-	cp --remove-destination "${FIRMWARE_SENTINEL_DIR}"/mx93a0-ahab-container.img "${MKIMAGE_DIR}"/"${SOC}"
+	cp --remove-destination "${FIRMWARE_SENTINEL_DIR}"/mx93??-ahab-container.img "${MKIMAGE_DIR}"/"${SOC}"
 
 	# ATF
 	cp --remove-destination "${ATF_DIR}"/build/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_DIR}"/"${SOC}"/bl31-imx93.bin
 	cp --remove-destination "${ATF_DIR}"/build-optee/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_DIR}"/"${SOC}"/bl31-imx93.bin-optee
+	cp --remove-destination "${ATF_DIR}"/build-A0/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_DIR}"/"${SOC}"/bl31-imx93-A0.bin
+	cp --remove-destination "${ATF_DIR}"/build-A0-optee/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_DIR}"/"${SOC}"/bl31-imx93-A0.bin-optee
 
 	# OPTEE binary
 	cp --remove-destination "${OPTEE_DIR}"/build/core/tee-raw.bin "${MKIMAGE_DIR}"/"${SOC}"
@@ -214,70 +240,83 @@ build_imxboot()
 	mkdir -p "${OUTPUT_PATH}"
 
 	(
-		echo "- Build imx-boot binary for: ${SOC}"
-		${MAKE} SOC="${SOC}" clean
-		[ -f "${SOC}"/bl31-imx93.bin ] && ln -sf bl31-imx93.bin "${SOC}"/bl31.bin
-		${MAKE} SOC="${SOC}" flash_singleboot
-		cp --remove-destination "${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx93-dvk.bin
+		for rev in A0 A1; do
+			BL31_BIN="bl31-imx93.bin"
+			[ "${rev}" = "A0" ] && BL31_BIN="bl31-imx93-A0.bin"
 
-		echo "- Build imx-boot (OPTEE) binary for: ${SOC}"
-		${MAKE} SOC="${SOC}" clean
-		[ -f "${SOC}"/bl31-imx93.bin-optee ] && ln -sf bl31-imx93.bin-optee "${SOC}"/bl31.bin
-		[ -f "${SOC}"/tee-raw.bin ] && ln -sf tee-raw.bin "${SOC}"/tee.bin
-		${MAKE} SOC="${SOC}" flash_singleboot
-		cp --remove-destination "${MKIMAGE_DIR}"/"${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx93-dvk.bin-optee
+			echo "- Build imx-boot (NO-OPTEE) binary for: ${SOC} (${rev})"
+			${MAKE} SOC="${SOC}" REV="${rev}" clean
+			rm -f "${SOC}"/tee.bin "${SOC}"/bl31.bin
+			[ -f "${SOC}"/${BL31_BIN} ] && ln -sf ${BL31_BIN} "${SOC}"/bl31.bin
+			${MAKE} SOC="${SOC}" REV="${rev}" flash_singleboot
+			cp --remove-destination "${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx93-dvk-${rev}-nooptee.bin
+			cp --remove-destination "${SOC}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-ccimx93-dvk-${rev}-nooptee-flash_singleboot.log
+
+			echo "- Build imx-boot (OPTEE) binary for: ${SOC} (${rev})"
+			${MAKE} SOC="${SOC}" REV="${rev}" clean
+			rm -f "${SOC}"/tee.bin "${SOC}"/bl31.bin
+			[ -f "${SOC}"/${BL31_BIN}-optee ] && ln -sf ${BL31_BIN}-optee "${SOC}"/bl31.bin
+			[ -f "${SOC}"/tee-raw.bin ] && ln -sf tee-raw.bin "${SOC}"/tee.bin
+			${MAKE} SOC="${SOC}" REV="${rev}" flash_singleboot
+			cp --remove-destination "${MKIMAGE_DIR}"/"${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx93-dvk-${rev}.bin
+			cp --remove-destination "${SOC}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-ccimx93-dvk-${rev}-flash_singleboot.log
+		done
 	)
 }
 
 ##### Main
-WORKSPACE="$(cd "$(dirname "$0")" && pwd)"
+BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
-MKIMAGE_BRANCH="lf-6.1.22_2.0.0"
-# Tag: lf-6.1.22-2.0.0
-MKIMAGE_REV="5cfd218012e080fb907d9cc301fbb4ece9bc17a9"
-MKIMAGE_DIR="${WORKSPACE}/imx-mkimage"
+MKIMAGE_BRANCH="lf-6.1.36_2.1.0"
+# Tag: lf-6.1.36-2.1.0
+MKIMAGE_REV="5a0faefc223e51e088433663b6e7d6fbce89bf59"
+MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
+MKIMAGE_PATCHES=" \
+	mkimage/0001-imx9-soc.mak-capture-commands-output-into-a-log-file.patch \
+"
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
 ATF_BRANCH="lf_v2.8"
-# Tag: lf-6.1.22-2.0.0
-ATF_REV="99195a23d3aef485fb8f10939583b1bdef18881c"
-ATF_DIR="${WORKSPACE}/imx-atf"
+# Tag: lf-6.1.36-2.1.0
+ATF_REV="1a3beeab6484343a4bd0ee08e947d142db4a5ae6"
+ATF_DIR="${BASEDIR}/imx-atf"
 ATF_PATCHES=" \
 	atf/0001-imx8mm-Define-UART1-as-console-for-boot-stage.patch \
 	atf/0002-imx8mm-Disable-M4-debug-console.patch \
 	atf/0003-imx8mn-Define-UART1-as-console-for-boot-stage.patch \
 	atf/0004-imx8mn-Disable-M7-debug-console.patch \
 	atf/0005-ccimx93-use-UART6-for-the-default-console.patch \
+	atf/0006-imx93-bring-back-ELE-clock-workaround-for-soc-revisi.patch \
 "
 
 OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
-OPTEE_BRANCH="lf-6.1.22_2.0.0"
-# Tag: lf-6.1.22-2.0.0
-OPTEE_REV="1962aec9581760803b1485d455cd62cb11c14870"
-OPTEE_DIR="${WORKSPACE}/imx-optee-os"
+OPTEE_BRANCH="lf-6.1.36_2.1.0"
+# Tag: lf-6.1.36-2.1.0
+OPTEE_REV="4e32281904b15af9ddbdf00f73e1c08eae21c695"
+OPTEE_DIR="${BASEDIR}/imx-optee-os"
 OPTEE_PATCHES=" \
 	optee/0007-allow-setting-sysroot-for-clang.patch \
 	optee/0001-core-imx-support-ccimx93-dvk.patch \
 "
 
-FIRMWARE_IMX="firmware-imx-8.20"
-FIRMWARE_IMX_DIR="${WORKSPACE}/${FIRMWARE_IMX}"
+FIRMWARE_IMX="firmware-imx-8.21"
+FIRMWARE_IMX_DIR="${BASEDIR}/${FIRMWARE_IMX}"
 FIRMWARE_IMX_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_IMX}.bin"
 
-FIRMWARE_SENTINEL="firmware-sentinel-0.10"
-FIRMWARE_SENTINEL_DIR="${WORKSPACE}/${FIRMWARE_SENTINEL}"
+FIRMWARE_SENTINEL="firmware-sentinel-0.11"
+FIRMWARE_SENTINEL_DIR="${BASEDIR}/${FIRMWARE_SENTINEL}"
 FIRMWARE_SENTINEL_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_SENTINEL}.bin"
 
 SOC="iMX9"
 ATF_PLAT="imx93"
 
-OUTPUT_PATH="${WORKSPACE}/output"
+OUTPUT_PATH="${BASEDIR}/output"
+UBOOT_DIR="${UBOOT_DIR:-$(realpath "${BASEDIR}"/../..)}"
 
 # Parse command line arguments
 while [ "${1}" != "" ]; do
 	case ${1} in
-		-u|--uboot) shift; UBOOT_DIR="${1}";;
 		-h|--help) usage; exit 0;;
 		*) echo "[ERROR] Unknown option"; usage; exit 1;;
 	esac
@@ -298,5 +337,6 @@ clone_optee_repo
 patch_optee_repo
 build_optee
 clone_mkimage_repo
+patch_mkimage_repo
 copy_artifacts_mkimage_folder
 build_imxboot

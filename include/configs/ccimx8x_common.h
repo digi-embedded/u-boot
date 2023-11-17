@@ -15,53 +15,26 @@
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 8X"
 
 #ifdef CONFIG_SPL_BUILD
-#define CONFIG_SPL_MAX_SIZE				(192 * 1024)
-#define CONFIG_SYS_MONITOR_LEN				(1024 * 1024)
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR		0x1040 /* (32K + 2Mb)/sector_size */
-
+#define CFG_MALLOC_F_ADDR		0x00138000
 /*
  * 0x08081000 - 0x08180FFF is for m4_0 xip image,
  * So 3rd container image may start from 0x8181000
  */
-#define CONFIG_SYS_UBOOT_BASE 0x08181000
-
-#define CONFIG_SPL_LDSCRIPT		"arch/arm/cpu/armv8/u-boot-spl.lds"
-#define CONFIG_SPL_STACK		0x013fff0
-#define CONFIG_SPL_BSS_START_ADDR	0x00130000
-#define CONFIG_SPL_BSS_MAX_SIZE		0x1000	/* 4 KB */
-#define CONFIG_SYS_SPL_MALLOC_START	0x82200000
-#define CONFIG_SYS_SPL_MALLOC_SIZE	0x80000	/* 512 KB */
-#define CONFIG_SERIAL_LPUART_BASE	0x5a060000
-#define CONFIG_MALLOC_F_ADDR		0x00138000
-
-#define CONFIG_SPL_RAW_IMAGE_ARM_TRUSTED_FIRMWARE
-#define CONFIG_SPL_ABORT_ON_RAW_IMAGE
+#define CFG_SYS_UBOOT_BASE 0x08181000
 #endif /* CONFIG_SPL_BUILD */
 
-/* RAM */
-#define CONFIG_SYS_LOAD_ADDR		0x88280000
-#define CONFIG_SYS_INIT_SP_ADDR		0x88200000
-/* RAM memory reserved for U-Boot, stack, malloc pool... */
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		((CONFIG_ENV_SIZE + (32*1024)) * 1024)
-/* memtest */
 /* Physical Memory Map */
-#define CONFIG_SYS_SDRAM_BASE		0x80000000
+#define CFG_SYS_SDRAM_BASE		0x80000000
 #define PHYS_SDRAM_1			0x80000000
+#ifdef CONFIG_SPL
 /* SDRAM1 size is defined based on the HWID. Set here the default fallback value */
 #define PHYS_SDRAM_1_SIZE		SZ_512M
+#else
+#define PHYS_SDRAM_1_SIZE		(CONFIG_DDR_MB * (unsigned int)SZ_1M)
+#endif
 #define PHYS_SDRAM_2			0x880000000
 #define PHYS_SDRAM_2_SIZE		0
 #define PHYS_SDRAM			PHYS_SDRAM_1
-/*
- * 0x08081000 - 0x08180FFF is for m4_0 xip image,
- * So 3rd container image may start from 0x8181000
- */
-#define CONFIG_SYS_UBOOT_BASE 0x08181000
-
-#define CONFIG_OF_SYSTEM_SETUP
-#define CONFIG_NO_MAC_FROM_OTP
 
 /*
  * Trustfence configs
@@ -121,7 +94,7 @@
 #define CONFIG_TRUSTFENCE_CLOSE_BIT_OFFSET	0
 
 /* MMC Configs */
-#define CONFIG_SYS_FSL_ESDHC_ADDR       0
+#define CFG_SYS_FSL_ESDHC_ADDR       0
 #define USDHC1_BASE_ADDR                0x5B010000
 #define USDHC2_BASE_ADDR                0x5B020000
 #define CONFIG_SUPPORT_MMC_ECSD
@@ -139,7 +112,7 @@
 	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"
 
 /* protected environment variables (besides ethaddr and serial#) */
-#define CONFIG_ENV_FLAGS_LIST_STATIC	\
+#define CFG_ENV_FLAGS_LIST_STATIC	\
 	"eth1addr:mc,"			\
 	"wlanaddr:mc,"			\
 	"wlan1addr:mc,"			\
@@ -153,7 +126,7 @@
 
 /* Environment */
 /* On CC8X, USDHC1 is for eMMC, USDHC2 is for SD on SBC Express */
-#define CONFIG_SYS_FSL_USDHC_NUM	2
+#define CFG_SYS_FSL_USDHC_NUM	2
 
 /* MCA */
 #define BOARD_MCA_DEVICE_ID		0x4A
@@ -195,12 +168,6 @@
 	DIGICMD_UPDATEFILE_BLOCK_ARGS_HELP "\n" \
 	DIGICMD_UPDATEFILE_RAM_ARGS_HELP
 
-/* Monitor Command Prompt */
-#define CONFIG_SYS_PROMPT_HUSH_PS2     "> "
-#define CONFIG_SYS_CBSIZE              1024
-#define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + \
-					sizeof(CONFIG_SYS_PROMPT) + 16)
-
 #undef CONFIG_CMD_EXPORTENV
 #undef CONFIG_CMD_IMPORTENV
 #undef CONFIG_CMD_IMLS
@@ -212,9 +179,17 @@
 
 #define ALTBOOTCMD	\
 	"altbootcmd=" \
-	"if load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} altboot.scr; then " \
-		"source ${loadaddr};" \
-	"fi;\0"
+		"if test \"${dualboot}\" = yes; then " \
+			"if test \"${active_system}\" = linux_a; then " \
+				"setenv active_system linux_b;" \
+			"else " \
+				"setenv active_system linux_a;" \
+			"fi;" \
+			"saveenv;" \
+			"echo \"## System boot failed; Switching active partitions bank to ${active_system}...\";" \
+		"fi;" \
+		"bootcount reset;" \
+		"reset;\0"
 
 /* Pool of randomly generated UUIDs at host machine */
 #define RANDOM_UUIDS	\
@@ -266,6 +241,18 @@
 	"name=data,size=-,uuid=${part7_uuid};" \
 	"\""
 
+#define LINUX_32GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=linux,size=64MiB,uuid=${part1_uuid};" \
+	"name=recovery,size=64MiB,uuid=${part2_uuid};" \
+	"name=rootfs,size=14GiB,uuid=${part3_uuid};" \
+	"name=update,size=14GiB,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
+	"name=data,size=-,uuid=${part7_uuid};" \
+	"\""
+
 #define ANDROID_4GB_PARTITION_TABLE \
 	"\"uuid_disk=${uuid_disk};" \
 	"start=2MiB," \
@@ -311,6 +298,21 @@
 	"name=userdata,size=-,uuid=${part10_uuid};" \
 	"\""
 
+#define ANDROID_32GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=boot,size=32MiB,uuid=${part1_uuid};" \
+	"name=recovery,size=32MiB,uuid=${part2_uuid};" \
+	"name=system,size=2GiB,uuid=${part3_uuid};" \
+	"name=cache,size=2GiB,uuid=${part4_uuid};" \
+	"name=vendor,size=112MiB,uuid=${part5_uuid};" \
+	"name=datafooter,size=16MiB,uuid=${part6_uuid};" \
+	"name=safe,size=16MiB,uuid=${part7_uuid};" \
+	"name=frp,size=1MiB,uuid=${part8_uuid};" \
+	"name=metadata,size=16MiB,uuid=${part9_uuid};" \
+	"name=userdata,size=-,uuid=${part10_uuid};" \
+	"\""
+
 #define LINUX_DUALBOOT_4GB_PARTITION_TABLE \
 	"\"uuid_disk=${uuid_disk};" \
 	"start=2MiB," \
@@ -342,6 +344,18 @@
 	"name=linux_b,size=64MiB,uuid=${part2_uuid};" \
 	"name=rootfs_a,size=7GiB,uuid=${part3_uuid};" \
 	"name=rootfs_b,size=7GiB,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
+	"name=data,size=-,uuid=${part7_uuid};" \
+	"\""
+
+#define LINUX_DUALBOOT_32GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=linux_a,size=64MiB,uuid=${part1_uuid};" \
+	"name=linux_b,size=64MiB,uuid=${part2_uuid};" \
+	"name=rootfs_a,size=14GiB,uuid=${part3_uuid};" \
+	"name=rootfs_b,size=14GiB,uuid=${part4_uuid};" \
 	"name=safe,size=16MiB,uuid=${part5_uuid};" \
 	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
 	"name=data,size=-,uuid=${part7_uuid};" \

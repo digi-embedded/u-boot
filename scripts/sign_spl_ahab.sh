@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright 2021, Digi International Inc.
+# Copyright 2021-2023 Digi International Inc.
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,13 +21,17 @@
 #      CONFIG_SIGN_KEYS_PATH: [mandatory] path for the AHAB PKI tree.
 #      CONFIG_KEY_INDEX: [optional] key index to use. Default is 0.
 #      SRK_REVOKE_MASK: [optional], bitmask of the revoked SRKs.
+#      ENABLE_ENCRYPTION: (optional) enable encryption of the images.
+#      CONFIG_DEK_PATH: (mandatory if ENCRYPT is defined) path to a Data Encryption Key.
+#                       If defined, the signed U-Boot image is encrypted with the
+#                       given key. Supported key sizes: 128 bits.
 #      CONFIG_MKIMAGE_LOG_PATH: [optional] path to the mkimage log file.
 #
 
 # Avoid parallel execution of this script
 SINGLE_PROCESS_LOCK="/tmp/sign_script.lock.d"
 cleanup_and_exit() {
-	rm -f "${CSF_UBOOT_ATF}" "${CSF_UBOOT_SPL}" "${SRK_TABLE}" "${UBOOT_BIN_SIGNED_TMP}"
+	rm -f "${CSF_UBOOT_ATF}" "${CSF_UBOOT_SPL}" "${SRK_TABLE}" "${TARGET_TMP}"
 	rm -rf "${SINGLE_PROCESS_LOCK}"
 }
 trap 'cleanup_and_exit' INT TERM EXIT
@@ -67,6 +71,21 @@ fi
 [ -z "${CONFIG_KEY_INDEX}" ] && CONFIG_KEY_INDEX="0"
 CONFIG_KEY_INDEX_1="$((CONFIG_KEY_INDEX + 1))"
 
+# Get DEK key
+if [ -n "${CONFIG_DEK_PATH}" ] && [ -n "${ENABLE_ENCRYPTION}" ]; then
+	if [ ! -f "${CONFIG_DEK_PATH}" ]; then
+		echo "DEK not found. Generating random 256 bit DEK."
+		[ -d $(dirname ${CONFIG_DEK_PATH}) ] || mkdir -p $(dirname ${CONFIG_DEK_PATH})
+		dd if=/dev/urandom of="${CONFIG_DEK_PATH}" bs=32 count=1 >/dev/null 2>&1
+	fi
+	dek_size="$((8 * $(stat -L -c %s ${CONFIG_DEK_PATH})))"
+	if [ "${dek_size}" != "128" ] && [ "${dek_size}" != "192" ] && [ "${dek_size}" != "256" ]; then
+		echo "Invalid DEK size: ${dek_size} bits. Valid sizes are 128, 192 and 256 bits"
+		exit 1
+	fi
+	ENCRYPT="true"
+fi
+
 [ -z "${SRK_REVOKE_MASK}" ] && SRK_REVOKE_MASK="0x0"
 if [ "$((SRK_REVOKE_MASK & 0x8))" != 0 ]; then
 	echo "Key 3 cannot be revoked. Removed from mask."
@@ -93,7 +112,17 @@ fi
 # Generate SRK tables
 SRK_EFUSES="$(pwd)/SRK_efuses.bin"
 SRK_TABLE="$(pwd)/SRK_table.bin"
-if ! srktool -a -s sha512 -c "${SRK_KEYS}" -t "${SRK_TABLE}" -e "${SRK_EFUSES}"; then
+#
+# srktool v3.3.2 added a parameter to set the digest algorithm used to generate the SRK efuses hash.
+#
+#   -d, --digest <digestalg>:
+#       Message Digest algorithm.
+#           - sha512 (default): Supported in 8/8x devices
+#           - sha256: Supported in 8ULP/9x
+#
+# @TODO: CCIMX8X uses sha512 while CCIMX93 uses sha256. For the moment hardcode for the CCIMX93.
+#
+if ! srktool -a -d sha256 -s sha512 -c "${SRK_KEYS}" -t "${SRK_TABLE}" -e "${SRK_EFUSES}"; then
 	echo "[ERROR] Could not generate SRK tables"
 	exit 1
 fi
@@ -111,41 +140,69 @@ SPL_SIGNATURE_OFFSET="$(sed -ne '/^Output:[[:blank:]]\+flash\.bin/,$p' "${MKIMAG
 # steps for the second and third container. That's why we need an intermediate
 # (temporary) U-Boot image.
 UBOOT_BIN="$(readlink -e "${1}")"
-UBOOT_BIN_SIGNED="$(readlink -f "${2}")"
-UBOOT_BIN_SIGNED_TMP="$(mktemp -t "$(basename "${UBOOT_BIN}")".XXXXXX)"
+TARGET="$(readlink -f "${2}")"
+TARGET_TMP="$(mktemp -t "$(basename "${UBOOT_BIN}")".XXXXXX)"
 
-# Generate SPL container CSF descriptor
-CSF_UBOOT_SPL="csf_uboot_spl.txt"
-sed -e "s,%srk_table%,${SRK_TABLE},g" \
-	-e "s,%cert_img%,${CERT_SRK},g" \
-	-e "s,%key_index%,${CONFIG_KEY_INDEX},g" \
-	-e "s,%srk_rvk_mask%,$(to_hex "${SRK_REVOKE_MASK}"),g" \
-	-e "s,%u-boot-img%,${UBOOT_BIN},g" \
-	-e "s,%container_offset%,${SPL_HEADER_OFFSET},g" \
-	-e "s,%block_offset%,${SPL_SIGNATURE_OFFSET},g" \
-	"${SCRIPT_PATH}/csf_templates/sign_ahab_uboot" > "${CSF_UBOOT_SPL}"
+if [ "${ENCRYPT}" = "true" ]; then
+	# Generate SPL container CSF descriptor
+	CSF_UBOOT_SPL="csf_uboot_spl.txt"
+	sed -e "s,%srk_table%,${SRK_TABLE},g" \
+		-e "s,%cert_img%,${CERT_SRK},g" \
+		-e "s,%key_index%,${CONFIG_KEY_INDEX},g" \
+		-e "s,%srk_rvk_mask%,$(to_hex "${SRK_REVOKE_MASK}"),g" \
+		-e "s,%u-boot-img%,${UBOOT_BIN},g" \
+		-e "s,%container_offset%,${SPL_HEADER_OFFSET},g" \
+		-e "s,%block_offset%,${SPL_SIGNATURE_OFFSET},g" \
+		-e "s,%dek_len%,${dek_size},g" \
+		-e "s,%dek_path%,${CONFIG_DEK_PATH},g" \
+		"${SCRIPT_PATH}/csf_templates/encrypt_ahab_uboot" > "${CSF_UBOOT_SPL}"
 
-# Generate ATF container CSF descriptor
-CSF_UBOOT_ATF="csf_uboot_atf.txt"
-sed -e "s,%srk_table%,${SRK_TABLE},g" \
-	-e "s,%cert_img%,${CERT_SRK},g" \
-	-e "s,%key_index%,${CONFIG_KEY_INDEX},g" \
-	-e "s,%srk_rvk_mask%,$(to_hex "${SRK_REVOKE_MASK}"),g" \
-	-e "s,%u-boot-img%,${UBOOT_BIN_SIGNED_TMP},g" \
-	-e "s,%container_offset%,$(to_hex "$((ATF_CONTAINER_OFFSET*1024 + ATF_HEADER_OFFSET))"),g" \
-	-e "s,%block_offset%,$(to_hex "$((ATF_CONTAINER_OFFSET*1024 + ATF_SIGNATURE_OFFSET))"),g" \
-	"${SCRIPT_PATH}/csf_templates/sign_ahab_uboot" > "${CSF_UBOOT_ATF}"
+	# Generate ATF container CSF descriptor
+	CSF_UBOOT_ATF="csf_uboot_atf.txt"
+	sed -e "s,%srk_table%,${SRK_TABLE},g" \
+		-e "s,%cert_img%,${CERT_SRK},g" \
+		-e "s,%key_index%,${CONFIG_KEY_INDEX},g" \
+		-e "s,%srk_rvk_mask%,$(to_hex "${SRK_REVOKE_MASK}"),g" \
+		-e "s,%u-boot-img%,${TARGET_TMP},g" \
+		-e "s,%container_offset%,$(to_hex "$((ATF_CONTAINER_OFFSET*1024 + ATF_HEADER_OFFSET))"),g" \
+		-e "s,%block_offset%,$(to_hex "$((ATF_CONTAINER_OFFSET*1024 + ATF_SIGNATURE_OFFSET))"),g" \
+		-e "s,%dek_len%,${dek_size},g" \
+		-e "s,%dek_path%,${CONFIG_DEK_PATH},g" \
+		"${SCRIPT_PATH}/csf_templates/encrypt_ahab_uboot" > "${CSF_UBOOT_ATF}"
+else
+	# Generate SPL container CSF descriptor
+	CSF_UBOOT_SPL="csf_uboot_spl.txt"
+	sed -e "s,%srk_table%,${SRK_TABLE},g" \
+		-e "s,%cert_img%,${CERT_SRK},g" \
+		-e "s,%key_index%,${CONFIG_KEY_INDEX},g" \
+		-e "s,%srk_rvk_mask%,$(to_hex "${SRK_REVOKE_MASK}"),g" \
+		-e "s,%u-boot-img%,${UBOOT_BIN},g" \
+		-e "s,%container_offset%,${SPL_HEADER_OFFSET},g" \
+		-e "s,%block_offset%,${SPL_SIGNATURE_OFFSET},g" \
+		"${SCRIPT_PATH}/csf_templates/sign_ahab_uboot" > "${CSF_UBOOT_SPL}"
 
+	# Generate ATF container CSF descriptor
+	CSF_UBOOT_ATF="csf_uboot_atf.txt"
+	sed -e "s,%srk_table%,${SRK_TABLE},g" \
+		-e "s,%cert_img%,${CERT_SRK},g" \
+		-e "s,%key_index%,${CONFIG_KEY_INDEX},g" \
+		-e "s,%srk_rvk_mask%,$(to_hex "${SRK_REVOKE_MASK}"),g" \
+		-e "s,%u-boot-img%,${TARGET_TMP},g" \
+		-e "s,%container_offset%,$(to_hex "$((ATF_CONTAINER_OFFSET*1024 + ATF_HEADER_OFFSET))"),g" \
+		-e "s,%block_offset%,$(to_hex "$((ATF_CONTAINER_OFFSET*1024 + ATF_SIGNATURE_OFFSET))"),g" \
+		"${SCRIPT_PATH}/csf_templates/sign_ahab_uboot" > "${CSF_UBOOT_ATF}"
+fi
 # Sign SPL container
-if ! cst -i "${CSF_UBOOT_SPL}" -o "${UBOOT_BIN_SIGNED_TMP}" >/dev/null; then
+if ! cst -i "${CSF_UBOOT_SPL}" -o "${TARGET_TMP}" >/dev/null; then
 	echo "[ERROR] Could not sign SPL container"
 	exit 1
 fi
 
 # Sign ATF container
-if ! cst -i "${CSF_UBOOT_ATF}" -o "${UBOOT_BIN_SIGNED}" >/dev/null; then
+if ! cst -i "${CSF_UBOOT_ATF}" -o "${TARGET}" >/dev/null; then
 	echo "[ERROR] Could not sign ATF container"
 	exit 1
 fi
 
-echo "Signed image ready: ${UBOOT_BIN_SIGNED}"
+[ "${ENCRYPT}" = "true" ] && ENCRYPTED_MSG="and encrypted "
+echo "Signed ${ENCRYPTED_MSG}image ready: ${TARGET}"
