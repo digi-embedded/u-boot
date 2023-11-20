@@ -52,8 +52,6 @@
 #else
 # define CONFIG_ENV_PARTITION_SIZE	(1 * SZ_1M)
 #endif /* (CONFIG_DDR_MB == 1024) */
-/* The environment may use any good blocks within the "environment" partition */
-#define CONFIG_ENV_RANGE		CONFIG_ENV_PARTITION_SIZE
 
 /* Serial port */
 #define CONFIG_MXC_UART
