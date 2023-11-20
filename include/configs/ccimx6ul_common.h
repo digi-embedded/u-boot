@@ -107,11 +107,6 @@
 #define CONFIG_SUPPORT_EMMC_RPMB
 #define CONFIG_SUPPORT_MMC_ECSD
 
-/* Ethernet */
-#define CONFIG_FEC_MXC
-#define CONFIG_MII
-#define CONFIG_PHY_SMSC
-
 /* Extra network settings for second Ethernet */
 #define CONFIG_EXTRA_NETWORK_SETTINGS \
 	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"

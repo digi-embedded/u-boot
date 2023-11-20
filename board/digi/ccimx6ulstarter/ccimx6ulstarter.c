@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Digi International, Inc
+ * Copyright (C) 2016-2023 Digi International, Inc
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -142,104 +142,19 @@ struct i2c_pads_info i2c2_pad_info = {
 #endif
 
 #ifdef CONFIG_FEC_MXC
-/*
- * pin conflicts for fec1 and fec2, GPIO1_IO06 and GPIO1_IO07 can only
- * be used for ENET1 or ENET2, cannot be used for both.
- */
-static iomux_v3_cfg_t const fec1_pads[] = {
-	MX6_PAD_GPIO1_IO06__ENET1_MDIO | MUX_PAD_CTRL(MDIO_PAD_CTRL),
-	MX6_PAD_GPIO1_IO07__ENET1_MDC | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_TX_DATA0__ENET1_TDATA00 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_TX_DATA1__ENET1_TDATA01 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_TX_EN__ENET1_TX_EN | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_TX_CLK__ENET1_REF_CLK1 | MUX_PAD_CTRL(ENET_CLK_PAD_CTRL),
-	MX6_PAD_ENET1_RX_DATA0__ENET1_RDATA00 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_RX_DATA1__ENET1_RDATA01 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_RX_ER__ENET1_RX_ER | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_RX_EN__ENET1_RX_EN | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	/*
-	 * GPIO3_IO2 is used as PHY reset in Starter Board v1 and as PHY power
-	 * enable on Starter Board v2
-	 */
-	MX6_PAD_LCD_HSYNC__GPIO3_IO02 | MUX_PAD_CTRL(NO_PAD_CTRL),
-};
-
-static void setup_iomux_fec(void)
+void reset_phy(void)
 {
-	imx_iomux_v3_setup_multiple_pads(fec1_pads, ARRAY_SIZE(fec1_pads));
-}
-#endif
+	int reset;
 
-static void setup_iomux_uart(void)
-{
-	imx_iomux_v3_setup_multiple_pads(uart5_pads, ARRAY_SIZE(uart5_pads));
-}
-
-#ifdef CONFIG_FSL_ESDHC_IMX
-static struct fsl_esdhc_cfg usdhc_cfg[] = {
-	{USDHC2_BASE_ADDR, 0, 4},
-};
-
-int board_mmc_getcd(struct mmc *mmc)
-{
-	/* CD not connected. Assume microSD card present */
-	return 1;
-}
-
-int board_mmc_init(struct bd_info *bis)
-{
-	int i, ret;
-
-	/*
-	 * According to the board_mmc_init() the following map is done:
-	 * (U-boot device node)    (Physical Port)
-	 * mmc0                    USDHC2
-	 */
-	for (i = 0; i < CFG_SYS_FSL_USDHC_NUM; i++) {
-		switch (i) {
-		case 0:
-			imx_iomux_v3_setup_multiple_pads(
-				usdhc2_pads, ARRAY_SIZE(usdhc2_pads));
-			usdhc_cfg[0].sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
-			break;
-		default:
-			printf("Warning: you configured more USDHC controllers"
-				"(%d) than supported by the board\n", i + 1);
-			return -EINVAL;
-		}
-
-		ret = fsl_esdhc_initialize(bis, &usdhc_cfg[i]);
-		if (ret) {
-			printf("Warning: failed to initialize mmc dev %d\n", i);
-		}
-	}
-
-	return 0;
-}
-#endif /* CONFIG_FSL_ESDHC_IMX */
-
-#ifdef CONFIG_FEC_MXC
-void reset_phy()
-{
 	/*
 	 * The reset line must be held low for a minimum of 100usec and cannot
 	 * be deasserted before 25ms have passed since the power supply has
 	 * reached 80% of the operating voltage. At this point of the code
 	 * we can assume the second premise is already accomplished.
 	 */
-	if (board_version == 1) {
-		int phy_reset_gpio = IMX_GPIO_NR(3, 2);
-
-		/* Assert PHY reset (low) */
-		gpio_request(phy_reset_gpio, "ENET PHY Reset");
-		gpio_direction_output(phy_reset_gpio , 0);
-		udelay(100);
-		/* Deassert PHY reset (high) */
-		gpio_set_value(phy_reset_gpio, 1);
-	} else {
+	if (CONFIG_FEC_ENET_DEV == 0) {
 		/* MCA_IO7 is connected to PHY reset */
-		int reset = (1 << 7);
-
+		reset = (1 << 7);
 		/* Configure as output */
 		mca_update_bits(MCA_GPIO_DIR_0, reset, reset);
 		/* Assert PHY reset (low) */
@@ -247,19 +162,23 @@ void reset_phy()
 		udelay(100);
 		/* Deassert PHY reset (high) */
 		mca_update_bits(MCA_GPIO_DATA_0, reset, reset);
+	} else if (CONFIG_FEC_ENET_DEV == 1) {
+		/* CPU GPIO5_6 is connected to PHY reset */
+		reset = IMX_GPIO_NR(5, 6);
+		/* Assert PHY reset (low) */
+		gpio_request(reset, "ENET PHY Reset");
+		gpio_direction_output(reset, 0);
+		udelay(100);
+		/* Deassert PHY reset (high) */
+		gpio_set_value(reset, 1);
 	}
 }
 
-int board_eth_init(struct bd_info *bis)
+int board_phy_config(struct phy_device *phydev)
 {
-	int ret;
-
-	setup_iomux_fec();
-
-	ret = fecmxc_initialize_multi(bis, CONFIG_FEC_ENET_DEV,
-		CONFIG_FEC_MXC_PHYADDR, IMX_FEC_BASE);
-	if (ret)
-		printf("FEC%d MXC: %s:failed\n", CONFIG_FEC_ENET_DEV, __func__);
+	if (phydev->drv->config) {
+		phydev->drv->config(phydev);
+	}
 
 	reset_phy();
 
@@ -268,37 +187,33 @@ int board_eth_init(struct bd_info *bis)
 
 static int setup_fec(int fec_id)
 {
-	struct iomuxc_gpr_base_regs *const iomuxc_gpr_regs
-		= (struct iomuxc_gpr_base_regs *) IOMUXC_GPR_BASE_ADDR;
+	struct iomuxc *const iomuxc_regs = (struct iomuxc *)IOMUXC_BASE_ADDR;
 	int ret;
 
-	if (board_version != 1) {
-		/* Enable PHY power */
-		int phy_power_gpio = IMX_GPIO_NR(3, 2);
-
-		gpio_request(phy_power_gpio, "ENET PHY power enable");
-		gpio_direction_output(phy_power_gpio , 1);
-	}
-
-	if (0 == fec_id) {
-		if (check_module_fused(MODULE_ENET1))
-			return -1;
-
-		/* Use 50M anatop loopback REF_CLK1 for ENET1, clear gpr1[13], set gpr1[17]*/
-		clrsetbits_le32(&iomuxc_gpr_regs->gpr[1], IOMUX_GPR1_FEC1_MASK,
-				IOMUX_GPR1_FEC1_CLOCK_MUX1_SEL_MASK);
-	} else {
-		if (check_module_fused(MODULE_ENET2))
-			return -1;
-
-		/* Use 50M anatop loopback REF_CLK2 for ENET2, clear gpr1[14], set gpr1[18]*/
-		clrsetbits_le32(&iomuxc_gpr_regs->gpr[1], IOMUX_GPR1_FEC2_MASK,
+	/*
+	 * Use 50M anatop loopback REF_CLK1 for ENET1,
+	 * clear gpr1[13], set gpr1[17].
+	 */
+	clrsetbits_le32(&iomuxc_regs->gpr[1], IOMUX_GPR1_FEC1_MASK,
+			IOMUX_GPR1_FEC1_CLOCK_MUX1_SEL_MASK);
+	/*
+	 * Use 50M anatop loopback REF_CLK2 for ENET2,
+	 * clear gpr1[14], set gpr1[18].
+	 */
+	if (!check_module_fused(MODULE_ENET1)) {
+		clrsetbits_le32(&iomuxc_regs->gpr[1], IOMUX_GPR1_FEC2_MASK,
 				IOMUX_GPR1_FEC2_CLOCK_MUX1_SEL_MASK);
 	}
 
-	ret = enable_fec_anatop_clock(fec_id, ENET_50MHZ);
+	ret = enable_fec_anatop_clock(0, ENET_50MHZ);
 	if (ret)
 		return ret;
+
+	if (!check_module_fused(MODULE_ENET2)) {
+		ret = enable_fec_anatop_clock(1, ENET_50MHZ);
+		if (ret)
+			return ret;
+	}
 
 	enable_enet_clk(1);
 
