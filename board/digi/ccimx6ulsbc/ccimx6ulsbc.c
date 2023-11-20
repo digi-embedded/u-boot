@@ -26,14 +26,12 @@
 #include <env.h>
 #include <fsl_esdhc_imx.h>
 #include <i2c.h>
-#include <lcd.h>
 #include <linux/delay.h>
 #include <linux/sizes.h>
 #include <linux/fb.h>
 #include <malloc.h>
 #include <miiphy.h>
 #include <mmc.h>
-#include <mxsfb.h>
 #include <netdev.h>
 #include <usb.h>
 #include <usb/ehci-ci.h>
