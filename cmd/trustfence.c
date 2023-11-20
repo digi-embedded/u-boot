@@ -606,7 +606,7 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 	const char *op;
 	int confirmed = argc >= 3 && !strcmp(argv[2], "-y");
 	u32 val[2], addr;
-	int ret = -1, i = 0;
+	int ret = -1;
 	struct load_fw fwinfo;
 
 	if (argc < 2)
