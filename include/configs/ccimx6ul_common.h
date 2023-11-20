@@ -293,8 +293,7 @@
 					"fi"
 
 #define CONFIG_NAND_NAME                "gpmi-nand"
-#define MTDIDS_DEFAULT                  "nand0=" CONFIG_NAND_NAME
-#define CONFIG_ENV_MTD_SETTINGS		"mtdids=" MTDIDS_DEFAULT "\0"
+#define CONFIG_ENV_MTD_SETTINGS		"mtdids=" CONFIG_MTDIDS_DEFAULT "\0"
 /* Previous offset locations for the environment */
 #define OLD_ENV_OFFSET_1		(3 * SZ_1M)
 #define OLD_ENV_OFFSET_2		(5 * SZ_1M)
