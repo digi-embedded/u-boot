@@ -220,14 +220,28 @@ static int do_dboot(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv
 	strncpy(fwinfo.loadaddr, "$loadaddr", sizeof(fwinfo.loadaddr));
 	strncpy(fwinfo.lzipaddr, "$lzipaddr", sizeof(fwinfo.lzipaddr));
 
-	ret = load_firmware(&fwinfo, "\n## Loading kernel");
-	if (ret == LDFW_ERROR) {
-		printf("Error loading firmware file to RAM\n");
-		return CMD_RET_FAILURE;
+	/* Get type of kernel image to boot */
+	var = env_get("dboot_kernel_var");
+
+	/* Skip loading of image if it's a FIT image that's already loaded */
+	if (!strcmp(var, "fitimage") &&
+	    (env_get_yesno("temp-fitimg-loaded") == 1)) {
+		/* clear temp variable */
+		printf("Skip re-loading of FIT image\n");
+		env_set("temp-fitimg-loaded", "");
+	} else {
+		char msg[256];
+
+		sprintf(msg, "\n## Loading %s",
+			strcmp(var, "fitimage") ? "kernel" : "fitImage");
+		ret = load_firmware(&fwinfo, msg);
+		if (ret == LDFW_ERROR) {
+			printf("Error loading firmware file to RAM\n");
+			return CMD_RET_FAILURE;
+		}
 	}
 
-	/* skip if fit image */
-	var = env_get("dboot_kernel_var");
+	/* Avoid loading other artifacts if it's a FIT image */
 	if (strcmp(var, "fitimage")) {
 		/* Get flattened Device Tree */
 		var = env_get("boot_fdt");
