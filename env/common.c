@@ -306,10 +306,11 @@ int env_set_default_vars(int nvars, char * const vars[], int flags)
 #include <u-boot/md5.h>
 #include <asm/mach-imx/hab.h>
 #include "../board/digi/common/trustfence.h"
+#include <fsl_sec.h>
 #if defined(CONFIG_ARCH_MX6) || defined(CONFIG_ARCH_MX7) || \
 	defined(CONFIG_ARCH_MX7ULP) || defined(CONFIG_ARCH_IMX8M)
-#include <fsl_sec.h>
 #include <asm/arch/clock.h>
+#endif
 
 static int env_aes_cbc_crypt(env_t *env, const int enc)
 {
@@ -344,12 +345,15 @@ static int env_aes_cbc_crypt(env_t *env, const int enc)
 	}
 	memcpy(src_ptr, data, ENV_SIZE);
 
+#if defined(CONFIG_ARCH_MX6) || defined(CONFIG_ARCH_MX7) || \
+	defined(CONFIG_ARCH_MX7ULP) || defined(CONFIG_ARCH_IMX8M)
 	hab_caam_clock_enable(1);
 
-	u32 out_jr_size = sec_in32(CONFIG_SYS_FSL_JR0_ADDR +
+	u32 out_jr_size = sec_in32(CFG_SYS_FSL_JR0_ADDR +
 				   FSL_CAAM_ORSR_JRa_OFFSET);
 	if (out_jr_size != FSL_CAAM_MAX_JR_SIZE)
 		sec_init();
+#endif
 
 	if (enc)
 		ret = blob_encap(key_mod, src_ptr, dst_ptr, ENV_SIZE - BLOB_OVERHEAD, 0);
@@ -369,45 +373,6 @@ freekm:
 	free(key_mod);
 	return ret;
 }
-#else /* CONFIG_ARCH_IMX8 */
-#include <fsl_caam.h>
-
-static int env_aes_cbc_crypt(env_t *env, const int enc)
-{
-	unsigned char *data = env->data;
-	unsigned char *buffer;
-	int ret = 0;
-	unsigned char key_modifier[KEY_MODIFER_SIZE] = {0};
-
-	if (!imx_hab_is_enabled())
-		return 0;
-
-	ret = get_trustfence_key_modifier(key_modifier);
-	if (ret)
-		return ret;
-
-	caam_open();
-	buffer = malloc(ENV_SIZE);
-	if (!buffer) {
-		debug("Not enough memory for en/de-cryption buffer");
-		return -ENOMEM;
-	}
-
-	if (enc)
-		ret = caam_gen_blob((ulong)data, (ulong)buffer, key_modifier, ENV_SIZE - BLOB_OVERHEAD);
-	else
-		ret = caam_decap_blob((ulong)buffer, (ulong)data, key_modifier, ENV_SIZE - BLOB_OVERHEAD);
-
-	if (ret)
-		goto err;
-
-	memcpy(data, buffer, ENV_SIZE);
-
-err:
-	free(buffer);
-	return ret;
-}
-#endif /* CONFIG_ARCH_IMX8 */
 #else
 static inline int env_aes_cbc_crypt(env_t *env, const int enc)
 {
