@@ -31,11 +31,6 @@
 #undef CONFIG_DM_PMIC
 #undef CONFIG_DM_PMIC_PFUZE100
 
-#define CONFIG_POWER
-#define CONFIG_POWER_I2C
-#define CONFIG_POWER_BD71837
-#define CONFIG_POWER_PCA9450
-
 #define CONFIG_SYS_I2C
 
 #endif
@@ -43,17 +38,13 @@
 #define EMMC_BOOT_PART_OFFSET		(32 * SZ_1K)
 
 /* Serial */
-#define CONFIG_MXC_UART
-#define CONFIG_MXC_UART_BASE		UART1_BASE_ADDR
+#define CFG_MXC_UART_BASE	UART1_BASE_ADDR
 #define CONSOLE_DEV			"ttymxc0"
-#define EARLY_CONSOLE			"ec_imx6q,0x30860000"
-#define CONFIG_BAUDRATE			115200
+#define EARLY_CONSOLE		"ec_imx6q,0x30860000"
 
 /* ENET Config */
 /* ENET1 */
 #if defined(CONFIG_FEC_MXC)
-#define CONFIG_MII
-#define CONFIG_ETHPRIME                 "FEC"
 #define PHY_ANEG_TIMEOUT 20000
 
 #define CONFIG_FEC_XCV_TYPE             RGMII
