@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
 /*
  * Copyright (C) STMicroelectronics 2019 - All Rights Reserved
- * Copyright (C) 2022, Digi International Inc - All Rights Reserved
+ * Copyright (C) 2022,2023 Digi International Inc - All Rights Reserved
  */
-/dts-v1/;
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
