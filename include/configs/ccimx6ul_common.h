@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2023 Digi International, Inc.
+ * Copyright (C) 2016-2024 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * Configuration settings for the Digi ConnecCore 6UL System-On-Module.
@@ -47,11 +47,6 @@
 #define CCIMX6ULSTARTER_ID129	129
 #define CCIMX6ULSBC_ID135	135
 #define CCIMX6ULSBC_ID136	136
-
-/*
- * Trustfence configs
- */
-#define CONFIG_HAS_TRUSTFENCE
 
 /* Secure boot configs */
 #define CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS		3

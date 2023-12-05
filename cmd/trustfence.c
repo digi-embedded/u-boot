@@ -343,7 +343,7 @@ err:
 __weak int close_device(int confirmed) { return -1; }
 #endif
 
-#if 0 /* CCIMX93_NOT_SUPPORTED */
+#ifdef CONFIG_TRUSTFENCE_JTAG
 __weak void board_print_trustfence_jtag_mode(u32 *sjc)
 {
 	u32 sjc_mode;
@@ -381,7 +381,7 @@ __weak void board_print_trustfence_jtag_key(u32 *sjc)
 	/* Formatted printout */
 	printf("    Secure JTAG response Key: 0x%x%x\n", sjc[1], sjc[0]);
 }
-#endif /* CCIMX93_NOT_SUPPORTED */
+#endif /* CONFIG_TRUSTFENCE_JTAG */
 
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
 /*
@@ -749,7 +749,7 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 		printf("* Secure boot:\t\t%s", imx_hab_is_enabled() ?
 		       "[CLOSED]\n" : "[OPEN]\n");
 		trustfence_status();
-#if 0 /* CCIMX93_NOT_SUPPORTED */
+#ifdef CONFIG_TRUSTFENCE_UPDATE
 	} else if (!strcmp(op, "update")) {
 		char cmd_buf[CONFIG_SYS_CBSIZE];
 		unsigned long loadaddr = env_get_ulong("loadaddr", 16,
@@ -1035,8 +1035,11 @@ tf_update_out:
 			printf("Operation failed!\n");
 			return CMD_RET_FAILURE;
 		}
+#endif /* CONFIG_TRUSTFENCE_UPDATE */
+#ifdef CONFIG_TRUSTFENCE_JTAG
 	} else if (!strcmp(op, "jtag")) {
 		char jtag_op[15];
+		int i;
 		u32 bank = CONFIG_TRUSTFENCE_JTAG_MODE_BANK;
 		u32 word = CONFIG_TRUSTFENCE_JTAG_MODE_START_WORD;
 		if (!strcmp(argv[0], "read")) {
@@ -1170,7 +1173,7 @@ tf_update_out:
 		} else {
 			return CMD_RET_USAGE;
 		}
-#endif /* CCIMX93_NOT_SUPPORTED */
+#endif /* CONFIG_TRUSTFENCE_JTAG */
 	} else {
 		printf("[ERROR]\n");
 		return CMD_RET_USAGE;
@@ -1196,7 +1199,7 @@ U_BOOT_CMD(
 #elif defined(CONFIG_AHAB_BOOT)
 	"trustfence revoke [-y] - revoke one or more Super Root Keys as per the SRK_REVOKE_MASK given at build time in the CSF (PERMANENT)\n"
 #endif
-#if 0 /* CCIMX93_NOT_SUPPORTED */
+#ifdef CONFIG_TRUSTFENCE_UPDATE
 	"trustfence update <source> [extra-args...]\n"
 	" Description: flash an encrypted U-Boot image.\n"
 	" Arguments:\n"
@@ -1217,7 +1220,8 @@ U_BOOT_CMD(
 	" Note: the DEK arguments are optional if the current U-Boot is encrypted.\n"
 	"       If skipped, the current DEK will be re-used\n"
 	"\n"
-#if defined(CONFIG_MX6)
+#endif /* CONFIG_TRUSTFENCE_UPDATE */
+#ifdef CONFIG_TRUSTFENCE_JTAG
 	"WARNING: These commands (except 'status' and 'update') burn the eFuses.\n"
 	"They are irreversible and could brick your device.\n"
 	"Make sure you know what you do before playing with this command.\n"
@@ -1243,6 +1247,5 @@ U_BOOT_CMD(
 	"trustfence jtag [-y] lock - lock Secure JTAG mode and disable JTAG interface "
 				"OTP bits (PERMANENT)\n"
 	"trustfence jtag [-y] lock_key - lock Secure JTAG key OTP bits (PERMANENT)\n"
-#endif
-#endif /* CCIMX93_NOT_SUPPORTED */
+#endif /* CONFIG_TRUSTFENCE_JTAG */
 );

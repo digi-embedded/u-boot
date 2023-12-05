@@ -1,14 +1,18 @@
 config CC93
 	bool
+	select HAS_TRUSTFENCE
 
 config CC8M
 	bool
+	select HAS_TRUSTFENCE
 
 config CC8X
 	bool
+	select HAS_TRUSTFENCE
 
 config CC6UL
 	bool
+	select HAS_TRUSTFENCE
 
 config MCA
 	bool "Support for the Micro Controller Assist (MCA)"
@@ -149,3 +153,18 @@ config DIGI_FAMILY_ID
 	default 4 if CCMP1
 	default 5 if CC93
 	default 0
+
+config HAS_TRUSTFENCE
+	bool
+
+config TRUSTFENCE_UPDATE
+	bool
+	depends on HAS_TRUSTFENCE
+	default y if CC6UL
+	default y if CC8M
+	default y if CC8X
+
+config TRUSTFENCE_JTAG
+	bool
+	depends on HAS_TRUSTFENCE
+	default y if CC6UL

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Digi International Inc
+ * Copyright 2022-2024 Digi International Inc
  *
  * SPDX-License-Identifier:    GPL-2.0+
  */
@@ -66,11 +66,6 @@
 #define CFG_SYS_SDRAM_BASE		0x80000000
 #define PHYS_SDRAM			0x80000000
 #define PHYS_SDRAM_SIZE			0x40000000  /* 1GB DDR */
-
-/*
- * Trustfence configs
- */
-#define CONFIG_HAS_TRUSTFENCE
 
 #define CONFIG_TRUSTFENCE_SRK_BANK			16
 #define CONFIG_TRUSTFENCE_SRK_WORDS			8
