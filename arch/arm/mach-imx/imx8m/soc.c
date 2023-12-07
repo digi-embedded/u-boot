@@ -260,10 +260,23 @@ int dram_init(void)
 		return ret;
 
 	/* rom_pointer[1] contains the size of TEE occupies */
-	if (!IS_ENABLED(CONFIG_ARMV8_PSCI) && rom_pointer[1])
+	if (!IS_ENABLED(CONFIG_ARMV8_PSCI) && rom_pointer[1]) {
 		gd->ram_size = sdram_size - rom_pointer[1];
-	else
+#ifdef AUTODETECT_RAM_SIZE
+		/*
+		 * The optee start address is hardcoded at build time, but we
+		 * want it to be recalculated basing on real RAM size detected
+		 * by U-Boot.
+		 * Dynamically change the optee start address (rom_pointer[0])
+		 * as: base_addr + sdram_size - opteee size (rom_pointer[1]).
+		 * I.e. optee is a the end of the RAM.
+		 */
+		rom_pointer[0] = CFG_SYS_SDRAM_BASE + sdram_size -
+				rom_pointer[1];
+#endif
+	} else {
 		gd->ram_size = sdram_size;
+	}
 
 	return 0;
 }
