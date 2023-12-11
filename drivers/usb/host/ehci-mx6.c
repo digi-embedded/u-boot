@@ -631,8 +631,8 @@ err_regulator:
 #if CONFIG_IS_ENABLED(DM_REGULATOR)
 	if (priv->vbus_supply)
 		regulator_set_enable(priv->vbus_supply, false);
-#endif
 err_phy:
+#endif
 #if CONFIG_IS_ENABLED(PHY) && !defined(CONFIG_IMX8)
 	generic_shutdown_phy(&priv->phy);
 #endif
