@@ -29,7 +29,6 @@
 #include <linux/fb.h>
 #include <miiphy.h>
 #include <mmc.h>
-#include <mxsfb.h>
 #include <netdev.h>
 #include <usb.h>
 #include <usb/ehci-ci.h>
@@ -140,6 +139,77 @@ struct i2c_pads_info i2c2_pad_info = {
 	},
 };
 #endif
+
+static void setup_iomux_uart(void)
+{
+	imx_iomux_v3_setup_multiple_pads(uart5_pads, ARRAY_SIZE(uart5_pads));
+}
+
+#ifdef CONFIG_FSL_ESDHC_IMX
+static struct fsl_esdhc_cfg usdhc_cfg[] = {
+	{USDHC2_BASE_ADDR, 0, 4},
+};
+
+int mmc_get_env_devno(void)
+{
+	u32 soc_sbmr = readl(SRC_BASE_ADDR + 0x4);
+	int dev_no;
+	u32 bootsel;
+
+	bootsel = (soc_sbmr & 0x000000FF) >> 6 ;
+
+	/* If not boot from sd/mmc, use default value */
+	if (bootsel != 1)
+		return CONFIG_SYS_MMC_ENV_DEV;
+
+	/* BOOT_CFG2[3] and BOOT_CFG2[4] */
+	dev_no = (soc_sbmr & 0x00001800) >> 11;
+
+#if CONFIG_IS_ENABLED(IMX_MODULE_FUSE)
+	if (dev_no == 1 && esdhc_fused(USDHC1_BASE_ADDR))
+		dev_no = 0;
+#endif
+
+	return dev_no;
+}
+
+int board_mmc_getcd(struct mmc *mmc)
+{
+	/* CD not connected. Assume microSD card present */
+	return 1;
+}
+
+int board_mmc_init(struct bd_info *bis)
+{
+	int i, ret;
+
+	/*
+	 * According to the board_mmc_init() the following map is done:
+	 * (U-boot device node)    (Physical Port)
+	 * mmc0                    USDHC2
+	 */
+	for (i = 0; i < CFG_SYS_FSL_USDHC_NUM; i++) {
+		switch (i) {
+		case 0:
+			imx_iomux_v3_setup_multiple_pads(
+				usdhc2_pads, ARRAY_SIZE(usdhc2_pads));
+			usdhc_cfg[0].sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
+			break;
+		default:
+			printf("Warning: you configured more USDHC controllers"
+				"(%d) than supported by the board\n", i + 1);
+			return -EINVAL;
+		}
+
+		ret = fsl_esdhc_initialize(bis, &usdhc_cfg[i]);
+		if (ret) {
+			printf("Warning: failed to initialize mmc dev %d\n", i);
+		}
+	}
+
+	return 0;
+}
+#endif /* CONFIG_FSL_ESDHC_IMX */
 
 #ifdef CONFIG_FEC_MXC
 void reset_phy(void)
