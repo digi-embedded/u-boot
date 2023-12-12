@@ -99,6 +99,7 @@ struct bd_info;
 #define is_imx93() (is_cpu_type(MXC_CPU_IMX93) || is_cpu_type(MXC_CPU_IMX9331) || \
 	is_cpu_type(MXC_CPU_IMX9332) || is_cpu_type(MXC_CPU_IMX9351) || is_cpu_type(MXC_CPU_IMX9322) || \
 	is_cpu_type(MXC_CPU_IMX9321) || is_cpu_type(MXC_CPU_IMX9312) || is_cpu_type(MXC_CPU_IMX9311) || \
+	is_cpu_type(MXC_CPU_IMX9302) || is_cpu_type(MXC_CPU_IMX9301) || \
 	is_cpu_type(MXC_CPU_IMX91P3) || is_cpu_type(MXC_CPU_IMX91P1) || is_cpu_type(MXC_CPU_IMX91P0))
 #define is_imx9352() (is_cpu_type(MXC_CPU_IMX93))
 #define is_imx9351() (is_cpu_type(MXC_CPU_IMX9351))
@@ -108,6 +109,8 @@ struct bd_info;
 #define is_imx9321() (is_cpu_type(MXC_CPU_IMX9321))
 #define is_imx9312() (is_cpu_type(MXC_CPU_IMX9312))
 #define is_imx9311() (is_cpu_type(MXC_CPU_IMX9311))
+#define is_imx9302() (is_cpu_type(MXC_CPU_IMX9302))
+#define is_imx9301() (is_cpu_type(MXC_CPU_IMX9301))
 #define is_imx91p3() (is_cpu_type(MXC_CPU_IMX91P3))
 #define is_imx91p1() (is_cpu_type(MXC_CPU_IMX91P1))
 #define is_imx91p0() (is_cpu_type(MXC_CPU_IMX91P0))
