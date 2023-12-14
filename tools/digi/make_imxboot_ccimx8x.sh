@@ -184,9 +184,9 @@ build_imxboot()
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
-MKIMAGE_BRANCH="lf-6.1.36_2.1.0"
-# Tag: lf-6.1.36-2.1.0
-MKIMAGE_REV="5a0faefc223e51e088433663b6e7d6fbce89bf59"
+MKIMAGE_BRANCH="lf-6.1.55_2.2.0"
+# Tag: lf-6.1.55-2.2.0
+MKIMAGE_REV="c4365450fb115d87f245df2864fee1604d97c06a"
 MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
 MKIMAGE_PATCHES=" \
 	mkimage/0001-iMX8QX-soc.mak-capture-commands-output-into-a-log-fi.patch \
@@ -194,15 +194,15 @@ MKIMAGE_PATCHES=" \
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
 ATF_BRANCH="lf_v2.8"
-# Tag: lf-6.1.36-2.1.0
-ATF_REV="1a3beeab6484343a4bd0ee08e947d142db4a5ae6"
+# Tag: lf-6.1.55-2.2.0
+ATF_REV="08e9d4eef2262c0dd072b4325e8919e06d349e02"
 ATF_DIR="${BASEDIR}/imx-atf"
 
 DIGI_SC_FW="digi-sc-firmware-1.15.0"
 DIGI_SC_FW_DIR="${BASEDIR}/${DIGI_SC_FW}"
 DIGI_SC_FW_URL="https://ftp1.digi.com/support/digiembeddedyocto/source/${DIGI_SC_FW}.tar.gz"
 
-IMX_SECO="imx-seco-5.9.0"
+IMX_SECO="imx-seco-5.9.2"
 IMX_SECO_DIR="${BASEDIR}/${IMX_SECO}"
 IMX_SECO_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${IMX_SECO}.bin"
 
