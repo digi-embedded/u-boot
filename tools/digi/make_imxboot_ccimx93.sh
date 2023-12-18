@@ -130,6 +130,15 @@ build_optee()
 			CFG_TEE_CORE_LOG_LEVEL=0 \
 			COMPILER=gcc \
 			O=build
+
+		# Build OPTEE for SOC revision A0
+		${MAKE} PLATFORM=imx-ccimx93dvk_a0 \
+			CROSS_COMPILE=${CROSS_COMPILE} \
+			CROSS_COMPILE64=${CROSS_COMPILE} \
+			CFG_TEE_TA_LOG_LEVEL=0 \
+			CFG_TEE_CORE_LOG_LEVEL=0 \
+			COMPILER=gcc \
+			O=build-A0
 	)
 }
 
@@ -232,6 +241,7 @@ copy_artifacts_mkimage_folder()
 
 	# OPTEE binary
 	cp --remove-destination "${OPTEE_DIR}"/build/core/tee-raw.bin "${MKIMAGE_DIR}"/"${SOC}"
+	cp --remove-destination "${OPTEE_DIR}"/build-A0/core/tee-raw.bin "${MKIMAGE_DIR}"/"${SOC}"/tee-raw-A0.bin
 }
 
 build_imxboot()
@@ -242,7 +252,11 @@ build_imxboot()
 	(
 		for rev in A0 A1; do
 			BL31_BIN="bl31-imx93.bin"
-			[ "${rev}" = "A0" ] && BL31_BIN="bl31-imx93-A0.bin"
+			TEE_BIN="tee-raw.bin"
+			if [ "${rev}" = "A0" ]; then
+				BL31_BIN="bl31-imx93-A0.bin"
+				TEE_BIN="tee-raw-A0.bin"
+			fi
 
 			echo "- Build imx-boot (NO-OPTEE) binary for: ${SOC} (${rev})"
 			${MAKE} SOC="${SOC}" REV="${rev}" clean
@@ -256,7 +270,7 @@ build_imxboot()
 			${MAKE} SOC="${SOC}" REV="${rev}" clean
 			rm -f "${SOC}"/tee.bin "${SOC}"/bl31.bin
 			[ -f "${SOC}"/${BL31_BIN}-optee ] && ln -sf ${BL31_BIN}-optee "${SOC}"/bl31.bin
-			[ -f "${SOC}"/tee-raw.bin ] && ln -sf tee-raw.bin "${SOC}"/tee.bin
+			[ -f "${SOC}"/${TEE_BIN} ] && ln -sf ${TEE_BIN} "${SOC}"/tee.bin
 			${MAKE} SOC="${SOC}" REV="${rev}" flash_singleboot
 			cp --remove-destination "${MKIMAGE_DIR}"/"${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx93-dvk-${rev}.bin
 			cp --remove-destination "${SOC}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-ccimx93-dvk-${rev}-flash_singleboot.log
