@@ -96,7 +96,10 @@ void board_mtdparts_default(const char **mtdids, const char **mtdparts)
 
 	memset(parts, 0, sizeof(parts));
 
-	if (nand->size > SZ_256M)
+	if (nand->size > SZ_512M)
+		strcat(parts, "mtdparts=nand0:" CONFIG_MTDPARTS_NAND0_BOOT ","
+		       MTDPARTS_1024M);
+	else if (nand->size > SZ_256M)
 		strcat(parts, "mtdparts=nand0:" CONFIG_MTDPARTS_NAND0_BOOT ","
 		       MTDPARTS_512M);
 	else
@@ -113,7 +116,13 @@ void generate_ubi_volumes_script(void)
 	struct mtd_info *nand = get_nand_dev_by_index(0);
 	char script[CONFIG_SYS_CBSIZE] = "";
 
-	if (nand->size > SZ_256M) {
+	if (nand->size > SZ_512M) {
+		sprintf(script, CREATE_UBIVOLS_SCRIPT,
+				UBIVOLS1_DUALBOOT_1024MB,
+				UBIVOLS1_1024MB,
+				UBIVOLS2_DUALBOOT_1024MB,
+				UBIVOLS2_1024MB);
+	} else if (nand->size > SZ_256M) {
 		sprintf(script, CREATE_UBIVOLS_SCRIPT,
 				UBIVOLS1_DUALBOOT_512MB,
 				UBIVOLS1_512MB,

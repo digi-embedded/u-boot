@@ -193,6 +193,7 @@
 /* MTD partition layout (after the boot partitions) */
 #define MTDPARTS_256M		"25m(" SYSTEM_PARTITION "),-(" SYSTEM_PARTITION "_2)"
 #define MTDPARTS_512M		"35m(" SYSTEM_PARTITION "),-(" SYSTEM_PARTITION "_2)"
+#define MTDPARTS_1024M		"35m(" SYSTEM_PARTITION "),-(" SYSTEM_PARTITION "_2)"
 
 /* UBI volumes layout */
 #define UBIVOLS_UBOOTENV		"ubi create uboot_config 20000;" \
@@ -210,6 +211,12 @@
 					"ubi create " UPDATE_PARTITION " b800000;" \
 					"ubi create " DATA_PARTITION ";"
 
+#define UBIVOLS1_1024MB 		"ubi create " LINUX_PARTITION " 1000000;" \
+					"ubi create " RECOVERY_PARTITION ";"
+#define UBIVOLS2_1024MB 		"ubi create " ROOTFS_PARTITION " 29DA1000;" \
+					"ubi create " UPDATE_PARTITION " 10000000;" \
+					"ubi create " DATA_PARTITION ";"
+
 #define UBIVOLS1_DUALBOOT_256MB		"ubi create " LINUX_A_PARTITION " b00000;" \
 					"ubi create " LINUX_B_PARTITION ";"
 #define UBIVOLS2_DUALBOOT_256MB		"ubi create " ROOTFS_A_PARTITION " 6800000;" \
@@ -220,6 +227,12 @@
 					"ubi create " LINUX_B_PARTITION ";"
 #define UBIVOLS2_DUALBOOT_512MB		"ubi create " ROOTFS_A_PARTITION " dc00000;" \
 					"ubi create " ROOTFS_B_PARTITION " dc00000;" \
+					"ubi create " DATA_PARTITION ";"
+
+#define UBIVOLS1_DUALBOOT_1024MB	"ubi create " LINUX_A_PARTITION " 1000000;" \
+					"ubi create " LINUX_B_PARTITION ";"
+#define UBIVOLS2_DUALBOOT_1024MB	"ubi create " ROOTFS_A_PARTITION " 1cecc400;" \
+					"ubi create " ROOTFS_B_PARTITION " 1cecc400;" \
 					"ubi create " DATA_PARTITION ";"
 
 #define CREATE_UBIVOLS_SCRIPT		"ubi detach;" \
