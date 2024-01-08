@@ -223,7 +223,7 @@ int crypt_cipher_data(int enc, char *cipher_data, size_t size)
 	/* set IV */
 	set_iv(ctx, iv, AES_BLOCK_LENGTH);
 	/* Encrypt buffer */
-	cipher_buffer(ctx, cipher_data, data, size/AES_BLOCK_LENGTH);
+	cipher_buffer(ctx, cipher_data, data, size);
 	/* copy ciphered data back */
 	memcpy(cipher_data, data, ENV_SIZE);
 
