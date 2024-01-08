@@ -69,7 +69,10 @@ if [ -n "${CONFIG_DEK_PATH}" ] && [ -n "${ENABLE_ENCRYPTION}" ]; then
 	if [ ! -f "${CONFIG_DEK_PATH}" ]; then
 		echo "DEK not found. Generating random 256 bit DEK."
 		[ -d $(dirname ${CONFIG_DEK_PATH}) ] || mkdir -p $(dirname ${CONFIG_DEK_PATH})
-		dd if=/dev/urandom of="${CONFIG_DEK_PATH}" bs=32 count=1 >/dev/null 2>&1
+		if ! dd if=/dev/urandom of="${CONFIG_DEK_PATH}" bs=32 count=1 >/dev/null; then
+			echo "[ERROR] Could not generate random DEK"
+			exit 1
+		fi
 	fi
 	dek_size="$((8 * $(stat -L -c %s ${CONFIG_DEK_PATH})))"
 	if [ "${dek_size}" != "128" ] && [ "${dek_size}" != "192" ] && [ "${dek_size}" != "256" ]; then
@@ -169,12 +172,20 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 	# outside the compilation process, to sign existing U-Boot images.
 	if [ $((ivt_csf)) -eq 0 ]; then
 		ivt_csf="$((uboot_size + ddr_addr + UBOOT_START_OFFSET))"
-		printf $(printf "%08x" ${ivt_csf} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6 >/dev/null 2>&1
+		printf $(printf "%08x" ${ivt_csf} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6 >/dev/null
+		if [ $? -ne 0 ]; then
+			echo "[ERROR] Could not write CSF"
+			exit 1
+		fi
 		# It is also necessary to adjust the size of the image to take into account
 		# the overhead of the CSF block.
 		image_size=$(hexdump -n 4 -s 36 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
 		image_size=$((image_size + CONFIG_CSF_SIZE))
-		printf $(printf "%08x" ${image_size} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=9 >/dev/null 2>&1
+		printf $(printf "%08x" ${image_size} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=9 >/dev/null
+		if [ $? -ne 0 ]; then
+			echo "[ERROR] Could not adjust image size"
+			exit 1
+		fi
 	fi
 
 	# Compute dek blob size in bytes:
@@ -340,13 +351,21 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 
 	# Erase the CSF pointer of the unsigned artifact to avoid that problem.
 	# Note: this pointer is set during compilation, not in this script.
-	printf '\x0\x0\x0\x0' | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6 >/dev/null 2>&1
+	printf '\x0\x0\x0\x0' | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6 >/dev/null
+	if [ $? -ne 0 ]; then
+		echo "[ERROR] Could not erase CSF"
+		exit 1
+	fi
 
 	# The $UBOOT_PATH artifact is not signed, so the size of the image
 	# needs to be adjusted substracting the CSF_SIZE
 	image_size=$(hexdump -n 4 -s 36 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
 	image_size=$((image_size - CONFIG_CSF_SIZE))
-	printf $(printf "%08x" ${image_size} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=9 >/dev/null 2>&1
+	printf $(printf "%08x" ${image_size} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=9 >/dev/null
+	if [ $? -ne 0 ]; then
+		echo "[ERROR] Could not adjust image size"
+		exit 1
+	fi
 
 else
 	CURRENT_PATH="$(pwd)"
