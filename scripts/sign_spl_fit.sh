@@ -368,24 +368,26 @@ else
 	fi
 
 	# Create final CSF for SPL
+	hab_tag_mac="AC00244"
+	nonce_mac_size="36"
 	csf_size="$(stat -L -c %s csf_spl_enc.bin)"
-	nonce_offset="$((csf_size - 36))"
+	nonce_offset="$(hexdump -ve '1/1 "%.2X"' csf_spl_enc.bin | grep -ob -e "${hab_tag_mac}" | awk -F: '{gsub(/ /, ""); print int($1/2)}')"
 	echo "SPL ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
-	dd if=csf_spl_enc.bin of=noncemac.bin bs=1 skip=${nonce_offset} count=36
+	dd if=csf_spl_enc.bin of=noncemac.bin bs=1 skip=${nonce_offset} count="${nonce_mac_size}" conv=notrunc
 	csf_size="$(stat -L -c %s csf_spl_sign_enc.bin)"
-	nonce_offset="$((csf_size - 36))"
+	nonce_offset="$(hexdump -ve '1/1 "%.2X"' csf_spl_sign_enc.bin | grep -ob -e "${hab_tag_mac}" | awk -F: '{gsub(/ /, ""); print int($1/2)}')"
 	echo "SPL SIGN ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
-	dd if=noncemac.bin of=csf_spl_sign_enc.bin bs=1 seek=${nonce_offset} count=36
+	dd if=noncemac.bin of=csf_spl_sign_enc.bin bs=1 seek=${nonce_offset} count="${nonce_mac_size}" conv=notrunc
 
 	# Create final CSF for FIT
 	csf_size="$(stat -L -c %s csf_fit_enc.bin)"
-	nonce_offset="$((csf_size - 36))"
+	nonce_offset="$(hexdump -ve '1/1 "%.2X"' csf_fit_enc.bin | grep -ob -e "${hab_tag_mac}" | awk -F: '{gsub(/ /, ""); print int($1/2)}')"
 	echo "FIT ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
-	dd if=csf_fit_enc.bin of=noncemac.bin bs=1 skip=${nonce_offset} count=36
+	dd if=csf_fit_enc.bin of=noncemac.bin bs=1 skip=${nonce_offset} count="${nonce_mac_size}" conv=notrunc
 	csf_size="$(stat -L -c %s csf_fit_sign_enc.bin)"
-	nonce_offset="$((csf_size - 36))"
+	nonce_offset="$(hexdump -ve '1/1 "%.2X"' csf_fit_sign_enc.bin | grep -ob -e "${hab_tag_mac}" | awk -F: '{gsub(/ /, ""); print int($1/2)}')"
 	echo "FIT SIGN ENC csf_size: ${csf_size} / nonce_offset: ${nonce_offset}"
-	dd if=noncemac.bin of=csf_fit_sign_enc.bin bs=1 seek=${nonce_offset} count=36
+	dd if=noncemac.bin of=csf_fit_sign_enc.bin bs=1 seek=${nonce_offset} count="${nonce_mac_size}" conv=notrunc
 
 	cp flash-spl-fit-enc.bin "${TARGET}"
 	dd if="${CURRENT_PATH}/csf_spl_sign_enc.bin" of="${TARGET}" seek=$((spl_csf_offset)) bs=1 conv=notrunc >/dev/null 2>&1
