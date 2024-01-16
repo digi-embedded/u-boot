@@ -2,10 +2,6 @@ if TARGET_CCIMX6ULSBC
 
 source "board/digi/common/Kconfig"
 
-config MCA
-	bool
-	default y
-
 config SYS_BOARD
 	default "ccimx6ulsbc"
 

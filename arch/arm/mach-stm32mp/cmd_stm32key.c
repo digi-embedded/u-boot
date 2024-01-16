@@ -67,7 +67,7 @@ static u8 get_key_nb(void)
 		return ARRAY_SIZE(stm32mp15_list);
 }
 
-static const struct stm32key *get_key(u8 index)
+const struct stm32key *get_key(u8 index)
 {
 	if (IS_ENABLED(CONFIG_STM32MP13x))
 		return &stm32mp13_list[index];
@@ -85,7 +85,7 @@ static u32 get_otp_close_mask(void)
 		return STM32_OTP_STM32MP15x_CLOSE_MASK;
 }
 
-static int get_misc_dev(struct udevice **dev)
+int get_misc_dev(struct udevice **dev)
 {
 	int ret;
 
@@ -96,7 +96,7 @@ static int get_misc_dev(struct udevice **dev)
 	return ret;
 }
 
-static void read_key_value(const struct stm32key *key, u32 addr)
+void read_key_value(const struct stm32key *key, u32 addr)
 {
 	int i;
 
@@ -107,7 +107,7 @@ static void read_key_value(const struct stm32key *key, u32 addr)
 	}
 }
 
-static int read_key_otp(struct udevice *dev, const struct stm32key *key, bool print, bool *locked)
+int read_key_otp(struct udevice *dev, const struct stm32key *key, bool print, bool *locked)
 {
 	int i, word, ret;
 	int nb_invalid = 0, nb_zero = 0, nb_lock = 0, nb_lock_err = 0;
@@ -155,7 +155,7 @@ static int read_key_otp(struct udevice *dev, const struct stm32key *key, bool pr
 	return 0;
 }
 
-static int read_close_status(struct udevice *dev, bool print, bool *closed)
+int read_close_status(struct udevice *dev, bool print, bool *closed)
 {
 	int word, ret, result;
 	u32 val, lock, mask;
@@ -185,7 +185,7 @@ static int read_close_status(struct udevice *dev, bool print, bool *closed)
 	return result;
 }
 
-static int fuse_key_value(struct udevice *dev, const struct stm32key *key, u32 addr, bool print)
+int fuse_key_value(struct udevice *dev, const struct stm32key *key, u32 addr, bool print)
 {
 	u32 word, val;
 	int i, ret;
@@ -253,7 +253,7 @@ static int do_stm32key_select(struct cmd_tbl *cmdtp, int flag, int argc, char *c
 		display_key_info(key);
 		return CMD_RET_SUCCESS;
 	}
-
+	/* PKH */
 	for (i = 0; i < get_key_nb(); i++) {
 		key = get_key(i);
 		if (!strcmp(key->name, argv[1])) {
@@ -366,7 +366,7 @@ static int do_stm32key_fuse(struct cmd_tbl *cmdtp, int flag, int argc, char *con
 	return CMD_RET_SUCCESS;
 }
 
-static int do_stm32key_close(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+int do_stm32key_close(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
 	const struct stm32key *key;
 	bool yes, lock, closed;

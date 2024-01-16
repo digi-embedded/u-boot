@@ -1094,7 +1094,6 @@ int load_fdt_by_name(char *dt_fname, ulong fdt_addr,
 int apply_fdt_overlays(char *overlays_var, ulong fdt_addr,
 		       struct dt_table_header *dtt_header)
 {
-#define DELIM_OV_FILE		","
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
 	char cmd_buf[CONFIG_SYS_CBSIZE];
 	char *env_overlay_list = NULL;

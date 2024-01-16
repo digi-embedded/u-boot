@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Digi International, Inc.
+ * Copyright (C) 2023 Digi International, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -67,7 +67,6 @@
 /*
  * Trustfence configs
  */
-#define CONFIG_HAS_TRUSTFENCE
 
 #define CONFIG_FSL_CAAM_KB
 

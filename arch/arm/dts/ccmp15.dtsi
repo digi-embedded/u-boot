@@ -93,6 +93,12 @@
 			no-map;
 		};
 	};
+
+#if defined(CONFIG_FIT_SIGNATURE)
+	signature {
+	};
+#endif
+
 };
 
 &adc {

@@ -29,7 +29,7 @@
 #endif
 
 #ifdef CONFIG_ENV_AES_CAAM_KEY
-static int env_aes_cbc_crypt(env_t *env, const int enc)
+int env_aes_cbc_crypt(env_t *env, const int enc)
 {
 	unsigned char *data = env->data;
 	unsigned char *buffer;
@@ -65,7 +65,7 @@ err:
 	return ret;
 }
 #elif CONFIG_ENV_AES_CCMP1
-static int env_aes_cbc_crypt(env_t *env, const int enc)
+int env_aes_cbc_crypt(env_t *env, const int enc)
 {
 	unsigned char *data = env->data;
 	int ret = 0;

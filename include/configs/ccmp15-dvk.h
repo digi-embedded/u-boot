@@ -23,6 +23,7 @@
 
 /* Carrier board version in environment */
 #define CONFIG_HAS_CARRIERBOARD_VERSION
+#define CONFIG_HAS_CARRIERBOARD_ID
 
 #define CONFIG_COMMON_ENV	\
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
@@ -85,8 +86,10 @@
 	"recovery_file=recovery.img\0" \
 	"rootfs_file=dey-image-webkit-wayland-" CONFIG_SYS_BOARD ".ubifs\0" \
 	"script=boot.scr\0" \
+	"fit-script=bootscr-boot.txt\0" \
 	"uboot_file=u-boot.imx\0" \
-	"zimage=zImage-" BOARD_DEY_NAME ".bin\0"
+	"zimage=zImage-" BOARD_DEY_NAME ".bin\0" \
+	"fitimage=fitImage-" BOARD_DEY_NAME ".bin\0"
 
 #define ROOTARGS_UBIFS \
 	"ubi.mtd=" SYSTEM_PARTITION " " \
@@ -143,7 +146,11 @@
 		"else " \
 			"if ubi part " SYSTEM_PARTITION "; then " \
 				"if ubifsmount ubi0:${mtdbootpart}; then " \
-					"ubifsload ${loadaddr} ${script};" \
+					"if test \"${dboot_kernel_var}\" = fitimage; then " \
+						"ubifsload ${loadaddr} ${fitimage};" \
+					"else " \
+						"ubifsload ${loadaddr} ${script};" \
+					"fi;" \
 				"fi;" \
 			"fi;" \
 		"fi;\0" \
@@ -176,7 +183,11 @@
 #undef CONFIG_BOOTCOMMAND
 #define CONFIG_BOOTCOMMAND \
 	"if run loadscript; then " \
-		"source ${loadaddr};" \
+		"if test \"${dboot_kernel_var}\" = fitimage; then " \
+			"source ${loadaddr}:${fit-script};" \
+		"else " \
+			"source ${loadaddr};" \
+		"fi;" \
 	"fi;"
 
 /* MTD partition layout (after the boot partitions) */
