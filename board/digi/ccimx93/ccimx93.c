@@ -147,6 +147,7 @@ int ccimx93_init(void)
 		return -1;
 	}
 
+#ifdef CONFIG_MCA
 	if (board_has_mca()) {
 		mca_init();
 		mca_somver_update(&my_hwid);
@@ -154,6 +155,7 @@ int ccimx93_init(void)
 		mca_tamper_check_events();
 #endif
 	}
+#endif
 
 	soc_rev = soc_rev();
 
@@ -249,8 +251,10 @@ void board_update_hwid(bool is_fuse)
 	if (ret)
 		printf("Cannot read HWID\n");
 
+#ifdef CONFIG_MCA
 	if (board_has_mca())
 		mca_somver_update(&my_hwid);
+#endif
 
 	som_default_environment();
 }
@@ -299,7 +303,7 @@ void print_som_info(void)
 		printf(", Wi-Fi");
 	if (my_hwid.bt)
 		printf(", Bluetooth");
-	if (my_hwid.mca)
+	if (board_has_mca())
 		printf(", MCA");
 	if (my_hwid.crypto)
 		printf(", Crypto-auth");
