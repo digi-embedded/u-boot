@@ -40,7 +40,6 @@ config TARGET_CCIMX93_DVK
 	bool "Digi ConnectCore 93 Development Kit"
 	select IMX93
 	select CC93
-	select MCA
 
 config TARGET_IMX91P_11X11_EVK
 	bool "imx91p_11x11_evk"
