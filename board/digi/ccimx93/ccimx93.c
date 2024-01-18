@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Digi International Inc
+ * Copyright 2022-2024 Digi International Inc
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -226,16 +226,12 @@ void som_default_environment(void)
 
 	/* Set 'som_overlays' variable */
 	var[0] = 0;
-	if (board_has_mca())
-		strlcat(var, "_ov_som_mca_ccimx93.dtbo,", sizeof(var));
 	if (board_has_wireless())
 		strlcat(var, "_ov_som_wifi_ccimx93.dtbo,", sizeof(var));
 	if (board_has_bluetooth())
 		strlcat(var, "_ov_som_bt_ccimx93.dtbo,", sizeof(var));
 	if (board_has_npu())
 		strlcat(var, "_ov_som_npu_ccimx93.dtbo,", sizeof(var));
-	if ((soc_rev == CHIP_REV_1_0))
-		strlcat(var, "_ov_som_cpu_a0_ccimx93.dtbo,", sizeof(var));
 	/* Remove the trailing comma */
 	if (var[0])
 		var[strlen(var) - 1] = 0;
