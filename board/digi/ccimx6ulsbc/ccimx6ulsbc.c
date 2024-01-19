@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Digi International, Inc
+ * Copyright (C) 2016-2023 Digi International, Inc
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -26,14 +26,12 @@
 #include <env.h>
 #include <fsl_esdhc_imx.h>
 #include <i2c.h>
-#include <lcd.h>
 #include <linux/delay.h>
 #include <linux/sizes.h>
 #include <linux/fb.h>
 #include <malloc.h>
 #include <miiphy.h>
 #include <mmc.h>
-#include <mxsfb.h>
 #include <netdev.h>
 #include <usb.h>
 #include <usb/ehci-ci.h>
@@ -123,48 +121,6 @@ static iomux_v3_cfg_t const usdhc2_pads[] = {
 	MX6_PAD_CSI_DATA03__USDHC2_DATA3 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 };
 
-#ifdef CONFIG_FEC_MXC
-/*
- * pin conflicts for fec1 and fec2, GPIO1_IO06 and GPIO1_IO07 can only
- * be used for ENET1 or ENET2, cannot be used for both.
- */
-static iomux_v3_cfg_t const fec1_pads[] = {
-	MX6_PAD_GPIO1_IO06__ENET1_MDIO | MUX_PAD_CTRL(MDIO_PAD_CTRL),
-	MX6_PAD_GPIO1_IO07__ENET1_MDC | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_TX_DATA0__ENET1_TDATA00 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_TX_DATA1__ENET1_TDATA01 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_TX_EN__ENET1_TX_EN | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_TX_CLK__ENET1_REF_CLK1 | MUX_PAD_CTRL(ENET_CLK_PAD_CTRL),
-	MX6_PAD_ENET1_RX_DATA0__ENET1_RDATA00 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_RX_DATA1__ENET1_RDATA01 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_RX_ER__ENET1_RX_ER | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET1_RX_EN__ENET1_RX_EN | MUX_PAD_CTRL(ENET_PAD_CTRL),
-};
-
-static iomux_v3_cfg_t const fec2_pads[] = {
-	MX6_PAD_GPIO1_IO06__ENET2_MDIO | MUX_PAD_CTRL(MDIO_PAD_CTRL),
-	MX6_PAD_GPIO1_IO07__ENET2_MDC | MUX_PAD_CTRL(ENET_PAD_CTRL),
-
-	MX6_PAD_ENET2_TX_DATA0__ENET2_TDATA00 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET2_TX_DATA1__ENET2_TDATA01 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET2_TX_CLK__ENET2_REF_CLK2 | MUX_PAD_CTRL(ENET_CLK_PAD_CTRL),
-	MX6_PAD_ENET2_TX_EN__ENET2_TX_EN | MUX_PAD_CTRL(ENET_PAD_CTRL),
-
-	MX6_PAD_ENET2_RX_DATA0__ENET2_RDATA00 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET2_RX_DATA1__ENET2_RDATA01 | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET2_RX_EN__ENET2_RX_EN | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET2_RX_ER__ENET2_RX_ER | MUX_PAD_CTRL(ENET_PAD_CTRL),
-};
-
-static void setup_iomux_fec(int fec_id)
-{
-	if (fec_id == 0)
-		imx_iomux_v3_setup_multiple_pads(fec1_pads, ARRAY_SIZE(fec1_pads));
-	else
-		imx_iomux_v3_setup_multiple_pads(fec2_pads, ARRAY_SIZE(fec2_pads));
-}
-#endif
-
 static void setup_iomux_uart(void)
 {
 	imx_iomux_v3_setup_multiple_pads(uart5_pads, ARRAY_SIZE(uart5_pads));
@@ -246,47 +202,46 @@ void reset_phy(void)
 	}
 }
 
-int board_eth_init(struct bd_info *bis)
+int board_phy_config(struct phy_device *phydev)
 {
-	int ret;
-
-	setup_iomux_fec(CONFIG_FEC_ENET_DEV);
-
-	ret = fecmxc_initialize_multi(bis, CONFIG_FEC_ENET_DEV,
-		CONFIG_FEC_MXC_PHYADDR, IMX_FEC_BASE);
-	if (ret)
-		printf("FEC%d MXC: %s:failed\n", CONFIG_FEC_ENET_DEV, __func__);
+	if (phydev->drv->config) {
+		phydev->drv->config(phydev);
+	}
 
 	reset_phy();
 
 	return 0;
 }
 
-static int setup_fec(int fec_id)
+static int setup_fec(void)
 {
-	struct iomuxc_gpr_base_regs *const iomuxc_gpr_regs
-		= (struct iomuxc_gpr_base_regs *) IOMUXC_GPR_BASE_ADDR;
+	struct iomuxc *const iomuxc_regs = (struct iomuxc *)IOMUXC_BASE_ADDR;
 	int ret;
 
-	if (0 == fec_id) {
-		if (check_module_fused(MODULE_ENET1))
-			return -1;
-
-		/* Use 50M anatop loopback REF_CLK1 for ENET1, clear gpr1[13], set gpr1[17]*/
-		clrsetbits_le32(&iomuxc_gpr_regs->gpr[1], IOMUX_GPR1_FEC1_MASK,
-				IOMUX_GPR1_FEC1_CLOCK_MUX1_SEL_MASK);
-	} else {
-		if (check_module_fused(MODULE_ENET2))
-			return -1;
-
-		/* Use 50M anatop loopback REF_CLK2 for ENET2, clear gpr1[14], set gpr1[18]*/
-		clrsetbits_le32(&iomuxc_gpr_regs->gpr[1], IOMUX_GPR1_FEC2_MASK,
+	/*
+	 * Use 50M anatop loopback REF_CLK1 for ENET1,
+	 * clear gpr1[13], set gpr1[17].
+	 */
+	clrsetbits_le32(&iomuxc_regs->gpr[1], IOMUX_GPR1_FEC1_MASK,
+			IOMUX_GPR1_FEC1_CLOCK_MUX1_SEL_MASK);
+	/*
+	 * Use 50M anatop loopback REF_CLK2 for ENET2,
+	 * clear gpr1[14], set gpr1[18].
+	 */
+	if (!check_module_fused(MODULE_ENET1)) {
+		clrsetbits_le32(&iomuxc_regs->gpr[1], IOMUX_GPR1_FEC2_MASK,
 				IOMUX_GPR1_FEC2_CLOCK_MUX1_SEL_MASK);
 	}
 
-	ret = enable_fec_anatop_clock(fec_id, ENET_50MHZ);
+	ret = enable_fec_anatop_clock(0, ENET_50MHZ);
 	if (ret)
 		return ret;
+
+	if (!check_module_fused(MODULE_ENET2)) {
+		ret = enable_fec_anatop_clock(1, ENET_50MHZ);
+		if (ret)
+			return ret;
+	}
 
 	enable_enet_clk(1);
 
@@ -590,7 +545,7 @@ int board_init(void)
 	board_id = get_carrierboard_id();
 
 #ifdef	CONFIG_FEC_MXC
-	setup_fec(CONFIG_FEC_ENET_DEV);
+	setup_fec();
 #endif
 
 #ifdef CONFIG_USB_EHCI_MX6

@@ -143,6 +143,8 @@
 };
 
 &usbotg1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <>;
 	status = "okay";
 	extcon = <&ptn5110>;
 };

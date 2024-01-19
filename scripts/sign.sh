@@ -64,17 +64,30 @@ if [ -z "${CONFIG_SIGN_MODE}" ]; then
 	exit 1
 fi
 
+# Temporary copy of input file
+UBOOT_TEMP="${UBOOT_PATH}.temp"
+cp --remove-destination "${UBOOT_PATH}" "${UBOOT_TEMP}" || { echo "[ERROR] Could not create temp file" && exit 1; }
+
+error_out() {
+	# Remove temp file
+	rm -f "${UBOOT_TEMP}"
+	exit 1
+}
+
 # Get DEK key
 if [ -n "${CONFIG_DEK_PATH}" ] && [ -n "${ENABLE_ENCRYPTION}" ]; then
 	if [ ! -f "${CONFIG_DEK_PATH}" ]; then
 		echo "DEK not found. Generating random 256 bit DEK."
 		[ -d $(dirname ${CONFIG_DEK_PATH}) ] || mkdir -p $(dirname ${CONFIG_DEK_PATH})
-		dd if=/dev/urandom of="${CONFIG_DEK_PATH}" bs=32 count=1 >/dev/null 2>&1
+		if ! dd if=/dev/urandom of="${CONFIG_DEK_PATH}" bs=32 count=1 >/dev/null; then
+			echo "[ERROR] Could not generate random DEK"
+			error_out
+		fi
 	fi
 	dek_size="$((8 * $(stat -L -c %s ${CONFIG_DEK_PATH})))"
 	if [ "${dek_size}" != "128" ] && [ "${dek_size}" != "192" ] && [ "${dek_size}" != "256" ]; then
 		echo "Invalid DEK size: ${dek_size} bits. Valid sizes are 128, 192 and 256 bits"
-		exit 1
+		error_out
 	fi
 	ENCRYPT="true"
 fi
@@ -92,7 +105,7 @@ elif [ "${CONFIG_SIGN_MODE}" = "AHAB" ]; then
 	DIGEST_ALGO="sha512"
 else
 	echo "Invalid CONFIG_SIGN_MODE."
-	exit 1
+	error_out
 fi
 
 # Default values
@@ -119,7 +132,7 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 		CERT_IMG="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/IMG${CONFIG_KEY_INDEX_1}*crt.pem)"
 	else
 		echo "Inconsistent CST folder."
-		exit 1
+		error_out
 	fi
 else
 	CERT_SRK="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/SRK${CONFIG_KEY_INDEX_1}*crt.pem | sed s/\ /\,/g)"
@@ -135,7 +148,7 @@ else
 		CERT_SRK="$(echo ${CONFIG_SIGN_KEYS_PATH}/crts/SRK${CONFIG_KEY_INDEX_1}*crt.pem | sed s/\ /\,/g)"
 	else
 		echo "Inconsistent CST folder."
-		exit 1
+		error_out
 	fi
 fi
 
@@ -169,12 +182,20 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 	# outside the compilation process, to sign existing U-Boot images.
 	if [ $((ivt_csf)) -eq 0 ]; then
 		ivt_csf="$((uboot_size + ddr_addr + UBOOT_START_OFFSET))"
-		printf $(printf "%08x" ${ivt_csf} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6 >/dev/null 2>&1
+		printf $(printf "%08x" ${ivt_csf} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_TEMP} bs=4 seek=6 >/dev/null
+		if [ $? -ne 0 ]; then
+			echo "[ERROR] Could not write CSF"
+			error_out
+		fi
 		# It is also necessary to adjust the size of the image to take into account
 		# the overhead of the CSF block.
-		image_size=$(hexdump -n 4 -s 36 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
+		image_size=$(hexdump -n 4 -s 36 -e '/4 "0x%08x\t" "\n"' ${UBOOT_TEMP})
 		image_size=$((image_size + CONFIG_CSF_SIZE))
-		printf $(printf "%08x" ${image_size} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=9 >/dev/null 2>&1
+		printf $(printf "%08x" ${image_size} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_TEMP} bs=4 seek=9 >/dev/null
+		if [ $? -ne 0 ]; then
+			echo "[ERROR] Could not adjust image size"
+			error_out
+		fi
 	fi
 
 	# Compute dek blob size in bytes:
@@ -182,8 +203,8 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 	dek_blob_size="$((8 + 32 + 16 + dek_size/8))"
 
 	# Parse uboot DCD size
-	dcd_len_h=$(hexdump -n 1 -s 45 -e '"%02x"' ${UBOOT_PATH})
-	dcd_len_l=$(hexdump -n 1 -s 46 -e '"%02x"' ${UBOOT_PATH})
+	dcd_len_h=$(hexdump -n 1 -s 45 -e '"%02x"' ${UBOOT_TEMP})
+	dcd_len_l=$(hexdump -n 1 -s 46 -e '"%02x"' ${UBOOT_TEMP})
 	dcd_len="0x${dcd_len_h}${dcd_len_l}"
 
 	# Compute the layout: sizes and offsets.
@@ -270,7 +291,7 @@ else
 
 	if [ ! -e "${MKIMAGE_LOG}" ]; then
 		echo "Make log '${MKIMAGE_LOG}' does not exist."
-		exit 1
+		error_out
 	fi
 	echo "Using make log '${MKIMAGE_LOG}'"
 
@@ -284,7 +305,7 @@ else
 		-e "s,%cert_img%,${CERT_SRK},g" \
 		-e "s,%key_index%,${CONFIG_KEY_INDEX},g" \
 		-e "s,%srk_rvk_mask%,${SRK_REVOKE_MASK},g" \
-		-e "s,%u-boot-img%,${UBOOT_PATH},g"   \
+		-e "s,%u-boot-img%,${UBOOT_TEMP},g"   \
 		-e "s,%container_offset%,${container_header_offset},g" \
 		-e "s,%block_offset%,${signature_block_offset},g" \
 		-e "s,%dek_len%,${dek_size},g" \
@@ -295,7 +316,7 @@ else
 		-e "s,%cert_img%,${CERT_SRK},g" \
 		-e "s,%key_index%,${CONFIG_KEY_INDEX},g" \
 		-e "s,%srk_rvk_mask%,${SRK_REVOKE_MASK},g" \
-		-e "s,%u-boot-img%,${UBOOT_PATH},g"   \
+		-e "s,%u-boot-img%,${UBOOT_TEMP},g"   \
 		-e "s,%container_offset%,${container_header_offset},g" \
 		-e "s,%block_offset%,${signature_block_offset},g" \
 		${SCRIPT_PATH}/csf_templates/sign_ahab_uboot > csf_descriptor
@@ -306,19 +327,19 @@ fi
 srktool --${HAB_VER} --certs "${SRK_KEYS}" --table "${SRK_TABLE}" --efuses "${SRK_EFUSES}" --${DIGEST} "${DIGEST_ALGO}"
 if [ $? -ne 0 ]; then
 	echo "[ERROR] Could not generate SRK tables"
-	exit 1
+	error_out
 fi
 
 # Sign/encrypt and add padding to the resulting file
 if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 	# Generate signed uboot (add padding, generate signature and ensamble final image)
-	objcopy -I binary -O binary --pad-to "${pad_len}" --gap-fill="${GAP_FILLER}" "${UBOOT_PATH}" "${PADDED_UBOOT_PATH}"
+	objcopy -I binary -O binary --pad-to "${pad_len}" --gap-fill="${GAP_FILLER}" "${UBOOT_TEMP}" "${PADDED_UBOOT_PATH}"
 
 	CURRENT_PATH="$(pwd)"
 	cst -o "${CURRENT_PATH}/u-boot_csf.bin" -i "${CURRENT_PATH}/csf_descriptor" > /dev/null
 	if [ $? -ne 0 ]; then
 		echo "[ERROR] Could not generate CSF"
-		exit 1
+		error_out
 	fi
 
 	cat "${PADDED_UBOOT_PATH}" u-boot_csf.bin > u-boot-signed-no-pad.imx
@@ -340,23 +361,36 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 
 	# Erase the CSF pointer of the unsigned artifact to avoid that problem.
 	# Note: this pointer is set during compilation, not in this script.
-	printf '\x0\x0\x0\x0' | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=6 >/dev/null 2>&1
+	printf '\x0\x0\x0\x0' | dd conv=notrunc of=${UBOOT_TEMP} bs=4 seek=6 >/dev/null
+	if [ $? -ne 0 ]; then
+		echo "[ERROR] Could not erase CSF"
+		error_out
+	fi
 
-	# The $UBOOT_PATH artifact is not signed, so the size of the image
+	# The $UBOOT_TEMP artifact is not signed, so the size of the image
 	# needs to be adjusted substracting the CSF_SIZE
-	image_size=$(hexdump -n 4 -s 36 -e '/4 "0x%08x\t" "\n"' ${UBOOT_PATH})
+	image_size=$(hexdump -n 4 -s 36 -e '/4 "0x%08x\t" "\n"' ${UBOOT_TEMP})
 	image_size=$((image_size - CONFIG_CSF_SIZE))
-	printf $(printf "%08x" ${image_size} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_PATH} bs=4 seek=9 >/dev/null 2>&1
+	printf $(printf "%08x" ${image_size} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${UBOOT_TEMP} bs=4 seek=9 >/dev/null
+	if [ $? -ne 0 ]; then
+		echo "[ERROR] Could not adjust image size"
+		error_out
+	fi
 
 else
 	CURRENT_PATH="$(pwd)"
 	cst -o "${TARGET}" -i "${CURRENT_PATH}/csf_descriptor" > /dev/null
 	if [ $? -ne 0 ]; then
 		echo "[ERROR] Could not generate CSF"
-		exit 1
+		error_out
 	fi
 fi
 
 [ "${ENCRYPT}" = "true" ] && ENCRYPTED_MSG="and encrypted "
 echo "Signed ${ENCRYPTED_MSG}image ready: ${TARGET}"
 rm -f "${SRK_TABLE}" csf_descriptor u-boot_csf.bin "${PADDED_UBOOT_PATH}" u-boot-signed-no-pad.imx 2> /dev/null
+# Overwrite the input file with the temp file
+cp "${UBOOT_TEMP}" "${UBOOT_PATH}"
+# Remove temp file
+rm -f "${UBOOT_TEMP}"
+exit 0

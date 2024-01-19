@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Digi International, Inc.
+ * Copyright (C) 2018-2024 Digi International, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -35,11 +35,6 @@
 #define PHYS_SDRAM_2			0x880000000
 #define PHYS_SDRAM_2_SIZE		0
 #define PHYS_SDRAM			PHYS_SDRAM_1
-
-/*
- * Trustfence configs
- */
-#define CONFIG_HAS_TRUSTFENCE
 
 #define CONFIG_FSL_CAAM_KB
 

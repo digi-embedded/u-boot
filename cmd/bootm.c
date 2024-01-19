@@ -17,14 +17,10 @@
 #include <nand.h>
 #include <asm/byteorder.h>
 #include <asm/global_data.h>
-#include <asm/mach-imx/hab.h>
 #include <linux/ctype.h>
 #include <linux/err.h>
 #include <u-boot/zlib.h>
 #include <mapmem.h>
-#ifdef CONFIG_AUTH_ARTIFACTS
-#include "../board/digi/common/auth.h"
-#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -159,6 +155,10 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 			return do_bootm_subcommand(cmdtp, flag, argc, argv);
 	}
 
+#ifdef CONFIG_IMX_HAB
+	extern int authenticate_image(
+			uint32_t ddr_start, uint32_t raw_image_size);
+
 #ifdef CONFIG_IMX_OPTEE
 	ulong tee_addr = 0;
 	ulong zi_start, zi_end;
@@ -171,13 +171,11 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 
 	switch (genimg_get_format((const void *)tee_addr)) {
 	case IMAGE_FORMAT_LEGACY:
-#ifdef CONFIG_AUTH_ARTIFACTS
-		if (digi_auth_image(&tee_addr,
+		if (authenticate_image(tee_addr,
 		       image_get_image_size((struct legacy_img_hdr *)tee_addr)) != 0) {
 		       printf("Authenticate uImage Fail, Please check\n");
 		       return 1;
 		}
-#endif /* CONFIG_AUTH_ARTIFACTS */
 		break;
 	default:
 		printf("Not valid image format for Authentication, Please check\n");
@@ -188,25 +186,21 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 	if (ret != 0)
 		return 1;
 
-#ifdef CONFIG_AUTH_ARTIFACTS
-	if (digi_auth_image(&image_load_addr, zi_end - zi_start) != 0) {
+	if (authenticate_image(image_load_addr, zi_end - zi_start) != 0) {
 		printf("Authenticate zImage Fail, Please check\n");
 		return 1;
 	}
-#endif /* CONFIG_AUTH_ARTIFACTS */
 
 #else
 
 	switch (genimg_get_format((const void *)image_load_addr)) {
 #if defined(CONFIG_LEGACY_IMAGE_FORMAT)
 	case IMAGE_FORMAT_LEGACY:
-#ifdef CONFIG_AUTH_ARTIFACTS
-		if (digi_auth_image(&image_load_addr,
+		if (authenticate_image(image_load_addr,
 			image_get_image_size((struct legacy_img_hdr *)image_load_addr)) != 0) {
 			printf("Authenticate uImage Fail, Please check\n");
 			return 1;
 		}
-#endif /* CONFIG_AUTH_ARTIFACTS */
 		break;
 #endif
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
@@ -218,6 +212,7 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 		printf("Not valid image format for Authentication, Please check\n");
 		return 1;
 	}
+#endif
 #endif
 
 	states = BOOTM_STATE_START | BOOTM_STATE_FINDOS | BOOTM_STATE_PRE_LOAD |

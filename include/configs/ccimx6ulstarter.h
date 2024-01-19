@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 Digi International, Inc.
+ * Copyright (C) 2016-2023 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * Configuration settings for the Digi ConnecCore 6UL Starter board.
@@ -52,12 +52,10 @@
 #else
 # define CONFIG_ENV_PARTITION_SIZE	(1 * SZ_1M)
 #endif /* (CONFIG_DDR_MB == 1024) */
-/* The environment may use any good blocks within the "environment" partition */
-#define CONFIG_ENV_RANGE		CONFIG_ENV_PARTITION_SIZE
 
 /* Serial port */
 #define CONFIG_MXC_UART
-#define CONFIG_MXC_UART_BASE		UART5_BASE
+#define CFG_MXC_UART_BASE		UART5_BASE
 #undef CONFIG_CONS_INDEX
 #define CONFIG_CONS_INDEX		5
 #define CONSOLE_DEV			"ttymxc4"
@@ -217,7 +215,7 @@
 	"rootfsvol_b=" ROOTFS_B_PARTITION "\0" \
 	"active_system=" LINUX_A_PARTITION "\0"
 
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	CONFIG_COMMON_ENV \
 	CONFIG_ENV_MTD_SETTINGS \
 	DUALBOOT_ENV_SETTINGS \
@@ -234,7 +232,7 @@
 	"rootfs_file=core-image-base-" CONFIG_SYS_BOARD ".ubifs\0" \
 	""	/* end line */
 #else
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	CONFIG_COMMON_ENV \
 	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \

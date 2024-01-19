@@ -22,18 +22,16 @@
 #include <watchdog.h>
 #include <asm/cache.h>
 #include <asm/global_data.h>
+
+#ifdef CONFIG_AUTH_ARTIFACTS
+#include "../board/digi/common/auth.h"
 #if defined(CONFIG_IMX_HAB) || defined(CONFIG_AHAB_BOOT)
 #include <asm/mach-imx/hab.h>
 #endif
-#ifdef CONFIG_AUTH_ARTIFACTS
-#include "../board/digi/common/auth.h"
+static int authenticated = 0;
 #endif
 
 DECLARE_GLOBAL_DATA_PTR;
-
-#ifdef CONFIG_AUTH_ARTIFACTS
-static int authenticated = 0;
-#endif
 
 /**
  * image_get_ramdisk - get and verify ramdisk image
@@ -340,12 +338,6 @@ static int select_ramdisk(struct bootm_headers *images, const char *select, u8 a
 	int rd_noffset;
 	ulong rd_addr;
 	char *buf;
-#if CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)
-	const struct legacy_img_hdr *rd_hdr;
-#ifdef CONFIG_AUTH_ARTIFACTS
-	ulong raw_image_size = 0;
-#endif
-#endif
 
 	if (CONFIG_IS_ENABLED(FIT)) {
 		fit_uname_config = images->fit_uname_cfg;
@@ -397,20 +389,15 @@ static int select_ramdisk(struct bootm_headers *images, const char *select, u8 a
 	}
 
 #ifdef CONFIG_AUTH_ARTIFACTS
-	if (CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)) {
-		rd_hdr = (const struct legacy_img_hdr *)rd_addr;
-		if (!rd_hdr)
-			return -ENOENT;
-
-		raw_image_size = image_get_image_size(rd_hdr);
-		if (digi_auth_image(&rd_addr, raw_image_size) != 0) {
-			printf("Ramdisk authentication failed\n");
-			return 1;
-		} else {
-			authenticated = 1;
-		}
+	ulong raw_image_size =
+	    image_get_image_size((struct legacy_img_hdr *)rd_addr);
+	if (digi_auth_image(&rd_addr, raw_image_size) != 0) {
+		printf("Ramdisk authentication failed\n");
+		return 1;
+	} else {
+		authenticated = 1;
 	}
-#endif /* CONFIG_AUTH_ARTIFACTS */
+#endif
 
 	/*
 	 * Check if there is an initrd image at the
@@ -421,6 +408,7 @@ static int select_ramdisk(struct bootm_headers *images, const char *select, u8 a
 	switch (genimg_get_format(buf)) {
 	case IMAGE_FORMAT_LEGACY:
 		if (CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)) {
+			const struct legacy_img_hdr *rd_hdr;
 
 			printf("## Loading init Ramdisk from Legacy Image at %08lx ...\n",
 			       rd_addr);

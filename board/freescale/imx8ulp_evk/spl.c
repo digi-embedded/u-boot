@@ -86,6 +86,13 @@ void setup_iomux_pmic(void)
 
 int power_init_board(void)
 {
+	/* Set buck2 ramp-up speed 1us */
+	upower_pmic_i2c_write(0x14, 0x39);
+	/* Set buck3 ramp-up speed 1us */
+	upower_pmic_i2c_write(0x21, 0x39);
+	/* Set buck3out min limit 0.625v */
+	upower_pmic_i2c_write(0x2d, 0x2);
+
 	if (IS_ENABLED(CONFIG_IMX8ULP_ND_MODE)) {
 		/* Set buck3 to 1.0v ND */
 		upower_pmic_i2c_write(0x22, 0x20);
@@ -108,8 +115,8 @@ void display_ele_fw_version(void)
 	} else {
 		printf("ELE firmware version %u.%u.%u-%x",
 		       (fw_version & (0x00ff0000)) >> 16,
-		       (fw_version & (0x0000ff00)) >> 8,
-		       (fw_version & (0x000000ff)), sha1);
+		       (fw_version & (0x0000fff0)) >> 4,
+		       (fw_version & (0x0000000f)), sha1);
 		((fw_version & (0x80000000)) >> 31) == 1 ? puts("-dirty\n") : puts("\n");
 	}
 }
@@ -160,6 +167,14 @@ void spl_board_init(void)
 
 	/* Call it after PS16 power up */
 	set_lpav_qos();
+
+#if defined(CONFIG_IMX8ULP_FIXED_OP_RANGE)
+	/* Set operation range for PTE/PTF */
+	set_apd_gpiox_op_range(PTE, RANGE_1P8V);
+	set_apd_gpiox_op_range(PTF, RANGE_1P8V);
+	/* disable PTD cell compensation */
+	set_apd_gpiox_comp_cell(PTD, false);
+#endif
 
 	/* Asks S400 to release CAAM for A35 core */
 	ret = ahab_release_caam(7, &res);

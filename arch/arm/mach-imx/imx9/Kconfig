@@ -14,7 +14,6 @@ config IMX93
 	bool
 	select IMX9
 	select ARMV8_SPL_EXCEPTION_VECTORS
-	select SYS_FSL_ERRATUM_ESDHC111
 
 config SYS_SOC
 	default "imx9"
@@ -29,6 +28,7 @@ config TARGET_IMX93_14X14_EVK
 
 config TARGET_IMX93_11X11_EVK
 	bool "imx93_11x11_evk"
+	select OF_BOARD_FIXUP
 	select IMX93
 
 config TARGET_IMX93_9X9_QSB
@@ -40,7 +40,6 @@ config TARGET_CCIMX93_DVK
 	bool "Digi ConnectCore 93 Development Kit"
 	select IMX93
 	select CC93
-	select MCA
 
 config TARGET_IMX91P_11X11_EVK
 	bool "imx91p_11x11_evk"

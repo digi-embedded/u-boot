@@ -16,7 +16,7 @@
 
 	lcd_backlight: backlight {
 		compatible = "pwm-backlight";
-		pwms = <&pwm5 0 50000>;
+		pwms = <&pwm5 0 50000 0>;
 		brightness-levels = <0 4 8 16 32 64 128 255>;
 		default-brightness-level = <6>;
 		status = "disabled";
@@ -81,7 +81,7 @@
 	 * The MDIO bus is shared between ENET1 and ENET2. If you only want
 	 * to enable ENET1, this node must be moved to fec1 node, and the
 	 * pinctrl-0 of fec1 must contain the IOMUX for the MDIO bus on ENET1
-	 * (pintrl_enet1_mdio).
+	 * (pinctrl_enet1_mdio).
 	 */
 	mdio {
 		#address-cells = <1>;
@@ -368,7 +368,6 @@
 
 &iomuxc {
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_hog>;
 
 	imx6ul-ccimx6ul {
 		pinctrl_ecspi1_master: ecspi1grp1 {
@@ -603,10 +602,6 @@
 				MX6UL_PAD_GPIO1_IO04__GPIO1_IO04	0x17059 /* USBOTG1 PWR */
 				MX6UL_PAD_GPIO1_IO01__USB_OTG1_OC	0x17059
 			>;
-		};
-
-		/* General purpose pinctrl */
-		pinctrl_hog: hoggrp {
 		};
 	};
 };

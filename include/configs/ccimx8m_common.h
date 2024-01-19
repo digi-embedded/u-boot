@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Digi International Inc
+ * Copyright 2019-2024 Digi International Inc
  * Copyright 2018 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -70,11 +70,6 @@
 #define EMMC_BOOT_ACK			1
 #define EMMC_BOOT_DEV			0
 #define EMMC_BOOT_PART			1
-
-/*
- * Trustfence configs
- */
-#define CONFIG_HAS_TRUSTFENCE
 
 /* Secure boot configs */
 #define CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS		3

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Digi International Inc
+ * Copyright 2022-2024 Digi International Inc
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -147,6 +147,7 @@ int ccimx93_init(void)
 		return -1;
 	}
 
+#ifdef CONFIG_MCA
 	if (board_has_mca()) {
 		mca_init();
 		mca_somver_update(&my_hwid);
@@ -154,6 +155,7 @@ int ccimx93_init(void)
 		mca_tamper_check_events();
 #endif
 	}
+#endif
 
 	soc_rev = soc_rev();
 
@@ -226,16 +228,12 @@ void som_default_environment(void)
 
 	/* Set 'som_overlays' variable */
 	var[0] = 0;
-	if (board_has_mca())
-		strlcat(var, "_ov_som_mca_ccimx93.dtbo,", sizeof(var));
 	if (board_has_wireless())
 		strlcat(var, "_ov_som_wifi_ccimx93.dtbo,", sizeof(var));
 	if (board_has_bluetooth())
 		strlcat(var, "_ov_som_bt_ccimx93.dtbo,", sizeof(var));
 	if (board_has_npu())
 		strlcat(var, "_ov_som_npu_ccimx93.dtbo,", sizeof(var));
-	if ((soc_rev == CHIP_REV_1_0))
-		strlcat(var, "_ov_som_cpu_a0_ccimx93.dtbo,", sizeof(var));
 	/* Remove the trailing comma */
 	if (var[0])
 		var[strlen(var) - 1] = 0;
@@ -253,8 +251,10 @@ void board_update_hwid(bool is_fuse)
 	if (ret)
 		printf("Cannot read HWID\n");
 
+#ifdef CONFIG_MCA
 	if (board_has_mca())
 		mca_somver_update(&my_hwid);
+#endif
 
 	som_default_environment();
 }
@@ -303,7 +303,7 @@ void print_som_info(void)
 		printf(", Wi-Fi");
 	if (my_hwid.bt)
 		printf(", Bluetooth");
-	if (my_hwid.mca)
+	if (board_has_mca())
 		printf(", MCA");
 	if (my_hwid.crypto)
 		printf(", Crypto-auth");
