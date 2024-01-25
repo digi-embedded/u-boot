@@ -129,7 +129,7 @@ fi
 
 # Parse mkimage log file to get the offsets for different containers
 echo "Using make log '${MKIMAGE_LOG}'"
-ATF_CONTAINER_OFFSET="$(sed -ne 's,^append[^[:digit:]]\+\([[:digit:]]\+\)[^[:digit:]]\+$,\1,g;T;p' "${MKIMAGE_LOG}")"
+ATF_CONTAINER_OFFSET="$(sed -ne 's,^append[^[:digit:]]\+\([[:digit:]]\+\)[^[:digit:]]\+.*$,\1,g;T;p' "${MKIMAGE_LOG}")"
 ATF_HEADER_OFFSET="$(sed -ne '0,/^Output:[[:blank:]]\+flash\.bin/p' "${MKIMAGE_LOG}" | awk '/CST: CONTAINER 0 offset:/{print $NF}')"
 ATF_SIGNATURE_OFFSET="$(sed -ne '0,/^Output:[[:blank:]]\+flash\.bin/p' "${MKIMAGE_LOG}" | awk '/CST: CONTAINER 0: Signature Block:/{print $NF}')"
 SPL_HEADER_OFFSET="$(sed -ne '/^Output:[[:blank:]]\+flash\.bin/,$p' "${MKIMAGE_LOG}" | awk '/CST: CONTAINER 0 offset:/{print $NF}')"
