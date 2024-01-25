@@ -68,7 +68,7 @@ config DEPRECATED
 
 config ENV_AES_CAAM_KEY
 	bool "Encrypt U-Boot environment with CAAM internal key"
-	depends on HAS_CAAM
+	depends on HAS_CAAM && !ARCH_IMX9
 	help
 	  Use the internal CAAM secure key for environment encryption which
 	  uses AES-256-CCM.
