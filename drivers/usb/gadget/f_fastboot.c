@@ -1192,20 +1192,23 @@ static void parameters_setup(void)
 				CONFIG_FASTBOOT_BUF_SIZE;
 }
 
-static int _fastboot_setup_dev(void)
+static int _fastboot_setup_dev(int *switched)
 {
 	char *fastboot_env;
+	struct fastboot_device_info devinfo;
 	fastboot_env = getenv("fastboot_dev");
 
 	if (fastboot_env) {
 		if (!strcmp(fastboot_env, "sata")) {
-			fastboot_devinfo.type = DEV_SATA;
-			fastboot_devinfo.dev_id = 0;
+			devinfo.type = DEV_SATA;
+			devinfo.dev_id = 0;
 #if defined(CONFIG_FASTBOOT_STORAGE_MMC)
 		} else if (!strncmp(fastboot_env, "mmc", 3)) {
-			fastboot_devinfo.type = DEV_MMC;
-			fastboot_devinfo.dev_id = mmc_get_env_dev();
+			devinfo.type = DEV_MMC;
+			devinfo.dev_id = mmc_get_env_dev();
 #endif
+		} else {
+			return 1;
 		}
 	} else {
 		return 1;
@@ -1216,6 +1219,16 @@ static int _fastboot_setup_dev(void)
 	 * physical partition 'm4_os', m4 will be kicked off by A core. */
 	fastboot_firmwareinfo.type = ANDROID_MCU_FRIMWARE_DEV_TYPE;
 #endif
+
+	if (switched) {
+		if (devinfo.type != fastboot_devinfo.type || devinfo.dev_id != fastboot_devinfo.dev_id)
+			*switched = 1;
+		else
+			*switched = 0;
+	}
+
+	fastboot_devinfo.type = devinfo.type;
+	fastboot_devinfo.dev_id = devinfo.dev_id;
 
 	return 0;
 }
@@ -1653,6 +1666,7 @@ fail:
 
 void fastboot_setup(void)
 {
+	int sw, ret;
 #ifdef CONFIG_USB_GADGET
 	struct tag_serialnr serialnr;
 	char serial[17];
@@ -1665,11 +1679,11 @@ void fastboot_setup(void)
 	board_fastboot_setup();
 
 	/*get the fastboot dev*/
-	_fastboot_setup_dev();
-
+	ret = _fastboot_setup_dev(&sw);
 
 	/*load partitions information for the fastboot dev*/
-	_fastboot_load_partitions();
+	if (!ret && sw)
+		_fastboot_load_partitions();
 
 	parameters_setup();
 #ifdef CONFIG_AVB_SUPPORT
@@ -3387,10 +3401,13 @@ static void cb_run_uboot_cmd(struct usb_ep *ep, struct usb_request *req)
 		fastboot_tx_write_str("FAILmissing command");
 		return;
 	}
-	if(run_command(cmd, 0))
+	if(run_command(cmd, 0)) {
 		fastboot_tx_write_str("FAIL");
-	else
+	} else {
 		fastboot_tx_write_str("OKAY");
+		/* cmd may impact fastboot related environment*/
+		fastboot_setup();
+	}
 	return ;
 }
 
