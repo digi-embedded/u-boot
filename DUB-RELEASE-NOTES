@@ -4,6 +4,11 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2017.03
 -----------
+dub-2017.03-r16.1, released on 2024/01/30
+	- Disable bootcount mechanism by default
+	- Keep eMMC partition table information updated in fastboot
+
+
 dub-2017.03-r15.1, released on 2023/09/13
 	- Fix use of default dev:part when using mmc on dboot/update commands
 	- Integrate 'altboot' script functionality in 'altbootcmd'
