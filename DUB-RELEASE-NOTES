@@ -4,9 +4,10 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2023.04
 -----------
-dub-2023.04-r3.1, released on 2024/01/19
+dub-2023.04-r3.2, released on 2024/01/30
 	- Based on BSP from NXP (tag 'lf-6.1.55-2.2.0')
 	- Environment moved to the end of hardware boot partitions
+	- Read u-boot environment from eMMC also when booting from SD
 	- Improved sign scripts
 
 dub-2023.04-r2.1, released on 2023/11/17
