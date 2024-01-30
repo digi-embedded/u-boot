@@ -4,6 +4,16 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2021.10
 -----------
+dub-2021.10-r5.1, released on 2024/01/30
+	- Disable bootcount mechanism by default
+	- Add trustfence command support to ccmp1 platforms
+	- CCMP1: Add support to boot FIT images
+	- CCMP1: Fix USB OTG device tree entries
+	- CCMP1: Add board ID support
+	- CCMP1: Add support to DVK v3
+	- Other minor fixes
+
+
 dub-2021.10-r4.2, released on 2023/09/14
 	- Based on BSP from STMicroelectronics tag 'v2021.10-stm32mp-r2.1'
 	- Add support to bootcmd to boot from sdcard
