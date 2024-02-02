@@ -628,6 +628,7 @@ static int do_ahab_return_lifecycle(struct cmd_tbl *cmdtp, int flag, int argc,
 	return CMD_RET_SUCCESS;
 }
 
+#if 0
 static int do_ahab_commit(struct cmd_tbl *cmdtp, int flag, int argc,
 			  char *const argv[])
 {
@@ -650,6 +651,7 @@ static int do_ahab_commit(struct cmd_tbl *cmdtp, int flag, int argc,
 
 	return 0;
 }
+#endif
 
 U_BOOT_CMD(auth_cntr, CONFIG_SYS_MAXARGS, 1, do_authenticate,
 	   "autenticate OS container via AHAB",
@@ -684,8 +686,10 @@ U_BOOT_CMD(ahab_return_lifecycle, CONFIG_SYS_MAXARGS, 1, do_ahab_return_lifecycl
 	   "addr - Return lifecycle message block signed by OEM SRK\n"
 );
 
+#if 0
 U_BOOT_CMD(ahab_commit, CONFIG_SYS_MAXARGS, 1, do_ahab_commit,
 	   "commit into the fuses any new SRK revocation and FW version information\n"
 	   "that have been found into the NXP (ELE FW) and OEM containers",
 	   ""
 );
+#endif
