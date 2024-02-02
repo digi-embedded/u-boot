@@ -168,3 +168,9 @@ config TRUSTFENCE_JTAG
 	bool
 	depends on HAS_TRUSTFENCE
 	default y if CC6UL
+
+config REDUNDANT_BOOTLOADER
+	bool
+	depends on CMD_UPDATE_MMC
+	default y if CC93
+
