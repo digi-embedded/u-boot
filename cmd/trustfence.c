@@ -724,27 +724,22 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 		printf("Command not implemented\n");
 #endif
 	} else if (!strcmp(op, "status")) {
-		int key_index;
-
 		printf("* SRK fuses:\t\t");
 		ret = fuse_check_srk();
 		if (ret > 0) {
 			printf("[NOT PROGRAMMED]\n");
 		} else if (ret == 0) {
 			puts("[PROGRAMMED]\n");
+			/* Only show revocation status if the SRK fuses are programmed */
+			if (sense_key_status(&val[0]))
+				goto err;
+			for (int i = 0; i <= CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS; i++) {
+				printf("   Key %d:\t\t", i);
+				printf((val[0] & (1 << i) ? "[REVOKED]\n" : "[OK]\n"));
+			}
 		} else {
 			puts("[ERROR]\n");
 		}
-
-		if (sense_key_status(&val[0]))
-			goto err;
-		for (key_index = 0; key_index < CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS;
-		     key_index++) {
-			printf("   Key %d:\t\t", key_index);
-			printf((val[0] & (1 << key_index) ?
-			       "[REVOKED]\n" : "[OK]\n"));
-		}
-		printf("   Key %d:\t\t[OK]\n", CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS);
 
 		printf("* Secure boot:\t\t%s", imx_hab_is_enabled() ?
 		       "[CLOSED]\n" : "[OPEN]\n");
