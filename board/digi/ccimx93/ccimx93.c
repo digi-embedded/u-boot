@@ -53,12 +53,18 @@ int mmc_get_bootdevindex(void)
 	}
 }
 
-#ifdef CONFIG_FSL_ESDHC_IMX
+#ifdef CONFIG_ENV_IS_IN_MMC
 int board_mmc_get_env_dev(int devno)
 {
-	return mmc_get_bootdevindex();
+	/*
+	 * Use the environment from the compile time config
+	 * regardless of the actual boot device.
+	 */
+	return CONFIG_SYS_MMC_ENV_DEV;
 }
+#endif
 
+#ifdef CONFIG_FSL_ESDHC_IMX
 bool board_has_emmc(void)
 {
 	return 1;
