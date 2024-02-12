@@ -1213,6 +1213,7 @@ dtb-$(CONFIG_STM32MP25X) += \
 	stm32mp257f-ev1-revB.dtb
 else
 dtb-$(CONFIG_STM32MP25X) += \
+	ccmp25-dvk.dtb \
 	stm32mp257f-dk.dtb \
 	stm32mp257f-ev1.dtb
 endif
