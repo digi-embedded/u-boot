@@ -714,11 +714,11 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 		if (revoke_keys())
 			goto err;
 		puts("[OK]\n");
-		if (sense_key_status(&val[0]))
-			goto err;
-		for (int i = 0; i < CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS; i++) {
-			if (val[0] & (1 << i))
-				printf("   Key %d revoked\n", i);
+		if (!sense_key_status(&val[0])) {
+			for (int i = 0; i < CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS; i++) {
+				if (val[0] & (1 << i))
+					printf("   Key %d revoked\n", i);
+			}
 		}
 #else
 		printf("Command not implemented\n");
@@ -731,11 +731,11 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 		} else if (ret == 0) {
 			puts("[PROGRAMMED]\n");
 			/* Only show revocation status if the SRK fuses are programmed */
-			if (sense_key_status(&val[0]))
-				goto err;
-			for (int i = 0; i <= CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS; i++) {
-				printf("   Key %d:\t\t", i);
-				printf((val[0] & (1 << i) ? "[REVOKED]\n" : "[OK]\n"));
+			if (!sense_key_status(&val[0])) {
+				for (int i = 0; i <= CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS; i++) {
+					printf("   Key %d:\t\t", i);
+					printf((val[0] & (1 << i) ? "[REVOKED]\n" : "[OK]\n"));
+				}
 			}
 		} else {
 			puts("[ERROR]\n");
