@@ -1,13 +1,12 @@
-if TARGET_ST_STM32MP25X
+if TARGET_CCMP25_DVK
 
 config SYS_BOARD
-	default "stm32mp2"
+	default "ccmp25-dvk"
 
 config SYS_VENDOR
-	default "st"
+	default "digi"
 
 config SYS_CONFIG_NAME
-	default "stm32mp25_st_common"
+	default "ccmp25-dvk"
 
-source "board/st/common/Kconfig"
 endif

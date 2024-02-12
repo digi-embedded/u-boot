@@ -13,6 +13,15 @@ config TARGET_ST_STM32MP25X
 		managed by board/st/stm32mp2
 		The difference between board are managed with devicetree
 
+config TARGET_CCMP25_DVK
+	bool "Digi International CCMP25 Development Kit (DVK)"
+	select CCMP2
+	imply BOOTSTAGE
+	imply CMD_BOOTSTAGE
+	help
+		Target Digi International ConnectCore MP25 Development Kit
+		board.
+
 endchoice
 
 config SYS_TEXT_BASE
@@ -39,5 +48,6 @@ config DEBUG_UART_BASE
 endif
 
 source "board/st/stm32mp2/Kconfig"
+source "board/digi/ccmp25-dvk/Kconfig"
 
 endif
