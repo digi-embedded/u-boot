@@ -181,5 +181,14 @@ err:
  */
 int sense_key_status(u32 *val)
 {
-	return get_srk_revoke_mask(val);
+	int ret = -1;
+
+	/* Container Header can only be read from the storage media */
+	if (is_usb_boot())
+		printf
+		    ("Reading revoke mask is not supported booting from USB.\n");
+	else
+		ret = get_srk_revoke_mask(val);
+
+	return ret ? -1 : 0;
 }
