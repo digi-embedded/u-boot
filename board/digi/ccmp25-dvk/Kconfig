@@ -9,4 +9,5 @@ config SYS_VENDOR
 config SYS_CONFIG_NAME
 	default "ccmp25-dvk"
 
+source "board/st/common/Kconfig"
 endif
