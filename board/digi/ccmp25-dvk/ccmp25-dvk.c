@@ -99,70 +99,11 @@ int g_dnl_bind_fixup(struct usb_device_descriptor *dev, const char *name)
 }
 #endif /* CONFIG_USB_GADGET_DOWNLOAD */
 
-static int get_led(struct udevice **dev, char *led_string)
-{
-	const char *led_name;
-	int ret;
 
-	led_name = ofnode_conf_read_str(led_string);
-	if (!led_name) {
-		log_debug("could not find %s config string\n", led_string);
-		return -ENOENT;
-	}
-	ret = led_get_by_label(led_name, dev);
-	if (ret) {
-		log_debug("get=%d\n", ret);
-		return ret;
-	}
-
-	return 0;
-}
-
-static int setup_led(enum led_state_t cmd)
-{
-	struct udevice *dev;
-	int ret;
-
-	if (!CONFIG_IS_ENABLED(LED))
-		return 0;
-
-	ret = get_led(&dev, "blue-led");
-	if (ret)
-		return ret;
-
-	ret = led_set_state(dev, cmd);
-	return ret;
-}
-
-static void check_user_button(void)
-{
-	struct udevice *button;
-	int i;
-
-	if (!IS_ENABLED(CONFIG_CMD_STM32PROG) || !IS_ENABLED(CONFIG_BUTTON))
-		return;
-
-	if (button_get_by_label("User-2", &button))
-		return;
-
-	for (i = 0; i < 21; ++i) {
-		if (button_get_state(button) != BUTTON_ON)
-			return;
-		if (i < 20)
-			mdelay(50);
-	}
-
-	log_notice("entering download mode...\n");
-	clrsetbits_le32(TAMP_BOOT_CONTEXT, TAMP_BOOT_FORCED_MASK, BOOT_STM32PROG);
-}
 
 /* board dependent setup after realloc */
 int board_init(void)
 {
-	setup_led(LEDST_ON);
-
-	check_user_button();
-
 	return 0;
 }
 
@@ -340,11 +281,6 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 	fdt_copy_fixed_partitions(blob);
 
 	return 0;
-}
-
-void board_quiesce_devices(void)
-{
-	setup_led(LEDST_OFF);
 }
 
 #if defined(CONFIG_USB_DWC3) && defined(CONFIG_CMD_STM32PROG_USB)
