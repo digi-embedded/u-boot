@@ -446,7 +446,7 @@ static int console_get_passphrase(int secs, char *buff, int len)
 		}
 
 		/* Do not trigger watchdog while typing passphrase */
-		WATCHDOG_RESET();
+		schedule();
 
 		if (tstc()) {
 			c = getchar();
