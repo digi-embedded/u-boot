@@ -265,6 +265,19 @@ void board_update_hwid(bool is_fuse)
 	som_default_environment();
 }
 
+int ccimx93_late_init(void)
+{
+#ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
+	gd->flags &= ~GD_FLG_DISABLE_CONSOLE_INPUT;
+	if (!console_enable_passphrase())
+		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+	else
+		gd->flags |= GD_FLG_DISABLE_CONSOLE_INPUT;
+#endif
+
+	return 0;
+}
+
 void fdt_fixup_ccimx93(void *fdt)
 {
 	fdt_fixup_hwid(fdt, &my_hwid);
