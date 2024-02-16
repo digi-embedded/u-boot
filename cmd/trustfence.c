@@ -393,6 +393,7 @@ __weak void board_print_trustfence_jtag_key(u32 *sjc)
 int console_enable_gpio(const char *name)
 {
 	struct gpio_desc desc;
+	ulong flags = GPIOD_IS_IN;
 	int ret = 0;
 
 	if (dm_gpio_lookup_name(name, &desc))
@@ -401,7 +402,10 @@ int console_enable_gpio(const char *name)
 	if (dm_gpio_request(&desc, "Console enable"))
 		goto error;
 
-	if (dm_gpio_set_dir_flags(&desc, GPIOD_IS_IN))
+	if (IS_ENABLED(CONFIG_CONSOLE_ENABLE_GPIO_ACTIVE_LOW))
+		flags |= GPIOD_ACTIVE_LOW;
+
+	if (dm_gpio_set_dir_flags(&desc, flags))
 		goto errfree;
 
 	ret = dm_gpio_get_value(&desc);

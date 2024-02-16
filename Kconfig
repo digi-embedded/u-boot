@@ -38,6 +38,12 @@ config CONSOLE_ENABLE_GPIO_NR
 	    On the ConnectCore 6UL Starter Board, on Raspberry-Pi expansion connector
 	    On the ConnectCore 6UL SBC, on GPIO connector
 
+config CONSOLE_ENABLE_GPIO_ACTIVE_LOW
+	bool "Console enable GPIO is active low"
+	depends on CONSOLE_ENABLE_GPIO
+	help
+	  Enable this option when the GPIO to enable the console is active low.
+
 config CONSOLE_ENABLE_PASSPHRASE
 	bool "Passphrase console enable support"
 	depends on CONSOLE_DISABLE
