@@ -243,6 +243,7 @@ int padding_pss_verify(struct image_sign_info *info,
 		ret = -ENOMEM;
 		goto out;
 	}
+	memset(db, 0, db_len*sizeof(int) );
 
 	/* step 4: check if the last byte is 0xbc */
 	if (msg[msg_len - 1] != 0xbc) {
