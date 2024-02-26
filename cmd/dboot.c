@@ -11,6 +11,7 @@
 #include <command.h>
 #include <common.h>
 #include <env.h>
+#include <mapmem.h>
 #include <part.h>
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
 #include <stdlib.h>
@@ -21,6 +22,8 @@
 #ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
 #include "../board/digi/common/auth.h"
 #endif /* CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS */
+
+#define DELIM_OV_FILE		","
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -80,15 +83,85 @@ static int set_bootargs(int os, int src)
 	return run_command(cmd, 0);
 }
 
-static int boot_os(char* initrd_addr, char* fdt_addr)
+/*
+ * Get configurations part of boot command from FIT image
+ *
+ * Return: length of configurations command part
+ */
+static int get_cfgs_cmd_from_fit(char *cmd)
+{
+	ulong fitaddr;
+	void *fit = NULL;
+	int confs_offset, dflt_offset;
+	const char *dflt_cfg_name = NULL;
+	char *overlays_list, *overlay = NULL;
+	int ret = -1;
+
+	fitaddr = env_get_hex("fit_addr_r", 0);
+	if (!fitaddr) {
+		printf("Unable to get fit_addr_r\n");
+		return -EINVAL;
+	}
+	fit = map_sysmem(fitaddr, 0);
+
+	/*
+	 * Append configurations to boot command
+	 */
+	confs_offset = fdt_path_offset(fit, FIT_CONFS_PATH);
+	if (confs_offset < 0) {
+		printf("Could not find configurations node\n");
+		goto free_fit;
+	}
+
+	/* First subnode is default configuration */
+	dflt_offset = fdt_first_subnode(fit, confs_offset);
+	if (dflt_offset < 0) {
+		printf("Could not find default configuration node\n");
+		goto free_fit;
+	}
+	dflt_cfg_name = fit_get_name(fit, dflt_offset, NULL);
+	if (!dflt_cfg_name) {
+		printf("Could not find default configuration name\n");
+		goto free_fit;
+	}
+	ret = sprintf(cmd, "%s", dflt_cfg_name);
+
+	/* Rest subnodes are overlays */
+	overlays_list = strdup(env_get("overlays"));
+	if (!overlays_list) {
+		printf("\n   WARNING: unable to load overlays list\n\n");
+		goto free_fit;
+	}
+
+	overlay = strtok(overlays_list, DELIM_OV_FILE);
+	while (overlay) {
+		int noffset = fdt_next_subnode(fit, dflt_offset);
+		for (; noffset >= 0; noffset = fdt_next_subnode(fit, noffset)) {
+			const char *cfgname = fit_get_name(fit, noffset, NULL);
+			if (strstr(cfgname, overlay))
+				ret = sprintf(cmd, "%s#%s", cmd, cfgname);
+		}
+		overlay = strtok(NULL, DELIM_OV_FILE);
+	}
+	free(overlays_list);
+
+free_fit:
+	unmap_sysmem(fit);
+
+	return ret;
+}
+
+static int boot_os(char *initrd_addr, char *fdt_addr)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	char *var;
 	char dboot_cmd[] = "bootz";	/* default */
+	bool is_fit = false;
 
 	/*
 	 * Get kernel type looking at first char
 	 *
+	 * fitimage -> bootm
 	 * image    -> booti
 	 * imagegz  -> booti
 	 * uimage   -> bootm
@@ -96,6 +169,8 @@ static int boot_os(char* initrd_addr, char* fdt_addr)
 	 */
 	var = env_get("dboot_kernel_var");
 	switch (var[0]) {
+	case 'f':
+		is_fit = true;
 	case 'u':
 		strcpy(dboot_cmd, "bootm");
 		break;
@@ -104,11 +179,28 @@ static int boot_os(char* initrd_addr, char* fdt_addr)
 		break;
 	}
 
-	sprintf(cmd, "%s $loadaddr %s %s", dboot_cmd,
-		(initrd_addr && !initrd_addr[0]) ? "-" : initrd_addr,
-		(fdt_addr && !fdt_addr[0]) ? "" : fdt_addr);
+	if (is_fit) {
+		char cfgs_cmd[CONFIG_SYS_CBSIZE] = "";
+
+		if (get_cfgs_cmd_from_fit(cfgs_cmd) <= 0)
+			return -EINVAL;
+		snprintf(cmd, sizeof(cmd), "%s $fit_addr_r#%s", dboot_cmd,
+			 cfgs_cmd);
+	} else {
+		sprintf(cmd, "%s $loadaddr %s %s", dboot_cmd,
+			(initrd_addr && !initrd_addr[0]) ? "-" : initrd_addr,
+			(fdt_addr && !fdt_addr[0]) ? "" : fdt_addr);
+	}
+	debug("Boot command = %s\n", cmd);
 
 	return run_command(cmd, 0);
+}
+
+static bool is_fitimage(void)
+{
+	char *var = env_get("dboot_kernel_var");
+
+	return var && !strcmp(var, "fitimage");
 }
 
 static int do_dboot(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv[])
@@ -125,13 +217,13 @@ static int do_dboot(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv
 	char *overlay = NULL;
 	char *overlay_desc = NULL;
 	int root_node;
-#define DELIM_OV_FILE		","
 #endif
 	struct load_fw fwinfo;
 #ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
 	unsigned long squashfs_raw_size;
 	unsigned long rootfs_auth_addr;
 #endif
+	bool is_fit = is_fitimage();
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -188,14 +280,28 @@ static int do_dboot(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv
 
 	/* Load firmware file to RAM */
 	fwinfo.compressed = is_image_compressed();
-	strncpy(fwinfo.loadaddr, "$loadaddr", sizeof(fwinfo.loadaddr));
+	strncpy(fwinfo.loadaddr, is_fit ? "$fit_addr_r" : "$loadaddr", sizeof(fwinfo.loadaddr));
 	strncpy(fwinfo.lzipaddr, "$lzipaddr", sizeof(fwinfo.lzipaddr));
 
-	ret = load_firmware(&fwinfo, "\n## Loading kernel");
-	if (ret == LDFW_ERROR) {
-		printf("Error loading firmware file to RAM\n");
-		return CMD_RET_FAILURE;
+	/* Skip loading of image if it's a FIT image that's already loaded */
+	if (is_fit && (env_get_yesno("temp-fitimg-loaded") == 1)) {
+		/* clear temp variable */
+		printf("Skip re-loading of FIT image\n");
+		env_set("temp-fitimg-loaded", "");
+	} else {
+		char msg[256];
+
+		sprintf(msg, "\n## Loading %s", is_fit ? "fitImage" : "kernel");
+		ret = load_firmware(&fwinfo, msg);
+		if (ret == LDFW_ERROR) {
+			printf("Error loading firmware file to RAM\n");
+			return CMD_RET_FAILURE;
+		}
 	}
+
+	/* Avoid loading other artifacts if it's a FIT image */
+	if (is_fit)
+		goto skip_load;
 
 	/* Get flattened Device Tree */
 	var = env_get("boot_fdt");
@@ -322,6 +428,7 @@ static int do_dboot(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv
 		return CMD_RET_FAILURE;
 	}
 
+skip_load:
 	/* Set boot arguments */
 	ret = set_bootargs(os, fwinfo.src);
 	if (ret) {
