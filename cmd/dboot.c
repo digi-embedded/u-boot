@@ -86,14 +86,22 @@ static int boot_os(char* initrd_addr, char* fdt_addr)
 	char *var;
 	char dboot_cmd[] = "bootz";	/* default */
 
+	/*
+	 * Get kernel type looking at first char
+	 *
+	 * image    -> booti
+	 * imagegz  -> booti
+	 * uimage   -> bootm
+	 * zimage   -> bootz
+	 */
 	var = env_get("dboot_kernel_var");
-	if (var) {
-		if (!strcmp(var, "uimage"))
-			strcpy(dboot_cmd, "bootm");
-		else if (!strcmp(var, "image"))
-			strcpy(dboot_cmd, "booti");
-		else if (!strcmp(var, "imagegz"))
-			strcpy(dboot_cmd, "booti");
+	switch (var[0]) {
+	case 'u':
+		strcpy(dboot_cmd, "bootm");
+		break;
+	case 'i':
+		strcpy(dboot_cmd, "booti");
+		break;
 	}
 
 	sprintf(cmd, "%s $loadaddr %s %s", dboot_cmd,
