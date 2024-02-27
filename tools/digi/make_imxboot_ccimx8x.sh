@@ -198,7 +198,7 @@ ATF_BRANCH="lf_v2.8"
 ATF_REV="08e9d4eef2262c0dd072b4325e8919e06d349e02"
 ATF_DIR="${BASEDIR}/imx-atf"
 
-DIGI_SC_FW="digi-sc-firmware-1.15.0"
+DIGI_SC_FW="digi-sc-firmware-1.15.0.1"
 DIGI_SC_FW_DIR="${BASEDIR}/${DIGI_SC_FW}"
 DIGI_SC_FW_URL="https://ftp1.digi.com/support/digiembeddedyocto/source/${DIGI_SC_FW}.tar.gz"
 
