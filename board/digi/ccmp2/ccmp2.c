@@ -137,6 +137,9 @@ int mmc_get_bootdevindex(void)
 
 void som_default_environment(void)
 {
+#ifdef CONFIG_CMD_MMC
+	char cmd[80];
+#endif
 	char var[10];
 	char hex_val[9]; // 8 hex chars + null byte
 	int i;
@@ -165,6 +168,12 @@ void som_default_environment(void)
 		}
 		env_set("module_ram", var);
 	}
+
+#ifdef CONFIG_CMD_MMC
+	/* Set $mmcbootdev to MMC boot device index */
+	sprintf(cmd, "setenv -f mmcbootdev %x", mmc_get_bootdevindex());
+	run_command(cmd, 0);
+#endif
 
 	/* Get MAC address from fuses unless indicated otherwise */
 	if (env_get_yesno("use_fused_macs"))

@@ -198,6 +198,11 @@ int mmc_get_env_dev(void)
 	return mmc_get_boot();
 }
 
+void platform_default_environment(void)
+{
+	som_default_environment();
+}
+
 int board_late_init(void)
 {
 	const void *fdt_compat;
@@ -222,6 +227,9 @@ int board_late_init(void)
 			}
 		}
 	}
+
+	/* Set default dynamic variables */
+	platform_default_environment();
 
 	return 0;
 }

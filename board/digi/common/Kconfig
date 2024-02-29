@@ -78,7 +78,7 @@ config CMD_BOOTSTREAM
 
 config DIGI_UPDATE_ADDR
 	hex "RAM address where to place the firmware image during update"
-	default 0xc2000000 if CCMP2
+	default 0x84000000 if CCMP2
 	default 0xc2000000 if CCMP1
 	default 0x50000000 if CC8M
 	default 0x95000000 if CC8X
@@ -86,7 +86,7 @@ config DIGI_UPDATE_ADDR
 
 config DIGI_LZIPADDR
 	hex "RAM address where to place compressed image (to be decompressed)"
-	default 0xc4000000 if CCMP2
+	default 0x88000000 if CCMP2
 	default 0xc4000000 if CCMP1
 	default 0x44000000 if CC8M
 	default 0x8C000000 if CC8X

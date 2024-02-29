@@ -15,44 +15,102 @@
 #define CONFIG_BOARD_DESCRIPTION	"Development Kit"
 #define BOARD_DEY_NAME			"ccmp25-dvk"
 
-/*
- * default bootcmd for stm32mp25:
- * for serial/usb: execute the stm32prog command
- * for mmc boot (eMMC, SD card), distro boot on the same mmc device
- * for NAND or SPI-NAND boot, distro boot with UBIFS on UBI partition
- * for other boot, use the default distro order in ${boot_targets}
- */
-#define STM32MP_BOOTCMD "bootcmd_stm32mp=" \
-	"echo \"Boot over ${boot_device}${boot_instance}!\";" \
-	"if test ${boot_device} = serial || test ${boot_device} = usb;" \
-	"then stm32prog ${boot_device} ${boot_instance}; " \
-	"else " \
-		"run env_check;" \
-		"if test ${boot_device} = mmc;" \
-		"then env set boot_targets \"mmc${boot_instance}\"; fi;" \
-		"if test ${boot_device} = nand ||" \
-		  " test ${boot_device} = spi-nand ;" \
-		"then env set boot_targets ubifs0; fi;" \
-		"run distro_bootcmd;" \
-	"fi;\0"
+/* Serial */
+#define CONSOLE_DEV			"ttySTM0"
 
-#ifndef STM32MP_BOARD_EXTRA_ENV
-#define STM32MP_BOARD_EXTRA_ENV
-#endif
+#define MMCDEV_DEFAULT		"0"	/* eMMC dev index */
+#define MMCPART_DEFAULT		"5"	/* default eMMC partition index */
 
-#define STM32MP_EXTRA \
-	"env_check=if env info -p -d -q; then env save; fi\0" \
-	"boot_net_usb_start=true\0"
+/* Carrier board version in environment */
+#define CONFIG_HAS_CARRIERBOARD_VERSION
+#define CONFIG_HAS_CARRIERBOARD_ID
 
+#define CONFIG_COMMON_ENV	\
+	CONFIG_DEFAULT_NETWORK_SETTINGS \
+	CONFIG_EXTRA_NETWORK_SETTINGS \
+	ALTBOOTCMD \
+	"dboot_kernel_var=imagegz\0" \
+	"dualboot=yes\0" \
+	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
+	"boot_fdt=yes\0" \
+	"bootargs_linux=fbcon=logo-pos:center fbcon=logo-count:1\0" \
+	"bootargs_mmc_linux=setenv bootargs console=${console},${baudrate} " \
+		"${bootargs_linux} root=${mmcroot} rootwait rw " \
+		"${bootargs_once} ${extra_bootargs}\0" \
+	"bootargs_nfs=" \
+		"if test ${ip_dyn} = yes; then " \
+			"bootargs_ip=\"ip=dhcp\";" \
+		"else " \
+			"bootargs_ip=\"ip=\\${ipaddr}:\\${serverip}:" \
+			"\\${gatewayip}:\\${netmask}:\\${hostname}:" \
+			"eth0:off\";" \
+		"fi;\0" \
+	"bootargs_nfs_linux=run bootargs_nfs;" \
+		"setenv bootargs console=${console},${baudrate} " \
+		"${bootargs_linux} root=/dev/nfs " \
+		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
+		"${bootargs_once} ${extra_bootargs}\0" \
+	"bootargs_tftp=" \
+		"if test ${ip_dyn} = yes; then " \
+			"bootargs_ip=\"ip=dhcp\";" \
+		"else " \
+			"bootargs_ip=\"ip=\\${ipaddr}:\\${serverip}:" \
+			"\\${gatewayip}:\\${netmask}:\\${hostname}:" \
+			"eth0:off\";" \
+		"fi;\0" \
+	"bootargs_tftp_linux=run bootargs_tftp;" \
+		"setenv bootargs console=${console},${baudrate} " \
+		"${bootargs_linux} root=/dev/nfs " \
+		"${bootargs_ip} nfsroot=${serverip}:${rootpath},v3,tcp " \
+		"${bootargs_once} ${extra_bootargs}\0" \
+	"console=" CONSOLE_DEV "\0" \
+	"fdt_addr=0x88000000\0" \
+	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
+	"fdt_high=0xffffffff\0"	  \
+	"image=Image-" BOARD_DEY_NAME ".bin\0" \
+	"imagegz=Image.gz-" BOARD_DEY_NAME ".bin\0" \
+	"initrd_addr=0x88400000\0" \
+	"initrd_file=uramdisk.img\0" \
+	"initrd_high=0xffffffff\0" \
+	"install_linux_fw_sd=if load mmc 1 ${loadaddr} install_linux_fw_sd.scr;then " \
+			"source ${loadaddr};" \
+		"fi;\0" \
+	"install_linux_fw_usb=usb start;" \
+		"if load usb 0 ${loadaddr} install_linux_fw_usb.scr;then " \
+			"source ${loadaddr};" \
+		"fi;\0" \
+	"usb_pgood_delay=2000\0" \
+	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
+	"mmcdev=" MMCDEV_DEFAULT "\0" \
+	"mmcpart=" MMCPART_DEFAULT "\0" \
+	"mmcroot=PARTUUID=12c08a28-fb40-430a-a5bc-7b4f015b0b3c\0" \
+	"linux_file=dey-image-webkit-wayland-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
+	"loadscript=" \
+		"if test \"${dualboot}\" = yes; then " \
+			"env exists active_system || setenv active_system linux_a; " \
+			"part number mmc ${mmcbootdev} ${active_system} mmcpart; " \
+		"fi;" \
+		"load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script};\0" \
+	"lzipaddr=" __stringify(CONFIG_DIGI_LZIPADDR) "\0" \
+	"recovery_file=recovery.img\0" \
+	"rootfs_file=dey-image-webkit-wayland-" CONFIG_SYS_BOARD ".ubifs\0" \
+	"script=boot.scr\0" \
+	"fit-script=bootscr-boot.txt\0" \
+	"uboot_file=u-boot.imx\0" \
+	"zimage=zImage-" BOARD_DEY_NAME ".bin\0" \
+	"fitimage=fitImage-" BOARD_DEY_NAME ".bin\0"
 
+#define DUALBOOT_ENV_SETTINGS \
+	"active_system=linux_a\0"
 
 #include <config_distro_bootcmd.h>
 #define CONFIG_EXTRA_ENV_SETTINGS \
+	RANDOM_UUIDS \
+	CONFIG_COMMON_ENV \
+	DUALBOOT_ENV_SETTINGS \
 	STM32MP_MEM_LAYOUT \
-	STM32MP_BOOTCMD \
-	BOOTENV \
-	STM32MP_EXTRA \
-	STM32MP_BOARD_EXTRA_ENV
+	BOOTENV
+
 
 #undef CONFIG_BOOTCOMMAND
 #define CONFIG_BOOTCOMMAND \
