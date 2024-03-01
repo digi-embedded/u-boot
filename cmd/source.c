@@ -53,7 +53,7 @@ static int do_source(struct cmd_tbl *cmdtp, int flag, int argc,
 		debug("*  source: cmdline image address = 0x%08lx\n", addr);
 	}
 
-#ifdef CONFIG_AUTH_ARTIFACTS
+#ifdef CONFIG_AUTH_DISCRETE_ARTIFACTS
 	ulong img_size;
 	const struct legacy_img_hdr *img_hdr = (const struct legacy_img_hdr *)addr;
 	if (img_hdr == NULL)
@@ -64,7 +64,7 @@ static int do_source(struct cmd_tbl *cmdtp, int flag, int argc,
 		printf("Authenticate Image Fail, Please check\n");
 		return CMD_RET_FAILURE;
 	}
-#endif /* CONFIG_AUTH_ARTIFACTS */
+#endif /* CONFIG_AUTH_DISCRETE_ARTIFACTS */
 	printf ("## Executing script at %08lx\n", addr);
 	rcode = cmd_source_script(addr, fit_uname, confname);
 	return rcode;

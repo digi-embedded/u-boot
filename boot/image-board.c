@@ -23,7 +23,7 @@
 #include <asm/cache.h>
 #include <asm/global_data.h>
 
-#ifdef CONFIG_AUTH_ARTIFACTS
+#ifdef CONFIG_AUTH_DISCRETE_ARTIFACTS
 #include "../board/digi/common/auth.h"
 #if defined(CONFIG_IMX_HAB) || defined(CONFIG_AHAB_BOOT)
 #include <asm/mach-imx/hab.h>
@@ -388,7 +388,7 @@ static int select_ramdisk(struct bootm_headers *images, const char *select, u8 a
 			return rd_noffset;
 	}
 
-#ifdef CONFIG_AUTH_ARTIFACTS
+#ifdef CONFIG_AUTH_DISCRETE_ARTIFACTS
 	ulong raw_image_size =
 	    image_get_image_size((struct legacy_img_hdr *)rd_addr);
 	if (digi_auth_image(&rd_addr, raw_image_size) != 0) {
@@ -510,7 +510,7 @@ int boot_get_ramdisk(int argc, char *const argv[], struct bootm_headers *images,
 	*rd_start = 0;
 	*rd_end = 0;
 
-#ifdef CONFIG_AUTH_ARTIFACTS
+#ifdef CONFIG_AUTH_DISCRETE_ARTIFACTS
 	authenticated = 0;
 #endif
 
@@ -572,14 +572,14 @@ int boot_get_ramdisk(int argc, char *const argv[], struct bootm_headers *images,
 	debug("   ramdisk start = 0x%08lx, ramdisk end = 0x%08lx\n",
 	      *rd_start, *rd_end);
 
-#ifdef CONFIG_AUTH_ARTIFACTS
+#ifdef CONFIG_AUTH_DISCRETE_ARTIFACTS
 #if defined(CONFIG_IMX_HAB) || defined(CONFIG_AHAB_BOOT)
 	if (rd_data && imx_hab_is_enabled() && !authenticated) {
 		printf("Ramdisk authentication is not supported\n");
 		return 1;
 	}
 #endif /* CONFIG_IMX_HAB || CONFIG_AHAB_BOOT */
-#endif /* CONFIG_AUTH_ARTIFACTS */
+#endif /* CONFIG_AUTH_DISCRETE_ARTIFACTS */
 
 	return 0;
 }

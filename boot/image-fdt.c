@@ -21,10 +21,6 @@
 #include <linux/libfdt.h>
 #include <mapmem.h>
 #include <asm/io.h>
-#include <asm/mach-imx/hab.h>
-#ifdef CONFIG_AUTH_ARTIFACTS
-#include "../board/digi/common/auth.h"
-#endif
 #include <dm/ofnode.h>
 #include <tee/optee.h>
 
@@ -33,10 +29,11 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#ifdef CONFIG_AUTH_ARTIFACTS
+#ifdef CONFIG_AUTH_DISCRETE_ARTIFACTS
+#include "../board/digi/common/auth.h"
 static int authentication_failed = 0;
 static int authenticated = 0;
-#endif
+#endif /* CONFIG_AUTH_DISCRETE_ARTIFACTS */
 
 static void fdt_error(const char *msg)
 {
@@ -580,7 +577,7 @@ int boot_get_fdt(int flag, int argc, char *const argv[], uint8_t arch,
 	debug("   of_flat_tree at 0x%08lx size 0x%08lx\n",
 	      (ulong)*of_flat_tree, *of_size);
 
-#ifdef CONFIG_AUTH_ARTIFACTS
+#ifdef CONFIG_AUTH_DISCRETE_ARTIFACTS
 	/*
 	 * Authenticate during boot if device tree files have not been
 	 * authenticated while loading to ram already.
@@ -591,7 +588,7 @@ int boot_get_fdt(int flag, int argc, char *const argv[], uint8_t arch,
 			goto error;
 		}
 	}
-#endif /* CONFIG_AUTH_ARTIFACTS */
+#endif /* CONFIG_AUTH_DISCRETE_ARTIFACTS */
 
 	return 0;
 
@@ -736,7 +733,7 @@ err:
 	return ret;
 }
 
-#ifdef CONFIG_AUTH_ARTIFACTS
+#ifdef CONFIG_AUTH_DISCRETE_ARTIFACTS
 /* Reset the authentication variables to their initial state */
 void fdt_file_init_authentication(void)
 {
@@ -778,4 +775,4 @@ int fdt_file_authenticate(char *loadaddr)
 
 	return 0;
 }
-#endif
+#endif /* CONFIG_AUTH_DISCRETE_ARTIFACTS */

@@ -9,6 +9,16 @@ config AUTH_ARTIFACTS
 	  Enable this option to support authentication of signed/encrypted boot
 	  artifacts.
 
+choice
+	prompt "Select type of boot artifacts"
+	depends on AUTH_ARTIFACTS
+
+config AUTH_DISCRETE_ARTIFACTS
+	bool "Authenticate discrete artifacts: kernel, dtb, ramdisk"
+	depends on !TARGET_CCIMX93_DVK
+
+endchoice
+
 config SIGN_IMAGE
 	bool "Generate signed images"
 	help

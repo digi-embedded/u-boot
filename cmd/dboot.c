@@ -325,7 +325,7 @@ static int do_dboot(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv
 	}
 
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
-#ifdef CONFIG_AUTH_ARTIFACTS
+#ifdef CONFIG_AUTH_DISCRETE_ARTIFACTS
 	fdt_file_init_authentication();
 	if (fdt_file_authenticate(fwinfo.loadaddr) != 0) {
 		printf("Error authenticating FDT file\n");
@@ -333,7 +333,7 @@ static int do_dboot(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv
 	}
 	/* Set FDT start address */
 	strcpy(fdt_addr, fwinfo.loadaddr);
-#endif /* CONFIG_AUTH_ARTIFACTS */
+#endif /* CONFIG_AUTH_DISCRETE_ARTIFACTS */
 	sprintf(cmd_buf, "fdt addr %s", fwinfo.loadaddr);
 	if (run_command(cmd_buf, 0)) {
 		printf("Failed to set base fdt address\n");
@@ -370,12 +370,12 @@ static int do_dboot(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv
 			return CMD_RET_FAILURE;
 		}
 
-#ifdef CONFIG_AUTH_ARTIFACTS
+#ifdef CONFIG_AUTH_DISCRETE_ARTIFACTS
 		if (fdt_file_authenticate(fwinfo.loadaddr) != 0) {
 			printf("Error authenticating FDT overlay file '%s'\n", fwinfo.filename);
 			return CMD_RET_FAILURE;
 		}
-#endif /* CONFIG_AUTH_ARTIFACTS */
+#endif /* CONFIG_AUTH_DISCRETE_ARTIFACTS */
 
 		/* Resize the base fdt to make room for the overlay */
 		run_command("fdt resize $filesize", 0);
