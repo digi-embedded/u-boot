@@ -21,15 +21,17 @@
  */
 
 #include <common.h>
+#include <env.h>
 #ifdef CONFIG_IMX_HAB
 #include <asm/mach-imx/hab.h>
 #endif
 #ifdef CONFIG_AHAB_BOOT
 #include <asm/mach-imx/image.h>
+extern int authenticate_os_container(ulong addr);
 #endif
 
 #ifdef CONFIG_AHAB_BOOT
-static int container_is_encrypted(ulong addr, ulong *dek_addr)
+static int __maybe_unused container_is_encrypted(ulong addr, ulong *dek_addr)
 {
 	struct container_hdr *phdr;
 	struct signature_block_hdr *sign_hdr;
@@ -55,8 +57,45 @@ static int container_is_encrypted(ulong addr, ulong *dek_addr)
 
 	return 0;
 }
+
+static int __maybe_unused get_os_container_size(ulong addr)
+{
+	struct boot_img_t *img;
+	struct container_hdr *phdr;
+	u32 len;
+
+	phdr = (struct container_hdr *)addr;
+	if (phdr->tag != 0x87 || phdr->version != 0x0) {
+		printf("Error: Wrong container header\n");
+		return -1;
+	}
+
+	img = (struct boot_img_t *)(addr + sizeof(struct container_hdr));
+	len = img->offset + img->size;
+	debug("OS container size: %u\n", len);
+
+	return len;
+}
+
+int get_os_container_img_offset(ulong addr)
+{
+	struct boot_img_t *img;
+	struct container_hdr *phdr;
+
+	phdr = (struct container_hdr *)addr;
+	if (phdr->tag != 0x87 || phdr->version != 0x0) {
+		printf("Error: Wrong container header\n");
+		return -1;
+	}
+
+	img = (struct boot_img_t *)(addr + sizeof(struct container_hdr));
+	debug("OS container image offset: %u\n", img->offset);
+
+	return img->offset;
+}
 #endif
 
+#if defined(CONFIG_AUTH_DISCRETE_ARTIFACTS)
 /*
  * Authenticate an image in RAM.
  *
@@ -81,7 +120,6 @@ int digi_auth_image(ulong *ddr_start, ulong raw_image_size)
 	if (authenticate_image((uint32_t)*ddr_start, raw_image_size) == 0)
 		ret = 0;
 #elif defined(CONFIG_AHAB_BOOT)
-	extern int authenticate_os_container(ulong addr);
 	extern int get_dek_blob(char *output, u32 *size);
 	struct boot_img_t *img;
 	struct generate_key_blob_hdr *dek_hdr;
@@ -120,3 +158,34 @@ int digi_auth_image(ulong *ddr_start, ulong raw_image_size)
 
 	return ret;
 }
+#elif defined(CONFIG_AUTH_FIT_ARTIFACT)
+#ifdef CONFIG_AHAB_BOOT
+/*
+ * Authenticate an image in RAM.
+ *
+ * Alternative implementation that moves the image to the container
+ * address (cntr_addr) before authentication.
+ *
+ * So far, only supports AHAB based authentication.
+ */
+int digi_auth_image(ulong addr)
+{
+	ulong cntr_addr = 0;
+
+	cntr_addr = env_get_hex("cntr_addr", 0);
+	if (!cntr_addr) {
+		printf("Not valid cntr_addr, Please check\n");
+		return -1;
+	}
+
+	if (cntr_addr != addr) {
+		int cntr_size = get_os_container_size(addr);
+		printf("Moving Image from 0x%lx to 0x%lx, end=%lx\n", addr,
+		       cntr_addr, cntr_addr + cntr_size);
+		memmove((void *)cntr_addr, (void *)addr, cntr_size);
+	}
+
+	return authenticate_os_container(cntr_addr);
+}
+#endif
+#endif

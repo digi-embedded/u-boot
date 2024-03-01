@@ -19,7 +19,7 @@
 #include <linux/libfdt.h>
 #include "../board/digi/common/helper.h"
 #include <image.h>
-#ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
+#if defined(CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS) || defined(CONFIG_AUTH_FIT_ARTIFACT)
 #include "../board/digi/common/auth.h"
 #endif /* CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS */
 
@@ -102,11 +102,19 @@ static int get_cfgs_cmd_from_fit(char *cmd)
 		printf("Unable to get fit_addr_r\n");
 		return -EINVAL;
 	}
-	fit = map_sysmem(fitaddr, 0);
+#if defined(CONFIG_AHAB_BOOT) && defined(CONFIG_AUTH_FIT_ARTIFACT)
+	int img_offset = get_os_container_img_offset(fitaddr);
+	if (img_offset < 0) {
+		printf("Unable to get image offset in AHAB container\n");
+		return -1;
+	}
+	fitaddr += img_offset;
+#endif
 
 	/*
 	 * Append configurations to boot command
 	 */
+	fit = map_sysmem(fitaddr, 0);
 	confs_offset = fdt_path_offset(fit, FIT_CONFS_PATH);
 	if (confs_offset < 0) {
 		printf("Could not find configurations node\n");
@@ -183,7 +191,7 @@ static int boot_os(char *initrd_addr, char *fdt_addr)
 		char cfgs_cmd[CONFIG_SYS_CBSIZE] = "";
 
 		if (get_cfgs_cmd_from_fit(cfgs_cmd) <= 0)
-			return -EINVAL;
+			return CMD_RET_FAILURE;
 		snprintf(cmd, sizeof(cmd), "%s $fit_addr_r#%s", dboot_cmd,
 			 cfgs_cmd);
 	} else {

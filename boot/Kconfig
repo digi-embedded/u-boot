@@ -17,6 +17,10 @@ config AUTH_DISCRETE_ARTIFACTS
 	bool "Authenticate discrete artifacts: kernel, dtb, ramdisk"
 	depends on !TARGET_CCIMX93_DVK
 
+config AUTH_FIT_ARTIFACT
+	bool "Authenticate one FIT image artifact"
+	depends on TARGET_CCIMX93_DVK
+
 endchoice
 
 config SIGN_IMAGE

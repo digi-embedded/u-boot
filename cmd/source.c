@@ -65,6 +65,17 @@ static int do_source(struct cmd_tbl *cmdtp, int flag, int argc,
 		return CMD_RET_FAILURE;
 	}
 #endif /* CONFIG_AUTH_DISCRETE_ARTIFACTS */
+
+#if defined(CONFIG_AHAB_BOOT) && defined(CONFIG_AUTH_FIT_ARTIFACT)
+	int img_offset = get_os_container_img_offset(addr);
+	if (img_offset < 0) {
+		printf("Unable to get image offset in AHAB container\n");
+		return CMD_RET_FAILURE;
+	}
+	printf("## Adjust script address for containerized FIT image\n");
+	addr += img_offset;
+#endif
+
 	printf ("## Executing script at %08lx\n", addr);
 	rcode = cmd_source_script(addr, fit_uname, confname);
 	return rcode;

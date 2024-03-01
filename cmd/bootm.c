@@ -137,6 +137,19 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 	}
 #endif
 
+#if defined(CONFIG_AHAB_BOOT) && defined(CONFIG_AUTH_FIT_ARTIFACT)
+	/* Sanitize address in case it's a FIT argument */
+	ulong auth_addr = image_load_addr;
+	if (argv[1])
+		auth_addr = hextoul(argv[1], NULL);
+
+	extern int digi_auth_image(ulong addr);
+	if (digi_auth_image(auth_addr)) {
+		printf("Authenticate Image Fail, Please check\n");
+		return 1;
+	}
+#endif
+
 	/* determine if we have a sub command */
 	argc--; argv++;
 	if (argc > 0) {
