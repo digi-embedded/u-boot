@@ -135,6 +135,8 @@ int env_import(const char *buf, int check, int flags)
 {
 	env_t *ep = (env_t *)buf;
 	int ret;
+	char *p = NULL;
+	char *env_data = ep->data;
 
 	if (check) {
 		uint32_t crc;
@@ -164,6 +166,19 @@ int env_import(const char *buf, int check, int flags)
 		env_set_default("!import failed", 0);
 		return ret;
 	} else {
+		/* Verify that we can read some environment variable */
+		while (*env_data) {
+			p = strstr((char *)env_data, "baudrate");
+			if (p != NULL)
+				break;
+			env_data += strlen(env_data) + 1;
+		}
+		/* if we haven't found anything exit with an error */
+		if (p == NULL) {
+			errno = EIO;
+			goto err;
+		}
+
 		if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE, '\0', 0, 0,
 			0, NULL)) {
 			gd->flags |= GD_FLG_ENV_READY;
@@ -171,6 +186,7 @@ int env_import(const char *buf, int check, int flags)
 		}
 	}
 
+err:
 	pr_err("Cannot import environment: errno = %d\n", errno);
 
 	env_set_default("import failed", 0);
