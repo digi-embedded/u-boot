@@ -88,7 +88,7 @@
 	"imagegz=Image.gz-" BOARD_DEY_NAME ".bin\0" \
 	"uboot_file=imx-boot-" BOARD_DEY_NAME ".bin\0" \
 	"splashimage=0x90000000\0" \
-	"console=ttyLP5,115200 earlycon\0" \
+	"console=ttyLP5,115200\0" \
 	"fdt_addr_r=0x83000000\0"			\
 	"fdt_addr=0x83000000\0"			\
 	"fdt_high=0xffffffffffffffff\0"		\
