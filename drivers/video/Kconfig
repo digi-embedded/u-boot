@@ -992,4 +992,14 @@ config VIDEO_ADV7535
 	Say Y here if you want to enable support for ADI ADV7535
 	DSI to HDMI connector, currently only support 1920x1080.
 
+config VIDEO_LT8912
+	bool "Lontium LT8912 MIPI-DSI to LVDS and HDMI/MHL bridge"
+	depends on VIDEO
+	select VIDEO_MIPI_DSI
+	default n
+	help
+	Say Y here if you want to enable support for Lontium LT8912
+	MIPI-DSI to LVDS and HDMI/MHL bridge chip driver, currently
+	only support 1920x1080.
+
 endmenu
