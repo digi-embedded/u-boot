@@ -65,8 +65,6 @@
 #define CONFIG_HAS_CARRIERBOARD_ID
 
 #define CONFIG_MFG_ENV_SETTINGS \
-	"mfgtool_args=setenv bootargs console=${console},${baudrate} " \
-		"root=/dev/ram0 rw quiet\0" \
 	"fastboot_dev=mmc" __stringify(EMMC_BOOT_DEV) "\0" \
 	"emmc_dev=" __stringify(EMMC_BOOT_DEV) "\0" \
 	"sd_dev=1\0"
