@@ -229,6 +229,14 @@
 	u-boot,dm-spl;
 };
 
+&pd_conn_usb2 {
+	u-boot,dm-spl;
+};
+
+&pd_conn_usb2_phy {
+	u-boot,dm-spl;
+};
+
 &gpio0 {
 	u-boot,dm-spl;
 };
@@ -262,6 +270,18 @@
 };
 
 &lpuart2 {
+	u-boot,dm-spl;
+};
+
+&usbmisc1 {
+	u-boot,dm-spl;
+};
+
+&usbphy1 {
+	u-boot,dm-spl;
+};
+
+&usbotg1 {
 	u-boot,dm-spl;
 };
 
