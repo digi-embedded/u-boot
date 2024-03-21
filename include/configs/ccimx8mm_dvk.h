@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Digi International Inc
+ * Copyright 2021-2024 Digi International Inc
  * Copyright 2018 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -83,6 +83,8 @@
 	"imagegz=Image.gz-" BOARD_DEY_NAME ".bin\0" \
 	"uboot_file=imx-boot-" BOARD_DEY_NAME ".bin\0" \
 	"panel=NULL\0" \
+	"splashimage=0x50000000\0" \
+	"splashpos=m,m\0" \
 	"console=" CONSOLE_DEV "\0" \
 	"earlycon=" EARLY_CONSOLE "\0" \
 	"fdt_addr=0x43000000\0"			\
