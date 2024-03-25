@@ -633,10 +633,7 @@ static int stm32_ltdc_probe(struct udevice *dev)
 		if (bridge) {
 			/* Set the pixel clock according to the encoder */
 			if (IS_ENABLED(CONFIG_SYSCON) && IS_ENABLED(CONFIG_STM32MP25X)) {
-				if (!strcmp(bridge->name, "stm32-display-dsi"))
-					regmap_write(regmap, SYSCFG_DISPLAYCLKCR,
-						     DISPLAYCLKCR_DPI);
-				else if (!strcmp(bridge->name, "stm32-display-lvds"))
+				if (!strncmp(bridge->name, "lvds", 4))
 					regmap_write(regmap, SYSCFG_DISPLAYCLKCR,
 						     DISPLAYCLKCR_LVDS);
 			}
