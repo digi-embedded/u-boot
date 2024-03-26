@@ -1,7 +1,7 @@
 #!/bin/bash
 #===============================================================================
 #
-#  Copyright (C) 2015-2023 by Digi International Inc.
+#  Copyright (C) 2015-2024 by Digi International Inc.
 #  All rights reserved.
 #
 #  This program is free software; you can redistribute it and/or modify it
@@ -33,8 +33,9 @@ while read -r pl mt tt ps; do
 	eval "${pl//-/_}_toolchain_type=\"${tt}\""
 	eval "${pl//-/_}_post_script=\"${ps}\""
 done<<-_EOF_
-	ccmp15-dvk               all               cortexa7hf      "make_stm32_fip.sh"
-	ccmp13-dvk               all               cortexa7hf      "make_stm32_fip.sh"
+	ccmp15-dvk-512MB    "DEVICE_TREE=ccmp15-dvk-512MB"     cortexa7hf     "make_stm32_fip.sh"
+	ccmp15-dvk-1GB      "DEVICE_TREE=ccmp15-dvk-1GB"       cortexa7hf     "make_stm32_fip.sh"
+	ccmp13-dvk-256MB    "DEVICE_TREE=ccmp13-dvk-256MB"     cortexa7hf     "make_stm32_fip.sh"
 _EOF_
 
 # Set default values if not provided by user
@@ -132,7 +133,7 @@ for platform in ${DUB_PLATFORMS}; do
 
 		printf "\n[INFO] Build U-Boot for target '${UBOOT_MAKE_TARGET}' (commit ${UBOOT_SHA1})...\n"
 		${MAKE} distclean
-		${MAKE} "${platform}"_defconfig
+		${MAKE} "${platform%-*}"_defconfig
 		${MAKE} "${UBOOT_MAKE_TARGET}"
 
 		eval "BOOT_POST_SCRIPT=\"\${${platform//-/_}_post_script}\""

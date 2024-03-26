@@ -224,9 +224,9 @@ while [ "${1}" != "" ]; do
 done
 
 # Define variables depending on the platform
-if [ "${PLATFORM_NAME}" = "ccmp13-dvk" ]; then
+if [ "${PLATFORM_NAME}" = "ccmp13-dvk-256MB" ]; then
 	OPTEE_CFG_STM32_EARLY_CONSOLE_UART="5"
-elif [ "${PLATFORM_NAME}" = "ccmp15-dvk"  ]; then
+elif [ "${PLATFORM_NAME}" = "ccmp15-dvk-512MB" ] || [ "${PLATFORM_NAME}" = "ccmp15-dvk-1GB" ]; then
 	OPTEE_CFG_STM32_EARLY_CONSOLE_UART="4"
 else
 	echo " ${PLATFORM_NAME} is not supported"
