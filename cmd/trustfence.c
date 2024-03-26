@@ -111,15 +111,15 @@ __weak int get_dek_blob(char *output, u32 *size)
 	return 1;
 }
 #else
-__weak int get_dek_blob(char *output, u32 * size)
+__weak int get_dek_blob(ulong addr, u32 *size)
 {
 	return 1;
 }
 #endif
 
 #ifdef CONFIG_AHAB_BOOT
-extern int get_dek_blob_offset(char *address, u32 *offset);
-extern int get_dek_blob_size(char *address, u32 *size);
+extern int get_dek_blob_offset(ulong addr, u32 *offset);
+extern int get_dek_blob_size(ulong addr, u32 *size);
 extern int get_srk_revoke_mask(u32 *mask);
 #endif
 #ifdef CONFIG_ARCH_IMX8M
@@ -131,7 +131,7 @@ int is_uboot_encrypted() {
 	u32 dek_blob_size;
 
 	/* U-Boot is encrypted if and only if get_dek_blob does not fail */
-	return !get_dek_blob(dek_blob, &dek_blob_size);
+	return !get_dek_blob((ulong)dek_blob, &dek_blob_size);
 }
 
 int get_trustfence_key_modifier(unsigned char key_modifier[16])
@@ -161,7 +161,7 @@ int get_trustfence_key_modifier(unsigned char key_modifier[16])
 void copy_dek(void)
 {
 	ulong loadaddr = env_get_ulong("loadaddr", 16, CONFIG_SYS_LOAD_ADDR);
-	void *dek_blob_dst = (void *)(loadaddr - BLOB_DEK_OFFSET);
+	ulong dek_blob_dst = loadaddr - BLOB_DEK_OFFSET;
 	u32 dek_size;
 
 	get_dek_blob(dek_blob_dst, &dek_size);
@@ -170,7 +170,7 @@ void copy_dek(void)
 void copy_spl_dek(void)
 {
 	ulong loadaddr = env_get_ulong("loadaddr", 16, CONFIG_SYS_LOAD_ADDR);
-	void *dek_blob_dst = (void *)(loadaddr - (2 * BLOB_DEK_OFFSET));
+	ulong dek_blob_dst = loadaddr - (2 * BLOB_DEK_OFFSET);
 
 	get_dek_blob(dek_blob_dst, NULL);
 }
@@ -761,7 +761,8 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 		unsigned long uboot_start;
 		u32 dek_blob_size;
 #ifdef CONFIG_AHAB_BOOT
-		u32 dek_blob_offset;
+		u32 dek_blob_offset[2];
+		unsigned long dek_blob_spl_final_dst;
 #endif
 #ifdef CONFIG_ARCH_IMX8M
 		u32 dek_blob_spl_offset;
@@ -806,12 +807,13 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 			uboot_size = env_get_ulong("filesize", 16, 0);
 #ifdef CONFIG_AHAB_BOOT
 			/* DEK blob will be placed into the Signature Block */
-			ret = get_dek_blob_offset((void *)loadaddr, &dek_blob_offset);
+			ret = get_dek_blob_offset(loadaddr, dek_blob_offset);
 			if (ret != 0) {
 				printf("Error getting the DEK Blob offset (%d)\n", ret);
 				return CMD_RET_FAILURE;
 			}
-			dek_blob_final_dst = loadaddr + dek_blob_offset;
+			dek_blob_spl_final_dst = loadaddr + dek_blob_offset[0];
+			dek_blob_final_dst = loadaddr + dek_blob_offset[1];
 #else
 #ifdef CONFIG_ARCH_IMX8M
 			ret = get_dek_blob_offset((void *)loadaddr, &dek_blob_spl_offset);
@@ -900,12 +902,13 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 			dek_blob_dst = (uintptr_t) (buffer + DMA_ALIGN_UP(uboot_size) + DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE));
 #ifdef CONFIG_AHAB_BOOT
 			/* DEK blob will be placed into the Signature Block */
-			ret = get_dek_blob_offset((void *)uboot_start, &dek_blob_offset);
+			ret = get_dek_blob_offset(uboot_start, dek_blob_offset);
 			if (ret != 0) {
 				printf("Error getting the DEK Blob offset (%d)\n", ret);
 				return CMD_RET_FAILURE;
 			}
-			dek_blob_final_dst = (uintptr_t) (buffer + dek_blob_offset);
+			dek_blob_spl_final_dst = (uintptr_t) (buffer + dek_blob_offset[0]);
+			dek_blob_final_dst = (uintptr_t) (buffer + dek_blob_offset[1]);
 #else
 #ifdef CONFIG_SPL
 			/* DEK blob will be directly inserted into the U-Boot image */
@@ -964,7 +967,7 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 			}
 
 #ifdef CONFIG_AHAB_BOOT
-			get_dek_blob_size((void *) dek_blob_dst, &dek_blob_size);
+			get_dek_blob_size(dek_blob_dst, &dek_blob_size);
 #else
 			/*
 			 * Set dek_size to the size of the DEK blob, that is:
@@ -976,7 +979,7 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 			/* Copy DEK blob to its final destination */
                         memcpy((void *)dek_blob_final_dst, (void *)dek_blob_dst,
                                 dek_blob_size);
-#if defined(CONFIG_ARCH_IMX8M) && defined(CONFIG_SPL)
+#if defined(CONFIG_SPL)
 			/* Copy SPL DEK blob to its final destination */
 			memcpy((void *)dek_blob_spl_final_dst, (void *)dek_blob_dst,
 				dek_blob_size);
@@ -987,24 +990,18 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 			 * destination. (This fails if the running U-Boot does not
 			 * include a DEK)
 			 */
-#if defined(CONFIG_ARCH_IMX8M) && defined(CONFIG_SPL)
-			if (get_dek_blob((void *)dek_blob_spl_final_dst, &dek_blob_size)) {
+#if defined(CONFIG_SPL)
+			if (get_dek_blob(dek_blob_spl_final_dst, &dek_blob_size)) {
 				printf("Current U-Boot does not contain an SPL DEK, and a new SPL DEK was not provided\n");
 				ret = CMD_RET_FAILURE;
 				goto tf_update_out;
 			}
-			if (get_dek_blob((void *)dek_blob_final_dst, &dek_blob_size)) {
-				printf("Current U-Boot does not contain a DEK, and a new DEK was not provided\n");
-				ret = CMD_RET_FAILURE;
-				goto tf_update_out;
-			}
-#else
-			if (get_dek_blob((void *)dek_blob_final_dst, &dek_blob_size)) {
-				printf("Current U-Boot does not contain a DEK, and a new DEK was not provided\n");
-				ret = CMD_RET_FAILURE;
-				goto tf_update_out;
-			}
 #endif
+			if (get_dek_blob(dek_blob_final_dst, &dek_blob_size)) {
+				printf("Current U-Boot does not contain a DEK, and a new DEK was not provided\n");
+				ret = CMD_RET_FAILURE;
+				goto tf_update_out;
+			}
 			printf("Using current DEK\n");
 		}
 
