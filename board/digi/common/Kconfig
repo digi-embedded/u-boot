@@ -163,6 +163,7 @@ config TRUSTFENCE_UPDATE
 	default y if CC6UL
 	default y if CC8M
 	default y if CC8X
+	default y if CC93
 
 config TRUSTFENCE_JTAG
 	bool

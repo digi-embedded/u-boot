@@ -26,4 +26,4 @@
     Key = "%dek_path%"
     Key Length = %dek_len%
     #Key Identifier = 0x1234CAFE
-    Image Indexes = 0xFFFFFFFE
+    Image Indexes = 0xFFFFFFFF
