@@ -350,9 +350,6 @@ static int lt8912_probe(struct udevice *dev)
 					  &priv->vdd1);
 	if (ret) {
 		debug("%s: No vdd1 supply\n", dev->name);
-		dev_err(dev, "%s: No vdd1 supply\n", dev->name);
-	} else {
-		dev_err(dev, "%s: vdd1 supply enabled\n", dev->name);
 	}
 
 	if (!ret && priv->vdd1) {
@@ -367,9 +364,6 @@ static int lt8912_probe(struct udevice *dev)
 					  &priv->vdd2);
 	if (ret) {
 		debug("%s: No vdd2 supply\n", dev->name);
-		dev_err(dev, "%s: No vdd2 supply\n", dev->name);
-	} else {
-		dev_err(dev, "%s: vdd2 supply enabled\n", dev->name);
 	}
 
 	if (!ret && priv->vdd2) {
