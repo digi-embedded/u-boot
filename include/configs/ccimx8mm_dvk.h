@@ -73,6 +73,9 @@
 #define CONFIG_HAS_CARRIERBOARD_VERSION
 #define CONFIG_HAS_CARRIERBOARD_ID
 
+/* HWID */
+#define CONFIG_DIGI_FAMILY_ID		3
+
 #define CONFIG_MFG_ENV_SETTINGS \
 	"fastboot_dev=mmc" __stringify(EMMC_BOOT_DEV) "\0" \
 	"initrd_addr=0x43800000\0" \
