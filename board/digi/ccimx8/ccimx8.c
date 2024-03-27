@@ -235,6 +235,9 @@ void som_default_environment(void)
 	if (board_has_bluetooth())
 		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
 
+	/* Get serial number from fuses */
+	hwid_get_serial_number(my_hwid.year, my_hwid.week, my_hwid.sn);
+
 	/* Set 'som_overlays' variable (used to boot android) */
 	var[0] = 0;
 	switch (get_cpu_type()) {
