@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
 /*
- * Copyright (C) 2023, Digi International Inc - All Rights Reserved
+ * Copyright (C) 2023-2024 Digi International Inc - All Rights Reserved
  */
 
 #include <common.h>
@@ -27,12 +27,28 @@ struct stm32key {
 	u8 size;
 };
 
+#define STM32_OTP_MODE_WORD			0
+#define STM32_OTP_STM32MP13x_OPEN_MASK		0x17
+#define STM32_OTP_STM32MP13x_CLOSE_MASK		0x3F
+#define STM32_OTP_STM32MP13x_BSCANDIS_MASK	0x17F
+#define STM32_OTP_STM32MP13x_JTAGDIS_MASK	0x1FF
+#define STM32_OTP_STM32MP15x_CLOSE_MASK		BIT(6)
+enum jtag_status {
+	JTAG_OPEN,
+	BSCAN_DISABLED,
+	JTAG_DISABLED,
+};
+char *jtag_desc[] = {
+	"[OPEN]",
+	"[BSCAN disabled]",
+	"[DISABLED]",
+};
+
 /* Functions defined in cmd_stm32key.c */
 extern int get_misc_dev(struct udevice **dev);
 extern const struct stm32key *get_key(u8 index);
 extern int read_key_otp(struct udevice *dev, const struct stm32key *key, bool print, bool *locked);
 extern void read_key_value(const struct stm32key *key, u32 addr);
-extern int read_close_status(struct udevice *dev, bool print, bool *closed);
 extern int fuse_key_value(struct udevice *dev, const struct stm32key *key, u32 addr, bool print);
 extern int do_stm32key_close(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[]);
 
@@ -169,6 +185,46 @@ static int do_trustfence_prog_pkh(struct cmd_tbl *cmdtp, int flag, int argc, cha
 	return trustfence_prog_key(argc, argv, 0);	/* PKH */
 }
 
+static int read_otp_mode(struct udevice *dev, bool *closed, int *jtag)
+{
+	int ret;
+	u32 val;
+
+	/* Read OTP mode (for close and JTAG status) */
+	ret = misc_read(dev, STM32_BSEC_OTP(STM32_OTP_MODE_WORD), &val, 4);
+	if (ret < 0) {
+		printf("Error: can't read OTP mode\n");
+		return -1;
+	}
+
+	if (IS_ENABLED(CONFIG_STM32MP15x)) {
+		*closed = (val & STM32_OTP_STM32MP15x_CLOSE_MASK) ==
+			  STM32_OTP_STM32MP15x_CLOSE_MASK;
+		*jtag = *closed ? JTAG_DISABLED : JTAG_OPEN;
+	}
+	if (IS_ENABLED(CONFIG_STM32MP13x)) {
+		*closed = (val & STM32_OTP_STM32MP13x_CLOSE_MASK) ==
+			  STM32_OTP_STM32MP13x_CLOSE_MASK;
+		switch(val) {
+		case STM32_OTP_STM32MP13x_OPEN_MASK:
+		case STM32_OTP_STM32MP13x_CLOSE_MASK:
+			*jtag = JTAG_OPEN;
+			break;
+		case STM32_OTP_STM32MP13x_BSCANDIS_MASK:
+			*jtag = BSCAN_DISABLED;
+			break;
+		case STM32_OTP_STM32MP13x_JTAGDIS_MASK:
+			*jtag = JTAG_DISABLED;
+			break;
+		default:
+			printf("Error: invalid OTP mode\n");
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 #ifndef CONFIG_STM32MP15x
 static int do_trustfence_read_edmk(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
@@ -187,6 +243,7 @@ static int do_trustfence_status(struct cmd_tbl *cmdtp, int flag, int argc, char 
 	int ret;
 	const struct stm32key *key;
 	bool closed;
+	int jtag;
 
 	ret = get_misc_dev(&dev);
 	if (ret)
@@ -198,11 +255,13 @@ static int do_trustfence_status(struct cmd_tbl *cmdtp, int flag, int argc, char 
 	if (!IS_ENABLED(CONFIG_STM32MP15x))
 		read_key_otp_stat(dev, 1);
 
-	ret = read_close_status(dev, false, &closed);
-	if (ret)
+	/* Read OTP mode (for close and JTAG status) */
+	ret = read_otp_mode(dev, &closed, &jtag);
+	if (ret < 0)
 		return CMD_RET_FAILURE;
 
 	printf("* Secure boot:\t%s\n", closed ? "[CLOSED]" : "[OPEN]");
+	printf("* JTAG:       \t%s\n", jtag_desc[jtag]);
 
 	return CMD_RET_SUCCESS;
 }
