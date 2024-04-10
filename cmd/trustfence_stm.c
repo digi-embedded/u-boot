@@ -235,6 +235,68 @@ static int do_trustfence_prog_edmk(struct cmd_tbl *cmdtp, int flag, int argc, ch
 {
 	return trustfence_prog_key(argc, argv, 1);	/* EDMK */
 }
+
+static int do_trustfence_prog_jtag(struct cmd_tbl *cmdtp, int flag, int argc,
+				   char *const argv[])
+{
+	struct udevice *dev;
+	bool closed;
+	int jtag, newmode;
+	bool yes = false;
+	u32 val = 0;
+	int ret;
+
+	if (argc < 2)
+		return CMD_RET_USAGE;
+
+	if (argc == 3) {
+		if (strcmp(argv[1], "-y"))
+			return CMD_RET_USAGE;
+		yes = true;
+	}
+
+	if (!strcmp(argv[argc - 1], "disable-bscan")) {
+		newmode = BSCAN_DISABLED;
+		val = STM32_OTP_STM32MP13x_BSCANDIS_MASK;
+	} else if (!strcmp(argv[argc - 1], "disable-jtag")) {
+		newmode = JTAG_DISABLED;
+		val = STM32_OTP_STM32MP13x_JTAGDIS_MASK;
+	} else {
+		return CMD_RET_USAGE;
+	}
+
+	ret = get_misc_dev(&dev);
+	if (ret)
+		return CMD_RET_FAILURE;
+
+	/* Read OTP mode (for close and JTAG status) */
+	ret = read_otp_mode(dev, &closed, &jtag);
+	if (ret < 0)
+		return CMD_RET_FAILURE;
+
+	/* Abort if the device is not closed or mode already programmed */
+	if (!closed) {
+		printf("Device secure boot status is OPEN.\n");
+		printf("The JTAG port can only be secured on closed devices\n");
+		return CMD_RET_FAILURE;
+	} else if (newmode == jtag) {
+		printf("Current JTAG port status is already %s.\n",
+		       jtag_desc[jtag]);
+		return CMD_RET_FAILURE;
+	}
+
+	if (!yes && !confirm_prog())
+		return CMD_RET_FAILURE;
+
+	ret = misc_write(dev, STM32_BSEC_OTP(STM32_OTP_MODE_WORD), &val, 4);
+	if (ret != 4) {
+		printf("Error: can't update OTP %d\n", STM32_OTP_MODE_WORD);
+		return CMD_RET_FAILURE;
+	}
+	printf("Secure JTAG programmed!\n");
+
+	return CMD_RET_SUCCESS;
+}
 #endif /* !CONFIG_STM32MP15x */
 
 static int do_trustfence_status(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
@@ -281,6 +343,9 @@ U_BOOT_CMD_WITH_SUBCMDS(trustfence, "Digi TrustFence(TM) command",
 	"trustfence prog_pkhth [-y] <addr> - burn Public Key Hash Table Hash (PKHTH) (PERMANENT)\n"
 	"trustfence read_edmk [<addr>] - read Encryption Decryption master key (EDMK) at <addr> or all key in OTP\n"
 	"trustfence prog_edmk [-y] <addr> - burn Encryption Decryption master key (EDMK) (PERMANENT)\n"
+	"trustfence prog_jtag [-y] <mode> - program Secure JTAG mode <mode> (PERMANENT). <mode> can be one of:\n"
+	"    disable-bscan - Boundary scan disabled\n"
+	"    disable-jtag  - JTAG disabled\n"
 #endif /* CONFIG_STM32MP15x */
 	"trustfence close [-y] - close the device so that it can only boot signed images (PERMANENT)\n",
 	U_BOOT_SUBCMD_MKENT(status, 1, 0, do_trustfence_status),
@@ -292,6 +357,7 @@ U_BOOT_CMD_WITH_SUBCMDS(trustfence, "Digi TrustFence(TM) command",
 	U_BOOT_SUBCMD_MKENT(prog_pkhth, 3, 0, do_trustfence_prog_pkh),
 	U_BOOT_SUBCMD_MKENT(read_edmk, 2, 0, do_trustfence_read_edmk),
 	U_BOOT_SUBCMD_MKENT(prog_edmk, 3, 0, do_trustfence_prog_edmk),
+	U_BOOT_SUBCMD_MKENT(prog_jtag, 2, 0, do_trustfence_prog_jtag),
 #endif /* CONFIG_STM32MP15x */
 	U_BOOT_SUBCMD_MKENT(close, 2, 0, do_trustfence_close)
 );
