@@ -193,3 +193,28 @@ sanitize:
 
 	return ret;
 }
+
+bool is_container_encrypted(ulong addr, ulong *dek_addr)
+{
+	struct container_hdr *phdr;
+	struct signature_block_hdr *sign_hdr;
+	bool is_encrypted = false;
+
+	phdr = (struct container_hdr *)(addr);
+	if (phdr->tag != AHAB_CNTR_HDR_TAG
+	    || phdr->version != AHAB_CNTR_HDR_VER)
+		goto err_out;
+
+	sign_hdr =
+	    (struct signature_block_hdr *)((ulong)phdr + phdr->sig_blk_offset);
+	if (sign_hdr->tag != AHAB_SIGN_HDR_TAG
+	    || sign_hdr->version != AHAB_SIGN_HDR_VER)
+		goto err_out;
+
+	is_encrypted = (sign_hdr->blob_offset != 0);
+	if (is_encrypted && dek_addr)
+		*dek_addr = (ulong)sign_hdr + sign_hdr->blob_offset;
+
+err_out:
+	return is_encrypted;
+}
