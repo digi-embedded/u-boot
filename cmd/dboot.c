@@ -84,78 +84,43 @@ static int set_bootargs(int os, int src)
 }
 
 /*
- * Get configurations part of boot command from FIT image
+ * Compose FIT configurations part of the boot command
  *
  * Return: length of configurations command part
  */
-static int get_cfgs_cmd_from_fit(char *cmd)
+static int compose_fit_cfgs_cmd(char *cmd)
 {
-	ulong fitaddr;
-	void *fit = NULL;
-	int confs_offset, dflt_offset;
-	const char *dflt_cfg_name = NULL;
-	char *overlays_list, *overlay = NULL;
+	char cfg_prefix[CONFIG_SYS_CBSIZE] = CONFIG_FIT_CFGS_PREFIX;
+	char *env_cfg_prefix, *env_fdt_file;
+	char *overlays_list;
 	int ret = -1;
 
-	fitaddr = env_get_hex("fit_addr_r", 0);
-	if (!fitaddr) {
-		printf("Unable to get fit_addr_r\n");
-		return -EINVAL;
-	}
-#if defined(CONFIG_AHAB_BOOT) && defined(CONFIG_AUTH_FIT_ARTIFACT)
-	int img_offset = get_os_container_img_offset(fitaddr);
-	if (img_offset < 0) {
-		printf("Unable to get image offset in AHAB container\n");
-		return -1;
-	}
-	fitaddr += img_offset;
-#endif
+	env_cfg_prefix = env_get("fit-cfg-prefix");
+	if (env_cfg_prefix)
+		strncpy(cfg_prefix, env_cfg_prefix, sizeof(cfg_prefix));
 
-	/*
-	 * Append configurations to boot command
-	 */
-	fit = map_sysmem(fitaddr, 0);
-	confs_offset = fdt_path_offset(fit, FIT_CONFS_PATH);
-	if (confs_offset < 0) {
-		printf("Could not find configurations node\n");
-		goto free_fit;
+	/* Default configuration is main device tree */
+	env_fdt_file = env_get("fdt_file");
+	if (!env_fdt_file) {
+		printf("Failed to get FDT file from environment\n");
+		goto err_out;
 	}
+	ret = sprintf(cmd, "%s%s", cfg_prefix, env_fdt_file);
 
-	/* First subnode is default configuration */
-	dflt_offset = fdt_first_subnode(fit, confs_offset);
-	if (dflt_offset < 0) {
-		printf("Could not find default configuration node\n");
-		goto free_fit;
-	}
-	dflt_cfg_name = fit_get_name(fit, dflt_offset, NULL);
-	if (!dflt_cfg_name) {
-		printf("Could not find default configuration name\n");
-		goto free_fit;
-	}
-	ret = sprintf(cmd, "%s", dflt_cfg_name);
-
-	/* Rest subnodes are overlays */
+	/* Append overlays configurations */
 	overlays_list = strdup(env_get("overlays"));
-	if (!overlays_list) {
-		printf("\n   WARNING: unable to load overlays list\n\n");
-		goto free_fit;
-	}
-
-	overlay = strtok(overlays_list, DELIM_OV_FILE);
-	while (overlay) {
-		int noffset = fdt_next_subnode(fit, dflt_offset);
-		for (; noffset >= 0; noffset = fdt_next_subnode(fit, noffset)) {
-			const char *cfgname = fit_get_name(fit, noffset, NULL);
-			if (strstr(cfgname, overlay))
-				ret = sprintf(cmd, "%s#%s", cmd, cfgname);
+	if (overlays_list) {
+		char *overlay = strtok(overlays_list, DELIM_OV_FILE);
+		while (overlay) {
+			ret = sprintf(cmd, "%s#%s%s", cmd, cfg_prefix, overlay);
+			overlay = strtok(NULL, DELIM_OV_FILE);
 		}
-		overlay = strtok(NULL, DELIM_OV_FILE);
+		free(overlays_list);
+	} else {
+		printf("\n   WARNING: unable to load overlays list\n\n");
 	}
-	free(overlays_list);
 
-free_fit:
-	unmap_sysmem(fit);
-
+err_out:
 	return ret;
 }
 
@@ -190,7 +155,7 @@ static int boot_os(char *initrd_addr, char *fdt_addr)
 	if (is_fit) {
 		char cfgs_cmd[CONFIG_SYS_CBSIZE] = "";
 
-		if (get_cfgs_cmd_from_fit(cfgs_cmd) <= 0)
+		if (compose_fit_cfgs_cmd(cfgs_cmd) <= 0)
 			return CMD_RET_FAILURE;
 		snprintf(cmd, sizeof(cmd), "%s $fit_addr_r#%s", dboot_cmd,
 			 cfgs_cmd);

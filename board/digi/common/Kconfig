@@ -175,3 +175,8 @@ config REDUNDANT_BOOTLOADER
 	depends on CMD_UPDATE_MMC
 	default y if CC93
 
+config FIT_CFGS_PREFIX
+	string
+	default "conf-digi_"
+	help
+	  Prefix for the names of the configurations in the FIT image.
