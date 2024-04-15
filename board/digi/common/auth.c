@@ -32,33 +32,6 @@ extern int authenticate_os_container(ulong addr);
 #endif
 
 #ifdef CONFIG_AHAB_BOOT
-static int __maybe_unused container_is_encrypted(ulong addr, ulong *dek_addr)
-{
-	struct container_hdr *phdr;
-	struct signature_block_hdr *sign_hdr;
-
-	phdr = (struct container_hdr *)addr;
-	if (phdr->tag != 0x87 && phdr->version != 0x0) {
-		debug("Wrong container header at 0x%lx\n", addr);
-		return 0;
-	}
-
-	if (phdr->sig_blk_offset != 0) {
-		sign_hdr = (struct signature_block_hdr *)(addr + phdr->sig_blk_offset);
-		if (sign_hdr->tag != 0x90 && sign_hdr->version != 0x0) {
-			debug("Wrong Signature Block header at 0x%lx\n", addr + phdr->sig_blk_offset);
-			return 0;
-		}
-
-		if (sign_hdr->blob_offset != 0) {
-			*dek_addr = addr + phdr->sig_blk_offset + sign_hdr->blob_offset;
-			return 1;
-		}
-	}
-
-	return 0;
-}
-
 static int __maybe_unused get_os_container_size(ulong addr)
 {
 	struct boot_img_t *img;
@@ -121,29 +94,25 @@ int digi_auth_image(ulong *ddr_start, ulong raw_image_size)
 	if (authenticate_image((uint32_t)*ddr_start, raw_image_size) == 0)
 		ret = 0;
 #elif defined(CONFIG_AHAB_BOOT)
-	extern int get_dek_blob(char *output, u32 *size);
-	struct boot_img_t *img;
-	struct generate_key_blob_hdr *dek_hdr;
 	ulong dek_addr = 0;
-	u32 dek_blob_size;
 
-	if (container_is_encrypted((ulong)*ddr_start, &dek_addr)) {
-		if(dek_addr != 0) {
-			dek_hdr = (struct generate_key_blob_hdr *)dek_addr;
-			if (dek_hdr->tag != 0x81 && dek_hdr->version != 0x0) {
-				/* If there is not a valid DEK blob in the container, DEK blob
-				 * from the running U-Boot is recovered and copied into it.
-				 * (This fails if the running U-Boot does not include a DEK)
-				 */
-				if (!get_dek_blob((void *)dek_addr, &dek_blob_size))
-					printf("   Using current DEK\n");
-				else
-					printf("   ERROR: Current U-Boot does not contain a DEK\n");
-			}
+	if (is_container_encrypted(*ddr_start, &dek_addr) && dek_addr) {
+		struct generate_key_blob_hdr *dek_hdr;
+
+		dek_hdr = (struct generate_key_blob_hdr *)dek_addr;
+		if (dek_hdr->tag != AHAB_BLOB_HDR_TAG
+		    || dek_hdr->version != AHAB_BLOB_HDR_VER) {
+			/* No DEK blob on container. Get one from u-boot */
+			if (!get_dek_blob(dek_addr, NULL))
+				printf("   Using current U-Boot DEK\n");
+			else
+				printf("   ERROR: Current U-Boot does not contain a DEK\n");
 		}
 	}
 
-	if (authenticate_os_container((ulong)*ddr_start) == 0) {
+	if (authenticate_os_container(*ddr_start) == 0) {
+		struct boot_img_t *img;
+
 		ret = 0;
 		/* Each OS container can have multiple images inside,
 		 * and to calculate the address the image index is required.
