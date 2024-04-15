@@ -194,6 +194,44 @@ sanitize:
 	return ret;
 }
 
+int get_os_container_img_offset(ulong addr)
+{
+	struct boot_img_t *img;
+	struct container_hdr *phdr;
+
+	phdr = (struct container_hdr *)addr;
+	if (phdr->tag != AHAB_CNTR_HDR_TAG
+	    || phdr->version != AHAB_CNTR_HDR_VER) {
+		printf("Error: Wrong container header\n");
+		return -1;
+	}
+
+	img = (struct boot_img_t *)(addr + sizeof(struct container_hdr));
+	debug("OS container image offset: %u\n", img->offset);
+
+	return img->offset;
+}
+
+int get_os_container_size(ulong addr)
+{
+	struct boot_img_t *img;
+	struct container_hdr *phdr;
+	u32 len;
+
+	phdr = (struct container_hdr *)addr;
+	if (phdr->tag != AHAB_CNTR_HDR_TAG
+	    || phdr->version != AHAB_CNTR_HDR_VER) {
+		printf("Error: Wrong container header\n");
+		return -1;
+	}
+
+	img = (struct boot_img_t *)(addr + sizeof(struct container_hdr));
+	len = img->offset + img->size;
+	debug("OS container size: %u\n", len);
+
+	return len;
+}
+
 bool is_container_encrypted(ulong addr, ulong *dek_addr)
 {
 	struct container_hdr *phdr;

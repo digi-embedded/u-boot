@@ -17,6 +17,8 @@
 int get_dek_blob_offset(ulong addr, u32 *offset);
 int get_dek_blob_size(ulong addr, u32 *size);
 int get_dek_blob(ulong addr, u32 *size);
+int get_os_container_img_offset(ulong addr);
+int get_os_container_size(ulong addr);
 bool is_container_encrypted(ulong addr, ulong *dek_addr);
 
 #endif /* TF_AHAB_H */

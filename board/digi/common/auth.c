@@ -31,44 +31,6 @@
 extern int authenticate_os_container(ulong addr);
 #endif
 
-#ifdef CONFIG_AHAB_BOOT
-static int __maybe_unused get_os_container_size(ulong addr)
-{
-	struct boot_img_t *img;
-	struct container_hdr *phdr;
-	u32 len;
-
-	phdr = (struct container_hdr *)addr;
-	if (phdr->tag != 0x87 || phdr->version != 0x0) {
-		printf("Error: Wrong container header\n");
-		return -1;
-	}
-
-	img = (struct boot_img_t *)(addr + sizeof(struct container_hdr));
-	len = img->offset + img->size;
-	debug("OS container size: %u\n", len);
-
-	return len;
-}
-
-int get_os_container_img_offset(ulong addr)
-{
-	struct boot_img_t *img;
-	struct container_hdr *phdr;
-
-	phdr = (struct container_hdr *)addr;
-	if (phdr->tag != 0x87 || phdr->version != 0x0) {
-		printf("Error: Wrong container header\n");
-		return -1;
-	}
-
-	img = (struct boot_img_t *)(addr + sizeof(struct container_hdr));
-	debug("OS container image offset: %u\n", img->offset);
-
-	return img->offset;
-}
-#endif
-
 #if defined(CONFIG_AUTH_DISCRETE_ARTIFACTS)
 /*
  * Authenticate an image in RAM.
