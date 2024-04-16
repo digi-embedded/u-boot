@@ -328,7 +328,8 @@ static int do_update(struct cmd_tbl* cmdtp, int flag, int argc, char * const arg
 		return CMD_RET_FAILURE;
 
 	/* Get data of partition to be updated */
-	if (!strcmp(argv[1], "uboot")) {
+	if (!strcmp(argv[1], "uboot") ||
+	    !strcmp(argv[1], "uboot-redundant")) {
 		/* Simulate partition data for U-Boot */
 		calculate_uboot_update_settings(mmc_dev, &info);
 		strcpy((char *)info.name, argv[1]);
@@ -441,7 +442,8 @@ static int do_update(struct cmd_tbl* cmdtp, int flag, int argc, char * const arg
 
 	/* Activate on-the-fly update if needed */
 	if (otf_enabled || (env_get_yesno("otf-update") == 1)) {
-		if (!strcmp((char *)info.name, "uboot")) {
+		if (!strcmp((char *)info.name, "uboot") ||
+		    !strcmp((char *)info.name, "uboot-redundant")) {
 			/* Do not activate on-the-fly update for U-Boot */
 			printf("On-the-fly mechanism disabled for U-Boot "
 				"for security reasons\n");
