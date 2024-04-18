@@ -17,9 +17,6 @@
 #include <asm/arch/sys_proto.h>
 #include <asm/arch/trdc.h>
 #include <asm/mach-imx/boot_mode.h>
-#ifdef CONFIG_IMX_OPTEE
-#include <asm/mach-imx/optee.h>
-#endif
 #include <asm/mach-imx/syscounter.h>
 #include <asm/armv8/mmu.h>
 #include <dm/uclass.h>
@@ -1023,11 +1020,7 @@ int ft_system_setup(void *blob, struct bd_info *bd)
 		disable_lpm(blob);
 	}
 
-#ifdef CONFIG_IMX_OPTEE
 	return ft_add_optee_node(blob, bd);
-#else
-	return 0;
-#endif
 }
 
 #if defined(CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG)

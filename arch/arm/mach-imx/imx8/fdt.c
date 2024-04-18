@@ -599,9 +599,5 @@ int ft_system_setup(void *blob, struct bd_info *bd)
 			return ret;
 	}
 
-#ifdef CONFIG_IMX_OPTEE
 	return ft_add_optee_node(blob, bd);
-#else
-	return 0;
-#endif
 }

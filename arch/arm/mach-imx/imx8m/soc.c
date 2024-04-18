@@ -1757,11 +1757,7 @@ usb_modify_speed:
 #if defined(CONFIG_ANDROID_SUPPORT) || defined(CONFIG_ANDROID_AUTO_SUPPORT)
 	return 0;
 #else
-#ifdef CONFIG_IMX_OPTEE
 	return ft_add_optee_node(blob, bd);
-#else
-	return 0;
-#endif
 #endif
 }
 #endif
