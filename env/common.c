@@ -24,6 +24,10 @@
 #include <net.h>
 #include <watchdog.h>
 
+#ifdef CONFIG_ENV_AES_CAAM_KEY
+#include "../board/digi/common/trustfence/env.h"
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 /************************************************************************
@@ -301,85 +305,6 @@ int env_set_default_vars(int nvars, char * const vars[], int flags)
 				flags, 0, nvars, vars);
 }
 
-#ifdef CONFIG_ENV_AES_CAAM_KEY
-#include <fuse.h>
-#include <u-boot/md5.h>
-#include <asm/mach-imx/hab.h>
-#include "../board/digi/common/trustfence.h"
-#include <fsl_sec.h>
-#if defined(CONFIG_ARCH_MX6) || defined(CONFIG_ARCH_MX7) || \
-	defined(CONFIG_ARCH_MX7ULP) || defined(CONFIG_ARCH_IMX8M)
-#include <asm/arch/clock.h>
-#endif
-
-static int env_aes_cbc_crypt(env_t *env, const int enc)
-{
-	unsigned char *data = env->data;
-	int ret = 0;
-	uint8_t *src_ptr, *dst_ptr, *key_mod;
-
-	if (!imx_hab_is_enabled())
-		return 0;
-
-	/* Buffers must be aligned */
-	key_mod = memalign(ARCH_DMA_MINALIGN, KEY_MODIFER_SIZE);
-	if (!key_mod) {
-		debug("Not enough memory to encrypt the environment\n");
-		return -ENOMEM;
-	}
-	ret = get_trustfence_key_modifier(key_mod);
-	if (ret)
-		goto freekm;
-
-	src_ptr = memalign(ARCH_DMA_MINALIGN, ENV_SIZE);
-	if (!src_ptr) {
-		debug("Not enough memory to encrypt the environment\n");
-		ret = -ENOMEM;
-		goto freekm;
-	}
-	dst_ptr = memalign(ARCH_DMA_MINALIGN, ENV_SIZE);
-	if (!dst_ptr) {
-		debug("Not enough memory to encrypt the environment\n");
-		ret = -ENOMEM;
-		goto freesrc;
-	}
-	memcpy(src_ptr, data, ENV_SIZE);
-
-#if defined(CONFIG_ARCH_MX6) || defined(CONFIG_ARCH_MX7) || \
-	defined(CONFIG_ARCH_MX7ULP) || defined(CONFIG_ARCH_IMX8M)
-	hab_caam_clock_enable(1);
-
-	u32 out_jr_size = sec_in32(CFG_SYS_FSL_JR0_ADDR +
-				   FSL_CAAM_ORSR_JRa_OFFSET);
-	if (out_jr_size != FSL_CAAM_MAX_JR_SIZE)
-		sec_init();
-#endif
-
-	if (enc)
-		ret = blob_encap(key_mod, src_ptr, dst_ptr, ENV_SIZE - BLOB_OVERHEAD, 0);
-	else
-		ret = blob_decap(key_mod, src_ptr, dst_ptr, ENV_SIZE - BLOB_OVERHEAD, 0);
-
-	if (ret)
-		goto err;
-
-	memcpy(data, dst_ptr, ENV_SIZE);
-
-err:
-	free(dst_ptr);
-freesrc:
-	free(src_ptr);
-freekm:
-	free(key_mod);
-	return ret;
-}
-#else
-static inline int env_aes_cbc_crypt(env_t *env, const int enc)
-{
-	return 0;
-}
-#endif /* CONFIG_ENV_AES_CAAM_KEY */
-
 /*
  * Check if CRC is valid and (if yes) import the environment.
  * Note that "buf" may or may not be aligned.
@@ -387,7 +312,6 @@ static inline int env_aes_cbc_crypt(env_t *env, const int enc)
 int env_import(const char *buf, int check, int flags)
 {
 	env_t *ep = (env_t *)buf;
-	int ret;
 
 	if (check) {
 		uint32_t crc;
@@ -400,28 +324,27 @@ int env_import(const char *buf, int check, int flags)
 		}
 	}
 
-	/* Decrypt the env if desired. */
-	ret = env_aes_cbc_crypt(ep, 0);
-	if (ret) {
 #ifdef CONFIG_ENV_AES_CAAM_KEY
+	int ret = env_aes_cbc_crypt(ep, 0);
+	if (ret) {
 		if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE,
-				'\0', 0, 0, 0, NULL)) {
+			      '\0', flags, 0, 0, NULL)) {
 			printf("Environment is unencrypted!\n");
 			printf("Resetting to defaults (read-only variables like MAC addresses will be kept).\n");
 			gd->flags |= GD_FLG_ENV_READY;
 			run_command("env default -a", 0);
 			return 0;
 		}
-#endif
 		pr_err("Failed to decrypt env!\n");
 		env_set_default("!import failed", 0);
 		return ret;
-	} else {
-		if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE, '\0', 0, 0,
+	}
+#endif
+
+	if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE, '\0', flags, 0,
 			0, NULL)) {
-			gd->flags |= GD_FLG_ENV_READY;
-			return 0;
-		}
+		gd->flags |= GD_FLG_ENV_READY;
+		return 0;
 	}
 
 	pr_err("Cannot import environment: errno = %d\n", errno);
@@ -526,9 +449,6 @@ int env_export(env_t *env_out)
 {
 	char *res;
 	ssize_t	len;
-#ifdef CONFIG_ENV_AES_CAAM_KEY
-	int ret;
-#endif
 
 	res = (char *)env_out->data;
 	len = hexport_r(&env_htab, '\0', 0, &res, ENV_SIZE, 0, NULL);
@@ -537,9 +457,8 @@ int env_export(env_t *env_out)
 		return 1;
 	}
 
-	/* Encrypt the env if desired. */
 #ifdef CONFIG_ENV_AES_CAAM_KEY
-	ret = env_aes_cbc_crypt(env_out, 1);
+	int ret = env_aes_cbc_crypt(env_out, 1);
 	if (ret)
 		return ret;
 #endif

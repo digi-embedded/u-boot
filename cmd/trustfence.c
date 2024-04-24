@@ -134,22 +134,6 @@ int is_uboot_encrypted() {
 	return !get_dek_blob((ulong)dek_blob, &dek_blob_size);
 }
 
-int get_trustfence_key_modifier(unsigned char key_modifier[16])
-{
-	u32 ocotp_hwid[CONFIG_HWID_WORDS_NUMBER];
-	int i, ret;
-
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
-		ret = fuse_read(CONFIG_HWID_BANK,
-				CONFIG_HWID_START_WORD + i,
-				&ocotp_hwid[i]);
-		if (ret)
-			return ret;
-	}
-	md5((unsigned char *)(&ocotp_hwid), sizeof(ocotp_hwid), key_modifier);
-	return ret;
-}
-
 /*
  * For secure OS, we want to have the DEK blob in a common absolute
  * memory address, so that there are no dependencies between the CSF
