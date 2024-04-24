@@ -82,6 +82,24 @@ static void setup_iomux_uart(void)
 	imx8_iomux_setup_multiple_pads(uart2_pads, ARRAY_SIZE(uart2_pads));
 }
 
+static __maybe_unused void setup_caam(void)
+{
+	struct udevice *dev;
+	int ret =
+	    uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(caam_jr),
+					&dev);
+	if (ret)
+		printf("Failed to initialize caam_jr: %d\n", ret);
+}
+
+int board_early_init_r(void)
+{
+#if defined(CONFIG_HAS_TRUSTFENCE) && defined(CONFIG_ENV_AES_CAAM_KEY)
+	setup_caam();
+#endif
+	return 0;
+}
+
 int board_early_init_f(void)
 {
 	sc_pm_clock_rate_t rate = SC_80MHZ;
@@ -106,11 +124,6 @@ int board_early_init_f(void)
 	setup_iomux_uart();
 
 	imx8_iomux_setup_pad(usdhc2_sd_cd);
-
-#if defined(CONFIG_HAS_TRUSTFENCE) && defined(CONFIG_ENV_AES_CAAM_KEY)
-	sc_pm_set_resource_power_mode(-1, SC_R_CAAM_JR3, SC_PM_PW_MODE_ON);
-	sc_pm_set_resource_power_mode(-1, SC_R_CAAM_JR3_OUT, SC_PM_PW_MODE_ON);
-#endif
 
 #ifdef CONFIG_CONSOLE_DISABLE
 	gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
