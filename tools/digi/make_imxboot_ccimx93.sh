@@ -308,6 +308,7 @@ OPTEE_DIR="${BASEDIR}/imx-optee-os"
 OPTEE_PATCHES=" \
 	optee/0007-allow-setting-sysroot-for-clang.patch \
 	optee/0001-core-imx-support-ccimx93-dvk.patch \
+	optee/0002-core-ccimx93-enable-AES_HUK-trusted-application.patch \
 "
 
 FIRMWARE_IMX="firmware-imx-8.22"
