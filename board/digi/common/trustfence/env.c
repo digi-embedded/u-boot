@@ -9,13 +9,21 @@
 #include <fsl_sec.h>
 #include <fuse.h>
 #include <memalign.h>
+#include <uboot_aes.h>
 #include <u-boot/md5.h>
 #if defined(CONFIG_ARCH_MX6) || defined(CONFIG_ARCH_MX7) || \
 	defined(CONFIG_ARCH_MX7ULP) || defined(CONFIG_ARCH_IMX8M)
 #include <asm/arch/clock.h>
 #endif
 
-static int get_trustfence_key_modifier(unsigned char key_modifier[16])
+/*
+ * We use the key modifier as initialization vector (IV) for AES,
+ * so make it AES block length size. It also matches the MD5 hash
+ * size (16) we use to compose the key modifier.
+ */
+#define KEY_MODIFER_SIZE	AES_BLOCK_LENGTH
+
+static int get_trustfence_key_modifier(unsigned char keymod[KEY_MODIFER_SIZE])
 {
 	u32 ocotp_hwid[CONFIG_HWID_WORDS_NUMBER];
 	int i, ret;
@@ -26,7 +34,7 @@ static int get_trustfence_key_modifier(unsigned char key_modifier[16])
 		if (ret)
 			return ret;
 	}
-	md5((unsigned char *)(&ocotp_hwid), sizeof(ocotp_hwid), key_modifier);
+	md5((unsigned char *)(&ocotp_hwid), sizeof(ocotp_hwid), keymod);
 
 	return ret;
 }

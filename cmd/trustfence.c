@@ -63,6 +63,9 @@ extern int rng_swtest_status;
 #define ALIGN_UP(x, a) (((x) + (a - 1)) & ~(a - 1))
 #define DMA_ALIGN_UP(x) ALIGN_UP(x, ARCH_DMA_MINALIGN)
 
+/* Header (8) + BKEK (32) + MAC (16) + MAX_KEY_SIZE (256 bits) */
+#define MAX_DEK_BLOB_SIZE	(8 + 32 + 16 + (256 / 8))
+
 /*
  * Copy the DEK blob used by the current U-Boot image into a buffer. Also
  * get its size in the last out parameter.
