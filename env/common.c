@@ -24,7 +24,7 @@
 #include <net.h>
 #include <watchdog.h>
 
-#ifdef CONFIG_ENV_AES_CAAM_KEY
+#ifdef CONFIG_ENV_ENCRYPT
 #include "../board/digi/common/trustfence/env.h"
 #endif
 
@@ -324,7 +324,7 @@ int env_import(const char *buf, int check, int flags)
 		}
 	}
 
-#ifdef CONFIG_ENV_AES_CAAM_KEY
+#ifdef CONFIG_ENV_ENCRYPT
 	int ret = env_aes_cbc_crypt(ep, 0);
 	if (ret) {
 		if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE,
@@ -457,7 +457,7 @@ int env_export(env_t *env_out)
 		return 1;
 	}
 
-#ifdef CONFIG_ENV_AES_CAAM_KEY
+#ifdef CONFIG_ENV_ENCRYPT
 	int ret = env_aes_cbc_crypt(env_out, 1);
 	if (ret)
 		return ret;

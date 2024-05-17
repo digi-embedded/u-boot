@@ -526,16 +526,18 @@ pp_error:
 }
 #endif
 
-void fdt_fixup_trustfence(void *fdt) {
+void fdt_fixup_trustfence(void *fdt)
+{
 	/* Environment encryption is not enabled on open devices */
 	if (!imx_hab_is_enabled()) {
 		do_fixup_by_path(fdt, "/", "digi,tf-open", NULL, 0, 1);
 		return;
 	}
 
-#ifdef CONFIG_ENV_AES_CAAM_KEY
-	do_fixup_by_path(fdt, "/", "digi,uboot-env,encrypted", NULL, 0, 1);
-#endif
+	if (IS_ENABLED(CONFIG_ENV_ENCRYPT))
+		do_fixup_by_path(fdt, "/", "digi,uboot-env,encrypted", NULL, 0,
+				 1);
+
 	do_fixup_by_path(fdt, "/", "digi,tf-closed", NULL, 0, 1);
 }
 

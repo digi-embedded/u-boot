@@ -94,7 +94,7 @@ static __maybe_unused void setup_caam(void)
 
 int board_early_init_r(void)
 {
-#if defined(CONFIG_HAS_TRUSTFENCE) && defined(CONFIG_ENV_AES_CAAM_KEY)
+#if defined(CONFIG_HAS_TRUSTFENCE) && defined(CONFIG_CAAM_ENV_ENCRYPT)
 	setup_caam();
 #endif
 	return 0;

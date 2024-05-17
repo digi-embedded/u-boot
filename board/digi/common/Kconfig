@@ -170,6 +170,22 @@ config TRUSTFENCE_JTAG
 	depends on HAS_TRUSTFENCE
 	default y if CC6UL
 
+config ENV_ENCRYPT
+	bool "Encrypt u-boot environment using the hardware unique key (HUK)"
+	help
+	  Implementation uses CAAM or Optee depending on the platform.
+
+	  This setting only has an effect on closed devices (those that can
+	  only boot signed U-Boot images). It has no effect on open devices.
+
+config CAAM_ENV_ENCRYPT
+	bool
+	depends on ENV_ENCRYPT
+	depends on HAS_CAAM && !TARGET_CCIMX93_DVK
+	default ENV_ENCRYPT
+	help
+	  Encrypt U-Boot environment using CAAM
+
 config REDUNDANT_BOOTLOADER
 	bool
 	depends on CMD_UPDATE_MMC
