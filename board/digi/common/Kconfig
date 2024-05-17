@@ -186,6 +186,14 @@ config CAAM_ENV_ENCRYPT
 	help
 	  Encrypt U-Boot environment using CAAM
 
+config OPTEE_ENV_ENCRYPT
+	bool
+	depends on ENV_ENCRYPT
+	depends on TARGET_CCIMX93_DVK
+	default ENV_ENCRYPT
+	help
+	  Encrypt U-Boot environment using Optee
+
 config REDUNDANT_BOOTLOADER
 	bool
 	depends on CMD_UPDATE_MMC

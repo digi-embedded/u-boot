@@ -6,14 +6,23 @@
 
 #include <asm/mach-imx/hab.h>
 #include <env_internal.h>
-#include <fsl_sec.h>
+#include <errno.h>
 #include <fuse.h>
+#include <linux/kernel.h>
 #include <memalign.h>
 #include <uboot_aes.h>
 #include <u-boot/md5.h>
+
+#ifdef CONFIG_CAAM_ENV_ENCRYPT
+#include <fsl_sec.h>
 #if defined(CONFIG_ARCH_MX6) || defined(CONFIG_ARCH_MX7) || \
 	defined(CONFIG_ARCH_MX7ULP) || defined(CONFIG_ARCH_IMX8M)
 #include <asm/arch/clock.h>
+#endif
+#endif
+
+#ifdef CONFIG_OPTEE_ENV_ENCRYPT
+#include "aes_tee.h"
 #endif
 
 /*
@@ -39,6 +48,7 @@ static int get_trustfence_key_modifier(unsigned char keymod[KEY_MODIFER_SIZE])
 	return ret;
 }
 
+#ifdef CONFIG_CAAM_ENV_ENCRYPT
 int env_aes_cbc_crypt(env_t * env, const int enc)
 {
 	unsigned char *data = env->data;
@@ -99,3 +109,32 @@ freekm:
 
 	return ret;
 }
+#endif
+
+#ifdef CONFIG_OPTEE_ENV_ENCRYPT
+int env_aes_cbc_crypt(env_t * env, const int enc)
+{
+	uint8_t *data = env->data;
+	uint8_t *key_mod;
+	int ret = 0;
+
+	if (!imx_hab_is_enabled())
+		return 0;
+
+	key_mod = memalign(ARCH_DMA_MINALIGN, KEY_MODIFER_SIZE);
+	if (!key_mod) {
+		debug("Not enough memory for key modifier\n");
+		return -ENOMEM;
+	}
+	ret = get_trustfence_key_modifier(key_mod);
+	if (ret)
+		goto freekm;
+
+	ret = optee_crypt_data(enc, key_mod, data, ENV_SIZE);
+
+freekm:
+	free(key_mod);
+
+	return ret;
+}
+#endif
