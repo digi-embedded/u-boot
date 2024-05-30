@@ -32,6 +32,13 @@ dub-2022.04-r1.3, released on 2023/05/11
 
 DUB-2020.04
 -----------
+dub-2020.04-r7.1, released on 2024/01/30
+	- Disable bootcount mechanism by default
+	- Fix silent console kernel cmdline for bootm command
+	- Fix an encryption issue with CST 3.3.2 in sign script
+	- Improved sign script
+
+
 dub-2020.04-r6.1, released on 2023/09/13
 	- Fix use of default dev:part when using mmc on dboot/update commands
 	- Integrate 'altboot' script functionality in 'altbootcmd'
