@@ -844,8 +844,8 @@ static int do_trustfence(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[
 			 */
 			uboot_start = simple_strtoul(argv[3], NULL, 16);
 			uboot_size = simple_strtoul(argv[4], NULL, 16);
-			unsigned long dek_start = argc >= 5 ? simple_strtoul(argv[5], NULL, 16) : 0;
-			dek_size = argc >= 6 ? simple_strtoul(argv[6], NULL, 16) : 0;
+			unsigned long dek_start = argc > 5 ? simple_strtoul(argv[5], NULL, 16) : 0;
+			dek_size = argc > 6 ? simple_strtoul(argv[6], NULL, 16) : 0;
 
 			/*
 			 * This buffer will hold U-Boot, DEK and DEK blob. As
