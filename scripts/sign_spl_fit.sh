@@ -124,17 +124,17 @@ echo "Using make log '${MKIMAGE_LOG}'"
 echo "Using FIT HAB log '${MKIMAGE_FIT_HAB_LOG}'"
 
 # Parse spl uboot HAB block and CSF offset
-spl_image_offset=$(awk '/ image_off/ {print $2}' "${MKIMAGE_LOG}")
-spl_csf_offset=$(awk '/ csf_off/ {print $2}' "${MKIMAGE_LOG}")
-spl_ram_start=$(awk '/ spl hab block:/ {print $4}' "${MKIMAGE_LOG}")
-spl_header_offset=$(awk '/ spl hab block:/ {print $5}' "${MKIMAGE_LOG}")
-spl_image_len=$(awk '/ spl hab block:/ {print $6}' "${MKIMAGE_LOG}")
+spl_image_offset=$(awk '/^ image_off/ {print $2}' "${MKIMAGE_LOG}")
+spl_csf_offset=$(awk '/^ csf_off/ {print $2}' "${MKIMAGE_LOG}")
+spl_ram_start=$(awk '/^ spl hab block:/ {print $4}' "${MKIMAGE_LOG}")
+spl_header_offset=$(awk '/^ spl hab block:/ {print $5}' "${MKIMAGE_LOG}")
+spl_image_len=$(awk '/^ spl hab block:/ {print $6}' "${MKIMAGE_LOG}")
 
 # Parse sld (Second Loader image) uboot HAB blocks and CSF offset
-sld_csf_offset=$(awk '/ sld_csf_off/ {print $2}' "${MKIMAGE_LOG}")
-sld_ram_start=$(awk '/ sld hab block:/ {print $4}' "${MKIMAGE_LOG}")
-sld_header_offset=$(awk '/ sld hab block:/ {print $5}' "${MKIMAGE_LOG}")
-sld_image_len=$(awk '/ sld hab block:/ {print $6}' "${MKIMAGE_LOG}")
+sld_csf_offset=$(awk '/^ sld_csf_off/ {print $2}' "${MKIMAGE_LOG}")
+sld_ram_start=$(awk '/^ sld hab block:/ {print $4}' "${MKIMAGE_LOG}")
+sld_header_offset=$(awk '/^ sld hab block:/ {print $5}' "${MKIMAGE_LOG}")
+sld_image_len=$(awk '/^ sld hab block:/ {print $6}' "${MKIMAGE_LOG}")
 
 # Parse fit uboot HAB blocks
 result_row=$(awk '/print_fit_hab/ {print NR+1}' "${MKIMAGE_FIT_HAB_LOG}")
