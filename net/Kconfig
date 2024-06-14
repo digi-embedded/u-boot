@@ -110,6 +110,13 @@ config TFTP_PORT
 	  normally.  A better solution is to properly configure the firewall,
 	  but sometimes that is not allowed.
 
+config TFTP_UPDATE_ONTHEFLY
+	bool "Set TFTP update on-the-fly process"
+	help
+	  If this is defined, the update process will download the source file in
+	  chunks and automatically write it to avoid allocate a big amount of
+	  memory in the update process.
+
 config TFTP_WINDOWSIZE
 	int "TFTP window size"
 	default 1
