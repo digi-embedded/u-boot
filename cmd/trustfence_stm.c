@@ -233,7 +233,10 @@ static int do_trustfence_read_edmk(struct cmd_tbl *cmdtp, int flag, int argc, ch
 
 static int do_trustfence_prog_edmk(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
-	return trustfence_prog_key(argc, argv, 1);	/* EDMK */
+	// TODO: enable when encryption of bootloader fully supported */
+	printf("Encryption of bootloader not yet supported. Aborting.\n");
+	return 0;
+	//return trustfence_prog_key(argc, argv, 1);	/* EDMK */
 }
 
 static int do_trustfence_prog_jtag(struct cmd_tbl *cmdtp, int flag, int argc,
