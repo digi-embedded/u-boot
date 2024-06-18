@@ -38,6 +38,12 @@
 #include <linux/err.h>
 #include <linux/iopoll.h>
 
+#include "../ccmp2/ccmp2.h"
+#include "../common/carrier_board.h"
+
+unsigned int board_version = CARRIERBOARD_VERSION_UNDEFINED;
+unsigned int board_id = CARRIERBOARD_ID_UNDEFINED;
+
 #define SYSCFG_ETHCR_ETH_SEL_MII	0
 #define SYSCFG_ETHCR_ETH_SEL_RGMII	BIT(4)
 #define SYSCFG_ETHCR_ETH_SEL_RMII	BIT(6)
@@ -55,32 +61,12 @@ DECLARE_GLOBAL_DATA_PTR;
 
 int checkboard(void)
 {
-	int ret;
-	u32 otp;
-	struct udevice *dev;
-	const char *fdt_compat;
-	int fdt_compat_len;
+	board_version = get_carrierboard_version();
+	board_id = get_carrierboard_id();
 
-	fdt_compat = ofnode_get_property(ofnode_root(), "compatible", &fdt_compat_len);
-
-	log_info("Board: stm32mp2 (%s)\n", fdt_compat && fdt_compat_len ? fdt_compat : "");
-
-	/* display the STMicroelectronics board identification */
-	if (CONFIG_IS_ENABLED(CMD_STBOARD)) {
-		ret = uclass_get_device_by_driver(UCLASS_MISC,
-						  DM_DRIVER_GET(stm32mp_bsec),
-						  &dev);
-		if (!ret)
-			ret = misc_read(dev, STM32_BSEC_SHADOW(BSEC_OTP_BOARD),
-					&otp, sizeof(otp));
-		if (ret > 0 && otp)
-			log_info("Board: MB%04x Var%d.%d Rev.%c-%02d\n",
-				 otp >> 16,
-				 (otp >> 12) & 0xF,
-				 (otp >> 4) & 0xF,
-				 ((otp >> 8) & 0xF) - 1 + 'A',
-				 otp & 0xF);
-	}
+	print_som_info();
+	print_carrierboard_info();
+	print_bootinfo();
 
 	return 0;
 }
@@ -104,6 +90,9 @@ int g_dnl_bind_fixup(struct usb_device_descriptor *dev, const char *name)
 /* board dependent setup after realloc */
 int board_init(void)
 {
+	/* SOM init */
+	ccmp2_init();
+
 	return 0;
 }
 
@@ -173,45 +162,6 @@ int board_interface_eth_init(struct udevice *dev,
 	return ret;
 }
 
-enum env_location env_get_location(enum env_operation op, int prio)
-{
-	u32 bootmode = get_bootmode();
-
-	if (prio)
-		return ENVL_UNKNOWN;
-
-	switch (bootmode & TAMP_BOOT_DEVICE_MASK) {
-	case BOOT_FLASH_SD:
-	case BOOT_FLASH_EMMC:
-		if (CONFIG_IS_ENABLED(ENV_IS_IN_MMC))
-			return ENVL_MMC;
-		else
-			return ENVL_NOWHERE;
-
-	case BOOT_FLASH_NAND:
-	case BOOT_FLASH_SPINAND:
-		if (CONFIG_IS_ENABLED(ENV_IS_IN_UBI))
-			return ENVL_UBI;
-		else
-			return ENVL_NOWHERE;
-
-	case BOOT_FLASH_NOR:
-		if (CONFIG_IS_ENABLED(ENV_IS_IN_SPI_FLASH))
-			return ENVL_SPI_FLASH;
-		else
-			return ENVL_NOWHERE;
-
-	case BOOT_FLASH_HYPERFLASH:
-		if (CONFIG_IS_ENABLED(ENV_IS_IN_FLASH))
-			return ENVL_FLASH;
-		else
-			return ENVL_NOWHERE;
-
-	default:
-		return ENVL_NOWHERE;
-	}
-}
-
 int mmc_get_boot(void)
 {
 	struct udevice *dev;
@@ -278,6 +228,8 @@ int board_late_init(void)
 
 int ft_board_setup(void *blob, struct bd_info *bd)
 {
+	fdt_fixup_ccmp2(blob);
+	fdt_fixup_carrierboard(blob);
 	fdt_copy_fixed_partitions(blob);
 
 	return 0;

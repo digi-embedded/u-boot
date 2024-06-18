@@ -6,6 +6,12 @@
 
 obj-y += ccmp25-dvk.o
 
+ifdef CONFIG_HAS_HWID
+obj-y += ../ccmp2/ccmp2_hwid.o
+endif
+
+obj-y += ../ccmp2/ccmp2.o
+
 # ST common
 obj-$(CONFIG_CMD_STBOARD) += ../../st/common/cmd_stboard.o
 obj-$(CONFIG_PMIC_STPMIC1) += ../../st/common/stpmic1.o
