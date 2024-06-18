@@ -29,41 +29,13 @@ DECLARE_GLOBAL_DATA_PTR;
 
 enum env_location env_get_location(enum env_operation op, int prio)
 {
-	u32 bootmode = get_bootmode();
-
 	if (prio)
 		return ENVL_UNKNOWN;
 
-	switch (bootmode & TAMP_BOOT_DEVICE_MASK) {
-	case BOOT_FLASH_SD:
-	case BOOT_FLASH_EMMC:
-		if (CONFIG_IS_ENABLED(ENV_IS_IN_MMC))
-			return ENVL_MMC;
-		else
-			return ENVL_NOWHERE;
-
-	case BOOT_FLASH_NAND:
-	case BOOT_FLASH_SPINAND:
-		if (CONFIG_IS_ENABLED(ENV_IS_IN_UBI))
-			return ENVL_UBI;
-		else
-			return ENVL_NOWHERE;
-
-	case BOOT_FLASH_NOR:
-		if (CONFIG_IS_ENABLED(ENV_IS_IN_SPI_FLASH))
-			return ENVL_SPI_FLASH;
-		else
-			return ENVL_NOWHERE;
-
-	case BOOT_FLASH_HYPERFLASH:
-		if (CONFIG_IS_ENABLED(ENV_IS_IN_FLASH))
-			return ENVL_FLASH;
-		else
-			return ENVL_NOWHERE;
-
-	default:
+	if (CONFIG_IS_ENABLED(ENV_IS_IN_MMC))
+		return ENVL_MMC;
+	else
 		return ENVL_NOWHERE;
-	}
 }
 
 bool board_has_wireless(void)
