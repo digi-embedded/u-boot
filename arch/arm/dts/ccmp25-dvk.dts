@@ -35,6 +35,34 @@
 			clock-frequency = <100000000>;
 		};
 	};
+
+	regulators {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		reg_3v3_board: regulator-board@1 {
+			compatible = "regulator-fixed";
+			reg = <1>;
+			regulator-name = "3v3_board";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			gpio = <&gpioa 12 GPIO_ACTIVE_HIGH>; /* 3V3_BOARD_EN */
+			enable-active-high;
+			status = "okay";
+		};
+
+		reg_5v_board: regulator-board@2 {
+			compatible = "regulator-fixed";
+			reg = <2>;
+			regulator-name = "5v_board";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
+			gpio = <&gpiob 2 GPIO_ACTIVE_HIGH>; /* 5V_EN */
+			enable-active-high;
+			status = "okay";
+		};
+	};
 };
 
 &combophy {
@@ -162,8 +190,8 @@
 	disable-wp;
 	st,neg-edge;
 	bus-width = <4>;
-	vmmc-supply = <&scmi_vdd_sdcard>;
-	vqmmc-supply = <&scmi_vddio1>;
+	vmmc-supply = <&reg_3v3_board>; /* card's VDD pin */
+	vqmmc-supply = <&scmi_vddio1>; /* LDO8 - voltage used to pull up signal lines */
 	sd-uhs-sdr12;
 	sd-uhs-sdr25;
 	sd-uhs-sdr50;
