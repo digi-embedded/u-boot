@@ -810,3 +810,49 @@ void part_set_generic_name(const struct blk_desc *dev_desc,
 
 	sprintf(name, "%s%c%d", devtype, 'a' + dev_desc->devnum, part_num);
 }
+
+int get_partition_bynameorindex(const char *ifname, const char *dev_str,
+				char *part_nameorindex, struct disk_partition *info)
+{
+	int dev;
+	unsigned long part;
+	struct blk_desc *dev_desc;
+
+	dev = blk_get_device_by_str(ifname, dev_str, &dev_desc);
+	if (dev < 0)
+		return -1;
+
+	/* Check if partition to update is given as a number */
+	if (!strict_strtoul(part_nameorindex, 16, &part)) {
+		/* Look up partition by number */
+		 if (!part_get_info(dev_desc, part, info))
+			 return (int)part;
+	} else {
+		/* Look up partition by name */
+		part = 1;
+		while (!part_get_info(dev_desc, part, info)) {
+			/* Check if partition name matches */
+			if (!strcmp((char *)info->name, part_nameorindex))
+				return (int)part;
+			part++;
+		}
+	}
+
+	return -1;
+}
+
+int part_get_bootable(struct blk_desc *desc)
+{
+	struct disk_partition info;
+	int p;
+
+	for (p = 1; p <= MAX_SEARCH_PARTITIONS; p++) {
+		int ret;
+
+		ret = part_get_info(desc, p, &info);
+		if (!ret && info.bootable)
+			return p;
+	}
+
+	return 0;
+}

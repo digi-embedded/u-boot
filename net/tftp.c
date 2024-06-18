@@ -17,6 +17,7 @@
 #include <net.h>
 #include <asm/global_data.h>
 #include <net/tftp.h>
+#include <otf_update.h>
 #include "bootp.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -27,6 +28,13 @@ DECLARE_GLOBAL_DATA_PTR;
 #define TIMEOUT		5000UL
 /* Number of "loading" hashes per line (for checking the image size) */
 #define HASHES_PER_LINE	65
+
+#if defined(CONFIG_TFTP_UPDATE_ONTHEFLY)
+#define B_WRITE_IMG_TO_FLASH	1
+#define B_PARTITION_IS_JFFS2	2
+#define B_ERROR_DURING_FLASH	4
+#define B_PARTITION_IS_UBIFS	8
+#endif
 
 /*
  *	TFTP operations.
@@ -53,6 +61,32 @@ static ulong time_start;   /* Record time we started tftp */
  */
 ulong tftp_timeout_ms = TIMEOUT;
 int tftp_timeout_count_max = (CONFIG_NET_RETRY_COUNT * 2);
+
+/* hook for on-the-fly update and register function */
+static int (*otf_update_hook)(otf_data_t *data) = NULL;
+/* Data struct for on-the-fly update */
+static otf_data_t otfd;
+
+#ifdef CONFIG_TFTP_UPDATE_ONTHEFLY
+char tftp_to_flash_status = 0;			/* Signaling flags */
+size_t flash_erase_size = 0;			/* for TftpHandler; set by cmd_bsp.c */
+size_t flash_page_size = 0;			/* for TftpHandler; set by cmd_bsp.c */
+uint64_t partition_start_address = 0;		/* Start address of partition to flash; set by cmd_bsp.c */
+uint64_t partition_size = 0;			/* Size of partition to flash; set by cmd_bsp.c */
+const struct nv_param_part* partition_to_write;	/* Partition to flash; set by cmd_bsp.c */
+uint blocks_written_to_flash = 0;
+ulong ram_offset = 0;
+ulong last_ram_addr_written = 0;
+ulong bytes_counter = 0;
+
+#if defined(CONFIG_CMD_UBI)
+extern int ubi_volume_off_write(char *volume, void *buf, size_t size, int isFirstPart, int isLastPart);
+extern int ubi_volume_verify(char *volume, char *buf, loff_t offset, size_t size, char skipUpdFlagCheck);
+#endif
+
+#define FLASH_SECTORS_BUFFERED_IN_RAM	3	/* define # of flash sectors that are buffered before
+						 * writing to flash */
+#endif /* CONFIG_TFTP_UPDATE_ONTHEFLY */
 
 enum {
 	TFTP_ERR_UNDEFINED           = 0,
@@ -156,7 +190,29 @@ static inline int store_block(int block, uchar *src, unsigned int len)
 			tftp_block_size;
 	ulong newsize = offset + len;
 	ulong store_addr = tftp_load_addr + offset;
-	void *ptr;
+#ifdef CONFIG_SYS_DIRECT_FLASH_TFTP
+	int i, rc = 0;
+
+	for (i = 0; i < CONFIG_SYS_MAX_FLASH_BANKS; i++) {
+		/* start address in flash? */
+		if (flash_info[i].flash_id == FLASH_UNKNOWN)
+			continue;
+		if (store_addr >= flash_info[i].start[0]) {
+			rc = 1;
+			break;
+		}
+	}
+
+	if (rc) { /* Flash is destination for this packet */
+		rc = flash_write((char *)src, store_addr, len);
+		if (rc) {
+			flash_perror(rc);
+			return rc;
+		}
+	} else
+#endif /* CONFIG_SYS_DIRECT_FLASH_TFTP */
+	{
+		void *ptr;
 
 #ifdef CONFIG_LMB
 	ulong end_addr = tftp_load_addr + tftp_load_size;
@@ -164,22 +220,173 @@ static inline int store_block(int block, uchar *src, unsigned int len)
 	if (!end_addr)
 		end_addr = ULONG_MAX;
 
-	if (store_addr < tftp_load_addr ||
-	    store_addr + len > end_addr) {
-		puts("\nTFTP error: ");
-		puts("trying to overwrite reserved memory...\n");
-		return -1;
-	}
+#ifdef CONFIG_TFTP_UPDATE_ONTHEFLY
+		if (otf_update_hook == NULL)
 #endif
-	ptr = map_sysmem(store_addr, len);
-	memcpy(ptr, src, len);
-	unmap_sysmem(ptr);
+		{
+			if (store_addr < tftp_load_addr ||
+			    store_addr + len > end_addr) {
+				puts("\nTFTP error: ");
+				puts("trying to overwrite reserved memory...\n");
+				return -1;
+			}
+		}
+#endif
+		ptr = map_sysmem(store_addr, len);
+
+		if (otf_update_hook != NULL) {
+			otfd.buf = src;
+			otfd.len = len;
+			if (otf_update_hook(&otfd)) {
+				printf("Error writing on-the-fly. Aborting\n");
+				net_set_state(NETLOOP_FAIL);
+				return -1;
+			}
+		}
+		else {
+			memcpy(ptr, src, len);
+		}
+		unmap_sysmem(ptr);
+	}
 
 	if (net_boot_file_size < newsize)
 		net_boot_file_size = newsize;
 
 	return 0;
 }
+
+#ifdef CONFIG_TFTP_UPDATE_ONTHEFLY
+static __inline__ void
+store_block_to_ram (ulong ramAddress, uchar * src, unsigned len)
+{
+	/* count received bytes here to calculate FileSize later */
+	bytes_counter += len;
+	/*copy TftpBlock into RAM buffer*/
+	(void)memcpy( (void *)(ramAddress), src, len );
+
+	if( net_boot_file_size < bytes_counter)
+		net_boot_file_size = bytes_counter;
+}
+
+static __inline__ void
+store_block_to_flash (void)
+{
+	ulong offset = blocks_written_to_flash * flash_erase_size;
+	ulong tempRamOff = 0;
+	int iRes = 0, i;
+#if defined(CONFIG_CMD_NAND)
+	struct mtd_info *nand = get_nand_dev_by_index(0);
+#endif
+
+	for(i = 0; i < FLASH_SECTORS_BUFFERED_IN_RAM; i++){
+#if defined(CONFIG_CMD_NAND)
+#if defined(CONFIG_CMD_UBI)
+		if (tftp_to_flash_status & B_PARTITION_IS_UBIFS) {
+			iRes = !ubi_volume_off_write((char *)otfd.part->name, (void *)(tftp_load_addr + tempRamOff),
+					     flash_erase_size, blocks_written_to_flash == 0, 0);
+			if (iRes) {
+				iRes = !ubi_volume_verify((char *)otfd.part->name, (char *)(tftp_load_addr + tempRamOff),
+							 offset, flash_erase_size, 1);
+			}
+		}
+		else
+#endif
+		{
+			if (nand_block_isbad(nand, partition_start_address +
+						(uint64_t)offset) ){
+				/* skip the bad blocks here, not in PartWrite()
+				* because we need to write block after block
+				* and need to know if we skiped a block for the next loop */
+				offset += flash_erase_size;
+				blocks_written_to_flash++;
+			}
+
+			/* Write RAM buffer to partition and verify it */
+			iRes = nand_write(nand, partition_start_address + (uint64_t)offset,
+					  &flash_erase_size, (void *)(tftp_load_addr + tempRamOff));
+			iRes = nand_verify(nand, partition_start_address + (uint64_t)offset,
+					flash_erase_size, (void *)(tftp_load_addr + tempRamOff));
+		}
+#endif /* CONFIG_CMD_NAND */
+		if(!iRes)
+			goto error;
+
+		offset += flash_erase_size;
+		tempRamOff += flash_erase_size;
+		blocks_written_to_flash++;
+	}
+
+	/* calculate buffer offset (bytes that were received but don't fit into flash sector anymore)*/
+	ram_offset = last_ram_addr_written - (uint)flash_erase_size * FLASH_SECTORS_BUFFERED_IN_RAM ;
+	/* then copy them to the start of buffer to flash them in the next loop */
+	(void)memcpy( (void *)tftp_load_addr,
+			(void *)(tftp_load_addr + (flash_erase_size * FLASH_SECTORS_BUFFERED_IN_RAM)),
+			(ram_offset - tftp_load_addr) );
+
+	/* finally remember the last address of RAM buffer */
+	last_ram_addr_written = ram_offset;
+
+	return;
+error:
+	tftp_to_flash_status |= B_ERROR_DURING_FLASH;
+}
+
+
+static __inline__ void
+store_last_block_to_flash (void)
+{
+	int iRes = 0;
+#if defined(CONFIG_CMD_NAND)
+	/* we received the last Tftp package, now handle it */
+	ulong offset = blocks_written_to_flash * flash_erase_size;
+	struct mtd_info *nand = get_nand_dev_by_index(0);
+#endif
+
+#if defined(CONFIG_CMD_NAND)
+#if defined(CONFIG_CMD_UBI)
+	if (tftp_to_flash_status & B_PARTITION_IS_UBIFS) {
+		size_t size = last_ram_addr_written - tftp_load_addr;
+
+		iRes = !ubi_volume_off_write((char *)otfd.part->name, (void *)tftp_load_addr,
+					    last_ram_addr_written - tftp_load_addr, blocks_written_to_flash == 0, 1);
+		if (iRes && (size != 0)) {
+			iRes = !ubi_volume_verify((char *)otfd.part->name, (char *)tftp_load_addr,
+						 offset, size, 1);
+		}
+	}
+	else
+#endif
+	{
+		/* do the padding in the RAM buffer */
+		int iFreeBytesInBlock = flash_page_size - ( (last_ram_addr_written - tftp_load_addr) % flash_page_size);
+		if( iFreeBytesInBlock > 0 ){
+			if( (tftp_to_flash_status & B_PARTITION_IS_JFFS2) == B_PARTITION_IS_JFFS2 )
+				memset( (void *) last_ram_addr_written, 0x0, iFreeBytesInBlock);
+			else
+				memset( (void *) last_ram_addr_written, 0xff, iFreeBytesInBlock);
+			last_ram_addr_written += iFreeBytesInBlock;
+		}
+
+		/* then write the last bytes to flash and verify */
+		size_t off = last_ram_addr_written - tftp_load_addr;
+		iRes = nand_write(nand, partition_start_address + (uint64_t)offset,
+				  &off, (void *)(tftp_load_addr));
+		iRes = nand_verify(nand, partition_start_address + (uint64_t)offset,
+				   last_ram_addr_written - tftp_load_addr, (void *)(tftp_load_addr));
+	}
+#endif /* CONFIG_CMD_NAND */
+	if(!iRes)
+		goto error;
+
+	printf( "\nWriting blocks:   complete                                      " );
+	printf( "\nVerifying blocks: complete                                      " );
+
+	return;
+
+error:
+	tftp_to_flash_status |= B_ERROR_DURING_FLASH;
+}
+#endif /* CONFIG_TFTP_UPDATE_ONTHEFLY */
 
 /* Clear our state ready for a new transfer */
 static void new_transfer(void)
@@ -292,12 +499,36 @@ static void tftp_complete(void)
 	puts("  ");
 	print_size(tftp_tsize, "");
 #endif
+	/* OTF: Write remaining bytes in RAM (less than a chunk) to media */
+	if (otf_update_hook != NULL) {
+		otfd.len = 0;	/* there are no bytes left from TFTP frame */
+		otfd.flags |= OTF_FLAG_FLUSH;
+		if (otf_update_hook(&otfd)) {
+			printf("Error writing on-the-fly. Aborting\n");
+			net_set_state(NETLOOP_FAIL);
+			return;
+		}
+	}
+
 	time_start = get_timer(time_start);
 	if (time_start > 0) {
 		puts("\n\t ");	/* Line up with "Loading: " */
 		print_size(net_boot_file_size /
 			time_start * 1000, "/s");
 	}
+
+#ifdef CONFIG_TFTP_UPDATE_ONTHEFLY
+			if( (tftp_to_flash_status & B_WRITE_IMG_TO_FLASH) == B_WRITE_IMG_TO_FLASH ){
+				/* TFTP transfer complete, write last received TftpBlocks to flash */
+				store_last_block_to_flash();
+				/* and reset counters and flags */
+				last_ram_addr_written = 0;
+				blocks_written_to_flash = 0;
+				bytes_counter = 0;
+				ram_offset = 0;
+				tftp_to_flash_status &= ~B_PARTITION_IS_JFFS2;
+			}
+#endif /* CONFIG_TFTP_UPDATE_ONTHEFLY */
 	puts("\ndone\n");
 	if (IS_ENABLED(CONFIG_CMD_BOOTEFI)) {
 		if (!tftp_put_active)
@@ -629,10 +860,47 @@ static void tftp_handler(uchar *pkt, unsigned dest, struct in_addr sip,
 		timeout_count_max = tftp_timeout_count_max;
 		net_set_timeout_handler(timeout_ms, tftp_timeout_handler);
 
-		if (store_block(tftp_cur_block, pkt + 2, len)) {
-			eth_halt();
-			net_set_state(NETLOOP_FAIL);
-			break;
+#ifdef CONFIG_TFTP_UPDATE_ONTHEFLY
+		if( (tftp_to_flash_status & B_WRITE_IMG_TO_FLASH) == B_WRITE_IMG_TO_FLASH ){
+			/* new TFTP on-the-fly update function:
+			 * buffer image in RAM and write it directly to flash */
+			if(last_ram_addr_written == 0)
+				last_ram_addr_written = tftp_load_addr;
+
+			/* capture packets, buffer it into RAM and remember last RAM address*/
+			store_block_to_ram(last_ram_addr_written, pkt + 2, len);
+			last_ram_addr_written += len;
+
+			if( (tftp_load_addr + flash_erase_size * FLASH_SECTORS_BUFFERED_IN_RAM) <= last_ram_addr_written){
+				/* we received enough packets to write in a flash sector,
+				 * so do it unless the partition is full*/
+				if( partition_size < (tftp_block_size * tftp_cur_block) ){
+					printf("\nERROR: Image does not fit into partition!");
+					tftp_to_flash_status &= ~B_WRITE_IMG_TO_FLASH;
+					net_set_state(NETLOOP_FAIL);
+					return;
+				}
+				store_block_to_flash();
+
+				if( (tftp_to_flash_status & B_ERROR_DURING_FLASH) == B_ERROR_DURING_FLASH ){
+					printf("\nERROR: occurred during update of partition at RAM address 0x%lx.\n", last_ram_addr_written);
+					last_ram_addr_written = 0;
+					blocks_written_to_flash = 0;
+					bytes_counter = 0;
+					tftp_to_flash_status &= ~B_PARTITION_IS_JFFS2;
+					tftp_to_flash_status &= ~B_WRITE_IMG_TO_FLASH;
+					net_set_state(NETLOOP_FAIL);
+					return;
+				}
+			}
+		} else
+#endif /* CONFIG_TFTP_UPDATE_ONTHEFLY */
+		{
+			if (store_block(tftp_cur_block, pkt + 2, len)) {
+				eth_halt();
+				net_set_state(NETLOOP_FAIL);
+				break;
+			}
 		}
 
 		if (len < tftp_block_size) {
@@ -815,7 +1083,35 @@ void tftp_start(enum proto_t protocol)
 			return;
 		}
 		printf("Load address: 0x%lx\n", tftp_load_addr);
-		puts("Loading: *\b");
+#if defined(CONFIG_TFTP_UPDATE_ONTHEFLY)
+		if( (tftp_to_flash_status & B_WRITE_IMG_TO_FLASH) == B_WRITE_IMG_TO_FLASH ){
+			last_ram_addr_written = 0;
+			blocks_written_to_flash = 0;
+			bytes_counter = 0;
+			ram_offset = 0;
+
+			printf("Loading and updating on-the-fly: \n\t");
+		}
+		else
+#endif /* CONFIG_TFTP_UPDATE_ONTHEFLY */
+		{
+			if (otf_update_hook) {
+				printf("Loading and updating on-the-fly: \n");
+				printf("+-------------------------------------------------+\n"
+				       "|                   IMPORTANT!                    |\n"
+				       "|                                                 |\n"
+				       "| Cancelling on-the-fly update process will leave |\n"
+				       "| the partition partially written, and may result |\n"
+				       "| in an non-booting operating system.             |\n"
+				       "+-------------------------------------------------+\n\t");
+				/* Initialize/reset OTF variables */
+				otfd.loadaddr = (void *)tftp_load_addr;
+				otfd.flags = OTF_FLAG_INIT;
+				otfd.offset = 0;
+			} else {
+				puts("Loading: *\b");
+			}
+		}
 		tftp_state = STATE_SEND_RRQ;
 	}
 
@@ -896,3 +1192,19 @@ void tftp_start_server(void)
 	memset(net_server_ethaddr, 0, 6);
 }
 #endif /* CONFIG_CMD_TFTPSRV */
+
+void register_tftp_otf_update_hook(int (*hook)(otf_data_t *data),
+				   struct disk_partition *partition)
+{
+	otf_update_hook = hook;
+	/* Initialize data for new transfer */
+	otfd.part = partition;
+	otfd.loadaddr = (void *)tftp_load_addr;
+	otfd.flags = OTF_FLAG_INIT;
+	otfd.offset = 0;
+}
+
+void unregister_tftp_otf_update_hook(void)
+{
+	otf_update_hook = NULL;
+}

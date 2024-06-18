@@ -1,0 +1,184 @@
+config CCMP2
+	bool
+
+config CCMP1
+	bool
+
+config CC8M
+	bool
+
+config CC8X
+	bool
+
+config CC6UL
+	bool
+
+config MCA
+	bool "Support for the Micro Controller Assist (MCA)"
+
+if MCA
+config MCA_I2C_BUS
+	int "I2C bus index where the MCA is connected to"
+
+config MCA_I2C_ADDR
+	hex "I2C address of the Micro Controller Assist (MCA)"
+
+config MCA_OFFSET_LEN
+	int "Offset length value of the I2C bus when talking to the MCA"
+	default 2
+
+config MCA_TAMPER
+	bool "Support for the tamper pins of the MCA"
+endif
+
+config CMD_DBOOT
+	bool "Support for Digi 'dboot' command"
+	help
+	  Digi custom direct boot (dboot) command comprises in a single
+	  command:
+	   - Download of firmware files (kernel, device tree) from the
+	     specified media to RAM.
+	   - Composition of boot arguments.
+	   - Boot of the Operating System.
+
+config CMD_UPDATE
+	bool "Support for Digi 'update' command"
+	help
+	  Digi custom firmware update (update) command comprises in a single
+	  command:
+	   - Download of firmware image files from the specified media to RAM.
+	   - Programming of the firmware file on the specified partition.
+	   - Verification of the image programmed on the storage media.
+
+	  The command also allows for on-the-fly update (transfer and write
+	  chunks of the firmware image) when available RAM is small or the
+	  image file is very large).
+
+if CMD_UPDATE
+config CMD_UPDATE_NAND
+	bool
+	default y if CCMP1
+	default y if CC6UL
+
+config CMD_UPDATE_MMC
+	bool
+	default y if CCMP2
+	default y if CC8M
+	default y if CC8X
+
+config SYS_STORAGE_MEDIA
+	string
+	default "nand" if CMD_UPDATE_NAND
+	default "mmc" if CMD_UPDATE_MMC
+
+config CMD_BOOTSTREAM
+	bool
+	depends on CMD_UPDATE_NAND
+	default y if CC6UL
+
+config DIGI_UPDATE_ADDR
+	hex "RAM address where to place the firmware image during update"
+	default 0xc2000000 if CCMP2
+	default 0xc2000000 if CCMP1
+	default 0x50000000 if CC8M
+	default 0x95000000 if CC8X
+	default 0x80800000 if CC6UL
+
+config DIGI_LZIPADDR
+	hex "RAM address where to place compressed image (to be decompressed)"
+	default 0xc4000000 if CCMP2
+	default 0xc4000000 if CCMP1
+	default 0x44000000 if CC8M
+	default 0x8C000000 if CC8X
+	default 0x82000000 if CC6UL
+
+config OTF_CHUNK
+	hex "Chunk size (in bytes) for on-the-fly (OTF) updates"
+	default 0x2000000
+
+config UBOOT_RESERVED
+	hex "RAM memory reserved for U-Boot, stack, malloc pool..."
+	default 0xA00000
+endif
+
+config DIGI_UBI
+	bool "Support for Digi specific UBI functions"
+
+config HAS_HWID
+	bool "Platform supports a Hardware ID (HWID) on the OTP bits"
+
+if HAS_HWID
+config HWID_BANK
+	int "OTP bank where the HWID is"
+	default 0 if CCMP2
+	default 0 if CCMP1
+	default 9 if CC8M
+	default 0 if CC8X
+	default 4 if CC6UL
+
+config HWID_START_WORD
+	int "Offset of the first OTP word where the HWID is"
+	default 23 if CCMP2
+	default 59 if CCMP1
+	default 0 if CC8M
+	default 708 if CC8X
+	default 2 if CC6UL
+
+config HWID_WORDS_NUMBER
+	int "Number of OTP words that form the HWID"
+	default 3 if CCMP2
+	default 3 if CCMP1
+	default 3 if CC8M
+	default 4 if CC8X
+	default 2 if CC6UL
+
+config HAS_OTP_LOCK_FUSE
+	bool
+	default y if CC6UL
+	default y if CC8M
+
+if HAS_OTP_LOCK_FUSE
+config HWID_LOCK_FUSE
+	hex "HWID lock fuse mask"
+	default 0x100 if CC6UL
+	default 0x4000 if CC8M
+endif
+
+endif
+
+config DIGI_FAMILY_ID
+	int "Digi Family ID for Serial Number composition"
+	default 1 if CC8X
+	default 2 if CC8M && IMX8MN
+	default 3 if CC8M && IMX8MM
+	default 4 if CCMP1
+	default 5 if CCMP2
+	default 0
+
+config MTD_UBI_MAXRSVDPEB_PCNT
+	int "Percentage of MTD partition reserved for bad blocks on a UBI volume"
+	default 4
+	help
+	  Standard U-Boot code uses a very conservative approach of reserving
+	  bad blocks basing on the full NAND size, instead of the size of the
+	  MTD partition. This setting allows to limit the number of reserved
+	  blocks for bad block handling to a percentage of the MTD partition size.
+
+config HAS_TRUSTFENCE
+	bool
+	default y if CC8X
+	default y if CC8M
+	default y if CC6UL
+	default y if CCMP1
+
+if HAS_TRUSTFENCE
+config CMD_TRUSTFENCE_NXP
+	bool
+	default y if CC8X
+	default y if CC8M
+	default y if CC6UL
+
+config CMD_TRUSTFENCE_STM
+	bool
+	default y if CCMP1
+endif
