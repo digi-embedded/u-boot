@@ -92,6 +92,15 @@
 		"fi;" \
 		"load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script};\0" \
 	"lzipaddr=" __stringify(CONFIG_DIGI_LZIPADDR) "\0" \
+	"partition_mmc_linux=mmc rescan;" \
+		"if mmc dev ${mmcdev}; then " \
+			"if test \"${dualboot}\" = yes; then " \
+				"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
+			"else " \
+				"gpt write mmc ${mmcdev} ${parts_linux};" \
+			"fi;" \
+			"mmc rescan;" \
+		"fi;\0" \
 	"recovery_file=recovery.img\0" \
 	"rootfs_file=dey-image-webkit-wayland-" CONFIG_SYS_BOARD ".ubifs\0" \
 	"script=boot.scr\0" \

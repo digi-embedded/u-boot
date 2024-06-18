@@ -215,4 +215,32 @@
 	"part9_uuid=dc83dea8-c467-45dc-84eb-5e913daec17e\0" \
 	"part10_uuid=df0dba76-d5e0-11e8-9f8b-f2801f1b9fd1\0"
 
+#define LINUX_8GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=metadata1,size=512KiB,uuid=${part1_uuid};" \
+	"name=metadata2,size=512KiB,uuid=${part2_uuid};" \
+	"name=fip-a,size=3MiB,uuid=${part3_uuid};" \
+	"name=fip-b,size=3MiB,uuid=${part4_uuid};" \
+	"name=u-boot-env,size=4MiB,uuid=${part4_uuid};" \
+	"name=linux,size=64MiB,uuid=${part5_uuid};" \
+	"name=rootfs,size=4GiB,uuid=${part6_uuid};" \
+	"name=data,size=-,uuid=${part7_uuid};" \
+	"\""
+
+#define LINUX_DUALBOOT_8GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=metadata1,size=512KiB,uuid=${part1_uuid};" \
+	"name=metadata2,size=512KiB,uuid=${part2_uuid};" \
+	"name=fip-a,size=3MiB,uuid=${part3_uuid};" \
+	"name=fip-b,size=3MiB,uuid=${part4_uuid};" \
+	"name=u-boot-env,size=4MiB,uuid=${part4_uuid};" \
+	"name=linux_a,size=64MiB,uuid=${part5_uuid};" \
+	"name=linux_b,size=64MiB,uuid=${part6_uuid};" \
+	"name=rootfs_a,size=3GiB,uuid=${part7_uuid};" \
+	"name=rootfs_b,size=3GiB,uuid=${part8_uuid};" \
+	"name=data,size=-,uuid=${part9_uuid};" \
+	"\""
+
 #endif /* __CCMP2_COMMON_H */
