@@ -8,6 +8,7 @@ config CMD_STBOARD
 
 config DFU_ALT_RAM0
 	string "dfu for ram0"
+	default "uImage ram 0x88000000 0x2000000;devicetree.dtb ram 0x8a000000 0x100000;uramdisk.image.gz ram 0x8a400000 0x10000000" if TARGET_ST_STM32MP25X || TARGET_CCMP25_DVK
 	default "uImage ram 0xc2000000 0x2000000;devicetree.dtb ram 0xc4000000 0x100000;uramdisk.image.gz ram 0xc4400000 0x10000000"
 	depends on ARCH_STM32MP && SET_DFU_ALT_INFO
 	help
