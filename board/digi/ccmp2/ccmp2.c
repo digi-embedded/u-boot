@@ -119,20 +119,8 @@ void generate_partition_table(void)
 
 int mmc_get_bootdevindex(void)
 {
-	u32 bootmode = get_bootmode();
-	
-	switch (bootmode & TAMP_BOOT_DEVICE_MASK) {
-	case BOOT_FLASH_EMMC:
-	case BOOT_FLASH_EMMC_1:
-		return 1;	/* index of SD card */
-	case BOOT_FLASH_EMMC_2:
-		return 2;	/* index of eMMC */
-	case BOOT_FLASH_EMMC_3:
-		return 2;	/* index of SDMMC3 */
-	default:
-		/* return default value otherwise */
-		return EMMC_BOOT_DEV;
-	}
+	/* Use boot instance to select the correct mmc device index */
+	return mmc_get_boot();
 }
 
 void som_default_environment(void)
