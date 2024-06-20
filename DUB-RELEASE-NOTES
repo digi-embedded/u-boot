@@ -4,6 +4,17 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2023.04
 -----------
+dub-2023.04-r4.1, released on 2024/06/20
+	- Fix updating encrypted bootloader from RAM
+	- Support for redundant boot loader
+	- Complete TrustFence support for CC93:
+	  - Secure console
+	  - Encrypted bootloader
+	  - Encrypted U-Boot environment
+	  - FIT image authentication
+	  - Key revocation
+
+
 dub-2023.04-r3.2, released on 2024/01/30
 	- Based on BSP from NXP (tag 'lf-6.1.55-2.2.0')
 	- Environment moved to the end of hardware boot partitions
