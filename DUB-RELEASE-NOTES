@@ -4,6 +4,11 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2020.04
 -----------
+dub-2020.04-r8.1, released on 2024/06/20
+	- Fix updating encrypted bootloader from RAM
+	- Fix CVE-2023-39902 vulnerability on CC8M platforms
+
+
 dub-2020.04-r7.1, released on 2024/01/30
 	- Disable bootcount mechanism by default
 	- Fix silent console kernel cmdline for bootm command
