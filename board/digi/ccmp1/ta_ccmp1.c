@@ -217,9 +217,9 @@ int crypt_cipher_data(int enc, char *cipher_data, size_t size)
 	}
 
 	/* Prepare decryption process */
-	prepare_optee_aes(ctx, TA_AES_ALGO_CTR, AES128_KEY_LENGTH, enc);
+	prepare_optee_aes(ctx, TA_AES_ALGO_CTR, AES256_KEY_LENGTH, enc);
 	/* set key */
-	set_key(ctx, AES128_KEY_LENGTH);
+	set_key(ctx, AES256_KEY_LENGTH);
 	/* set IV */
 	set_iv(ctx, iv, AES_BLOCK_LENGTH);
 	/* Encrypt buffer */

@@ -880,7 +880,7 @@ static const void *boot_get_kernel(struct cmd_tbl *cmdtp, int flag, int argc,
 	buf = map_sysmem(img_addr, 0);
 
 	switch (genimg_get_format(buf)) {
-#if defined(CONFIG_IMAGE_FORMAT_LEGACY)
+#if CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)
 	case IMAGE_FORMAT_LEGACY:
 #ifdef CONFIG_AUTH_ARTIFACTS
 		if (digi_auth_image(&buf,
@@ -890,7 +890,7 @@ static const void *boot_get_kernel(struct cmd_tbl *cmdtp, int flag, int argc,
 		}
 #endif /* CONFIG_AUTH_ARTIFACTS */
 		break;
-#endif
+#endif /* CONFIG_LEGACY_IMAGE_FORMAT */
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
 	case IMAGE_FORMAT_ANDROID:
 		/* Do this authentication in boota command */

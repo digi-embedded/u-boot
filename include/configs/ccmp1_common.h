@@ -99,10 +99,6 @@
 #define CONFIG_SYS_AUTOLOAD		"no"
 #endif
 
-/*****************************************************************************/
-#ifdef CONFIG_DISTRO_DEFAULTS
-/*****************************************************************************/
-
 #if !defined(CONFIG_SPL_BUILD)
 
 #ifdef CONFIG_CMD_MMC
@@ -144,7 +140,6 @@
 #include <config_distro_bootcmd.h>
 
 #endif /* ifndef CONFIG_SPL_BUILD */
-#endif /* ifdef CONFIG_DISTRO_DEFAULTS*/
 
 /* Supported sources for update|dboot */
 #if defined(CONFIG_CMD_DBOOT) || defined(CONFIG_CMD_UPDATE)

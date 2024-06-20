@@ -54,6 +54,33 @@ int ccmp1_init(void)
 	return 0;
 }
 
+int fdt_fixup_memory_optee(void *fdt, u64 start, u64 size)
+{
+	return fdt_fixup_reg_banks(fdt, &start, &size, 1, "reserved-memory", "optee");
+}
+
+void fdt_fixup_memory_node_ccmp1(void *fdt)
+{
+	u32 optee_base = 0;
+	u32 optee_size = SZ_32M;
+	u32 ram_size = 0;
+	int ret = 0;
+
+	if (my_hwid.ram) {
+		/* Set memory node based on HWID info */
+		ram_size = hwid_get_ramsize(&my_hwid);
+		ret = fdt_fixup_memory(fdt, (u64)CONFIG_SYS_SDRAM_BASE, (u64)ram_size);
+		if (ret < 0)
+			printf("%s(): Failed to fixup memory node\n", __func__);
+
+		/* Reserve last 32 MiB for OPTEE */
+		optee_base = (CONFIG_SYS_SDRAM_BASE + ram_size) - optee_size;
+		ret = fdt_fixup_memory_optee(fdt, (u64)optee_base, (u64)optee_size);
+		if (ret < 0)
+			printf("%s(): Failed to fixup optee node\n", __func__);
+	}
+}
+
 void fdt_fixup_ccmp1(void *fdt)
 {
 	fdt_fixup_hwid(fdt, &my_hwid);
@@ -77,7 +104,9 @@ void fdt_fixup_ccmp1(void *fdt)
 	/* Add DT entry to detect environment encryption in Linux */
 #ifdef CONFIG_ENV_AES_CCMP1
 	do_fixup_by_path(fdt, "/", "digi,uboot-env,encrypted", NULL, 0, 1);
+	do_fixup_by_path(fdt, "/", "digi,uboot-env,encrypted-optee", NULL, 0, 1);
 #endif
+	fdt_fixup_memory_node_ccmp1(fdt);
 }
 
 #define MTDPARTS_LEN		256
@@ -96,7 +125,10 @@ void board_mtdparts_default(const char **mtdids, const char **mtdparts)
 
 	memset(parts, 0, sizeof(parts));
 
-	if (nand->size > SZ_256M)
+	if (nand->size > SZ_512M)
+		strcat(parts, "mtdparts=nand0:" CONFIG_MTDPARTS_NAND0_BOOT ","
+		       MTDPARTS_1024M);
+	else if (nand->size > SZ_256M)
 		strcat(parts, "mtdparts=nand0:" CONFIG_MTDPARTS_NAND0_BOOT ","
 		       MTDPARTS_512M);
 	else
@@ -113,7 +145,13 @@ void generate_ubi_volumes_script(void)
 	struct mtd_info *nand = get_nand_dev_by_index(0);
 	char script[CONFIG_SYS_CBSIZE] = "";
 
-	if (nand->size > SZ_256M) {
+	if (nand->size > SZ_512M) {
+		sprintf(script, CREATE_UBIVOLS_SCRIPT,
+				UBIVOLS1_DUALBOOT_1024MB,
+				UBIVOLS1_1024MB,
+				UBIVOLS2_DUALBOOT_1024MB,
+				UBIVOLS2_1024MB);
+	} else if (nand->size > SZ_256M) {
 		sprintf(script, CREATE_UBIVOLS_SCRIPT,
 				UBIVOLS1_DUALBOOT_512MB,
 				UBIVOLS1_512MB,

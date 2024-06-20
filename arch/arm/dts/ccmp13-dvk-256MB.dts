@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
+/*
+ * Copyright (C) 2024, Digi International Inc - All Rights Reserved
+ */
+/dts-v1/;
+
+/* Digi ConnectCore CCMP13 SOM */
+#include "ccmp13.dtsi"
+/* DDR Configuration */
+#include "ccmp13-ddr-256MB.dtsi"
+/* Digi ConnectCore CCMP13 DVK */
+#include "ccmp13-dvk.dtsi"

@@ -415,6 +415,79 @@ static int fdt_pack_reg(const void *fdt, void *buf, u64 *address, u64 *size,
 	return p - (char *)buf;
 }
 
+#define REG_BANKS_MAX 4
+
+/**
+ * fdt_fixup_reg_banks - Update DT reg entry from node
+ * @blob: Pointer to DT blob
+ * @start: Pointer to node start addresses array
+ * @size: Pointer to node sizes array
+ * @banks: Number of reg banks
+ *
+ * Return: 0 on success, negative value on failure
+ *
+ * Based on the passed number of banks and arrays, the function is able to
+ * update existing DT node/subnode to match run time detected/changed memory
+ * configuration.
+ */
+int fdt_fixup_reg_banks(void *blob, u64 start[], u64 size[], int banks,
+			const char *node, const char *subnode)
+{
+	int err, nodeoffset;
+	int len, i;
+	u8 tmp[REG_BANKS_MAX * 16]; /* Up to 64-bit address + 64-bit size */
+
+	if (banks > REG_BANKS_MAX) {
+		printf("%s: num banks %d exceeds hardcoded limit %d."
+		       " Recompile with higher REG_BANKS_MAX?\n",
+		       __FUNCTION__, banks, REG_BANKS_MAX);
+		return -1;
+	}
+
+	err = fdt_check_header(blob);
+	if (err < 0) {
+		printf("%s: %s\n", __FUNCTION__, fdt_strerror(err));
+		return err;
+	}
+
+	/* find or create "/<node>" node */
+	nodeoffset = fdt_find_or_add_subnode(blob, 0, node);
+	if (nodeoffset < 0) {
+		printf("WARNING: %s: could not find %s node, %s.\n",
+				__FUNCTION__, node, fdt_strerror(nodeoffset));
+		return nodeoffset;
+	}
+
+	if (subnode != NULL ) {
+		/* find or create "/<node>/<subnode>" node */
+		nodeoffset = fdt_find_or_add_subnode(blob, nodeoffset, subnode);
+		if (nodeoffset < 0) {
+			printf("WARNING: %s: could not find %s subnode, %s.\n",
+					__FUNCTION__, subnode, fdt_strerror(nodeoffset));
+			return nodeoffset;
+		}
+	}
+
+	for (i = 0; i < banks; i++) {
+		if (start[i] == 0 && size[i] == 0)
+			break;
+	}
+	banks = i;
+
+	if (!banks)
+		return 0;
+
+	len = fdt_pack_reg(blob, tmp, start, size, banks);
+
+	err = fdt_setprop(blob, nodeoffset, "reg", tmp, len);
+	if (err < 0) {
+		printf("WARNING: %s: could not set %s %s.\n",
+				__FUNCTION__, "reg", fdt_strerror(err));
+		return err;
+	}
+	return 0;
+}
+
 #if CONFIG_NR_DRAM_BANKS > 4
 #define MEMORY_BANKS_MAX CONFIG_NR_DRAM_BANKS
 #else

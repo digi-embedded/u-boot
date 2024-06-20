@@ -109,10 +109,18 @@ int fdt_fixup_memory(void *blob, u64 start, u64 size);
  */
 #ifdef CONFIG_ARCH_FIXUP_FDT_MEMORY
 int fdt_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks);
+int fdt_fixup_reg_banks(void *blob, u64 start[], u64 size[], int banks,
+			const char *node, const char *subnode);
 int fdt_set_usable_memory(void *blob, u64 start[], u64 size[], int banks);
 #else
 static inline int fdt_fixup_memory_banks(void *blob, u64 start[], u64 size[],
 					 int banks)
+{
+	return 0;
+}
+static inline int fdt_fixup_reg_banks(void *blob, u64 start[], u64 size[],
+				      int banks, const char *node,
+				      const char *subnode)
 {
 	return 0;
 }
