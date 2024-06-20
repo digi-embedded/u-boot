@@ -77,9 +77,10 @@
 #define CONFIG_HAS_CARRIERBOARD_VERSION
 #define CONFIG_HAS_CARRIERBOARD_ID
 
+/* HWID */
+#define CONFIG_DIGI_FAMILY_ID		2
+
 #define CONFIG_MFG_ENV_SETTINGS \
-	"mfgtool_args=setenv bootargs console=${console},${baudrate} " \
-		"root=/dev/ram0 rw quiet\0" \
 	"fastboot_dev=mmc" __stringify(EMMC_BOOT_DEV) "\0" \
 	"initrd_addr=0x43800000\0" \
 	"initrd_high=0xffffffffffffffff\0" \

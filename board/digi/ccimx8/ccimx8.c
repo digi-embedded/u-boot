@@ -28,13 +28,6 @@ static struct digi_hwid my_hwid;
 
 DECLARE_GLOBAL_DATA_PTR;
 
-typedef struct mac_base { uint8_t mbase[3]; } mac_base_t;
-
-mac_base_t mac_pools[] = {
-	[1] = {{0x00, 0x04, 0xf3}},
-	[2] = {{0x00, 0x40, 0x9d}},
-};
-
 #ifdef CONFIG_FSL_ESDHC_IMX
 int board_mmc_get_env_dev(int devno)
 {
@@ -47,18 +40,7 @@ bool board_has_emmc(void)
 }
 #endif /* CONFIG_FSL_ESDHC_IMX */
 
-static int use_mac_from_fuses(struct digi_hwid *hwid)
-{
-	/*
-	 * Setting the mac pool to 0 means that the mac addresses will not be
-	 * setup with the information encoded in the efuses.
-	 * This is a back-door to allow manufacturing units with uboots that
-	 * does not support some specific pool.
-	 */
-	return hwid->mac_pool != 0;
-}
-
-static bool board_has_wireless(void)
+bool board_has_wireless(void)
 {
 	if (my_hwid.ram)
 		return my_hwid.wifi;
@@ -72,7 +54,7 @@ static bool board_has_wireless(void)
 	return true; /* assume it has, by default */
 }
 
-static bool board_has_bluetooth(void)
+bool board_has_bluetooth(void)
 {
 	if (my_hwid.ram)
 		return my_hwid.bt;
@@ -86,7 +68,7 @@ static bool board_has_bluetooth(void)
 	return true; /* assume it has, by default */
 }
 
-static bool board_has_eth1(void)
+bool board_has_eth1(void)
 {
 #ifdef CONFIG_CC8M
 	return false;
@@ -149,90 +131,6 @@ void generate_partition_table(void)
 
 	if (!env_get("parts_linux_dualboot"))
 		env_set("parts_linux_dualboot", linux_dualboot_partition_table);
-}
-
-static int set_mac_from_pool(uint32_t pool, uint8_t *mac)
-{
-	if (pool > ARRAY_SIZE(mac_pools) || pool < 1) {
-		printf("ERROR unsupported MAC address pool %u\n", pool);
-		return -EINVAL;
-	}
-
-	memcpy(mac, mac_pools[pool].mbase, sizeof(mac_base_t));
-
-	return 0;
-}
-
-static int set_lower_mac(uint32_t val, uint8_t *mac)
-{
-	mac[3] = (uint8_t)(val >> 16);
-	mac[4] = (uint8_t)(val >> 8);
-	mac[5] = (uint8_t)(val);
-
-	return 0;
-}
-
-static int env_set_macaddr_forced(const char *var, const uchar *enetaddr)
-{
-	char cmd[CONFIG_SYS_CBSIZE] = "";
-
-	sprintf(cmd, "setenv -f %s %pM", var, enetaddr);
-
-	return run_command(cmd, 0);
-}
-
-static void get_macs_from_fuses(void)
-{
-	uint8_t macaddr[6];
-	char macvars[WIRED_NICS + 2][10];
-	int ret, n_macs, i;
-
-#ifdef CONFIG_CC8X
-	if ((!hwid_in_db(my_hwid.variant) && !my_hwid.ram) ||
-	    !use_mac_from_fuses(&my_hwid))
-#else
-	if (!my_hwid.ram || !use_mac_from_fuses(&my_hwid))
-#endif
-		return;
-
-	ret = set_mac_from_pool(my_hwid.mac_pool, macaddr);
-	if (ret) {
-		printf("ERROR: MAC addresses will not be set from fuses (%d)\n",
-		       ret);
-		return;
-	}
-
-	/* Fill in env-variables array, depending on available NICs */
-	for (n_macs = 0; n_macs < WIRED_NICS; n_macs++) {
-		if (n_macs == 0)
-			strcpy(macvars[n_macs], "ethaddr");
-		else
-			sprintf(macvars[n_macs], "eth%daddr", n_macs);
-	}
-
-	if (board_has_wireless()) {
-		strcpy(macvars[n_macs], "wlanaddr");
-		n_macs++;
-	}
-
-	if (board_has_bluetooth()) {
-		strcpy(macvars[n_macs], "btaddr");
-		n_macs++;
-	}
-
-	/* Protect from overflow */
-	if (my_hwid.mac_base + n_macs > 0xffffff) {
-		printf("ERROR: not enough remaining MACs on this MAC pool\n");
-		return;
-	}
-
-	for (i = 0; i < n_macs; i++) {
-		set_lower_mac(my_hwid.mac_base + i, macaddr);
-		ret = env_set_macaddr_forced(macvars[i], macaddr);
-		if (ret)
-			printf("ERROR setting %s from fuses (%d)\n", macvars[i],
-			       ret);
-	}
 }
 
 void som_default_environment(void)
@@ -323,7 +221,7 @@ void som_default_environment(void)
 
 	/* Get MAC address from fuses unless indicated otherwise */
 	if (env_get_yesno("use_fused_macs"))
-		get_macs_from_fuses();
+		hwid_get_macs(my_hwid.mac_pool, my_hwid.mac_base);
 
 	/* Verify MAC addresses */
 	verify_mac_address("ethaddr", DEFAULT_MAC_ETHADDR);
@@ -336,6 +234,9 @@ void som_default_environment(void)
 
 	if (board_has_bluetooth())
 		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
+
+	/* Get serial number from fuses */
+	hwid_get_serial_number(my_hwid.year, my_hwid.week, my_hwid.sn);
 
 	/* Set 'som_overlays' variable (used to boot android) */
 	var[0] = 0;
