@@ -19,9 +19,6 @@
 #define LZ4_OFFSET	0x00800000
 #endif
 
-extern u16 dek_blob_size;
-extern char *dek_blob_ptr;
-
 static struct boot_img_t *read_auth_image(struct spl_image_info *spl_image,
 					  struct spl_load_info *info,
 					  struct container_hdr *container,
@@ -92,10 +89,6 @@ static int read_auth_container(struct spl_image_info *spl_image,
 			       struct spl_load_info *info, ulong sector)
 {
 	struct container_hdr *container = NULL;
-#ifdef CONFIG_AHAB_BOOT
-	struct signature_block_hdr *sign_hdr;
-	struct generate_key_blob_hdr *blob_hdr;
-#endif
 	u16 length;
 	u32 sectors;
 	int i, size, ret = 0;
@@ -152,27 +145,6 @@ static int read_auth_container(struct spl_image_info *spl_image,
 	}
 
 #ifdef CONFIG_AHAB_BOOT
-	if (dek_blob_ptr && container->sig_blk_offset != 0) {
-		sign_hdr = (struct signature_block_hdr *)((ulong)container +
-		                                          container->sig_blk_offset);
-		if (sign_hdr->version == 0x0 && sign_hdr->tag == 0x90 &&
-		    sign_hdr->blob_offset) {
-			blob_hdr = (struct generate_key_blob_hdr *)((ulong)sign_hdr +
-			                                            sign_hdr->blob_offset);
-			if (blob_hdr->version != 0x0 || blob_hdr->tag != 0x81) {
-				/*
-				 * This container doesn't have a blob where it
-				 * should, but we have the blob from the
-				 * previous container, so copy it before
-				 * authentication.
-				 */
-				 memcpy((char *)((ulong)sign_hdr +
-				                 sign_hdr->blob_offset),
-				        dek_blob_ptr, dek_blob_size);
-			}
-		}
-	}
-
 	ret = ahab_auth_cntr_hdr(container, length);
 	if (ret)
 		goto end_auth;

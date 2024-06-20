@@ -78,7 +78,7 @@ static int booti_start(struct cmd_tbl *cmdtp, int flag, int argc,
 	}
 	unmap_sysmem((void *)ld);
 
-#if defined(CONFIG_AHAB_BOOT) && defined(CONFIG_AUTH_ARTIFACTS)
+#if defined(CONFIG_AHAB_BOOT) && defined(CONFIG_AUTH_DISCRETE_ARTIFACTS)
 	extern int digi_auth_image(ulong *ddr_start, ulong raw_image_size);
 	if (digi_auth_image(&ld, 0 /* Not used for AHAB */ ) != 0) {
 		printf("Authenticate Image Fail, Please check\n");
@@ -90,7 +90,7 @@ static int booti_start(struct cmd_tbl *cmdtp, int flag, int argc,
 	if (ret != 0)
 		return 1;
 
-#if defined(CONFIG_IMX_HAB) && defined(CONFIG_AUTH_ARTIFACTS) && !defined(CONFIG_AVB_SUPPORT)
+#if defined(CONFIG_IMX_HAB) && defined(CONFIG_AUTH_DISCRETE_ARTIFACTS) && !defined(CONFIG_AVB_SUPPORT)
 	extern int authenticate_image(
 		uint32_t ddr_start, uint32_t raw_image_size);
 	if (authenticate_image(ld, image_size) != 0) {

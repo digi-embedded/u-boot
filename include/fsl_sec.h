@@ -39,10 +39,6 @@
 #define MAX_BLOB_SIZE		(AES256_KEY_SZ + CCM_OVERHEAD +\
 				BLOB_OVERHEAD + TAG_SIZE)
 
-/* Header (8) + BKEK (32) + MAC (16) + MAX_KEY_SIZE (256 bits) */
-#define MAX_DEK_BLOB_SIZE	(8 + 32 + 16 + (256 / 8))
-#define KEY_MODIFER_SIZE	16
-
 /* Security Engine Block (MS = Most Sig., LS = Least Sig.) */
 #if CONFIG_SYS_FSL_SEC_COMPAT >= 4
 /* RNG4 TRNG test registers */

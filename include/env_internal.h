@@ -84,7 +84,7 @@ typedef struct environment_s {
 #endif
 	unsigned char	data[ENV_SIZE]; /* Environment data		*/
 } env_t
-#ifdef CONFIG_ENV_AES_CAAM_KEY
+#ifdef CONFIG_ENV_ENCRYPT
 /* Make sure the env is aligned to block size. */
 __attribute__((aligned(16)))
 #endif
@@ -110,7 +110,6 @@ extern const char default_environment[];
 enum env_location {
 	ENVL_UNKNOWN,
 	ENVL_EEPROM,
-	ENVL_ESATA,
 	ENVL_EXT4,
 	ENVL_FAT,
 	ENVL_FLASH,

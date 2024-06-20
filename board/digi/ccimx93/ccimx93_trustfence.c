@@ -103,8 +103,11 @@ int get_srk_revoke_mask(u32 *mask)
 	int ret = CMD_RET_SUCCESS;
 
 	/* Container Header can only be read from the storage media */
-	if (is_usb_boot())
+	if (is_usb_boot()) {
+		printf
+		    ("Reading revoke mask is not supported booting from USB.\n");
 		return CMD_RET_FAILURE;
+	}
 
 	mmc = find_mmc_device(mmc_get_bootdevindex());
 	if (!mmc) {
@@ -157,9 +160,19 @@ sanitize:
 
 int revoke_keys(void)
 {
-	puts("ELE_COMMIT_REQ command not implemented in the driver\n");
+	u32 index = 0x10 /* SRK revocation of the OEM container */ ;
+	u32 info_type;
+	int ret = -1;
 
-	return -1;
+	if (ahab_commit(index, NULL, &info_type))
+		goto err;
+
+	ret = (index != info_type);
+	if (ret)
+		goto err;
+
+err:
+	return ret ? -1 : 0;
 }
 
 /*
@@ -168,5 +181,14 @@ int revoke_keys(void)
  */
 int sense_key_status(u32 *val)
 {
-	return get_srk_revoke_mask(val);
+	int ret = -1;
+
+	/* Container Header can only be read from the storage media */
+	if (is_usb_boot())
+		printf
+		    ("Reading revoke mask is not supported booting from USB.\n");
+	else
+		ret = get_srk_revoke_mask(val);
+
+	return ret ? -1 : 0;
 }

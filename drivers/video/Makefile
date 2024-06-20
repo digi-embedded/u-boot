@@ -56,6 +56,7 @@ obj-$(CONFIG_VIDEO_LCD_TDO_TL070WSH30) += tdo-tl070wsh30.o
 obj-$(CONFIG_VIDEO_LCD_USMP_RM67162) += usmp-rm67162.o
 obj-$(CONFIG_VIDEO_MCDE_SIMPLE) += mcde_simple.o
 obj-$(CONFIG_VIDEO_ADV7535) += adv7535.o
+obj-$(CONFIG_VIDEO_LT8912) += lt8912.o
 obj-${CONFIG_VIDEO_MESON} += meson/
 obj-${CONFIG_VIDEO_MIPI_DSI} += mipi_dsi.o
 obj-$(CONFIG_VIDEO_IT6263_BRIDGE) += it6263_bridge.o

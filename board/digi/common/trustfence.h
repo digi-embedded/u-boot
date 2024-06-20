@@ -25,8 +25,6 @@ void copy_spl_dek(void);
 
 void fdt_fixup_trustfence(void *fdt);
 
-int get_trustfence_key_modifier(unsigned char key_modifier[16]);
-
 /* platform specific Trustfence support*/
 int trustfence_status(void);
 

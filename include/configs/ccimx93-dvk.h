@@ -83,13 +83,17 @@
 	"kernel_addr_r=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
 	"dboot_kernel_var=imagegz\0" \
 	"lzipaddr=" __stringify(CONFIG_DIGI_LZIPADDR) "\0" \
+	"fitimage=fitImage-" BOARD_DEY_NAME ".bin\0" \
 	"image=Image-" BOARD_DEY_NAME ".bin\0" \
 	"imagegz=Image.gz-" BOARD_DEY_NAME ".bin\0" \
+	"uboot_file=imx-boot-" BOARD_DEY_NAME ".bin\0" \
 	"splashimage=0x90000000\0" \
-	"console=ttyLP5,115200 earlycon\0" \
+	"splashpos=m,m\0" \
+	"console=ttyLP5,115200\0" \
 	"fdt_addr_r=0x83000000\0"			\
 	"fdt_addr=0x83000000\0"			\
 	"fdt_high=0xffffffffffffffff\0"		\
+	"fit_addr_r=" __stringify(CONFIG_DIGI_LZIPADDR) "\0" \
 	"cntr_addr=0x98000000\0"			\
 	"cntr_file=os_cntr_signed.bin\0" \
 	"boot_fit=no\0" \
@@ -106,8 +110,22 @@
 			"env exists active_system || setenv active_system linux_a; " \
 			"part number mmc ${mmcbootdev} ${active_system} mmcpart; " \
 		"fi;" \
-		"load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script};\0" \
-	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
+		"if test \"${dboot_kernel_var}\" = fitimage; then " \
+			"load mmc ${mmcbootdev}:${mmcpart} ${fit_addr_r} ${fitimage}; " \
+			"env set source_fit_script ${fit_addr_r}:${fit-script}; " \
+		"else " \
+			"load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}; " \
+		"fi;\0" \
+	"loadimage=" \
+		"if test \"${dualboot}\" = yes; then " \
+			"env exists active_system || setenv active_system linux_a; " \
+			"part number mmc ${mmcbootdev} ${active_system} mmcpart; " \
+		"fi;" \
+		"if test \"${dboot_kernel_var}\" = fitimage; then " \
+			"load mmc ${mmcbootdev}:${mmcpart} ${fit_addr_r} ${fitimage}; " \
+		"else " \
+			"load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${image}; " \
+		"fi;\0" \
 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr_r} ${fdt_file}\0" \
 	"loadcntr=fatload mmc ${mmcdev}:${mmcpart} ${cntr_addr} ${cntr_file}\0" \
 	"auth_os=auth_cntr ${cntr_addr}\0" \
@@ -186,11 +204,12 @@
 	"recoverycmd=setenv mmcpart " RECOVERY_PARTITION ";" \
 		"boot\0" \
 	"script=boot.scr\0" \
+	"fit-script=bootscr-boot.txt\0" \
 	"bsp_bootcmd=echo Running BSP bootcmd ...; " \
 		"mmc dev ${mmcdev}; if mmc rescan; then " \
 		   "if run loadbootscript; then " \
 			   "echo Running bootscript from mmc ...; " \
-			   "source; " \
+			   "source ${source_fit_script}; " \
 		   "else " \
 			   "if test ${sec_boot} = yes; then " \
 				   "if run loadcntr; then " \

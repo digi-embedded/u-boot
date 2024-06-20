@@ -46,6 +46,7 @@ enum {
 #endif
 	PTN_ALL_INDEX,
 	PTN_BOOTLOADER_INDEX,
+	PTN_BOOTLOADER_REDUNDANT_INDEX,
 };
 
 struct fastboot_ptentry g_ptable[MAX_PTN];
@@ -142,6 +143,7 @@ static int _fastboot_parts_load_from_ptable(void)
 	/* mmc boot partition: -1 means no partition, 0 user part., 1 boot part.
 	 * default is no partition, for emmc default user part, except emmc*/
 	int boot_partition = FASTBOOT_MMC_NONE_PARTITION_ID;
+	int boot_redund_partition = FASTBOOT_MMC_NONE_PARTITION_ID;
 	int user_partition = FASTBOOT_MMC_NONE_PARTITION_ID;
 
 	unsigned long boot_loader_psize = ANDROID_BOOTLOADER_SIZE;
@@ -187,6 +189,7 @@ static int _fastboot_parts_load_from_ptable(void)
 		/* multiple boot paritions for eMMC 4.3 later */
 		if (mmc->part_config != MMCPART_NOAVAILABLE) {
 			boot_partition = FASTBOOT_MMC_BOOT_PARTITION_ID;
+			boot_redund_partition = FASTBOOT_MMC_BOOT1_PARTITION_ID;
 			user_partition = FASTBOOT_MMC_USER_PARTITION_ID;
 			boot_loader_psize = mmc->capacity_boot;
 		}
@@ -242,10 +245,18 @@ static int _fastboot_parts_load_from_ptable(void)
 	ptable[PTN_BOOTLOADER_INDEX].flags = FASTBOOT_PTENTRY_FLAGS_UNERASEABLE;
 	strcpy(ptable[PTN_BOOTLOADER_INDEX].fstype, "raw");
 
+	/* Redundant bootloader (same offset but in boot2 hw partition */
+	strcpy(ptable[PTN_BOOTLOADER_REDUNDANT_INDEX].name, FASTBOOT_PARTITION_BOOTLOADER_REDUNDANT);
+	ptable[PTN_BOOTLOADER_REDUNDANT_INDEX].start = bootloader_mmc_offset() / dev_desc->blksz;
+	ptable[PTN_BOOTLOADER_REDUNDANT_INDEX].length = boot_loader_psize / dev_desc->blksz;
+	ptable[PTN_BOOTLOADER_REDUNDANT_INDEX].partition_id = boot_redund_partition;
+	ptable[PTN_BOOTLOADER_REDUNDANT_INDEX].flags = FASTBOOT_PTENTRY_FLAGS_UNERASEABLE;
+	strcpy(ptable[PTN_BOOTLOADER_REDUNDANT_INDEX].fstype, "raw");
+
 	int tbl_idx;
 	int part_idx = 1;
 	int ret;
-	for (tbl_idx = PTN_BOOTLOADER_INDEX + 1; tbl_idx < MAX_PTN; tbl_idx++) {
+	for (tbl_idx = PTN_BOOTLOADER_REDUNDANT_INDEX + 1; tbl_idx < MAX_PTN; tbl_idx++) {
 		ret = _fastboot_parts_add_ptable_entry(tbl_idx,
 				part_idx++,
 				user_partition,

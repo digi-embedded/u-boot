@@ -26,6 +26,7 @@
 
 #include "../ccimx93/ccimx93.h"
 #include "../common/carrier_board.h"
+#include "../common/trustfence.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -45,6 +46,14 @@ int board_early_init_f(void)
 	imx_iomux_v3_setup_multiple_pads(uart_pads, ARRAY_SIZE(uart_pads));
 
 	init_uart_clk(LPUART6_CLK_ROOT);
+
+	if (IS_ENABLED(CONFIG_CONSOLE_DISABLE))
+		gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+
+#if defined(CONFIG_CONSOLE_ENABLE_GPIO) && !defined(CONFIG_SPL_BUILD)
+	if (console_enable_gpio(CONFIG_CONSOLE_ENABLE_GPIO_NAME))
+		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#endif
 
 	return 0;
 }
@@ -384,6 +393,9 @@ int board_late_init(void)
 #ifdef CONFIG_AHAB_BOOT
 	env_set("sec_boot", "yes");
 #endif
+
+	/* SOM late init */
+	ccimx93_late_init();
 
 	/* Set default dynamic variables */
 	platform_default_environment();

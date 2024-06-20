@@ -140,10 +140,13 @@ static int write_firmware(char *partname, unsigned long loadaddr,
 	 * If updating U-Boot on eMMC
 	 * append the hardware partition where U-Boot lives.
 	 */
-	if (!strcmp(partname, "uboot") &&
-	    !strcmp(CONFIG_SYS_STORAGE_MEDIA, "mmc") &&
-	    board_has_emmc() && (mmc_dev_index == CONFIG_SYS_MMC_ENV_DEV))
-		strcat(cmd, " $mmcbootpart");
+	if (!strcmp(CONFIG_SYS_STORAGE_MEDIA, "mmc") &&
+	    board_has_emmc() && (mmc_dev_index == CONFIG_SYS_MMC_ENV_DEV)) {
+		if (!strcmp(partname, "uboot"))
+			strcat(cmd, " $mmcbootpart");
+		else if (!strcmp(partname, "uboot-redundant"))
+			strcat(cmd, " 2");
+	}
 
 #ifdef CONFIG_FSL_FASTBOOT
 	if (!strcmp(partname, "gpt")) {
@@ -325,7 +328,8 @@ static int do_update(struct cmd_tbl* cmdtp, int flag, int argc, char * const arg
 		return CMD_RET_FAILURE;
 
 	/* Get data of partition to be updated */
-	if (!strcmp(argv[1], "uboot")) {
+	if (!strcmp(argv[1], "uboot") ||
+	    !strcmp(argv[1], "uboot-redundant")) {
 		/* Simulate partition data for U-Boot */
 		calculate_uboot_update_settings(mmc_dev, &info);
 		strcpy((char *)info.name, argv[1]);
@@ -438,7 +442,8 @@ static int do_update(struct cmd_tbl* cmdtp, int flag, int argc, char * const arg
 
 	/* Activate on-the-fly update if needed */
 	if (otf_enabled || (env_get_yesno("otf-update") == 1)) {
-		if (!strcmp((char *)info.name, "uboot")) {
+		if (!strcmp((char *)info.name, "uboot") ||
+		    !strcmp((char *)info.name, "uboot-redundant")) {
 			/* Do not activate on-the-fly update for U-Boot */
 			printf("On-the-fly mechanism disabled for U-Boot "
 				"for security reasons\n");
@@ -532,6 +537,10 @@ U_BOOT_CMD(
 	" Arguments:\n"
 	"   - partition:    a partition index, a GUID partition name, or one\n"
 	"                   of the reserved names: uboot, gpt\n"
+	"                   - 'uboot' to update the bootloader.'\n"
+#ifdef CONFIG_REDUNDANT_BOOTLOADER
+	"                   - 'uboot-redundant' to update the redundant bootloader.'\n"
+#endif
 	"   - [source]:     " CONFIG_UPDATE_SUPPORTED_SOURCES_LIST "\n"
 	"   - [extra-args]: extra arguments depending on 'source'\n"
 	"\n"

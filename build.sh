@@ -92,6 +92,7 @@ clone_uboot_repo
 CPUS="$(echo /sys/devices/system/cpu/cpu[0-9]* | wc -w)"
 [ "${CPUS}" -gt 1 ] && MAKE_JOBS="-j${CPUS}"
 MAKE="make ${MAKE_JOBS}"
+WGET="wget -q --timeout=30 --tries=3"
 
 for platform in ${DUB_PLATFORMS}; do
 	# Build in a sub-shell to avoid mixing environments for different platform
@@ -105,15 +106,17 @@ for platform in ${DUB_PLATFORMS}; do
 			TLABEL="${TLABEL}-${TOOLCHAIN_TYPE}"
 			# If the toolchain is already installed exit the loop
 			[ -d "${DUB_TOOLCHAIN_DIR}/${TLABEL}" ] && break
-			if wget -q --spider "${DUB_TOOLCHAIN_URL}/toolchain-${TLABEL}.sh"; then
+			if ${WGET} --spider "${DUB_TOOLCHAIN_URL}/toolchain-${TLABEL}.sh"; then
 				printf "\n[INFO] Installing toolchain-%s.sh\n\n" "${TLABEL}"
 				tmp_toolchain="$(mktemp /tmp/toolchain.XXXXXX)"
-				wget -q -O "${tmp_toolchain}" "${DUB_TOOLCHAIN_URL}/toolchain-${TLABEL}.sh" && chmod +x "${tmp_toolchain}"
+				${WGET} -O "${tmp_toolchain}" "${DUB_TOOLCHAIN_URL}/toolchain-${TLABEL}.sh" && chmod +x "${tmp_toolchain}"
 				rm -rf "${DUB_TOOLCHAIN_DIR}"/"${TLABEL:?}" && sh "${tmp_toolchain}" -y -d "${DUB_TOOLCHAIN_DIR}"/"${TLABEL}"
 				rm -f "${tmp_toolchain}"
 				break
 			fi
 		done
+
+		[ -d "${DUB_TOOLCHAIN_DIR}/${TLABEL}" ] || error "No toolchain available"
 
 		eval "$(grep "^export CROSS_COMPILE=" "${DUB_TOOLCHAIN_DIR}"/"${TLABEL}"/environment-setup-*)"
 		eval "$(grep "^export PATH=" "${DUB_TOOLCHAIN_DIR}"/"${TLABEL}"/environment-setup-*)"
@@ -128,7 +131,9 @@ for platform in ${DUB_PLATFORMS}; do
 		eval "BOOT_POST_SCRIPT=\"\${${platform//-/_}_post_script}\""
 		if [ -z "${BOOT_POST_SCRIPT}" ]; then
 			# Copy u-boot image
-			cp --remove-destination "${UBOOT_MAKE_TARGET}" "${DUB_IMGS_DIR}"/"${UBOOT_MAKE_TARGET/u-boot/u-boot-${platform}}"
+			UBOOT_FINAL_NAME="$(echo "${UBOOT_MAKE_TARGET}" | sed -e "s,-dtb,,g" -e "s,u-boot,u-boot-${platform},g")"
+			mkdir -p "${DUB_IMGS_DIR}/${platform}"
+			cp --remove-destination "${UBOOT_MAKE_TARGET}" "${DUB_IMGS_DIR}"/"${platform}"/"${UBOOT_FINAL_NAME}"
 		else
 			# Some extra environment needed to build optee-os
 			eval "$(grep "^export OECORE_NATIVE_SYSROOT=" "${DUB_TOOLCHAIN_DIR}"/"${TLABEL}"/environment-setup-*)"

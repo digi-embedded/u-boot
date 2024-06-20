@@ -57,7 +57,7 @@ static int bootz_start(struct cmd_tbl *cmdtp, int flag, int argc,
 	if (bootm_find_images(flag, argc, argv, images->ep, zi_end - zi_start))
 		return 1;
 
-#if defined(CONFIG_IMX_HAB) && defined(CONFIG_AUTH_ARTIFACTS)
+#if defined(CONFIG_IMX_HAB) && defined(CONFIG_AUTH_DISCRETE_ARTIFACTS)
 	extern int authenticate_image(
 			uint32_t ddr_start, uint32_t raw_image_size);
 	if (authenticate_image(images->ep, zi_end - zi_start) != 0) {

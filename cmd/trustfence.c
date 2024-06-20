@@ -63,6 +63,9 @@ extern int rng_swtest_status;
 #define ALIGN_UP(x, a) (((x) + (a - 1)) & ~(a - 1))
 #define DMA_ALIGN_UP(x) ALIGN_UP(x, ARCH_DMA_MINALIGN)
 
+/* Header (8) + BKEK (32) + MAC (16) + MAX_KEY_SIZE (256 bits) */
+#define MAX_DEK_BLOB_SIZE	(8 + 32 + 16 + (256 / 8))
+
 /*
  * Copy the DEK blob used by the current U-Boot image into a buffer. Also
  * get its size in the last out parameter.
@@ -111,15 +114,15 @@ __weak int get_dek_blob(char *output, u32 *size)
 	return 1;
 }
 #else
-__weak int get_dek_blob(char *output, u32 * size)
+__weak int get_dek_blob(ulong addr, u32 *size)
 {
 	return 1;
 }
 #endif
 
 #ifdef CONFIG_AHAB_BOOT
-extern int get_dek_blob_offset(char *address, u32 *offset);
-extern int get_dek_blob_size(char *address, u32 *size);
+extern int get_dek_blob_offset(ulong addr, u32 *offset);
+extern int get_dek_blob_size(ulong addr, u32 *size);
 extern int get_srk_revoke_mask(u32 *mask);
 #endif
 #ifdef CONFIG_ARCH_IMX8M
@@ -131,23 +134,7 @@ int is_uboot_encrypted() {
 	u32 dek_blob_size;
 
 	/* U-Boot is encrypted if and only if get_dek_blob does not fail */
-	return !get_dek_blob(dek_blob, &dek_blob_size);
-}
-
-int get_trustfence_key_modifier(unsigned char key_modifier[16])
-{
-	u32 ocotp_hwid[CONFIG_HWID_WORDS_NUMBER];
-	int i, ret;
-
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
-		ret = fuse_read(CONFIG_HWID_BANK,
-				CONFIG_HWID_START_WORD + i,
-				&ocotp_hwid[i]);
-		if (ret)
-			return ret;
-	}
-	md5((unsigned char *)(&ocotp_hwid), sizeof(ocotp_hwid), key_modifier);
-	return ret;
+	return !get_dek_blob((ulong)dek_blob, &dek_blob_size);
 }
 
 /*
@@ -161,7 +148,7 @@ int get_trustfence_key_modifier(unsigned char key_modifier[16])
 void copy_dek(void)
 {
 	ulong loadaddr = env_get_ulong("loadaddr", 16, CONFIG_SYS_LOAD_ADDR);
-	void *dek_blob_dst = (void *)(loadaddr - BLOB_DEK_OFFSET);
+	ulong dek_blob_dst = loadaddr - BLOB_DEK_OFFSET;
 	u32 dek_size;
 
 	get_dek_blob(dek_blob_dst, &dek_size);
@@ -170,7 +157,7 @@ void copy_dek(void)
 void copy_spl_dek(void)
 {
 	ulong loadaddr = env_get_ulong("loadaddr", 16, CONFIG_SYS_LOAD_ADDR);
-	void *dek_blob_dst = (void *)(loadaddr - (2 * BLOB_DEK_OFFSET));
+	ulong dek_blob_dst = loadaddr - (2 * BLOB_DEK_OFFSET);
 
 	get_dek_blob(dek_blob_dst, NULL);
 }
@@ -393,6 +380,7 @@ __weak void board_print_trustfence_jtag_key(u32 *sjc)
 int console_enable_gpio(const char *name)
 {
 	struct gpio_desc desc;
+	ulong flags = GPIOD_IS_IN;
 	int ret = 0;
 
 	if (dm_gpio_lookup_name(name, &desc))
@@ -401,7 +389,10 @@ int console_enable_gpio(const char *name)
 	if (dm_gpio_request(&desc, "Console enable"))
 		goto error;
 
-	if (dm_gpio_set_dir_flags(&desc, GPIOD_IS_IN))
+	if (IS_ENABLED(CONFIG_CONSOLE_ENABLE_GPIO_ACTIVE_LOW))
+		flags |= GPIOD_ACTIVE_LOW;
+
+	if (dm_gpio_set_dir_flags(&desc, flags))
 		goto errfree;
 
 	ret = dm_gpio_get_value(&desc);
@@ -446,7 +437,7 @@ static int console_get_passphrase(int secs, char *buff, int len)
 		}
 
 		/* Do not trigger watchdog while typing passphrase */
-		WATCHDOG_RESET();
+		schedule();
 
 		if (tstc()) {
 			c = getchar();
@@ -538,37 +529,21 @@ pp_error:
 }
 #endif
 
-#ifdef CONFIG_ENV_AES_KEY
-/*
- * CONFIG_ENV_AES_KEY is a 128 bits (16 bytes) AES key, represented as
- * 32 hexadecimal characters.
- */
-unsigned long key[4];
-
-uint8_t *env_aes_cbc_get_key(void)
+void fdt_fixup_trustfence(void *fdt)
 {
-	if (strlen(CONFIG_ENV_AES_KEY) != 32) {
-		puts("[ERROR] Wrong CONFIG_ENV_AES_KEY size (should be 128 bits)\n");
-		return NULL;
-	}
-
-	strtohex(CONFIG_ENV_AES_KEY, key,
-		 sizeof(key) / sizeof(unsigned long));
-
-	return (uint8_t *)key;
-}
-#endif
-
-void fdt_fixup_trustfence(void *fdt) {
 	/* Environment encryption is not enabled on open devices */
 	if (!imx_hab_is_enabled()) {
 		do_fixup_by_path(fdt, "/", "digi,tf-open", NULL, 0, 1);
 		return;
 	}
 
-#ifdef CONFIG_ENV_AES_CAAM_KEY
-	do_fixup_by_path(fdt, "/", "digi,uboot-env,encrypted", NULL, 0, 1);
-#endif
+	if (IS_ENABLED(CONFIG_ENV_ENCRYPT))
+		do_fixup_by_path(fdt, "/", "digi,uboot-env,encrypted", NULL, 0,
+				 1);
+	if (IS_ENABLED(CONFIG_OPTEE_ENV_ENCRYPT))
+		do_fixup_by_path(fdt, "/", "digi,uboot-env,encrypted-optee",
+				 NULL, 0, 1);
+
 	do_fixup_by_path(fdt, "/", "digi,tf-closed", NULL, 0, 1);
 }
 
@@ -714,37 +689,32 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 		if (revoke_keys())
 			goto err;
 		puts("[OK]\n");
-		if (sense_key_status(&val[0]))
-			goto err;
-		for (int i = 0; i < CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS; i++) {
-			if (val[0] & (1 << i))
-				printf("   Key %d revoked\n", i);
+		if (!sense_key_status(&val[0])) {
+			for (int i = 0; i < CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS; i++) {
+				if (val[0] & (1 << i))
+					printf("   Key %d revoked\n", i);
+			}
 		}
 #else
 		printf("Command not implemented\n");
 #endif
 	} else if (!strcmp(op, "status")) {
-		int key_index;
-
 		printf("* SRK fuses:\t\t");
 		ret = fuse_check_srk();
 		if (ret > 0) {
 			printf("[NOT PROGRAMMED]\n");
 		} else if (ret == 0) {
 			puts("[PROGRAMMED]\n");
+			/* Only show revocation status if the SRK fuses are programmed */
+			if (!sense_key_status(&val[0])) {
+				for (int i = 0; i <= CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS; i++) {
+					printf("   Key %d:\t\t", i);
+					printf((val[0] & (1 << i) ? "[REVOKED]\n" : "[OK]\n"));
+				}
+			}
 		} else {
 			puts("[ERROR]\n");
 		}
-
-		if (sense_key_status(&val[0]))
-			goto err;
-		for (key_index = 0; key_index < CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS;
-		     key_index++) {
-			printf("   Key %d:\t\t", key_index);
-			printf((val[0] & (1 << key_index) ?
-			       "[REVOKED]\n" : "[OK]\n"));
-		}
-		printf("   Key %d:\t\t[OK]\n", CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS);
 
 		printf("* Secure boot:\t\t%s", imx_hab_is_enabled() ?
 		       "[CLOSED]\n" : "[OPEN]\n");
@@ -762,7 +732,8 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 		unsigned long uboot_start;
 		u32 dek_blob_size;
 #ifdef CONFIG_AHAB_BOOT
-		u32 dek_blob_offset;
+		u32 dek_blob_offset[2];
+		unsigned long dek_blob_spl_final_dst;
 #endif
 #ifdef CONFIG_ARCH_IMX8M
 		u32 dek_blob_spl_offset;
@@ -807,12 +778,13 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 			uboot_size = env_get_ulong("filesize", 16, 0);
 #ifdef CONFIG_AHAB_BOOT
 			/* DEK blob will be placed into the Signature Block */
-			ret = get_dek_blob_offset((void *)loadaddr, &dek_blob_offset);
+			ret = get_dek_blob_offset(loadaddr, dek_blob_offset);
 			if (ret != 0) {
 				printf("Error getting the DEK Blob offset (%d)\n", ret);
 				return CMD_RET_FAILURE;
 			}
-			dek_blob_final_dst = loadaddr + dek_blob_offset;
+			dek_blob_spl_final_dst = loadaddr + dek_blob_offset[0];
+			dek_blob_final_dst = loadaddr + dek_blob_offset[1];
 #else
 #ifdef CONFIG_ARCH_IMX8M
 			ret = get_dek_blob_offset((void *)loadaddr, &dek_blob_spl_offset);
@@ -876,8 +848,8 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 			 */
 			uboot_start = simple_strtoul(argv[3], NULL, 16);
 			uboot_size = simple_strtoul(argv[4], NULL, 16);
-			unsigned long dek_start = argc >= 5 ? simple_strtoul(argv[5], NULL, 16) : 0;
-			dek_size = argc >= 6 ? simple_strtoul(argv[6], NULL, 16) : 0;
+			unsigned long dek_start = argc > 5 ? simple_strtoul(argv[5], NULL, 16) : 0;
+			dek_size = argc > 6 ? simple_strtoul(argv[6], NULL, 16) : 0;
 
 			/*
 			 * This buffer will hold U-Boot, DEK and DEK blob. As
@@ -901,12 +873,13 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 			dek_blob_dst = (uintptr_t) (buffer + DMA_ALIGN_UP(uboot_size) + DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE));
 #ifdef CONFIG_AHAB_BOOT
 			/* DEK blob will be placed into the Signature Block */
-			ret = get_dek_blob_offset((void *)uboot_start, &dek_blob_offset);
+			ret = get_dek_blob_offset(uboot_start, dek_blob_offset);
 			if (ret != 0) {
 				printf("Error getting the DEK Blob offset (%d)\n", ret);
 				return CMD_RET_FAILURE;
 			}
-			dek_blob_final_dst = (uintptr_t) (buffer + dek_blob_offset);
+			dek_blob_spl_final_dst = (uintptr_t) (buffer + dek_blob_offset[0]);
+			dek_blob_final_dst = (uintptr_t) (buffer + dek_blob_offset[1]);
 #else
 #ifdef CONFIG_SPL
 			/* DEK blob will be directly inserted into the U-Boot image */
@@ -965,7 +938,7 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 			}
 
 #ifdef CONFIG_AHAB_BOOT
-			get_dek_blob_size((void *) dek_blob_dst, &dek_blob_size);
+			get_dek_blob_size(dek_blob_dst, &dek_blob_size);
 #else
 			/*
 			 * Set dek_size to the size of the DEK blob, that is:
@@ -977,7 +950,7 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 			/* Copy DEK blob to its final destination */
                         memcpy((void *)dek_blob_final_dst, (void *)dek_blob_dst,
                                 dek_blob_size);
-#if defined(CONFIG_ARCH_IMX8M) && defined(CONFIG_SPL)
+#if defined(CONFIG_SPL)
 			/* Copy SPL DEK blob to its final destination */
 			memcpy((void *)dek_blob_spl_final_dst, (void *)dek_blob_dst,
 				dek_blob_size);
@@ -988,24 +961,18 @@ static int do_trustfence(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 			 * destination. (This fails if the running U-Boot does not
 			 * include a DEK)
 			 */
-#if defined(CONFIG_ARCH_IMX8M) && defined(CONFIG_SPL)
-			if (get_dek_blob((void *)dek_blob_spl_final_dst, &dek_blob_size)) {
+#if defined(CONFIG_SPL)
+			if (get_dek_blob(dek_blob_spl_final_dst, &dek_blob_size)) {
 				printf("Current U-Boot does not contain an SPL DEK, and a new SPL DEK was not provided\n");
 				ret = CMD_RET_FAILURE;
 				goto tf_update_out;
 			}
-			if (get_dek_blob((void *)dek_blob_final_dst, &dek_blob_size)) {
-				printf("Current U-Boot does not contain a DEK, and a new DEK was not provided\n");
-				ret = CMD_RET_FAILURE;
-				goto tf_update_out;
-			}
-#else
-			if (get_dek_blob((void *)dek_blob_final_dst, &dek_blob_size)) {
-				printf("Current U-Boot does not contain a DEK, and a new DEK was not provided\n");
-				ret = CMD_RET_FAILURE;
-				goto tf_update_out;
-			}
 #endif
+			if (get_dek_blob(dek_blob_final_dst, &dek_blob_size)) {
+				printf("Current U-Boot does not contain a DEK, and a new DEK was not provided\n");
+				ret = CMD_RET_FAILURE;
+				goto tf_update_out;
+			}
 			printf("Using current DEK\n");
 		}
 

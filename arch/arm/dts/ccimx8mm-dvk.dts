@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Digi International Inc
+ * Copyright 2021-2024 Digi International Inc
  * Copyright 2018-2019 NXP
  *
  * This program is free software; you can redistribute it and/or
@@ -44,6 +44,18 @@
 		compatible = "simple-bus";
 		#address-cells = <1>;
 		#size-cells = <0>;
+
+		reg_5v_board: regulator@1 {
+			compatible = "regulator-fixed";
+			reg = <1>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_reg_5v_board>;
+			regulator-name = "5v_board";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
+			gpio = <&gpio1 6 GPIO_ACTIVE_HIGH>;
+			enable-active-high;
+		};
 
 		reg_3v3_usb_hub: regulator@4 {
 			compatible = "regulator-fixed";
@@ -95,6 +107,11 @@
 			digi,full-reset;
 			digi,no-way-out;
 		};
+	};
+
+	dsi_host: dsi-host {
+		compatible = "samsung,sec-mipi-dsi";
+		status = "okay";
 	};
 };
 
@@ -308,6 +325,24 @@
 				MX8MM_IOMUXC_GPIO1_IO02_WDOG1_WDOG_B		0xc6
 			>;
 		};
+
+		pinctrl_reg_5v_board: reg_5v_board_grp {
+			fsl,pins = <
+				/* 5V regulator power enable */
+				MX8MM_IOMUXC_GPIO1_IO06_GPIO1_IO6		0x41
+			>;
+		};
+
+		pinctrl_lt8912: lt8912grp {
+			fsl,pins = <
+				/* HDMI_RST# at GPIO3_IO7 on CC8MM_DVK */
+				MX8MM_IOMUXC_NAND_DATA01_GPIO3_IO7		0x19
+				/* LT8912B_INT at GPIO3_IO9 on CC8MM_DVK */
+				MX8MM_IOMUXC_NAND_DATA03_GPIO3_IO9		0x19
+				/* LT8912B_HPD at GPIO3_IO8 on CC8MM_DVK */
+				MX8MM_IOMUXC_NAND_DATA02_GPIO3_IO8		0x19
+			>;
+		};
 	};
 };
 
@@ -455,13 +490,30 @@
 };
 
 &i2c3 {
-	clock-frequency = <100000>;
+	clock-frequency = <400000>;
 	pinctrl-names = "default", "gpio";
 	pinctrl-0 = <&pinctrl_i2c3>;
 	pinctrl-1 = <&pinctrl_i2c3_gpio>;
 	scl-gpios = <&gpio5 18 GPIO_ACTIVE_HIGH>;
 	sda-gpios = <&gpio5 19 GPIO_ACTIVE_HIGH>;
 	status = "okay";
+
+	lt_bridge: lt8912@48 {
+		compatible = "lontium,lt8912";
+		reg = <0x48>;
+		adi,dsi-lanes = <4>;
+		vdd1-supply = <&reg_5v_board>;
+		status = "okay";
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_lt8912>;
+
+		port {
+			lt8912_1_in: endpoint {
+				remote-endpoint = <&mipi_dsi_hdmi_out>;
+			};
+		};
+	};
 };
 
 &flexspi {
@@ -551,4 +603,24 @@
 	dr_mode = "peripheral"; /* Set "host" to use a USB mass storage */
 	disable-over-current;
 	status = "okay";
+};
+
+&lcdif {
+	display = <&display0>;
+	status = "okay";
+
+	display0: display@0 {
+		bits-per-pixel = <24>;
+		bus-width = <24>;
+	};
+};
+
+&mipi_dsi {
+	status = "okay";
+
+	port@1 {
+		mipi_dsi_hdmi_out: endpoint {
+			remote-endpoint = <&lt8912_1_in>;
+		};
+	};
 };

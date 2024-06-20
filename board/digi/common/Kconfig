@@ -163,8 +163,44 @@ config TRUSTFENCE_UPDATE
 	default y if CC6UL
 	default y if CC8M
 	default y if CC8X
+	default y if CC93
 
 config TRUSTFENCE_JTAG
 	bool
 	depends on HAS_TRUSTFENCE
 	default y if CC6UL
+
+config ENV_ENCRYPT
+	bool "Encrypt u-boot environment using the hardware unique key (HUK)"
+	help
+	  Implementation uses CAAM or Optee depending on the platform.
+
+	  This setting only has an effect on closed devices (those that can
+	  only boot signed U-Boot images). It has no effect on open devices.
+
+config CAAM_ENV_ENCRYPT
+	bool
+	depends on ENV_ENCRYPT
+	depends on HAS_CAAM && !TARGET_CCIMX93_DVK
+	default ENV_ENCRYPT
+	help
+	  Encrypt U-Boot environment using CAAM
+
+config OPTEE_ENV_ENCRYPT
+	bool
+	depends on ENV_ENCRYPT
+	depends on TARGET_CCIMX93_DVK
+	default ENV_ENCRYPT
+	help
+	  Encrypt U-Boot environment using Optee
+
+config REDUNDANT_BOOTLOADER
+	bool
+	depends on CMD_UPDATE_MMC
+	default y if CC93
+
+config FIT_CFGS_PREFIX
+	string
+	default "conf-digi_"
+	help
+	  Prefix for the names of the configurations in the FIT image.

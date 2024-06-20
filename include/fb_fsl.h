@@ -86,6 +86,7 @@
 #define FASTBOOT_PARTITION_MISC "misc"
 #define FASTBOOT_PARTITION_FBMISC "fbmisc"
 #endif
+#define FASTBOOT_PARTITION_BOOTLOADER_REDUNDANT "bootloader_redundant"
 
 #ifdef CONFIG_IMX_TRUSTY_OS
 #ifndef CONFIG_AVB_ATX
