@@ -16,8 +16,8 @@
 / {
 	aliases {
 		mmc0 = &sdmmc2; /* eMMC */
-		mmc1 = &sdmmc1; /* Micro SD */
-		mmc2 = &sdmmc3; /* Wireless */
+		mmc1 = &sdmmc1; /* Wireless */
+		mmc2 = &sdmmc3; /* Micro SD */
 	};
 
 	memory@80000000 {
@@ -245,7 +245,7 @@
 &scmi_regu {
 	scmi_vddio1: regulator@0 {
 		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <3300000>;
+		regulator-max-microvolt = <1800000>;
 	};
 	scmi_v3v3: regulator@16 {
 		reg = <VOLTD_SCMI_STPMIC2_BUCK7>;
@@ -262,6 +262,10 @@
 	scmi_ldo7: regulator@23 {
 		reg = <VOLTD_SCMI_STPMIC2_LDO7>;
 		regulator-name = "ldo7";
+	};
+	scmi_ldo8_1v8_rf: regulator@24 {
+		reg = <VOLTD_SCMI_STPMIC2_LDO8>;
+		regulator-name = "ldo8_1v8_rf";
 	};
 };
 
