@@ -176,4 +176,9 @@ void fastboot_data_complete(char *response);
 #if CONFIG_IS_ENABLED(FASTBOOT_UUU_SUPPORT)
 void fastboot_acmd_complete(void);
 #endif
+
+int fastboot_tx_write_more(const char *buffer);
+
+int fastboot_tx_write(const char *buffer, unsigned int buffer_size);
+
 #endif /* _FASTBOOT_H_ */

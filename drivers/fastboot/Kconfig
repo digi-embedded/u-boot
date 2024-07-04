@@ -81,6 +81,8 @@ config FASTBOOT_FLASH
 
 config FASTBOOT_UUU_SUPPORT
 	bool "Enable FASTBOOT i.MX UUU special command"
+	select CONSOLE_MUX
+	select SYS_STDIO_DEREGISTER
 	help
 	  The fastboot protocol includes "UCmd" and "ACmd" command.
 	  Be aware that you provide full access to any U-Boot command,

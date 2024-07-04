@@ -16,6 +16,8 @@
 #include <env.h>
 #include <fastboot.h>
 #include <net/fastboot.h>
+#include <serial.h>
+#include <stdio_dev.h>
 
 /**
  * fastboot_buf_addr - base address of the fastboot download buffer
@@ -179,7 +181,43 @@ void fastboot_set_progress_callback(void (*progress)(const char *msg))
 void fastboot_init(void *buf_addr, u32 buf_size)
 {
 	fastboot_buf_addr = buf_addr ? buf_addr :
-				       (void *)CONFIG_FASTBOOT_BUF_ADDR;
+				       (void *)env_get_ulong("fastboot_buffer", 16, CONFIG_FASTBOOT_BUF_ADDR);
 	fastboot_buf_size = buf_size ? buf_size : CONFIG_FASTBOOT_BUF_SIZE;
 	fastboot_set_progress_callback(NULL);
 }
+
+#if CONFIG_IS_ENABLED(FASTBOOT_UUU_SUPPORT)
+static void fastboot_putc(struct stdio_dev *dev, const char c)
+{
+	char buff[6] = "INFO";
+	buff[4] = c;
+	buff[5] = 0;
+	fastboot_tx_write_more(buff);
+}
+
+#define FASTBOOT_MAX_LEN 64
+
+static void fastboot_puts(struct stdio_dev *dev, const char *s)
+{
+	char buff[FASTBOOT_MAX_LEN + 1] = "INFO";
+	int len = strlen(s);
+	int i, left;
+
+	for (i = 0; i < len; i += FASTBOOT_MAX_LEN - 4) {
+		left = len - i;
+		if (left > FASTBOOT_MAX_LEN - 4)
+			left = FASTBOOT_MAX_LEN - 4;
+
+		memcpy(buff + 4, s + i, left);
+		buff[left + 4] = 0;
+		fastboot_tx_write_more(buff);
+	}
+}
+
+struct stdio_dev g_fastboot_stdio = {
+	.name = "fastboot",
+	.flags = DEV_FLAGS_OUTPUT,
+	.putc = fastboot_putc,
+	.puts = fastboot_puts,
+};
+#endif

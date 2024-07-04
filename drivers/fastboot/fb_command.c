@@ -356,10 +356,13 @@ static void run_ucmd(char *cmd_parameter, char *response)
 		return;
 	}
 
-	if (run_command(cmd_parameter, 0))
+	if (run_command(cmd_parameter, 0)) {
 		fastboot_fail("", response);
-	else
+	} else {
 		fastboot_okay(NULL, response);
+		/* cmd may impact fastboot related environment*/
+		fastboot_init(NULL, 0);
+	}
 }
 
 static char g_a_cmd_buff[64];
