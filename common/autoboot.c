@@ -28,6 +28,8 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+extern bool is_usb_boot(void);
+
 #define DELAY_STOP_STR_MAX_LENGTH 64
 
 #ifndef DEBUG_BOOTKEYS
@@ -472,6 +474,20 @@ const char *bootdelay_process(void)
 		s = env_get("altbootcmd");
 	else
 		s = env_get("bootcmd");
+
+	if (is_usb_boot()) {
+		bootdelay = 0;
+		printf("Boot from USB for uuu\n");
+		env_set_default("Use default environment for uuu", 0);
+
+		if (!env_get("bootcmd_mfg"))
+			env_set("bootcmd_mfg", "fastboot 0");
+
+		s = env_get("bootcmd_mfg");
+		printf("Run bootcmd_mfg: %s\n", s);
+	} else {
+		printf("Normal Boot\n");
+	}
 
 	if (IS_ENABLED(CONFIG_OF_CONTROL))
 		process_fdt_options(gd->fdt_blob);
