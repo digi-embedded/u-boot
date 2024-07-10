@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2022-2023 Digi International Inc
+ * Copyright 2024 Digi International Inc
  */
 
 / {
@@ -50,6 +50,10 @@
 &{/soc@0} {
 	u-boot,dm-pre-reloc;
 	u-boot,dm-spl;
+};
+
+&A55_1 {
+	status = "disabled";
 };
 
 &aips1 {

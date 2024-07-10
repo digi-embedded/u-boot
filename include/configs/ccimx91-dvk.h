@@ -1,10 +1,10 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
- * Copyright 2022 NXP
+ * Copyright 2024 Digi International Inc
  */
 
-#ifndef CCIMX93_DVK_H
-#define CCIMX93_DVK_H
+#ifndef CCIMX91_DVK_H
+#define CCIMX91_DVK_H
 
 #include <linux/sizes.h>
 #include <linux/stringify.h>
@@ -12,9 +12,9 @@
 #include <configs/ccimx93_common.h>
 #include "imx_env.h"
 
-#define CONFIG_SOM_DESCRIPTION		"ConnectCore 93"
+#define CONFIG_SOM_DESCRIPTION		"ConnectCore 91"
 #define CONFIG_BOARD_DESCRIPTION	"Development Kit"
-#define BOARD_DEY_NAME			"ccimx93-dvk"
+#define BOARD_DEY_NAME			"ccimx91-dvk"
 
 /* Carrier board version in environment */
 #define CONFIG_HAS_CARRIERBOARD_VERSION
@@ -40,7 +40,7 @@
 #define BOOTENV
 #endif
 
-#define JH_ROOT_DTB    "ccimx93-dvk-root.dtb"
+#define JH_ROOT_DTB    "ccimx91-dvk-root.dtb"
 
 #define JAILHOUSE_ENV \
 	"jh_root_dtb=" JH_ROOT_DTB "\0" \
@@ -73,7 +73,6 @@
 	DUALBOOT_ENV_SETTINGS \
 	BOOTENV \
 	AHAB_ENV \
-	"prepare_mcore=setenv mcore_clk clk-imx93.mcore_booted;\0" \
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	CONFIG_EXTRA_NETWORK_SETTINGS \
 	RANDOM_UUIDS \

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
- * Copyright 2022-2023 Digi International Inc
+ * Copyright 2024 Digi International Inc
  */
 
 /dts-v1/;
@@ -8,8 +8,8 @@
 #include "imx93.dtsi"
 
 /{
-	model = "Digi ConnectCore 93 Development Kit";
-	compatible = "digi,ccimx93-dvk", "digi,ccimx93", "fsl,imx93";
+	model = "Digi ConnectCore 91 Development Kit";
+	compatible = "digi,ccimx91-dvk", "digi,ccimx91", "fsl,imx91";
 
 	aliases {
 		rtc0 = &rv3028;
@@ -68,11 +68,6 @@
 		};
 	};
 
-	dsi_host: dsi-host {
-		compatible = "synopsys,dw-mipi-dsi";
-		status = "okay";
-	};
-
 	regulators {
 		compatible = "simple-bus";
 		#address-cells = <1>;
@@ -105,22 +100,6 @@
 					hysteresis = <2000>;
 					type = "critical";
 				};
-			};
-		};
-	};
-};
-
-&dphy {
-	status = "okay";
-};
-
-&dsi {
-	status = "okay";
-
-	ports {
-		port@1 {
-			mipi_dsi_hdmi_out: endpoint {
-				remote-endpoint = <&lt8912_1_in>;
 			};
 		};
 	};
@@ -170,11 +149,6 @@
 	};
 };
 #endif
-
-&lcdif {
-	status = "okay";
-	assigned-clock-rates = <484000000>, <121000000>, <400000000>, <133333333>;
-};
 
 &lpi2c1 {
 	#address-cells = <1>;
@@ -311,23 +285,6 @@
 	pinctrl-0 = <&pinctrl_lpi2c4>;
 	pinctrl-1 = <&pinctrl_lpi2c4>;
 	status = "okay";
-
-	lt_bridge: lt8912@48 {
-		compatible = "lontium,lt8912";
-		reg = <0x48>;
-		adi,dsi-lanes = <4>;
-		vdd1-supply = <&reg_5v_board>;
-		status = "okay";
-
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_lt8912>;
-
-		port {
-			lt8912_1_in: endpoint {
-				remote-endpoint = <&mipi_dsi_hdmi_out>;
-			};
-		};
-	};
 };
 
 &lpuart6 { /* console */
@@ -470,17 +427,6 @@
 		fsl,pins = <
 			MX93_PAD_GPIO_IO02__LPI2C4_SDA		0x40000b9e
 			MX93_PAD_GPIO_IO03__LPI2C4_SCL		0x40000b9e
-		>;
-	};
-
-	pinctrl_lt8912: lt8912grp {
-		fsl,pins = <
-			/* Reset */
-			MX93_PAD_I2C2_SDA__GPIO1_IO03				0x31e
-			/* HPD Interrupt */
-			MX93_PAD_SAI1_TXC__GPIO1_IO12				0x31e
-			/* Int */
-			MX93_PAD_I2C2_SCL__GPIO1_IO02				0x31e
 		>;
 	};
 
