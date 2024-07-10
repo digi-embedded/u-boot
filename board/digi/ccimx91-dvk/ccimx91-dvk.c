@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2022 Digi International Inc
- * Copyright 2022 NXP
+ * Copyright 2024 Digi International Inc
  */
 
 #include <common.h>

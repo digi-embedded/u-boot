@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2022 NXP
+ * Copyright 2024 Digi International Inc
  */
 
 #include <common.h>
@@ -38,8 +38,6 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 extern struct dram_timing_info dram_timing_512M;
-extern struct dram_timing_info dram_timing_1G;
-extern struct dram_timing_info dram_timing_2G;
 
 int spl_board_boot_device(enum boot_device boot_dev_spl)
 {
@@ -84,14 +82,6 @@ void spl_dram_init(void)
 	case SZ_512M:
 		debug("Using 512MB DDR configuration.\n");
 		dram_timing = &dram_timing_512M;
-		break;
-	case SZ_1G:
-		debug("Using 1GB DDR configuration.\n");
-		dram_timing = &dram_timing_1G;
-		break;
-	case SZ_2G:
-		debug("Using 2GB DDR configuration.\n");
-		dram_timing = &dram_timing_2G;
 		break;
 	default:
 		debug("Using default DDR configuration.\n");
@@ -147,7 +137,7 @@ int power_init_board(void)
 		pmic_reg_write(dev, PCA9450_BUCK3OUT_DVS0, buck_val + 0x4);
 	}
 
-	if (IS_ENABLED(CONFIG_CCIMX93_DVK_LPDDR4)) {
+	if (IS_ENABLED(CONFIG_CCIMX91_DVK_LPDDR4)) {
 		/* Set VDDQ to 1.1V from buck2 */
 		pmic_reg_write(dev, PCA9450_BUCK2OUT_DVS0, 0x28);
 	}
