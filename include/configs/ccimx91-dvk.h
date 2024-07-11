@@ -9,7 +9,7 @@
 #include <linux/sizes.h>
 #include <linux/stringify.h>
 #include <asm/arch/imx-regs.h>
-#include <configs/ccimx93_common.h>
+#include <configs/ccimx9_common.h>
 #include "imx_env.h"
 
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 91"
