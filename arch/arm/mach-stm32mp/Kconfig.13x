@@ -6,7 +6,7 @@ choice
 
 config TARGET_CCMP13_DVK
 	bool "Digi International CCMP13 Development Kit (DVK)"
-	select CCMP1
+	select CCMP13
 	imply BOOTSTAGE
 	imply CMD_BOOTCOUNT
 	imply CMD_BOOTSTAGE

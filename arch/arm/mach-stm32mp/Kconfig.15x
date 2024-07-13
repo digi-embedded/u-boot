@@ -77,7 +77,7 @@ config TARGET_ICORE_STM32MP1
 
 config TARGET_CCMP15_DVK
 	bool "Digi International CCMP15 Development Kit (DVK)"
-	select CCMP1
+	select CCMP15
 	select MCA
 	imply BOOTSTAGE
 	imply CMD_BOOTSTAGE

@@ -1,3 +1,11 @@
+config CCMP15
+	bool
+	select CCMP1
+
+config CCMP13
+	bool
+	select CCMP1
+
 config CCMP1
 	bool
 
