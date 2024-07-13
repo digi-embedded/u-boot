@@ -145,6 +145,10 @@ endif
 
 endif
 
+config CUSTOM_HUK
+	bool
+	default y if CCMP15
+
 config DIGI_FAMILY_ID
 	int "Digi Family ID for Serial Number composition"
 	default 1 if CC8X
