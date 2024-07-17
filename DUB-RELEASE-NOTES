@@ -4,6 +4,17 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2021.10
 -----------
+dub-2021.10-r6.1, released on 2024/07/01
+	- CCMP1: add support for different DDR3 memory variants
+	- CCMP1: add support for 1GB NAND variants partitions
+	- CCMP1: change U-Boot environment encryption to 256-bit
+		 NOTE: migration from a previously 128-bit encrypted
+		       environment is NOT supported and it will reset
+		       to defaults.
+	- CCMP1: add TrustFence support to secure JTAG port
+	- CCMP1: adjust Fastboot buffer size
+
+
 dub-2021.10-r5.1, released on 2024/01/30
 	- Disable bootcount mechanism by default
 	- Add trustfence command support to ccmp1 platforms
