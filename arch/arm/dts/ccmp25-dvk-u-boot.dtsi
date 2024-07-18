@@ -10,10 +10,6 @@
 	aliases {
 		spi0 = &ospi1;
 	};
-
-	config {
-		u-boot,mmc-env-partition = "u-boot-env";
-	};
 };
 
 &dwc3 {
