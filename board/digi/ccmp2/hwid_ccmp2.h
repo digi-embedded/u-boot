@@ -26,10 +26,10 @@
  *
  *                   OTP25[31..0]  (bank 0 word 25)
  *
- *   | 31..20 |   19   | 18 |   17  |  16 |15..12|  11..7  |6..3| 2..0 |
- *   +--------+--------+----+-------+-----+------+---------+----+------+
- *   |   --   | Crypto | BT | Wi-Fi | MCA |  RAM | Variant | HV | Cert |
- *   +--------+--------+----+-------+-----+------+---------+----+------+
+ *   | 31..18 | 17 |   16  |15..12|  11..7  |6..3| 2..0 |
+ *   +--------+----+-------+------+---------+----+------+
+ *   |   --   | BT | Wi-Fi |  RAM | Variant | HV | Cert |
+ *   +--------+----+-------+------+---------+----+------+
  */
 struct __packed digi_hwid {
 	/* Word 0 */
@@ -45,15 +45,13 @@ struct __packed digi_hwid {
 	u32	hv:4;		/* hardware version */
 	u32	variant:5;	/* module variant */
 	u32	ram:4;		/* RAM */
-	u32	mca:1;		/* has MCA */
 	u32	wifi:1;		/* has Wi-Fi */
 	u32	bt:1;		/* has Bluetooth */
-	u32	crypto:1;	/* has crypto-authentication */
-	u32	spare:12;	/* spare */
+	u32	spare:14;	/* spare */
 }__aligned(4);
 
 #define CONFIG_HWID_STRINGS_HELP	"<XXXXXXXX> <YYYYYYYY> <ZZZZZZZZ>"
-#define CONFIG_MANUF_STRINGS_HELP	"<YYWWGGXXXXXX> <PPAAAAAA> <VVHC> <RMWBC>"
+#define CONFIG_MANUF_STRINGS_HELP	"<YYWWGGXXXXXX> <PPAAAAAA> <VVHC> <RWB>"
 #define DIGICMD_HWID_SUPPORTED_OPTIONS_HELP \
 	"read - read HWID from shadow registers\n" \
 	"hwid read_manuf - read HWID from shadow registers and print manufacturing ID\n" \

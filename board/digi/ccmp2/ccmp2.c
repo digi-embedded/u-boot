@@ -212,10 +212,6 @@ void print_som_info(void)
 			printf(", Wi-Fi");
 		if (my_hwid.bt)
 			printf(", Bluetooth");
-		if (my_hwid.mca)
-			printf(", MCA");
-		if (my_hwid.crypto)
-			printf(", Crypto-auth");
 	}
 	printf("\n");
 }

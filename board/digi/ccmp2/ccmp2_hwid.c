@@ -57,8 +57,6 @@ void board_print_hwid(struct digi_hwid *hwid)
 		printf("      RAM:         %u MiB\n", ram_sizes_mb[hwid->ram]);
 		printf("      Wi-Fi:       %s\n", hwid->wifi ? "yes" : "-");
 		printf("      Bluetooth:   %s\n", hwid->bt ? "yes" : "-");
-		printf("      Crypto-chip: %s\n", hwid->crypto ? "yes" : "-");
-		printf("      MCA:         %s\n", hwid->mca ? "yes" : "-");
 	}
 	printf("    HW Version:    0x%x\n", hwid->hv);
 	printf("    Cert:          0x%x (%s)\n", hwid->cert,
@@ -76,7 +74,7 @@ void board_print_manufid(struct digi_hwid *hwid)
 
 	/* Formatted printout */
 	printf(" Manufacturing ID: %02d%02d%02d%06d %02d%06x %02x%x%x"
-	       " %x%x%x%x%x\n",
+	       " %x%x%x\n",
 		hwid->year,
 		hwid->week,
 		hwid->genid,
@@ -87,10 +85,8 @@ void board_print_manufid(struct digi_hwid *hwid)
 		hwid->hv,
 		hwid->cert,
 		hwid->ram,
-		hwid->mca,
 		hwid->wifi,
-		hwid->bt,
-		hwid->crypto);
+		hwid->bt);
 }
 
 /* Parse HWID info in HWID format */
@@ -110,7 +106,7 @@ int board_parse_hwid(int argc, char *const argv[], struct digi_hwid *hwid)
 
 	/*
 	 * Digi HWID is set as a number of hex strings in the form
-	 *   CCMP1: <XXXXXXXX> <YYYYYYYY> <ZZZZZZZZ>
+	 *   CCMP2: <XXXXXXXX> <YYYYYYYY> <ZZZZZZZZ>
 	 * that are inversely stored into the structure.
 	 */
 
@@ -189,14 +185,12 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 		goto err;
 
 	/*
-	 * <RMWBC>, where:
+	 * <RWB>, where:
 	 *  - R:	ram (index to ram_sizes_mb[] array)
-	 *  - M:	whether the variant has MCA chip
 	 *  - W:	whether the variant has Wi-Fi chip
 	 *  - B:	whether the variant has Bluetooth chip
-	 *  - C:	whether the variant has crypto-auth chip
 	 */
-	if (strlen(argv[3]) != 5)
+	if (strlen(argv[3]) != 3)
 		goto err;
 
 	/* Year (only 6 bits: from 0 to 63) */
@@ -315,36 +309,22 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 			goto err;
 		}
 		hwid->ram = num;
-		/* MCA */
-		if (parse_bool_char(argv[3][1], &v)) {
-			printf("Invalid MCA\n");
-			goto err;
-		}
-		hwid->mca = v;
 		/* Wi-Fi */
-		if (parse_bool_char(argv[3][2], &v)) {
+		if (parse_bool_char(argv[3][1], &v)) {
 			printf("Invalid Wi-Fi\n");
 			goto err;
 		}
 		hwid->wifi = v;
 		/* Bluetooth */
-		if (parse_bool_char(argv[3][3], &v)) {
+		if (parse_bool_char(argv[3][2], &v)) {
 			printf("Invalid Bluetooth\n");
 			goto err;
 		}
 		hwid->bt = v;
-		/* Crypto-chip */
-		if (parse_bool_char(argv[3][4], &v)) {
-			printf("Invalid Crypto-chip\n");
-			goto err;
-		}
-		hwid->crypto = v;
 	}
 	printf("    RAM:           %u MiB\n", ram_sizes_mb[hwid->ram]);
 	printf("    Wi-Fi:         %s\n", hwid->wifi ? "yes" : "-");
 	printf("    Bluetooth:     %s\n", hwid->bt ? "yes" : "-");
-	printf("    Crypto-chip:   %s\n", hwid->crypto ? "yes" : "-");
-	printf("    MCA:           %s\n", hwid->mca ? "yes" : "-");
 
 	return 0;
 
@@ -368,10 +348,8 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 		"digi,hwid,hv",
 		"digi,hwid,cert",
 		"digi,hwid,ram_mb",
-		"digi,hwid,has-mca",
 		"digi,hwid,has-wifi",
 		"digi,hwid,has-bt",
-		"digi,hwid,has-crypto",
 	};
 	char str[20];
 	int i;
@@ -405,14 +383,10 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 			 !strcmp("digi,hwid,ram_mb", propnames[i]))
 			sprintf(str, "%u", ram_sizes_mb[hwid->ram]);
 		else if (capabilities &&
-			 (((!strcmp("digi,hwid,has-mca", propnames[i]) &&
-			   hwid->mca) ||
-			   (!strcmp("digi,hwid,has-wifi", propnames[i]) &&
+			 ((!strcmp("digi,hwid,has-wifi", propnames[i]) &&
 			   hwid->wifi) ||
 			   (!strcmp("digi,hwid,has-bt", propnames[i]) &&
-			   hwid->bt) ||
-			   (!strcmp("digi,hwid,has-crypto", propnames[i]) &&
-			   hwid->crypto))))
+			   hwid->bt)))
 			strcpy(str, "");
 		else
 			continue;
