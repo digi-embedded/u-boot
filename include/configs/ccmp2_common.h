@@ -187,7 +187,8 @@
 	"btaddr:mc,"			\
 	"bootargs_once:sr,"		\
 	"board_version:so,"		\
-	"board_id:so,"
+	"board_id:so,"			\
+	"mmcbootdev:so"
 
 /*
  * 'update' command will Ask for confirmation before updating any partition
