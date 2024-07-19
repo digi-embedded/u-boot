@@ -76,7 +76,7 @@ int fuse_prog(u32 bank, u32 word, u32 val)
 						  &dev);
 		if (ret)
 			return ret;
-
+#ifdef CCMP1
 		if (word > 31) {
 			/*
 			 * Prevent writing upper words twice. Upper words are
@@ -95,6 +95,7 @@ int fuse_prog(u32 bank, u32 word, u32 val)
 				return -EPERM;
 			}
 		}
+#endif
 		ret = misc_write(dev, word * 4 + STM32_BSEC_OTP_OFFSET,
 				 &val, 4);
 		if (ret != 4)
