@@ -38,6 +38,11 @@ enum env_location env_get_location(enum env_operation op, int prio)
 		return ENVL_NOWHERE;
 }
 
+bool board_has_eth1(void)
+{
+	return true;
+}
+
 bool board_has_wireless(void)
 {
 	return my_hwid.wifi;
