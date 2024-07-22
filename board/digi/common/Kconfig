@@ -1,17 +1,22 @@
 config CCMP2
 	bool
+	select HAS_HWID
 
 config CCMP1
 	bool
+	select HAS_HWID
 
 config CC8M
 	bool
+	select HAS_HWID
 
 config CC8X
 	bool
+	select HAS_HWID
 
 config CC6UL
 	bool
+	select HAS_HWID
 
 config MCA
 	bool "Support for the Micro Controller Assist (MCA)"
@@ -105,32 +110,40 @@ config DIGI_UBI
 	bool "Support for Digi specific UBI functions"
 
 config HAS_HWID
-	bool "Platform supports a Hardware ID (HWID) on the OTP bits"
+	bool
+	help
+	  Platform supports a Hardware ID (HWID) on the OTP bits.
 
 if HAS_HWID
 config HWID_BANK
-	int "OTP bank where the HWID is"
+	int
 	default 0 if CCMP2
 	default 0 if CCMP1
 	default 9 if CC8M
 	default 0 if CC8X
 	default 4 if CC6UL
+	help
+	  OTP bank where the HWID is.
 
 config HWID_START_WORD
-	int "Offset of the first OTP word where the HWID is"
+	int
 	default 23 if CCMP2
 	default 59 if CCMP1
 	default 0 if CC8M
 	default 708 if CC8X
 	default 2 if CC6UL
+	help
+	  Offset of the first OTP word where the HWID is.
 
 config HWID_WORDS_NUMBER
-	int "Number of OTP words that form the HWID"
+	int
 	default 3 if CCMP2
 	default 3 if CCMP1
 	default 3 if CC8M
 	default 4 if CC8X
 	default 2 if CC6UL
+	help
+	  Number of OTP words that form the HWID
 
 config HAS_OTP_LOCK_FUSE
 	bool
@@ -139,9 +152,11 @@ config HAS_OTP_LOCK_FUSE
 
 if HAS_OTP_LOCK_FUSE
 config HWID_LOCK_FUSE
-	hex "HWID lock fuse mask"
+	hex
 	default 0x100 if CC6UL
 	default 0x4000 if CC8M
+	help
+	  HWID lock fuse mask.
 endif
 
 endif
