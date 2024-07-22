@@ -167,7 +167,7 @@ config DIGI_FAMILY_ID
 	default 2 if CC8M && IMX8MN
 	default 3 if CC8M && IMX8MM
 	default 4 if CCMP1
-	default 5 if CCMP2
+	default 6 if CCMP2
 	default 0
 
 config MTD_UBI_MAXRSVDPEB_PCNT
