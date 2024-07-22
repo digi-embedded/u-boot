@@ -311,3 +311,10 @@ bool is_usb_boot(void)
 			return false;
 	}
 }
+
+int setup_mac_address(void)
+{
+	/* Do nothing */
+	return 0;
+}
+
