@@ -277,7 +277,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 	strncpy(tmp, &argv[2][2], 1);
 	tmp[1] = 0;
 	num = simple_strtol(tmp, NULL, 16);
-	if (num > 7) {
+	if (num > 0xF) {
 		printf("Invalid hardware version\n");
 		goto err;
 	}
