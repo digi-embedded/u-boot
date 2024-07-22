@@ -15,6 +15,8 @@
 #include <asm/arch/sys_proto.h>
 #include <asm/global_data.h>
 #include <asm/system.h>
+#include <dm/device.h>
+#include <dm/uclass.h>
 
 #include "../common/helper.h"
 #include "../common/hwid.h"
@@ -94,6 +96,37 @@ bool board_has_emmc(void)
 	return 1;
 }
 
+int mmc_get_boot(void)
+{
+	struct udevice *dev;
+	u32 boot_mode = get_bootmode();
+	unsigned int instance = (boot_mode & TAMP_BOOT_INSTANCE_MASK) - 1;
+	char cmd[20];
+	const u32 sdmmc_addr[] = {
+		STM32_SDMMC1_BASE,
+		STM32_SDMMC2_BASE,
+		STM32_SDMMC3_BASE
+	};
+
+	if (instance > ARRAY_SIZE(sdmmc_addr))
+		return 0;
+
+	/* search associated sdmmc node in devicetree */
+	snprintf(cmd, sizeof(cmd), "mmc@%x", sdmmc_addr[instance]);
+	if (uclass_get_device_by_name(UCLASS_MMC, cmd, &dev)) {
+		log_err("mmc%d = %s not found in device tree!\n", instance, cmd);
+		return 0;
+	}
+
+	return dev_seq(dev);
+};
+
+int mmc_get_bootdevindex(void)
+{
+	/* Use boot instance to select the correct mmc device index */
+	return mmc_get_boot();
+}
+
 void generate_partition_table(void)
 {
 	struct mmc *mmc = find_mmc_device(mmc_get_bootdevindex());
@@ -120,12 +153,6 @@ void generate_partition_table(void)
 
 	if (!env_get("parts_linux_dualboot"))
 		env_set("parts_linux_dualboot", linux_dualboot_partition_table);
-}
-
-int mmc_get_bootdevindex(void)
-{
-	/* Use boot instance to select the correct mmc device index */
-	return mmc_get_boot();
 }
 
 void som_default_environment(void)

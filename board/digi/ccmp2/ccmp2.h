@@ -14,5 +14,6 @@ void som_default_environment(void);
 void print_som_info(void);
 void print_bootinfo(void);
 bool is_usb_boot(void);
+int mmc_get_boot(void);
 
 #endif  /* CCMP1_H */
