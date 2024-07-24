@@ -81,6 +81,7 @@
 		"fi;\0" \
 	"usb_pgood_delay=2000\0" \
 	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
+	"mmcbootpart=" __stringify(EMMC_BOOT_PART) "\0" \
 	"mmcdev=" MMCDEV_DEFAULT "\0" \
 	"mmcpart=" MMCPART_DEFAULT "\0" \
 	"mmcroot=PARTUUID=12c08a28-fb40-430a-a5bc-7b4f015b0b3c\0" \

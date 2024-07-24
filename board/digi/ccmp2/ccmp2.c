@@ -55,6 +55,30 @@ bool board_has_bluetooth(void)
 	return my_hwid.bt;
 }
 
+void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
+				     struct disk_partition *info)
+{
+	struct mmc *mmc = find_mmc_device(EMMC_BOOT_DEV);
+	int part = env_get_ulong("mmcbootpart", 10, EMMC_BOOT_PART);
+
+	/*
+	 * Use a different offset depending on the target device and partition:
+	 * - For eMMC BOOT1 and BOOT2
+	 *      Offset = 0
+	 * - For eMMC User Data area.
+	 *      Offset = EMMC_BOOT_PART_OFFSET
+	 */
+	if (part == 1 || part == 2) {
+		/* eMMC BOOT1 or BOOT2 partitions */
+		info->start = 0;
+	} else {
+		info->start = EMMC_BOOT_PART_OFFSET / mmc_dev->blksz;
+	}
+
+	/* Boot partition size - Start of boot image */
+	info->size = (mmc->capacity_boot / mmc_dev->blksz) - info->start;
+}
+
 int ccmp2_init(void)
 {
 	if (board_read_hwid(&my_hwid)) {
