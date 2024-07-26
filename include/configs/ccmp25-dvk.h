@@ -72,7 +72,7 @@
 	"initrd_addr=0x88400000\0" \
 	"initrd_file=uramdisk.img\0" \
 	"initrd_high=0xffffffff\0" \
-	"install_linux_fw_sd=if load mmc 1 ${loadaddr} install_linux_fw_sd.scr;then " \
+	"install_linux_fw_sd=if load mmc 2 ${loadaddr} install_linux_fw_sd.scr;then " \
 			"source ${loadaddr};" \
 		"fi;\0" \
 	"install_linux_fw_usb=usb start;" \
