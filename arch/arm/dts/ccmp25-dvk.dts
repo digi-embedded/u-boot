@@ -16,7 +16,7 @@
 
 / {
 	model = "Digi International ConnectCore MP25 Development Kit";
-	compatible = "digi,ccmp25-dvk", "digi,ccmp25", "st,stm32mp257";
+	compatible = "digi,ccmp25-dvk", "digi,ccmp25", "st,stm32mp255";
 
 	aliases {
 		ethernet0 = &eth1;
@@ -181,15 +181,6 @@
 	vmmc-supply = <&reg_3v3_board>; /* card's VDD pin */
 	vqmmc-supply = <&scmi_vddio3>;
 	status = "okay";
-};
-
-/* ETH1 and ETH3 */
-&switch0 {
-	status = "disabled";
-	pinctrl-0 = <&eth1_rgmii_pins_a>, <&eth3_rgmii_pins_a>;
-	pinctrl-names = "default";
-	phy-mode = "rgmii";
-	st,ethsw-internal-125;
 };
 
 /* Console A35 */
