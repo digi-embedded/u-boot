@@ -195,8 +195,8 @@
  * in this list
  */
 #define SENSITIVE_PARTITIONS \
-	"fsbl1," \
-	"fsbl2," \
+	"boot1," \
+	"boot2," \
 	"metadata1," \
 	"metadata2," \
 	"fip-a," \
