@@ -195,10 +195,14 @@
 };
 
 &usb2_phy1 {
+	vdd33-supply = <&scmi_vdd3v3_usb>;
+	vdda18-supply = <&reg_5v_board>;
 	status = "okay";
 };
 
 &usb2_phy2 {
+	vdd33-supply = <&scmi_vdd3v3_usb>;
+	vdda18-supply = <&reg_5v_board>;
 	status = "okay";
 };
 

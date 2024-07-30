@@ -261,6 +261,10 @@
 		reg = <VOLTD_SCMI_STPMIC2_LDO2>;
 		regulator-name = "vdd_emmc";
 	};
+	scmi_vdd3v3_usb: regulator@20 {
+		reg = <VOLTD_SCMI_STPMIC2_LDO4>;
+		regulator-name = "vdd3v3_usb";
+	};
 	scmi_ldo6: regulator@22 {
 		reg = <VOLTD_SCMI_STPMIC2_LDO6>;
 		regulator-name = "ldo6";
