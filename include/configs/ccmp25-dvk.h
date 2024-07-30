@@ -85,7 +85,7 @@
 	"mmcdev=" MMCDEV_DEFAULT "\0" \
 	"mmcpart=" MMCPART_DEFAULT "\0" \
 	"mmcroot=PARTUUID=12c08a28-fb40-430a-a5bc-7b4f015b0b3c\0" \
-	"linux_file=dey-image-webkit-wayland-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
+	"linux_file=dey-image-webkit-wayland-" CONFIG_SYS_BOARD ".boot.vfat\0" \
 	"loadscript=" \
 		"if test \"${dualboot}\" = yes; then " \
 			"env exists active_system || setenv active_system linux_a; " \
@@ -103,7 +103,7 @@
 			"mmc rescan;" \
 		"fi;\0" \
 	"recovery_file=recovery.img\0" \
-	"rootfs_file=dey-image-webkit-wayland-" CONFIG_SYS_BOARD ".ubifs\0" \
+	"rootfs_file=dey-image-webkit-wayland-" CONFIG_SYS_BOARD ".ext4\0" \
 	"script=boot.scr\0" \
 	"fit-script=bootscr-boot.txt\0" \
 	"uboot_file=u-boot.imx\0" \
