@@ -207,8 +207,8 @@ int release_rdc(enum rdc_type type)
 	int ret;
 	u32 rdc_id = (type == RDC_XRDC) ? 0x78 : 0x74;
 
-	msg.version = AHAB_VERSION;
-	msg.tag = AHAB_CMD_TAG;
+	msg.version = ELE_VERSION;
+	msg.tag = ELE_CMD_TAG;
 	msg.size = 2;
 	msg.command = ELE_RELEASE_RDC_REQ;
 	msg.data[0] = (rdc_id << 8) | 0x2; /* A35 XRDC */
@@ -266,7 +266,7 @@ void xrdc_mrc_region_set_access(int mrc_index, u32 addr, u32 access)
 				mrgd[4] |= ((access & 0xFFF) << 16);
 			}
 
-			/* not handle other cases, since S400 only set ACCESS1 and 2 */
+			/* not handle other cases, since ELE only set ACCESS1 and 2 */
 			writel(mrgd[4], xrdc_base + off + 0x10);
 			return;
 		}
@@ -295,7 +295,7 @@ void xrdc_init_mda(void)
 
 void xrdc_init_mrc(void)
 {
-	/* Re-config MRC3 for SRAM0 in case protected by S400 */
+	/* Re-config MRC3 for SRAM0 in case protected by ELE */
 	xrdc_config_mrc_w0_w1(3, 0, 0x22010000, 0x10000);
 	xrdc_config_mrc_dx_perm(3, 0, 0, 1);
 	xrdc_config_mrc_dx_perm(3, 0, 1, 1);
@@ -405,7 +405,7 @@ int trdc_mbc_set_access(u32 mbc_x, u32 dom_x, u32 mem_x, u32 blk_x, bool sec_acc
 	val &= ~(0xFU << offset);
 
 	/* MBC0-3
-	 *  Global 0, 0x7777 secure pri/user read/write/execute, S400 has already set it.
+	 *  Global 0, 0x7777 secure pri/user read/write/execute, ELE has already set it.
 	 *  So select MBC0_MEMN_GLBAC0
 	 */
 	if (sec_access) {
@@ -446,7 +446,7 @@ int trdc_mrc_region_set_access(u32 mrc_x, u32 dom_x, u32 addr_start, u32 addr_en
 			continue;
 
 		/* MRC0,1
-		 *  Global 0, 0x7777 secure pri/user read/write/execute, S400 has already set it.
+		 *  Global 0, 0x7777 secure pri/user read/write/execute, ELE has already set it.
 		 *  So select MRCx_MEMN_GLBAC0
 		 */
 		if (sec_access) {

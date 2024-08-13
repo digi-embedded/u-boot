@@ -697,7 +697,7 @@
 
 	tsens: thermal-sensor {
 		compatible = "nxp,imx8qm-sc-tsens";
-		u-boot,dm-pre-reloc;
+		bootph-all;
 		/* number of the temp sensor on the chip */
 		tsens-num = <5>;
 		#thermal-sensor-cells = <1>;

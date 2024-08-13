@@ -13,89 +13,97 @@
 		dr_mode = "peripheral";
 		chipidea,usb = <&usbotg1>;
 		status = "okay";
-		u-boot,dm-spl;
+		bootph-pre-ram;
 	};
 };
 
 &{/imx8qx-pm} {
-
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &mu {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &clk {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &iomuxc {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &{/mu@5d1c0000/iomuxc/imx8qxp-val} {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &pinctrl_lpuart0 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &pinctrl_usdhc1 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pinctrl_usdhc1_100mhz {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pinctrl_usdhc1_200mhz {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pd_conn {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pd_dma {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &pd_dma_lpuart0 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &pd_conn_sdch0 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pd_conn_usbotg0 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pd_conn_usbotg0_phy {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &lpuart0 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &usbmisc1 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &usbphy1 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &usbotg1 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &usdhc1 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 	mmc-hs400-1_8v;
 	mmc-hs400-enhanced-strobe;
 };

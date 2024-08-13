@@ -106,6 +106,7 @@ config ROCKCHIP_RK322X
 	imply ROCKCHIP_COMMON_BOARD
 	imply SPL_SERIAL
 	imply SPL_ROCKCHIP_COMMON_BOARD
+	select SPL_OPTEE_IMAGE if SPL_FIT
 	imply TPL_SERIAL
 	imply TPL_ROCKCHIP_COMMON_BOARD
 	select TPL_LIBCOMMON_SUPPORT
@@ -119,11 +120,12 @@ config ROCKCHIP_RK322X
 config ROCKCHIP_RK3288
 	bool "Support Rockchip RK3288"
 	select CPU_V7A
-	select OF_BOARD_SETUP
+	select OF_SYSTEM_SETUP
 	select SKIP_LOWLEVEL_INIT_ONLY
 	select SUPPORT_SPL
 	select SPL
 	select SUPPORT_TPL
+	select FDT_64BIT
 	imply PRE_CONSOLE_BUFFER
 	imply ROCKCHIP_COMMON_BOARD
 	imply SPL_ROCKCHIP_COMMON_BOARD
@@ -152,7 +154,6 @@ config ROCKCHIP_RK3288
 config ROCKCHIP_RK3308
 	bool "Support Rockchip RK3308"
 	select ARM64
-	select DEBUG_UART_BOARD_INIT
 	select SUPPORT_SPL
 	select SUPPORT_TPL
 	select SPL
@@ -166,7 +167,6 @@ config ROCKCHIP_RK3308
 	imply SPL_SYSCON
 	imply SPL_RAM
 	imply SPL_SERIAL
-	imply TPL_SERIAL
 	imply SPL_SEPARATE_BSS
 	help
 	  The Rockchip RK3308 is a ARM-based Soc which embedded with quad
@@ -250,7 +250,6 @@ config ROCKCHIP_RK3399
 	imply PRE_CONSOLE_BUFFER
 	imply ROCKCHIP_COMMON_BOARD
 	imply ROCKCHIP_SDRAM_COMMON
-	imply SPL_ATF_NO_PLATFORM_PARAM if SPL_ATF
 	imply SPL_ROCKCHIP_COMMON_BOARD
 	imply TPL_SERIAL
 	imply TPL_LIBCOMMON_SUPPORT
@@ -266,6 +265,7 @@ config ROCKCHIP_RK3399
 	imply TPL_TINY_MEMSET
 	imply TPL_ROCKCHIP_COMMON_BOARD
 	imply SYS_BOOTCOUNT_SINGLEWORD if BOOTCOUNT_LIMIT
+	imply BOOTSTD_FULL
 	imply CMD_BOOTCOUNT if BOOTCOUNT_LIMIT
 	help
 	  The Rockchip RK3399 is a ARM-based SoC with a dual-core Cortex-A72
@@ -288,9 +288,13 @@ config ROCKCHIP_RK3568
 	select BOARD_LATE_INIT
 	select DM_REGULATOR_FIXED
 	select DM_RESET
+	imply SPL_ATF_NO_PLATFORM_PARAM if SPL_ATF
 	imply ROCKCHIP_COMMON_BOARD
+	imply OF_LIBFDT_OVERLAY
 	imply ROCKCHIP_OTP
 	imply MISC_INIT_R
+	imply MMC_HS200_SUPPORT if MMC_SDHCI_ROCKCHIP
+	imply SPL_MMC_HS200_SUPPORT if SPL_MMC && MMC_HS200_SUPPORT
 	help
 	  The Rockchip RK3568 is a ARM-based SoC with quad-core Cortex-A55,
 	  including NEON and GPU, 512K L3 cache, Mali-G52 based graphics,
@@ -309,9 +313,18 @@ config ROCKCHIP_RK3588
 	select REGMAP
 	select SYSCON
 	select BOARD_LATE_INIT
+	select DM_REGULATOR_FIXED
+	select DM_RESET
+	imply SPL_ATF_NO_PLATFORM_PARAM if SPL_ATF
 	imply ROCKCHIP_COMMON_BOARD
+	imply OF_LIBFDT_OVERLAY
 	imply ROCKCHIP_OTP
 	imply MISC_INIT_R
+	imply MMC_HS200_SUPPORT if MMC_SDHCI_ROCKCHIP
+	imply SPL_MMC_HS200_SUPPORT if SPL_MMC && MMC_HS200_SUPPORT
+	imply CLK_SCMI
+	imply SCMI_FIRMWARE
+	imply BOOTSTD_FULL
 	help
 	  The Rockchip RK3588 is a ARM-based SoC with quad-core Cortex-A76 and
 	  quad-core Cortex-A55 including NEON and GPU, 6TOPS NPU, Mali-G610 MP4,
@@ -352,6 +365,10 @@ config ROCKCHIP_RV1126
 	select PMIC_RK8XX
 	select BOARD_LATE_INIT
 	imply ROCKCHIP_COMMON_BOARD
+	select SPL_OPTEE_IMAGE if SPL_FIT
+	imply OF_LIBFDT_OVERLAY
+	imply ROCKCHIP_OTP
+	imply MISC_INIT_R
 	imply TPL_DM
 	imply TPL_LIBCOMMON_SUPPORT
 	imply TPL_LIBGENERIC_SUPPORT
@@ -394,7 +411,7 @@ config SPL_ROCKCHIP_BACK_TO_BROM
 config TPL_ROCKCHIP_BACK_TO_BROM
 	bool "TPL returns to bootrom"
 	default y
-	select ROCKCHIP_BROM_HELPER
+	select ROCKCHIP_BROM_HELPER if !ROCKCHIP_RK3066
 	select TPL_BOOTROM_SUPPORT
 	depends on TPL
 	help
@@ -428,7 +445,7 @@ config TPL_ROCKCHIP_COMMON_BOARD
 
 config ROCKCHIP_EXTERNAL_TPL
 	bool "Use external TPL binary"
-	default y if ROCKCHIP_RK3568
+	default y if ROCKCHIP_RK3308 || ROCKCHIP_RK3568 || ROCKCHIP_RK3588
 	help
 	  Some Rockchip SoCs require an external TPL to initialize DRAM.
 	  Enable this option and build with ROCKCHIP_TPL=/path/to/ddr.bin to
@@ -443,7 +460,6 @@ config ROCKCHIP_BOOT_MODE_REG
 config ROCKCHIP_RK8XX_DISABLE_BOOT_ON_POWERON
 	bool "Disable device boot on power plug-in"
 	depends on PMIC_RK8XX
-	default n
 	---help---
 	  Say Y here to prevent the device from booting up because of a plug-in
 	  event. When set, the device will boot briefly to determine why it was
@@ -462,7 +478,7 @@ config ROCKCHIP_STIMER_BASE
 
 config ROCKCHIP_SPL_RESERVE_IRAM
 	hex "Size of IRAM reserved in SPL"
-	default 0
+	default 0x0
 	help
 	  SPL may need reserve memory for firmware loaded by SPL, whose load
 	  address is in IRAM and may overlay with SPL text area if not

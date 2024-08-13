@@ -2,64 +2,67 @@
 /*
  * Copyright 2022 NXP
  *
- * Author: Alice Guo <alice.guo@nxp.com>
+ * Peng Fan <peng.fan@nxp.com>
  */
 
+#include <common.h>
 #include <asm/io.h>
+#include <malloc.h>
 #include <clk-uclass.h>
-#include <dm.h>
+#include <dm/device.h>
+#include <dm/devres.h>
 #include <linux/bug.h>
 #include <linux/clk-provider.h>
-
+#include <clk.h>
 #include "clk.h"
+#include <linux/err.h>
 
-#define LPCG_DIRECT		0x0
-#define LPCG_LPM_CUR		0x1c
+#define UBOOT_DM_CLK_IMX_GATE93 "imx_clk_gate93"
+
+#define DIRECT_OFFSET		0x0
+
+/*
+ * 0b000 - LPCG will be OFF in any CPU mode.
+ * 0b100 - LPCG will be ON in any CPU mode.
+ */
 #define LPM_SETTING_OFF		0x0
 #define LPM_SETTING_ON		0x4
-#define LPCG_AUTHEN		0x30
-#define WHITE_LIST_DM0		16
-#define DOMAIN_ID_A55		3
-#define TZ_NS			BIT(9)
-#define CPULPM_MOD		BIT(2)
+
+#define LPM_CUR_OFFSET		0x1c
+
+#define AUTHEN_OFFSET		0x30
+#define CPULPM_EN		BIT(2)
+#define TZ_NS_SHIFT		9
+#define TZ_NS_MASK		BIT(9)
+
+#define WHITE_LIST_SHIFT	16
 
 struct imx93_clk_gate {
-	struct clk	clk;
-	void __iomem	*reg_base;
-	u8		lpcg_on_offset;
-	u8		lpcg_on_ctrl;
-	u8		lpcg_on_mask;
-	ulong		flags;
+	struct clk clk;
+	void __iomem	*reg;
+	u32		bit_idx;
+	u32		val;
+	u32		mask;
+	unsigned int	*share_count;
 };
 
 #define to_imx93_clk_gate(_clk) container_of(_clk, struct imx93_clk_gate, clk)
 
-static bool imx93_clk_gate_check_authen(void __iomem *reg_base)
-{
-	u32 authen;
-
-	authen = readl(reg_base + LPCG_AUTHEN);
-	if (!(authen & TZ_NS) || !(authen & BIT(WHITE_LIST_DM0 + DOMAIN_ID_A55)))
-		return false;
-
-	return true;
-}
-
-static void imx93_clk_gate_ctrl_hw(struct clk *clk, bool enable)
+static void imx93_clk_gate_do_hardware(struct clk *clk, bool enable)
 {
 	struct imx93_clk_gate *gate = to_imx93_clk_gate(clk);
-	u32 v;
+	u32 val;
 
-	v = readl(gate->reg_base + LPCG_AUTHEN);
-	if (v & CPULPM_MOD) {
-		v = enable ? LPM_SETTING_ON : LPM_SETTING_OFF;
-		writel(v, gate->reg_base + LPCG_LPM_CUR);
+	val = readl(gate->reg + AUTHEN_OFFSET);
+	if (val & CPULPM_EN) {
+		val = enable ? LPM_SETTING_ON : LPM_SETTING_OFF;
+		writel(val, gate->reg + LPM_CUR_OFFSET);
 	} else {
-		v = readl(gate->reg_base + LPCG_DIRECT);
-		v &= ~(gate->lpcg_on_mask << gate->lpcg_on_offset);
+		val = readl(gate->reg + DIRECT_OFFSET);
+		val &= ~(gate->mask << gate->bit_idx);
 		if (enable)
-			v |= (gate->lpcg_on_ctrl & gate->lpcg_on_mask) << gate->lpcg_on_offset;
-		writel(v, gate->reg_base + LPCG_DIRECT);
+			val |= (gate->val & gate->mask) << gate->bit_idx;
+		writel(val, gate->reg + DIRECT_OFFSET);
 	}
 }
 
@@ -67,10 +70,10 @@ static int imx93_clk_gate_enable(struct clk *clk)
 {
 	struct imx93_clk_gate *gate = to_imx93_clk_gate(clk);
 
-	if (!imx93_clk_gate_check_authen(gate->reg_base))
-		return -EINVAL;
+	if (gate->share_count && (*gate->share_count)++ > 0)
+		return 0;
 
-	imx93_clk_gate_ctrl_hw(clk, true);
+	imx93_clk_gate_do_hardware(clk, true);
 
 	return 0;
 }
@@ -79,15 +82,19 @@ static int imx93_clk_gate_disable(struct clk *clk)
 {
 	struct imx93_clk_gate *gate = to_imx93_clk_gate(clk);
 
-	if (!imx93_clk_gate_check_authen(gate->reg_base))
-		return -EINVAL;
+	if (gate->share_count) {
+		if (WARN_ON(*gate->share_count == 0))
+			return 0;
+		else if (--(*gate->share_count) > 0)
+			return 0;
+	}
 
-	imx93_clk_gate_ctrl_hw(clk, false);
+	imx93_clk_gate_do_hardware(clk, false);
 
 	return 0;
 }
 
-static ulong imx93_clk_gate_set_rate(struct clk *clk, ulong rate)
+static ulong imx93_clk_set_rate(struct clk *clk, ulong rate)
 {
 	struct clk *parent = clk_get_parent(clk);
 
@@ -98,49 +105,44 @@ static ulong imx93_clk_gate_set_rate(struct clk *clk, ulong rate)
 }
 
 static const struct clk_ops imx93_clk_gate_ops = {
-	.set_rate = imx93_clk_gate_set_rate,
 	.enable = imx93_clk_gate_enable,
 	.disable = imx93_clk_gate_disable,
 	.get_rate = clk_generic_get_rate,
+	.set_rate = imx93_clk_set_rate,
 };
 
-static struct clk *register_clk_gate(const char *name, const char *parent_name,
-				     void __iomem *reg_base, u8 lpcg_on_offset,
-				     u8 lpcg_on_ctrl, u8 lpcg_on_mask, ulong flags)
+struct clk *imx93_clk_gate(struct device *dev, const char *name, const char *parent_name,
+			   unsigned long flags, void __iomem *reg, u32 bit_idx, u32 val,
+			   u32 mask, u32 domain_id, unsigned int *share_count)
 {
 	struct imx93_clk_gate *gate;
+	struct clk *clk;
 	int ret;
 
 	gate = kzalloc(sizeof(*gate), GFP_KERNEL);
 	if (!gate)
 		return ERR_PTR(-ENOMEM);
 
-	gate->reg_base = reg_base;
-	gate->lpcg_on_offset = lpcg_on_offset;
-	gate->lpcg_on_ctrl = lpcg_on_ctrl;
-	gate->lpcg_on_mask = lpcg_on_mask;
-	gate->flags = flags;
+	gate->reg = reg;
+	gate->bit_idx = bit_idx;
+	gate->val = val;
+	gate->mask = mask;
+	gate->share_count = share_count;
 
-	ret = clk_register(&gate->clk, "imx93_clk_gate", name, parent_name);
+	clk = &gate->clk;
+
+	ret = clk_register(clk, UBOOT_DM_CLK_IMX_GATE93, name, parent_name);
 	if (ret) {
 		kfree(gate);
 		return ERR_PTR(ret);
 	}
 
-	return &gate->clk;
+	return clk;
 }
 
-struct clk *clk_register_imx93_clk_gate(const char *name, const char *parent_name,
-					void __iomem *reg_base, u8 lpcg_on_offset,
-					ulong flags)
-{
-	return register_clk_gate(name, parent_name, reg_base, lpcg_on_offset, 1,
-				 1, flags | CLK_SET_RATE_PARENT | CLK_OPS_PARENT_ENABLE);
-}
-
-U_BOOT_DRIVER(imx93_clk_gate) = {
-	.name = "imx93_clk_gate",
-	.id = UCLASS_CLK,
-	.ops = &imx93_clk_gate_ops,
+U_BOOT_DRIVER(clk_gate93) = {
+	.name	= UBOOT_DM_CLK_IMX_GATE93,
+	.id	= UCLASS_CLK,
+	.ops	= &imx93_clk_gate_ops,
 	.flags = DM_FLAG_PRE_RELOC,
 };

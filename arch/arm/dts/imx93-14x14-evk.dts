@@ -5,6 +5,7 @@
 
 /dts-v1/;
 
+#include <dt-bindings/usb/pd.h>
 #include "imx93.dtsi"
 
 /{
@@ -12,7 +13,6 @@
 	compatible = "fsl,imx93-14x14-evk", "fsl,imx93";
 
 	chosen {
-		bootargs = "console=ttyLP0,115200";
 		stdout-path = &lpuart1;
 	};
 
@@ -165,7 +165,7 @@
 		compatible = "nxp,pca9452";
 		reg = <0x25>;
 		interrupt-parent = <&pcal6524>;
-		interrupts = <11 IRQ_TYPE_LEVEL_LOW>;
+		interrupts = <11 IRQ_TYPE_EDGE_FALLING>;
 
 		regulators {
 			buck1: BUCK1 {
@@ -271,12 +271,6 @@
 	status = "okay";
 };
 
-&lpuart2 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_uart2>;
-	status = "disabled";
-};
-
 &usbotg1 {
 	dr_mode = "otg";
 	hnp-disable;
@@ -312,6 +306,7 @@
 	pinctrl-1 = <&pinctrl_usdhc2_100mhz>, <&pinctrl_usdhc2_gpio>;
 	pinctrl-2 = <&pinctrl_usdhc2_200mhz>, <&pinctrl_usdhc2_gpio>;
 	cd-gpios = <&gpio3 00 GPIO_ACTIVE_LOW>;
+	fsl,cd-gpio-wakeup-disable;
 	vmmc-supply = <&reg_usdhc2_vmmc>;
 	bus-width = <4>;
 	status = "okay";
@@ -329,7 +324,7 @@
 	assigned-clock-rates = <80000000>;
 	status = "okay";
 
-	flash0: mt25qu512a@0 {
+	flash0: flash@0 {
 		reg = <0>;
 		#address-cells = <1>;
 		#size-cells = <1>;
@@ -405,13 +400,6 @@
 		fsl,pins = <
 			MX93_PAD_UART1_RXD__LPUART1_RX			0x31e
 			MX93_PAD_UART1_TXD__LPUART1_TX			0x31e
-		>;
-	};
-
-	pinctrl_uart2: uart2grp {
-		fsl,pins = <
-			MX93_PAD_UART2_TXD__LPUART2_TX			0x31e
-			MX93_PAD_UART2_RXD__LPUART2_RX			0x31e
 		>;
 	};
 

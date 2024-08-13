@@ -5,13 +5,14 @@
 
 #include <common.h>
 #include <log.h>
-#include <asm/arch/sci/sci.h>
+#include <firmware/imx/sci/sci.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/global_data.h>
 #include <asm/mach-imx/optee.h>
 #include <dm/ofnode.h>
 #include <fdt_support.h>
 #include <linux/libfdt.h>
+#include <linux/printk.h>
 #include <malloc.h>
 
 DECLARE_GLOBAL_DATA_PTR;

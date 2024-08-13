@@ -197,6 +197,20 @@ static void reboot_bootloader(char *cmd_parameter, char *response)
 		fastboot_okay(NULL, response);
 }
 
+bool endswith(char* s, char* subs) {
+	if (!s || !subs)
+		return false;
+	uint32_t len = strlen(s);
+	uint32_t sublen = strlen(subs);
+	if (len < sublen) {
+		return false;
+	}
+	if (strncmp(s + len - sublen, subs, sublen)) {
+		return false;
+	}
+        return true;
+}
+
 #ifdef CONFIG_ANDROID_RECOVERY
 /**
  * reboot_fastboot() - Sets reboot fastboot flag.
@@ -214,20 +228,6 @@ static void reboot_fastboot(char *cmd_parameter, char *response)
 		fastboot_okay(NULL, response);
 }
 #endif
-
-bool endswith(char* s, char* subs) {
-	if (!s || !subs)
-		return false;
-	uint32_t len = strlen(s);
-	uint32_t sublen = strlen(subs);
-	if (len < sublen) {
-		return false;
-	}
-	if (strncmp(s + len - sublen, subs, sublen)) {
-		return false;
-	}
-	return true;
-}
 
 static void send(char *response, const char *buffer, unsigned int buffer_size)
 {
@@ -256,15 +256,17 @@ static void upload(char *cmd_parameter, char *response)
 	#if CONFIG_IS_ENABLED(IMX_SNPS_DDR_PHY_QB_GEN)
 	if (endswith(cmd_parameter, "snps-ddr-phy-qb")) {
 		struct ddrphy_qb_state *qb_state;
+	#if CONFIG_IS_ENABLED(IMX93)
 		uint32_t crc;
-
+	#endif
 		qb_state = (struct ddrphy_qb_state *)CONFIG_SAVED_QB_STATE_BASE;
+	#if CONFIG_IS_ENABLED(IMX93)
 		crc = crc32(0, (void *)&(qb_state->flags), DDRPHY_QB_STATE_SIZE);
 
 		if (crc != qb_state->crc)
 			log_err("DDRPHY TD CRC error SPL->U-Boot: spl=0x%08x, uboot=0x%08x\n",
 				qb_state->crc, crc);
-
+	#endif
 		send(response, (const char *)qb_state, sizeof(struct ddrphy_qb_state));
 		return;
 	}
@@ -1350,4 +1352,10 @@ int fastboot_handle_command(char *cmd_string, char *response)
 	pr_err("command %s not recognized.\n", cmd_string);
 	fastboot_fail("unrecognized command", response);
 	return -1;
+}
+
+void fastboot_multiresponse(int cmd, char *response)
+{
+	pr_err("Unknown multiresponse command %d\n", cmd);
+	fastboot_fail("Unknown multiresponse command", response);
 }

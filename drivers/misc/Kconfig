@@ -101,6 +101,15 @@ config ROCKCHIP_OTP
 	  addressing and a length or through child-nodes that are generated
 	  based on the e-fuse map retrieved from the DTS.
 
+config ROCKCHIP_IODOMAIN
+	bool "Rockchip IO-domain driver support"
+	depends on DM_REGULATOR && ARCH_ROCKCHIP
+	default y if ROCKCHIP_RK3568
+	help
+	  Enable support for IO-domains in Rockchip SoCs. It is necessary
+	  for the IO-domain setting of the SoC to match the voltage supplied
+	  by the regulators.
+
 config SIFIVE_OTP
 	bool "SiFive eMemory OTP driver"
 	depends on MISC
@@ -121,6 +130,14 @@ config VEXPRESS_CONFIG
 	  If you say Y here, you will get support for accessing the
 	  configuration bus on the Arm Versatile Express boards via
 	  a sysreg driver.
+
+config CBMEM_CONSOLE
+	bool "Write console output to coreboot cbmem"
+	depends on X86
+	help
+	  Enables console output to the cbmem console, which is a memory
+	  region set up by coreboot to hold a record of all console output.
+	  Enable this only if booting from coreboot.
 
 config CMD_CROS_EC
 	bool "Enable crosec command"
@@ -348,7 +365,7 @@ config NPCM_HOST
 
 config SPL_MXC_OCOTP
 	bool "Enable MXC OCOTP driver in SPL"
-	depends on SPL && (ARCH_IMX8M || ARCH_MX6 || ARCH_MX7 || ARCH_MX7ULP || ARCH_VF610)
+	depends on SPL_DRIVERS_MISC && (ARCH_IMX8M || ARCH_MX6 || ARCH_MX7 || ARCH_MX7ULP || ARCH_VF610)
 	default y
 	help
 	  If you say Y here, you will get support for the One Time
@@ -358,18 +375,17 @@ config SPL_MXC_OCOTP
 config NPCM_OTP
 	bool "Nnvoton NPCM BMC On-Chip OTP Memory Support"
 	depends on (ARM && ARCH_NPCM)
-	default n
 	help
 	  Support NPCM BMC OTP memory (fuse).
 	  To compile this driver as a module, choose M here: the module
 	  will be called npcm_otp.
 
 config IMX_ELE
-	bool "Enable i.MX EdgeLock Secure Enclave MU driver and API"
+	bool "Enable i.MX EdgeLock Enclave MU driver and API"
 	depends on MISC && (ARCH_IMX9 || ARCH_IMX8ULP)
 	help
 	  If you say Y here to enable Message Unit driver to work with
-	  ELE core on some NXP i.MX processors.
+	  Sentinel core on some NXP i.MX processors.
 
 config IMX_M4_MU
 	bool "Enable i.MX MU Driver to communicate with Cortex M4"
@@ -524,6 +540,13 @@ config QFW
 	  Hidden option to enable QEMU fw_cfg interface and uclass. This will
 	  be selected by either CONFIG_CMD_QFW or CONFIG_GENERATE_ACPI_TABLE.
 
+config QFW_ACPI
+	bool
+	default y
+	depends on QFW && GENERATE_ACPI_TABLE && !SANDBOX
+	help
+	  Hidden option to read ACPI tables from QEMU.
+
 config QFW_PIO
 	bool
 	depends on QFW
@@ -537,6 +560,13 @@ config QFW_MMIO
 	help
 	  Hidden option to enable MMIO QEMU fw_cfg interface. This will be
 	  selected by the appropriate QEMU board.
+
+config QFW_SMBIOS
+	bool
+	default y
+	depends on QFW && SMBIOS && !SANDBOX
+	help
+	  Hidden option to read SMBIOS tables from QEMU.
 
 config I2C_EEPROM
 	bool "Enable driver for generic I2C-attached EEPROMs"
@@ -555,7 +585,7 @@ config SPL_I2C_EEPROM
 config SYS_I2C_EEPROM_ADDR
 	hex "Chip address of the EEPROM device"
 	depends on ID_EEPROM || I2C_EEPROM || SPL_I2C_EEPROM || CMD_EEPROM || ENV_IS_IN_EEPROM
-	default 0
+	default 0x0
 
 if I2C_EEPROM
 
@@ -599,7 +629,7 @@ config FS_LOADER
 	  ie. the FPGA device.
 
 config SPL_FS_LOADER
-	bool "Enable loader driver for file system"
+	bool "Enable loader driver for file system in SPL"
 	depends on SPL
 	help
 	  This is file system generic loader which can be used to load

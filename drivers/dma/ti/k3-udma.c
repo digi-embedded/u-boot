@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- *  Copyright (C) 2018 Texas Instruments Incorporated - http://www.ti.com
+ *  Copyright (C) 2018 Texas Instruments Incorporated - https://www.ti.com
  *  Author: Peter Ujfalusi <peter.ujfalusi@ti.com>
  */
 #define pr_fmt(fmt) "udma: " fmt
@@ -25,6 +25,7 @@
 #include <linux/delay.h>
 #include <linux/bitmap.h>
 #include <linux/err.h>
+#include <linux/printk.h>
 #include <linux/soc/ti/k3-navss-ringacc.h>
 #include <linux/soc/ti/cppi5.h>
 #include <linux/soc/ti/ti-udma.h>
@@ -875,13 +876,20 @@ static int udma_alloc_tx_resources(struct udma_chan *uc)
 {
 	struct k3_nav_ring_cfg ring_cfg;
 	struct udma_dev *ud = uc->ud;
-	int ret;
+	struct udma_tchan *tchan;
+	int ring_idx, ret;
 
 	ret = udma_get_tchan(uc);
 	if (ret)
 		return ret;
 
-	ret = k3_nav_ringacc_request_rings_pair(ud->ringacc, uc->tchan->id, -1,
+	tchan = uc->tchan;
+	if (tchan->tflow_id >= 0)
+		ring_idx = tchan->tflow_id;
+	else
+		ring_idx = ud->bchan_cnt + tchan->id;
+
+	ret = k3_nav_ringacc_request_rings_pair(ud->ringacc, ring_idx, -1,
 						&uc->tchan->t_ring,
 						&uc->tchan->tc_ring);
 	if (ret) {
@@ -1286,7 +1294,7 @@ static int udma_get_mmrs(struct udevice *dev)
 	u32 cap2, cap3, cap4;
 	int i;
 
-	ud->mmrs[MMR_GCFG] = (uint32_t *)devfdt_get_addr_name(dev, mmr_names[MMR_GCFG]);
+	ud->mmrs[MMR_GCFG] = dev_read_addr_name_ptr(dev, mmr_names[MMR_GCFG]);
 	if (!ud->mmrs[MMR_GCFG])
 		return -EINVAL;
 
@@ -1324,8 +1332,7 @@ static int udma_get_mmrs(struct udevice *dev)
 		if (i == MMR_RCHANRT && ud->rchan_cnt == 0)
 			continue;
 
-		ud->mmrs[i] = (uint32_t *)devfdt_get_addr_name(dev,
-				mmr_names[i]);
+		ud->mmrs[i] = dev_read_addr_name_ptr(dev, mmr_names[i]);
 		if (!ud->mmrs[i])
 			return -EINVAL;
 	}

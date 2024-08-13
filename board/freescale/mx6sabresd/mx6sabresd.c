@@ -8,18 +8,17 @@
 
 #include <image.h>
 #include <init.h>
-#include <net.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/iomux.h>
 #include <asm/arch/mx6-pins.h>
 #include <asm/global_data.h>
 #include <asm/mach-imx/spi.h>
+#include <asm/sections.h>
 #include <env.h>
 #include <linux/errno.h>
 #include <linux/delay.h>
 #include <asm/gpio.h>
-#include <asm/mach-imx/mxc_i2c.h>
 #include <asm/mach-imx/iomux-v3.h>
 #include <asm/mach-imx/boot_mode.h>
 #include <asm/mach-imx/video.h>
@@ -30,7 +29,6 @@
 #include <asm/arch/crm_regs.h>
 #include <asm/io.h>
 #include <asm/arch/sys_proto.h>
-#include <i2c.h>
 #include <input.h>
 #include <power/pmic.h>
 #include <power/pfuze100_pmic.h>
@@ -62,21 +60,12 @@ DECLARE_GLOBAL_DATA_PTR;
 #define SPI_PAD_CTRL (PAD_CTL_HYS | PAD_CTL_SPEED_MED | \
 		      PAD_CTL_DSE_40ohm | PAD_CTL_SRE_FAST)
 
-#define I2C_PAD_CTRL  (PAD_CTL_PUS_100K_UP |			\
-	PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_HYS |	\
-	PAD_CTL_ODE | PAD_CTL_SRE_FAST)
-
 #define EPDC_PAD_CTRL    (PAD_CTL_PKE | PAD_CTL_SPEED_MED |	\
 	PAD_CTL_DSE_40ohm | PAD_CTL_HYS)
 
 #define OTG_ID_PAD_CTRL (PAD_CTL_PKE | PAD_CTL_PUE |		\
 	PAD_CTL_PUS_47K_UP  | PAD_CTL_SPEED_LOW |		\
 	PAD_CTL_DSE_80ohm   | PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
-
-
-#define I2C_PMIC	1
-
-#define I2C_PAD MUX_PAD_CTRL(I2C_PAD_CTRL)
 
 #define KEY_VOL_UP	IMX_GPIO_NR(1, 4)
 
@@ -170,21 +159,6 @@ static void enable_lvds(struct display_info_t const *dev)
 {
 	enable_backlight();
 }
-#endif
-
-#ifdef CONFIG_SYS_I2C_LEGACY
-static struct i2c_pads_info i2c_pad_info1 = {
-	.scl = {
-		.i2c_mode = MX6_PAD_KEY_COL3__I2C2_SCL | I2C_PAD,
-		.gpio_mode = MX6_PAD_KEY_COL3__GPIO4_IO12 | I2C_PAD,
-		.gp = IMX_GPIO_NR(4, 12)
-	},
-	.sda = {
-		.i2c_mode = MX6_PAD_KEY_ROW3__I2C2_SDA | I2C_PAD,
-		.gpio_mode = MX6_PAD_KEY_ROW3__GPIO4_IO13 | I2C_PAD,
-		.gp = IMX_GPIO_NR(4, 13)
-	}
-};
 #endif
 
 iomux_v3_cfg_t const di0_pads[] = {
@@ -356,45 +330,6 @@ int board_mmc_init(struct bd_info *bis)
 }
 #endif
 #endif
-
-static int ar8031_phy_fixup(struct phy_device *phydev)
-{
-	unsigned short val;
-
-	/* To enable AR8031 ouput a 125MHz clk from CLK_25M */
-	if (!is_mx6dqp()) {
-		phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x7);
-		phy_write(phydev, MDIO_DEVAD_NONE, 0xe, 0x8016);
-		phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x4007);
-
-		val = phy_read(phydev, MDIO_DEVAD_NONE, 0xe);
-		val &= 0xffe3;
-		val |= 0x18;
-		phy_write(phydev, MDIO_DEVAD_NONE, 0xe, val);
-	}
-
-	/* set the IO voltage to 1.8v */
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x1f);
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x8);
-
-	/* introduce tx clock delay */
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x5);
-	val = phy_read(phydev, MDIO_DEVAD_NONE, 0x1e);
-	val |= 0x0100;
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, val);
-
-	return 0;
-}
-
-int board_phy_config(struct phy_device *phydev)
-{
-	ar8031_phy_fixup(phydev);
-
-	if (phydev->drv->config)
-		phydev->drv->config(phydev);
-
-	return 0;
-}
 
 #if defined(CONFIG_MX6DL) && defined(CONFIG_MXC_EPDC)
 vidinfo_t panel_info = {
@@ -821,9 +756,6 @@ int board_init(void)
 	setup_spi();
 #endif
 
-#ifdef CONFIG_SYS_I2C_LEGACY
-	setup_i2c(1, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
-#endif
 
 #if defined(CONFIG_MX6DL) && defined(CONFIG_MXC_EPDC)
 	setup_epdc();
@@ -836,93 +768,7 @@ int board_init(void)
 	return 0;
 }
 
-#ifdef CONFIG_POWER_LEGACY
-int power_init_board(void)
-{
-	struct pmic *pfuze;
-	unsigned int reg;
-	int ret;
-
-	pfuze = pfuze_common_init(I2C_PMIC);
-	if (!pfuze)
-		return -ENODEV;
-
-	if (is_mx6dqp())
-		ret = pfuze_mode_init(pfuze, APS_APS);
-	else
-		ret = pfuze_mode_init(pfuze, APS_PFM);
-
-	if (ret < 0)
-		return ret;
-	/* VGEN3 and VGEN5 corrected on i.mx6qp board */
-	if (!is_mx6dqp()) {
-		/* Increase VGEN3 from 2.5 to 2.8V */
-		pmic_reg_read(pfuze, PFUZE100_VGEN3VOL, &reg);
-		reg &= ~LDO_VOL_MASK;
-		reg |= LDOB_2_80V;
-		pmic_reg_write(pfuze, PFUZE100_VGEN3VOL, reg);
-
-		/* Increase VGEN5 from 2.8 to 3V */
-		pmic_reg_read(pfuze, PFUZE100_VGEN5VOL, &reg);
-		reg &= ~LDO_VOL_MASK;
-		reg |= LDOB_3_00V;
-		pmic_reg_write(pfuze, PFUZE100_VGEN5VOL, reg);
-	}
-
-	if (is_mx6dqp()) {
-		/* set SW1C staby volatage 1.075V*/
-		pmic_reg_read(pfuze, PFUZE100_SW1CSTBY, &reg);
-		reg &= ~0x3f;
-		reg |= 0x1f;
-		pmic_reg_write(pfuze, PFUZE100_SW1CSTBY, reg);
-
-		/* set SW1C/VDDSOC step ramp up time to from 16us to 4us/25mV */
-		pmic_reg_read(pfuze, PFUZE100_SW1CCONF, &reg);
-		reg &= ~0xc0;
-		reg |= 0x40;
-		pmic_reg_write(pfuze, PFUZE100_SW1CCONF, reg);
-
-		/* set SW2/VDDARM staby volatage 0.975V*/
-		pmic_reg_read(pfuze, PFUZE100_SW2STBY, &reg);
-		reg &= ~0x3f;
-		reg |= 0x17;
-		pmic_reg_write(pfuze, PFUZE100_SW2STBY, reg);
-
-		/* set SW2/VDDARM step ramp up time to from 16us to 4us/25mV */
-		pmic_reg_read(pfuze, PFUZE100_SW2CONF, &reg);
-		reg &= ~0xc0;
-		reg |= 0x40;
-		pmic_reg_write(pfuze, PFUZE100_SW2CONF, reg);
-	} else {
-		/* set SW1AB staby volatage 0.975V*/
-		pmic_reg_read(pfuze, PFUZE100_SW1ABSTBY, &reg);
-		reg &= ~0x3f;
-		reg |= 0x1b;
-		pmic_reg_write(pfuze, PFUZE100_SW1ABSTBY, reg);
-
-		/* set SW1AB/VDDARM step ramp up time from 16us to 4us/25mV */
-		pmic_reg_read(pfuze, PFUZE100_SW1ABCONF, &reg);
-		reg &= ~0xc0;
-		reg |= 0x40;
-		pmic_reg_write(pfuze, PFUZE100_SW1ABCONF, reg);
-
-		/* set SW1C staby volatage 0.975V*/
-		pmic_reg_read(pfuze, PFUZE100_SW1CSTBY, &reg);
-		reg &= ~0x3f;
-		reg |= 0x1b;
-		pmic_reg_write(pfuze, PFUZE100_SW1CSTBY, reg);
-
-		/* set SW1C/VDDSOC step ramp up time to from 16us to 4us/25mV */
-		pmic_reg_read(pfuze, PFUZE100_SW1CCONF, &reg);
-		reg &= ~0xc0;
-		reg |= 0x40;
-		pmic_reg_write(pfuze, PFUZE100_SW1CCONF, reg);
-	}
-
-	return 0;
-}
-
-#elif defined(CONFIG_DM_PMIC_PFUZE100)
+#if defined(CONFIG_DM_PMIC_PFUZE100)
 int power_init_board(void)
 {
 	struct udevice *dev;
@@ -1010,114 +856,7 @@ int power_init_board(void)
 #endif
 
 #ifdef CONFIG_LDO_BYPASS_CHECK
-#ifdef CONFIG_POWER_LEGACY
-void ldo_mode_set(int ldo_bypass)
-{
-	unsigned int value;
-	int is_400M;
-	unsigned char vddarm;
-	struct pmic *p = pmic_get("PFUZE100");
-
-	if (!p) {
-		printf("No PMIC found!\n");
-		return;
-	}
-
-	/* increase VDDARM/VDDSOC to support 1.2G chip */
-	if (check_1_2G()) {
-		ldo_bypass = 0;	/* ldo_enable on 1.2G chip */
-		printf("1.2G chip, increase VDDARM_IN/VDDSOC_IN\n");
-		if (is_mx6dqp()) {
-			/* increase VDDARM to 1.425V */
-			pmic_reg_read(p, PFUZE100_SW2VOL, &value);
-			value &= ~0x3f;
-			value |= 0x29;
-			pmic_reg_write(p, PFUZE100_SW2VOL, value);
-		} else {
-			/* increase VDDARM to 1.425V */
-			pmic_reg_read(p, PFUZE100_SW1ABVOL, &value);
-			value &= ~0x3f;
-			value |= 0x2d;
-			pmic_reg_write(p, PFUZE100_SW1ABVOL, value);
-		}
-		/* increase VDDSOC to 1.425V */
-		pmic_reg_read(p, PFUZE100_SW1CVOL, &value);
-		value &= ~0x3f;
-		value |= 0x2d;
-		pmic_reg_write(p, PFUZE100_SW1CVOL, value);
-	}
-	/* switch to ldo_bypass mode , boot on 800Mhz */
-	if (ldo_bypass) {
-		prep_anatop_bypass();
-		if (is_mx6dqp()) {
-			/* decrease VDDARM for 400Mhz DQP:1.1V*/
-			pmic_reg_read(p, PFUZE100_SW2VOL, &value);
-			value &= ~0x3f;
-			value |= 0x1c;
-			pmic_reg_write(p, PFUZE100_SW2VOL, value);
-		} else {
-			/* decrease VDDARM for 400Mhz DQ:1.1V, DL:1.275V */
-			pmic_reg_read(p, PFUZE100_SW1ABVOL, &value);
-			value &= ~0x3f;
-			if (is_mx6dl())
-				value |= 0x27;
-			else
-				value |= 0x20;
-
-			pmic_reg_write(p, PFUZE100_SW1ABVOL, value);
-		}
-		/* increase VDDSOC to 1.3V */
-		pmic_reg_read(p, PFUZE100_SW1CVOL, &value);
-		value &= ~0x3f;
-		value |= 0x28;
-		pmic_reg_write(p, PFUZE100_SW1CVOL, value);
-
-		/*
-		 * MX6Q/DQP:
-		 * VDDARM:1.15V@800M; VDDSOC:1.175V@800M
-		 * VDDARM:0.975V@400M; VDDSOC:1.175V@400M
-		 * MX6DL:
-		 * VDDARM:1.175V@800M; VDDSOC:1.175V@800M
-		 * VDDARM:1.15V@400M; VDDSOC:1.175V@400M
-		 */
-		is_400M = set_anatop_bypass(2);
-		if (is_mx6dqp()) {
-			pmic_reg_read(p, PFUZE100_SW2VOL, &value);
-			value &= ~0x3f;
-			if (is_400M)
-				value |= 0x17;
-			else
-				value |= 0x1e;
-			pmic_reg_write(p, PFUZE100_SW2VOL, value);
-		}
-
-		if (is_400M) {
-			if (is_mx6dl())
-				vddarm = 0x22;
-			else
-				vddarm = 0x1b;
-		} else {
-			if (is_mx6dl())
-				vddarm = 0x23;
-			else
-				vddarm = 0x22;
-		}
-		pmic_reg_read(p, PFUZE100_SW1ABVOL, &value);
-		value &= ~0x3f;
-		value |= vddarm;
-		pmic_reg_write(p, PFUZE100_SW1ABVOL, value);
-
-		/* decrease VDDSOC to 1.175V */
-		pmic_reg_read(p, PFUZE100_SW1CVOL, &value);
-		value &= ~0x3f;
-		value |= 0x23;
-		pmic_reg_write(p, PFUZE100_SW1CVOL, value);
-
-		finish_anatop_bypass();
-		printf("switch to ldo_bypass mode!\n");
-	}
-}
-#elif defined(CONFIG_DM_PMIC_PFUZE100)
+#if defined(CONFIG_DM_PMIC_PFUZE100)
 void ldo_mode_set(int ldo_bypass)
 {
 	int is_400M;
@@ -1609,7 +1348,6 @@ void board_init_f(ulong dummy)
 	ccgr_init();
 	gpr_init();
 
-	/* iomux and setup of i2c */
 	board_early_init_f();
 
 	/* setup GP timer */

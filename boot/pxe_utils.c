@@ -554,7 +554,7 @@ static int label_boot(struct pxe_context *ctx, struct pxe_label *label)
 			       label->name);
 			goto cleanup;
 		}
-
+		strcpy(initrd_filesize, simple_xtoa(size));
 		initrd_addr_str = env_get("ramdisk_addr_r");
 		size = snprintf(initrd_str, sizeof(initrd_str), "%s:%lx",
 				initrd_addr_str, size);
@@ -700,10 +700,15 @@ static int label_boot(struct pxe_context *ctx, struct pxe_label *label)
 					       label->name);
 					goto cleanup;
 				}
+
+				if (label->fdtdir) {
+					printf("Skipping fdtdir %s for failure retrieving dts\n",
+						label->fdtdir);
+				}
 			}
 
-		if (label->kaslrseed)
-			label_boot_kaslrseed();
+			if (label->kaslrseed)
+				label_boot_kaslrseed();
 
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
 			if (label->fdtoverlays)
@@ -1578,7 +1583,7 @@ void handle_pxe_menu(struct pxe_context *ctx, struct pxe_menu *cfg)
 
 int pxe_setup_ctx(struct pxe_context *ctx, struct cmd_tbl *cmdtp,
 		  pxe_getfile_func getfile, void *userdata,
-		  bool allow_abs_path, const char *bootfile)
+		  bool allow_abs_path, const char *bootfile, bool use_ipv6)
 {
 	const char *last_slash;
 	size_t path_len = 0;
@@ -1588,6 +1593,7 @@ int pxe_setup_ctx(struct pxe_context *ctx, struct cmd_tbl *cmdtp,
 	ctx->getfile = getfile;
 	ctx->userdata = userdata;
 	ctx->allow_abs_path = allow_abs_path;
+	ctx->use_ipv6 = use_ipv6;
 
 	/* figure out the boot directory, if there is one */
 	if (bootfile && strlen(bootfile) >= MAX_TFTP_PATH_LEN)

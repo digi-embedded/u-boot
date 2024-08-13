@@ -20,6 +20,7 @@
 #include <linux/bitops.h>
 #include <linux/io.h>
 #include <linux/iopoll.h>
+#include <linux/printk.h>
 
 /* MSDC_CFG */
 #define MSDC_CFG_HS400_CK_MODE_EXT	BIT(22)
@@ -1664,7 +1665,7 @@ static int msdc_drv_probe(struct udevice *dev)
 	if (cfg->f_max < cfg->f_min || cfg->f_max > host->src_clk_freq)
 		cfg->f_max = host->src_clk_freq;
 
-	cfg->b_max = 1024;
+	cfg->b_max = CONFIG_SYS_MMC_MAX_BLK_COUNT;
 	cfg->voltages = MMC_VDD_32_33 | MMC_VDD_33_34;
 
 	host->mmc = &plat->mmc;

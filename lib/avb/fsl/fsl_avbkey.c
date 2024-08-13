@@ -29,7 +29,7 @@
 #include <asm/mach-imx/hab.h>
 #include <asm/arch/sys_proto.h>
 #ifdef CONFIG_ARCH_IMX8
-#include <asm/arch/sci/sci.h>
+#include <firmware/imx/sci/sci.h>
 #endif
 #include <asm/mach-imx/ele_api.h>
 #include <u-boot/sha256.h>
@@ -302,7 +302,7 @@ int ele_derive_rpmb_key(uint8_t *key) {
 	memset(cid + RPMB_CID_CRC_OFFSET, 0, 1);
 
 	/* derive huk from ele */
-	ret = ahab_get_hw_unique_key(huk, HUK_LENGTH, ctx, sizeof(ctx));
+	ret = ele_get_hw_unique_key(huk, HUK_LENGTH, ctx, sizeof(ctx));
 	if (ret) {
 		printf("failed to derive huk!\n");
 		return -1;

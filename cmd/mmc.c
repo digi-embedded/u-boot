@@ -175,7 +175,7 @@ static int do_mmcinfo(struct cmd_tbl *cmdtp, int flag, int argc,
 			curr_device = 0;
 		else {
 			puts("No MMC device available\n");
-			return 1;
+			return CMD_RET_FAILURE;
 		}
 	}
 
@@ -927,7 +927,7 @@ static int mmc_partconf_print(struct mmc *mmc, const char *varname)
 static int do_mmc_partconf(struct cmd_tbl *cmdtp, int flag,
 			   int argc, char *const argv[])
 {
-	int dev;
+	int ret, dev;
 	struct mmc *mmc;
 	u8 ack, part_num, access;
 
@@ -946,20 +946,24 @@ static int do_mmc_partconf(struct cmd_tbl *cmdtp, int flag,
 	}
 
 	if (argc == 2 || argc == 3)
-		return mmc_partconf_print(mmc, argc == 3 ? argv[2] : NULL);
+		return mmc_partconf_print(mmc, cmd_arg2(argc, argv));
 
 	ack = dectoul(argv[2], NULL);
 	part_num = dectoul(argv[3], NULL);
 	access = dectoul(argv[4], NULL);
 
 	/* acknowledge to be sent during boot operation */
-	return mmc_set_part_conf(mmc, ack, part_num, access);
+	ret = mmc_set_part_conf(mmc, ack, part_num, access);
+	if (ret != 0)
+		return CMD_RET_FAILURE;
+
+	return CMD_RET_SUCCESS;
 }
 
 static int do_mmc_rst_func(struct cmd_tbl *cmdtp, int flag,
 			   int argc, char *const argv[])
 {
-	int dev;
+	int ret, dev;
 	struct mmc *mmc;
 	u8 enable;
 
@@ -988,7 +992,11 @@ static int do_mmc_rst_func(struct cmd_tbl *cmdtp, int flag,
 		return CMD_RET_FAILURE;
 	}
 
-	return mmc_set_rst_n_function(mmc, enable);
+	ret = mmc_set_rst_n_function(mmc, enable);
+	if (ret != 0)
+		return CMD_RET_FAILURE;
+
+	return CMD_RET_SUCCESS;
 }
 #endif
 static int do_mmc_setdsr(struct cmd_tbl *cmdtp, int flag,
@@ -1102,123 +1110,210 @@ static int do_mmc_boot_wp(struct cmd_tbl *cmdtp, int flag,
 	return CMD_RET_SUCCESS;
 }
 
+#if CONFIG_IS_ENABLED(CMD_MMC_REG)
+static int do_mmc_reg(struct cmd_tbl *cmdtp, int flag,
+		      int argc, char *const argv[])
+{
+	ALLOC_CACHE_ALIGN_BUFFER(u8, ext_csd, MMC_MAX_BLOCK_LEN);
+	struct mmc *mmc;
+	int i, ret;
+	u32 off;
+
+	if (argc < 3 || argc > 5)
+		return CMD_RET_USAGE;
+
+	mmc = find_mmc_device(curr_device);
+	if (!mmc) {
+		printf("no mmc device at slot %x\n", curr_device);
+		return CMD_RET_FAILURE;
+	}
+
+	if (IS_SD(mmc)) {
+		printf("SD registers are not supported\n");
+		return CMD_RET_FAILURE;
+	}
+
+	off = simple_strtoul(argv[3], NULL, 10);
+	if (!strcmp(argv[2], "cid")) {
+		if (off > 3)
+			return CMD_RET_USAGE;
+		printf("CID[%i]: 0x%08x\n", off, mmc->cid[off]);
+		if (argv[4])
+			env_set_hex(argv[4], mmc->cid[off]);
+		return CMD_RET_SUCCESS;
+	}
+	if (!strcmp(argv[2], "csd")) {
+		if (off > 3)
+			return CMD_RET_USAGE;
+		printf("CSD[%i]: 0x%08x\n", off, mmc->csd[off]);
+		if (argv[4])
+			env_set_hex(argv[4], mmc->csd[off]);
+		return CMD_RET_SUCCESS;
+	}
+	if (!strcmp(argv[2], "dsr")) {
+		printf("DSR: 0x%08x\n", mmc->dsr);
+		if (argv[4])
+			env_set_hex(argv[4], mmc->dsr);
+		return CMD_RET_SUCCESS;
+	}
+	if (!strcmp(argv[2], "ocr")) {
+		printf("OCR: 0x%08x\n", mmc->ocr);
+		if (argv[4])
+			env_set_hex(argv[4], mmc->ocr);
+		return CMD_RET_SUCCESS;
+	}
+	if (!strcmp(argv[2], "rca")) {
+		printf("RCA: 0x%08x\n", mmc->rca);
+		if (argv[4])
+			env_set_hex(argv[4], mmc->rca);
+		return CMD_RET_SUCCESS;
+	}
+	if (!strcmp(argv[2], "extcsd") &&
+	    mmc->version >= MMC_VERSION_4_41) {
+		ret = mmc_send_ext_csd(mmc, ext_csd);
+		if (ret)
+			return CMD_RET_FAILURE;
+		if (!strcmp(argv[3], "all")) {
+			/* Dump the entire register */
+			printf("EXT_CSD:");
+			for (i = 0; i < MMC_MAX_BLOCK_LEN; i++) {
+				if (!(i % 10))
+					printf("\n%03i: ", i);
+				printf(" %02x", ext_csd[i]);
+			}
+			printf("\n");
+			return CMD_RET_SUCCESS;
+		}
+		off = simple_strtoul(argv[3], NULL, 10);
+		if (off > 512)
+			return CMD_RET_USAGE;
+		printf("EXT_CSD[%i]: 0x%02x\n", off, ext_csd[off]);
+		if (argv[4])
+			env_set_hex(argv[4], ext_csd[off]);
+		return CMD_RET_SUCCESS;
+	}
+
+	return CMD_RET_FAILURE;
+}
+#endif
+
 #ifdef CONFIG_SUPPORT_MMC_ECSD
 static int do_mmcecsd_dump(struct cmd_tbl *cmdtp, int flag,
-                           int argc, char * const argv[])
+			   int argc, char *const argv[])
 {
-        struct mmc *mmc = find_mmc_device(curr_device);
-        int field;
-        int ret;
-        ALLOC_CACHE_ALIGN_BUFFER(u8, ext_csd, 512);
+	struct mmc *mmc = find_mmc_device(curr_device);
+	int field;
+	int ret;
+	ALLOC_CACHE_ALIGN_BUFFER(u8, ext_csd, 512);
 
-        ret = mmc_send_ext_csd(mmc, ext_csd);
-        if (ret) {
-                printf("Can't access ECSD!\n");
-                return ret;
-        }
+	ret = mmc_send_ext_csd(mmc, ext_csd);
+	if (ret) {
+		printf("Can't access ECSD!\n");
+		return ret;
+	}
 
-        for (field = 0; field < 511; field++)
-                printf("ECSD[%d]: 0x%08x\n", field, ext_csd[field]);
+	for (field = 0; field < 511; field++)
+		printf("ECSD[%d]: 0x%08x\n", field, ext_csd[field]);
 
-        return 0;
+	return 0;
 }
 
 static int do_mmcecsd_read(struct cmd_tbl *cmdtp, int flag,
-                           int argc, char * const argv[])
+			   int argc, char *const argv[])
 {
-        struct mmc *mmc = find_mmc_device(curr_device);
-        int field;
-        int ret;
-        ALLOC_CACHE_ALIGN_BUFFER(u8, ext_csd, 512);
+	struct mmc *mmc = find_mmc_device(curr_device);
+	int field;
+	int ret;
+	ALLOC_CACHE_ALIGN_BUFFER(u8, ext_csd, 512);
 
-        ret = mmc_send_ext_csd(mmc, ext_csd);
-        if (ret) {
-                printf("Can't access ECSD!\n");
-                return ret;
-        }
+	ret = mmc_send_ext_csd(mmc, ext_csd);
+	if (ret) {
+		printf("Can't access ECSD!\n");
+		return ret;
+	}
 
-        field = simple_strtoul(argv[1], NULL, 16);
-        if (field >=0 && field < 512) {
-                printf("ECSD[%d]: 0x%08x\n", field, ext_csd[field]);
-                return 0;
-        } else {
-                printf("Invalid field offset. Must be within range 0..511\n");
-                return 1;
-        }
+	field = simple_strtoul(argv[1], NULL, 16);
+	if (field >= 0 && field < 512) {
+		printf("ECSD[%d]: 0x%08x\n", field, ext_csd[field]);
+		return 0;
+	} else {
+		printf("Invalid field offset. Must be within range 0..511\n");
+		return 1;
+	}
 
-        return 0;
+	return 0;
 }
 
 static int do_mmcecsd_write(struct cmd_tbl *cmdtp, int flag,
-                            int argc, char * const argv[])
+			    int argc, char *const argv[])
 {
-        struct mmc *mmc = find_mmc_device(curr_device);
-        unsigned int field;
-        unsigned int val;
-        int ret;
-        ALLOC_CACHE_ALIGN_BUFFER(u8, ext_csd, 512);
+	struct mmc *mmc = find_mmc_device(curr_device);
+	unsigned int field;
+	unsigned int val;
+	int ret;
+	ALLOC_CACHE_ALIGN_BUFFER(u8, ext_csd, 512);
 
-        field = simple_strtoul(argv[1], NULL, 16);
-        val = simple_strtoul(argv[2], NULL, 16);
+	field = simple_strtoul(argv[1], NULL, 16);
+	val = simple_strtoul(argv[2], NULL, 16);
 
-        ret = mmc_send_ext_csd(mmc, ext_csd);
-        if (ret) {
-                printf("Can't access ECSD!\n");
-                return ret;
-        }
+	ret = mmc_send_ext_csd(mmc, ext_csd);
+	if (ret) {
+		printf("Can't access ECSD!\n");
+		return ret;
+	}
 
-        /* only modes segment (0..191) can be modified */
-        if (field >=0 && field <= 191) {
-                ret = mmc_switch_any(mmc, field, val);
-                if (ret) {
-                        printf("Can't access ECSD.\n");
-                        return ret;
-                }
-                return 0;
-        } else {
-                printf("Invalid field offset. Must be within range 0..191\n");
-                return 1;
-        }
+	/* only modes segment (0..191) can be modified */
+	if (field >= 0 && field <= 191) {
+		ret = mmc_switch_any(mmc, field, val);
+		if (ret) {
+			printf("Can't access ECSD.\n");
+			return ret;
+		}
+		return 0;
+	} else {
+		printf("Invalid field offset. Must be within range 0..191\n");
+		return 1;
+	}
 
-        return 0;
+	return 0;
 }
 
 static struct cmd_tbl cmd_ecsd[] = {
-        U_BOOT_CMD_MKENT(dump, 1, 1, do_mmcecsd_dump, "", ""),
-        U_BOOT_CMD_MKENT(read, 2, 1, do_mmcecsd_read, "", ""),
-        U_BOOT_CMD_MKENT(write, 3, 0, do_mmcecsd_write, "", ""),
+	U_BOOT_CMD_MKENT(dump, 1, 1, do_mmcecsd_dump, "", ""),
+	U_BOOT_CMD_MKENT(read, 2, 1, do_mmcecsd_read, "", ""),
+	U_BOOT_CMD_MKENT(write, 3, 0, do_mmcecsd_write, "", ""),
 };
 
 static int do_mmcecsd(struct cmd_tbl *cmdtp, int flag,
-                      int argc, char * const argv[])
+		      int argc, char *const argv[])
 {
-        struct cmd_tbl *cp;
-        struct mmc *mmc;
+	struct cmd_tbl *cp;
+	struct mmc *mmc;
 
-        cp = find_cmd_tbl(argv[1], cmd_ecsd, ARRAY_SIZE(cmd_ecsd));
-        /* Drop the ecsd subcommand */
-        argc--;
-        argv++;
+	cp = find_cmd_tbl(argv[1], cmd_ecsd, ARRAY_SIZE(cmd_ecsd));
+	/* Drop the ecsd subcommand */
+	argc--;
+	argv++;
 
-        if (cp == NULL || argc > cp->maxargs)
-                return CMD_RET_USAGE;
-        if (flag == CMD_FLAG_REPEAT && !cmd_is_repeatable(cp))
-                return CMD_RET_SUCCESS;
+	if (cp == NULL || argc > cp->maxargs)
+		return CMD_RET_USAGE;
+	if (flag == CMD_FLAG_REPEAT && !cmd_is_repeatable(cp))
+		return CMD_RET_SUCCESS;
 
-        mmc = init_mmc_device(curr_device, false);
-        if (!mmc)
-                return CMD_RET_FAILURE;
+	mmc = init_mmc_device(curr_device, false);
+	if (!mmc)
+		return CMD_RET_FAILURE;
 
-        if (!(mmc->version & MMC_VERSION_MMC)) {
-                printf("It is not a EMMC device\n");
-                return CMD_RET_FAILURE;
-        }
-        if (mmc->version < MMC_VERSION_4_41) {
-                printf("RPMB not supported before version 4.41\n");
-                return CMD_RET_FAILURE;
-        }
+	if (!(mmc->version & MMC_VERSION_MMC)) {
+		printf("It is not a EMMC device\n");
+		return CMD_RET_FAILURE;
+	}
+	if (mmc->version < MMC_VERSION_4_41) {
+		printf("RPMB not supported before version 4.41\n");
+		return CMD_RET_FAILURE;
+	}
 
-        return cp->cmd(cmdtp, flag, argc, argv);
+	return cp->cmd(cmdtp, flag, argc, argv);
 }
 #endif /* CONFIG_SUPPORT_MMC_ECSD */
 
@@ -1254,8 +1349,11 @@ static struct cmd_tbl cmd_mmc[] = {
 	U_BOOT_CMD_MKENT(bkops-enable, 2, 0, do_mmc_bkops_enable, "", ""),
 	U_BOOT_CMD_MKENT(bkops, 4, 0, do_mmc_bkops, "", ""),
 #endif
+#if CONFIG_IS_ENABLED(CMD_MMC_REG)
+	U_BOOT_CMD_MKENT(reg, 5, 0, do_mmc_reg, "", ""),
+#endif
 #ifdef CONFIG_SUPPORT_MMC_ECSD
-        U_BOOT_CMD_MKENT(ecsd, CONFIG_SYS_MAXARGS, 1, do_mmcecsd, "", ""),
+	U_BOOT_CMD_MKENT(ecsd, CONFIG_SYS_MAXARGS, 1, do_mmcecsd, "", ""),
 #endif
 };
 
@@ -1345,10 +1443,16 @@ U_BOOT_CMD(
 	"mmc bkops <dev> [auto|manual] [enable|disable]\n"
 	" - configure background operations handshake on device\n"
 #endif
+#if CONFIG_IS_ENABLED(CMD_MMC_REG)
+	"mmc reg read <reg> <offset> [env] - read card register <reg> offset <offset>\n"
+	"                                    (optionally into [env] variable)\n"
+	" - reg: cid/csd/dsr/ocr/rca/extcsd\n"
+	" - offset: for cid/csd [0..3], for extcsd [0..511,all]\n"
+#endif
 #ifdef CONFIG_SUPPORT_MMC_ECSD
-        "mmc ecsd dump - dump ECSD values\n"
-        "mmc ecsd read offset - read ECSD value at offset\n"
-        "mmc ecsd write offset value - write ECSD value at offset\n"
+	"mmc ecsd dump - dump ECSD values\n"
+	"mmc ecsd read offset - read ECSD value at offset\n"
+	"mmc ecsd write offset value - write ECSD value at offset\n"
 #endif
 	);
 

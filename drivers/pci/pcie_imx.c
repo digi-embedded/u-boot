@@ -1460,7 +1460,7 @@ static int imx_pcie_dm_probe(struct udevice *dev)
 		priv->vpcie = NULL;
 		dev_dbg(dev, "no vpcie supply\n");
 	} else {
-		ret = regulator_set_enable(priv->vpcie, true);
+		ret = regulator_set_enable_if_allowed(priv->vpcie, true);
 		if (ret) {
 			dev_err(dev, "fail to enable vpcie supply\n");
 			return ret;
@@ -1615,7 +1615,7 @@ static int imx_pcie_of_to_plat(struct udevice *dev)
 	int ret;
 	struct resource cfg_res;
 
-	priv->dbi_base = (void __iomem *)devfdt_get_addr_index(dev, 0);
+	priv->dbi_base = devfdt_get_addr_index_ptr(dev, 0);
 	if (!priv->dbi_base)
 		return -EINVAL;
 

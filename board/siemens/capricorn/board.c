@@ -22,12 +22,12 @@
 #include <asm/gpio.h>
 #include <asm/arch/imx8-pins.h>
 #include <asm/arch/iomux.h>
-#include <asm/arch/sci/sci.h>
 #include <asm/arch/sys_proto.h>
 #ifndef CONFIG_SPL
 #include <asm/arch-imx8/clock.h>
 #endif
 #include <linux/delay.h>
+#include "../common/eeprom.h"
 #include "../common/factoryset.h"
 
 #define GPIO_PAD_CTRL \
@@ -147,7 +147,7 @@ static void enet_device_phy_reset(void)
 int setup_gpr_fec(void)
 {
 	sc_ipc_t ipc_handle = -1;
-	sc_err_t err = 0;
+	int err = 0;
 	unsigned int test;
 
 	/*
@@ -175,35 +175,35 @@ int setup_gpr_fec(void)
 	 */
 
 	err = sc_misc_set_control(ipc_handle, SC_R_ENET_1, SC_C_TXCLK, 1);
-	if (err != SC_ERR_NONE)
+	if (err)
 		printf("Error in setting up SC_C %d\n\r", SC_C_TXCLK);
 
 	sc_misc_get_control(ipc_handle, SC_R_ENET_1, SC_C_TXCLK, &test);
 	debug("TEST SC_C %d-->%d\n\r", SC_C_TXCLK, test);
 
 	err = sc_misc_set_control(ipc_handle, SC_R_ENET_1, SC_C_CLKDIV, 0);
-	if (err != SC_ERR_NONE)
+	if (err)
 		printf("Error in setting up SC_C %d\n\r", SC_C_CLKDIV);
 
 	sc_misc_get_control(ipc_handle, SC_R_ENET_1, SC_C_CLKDIV, &test);
 	debug("TEST SC_C %d-->%d\n\r", SC_C_CLKDIV, test);
 
 	err = sc_misc_set_control(ipc_handle, SC_R_ENET_1, SC_C_DISABLE_50, 0);
-	if (err != SC_ERR_NONE)
+	if (err)
 		printf("Error in setting up SC_C %d\n\r", SC_C_DISABLE_50);
 
 	sc_misc_get_control(ipc_handle, SC_R_ENET_1, SC_C_TXCLK, &test);
 	debug("TEST SC_C %d-->%d\n\r", SC_C_DISABLE_50, test);
 
 	err = sc_misc_set_control(ipc_handle, SC_R_ENET_1, SC_C_DISABLE_125, 1);
-	if (err != SC_ERR_NONE)
+	if (err)
 		printf("Error in setting up SC_C %d\n\r", SC_C_DISABLE_125);
 
 	sc_misc_get_control(ipc_handle, SC_R_ENET_1, SC_C_TXCLK, &test);
 	debug("TEST SC_C %d-->%d\n\r", SC_C_DISABLE_125, test);
 
 	err = sc_misc_set_control(ipc_handle, SC_R_ENET_1, SC_C_SEL_125, 1);
-	if (err != SC_ERR_NONE)
+	if (err)
 		printf("Error in setting up SC_C %d\n\r", SC_C_SEL_125);
 
 	sc_misc_get_control(ipc_handle, SC_R_ENET_1, SC_C_SEL_125, &test);
@@ -337,13 +337,11 @@ void board_late_mmc_env_init(void)
 }
 
 #ifndef CONFIG_SPL_BUILD
-int factoryset_read_eeprom(int i2c_addr);
-
 static int load_parameters_from_factoryset(void)
 {
 	int ret;
 
-	ret = factoryset_read_eeprom(EEPROM_I2C_ADDR);
+	ret = factoryset_read_eeprom(SIEMENS_EE_I2C_ADDR);
 	if (ret)
 		return ret;
 

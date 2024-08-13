@@ -10,7 +10,7 @@
 #include <asm/io.h>
 #include <dm/device-internal.h>
 #include <dm/device.h>
-#include <dt-bindings/power/imx93-power.h>
+#include <dt-bindings/power/fsl,imx93-power.h>
 #include <clk.h>
 
 #define BLK_SFT_RSTN	0x0

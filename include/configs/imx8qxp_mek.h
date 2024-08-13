@@ -41,52 +41,10 @@
 	"emmc_dev=0\0" \
 	"sd_dev=1\0"
 
-#define JAILHOUSE_ENV \
-	"jh_mmcboot=" \
-		"setenv fdt_file imx8qxp-mek-root.dtb;"\
-		"setenv boot_os 'scu_rm dtb ${fdt_addr}; booti ${loadaddr} - ${fdt_addr};'; " \
-		"run mmcboot; \0" \
-	"jh_netboot=" \
-		"setenv fdt_file imx8qxp-mek-root.dtb;"\
-		"setenv boot_os 'scu_rm dtb ${fdt_addr}; booti ${loadaddr} - ${fdt_addr};'; " \
-		"run netboot; \0"
-
-#define XEN_BOOT_ENV \
-            "xenhyper_bootargs=console=dtuart dtuart=/serial@5a060000 dom0_mem=1024M dom0_max_vcpus=2 dom0_vcpus_pin=true\0" \
-            "xenlinux_bootargs= \0" \
-            "xenlinux_console=hvc0 earlycon=xen\0" \
-            "xenlinux_addr=0x9e000000\0" \
-            "dom0fdt_file=imx8qxp-mek-dom0.dtb\0" \
-            "xenboot_common=" \
-                "${get_cmd} ${loadaddr} xen;" \
-                "${get_cmd} ${fdt_addr} ${dom0fdt_file};" \
-                "${get_cmd} ${xenlinux_addr} ${image};" \
-                "fdt addr ${fdt_addr};" \
-                "fdt resize 256;" \
-                "fdt set /chosen/module@0 reg <0x00000000 ${xenlinux_addr} 0x00000000 0x${filesize}>; " \
-                "fdt set /chosen/module@0 bootargs \"${bootargs} ${xenlinux_bootargs}\"; " \
-                "setenv bootargs ${xenhyper_bootargs};" \
-                "booti ${loadaddr} - ${fdt_addr};" \
-            "\0" \
-            "xennetboot=" \
-                "setenv get_cmd dhcp;" \
-                "setenv console ${xenlinux_console};" \
-                "run netargs;" \
-                "run xenboot_common;" \
-            "\0" \
-            "xenmmcboot=" \
-                "setenv get_cmd \"fatload mmc ${mmcdev}:${mmcpart}\";" \
-                "setenv console ${xenlinux_console};" \
-                "run mmcargs;" \
-                "run xenboot_common;" \
-            "\0" \
-
 /* Initial environment variables */
 #define CFG_EXTRA_ENV_SETTINGS		\
 	CFG_MFG_ENV_SETTINGS \
 	M4_BOOT_ENV \
-	XEN_BOOT_ENV \
-	JAILHOUSE_ENV\
 	AHAB_ENV \
 	"script=boot.scr\0" \
 	"image=Image\0" \

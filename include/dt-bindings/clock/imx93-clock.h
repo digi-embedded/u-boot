@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0+ OR MIT */
 /*
- * Copyright 2021 NXP
+ * Copyright 2022 NXP
  */
 
 #ifndef __DT_BINDINGS_CLOCK_IMX93_CLK_H
@@ -203,6 +203,7 @@
 #define IMX93_CLK_ARM_PLL		198
 #define IMX93_CLK_A55_SEL		199
 #define IMX93_CLK_A55_CORE		200
-#define IMX93_CLK_END			201
+#define IMX93_CLK_PDM_IPG		201
+#define IMX93_CLK_END			202
 
 #endif

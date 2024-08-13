@@ -19,6 +19,7 @@
 #include <asm/arch/sys_proto.h>
 #include <asm/mach-imx/boot_mode.h>
 #include <asm/arch/ddr.h>
+#include <asm/sections.h>
 
 #include <power/pmic.h>
 #ifdef CONFIG_POWER_PCA9450

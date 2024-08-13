@@ -8,4 +8,4 @@ obj-$(CONFIG_USB_CDNS3_GADGET)	+= udc-core.o
 endif
 
 obj-$(CONFIG_$(SPL_)DM_USB_GADGET)	+= udc-core.o
-obj-$(CONFIG_$(SPL_)DM) += udc-uclass.o
+obj-y += udc-uclass.o

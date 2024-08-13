@@ -603,7 +603,7 @@ int power_init_board(void)
 	int ret, dev_id, rev_id;
 	u32 sw3mode;
 
-	ret = pmic_get("pfuze3000@8", &dev);
+	ret = pmic_get("pmic@8", &dev);
 	if (ret == -ENODEV)
 		return 0;
 	if (ret != 0)
@@ -634,6 +634,7 @@ int power_init_board(void)
 int board_late_init(void)
 {
 	struct wdog_regs *wdog = (struct wdog_regs *)WDOG1_BASE_ADDR;
+	unsigned char eth1addr[6];
 
 	env_set("tee", "no");
 #ifdef CONFIG_IMX_OPTEE
@@ -649,6 +650,11 @@ int board_late_init(void)
 	imx_iomux_v3_setup_multiple_pads(wdog_pads, ARRAY_SIZE(wdog_pads));
 
 	set_wdog_reset(wdog);
+
+	/* Get the second MAC address */
+	imx_get_mac_from_fuse(1, eth1addr);
+	if (!env_get("eth1addr") && is_valid_ethaddr(eth1addr))
+		eth_env_set_enetaddr("eth1addr", eth1addr);
 
 	return 0;
 }

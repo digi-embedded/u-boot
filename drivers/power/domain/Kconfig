@@ -80,6 +80,13 @@ config MESON_EE_POWER_DOMAIN
 	  Enable support for manipulating Amlogic Meson Everything-Else power
 	  domains.
 
+config MESON_SECURE_POWER_DOMAIN
+	bool "Enable Amlogic Secure power domain driver"
+	depends on POWER_DOMAIN && ARCH_MESON && MESON_A1
+	help
+	  Enable support for manipulating Amlogic Meson Secure power domains.
+	  Support for Amlogic A1 series.
+
 config SANDBOX_POWER_DOMAIN
 	bool "Enable the sandbox power domain test driver"
 	depends on POWER_DOMAIN && SANDBOX
@@ -88,22 +95,12 @@ config SANDBOX_POWER_DOMAIN
 	  simply accepts requests to power on/off various HW modules without
 	  actually doing anything beyond a little error checking.
 
-config RESET_SCMI
-	bool "Enable SCMI reset domain driver"
-	select SCMI_FIRMWARE
-	help
-	  Enable this option if you want to support reset controller
-	  devices exposed by a SCMI agent based on SCMI reset domain
-	  protocol communication with a SCMI server.
-
 config SCMI_POWER_DOMAIN
-	bool "Enable the SCMI power domain driver"
-	depends on POWER_DOMAIN
-	select SCMI_FIRMWARE
+	bool "Enable SCMI power domain driver"
+	depends on POWER_DOMAIN && SCMI_FIRMWARE
 	help
-	  Enable this option if you want to support power domain controller
-	  devices exposed by a SCMI agent based on SCMI power domain
-	  protocol communication with a SCMI server.
+	  Enable power domain implementation based on SCMI power domain
+	  management protocol.
 
 config TEGRA186_POWER_DOMAIN
 	bool "Enable Tegra186 BPMP-based power domain driver"

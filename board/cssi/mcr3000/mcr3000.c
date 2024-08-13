@@ -7,7 +7,6 @@
  * Board specific routines for the MCR3000 board
  */
 
-#include <common.h>
 #include <env.h>
 #include <hwconfig.h>
 #include <init.h>
@@ -135,20 +134,6 @@ int board_early_init_f(void)
 	setbits_be32(&immr->im_cpm.cp_pbdir, 0x00020000); /* PROGFPGA output */
 	udelay(1);				/* Wait more than 300ns */
 	setbits_be32(&immr->im_cpm.cp_pbdat, 0x00020000); /* PROGFPGA up */
-
-	return 0;
-}
-
-int board_early_init_r(void)
-{
-	struct udevice *watchdog_dev = NULL;
-
-	if (uclass_get_device(UCLASS_WDT, 0, &watchdog_dev)) {
-		puts("Cannot find watchdog!\n");
-	} else {
-		puts("Enabling watchdog.\n");
-		wdt_start(watchdog_dev, 0xffff, 0);
-	}
 
 	return 0;
 }

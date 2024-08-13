@@ -400,10 +400,11 @@ static uint8_t hab_engines[16] = {
 	HAB_ENG_SW
 };
 
-static inline uint32_t get_idx(uint8_t *list, uint8_t tgt, uint32_t size)
+static inline u32 get_idx(u8 *list, u8 tgt, u32 size)
 {
-	uint32_t idx = 0;
-	uint8_t element;
+	u32 idx = 0;
+	u8 element;
+
 	while (idx < size) {
 		element = list[idx];
 		if (element == tgt)
@@ -418,13 +419,13 @@ static void process_event_record(uint8_t *event_data, size_t bytes)
 	struct record *rec = (struct record *)event_data;
 
 	printf("\n\n%s", sts_str[get_idx(hab_statuses, rec->contents[0],
-		ARRAY_SIZE(hab_statuses))]);
+	       ARRAY_SIZE(hab_statuses))]);
 	printf("%s", rsn_str[get_idx(hab_reasons, rec->contents[1],
-		ARRAY_SIZE(hab_reasons))]);
+	       ARRAY_SIZE(hab_reasons))]);
 	printf("%s", ctx_str[get_idx(hab_contexts, rec->contents[2],
-		ARRAY_SIZE(hab_contexts))]);
+	       ARRAY_SIZE(hab_contexts))]);
 	printf("%s", eng_str[get_idx(hab_engines, rec->contents[3],
-		ARRAY_SIZE(hab_engines))]);
+	       ARRAY_SIZE(hab_engines))]);
 }
 
 static void display_event(uint8_t *event_data, size_t bytes)
@@ -678,7 +679,7 @@ static int do_authenticate_image_or_failover(struct cmd_tbl *cmdtp, int flag,
 {
 	int ret = CMD_RET_FAILURE;
 
-	if (argc != 4) {
+	if (argc < 3) {
 		ret = CMD_RET_USAGE;
 		goto error;
 	}
@@ -719,7 +720,7 @@ U_BOOT_CMD(
 		"addr length ivt_offset\n"
 		"addr - image hex address\n"
 		"length - image hex length\n"
-		"ivt_offset - hex offset of IVT in the image"
+		"ivt_offset - hex offset of IVT in the image (optional)"
 	  );
 
 U_BOOT_CMD(
@@ -731,11 +732,11 @@ U_BOOT_CMD(
 U_BOOT_CMD(
 		hab_auth_img_or_fail, 4, 0,
 		do_authenticate_image_or_failover,
-		"authenticate image via HAB on failure drop to USB BootROM mode",
+		"authenticate image via HAB. Switch to USB BootROM mode on failure",
 		"addr length ivt_offset\n"
 		"addr - image hex address\n"
 		"length - image hex length\n"
-		"ivt_offset - hex offset of IVT in the image"
+		"ivt_offset - hex offset of IVT in the image (optional)"
 	  );
 
 U_BOOT_CMD(
@@ -951,10 +952,10 @@ int imx_hab_authenticate_image(uint32_t ddr_start, uint32_t image_size,
 	printf("ivt entry = 0x%08x, dcd = 0x%08x, csf = 0x%08x\n", ivt->entry,
 	       ivt->dcd, ivt->csf);
 	puts("Dumping IVT\n");
-	print_buffer(ivt_addr, (void *)(ivt_addr), 4, 0x8, 0);
+	print_buffer(ivt_addr, (void *)(uintptr_t)(ivt_addr), 4, 0x8, 0);
 
 	puts("Dumping CSF Header\n");
-	print_buffer(ivt->csf, (void *)(ivt->csf), 4, 0x10, 0);
+	print_buffer(ivt->csf, (void *)(uintptr_t)(ivt->csf), 4, 0x10, 0);
 
 #if  !defined(CONFIG_SPL_BUILD)
 	get_hab_status();
@@ -963,7 +964,7 @@ int imx_hab_authenticate_image(uint32_t ddr_start, uint32_t image_size,
 	puts("\nCalling authenticate_image in ROM\n");
 	printf("\tivt_offset = 0x%x\n", ivt_offset);
 	printf("\tstart = 0x%08lx\n", start);
-	printf("\tbytes = 0x%x\n", bytes);
+	printf("\tbytes = 0x%lx\n", (ulong)bytes);
 #endif
 
 #ifndef CONFIG_ARM64

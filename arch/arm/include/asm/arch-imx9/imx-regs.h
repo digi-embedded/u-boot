@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
- * Copyright 2022 NXP
+ * Copyright 2022-2023 NXP
  */
 
 #ifndef __ASM_ARCH_IMX9_REGS_H__
@@ -13,12 +13,18 @@
 #define CCM_BASE_ADDR		0x44450000UL
 #define CCM_CCGR_BASE_ADDR	0x44458000UL
 #define SYSCNT_CTRL_BASE_ADDR	0x44290000
+#define SYSCNT_CMP_BASE_ADDR	(SYSCNT_CTRL_BASE_ADDR + 0x10000)
 
 #define ANATOP_BASE_ADDR    0x44480000UL
 
 #define WDG3_BASE_ADDR      0x42490000UL
 #define WDG4_BASE_ADDR      0x424a0000UL
 #define WDG5_BASE_ADDR      0x424b0000UL
+
+#define GPIO2_BASE_ADDR	    0x43810000UL
+#define GPIO3_BASE_ADDR	    0x43820000UL
+#define GPIO4_BASE_ADDR	    0x43840000UL
+#define GPIO5_BASE_ADDR	    0x43850000UL
 
 #define FSB_BASE_ADDR       0x47510000UL
 
@@ -50,6 +56,11 @@
 #define TCMU_BASE_MCORE_NSEC_ADDR   (0x20000000UL)
 #define TCMU_SIZE                   (0x20000U)
 
+#define MCU_BOOTROM_BASE_ADDR (0x203C0000UL)
+#define M7_TCML_BASE_ADDR              (0x20380000UL)
+#define M7_TCML_BASE_MCORE_ADDR    (0x0UL)
+#define M7_TCML_MAX_SIZE                (0x80000U) /* Could configure to 512KB TCML */
+
 #define FLEXSPI_AHB_ADDR            (0x28000000UL)
 #define FLEXSPI_AHB_SIZE            (0x8000000UL)
 
@@ -58,13 +69,16 @@
 #define SRC_MIX_SLICE_FUNC_STAT_ISO_STAT BIT(4)
 #define SRC_MIX_SLICE_FUNC_STAT_MEM_STAT BIT(12)
 
-#define IMG_CONTAINER_BASE             (0x80000000UL)
+#define IMG_CONTAINER_BASE             CFG_SYS_SDRAM_BASE
 
 #define BCTRL_GPR_ENET_QOS_INTF_MODE_MASK        GENMASK(3, 1)
 #define BCTRL_GPR_ENET_QOS_INTF_SEL_MII          (0x0 << 1)
 #define BCTRL_GPR_ENET_QOS_INTF_SEL_RMII         (0x4 << 1)
 #define BCTRL_GPR_ENET_QOS_INTF_SEL_RGMII        (0x1 << 1)
 #define BCTRL_GPR_ENET_QOS_CLK_GEN_EN            (0x1 << 0)
+
+#define MARKETING_GRADING_MASK	GENMASK(5, 4)
+#define SPEED_GRADING_MASK	GENMASK(11, 6)
 
 #if !(defined(__KERNEL_STRICT_NAMES) || defined(__ASSEMBLY__))
 #include <asm/types.h>

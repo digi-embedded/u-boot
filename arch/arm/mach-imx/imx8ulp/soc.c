@@ -704,9 +704,9 @@ void get_board_serial(struct tag_serialnr *serialnr)
 	u32 res;
 	int ret;
 
-	ret = ahab_read_common_fuse(1, uid, 4, &res);
+	ret = ele_read_common_fuse(1, uid, 4, &res);
 	if (ret)
-		printf("ahab read fuse failed %d, 0x%x\n", ret, res);
+		printf("ele read fuse failed %d, 0x%x\n", ret, res);
 	else
 		printf("UID 0x%x,0x%x,0x%x,0x%x\n", uid[0], uid[1], uid[2], uid[3]);
 
@@ -961,9 +961,9 @@ int imx8ulp_dm_post_init(void)
 		return ret;
 	}
 
-	ret = ahab_get_info(info, &res);
+	ret = ele_get_info(info, &res);
 	if (ret) {
-		printf("ahab_get_info failed %d\n", ret);
+		printf("ele_get_info failed %d\n", ret);
 		/* fallback to A0.1 revision */
 		memset((void *)info, 0, sizeof(struct ele_get_info_data));
 		info->soc = 0xa000084d;
@@ -973,12 +973,8 @@ int imx8ulp_dm_post_init(void)
 
 	return 0;
 }
-
-static int imx8ulp_evt_dm_post_init(void *ctx, struct event *event)
-{
-	return imx8ulp_dm_post_init();
-}
-EVENT_SPY(EVT_DM_POST_INIT, imx8ulp_evt_dm_post_init);
+EVENT_SPY_SIMPLE(EVT_DM_POST_INIT_F, imx8ulp_dm_post_init);
+EVENT_SPY_SIMPLE(EVT_DM_POST_INIT_R, imx8ulp_dm_post_init);
 
 #if defined(CONFIG_ARCH_MISC_INIT)
 int arch_misc_init(void)
@@ -989,7 +985,7 @@ int arch_misc_init(void)
 
 		ret = uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(caam_jr), &dev);
 		if (ret)
-			printf("Failed to initialize %s: %d\n", dev->name, ret);
+			printf("Failed to initialize: %d\n", ret);
 	}
 
 
@@ -1182,7 +1178,7 @@ static int disable_cpu_nodes(void *blob, u32 disabled_cores)
 int ft_system_setup(void *blob, struct bd_info *bd)
 {
 	u32 uid[4];
-	u32 res;
+	u32 res = 0;
 	int ret;
 	int nodeoff = fdt_path_offset(blob, "/soc");
 	/* Nibble 1st for major version
@@ -1195,7 +1191,7 @@ int ft_system_setup(void *blob, struct bd_info *bd)
 		goto skip_upt;
 	}
 
-	ret = ahab_read_common_fuse(1, uid, 4, &res);
+	ret = ele_read_common_fuse(1, uid, 4, &res);
 	if (ret) {
 		printf("ahab read fuse failed %d, 0x%x\n", ret, res);
 		memset(uid, 0x0, 4 * sizeof(u32));
@@ -1237,33 +1233,29 @@ skip_upt:
 enum env_location env_get_location(enum env_operation op, int prio)
 {
 	enum boot_device dev = get_boot_device();
-	enum env_location env_loc = ENVL_UNKNOWN;
 
 	if (prio)
-		return env_loc;
+		return ENVL_UNKNOWN;
 
 	switch (dev) {
-#ifdef CONFIG_ENV_IS_IN_SPI_FLASH
 	case QSPI_BOOT:
-		env_loc = ENVL_SPI_FLASH;
-		break;
-#endif
-#ifdef CONFIG_ENV_IS_IN_MMC
+		if (CONFIG_IS_ENABLED(ENV_IS_IN_SPI_FLASH))
+			return ENVL_SPI_FLASH;
+		return ENVL_NOWHERE;
 	case SD1_BOOT:
 	case SD2_BOOT:
 	case SD3_BOOT:
 	case MMC1_BOOT:
 	case MMC2_BOOT:
 	case MMC3_BOOT:
-		env_loc =  ENVL_MMC;
-		break;
-#endif
+		if (CONFIG_IS_ENABLED(ENV_IS_IN_MMC))
+			return ENVL_MMC;
+		else if (CONFIG_IS_ENABLED(ENV_IS_IN_EXT4))
+			return ENVL_EXT4;
+		else if (CONFIG_IS_ENABLED(ENV_IS_IN_FAT))
+			return ENVL_FAT;
+		return ENVL_NOWHERE;
 	default:
-#if defined(CONFIG_ENV_IS_NOWHERE)
-		env_loc = ENVL_NOWHERE;
-#endif
-		break;
+		return ENVL_NOWHERE;
 	}
-
-	return env_loc;
 }

@@ -1056,7 +1056,7 @@ int in112525_s05_startup(struct phy_device *phydev)
 	return 0;
 }
 
-struct phy_driver in112525_s05_driver = {
+U_BOOT_PHY_DRIVER(in112525_s05) = {
 	.name = "Inphi in112525_S05P",
 	.uid = PHY_UID_IN112525_S05,
 	.mask = 0x0ff0ffff,
@@ -1068,7 +1068,7 @@ struct phy_driver in112525_s05_driver = {
 	.shutdown = &gen10g_shutdown,
 };
 
-struct phy_driver in112525_s03_driver = {
+U_BOOT_PHY_DRIVER(in112525_s03) = {
 	.name = "Inphi in112525_S03P",
 	.uid = PHY_UID_IN112525_S03,
 	.mask = 0x0ff0fff0,
@@ -1079,10 +1079,3 @@ struct phy_driver in112525_s03_driver = {
 	.startup = &in112525_s03_startup,
 	.shutdown = &gen10g_shutdown,
 };
-
-int phy_in112525_init(void)
-{
-	phy_register(&in112525_s05_driver);
-	phy_register(&in112525_s03_driver);
-	return 0;
-}

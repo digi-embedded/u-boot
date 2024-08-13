@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * (C) Copyright 2014 - 2015 Xilinx, Inc.
- * Michal Simek <michal.simek@xilinx.com>
+ * Michal Simek <michal.simek@amd.com>
  */
 
 #include <common.h>
@@ -18,6 +18,7 @@
 #include <ahci.h>
 #include <scsi.h>
 #include <soc.h>
+#include <spl.h>
 #include <malloc.h>
 #include <memalign.h>
 #include <wdt.h>
@@ -156,9 +157,12 @@ int board_init(void)
 #if defined(CONFIG_ZYNQMP_FIRMWARE)
 	struct udevice *dev;
 
-	uclass_get_device_by_name(UCLASS_FIRMWARE, "zynqmp-power", &dev);
-	if (!dev)
-		panic("PMU Firmware device not found - Enable it");
+	uclass_get_device_by_name(UCLASS_FIRMWARE, "power-management", &dev);
+	if (!dev) {
+		uclass_get_device_by_name(UCLASS_FIRMWARE, "zynqmp-power", &dev);
+		if (!dev)
+			panic("PMU Firmware device not found - Enable it");
+	}
 #endif
 
 #if defined(CONFIG_SPL_BUILD)
@@ -384,37 +388,16 @@ static int set_fdtfile(void)
 	return 0;
 }
 
-int board_late_init(void)
+static int boot_targets_setup(void)
 {
 	u8 bootmode;
 	struct udevice *dev;
 	int bootseq = -1;
 	int bootseq_len = 0;
 	int env_targets_len = 0;
-	const char *mode;
+	const char *mode = NULL;
 	char *new_targets;
 	char *env_targets;
-	int ret, multiboot;
-
-#if defined(CONFIG_USB_ETHER) && !defined(CONFIG_USB_GADGET_DOWNLOAD)
-	usb_ether_init();
-#endif
-
-	if (!(gd->flags & GD_FLG_ENV_DEFAULT)) {
-		debug("Saved variables - Skipping\n");
-		return 0;
-	}
-
-	if (!IS_ENABLED(CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG))
-		return 0;
-
-	ret = set_fdtfile();
-	if (ret)
-		return ret;
-
-	multiboot = multi_boot();
-	if (multiboot >= 0)
-		env_set_hex("multiboot", multiboot);
 
 	bootmode = zynqmp_get_bootmode();
 
@@ -442,8 +425,8 @@ int board_late_init(void)
 					      "mmc@ff160000", &dev) &&
 		    uclass_get_device_by_name(UCLASS_MMC,
 					      "sdhci@ff160000", &dev)) {
-			puts("Boot from EMMC but without SD0 enabled!\n");
-			return -1;
+			debug("SD0 driver for SD0 device is not present\n");
+			break;
 		}
 		debug("mmc0 device found at %p, seq %d\n", dev, dev_seq(dev));
 
@@ -457,8 +440,8 @@ int board_late_init(void)
 					      "mmc@ff160000", &dev) &&
 		    uclass_get_device_by_name(UCLASS_MMC,
 					      "sdhci@ff160000", &dev)) {
-			puts("Boot from SD0 but without SD0 enabled!\n");
-			return -1;
+			debug("SD0 driver for SD0 device is not present\n");
+			break;
 		}
 		debug("mmc0 device found at %p, seq %d\n", dev, dev_seq(dev));
 
@@ -475,8 +458,8 @@ int board_late_init(void)
 					      "mmc@ff170000", &dev) &&
 		    uclass_get_device_by_name(UCLASS_MMC,
 					      "sdhci@ff170000", &dev)) {
-			puts("Boot from SD1 but without SD1 enabled!\n");
-			return -1;
+			debug("SD1 driver for SD1 device is not present\n");
+			break;
 		}
 		debug("mmc1 device found at %p, seq %d\n", dev, dev_seq(dev));
 
@@ -490,39 +473,73 @@ int board_late_init(void)
 		env_set("modeboot", "nandboot");
 		break;
 	default:
-		mode = "";
 		printf("Invalid Boot Mode:0x%x\n", bootmode);
 		break;
 	}
 
-	if (bootseq >= 0) {
-		bootseq_len = snprintf(NULL, 0, "%i", bootseq);
-		debug("Bootseq len: %x\n", bootseq_len);
-		env_set_hex("bootseq", bootseq);
+	if (mode) {
+		if (bootseq >= 0) {
+			bootseq_len = snprintf(NULL, 0, "%i", bootseq);
+			debug("Bootseq len: %x\n", bootseq_len);
+			env_set_hex("bootseq", bootseq);
+		}
+
+		/*
+		 * One terminating char + one byte for space between mode
+		 * and default boot_targets
+		 */
+		env_targets = env_get("boot_targets");
+		if (env_targets)
+			env_targets_len = strlen(env_targets);
+
+		new_targets = calloc(1, strlen(mode) + env_targets_len + 2 +
+				     bootseq_len);
+		if (!new_targets)
+			return -ENOMEM;
+
+		if (bootseq >= 0)
+			sprintf(new_targets, "%s%x %s", mode, bootseq,
+				env_targets ? env_targets : "");
+		else
+			sprintf(new_targets, "%s %s", mode,
+				env_targets ? env_targets : "");
+
+		env_set("boot_targets", new_targets);
+		free(new_targets);
 	}
 
-	/*
-	 * One terminating char + one byte for space between mode
-	 * and default boot_targets
-	 */
-	env_targets = env_get("boot_targets");
-	if (env_targets)
-		env_targets_len = strlen(env_targets);
+	return 0;
+}
 
-	new_targets = calloc(1, strlen(mode) + env_targets_len + 2 +
-			     bootseq_len);
-	if (!new_targets)
-		return -ENOMEM;
+int board_late_init(void)
+{
+	int ret, multiboot;
 
-	if (bootseq >= 0)
-		sprintf(new_targets, "%s%x %s", mode, bootseq,
-			env_targets ? env_targets : "");
-	else
-		sprintf(new_targets, "%s %s", mode,
-			env_targets ? env_targets : "");
+#if defined(CONFIG_USB_ETHER) && !defined(CONFIG_USB_GADGET_DOWNLOAD)
+	usb_ether_init();
+#endif
 
-	env_set("boot_targets", new_targets);
-	free(new_targets);
+	if (!(gd->flags & GD_FLG_ENV_DEFAULT)) {
+		debug("Saved variables - Skipping\n");
+		return 0;
+	}
+
+	if (!IS_ENABLED(CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG))
+		return 0;
+
+	ret = set_fdtfile();
+	if (ret)
+		return ret;
+
+	multiboot = multi_boot();
+	if (multiboot >= 0)
+		env_set_hex("multiboot", multiboot);
+
+	if (IS_ENABLED(CONFIG_DISTRO_DEFAULTS)) {
+		ret = boot_targets_setup();
+		if (ret)
+			return ret;
+	}
 
 	reset_reason();
 
@@ -657,7 +674,7 @@ void set_dfu_alt_info(char *interface, char *devstr)
 		len += snprintf(buf + len, DFU_ALT_BUF_LEN,
 			       ";%s raw 0x%x 0x500000",
 			       CONFIG_SPL_FS_LOAD_PAYLOAD_NAME,
-			       CONFIG_SYS_SPI_U_BOOT_OFFS);
+			       multiboot * SZ_32K + CONFIG_SYS_SPI_U_BOOT_OFFS);
 #endif
 		break;
 	default:
@@ -666,5 +683,20 @@ void set_dfu_alt_info(char *interface, char *devstr)
 
 	env_set("dfu_alt_info", buf);
 	puts("DFU alt info setting: done\n");
+}
+#endif
+
+#if defined(CONFIG_SPL_SPI_LOAD)
+unsigned int spl_spi_get_uboot_offs(struct spi_flash *flash)
+{
+	u32 offset;
+	int multiboot = multi_boot();
+
+	offset = multiboot * SZ_32K;
+	offset += CONFIG_SYS_SPI_U_BOOT_OFFS;
+
+	log_info("SPI offset:\t0x%x\n", offset);
+
+	return offset;
 }
 #endif

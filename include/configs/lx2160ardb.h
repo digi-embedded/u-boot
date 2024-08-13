@@ -11,9 +11,9 @@
 /* RTC */
 #define CFG_SYS_RTC_BUS_NUM		4
 
-/* MAC/PHY configuration */
-#define AQR113C_PHY_ADDR1      0x0
-#define AQR113C_PHY_ADDR2      0x08
+#if defined(CONFIG_FSL_MC_ENET)
+#define AQR113C_PHY_ADDR1		0x0
+#define AQR113C_PHY_ADDR2		0x08
 
 #define INPHI_PHY_ADDR1		0x0
 #ifdef CONFIG_SD_BOOT
@@ -25,6 +25,7 @@
 
 #define RGMII_PHY_ADDR1		0x01
 #define RGMII_PHY_ADDR2		0x02
+#endif
 
 /* EMC2305 */
 #define I2C_MUX_CH_EMC2305		0x09

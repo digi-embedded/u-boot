@@ -29,9 +29,11 @@
 #include <errno.h>
 #include <fdt_support.h>
 #include <fsl_wdog.h>
+#include <fuse.h>
 #include <imx_sip.h>
 #include <linux/arm-smccc.h>
 #include <linux/bitops.h>
+#include <linux/bitfield.h>
 #include <asm/setup.h>
 #include <asm/bootm.h>
 #include <kaslr.h>
@@ -260,7 +262,7 @@ int dram_init(void)
 		return ret;
 
 	/* rom_pointer[1] contains the size of TEE occupies */
-	if (!IS_ENABLED(CONFIG_ARMV8_PSCI) && rom_pointer[1]) {
+	if (!IS_ENABLED(CONFIG_ARMV8_PSCI) && !IS_ENABLED(CONFIG_SPL_BUILD) && rom_pointer[1]) {
 		gd->ram_size = sdram_size - rom_pointer[1];
 #ifdef AUTODETECT_RAM_SIZE
 		/*
@@ -302,7 +304,7 @@ int dram_init_banksize(void)
 	}
 
 	gd->bd->bi_dram[bank].start = PHYS_SDRAM;
-	if (!IS_ENABLED(CONFIG_ARMV8_PSCI) && rom_pointer[1]) {
+	if (!IS_ENABLED(CONFIG_ARMV8_PSCI) && !IS_ENABLED(CONFIG_SPL_BUILD) && rom_pointer[1]) {
 		phys_addr_t optee_start;
 		phys_size_t optee_size = (size_t)rom_pointer[1];
 
@@ -360,7 +362,8 @@ phys_size_t get_effective_memsize(void)
 			sdram_b1_size = sdram_size;
 		}
 
-		if (!IS_ENABLED(CONFIG_ARMV8_PSCI) && rom_pointer[1]) {
+		if (!IS_ENABLED(CONFIG_ARMV8_PSCI) && !IS_ENABLED(CONFIG_SPL_BUILD) &&
+		    rom_pointer[1]) {
 			/* We will relocate u-boot to Top of dram1. Tee position has two cases:
 			 * 1. At the top of dram1,  Then return the size removed optee size.
 			 * 2. In the middle of dram1, return the size of dram1.
@@ -495,6 +498,10 @@ static u32 get_cpu_variant_type(u32 type)
 			return MXC_CPU_IMX8MPDSC;
 		case 0x3d6:
 			return MXC_CPU_IMX8MPSC;
+		case 0x4:
+			return MXC_CPU_IMX8MP5;
+		case 0x404:
+			return MXC_CPU_IMX8MPD2;
 		default:
 			break;
 		}
@@ -571,7 +578,7 @@ static void imx_set_wdog_powerdown(bool enable)
 	writew(enable, &wdog3->wmcr);
 }
 
-static int imx8m_check_clock(void *ctx, struct event *event)
+static int imx8m_check_clock(void)
 {
 	struct udevice *dev;
 	int ret;
@@ -588,7 +595,7 @@ static int imx8m_check_clock(void *ctx, struct event *event)
 
 	return 0;
 }
-EVENT_SPY(EVT_DM_POST_INIT, imx8m_check_clock);
+EVENT_SPY_SIMPLE(EVT_DM_POST_INIT_F, imx8m_check_clock);
 
 static void imx8m_setup_snvs(void)
 {
@@ -751,19 +758,17 @@ struct rom_api *g_rom_api = (struct rom_api *)0x980;
 
 #if defined(CONFIG_IMX8M)
 #include <spl.h>
-int spl_mmc_emmc_boot_partition(struct mmc *mmc)
+int imx8m_detect_secondary_image_boot(void)
 {
 	u32 *rom_log_addr = (u32 *)0x9e0;
 	u32 *rom_log;
 	u8 event_id;
-	int i, part;
-
-	part = default_spl_mmc_emmc_boot_partition(mmc);
+	int i, boot_secondary = 0;
 
 	/* If the ROM event log pointer is not valid. */
 	if (*rom_log_addr < 0x900000 || *rom_log_addr >= 0xb00000 ||
 	    *rom_log_addr & 0x3)
-		return part;
+		return -EINVAL;
 
 	/* Parse the ROM event ID version 2 log */
 	rom_log = (u32 *)(uintptr_t)(*rom_log_addr);
@@ -771,10 +776,11 @@ int spl_mmc_emmc_boot_partition(struct mmc *mmc)
 		event_id = rom_log[i] >> 24;
 		switch (event_id) {
 		case 0x00: /* End of list */
-			return part;
+			return boot_secondary;
 		/* Log entries with 1 parameter, skip 1 */
 		case 0x80: /* Start to perform the device initialization */
 		case 0x81: /* The boot device initialization completes */
+		case 0x82: /* Starts to execute boot device driver pre-config */
 		case 0x8f: /* The boot device initialization fails */
 		case 0x90: /* Start to read data from boot device */
 		case 0x91: /* Reading data from boot device completes */
@@ -788,25 +794,88 @@ int spl_mmc_emmc_boot_partition(struct mmc *mmc)
 			continue;
 		/* Boot from the secondary boot image */
 		case 0x51:
-			/*
-			 * Swap the eMMC boot partitions in case there was a
-			 * fallback event (i.e. primary image was corrupted
-			 * and that corruption was recognized by the BootROM),
-			 * so the SPL loads the rest of the U-Boot from the
-			 * correct eMMC boot partition, since the BootROM
-			 * leaves the boot partition set to the corrupted one.
-			 */
-			if (part == 1)
-				part = 2;
-			else if (part == 2)
-				part = 1;
+			boot_secondary = 1;
 			continue;
 		default:
 			continue;
 		}
 	}
 
+	return boot_secondary;
+}
+
+int spl_mmc_emmc_boot_partition(struct mmc *mmc)
+{
+	int part, ret;
+
+	part = default_spl_mmc_emmc_boot_partition(mmc);
+	if (part == 0)
+		return part;
+
+	ret = imx8m_detect_secondary_image_boot();
+	if (ret < 0) {
+		printf("Could not get boot partition! Using %d\n", part);
+		return part;
+	}
+
+	if (ret == 1) {
+		/*
+		 * Swap the eMMC boot partitions in case there was a
+		 * fallback event (i.e. primary image was corrupted
+		 * and that corruption was recognized by the BootROM),
+		 * so the SPL loads the rest of the U-Boot from the
+		 * correct eMMC boot partition, since the BootROM
+		 * leaves the boot partition set to the corrupted one.
+		 */
+		if (part == 1)
+			part = 2;
+		else if (part == 2)
+			part = 1;
+	}
+
 	return part;
+}
+
+int boot_mode_getprisec(void)
+{
+	return !!imx8m_detect_secondary_image_boot();
+}
+#endif
+
+#if defined(CONFIG_IMX8MN) || defined(CONFIG_IMX8MP)
+#define IMG_CNTN_SET1_OFFSET	GENMASK(22, 19)
+unsigned long arch_spl_mmc_get_uboot_raw_sector(struct mmc *mmc,
+						unsigned long raw_sect)
+{
+	u32 val, offset;
+
+	if (fuse_read(2, 1, &val)) {
+		debug("Error reading fuse!\n");
+		return raw_sect;
+	}
+
+	val = FIELD_GET(IMG_CNTN_SET1_OFFSET, val);
+	if (val > 10) {
+		debug("Secondary image boot disabled!\n");
+		return raw_sect;
+	}
+
+	if (val == 0)
+		offset = SZ_4M;
+	else if (val == 1)
+		offset = SZ_2M;
+	else if (val == 2)
+		offset = SZ_1M;
+	else	/* flash.bin offset = 1 MiB * 2^n */
+		offset = SZ_1M << val;
+
+	offset /= 512;
+	offset -= CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_DATA_PART_OFFSET;
+
+	if (imx8m_detect_secondary_image_boot())
+		raw_sect += offset;
+
+	return raw_sect;
 }
 #endif
 
@@ -853,7 +922,7 @@ static int disable_fdt_nodes(void *blob, const char *const nodes_path[], int siz
 		if (nodeoff < 0)
 			continue; /* Not found, skip it */
 
-		printf("Found %s node\n", nodes_path[i]);
+		debug("Found %s node\n", nodes_path[i]);
 
 add_status:
 		rc = fdt_setprop(blob, nodeoff, "status", status, strlen(status) + 1);
@@ -993,20 +1062,28 @@ int disable_vpu_nodes(void *blob)
 {
 	static const char * const nodes_path_8mq[] = {
 		"/vpu@38300000",
-		"/soc@0/vpu@38300000"
+		"/soc@0/vpu@38300000",
+		"/soc@0/video-codec@38300000",
+		"/soc@0/video-codec@38310000",
+		"/soc@0/blk-ctrl@38320000",
 	};
 
 	static const char * const nodes_path_8mm[] = {
 		"/vpu_g1@38300000",
 		"/vpu_g2@38310000",
 		"/vpu_h1@38320000",
-		"/soc@0/blk-ctrl@38330000"
+		"/soc@0/video-codec@38300000",
+		"/soc@0/video-codec@38310000",
+		"/soc@0/blk-ctrl@38330000",
 	};
 
 	static const char * const nodes_path_8mp[] = {
 		"/vpu_g1@38300000",
 		"/vpu_g2@38310000",
 		"/vpu_vc8000e@38320000",
+		"/soc@0/video-codec@38300000",
+		"/soc@0/video-codec@38310000",
+		"/soc@0/blk-ctrl@38330000",
 		"/soc@0/blk-ctl@38330000",
 		"/soc@0/bus@30000000/gpc@303a0000/pgc/power-domain@19",
 		"/soc@0/bus@30000000/gpc@303a0000/pgc/power-domain@20",
@@ -1160,6 +1237,8 @@ static int low_drive_gpu_freq(void *blob)
 
 		if (cnt != 7)
 			printf("Warning: %s, assigned-clock-rates count %d\n", nodes_path_8mn[i], cnt);
+		if (cnt < 2)
+			return -1;
 
 		assignedclks[cnt - 1] = 200000000;
 		assignedclks[cnt - 2] = 200000000;
@@ -1289,7 +1368,9 @@ int disable_lvds_lcdif_nodes(void *blob)
 
 	static const char * const ldb_path_8mp[] = {
 		"/soc@0/bus@32c00000/ldb@32ec005c",
-		"/soc@0/bus@32c00000/phy@32ec0128"
+		"/soc@0/bus@32c00000/phy@32ec0128",
+		"/ldb-display-controller",
+		"/phy-lvds"
 	};
 
 	static const char * const lcdif_path_8mp[] = {
@@ -1298,11 +1379,15 @@ int disable_lvds_lcdif_nodes(void *blob)
 
 	static const char * const lcdif_ep_path_8mp[] = {
 		"/soc@0/bus@32c00000/lcd-controller@32e90000/port@0/endpoint@0",
-		"/soc@0/bus@32c00000/lcd-controller@32e90000/port@0/endpoint@1"
+		"/soc@0/bus@32c00000/lcd-controller@32e90000/port@0/endpoint@1",
+		"/soc@0/bus@32c00000/lcd-controller@32e90000/port/endpoint@0",
+		"/soc@0/bus@32c00000/lcd-controller@32e90000/port/endpoint@1"
 	};
 	static const char * const ldb_ep_path_8mp[] = {
 		"/soc@0/bus@32c00000/ldb@32ec005c/lvds-channel@0/port@0/endpoint",
-		"/soc@0/bus@32c00000/ldb@32ec005c/lvds-channel@1/port@0/endpoint"
+		"/soc@0/bus@32c00000/ldb@32ec005c/lvds-channel@1/port@0/endpoint",
+		"/ldb-display-controller/lvds-channel@0/port@0/endpoint",
+		"/ldb-display-controller/lvds-channel@1/port/endpoint"
 	};
 
 	ret = disable_fdt_nodes(blob, ldb_path_8mp, ARRAY_SIZE(ldb_path_8mp));
@@ -1340,7 +1425,8 @@ int disable_gpu_nodes(void *blob)
 int disable_npu_nodes(void *blob)
 {
 	static const char * const nodes_path_8mp[] = {
-		"/vipsi@38500000"
+		"/vipsi@38500000",
+		"/soc@0/npu@38500000",
 	};
 
 	return disable_fdt_nodes(blob, nodes_path_8mp, ARRAY_SIZE(nodes_path_8mp));
@@ -1593,7 +1679,7 @@ int ft_system_setup(void *blob, struct bd_info *bd)
 		if (nodeoff >= 0) {
 			const char *speed = "high-speed";
 
-			printf("Found %s node\n", usb_dwc3_path[v]);
+			debug("Found %s node\n", usb_dwc3_path[v]);
 
 usb_modify_speed:
 
@@ -1726,14 +1812,16 @@ usb_modify_speed:
 		disable_npu_nodes(blob);
 
 	if (is_imx8mpul() || is_imx8mpl() ||
-		is_imx8mpsc() || is_imx8mpdsc())
+		is_imx8mpsc() || is_imx8mpdsc() ||
+		is_imx8mpd2() || is_imx8mp5())
 		disable_isp_nodes(blob);
 
 	if (is_imx8mpul() || is_imx8mpl() || is_imx8mp6() ||
-		is_imx8mpsc() || is_imx8mpdsc())
+		is_imx8mpsc() || is_imx8mpdsc() ||
+		is_imx8mpd2() || is_imx8mp5())
 		disable_dsp_nodes(blob);
 
-	if (is_imx8mpd() || is_imx8mpdsc())
+	if (is_imx8mpd() || is_imx8mpdsc() || is_imx8mpd2())
 		disable_cpu_nodes(blob, 2);
 #endif
 
@@ -1912,79 +2000,6 @@ int imx8m_usb_power(int usb_id, bool on)
 #endif
 
 	return 0;
-}
-
-void imx_tmu_arch_init(void *reg_base)
-{
-	if (is_imx8mm() || is_imx8mn()) {
-		/* Load TCALIV and TASR from fuses */
-		struct ocotp_regs *ocotp =
-			(struct ocotp_regs *)OCOTP_BASE_ADDR;
-		struct fuse_bank *bank = &ocotp->bank[3];
-		struct fuse_bank3_regs *fuse =
-			(struct fuse_bank3_regs *)bank->fuse_regs;
-
-		u32 tca_rt, tca_hr, tca_en;
-		u32 buf_vref, buf_slope;
-
-		tca_rt = fuse->ana0 & 0xFF;
-		tca_hr = (fuse->ana0 & 0xFF00) >> 8;
-		tca_en = (fuse->ana0 & 0x2000000) >> 25;
-
-		buf_vref = (fuse->ana0 & 0x1F00000) >> 20;
-		buf_slope = (fuse->ana0 & 0xF0000) >> 16;
-
-		writel(buf_vref | (buf_slope << 16), (ulong)reg_base + 0x28);
-		writel((tca_en << 31) | (tca_hr << 16) | tca_rt,
-		       (ulong)reg_base + 0x30);
-	}
-#ifdef CONFIG_IMX8MP
-	/* Load TCALIV0/1/m40 and TRIM from fuses */
-	struct ocotp_regs *ocotp = (struct ocotp_regs *)OCOTP_BASE_ADDR;
-	struct fuse_bank *bank = &ocotp->bank[38];
-	struct fuse_bank38_regs *fuse =
-		(struct fuse_bank38_regs *)bank->fuse_regs;
-	struct fuse_bank *bank2 = &ocotp->bank[39];
-	struct fuse_bank39_regs *fuse2 =
-		(struct fuse_bank39_regs *)bank2->fuse_regs;
-	u32 buf_vref, buf_slope, bjt_cur, vlsb, bgr;
-	u32 reg;
-	u32 tca40[2], tca25[2], tca105[2];
-
-	/* For blank sample */
-	if (!fuse->ana_trim2 && !fuse->ana_trim3 &&
-	    !fuse->ana_trim4 && !fuse2->ana_trim5) {
-		/* Use a default 25C binary codes */
-		tca25[0] = 1596;
-		tca25[1] = 1596;
-		writel(tca25[0], (ulong)reg_base + 0x30);
-		writel(tca25[1], (ulong)reg_base + 0x34);
-		return;
-	}
-
-	buf_vref = (fuse->ana_trim2 & 0xc0) >> 6;
-	buf_slope = (fuse->ana_trim2 & 0xF00) >> 8;
-	bjt_cur = (fuse->ana_trim2 & 0xF000) >> 12;
-	bgr = (fuse->ana_trim2 & 0xF0000) >> 16;
-	vlsb = (fuse->ana_trim2 & 0xF00000) >> 20;
-	writel(buf_vref | (buf_slope << 16), (ulong)reg_base + 0x28);
-
-	reg = (bgr << 28) | (bjt_cur << 20) | (vlsb << 12) | (1 << 7);
-	writel(reg, (ulong)reg_base + 0x3c);
-
-	tca40[0] = (fuse->ana_trim3 & 0xFFF0000) >> 16;
-	tca25[0] = (fuse->ana_trim3 & 0xF0000000) >> 28;
-	tca25[0] |= ((fuse->ana_trim4 & 0xFF) << 4);
-	tca105[0] = (fuse->ana_trim4 & 0xFFF00) >> 8;
-	tca40[1] = (fuse->ana_trim4 & 0xFFF00000) >> 20;
-	tca25[1] = fuse2->ana_trim5 & 0xFFF;
-	tca105[1] = (fuse2->ana_trim5 & 0xFFF000) >> 12;
-
-	/* use 25c for 1p calibration */
-	writel(tca25[0] | (tca105[0] << 16), (ulong)reg_base + 0x30);
-	writel(tca25[1] | (tca105[1] << 16), (ulong)reg_base + 0x34);
-	writel(tca40[0] | (tca40[1] << 16), (ulong)reg_base + 0x38);
-#endif
 }
 
 #if defined(CONFIG_SPL_BUILD)

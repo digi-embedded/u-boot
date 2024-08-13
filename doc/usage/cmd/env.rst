@@ -1,5 +1,8 @@
 .. SPDX-License-Identifier: GPL-2.0-or-later:
 
+.. index::
+   single: env (command)
+
 env command
 ===========
 
@@ -347,7 +350,7 @@ edit
 exists
     CONFIG_CMD_ENV_EXISTS
 
-flsgs
+flags
     CONFIG_CMD_ENV_FLAGS
 
 erase

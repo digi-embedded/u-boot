@@ -17,9 +17,9 @@
 
 int do_priblob_write(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
-	ccsr_sec_t* sec_regs = (ccsr_sec_t*)CAAM_BASE_ADDR;
+	ccsr_sec_t *sec_regs = (ccsr_sec_t *)CAAM_BASE_ADDR;
+	u32 scfgr = sec_in32(&sec_regs->scfgr);
 
-	uint32_t scfgr = sec_in32(&sec_regs->scfgr);
 	scfgr |= 0x3;
 	sec_out32(&sec_regs->scfgr, scfgr);
 	printf("New priblob setting = 0x%x\n", sec_in32(&sec_regs->scfgr) & 0x3);

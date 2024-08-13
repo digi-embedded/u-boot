@@ -562,15 +562,6 @@
 				status = "disabled";
 			};
 
-			flexspi2_nand: flexspi2_nand@29810000 {
-				#address-cells = <1>;
-				#size-cells = <0>;
-				compatible = "fsl,imx8-fspi-nand";
-				reg = <0x29810000 0x10000>, <0x60000000 0x10000000>;
-				reg-names = "FlexSPI", "FlexSPI-memory";
-				status = "disabled";
-			};
-
 			lpi2c6: i2c@29840000 {
 				compatible = "fsl,imx8ulp-lpi2c", "fsl,imx7ulp-lpi2c";
 				reg = <0x29840000 0x10000>;

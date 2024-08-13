@@ -17,6 +17,7 @@
 #include <dm/lists.h>
 #include <bootm.h>
 #include <asm/mach-imx/boot_mode.h>
+#include <asm/sections.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 

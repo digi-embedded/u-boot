@@ -186,7 +186,8 @@ U_BOOT_CMD(
 	"lock_status");
 #endif
 
-#if defined(CONFIG_FLASH_MCUFIRMWARE_SUPPORT) && defined(CONFIG_ARCH_IMX8M)
+#ifdef CONFIG_FLASH_MCUFIRMWARE_SUPPORT
+#if defined (CONFIG_IMX95) || defined(CONFIG_ARCH_IMX8M)
 static int do_bootmcu(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
 	int ret;
@@ -200,9 +201,15 @@ static int do_bootmcu(struct cmd_tbl *cmdtp, int flag, int argc, char * const ar
 		printf("Read MCU images failed!\n");
 		return 1;
 	} else {
+#ifdef CONFIG_ARCH_IMX8M
 		printf("run command: 'bootaux 0x%x'\n",(unsigned int)(ulong)mcu_base_addr);
 
 		sprintf(command, "bootaux 0x%x", (unsigned int)(ulong)mcu_base_addr);
+#else
+		printf("run command: 'bootaux 0 1'\n");
+
+		sprintf(command, "bootaux 0 1");
+#endif
 		ret = run_command(command, 0);
 		if (ret) {
 			printf("run 'bootaux' command failed!\n");
@@ -217,6 +224,7 @@ U_BOOT_CMD(
 	"boot mcu images\n",
 	"boot mcu images from 'mcu_os' partition, only support images run from TCM"
 );
+#endif
 #endif
 
 #ifdef CONFIG_CMD_BOOTA
@@ -589,7 +597,7 @@ const char *requested_partitions_recovery[] = {"recovery", NULL};
 static int get_boot_header_version(void)
 {
 	size_t size;
-	struct andr_img_hdr hdr;
+	struct andr_boot_img_hdr_v0 hdr;
 	char partition_name[20];
 
 #ifdef CONFIG_ANDROID_AB_SUPPORT
@@ -610,7 +618,7 @@ static int get_boot_header_version(void)
 
 	/* Read boot header to find the version */
 	if (fsl_avb_ops.read_from_partition(&fsl_avb_ops, partition_name,
-					    0, sizeof(struct andr_img_hdr),
+					    0, sizeof(struct andr_boot_img_hdr_v0),
 					    (void *)&hdr, &size)) {
 		printf("%s load error!\n", partition_name);
 		return -1;
@@ -659,7 +667,7 @@ int do_boota(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]) {
 	bool with_init_boot = false;
 
 	/* 'hdr' should point to boot.img */
-	struct andr_img_hdr *hdr = NULL;
+	struct andr_boot_img_hdr_v0 *hdr = NULL;
 	struct boot_img_hdr_v3 *hdr_v3 = NULL;
 	struct vendor_boot_img_hdr_v3 *vendor_boot_hdr_v3 = NULL;
 	struct boot_img_hdr_v4 *hdr_v4 = NULL;
@@ -792,8 +800,8 @@ int do_boota(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]) {
 				goto fail;
 			}
 		} else {
-			hdr = (struct andr_img_hdr *)avb_loadpart->data;
-			if (android_image_check_header(hdr)) {
+			hdr = (struct andr_boot_img_hdr_v0 *)avb_loadpart->data;
+			if (is_android_boot_image_header((void *)hdr)) {
 				printf("boota: bad boot image magic\n");
 				goto fail;
 			}
@@ -1076,7 +1084,7 @@ int do_boota(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]) {
 		android_image_get_kernel_v3(hdr_v3, vendor_boot_hdr_v3, false);
 	} else {
 		if (check_image_arm64) {
-			android_image_get_kernel(hdr, 0, NULL, NULL);
+			android_image_get_kernel(hdr, NULL, 0, NULL, NULL);
 		} else {
 			kernel_addr = (ulong)(hdr->kernel_addr - hdr->page_size);
 		}

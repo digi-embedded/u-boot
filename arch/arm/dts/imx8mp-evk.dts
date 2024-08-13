@@ -521,15 +521,17 @@
 &mipi_dsi {
 	status = "okay";
 
-	port@1 {
-		dsim_to_adv7535: endpoint {
-			remote-endpoint = <&adv7535_from_dsim>;
+	ports {
+		port@1 {
+			dsim_to_adv7535: endpoint {
+				remote-endpoint = <&adv7535_from_dsim>;
+			};
 		};
-	};
 
-	port@2 {
-		dsim_to_rm67191: endpoint {
-			remote-endpoint = <&rm67191_from_dsim>;
+		port@2 {
+			dsim_to_rm67191: endpoint {
+				remote-endpoint = <&rm67191_from_dsim>;
+			};
 		};
 	};
 };

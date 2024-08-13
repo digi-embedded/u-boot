@@ -408,7 +408,7 @@ out:
   return ret;
 }
 
-AvbCmdlineSubstList* avb_new_cmdline_subst_list() {
+AvbCmdlineSubstList* avb_new_cmdline_subst_list(void) {
   return (AvbCmdlineSubstList*)avb_calloc(sizeof(AvbCmdlineSubstList));
 }
 

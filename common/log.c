@@ -31,6 +31,7 @@ static const char *const log_cat_name[] = {
 	"boot",
 	"event",
 	"fs",
+	"expo",
 };
 
 _Static_assert(ARRAY_SIZE(log_cat_name) == LOGC_COUNT - LOGC_NONE,
@@ -436,7 +437,7 @@ int log_init(void)
 	/*
 	 * We cannot add runtime data to the driver since it is likely stored
 	 * in rodata. Instead, set up a 'device' corresponding to each driver.
-	 * We only support having a single device.
+	 * We only support having a single device for each driver.
 	 */
 	INIT_LIST_HEAD((struct list_head *)&gd->log_head);
 	while (drv < end) {

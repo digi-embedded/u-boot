@@ -70,6 +70,16 @@ config AB8500_USB_PHY
 	help
 	  Support for the USB OTG PHY in ST-Ericsson AB8500.
 
+config APPLE_ATCPHY
+       bool "Apple Type-C PHY Driver"
+       depends on PHY && ARCH_APPLE
+       default y
+       help
+         Support for the Apple Type-C PHY.
+
+	 This is a dummy driver since the PHY is initialized
+	 sufficiently by previous stage firmware.
+
 config BCM6318_USBH_PHY
 	bool "BCM6318 USBH PHY support"
 	depends on PHY && ARCH_BMIPS
@@ -190,7 +200,7 @@ config MESON_GXL_USB_PHY
 
 config MESON_G12A_USB_PHY
 	bool "Amlogic Meson G12A USB PHYs"
-	depends on PHY && ARCH_MESON && MESON_G12A
+	depends on PHY && ARCH_MESON && (MESON_G12A || MESON_A1)
 	imply REGMAP
 	help
 	  This is the generic phy driver for the Amlogic Meson G12A
@@ -270,7 +280,7 @@ config PHY_NPCM_USB
 config PHY_IMX8MQ_USB
 	bool "NXP i.MX8MQ/i.MX8MP USB PHY Driver"
 	depends on PHY
-	depends on IMX8MQ || IMX8MP
+	depends on IMX8MQ || IMX8MP || IMX95
 	help
 	  Support the USB3.0 PHY in NXP i.MX8MQ or i.MX8MP SoC
 
@@ -282,6 +292,15 @@ config PHY_IMX93_MIPI_DPHY
 	help
 	  Enable this to add support for the Synopsys DW MIPI DPHY as found
 	  on NXP's i.MX93 SoC.
+
+config PHY_IMX8MP_LVDS_PHY
+	bool "NXP i.MX8MP/93/95 MIPI DPHY Driver"
+	depends on PHY
+	depends on ARCH_IMX9 || IMX8MP
+	select REGMAP
+	help
+	  Enable this to add support for the LDB PHY as found on NXP's
+	  i.MX8MP/i.MX93/i.MX95 SoC.
 
 config PHY_XILINX_ZYNQMP
 	tristate "Xilinx ZynqMP PHY driver"
@@ -302,5 +321,6 @@ source "drivers/phy/rockchip/Kconfig"
 source "drivers/phy/cadence/Kconfig"
 source "drivers/phy/ti/Kconfig"
 source "drivers/phy/qcom/Kconfig"
+source "drivers/phy/renesas/Kconfig"
 
 endmenu

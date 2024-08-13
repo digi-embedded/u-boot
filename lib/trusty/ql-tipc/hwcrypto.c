@@ -339,6 +339,7 @@ int hwcrypto_gen_dek_blob(char *data, uint32_t *data_size)
 {
     uint8_t *req = NULL, *resp = NULL, *tmp = NULL;
     uint32_t out_data_size;
+    int rc = 0;
 
     /* sanity check */
     if (!data || ((*data_size != 16) && (*data_size != 24) && (*data_size != 32))) {
@@ -360,7 +361,7 @@ int hwcrypto_gen_dek_blob(char *data, uint32_t *data_size)
         goto exit;
     }
 
-    int rc = hwcrypto_do_tipc(HWCRYPTO_GEN_DEK_BLOB, (void*)req,
+    rc = hwcrypto_do_tipc(HWCRYPTO_GEN_DEK_BLOB, (void*)req,
                               *data_size + sizeof(data_size), resp, &out_data_size);
     if (!rc) {
         memcpy(data, resp, out_data_size);

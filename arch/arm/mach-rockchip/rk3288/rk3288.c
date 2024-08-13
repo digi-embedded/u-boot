@@ -138,7 +138,7 @@ static int ft_rk3288w_setup(void *blob)
 	return ret;
 }
 
-int ft_board_setup(void *blob, struct bd_info *bd)
+int ft_system_setup(void *blob, struct bd_info *bd)
 {
 	if (soc_is_rk3288w())
 		return ft_rk3288w_setup(blob);
@@ -184,8 +184,6 @@ static int do_clock(struct cmd_tbl *cmdtp, int flag, int argc,
 
 		rate = clk_get_rate(&clk);
 		printf("%s: %lu\n", clks[i].name, rate);
-
-		clk_free(&clk);
 	}
 
 	return 0;

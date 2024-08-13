@@ -696,12 +696,12 @@ static int part_parse(const char *const partdef, const char **ret, struct part_i
 		mask_flags |= MTD_WRITEABLE_CMD;
 		p += 2;
 	}
-
         if (strncmp(p, "enc", 3) == 0) {
                 /* Encrypted partition, mask the nonencrypted bitmask */
                 mask_flags |= MTD_NONENCRYPTED;
                 p += 3;
         }
+
 	/* check for next partition definition */
 	if (*p == ',') {
 		if (size == SIZE_REMAINING) {
@@ -2151,15 +2151,14 @@ U_BOOT_CMD(
 	"    - change active partition (e.g. part-id = nand0,1) of a MTD device"
 );
 
-#ifdef CONFIG_SYS_LONGHELP
-static char mtdparts_help_text[] =
+U_BOOT_LONGHELP(mtdparts,
 	"\n"
 	"    - list partition table\n"
 	"mtdparts delall\n"
 	"    - delete all partitions\n"
 	"mtdparts del part-id\n"
 	"    - delete partition (e.g. part-id = nand0,1)\n"
-        "mtdparts add <mtd-dev> <size>[@<offset>] [<name>] [ro] [enc]\n"
+	"mtdparts add <mtd-dev> <size>[@<offset>] [<name>] [ro] [enc]\n"
 	"    - add partition\n"
 #if defined(CONFIG_CMD_MTDPARTS_SPREAD)
 	"mtdparts add.spread <mtd-dev> <size>[@<offset>] [<name>] [ro]\n"
@@ -2194,9 +2193,8 @@ static char mtdparts_help_text[] =
 	"<size>     := standard linux memsize OR '-' to denote all remaining space\n"
 	"<offset>   := partition start offset within the device\n"
 	"<name>     := '(' NAME ')'\n"
-        "<ro-flag>  := when set to 'ro' makes partition read-only (not used, passed to kernel)\n"
-        "<enc-flag> := when set to 'enc' makes partition encrypted (not used, passed to kernel)";
-#endif
+	"<ro-flag>  := when set to 'ro' makes partition read-only (not used, passed to kernel)\n"
+	"<enc-flag> := when set to 'enc' makes partition encrypted (not used, passed to kernel)");
 
 U_BOOT_CMD(
 	mtdparts,	6,	0,	do_mtdparts,

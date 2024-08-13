@@ -44,6 +44,7 @@ struct udevice;
  *
  * @dev: The device which implements the mailbox.
  * @id: The mailbox channel ID within the provider.
+ * @tx_timeout_us: The tx timeout in us.
  * @con_priv: Hook for controller driver to attach private data
  *
  * Currently, the mailbox API assumes that a single integer ID is enough to
@@ -59,6 +60,7 @@ struct mbox_chan {
 	struct udevice *dev;
 	/* Written by of_xlate.*/
 	unsigned long id;
+	unsigned long tx_timeout_us;
 	void *con_priv;
 };
 
@@ -122,7 +124,7 @@ int mbox_free(struct mbox_chan *chan);
  *		will ignore this parameter.
  * Return: 0 if OK, or a negative error code.
  */
-int mbox_send(struct mbox_chan *chan, const void *data, ulong timeout_us);
+int mbox_send(struct mbox_chan *chan, const void *data);
 
 /**
  * mbox_recv - Receive any available message from a mailbox channel

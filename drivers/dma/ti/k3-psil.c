@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- *  Copyright (C) 2019 Texas Instruments Incorporated - http://www.ti.com
+ *  Copyright (C) 2019 Texas Instruments Incorporated - https://www.ti.com
  *  Author: Peter Ujfalusi <peter.ujfalusi@ti.com>
  */
 
@@ -26,6 +26,8 @@ struct psil_endpoint_config *psil_get_ep_config(u32 thread_id)
 			soc_ep_map = &am64_ep_map;
 		else if (IS_ENABLED(CONFIG_SOC_K3_AM625))
 			soc_ep_map = &am62_ep_map;
+		else if (IS_ENABLED(CONFIG_SOC_K3_AM62A7))
+			soc_ep_map = &am62a_ep_map;
 	}
 
 	if (thread_id & K3_PSIL_DST_THREAD_ID_OFFSET && soc_ep_map->dst) {

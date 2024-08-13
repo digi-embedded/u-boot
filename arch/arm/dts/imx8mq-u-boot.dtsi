@@ -11,27 +11,27 @@
 };
 
 &soc {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &aips1 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &aips2 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &aips3 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &aips4 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &iomuxc {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &binman {
@@ -97,7 +97,9 @@
 
 		fit {
 			description = "Configuration to load ATF before U-Boot";
+#ifndef CONFIG_IMX_HAB
 			fit,external-offset = <CONFIG_FIT_EXTERNAL_OFFSET>;
+#endif
 			#address-cells = <1>;
 
 			images {

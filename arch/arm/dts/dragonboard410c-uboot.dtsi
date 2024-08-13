@@ -8,26 +8,26 @@
 / {
 
 	smem {
-		u-boot,dm-pre-reloc;
+		bootph-all;
 	};
 
 	soc {
-		u-boot,dm-pre-reloc;
+		bootph-all;
 
 		pinctrl@1000000 {
-			u-boot,dm-pre-reloc;
+			bootph-all;
 
 			uart {
-				u-boot,dm-pre-reloc;
+				bootph-all;
 			};
 		};
 
 		qcom,gcc@1800000 {
-			u-boot,dm-pre-reloc;
+			bootph-all;
 		};
 
 		serial@78b0000 {
-			u-boot,dm-pre-reloc;
+			bootph-all;
 		};
 	};
 };
@@ -40,16 +40,5 @@
 
 	usb_sw_sel_pm {
 		gpios = <&pm8916_gpios 3 0>;
-	};
-};
-
-
-&pm8916_pon {
-	key_vol_down {
-		gpios = <&pm8916_pon 1 0>;
-	};
-
-	key_power {
-		gpios = <&pm8916_pon 0 0>;
 	};
 };

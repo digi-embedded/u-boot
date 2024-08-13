@@ -5,7 +5,6 @@
  *  Copyright (c) 2017 Rob Clark
  */
 
-#include <common.h>
 #include <charset.h>
 #include <capitalization.h>
 #include <cp437.h>
@@ -444,14 +443,14 @@ u16 *u16_strdup(const void *src)
 
 size_t u16_strlcat(u16 *dest, const u16 *src, size_t count)
 {
-	size_t destlen = u16_strlen(dest);
+	size_t destlen = u16_strnlen(dest, count);
 	size_t srclen = u16_strlen(src);
-	size_t ret = destlen + srclen + 1;
+	size_t ret = destlen + srclen;
 
 	if (destlen >= count)
 		return ret;
-	if (ret > count)
-		srclen -= ret - count;
+	if (ret >= count)
+		srclen -= (ret - count + 1);
 	memcpy(&dest[destlen], src, 2 * srclen);
 	dest[destlen + srclen] = 0x0000;
 
@@ -571,6 +570,10 @@ int utf8_to_utf32_stream(u8 c, char *buffer)
 		}
 		if (pos == end)
 			return 0;
+		/*
+		 * Appending the byte lead to an invalid UTF-8 byte sequence.
+		 * Consider it as the start of a new code sequence.
+		 */
 		*buffer = 0;
 	}
 }

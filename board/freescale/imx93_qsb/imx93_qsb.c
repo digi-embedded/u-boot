@@ -201,19 +201,6 @@ int board_phy_config(struct phy_device *phydev)
 	return 0;
 }
 
-static int setup_eqos(void)
-{
-	struct blk_ctrl_wakeupmix_regs *bctrl =
-		(struct blk_ctrl_wakeupmix_regs *)BLK_CTRL_WAKEUPMIX_BASE_ADDR;
-
-	/* set INTF as RGMII, enable RGMII TXC clock */
-	clrsetbits_le32(&bctrl->eqos_gpr,
-			BCTRL_GPR_ENET_QOS_INTF_MODE_MASK,
-			BCTRL_GPR_ENET_QOS_INTF_SEL_RGMII | BCTRL_GPR_ENET_QOS_CLK_GEN_EN);
-
-	return set_clk_eqos(ENET_125MHZ);
-}
-
 static void board_gpio_init(void)
 {
 	struct gpio_desc desc;
@@ -249,9 +236,6 @@ int board_init(void)
 #ifdef CONFIG_USB_TCPC
 	setup_typec();
 #endif
-
-	if (CONFIG_IS_ENABLED(DWC_ETH_QOS) && !is_imx91p0())
-		setup_eqos();
 
 	board_gpio_init();
 

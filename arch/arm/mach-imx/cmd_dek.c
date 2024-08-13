@@ -18,12 +18,12 @@
 #include <mapmem.h>
 #include <tee.h>
 #ifdef CONFIG_IMX_SECO_DEK_ENCAP
-#include <asm/arch/sci/sci.h>
-#include <asm/mach-imx/image.h>
+#include <imx_container.h>
+#include <firmware/imx/sci/sci.h>
 #endif
 #ifdef CONFIG_IMX_ELE_DEK_ENCAP
+#include <imx_container.h>
 #include <asm/mach-imx/ele_api.h>
-#include <asm/mach-imx/image.h>
 #endif
 
 #include <cpu_func.h>
@@ -350,14 +350,14 @@ static int blob_encap_dek(u32 src_addr, u32 dst_addr, u32 len)
 		(void *)src_ptr, len / 8);
 	memcpy((void *)src_ptr, (void *)&hdr,
 	       sizeof(struct generate_key_blob_hdr));
-	
+
 	/* Flush the cache */
 	flush_dcache_range(src_addr, src_addr + in_size);
 	flush_dcache_range((ulong)dst_ptr, (ulong)(dst_ptr +
 			roundup(out_size, ARCH_DMA_MINALIGN)));
 
 	/* Call ELE */
-	if (ahab_generate_dek_blob(0x00, src_addr, dst_addr, out_size))
+	if (ele_generate_dek_blob(0x00, src_addr, dst_addr, out_size))
 		return -1;
 
 	/* Invalidate output buffer */

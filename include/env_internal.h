@@ -15,7 +15,6 @@
 #ifndef _ENV_INTERNAL_H_
 #define _ENV_INTERNAL_H_
 
-#include <linux/kconfig.h>
 
 /**************************************************************************
  *
@@ -94,7 +93,7 @@ __attribute__((aligned(16)))
 extern env_t embedded_environment;
 #endif /* ENV_IS_EMBEDDED */
 
-#ifdef DEFAULT_ENV_IS_RW
+#ifdef CONFIG_DEFAULT_ENV_IS_RW
 extern char default_environment[];
 #else
 extern const char default_environment[];
@@ -197,6 +196,18 @@ struct env_driver {
 #define ENV_ERASE_PTR(x) (IS_ENABLED(CONFIG_CMD_ERASEENV) ? (x) : NULL)
 
 extern struct hsearch_data env_htab;
+
+/**
+ * env_do_env_set() - Perform the actual setting of an environment variable
+ *
+ * Due to the number of places we may need to set an environmental variable
+ * from we have an exposed internal function that performs the real work and
+ * then call this from both the command line function as well as other
+ * locations.
+ *
+ * Return: 0 on success or 1 on failure
+ */
+int env_do_env_set(int flag, int argc, char *const argv[], int env_flag);
 
 /**
  * env_ext4_get_intf() - Provide the interface for env in EXT4

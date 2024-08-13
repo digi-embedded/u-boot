@@ -3,7 +3,7 @@
  * This is from the Android Project,
  * Repository: https://android.googlesource.com/platform/system/tools/mkbootimg
  * File: include/bootimg/bootimg.h
- * Commit: e55998a0f2b61b685d5eb4a486ca3a0c680b1a2f
+ * Commit: cce5b1923e3cd2fcb765b512610bdc5c42bc501d
  *
  * Copyright (C) 2007 The Android Open Source Project
  */
@@ -14,12 +14,13 @@
 #include <linux/compiler.h>
 #include <linux/types.h>
 
+#define ANDR_GKI_PAGE_SIZE 4096
 #define ANDR_BOOT_MAGIC "ANDROID!"
 #define ANDR_BOOT_MAGIC_SIZE 8
 #define ANDR_BOOT_NAME_SIZE 16
 #define ANDR_BOOT_ARGS_SIZE 512
 #define ANDR_BOOT_EXTRA_ARGS_SIZE 1024
-
+#define VENDOR_BOOT_MAGIC "VNDRBOOT"
 #define ANDR_VENDOR_BOOT_MAGIC "VNDRBOOT"
 #define ANDR_VENDOR_BOOT_MAGIC_SIZE 8
 #define ANDR_VENDOR_BOOT_ARGS_SIZE 2048
@@ -32,7 +33,57 @@
 #define VENDOR_RAMDISK_NAME_SIZE 32
 #define VENDOR_RAMDISK_TABLE_ENTRY_BOARD_ID_SIZE 16
 
-/* The bootloader expects the structure of andr_img_hdr with header
+#define BOOTCONFIG_MAGIC "#BOOTCONFIG\n"
+#define BOOTCONFIG_MAGIC_SIZE 12
+#define BOOTCONFIG_SIZE_SIZE 4
+#define BOOTCONFIG_CHECKSUM_SIZE 4
+#define BOOTCONFIG_TRAILER_SIZE BOOTCONFIG_MAGIC_SIZE + \
+				BOOTCONFIG_SIZE_SIZE + \
+				BOOTCONFIG_CHECKSUM_SIZE
+
+struct andr_boot_img_hdr_v3 {
+	u8 magic[ANDR_BOOT_MAGIC_SIZE];
+
+	u32 kernel_size;    /* size in bytes */
+	u32 ramdisk_size;   /* size in bytes */
+
+	u32 os_version;
+
+	u32 header_size;    /* size of boot image header in bytes */
+	u32 reserved[4];
+	u32 header_version; /* offset remains constant for version check */
+
+	u8 cmdline[ANDR_BOOT_ARGS_SIZE + ANDR_BOOT_EXTRA_ARGS_SIZE];
+	/* for boot image header v4 only */
+	u32 signature_size; /* size in bytes */
+};
+
+struct andr_vnd_boot_img_hdr {
+	u8 magic[ANDR_VENDOR_BOOT_MAGIC_SIZE];
+	u32 header_version;
+	u32 page_size;           /* flash page size we assume */
+
+	u32 kernel_addr;         /* physical load addr */
+	u32 ramdisk_addr;        /* physical load addr */
+
+	u32 vendor_ramdisk_size; /* size in bytes */
+
+	u8 cmdline[ANDR_VENDOR_BOOT_ARGS_SIZE];
+
+	u32 tags_addr;           /* physical addr for kernel tags */
+
+	u8 name[ANDR_VENDOR_BOOT_NAME_SIZE]; /* asciiz product name */
+	u32 header_size;         /* size of vendor boot image header in bytes */
+	u32 dtb_size;            /* size of dtb image */
+	u64 dtb_addr;            /* physical load address */
+	/* for boot image header v4 only */
+	u32 vendor_ramdisk_table_size; /* size in bytes for the vendor ramdisk table */
+	u32 vendor_ramdisk_table_entry_num; /* number of entries in the vendor ramdisk table */
+	u32 vendor_ramdisk_table_entry_size; /* size in bytes for a vendor ramdisk table entry */
+	u32 bootconfig_size; /* size in bytes for the bootconfig section */
+};
+
+/* The bootloader expects the structure of andr_boot_img_hdr_v0 with header
  * version 0 to be as follows: */
 /* Boot metric variables (in millisecond) */
 struct boot_metric
@@ -47,7 +98,7 @@ struct boot_metric
 };
 typedef struct boot_metric boot_metric;
 
-struct andr_img_hdr {
+struct andr_boot_img_hdr_v0 {
     /* Must be ANDR_BOOT_MAGIC. */
     char magic[ANDR_BOOT_MAGIC_SIZE];
 
@@ -250,7 +301,6 @@ struct vendor_boot_img_hdr_v3 {
  * +---------------------+
  * | dtb                 | q pages
  * +---------------------+
-
  * o = (2112 + page_size - 1) / page_size
  * p = (vendor_ramdisk_size + page_size - 1) / page_size
  * q = (dtb_size + page_size - 1) / page_size
@@ -436,6 +486,38 @@ struct vendor_ramdisk_table_entry_v4 {
     // ramdisk is intended to be loaded on.
     uint32_t board_id[VENDOR_RAMDISK_TABLE_ENTRY_BOARD_ID_SIZE];
 } __attribute__((packed));
+
+/* Private struct */
+struct andr_image_data {
+	ulong kernel_ptr;  /* kernel address */
+	u32 kernel_size;  /* size in bytes */
+	u32 ramdisk_size;  /* size in bytes */
+	ulong vendor_ramdisk_ptr;  /* vendor ramdisk address */
+	u32 vendor_ramdisk_size;  /* vendor ramdisk size*/
+	u32 boot_ramdisk_size;  /* size in bytes */
+	ulong second_ptr;  /* secondary bootloader address */
+	u32 second_size;  /* secondary bootloader size */
+	ulong dtb_ptr;  /* address of dtb image */
+	u32 dtb_size;  /* size of dtb image */
+	ulong recovery_dtbo_ptr;  /* size in bytes for recovery DTBO/ACPIO image */
+	u32 recovery_dtbo_size;  /* offset to recovery dtbo/acpio in boot image */
+
+	const char *kcmdline;  /* boot kernel cmdline */
+	const char *kcmdline_extra;  /* vendor-boot extra kernel cmdline */
+	const char *image_name;  /* asciiz product name */
+
+	ulong bootconfig_addr;  /* bootconfig image address */
+	ulong bootconfig_size;  /* bootconfig image size */
+
+	u32 kernel_addr;  /* physical load addr */
+	ulong ramdisk_addr;  /* physical load addr */
+	ulong ramdisk_ptr;  /* ramdisk address */
+	ulong dtb_load_addr;  /* physical load address for DTB image */
+	ulong tags_addr;  /* physical addr for kernel tags */
+	u32 header_version;  /* version of the boot image header */
+	u32 boot_img_total_size;  /* boot image size */
+	u32 vendor_boot_img_total_size;  /* vendor boot image size */
+};
 
 struct header_image {
 	uint32_t	code0;		/* Executable code */

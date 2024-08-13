@@ -20,15 +20,15 @@
 #include <errno.h>
 #include <asm/arch/clock.h>
 #include <thermal.h>
-#include <asm/arch/sci/sci.h>
-#include <power-domain.h>
-#include <elf.h>
+#include <firmware/imx/sci/sci.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/arch-imx/cpu.h>
 #include <asm/armv8/cpu.h>
 #include <asm/armv8/mmu.h>
 #include <asm/setup.h>
 #include <asm/mach-imx/boot_mode.h>
+#include <power-domain.h>
+#include <elf.h>
 #include <spl.h>
 #include <env.h>
 #include <asm/mach-imx/imx_vservice.h>
@@ -49,6 +49,45 @@ struct pass_over_info_t *get_pass_over_info(void)
 	return p;
 }
 
+static char *get_reset_cause(void)
+{
+	sc_pm_reset_reason_t reason;
+
+	if (sc_pm_reset_reason(-1, &reason) != SC_ERR_NONE)
+		return "Unknown reset";
+
+	switch (reason) {
+	case SC_PM_RESET_REASON_POR:
+		return "POR";
+	case SC_PM_RESET_REASON_JTAG:
+		return "JTAG reset ";
+	case SC_PM_RESET_REASON_SW:
+		return "Software reset";
+	case SC_PM_RESET_REASON_WDOG:
+		return "Watchdog reset";
+	case SC_PM_RESET_REASON_LOCKUP:
+		return "SCU lockup reset";
+	case SC_PM_RESET_REASON_SNVS:
+		return "SNVS reset";
+	case SC_PM_RESET_REASON_TEMP:
+		return "Temp panic reset";
+	case SC_PM_RESET_REASON_MSI:
+		return "MSI reset";
+	case SC_PM_RESET_REASON_UECC:
+		return "ECC reset";
+	case SC_PM_RESET_REASON_SCFW_WDOG:
+		return "SCFW watchdog reset";
+	case SC_PM_RESET_REASON_ROM_WDOG:
+		return "SCU ROM watchdog reset";
+	case SC_PM_RESET_REASON_SECO:
+		return "SECO reset";
+	case SC_PM_RESET_REASON_SCFW_FAULT:
+		return "SCFW fault reset";
+	default:
+		return "Unknown reset";
+	}
+}
+
 int arch_cpu_init(void)
 {
 #if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_RECOVER_DATA_SECTION)
@@ -61,7 +100,7 @@ int arch_cpu_init(void)
 static void power_off_all_usb(void);
 
 #define ARM_SMMU_sCR0_CLIENTPD	(1 << 0)
-static int imx8_init_mu(void *ctx, struct event *event)
+static int imx8_init_mu(void)
 {
 	struct udevice *devp;
 	int node, ret;
@@ -75,9 +114,6 @@ static int imx8_init_mu(void *ctx, struct event *event)
 	}
 
 	if (gd->flags & GD_FLG_RELOC) /* Skip others for board_r */
-		return 0;
-
-	if (IS_ENABLED(CONFIG_XEN))
 		return 0;
 
 	struct pass_over_info_t *pass_over;
@@ -108,7 +144,8 @@ static int imx8_init_mu(void *ctx, struct event *event)
 
 	return 0;
 }
-EVENT_SPY(EVT_DM_POST_INIT, imx8_init_mu);
+EVENT_SPY_SIMPLE(EVT_DM_POST_INIT_F, imx8_init_mu);
+EVENT_SPY_SIMPLE(EVT_DM_POST_INIT_R, imx8_init_mu);
 
 #if defined(CONFIG_ARCH_MISC_INIT)
 int arch_misc_init(void)
@@ -138,7 +175,6 @@ int arch_auxiliary_core_up(u32 core_id, ulong boot_private_data)
 	u32 tcm_size = SZ_256K; /* TCML + TCMU */
 	ulong addr;
 
-
 	switch (core_id) {
 	case 0:
 		core_rsrc = SC_R_M4_0_PID0;
@@ -159,7 +195,7 @@ int arch_auxiliary_core_up(u32 core_id, ulong boot_private_data)
 
 	if (addr >= tcml_addr && addr <= tcml_addr + tcm_size) {
 		printf("Wrong image address 0x%lx, should not in TCML\n",
-			addr);
+		       addr);
 		return -EINVAL;
 	}
 
@@ -214,7 +250,7 @@ int arch_auxiliary_core_up(u32 core_id, ulong boot_private_data)
 
 	if (addr >= aux_core_ram && addr <= aux_core_ram + size) {
 		printf("Wrong image address 0x%lx, should not in aux core ram\n",
-			addr);
+		       addr);
 		return -EINVAL;
 	}
 
@@ -342,6 +378,8 @@ int print_bootinfo(void)
 		break;
 	}
 
+	printf("Reset cause: %s\n", get_reset_cause());
+
 	return 0;
 }
 
@@ -356,10 +394,6 @@ enum boot_device get_boot_device(void)
 #elif defined(CONFIG_TARGET_IMX8QM_MEK_A53_ONLY)
 	return SD2_BOOT;
 #endif
-	/* Note we only support android in EMMC SDHC0 */
-	if (IS_ENABLED(CONFIG_XEN))
-		return MMC1_BOOT;
-
 	sc_misc_get_boot_dev(-1, &dev_rsrc);
 
 	switch (dev_rsrc) {
@@ -534,10 +568,6 @@ phys_size_t get_effective_memsize(void)
 
 
 	end1 = (sc_faddr_t)phys_sdram_1_start + phys_sdram_1_size;
-
-	if (IS_ENABLED(CONFIG_XEN))
-		return PHYS_SDRAM_1_SIZE;
-
 	for (mr = 0; mr < 64; mr++) {
 		err = get_owned_memreg(mr, &start, &end);
 		if (!err) {
@@ -576,14 +606,6 @@ int dram_init(void)
 
 	end1 = (sc_faddr_t)phys_sdram_1_start + phys_sdram_1_size;
 	end2 = (sc_faddr_t)phys_sdram_2_start + phys_sdram_2_size;
-
-	if (IS_ENABLED(CONFIG_XEN)) {
-		gd->ram_size = PHYS_SDRAM_1_SIZE;
-		gd->ram_size += PHYS_SDRAM_2_SIZE;
-
-		return 0;
-	}
-
 	for (mr = 0; mr < 64; mr++) {
 		err = get_owned_memreg(mr, &start, &end);
 		if (!err) {
@@ -652,16 +674,6 @@ int dram_init_banksize(void)
 
 	end1 = (sc_faddr_t)phys_sdram_1_start + phys_sdram_1_size;
 	end2 = (sc_faddr_t)phys_sdram_2_start + phys_sdram_2_size;
-
-	if (IS_ENABLED(CONFIG_XEN)) {
-		gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
-		gd->bd->bi_dram[0].size = PHYS_SDRAM_1_SIZE;
-		gd->bd->bi_dram[1].start = PHYS_SDRAM_2;
-		gd->bd->bi_dram[1].size = PHYS_SDRAM_2_SIZE;
-
-		return 0;
-	}
-
 	for (mr = 0; mr < 64 && i < CONFIG_NR_DRAM_BANKS; mr++) {
 		err = get_owned_memreg(mr, &start, &end);
 		if (!err) {
@@ -778,44 +790,10 @@ void enable_caches(void)
 	sc_faddr_t start, end;
 	int err, i;
 
-	if (IS_ENABLED(CONFIG_XEN)) {
-		imx8_mem_map[0].virt = 0x00000000UL;
-		imx8_mem_map[0].phys = 0x00000000UL;
-		imx8_mem_map[0].size = 0x39000000UL;
-		imx8_mem_map[0].attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
-				 PTE_BLOCK_NON_SHARE | PTE_BLOCK_PXN | PTE_BLOCK_UXN;
-		imx8_mem_map[1].virt = 0x39000000UL;
-		imx8_mem_map[1].phys = 0x39000000UL;
-		imx8_mem_map[1].size = 0x01000000UL;
-		imx8_mem_map[1].attrs = (PTE_BLOCK_MEMTYPE(MT_NORMAL) | PTE_BLOCK_INNER_SHARE);
-
-		imx8_mem_map[2].virt = 0x40000000UL;
-		imx8_mem_map[2].phys = 0x40000000UL;
-		imx8_mem_map[2].size = 0x40000000UL;
-		imx8_mem_map[2].attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
-				 PTE_BLOCK_NON_SHARE | PTE_BLOCK_PXN | PTE_BLOCK_UXN;
-
-		imx8_mem_map[3].virt = 0x80000000UL;
-		imx8_mem_map[3].phys = 0x80000000UL;
-		imx8_mem_map[3].size = 0x80000000UL;
-		imx8_mem_map[3].attrs = (PTE_BLOCK_MEMTYPE(MT_NORMAL) | PTE_BLOCK_INNER_SHARE);
-
-		imx8_mem_map[4].virt = 0x100000000UL;
-		imx8_mem_map[4].phys = 0x100000000UL;
-		imx8_mem_map[4].size = 0x100000000UL;
-		imx8_mem_map[4].attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
-				 PTE_BLOCK_NON_SHARE | PTE_BLOCK_PXN | PTE_BLOCK_UXN;
-
-		icache_enable();
-		dcache_enable();
-
-		return;
-	}
-
 	/* Create map for registers access from 0x1c000000 to 0x80000000*/
 	imx8_mem_map[0].virt = 0x1c000000UL;
 	imx8_mem_map[0].phys = 0x1c000000UL;
-	imx8_mem_map[0].size = 0x64000000UL;
+	imx8_mem_map[0].size = 0x44000000UL;
 	imx8_mem_map[0].attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
 			 PTE_BLOCK_NON_SHARE | PTE_BLOCK_PXN | PTE_BLOCK_UXN;
 

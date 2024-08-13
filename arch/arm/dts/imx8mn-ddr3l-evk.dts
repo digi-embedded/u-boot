@@ -5,8 +5,6 @@
 
 #include "imx8mn-evk.dts"
 
-#include "imx8mn-sec-def.h"
-
 / {
 	model = "NXP i.MX8MNano DDR3L EVK board";
 };

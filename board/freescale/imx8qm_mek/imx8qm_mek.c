@@ -14,7 +14,7 @@
 #include <asm/io.h>
 #include <asm/gpio.h>
 #include <asm/arch/clock.h>
-#include <asm/arch/sci/sci.h>
+#include <firmware/imx/sci/sci.h>
 #include <asm/arch/imx8-pins.h>
 #include <asm/arch/snvs_security_sc.h>
 #include <usb.h>
@@ -64,12 +64,6 @@ int board_early_init_f(void)
 {
 	sc_pm_clock_rate_t rate = SC_80MHZ;
 	int ret;
-
-	/* When start u-boot in XEN VM, directly return */
-	if (IS_ENABLED(CONFIG_XEN)) {
-		writel(0xF53535F5, (void __iomem *)0x80000000);
-		return 0;
-	}
 
 #ifdef CONFIG_TARGET_IMX8QM_MEK_A72_ONLY
 	/* Set UART2 clock root to 80 MHz */
@@ -290,9 +284,6 @@ int board_usb_cleanup(int index, enum usb_init_type init)
 
 int board_init(void)
 {
-	if (IS_ENABLED(CONFIG_XEN))
-		return 0;
-
 	board_gpio_init();
 
 
@@ -324,12 +315,6 @@ void board_quiesce_devices(void)
 #endif
 	};
 
-	if (IS_ENABLED(CONFIG_XEN)) {
-		/* Clear magic number to let xen know uboot is over */
-		writel(0x0, (void __iomem *)0x80000000);
-		return;
-	}
-
 	imx8_power_off_pd_devices(power_on_devices, ARRAY_SIZE(power_on_devices));
 }
 
@@ -348,24 +333,6 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 	return 0;
 }
 #endif
-
-int board_mmc_get_env_dev(int devno)
-{
-	/* Use EMMC */
-	if (IS_ENABLED(CONFIG_XEN))
-		return 0;
-
-	return devno;
-}
-
-int mmc_map_to_kernel_blk(int dev_no)
-{
-	/* Use EMMC */
-	if (IS_ENABLED(CONFIG_XEN))
-		return 0;
-
-	return dev_no;
-}
 
 extern uint32_t _end_ofs;
 int board_late_init(void)

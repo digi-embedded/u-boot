@@ -4,7 +4,7 @@
  * Rick Chen, Andes Technology Corporation <rick@andestech.com>
  */
 
-#include <common.h>
+#include <config.h>
 #include <cpu_func.h>
 #include <flash.h>
 #include <image.h>
@@ -13,7 +13,9 @@
 #if defined(CONFIG_FTMAC100) && !defined(CONFIG_DM_ETH)
 #include <netdev.h>
 #endif
+#include <asm/csr.h>
 #include <asm/global_data.h>
+#include <asm/sbi.h>
 #include <linux/io.h>
 #include <faraday/ftsmc020.h>
 #include <fdtdec.h>
@@ -25,6 +27,27 @@ DECLARE_GLOBAL_DATA_PTR;
 /*
  * Miscellaneous platform dependent initializations
  */
+#if IS_ENABLED(CONFIG_MISC_INIT_R)
+int misc_init_r(void)
+{
+    long csr_marchid = 0;
+    const long mask_64 = 0x8000;
+    const long mask_cpu = 0xff;
+    char cpu_name[10] = {};
+
+#if CONFIG_IS_ENABLED(RISCV_SMODE)
+    sbi_get_marchid(&csr_marchid);
+#elif CONFIG_IS_ENABLED(RISCV_MMODE)
+    csr_marchid = csr_read(CSR_MARCHID);
+#endif
+    if (mask_64 & csr_marchid)
+        snprintf(cpu_name, sizeof(cpu_name), "ax%lx", (mask_cpu & csr_marchid));
+    else
+        snprintf(cpu_name, sizeof(cpu_name), "a%lx", (mask_cpu & csr_marchid));
+
+    return env_set("cpu", cpu_name);
+}
+#endif
 
 int board_init(void)
 {
@@ -77,7 +100,8 @@ void *board_fdt_blob_setup(int *err)
 void spl_board_init()
 {
 	/* enable v5l2 cache */
-	enable_caches();
+	if (!CONFIG_IS_ENABLED(SYS_DCACHE_OFF))
+		enable_caches();
 }
 #endif
 

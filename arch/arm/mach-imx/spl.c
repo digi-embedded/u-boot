@@ -20,10 +20,14 @@
 #include <asm/mach-imx/boot_mode.h>
 #include <g_dnl.h>
 #include <linux/libfdt.h>
-#include <mmc.h>
 #include <u-boot/lz4.h>
 #include <image.h>
 #include <asm/sections.h>
+#include <asm/setup.h>
+#include <asm/bootm.h>
+#include <mmc.h>
+#include <u-boot/lz4.h>
+#include <image.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -187,6 +191,14 @@ u32 spl_boot_device(void)
 #ifdef CONFIG_SPL_USB_GADGET
 int g_dnl_bind_fixup(struct usb_device_descriptor *dev, const char *name)
 {
+#ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
+	struct tag_serialnr serialnr;
+	char serial_string[0x21] = {0};
+
+	get_board_serial(&serialnr);
+	snprintf(serial_string, sizeof(serial_string), "%08x%08x", serialnr.high, serialnr.low);
+	g_dnl_set_serialnumber(serial_string);
+#endif
 	put_unaligned(0x0151, &dev->idProduct);
 
 	return 0;
@@ -324,7 +336,6 @@ ulong board_spl_fit_size_align(ulong size)
 
 	return size;
 }
-
 #endif
 
 void *board_spl_fit_buffer_addr(ulong fit_size, int sectors, int bl_len)
@@ -340,16 +351,6 @@ void *board_spl_fit_buffer_addr(ulong fit_size, int sectors, int bl_len)
 
 	return  (void *)((CONFIG_TEXT_BASE - fit_size - bl_len -
 			align_len) & ~align_len);
-}
-#endif
-
-#if defined(CONFIG_MX6) && defined(CONFIG_SPL_OS_BOOT)
-int dram_init_banksize(void)
-{
-	gd->bd->bi_dram[0].start = CFG_SYS_SDRAM_BASE;
-	gd->bd->bi_dram[0].size = imx_ddr_size();
-
-	return 0;
 }
 #endif
 
@@ -508,7 +509,6 @@ exit:
 
 int board_spl_fit_post_load(const void *fit, struct spl_image_info *spl_image)
 {
-
 #ifdef CONFIG_IMX_TRUSTY_OS
 	int tee_node;
 	ulong load_addr;
@@ -518,7 +518,7 @@ int board_spl_fit_post_load(const void *fit, struct spl_image_info *spl_image)
 	int ret;
 #endif
 
-	if (IS_ENABLED(CONFIG_IMX_HAB) && !(spl_image->flags & SPL_FIT_BYPASS_POST_LOAD)) {
+	if (IS_ENABLED(CONFIG_IMX_HAB)) {
 		u32 offset = ALIGN(fdt_totalsize(fit), 0x1000);
 
 		if (imx_hab_authenticate_image((uintptr_t)fit,
@@ -534,57 +534,63 @@ int board_spl_fit_post_load(const void *fit, struct spl_image_info *spl_image)
 	}
 #if defined(CONFIG_IMX8MP) || defined(CONFIG_IMX8MN)
 #define MCU_RDC_MAGIC "mcu_rdc"
-	if (!(spl_image->flags & SPL_FIT_BYPASS_POST_LOAD)) {
-		memcpy((void *)CONFIG_IMX8M_MCU_RDC_START_CONFIG_ADDR, MCU_RDC_MAGIC, ALIGN(strlen(MCU_RDC_MAGIC), 4));
-		memcpy((void *)CONFIG_IMX8M_MCU_RDC_STOP_CONFIG_ADDR, MCU_RDC_MAGIC, ALIGN(strlen(MCU_RDC_MAGIC), 4));
-		board_handle_rdc_config(spl_image->fdt_addr, "start-config",
-					(void *)(CONFIG_IMX8M_MCU_RDC_START_CONFIG_ADDR + ALIGN(strlen(MCU_RDC_MAGIC), 4)));
-		board_handle_rdc_config(spl_image->fdt_addr, "stop-config",
-					(void *)(CONFIG_IMX8M_MCU_RDC_STOP_CONFIG_ADDR + ALIGN(strlen(MCU_RDC_MAGIC), 4)));
-	}
+	memcpy((void *)CONFIG_IMX8M_MCU_RDC_START_CONFIG_ADDR, MCU_RDC_MAGIC, ALIGN(strlen(MCU_RDC_MAGIC), 4));
+	memcpy((void *)CONFIG_IMX8M_MCU_RDC_STOP_CONFIG_ADDR, MCU_RDC_MAGIC, ALIGN(strlen(MCU_RDC_MAGIC), 4));
+	board_handle_rdc_config(spl_image->fdt_addr, "start-config",
+				(void *)(CONFIG_IMX8M_MCU_RDC_START_CONFIG_ADDR + ALIGN(strlen(MCU_RDC_MAGIC), 4)));
+	board_handle_rdc_config(spl_image->fdt_addr, "stop-config",
+				(void *)(CONFIG_IMX8M_MCU_RDC_STOP_CONFIG_ADDR + ALIGN(strlen(MCU_RDC_MAGIC), 4)));
 #endif
 
 #ifdef CONFIG_IMX_TRUSTY_OS
-        if (!(spl_image->flags & SPL_FIT_BYPASS_POST_LOAD)) {
-                tee_node = fit_image_get_node(fit, TEE_SUBNODE_NAME);
-                if (tee_node < 0) {
-                        printf ("Can't find FIT subimage\n");
+        tee_node = fit_image_get_node(fit, TEE_SUBNODE_NAME);
+        if (tee_node < 0) {
+                printf ("Can't find FIT subimage\n");
+                return -1;
+        }
+
+        ret = fit_image_get_load(fit, tee_node, &load_addr);
+        if (ret) {
+                printf("Can't get image load address!\n");
+                return -1;
+        }
+
+        if (*(u32*)load_addr == LZ4_MAGIC_NUM) {
+                offset_addr = (void *)load_addr + TEE_RELOAD_OFFSET;
+
+                ret = fit_image_get_data_size(fit, tee_node, &size);
+                if (ret < 0) {
+                        printf("Can't get size of image (err=%d)\n", ret);
                         return -1;
                 }
 
-                ret = fit_image_get_load(fit, tee_node, &load_addr);
+                memcpy(offset_addr,(void *)load_addr, size);
+
+                dest_size = TEE_DEST_SIZE;
+                ret = ulz4fn((void *)offset_addr, size, (void *)load_addr, &dest_size);
                 if (ret) {
-                        printf("Can't get image load address!\n");
+                        printf("Uncompressed err :%d\n", ret);
                         return -1;
                 }
-
-                if (*(u32*)load_addr == LZ4_MAGIC_NUM) {
-                        offset_addr = (void *)load_addr + TEE_RELOAD_OFFSET;
-
-                        ret = fit_image_get_data_size(fit, tee_node, &size);
-                        if (ret < 0) {
-                                printf("Can't get size of image (err=%d)\n", ret);
-                                return -1;
-                        }
-
-                        memcpy(offset_addr,(void *)load_addr, size);
-
-                        dest_size = TEE_DEST_SIZE;
-                        ret = ulz4fn((void *)offset_addr, size, (void *)load_addr, &dest_size);
-                        if (ret) {
-                                printf("Uncompressed err :%d\n", ret);
-                                return -1;
-                        }
 #if CONFIG_IS_ENABLED(LOAD_FIT) || CONFIG_IS_ENABLED(LOAD_FIT_FULL)
-                        /* Modify the image size had recorded in FDT */
-                        fdt_setprop_u32(spl_image->fdt_addr, tee_node, "size", (u32)dest_size);
+                /* Modify the image size had recorded in FDT */
+                fdt_setprop_u32(spl_image->fdt_addr, tee_node, "size", (u32)dest_size);
 #endif
-                }
         }
 #endif
-	return 0;
 
+	return 0;
 }
+
+#if defined(CONFIG_MX6) && defined(CONFIG_SPL_OS_BOOT)
+int dram_init_banksize(void)
+{
+	gd->bd->bi_dram[0].start = CFG_SYS_SDRAM_BASE;
+	gd->bd->bi_dram[0].size = imx_ddr_size();
+
+	return 0;
+}
+#endif
 
 #if defined(CONFIG_IMX_TRUSTY_OS) && !defined(CONFIG_IMX_MATTER_TRUSTY)
 int check_rollback_index(struct spl_image_info *spl_image, struct mmc *mmc);

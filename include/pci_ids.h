@@ -1363,6 +1363,13 @@
 #define PCI_DEVICE_ID_XILINX_HAMMERFALL_DSP 0x3fc5
 #define PCI_DEVICE_ID_XILINX_HAMMERFALL_DSP_MADI 0x3fc6
 
+/* Per https://www.qemu.org/docs/master/specs/pci-ids.html */
+#define PCI_VENDOR_ID_REDHAT            0x1b36
+#define PCI_DEVICE_ID_REDHAT_SDHCI      0x0007
+#define PCI_DEVICE_ID_REDHAT_XHCI       0x000d
+#define PCI_DEVICE_ID_REDHAT_NVME       0x0010
+#define PCI_DEVICE_ID_REDHAT_UFS        0x0013
+
 #define PCI_VENDOR_ID_INIT		0x1101
 
 #define PCI_VENDOR_ID_CREATIVE		0x1102 /* duplicate: ECTIVA */
@@ -2447,6 +2454,7 @@
 #define PCI_DEVICE_ID_TDI_EHCI          0x0101
 
 #define PCI_VENDOR_ID_FREESCALE		0x1957
+#define PCI_VENDOR_ID_NXP               0x1131
 #define PCI_DEVICE_ID_MPC8308		0xc006
 #define PCI_DEVICE_ID_MPC8315E		0x00b4
 #define PCI_DEVICE_ID_MPC8315		0x00b5

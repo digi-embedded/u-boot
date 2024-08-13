@@ -1,14 +1,14 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
- * Copyright 2021, 2023 NXP
+ * Copyright 2021 NXP
  */
 
 #ifndef __ELE_API_H__
 #define __ELE_API_H__
 
-#define AHAB_VERSION    0x6
-#define AHAB_CMD_TAG    0x17
-#define AHAB_RESP_TAG   0xe1
+#define ELE_VERSION    0x6
+#define ELE_CMD_TAG    0x17
+#define ELE_RESP_TAG   0xe1
 
 /* ELE commands */
 #define ELE_PING_REQ (0x01)
@@ -28,6 +28,7 @@
 #define ELE_START_RNG (0xA3)
 #define ELE_CMD_DERIVE_KEY    (0xA9)
 #define ELE_GENERATE_DEK_BLOB (0xAF)
+#define ELE_V2X_GET_STATE_REQ (0xB2)
 #define ELE_ENABLE_PATCH_REQ (0xC3)
 #define ELE_RELEASE_RDC_REQ (0xC4)
 #define ELE_GET_FW_STATUS_REQ (0xC5)
@@ -38,6 +39,7 @@
 #define ELE_ENABLE_APC_REQ (0xD2)
 #define ELE_ENABLE_RTC_REQ (0xD3)
 #define ELE_DEEP_POWER_DOWN_REQ (0xD4)
+#define ELE_ENABLE_AUX_REQ (0xD4)
 #define ELE_STOP_RST_TIMER_REQ (0xD5)
 #define ELE_WRITE_FUSE_REQ (0xD6)
 #define ELE_RELEASE_CAAM_REQ (0xD7)
@@ -113,6 +115,12 @@
 #define ELE_SUCCESS_IND (0xD6)
 #define ELE_FAILURE_IND (0x29)
 
+enum ELE_AUX_ID {
+	ELE_RTC = 0x1,
+	ELE_APC = 0x2,
+	ELE_CM7 = 0xb
+};
+
 #define ELE_MAX_MSG          255U
 
 struct ele_msg {
@@ -134,26 +142,32 @@ struct ele_get_info_data {
 	u32 state;
 };
 
-int ahab_release_rdc(u8 core_id, u8 xrdc, u32 *response);
-int ahab_auth_oem_ctnr(ulong ctnr_addr, u32 *response);
-int ahab_release_container(u32 *response);
-int ahab_verify_image(u32 img_id, u32 *response);
-int ahab_forward_lifecycle(u16 life_cycle, u32 *response);
-int ahab_write_fuse(u16 fuse_id, u32 fuse_val, bool lock, u32 *response);
-int ahab_read_common_fuse(u16 fuse_id, u32 *fuse_words, u32 fuse_num, u32 *response);
-int ahab_release_caam(u32 core_did, u32 *response);
-int ahab_get_fw_version(u32 *fw_version, u32 *sha1, u32 *response);
-int ahab_dump_buffer(u32 *buffer, u32 buffer_length);
-int ahab_get_info(struct ele_get_info_data *info, u32 *response);
-int ahab_get_fw_status(u32 *status, u32 *response);
-int ahab_release_m33_trout(void);
-int ahab_get_events(u32 *events, u32 *events_cnt, u32 *response);
-int ahab_start_rng(void);
-int ahab_commit(u16 fuse_id, u32 *response, u32 *info_type);
-int ahab_generate_dek_blob(u32 key_id, u32 src_paddr, u32 dst_paddr,
-			   u32 max_output_size);
-int ahab_write_secure_fuse(ulong signed_msg_blk, u32 *response);
-int ahab_return_lifecycle_update(ulong signed_msg_blk, u32 *response);
-int ahab_get_hw_unique_key(uint8_t *hwkey, size_t key_size, uint8_t *ctx, size_t ctx_size);
+struct v2x_get_state {
+	u8 v2x_state;
+	u8 v2x_power_state;
+	u32 v2x_err_code;
+};
 
+int ele_release_rdc(u8 core_id, u8 xrdc, u32 *response);
+int ele_auth_oem_ctnr(ulong ctnr_addr, u32 *response);
+int ele_release_container(u32 *response);
+int ele_verify_image(u32 img_id, u32 *response);
+int ele_forward_lifecycle(u16 life_cycle, u32 *response);
+int ele_write_fuse(u16 fuse_id, u32 fuse_val, bool lock, u32 *response);
+int ele_read_common_fuse(u16 fuse_id, u32 *fuse_words, u32 fuse_num, u32 *response);
+int ele_release_caam(u32 core_did, u32 *response);
+int ele_get_fw_version(u32 *fw_version, u32 *sha1, u32 *response);
+int ele_get_events(u32 *events, u32 *events_cnt, u32 *response);
+int ele_generate_dek_blob(u32 key_id, u32 src_paddr, u32 dst_paddr, u32 max_output_size);
+int ele_dump_buffer(u32 *buffer, u32 buffer_length);
+int ele_get_info(struct ele_get_info_data *info, u32 *response);
+int ele_get_fw_status(u32 *status, u32 *response);
+int ele_release_m33_trout(void);
+int ele_write_secure_fuse(ulong signed_msg_blk, u32 *response);
+int ele_return_lifecycle_update(ulong signed_msg_blk, u32 *response);
+int ele_start_rng(void);
+int ele_commit(u16 fuse_id, u32 *response, u32 *info_type);
+int ele_v2x_get_state(struct v2x_get_state *state, u32 *response);
+int ele_message_call(struct ele_msg *msg);
+int ele_get_hw_unique_key(uint8_t *hwkey, size_t key_size, uint8_t *ctx, size_t ctx_size);
 #endif

@@ -10,7 +10,7 @@
 #include <asm/arch/i2c.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/arch/lpcg.h>
-#include <asm/arch/sci/sci.h>
+#include <firmware/imx/sci/sci.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 

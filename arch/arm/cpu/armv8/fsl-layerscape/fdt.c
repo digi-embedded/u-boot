@@ -388,6 +388,10 @@ void fdt_fixup_remove_jr(void *blob)
 	u64 jr_offset, used_jr;
 	fdt32_t *reg;
 
+	/* Return if crypto node not found */
+	if (crypto_node < 0)
+		return;
+
 	used_jr = sec_firmware_used_jobring_offset();
 	fdt_support_default_count_cells(blob, crypto_node, &addr_cells, NULL);
 
@@ -668,6 +672,9 @@ void ft_cpu_setup(void *blob, struct bd_info *bd)
 #ifdef CONFIG_SYS_DPAA_QBMAN
 	fdt_fixup_bportals(blob);
 	fdt_fixup_qportals(blob);
+
+	fdt_fixup_qbman_reserved_mem(blob);
+
 	do_fixup_by_compat_u32(blob, "fsl,qman",
 			       "clock-frequency", get_qman_freq(), 1);
 #endif

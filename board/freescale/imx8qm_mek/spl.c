@@ -16,6 +16,8 @@
 #include <dm/uclass-internal.h>
 #include <dm/device-internal.h>
 #include <dm/lists.h>
+#include <asm/arch/sys_proto.h>
+#include <asm/sections.h>
 #include <bootm.h>
 
 DECLARE_GLOBAL_DATA_PTR;

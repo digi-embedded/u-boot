@@ -11,11 +11,14 @@
 #ifndef _USB_H_
 #define _USB_H_
 
+#include <stdbool.h>
 #include <fdtdec.h>
 #include <usb_defs.h>
 #include <linux/usb/ch9.h>
 #include <asm/cache.h>
 #include <part.h>
+
+extern bool usb_started; /* flag for the started/stopped USB status */
 
 /*
  * The EHCI spec says that we must align to at least 32 bytes.  However,
@@ -254,7 +257,14 @@ int usb_kbd_deregister(int force);
 
 #endif
 /* routines */
-int usb_init(void); /* initialize the USB Controller */
+
+/*
+ * usb_init() - initialize the USB Controllers
+ *
+ * Returns: 0 if OK, -ENOENT if there are no USB devices
+ */
+int usb_init(void);
+
 int usb_stop(void); /* stop the USB Controller */
 int usb_detect_change(void); /* detect if a USB device has been (un)plugged */
 

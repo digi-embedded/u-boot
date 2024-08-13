@@ -22,7 +22,6 @@
 #include <fsl-mc/fsl_mc.h>
 #include <env_internal.h>
 #include <asm/arch-fsl-layerscape/soc.h>
-#include <asm/arch/ppa.h>
 #include <hwconfig.h>
 #include <asm/arch/fsl_serdes.h>
 #include <asm/arch/soc.h>
@@ -181,13 +180,14 @@ unsigned long long get_qixis_addr(void)
 #endif
 
 #if defined(CONFIG_VID)
-int init_func_vid(void)
+static int setup_core_voltage(void)
 {
 	if (adjust_vdd(0) < 0)
 		printf("core voltage not adjusted\n");
 
 	return 0;
 }
+EVENT_SPY_SIMPLE(EVT_MISC_INIT_F, setup_core_voltage);
 
 u16 soc_get_fuse_vid(int vid_index)
 {
@@ -435,8 +435,14 @@ void board_retimer_init(void)
 	i2c_write(I2C_RETIMER_ADDR, 0xff, 1, &reg, 1);
 #else
 	struct udevice *dev;
+	int ret;
 
-	i2c_get_chip_for_busnum(0, I2C_RETIMER_ADDR, 1, &dev);
+	ret = i2c_get_chip_for_busnum(0, I2C_RETIMER_ADDR, 1, &dev);
+	if (ret) {
+		printf("%s: Cannot find retimer dev\n",
+		       __func__);
+		return;
+	}
 	dm_i2c_write(dev, 0xff, &reg, 1);
 #endif
 
@@ -524,7 +530,12 @@ void board_retimer_init(void)
 #if !CONFIG_IS_ENABLED(DM_I2C)
 	i2c_write(I2C_RETIMER_ADDR2, 0xff, 1, &reg, 1);
 #else
-	i2c_get_chip_for_busnum(0, I2C_RETIMER_ADDR2, 1, &dev);
+	ret = i2c_get_chip_for_busnum(0, I2C_RETIMER_ADDR2, 1, &dev);
+	if (ret) {
+		printf("%s: Cannot find retimer2 dev\n",
+		       __func__);
+		return;
+	}
 	dm_i2c_write(dev, 0xff, &reg, 1);
 #endif
 
@@ -820,11 +831,7 @@ int board_init(void)
 	out_le32(irq_ccsr + IRQCR_OFFSET / 4, AQR105_IRQ_MASK);
 #endif
 
-#ifdef CONFIG_FSL_LS_PPA
-	ppa_init();
-#endif
-
-#if !defined(CONFIG_SYS_EARLY_PCI_INIT) && defined(CONFIG_DM_ETH)
+#if !defined(CONFIG_SYS_EARLY_PCI_INIT)
 	pci_init();
 #endif
 
@@ -988,6 +995,7 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 
 #ifdef CONFIG_FSL_MC_ENET
 	fdt_fixup_board_enet(blob);
+	fdt_reserve_mc_mem(blob, 0x300);
 #endif
 
 	fdt_fixup_icid(blob);

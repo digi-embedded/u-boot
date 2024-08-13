@@ -52,17 +52,11 @@ config SYS_SOC
 
 config BOOTAUX_RESERVED_MEM_BASE
 	hex "i.MX auxiliary core dram memory base"
-	default 0
+	default 0x0
 
 config BOOTAUX_RESERVED_MEM_SIZE
 	hex "i.MX auxiliary core dram memory size"
-	default 0
-
-config PSCI_BOARD_REBOOT
-	bool "Enable psci board reboot command"
-	depends on ARM_PSCI_FW
-	help
-	  This is a optional command used to trigger system board reboot on imx8.
+	default 0x0
 
 config SECURE_HEAP_BASE
 	hex "secure heap base addr"
@@ -79,7 +73,6 @@ config VPU_BOOT_BASE
 config VPU_BOOT_SIZE
 	hex "vpu boot memory size"
 	default 0x2000000
-
 
 choice
 	prompt "i.MX8 board select"
@@ -114,7 +107,6 @@ config TARGET_APALIS_IMX8
 
 config TARGET_COLIBRI_IMX8X
 	bool "Support Colibri iMX8X module"
-	select BINMAN
 	select BOARD_LATE_INIT
 	select IMX8QXP
 
@@ -165,6 +157,13 @@ config TARGET_IMX8QM_ROM7720_A1
 	select SUPPORT_SPL
 	select IMX8QM
 
+config TARGET_IMX8QM_DMSSE20_A1
+	bool "Support i.MX8QM DMS-SE20-A1 board"
+	select BINMAN
+	select BOARD_LATE_INIT
+	select SUPPORT_SPL
+	select IMX8QM
+
 config TARGET_IMX8QXP_MEK
 	bool "Support i.MX8QXP MEK board"
 	select BOARD_LATE_INIT
@@ -198,15 +197,6 @@ config TARGET_IMX8X_17X17_VAL
 	bool "Support i.MX8QXP/DX 17x17 validation board"
 	select BOARD_LATE_INIT
 	select IMX8QXP
-
-config TARGET_IMX8DXL_PHANTOM_MEK
-	bool "Support i.MX8DXL PHANTOM MEK board"
-	select BOARD_LATE_INIT
-	select IMX8QXP
-	select FSL_CAAM
-	select FSL_BLOB
-	select ARCH_MISC_INIT
-	select SPL_CRYPTO if SPL
 
 config TARGET_IMX8DX_MEK
 	bool "Support i.MX8DX MEK board"
@@ -252,9 +242,9 @@ source "board/digi/ccimx8x_sbc_pro/Kconfig"
 source "board/freescale/imx8qm_mek/Kconfig"
 source "board/freescale/imx8qxp_mek/Kconfig"
 source "board/congatec/cgtqmx8/Kconfig"
+source "board/advantech/imx8qm_dmsse20_a1/Kconfig"
 source "board/freescale/imx8qm_val/Kconfig"
 source "board/freescale/imx8qxp_val/Kconfig"
-source "board/freescale/imx8dxl_phantom_mek/Kconfig"
 source "board/freescale/imx8dxl_evk/Kconfig"
 source "board/freescale/imx8dxl_orangebox/Kconfig"
 source "board/advantech/imx8qm_rom7720_a1/Kconfig"

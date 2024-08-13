@@ -1,9 +1,17 @@
 menu "Fastboot support"
+	depends on CMDLINE
 
 config FASTBOOT
 	bool
 	imply ANDROID_BOOT_IMAGE
 	imply CMD_FASTBOOT
+	help
+	  Fastboot is a protocol used in Android devices for
+	  communicating between the device and a computer during
+	  the bootloader stage. It allows the user to flash the
+	  device firmware and unlock the bootloader.
+	  More information about the protocol and usecases:
+	  https://android.googlesource.com/platform/system/core/+/refs/heads/master/fastboot/
 
 config USB_FUNCTION_FASTBOOT
 	bool "Enable USB fastboot gadget"
@@ -29,6 +37,13 @@ config UDP_FUNCTION_FASTBOOT_PORT
 	help
 	  The fastboot protocol requires a UDP port number.
 
+config TCP_FUNCTION_FASTBOOT
+	depends on NET
+	select FASTBOOT
+	bool "Enable fastboot protocol over TCP"
+	help
+	  This enables the fastboot protocol over TCP.
+
 if FASTBOOT
 
 config FASTBOOT_BUF_ADDR
@@ -43,7 +58,7 @@ config FASTBOOT_BUF_ADDR
 				ROCKCHIP_RK3399
 	default 0x280000 if ROCKCHIP_RK3368
 	default 0x100000 if ARCH_ZYNQMP
-	default 0 if SANDBOX
+	default 0x0 if SANDBOX
 	help
 	  The fastboot protocol requires a large memory buffer for
 	  downloads. Define this to the starting RAM address to use for
@@ -270,6 +285,13 @@ config FASTBOOT_OEM_RUN
 	  command allows running arbitrary U-Boot shell commands. Do not enable
 	  this feature if you are using verified boot, as it will allow an
 	  attacker to bypass any restrictions you have in place.
+
+config FASTBOOT_CMD_OEM_CONSOLE
+	bool "Enable the 'oem console' command"
+	depends on CONSOLE_RECORD
+	help
+	  Add support for the "oem console" command to input and read console
+	  record buffer.
 
 endif # FASTBOOT
 

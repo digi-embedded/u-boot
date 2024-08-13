@@ -7,7 +7,7 @@
 #ifndef __ASM_ARCH_IMX8_I2C_H__
 #define __ASM_ARCH_IMX8_I2C_H__
 
-#include <asm/arch/sci/sci.h>
+#include <firmware/imx/sci/sci.h>
 #include <asm/arch/lpcg.h>
 
 struct imx_i2c_map {

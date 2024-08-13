@@ -84,7 +84,11 @@ static int do_boot_mode(struct cmd_tbl *cmdtp, int flag, int argc,
 		reset_requested = 0;
 	}
 
+/* No longer applicable to i.MX8M */
+#if IS_ENABLED(CONFIG_MX53) || IS_ENABLED(CONFIG_MX6) || IS_ENABLED(CONFIG_MX7)
 	boot_mode_apply(p->cfg_val);
+#endif
+
 	if (reset_requested && p->cfg_val) {
 		/* Set flag to indicate bmode reset */
 		bmode_reset = true;

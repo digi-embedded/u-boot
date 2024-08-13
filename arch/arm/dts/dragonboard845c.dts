@@ -21,7 +21,7 @@
 	};
 
 	aliases {
-		serial0 = &debug_uart;
+		serial0 = &uart9;
 	};
 
 	memory {
@@ -39,6 +39,10 @@
 			status = "okay";
 		};
 	};
+};
+
+&pm8998_resin {
+	status = "okay";
 };
 
 #include "dragonboard845c-uboot.dtsi"

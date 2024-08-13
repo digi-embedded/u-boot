@@ -37,52 +37,6 @@
 #define AHAB_ENV "sec_boot=no\0"
 #endif
 
-
-#define JAILHOUSE_ENV \
-	"jh_mmcboot=" \
-		"setenv fdt_file imx8qm-mek-root.dtb;"\
-		"setenv boot_os 'scu_rm dtb ${fdt_addr}; booti ${loadaddr} - ${fdt_addr};'; " \
-		"run mmcboot; \0" \
-	"jh_netboot=" \
-		"setenv fdt_file imx8qm-mek-root.dtb;"\
-		"setenv boot_os 'scu_rm dtb ${fdt_addr}; booti ${loadaddr} - ${fdt_addr};'; " \
-		"run netboot; \0"
-
-#define XEN_BOOT_ENV \
-	    "domu-android-auto=no\0" \
-            "xenhyper_bootargs=console=dtuart dom0_mem=2048M dom0_max_vcpus=2 dom0_vcpus_pin=true hmp-unsafe=true\0" \
-            "xenlinux_bootargs= \0" \
-            "xenlinux_console=hvc0 earlycon=xen\0" \
-            "xenlinux_addr=0x9e000000\0" \
-            "dom0fdt_file=imx8qm-mek-dom0.dtb\0" \
-            "xenboot_common=" \
-                "${get_cmd} ${loadaddr} xen;" \
-                "${get_cmd} ${fdt_addr} ${dom0fdt_file};" \
-                "if ${get_cmd} ${hdp_addr} ${hdp_file}; then; hdp load ${hdp_addr}; fi;" \
-                "${get_cmd} ${xenlinux_addr} ${image};" \
-                "fdt addr ${fdt_addr};" \
-                "fdt resize 256;" \
-                "fdt set /chosen/module@0 reg <0x00000000 ${xenlinux_addr} 0x00000000 0x${filesize}>; " \
-                "fdt set /chosen/module@0 bootargs \"${bootargs} ${xenlinux_bootargs}\"; " \
-		"if test ${domu-android-auto} = yes; then; " \
-			"fdt set /domu/doma android-auto <1>;" \
-			"fdt rm /gpio@5d090000 power-domains;" \
-		"fi;" \
-                "setenv bootargs ${xenhyper_bootargs};" \
-                "booti ${loadaddr} - ${fdt_addr};" \
-            "\0" \
-            "xennetboot=" \
-                "setenv get_cmd dhcp;" \
-                "setenv console ${xenlinux_console};" \
-                "run netargs;" \
-                "run xenboot_common;" \
-            "\0" \
-            "xenmmcboot=" \
-                "setenv get_cmd \"fatload mmc ${mmcdev}:${mmcpart}\";" \
-                "setenv console ${xenlinux_console};" \
-                "run mmcargs;" \
-                "run xenboot_common;" \
-            "\0" \
 /* Boot M4 */
 #define M4_BOOT_ENV \
 	"m4_0_image=m4_0.bin\0" \
@@ -121,8 +75,6 @@
 #define CFG_EXTRA_ENV_SETTINGS		\
 	CFG_MFG_ENV_SETTINGS \
 	M4_BOOT_ENV \
-	XEN_BOOT_ENV \
-	JAILHOUSE_ENV\
 	AHAB_ENV \
 	"script=boot.scr\0" \
 	"image=Image\0" \
@@ -260,9 +212,6 @@
 #include "imx8qm_mek_android.h"
 #elif defined (CONFIG_ANDROID_AUTO_SUPPORT)
 #include "imx8qm_mek_android_auto.h"
-#elif defined(CONFIG_IMX8_TRUSTY_XEN)
-#include "imx8qm_mek_trusty_xen.h"
 #endif
-
 
 #endif /* __IMX8QM_MEK_H */

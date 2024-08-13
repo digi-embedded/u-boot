@@ -314,6 +314,7 @@ config TARGET_DISPLAY5
 	select DM_SPI
 	select DM_GPIO
 	select DM_SERIAL
+	select MTD
 	select SUPPORT_SPL
 	imply CMD_DM
 
@@ -359,7 +360,7 @@ config TARGET_KOSAGI_NOVENA
 	select DM_GPIO
 	select DM_MMC
 	select PCI
-	select DM_SCSI
+	select SCSI
 	select VIDEO
 	select OF_CONTROL
 	select SUPPORT_SPL
@@ -374,6 +375,7 @@ config TARGET_MCCMON6
 	select DM_SERIAL
 	select DM_I2C
 	select DM_SPI
+	select MTD
 	imply CMD_DM
 
 config TARGET_MX6CUBOXI
@@ -467,6 +469,15 @@ config TARGET_MX6Q_ACC
 	select DM_THERMAL
 	select SUPPORT_SPL
 
+config TARGET_MX6S_SIELAFF
+	bool "Sielaff i.MX6 Solo Board"
+	depends on MX6S
+	select BINMAN
+	select DM
+	select DM_THERMAL
+	select SUPPORT_SPL
+	imply CMD_DM
+
 config TARGET_MX6SABREAUTO
 	bool "mx6sabreauto"
 	depends on MX6QDL
@@ -545,15 +556,6 @@ config TARGET_MX6SLLEVK
 	select IOMUX_LPSR
 	imply CMD_DM
 
-config TARGET_MX6SLL_VAL
-	bool "mx6sll val"
-	depends on MX6SLL
-	select BOARD_LATE_INIT
-	select DM
-	select DM_THERMAL
-	select IOMUX_LPSR
-	imply CMD_DM
-
 config TARGET_MX6SXSABRESD
 	bool "mx6sxsabresd"
 	depends on MX6SX
@@ -574,33 +576,6 @@ config TARGET_MX6SXSABREAUTO
 	select BOARD_LATE_INIT
 	select DM
 	select DM_THERMAL
-	imply CMD_DM
-
-config TARGET_MX6SX_14X14_VAL
-	bool "mx6sx_14x14_val"
-	depends on MX6SX
-	select DM
-	select DM_THERMAL
-	select BOARD_EARLY_INIT_F
-	select BOARD_LATE_INIT
-	imply CMD_DM
-
-config TARGET_MX6SX_17X17_VAL
-	bool "mx6sx_17x17_val"
-	depends on MX6SX
-	select DM
-	select DM_THERMAL
-	select BOARD_EARLY_INIT_F
-	select BOARD_LATE_INIT
-	imply CMD_DM
-
-config TARGET_MX6SX_19X19_VAL
-	bool "mx6sx_19x19_val"
-	depends on MX6SX
-	select DM
-	select DM_THERMAL
-	select BOARD_EARLY_INIT_F
-	select BOARD_LATE_INIT
 	imply CMD_DM
 
 config TARGET_MX6UL_9X9_EVK
@@ -631,26 +606,6 @@ config TARGET_MX6UL_14X14_EVK
 	select FSL_BLOB
 	select ARCH_MISC_INIT
 
-config TARGET_MX6UL_14X14_DDR3_VAL
-	bool "mx6ul_14x14_ddr3_val"
-	depends on MX6UL
-	select BOARD_LATE_INIT
-	select DM
-	select DM_THERMAL
-	select IMX_MODULE_FUSE
-	select OF_SYSTEM_SETUP
-	imply CMD_DM
-
-config TARGET_MX6UL_14X14_LPDDR2_VAL
-	bool "mx6ul_14x14_lpddr2_val"
-	depends on MX6UL
-	select BOARD_LATE_INIT
-	select DM
-	select DM_THERMAL
-	select IMX_MODULE_FUSE
-	select OF_SYSTEM_SETUP
-	imply CMD_DM
-
 config TARGET_MX6UL_ENGICAM
 	bool "Support Engicam GEAM6UL/Is.IoT"
 	depends on MX6UL
@@ -666,17 +621,6 @@ config TARGET_MX6UL_ENGICAM
 	select SPL_PINCTRL if SPL
 	select SPL_SEPARATE_BSS if SPL
 	select SUPPORT_SPL
-	imply CMD_DM
-
-config TARGET_MX6ULL_DDR3_VAL
-	bool "Support mx6ull_ddr3_val"
-	depends on MX6ULL
-	select BOARD_LATE_INIT
-	select DM
-	select DM_THERMAL
-	select IOMUX_LPSR
-	select IMX_MODULE_FUSE
-	select OF_SYSTEM_SETUP
 	imply CMD_DM
 
 config TARGET_MX6ULL_9X9_EVK
@@ -843,6 +787,7 @@ config TARGET_TQMA6
 	imply DM
 	imply DM_GPIO
 	imply DM_MMC
+	imply MTD
 	imply DM_SPI
 	imply DM_SPI_FLASH
 	imply DM_I2C
@@ -933,17 +878,11 @@ source "board/freescale/mx6memcal/Kconfig"
 source "board/freescale/mx6sabreauto/Kconfig"
 source "board/freescale/mx6sabresd/Kconfig"
 source "board/freescale/mx6slevk/Kconfig"
-source "board/freescale/mx6sll_val/Kconfig"
 source "board/freescale/mx6sllevk/Kconfig"
 source "board/freescale/mx6sxsabresd/Kconfig"
 source "board/freescale/mx6sxsabreauto/Kconfig"
-source "board/freescale/mx6sx_17x17_val/Kconfig"
-source "board/freescale/mx6sx_19x19_val/Kconfig"
 source "board/freescale/mx6ul_14x14_evk/Kconfig"
-source "board/freescale/mx6ul_14x14_ddr3_val/Kconfig"
-source "board/freescale/mx6ul_14x14_lpddr2_val/Kconfig"
 source "board/freescale/mx6ullevk/Kconfig"
-source "board/freescale/mx6ull_ddr3_val/Kconfig"
 source "board/bosch/acc/Kconfig"
 source "board/grinn/liteboard/Kconfig"
 source "board/phytec/pcm058/Kconfig"
@@ -955,6 +894,7 @@ source "board/softing/vining_2000/Kconfig"
 source "board/liebherr/display5/Kconfig"
 source "board/liebherr/mccmon6/Kconfig"
 source "board/logicpd/imx6/Kconfig"
+source "board/sielaff/imx6dl-sielaff/Kconfig"
 source "board/solidrun/mx6cuboxi/Kconfig"
 source "board/somlabs/visionsom-6ull/Kconfig"
 source "board/technexion/pico-imx6/Kconfig"

@@ -114,10 +114,11 @@ static bool is_slotvar(char *cmd)
 	return false;
 }
 
+static char serial[IMX_SERIAL_LEN];
+
 char *get_serial(void)
 {
 #ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
-	static char serial[IMX_SERIAL_LEN];
 	struct tag_serialnr serialnr;
 	memset(serial, 0, IMX_SERIAL_LEN);
 
@@ -296,7 +297,7 @@ static int get_single_var(char *cmd, char *response)
 #ifdef CONFIG_AVB_ATX
 	else if (!strcmp_l1("bootloader-locked", cmd)) {
 
-		/* Below is basically copied from imx_hab_is_enabled() */
+		/* Below is basically copied from is_hab_enabled() */
 		struct imx_sec_config_fuse_t *fuse =
 			(struct imx_sec_config_fuse_t *)&imx_sec_config_fuse;
 		uint32_t reg;

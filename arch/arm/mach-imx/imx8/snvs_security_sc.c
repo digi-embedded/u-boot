@@ -23,7 +23,7 @@
 #include <stddef.h>
 #include <common.h>
 #include <console.h>
-#include <asm/arch/sci/sci.h>
+#include <firmware/imx/sci/sci.h>
 #include <asm/arch-imx8/imx8-pins.h>
 #include <asm/arch-imx8/snvs_security_sc.h>
 #include <asm/global_data.h>
@@ -233,7 +233,7 @@ exit:
 	return err;
 }
 
-static int dgo_write(u32 _id, u8 _access, u32 *_pdata)
+static sc_err_t dgo_write(u32 _id, u8 _access, u32 *_pdata)
 {
 	int err = sc_seco_secvio_dgo_config(-1, _id, _access, _pdata);
 
@@ -294,7 +294,7 @@ exit:
 	return err;
 }
 
-static int pad_write(u32 _pad, u32 _value)
+static sc_err_t pad_write(u32 _pad, u32 _value)
 {
 	int err = sc_pad_set(-1, _pad, _value);
 
@@ -306,7 +306,7 @@ static int pad_write(u32 _pad, u32 _value)
 	return err;
 }
 
-static int pad_read(u32 _pad, u32 *_value)
+static sc_err_t pad_read(u32 _pad, u32 *_value)
 {
 	int err = sc_pad_get(-1, _pad, _value);
 

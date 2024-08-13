@@ -6,7 +6,7 @@
 #ifndef ARCH_IMX8_SYS_PROTO_H
 #define ARCH_IMX8_SYS_PROTO_H
 
-#include <asm/arch/sci/sci.h>
+#include <firmware/imx/sci/sci.h>
 #include <asm/mach-imx/sys_proto.h>
 #include <asm/arch/power-domain.h>
 #include <dm/platdata.h>
@@ -26,6 +26,7 @@ struct pass_over_info_t {
 
 extern unsigned long rom_pointer[];
 void build_info(void);
+int ahab_close(void);
 int print_bootinfo(void);
 int sc_pm_setup_uart(sc_rsrc_t uart_rsrc, sc_pm_clock_rate_t clk_rate);
 int imx8_power_domain_lookup_name(const char *name,

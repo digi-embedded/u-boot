@@ -30,6 +30,7 @@ int scmi_dt_get_smt_buffer(struct udevice *dev, struct scmi_smt *smt)
 	int ret;
 	struct ofnode_phandle_args args;
 	struct resource resource;
+	u32 align_size __maybe_unused;
 
 	ret = dev_read_phandle_with_args(dev, "shmem", NULL, 0, 0, &args);
 	if (ret)
@@ -49,12 +50,19 @@ int scmi_dt_get_smt_buffer(struct udevice *dev, struct scmi_smt *smt)
 	if (!smt->buf)
 		return -ENOMEM;
 
-#ifdef CONFIG_ARM
-	if (dcache_status())
-		mmu_set_region_dcache_behaviour(ALIGN_DOWN((uintptr_t)smt->buf, MMU_SECTION_SIZE),
-						ALIGN(smt->size, MMU_SECTION_SIZE),
-						DCACHE_OFF);
+	/* make this configurable as function of DTS property */
+	scmi_smt_enable_intr(smt, true);
 
+#ifdef CONFIG_ARM
+	if (dcache_status()) {
+		if (IS_ENABLED(CONFIG_ARM64))
+			align_size = PAGE_SIZE;
+		else
+			align_size = MMU_SECTION_SIZE;
+
+		mmu_set_region_dcache_behaviour(ALIGN_DOWN((uintptr_t)smt->buf, align_size),
+						ALIGN(smt->size, align_size), DCACHE_OFF);
+	}
 #endif
 
 	return 0;
@@ -73,7 +81,7 @@ int scmi_write_msg_to_smt(struct udevice *dev, struct scmi_smt *smt,
 	    (!msg->out_msg && msg->out_msg_sz))
 		return -EINVAL;
 
-	if (!(hdr->channel_status & SCMI_SHMEM_CHAN_STAT_CHANNEL_FREE)) {
+	if (!(ioread32(&hdr->channel_status) & SCMI_SHMEM_CHAN_STAT_CHANNEL_FREE)) {
 		dev_dbg(dev, "Channel busy\n");
 		return -EBUSY;
 	}
@@ -85,12 +93,12 @@ int scmi_write_msg_to_smt(struct udevice *dev, struct scmi_smt *smt,
 	}
 
 	/* Load message in shared memory */
-	hdr->channel_status &= ~SCMI_SHMEM_CHAN_STAT_CHANNEL_FREE;
-	hdr->length = msg->in_msg_sz + sizeof(hdr->msg_header);
-	hdr->msg_header = SMT_HEADER_TOKEN(0) |
-			  SMT_HEADER_MESSAGE_TYPE(0) |
-			  SMT_HEADER_PROTOCOL_ID(msg->protocol_id) |
-			  SMT_HEADER_MESSAGE_ID(msg->message_id);
+	iowrite32(ioread32(&hdr->channel_status) & ~SCMI_SHMEM_CHAN_STAT_CHANNEL_FREE, &hdr->channel_status);
+	iowrite32(msg->in_msg_sz + sizeof(hdr->msg_header), &hdr->length);;
+	iowrite32(SMT_HEADER_TOKEN(0) |
+		  SMT_HEADER_MESSAGE_TYPE(0) |
+		  SMT_HEADER_PROTOCOL_ID(msg->protocol_id) |
+		  SMT_HEADER_MESSAGE_ID(msg->message_id), &hdr->msg_header);
 
 	memcpy_toio(hdr->msg_payload, msg->in_msg, msg->in_msg_sz);
 
@@ -106,23 +114,23 @@ int scmi_read_resp_from_smt(struct udevice *dev, struct scmi_smt *smt,
 {
 	struct scmi_smt_header *hdr = (void *)smt->buf;
 
-	if (!(hdr->channel_status & SCMI_SHMEM_CHAN_STAT_CHANNEL_FREE)) {
+	if (!(ioread32(&hdr->channel_status) & SCMI_SHMEM_CHAN_STAT_CHANNEL_FREE)) {
 		dev_err(dev, "Channel unexpectedly busy\n");
 		return -EBUSY;
 	}
 
-	if (hdr->channel_status & SCMI_SHMEM_CHAN_STAT_CHANNEL_ERROR) {
+	if (ioread32(&hdr->channel_status) & SCMI_SHMEM_CHAN_STAT_CHANNEL_ERROR) {
 		dev_err(dev, "Channel error reported, reset channel\n");
 		return -ECOMM;
 	}
 
-	if (hdr->length > msg->out_msg_sz + sizeof(hdr->msg_header)) {
+	if (ioread32(&hdr->length) > msg->out_msg_sz + sizeof(hdr->msg_header)) {
 		dev_err(dev, "Buffer to small\n");
 		return -ETOOSMALL;
 	}
 
 	/* Get the data */
-	msg->out_msg_sz = hdr->length - sizeof(hdr->msg_header);
+	msg->out_msg_sz = ioread32(&hdr->length) - sizeof(hdr->msg_header);
 	memcpy_fromio(msg->out_msg, hdr->msg_payload, msg->out_msg_sz);
 
 	return 0;
@@ -135,7 +143,8 @@ void scmi_clear_smt_channel(struct scmi_smt *smt)
 {
 	struct scmi_smt_header *hdr = (void *)smt->buf;
 
-	hdr->channel_status &= ~SCMI_SHMEM_CHAN_STAT_CHANNEL_ERROR;
+	iowrite32(ioread32(&hdr->channel_status) & ~SCMI_SHMEM_CHAN_STAT_CHANNEL_ERROR,
+		  &hdr->channel_status);
 }
 
 /**
@@ -159,10 +168,10 @@ int scmi_msg_to_smt_msg(struct udevice *dev, struct scmi_smt *smt,
 
 	*buf_size = msg->in_msg_sz + sizeof(hdr->msg_header);
 
-	hdr->msg_header = SMT_HEADER_TOKEN(0) |
-			  SMT_HEADER_MESSAGE_TYPE(0) |
-			  SMT_HEADER_PROTOCOL_ID(msg->protocol_id) |
-			  SMT_HEADER_MESSAGE_ID(msg->message_id);
+	iowrite32(SMT_HEADER_TOKEN(0) |
+		  SMT_HEADER_MESSAGE_TYPE(0) |
+		  SMT_HEADER_PROTOCOL_ID(msg->protocol_id) |
+		  SMT_HEADER_MESSAGE_ID(msg->message_id), &hdr->msg_header);
 
 	memcpy(hdr->msg_payload, msg->in_msg, msg->in_msg_sz);
 

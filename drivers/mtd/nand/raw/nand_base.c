@@ -245,39 +245,6 @@ static void nand_write_byte16(struct mtd_info *mtd, uint8_t byte)
 	chip->write_buf(mtd, (uint8_t *)&word, 2);
 }
 
-static void iowrite8_rep(void *addr, const uint8_t *buf, int len)
-{
-	int i;
-
-	for (i = 0; i < len; i++)
-		writeb(buf[i], addr);
-}
-static void ioread8_rep(void *addr, uint8_t *buf, int len)
-{
-	int i;
-
-	for (i = 0; i < len; i++)
-		buf[i] = readb(addr);
-}
-
-static void ioread16_rep(void *addr, void *buf, int len)
-{
-	int i;
-	u16 *p = (u16 *) buf;
-
-	for (i = 0; i < len; i++)
-		p[i] = readw(addr);
-}
-
-static void iowrite16_rep(void *addr, void *buf, int len)
-{
-	int i;
-        u16 *p = (u16 *) buf;
-
-        for (i = 0; i < len; i++)
-                writew(p[i], addr);
-}
-
 /**
  * nand_write_buf - [DEFAULT] write buffer to chip
  * @mtd: MTD device structure
@@ -4478,17 +4445,14 @@ ident_done:
 	else if (chip->jedec_version)
 		pr_info("%s %s\n", manufacturer_desc->name,
 			chip->jedec_params.model);
-	else
+	else if (manufacturer_desc)
 		pr_info("%s %s\n", manufacturer_desc->name, type->name);
 #else
 	if (chip->jedec_version)
 		pr_info("%s %s\n", manufacturer_desc->name,
 			chip->jedec_params.model);
-	else
+	else if (manufacturer_desc)
 		pr_info("%s %s\n", manufacturer_desc->name, type->name);
-
-	pr_info("%s %s\n", manufacturer_desc->name,
-		type->name);
 #endif
 
 	pr_info("%d MiB, %s, erase size: %d KiB, page size: %d, OOB size: %d\n",
@@ -4503,6 +4467,7 @@ EXPORT_SYMBOL(nand_detect);
 static int nand_dt_init(struct mtd_info *mtd, struct nand_chip *chip, ofnode node)
 {
 	int ret, ecc_mode = -1, ecc_strength, ecc_step;
+	int ecc_algo = NAND_ECC_UNKNOWN;
 	const char *str;
 
 	ret = ofnode_read_s32_default(node, "nand-bus-width", -1);
@@ -4528,10 +4493,22 @@ static int nand_dt_init(struct mtd_info *mtd, struct nand_chip *chip, ofnode nod
 			ecc_mode = NAND_ECC_SOFT_BCH;
 	}
 
-	if (ecc_mode == NAND_ECC_SOFT) {
-		str = ofnode_read_string(node, "nand-ecc-algo");
-		if (str && !strcmp(str, "bch"))
-			ecc_mode = NAND_ECC_SOFT_BCH;
+	str = ofnode_read_string(node, "nand-ecc-algo");
+	if (str) {
+		/*
+		 * If we are in NAND_ECC_SOFT mode, just alter the
+		 * soft mode to BCH here. No change of algorithm.
+		 */
+		if (ecc_mode == NAND_ECC_SOFT) {
+			if (!strcmp(str, "bch"))
+				ecc_mode = NAND_ECC_SOFT_BCH;
+		} else {
+			if (!strcmp(str, "bch")) {
+				ecc_algo = NAND_ECC_BCH;
+			} else if (!strcmp(str, "hamming")) {
+				ecc_algo = NAND_ECC_HAMMING;
+			}
+		}
 	}
 
 	ecc_strength = ofnode_read_s32_default(node,
@@ -4544,6 +4521,14 @@ static int nand_dt_init(struct mtd_info *mtd, struct nand_chip *chip, ofnode nod
 		pr_err("must set both strength and step size in DT\n");
 		return -EINVAL;
 	}
+
+	/*
+	 * Chip drivers may have assigned default algorithms here,
+	 * onlt override it if we have found something explicitly
+	 * specified in the device tree.
+	 */
+	if (ecc_algo != NAND_ECC_UNKNOWN)
+		chip->ecc.algo = ecc_algo;
 
 	if (ecc_mode >= 0)
 		chip->ecc.mode = ecc_mode;

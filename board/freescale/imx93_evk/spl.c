@@ -14,13 +14,15 @@
 #include <asm/global_data.h>
 #include <asm/io.h>
 #include <asm/arch/imx93_pins.h>
+#include <asm/arch/mu.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/mach-imx/boot_mode.h>
 #include <asm/mach-imx/mxc_i2c.h>
 #include <asm/arch-mx7ulp/gpio.h>
-#include <asm/mach-imx/syscounter.h>
 #include <asm/mach-imx/ele_api.h>
+#include <asm/mach-imx/syscounter.h>
+#include <asm/sections.h>
 #include <dm/uclass.h>
 #include <dm/device.h>
 #include <dm/uclass-internal.h>
@@ -31,6 +33,7 @@
 #include <asm/arch/ddr.h>
 #include <power/pmic.h>
 #include <power/pca9450.h>
+#include <power/pf0900.h>
 #include <asm/arch/trdc.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -57,11 +60,11 @@ void spl_board_init(void)
 {
 	int ret;
 
-	puts("Normal Boot\n");
-
-	ret = ahab_start_rng();
+	ret = ele_start_rng();
 	if (ret)
 		printf("Fail to start RNG: %d\n", ret);
+
+	puts("Normal Boot\n");
 }
 
 extern struct dram_timing_info dram_timing_1866mts;
@@ -77,6 +80,74 @@ void spl_dram_init(void)
 	ddr_init(ptiming);
 }
 
+#if CONFIG_IS_ENABLED(DM_PMIC_PF0900)
+int power_init_board(void)
+{
+	struct udevice *dev;
+	int ret;
+	unsigned int sw_val;
+
+	ret = pmic_get("pmic@8", &dev);
+	if (ret != 0) {
+		puts("ERROR: Get PMIC PF0900 failed!\n");
+		return ret;
+	}
+	puts("PMIC: PF0900\n");
+	if (is_voltage_mode(VOLT_LOW_DRIVE)) {
+		sw_val = 0x39; /* 0.8v for Low drive mode */
+		printf("PMIC: Low Drive Voltage Mode\n");
+	} else if (is_voltage_mode(VOLT_NOMINAL_DRIVE)) {
+		sw_val = 0x41; /* 0.85v for Nominal drive mode */
+		printf("PMIC: Nominal Voltage Mode\n");
+	} else {
+		sw_val = 0x49; /* 0.9v for Over drive mode */
+		printf("PMIC: Over Drive Voltage Mode\n");
+	}
+
+	ret = pmic_reg_read(dev, PF0900_REG_SW1_VRUN);
+	if (ret < 0)
+		return ret;
+
+	sw_val = (sw_val & SW_VRUN_MASK) | (ret & ~SW_VRUN_MASK);
+	ret = pmic_reg_write(dev, PF0900_REG_SW1_VRUN, sw_val);
+	if (ret != 0)
+		return ret;
+
+	ret = pmic_reg_read(dev, PF0900_REG_SW1_VSTBY);
+	if (ret < 0)
+		return ret;
+
+	/* set standby voltage to 0.65v */
+	sw_val = 0x21;
+	sw_val = (sw_val & SW_STBY_MASK) | (ret & ~SW_STBY_MASK);
+	ret = pmic_reg_write(dev, PF0900_REG_SW1_VSTBY, sw_val);
+	if (ret != 0)
+		return ret;
+
+	ret = pmic_reg_read(dev, PF0900_REG_GPO_CTRL);
+	if (ret < 0)
+		return ret;
+
+	/* I2C_LT_EN*/
+	sw_val = 0x40;
+	sw_val = (sw_val & GPO3_RUN_MASK) | (ret & ~GPO3_RUN_MASK);
+	ret = pmic_reg_write(dev, PF0900_REG_GPO_CTRL, sw_val);
+	if (ret != 0)
+		return ret;
+
+	ret = pmic_reg_read(dev, PF0900_REG_SYS_CFG1);
+	if (ret < 0)
+		return ret;
+	/*disable stby xrst*/
+	sw_val = 0x0;
+	sw_val = (sw_val & XRST_STBY_EN_MASK) | (ret & ~XRST_STBY_EN_MASK);
+	ret = pmic_reg_write(dev, PF0900_REG_SYS_CFG1, sw_val);
+	if (ret != 0)
+		return ret;
+	return 0;
+}
+#endif
+
 #if CONFIG_IS_ENABLED(DM_PMIC_PCA9450)
 int power_init_board(void)
 {
@@ -85,13 +156,11 @@ int power_init_board(void)
 	unsigned int val = 0, buck_val;
 
 	ret = pmic_get("pmic@25", &dev);
-	if (ret == -ENODEV) {
-		puts("No pca9450@25\n");
-		return 0;
-	}
-	if (ret != 0)
+	if (ret != 0) {
+		puts("ERROR: Get PMIC PCA9451A failed!\n");
 		return ret;
-
+	}
+	puts("PMIC: PCA9451A\n");
 	/* BUCKxOUT_DVS0/1 control BUCK123 output */
 	pmic_reg_write(dev, PCA9450_BUCK123_DVS, 0x29);
 
@@ -140,7 +209,6 @@ int power_init_board(void)
 }
 #endif
 
-extern int imx9_probe_mu(void *ctx, struct event *event);
 void board_init_f(ulong dummy)
 {
 	int ret;
@@ -158,7 +226,7 @@ void board_init_f(ulong dummy)
 
 	preloader_console_init();
 
-	ret = imx9_probe_mu(NULL, NULL);
+	ret = imx9_probe_mu();
 	if (ret) {
 		printf("Fail to init ELE API\n");
 	} else {

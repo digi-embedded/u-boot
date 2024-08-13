@@ -72,7 +72,7 @@ void check_dfi_init_complete(void)
 
 void ddrc_config(struct dram_timing_info *dram_timing)
 {
-	uint32_t num = dram_timing->ddrc_cfg_num;
+	u32 num = dram_timing->ddrc_cfg_num;
 	struct dram_cfg_param *ddrc_config;
 	int i = 0;
 
@@ -82,7 +82,7 @@ void ddrc_config(struct dram_timing_info *dram_timing)
 		ddrc_config++;
 	}
 
-	if (dram_timing->fsp_cfg != NULL) {
+	if (dram_timing->fsp_cfg) {
 		ddrc_config = dram_timing->fsp_cfg[0].ddrc_cfg;
 		while (ddrc_config->reg != 0) {
 			writel(ddrc_config->val, (ulong)ddrc_config->reg);
@@ -91,13 +91,13 @@ void ddrc_config(struct dram_timing_info *dram_timing)
 	}
 }
 
-static unsigned int look_for_max(unsigned int data[],
-	unsigned int addr_start, unsigned int addr_end)
+static unsigned int look_for_max(unsigned int data[], unsigned int addr_start,
+				 unsigned int addr_end)
 {
 	unsigned int i, imax = 0;
 
 	for (i = addr_start; i <= addr_end; i++) {
-		if (((data[i] >> 7) == 0) && (data[i] > imax))
+		if (((data[i] >> 7) == 0) && data[i] > imax)
 			imax = data[i];
 	}
 
@@ -148,7 +148,7 @@ static u32 ddrc_get_fsp_reg_setting(struct dram_cfg_param *ddrc_cfg, unsigned in
 {
 	unsigned int i;
 
-	for (i = 0; i <cfg_num; i++) {
+	for (i = 0; i < cfg_num; i++) {
 		if (reg == ddrc_cfg[i].reg)
 			return ddrc_cfg[i].val;
 	}
@@ -157,12 +157,12 @@ static u32 ddrc_get_fsp_reg_setting(struct dram_cfg_param *ddrc_cfg, unsigned in
 }
 
 static void ddrc_update_fsp_reg_setting(struct dram_cfg_param *ddrc_cfg, int cfg_num,
-		u32 reg, u32 val)
+					u32 reg, u32 val)
 {
 	unsigned int i;
 
 	for (i = 0; i < cfg_num; i++) {
-		if(reg == ddrc_cfg[i].reg) {
+		if (reg == ddrc_cfg[i].reg) {
 			ddrc_cfg[i].val = val;
 			return;
 		}
@@ -179,24 +179,30 @@ void update_umctl2_rank_space_setting(struct dram_timing_info *dram_timing, unsi
 
 	for (i = 0; i < pstat_num; i++) {
 		/* read wwt, rrt, wrt, rwt fields from timing_cfg_0 */
-		if (!dram_timing->fsp_cfg_num)
-			tmp = ddrc_get_fsp_reg_setting(dram_timing->ddrc_cfg, dram_timing->ddrc_cfg_num,
-					REG_DDR_TIMING_CFG_0);
-		else
+		if (!dram_timing->fsp_cfg_num) {
+			tmp = ddrc_get_fsp_reg_setting(dram_timing->ddrc_cfg,
+						       dram_timing->ddrc_cfg_num,
+						       REG_DDR_TIMING_CFG_0);
+		} else {
 			tmp = ddrc_get_fsp_reg_setting(dram_timing->fsp_cfg[i].ddrc_cfg,
-					ARRAY_SIZE(dram_timing->fsp_cfg[i].ddrc_cfg), REG_DDR_TIMING_CFG_0);
+						       ARRAY_SIZE(dram_timing->fsp_cfg[i].ddrc_cfg),
+						       REG_DDR_TIMING_CFG_0);
+		}
 		wwt = (tmp >> 24) & 0x3;
 		rrt = (tmp >> 26) & 0x3;
 		wrt = (tmp >> 28) & 0x3;
 		rwt = (tmp >> 30) & 0x3;
 
 		/* read rxt_wwt, ext_rrt, ext_wrt, ext_rwt fields from timing_cfg_4 */
-		if (!dram_timing->fsp_cfg_num)
-			tmp_t = ddrc_get_fsp_reg_setting(dram_timing->ddrc_cfg, dram_timing->ddrc_cfg_num,
-					REG_DDR_TIMING_CFG_4);
-		else
+		if (!dram_timing->fsp_cfg_num) {
+			tmp_t = ddrc_get_fsp_reg_setting(dram_timing->ddrc_cfg,
+							 dram_timing->ddrc_cfg_num,
+							 REG_DDR_TIMING_CFG_4);
+		} else {
 			tmp_t = ddrc_get_fsp_reg_setting(dram_timing->fsp_cfg[i].ddrc_cfg,
-					ARRAY_SIZE(dram_timing->fsp_cfg[i].ddrc_cfg), REG_DDR_TIMING_CFG_4);
+							 ARRAY_SIZE(dram_timing->fsp_cfg[i].ddrc_cfg),
+							 REG_DDR_TIMING_CFG_4);
+		}
 		ext_wwt = (tmp_t >> 8)  & 0x3;
 		ext_rrt = (tmp_t >> 10) & 0x3;
 		ext_wrt = (tmp_t >> 12) & 0x3;
@@ -239,40 +245,42 @@ void update_umctl2_rank_space_setting(struct dram_timing_info *dram_timing, unsi
 			(ext_wrt << 12) | (ext_rrt << 10) | (ext_wwt << 8);
 
 		if (!dram_timing->fsp_cfg_num) {
-			ddrc_update_fsp_reg_setting(dram_timing->ddrc_cfg, dram_timing->ddrc_cfg_num,
-				 REG_DDR_TIMING_CFG_0, tmp);
-			ddrc_update_fsp_reg_setting(dram_timing->ddrc_cfg, dram_timing->ddrc_cfg_num,
-				 REG_DDR_TIMING_CFG_4, tmp_t);
+			ddrc_update_fsp_reg_setting(dram_timing->ddrc_cfg,
+						    dram_timing->ddrc_cfg_num,
+						    REG_DDR_TIMING_CFG_0, tmp);
+			ddrc_update_fsp_reg_setting(dram_timing->ddrc_cfg,
+						    dram_timing->ddrc_cfg_num,
+						    REG_DDR_TIMING_CFG_4, tmp_t);
 		} else {
 			ddrc_update_fsp_reg_setting(dram_timing->fsp_cfg[i].ddrc_cfg,
-				 ARRAY_SIZE(dram_timing->fsp_cfg[i].ddrc_cfg),
-				 REG_DDR_TIMING_CFG_0, tmp);
+						    ARRAY_SIZE(dram_timing->fsp_cfg[i].ddrc_cfg),
+						    REG_DDR_TIMING_CFG_0, tmp);
 			ddrc_update_fsp_reg_setting(dram_timing->fsp_cfg[i].ddrc_cfg,
-				 ARRAY_SIZE(dram_timing->fsp_cfg[i].ddrc_cfg),
-				 REG_DDR_TIMING_CFG_4, tmp_t);
+						    ARRAY_SIZE(dram_timing->fsp_cfg[i].ddrc_cfg),
+						    REG_DDR_TIMING_CFG_4, tmp_t);
 		}
 	}
 }
 
 u32 ddrc_mrr(u32 chip_select, u32 mode_reg_num, u32 *mode_reg_val)
 {
-    u32 temp;
+	u32 temp;
 
-    writel(0x80000000, REG_DDR_SDRAM_MD_CNTL_2);
-    temp = 0x80000000 | (chip_select << 28) | (mode_reg_num << 0);
-    writel(temp, REG_DDR_SDRAM_MD_CNTL);
-    while ((readl(REG_DDR_SDRAM_MD_CNTL) & 0x80000000) == 0x80000000)
-	;
-    while (!(readl(REG_DDR_SDRAM_MPR5)))
-	;
-    *mode_reg_val = (readl(REG_DDR_SDRAM_MPR4) & 0xFF0000) >> 16;
-    writel(0x0, REG_DDR_SDRAM_MPR5);
-    while ((readl(REG_DDR_SDRAM_MPR5)))
-	;
-    writel(0x0, REG_DDR_SDRAM_MPR4);
-    writel(0x0, REG_DDR_SDRAM_MD_CNTL_2);
+	writel(0x80000000, REG_DDR_SDRAM_MD_CNTL_2);
+	temp = 0x80000000 | (chip_select << 28) | (mode_reg_num << 0);
+	writel(temp, REG_DDR_SDRAM_MD_CNTL);
+	while ((readl(REG_DDR_SDRAM_MD_CNTL) & 0x80000000) == 0x80000000)
+		;
+	while (!(readl(REG_DDR_SDRAM_MPR5)))
+		;
+	*mode_reg_val = (readl(REG_DDR_SDRAM_MPR4) & 0xFF0000) >> 16;
+	writel(0x0, REG_DDR_SDRAM_MPR5);
+	while ((readl(REG_DDR_SDRAM_MPR5)))
+		;
+	writel(0x0, REG_DDR_SDRAM_MPR4);
+	writel(0x0, REG_DDR_SDRAM_MD_CNTL_2);
 
-    return 0;
+	return 0;
 }
 
 void ddrc_mrs(u32 cs_sel, u32 opcode, u32 mr)
@@ -291,13 +299,12 @@ u32 lpddr4_mr_read(u32 mr_rank, u32 mr_addr)
 {
 	u32 chip_select, regval;
 
-	if(mr_rank == 1) {
+	if (mr_rank == 1)
 		chip_select = 0; /* CS0 */
-	} else if (mr_rank == 2) {
+	else if (mr_rank == 2)
 		chip_select = 1; /* CS1 */
-	} else {
+	else
 		chip_select = 4; /* CS0 & CS1 */
-	}
 
 	ddrc_mrr(chip_select, mr_addr, &regval);
 
@@ -316,19 +323,17 @@ void update_mr_fsp_op0(struct dram_cfg_param *cfg, unsigned int num)
 	ddrc_mrs(0x4, 0xc0, 13); /* FSP-OP->1, FSP-WR->1, VRCG=0, DMD=0 */
 }
 
-void save_trained_mr12_14(struct dram_cfg_param *cfg,
-		u32 cfg_num, u32 mr12, u32 mr14)
+void save_trained_mr12_14(struct dram_cfg_param *cfg, u32 cfg_num, u32 mr12, u32 mr14)
 {
-    int i;
+	int i;
 
-    for (i = 0; i < cfg_num; i++) {
-        if (cfg->reg == 12) {
-                cfg->val = mr12;
-        } else  if(cfg->reg == 14) {
-                cfg->val = mr14;
-        }
-	cfg++;
-    }
+	for (i = 0; i < cfg_num; i++) {
+		if (cfg->reg == 12)
+			cfg->val = mr12;
+		else if (cfg->reg == 14)
+			cfg->val = mr14;
+		cfg++;
+	}
 }
 
 int ddr_init(struct dram_timing_info *dram_timing)
@@ -428,15 +433,14 @@ int ddr_init(struct dram_timing_info *dram_timing)
 		       dram_timing->fsp_cfg_num * sizeof(struct dram_fsp_cfg));
 
 		save_trained_mr12_14(saved_timing->fsp_cfg[0].mr_cfg,
-				                ARRAY_SIZE(saved_timing->fsp_cfg[0].mr_cfg),
-						mr12, mr14);
+				     ARRAY_SIZE(saved_timing->fsp_cfg[0].mr_cfg), mr12, mr14);
 		/*
 		 * Configure mode registers in fsp1 to mode register 0 because DDRC
 		 * doesn't automatically set.
 		 */
 		if (saved_timing->fsp_cfg_num > 1)
 			update_mr_fsp_op0(saved_timing->fsp_cfg[1].mr_cfg,
-				 ARRAY_SIZE(saved_timing->fsp_cfg[1].mr_cfg));
+					  ARRAY_SIZE(saved_timing->fsp_cfg[1].mr_cfg));
 	}
 
 #if defined(CONFIG_IMX_SNPS_DDR_PHY_QB_GEN)

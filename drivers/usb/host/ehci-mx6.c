@@ -2,7 +2,7 @@
 /*
  * Copyright (c) 2009 Daniel Mack <daniel@caiaq.de>
  * Copyright (C) 2010 Freescale Semiconductor, Inc.
- * Copyright 2017 NXP
+ * Copyright 2017-2023 NXP
  *
  */
 
@@ -276,10 +276,10 @@ static int mx6_init_after_reset(struct ehci_ctrl *dev)
 #if CONFIG_IS_ENABLED(DM_REGULATOR)
 	if (priv->vbus_supply) {
 		int ret;
-		ret = regulator_set_enable(priv->vbus_supply,
+		ret = regulator_set_enable_if_allowed(priv->vbus_supply,
 					   (type == USB_INIT_DEVICE) ?
 					   false : true);
-		if (ret && ret != -ENOSYS) {
+		if (ret) {
 			printf("Error enabling VBUS supply (ret=%i)\n", ret);
 			return ret;
 		}
@@ -351,7 +351,7 @@ static int ehci_usb_phy_mode(struct udevice *dev)
 			priv->init_type = USB_INIT_DEVICE;
 		else
 			priv->init_type = USB_INIT_HOST;
-	} else if (is_mx7() || is_imx8mm() || is_imx8mn() || is_imx93()) {
+	} else if (is_mx7() || is_imx8mm() || is_imx8mn() || is_imx9()) {
 		phy_status = (void __iomem *)(addr +
 					      USBNC_PHY_STATUS_OFFSET);
 		val = readl(phy_status);
@@ -499,8 +499,6 @@ static int ehci_mx6_phy_remove(struct ehci_mx6_priv_data *priv)
 		ret = clk_disable(&priv->phy_clk);
 		if (ret)
 			return ret;
-
-		clk_free(&priv->phy_clk);
 	}
 #endif
 
@@ -598,10 +596,10 @@ static int ehci_usb_probe(struct udevice *dev)
 
 #if CONFIG_IS_ENABLED(DM_REGULATOR)
 	if (priv->vbus_supply) {
-		ret = regulator_set_enable(priv->vbus_supply,
+		ret = regulator_set_enable_if_allowed(priv->vbus_supply,
 					   (priv->init_type == USB_INIT_DEVICE) ?
 					   false : true);
-		if (ret && ret != -ENOSYS) {
+		if (ret) {
 			printf("Error enabling VBUS supply (ret=%i)\n", ret);
 			goto err_phy;
 		}
@@ -631,8 +629,8 @@ err_regulator:
 #if CONFIG_IS_ENABLED(DM_REGULATOR)
 	if (priv->vbus_supply)
 		regulator_set_enable(priv->vbus_supply, false);
-err_phy:
 #endif
+err_phy:
 #if CONFIG_IS_ENABLED(PHY) && !defined(CONFIG_IMX8)
 	generic_shutdown_phy(&priv->phy);
 #endif

@@ -27,6 +27,7 @@
 #include <fsl_esdhc_imx.h>
 #include <mmc.h>
 #include <asm/arch/ddr.h>
+#include <asm/sections.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -88,10 +89,10 @@ int power_init_board(void)
 
 	ret = pmic_get("pmic@25", &dev);
 	if (ret == -ENODEV) {
-		puts("No pca9450@25\n");
+		puts("No pmic@25\n");
 		return 0;
 	}
-	if (ret != 0)
+	if (ret < 0)
 		return ret;
 
 	/* BUCKxOUT_DVS0/1 control BUCK123 output */
@@ -99,22 +100,25 @@ int power_init_board(void)
 
 #ifdef CONFIG_IMX8M_LPDDR4
 	/*
-	 * increase VDD_SOC to typical value 0.95V before first
-	 * DRAM access, set DVS1 to 0.85v for suspend.
+	 * Increase VDD_SOC to typical value 0.95V before first
+	 * DRAM access, set DVS1 to 0.85V for suspend.
 	 * Enable DVS control through PMIC_STBY_REQ and
 	 * set B1_ENMODE=1 (ON by PMIC_ON_REQ=H)
 	 */
-#ifdef CONFIG_IMX8M_VDD_SOC_850MV
-	/* set DVS0 to 0.85v for special case*/
-	pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, 0x14);
-#else
-	pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, 0x1C);
-#endif
+	if (CONFIG_IS_ENABLED(IMX8M_VDD_SOC_850MV))
+		pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, 0x14);
+	else
+		pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, 0x1C);
+
 	pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS1, 0x14);
 	pmic_reg_write(dev, PCA9450_BUCK1CTRL, 0x59);
 
-	/* Kernel uses OD/OD freq for SOC */
-	/* To avoid timing risk from SOC to ARM,increase VDD_ARM to OD voltage 0.95v */
+	/*
+	 * Kernel uses OD/OD freq for SOC.
+	 * To avoid timing risk from SOC to ARM,increase VDD_ARM to OD
+	 * voltage 0.95V.
+	 */
+
 	pmic_reg_write(dev, PCA9450_BUCK2OUT_DVS0, 0x1C);
 #elif defined(CONFIG_IMX8M_DDR4)
 	/* DDR4 runs at 3200MTS, uses default ND 0.85v for VDD_SOC and VDD_ARM */

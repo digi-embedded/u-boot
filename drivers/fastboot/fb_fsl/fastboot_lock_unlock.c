@@ -41,6 +41,7 @@
 #include "video_link.h"
 #include "video_console.h"
 #include "video_font_data.h"
+#include <dm.h>
 #endif
 
 int fastboot_flash_find_index(const char *name);
@@ -421,8 +422,8 @@ fail:
 #endif
 
 
-/* Return the last byte of of FSL_FASTBOOT_PR_DATA
- * which is managed by PresistDataService
+/* Return the last byte of of FASTBOOT_PARTITION_FBMISC
+ * which is managed by OemLockService
  */
 
 #ifdef CFG_ENABLE_LOCKSTATUS_SUPPORT
@@ -444,7 +445,7 @@ void set_fastboot_lock_disable(void) {
 		return;
 	set_lock_disable_data(bdata);
 	int status;
-	mmc_id = fastboot_flash_find_index(FASTBOOT_PARTITION_PRDATA);
+	mmc_id = fastboot_flash_find_index(FASTBOOT_PARTITION_FBMISC);
 	if (mmc_id < 0) {
 		printf("%s: error in get mmc part\n", __FUNCTION__);
 		goto fail;
@@ -496,7 +497,7 @@ FbLockEnableResult fastboot_lock_enable() {
 	if (bdata == NULL)
 		return FASTBOOT_UL_ERROR;
 	int status;
-	mmc_id = fastboot_flash_find_index(FASTBOOT_PARTITION_PRDATA);
+	mmc_id = fastboot_flash_find_index(FASTBOOT_PARTITION_FBMISC);
 	if (mmc_id < 0) {
 		printf("%s: error in get mmc part\n", __FUNCTION__);
 		ret = FASTBOOT_UL_ERROR;
@@ -573,6 +574,8 @@ int display_lock(FbLockState lock, int verify) {
 int display_unlock_warning(void) {
 	int ret;
 	struct udevice *dev;
+	struct vidconsole_priv *priv;
+	int video_font_width, video_font_height;
 
 	ret = uclass_first_device_err(UCLASS_VIDEO, &dev);
 	if (!ret) {
@@ -587,32 +590,37 @@ int display_unlock_warning(void) {
 			printf("no text console device found!\n");
 			return -1;
 		}
+
+		priv = dev_get_uclass_priv(dev);
+		video_font_width = priv->x_charsize;
+		video_font_height = priv->y_charsize;
+
 		/* Adjust the cursor postion, the (x, y) are hard-coded here. */
-		vidconsole_position_cursor(dev, CONFIG_AVB_WARNING_LOGO_COLS/VIDEO_FONT_WIDTH,
-						CONFIG_AVB_WARNING_LOGO_ROWS/VIDEO_FONT_HEIGHT + 6);
+		vidconsole_position_cursor(dev, CONFIG_AVB_WARNING_LOGO_COLS/video_font_width,
+						CONFIG_AVB_WARNING_LOGO_ROWS/video_font_height + 6);
 		vidconsole_put_string(dev, "The bootloader is unlocked and software");
-		vidconsole_position_cursor(dev, CONFIG_AVB_WARNING_LOGO_COLS/VIDEO_FONT_WIDTH,
-						CONFIG_AVB_WARNING_LOGO_ROWS/VIDEO_FONT_HEIGHT + 7);
+		vidconsole_position_cursor(dev, CONFIG_AVB_WARNING_LOGO_COLS/video_font_width,
+						CONFIG_AVB_WARNING_LOGO_ROWS/video_font_height + 7);
 		vidconsole_put_string(dev, "integrity cannot be guaranteed. Any data");
-		vidconsole_position_cursor(dev, CONFIG_AVB_WARNING_LOGO_COLS/VIDEO_FONT_WIDTH,
-						CONFIG_AVB_WARNING_LOGO_ROWS/VIDEO_FONT_HEIGHT + 8);
+		vidconsole_position_cursor(dev, CONFIG_AVB_WARNING_LOGO_COLS/video_font_width,
+						CONFIG_AVB_WARNING_LOGO_ROWS/video_font_height + 8);
 		vidconsole_put_string(dev, "stored on the device may be available to");
-		vidconsole_position_cursor(dev, CONFIG_AVB_WARNING_LOGO_COLS/VIDEO_FONT_WIDTH,
-						CONFIG_AVB_WARNING_LOGO_ROWS/VIDEO_FONT_HEIGHT + 9);
+		vidconsole_position_cursor(dev, CONFIG_AVB_WARNING_LOGO_COLS/video_font_width,
+						CONFIG_AVB_WARNING_LOGO_ROWS/video_font_height + 9);
 		vidconsole_put_string(dev, "attackers. Do not store any sensitive data");
-		vidconsole_position_cursor(dev, CONFIG_AVB_WARNING_LOGO_COLS/VIDEO_FONT_WIDTH,
-						CONFIG_AVB_WARNING_LOGO_ROWS/VIDEO_FONT_HEIGHT + 10);
+		vidconsole_position_cursor(dev, CONFIG_AVB_WARNING_LOGO_COLS/video_font_width,
+						CONFIG_AVB_WARNING_LOGO_ROWS/video_font_height + 10);
 		vidconsole_put_string(dev, "on the device.");
 		/* Jump one line to show the link */
-		vidconsole_position_cursor(dev, CONFIG_AVB_WARNING_LOGO_COLS/VIDEO_FONT_WIDTH,
-						CONFIG_AVB_WARNING_LOGO_ROWS/VIDEO_FONT_HEIGHT + 13);
+		vidconsole_position_cursor(dev, CONFIG_AVB_WARNING_LOGO_COLS/video_font_width,
+						CONFIG_AVB_WARNING_LOGO_ROWS/video_font_height + 13);
 		vidconsole_put_string(dev, "Visit this link on another device:");
-		vidconsole_position_cursor(dev, CONFIG_AVB_WARNING_LOGO_COLS/VIDEO_FONT_WIDTH,
-						CONFIG_AVB_WARNING_LOGO_ROWS/VIDEO_FONT_HEIGHT + 14);
+		vidconsole_position_cursor(dev, CONFIG_AVB_WARNING_LOGO_COLS/video_font_width,
+						CONFIG_AVB_WARNING_LOGO_ROWS/video_font_height + 14);
 		vidconsole_put_string(dev, "g.co/ABH");
 
-		vidconsole_position_cursor(dev, CONFIG_AVB_WARNING_LOGO_COLS/VIDEO_FONT_WIDTH,
-						CONFIG_AVB_WARNING_LOGO_ROWS/VIDEO_FONT_HEIGHT + 20);
+		vidconsole_position_cursor(dev, CONFIG_AVB_WARNING_LOGO_COLS/video_font_width,
+						CONFIG_AVB_WARNING_LOGO_ROWS/video_font_height + 20);
 		vidconsole_put_string(dev, "PRESS POWER BUTTON TO CONTINUE...");
 		/* sync frame buffer */
 		video_sync_all();

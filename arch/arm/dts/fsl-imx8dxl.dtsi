@@ -869,7 +869,6 @@
 
 	tsens: thermal-sensor {
 		compatible = "nxp,imx8qxp-sc-tsens";
-		u-boot,dm-pre-reloc;
 		/* number of the temp sensor on the chip */
 		tsens-num = <2>;
 		#thermal-sensor-cells = <1>;
@@ -1734,9 +1733,9 @@
 		interrupt-parent = <&wu>;
 		interrupts = <GIC_SPI 163 IRQ_TYPE_LEVEL_HIGH>,
 				<GIC_SPI 162 IRQ_TYPE_LEVEL_HIGH>;
-		clocks = <&clk IMX8DXL_EQOS_ACLK>, <&clk IMX8DXL_EQOS_CSR_CLK>, <&clk IMX8DXL_EQOS_CLK>,
-			<&clk IMX8DXL_EQOS_PTP_CLK>;
-		clock-names = "aclk", "csr", "tx_clk", "ptp";
+		clocks = <&clk IMX8DXL_EQOS_ACLK>, <&clk IMX8DXL_EQOS_CSR_CLK>, <&clk IMX8DXL_EQOS_PTP_CLK>,
+			<&clk IMX8DXL_EQOS_CLK>, <&clk IMX8DXL_EQOS_MEM_CLK>;
+		clock-names = "stmmaceth", "pclk", "ptp_ref", "tx", "mem";
 		assigned-clocks = <&clk IMX8QXP_ENET1_ROOT_DIV>;
 		assigned-clock-rates = <125000000>;
 		power-domains = <&pd_conn_enet1>;

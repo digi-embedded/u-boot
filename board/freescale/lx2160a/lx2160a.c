@@ -13,6 +13,7 @@
 #include <i2c.h>
 #include <malloc.h>
 #include <errno.h>
+#include <event.h>
 #include <netdev.h>
 #include <fsl_ddr.h>
 #include <asm/io.h>
@@ -57,45 +58,11 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-static struct pl01x_serial_plat serial0 = {
-#if CONFIG_CONS_INDEX == 0
-	.base = CFG_SYS_SERIAL0,
-#elif CONFIG_CONS_INDEX == 1
-	.base = CFG_SYS_SERIAL1,
-#else
-#error "Unsupported console index value."
-#endif
-	.type = TYPE_PL011,
-};
-
-U_BOOT_DRVINFO(nxp_serial0) = {
-	.name = "serial_pl01x",
-	.plat = &serial0,
-};
-
-static struct pl01x_serial_plat serial1 = {
-	.base = CFG_SYS_SERIAL1,
-	.type = TYPE_PL011,
-};
-
-U_BOOT_DRVINFO(nxp_serial1) = {
-	.name = "serial_pl01x",
-	.plat = &serial1,
-};
-
-static void uart_get_clock(void)
-{
-	serial0.clock = get_serial_clock();
-	serial1.clock = get_serial_clock();
-}
-
 int board_early_init_f(void)
 {
 #if defined(CONFIG_SYS_I2C_EARLY_INIT) && defined(CONFIG_SPL_BUILD)
 	i2c_early_init_f();
 #endif
-	/* get required clock for UART IP */
-	uart_get_clock();
 
 #ifdef CONFIG_EMC2305
 	select_i2c_ch_pca9547(I2C_MUX_CH_EMC2305, 0);
@@ -278,6 +245,7 @@ int init_func_vid(void)
 	return 0;
 }
 #endif
+EVENT_SPY_SIMPLE(EVT_MISC_INIT_F, init_func_vid);
 
 int checkboard(void)
 {
@@ -618,7 +586,7 @@ int board_init(void)
 #endif
 #endif
 
-#if !defined(CONFIG_SYS_EARLY_PCI_INIT) && defined(CONFIG_DM_ETH)
+#if !defined(CONFIG_SYS_EARLY_PCI_INIT)
 	pci_init();
 #endif
 	return 0;
@@ -688,7 +656,6 @@ u16 soc_get_fuse_vid(int vid_index)
 #endif
 
 #ifdef CONFIG_FSL_MC_ENET
-extern int fdt_fixup_board_phy(void *fdt);
 
 void fdt_fixup_board_enet(void *fdt)
 {
@@ -708,12 +675,8 @@ void fdt_fixup_board_enet(void *fdt)
 	if (get_mc_boot_status() == 0 &&
 	    (is_lazy_dpl_addr_valid() || get_dpl_apply_status() == 0)) {
 		fdt_status_okay(fdt, offset);
-#ifndef CONFIG_DM_ETH
-		fdt_fixup_board_phy(fdt);
-#else
 		if (IS_ENABLED(CONFIG_TARGET_LX2160ARDB))
 			fdt_fixup_board_phy_revc(fdt);
-#endif
 	} else {
 		fdt_status_fail(fdt, offset);
 	}
@@ -905,11 +868,12 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 #ifdef CONFIG_FSL_MC_ENET
 	fdt_fsl_mc_fixup_iommu_map_entry(blob);
 	fdt_fixup_board_enet(blob);
+	fdt_reserve_mc_mem(blob, 0x4000);
 #endif
 	fdt_fixup_icid(blob);
 
 #if IS_ENABLED(CONFIG_TARGET_LX2160ARDB)
-	if (get_board_rev() >= 'C')
+	if (get_board_rev() == 'C')
 		fdt_fixup_i2c_thermal_node(blob);
 #endif
 

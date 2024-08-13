@@ -30,7 +30,7 @@ static void imx8image_set_header(void *ptr, struct stat *sbuf, int ifd,
 {
 }
 
-static void imx8image_print_header(const void *ptr)
+static void imx8image_print_header(const void *ptr, struct image_tool_params *params)
 {
 }
 
@@ -556,15 +556,15 @@ static void set_image_array_entry(flash_header_v3_t *container,
 		img->dst = 0x20C00000;
 		img->entry = 0x20000000;
 		break;
-	case ELE:
+	case SENTINEL:
 		if (container->num_images > 0) {
-			fprintf(stderr, "Error: ELE container only allows 1 image\n");
+			fprintf(stderr, "Error: SENTINEL container only allows 1 image\n");
 			return;
 		}
 
-		img->hab_flags |= IMG_TYPE_ELE;
-		img->hab_flags |= CORE_ULP_ELE << BOOT_IMG_FLAGS_CORE_SHIFT;
-		tmp_name = "ELE";
+		img->hab_flags |= IMG_TYPE_SENTINEL;
+		img->hab_flags |= CORE_ULP_SENTINEL << BOOT_IMG_FLAGS_CORE_SHIFT;
+		tmp_name = "SENTINEL";
 		img->dst = 0xe4000000; /* S400 IRAM base */
 		img->entry = 0xe4000000;
 		break;
@@ -829,7 +829,6 @@ static int build_container(soc_type_t soc, uint32_t sector_size,
 	int ret;
 
 	int container = -1;
-	int cont_img_count = 0; /* indexes to arrange the container */
 
 	memset((char *)&imx_header, 0, sizeof(imx_header_v3_t));
 
@@ -879,11 +878,10 @@ static int build_container(soc_type_t soc, uint32_t sector_size,
 			img_sp->src = file_off;
 
 			file_off += ALIGN(sbuf.st_size, sector_size);
-			cont_img_count++;
 			break;
 
 		case SECO:
-		case ELE:
+		case SENTINEL:
 			if (container < 0) {
 				fprintf(stderr, "No container found\n");
 				exit(EXIT_FAILURE);
@@ -899,7 +897,6 @@ static int build_container(soc_type_t soc, uint32_t sector_size,
 			img_sp->src = file_off;
 
 			file_off += sbuf.st_size;
-			cont_img_count++;
 			break;
 
 		case NEW_CONTAINER:
@@ -908,8 +905,6 @@ static int build_container(soc_type_t soc, uint32_t sector_size,
 				      CONTAINER_ALIGNMENT,
 				      CONTAINER_FLAGS_DEFAULT,
 				      fuse_version);
-			/* reset img count when moving to new container */
-			cont_img_count = 0;
 			scfw_flags = 0;
 			break;
 
@@ -993,7 +988,7 @@ static int build_container(soc_type_t soc, uint32_t sector_size,
 		    img_sp->option == AP || img_sp->option == DATA ||
 		    img_sp->option == SCD || img_sp->option == SCFW ||
 		    img_sp->option == SECO || img_sp->option == MSG_BLOCK ||
-		    img_sp->option == UPOWER || img_sp->option == ELE) {
+		    img_sp->option == UPOWER || img_sp->option == SENTINEL) {
 			copy_file_aligned(ofd, img_sp->filename, img_sp->src,
 					  sector_size);
 		}

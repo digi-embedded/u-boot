@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
  * (C) Copyright 2015
- * Texas Instruments Incorporated - http://www.ti.com/
+ * Texas Instruments Incorporated - https://www.ti.com/
  */
 
 #ifndef _RPROC_H_
@@ -14,6 +14,7 @@
  * platforms have moved to dm/fdt.
  */
 #include <dm/platdata.h>	/* For platform data support - non dt world */
+#include <linux/errno.h>
 
 /**
  * struct fw_rsc_hdr - firmware resource entry header

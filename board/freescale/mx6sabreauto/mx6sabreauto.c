@@ -16,18 +16,17 @@
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/iomux.h>
 #include <asm/arch/mx6-pins.h>
+#include <asm/sections.h>
 #include <env.h>
 #include <linux/errno.h>
 #include <asm/gpio.h>
 #include <asm/mach-imx/iomux-v3.h>
-#include <asm/mach-imx/mxc_i2c.h>
 #include <asm/mach-imx/boot_mode.h>
 #include <asm/mach-imx/spi.h>
 #include <mmc.h>
 #include <fsl_esdhc_imx.h>
 #include <miiphy.h>
 #include <asm/arch/sys_proto.h>
-#include <i2c.h>
 #include <input.h>
 #include <asm/arch/mxc_hdmi.h>
 #include <asm/mach-imx/video.h>
@@ -61,16 +60,10 @@ DECLARE_GLOBAL_DATA_PTR;
 #define ENET_PAD_CTRL  (PAD_CTL_PUS_100K_UP |			\
 	PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_HYS)
 
-#define I2C_PAD_CTRL	(PAD_CTL_PUS_100K_UP |			\
-	PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_HYS |	\
-	PAD_CTL_ODE | PAD_CTL_SRE_FAST)
-
 #define GPMI_PAD_CTRL0 (PAD_CTL_PKE | PAD_CTL_PUE | PAD_CTL_PUS_100K_UP)
 #define GPMI_PAD_CTRL1 (PAD_CTL_DSE_40ohm | PAD_CTL_SPEED_MED | \
 			PAD_CTL_SRE_FAST)
 #define GPMI_PAD_CTRL2 (GPMI_PAD_CTRL0 | GPMI_PAD_CTRL1)
-
-#define PC MUX_PAD_CTRL(I2C_PAD_CTRL)
 
 #define SPI_PAD_CTRL (PAD_CTL_HYS |				\
 	PAD_CTL_PUS_100K_DOWN | PAD_CTL_SPEED_MED |		\
@@ -84,8 +77,6 @@ DECLARE_GLOBAL_DATA_PTR;
 	PAD_CTL_PUS_47K_UP  | PAD_CTL_SPEED_LOW |		\
 	PAD_CTL_DSE_80ohm   | PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
 
-#define I2C_PMIC	1
-
 int dram_init(void)
 {
 	gd->ram_size = imx_ddr_size();
@@ -97,41 +88,6 @@ static iomux_v3_cfg_t const uart4_pads[] = {
 	IOMUX_PADS(PAD_KEY_COL0__UART4_TX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL)),
 	IOMUX_PADS(PAD_KEY_ROW0__UART4_RX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL)),
 };
-
-#ifdef CONFIG_SYS_I2C_LEGACY
-/* I2C2 PMIC, iPod, Tuner, Codec, Touch, HDMI EDID, MIPI CSI2 card */
-static struct i2c_pads_info i2c_pad_info1 = {
-	.scl = {
-		.i2c_mode = MX6_PAD_EIM_EB2__I2C2_SCL | PC,
-		.gpio_mode = MX6_PAD_EIM_EB2__GPIO2_IO30 | PC,
-		.gp = IMX_GPIO_NR(2, 30)
-	},
-	.sda = {
-		.i2c_mode = MX6_PAD_KEY_ROW3__I2C2_SDA | PC,
-		.gpio_mode = MX6_PAD_KEY_ROW3__GPIO4_IO13 | PC,
-		.gp = IMX_GPIO_NR(4, 13)
-	}
-};
-
-#ifndef CONFIG_SYS_FLASH_CFI
-/*
- * I2C3 MLB, Port Expanders (A, B, C), Video ADC, Light Sensor,
- * Compass Sensor, Accelerometer, Res Touch
- */
-static struct i2c_pads_info i2c_pad_info2 = {
-	.scl = {
-		.i2c_mode = MX6_PAD_GPIO_3__I2C3_SCL | PC,
-		.gpio_mode = MX6_PAD_GPIO_3__GPIO1_IO03 | PC,
-		.gp = IMX_GPIO_NR(1, 3)
-	},
-	.sda = {
-		.i2c_mode = MX6_PAD_EIM_D18__I2C3_SDA | PC,
-		.gpio_mode = MX6_PAD_EIM_D18__GPIO3_IO18 | PC,
-		.gp = IMX_GPIO_NR(3, 18)
-	}
-};
-#endif
-#endif
 
 static iomux_v3_cfg_t const port_exp[] = {
 	IOMUX_PADS(PAD_SD2_DAT0__GPIO1_IO15	| MUX_PAD_CTRL(NO_PAD_CTRL)),
@@ -647,13 +603,6 @@ int board_init(void)
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 
-#ifdef CONFIG_SYS_I2C_LEGACY
-	/* I2C 2 and 3 setup - I2C 3 hw mux with EIM */
-	setup_i2c(1, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
-#ifndef CONFIG_SYS_FLASH_CFI
-	setup_i2c(2, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info2);
-#endif
-#endif
 
 	ret = dm_gpio_lookup_name("GPIO1_15", &desc);
 	if (ret) {
@@ -687,78 +636,7 @@ int board_init(void)
 	return 0;
 }
 
-#ifdef CONFIG_POWER_LEGACY
-int power_init_board(void)
-{
-	struct pmic *pfuze;
-	unsigned int value;
-	int ret;
-
-	pfuze = pfuze_common_init(I2C_PMIC);
-	if (!pfuze)
-		return -ENODEV;
-
-	if (is_mx6dqp())
-		ret = pfuze_mode_init(pfuze, APS_APS);
-	else
-		ret = pfuze_mode_init(pfuze, APS_PFM);
-
-	if (ret < 0)
-		return ret;
-
-	if (is_mx6dqp()) {
-		/* set SW1C staby volatage 1.075V*/
-		pmic_reg_read(pfuze, PFUZE100_SW1CSTBY, &value);
-		value &= ~0x3f;
-		value |= 0x1f;
-		pmic_reg_write(pfuze, PFUZE100_SW1CSTBY, value);
-
-		/* set SW1C/VDDSOC step ramp up time to from 16us to 4us/25mV */
-		pmic_reg_read(pfuze, PFUZE100_SW1CCONF, &value);
-		value &= ~0xc0;
-		value |= 0x40;
-		pmic_reg_write(pfuze, PFUZE100_SW1CCONF, value);
-
-		/* set SW2 staby volatage 0.975V*/
-		pmic_reg_read(pfuze, PFUZE100_SW2STBY, &value);
-		value &= ~0x3f;
-		value |= 0x17;
-		pmic_reg_write(pfuze, PFUZE100_SW2STBY, value);
-
-		/* set SW2/VDDARM step ramp up time to from 16us to 4us/25mV */
-		pmic_reg_read(pfuze, PFUZE100_SW2CONF, &value);
-		value &= ~0xc0;
-		value |= 0x40;
-		pmic_reg_write(pfuze, PFUZE100_SW2CONF, value);
-	} else {
-		/* set SW1AB staby volatage 0.975V*/
-		pmic_reg_read(pfuze, PFUZE100_SW1ABSTBY, &value);
-		value &= ~0x3f;
-		value |= 0x1b;
-		pmic_reg_write(pfuze, PFUZE100_SW1ABSTBY, value);
-
-		/* set SW1AB/VDDARM step ramp up time from 16us to 4us/25mV */
-		pmic_reg_read(pfuze, PFUZE100_SW1ABCONF, &value);
-		value &= ~0xc0;
-		value |= 0x40;
-		pmic_reg_write(pfuze, PFUZE100_SW1ABCONF, value);
-
-		/* set SW1C staby volatage 0.975V*/
-		pmic_reg_read(pfuze, PFUZE100_SW1CSTBY, &value);
-		value &= ~0x3f;
-		value |= 0x1b;
-		pmic_reg_write(pfuze, PFUZE100_SW1CSTBY, value);
-
-		/* set SW1C/VDDSOC step ramp up time to from 16us to 4us/25mV */
-		pmic_reg_read(pfuze, PFUZE100_SW1CCONF, &value);
-		value &= ~0xc0;
-		value |= 0x40;
-		pmic_reg_write(pfuze, PFUZE100_SW1CCONF, value);
-	}
-
-	return 0;
-}
-#elif defined(CONFIG_DM_PMIC_PFUZE100)
+#if defined(CONFIG_DM_PMIC_PFUZE100)
 int power_init_board(void)
 {
 	struct udevice *dev;
@@ -831,43 +709,8 @@ int power_init_board(void)
 #endif
 
 #ifdef CONFIG_LDO_BYPASS_CHECK
-#ifdef CONFIG_POWER_LEGACY
-void ldo_mode_set(int ldo_bypass)
-{
-	unsigned int value;
-	struct pmic *p = pmic_get("PFUZE100");
 
-	if (!p) {
-		printf("No PMIC found!\n");
-		return;
-	}
-
-	/* increase VDDARM/VDDSOC to support 1.2G chip */
-	if (check_1_2G()) {
-		ldo_bypass = 0;	/* ldo_enable on 1.2G chip */
-		printf("1.2G chip, increase VDDARM_IN/VDDSOC_IN\n");
-
-		if (is_mx6dqp()) {
-			/* increase VDDARM to 1.425V */
-			pmic_reg_read(p, PFUZE100_SW2VOL, &value);
-			value &= ~0x3f;
-			value |= 0x29;
-			pmic_reg_write(p, PFUZE100_SW2VOL, value);
-		} else {
-			/* increase VDDARM to 1.425V */
-			pmic_reg_read(p, PFUZE100_SW1ABVOL, &value);
-			value &= ~0x3f;
-			value |= 0x2d;
-			pmic_reg_write(p, PFUZE100_SW1ABVOL, value);
-		}
-		/* increase VDDSOC to 1.425V */
-		pmic_reg_read(p, PFUZE100_SW1CVOL, &value);
-		value &= ~0x3f;
-		value |= 0x2d;
-		pmic_reg_write(p, PFUZE100_SW1CVOL, value);
-	}
-}
-#elif defined(CONFIG_DM_PMIC_PFUZE100)
+#if defined(CONFIG_DM_PMIC_PFUZE100)
 void ldo_mode_set(int ldo_bypass)
 {
 	struct udevice *dev;
@@ -1357,7 +1200,6 @@ void board_init_f(ulong dummy)
 	ccgr_init();
 	gpr_init();
 
-	/* iomux and setup of i2c */
 	board_early_init_f();
 
 	/* setup GP timer */

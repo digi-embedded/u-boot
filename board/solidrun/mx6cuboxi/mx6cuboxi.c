@@ -32,6 +32,7 @@
 #include <asm/mach-imx/iomux-v3.h>
 #include <asm/mach-imx/sata.h>
 #include <asm/mach-imx/video.h>
+#include <asm/sections.h>
 #include <mmc.h>
 #include <fsl_esdhc_imx.h>
 #include <malloc.h>
@@ -275,9 +276,8 @@ int board_early_init_f(void)
 {
 	setup_iomux_uart();
 
-#ifdef CONFIG_CMD_SATA
-	setup_sata();
-#endif
+	if (CONFIG_IS_ENABLED(SATA))
+		setup_sata();
 	setup_fec();
 
 	return 0;
@@ -336,20 +336,17 @@ static enum board_type board_type(void)
 	 * HB             1     1    x
 	 */
 
-	gpio_direction_input(IMX_GPIO_NR(2, 8));
-	val3 = gpio_get_value(IMX_GPIO_NR(2, 8));
+	val3 = !!dm_gpio_get_value(&board_detect_desc[0]);
 
 	if (val3 == 0)
 		return HUMMINGBOARD2;
 
-	gpio_direction_input(IMX_GPIO_NR(3, 4));
-	val2 = gpio_get_value(IMX_GPIO_NR(3, 4));
+	val2 = !!dm_gpio_get_value(&board_detect_desc[1]);
 
 	if (val2 == 0)
 		return HUMMINGBOARD;
 
-	gpio_direction_input(IMX_GPIO_NR(4, 9));
-	val1 = gpio_get_value(IMX_GPIO_NR(4, 9));
+	val1 = !!dm_gpio_get_value(&board_detect_desc[2]);
 
 	if (val1 == 0) {
 		return CUBOXI;
@@ -363,8 +360,8 @@ static bool is_rev_15_som(void)
 	int val1, val2;
 	SETUP_IOMUX_PADS(som_rev_detect);
 
-	val1 = gpio_get_value(IMX_GPIO_NR(6, 0));
-	val2 = gpio_get_value(IMX_GPIO_NR(6, 4));
+	val1 = !!dm_gpio_get_value(&board_detect_desc[3]);
+	val2 = !!dm_gpio_get_value(&board_detect_desc[4]);
 
 	if (val1 == 1 && val2 == 0)
 		return true;
@@ -381,6 +378,7 @@ static bool has_emmc(void)
 	return (mmc_get_op_cond(mmc, true) < 0) ? 0 : 1;
 }
 
+/* Override the default implementation, DT model is not accurate */
 int checkboard(void)
 {
 	request_detect_gpios();
@@ -495,12 +493,6 @@ int ft_board_setup(void *fdt, struct bd_info *bd)
 	return 0;
 }
 #endif
-
-/* Override the default implementation, DT model is not accurate */
-int show_board_info(void)
-{
-	return checkboard();
-}
 
 int board_late_init(void)
 {

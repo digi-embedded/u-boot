@@ -7,7 +7,7 @@
 #include <console.h>
 #include <errno.h>
 #include <fuse.h>
-#include <asm/arch/sci/sci.h>
+#include <firmware/imx/sci/sci.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/global_data.h>
 #include <linux/arm-smccc.h>
@@ -87,11 +87,11 @@ int fuse_prog(u32 bank, u32 word, u32 val)
 		force_prog = env_get_yesno("force_prog_ecc");
 		if (force_prog != 1) {
 			if ((word >= FSL_ECC_WORD_START_1 && word <= FSL_ECC_WORD_END_1) ||
-			    (word >= FSL_ECC_WORD_START_2 && word <= FSL_ECC_WORD_END_2)) {
+			(word >= FSL_ECC_WORD_START_2 && word <= FSL_ECC_WORD_END_2)) {
 				puts("Warning: Words in this index range have ECC protection\n"
-				     "and can only be programmed once per word. Individual bit\n"
-				     "operations will be rejected after the first one.\n"
-				     "\n\n Really program this word? <y/N>\n");
+				"and can only be programmed once per word. Individual bit\n"
+				"operations will be rejected after the first one.\n"
+				"\n\n Really program this word? <y/N>\n");
 
 				if (!confirm_yesno()) {
 					puts("Word programming aborted\n");

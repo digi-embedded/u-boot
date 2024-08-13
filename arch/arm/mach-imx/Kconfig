@@ -37,6 +37,7 @@ config IMX_RDC
 config IMX_BOOTAUX
 	bool "Support boot auxiliary core"
 	depends on ARCH_MX7 || ARCH_MX6 || ARCH_VF610 || ARCH_IMX8 || ARCH_IMX8M
+	select LIB_ELF
 	help
 	  bootaux [addr] to boot auxiliary core.
 
@@ -78,6 +79,7 @@ config IMX_HAB
 	bool "Support i.MX HAB features"
 	depends on ARCH_MX7 || ARCH_MX6 || ARCH_MX5 || ARCH_IMX8M || ARCH_MX7ULP
 	select FSL_CAAM if HAS_CAAM
+	select SPL_DRIVERS_MISC if SPL
 	imply CMD_DEKBLOB if HAS_CAAM
 	imply CMD_PROVISION_KEY if HAS_CAAM
 	help
@@ -104,7 +106,7 @@ config CSF_SIZE
 config CMD_BMODE
 	bool "Support the 'bmode' command"
 	default y
-	depends on ARCH_MX7 || ARCH_MX6 || ARCH_MX5
+	depends on ARCH_IMX8M || ARCH_MX7 || ARCH_MX6 || ARCH_MX5
 	help
 	  This enables the 'bmode' (bootmode) command for forcing
 	  a boot from specific media.
@@ -245,7 +247,7 @@ config NXP_BOARD_REVISION
 
 config FLASH_MCUFIRMWARE_SUPPORT
 	bool "Enable mcu firmware flash support"
-	depends on ARCH_MX7ULP || ARCH_IMX8M
+	depends on ARCH_MX7ULP || ARCH_IMX8M || IMX95
 	help
 	  This enables the mcu firmware flash support for some SOCs.
 
@@ -262,13 +264,14 @@ config DDRMC_VF610_CALIBRATION
 	  the ddrmc_cr_setting on relevant board file.
 
 config IMX8_ROMAPI
-	def_bool y
+	bool "Enable i.MX ROMAPI"
+	default y
 	depends on IMX8MN || IMX8MP || IMX8ULP || IMX9
 
 config SPL_IMX_ROMAPI_LOADADDR
 	hex "Default load address to load image through ROM API"
 	depends on IMX8_ROMAPI || SPL_BOOTROM_SUPPORT
-	default 0
+	default 0x0
 
 config IMX_DCD_ADDR
 	hex "DCD Blocks location on the image"
@@ -280,19 +283,6 @@ config IMX_DCD_ADDR
 	  the ROM code to configure the device at early boot stage, is located.
 	  This information is shared with the user via mkimage -l just so the
 	  image can be signed.
-
-config SPL_LOAD_IMX_CONTAINER
-	bool "Enable SPL loading U-Boot as a i.MX Container image"
-	depends on SPL
-	help
-	  This is to let SPL could load i.MX Container image
-
-config IMX_CONTAINER_CFG
-	string "i.MX Container config file"
-	depends on SPL
-	help
-	  This is to specific the cfg file for generating container
-	  image which will be loaded by SPL.
 
 config IOMUX_LPSR
 	bool
@@ -365,7 +355,6 @@ config IMX_TRUSTY_OS
 	select SYS_ARM_CACHE_WRITEALLOC
 	select CMD_MMC_RPMB
 	select SUPPORT_EMMC_RPMB
-	select SPL_SUPPORT_EMMC_RPMB
 	select SPL_MMC_WRITE
 
 config TRUSTY_UNLOCK_PERMISSION
@@ -470,3 +459,9 @@ config BOOTLOADER_MENU
 	bool "Enable bootloader menu for android device"
 	help
 	bootloader menu feature for android device.
+
+config PSCI_BOARD_REBOOT
+	bool "Enable psci board reboot command"
+	depends on ARM_PSCI_FW
+	help
+	  This is a optional command used to trigger system board reboot on imx8q and imx95.

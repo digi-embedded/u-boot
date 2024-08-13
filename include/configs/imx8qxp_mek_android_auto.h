@@ -23,9 +23,6 @@
 #undef CONFIG_BOOTCOMMAND
 
 #define CFG_EXTRA_ENV_SETTINGS					\
-	"splashpos=m,m\0"	  \
-	"fdt_high=0xffffffffffffffff\0"	  \
-	"initrd_high=0xffffffffffffffff\0" \
 	"emmc_dev=0\0" \
 	"sd_dev=1\0"
 

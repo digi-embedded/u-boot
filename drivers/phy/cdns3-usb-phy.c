@@ -192,8 +192,6 @@ static int cdns3_usb_phy_remove(struct udevice *dev)
 		ret = clk_disable(&priv->phy_clk);
 		if (ret)
 			return ret;
-
-		clk_free(&priv->phy_clk);
 	}
 #endif
 

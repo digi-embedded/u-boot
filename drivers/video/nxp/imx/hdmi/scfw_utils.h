@@ -7,7 +7,7 @@
 #define _SCFW_UTILS_H_
 
 #include <common.h>
-#include <asm/arch/sci/sci.h>
+#include <firmware/imx/sci/sci.h>
 
 static int g_debug_scfw;	/* set to one to turn on SCFW API tracing */
 

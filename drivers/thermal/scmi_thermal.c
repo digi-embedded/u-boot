@@ -18,7 +18,6 @@ struct scmi_thermal_priv {
 	s16 thermal_id;
 	struct scmi_sensor_descrition_get_p2a *desc_buf;
 	size_t desc_buf_size;
-	struct scmi_channel *channel;
 };
 
 static int scmi_thermal_get_temp(struct udevice *dev, int *temp)
@@ -36,7 +35,7 @@ static int scmi_thermal_get_temp(struct udevice *dev, int *temp)
 	};
 	int ret;
 
-	ret = devm_scmi_process_msg(dev, priv->channel, &msg);
+	ret = devm_scmi_process_msg(dev, &msg);
 	if (ret)
 		return ret;
 
@@ -63,7 +62,7 @@ static int scmi_sensor_attributes_get(struct udevice *dev)
 	int ret;
 	struct scmi_thermal_priv *priv = dev_get_priv(dev);
 
-	ret = devm_scmi_process_msg(dev, priv->channel, &msg);
+	ret = devm_scmi_process_msg(dev, &msg);
 	if (ret)
 		return ret;
 
@@ -91,9 +90,8 @@ static int scmi_sensor_description_get(struct udevice *dev, u32 start_ind,
 		.out_msg_sz = desc_buf_size,
 	};
 	int ret;
-	struct scmi_thermal_priv *priv = dev_get_priv(dev);
 
-	ret = devm_scmi_process_msg(dev, priv->channel, &msg);
+	ret = devm_scmi_process_msg(dev, &msg);
 	if (ret)
 		return ret;
 
@@ -108,6 +106,51 @@ static const struct dm_thermal_ops scmi_thermal_ops = {
 	.get_temp	= scmi_thermal_get_temp,
 };
 
+static int scmi_sensor_config_get(struct udevice *dev)
+{
+	struct scmi_thermal_priv *priv = dev_get_priv(dev);
+	struct scmi_sensor_config_get_a2p in = {
+		.sensor_id = priv->thermal_id,
+	};
+	struct scmi_sensor_config_get_p2a out = { 0 };
+	struct scmi_msg msg = SCMI_MSG_IN(SCMI_PROTOCOL_ID_SENSOR,
+					  SCMI_SENSOR_CONFIG_GET, in, out);
+	int ret;
+
+	ret = devm_scmi_process_msg(dev, &msg);
+	if (ret)
+		return ret;
+
+	ret = scmi_to_linux_errno(out.status);
+	if (ret < 0)
+		return ret;
+
+	return out.sensor_config;
+}
+
+static int scmi_sensor_config_set(struct udevice *dev, u32 config)
+{
+	struct scmi_thermal_priv *priv = dev_get_priv(dev);
+	struct scmi_sensor_config_set_a2p in = {
+		.id = priv->thermal_id,
+		.sensor_config = config,
+	};
+	struct scmi_sensor_config_set_p2a out = { 0 };
+	struct scmi_msg msg = SCMI_MSG_IN(SCMI_PROTOCOL_ID_SENSOR,
+					  SCMI_SENSOR_CONFIG_SET, in, out);
+	int ret;
+
+	ret = devm_scmi_process_msg(dev, &msg);
+	if (ret)
+		return ret;
+
+	ret = scmi_to_linux_errno(*(u32 *)out.buf);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
 static int scmi_thermal_probe(struct udevice *dev)
 {
 	int ret;
@@ -117,7 +160,7 @@ static int scmi_thermal_probe(struct udevice *dev)
 	struct scmi_sensor_desc *desc;
 	struct scmi_thermal_priv *priv = dev_get_priv(dev);
 
-	ret = devm_scmi_of_get_channel(dev, &priv->channel);
+	ret = devm_scmi_of_get_channel(dev);
 	if (ret)
 		return ret;
 
@@ -168,6 +211,10 @@ static int scmi_thermal_probe(struct udevice *dev)
 		dev_err(dev, "Can't find thermal sensor device\n");
 		return -ENODEV;
 	}
+
+	u32 sensor_config = scmi_sensor_config_get(dev);
+	if ((sensor_config & SCMI_SENS_CFG_ENABLED_MASK) == SCMI_SENS_CFG_DISABLE)
+		scmi_sensor_config_set(dev, sensor_config | SCMI_SENS_CFG_ENABLE);
 
 	return 0;
 }

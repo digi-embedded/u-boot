@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright 2020 NXP
+ * Copyright 2020-2023 NXP
  */
 
 #include <common.h>
@@ -24,11 +24,11 @@ struct fsb_map_entry {
 	bool redundancy;
 };
 
-struct s400_map_entry {
+struct ele_map_entry {
 	s32 fuse_bank;
 	u32 fuse_words;
 	u32 fuse_offset;
-	u32 s400_index;
+	u32 ele_index;
 };
 
 #if defined(CONFIG_IMX8ULP)
@@ -65,7 +65,7 @@ u32 nonecc_fuse_banks[] = {
 	0, 1, 8, 12, 16, 22, 24, 25, 26, 27, 36, 41, 51, 56
 };
 
-struct s400_map_entry s400_api_mapping_table[] = {
+struct ele_map_entry ele_api_mapping_table[] = {
 	{ 1, 8 },	/* LOCK */
 	{ 2, 8 },	/* ECID */
 	{ 7, 4, 0, 1 },	/* OTP_UNIQ_ID */
@@ -122,7 +122,7 @@ struct fsb_map_entry fsb_mapping_table[] = {
 	{ 63, 8 },
 };
 
-struct s400_map_entry s400_api_mapping_table[] = {
+struct ele_map_entry ele_api_mapping_table[] = {
 	{ 7, 1, 7, 63 },
 	{ 16, 8, },
 	{ 17, 8, },
@@ -139,8 +139,7 @@ static s32 map_fsb_fuse_index(u32 bank, u32 word, bool *redundancy)
 	/* map the fuse from ocotp fuse map to FSB*/
 	for (i = 0; i < size; i++) {
 		if (fsb_mapping_table[i].fuse_bank != -1 &&
-		    fsb_mapping_table[i].fuse_bank == bank &&
-		    fsb_mapping_table[i].fuse_words > word) {
+		    fsb_mapping_table[i].fuse_bank == bank) {
 			break;
 		}
 
@@ -151,26 +150,31 @@ static s32 map_fsb_fuse_index(u32 bank, u32 word, bool *redundancy)
 		return -1; /* Failed to find */
 
 	if (fsb_mapping_table[i].redundancy) {
+		if ((fsb_mapping_table[i].fuse_words << 1) <= word)
+			return -2; /* Not valid word */
+
 		*redundancy = true;
 		return (word >> 1) + word_pos;
+	} else if (fsb_mapping_table[i].fuse_words <= word) {
+		return -2; /* Not valid word */
 	}
 
 	*redundancy = false;
 	return word + word_pos;
 }
 
-static s32 map_s400_fuse_index(u32 bank, u32 word)
+static s32 map_ele_fuse_index(u32 bank, u32 word)
 {
-	s32 size = ARRAY_SIZE(s400_api_mapping_table);
+	s32 size = ARRAY_SIZE(ele_api_mapping_table);
 	s32 i;
 
 	/* map the fuse from ocotp fuse map to FSB*/
 	for (i = 0; i < size; i++) {
-		if (s400_api_mapping_table[i].fuse_bank != -1 &&
-		    s400_api_mapping_table[i].fuse_bank == bank) {
-			if (word >= s400_api_mapping_table[i].fuse_offset &&
-			    word < (s400_api_mapping_table[i].fuse_offset +
-			    s400_api_mapping_table[i].fuse_words))
+		if (ele_api_mapping_table[i].fuse_bank != -1 &&
+		    ele_api_mapping_table[i].fuse_bank == bank) {
+			if (word >= ele_api_mapping_table[i].fuse_offset &&
+			    word < (ele_api_mapping_table[i].fuse_offset +
+			    ele_api_mapping_table[i].fuse_words))
 				break;
 		}
 	}
@@ -178,10 +182,10 @@ static s32 map_s400_fuse_index(u32 bank, u32 word)
 	if (i == size)
 		return -1; /* Failed to find */
 
-	if (s400_api_mapping_table[i].s400_index != 0)
-		return s400_api_mapping_table[i].s400_index;
+	if (ele_api_mapping_table[i].ele_index != 0)
+		return ele_api_mapping_table[i].ele_index;
 
-	return s400_api_mapping_table[i].fuse_bank * 8 + word;
+	return ele_api_mapping_table[i].fuse_bank * 8 + word;
 }
 
 #if defined(CONFIG_IMX8ULP)
@@ -202,17 +206,17 @@ int fuse_sense(u32 bank, u32 word, u32 *val)
 		return 0;
 	}
 
-	word_index = map_s400_fuse_index(bank, word);
+	word_index = map_ele_fuse_index(bank, word);
 	if (word_index >= 0) {
 		u32 data[4];
-		u32 res, size = 4;
+		u32 res = 0, size = 4;
 		int ret;
 
 		/* Only UID return 4 words */
 		if (word_index != 1)
 			size = 1;
 
-		ret = ahab_read_common_fuse(word_index, data, size, &res);
+		ret = ele_read_common_fuse(word_index, data, size, &res);
 		if (ret) {
 			printf("ahab read fuse failed %d, 0x%x\n", ret, res);
 			return ret;
@@ -248,7 +252,7 @@ int fuse_sense(u32 bank, u32 word, u32 *val)
 		return -EINVAL;
 
 	word_index = map_fsb_fuse_index(bank, word, &redundancy);
-	if (word_index >= 0) {
+	if (!IS_ENABLED(CONFIG_SCMI_FIRMWARE) && word_index >= 0) {
 		fuse_acc_dis = readl(BLK_CTRL_NS_ANOMIX_BASE_ADDR + 0x28);
 		if (!(fuse_acc_dis & BIT(0))) {
 			*val = readl((ulong)FSB_BASE_ADDR + FSB_OTP_SHADOW + (word_index << 2));
@@ -259,16 +263,16 @@ int fuse_sense(u32 bank, u32 word, u32 *val)
 		}
 	}
 
-	/* S400 API supports all FSB fuse. When FSB is disabled, using the word_index from FSB map */
+	/* ELE API supports all FSB fuse. When FSB is disabled, using the word_index from FSB map */
 	if (word_index < 0)
-		word_index = map_s400_fuse_index(bank, word);
+		word_index = map_ele_fuse_index(bank, word);
 
 	if (word_index >= 0) {
 		u32 data;
-		u32 res, size = 1;
+		u32 res = 0, size = 1;
 		int ret;
 
-		ret = ahab_read_common_fuse(word_index, &data, size, &res);
+		ret = ele_read_common_fuse(word_index, &data, size, &res);
 		if (ret) {
 			printf("ahab read fuse failed %d, 0x%x\n", ret, res);
 			return ret;
@@ -290,7 +294,7 @@ int fuse_read(u32 bank, u32 word, u32 *val)
 
 int fuse_prog(u32 bank, u32 word, u32 val)
 {
-	u32 res;
+	u32 res = 0;
 	int ret;
 	bool lock = false;
 
@@ -318,7 +322,7 @@ int fuse_prog(u32 bank, u32 word, u32 val)
 		lock = true;
 #endif
 
-	ret = ahab_write_fuse((bank * 8 + word), val, lock, &res);
+	ret = ele_write_fuse((bank * 8 + word), val, lock, &res);
 	if (ret) {
 		printf("ahab write fuse failed %d, 0x%x\n", ret, res);
 		return ret;

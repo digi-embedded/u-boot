@@ -11,7 +11,7 @@
 #include <asm/global_data.h>
 #include <asm/io.h>
 #include <dm.h>
-#include <asm/arch/sci/sci.h>
+#include <firmware/imx/sci/sci.h>
 #include <misc.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -493,10 +493,8 @@ void sc_misc_get_button_status(sc_ipc_t ipc, sc_bool_t *status)
 
 	misc_call(dev, SC_FALSE, &msg, 1U, &msg, 1U);
 
-	if (status != NULL)
-	{
+	if (status)
 		*status = (sc_bool_t)(!!(RPC_U8(&msg, 0U)));
-	}
 }
 
 /* RM */
@@ -882,6 +880,28 @@ void sc_pm_reboot(sc_ipc_t ipc, sc_pm_reset_type_t type)
 	RPC_SIZE(&msg) = 2U;
 
 	misc_call(dev, SC_TRUE, &msg, size, &msg, size);
+}
+
+int sc_pm_reset_reason(sc_ipc_t ipc, sc_pm_reset_reason_t *reason)
+{
+	struct udevice *dev = gd->arch.scu_dev;
+	struct sc_rpc_msg_s msg;
+	int size = sizeof(struct sc_rpc_msg_s);
+	int ret;
+
+	RPC_VER(&msg) = SC_RPC_VERSION;
+	RPC_SVC(&msg) = (u8)SC_RPC_SVC_PM;
+	RPC_FUNC(&msg) = (u8)PM_FUNC_RESET_REASON;
+	RPC_SIZE(&msg) = 1U;
+
+	ret = misc_call(dev, SC_FALSE, &msg, size, &msg, size);
+	if (ret)
+		printf("%s: res:%d\n", __func__, RPC_R8(&msg));
+
+	if (reason)
+		*reason = RPC_U8(&msg, 0U);
+
+	return ret;
 }
 
 int sc_pm_get_resource_power_mode(sc_ipc_t ipc, sc_rsrc_t resource,

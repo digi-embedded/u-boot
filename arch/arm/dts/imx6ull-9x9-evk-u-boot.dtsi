@@ -4,7 +4,7 @@
  */
 
 &{/aliases} {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 	display0 = &lcdif;
 
 	spi0 = &qspi;
@@ -21,21 +21,21 @@
 };
 
 &{/soc} {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &aips2 {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &iomuxc {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &iomuxc_snvs {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &lcdif {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };

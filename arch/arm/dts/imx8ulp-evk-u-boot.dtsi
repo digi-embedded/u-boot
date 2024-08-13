@@ -8,7 +8,7 @@
 		compatible = "fsl,imx8ulp-mu";
 		reg = <0 0x27020000 0 0x10000>;
 		status = "okay";
-		u-boot,dm-spl;
+		bootph-all;
 	};
 
 	aliases {
@@ -37,70 +37,76 @@
 };
 
 &soc {
-	u-boot,dm-spl;
+	bootph-all;
+	bootph-pre-ram;
 };
 
 &{/firmware} {
-	u-boot,dm-pre-reloc;
+	bootph-some-ram;
 };
 
 &{/firmware/scmi} {
-	u-boot,dm-pre-reloc;
+	bootph-some-ram;
 };
 
 &{/firmware/scmi/protocol@15} {
-	u-boot,dm-pre-reloc;
+	bootph-some-ram;
 };
 
 &per_bridge3 {
-	u-boot,dm-spl;
+	bootph-all;
+	bootph-pre-ram;
 };
 
 &per_bridge4 {
-	u-boot,dm-spl;
+	bootph-all;
+	bootph-pre-ram;
 };
 
 &iomuxc1 {
-	u-boot,dm-spl;
+	bootph-all;
+	bootph-pre-ram;
 	fsl,mux_mask = <0xf00>;
 };
 
 &pinctrl_lpuart5 {
-	u-boot,dm-spl;
+	bootph-all;
+	bootph-pre-ram;
 };
 
 &lpuart5 {
-	u-boot,dm-spl;
+	bootph-all;
+	bootph-pre-ram;
 };
 
 &usdhc0 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 	mmc-hs400-1_8v;
 	mmc-hs400-enhanced-strobe;
 };
 
 &pinctrl_usdhc0 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &crypto {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &sec_jr0 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &sec_jr1 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &sec_jr2 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &sec_jr3 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &lpi2c0 {

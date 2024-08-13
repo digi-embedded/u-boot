@@ -10,13 +10,7 @@
 	wdt-reboot {
 		compatible = "wdt-reboot";
 		wdt = <&wdog1>;
-		u-boot,dm-spl;
-	};
-	firmware {
-		optee {
-			compatible = "linaro,optee-tz";
-			method = "smc";
-		};
+		bootph-pre-ram;
 	};
 
 	mcu_rdc {
@@ -67,104 +61,100 @@
 	};
 };
 
-&pinctrl_reg_usdhc2_vmmc {
-	u-boot,dm-spl;
-};
-
-&reg_usdhc2_vmmc {
-	u-boot,dm-spl;
-	u-boot,off-on-delay-us = <20000>;
-};
-
-&pinctrl_uart2 {
-	u-boot,dm-spl;
-};
-
-&pinctrl_usdhc2_gpio {
-	u-boot,dm-spl;
-};
-
-&pinctrl_usdhc2 {
-	u-boot,dm-spl;
-};
-
-&pinctrl_usdhc3 {
-	u-boot,dm-spl;
-};
-
-&pinctrl_wdog {
-	u-boot,dm-spl;
-};
-
-&gpio1 {
-	u-boot,dm-spl;
-};
-
-&gpio2 {
-	u-boot,dm-spl;
-};
-
-&gpio3 {
-	u-boot,dm-spl;
-};
-
-&gpio4 {
-	u-boot,dm-spl;
-};
-
-&gpio5 {
-	u-boot,dm-spl;
-};
-
-&uart2 {
-	u-boot,dm-spl;
-};
-
-&crypto {
-	u-boot,dm-spl;
-};
-
-&sec_jr0 {
-	u-boot,dm-spl;
-};
-
-&sec_jr1 {
-	u-boot,dm-spl;
-};
-
-&sec_jr2 {
-	u-boot,dm-spl;
-};
-
-&i2c1 {
-	u-boot,dm-spl;
-};
-
-&i2c2 {
-	u-boot,dm-spl;
-};
-
-&i2c3 {
-	u-boot,dm-spl;
-};
-
 &pinctrl_i2c1 {
-	u-boot,dm-spl;
+	bootph-all;
 };
 
 &pinctrl_i2c1_gpio {
-	u-boot,dm-spl;
+	bootph-all;
+};
+
+&pinctrl_pmic {
+	bootph-all;
+};
+
+&{/soc@0/bus@30800000/i2c@30a20000/pmic@25} {
+	bootph-all;
+};
+
+&{/soc@0/bus@30800000/i2c@30a20000/pmic@25/regulators} {
+	bootph-all;
+};
+
+&reg_usdhc2_vmmc {
+	bootph-pre-ram;
+	u-boot,off-on-delay-us = <20000>;
+};
+
+&pinctrl_reg_usdhc2_vmmc {
+	bootph-pre-ram;
+};
+
+&pinctrl_uart2 {
+	bootph-pre-ram;
+};
+
+&pinctrl_usdhc2_gpio {
+	bootph-pre-ram;
+};
+
+&pinctrl_usdhc2 {
+	bootph-pre-ram;
+};
+
+&pinctrl_usdhc3 {
+	bootph-pre-ram;
+};
+
+&pinctrl_wdog {
+	bootph-pre-ram;
+};
+
+&gpio1 {
+	bootph-pre-ram;
+};
+
+&gpio2 {
+	bootph-pre-ram;
+};
+
+&gpio3 {
+	bootph-pre-ram;
+};
+
+&gpio4 {
+	bootph-pre-ram;
+};
+
+&gpio5 {
+	bootph-pre-ram;
+};
+
+&uart2 {
+	bootph-pre-ram;
+};
+
+&i2c1 {
+	bootph-all;
+};
+
+&i2c2 {
+	bootph-pre-ram;
+};
+
+&i2c3 {
+	bootph-pre-ram;
 };
 
 &usdhc1 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 	assigned-clocks = <&clk IMX8MP_CLK_USDHC1>;
 	assigned-clock-rates = <400000000>;
 	assigned-clock-parents = <&clk IMX8MP_SYS_PLL1_400M>;
 };
 
 &usdhc2 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 	sd-uhs-sdr104;
 	sd-uhs-ddr50;
 	assigned-clocks = <&clk IMX8MP_CLK_USDHC2>;
@@ -173,7 +163,7 @@
 };
 
 &usdhc3 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 	mmc-hs400-1_8v;
 	mmc-hs400-enhanced-strobe;
 	assigned-clocks = <&clk IMX8MP_CLK_USDHC3>;
@@ -182,25 +172,7 @@
 };
 
 &wdog1 {
-	u-boot,dm-spl;
-};
-
-&{/soc@0/bus@30800000/i2c@30a20000/pmic@25} {
-	u-boot,dm-spl;
-};
-
-&{/soc@0/bus@30800000/i2c@30a20000/pmic@25/regulators} {
-	u-boot,dm-spl;
-};
-
-&pinctrl_pmic {
-	u-boot,dm-spl;
-};
-
-&eqos {
-	/delete-property/ assigned-clocks;
-	/delete-property/ assigned-clock-parents;
-	/delete-property/ assigned-clock-rates;
+	bootph-pre-ram;
 };
 
 &ethphy0 {
@@ -223,6 +195,10 @@
 	/delete-property/ assigned-clocks;
 	/delete-property/ assigned-clock-parents;
 	/delete-property/ assigned-clock-rates;
+};
+
+&media_blk_ctrl {
+	assigned-clock-rates = <500000000>, <200000000>;
 };
 
 &usb_dwc3_0 {

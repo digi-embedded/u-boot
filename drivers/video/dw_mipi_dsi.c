@@ -22,9 +22,11 @@
 #include <linux/bitops.h>
 #include <linux/delay.h>
 #include <linux/iopoll.h>
+#include <linux/time.h>
 #include <video_bridge.h>
 
 #define HWVER_131			0x31333100	/* IP version 1.31 */
+#define HWVER_151			0x30313531	/* IP version 1.51 */
 
 #define DSI_VERSION			0x00
 #define VERSION				GENMASK(31, 8)
@@ -213,8 +215,6 @@
 
 #define PHY_STATUS_TIMEOUT_US		10000
 #define CMD_PKT_STATUS_TIMEOUT_US	20000
-
-#define MSEC_PER_SEC			1000
 
 struct dw_mipi_dsi {
 	struct mipi_dsi_host dsi_host;
@@ -659,6 +659,7 @@ static void dw_mipi_dsi_dphy_timing_config(struct dw_mipi_dsi *dsi)
 	const struct mipi_dsi_phy_ops *phy_ops = dsi->phy_ops;
 	struct mipi_dsi_phy_timing timing = {0x40, 0x40, 0x40, 0x40};
 	u32 hw_version;
+	bool hwver_is_151 = false;
 
 	if (phy_ops->get_timing)
 		phy_ops->get_timing(dsi->device, dsi->lane_mbps, &timing);
@@ -671,9 +672,13 @@ static void dw_mipi_dsi_dphy_timing_config(struct dw_mipi_dsi *dsi)
 	 * DSI_CMD_MODE_CFG.MAX_RD_PKT_SIZE_LP (see CMD_MODE_ALL_LP)
 	 */
 
-	hw_version = dsi_read(dsi, DSI_VERSION) & VERSION;
+	hw_version = dsi_read(dsi, DSI_VERSION);
+	if (hw_version == HWVER_151)
+		hwver_is_151 = true;
+	else
+		hw_version &= VERSION;
 
-	if (hw_version >= HWVER_131) {
+	if (hw_version >= HWVER_131 || hwver_is_151) {
 		dsi_write(dsi, DSI_PHY_TMR_CFG, PHY_HS2LP_TIME_V131(timing.data_hs2lp) |
 			  PHY_LP2HS_TIME_V131(timing.data_lp2hs));
 		dsi_write(dsi, DSI_PHY_TMR_RD_CFG, MAX_RD_TIME_V131(10000));
@@ -720,14 +725,14 @@ static void dw_mipi_dsi_dphy_enable(struct dw_mipi_dsi *dsi)
 	ret = readl_poll_timeout(dsi->base + DSI_PHY_STATUS, val,
 				 val & PHY_LOCK, PHY_STATUS_TIMEOUT_US);
 	if (ret)
-		dev_dbg(dsi->dsi_host.dev,
+		dev_err(dsi->dsi_host.dev,
 			"failed to wait phy lock state\n");
 
 	ret = readl_poll_timeout(dsi->base + DSI_PHY_STATUS,
 				 val, val & PHY_STOP_STATE_CLK_LANE,
 				 PHY_STATUS_TIMEOUT_US);
 	if (ret)
-		dev_dbg(dsi->dsi_host.dev,
+		dev_err(dsi->dsi_host.dev,
 			"failed to wait phy clk lane stop state\n");
 }
 
@@ -771,7 +776,6 @@ static void dw_mipi_dsi_bridge_set(struct dw_mipi_dsi *dsi,
 		dev_warn(dsi->dsi_host.dev, "Phy init() failed\n");
 
 	dw_mipi_dsi_dphy_enable(dsi);
-
 	dw_mipi_dsi_wait_for_two_frames(timings);
 
 	/* Switch to cmd mode for panel-bridge pre_enable & panel prepare */
@@ -800,10 +804,19 @@ static int dw_mipi_dsi_init(struct udevice *dev,
 	dsi->dsi_host.ops = &dw_mipi_dsi_host_ops;
 	device->host = &dsi->dsi_host;
 
-	dsi->base = (void *)dev_read_addr(device->dev);
-	if ((fdt_addr_t)dsi->base == FDT_ADDR_T_NONE) {
+	dsi->base = dev_read_addr_ptr(device->dev);
+	if (!dsi->base) {
 		dev_err(device->dev, "dsi dt register address error\n");
 		return -EINVAL;
+	}
+
+	/*
+	 * The Rockchip based devices don't have px_clk, so simply move
+	 * on.
+	 */
+	if (IS_ENABLED(CONFIG_DISPLAY_ROCKCHIP_DW_MIPI)) {
+		dw_mipi_dsi_bridge_set(dsi, timings);
+		return 0;
 	}
 
 	ret = clk_get_by_name(device->dev, "px_clk", &clk);
@@ -837,7 +850,7 @@ static int dw_mipi_dsi_probe(struct udevice *dev)
 	return 0;
 }
 
-#if (IS_ENABLED(CONFIG_VIDEO_IMX_DW_DSI))
+#if (IS_ENABLED(CONFIG_VIDEO_IMX_DW_DSI) || IS_ENABLED(CONFIG_VIDEO_IMX95_DW_DSI))
 static const struct udevice_id dw_mipi_dsi_ids[] = {
 	{ .compatible = "synopsys,dw-mipi-dsi" },
 	{ }
@@ -847,7 +860,7 @@ static const struct udevice_id dw_mipi_dsi_ids[] = {
 U_BOOT_DRIVER(dw_mipi_dsi) = {
 	.name			= "dw_mipi_dsi",
 	.id			= UCLASS_DSI_HOST,
-#if (IS_ENABLED(CONFIG_VIDEO_IMX_DW_DSI))
+#if (IS_ENABLED(CONFIG_VIDEO_IMX_DW_DSI) || IS_ENABLED(CONFIG_VIDEO_IMX95_DW_DSI))
 	.of_match		= dw_mipi_dsi_ids,
 #endif
 	.probe			= dw_mipi_dsi_probe,

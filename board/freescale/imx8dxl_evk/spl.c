@@ -17,6 +17,7 @@
 #include <dm/device-internal.h>
 #include <dm/lists.h>
 #include <bootm.h>
+#include <asm/sections.h>
 #include <asm/mach-imx/boot_mode.h>
 
 DECLARE_GLOBAL_DATA_PTR;

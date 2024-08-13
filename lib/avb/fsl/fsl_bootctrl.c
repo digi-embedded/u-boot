@@ -21,6 +21,7 @@
 #include "fsl_avbkey.h"
 #include "hang.h"
 #include "fsl_bootctrl.h"
+#include <spl_load.h>
 
 /* Maximum values for slot data */
 #define AVB_AB_MAX_PRIORITY 15
@@ -702,14 +703,12 @@ int fsl_save_metadata_if_changed_dual_uboot(struct blk_desc *dev_desc,
 }
 
 int mmc_load_image_raw_sector_dual_uboot(struct spl_image_info *spl_image,
-					 struct mmc *mmc)
+					 struct spl_boot_device *bootdev, struct mmc *mmc)
 {
 	struct disk_partition info;
-	unsigned long count;
 	int ret = 0, n = 0;
 	char partition_name[PARTITION_NAME_LEN];
 	struct blk_desc *dev_desc;
-	struct legacy_img_hdr *header;
 	struct spl_load_info load;
 	struct bootloader_control ab_data, ab_data_orig;
 	size_t slot_index_to_boot, target_slot;
@@ -767,33 +766,14 @@ int mmc_load_image_raw_sector_dual_uboot(struct spl_image_info *spl_image,
 			ret = -1;
 			goto end;
 		} else {
-			header = (struct legacy_img_hdr *)(CONFIG_TEXT_BASE -
-				 sizeof(struct legacy_img_hdr));
-
-			/* read image header to find the image size & load address */
-			count = blk_dread(dev_desc, info.start, 1, header);
-			if (count == 0) {
-				ret = -1;
-				goto end;
-			}
-
 			/* Load fit/container and check HAB */
-			load.dev = mmc;
-			load.priv = NULL;
-			load.filename = NULL;
-			load.bl_len = mmc->read_bl_len;
+			load.priv = dev_desc;
+			spl_set_bl_len(&load, dev_desc->blksz);
 			load.read = h_spl_load_read;
-			if (IS_ENABLED(CONFIG_SPL_LOAD_FIT) &&
-					image_get_magic(header) == FDT_MAGIC) {
-				/* Fit */
-				ret = spl_load_simple_fit(spl_image, &load,
-							  info.start, header);
-			} else if (IS_ENABLED(CONFIG_SPL_LOAD_IMX_CONTAINER)) {
-				/* container */
-				ret = spl_load_imx_container(spl_image, &load, info.start);
-			} else
-				ret = -1;
-
+			ret = spl_load(spl_image, bootdev, &load, 0, info.start << dev_desc->log2blksz);
+			if (ret) {
+				return -1;
+			}
 #if !defined(CONFIG_XEN) && defined(CONFIG_IMX_TRUSTY_OS)
 			/* Image loaded successfully, go to verify rollback index */
 			if (rpmbkey_is_set()) {
@@ -849,33 +829,14 @@ int mmc_load_image_raw_sector_dual_uboot(struct spl_image_info *spl_image,
 			ret = -1;
 			goto end;
 		} else {
-			header = (struct legacy_img_hdr *)(CONFIG_TEXT_BASE -
-				 sizeof(struct legacy_img_hdr));
-
-			/* read image header to find the image size & load address */
-			count = blk_dread(dev_desc, info.start, 1, header);
-			if (count == 0) {
-				ret = -1;
-				goto end;
-			}
-
 			/* Load fit/container and check HAB */
-			load.dev = mmc;
-			load.priv = NULL;
-			load.filename = NULL;
-			load.bl_len = mmc->read_bl_len;
+			load.priv = dev_desc;
+			spl_set_bl_len(&load, dev_desc->blksz);
 			load.read = h_spl_load_read;
-			if (IS_ENABLED(CONFIG_SPL_LOAD_FIT) &&
-					image_get_magic(header) == FDT_MAGIC) {
-				/* Fit */
-				ret = spl_load_simple_fit(spl_image, &load,
-							  info.start, header);
-			} else if (IS_ENABLED(CONFIG_SPL_LOAD_IMX_CONTAINER)) {
-				/* container */
-				ret = spl_load_imx_container(spl_image, &load, info.start);
-			} else
-				ret = -1;
-
+			ret = spl_load(spl_image, bootdev, &load, 0, info.start << dev_desc->log2blksz);
+			if (ret) {
+				return -1;
+			}
 #if !defined(CONFIG_XEN) && defined(CONFIG_IMX_TRUSTY_OS)
 			/* Image loaded successfully, go to verify rollback index */
 			if (rpmbkey_is_set()) {

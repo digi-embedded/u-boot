@@ -22,9 +22,6 @@
 
 #undef CFG_EXTRA_ENV_SETTINGS
 #define CFG_EXTRA_ENV_SETTINGS					\
-	"splashpos=m,m\0"	  \
-	"fdt_high=0xffffffffffffffff\0"	  \
-	"initrd_high=0xffffffffffffffff\0" \
 	"emmc_dev=0\0" \
 	"sd_dev=1\0"
 
@@ -41,8 +38,5 @@
 #define CFG_SYS_SPL_PTE_RAM_BASE 0x801F8000
 #endif
 
-#if defined(CONFIG_XEN)
-#include "imx8qm_mek_android_auto_xen.h"
-#endif
 
 #endif /* IMX8QM_MEK_ANDROID_AUTO_H */

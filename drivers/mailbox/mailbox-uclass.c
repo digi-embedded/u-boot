@@ -115,15 +115,16 @@ int mbox_free(struct mbox_chan *chan)
 	return 0;
 }
 
-int mbox_send(struct mbox_chan *chan, const void *data, ulong timeout_us)
+int mbox_send(struct mbox_chan *chan, const void *data)
 {
 	struct mbox_ops *ops = mbox_dev_ops(chan->dev);
-	ulong start_time;
+	ulong start_time, timeout_us;
 	int ret;
 
 	debug("%s(chan=%p, data=%p)\n", __func__, chan, data);
 
 	start_time = timer_get_us();
+	timeout_us = chan->tx_timeout_us;
 	/*
 	 * Account for partial us ticks, but if timeout_us is 0, ensure we
 	 * still don't wait at all.
