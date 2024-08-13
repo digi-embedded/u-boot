@@ -63,7 +63,7 @@ void spl_board_init(void)
 
 	puts("Normal Boot\n");
 
-	ret = ahab_start_rng();
+	ret = ele_start_rng();
 	if (ret)
 		printf("Fail to start RNG: %d\n", ret);
 }

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-2.0+
  */
 
-#include <asm/mach-imx/image.h>
+#include <imx_container.h>
 #include <linux/types.h>
 #include <mmc.h>
 #include <stdlib.h>

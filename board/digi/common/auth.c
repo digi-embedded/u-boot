@@ -26,7 +26,7 @@
 #include <asm/mach-imx/hab.h>
 #endif
 #ifdef CONFIG_AHAB_BOOT
-#include <asm/mach-imx/image.h>
+#include <imx_container.h>
 #include "./trustfence/ahab.h"
 extern int authenticate_os_container(ulong addr);
 #endif

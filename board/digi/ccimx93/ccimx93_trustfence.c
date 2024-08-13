@@ -10,7 +10,7 @@
 #include <mmc.h>
 #include <asm/io.h>
 #include <asm/mach-imx/ele_api.h>
-#include <asm/mach-imx/image.h>
+#include <imx_container.h>
 
 #include "../common/trustfence.h"
 
@@ -42,13 +42,13 @@ int close_device(int confirmed_close)
 		return -EPERM;
 	}
 
-	err = ahab_get_events(events, &cnt, NULL);
+	err = ele_get_events(events, &cnt, NULL);
 	if (err || cnt) {
 		printf("AHAB events found!\n");
 		return -EIO;
 	}
 
-	err = ahab_forward_lifecycle(8, NULL);
+	err = ele_forward_lifecycle(8, NULL);
 	if (err != 0) {
 		printf("Error in forward lifecycle to OEM closed\n");
 		return -EIO;
@@ -80,7 +80,7 @@ int trustfence_status(void)
 	printf("* Encrypted U-Boot:\t%s\n", is_uboot_encrypted()?
 	       "[YES]" : "[NO]");
 	puts("* AHAB events:\t\t");
-	ret = ahab_get_events(events, &cnt, NULL);
+	ret = ele_get_events(events, &cnt, NULL);
 	if (ret)
 		puts("[GET EVENTS FAILURE]\n");
 	else if (!cnt)
@@ -164,7 +164,7 @@ int revoke_keys(void)
 	u32 info_type;
 	int ret = -1;
 
-	if (ahab_commit(index, NULL, &info_type))
+	if (ele_commit(index, NULL, &info_type))
 		goto err;
 
 	ret = (index != info_type);
