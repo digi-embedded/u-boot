@@ -155,8 +155,10 @@ void som_default_environment(void)
 		case MXC_CPU_IMX8MNS:
 		case MXC_CPU_IMX8MNL:
 		case MXC_CPU_IMX8MNDL:
-		case MXC_CPU_IMX8MNSL:
 			snprintf(var, sizeof(var), "imx8mn");
+			break;
+		case MXC_CPU_IMX8MNSL:
+			snprintf(var, sizeof(var), "imx8mnsl");
 			break;
 		case MXC_CPU_IMX8MM:
 		case MXC_CPU_IMX8MML:
