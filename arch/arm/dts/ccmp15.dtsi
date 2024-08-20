@@ -77,11 +77,6 @@
 			reg = <0x38000000 0x10000>;
 			no-map;
 		};
-
-		gpu_reserved: gpu@da000000 {
-			reg = <0xda000000 0x4000000>;
-			no-map;
-		};
 	};
 
 #if defined(CONFIG_FIT_SIGNATURE)
