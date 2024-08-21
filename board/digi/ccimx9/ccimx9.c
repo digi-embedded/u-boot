@@ -141,6 +141,16 @@ static const char *get_cpu_type_str(void)
 		return "imx9312";
 	case MXC_CPU_IMX9311:
 		return "imx9311";
+	case MXC_CPU_IMX9302:
+		return "imx9302";
+	case MXC_CPU_IMX9301:
+		return "imx9301";
+	case MXC_CPU_IMX91:
+		return "imx9131";
+	case MXC_CPU_IMX9111:
+		return "imx9111";
+	case MXC_CPU_IMX9101:
+		return "imx9101";
 	default:
 		return "";
 	}
