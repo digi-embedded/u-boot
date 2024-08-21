@@ -29,15 +29,7 @@ while read -r pl mt tt ps; do
 	eval "${pl//-/_}_toolchain_type=\"${tt}\""
 	eval "${pl//-/_}_post_script=\"${ps}\""
 done<<-_EOF_
-	ccimx6ulstarter         u-boot-dtb.imx    cortexa9hf    ""
-	ccimx6ulsbc             u-boot-dtb.imx    cortexa9hf    ""
-	ccimx6ulstarter512MB    u-boot-dtb.imx    cortexa9hf    ""
-	ccimx6ulsbc512MB        u-boot-dtb.imx    cortexa9hf    ""
-	ccimx6ulstarter1GB      u-boot-dtb.imx    cortexa9hf    ""
-	ccimx6ulsbc1GB          u-boot-dtb.imx    cortexa9hf    ""
-	ccimx8mm_dvk            all               aarch64       "make_imxboot_ccimx8mm.sh"
-	ccimx8x_sbc_pro         all               aarch64       "make_imxboot_ccimx8x.sh"
-	ccimx93-dvk             all               aarch64       "make_imxboot_ccimx93.sh"
+	ccimx91-dvk             all               aarch64       "make_imxboot_ccimx91.sh"
 _EOF_
 
 # Set default values if not provided by Jenkins
