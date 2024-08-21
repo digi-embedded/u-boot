@@ -13,14 +13,16 @@
 #include <spl.h>
 #include <asm/global_data.h>
 #include <asm/io.h>
-#include <asm/arch/imx93_pins.h>
+#include <asm/arch/imx91_pins.h>
+#include <asm/arch/mu.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/mach-imx/boot_mode.h>
 #include <asm/mach-imx/mxc_i2c.h>
 #include <asm/arch-mx7ulp/gpio.h>
-#include <asm/mach-imx/syscounter.h>
 #include <asm/mach-imx/ele_api.h>
+#include <asm/mach-imx/syscounter.h>
+#include <asm/sections.h>
 #include <dm/uclass.h>
 #include <dm/device.h>
 #include <dm/uclass-internal.h>
@@ -61,11 +63,11 @@ void spl_board_init(void)
 {
 	int ret;
 
-	puts("Normal Boot\n");
-
 	ret = ele_start_rng();
 	if (ret)
 		printf("Fail to start RNG: %d\n", ret);
+
+	puts("Normal Boot\n");
 }
 
 void spl_dram_init(void)
@@ -88,6 +90,7 @@ void spl_dram_init(void)
 		dram_timing = &dram_timing_512M;
 	}
 
+	printf("DDR: %uMTS\n", dram_timing->fsp_msg[0].drate);
 	ddr_init(dram_timing);
 }
 
@@ -99,13 +102,11 @@ int power_init_board(void)
 	unsigned int val = 0, buck_val;
 
 	ret = pmic_get("pmic@25", &dev);
-	if (ret == -ENODEV) {
-		puts("No pca9450@25\n");
-		return 0;
-	}
-	if (ret != 0)
+	if (ret != 0) {
+		puts("ERROR: Get PMIC PCA9451A failed!\n");
 		return ret;
-
+	}
+	puts("PMIC: PCA9451A\n");
 	/* BUCKxOUT_DVS0/1 control BUCK123 output */
 	pmic_reg_write(dev, PCA9450_BUCK123_DVS, 0x29);
 
@@ -119,13 +120,13 @@ int power_init_board(void)
 		val = ret;
 
 	if (is_voltage_mode(VOLT_LOW_DRIVE)) {
-		buck_val = 0x0c;	/* 0.8v for Low drive mode */
+		buck_val = 0x0c; /* 0.8v for Low drive mode */
 		printf("PMIC: Low Drive Voltage Mode\n");
 	} else if (is_voltage_mode(VOLT_NOMINAL_DRIVE)) {
-		buck_val = 0x10;	/* 0.85v for Nominal drive mode */
+		buck_val = 0x10; /* 0.85v for Nominal drive mode */
 		printf("PMIC: Nominal Voltage Mode\n");
 	} else {
-		buck_val = 0x14;	/* 0.9v for Over drive mode */
+		buck_val = 0x14; /* 0.9v for Over drive mode */
 		printf("PMIC: Over Drive Voltage Mode\n");
 	}
 
@@ -137,10 +138,8 @@ int power_init_board(void)
 		pmic_reg_write(dev, PCA9450_BUCK3OUT_DVS0, buck_val + 0x4);
 	}
 
-	if (IS_ENABLED(CONFIG_CCIMX91_DVK_LPDDR4)) {
-		/* Set VDDQ to 1.1V from buck2 */
-		pmic_reg_write(dev, PCA9450_BUCK2OUT_DVS0, 0x28);
-	}
+	/* Set VDDQ to 1.1V from buck2 (buck2 not used for iMX91 EVK) */
+	pmic_reg_write(dev, PCA9450_BUCK2OUT_DVS0, 0x28);
 
 	/* set standby voltage to 0.65v */
 	if (val & PCA9450_REG_PWRCTRL_TOFF_DEB)
@@ -154,7 +153,6 @@ int power_init_board(void)
 }
 #endif
 
-extern int imx9_probe_mu(void *ctx, struct event *event);
 void board_init_f(ulong dummy)
 {
 	int ret;
@@ -172,7 +170,7 @@ void board_init_f(ulong dummy)
 
 	preloader_console_init();
 
-	ret = imx9_probe_mu(NULL, NULL);
+	ret = imx9_probe_mu();
 	if (ret) {
 		printf("Fail to init ELE API\n");
 	} else {
@@ -195,11 +193,6 @@ void board_init_f(ulong dummy)
 
 	/* DDR initialization */
 	spl_dram_init();
-
-	/* Put M33 into CPUWAIT for following kick */
-	ret = m33_prepare();
-	if (!ret)
-		printf("M33 prepare ok\n");
 
 	board_init_r(NULL, 0);
 }

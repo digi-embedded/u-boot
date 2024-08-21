@@ -36,7 +36,7 @@ choice
 
 config TARGET_CCIMX91_DVK
 	bool "Digi ConnectCore 91 Development Kit"
-	select IMX93
+	select IMX91
 	select CC93
 
 config TARGET_CCIMX93_DVK

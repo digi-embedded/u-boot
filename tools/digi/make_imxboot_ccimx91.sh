@@ -1,9 +1,5 @@
 #!/bin/sh
 
-## REMOVE ONCE ADAPTED TO REAL HARDWARE (ccimx91)
-## For the moment, to test on the ccimx93 with 512MB (A0)
-SOC_REV="A0"
-
 usage() {
         cat <<EOF
 
@@ -62,7 +58,7 @@ patch_atf_repo()
 		cd "${ATF_DIR}" || exit 1
 		for p in ${ATF_PATCHES}; do
 			echo "- Apply patch: ${p}"
-			patch -p1 < "${BASEDIR}"/patch/ccimx93/"${p}" || exit 2
+			patch -p1 < "${BASEDIR}"/patch/ccimx91/"${p}" || exit 2
 		done
 	)
 }
@@ -72,10 +68,10 @@ build_atf()
 	echo "- Build ATF binary for: ${SOC}"
 	(
 		cd "${ATF_DIR}" || { echo "build_atf: ATF_DIR not found"; exit 1; }
-		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" ${SOC_REV:+SOC_REV_A0=1} realclean
-		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" ${SOC_REV:+SOC_REV_A0=1} bl31
-		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" ${SOC_REV:+SOC_REV_A0=1} BUILD_BASE=build-optee realclean
-		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" ${SOC_REV:+SOC_REV_A0=1} BUILD_BASE=build-optee SPD=opteed bl31
+		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" realclean
+		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" bl31
+		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" BUILD_BASE=build-optee realclean
+		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" BUILD_BASE=build-optee SPD=opteed bl31
 	)
 }
 
@@ -107,7 +103,7 @@ patch_optee_repo()
 		cd "${OPTEE_DIR}" || exit 1
 		for p in ${OPTEE_PATCHES}; do
 			echo "- Apply patch: ${p}"
-			patch -p1 < "${BASEDIR}"/patch/ccimx93/"${p}" || exit 2
+			patch -p1 < "${BASEDIR}"/patch/ccimx91/"${p}" || exit 2
 		done
 	)
 }
@@ -121,7 +117,7 @@ build_optee()
 	echo "- Build OPTEE binary for: ${SOC}"
 	(
 		cd "${OPTEE_DIR}" || { echo "build_optee: OPTEE_DIR not found"; exit 1; }
-		${MAKE} PLATFORM=imx-ccimx93dvk${SOC_REV:+_a0} \
+		${MAKE} PLATFORM=imx-ccimx91dvk \
 			CROSS_COMPILE="${CROSS_COMPILE}" \
 			CROSS_COMPILE64="${CROSS_COMPILE}" \
 			CFG_TEE_TA_LOG_LEVEL=0 \
@@ -159,7 +155,7 @@ patch_mkimage_repo()
 		cd "${MKIMAGE_DIR}" || exit 1
 		for p in ${MKIMAGE_PATCHES}; do
 			echo "- Apply patch: ${p}"
-			patch -p1 < "${BASEDIR}"/patch/ccimx93/"${p}" || exit 2
+			patch -p1 < "${BASEDIR}"/patch/ccimx91/"${p}" || exit 2
 		done
 	)
 }
@@ -220,7 +216,7 @@ copy_artifacts_mkimage_folder()
 	)
 
 	# AHAB container, ATF and Optee binaries
-	cp --remove-destination "${FIRMWARE_ELE_DIR}"/mx93??-ahab-container.img "${MKIMAGE_SOC_DIR}"
+	cp --remove-destination "${FIRMWARE_ELE_DIR}"/mx91a0-ahab-container.img "${MKIMAGE_SOC_DIR}"
 	cp --remove-destination "${ATF_DIR}"/build/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_SOC_DIR}"/bl31-imx91.bin
 	cp --remove-destination "${ATF_DIR}"/build-optee/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_SOC_DIR}"/bl31-imx91.bin-optee
 	cp --remove-destination "${OPTEE_DIR}"/build/core/tee-raw.bin "${MKIMAGE_SOC_DIR}"
@@ -258,46 +254,43 @@ build_imxboot()
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
-MKIMAGE_BRANCH="lf-6.1.55_2.2.0"
-# Tag: lf-6.1.55-2.2.0
-MKIMAGE_REV="c4365450fb115d87f245df2864fee1604d97c06a"
+MKIMAGE_BRANCH="lf-6.6.23_2.0.0"
+# Tag: lf-6.6.23-2.0.0
+MKIMAGE_REV="ca5d6b2d3fd9ab15825b97f7ef6f1ce9a8644966"
 MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
-MKIMAGE_SOC_DIR="${MKIMAGE_DIR}/iMX9"
+MKIMAGE_SOC_DIR="${MKIMAGE_DIR}/iMX91"
 MKIMAGE_PATCHES=" \
-	mkimage/0001-imx9-soc.mak-capture-commands-output-into-a-log-file.patch \
+	mkimage/0001-imx91-soc.mak-capture-commands-output-into-a-log-fil.patch \
 "
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
-ATF_BRANCH="lf_v2.8"
-# Tag: lf-6.1.55-2.2.0
-ATF_REV="08e9d4eef2262c0dd072b4325e8919e06d349e02"
+ATF_BRANCH="lf_v2.10"
+# Tag: lf-6.6.23-2.0.0
+ATF_REV="49143a1701d9ccd3239e3f95f3042897ca889ea8"
 ATF_DIR="${BASEDIR}/imx-atf"
 ATF_PATCHES=" \
-	atf/0001-ccimx93-use-UART6-for-the-default-console.patch
-	atf/0002-imx93-bring-back-ELE-clock-workaround-for-soc-revisi.patch
+	atf/0001-ccimx91-use-UART6-for-the-default-console.patch \
 "
 
 OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
-OPTEE_BRANCH="lf-6.1.55_2.2.0"
-# Tag: lf-6.1.55-2.2.0
-OPTEE_REV="a303fc80f7c4bd713315687a1fa1d6ed136e78ee"
+OPTEE_BRANCH="lf-6.6.23_2.0.0"
+# Tag: lf-6.6.23-2.0.0
+OPTEE_REV="c6be5b572452a2808d1a34588fd10e71715e23cf"
 OPTEE_DIR="${BASEDIR}/imx-optee-os"
 OPTEE_PATCHES=" \
-	optee/0007-allow-setting-sysroot-for-clang.patch \
-	optee/0001-core-imx-support-ccimx93-dvk.patch \
-	optee/0002-core-ccimx93-enable-AES_HUK-trusted-application.patch \
+	optee/0001-core-imx-support-ccimx91-dvk.patch \
 "
 
-FIRMWARE_IMX="firmware-imx-8.22"
+FIRMWARE_IMX="firmware-imx-8.24-fbe0a4c"
 FIRMWARE_IMX_DIR="${BASEDIR}/${FIRMWARE_IMX}"
 FIRMWARE_IMX_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_IMX}.bin"
 
-FIRMWARE_ELE="firmware-ele-imx-0.1.0"
+FIRMWARE_ELE="firmware-ele-imx-0.1.2-4ed450a"
 FIRMWARE_ELE_DIR="${BASEDIR}/${FIRMWARE_ELE}"
 FIRMWARE_ELE_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_ELE}.bin"
 
 SOC="iMX91"
-ATF_PLAT="imx91p"
+ATF_PLAT="imx91"
 
 OUTPUT_PATH="${BASEDIR}/output"
 UBOOT_DIR="${UBOOT_DIR:-$(realpath "${BASEDIR}"/../..)}"

@@ -3,6 +3,8 @@
  * Copyright 2024 Digi International Inc
  */
 
+#include "imx91-u-boot.dtsi"
+
 / {
 	bootcount {
 		compatible = "u-boot,bootcount-rtc";
@@ -13,7 +15,8 @@
 	wdt-reboot {
 		compatible = "wdt-reboot";
 		wdt = <&wdog3>;
-		u-boot,dm-spl;
+		bootph-pre-ram;
+		bootph-some-ram;
 	};
 
 	aliases {
@@ -47,103 +50,112 @@
 	};
 };
 
-&{/soc@0} {
-	u-boot,dm-pre-reloc;
-	u-boot,dm-spl;
+&A55_0 {
+	clocks = <&clk IMX91_CLK_A55_SEL>;
 };
 
-&A55_1 {
-	status = "disabled";
+&{/soc@0} {
+	bootph-all;
+	bootph-pre-ram;
 };
 
 &aips1 {
-	u-boot,dm-spl;
-	u-boot,dm-pre-reloc;
+	bootph-pre-ram;
+	bootph-all;
 };
 
 &aips2 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &aips3 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &iomuxc {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pinctrl_uart6 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pinctrl_usdhc1 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pinctrl_usdhc2_gpio {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pinctrl_usdhc2 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &gpio1 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &gpio2 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &gpio3 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &gpio4 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &lpuart6 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &usdhc1 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &usdhc2 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 	fsl,signal-voltage-switch-extra-delay-ms = <8>;
 };
 
 &lpi2c1 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &lpi2c2 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &lpi2c3 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &{/soc@0/bus@44000000/i2c@44340000/pmic@25} {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &{/soc@0/bus@44000000/i2c@44340000/pmic@25/regulators} {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pinctrl_lpi2c1 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pinctrl_lpi2c3 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &usbotg1 {
@@ -158,29 +170,30 @@
 };
 
 &s4muap {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+	bootph-some-ram;
 	status = "okay";
 };
 
 &clk {
-	u-boot,dm-pre-reloc;
-	u-boot,dm-spl;
+	bootph-all;
+	bootph-pre-ram;
 	/delete-property/ assigned-clocks;
 	/delete-property/ assigned-clock-rates;
 	/delete-property/ assigned-clock-parents;
 };
 
 &osc_32k {
-	u-boot,dm-pre-reloc;
-	u-boot,dm-spl;
+	bootph-all;
+	bootph-pre-ram;
 };
 
 &osc_24m {
-	u-boot,dm-pre-reloc;
-	u-boot,dm-spl;
+	bootph-all;
+	bootph-pre-ram;
 };
 
 &clk_ext1 {
-	u-boot,dm-pre-reloc;
-	u-boot,dm-spl;
+	bootph-all;
+	bootph-pre-ram;
 };

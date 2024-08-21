@@ -13,7 +13,7 @@
 #include <asm/global_data.h>
 #include <asm/arch-imx9/ccm_regs.h>
 #include <asm/arch/sys_proto.h>
-#include <asm/arch-imx9/imx93_pins.h>
+#include <asm/arch-imx9/imx91_pins.h>
 #include <asm/arch/clock.h>
 #include <configs/digi_common.h>
 #include <power/pmic.h>
@@ -33,11 +33,10 @@ unsigned int board_version = CARRIERBOARD_VERSION_UNDEFINED;
 unsigned int board_id = CARRIERBOARD_ID_UNDEFINED;
 
 #define UART_PAD_CTRL	(PAD_CTL_DSE(6) | PAD_CTL_FSEL2)
-#define WDOG_PAD_CTRL	(PAD_CTL_DSE(6) | PAD_CTL_ODE | PAD_CTL_PUE | PAD_CTL_PE)
 
 static iomux_v3_cfg_t const uart_pads[] = {
-	MX93_PAD_GPIO_IO05__LPUART6_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
-	MX93_PAD_GPIO_IO04__LPUART6_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
+	MX91_PAD_GPIO_IO05__LPUART6_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
+	MX91_PAD_GPIO_IO04__LPUART6_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
 };
 
 int board_early_init_f(void)

@@ -229,6 +229,8 @@
 #define CFG_SYS_INIT_RAM_ADDR        0x80000000
 #define CFG_SYS_INIT_RAM_SIZE        0x200000
 
+#define PHYS_SDRAM_SIZE			0x20000000  /* 512MB DDR */
+
 /* Using ULP WDOG for reset */
 #define WDOG_BASE_ADDR          WDG3_BASE_ADDR
 
