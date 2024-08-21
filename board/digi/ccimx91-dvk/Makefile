@@ -5,12 +5,12 @@
 #
 
 obj-y += ccimx91-dvk.o
-obj-$(CONFIG_HAS_HWID) += ../ccimx93/ccimx93_hwid.o
+obj-$(CONFIG_HAS_HWID) += ../ccimx9/ccimx9_hwid.o
 
 ifdef CONFIG_SPL_BUILD
 obj-y += spl.o
 obj-$(CONFIG_CCIMX91_DVK_LPDDR4) += lpddr4_timing_512M.o
 else
-obj-y += ../ccimx93/ccimx93.o
-obj-$(CONFIG_HAS_TRUSTFENCE) += ../ccimx93/ccimx93_trustfence.o ../common/trustfence/ahab.o
+obj-y += ../ccimx9/ccimx9.o
+obj-$(CONFIG_HAS_TRUSTFENCE) += ../ccimx9/ccimx9_trustfence.o ../common/trustfence/ahab.o
 endif

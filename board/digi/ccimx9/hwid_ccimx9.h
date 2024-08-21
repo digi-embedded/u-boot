@@ -4,8 +4,8 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
-#ifndef HWID_CCIMX93_H
-#define HWID_CCIMX93_H
+#ifndef HWID_CCIMX9_H
+#define HWID_CCIMX9_H
 
 /*
  * HWID is stored in 3 consecutive Fuse Words, being:
@@ -65,4 +65,4 @@ struct __packed digi_hwid {
 	"hwid override_manuf " CONFIG_MANUF_STRINGS_HELP " - override HWID with manufacturing ID\n" \
 	"hwid lock [-y] - lock HWID OTP bits (PERMANENT)\n"
 
-#endif /* HWID_CCIMX93_H */
+#endif /* HWID_CCIMX9_H */

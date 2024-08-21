@@ -84,7 +84,7 @@ void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 	 * - For eMMC User Data area.
 	 *      Offset = EMMC_BOOT_PART_OFFSET
 	 */
-	if (is_imx93() && (part == 1 || part == 2)) {
+	if (is_imx9() && (part == 1 || part == 2)) {
 		/* eMMC BOOT1 or BOOT2 partitions */
 		info->start = 0;
 	} else {
@@ -146,7 +146,7 @@ static const char *get_cpu_type_str(void)
 	}
 }
 
-int ccimx93_init(void)
+int ccimx9_init(void)
 {
 	if (board_read_hwid(&my_hwid)) {
 		printf("Cannot read HWID\n");
@@ -265,7 +265,7 @@ void board_update_hwid(bool is_fuse)
 	som_default_environment();
 }
 
-int ccimx93_late_init(void)
+int ccimx9_late_init(void)
 {
 #ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
 	gd->flags &= ~GD_FLG_DISABLE_CONSOLE_INPUT;
@@ -278,7 +278,7 @@ int ccimx93_late_init(void)
 	return 0;
 }
 
-void fdt_fixup_ccimx93(void *fdt)
+void fdt_fixup_ccimx9(void *fdt)
 {
 	fdt_fixup_hwid(fdt, &my_hwid);
 

@@ -23,7 +23,7 @@
 #include <usb.h>
 #include <dwc3-uboot.h>
 
-#include "../ccimx93/ccimx93.h"
+#include "../ccimx9/ccimx9.h"
 #include "../common/carrier_board.h"
 #include "../common/trustfence.h"
 
@@ -357,7 +357,7 @@ int board_init(void)
 #endif
 
 	/* SOM init */
-	ccimx93_init();
+	ccimx9_init();
 
 	if (IS_ENABLED(CONFIG_FEC_MXC))
 		setup_fec();
@@ -374,7 +374,7 @@ int board_init(void)
 #ifdef CONFIG_OF_BOARD_SETUP
 int ft_board_setup(void *blob, struct bd_info *bd)
 {
-	fdt_fixup_ccimx93(blob);
+	fdt_fixup_ccimx9(blob);
 	fdt_fixup_carrierboard(blob);
 
 	return 0;
@@ -394,7 +394,7 @@ int board_late_init(void)
 #endif
 
 	/* SOM late init */
-	ccimx93_late_init();
+	ccimx9_late_init();
 
 	/* Set default dynamic variables */
 	platform_default_environment();

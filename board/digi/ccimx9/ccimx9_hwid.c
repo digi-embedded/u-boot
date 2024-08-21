@@ -106,7 +106,7 @@ int board_parse_hwid(int argc, char *const argv[], struct digi_hwid *hwid)
 
 	/*
 	 * Digi HWID is set as a number of hex strings in the form
-	 *   CC93: <XXXXXXXX> <YYYYYYYY> <ZZZZZZZZ>
+	 *   CC9X: <XXXXXXXX> <YYYYYYYY> <ZZZZZZZZ>
 	 * that are inversely stored into the structure.
 	 */
 
