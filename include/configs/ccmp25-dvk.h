@@ -72,6 +72,8 @@
 	"initrd_addr=0x88400000\0" \
 	"initrd_file=uramdisk.img\0" \
 	"initrd_high=0xffffffff\0" \
+	"splashimage=0x90000000\0" \
+	"splashpos=m,m\0" \
 	"install_linux_fw_sd=if load mmc 2 ${loadaddr} install_linux_fw_sd.scr;then " \
 			"source ${loadaddr};" \
 		"fi;\0" \
