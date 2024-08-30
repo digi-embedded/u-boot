@@ -63,6 +63,44 @@
 			status = "okay";
 		};
 	};
+
+	panel_lvds: panel-lvds {
+		compatible = "auo,g101evn010", "panel-lvds";
+		power-supply = <&reg_3v3_board>;
+		backlight = <&panel_lvds_gpio_backlight>;
+		status = "okay";
+
+		width-mm = <216>;
+		height-mm = <135>;
+		data-mapping = "jeida-24";
+
+		panel-timing {
+			clock-frequency = <54000000>;
+			hactive = <1280>;
+			vactive = <800>;
+			hfront-porch = <82>;
+			hback-porch = <84>;
+			hsync-len = <2>;
+			vfront-porch = <8>;
+			vback-porch = <6>;
+			vsync-len = <2>;
+		};
+
+		port {
+			lvds_panel_in: endpoint {
+				remote-endpoint = <&lvds_out0>;
+			};
+		};
+	};
+
+	panel_lvds_gpio_backlight: panel-lvds-gpio-backlight {
+		compatible = "gpio-backlight";
+		power-supply = <&reg_5v_board>;
+		gpios = <&gpiob 0 GPIO_ACTIVE_HIGH>; /* LVDS_BCKL_PWM */
+		default-on;
+		default-brightness-level = <0>;
+		status = "okay";
+	};
 };
 
 &combophy {
@@ -130,6 +168,44 @@
 	/* spare dmas for other usage */
 	/delete-property/dmas;
 	/delete-property/dma-names;
+};
+
+&ltdc {
+	rotation-memory = <&ltdc_sec_rotation>;
+	status = "okay";
+
+	port {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		ltdc_ep1_out: endpoint@1 {
+			reg = <1>;
+			remote-endpoint = <&lvds_in>;
+		};
+	};
+};
+
+&lvds {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			lvds_in: endpoint {
+				remote-endpoint = <&ltdc_ep1_out>;
+			};
+		};
+
+		port@1 {
+			reg = <1>;
+			lvds_out0: endpoint {
+				remote-endpoint = <&lvds_panel_in>;
+			};
+		};
+	};
 };
 
 &mlahb {
