@@ -9,8 +9,10 @@
 #include <backlight.h>
 #include <log.h>
 #include <asm/gpio.h>
+#include <power/regulator.h>
 
 struct gpio_backlight_priv {
+	struct udevice *reg;
 	struct gpio_desc gpio;
 	bool def_value;
 };
@@ -18,6 +20,14 @@ struct gpio_backlight_priv {
 static int gpio_backlight_enable(struct udevice *dev)
 {
 	struct gpio_backlight_priv *priv = dev_get_priv(dev);
+	int ret;
+
+	if (IS_ENABLED(CONFIG_DM_REGULATOR) && priv->reg) {
+		debug("%s: Enable regulator '%s'\n", __func__, priv->reg->name);
+		ret = regulator_set_enable_if_allowed(priv->reg, true);
+		if (ret)
+			return ret;
+	}
 
 	dm_gpio_set_value(&priv->gpio, 1);
 
@@ -28,6 +38,17 @@ static int gpio_backlight_of_to_plat(struct udevice *dev)
 {
 	struct gpio_backlight_priv *priv = dev_get_priv(dev);
 	int ret;
+
+	if (IS_ENABLED(CONFIG_DM_REGULATOR)) {
+		ret = uclass_get_device_by_phandle(UCLASS_REGULATOR, dev,
+						   "power-supply", &priv->reg);
+		if (ret) {
+			debug("%s: Warning: cannot get power supply: ret=%d\n",
+			      __func__, ret);
+			if (ret != -ENOENT)
+				return ret;
+		}
+	}
 
 	ret = gpio_request_by_name(dev, "gpios", 0, &priv->gpio,
 				   GPIOD_IS_OUT);
