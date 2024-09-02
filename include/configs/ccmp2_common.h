@@ -214,7 +214,8 @@
 	"part7_uuid=3fcf7bf1-b6fe-419d-9a14-f87950727bc0\0" \
 	"part8_uuid=12c08a28-fb40-430a-a5bc-7b4f015b0b3c\0" \
 	"part9_uuid=dc83dea8-c467-45dc-84eb-5e913daec17e\0" \
-	"part10_uuid=df0dba76-d5e0-11e8-9f8b-f2801f1b9fd1\0"
+	"part10_uuid=df0dba76-d5e0-11e8-9f8b-f2801f1b9fd1\0" \
+	"part11_uuid=cded334e-6922-11ef-8f09-ab1e4c9f0d5f\0"
 
 #define LINUX_8GB_PARTITION_TABLE \
 	"\"uuid_disk=${uuid_disk};" \
@@ -224,8 +225,12 @@
 	"name=fip-a,size=3MiB,uuid=${part3_uuid};" \
 	"name=fip-b,size=3MiB,uuid=${part4_uuid};" \
 	"name=linux,size=64MiB,uuid=${part5_uuid};" \
-	"name=rootfs,size=4GiB,uuid=${part6_uuid};" \
-	"name=data,size=-,uuid=${part7_uuid};" \
+	"name=recovery,size=64MiB,uuid=${part6_uuid};" \
+	"name=rootfs,size=3GiB,uuid=${part7_uuid};" \
+	"name=update,size=3GiB,uuid=${part8_uuid};" \
+	"name=safe,size=16MiB,uuid=${part9_uuid};" \
+	"name=safe2,size=16MiB,uuid=${part10_uuid};" \
+	"name=data,size=-,uuid=${part11_uuid};" \
 	"\""
 
 #define LINUX_DUALBOOT_8GB_PARTITION_TABLE \
@@ -239,7 +244,9 @@
 	"name=linux_b,size=64MiB,uuid=${part6_uuid};" \
 	"name=rootfs_a,size=3GiB,uuid=${part7_uuid};" \
 	"name=rootfs_b,size=3GiB,uuid=${part8_uuid};" \
-	"name=data,size=-,uuid=${part9_uuid};" \
+	"name=safe,size=16MiB,uuid=${part9_uuid};" \
+	"name=safe2,size=16MiB,uuid=${part10_uuid};" \
+	"name=data,size=-,uuid=${part11_uuid};" \
 	"\""
 
 #endif /* __CCMP2_COMMON_H */
