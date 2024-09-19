@@ -10,11 +10,31 @@
 	aliases {
 		spi0 = &ospi1;
 	};
+
+	bootcount {
+		compatible = "u-boot,bootcount-rtc";
+		rtc = <&rv3028>;
+		offset = <0x1f>;
+	};
 };
 
 &dwc3 {
 	dr_mode = "peripheral";
 	/delete-node/ port;
+};
+
+&i2c1 {
+	rv3028: rtc@52 {
+		compatible = "microcrystal,rv3028";
+		reg = <0x52>;
+	};
+};
+
+&ccmp25_i2c1_pins {
+	u-boot,dm-pre-reloc;
+	pins {
+		u-boot,dm-pre-reloc;
+	};
 };
 
 &i2c_rpmsg {
