@@ -34,6 +34,7 @@
 #include <dm/ofnode.h>
 #include <dm/uclass.h>
 #include <dt-bindings/gpio/gpio.h>
+#include <linux/bitfield.h>
 #include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/iopoll.h>
@@ -91,13 +92,96 @@ int g_dnl_bind_fixup(struct usb_device_descriptor *dev, const char *name)
 }
 #endif /* CONFIG_USB_GADGET_DOWNLOAD */
 
+/*
+ * RV-3028-C7 application manual
+ *
+ * 4.6.3 UPDATE (ALL CONFIGURATION RAM -> EEPROM)
+ *
+ * - Before starting to change the configuration stored in the EEPROM, the auto
+ *   refresh of the registers from the EEPROM has to be disabled by writing 1
+ *   into the EERD control bit.
+ * - Then the new configuration can be written into the configuration RAM
+ *   registers, when the whole new configuration is in the registers, writing
+ *   the command 00h into the register EECMD, then the second command 11h into
+ *   the register EECMD will start the copy of the configuration into the EEPROM.
+ * - The time of the update is tUPDATE = ~63 ms.
+ * - When the transfer is finished (EEbusy = 0), the user can enable again the
+ *   auto refresh of the registers by writing 0 into the EERD bit in the Control
+ *   1 register.
+ */
+/* from drivers/rtc/rv3028.c */
+#define RV3028_STATUS			0x0E
+#define RV3028_CTRL1			0x0F
+#define RV3028_RAM1			0x1F
+#define RV3028_EEPROM_CMD		0x27
+#define RV3028_BACKUP			0x37
+#define RV3028_CTRL1_EERD		BIT(3)
+#define RV3028_EEPROM_CMD_UPDATE	0x11
+#define RV3028_EEBUSY_TIMEOUT		100000
+#define RV3028_BACKUP_BSM		GENMASK(3, 2)
+#define RV3028_BACKUP_BSM_LSM		0x3
 
+static int setup_rv3028(void)
+{
+	struct udevice *rtc = NULL;
+	u8 bsm;
+	int ret;
+
+	ret = uclass_get_device_by_name(UCLASS_RTC, "rtc@52", &rtc);
+	if (ret)
+		return -ENODEV;
+
+	/* Check BSM configuration */
+	bsm = dm_i2c_reg_read(rtc, RV3028_BACKUP);
+	if (bsm < 0) {
+		return -EIO;
+	} else if (FIELD_GET(RV3028_BACKUP_BSM, bsm) == RV3028_BACKUP_BSM_LSM) {
+		debug("%s: BSM already configured to LSM\n", __func__);
+		return 0;
+	}
+
+	debug("%s: configure RTC's BSM to LSM\n", __func__);
+
+	/* Disable auto refresh */
+	ret =
+	    dm_i2c_reg_clrset(rtc, RV3028_CTRL1, RV3028_CTRL1_EERD,
+			      RV3028_CTRL1_EERD);
+	if (ret < 0)
+		return -EIO;
+
+	/* Enable BSM to level switching mode (LSM) */
+	ret =
+	    dm_i2c_reg_clrset(rtc, RV3028_BACKUP, RV3028_BACKUP_BSM,
+			      FIELD_PREP(RV3028_BACKUP_BSM,
+					 RV3028_BACKUP_BSM_LSM));
+	if (ret < 0)
+		goto restore_eerd;
+
+	/* Update EEPROM */
+	ret = dm_i2c_reg_write(rtc, RV3028_EEPROM_CMD, 0x00);
+	if (ret < 0)
+		goto restore_eerd;
+	ret =
+	    dm_i2c_reg_write(rtc, RV3028_EEPROM_CMD, RV3028_EEPROM_CMD_UPDATE);
+	if (ret < 0)
+		goto restore_eerd;
+
+	udelay(RV3028_EEBUSY_TIMEOUT);
+
+restore_eerd:
+	/* Enable auto refresh and return */
+	return (dm_i2c_reg_clrset(rtc, RV3028_CTRL1, RV3028_CTRL1_EERD, 0) <
+		0) ? -1 : ret;
+}
 
 /* board dependent setup after realloc */
 int board_init(void)
 {
 	/* SOM init */
 	ccmp2_init();
+
+	if (IS_ENABLED(CONFIG_RTC_RV3028))
+		setup_rv3028();
 
 	return 0;
 }
