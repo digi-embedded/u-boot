@@ -110,7 +110,9 @@
 	"fit-script=bootscr-boot.txt\0" \
 	"uboot_file=u-boot.imx\0" \
 	"zimage=zImage-" BOARD_DEY_NAME ".bin\0" \
-	"fitimage=fitImage-" BOARD_DEY_NAME ".bin\0"
+	"fitimage=fitImage-" BOARD_DEY_NAME ".bin\0" \
+	"recoverycmd=""part number mmc ${mmcbootdev} recovery mmcpart; boot\0"
+
 
 #define DUALBOOT_ENV_SETTINGS \
 	"active_system=linux_a\0"
