@@ -86,7 +86,7 @@
 	"mmcbootpart=" __stringify(EMMC_BOOT_PART) "\0" \
 	"mmcdev=" MMCDEV_DEFAULT "\0" \
 	"mmcpart=" MMCPART_DEFAULT "\0" \
-	"mmcroot=PARTUUID=12c08a28-fb40-430a-a5bc-7b4f015b0b3c\0" \
+	"mmcroot=PARTUUID=3fcf7bf1-b6fe-419d-9a14-f87950727bc0\0" \
 	"linux_file=dey-image-webkit-wayland-" CONFIG_SYS_BOARD ".boot.vfat\0" \
 	"loadscript=" \
 		"if test \"${dualboot}\" = yes; then " \
