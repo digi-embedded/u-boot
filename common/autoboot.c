@@ -491,6 +491,15 @@ const char *bootdelay_process(void)
 		printf("Normal Boot\n");
 	}
 
+	/* Check if boot recovery is enabled */
+	if (env_get_yesno("boot_recovery") == 1) {
+		s = env_get("recoverycmd");
+		printf("\n"
+			"******************************************\n"
+			"* Warning: Booting into recovery mode... *\n"
+			"******************************************\n"
+		"\n");
+	}
 	if (IS_ENABLED(CONFIG_OF_CONTROL))
 		process_fdt_options(gd->fdt_blob);
 	stored_bootdelay = bootdelay;
