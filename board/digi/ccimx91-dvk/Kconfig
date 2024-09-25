@@ -1,0 +1,21 @@
+if TARGET_CCIMX91_DVK
+
+config SYS_BOARD
+	default "ccimx91-dvk"
+
+config SYS_VENDOR
+	default "digi"
+
+config SYS_CONFIG_NAME
+	default "ccimx91-dvk"
+
+config CCIMX91_DVK_LPDDR4
+	bool "Using LPDDR4 Timing and PMIC voltage"
+	default y
+	select IMX9_LPDDR4X
+	help
+	  Select the LPDDR4 timing and 1.1V VDDQ
+
+source "board/digi/common/Kconfig"
+
+endif
