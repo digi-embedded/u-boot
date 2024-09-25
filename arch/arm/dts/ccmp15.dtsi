@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
 /*
  * Copyright (C) STMicroelectronics 2019 - All Rights Reserved
- * Copyright (C) 2022,2023 Digi International Inc - All Rights Reserved
+ * Copyright (C) 2022-2024 Digi International Inc - All Rights Reserved
  */
 
 #include "stm32mp157.dtsi"
@@ -77,11 +77,6 @@
 			reg = <0x38000000 0x10000>;
 			no-map;
 		};
-
-		gpu_reserved: gpu@da000000 {
-			reg = <0xda000000 0x4000000>;
-			no-map;
-		};
 	};
 
 #if defined(CONFIG_FIT_SIGNATURE)
@@ -104,6 +99,18 @@
 		/* 16.5 ck_cycles sampling time */
 		st,min-sample-time-nsecs = <400>;
 		status = "okay";
+	};
+};
+
+&bsec {
+	hwid: hwid@ec {
+		reg = <0xec 0xc>;
+		st,non-secure-otp;
+	};
+
+	huk_otp: huk_otp@f8 {
+		reg = <0xf8 0x10>;
+		st,non-secure-otp-provisioning;
 	};
 };
 

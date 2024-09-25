@@ -1,3 +1,11 @@
+config CCMP15
+	bool
+	select CCMP1
+
+config CCMP13
+	bool
+	select CCMP1
+
 config CCMP1
 	bool
 
@@ -136,6 +144,10 @@ config HWID_LOCK_FUSE
 endif
 
 endif
+
+config CUSTOM_HUK
+	bool
+	default y if CCMP15
 
 config DIGI_FAMILY_ID
 	int "Digi Family ID for Serial Number composition"

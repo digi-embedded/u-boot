@@ -54,6 +54,11 @@ int ccmp1_init(void)
 	return 0;
 }
 
+int fdt_fixup_memory_gpu(void *fdt, u64 start, u64 size)
+{
+	return fdt_fixup_reg_banks(fdt, &start, &size, 1, "reserved-memory", "gpu");
+}
+
 int fdt_fixup_memory_optee(void *fdt, u64 start, u64 size)
 {
 	return fdt_fixup_reg_banks(fdt, &start, &size, 1, "reserved-memory", "optee");
@@ -63,6 +68,8 @@ void fdt_fixup_memory_node_ccmp1(void *fdt)
 {
 	u32 optee_base = 0;
 	u32 optee_size = SZ_32M;
+	u32 gpu_base = 0;
+	u32 gpu_size = SZ_64M;
 	u32 ram_size = 0;
 	int ret = 0;
 
@@ -78,6 +85,12 @@ void fdt_fixup_memory_node_ccmp1(void *fdt)
 		ret = fdt_fixup_memory_optee(fdt, (u64)optee_base, (u64)optee_size);
 		if (ret < 0)
 			printf("%s(): Failed to fixup optee node\n", __func__);
+
+		/* Reserve previous 64 MiB for GPU */
+		gpu_base = (CONFIG_SYS_SDRAM_BASE + ram_size) - (gpu_size + optee_size);
+		ret = fdt_fixup_memory_gpu(fdt, (u64)gpu_base, (u64)gpu_size);
+		if (ret < 0)
+			printf("%s(): Failed to fixup gpu node\n", __func__);
 	}
 }
 
