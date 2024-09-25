@@ -1,0 +1,16 @@
+-------------------------
+Digi U-Boot RELEASE NOTES
+-------------------------
+
+DUB-2022.10
+-----------
+dub-2022.10-r1.1, released on 2024/09/25
+	- Initial release for ConnectCore MP2, including:
+	  - 'dboot' command
+	  - 'update' command
+	  - 'hwid' command
+	  - On-the-fly update from TFTP/MMC
+	  - Fastboot
+	  - Dual/Single Boot with recovery suport
+	  - Bootcount mechanism
+	  - Splash screen over LVDS
