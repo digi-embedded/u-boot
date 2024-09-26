@@ -102,7 +102,7 @@ static int simple_panel_probe(struct udevice *dev)
 
 	if (IS_ENABLED(CONFIG_DM_REGULATOR) && priv->reg) {
 		debug("%s: Enable regulator '%s'\n", __func__, priv->reg->name);
-		ret = regulator_set_enable(priv->reg, true);
+		ret = regulator_set_enable_if_allowed(priv->reg, true);
 		if (ret)
 			return ret;
 	}
