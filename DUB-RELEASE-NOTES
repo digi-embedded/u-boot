@@ -4,7 +4,7 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2022.10
 -----------
-dub-2022.10-r1.1, released on 2024/09/25
+dub-2022.10-r1.2, released on 2024/10/02
 	- Initial release for ConnectCore MP2, including:
 	  - 'dboot' command
 	  - 'update' command
