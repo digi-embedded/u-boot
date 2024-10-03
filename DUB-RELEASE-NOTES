@@ -4,6 +4,9 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2023.04
 -----------
+dub-2023.04-r4.3, released on 2024/10/03
+	- CC9: define default 'fastboot_dev'.
+
 dub-2023.04-r4.2, released on 2024/09/25
 	- Configure RESERVED_MEM for ccimx93 to prevent firmware updates
 	  overwriting Optee.
