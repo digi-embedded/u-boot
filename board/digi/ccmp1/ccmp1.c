@@ -87,10 +87,15 @@ void fdt_fixup_memory_node_ccmp1(void *fdt)
 			printf("%s(): Failed to fixup optee node\n", __func__);
 
 		/* Reserve previous 64 MiB for GPU */
-		gpu_base = (CONFIG_SYS_SDRAM_BASE + ram_size) - (gpu_size + optee_size);
-		ret = fdt_fixup_memory_gpu(fdt, (u64)gpu_base, (u64)gpu_size);
-		if (ret < 0)
-			printf("%s(): Failed to fixup gpu node\n", __func__);
+		if (of_machine_is_compatible("digi,ccmp15")) {
+			gpu_base = (CONFIG_SYS_SDRAM_BASE + ram_size) -
+				   (gpu_size + optee_size);
+			ret = fdt_fixup_memory_gpu(fdt, (u64)gpu_base,
+						   (u64)gpu_size);
+			if (ret < 0)
+				printf("%s(): Failed to fixup gpu node\n",
+				       __func__);
+		}
 	}
 }
 
