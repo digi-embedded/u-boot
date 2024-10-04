@@ -4,7 +4,7 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2021.10
 -----------
-dub-2021.10-r7.1, released on 2024/09/30
+dub-2021.10-r7.2, released on 2024/10/04
 	- CCMP15: implement custom command to provision and lock HUK
 	- CCMP1: add support to move GPU memory reservation to the end of ram
 		 for 1GB variants.
