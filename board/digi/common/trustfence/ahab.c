@@ -31,8 +31,9 @@ static ulong get_next_container_addr(ulong addr)
 	img_entry = (struct boot_img_t *)(addr + sizeof(struct container_hdr));
 	img_entry += (phdr->num_images - 1);
 	phdr =
-	    (struct container_hdr *)ROUND(addr + img_entry->offset +
-					  img_entry->size, SZ_1K);
+	    (struct container_hdr *)(addr + ROUND(img_entry->offset +
+						  img_entry->size,
+						  CONTAINER_HDR_ALIGNMENT));
 	if (phdr->tag != AHAB_CNTR_HDR_TAG
 	    || phdr->version != AHAB_CNTR_HDR_VER) {
 		printf("%s: wrong next container header\n", __func__);
