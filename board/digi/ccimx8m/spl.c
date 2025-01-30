@@ -39,6 +39,7 @@ DECLARE_GLOBAL_DATA_PTR;
 extern struct dram_timing_info dram_timing_512M;
 extern struct dram_timing_info dram_timing_1G;
 extern struct dram_timing_info dram_timing_2G;
+extern struct dram_timing_info dram_timing_4G;
 
 int spl_board_boot_device(enum boot_device boot_dev_spl)
 {
@@ -95,6 +96,9 @@ void spl_dram_init(void)
 		break;
 	case SZ_2G:
 		ddr_init(&dram_timing_2G);
+		break;
+	case SZ_4G:
+		ddr_init(&dram_timing_4G);
 		break;
 	}
 }
