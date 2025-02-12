@@ -71,12 +71,20 @@ void spl_dram_init(void)
 {
 	u64 ram;
 	struct digi_hwid my_hwid;
+	int ret;
 
-	/* Default to minimum RAM size for each platform */
+	/*
+	 * For ccimx8mn:
+	 *   Default to minimum RAM size.
+	 * For ccimx8mm:
+	 *   Default to 4GB, minimum RAM size that uses 2 Chip Selects.
+	 *   If a smaller DDR is mounted, training should fail, then fallback
+	 *   to 1GB, minimum RAM size that uses 1 Chip Select.
+	 */
 	if (is_imx8mn())
 		ram = SZ_512M;  /* ccimx8mn variant 0x03 (512MB) */
 	else
-		ram = SZ_1G;    /* ccimx8mm variant 0x01 (1GB) */
+		ram = SZ_4G;    /* ccimx8mm minimum RAM size with 2 CS */
 
 	if (board_read_hwid(&my_hwid)) {
 		debug("Cannot read HWID. Using default DDR configuration.\n");
@@ -88,18 +96,23 @@ void spl_dram_init(void)
 
 	switch (ram) {
 	case SZ_512M:
-		ddr_init(&dram_timing_512M);
+		ret = ddr_init(&dram_timing_512M);
 		break;
 	case SZ_1G:
 	default:
-		ddr_init(&dram_timing_1G);
+		ret = ddr_init(&dram_timing_1G);
 		break;
 	case SZ_2G:
-		ddr_init(&dram_timing_2G);
+		ret = ddr_init(&dram_timing_2G);
 		break;
 	case SZ_4G:
-		ddr_init(&dram_timing_4G);
+		ret = ddr_init(&dram_timing_4G);
 		break;
+	}
+
+	if (ret && is_imx8mm()) {
+		printf("Retrying with 1GB DDR config\n");
+		ddr_init(&dram_timing_1G);
 	}
 }
 
