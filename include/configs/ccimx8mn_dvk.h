@@ -54,10 +54,6 @@
 #define IMX_FEC_BASE			0x30BE0000
 #endif
 
-/* RAM */
-#define PHYS_SDRAM_SIZE			0x40000000 /* 1GB DDR */
-#define AUTODETECT_RAM_SIZE
-
 /* USDHC */
 #define CFG_SYS_FSL_USDHC_NUM	2
 #define CFG_SYS_FSL_ESDHC_ADDR	0

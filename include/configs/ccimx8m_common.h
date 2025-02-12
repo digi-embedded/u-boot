@@ -61,10 +61,20 @@
 	DIGICMD_UPDATEFILE_BLOCK_ARGS_HELP "\n" \
 	DIGICMD_UPDATEFILE_RAM_ARGS_HELP
 
+/* RAM */
+/* Physical Memory Map */
 #define CFG_SYS_INIT_RAM_ADDR		0x40000000
 #define CFG_SYS_INIT_RAM_SIZE		0x80000
 #define CFG_SYS_SDRAM_BASE		0x40000000
 #define PHYS_SDRAM			0x40000000
+#define PHYS_SDRAM_2			0x100000000
+/* 
+ * SDRAM1 and SDRAM2 sizes are defined based on the HWID.
+ * Set here the default fallback values.
+ */
+#define PHYS_SDRAM_SIZE			0xC0000000  /* 3GB */
+#define PHYS_SDRAM_2_SIZE		0x40000000  /* 1GB */
+#define AUTODETECT_RAM_SIZE
 
 /* MMC device and partition where U-Boot image is */
 #define EMMC_BOOT_ACK			1
