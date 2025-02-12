@@ -25,17 +25,17 @@ DECLARE_GLOBAL_DATA_PTR;
 #define HAB_AUTH_BLOB_TAG              0x81
 #define HAB_VERSION                    0x43
 
-int board_phys_sdram_size(phys_size_t *size)
+int board_phys_sdram_size(phys_size_t *sdram_size, phys_size_t *sdram_2_size)
 {
-	/* Default to RAM size of DVK variant 0x01 (1 GiB) */
-	u64 ram;
 	struct digi_hwid my_hwid;
+
+	*sdram_2_size = 0;
 
 	/* Default to minimum RAM size for each platform */
 	if (is_imx8mn())
-		ram = SZ_512M;  /* ccimx8mn variant 0x03 (512MB) */
+		*sdram_size = SZ_512M;  /* ccimx8mn variant 0x03 (512MB) */
 	else
-		ram = SZ_1G;    /* ccimx8mm variant 0x01 (1GB) */
+		*sdram_size = SZ_1G;    /* ccimx8mm variant 0x01 (1GB) */
 
 	if (board_read_hwid(&my_hwid)) {
 		debug("Cannot read HWID. Using default DDR configuration.\n");
@@ -43,9 +43,17 @@ int board_phys_sdram_size(phys_size_t *size)
 	}
 
 	if (my_hwid.ram)
-		ram = hwid_get_ramsize(&my_hwid);
+		*sdram_size = hwid_get_ramsize(&my_hwid);
 
-	*size = ram;
+	if (*sdram_size > 3UL*SZ_1G) {
+		/* 
+		 * Special case: split the size between the two DDR banks:
+		 *     * First 3 GiB go in bank 1
+		 *     * Remaining size goes in bank 2
+		 */
+		*sdram_2_size = *sdram_size - 3UL*SZ_1G;
+		*sdram_size = 3UL*SZ_1G;
+	}
 
 	return 0;
 }

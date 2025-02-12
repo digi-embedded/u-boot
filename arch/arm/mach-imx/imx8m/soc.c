@@ -168,8 +168,35 @@ static struct mm_region imx8m_mem_map[] = {
 
 struct mm_region *mem_map = imx8m_mem_map;
 
+__weak int board_phys_sdram_size(phys_size_t *sdram_size, phys_size_t *sdram_2_size)
+{
+	if (!sdram_size || !sdram_2_size)
+		return -EINVAL;
+
+	*sdram_size = PHYS_SDRAM_SIZE;
+#ifdef PHYS_SDRAM_2_SIZE
+	*sdram_2_size = PHYS_SDRAM_2_SIZE;
+#else
+	*sdram_2_size = 0;
+#endif
+	return 0;
+}
+
 void enable_caches(void)
 {
+	phys_size_t sdram_size, sdram_2_size;
+
+	/* Update DDR mem regions sizes dynamically before enabling the caches */
+	board_phys_sdram_size(&sdram_size, &sdram_2_size);
+	for (int i = 0; i < ARRAY_SIZE(imx8m_mem_map); i++) {
+		if (imx8m_mem_map[i].phys == 0x40000000UL)
+			imx8m_mem_map[i].size = sdram_size;
+#ifdef PHYS_SDRAM_2_SIZE
+		if (imx8m_mem_map[i].phys == 0x100000000UL)
+			imx8m_mem_map[i].size = sdram_2_size;
+#endif
+	}
+	
 	/* If OPTEE runs, remove OPTEE memory from MMU table to avoid speculative prefetch */
 	if (rom_pointer[1]) {
 
@@ -199,21 +226,12 @@ void enable_caches(void)
 	dcache_enable();
 }
 
-__weak int board_phys_sdram_size(phys_size_t *size)
-{
-	if (!size)
-		return -EINVAL;
-
-	*size = PHYS_SDRAM_SIZE;
-	return 0;
-}
-
 int dram_init(void)
 {
-	phys_size_t sdram_size;
+	phys_size_t sdram_size, sdram_2_size;
 	int ret;
 
-	ret = board_phys_sdram_size(&sdram_size);
+	ret = board_phys_sdram_size(&sdram_size, &sdram_2_size);
 	if (ret)
 		return ret;
 
@@ -237,7 +255,7 @@ int dram_init(void)
 	}
 
 #ifdef PHYS_SDRAM_2_SIZE
-	gd->ram_size += PHYS_SDRAM_2_SIZE;
+	gd->ram_size += sdram_2_size;
 #endif
 
 	return 0;
@@ -247,9 +265,9 @@ int dram_init_banksize(void)
 {
 	int bank = 0;
 	int ret;
-	phys_size_t sdram_size;
+	phys_size_t sdram_size, sdram_2_size;
 
-	ret = board_phys_sdram_size(&sdram_size);
+	ret = board_phys_sdram_size(&sdram_size, &sdram_2_size);
 	if (ret)
 		return ret;
 
@@ -292,7 +310,7 @@ int dram_init_banksize(void)
 		return -1;
 	}
 	gd->bd->bi_dram[bank].start = PHYS_SDRAM_2;
-	gd->bd->bi_dram[bank].size = PHYS_SDRAM_2_SIZE;
+	gd->bd->bi_dram[bank].size = sdram_2_size;
 #endif
 
 	return 0;
@@ -305,7 +323,10 @@ phys_size_t get_effective_memsize(void)
 		return ((phys_addr_t)rom_pointer[0] - PHYS_SDRAM);
 
 #ifdef PHYS_SDRAM_2_SIZE
-	return gd->ram_size - PHYS_SDRAM_2_SIZE;
+	phys_size_t sdram_size, sdram_2_size;
+
+	board_phys_sdram_size(&sdram_size, &sdram_2_size);
+	return gd->ram_size - sdram_2_size;
 #else
 	return gd->ram_size;
 #endif
