@@ -100,6 +100,18 @@
 /* On the fly update chunk (must be a multiple of mmc block size) */
 #define CONFIG_OTF_CHUNK		(32 * 1024 * 1024)
 
+/* RAM */
+/* Physical Memory Map */
+#define CONFIG_SYS_SDRAM_BASE           0x40000000
+#define PHYS_SDRAM                      0x40000000
+#define PHYS_SDRAM_2                    0x100000000
+/* 
+ * SDRAM1 and SDRAM2 sizes are defined based on the HWID.
+ * Set here the default fallback values.
+ */
+#define PHYS_SDRAM_SIZE			0xC0000000  /* 3GB */
+#define PHYS_SDRAM_2_SIZE		0x40000000  /* 1GB */
+#define AUTODETECT_RAM_SIZE
 /* Link Definitions */
 #define CONFIG_LOADADDR			0x40480000
 #define CONFIG_SYS_LOAD_ADDR           CONFIG_LOADADDR
@@ -128,9 +140,6 @@
 
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		SZ_32M
-
-#define CONFIG_SYS_SDRAM_BASE           0x40000000
-#define PHYS_SDRAM                      0x40000000
 
 #define CONFIG_SYS_MEMTEST_START    PHYS_SDRAM
 #define CONFIG_SYS_MEMTEST_END      (CONFIG_SYS_MEMTEST_START + (PHYS_SDRAM_SIZE >> 1))
