@@ -120,9 +120,11 @@ build_optee()
 		${MAKE} PLATFORM=imx-mx8mmevk \
 			CROSS_COMPILE=${CROSS_COMPILE} \
 			CROSS_COMPILE64=${CROSS_COMPILE} \
+			CFLAGS=--sysroot=${SDKTARGETSYSROOT} \
 			CFG_TEE_TA_LOG_LEVEL=0 \
 			CFG_TEE_CORE_LOG_LEVEL=0 \
 			COMPILER=gcc \
+			ARCH=arm \
 			O=build
 	)
 }
