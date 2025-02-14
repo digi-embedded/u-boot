@@ -137,16 +137,15 @@ void board_phys_sdram_size(phys_size_t *sdram1_size, phys_size_t *sdram2_size)
 #ifdef CONFIG_SPL
 	struct digi_hwid my_hwid;
 
-	if (!board_read_hwid(&my_hwid)) {
-		*sdram1_size = hwid_get_ramsize(&my_hwid);
-
-		/* if RAM size was not coded, use variant to obtain RAM size */
-		if (!(*sdram1_size) && my_hwid.variant < ARRAY_SIZE(ccimx8x_variants))
-			*sdram1_size = ccimx8x_variants[my_hwid.variant].sdram;
-	} else {
-		/* Default to lowest RAM size supported (512 MB) */
-		printk("Cannot determine RAM size. Using default size (%d MiB).\n", PHYS_SDRAM_1_SIZE >> 20);
+	if (board_read_hwid(&my_hwid)) {
+		debug("Cannot read HWID. Using default DDR configuration.\n");
+		my_hwid.ram = 0;
 	}
+
+	if (my_hwid.ram)
+		*sdram1_size = hwid_get_ramsize(&my_hwid);
+	else if (my_hwid.variant && my_hwid.variant < ARRAY_SIZE(ccimx8x_variants))
+		*sdram1_size = ccimx8x_variants[my_hwid.variant].sdram;
 #endif
 	if (*sdram1_size > SZ_2G) {
 		/* 
