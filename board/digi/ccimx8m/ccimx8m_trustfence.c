@@ -1,10 +1,11 @@
 /*
- * Copyright (C) 2024, Digi International Inc.
+ * Copyright (C) 2024-2025, Digi International Inc.
  *
  * SPDX-License-Identifier: GPL-2.0+
  */
 
 #include <common.h>
+#include <asm/byteorder.h>
 #include <asm/mach-imx/hab.h>
 
 #include "../common/trustfence.h"
@@ -40,7 +41,7 @@ int get_dek_blob_offset(ulong addr, ulong size, u32 *offset)
 		return 1;
 
 	if (!ivt->csf)
-		return 1
+		return 1;
 
 	offset[0] = ivt->csf - (CONFIG_SPL_TEXT_BASE - SPL_IVT_HEADER_SIZE) + CONFIG_CSF_SIZE;
 	offset[1] = size - FIT_DEK_BLOB_SIZE;
