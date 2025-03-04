@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2021 Digi International Inc.
+ * Copyright 2021-2025 Digi International Inc.
  */
 
 /{
@@ -18,100 +18,111 @@
 		compatible = "fsl,imx27-usb-gadget";
 		dr_mode = "peripheral";
 		chipidea,usb = <&usbotg1>;
+		bootph-pre-ram;
 		status = "okay";
 	};
 
-        firmware {
-                optee {
-                        compatible = "linaro,optee-tz";
-                        method = "smc";
-                };
+	firmware {
+		optee {
+    		compatible = "linaro,optee-tz";
+    		method = "smc";
         };
+    };
 };
 
 &{/soc@0} {
-	u-boot,dm-pre-reloc;
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &clk {
-	u-boot,dm-spl;
-	u-boot,dm-pre-reloc;
+	bootph-pre-ram;
 	/delete-property/ assigned-clocks;
 	/delete-property/ assigned-clock-parents;
 	/delete-property/ assigned-clock-rates;
 };
 
 &osc_24m {
-	u-boot,dm-spl;
-	u-boot,dm-pre-reloc;
+	bootph-pre-ram;
 };
 
 &aips1 {
-	u-boot,dm-spl;
-	u-boot,dm-pre-reloc;
+	bootph-pre-ram;
 };
 
 &aips2 {
-	u-boot,dm-spl;
+
+	bootph-pre-ram;
 };
 
 &aips3 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+};
+
+&i2c1 {
+	bootph-pre-ram;
 };
 
 &iomuxc {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pinctrl_uart1 {
-        u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &pinctrl_usdhc2_gpio {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &pinctrl_usdhc2 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pinctrl_usdhc3 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pmic {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 
 	regulators {
-		u-boot,dm-spl;
+		bootph-pre-ram;
 	};
 };
 
 &gpio1 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &gpio2 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &gpio3 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &gpio4 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &gpio5 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &uart1 {
-        u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &usdhc2 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };

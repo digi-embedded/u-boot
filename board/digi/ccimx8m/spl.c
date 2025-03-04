@@ -28,6 +28,7 @@
 #include <asm/mach-imx/gpio.h>
 #include <asm/gpio.h>
 #include <asm/mach-imx/mxc_i2c.h>
+#include <asm/sections.h>
 #include <fsl_esdhc_imx.h>
 #include <fsl_sec.h>
 #include <mmc.h>

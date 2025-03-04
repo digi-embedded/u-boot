@@ -10,7 +10,6 @@
 
 #include <linux/kernel.h>
 #include <asm/arch/ddr.h>
-#include <asm/arch/lpddr4_define.h>
 
 struct dram_cfg_param ddr_ddrc_cfg_4G[] = {
 	/** Initialize DDRC registers **/
@@ -2278,6 +2277,6 @@ struct dram_timing_info dram_timing_1G = {
 	.fsp_table = { 3000, 400, 100, },
 };
 
-struct dram_timing_info dram_timing_512M[] = {
+struct dram_timing_info dram_timing_512M = {
 	/* placeholder */
 };
