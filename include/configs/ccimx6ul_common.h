@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2024 Digi International, Inc.
+ * Copyright (C) 2016-2025 Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * Configuration settings for the Digi ConnecCore 6UL System-On-Module.
@@ -132,6 +132,8 @@
 #define LINUX_PARTITION			"linux"
 #define RECOVERY_PARTITION		"recovery"
 #define ROOTFS_PARTITION		"rootfs"
+#define UPDATE_PARTITION		"update"
+#define DATA_PARTITION			"data"
 #define SYSTEM_PARTITION		"system"
 
 /* Dualboot partition configuration */
@@ -165,30 +167,36 @@
 					__stringify(ENV_PART_SIZE_BIG) "m(environment)," \
 					"1m(safe)," \
 					"-(" SYSTEM_PARTITION ")"
-#define UBIVOLS_256MB			"ubi create " LINUX_PARTITION " c00000;" \
-					"ubi create " RECOVERY_PARTITION " e00000;" \
-					"ubi create " ROOTFS_PARTITION " 7e00000;" \
-					"ubi create update;"
+#define UBIVOLS_256MB			"ubi create " LINUX_PARTITION " 1000000;" \
+					"ubi create " RECOVERY_PARTITION " 1400000;" \
+					"ubi create " ROOTFS_PARTITION " 8C00000;" \
+					"ubi create " UPDATE_PARTITION " 3500000;" \
+					"ubi create " DATA_PARTITION ";"
 #define UBIVOLS_512MB			"ubi create " LINUX_PARTITION " 1800000;" \
 					"ubi create " RECOVERY_PARTITION " 2000000;" \
 					"ubi create " ROOTFS_PARTITION " 10000000;" \
-					"ubi create update;"
+					"ubi create " UPDATE_PARTITION " A000000;" \
+					"ubi create " DATA_PARTITION ";"
 #define UBIVOLS_1024MB			"ubi create " LINUX_PARTITION " 1800000;" \
 					"ubi create " RECOVERY_PARTITION " 2000000;" \
 					"ubi create " ROOTFS_PARTITION " 20000000;" \
-					"ubi create update;"
+					"ubi create " UPDATE_PARTITION " 18000000;" \
+					"ubi create " DATA_PARTITION ";"
 #define UBIVOLS_DUALBOOT_256MB		"ubi create " LINUX_A_PARTITION " c00000;" \
 					"ubi create " LINUX_B_PARTITION " c00000;" \
-					"ubi create " ROOTFS_A_PARTITION " 7100000;" \
-					"ubi create " ROOTFS_B_PARTITION ";"
+					"ubi create " ROOTFS_A_PARTITION " 6900000;" \
+					"ubi create " ROOTFS_B_PARTITION " 6900000;" \
+					"ubi create " DATA_PARTITION ";"
 #define UBIVOLS_DUALBOOT_512MB		"ubi create " LINUX_A_PARTITION " 4000000;" \
 					"ubi create " LINUX_B_PARTITION " 4000000;" \
-					"ubi create " ROOTFS_A_PARTITION " e600000;" \
-					"ubi create " ROOTFS_B_PARTITION ";"
+					"ubi create " ROOTFS_A_PARTITION " ac00000;" \
+					"ubi create " ROOTFS_B_PARTITION " ac00000;" \
+					"ubi create " DATA_PARTITION ";"
 #define UBIVOLS_DUALBOOT_1024MB		"ubi create " LINUX_A_PARTITION " 4000000;" \
 					"ubi create " LINUX_B_PARTITION " 4000000;" \
-					"ubi create " ROOTFS_A_PARTITION " 10000000;" \
-					"ubi create " ROOTFS_B_PARTITION ";"
+					"ubi create " ROOTFS_A_PARTITION " 18000000;" \
+					"ubi create " ROOTFS_B_PARTITION " 18000000;" \
+					"ubi create " DATA_PARTITION ";"
 #define CREATE_UBIVOLS_SCRIPT		"if test \"${singlemtdsys}\" = yes; then " \
 						"nand erase.part " SYSTEM_PARTITION ";" \
 						"if test $? = 1; then " \
@@ -213,7 +221,8 @@
 					"12m(" LINUX_A_PARTITION ")," \
 					"12m(" LINUX_B_PARTITION ")," \
 					"113m(rootfs_a)," \
-					"113m(rootfs_b)"
+					"113m(rootfs_b)," \
+					"-(data)"
 #define MTDPARTS_DUALBOOT_512MB		"mtdparts=" CONFIG_NAND_NAME ":" \
 					__stringify(UBOOT_PART_SIZE_BIG) "m(" UBOOT_PARTITION ")," \
 					__stringify(ENV_PART_SIZE_BIG) "m(environment)," \
@@ -221,7 +230,8 @@
 					"24m(" LINUX_A_PARTITION ")," \
 					"24m(" LINUX_B_PARTITION ")," \
 					"226m(rootfs_a)," \
-					"226m(rootfs_b)"
+					"226m(rootfs_b)," \
+					"-(data)"
 #define MTDPARTS_DUALBOOT_1024MB	"mtdparts=" CONFIG_NAND_NAME ":" \
 					__stringify(UBOOT_PART_SIZE_BIG) "m(" UBOOT_PARTITION ")," \
 					__stringify(ENV_PART_SIZE_BIG) "m(environment)," \
@@ -229,16 +239,18 @@
 					"46m(" LINUX_A_PARTITION ")," \
 					"46m(" LINUX_B_PARTITION ")," \
 					"450m(rootfs_a)," \
-					"450m(rootfs_b)"
+					"450m(rootfs_b)," \
+					"-(data)"
 
 #define MTDPARTS_256MB			"mtdparts=" CONFIG_NAND_NAME ":" \
 					__stringify(UBOOT_PART_SIZE_SMALL) "m(" UBOOT_PARTITION ")," \
 					__stringify(ENV_PART_SIZE_SMALL) "m(environment)," \
 					"1m(safe)," \
-					"12m(" LINUX_PARTITION ")," \
-					"14m(" RECOVERY_PARTITION ")," \
-					"122m(" ROOTFS_PARTITION ")," \
-					"-(update)"
+					"16m(" LINUX_PARTITION ")," \
+					"20m(" RECOVERY_PARTITION ")," \
+					"140m(" ROOTFS_PARTITION ")," \
+					"70m(update)," \
+					"-(data)"
 #define MTDPARTS_512MB			"mtdparts=" CONFIG_NAND_NAME ":" \
 					__stringify(UBOOT_PART_SIZE_BIG) "m(" UBOOT_PARTITION ")," \
 					__stringify(ENV_PART_SIZE_BIG) "m(environment)," \
@@ -246,7 +258,8 @@
 					"24m(" LINUX_PARTITION ")," \
 					"32m(" RECOVERY_PARTITION ")," \
 					"256m(" ROOTFS_PARTITION ")," \
-					"-(update)"
+					"185m(update)," \
+					"-(data)"
 #define MTDPARTS_1024MB			"mtdparts=" CONFIG_NAND_NAME ":" \
 					__stringify(UBOOT_PART_SIZE_BIG) "m(" UBOOT_PARTITION ")," \
 					__stringify(ENV_PART_SIZE_BIG) "m(environment)," \
@@ -254,7 +267,8 @@
 					"24m(" LINUX_PARTITION ")," \
 					"32m(" RECOVERY_PARTITION ")," \
 					"512m(" ROOTFS_PARTITION ")," \
-					"-(update)"
+					"440m(update)," \
+					"-(data)"
 #define CREATE_MTDPARTS_SCRIPT		"if test \"${singlemtdsys}\" = yes; then " \
 						"setenv mtdparts %s;" \
 					"else " \
