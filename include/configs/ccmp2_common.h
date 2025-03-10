@@ -14,28 +14,13 @@
 /*
  * Configuration of the external SRAM memory used by U-Boot
  */
-#define CONFIG_SYS_SDRAM_BASE		STM32_DDR_BASE
+#define CFG_SYS_SDRAM_BASE	STM32_DDR_BASE
 
 /*
  * For booting Linux, use the first 256 MB of memory, since this is
  * the maximum mapped by the Linux kernel during initialization.
  */
-#define CONFIG_SYS_BOOTMAPSZ		SZ_256M
-
-/* MMC */
-#define CONFIG_SYS_MMC_MAX_DEVICE	3
-
-/* NAND support */
-#define CONFIG_SYS_MAX_NAND_DEVICE	1
-
-/* CFI support */
-#define CONFIG_SYS_MAX_FLASH_BANKS	1
-#define CONFIG_CFI_FLASH_USE_WEAK_ACCESSORS
-
-/* Ethernet need */
-#ifdef CONFIG_DWC_ETH_QOS
-#define CONFIG_SERVERIP                 192.168.1.1
-#endif
+#define CFG_SYS_BOOTMAPSZ		SZ_256M
 
 #define STM32MP_FIP_IMAGE_GUID \
 	EFI_GUID(0x19d5df83, 0x11b0, 0x457b, 0xbe, 0x2c, \
@@ -82,18 +67,18 @@
 	BOOT_TARGET_PXE(func)
 
 /*
- * memory layout for 64M uncompressed/compressed kernel,
+ * memory layout for 96MB uncompressed/compressed kernel,
  * 1M fdt, 1M script, 1M pxe and 1M for overlay
  * and the ramdisk at the end.
  */
 #define __KERNEL_COMP_ADDR_R	__stringify(0x84000000)
 #define __KERNEL_COMP_SIZE_R	__stringify(0x04000000)
-#define __KERNEL_ADDR_R		__stringify(0x88000000)
-#define __FDT_ADDR_R		__stringify(0x8c000000)
-#define __SCRIPT_ADDR_R		__stringify(0x8c100000)
-#define __PXEFILE_ADDR_R	__stringify(0x8c200000)
-#define __FDTOVERLAY_ADDR_R	__stringify(0x8c300000)
-#define __RAMDISK_ADDR_R	__stringify(0x8c400000)
+#define __KERNEL_ADDR_R		__stringify(0x8a000000)
+#define __FDT_ADDR_R		__stringify(0x90000000)
+#define __SCRIPT_ADDR_R		__stringify(0x90100000)
+#define __PXEFILE_ADDR_R	__stringify(0x90200000)
+#define __FDTOVERLAY_ADDR_R	__stringify(0x90300000)
+#define __RAMDISK_ADDR_R	__stringify(0x90400000)
 
 #define STM32MP_MEM_LAYOUT \
 	"kernel_addr_r=" __KERNEL_ADDR_R "\0" \
@@ -192,7 +177,7 @@
 #define CONFIG_EXTRA_NETWORK_SETTINGS \
 	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"
 
-#define CONFIG_ENV_FLAGS_LIST_STATIC	\
+#define CFG_ENV_FLAGS_LIST_STATIC	\
 	"eth1addr:mc,"			\
 	"wlanaddr:mc,"			\
 	"wlan1addr:mc,"			\
