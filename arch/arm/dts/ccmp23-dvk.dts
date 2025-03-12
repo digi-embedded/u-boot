@@ -112,13 +112,6 @@
 	};
 };
 
-&combophy {
-	clocks = <&rcc CK_BUS_USB3PCIEPHY>, <&rcc CK_KER_USB3PCIEPHY>, <&pad_clk>;
-	clock-names = "apb-clk", "ker-clk", "pad-clk";
-	st,rx_equalizer = <1>;
-	status = "okay";
-};
-
 &eth1 {
 	status = "okay";
 	pinctrl-0 = <&eth1_rgmii_pins_a &eth1_mdio_pins_a>;
