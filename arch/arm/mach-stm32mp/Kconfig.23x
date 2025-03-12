@@ -13,6 +13,15 @@ config TARGET_ST_STM32MP23X
 		managed by board/st/stm32mp2
 		The difference between board are managed with devicetree
 
+config TARGET_CCMP23_DVK
+	bool "Digi International CCMP23 Development Kit (DVK)"
+	select CCMP2
+	imply BOOTSTAGE
+	imply CMD_BOOTSTAGE
+	help
+		Target Digi International ConnectCore MP23 Development Kit
+		board.
+
 endchoice
 
 config TEXT_BASE
@@ -39,5 +48,6 @@ config DEBUG_UART_BASE
 endif
 
 source "board/st/stm32mp2/Kconfig"
+source "board/digi/ccmp23-dvk/Kconfig"
 
 endif

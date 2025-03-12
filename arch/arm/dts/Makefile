@@ -1314,6 +1314,7 @@ dtb-$(CONFIG_STM32MP21X) += \
 	stm32mp215f-dk.dtb
 
 dtb-$(CONFIG_STM32MP23X) += \
+	ccmp23-dvk.dtb \
 	stm32mp235f-dk.dtb
 
 dtb-$(CONFIG_STM32MP25X) += \

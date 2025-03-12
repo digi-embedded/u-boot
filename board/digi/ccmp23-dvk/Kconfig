@@ -1,13 +1,13 @@
-if TARGET_CCMP25_DVK
+if TARGET_CCMP23_DVK
 
 config SYS_BOARD
-	default "ccmp25-dvk"
+	default "ccmp23-dvk"
 
 config SYS_VENDOR
 	default "digi"
 
 config SYS_CONFIG_NAME
-	default "ccmp25-dvk"
+	default "ccmp23-dvk"
 
 source "board/st/common/Kconfig"
 source "board/digi/common/Kconfig"

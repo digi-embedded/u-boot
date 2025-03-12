@@ -1,19 +1,18 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later OR BSD-3-Clause */
 /*
- * Copyright (C) 2018-2019, STMicroelectronics - All Rights Reserved
- * Copyright (C) 2024, Digi International Inc - All Rights Reserved
+ * Copyright (C) 2025, Digi International Inc - All Rights Reserved
  *
- * Configuration settings for the STM32MP25x CPU
+ * Configuration settings for the CCMP23 DVK
  */
 
-#ifndef __CONFIG_CCMP25_DVK_COMMMON_H
-#define __CONFIG_CCMP25_DVK_COMMMON_H
+#ifndef __CONFIG_CCMP23_DVK_COMMMON_H
+#define __CONFIG_CCMP23_DVK_COMMMON_H
 
 #include <configs/ccmp2_common.h>
 
-#define CONFIG_SOM_DESCRIPTION		"ConnectCore MP25"
+#define CONFIG_SOM_DESCRIPTION		"ConnectCore MP23"
 #define CONFIG_BOARD_DESCRIPTION	"Development Kit"
-#define BOARD_DEY_NAME			"ccmp25-dvk"
+#define BOARD_DEY_NAME			"ccmp23-dvk"
 
 /* Serial */
 #define CONSOLE_DEV			"ttySTM0"
@@ -136,4 +135,4 @@
 		"fi;" \
 	"fi;"
 
-#endif /* __CONFIG_CCMP25_DVK_COMMMON_H */
+#endif /* __CONFIG_CCMP23_DVK_COMMMON_H */
