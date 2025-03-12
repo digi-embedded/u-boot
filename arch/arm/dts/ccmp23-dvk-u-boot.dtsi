@@ -1,0 +1,63 @@
+// SPDX-License-Identifier: GPL-2.0-or-later OR BSD-3-Clause
+/*
+ * Copyright (C) STMicroelectronics 2021 - All Rights Reserved
+ * Copyright (C) 2024, Digi International Inc - All Rights Reserved
+ */
+
+#include "stm32mp25-u-boot.dtsi"
+
+/ {
+	aliases {
+		spi0 = &ospi1;
+	};
+
+	bootcount {
+		compatible = "u-boot,bootcount-rtc";
+		rtc = <&rv3028>;
+		offset = <0x1f>;
+	};
+
+	fwu-mdata {
+		compatible = "u-boot,fwu-mdata-gpt";
+		fwu-mdata-store = <&sdmmc1>;
+	};
+
+};
+
+&dwc3 {
+	dr_mode = "peripheral";
+	/delete-node/ port;
+};
+
+&i2c1 {
+	rv3028: rtc@52 {
+		compatible = "microcrystal,rv3028";
+		reg = <0x52>;
+		vdd-supply = <&reg_3v3_board>;
+	};
+};
+
+&ccmp25_i2c1_pins {
+	bootph-all;
+	pins {
+		bootph-all;
+	};
+};
+
+&i2c_rpmsg {
+	/delete-node/ typec@35;
+};
+
+&usart2 {
+	bootph-all;
+};
+
+&usart2_pins_a {
+	bootph-all;
+	pins1 {
+		bootph-all;
+	};
+	pins2 {
+		bootph-all;
+	};
+};
