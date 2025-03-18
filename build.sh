@@ -35,6 +35,8 @@ done<<-_EOF_
 	ccimx6ulstarter         u-boot-dtb.imx    cortexa7hf    ""
 	ccimx6ulstarter1GB      u-boot-dtb.imx    cortexa7hf    ""
 	ccimx6ulstarter512MB    u-boot-dtb.imx    cortexa7hf    ""
+	ccimx8mm_dvk            all               aarch64       "make_imxboot_ccimx8mm.sh"
+	ccimx8mn_dvk            all               aarch64       "make_imxboot_ccimx8mn.sh"
 	ccimx8x_sbc_express     all               aarch64       "make_imxboot_ccimx8x_express.sh"
 	ccimx8x_sbc_pro         all               aarch64       "make_imxboot_ccimx8x.sh"
 	ccimx91-dvk             all               aarch64       "make_imxboot_ccimx91.sh"
