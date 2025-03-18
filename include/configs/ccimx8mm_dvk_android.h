@@ -6,9 +6,6 @@
 #define CONFIG_SYS_MALLOC_LEN           (64 * SZ_1M)
 #endif
 
-/* Empty bootcmd to boot Android automatically */
-#undef CONFIG_BOOTCOMMAND
-
 /* Enable mcu firmware flash */
 #ifdef CONFIG_FLASH_MCUFIRMWARE_SUPPORT
 #define ANDROID_MCU_FRIMWARE_DEV_TYPE DEV_MMC

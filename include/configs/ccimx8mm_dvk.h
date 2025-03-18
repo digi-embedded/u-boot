@@ -152,29 +152,6 @@
 	"usb_pgood_delay=2000\0" \
 	""	/* end line */
 
-#undef CONFIG_BOOTCOMMAND
-#ifdef CONFIG_SECURE_BOOT
-/*
- * Authenticate bootscript before running it. IVT offset is at
- * ${filesize} - CONFIG_CSF_SIZE - IVT_SIZE (0x20)
- * Use 0x2000 as CSF_SIZE, as this is the value used by the script
- * to sign / encrypt the bootscript
- */
-#define CONFIG_BOOTCOMMAND \
-	"if run loadscript; then " \
-		"setexpr bs_ivt_offset ${filesize} - 0x2020;" \
-		"if hab_auth_img ${loadaddr} ${filesize} ${bs_ivt_offset}; then " \
-			"source ${loadaddr};" \
-		"fi; " \
-	"fi;"
-#else
-#define CONFIG_BOOTCOMMAND \
-	"if run loadscript; then " \
-		"source ${loadaddr};" \
-	"fi;"
-
-#endif	/* CONFIG_SECURE_BOOT */
-
 /* Android specific configuration */
 #if defined(CONFIG_ANDROID_SUPPORT)
 #include "ccimx8mm_dvk_android.h"
