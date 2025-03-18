@@ -29,16 +29,9 @@
 #define CONFIG_BAUDRATE			115200
 
 /* ENET Config */
-/* ENET1 */
+#define PHY_ANEG_TIMEOUT	20000
 #if defined(CONFIG_FEC_MXC)
-#define CONFIG_ETHPRIME                 "FEC"
-#define PHY_ANEG_TIMEOUT 20000
-
-#define CONFIG_FEC_XCV_TYPE             RGMII
-#define CONFIG_FEC_MXC_PHYADDR          0
-#define FEC_QUIRK_ENET_MAC
-
-#define IMX_FEC_BASE			0x30BE0000
+#define CFG_FEC_MXC_PHYADDR	0
 #endif
 
 /* USDHC */
