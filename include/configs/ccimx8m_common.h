@@ -12,7 +12,6 @@
 #include "digi_common.h"		/* Load Digi common stuff... */
 
 #define DIGI_IMX_FAMILY
-#define CONFIG_DISPLAY_BOARDINFO_LATE
 
 #define CFG_SYS_UBOOT_BASE		(QSPI0_AMBA_BASE + CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512)
 
