@@ -360,7 +360,7 @@ U_BOOT_CMD_WITH_SUBCMDS(trustfence, "Digi TrustFence(TM) command",
 	U_BOOT_SUBCMD_MKENT(prog_pkhth, 3, 0, do_trustfence_prog_pkh),
 	U_BOOT_SUBCMD_MKENT(read_edmk, 2, 0, do_trustfence_read_edmk),
 	U_BOOT_SUBCMD_MKENT(prog_edmk, 3, 0, do_trustfence_prog_edmk),
-	U_BOOT_SUBCMD_MKENT(prog_jtag, 2, 0, do_trustfence_prog_jtag),
+	U_BOOT_SUBCMD_MKENT(prog_jtag, 3, 0, do_trustfence_prog_jtag),
 #endif /* CONFIG_STM32MP15x */
 	U_BOOT_SUBCMD_MKENT(close, 2, 0, do_trustfence_close)
 );
