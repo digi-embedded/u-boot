@@ -237,6 +237,33 @@ build_imxboot()
 	)
 }
 
+sign_imxboot()
+{
+	[ -z "${CONFIG_SIGN_KEYS_PATH}" ] && return
+
+	# Signing environment
+	TF_SIGN_BASE_ENV="CONFIG_SIGN_KEYS_PATH=${CONFIG_SIGN_KEYS_PATH}"
+	[ -n "${CONFIG_KEY_INDEX}" ] && TF_SIGN_BASE_ENV="${TF_SIGN_BASE_ENV} CONFIG_KEY_INDEX=${CONFIG_KEY_INDEX}"
+	[ -n "${CONFIG_UNLOCK_SRK_REVOKE}" ] && TF_SIGN_BASE_ENV="${TF_SIGN_BASE_ENV} CONFIG_UNLOCK_SRK_REVOKE=${CONFIG_UNLOCK_SRK_REVOKE}"
+
+	# Encryption environment
+	TF_ENC_ENV="CONFIG_DEK_PATH=${CONFIG_SIGN_KEYS_PATH}/dek.bin ENABLE_ENCRYPTION=y"
+
+	(
+		cd "${OUTPUT_PATH}" || exit 1
+
+		echo "- Sign and encrypt imx-boot (NO-OPTEE) binary for: ${SOC}"
+		TF_SIGN_ENV="${TF_SIGN_BASE_ENV} CONFIG_MKIMAGE_LOG_PATH=mkimage-ccimx8mn_dvk-nooptee-flash_evk.log CONFIG_FIT_HAB_LOG_PATH=mkimage-ccimx8mn_dvk-nooptee-print_fit_hab.log"
+		env ${TF_SIGN_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8mn_dvk-nooptee.bin imx-boot-signed-ccimx8mn_dvk-nooptee.bin
+		env ${TF_SIGN_ENV} ${TF_ENC_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8mn_dvk-nooptee.bin imx-boot-encrypted-ccimx8mn_dvk-nooptee.bin
+
+		echo "- Sign and encrypt imx-boot (OPTEE) binary for: ${SOC}"
+		TF_SIGN_ENV="${TF_SIGN_BASE_ENV} CONFIG_MKIMAGE_LOG_PATH=mkimage-ccimx8mn_dvk-flash_evk.log CONFIG_FIT_HAB_LOG_PATH=mkimage-ccimx8mn_dvk-print_fit_hab.log"
+		env ${TF_SIGN_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8mn_dvk.bin imx-boot-signed-ccimx8mn_dvk.bin
+		env ${TF_SIGN_ENV} ${TF_ENC_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8mn_dvk.bin imx-boot-encrypted-ccimx8mn_dvk.bin
+	)
+}
+
 ##### Main
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -276,6 +303,7 @@ ATF_PLAT="imx8mn"
 
 OUTPUT_PATH="${BASEDIR}/output"
 UBOOT_DIR="${UBOOT_DIR:-$(realpath "${BASEDIR}"/../..)}"
+SIGN_SCRIPT="${UBOOT_DIR}/scripts/sign_spl_fit.sh"
 
 # Parse command line arguments
 while [ "${1}" != "" ]; do
@@ -302,3 +330,4 @@ clone_mkimage_repo
 patch_mkimage_repo
 copy_artifacts_mkimage_folder
 build_imxboot
+sign_imxboot
