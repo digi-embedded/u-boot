@@ -275,7 +275,8 @@ config TARGET_CCIMX8MN_DVK
 	select IMX8M_LPDDR4
 	select FSL_CAAM
 	select FSL_BLOB
-	select MISC
+	select ARCH_MISC_INIT
+	select SPL_CRYPTO if SPL
 
 config TARGET_IMX8MN_VENICE
 	bool "Support Gateworks Venice iMX8M Nano module"

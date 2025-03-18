@@ -18,23 +18,6 @@
 #define CONFIG_BOARD_DESCRIPTION	"Development Kit"
 #define BOARD_DEY_NAME			"ccimx8mn-dvk"
 
-#ifdef CONFIG_SPL_BUILD
-#define CONFIG_SPL_STACK		0x187FF0
-#define CONFIG_SPL_BSS_START_ADDR	0x0095e000
-#define CONFIG_SPL_BSS_MAX_SIZE		0x2000	/* 8 KB */
-#define CONFIG_SYS_SPL_MALLOC_START	0x42200000
-#define CONFIG_SYS_SPL_MALLOC_SIZE	0x10000	/* 64 KB */
-
-#define CONFIG_MALLOC_F_ADDR		0x184000 /* malloc f used before GD_FLG_FULL_MALLOC_INIT set */
-
-#undef CONFIG_DM_MMC
-#undef CONFIG_DM_PMIC
-#undef CONFIG_DM_PMIC_PFUZE100
-
-#define CONFIG_SYS_I2C
-
-#endif
-
 #define EMMC_BOOT_PART_OFFSET		(32 * SZ_1K)
 
 /* Serial */
@@ -43,15 +26,9 @@
 #define EARLY_CONSOLE		"ec_imx6q,0x30860000"
 
 /* ENET Config */
-/* ENET1 */
+#define PHY_ANEG_TIMEOUT	20000
 #if defined(CONFIG_FEC_MXC)
-#define PHY_ANEG_TIMEOUT 20000
-
-#define CONFIG_FEC_XCV_TYPE             RGMII
-#define CONFIG_FEC_MXC_PHYADDR          0
-#define FEC_QUIRK_ENET_MAC
-
-#define IMX_FEC_BASE			0x30BE0000
+#define CFG_FEC_MXC_PHYADDR	0
 #endif
 
 /* USDHC */
@@ -62,7 +39,7 @@
 #define CONFIG_HAS_CARRIERBOARD_VERSION
 #define CONFIG_HAS_CARRIERBOARD_ID
 
-#define CONFIG_MFG_ENV_SETTINGS \
+#define CFG_MFG_ENV_SETTINGS \
 	"fastboot_dev=mmc" __stringify(EMMC_BOOT_DEV) "\0" \
 	"initrd_addr=0x43800000\0" \
 	"initrd_high=0xffffffffffffffff\0" \
@@ -70,8 +47,8 @@
 	"sd_dev=1\0"
 
 /* Initial environment variables */
-#define CONFIG_EXTRA_ENV_SETTINGS		\
-	CONFIG_MFG_ENV_SETTINGS 		\
+#define CFG_EXTRA_ENV_SETTINGS		\
+	CFG_MFG_ENV_SETTINGS 		\
 	CONFIG_DEFAULT_NETWORK_SETTINGS		\
 	RANDOM_UUIDS \
 	ALTBOOTCMD \
