@@ -67,14 +67,14 @@ int get_dek_blob_size(ulong addr, u32 *size)
 int get_dek_blob(ulong addr, u32 *size)
 {
 	/* Get DEK offset */
-	char *dek_blob_src = (void*)(DEK_BLOB_LOAD_ADDR);
+	ulong dek_blob_addr = DEK_BLOB_LOAD_ADDR;
 	u32 dek_blob_size;
 
 	/* Get Dek blob */
-	if (get_dek_blob_size((char *)dek_blob_src, &dek_blob_size))
+	if (get_dek_blob_size(dek_blob_addr, &dek_blob_size))
 		return 1;
 
-	memcpy((void *)addr, dek_blob_src, dek_blob_size);
+	memcpy((void *)addr, (void *)dek_blob_addr, dek_blob_size);
 	*size = dek_blob_size;
 
 	return 0;
