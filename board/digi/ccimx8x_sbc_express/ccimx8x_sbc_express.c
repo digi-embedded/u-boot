@@ -111,6 +111,11 @@ int board_early_init_f(void)
 	return 0;
 }
 
+#if defined(CONFIG_DISPLAY_BOARDINFO_LATE)
+/*
+ * Call this during late initialization, after relocation and board setup,
+ * as some initialization must be completed before printing the information.
+ */
 int checkboard(void)
 {
 	board_version = get_carrierboard_version();
@@ -122,6 +127,7 @@ int checkboard(void)
 
 	return 0;
 }
+#endif
 
 #ifdef CONFIG_USB
 

@@ -279,6 +279,11 @@ int mmc_map_to_kernel_blk(int devno)
 	return devno;
 }
 
+#if defined(CONFIG_DISPLAY_BOARDINFO_LATE)
+/*
+ * Call this during late initialization, after relocation and board setup,
+ * as some initialization must be completed before printing the information.
+ */
 int checkboard(void)
 {
 	board_version = get_carrierboard_version();
@@ -290,6 +295,7 @@ int checkboard(void)
 
 	return 0;
 }
+#endif
 
 #ifdef CONFIG_FSL_FASTBOOT
 #ifdef CONFIG_ANDROID_RECOVERY
