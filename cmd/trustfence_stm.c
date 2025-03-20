@@ -282,7 +282,7 @@ static int do_trustfence_prog_jtag(struct cmd_tbl *cmdtp, int flag, int argc,
 		printf("Device secure boot status is OPEN.\n");
 		printf("The JTAG port can only be secured on closed devices\n");
 		return CMD_RET_FAILURE;
-	} else if (newmode == jtag) {
+	} else if (newmode <= jtag) {
 		printf("Current JTAG port status is already %s.\n",
 		       jtag_desc[jtag]);
 		return CMD_RET_FAILURE;
