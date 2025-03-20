@@ -124,12 +124,6 @@
 	"usb_pgood_delay=2000\0" \
 	""	/* end line */
 
-#undef CONFIG_BOOTCOMMAND
-#define CONFIG_BOOTCOMMAND \
-	"if run loadscript; then " \
-		"source ${loadaddr};" \
-	"fi;"
-
 /* Android specific configuration */
 #if defined(CONFIG_ANDROID_SUPPORT)
 #include "ccimx8x_sbc_pro_android.h"

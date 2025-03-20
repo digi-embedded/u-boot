@@ -131,10 +131,4 @@
 	"active_system=linux_a\0" \
 	""	/* end line */
 
-#undef CONFIG_BOOTCOMMAND
-#define CONFIG_BOOTCOMMAND \
-	"if run loadscript; then " \
-		"source ${loadaddr};" \
-	"fi;"
-
 #endif /* CCIMX8X_SBC_EXPRESS_CONFIG_H */
