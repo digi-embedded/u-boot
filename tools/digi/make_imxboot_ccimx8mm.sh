@@ -120,11 +120,9 @@ build_optee()
 		${MAKE} PLATFORM=imx-mx8mmevk \
 			CROSS_COMPILE=${CROSS_COMPILE} \
 			CROSS_COMPILE64=${CROSS_COMPILE} \
-			CFLAGS=--sysroot=${SDKTARGETSYSROOT} \
 			CFG_TEE_TA_LOG_LEVEL=0 \
 			CFG_TEE_CORE_LOG_LEVEL=0 \
 			COMPILER=gcc \
-			ARCH=arm \
 			O=build
 	)
 }
@@ -209,6 +207,9 @@ copy_artifacts_mkimage_folder()
 
 	# OPTEE binary
 	cp --remove-destination "${OPTEE_DIR}"/build/core/tee-raw.bin "${MKIMAGE_SOC_DIR}"
+
+	# Create dummy DEK blob to support building an encrypted imx-boot
+	dd if=/dev/zero of="${MKIMAGE_SOC_DIR}"/dek_blob_fit_dummy.bin bs=96 count=1 oflag=sync
 }
 
 build_imxboot()
@@ -239,6 +240,33 @@ build_imxboot()
 	)
 }
 
+sign_imxboot()
+{
+	[ -z "${CONFIG_SIGN_KEYS_PATH}" ] && return
+
+	# Signing environment
+	TF_SIGN_BASE_ENV="CONFIG_SIGN_KEYS_PATH=${CONFIG_SIGN_KEYS_PATH}"
+	[ -n "${CONFIG_KEY_INDEX}" ] && TF_SIGN_BASE_ENV="${TF_SIGN_BASE_ENV} CONFIG_KEY_INDEX=${CONFIG_KEY_INDEX}"
+	[ -n "${CONFIG_UNLOCK_SRK_REVOKE}" ] && TF_SIGN_BASE_ENV="${TF_SIGN_BASE_ENV} CONFIG_UNLOCK_SRK_REVOKE=${CONFIG_UNLOCK_SRK_REVOKE}"
+
+	# Encryption environment
+	TF_ENC_ENV="CONFIG_DEK_PATH=${CONFIG_SIGN_KEYS_PATH}/dek.bin ENABLE_ENCRYPTION=y"
+
+	(
+		cd "${OUTPUT_PATH}" || exit 1
+
+		echo "- Sign and encrypt imx-boot (NO-OPTEE) binary for: ${SOC}"
+		TF_SIGN_ENV="${TF_SIGN_BASE_ENV} CONFIG_MKIMAGE_LOG_PATH=mkimage-ccimx8mm_dvk-nooptee-flash_evk.log CONFIG_FIT_HAB_LOG_PATH=mkimage-ccimx8mm_dvk-nooptee-print_fit_hab.log"
+		env ${TF_SIGN_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8mm_dvk-nooptee.bin imx-boot-signed-ccimx8mm_dvk-nooptee.bin
+		env ${TF_SIGN_ENV} ${TF_ENC_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8mm_dvk-nooptee.bin imx-boot-encrypted-ccimx8mm_dvk-nooptee.bin
+
+		echo "- Sign and encrypt imx-boot (OPTEE) binary for: ${SOC}"
+		TF_SIGN_ENV="${TF_SIGN_BASE_ENV} CONFIG_MKIMAGE_LOG_PATH=mkimage-ccimx8mm_dvk-flash_evk.log CONFIG_FIT_HAB_LOG_PATH=mkimage-ccimx8mm_dvk-print_fit_hab.log"
+		env ${TF_SIGN_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8mm_dvk.bin imx-boot-signed-ccimx8mm_dvk.bin
+		env ${TF_SIGN_ENV} ${TF_ENC_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8mm_dvk.bin imx-boot-encrypted-ccimx8mm_dvk.bin
+	)
+}
+
 ##### Main
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -249,7 +277,12 @@ MKIMAGE_REV="3bfcfccb71ddf894be9c402732ccb229fe72099e"
 MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
 MKIMAGE_SOC_DIR="${MKIMAGE_DIR}/iMX8M"
 MKIMAGE_PATCHES=" \
-	mkimage/0001-imx8m-soc.mak-capture-commands-output-into-a-log-fil.patch \
+	mkimage/0001-imx8m-print_fit_hab-follow-symlinks.patch \
+	mkimage/0001-iMX8M-soc.mak-use-native-mkimage-from-sysroot.patch \
+	mkimage/0001-imx8m-soc.mak-preserve-dtbs-after-build.patch \
+	mkimage/0002-imx8m-soc.mak-capture-commands-output-into-a-log-fil.patch \
+	mkimage/0003-LFU-573-1-imx8m-Generate-hash-of-FIT-FDT-structure-t.patch \
+	mkimage/0004-LFU-573-2-imx8m-Reserve-new-IVT-CSF-for-FIT-FDT-sign.patch \
 "
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
@@ -258,8 +291,9 @@ ATF_BRANCH="lf_v2.6"
 ATF_REV="3c1583ba0a5d11e5116332e91065cb3740153a46"
 ATF_DIR="${BASEDIR}/imx-atf"
 ATF_PATCHES=" \
-	atf/0001-imx8mm-Define-UART1-as-console-for-boot-stage.patch \
-	atf/0002-imx8mm-Disable-M4-debug-console.patch \
+	atf/0001-Makefile-Suppress-array-bounds-error.patch \
+	atf/0002-imx8mm-Define-UART1-as-console-for-boot-stage.patch \
+	atf/0003-imx8mm-Disable-M4-debug-console.patch \
 "
 
 OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
@@ -268,7 +302,10 @@ OPTEE_BRANCH="lf-5.15.71_2.2.0"
 OPTEE_REV="00919403f040fad4f8603e605932281ff8451b1d"
 OPTEE_DIR="${BASEDIR}/imx-optee-os"
 OPTEE_PATCHES=" \
+	optee/0001-core-Define-section-attributes-for-clang.patch \
+	optee/0006-allow-setting-sysroot-for-libgcc-lookup.patch \
 	optee/0007-allow-setting-sysroot-for-clang.patch \
+	optee/0010-add-note-GNU-stack-section.patch \
 "
 
 FIRMWARE_IMX="firmware-imx-8.18"
@@ -280,6 +317,7 @@ ATF_PLAT="imx8mm"
 
 OUTPUT_PATH="${BASEDIR}/output"
 UBOOT_DIR="${UBOOT_DIR:-$(realpath "${BASEDIR}"/../..)}"
+SIGN_SCRIPT="${UBOOT_DIR}/scripts/sign_spl_fit.sh"
 
 # Parse command line arguments
 while [ "${1}" != "" ]; do
@@ -306,3 +344,4 @@ clone_mkimage_repo
 patch_mkimage_repo
 copy_artifacts_mkimage_folder
 build_imxboot
+sign_imxboot
