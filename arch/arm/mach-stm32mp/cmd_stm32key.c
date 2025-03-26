@@ -212,7 +212,7 @@ const struct otp_close stm32mp2x_close_state_otp[] = {
 /* index of current selected key in stm32key list, 0 = PKH by default */
 static u8 stm32key_index;
 
-static u8 get_key_nb(void)
+u8 get_key_nb(void)
 {
 	if (IS_ENABLED(CONFIG_STM32MP13X))
 		return ARRAY_SIZE(stm32mp13_list);
@@ -242,7 +242,7 @@ const struct stm32key *get_key(u8 index)
 		return &stm32mp21_list[index];
 }
 
-static u8 get_otp_close_state_nb(void)
+u8 get_otp_close_state_nb(void)
 {
 	if (IS_ENABLED(CONFIG_STM32MP13X))
 		return ARRAY_SIZE(stm32mp13_close_state_otp);
@@ -255,7 +255,7 @@ static u8 get_otp_close_state_nb(void)
 		return ARRAY_SIZE(stm32mp2x_close_state_otp);
 }
 
-static const struct otp_close *get_otp_close_state(u8 index)
+const struct otp_close *get_otp_close_state(u8 index)
 {
 	if (IS_ENABLED(CONFIG_STM32MP13X))
 		return &stm32mp13_close_state_otp[index];
