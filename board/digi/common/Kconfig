@@ -185,6 +185,7 @@ config HAS_TRUSTFENCE
 	default y if CC8M
 	default y if CC6UL
 	default y if CCMP1
+	default y if CCMP2
 
 if HAS_TRUSTFENCE
 config CMD_TRUSTFENCE_NXP
@@ -196,4 +197,5 @@ config CMD_TRUSTFENCE_NXP
 config CMD_TRUSTFENCE_STM
 	bool
 	default y if CCMP1
+	default y if CCMP2
 endif
