@@ -67,6 +67,7 @@
 	"fdt_addr=0x88000000\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"fdt_high=0xffffffff\0"	  \
+	"fit_addr_r=" __stringify(CONFIG_DIGI_LZIPADDR) "\0" \
 	"image=Image-" BOARD_DEY_NAME ".bin\0" \
 	"imagegz=Image.gz-" BOARD_DEY_NAME ".bin\0" \
 	"initrd_addr=0x88400000\0" \
@@ -93,7 +94,12 @@
 			"env exists active_system || setenv active_system linux_a; " \
 			"part number mmc ${mmcbootdev} ${active_system} mmcpart; " \
 		"fi;" \
-		"load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script};\0" \
+		"if test \"${dboot_kernel_var}\" = fitimage; then " \
+			"load mmc ${mmcbootdev}:${mmcpart} ${fit_addr_r} ${fitimage}; " \
+			"env set source_fit_script ${fit_addr_r}:${fit-script}; " \
+		"else " \
+			"load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}; " \
+		"fi;\0" \
 	"lzipaddr=" __stringify(CONFIG_DIGI_LZIPADDR) "\0" \
 	"partition_mmc_linux=mmc rescan;" \
 		"if mmc dev ${mmcdev}; then " \
@@ -130,7 +136,7 @@
 #define CONFIG_BOOTCOMMAND \
 	"if run loadscript; then " \
 		"if test \"${dboot_kernel_var}\" = fitimage; then " \
-			"source ${loadaddr}:${fit-script};" \
+			"source ${source_fit_script};" \
 		"else " \
 			"source ${loadaddr};" \
 		"fi;" \
