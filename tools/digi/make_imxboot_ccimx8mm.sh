@@ -83,7 +83,7 @@ clone_optee_repo()
 	fi
 
 	(
-		cd "${OPTEE_DIR}" || { echo "build_atf: OPTEE_DIR not found"; exit 1; }
+		cd "${OPTEE_DIR}" || { echo "clone_optee_repo: OPTEE_DIR not found"; exit 1; }
 		git clean -ffdx && git restore .
 		echo "- Update imx-optee-os repository:"
 		git pull "$(git remote)"
@@ -207,6 +207,9 @@ copy_artifacts_mkimage_folder()
 
 	# OPTEE binary
 	cp --remove-destination "${OPTEE_DIR}"/build/core/tee-raw.bin "${MKIMAGE_SOC_DIR}"
+
+	# Create dummy DEK blob to support building an encrypted imx-boot
+	dd if=/dev/zero of="${MKIMAGE_SOC_DIR}"/dek_blob_fit_dummy.bin bs=96 count=1 oflag=sync
 }
 
 build_imxboot()
