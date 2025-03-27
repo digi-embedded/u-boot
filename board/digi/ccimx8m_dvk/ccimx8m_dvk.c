@@ -87,6 +87,14 @@ static iomux_v3_cfg_t const ext_gpios_pads[] = {
 };
 #endif /* CONFIG_CONSOLE_ENABLE_GPIO && !CONFIG_SPL_BUILD */
 
+int board_early_init_r(void)
+{
+#if defined(CONFIG_HAS_TRUSTFENCE) && defined(CONFIG_CAAM_ENV_ENCRYPT)
+	setup_caam();
+#endif
+	return 0;
+}
+
 int board_early_init_f(void)
 {
 	struct wdog_regs *wdog = (struct wdog_regs *)WDOG1_BASE_ADDR;
