@@ -33,12 +33,6 @@
 #define CONFIG_SYS_CBSIZE			SZ_1K
 
 /*
- * default load address used for command tftp,  bootm , loadb, ...
- */
-#define CONFIG_LOADADDR			0xc2000000
-#define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
-
-/*
  * memory layout for 32M uncompressed/compressed kernel,
  * 1M fdt, 1M script, 1M pxe and 1M for overlay
  * and the ramdisk at the end.
