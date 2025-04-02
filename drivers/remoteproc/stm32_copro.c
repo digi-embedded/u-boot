@@ -284,8 +284,10 @@ static int stm32_copro_start(struct udevice *dev)
 		return -EOPNOTSUPP;
 #endif
 	} else if (proc_id == STM32MP25_M33_FW_ID) {
+#if defined(CONFIG_STM32MP21X) || defined(CONFIG_STM32MP23X) || defined(CONFIG_STM32MP25X)
 		writel(priv->rsc_table_addr, TAMP_COPRO_RSC_TBL_ADDRESS);
 		writel(priv->rsc_table_size, TAMP_COPRO_RSC_TBL_SIZE);
+#endif /* defined(CONFIG_STM32MP21X) || defined(CONFIG_STM32MP23X) || defined(CONFIG_STM32MP25X) */
 	}
 
 	return 0;
@@ -336,8 +338,10 @@ static int stm32_copro_reset(struct udevice *dev)
 		return -EOPNOTSUPP;
 #endif
 	} else if (proc_id == STM32MP25_M33_FW_ID) {
+#if defined(CONFIG_STM32MP21X) || defined(CONFIG_STM32MP23X) || defined(CONFIG_STM32MP25X)
 		writel(priv->rsc_table_addr, TAMP_COPRO_RSC_TBL_ADDRESS);
 		writel(priv->rsc_table_size, TAMP_COPRO_RSC_TBL_SIZE);
+#endif /* defined(CONFIG_STM32MP21X) || defined(CONFIG_STM32MP23X) || defined(CONFIG_STM32MP25X) */
 	}
 
 	return 0;
