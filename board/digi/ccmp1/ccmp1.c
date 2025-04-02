@@ -128,35 +128,6 @@ void fdt_fixup_ccmp1(void *fdt)
 }
 
 #define MTDPARTS_LEN		256
-void board_mtdparts_default(const char **mtdids, const char **mtdparts)
-{
-	struct mtd_info *nand = get_nand_dev_by_index(0);
-	static char parts[3 * MTDPARTS_LEN + 1];
-	static char ids[] = CONFIG_MTDIDS_DEFAULT;
-	static bool mtd_initialized;
-
-	if (mtd_initialized) {
-		*mtdids = ids;
-		*mtdparts = parts;
-		return;
-	}
-
-	memset(parts, 0, sizeof(parts));
-
-	if (nand->size > SZ_512M)
-		strcat(parts, "mtdparts=nand0:" CONFIG_MTDPARTS_NAND0_BOOT ","
-		       MTDPARTS_1024M);
-	else if (nand->size > SZ_256M)
-		strcat(parts, "mtdparts=nand0:" CONFIG_MTDPARTS_NAND0_BOOT ","
-		       MTDPARTS_512M);
-	else
-		strcat(parts, "mtdparts=nand0:" CONFIG_MTDPARTS_NAND0_BOOT ","
-		       MTDPARTS_256M);
-
-	*mtdparts = parts;
-	*mtdids = ids;
-	mtd_initialized = true;
-}
 
 void generate_ubi_volumes_script(void)
 {
