@@ -233,3 +233,18 @@ int revoke_key_index(int i)
 			 CONFIG_TRUSTFENCE_SRK_REVOKE_WORD,
 			 val);
 }
+
+/*
+ * The boot artifacts signing script hardcodes the DEK blob address at a
+ * fixed offset (0x100) before the kernel load address, so we need to restore
+ * the DEK blob from the bootloader into that position to allow authenticating
+ * the rest of the boot artifacts.
+ */
+void restore_dek_blob(void)
+{
+	/* Must match DEK_BLOB_OFFSET in the trustfence-sign-artifact script */
+	const ulong DEK_BLOB_OFFSET = 0x100;
+	ulong loadaddr = env_get_ulong("loadaddr", 16, CONFIG_SYS_LOAD_ADDR);
+
+	get_dek_blob(loadaddr - DEK_BLOB_OFFSET, NULL);
+}

@@ -29,7 +29,6 @@ extern int authenticate_os_container(ulong addr);
 #endif
 #if defined(CONFIG_IMX_HAB)
 #include "hab.h"
-#define BLOB_DEK_OFFSET		0x100
 extern int authenticate_image(uint32_t ddr_start, uint32_t raw_image_size);
 #endif
 #include "auth.h"
@@ -55,19 +54,7 @@ int digi_auth_image(ulong *ddr_start, ulong raw_image_size)
 	int ret = 1;
 
 #if defined(CONFIG_IMX_HAB)
-	ulong dek_addr = CONFIG_SYS_LOAD_ADDR - BLOB_DEK_OFFSET;
-
-	/*
-	 * Load DEK blob to the smallest negative offset that guarantees
-	 * that the DEK blob fits and that it is properly aligned.
-	 */
-	if (get_dek_blob_size(dek_addr, NULL)) {
-		/* No DEK blob on RAM. Get one from u-boot */
-		get_dek_blob(dek_addr, NULL);
-	}
-
-	if (authenticate_image((uint32_t)*ddr_start, raw_image_size) == 0)
-		ret = 0;
+	ret = authenticate_image((uint32_t) *ddr_start, raw_image_size);
 #elif defined(CONFIG_AHAB_BOOT)
 	ulong dek_addr = 0;
 

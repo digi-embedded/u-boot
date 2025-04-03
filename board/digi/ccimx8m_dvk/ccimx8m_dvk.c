@@ -145,6 +145,10 @@ int board_late_init(void)
 	/* Set default dynamic variables */
 	platform_default_environment();
 
+#ifdef CONFIG_HAS_TRUSTFENCE
+	restore_dek_blob();
+#endif
+
 	return 0;
 }
 

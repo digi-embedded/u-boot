@@ -12,5 +12,6 @@ int get_dek_blob_offset(ulong addr, ulong size, u32 *offset);
 int get_dek_blob_size(ulong addr, u32 *size);
 int get_dek_blob(ulong addr, u32 *size);
 int revoke_key_index(int i);
+void restore_dek_blob(void);
 
 #endif /* TF_HAB_H */
