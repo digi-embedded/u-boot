@@ -75,7 +75,8 @@ int get_dek_blob(ulong addr, u32 *size)
 		return 1;
 
 	memcpy((void *)addr, (void *)dek_blob_addr, dek_blob_size);
-	*size = dek_blob_size;
+	if (size)
+		*size = dek_blob_size;
 
 	return 0;
 }

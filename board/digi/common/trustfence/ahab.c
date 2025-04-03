@@ -212,6 +212,8 @@ int get_dek_blob(ulong addr, u32 *size)
 		goto sanitize;
 	}
 	memcpy((void *)addr, (void *)dek_blob_addr, dek_blob_size);
+	if (size)
+		*size = dek_blob_size;
 
 sanitize:
 	memset(buf, 0, buf_size);
