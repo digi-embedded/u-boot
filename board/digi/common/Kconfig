@@ -216,3 +216,9 @@ config ANDROID_LOAD_CONNECTCORE_FDT
 
 	  U-Boot automatically populates the environment variable
 	  (som_overlays) based on the platform.
+
+# Provide a sane default kernel load address which is 2MB aligned (to save a
+# memory copy) and that does not overlap with the hardcoded DEK blob address
+# on iMX8M devices (0x40400000)
+config SYS_LOAD_ADDR
+	default 0x40600000 if CC8M
