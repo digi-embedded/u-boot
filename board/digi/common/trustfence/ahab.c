@@ -130,7 +130,7 @@ int get_dek_blob_offset(ulong addr, ulong size, u32 *offset)
 	return 0;
 }
 
-int get_dek_blob_size(ulong addr, u32 *size)
+static int get_dek_blob_size(ulong addr, u32 *size)
 {
 	struct generate_key_blob_hdr *blob_hdr;
 

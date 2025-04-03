@@ -371,7 +371,7 @@ static int do_trustfence_update(struct cmd_tbl *cmdtp, int flag, int argc, char 
 			goto tf_update_out;
 		}
 
-		get_dek_blob_size(dek_blob_addr, &dek_blob_size);
+		dek_blob_size = DEK_BLOB_SIZE(dek_size);
 #ifdef CONFIG_SPL
 		memcpy((void *)dek_blob_spl_dst, (void *)dek_blob_addr,
 			dek_blob_size);

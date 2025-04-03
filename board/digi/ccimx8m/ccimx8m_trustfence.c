@@ -17,9 +17,6 @@
  */
 #define DEK_BLOB_LOAD_ADDR	0x40400000
 
-#define HAB_AUTH_BLOB_TAG	0x81
-#define HAB_VERSION		0x43
-
 #define FIT_DEK_BLOB_SIZE	96
 
 /*
@@ -49,16 +46,17 @@ int get_dek_blob_offset(ulong addr, ulong size, u32 *offset)
 	return 0;
 }
 
-int get_dek_blob_size(ulong addr, u32 *size)
+/* See NXP's AN12056 for DEK blob data structure */
+static int get_dek_blob_size(ulong addr, u32 *size)
 {
-	char *address = (char *)addr;
+	struct hab_hdr *hdr = (struct hab_hdr *)addr;
 
-	if (address[3] != HAB_VERSION || address[0] != HAB_AUTH_BLOB_TAG) {
+	if (hdr->tag != HDR_TAG || (hdr->par & HAB_MAJ_MASK) != HAB_MAJ_VER) {
 		debug("Tag does not match as expected\n");
 		return -EINVAL;
 	}
 
-	*size = address[2];
+	*size = (hdr->len[0] << 8) + hdr->len[1];
 	debug("DEK blob size is 0x%04x\n", *size);
 
 	return 0;

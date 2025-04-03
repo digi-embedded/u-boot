@@ -115,11 +115,6 @@ __weak int get_dek_blob_offset(ulong addr, ulong size, u32 *offset)
 	return -1;
 }
 
-__weak int get_dek_blob_size(ulong addr, u32 *size)
-{
-	return -1;
-}
-
 bool trustfence_is_closed(void)
 {
 	return imx_hab_is_enabled();
