@@ -326,7 +326,7 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 	fdt_fixup_carrierboard(blob);
 	fdt_copy_fixed_partitions(blob);
 
-	if (CONFIG_IS_ENABLED(FDT_SIMPLEFB))
+	if (IS_ENABLED(CONFIG_VIDEO) && IS_ENABLED(CONFIG_FDT_SIMPLEFB))
 		fdt_simplefb_enable_and_mem_rsv(blob);
 
 	return 0;
