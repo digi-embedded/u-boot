@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
 /*
  * Copyright (C) 2018, STMicroelectronics - All Rights Reserved
- * Copyright (C) 2022, Digi International Inc - All Rights Reserved
+ * Copyright (C) 2022-2025, Digi International Inc - All Rights Reserved
  */
 
 #define LOG_CATEGORY LOGC_BOARD
@@ -133,19 +133,21 @@ int g_dnl_bind_fixup(struct usb_device_descriptor *dev, const char *name)
 }
 #endif /* CONFIG_USB_GADGET_DOWNLOAD */
 
+#ifdef CONFIG_LED
 static int get_led(struct udevice **dev, char *led_string)
 {
-	char *led_name;
+	const char *led_name;
 	int ret;
 
-	led_name = fdtdec_get_config_string(gd->fdt_blob, led_string);
+	led_name = ofnode_conf_read_str(led_string);
 	if (!led_name) {
-		log_debug("could not find %s config string\n", led_string);
+		pr_debug("%s: could not find %s config string\n",
+			 __func__, led_string);
 		return -ENOENT;
 	}
 	ret = led_get_by_label(led_name, dev);
 	if (ret) {
-		log_debug("get=%d\n", ret);
+		debug("%s: get=%d\n", __func__, ret);
 		return ret;
 	}
 
@@ -157,9 +159,6 @@ static int setup_led(enum led_state_t cmd)
 	struct udevice *dev;
 	int ret;
 
-	if (!CONFIG_IS_ENABLED(LED))
-		return 0;
-
 	ret = get_led(&dev, "u-boot,boot-led");
 	if (ret)
 		return ret;
@@ -167,29 +166,31 @@ static int setup_led(enum led_state_t cmd)
 	ret = led_set_state(dev, cmd);
 	return ret;
 }
+#endif
 
 static void __maybe_unused led_error_blink(u32 nb_blink)
 {
+#ifdef CONFIG_LED
 	int ret;
 	struct udevice *led;
 	u32 i;
+#endif
 
 	if (!nb_blink)
 		return;
 
-	if (CONFIG_IS_ENABLED(LED)) {
-		ret = get_led(&led, "u-boot,error-led");
-		if (!ret) {
-			/* make u-boot,error-led blinking */
-			/* if U32_MAX and 125ms interval, for 17.02 years */
-			for (i = 0; i < 2 * nb_blink; i++) {
-				led_set_state(led, LEDST_TOGGLE);
-				mdelay(125);
-				WATCHDOG_RESET();
-			}
-			led_set_state(led, LEDST_ON);
+#ifdef CONFIG_LED
+	ret = get_led(&led, "u-boot,error-led");
+	if (!ret) {
+		/* make u-boot,error-led blinking */
+		/* if U32_MAX and 125ms interval, for 17.02 years */
+		for (i = 0; i < 2 * nb_blink; i++) {
+			led_set_state(led, LEDST_TOGGLE);
+			mdelay(125);
+			schedule();
 		}
 	}
+#endif
 
 	/* infinite: the boot process must be stopped */
 	if (nb_blink == U32_MAX)
@@ -312,9 +313,6 @@ int board_init(void)
 	 */
 	if (IS_ENABLED(CONFIG_ARMV7_NONSEC))
 		sysconf_init();
-
-	if (CONFIG_IS_ENABLED(LED))
-		led_default_state();
 
 	setup_led(LEDST_ON);
 
