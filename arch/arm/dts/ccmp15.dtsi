@@ -142,14 +142,6 @@
 	};
 };
 
-&dma1 {
-	sram = <&dma_pool>;
-};
-
-&dma2 {
-	sram = <&dma_pool>;
-};
-
 &dts {
 	status = "okay";
 };
@@ -376,13 +368,6 @@
 	no-1-8-v;
 	bus-width = <4>;
 	status = "disabled";
-};
-
-&sram {
-	dma_pool: dma_pool@0 {
-		reg = <0x50000 0x10000>;
-		pool;
-	};
 };
 
 &timers6 {

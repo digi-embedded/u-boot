@@ -65,14 +65,6 @@
 	status = "okay";
 };
 
-&dma1 {
-	sram = <&dma_pool>;
-};
-
-&dma2 {
-	sram = <&dma_pool>;
-};
-
 &dts {
 	status = "okay";
 };
@@ -92,13 +84,6 @@
 			#address-cells = <1>;
 			#size-cells = <1>;
 		};
-	};
-};
-
-&sram {
-	dma_pool: dma-sram@0 {
-		reg = <0x0 0x4000>;
-		pool;
 	};
 };
 
