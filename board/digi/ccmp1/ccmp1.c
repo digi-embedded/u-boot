@@ -3,6 +3,7 @@
  * Copyright (C) 2022-2023, Digi International Inc - All Rights Reserved
  */
 #include <common.h>
+#include <display_options.h>
 #include <env.h>
 #include <env_internal.h>
 #include <fdt_support.h>
