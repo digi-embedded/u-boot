@@ -12,12 +12,12 @@
 
 / {
 	reserved-memory {
-		u-boot,dm-spl;
+		bootph-all;
 
 		/* Reserve the upper 32 MiB */
 		optee@fe000000 {
 			reg = <0xfe000000 0x2000000>;
-			u-boot,dm-spl;
+			bootph-all;
 		};
 	};
 };

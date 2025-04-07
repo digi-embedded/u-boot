@@ -35,15 +35,15 @@
 };
 
 &uart5 {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &uart5_pins_a {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 	pins1 {
-		u-boot,dm-pre-reloc;
+		bootph-all;
 	};
 	pins2 {
-		u-boot,dm-pre-reloc;
+		bootph-all;
 	};
 };
