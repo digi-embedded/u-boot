@@ -9,6 +9,7 @@
 
 #include <linux/sizes.h>
 #include <asm/arch/stm32.h>
+#include <configs/stm32mp15_common.h>
 #include "digi_common.h"
 
 #ifndef CONFIG_TFABOOT
@@ -26,11 +27,6 @@
 #else
 #define CONFIG_SYS_INIT_SP_ADDR			CONFIG_SYS_TEXT_BASE
 #endif
-
-/*
- * Console I/O buffer size
- */
-#define CONFIG_SYS_CBSIZE			SZ_1K
 
 /*
  * memory layout for 32M uncompressed/compressed kernel,
@@ -62,9 +58,6 @@
  * the maximum mapped by the Linux kernel during initialization.
  */
 #define CONFIG_SYS_BOOTMAPSZ		SZ_256M
-
-/* Extend size of kernel image for uncompression */
-#define CONFIG_SYS_BOOTM_LEN		SZ_32M
 
 /* SPL support */
 #ifdef CONFIG_SPL
