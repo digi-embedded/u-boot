@@ -534,52 +534,6 @@ void stm32mp15_fdt_update_scmi_node(void *new_blob)
 	fdt_setprop_u32(new_blob, nodeoff, "arm,smc-id", val);
 }
 
-/*
- * update the device tree to support boot with SP-MIN, using a device tree
- * containing OPTE nodes:
- * 1/ remove the OP-TEE related nodes
- * 2/ copy SCMI nodes to kernel device tree to replace the OP-TEE agent
- *
- * SP-MIN boot is supported for STM32MP15 and it uses the SCMI SMC agent
- * whereas Linux device tree defines an SCMI OP-TEE agent.
- *
- * This function allows to temporary support this legacy boot mode,
- * with SP-MIN and without OP-TEE.
- */
-void stm32mp15_fdt_update_optee_nodes(void *new_blob)
-{
-	ofnode node;
-	int nodeoff = 0, subnodeoff;
-
-	/* only proceed if /firmware/optee node is not present in U-Boot DT */
-	node = ofnode_path("/firmware/optee");
-	if (ofnode_valid(node)) {
-		log_debug("OP-TEE firmware found, nothing to do");
-		return;
-	}
-
-	/* remove OP-TEE memory regions in reserved-memory node */
-	nodeoff = fdt_path_offset(new_blob, "/reserved-memory");
-	if (nodeoff >= 0) {
-		fdt_for_each_subnode(subnodeoff, new_blob, nodeoff) {
-			const char *name = fdt_get_name(new_blob, subnodeoff, NULL);
-
-			/* only handle "optee" reservations */
-			if (name && !strncmp(name, "optee", 5))
-				fdt_del_node(new_blob, subnodeoff);
-		}
-	}
-
-	/* remove OP-TEE node  */
-	nodeoff = fdt_path_offset(new_blob, "/firmware/optee");
-	if (nodeoff >= 0)
-		fdt_del_node(new_blob, nodeoff);
-
-	/* update the scmi node */
-	stm32mp15_fdt_update_scmi_node(new_blob);
-}
-
-
 void fdt_update_panel_dsi(void *new_blob)
 {
 	char const *panel = env_get("panel-dsi");
@@ -609,7 +563,6 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	fdt_fixup_ccmp1(blob);
 	fdt_fixup_carrierboard(blob);
-
 	static const struct node_info nodes[] = {
 		{ "st,stm32f469-qspi",		MTD_DEV_TYPE_NOR,  },
 		{ "st,stm32f469-qspi",		MTD_DEV_TYPE_SPINAND},
@@ -623,7 +576,6 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 	if (IS_ENABLED(CONFIG_VIDEO) && IS_ENABLED(CONFIG_FDT_SIMPLEFB))
 		fdt_simplefb_enable_and_mem_rsv(blob);
 
-	stm32mp15_fdt_update_optee_nodes(blob);
 	return 0;
 }
 #endif
