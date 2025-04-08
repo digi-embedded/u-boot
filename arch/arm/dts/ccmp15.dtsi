@@ -125,10 +125,6 @@
 	status = "okay";
 };
 
-&cryp1 {
-	status = "okay";
-};
-
 &dac {
 	pinctrl-names = "default";
 	pinctrl-0 = <&dac_ch1_pins_a &dac_ch2_pins_a>;
@@ -349,10 +345,6 @@
 &pwr_regulators {
 	vdd-supply = <&vdd>;
 	vdd_3v3_usbfs-supply = <&vdd_usb>;
-};
-
-&rng1 {
-	status = "okay";
 };
 
 &rtc {
