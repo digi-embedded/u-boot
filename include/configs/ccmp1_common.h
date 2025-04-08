@@ -182,6 +182,9 @@
 #define SYSTEM_PARTITION		"UBI"
 #define DATA_PARTITION			"data"
 
+#define MTDPARTS_NAND0_BOOT		"512k(fsbl1),512k(fsbl2),512k(metadata1),512k(metadata2),3m(fip-a),3m(fip-b)"
+#define MTDIDS				"nand0=nand0"
+
 #define NUM_SYSTEM_PARTITIONS		2
 
 /* Dualboot partition configuration */
