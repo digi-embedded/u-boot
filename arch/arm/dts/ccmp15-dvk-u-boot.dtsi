@@ -26,6 +26,12 @@
 		u-boot,boot-led = "USER1";
 		u-boot,error-led = "USER2";
 	};
+
+	firmware {
+		optee {
+			bootph-all;
+		};
+	};
 };
 
 &i2c6 {
