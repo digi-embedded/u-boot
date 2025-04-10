@@ -232,7 +232,7 @@
 	"rootfsvol_b=" ROOTFS_B_PARTITION "\0" \
 	"active_system=" LINUX_A_PARTITION "\0"
 
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	CONFIG_COMMON_ENV \
 	CONFIG_ENV_MTD_SETTINGS \
 	DUALBOOT_ENV_SETTINGS \
@@ -249,7 +249,7 @@
 	"rootfs_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".ubifs\0" \
 	""	/* end line */
 #else
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	CONFIG_COMMON_ENV \
 	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \

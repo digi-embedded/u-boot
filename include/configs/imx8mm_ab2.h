@@ -146,7 +146,7 @@
 
 /* Initial environment variables */
 #if defined(CONFIG_NAND_BOOT)
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	CONFIG_MFG_ENV_SETTINGS \
 	"splashimage=0x50000000\0" \
 	"fdt_addr_r=0x43000000\0"			\
@@ -163,7 +163,7 @@
 		"booti ${loadaddr} - ${fdt_addr_r}"
 
 #else
-#define CONFIG_EXTRA_ENV_SETTINGS		\
+#define CFG_EXTRA_ENV_SETTINGS		\
 	CONFIG_MFG_ENV_SETTINGS \
 	BOOTENV \
 	JAILHOUSE_ENV \

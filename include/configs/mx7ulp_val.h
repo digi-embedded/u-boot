@@ -74,7 +74,7 @@
 	"initrd_high=0xffffffff\0" \
 	"sd_dev=1\0"
 
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	CONFIG_MFG_ENV_SETTINGS \
 	"script=boot.scr\0" \
 	"image=zImage\0" \

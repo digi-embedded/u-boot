@@ -93,7 +93,7 @@
 
 /* Initial environment variables */
 #ifdef CONFIG_NAND_BOOT
-#define CONFIG_EXTRA_ENV_SETTINGS		\
+#define CFG_EXTRA_ENV_SETTINGS		\
 	CONFIG_MFG_ENV_SETTINGS \
 	"bootargs=console=ttyLP0,115200 ubi.mtd=nandrootfs "  \
 		"root=ubi0:nandrootfs rootfstype=ubifs "		     \
@@ -103,7 +103,7 @@
 	"mtdparts=" MFG_NAND_PARTITION "\0" \
 	"fdt_addr=0x83000000\0"
 #else
-#define CONFIG_EXTRA_ENV_SETTINGS		\
+#define CFG_EXTRA_ENV_SETTINGS		\
 	CONFIG_MFG_ENV_SETTINGS \
 	M4_BOOT_ENV \
 	AHAB_ENV \

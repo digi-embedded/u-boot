@@ -58,7 +58,7 @@
 	"bootcmd_mfg=run mfgtool_args;bootz ${loadaddr} ${initrd_addr} ${fdt_addr};\0" \
 
 #if defined(CONFIG_NAND_BOOT)
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	CONFIG_MFG_ENV_SETTINGS \
 	"panel=MCIMX28LCD\0" \
 	"fdt_addr=0x83000000\0" \
@@ -73,7 +73,7 @@
 		"bootz ${loadaddr} - ${fdt_addr}\0"
 
 #else
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	CONFIG_MFG_ENV_SETTINGS \
 	"panel=MCIMX28LCD\0" \
 	"script=boot.scr\0" \

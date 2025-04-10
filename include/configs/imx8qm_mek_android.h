@@ -15,10 +15,10 @@
 #define IMX_HDMITX_FIRMWARE_SIZE 0x20000
 #define IMX_HDMIRX_FIRMWARE_SIZE 0x20000
 
-#undef CONFIG_EXTRA_ENV_SETTINGS
+#undef CFG_EXTRA_ENV_SETTINGS
 #undef CONFIG_BOOTCOMMAND
 
-#define CONFIG_EXTRA_ENV_SETTINGS		\
+#define CFG_EXTRA_ENV_SETTINGS		\
 	"splashpos=m,m\0"	  		\
 	"splashimage=0x9e000000\0" 		\
 	"fdt_high=0xffffffffffffffff\0"	  	\

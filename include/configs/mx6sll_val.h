@@ -53,7 +53,7 @@
 	"initrd_high=0xffffffff\0" \
 	"bootcmd_mfg=run mfgtool_args;bootz ${loadaddr} ${initrd_addr} ${fdt_addr};\0" \
 
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	CONFIG_MFG_ENV_SETTINGS \
 	"epdc_waveform=epdc_splash.bin\0" \
 	"script=boot.scr\0" \

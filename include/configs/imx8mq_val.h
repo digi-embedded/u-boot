@@ -93,7 +93,7 @@
 
 /* Initial environment variables */
 #if defined(CONFIG_NAND_BOOT)
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	CONFIG_MFG_ENV_SETTINGS \
 	"fdt_addr=0x43000000\0"			\
 	"fdt_high=0xffffffffffffffff\0" \
@@ -108,7 +108,7 @@
 		"booti ${loadaddr} - ${fdt_addr}"
 
 #else
-#define CONFIG_EXTRA_ENV_SETTINGS		\
+#define CFG_EXTRA_ENV_SETTINGS		\
 	CONFIG_MFG_ENV_SETTINGS \
 	"script=boot.scr\0" \
 	"image=Image\0" \

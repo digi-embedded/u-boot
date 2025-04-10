@@ -13,10 +13,10 @@
 
 #define CONFIG_FASTBOOT_USB_DEV 1
 
-#undef CONFIG_EXTRA_ENV_SETTINGS
+#undef CFG_EXTRA_ENV_SETTINGS
 #undef CONFIG_BOOTCOMMAND
 
-#define CONFIG_EXTRA_ENV_SETTINGS		\
+#define CFG_EXTRA_ENV_SETTINGS		\
 	"splashpos=m,m\0"	  		\
 	"splashimage=0x9e000000\0" 		\
 	"fdt_high=0xffffffffffffffff\0"	  	\

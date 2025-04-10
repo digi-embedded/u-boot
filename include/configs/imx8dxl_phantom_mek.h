@@ -120,7 +120,7 @@
             "\0" \
 
 /* Initial environment variables */
-#define CONFIG_EXTRA_ENV_SETTINGS		\
+#define CFG_EXTRA_ENV_SETTINGS		\
 	CONFIG_MFG_ENV_SETTINGS \
 	M4_BOOT_ENV \
 	XEN_BOOT_ENV \

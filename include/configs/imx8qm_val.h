@@ -123,7 +123,7 @@
 	"sd_dev=1\0" \
 
 /* Initial environment variables */
-#define CONFIG_EXTRA_ENV_SETTINGS		\
+#define CFG_EXTRA_ENV_SETTINGS		\
 	CONFIG_MFG_ENV_SETTINGS \
 	XEN_BOOT_ENV \
 	M4_BOOT_ENV \

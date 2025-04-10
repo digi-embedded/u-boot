@@ -14,10 +14,10 @@
 #define CONFIG_SYS_MALLOC_LEN           (32 * SZ_1M)
 #endif
 
-#undef CONFIG_EXTRA_ENV_SETTINGS
+#undef CFG_EXTRA_ENV_SETTINGS
 #undef CONFIG_BOOTCOMMAND
 
-#define CONFIG_EXTRA_ENV_SETTINGS		\
+#define CFG_EXTRA_ENV_SETTINGS		\
 	"splashpos=m,m\0"			\
 	"splashimage=0x90000000\0"		\
 	"fdt_high=0xffffffffffffffff\0"		\

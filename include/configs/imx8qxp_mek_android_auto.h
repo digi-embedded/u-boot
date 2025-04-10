@@ -19,10 +19,10 @@
 
 #define FSL_FASTBOOT_FB_DEV "mmc"
 
-#undef CONFIG_EXTRA_ENV_SETTINGS
+#undef CFG_EXTRA_ENV_SETTINGS
 #undef CONFIG_BOOTCOMMAND
 
-#define CONFIG_EXTRA_ENV_SETTINGS					\
+#define CFG_EXTRA_ENV_SETTINGS					\
 	"splashpos=m,m\0"	  \
 	"fdt_high=0xffffffffffffffff\0"	  \
 	"initrd_high=0xffffffffffffffff\0" \
