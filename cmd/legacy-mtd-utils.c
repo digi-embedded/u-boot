@@ -1,66 +1,44 @@
 // SPDX-License-Identifier: GPL-2.0+
 
 #include <common.h>
+#include <jffs2/jffs2.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
 #include <linux/string.h>
 #include <mtd.h>
 
-/* mapping between legacy parameter and MTD device type */
-bool check_devtype(int devtype, u_char mtdtype)
-{
-	if (devtype == MTD_DEV_TYPE_NOR && mtdtype == MTD_NORFLASH)
-		return true;
-
-	if ((devtype == MTD_DEV_TYPE_NAND || devtype == MTD_DEV_TYPE_ONENAND) &&
-	    (mtdtype == MTD_NANDFLASH || mtdtype == MTD_NANDFLASH))
-		return true;
-
-	return false;
-}
-
-
 static int get_part(const char *partname, int *idx, loff_t *off, loff_t *size,
-		    loff_t *maxsize, int devtype)
+	     loff_t *maxsize, int devtype)
 {
-	struct mtd_info *mtd;
-	struct mtd_info *partition;
-	bool part_found = false;
-	int part_num;
+#ifdef CONFIG_CMD_MTDPARTS
+	struct mtd_device *dev;
+	struct part_info *part;
+	u8 pnum;
+	int ret;
 
-	if (!IS_ENABLED(CONFIG_MTD)) {
-		puts("mtd support missing.\n");
+	ret = mtdparts_init();
+	if (ret)
+		return ret;
+
+	ret = find_dev_and_part(partname, &dev, &pnum, &part);
+	if (ret)
+		return ret;
+
+	if (dev->id->type != devtype) {
+		printf("not same typ %d != %d\n", dev->id->type, devtype);
 		return -1;
 	}
-	/* register partitions with MTDIDS/MTDPARTS or OF fallback */
-	mtd_probe_devices();
 
-	mtd_for_each_device(mtd) {
-		printf("%s:%d(%d, %s)\n", __func__, __LINE__, mtd->type, mtd->name);
-		if (mtd_is_partition(mtd) &&
-		    check_devtype(devtype, mtd->type) &&
-		    (!strcmp(partname, mtd->name))) {
-			part_found = true;
-			break;
-		}
-	}
-	if (!part_found)
-		return -1;
+	*off = part->offset;
+	*size = part->size;
+	*maxsize = part->size;
+	*idx = dev->id->num;
 
-	*off = mtd->offset;
-	*size = mtd->size;
-	*maxsize = mtd->size;
-
-	/* loop on partition list as index is not accessbile in MTD */
-	part_num = 0;
-	list_for_each_entry(partition, &mtd->parent->partitions, node) {
-		part_num++;
-		if (partition == mtd)
-			break;
-	}
-
-	*idx = part_num;
 	return 0;
+#else
+	puts("mtdparts support missing.\n");
+	return -1;
+#endif
 }
 
 int mtd_arg_off(const char *arg, int *idx, loff_t *off, loff_t *size,
