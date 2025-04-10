@@ -963,6 +963,21 @@ void s_init(void)
 	writel(mask528, &anatop->pfd_528_clr);
 }
 
+#ifdef CONFIG_ARCH_MISC_INIT
+extern int rng_workaround_copy_to_ocram(void);
+
+int arch_misc_init(void)
+{
+#ifdef CONFIG_FSL_CAAM_RNG_ERRATA
+	if(rng_workaround_copy_to_ocram()){
+		printf("copy binary failed\n");
+	}
+#endif
+
+	return 0;
+}
+#endif
+
 #ifdef CONFIG_IMX_HDMI
 void imx_enable_hdmi_phy(void)
 {

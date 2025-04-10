@@ -52,6 +52,13 @@ config SYS_FSL_SEC_COMPAT
 config SYS_FSL_SEC_LE
 	bool "Little-endian access to Freescale Secure Boot"
 
+config FSL_CAAM_RNG_ERRATA
+	bool "Enable SW test for CAAM TRNG Output"
+	help
+		Selecting this will disable CAAM RNG HW health tests and
+		enable SW tests for TRNG output data. Then, instantiate DRBG
+		in deterministic mode.
+
 config RNG_SW_TEST
 	bool "Include RNG software self-test"
 

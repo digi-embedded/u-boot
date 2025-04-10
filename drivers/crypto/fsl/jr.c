@@ -580,7 +580,25 @@ static int rng_init(uint8_t sec_idx)
 	} while ((ret == -1) && (ent_delay < RTSDCTL_ENT_DLY_MAX));
 	if (ret) {
 		printf("RNG: Failed to instantiate RNG\n");
+
+#ifdef CONFIG_FSL_CAAM_RNG_ERRATA
+		//if RNG instantiation failed in normal case, try SW workaround
+		printf("applying RNG workaround\n");
+		ent_delay = RTSDCTL_ENT_DLY_MIN;
+		do{
+			int inst_handles = sec_in32(&rng->rdsta) & 0x3;
+			int secure_keys = (sec_in32(&rng->rdsta) & 0xC0000000) ? 0 : 1;
+			ret = rng_workaround_run(ent_delay, inst_handles, secure_keys, 0);
+			if (ret == -WA_E_AGAIN || ret == -WA_E_SW_TEST_FAILED)
+				ent_delay *= 2;
+		} while ((ret == -WA_E_AGAIN || ret == -WA_E_SW_TEST_FAILED) &&
+			 (ent_delay < RTSDCTL_ENT_DLY_MAX));
+		if (ret){
+			return ret;
+		}
+#else
 		return ret;
+#endif
 	}
 
 	 /* Enable RDB bit so that RNG works faster */

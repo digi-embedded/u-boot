@@ -382,4 +382,19 @@ int blob_decap(u8 *key_mod, u8 *src, u8 *dst, u32 len);
 int blob_encap(u8 *key_mod, u8 *src, u8 *dst, u32 len);
 #endif
 
+#ifdef CONFIG_FSL_CAAM_RNG_ERRATA
+int rng_workaround_copy_to_ocram(void);
+#ifdef CONFIG_FSL_CAAM
+enum{
+	WA_E_REQ_DECO_FAILED=5,
+	WA_E_SW_TEST_FAILED=6,
+	WA_E_INVALID_PARM=7,
+	WA_E_TIMEOUT=8,
+	WA_E_SH_NOT_INIT=9,
+	WA_E_AGAIN=11,
+};
+int rng_workaround_run(unsigned long ent_dly,int state_handle_mask, int gen_sk, int reseed);
+#endif
+#endif
+
 #endif /* __FSL_SEC_H */
