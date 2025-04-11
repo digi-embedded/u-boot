@@ -14,15 +14,9 @@
 		#size-cells = <1>;
 		ranges;
 
-		/* Reserve the contiguous 16 MiB */
-		optee_framebuffer@cd000000 {
-			reg = <0xcd000000 0x1000000>;
-			no-map;
-		};
-
-		/* Reserve the upper 32 MiB */
-		optee@ce000000 {
-			reg = <0xce000000 0x2000000>;
+		/* Reserve the upper 48 MiB */
+		optee@cd000000 {
+			reg = <0xcd000000 0x3000000>;
 			no-map;
 		};
 	};
