@@ -73,7 +73,6 @@
  */
 #define PHYS_SDRAM_SIZE			0xC0000000  /* 3GB */
 #define PHYS_SDRAM_2_SIZE		0x40000000  /* 1GB */
-#define AUTODETECT_RAM_SIZE
 
 /* MMC device and partition where U-Boot image is */
 #define EMMC_BOOT_ACK			1
