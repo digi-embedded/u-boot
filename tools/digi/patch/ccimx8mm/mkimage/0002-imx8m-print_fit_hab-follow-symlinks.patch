@@ -2,6 +2,8 @@ From: Javier Viguera <javier.viguera@digi.com>
 Date: Tue, 5 Dec 2023 18:10:43 +0100
 Subject: [PATCH] imx8m: print_fit_hab: follow symlinks
 
+Upstream-Status: Inappropriate [DEY specific]
+
 Signed-off-by: Javier Viguera <javier.viguera@digi.com>
 ---
  iMX8M/print_fit_hab.sh | 8 ++++----

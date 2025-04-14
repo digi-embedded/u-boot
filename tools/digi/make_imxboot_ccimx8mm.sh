@@ -117,7 +117,7 @@ build_optee()
 	echo "- Build OPTEE binary for: ${SOC}"
 	(
 		cd "${OPTEE_DIR}" || { echo "build_optee: OPTEE_DIR not found"; exit 1; }
-		${MAKE} PLATFORM=imx-mx8mmevk \
+		${MAKE} PLATFORM=imx-ccimx8mmdvk \
 			CROSS_COMPILE=${CROSS_COMPILE} \
 			CROSS_COMPILE64=${CROSS_COMPILE} \
 			CFG_TEE_TA_LOG_LEVEL=0 \
@@ -279,6 +279,7 @@ MKIMAGE_SOC_DIR="${MKIMAGE_DIR}/iMX8M"
 MKIMAGE_PATCHES=" \
 	mkimage/0001-imx8m-soc.mak-capture-commands-output-into-a-log-fil.patch \
 	mkimage/0002-imx8m-print_fit_hab-follow-symlinks.patch \
+	mkimage/0003-imx8mm-adjust-TEE_LOAD_ADDR-for-ccimx8mm.patch \
 "
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
@@ -289,6 +290,7 @@ ATF_DIR="${BASEDIR}/imx-atf"
 ATF_PATCHES=" \
 	atf/0001-imx8mm-Define-UART1-as-console-for-boot-stage.patch \
 	atf/0002-imx8mm-Disable-M4-debug-console.patch \
+	atf/0003-imx8mm-set-BL32_BASE-and-map-high-DRAM-for-ccimx8mm-.patch \
 "
 
 OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
@@ -296,6 +298,9 @@ OPTEE_BRANCH="lf-6.6.52_2.2.0"
 # Tag: lf-6.6.52-2.2.0
 OPTEE_REV="60beb308810f9561a67fdb435388a64c85eb6dcb"
 OPTEE_DIR="${BASEDIR}/imx-optee-os"
+OPTEE_PATCHES=" \
+	optee/0001-plat-imx-add-support-for-ConnectCore-8M-Mini.patch \
+"
 
 FIRMWARE_IMX="firmware-imx-8.26-d4c33ab"
 FIRMWARE_IMX_DIR="${BASEDIR}/${FIRMWARE_IMX}"
