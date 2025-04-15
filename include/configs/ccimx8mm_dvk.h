@@ -10,6 +10,10 @@
 
 #include "ccimx8m_common.h"
 
+/* RAM memory reserved for OPTEE (32 MiB) */
+#define RESERVED_MEM_START		0x7E000000
+#define RESERVED_MEM_END		0x80000000
+
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 8M Mini"
 #define CONFIG_BOARD_DESCRIPTION	"Development Kit"
 #define BOARD_DEY_NAME			"ccimx8mm-dvk"
