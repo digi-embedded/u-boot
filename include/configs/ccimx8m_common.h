@@ -22,9 +22,6 @@
 /* MCA */
 #define BOARD_MCA_DEVICE_ID		0x4A
 
-/* Ethernet */
-#define WIRED_NICS			1
-
 /* Supported sources for update|dboot */
 #define CONFIG_SUPPORTED_SOURCES	((1 << SRC_TFTP) | \
 					 (1 << SRC_NFS) | \
