@@ -934,7 +934,7 @@ init:
 			return -1;
 		}
 
-		printf("SEC%u:  RNG instantiated\n", sec_idx);
+		debug("SEC%u:  RNG instantiated\n", sec_idx);
 	}
 #if CONFIG_IS_ENABLED(OF_CONTROL)
 	if (CONFIG_IS_ENABLED(DM_RNG)) {
