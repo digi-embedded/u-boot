@@ -127,6 +127,11 @@
 	};
 };
 
+&arm_wdt {
+	timeout-sec = <32>;
+	status = "okay";
+};
+
 &bsec {
 	hwid: hwid@ec {
 		reg = <0xec 0xc>;
@@ -349,11 +354,6 @@
 };
 
 &ipcc {
-	status = "okay";
-};
-
-&iwdg2 {
-	timeout-sec = <32>;
 	status = "okay";
 };
 

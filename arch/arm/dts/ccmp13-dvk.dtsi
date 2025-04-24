@@ -153,12 +153,6 @@
 	/delete-property/dma-names;
 };
 
-&iwdg2 {
-	timeout-sec = <32>;
-	status = "okay";
-};
-
-
 &rtc {
 	st,lsco = <RTC_OUT2_RMP>;
 	pinctrl-0 = <&rtc_out2_rmp_pins_a>;
