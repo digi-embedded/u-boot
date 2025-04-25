@@ -5,6 +5,7 @@
  */
 
 #include <common.h>
+#include <env.h>
 #include <fdt_support.h>
 #include <fuse.h>
 #include <mapmem.h>
@@ -52,6 +53,10 @@ __weak int fuse_prog_srk(u32 addr, u32 size)
 		return -1;
 	}
 
+#ifdef CONFIG_CC8X
+	env_set("force_prog_ecc", "yes");
+#endif
+
 	for (i = 0; i < CONFIG_TRUSTFENCE_SRK_WORDS; i++) {
 		bank = CONFIG_TRUSTFENCE_SRK_BANK +
 		       (i / CONFIG_TRUSTFENCE_SRK_WORDS_PER_BANK);
@@ -59,10 +64,14 @@ __weak int fuse_prog_srk(u32 addr, u32 size)
 		ret = fuse_prog(bank, word+CONFIG_TRUSTFENCE_SRK_WORDS_OFFSET,
 				src_addr[i]);
 		if (ret)
-			return ret;
+			break;
 	}
 
-	return 0;
+#ifdef CONFIG_CC8X
+	env_set("force_prog_ecc", NULL);
+#endif
+
+	return ret;
 }
 
 void fdt_fixup_trustfence(void *fdt)

@@ -5,6 +5,7 @@
  */
 
 #include <common.h>
+#include <env.h>
 #include <fdt_support.h>
 #include <fuse.h>
 #include <linux/sizes.h>
@@ -53,7 +54,7 @@ int board_prog_hwid(const struct digi_hwid *hwid)
 	int ret, i;
 
 #ifdef CONFIG_CC8X
-	fuse_allow_prog(true);
+	env_set("force_prog_ecc", "yes");
 #endif
 
 	for (i = 0; i < cnt; i++, word++) {
@@ -64,7 +65,7 @@ int board_prog_hwid(const struct digi_hwid *hwid)
 	}
 
 #ifdef CONFIG_CC8X
-	fuse_allow_prog(false);
+	env_set("force_prog_ecc", NULL);
 #endif
 
 	/* Trigger a HWID-related variables update (from fuses) */
