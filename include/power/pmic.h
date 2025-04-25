@@ -22,6 +22,11 @@ enum { PMIC_I2C, PMIC_SPI, PMIC_NONE};
 enum { I2C_PMIC, I2C_NUM, };
 enum { PMIC_READ, PMIC_WRITE, };
 enum { PMIC_SENSOR_BYTE_ORDER_LITTLE, PMIC_SENSOR_BYTE_ORDER_BIG, };
+enum {
+	BYTE = 2,
+	SHORT = 4,
+	WORD = 8,
+};
 
 enum {
 	PMIC_CHARGER_DISABLE,
@@ -70,6 +75,7 @@ struct pmic {
 	unsigned char interface;
 	unsigned char sensor_byte_order;
 	unsigned int number_of_regs;
+	unsigned int register_size;
 	union hw {
 		struct p_i2c i2c;
 		struct p_spi spi;

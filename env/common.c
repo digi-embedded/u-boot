@@ -25,6 +25,12 @@
 #include <net.h>
 #include <watchdog.h>
 
+#ifdef CONFIG_ENV_AES_CCMP1
+/* CCMP1 AES encryption support */
+#include <nand.h>
+#include "../board/digi/ccmp1/ta_ccmp1.h"
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 /************************************************************************
@@ -284,6 +290,9 @@ void env_set_default(const char *s, int flags)
 	/* Platform-specific actions on default environment */
 	platform_default_environment();
 
+	/* Platform-specific actions on default environment */
+	platform_default_environment();
+
 	gd->flags |= GD_FLG_ENV_READY;
 	gd->flags |= GD_FLG_ENV_DEFAULT;
 }
@@ -302,6 +311,11 @@ int env_set_default_vars(int nvars, char * const vars[], int flags)
 				flags, 0, nvars, vars);
 }
 
+__weak int env_aes_cbc_crypt(env_t *env, const int enc)
+{
+	return 0;
+}
+
 /*
  * Check if CRC is valid and (if yes) import the environment.
  * Note that "buf" may or may not be aligned.
@@ -309,6 +323,9 @@ int env_set_default_vars(int nvars, char * const vars[], int flags)
 int env_import(const char *buf, int check, int flags)
 {
 	env_t *ep = (env_t *)buf;
+	int ret;
+	char *p = NULL;
+	char *env_data = ep->data;
 
 	if (check) {
 		uint32_t crc;
@@ -321,12 +338,44 @@ int env_import(const char *buf, int check, int flags)
 		}
 	}
 
-	if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE, '\0', flags, 0,
+	/* Decrypt the env if desired. */
+	ret = env_aes_cbc_crypt(ep, 0);
+	if (ret) {
+#if defined(CONFIG_ENV_AES_CAAM_KEY) || defined(CONFIG_ENV_AES_CCMP1)
+		if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE,
+				'\0', 0, 0, 0, NULL)) {
+			printf("Environment is unencrypted!\n");
+			printf("Resetting to defaults (read-only variables like MAC addresses will be kept).\n");
+			gd->flags |= GD_FLG_ENV_READY;
+			run_command("env default -a", 0);
+			return 0;
+		}
+#endif
+		pr_err("Failed to decrypt env!\n");
+		env_set_default("!import failed", 0);
+		return ret;
+	} else {
+		/* Verify that we can read some environment variable */
+		while (*env_data) {
+			p = strstr((char *)env_data, "baudrate");
+			if (p != NULL)
+				break;
+			env_data += strlen(env_data) + 1;
+		}
+		/* if we haven't found anything exit with an error */
+		if (p == NULL) {
+			errno = EIO;
+			goto err;
+		}
+
+		if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE, '\0', 0, 0,
 			0, NULL)) {
-		gd->flags |= GD_FLG_ENV_READY;
-		return 0;
+			gd->flags |= GD_FLG_ENV_READY;
+			return 0;
+		}
 	}
 
+err:
 	pr_err("Cannot import environment: errno = %d\n", errno);
 
 	env_set_default("import failed", 0);
@@ -398,6 +447,18 @@ int env_import_redund(const char *buf1, int buf1_read_fail,
 		env_set_default("bad env area", 0);
 		return -EIO;
 	} else if (ret == -ENOMSG) {
+#if defined(OLD_ENV_OFFSET_LOCATIONS)
+		static int old_env_tries = OLD_ENV_OFFSET_LOCATIONS;
+
+		/*
+		 * Return error but don't reset the environment yet.
+		 * We'll try to restore it from the old location.
+		 */
+		if (old_env_tries) {
+			old_env_tries--;
+			return -ENOMSG;
+		}
+#endif
 		env_set_default("bad CRC", 0);
 		return -ENOMSG;
 	}
@@ -418,6 +479,9 @@ int env_export(env_t *env_out)
 {
 	char *res;
 	ssize_t	len;
+#if defined(CONFIG_ENV_AES_CAAM_KEY) || defined(CONFIG_ENV_AES_CCMP1)
+	int ret;
+#endif
 
 	res = (char *)env_out->data;
 	len = hexport_r(&env_htab, '\0', 0, &res, ENV_SIZE, 0, NULL);
@@ -425,6 +489,13 @@ int env_export(env_t *env_out)
 		pr_err("Cannot export environment: errno = %d\n", errno);
 		return 1;
 	}
+
+	/* Encrypt the env if desired. */
+#if defined(CONFIG_ENV_AES_CAAM_KEY) || defined(CONFIG_ENV_AES_CCMP1)
+	ret = env_aes_cbc_crypt(env_out, 1);
+	if (ret)
+		return ret;
+#endif
 
 	env_out->crc = crc32(0, env_out->data, ENV_SIZE);
 

@@ -232,6 +232,8 @@ int lists_bind_fdt(struct udevice *parent, ofnode node, struct udevice **devp,
 			}
 			ret = driver_check_compatible(entry->of_match, &id,
 						      compat);
+			if ((drv) && (drv == entry))
+				break;
 			if (!ret)
 				break;
 		}

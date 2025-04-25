@@ -26,12 +26,10 @@ obj-$(CONFIG_MXS_OTP) += cmd_mxsotp.o
 obj-y += carrier_board.o
 obj-$(CONFIG_AUTO_BOOTSCRIPT) += helper.o
 obj-$(CONFIG_CMD_UPDATE_MMC) += helper.o helper_mmc.o
-obj-$(CONFIG_CMD_UPDATE_NAND) += helper.o
+obj-$(CONFIG_CMD_UPDATE_NAND) += helper.o helper_nand.o
 obj-$(CONFIG_CMD_DBOOT) += helper.o
 obj-$(CONFIG_CMD_DIGI_PMIC) += cmd_pmic.o
-obj-$(CONFIG_MCA_TAMPER) += tamper.o
 obj-$(CONFIG_AUTH_ARTIFACTS) += auth.o
 endif
 obj-$(CONFIG_HAS_HWID) += hwid.o
-obj-$(CONFIG_MCA) += mca.o
 obj-y += env.o

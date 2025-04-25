@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
+/*
+ * Copyright (C) 2023, Digi International Inc - All Rights Reserved
+ */
+
+/* Include minimum dt file for u-boot */
+#include "ccmp15-dvk-u-boot.dtsi"
+/* Include DDR configuration */
+#include "ccmp1-ddr3l-1x8Gb-1066-binG.dtsi"
+#define DDR_MEM_COMPATIBLE ddr3l-ccmp1
+#include "stm32mp15-ddr.dtsi"
+
+/ {
+	reserved-memory {
+		u-boot,dm-spl;
+
+		/* Reserve the upper 32 MiB */
+		optee@fe000000 {
+			reg = <0xfe000000 0x2000000>;
+			u-boot,dm-spl;
+		};
+	};
+};

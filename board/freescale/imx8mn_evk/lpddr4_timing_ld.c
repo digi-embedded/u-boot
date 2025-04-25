@@ -1,6 +1,7 @@
-// SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright 2019 NXP
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
  *
  * Generated code from MX8M_DDR_tool
  * Align with uboot version:
@@ -713,6 +714,7 @@ struct dram_cfg_param ddr_fsp0_cfg[] = {
 	{ 0xd0000, 0x1 },
 };
 
+
 /* P1 message block paremeter for training firmware */
 struct dram_cfg_param ddr_fsp1_cfg[] = {
 	{ 0xd0000, 0x0 },
@@ -751,6 +753,7 @@ struct dram_cfg_param ddr_fsp1_cfg[] = {
 	{ 0xd0000, 0x1 },
 };
 
+
 /* P2 message block paremeter for training firmware */
 struct dram_cfg_param ddr_fsp2_cfg[] = {
 	{ 0xd0000, 0x0 },
@@ -788,6 +791,7 @@ struct dram_cfg_param ddr_fsp2_cfg[] = {
 	{ 0x5403d, 0x1600 },
 	{ 0xd0000, 0x1 },
 };
+
 
 /* P0 2D message block paremeter for training firmware */
 struct dram_cfg_param ddr_fsp0_2d_cfg[] = {
@@ -1438,3 +1442,4 @@ struct dram_timing_info dram_timing = {
 	.ddrphy_pie_num = ARRAY_SIZE(ddr_phy_pie),
 	.fsp_table = { 1600, 400, 100, },
 };
+

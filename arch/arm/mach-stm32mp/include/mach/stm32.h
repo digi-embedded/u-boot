@@ -232,6 +232,10 @@ enum {
 	STM32MP_SYSCON_UNKNOWN,
 	STM32MP_SYSCON_SYSCFG,
 };
+
+bool is_usb_boot(void);
+#define	is_boot_from_usb  is_usb_boot
+#define disconnect_from_pc()
 #endif /* __ASSEMBLY__*/
 
 #endif /* _MACH_STM32_H_ */

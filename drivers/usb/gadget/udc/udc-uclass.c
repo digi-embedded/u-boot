@@ -53,9 +53,26 @@ int usb_gadget_release(int index)
 
 int usb_gadget_handle_interrupts(int index)
 {
+#ifdef DIGI_IMX_FAMILY
+	const struct driver *drv;
+#endif
+
 	if (index < 0 || index >= ARRAY_SIZE(dev_array))
 		return -EINVAL;
+
+#ifdef DIGI_IMX_FAMILY
+	drv = dev_array[index]->driver;
+	assert(drv);
+
+	if (drv->handle_interrupts)
+		return drv->handle_interrupts(dev_array[index]);
+	else
+		pr_err("No handle_interrupts function found\n");
+
+	return -EINVAL;
+#else
 	return dm_usb_gadget_handle_interrupts(dev_array[index]);
+#endif
 }
 #endif
 

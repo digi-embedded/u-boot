@@ -37,9 +37,9 @@
 * Returns zero on success,and negative on error.
 */
 #ifdef CONFIG_IMX_CAAM_DEK_ENCAP
-static int blob_encap_dek(u32 src_addr, u32 dst_addr, u32 len)
+static int blob_encap_dek(uint32_t src_addr, uint32_t dst_addr, uint32_t len)
 {
-	u8 *src_ptr, *dst_ptr;
+	uint8_t *src_ptr, *dst_ptr;
 
 	src_ptr = map_sysmem(src_addr, len / 8);
 	dst_ptr = map_sysmem(dst_addr, BLOB_SIZE(len / 8));
@@ -68,7 +68,7 @@ static int blob_encap_dek(u32 src_addr, u32 dst_addr, u32 len)
 
 #define OPTEE_BLOB_HDR_SIZE		8
 
-static int blob_encap_dek(u32 src_addr, u32 dst_addr, u32 len)
+static int blob_encap_dek(uint32_t src_addr, uint32_t dst_addr, uint32_t len)
 {
 	struct udevice *dev = NULL;
 	struct tee_shm *shm_input, *shm_output;
@@ -80,7 +80,7 @@ static int blob_encap_dek(u32 src_addr, u32 dst_addr, u32 len)
 
 	/* Get tee device */
 	dev = tee_find_device(NULL, NULL, NULL, NULL);
-	if (!dev) {
+	if (dev == NULL) {
 		printf("Cannot get OP-TEE device\n");
 		return -1;
 	}
@@ -159,13 +159,13 @@ error:
 #define DEK_BLOB_HDR_SIZE			8
 #define SECO_PT					2U
 
-static int blob_encap_dek(u32 src_addr, u32 dst_addr, u32 len)
+static int blob_encap_dek(uint32_t src_addr, uint32_t dst_addr, uint32_t len)
 {
 	int err;
 	sc_rm_mr_t mr_input, mr_output;
 	struct generate_key_blob_hdr hdr;
-	u8 in_size, out_size;
-	u8 *src_ptr, *dst_ptr;
+	uint8_t in_size, out_size;
+	uint8_t *src_ptr, *dst_ptr;
 	int ret = 0;
 	int i;
 
@@ -218,16 +218,18 @@ static int blob_encap_dek(u32 src_addr, u32 dst_addr, u32 len)
 	flush_dcache_range(src_addr, src_addr + in_size);
 
 	/* Find input memory region */
-	err = sc_rm_find_memreg((-1), &mr_input, src_addr & ~(CONFIG_SYS_CACHELINE_SIZE - 1),
-				ALIGN(src_addr + in_size, CONFIG_SYS_CACHELINE_SIZE));
+	err = sc_rm_find_memreg(
+		(-1), &mr_input, src_addr & ~(CONFIG_SYS_CACHELINE_SIZE - 1),
+		ALIGN(src_addr + in_size, CONFIG_SYS_CACHELINE_SIZE));
 	if (err) {
 		printf("Error: find memory region 0x%X\n", src_addr);
 		return -ENOMEM;
 	}
 
 	/* Find output memory region */
-	err = sc_rm_find_memreg((-1), &mr_output, dst_addr & ~(CONFIG_SYS_CACHELINE_SIZE - 1),
-				ALIGN(dst_addr + out_size, CONFIG_SYS_CACHELINE_SIZE));
+	err = sc_rm_find_memreg(
+		(-1), &mr_output, dst_addr & ~(CONFIG_SYS_CACHELINE_SIZE - 1),
+		ALIGN(dst_addr + out_size, CONFIG_SYS_CACHELINE_SIZE));
 	if (err) {
 		printf("Error: find memory region 0x%X\n", dst_addr);
 		return -ENOMEM;
@@ -386,9 +388,9 @@ static int do_dek_blob(struct cmd_tbl *cmdtp, int flag, int argc,
 	if (argc != 4)
 		return CMD_RET_USAGE;
 
-	src_addr = hextoul(argv[1], NULL);
-	dst_addr = hextoul(argv[2], NULL);
-	len = dectoul(argv[3], NULL);
+	src_addr = simple_strtoul(argv[1], NULL, 16);
+	dst_addr = simple_strtoul(argv[2], NULL, 16);
+	len = simple_strtoul(argv[3], NULL, 10);
 
 	return blob_encap_dek(src_addr, dst_addr, len);
 }

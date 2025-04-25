@@ -23,6 +23,10 @@
 #include <mapmem.h>
 #include <asm/byteorder.h>
 #include <asm/io.h>
+#include <asm/mach-imx/hab.h>
+#ifdef CONFIG_AUTH_ARTIFACTS
+#include "../board/digi/common/auth.h"
+#endif
 
 static int do_source(struct cmd_tbl *cmdtp, int flag, int argc,
 		     char *const argv[])
@@ -49,6 +53,18 @@ static int do_source(struct cmd_tbl *cmdtp, int flag, int argc,
 		debug("*  source: cmdline image address = 0x%08lx\n", addr);
 	}
 
+#ifdef CONFIG_AUTH_ARTIFACTS
+	ulong img_size;
+	const image_header_t *img_hdr = (const image_header_t *)addr;
+	if (img_hdr == NULL)
+		return CMD_RET_FAILURE;
+
+	img_size = image_get_image_size(img_hdr);
+	if (digi_auth_image(&addr, img_size) != 0) {
+		printf("Authenticate Image Fail, Please check\n");
+		return CMD_RET_FAILURE;
+	}
+#endif /* CONFIG_AUTH_ARTIFACTS */
 	printf ("## Executing script at %08lx\n", addr);
 	rcode = cmd_source_script(addr, fit_uname, confname);
 	return rcode;

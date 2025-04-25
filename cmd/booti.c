@@ -15,6 +15,22 @@
 #include <asm/global_data.h>
 #include <linux/kernel.h>
 #include <linux/sizes.h>
+#ifdef CONFIG_AUTH_ARTIFACTS
+#include "../board/digi/common/auth.h"
+/* See Documentation/arm64/booting.txt in the Linux kernel */
+struct Image_header {
+	uint32_t        code0;          /* Executable code */
+	uint32_t        code1;          /* Executable code */
+	uint64_t        text_offset;    /* Image load offset, LE */
+	uint64_t        image_size;     /* Effective Image size, LE */
+	uint64_t        flags;          /* Kernel flags, LE */
+	uint64_t        res2;           /* reserved */
+	uint64_t        res3;           /* reserved */
+	uint64_t        res4;           /* reserved */
+	uint32_t        magic;          /* Magic number */
+	uint32_t        res5;
+};
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 /*
@@ -73,6 +89,20 @@ static int booti_start(struct cmd_tbl *cmdtp, int flag, int argc,
 		memmove((void *) ld, (void *)dest, dest_end);
 	}
 	unmap_sysmem((void *)ld);
+
+#ifdef CONFIG_AUTH_ARTIFACTS
+	uint64_t img_size;
+	struct Image_header *img_hdr = (struct Image_header *)ld;
+
+	if (img_hdr == NULL)
+		return CMD_RET_FAILURE;
+
+	img_size = le64_to_cpu(img_hdr->image_size);
+	if (digi_auth_image(&ld, img_size) != 0) {
+		printf("Authenticate Image Fail, Please check\n");
+		return 1;
+	}
+#endif /* CONFIG_AUTH_ARTIFACTS */
 
 	ret = booti_setup(ld, &relocated_addr, &image_size, false);
 	if (ret != 0)

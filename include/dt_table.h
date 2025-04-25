@@ -44,6 +44,7 @@ struct dt_table_entry {
 	u32 id;			/* optional, must be zero if unused */
 	u32 rev;		/* optional, must be zero if unused */
 	u32 custom[4];		/* optional, must be zero if unused */
+	char fdt_fname[256];	/* DTB file basename */
 };
 
 #endif
