@@ -41,6 +41,10 @@
 	};
 };
 
+&scmi {
+	bootph-some-ram;
+};
+
 &uart4 {
 	bootph-all;
 };
