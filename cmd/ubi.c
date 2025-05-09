@@ -824,7 +824,6 @@ int ubi_part(char *part_name, const char *vid_header_offset)
 	int err = 0;
 
 	if (ubi && ubi->mtd && !strcmp(ubi->mtd->name, part_name)) {
-		printf("UBI partition '%s' already selected\n", part_name);
 		return 0;
 	}
 
