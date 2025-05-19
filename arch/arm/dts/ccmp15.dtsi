@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
 /*
  * Copyright (C) STMicroelectronics 2019 - All Rights Reserved
- * Copyright (C) 2022-2024 Digi International Inc - All Rights Reserved
+ * Copyright (C) 2022-2025 Digi International Inc - All Rights Reserved
  */
 
 #include "stm32mp157.dtsi"
@@ -156,6 +156,11 @@
 
 &crc1 {
 	status = "okay";
+};
+
+&cryp1 {
+	clocks = <&scmi_clk CK_SCMI_CRYP1>;
+	resets = <&scmi_reset RST_SCMI_CRYP1>;
 };
 
 &dac {
