@@ -4,6 +4,7 @@ menu "Boot images"
 
 config AUTH_ARTIFACTS
 	bool "Support boot artifact authentication"
+	depends on IMX_HAB || AHAB_BOOT
 	select SIGN_IMAGE
 	help
 	  Enable this option to support authentication of signed/encrypted boot

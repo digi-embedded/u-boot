@@ -531,12 +531,10 @@ int boot_get_ramdisk(char const *select, struct bootm_headers *images,
 	      *rd_start, *rd_end);
 
 #ifdef CONFIG_AUTH_DISCRETE_ARTIFACTS
-#if defined(CONFIG_IMX_HAB) || defined(CONFIG_AHAB_BOOT)
 	if (rd_data && trustfence_is_closed() && !authenticated) {
 		printf("Ramdisk authentication is not supported\n");
 		return 1;
 	}
-#endif /* CONFIG_IMX_HAB || CONFIG_AHAB_BOOT */
 #endif /* CONFIG_AUTH_DISCRETE_ARTIFACTS */
 
 	return 0;
