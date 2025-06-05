@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2020 Digi International Inc.
+ * Copyright 2020-2025 Digi International Inc.
  */
 
+#include "imx8mn-u-boot.dtsi"
 #include "imx8mn-sec-def.h"
 
 /{
@@ -11,26 +12,6 @@
 		rtc = <&mca_rtc>;
 		offset = <0x00b0>;
 	};
-
-	aliases {
-		usbgadget0 = &usbg1;
-	};
-
-	usbg1: usbg1 {
-		compatible = "fsl,imx27-usb-gadget";
-		dr_mode = "peripheral";
-		chipidea,usb = <&usbotg1>;
-		status = "okay";
-	};
-
-#ifdef CONFIG_OPTEE
-	firmware {
-		optee {
-			compatible = "linaro,optee-tz";
-			method = "smc";
-		};
-	};
-#endif
 
 	mcu_rdc {
 		compatible = "imx8m,mcu_rdc";
@@ -72,61 +53,6 @@
 			  >;
 	};
 };
-
-&{/soc@0} {
-	bootph-all;
-	bootph-pre-ram;
-};
-
-&aips1 {
-	bootph-pre-ram;
-	bootph-all;
-};
-
-&aips2 {
-	bootph-pre-ram;
-};
-
-&aips3 {
-	bootph-pre-ram;
-};
-
-&clk {
-	bootph-pre-ram;
-	bootph-all;
-	/delete-property/ assigned-clocks;
-	/delete-property/ assigned-clock-parents;
-	/delete-property/ assigned-clock-rates;
-};
-
-#ifdef CONFIG_FSL_CAAM
-&crypto {
-	bootph-pre-ram;
-};
-#endif
-
-&iomuxc {
-	bootph-pre-ram;
-};
-
-&osc_24m {
-	bootph-pre-ram;
-	bootph-all;
-};
-
-#ifdef CONFIG_FSL_CAAM
-&sec_jr0 {
-	bootph-pre-ram;
-};
-
-&sec_jr1 {
-	bootph-pre-ram;
-};
-
-&sec_jr2 {
-	bootph-pre-ram;
-};
-#endif
 
 &pinctrl_uart1 {
         bootph-pre-ram;
@@ -170,4 +96,38 @@
 
 &usdhc2 {
 	bootph-pre-ram;
+};
+
+&tmu {
+	bootph-all;
+};
+
+&i2c1 {
+	bootph-pre-ram;
+};
+
+&{/soc@0/bus@30800000/i2c@30a20000/pca9450@25} {
+	bootph-pre-ram;
+};
+
+&{/soc@0/bus@30800000/i2c@30a20000/pca9450@25/regulators} {
+	bootph-pre-ram;
+};
+
+&pinctrl_i2c1 {
+	bootph-pre-ram;
+};
+
+&pinctrl_i2c1_gpio {
+	bootph-pre-ram;
+};
+
+&pinctrl_pmic {
+	bootph-pre-ram;
+};
+
+&mipi_dsi {
+	/delete-property/ assigned-clocks;
+	/delete-property/ assigned-clock-parents;
+	/delete-property/ assigned-clock-rates;
 };

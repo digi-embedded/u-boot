@@ -3,6 +3,8 @@
  * Copyright 2021-2025 Digi International Inc.
  */
 
+#include "imx8mm-u-boot.dtsi"
+
 /{
 	bootcount {
 		compatible = "u-boot,bootcount-rtc";
@@ -18,61 +20,19 @@
 		compatible = "fsl,imx27-usb-gadget";
 		dr_mode = "peripheral";
 		chipidea,usb = <&usbotg1>;
-		bootph-pre-ram;
 		status = "okay";
 	};
-
-	firmware {
-		optee {
-    		compatible = "linaro,optee-tz";
-    		method = "smc";
-        };
-    };
 };
 
-&{/soc@0} {
-	bootph-pre-ram;
-};
-
-&clk {
-	bootph-pre-ram;
-	/delete-property/ assigned-clocks;
-	/delete-property/ assigned-clock-parents;
-	/delete-property/ assigned-clock-rates;
-};
-
-&osc_24m {
-	bootph-pre-ram;
-};
-
-&aips1 {
-	bootph-pre-ram;
-};
-
-&aips2 {
-
-	bootph-pre-ram;
-};
-
-&aips3 {
-	bootph-pre-ram;
-};
-
-&i2c1 {
-	bootph-pre-ram;
-};
-
-&iomuxc {
+&aips4 {
 	bootph-pre-ram;
 };
 
 &pinctrl_uart1 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
 &pinctrl_usdhc2_gpio {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
@@ -84,45 +44,69 @@
 	bootph-pre-ram;
 };
 
-&pmic {
-	bootph-some-ram;
-	bootph-pre-ram;
-
-	regulators {
-		bootph-pre-ram;
-	};
-};
-
 &gpio1 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
 &gpio2 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
 &gpio3 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
 &gpio4 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
 &gpio5 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
 &uart1 {
-	bootph-some-ram;
+	bootph-pre-ram;
+};
+
+&usbmisc1 {
+	bootph-pre-ram;
+};
+
+&usbphynop1 {
+	bootph-pre-ram;
+};
+
+&usbotg1 {
 	bootph-pre-ram;
 };
 
 &usdhc2 {
 	bootph-pre-ram;
+	fsl,signal-voltage-switch-extra-delay-ms = <8>;
+};
+
+&i2c1 {
+	bootph-pre-ram;
+};
+
+&{/soc@0/bus@30800000/i2c@30a20000/pca9450@25} {
+	bootph-pre-ram;
+};
+
+&{/soc@0/bus@30800000/i2c@30a20000/pca9450@25/regulators} {
+	bootph-pre-ram;
+};
+
+&pinctrl_i2c1 {
+	bootph-pre-ram;
+};
+
+&pinctrl_pmic {
+	bootph-pre-ram;
+};
+
+&mipi_dsi {
+	/delete-property/ assigned-clocks;
+	/delete-property/ assigned-clock-parents;
+	/delete-property/ assigned-clock-rates;
 };
