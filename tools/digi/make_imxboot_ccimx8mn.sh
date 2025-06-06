@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 usage() {
         cat <<EOF
 
