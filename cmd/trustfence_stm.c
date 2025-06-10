@@ -20,11 +20,16 @@
 #include "../board/digi/common/helper.h"
 #include "../board/digi/common/trustfence.h"
 
+/*
+ * NOTE: This is a copy from cmd_stm32key.c
+ *       It requires to be updated from the original!
+ */
 struct stm32key {
 	char *name;
 	char *desc;
-	u8 start;
+	u16 start;
 	u8 size;
+	int (*post_process)(struct udevice *dev, const struct stm32key *key);
 };
 
 #define STM32_OTP_MODE_WORD			0
