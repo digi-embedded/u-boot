@@ -911,6 +911,7 @@ err:
 	printf("%s: fuse %d, err: %d\n", __func__, word[i], ret);
 }
 
+#define IMX8_MAX_CORES 4
 static int get_imx8_cores(void)
 {
 	sc_rm_pt_t owner;
