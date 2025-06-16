@@ -1,6 +1,5 @@
 config CCMP2
 	bool
-	select HAS_HWID
 
 config CCMP15
 	bool
@@ -12,19 +11,15 @@ config CCMP13
 
 config CCMP1
 	bool
-	select HAS_HWID
 
 config CC8M
 	bool
-	select HAS_HWID
 
 config CC8X
 	bool
-	select HAS_HWID
 
 config CC6UL
 	bool
-	select HAS_HWID
 
 config MCA
 	bool "Support for the Micro Controller Assist (MCA)"
@@ -119,6 +114,7 @@ config DIGI_UBI
 
 config HAS_HWID
 	bool
+	default y
 	help
 	  Platform supports a Hardware ID (HWID) on the OTP bits.
 
