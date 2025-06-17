@@ -203,6 +203,15 @@ static int passwd_abort_sha256(uint64_t etime)
 				return 0;
 			}
 
+			/*
+			 * Increase etime ends in less than one second, increase
+			 * it in another second to allow user to type more chars
+			 * (with a limit of 20).
+			 */
+			if ((abs(etime - get_ticks()) < get_tbclk()) &&
+			     presskey_len < 20)
+				etime += get_tbclk();
+
 			presskey[presskey_len++] = getchar();
 
 			/* Calculate sha256 upon each new char */
