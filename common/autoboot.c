@@ -352,7 +352,7 @@ static bool fallback_to_sha256(void)
 static int abortboot_key_sequence(int bootdelay)
 {
 	int abort;
-	uint64_t etime = endtick(bootdelay);
+	uint64_t etime;
 
 	if (IS_ENABLED(CONFIG_AUTOBOOT_FLUSH_STDIN))
 		flush_stdin();
@@ -364,6 +364,11 @@ static int abortboot_key_sequence(int bootdelay)
 	printf(CONFIG_AUTOBOOT_PROMPT, bootdelay);
 #  endif
 
+	/*
+	 * Set etime right before password input and give 1 extra second to
+	 * facilitate user input.
+	 */
+	etime =  endtick(bootdelay + 1);
 	if (IS_ENABLED(CONFIG_AUTOBOOT_ENCRYPTION)) {
 		if (IS_ENABLED(CONFIG_CRYPT_PW) && !fallback_to_sha256())
 			abort = passwd_abort_crypt(etime);
