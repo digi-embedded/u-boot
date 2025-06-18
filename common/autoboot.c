@@ -430,10 +430,12 @@ static int abortboot(int bootdelay)
 	int abort = 0;
 
 	if (bootdelay >= 0) {
-		if (autoboot_keyed())
+		if (autoboot_keyed()) {
 			abort = abortboot_key_sequence(bootdelay);
-		else
-			abort = abortboot_single_key(bootdelay);
+		} else {
+			if (!(gd->flags & GD_FLG_SILENT))
+				abort = abortboot_single_key(bootdelay);
+		}
 	}
 
 	if (IS_ENABLED(CONFIG_SILENT_CONSOLE) && abort)
