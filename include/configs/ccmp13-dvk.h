@@ -67,6 +67,7 @@
 	"fdt_addr=0xc4000000\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"fdt_high=0xffffffff\0"	  \
+	"fit_addr_r=" __stringify(CONFIG_DIGI_LZIPADDR) "\0" \
 	"initrd_addr=0xc4400000\0" \
 	"initrd_file=uramdisk.img\0" \
 	"initrd_high=0xffffffff\0" \
@@ -143,7 +144,8 @@
 		"fi;" \
 		"if test \"${boot_device}\" = mmc; then " \
 			"if test \"${dboot_kernel_var}\" = fitimage; then " \
-				"load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${fitimage};" \
+				"load mmc ${mmcdev}:${mmcpart} ${fit_addr_r} ${fitimage};" \
+				"env set source_fit_script ${fit_addr_r}:${fit-script}; " \
 			"else " \
 				"load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};" \
 			"fi;" \
@@ -151,7 +153,8 @@
 			"if ubi part " SYSTEM_PARTITION "; then " \
 				"if ubifsmount ubi0:${mtdbootpart}; then " \
 					"if test \"${dboot_kernel_var}\" = fitimage; then " \
-						"ubifsload ${loadaddr} ${fitimage};" \
+						"ubifsload ${fit_addr_r} ${fitimage};" \
+						"env set source_fit_script ${fit_addr_r}:${fit-script}; " \
 					"else " \
 						"ubifsload ${loadaddr} ${script};" \
 					"fi;" \
@@ -187,7 +190,7 @@
 #define CONFIG_BOOTCOMMAND \
 	"if run loadscript; then " \
 		"if test \"${dboot_kernel_var}\" = fitimage; then " \
-			"source ${loadaddr}:${fit-script};" \
+			"source ${source_fit_script};" \
 		"else " \
 			"source ${loadaddr};" \
 		"fi;" \

@@ -88,7 +88,7 @@ static int boot_os(char* initrd_addr, char* fdt_addr)
 	char *var;
 	char dboot_cmd[] = "bootz";	/* default */
 	void *fit_hdr = NULL;
-	ulong loadaddr;
+	ulong fitaddr;
 	int cfg_noffset;
 	const char *fit_base_uname_config = NULL;
 	char *original_overlay_list;
@@ -106,8 +106,8 @@ static int boot_os(char* initrd_addr, char* fdt_addr)
 
 	if (!strcmp(var, "fitimage")) {
 		/* Compose the FIT boot command with appended default FIT-conf and overlays */
-		loadaddr = env_get_ulong("loadaddr", 16, CONFIG_SYS_LOAD_ADDR);
-		fit_hdr = map_sysmem(loadaddr, 0);
+		fitaddr = env_get_ulong("fit_addr_r", 16, CONFIG_SYS_LOAD_ADDR);
+		fit_hdr = map_sysmem(fitaddr, 0);
 		/* get default FIT configuration */
 		cfg_noffset = fit_conf_get_node(fit_hdr, NULL);
 		if (cfg_noffset < 0) {
@@ -116,7 +116,7 @@ static int boot_os(char* initrd_addr, char* fdt_addr)
 		}
 		/* Append base device tree to default boot cmd */
 		fit_base_uname_config = fdt_get_name(fit_hdr, cfg_noffset, NULL);
-		sprintf(cmd, "%s $loadaddr#%s", dboot_cmd, fit_base_uname_config);
+		sprintf(cmd, "%s $fit_addr_r#%s", dboot_cmd, fit_base_uname_config);
 		/* Copy the variable to avoid modifying it in memory */
 		original_overlay_list = env_get("overlays");
 		if (original_overlay_list)
@@ -217,7 +217,7 @@ static int do_dboot(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv
 
 	/* Load firmware file to RAM */
 	fwinfo.compressed = is_image_compressed();
-	strncpy(fwinfo.loadaddr, "$loadaddr", sizeof(fwinfo.loadaddr));
+	strncpy(fwinfo.loadaddr, is_fit ? "$fit_addr_r" : "$loadaddr", sizeof(fwinfo.loadaddr));
 	strncpy(fwinfo.lzipaddr, "$lzipaddr", sizeof(fwinfo.lzipaddr));
 
 	/* Get type of kernel image to boot */
