@@ -96,7 +96,7 @@
 		"fi;" \
 		"if test \"${dboot_kernel_var}\" = fitimage; then " \
 			"load mmc ${mmcbootdev}:${mmcpart} ${fit_addr_r} ${fitimage}; " \
-			"env set source_fit_script ${fit_addr_r}:${fit-script}; " \
+			"source_fit_script=\"${fit_addr_r}:${fit-script}\"; " \
 		"else " \
 			"load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}; " \
 		"fi;\0" \
