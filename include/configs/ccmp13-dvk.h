@@ -142,7 +142,11 @@
 			"fi;" \
 		"fi;" \
 		"if test \"${boot_device}\" = mmc; then " \
-			"load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};" \
+			"if test \"${dboot_kernel_var}\" = fitimage; then " \
+				"load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${fitimage};" \
+			"else " \
+				"load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};" \
+			"fi;" \
 		"else " \
 			"if ubi part " SYSTEM_PARTITION "; then " \
 				"if ubifsmount ubi0:${mtdbootpart}; then " \
