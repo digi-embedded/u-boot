@@ -9,7 +9,6 @@
 #include <malloc.h>
 #include <command.h>
 
-bool bmode_reset = false;
 static const struct boot_mode *modes[2];
 
 static const struct boot_mode *search_modes(char *arg)
@@ -89,12 +88,8 @@ static int do_boot_mode(struct cmd_tbl *cmdtp, int flag, int argc,
 	boot_mode_apply(p->cfg_val);
 #endif
 
-	if (reset_requested && p->cfg_val) {
-		/* Set flag to indicate bmode reset */
-		bmode_reset = true;
+	if (reset_requested && p->cfg_val)
 		do_reset(NULL, 0, 0, NULL);
-	}
-
 	return 0;
 }
 

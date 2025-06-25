@@ -40,7 +40,6 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-extern bool bmode_reset;
 static struct digi_hwid my_hwid;
 
 #define MDIO_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_PUE |     \
@@ -345,6 +344,12 @@ static const struct boot_mode board_boot_modes[] = {
 	{"nand", MAKE_CFGVAL(0x90, 0x28, 0x00, 0x00)},
 	{NULL,	 0},
 };
+static u32 boot_bmode;
+
+static u32 get_boot_mode(void)
+{
+	return (imx6_src_get_boot_mode() & IMX6_BMODE_MASK) >> IMX6_BMODE_SHIFT;
+}
 #endif
 
 void generate_ubi_volumes_script(void)
@@ -448,6 +453,7 @@ int ccimx6ul_late_init(void)
 {
 #ifdef CONFIG_CMD_BMODE
 	add_board_boot_modes(board_boot_modes);
+	boot_bmode = get_boot_mode();
 #endif
 
 #ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
@@ -486,12 +492,16 @@ void print_ccimx6ul_info(void)
  */
 void board_reset(void)
 {
+#ifdef CONFIG_CMD_BMODE
+	u32 reset_bmode = get_boot_mode();
+
 	/*
-	 * If a bmode_reset was flagged, do not reset through the MCA, which
-	 * would otherwise power-cycle the CPU.
+	 * If the boot mode changed (using the bmode command), do not reset
+	 * through the MCA, as this would otherwise power-cycle the CPU.
 	 */
-	if (bmode_reset)
+	if (reset_bmode != boot_bmode)
 		return;
+#endif
 
 	mca_reset();
 
