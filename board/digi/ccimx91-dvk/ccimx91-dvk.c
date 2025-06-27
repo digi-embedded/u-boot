@@ -307,10 +307,11 @@ static int setup_rv3028(void)
 		return -ENODEV;
 
 	/* Check BSM configuration */
-	bsm = dm_i2c_reg_read(rtc, RV3028_BACKUP);
-	if (bsm < 0) {
+	ret = dm_i2c_reg_read(rtc, RV3028_BACKUP);
+	if (ret < 0)
 		return -EIO;
-	} else if (FIELD_GET(RV3028_BACKUP_BSM, bsm) == RV3028_BACKUP_BSM_LSM) {
+	bsm = (u8)ret;
+	if (FIELD_GET(RV3028_BACKUP_BSM, bsm) == RV3028_BACKUP_BSM_LSM) {
 		debug("%s: BSM already configured to LSM\n", __func__);
 		return 0;
 	}
