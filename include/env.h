@@ -363,6 +363,8 @@ void env_set_default(const char *s, int flags);
  */
 void env_reloc(void);
 
+long long env_get_offset(long long default_offset);
+long long env_get_offset_redund(long long default_offset);
 
 /**
  * env_import_fdt() - Import environment values from device tree blob

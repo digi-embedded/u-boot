@@ -203,6 +203,15 @@ static int passwd_abort_sha256(uint64_t etime)
 				return 0;
 			}
 
+			/*
+			 * Increase etime ends in less than one second, increase
+			 * it in another second to allow user to type more chars
+			 * (with a limit of 20).
+			 */
+			if ((abs(etime - get_ticks()) < get_tbclk()) &&
+			     presskey_len < 20)
+				etime += get_tbclk();
+
 			presskey[presskey_len++] = getchar();
 
 			/* Calculate sha256 upon each new char */
@@ -343,7 +352,7 @@ static bool fallback_to_sha256(void)
 static int abortboot_key_sequence(int bootdelay)
 {
 	int abort;
-	uint64_t etime = endtick(bootdelay);
+	uint64_t etime;
 
 	if (IS_ENABLED(CONFIG_AUTOBOOT_FLUSH_STDIN))
 		flush_stdin();
@@ -355,6 +364,11 @@ static int abortboot_key_sequence(int bootdelay)
 	printf(CONFIG_AUTOBOOT_PROMPT, bootdelay);
 #  endif
 
+	/*
+	 * Set etime right before password input and give 1 extra second to
+	 * facilitate user input.
+	 */
+	etime =  endtick(bootdelay + 1);
 	if (IS_ENABLED(CONFIG_AUTOBOOT_ENCRYPTION)) {
 		if (IS_ENABLED(CONFIG_CRYPT_PW) && !fallback_to_sha256())
 			abort = passwd_abort_crypt(etime);
@@ -416,10 +430,12 @@ static int abortboot(int bootdelay)
 	int abort = 0;
 
 	if (bootdelay >= 0) {
-		if (autoboot_keyed())
+		if (autoboot_keyed()) {
 			abort = abortboot_key_sequence(bootdelay);
-		else
-			abort = abortboot_single_key(bootdelay);
+		} else {
+			if (!(gd->flags & GD_FLG_SILENT))
+				abort = abortboot_single_key(bootdelay);
+		}
 	}
 
 	if (IS_ENABLED(CONFIG_SILENT_CONSOLE) && abort)

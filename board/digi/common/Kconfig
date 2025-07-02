@@ -1,22 +1,25 @@
 config CCMP2
 	bool
-	select HAS_HWID
+
+config CCMP15
+	bool
+	select CCMP1
+
+config CCMP13
+	bool
+	select CCMP1
 
 config CCMP1
 	bool
-	select HAS_HWID
 
 config CC8M
 	bool
-	select HAS_HWID
 
 config CC8X
 	bool
-	select HAS_HWID
 
 config CC6UL
 	bool
-	select HAS_HWID
 
 config MCA
 	bool "Support for the Micro Controller Assist (MCA)"
@@ -92,7 +95,7 @@ config DIGI_UPDATE_ADDR
 config DIGI_LZIPADDR
 	hex "RAM address where to place compressed image (to be decompressed)"
 	default 0x94000000 if CCMP2
-	default 0xc4000000 if CCMP1
+	default 0xc8400000 if CCMP1
 	default 0x44000000 if CC8M
 	default 0x8C000000 if CC8X
 	default 0x82000000 if CC6UL
@@ -111,6 +114,7 @@ config DIGI_UBI
 
 config HAS_HWID
 	bool
+	default y
 	help
 	  Platform supports a Hardware ID (HWID) on the OTP bits.
 
@@ -161,6 +165,10 @@ endif
 
 endif
 
+config CUSTOM_HUK
+	bool
+	default y if CCMP15
+
 config DIGI_FAMILY_ID
 	int "Digi Family ID for Serial Number composition"
 	default 1 if CC8X
@@ -185,6 +193,7 @@ config HAS_TRUSTFENCE
 	default y if CC8M
 	default y if CC6UL
 	default y if CCMP1
+	default y if CCMP2
 
 if HAS_TRUSTFENCE
 config CMD_TRUSTFENCE_NXP
@@ -196,4 +205,5 @@ config CMD_TRUSTFENCE_NXP
 config CMD_TRUSTFENCE_STM
 	bool
 	default y if CCMP1
+	default y if CCMP2
 endif

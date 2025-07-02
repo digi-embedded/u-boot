@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
+/*
+ * Copyright (C) 2024, Digi International Inc - All Rights Reserved
+ */
+
+/ {
+	memory@c0000000 {
+		device_type = "memory";
+		reg = <0xc0000000 0x10000000>; /* 256 MiB */
+	};
+
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		/* Reserve the upper 48 MiB */
+		optee@cd000000 {
+			reg = <0xcd000000 0x3000000>;
+			no-map;
+		};
+	};
+};

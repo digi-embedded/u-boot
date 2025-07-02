@@ -1,0 +1,21 @@
+sh_binary_host {
+    name: "trustfence-sign-uboot.sh",
+    src: "sign.sh",
+    required: ["encrypt_uboot", "sign_uboot"],
+}
+
+cc_prebuilt_binary {
+    name: "encrypt_uboot",
+    srcs: ["csf_templates/encrypt_uboot"],
+    device_supported: false,
+    host_supported: true,
+    relative_install_path: "csf_templates",
+}
+
+cc_prebuilt_binary {
+    name: "sign_uboot",
+    srcs: ["csf_templates/sign_uboot"],
+    device_supported: false,
+    host_supported: true,
+    relative_install_path: "csf_templates",
+}

@@ -1,10 +1,13 @@
-// SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright 2014-2016 Freescale Semiconductor, Inc.
  * Copyright 2017 NXP
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ *
  */
 
 #include <common.h>
+#include <cpu_func.h>
 #include <errno.h>
 #include <fsl_sec.h>
 #include <memalign.h>
@@ -93,7 +96,7 @@ int gen_mppubk(u8 *dst)
 	flush_dcache_range((unsigned long)dst, (unsigned long)dst + size);
 
 	/* Execute Job Descriptor */
-	puts("\nGenerating Manufacturing Protection Public Key\n");
+	debug("\nGenerating Manufacturing Protection Public Key\n");
 
 	ret = run_descriptor_jr(dsc);
 	if (ret) {

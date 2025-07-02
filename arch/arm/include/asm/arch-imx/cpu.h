@@ -51,7 +51,8 @@
 #define MXC_CPU_IMX8QXP_A0	0x90 /* dummy ID */
 #define MXC_CPU_IMX8QM		0x91 /* dummy ID */
 #define MXC_CPU_IMX8QXP		0x92 /* dummy ID */
-
+#define MXC_CPU_IMX8DX		0x93 /* dummy ID */
+#define MXC_CPU_IMX8DXL     0x9E /* dummy ID */
 #define MXC_CPU_IMX8ULP		0xA1 /* dummy ID */
 
 #define MXC_CPU_IMXRT1020	0xB4 /* dummy ID */
@@ -91,6 +92,8 @@
 #define CHIP_REV_A		0x0
 #define CHIP_REV_B		0x1
 #define CHIP_REV_C		0x2
+#define CHIP_REV_A1		0x11
+#define CHIP_REV_A2		0x12
 
 #define BOARD_REV_1_0           0x0
 #define BOARD_REV_2_0           0x1

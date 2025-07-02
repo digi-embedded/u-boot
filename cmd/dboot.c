@@ -82,32 +82,51 @@ static int set_bootargs(int os, int src)
 	return run_command(cmd, 0);
 }
 
+static bool is_fitimage(void)
+{
+	char *var = env_get("dboot_kernel_var");
+
+	return var && !strcmp(var, "fitimage");
+}
+
 static int boot_os(char* initrd_addr, char* fdt_addr)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	char *var;
 	char dboot_cmd[] = "bootz";	/* default */
+	bool is_fit = false;
 	void *fit_hdr = NULL;
-	ulong loadaddr;
+	ulong fitaddr;
 	int cfg_noffset;
 	const char *fit_base_uname_config = NULL;
 	char *original_overlay_list;
 	char *overlay = NULL;
 
+	/*
+	 * Get kernel type looking at first char
+	 *
+	 * fitimage -> bootm
+	 * image    -> booti
+	 * imagegz  -> booti
+	 * uimage   -> bootm
+	 * zimage   -> bootz
+	 */
 	var = env_get("dboot_kernel_var");
-	if (var) {
-		if (!strcmp(var, "uimage") || !strcmp(var, "fitimage"))
-			strcpy(dboot_cmd, "bootm");
-		else if (!strcmp(var, "image"))
-			strcpy(dboot_cmd, "booti");
-		else if (!strcmp(var, "imagegz"))
-			strcpy(dboot_cmd, "booti");
+	switch (var[0]) {
+	case 'f':
+		is_fit = true;
+	case 'u':
+		strcpy(dboot_cmd, "bootm");
+		break;
+	case 'i':
+		strcpy(dboot_cmd, "booti");
+		break;
 	}
 
-	if (!strcmp(var, "fitimage")) {
+	if (is_fit) {
 		/* Compose the FIT boot command with appended default FIT-conf and overlays */
-		loadaddr = env_get_ulong("loadaddr", 16, CONFIG_LOADADDR);
-		fit_hdr = map_sysmem(loadaddr, 0);
+		fitaddr = env_get_ulong("fit_addr_r", 16, CONFIG_SYS_LOAD_ADDR);
+		fit_hdr = map_sysmem(fitaddr, 0);
 		/* get default FIT configuration */
 		cfg_noffset = fit_conf_get_node(fit_hdr, NULL);
 		if (cfg_noffset < 0) {
@@ -116,7 +135,7 @@ static int boot_os(char* initrd_addr, char* fdt_addr)
 		}
 		/* Append base device tree to default boot cmd */
 		fit_base_uname_config = fdt_get_name(fit_hdr, cfg_noffset, NULL);
-		sprintf(cmd, "%s $loadaddr#%s", dboot_cmd, fit_base_uname_config);
+		sprintf(cmd, "%s $fit_addr_r#%s", dboot_cmd, fit_base_uname_config);
 		/* Copy the variable to avoid modifying it in memory */
 		original_overlay_list = env_get("overlays");
 		if (original_overlay_list)
@@ -161,6 +180,7 @@ static int do_dboot(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv
 	unsigned long squashfs_raw_size;
 	unsigned long rootfs_auth_addr;
 #endif
+	bool is_fit = is_fitimage();
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -217,23 +237,18 @@ static int do_dboot(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv
 
 	/* Load firmware file to RAM */
 	fwinfo.compressed = is_image_compressed();
-	strncpy(fwinfo.loadaddr, "$loadaddr", sizeof(fwinfo.loadaddr));
+	strncpy(fwinfo.loadaddr, is_fit ? "$fit_addr_r" : "$loadaddr", sizeof(fwinfo.loadaddr));
 	strncpy(fwinfo.lzipaddr, "$lzipaddr", sizeof(fwinfo.lzipaddr));
 
-	/* Get type of kernel image to boot */
-	var = env_get("dboot_kernel_var");
-
 	/* Skip loading of image if it's a FIT image that's already loaded */
-	if (!strcmp(var, "fitimage") &&
-	    (env_get_yesno("temp-fitimg-loaded") == 1)) {
+	if (is_fit && (env_get_yesno("temp-fitimg-loaded") == 1)) {
 		/* clear temp variable */
 		printf("Skip re-loading of FIT image\n");
 		env_set("temp-fitimg-loaded", "");
 	} else {
 		char msg[256];
 
-		sprintf(msg, "\n## Loading %s",
-			strcmp(var, "fitimage") ? "kernel" : "fitImage");
+		sprintf(msg, "\n## Loading %s", is_fit ? "fitImage" : "kernel");
 		ret = load_firmware(&fwinfo, msg);
 		if (ret == LDFW_ERROR) {
 			printf("Error loading firmware file to RAM\n");
@@ -242,7 +257,7 @@ static int do_dboot(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv
 	}
 
 	/* Avoid loading other artifacts if it's a FIT image */
-	if (strcmp(var, "fitimage")) {
+	if (!is_fit) {
 		/* Get flattened Device Tree */
 		var = env_get("boot_fdt");
 		if (var)

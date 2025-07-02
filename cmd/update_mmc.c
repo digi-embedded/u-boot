@@ -346,7 +346,13 @@ static int do_update(struct cmd_tbl* cmdtp, int flag, int argc, char * const arg
 
 		partname = argv[1];
 		if (env_get_yesno("dualboot")) {
-			strcpy(str, env_get("active_system"));
+			const char *active = env_get("active_system");
+			if (active == NULL) {
+				printf("Error: 'active_system' variable is not defined, "
+					"using A system by default.\n");
+				active = "linux_a";
+			}
+			snprintf(str, sizeof(str), "%s", active);
 			if (!strcmp(partname, "linux")) {
 				partname = str;
 			} else if (!strcmp(partname, "rootfs")) {

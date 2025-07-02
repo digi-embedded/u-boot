@@ -418,7 +418,7 @@ static int eqos_phy_power_on_stm32(struct udevice *dev)
 
 #ifdef CONFIG_DM_REGULATOR
 	if (eqos->phy_supply) {
-		ret = regulator_set_enable(eqos->phy_supply, true);
+		ret = regulator_set_enable_if_allowed(eqos->phy_supply, true);
 		if (ret) {
 			printf("%s: Error enabling phy supply\n", dev->name);
 			return ret;

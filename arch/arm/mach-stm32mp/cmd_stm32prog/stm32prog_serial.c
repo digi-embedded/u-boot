@@ -14,7 +14,6 @@
 #include <dm/lists.h>
 #include <dm/device-internal.h>
 #include <linux/delay.h>
-#include <asm/global_data.h>
 #include "stm32prog.h"
 
 /* - configuration part -----------------------------*/
@@ -163,8 +162,8 @@ static int stm32prog_read(struct stm32prog_data *data, u8 phase, u32 offset,
 		dfu_entity->offset = offset;
 	data->offset = offset;
 	data->read_phase = phase;
-	log_debug("\nSTM32 download read %s offset=0x%x\n",
-		  dfu_entity->name, offset);
+	pr_debug("\nSTM32 download read %s offset=0x%x\n",
+		 dfu_entity->name, offset);
 	ret = dfu_read(dfu_entity, buffer, buffer_size,
 		       dfu_entity->i_blk_seq_num);
 	if (ret < 0) {
@@ -197,7 +196,7 @@ int stm32prog_serial_init(struct stm32prog_data *data, int link_dev)
 	down_serial_dev = NULL;
 
 	if (uclass_get_device_by_seq(UCLASS_SERIAL, link_dev, &dev)) {
-		log_err("serial %d device not found\n", link_dev);
+		pr_err("serial %d device not found\n", link_dev);
 		return -ENODEV;
 	}
 
@@ -212,11 +211,11 @@ int stm32prog_serial_init(struct stm32prog_data *data, int link_dev)
 	ops = serial_get_ops(down_serial_dev);
 
 	if (!ops) {
-		log_err("serial %d = %s missing ops\n", link_dev, dev->name);
+		pr_err("serial %d = %s missing ops\n", link_dev, dev->name);
 		return -ENODEV;
 	}
 	if (!ops->setconfig) {
-		log_err("serial %d = %s missing setconfig\n", link_dev, dev->name);
+		pr_err("serial %d = %s missing setconfig\n", link_dev, dev->name);
 		return -ENODEV;
 	}
 
@@ -729,8 +728,8 @@ static void read_partition_command(struct stm32prog_data *data)
 
 	rcv_data = stm32prog_serial_getc();
 	if (rcv_data != tmp_xor) {
-		log_debug("1st checksum received = %x, computed %x\n",
-			  rcv_data, tmp_xor);
+		pr_debug("1st checksum received = %x, computed %x\n",
+			 rcv_data, tmp_xor);
 		goto error;
 	}
 	stm32prog_serial_putc(ACK_BYTE);
@@ -742,12 +741,12 @@ static void read_partition_command(struct stm32prog_data *data)
 
 	rcv_data = stm32prog_serial_getc();
 	if ((rcv_data ^ tmp_xor) != 0xFF) {
-		log_debug("2nd checksum received = %x, computed %x\n",
-			  rcv_data, tmp_xor);
+		pr_debug("2nd checksum received = %x, computed %x\n",
+			 rcv_data, tmp_xor);
 		goto error;
 	}
 
-	log_debug("%s : %x\n", __func__, part_id);
+	pr_debug("%s : %x\n", __func__, part_id);
 	rcv_data = 0;
 	switch (part_id) {
 	case PHASE_OTP:

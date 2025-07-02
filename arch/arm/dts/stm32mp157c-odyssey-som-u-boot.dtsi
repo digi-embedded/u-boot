@@ -13,9 +13,11 @@
 	};
 };
 
+#ifndef CONFIG_TFABOOT
 &clk_hse {
 	st,digbypass;
 };
+#endif
 
 &i2c2 {
 	bootph-all;
@@ -32,6 +34,7 @@
 	bootph-all;
 };
 
+#ifndef CONFIG_TFABOOT
 &rcc {
 	st,clksrc = <
 		CLK_MPU_PLL1P
@@ -144,3 +147,4 @@
 		bootph-pre-ram;
 	};
 };
+#endif

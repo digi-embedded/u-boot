@@ -53,6 +53,7 @@
  * <offset>   := partition start offset within the device
  * <name>     := '(' NAME ')'
  * <ro-flag>  := when set to 'ro' makes partition read-only (not used, passed to kernel)
+ * <enc-flag> := when set to 'enc' makes partition encrypted (not used, passed to kernel)
  *
  * Notes:
  * - each <mtd-id> used in mtdparts must albo exist in 'mtddis' mapping
@@ -112,6 +113,9 @@ DECLARE_GLOBAL_DATA_PTR;
  * field for read-only partitions */
 #define MTD_WRITEABLE_CMD		1
 
+/* non encrypted partition */
+#define MTD_NONENCRYPTED                2
+
 /* default values for mtdids and mtdparts variables */
 #ifdef CONFIG_MTDIDS_DEFAULT
 #define MTDIDS_DEFAULT CONFIG_MTDIDS_DEFAULT
@@ -163,6 +167,40 @@ static struct part_info* mtd_part_info(struct mtd_device *dev, unsigned int part
 static struct mtdids* id_find_by_mtd_id(const char *mtd_id, unsigned int mtd_id_len);
 static int device_del(struct mtd_device *dev);
 
+#ifdef CONFIG_MTDPARTS_SKIP_INVALID
+int skip_counter = 0;
+/*
+ * find a seperator to locate the next entry
+ * @param p pointer of the pointer of input char string
+ * @param sp seperator charactor
+ * @param n find the nth seperator
+ * @param limit the looking scope
+ * @return 1 on success, otherwise 0
+ */
+static int find_seperator(const char **p, char sp, int n, int limit)
+{
+	int i, j;
+
+	/* n = 0 means do nothing */
+	if (!n)
+		return 1;
+
+	i = j = 0;
+
+	while (*p && (**p != '\0') && (i < limit)) {
+		if (**p == sp) {
+			(*p)++;
+			j++;
+			if (j == n)
+				return 1;
+		}
+		(*p)++;
+		i++;
+	}
+
+	return 0;
+}
+#endif
 /**
  * Parses a string into a number.  The number stored at ptr is
  * potentially suffixed with K (for kilobytes, or 1024 bytes),
@@ -665,6 +703,11 @@ static int part_parse(const char *const partdef, const char **ret, struct part_i
 		p += 2;
 	}
 
+        if (strncmp(p, "enc", 3) == 0) {
+                /* Encrypted partition, mask the nonencrypted bitmask */
+                mask_flags |= MTD_NONENCRYPTED;
+                p += 3;
+        }
 	/* check for next partition definition */
 	if (*p == ',') {
 		if (size == SIZE_REMAINING) {
@@ -1064,12 +1107,12 @@ int mtd_id_parse(const char *id, const char **ret_id, u8 *dev_type,
 		*dev_type = MTD_DEV_TYPE_SPINAND;
 		p += 8;
 	} else {
-		printf("incorrect device type in %s\n", id);
+		debug("incorrect device type in %s\n", id);
 		return 1;
 	}
 
 	if (!isdigit(*p)) {
-		printf("incorrect device number in %s\n", id);
+		debug("incorrect device number in %s\n", id);
 		return 1;
 	}
 
@@ -1173,6 +1216,17 @@ static int generate_mtdparts(char *buf, u32 buflen)
 				*(p++) = 'o';
 				maxlen -= 2;
 			}
+
+                        /* enc mask flag if non encryption bit is masked */
+                        if (part->mask_flags & MTD_NONENCRYPTED) {
+                                len = 3;
+                                if (len > maxlen)
+                                        goto cleanup;
+                                *(p++) = 'e';
+                                *(p++) = 'n';
+                                *(p++) = 'c';
+                                maxlen -= 3;
+                        }
 
 			/* print ',' separator if there are other partitions
 			 * following */
@@ -1582,6 +1636,12 @@ static int parse_mtdparts(const char *const mtdparts)
 
 	while (*p != '\0') {
 		err = 1;
+#ifdef CONFIG_MTDPARTS_SKIP_INVALID
+		if (!find_seperator(&p, ';', skip_counter, MTDPARTS_MAXLEN)) {
+			printf("goes wrong when skip invalid parts\n");
+			return 1;
+		}
+#endif
 		if ((device_parse(p, &p, &dev) != 0) || (!dev))
 			break;
 
@@ -1652,8 +1712,20 @@ static int parse_mtdids(const char *const ids)
 		p++;
 
 		/* check if requested device exists */
-		if (mtd_device_validate(type, num, &size) != 0)
+		if (mtd_device_validate(type, num, &size) != 0) {
+#ifdef CONFIG_MTDPARTS_SKIP_INVALID
+			if (find_seperator(&p, ',', 1, MTDIDS_MAXLEN)) {
+				printf("current device is invalid, skip it and check the next one\n");
+				skip_counter++;
+				continue;
+			} else {
+				printf("the only deivce is invalid\n");
+				return 1;
+			}
+#else
 			return 1;
+#endif
+		}
 
 		/* locate <mtd-id> */
 		mtd_id = p;
@@ -2171,7 +2243,7 @@ static char mtdparts_help_text[] =
 	"    - delete all partitions\n"
 	"mtdparts del part-id\n"
 	"    - delete partition (e.g. part-id = nand0,1)\n"
-	"mtdparts add <mtd-dev> <size>[@<offset>] [<name>] [ro]\n"
+        "mtdparts add <mtd-dev> <size>[@<offset>] [<name>] [ro] [enc]\n"
 	"    - add partition\n"
 #if defined(CONFIG_CMD_MTDPARTS_SPREAD)
 	"mtdparts add.spread <mtd-dev> <size>[@<offset>] [<name>] [ro]\n"
@@ -2206,7 +2278,8 @@ static char mtdparts_help_text[] =
 	"<size>     := standard linux memsize OR '-' to denote all remaining space\n"
 	"<offset>   := partition start offset within the device\n"
 	"<name>     := '(' NAME ')'\n"
-	"<ro-flag>  := when set to 'ro' makes partition read-only (not used, passed to kernel)";
+        "<ro-flag>  := when set to 'ro' makes partition read-only (not used, passed to kernel)\n"
+        "<enc-flag> := when set to 'enc' makes partition encrypted (not used, passed to kernel)";
 #endif
 
 U_BOOT_CMD(

@@ -16,37 +16,46 @@
 #include <dm/uclass-internal.h>
 #include <dm/device-internal.h>
 #include <dm/lists.h>
-#include <asm/arch/sys_proto.h>
+#include <bootm.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
 void spl_board_init(void)
 {
 	struct udevice *dev;
+	int node, ret;
+
+	node = fdt_node_offset_by_compatible(gd->fdt_blob, -1, "fsl,imx8-mu");
+
+	ret = uclass_get_device_by_of_offset(UCLASS_MISC, node, &dev);
+	if (ret) {
+		return;
+	}
+	device_probe(dev);
 
 	uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(imx8_scu), &dev);
 
 	uclass_find_first_device(UCLASS_MISC, &dev);
-
 	for (; dev; uclass_find_next_device(&dev)) {
 		if (device_probe(dev))
 			continue;
 	}
 
-	arch_cpu_init();
-
 	board_early_init_f();
 
 	timer_init();
 
+#ifdef CONFIG_SPL_SERIAL_SUPPORT
 	preloader_console_init();
 
 	puts("Normal Boot\n");
+#endif
+
 }
 
 void spl_board_prepare_for_boot(void)
 {
-	imx8_power_off_pd_devices(NULL, 0);
+	board_quiesce_devices();
 }
 
 #ifdef CONFIG_SPL_LOAD_FIT
@@ -61,11 +70,10 @@ int board_fit_config_name_match(const char *name)
 
 void board_init_f(ulong dummy)
 {
-	/* Clear global data */
-	memset((void *)gd, 0, sizeof(gd_t));
-
 	/* Clear the BSS. */
 	memset(__bss_start, 0, __bss_end - __bss_start);
+
+	arch_cpu_init();
 
 	board_init_r(NULL, 0);
 }

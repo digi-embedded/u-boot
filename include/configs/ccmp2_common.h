@@ -92,11 +92,6 @@
 
 #endif /* CONFIG_DISTRO_DEFAULTS */
 
-/*
- * default load address used for command tftp,  bootm , loadb, ...
- */
-#define CONFIG_LOADADDR			CONFIG_SYS_LOAD_ADDR
-
 /* MMC Configs */
 #define EMMC_BOOT_ACK			1
 #define EMMC_BOOT_DEV			0

@@ -295,6 +295,10 @@ int init_func_vid(void);
 int checkboard(void);
 int show_board_info(void);
 
+#ifdef CONFIG_ANDROID_BOOT_IMAGE
+void get_reboot_reason(char *ret);
+#endif
+
 /**
  * board_get_usable_ram_top() - get uppermost address for U-Boot relocation
  *
@@ -328,6 +332,11 @@ int board_early_init_r(void);
  * Return: 0 if OK
  */
 int arch_initr_trap(void);
+
+/* board/digi/common */
+#if defined(CONFIG_CMD_SOURCE) && defined(CONFIG_AUTO_BOOTSCRIPT)
+void run_auto_bootscript(void);
+#endif
 
 /**
  * init_addr_map()

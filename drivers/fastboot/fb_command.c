@@ -114,6 +114,14 @@ static const struct {
 		.command = "ACmd",
 		.dispatch = CONFIG_IS_ENABLED(FASTBOOT_UUU_SUPPORT, (run_acmd), (NULL))
 	},
+	[FASTBOOT_COMMAND_OEM_UCMD] = {
+		.command = "oem ucmd",
+		.dispatch = run_ucmd,
+	},
+	[FASTBOOT_COMMAND_OEM_ACMD] = {
+		.command = "oem acmd",
+		.dispatch = run_acmd,
+	},
 };
 
 /**
