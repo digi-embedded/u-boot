@@ -10,6 +10,10 @@
 
 #include "ccimx8m_common.h"
 
+/* RAM memory reserved for OPTEE (32 MiB) */
+#define RESERVED_MEM_START		0x7E000000
+#define RESERVED_MEM_END		0x80000000
+
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 8M Mini"
 #define CONFIG_BOARD_DESCRIPTION	"Development Kit"
 #define BOARD_DEY_NAME			"ccimx8mm-dvk"
@@ -29,17 +33,9 @@
 #define CONFIG_BAUDRATE			115200
 
 /* ENET Config */
-/* ENET1 */
+#define PHY_ANEG_TIMEOUT	20000
 #if defined(CONFIG_FEC_MXC)
-#define CONFIG_MII
-#define CONFIG_ETHPRIME                 "FEC"
-#define PHY_ANEG_TIMEOUT 20000
-
-#define CONFIG_FEC_XCV_TYPE             RGMII
-#define CONFIG_FEC_MXC_PHYADDR          0
-#define FEC_QUIRK_ENET_MAC
-
-#define IMX_FEC_BASE			0x30BE0000
+#define CFG_FEC_MXC_PHYADDR	0
 #endif
 
 /* USDHC */
@@ -152,29 +148,6 @@
 	"active_system=linux_a\0" \
 	"usb_pgood_delay=2000\0" \
 	""	/* end line */
-
-#undef CONFIG_BOOTCOMMAND
-#ifdef CONFIG_SECURE_BOOT
-/*
- * Authenticate bootscript before running it. IVT offset is at
- * ${filesize} - CONFIG_CSF_SIZE - IVT_SIZE (0x20)
- * Use 0x2000 as CSF_SIZE, as this is the value used by the script
- * to sign / encrypt the bootscript
- */
-#define CONFIG_BOOTCOMMAND \
-	"if run loadscript; then " \
-		"setexpr bs_ivt_offset ${filesize} - 0x2020;" \
-		"if hab_auth_img ${loadaddr} ${filesize} ${bs_ivt_offset}; then " \
-			"source ${loadaddr};" \
-		"fi; " \
-	"fi;"
-#else
-#define CONFIG_BOOTCOMMAND \
-	"if run loadscript; then " \
-		"source ${loadaddr};" \
-	"fi;"
-
-#endif	/* CONFIG_SECURE_BOOT */
 
 /* Android specific configuration */
 #if defined(CONFIG_ANDROID_SUPPORT)

@@ -97,9 +97,6 @@
 #define EMMC_BOOT_PART_OFFSET_A0	(33 * SZ_1K)
 #define EMMC_BOOT_PART_OFFSET		(32 * SZ_1K)
 
-/* Ethernet */
-#define WIRED_NICS			2
-
 /* Extra network settings for second Ethernet */
 #define CONFIG_EXTRA_NETWORK_SETTINGS \
 	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"

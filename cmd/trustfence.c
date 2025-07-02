@@ -90,9 +90,7 @@ static int do_trustfence_prog_srk(struct cmd_tbl *cmdtp, int flag, int argc, cha
 		return CMD_RET_USAGE;
 
 	puts("Programming SRK efuses... ");
-	fuse_allow_prog(true);
 	ret = fuse_prog_srk(addr, val[0]);
-	fuse_allow_prog(false);
 	if (ret)
 		goto err_prog_srk;
 	puts("[OK]\n");
@@ -371,7 +369,7 @@ static int do_trustfence_update(struct cmd_tbl *cmdtp, int flag, int argc, char 
 			goto tf_update_out;
 		}
 
-		get_dek_blob_size(dek_blob_addr, &dek_blob_size);
+		dek_blob_size = DEK_BLOB_SIZE(dek_size);
 #ifdef CONFIG_SPL
 		memcpy((void *)dek_blob_spl_dst, (void *)dek_blob_addr,
 			dek_blob_size);

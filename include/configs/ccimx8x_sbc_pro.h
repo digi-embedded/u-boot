@@ -51,12 +51,12 @@
 	"panel=NULL\0" \
 	"console=" CONSOLE_DEV "\0" \
 	"earlycon=" EARLY_CONSOLE "\0" \
-	"fdt_addr=0x8A000000\0"			\
+	"fdt_addr=0x8B000000\0"			\
 	"fdt_high=0xffffffffffffffff\0"		\
 	"boot_fdt=try\0" \
 	"ip_dyn=yes\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
-	"initrd_addr=0x8A100000\0"		\
+	"initrd_addr=0x8B100000\0"		\
 	"initrd_high=0xffffffffffffffff\0" \
 	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
 	"mmcbootpart=" __stringify(EMMC_BOOT_PART) "\0" \
@@ -123,12 +123,6 @@
 	"active_system=linux_a\0" \
 	"usb_pgood_delay=2000\0" \
 	""	/* end line */
-
-#undef CONFIG_BOOTCOMMAND
-#define CONFIG_BOOTCOMMAND \
-	"if run loadscript; then " \
-		"source ${loadaddr};" \
-	"fi;"
 
 /* Android specific configuration */
 #if defined(CONFIG_ANDROID_SUPPORT)

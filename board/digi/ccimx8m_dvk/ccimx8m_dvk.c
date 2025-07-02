@@ -6,6 +6,7 @@
  */
 
 #include <common.h>
+#include <led.h>
 #include <malloc.h>
 #include <errno.h>
 #include <asm/io.h>
@@ -86,6 +87,14 @@ static iomux_v3_cfg_t const ext_gpios_pads[] = {
 };
 #endif /* CONFIG_CONSOLE_ENABLE_GPIO && !CONFIG_SPL_BUILD */
 
+int board_early_init_r(void)
+{
+#if defined(CONFIG_HAS_TRUSTFENCE) && defined(CONFIG_CAAM_ENV_ENCRYPT)
+	setup_caam();
+#endif
+	return 0;
+}
+
 int board_early_init_f(void)
 {
 	struct wdog_regs *wdog = (struct wdog_regs *)WDOG1_BASE_ADDR;
@@ -135,6 +144,10 @@ int board_late_init(void)
 
 	/* Set default dynamic variables */
 	platform_default_environment();
+
+#ifdef CONFIG_HAS_TRUSTFENCE
+	restore_dek_blob();
+#endif
 
 	return 0;
 }
@@ -210,7 +223,7 @@ static int setup_fec(void)
 
 	/* Use 125M anatop REF_CLK1 for ENET1, not from external */
 	clrsetbits_le32(&iomuxc_gpr_regs->gpr[1],
-			IOMUXC_GPR_GPR1_GPR_ENET1_TX_CLK_SEL_MASK, 0);
+			IOMUXC_GPR_GPR1_GPR_ENET1_TX_CLK_SEL, 0);
 	return set_clk_enet(ENET_125MHZ);
 }
 #endif
@@ -236,32 +249,16 @@ int board_ehci_usb_phy_mode(struct udevice *dev)
 
 static int board_power_led_init(void)
 {
-	/* MCA_IO13 is connected to POWER_LED */
-	const char *name = "MCA-GPIO_13";
-	struct gpio_desc desc;
+	struct udevice *dev;
 	int ret;
 
-	ret = dm_gpio_lookup_name(name, &desc);
-	if (ret)
-		goto error;
+	ret = led_get_by_label("power", &dev);
+	if (ret || !dev) {
+		printf("%s: failed to get power LED device\n", __func__);
+		return -ENODEV;
+	}
 
-	ret = dm_gpio_request(&desc, "Power LED");
-	if (ret)
-		goto error;
-
-	ret = dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT);
-	if (ret)
-		goto errfree;
-
-	ret = dm_gpio_set_value(&desc, 1);
-	if (ret)
-		goto errfree;
-
-	return 0;
-errfree:
-	dm_gpio_free(NULL, &desc);
-error:
-	return ret;
+	return led_set_state(dev, LEDST_ON);
 }
 
 int board_init(void)
@@ -294,6 +291,11 @@ int mmc_map_to_kernel_blk(int devno)
 	return devno;
 }
 
+#if defined(CONFIG_DISPLAY_BOARDINFO_LATE)
+/*
+ * Call this during late initialization, after relocation and board setup,
+ * as some initialization must be completed before printing the information.
+ */
 int checkboard(void)
 {
 	board_version = get_carrierboard_version();
@@ -305,6 +307,7 @@ int checkboard(void)
 
 	return 0;
 }
+#endif
 
 #ifdef CONFIG_FSL_FASTBOOT
 #ifdef CONFIG_ANDROID_RECOVERY

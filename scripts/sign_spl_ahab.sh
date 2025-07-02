@@ -141,6 +141,9 @@ TARGET="$(readlink -f "${2}")"
 TARGET_TMP="$(mktemp -t "$(basename "${UBOOT_BIN}")".XXXXXX)"
 
 if [ "${ENCRYPT}" = "true" ]; then
+	# CCIMX8X default image indexes mask
+	IMG_IDX_MASK="0xFFFFFFFE"
+	is_mx9 && IMG_IDX_MASK="0xFFFFFFFF"
 	# Generate SPL container CSF descriptor
 	CSF_UBOOT_SPL="csf_uboot_spl.txt"
 	sed -e "s,%srk_table%,${SRK_TABLE},g" \
@@ -152,6 +155,7 @@ if [ "${ENCRYPT}" = "true" ]; then
 		-e "s,%block_offset%,${SPL_SIGNATURE_OFFSET},g" \
 		-e "s,%dek_len%,${dek_size},g" \
 		-e "s,%dek_path%,${CONFIG_DEK_PATH},g" \
+		-e "s,%img_idx_mask%,${IMG_IDX_MASK},g" \
 		"${SCRIPT_PATH}/csf_templates/encrypt_ahab_uboot" > "${CSF_UBOOT_SPL}"
 
 	# Generate ATF container CSF descriptor
@@ -165,6 +169,7 @@ if [ "${ENCRYPT}" = "true" ]; then
 		-e "s,%block_offset%,$(to_hex "$((ATF_CONTAINER_OFFSET*1024 + ATF_SIGNATURE_OFFSET))"),g" \
 		-e "s,%dek_len%,${dek_size},g" \
 		-e "s,%dek_path%,${CONFIG_DEK_PATH},g" \
+		-e "s,%img_idx_mask%,${IMG_IDX_MASK},g" \
 		"${SCRIPT_PATH}/csf_templates/encrypt_ahab_uboot" > "${CSF_UBOOT_ATF}"
 else
 	# Generate SPL container CSF descriptor

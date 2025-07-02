@@ -27,10 +27,6 @@
 #include <dm/device-internal.h>
 #include <dm/uclass-internal.h>
 
-#ifdef CONFIG_VIDEO_GIS
-#include <gis.h>
-#endif
-
 #ifdef CONFIG_FSL_ESDHC_IMX
 #include <fsl_esdhc_imx.h>
 #endif
@@ -364,10 +360,6 @@ void arch_preboot_os(void)
 #if defined(CONFIG_VIDEO_IPUV3)
 	/* disable video before launching O/S */
 	ipuv3_fb_shutdown();
-#endif
-#ifdef CONFIG_VIDEO_GIS
-	/* Entry for GIS */
-	mxc_disable_gis();
 #endif
 #if defined(CONFIG_VIDEO_MXS) && !defined(CONFIG_VIDEO) && \
     !defined(VIDEO_MXS_SKIP_DISABLING_ON_BOOT)

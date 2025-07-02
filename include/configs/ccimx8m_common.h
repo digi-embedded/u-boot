@@ -12,7 +12,6 @@
 #include "digi_common.h"		/* Load Digi common stuff... */
 
 #define DIGI_IMX_FAMILY
-#define CONFIG_DISPLAY_BOARDINFO_LATE
 
 #define CFG_SYS_UBOOT_BASE		(QSPI0_AMBA_BASE + CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512)
 
@@ -22,9 +21,6 @@
 
 /* MCA */
 #define BOARD_MCA_DEVICE_ID		0x4A
-
-/* Ethernet */
-#define WIRED_NICS			1
 
 /* Supported sources for update|dboot */
 #define CONFIG_SUPPORTED_SOURCES	((1 << SRC_TFTP) | \
@@ -74,7 +70,6 @@
  */
 #define PHYS_SDRAM_SIZE			0xC0000000  /* 3GB */
 #define PHYS_SDRAM_2_SIZE		0x40000000  /* 1GB */
-#define AUTODETECT_RAM_SIZE
 
 /* MMC device and partition where U-Boot image is */
 #define EMMC_BOOT_ACK			1

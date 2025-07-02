@@ -518,7 +518,7 @@ int board_spl_fit_post_load(const void *fit, struct spl_image_info *spl_image)
 	int ret;
 #endif
 
-	if (IS_ENABLED(CONFIG_IMX_HAB)) {
+	if (IS_ENABLED(CONFIG_IMX_HAB) && imx_hab_is_enabled()) {
 		u32 offset = ALIGN(fdt_totalsize(fit), 0x1000);
 
 		if (imx_hab_authenticate_image((uintptr_t)fit,

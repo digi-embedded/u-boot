@@ -93,6 +93,7 @@
 
 	mca_gpio_uboot: mca_gpio {
 		compatible = "digi,mca-gpio";
+		#gpio-cells = <2>;
 		gpio-controller;
 	};
 
@@ -106,6 +107,14 @@
 		soft-rfsh {
 			digi,full-reset;
 			digi,no-way-out;
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		power {
+			label = "power";
+			gpios = <&mca_gpio_uboot 13 GPIO_ACTIVE_HIGH>;
 		};
 	};
 

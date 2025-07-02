@@ -14,10 +14,10 @@
 #endif
 #include "encryption.h"
 
-int is_uboot_encrypted(void) {
+int is_uboot_encrypted(void)
+{
 	char dek_blob[MAX_DEK_BLOB_SIZE];
-	u32 dek_blob_size;
 
 	/* U-Boot is encrypted if and only if get_dek_blob does not fail */
-	return !get_dek_blob((ulong)dek_blob, &dek_blob_size);
+	return !get_dek_blob((ulong)dek_blob, NULL);
 }

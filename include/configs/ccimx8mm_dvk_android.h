@@ -6,9 +6,6 @@
 #define CONFIG_SYS_MALLOC_LEN           (64 * SZ_1M)
 #endif
 
-/* Empty bootcmd to boot Android automatically */
-#undef CONFIG_BOOTCOMMAND
-
 /* Enable mcu firmware flash */
 #ifdef CONFIG_FLASH_MCUFIRMWARE_SUPPORT
 #define ANDROID_MCU_FRIMWARE_DEV_TYPE DEV_MMC
@@ -22,7 +19,13 @@
 #undef CONFIG_FSL_CAAM_KB
 #endif
 
+#define CFG_SYS_SPL_PTE_RAM_BASE    0x41580000
+
 #ifdef CONFIG_IMX_TRUSTY_OS
+#define BOOTLOADER_RBIDX_OFFSET  0x3FE000
+#define BOOTLOADER_RBIDX_START   0x3FF000
+#define BOOTLOADER_RBIDX_LEN     0x08
+#define BOOTLOADER_RBIDX_INITVAL 0
 #define AVB_RPMB
 #define KEYSLOT_HWPARTITION_ID 2
 #define KEYSLOT_BLKS             0x1FFF

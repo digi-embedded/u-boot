@@ -262,23 +262,10 @@ int dram_init(void)
 		return ret;
 
 	/* rom_pointer[1] contains the size of TEE occupies */
-	if (!IS_ENABLED(CONFIG_ARMV8_PSCI) && !IS_ENABLED(CONFIG_SPL_BUILD) && rom_pointer[1]) {
+	if (!IS_ENABLED(CONFIG_ARMV8_PSCI) && !IS_ENABLED(CONFIG_SPL_BUILD) && rom_pointer[1])
 		gd->ram_size = sdram_size - rom_pointer[1];
-#ifdef AUTODETECT_RAM_SIZE
-		/*
-		 * The optee start address is hardcoded at build time, but we
-		 * want it to be recalculated basing on real RAM size detected
-		 * by U-Boot.
-		 * Dynamically change the optee start address (rom_pointer[0])
-		 * as: base_addr + sdram_size - opteee size (rom_pointer[1]).
-		 * I.e. optee is a the end of the RAM.
-		 */
-		rom_pointer[0] = CFG_SYS_SDRAM_BASE + sdram_size -
-				rom_pointer[1];
-#endif
-	} else {
+	else
 		gd->ram_size = sdram_size;
-	}
 
 	return 0;
 }
@@ -305,22 +292,9 @@ int dram_init_banksize(void)
 
 	gd->bd->bi_dram[bank].start = PHYS_SDRAM;
 	if (!IS_ENABLED(CONFIG_ARMV8_PSCI) && !IS_ENABLED(CONFIG_SPL_BUILD) && rom_pointer[1]) {
-		phys_addr_t optee_start;
+		phys_addr_t optee_start = (phys_addr_t)rom_pointer[0];
 		phys_size_t optee_size = (size_t)rom_pointer[1];
 
-#ifdef AUTODETECT_RAM_SIZE
-		/*
-		 * The optee start address is hardcoded at build time, but we
-		 * want it to be recalculated basing on real RAM size detected
-		 * by U-Boot.
-		 * Dynamically change the optee start address (rom_pointer[0])
-		 * as: base_addr + sdram_size - opteee size (rom_pointer[1]).
-		 * I.e. optee is a the end of the RAM.
-		 */
-		rom_pointer[0] = CFG_SYS_SDRAM_BASE + sdram_b1_size -
-				 rom_pointer[1];
-#endif
-		optee_start = (phys_addr_t)rom_pointer[0];
 		gd->bd->bi_dram[bank].size = optee_start - gd->bd->bi_dram[bank].start;
 		if ((optee_start + optee_size) < (PHYS_SDRAM + sdram_b1_size)) {
 			if (++bank >= CONFIG_NR_DRAM_BANKS) {

@@ -307,10 +307,11 @@ static int setup_rv3028(void)
 		return -ENODEV;
 
 	/* Check BSM configuration */
-	bsm = dm_i2c_reg_read(rtc, RV3028_BACKUP);
-	if (bsm < 0) {
+	ret = dm_i2c_reg_read(rtc, RV3028_BACKUP);
+	if (ret < 0)
 		return -EIO;
-	} else if (FIELD_GET(RV3028_BACKUP_BSM, bsm) == RV3028_BACKUP_BSM_LSM) {
+	bsm = (u8)ret;
+	if (FIELD_GET(RV3028_BACKUP_BSM, bsm) == RV3028_BACKUP_BSM_LSM) {
 		debug("%s: BSM already configured to LSM\n", __func__);
 		return 0;
 	}
@@ -406,6 +407,11 @@ int mmc_map_to_kernel_blk(int dev_no)
 	return dev_no;
 }
 
+#if defined(CONFIG_DISPLAY_BOARDINFO_LATE)
+/*
+ * Call this during late initialization, after relocation and board setup,
+ * as some initialization must be completed before printing the information.
+ */
 int checkboard(void)
 {
 	board_version = get_carrierboard_version();
@@ -417,6 +423,7 @@ int checkboard(void)
 
 	return 0;
 }
+#endif
 
 #ifdef CONFIG_FSL_FASTBOOT
 #ifdef CONFIG_ANDROID_RECOVERY

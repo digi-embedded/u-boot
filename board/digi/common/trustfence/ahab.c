@@ -130,7 +130,7 @@ int get_dek_blob_offset(ulong addr, ulong size, u32 *offset)
 	return 0;
 }
 
-int get_dek_blob_size(ulong addr, u32 *size)
+static int get_dek_blob_size(ulong addr, u32 *size)
 {
 	struct generate_key_blob_hdr *blob_hdr;
 
@@ -212,6 +212,8 @@ int get_dek_blob(ulong addr, u32 *size)
 		goto sanitize;
 	}
 	memcpy((void *)addr, (void *)dek_blob_addr, dek_blob_size);
+	if (size)
+		*size = dek_blob_size;
 
 sanitize:
 	memset(buf, 0, buf_size);

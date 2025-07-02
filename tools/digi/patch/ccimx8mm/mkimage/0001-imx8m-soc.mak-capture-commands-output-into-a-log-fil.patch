@@ -5,13 +5,15 @@ Subject: [PATCH] imx8m: soc.mak: capture commands output into a log file
 This is later used to get the needed information for the signing of the
 boot artifacts.
 
+Upstream-Status: Inappropriate [DEY specific]
+
 Signed-off-by: Javier Viguera <javier.viguera@digi.com>
 ---
  iMX8M/soc.mak | 7 ++++---
  1 file changed, 4 insertions(+), 3 deletions(-)
 
 diff --git a/iMX8M/soc.mak b/iMX8M/soc.mak
-index baf687efaf0a..e7c6df33d674 100644
+index e7c762b748a1..3b0b6b603cd5 100644
 --- a/iMX8M/soc.mak
 +++ b/iMX8M/soc.mak
 @@ -1,5 +1,6 @@

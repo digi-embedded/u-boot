@@ -1,10 +1,11 @@
 /*
- * Copyright (C) 2024, Digi International Inc.
+ * Copyright (C) 2024-2025, Digi International Inc.
  *
  * SPDX-License-Identifier: GPL-2.0+
  */
 
 #include <common.h>
+#include <asm/byteorder.h>
 #include <asm/mach-imx/hab.h>
 
 #include "../common/trustfence.h"
@@ -15,9 +16,6 @@
  * project in iMX8M/soc.mak file
  */
 #define DEK_BLOB_LOAD_ADDR	0x40400000
-
-#define HAB_AUTH_BLOB_TAG	0x81
-#define HAB_VERSION		0x43
 
 #define FIT_DEK_BLOB_SIZE	96
 
@@ -40,7 +38,7 @@ int get_dek_blob_offset(ulong addr, ulong size, u32 *offset)
 		return 1;
 
 	if (!ivt->csf)
-		return 1
+		return 1;
 
 	offset[0] = ivt->csf - (CONFIG_SPL_TEXT_BASE - SPL_IVT_HEADER_SIZE) + CONFIG_CSF_SIZE;
 	offset[1] = size - FIT_DEK_BLOB_SIZE;
@@ -48,16 +46,17 @@ int get_dek_blob_offset(ulong addr, ulong size, u32 *offset)
 	return 0;
 }
 
-int get_dek_blob_size(ulong addr, u32 *size)
+/* See NXP's AN12056 for DEK blob data structure */
+static int get_dek_blob_size(ulong addr, u32 *size)
 {
-	char *address = (char *)addr;
+	struct hab_hdr *hdr = (struct hab_hdr *)addr;
 
-	if (address[3] != HAB_VERSION || address[0] != HAB_AUTH_BLOB_TAG) {
+	if (hdr->tag != HDR_TAG || (hdr->par & HAB_MAJ_MASK) != HAB_MAJ_VER) {
 		debug("Tag does not match as expected\n");
 		return -EINVAL;
 	}
 
-	*size = address[2];
+	*size = (hdr->len[0] << 8) + hdr->len[1];
 	debug("DEK blob size is 0x%04x\n", *size);
 
 	return 0;
@@ -66,15 +65,16 @@ int get_dek_blob_size(ulong addr, u32 *size)
 int get_dek_blob(ulong addr, u32 *size)
 {
 	/* Get DEK offset */
-	char *dek_blob_src = (void*)(DEK_BLOB_LOAD_ADDR);
+	ulong dek_blob_addr = DEK_BLOB_LOAD_ADDR;
 	u32 dek_blob_size;
 
 	/* Get Dek blob */
-	if (get_dek_blob_size((char *)dek_blob_src, &dek_blob_size))
+	if (get_dek_blob_size(dek_blob_addr, &dek_blob_size))
 		return 1;
 
-	memcpy((void *)addr, dek_blob_src, dek_blob_size);
-	*size = dek_blob_size;
+	memcpy((void *)addr, (void *)dek_blob_addr, dek_blob_size);
+	if (size)
+		*size = dek_blob_size;
 
 	return 0;
 }
