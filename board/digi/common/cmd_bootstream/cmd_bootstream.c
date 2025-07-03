@@ -112,7 +112,7 @@ int write_firmware(struct mtd_info *mtd,
 		padding_buf = malloc(padding_buf_size);
 		if (!padding_buf) {
 			printf("Out of memory!\n");
-			return -1;
+			goto _error;
 		}
 		memset(padding_buf, 0, pre_padding);
 		memcpy(padding_buf + pre_padding, (uchar *) bs_start_address,
