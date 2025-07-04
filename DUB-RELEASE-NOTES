@@ -4,6 +4,11 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2024.04
 -----------
+dub-2024.04-r3.1, released on 2025/07/04
+	- Added support for ConnectCore 8M Nano
+	- Added support for ConnectCore 8M Mini
+	- CC8X: adjust fdt_addr to allow larger kernel sizes
+
 dub-2024.04-r2.3, released on 2025/03/06
 	- Added support for ConnectCore 93
 	- Added support for ConnectCore 8X
