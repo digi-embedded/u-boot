@@ -1165,7 +1165,7 @@ int read_squashfs_rootfs(unsigned long addr, unsigned long *size)
 	int ret = 0;
 
 	/* Access ubi partition */
-	if (of_machine_is_compatible("digi,ccimx6ul")
+	if (of_machine_is_compatible("digi,ccimx6ul"))
 		ret = activate_ubi_part(env_get_yesno("singlemtdsys") ?
 					SYSTEM_PARTITION : ROOTFS_PARTITION);
 	else
