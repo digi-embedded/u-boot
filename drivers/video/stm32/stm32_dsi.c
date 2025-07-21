@@ -337,8 +337,11 @@ static int dsi_get_lane_mbps(void *priv_data, struct display_timing *timings,
 	/* Compute requested pll out */
 	bpp = mipi_dsi_pixel_format_to_bpp(format);
 	pll_out_khz = (timings->pixelclock.typ / 1000) * bpp / lanes;
+
 	/* Add 20% to pll out to be higher than pixel bw (burst mode only) */
-	pll_out_khz = (pll_out_khz * 12) / 10;
+	if (device->mode_flags & MIPI_DSI_MODE_VIDEO_BURST)
+		pll_out_khz = (pll_out_khz * 12) / 10;
+
 	if (pll_out_khz > dsi->lane_max_kbps) {
 		pll_out_khz = dsi->lane_max_kbps;
 		dev_warn(dev, "Warning max phy mbps is used\n");
@@ -622,25 +625,20 @@ static int dsi_phy_141_init(void *priv_data)
 
 	/* find frequency mapping */
 	for (i = 0; i < ARRAY_SIZE(dppa_map_phy_141); i++) {
-		if (dsi->lane_mbps < dppa_map_phy_141[i].data_rate) {
-			i--;
+		if (dsi->lane_mbps < dppa_map_phy_141[i].data_rate)
 			break;
-		}
 	}
 
+	/* ODF: Output division factor */
 	switch (dppa_map_phy_141[i].odf) {
 	case(3):
-		odf = 8;
-		break;
+		odf = 8; break;
 	case(2):
-		odf = 4;
-		break;
+		odf = 4; break;
 	case(1):
-		odf = 2;
-		break;
+		odf = 2; break;
 	default:
-		odf = 1;
-		break;
+		odf = 1; break;
 	}
 
 	dsi_phy_141_pll_get_params(dsi, pll_in_khz, pll_out_khz, &idf, &ndiv, &odf);
@@ -661,7 +659,8 @@ static int dsi_phy_141_init(void *priv_data)
 	val = ((ndiv - 2) << 4) | (idf - 1);
 	dsi_write(dsi, DSI_WRPCR0, val);
 
-	val = ((odf - 1) << 28) | (vco << 24) | (bias << 16) | (int1 << 8) | (gmp << 6) | prop;
+	val = (dppa_map_phy_141[i].odf << 28) | (vco << 24) | (bias << 16) | (int1 << 8) |
+	      (gmp << 6) | prop;
 	dsi_write(dsi, DSI_WRPCR1, val);
 
 	dsi_write(dsi, DSI_PCTLR, PCTLR_CKEN);
@@ -730,8 +729,11 @@ static int dsi_phy_141_get_lane_mbps(void *priv_data, struct display_timing *tim
 	/* Compute requested pll out */
 	bpp = mipi_dsi_pixel_format_to_bpp(format);
 	pll_out_khz = (timings->pixelclock.typ / 1000) * bpp / (lanes * 2);
+
 	/* Add 20% to pll out to be higher than pixel bw (burst mode only) */
-	pll_out_khz = (pll_out_khz * 12) / 10;
+	if (device->mode_flags & MIPI_DSI_MODE_VIDEO_BURST)
+		pll_out_khz = (pll_out_khz * 12) / 10;
+
 	if (pll_out_khz > dsi->lane_max_kbps) {
 		pll_out_khz = dsi->lane_max_kbps;
 		dev_warn(dev, "Warning max phy mbps is used\n");
@@ -743,25 +745,20 @@ static int dsi_phy_141_get_lane_mbps(void *priv_data, struct display_timing *tim
 
 	/* find frequency mapping */
 	for (i = 0; i < ARRAY_SIZE(dppa_map_phy_141); i++) {
-		if (dsi->lane_mbps < dppa_map_phy_141[i].data_rate) {
-			i--;
+		if (dsi->lane_mbps < dppa_map_phy_141[i].data_rate)
 			break;
-		}
 	}
 
+	/* ODF: Output division factor */
 	switch (dppa_map_phy_141[i].odf) {
 	case(3):
-		odf = 8;
-		break;
+		odf = 8; break;
 	case(2):
-		odf = 4;
-		break;
+		odf = 4; break;
 	case(1):
-		odf = 2;
-		break;
+		odf = 2; break;
 	default:
-		odf = 1;
-		break;
+		odf = 1; break;
 	}
 
 	dsi_phy_141_pll_get_params(dsi, pll_in_khz, pll_out_khz, &idf, &ndiv, &odf);
@@ -846,11 +843,13 @@ static int stm32_dsi_get_panel(struct udevice *dev, struct udevice **panel)
 			}
 
 			uclass_get_device_by_ofnode(UCLASS_PANEL, remote, panel);
+			/* Stop parsing the device tree if a panel was found. */
 			if (*panel)
-				break;
+				goto out;
 		}
 	}
 
+out:
 	/* Sanity check, we can get out of the loop without having a clean ofnode */
 	if (!(*panel))
 		ret = -EINVAL;

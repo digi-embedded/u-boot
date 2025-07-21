@@ -106,7 +106,7 @@ static int smcwd_probe(struct udevice *dev)
 	switch (err) {
 	case 0:
 		dev_dbg(dev, "Already started\n");
-		wdt_set_force_start(dev);
+		wdt_set_force_autostart(dev);
 		break;
 	case -ENODATA:
 		dev_dbg(dev, "Not already started\n");

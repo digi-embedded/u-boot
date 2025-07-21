@@ -11,6 +11,9 @@
 #include <display.h>
 #include <dm.h>
 #include <log.h>
+#if CONFIG_IS_ENABLED(ARCH_STM32MP)
+#include <mach/rif.h>
+#endif /* CONFIG_IS_ENABLED(ARCH_STM32MP) */
 #include <panel.h>
 #include <regmap.h>
 #include <reset.h>
@@ -24,15 +27,13 @@
 #include <dm/pinctrl.h>
 #include <linux/bitops.h>
 
-#if CONFIG_IS_ENABLED(ARCH_STM32MP)
-/* direct access to RIFSC function, waiting firewall uclass */
-#include <mach/rif.h>
-static int stm32_check_access_by_id(ofnode device_node, u32 id)
+#if !CONFIG_IS_ENABLED(ARCH_STM32MP)
+static int stm32_rifsc_grant_access_by_id(ofnode device_node, u32 id)
 {
-	return stm32_rifsc_check_access_by_id(device_node, id);
+	return -EACCES;
 }
-#else
-static int stm32_check_access_by_id(ofnode device_node, u32 id)
+
+static int stm32_rifsc_release_access_by_id(ofnode device_node, u32 id)
 {
 	return -EACCES;
 }
@@ -44,11 +45,14 @@ struct stm32_ltdc_priv {
 	u32 bg_col_argb;
 	const u32 *layer_regs;
 	const u32 *pix_fmt_hw;
+	const u32 *conf_regs;
 	u32 crop_x, crop_y, crop_w, crop_h;
 	u32 alpha;
 	u32 hw_version;
 	struct udevice *bridge;
 	struct udevice *panel;
+	struct ofnode_phandle_args args_cmn;
+	struct ofnode_phandle_args args_l1l2;
 };
 
 /* Layer register offsets */
@@ -154,6 +158,28 @@ static const u32 layer_regs_a2[] = {
 	0x178	/* L1 Flexible Pixel Format 1 */
 };
 
+static const u32 ltdc_conf_regs_a0[] = {
+	GENMASK(10, 0),		/* Vertical Synchronization Height */
+	GENMASK(27, 16),	/* Horizontal Synchronization Width */
+	GENMASK(10, 0),		/* Accumulated Vertical Back Porch */
+	GENMASK(27, 16),	/* Accumulated Horizontal Back Porch */
+	GENMASK(10, 0),		/* Accumulated Active Height */
+	GENMASK(27, 16),	/* Accumulated Active Width */
+	GENMASK(10, 0),		/* TOTAL Height */
+	GENMASK(27, 16)		/* TOTAL Width */
+};
+
+static const u32 ltdc_conf_regs_a1[] = {
+	GENMASK(11, 0),		/* Vertical Synchronization Height */
+	GENMASK(27, 16),	/* Horizontal Synchronization Width */
+	GENMASK(11, 0),		/* Accumulated Vertical Back Porch */
+	GENMASK(27, 16),	/* Accumulated Horizontal Back Porch */
+	GENMASK(11, 0),		/* Accumulated Active Height */
+	GENMASK(27, 16),	/* Accumulated Active Width */
+	GENMASK(11, 0),		/* TOTAL Height */
+	GENMASK(27, 16)		/* TOTAL Width */
+};
+
 /* LTDC main registers */
 #define LTDC_IDR	0x00	/* IDentification */
 #define LTDC_LCR	0x04	/* Layer Count */
@@ -211,17 +237,14 @@ static const u32 layer_regs_a2[] = {
 #define LTDC_L1FPF1R	(priv->layer_regs[30])	/* L1 Flexible Pixel Format 1 */
 
 /* Bit definitions */
-#define SSCR_VSH	GENMASK(10, 0)	/* Vertical Synchronization Height */
-#define SSCR_HSW	GENMASK(27, 16)	/* Horizontal Synchronization Width */
-
-#define BPCR_AVBP	GENMASK(10, 0)	/* Accumulated Vertical Back Porch */
-#define BPCR_AHBP	GENMASK(27, 16)	/* Accumulated Horizontal Back Porch */
-
-#define AWCR_AAH	GENMASK(10, 0)	/* Accumulated Active Height */
-#define AWCR_AAW	GENMASK(27, 16)	/* Accumulated Active Width */
-
-#define TWCR_TOTALH	GENMASK(10, 0)	/* TOTAL Height */
-#define TWCR_TOTALW	GENMASK(27, 16)	/* TOTAL Width */
+#define SSCR_VSH	(priv->conf_regs[0])	/* Vertical Synchronization Height */
+#define SSCR_HSW	(priv->conf_regs[1])	/* Horizontal Synchronization Width */
+#define BPCR_AVBP	(priv->conf_regs[2])	/* Accumulated Vertical Back Porch */
+#define BPCR_AHBP	(priv->conf_regs[3])	/* Accumulated Horizontal Back Porch */
+#define AWCR_AAH	(priv->conf_regs[4])	/* Accumulated Active Height */
+#define AWCR_AAW	(priv->conf_regs[5])	/* Accumulated Active Width */
+#define TWCR_TOTALH	(priv->conf_regs[6])	/* TOTAL Height */
+#define TWCR_TOTALW	(priv->conf_regs[7])	/* TOTAL Width */
 
 #define GCR_LTDCEN	BIT(0)		/* LTDC ENable */
 #define GCR_ROTEN	BIT(2)		/* ROTation ENable */
@@ -803,8 +826,6 @@ static int stm32_ltdc_probe(struct udevice *dev)
 
 	if (IS_ENABLED(CONFIG_STM32MP25X) || IS_ENABLED(CONFIG_STM32MP23X) ||
 	    IS_ENABLED(CONFIG_STM32MP21X)) {
-		struct ofnode_phandle_args args;
-
 		node = dev_ofnode(dev);
 
 		idx = ofnode_stringlist_search(node, "access-controller-names", "cmn");
@@ -813,13 +834,13 @@ static int stm32_ltdc_probe(struct udevice *dev)
 
 		ret = ofnode_parse_phandle_with_args(node, "access-controllers",
 						     "#access-controller-cells",
-						     0, idx, &args);
+						     0, idx, &priv->args_cmn);
 		if (ret < 0) {
 			dev_err(dev, "Can not get access-controllers to common registers\n");
 			return ret;
 		}
 
-		ret = stm32_check_access_by_id(dev_ofnode(dev), args.args[0]);
+		ret = stm32_rifsc_grant_access_by_id(dev_ofnode(dev), priv->args_cmn.args[0]);
 		if (ret < 0) {
 			dev_err(dev, "Fail to get access to common registers\n");
 			return ret;
@@ -833,14 +854,15 @@ static int stm32_ltdc_probe(struct udevice *dev)
 
 		ret = ofnode_parse_phandle_with_args(node, "access-controllers",
 						     "#access-controller-cells",
-						     0, idx, &args);
+						     0, idx, &priv->args_l1l2);
 		if (ret < 0) {
 			dev_err(dev, "Can not get access-controllers to l1l2 registers\n");
 			return ret;
 		}
 
-		ret = stm32_check_access_by_id(dev_ofnode(dev), args.args[0]);
+		ret = stm32_rifsc_grant_access_by_id(dev_ofnode(dev), priv->args_l1l2.args[0]);
 		if (ret < 0) {
+			stm32_rifsc_release_access_by_id(dev_ofnode(dev), priv->args_cmn.args[0]);
 			dev_err(dev, "Fail to get access to l1l2 registers\n");
 			return ret;
 		}
@@ -903,18 +925,25 @@ static int stm32_ltdc_probe(struct udevice *dev)
 
 	switch (priv->hw_version) {
 	case HWVER_10200:
+		priv->layer_regs = layer_regs_a0;
+		priv->pix_fmt_hw = pix_fmt_a0;
+		priv->conf_regs = ltdc_conf_regs_a0;
+		break;
 	case HWVER_10300:
 		priv->layer_regs = layer_regs_a0;
 		priv->pix_fmt_hw = pix_fmt_a0;
+		priv->conf_regs = ltdc_conf_regs_a1;
 		break;
 	case HWVER_20101:
 		priv->layer_regs = layer_regs_a1;
 		priv->pix_fmt_hw = pix_fmt_a1;
+		priv->conf_regs = ltdc_conf_regs_a1;
 		break;
 	case HWVER_40100:
 	case HWVER_40101:
 		priv->layer_regs = layer_regs_a2;
 		priv->pix_fmt_hw = pix_fmt_a2;
+		priv->conf_regs = ltdc_conf_regs_a1;
 		break;
 	default:
 		return -ENODEV;
@@ -1062,6 +1091,19 @@ static int stm32_ltdc_bind(struct udevice *dev)
 	return 0;
 }
 
+static int stm32_ltdc_remove(struct udevice *dev)
+{
+	if (IS_ENABLED(CONFIG_STM32MP25X) || IS_ENABLED(CONFIG_STM32MP23X) ||
+	    IS_ENABLED(CONFIG_STM32MP21X)) {
+		struct stm32_ltdc_priv *priv = dev_get_priv(dev);
+
+		stm32_rifsc_release_access_by_id(dev_ofnode(dev), priv->args_cmn.args[0]);
+		stm32_rifsc_release_access_by_id(dev_ofnode(dev), priv->args_l1l2.args[0]);
+	}
+
+	return 0;
+}
+
 static const struct udevice_id stm32_ltdc_ids[] = {
 	{ .compatible = "st,stm32-ltdc" },
 	{ .compatible = "st,stm32mp21-ltdc" },
@@ -1075,5 +1117,7 @@ U_BOOT_DRIVER(stm32_ltdc) = {
 	.of_match		= stm32_ltdc_ids,
 	.probe			= stm32_ltdc_probe,
 	.bind			= stm32_ltdc_bind,
-	.priv_auto	= sizeof(struct stm32_ltdc_priv),
+	.priv_auto		= sizeof(struct stm32_ltdc_priv),
+	.flags			= DM_FLAG_OS_PREPARE,
+	.remove			= stm32_ltdc_remove,
 };

@@ -16,8 +16,6 @@
 #define SYSCFG_DEVICEID_OFFSET		0x6400
 #define SYSCFG_DEVICEID_DEV_ID_MASK	GENMASK(11, 0)
 #define SYSCFG_DEVICEID_DEV_ID_SHIFT	0
-#define SYSCFG_DEVICEID_REV_ID_MASK	GENMASK(31, 16)
-#define SYSCFG_DEVICEID_REV_ID_SHIFT	16
 
 /* Revision ID = OTP102[5:0] 6 bits : 3 for Major / 3 for Minor*/
 #define REVID_SHIFT	0
@@ -157,10 +155,13 @@ void get_soc_name(char name[SOC_NAME_SIZE])
 		}
 		/* REVISION */
 		switch (get_cpu_rev()) {
-		case CPU_REV1:
+		case OTP_REVID_1:
 			cpu_r = "A";
 			break;
-		case CPU_REV2:
+		case OTP_REVID_1_1:
+			cpu_r = "Z";
+			break;
+		case OTP_REVID_2:
 			cpu_r = "B";
 			break;
 		default:

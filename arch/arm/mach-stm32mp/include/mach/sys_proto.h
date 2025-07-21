@@ -81,6 +81,7 @@ u32 get_cpu_type(void);
 #define CPU_DEV_STM32MP15	0x500
 #define CPU_DEV_STM32MP13	0x501
 #define CPU_DEV_STM32MP21	0x503
+#define CPU_DEV_STM32MP23	0x505
 #define CPU_DEV_STM32MP25	0x505
 
 /* return CPU_DEV constants */

@@ -41,6 +41,7 @@ struct stm32key {
 	u16 start;
 	u8 size;
 	int (*post_process)(struct udevice *dev, const struct stm32key *key);
+	u32 (*key_format)(u32 value);
 };
 
 const struct stm32key stm32mp13_list[] = {
@@ -69,6 +70,8 @@ const struct stm32key stm32mp15_list[] = {
 
 static int post_process_oem_key2(struct udevice *dev, const struct stm32key *key);
 static int post_process_edmk_128b(struct udevice *dev, const struct stm32key *key);
+static u32 format1(u32 value);
+static u32 format2(u32 value);
 
 const struct stm32key stm32mp21_list[] = {
 	[STM32KEY_PKH] = {
@@ -85,10 +88,31 @@ const struct stm32key stm32mp21_list[] = {
 		.post_process = post_process_oem_key2,
 	},
 	{
+		.name = "RPROC-FW-PKH",
+		.desc = "Hash of the Public Key for remote processor firmware",
+		.start = 180,
+		.size = 8,
+		.key_format = format2,
+	},
+	{
+		.name = "ADAC-ROTPKH",
+		.desc = "Authenticated Debug Access Control Root Of Trust Public Key Hash",
+		.start = 238,
+		.size = 8,
+		.key_format = format2,
+	},
+	{
 		.name = "FIP-EDMK",
 		.desc = "Encryption/Decryption Master Key for FIP",
 		.start = 260,
 		.size = 8,
+	},
+	{
+		.name = "RPROC-FW-ENC-KEY",
+		.desc = "Encryption/Decryption Key for remote processor firmware",
+		.start = 332,
+		.size = 8,
+		.key_format = format2,
 	},
 	{
 		.name = "EDMK1-128b",
@@ -133,10 +157,24 @@ const struct stm32key stm32mp2x_list[] = {
 		.post_process = post_process_oem_key2,
 	},
 	{
+		.name = "RPROC-FW-PKH",
+		.desc = "Hash of the Public Key for remote processor firmware",
+		.start = 176,
+		.size = 8,
+		.key_format = format2,
+	},
+	{
 		.name = "FIP-EDMK",
 		.desc = "Encryption/Decryption Master Key for FIP",
 		.start = 260,
 		.size = 8,
+	},
+	{
+		.name = "RPROC-FW-ENC-KEY",
+		.desc = "Encryption/Decryption Key for remote processor firmware",
+		.start = 336,
+		.size = 8,
+		.key_format = format2,
 	},
 	{
 		.name = "EDMK1",
@@ -255,7 +293,7 @@ u8 get_otp_close_state_nb(void)
 		return ARRAY_SIZE(stm32mp2x_close_state_otp);
 }
 
-const struct otp_close *get_otp_close_state(u8 index)
+static const struct otp_close *get_otp_close_state(u8 index)
 {
 	if (IS_ENABLED(CONFIG_STM32MP13X))
 		return &stm32mp13_close_state_otp[index];
@@ -266,6 +304,24 @@ const struct otp_close *get_otp_close_state(u8 index)
 	if (IS_ENABLED(CONFIG_STM32MP21X) || IS_ENABLED(CONFIG_STM32MP23X) ||
 	    IS_ENABLED(CONFIG_STM32MP25X))
 		return &stm32mp2x_close_state_otp[index];
+}
+
+/*
+ * Define format wrappers based on reference manual formats
+ * ex for key from NIST vector AES_ECB_256b_test0:
+ * key (bytes)     : f9 e8 38 9f ... ef 94 4b e0
+ * format 1 (le32) : 0xf9e8389f  ... 0xef944be0
+ * format 2 (le32) : 0x9f38e8f9  ... 0xe04b94ef
+ */
+
+static u32 format1(u32 value)
+{
+	return __be32_to_cpu(value);
+}
+
+static u32 format2(u32 value)
+{
+	return __le32_to_cpu(value);
 }
 
 int get_misc_dev(struct udevice **dev)
@@ -279,13 +335,18 @@ int get_misc_dev(struct udevice **dev)
 	return ret;
 }
 
-void read_key_value(const struct stm32key *key, u32 addr)
+void read_key_value(const struct stm32key *key, unsigned long addr)
 {
 	int i;
+	u32 (*format)(u32) = format1;
+
+	/* Use key_format function pointer if defined */
+	if (key->key_format)
+		format = key->key_format;
 
 	for (i = 0; i < key->size; i++) {
 		printf("%s OTP %i: [%08x] %08x\n", key->name, key->start + i,
-		       addr, __be32_to_cpu(*(u32 *)(long)addr));
+		       (u32)addr, format(*(u32 *)addr));
 		addr += 4;
 	}
 }
@@ -428,12 +489,18 @@ static int post_process_oem_key2(struct udevice *dev, const struct stm32key *key
 static int post_process_edmk_128b(struct udevice *dev, const struct stm32key *key)
 {
 	int ret, word, start_otp;
-	u32 val = BSEC_LOCK_PERM;
+	u32 val;
 
 	start_otp = key->start + key->size;
 
-	/* On MP21, when using a 128bit key, lock the unused OTPs. */
+	/* On MP21, when using a 128bit key, program 0xffffffff and lock the unused OTPs. */
 	for (word = start_otp; word < (start_otp + 4); word++) {
+		val = GENMASK(31, 0);
+		ret = misc_write(dev, STM32_BSEC_OTP(word), &val, 4);
+		if (ret != 4)
+			log_warning("Fuse %s OTP padding %i failed, continue\n", key->name, word);
+
+		val = BSEC_LOCK_PERM;
 		ret = misc_write(dev, STM32_BSEC_LOCK(word), &val, 4);
 		if (ret != 4) {
 			log_err("Failed to lock unused OTP : %d\n", word);
@@ -444,13 +511,19 @@ static int post_process_edmk_128b(struct udevice *dev, const struct stm32key *ke
 	return 0;
 }
 
-int fuse_key_value(struct udevice *dev, const struct stm32key *key, u32 addr, bool print)
+int fuse_key_value(struct udevice *dev, const struct stm32key *key, unsigned long addr,
+			  bool print)
 {
 	u32 word, val;
 	int i, ret;
+	u32 (*format)(u32) = format1;
+
+	/* Use key_format function pointer if defined */
+	if (key->key_format)
+		format = key->key_format;
 
 	for (i = 0, word = key->start; i < key->size; i++, word++, addr += 4) {
-		val = __be32_to_cpu(*(u32 *)(long)addr);
+		val = format(*(u32 *)addr);
 		if (print)
 			printf("Fuse %s OTP %i : %08x\n", key->name, word, val);
 
@@ -531,7 +604,7 @@ static int do_stm32key_read(struct cmd_tbl *cmdtp, int flag, int argc, char *con
 {
 	const struct stm32key *key;
 	struct udevice *dev;
-	u32 addr;
+	unsigned long addr;
 	int ret, i;
 	int result;
 
@@ -569,7 +642,7 @@ static int do_stm32key_read(struct cmd_tbl *cmdtp, int flag, int argc, char *con
 		return CMD_RET_USAGE;
 
 	key = get_key(stm32key_index);
-	printf("Read %s at 0x%08x\n", key->name, addr);
+	printf("Read %s at 0x%08x\n", key->name, (u32)addr);
 	read_key_value(key, addr);
 
 	return CMD_RET_SUCCESS;
@@ -579,7 +652,7 @@ static int do_stm32key_fuse(struct cmd_tbl *cmdtp, int flag, int argc, char *con
 {
 	const struct stm32key *key = get_key(stm32key_index);
 	struct udevice *dev;
-	u32 addr;
+	unsigned long addr;
 	int ret;
 	bool yes = false, lock;
 
