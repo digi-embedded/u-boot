@@ -23,6 +23,7 @@ static ulong get_next_container_addr(ulong addr)
 {
 	struct container_hdr *phdr;
 	struct boot_img_t *img_entry;
+	u16 ctnr_hdr_align = container_hdr_alignment();
 
 	if (!addr) {
 		printf("Error: Invalid container address (NULL).\n");
@@ -41,7 +42,7 @@ static ulong get_next_container_addr(ulong addr)
 	phdr =
 	    (struct container_hdr *)(addr + ROUND(img_entry->offset +
 						  img_entry->size,
-						  CONTAINER_HDR_ALIGNMENT));
+						  ctnr_hdr_align));
 	if (!phdr || phdr->tag != AHAB_CNTR_HDR_TAG
 	    || phdr->version != AHAB_CNTR_HDR_VER) {
 		printf("%s: wrong next container header\n", __func__);
@@ -101,9 +102,10 @@ static ulong get_blob_addr_from_container(ulong addr)
 int get_dek_blob_offset(ulong addr, ulong size, u32 *offset)
 {
 	ulong container_addr, dek_blob_addr;
+	u16 ctnr_hdr_align = container_hdr_alignment();
 
 	debug("== Second AHAB container.\n");
-	container_addr = addr + CONTAINER_HDR_ALIGNMENT;
+	container_addr = addr + ctnr_hdr_align;
 	dek_blob_addr = get_blob_addr_from_container(container_addr);
 	if (!dek_blob_addr) {
 		printf("Failed to get DEK Blob address.\n");
@@ -157,6 +159,7 @@ int get_dek_blob(ulong addr, u32 *size)
 	int ret;
 	ulong dek_blob_addr;
 	u32 dek_blob_size;
+	u16 ctnr_hdr_align = container_hdr_alignment();
 
 	mmc = find_mmc_device(mmc_get_bootdevindex());
 	if (!mmc) {
@@ -183,7 +186,7 @@ int get_dek_blob(ulong addr, u32 *size)
 	/*
 	 * Read 4KB to be sure we get the DEK blob:
 	 *
-	 * CONTAINER_HDR_ALIGNMENT (1KB) + extra 3KB of header info
+	 * container_hdr_alignment (1KB) + extra 3KB of header info
 	 */
 	buf_size = roundup(SZ_4K, mmc->read_bl_len);
 	buf = malloc(buf_size);
@@ -200,7 +203,7 @@ int get_dek_blob(ulong addr, u32 *size)
 
 	/* Recover the DEK blob and copy to 'addr' */
 	dek_blob_addr =
-	    get_blob_addr_from_container((ulong) buf + CONTAINER_HDR_ALIGNMENT);
+	    get_blob_addr_from_container((ulong) buf + ctnr_hdr_align);
 	if (!dek_blob_addr) {
 		printf("Failed to get DEK Blob address.\n");
 		ret = -1;
