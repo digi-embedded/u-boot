@@ -20,12 +20,15 @@
 #include <trusty/libtipc.h>
 #endif
 
+#if 0
 #if defined(CONFIG_AHAB_BOOT) && !defined(CONFIG_ANDROID_SUPPORT)
 #include <asm/mach-imx/ahab.h>
+#endif
 #endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#if 0
 #if defined(CONFIG_AHAB_BOOT) && !defined(CONFIG_ANDROID_SUPPORT)
 static int container_get_image_dst(ulong cntr, ulong *kernel, ulong *fdt)
 {
@@ -68,6 +71,7 @@ static int container_get_image_dst(ulong cntr, ulong *kernel, ulong *fdt)
 
 	return 0;
 }
+#endif
 #endif
 
 /*
@@ -192,6 +196,7 @@ int do_booti(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 	bmi.cmd_name = "booti";
 	/* do not set up argc and argv[] since nothing uses them */
 
+#if 0
 #if defined(CONFIG_AHAB_BOOT) && !defined(CONFIG_ANDROID_SUPPORT)
 	ulong cntr, kernel = 0, fdt = 0;
 	char fdtstr[32];
@@ -221,6 +226,7 @@ int do_booti(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 	bmi.conf_fdt = (const char*)fdtstr;
 	sprintf(kernelstr, "0x%08lx\n", kernel);
 	sprintf(fdtstr, "0x%08lx\n", fdt);
+#endif
 #endif
 
 	if (booti_start(&bmi))
