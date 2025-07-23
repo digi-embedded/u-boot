@@ -1124,8 +1124,10 @@ int do_boota(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]) {
 	/* lock the boot status and rollback_idx preventing Linux modify it */
 	trusty_lock_boot_state();
 
+#if 0
 	/* populate secretkeeper public key */
 	trusty_populate_sk_key((void *)(ulong)fdt_addr);
+#endif
 #endif
 
 	/* Dump image info */

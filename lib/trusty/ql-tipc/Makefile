@@ -42,7 +42,8 @@ obj-y += \
     $(QL_TIPC)/rpmb_proxy.o \
     $(QL_TIPC)/util.o \
     $(QL_TIPC)/imx_snvs.o \
-    $(QL_TIPC)/secretkeeper.o \
+#     $(QL_TIPC)/secretkeeper.o
+obj-y += \
     sysdeps/sysdeps_uboot.o \
     sysdeps/storage_ops_uboot.o
 
