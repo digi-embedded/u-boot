@@ -149,8 +149,12 @@
 	"usb_pgood_delay=2000\0" \
 	""	/* end line */
 
+#ifdef CONFIG_IMX_MATTER_TRUSTY
+#define NS_ARCH_ARM64 1
+#endif
+
 /* Android specific configuration */
-#if defined(CONFIG_ANDROID_SUPPORT)
+#ifdef CONFIG_ANDROID_SUPPORT
 #include "ccimx8mm_dvk_android.h"
 #endif
 
