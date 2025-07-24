@@ -217,7 +217,8 @@ void som_default_environment(void)
 	 * If there are no defined partition tables generate them dynamically
 	 * basing on the available eMMC size.
 	 */
-	generate_partition_table();
+	if (!IS_ENABLED(CONFIG_ANDROID_SUPPORT))
+		generate_partition_table();
 
 	/* Get MAC address from fuses unless indicated otherwise */
 	if (env_get_yesno("use_fused_macs"))

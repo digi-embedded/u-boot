@@ -1482,7 +1482,8 @@ void som_default_environment(void)
 	 * If there are no defined partition tables generate them dynamically
 	 * basing on the available eMMC size.
 	 */
-	generate_partition_table();
+	if (!IS_ENABLED(CONFIG_ANDROID_SUPPORT))
+		generate_partition_table();
 }
 
 void board_update_hwid(bool is_fuse)
