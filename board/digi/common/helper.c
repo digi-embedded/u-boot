@@ -42,6 +42,9 @@ DECLARE_GLOBAL_DATA_PTR;
 #ifdef CONFIG_AHAB_BOOT
 #define AHAB_CONTAINER_SIZE		8192
 #endif
+#ifdef CONFIG_IMX_HAB
+#include <asm/mach-imx/hab.h>	/* IVT_SIZE */
+#endif
 #endif /* CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS */
 
 #if defined(CONFIG_CMD_UPDATE) || defined(CONFIG_CMD_DBOOT)

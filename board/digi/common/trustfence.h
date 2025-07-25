@@ -14,7 +14,7 @@
 #include "trustfence/boot.h"
 #include "trustfence/encryption.h"
 
-#ifdef CONFIG_AUTH_ARTIFACTS
+#if defined(CONFIG_AUTH_ARTIFACTS) || defined(CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS)
 #include "trustfence/auth.h"
 #endif
 #ifdef CONFIG_AHAB_BOOT
