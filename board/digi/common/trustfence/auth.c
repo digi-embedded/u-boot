@@ -33,7 +33,7 @@ extern int authenticate_image(uint32_t ddr_start, uint32_t raw_image_size);
 #endif
 #include "auth.h"
 
-#if defined(CONFIG_AUTH_DISCRETE_ARTIFACTS)
+#if defined(CONFIG_AUTH_DISCRETE_ARTIFACTS) || defined(CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS)
 /*
  * Authenticate an image in RAM.
  *

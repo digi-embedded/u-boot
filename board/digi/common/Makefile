@@ -35,6 +35,7 @@ obj-y += trustfence/boot.o trustfence/encryption.o
 obj-$(CONFIG_IMX_HAB) += trustfence/hab.o
 obj-$(CONFIG_AHAB_BOOT) += trustfence/ahab.o
 obj-$(CONFIG_AUTH_ARTIFACTS) += trustfence/auth.o
+obj-$(CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS) += trustfence/auth.o
 obj-$(CONFIG_ENV_ENCRYPT) += trustfence/env.o
 obj-$(CONFIG_OPTEE_ENV_ENCRYPT) += trustfence/aes_tee.o
 obj-$(CONFIG_TRUSTFENCE_JTAG) += trustfence/jtag.o
