@@ -402,11 +402,6 @@ int board_late_init(void)
 	return 0;
 }
 
-int mmc_map_to_kernel_blk(int dev_no)
-{
-	return dev_no;
-}
-
 #if defined(CONFIG_DISPLAY_BOARDINFO_LATE)
 /*
  * Call this during late initialization, after relocation and board setup,

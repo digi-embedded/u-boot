@@ -4,6 +4,7 @@
 #
 
 obj-y += ccimx8x_sbc_pro.o
+obj-y += ../../freescale/common/mmc.o	# for "mmc_map_to_kernel_blk"
 obj-y += ../ccimx8x/ccimx8x.o \
 	 ../ccimx8/ccimx8.o
 ifdef CONFIG_HAS_HWID

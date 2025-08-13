@@ -5,6 +5,7 @@
 #
 
 obj-y += ../ccimx8m_dvk/ccimx8m_dvk.o
+obj-y += ../../freescale/common/mmc.o	# for "mmc_map_to_kernel_blk"
 ifdef CONFIG_HAS_HWID
 obj-y += ../ccimx8/ccimx8_hwid.o
 endif

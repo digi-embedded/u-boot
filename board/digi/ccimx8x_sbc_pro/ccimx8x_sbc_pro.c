@@ -142,11 +142,6 @@ int board_phy_config(struct phy_device *phydev)
 }
 #endif
 
-int mmc_map_to_kernel_blk(int devno)
-{
-	return devno;
-}
-
 #if defined(CONFIG_DISPLAY_BOARDINFO_LATE)
 /*
  * Call this during late initialization, after relocation and board setup,
