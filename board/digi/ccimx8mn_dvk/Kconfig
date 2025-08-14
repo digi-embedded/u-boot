@@ -11,4 +11,7 @@ config SYS_VENDOR
 config SYS_CONFIG_NAME
 	default "ccimx8mn_dvk"
 
+config IMX_CONFIG
+	default "board/freescale/imx8mn_evk/imximage-8mn-ddr4.cfg"
+
 endif
