@@ -213,18 +213,18 @@ BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 SCRIPTNAME="$(basename "${0}")"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
-MKIMAGE_BRANCH="lf-6.6.52_2.2.0"
-# Tag: lf-6.6.52-2.2.0
-MKIMAGE_REV="71b8c18af93a5eb972d80fbec290006066cff24f"
+MKIMAGE_BRANCH="lf-6.6.52_2.2.1"
+# Tag: lf-6.6.52-2.2.1
+MKIMAGE_REV="81fca6434be0610f3f9216a762aadc4dc3e8d8db"
 MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
 MKIMAGE_PATCHES=" \
 	mkimage/0001-iMX8QX-soc.mak-capture-commands-output-into-a-log-fi.patch \
 "
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
-ATF_BRANCH="lf_v2.10"
-# Tag: lf-6.6.52-2.2.0
-ATF_REV="1b27ee3edbb40ef9432c69ccaa744d1ac5d54c5d"
+ATF_BRANCH="lf_v2.10_6.6.52_2.2.x"
+# Tag: lf-6.6.52-2.2.1
+ATF_REV="7e374c5f57328949a2b141a567175b6a2939e964"
 ATF_DIR="${BASEDIR}/imx-atf"
 
 DIGI_SC_FW="digi-sc-firmware-1.17.0.2"

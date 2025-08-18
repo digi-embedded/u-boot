@@ -273,9 +273,9 @@ sign_imxboot()
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
-MKIMAGE_BRANCH="lf-6.6.52_2.2.0"
-# Tag: lf-6.6.52-2.2.0
-MKIMAGE_REV="71b8c18af93a5eb972d80fbec290006066cff24f"
+MKIMAGE_BRANCH="lf-6.6.52_2.2.1"
+# Tag: lf-6.6.52-2.2.1
+MKIMAGE_REV="81fca6434be0610f3f9216a762aadc4dc3e8d8db"
 MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
 MKIMAGE_SOC_DIR="${MKIMAGE_DIR}/iMX8M"
 MKIMAGE_PATCHES=" \
@@ -284,9 +284,9 @@ MKIMAGE_PATCHES=" \
 "
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
-ATF_BRANCH="lf_v2.10"
-# Tag: lf-6.6.52-2.2.0
-ATF_REV="1b27ee3edbb40ef9432c69ccaa744d1ac5d54c5d"
+ATF_BRANCH="lf_v2.10_6.6.52_2.2.x"
+# Tag: lf-6.6.52-2.2.1
+ATF_REV="7e374c5f57328949a2b141a567175b6a2939e964"
 ATF_DIR="${BASEDIR}/imx-atf"
 ATF_PATCHES=" \
 	atf/0001-imx8mn-Define-UART1-as-console-for-boot-stage.patch \
@@ -295,11 +295,11 @@ ATF_PATCHES=" \
 
 OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
 OPTEE_BRANCH="lf-6.6.52_2.2.0"
-# Tag: lf-6.6.52-2.2.0
-OPTEE_REV="60beb308810f9561a67fdb435388a64c85eb6dcb"
+# Tag: lf-6.6.52-2.2.1
+OPTEE_REV="ecea75b7fee5a3c8a2d9b99769ba78c4390c0e8b"
 OPTEE_DIR="${BASEDIR}/imx-optee-os"
 
-FIRMWARE_IMX="firmware-imx-8.26-d4c33ab"
+FIRMWARE_IMX="firmware-imx-8.26.1-410be01"
 FIRMWARE_IMX_DIR="${BASEDIR}/${FIRMWARE_IMX}"
 FIRMWARE_IMX_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_IMX}.bin"
 
