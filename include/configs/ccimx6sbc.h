@@ -131,17 +131,6 @@
 	"uboot_file=u-boot.imx\0" \
 	"boot_file=boot.img\0" \
 	"system_file=system.img\0" \
-	"partition_mmc_android=mmc rescan;" \
-		"if mmc dev ${mmcdev} 0; then " \
-			"gpt write mmc ${mmcdev} ${parts_android};" \
-			"mmc rescan;" \
-		"else " \
-			"if mmc dev ${mmcdev};then " \
-				"gpt write mmc ${mmcdev} ${parts_android};" \
-				"mmc rescan;" \
-			"else;" \
-			"fi;" \
-		"fi;\0" \
 	"bootargs_mmc_android=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_android} " \
 		"${bootargs_once} ${extra_bootargs}\0" \
