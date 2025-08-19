@@ -17,7 +17,6 @@
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 8M Mini"
 #define CONFIG_BOARD_DESCRIPTION	"Development Kit"
 #define BOARD_DEY_NAME			"ccimx8mm-dvk"
-#define PRODUCT_NAME			"ccimx8mmdvk"  /* (== TARGET_BOOTLOADER_BOARD_NAME in Android) */
 
 #ifdef CONFIG_SPL_BUILD
 /* malloc f used before GD_FLG_FULL_MALLOC_INIT set */

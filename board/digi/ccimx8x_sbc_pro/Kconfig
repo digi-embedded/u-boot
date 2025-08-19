@@ -14,4 +14,8 @@ config SYS_CONFIG_NAME
 config IMX_CONFIG
 	default "board/digi/ccimx8x/imximage.cfg"
 
+# Must match TARGET_BOOTLOADER_BOARD_NAME in Android
+config TARGET_PRODUCT_NAME
+	default "ccimx8xsbcpro"
+
 endif
