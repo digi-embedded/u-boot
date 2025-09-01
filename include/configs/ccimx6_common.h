@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012-2013 Freescale Semiconductor, Inc.
- * Copyright (C) 2013-2024 Digi International, Inc.
+ * Copyright (C) 2013-2025 Digi International, Inc.
  *
  * Configuration settings for the Freescale i.MX6Q SabreSD board.
  *
@@ -23,7 +23,6 @@
 #include "mx6_common.h"
 #include "digi_common.h"		/* Load Digi common stuff... */
 
-#define CONFIG_CC6
 #define DIGI_IMX_FAMILY
 
 #ifdef CONFIG_MX6QP
@@ -41,18 +40,13 @@
  * RAM
  */
 #define CONFIG_SYS_LOAD_ADDR		0x12000000
-#define CONFIG_DIGI_LZIPADDR		0x15000000
-#define CONFIG_DIGI_UPDATE_ADDR		CONFIG_SYS_LOAD_ADDR
-/* RAM memory reserved for U-Boot, stack, malloc pool... */
-#define CONFIG_UBOOT_RESERVED		(10 * 1024 * 1024)
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + 2 * 1024 * 1024)
+
 /* memtest */
 /* Physical Memory Map */
 #define PHYS_SDRAM                     MMDC0_ARB_BASE_ADDR
-#define CONFIG_SYS_SDRAM_BASE          PHYS_SDRAM
-#define CONFIG_SYS_INIT_RAM_ADDR       IRAM_BASE_ADDR
-#define CONFIG_SYS_INIT_RAM_SIZE       IRAM_SIZE
+#define CFG_SYS_SDRAM_BASE		PHYS_SDRAM
+#define CFG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
+#define CFG_SYS_INIT_RAM_SIZE	IRAM_SIZE
 
 #define CONFIG_SYS_INIT_SP_OFFSET \
 	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
@@ -120,6 +114,7 @@
 
 /* MMC Configs */
 #define CFG_SYS_FSL_ESDHC_ADDR      0
+#define CFG_SYS_FSL_USDHC_NUM	2
 
 #define CONFIG_SUPPORT_EMMC_RPMB
 #define CONFIG_SUPPORT_MMC_ECSD
@@ -128,8 +123,6 @@
 #define EMMC_BOOT_PART			1
 #define EMMC_BOOT_PART_OFFSET		SZ_1K
 #define CONFIG_BOUNCE_BUFFER
-#define CONFIG_FAT_WRITE
-
 
 #ifdef CONFIG_SATA
 #define CONFIG_DWC_AHSATA
@@ -142,10 +135,9 @@
 
 /* Ethernet */
 #define CONFIG_FEC_MXC
-#define CONFIG_MII
 #define IMX_FEC_BASE			ENET_BASE_ADDR
 #define CONFIG_ETHPRIME			"FEC"
-#define CONFIG_ARP_TIMEOUT     200UL
+#define CONFIG_CMD_BOARD_ID
 
 /* protected environment variables (besides ethaddr and serial#) */
 #undef CFG_ENV_FLAGS_LIST_STATIC
@@ -164,8 +156,6 @@
 
 /* I2C configs */
 #define CONFIG_SYS_I2C
-#define CONFIG_SYS_I2C_MXC
-#define CONFIG_I2C_MULTI_BUS
 #define CONFIG_SYS_I2C_SPEED            100000
 
 /* PMIC */
@@ -207,7 +197,6 @@
 #define CONFIG_CMD_DIGI_PMIC
 
 /* Firmware update */
-#define CONFIG_CMD_UPDATE_MMC
 #define CONFIG_UPDATE_SUPPORTED_SOURCES_LIST	\
 	CONFIG_SUPPORTED_SOURCES_NET "|" \
 	CONFIG_SUPPORTED_SOURCES_BLOCK "|" \
@@ -220,8 +209,6 @@
 	DIGICMD_UPDATEFILE_NET_ARGS_HELP "\n" \
 	DIGICMD_UPDATEFILE_BLOCK_ARGS_HELP "\n" \
 	DIGICMD_UPDATEFILE_RAM_ARGS_HELP
-/* On the fly update chunk (must be a multiple of mmc block size) */
-#define CONFIG_OTF_CHUNK		(32 * 1024 * 1024)
 
 #define ALTBOOTCMD	\
 	"altbootcmd=" \

@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012-2013 Freescale Semiconductor, Inc.
- * Copyright (C) 2013-2019 Digi International, Inc.
+ * Copyright (C) 2013-2025 Digi International, Inc.
  *
  * Configuration settings for the Freescale i.MX6Q SabreSD board.
  *
@@ -29,10 +29,8 @@
 #endif
 #define CONFIG_BOARD_DESCRIPTION	"SBC"
 
-#define CONFIG_CONS_INDEX		1
 #define CONFIG_MXC_UART_BASE		UART4_BASE
 #define CONSOLE_DEV			"ttymxc3"
-#define CONFIG_BAUDRATE			115200
 
 #undef CONFIG_DEFAULT_FDT_FILE
 #if defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
@@ -50,13 +48,6 @@
 
 /* Ethernet PHY */
 #define CONFIG_ENET_PHYADDR_MICREL	3
-#define PHY_ANEG_TIMEOUT		8000
-
-/* I2C */
-#define CONFIG_SYS_I2C_MXC_I2C1
-#define CONFIG_SYS_I2C_MXC_I2C2
-#define CONFIG_SYS_I2C_MXC_I2C3
-#define CONFIG_SYS_I2C_MXC_I2C4
 
 /* Carrier board version and ID commands */
 #define CONFIG_CMD_BOARD_VERSION
@@ -99,7 +90,7 @@
 #define CCIMX6QPSBC_ID160	160
 #endif /* CONFIG_HAS_CARRIERBOARD_ID */
 
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	RANDOM_UUIDS \
 	ALTBOOTCMD \
