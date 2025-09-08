@@ -43,7 +43,7 @@ clone_atf_repo()
 		cd "${ATF_DIR}" || exit 1
 		git clean -ffdx && git restore .
 		echo "- Update imx-atf repository:"
-		git pull "$(git remote)"
+		git fetch "$(git remote)"
 		git -c core.fsync=loose-object -c gc.autoDetach=false -c core.pager=cat checkout -B "${ATF_BRANCH}" "${ATF_REV}"
 	)
 }
@@ -86,7 +86,7 @@ clone_mkimage_repo()
 		cd "${MKIMAGE_DIR}" || { echo "clone_mkimage_repo: MKIMAGE_DIR not found"; exit 1; }
 		git clean -ffdx && git restore .
 		echo "- Update imx-mkimage repository:"
-		git pull "$(git remote)"
+		git fetch "$(git remote)"
 		git -c core.fsync=loose-object -c gc.autoDetach=false -c core.pager=cat checkout -B "${MKIMAGE_BRANCH}" "${MKIMAGE_REV}"
 	)
 }
