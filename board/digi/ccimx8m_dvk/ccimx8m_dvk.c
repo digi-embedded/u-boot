@@ -114,14 +114,6 @@ int board_early_init_f(void)
 	return 0;
 }
 
-#ifdef CONFIG_BOARD_POSTCLK_INIT
-int board_postclk_init(void)
-{
-	/* TODO */
-	return 0;
-}
-#endif
-
 #ifdef CONFIG_OF_BOARD_SETUP
 int ft_board_setup(void *blob, struct bd_info *bd)
 {
