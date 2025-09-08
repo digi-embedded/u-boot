@@ -1,12 +1,14 @@
-if TARGET_IMX95_19X19_EVK || TARGET_IMX95_15X15_EVK
+if TARGET_CCIMX95_DVK
 
 config SYS_BOARD
-	default "imx95_evk"
+	default "ccimx95-dvk"
 
 config SYS_VENDOR
-	default "freescale"
+	default "digi"
 
 config SYS_CONFIG_NAME
-	default "imx95_evk"
+	default "ccimx95-dvk"
+
+source "board/digi/common/Kconfig"
 
 endif

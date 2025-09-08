@@ -1,15 +1,25 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
  * Copyright 2023 NXP
+ * Copyright 2025 Digi International Inc.
  */
 
-#ifndef __IMX95_EVK_H
-#define __IMX95_EVK_H
+#ifndef CCIMX95_DVK_H
+#define CCIMX95_DVK_H
 
 #include <linux/sizes.h>
 #include <linux/stringify.h>
 #include <asm/arch/imx-regs.h>
+#include <configs/ccimx9_common.h>
 #include "imx_env.h"
+
+#define CONFIG_SOM_DESCRIPTION		"ConnectCore 95"
+#define CONFIG_BOARD_DESCRIPTION	"Development Kit"
+#define BOARD_DEY_NAME			"ccimx95-dvk"
+
+/* Carrier board version in environment */
+#define CONFIG_HAS_CARRIERBOARD_VERSION
+#define CONFIG_HAS_CARRIERBOARD_ID
 
 #define CFG_SYS_UBOOT_BASE	\
 	(QSPI0_AMBA_BASE + CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512)
@@ -31,8 +41,8 @@
 #define BOOTENV
 #endif
 
-#ifdef CONFIG_TARGET_IMX95_15X15_EVK
-#define JH_ROOT_DTB "imx95-15x15-evk-root.dtb"
+#ifdef CONFIG_TARGET_CCIMX95_DVK
+#define JH_ROOT_DTB "ccimx95-dvk-root.dtb"
 /* jh_root_mem: set the memory space used by Jailhouse root cell */
 #define JAILHOUSE_ENV \
 	"jh_root_dtb=" JH_ROOT_DTB "\0" \
@@ -45,7 +55,7 @@
 		"setenv jh_root_mem 0x58000000@0x90000000,0xc0000000@0x180000000; " \
 		"setenv jh_clk kvm.enable_virt_at_load=false cpuidle.off=1 clk_ignore_unused kvm-arm.mode=nvhe; run netboot; \0 "
 #else
-#define JH_ROOT_DTB "imx95-19x19-evk-root.dtb"
+#define JH_ROOT_DTB "ccimx95-dvk-root.dtb"
 /* jh_root_mem: set the memory space used by Jailhouse root cell */
  #define JAILHOUSE_ENV \
 	"jh_root_dtb=" JH_ROOT_DTB "\0" \
@@ -204,7 +214,7 @@
 #define PHYS_SDRAM                      0x90000000
 /* Totally 16GB */
 #define PHYS_SDRAM_SIZE			0x70000000UL /* 2GB  - 256MB DDR */
-#ifdef CONFIG_TARGET_IMX95_15X15_EVK
+#ifdef CONFIG_TARGET_CCIMX95_DVK
 #define PHYS_SDRAM_2_SIZE 		0x180000000UL /* 4GB temp workaround, should be 8GB */
 #else
 #define PHYS_SDRAM_2_SIZE 		0x380000000UL /* 14GB */

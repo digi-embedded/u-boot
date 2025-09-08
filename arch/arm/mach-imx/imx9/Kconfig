@@ -47,6 +47,11 @@ config TARGET_CCIMX93_DVK
 	select IMX93
 	select CC9
 
+config TARGET_CCIMX95_DVK
+	bool "Digi ConnectCore 95 Development Kit"
+	select IMX95
+	select CC9
+
 config TARGET_IMX91_11X11_EVK
 	bool "imx91_11x11_evk"
 	select OF_BOARD_FIXUP
@@ -97,6 +102,7 @@ endchoice
 
 source "board/digi/ccimx91-dvk/Kconfig"
 source "board/digi/ccimx93-dvk/Kconfig"
+source "board/digi/ccimx95-dvk/Kconfig"
 source "board/freescale/imx91_evk/Kconfig"
 source "board/freescale/imx91_qsb/Kconfig"
 source "board/freescale/imx93_evk/Kconfig"

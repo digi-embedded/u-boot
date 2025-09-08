@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
- * Copyright 2023 NXP
+ * Copyright 2025 Digi International, Inc.
  */
 
 /dts-v1/;
@@ -10,8 +10,8 @@
 #include "imx95.dtsi"
 
 / {
-	model = "NXP i.MX95 19X19 board";
-	compatible = "fsl,imx95-19x19-evk", "fsl,imx95";
+	model = "Digi ConnectCore 95 Development Kit";
+	compatible = "digi,ccimx95-dvk", "digi,ccimx95", "fsl,imx95";
 
 	chosen {
 		bootargs = "console=ttyLP0,115200 earlycon";
