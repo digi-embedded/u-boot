@@ -98,3 +98,14 @@ GTAGS
 
 # Eclipse
 .project
+
+# Digi build scripts generated folders
+tools/digi/firmware-ele-imx-*
+tools/digi/firmware-imx-*
+tools/digi/imx-atf/
+tools/digi/imx-mkimage/
+tools/digi/imx-oei/
+tools/digi/imx-optee-os/
+tools/digi/imx-sm/
+tools/digi/imx95-m7-demo-*
+tools/digi/output/
