@@ -1,11 +1,11 @@
 /*
- * Copyright 2022-2024 Digi International Inc
+ * Copyright 2022-2025 Digi International Inc
  *
  * SPDX-License-Identifier:    GPL-2.0+
  */
 
-#ifndef CCIMX93_COMMON_H
-#define CCIMX93_COMMON_H
+#ifndef CCIMX9_COMMON_H
+#define CCIMX9_COMMON_H
 
 #include "digi_common.h"
 
@@ -67,8 +67,8 @@
 #define PHYS_SDRAM			0x80000000
 
 /* RAM memory reserved for OPTEE (32 MiB) */
-#define RESERVED_MEM_START             0x96000000
-#define RESERVED_MEM_END               0x98000000
+#define RESERVED_MEM_START		0x96000000
+#define RESERVED_MEM_END		0x98000000
 
 #define CONFIG_TRUSTFENCE_SRK_BANK			16
 #define CONFIG_TRUSTFENCE_SRK_WORDS			8
@@ -156,4 +156,4 @@
  */
 #define SENSITIVE_PARTITIONS		"uboot"
 
-#endif /* CCIMX93_COMMON_H */
+#endif /* CCIMX9_COMMON_H */

@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
- * Copyright 2024 Digi International Inc
+ * Copyright 2025 Digi International Inc
  */
 
 #ifndef CCIMX91_DVK_H
@@ -226,9 +226,8 @@
 	   "fi;"
 
 /* Link Definitions */
-
-#define CFG_SYS_INIT_RAM_ADDR        0x80000000
-#define CFG_SYS_INIT_RAM_SIZE        0x200000
+#define CFG_SYS_INIT_RAM_ADDR		0x80000000
+#define CFG_SYS_INIT_RAM_SIZE		0x200000
 
 #define PHYS_SDRAM_SIZE			0x20000000  /* 512MB DDR */
 
