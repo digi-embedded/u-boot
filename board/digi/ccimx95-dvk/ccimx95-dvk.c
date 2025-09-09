@@ -11,7 +11,7 @@
 #include <asm/arch/clock.h>
 #include <fdt_support.h>
 #include <usb.h>
-#include "../common/tcpc.h"
+#include "../../freescale/common/tcpc.h"
 #include <dwc3-uboot.h>
 #include <asm/io.h>
 #include <linux/bitfield.h>
