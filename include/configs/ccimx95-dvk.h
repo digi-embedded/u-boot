@@ -212,13 +212,9 @@
 
 #define CFG_SYS_SDRAM_BASE           0x90000000
 #define PHYS_SDRAM                      0x90000000
-/* Totally 16GB */
+/* Totally 8GB */
 #define PHYS_SDRAM_SIZE			0x70000000UL /* 2GB  - 256MB DDR */
-#ifdef CONFIG_TARGET_CCIMX95_DVK
-#define PHYS_SDRAM_2_SIZE 		0x180000000UL /* 4GB temp workaround, should be 8GB */
-#else
-#define PHYS_SDRAM_2_SIZE 		0x380000000UL /* 14GB */
-#endif
+#define PHYS_SDRAM_2_SIZE 		0x180000000UL /* 6GB */
 
 #define CFG_SYS_FSL_USDHC_NUM	2
 
