@@ -63,9 +63,6 @@
 #define EMMC_BOOT_PART			1
 #define EMMC_BOOT_PART_OFFSET		(32 * SZ_1K)
 
-#define CFG_SYS_SDRAM_BASE		0x80000000
-#define PHYS_SDRAM			0x80000000
-
 /* RAM memory reserved for OPTEE (32 MiB) */
 #define RESERVED_MEM_START		0x96000000
 #define RESERVED_MEM_END		0x98000000
