@@ -54,28 +54,9 @@ int board_early_init_f(void)
 
 #ifdef CONFIG_USB_TCPC
 struct tcpc_port port;
-#ifdef CONFIG_TARGET_IMX95_15X15_EVK
-struct tcpc_port portpd;
 struct tcpc_port_config port_config = {
 	.i2c_bus = 2, /* i2c3 */
-	.addr = 0x50,
-	.port_type = TYPEC_PORT_DRP,
-	.disable_pd = true,
-};
-
-struct tcpc_port_config portpd_config = {
-	.i2c_bus = 2, /*i2c3*/
-	.addr = 0x52,
-	.port_type = TYPEC_PORT_UFP,
-	.max_snk_mv = 20000,
-	.max_snk_ma = 3000,
-	.max_snk_mw = 15000,
-	.op_snk_mv = 9000,
-};
-#else
-struct tcpc_port_config port_config = {
-	.i2c_bus = 6, /* i2c7 */
-	.addr = 0x50,
+	.addr = 0x53,
 	.port_type = TYPEC_PORT_DRP,
 	.disable_pd = true,
 };
@@ -124,41 +105,12 @@ static void setup_typec(void)
 
 	tca_base = USB1_BASE_ADDR + 0xfc000;
 
-#ifdef CONFIG_TARGET_IMX95_15X15_EVK
-	struct gpio_desc ext_12v_desc;
-
-	ret = tcpc_init(&portpd, portpd_config, NULL);
-	if (ret) {
-		printf("%s: tcpc portpd init failed, err=%d\n",
-		       __func__, ret);
-	} else if (tcpc_pd_sink_check_charging(&portpd)) {
-		printf("Power supply on USB PD\n");
-
-		/* Enable EXT 12V */
-		ret = dm_gpio_lookup_name("gpio@22_1", &ext_12v_desc);
-		if (ret) {
-			printf("%s lookup gpio@22_1 failed ret = %d\n", __func__, ret);
-			return;
-		}
-
-		ret = dm_gpio_request(&ext_12v_desc, "ext_12v_en");
-		if (ret) {
-			printf("%s request ext_12v_en failed ret = %d\n", __func__, ret);
-			return;
-		}
-
-		/* Enable PER 12V regulator */
-		dm_gpio_set_dir_flags(&ext_12v_desc, GPIOD_IS_OUT | GPIOD_IS_OUT_ACTIVE);
-	}
-#endif
-
 	ret = tcpc_init(&port, port_config, &tca_mux_select);
 	if (ret) {
 		printf("%s: tcpc init failed, err=%d\n", __func__, ret);
 		return;
 	}
 }
-#endif
 
 #ifdef CONFIG_USB_DWC3
 

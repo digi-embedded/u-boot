@@ -139,6 +139,34 @@
 		reg = <0x20>;
 		vcc-supply = <&reg_3p3v>;
 	};
+
+	ptn5110: tcpc@53 {
+		compatible = "nxp,ptn5110";
+		reg = <0x53>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <3 IRQ_TYPE_LEVEL_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_ptn5110>;
+
+		port {
+			typec_dr_sw: endpoint {
+				remote-endpoint = <&usb3_drd_sw>;
+			};
+		};
+
+		typec1_con: connector {
+			compatible = "usb-c-connector";
+			label = "USB-C";
+			power-role = "dual";
+			data-role = "dual";
+			try-power-role = "sink";
+			source-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;
+			sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)
+				     PDO_VAR(5000, 20000, 3000)>;
+			op-sink-microwatt = <15000000>;
+			self-powered;
+		};
+	};
 };
 
 &lpi2c4 {
@@ -229,34 +257,6 @@
 		#interrupt-cells = <2>;
 		interrupt-parent = <&gpio5>;
 		interrupts = <16 IRQ_TYPE_LEVEL_LOW>;
-	};
-
-	ptn5110: tcpc@50 {
-		compatible = "nxp,ptn5110";
-		reg = <0x50>;
-		interrupt-parent = <&gpio5>;
-		interrupts = <14 IRQ_TYPE_LEVEL_LOW>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_ptn5110>;
-
-		port {
-			typec_dr_sw: endpoint {
-				remote-endpoint = <&usb3_drd_sw>;
-			};
-		};
-
-		typec1_con: connector {
-			compatible = "usb-c-connector";
-			label = "USB-C";
-			power-role = "dual";
-			data-role = "dual";
-			try-power-role = "sink";
-			source-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;
-			sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)
-				     PDO_VAR(5000, 20000, 3000)>;
-			op-sink-microwatt = <15000000>;
-			self-powered;
-		};
 	};
 
 	/* SI5332 */
@@ -525,7 +525,7 @@
 
 	pinctrl_ptn5110: ptn5110grp {
 		fsl,pins = <
-			IMX95_PAD_GPIO_IO34__GPIO5_IO_BIT14			0x31e
+			IMX95_PAD_I2C2_SDA__AONMIX_TOP_GPIO1_IO_BIT3		0x31e
 		>;
 	};
 
