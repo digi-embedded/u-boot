@@ -26,6 +26,10 @@
 #include <dm/uclass-internal.h>
 #include <power/regulator.h>
 
+#include "../ccimx9/ccimx9.h"
+#include "../common/carrier_board.h"
+#include "../common/trustfence.h"
+
 #ifdef CONFIG_SCMI_FIRMWARE
 #include <scmi_agent.h>
 #include <scmi_protocols.h>
@@ -34,6 +38,9 @@
 #endif
 
 DECLARE_GLOBAL_DATA_PTR;
+
+unsigned int board_version = CARRIERBOARD_VERSION_UNDEFINED;
+unsigned int board_id = CARRIERBOARD_ID_UNDEFINED;
 
 extern int board_fix_fdt_fuse(void *fdt);
 
@@ -482,16 +489,23 @@ int board_init(void)
 	return 0;
 }
 
+void platform_default_environment(void)
+{
+	som_default_environment();
+}
+
 int board_late_init(void)
 {
-#ifdef CONFIG_ENV_IS_IN_MMC
-	board_late_mmc_env_init();
-#endif
-
 	env_set("sec_boot", "no");
 #ifdef CONFIG_AHAB_BOOT
 	env_set("sec_boot", "yes");
 #endif
+
+	/* SOM late init */
+	ccimx9_late_init();
+
+	/* Set default dynamic variables */
+	platform_default_environment();
 
 	return 0;
 }
@@ -504,6 +518,9 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 	int i, ret = 0;
 	u64 base[CONFIG_NR_DRAM_BANKS] = {0};
 	u64 size[CONFIG_NR_DRAM_BANKS] = {0};
+
+	fdt_fixup_ccimx9(blob);
+	fdt_fixup_carrierboard(blob);
 
 	p = env_get("jh_root_mem");
 	if (!p)
