@@ -14,8 +14,8 @@
 	compatible = "digi,ccimx95-dvk", "digi,ccimx95", "fsl,imx95";
 
 	chosen {
-		bootargs = "console=ttyLP0,115200 earlycon";
-		stdout-path = &lpuart1;
+		bootargs = "console=ttyLP5,115200 earlycon";
+		stdout-path = &lpuart6;
 	};
 
 	memory@80000000 {
@@ -298,10 +298,10 @@
 	};
 };
 
-&lpuart1 {
+&lpuart6 {
 	/* console */
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_uart1>;
+	pinctrl-0 = <&pinctrl_uart6>;
 	status = "okay";
 };
 
@@ -428,10 +428,10 @@
 		>;
 	};
 
-	pinctrl_uart1: uart1grp {
+	pinctrl_uart6: uart6grp {
 		fsl,pins = <
-			IMX95_PAD_UART1_RXD__AONMIX_TOP_LPUART1_RX      0x31e
-			IMX95_PAD_UART1_TXD__AONMIX_TOP_LPUART1_TX      0x31e
+			IMX95_PAD_GPIO_IO05__LPUART6_RX			0x31e
+			IMX95_PAD_GPIO_IO04__LPUART6_TX			0x31e
 		>;
 	};
 

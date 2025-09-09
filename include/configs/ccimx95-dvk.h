@@ -124,7 +124,7 @@
 	"kernel_addr_r=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
 	"image=Image\0" \
 	"splashimage=0xA0000000\0" \
-	"console=ttyLP0,115200 earlycon\0" \
+	"console=ttyLP5,115200 earlycon\0" \
 	"fdt_addr_r=0x93000000\0"			\
 	"fdt_addr=0x93000000\0"			\
 	"fdt_high=0xffffffffffffffff\0"		\

@@ -46,8 +46,8 @@ extern int board_fix_fdt_fuse(void *fdt);
 
 int board_early_init_f(void)
 {
-	/* UART1: A55, UART2: M33, UART3: M7 */
-	init_uart_clk(0);
+	/* LPUART6 */
+	init_uart_clk(5);
 
 	return 0;
 }
