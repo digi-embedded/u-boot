@@ -29,7 +29,6 @@
 #endif
 #define CONFIG_BOARD_DESCRIPTION	"SBC"
 
-#define CONFIG_MXC_UART_BASE		UART4_BASE
 #define CONSOLE_DEV			"ttymxc3"
 
 #undef CONFIG_DEFAULT_FDT_FILE
