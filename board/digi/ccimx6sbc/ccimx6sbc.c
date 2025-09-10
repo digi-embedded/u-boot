@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012-2013 Freescale Semiconductor, Inc.
- * Copyright (C) 2013-2018 Digi International, Inc.
+ * Copyright (C) 2013-2025 Digi International, Inc.
  *
  * Author: Fabio Estevam <fabio.estevam@freescale.com>
  * Author: Jason Liu <r64343@freescale.com>
@@ -79,11 +79,6 @@ static void setup_iomux_ext_gpios(void)
 					 ARRAY_SIZE(ext_gpios_pads));
 }
 #endif /* CONFIG_CONSOLE_ENABLE_GPIO */
-
-static iomux_v3_cfg_t const ksz9031_pads[] = {
-	/* Micrel KSZ9031 PHY reset */
-	MX6_PAD_ENET_CRS_DV__GPIO1_IO25		| MUX_PAD_CTRL(NO_PAD_CTRL),
-};
 
 static iomux_v3_cfg_t const sgtl5000_audio_pads[] = {
 	/*
@@ -164,26 +159,6 @@ int setup_pmic_voltages_carrierboard(void)
 }
 #endif /* CONFIG_SYS_I2C_MXC */
 
-static void setup_board_enet(void)
-{
-	int phy_reset_gpio;
-
-	/* Gigabit ENET (Micrel PHY) */
-	phy_reset_gpio = IMX_GPIO_NR(1, 25);
-	phy_addr = CONFIG_ENET_PHYADDR_MICREL;
-	imx_iomux_v3_setup_multiple_pads(ksz9031_pads,
-					 ARRAY_SIZE(ksz9031_pads));
-	/* Assert PHY reset */
-	gpio_request(phy_reset_gpio, "ENET PHY Reset");
-	gpio_direction_output(phy_reset_gpio , 0);
-	/* Need 10ms to guarantee stable voltages */
-	udelay(10 * 1000);
-	/* Deassert PHY reset */
-	gpio_set_value(phy_reset_gpio, 1);
-	/* Need to wait 100us before accessing the MIIM (MDC/MDIO) */
-	udelay(100);
-}
-
 int board_get_enet_phy_addr(void)
 {
 	return phy_addr;
@@ -253,24 +228,6 @@ int board_phy_config(struct phy_device *phydev)
 		phydev->drv->config(phydev);
 
 	return 0;
-}
-
-int board_eth_init(struct bd_info *bis)
-{
-	if (is_mx6dqp()) {
-		int ret;
-
-		/* select ENET MAC0 TX clock from PLL */
-		imx_iomux_set_gpr_register(5, 9, 1, 1);
-		ret = enable_fec_anatop_clock(0, ENET_125MHZ);
-		if (ret)
-			printf("Error fec anatop clock settings!\n");
-	}
-
-	setup_iomux_enet();
-	setup_board_enet();
-
-	return cpu_eth_init(bis);
 }
 
 static int board_has_audio(void)
