@@ -20,6 +20,7 @@
  */
 #include <command.h>
 #include <common.h>
+#include <dm.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/imx-regs.h>
@@ -33,8 +34,6 @@
 #include <asm/gpio.h>
 #include <asm/mach-imx/iomux-v3.h>
 #include <asm/mach-imx/boot_mode.h>
-#include <i2c.h>
-#include <asm/mach-imx/mxc_i2c.h>
 #include <linux/ctype.h>
 #include <linux/sizes.h>
 #include <mmc.h>
@@ -82,33 +81,6 @@ static struct digi_hwid my_hwid;
 	PAD_CTL_ODE | PAD_CTL_SRE_FAST)
 
 #define PC MUX_PAD_CTRL(I2C_PAD_CTRL)
-/* I2C2 Camera, MIPI, pfuze */
-static struct i2c_pads_info i2c_pad_info1 = {
-	.scl = {
-		.i2c_mode = MX6_PAD_KEY_COL3__I2C2_SCL | PC,
-		.gpio_mode = MX6_PAD_KEY_COL3__GPIO4_IO12 | PC,
-		.gp = IMX_GPIO_NR(4, 12)
-	},
-	.sda = {
-		.i2c_mode = MX6_PAD_KEY_ROW3__I2C2_SDA | PC,
-		.gpio_mode = MX6_PAD_KEY_ROW3__GPIO4_IO13 | PC,
-		.gp = IMX_GPIO_NR(4, 13)
-	}
-};
-#ifdef CONFIG_I2C_MULTI_BUS
-static struct i2c_pads_info i2c_pad_info2 = {
-	.scl = {
-		.i2c_mode = MX6_PAD_GPIO_3__I2C3_SCL | PC,
-		.gpio_mode = MX6_PAD_GPIO_3__GPIO1_IO03| PC,
-		.gp = IMX_GPIO_NR(1, 3)
-	},
-	.sda = {
-		.i2c_mode = MX6_PAD_GPIO_6__I2C3_SDA | PC,
-		.gpio_mode = MX6_PAD_GPIO_6__GPIO1_IO06 | PC,
-		.gp = IMX_GPIO_NR(1, 6)
-	}
-};
-#endif
 
 struct addrvalue {
 	u32 address;
@@ -737,6 +709,31 @@ static struct addrvalue ddr3_cal_cc6p[NUM_VARIANTS_CC6P + 1][DDR3_CAL_REGS] = {
         },
 };
 
+static struct udevice *pmic_dev;
+
+int pmic_get_chip(struct udevice **devp)
+{
+	int ret;
+
+	if (pmic_dev) {
+		*devp = pmic_dev;
+		return 0;
+	}
+
+#ifdef CONFIG_PMIC_I2C_BUS
+	ret = i2c_get_chip_for_busnum(CONFIG_PMIC_I2C_BUS,
+				      CONFIG_PMIC_I2C_ADDR, 1, &pmic_dev);
+#else
+	/* If not defined use addres 0 */
+	ret = i2c_get_chip_for_busnum(0, CONFIG_PMIC_I2C_ADDR, 1, &pmic_dev);
+#endif
+	if (ret)
+		return ret;
+
+	*devp = pmic_dev;
+	return 0;
+}
+
 static struct ccimx6_variant * get_cc6_variant(u8 variant)
 {
 	if (is_mx6dqp()) {
@@ -780,19 +777,20 @@ int dram_init(void)
 }
 
 
-static int pmic_access_page(unsigned char page)
+int pmic_access_page(unsigned char page)
 {
-#ifdef CONFIG_I2C_MULTI_BUS
-	if (i2c_set_bus_num(CONFIG_PMIC_I2C_BUS))
-		return -1;
-#endif
+	struct udevice *dev;
+	int ret;
 
-	if (i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
-		printf("ERR: cannot access the PMIC\n");
+	ret = pmic_get_chip(&dev);
+	if (ret) {
+		printf("ERR: cannot access the PMIC (get chip)\n");
 		return -1;
 	}
 
-	if (i2c_write(CONFIG_PMIC_I2C_ADDR, DA9063_PAGE_CON, 1, &page, 1)) {
+	/* Write the page register */
+	ret = dm_i2c_write(dev, DA9063_PAGE_CON, &page, 1);
+	if (ret) {
 		printf("Cannot set PMIC page!\n");
 		return -1;
 	}
@@ -802,12 +800,19 @@ static int pmic_access_page(unsigned char page)
 
 int pmic_read_reg(int reg, unsigned char *value)
 {
+	struct udevice *dev;
 	unsigned char page = reg / 0x80;
+	int ret;
+
+	ret = pmic_get_chip(&dev);
+	if (ret)
+		return -1;
 
 	if (pmic_access_page(page))
 		return -1;
 
-	if (i2c_read(CONFIG_PMIC_I2C_ADDR, reg, 1, value, 1))
+	ret = dm_i2c_read(dev, reg, value, 1);
+	if (ret)
 		return -1;
 
 	/* return to page 0 by default */
@@ -817,12 +822,19 @@ int pmic_read_reg(int reg, unsigned char *value)
 
 int pmic_write_reg(int reg, unsigned char value)
 {
+	struct udevice *dev;
 	unsigned char page = reg / 0x80;
+	int ret;
+
+	ret = pmic_get_chip(&dev);
+	if (ret)
+		return -1;
 
 	if (pmic_access_page(page))
 		return -1;
 
-	if (i2c_write(CONFIG_PMIC_I2C_ADDR, reg, 1, &value, 1))
+	ret = dm_i2c_write(dev, reg, &value, 1);
+	if (ret)
 		return -1;
 
 	/* return to page 0 by default */
@@ -1343,27 +1355,18 @@ static int ccimx6_fixup(void)
 
 void pmic_bucks_synch_mode(void)
 {
-#ifdef CONFIG_I2C_MULTI_BUS
-	if (i2c_set_bus_num(CONFIG_PMIC_I2C_BUS))
-                return;
-#endif
-
-	if (!i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
-		if (pmic_write_bitfield(DA9063_BCORE2_CONF_ADDR, 0x3, 6, 0x2))
-			printf("Could not set BCORE2 in synchronous mode\n");
-		if (pmic_write_bitfield(DA9063_BCORE1_CONF_ADDR, 0x3, 6, 0x2))
-			printf("Could not set BCORE1 in synchronous mode\n");
-		if (pmic_write_bitfield(DA9063_BPRO_CONF_ADDR, 0x3, 6, 0x2))
-			printf("Could not set BPRO in synchronous mode\n");
-		if (pmic_write_bitfield(DA9063_BIO_CONF_ADDR, 0x3, 6, 0x2))
-			printf("Could not set BIO in synchronous mode\n");
-		if (pmic_write_bitfield(DA9063_BMEM_CONF_ADDR, 0x3, 6, 0x2))
-			printf("Could not set BMEM in synchronous mode\n");
-		if (pmic_write_bitfield(DA9063_BPERI_CONF_ADDR, 0x3, 6, 0x2))
-			printf("Could not set BPERI in synchronous mode\n");
-	} else {
-		printf("Could not set bucks in synchronous mode\n");
-	}
+	if (pmic_write_bitfield(DA9063_BCORE2_CONF_ADDR, 0x3, 6, 0x2))
+		printf("Could not set BCORE2 in synchronous mode\n");
+	if (pmic_write_bitfield(DA9063_BCORE1_CONF_ADDR, 0x3, 6, 0x2))
+		printf("Could not set BCORE1 in synchronous mode\n");
+	if (pmic_write_bitfield(DA9063_BPRO_CONF_ADDR, 0x3, 6, 0x2))
+		printf("Could not set BPRO in synchronous mode\n");
+	if (pmic_write_bitfield(DA9063_BIO_CONF_ADDR, 0x3, 6, 0x2))
+		printf("Could not set BIO in synchronous mode\n");
+	if (pmic_write_bitfield(DA9063_BMEM_CONF_ADDR, 0x3, 6, 0x2))
+		printf("Could not set BMEM in synchronous mode\n");
+	if (pmic_write_bitfield(DA9063_BPERI_CONF_ADDR, 0x3, 6, 0x2))
+		printf("Could not set BPERI in synchronous mode\n");
 }
 
 void generate_partition_table(void)
@@ -1446,10 +1449,6 @@ int ccimx6_late_init(void)
 	add_board_boot_modes(board_boot_modes);
 #endif
 
-#ifdef CONFIG_I2C_MULTI_BUS
-	/* Setup I2C3 (HDMI, Audio...) */
-	setup_i2c(2, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info2);
-#endif
 	if (print_pmic_info())
 		return -1;
 
@@ -1514,9 +1513,6 @@ int ccimx6_init(void)
 	 * be accessing the RAM on their own.
 	 */
 	update_ddr3_calibration(my_hwid.variant);
-
-	/* Setup I2C2 (PMIC, Kinetis) */
-	setup_i2c(1, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
 
 	return 0;
 }

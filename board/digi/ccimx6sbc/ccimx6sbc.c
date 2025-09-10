@@ -105,12 +105,9 @@ static iomux_v3_cfg_t const pcie_pwr_pads[] = {
 #ifdef CONFIG_SYS_I2C_MXC
 int setup_pmic_voltages_carrierboard(void)
 {
-#ifdef CONFIG_I2C_MULTI_BUS
-	if (i2c_set_bus_num(CONFIG_PMIC_I2C_BUS))
-                return -1;
-#endif
+	struct udevice *dev;
 
-	if (i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
+	if (pmic_get_chip(&dev)){
 		printf("ERR: cannot access the PMIC\n");
 		return -1;
 	}
