@@ -168,9 +168,6 @@
 /* Default MMC device index/partition for location of environment */
 #endif
 
-/* Add support for sparse images */
-#define CONFIG_FASTBOOT_FLASH
-
 #define CONFIG_TFTP_UPDATE_ONTHEFLY      /* support to tftp and update on-the-fly */
 
 /* Supported sources for update|dboot */
