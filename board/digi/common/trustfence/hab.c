@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Digi International Inc.
+ * Copyright (C) 2024-2025, Digi International Inc.
  *
  * SPDX-License-Identifier: GPL-2.0+
  */
@@ -7,6 +7,7 @@
 #include <command.h>
 #include <common.h>
 #include <fuse.h>
+#include <asm/arch/sys_proto.h>
 #include <asm/mach-imx/hab.h>
 #ifdef CONFIG_RNG_SELF_TEST
 #include "../drivers/crypto/fsl/jr.h"

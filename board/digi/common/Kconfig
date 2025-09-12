@@ -16,6 +16,7 @@ config CC6UL
 
 config CC6
 	bool
+	select HAS_TRUSTFENCE
 
 config MCA
 	bool "Support for the Micro Controller Assist (MCA)"

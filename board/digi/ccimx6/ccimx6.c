@@ -1499,6 +1499,15 @@ int ccimx6_init(void)
 {
 #ifdef CONFIG_HAS_TRUSTFENCE
 	hab_verification();
+#ifdef CONFIG_CAAM_ENV_ENCRYPT
+	/*
+	 * Initialize CAAM at an early stage, before the environment is first loaded,
+	 * so it can be decrypted on the fly.
+	 *
+	 * Originally initialized at 'int arch_misc_init(void)'.
+	 */
+	setup_caam();
+#endif /* CONFIG_CAAM_ENV_ENCRYPT */
 #endif /* CONFIG_HAS_TRUSTFENCE */
 
 	if (board_read_hwid(&my_hwid)) {

@@ -127,15 +127,20 @@ config CMD_BEE
 
 config TARGET_CCIMX6SBC_COMMON
 	bool
+	select CC6
 	select BOARD_EARLY_INIT_F
 	select BOARD_LATE_INIT
 	select DM
 	select DM_THERMAL
-	select SUPPORT_SPL
+	select IMX_THERMAL
+	select IMX_MODULE_FUSE
+	select OF_SYSTEM_SETUP
 	imply CMD_DM
-	select RNG_SELF_TEST
+	select FSL_CAAM
 	select FSL_BLOB
-	select CC6
+	select MISC
+	select ARCH_MISC_INIT
+	select RNG_SELF_TEST
 
 config TARGET_MX6SABREAUTO_COMMON
     bool
