@@ -69,6 +69,9 @@
 	};
 };
 
+&gpio1 {
+	status = "okay";
+};
 
 &lpi2c2 {
 	#address-cells = <1>;

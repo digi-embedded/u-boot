@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2023 NXP
+ * Copyright 2025 Digi International Inc.
  */
 
 / {
@@ -31,6 +31,7 @@
 
 &gpio1 {
 	reg = <0 0x47400000 0 0x1000>, <0 0x47400040 0 0x40>;
+	bootph-pre-ram;
 };
 
 &gpio2 {
