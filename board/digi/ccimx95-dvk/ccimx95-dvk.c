@@ -247,51 +247,6 @@ int board_usb_cleanup(int index, enum usb_init_type init)
 	return ret;
 }
 
-static void netc_phy_rst(const char *gpio_name, const char *label)
-{
-	int ret;
-	struct gpio_desc desc;
-
-	/* ENET_RST_B */
-	ret = dm_gpio_lookup_name(gpio_name, &desc);
-	if (ret) {
-		printf("%s lookup %s failed ret = %d\n", __func__, gpio_name, ret);
-		return;
-	}
-
-	ret = dm_gpio_request(&desc, label);
-	if (ret) {
-		printf("%s request %s failed ret = %d\n", __func__, label, ret);
-		return;
-	}
-
-	/* assert the ENET_RST_B */
-	dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT | GPIOD_IS_OUT_ACTIVE | GPIOD_ACTIVE_LOW);
-	udelay(10000);
-	dm_gpio_set_value(&desc, 0); /* deassert the ENET_RST_B */
-	udelay(80000);
-
-}
-
-static void netc_regulator_enable(const char *devname, bool enable)
-{
-	int ret;
-	struct udevice *dev;
-
-	ret = regulator_get_by_devname(devname, &dev);
-	if (ret) {
-		printf("Get %s regulator failed %d\n", devname, ret);
-		return;
-	}
-
-	ret = regulator_set_enable_if_allowed(dev, enable);
-	if (ret) {
-		printf("%s %s regulator %d\n",
-			enable ? "Enable": "Disable", devname, ret);
-		return;
-	}
-}
-
 void netc_init(void)
 {
 	int ret;
@@ -308,30 +263,6 @@ void netc_init(void)
 
 	set_clk_netc(ENET_125MHZ);
 
-#ifdef CONFIG_TARGET_IMX95_15X15_EVK
-	netc_phy_rst("gpio@22_4", "ENET1_RST_B");
-	netc_phy_rst("gpio@22_5", "ENET2_RST_B");
-#else
-	netc_phy_rst("i2c5_io@21_2", "ENET1_RST_B");
-
-	/* Enable in SW count */
-	netc_regulator_enable("regulator-aqr-stby", true);
-	netc_regulator_enable("regulator-mac-stby", true);
-	netc_regulator_enable("regulator-aqr-en", true);
-	netc_regulator_enable("regulator-mac-en", true);
-
-	/* Disable regulator to have explicit reset to AQR PHY and clock generator */
-	udelay(10000);
-	netc_regulator_enable("regulator-aqr-stby", false);
-	netc_regulator_enable("regulator-mac-stby", false);
-	netc_regulator_enable("regulator-aqr-en", false);
-	netc_regulator_enable("regulator-mac-en", false);
-
-	udelay(10000);
-	netc_regulator_enable("regulator-aqr-stby", true);
-	netc_regulator_enable("regulator-mac-stby", true);
-
-#endif
 	pci_init();
 }
 
