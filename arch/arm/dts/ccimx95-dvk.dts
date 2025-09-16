@@ -72,23 +72,6 @@
 	status = "okay";
 };
 
-&lpi2c2 {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	clock-frequency = <400000>;
-	pinctrl-names = "default", "sleep";
-	pinctrl-0 = <&pinctrl_lpi2c2>;
-	pinctrl-1 = <&pinctrl_lpi2c2>;
-	status = "okay";
-
-	adp5585gpio: gpio@34 {
-		compatible = "adp5585";
-		reg = <0x34>;
-		gpio-controller;
-		#gpio-cells = <2>;
-	};
-};
-
 &lpi2c3 {
 	#address-cells = <1>;
 	#size-cells = <0>;
@@ -97,14 +80,6 @@
 	pinctrl-0 = <&pinctrl_lpi2c3>;
 	pinctrl-1 = <&pinctrl_lpi2c3>;
 	status = "okay";
-
-	i2c3_gpio_expander_20: i2c3-gpio-expander@20 {
-		compatible = "nxp,pcal6408";
-		#gpio-cells = <2>;
-		gpio-controller;
-		reg = <0x20>;
-		vcc-supply = <&reg_3p3v>;
-	};
 
 	ptn5110: tcpc@53 {
 		compatible = "nxp,ptn5110";
@@ -144,88 +119,10 @@
 	pinctrl-1 = <&pinctrl_lpi2c4>;
 	status = "okay";
 
-	i2c4_gpio_expander_21: i2c4-gpio-expander@21 {
-		compatible = "nxp,pcal6408";
-		#gpio-cells = <2>;
-		gpio-controller;
-		reg = <0x21>;
-		interrupt-controller;
-		#interrupt-cells = <2>;
-		interrupt-parent = <&gpio2>;
-		interrupts = <18 IRQ_TYPE_LEVEL_LOW>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_i2c4_pcal6408>;
-		vcc-supply = <&reg_3p3v>;
-	};
-};
-
-&lpi2c5 {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	clock-frequency = <100000>;
-	pinctrl-names = "default", "sleep";
-	pinctrl-0 = <&pinctrl_lpi2c5>;
-	pinctrl-1 = <&pinctrl_lpi2c5>;
-	status = "okay";
-
-	i2c5_gpio_expander_21: i2c5-gpio-expander@21 {
-		compatible = "nxp,pcal6408";
-		#gpio-cells = <2>;
-		gpio-controller;
-		reg = <0x21>;
-		vcc-supply = <&reg_3p3v>;
-	};
-
-	/* ENET PMIC MPF5103 addr 0x8 */
-};
-
-&lpi2c6 {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	clock-frequency = <100000>;
-	pinctrl-names = "default", "sleep";
-	pinctrl-0 = <&pinctrl_lpi2c6>;
-	pinctrl-1 = <&pinctrl_lpi2c6>;
-	status = "okay";
-
-	i2c6_gpio_expander_21: i2c6-gpio-expander@21 {
-		compatible = "nxp,pcal6416";
-		#gpio-cells = <2>;
-		gpio-controller;
-		reg = <0x21>;
-		interrupt-controller;
-		#interrupt-cells = <2>;
-		interrupt-parent = <&gpio4>;
-		interrupts = <28 IRQ_TYPE_LEVEL_LOW>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_pcal6416>;
-		vcc-supply = <&reg_3p3v>;
-	};
-};
-
-&lpi2c7 {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	clock-frequency = <1000000>;
-	pinctrl-names = "default", "sleep";
-	pinctrl-0 = <&pinctrl_lpi2c7>;
-	pinctrl-1 = <&pinctrl_lpi2c7>;
-	status = "okay";
-
-	i2c7_pcal6524: i2c7-gpio@22 {
-		compatible = "nxp,pcal6524";
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_i2c7_pcal6524>;
-		reg = <0x22>;
-		gpio-controller;
-		#gpio-cells = <2>;
-		interrupt-controller;
-		#interrupt-cells = <2>;
-		interrupt-parent = <&gpio5>;
-		interrupts = <16 IRQ_TYPE_LEVEL_LOW>;
-	};
-
-	/* SI5332 */
+	/* PF5103 */
+	/* Audio */
+	/* HDMI */
+	/* LT8912 */
 };
 
 &usb2 {
@@ -366,8 +263,8 @@
 
 	pinctrl_lpi2c4: lpi2c4grp {
 		fsl,pins = <
-			IMX95_PAD_GPIO_IO30__LPI2C4_SDA			0x40000b9e
-			IMX95_PAD_GPIO_IO31__LPI2C4_SCL			0x40000b9e
+			IMX95_PAD_GPIO_IO02__LPI2C4_SDA			0x40000b9e
+			IMX95_PAD_GPIO_IO03__LPI2C4_SCL			0x40000b9e
 		>;
 	};
 
@@ -454,36 +351,6 @@
 			IMX95_PAD_XSPI1_DATA5__FLEXSPI1_A_DATA_BIT5		0x3fe
 			IMX95_PAD_XSPI1_DATA6__FLEXSPI1_A_DATA_BIT6		0x3fe
 			IMX95_PAD_XSPI1_DATA7__FLEXSPI1_A_DATA_BIT7		0x3fe
-		>;
-	};
-
-	pinctrl_i2c1_pcal6408: i2c1pcal6498grp {
-		fsl,pins = <
-			IMX95_PAD_PDM_BIT_STREAM1__AONMIX_TOP_GPIO1_IO_BIT10	0x31e
-		>;
-	};
-
-	pinctrl_i2c2_pcal6524: i2c2pcal6524grp {
-		fsl,pins = <
-			IMX95_PAD_GPIO_IO34__GPIO5_IO_BIT14			0x31e
-		>;
-	};
-
-	pinctrl_i2c4_pcal6408: i2c4pcal6498grp {
-		fsl,pins = <
-			IMX95_PAD_GPIO_IO18__GPIO2_IO_BIT18			0x31e
-		>;
-	};
-
-	pinctrl_i2c7_pcal6524: i2c7pcal6524grp {
-		fsl,pins = <
-			IMX95_PAD_GPIO_IO36__GPIO5_IO_BIT16			0x31e
-		>;
-	};
-
-	pinctrl_pcal6416: pcal6416grp {
-		fsl,pins = <
-			IMX95_PAD_CCM_CLKO3__GPIO4_IO_BIT28			0x31e
 		>;
 	};
 
