@@ -1,0 +1,55 @@
+From: Javier Viguera <javier.viguera@digi.com>
+Date: Tue, 31 Oct 2023 11:25:46 +0100
+Subject: [PATCH] imx93: bring back ELE clock workaround for soc revision A0
+
+Revert commit 7411561db535a20f61ff6621fec5b374130d34f9 to allow building
+for soc revision A0 using a compilation flag.
+
+Upstream-Status: Inappropriate [DEY specific]
+
+Signed-off-by: Javier Viguera <javier.viguera@digi.com>
+---
+ plat/imx/imx93/imx93_psci.c | 10 ++++++++++
+ plat/imx/imx93/platform.mk  |  4 ++++
+ 2 files changed, 14 insertions(+)
+
+diff --git a/plat/imx/imx93/imx93_psci.c b/plat/imx/imx93/imx93_psci.c
+index ccd82d1d2bdc..325fcf75911a 100644
+--- a/plat/imx/imx93/imx93_psci.c
++++ b/plat/imx/imx93/imx93_psci.c
+@@ -747,6 +747,11 @@ void imx_pwr_domain_suspend(const psci_power_state_t *target_state)
+ 		if (is_local_state_retn(CLUSTER_PWR_STATE(target_state))) {
+ 			write_clusterpwrdn(DSU_CLUSTER_PWR_OFF | BIT(1));
+ 		}
++
++#ifdef SOC_REV_A0
++		/* FIXME: slow down S401 clock: 24M OSC */
++		mmio_clrbits_32(0x44450200, GENMASK_32(9, 8));
++#endif
+ 	}
+ 
+ 	if (is_local_state_retn(SYSTEM_PWR_STATE(target_state))) {
+@@ -878,6 +883,11 @@ void imx_pwr_domain_suspend_finish(const psci_power_state_t *target_state)
+ 	if (!is_local_state_run(CLUSTER_PWR_STATE(target_state))) {
+ 		/* set the cluster's target mode to RUN */
+ 		gpc_set_cpu_mode(CPU_A55_PLAT, CM_MODE_RUN);
++
++#ifdef SOC_REV_A0
++		/* FIXME:  set S401 clock back */
++		mmio_setbits_32(0x44450200, BIT(9));
++#endif
+ 	}
+ 
+ 	/* do core level */
+diff --git a/plat/imx/imx93/platform.mk b/plat/imx/imx93/platform.mk
+index a43d3c4f5a9f..d69f7e2de058 100644
+--- a/plat/imx/imx93/platform.mk
++++ b/plat/imx/imx93/platform.mk
+@@ -61,3 +61,7 @@ BL32_BASE               ?=      0x96000000
+ BL32_SIZE               ?=      0x02000000
+ $(eval $(call add_define,BL32_BASE))
+ $(eval $(call add_define,BL32_SIZE))
++
++ifeq (${SOC_REV_A0},1)
++$(eval $(call add_define,SOC_REV_A0))
++endif

@@ -72,7 +72,7 @@ patch_atf_repo()
 		cd "${ATF_DIR}" || exit 1
 		for p in ${ATF_PATCHES}; do
 			echo "- Apply patch: ${p}"
-			patch -p1 < "${BASEDIR}"/patch/ccimx95/"${p}" || exit 2
+			patch -p1 < "${BASEDIR}"/patch/atf/"${p}" || exit 2
 		done
 	)
 }
@@ -117,7 +117,7 @@ patch_optee_repo()
 		cd "${OPTEE_DIR}" || exit 1
 		for p in ${OPTEE_PATCHES}; do
 			echo "- Apply patch: ${p}"
-			patch -p1 < "${BASEDIR}"/patch/ccimx95/"${p}" || exit 2
+			patch -p1 < "${BASEDIR}"/patch/optee/"${p}" || exit 2
 		done
 	)
 }
@@ -131,7 +131,7 @@ build_optee()
 	echo "- Build OPTEE binary for: ${SOC}"
 	(
 		cd "${OPTEE_DIR}" || { echo "build_optee: OPTEE_DIR not found"; exit 1; }
-		${MAKE} PLATFORM=imx-mx95evk \
+		${MAKE} PLATFORM=imx-ccimx95dvk \
 			CROSS_COMPILE="${CROSS_COMPILE}" \
 			CROSS_COMPILE64="${CROSS_COMPILE}" \
 			CFG_TEE_TA_LOG_LEVEL=0 \
@@ -169,7 +169,7 @@ patch_oei_repo()
 		cd "${OEI_DIR}" || exit 1
 		for p in ${OEI_PATCHES}; do
 			echo "- Apply patch: ${p}"
-			patch -p1 < "${BASEDIR}"/patch/ccimx95/"${p}" || exit 2
+			patch -p1 < "${BASEDIR}"/patch/oei/"${p}" || exit 2
 		done
 	)
 }
@@ -178,10 +178,10 @@ build_oei()
 {
 	echo "- Build OEI binary for: ${OEI_BOARD}"
 	(
-		cd "${OEI_DIR}" || { echo "build_sm: OEI_DIR not found"; exit 1; }
+		cd "${OEI_DIR}" || { echo "build_oei: OEI_DIR not found"; exit 1; }
 		for oei_config in ddr tcm; do
-			${MAKE} board="${OEI_BOARD}" DEBUG=1 OEI_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" r=A0 DDR_CONFIG=XIMX95LPD5EVK19_6400mbps_train_timing_a1 oei=${oei_config} clean
-			${MAKE} board="${OEI_BOARD}" DEBUG=1 OEI_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" r=A0 DDR_CONFIG=XIMX95LPD5EVK19_6400mbps_train_timing_a1 oei=${oei_config}
+			${MAKE} board="${OEI_BOARD}" d=1 OEI_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" oei=${oei_config} r=A0 clean
+			${MAKE} board="${OEI_BOARD}" d=1 OEI_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" oei=${oei_config} r=A0
 		done
 	)
 }
@@ -214,19 +214,19 @@ patch_sm_repo()
 		cd "${SM_DIR}" || exit 1
 		for p in ${SM_PATCHES}; do
 			echo "- Apply patch: ${p}"
-			patch -p1 < "${BASEDIR}"/patch/ccimx95/"${p}" || exit 2
+			patch -p1 < "${BASEDIR}"/patch/sm/"${p}" || exit 2
 		done
 	)
 }
 
 build_sm()
 {
+	SM_M="0"
 	echo "- Build SM binary for: ${SM_PLAT}"
 	(
 		cd "${SM_DIR}" || { echo "build_sm: SM_DIR not found"; exit 1; }
-		${MAKE} CONFIG="${SM_PLAT}" SM_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" M=2 clean
-		${MAKE} CONFIG="${SM_PLAT}" SM_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" M=2 cfg
-		${MAKE} CONFIG="${SM_PLAT}" SM_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" M=2
+		${MAKE} CONFIG="${SM_PLAT}" SM_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" M="${SM_M}" clean
+		${MAKE} CONFIG="${SM_PLAT}" SM_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" M="${SM_M}"
 	)
 }
 
@@ -395,14 +395,30 @@ ATF_BRANCH="lf_v2.10_6.6.52_2.2.x"
 # Tag: lf-6.6.52-2.2.1
 ATF_REV="7e374c5f57328949a2b141a567175b6a2939e964"
 ATF_DIR="${BASEDIR}/imx-atf"
-ATF_PATCHES=""
+ATF_PATCHES=" \
+	0001-imx8mm-Define-UART1-as-console-for-boot-stage.patch \
+	0002-imx8mm-Disable-M4-debug-console.patch \
+	0003-imx8mn-Define-UART1-as-console-for-boot-stage.patch \
+	0004-imx8mn-Disable-M7-debug-console.patch \
+	0005-imx8mm-set-BL32_BASE-and-map-high-DRAM-for-ccimx8mm-.patch \
+	0006-ccimx93-use-UART6-for-the-default-console.patch \
+	0007-imx93-bring-back-ELE-clock-workaround-for-soc-revisi.patch \
+	0008-ccimx91-use-UART6-for-the-default-console.patch \
+	0009-ccimx95-set-DVK-console-to-LPUART6.patch \
+"
 
 OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
 OPTEE_BRANCH="lf-6.6.52_2.2.0"
 # Tag: lf-6.6.52-2.2.1
 OPTEE_REV="ecea75b7fee5a3c8a2d9b99769ba78c4390c0e8b"
 OPTEE_DIR="${BASEDIR}/imx-optee-os"
-OPTEE_PATCHES=""
+OPTEE_PATCHES=" \
+	0001-plat-imx-add-support-for-ConnectCore-8M-Mini.patch \
+	0002-core-imx-support-ccimx91-dvk.patch \
+	0003-core-imx-support-ccimx93-dvk.patch \
+	0004-core-ccimx93-enable-AES_HUK-trusted-application.patch \
+	0005-core-imx-support-ccimx95-dvk.patch \
+"
 
 # Optional Executable Image running on the Cortex M33
 OEI_REPO="https://github.com/nxp-imx/imx-oei.git"
@@ -410,7 +426,11 @@ OEI_BRANCH="master"
 # Tag: lf-6.6.52-2.2.1
 OEI_REV="ca91ce798b2f3a2a0bab8c0f835f4bea88c9b080"
 OEI_DIR="${BASEDIR}/imx-oei"
-OEI_PATCHES=""
+OEI_PATCHES=" \
+	0001-boards-ccimx95-add-platform-as-a-clone-of-mx95lp5.patch \
+	0002-ddr-add-DDR-configuration-file-for-ccimx95.patch \
+	0003-ccimx95-configure-console-on-LPUART6.patch \
+"
 
 # System Manager running on the Cortex M33
 SM_REPO="https://github.com/nxp-imx/imx-sm.git"
@@ -418,7 +438,12 @@ SM_BRANCH="master"
 # Tag: lf-6.6.52-2.2.1
 SM_REV="707569f402147029feb7f9b90811a6d6ea730bb6"
 SM_DIR="${BASEDIR}/imx-sm"
-SM_PATCHES=""
+SM_PATCHES=" \
+	0001-ccimx95dvk-add-new-platform-config-and-board.patch \
+	0002-ccimx95dvk-configure-board-and-switch-debug-UART-to-.patch \
+	0003-ccimx95dvk-disable-PCAL6408A-expander-and-move-GPIO1.patch \
+	0004-ccimx95dvk-move-resources-from-M7-to-A55.patch \
+"
 
 FIRMWARE_IMX="firmware-imx-8.26.1-410be01"
 FIRMWARE_IMX_DIR="${BASEDIR}/${FIRMWARE_IMX}"
@@ -434,8 +459,8 @@ FIRMWARE_ELE_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_ELE}.bin"
 
 SOC="iMX95"
 ATF_PLAT="imx95"
-OEI_BOARD="mx95lp5"
-SM_PLAT="mx95evk"
+OEI_BOARD="ccimx95"
+SM_PLAT="ccimx95dvk"
 
 OUTPUT_PATH="${BASEDIR}/output"
 UBOOT_DIR="${UBOOT_DIR:-$(realpath "${BASEDIR}"/../..)}"
