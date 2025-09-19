@@ -61,6 +61,11 @@ unsigned int board_id = CARRIERBOARD_ID_UNDEFINED;
 	PAD_CTL_PUS_100K_DOWN | PAD_CTL_SPEED_MED |               \
 	PAD_CTL_DSE_40ohm   | PAD_CTL_SRE_FAST)
 
+static iomux_v3_cfg_t const uart4_pads[] = {
+	MX6_PAD_KEY_COL0__UART4_TX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL),
+	MX6_PAD_KEY_ROW0__UART4_RX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL),
+};
+
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
 static iomux_v3_cfg_t const ext_gpios_pads[] = {
 	MX6_PAD_NANDF_D5__GPIO2_IO05 | MUX_PAD_CTRL(GPI_PAD_CTRL),
@@ -79,6 +84,11 @@ static void setup_iomux_ext_gpios(void)
 					 ARRAY_SIZE(ext_gpios_pads));
 }
 #endif /* CONFIG_CONSOLE_ENABLE_GPIO */
+
+static void setup_iomux_uart(void)
+{
+	SETUP_IOMUX_PADS(uart4_pads);
+}
 
 static iomux_v3_cfg_t const sgtl5000_audio_pads[] = {
 	/*
@@ -302,6 +312,7 @@ int board_mmc_getcd(struct mmc *mmc)
 
 int board_early_init_f(void)
 {
+	setup_iomux_uart();
 
 #ifdef CONFIG_CONSOLE_DISABLE
 	gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
