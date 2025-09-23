@@ -2,6 +2,8 @@ From: Javier Viguera <javier.viguera@digi.com>
 Date: Wed, 10 Sep 2025 14:19:01 +0200
 Subject: [PATCH] core: imx: support ccimx95-dvk
 
+Upstream-Status: Inappropriate [DEY specific]
+
 Signed-off-by: Javier Viguera <javier.viguera@digi.com>
 ---
  core/arch/arm/plat-imx/conf.mk           | 9 +++++++++

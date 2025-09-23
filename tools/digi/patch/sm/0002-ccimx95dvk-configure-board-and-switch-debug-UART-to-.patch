@@ -9,6 +9,8 @@ Generate configuration tree (configs/ccimx95dvk) with:
 
   make CONFIG=ccimx95dvk cfg
 
+Upstream-Status: Inappropriate [DEY specific]
+
 Signed-off-by: Javier Viguera <javier.viguera@digi.com>
 ---
  boards/ccimx95dvk/pin_mux.c       |    7 +

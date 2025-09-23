@@ -4,6 +4,8 @@ Subject: [PATCH] ccimx95dvk: add new platform (config and board)
 
 Verbatim copy of the mx95evk
 
+Upstream-Status: Inappropriate [DEY specific]
+
 Signed-off-by: Javier Viguera <javier.viguera@digi.com>
 ---
  boards/ccimx95dvk/board.c              | 579 ++++++++++++++

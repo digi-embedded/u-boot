@@ -2,6 +2,8 @@ From: Javier Viguera <javier.viguera@digi.com>
 Date: Mon, 15 Sep 2025 11:38:14 +0200
 Subject: [PATCH] boards: ccimx95: add platform as a clone of mx95lp5
 
+Upstream-Status: Inappropriate [DEY specific]
+
 Signed-off-by: Javier Viguera <javier.viguera@digi.com>
 ---
  boards/ccimx95/Makefile                       |    25 +

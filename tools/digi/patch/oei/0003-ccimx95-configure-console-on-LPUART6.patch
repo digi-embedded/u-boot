@@ -2,6 +2,8 @@ From: Isaac Hermida <isaac.hermida@digi.com>
 Date: Mon, 15 Sep 2025 11:38:55 +0200
 Subject: [PATCH] ccimx95: configure console on LPUART6
 
+Upstream-Status: Inappropriate [DEY specific]
+
 Signed-off-by: Javier Viguera <javier.viguera@digi.com>
 ---
  boards/ccimx95/config_board.h  | 2 +-

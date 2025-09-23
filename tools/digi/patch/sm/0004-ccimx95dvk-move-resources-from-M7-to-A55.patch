@@ -7,6 +7,8 @@ Moved from M7 to A55 domain:
 * PIN_GPIO_IO14
 * PIN_GPIO_IO15
 
+Upstream-Status: Inappropriate [DEY specific]
+
 Signed-off-by: Javier Viguera <javier.viguera@digi.com>
 ---
  configs/ccimx95dvk.cfg           | 11 ++++-------

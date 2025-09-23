@@ -5,6 +5,8 @@ Subject: [PATCH] ccimx95dvk: disable PCAL6408A expander and move GPIO1 to A55
 Our board does not populate that expander, so disable the initialization
 and assign GPIO1 to be used by the A55 cpu.
 
+Upstream-Status: Inappropriate [DEY specific]
+
 Signed-off-by: Javier Viguera <javier.viguera@digi.com>
 ---
  boards/ccimx95dvk/board.c              |  7 ---

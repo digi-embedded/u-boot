@@ -39,9 +39,7 @@ sed -i -e '/^};$/{G;}' lpddr5_timing_a1.c
 sed -i -e '/^$/N;/^\n$/D' lpddr5_timing_a1.c
 sed -i -e '${/^[[:space:]]*$/d;}' lpddr5_timing_a1.c
 
-Signed-off-by: Javier Viguera <javier.viguera@digi.com>
-
-lpddr5_timing_a1: disable ssc by default
+Upstream-Status: Inappropriate [DEY specific]
 
 Signed-off-by: Javier Viguera <javier.viguera@digi.com>
 ---
