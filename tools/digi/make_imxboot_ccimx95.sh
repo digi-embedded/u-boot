@@ -443,6 +443,8 @@ SM_PATCHES=" \
 	0002-ccimx95dvk-configure-board-and-switch-debug-UART-to-.patch \
 	0003-ccimx95dvk-disable-PCAL6408A-expander-and-move-GPIO1.patch \
 	0004-ccimx95dvk-move-resources-from-M7-to-A55.patch \
+	0005-ccimx95dvk-move-pads-to-non-secure-A55.patch \
+	0006-ccimx95dvk-move-CAN1-to-be-used-by-A55.patch \
 "
 
 FIRMWARE_IMX="firmware-imx-8.26.1-410be01"
