@@ -258,7 +258,7 @@ patch_mkimage_repo()
 		cd "${MKIMAGE_DIR}" || exit 1
 		for p in ${MKIMAGE_PATCHES}; do
 			echo "- Apply patch: ${p}"
-			patch -p1 < "${BASEDIR}"/patch/ccimx95/"${p}" || exit 2
+			patch -p1 < "${BASEDIR}"/patch/mkimage/"${p}" || exit 2
 		done
 	)
 }
@@ -366,7 +366,7 @@ build_imxboot()
 		[ -f "${MKIMAGE_SOC_DIR}"/${BL31_BIN} ] && ln -sf ${BL31_BIN} "${MKIMAGE_SOC_DIR}"/bl31.bin
 		${MAKE} SOC="${SOC}" OEI=YES LPDDR_TYPE=lpddr5 flash_all
 		cp --remove-destination "${MKIMAGE_SOC_DIR}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx95-dvk-nooptee.bin
-# 		cp --remove-destination "${MKIMAGE_SOC_DIR}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-ccimx95-dvk-nooptee-flash_singleboot.log
+		cp --remove-destination "${MKIMAGE_SOC_DIR}"/mkimage-flash_all.log "${OUTPUT_PATH}"/mkimage-ccimx95-dvk-nooptee-flash_all.log
 
 		echo "- Build imx-boot (OPTEE) binary for: ${SOC}"
 		${MAKE} SOC="${SOC}" clean
@@ -375,7 +375,7 @@ build_imxboot()
 		[ -f "${MKIMAGE_SOC_DIR}"/${TEE_BIN} ] && ln -sf ${TEE_BIN} "${MKIMAGE_SOC_DIR}"/tee.bin
 		${MAKE} SOC="${SOC}" OEI=YES LPDDR_TYPE=lpddr5 flash_all
 		cp --remove-destination "${MKIMAGE_SOC_DIR}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx95-dvk.bin
-# 		cp --remove-destination "${MKIMAGE_SOC_DIR}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-ccimx95-dvk-flash_singleboot.log
+		cp --remove-destination "${MKIMAGE_SOC_DIR}"/mkimage-flash_all.log "${OUTPUT_PATH}"/mkimage-ccimx95-dvk-flash_all.log
 	)
 }
 
@@ -388,7 +388,16 @@ MKIMAGE_BRANCH="lf-6.6.52_2.2.1"
 MKIMAGE_REV="81fca6434be0610f3f9216a762aadc4dc3e8d8db"
 MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
 MKIMAGE_SOC_DIR="${MKIMAGE_DIR}/iMX95"
-MKIMAGE_PATCHES=""
+MKIMAGE_PATCHES=" \
+	0001-iMX8QX-soc.mak-capture-commands-output-into-a-log-fi.patch \
+	0002-imx8m-soc.mak-capture-commands-output-into-a-log-fil.patch \
+	0003-imx8m-print_fit_hab-follow-symlinks.patch \
+	0004-imx8mm-adjust-TEE_LOAD_ADDR-for-ccimx8mm.patch \
+	0005-imx93-soc.mak-capture-commands-output-into-a-log-fil.patch \
+	0006-imx93-soc.mak-add-makefile-target-to-build-A0-revisi.patch \
+	0007-imx91-soc.mak-capture-commands-output-into-a-log-fil.patch \
+	0008-imx95-soc.mak-capture-commands-output-into-a-log-fil.patch \
+"
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
 ATF_BRANCH="lf_v2.10_6.6.52_2.2.x"
