@@ -60,7 +60,7 @@ patch_atf_repo()
 		cd "${ATF_DIR}" || exit 1
 		for p in ${ATF_PATCHES}; do
 			echo "- Apply patch: ${p}"
-			patch -p1 < "${BASEDIR}"/patch/ccimx8x/"${p}" || exit 2
+			patch -p1 < "${BASEDIR}"/patch/atf/"${p}" || exit 2
 		done
 	)
 }
@@ -103,7 +103,7 @@ patch_mkimage_repo()
 		cd "${MKIMAGE_DIR}" || exit 1
 		for p in ${MKIMAGE_PATCHES}; do
 			echo "- Apply patch: ${p}"
-			patch -p1 < "${BASEDIR}"/patch/ccimx8x/"${p}" || exit 2
+			patch -p1 < "${BASEDIR}"/patch/mkimage/"${p}" || exit 2
 		done
 	)
 }
@@ -218,7 +218,14 @@ MKIMAGE_BRANCH="lf-6.6.52_2.2.1"
 MKIMAGE_REV="81fca6434be0610f3f9216a762aadc4dc3e8d8db"
 MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
 MKIMAGE_PATCHES=" \
-	mkimage/0001-iMX8QX-soc.mak-capture-commands-output-into-a-log-fi.patch \
+	0001-iMX8QX-soc.mak-capture-commands-output-into-a-log-fi.patch \
+	0002-imx8m-soc.mak-capture-commands-output-into-a-log-fil.patch \
+	0003-imx8m-print_fit_hab-follow-symlinks.patch \
+	0004-imx8mm-adjust-TEE_LOAD_ADDR-for-ccimx8mm.patch \
+	0005-imx93-soc.mak-capture-commands-output-into-a-log-fil.patch \
+	0006-imx93-soc.mak-add-makefile-target-to-build-A0-revisi.patch \
+	0007-imx91-soc.mak-capture-commands-output-into-a-log-fil.patch \
+	0008-imx95-soc.mak-capture-commands-output-into-a-log-fil.patch \
 "
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
@@ -226,6 +233,17 @@ ATF_BRANCH="lf_v2.10_6.6.52_2.2.x"
 # Tag: lf-6.6.52-2.2.1
 ATF_REV="7e374c5f57328949a2b141a567175b6a2939e964"
 ATF_DIR="${BASEDIR}/imx-atf"
+ATF_PATCHES=" \
+	0001-imx8mm-Define-UART1-as-console-for-boot-stage.patch \
+	0002-imx8mm-Disable-M4-debug-console.patch \
+	0003-imx8mn-Define-UART1-as-console-for-boot-stage.patch \
+	0004-imx8mn-Disable-M7-debug-console.patch \
+	0005-imx8mm-set-BL32_BASE-and-map-high-DRAM-for-ccimx8mm-.patch \
+	0006-ccimx93-use-UART6-for-the-default-console.patch \
+	0007-imx93-bring-back-ELE-clock-workaround-for-soc-revisi.patch \
+	0008-ccimx91-use-UART6-for-the-default-console.patch \
+	0009-ccimx95-set-DVK-console-to-LPUART6.patch \
+"
 
 DIGI_SC_FW="digi-sc-firmware-1.17.0.2"
 DIGI_SC_FW_DIR="${BASEDIR}/${DIGI_SC_FW}"
