@@ -454,6 +454,8 @@ SM_PATCHES=" \
 	0004-ccimx95dvk-move-resources-from-M7-to-A55.patch \
 	0005-ccimx95dvk-move-pads-to-non-secure-A55.patch \
 	0006-ccimx95dvk-move-CAN1-to-be-used-by-A55.patch \
+	0007-ccimx95dvk-remove-PCAL6408A-IO-expander-from-EVK.patch \
+	0008-ccimx95dvk-remove-PCA2123-RTC-from-EVK.patch \
 "
 
 FIRMWARE_IMX="firmware-imx-8.26.1-410be01"
