@@ -1,7 +1,7 @@
 #!/bin/bash
 #===============================================================================
 #
-#  Copyright (C) 2015-2023 by Digi International Inc.
+#  Copyright (C) 2015-2025 by Digi International Inc.
 #  All rights reserved.
 #
 #  This program is free software; you can redistribute it and/or modify it
@@ -41,6 +41,7 @@ done<<-_EOF_
 	ccimx8x_sbc_pro         all               aarch64       "make_imxboot_ccimx8x.sh"
 	ccimx91-dvk             all               aarch64       "make_imxboot_ccimx91.sh"
 	ccimx93-dvk             all               aarch64       "make_imxboot_ccimx93.sh"
+	ccimx95-dvk             all               aarch64,arm-none-eabi    "make_imxboot_ccimx95.sh"
 _EOF_
 
 # Set default values if not provided by Jenkins
@@ -69,6 +70,32 @@ clone_uboot_repo()
 error() {
 	printf "%s\n" "${1}"
 	exit 1
+}
+
+install_cm_toolchain() {
+	local CM_TOOLCHAIN_TYPE="${1}"
+	local CM_PLATFORM="${2}"
+	local CM_TLABEL
+
+	for CM_TLABEL in ${DUB_REVISION_SANE}-${CM_PLATFORM} ${DUB_REVISION_SANE} ${CM_PLATFORM} default; do
+		CM_TLABEL="${CM_TLABEL}-${CM_TOOLCHAIN_TYPE}"
+		# If the toolchain is already installed exit the loop
+		[ -d "${DUB_TOOLCHAIN_DIR}/${CM_TLABEL}" ] && break
+		if ${WGET} --spider "${DUB_TOOLCHAIN_URL}/toolchain-${CM_TLABEL}.tar.xz"; then
+			printf "\n[INFO] Unpacking toolchain-%s.tar.xz\n\n" "${CM_TLABEL}"
+			tmp_toolchain="$(mktemp /tmp/toolchain.XXXXXX)"
+			${WGET} -O "${tmp_toolchain}" "${DUB_TOOLCHAIN_URL}/toolchain-${CM_TLABEL}.tar.xz"
+			mkdir -p "${DUB_TOOLCHAIN_DIR}"/"${CM_TLABEL:?}"
+			tar -xf "${tmp_toolchain}" -C "${DUB_TOOLCHAIN_DIR}/${CM_TLABEL}" --strip-components=1
+			rm -f "${tmp_toolchain}"
+			break
+		fi
+	done
+
+	# Add Cortex-M toolchain path
+	PATH="${DUB_TOOLCHAIN_DIR}/${CM_TLABEL}/bin:${PATH}"
+
+	unset CM_TOOLCHAIN_TYPE CM_PLATFORM CM_TLABEL
 }
 
 # Sanity check (Jenkins environment)
@@ -103,8 +130,14 @@ for platform in ${DUB_PLATFORMS}; do
 		cd "${DUB_UBOOT_DIR}" || exit 1
 		printf "\n[PLATFORM: %s - CPUS: %s]\n" "${platform}" "${CPUS}"
 
-		# Install toolchain
-		eval "TOOLCHAIN_TYPE=\"\${${platform//-/_}_toolchain_type}\""
+		# Install toolchains
+		eval "TOOLCHAIN_TYPE=\"\$(printf '%s\n' \"\${${platform//-/_}_toolchain_type}\" | cut -d',' -f1)\""
+		eval "TOOLCHAIN_TYPE_CM=\"\$(printf '%s\n' \"\${${platform//-/_}_toolchain_type}\" | cut -d',' -f2 -s)\""
+
+		# Cortex-M
+		[ -n "${TOOLCHAIN_TYPE_CM}" ] && install_cm_toolchain "${TOOLCHAIN_TYPE_CM}" "${platform}"
+
+		# Cortex-A
 		for TLABEL in ${DUB_REVISION_SANE}-${platform} ${DUB_REVISION_SANE} ${platform} default; do
 			TLABEL="${TLABEL}-${TOOLCHAIN_TYPE}"
 			# If the toolchain is already installed exit the loop
