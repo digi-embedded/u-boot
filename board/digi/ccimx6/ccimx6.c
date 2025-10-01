@@ -35,12 +35,14 @@
 #include <asm/mach-imx/iomux-v3.h>
 #include <asm/mach-imx/boot_mode.h>
 #include <linux/ctype.h>
+#include <linux/delay.h>
 #include <linux/sizes.h>
 #include <mmc.h>
 #include <fsl_esdhc_imx.h>
 #include <otf_update.h>
 #include <part.h>
 #include <recovery.h>
+#include <i2c.h>
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>
 #endif

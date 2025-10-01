@@ -75,6 +75,7 @@
 #define DA9063_E_GPIO9			0x02
 
 /* Common ccimx6 functions */
+int pmic_get_chip(struct udevice **devp);
 int pmic_read_reg(int reg, unsigned char *value);
 int pmic_write_reg(int reg, unsigned char value);
 int pmic_write_bitfield(int reg, unsigned char mask, unsigned char off,
