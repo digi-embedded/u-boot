@@ -123,7 +123,6 @@ config HWID_BANK
 	default 4 if CC6UL
 	default 4 if CC6
 
-
 config HWID_START_WORD
 	int "Offset of the first OTP word where the HWID is"
 	default 3 if CC9
@@ -131,7 +130,6 @@ config HWID_START_WORD
 	default 708 if CC8X
 	default 2 if CC6UL
 	default 2 if CC6
-
 
 config HWID_WORDS_NUMBER
 	int "Number of OTP words that form the HWID"

@@ -291,8 +291,6 @@
 	"setexpr filesizeblks ${filesize} / 200; " \
 	"setexpr filesizeblks ${filesizeblks} + 1; "
 
-/*#define CONFIG_ANDROID_RECOVERY*/
-
 /* Miscellaneous configurable options */
 #undef CONFIG_SYS_CBSIZE
 #define CONFIG_SYS_CBSIZE              1024

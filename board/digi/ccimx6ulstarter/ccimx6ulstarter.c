@@ -48,9 +48,6 @@
 
 #ifdef CONFIG_FSL_FASTBOOT
 #include <fastboot.h>
-#ifdef CONFIG_ANDROID_RECOVERY
-#include <recovery.h>
-#endif
 #endif /*CONFIG_FSL_FASTBOOT*/
 
 DECLARE_GLOBAL_DATA_PTR;
