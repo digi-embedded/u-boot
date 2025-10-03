@@ -1376,6 +1376,7 @@ void generate_partition_table(void)
 	struct mmc *mmc = find_mmc_device(0);
 	unsigned int capacity_gb = 0;
 	const char *linux_partition_table;
+	const char *linux_dualboot_partition_table;
 
 	/* Retrieve eMMC size in GiB */
 	if (mmc)
@@ -1384,12 +1385,17 @@ void generate_partition_table(void)
 	/* eMMC capacity is not exact, so asume 8GB if larger than 7GB */
 	if (capacity_gb >= 7) {
 		linux_partition_table = LINUX_8GB_PARTITION_TABLE;
+		linux_dualboot_partition_table = LINUX_DUALBOOT_8GB_PARTITION_TABLE;
 	} else {
 		linux_partition_table = LINUX_4GB_PARTITION_TABLE;
+		linux_dualboot_partition_table = LINUX_DUALBOOT_4GB_PARTITION_TABLE;
 	}
 
 	if (!env_get("parts_linux"))
 		env_set("parts_linux", linux_partition_table);
+
+	if (!env_get("parts_linux_dualboot"))
+                env_set("parts_linux_dualboot", linux_dualboot_partition_table);
 }
 
 void som_default_environment(void)

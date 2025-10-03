@@ -93,6 +93,9 @@
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	RANDOM_UUIDS \
 	ALTBOOTCMD \
+	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
+	"dualboot=no\0" \
+	"bootlimit=0\0" \
 	"dboot_kernel_var=zimage\0" \
 	"script=boot.scr\0" \
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
@@ -152,11 +155,19 @@
 	"rootfs_file=dey-image-qt-xwayland-" CONFIG_SYS_BOARD ".ext4\0" \
 	"partition_mmc_linux=mmc rescan;" \
 		"if mmc dev ${mmcdev} 0; then " \
-			"gpt write mmc ${mmcdev} ${parts_linux};" \
+			"if test \"${dualboot}\" = yes; then " \
+				"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
+			"else " \
+				"gpt write mmc ${mmcdev} ${parts_linux};" \
+			"fi;" \
 			"mmc rescan;" \
 		"else " \
 			"if mmc dev ${mmcdev};then " \
-				"gpt write mmc ${mmcdev} ${parts_linux};" \
+				"if test \"${dualboot}\" = yes; then " \
+					"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
+				"else " \
+					"gpt write mmc ${mmcdev} ${parts_linux};" \
+				"fi;" \
 				"mmc rescan;" \
 			"else;" \
 			"fi;" \
@@ -176,6 +187,7 @@
 		"if load usb 0 ${loadaddr} install_linux_fw_usb.scr;then " \
 			"source ${loadaddr};" \
 		"fi;\0" \
+	"active_system=linux_a\0" \
 	""	/* end line */
 
 #undef CONFIG_BOOTCOMMAND
