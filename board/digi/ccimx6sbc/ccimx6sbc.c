@@ -66,25 +66,6 @@ static iomux_v3_cfg_t const uart4_pads[] = {
 	MX6_PAD_KEY_ROW0__UART4_RX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL),
 };
 
-#ifdef CONFIG_CONSOLE_ENABLE_GPIO
-static iomux_v3_cfg_t const ext_gpios_pads[] = {
-	MX6_PAD_NANDF_D5__GPIO2_IO05 | MUX_PAD_CTRL(GPI_PAD_CTRL),
-	MX6_PAD_NANDF_D6__GPIO2_IO06 | MUX_PAD_CTRL(GPI_PAD_CTRL),
-	MX6_PAD_NANDF_D7__GPIO2_IO07 | MUX_PAD_CTRL(GPI_PAD_CTRL),
-	MX6_PAD_EIM_CS1__GPIO2_IO24 | MUX_PAD_CTRL(GPI_PAD_CTRL),
-	MX6_PAD_EIM_EB0__GPIO2_IO28 | MUX_PAD_CTRL(GPI_PAD_CTRL),
-	MX6_PAD_EIM_EB1__GPIO2_IO29 | MUX_PAD_CTRL(GPI_PAD_CTRL),
-	MX6_PAD_GPIO_18__GPIO7_IO13 | MUX_PAD_CTRL(GPI_PAD_CTRL),
-	MX6_PAD_GPIO_19__GPIO4_IO05 | MUX_PAD_CTRL(GPI_PAD_CTRL),
-};
-
-static void setup_iomux_ext_gpios(void)
-{
-	imx_iomux_v3_setup_multiple_pads(ext_gpios_pads,
-					 ARRAY_SIZE(ext_gpios_pads));
-}
-#endif /* CONFIG_CONSOLE_ENABLE_GPIO */
-
 static void setup_iomux_uart(void)
 {
 	SETUP_IOMUX_PADS(uart4_pads);
@@ -393,8 +374,6 @@ int board_late_init(void)
 	int ret;
 
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
-	setup_iomux_ext_gpios();
-
 	if (console_enable_gpio(CONFIG_CONSOLE_ENABLE_GPIO_NAME))
 		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
 #endif

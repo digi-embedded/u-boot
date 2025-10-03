@@ -94,20 +94,6 @@ static iomux_v3_cfg_t const uart5_pads[] = {
 	MX6_PAD_UART5_RX_DATA__UART5_DCE_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
 };
 
-#ifdef CONFIG_CONSOLE_ENABLE_GPIO
-static iomux_v3_cfg_t const ext_gpios_pads[] = {
-	MX6_PAD_GPIO1_IO05__GPIO1_IO05 | MUX_PAD_CTRL(GPI_PAD_CTRL),
-	MX6_PAD_GPIO1_IO03__GPIO1_IO03 | MUX_PAD_CTRL(GPI_PAD_CTRL),
-	MX6_PAD_GPIO1_IO02__GPIO1_IO02 | MUX_PAD_CTRL(GPI_PAD_CTRL),
-};
-
-static void setup_iomux_ext_gpios(void)
-{
-	imx_iomux_v3_setup_multiple_pads(ext_gpios_pads,
-					 ARRAY_SIZE(ext_gpios_pads));
-}
-#endif /* CONFIG_CONSOLE_ENABLE_GPIO */
-
 /* micro SD */
 static iomux_v3_cfg_t const usdhc2_pads[] = {
 	MX6_PAD_CSI_VSYNC__USDHC2_CLK | MUX_PAD_CTRL(USDHC_PAD_CTRL),
@@ -445,7 +431,6 @@ int board_early_init_f(void)
 #ifdef CONFIG_CONSOLE_DISABLE
 	gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
-	setup_iomux_ext_gpios();
 	if (console_enable_gpio(CONFIG_CONSOLE_ENABLE_GPIO_NAME))
 		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
 #endif
