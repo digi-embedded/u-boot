@@ -177,7 +177,7 @@ void hwid_get_macs(uint32_t pool, uint32_t base)
 	if (pool == 0)
 		return;
 
-	if (pool > ARRAY_SIZE(mac_pools)) {
+	if (pool >= ARRAY_SIZE(mac_pools)) {
 		printf("ERROR: unsupported MAC address pool %u\n", pool);
 		return;
 	}
