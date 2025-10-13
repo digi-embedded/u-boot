@@ -456,6 +456,9 @@ SM_PATCHES=" \
 	0006-ccimx95dvk-move-CAN1-to-be-used-by-A55.patch \
 	0007-ccimx95dvk-remove-PCAL6408A-IO-expander-from-EVK.patch \
 	0008-ccimx95dvk-remove-PCA2123-RTC-from-EVK.patch \
+	0009-ccimx95-change-names-of-voltage-regulators.patch  \
+	0010-ccimx95dvk-enable-full-access-to-certain-regulators-.patch \
+	0011-components-pf09-reduce-LDOs-step-to-50mV.patch \
 "
 
 FIRMWARE_IMX="firmware-imx-8.26.1-410be01"
