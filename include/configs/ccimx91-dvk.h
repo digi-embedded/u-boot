@@ -233,6 +233,10 @@
 
 #define PHYS_SDRAM_SIZE			0x20000000  /* 512MB DDR */
 
+/* RAM memory reserved for OPTEE (32 MiB) */
+#define RESERVED_MEM_START		0x96000000
+#define RESERVED_MEM_END		0x98000000
+
 /* Using ULP WDOG for reset */
 #define WDOG_BASE_ADDR          WDG3_BASE_ADDR
 

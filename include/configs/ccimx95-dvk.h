@@ -269,6 +269,11 @@
 
 /* Link Definitions */
 
+/*
+ * The first 256MB of DRAM (0x80000000 to 0x8fffffff) are located below the
+ * u-boot base address. Optee currently allocates 32MB for its core and 2MB
+ * for shared memory within the 0x8c000000 to 0x8e200000 range.
+ */
 #define CFG_SYS_INIT_RAM_ADDR        0x90000000
 #define CFG_SYS_INIT_RAM_SIZE        0x200000
 
