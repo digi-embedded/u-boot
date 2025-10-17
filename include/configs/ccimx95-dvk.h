@@ -46,12 +46,12 @@
 /* jh_root_mem: set the memory space used by Jailhouse root cell */
 #define JAILHOUSE_ENV \
 	"jh_root_dtb=" JH_ROOT_DTB "\0" \
-	"jh_mmcboot=setenv fdtfile ${jh_root_dtb}; " \
+	"jh_mmcboot=setenv fdt_file ${jh_root_dtb}; " \
 		"setenv jh_clk kvm.enable_virt_at_load=false cpuidle.off=1 clk_ignore_unused kvm-arm.mode=nvhe; " \
 		"setenv jh_root_mem 0x58000000@0x90000000,0xc0000000@0x180000000; " \
 		"if run loadimage; then run mmcboot;" \
 		"else run jh_netboot; fi; \0" \
-	"jh_netboot=setenv fdtfile ${jh_root_dtb}; " \
+	"jh_netboot=setenv fdt_file ${jh_root_dtb}; " \
 		"setenv jh_root_mem 0x58000000@0x90000000,0xc0000000@0x180000000; " \
 		"setenv jh_clk kvm.enable_virt_at_load=false cpuidle.off=1 clk_ignore_unused kvm-arm.mode=nvhe; run netboot; \0 "
 #else
@@ -59,22 +59,26 @@
 /* jh_root_mem: set the memory space used by Jailhouse root cell */
  #define JAILHOUSE_ENV \
 	"jh_root_dtb=" JH_ROOT_DTB "\0" \
-	"jh_mmcboot=setenv fdtfile ${jh_root_dtb}; " \
+	"jh_mmcboot=setenv fdt_file ${jh_root_dtb}; " \
 		"setenv jh_clk kvm.enable_virt_at_load=false cpuidle.off=1 clk_ignore_unused kvm-arm.mode=nvhe; " \
 		"setenv jh_root_mem 0x58000000@0x90000000,0x300000000@0x180000000; " \
 		"if run loadimage; then run mmcboot;" \
 		"else run jh_netboot; fi; \0" \
-	"jh_netboot=setenv fdtfile ${jh_root_dtb}; " \
+	"jh_netboot=setenv fdt_file ${jh_root_dtb}; " \
 		"setenv jh_root_mem 0x58000000@0x90000000,0x300000000@0x180000000; " \
 		"setenv jh_clk kvm.enable_virt_at_load=false cpuidle.off=1 clk_ignore_unused kvm-arm.mode=nvhe; run netboot; \0 "
 #endif
 
 #define CFG_MFG_ENV_SETTINGS \
 	CFG_MFG_ENV_SETTINGS_DEFAULT \
+	"fastboot_dev=mmc" __stringify(EMMC_BOOT_DEV) "\0" \
 	"initrd_addr=0x93800000\0" \
 	"initrd_high=0xffffffffffffffff\0" \
 	"emmc_dev=0\0"\
 	"sd_dev=1\0" \
+
+#define DUALBOOT_ENV_SETTINGS \
+	"active_system=linux_a\0"
 
 #define XEN_BOOT_ENV \
 	    "domu-android-auto=no\0" \
@@ -115,37 +119,71 @@
 #define CFG_EXTRA_ENV_SETTINGS		\
 	JAILHOUSE_ENV \
 	CFG_MFG_ENV_SETTINGS \
+	DUALBOOT_ENV_SETTINGS \
 	XEN_BOOT_ENV \
 	BOOTENV \
 	AHAB_ENV \
 	"prepare_mcore=setenv mcore_args pd_ignore_unused;\0" \
+	CONFIG_DEFAULT_NETWORK_SETTINGS \
+	CONFIG_EXTRA_NETWORK_SETTINGS \
+	RANDOM_UUIDS \
+	ALTBOOTCMD \
+	"dualboot=yes\0" \
 	"cpuidle= \0" \
 	"scriptaddr=0x93500000\0" \
 	"kernel_addr_r=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
-	"image=Image\0" \
+	"dboot_kernel_var=imagegz\0" \
+	"lzipaddr=" __stringify(CONFIG_DIGI_LZIPADDR) "\0" \
+	"fitimage=fitImage-" BOARD_DEY_NAME ".bin\0" \
+	"image=Image-" BOARD_DEY_NAME ".bin\0" \
+	"imagegz=Image.gz-" BOARD_DEY_NAME ".bin\0" \
+	"uboot_file=imx-boot-" BOARD_DEY_NAME ".bin\0" \
 	"splashimage=0xA0000000\0" \
 	"console=ttyLP5,115200 earlycon\0" \
 	"fdt_addr_r=0x93000000\0"			\
 	"fdt_addr=0x93000000\0"			\
 	"fdt_high=0xffffffffffffffff\0"		\
+	"fit_addr_r=" __stringify(CONFIG_DIGI_LZIPADDR) "\0" \
 	"cntr_addr=0xA8000000\0"			\
 	"cntr_file=os_cntr_signed.bin\0" \
 	"boot_fit=no\0" \
-	"fdtfile=" CONFIG_DEFAULT_FDT_FILE "\0" \
+	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"bootm_size=0x10000000\0" \
+	"mmcbootpart=" __stringify(EMMC_BOOT_PART) "\0" \
 	"mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=1\0" \
-	"mmcroot=/dev/mmcblk1p2 rootwait rw\0" \
+	"mmcroot=PARTUUID=1c606ef5-f1ac-43b9-9bb5-d5c578580b6b\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs ${cpuidle} ${jh_clk} ${mcore_args} console=${console} root=${mmcroot}\0 " \
-	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
-	"bootscript=echo Running bootscript from mmc ...; " \
-		"source\0" \
-	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
-	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr_r} ${fdtfile}\0" \
+	"loadbootscript=" \
+		"if test \"${dualboot}\" = yes; then " \
+			"env exists active_system || setenv active_system linux_a; " \
+			"part number mmc ${mmcbootdev} ${active_system} mmcpart; " \
+		"fi;" \
+		"if test \"${dboot_kernel_var}\" = fitimage; then " \
+			"load mmc ${mmcbootdev}:${mmcpart} ${fit_addr_r} ${fitimage}; " \
+			"env set source_fit_script ${fit_addr_r}:${fit-script}; " \
+		"else " \
+			"load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}; " \
+		"fi;\0" \
+	"loadimage=" \
+		"if test \"${dualboot}\" = yes; then " \
+			"env exists active_system || setenv active_system linux_a; " \
+			"part number mmc ${mmcbootdev} ${active_system} mmcpart; " \
+		"fi;" \
+		"if test \"${dboot_kernel_var}\" = fitimage; then " \
+			"load mmc ${mmcbootdev}:${mmcpart} ${fit_addr_r} ${fitimage}; " \
+		"else " \
+			"load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${image}; " \
+		"fi;\0" \
+	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr_r} ${fdt_file}\0" \
 	"loadcntr=fatload mmc ${mmcdev}:${mmcpart} ${cntr_addr} ${cntr_file}\0" \
 	"auth_os=booti ${cntr_addr}\0" \
 	"boot_os=booti ${loadaddr} - ${fdt_addr_r};\0" \
+	"bootargs_linux=fbcon=logo-pos:center fbcon=logo-count:1\0" \
+	"bootargs_mmc_linux=setenv bootargs console=${console} " \
+		"${bootargs_linux} root=${mmcroot} rootwait rw " \
+		"${bootargs_once} ${extra_bootargs}\0" \
 	"mmcboot=echo Booting from mmc ...; " \
 		"run mmcargs; " \
 		"if test ${sec_boot} = yes; then " \
@@ -179,17 +217,41 @@
 			"if test ${boot_fit} = yes || test ${boot_fit} = try; then " \
 				"bootm ${loadaddr}; " \
 			"else " \
-				"if ${get_cmd} ${fdt_addr_r} ${fdtfile}; then " \
+				"if ${get_cmd} ${fdt_addr_r} ${fdt_file}; then " \
 					"run boot_os; " \
 				"else " \
 					"echo WARN: Cannot load the DT; " \
 				"fi; " \
 			"fi;" \
 		"fi;\0" \
+	"parts_linux_dualboot=" LINUX_DUALBOOT_16GB_PARTITION_TABLE "\0" \
+	"parts_linux=" LINUX_16GB_PARTITION_TABLE "\0" \
+	"partition_mmc_linux=mmc rescan;" \
+		"if mmc dev ${mmcdev}; then " \
+			"if test \"${dualboot}\" = yes; then " \
+				"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
+			"else " \
+				"gpt write mmc ${mmcdev} ${parts_linux};" \
+			"fi;" \
+			"mmc rescan;" \
+		"fi;\0" \
+	"install_linux_fw_sd=if load mmc 1 ${loadaddr} install_linux_fw_sd.scr;then " \
+			"source ${loadaddr};" \
+		"fi;\0" \
+	"install_linux_fw_usb=usb start;" \
+		"if load usb 0 ${loadaddr} install_linux_fw_usb.scr;then " \
+			"source ${loadaddr};" \
+		"fi;\0" \
+	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
+	"recoverycmd=setenv mmcpart " RECOVERY_PARTITION ";" \
+		"boot\0" \
+	"script=boot.scr\0" \
+	"fit-script=bootscr-boot.txt\0" \
 	"bsp_bootcmd=echo Running BSP bootcmd ...; " \
 		"mmc dev ${mmcdev}; if mmc rescan; then " \
 		   "if run loadbootscript; then " \
-			   "run bootscript; " \
+			   "echo Running bootscript from mmc ...; " \
+			   "source ${source_fit_script}; " \
 		   "else " \
 			   "if test ${sec_boot} = yes; then " \
 				   "if run loadcntr; then " \
