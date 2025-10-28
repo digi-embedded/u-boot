@@ -176,14 +176,22 @@ patch_oei_repo()
 
 build_oei()
 {
+	OEI_SOC_REV="${SOC_REV}"
+	if [ "${OEI_SOC_REV#A}" != "${OEI_SOC_REV}" ]; then
+		OEI_SOC_REV="A0"
+		OEI_MAKE_ARGS="DDR_CONFIG=lpddr5_timing_a1"
+	fi
 	echo "- Build OEI binary for: ${OEI_BOARD}"
 	(
 		cd "${OEI_DIR}" || { echo "build_oei: OEI_DIR not found"; exit 1; }
 		for oei_config in ddr tcm; do
-			${MAKE} board="${OEI_BOARD}" d=1 OEI_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" oei=${oei_config} r=A0 clean
-			${MAKE} board="${OEI_BOARD}" d=1 OEI_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" oei=${oei_config} r=A0
+			# shellcheck disable=SC2086 # allow splitting OEI_MAKE_ARGS
+			${MAKE} board="${OEI_BOARD}" d=1 OEI_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" oei="${oei_config}" r="${OEI_SOC_REV}" ${OEI_MAKE_ARGS} clean
+			# shellcheck disable=SC2086 # allow splitting OEI_MAKE_ARGS
+			${MAKE} board="${OEI_BOARD}" d=1 OEI_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" oei="${oei_config}" r="${OEI_SOC_REV}" ${OEI_MAKE_ARGS}
 		done
 	)
+	unset OEI_SOC_REV OEI_MAKE_ARGS
 }
 
 clone_sm_repo()
@@ -338,7 +346,7 @@ copy_artifacts_mkimage_folder()
 	cp --remove-destination "${FIRMWARE_M7_DIR}"/imx95-19x19-evk_m7_TCM_power_mode_switch.bin "${MKIMAGE_SOC_DIR}"/m7_image.bin
 
 	# AHAB container, OEI, SM, ATF and Optee binaries
-	cp --remove-destination "${FIRMWARE_ELE_DIR}"/mx95a0-ahab-container.img "${MKIMAGE_SOC_DIR}"
+	cp --remove-destination "${FIRMWARE_ELE_DIR}"/mx95??-ahab-container.img "${MKIMAGE_SOC_DIR}"
 	cp --remove-destination "${OEI_DIR}"/build/"${OEI_BOARD}"/*/oei-m33-*.bin "${MKIMAGE_SOC_DIR}"
 	cp --remove-destination "${SM_DIR}"/build/"${SM_PLAT}"/m33_image.bin "${MKIMAGE_SOC_DIR}"
 	cp --remove-destination "${ATF_DIR}"/build/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_SOC_DIR}"/bl31-imx95.bin
@@ -364,7 +372,7 @@ build_imxboot()
 		${MAKE} SOC="${SOC}" clean
 		rm -f "${MKIMAGE_SOC_DIR}"/tee.bin "${MKIMAGE_SOC_DIR}"/bl31.bin
 		[ -f "${MKIMAGE_SOC_DIR}"/${BL31_BIN} ] && ln -sf ${BL31_BIN} "${MKIMAGE_SOC_DIR}"/bl31.bin
-		${MAKE} SOC="${SOC}" OEI=YES LPDDR_TYPE=lpddr5 flash_all
+		${MAKE} SOC="${SOC}" REV="${SOC_REV}" OEI=YES LPDDR_TYPE=lpddr5 flash_all
 		cp --remove-destination "${MKIMAGE_SOC_DIR}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx95-dvk-nooptee.bin
 		cp --remove-destination "${MKIMAGE_SOC_DIR}"/mkimage-flash_all.log "${OUTPUT_PATH}"/mkimage-ccimx95-dvk-nooptee-flash_all.log
 
@@ -373,7 +381,7 @@ build_imxboot()
 		rm -f "${MKIMAGE_SOC_DIR}"/tee.bin "${MKIMAGE_SOC_DIR}"/bl31.bin
 		[ -f "${MKIMAGE_SOC_DIR}"/${BL31_BIN}-optee ] && ln -sf ${BL31_BIN}-optee "${MKIMAGE_SOC_DIR}"/bl31.bin
 		[ -f "${MKIMAGE_SOC_DIR}"/${TEE_BIN} ] && ln -sf ${TEE_BIN} "${MKIMAGE_SOC_DIR}"/tee.bin
-		${MAKE} SOC="${SOC}" OEI=YES LPDDR_TYPE=lpddr5 flash_all
+		${MAKE} SOC="${SOC}" REV="${SOC_REV}" OEI=YES LPDDR_TYPE=lpddr5 flash_all
 		cp --remove-destination "${MKIMAGE_SOC_DIR}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx95-dvk.bin
 		cp --remove-destination "${MKIMAGE_SOC_DIR}"/mkimage-flash_all.log "${OUTPUT_PATH}"/mkimage-ccimx95-dvk-flash_all.log
 	)
@@ -439,6 +447,7 @@ OEI_PATCHES=" \
 	0001-boards-ccimx95-add-platform-as-a-clone-of-mx95lp5.patch \
 	0002-ddr-add-DDR-configuration-file-for-ccimx95.patch \
 	0003-ccimx95-configure-console-on-LPUART6.patch \
+	0004-ccimx95-add-DDR-configuration-file-for-ccimx95-B0-si.patch \
 "
 
 # System Manager running on the Cortex M33
@@ -474,6 +483,7 @@ FIRMWARE_ELE_DIR="${BASEDIR}/${FIRMWARE_ELE}"
 FIRMWARE_ELE_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_ELE}.bin"
 
 SOC="iMX95"
+SOC_REV="B0"
 ATF_PLAT="imx95"
 OEI_BOARD="ccimx95"
 SM_PLAT="ccimx95dvk"
