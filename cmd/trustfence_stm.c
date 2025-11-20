@@ -105,6 +105,27 @@ static const struct tf_cmd tf_cmds[] = {
 #endif
 };
 
+struct tf_key {
+    const char *name;
+    bool readable;
+};
+
+static const struct tf_key tf_keys[] = {
+#ifdef CONFIG_STM32MP15X
+	{ PKH_KEY_NAME,        true },
+#else /* CONFIG_STM32MP13X || CONFIG_STM32MP25X */
+	{ PKHTH_KEY_NAME,      true },
+	{ EDMK_KEY_NAME,       false },
+#ifdef CONFIG_STM32MP25X
+	{ FIP_EDMK_KEY_NAME,   false },
+	{ PKHTH2_KEY_NAME,     true },
+	{ EDMK2_KEY_NAME,      false },
+	{ RPROC_PKH_KEY_NAME,  true },
+	{ RPROC_EDMK_KEY_NAME, false },
+#endif
+#endif
+};
+
 /* Functions defined in cmd_stm32key.c */
 extern int get_misc_dev(struct udevice **dev);
 extern const struct stm32key *get_key(u8 index);
@@ -135,6 +156,22 @@ static int get_key_index(char *const key_name)
 	return -1;
 }
 
+static bool is_key_readable(int key_index)
+{
+	const struct stm32key *key = get_key(key_index);
+
+	if (!key || !key->name)
+		return false;
+
+	for (size_t i = 0; i < ARRAY_SIZE(tf_keys); ++i) {
+		if (strcmp(tf_keys[i].name, key->name) == 0)
+			return tf_keys[i].readable;
+	}
+
+	printf("Error: can't find key index %d\n", key_index);
+	return false;
+}
+
 static void read_key_otp_stat(struct udevice *dev, int key_index)
 {
 	const struct stm32key *key = get_key(key_index);
@@ -142,6 +179,7 @@ static void read_key_otp_stat(struct udevice *dev, int key_index)
 	int i, word, ret;
 	u32 val, lock;
 	bool status;
+	char prefix[64];
 
 	for (i = 0, word = key->start; i < key->size; i++, word++) {
 		ret = misc_read(dev, STM32_BSEC_OTP(word), &val, 4);
@@ -160,7 +198,8 @@ static void read_key_otp_stat(struct udevice *dev, int key_index)
 			nb_lock_err++;
 	}
 
-	printf("* %s fuses:\t\t", key->name);
+	snprintf(prefix, sizeof(prefix), "* %s fuses:", key->name);
+	printf("%-25s ", prefix);
 	if (nb_invalid == key->size)
 		printf("[INVALID] ");
 	else if (nb_zero == key->size)
@@ -403,7 +442,8 @@ static int do_trustfence_status(struct cmd_tbl *cmdtp, int flag, int argc, char 
 		return CMD_RET_FAILURE;
 
 	for (i = 0; i < get_key_nb(); i++) {
-		read_key_otp_stat(dev, i);
+		if (is_key_readable(i))
+			read_key_otp_stat(dev, i);
 	}
 
 	/* Read OTP mode (for close and JTAG status) */
@@ -411,8 +451,8 @@ static int do_trustfence_status(struct cmd_tbl *cmdtp, int flag, int argc, char 
 	if (ret < 0)
 		return CMD_RET_FAILURE;
 
-	printf("* Secure boot:\t%s\n", closed ? "[CLOSED]" : "[OPEN]");
-	printf("* JTAG:       \t%s\n", jtag_desc[jtag]);
+	printf("* %-23s %s\n", "Secure boot:", closed ? "[CLOSED]" : "[OPEN]");
+	printf("* %-23s %s\n", "JTAG:", jtag_desc[jtag]);
 
 	return CMD_RET_SUCCESS;
 }
