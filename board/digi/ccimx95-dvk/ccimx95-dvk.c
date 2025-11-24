@@ -60,7 +60,6 @@ struct tcpc_port_config port_config = {
 	.port_type = TYPEC_PORT_DRP,
 	.disable_pd = true,
 };
-#endif
 
 ulong tca_base;
 
@@ -111,6 +110,7 @@ static void setup_typec(void)
 		return;
 	}
 }
+#endif
 
 #ifdef CONFIG_USB_DWC3
 
