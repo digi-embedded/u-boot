@@ -8,6 +8,12 @@
 		ethernet0 = &enetc_port0;
 		ethernet1 = &enetc_port1;
 	};
+
+	bootcount {
+		compatible = "u-boot,bootcount-rtc";
+		rtc = <&rv3028>;
+		offset = <0x1f>;
+	};
 };
 
 &{/soc@0} {

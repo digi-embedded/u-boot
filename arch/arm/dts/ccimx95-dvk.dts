@@ -13,6 +13,10 @@
 	model = "Digi ConnectCore 95 Development Kit";
 	compatible = "digi,ccimx95-dvk", "digi,ccimx95", "fsl,imx95";
 
+	aliases {
+		rtc0 = &rv3028;
+	};
+
 	chosen {
 		bootargs = "console=ttyLP5,115200 earlycon";
 		stdout-path = &lpuart6;
@@ -107,6 +111,11 @@
 			op-sink-microwatt = <15000000>;
 			self-powered;
 		};
+	};
+
+	rv3028: rtc@52 {
+		compatible = "microcrystal,rv3028";
+		reg = <0x52>;
 	};
 };
 
