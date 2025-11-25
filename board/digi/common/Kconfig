@@ -187,6 +187,7 @@ config TRUSTFENCE_JTAG
 
 config ENV_ENCRYPT
 	bool "Encrypt u-boot environment using the hardware unique key (HUK)"
+	select MD5
 	help
 	  Implementation uses CAAM or Optee depending on the platform.
 

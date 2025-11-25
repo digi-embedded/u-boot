@@ -41,9 +41,6 @@
 #define OCOTP_LOCK_BANK		0
 #define OCOTP_LOCK_WORD		0
 
-/* Environment encryption support */
-#define CONFIG_MD5
-
 /* Secure boot configs */
 #define CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS	3
 #define CONFIG_TRUSTFENCE_SRK_REVOKE_BANK	5
