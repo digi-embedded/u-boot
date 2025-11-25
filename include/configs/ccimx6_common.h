@@ -31,27 +31,11 @@
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 6"
 #endif
 
-#define CONFIG_CMDLINE_TAG
-#define CONFIG_SETUP_MEMORY_TAGS
-#define CONFIG_INITRD_TAG
-#define CONFIG_REVISION_TAG
-
-/*
- * RAM
- */
-#define CONFIG_SYS_LOAD_ADDR		0x12000000
-
-/* memtest */
 /* Physical Memory Map */
 #define PHYS_SDRAM                     MMDC0_ARB_BASE_ADDR
 #define CFG_SYS_SDRAM_BASE		PHYS_SDRAM
 #define CFG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
 #define CFG_SYS_INIT_RAM_SIZE	IRAM_SIZE
-
-#define CONFIG_SYS_INIT_SP_OFFSET \
-	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
-#define CONFIG_SYS_INIT_SP_ADDR \
-	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
 
 /* Lock Fuses */
 #define OCOTP_LOCK_BANK		0
@@ -109,34 +93,16 @@
 #define TRUSTFENCE_JTAG_ENABLE_SECURE_JTAG_MODE		(TRUSTFENCE_JTAG_SMODE_SECURE << TRUSTFENCE_JTAG_SMODE_OFFSET)
 #define TRUSTFENCE_JTAG_DISABLE_DEBUG			(TRUSTFENCE_JTAG_SMODE_NO_DEBUG << TRUSTFENCE_JTAG_SMODE_OFFSET)
 
-/* Serial port */
-#define CONFIG_MXC_UART
-
 /* MMC Configs */
 #define CFG_SYS_FSL_ESDHC_ADDR      0
 #define CFG_SYS_FSL_USDHC_NUM	2
 
-#define CONFIG_SUPPORT_EMMC_RPMB
 #define CONFIG_SUPPORT_MMC_ECSD
 #define EMMC_BOOT_ACK			1
 #define EMMC_BOOT_DEV			0
 #define EMMC_BOOT_PART			1
 #define EMMC_BOOT_PART_OFFSET		SZ_1K
-#define CONFIG_BOUNCE_BUFFER
 
-#ifdef CONFIG_SATA
-#define CONFIG_DWC_AHSATA
-#define CONFIG_SYS_SATA_MAX_DEVICE      1
-#define CONFIG_DWC_AHSATA_PORT_ID       0
-#define CONFIG_DWC_AHSATA_BASE_ADDR     SATA_ARB_BASE_ADDR
-#define CONFIG_LBA48
-#define CONFIG_LIBATA
-#endif
-
-/* Ethernet */
-#define CONFIG_FEC_MXC
-#define IMX_FEC_BASE			ENET_BASE_ADDR
-#define CONFIG_ETHPRIME			"FEC"
 #define CONFIG_CMD_BOARD_ID
 
 /* protected environment variables (besides ethaddr and serial#) */
@@ -152,21 +118,10 @@
 	"board_id:so,"			\
 	"mmcbootdev:so"
 
-#define CONFIG_SILENT_CONSOLE_UPDATE_ON_RELOC
-
-/* I2C configs */
-#define CONFIG_SYS_I2C
-#define CONFIG_SYS_I2C_SPEED            100000
-
 /* PMIC */
 #define CONFIG_PMIC_I2C_BUS		1	/* DA9063 PMIC i2c bus */
 #define CONFIG_PMIC_I2C_ADDR		0x58	/* DA9063 PMIC i2c address */
 #define CONFIG_PMIC_NUMREGS		0x185
-
-/* Environment */
-#if defined(CONFIG_ENV_IS_IN_MMC)
-/* Default MMC device index/partition for location of environment */
-#endif
 
 #define CONFIG_TFTP_UPDATE_ONTHEFLY      /* support to tftp and update on-the-fly */
 
@@ -179,9 +134,6 @@
 #define CONFIG_SUPPORTED_SOURCES_NET	"tftp|nfs"
 #define CONFIG_SUPPORTED_SOURCES_BLOCK	"mmc|usb"
 #define CONFIG_SUPPORTED_SOURCES_RAM	"ram"
-
-/* Digi boot command 'dboot' */
-#define CONFIG_CMD_DBOOT
 
 #define CONFIG_DBOOT_SUPPORTED_SOURCES_LIST	\
 	CONFIG_SUPPORTED_SOURCES_NET "|" \
@@ -290,11 +242,6 @@
 #define CALCULATE_FILESIZE_IN_BLOCKS	\
 	"setexpr filesizeblks ${filesize} / 200; " \
 	"setexpr filesizeblks ${filesizeblks} + 1; "
-
-/* Miscellaneous configurable options */
-#undef CONFIG_SYS_CBSIZE
-#define CONFIG_SYS_CBSIZE              1024
-#define CONFIG_SYS_HZ                  1000
 
 #define FSL_FASTBOOT_FB_DEV "mmc"
 
