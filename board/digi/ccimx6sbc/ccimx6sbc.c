@@ -202,7 +202,7 @@ static int mx6_rgmii_rework(struct phy_device *phydev)
 		 * cable connection.
 		 */
 		reg = phy_read(phydev, MDIO_DEVAD_NONE, MII_CTRL1000);
-		reg |= MSTSLV_MANCONFIG_ENABLE | MSTSLV_MANCONFIG_MASTER;
+		reg |= CTL1000_ENABLE_MASTER | CTL1000_AS_MASTER;
 		phy_write(phydev, MDIO_DEVAD_NONE, MII_CTRL1000, reg);
 	}
 
