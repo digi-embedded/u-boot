@@ -1150,11 +1150,11 @@ int pmic_get_chip(struct udevice **devp)
 static struct ccimx6_variant * get_cc6_variant(u8 variant)
 {
 	if (is_mx6dqp()) {
-		if (variant > ARRAY_SIZE(ccimx6p_variants))
+		if (variant >= ARRAY_SIZE(ccimx6p_variants))
 			return NULL;
 		return &ccimx6p_variants[variant];
 	} else {
-		if (variant > ARRAY_SIZE(ccimx6_variants))
+		if (variant >= ARRAY_SIZE(ccimx6_variants))
 			return NULL;
 		return &ccimx6_variants[variant];
 	}
