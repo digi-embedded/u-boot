@@ -14,7 +14,7 @@
 #ifndef __HWID_H_
 #define __HWID_H_
 
-#if defined(CONFIG_CC6)
+#if defined(CONFIG_CC6) || defined(CONFIG_CC6UL)
 #include "../ccimx6/hwid_cc6.h"
 #elif defined(CONFIG_CC8X)
 #include "../ccimx8x/hwid_cc8x.h"
