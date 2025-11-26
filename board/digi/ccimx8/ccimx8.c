@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Digi International, Inc.
+ * Copyright (C) 2019-2026 Digi International, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -29,6 +29,7 @@ extern const char *get_imx8_type(u32 imxtype);
 extern struct ccimx8_variant ccimx8x_variants[];
 #endif
 static struct digi_hwid my_hwid;
+extern unsigned int hwid_nwords;
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -192,7 +193,7 @@ void som_default_environment(void)
 	env_set("module_variant", var);
 
 	/* Set $hwid_n variables */
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
+	for (i = 0; i < hwid_nwords; i++) {
 		snprintf(var, sizeof(var), "hwid_%d", i);
 		snprintf(hex_val, sizeof(hex_val), "%08x",
 			 ((u32 *)&my_hwid)[i]);

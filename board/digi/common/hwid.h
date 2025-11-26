@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2019 Digi International Inc. All Rights Reserved.
+ * Copyright 2014-2026 Digi International Inc. All Rights Reserved.
  */
 
 /*
@@ -34,6 +34,14 @@ enum digi_cert {
 	DIGI_MAX_CERT,
 };
 
+struct digi_hwid_fuse {
+	u32 bank;
+	u32 word;
+	u32 len;	/* length in nibbles (4-bits) */
+};
+
+void board_unlock_fuse_prog(void);
+void board_lock_fuse_prog(void);
 void board_print_hwid(struct digi_hwid *hwid);
 void board_print_manufid(struct digi_hwid *hwid);
 int board_parse_hwid(int argc, char *const argv[], struct digi_hwid *hwid);

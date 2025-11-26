@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018, 2019 Digi International, Inc.
+ * Copyright (C) 2018-2026 Digi International, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -17,11 +17,22 @@ const char *cert_regions[] = {
 	"Japan",
 };
 
-#ifdef CONFIG_CC8X
-int hwid_word_lengths[CONFIG_HWID_WORDS_NUMBER] = {8, 4, 8, 4};
+/* HWID fuse map */
+struct digi_hwid_fuse hwid_fuse_map[] = {
+	/* bank, word, len */
+#if CONFIG_IS_ENABLED(CC8X)
+	{0, 708, 8},	/* MAC1[31:0] */
+	{0, 709, 4},	/* MAC1[47:32] */
+	{0, 710, 8},	/* MAC2[31:0] */
+	{0, 711, 4},	/* MAC2[47:32] */
 #else
-int hwid_word_lengths[CONFIG_HWID_WORDS_NUMBER] = {8, 8, 8};
-#endif
+	{9, 0, 8},	/* MAC_ADDR0[31..0] */
+	{9, 1, 8},	/* MAC_ADDR1[31..0] */
+	{9, 2, 8},	/* MAC_ADDR2[31..0] */
+#endif /* CC8X or CC8M */
+};
+
+unsigned int hwid_nwords = ARRAY_SIZE(hwid_fuse_map);
 
 u32 ram_sizes_mb[16] = {
 	0,	/* 0 */
@@ -43,36 +54,17 @@ u32 ram_sizes_mb[16] = {
 	0,	/* F */
 };
 
-/* Program HWID into efuses */
-int board_prog_hwid(const struct digi_hwid *hwid)
+#if CONFIG_IS_ENABLED(CC8X)
+void board_unlock_fuse_prog()
 {
-	u32 bank = CONFIG_HWID_BANK;
-	u32 word = CONFIG_HWID_START_WORD;
-	u32 cnt = CONFIG_HWID_WORDS_NUMBER;
-	u32 fuseword;
-	int ret, i;
-
-#ifdef CONFIG_CC8X
-	fuse_allow_prog(true);
-#endif
-
-	for (i = 0; i < cnt; i++, word++) {
-		fuseword = ((u32 *)hwid)[i];
-		ret = fuse_prog(bank, word, fuseword);
-		if (ret)
-			break;
-	}
-
-#ifdef CONFIG_CC8X
-	fuse_allow_prog(false);
-#endif
-
-	/* Trigger a HWID-related variables update (from fuses) */
-	if(!ret)
-		board_update_hwid(true);
-
-	return ret;
+	env_set("force_prog_ecc", "yes");
 }
+
+void board_lock_fuse_prog()
+{
+	env_set("force_prog_ecc", NULL);
+}
+#endif /* CC8X */
 
 /* Print HWID info */
 void board_print_hwid(struct digi_hwid *hwid)
@@ -140,47 +132,6 @@ void board_print_manufid(struct digi_hwid *hwid)
 		hwid->wifi,
 		hwid->bt,
 		hwid->crypto);
-}
-
-/* Parse HWID info in HWID format */
-int board_parse_hwid(int argc, char *const argv[], struct digi_hwid *hwid)
-{
-	int i, word;
-	u32 hwidword;
-
-	if (argc != CONFIG_HWID_WORDS_NUMBER)
-		goto err;
-
-	/* Parse backwards, from MSB to LSB */
-	word = CONFIG_HWID_WORDS_NUMBER - 1;
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word--)
-		if (strlen(argv[i]) > hwid_word_lengths[word])
-			goto err;
-
-	/*
-	 * Digi HWID is set as a number of hex strings in the form
-	 *   CC8X: <WWWW> <XXXXXXXX> <YYYY> <ZZZZZZZZ>
-	 *   CC8M: <XXXXXXXX> <YYYYYYYY> <ZZZZZZZZ>
-	 * that are inversely stored into the structure.
-	 */
-
-	/* Parse backwards, from MSB to LSB */
-	word = CONFIG_HWID_WORDS_NUMBER - 1;
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word--) {
-		if (strtou32(argv[i], 16, &hwidword))
-			goto err;
-
-		((u32 *)hwid)[word] = hwidword;
-	}
-	board_print_hwid(hwid);
-
-	return 0;
-
-err:
-	printf("Invalid HWID input.\n"
-		"HWID input must be in the form: "
-		CONFIG_HWID_STRINGS_HELP "\n");
-	return -EINVAL;
 }
 
 static int parse_bool_char(char c, bool *val)
@@ -502,7 +453,7 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 	}
 
 	/* Register HWID words in the device tree */
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
+	for (i = 0; i < hwid_nwords; i++) {
 		sprintf(str, "digi,hwid_%d", i);
 		do_fixup_by_path_u32(fdt, "/", str, *((u32 *)hwid + i), 1);
 	}

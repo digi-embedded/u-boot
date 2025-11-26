@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2016-2018 Digi International, Inc.
+ * (C) Copyright 2016-2026 Digi International, Inc.
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -128,17 +128,15 @@ int is_uboot_encrypted() {
 
 int get_trustfence_key_modifier(unsigned char key_modifier[16])
 {
-	u32 ocotp_hwid[CONFIG_HWID_WORDS_NUMBER];
-	int i, ret;
+	struct digi_hwid hwid;
+	int ret;
 
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
-		ret = fuse_read(CONFIG_HWID_BANK,
-				CONFIG_HWID_START_WORD + i,
-				&ocotp_hwid[i]);
-		if (ret)
-			return ret;
-	}
-	md5((unsigned char *)(&ocotp_hwid), sizeof(ocotp_hwid), key_modifier);
+	ret = board_read_hwid(&hwid);
+	if (ret)
+		return ret;
+
+	md5((unsigned char *)(&hwid), sizeof(hwid), keymod);
+
 	return ret;
 }
 

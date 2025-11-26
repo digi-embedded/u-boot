@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2018 Digi International, Inc.
+ * (C) Copyright 2018-2026 Digi International, Inc.
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -25,8 +25,10 @@
 #include <linux/errno.h>
 #include <fuse.h>
 #include "hwid.h"
+#include "../common/helper.h"
 
-extern int hwid_word_lengths[CONFIG_HWID_WORDS_NUMBER];
+extern struct digi_hwid_fuse hwid_fuse_map[];
+extern unsigned int hwid_nwords;
 typedef struct mac_base { uint8_t mbase[3]; } mac_base_t;
 
 mac_base_t mac_pools[] = {
@@ -36,14 +38,13 @@ mac_base_t mac_pools[] = {
 
 __weak int board_read_hwid(struct digi_hwid *hwid)
 {
-	u32 bank = CONFIG_HWID_BANK;
-	u32 word = CONFIG_HWID_START_WORD;
-	u32 cnt = CONFIG_HWID_WORDS_NUMBER;
 	u32 fuseword;
-	int ret, i;
+	int ret;
 
-	for (i = 0; i < cnt; i++, word++) {
-		ret = fuse_read(bank, word, &fuseword);
+	for (int i = 0; i < hwid_nwords; i++) {
+		ret = fuse_read(hwid_fuse_map[i].bank,
+				hwid_fuse_map[i].word,
+				&fuseword);
 		((u32 *)hwid)[i] = fuseword;
 		if (ret)
 			return ret;
@@ -54,14 +55,13 @@ __weak int board_read_hwid(struct digi_hwid *hwid)
 
 __weak int board_sense_hwid(struct digi_hwid *hwid)
 {
-	u32 bank = CONFIG_HWID_BANK;
-	u32 word = CONFIG_HWID_START_WORD;
-	u32 cnt = CONFIG_HWID_WORDS_NUMBER;
 	u32 fuseword;
-	int ret, i;
+	int ret;
 
-	for (i = 0; i < cnt; i++, word++) {
-		ret = fuse_sense(bank, word, &fuseword);
+	for (int i = 0; i < hwid_nwords; i++) {
+		ret = fuse_sense(hwid_fuse_map[i].bank,
+				 hwid_fuse_map[i].word,
+				 &fuseword);
 		((u32 *)hwid)[i] = fuseword;
 		if (ret)
 			return ret;
@@ -75,37 +75,51 @@ __weak void board_update_hwid(bool is_fuse)
 	/* Do nothing */
 }
 
+__weak void board_unlock_fuse_prog()
+{
+	/* Do nothing */
+}
+
+__weak void board_lock_fuse_prog()
+{
+	/* Do nothing */
+}
+
 __weak int board_prog_hwid(const struct digi_hwid *hwid)
 {
-	u32 bank = CONFIG_HWID_BANK;
-	u32 word = CONFIG_HWID_START_WORD;
-	u32 cnt = CONFIG_HWID_WORDS_NUMBER;
 	u32 fuseword;
-	int ret, i;
+	int ret = -1;
 
-	for (i = 0; i < cnt; i++, word++) {
+	board_unlock_fuse_prog();
+
+	for (int i = 0; i < hwid_nwords; i++) {
 		fuseword = ((u32 *)hwid)[i];
-		ret = fuse_prog(bank, word, fuseword);
+		ret = fuse_prog(hwid_fuse_map[i].bank,
+				hwid_fuse_map[i].word,
+				fuseword);
 		if (ret)
-			return ret;
+			break;
 	}
 
+	board_lock_fuse_prog();
+
 	/* Trigger a HWID-related variables update (from fuses)*/
-	board_update_hwid(true);
-	return 0;
+	if (!ret)
+		board_update_hwid(true);
+
+	return ret;
 }
 
 __weak int board_override_hwid(const struct digi_hwid *hwid)
 {
-	u32 bank = CONFIG_HWID_BANK;
-	u32 word = CONFIG_HWID_START_WORD;
-	u32 cnt = CONFIG_HWID_WORDS_NUMBER;
 	u32 fuseword;
-	int ret, i;
+	int ret;
 
-	for (i = 0; i < cnt; i++, word++) {
+	for (int i = 0; i < hwid_nwords; i++) {
 		fuseword = ((u32 *)hwid)[i];
-		ret = fuse_override(bank, word, fuseword);
+		ret = fuse_override(hwid_fuse_map[i].bank,
+				    hwid_fuse_map[i].word,
+				    fuseword);
 		if (ret)
 			return ret;
 	}
@@ -127,10 +141,8 @@ __weak int board_lock_hwid(void)
 
 __weak void print_hwid_hex(struct digi_hwid *hwid)
 {
-	int i;
-
-	for (i = CONFIG_HWID_WORDS_NUMBER - 1; i >= 0; i--)
-		printf(" %.*x", hwid_word_lengths[i], ((u32 *)hwid)[i]);
+	for (int i = hwid_nwords - 1; i >= 0; i--)
+		printf(" %.*x", hwid_fuse_map[i].len, ((u32 *)hwid)[i]);
 
 	printf("\n");
 }
@@ -238,4 +250,48 @@ void hwid_get_serial_number(uint32_t year, uint32_t week, uint32_t serial)
 	ret = run_command(cmd, 0);
 	if (ret)
 		printf("ERROR setting 'serial#' from fuses (%d)\n", ret);
+}
+
+/* Parse HWID info in HWID format */
+__weak int board_parse_hwid(int argc, char *const argv[], struct digi_hwid *hwid)
+{
+	int word;
+	u32 hwidword;
+
+	if (argc != hwid_nwords)
+		goto err;
+
+	/* Parse backwards, from MSB to LSB */
+	word = hwid_nwords - 1;
+	for (int i = 0; i < hwid_nwords; i++, word--)
+		if (strlen(argv[i]) > hwid_fuse_map[word].len)
+			goto err;
+
+	/*
+	 * Digi HWID is set as a number of hex strings in the form
+	 *   CC6?:  <XXXXXXXX> <YYYYYYYY>
+	 *   CC8X:  <WWWW> <XXXXXXXX> <YYYY> <ZZZZZZZZ>
+	 *   CC8M:  <XXXXXXXX> <YYYYYYYY> <ZZZZZZZZ>
+	 *   CCMP1: <XXXXXXXX> <YYYYYYYY> <ZZZZZZZZ>
+	 *   CCMP2: <XXXXXXXX> <YYYYYYYY> <ZZZZZZZZ>
+	 * that are inversely stored into the structure.
+	 */
+
+	/* Parse backwards, from MSB to LSB */
+	word = hwid_nwords - 1;
+	for (int i = 0; i < hwid_nwords; i++, word--) {
+		if (strtou32(argv[i], 16, &hwidword))
+			goto err;
+
+		((u32 *)hwid)[word] = hwidword;
+	}
+	board_print_hwid(hwid);
+
+	return 0;
+
+err:
+	printf("Invalid HWID input.\n"
+		"HWID input must be in the form: "
+		CONFIG_HWID_STRINGS_HELP "\n");
+	return -EINVAL;
 }

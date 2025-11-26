@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
 /*
- * Copyright (C) 2022-2023, Digi International Inc - All Rights Reserved
+ * Copyright (C) 2022-2026, Digi International Inc - All Rights Reserved
  */
 #include <common.h>
 #include <display_options.h>
@@ -15,6 +15,7 @@
 #include "ccmp1.h"
 
 static struct digi_hwid my_hwid;
+extern unsigned int hwid_nwords;
 
 enum env_location env_get_location(enum env_operation op, int prio)
 {
@@ -200,7 +201,7 @@ void som_default_environment(void)
 	generate_ubi_volumes_script();
 
 	/* Set $hwid_n variables */
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
+	for (i = 0; i < hwid_nwords; i++) {
 		snprintf(var, sizeof(var), "hwid_%d", i);
 		snprintf(hex_val, sizeof(hex_val), "%08x", ((u32 *) &my_hwid)[i]);
 		env_set(var, hex_val);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 Digi International, Inc.
+ * Copyright (C) 2016-2026 Digi International, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -18,7 +18,14 @@ const char *cert_regions[] = {
 	"Japan",
 };
 
-int hwid_word_lengths[CONFIG_HWID_WORDS_NUMBER] = {8, 8};
+/* HWID fuse map */
+struct digi_hwid_fuse hwid_fuse_map[] = {
+	/* bank, word, len */
+	{4, 2, 8},	/* MAC0[31..0] */
+	{4, 3, 8},	/* MAC1[31..0] */
+};
+
+unsigned int hwid_nwords = ARRAY_SIZE(hwid_fuse_map);
 
 /* Print HWID info */
 void board_print_hwid(struct digi_hwid *hwid)
@@ -55,40 +62,6 @@ void board_print_manufid(struct digi_hwid *hwid)
 		hwid->hv,
 		hwid->cert,
 		hwid->wid);
-}
-
-/* Parse HWID info in HWID format */
-int board_parse_hwid(int argc, char *const argv[], struct digi_hwid *hwid)
-{
-	int i, word;
-	u32 hwidword;
-
-	if (argc != CONFIG_HWID_WORDS_NUMBER)
-		goto err;
-
-	/*
-	 * Digi HWID is set as a couple of hex strings in the form
-	 *     <high word> <low word>
-	 * that are inversely stored into the structure.
-	 */
-
-	/* Parse backwards, from MSB to LSB */
-	word = CONFIG_HWID_WORDS_NUMBER - 1;
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word--) {
-		if (strtou32(argv[i], 16, &hwidword))
-			goto err;
-
-		((u32 *)hwid)[word] = hwidword;
-	}
-	board_print_hwid(hwid);
-
-	return 0;
-
-err:
-	printf("Invalid HWID input.\n"
-		"HWID input must be in the form: "
-		CONFIG_HWID_STRINGS_HELP "\n");
-	return -EINVAL;
 }
 
 /* Parse HWID info in MANUFID format */
@@ -299,7 +272,7 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 	}
 
 	/* Register HWID words in the device tree */
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
+	for (i = 0; i < hwid_nwords; i++) {
 		sprintf(str, "digi,hwid_%d", i);
 		do_fixup_by_path_u32(fdt, "/", str, *((u32 *)hwid + i), 1);
 	}

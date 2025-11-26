@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Digi International, Inc.
+ * Copyright (C) 2022-2026 Digi International, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -16,8 +16,6 @@ const char *cert_regions[] = {
 	"International",
 	"Japan",
 };
-
-int hwid_word_lengths[CONFIG_HWID_WORDS_NUMBER] = {8, 8, 8};
 
 u32 ram_sizes_mb[16] = {
 	0,	/* 0 */
@@ -38,6 +36,16 @@ u32 ram_sizes_mb[16] = {
 	0,	/* E */
 	0,	/* F */
 };
+
+/* HWID fuse map */
+struct digi_hwid_fuse hwid_fuse_map[] = {
+	/* bank, word, len */
+	{0, 59, 8},	/* XK27[31:0] */
+	{0, 60, 8},	/* XK28[31:0] */
+	{0, 61, 8},	/* XK29[31:0] */
+};
+
+unsigned int hwid_nwords = ARRAY_SIZE(hwid_fuse_map);
 
 /* Print HWID info */
 void board_print_hwid(struct digi_hwid *hwid)
@@ -91,46 +99,6 @@ void board_print_manufid(struct digi_hwid *hwid)
 		hwid->wifi,
 		hwid->bt,
 		hwid->crypto);
-}
-
-/* Parse HWID info in HWID format */
-int board_parse_hwid(int argc, char *const argv[], struct digi_hwid *hwid)
-{
-	int i, word;
-	u32 hwidword;
-
-	if (argc != CONFIG_HWID_WORDS_NUMBER)
-		goto err;
-
-	/* Parse backwards, from MSB to LSB */
-	word = CONFIG_HWID_WORDS_NUMBER - 1;
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word--)
-		if (strlen(argv[i]) > hwid_word_lengths[word])
-			goto err;
-
-	/*
-	 * Digi HWID is set as a number of hex strings in the form
-	 *   CCMP1: <XXXXXXXX> <YYYYYYYY> <ZZZZZZZZ>
-	 * that are inversely stored into the structure.
-	 */
-
-	/* Parse backwards, from MSB to LSB */
-	word = CONFIG_HWID_WORDS_NUMBER - 1;
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word--) {
-		if (strtou32(argv[i], 16, &hwidword))
-			goto err;
-
-		((u32 *)hwid)[word] = hwidword;
-	}
-	board_print_hwid(hwid);
-
-	return 0;
-
-err:
-	printf("Invalid HWID input.\n"
-		"HWID input must be in the form: "
-		CONFIG_HWID_STRINGS_HELP "\n");
-	return -EINVAL;
 }
 
 static int parse_bool_char(char c, bool *val)
@@ -422,7 +390,7 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 	}
 
 	/* Register HWID words in the device tree */
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
+	for (i = 0; i < hwid_nwords; i++) {
 		sprintf(str, "digi,hwid_%d", i);
 		do_fixup_by_path_u32(fdt, "/", str, *((u32 *)hwid + i), 1);
 	}
@@ -435,13 +403,11 @@ u32 hwid_get_ramsize(const struct digi_hwid *hwid)
 
 int board_lock_hwid(void)
 {
-	u32 bank = CONFIG_HWID_BANK;
-	u32 word = CONFIG_HWID_START_WORD;
-	u32 cnt = CONFIG_HWID_WORDS_NUMBER;
-	int ret, i;
+	int ret;
 
-	for (i = 0; i < cnt; i++, word++) {
-		ret = fuse_lock(bank, word);
+	for (int i = 0; i < hwid_nwords; i++) {
+		ret = fuse_lock(hwid_fuse_map[i].bank,
+				hwid_fuse_map[i].word);
 		if (ret)
 			return ret;
 	}
