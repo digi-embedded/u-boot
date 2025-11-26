@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2024, Digi International Inc.
+ * Copyright (C) 2016-2026 Digi International Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -41,6 +41,7 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 static struct digi_hwid my_hwid;
+extern unsigned int hwid_nwords;
 
 #define MDIO_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_PUE |     \
 	PAD_CTL_DSE_48ohm   | PAD_CTL_SRE_FAST | PAD_CTL_ODE)
@@ -431,7 +432,7 @@ void som_default_environment(void)
 	hwid_get_serial_number(&my_hwid);
 
 	/* Set $hwid_n variables */
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
+	for (i = 0; i < hwid_nwords; i++) {
 		snprintf(var, sizeof(var), "hwid_%d", i);
 		snprintf(hex_val, sizeof(hex_val), "%08x", ((u32 *) &my_hwid)[i]);
 		env_set(var, hex_val);

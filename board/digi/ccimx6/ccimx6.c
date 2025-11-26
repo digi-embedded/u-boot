@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012-2013 Freescale Semiconductor, Inc.
- * Copyright (C) 2013-2025 Digi International, Inc.
+ * Copyright (C) 2013-2026 Digi International, Inc.
  *
  * Author: Fabio Estevam <fabio.estevam@freescale.com>
  * Author: Jason Liu <r64343@freescale.com>
@@ -58,6 +58,7 @@ DECLARE_GLOBAL_DATA_PTR;
 extern unsigned int board_version;
 extern unsigned int board_id;
 extern void board_spurious_wakeup(void);
+extern unsigned int hwid_nwords;
 
 static struct digi_hwid my_hwid;
 
@@ -1854,7 +1855,7 @@ void som_default_environment(void)
 	env_set("module_variant", var);
 
 	/* Set $hwid_n variables */
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
+	for (i = 0; i < hwid_nwords; i++) {
 		snprintf(var, sizeof(var), "hwid_%d", i);
 		snprintf(var2, sizeof(var2), "%08x", ((u32 *) &my_hwid)[i]);
 		env_set(var, var2);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 Digi International Inc
+ * Copyright 2022-2026 Digi International Inc
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -21,6 +21,7 @@
 #include "../common/trustfence.h"
 
 static struct digi_hwid my_hwid;
+extern unsigned int hwid_nwords;
 static u32 soc_rev;
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -202,7 +203,7 @@ void som_default_environment(void)
 	env_set("soc_rev", var);
 
 	/* Set hwid_n variables */
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
+	for (i = 0; i < hwid_nwords; i++) {
 		snprintf(var, sizeof(var), "hwid_%d", i);
 		snprintf(hex_val, sizeof(hex_val), "%08x",
 			 ((u32 *) & my_hwid)[i]);
