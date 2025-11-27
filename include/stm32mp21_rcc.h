@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
+/* SPDX-License-Identifier: GPL-2.0-or-later OR BSD-3-Clause */
 /*
  * Copyright (C) STMicroelectronics 2023 - All Rights Reserved
  * Author: Gabriel Fernandez <gabriel.fernandez@foss.st.com> for STMicroelectronics.
@@ -393,7 +393,6 @@
 #define RCC_HASH2CFGR				0x884
 #define RCC_CRYP1CFGR				0x888
 #define RCC_CRYP2CFGR				0x88C
-#define RCC_CCBCFGR				0x890
 #define RCC_IWDG1CFGR				0x894
 #define RCC_IWDG2CFGR				0x898
 #define RCC_IWDG3CFGR				0x89C

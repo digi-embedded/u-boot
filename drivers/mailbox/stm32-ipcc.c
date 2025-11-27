@@ -133,9 +133,12 @@ static int stm32_ipcc_probe(struct udevice *dev)
 	if (ret)
 		return ret;
 
-	ret = clk_enable(clk);
-	if (ret)
-		return ret;
+	if (clk) {
+		ret = clk_enable(clk);
+		if (ret)
+			return ret;
+	}
+
 	/* get channel number */
 	ipcc->n_chans = readl(ipcc->reg_base + IPCC_HWCFGR);
 	ipcc->n_chans &= IPCFGR_CHAN_MASK;

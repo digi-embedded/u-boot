@@ -25,7 +25,6 @@
 	bootph-all;
 };
 
-#ifndef CONFIG_TFABOOT
 &rcc {
 	st,clksrc = <
 		CLK_MPU_PLL1P
@@ -117,4 +116,3 @@
 		bootph-all;
 	};
 };
-#endif

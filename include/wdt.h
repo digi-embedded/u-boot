@@ -25,7 +25,7 @@ struct udevice;
  * @dev: WDT Device
  * @return: 0 if OK, -ve on error
  */
-int wdt_set_force_start(struct udevice *dev);
+int wdt_set_force_autostart(struct udevice *dev);
 
 /*
  * Start the timer

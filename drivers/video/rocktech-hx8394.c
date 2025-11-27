@@ -223,7 +223,8 @@ static int hx8394_panel_probe(struct udevice *dev)
 	plat->format = MIPI_DSI_FMT_RGB888;
 	plat->mode_flags = MIPI_DSI_MODE_VIDEO |
 			   MIPI_DSI_MODE_VIDEO_BURST |
-			   MIPI_DSI_MODE_LPM;
+			   MIPI_DSI_MODE_LPM |
+			   MIPI_DSI_MODE_EOT_PACKET;
 
 	return 0;
 }
@@ -234,7 +235,7 @@ static const struct panel_ops hx8394_panel_ops = {
 };
 
 static const struct udevice_id hx8394_panel_ids[] = {
-	{ .compatible = "rocktech,hx8394" },
+	{ .compatible = "rocktech,rk055mhd042a0" },
 	{ }
 };
 

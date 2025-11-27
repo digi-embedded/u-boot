@@ -343,7 +343,7 @@ static const struct stm32_gate_cfg stm32mp25_gates[GATE_NB] = {
 	GATE_CFG(GATE_USB3DR,		RCC_USB3DRCFGR,		1,	0),
 	GATE_CFG(GATE_USB3PCIEPHY,	RCC_USB3PCIEPHYCFGR,	1,	0),
 	GATE_CFG(GATE_PCIE,		RCC_PCIECFGR,		1,	0),
-	GATE_CFG(GATE_USBTC,		RCC_USBTCCFGR,		1,	0),
+	GATE_CFG(GATE_USBTC,		RCC_UCPDCFGR,		1,	0),
 	GATE_CFG(GATE_ETHSWMAC,		RCC_ETHSWCFGR,		1,	0),
 	GATE_CFG(GATE_ETHSW,		RCC_ETHSWCFGR,		5,	0),
 	GATE_CFG(GATE_ETHSWREF,		RCC_ETHSWCFGR,		21,	0),
@@ -431,7 +431,7 @@ static int stm32mp25_check_security(struct udevice *dev, void __iomem *base,
 		u32 index = (u32)cfg->sec_id;
 
 		if (index & SEC_RIFSC_FLAG)
-			ret = stm32_rifsc_check_access_by_id(dev_ofnode(dev),
+			ret = stm32_rifsc_grant_access_by_id(dev_ofnode(dev),
 							     index & ~SEC_RIFSC_FLAG);
 		else
 			ret = stm32_rcc_get_access(dev, index);
@@ -727,7 +727,7 @@ static const struct clock_config stm32mp25_clock_cfg[] = {
 	STM32_GATE(CK_KER_USB2PHY2, "ck_ker_usb2phy2", "ck_flexgen_58", 0, GATE_USB3DR,
 		   SEC_RIFSC(66)),
 
-	/* USBTC */
+	/* UCPD */
 	STM32_GATE(CK_BUS_USBTC, "ck_icn_p_usbtc", "ck_flexgen_35", 0, GATE_USBTC,
 		   SEC_RIFSC(69)),
 	STM32_GATE(CK_KER_USBTC, "ck_ker_usbtc", "ck_flexgen_35", 0, GATE_USBTC,

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0-or-lat OR BSD-3-Clause
+// SPDX-License-Identifier: GPL-2.0-or-later OR BSD-3-Clause
 /*
  * Copyright (C) 2023, STMicroelectronics - All Rights Reserved
  */

@@ -279,7 +279,6 @@
 			clocks = <&rcc 1 CLK_I2C1>;
 			#address-cells = <1>;
 			#size-cells = <0>;
-			i2c-analog-filter;
 			status = "disabled";
 		};
 
@@ -292,7 +291,6 @@
 			clocks = <&rcc 1 CLK_I2C2>;
 			#address-cells = <1>;
 			#size-cells = <0>;
-			i2c-analog-filter;
 			status = "disabled";
 		};
 
@@ -305,7 +303,6 @@
 			clocks = <&rcc 1 CLK_I2C3>;
 			#address-cells = <1>;
 			#size-cells = <0>;
-			i2c-analog-filter;
 			status = "disabled";
 		};
 
@@ -318,7 +315,6 @@
 			clocks = <&rcc 1 CLK_I2C4>;
 			#address-cells = <1>;
 			#size-cells = <0>;
-			i2c-analog-filter;
 			status = "disabled";
 		};
 

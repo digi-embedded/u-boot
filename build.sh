@@ -36,6 +36,7 @@ done<<-_EOF_
 	ccmp15-dvk-512MB    "DEVICE_TREE=ccmp15-dvk-512MB"     cortexa7hf     "make_stm32_fip.sh"
 	ccmp15-dvk-1GB      "DEVICE_TREE=ccmp15-dvk-1GB"       cortexa7hf     "make_stm32_fip.sh"
 	ccmp13-dvk-256MB    "DEVICE_TREE=ccmp13-dvk-256MB"     cortexa7hf     "make_stm32_fip.sh"
+	ccmp25-dvk          "DEVICE_TREE=ccmp25-dvk"           cortexa35      "make_tfa_fip_ccmp25.sh"
 _EOF_
 
 # Set default values if not provided by user
@@ -133,7 +134,7 @@ for platform in ${DUB_PLATFORMS}; do
 
 		printf "\n[INFO] Build U-Boot for target '${UBOOT_MAKE_TARGET}' (commit ${UBOOT_SHA1})...\n"
 		${MAKE} distclean
-		${MAKE} "${platform%-*}"_defconfig
+		${MAKE} "${platform%-[0-9]*}"_defconfig
 		${MAKE} "${UBOOT_MAKE_TARGET}"
 
 		eval "BOOT_POST_SCRIPT=\"\${${platform//-/_}_post_script}\""
@@ -141,6 +142,11 @@ for platform in ${DUB_PLATFORMS}; do
 			# Copy u-boot image
 			cp --remove-destination "${UBOOT_MAKE_TARGET}" "${DUB_IMGS_DIR}"/"${UBOOT_MAKE_TARGET/u-boot/u-boot-${platform}}"
 		else
+			# Some extra environment needed to build optee-os
+			eval "$(grep "^export OECORE_NATIVE_SYSROOT=" "${DUB_TOOLCHAIN_DIR}"/"${TLABEL}"/environment-setup-*)"
+			export OPENSSL_MODULES="${OECORE_NATIVE_SYSROOT}/usr/lib/ossl-modules"
+			export LIBGCC_LOCATE_CFLAGS="--sysroot=${SDKTARGETSYSROOT}"
+
 			# Some extra environment needed to build boot artifacts
 			export TOOLCHAIN=$(find ${DUB_TOOLCHAIN_DIR}/${TLABEL} -type f -name "environment-setup-*")
 			export PLATFORM_NAME=${platform}

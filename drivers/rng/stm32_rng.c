@@ -21,15 +21,14 @@
 #define RNG_CR			0x00
 #define RNG_CR_RNGEN		BIT(2)
 #define RNG_CR_CED		BIT(5)
-#define RNG_CR_CONFIG1		GENMASK(11, 8)
+#define RNG_CR_CONFIG3		GENMASK(11, 8)
 #define RNG_CR_NISTC		BIT(12)
 #define RNG_CR_CONFIG2		GENMASK(15, 13)
 #define RNG_CR_CLKDIV_SHIFT	16
 #define RNG_CR_CLKDIV		GENMASK(19, 16)
-#define RNG_CR_CONFIG3		GENMASK(25, 20)
+#define RNG_CR_CONFIG1		GENMASK(25, 20)
 #define RNG_CR_CONDRST		BIT(30)
-#define RNG_CR_ENTROPY_SRC_MASK	(RNG_CR_CONFIG1 | RNG_CR_NISTC | RNG_CR_CONFIG2 | RNG_CR_CONFIG3)
-#define RNG_CR_CONFIG_MASK	(RNG_CR_ENTROPY_SRC_MASK | RNG_CR_CED | RNG_CR_CLKDIV)
+#define RNG_CR_CONFIG_MASK	(RNG_CR_CED | RNG_CR_CLKDIV)
 
 #define RNG_SR		0x04
 #define RNG_SR_SEIS	BIT(6)
@@ -60,6 +59,7 @@
 struct stm32_rng_data {
 	uint max_clock_rate;
 	uint nb_clock;
+	u32 cr_config1_mask;
 	u32 cr;
 	u32 nscr;
 	u32 htcr;
@@ -74,6 +74,12 @@ struct stm32_rng_plat {
 	const struct stm32_rng_data *data;
 	bool ced;
 };
+
+static uint32_t stm32_rng_get_entropy_mask(struct stm32_rng_plat *pdata)
+{
+	return (RNG_CR_CONFIG3 | RNG_CR_NISTC |
+		RNG_CR_CONFIG2 | pdata->data->cr_config1_mask);
+}
 
 /*
  * Extracts from the STM32 RNG specification when RNG supports CONDRST.
@@ -278,9 +284,10 @@ static int stm32_rng_init(struct stm32_rng_plat *pdata)
 	 */
 	if (pdata->data->has_cond_reset && pdata->data->cr) {
 		uint clock_div = stm32_rng_clock_freq_restrain(pdata);
+		u32 entropy_mask = stm32_rng_get_entropy_mask(pdata);
 
-		cr &= ~RNG_CR_CONFIG_MASK;
-		cr |= RNG_CR_CONDRST | (pdata->data->cr & RNG_CR_ENTROPY_SRC_MASK) |
+		cr &= ~(RNG_CR_CONFIG_MASK | entropy_mask);
+		cr |= RNG_CR_CONDRST | (pdata->data->cr & entropy_mask) |
 		      (clock_div << RNG_CR_CLKDIV_SHIFT);
 		if (pdata->ced)
 			cr &= ~RNG_CR_CED;
@@ -406,9 +413,20 @@ static const struct stm32_rng_data stm32mp25_rng_data = {
 	.has_cond_reset = true,
 	.max_clock_rate = 48000000,
 	.nb_clock = 2,
-	.htcr = 0x969D,
-	.nscr = 0x2B5BB,
-	.cr = 0xF00D00,
+	.htcr = 0x6688,
+	.nscr = 0x2E649,
+	.cr = 0x08F01E00,
+	.cr_config1_mask = GENMASK(27, 20),
+};
+
+static const struct stm32_rng_data stm32mp21_rng_data = {
+	.has_cond_reset = true,
+	.max_clock_rate = 48000000,
+	.nb_clock = 2,
+	.htcr = 0xAAC7,
+	.nscr = 0x01FF,
+	.cr = 0x00800D00,
+	.cr_config1_mask = GENMASK(27, 20),
 };
 
 static const struct stm32_rng_data stm32mp13_rng_data = {
@@ -418,6 +436,7 @@ static const struct stm32_rng_data stm32mp13_rng_data = {
 	.htcr = 0x969D,
 	.nscr = 0x2B5BB,
 	.cr = 0xF00D00,
+	.cr_config1_mask = GENMASK(25, 20),
 };
 
 static const struct stm32_rng_data stm32_rng_data = {
@@ -428,6 +447,7 @@ static const struct stm32_rng_data stm32_rng_data = {
 
 static const struct udevice_id stm32_rng_match[] = {
 	{.compatible = "st,stm32mp25-rng", .data = (ulong)&stm32mp25_rng_data},
+	{.compatible = "st,stm32mp21-rng", .data = (ulong)&stm32mp21_rng_data},
 	{.compatible = "st,stm32mp13-rng", .data = (ulong)&stm32mp13_rng_data},
 	{.compatible = "st,stm32-rng", .data = (ulong)&stm32_rng_data},
 	{},

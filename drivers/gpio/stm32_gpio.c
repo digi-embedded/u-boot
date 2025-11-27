@@ -172,10 +172,10 @@ static int stm32_gpio_request(struct udevice *dev, unsigned offset, const char *
 		return -EACCES;
 	}
 
-	/* Deny request access if IO RIF semaphore is not available */
+	/* Deny request access if IO RIF configuration forbids access */
 	if ((drv_data & STM32_GPIO_FLAG_RIF_CTRL) &&
 	    !stm32_gpio_rif_valid(regs, offset)) {
-		dev_err(dev, "Failed to take RIF semaphore on IO %s %d @ %p\n",
+		dev_err(dev, "Failed to acquire RIF access on IO %s %d @ %p\n",
 			uc_priv->bank_name, offset, regs);
 		return -EACCES;
 	}
