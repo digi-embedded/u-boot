@@ -195,9 +195,8 @@ download_firmware_imx()
 
 download_firmware_ele()
 {
-	[ -d "${FIRMWARE_ELE_DIR}" ] && { echo "- ELE firmware already downloaded"; return 0; }
-
 	(
+		[ -d "${FIRMWARE_ELE_DIR}" ] && { echo "- ELE firmware already downloaded"; exit 0; }
 		cd "${BASEDIR}" || { echo "download_firmware_ele: BASEDIR not found"; exit 1; }
 		if [ ! -f "${FIRMWARE_ELE}.bin" ]; then
 			if ! wget "${FIRMWARE_ELE_URL}"; then
@@ -206,7 +205,11 @@ download_firmware_ele()
 			fi
 		fi
 		sh "${FIRMWARE_ELE}.bin" --auto-accept --force
+	)
 
+	(
+		[ -d "${FIRMWARE_ELE_DIR_A0}" ] && { echo "- ELE firmware for A0 already downloaded"; exit 0; }
+		cd "${BASEDIR}" || { echo "download_firmware_ele: BASEDIR not found"; exit 1; }
 		# Download and unpack firmware for SOC revision A0
 		if [ ! -f "${FIRMWARE_ELE_A0}.bin" ]; then
 			if ! wget "${FIRMWARE_ELE_URL_A0}"; then
