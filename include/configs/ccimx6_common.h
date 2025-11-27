@@ -100,8 +100,6 @@
 #define EMMC_BOOT_PART			1
 #define EMMC_BOOT_PART_OFFSET		SZ_1K
 
-#define CONFIG_CMD_BOARD_ID
-
 /* protected environment variables (besides ethaddr and serial#) */
 #undef CFG_ENV_FLAGS_LIST_STATIC
 #define CFG_ENV_FLAGS_LIST_STATIC	\

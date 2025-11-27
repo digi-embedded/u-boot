@@ -18,10 +18,8 @@
 #ifndef __CCIMX6SBC_CONFIG_H
 #define __CCIMX6SBC_CONFIG_H
 
+#include <linux/stringify.h>
 #include "ccimx6_common.h"
-#include <asm/mach-imx/gpio.h>
-
-#define CONFIG_MACH_TYPE		4899
 
 #ifdef CONFIG_MX6QP
 #undef CONFIG_SYS_BOARD
@@ -30,23 +28,6 @@
 #define CONFIG_BOARD_DESCRIPTION	"SBC"
 
 #define CONSOLE_DEV			"ttymxc3"
-
-#undef CONFIG_DEFAULT_FDT_FILE
-#if defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
-#define CONFIG_DEFAULT_FDT_FILE		"imx6dl-" CONFIG_SYS_BOARD ".dtb"
-#elif defined(CONFIG_MX6QP)
-#define CONFIG_DEFAULT_FDT_FILE		"imx6qp-" CONFIG_SYS_BOARD ".dtb"
-#elif defined(CONFIG_MX6Q)
-#define CONFIG_DEFAULT_FDT_FILE		"imx6q-" CONFIG_SYS_BOARD ".dtb"
-#endif
-
-#define CFG_SYS_FSL_USDHC_NUM	2
-
-/* Media type for firmware updates */
-#define CONFIG_SYS_STORAGE_MEDIA	"mmc"
-
-/* Ethernet PHY */
-#define CONFIG_ENET_PHYADDR_MICREL	3
 
 /* Carrier board version and ID commands */
 #define CONFIG_CMD_BOARD_VERSION
@@ -89,7 +70,13 @@
 #define CCIMX6QPSBC_ID160	160
 #endif /* CONFIG_HAS_CARRIERBOARD_ID */
 
+#define CFG_MFG_ENV_SETTINGS \
+	"fastboot_dev=mmc" __stringify(EMMC_BOOT_DEV) "\0" \
+	"emmc_dev=" __stringify(EMMC_BOOT_DEV) "\0" \
+	"sd_dev=1\0"
+
 #define CFG_EXTRA_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS			\
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	RANDOM_UUIDS \
 	ALTBOOTCMD \
@@ -154,23 +141,13 @@
 	"linux_file=dey-image-qt-xwayland-" CONFIG_SYS_BOARD ".boot.vfat\0" \
 	"rootfs_file=dey-image-qt-xwayland-" CONFIG_SYS_BOARD ".ext4\0" \
 	"partition_mmc_linux=mmc rescan;" \
-		"if mmc dev ${mmcdev} 0; then " \
+		"if mmc dev ${mmcdev};then " \
 			"if test \"${dualboot}\" = yes; then " \
 				"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
 			"else " \
 				"gpt write mmc ${mmcdev} ${parts_linux};" \
 			"fi;" \
 			"mmc rescan;" \
-		"else " \
-			"if mmc dev ${mmcdev};then " \
-				"if test \"${dualboot}\" = yes; then " \
-					"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
-				"else " \
-					"gpt write mmc ${mmcdev} ${parts_linux};" \
-				"fi;" \
-				"mmc rescan;" \
-			"else;" \
-			"fi;" \
 		"fi;\0" \
 	"recoverycmd=setenv mmcpart " RECOVERY_PARTITION ";" \
 		"boot\0" \
@@ -189,11 +166,5 @@
 		"fi;\0" \
 	"active_system=linux_a\0" \
 	""	/* end line */
-
-#undef CONFIG_BOOTCOMMAND
-#define CONFIG_BOOTCOMMAND \
-	"if run loadscript; then " \
-		"source ${loadaddr};" \
-	"fi;"
 
 #endif                         /* __CCIMX6SBC_CONFIG_H */
