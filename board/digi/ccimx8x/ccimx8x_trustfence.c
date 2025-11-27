@@ -139,6 +139,7 @@ int get_srk_revoke_mask(u32 *mask)
 	char *buffer = NULL;
 	struct container_hdr *second_cont;
 	u32 buffer_size = 0;
+	u16 ctnr_hdr_align = container_hdr_alignment();
 
 	/* Container Header can only be read from the storage media */
 	if (is_usb_boot())
@@ -186,7 +187,7 @@ int get_srk_revoke_mask(u32 *mask)
 	}
 
 	/* Read mask from the Second Container Header Flags (11:8) */
-	second_cont = (struct container_hdr *)(buffer+CONTAINER_HDR_ALIGNMENT);
+	second_cont = (struct container_hdr *)(buffer+ctnr_hdr_align);
 	*mask = (second_cont->flags>>8) & 0xF;
 
 sanitize:

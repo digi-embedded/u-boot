@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012-2013 Freescale Semiconductor, Inc.
- * Copyright (C) 2013-2018 Digi International, Inc.
+ * Copyright (C) 2013-2025 Digi International, Inc.
  *
  * Author: Fabio Estevam <fabio.estevam@freescale.com>
  * Author: Jason Liu <r64343@freescale.com>
@@ -66,29 +66,10 @@ static iomux_v3_cfg_t const uart4_pads[] = {
 	MX6_PAD_KEY_ROW0__UART4_RX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL),
 };
 
-#ifdef CONFIG_CONSOLE_ENABLE_GPIO
-static iomux_v3_cfg_t const ext_gpios_pads[] = {
-	MX6_PAD_NANDF_D5__GPIO2_IO05 | MUX_PAD_CTRL(GPI_PAD_CTRL),
-	MX6_PAD_NANDF_D6__GPIO2_IO06 | MUX_PAD_CTRL(GPI_PAD_CTRL),
-	MX6_PAD_NANDF_D7__GPIO2_IO07 | MUX_PAD_CTRL(GPI_PAD_CTRL),
-	MX6_PAD_EIM_CS1__GPIO2_IO24 | MUX_PAD_CTRL(GPI_PAD_CTRL),
-	MX6_PAD_EIM_EB0__GPIO2_IO28 | MUX_PAD_CTRL(GPI_PAD_CTRL),
-	MX6_PAD_EIM_EB1__GPIO2_IO29 | MUX_PAD_CTRL(GPI_PAD_CTRL),
-	MX6_PAD_GPIO_18__GPIO7_IO13 | MUX_PAD_CTRL(GPI_PAD_CTRL),
-	MX6_PAD_GPIO_19__GPIO4_IO05 | MUX_PAD_CTRL(GPI_PAD_CTRL),
-};
-
-static void setup_iomux_ext_gpios(void)
+static void setup_iomux_uart(void)
 {
-	imx_iomux_v3_setup_multiple_pads(ext_gpios_pads,
-					 ARRAY_SIZE(ext_gpios_pads));
+	SETUP_IOMUX_PADS(uart4_pads);
 }
-#endif /* CONFIG_CONSOLE_ENABLE_GPIO */
-
-static iomux_v3_cfg_t const ksz9031_pads[] = {
-	/* Micrel KSZ9031 PHY reset */
-	MX6_PAD_ENET_CRS_DV__GPIO1_IO25		| MUX_PAD_CTRL(NO_PAD_CTRL),
-};
 
 static iomux_v3_cfg_t const sgtl5000_audio_pads[] = {
 	/*
@@ -115,12 +96,9 @@ static iomux_v3_cfg_t const pcie_pwr_pads[] = {
 #ifdef CONFIG_SYS_I2C_MXC
 int setup_pmic_voltages_carrierboard(void)
 {
-#ifdef CONFIG_I2C_MULTI_BUS
-	if (i2c_set_bus_num(CONFIG_PMIC_I2C_BUS))
-                return -1;
-#endif
+	struct udevice *dev;
 
-	if (i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
+	if (pmic_get_chip(&dev)){
 		printf("ERR: cannot access the PMIC\n");
 		return -1;
 	}
@@ -168,26 +146,6 @@ int setup_pmic_voltages_carrierboard(void)
 	return 0;
 }
 #endif /* CONFIG_SYS_I2C_MXC */
-
-static void setup_board_enet(void)
-{
-	int phy_reset_gpio;
-
-	/* Gigabit ENET (Micrel PHY) */
-	phy_reset_gpio = IMX_GPIO_NR(1, 25);
-	phy_addr = CONFIG_ENET_PHYADDR_MICREL;
-	imx_iomux_v3_setup_multiple_pads(ksz9031_pads,
-					 ARRAY_SIZE(ksz9031_pads));
-	/* Assert PHY reset */
-	gpio_request(phy_reset_gpio, "ENET PHY Reset");
-	gpio_direction_output(phy_reset_gpio , 0);
-	/* Need 10ms to guarantee stable voltages */
-	udelay(10 * 1000);
-	/* Deassert PHY reset */
-	gpio_set_value(phy_reset_gpio, 1);
-	/* Need to wait 100us before accessing the MIIM (MDC/MDIO) */
-	udelay(100);
-}
 
 int board_get_enet_phy_addr(void)
 {
@@ -244,7 +202,7 @@ static int mx6_rgmii_rework(struct phy_device *phydev)
 		 * cable connection.
 		 */
 		reg = phy_read(phydev, MDIO_DEVAD_NONE, MII_CTRL1000);
-		reg |= MSTSLV_MANCONFIG_ENABLE | MSTSLV_MANCONFIG_MASTER;
+		reg |= CTL1000_ENABLE_MASTER | CTL1000_AS_MASTER;
 		phy_write(phydev, MDIO_DEVAD_NONE, MII_CTRL1000, reg);
 	}
 
@@ -258,29 +216,6 @@ int board_phy_config(struct phy_device *phydev)
 		phydev->drv->config(phydev);
 
 	return 0;
-}
-
-static void setup_iomux_uart(void)
-{
-	imx_iomux_v3_setup_multiple_pads(uart4_pads, ARRAY_SIZE(uart4_pads));
-}
-
-int board_eth_init(struct bd_info *bis)
-{
-	if (is_mx6dqp()) {
-		int ret;
-
-		/* select ENET MAC0 TX clock from PLL */
-		imx_iomux_set_gpr_register(5, 9, 1, 1);
-		ret = enable_fec_anatop_clock(0, ENET_125MHZ);
-		if (ret)
-			printf("Error fec anatop clock settings!\n");
-	}
-
-	setup_iomux_enet();
-	setup_board_enet();
-
-	return cpu_eth_init(bis);
 }
 
 static int board_has_audio(void)
@@ -439,8 +374,6 @@ int board_late_init(void)
 	int ret;
 
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
-	setup_iomux_ext_gpios();
-
 	if (console_enable_gpio(CONFIG_CONSOLE_ENABLE_GPIO_NAME))
 		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
 #endif

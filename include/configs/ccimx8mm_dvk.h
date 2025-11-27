@@ -17,7 +17,6 @@
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 8M Mini"
 #define CONFIG_BOARD_DESCRIPTION	"Development Kit"
 #define BOARD_DEY_NAME			"ccimx8mm-dvk"
-#define PRODUCT_NAME			"ccimx8mmdvk"  /* (== TARGET_BOOTLOADER_BOARD_NAME in Android) */
 
 #ifdef CONFIG_SPL_BUILD
 /* malloc f used before GD_FLG_FULL_MALLOC_INIT set */
@@ -113,11 +112,6 @@
 	"loadbootscript=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
 	"loadimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
 	"loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
-	"partition_mmc_android=mmc rescan;" \
-		"if mmc dev ${mmcdev}; then " \
-			"gpt write mmc ${mmcdev} ${parts_android};" \
-			"mmc rescan;" \
-		"fi;\0" \
 	"partition_mmc_linux=mmc rescan;" \
 		"if mmc dev ${mmcdev}; then " \
 			"if test \"${dualboot}\" = yes; then " \
@@ -149,8 +143,12 @@
 	"usb_pgood_delay=2000\0" \
 	""	/* end line */
 
+#ifdef CONFIG_IMX_MATTER_TRUSTY
+#define NS_ARCH_ARM64 1
+#endif
+
 /* Android specific configuration */
-#if defined(CONFIG_ANDROID_SUPPORT)
+#ifdef CONFIG_ANDROID_SUPPORT
 #include "ccimx8mm_dvk_android.h"
 #endif
 

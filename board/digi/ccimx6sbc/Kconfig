@@ -1,4 +1,4 @@
-if TARGET_CCIMX6SBC
+if TARGET_CCIMX6QSBC || TARGET_CCIMX6DLSBC || TARGET_CCIMX6QPSBC
 
 config SYS_BOARD
 	default "ccimx6sbc"
@@ -10,6 +10,9 @@ config SYS_SOC
 	default "mx6"
 
 config SYS_CONFIG_NAME
+	string
 	default "ccimx6sbc"
+
+source "board/digi/common/Kconfig"
 
 endif

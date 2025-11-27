@@ -30,11 +30,6 @@
 #include "mca_registers.h"
 #endif
 
-#ifdef CONFIG_ANDROID_SUPPORT
-#include "mca.h"
-#include "mca_registers.h"
-#endif
-
 DECLARE_GLOBAL_DATA_PTR;
 
 #ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS

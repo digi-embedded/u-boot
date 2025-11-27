@@ -1,0 +1,14 @@
+if TARGET_CCIMX95_DVK
+
+config SYS_BOARD
+	default "ccimx95-dvk"
+
+config SYS_VENDOR
+	default "digi"
+
+config SYS_CONFIG_NAME
+	default "ccimx95-dvk"
+
+source "board/digi/common/Kconfig"
+
+endif

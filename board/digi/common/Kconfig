@@ -14,6 +14,10 @@ config CC6UL
 	bool
 	select HAS_TRUSTFENCE
 
+config CC6
+	bool
+	select HAS_TRUSTFENCE
+
 config MCA
 	bool "Support for the Micro Controller Assist (MCA)"
 
@@ -58,17 +62,21 @@ config CMD_UPDATE
 if CMD_DBOOT || CMD_UPDATE
 config DIGI_UPDATE_ADDR
 	hex "RAM address where to place the firmware image during update"
-	default 0x90000000 if CC9
+	default 0x90000000 if CC9 && !IMX95
+	default 0xA0000000 if CC9 && IMX95
 	default 0x50000000 if CC8M
 	default 0x95000000 if CC8X
 	default 0x80800000 if CC6UL
+	default 0x12000000 if CC6
 
 config DIGI_LZIPADDR
 	hex "RAM address where to place compressed image (to be decompressed)"
-	default 0x84000000 if CC9
+	default 0x84000000 if CC9 && !IMX95
+	default 0x94000000 if CC9 && IMX95
 	default 0x44000000 if CC8M
 	default 0x8C000000 if CC8X
 	default 0x82000000 if CC6UL
+	default 0x15000000 if CC6
 endif
 
 if CMD_UPDATE
@@ -81,6 +89,7 @@ config CMD_UPDATE_MMC
 	default y if CC9
 	default y if CC8M
 	default y if CC8X
+	default y if CC6
 
 config SYS_STORAGE_MEDIA
 	string
@@ -114,6 +123,7 @@ config HWID_BANK
 	default 9 if CC8M
 	default 0 if CC8X
 	default 4 if CC6UL
+	default 4 if CC6
 
 config HWID_START_WORD
 	int "Offset of the first OTP word where the HWID is"
@@ -121,6 +131,7 @@ config HWID_START_WORD
 	default 0 if CC8M
 	default 708 if CC8X
 	default 2 if CC6UL
+	default 2 if CC6
 
 config HWID_WORDS_NUMBER
 	int "Number of OTP words that form the HWID"
@@ -128,12 +139,14 @@ config HWID_WORDS_NUMBER
 	default 3 if CC8M
 	default 4 if CC8X
 	default 2 if CC6UL
+	default 2 if CC6
 
 config HAS_OTP_LOCK_FUSE
 	bool
 	default y if CC6UL
 	default y if CC8M
 	default y if CC9
+	default y if CC6
 
 if HAS_OTP_LOCK_FUSE
 config HWID_LOCK_FUSE
@@ -141,6 +154,7 @@ config HWID_LOCK_FUSE
 	default 0x100 if CC6UL
 	default 0x4000 if CC8M
 	default 0x40 if CC9
+	default 0x100 if CC6
 endif
 
 endif
@@ -164,6 +178,7 @@ config TRUSTFENCE_UPDATE
 	default y if CC8M
 	default y if CC8X
 	default y if CC9
+	default y if CC6
 
 config TRUSTFENCE_JTAG
 	bool
@@ -172,6 +187,7 @@ config TRUSTFENCE_JTAG
 
 config ENV_ENCRYPT
 	bool "Encrypt u-boot environment using the hardware unique key (HUK)"
+	select MD5
 	help
 	  Implementation uses CAAM or Optee depending on the platform.
 

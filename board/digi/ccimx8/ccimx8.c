@@ -100,7 +100,6 @@ void generate_partition_table(void)
 	struct mmc *mmc = find_mmc_device(0);
 	unsigned int capacity_gb = 0;
 	const char *linux_partition_table;
-	const char *android_partition_table;
 	const char *linux_dualboot_partition_table;
 
 	/* Retrieve eMMC size in GiB */
@@ -110,27 +109,20 @@ void generate_partition_table(void)
 	/* eMMC capacity is not exact, so asume 32GB if larger than 28GB */
 	if (capacity_gb >= 28) {
 		linux_partition_table = LINUX_32GB_PARTITION_TABLE;
-		android_partition_table = ANDROID_32GB_PARTITION_TABLE;
 		linux_dualboot_partition_table = LINUX_DUALBOOT_32GB_PARTITION_TABLE;
 	} else if (capacity_gb >= 14) {
 		linux_partition_table = LINUX_16GB_PARTITION_TABLE;
-		android_partition_table = ANDROID_16GB_PARTITION_TABLE;
 		linux_dualboot_partition_table = LINUX_DUALBOOT_16GB_PARTITION_TABLE;
 	} else if (capacity_gb >= 7) {
 		linux_partition_table = LINUX_8GB_PARTITION_TABLE;
-		android_partition_table = ANDROID_8GB_PARTITION_TABLE;
 		linux_dualboot_partition_table = LINUX_DUALBOOT_8GB_PARTITION_TABLE;
 	} else {
 		linux_partition_table = LINUX_4GB_PARTITION_TABLE;
-		android_partition_table = ANDROID_4GB_PARTITION_TABLE;
 		linux_dualboot_partition_table = LINUX_DUALBOOT_4GB_PARTITION_TABLE;
 	}
 
 	if (!env_get("parts_linux"))
 		env_set("parts_linux", linux_partition_table);
-
-	if (!env_get("parts_android"))
-		env_set("parts_android", android_partition_table);
 
 	if (!env_get("parts_linux_dualboot"))
 		env_set("parts_linux_dualboot", linux_dualboot_partition_table);
@@ -225,7 +217,8 @@ void som_default_environment(void)
 	 * If there are no defined partition tables generate them dynamically
 	 * basing on the available eMMC size.
 	 */
-	generate_partition_table();
+	if (!IS_ENABLED(CONFIG_ANDROID_SUPPORT))
+		generate_partition_table();
 
 	/* Get MAC address from fuses unless indicated otherwise */
 	if (env_get_yesno("use_fused_macs"))

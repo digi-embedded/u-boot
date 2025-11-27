@@ -21,6 +21,7 @@
 #				  field so that key revocation is possible in closed devices.
 #      SRK_REVOKE_MASK: (optional, AHAB only) set bitmask of the revoked SRKs.
 #      ENABLE_USB_SIGN: (optional) if defined, signed images could be used to boot via USB.
+#      CONFIG_IS_CC6: (optional) needed to determine how USB images are signed.
 #      ENABLE_ENCRYPTION: (optional) enable encryption of the images.
 #      CONFIG_DEK_PATH: (mandatory if ENCRYPT is defined) path to a Data Encryption Key.
 #                       If defined, the signed U-Boot image is encrypted with the
@@ -47,7 +48,10 @@ if [ "${#}" != "2" ]; then
 fi
 
 # Get enviroment variables from .config
-[ -f .config ] && . .config
+if [ -f .config ]; then
+	. .config
+	[ "${CONFIG_CC6}" = "y" ] && CONFIG_IS_CC6="true" || CONFIG_IS_CC6="false"
+fi
 
 # External tools are used, so UBOOT_PATH has to be absolute
 UBOOT_PATH="$(readlink -e $1)"
@@ -98,6 +102,10 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 	DIGEST_ALGO="sha256"
 	if [ -n "${ENABLE_USB_SIGN}" ]; then
 		SIGN_DCD="true"
+		if [ -z "${CONFIG_IS_CC6}" ]; then
+			echo "CONFIG_IS_CC6 must be set if ENABLE_USB_SIGN."
+			error_out
+		fi
 	fi
 elif [ "${CONFIG_SIGN_MODE}" = "AHAB" ]; then
 	HAB_VER="ahab"
@@ -335,11 +343,22 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 	# Generate signed uboot (add padding, generate signature and ensamble final image)
 	objcopy -I binary -O binary --pad-to "${pad_len}" --gap-fill="${GAP_FILLER}" "${UBOOT_TEMP}" "${PADDED_UBOOT_PATH}"
 
+	if [ "${SIGN_DCD}" = "true" ] && [ "${CONFIG_IS_CC6}" = "true" ]; then
+		# Null the DCD pointer in the IVT prior to signing the DCD memory block.
+		ivt_dcd=$(hexdump -n 4 -s 12 -e '/4 "0x%08x\t" "\n"' ${PADDED_UBOOT_PATH})
+		printf '\x0\x0\x0\x0' | dd conv=notrunc of=${PADDED_UBOOT_PATH} bs=4 seek=3 >/dev/null 2>&1
+	fi
+
 	CURRENT_PATH="$(pwd)"
 	cst -o "${CURRENT_PATH}/u-boot_csf.bin" -i "${CURRENT_PATH}/csf_descriptor" > /dev/null
 	if [ $? -ne 0 ]; then
 		echo "[ERROR] Could not generate CSF"
 		error_out
+	fi
+
+	if [ "${SIGN_DCD}" = "true" ] && [ "${CONFIG_IS_CC6}" = "true" ]; then
+		# Once signed, restore the DCD pointer before appending the CSF binary.
+		printf $(printf "%08x" ${ivt_dcd} | sed 's/.\{2\}/&\n/g' | tac | sed 's,^,\\x,g' | tr -d '\n') | dd conv=notrunc of=${PADDED_UBOOT_PATH} bs=4 seek=3 >/dev/null 2>&1
 	fi
 
 	cat "${PADDED_UBOOT_PATH}" u-boot_csf.bin > u-boot-signed-no-pad.imx

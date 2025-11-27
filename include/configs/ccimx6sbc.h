@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012-2013 Freescale Semiconductor, Inc.
- * Copyright (C) 2013-2019 Digi International, Inc.
+ * Copyright (C) 2013-2025 Digi International, Inc.
  *
  * Configuration settings for the Freescale i.MX6Q SabreSD board.
  *
@@ -18,10 +18,8 @@
 #ifndef __CCIMX6SBC_CONFIG_H
 #define __CCIMX6SBC_CONFIG_H
 
+#include <linux/stringify.h>
 #include "ccimx6_common.h"
-#include <asm/mach-imx/gpio.h>
-
-#define CONFIG_MACH_TYPE		4899
 
 #ifdef CONFIG_MX6QP
 #undef CONFIG_SYS_BOARD
@@ -29,34 +27,7 @@
 #endif
 #define CONFIG_BOARD_DESCRIPTION	"SBC"
 
-#define CONFIG_CONS_INDEX		1
-#define CONFIG_MXC_UART_BASE		UART4_BASE
 #define CONSOLE_DEV			"ttymxc3"
-#define CONFIG_BAUDRATE			115200
-
-#undef CONFIG_DEFAULT_FDT_FILE
-#if defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
-#define CONFIG_DEFAULT_FDT_FILE		"imx6dl-" CONFIG_SYS_BOARD ".dtb"
-#elif defined(CONFIG_MX6QP)
-#define CONFIG_DEFAULT_FDT_FILE		"imx6qp-" CONFIG_SYS_BOARD ".dtb"
-#elif defined(CONFIG_MX6Q)
-#define CONFIG_DEFAULT_FDT_FILE		"imx6q-" CONFIG_SYS_BOARD ".dtb"
-#endif
-
-#define CFG_SYS_FSL_USDHC_NUM	2
-
-/* Media type for firmware updates */
-#define CONFIG_SYS_STORAGE_MEDIA	"mmc"
-
-/* Ethernet PHY */
-#define CONFIG_ENET_PHYADDR_MICREL	3
-#define PHY_ANEG_TIMEOUT		8000
-
-/* I2C */
-#define CONFIG_SYS_I2C_MXC_I2C1
-#define CONFIG_SYS_I2C_MXC_I2C2
-#define CONFIG_SYS_I2C_MXC_I2C3
-#define CONFIG_SYS_I2C_MXC_I2C4
 
 /* Carrier board version and ID commands */
 #define CONFIG_CMD_BOARD_VERSION
@@ -99,10 +70,19 @@
 #define CCIMX6QPSBC_ID160	160
 #endif /* CONFIG_HAS_CARRIERBOARD_ID */
 
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_MFG_ENV_SETTINGS \
+	"fastboot_dev=mmc" __stringify(EMMC_BOOT_DEV) "\0" \
+	"emmc_dev=" __stringify(EMMC_BOOT_DEV) "\0" \
+	"sd_dev=1\0"
+
+#define CFG_EXTRA_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS			\
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
 	RANDOM_UUIDS \
 	ALTBOOTCMD \
+	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
+	"dualboot=no\0" \
+	"bootlimit=0\0" \
 	"dboot_kernel_var=zimage\0" \
 	"script=boot.scr\0" \
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
@@ -131,17 +111,6 @@
 	"uboot_file=u-boot.imx\0" \
 	"boot_file=boot.img\0" \
 	"system_file=system.img\0" \
-	"partition_mmc_android=mmc rescan;" \
-		"if mmc dev ${mmcdev} 0; then " \
-			"gpt write mmc ${mmcdev} ${parts_android};" \
-			"mmc rescan;" \
-		"else " \
-			"if mmc dev ${mmcdev};then " \
-				"gpt write mmc ${mmcdev} ${parts_android};" \
-				"mmc rescan;" \
-			"else;" \
-			"fi;" \
-		"fi;\0" \
 	"bootargs_mmc_android=setenv bootargs console=${console},${baudrate} " \
 		"${bootargs_android} " \
 		"${bootargs_once} ${extra_bootargs}\0" \
@@ -172,15 +141,13 @@
 	"linux_file=dey-image-qt-xwayland-" CONFIG_SYS_BOARD ".boot.vfat\0" \
 	"rootfs_file=dey-image-qt-xwayland-" CONFIG_SYS_BOARD ".ext4\0" \
 	"partition_mmc_linux=mmc rescan;" \
-		"if mmc dev ${mmcdev} 0; then " \
-			"gpt write mmc ${mmcdev} ${parts_linux};" \
-			"mmc rescan;" \
-		"else " \
-			"if mmc dev ${mmcdev};then " \
+		"if mmc dev ${mmcdev};then " \
+			"if test \"${dualboot}\" = yes; then " \
+				"gpt write mmc ${mmcdev} ${parts_linux_dualboot};" \
+			"else " \
 				"gpt write mmc ${mmcdev} ${parts_linux};" \
-				"mmc rescan;" \
-			"else;" \
 			"fi;" \
+			"mmc rescan;" \
 		"fi;\0" \
 	"recoverycmd=setenv mmcpart " RECOVERY_PARTITION ";" \
 		"boot\0" \
@@ -197,12 +164,7 @@
 		"if load usb 0 ${loadaddr} install_linux_fw_usb.scr;then " \
 			"source ${loadaddr};" \
 		"fi;\0" \
+	"active_system=linux_a\0" \
 	""	/* end line */
-
-#undef CONFIG_BOOTCOMMAND
-#define CONFIG_BOOTCOMMAND \
-	"if run loadscript; then " \
-		"source ${loadaddr};" \
-	"fi;"
 
 #endif                         /* __CCIMX6SBC_CONFIG_H */

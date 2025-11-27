@@ -102,6 +102,7 @@ int get_srk_revoke_mask(u32 *mask)
 	u32 buf_size, offset;
 	u8 *buf, part;
 	int ret = CMD_RET_SUCCESS;
+	u16 ctnr_hdr_align = container_hdr_alignment();
 
 	/* Container Header can only be read from the storage media */
 	if (is_usb_boot()) {
@@ -131,7 +132,7 @@ int get_srk_revoke_mask(u32 *mask)
 	}
 
 	/* Add 80 bytes to make room for DEK blob if there is one */
-	buf_size = roundup(CONTAINER_HDR_ALIGNMENT + 80, mmc->read_bl_len);
+	buf_size = roundup(ctnr_hdr_align + 80, mmc->read_bl_len);
 	buf = malloc(buf_size);
 	if (!buf)
 		return CMD_RET_FAILURE;
@@ -144,10 +145,11 @@ int get_srk_revoke_mask(u32 *mask)
 		goto sanitize;
 	}
 
-	hdr = (struct container_hdr *)(buf + CONTAINER_HDR_ALIGNMENT);
+	hdr = (struct container_hdr *)(buf + ctnr_hdr_align);
 	if (hdr->tag != 0x87 || hdr->version != 0x0) {
 		printf("Error: wrong container header.\n");
-		return CMD_RET_FAILURE;
+		ret = CMD_RET_FAILURE;
+		goto sanitize;
 	}
 	*mask = (hdr->flags >> 8) & 0xf;
 

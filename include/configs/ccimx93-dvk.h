@@ -227,11 +227,16 @@
 	   "fi;"
 
 /* Link Definitions */
-
-#define CFG_SYS_INIT_RAM_ADDR        0x80000000
-#define CFG_SYS_INIT_RAM_SIZE        0x200000
+#define CFG_SYS_SDRAM_BASE		0x80000000
+#define PHYS_SDRAM			0x80000000
+#define CFG_SYS_INIT_RAM_ADDR		0x80000000
+#define CFG_SYS_INIT_RAM_SIZE		0x200000
 
 #define PHYS_SDRAM_SIZE			0x40000000  /* 1GB DDR */
+
+/* RAM memory reserved for OPTEE (32 MiB) */
+#define RESERVED_MEM_START		0x96000000
+#define RESERVED_MEM_END		0x98000000
 
 /* Using ULP WDOG for reset */
 #define WDOG_BASE_ADDR          WDG3_BASE_ADDR

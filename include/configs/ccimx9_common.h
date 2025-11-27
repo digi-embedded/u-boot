@@ -1,11 +1,11 @@
 /*
- * Copyright 2022-2024 Digi International Inc
+ * Copyright 2022-2025 Digi International Inc
  *
  * SPDX-License-Identifier:    GPL-2.0+
  */
 
-#ifndef CCIMX93_COMMON_H
-#define CCIMX93_COMMON_H
+#ifndef CCIMX9_COMMON_H
+#define CCIMX9_COMMON_H
 
 #include "digi_common.h"
 
@@ -63,13 +63,6 @@
 #define EMMC_BOOT_PART			1
 #define EMMC_BOOT_PART_OFFSET		(32 * SZ_1K)
 
-#define CFG_SYS_SDRAM_BASE		0x80000000
-#define PHYS_SDRAM			0x80000000
-
-/* RAM memory reserved for OPTEE (32 MiB) */
-#define RESERVED_MEM_START             0x96000000
-#define RESERVED_MEM_END               0x98000000
-
 #define CONFIG_TRUSTFENCE_SRK_BANK			16
 #define CONFIG_TRUSTFENCE_SRK_WORDS			8
 #define CONFIG_TRUSTFENCE_SRK_WORDS_PER_BANK		8
@@ -103,6 +96,18 @@
 	"name=data,size=-,uuid=${part7_uuid};" \
 	"\""
 
+#define LINUX_16GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=linux,size=64MiB,uuid=${part1_uuid};" \
+	"name=recovery,size=64MiB,uuid=${part2_uuid};" \
+	"name=rootfs,size=7GiB,uuid=${part3_uuid};" \
+	"name=update,size=7GiB,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
+	"name=data,size=-,uuid=${part7_uuid};" \
+	"\""
+
 #define LINUX_DUALBOOT_8GB_PARTITION_TABLE \
 	"\"uuid_disk=${uuid_disk};" \
 	"start=2MiB," \
@@ -110,6 +115,18 @@
 	"name=linux_b,size=64MiB,uuid=${part2_uuid};" \
 	"name=rootfs_a,size=3GiB,uuid=${part3_uuid};" \
 	"name=rootfs_b,size=3GiB,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
+	"name=data,size=-,uuid=${part7_uuid};" \
+	"\""
+
+#define LINUX_DUALBOOT_16GB_PARTITION_TABLE \
+	"\"uuid_disk=${uuid_disk};" \
+	"start=2MiB," \
+	"name=linux_a,size=64MiB,uuid=${part1_uuid};" \
+	"name=linux_b,size=64MiB,uuid=${part2_uuid};" \
+	"name=rootfs_a,size=7GiB,uuid=${part3_uuid};" \
+	"name=rootfs_b,size=7GiB,uuid=${part4_uuid};" \
 	"name=safe,size=16MiB,uuid=${part5_uuid};" \
 	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
 	"name=data,size=-,uuid=${part7_uuid};" \
@@ -156,4 +173,4 @@
  */
 #define SENSITIVE_PARTITIONS		"uboot"
 
-#endif /* CCIMX93_COMMON_H */
+#endif /* CCIMX9_COMMON_H */

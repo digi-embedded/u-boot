@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012-2013 Freescale Semiconductor, Inc.
- * Copyright (C) 2013-2024 Digi International, Inc.
+ * Copyright (C) 2013-2025 Digi International, Inc.
  *
  * Configuration settings for the Freescale i.MX6Q SabreSD board.
  *
@@ -23,7 +23,6 @@
 #include "mx6_common.h"
 #include "digi_common.h"		/* Load Digi common stuff... */
 
-#define CONFIG_CC6
 #define DIGI_IMX_FAMILY
 
 #ifdef CONFIG_MX6QP
@@ -32,39 +31,15 @@
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 6"
 #endif
 
-#define CONFIG_CMDLINE_TAG
-#define CONFIG_SETUP_MEMORY_TAGS
-#define CONFIG_INITRD_TAG
-#define CONFIG_REVISION_TAG
-
-/*
- * RAM
- */
-#define CONFIG_SYS_LOAD_ADDR		0x12000000
-#define CONFIG_DIGI_LZIPADDR		0x15000000
-#define CONFIG_DIGI_UPDATE_ADDR		CONFIG_SYS_LOAD_ADDR
-/* RAM memory reserved for U-Boot, stack, malloc pool... */
-#define CONFIG_UBOOT_RESERVED		(10 * 1024 * 1024)
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + 2 * 1024 * 1024)
-/* memtest */
 /* Physical Memory Map */
 #define PHYS_SDRAM                     MMDC0_ARB_BASE_ADDR
-#define CONFIG_SYS_SDRAM_BASE          PHYS_SDRAM
-#define CONFIG_SYS_INIT_RAM_ADDR       IRAM_BASE_ADDR
-#define CONFIG_SYS_INIT_RAM_SIZE       IRAM_SIZE
-
-#define CONFIG_SYS_INIT_SP_OFFSET \
-	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
-#define CONFIG_SYS_INIT_SP_ADDR \
-	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
+#define CFG_SYS_SDRAM_BASE		PHYS_SDRAM
+#define CFG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
+#define CFG_SYS_INIT_RAM_SIZE	IRAM_SIZE
 
 /* Lock Fuses */
 #define OCOTP_LOCK_BANK		0
 #define OCOTP_LOCK_WORD		0
-
-/* Environment encryption support */
-#define CONFIG_MD5
 
 /* Secure boot configs */
 #define CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS	3
@@ -115,37 +90,15 @@
 #define TRUSTFENCE_JTAG_ENABLE_SECURE_JTAG_MODE		(TRUSTFENCE_JTAG_SMODE_SECURE << TRUSTFENCE_JTAG_SMODE_OFFSET)
 #define TRUSTFENCE_JTAG_DISABLE_DEBUG			(TRUSTFENCE_JTAG_SMODE_NO_DEBUG << TRUSTFENCE_JTAG_SMODE_OFFSET)
 
-/* Serial port */
-#define CONFIG_MXC_UART
-
 /* MMC Configs */
 #define CFG_SYS_FSL_ESDHC_ADDR      0
+#define CFG_SYS_FSL_USDHC_NUM	2
 
-#define CONFIG_SUPPORT_EMMC_RPMB
 #define CONFIG_SUPPORT_MMC_ECSD
 #define EMMC_BOOT_ACK			1
 #define EMMC_BOOT_DEV			0
 #define EMMC_BOOT_PART			1
 #define EMMC_BOOT_PART_OFFSET		SZ_1K
-#define CONFIG_BOUNCE_BUFFER
-#define CONFIG_FAT_WRITE
-
-
-#ifdef CONFIG_SATA
-#define CONFIG_DWC_AHSATA
-#define CONFIG_SYS_SATA_MAX_DEVICE      1
-#define CONFIG_DWC_AHSATA_PORT_ID       0
-#define CONFIG_DWC_AHSATA_BASE_ADDR     SATA_ARB_BASE_ADDR
-#define CONFIG_LBA48
-#define CONFIG_LIBATA
-#endif
-
-/* Ethernet */
-#define CONFIG_FEC_MXC
-#define CONFIG_MII
-#define IMX_FEC_BASE			ENET_BASE_ADDR
-#define CONFIG_ETHPRIME			"FEC"
-#define CONFIG_ARP_TIMEOUT     200UL
 
 /* protected environment variables (besides ethaddr and serial#) */
 #undef CFG_ENV_FLAGS_LIST_STATIC
@@ -160,26 +113,10 @@
 	"board_id:so,"			\
 	"mmcbootdev:so"
 
-#define CONFIG_SILENT_CONSOLE_UPDATE_ON_RELOC
-
-/* I2C configs */
-#define CONFIG_SYS_I2C
-#define CONFIG_SYS_I2C_MXC
-#define CONFIG_I2C_MULTI_BUS
-#define CONFIG_SYS_I2C_SPEED            100000
-
 /* PMIC */
 #define CONFIG_PMIC_I2C_BUS		1	/* DA9063 PMIC i2c bus */
 #define CONFIG_PMIC_I2C_ADDR		0x58	/* DA9063 PMIC i2c address */
 #define CONFIG_PMIC_NUMREGS		0x185
-
-/* Environment */
-#if defined(CONFIG_ENV_IS_IN_MMC)
-/* Default MMC device index/partition for location of environment */
-#endif
-
-/* Add support for sparse images */
-#define CONFIG_FASTBOOT_FLASH
 
 #define CONFIG_TFTP_UPDATE_ONTHEFLY      /* support to tftp and update on-the-fly */
 
@@ -193,9 +130,6 @@
 #define CONFIG_SUPPORTED_SOURCES_BLOCK	"mmc|usb"
 #define CONFIG_SUPPORTED_SOURCES_RAM	"ram"
 
-/* Digi boot command 'dboot' */
-#define CONFIG_CMD_DBOOT
-
 #define CONFIG_DBOOT_SUPPORTED_SOURCES_LIST	\
 	CONFIG_SUPPORTED_SOURCES_NET "|" \
 	CONFIG_SUPPORTED_SOURCES_BLOCK
@@ -207,7 +141,6 @@
 #define CONFIG_CMD_DIGI_PMIC
 
 /* Firmware update */
-#define CONFIG_CMD_UPDATE_MMC
 #define CONFIG_UPDATE_SUPPORTED_SOURCES_LIST	\
 	CONFIG_SUPPORTED_SOURCES_NET "|" \
 	CONFIG_SUPPORTED_SOURCES_BLOCK "|" \
@@ -220,14 +153,19 @@
 	DIGICMD_UPDATEFILE_NET_ARGS_HELP "\n" \
 	DIGICMD_UPDATEFILE_BLOCK_ARGS_HELP "\n" \
 	DIGICMD_UPDATEFILE_RAM_ARGS_HELP
-/* On the fly update chunk (must be a multiple of mmc block size) */
-#define CONFIG_OTF_CHUNK		(32 * 1024 * 1024)
 
 #define ALTBOOTCMD	\
 	"altbootcmd=" \
-	"if load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} altboot.scr; then " \
-		"source ${loadaddr};" \
-	"fi;\0"
+		"if test \"${dualboot}\" = yes; then " \
+			"if test \"${active_system}\" = linux_a; then " \
+				"setenv active_system linux_b;" \
+			"else " \
+				"setenv active_system linux_a;" \
+			"fi;"\
+			"echo \"## System boot failed; Switching active partitions bank to ${active_system}...\";" \
+		"fi;" \
+		"bootcount reset;" \
+		"reset;\0"
 
 /* Pool of randomly generated UUIDs at host machine */
 #define RANDOM_UUIDS	\
@@ -267,34 +205,28 @@
 	"name=data,size=-,uuid=${part7_uuid};" \
 	"\""
 
-#define ANDROID_4GB_PARTITION_TABLE \
+#define LINUX_DUALBOOT_4GB_PARTITION_TABLE \
 	"\"uuid_disk=${uuid_disk};" \
 	"start=2MiB," \
-	"name=boot,size=32MiB,uuid=${part1_uuid};" \
-	"name=recovery,size=32MiB,uuid=${part2_uuid};" \
-	"name=system,size=1024MiB,uuid=${part3_uuid};" \
-	"name=cache,size=1024MiB,uuid=${part4_uuid};" \
-	"name=vendor,size=112MiB,uuid=${part5_uuid};" \
-	"name=datafooter,size=16MiB,uuid=${part6_uuid};" \
-	"name=safe,size=16MiB,uuid=${part7_uuid};" \
-	"name=frp,size=1MiB,uuid=${part8_uuid};" \
-	"name=metadata,size=16MiB,uuid=${part9_uuid};" \
-	"name=userdata,size=-,uuid=${part10_uuid};" \
+	"name=linux_a,size=64MiB,uuid=${part1_uuid};" \
+	"name=linux_b,size=64MiB,uuid=${part2_uuid};" \
+	"name=rootfs_a,size=1536MiB,uuid=${part3_uuid};" \
+	"name=rootfs_b,size=1536MiB,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
+	"name=data,size=-,uuid=${part7_uuid};" \
 	"\""
 
-#define ANDROID_8GB_PARTITION_TABLE \
+#define LINUX_DUALBOOT_8GB_PARTITION_TABLE \
 	"\"uuid_disk=${uuid_disk};" \
 	"start=2MiB," \
-	"name=boot,size=32MiB,uuid=${part1_uuid};" \
-	"name=recovery,size=32MiB,uuid=${part2_uuid};" \
-	"name=system,size=2048MiB,uuid=${part3_uuid};" \
-	"name=cache,size=2048MiB,uuid=${part4_uuid};" \
-	"name=vendor,size=112MiB,uuid=${part5_uuid};" \
-	"name=datafooter,size=16MiB,uuid=${part6_uuid};" \
-	"name=safe,size=16MiB,uuid=${part7_uuid};" \
-	"name=frp,size=1MiB,uuid=${part8_uuid};" \
-	"name=metadata,size=16MiB,uuid=${part9_uuid};" \
-	"name=userdata,size=-,uuid=${part10_uuid};" \
+	"name=linux_a,size=64MiB,uuid=${part1_uuid};" \
+	"name=linux_b,size=64MiB,uuid=${part2_uuid};" \
+	"name=rootfs_a,size=3GiB,uuid=${part3_uuid};" \
+	"name=rootfs_b,size=3GiB,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
+	"name=data,size=-,uuid=${part7_uuid};" \
 	"\""
 
 /* Partition defines */
@@ -305,13 +237,6 @@
 #define CALCULATE_FILESIZE_IN_BLOCKS	\
 	"setexpr filesizeblks ${filesize} / 200; " \
 	"setexpr filesizeblks ${filesizeblks} + 1; "
-
-/*#define CONFIG_ANDROID_RECOVERY*/
-
-/* Miscellaneous configurable options */
-#undef CONFIG_SYS_CBSIZE
-#define CONFIG_SYS_CBSIZE              1024
-#define CONFIG_SYS_HZ                  1000
 
 #define FSL_FASTBOOT_FB_DEV "mmc"
 

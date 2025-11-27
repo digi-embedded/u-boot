@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012-2013 Freescale Semiconductor, Inc.
- * Copyright (C) 2013-2018 Digi International, Inc.
+ * Copyright (C) 2013-2025 Digi International, Inc.
  *
  * Author: Fabio Estevam <fabio.estevam@freescale.com>
  * Author: Jason Liu <r64343@freescale.com>
@@ -20,6 +20,7 @@
  */
 #include <command.h>
 #include <common.h>
+#include <dm.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/imx-regs.h>
@@ -33,15 +34,15 @@
 #include <asm/gpio.h>
 #include <asm/mach-imx/iomux-v3.h>
 #include <asm/mach-imx/boot_mode.h>
-#include <i2c.h>
-#include <asm/mach-imx/mxc_i2c.h>
 #include <linux/ctype.h>
+#include <linux/delay.h>
 #include <linux/sizes.h>
 #include <mmc.h>
 #include <fsl_esdhc_imx.h>
 #include <otf_update.h>
 #include <part.h>
 #include <recovery.h>
+#include <i2c.h>
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>
 #endif
@@ -59,7 +60,6 @@ extern unsigned int board_id;
 extern void board_spurious_wakeup(void);
 
 static struct digi_hwid my_hwid;
-static int enet_xcv_type;
 
 #define UART_PAD_CTRL  (PAD_CTL_PKE | PAD_CTL_PUE |            \
 	PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED |               \
@@ -83,33 +83,6 @@ static int enet_xcv_type;
 	PAD_CTL_ODE | PAD_CTL_SRE_FAST)
 
 #define PC MUX_PAD_CTRL(I2C_PAD_CTRL)
-/* I2C2 Camera, MIPI, pfuze */
-static struct i2c_pads_info i2c_pad_info1 = {
-	.scl = {
-		.i2c_mode = MX6_PAD_KEY_COL3__I2C2_SCL | PC,
-		.gpio_mode = MX6_PAD_KEY_COL3__GPIO4_IO12 | PC,
-		.gp = IMX_GPIO_NR(4, 12)
-	},
-	.sda = {
-		.i2c_mode = MX6_PAD_KEY_ROW3__I2C2_SDA | PC,
-		.gpio_mode = MX6_PAD_KEY_ROW3__GPIO4_IO13 | PC,
-		.gp = IMX_GPIO_NR(4, 13)
-	}
-};
-#ifdef CONFIG_I2C_MULTI_BUS
-static struct i2c_pads_info i2c_pad_info2 = {
-	.scl = {
-		.i2c_mode = MX6_PAD_GPIO_3__I2C3_SCL | PC,
-		.gpio_mode = MX6_PAD_GPIO_3__GPIO1_IO03| PC,
-		.gp = IMX_GPIO_NR(1, 3)
-	},
-	.sda = {
-		.i2c_mode = MX6_PAD_GPIO_6__I2C3_SDA | PC,
-		.gpio_mode = MX6_PAD_GPIO_6__GPIO1_IO06 | PC,
-		.gp = IMX_GPIO_NR(1, 6)
-	}
-};
-#endif
 
 struct addrvalue {
 	u32 address;
@@ -275,9 +248,17 @@ static struct ccimx6_variant ccimx6_variants[] = {
 		CCIMX6_HAS_EMMC,
 		"Industrial DualLite-core 800MHz, 4GB eMMC, 1GB DDR3, -40/+85C",
 	},
+/* 0x16 - 55001818-22 */
+	{
+		IMX6D,
+		SZ_1G,
+		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
+		CCIMX6_HAS_EMMC,
+		"Consumer dual-core 1GHz, 4GB eMMC, 1GB DDR3, 0/+70C, Wireless, Bluetooth",
+	},
 };
 
-#define NUM_VARIANTS_CC6	21
+#define NUM_VARIANTS_CC6	22
 
 #define DDR3_CAL_REGS	12
 /* DDR3 calibration values for the different CC6 variants */
@@ -643,6 +624,25 @@ static struct addrvalue ddr3_cal_cc6[NUM_VARIANTS_CC6 + 1][DDR3_CAL_REGS] = {
 		{MX6_MMDC_P0_MPWRDLCTL, 0x36352D31},
 		{MX6_MMDC_P1_MPWRDLCTL, 0x3130332D},
 	},
+	/* Variant 0x16 (similar to variant 0x05 and 0x14) */
+	[0x16] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x00080014},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x00300022},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x00200035},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x00300032},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x432F0332},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x03250328},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x433D0345},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x0339031C},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3B303438},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x32342D3C},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x3938433C},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x4433463D},
+	},
 };
 
 /**
@@ -656,7 +656,7 @@ static struct ccimx6_variant ccimx6p_variants[] = {
 		SZ_2G,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
 		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
-		"Industrial QuadPlus-core 1GHz, 8GB eMMC, 2GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
+		"Automotive QuadPlus-core 1GHz, 8GB eMMC, 2GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
 	},
 /* 0x02 - 55001983-02 */
 	{
@@ -664,7 +664,7 @@ static struct ccimx6_variant ccimx6p_variants[] = {
 		SZ_2G,
 		CCIMX6_HAS_WIRELESS | CCIMX6_HAS_BLUETOOTH |
 		CCIMX6_HAS_KINETIS | CCIMX6_HAS_EMMC,
-		"Automotive QuadPlus-core 1GHz, 8GB eMMC, 2GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
+		"Industrial QuadPlus-core 1GHz, 8GB eMMC, 2GB DDR3, -40/+85C, Wireless, Bluetooth, Kinetis",
 	},
 /* 0x03 - 55001983-03 */
 	{
@@ -681,71 +681,480 @@ static struct addrvalue ddr3_cal_cc6p[NUM_VARIANTS_CC6P + 1][DDR3_CAL_REGS] = {
 	/* Variant 0x01 */
 	[0x01] = {
 		/* Write leveling */
-		{MX6_MMDC_P0_MPWLDECTRL0, 0x00060015},
-		{MX6_MMDC_P0_MPWLDECTRL1, 0x002F001F},
-		{MX6_MMDC_P1_MPWLDECTRL0, 0x00220035},
-		{MX6_MMDC_P1_MPWLDECTRL1, 0x00300031},
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x00020011},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x002D001C},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x001D0030},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x002C0030},
 		/* Read DQS gating */
-		{MX6_MMDC_P0_MPDGCTRL0, 0x43220325},
-		{MX6_MMDC_P0_MPDGCTRL1, 0x0318031F},
-		{MX6_MMDC_P1_MPDGCTRL0, 0x4334033C},
-		{MX6_MMDC_P1_MPDGCTRL1, 0x032F0314},
+		{MX6_MMDC_P0_MPDGCTRL0, 0x43150317},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x030B030E},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x43280330},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x031D031F},
 		/* Read delay */
-		{MX6_MMDC_P0_MPRDDLCTL, 0x3E31343B},
-		{MX6_MMDC_P1_MPRDDLCTL, 0x38363040},
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3E30353A},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x35352F3E},
 		/* Write delay */
-		{MX6_MMDC_P0_MPWRDLCTL, 0x3939423B},
-		{MX6_MMDC_P1_MPWRDLCTL, 0x46354840},
+		{MX6_MMDC_P0_MPWRDLCTL, 0x3C3C443D},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x4A324B43},
 	},
 
 	/* Variant 0x02 (same as variant 0x01) */
 	[0x02] = {
 		/* Write leveling */
-		{MX6_MMDC_P0_MPWLDECTRL0, 0x00060015},
-		{MX6_MMDC_P0_MPWLDECTRL1, 0x002F001F},
-		{MX6_MMDC_P1_MPWLDECTRL0, 0x00220035},
-		{MX6_MMDC_P1_MPWLDECTRL1, 0x00300031},
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x00020011},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x002D001C},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x001D0030},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x002C0030},
 		/* Read DQS gating */
-		{MX6_MMDC_P0_MPDGCTRL0, 0x43220325},
-		{MX6_MMDC_P0_MPDGCTRL1, 0x0318031F},
-		{MX6_MMDC_P1_MPDGCTRL0, 0x4334033C},
-		{MX6_MMDC_P1_MPDGCTRL1, 0x032F0314},
+		{MX6_MMDC_P0_MPDGCTRL0, 0x43150317},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x030B030E},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x43280330},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x031D031F},
 		/* Read delay */
-		{MX6_MMDC_P0_MPRDDLCTL, 0x3E31343B},
-		{MX6_MMDC_P1_MPRDDLCTL, 0x38363040},
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3E30353A},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x35352F3E},
 		/* Write delay */
-		{MX6_MMDC_P0_MPWRDLCTL, 0x3939423B},
-		{MX6_MMDC_P1_MPWRDLCTL, 0x46354840},
+		{MX6_MMDC_P0_MPWRDLCTL, 0x3C3C443D},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x4A324B43},
 	},
-        /* Variant 0x03 (copied from CC6 var 0x02 pending calibration) */
-        [0x03] = {
-                /* Write leveling */
-                {MX6_MMDC_P0_MPWLDECTRL0, 0x00070012},
-                {MX6_MMDC_P0_MPWLDECTRL1, 0x002C0020},
-                {MX6_MMDC_P1_MPWLDECTRL0, 0x001F0035},
-                {MX6_MMDC_P1_MPWLDECTRL1, 0x002E0030},
-                /* Read DQS gating */
-                {MX6_MMDC_P0_MPDGCTRL0, 0x432C0331},
-                {MX6_MMDC_P0_MPDGCTRL1, 0x03250328},
-                {MX6_MMDC_P1_MPDGCTRL0, 0x433E0346},
-                {MX6_MMDC_P1_MPDGCTRL1, 0x0336031C},
-                /* Read delay */
-                {MX6_MMDC_P0_MPRDDLCTL, 0x382B2F35},
-                {MX6_MMDC_P1_MPRDDLCTL, 0x31332A3B},
-                /* Write delay */
-                {MX6_MMDC_P0_MPWRDLCTL, 0x3938403A},
-                {MX6_MMDC_P1_MPWRDLCTL, 0x4430453D},
-        },
+	/* Variant 0x03 */
+	[0x03] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x000A0013},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x002B001F},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x001D0036},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x00280034},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x432C0330},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x031C0320},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x43340338},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x03330314},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3E2E363C},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x32302E3C},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x3C3C3E3C},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x482E463E},
+	},
 };
+
+/* DDR3 calibration values for the different CC6N variants */
+static struct addrvalue ddr3_cal_cc6n[NUM_VARIANTS_CC6 + 1][DDR3_CAL_REGS] = {
+	/* Variant 0x02 (same as variants 0x11 and 0x12) */
+	[0x02] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x000B0015},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x0027001D},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x001C002B},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x00240028},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x423D0241},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x0238023A},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x4249024D},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x02440234},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3B323437},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x3436323D},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x36393D3B},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x4033423C},
+	},
+	/* Variant 0x03 (same as variant 0x0F) */
+	[0x03] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x000C0019},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x00310024},
+		{0, 0},
+		{0, 0},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x43450348},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x03330339},
+		{0, 0},
+		{0, 0},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3F38393C},
+		{0, 0},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x3A3B433F},
+		{0, 0},
+	},
+	/* Variant 0x04 (same as variant 0x0D) */
+	[0x04] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x000F0019},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x002B001F},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x0021002F},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x002A002B},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x42340236},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x022E0230},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x423E0243},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x023A022D},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3D343739},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x3838343E},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x393B3F3C},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x4335433E},
+	},
+	/* Variant 0x05 (same as variant 0x14) */
+	[0x05] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x000E0019},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x002D0021},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x0020002F},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x002B002C},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x4239023B},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x02320234},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x4244024A},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x02400232},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3E353638},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x3839353F},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x3A3C403D},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x4434443E},
+	},
+	/* Variant 0x06 (same as 0x08) */
+	[0x06] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x000A0015},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x002E0020},
+		{0, 0},
+		{0, 0},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x43360337},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x0329032B},
+		{0, 0},
+		{0, 0},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x39303338},
+		{0, 0},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x37373F3A},
+		{0, 0},
+	},
+	/* Variant 0x07 (same as 0x09) */
+	[0x07] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x00290036},
+		{0, 0},
+		{0, 0},
+		{0, 0},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x42540247},
+		{0, 0},
+		{0, 0},
+		{0, 0},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x40404847},
+		{0, 0},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x40402D31},
+		{0, 0},
+	},
+	/* Variant 0x08 (same as 0x06) */
+	[0x08] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x000A0015},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x002E0020},
+		{0, 0},
+		{0, 0},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x43360337},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x0329032B},
+		{0, 0},
+		{0, 0},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x39303338},
+		{0, 0},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x37373F3A},
+		{0, 0},
+	},
+	/* Variant 0x09 (same as 0x07) */
+	[0x09] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x00290036},
+		{0, 0},
+		{0, 0},
+		{0, 0},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x42540247},
+		{0, 0},
+		{0, 0},
+		{0, 0},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x40404847},
+		{0, 0},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x40402D31},
+		{0, 0},
+	},
+	/* Variant 0x0A (same as variants 0x0C, 0x13) */
+	[0x0A] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x002F003D},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x0039003B},
+		{0, 0},
+		{0, 0},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x42430239},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x02300234},
+		{0, 0},
+		{0, 0},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x4545484A},
+		{0, 0},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x33322E2D},
+		{0, 0},
+	},
+	/* Variant 0x0B */
+	[0x0B] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x002C0038},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x00360038},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x001B001F},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x002B0034},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x423F0235},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x02360241},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x42340236},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x02250238},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x41454848},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x45464B43},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x36352D31},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x3130332D},
+	},
+	/* Variant 0x0C (same as variants 0x0A, 0x13) */
+	[0x0C] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x002F003D},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x0039003B},
+		{0, 0},
+		{0, 0},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x42430239},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x02300234},
+		{0, 0},
+		{0, 0},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x4545484A},
+		{0, 0},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x33322E2D},
+		{0, 0},
+	},
+	/* Variant 0x0D (same as variant 0x04) */
+	[0x0D] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x000F0019},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x002B001F},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x0021002F},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x002A002B},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x42340236},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x022E0230},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x423E0243},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x023A022D},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3D343739},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x3838343E},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x393B3F3C},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x4335433E},
+	},
+	/* Variant 0x0E */
+	[0x0E] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x0011001B},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x00370029},
+		{0, 0},
+		{0, 0},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x4348034A},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x033C033E},
+		{0, 0},
+		{0, 0},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3F36383E},
+		{0, 0},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x3D3C4440},
+		{0, 0},
+	},
+	/* Variant 0x0F (same as variant 0x03) */
+	[0x0F] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x000C0019},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x00310024},
+		{0, 0},
+		{0, 0},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x43450348},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x03330339},
+		{0, 0},
+		{0, 0},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3F38393C},
+		{0, 0},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x3A3B433F},
+		{0, 0},
+	},
+	/* Variant 0x11 (same as variants 0x02 and 0x12) */
+	[0x11] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x000B0015},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x0027001D},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x001C002B},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x00240028},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x423D0241},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x0238023A},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x4249024D},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x02440234},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3B323437},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x3436323D},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x36393D3B},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x4033423C},
+	},
+	/* Variant 0x12 (same as variants 0x02 and 0x11) */
+	[0x12] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x000B0015},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x0027001D},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x001C002B},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x00240028},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x423D0241},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x0238023A},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x4249024D},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x02440234},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3B323437},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x3436323D},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x36393D3B},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x4033423C},
+	},
+	/* Variant 0x13 (same as variants 0x0A, 0x0C) */
+	[0x13] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x002F003D},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x0039003B},
+		{0, 0},
+		{0, 0},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x42430239},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x02300234},
+		{0, 0},
+		{0, 0},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x4545484A},
+		{0, 0},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x33322E2D},
+		{0, 0},
+	},
+	/* Variant 0x14 (same as variant 0x05) */
+	[0x14] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x000E0019},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x002D0021},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x0020002F},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x002B002C},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x4239023B},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x02320234},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x4244024A},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x02400232},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3E353638},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x3839353F},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x3A3C403D},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x4434443E},
+	},
+	/* Variant 0x15 (similar to variant 0x0B). Calibration pending) */
+	[0x15] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x002C0038},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x00360038},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x001B001F},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x002B0034},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x423F0235},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x02360241},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x42340236},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x02250238},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x41454848},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x45464B43},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x36352D31},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x3130332D},
+	},
+	/* Variant 0x16 (similar to variant 0x05 and 0x14) */
+	[0x16] = {
+		/* Write leveling */
+		{MX6_MMDC_P0_MPWLDECTRL0, 0x000E0019},
+		{MX6_MMDC_P0_MPWLDECTRL1, 0x002D0021},
+		{MX6_MMDC_P1_MPWLDECTRL0, 0x0020002F},
+		{MX6_MMDC_P1_MPWLDECTRL1, 0x002B002C},
+		/* Read DQS gating */
+		{MX6_MMDC_P0_MPDGCTRL0, 0x4239023B},
+		{MX6_MMDC_P0_MPDGCTRL1, 0x02320234},
+		{MX6_MMDC_P1_MPDGCTRL0, 0x4244024A},
+		{MX6_MMDC_P1_MPDGCTRL1, 0x02400232},
+		/* Read delay */
+		{MX6_MMDC_P0_MPRDDLCTL, 0x3E353638},
+		{MX6_MMDC_P1_MPRDDLCTL, 0x3839353F},
+		/* Write delay */
+		{MX6_MMDC_P0_MPWRDLCTL, 0x3A3C403D},
+		{MX6_MMDC_P1_MPWRDLCTL, 0x4434443E},
+	},
+};
+
+static struct udevice *pmic_dev;
+
+int pmic_get_chip(struct udevice **devp)
+{
+	int ret;
+
+	if (pmic_dev) {
+		*devp = pmic_dev;
+		return 0;
+	}
+
+#ifdef CONFIG_PMIC_I2C_BUS
+	ret = i2c_get_chip_for_busnum(CONFIG_PMIC_I2C_BUS,
+				      CONFIG_PMIC_I2C_ADDR, 1, &pmic_dev);
+#else
+	/* If not defined use addres 0 */
+	ret = i2c_get_chip_for_busnum(0, CONFIG_PMIC_I2C_ADDR, 1, &pmic_dev);
+#endif
+	if (ret)
+		return ret;
+
+	*devp = pmic_dev;
+	return 0;
+}
 
 static struct ccimx6_variant * get_cc6_variant(u8 variant)
 {
 	if (is_mx6dqp()) {
-		if (variant > ARRAY_SIZE(ccimx6p_variants))
+		if (variant >= ARRAY_SIZE(ccimx6p_variants))
 			return NULL;
 		return &ccimx6p_variants[variant];
 	} else {
-		if (variant > ARRAY_SIZE(ccimx6_variants))
+		if (variant >= ARRAY_SIZE(ccimx6_variants))
 			return NULL;
 		return &ccimx6_variants[variant];
 	}
@@ -758,13 +1167,22 @@ static void update_ddr3_calibration(u8 variant)
 	struct addrvalue *ddr3_cal;
 
 	if (is_mx6dqp()) {
-		if (variant == 0 || variant > ARRAY_SIZE(ddr3_cal_cc6p))
+		if (variant == 0 || variant >= ARRAY_SIZE(ddr3_cal_cc6p))
 			return;
 		ddr3_cal = ddr3_cal_cc6p[variant];
-	} else {
-		if (variant == 0 || variant > ARRAY_SIZE(ddr3_cal_cc6))
+	} else if (is_ccimx6n()) {
+		if (variant == 0 || variant >= ARRAY_SIZE(ddr3_cal_cc6n))
 			return;
-		ddr3_cal = ddr3_cal_cc6[variant];
+		ddr3_cal = ddr3_cal_cc6n[variant];
+	} else {
+		if (variant == 0 || variant >= ARRAY_SIZE(ddr3_cal_cc6))
+			return;
+		if ((is_mx6dq() && (ccimx6_variants[variant].cpu == IMX6Q ||
+				    ccimx6_variants[variant].cpu == IMX6D)) ||
+		    (is_mx6dl() && ccimx6_variants[variant].cpu == IMX6DL))
+			ddr3_cal = ddr3_cal_cc6[variant];
+		else
+			return;
 	}
 
 	for (i = 0; i < DDR3_CAL_REGS; i++) {
@@ -780,76 +1198,21 @@ int dram_init(void)
 	return 0;
 }
 
-static iomux_v3_cfg_t const enet_pads_100[] = {
-	MX6_PAD_ENET_MDIO__ENET_MDIO		| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET_MDC__ENET_MDC		| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET_TXD0__ENET_TX_DATA0	| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET_TXD1__ENET_TX_DATA1	| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET_RXD0__ENET_RX_DATA0	| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET_RXD1__ENET_RX_DATA1	| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_RGMII_TX_CTL__ENET_REF_CLK	| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET_RX_ER__ENET_RX_ER		| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET_TX_EN__ENET_TX_EN		| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET_CRS_DV__ENET_RX_EN		| MUX_PAD_CTRL(ENET_PAD_CTRL),
-};
 
-static iomux_v3_cfg_t const enet_pads_1000[] = {
-	MX6_PAD_ENET_MDIO__ENET_MDIO		| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET_MDC__ENET_MDC		| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_RGMII_TXC__RGMII_TXC		| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_RGMII_TD0__RGMII_TD0		| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_RGMII_TD1__RGMII_TD1		| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_RGMII_TD2__RGMII_TD2		| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_RGMII_TD3__RGMII_TD3		| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_RGMII_TX_CTL__RGMII_TX_CTL	| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_RGMII_RXC__RGMII_RXC		| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_RGMII_RD0__RGMII_RD0		| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_RGMII_RD1__RGMII_RD1		| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_RGMII_RD2__RGMII_RD2		| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_RGMII_RD3__RGMII_RD3		| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_RGMII_RX_CTL__RGMII_RX_CTL	| MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET_REF_CLK__ENET_TX_CLK	| MUX_PAD_CTRL(ENET_PAD_CTRL),
-};
-
-void setup_iomux_enet(void)
+int pmic_access_page(unsigned char page)
 {
-	int enet;
+	struct udevice *dev;
+	int ret;
 
-	/* iomux for Gigabit or 10/100 and PHY selection
-	 * basing on env variable 'ENET'. Default to Gigabit.
-	 */
-	enet = (int)env_get_ulong("ENET", 10, 1000);
-	if (enet == 100) {
-		/* 10/100 ENET */
-		enet_xcv_type = RMII;
-		imx_iomux_v3_setup_multiple_pads(enet_pads_100,
-						 ARRAY_SIZE(enet_pads_100));
-	} else {
-		/* Gigabit ENET */
-		enet_xcv_type = RGMII;
-		imx_iomux_v3_setup_multiple_pads(enet_pads_1000,
-						 ARRAY_SIZE(enet_pads_1000));
-	}
-}
-
-int board_get_enet_xcv_type(void)
-{
-	return enet_xcv_type;
-}
-
-static int pmic_access_page(unsigned char page)
-{
-#ifdef CONFIG_I2C_MULTI_BUS
-	if (i2c_set_bus_num(CONFIG_PMIC_I2C_BUS))
-		return -1;
-#endif
-
-	if (i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
-		printf("ERR: cannot access the PMIC\n");
+	ret = pmic_get_chip(&dev);
+	if (ret) {
+		printf("ERR: cannot access the PMIC (get chip)\n");
 		return -1;
 	}
 
-	if (i2c_write(CONFIG_PMIC_I2C_ADDR, DA9063_PAGE_CON, 1, &page, 1)) {
+	/* Write the page register */
+	ret = dm_i2c_write(dev, DA9063_PAGE_CON, &page, 1);
+	if (ret) {
 		printf("Cannot set PMIC page!\n");
 		return -1;
 	}
@@ -859,12 +1222,19 @@ static int pmic_access_page(unsigned char page)
 
 int pmic_read_reg(int reg, unsigned char *value)
 {
+	struct udevice *dev;
 	unsigned char page = reg / 0x80;
+	int ret;
+
+	ret = pmic_get_chip(&dev);
+	if (ret)
+		return -1;
 
 	if (pmic_access_page(page))
 		return -1;
 
-	if (i2c_read(CONFIG_PMIC_I2C_ADDR, reg, 1, value, 1))
+	ret = dm_i2c_read(dev, reg, value, 1);
+	if (ret)
 		return -1;
 
 	/* return to page 0 by default */
@@ -874,12 +1244,19 @@ int pmic_read_reg(int reg, unsigned char *value)
 
 int pmic_write_reg(int reg, unsigned char value)
 {
+	struct udevice *dev;
 	unsigned char page = reg / 0x80;
+	int ret;
+
+	ret = pmic_get_chip(&dev);
+	if (ret)
+		return -1;
 
 	if (pmic_access_page(page))
 		return -1;
 
-	if (i2c_write(CONFIG_PMIC_I2C_ADDR, reg, 1, &value, 1))
+	ret = dm_i2c_write(dev, reg, &value, 1);
+	if (ret)
 		return -1;
 
 	/* return to page 0 by default */
@@ -954,6 +1331,16 @@ static bool board_has_kinetis(void)
 		return !!(cc6_variant->capabilities & CCIMX6_HAS_KINETIS);
 	else
 		return true; /* assume it has if invalid HWID */
+}
+
+int is_ccimx6n(void)
+{
+#if !defined(CONFIG_MX6QP)
+	/* If HWID is empty, default to CC6N */
+	return my_hwid.hv ? my_hwid.hv >= CCIMX6N_BASE_HV : 1;
+#else
+	return 0;
+#endif
 }
 
 #ifdef CONFIG_FSL_ESDHC_IMX
@@ -1049,12 +1436,10 @@ int board_mmc_init(struct bd_info *bis)
 			/* USDHC2 (uSD) */
 
 			/*
-			 * On CC6PLUS enable LDO9 regulator powering USDHC2
-			 * (microSD)
+			 * On CC6PLUS and CC6N, enable LDO9 regulator powering
+			 * USDHC2 (microSD). No effect on legacy CC6.
 			 */
-			if (is_mx6dqp())
-				pmic_write_bitfield(DA9063_LDO9_CONT, 0x1, 0,
-						    0x1);
+			pmic_write_bitfield(DA9063_LDO9_CONT, 0x1, 0, 0x1);
 
 			imx_iomux_v3_setup_multiple_pads(
 					usdhc2_pads, ARRAY_SIZE(usdhc2_pads));
@@ -1400,27 +1785,18 @@ static int ccimx6_fixup(void)
 
 void pmic_bucks_synch_mode(void)
 {
-#ifdef CONFIG_I2C_MULTI_BUS
-	if (i2c_set_bus_num(CONFIG_PMIC_I2C_BUS))
-                return;
-#endif
-
-	if (!i2c_probe(CONFIG_PMIC_I2C_ADDR)) {
-		if (pmic_write_bitfield(DA9063_BCORE2_CONF_ADDR, 0x3, 6, 0x2))
-			printf("Could not set BCORE2 in synchronous mode\n");
-		if (pmic_write_bitfield(DA9063_BCORE1_CONF_ADDR, 0x3, 6, 0x2))
-			printf("Could not set BCORE1 in synchronous mode\n");
-		if (pmic_write_bitfield(DA9063_BPRO_CONF_ADDR, 0x3, 6, 0x2))
-			printf("Could not set BPRO in synchronous mode\n");
-		if (pmic_write_bitfield(DA9063_BIO_CONF_ADDR, 0x3, 6, 0x2))
-			printf("Could not set BIO in synchronous mode\n");
-		if (pmic_write_bitfield(DA9063_BMEM_CONF_ADDR, 0x3, 6, 0x2))
-			printf("Could not set BMEM in synchronous mode\n");
-		if (pmic_write_bitfield(DA9063_BPERI_CONF_ADDR, 0x3, 6, 0x2))
-			printf("Could not set BPERI in synchronous mode\n");
-	} else {
-		printf("Could not set bucks in synchronous mode\n");
-	}
+	if (pmic_write_bitfield(DA9063_BCORE2_CONF_ADDR, 0x3, 6, 0x2))
+		printf("Could not set BCORE2 in synchronous mode\n");
+	if (pmic_write_bitfield(DA9063_BCORE1_CONF_ADDR, 0x3, 6, 0x2))
+		printf("Could not set BCORE1 in synchronous mode\n");
+	if (pmic_write_bitfield(DA9063_BPRO_CONF_ADDR, 0x3, 6, 0x2))
+		printf("Could not set BPRO in synchronous mode\n");
+	if (pmic_write_bitfield(DA9063_BIO_CONF_ADDR, 0x3, 6, 0x2))
+		printf("Could not set BIO in synchronous mode\n");
+	if (pmic_write_bitfield(DA9063_BMEM_CONF_ADDR, 0x3, 6, 0x2))
+		printf("Could not set BMEM in synchronous mode\n");
+	if (pmic_write_bitfield(DA9063_BPERI_CONF_ADDR, 0x3, 6, 0x2))
+		printf("Could not set BPERI in synchronous mode\n");
 }
 
 void generate_partition_table(void)
@@ -1428,7 +1804,7 @@ void generate_partition_table(void)
 	struct mmc *mmc = find_mmc_device(0);
 	unsigned int capacity_gb = 0;
 	const char *linux_partition_table;
-	const char *android_partition_table;
+	const char *linux_dualboot_partition_table;
 
 	/* Retrieve eMMC size in GiB */
 	if (mmc)
@@ -1437,17 +1813,17 @@ void generate_partition_table(void)
 	/* eMMC capacity is not exact, so asume 8GB if larger than 7GB */
 	if (capacity_gb >= 7) {
 		linux_partition_table = LINUX_8GB_PARTITION_TABLE;
-		android_partition_table = ANDROID_8GB_PARTITION_TABLE;
+		linux_dualboot_partition_table = LINUX_DUALBOOT_8GB_PARTITION_TABLE;
 	} else {
 		linux_partition_table = LINUX_4GB_PARTITION_TABLE;
-		android_partition_table = ANDROID_4GB_PARTITION_TABLE;
+		linux_dualboot_partition_table = LINUX_DUALBOOT_4GB_PARTITION_TABLE;
 	}
 
 	if (!env_get("parts_linux"))
 		env_set("parts_linux", linux_partition_table);
 
-	if (!env_get("parts_android"))
-		env_set("parts_android", android_partition_table);
+	if (!env_get("parts_linux_dualboot"))
+                env_set("parts_linux_dualboot", linux_dualboot_partition_table);
 }
 
 void som_default_environment(void)
@@ -1488,7 +1864,8 @@ void som_default_environment(void)
 	 * If there are no defined partition tables generate them dynamically
 	 * basing on the available eMMC size.
 	 */
-	generate_partition_table();
+	if (!IS_ENABLED(CONFIG_ANDROID_SUPPORT))
+		generate_partition_table();
 }
 
 void board_update_hwid(bool is_fuse)
@@ -1508,10 +1885,6 @@ int ccimx6_late_init(void)
 	add_board_boot_modes(board_boot_modes);
 #endif
 
-#ifdef CONFIG_I2C_MULTI_BUS
-	/* Setup I2C3 (HDMI, Audio...) */
-	setup_i2c(2, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info2);
-#endif
 	if (print_pmic_info())
 		return -1;
 
@@ -1562,6 +1935,15 @@ int ccimx6_init(void)
 {
 #ifdef CONFIG_HAS_TRUSTFENCE
 	hab_verification();
+#ifdef CONFIG_CAAM_ENV_ENCRYPT
+	/*
+	 * Initialize CAAM at an early stage, before the environment is first loaded,
+	 * so it can be decrypted on the fly.
+	 *
+	 * Originally initialized at 'int arch_misc_init(void)'.
+	 */
+	setup_caam();
+#endif /* CONFIG_CAAM_ENV_ENCRYPT */
 #endif /* CONFIG_HAS_TRUSTFENCE */
 
 	if (board_read_hwid(&my_hwid)) {
@@ -1577,9 +1959,6 @@ int ccimx6_init(void)
 	 */
 	update_ddr3_calibration(my_hwid.variant);
 
-	/* Setup I2C2 (PMIC, Kinetis) */
-	setup_i2c(1, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
-
 	return 0;
 }
 
@@ -1590,7 +1969,7 @@ void fdt_fixup_ccimx6(void *fdt)
 	if (board_has_wireless()) {
 		/* Wireless MACs */
 		fdt_fixup_mac(fdt, "wlanaddr", "/wireless", "mac-address");
-		if (is_mx6dqp()) {
+		if (is_mx6dqp() || is_ccimx6n()) {
 			fdt_fixup_mac(fdt, "wlan1addr", "/wireless", "mac-address1");
 			fdt_fixup_mac(fdt, "wlan2addr", "/wireless", "mac-address2");
 			fdt_fixup_mac(fdt, "wlan3addr", "/wireless", "mac-address3");

@@ -1,22 +1,22 @@
 #ifndef CCIMX8MM_DVK_ANDROID_H
 #define CCIMX8MM_DVK_ANDROID_H
 
-#ifdef CONFIG_SYS_MALLOC_LEN
-#undef CONFIG_SYS_MALLOC_LEN
-#define CONFIG_SYS_MALLOC_LEN           (64 * SZ_1M)
-#endif
+#undef CFG_EXTRA_ENV_SETTINGS
+#define CFG_EXTRA_ENV_SETTINGS		\
+	"splashpos=m,m\0"			\
+	"splashimage=0x50000000\0"		\
+	"fdt_high=0xffffffffffffffff\0"		\
+	"initrd_high=0xffffffffffffffff\0"	\
+	"emmc_dev=" __stringify(EMMC_BOOT_DEV) "\0" \
+	"sd_dev=1\0" \
 
 /* Enable mcu firmware flash */
 #ifdef CONFIG_FLASH_MCUFIRMWARE_SUPPORT
 #define ANDROID_MCU_FRIMWARE_DEV_TYPE DEV_MMC
 #define ANDROID_MCU_FIRMWARE_START 0x500000
 #define ANDROID_MCU_OS_PARTITION_SIZE 0x40000
-#define ANDROID_MCU_FIRMWARE_SIZE  0x40000
+#define ANDROID_MCU_FIRMWARE_SIZE  0x20000
 #define ANDROID_MCU_FIRMWARE_HEADER_STACK 0x20020000
-#endif
-
-#if !defined(CONFIG_IMX_TRUSTY_OS) || !defined(CONFIG_DUAL_BOOTLOADER)
-#undef CONFIG_FSL_CAAM_KB
 #endif
 
 #define CFG_SYS_SPL_PTE_RAM_BASE    0x41580000

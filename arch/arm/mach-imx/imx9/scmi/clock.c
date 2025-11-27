@@ -72,7 +72,7 @@ int clock_init_late(void)
 	return 0;
 }
 
-u32 get_lpuart_clk(void)
+u32 get_lpuart_clk(u64 reg)
 {
 	return imx_clk_scmi_get_rate(IMX95_CLK_LPUART1);
 }

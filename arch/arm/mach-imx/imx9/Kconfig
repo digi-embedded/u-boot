@@ -28,6 +28,7 @@ config IMX95
 	select ARMV8_SPL_EXCEPTION_VECTORS
 	select SCMI_FIRMWARE
 	select DM_MAILBOX
+	select IMX_PQC_SUPPORT
 
 config SYS_SOC
 	default "imx9"
@@ -44,6 +45,11 @@ config TARGET_CCIMX91_DVK
 config TARGET_CCIMX93_DVK
 	bool "Digi ConnectCore 93 Development Kit"
 	select IMX93
+	select CC9
+
+config TARGET_CCIMX95_DVK
+	bool "Digi ConnectCore 95 Development Kit"
+	select IMX95
 	select CC9
 
 config TARGET_IMX91_11X11_EVK
@@ -96,6 +102,7 @@ endchoice
 
 source "board/digi/ccimx91-dvk/Kconfig"
 source "board/digi/ccimx93-dvk/Kconfig"
+source "board/digi/ccimx95-dvk/Kconfig"
 source "board/freescale/imx91_evk/Kconfig"
 source "board/freescale/imx91_qsb/Kconfig"
 source "board/freescale/imx93_evk/Kconfig"

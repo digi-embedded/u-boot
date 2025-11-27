@@ -102,6 +102,11 @@
 	csi_id = <0>;
 };
 
+&usbotg {
+    dr_mode = "peripheral";
+    status = "okay";
+};
+
 &iomuxc {
 
 
