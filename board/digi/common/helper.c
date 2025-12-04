@@ -1164,7 +1164,7 @@ int read_squashfs_rootfs(unsigned long addr, unsigned long *size)
 
 	/* Access ubi partition */
 	if (of_machine_is_compatible("digi,ccimx6ul"))
-		ret = activate_ubi_part(env_get_yesno("singlemtdsys") ?
+		ret = activate_ubi_part((env_get_yesno("singlemtdsys") == 1) ?
 					SYSTEM_PARTITION : ROOTFS_PARTITION);
 	else
 		ret = activate_ubi_part(SYSTEM_PARTITION);
@@ -1184,7 +1184,7 @@ int read_squashfs_rootfs(unsigned long addr, unsigned long *size)
 	uint32_t blk_count;
 	char rootfspart[32];
 
-	if (env_get_yesno("dualboot")) {
+	if (env_get_yesno("dualboot") == 1) {
 		strcpy(rootfspart,
 		       strcmp(env_get("active_system"), "linux_a") ?
 		       "rootfs_b" : "rootfs_a");

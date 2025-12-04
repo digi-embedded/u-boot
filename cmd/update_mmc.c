@@ -352,7 +352,7 @@ static int do_update(struct cmd_tbl* cmdtp, int flag, int argc, char * const arg
 		char dev_index_str[2];
 
 		partname = argv[1];
-		if (env_get_yesno("dualboot")) {
+		if (env_get_yesno("dualboot") == 1) {
 			strcpy(str, env_get("active_system"));
 			if (!strcmp(partname, "linux")) {
 				partname = str;
