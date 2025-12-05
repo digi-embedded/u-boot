@@ -841,9 +841,9 @@ u64 memsize_parse(const char *const ptr, const char **retptr)
 void set_verifyaddr(unsigned long loadaddr)
 {
 	unsigned long verifyaddr, ram_size = gd->ram_size;
-#if defined(CONFIG_IMX8QXP)
+#if defined(CONFIG_IMX8QXP) || defined(CONFIG_IMX95)
 	/*
-	 * On the ccimx8x, use only the first SDRAM bank for update
+	 * On multi-bank platforms, use only the first SDRAM bank for update
 	 * operations
 	 */
 	ram_size = gd->bd->bi_dram[0].size;
