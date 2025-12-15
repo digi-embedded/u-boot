@@ -32,12 +32,14 @@ struct stm32key {
 	int (*post_process)(struct udevice *dev, const struct stm32key *key);
 };
 
-#define STM32_OTP_MODE_WORD			0
+#define STM32MP1_OTP_CLOSE_ID			0
 #define STM32_OTP_STM32MP13x_OPEN_MASK		0x17
 #define STM32_OTP_STM32MP13x_CLOSE_MASK		0x3F
 #define STM32_OTP_STM32MP13x_BSCANDIS_MASK	0x17F
 #define STM32_OTP_STM32MP13x_JTAGDIS_MASK	0x3FF
 #define STM32_OTP_STM32MP15x_CLOSE_MASK		BIT(6)
+#define STM32MP2X_OTP_CLOSE_ID			18
+#define STM32_OTP_STM32MP2X_CLOSE_MASK		GENMASK(3, 0)
 
 #ifdef CONFIG_STM32MP13X
 #define PKHTH_KEY_NAME		"PKHTH"
@@ -300,10 +302,12 @@ static int trustfence_prog_key(int argc, char *const argv[], int key_index)
 static int read_otp_mode(struct udevice *dev, bool *closed, int *jtag)
 {
 	int ret;
-	u32 val;
+	u32 val, word = 0;
+
+	word = IS_ENABLED(CONFIG_CCMP2) ? STM32MP2X_OTP_CLOSE_ID : STM32MP1_OTP_CLOSE_ID;
 
 	/* Read OTP mode (for close and JTAG status) */
-	ret = misc_read(dev, STM32_BSEC_OTP(STM32_OTP_MODE_WORD), &val, 4);
+	ret = misc_read(dev, STM32_BSEC_OTP(word), &val, 4);
 	if (ret < 0) {
 		printf("Error: can't read OTP mode\n");
 		return -1;
@@ -313,8 +317,7 @@ static int read_otp_mode(struct udevice *dev, bool *closed, int *jtag)
 		*closed = (val & STM32_OTP_STM32MP15x_CLOSE_MASK) ==
 			  STM32_OTP_STM32MP15x_CLOSE_MASK;
 		*jtag = *closed ? JTAG_DISABLED : JTAG_OPEN;
-	}
-	if (IS_ENABLED(CONFIG_STM32MP13X)) {
+	} else if (IS_ENABLED(CONFIG_STM32MP13X)) {
 		*closed = (val & STM32_OTP_STM32MP13x_CLOSE_MASK) ==
 			  STM32_OTP_STM32MP13x_CLOSE_MASK;
 		switch(val) {
@@ -332,6 +335,8 @@ static int read_otp_mode(struct udevice *dev, bool *closed, int *jtag)
 			printf("Error: invalid OTP mode\n");
 			return -1;
 		}
+	} else if (IS_ENABLED(CONFIG_CCMP2)) {
+		*closed = ((val & STM32_OTP_STM32MP2X_CLOSE_MASK) != 0);
 	}
 
 	return 0;
@@ -420,9 +425,9 @@ static int do_trustfence_prog_jtag(struct cmd_tbl *cmdtp, int flag, int argc,
 	if (!yes && !confirm_prog())
 		return CMD_RET_FAILURE;
 
-	ret = misc_write(dev, STM32_BSEC_OTP(STM32_OTP_MODE_WORD), &val, 4);
+	ret = misc_write(dev, STM32_BSEC_OTP(STM32MP1_OTP_CLOSE_ID), &val, 4);
 	if (ret != 4) {
-		printf("Error: can't update OTP %d\n", STM32_OTP_MODE_WORD);
+		printf("Error: can't update OTP %d\n", STM32MP1_OTP_CLOSE_ID);
 		return CMD_RET_FAILURE;
 	}
 	printf("Secure JTAG programmed!\n");
