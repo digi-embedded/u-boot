@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Digi International Inc
+ * Copyright 2022-2026 Digi International Inc
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -8,23 +8,17 @@
 #define HWID_CCIMX9_H
 
 /*
- * HWID is stored in 3 consecutive Fuse Words, being:
- *
- *   MAC1_ADDR[31:0]  (bank 39 word 3)
+ * HWID is stored in 3 Fuse Words, being:
  *
  *   |  31..26  |  25..20  |            19..0           |
  *   +----------+----------+----------------------------+
  *   |   Year   |   Week   |        Serial number       |
  *   +----------+----------+----------------------------+
  *
- *   MAC2_ADDR[47:32],MAC1_ADDR[47:32]  (bank 39 word 4)
- *
  *   | 31..28 |  27..24  |             23..0            |
  *   +--------+----------+------------------------------+
  *   |  GenID | MAC pool |            MAC base          |
  *   +--------+----------+------------------------------+
- *
- *   MAC2_ADDR[31:0]  (bank 39 word 5)
  *
  *   | 31..20 |   19   | 18 |   17  |  16 |15..12|  11..7  |6..3| 2..0 |
  *   +--------+--------+----+-------+-----+------+---------+----+------+

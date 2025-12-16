@@ -29,9 +29,9 @@ u64 ram_sizes_mb[16] = {
 	2048,	/* 8 */
 	3072,	/* 9 */
 	4096,	/* A */
+	8192,	/* B */
+	16384,	/* C */
 	/* yet undefined */
-	0,	/* B */
-	0,	/* C */
 	0,	/* D */
 	0,	/* E */
 	0,	/* F */
@@ -40,9 +40,15 @@ u64 ram_sizes_mb[16] = {
 /* HWID fuse map */
 struct digi_hwid_fuse hwid_fuse_map[] = {
 	/* bank, word, len */
+#if IS_ENABLED(CONFIG_IMX95)
+	{39, 1, 8},	/* GPR2_CFG0[31:0] */
+	{39, 2, 8},	/* GPR2_CFG1[31:0] */
+	{39, 3, 8},	/* GPR2_CFG2[31:0] */
+#else
 	{39, 3, 8},	/* MAC1_ADDR[31:0] */
 	{39, 4, 8},	/* MAC2_ADDR[47:32],MAC1_ADDR[47:32] */
 	{39, 5, 8},	/* MAC2_ADDR[31:0] */
+#endif /* CC95 or CC93/CC91 */
 };
 
 unsigned int hwid_nwords = ARRAY_SIZE(hwid_fuse_map);
