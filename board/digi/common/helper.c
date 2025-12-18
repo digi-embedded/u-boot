@@ -841,9 +841,9 @@ u64 memsize_parse(const char *const ptr, const char **retptr)
 void set_verifyaddr(unsigned long loadaddr)
 {
 	unsigned long verifyaddr, ram_size = gd->ram_size;
-#if defined(CONFIG_IMX8QXP)
+#if defined(CONFIG_IMX8QXP) || defined(CONFIG_IMX95)
 	/*
-	 * On the ccimx8x, use only the first SDRAM bank for update
+	 * On multi-bank platforms, use only the first SDRAM bank for update
 	 * operations
 	 */
 	ram_size = gd->bd->bi_dram[0].size;
@@ -1164,7 +1164,7 @@ int read_squashfs_rootfs(unsigned long addr, unsigned long *size)
 
 	/* Access ubi partition */
 	if (of_machine_is_compatible("digi,ccimx6ul"))
-		ret = activate_ubi_part(env_get_yesno("singlemtdsys") ?
+		ret = activate_ubi_part((env_get_yesno("singlemtdsys") == 1) ?
 					SYSTEM_PARTITION : ROOTFS_PARTITION);
 	else
 		ret = activate_ubi_part(SYSTEM_PARTITION);
@@ -1184,7 +1184,7 @@ int read_squashfs_rootfs(unsigned long addr, unsigned long *size)
 	uint32_t blk_count;
 	char rootfspart[32];
 
-	if (env_get_yesno("dualboot")) {
+	if (env_get_yesno("dualboot") == 1) {
 		strcpy(rootfspart,
 		       strcmp(env_get("active_system"), "linux_a") ?
 		       "rootfs_b" : "rootfs_a");

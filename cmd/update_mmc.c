@@ -185,9 +185,9 @@ static int write_firmware(char *partname, unsigned long loadaddr,
 	 */
 	verifyaddr = env_get_ulong("verifyaddr", 16, 0);
 	m = CFG_SYS_SDRAM_BASE + gd->ram_size;
-#if defined(CONFIG_IMX8QXP)
+#if defined(CONFIG_IMX8QXP) || defined(CONFIG_IMX95)
 	/*
-	 * On the ccimx8x, use only the first SDRAM bank for update
+	 * On multi-bank platforms, use only the first SDRAM bank for update
 	 * operations
 	 */
 	m = CFG_SYS_SDRAM_BASE + gd->bd->bi_dram[0].size;
@@ -352,7 +352,7 @@ static int do_update(struct cmd_tbl* cmdtp, int flag, int argc, char * const arg
 		char dev_index_str[2];
 
 		partname = argv[1];
-		if (env_get_yesno("dualboot")) {
+		if (env_get_yesno("dualboot") == 1) {
 			strcpy(str, env_get("active_system"));
 			if (!strcmp(partname, "linux")) {
 				partname = str;
