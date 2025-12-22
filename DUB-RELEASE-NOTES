@@ -4,6 +4,11 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2023.10
 -----------
+dub-2023.10-r3.2, released on 2025/12/16
+	- TrustFence support for CCMP25 RPROC
+	- Fix closed status validation for CCMP25
+	- Based on BSP from STM (tag 'v2023.10-stm32mp-r2')
+
 dub-2023.10-r2.1, released on 2025/07/04
 	- Added support to ConnectCore MP15
 	- Added support to ConnectCore MP13
