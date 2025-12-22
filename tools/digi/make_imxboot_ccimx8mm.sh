@@ -274,7 +274,7 @@ BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
 MKIMAGE_BRANCH="lf-6.6.52_2.2.1"
-# Tag: lf-6.6.52-2.2.1
+# Tag: lf-6.6.52-2.2.2
 MKIMAGE_REV="81fca6434be0610f3f9216a762aadc4dc3e8d8db"
 MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
 MKIMAGE_SOC_DIR="${MKIMAGE_DIR}/iMX8M"
@@ -291,8 +291,8 @@ MKIMAGE_PATCHES=" \
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
 ATF_BRANCH="lf_v2.10_6.6.52_2.2.x"
-# Tag: lf-6.6.52-2.2.1
-ATF_REV="7e374c5f57328949a2b141a567175b6a2939e964"
+# Tag: lf-6.6.52-2.2.2
+ATF_REV="8ec7e38031f8c022a9760a8da77bdc6e1938db8c"
 ATF_DIR="${BASEDIR}/imx-atf"
 ATF_PATCHES=" \
 	0001-imx8mm-Define-UART1-as-console-for-boot-stage.patch \
@@ -308,7 +308,7 @@ ATF_PATCHES=" \
 
 OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
 OPTEE_BRANCH="lf-6.6.52_2.2.0"
-# Tag: lf-6.6.52-2.2.1
+# Tag: lf-6.6.52-2.2.2
 OPTEE_REV="ecea75b7fee5a3c8a2d9b99769ba78c4390c0e8b"
 OPTEE_DIR="${BASEDIR}/imx-optee-os"
 OPTEE_PATCHES=" \

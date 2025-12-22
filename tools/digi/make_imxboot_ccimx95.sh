@@ -392,7 +392,7 @@ BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
 MKIMAGE_BRANCH="lf-6.6.52_2.2.1"
-# Tag: lf-6.6.52-2.2.1
+# Tag: lf-6.6.52-2.2.2
 MKIMAGE_REV="81fca6434be0610f3f9216a762aadc4dc3e8d8db"
 MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
 MKIMAGE_SOC_DIR="${MKIMAGE_DIR}/iMX95"
@@ -409,8 +409,8 @@ MKIMAGE_PATCHES=" \
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
 ATF_BRANCH="lf_v2.10_6.6.52_2.2.x"
-# Tag: lf-6.6.52-2.2.1
-ATF_REV="7e374c5f57328949a2b141a567175b6a2939e964"
+# Tag: lf-6.6.52-2.2.2
+ATF_REV="8ec7e38031f8c022a9760a8da77bdc6e1938db8c"
 ATF_DIR="${BASEDIR}/imx-atf"
 ATF_PATCHES=" \
 	0001-imx8mm-Define-UART1-as-console-for-boot-stage.patch \
@@ -427,7 +427,7 @@ ATF_PATCHES=" \
 
 OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
 OPTEE_BRANCH="lf-6.6.52_2.2.0"
-# Tag: lf-6.6.52-2.2.1
+# Tag: lf-6.6.52-2.2.2
 OPTEE_REV="ecea75b7fee5a3c8a2d9b99769ba78c4390c0e8b"
 OPTEE_DIR="${BASEDIR}/imx-optee-os"
 OPTEE_PATCHES=" \
@@ -441,8 +441,8 @@ OPTEE_PATCHES=" \
 # Optional Executable Image running on the Cortex M33
 OEI_REPO="https://github.com/nxp-imx/imx-oei.git"
 OEI_BRANCH="master"
-# Tag: lf-6.6.52-2.2.1
-OEI_REV="ca91ce798b2f3a2a0bab8c0f835f4bea88c9b080"
+# Tag: lf-6.6.52-2.2.2
+OEI_REV="49bfaa93e9d1fe213866bcb9507927a59a9ede5a"
 OEI_DIR="${BASEDIR}/imx-oei"
 OEI_PATCHES=" \
 	0001-boards-ccimx95-add-platform-as-a-clone-of-mx95lp5.patch \
@@ -454,8 +454,8 @@ OEI_PATCHES=" \
 # System Manager running on the Cortex M33
 SM_REPO="https://github.com/nxp-imx/imx-sm.git"
 SM_BRANCH="master"
-# Tag: lf-6.6.52-2.2.1
-SM_REV="707569f402147029feb7f9b90811a6d6ea730bb6"
+# Tag: lf-6.6.52-2.2.2
+SM_REV="af1e37026c6ba19cdca98fd6e91494efd3e7b5ec"
 SM_DIR="${BASEDIR}/imx-sm"
 SM_PATCHES=" \
 	0001-ccimx95dvk-add-new-platform-config-and-board.patch \
@@ -476,11 +476,11 @@ FIRMWARE_IMX="firmware-imx-8.26.1-410be01"
 FIRMWARE_IMX_DIR="${BASEDIR}/${FIRMWARE_IMX}"
 FIRMWARE_IMX_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_IMX}.bin"
 
-FIRMWARE_M7="imx95-m7-demo-25.06.00"
+FIRMWARE_M7="imx95-m7-demo-25.09.00"
 FIRMWARE_M7_DIR="${BASEDIR}/${FIRMWARE_M7}"
 FIRMWARE_M7_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_M7}.bin"
 
-FIRMWARE_ELE="firmware-ele-imx-2.0.2.1-d30b14a"
+FIRMWARE_ELE="firmware-ele-imx-2.0.3.1-52f7740"
 FIRMWARE_ELE_DIR="${BASEDIR}/${FIRMWARE_ELE}"
 FIRMWARE_ELE_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_ELE}.bin"
 
