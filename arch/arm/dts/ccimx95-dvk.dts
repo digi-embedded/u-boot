@@ -35,6 +35,8 @@
 		regulator-min-microvolt = <5000000>;
 		regulator-name = "5V_DVK";
 		gpio = <&gpio1 14 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		regulator-boot-on;
 	};
 
 	reg_3p3v: regulator-3p3v {
