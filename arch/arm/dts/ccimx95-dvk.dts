@@ -18,8 +18,8 @@
 	};
 
 	chosen {
-		bootargs = "console=ttyLP5,115200 earlycon";
-		stdout-path = &lpuart6;
+		bootargs = "console=ttyLP0,115200 earlycon";
+		stdout-path = &lpuart1;
 	};
 
 	memory@80000000 {
@@ -172,10 +172,10 @@
 	};
 };
 
-&lpuart6 {
+&lpuart1 {
 	/* console */
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_uart6>;
+	pinctrl-0 = <&pinctrl_uart1>;
 	status = "okay";
 };
 
@@ -300,10 +300,10 @@
 		>;
 	};
 
-	pinctrl_uart6: uart6grp {
+	pinctrl_uart1: uart1grp {
 		fsl,pins = <
-			IMX95_PAD_GPIO_IO05__LPUART6_RX			0x31e
-			IMX95_PAD_GPIO_IO04__LPUART6_TX			0x31e
+			IMX95_PAD_UART1_RXD__AONMIX_TOP_LPUART1_RX      0x31e
+			IMX95_PAD_UART1_TXD__AONMIX_TOP_LPUART1_TX      0x31e
 		>;
 	};
 

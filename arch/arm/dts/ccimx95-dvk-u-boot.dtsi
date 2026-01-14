@@ -60,8 +60,8 @@
 	bootph-pre-ram;
 };
 
-&lpuart6 {
-	clocks = <&scmi_clk IMX95_CLK_LPUART6>, <&scmi_clk IMX95_CLK_LPUART6>;
+&lpuart1 {
+	clocks = <&scmi_clk IMX95_CLK_LPUART1>, <&scmi_clk IMX95_CLK_LPUART1>;
 	clock-names = "ipg", "per";
 	bootph-pre-ram;
 };
@@ -149,7 +149,7 @@
 	};
 };
 
-&pinctrl_uart6 {
+&pinctrl_uart1 {
 	bootph-pre-ram;
 };
 
