@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2025 Digi International Inc.
+ * Copyright 2025,2026 Digi International Inc.
  */
 
 / {
@@ -133,20 +133,6 @@
 &{/firmware/scmi/protocol@19} {
 	bootph-all;
 	bootph-pre-ram;
-
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_hog>;
-
-	pinctrl_hog: hoggrp {
-		bootph-pre-ram;
-
-		fsl,pins = <
-			IMX95_PAD_XSPI1_SS1_B__GPIO5_IO_BIT11			0x3fe
-			IMX95_PAD_GPIO_IO12__TPM3_CH2           0x51e
-			IMX95_PAD_CCM_CLKO1__GPIO3_IO_BIT26			0x3fe
-			IMX95_PAD_CCM_CLKO2__GPIO3_IO_BIT27			0x3fe
-		>;
-	};
 };
 
 &pinctrl_uart1 {
