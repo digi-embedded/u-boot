@@ -243,6 +243,8 @@ ATF_PATCHES=" \
 	0007-imx93-bring-back-ELE-clock-workaround-for-soc-revisi.patch \
 	0008-ccimx91-use-UART6-for-the-default-console.patch \
 	0009-ccimx95-set-DVK-console-to-LPUART6.patch \
+	0010-ccimx95-enable-non-secure-non-privilege-access-to-GP.patch \
+	0011-Revert-ccimx95-set-DVK-console-to-LPUART6.patch \
 "
 
 DIGI_SC_FW="digi-sc-firmware-1.17.0.2"

@@ -358,6 +358,8 @@ ATF_PATCHES=" \
 	0007-imx93-bring-back-ELE-clock-workaround-for-soc-revisi.patch \
 	0008-ccimx91-use-UART6-for-the-default-console.patch \
 	0009-ccimx95-set-DVK-console-to-LPUART6.patch \
+	0010-ccimx95-enable-non-secure-non-privilege-access-to-GP.patch \
+	0011-Revert-ccimx95-set-DVK-console-to-LPUART6.patch \
 "
 
 OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
@@ -371,6 +373,7 @@ OPTEE_PATCHES=" \
 	0003-core-imx-support-ccimx93-dvk.patch \
 	0004-core-ccimx93-enable-AES_HUK-trusted-application.patch \
 	0005-core-imx-support-ccimx95-dvk.patch \
+	0006-ccimx95-configure-console-on-LPUART1.patch \
 "
 
 FIRMWARE_IMX="firmware-imx-8.26.1-410be01"

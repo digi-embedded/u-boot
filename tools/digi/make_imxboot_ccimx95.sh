@@ -423,6 +423,7 @@ ATF_PATCHES=" \
 	0008-ccimx91-use-UART6-for-the-default-console.patch \
 	0009-ccimx95-set-DVK-console-to-LPUART6.patch \
 	0010-ccimx95-enable-non-secure-non-privilege-access-to-GP.patch \
+	0011-Revert-ccimx95-set-DVK-console-to-LPUART6.patch \
 "
 
 OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
@@ -436,6 +437,7 @@ OPTEE_PATCHES=" \
 	0003-core-imx-support-ccimx93-dvk.patch \
 	0004-core-ccimx93-enable-AES_HUK-trusted-application.patch \
 	0005-core-imx-support-ccimx95-dvk.patch \
+	0006-ccimx95-configure-console-on-LPUART1.patch \
 "
 
 # Optional Executable Image running on the Cortex M33
@@ -449,6 +451,7 @@ OEI_PATCHES=" \
 	0002-ddr-add-DDR-configuration-file-for-ccimx95.patch \
 	0003-ccimx95-configure-console-on-LPUART6.patch \
 	0004-ccimx95-add-DDR-configuration-file-for-ccimx95-B0-si.patch \
+	0005-ccimx95-configure-console-on-LPUART1.patch \
 "
 
 # System Manager running on the Cortex M33
@@ -470,6 +473,8 @@ SM_PATCHES=" \
 	0010-ccimx95dvk-enable-full-access-to-certain-regulators-.patch \
 	0011-components-pf09-reduce-LDOs-step-to-50mV.patch \
 	0012-ccimx95dvk-remove-access-to-VDD_3V3-and-VDD_1V8-from.patch \
+	0013-ccimx95dvk-change-SM-console-from-LPUART7-to-LPUART2.patch \
+	0014-ccimx95dvk-PF09-PMIC-interrupt-moved-to-PDM_BIT_STRE.patch \
 "
 
 FIRMWARE_IMX="firmware-imx-8.26.1-410be01"
