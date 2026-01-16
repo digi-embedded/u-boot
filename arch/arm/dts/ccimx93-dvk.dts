@@ -35,6 +35,46 @@
 		};
 	};
 
+	backlight: backlight {
+		compatible = "gpio-backlight";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_backlight>;
+		gpios = <&gpio2 23 GPIO_ACTIVE_HIGH>;
+		default-on;
+		status = "disabled";
+	};
+
+	lvds_panel {
+		compatible = "simple-panel";
+		backlight = <&backlight>;
+		power-supply = <&reg_5v_board>;
+		status = "disabled";
+
+		display-timings {
+			native-mode = <&timing0>;
+
+			timing0: timing0 {
+				clock-frequency = <71143000>;
+				hactive = <1280>;
+				vactive = <800>;
+				hfront-porch = <120>;
+				hback-porch = <2>;
+				hsync-len = <8>;
+				vback-porch = <10>;
+				vfront-porch = <2>;
+				vsync-len = <6>;
+				hsync-active = <1>;
+				vsync-active = <1>;
+			};
+		};
+
+		port {
+			panel_lvds_in: endpoint {
+				remote-endpoint = <&lvds_out>;
+			};
+		};
+	};
+
 	reg_can2_stby: regulator-can2-stby {
 		compatible = "regulator-fixed";
 		regulator-name = "can2-stby";
@@ -169,7 +209,38 @@
 
 &lcdif {
 	status = "okay";
+	/* HDMI clock rates */
 	assigned-clock-rates = <484000000>, <121000000>, <400000000>, <133333333>;
+	/* LVDS clock rates */
+	/*assigned-clock-rates = <498000000>, <71142857>, <400000000>, <133333333>;*/
+};
+
+/*
+ * To have LVDS display:
+ * - Disable nodes `dphy`, `dsi`, `lt_bridge`
+ * - Enable nodes `backlight`, lvds_panel`, `ldb_phy`, `ldb`, `lvds-channel@0`
+ * - Replace `lcdif` node assigned-clock-rates with the LVDS values
+ */
+&ldb_phy {
+	status = "disabled";
+};
+
+&ldb {
+	status = "disabled";
+
+	lvds-channel@0 {
+		fsl,data-mapping = "jeida";
+		fsl,data-width = <24>;
+		status = "disabled";
+
+		port@1 {
+			reg = <1>;
+
+			lvds_out: endpoint {
+				remote-endpoint = <&panel_lvds_in>;
+			};
+		};
+	};
 };
 
 &lpi2c1 {
@@ -615,6 +686,12 @@
 			MX93_PAD_SD2_DATA2__USDHC2_DATA2	0x400013fe
 			MX93_PAD_SD2_DATA3__USDHC2_DATA3	0x400013fe
 			MX93_PAD_SD2_VSELECT__USDHC2_VSELECT	0x51e
+		>;
+	};
+
+	pinctrl_backlight: flexspigrp {
+		fsl,pins = <
+			MX93_PAD_GPIO_IO23__GPIO2_IO23      0x31e
 		>;
 	};
 };
