@@ -72,11 +72,19 @@
 	"initrd_file=uramdisk.img\0" \
 	"initrd_high=0xffffffff\0" \
 	"install_linux_fw_sd=if load mmc 1 ${loadaddr} install_linux_fw_sd.scr;then " \
-			"source ${loadaddr};" \
+			"if test \"${dboot_kernel_var}\" = fitimage; then " \
+				"source ${loadaddr}:install_linux_fw_sd;" \
+			"else " \
+				"source ${loadaddr};" \
+			"fi;" \
 		"fi;\0" \
 	"install_linux_fw_usb=usb start;" \
 		"if load usb 0 ${loadaddr} install_linux_fw_usb.scr;then " \
-			"source ${loadaddr};" \
+			"if test \"${dboot_kernel_var}\" = fitimage; then " \
+				"source ${loadaddr}:install_linux_fw_usb;" \
+			"else " \
+				"source ${loadaddr};" \
+			"fi;" \
 		"fi;\0" \
 	"usb_pgood_delay=2000\0" \
 	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
