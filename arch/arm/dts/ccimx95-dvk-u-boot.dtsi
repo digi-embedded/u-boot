@@ -175,14 +175,6 @@
 	bootph-pre-ram;
 };
 
-&reg_usdhc2_vmmc {
-	bootph-pre-ram;
-};
-
-&pinctrl_reg_usdhc2_vmmc {
-	bootph-pre-ram;
-};
-
 &usb2 {
 	compatible = "fsl,imx8mm-usb", "fsl,imx7d-usb";
 	/delete-property/power-domains;
