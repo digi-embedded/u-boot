@@ -11,7 +11,7 @@
 
 	bootcount {
 		compatible = "u-boot,bootcount-rtc";
-		rtc = <&rv3028>;
+		rtc = <&ext_rtc>;
 		offset = <0x1f>;
 	};
 };
@@ -197,18 +197,6 @@
 &elemu3 {
 	status = "okay";
 	bootph-all;
-	bootph-pre-ram;
-};
-
-&flexspi1 {
-	bootph-pre-ram;
-};
-
-&mt35xu01gbba {
-	bootph-pre-ram;
-};
-
-&pinctrl_flexspi1 {
 	bootph-pre-ram;
 };
 
