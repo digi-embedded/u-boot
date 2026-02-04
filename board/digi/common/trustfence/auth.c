@@ -28,7 +28,6 @@
 extern int authenticate_os_container(ulong addr);
 #endif
 #if defined(CONFIG_IMX_HAB)
-#include "hab.h"
 extern int authenticate_image(uint32_t ddr_start, uint32_t raw_image_size);
 #endif
 #include "auth.h"
