@@ -1016,6 +1016,7 @@ int authenticate_image(u32 ddr_start, u32 raw_image_size)
 	bytes = ivt_offset + IVT_SIZE + CSF_PAD_SIZE;
 
 #if IS_ENABLED(CONFIG_AUTH_DISCRETE_ARTIFACTS) && !defined(TF_DEBUG)
+	extern int fuse_check_srk(void);
 	unsigned long flags = gd->flags;
 	printf("Authenticate image from DDR location 0x%x...", ddr_start);
 	gd->flags |= GD_FLG_SILENT;
@@ -1023,7 +1024,14 @@ int authenticate_image(u32 ddr_start, u32 raw_image_size)
 	int ret = imx_hab_authenticate_image(ddr_start, bytes, ivt_offset);
 #if IS_ENABLED(CONFIG_AUTH_DISCRETE_ARTIFACTS) && !defined(TF_DEBUG)
 	gd->flags = flags;
-	printf("%s\n", ret ? "FAILED" : auth_fail_open_device ? "FAILED (open device)" : "OK");
+	if (fuse_check_srk() > 0)
+		printf("%s\n", "SRK NOT PROGRAMMED");
+	else if (ret)
+		printf("%s\n", "FAILED");
+	else if (auth_fail_open_device)
+		printf("%s\n", "FAILED (OPEN DEVICE)");
+	else
+		printf("%s\n", "OK");
 #endif
 
 	return ret;
