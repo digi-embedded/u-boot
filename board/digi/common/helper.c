@@ -588,7 +588,7 @@ int load_firmware(struct load_fw *fwinfo, char *msg)
 
 		if (fwinfo->filename[0] == '$')
 			fn = env_get(&fwinfo->filename[1]);
-		printf("%s: %s\n", msg, fn);
+		printf("%s: %s (at 0x%08lx)\n", msg, fn, env_get_ulong(fwinfo->loadaddr + 1, 16, 0));
 	}
 
 	ret = run_command(cmd, 0);
