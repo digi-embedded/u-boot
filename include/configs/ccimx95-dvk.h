@@ -69,6 +69,11 @@
 		"setenv jh_clk kvm.enable_virt_at_load=false cpuidle.off=1 clk_ignore_unused kvm-arm.mode=nvhe; run netboot; \0 "
 #endif
 
+/* Override CFG_MFG_ENV_SETTINGS_DEFAULT from imx_env.h */
+#undef CFG_MFG_ENV_SETTINGS_DEFAULT
+#define CFG_MFG_ENV_SETTINGS_DEFAULT \
+	"bootcmd_mfg=" FASTBOOT_CMD "\0"
+
 #define CFG_MFG_ENV_SETTINGS \
 	CFG_MFG_ENV_SETTINGS_DEFAULT \
 	"fastboot_dev=mmc" __stringify(EMMC_BOOT_DEV) "\0" \
