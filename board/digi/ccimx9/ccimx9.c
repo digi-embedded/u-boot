@@ -327,7 +327,7 @@ void print_som_info(void)
 	else
 		return;
 
-	print_size(gd->ram_size, " LPDDR4");
+	print_size(gd->ram_size, is_imx95() ? " LPDDR5" : " LPDDR4");
 	if (my_hwid.wifi)
 		printf(", Wi-Fi");
 	if (my_hwid.bt)

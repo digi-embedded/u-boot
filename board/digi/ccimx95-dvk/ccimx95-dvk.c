@@ -594,6 +594,25 @@ int board_fix_fdt(void *fdt)
 #endif
 }
 #endif
+
+#if defined(CONFIG_DISPLAY_BOARDINFO_LATE)
+/*
+ * Call this during late initialization, after relocation and board setup,
+ * as some initialization must be completed before printing the information.
+ */
+int checkboard(void)
+{
+	board_version = get_carrierboard_version();
+	board_id = get_carrierboard_id();
+
+	print_som_info();
+	print_carrierboard_info();
+	print_bootinfo();
+
+	return 0;
+}
+#endif
+
 #ifdef CONFIG_FSL_FASTBOOT
 #ifdef CONFIG_ANDROID_RECOVERY
 int is_recovery_key_pressing(void)
