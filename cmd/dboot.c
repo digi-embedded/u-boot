@@ -311,8 +311,7 @@ static int do_dboot(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv
 		return CMD_RET_FAILURE;
 	}
 	/* get the right fdt_blob from the global working_fdt */
-	gd->fdt_blob = working_fdt;
-	root_node = fdt_path_offset(gd->fdt_blob, "/");
+	root_node = fdt_path_offset(working_fdt, "/");
 
 	/* Set firmware info common for all overlay files */
 	strcpy(fwinfo.varload, "try");
@@ -358,7 +357,7 @@ static int do_dboot(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv
 			return CMD_RET_FAILURE;
 		}
 		/* Search for an overlay description */
-		overlay_desc = (char *)fdt_getprop(gd->fdt_blob, root_node,
+		overlay_desc = (char *)fdt_getprop(working_fdt, root_node,
 						   "overlay-description", NULL);
 
 		/* Print the overlay filename (and description if available) */
@@ -366,7 +365,7 @@ static int do_dboot(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv
 		if (overlay_desc) {
 			printf("%s", overlay_desc);
 			/* remove property and reset pointer after printing */
-			fdt_delprop((void*)gd->fdt_blob, root_node,
+			fdt_delprop((void*)working_fdt, root_node,
 				    "overlay-description");
 			overlay_desc = NULL;
 		}
