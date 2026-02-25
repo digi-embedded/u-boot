@@ -71,6 +71,8 @@
 	"initrd_addr=0xc4400000\0" \
 	"initrd_file=uramdisk.img\0" \
 	"initrd_high=0xffffffff\0" \
+	"splashimage=0xc2000000\0" \
+	"splashpos=m,m\0" \
 	"install_linux_fw_sd=if load mmc 1 ${loadaddr} install_linux_fw_sd.scr;then " \
 			"if test \"${dboot_kernel_var}\" = fitimage; then " \
 				"source ${loadaddr}:install_linux_fw_sd;" \
