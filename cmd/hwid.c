@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2014-2018 Digi International, Inc.
+ * (C) Copyright 2014-2026, Digi International, Inc.
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -26,7 +26,7 @@
 #include "../board/digi/common/helper.h"
 #include "../board/digi/common/hwid.h"
 
-static int do_hwid(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+static int do_hwid_fuse(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
 	const char *op;
 	int confirmed = argc >= 3 && !strcmp(argv[2], "-y");
@@ -41,14 +41,14 @@ static int do_hwid(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[]
 	argv += 2 + confirmed;
 
 	if (!strcmp(op, "read") || !strcmp(op, "read_manuf")) {
-		printf("Reading HWID: ");
+		printf("Reading (FUSE) HWID: ");
 		board_read_hwid(&hwid);
 		if (!strcmp(op, "read_manuf"))
 			board_print_manufid(&hwid);
 		else
 			board_print_hwid(&hwid);
 	} else if (!strcmp(op, "sense") || !strcmp(op, "sense_manuf")) {
-		printf("Sensing HWID: ");
+		printf("Sensing (FUSE) HWID: ");
 		board_sense_hwid(&hwid);
 		if (!strcmp(op, "sense_manuf"))
 			board_print_manufid(&hwid);
@@ -59,7 +59,7 @@ static int do_hwid(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[]
 			return CMD_RET_USAGE;
 		if (!confirmed && !confirm_prog())
 			return CMD_RET_FAILURE;
-		printf("Programming HWID... ");
+		printf("Programming (FUSE) HWID... ");
 		ret = board_prog_hwid(&hwid);
 		if (ret)
 			goto err;
@@ -69,7 +69,7 @@ static int do_hwid(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[]
 			return CMD_RET_FAILURE;
 		if (!confirmed && !confirm_prog())
 			return CMD_RET_FAILURE;
-		printf("Programming manufacturing information into HWID... ");
+		printf("Programming manufacturing information into (FUSE) HWID... ");
 		ret = board_prog_hwid(&hwid);
 		if (ret)
 			goto err;
@@ -77,7 +77,7 @@ static int do_hwid(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[]
 	} else if (!strcmp(op, "override")) {
 		if (board_parse_hwid(argc, argv, &hwid))
 			return CMD_RET_USAGE;
-		printf("Overriding HWID... ");
+		printf("Overriding (FUSE) HWID... ");
 		ret = board_override_hwid(&hwid);
 		if (ret)
 			goto err;
@@ -85,7 +85,7 @@ static int do_hwid(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[]
 	}  else if (!strcmp(op, "override_manuf")) {
 		if (board_parse_manufid(argc, argv, &hwid))
 			return CMD_RET_FAILURE;
-		printf("Overriding manufacturing information into HWID... ");
+		printf("Overriding manufacturing information into (FUSE) HWID... ");
 		ret = board_override_hwid(&hwid);
 		if (ret)
 			goto err;
@@ -93,7 +93,7 @@ static int do_hwid(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[]
 	} else if (!strcmp(op, "lock")) {
 		if (!confirmed && !confirm_prog())
 			return CMD_RET_FAILURE;
-		printf("Locking HWID... ");
+		printf("Locking (FUSE) HWID... ");
 		ret = board_lock_hwid();
 		if (ret)
 			goto err;
@@ -110,8 +110,15 @@ err:
 	return ret;
 }
 
-U_BOOT_CMD(
-	hwid, CONFIG_SYS_MAXARGS, 0, do_hwid,
-	"HWID on fuse sub-system",
-	DIGICMD_HWID_SUPPORTED_OPTIONS_HELP
-);
+U_BOOT_CMD_WITH_SUBCMDS(hwid, "HWID",
+	     "fuse read - read HWID from shadow registers\n" \
+	"hwid fuse read_manuf - read HWID from shadow registers and print manufacturing ID\n" \
+	"hwid fuse sense - sense HWID from fuse registers\n" \
+	"hwid fuse sense_manuf - sense HWID from fuse registers and print manufacturing ID\n" \
+	"hwid fuse prog [-y] " CONFIG_HWID_STRINGS_HELP " - program HWID into fuse registers (PERMANENT)\n" \
+	"hwid fuse prog_manuf [-y] " CONFIG_MANUF_STRINGS_HELP " - program HWID with manufacturing ID into fuse registers (PERMANENT)\n" \
+	"hwid fuse override " CONFIG_HWID_STRINGS_HELP " - override HWID\n" \
+	"hwid fuse override_manuf " CONFIG_MANUF_STRINGS_HELP " - override HWID with manufacturing ID\n" \
+	"hwid fuse lock [-y] - lock HWID OTP bits (PERMANENT)\n"
+	,
+	U_BOOT_SUBCMD_MKENT(fuse, CONFIG_SYS_MAXARGS, 0, do_hwid_fuse));

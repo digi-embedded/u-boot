@@ -87,12 +87,5 @@ struct ccimx8_variant {
 
 #define CONFIG_HWID_STRINGS_HELP	"<WWWW> <XXXXXXXX> <YYYY> <ZZZZZZZZ>"
 #define CONFIG_MANUF_STRINGS_HELP	"<YYWWGGXXXXXX> <PPAAAAAA> <VVHC> <K> <RMWBC>"
-#define DIGICMD_HWID_SUPPORTED_OPTIONS_HELP \
-	     "read - sense HWID from fuses\n" \
-	"hwid read_manuf - sense HWID from fuses and print manufacturing ID\n" \
-	"hwid sense - sense HWID from fuses\n" \
-	"hwid sense_manuf - sense HWID from fuses and print manufacturing ID\n" \
-	"hwid prog [-y] " CONFIG_HWID_STRINGS_HELP " - program HWID (PERMANENT)\n" \
-	"hwid prog_manuf [-y] " CONFIG_MANUF_STRINGS_HELP " - program HWID with manufacturing ID (PERMANENT)\n"
 
 #endif	/* __HWID_CC8X_H_ */
