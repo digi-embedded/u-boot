@@ -1872,7 +1872,7 @@ void som_default_environment(void)
 void board_update_hwid(bool is_fuse)
 {
 	/* Update HWID-related variables in environment */
-	int ret = is_fuse ? board_sense_hwid(&my_hwid) : board_read_hwid(&my_hwid);
+	int ret = is_fuse ? board_read_hwid(&my_hwid) : hwid_env_read(&my_hwid);
 
 	if (ret)
 		printf("Cannot read HWID\n");
