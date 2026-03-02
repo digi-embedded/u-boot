@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 Digi International Inc
+ * Copyright 2022-2026, Digi International Inc
  *
  * SPDX-License-Identifier:    GPL-2.0+
  */
@@ -165,7 +165,10 @@
 	"bootargs_once:sr,"		\
 	"board_version:so,"		\
 	"board_id:so,"			\
-	"mmcbootdev:so"
+	"mmcbootdev:so,"		\
+	"hwid_0:so,"			\
+	"hwid_1:so,"			\
+	"hwid_2:so,"
 
 /*
  * 'update' command will ask for confirmation before updating any partition

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Digi International, Inc.
+ * Copyright (C) 2018-2026, Digi International, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -113,7 +113,11 @@
 	"bootargs_once:sr,"		\
 	"board_version:so,"		\
 	"board_id:so,"			\
-	"mmcbootdev:so"
+	"mmcbootdev:so,"		\
+	"hwid_0:so,"			\
+	"hwid_1:so,"			\
+	"hwid_2:so,"			\
+	"hwid_3:so,"
 
 /* Environment */
 /* On CC8X, USDHC1 is for eMMC, USDHC2 is for SD on SBC Express */
