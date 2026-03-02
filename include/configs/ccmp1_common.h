@@ -220,7 +220,10 @@
 	"btaddr:mc,"			\
 	"bootargs_once:sr,"		\
 	"board_version:so,"		\
-	"board_id:so,"
+	"board_id:so,"			\
+	"hwid_0:so,"			\
+	"hwid_1:so,"			\
+	"hwid_2:so,"
 
 /*
  * 'update' command will Ask for confirmation before updating any partition

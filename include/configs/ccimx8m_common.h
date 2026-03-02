@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Digi International Inc
+ * Copyright 2023-2026, Digi International Inc
  * Copyright 2018 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -333,7 +333,10 @@
 	"bootargs_once:sr,"		\
 	"board_version:so,"		\
 	"board_id:so,"			\
-	"mmcbootdev:so"
+	"mmcbootdev:so,"		\
+	"hwid_0:so,"			\
+	"hwid_1:so,"			\
+	"hwid_2:so,"
 
 #define FSL_FASTBOOT_FB_DEV "mmc"
 
