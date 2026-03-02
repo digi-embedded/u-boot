@@ -110,6 +110,63 @@ err:
 	return ret;
 }
 
+static int do_hwid_env(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+{
+	const char *op;
+	struct digi_hwid hwid;
+	int ret;
+
+	if (argc < 2)
+		return CMD_RET_USAGE;
+
+	op = argv[1];
+	argc -= 2;
+	argv += 2;
+
+	if (!strcmp(op, "read") || !strcmp(op, "read_manuf")) {
+		printf("Reading (ENV) HWID: ");
+		ret = hwid_env_read(&hwid);
+		if (ret) {
+			printf("ERROR: Undefined environment HWID\n");
+			return CMD_RET_USAGE;
+		}
+		if (!strcmp(op, "read_manuf"))
+			board_print_manufid(&hwid);
+		else
+			board_print_hwid(&hwid);
+	} else if (!strcmp(op, "prog")) {
+		if (board_parse_hwid(argc, argv, &hwid))
+			return CMD_RET_USAGE;
+		printf("Programming (ENV) HWID... ");
+		ret = hwid_env_prog(&hwid);
+		if (ret)
+			goto err_env;
+		printf("OK\n");
+	} else if (!strcmp(op, "prog_manuf")) {
+		if (board_parse_manufid(argc, argv, &hwid))
+			return CMD_RET_FAILURE;
+		printf("Programming manufacturing information into (ENV) HWID... ");
+		ret = hwid_env_prog(&hwid);
+		if (ret)
+			goto err_env;
+		printf("OK\n");
+	} else if (!strcmp(op, "clear")) {
+		printf("Clearing (ENV) HWID... ");
+		ret = hwid_env_clear();
+		if (ret)
+			goto err_env;
+		printf("OK\n");
+	} else {
+		return CMD_RET_USAGE;
+	}
+
+	return 0;
+
+err_env:
+	puts("ERROR\n");
+	return CMD_RET_FAILURE;
+}
+
 U_BOOT_CMD_WITH_SUBCMDS(hwid, "HWID",
 	     "fuse read - read HWID from shadow registers\n" \
 	"hwid fuse read_manuf - read HWID from shadow registers and print manufacturing ID\n" \
@@ -119,6 +176,12 @@ U_BOOT_CMD_WITH_SUBCMDS(hwid, "HWID",
 	"hwid fuse prog_manuf [-y] " CONFIG_MANUF_STRINGS_HELP " - program HWID with manufacturing ID into fuse registers (PERMANENT)\n" \
 	"hwid fuse override " CONFIG_HWID_STRINGS_HELP " - override HWID\n" \
 	"hwid fuse override_manuf " CONFIG_MANUF_STRINGS_HELP " - override HWID with manufacturing ID\n" \
-	"hwid fuse lock [-y] - lock HWID OTP bits (PERMANENT)\n"
+	"hwid fuse lock [-y] - lock HWID OTP bits (PERMANENT)\n" \
+	"hwid env read - read HWID from the environment\n" \
+	"hwid env read_manuf - read HWID from the environment and print manufacturing ID\n" \
+	"hwid env prog " CONFIG_HWID_STRINGS_HELP " - program HWID into the environment\n" \
+	"hwid env prog_manuf " CONFIG_MANUF_STRINGS_HELP " - program HWID with manufacturing ID into the environment\n" \
+	"hwid env clear - clear HWID from the environment\n"
 	,
-	U_BOOT_SUBCMD_MKENT(fuse, CONFIG_SYS_MAXARGS, 0, do_hwid_fuse));
+	U_BOOT_SUBCMD_MKENT(fuse, CONFIG_SYS_MAXARGS, 0, do_hwid_fuse),
+	U_BOOT_SUBCMD_MKENT(env, CONFIG_SYS_MAXARGS, 0, do_hwid_env));

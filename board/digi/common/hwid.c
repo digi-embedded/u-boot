@@ -139,6 +139,54 @@ __weak int board_lock_hwid(void)
 #endif
 }
 
+int hwid_env_read(struct digi_hwid *hwid)
+{
+	char var[20];
+
+	/* Get HWID from hwid_n variables */
+	for (int i = 0; i < hwid_nwords; i++) {
+		sprintf(var, "hwid_%d", i);
+		if (env_get(var) == NULL)
+			return -1;
+
+		((u32 *)hwid)[i] = env_get_hex(var, 0);
+	}
+
+	return 0;
+}
+
+int hwid_env_prog(const struct digi_hwid *hwid)
+{
+	char cmd[80];
+	int ret;
+
+	/* Set hwid_n variables from a given HWID */
+	for (int i = 0; i < hwid_nwords; i++) {
+		sprintf(cmd, "setenv -f hwid_%d %08x", i, ((u32 *) hwid)[i]);
+		ret = run_command(cmd, 0);
+		if (ret)
+			return -1;
+	}
+
+	return 0;
+}
+
+int hwid_env_clear(void)
+{
+	char cmd[80];
+	int ret;
+
+	/* Clear hwid_n variables */
+	for (int i = 0; i < hwid_nwords; i++) {
+		sprintf(cmd, "setenv -f hwid_%d", i);
+		ret = run_command(cmd, 0);
+		if (ret)
+			return -1;
+	}
+
+	return 0;
+}
+
 __weak void print_hwid_hex(struct digi_hwid *hwid)
 {
 	for (int i = hwid_nwords - 1; i >= 0; i--)
