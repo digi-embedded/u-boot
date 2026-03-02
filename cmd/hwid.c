@@ -47,13 +47,6 @@ static int do_hwid_fuse(struct cmd_tbl *cmdtp, int flag, int argc, char *const a
 			board_print_manufid(&hwid);
 		else
 			board_print_hwid(&hwid);
-	} else if (!strcmp(op, "sense") || !strcmp(op, "sense_manuf")) {
-		printf("Sensing (FUSE) HWID: ");
-		board_sense_hwid(&hwid);
-		if (!strcmp(op, "sense_manuf"))
-			board_print_manufid(&hwid);
-		else
-			board_print_hwid(&hwid);
 	} else if (!strcmp(op, "prog")) {
 		if (board_parse_hwid(argc, argv, &hwid))
 			return CMD_RET_USAGE;
@@ -71,22 +64,6 @@ static int do_hwid_fuse(struct cmd_tbl *cmdtp, int flag, int argc, char *const a
 			return CMD_RET_FAILURE;
 		printf("Programming manufacturing information into (FUSE) HWID... ");
 		ret = board_prog_hwid(&hwid);
-		if (ret)
-			goto err;
-		printf("OK\n");
-	} else if (!strcmp(op, "override")) {
-		if (board_parse_hwid(argc, argv, &hwid))
-			return CMD_RET_USAGE;
-		printf("Overriding (FUSE) HWID... ");
-		ret = board_override_hwid(&hwid);
-		if (ret)
-			goto err;
-		printf("OK\n");
-	}  else if (!strcmp(op, "override_manuf")) {
-		if (board_parse_manufid(argc, argv, &hwid))
-			return CMD_RET_FAILURE;
-		printf("Overriding manufacturing information into (FUSE) HWID... ");
-		ret = board_override_hwid(&hwid);
 		if (ret)
 			goto err;
 		printf("OK\n");
@@ -168,14 +145,10 @@ err_env:
 }
 
 U_BOOT_CMD_WITH_SUBCMDS(hwid, "HWID",
-	     "fuse read - read HWID from shadow registers\n" \
-	"hwid fuse read_manuf - read HWID from shadow registers and print manufacturing ID\n" \
-	"hwid fuse sense - sense HWID from fuse registers\n" \
-	"hwid fuse sense_manuf - sense HWID from fuse registers and print manufacturing ID\n" \
+	     "fuse read - read HWID from fuse registers\n" \
+	"hwid fuse read_manuf - read HWID from fuse registers and print manufacturing ID\n" \
 	"hwid fuse prog [-y] " CONFIG_HWID_STRINGS_HELP " - program HWID into fuse registers (PERMANENT)\n" \
 	"hwid fuse prog_manuf [-y] " CONFIG_MANUF_STRINGS_HELP " - program HWID with manufacturing ID into fuse registers (PERMANENT)\n" \
-	"hwid fuse override " CONFIG_HWID_STRINGS_HELP " - override HWID\n" \
-	"hwid fuse override_manuf " CONFIG_MANUF_STRINGS_HELP " - override HWID with manufacturing ID\n" \
 	"hwid fuse lock [-y] - lock HWID OTP bits (PERMANENT)\n" \
 	"hwid env read - read HWID from the environment\n" \
 	"hwid env read_manuf - read HWID from the environment and print manufacturing ID\n" \

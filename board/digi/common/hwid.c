@@ -42,23 +42,6 @@ __weak int board_read_hwid(struct digi_hwid *hwid)
 	int ret;
 
 	for (int i = 0; i < hwid_nwords; i++) {
-		ret = fuse_read(hwid_fuse_map[i].bank,
-				hwid_fuse_map[i].word,
-				&fuseword);
-		((u32 *)hwid)[i] = fuseword;
-		if (ret)
-			return ret;
-	}
-
-	return 0;
-}
-
-__weak int board_sense_hwid(struct digi_hwid *hwid)
-{
-	u32 fuseword;
-	int ret;
-
-	for (int i = 0; i < hwid_nwords; i++) {
 		ret = fuse_sense(hwid_fuse_map[i].bank,
 				 hwid_fuse_map[i].word,
 				 &fuseword);
@@ -103,30 +86,11 @@ __weak int board_prog_hwid(const struct digi_hwid *hwid)
 
 	board_lock_fuse_prog();
 
-	/* Trigger a HWID-related variables update (from fuses)*/
+	/* Trigger a HWID-related variables update (from FUSE HWID)*/
 	if (!ret)
 		board_update_hwid(true);
 
 	return ret;
-}
-
-__weak int board_override_hwid(const struct digi_hwid *hwid)
-{
-	u32 fuseword;
-	int ret;
-
-	for (int i = 0; i < hwid_nwords; i++) {
-		fuseword = ((u32 *)hwid)[i];
-		ret = fuse_override(hwid_fuse_map[i].bank,
-				    hwid_fuse_map[i].word,
-				    fuseword);
-		if (ret)
-			return ret;
-	}
-
-	/* Trigger a HWID-related variables update (from shadow registers)*/
-	board_update_hwid(false);
-	return 0;
 }
 
 __weak int board_lock_hwid(void)
@@ -168,6 +132,9 @@ int hwid_env_prog(const struct digi_hwid *hwid)
 			return -1;
 	}
 
+	/* Trigger a HWID-related variables update (from ENV HWID)*/
+	board_update_hwid(false);
+
 	return 0;
 }
 
@@ -183,6 +150,9 @@ int hwid_env_clear(void)
 		if (ret)
 			return -1;
 	}
+
+	/* Trigger a HWID-related variables update (from FUSE HWID)*/
+	board_update_hwid(true);
 
 	return 0;
 }
