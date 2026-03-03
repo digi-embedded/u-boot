@@ -48,7 +48,7 @@ bool board_has_bluetooth(void)
 
 int ccmp1_init(void)
 {
-	if (board_hwid_fuse_read(&my_hwid)) {
+	if (hwid_read(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return -1;
 	}

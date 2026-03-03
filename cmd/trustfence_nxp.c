@@ -131,6 +131,7 @@ int get_trustfence_key_modifier(unsigned char key_modifier[16])
 	struct digi_hwid hwid;
 	int ret;
 
+	/* Use the HWID fuses to generate the key modifier */
 	ret = board_hwid_fuse_read(&hwid);
 	if (ret)
 		return ret;

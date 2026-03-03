@@ -1599,7 +1599,7 @@ int ccimx6_init(void)
 	}
 #endif /* CONFIG_HAS_TRUSTFENCE */
 
-	if (board_hwid_fuse_read(&my_hwid)) {
+	if (hwid_read(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return -1;
 	}

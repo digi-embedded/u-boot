@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Digi International Inc
+ * Copyright (C) 2019-2026, Digi International Inc.
  * Copyright 2018 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -39,7 +39,7 @@ int board_phys_sdram_size(phys_size_t *size)
 	else
 		ram = SZ_1G;    /* ccimx8mm variant 0x01 (1GB) */
 
-	if (board_hwid_fuse_read(&my_hwid)) {
+	if (hwid_read(&my_hwid)) {
 		debug("Cannot read HWID. Using default DDR configuration.\n");
 		my_hwid.ram = 0;
 	}

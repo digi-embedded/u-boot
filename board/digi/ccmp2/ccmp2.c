@@ -82,7 +82,7 @@ void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 
 int ccmp2_init(void)
 {
-	if (board_hwid_fuse_read(&my_hwid)) {
+	if (hwid_read(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return -1;
 	}

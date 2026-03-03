@@ -59,5 +59,6 @@ void hwid_get_serial_number(uint32_t year, uint32_t week, uint32_t serial);
 int hwid_env_read(struct digi_hwid *hwid);
 int hwid_env_prog(const struct digi_hwid *hwid);
 int hwid_env_clear(void);
+int hwid_read(struct digi_hwid *hwid);
 
 #endif	/* __HWID_H_ */
