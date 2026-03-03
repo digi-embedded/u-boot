@@ -41,7 +41,6 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 static struct digi_hwid my_hwid;
-extern unsigned int hwid_nwords;
 
 #define MDIO_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_PUE |     \
 	PAD_CTL_DSE_48ohm   | PAD_CTL_SRE_FAST | PAD_CTL_ODE)
@@ -401,8 +400,6 @@ void generate_partition_table(void)
 void som_default_environment(void)
 {
 	char var[10];
-	char hex_val[9]; // 8 hex chars + null byte
-	int i;
 
 	/* Partition table script */
 	generate_partition_table();
@@ -431,12 +428,8 @@ void som_default_environment(void)
 	/* Get serial number from fuses */
 	hwid_get_serial_number(&my_hwid);
 
-	/* Set $hwid_n variables */
-	for (i = 0; i < hwid_nwords; i++) {
-		snprintf(var, sizeof(var), "hwid_%d", i);
-		snprintf(hex_val, sizeof(hex_val), "%08x", ((u32 *) &my_hwid)[i]);
-		env_set(var, hex_val);
-	}
+	/* Set FUSE HWID local vars */
+	board_hwid_fuse_set_local_vars();
 }
 
 void board_hwid_update(bool is_fuse)

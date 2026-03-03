@@ -20,6 +20,7 @@
  * MA 02111-1307 USA
  */
 
+#include <cli_hush.h>
 #include <command.h>
 #include <common.h>
 #include <linux/errno.h>
@@ -66,6 +67,35 @@ __weak int board_hwid_fuse_read(struct digi_hwid *hwid)
 		((u32 *)hwid)[i] = fuseword;
 		if (ret)
 			return ret;
+	}
+
+	return 0;
+}
+
+
+
+__weak int board_hwid_fuse_set_local_vars(void)
+{
+	u32 fuseword;
+	int ret;
+	char var[20];
+
+#ifdef CONFIG_HUSH_OLD_PARSER
+	u_boot_hush_start();
+#endif /* CONFIG_HUSH_OLD_PARSER */
+
+	for (int i = 0; i < hwid_nwords; i++) {
+		ret = fuse_sense(hwid_fuse_map[i].bank,
+				 hwid_fuse_map[i].word,
+				 &fuseword);
+		if (ret)
+			return ret;
+
+		/* Set local hwid_n variables */
+		sprintf(var, "hwid_%d=%08x", i, fuseword);
+#ifdef CONFIG_HUSH_OLD_PARSER
+		set_local_var(var, 0);
+#endif /* CONFIG_HUSH_OLD_PARSER */
 	}
 
 	return 0;

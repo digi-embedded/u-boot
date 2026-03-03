@@ -21,7 +21,6 @@
 #include "../common/trustfence.h"
 
 static struct digi_hwid my_hwid;
-extern unsigned int hwid_nwords;
 static u32 soc_rev;
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -185,8 +184,6 @@ void som_default_environment(void)
 	char cmd[80];
 #endif
 	char var[200];
-	char hex_val[9]; // 8 hex chars + null byte
-	int i;
 
 #ifdef CONFIG_CMD_MMC
 	/* Set $mmcbootdev to MMC boot device index */
@@ -202,13 +199,8 @@ void som_default_environment(void)
 	sprintf(var, "0x%02x", soc_rev);
 	env_set("soc_rev", var);
 
-	/* Set hwid_n variables */
-	for (i = 0; i < hwid_nwords; i++) {
-		snprintf(var, sizeof(var), "hwid_%d", i);
-		snprintf(hex_val, sizeof(hex_val), "%08x",
-			 ((u32 *) & my_hwid)[i]);
-		env_set(var, hex_val);
-	}
+	/* Set FUSE HWID local vars */
+	board_hwid_fuse_set_local_vars();
 
 	/* Set module_ram variable */
 	if (my_hwid.ram) {
