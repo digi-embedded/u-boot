@@ -82,7 +82,7 @@ bool board_has_eth1(void)
 
 int ccimx8_init(void)
 {
-	if (board_hwid_fuse_read(&my_hwid)) {
+	if (hwid_read(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return -1;
 	}

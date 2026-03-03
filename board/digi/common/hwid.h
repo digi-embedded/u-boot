@@ -57,5 +57,6 @@ void hwid_get_serial_number(const struct digi_hwid *hwid);
 int hwid_env_read(struct digi_hwid *hwid);
 int hwid_env_prog(const struct digi_hwid *hwid);
 int hwid_env_clear(void);
+int hwid_read(struct digi_hwid *hwid);
 
 #endif	/* __HWID_H_ */

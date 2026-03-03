@@ -36,6 +36,24 @@ mac_base_t mac_pools[] = {
 	[2] = {{0x00, 0x40, 0x9d}},
 };
 
+int hwid_read(struct digi_hwid *hwid)
+{
+	int ret;
+
+#ifndef CONFIG_SPL_BUILD
+	/*
+	 * If there is a HWID defined in the environment, read
+	 * it from there. Otherwise, read it from fuses.
+	 */
+	ret = hwid_env_read(hwid);
+	if (!ret)
+		return ret;
+#endif
+	ret = board_hwid_fuse_read(hwid);
+
+	return ret;
+}
+
 __weak int board_hwid_fuse_read(struct digi_hwid *hwid)
 {
 	u32 fuseword;

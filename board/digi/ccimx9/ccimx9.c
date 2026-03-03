@@ -159,7 +159,7 @@ static const char *get_cpu_type_str(void)
 
 int ccimx9_init(void)
 {
-	if (board_hwid_fuse_read(&my_hwid)) {
+	if (hwid_read(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return -1;
 	}
