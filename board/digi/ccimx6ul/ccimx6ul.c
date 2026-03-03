@@ -434,7 +434,7 @@ void som_default_environment(void)
 	if (board_has_bluetooth())
 		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
 
-	/* Get serial number from fuses */
+	/* Get serial number from HWID */
 	hwid_get_serial_number(&my_hwid);
 
 	/* Set FUSE HWID local vars */

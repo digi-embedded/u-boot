@@ -6,7 +6,6 @@
 
 #include <common.h>
 #include <fdt_support.h>
-#include <fuse.h>
 #include <linux/sizes.h>
 #include "../common/helper.h"
 #include "../common/hwid.h"

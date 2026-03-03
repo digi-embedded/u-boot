@@ -6,7 +6,6 @@
 
 #include <dm.h>
 #include <errno.h>
-#include <fuse.h>
 #include <linux/kernel.h>
 #include <memalign.h>
 #include <uboot_aes.h>
@@ -25,6 +24,7 @@
 #include "aes_tee.h"
 #endif
 
+#include "../hwid.h"
 #include "boot.h"
 #include "env.h"
 
