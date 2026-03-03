@@ -222,7 +222,7 @@ void som_default_environment(void)
 	 */
 	generate_partition_table();
 
-	/* Get MAC address from fuses unless indicated otherwise */
+	/* Get MAC address from HWID unless indicated otherwise */
 	if (env_get_yesno("use_fused_macs"))
 		hwid_get_macs(my_hwid.mac_pool, my_hwid.mac_base);
 

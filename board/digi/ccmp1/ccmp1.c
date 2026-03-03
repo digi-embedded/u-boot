@@ -223,7 +223,7 @@ void som_default_environment(void)
 		env_set("module_ram", var);
 	}
 
-	/* Get MAC address from fuses unless indicated otherwise */
+	/* Get MAC address from HWID unless indicated otherwise */
 	if (env_get_yesno("use_fused_macs"))
 		hwid_get_macs(my_hwid.mac_pool, my_hwid.mac_base);
 
@@ -239,7 +239,7 @@ void som_default_environment(void)
 	if (board_has_bluetooth())
 		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
 
-	/* Get serial number from fuses */
+	/* Get serial number from HWID */
 	hwid_get_serial_number(my_hwid.year, my_hwid.week, my_hwid.sn);
 }
 

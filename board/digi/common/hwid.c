@@ -244,7 +244,7 @@ void hwid_get_macs(uint32_t pool, uint32_t base)
 
 	/*
 	 * Setting the mac pool to 0 means that the mac addresses will not be
-	 * setup with the information encoded in the efuses.
+	 * setup with the information encoded in the HWID.
 	 * This is a back-door to allow manufacturing units with uboots that
 	 * do not support some specific pool.
 	 */
@@ -290,7 +290,7 @@ void hwid_get_macs(uint32_t pool, uint32_t base)
 		sprintf(cmd, "setenv -f %s %pM", macvars[i], macaddr);
 		ret = run_command(cmd, 0);
 		if (ret)
-			printf("ERROR setting %s from fuses (%d)\n", macvars[i],
+			printf("ERROR setting %s from HWID (%d)\n", macvars[i],
 			       ret);
 	}
 }
@@ -311,7 +311,7 @@ void hwid_get_serial_number(uint32_t year, uint32_t week, uint32_t serial)
 		serial);
 	ret = run_command(cmd, 0);
 	if (ret)
-		printf("ERROR setting 'serial#' from fuses (%d)\n", ret);
+		printf("ERROR setting 'serial#' from HWID (%d)\n", ret);
 }
 
 /* Parse HWID info in HWID format */
