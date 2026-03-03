@@ -163,6 +163,11 @@ static struct env_driver *env_driver_lookup(enum env_operation op, int prio)
 	return drv;
 }
 
+__weak void platform_loaded_environment(void)
+{
+	return;
+}
+
 int env_load(void)
 {
 	struct env_driver *drv;
@@ -193,6 +198,9 @@ int env_load(void)
 		if (!ret) {
 			printf("OK\n");
 			gd->env_load_prio = prio;
+
+			/* Platform-specific actions on successfully loaded environment */
+			platform_loaded_environment();
 
 			return 0;
 		} else if (ret == -ENOMSG) {
