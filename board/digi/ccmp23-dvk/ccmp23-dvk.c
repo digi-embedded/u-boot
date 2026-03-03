@@ -284,6 +284,11 @@ int mmc_get_env_dev(void)
 	return mmc_get_boot();
 }
 
+void platform_loaded_environment(void)
+{
+	som_loaded_environment();
+}
+
 void platform_default_environment(void)
 {
 	som_default_environment();

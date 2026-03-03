@@ -186,6 +186,15 @@ void generate_ubi_volumes_script(void)
 	env_set("ubivolscript", script);
 }
 
+void som_loaded_environment(void)
+{
+	/* Update local HWID as soon as the environment is available */
+	if (hwid_read(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return;
+	}
+}
+
 void som_default_environment(void)
 {
 	char var[10];
