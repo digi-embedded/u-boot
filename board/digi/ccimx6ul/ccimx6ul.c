@@ -397,6 +397,15 @@ void generate_partition_table(void)
 	env_set("partition_nand_linux", script);
 }
 
+void som_loaded_environment(void)
+{
+	/* Update local HWID as soon as the environment is available */
+	if (hwid_read(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return;
+	}
+}
+
 void som_default_environment(void)
 {
 	char var[10];

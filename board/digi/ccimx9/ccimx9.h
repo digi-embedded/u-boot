@@ -8,6 +8,7 @@
 #define CCIMX9_H
 
 int ccimx9_init(void);
+void som_loaded_environment(void);
 void som_default_environment(void);
 int ccimx9_late_init(void);
 void fdt_fixup_ccimx9(void *fdt);

@@ -343,6 +343,11 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
 
+void platform_loaded_environment(void)
+{
+	som_loaded_environment();
+}
+
 void platform_default_environment(void)
 {
 	som_default_environment();

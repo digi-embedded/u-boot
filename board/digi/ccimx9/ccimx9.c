@@ -178,6 +178,15 @@ int ccimx9_init(void)
 	return 0;
 }
 
+void som_loaded_environment(void)
+{
+	/* Update local HWID as soon as the environment is available */
+	if (hwid_read(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return;
+	}
+}
+
 void som_default_environment(void)
 {
 #ifdef CONFIG_CMD_MMC

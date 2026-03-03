@@ -128,6 +128,15 @@ void generate_partition_table(void)
 		env_set("parts_linux_dualboot", linux_dualboot_partition_table);
 }
 
+void som_loaded_environment(void)
+{
+	/* Update local HWID as soon as the environment is available */
+	if (hwid_read(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return;
+	}
+}
+
 void som_default_environment(void)
 {
 #ifdef CONFIG_CMD_MMC
