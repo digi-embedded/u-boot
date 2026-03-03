@@ -48,6 +48,7 @@ void board_hwid_print_manuf(struct digi_hwid *hwid);
 int board_hwid_parse(int argc, char *const argv[], struct digi_hwid *hwid);
 int board_hwid_parse_manuf(int argc, char *const argv[], struct digi_hwid *hwid);
 int board_hwid_fuse_read(struct digi_hwid *hwid);
+int board_hwid_fuse_set_local_vars(void);
 int board_hwid_fuse_prog(const struct digi_hwid *hwid);
 void board_hwid_update(bool is_fuse);
 int board_hwid_fuse_lock(void);

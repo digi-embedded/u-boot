@@ -47,7 +47,6 @@ static struct digi_hwid my_hwid;
 #ifdef CONFIG_HAS_TRUSTFENCE
 extern int rng_swtest_status;
 #endif
-extern unsigned int hwid_nwords;
 
 #define MDIO_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_PUE |     \
 	PAD_CTL_DSE_48ohm   | PAD_CTL_SRE_FAST | PAD_CTL_ODE)
@@ -449,8 +448,6 @@ void generate_partition_table(void)
 void som_default_environment(void)
 {
 	char var[10];
-	char hex_val[9]; // 8 hex chars + null byte
-	int i;
 
 	/* Partition table script */
 	generate_partition_table();
@@ -466,12 +463,8 @@ void som_default_environment(void)
 	sprintf(var, "0x%02x", my_hwid.variant);
 	env_set("module_variant", var);
 
-	/* Set $hwid_n variables */
-	for (i = 0; i < hwid_nwords; i++) {
-		snprintf(var, sizeof(var), "hwid_%d", i);
-		snprintf(hex_val, sizeof(hex_val), "%08x", ((u32 *) &my_hwid)[i]);
-		env_set(var, hex_val);
-	}
+	/* Set FUSE HWID local vars */
+	board_hwid_fuse_set_local_vars();
 }
 
 void board_hwid_update(bool is_fuse)
