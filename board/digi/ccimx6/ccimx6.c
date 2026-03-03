@@ -1871,6 +1871,9 @@ void som_default_environment(void)
 	 */
 	if (!IS_ENABLED(CONFIG_ANDROID_SUPPORT))
 		generate_partition_table();
+
+	/* Get serial number from HWID */
+	hwid_get_serial_number(&my_hwid);
 }
 
 void board_hwid_update(bool is_fuse)
