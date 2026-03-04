@@ -293,7 +293,7 @@
 
 #define CFG_SYS_SDRAM_BASE           0x90000000
 #define PHYS_SDRAM                      0x90000000
-/* Totally 8GB */
+/* Up to 8GB */
 #define PHYS_SDRAM_SIZE			0x70000000UL /* 2GB  - 256MB DDR */
 #define PHYS_SDRAM_2_SIZE 		0x180000000UL /* 6GB */
 
