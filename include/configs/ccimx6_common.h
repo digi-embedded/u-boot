@@ -163,7 +163,8 @@
 	"board_id:so,"			\
 	"mmcbootdev:so,"		\
 	"hwid_0:so,"			\
-	"hwid_1:so,"
+	"hwid_1:so,"			\
+	"drm_ic:so,"
 
 #define CONFIG_SILENT_CONSOLE_UPDATE_ON_RELOC
 

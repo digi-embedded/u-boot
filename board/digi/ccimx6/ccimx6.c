@@ -1642,4 +1642,5 @@ void fdt_fixup_ccimx6(void *fdt)
 		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
 	fdt_fixup_trustfence(fdt);
 	fdt_fixup_uboot_info(fdt);
+	fdt_fixup_install_code(fdt);
 }

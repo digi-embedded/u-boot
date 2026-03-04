@@ -575,6 +575,7 @@ void fdt_fixup_ccimx6ul(void *fdt)
 
 	fdt_fixup_trustfence(fdt);
 	fdt_fixup_uboot_info(fdt);
+	fdt_fixup_install_code(fdt);
 }
 
 /* Determine env partition offset depending on NAND size */

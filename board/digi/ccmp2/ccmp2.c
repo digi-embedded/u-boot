@@ -108,6 +108,7 @@ void fdt_fixup_ccmp2(void *fdt)
 		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
 
 	fdt_fixup_uboot_info(fdt);
+	fdt_fixup_install_code(fdt);
 
 	/* Add DT entry to detect environment encryption in Linux */
 #ifdef CONFIG_ENV_AES_CCMP1
