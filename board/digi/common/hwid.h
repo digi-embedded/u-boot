@@ -40,9 +40,9 @@ struct digi_hwid_fuse {
 
 void board_hwid_fuse_prog_unlock(void);
 void board_hwid_fuse_prog_lock(void);
-void board_hwid_print(struct digi_hwid *hwid);
-void board_hwid_print_hex(struct digi_hwid *hwid);
-void board_hwid_print_manuf(struct digi_hwid *hwid);
+void board_hwid_print(const struct digi_hwid *hwid);
+void board_hwid_print_hex(const struct digi_hwid *hwid);
+void board_hwid_print_manuf(const struct digi_hwid *hwid);
 int board_hwid_parse(int argc, char *const argv[], struct digi_hwid *hwid);
 int board_hwid_parse_manuf(int argc, char *const argv[], struct digi_hwid *hwid);
 int board_hwid_fuse_read(struct digi_hwid *hwid);

@@ -52,7 +52,7 @@ struct digi_hwid_fuse hwid_fuse_map[] = {
 
 unsigned int hwid_nwords = ARRAY_SIZE(hwid_fuse_map);
 /* Print HWID info */
-void board_hwid_print(struct digi_hwid *hwid)
+void board_hwid_print(const struct digi_hwid *hwid)
 {
 	uint8_t mac_pool[3];
 	hwid_get_mac_pool(hwid, mac_pool);
@@ -82,7 +82,7 @@ void board_hwid_print(struct digi_hwid *hwid)
 }
 
 /* Print HWID info in MANUFID format */
-void board_hwid_print_manuf(struct digi_hwid *hwid)
+void board_hwid_print_manuf(const struct digi_hwid *hwid)
 {
 	board_hwid_print_hex(hwid);
 
