@@ -202,7 +202,7 @@ int hwid_env_clear(void)
 	return 0;
 }
 
-__weak void board_hwid_print_hex(struct digi_hwid *hwid)
+__weak void board_hwid_print_hex(const struct digi_hwid *hwid)
 {
 	for (int i = hwid_nwords - 1; i >= 0; i--)
 		printf(" %.*x", hwid_fuse_map[i].len, ((u32 *)hwid)[i]);
