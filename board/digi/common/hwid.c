@@ -30,6 +30,7 @@
 
 extern struct digi_hwid_fuse hwid_fuse_map[];
 extern unsigned int hwid_nwords;
+extern u64 ram_sizes_mb[16];
 typedef struct mac_base { uint8_t mbase[3]; } mac_base_t;
 
 mac_base_t mac_pools[] = {
@@ -213,6 +214,21 @@ __weak void board_hwid_print_hex(struct digi_hwid *hwid)
 	printf("\n");
 }
 
+#if !defined(CONFIG_CC6) && !defined(CONFIG_CC6UL)
+u64 hwid_get_ramsize(const struct digi_hwid *hwid)
+{
+#ifdef CONFIG_CC8X
+	/*
+	 * A batch of variant -13 modules was wrongly programmed
+	 * with 1GB RAM size. Correct that particular case by
+	 * establishing a 4GB RAM size.
+	 */
+	if ((hwid->variant == 13) && (ram_sizes_mb[hwid->ram] == 1024))
+		return SZ_4G;
+#endif
+	return ram_sizes_mb[hwid->ram] * SZ_1M;
+}
+
 __weak bool board_has_eth1(void)
 {
 	return false;
@@ -239,7 +255,7 @@ static int set_lower_mac(uint32_t val, uint8_t *mac)
 	return 0;
 }
 
-void hwid_get_macs(uint32_t pool, uint32_t base)
+void hwid_get_macs(const struct digi_hwid *hwid)
 {
 	uint8_t macaddr[6];
 	char macvars[4][10];
@@ -252,16 +268,16 @@ void hwid_get_macs(uint32_t pool, uint32_t base)
 	 * This is a back-door to allow manufacturing units with uboots that
 	 * do not support some specific pool.
 	 */
-	if (pool == 0)
+	if (hwid->mac_pool == 0)
 		return;
 
-	if (pool >= ARRAY_SIZE(mac_pools)) {
-		printf("ERROR: unsupported MAC address pool %u\n", pool);
+	if (hwid->mac_pool >= ARRAY_SIZE(mac_pools)) {
+		printf("ERROR: unsupported MAC address pool %u\n", hwid->mac_pool);
 		return;
 	}
 
 	/* Set MAC from pool */
-	memcpy(macaddr, mac_pools[pool].mbase, sizeof(mac_base_t));
+	memcpy(macaddr, mac_pools[hwid->mac_pool].mbase, sizeof(mac_base_t));
 
 	/* Fill in env-variables array, depending on available NICs */
 	strcpy(macvars[n_macs], "ethaddr");
@@ -283,13 +299,13 @@ void hwid_get_macs(uint32_t pool, uint32_t base)
 	}
 
 	/* Protect from overflow */
-	if (base + n_macs > 0xffffff) {
+	if (hwid->mac_base + n_macs > 0xffffff) {
 		printf("ERROR: not enough remaining MACs on this MAC pool\n");
 		return;
 	}
 
 	for (int i = 0; i < n_macs; i++) {
-		set_lower_mac(base + i, macaddr);
+		set_lower_mac(hwid->mac_base + i, macaddr);
 
 		sprintf(cmd, "setenv -f %s %pM", macvars[i], macaddr);
 		ret = run_command(cmd, 0);
@@ -298,6 +314,24 @@ void hwid_get_macs(uint32_t pool, uint32_t base)
 			       ret);
 	}
 }
+
+void hwid_get_mac_pool(const struct digi_hwid *hwid, uint8_t *mac)
+{
+	if (hwid->mac_pool == 0) {
+		memset(mac, 0, sizeof(mac_base_t));
+		return;
+	}
+
+	if (hwid->mac_pool >= ARRAY_SIZE(mac_pools)) {
+		memset(mac, 0, sizeof(mac_base_t));
+		printf("ERROR: unsupported MAC address pool %u\n", hwid->mac_pool);
+		return;
+	}
+
+	/* Set MAC from pool */
+	memcpy(mac, mac_pools[hwid->mac_pool].mbase, sizeof(mac_base_t));
+}
+#endif /* !defined(CONFIG_CC6) && !defined(CONFIG_CC6UL) */
 
 void hwid_get_serial_number(const struct digi_hwid *hwid)
 {

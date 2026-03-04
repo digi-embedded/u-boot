@@ -52,7 +52,8 @@ void board_hwid_update(bool is_fuse);
 int board_hwid_fuse_lock(void);
 void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid);
 u64 hwid_get_ramsize(const struct digi_hwid *hwid);
-void hwid_get_macs(uint32_t pool, uint32_t base);
+void hwid_get_macs(const struct digi_hwid *hwid);
+void hwid_get_mac_pool(const struct digi_hwid *hwid, uint8_t *mac);
 void hwid_get_serial_number(const struct digi_hwid *hwid);
 
 int hwid_env_read(struct digi_hwid *hwid);
