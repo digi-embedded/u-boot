@@ -78,7 +78,7 @@ int scmi_misc_ddrinfo(u32 ddrc_id, struct scmi_ddr_info_out *out)
 {
 	u32 in = ddrc_id;
 	struct scmi_msg msg = {
-		.protocol_id = SCMI_PROTOCOL_ID_IMX_MISC,
+		.protocol_id = SCMI_PROTOCOL_ID_MISC,
 		.message_id = SCMI_MISC_DDR_INFO_GET,
 		.in_msg = (u8 *)&in,
 		.in_msg_sz = sizeof(in),
