@@ -107,7 +107,8 @@
 	"board_version:so,"		\
 	"board_id:so,"			\
 	"hwid_0:so,"			\
-	"hwid_1:so,"
+	"hwid_1:so,"			\
+	"drm_ic:so,"
 
 /* I2C configs */
 #define CONFIG_I2C_MULTI_BUS

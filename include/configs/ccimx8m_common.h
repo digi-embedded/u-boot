@@ -282,7 +282,8 @@
 	"mmcbootdev:so,"		\
 	"hwid_0:so,"			\
 	"hwid_1:so,"			\
-	"hwid_2:so,"
+	"hwid_2:so,"			\
+	"drm_ic:so,"
 
 #define FSL_FASTBOOT_FB_DEV "mmc"
 

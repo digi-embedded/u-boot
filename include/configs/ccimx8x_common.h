@@ -117,7 +117,8 @@
 	"hwid_0:so,"			\
 	"hwid_1:so,"			\
 	"hwid_2:so,"			\
-	"hwid_3:so,"
+	"hwid_3:so,"			\
+	"drm_ic:so,"
 
 /* Environment */
 /* On CC8X, USDHC1 is for eMMC, USDHC2 is for SD on SBC Express */

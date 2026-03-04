@@ -113,7 +113,8 @@
 	"board_id:so,"			\
 	"mmcbootdev:so,"		\
 	"hwid_0:so,"			\
-	"hwid_1:so,"
+	"hwid_1:so,"			\
+	"drm_ic:so,"
 
 /* PMIC */
 #define CONFIG_PMIC_I2C_BUS		1	/* DA9063 PMIC i2c bus */

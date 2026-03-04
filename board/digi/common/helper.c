@@ -750,6 +750,16 @@ void fdt_fixup_uboot_info(void *fdt) {
 #endif
 }
 
+void fdt_fixup_install_code(void *fdt)
+{
+	char *install_code = env_get("drm_ic");
+
+	if (install_code != NULL) {
+		do_fixup_by_path(fdt, "/", "digi,drm-ic", install_code,
+				 strlen(install_code) + 1, 1);
+	}
+}
+
 const char *get_filename_ext(const char *filename)
 {
 	const char *dot;

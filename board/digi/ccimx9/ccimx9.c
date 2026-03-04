@@ -319,6 +319,7 @@ void fdt_fixup_ccimx9(void *fdt)
 	fdt_fixup_trustfence(fdt);
 #endif
 	fdt_fixup_uboot_info(fdt);
+	fdt_fixup_install_code(fdt);
 }
 
 void print_som_info(void)
