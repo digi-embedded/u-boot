@@ -225,7 +225,7 @@ void som_default_environment(void)
 
 	/* Get MAC address from HWID unless indicated otherwise */
 	if (env_get_yesno("use_fused_macs"))
-		hwid_get_macs(my_hwid.mac_pool, my_hwid.mac_base);
+		hwid_get_macs(&my_hwid);
 
 	/* Verify MAC addresses */
 	verify_mac_address("ethaddr", DEFAULT_MAC_ETHADDR);
@@ -240,7 +240,7 @@ void som_default_environment(void)
 		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
 
 	/* Get serial number from HWID */
-	hwid_get_serial_number(my_hwid.year, my_hwid.week, my_hwid.sn);
+	hwid_get_serial_number(&my_hwid);
 }
 
 void board_hwid_update(bool is_fuse)

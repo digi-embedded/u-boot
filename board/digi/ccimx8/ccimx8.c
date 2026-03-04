@@ -224,7 +224,7 @@ void som_default_environment(void)
 
 	/* Get MAC address from HWID unless indicated otherwise */
 	if (env_get_yesno("use_fused_macs"))
-		hwid_get_macs(my_hwid.mac_pool, my_hwid.mac_base);
+		hwid_get_macs(&my_hwid);
 
 	/* Verify MAC addresses */
 	verify_mac_address("ethaddr", DEFAULT_MAC_ETHADDR);

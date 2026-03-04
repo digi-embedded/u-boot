@@ -69,11 +69,15 @@ void board_hwid_fuse_prog_lock(void)
 /* Print HWID info */
 void board_hwid_print(struct digi_hwid *hwid)
 {
+	uint8_t mac_pool[3];
+	hwid_get_mac_pool(hwid, mac_pool);
+
 	board_hwid_print_hex(hwid);
 
 	/* Formatted printout */
 	printf("    Generator ID:  %02d\n", hwid->genid);
-	printf("    MAC Pool:      %02d\n", hwid->mac_pool);
+	printf("    MAC Pool:      %02d (%.2x:%.2x:%.2x)\n", hwid->mac_pool,
+		mac_pool[0], mac_pool[1], mac_pool[2]);
 	printf("    MAC Base:      %.2x:%.2x:%.2x\n",
 		(hwid->mac_base >> 16) & 0xFF,
 		(hwid->mac_base >> 8) & 0xFF,
@@ -151,6 +155,7 @@ int board_hwid_parse_manuf(int argc, char *const argv[], struct digi_hwid *hwid)
 {
 	char tmp[13];
 	unsigned long num;
+	uint8_t mac_pool[3];
 
 	/* Initialize HWID words */
 	memset(hwid, 0, sizeof(struct digi_hwid));
@@ -264,7 +269,9 @@ int board_hwid_parse_manuf(int argc, char *const argv[], struct digi_hwid *hwid)
 		goto err;
 	}
 	hwid->mac_pool = num;
-	printf("    MAC pool:      %02d\n", hwid->mac_pool);
+	hwid_get_mac_pool(hwid, mac_pool);
+	printf("    MAC Pool:      %02d (%.2x:%.2x:%.2x)\n", hwid->mac_pool,
+		mac_pool[0], mac_pool[1], mac_pool[2]);
 
 	/* MAC base address */
 	strncpy(tmp, &argv[1][2], 6);
@@ -457,9 +464,4 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 		sprintf(str, "digi,hwid_%d", i);
 		do_fixup_by_path_u32(fdt, "/", str, *((u32 *)hwid + i), 1);
 	}
-}
-
-u32 hwid_get_ramsize(const struct digi_hwid *hwid)
-{
-	return ram_sizes_mb[hwid->ram] * SZ_1M;
 }
