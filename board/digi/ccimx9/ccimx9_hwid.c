@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Digi International, Inc.
+ * Copyright (C) 2022-2026, Digi International, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -53,9 +53,9 @@ struct digi_hwid_fuse hwid_fuse_map[] = {
 
 unsigned int hwid_nwords = ARRAY_SIZE(hwid_fuse_map);
 /* Print HWID info */
-void board_print_hwid(struct digi_hwid *hwid)
+void board_hwid_print(struct digi_hwid *hwid)
 {
-	print_hwid_hex(hwid);
+	board_hwid_print_hex(hwid);
 
 	/* Formatted printout */
 	printf("    Generator ID:  %02d\n", hwid->genid);
@@ -79,9 +79,9 @@ void board_print_hwid(struct digi_hwid *hwid)
 }
 
 /* Print HWID info in MANUFID format */
-void board_print_manufid(struct digi_hwid *hwid)
+void board_hwid_print_manuf(struct digi_hwid *hwid)
 {
-	print_hwid_hex(hwid);
+	board_hwid_print_hex(hwid);
 
 	/* Formatted printout */
 	printf(" Manufacturing ID: %02d%02d%02d%06d %02d%06x %02x%x%x"
@@ -115,7 +115,7 @@ static int parse_bool_char(char c, bool *val)
 }
 
 /* Parse HWID info in MANUFID format */
-int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
+int board_hwid_parse_manuf(int argc, char *const argv[], struct digi_hwid *hwid)
 {
 	char tmp[13];
 	unsigned long num;

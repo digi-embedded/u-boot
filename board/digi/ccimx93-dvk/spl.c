@@ -78,7 +78,7 @@ void spl_dram_init(void)
 	struct digi_hwid my_hwid;
 	u64 ram;
 
-	if (board_read_hwid(&my_hwid))
+	if (board_hwid_fuse_read(&my_hwid))
 		my_hwid.ram = 0;
 	ram = hwid_get_ramsize(&my_hwid);
 

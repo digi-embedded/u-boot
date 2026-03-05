@@ -38,19 +38,19 @@ struct digi_hwid_fuse {
 	u32 len;	/* length in nibbles (4-bits) */
 };
 
-void board_unlock_fuse_prog(void);
-void board_lock_fuse_prog(void);
-void board_print_hwid(struct digi_hwid *hwid);
-void board_print_manufid(struct digi_hwid *hwid);
-int board_parse_hwid(int argc, char *const argv[], struct digi_hwid *hwid);
-int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid);
-int board_read_hwid(struct digi_hwid *hwid);
-int board_prog_hwid(const struct digi_hwid *hwid);
-void board_update_hwid(bool is_fuse);
-int board_lock_hwid(void);
+void board_hwid_fuse_prog_unlock(void);
+void board_hwid_fuse_prog_lock(void);
+void board_hwid_print(struct digi_hwid *hwid);
+void board_hwid_print_hex(struct digi_hwid *hwid);
+void board_hwid_print_manuf(struct digi_hwid *hwid);
+int board_hwid_parse(int argc, char *const argv[], struct digi_hwid *hwid);
+int board_hwid_parse_manuf(int argc, char *const argv[], struct digi_hwid *hwid);
+int board_hwid_fuse_read(struct digi_hwid *hwid);
+int board_hwid_fuse_prog(const struct digi_hwid *hwid);
+void board_hwid_update(bool is_fuse);
+int board_hwid_fuse_lock(void);
 void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid);
 u64 hwid_get_ramsize(const struct digi_hwid *hwid);
-void print_hwid_hex(struct digi_hwid *hwid);
 void hwid_get_macs(uint32_t pool, uint32_t base);
 void hwid_get_serial_number(const struct digi_hwid *hwid);
 

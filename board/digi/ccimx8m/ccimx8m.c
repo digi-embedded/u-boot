@@ -29,7 +29,7 @@ int board_phys_sdram_size(phys_size_t *size)
 	else
 		ram = SZ_1G;    /* ccimx8mm variant 0x01 (1GB) */
 
-	if (board_read_hwid(&my_hwid)) {
+	if (board_hwid_fuse_read(&my_hwid)) {
 		debug("Cannot read HWID. Using default DDR configuration.\n");
 		my_hwid.ram = 0;
 	}

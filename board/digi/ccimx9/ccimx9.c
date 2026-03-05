@@ -159,7 +159,7 @@ static const char *get_cpu_type_str(void)
 
 int ccimx9_init(void)
 {
-	if (board_read_hwid(&my_hwid)) {
+	if (board_hwid_fuse_read(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return -1;
 	}
@@ -259,11 +259,11 @@ void som_default_environment(void)
 	env_set("cpu_type", get_cpu_type_str());
 }
 
-void board_update_hwid(bool is_fuse)
+void board_hwid_update(bool is_fuse)
 {
 	/* Update HWID-related variables in MCA and environment */
 	int ret =
-	    is_fuse ? board_read_hwid(&my_hwid) : hwid_env_read(&my_hwid);
+	    is_fuse ? board_hwid_fuse_read(&my_hwid) : hwid_env_read(&my_hwid);
 
 	if (ret)
 		printf("Cannot read HWID\n");

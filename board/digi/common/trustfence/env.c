@@ -40,7 +40,7 @@ static int get_trustfence_key_modifier(unsigned char keymod[KEY_MODIFIER_SIZE])
 	struct digi_hwid hwid;
 	int ret;
 
-	ret = board_read_hwid(&hwid);
+	ret = board_hwid_fuse_read(&hwid);
 	if (ret)
 		return ret;
 

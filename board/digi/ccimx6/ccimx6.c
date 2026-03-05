@@ -1869,10 +1869,10 @@ void som_default_environment(void)
 		generate_partition_table();
 }
 
-void board_update_hwid(bool is_fuse)
+void board_hwid_update(bool is_fuse)
 {
 	/* Update HWID-related variables in environment */
-	int ret = is_fuse ? board_read_hwid(&my_hwid) : hwid_env_read(&my_hwid);
+	int ret = is_fuse ? board_hwid_fuse_read(&my_hwid) : hwid_env_read(&my_hwid);
 
 	if (ret)
 		printf("Cannot read HWID\n");
@@ -1947,7 +1947,7 @@ int ccimx6_init(void)
 #endif /* CONFIG_CAAM_ENV_ENCRYPT */
 #endif /* CONFIG_HAS_TRUSTFENCE */
 
-	if (board_read_hwid(&my_hwid)) {
+	if (board_hwid_fuse_read(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return -1;
 	}

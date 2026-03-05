@@ -82,7 +82,7 @@ bool board_has_eth1(void)
 
 int ccimx8_init(void)
 {
-	if (board_read_hwid(&my_hwid)) {
+	if (board_hwid_fuse_read(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return -1;
 	}
@@ -267,10 +267,10 @@ void som_default_environment(void)
 	env_set("som_overlays", var);
 }
 
-void board_update_hwid(bool is_fuse)
+void board_hwid_update(bool is_fuse)
 {
 	/* Update HWID-related variables in MCA and environment */
-	int ret = is_fuse ? board_read_hwid(&my_hwid) : hwid_env_read(&my_hwid);
+	int ret = is_fuse ? board_hwid_fuse_read(&my_hwid) : hwid_env_read(&my_hwid);
 
 	if (ret)
 		printf("Cannot read HWID\n");

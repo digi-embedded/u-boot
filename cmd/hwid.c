@@ -42,28 +42,28 @@ static int do_hwid_fuse(struct cmd_tbl *cmdtp, int flag, int argc, char *const a
 
 	if (!strcmp(op, "read") || !strcmp(op, "read_manuf")) {
 		printf("Reading (FUSE) HWID: ");
-		board_read_hwid(&hwid);
+		board_hwid_fuse_read(&hwid);
 		if (!strcmp(op, "read_manuf"))
-			board_print_manufid(&hwid);
+			board_hwid_print_manuf(&hwid);
 		else
-			board_print_hwid(&hwid);
+			board_hwid_print(&hwid);
 	} else if (!strcmp(op, "prog")) {
-		if (board_parse_hwid(argc, argv, &hwid))
+		if (board_hwid_parse(argc, argv, &hwid))
 			return CMD_RET_USAGE;
 		if (!confirmed && !confirm_prog())
 			return CMD_RET_FAILURE;
 		printf("Programming (FUSE) HWID... ");
-		ret = board_prog_hwid(&hwid);
+		ret = board_hwid_fuse_prog(&hwid);
 		if (ret)
 			goto err;
 		printf("OK\n");
 	} else if (!strcmp(op, "prog_manuf")) {
-		if (board_parse_manufid(argc, argv, &hwid))
+		if (board_hwid_parse_manuf(argc, argv, &hwid))
 			return CMD_RET_FAILURE;
 		if (!confirmed && !confirm_prog())
 			return CMD_RET_FAILURE;
 		printf("Programming manufacturing information into (FUSE) HWID... ");
-		ret = board_prog_hwid(&hwid);
+		ret = board_hwid_fuse_prog(&hwid);
 		if (ret)
 			goto err;
 		printf("OK\n");
@@ -71,7 +71,7 @@ static int do_hwid_fuse(struct cmd_tbl *cmdtp, int flag, int argc, char *const a
 		if (!confirmed && !confirm_prog())
 			return CMD_RET_FAILURE;
 		printf("Locking (FUSE) HWID... ");
-		ret = board_lock_hwid();
+		ret = board_hwid_fuse_lock();
 		if (ret)
 			goto err;
 		printf("OK\n");
@@ -108,11 +108,11 @@ static int do_hwid_env(struct cmd_tbl *cmdtp, int flag, int argc, char *const ar
 			return CMD_RET_USAGE;
 		}
 		if (!strcmp(op, "read_manuf"))
-			board_print_manufid(&hwid);
+			board_hwid_print_manuf(&hwid);
 		else
-			board_print_hwid(&hwid);
+			board_hwid_print(&hwid);
 	} else if (!strcmp(op, "prog")) {
-		if (board_parse_hwid(argc, argv, &hwid))
+		if (board_hwid_parse(argc, argv, &hwid))
 			return CMD_RET_USAGE;
 		printf("Programming (ENV) HWID... ");
 		ret = hwid_env_prog(&hwid);
@@ -120,7 +120,7 @@ static int do_hwid_env(struct cmd_tbl *cmdtp, int flag, int argc, char *const ar
 			goto err_env;
 		printf("OK\n");
 	} else if (!strcmp(op, "prog_manuf")) {
-		if (board_parse_manufid(argc, argv, &hwid))
+		if (board_hwid_parse_manuf(argc, argv, &hwid))
 			return CMD_RET_FAILURE;
 		printf("Programming manufacturing information into (ENV) HWID... ");
 		ret = hwid_env_prog(&hwid);
