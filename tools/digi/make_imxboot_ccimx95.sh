@@ -177,6 +177,7 @@ patch_oei_repo()
 build_oei()
 {
 	OEI_SOC_REV="${SOC_REV}"
+	# OEI_MAKE_ARGS="DDR_CONFIG=lpddr5_timing_2G"
 	if [ "${OEI_SOC_REV#A}" != "${OEI_SOC_REV}" ]; then
 		OEI_SOC_REV="A0"
 		OEI_MAKE_ARGS="DDR_CONFIG=lpddr5_timing_a1"
@@ -452,6 +453,7 @@ OEI_PATCHES=" \
 	0003-ccimx95-configure-console-on-LPUART6.patch \
 	0004-ccimx95-add-DDR-configuration-file-for-ccimx95-B0-si.patch \
 	0005-ccimx95-configure-console-on-LPUART1.patch \
+	0006-ccimx95-add-DDR-configuration-file-for-2GB-mem.patch \
 "
 
 # System Manager running on the Cortex M33
