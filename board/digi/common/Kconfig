@@ -141,7 +141,9 @@ config DIGI_FAMILY_ID
 	default 2 if CC8M && IMX8MN
 	default 3 if CC8M && IMX8MM
 	default 4 if CCMP1
-	default 5 if CC9
+	default 5 if CC9 && (IMX91 || IMX93)
+	default 6 if CCMP2
+	default 7 if CC9 && IMX95
 	default 0
 
 config HAS_TRUSTFENCE
