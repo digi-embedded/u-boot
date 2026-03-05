@@ -42,7 +42,9 @@ static int do_hwid_fuse(struct cmd_tbl *cmdtp, int flag, int argc, char *const a
 
 	if (!strcmp(op, "read") || !strcmp(op, "read_manuf")) {
 		printf("Reading (FUSE) HWID: ");
-		board_hwid_fuse_read(&hwid);
+		ret = board_hwid_fuse_read(&hwid);
+		if (ret)
+			goto err;
 		if (!strcmp(op, "read_manuf"))
 			board_hwid_print_manuf(&hwid);
 		else
@@ -84,7 +86,7 @@ static int do_hwid_fuse(struct cmd_tbl *cmdtp, int flag, int argc, char *const a
 
 err:
 	puts("ERROR\n");
-	return ret;
+	return CMD_RET_FAILURE;
 }
 
 static int do_hwid_env(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
