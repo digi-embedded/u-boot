@@ -55,21 +55,21 @@ u32 ram_sizes_mb[16] = {
 };
 
 #if CONFIG_IS_ENABLED(CC8X)
-void board_unlock_fuse_prog()
+void board_hwid_fuse_prog_unlock(void)
 {
 	env_set("force_prog_ecc", "yes");
 }
 
-void board_lock_fuse_prog()
+void board_hwid_fuse_prog_lock(void)
 {
 	env_set("force_prog_ecc", NULL);
 }
 #endif /* CC8X */
 
 /* Print HWID info */
-void board_print_hwid(struct digi_hwid *hwid)
+void board_hwid_print(struct digi_hwid *hwid)
 {
-	print_hwid_hex(hwid);
+	board_hwid_print_hex(hwid);
 
 	/* Formatted printout */
 	printf("    Generator ID:  %02d\n", hwid->genid);
@@ -102,11 +102,11 @@ void board_print_hwid(struct digi_hwid *hwid)
 }
 
 /* Print HWID info in MANUFID format */
-void board_print_manufid(struct digi_hwid *hwid)
+void board_hwid_print_manuf(struct digi_hwid *hwid)
 {
 	int week_month;
 
-	print_hwid_hex(hwid);
+	board_hwid_print_hex(hwid);
 
 	/* If the week is not defined, print the month */
 	if (hwid->week)
@@ -147,7 +147,7 @@ static int parse_bool_char(char c, bool *val)
 }
 
 /* Parse HWID info in MANUFID format */
-int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
+int board_hwid_parse_manuf(int argc, char *const argv[], struct digi_hwid *hwid)
 {
 	char tmp[13];
 	unsigned long num;

@@ -77,7 +77,7 @@ void spl_dram_init(void)
 	else
 		ram = SZ_1G;    /* ccimx8mm variant 0x01 (1GB) */
 
-	if (board_read_hwid(&my_hwid)) {
+	if (board_hwid_fuse_read(&my_hwid)) {
 		debug("Cannot read HWID. Using default DDR configuration.\n");
 		my_hwid.ram = 0;
 	}
@@ -245,7 +245,7 @@ int power_init_board(void)
 	struct pmic *p;
 	int ret;
 
-	if (board_read_hwid(&my_hwid)) {
+	if (board_hwid_fuse_read(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		my_hwid.hv = 0;
 	}

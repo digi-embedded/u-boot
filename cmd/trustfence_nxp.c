@@ -131,7 +131,7 @@ int get_trustfence_key_modifier(unsigned char key_modifier[16])
 	struct digi_hwid hwid;
 	int ret;
 
-	ret = board_read_hwid(&hwid);
+	ret = board_hwid_fuse_read(&hwid);
 	if (ret)
 		return ret;
 

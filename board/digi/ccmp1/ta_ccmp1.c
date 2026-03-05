@@ -205,7 +205,7 @@ int crypt_cipher_data(int enc, char *cipher_data, size_t size)
 	}
 
 	/* Read HWID */
-	board_read_hwid(&my_hwid);
+	board_hwid_fuse_read(&my_hwid);
 	/* apply MD5SUM to the HWID */
 	md5((unsigned char *)(&my_hwid), sizeof(my_hwid), iv);
 

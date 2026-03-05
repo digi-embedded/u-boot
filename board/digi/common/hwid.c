@@ -36,7 +36,7 @@ mac_base_t mac_pools[] = {
 	[2] = {{0x00, 0x40, 0x9d}},
 };
 
-__weak int board_read_hwid(struct digi_hwid *hwid)
+__weak int board_hwid_fuse_read(struct digi_hwid *hwid)
 {
 	u32 fuseword;
 	int ret;
@@ -53,27 +53,27 @@ __weak int board_read_hwid(struct digi_hwid *hwid)
 	return 0;
 }
 
-__weak void board_update_hwid(bool is_fuse)
+__weak void board_hwid_update(bool is_fuse)
 {
 	/* Do nothing */
 }
 
-__weak void board_unlock_fuse_prog()
+__weak void board_hwid_fuse_prog_unlock(void)
 {
 	/* Do nothing */
 }
 
-__weak void board_lock_fuse_prog()
+__weak void board_hwid_fuse_prog_lock(void)
 {
 	/* Do nothing */
 }
 
-__weak int board_prog_hwid(const struct digi_hwid *hwid)
+__weak int board_hwid_fuse_prog(const struct digi_hwid *hwid)
 {
 	u32 fuseword;
 	int ret = -1;
 
-	board_unlock_fuse_prog();
+	board_hwid_fuse_prog_unlock();
 
 	for (int i = 0; i < hwid_nwords; i++) {
 		fuseword = ((u32 *)hwid)[i];
@@ -84,16 +84,16 @@ __weak int board_prog_hwid(const struct digi_hwid *hwid)
 			break;
 	}
 
-	board_lock_fuse_prog();
+	board_hwid_fuse_prog_lock();
 
 	/* Trigger a HWID-related variables update (from FUSE HWID)*/
 	if (!ret)
-		board_update_hwid(true);
+		board_hwid_update(true);
 
 	return ret;
 }
 
-__weak int board_lock_hwid(void)
+__weak int board_hwid_fuse_lock(void)
 {
 #ifdef CONFIG_HAS_OTP_LOCK_FUSE
 	return fuse_prog(OCOTP_LOCK_BANK, OCOTP_LOCK_WORD,
@@ -133,7 +133,7 @@ int hwid_env_prog(const struct digi_hwid *hwid)
 	}
 
 	/* Trigger a HWID-related variables update (from ENV HWID)*/
-	board_update_hwid(false);
+	board_hwid_update(false);
 
 	return 0;
 }
@@ -152,12 +152,12 @@ int hwid_env_clear(void)
 	}
 
 	/* Trigger a HWID-related variables update (from FUSE HWID)*/
-	board_update_hwid(true);
+	board_hwid_update(true);
 
 	return 0;
 }
 
-__weak void print_hwid_hex(struct digi_hwid *hwid)
+__weak void board_hwid_print_hex(struct digi_hwid *hwid)
 {
 	for (int i = hwid_nwords - 1; i >= 0; i--)
 		printf(" %.*x", hwid_fuse_map[i].len, ((u32 *)hwid)[i]);
@@ -271,7 +271,7 @@ void hwid_get_serial_number(uint32_t year, uint32_t week, uint32_t serial)
 }
 
 /* Parse HWID info in HWID format */
-__weak int board_parse_hwid(int argc, char *const argv[], struct digi_hwid *hwid)
+__weak int board_hwid_parse(int argc, char *const argv[], struct digi_hwid *hwid)
 {
 	int word;
 	u32 hwidword;
@@ -303,7 +303,7 @@ __weak int board_parse_hwid(int argc, char *const argv[], struct digi_hwid *hwid
 
 		((u32 *)hwid)[word] = hwidword;
 	}
-	board_print_hwid(hwid);
+	board_hwid_print(hwid);
 
 	return 0;
 

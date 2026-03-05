@@ -48,9 +48,9 @@ struct digi_hwid_fuse hwid_fuse_map[] = {
 unsigned int hwid_nwords = ARRAY_SIZE(hwid_fuse_map);
 
 /* Print HWID info */
-void board_print_hwid(struct digi_hwid *hwid)
+void board_hwid_print(struct digi_hwid *hwid)
 {
-	print_hwid_hex(hwid);
+	board_hwid_print_hex(hwid);
 
 	/* Formatted printout */
 	printf("    Generator ID:  %02d\n", hwid->genid);
@@ -78,9 +78,9 @@ void board_print_hwid(struct digi_hwid *hwid)
 }
 
 /* Print HWID info in MANUFID format */
-void board_print_manufid(struct digi_hwid *hwid)
+void board_hwid_print_manuf(struct digi_hwid *hwid)
 {
-	print_hwid_hex(hwid);
+	board_hwid_print_hex(hwid);
 
 	/* Formatted printout */
 	printf(" Manufacturing ID: %02d%02d%02d%06d %02d%06x %02x%x%x"
@@ -114,7 +114,7 @@ static int parse_bool_char(char c, bool *val)
 }
 
 /* Parse HWID info in MANUFID format */
-int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
+int board_hwid_parse_manuf(int argc, char *const argv[], struct digi_hwid *hwid)
 {
 	char tmp[13];
 	unsigned long num;
@@ -401,7 +401,7 @@ u32 hwid_get_ramsize(const struct digi_hwid *hwid)
 	return ram_sizes_mb[hwid->ram] * SZ_1M;
 }
 
-int board_lock_hwid(void)
+int board_hwid_fuse_lock(void)
 {
 	int ret;
 
