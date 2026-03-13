@@ -58,6 +58,14 @@ patch_atf_repo()
 	echo "- Patch imx-atf repository:"
 	(
 		cd "${ATF_DIR}" || exit 1
+		# Generic patches
+		while IFS= read -r p || [ -n "${p}" ]; do
+			[ -z "${p}" ] && continue
+			echo "- Apply patch: ${p}"
+			patch -p1 < "${BASEDIR}"/patch/atf/"${p}" || exit 2
+		done < "${BASEDIR}"/patch/atf/series
+
+		# Platform specific patches
 		for p in ${ATF_PATCHES}; do
 			echo "- Apply patch: ${p}"
 			patch -p1 < "${BASEDIR}"/patch/atf/"${p}" || exit 2
@@ -109,6 +117,14 @@ patch_optee_repo()
 	echo "- Patch imx-optee-os repository:"
 	(
 		cd "${OPTEE_DIR}" || exit 1
+		# Generic patches
+		while IFS= read -r p || [ -n "${p}" ]; do
+			[ -z "${p}" ] && continue
+			echo "- Apply patch: ${p}"
+			patch -p1 < "${BASEDIR}"/patch/optee/"${p}" || exit 2
+		done < "${BASEDIR}"/patch/optee/series
+
+		# Platform specific patches
 		for p in ${OPTEE_PATCHES}; do
 			echo "- Apply patch: ${p}"
 			patch -p1 < "${BASEDIR}"/patch/optee/"${p}" || exit 2
@@ -170,6 +186,14 @@ patch_mkimage_repo()
 	echo "- Patch imx-mkimage repository:"
 	(
 		cd "${MKIMAGE_DIR}" || exit 1
+		# Generic patches
+		while IFS= read -r p || [ -n "${p}" ]; do
+			[ -z "${p}" ] && continue
+			echo "- Apply patch: ${p}"
+			patch -p1 < "${BASEDIR}"/patch/mkimage/"${p}" || exit 2
+		done < "${BASEDIR}"/patch/mkimage/series
+
+		# Platform specific patches
 		for p in ${MKIMAGE_PATCHES}; do
 			echo "- Apply patch: ${p}"
 			patch -p1 < "${BASEDIR}"/patch/mkimage/"${p}" || exit 2
@@ -332,49 +356,21 @@ MKIMAGE_BRANCH="lf-6.6.52_2.2.1"
 # Tag: lf-6.6.52-2.2.2
 MKIMAGE_REV="81fca6434be0610f3f9216a762aadc4dc3e8d8db"
 MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
-MKIMAGE_PATCHES=" \
-	0001-iMX8QX-soc.mak-capture-commands-output-into-a-log-fi.patch \
-	0002-imx8m-soc.mak-capture-commands-output-into-a-log-fil.patch \
-	0003-imx8m-print_fit_hab-follow-symlinks.patch \
-	0004-imx8mm-adjust-TEE_LOAD_ADDR-for-ccimx8mm.patch \
-	0005-imx93-soc.mak-capture-commands-output-into-a-log-fil.patch \
-	0006-imx93-soc.mak-add-makefile-target-to-build-A0-revisi.patch \
-	0007-imx91-soc.mak-capture-commands-output-into-a-log-fil.patch \
-	0008-imx95-soc.mak-capture-commands-output-into-a-log-fil.patch \
-"
+MKIMAGE_PATCHES=""
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
 ATF_BRANCH="lf_v2.10_6.6.52_2.2.x"
 # Tag: lf-6.6.52-2.2.2
 ATF_REV="8ec7e38031f8c022a9760a8da77bdc6e1938db8c"
 ATF_DIR="${BASEDIR}/imx-atf"
-ATF_PATCHES=" \
-	0001-imx8mm-Define-UART1-as-console-for-boot-stage.patch \
-	0002-imx8mm-Disable-M4-debug-console.patch \
-	0003-imx8mn-Define-UART1-as-console-for-boot-stage.patch \
-	0004-imx8mn-Disable-M7-debug-console.patch \
-	0005-imx8mm-set-BL32_BASE-and-map-high-DRAM-for-ccimx8mm-.patch \
-	0006-ccimx93-use-UART6-for-the-default-console.patch \
-	0007-imx93-bring-back-ELE-clock-workaround-for-soc-revisi.patch \
-	0008-ccimx91-use-UART6-for-the-default-console.patch \
-	0009-ccimx95-set-DVK-console-to-LPUART6.patch \
-	0010-ccimx95-enable-non-secure-non-privilege-access-to-GP.patch \
-	0011-Revert-ccimx95-set-DVK-console-to-LPUART6.patch \
-"
+ATF_PATCHES=""
 
 OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
 OPTEE_BRANCH="lf-6.6.52_2.2.0"
 # Tag: lf-6.6.52-2.2.2
 OPTEE_REV="ecea75b7fee5a3c8a2d9b99769ba78c4390c0e8b"
 OPTEE_DIR="${BASEDIR}/imx-optee-os"
-OPTEE_PATCHES=" \
-	0001-plat-imx-add-support-for-ConnectCore-8M-Mini.patch \
-	0002-core-imx-support-ccimx91-dvk.patch \
-	0003-core-imx-support-ccimx93-dvk.patch \
-	0004-core-ccimx93-enable-AES_HUK-trusted-application.patch \
-	0005-core-imx-support-ccimx95-dvk.patch \
-	0006-ccimx95-configure-console-on-LPUART1.patch \
-"
+OPTEE_PATCHES=""
 
 FIRMWARE_IMX="firmware-imx-8.26.1-410be01"
 FIRMWARE_IMX_DIR="${BASEDIR}/${FIRMWARE_IMX}"
