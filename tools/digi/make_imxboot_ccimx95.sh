@@ -454,18 +454,18 @@ OPTEE_DIR="${BASEDIR}/imx-optee-os"
 OPTEE_PATCHES=""
 
 # Optional Executable Image running on the Cortex M33
-OEI_REPO="https://github.com/nxp-imx/imx-oei.git"
-OEI_BRANCH="master"
-# Tag: lf-6.6.52-2.2.2
-OEI_REV="49bfaa93e9d1fe213866bcb9507927a59a9ede5a"
+OEI_REPO="ssh://git@stash.digi.com/emp/imx-oei.git"
+OEI_BRANCH="dey/scarthgap/lf-6.6.52-2.2.2"
+# Tag: lf-6.6.52-2.2.2 + patches
+OEI_REV="0a1fbc5ce9c4bed08d0add95c911749e56a7d57a"
 OEI_DIR="${BASEDIR}/imx-oei"
 OEI_PATCHES=""
 
 # System Manager running on the Cortex M33
-SM_REPO="https://github.com/nxp-imx/imx-sm.git"
-SM_BRANCH="master"
-# Tag: lf-6.6.52-2.2.2
-SM_REV="af1e37026c6ba19cdca98fd6e91494efd3e7b5ec"
+SM_REPO="ssh://git@stash.digi.com/emp/imx-sm.git"
+SM_BRANCH="dey/scarthgap/lf-6.6.52-2.2.2"
+# Tag: lf-6.6.52-2.2.2 + patches
+SM_REV="421dfb2c1d760fb877284b0b2f1ee80b7ce37480"
 SM_DIR="${BASEDIR}/imx-sm"
 SM_PATCHES=""
 

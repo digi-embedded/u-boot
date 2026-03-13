@@ -1,6 +1,0 @@
-0001-boards-ccimx95-add-platform-as-a-clone-of-mx95lp5.patch
-0002-ddr-add-DDR-configuration-file-for-ccimx95.patch
-0003-ccimx95-configure-console-on-LPUART6.patch
-0004-ccimx95-add-DDR-configuration-file-for-ccimx95-B0-si.patch
-0005-ccimx95-configure-console-on-LPUART1.patch
-0006-ccimx95-add-DDR-configuration-file-for-2GB-mem.patch
