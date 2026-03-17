@@ -2,7 +2,7 @@
 /*
  * Copyright (C) 2022, STMicroelectronics - All Rights Reserved
  *
- * Configuration settings for the STMicroelectonics STM32MP25x boards
+ * Configuration settings for the STMicroelectronics STM32MP25x boards
  */
 
 #ifndef __CONFIG_STM32MP25_ST_COMMON_H__
@@ -39,10 +39,14 @@
 		"run distro_bootcmd;" \
 	"fi;\0"
 
+
+#define ST_STM32MP25_ALTBOOTCMD "altbootcmd=run bootcmd_stm32mp\0"
+
 #undef CFG_EXTRA_ENV_SETTINGS
 #define CFG_EXTRA_ENV_SETTINGS \
 	STM32MP_MEM_LAYOUT \
 	ST_STM32MP25_BOOTCMD \
+	ST_STM32MP25_ALTBOOTCMD \
 	BOOTENV \
 	STM32MP_EXTRA \
 	STM32MP_BOARD_EXTRA_ENV
