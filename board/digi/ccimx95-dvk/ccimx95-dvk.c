@@ -55,7 +55,7 @@ int board_early_init_f(void)
 #ifdef CONFIG_USB_TCPC
 struct tcpc_port port;
 struct tcpc_port_config port_config = {
-	.i2c_bus = 2, /* i2c3 */
+	.i2c_bus = 6, /* i2c7 */
 	.addr = 0x53,
 	.port_type = TYPEC_PORT_DRP,
 	.disable_pd = true,
