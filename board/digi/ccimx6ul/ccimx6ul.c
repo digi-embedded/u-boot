@@ -517,6 +517,7 @@ void board_reset(void)
 
 void fdt_fixup_ccimx6ul(void *fdt)
 {
+	fdt_fixup_fuse_hwid(fdt);
 	fdt_fixup_hwid(fdt, &my_hwid);
 
 	if (board_has_wireless()) {

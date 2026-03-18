@@ -24,6 +24,7 @@
 #include <command.h>
 #include <common.h>
 #include <linux/errno.h>
+#include <fdt_support.h>
 #include <fuse.h>
 #include "hwid.h"
 #include "../common/helper.h"
@@ -410,4 +411,21 @@ err:
 		"HWID input must be in the form: "
 		CONFIG_HWID_STRINGS_HELP "\n");
 	return -EINVAL;
+}
+
+void fdt_fixup_fuse_hwid(void *fdt)
+{
+	struct digi_hwid hwid;
+	char str[20];
+	int ret;
+
+	/* Register FUSE HWID words in the device tree */
+	ret = board_hwid_fuse_read(&hwid);
+	if (ret)
+		return;
+
+	for (int i = 0; i < hwid_nwords; i++) {
+		sprintf(str, "digi,hwid_fuse_%d", i);
+		do_fixup_by_path_u32(fdt, "/", str, *((u32 *)&hwid + i), 1);
+	}
 }
