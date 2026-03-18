@@ -102,6 +102,7 @@ void fdt_fixup_memory_node_ccmp1(void *fdt)
 
 void fdt_fixup_ccmp1(void *fdt)
 {
+	fdt_fixup_fuse_hwid(fdt);
 	fdt_fixup_hwid(fdt, &my_hwid);
 
 	if (board_has_wireless()) {

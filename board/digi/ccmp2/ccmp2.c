@@ -91,6 +91,7 @@ int ccmp2_init(void)
 
 void fdt_fixup_ccmp2(void *fdt)
 {
+	fdt_fixup_fuse_hwid(fdt);
 	fdt_fixup_hwid(fdt, &my_hwid);
 
 	if (board_has_wireless()) {

@@ -292,6 +292,7 @@ int ccimx8_late_init(void)
 
 void fdt_fixup_ccimx8(void *fdt)
 {
+	fdt_fixup_fuse_hwid(fdt);
 	fdt_fixup_hwid(fdt, &my_hwid);
 
 	if (board_has_wireless()) {

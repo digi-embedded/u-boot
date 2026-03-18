@@ -1624,6 +1624,7 @@ int ccimx6_init(void)
 
 void fdt_fixup_ccimx6(void *fdt)
 {
+	fdt_fixup_fuse_hwid(fdt);
 	fdt_fixup_hwid(fdt, &my_hwid);
 
 	if (board_has_wireless()) {
