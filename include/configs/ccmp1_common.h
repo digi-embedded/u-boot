@@ -21,7 +21,7 @@
 /*
  * Configuration of the external SRAM memory used by U-Boot
  */
-#define CONFIG_SYS_SDRAM_BASE			STM32_DDR_BASE
+#define CFG_SYS_SDRAM_BASE			STM32_DDR_BASE
 #ifdef CONFIG_STM32MP13X
 #define CONFIG_SYS_INIT_SP_ADDR			(CONFIG_SYS_TEXT_BASE + SZ_4M)
 #else
@@ -57,7 +57,7 @@
  * For booting Linux, use the first 256 MB of memory, since this is
  * the maximum mapped by the Linux kernel during initialization.
  */
-#define CONFIG_SYS_BOOTMAPSZ		SZ_256M
+#define CFG_SYS_BOOTMAPSZ		SZ_256M
 
 /* SPL support */
 #ifdef CONFIG_SPL
@@ -211,7 +211,7 @@
 #define CONFIG_EXTRA_NETWORK_SETTINGS \
 	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"
 
-#define CONFIG_ENV_FLAGS_LIST_STATIC	\
+#define CFG_ENV_FLAGS_LIST_STATIC	\
 	"eth1addr:mc,"			\
 	"wlanaddr:mc,"			\
 	"wlan1addr:mc,"			\

@@ -50,7 +50,7 @@
 /* memtest */
 /* Physical Memory Map */
 #define PHYS_SDRAM                     MMDC0_ARB_BASE_ADDR
-#define CONFIG_SYS_SDRAM_BASE          PHYS_SDRAM
+#define CFG_SYS_SDRAM_BASE             PHYS_SDRAM
 #define CONFIG_SYS_INIT_RAM_ADDR       IRAM_BASE_ADDR
 #define CONFIG_SYS_INIT_RAM_SIZE       IRAM_SIZE
 
@@ -152,7 +152,7 @@
 #define CONFIG_ARP_TIMEOUT     200UL
 
 /* protected environment variables (besides ethaddr and serial#) */
-#define CONFIG_ENV_FLAGS_LIST_STATIC	\
+#define CFG_ENV_FLAGS_LIST_STATIC	\
 	"wlanaddr:mc,"			\
 	"wlan1addr:mc,"			\
 	"wlan2addr:mc,"			\

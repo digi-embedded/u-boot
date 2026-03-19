@@ -77,19 +77,19 @@ void fdt_fixup_memory_node_ccmp1(void *fdt)
 	if (my_hwid.ram) {
 		/* Set memory node based on HWID info */
 		ram_size = hwid_get_ramsize(&my_hwid);
-		ret = fdt_fixup_memory(fdt, (u64)CONFIG_SYS_SDRAM_BASE, (u64)ram_size);
+		ret = fdt_fixup_memory(fdt, (u64)CFG_SYS_SDRAM_BASE, (u64)ram_size);
 		if (ret < 0)
 			printf("%s(): Failed to fixup memory node\n", __func__);
 
 		/* Reserve last 32 MiB for OPTEE */
-		optee_base = (CONFIG_SYS_SDRAM_BASE + ram_size) - optee_size;
+		optee_base = (CFG_SYS_SDRAM_BASE + ram_size) - optee_size;
 		ret = fdt_fixup_memory_optee(fdt, (u64)optee_base, (u64)optee_size);
 		if (ret < 0)
 			printf("%s(): Failed to fixup optee node\n", __func__);
 
 		/* Reserve previous 64 MiB for GPU */
 		if (of_machine_is_compatible("digi,ccmp15")) {
-			gpu_base = (CONFIG_SYS_SDRAM_BASE + ram_size) -
+			gpu_base = (CFG_SYS_SDRAM_BASE + ram_size) -
 				   (gpu_size + optee_size);
 			ret = fdt_fixup_memory_gpu(fdt, (u64)gpu_base,
 						   (u64)gpu_size);

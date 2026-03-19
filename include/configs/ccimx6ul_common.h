@@ -32,7 +32,7 @@
 #define CONFIG_SYS_MALLOC_LEN		(16 * SZ_1M)
 /* Physical Memory Map */
 #define PHYS_SDRAM			MMDC0_ARB_BASE_ADDR
-#define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM
+#define CFG_SYS_SDRAM_BASE		PHYS_SDRAM
 #define CONFIG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
 #define CONFIG_SYS_INIT_RAM_SIZE	IRAM_SIZE
 
@@ -117,7 +117,7 @@
 #define CONFIG_EXTRA_NETWORK_SETTINGS \
 	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"
 
-#define CONFIG_ENV_FLAGS_LIST_STATIC	\
+#define CFG_ENV_FLAGS_LIST_STATIC	\
 	"eth1addr:mc,"			\
 	"wlanaddr:mc,"			\
 	"wlan1addr:mc,"			\

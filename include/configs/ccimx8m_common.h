@@ -92,7 +92,7 @@
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		SZ_32M
 
-#define CONFIG_SYS_SDRAM_BASE           0x40000000
+#define CFG_SYS_SDRAM_BASE              0x40000000
 #define PHYS_SDRAM                      0x40000000
 
 /* Monitor Command Prompt */
@@ -324,7 +324,7 @@
 #define RECOVERY_PARTITION	"2"
 
 /* protected environment variables (besides ethaddr and serial#) */
-#define CONFIG_ENV_FLAGS_LIST_STATIC	\
+#define CFG_ENV_FLAGS_LIST_STATIC	\
 	"wlanaddr:mc,"			\
 	"wlan1addr:mc,"			\
 	"wlan2addr:mc,"			\
