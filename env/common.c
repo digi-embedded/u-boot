@@ -290,9 +290,6 @@ void env_set_default(const char *s, int flags)
 	/* Platform-specific actions on default environment */
 	platform_default_environment();
 
-	/* Platform-specific actions on default environment */
-	platform_default_environment();
-
 	gd->flags |= GD_FLG_ENV_READY;
 	gd->flags |= GD_FLG_ENV_DEFAULT;
 }
