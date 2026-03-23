@@ -4,8 +4,10 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
+#include <cli_hush.h>
 #include <common.h>
 #include <fdt_support.h>
+#include <fuse.h>
 #include <linux/sizes.h>
 #include "../common/helper.h"
 #include "../common/hwid.h"
@@ -398,3 +400,53 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 		do_fixup_by_path_u32(fdt, "/", str, *((u32 *)hwid + i), 1);
 	}
 }
+
+#ifdef CONFIG_IMX93
+/* 
+ * Redefine FUSE HWID read functions because A0 CPUs cannot
+ * do a fuse_sense.
+ */
+int board_hwid_fuse_read(struct digi_hwid *hwid)
+{
+	u32 fuseword;
+	int ret;
+
+	for (int i = 0; i < hwid_nwords; i++) {
+		ret = fuse_read(hwid_fuse_map[i].bank,
+				 hwid_fuse_map[i].word,
+				 &fuseword);
+		((u32 *)hwid)[i] = fuseword;
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
+
+int board_hwid_fuse_set_local_vars(void)
+{
+	u32 fuseword;
+	int ret;
+	char var[20];
+
+#ifdef CONFIG_HUSH_OLD_PARSER
+	u_boot_hush_start();
+#endif /* CONFIG_HUSH_OLD_PARSER */
+
+	for (int i = 0; i < hwid_nwords; i++) {
+		ret = fuse_read(hwid_fuse_map[i].bank,
+				 hwid_fuse_map[i].word,
+				 &fuseword);
+		if (ret)
+			return ret;
+
+		/* Set local hwid_n variables */
+		sprintf(var, "hwid_%d=%08x", i, fuseword);
+#ifdef CONFIG_HUSH_OLD_PARSER
+		set_local_var(var, 0);
+#endif /* CONFIG_HUSH_OLD_PARSER */
+	}
+
+	return 0;
+}
+#endif
