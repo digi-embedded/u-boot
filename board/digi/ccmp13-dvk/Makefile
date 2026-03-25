@@ -16,7 +16,7 @@ endif
 
 obj-y += ../ccmp1/ccmp1.o
 
-ifdef CONFIG_ENV_AES_CCMP1
+ifdef CONFIG_OPTEE_ENV_ENCRYPT
 obj-y += ../ccmp1/ta_ccmp1.o
 endif
 

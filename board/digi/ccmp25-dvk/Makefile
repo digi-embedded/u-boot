@@ -20,3 +20,7 @@ ifeq ($(CONFIG_ARCH_STM32MP),y)
 obj-$(CONFIG_SET_DFU_ALT_INFO) += ../../st/common/stm32mp_dfu.o
 obj-$(CONFIG_$(SPL_)DFU_VIRT) += ../../st/common/stm32mp_dfu_virt.o
 endif
+
+ifdef CONFIG_OPTEE_ENV_ENCRYPT
+obj-y += ../ccmp1/ta_ccmp1.o
+endif
