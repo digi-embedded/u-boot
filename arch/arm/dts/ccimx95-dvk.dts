@@ -263,7 +263,7 @@
 		vcclvdstx-supply = <&reg_vdd_1v8_dummy>;
 		vccsysclk-supply = <&reg_vdd_1v8_dummy>;
 		vcclvdspll-supply = <&reg_vdd_1v8_dummy>;
-		status = "okay";
+		status = "disabled";
 
 		ports {
 			#address-cells = <1>;
@@ -401,7 +401,7 @@
 };
 
 &mipi_dsi {
-	status = "okay";
+	status = "disabled";
 
 	ports {
 		#address-cells = <1>;
