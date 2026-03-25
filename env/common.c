@@ -25,7 +25,7 @@
 #include <net.h>
 #include <watchdog.h>
 
-#ifdef CONFIG_ENV_AES_CCMP1
+#ifdef CONFIG_OPTEE_ENV_ENCRYPT
 /* CCMP1 AES encryption support */
 #include <nand.h>
 #include "../board/digi/ccmp1/ta_ccmp1.h"
@@ -338,16 +338,16 @@ int env_import(const char *buf, int check, int flags)
 	/* Decrypt the env if desired. */
 	ret = env_aes_cbc_crypt(ep, 0);
 	if (ret) {
-#if defined(CONFIG_ENV_AES_CAAM_KEY) || defined(CONFIG_ENV_AES_CCMP1)
-		if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE,
-				'\0', 0, 0, 0, NULL)) {
-			printf("Environment is unencrypted!\n");
-			printf("Resetting to defaults (read-only variables like MAC addresses will be kept).\n");
-			gd->flags |= GD_FLG_ENV_READY;
-			run_command("env default -a", 0);
-			return 0;
+		if (IS_ENABLED(CONFIG_ENV_ENCRYPT)) {
+			if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE,
+					'\0', 0, 0, 0, NULL)) {
+				printf("Environment is unencrypted!\n");
+				printf("Resetting to defaults (read-only variables like MAC addresses will be kept).\n");
+				gd->flags |= GD_FLG_ENV_READY;
+				run_command("env default -a", 0);
+				return 0;
+			}
 		}
-#endif
 		pr_err("Failed to decrypt env!\n");
 		env_set_default("!import failed", 0);
 		return ret;
@@ -476,7 +476,7 @@ int env_export(env_t *env_out)
 {
 	char *res;
 	ssize_t	len;
-#if defined(CONFIG_ENV_AES_CAAM_KEY) || defined(CONFIG_ENV_AES_CCMP1)
+#if defined(CONFIG_ENV_AES_CAAM_KEY) || defined(CONFIG_OPTEE_ENV_ENCRYPT)
 	int ret;
 #endif
 
@@ -488,7 +488,7 @@ int env_export(env_t *env_out)
 	}
 
 	/* Encrypt the env if desired. */
-#if defined(CONFIG_ENV_AES_CAAM_KEY) || defined(CONFIG_ENV_AES_CCMP1)
+#if defined(CONFIG_ENV_AES_CAAM_KEY) || defined(CONFIG_OPTEE_ENV_ENCRYPT)
 	ret = env_aes_cbc_crypt(env_out, 1);
 	if (ret)
 		return ret;

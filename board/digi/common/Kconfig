@@ -179,3 +179,31 @@ config CMD_TRUSTFENCE_STM
 	default y if CCMP1
 	default y if CCMP2
 endif
+
+config ENV_ENCRYPT
+	bool "Encrypt u-boot environment using the hardware unique key (HUK)"
+	select MD5
+	help
+	  Implementation uses CAAM or Optee depending on the platform.
+
+	  This setting only has an effect on closed devices (those that can
+	  only boot signed U-Boot images). It has no effect on open devices.
+
+config ENV_AES_CAAM_KEY
+	bool "Encrypt U-Boot environment with CAAM internal key"
+	depends on HAS_CAAM
+	depends on ENV_ENCRYPT
+	help
+	  Use the internal CAAM secure key for environment encryption which
+	  uses AES-256-CCM.
+
+	  This setting is only supported in closed devices (those which can
+	  only boot signed U-Boot images). It has no effect on open devices.
+
+config OPTEE_ENV_ENCRYPT
+	bool
+	depends on ENV_ENCRYPT
+	depends on CCMP1 || CCMP2
+	default ENV_ENCRYPT
+	help
+	  Encrypt U-Boot environment using Optee

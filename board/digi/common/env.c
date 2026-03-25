@@ -15,7 +15,7 @@
 #include <fsl_caam.h>
 #include <asm/mach-imx/hab.h>
 #include "../board/digi/common/trustfence.h"
-#elif CONFIG_ENV_AES_CCMP1
+#elif CONFIG_OPTEE_ENV_ENCRYPT
 #if !defined(CONFIG_AES_KEY_LENGTH)
 #define CONFIG_AES_KEY_LENGTH ""
 #endif
@@ -64,18 +64,22 @@ err:
 	free(buffer);
 	return ret;
 }
-#elif CONFIG_ENV_AES_CCMP1
+#elif CONFIG_OPTEE_ENV_ENCRYPT
 int env_aes_cbc_crypt(env_t *env, const int enc)
 {
 	unsigned char *data = env->data;
 	int ret = 0;
+#if defined(CONFIG_CCMP1)
 	/* get NAND geometrics */
 	struct mtd_info *mtd = get_nand_dev_by_index(0);
-
+	size_t size = mtd->erasesize
+#else
+	size_t size = CONFIG_ENV_SIZE;
+#endif
 	if (enc) {
-		crypt_cipher_data(TA_AES_MODE_ENCODE, data, mtd->erasesize);
+		crypt_cipher_data(TA_AES_MODE_ENCODE, data, size);
 	} else {
-		crypt_cipher_data(TA_AES_MODE_DECODE, data, mtd->erasesize);
+		crypt_cipher_data(TA_AES_MODE_DECODE, data, size);
 	}
 
 	return ret;

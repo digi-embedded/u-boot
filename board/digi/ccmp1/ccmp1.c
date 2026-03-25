@@ -123,10 +123,11 @@ void fdt_fixup_ccmp1(void *fdt)
 	fdt_fixup_install_code(fdt);
 
 	/* Add DT entry to detect environment encryption in Linux */
-#ifdef CONFIG_ENV_AES_CCMP1
-	do_fixup_by_path(fdt, "/", "digi,uboot-env,encrypted", NULL, 0, 1);
-	do_fixup_by_path(fdt, "/", "digi,uboot-env,encrypted-optee", NULL, 0, 1);
-#endif
+	if (IS_ENABLED(CONFIG_ENV_ENCRYPT))
+		do_fixup_by_path(fdt, "/", "digi,uboot-env,encrypted", NULL, 0, 1);
+	if (IS_ENABLED(CONFIG_OPTEE_ENV_ENCRYPT))
+		do_fixup_by_path(fdt, "/", "digi,uboot-env,encrypted-optee", NULL, 0, 1);
+
 	fdt_fixup_memory_node_ccmp1(fdt);
 }
 
