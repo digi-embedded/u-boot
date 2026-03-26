@@ -278,7 +278,7 @@ static int env_mmc_save(void)
 		if (gd->env_valid == ENV_VALID)
 			copy = 1;
 
-		if (IS_ENABLED(ENV_MMC_HWPART_REDUND)) {
+		if (IS_ENABLED(ENV_MMC_HWPART_REDUND) && !IS_SD(mmc)) {
 			ret = mmc_set_env_part(mmc, copy + 1);
 			if (ret)
 				goto fini;
@@ -351,7 +351,7 @@ static int env_mmc_erase(void)
 	if (IS_ENABLED(CONFIG_SYS_REDUNDAND_ENVIRONMENT)) {
 		copy = 1;
 
-		if (IS_ENABLED(ENV_MMC_HWPART_REDUND)) {
+		if (IS_ENABLED(ENV_MMC_HWPART_REDUND) && !IS_SD(mmc)) {
 			ret = mmc_set_env_part(mmc, copy + 1);
 			if (ret)
 				goto fini;
@@ -419,7 +419,7 @@ static int env_mmc_load(void)
 		goto fini;
 	}
 
-	if (IS_ENABLED(ENV_MMC_HWPART_REDUND)) {
+	if (IS_ENABLED(ENV_MMC_HWPART_REDUND) && !IS_SD(mmc)) {
 		ret = mmc_set_env_part(mmc, 1);
 		if (ret)
 			goto fini;
@@ -427,7 +427,7 @@ static int env_mmc_load(void)
 
 	read1_fail = read_env(mmc, CONFIG_ENV_SIZE, offset1, tmp_env1);
 
-	if (IS_ENABLED(ENV_MMC_HWPART_REDUND)) {
+	if (IS_ENABLED(ENV_MMC_HWPART_REDUND) && !IS_SD(mmc)) {
 		ret = mmc_set_env_part(mmc, 2);
 		if (ret)
 			goto fini;
