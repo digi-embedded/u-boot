@@ -269,13 +269,13 @@ void som_default_environment(void)
 	env_set("som_overlays", var);
 }
 
-void board_hwid_update(bool is_fuse)
+void board_hwid_update(void)
 {
 	/* Update HWID-related variables in MCA and environment */
-	int ret = is_fuse ? board_hwid_fuse_read(&my_hwid) : hwid_env_read(&my_hwid);
-
-	if (ret)
+	if (hwid_read(&my_hwid)) {
 		printf("Cannot read HWID\n");
+		return;
+	}
 
 	mca_somver_update(&my_hwid);
 	som_default_environment();

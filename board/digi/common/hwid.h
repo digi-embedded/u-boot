@@ -48,7 +48,7 @@ int board_hwid_parse_manuf(int argc, char *const argv[], struct digi_hwid *hwid)
 int board_hwid_fuse_read(struct digi_hwid *hwid);
 int board_hwid_fuse_set_local_vars(void);
 int board_hwid_fuse_prog(const struct digi_hwid *hwid);
-void board_hwid_update(bool is_fuse);
+void board_hwid_update(void);
 int board_hwid_fuse_lock(void);
 void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid);
 void fdt_fixup_fuse_hwid(void *fdt);

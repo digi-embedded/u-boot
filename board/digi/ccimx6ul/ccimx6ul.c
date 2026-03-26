@@ -441,13 +441,13 @@ void som_default_environment(void)
 	board_hwid_fuse_set_local_vars();
 }
 
-void board_hwid_update(bool is_fuse)
+void board_hwid_update(void)
 {
-	/* Update HWID-related variables in environment */
-	int ret = is_fuse ? board_hwid_fuse_read(&my_hwid) : hwid_env_read(&my_hwid);
-
-	if (ret)
+	/* Update HWID-related variables in MCA and environment */
+	if (hwid_read(&my_hwid)) {
 		printf("Cannot read HWID\n");
+		return;
+	}
 
 	som_default_environment();
 }

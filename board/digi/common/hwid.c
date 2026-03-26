@@ -103,7 +103,7 @@ __weak int board_hwid_fuse_set_local_vars(void)
 	return 0;
 }
 
-__weak void board_hwid_update(bool is_fuse)
+__weak void board_hwid_update(void)
 {
 	/* Do nothing */
 }
@@ -136,9 +136,9 @@ __weak int board_hwid_fuse_prog(const struct digi_hwid *hwid)
 
 	board_hwid_fuse_prog_lock();
 
-	/* Trigger a HWID-related variables update (from FUSE HWID)*/
+	/* Trigger a HWID-related variables update */
 	if (!ret)
-		board_hwid_update(true);
+		board_hwid_update();
 
 	return ret;
 }
@@ -182,8 +182,8 @@ int hwid_env_prog(const struct digi_hwid *hwid)
 			return -1;
 	}
 
-	/* Trigger a HWID-related variables update (from ENV HWID)*/
-	board_hwid_update(false);
+	/* Trigger a HWID-related variables update */
+	board_hwid_update();
 
 	return 0;
 }
@@ -201,8 +201,8 @@ int hwid_env_clear(void)
 			return -1;
 	}
 
-	/* Trigger a HWID-related variables update (from FUSE HWID)*/
-	board_hwid_update(true);
+	/* Trigger a HWID-related variables update */
+	board_hwid_update();
 
 	return 0;
 }
