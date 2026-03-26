@@ -29,7 +29,7 @@ obj-$(CONFIG_CMD_UPDATE_NAND) += helper.o
 obj-$(CONFIG_CMD_DBOOT) += helper.o
 obj-$(CONFIG_CMD_DIGI_PMIC) += cmd_pmic.o
 obj-$(CONFIG_MCA_TAMPER) += tamper.o
-ifneq (,$(filter $(SOC), imx9))
+ifneq (,$(filter $(SOC), imx8 imx8m imx9))
 obj-y += mmc.o
 endif
 ifdef CONFIG_HAS_TRUSTFENCE

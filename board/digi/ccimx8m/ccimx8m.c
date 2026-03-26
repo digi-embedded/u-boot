@@ -55,23 +55,6 @@ int mmc_get_bootdevindex(void)
 	}
 }
 
-uint mmc_get_env_part(struct mmc *mmc)
-{
-	switch(get_boot_device()) {
-	case SD1_BOOT ... SD3_BOOT:
-		return 0;	/* When booting from an SD card the
-				 * environment will be saved to the unique
-				 * hardware partition: 0 */
-	case MMC3_BOOT:
-	default:
-		return CONFIG_SYS_MMC_ENV_PART;
-				/* When booting from USDHC3 (eMMC) the
-				 * environment will be saved to boot
-				 * partition 2 to protect it from
-				 * accidental overwrite during U-Boot update */
-	}
-}
-
 void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 				     struct disk_partition *info)
 {
