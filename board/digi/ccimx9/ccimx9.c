@@ -18,9 +18,15 @@
 #include "../common/helper.h"
 #include "../common/hwid.h"
 #include "../common/mca.h"
+#ifdef CONFIG_HAS_SMARCID
+#include "../common/smarcid.h"
+#endif
 #include "../common/trustfence.h"
 
 static struct digi_hwid my_hwid;
+#ifdef CONFIG_HAS_SMARCID
+static struct digi_smarcid my_smarcid;
+#endif
 static u32 soc_rev;
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -147,33 +153,49 @@ static const char *get_cpu_type_str(void)
 
 int ccimx9_init(void)
 {
-	if (hwid_read(&my_hwid)) {
-		printf("Cannot read HWID\n");
-		return -1;
-	}
+	int ret = 0;
 
 #ifdef CONFIG_MCA
 	if (board_has_mca()) {
 		mca_init();
-		mca_somver_update(&my_hwid);
 #ifdef CONFIG_MCA_TAMPER
 		mca_tamper_check_events();
 #endif
 	}
 #endif
 
+	if (hwid_read(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		ret = -1;
+#ifdef CONFIG_MCA
+	} else if (board_has_mca()) {
+		mca_somver_update(&my_hwid);
+#endif
+	}
+
+#ifdef CONFIG_HAS_SMARCID
+	if (smarcid_read(&my_smarcid)) {
+		printf("Cannot read SMARCID\n");
+		ret = -1;
+	}
+#endif
 	soc_rev = soc_rev();
 
-	return 0;
+	return ret;
 }
 
 void som_loaded_environment(void)
 {
-	/* Update local HWID as soon as the environment is available */
+	/* Update local HWID and SMARCID as soon as the environment is available */
 	if (hwid_read(&my_hwid)) {
 		printf("Cannot read HWID\n");
-		return;
 	}
+
+#ifdef CONFIG_HAS_SMARCID
+	if (smarcid_read(&my_smarcid)) {
+		printf("Cannot read SMARCID\n");
+	}
+#endif
 }
 
 void som_default_environment(void)
@@ -247,6 +269,12 @@ void som_default_environment(void)
 	env_set("som_overlays", var);
 
 	env_set("cpu_type", get_cpu_type_str());
+
+#ifdef CONFIG_HAS_SMARCID
+	/* Get SMARCID-related variables */
+	smarcid_get_variant(&my_smarcid);
+	smarcid_get_serial_number(&my_smarcid);
+#endif
 }
 
 void board_hwid_update(bool is_fuse)
@@ -266,6 +294,19 @@ void board_hwid_update(bool is_fuse)
 	som_default_environment();
 }
 
+#ifdef CONFIG_HAS_SMARCID
+void board_smarcid_update(void)
+{
+	/* Update SMARCID-related variables in environment */
+	if (smarcid_read(&my_smarcid)) {
+		printf("Cannot read SMARCID\n");
+		return;
+	}
+
+	som_default_environment();
+}
+#endif
+
 int ccimx9_late_init(void)
 {
 #ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
@@ -283,6 +324,10 @@ void fdt_fixup_ccimx9(void *fdt)
 {
 	fdt_fixup_fuse_hwid(fdt);
 	fdt_fixup_hwid(fdt, &my_hwid);
+#ifdef CONFIG_HAS_SMARCID
+	fdt_fixup_fuse_smarcid(fdt);
+	fdt_fixup_smarcid(fdt, &my_smarcid);
+#endif
 
 	if (soc_rev) {
 		char hex_rev[5]; // 4 hex chars + null byte
@@ -314,22 +359,46 @@ void fdt_fixup_ccimx9(void *fdt)
 
 void print_som_info(void)
 {
-	if (my_hwid.variant)
+	if (my_hwid.variant) {
 		printf("%s SOM variant 0x%02X: ", CONFIG_SOM_DESCRIPTION,
 		       my_hwid.variant);
-	else
-		return;
+		print_size(gd->ram_size, is_imx95() ? " LPDDR5" : " LPDDR4");
+		if (my_hwid.wifi)
+			printf(", Wi-Fi");
+		if (my_hwid.bt)
+			printf(", Bluetooth");
+		if (board_has_mca())
+			printf(", MCA");
+		if (my_hwid.crypto)
+			printf(", Crypto-auth");
+		printf("\n");
+	}
 
-	print_size(gd->ram_size, is_imx95() ? " LPDDR5" : " LPDDR4");
-	if (my_hwid.wifi)
-		printf(", Wi-Fi");
-	if (my_hwid.bt)
-		printf(", Bluetooth");
-	if (board_has_mca())
-		printf(", MCA");
-	if (my_hwid.crypto)
-		printf(", Crypto-auth");
-	printf("\n");
+#ifdef CONFIG_HAS_SMARCID
+	if (is_smarc(&my_smarcid)) {
+		printf("%s SMARC variant 0x%02X: ", CONFIG_SOM_DESCRIPTION,
+		       my_smarcid.variant);
+		if (my_smarcid.eth1 && my_smarcid.eth2)
+			printf("Dual Ethernet");
+		else if (my_smarcid.eth1 || my_smarcid.eth2)
+			printf("Single Ethernet");
+		else
+			printf("No Ethernet");
+		if (my_smarcid.mca)
+			printf(", MCA");
+		if (my_smarcid.hub)
+			printf(", USB Hub");
+		if (my_smarcid.tpm)
+			printf(", TPM");
+		if (my_smarcid.rtc)
+			printf(", RTC");
+		if (my_smarcid.temp)
+			printf(", Temp sensor");
+		if (my_smarcid.eeprom)
+			printf(", EEPROM");
+		printf("\n");
+	}
+#endif
 }
 
 int print_bootinfo(void)

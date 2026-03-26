@@ -17,6 +17,11 @@
 #define CONFIG_BOARD_DESCRIPTION	"Development Kit"
 #define BOARD_DEY_NAME			"ccimx95-dvk"
 
+/* Lock Fuses */
+#define SMARCID_OCOTP_LOCK_BANK	1
+#define SMARCID_OCOTP_LOCK_WORD	2
+#define SMARCID_OCOTP_LOCK_FUSE	8
+
 /* Carrier board version in environment */
 #define CONFIG_HAS_CARRIERBOARD_VERSION
 #define CONFIG_HAS_CARRIERBOARD_ID

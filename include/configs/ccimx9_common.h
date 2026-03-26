@@ -169,7 +169,10 @@
 	"hwid_0:so,"			\
 	"hwid_1:so,"			\
 	"hwid_2:so,"			\
-	"drm_ic:so,"
+	"drm_ic:so,"			\
+	"smarcid_0:so,"			\
+	"smarcid_1:so,"			\
+	"smarc_serial#:so,"
 
 /*
  * 'update' command will ask for confirmation before updating any partition
