@@ -135,6 +135,10 @@ endif
 
 endif
 
+config HAS_SMARCID
+	bool "Platform supports a SMARC Hardware ID (SMARCID) on the OTP bits"
+	depends on CC9 && IMX95
+
 config DIGI_FAMILY_ID
 	int "Digi Family ID for Serial Number composition"
 	default 1 if CC8X

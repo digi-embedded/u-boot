@@ -1,5 +1,5 @@
 #
-# Copyright 2015-2022, Digi International Inc.
+# Copyright 2015-2026, Digi International Inc.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -45,6 +45,7 @@ endif
 endif
 obj-$(CONFIG_HAS_HWID) += hwid.o
 obj-$(CONFIG_MCA) += mca.o
+obj-$(CONFIG_HAS_SMARCID) += smarcid.o
 ifdef CONFIG_HAS_TRUSTFENCE
 obj-$(CONFIG_CONSOLE_DISABLE) += trustfence/console.o
 endif
