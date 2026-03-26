@@ -26,6 +26,34 @@
 #include "../board/digi/common/helper.h"
 #include "../board/digi/common/hwid.h"
 
+static int do_hwid_read(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+{
+	struct digi_hwid hwid;
+
+	printf("Reading HWID: ");
+	if (hwid_read(&hwid)) {
+		puts("ERROR\n");
+		return CMD_RET_FAILURE;
+	}
+
+	board_hwid_print(&hwid);
+	return 0;
+}
+
+static int do_hwid_read_manuf(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+{
+	struct digi_hwid hwid;
+
+	printf("Reading HWID: ");
+	if (hwid_read(&hwid)) {
+		puts("ERROR\n");
+		return CMD_RET_FAILURE;
+	}
+
+	board_hwid_print_manuf(&hwid);
+	return 0;
+}
+
 static int do_hwid_fuse(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
 	const char *op;
@@ -158,5 +186,7 @@ U_BOOT_CMD_WITH_SUBCMDS(hwid, "HWID",
 	"hwid env prog_manuf " CONFIG_MANUF_STRINGS_HELP " - program HWID with manufacturing ID into the environment\n" \
 	"hwid env clear - clear HWID from the environment\n"
 	,
+	U_BOOT_SUBCMD_MKENT(read, CONFIG_SYS_MAXARGS, 0, do_hwid_read),
+	U_BOOT_SUBCMD_MKENT(read_manuf, CONFIG_SYS_MAXARGS, 0, do_hwid_read_manuf),
 	U_BOOT_SUBCMD_MKENT(fuse, CONFIG_SYS_MAXARGS, 0, do_hwid_fuse),
 	U_BOOT_SUBCMD_MKENT(env, CONFIG_SYS_MAXARGS, 0, do_hwid_env));
