@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
 /*
- * Copyright (C) 2023, Digi International Inc - All Rights Reserved
+ * Copyright (C) 2023-2026, Digi International Inc - All Rights Reserved
  */
 
 #include <env_internal.h>
@@ -11,7 +11,7 @@
 #include <tee.h>
 #include <uboot_aes.h>
 #include <u-boot/md5.h>
-#include "ta_ccmp1.h"
+#include "ta_env.h"
 #include "../common/hwid.h"
 
 int prepare_optee_session(struct tee_ctx *ctx) {

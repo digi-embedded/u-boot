@@ -28,7 +28,7 @@
 #ifdef CONFIG_OPTEE_ENV_ENCRYPT
 /* CCMP1 AES encryption support */
 #include <nand.h>
-#include "../board/digi/ccmp1/ta_ccmp1.h"
+#include "../board/digi/common_stm32mp/ta_env.h"
 #endif
 
 DECLARE_GLOBAL_DATA_PTR;

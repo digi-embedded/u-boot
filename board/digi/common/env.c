@@ -24,7 +24,7 @@
 #include <uboot_aes.h>
 #include <tee.h>
 #include "../board/digi/common/hwid.h"
-#include "../board/digi/ccmp1/ta_ccmp1.h"
+#include "../board/digi/common_stm32mp/ta_env.h"
 #include "../cmd/legacy-mtd-utils.h"
 #endif
 

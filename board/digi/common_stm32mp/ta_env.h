@@ -1,11 +1,11 @@
 /*
- * Copyright 2023 Digi International Inc
+ * Copyright 2023-2026 Digi International Inc
  *
  * SPDX-License-Identifier:    GPL-2.0+
  */
 
-#ifndef __TA_CCMP1_H__
-#define __TA_CCMP1_H__
+#ifndef __TA_ENV_H__
+#define __TA_ENV_H__
 
 #if !defined(CONFIG_AES_KEY_LENGTH)
 #define CONFIG_AES_KEY_LENGTH ""
@@ -76,4 +76,4 @@ int set_iv(struct tee_ctx *ctx, char *iv, size_t iv_sz);
 int cipher_buffer(struct tee_ctx *ctx, char *in, char *out, size_t cipher_sz);
 int crypt_cipher_data(int enc, char *cipher_data, size_t size);
 
-#endif /* __TA_CCMP1_H__ */
+#endif /* __TA_ENV_H__ */

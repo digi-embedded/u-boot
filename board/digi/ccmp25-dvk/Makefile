@@ -22,5 +22,5 @@ obj-$(CONFIG_$(SPL_)DFU_VIRT) += ../../st/common/stm32mp_dfu_virt.o
 endif
 
 ifdef CONFIG_OPTEE_ENV_ENCRYPT
-obj-y += ../ccmp1/ta_ccmp1.o
+obj-y += ../common_stm32mp/ta_env.o
 endif
