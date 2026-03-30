@@ -40,7 +40,9 @@
 	"lzipaddr=" __stringify(CONFIG_DIGI_LZIPADDR) "\0" \
 	"script=boot.scr\0" \
 	"loadscript=" \
-		"if test \"${dualboot}\" = yes; then " \
+		"if test \"${mmcbootdev}\" = \"${sd_dev}\"; then " \
+			"part number mmc ${mmcbootdev} boot mmcpart; " \
+		"elif test \"${dualboot}\" = yes; then " \
 			"env exists active_system || setenv active_system linux_a; " \
 			"part number mmc ${mmcbootdev} ${active_system} mmcpart; " \
 		"fi;" \

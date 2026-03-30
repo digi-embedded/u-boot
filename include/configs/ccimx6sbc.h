@@ -85,7 +85,14 @@
 	"bootlimit=0\0" \
 	"dboot_kernel_var=zimage\0" \
 	"script=boot.scr\0" \
-	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
+	"loadscript=" \
+		"if test \"${mmcbootdev}\" = \"${sd_dev}\"; then " \
+			"part number mmc ${mmcbootdev} boot mmcpart; " \
+		"elif test \"${dualboot}\" = yes; then " \
+			"env exists active_system || setenv active_system linux_a; " \
+			"part number mmc ${mmcbootdev} ${active_system} mmcpart; " \
+		"fi;" \
+		"load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
 	"uimage=uImage-" CONFIG_SYS_BOARD ".bin\0" \
 	"zimage=zImage-" CONFIG_SYS_BOARD ".bin\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \

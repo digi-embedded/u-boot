@@ -162,7 +162,9 @@
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs ${cpuidle} ${jh_clk} ${mcore_args} console=${console} root=${mmcroot}\0 " \
 	"loadbootscript=" \
-		"if test \"${dualboot}\" = yes; then " \
+		"if test \"${mmcbootdev}\" = \"${sd_dev}\"; then " \
+			"part number mmc ${mmcbootdev} boot mmcpart; " \
+		"elif test \"${dualboot}\" = yes; then " \
 			"env exists active_system || setenv active_system linux_a; " \
 			"part number mmc ${mmcbootdev} ${active_system} mmcpart; " \
 		"fi;" \
@@ -173,7 +175,9 @@
 			"load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}; " \
 		"fi;\0" \
 	"loadimage=" \
-		"if test \"${dualboot}\" = yes; then " \
+		"if test \"${mmcbootdev}\" = \"${sd_dev}\"; then " \
+			"part number mmc ${mmcbootdev} boot mmcpart; " \
+		"elif test \"${dualboot}\" = yes; then " \
 			"env exists active_system || setenv active_system linux_a; " \
 			"part number mmc ${mmcbootdev} ${active_system} mmcpart; " \
 		"fi;" \
