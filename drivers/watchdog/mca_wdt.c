@@ -251,6 +251,6 @@ U_BOOT_DRIVER(mca_wdt) = {
 	.of_match	= mca_wdt_ids,
 	.probe		= mca_wdt_probe,
 	.ops		= &mca_wdt_ops,
-	.priv_auto_alloc_size = sizeof(struct mca_wdt_priv),
+	.priv_auto	= sizeof(struct mca_wdt_priv),
 	.flags		= DM_FLAG_PRE_RELOC,
 };
