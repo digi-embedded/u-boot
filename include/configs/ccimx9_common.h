@@ -13,11 +13,6 @@
 #define OCOTP_LOCK_BANK		0
 #define OCOTP_LOCK_WORD		1
 
-/* MCA */
-#ifdef CONFIG_MCA
-#define BOARD_MCA_DEVICE_ID		0x4A
-#endif
-
 /* Supported sources for update|dboot */
 #if defined(CONFIG_CMD_DBOOT) || defined(CONFIG_CMD_UPDATE)
 #define CONFIG_SUPPORTED_SOURCES	((1 << SRC_TFTP) | \

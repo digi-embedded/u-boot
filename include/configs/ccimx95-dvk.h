@@ -35,6 +35,11 @@
 #define AHAB_ENV "sec_boot=no\0"
 #endif
 
+/* MCA */
+#if IS_ENABLED(CONFIG_MCA)
+#define BOARD_MCA_DEVICE_ID		0x69
+#endif
+
 #define JH_ROOT_DTB "ccimx95-dvk-root.dtb"
 /* jh_root_mem: set the memory space used by Jailhouse root cell */
 #define JAILHOUSE_ENV \
