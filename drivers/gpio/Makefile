@@ -7,6 +7,7 @@ ifndef CONFIG_SPL_BUILD
 obj-$(CONFIG_DWAPB_GPIO)	+= dwapb_gpio.o
 obj-$(CONFIG_AXP_GPIO)		+= axp_gpio.o
 obj-$(CONFIG_DM_74X164)		+= 74x164_gpio.o
+obj-$(CONFIG_MCA_GPIO)		+= mca_gpio.o
 endif
 obj-$(CONFIG_$(SPL_TPL_)DM_GPIO) += gpio-uclass.o
 
@@ -23,7 +24,6 @@ obj-$(CONFIG_INTEL_ICH6_GPIO)	+= intel_ich6_gpio.o
 obj-$(CONFIG_INTEL_BROADWELL_GPIO)	+= intel_broadwell_gpio.o
 obj-$(CONFIG_IPROC_GPIO)	+= iproc_gpio.o
 obj-$(CONFIG_KIRKWOOD_GPIO)	+= kw_gpio.o
-obj-$(CONFIG_MCA_GPIO)		+= mca_gpio.o
 obj-$(CONFIG_MCP230XX_GPIO)	+= mcp230xx_gpio.o
 obj-$(CONFIG_MXC_GPIO)	+= mxc_gpio.o
 obj-$(CONFIG_MXS_GPIO)	+= mxs_gpio.o
