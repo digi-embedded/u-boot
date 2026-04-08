@@ -28,8 +28,7 @@ char smarc_locations[3] = {'D','I','R'};
 
 char board_smarcid_get_location_char(int location_index)
 {
-	if (location_index < 0 || 
-	    location_index >= ARRAY_SIZE(smarc_locations))
+	if (location_index < 0 || location_index >= ARRAY_SIZE(smarc_locations))
 		return '-';
 
 	return (smarc_locations[location_index]);

@@ -135,7 +135,7 @@ endif
 
 endif
 
-config HAS_SMARCID
+config SMARCID
 	bool "Platform supports a SMARC Hardware ID (SMARCID) on the OTP bits"
 	depends on CC9 && IMX95
 

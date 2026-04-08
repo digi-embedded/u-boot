@@ -45,7 +45,7 @@ endif
 endif
 obj-$(CONFIG_HAS_HWID) += hwid.o
 obj-$(CONFIG_MCA) += mca.o
-obj-$(CONFIG_HAS_SMARCID) += smarcid.o
+obj-$(CONFIG_SMARCID) += smarcid.o
 ifdef CONFIG_HAS_TRUSTFENCE
 obj-$(CONFIG_CONSOLE_DISABLE) += trustfence/console.o
 endif
