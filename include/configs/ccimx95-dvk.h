@@ -35,44 +35,18 @@
 #define AHAB_ENV "sec_boot=no\0"
 #endif
 
-#ifdef CONFIG_DISTRO_DEFAULTS
-#define BOOT_TARGET_DEVICES(func) \
-	func(MMC, mmc, 0) \
-	func(MMC, mmc, 1) \
-	func(USB, usb, 0)
-
-#include <config_distro_bootcmd.h>
-#else
-#define BOOTENV
-#endif
-
-#ifdef CONFIG_TARGET_CCIMX95_DVK
 #define JH_ROOT_DTB "ccimx95-dvk-root.dtb"
 /* jh_root_mem: set the memory space used by Jailhouse root cell */
 #define JAILHOUSE_ENV \
 	"jh_root_dtb=" JH_ROOT_DTB "\0" \
 	"jh_mmcboot=setenv fdt_file ${jh_root_dtb}; " \
 		"setenv jh_clk kvm.enable_virt_at_load=false cpuidle.off=1 clk_ignore_unused kvm-arm.mode=nvhe; " \
-		"setenv jh_root_mem 0x58000000@0x90000000,0xc0000000@0x180000000; " \
-		"if run loadimage; then run mmcboot;" \
-		"else run jh_netboot; fi; \0" \
-	"jh_netboot=setenv fdt_file ${jh_root_dtb}; " \
-		"setenv jh_root_mem 0x58000000@0x90000000,0xc0000000@0x180000000; " \
-		"setenv jh_clk kvm.enable_virt_at_load=false cpuidle.off=1 clk_ignore_unused kvm-arm.mode=nvhe; run netboot; \0 "
-#else
-#define JH_ROOT_DTB "ccimx95-dvk-root.dtb"
-/* jh_root_mem: set the memory space used by Jailhouse root cell */
- #define JAILHOUSE_ENV \
-	"jh_root_dtb=" JH_ROOT_DTB "\0" \
-	"jh_mmcboot=setenv fdt_file ${jh_root_dtb}; " \
-		"setenv jh_clk kvm.enable_virt_at_load=false cpuidle.off=1 clk_ignore_unused kvm-arm.mode=nvhe; " \
 		"setenv jh_root_mem 0x58000000@0x90000000,0x300000000@0x180000000; " \
 		"if run loadimage; then run mmcboot;" \
 		"else run jh_netboot; fi; \0" \
 	"jh_netboot=setenv fdt_file ${jh_root_dtb}; " \
 		"setenv jh_root_mem 0x58000000@0x90000000,0x300000000@0x180000000; " \
 		"setenv jh_clk kvm.enable_virt_at_load=false cpuidle.off=1 clk_ignore_unused kvm-arm.mode=nvhe; run netboot; \0 "
-#endif
 
 /* Override CFG_MFG_ENV_SETTINGS_DEFAULT from imx_env.h */
 #undef CFG_MFG_ENV_SETTINGS_DEFAULT
@@ -127,11 +101,8 @@
             "\0" \
 /* Initial environment variables */
 #define CFG_EXTRA_ENV_SETTINGS		\
-	JAILHOUSE_ENV \
 	CFG_MFG_ENV_SETTINGS \
 	DUALBOOT_ENV_SETTINGS \
-	XEN_BOOT_ENV \
-	BOOTENV \
 	AHAB_ENV \
 	"prepare_mcore=setenv mcore_args pd_ignore_unused;\0" \
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
@@ -306,8 +277,6 @@
 #define PHYS_SDRAM_SIZE			0x70000000UL /* 2GB  - 256MB DDR */
 #define PHYS_SDRAM_2_SIZE 		0x180000000UL /* 6GB */
 
-#define CFG_SYS_FSL_USDHC_NUM	2
-
 /* Using ULP WDOG for reset */
 #define WDOG_BASE_ADDR          WDG3_BASE_ADDR
 
@@ -315,10 +284,6 @@
 #if defined(CONFIG_CMD_NET)
 #define PHY_ANEG_TIMEOUT 20000
 /* Number of Rx BD rings: 8 per ENETC instance */
-#endif
-
-#ifdef CONFIG_ANDROID_SUPPORT
-#include "imx95_evk_android.h"
 #endif
 
 #endif
