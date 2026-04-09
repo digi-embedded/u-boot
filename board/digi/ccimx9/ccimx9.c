@@ -14,6 +14,8 @@
 #include <env_internal.h>
 #include <fdt_support.h>
 #include <mmc.h>
+#include <asm/system.h>
+#include <linux/delay.h>
 
 #include "../common/helper.h"
 #include "../common/hwid.h"
@@ -465,3 +467,28 @@ int print_bootinfo(void)
 
 	return 0;
 }
+
+#ifdef CONFIG_TARGET_CCIMX95_DVK
+/*
+ * Use the reset_misc hook to customize the reset implementation. This function
+ * is invoked before the standard reset_cpu().
+ * We want to perform the reset through the MCA which may, depending
+ * on the configuration, assert the POR_B line or perform a power cycle of the
+ * system.
+ */
+void reset_misc(void)
+{
+#if IS_ENABLED(CONFIG_MCA)
+	if (board_has_mca()) {
+		mca_reset();
+		mdelay(1);
+	}
+#endif
+
+	/* fall back to regular reset if MCA reset doesn't work */
+#ifdef CONFIG_PSCI_RESET
+	psci_system_reset();
+	mdelay(1);
+#endif
+}
+#endif
