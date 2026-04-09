@@ -95,10 +95,16 @@ bool board_has_eth1(void)
 	return true;
 }
 
+#if IS_ENABLED(CONFIG_MCA)
 static bool board_has_mca(void)
 {
+#if IS_ENABLED(CONFIG_SMARCID)
+	return my_smarcid.mca;
+#else
 	return my_hwid.mca;
+#endif
 }
+#endif
 
 bool board_has_wireless(void)
 {
@@ -151,32 +157,44 @@ static const char *get_cpu_type_str(void)
 	}
 }
 
+#if IS_ENABLED(CONFIG_MCA)
+static void ccimx9_mca_somver_update(void)
+{
+	unsigned char hv = 0;
+
+#if IS_ENABLED(CONFIG_SMARCID)
+	hv = my_smarcid.hv;
+#else
+	hv = my_hwid.hv;
+#endif
+
+	mca_somver_update(hv);
+}
+#endif /* CONFIG_MCA */
+
 int ccimx9_init(void)
 {
 	int ret = 0;
 
-#ifdef CONFIG_MCA
-	if (board_has_mca()) {
-		mca_init();
-#ifdef CONFIG_MCA_TAMPER
-		mca_tamper_check_events();
-#endif
-	}
-#endif
-
 	if (hwid_read(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		ret = -1;
-#ifdef CONFIG_MCA
-	} else if (board_has_mca()) {
-		mca_somver_update(my_hwid.hv);
-#endif
 	}
 
 #ifdef CONFIG_SMARCID
 	if (smarcid_read(&my_smarcid)) {
 		printf("Cannot read SMARCID\n");
 		ret = -1;
+	}
+#endif
+
+#if IS_ENABLED(CONFIG_MCA)
+	if (board_has_mca()) {
+		mca_init();
+		ccimx9_mca_somver_update();
+#if IS_ENABLED(CONFIG_MCA_TAMPER)
+		mca_tamper_check_events();
+#endif
 	}
 #endif
 	soc_rev = soc_rev();
@@ -195,6 +213,11 @@ void som_loaded_environment(void)
 	if (smarcid_read(&my_smarcid)) {
 		printf("Cannot read SMARCID\n");
 	}
+#endif
+
+#if IS_ENABLED(CONFIG_MCA)
+	if (board_has_mca())
+		ccimx9_mca_somver_update();
 #endif
 }
 
@@ -285,9 +308,9 @@ void board_hwid_update(void)
 		return;
 	}
 
-#ifdef CONFIG_MCA
+#if IS_ENABLED(CONFIG_MCA)
 	if (board_has_mca())
-		mca_somver_update(my_hwid.hv);
+		ccimx9_mca_somver_update();
 #endif
 
 	som_default_environment();
@@ -301,6 +324,11 @@ void board_smarcid_update(void)
 		printf("Cannot read SMARCID\n");
 		return;
 	}
+
+#if IS_ENABLED(CONFIG_MCA)
+	if (board_has_mca())
+		ccimx9_mca_somver_update();
+#endif
 
 	som_default_environment();
 }
@@ -366,7 +394,7 @@ void print_som_info(void)
 			printf(", Wi-Fi");
 		if (my_hwid.bt)
 			printf(", Bluetooth");
-		if (board_has_mca())
+		if (my_hwid.mca)
 			printf(", MCA");
 		if (my_hwid.crypto)
 			printf(", Crypto-auth");
