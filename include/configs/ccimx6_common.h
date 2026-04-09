@@ -187,49 +187,49 @@
 #define LINUX_4GB_PARTITION_TABLE \
 	"\"uuid_disk=${uuid_disk};" \
 	"start=2MiB," \
-	"name=linux,size=64MiB,uuid=${part1_uuid};" \
-	"name=recovery,size=64MiB,uuid=${part2_uuid};" \
-	"name=rootfs,size=1536MiB,uuid=${part3_uuid};" \
-	"name=update,size=1536MiB,uuid=${part4_uuid};" \
-	"name=safe,size=16MiB,uuid=${part5_uuid};" \
-	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
-	"name=data,size=-,uuid=${part7_uuid};" \
+	"name=linux,size=64MiB,type=linux,uuid=${part1_uuid};" \
+	"name=recovery,size=64MiB,type=linux,uuid=${part2_uuid};" \
+	"name=rootfs,size=1536MiB,type=linux,uuid=${part3_uuid};" \
+	"name=update,size=1536MiB,type=linux,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,type=linux,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,type=linux,uuid=${part6_uuid};" \
+	"name=data,size=-,type=linux,uuid=${part7_uuid};" \
 	"\""
 
 #define LINUX_8GB_PARTITION_TABLE \
 	"\"uuid_disk=${uuid_disk};" \
 	"start=2MiB," \
-	"name=linux,size=64MiB,uuid=${part1_uuid};" \
-	"name=recovery,size=64MiB,uuid=${part2_uuid};" \
-	"name=rootfs,size=3GiB,uuid=${part3_uuid};" \
-	"name=update,size=3GiB,uuid=${part4_uuid};" \
-	"name=safe,size=16MiB,uuid=${part5_uuid};" \
-	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
-	"name=data,size=-,uuid=${part7_uuid};" \
+	"name=linux,size=64MiB,type=linux,uuid=${part1_uuid};" \
+	"name=recovery,size=64MiB,type=linux,uuid=${part2_uuid};" \
+	"name=rootfs,size=3GiB,type=linux,uuid=${part3_uuid};" \
+	"name=update,size=3GiB,type=linux,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,type=linux,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,type=linux,uuid=${part6_uuid};" \
+	"name=data,size=-,type=linux,uuid=${part7_uuid};" \
 	"\""
 
 #define LINUX_DUALBOOT_4GB_PARTITION_TABLE \
 	"\"uuid_disk=${uuid_disk};" \
 	"start=2MiB," \
-	"name=linux_a,size=64MiB,uuid=${part1_uuid};" \
-	"name=linux_b,size=64MiB,uuid=${part2_uuid};" \
-	"name=rootfs_a,size=1536MiB,uuid=${part3_uuid};" \
-	"name=rootfs_b,size=1536MiB,uuid=${part4_uuid};" \
-	"name=safe,size=16MiB,uuid=${part5_uuid};" \
-	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
-	"name=data,size=-,uuid=${part7_uuid};" \
+	"name=linux_a,size=64MiB,type=linux,uuid=${part1_uuid};" \
+	"name=linux_b,size=64MiB,type=linux,uuid=${part2_uuid};" \
+	"name=rootfs_a,size=1536MiB,type=linux,uuid=${part3_uuid};" \
+	"name=rootfs_b,size=1536MiB,type=linux,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,type=linux,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,type=linux,uuid=${part6_uuid};" \
+	"name=data,size=-,type=linux,uuid=${part7_uuid};" \
 	"\""
 
 #define LINUX_DUALBOOT_8GB_PARTITION_TABLE \
 	"\"uuid_disk=${uuid_disk};" \
 	"start=2MiB," \
-	"name=linux_a,size=64MiB,uuid=${part1_uuid};" \
-	"name=linux_b,size=64MiB,uuid=${part2_uuid};" \
-	"name=rootfs_a,size=3GiB,uuid=${part3_uuid};" \
-	"name=rootfs_b,size=3GiB,uuid=${part4_uuid};" \
-	"name=safe,size=16MiB,uuid=${part5_uuid};" \
-	"name=safe2,size=16MiB,uuid=${part6_uuid};" \
-	"name=data,size=-,uuid=${part7_uuid};" \
+	"name=linux_a,size=64MiB,type=linux,uuid=${part1_uuid};" \
+	"name=linux_b,size=64MiB,type=linux,uuid=${part2_uuid};" \
+	"name=rootfs_a,size=3GiB,type=linux,uuid=${part3_uuid};" \
+	"name=rootfs_b,size=3GiB,type=linux,uuid=${part4_uuid};" \
+	"name=safe,size=16MiB,type=linux,uuid=${part5_uuid};" \
+	"name=safe2,size=16MiB,type=linux,uuid=${part6_uuid};" \
+	"name=data,size=-,type=linux,uuid=${part7_uuid};" \
 	"\""
 
 /* Partition defines */
