@@ -169,7 +169,7 @@ int ccimx9_init(void)
 		ret = -1;
 #ifdef CONFIG_MCA
 	} else if (board_has_mca()) {
-		mca_somver_update(&my_hwid);
+		mca_somver_update(my_hwid.hv);
 #endif
 	}
 
@@ -287,7 +287,7 @@ void board_hwid_update(void)
 
 #ifdef CONFIG_MCA
 	if (board_has_mca())
-		mca_somver_update(&my_hwid);
+		mca_somver_update(my_hwid.hv);
 #endif
 
 	som_default_environment();

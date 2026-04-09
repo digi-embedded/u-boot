@@ -87,7 +87,7 @@ int ccimx8_init(void)
 	}
 
 	mca_init();
-	mca_somver_update(&my_hwid);
+	mca_somver_update(my_hwid.hv);
 
 #ifdef CONFIG_MCA_TAMPER
 	mca_tamper_check_events();
@@ -277,7 +277,7 @@ void board_hwid_update(void)
 		return;
 	}
 
-	mca_somver_update(&my_hwid);
+	mca_somver_update(my_hwid.hv);
 	som_default_environment();
 }
 
