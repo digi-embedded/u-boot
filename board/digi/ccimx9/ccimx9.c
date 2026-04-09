@@ -18,13 +18,13 @@
 #include "../common/helper.h"
 #include "../common/hwid.h"
 #include "../common/mca.h"
-#ifdef CONFIG_SMARCID
+#if IS_ENABLED(CONFIG_SMARCID)
 #include "../common/smarcid.h"
 #endif
 #include "../common/trustfence.h"
 
 static struct digi_hwid my_hwid;
-#ifdef CONFIG_SMARCID
+#if IS_ENABLED(CONFIG_SMARCID)
 static struct digi_smarcid my_smarcid;
 #endif
 static u32 soc_rev;
@@ -181,7 +181,7 @@ int ccimx9_init(void)
 		ret = -1;
 	}
 
-#ifdef CONFIG_SMARCID
+#if IS_ENABLED(CONFIG_SMARCID)
 	if (smarcid_read(&my_smarcid)) {
 		printf("Cannot read SMARCID\n");
 		ret = -1;
@@ -209,7 +209,7 @@ void som_loaded_environment(void)
 		printf("Cannot read HWID\n");
 	}
 
-#ifdef CONFIG_SMARCID
+#if IS_ENABLED(CONFIG_SMARCID)
 	if (smarcid_read(&my_smarcid)) {
 		printf("Cannot read SMARCID\n");
 	}
@@ -293,7 +293,7 @@ void som_default_environment(void)
 
 	env_set("cpu_type", get_cpu_type_str());
 
-#ifdef CONFIG_SMARCID
+#if IS_ENABLED(CONFIG_SMARCID)
 	/* Get SMARCID-related variables */
 	smarcid_get_variant(&my_smarcid);
 	smarcid_get_serial_number(&my_smarcid);
@@ -316,7 +316,7 @@ void board_hwid_update(void)
 	som_default_environment();
 }
 
-#ifdef CONFIG_SMARCID
+#if IS_ENABLED(CONFIG_SMARCID)
 void board_smarcid_update(void)
 {
 	/* Update SMARCID-related variables in environment */
@@ -351,7 +351,7 @@ void fdt_fixup_ccimx9(void *fdt)
 {
 	fdt_fixup_fuse_hwid(fdt);
 	fdt_fixup_hwid(fdt, &my_hwid);
-#ifdef CONFIG_SMARCID
+#if IS_ENABLED(CONFIG_SMARCID)
 	fdt_fixup_fuse_smarcid(fdt);
 	fdt_fixup_smarcid(fdt, &my_smarcid);
 #endif
@@ -401,7 +401,7 @@ void print_som_info(void)
 		printf("\n");
 	}
 
-#ifdef CONFIG_SMARCID
+#if IS_ENABLED(CONFIG_SMARCID)
 	if (is_smarc(&my_smarcid)) {
 		printf("%s SMARC variant 0x%02X: ", CONFIG_SOM_DESCRIPTION,
 		       my_smarcid.variant);
