@@ -465,7 +465,7 @@ OEI_PATCHES=""
 SM_REPO="ssh://git@stash.digi.com/emp/imx-sm.git"
 SM_BRANCH="dey/scarthgap/lf-6.6.52-2.2.2"
 # Tag: lf-6.6.52-2.2.2 + patches
-SM_REV="421dfb2c1d760fb877284b0b2f1ee80b7ce37480"
+SM_REV="ecd89d0bc35687c7e1e19b47cf6bcdefc3a3fe68"
 SM_DIR="${BASEDIR}/imx-sm"
 SM_PATCHES=""
 
