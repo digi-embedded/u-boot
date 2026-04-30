@@ -40,7 +40,9 @@
 	"lzipaddr=" __stringify(CONFIG_DIGI_LZIPADDR) "\0" \
 	"script=boot.scr\0" \
 	"loadscript=" \
-		"if test \"${dualboot}\" = yes; then " \
+		"if test \"${mmcbootdev}\" = \"${sd_dev}\"; then " \
+			"part number mmc ${mmcbootdev} boot mmcpart; " \
+		"elif test \"${dualboot}\" = yes; then " \
 			"env exists active_system || setenv active_system linux_a; " \
 			"part number mmc ${mmcbootdev} ${active_system} mmcpart; " \
 		"fi;" \
@@ -116,6 +118,8 @@
 		"fi;\0" \
 	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
 	"active_system=linux_a\0" \
+	"splashimage=0x9e000000\0" \
+	"splashpos=m,m\0" \
 	"usb_pgood_delay=2000\0" \
 	""	/* end line */
 

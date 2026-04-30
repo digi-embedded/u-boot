@@ -46,8 +46,8 @@ extern int board_fix_fdt_fuse(void *fdt);
 
 int board_early_init_f(void)
 {
-	/* LPUART6 */
-	init_uart_clk(5);
+	/* UART1: A55, UART2: M33, UART3: M7 */
+	init_uart_clk(0);
 
 	return 0;
 }
@@ -55,7 +55,7 @@ int board_early_init_f(void)
 #ifdef CONFIG_USB_TCPC
 struct tcpc_port port;
 struct tcpc_port_config port_config = {
-	.i2c_bus = 2, /* i2c3 */
+	.i2c_bus = 6, /* i2c7 */
 	.addr = 0x53,
 	.port_type = TYPEC_PORT_DRP,
 	.disable_pd = true,
@@ -348,6 +348,10 @@ void lvds_backlight_on(void)
 int board_init(void)
 {
 	int ret;
+
+	/* SOM init */
+	ccimx9_init();
+
 	ret = imx9_scmi_power_domain_enable(IMX95_PD_HSIO_TOP, true);
 	if (ret) {
 		printf("SCMI_POWWER_STATE_SET Failed for USB\n");
@@ -370,6 +374,11 @@ int board_init(void)
 	lvds_backlight_on();
 
 	return 0;
+}
+
+void platform_loaded_environment(void)
+{
+	som_loaded_environment();
 }
 
 void platform_default_environment(void)
@@ -436,13 +445,6 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 	return 0;
 }
 #endif
-
-int board_phys_sdram_size(phys_size_t *size)
-{
-	*size = PHYS_SDRAM_SIZE + PHYS_SDRAM_2_SIZE;
-
-	return 0;
-}
 
 void board_quiesce_devices(void)
 {
@@ -594,6 +596,25 @@ int board_fix_fdt(void *fdt)
 #endif
 }
 #endif
+
+#if defined(CONFIG_DISPLAY_BOARDINFO_LATE)
+/*
+ * Call this during late initialization, after relocation and board setup,
+ * as some initialization must be completed before printing the information.
+ */
+int checkboard(void)
+{
+	board_version = get_carrierboard_version();
+	board_id = get_carrierboard_id();
+
+	print_som_info();
+	print_carrierboard_info();
+	print_bootinfo();
+
+	return 0;
+}
+#endif
+
 #ifdef CONFIG_FSL_FASTBOOT
 #ifdef CONFIG_ANDROID_RECOVERY
 int is_recovery_key_pressing(void)

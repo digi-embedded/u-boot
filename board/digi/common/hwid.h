@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2019 Digi International Inc. All Rights Reserved.
+ * Copyright 2014-2026 Digi International Inc. All Rights Reserved.
  */
 
 /*
@@ -32,20 +32,34 @@ enum digi_cert {
 	DIGI_MAX_CERT,
 };
 
-void board_print_hwid(struct digi_hwid *hwid);
-void board_print_manufid(struct digi_hwid *hwid);
-int board_parse_hwid(int argc, char *const argv[], struct digi_hwid *hwid);
-int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid);
-int board_read_hwid(struct digi_hwid *hwid);
-int board_sense_hwid(struct digi_hwid *hwid);
-int board_prog_hwid(const struct digi_hwid *hwid);
-int board_override_hwid(const struct digi_hwid *hwid);
-void board_update_hwid(bool is_fuse);
-int board_lock_hwid(void);
+struct digi_hwid_fuse {
+	u32 bank;
+	u32 word;
+	u32 len;	/* length in nibbles (4-bits) */
+};
+
+void board_hwid_fuse_prog_unlock(void);
+void board_hwid_fuse_prog_lock(void);
+void board_hwid_print(const struct digi_hwid *hwid);
+void board_hwid_print_hex(const struct digi_hwid *hwid);
+void board_hwid_print_manuf(const struct digi_hwid *hwid);
+int board_hwid_parse(int argc, char *const argv[], struct digi_hwid *hwid);
+int board_hwid_parse_manuf(int argc, char *const argv[], struct digi_hwid *hwid);
+int board_hwid_fuse_read(struct digi_hwid *hwid);
+int board_hwid_fuse_set_local_vars(void);
+int board_hwid_fuse_prog(const struct digi_hwid *hwid);
+void board_hwid_update(void);
+int board_hwid_fuse_lock(void);
 void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid);
+void fdt_fixup_fuse_hwid(void *fdt);
 u64 hwid_get_ramsize(const struct digi_hwid *hwid);
-void print_hwid_hex(struct digi_hwid *hwid);
-void hwid_get_macs(uint32_t pool, uint32_t base);
+void hwid_get_macs(const struct digi_hwid *hwid);
+void hwid_get_mac_pool(const struct digi_hwid *hwid, uint8_t *mac);
 void hwid_get_serial_number(const struct digi_hwid *hwid);
+
+int hwid_env_read(struct digi_hwid *hwid);
+int hwid_env_prog(const struct digi_hwid *hwid);
+int hwid_env_clear(void);
+int hwid_read(struct digi_hwid *hwid);
 
 #endif	/* __HWID_H_ */

@@ -588,7 +588,7 @@ int load_firmware(struct load_fw *fwinfo, char *msg)
 
 		if (fwinfo->filename[0] == '$')
 			fn = env_get(&fwinfo->filename[1]);
-		printf("%s: %s\n", msg, fn);
+		printf("%s: %s (at 0x%08lx)\n", msg, fn, env_get_ulong(fwinfo->loadaddr + 1, 16, 0));
 	}
 
 	ret = run_command(cmd, 0);
@@ -748,6 +748,16 @@ void fdt_fixup_uboot_info(void *fdt) {
 #ifdef CONFIG_DYNAMIC_ENV_LOCATION
 	do_fixup_by_path(fdt, "/", "digi,uboot,dynamic-env", NULL, 0, 1);
 #endif
+}
+
+void fdt_fixup_install_code(void *fdt)
+{
+	char *install_code = env_get("drm_ic");
+
+	if (install_code != NULL) {
+		do_fixup_by_path(fdt, "/", "digi,drm-ic", install_code,
+				 strlen(install_code) + 1, 1);
+	}
 }
 
 const char *get_filename_ext(const char *filename)

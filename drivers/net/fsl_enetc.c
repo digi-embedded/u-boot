@@ -955,8 +955,11 @@ static int enetc_read_rom_hwaddr(struct udevice *dev)
 	default:
 		return -1;
 	}
-
+#ifdef CONFIG_NO_MAC_FROM_OTP
+	memset(mac, 0, 6);
+#else
 	imx_get_mac_from_fuse(dev_id, mac);
+#endif
 	return !is_valid_ethaddr(mac);
 }
 #endif

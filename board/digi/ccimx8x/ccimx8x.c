@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024, Digi International Inc.
+ * Copyright (C) 2018-2026, Digi International Inc.
  * Copyright 2017 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -132,7 +132,7 @@ void board_mem_get_layout(u64 *phys_sdram_1_start,
 	*phys_sdram_2_start = PHYS_SDRAM_2;
 	*phys_sdram_2_size = PHYS_SDRAM_2_SIZE;
 
-	if (!board_read_hwid(&my_hwid)) {
+	if (!hwid_read(&my_hwid)) {
 		*phys_sdram_1_size = (u64)hwid_get_ramsize(&my_hwid);
 		if (!*phys_sdram_1_size) {
 			/* if RAM size was not coded, use variant to obtain RAM size */
@@ -168,23 +168,6 @@ int mmc_get_bootdevindex(void)
 	}
 }
 
-uint mmc_get_env_part(struct mmc *mmc)
-{
-	switch(get_boot_device()) {
-	case SD2_BOOT:
-		return 0;	/* When booting from an SD card the
-				 * environment will be saved to the unique
-				 * hardware partition: 0 */
-	case MMC1_BOOT:
-	default:
-		return CONFIG_SYS_MMC_ENV_PART;
-				/* When booting from USDHC1 (eMMC) the
-				 * environment will be saved to boot
-				 * partition 2 to protect it from
-				 * accidental overwrite during U-Boot update */
-	}
-}
-
 int hwid_in_db(int variant)
 {
 	if (variant < ARRAY_SIZE(ccimx8x_variants))
@@ -194,7 +177,7 @@ int hwid_in_db(int variant)
 	return 0;
 }
 
-int board_lock_hwid(void)
+int board_hwid_fuse_lock(void)
 {
 	/* SCU performs automatic lock after programming */
 	printf("not supported. Fuses automatically locked after programming.\n");

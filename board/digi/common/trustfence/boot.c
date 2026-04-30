@@ -10,7 +10,6 @@
 #include <fuse.h>
 #include <mapmem.h>
 
-#include "../helper.h"
 #include "boot.h"
 
 /*

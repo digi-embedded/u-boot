@@ -1,5 +1,5 @@
 #
-# Copyright 2015-2022, Digi International Inc.
+# Copyright 2015-2026, Digi International Inc.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -29,6 +29,9 @@ obj-$(CONFIG_CMD_UPDATE_NAND) += helper.o
 obj-$(CONFIG_CMD_DBOOT) += helper.o
 obj-$(CONFIG_CMD_DIGI_PMIC) += cmd_pmic.o
 obj-$(CONFIG_MCA_TAMPER) += tamper.o
+ifneq (,$(filter $(SOC), imx8 imx8m imx9))
+obj-y += mmc.o
+endif
 ifdef CONFIG_HAS_TRUSTFENCE
 obj-y += trustfence/boot.o trustfence/encryption.o
 obj-$(CONFIG_IMX_HAB) += trustfence/hab.o
@@ -42,6 +45,7 @@ endif
 endif
 obj-$(CONFIG_HAS_HWID) += hwid.o
 obj-$(CONFIG_MCA) += mca.o
+obj-$(CONFIG_SMARCID) += smarcid.o
 ifdef CONFIG_HAS_TRUSTFENCE
 obj-$(CONFIG_CONSOLE_DISABLE) += trustfence/console.o
 endif

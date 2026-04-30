@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2025 Digi International, Inc.
+ * Copyright (C) 2016-2026, Digi International, Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * Configuration settings for the Digi ConnecCore 6UL System-On-Module.
@@ -105,7 +105,10 @@
 	"btaddr:mc,"			\
 	"bootargs_once:sr,"		\
 	"board_version:so,"		\
-	"board_id:so,"
+	"board_id:so,"			\
+	"hwid_0:so,"			\
+	"hwid_1:so,"			\
+	"drm_ic:so,"
 
 /* I2C configs */
 #define CONFIG_I2C_MULTI_BUS

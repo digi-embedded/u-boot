@@ -130,29 +130,6 @@ static struct fsl_esdhc_cfg usdhc_cfg[] = {
 	{USDHC2_BASE_ADDR, 0, 4},
 };
 
-int mmc_get_env_devno(void)
-{
-	u32 soc_sbmr = readl(SRC_BASE_ADDR + 0x4);
-	int dev_no;
-	u32 bootsel;
-
-	bootsel = (soc_sbmr & 0x000000FF) >> 6 ;
-
-	/* If not boot from sd/mmc, use default value */
-	if (bootsel != 1)
-		return CONFIG_SYS_MMC_ENV_DEV;
-
-	/* BOOT_CFG2[3] and BOOT_CFG2[4] */
-	dev_no = (soc_sbmr & 0x00001800) >> 11;
-
-#if CONFIG_IS_ENABLED(IMX_MODULE_FUSE)
-	if (dev_no == 1 && esdhc_fused(USDHC1_BASE_ADDR))
-		dev_no = 0;
-#endif
-
-	return dev_no;
-}
-
 int board_mmc_getcd(struct mmc *mmc)
 {
 	/* CD not connected. Assume microSD card present */
@@ -273,6 +250,11 @@ int board_init(void)
 #endif
 
 	return 0;
+}
+
+void platform_loaded_environment(void)
+{
+	som_loaded_environment();
 }
 
 void platform_default_environment(void)

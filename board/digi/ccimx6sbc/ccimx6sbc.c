@@ -30,7 +30,6 @@
 #include <fdt_support.h>
 #endif
 #include <fsl_esdhc_imx.h>
-#include <fuse.h>
 #include <micrel.h>
 #include <miiphy.h>
 #include <mmc.h>
@@ -348,6 +347,11 @@ static int board_fixup(void)
 	}
 
 	return 0;
+}
+
+void platform_loaded_environment(void)
+{
+	som_loaded_environment();
 }
 
 void platform_default_environment(void)

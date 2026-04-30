@@ -27,6 +27,9 @@
 #include <dm.h>
 #include <dm/device-internal.h>
 #include <dm/device_compat.h>
+#if IS_ENABLED(CONFIG_DISPLAY)
+#include <display.h>
+#endif
 
 #define	PS2KHZ(ps)	(1000000000UL / (ps))
 #define HZ2PS(hz)	(1000000000UL / ((hz) / 1000))
@@ -367,6 +370,15 @@ static int lcdifv3_video_probe(struct udevice *dev)
 			ret = video_bridge_set_backlight(priv->disp_dev, 80);
 			if (ret) {
 				dev_err(dev, "fail to set backlight\n");
+				return ret;
+			}
+		}
+#endif
+#if IS_ENABLED(CONFIG_DISPLAY)
+		if (device_get_uclass_id(priv->disp_dev) == UCLASS_DISPLAY) {
+			ret = display_enable(priv->disp_dev, 24, NULL);
+			if (ret) {
+				dev_err(dev, "fail to enable display\n");
 				return ret;
 			}
 		}

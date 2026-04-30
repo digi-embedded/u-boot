@@ -70,6 +70,14 @@ patch_atf_repo()
 	echo "- Patch imx-atf repository:"
 	(
 		cd "${ATF_DIR}" || exit 1
+		# Generic patches
+		while IFS= read -r p || [ -n "${p}" ]; do
+			[ -z "${p}" ] && continue
+			echo "- Apply patch: ${p}"
+			patch -p1 < "${BASEDIR}"/patch/atf/"${p}" || exit 2
+		done < "${BASEDIR}"/patch/atf/series
+
+		# Platform specific patches
 		for p in ${ATF_PATCHES}; do
 			echo "- Apply patch: ${p}"
 			patch -p1 < "${BASEDIR}"/patch/atf/"${p}" || exit 2
@@ -115,6 +123,14 @@ patch_optee_repo()
 	echo "- Patch imx-optee-os repository:"
 	(
 		cd "${OPTEE_DIR}" || exit 1
+		# Generic patches
+		while IFS= read -r p || [ -n "${p}" ]; do
+			[ -z "${p}" ] && continue
+			echo "- Apply patch: ${p}"
+			patch -p1 < "${BASEDIR}"/patch/optee/"${p}" || exit 2
+		done < "${BASEDIR}"/patch/optee/series
+
+		# Platform specific patches
 		for p in ${OPTEE_PATCHES}; do
 			echo "- Apply patch: ${p}"
 			patch -p1 < "${BASEDIR}"/patch/optee/"${p}" || exit 2
@@ -167,6 +183,14 @@ patch_oei_repo()
 	echo "- Patch imx-oei repository:"
 	(
 		cd "${OEI_DIR}" || exit 1
+		# Generic patches
+		while IFS= read -r p || [ -n "${p}" ]; do
+			[ -z "${p}" ] && continue
+			echo "- Apply patch: ${p}"
+			patch -p1 < "${BASEDIR}"/patch/oei/"${p}" || exit 2
+		done < "${BASEDIR}"/patch/oei/series
+
+		# Platform specific patches
 		for p in ${OEI_PATCHES}; do
 			echo "- Apply patch: ${p}"
 			patch -p1 < "${BASEDIR}"/patch/oei/"${p}" || exit 2
@@ -177,6 +201,7 @@ patch_oei_repo()
 build_oei()
 {
 	OEI_SOC_REV="${SOC_REV}"
+	# OEI_MAKE_ARGS="DDR_CONFIG=lpddr5_timing_2G"
 	if [ "${OEI_SOC_REV#A}" != "${OEI_SOC_REV}" ]; then
 		OEI_SOC_REV="A0"
 		OEI_MAKE_ARGS="DDR_CONFIG=lpddr5_timing_a1"
@@ -220,6 +245,14 @@ patch_sm_repo()
 	echo "- Patch imx-sm repository:"
 	(
 		cd "${SM_DIR}" || exit 1
+		# Generic patches
+		while IFS= read -r p || [ -n "${p}" ]; do
+			[ -z "${p}" ] && continue
+			echo "- Apply patch: ${p}"
+			patch -p1 < "${BASEDIR}"/patch/sm/"${p}" || exit 2
+		done < "${BASEDIR}"/patch/sm/series
+
+		# Platform specific patches
 		for p in ${SM_PATCHES}; do
 			echo "- Apply patch: ${p}"
 			patch -p1 < "${BASEDIR}"/patch/sm/"${p}" || exit 2
@@ -264,6 +297,14 @@ patch_mkimage_repo()
 	echo "- Patch imx-mkimage repository:"
 	(
 		cd "${MKIMAGE_DIR}" || exit 1
+		# Generic patches
+		while IFS= read -r p || [ -n "${p}" ]; do
+			[ -z "${p}" ] && continue
+			echo "- Apply patch: ${p}"
+			patch -p1 < "${BASEDIR}"/patch/mkimage/"${p}" || exit 2
+		done < "${BASEDIR}"/patch/mkimage/series
+
+		# Platform specific patches
 		for p in ${MKIMAGE_PATCHES}; do
 			echo "- Apply patch: ${p}"
 			patch -p1 < "${BASEDIR}"/patch/mkimage/"${p}" || exit 2
@@ -392,95 +433,51 @@ BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
 MKIMAGE_BRANCH="lf-6.6.52_2.2.1"
-# Tag: lf-6.6.52-2.2.1
+# Tag: lf-6.6.52-2.2.2
 MKIMAGE_REV="81fca6434be0610f3f9216a762aadc4dc3e8d8db"
 MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
 MKIMAGE_SOC_DIR="${MKIMAGE_DIR}/iMX95"
-MKIMAGE_PATCHES=" \
-	0001-iMX8QX-soc.mak-capture-commands-output-into-a-log-fi.patch \
-	0002-imx8m-soc.mak-capture-commands-output-into-a-log-fil.patch \
-	0003-imx8m-print_fit_hab-follow-symlinks.patch \
-	0004-imx8mm-adjust-TEE_LOAD_ADDR-for-ccimx8mm.patch \
-	0005-imx93-soc.mak-capture-commands-output-into-a-log-fil.patch \
-	0006-imx93-soc.mak-add-makefile-target-to-build-A0-revisi.patch \
-	0007-imx91-soc.mak-capture-commands-output-into-a-log-fil.patch \
-	0008-imx95-soc.mak-capture-commands-output-into-a-log-fil.patch \
-"
+MKIMAGE_PATCHES=""
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
 ATF_BRANCH="lf_v2.10_6.6.52_2.2.x"
-# Tag: lf-6.6.52-2.2.1
-ATF_REV="7e374c5f57328949a2b141a567175b6a2939e964"
+# Tag: lf-6.6.52-2.2.2
+ATF_REV="8ec7e38031f8c022a9760a8da77bdc6e1938db8c"
 ATF_DIR="${BASEDIR}/imx-atf"
-ATF_PATCHES=" \
-	0001-imx8mm-Define-UART1-as-console-for-boot-stage.patch \
-	0002-imx8mm-Disable-M4-debug-console.patch \
-	0003-imx8mn-Define-UART1-as-console-for-boot-stage.patch \
-	0004-imx8mn-Disable-M7-debug-console.patch \
-	0005-imx8mm-set-BL32_BASE-and-map-high-DRAM-for-ccimx8mm-.patch \
-	0006-ccimx93-use-UART6-for-the-default-console.patch \
-	0007-imx93-bring-back-ELE-clock-workaround-for-soc-revisi.patch \
-	0008-ccimx91-use-UART6-for-the-default-console.patch \
-	0009-ccimx95-set-DVK-console-to-LPUART6.patch \
-	0010-ccimx95-enable-non-secure-non-privilege-access-to-GP.patch \
-"
+ATF_PATCHES=""
 
 OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
 OPTEE_BRANCH="lf-6.6.52_2.2.0"
-# Tag: lf-6.6.52-2.2.1
+# Tag: lf-6.6.52-2.2.2
 OPTEE_REV="ecea75b7fee5a3c8a2d9b99769ba78c4390c0e8b"
 OPTEE_DIR="${BASEDIR}/imx-optee-os"
-OPTEE_PATCHES=" \
-	0001-plat-imx-add-support-for-ConnectCore-8M-Mini.patch \
-	0002-core-imx-support-ccimx91-dvk.patch \
-	0003-core-imx-support-ccimx93-dvk.patch \
-	0004-core-ccimx93-enable-AES_HUK-trusted-application.patch \
-	0005-core-imx-support-ccimx95-dvk.patch \
-"
+OPTEE_PATCHES=""
 
 # Optional Executable Image running on the Cortex M33
-OEI_REPO="https://github.com/nxp-imx/imx-oei.git"
-OEI_BRANCH="master"
-# Tag: lf-6.6.52-2.2.1
-OEI_REV="ca91ce798b2f3a2a0bab8c0f835f4bea88c9b080"
+OEI_REPO="ssh://git@stash.digi.com/emp/imx-oei.git"
+OEI_BRANCH="dey/scarthgap/lf-6.6.52-2.2.2"
+# Tag: lf-6.6.52-2.2.2 + patches
+OEI_REV="0a1fbc5ce9c4bed08d0add95c911749e56a7d57a"
 OEI_DIR="${BASEDIR}/imx-oei"
-OEI_PATCHES=" \
-	0001-boards-ccimx95-add-platform-as-a-clone-of-mx95lp5.patch \
-	0002-ddr-add-DDR-configuration-file-for-ccimx95.patch \
-	0003-ccimx95-configure-console-on-LPUART6.patch \
-	0004-ccimx95-add-DDR-configuration-file-for-ccimx95-B0-si.patch \
-"
+OEI_PATCHES=""
 
 # System Manager running on the Cortex M33
-SM_REPO="https://github.com/nxp-imx/imx-sm.git"
-SM_BRANCH="master"
-# Tag: lf-6.6.52-2.2.1
-SM_REV="707569f402147029feb7f9b90811a6d6ea730bb6"
+SM_REPO="ssh://git@stash.digi.com/emp/imx-sm.git"
+SM_BRANCH="dey/scarthgap/lf-6.6.52-2.2.2"
+# Tag: lf-6.6.52-2.2.2 + patches
+SM_REV="ecd89d0bc35687c7e1e19b47cf6bcdefc3a3fe68"
 SM_DIR="${BASEDIR}/imx-sm"
-SM_PATCHES=" \
-	0001-ccimx95dvk-add-new-platform-config-and-board.patch \
-	0002-ccimx95dvk-configure-board-and-switch-debug-UART-to-.patch \
-	0003-ccimx95dvk-disable-PCAL6408A-expander-and-move-GPIO1.patch \
-	0004-ccimx95dvk-move-resources-from-M7-to-A55.patch \
-	0005-ccimx95dvk-move-pads-to-non-secure-A55.patch \
-	0006-ccimx95dvk-move-CAN1-to-be-used-by-A55.patch \
-	0007-ccimx95dvk-remove-PCAL6408A-IO-expander-from-EVK.patch \
-	0008-ccimx95dvk-remove-PCA2123-RTC-from-EVK.patch \
-	0009-ccimx95-change-names-of-voltage-regulators.patch  \
-	0010-ccimx95dvk-enable-full-access-to-certain-regulators-.patch \
-	0011-components-pf09-reduce-LDOs-step-to-50mV.patch \
-	0012-ccimx95dvk-remove-access-to-VDD_3V3-and-VDD_1V8-from.patch \
-"
+SM_PATCHES=""
 
 FIRMWARE_IMX="firmware-imx-8.26.1-410be01"
 FIRMWARE_IMX_DIR="${BASEDIR}/${FIRMWARE_IMX}"
 FIRMWARE_IMX_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_IMX}.bin"
 
-FIRMWARE_M7="imx95-m7-demo-25.06.00"
+FIRMWARE_M7="imx95-m7-demo-25.09.00"
 FIRMWARE_M7_DIR="${BASEDIR}/${FIRMWARE_M7}"
 FIRMWARE_M7_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_M7}.bin"
 
-FIRMWARE_ELE="firmware-ele-imx-2.0.2.1-d30b14a"
+FIRMWARE_ELE="firmware-ele-imx-2.0.3.1-52f7740"
 FIRMWARE_ELE_DIR="${BASEDIR}/${FIRMWARE_ELE}"
 FIRMWARE_ELE_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_ELE}.bin"
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2024, Digi International Inc.
+ * Copyright (C) 2019-2026, Digi International Inc.
  * Copyright 2018 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -29,7 +29,7 @@ int board_phys_sdram_size(phys_size_t *size)
 	else
 		ram = SZ_1G;    /* ccimx8mm variant 0x01 (1GB) */
 
-	if (board_read_hwid(&my_hwid)) {
+	if (hwid_read(&my_hwid)) {
 		debug("Cannot read HWID. Using default DDR configuration.\n");
 		my_hwid.ram = 0;
 	}
@@ -52,23 +52,6 @@ int mmc_get_bootdevindex(void)
 	default:
 		/* return default value otherwise */
 		return EMMC_BOOT_DEV;
-	}
-}
-
-uint mmc_get_env_part(struct mmc *mmc)
-{
-	switch(get_boot_device()) {
-	case SD1_BOOT ... SD3_BOOT:
-		return 0;	/* When booting from an SD card the
-				 * environment will be saved to the unique
-				 * hardware partition: 0 */
-	case MMC3_BOOT:
-	default:
-		return CONFIG_SYS_MMC_ENV_PART;
-				/* When booting from USDHC3 (eMMC) the
-				 * environment will be saved to boot
-				 * partition 2 to protect it from
-				 * accidental overwrite during U-Boot update */
 	}
 }
 

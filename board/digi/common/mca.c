@@ -225,14 +225,14 @@ void mca_save_cfg(void)
 		printf("MCA: unable to save configuration (%d)\n", ret);
 }
 
-void mca_somver_update(const struct digi_hwid *hwid)
+void mca_somver_update(unsigned char hv)
 {
 	unsigned char somver;
 	int ret;
 
 	/*
 	 * Read the som version stored in MCA.
-	 * If it doesn't match with real SOM version read from hwid->hv:
+	 * If it doesn't match with real SOM version read from hwid or smarcid
 	 *    - update it into the MCA.
 	 *    - force the new value to be saved in MCA NVRAM.
 	 * The purpose of this functionality is that MCA starts using the
@@ -242,8 +242,8 @@ void mca_somver_update(const struct digi_hwid *hwid)
 	if (ret) {
 		printf("Cannot read MCA_HWVER_SOM\n");
 	} else {
-		if (hwid->hv != somver) {
-			ret = mca_write_reg(MCA_HWVER_SOM, hwid->hv);
+		if (hv != somver) {
+			ret = mca_write_reg(MCA_HWVER_SOM, hv);
 			if (ret)
 				printf("Cannot write MCA_HWVER_SOM\n");
 			else

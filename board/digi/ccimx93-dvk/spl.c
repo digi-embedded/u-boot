@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2022-2024 Digi International Inc
+ * Copyright 2022-2026, Digi International Inc
  */
 
 #include <common.h>
@@ -78,7 +78,7 @@ void spl_dram_init(void)
 	struct digi_hwid my_hwid;
 	u64 ram;
 
-	if (board_read_hwid(&my_hwid))
+	if (hwid_read(&my_hwid))
 		my_hwid.ram = 0;
 	ram = hwid_get_ramsize(&my_hwid);
 

@@ -1,0 +1,8 @@
+0001-iMX8QX-soc.mak-capture-commands-output-into-a-log-fi.patch
+0002-imx8m-soc.mak-capture-commands-output-into-a-log-fil.patch
+0003-imx8m-print_fit_hab-follow-symlinks.patch
+0004-imx8mm-adjust-TEE_LOAD_ADDR-for-ccimx8mm.patch
+0005-imx93-soc.mak-capture-commands-output-into-a-log-fil.patch
+0006-imx93-soc.mak-add-makefile-target-to-build-A0-revisi.patch
+0007-imx91-soc.mak-capture-commands-output-into-a-log-fil.patch
+0008-imx95-soc.mak-capture-commands-output-into-a-log-fil.patch

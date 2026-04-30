@@ -34,6 +34,8 @@ DECLARE_GLOBAL_DATA_PTR;
 #define HAB_M4_PERSISTENT_BYTES		0xB80
 #endif
 
+static bool auth_fail_open_device;
+
 static int ivt_header_error(const char *err_str, struct ivt_header *ivt_hdr)
 {
 	printf("%s magic=0x%x length=0x%02x version=0x%x\n", err_str,
@@ -449,7 +451,7 @@ static void display_event(uint8_t *event_data, size_t bytes)
 
 static int get_hab_status(void)
 {
-	uint32_t index = 0, ret; /* Loop index */
+	uint32_t index = 0; /* Loop index */
 	uint8_t event_data[128]; /* Event data buffer */
 	size_t bytes = sizeof(event_data); /* Event size in bytes */
 	enum hab_config config = 0;
@@ -461,38 +463,21 @@ static int get_hab_status(void)
 		puts("\nSecure boot disabled\n");
 
 	/* Check HAB status */
-	ret = hab_rvt_report_status(&config, &state);
-	if (ret != HAB_SUCCESS) {
+	if (hab_rvt_report_status(&config, &state) != HAB_SUCCESS) {
 		printf("\nHAB Configuration: 0x%02x, HAB State: 0x%02x\n",
 		       config, state);
 
 		/* Display HAB events */
-		if (ret == HAB_FAILURE) {
-			while (hab_rvt_report_event(HAB_STS_ANY, index, event_data,
-						&bytes) == HAB_SUCCESS) {
-				puts("\n");
-				printf("--------- HAB Event %d -----------------\n",
-				       index + 1);
-				puts("event data:\n");
-				display_event(event_data, bytes);
-				puts("\n");
-				bytes = sizeof(event_data);
-				index++;
-			}
-		} else {
-			printf("\nHAB Warning detected\n");
-
-			while (hab_rvt_report_event(HAB_WARNING, index, event_data,
-						&bytes) == HAB_SUCCESS) {
-				puts("\n");
-				printf("--------- HAB Event %d -----------------\n",
-				index + 1);
-				puts("event data:\n");
-				display_event(event_data, bytes);
-				puts("\n");
-				bytes = sizeof(event_data);
-				index++;
-			}
+		while (hab_rvt_report_event(HAB_STS_ANY, index, event_data,
+					&bytes) == HAB_SUCCESS) {
+			puts("\n");
+			printf("--------- HAB Event %d -----------------\n",
+			       index + 1);
+			puts("event data:\n");
+			display_event(event_data, bytes);
+			puts("\n");
+			bytes = sizeof(event_data);
+			index++;
 		}
 	}
 	/* Display message if no HAB events are found */
@@ -916,7 +901,7 @@ int imx_hab_authenticate_image(uint32_t ddr_start, uint32_t image_size,
 	if (!imx_hab_is_enabled())
 		puts("hab fuse not enabled\n");
 
-	printf("   Authenticate image from DDR location 0x%x... ",
+	printf("\nAuthenticate image from DDR location 0x%x...\n",
 	       ddr_start);
 
 	hab_caam_clock_enable(1);
@@ -937,13 +922,13 @@ int imx_hab_authenticate_image(uint32_t ddr_start, uint32_t image_size,
 		goto hab_authentication_exit;
 
 	if (hab_rvt_entry() != HAB_SUCCESS) {
-		puts("FAILED!\nhab entry function fail\n");
+		puts("hab entry function fail\n");
 		goto hab_exit_failure_print_status;
 	}
 
 	status = hab_rvt_check_target(HAB_TGT_MEMORY, (void *)(ulong)ddr_start, bytes);
 	if (status != HAB_SUCCESS) {
-		printf("FAILED!\nHAB check target 0x%08x-0x%08lx fail\n",
+		printf("HAB check target 0x%08x-0x%08lx fail\n",
 		       ddr_start, ddr_start + (ulong)bytes);
 		goto hab_exit_failure_print_status;
 	}
@@ -1001,14 +986,9 @@ int imx_hab_authenticate_image(uint32_t ddr_start, uint32_t image_size,
 			HAB_CID_UBOOT,
 			ivt_offset, (void **)&start,
 			(size_t *)&bytes, NULL);
-	if (load_addr == 0) {
-		printf("FAILED!\n");
-	} else if (hab_rvt_exit() != HAB_SUCCESS) {
-		puts("FAILED!\nhab exit function fail\n");
+	if (hab_rvt_exit() != HAB_SUCCESS) {
+		puts("hab exit function fail\n");
 		load_addr = 0;
-	}
-	else {
-		goto hab_authentication_exit;
 	}
 
 hab_exit_failure_print_status:
@@ -1018,11 +998,10 @@ hab_exit_failure_print_status:
 
 hab_authentication_exit:
 
-	if (load_addr != 0 || !imx_hab_is_enabled()) {
-		/* Closed device, authentication successful, or Open device */
-		printf("OK\n");
+	auth_fail_open_device = (!imx_hab_is_enabled() && load_addr == 0);
+
+	if (load_addr != 0 || !imx_hab_is_enabled())
 		result = 0;
-	}
 
 	return result;
 }
@@ -1036,5 +1015,24 @@ int authenticate_image(u32 ddr_start, u32 raw_image_size)
 					~(ALIGN_SIZE - 1);
 	bytes = ivt_offset + IVT_SIZE + CSF_PAD_SIZE;
 
-	return imx_hab_authenticate_image(ddr_start, bytes, ivt_offset);
+#if IS_ENABLED(CONFIG_AUTH_DISCRETE_ARTIFACTS) && !defined(TF_DEBUG)
+	extern int fuse_check_srk(void);
+	unsigned long flags = gd->flags;
+	printf("Authenticate image from DDR location 0x%x...", ddr_start);
+	gd->flags |= GD_FLG_SILENT;
+#endif
+	int ret = imx_hab_authenticate_image(ddr_start, bytes, ivt_offset);
+#if IS_ENABLED(CONFIG_AUTH_DISCRETE_ARTIFACTS) && !defined(TF_DEBUG)
+	gd->flags = flags;
+	if (fuse_check_srk() > 0)
+		printf("%s\n", "SRK NOT PROGRAMMED");
+	else if (ret)
+		printf("%s\n", "FAILED");
+	else if (auth_fail_open_device)
+		printf("%s\n", "FAILED (OPEN DEVICE)");
+	else
+		printf("%s\n", "OK");
+#endif
+
+	return ret;
 }

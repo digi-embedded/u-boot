@@ -1,12 +1,11 @@
 /*
- * Copyright 2024 Digi International Inc
+ * Copyright 2024-2026 Digi International Inc
  *
  * SPDX-License-Identifier: GPL-2.0+
  */
 
 #include <dm.h>
 #include <errno.h>
-#include <fuse.h>
 #include <linux/kernel.h>
 #include <memalign.h>
 #include <uboot_aes.h>
@@ -25,6 +24,7 @@
 #include "aes_tee.h"
 #endif
 
+#include "../hwid.h"
 #include "boot.h"
 #include "env.h"
 
@@ -37,16 +37,15 @@
 
 static int get_trustfence_key_modifier(unsigned char keymod[KEY_MODIFIER_SIZE])
 {
-	u32 ocotp_hwid[CONFIG_HWID_WORDS_NUMBER];
-	int i, ret;
+	struct digi_hwid hwid;
+	int ret;
 
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
-		ret = fuse_read(CONFIG_HWID_BANK,
-				CONFIG_HWID_START_WORD + i, &ocotp_hwid[i]);
-		if (ret)
-			return ret;
-	}
-	md5((unsigned char *)(&ocotp_hwid), sizeof(ocotp_hwid), keymod);
+	/* Use the HWID fuses to generate the key modifier */
+	ret = board_hwid_fuse_read(&hwid);
+	if (ret)
+		return ret;
+
+	md5((unsigned char *)(&hwid), sizeof(hwid), keymod);
 
 	return ret;
 }

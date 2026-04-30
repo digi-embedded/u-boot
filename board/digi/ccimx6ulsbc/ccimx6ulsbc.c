@@ -454,6 +454,11 @@ int board_init(void)
 	return 0;
 }
 
+void platform_loaded_environment(void)
+{
+	som_loaded_environment();
+}
+
 void platform_default_environment(void)
 {
 	char cmd[80];

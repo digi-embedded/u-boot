@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012-2013 Freescale Semiconductor, Inc.
- * Copyright (C) 2013-2025 Digi International, Inc.
+ * Copyright (C) 2013-2026 Digi International, Inc.
  *
  * Author: Fabio Estevam <fabio.estevam@freescale.com>
  * Author: Jason Liu <r64343@freescale.com>
@@ -1826,6 +1826,15 @@ void generate_partition_table(void)
                 env_set("parts_linux_dualboot", linux_dualboot_partition_table);
 }
 
+void som_loaded_environment(void)
+{
+	/* Update local HWID as soon as the environment is available */
+	if (hwid_read(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return;
+	}
+}
+
 void som_default_environment(void)
 {
 #ifdef CONFIG_CMD_MMC
@@ -1853,12 +1862,8 @@ void som_default_environment(void)
 	sprintf(var, "0x%02x", my_hwid.variant);
 	env_set("module_variant", var);
 
-	/* Set $hwid_n variables */
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
-		snprintf(var, sizeof(var), "hwid_%d", i);
-		snprintf(var2, sizeof(var2), "%08x", ((u32 *) &my_hwid)[i]);
-		env_set(var, var2);
-	}
+	/* Set FUSE HWID local vars */
+	board_hwid_fuse_set_local_vars();
 
 	/*
 	 * If there are no defined partition tables generate them dynamically
@@ -1866,15 +1871,18 @@ void som_default_environment(void)
 	 */
 	if (!IS_ENABLED(CONFIG_ANDROID_SUPPORT))
 		generate_partition_table();
+
+	/* Get serial number from HWID */
+	hwid_get_serial_number(&my_hwid);
 }
 
-void board_update_hwid(bool is_fuse)
+void board_hwid_update(void)
 {
-	/* Update HWID-related variables in environment */
-	int ret = is_fuse ? board_sense_hwid(&my_hwid) : board_read_hwid(&my_hwid);
-
-	if (ret)
+	/* Update HWID-related variables in MCA and environment */
+	if (hwid_read(&my_hwid)) {
 		printf("Cannot read HWID\n");
+		return;
+	}
 
 	som_default_environment();
 }
@@ -1946,7 +1954,7 @@ int ccimx6_init(void)
 #endif /* CONFIG_CAAM_ENV_ENCRYPT */
 #endif /* CONFIG_HAS_TRUSTFENCE */
 
-	if (board_read_hwid(&my_hwid)) {
+	if (hwid_read(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return -1;
 	}
@@ -1964,6 +1972,7 @@ int ccimx6_init(void)
 
 void fdt_fixup_ccimx6(void *fdt)
 {
+	fdt_fixup_fuse_hwid(fdt);
 	fdt_fixup_hwid(fdt, &my_hwid);
 
 	if (board_has_wireless()) {
@@ -1982,4 +1991,5 @@ void fdt_fixup_ccimx6(void *fdt)
 		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
 	fdt_fixup_trustfence(fdt);
 	fdt_fixup_uboot_info(fdt);
+	fdt_fixup_install_code(fdt);
 }

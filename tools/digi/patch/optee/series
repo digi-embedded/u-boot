@@ -1,0 +1,6 @@
+0001-plat-imx-add-support-for-ConnectCore-8M-Mini.patch
+0002-core-imx-support-ccimx91-dvk.patch
+0003-core-imx-support-ccimx93-dvk.patch
+0004-core-ccimx93-enable-AES_HUK-trusted-application.patch
+0005-core-imx-support-ccimx95-dvk.patch
+0006-ccimx95-configure-console-on-LPUART1.patch

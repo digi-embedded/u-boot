@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2024, Digi International Inc.
+ * Copyright (C) 2016-2026 Digi International Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -315,7 +315,7 @@ int ccimx6ul_init(void)
 	/* Address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 
-	if (board_read_hwid(&my_hwid)) {
+	if (hwid_read(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return -1;
 	}
@@ -397,11 +397,18 @@ void generate_partition_table(void)
 	env_set("partition_nand_linux", script);
 }
 
+void som_loaded_environment(void)
+{
+	/* Update local HWID as soon as the environment is available */
+	if (hwid_read(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return;
+	}
+}
+
 void som_default_environment(void)
 {
 	char var[10];
-	char hex_val[9]; // 8 hex chars + null byte
-	int i;
 
 	/* Partition table script */
 	generate_partition_table();
@@ -427,24 +434,20 @@ void som_default_environment(void)
 	if (board_has_bluetooth())
 		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
 
-	/* Get serial number from fuses */
+	/* Get serial number from HWID */
 	hwid_get_serial_number(&my_hwid);
 
-	/* Set $hwid_n variables */
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
-		snprintf(var, sizeof(var), "hwid_%d", i);
-		snprintf(hex_val, sizeof(hex_val), "%08x", ((u32 *) &my_hwid)[i]);
-		env_set(var, hex_val);
-	}
+	/* Set FUSE HWID local vars */
+	board_hwid_fuse_set_local_vars();
 }
 
-void board_update_hwid(bool is_fuse)
+void board_hwid_update(void)
 {
-	/* Update HWID-related variables in environment */
-	int ret = is_fuse ? board_sense_hwid(&my_hwid) : board_read_hwid(&my_hwid);
-
-	if (ret)
+	/* Update HWID-related variables in MCA and environment */
+	if (hwid_read(&my_hwid)) {
 		printf("Cannot read HWID\n");
+		return;
+	}
 
 	som_default_environment();
 }
@@ -514,6 +517,7 @@ void board_reset(void)
 
 void fdt_fixup_ccimx6ul(void *fdt)
 {
+	fdt_fixup_fuse_hwid(fdt);
 	fdt_fixup_hwid(fdt, &my_hwid);
 
 	if (board_has_wireless()) {
@@ -532,6 +536,7 @@ void fdt_fixup_ccimx6ul(void *fdt)
 
 	fdt_fixup_trustfence(fdt);
 	fdt_fixup_uboot_info(fdt);
+	fdt_fixup_install_code(fdt);
 }
 
 /* Determine env partition offset depending on NAND size */

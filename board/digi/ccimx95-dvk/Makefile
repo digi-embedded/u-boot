@@ -6,6 +6,7 @@
 
 obj-y += ccimx95-dvk.o
 obj-$(CONFIG_HAS_HWID) += ../ccimx9/ccimx9_hwid.o
+obj-$(CONFIG_SMARCID) += ../ccimx95/ccimx95_smarcid.o
 
 ifdef CONFIG_SPL_BUILD
 obj-y += spl.o

@@ -1,18 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2025 Digi International Inc.
+ * Copyright 2025,2026 Digi International Inc.
  */
 
 / {
 	aliases {
 		ethernet0 = &enetc_port0;
 		ethernet1 = &enetc_port1;
-	};
-
-	bootcount {
-		compatible = "u-boot,bootcount-rtc";
-		rtc = <&rv3028>;
-		offset = <0x1f>;
 	};
 };
 
@@ -60,8 +54,8 @@
 	bootph-pre-ram;
 };
 
-&lpuart6 {
-	clocks = <&scmi_clk IMX95_CLK_LPUART6>, <&scmi_clk IMX95_CLK_LPUART6>;
+&lpuart1 {
+	clocks = <&scmi_clk IMX95_CLK_LPUART1>, <&scmi_clk IMX95_CLK_LPUART1>;
 	clock-names = "ipg", "per";
 	bootph-pre-ram;
 };
@@ -103,27 +97,27 @@
 
 &{/firmware} {
 	bootph-all;
-        bootph-pre-ram;
+	bootph-pre-ram;
 };
 
 &{/firmware/scmi} {
 	bootph-all;
-        bootph-pre-ram;
+	bootph-pre-ram;
 };
 
 &{/firmware/scmi/protocol@11} {
 	bootph-all;
-        bootph-pre-ram;
+	bootph-pre-ram;
 };
 
 &{/firmware/scmi/protocol@13} {
 	bootph-all;
-        bootph-pre-ram;
+	bootph-pre-ram;
 };
 
 &{/firmware/scmi/protocol@14} {
 	bootph-all;
-        bootph-pre-ram;
+	bootph-pre-ram;
 };
 
 &{/firmware/scmi/protocol@15} {
@@ -133,23 +127,9 @@
 &{/firmware/scmi/protocol@19} {
 	bootph-all;
 	bootph-pre-ram;
-
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_hog>;
-
-	pinctrl_hog: hoggrp {
-		bootph-pre-ram;
-
-		fsl,pins = <
-			IMX95_PAD_XSPI1_SS1_B__GPIO5_IO_BIT11			0x3fe
-			IMX95_PAD_GPIO_IO12__TPM3_CH2           0x51e
-			IMX95_PAD_CCM_CLKO1__GPIO3_IO_BIT26			0x3fe
-			IMX95_PAD_CCM_CLKO2__GPIO3_IO_BIT27			0x3fe
-		>;
-	};
 };
 
-&pinctrl_uart6 {
+&pinctrl_uart1 {
 	bootph-pre-ram;
 };
 
@@ -189,14 +169,6 @@
 	bootph-pre-ram;
 };
 
-&reg_usdhc2_vmmc {
-	bootph-pre-ram;
-};
-
-&pinctrl_reg_usdhc2_vmmc {
-	bootph-pre-ram;
-};
-
 &usb2 {
 	compatible = "fsl,imx8mm-usb", "fsl,imx7d-usb";
 	/delete-property/power-domains;
@@ -219,18 +191,6 @@
 &elemu3 {
 	status = "okay";
 	bootph-all;
-	bootph-pre-ram;
-};
-
-&flexspi1 {
-	bootph-pre-ram;
-};
-
-&mt35xu01gbba {
-	bootph-pre-ram;
-};
-
-&pinctrl_flexspi1 {
 	bootph-pre-ram;
 };
 

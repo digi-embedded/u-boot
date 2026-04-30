@@ -42,6 +42,18 @@
 			enable-active-high;
 			startup-delay-us = <10000>;
 		};
+
+		reg_5v_display: 5v_display {
+			compatible = "regulator-fixed";
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_reg_5v_display>;
+			regulator-name = "5V_DISPLAY";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
+			gpio = <&gpio0 13 GPIO_ACTIVE_HIGH>;
+			startup-delay-us = <5000>;
+			enable-active-high;
+		};
 	};
 
 	thermal-zones {
@@ -90,6 +102,76 @@
 			gpios = <&mca_gpio_uboot 13 GPIO_ACTIVE_HIGH>;
 		};
 	};
+
+	panel_lvds_gpio_backlight0: panel-lvds-gpio-backlight0 {
+		compatible = "gpio-backlight";
+		power-supply = <&reg_5v_display>;
+		gpios = <&gpio0 0 GPIO_ACTIVE_HIGH>; /* MIPI_DSI0_PWM0_OUT */
+		default-on;
+		status = "okay";
+	};
+
+	lvds0_panel: lvds0_panel@0 {
+		compatible = "auo,g101evn010", "simple-panel";
+		power-supply = <&reg_5v_display>;
+		backlight = <&panel_lvds_gpio_backlight0>;
+		status = "okay";
+
+		width-mm = <216>;
+		height-mm = <135>;
+		data-mapping = "jeida-24";
+
+		display-timings {
+			native-mode = <&timing0>;
+
+			timing0: timing0 {
+				clock-frequency = <74250000>;
+				hactive = <1280>;
+				vactive = <800>;
+				hfront-porch = <82>;
+				hback-porch = <84>;
+				hsync-len = <2>;
+				vback-porch = <8>;
+				vfront-porch = <6>;
+				vsync-len = <2>;
+			};
+		};
+
+		port {
+			panel_lvds0_in: endpoint {
+				remote-endpoint = <&lvds0_out>;
+			};
+		};
+	};
+};
+
+&ldb1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_lvds0>;
+	status = "okay";
+
+	lvds0: lvds-channel@0 {
+		fsl,data-mapping = "jeida";
+		fsl,data-width = <24>;
+		digi,bits-per-pixel = <16>;
+		status = "okay";
+
+		port@1 {
+			reg = <1>;
+
+			lvds0_out: endpoint {
+				remote-endpoint = <&panel_lvds0_in>;
+			};
+		};
+	};
+};
+
+&ldb1_phy {
+	status = "okay";
+};
+
+&dpu1 {
+	status = "okay";
 };
 
 &lpuart2 {
@@ -211,6 +293,20 @@
 			fsl,pins = <
 				/* PHY power */
 				SC_P_QSPI0A_DQS_LSIO_GPIO3_IO13		0x06000021
+			>;
+		};
+
+		pinctrl_reg_5v_display: reg_5v_display_grp {
+			fsl,pins = <
+				/* 5V regulator power enable */
+				SC_P_SPI3_SCK_LSIO_GPIO0_IO13		0x06000020
+			>;
+		};
+
+		pinctrl_lvds0: lvds0grp {
+			fsl,pins = <
+				/* LVDS0 PWM backlight */
+				SC_P_MIPI_DSI0_GPIO0_00_MIPI_DSI0_GPIO0_IO00	0x00000020
 			>;
 		};
 
