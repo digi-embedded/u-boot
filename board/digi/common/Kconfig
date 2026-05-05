@@ -119,36 +119,6 @@ config HAS_HWID
 	  Platform supports a Hardware ID (HWID) on the OTP bits.
 
 if HAS_HWID
-config HWID_BANK
-	int
-	default 0 if CCMP2
-	default 0 if CCMP1
-	default 9 if CC8M
-	default 0 if CC8X
-	default 4 if CC6UL
-	help
-	  OTP bank where the HWID is.
-
-config HWID_START_WORD
-	int
-	default 23 if CCMP2
-	default 59 if CCMP1
-	default 0 if CC8M
-	default 708 if CC8X
-	default 2 if CC6UL
-	help
-	  Offset of the first OTP word where the HWID is.
-
-config HWID_WORDS_NUMBER
-	int
-	default 3 if CCMP2
-	default 3 if CCMP1
-	default 3 if CC8M
-	default 4 if CC8X
-	default 2 if CC6UL
-	help
-	  Number of OTP words that form the HWID
-
 config HAS_OTP_LOCK_FUSE
 	bool
 	default y if CC6UL
@@ -175,7 +145,9 @@ config DIGI_FAMILY_ID
 	default 2 if CC8M && IMX8MN
 	default 3 if CC8M && IMX8MM
 	default 4 if CCMP1
+	default 5 if CC9 && (IMX91 || IMX93)
 	default 6 if CCMP2
+	default 7 if CC9 && IMX95
 	default 0
 
 config MTD_UBI_MAXRSVDPEB_PCNT

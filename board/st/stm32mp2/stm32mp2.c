@@ -38,6 +38,7 @@
 #include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/iopoll.h>
+#include <linux/stringify.h>
 
 #define SYSCFG_ETHCR_ETH_SEL_MII	0
 #define SYSCFG_ETHCR_ETH_SEL_RGMII	BIT(4)
@@ -642,6 +643,9 @@ int board_late_init(void)
 		}
 	}
 
+	if (CONFIG_IS_ENABLED(FASTBOOT_FLASH_MMC))
+		env_set("fastboot.mmcdev", __stringify(CONFIG_FASTBOOT_FLASH_MMC_DEV));
+
 	return 0;
 }
 
@@ -675,6 +679,9 @@ static int fixup_stm32mp257_eval_panel(void *blob)
 	nodeoff = fdt_set_status_by_compatible(blob, "st,stm32mp25-lvds", status);
 	if (nodeoff < 0)
 		return nodeoff;
+
+	if (!detect_etml0700z9ndha)
+		fdt_set_status_by_compatible(blob, "simple-framebuffer", FDT_STATUS_DISABLED);
 
 	/* update HDMI bridge "adi,adv753x" */
 	status = detect_adv753x ? FDT_STATUS_OKAY : FDT_STATUS_DISABLED;
@@ -899,4 +906,25 @@ int board_fix_fdt(void *blob)
 	return ret;
 }
 #endif /* CONFIG_OF_BOARD_FIXUP */
+
+#if CONFIG_IS_ENABLED(FWU_MULTI_BANK_UPDATE)
+
+#include <fwu.h>
+
+/**
+ * fwu_plat_get_bootidx() - Get the value of the boot index
+ * @boot_idx: Boot index value
+ *
+ * Get the value of the bank(partition) from which the platform
+ * has booted. This value is passed to U-Boot from the earlier
+ * stage bootloader which loads and boots all the relevant
+ * firmware images
+ *
+ */
+void fwu_plat_get_bootidx(uint *boot_idx)
+{
+	*boot_idx = (readl(TAMP_FWU_BOOT_INFO_REG) >>
+		    TAMP_FWU_BOOT_IDX_OFFSET) & TAMP_FWU_BOOT_IDX_MASK;
+}
+#endif /* CONFIG_FWU_MULTI_BANK_UPDATE */
 

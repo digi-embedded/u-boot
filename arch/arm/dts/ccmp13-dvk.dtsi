@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
 /*
- * Copyright (C) 2022-2024 Digi International Inc - All Rights Reserved
+ * Copyright (C) 2022-2026 Digi International Inc - All Rights Reserved
  */
 
 
@@ -291,6 +291,7 @@
 
 /* Console on UART5 */
 &uart5 {
+	bootph-all;
 	pinctrl-names = "default", "sleep", "idle";
 	pinctrl-0 = <&uart5_pins_a>;
 	pinctrl-1 = <&uart5_sleep_pins_a>;
@@ -475,13 +476,16 @@
 	};
 
 	uart5_pins_a: uart5-0 {
+		bootph-all;
 		pins1 {
+			bootph-all;
 			pinmux = <STM32_PINMUX('A', 0, AF8)>; /* UART5_TX */
 			bias-disable;
 			drive-push-pull;
 			slew-rate = <0>;
 		};
 		pins2 {
+			bootph-all;
 			pinmux = <STM32_PINMUX('F', 13, AF8)>; /* UART5_RX */
 			bias-pull-up;
 		};

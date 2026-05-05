@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
 /*
- * Copyright (C) 2022-2023, Digi International Inc - All Rights Reserved
+ * Copyright (C) 2022-2026, Digi International Inc - All Rights Reserved
  */
 #include <common.h>
 #include <display_options.h>
@@ -47,7 +47,7 @@ bool board_has_bluetooth(void)
 
 int ccmp1_init(void)
 {
-	if (board_read_hwid(&my_hwid)) {
+	if (hwid_read(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return -1;
 	}
@@ -77,19 +77,19 @@ void fdt_fixup_memory_node_ccmp1(void *fdt)
 	if (my_hwid.ram) {
 		/* Set memory node based on HWID info */
 		ram_size = hwid_get_ramsize(&my_hwid);
-		ret = fdt_fixup_memory(fdt, (u64)CONFIG_SYS_SDRAM_BASE, (u64)ram_size);
+		ret = fdt_fixup_memory(fdt, (u64)CFG_SYS_SDRAM_BASE, (u64)ram_size);
 		if (ret < 0)
 			printf("%s(): Failed to fixup memory node\n", __func__);
 
 		/* Reserve last 32 MiB for OPTEE */
-		optee_base = (CONFIG_SYS_SDRAM_BASE + ram_size) - optee_size;
+		optee_base = (CFG_SYS_SDRAM_BASE + ram_size) - optee_size;
 		ret = fdt_fixup_memory_optee(fdt, (u64)optee_base, (u64)optee_size);
 		if (ret < 0)
 			printf("%s(): Failed to fixup optee node\n", __func__);
 
 		/* Reserve previous 64 MiB for GPU */
 		if (of_machine_is_compatible("digi,ccmp15")) {
-			gpu_base = (CONFIG_SYS_SDRAM_BASE + ram_size) -
+			gpu_base = (CFG_SYS_SDRAM_BASE + ram_size) -
 				   (gpu_size + optee_size);
 			ret = fdt_fixup_memory_gpu(fdt, (u64)gpu_base,
 						   (u64)gpu_size);
@@ -102,6 +102,7 @@ void fdt_fixup_memory_node_ccmp1(void *fdt)
 
 void fdt_fixup_ccmp1(void *fdt)
 {
+	fdt_fixup_fuse_hwid(fdt);
 	fdt_fixup_hwid(fdt, &my_hwid);
 
 	if (board_has_wireless()) {
@@ -119,6 +120,7 @@ void fdt_fixup_ccmp1(void *fdt)
 		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
 
 	fdt_fixup_uboot_info(fdt);
+	fdt_fixup_install_code(fdt);
 
 	/* Add DT entry to detect environment encryption in Linux */
 	if (IS_ENABLED(CONFIG_ENV_ENCRYPT))
@@ -187,11 +189,18 @@ void generate_ubi_volumes_script(void)
 	env_set("ubivolscript", script);
 }
 
+void som_loaded_environment(void)
+{
+	/* Update local HWID as soon as the environment is available */
+	if (hwid_read(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return;
+	}
+}
+
 void som_default_environment(void)
 {
 	char var[10];
-	char hex_val[9]; // 8 hex chars + null byte
-	int i;
 
 	/* Set $module_variant variable */
 	sprintf(var, "0x%02x", my_hwid.variant);
@@ -200,30 +209,26 @@ void som_default_environment(void)
 	/* UBI volumes */
 	generate_ubi_volumes_script();
 
-	/* Set $hwid_n variables */
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
-		snprintf(var, sizeof(var), "hwid_%d", i);
-		snprintf(hex_val, sizeof(hex_val), "%08x", ((u32 *) &my_hwid)[i]);
-		env_set(var, hex_val);
-	}
+	/* Set FUSE HWID local vars */
+	board_hwid_fuse_set_local_vars();
 
 	/* Set module_ram variable */
 	if (my_hwid.ram) {
-		u32 ram = hwid_get_ramsize(&my_hwid);
+		u64 ram = hwid_get_ramsize(&my_hwid);
 
 		if (ram >= SZ_1G) {
 			ram /= SZ_1G;
-			snprintf(var, sizeof(var), "%uGB", ram);
+			snprintf(var, sizeof(var), "%lluGB", ram);
 		} else {
 			ram /= SZ_1M;
-			snprintf(var, sizeof(var), "%uMB", ram);
+			snprintf(var, sizeof(var), "%lluMB", ram);
 		}
 		env_set("module_ram", var);
 	}
 
-	/* Get MAC address from fuses unless indicated otherwise */
+	/* Get MAC address from HWID unless indicated otherwise */
 	if (env_get_yesno("use_fused_macs"))
-		hwid_get_macs(my_hwid.mac_pool, my_hwid.mac_base);
+		hwid_get_macs(&my_hwid);
 
 	/* Verify MAC addresses */
 	verify_mac_address("ethaddr", DEFAULT_MAC_ETHADDR);
@@ -237,14 +242,14 @@ void som_default_environment(void)
 	if (board_has_bluetooth())
 		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
 
-	/* Get serial number from fuses */
-	hwid_get_serial_number(my_hwid.year, my_hwid.week, my_hwid.sn);
+	/* Get serial number from HWID */
+	hwid_get_serial_number(&my_hwid);
 }
 
-void board_update_hwid(bool is_fuse)
+void board_hwid_update(bool is_fuse)
 {
 	/* Update HWID-related variables in environment */
-	int ret = is_fuse ? board_sense_hwid(&my_hwid) : board_read_hwid(&my_hwid);
+	int ret = is_fuse ? board_hwid_fuse_read(&my_hwid) : hwid_env_read(&my_hwid);
 
 	if (ret)
 		printf("Cannot read HWID\n");

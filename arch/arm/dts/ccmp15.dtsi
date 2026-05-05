@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
 /*
  * Copyright (C) STMicroelectronics 2019 - All Rights Reserved
- * Copyright (C) 2022-2025 Digi International Inc - All Rights Reserved
+ * Copyright (C) 2022-2026 Digi International Inc - All Rights Reserved
  */
 
 #include "stm32mp157.dtsi"
@@ -14,6 +14,7 @@
 / {
 	firmware {
 		optee: optee {
+			bootph-all;
 			compatible = "linaro,optee-tz";
 			method = "smc";
 			interrupt-parent = <&intc>;
@@ -21,6 +22,7 @@
 		};
 
 		scmi: scmi {
+			bootph-some-ram;
 			compatible = "linaro,scmi-optee";
 			#address-cells = <1>;
 			#size-cells = <0>;

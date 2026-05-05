@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Digi International, Inc.
+ * Copyright (C) 2023-2026, Digi International, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -47,7 +47,7 @@
 #define CONFIG_SYS_MALLOC_LEN		((CONFIG_ENV_SIZE + (32*1024)) * 1024)
 /* memtest */
 /* Physical Memory Map */
-#define CONFIG_SYS_SDRAM_BASE		0x80000000
+#define CFG_SYS_SDRAM_BASE		0x80000000
 #define PHYS_SDRAM_1			0x80000000
 /* SDRAM1 size is defined based on the HWID. Set here the default fallback value */
 #define PHYS_SDRAM_1_SIZE		SZ_512M
@@ -138,7 +138,7 @@
 	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"
 
 /* protected environment variables (besides ethaddr and serial#) */
-#define CONFIG_ENV_FLAGS_LIST_STATIC	\
+#define CFG_ENV_FLAGS_LIST_STATIC	\
 	"eth1addr:mc,"			\
 	"wlanaddr:mc,"			\
 	"wlan1addr:mc,"			\
@@ -148,7 +148,12 @@
 	"bootargs_once:sr,"		\
 	"board_version:so,"		\
 	"board_id:so,"			\
-	"mmcbootdev:so"
+	"mmcbootdev:so,"		\
+	"hwid_0:so,"			\
+	"hwid_1:so,"			\
+	"hwid_2:so,"			\
+	"hwid_3:so,"			\
+	"drm_ic:so,"
 
 /* Environment */
 /* On CC8X, USDHC1 is for eMMC, USDHC2 is for SD on SBC Express */

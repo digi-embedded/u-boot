@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: (GPL-2.0-or-later OR BSD-3-Clause)
 /*
  * Copyright (C) STMicroelectronics 2023 - All Rights Reserved
- * Copyright (C) 2024, 2025, Digi International Inc - All Rights Reserved
+ * Copyright (C) 2024-2026, Digi International Inc - All Rights Reserved
  */
 
 #include <dt-bindings/gpio/gpio.h>
@@ -37,17 +37,17 @@
 		};
 
 		hpdma1_lli: hpdma1-lli@a020000 {
-			reg = <0x0 0xa020000 0x0 0xf0f0>;
+			reg = <0x0 0xa020000 0x0 0x10000>;
 			no-map;
 		};
 
-		hpdma2_lli: hpdma2-lli@a02f0f0 {
-			reg = <0x0 0xa02f0f0 0x0 0xf0f0>;
+		hpdma2_lli: hpdma2-lli@a030000 {
+			reg = <0x0 0xa030000 0x0 0xe000>;
 			no-map;
 		};
 
-		hpdma3_lli: hpdma3-lli@a03e1e0 {
-			reg = <0x0 0xa03e1e0 0x0 0x1e20>;
+		hpdma3_lli: hpdma3-lli@a03e000 {
+			reg = <0x0 0xa03e000 0x0 0x2000>;
 			no-map;
 		};
 
@@ -250,7 +250,7 @@
 			<&ipc_shmem_1>, <&vdev0vring0>,
 			<&vdev0vring1>, <&vdev0buffer>,
 			<&cm33_sram2>;
-	st,syscfg-nsvtor = <&a35ss_syscfg 0xa8 0xffffff80>;
+	st,syscfg-nsvtor = <&a35ss_syscfg 0x20a8 0xffffff80>;
 	status = "okay";
 };
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
 /*
- * Copyright (C) 2024, Digi International Inc - All Rights Reserved
+ * Copyright (C) 2024-2026, Digi International Inc - All Rights Reserved
  */
 #include <command.h>
 #include <common.h>
@@ -81,7 +81,7 @@ void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 
 int ccmp2_init(void)
 {
-	if (board_read_hwid(&my_hwid)) {
+	if (hwid_read(&my_hwid)) {
 		printf("Cannot read HWID\n");
 		return -1;
 	}
@@ -91,6 +91,7 @@ int ccmp2_init(void)
 
 void fdt_fixup_ccmp2(void *fdt)
 {
+	fdt_fixup_fuse_hwid(fdt);
 	fdt_fixup_hwid(fdt, &my_hwid);
 
 	if (board_has_wireless()) {
@@ -108,6 +109,7 @@ void fdt_fixup_ccmp2(void *fdt)
 		fdt_fixup_mac(fdt, "btaddr", "/bluetooth", "mac-address");
 
 	fdt_fixup_uboot_info(fdt);
+	fdt_fixup_install_code(fdt);
 
 	/* Add DT entry to detect environment encryption in Linux */
 	if (IS_ENABLED(CONFIG_ENV_ENCRYPT))
@@ -180,36 +182,39 @@ void generate_partition_table(void)
 		env_set("parts_linux_dualboot", linux_dualboot_partition_table);
 }
 
+void som_loaded_environment(void)
+{
+	/* Update local HWID as soon as the environment is available */
+	if (hwid_read(&my_hwid)) {
+		printf("Cannot read HWID\n");
+		return;
+	}
+}
+
 void som_default_environment(void)
 {
 #ifdef CONFIG_CMD_MMC
 	char cmd[80];
 #endif
 	char var[10];
-	char hex_val[9]; // 8 hex chars + null byte
-	int i;
 
 	/* Set $module_variant variable */
 	sprintf(var, "0x%02x", my_hwid.variant);
 	env_set("module_variant", var);
 
-	/* Set $hwid_n variables */
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
-		snprintf(var, sizeof(var), "hwid_%d", i);
-		snprintf(hex_val, sizeof(hex_val), "%08x", ((u32 *) &my_hwid)[i]);
-		env_set(var, hex_val);
-	}
+	/* Set FUSE HWID local vars */
+	board_hwid_fuse_set_local_vars();
 
 	/* Set module_ram variable */
 	if (my_hwid.ram) {
-		u32 ram = hwid_get_ramsize(&my_hwid);
+		u64 ram = hwid_get_ramsize(&my_hwid);
 
 		if (ram >= SZ_1G) {
 			ram /= SZ_1G;
-			snprintf(var, sizeof(var), "%uGB", ram);
+			snprintf(var, sizeof(var), "%lluGB", ram);
 		} else {
 			ram /= SZ_1M;
-			snprintf(var, sizeof(var), "%uMB", ram);
+			snprintf(var, sizeof(var), "%lluMB", ram);
 		}
 		env_set("module_ram", var);
 	}
@@ -226,9 +231,9 @@ void som_default_environment(void)
 	 */
 	generate_partition_table();
 
-	/* Get MAC address from fuses unless indicated otherwise */
+	/* Get MAC address from HWID unless indicated otherwise */
 	if (env_get_yesno("use_fused_macs"))
-		hwid_get_macs(my_hwid.mac_pool, my_hwid.mac_base);
+		hwid_get_macs(&my_hwid);
 
 	/* Verify MAC addresses */
 	verify_mac_address("ethaddr", DEFAULT_MAC_ETHADDR);
@@ -240,14 +245,14 @@ void som_default_environment(void)
 	if (board_has_bluetooth())
 		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
 
-	/* Get serial number from fuses */
-	hwid_get_serial_number(my_hwid.year, my_hwid.week, my_hwid.sn);
+	/* Get serial number from HWID */
+	hwid_get_serial_number(&my_hwid);
 }
 
-void board_update_hwid(bool is_fuse)
+void board_hwid_update(bool is_fuse)
 {
 	/* Update HWID-related variables in environment */
-	int ret = is_fuse ? board_sense_hwid(&my_hwid) : board_read_hwid(&my_hwid);
+	int ret = is_fuse ? board_hwid_fuse_read(&my_hwid) : hwid_env_read(&my_hwid);
 
 	if (ret)
 		printf("Cannot read HWID\n");

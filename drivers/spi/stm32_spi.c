@@ -35,6 +35,8 @@
 #define STM32_SPI_RXDR		0x30
 #define STM32_SPI_I2SCFGR	0x50
 
+#define STM32MP25_SPI_HWCFGR1	0x3F0
+
 /* STM32_SPI_CR1 bit fields */
 #define SPI_CR1_SPE		BIT(0)
 #define SPI_CR1_MASRX		BIT(8)
@@ -45,6 +47,7 @@
 
 /* STM32_SPI_CR2 bit fields */
 #define SPI_CR2_TSIZE		GENMASK(15, 0)
+#define SPI_CR2_TSIZE_LIMITED	GENMASK(9, 0)
 
 /* STM32_SPI_CFG1 bit fields */
 #define SPI_CFG1_DSIZE		GENMASK(4, 0)
@@ -83,6 +86,11 @@
 /* STM32_SPI_I2SCFGR bit fields */
 #define SPI_I2SCFGR_I2SMOD	BIT(0)
 
+/* STM32MP25_SPI_HWCFGR1 */
+#define STM32MP25_SPI_HWCFGR1_FULLCFG		GENMASK(27, 24)
+#define STM32MP25_SPI_HWCFGR1_FULLCFG_LIMITED	0x0
+#define STM32MP25_SPI_HWCFGR1_FULLCFG_FULL	0x1
+
 #define MAX_CS_COUNT	4
 
 /* SPI Master Baud Rate min/max divisor */
@@ -107,6 +115,7 @@ struct stm32_spi_plat {
 struct stm32_spi_priv {
 	ulong bus_clk_rate;
 	unsigned int fifo_size;
+	unsigned int max_xferlen; /* maximum transfer length */
 	unsigned int cur_bpw;
 	unsigned int cur_hz;
 	unsigned int cur_xferlen; /* current transfer length in bytes */
@@ -397,7 +406,7 @@ static int stm32_spi_xfer(struct udevice *slave, unsigned int bitlen,
 
 	xferlen = bitlen / 8;
 
-	if (xferlen <= SPI_CR2_TSIZE)
+	if (xferlen <= priv->max_xferlen)
 		writel(xferlen, base + STM32_SPI_CR2);
 	else
 		return -EMSGSIZE;
@@ -435,6 +444,10 @@ static int stm32_spi_xfer(struct udevice *slave, unsigned int bitlen,
 	slave_plat = dev_get_parent_plat(slave);
 	if (flags & SPI_XFER_BEGIN)
 		stm32_spi_set_cs(bus, slave_plat->cs, false);
+
+	/* If transfer length is 0, jump right to the end */
+	if (xferlen == 0)
+		goto done;
 
 	/* Be sure to have data in fifo before starting data transfer */
 	if (priv->tx_buf)
@@ -484,6 +497,7 @@ static int stm32_spi_xfer(struct udevice *slave, unsigned int bitlen,
 	setbits_le32(base + STM32_SPI_IFCR, SPI_IFCR_ALL);
 	stm32_spi_stopxfer(bus);
 
+done:
 	if (flags & SPI_XFER_END)
 		stm32_spi_set_cs(bus, slave_plat->cs, true);
 
@@ -506,6 +520,31 @@ static int stm32_spi_get_fifo_size(struct udevice *dev)
 	dev_dbg(dev, "%d x 8-bit fifo size\n", count);
 
 	return count;
+}
+
+static unsigned int stm32_spi_get_max_xferlen(struct udevice *dev)
+{
+	struct stm32_spi_plat *plat = dev_get_plat(dev);
+	void __iomem *base = plat->base;
+	unsigned int max_xfer_len = SPI_CR2_TSIZE;
+
+	/*
+	 * On STM32MP2x, the maximum size depends on the capabilities
+	 * of the instance, which can be checked via FULLCFG of register
+	 * SPI_HWCFGR1
+	 */
+	if (device_is_compatible(dev, "st,stm32mp25-spi")) {
+		unsigned int hwcfgr1 = readl(base + STM32MP25_SPI_HWCFGR1);
+
+		if (FIELD_GET(STM32MP25_SPI_HWCFGR1_FULLCFG, hwcfgr1) ==
+		    STM32MP25_SPI_HWCFGR1_FULLCFG_LIMITED) {
+			max_xfer_len = SPI_CR2_TSIZE_LIMITED;
+			dev_dbg(dev, "limited-featured, max xfer len = %ld\n",
+				SPI_CR2_TSIZE_LIMITED);
+		}
+	}
+
+	return max_xfer_len;
 }
 
 static int stm32_spi_of_to_plat(struct udevice *dev)
@@ -571,6 +610,7 @@ static int stm32_spi_probe(struct udevice *dev)
 	reset_deassert(&plat->rst_ctl);
 
 	priv->fifo_size = stm32_spi_get_fifo_size(dev);
+	priv->max_xferlen = stm32_spi_get_max_xferlen(dev);
 	priv->cur_mode = SPI_FULL_DUPLEX;
 	priv->cur_xferlen = 0;
 	priv->cur_bpw = SPI_DEFAULT_WORDLEN;
@@ -648,6 +688,7 @@ static const struct dm_spi_ops stm32_spi_ops = {
 
 static const struct udevice_id stm32_spi_ids[] = {
 	{ .compatible = "st,stm32h7-spi", },
+	{ .compatible = "st,stm32mp25-spi", },
 	{ }
 };
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Digi International, Inc.
+ * Copyright (C) 2024-2026 Digi International, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -17,9 +17,7 @@ const char *cert_regions[] = {
 	"Japan",
 };
 
-int hwid_word_lengths[CONFIG_HWID_WORDS_NUMBER] = {8, 8, 8};
-
-u32 ram_sizes_mb[16] = {
+u64 ram_sizes_mb[16] = {
 	0,	/* 0 */
 	16,	/* 1 */
 	32,	/* 2 */
@@ -39,14 +37,28 @@ u32 ram_sizes_mb[16] = {
 	0,	/* F */
 };
 
+/* HWID fuse map */
+struct digi_hwid_fuse hwid_fuse_map[] = {
+	/* bank, word, len */
+	{0, 23, 8},	/* OTP23[31:0] */
+	{0, 24, 8},	/* OTP24[31:0] */
+	{0, 25, 8},	/* OTP25[31:0] */
+};
+
+unsigned int hwid_nwords = ARRAY_SIZE(hwid_fuse_map);
+
 /* Print HWID info */
-void board_print_hwid(struct digi_hwid *hwid)
+void board_hwid_print(const struct digi_hwid *hwid)
 {
-	print_hwid_hex(hwid);
+	uint8_t mac_pool[3];
+	hwid_get_mac_pool(hwid, mac_pool);
+
+	board_hwid_print_hex(hwid);
 
 	/* Formatted printout */
 	printf("    Generator ID:  %02d\n", hwid->genid);
-	printf("    MAC Pool:      %02d\n", hwid->mac_pool);
+	printf("    MAC Pool:      %02d (%.2x:%.2x:%.2x)\n", hwid->mac_pool,
+		mac_pool[0], mac_pool[1], mac_pool[2]);
 	printf("    MAC Base:      %.2x:%.2x:%.2x\n",
 		(hwid->mac_base >> 16) & 0xFF,
 		(hwid->mac_base >> 8) & 0xFF,
@@ -54,7 +66,7 @@ void board_print_hwid(struct digi_hwid *hwid)
 	printf("    Variant:       0x%02x\n", hwid->variant);
 	/* New fields (supported if 'RAM' field != 0) */
 	if (hwid->ram) {
-		printf("      RAM:         %u MiB\n", ram_sizes_mb[hwid->ram]);
+		printf("      RAM:         %llu MiB\n", ram_sizes_mb[hwid->ram]);
 		printf("      Wi-Fi:       %s\n", hwid->wifi ? "yes" : "-");
 		printf("      Bluetooth:   %s\n", hwid->bt ? "yes" : "-");
 	}
@@ -68,9 +80,9 @@ void board_print_hwid(struct digi_hwid *hwid)
 }
 
 /* Print HWID info in MANUFID format */
-void board_print_manufid(struct digi_hwid *hwid)
+void board_hwid_print_manuf(const struct digi_hwid *hwid)
 {
-	print_hwid_hex(hwid);
+	board_hwid_print_hex(hwid);
 
 	/* Formatted printout */
 	printf(" Manufacturing ID: %02d%02d%02d%06d %02d%06x %02x%x%x"
@@ -89,46 +101,6 @@ void board_print_manufid(struct digi_hwid *hwid)
 		hwid->bt);
 }
 
-/* Parse HWID info in HWID format */
-int board_parse_hwid(int argc, char *const argv[], struct digi_hwid *hwid)
-{
-	int i, word;
-	u32 hwidword;
-
-	if (argc != CONFIG_HWID_WORDS_NUMBER)
-		goto err;
-
-	/* Parse backwards, from MSB to LSB */
-	word = CONFIG_HWID_WORDS_NUMBER - 1;
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word--)
-		if (strlen(argv[i]) > hwid_word_lengths[word])
-			goto err;
-
-	/*
-	 * Digi HWID is set as a number of hex strings in the form
-	 *   CCMP2: <XXXXXXXX> <YYYYYYYY> <ZZZZZZZZ>
-	 * that are inversely stored into the structure.
-	 */
-
-	/* Parse backwards, from MSB to LSB */
-	word = CONFIG_HWID_WORDS_NUMBER - 1;
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++, word--) {
-		if (strtou32(argv[i], 16, &hwidword))
-			goto err;
-
-		((u32 *)hwid)[word] = hwidword;
-	}
-	board_print_hwid(hwid);
-
-	return 0;
-
-err:
-	printf("Invalid HWID input.\n"
-		"HWID input must be in the form: "
-		CONFIG_HWID_STRINGS_HELP "\n");
-	return -EINVAL;
-}
-
 static int parse_bool_char(char c, bool *val)
 {
 	int v = c -'0';
@@ -142,10 +114,11 @@ static int parse_bool_char(char c, bool *val)
 }
 
 /* Parse HWID info in MANUFID format */
-int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
+int board_hwid_parse_manuf(int argc, char *const argv[], struct digi_hwid *hwid)
 {
 	char tmp[13];
 	unsigned long num;
+	uint8_t mac_pool[3];
 
 	/* Initialize HWID words */
 	memset(hwid, 0, sizeof(struct digi_hwid));
@@ -246,7 +219,9 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 		goto err;
 	}
 	hwid->mac_pool = num;
-	printf("    MAC pool:      %02d\n", hwid->mac_pool);
+	hwid_get_mac_pool(hwid, mac_pool);
+	printf("    MAC Pool:      %02d (%.2x:%.2x:%.2x)\n", hwid->mac_pool,
+		mac_pool[0], mac_pool[1], mac_pool[2]);
 
 	/* MAC base address */
 	strncpy(tmp, &argv[1][2], 6);
@@ -322,7 +297,7 @@ int board_parse_manufid(int argc, char *const argv[], struct digi_hwid *hwid)
 		}
 		hwid->bt = v;
 	}
-	printf("    RAM:           %u MiB\n", ram_sizes_mb[hwid->ram]);
+	printf("    RAM:           %llu MiB\n", ram_sizes_mb[hwid->ram]);
 	printf("    Wi-Fi:         %s\n", hwid->wifi ? "yes" : "-");
 	printf("    Bluetooth:     %s\n", hwid->bt ? "yes" : "-");
 
@@ -381,7 +356,7 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 		/* capabilties fields */
 		else if (capabilities &&
 			 !strcmp("digi,hwid,ram_mb", propnames[i]))
-			sprintf(str, "%u", ram_sizes_mb[hwid->ram]);
+			sprintf(str, "%llu", ram_sizes_mb[hwid->ram]);
 		else if (capabilities &&
 			 ((!strcmp("digi,hwid,has-wifi", propnames[i]) &&
 			   hwid->wifi) ||
@@ -396,26 +371,19 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 	}
 
 	/* Register HWID words in the device tree */
-	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
+	for (i = 0; i < hwid_nwords; i++) {
 		sprintf(str, "digi,hwid_%d", i);
 		do_fixup_by_path_u32(fdt, "/", str, *((u32 *)hwid + i), 1);
 	}
 }
 
-u32 hwid_get_ramsize(const struct digi_hwid *hwid)
+int board_hwid_fuse_lock(void)
 {
-	return ram_sizes_mb[hwid->ram] * SZ_1M;
-}
+	int ret;
 
-int board_lock_hwid(void)
-{
-	u32 bank = CONFIG_HWID_BANK;
-	u32 word = CONFIG_HWID_START_WORD;
-	u32 cnt = CONFIG_HWID_WORDS_NUMBER;
-	int ret, i;
-
-	for (i = 0; i < cnt; i++, word++) {
-		ret = fuse_lock(bank, word);
+	for (int i = 0; i < hwid_nwords; i++) {
+		ret = fuse_lock(hwid_fuse_map[i].bank,
+				hwid_fuse_map[i].word);
 		if (ret)
 			return ret;
 	}

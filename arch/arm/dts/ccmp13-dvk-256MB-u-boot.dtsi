@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR BSD-3-Clause
 /*
- * Copyright (C) 2022-2023, Digi International Inc - All Rights Reserved
+ * Copyright (C) 2022-2026, Digi International Inc - All Rights Reserved
  */
 
 #include "stm32mp13-u-boot.dtsi"
@@ -32,18 +32,4 @@
 
 &adc_1 {
 	status = "okay";
-};
-
-&uart5 {
-	bootph-all;
-};
-
-&uart5_pins_a {
-	bootph-all;
-	pins1 {
-		bootph-all;
-	};
-	pins2 {
-		bootph-all;
-	};
 };

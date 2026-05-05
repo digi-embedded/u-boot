@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Digi International, Inc.
+ * Copyright (C) 2018-2026, Digi International Inc.
  * Copyright 2017 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -131,7 +131,7 @@ void board_mem_get_layout(u64 *phys_sdram_1_start,
 	*phys_sdram_2_start = PHYS_SDRAM_2;
 	*phys_sdram_2_size = PHYS_SDRAM_2_SIZE;
 
-	if (!board_read_hwid(&my_hwid)) {
+	if (!hwid_read(&my_hwid)) {
 		*phys_sdram_1_size = (u64)hwid_get_ramsize(&my_hwid);
 		if (!*phys_sdram_1_size) {
 			/* if RAM size was not coded, use variant to obtain RAM size */
@@ -185,7 +185,7 @@ int hwid_in_db(int variant)
 	return 0;
 }
 
-int board_lock_hwid(void)
+int board_hwid_fuse_lock(void)
 {
 	/* SCU performs automatic lock after programming */
 	printf("not supported. Fuses automatically locked after programming.\n");

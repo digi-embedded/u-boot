@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
 /*
- * Copyright (C) 2023-2025, Digi International Inc - All Rights Reserved
+ * Copyright (C) 2023-2026, Digi International Inc - All Rights Reserved
  */
 
 #include "stm32mp15-u-boot.dtsi"
@@ -26,12 +26,6 @@
 		u-boot,boot-led = "USER1";
 		u-boot,error-led = "USER2";
 	};
-
-	firmware {
-		optee {
-			bootph-all;
-		};
-	};
 };
 
 &i2c6 {
@@ -41,21 +35,8 @@
 	};
 };
 
-&scmi {
-	bootph-some-ram;
-};
-
-&uart4 {
-	bootph-all;
-};
-
 &ccmp15_uart4_pins_a {
-	bootph-all;
-	pins1 {
-		bootph-all;
-	};
 	pins2 {
-		bootph-all;
 		/* pull-up on rx to avoid floating level */
 		bias-pull-up;
 	};

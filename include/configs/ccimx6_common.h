@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012-2013 Freescale Semiconductor, Inc.
- * Copyright (C) 2013-2023 Digi International, Inc.
+ * Copyright (C) 2013-2026, Digi International, Inc.
  *
  * Configuration settings for the Freescale i.MX6Q SabreSD board.
  *
@@ -50,7 +50,7 @@
 /* memtest */
 /* Physical Memory Map */
 #define PHYS_SDRAM                     MMDC0_ARB_BASE_ADDR
-#define CONFIG_SYS_SDRAM_BASE          PHYS_SDRAM
+#define CFG_SYS_SDRAM_BASE             PHYS_SDRAM
 #define CONFIG_SYS_INIT_RAM_ADDR       IRAM_BASE_ADDR
 #define CONFIG_SYS_INIT_RAM_SIZE       IRAM_SIZE
 
@@ -152,7 +152,7 @@
 #define CONFIG_ARP_TIMEOUT     200UL
 
 /* protected environment variables (besides ethaddr and serial#) */
-#define CONFIG_ENV_FLAGS_LIST_STATIC	\
+#define CFG_ENV_FLAGS_LIST_STATIC	\
 	"wlanaddr:mc,"			\
 	"wlan1addr:mc,"			\
 	"wlan2addr:mc,"			\
@@ -161,7 +161,10 @@
 	"bootargs_once:sr,"		\
 	"board_version:so,"		\
 	"board_id:so,"			\
-	"mmcbootdev:so"
+	"mmcbootdev:so,"		\
+	"hwid_0:so,"			\
+	"hwid_1:so,"			\
+	"drm_ic:so,"
 
 #define CONFIG_SILENT_CONSOLE_UPDATE_ON_RELOC
 

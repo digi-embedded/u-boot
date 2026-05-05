@@ -182,7 +182,11 @@
 	"bootargs_once:sr,"		\
 	"board_version:so,"		\
 	"board_id:so,"			\
-	"mmcbootdev:so"
+	"mmcbootdev:so,"		\
+	"hwid_0:so,"			\
+	"hwid_1:so,"			\
+	"hwid_2:so,"			\
+	"drm_ic:so,"
 
 /*
  * 'update' command will Ask for confirmation before updating any partition

@@ -19,18 +19,10 @@
 	/delete-node/ typec;
 };
 
-&usart2 {
-	bootph-all;
-};
-
-&usart2_pins_a {
-	bootph-all;
-	pins1 {
-		bootph-all;
-	};
-	pins2 {
-		bootph-all;
-	};
+/* pre-reloc probe = reserve video frame buffer in video_reserve() */
+&ltdc {
+	clocks = <&rcc CK_BUS_LTDC>, <&rcc CK_KER_LTDC>;
+	clock-names = "bus", "lcd";
 };
 
 &usbotg_hs {

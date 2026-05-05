@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2018 Digi International, Inc.
+ * (C) Copyright 2018-2026 Digi International, Inc.
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -20,13 +20,18 @@
  * MA 02111-1307 USA
  */
 
+#include <cli_hush.h>
 #include <command.h>
 #include <common.h>
 #include <linux/errno.h>
+#include <fdt_support.h>
 #include <fuse.h>
 #include "hwid.h"
+#include "../common/helper.h"
 
-extern int hwid_word_lengths[CONFIG_HWID_WORDS_NUMBER];
+extern struct digi_hwid_fuse hwid_fuse_map[];
+extern unsigned int hwid_nwords;
+extern u64 ram_sizes_mb[16];
 typedef struct mac_base { uint8_t mbase[3]; } mac_base_t;
 
 mac_base_t mac_pools[] = {
@@ -34,16 +39,33 @@ mac_base_t mac_pools[] = {
 	[2] = {{0x00, 0x40, 0x9d}},
 };
 
-__weak int board_read_hwid(struct digi_hwid *hwid)
+int hwid_read(struct digi_hwid *hwid)
 {
-	u32 bank = CONFIG_HWID_BANK;
-	u32 word = CONFIG_HWID_START_WORD;
-	u32 cnt = CONFIG_HWID_WORDS_NUMBER;
-	u32 fuseword;
-	int ret, i;
+	int ret;
 
-	for (i = 0; i < cnt; i++, word++) {
-		ret = fuse_read(bank, word, &fuseword);
+#ifndef CONFIG_SPL_BUILD
+	/*
+	 * If there is a HWID defined in the environment, read
+	 * it from there. Otherwise, read it from fuses.
+	 */
+	ret = hwid_env_read(hwid);
+	if (!ret)
+		return ret;
+#endif
+	ret = board_hwid_fuse_read(hwid);
+
+	return ret;
+}
+
+__weak int board_hwid_fuse_read(struct digi_hwid *hwid)
+{
+	u32 fuseword;
+	int ret;
+
+	for (int i = 0; i < hwid_nwords; i++) {
+		ret = fuse_sense(hwid_fuse_map[i].bank,
+				 hwid_fuse_map[i].word,
+				 &fuseword);
 		((u32 *)hwid)[i] = fuseword;
 		if (ret)
 			return ret;
@@ -52,70 +74,72 @@ __weak int board_read_hwid(struct digi_hwid *hwid)
 	return 0;
 }
 
-__weak int board_sense_hwid(struct digi_hwid *hwid)
-{
-	u32 bank = CONFIG_HWID_BANK;
-	u32 word = CONFIG_HWID_START_WORD;
-	u32 cnt = CONFIG_HWID_WORDS_NUMBER;
-	u32 fuseword;
-	int ret, i;
 
-	for (i = 0; i < cnt; i++, word++) {
-		ret = fuse_sense(bank, word, &fuseword);
-		((u32 *)hwid)[i] = fuseword;
+
+__weak int board_hwid_fuse_set_local_vars(void)
+{
+	u32 fuseword;
+	int ret;
+	char var[20];
+
+	u_boot_hush_start();
+
+	for (int i = 0; i < hwid_nwords; i++) {
+		ret = fuse_sense(hwid_fuse_map[i].bank,
+				 hwid_fuse_map[i].word,
+				 &fuseword);
 		if (ret)
 			return ret;
+
+		/* Set local hwid_n variables */
+		sprintf(var, "hwid_%d=%08x", i, fuseword);
+		set_local_var(var, 0);
 	}
 
 	return 0;
 }
 
-__weak void board_update_hwid(bool is_fuse)
+__weak void board_hwid_update(bool is_fuse)
 {
 	/* Do nothing */
 }
 
-__weak int board_prog_hwid(const struct digi_hwid *hwid)
+__weak void board_hwid_fuse_prog_unlock(void)
 {
-	u32 bank = CONFIG_HWID_BANK;
-	u32 word = CONFIG_HWID_START_WORD;
-	u32 cnt = CONFIG_HWID_WORDS_NUMBER;
-	u32 fuseword;
-	int ret, i;
-
-	for (i = 0; i < cnt; i++, word++) {
-		fuseword = ((u32 *)hwid)[i];
-		ret = fuse_prog(bank, word, fuseword);
-		if (ret)
-			return ret;
-	}
-
-	/* Trigger a HWID-related variables update (from fuses)*/
-	board_update_hwid(true);
-	return 0;
+	/* Do nothing */
 }
 
-__weak int board_override_hwid(const struct digi_hwid *hwid)
+__weak void board_hwid_fuse_prog_lock(void)
 {
-	u32 bank = CONFIG_HWID_BANK;
-	u32 word = CONFIG_HWID_START_WORD;
-	u32 cnt = CONFIG_HWID_WORDS_NUMBER;
-	u32 fuseword;
-	int ret, i;
-
-	for (i = 0; i < cnt; i++, word++) {
-		fuseword = ((u32 *)hwid)[i];
-		ret = fuse_override(bank, word, fuseword);
-		if (ret)
-			return ret;
-	}
-
-	/* Trigger a HWID-related variables update (from shadow registers)*/
-	board_update_hwid(false);
-	return 0;
+	/* Do nothing */
 }
 
-__weak int board_lock_hwid(void)
+__weak int board_hwid_fuse_prog(const struct digi_hwid *hwid)
+{
+	u32 fuseword;
+	int ret = -1;
+
+	board_hwid_fuse_prog_unlock();
+
+	for (int i = 0; i < hwid_nwords; i++) {
+		fuseword = ((u32 *)hwid)[i];
+		ret = fuse_prog(hwid_fuse_map[i].bank,
+				hwid_fuse_map[i].word,
+				fuseword);
+		if (ret)
+			break;
+	}
+
+	board_hwid_fuse_prog_lock();
+
+	/* Trigger a HWID-related variables update (from FUSE HWID)*/
+	if (!ret)
+		board_hwid_update(true);
+
+	return ret;
+}
+
+__weak int board_hwid_fuse_lock(void)
 {
 #ifdef CONFIG_HAS_OTP_LOCK_FUSE
 	return fuse_prog(OCOTP_LOCK_BANK, OCOTP_LOCK_WORD,
@@ -125,14 +149,81 @@ __weak int board_lock_hwid(void)
 #endif
 }
 
-__weak void print_hwid_hex(struct digi_hwid *hwid)
+int hwid_env_read(struct digi_hwid *hwid)
 {
-	int i;
+	char var[20];
 
-	for (i = CONFIG_HWID_WORDS_NUMBER - 1; i >= 0; i--)
-		printf(" %.*x", hwid_word_lengths[i], ((u32 *)hwid)[i]);
+	/* Get HWID from hwid_n variables */
+	for (int i = 0; i < hwid_nwords; i++) {
+		sprintf(var, "hwid_%d", i);
+		if (env_get(var) == NULL)
+			return -1;
+
+		((u32 *)hwid)[i] = env_get_hex(var, 0);
+	}
+
+	return 0;
+}
+
+int hwid_env_prog(const struct digi_hwid *hwid)
+{
+	char cmd[80];
+	int ret;
+
+	/* Set hwid_n variables from a given HWID */
+	for (int i = 0; i < hwid_nwords; i++) {
+		sprintf(cmd, "setenv -f hwid_%d %08x", i, ((u32 *) hwid)[i]);
+		ret = run_command(cmd, 0);
+		if (ret)
+			return -1;
+	}
+
+	/* Trigger a HWID-related variables update (from ENV HWID)*/
+	board_hwid_update(false);
+
+	return 0;
+}
+
+int hwid_env_clear(void)
+{
+	char cmd[80];
+	int ret;
+
+	/* Clear hwid_n variables */
+	for (int i = 0; i < hwid_nwords; i++) {
+		sprintf(cmd, "setenv -f hwid_%d", i);
+		ret = run_command(cmd, 0);
+		if (ret)
+			return -1;
+	}
+
+	/* Trigger a HWID-related variables update (from FUSE HWID)*/
+	board_hwid_update(true);
+
+	return 0;
+}
+
+__weak void board_hwid_print_hex(const struct digi_hwid *hwid)
+{
+	for (int i = hwid_nwords - 1; i >= 0; i--)
+		printf(" %.*x", hwid_fuse_map[i].len, ((u32 *)hwid)[i]);
 
 	printf("\n");
+}
+
+#if !defined(CONFIG_CC6) && !defined(CONFIG_CC6UL)
+u64 hwid_get_ramsize(const struct digi_hwid *hwid)
+{
+#ifdef CONFIG_CC8X
+	/*
+	 * A batch of variant -13 modules was wrongly programmed
+	 * with 1GB RAM size. Correct that particular case by
+	 * establishing a 4GB RAM size.
+	 */
+	if ((hwid->variant == 13) && (ram_sizes_mb[hwid->ram] == 1024))
+		return SZ_4G;
+#endif
+	return ram_sizes_mb[hwid->ram] * SZ_1M;
 }
 
 __weak bool board_has_eth1(void)
@@ -161,7 +252,7 @@ static int set_lower_mac(uint32_t val, uint8_t *mac)
 	return 0;
 }
 
-void hwid_get_macs(uint32_t pool, uint32_t base)
+void hwid_get_macs(const struct digi_hwid *hwid)
 {
 	uint8_t macaddr[6];
 	char macvars[4][10];
@@ -170,20 +261,20 @@ void hwid_get_macs(uint32_t pool, uint32_t base)
 
 	/*
 	 * Setting the mac pool to 0 means that the mac addresses will not be
-	 * setup with the information encoded in the efuses.
+	 * setup with the information encoded in the HWID.
 	 * This is a back-door to allow manufacturing units with uboots that
 	 * do not support some specific pool.
 	 */
-	if (pool == 0)
+	if (hwid->mac_pool == 0)
 		return;
 
-	if (pool > ARRAY_SIZE(mac_pools)) {
-		printf("ERROR: unsupported MAC address pool %u\n", pool);
+	if (hwid->mac_pool >= ARRAY_SIZE(mac_pools)) {
+		printf("ERROR: unsupported MAC address pool %u\n", hwid->mac_pool);
 		return;
 	}
 
 	/* Set MAC from pool */
-	memcpy(macaddr, mac_pools[pool].mbase, sizeof(mac_base_t));
+	memcpy(macaddr, mac_pools[hwid->mac_pool].mbase, sizeof(mac_base_t));
 
 	/* Fill in env-variables array, depending on available NICs */
 	strcpy(macvars[n_macs], "ethaddr");
@@ -205,37 +296,133 @@ void hwid_get_macs(uint32_t pool, uint32_t base)
 	}
 
 	/* Protect from overflow */
-	if (base + n_macs > 0xffffff) {
+	if (hwid->mac_base + n_macs > 0xffffff) {
 		printf("ERROR: not enough remaining MACs on this MAC pool\n");
 		return;
 	}
 
 	for (int i = 0; i < n_macs; i++) {
-		set_lower_mac(base + i, macaddr);
+		set_lower_mac(hwid->mac_base + i, macaddr);
 
 		sprintf(cmd, "setenv -f %s %pM", macvars[i], macaddr);
 		ret = run_command(cmd, 0);
 		if (ret)
-			printf("ERROR setting %s from fuses (%d)\n", macvars[i],
+			printf("ERROR setting %s from HWID (%d)\n", macvars[i],
 			       ret);
 	}
 }
 
-void hwid_get_serial_number(uint32_t year, uint32_t week, uint32_t serial)
+void hwid_get_mac_pool(const struct digi_hwid *hwid, uint8_t *mac)
+{
+	if (hwid->mac_pool == 0) {
+		memset(mac, 0, sizeof(mac_base_t));
+		return;
+	}
+
+	if (hwid->mac_pool >= ARRAY_SIZE(mac_pools)) {
+		memset(mac, 0, sizeof(mac_base_t));
+		printf("ERROR: unsupported MAC address pool %u\n", hwid->mac_pool);
+		return;
+	}
+
+	/* Set MAC from pool */
+	memcpy(mac, mac_pools[hwid->mac_pool].mbase, sizeof(mac_base_t));
+}
+#endif /* !defined(CONFIG_CC6) && !defined(CONFIG_CC6UL) */
+
+void hwid_get_serial_number(const struct digi_hwid *hwid)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
 	int ret;
 
 	/* If year is not set avoid setting this variable */
-	if (year == 0)
+	if (hwid->year == 0)
 		return;
 
+#if (CONFIG_DIGI_FAMILY_ID != 0)
+	int week_month = hwid->week;
+#ifdef CONFIG_CC8X
+	/* If the week is not defined, print the month */
+	if (!hwid->week)
+		week_month = hwid->month;
+#endif
+	/* New format with Family ID*/
 	sprintf(cmd, "setenv -f serial# %02d%02d%02d%06d",
-		year,
-		week,
+		hwid->year,
+		week_month,
 		CONFIG_DIGI_FAMILY_ID,
-		serial);
+		hwid->sn);
+#else
+	/* Old format with Generator ID + Location */
+	sprintf(cmd, "setenv -f serial# %c%02d%02d%02d%06d",
+		hwid->location + 'A',
+		hwid->year,
+		hwid->week,
+		hwid->genid,
+		hwid->sn);
+#endif
 	ret = run_command(cmd, 0);
 	if (ret)
-		printf("ERROR setting 'serial#' from fuses (%d)\n", ret);
+		printf("ERROR setting 'serial#' from HWID (%d)\n", ret);
+}
+
+/* Parse HWID info in HWID format */
+__weak int board_hwid_parse(int argc, char *const argv[], struct digi_hwid *hwid)
+{
+	int word;
+	u32 hwidword;
+
+	if (argc != hwid_nwords)
+		goto err;
+
+	/* Parse backwards, from MSB to LSB */
+	word = hwid_nwords - 1;
+	for (int i = 0; i < hwid_nwords; i++, word--)
+		if (strlen(argv[i]) > hwid_fuse_map[word].len)
+			goto err;
+
+	/*
+	 * Digi HWID is set as a number of hex strings in the form
+	 *   CC6?:  <XXXXXXXX> <YYYYYYYY>
+	 *   CC8X:  <WWWW> <XXXXXXXX> <YYYY> <ZZZZZZZZ>
+	 *   CC8M:  <XXXXXXXX> <YYYYYYYY> <ZZZZZZZZ>
+	 *   CCMP1: <XXXXXXXX> <YYYYYYYY> <ZZZZZZZZ>
+	 *   CCMP2: <XXXXXXXX> <YYYYYYYY> <ZZZZZZZZ>
+	 * that are inversely stored into the structure.
+	 */
+
+	/* Parse backwards, from MSB to LSB */
+	word = hwid_nwords - 1;
+	for (int i = 0; i < hwid_nwords; i++, word--) {
+		if (strtou32(argv[i], 16, &hwidword))
+			goto err;
+
+		((u32 *)hwid)[word] = hwidword;
+	}
+	board_hwid_print(hwid);
+
+	return 0;
+
+err:
+	printf("Invalid HWID input.\n"
+		"HWID input must be in the form: "
+		CONFIG_HWID_STRINGS_HELP "\n");
+	return -EINVAL;
+}
+
+void fdt_fixup_fuse_hwid(void *fdt)
+{
+	struct digi_hwid hwid;
+	char str[20];
+	int ret;
+
+	/* Register FUSE HWID words in the device tree */
+	ret = board_hwid_fuse_read(&hwid);
+	if (ret)
+		return;
+
+	for (int i = 0; i < hwid_nwords; i++) {
+		sprintf(str, "digi,hwid_fuse_%d", i);
+		do_fixup_by_path_u32(fdt, "/", str, *((u32 *)&hwid + i), 1);
+	}
 }
