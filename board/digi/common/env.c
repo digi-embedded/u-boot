@@ -72,7 +72,7 @@ int env_aes_cbc_crypt(env_t *env, const int enc)
 #if defined(CONFIG_CCMP1)
 	/* get NAND geometrics */
 	struct mtd_info *mtd = get_nand_dev_by_index(0);
-	size_t size = mtd->erasesize
+	size_t size = mtd->erasesize;
 #else
 	size_t size = CONFIG_ENV_SIZE;
 #endif
