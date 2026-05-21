@@ -41,7 +41,7 @@ _EOF_
 
 # Set default values if not provided by user
 DUB_GIT_URL="${DUB_GIT_URL:-https://github.com/digi-embedded/u-boot.git}"
-DUB_TOOLCHAIN_URL="${DUB_TOOLCHAIN_URL:-http://10.101.8.63/exports/tftpboot/toolchain}"
+DUB_TOOLCHAIN_URL="${DUB_TOOLCHAIN_URL:-http://sares.digi.com/exports/tftpboot/toolchain}"
 DUB_PLATFORMS="${DUB_PLATFORMS:-${AVAILABLE_PLATFORMS}}"
 
 clone_uboot_repo()
