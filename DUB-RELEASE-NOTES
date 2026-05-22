@@ -4,6 +4,14 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2024.04
 -----------
+dub-2024.04-r5.1, released on 2026/05/22
+	- Based on BSP from NXP (tag 'lf-6.6.52-2.2.2')
+	- Added support for ConnectCore 95 SMARC
+	- Add support for AUO 10" LVDS display splash screen on ConnectCore 8X
+	- Add support for AUO 10" LVDS display splash screen on ConnectCore 93
+	- Trustfence: improve log messages during artifacts authentication
+	- Add support for environment HWID
+
 dub-2024.04-r4.1, released on 2025/12/11
 	- Added support for ConnectCore 95 (beta)
 	- Added support for ConnectCore 6/6N
