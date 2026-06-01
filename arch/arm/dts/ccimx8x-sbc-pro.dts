@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Digi International, Inc.
+ * Copyright 2026 Digi International, Inc.
  *
  * The code contained herein is licensed under the GNU General Public
  * License. You may obtain a copy of the GNU General Public License
@@ -106,7 +106,7 @@
 	panel_lvds_gpio_backlight0: panel-lvds-gpio-backlight0 {
 		compatible = "gpio-backlight";
 		power-supply = <&reg_5v_display>;
-		gpios = <&gpio0 0 GPIO_ACTIVE_HIGH>; /* MIPI_DSI0_PWM0_OUT */
+		gpios = <&gpio1 27 GPIO_ACTIVE_HIGH>; /* MIPI_DSI0_PWM0_OUT */
 		default-on;
 		status = "okay";
 	};
@@ -306,7 +306,7 @@
 		pinctrl_lvds0: lvds0grp {
 			fsl,pins = <
 				/* LVDS0 PWM backlight */
-				SC_P_MIPI_DSI0_GPIO0_00_MIPI_DSI0_GPIO0_IO00	0x00000020
+				SC_P_MIPI_DSI0_GPIO0_00_LSIO_GPIO1_IO27	0x00000020
 			>;
 		};
 
