@@ -383,8 +383,8 @@ copy_artifacts_mkimage_folder()
 		cp --remove-destination lpddr5_dmem_qb_v202409.bin lpddr5_dmem_v202409.bin lpddr5_imem_qb_v202409.bin lpddr5_imem_v202409.bin "${MKIMAGE_SOC_DIR}"
 	)
 
-	# Cortex-M7 firmware
-	cp --remove-destination "${FIRMWARE_M7_DIR}"/imx95-19x19-evk_m7_TCM_power_mode_switch.bin "${MKIMAGE_SOC_DIR}"/m7_image.bin
+	# Cortex-M7 firmware (disable by default)
+	# cp --remove-destination "${FIRMWARE_M7_DIR}"/imx95-19x19-evk_m7_TCM_power_mode_switch.bin "${MKIMAGE_SOC_DIR}"/m7_image.bin
 
 	# AHAB container, OEI, SM, ATF and Optee binaries
 	cp --remove-destination "${FIRMWARE_ELE_DIR}"/mx95??-ahab-container.img "${MKIMAGE_SOC_DIR}"
@@ -413,18 +413,18 @@ build_imxboot()
 		${MAKE} SOC="${SOC}" clean
 		rm -f "${MKIMAGE_SOC_DIR}"/tee.bin "${MKIMAGE_SOC_DIR}"/bl31.bin
 		[ -f "${MKIMAGE_SOC_DIR}"/${BL31_BIN} ] && ln -sf ${BL31_BIN} "${MKIMAGE_SOC_DIR}"/bl31.bin
-		${MAKE} SOC="${SOC}" REV="${SOC_REV}" OEI=YES LPDDR_TYPE=lpddr5 flash_all
+		${MAKE} SOC="${SOC}" REV="${SOC_REV}" OEI=YES LPDDR_TYPE=lpddr5 flash_a55
 		cp --remove-destination "${MKIMAGE_SOC_DIR}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx95-dvk-nooptee.bin
-		cp --remove-destination "${MKIMAGE_SOC_DIR}"/mkimage-flash_all.log "${OUTPUT_PATH}"/mkimage-ccimx95-dvk-nooptee-flash_all.log
+		cp --remove-destination "${MKIMAGE_SOC_DIR}"/mkimage-flash_a55.log "${OUTPUT_PATH}"/mkimage-ccimx95-dvk-nooptee-flash_a55.log
 
 		echo "- Build imx-boot (OPTEE) binary for: ${SOC}"
 		${MAKE} SOC="${SOC}" clean
 		rm -f "${MKIMAGE_SOC_DIR}"/tee.bin "${MKIMAGE_SOC_DIR}"/bl31.bin
 		[ -f "${MKIMAGE_SOC_DIR}"/${BL31_BIN}-optee ] && ln -sf ${BL31_BIN}-optee "${MKIMAGE_SOC_DIR}"/bl31.bin
 		[ -f "${MKIMAGE_SOC_DIR}"/${TEE_BIN} ] && ln -sf ${TEE_BIN} "${MKIMAGE_SOC_DIR}"/tee.bin
-		${MAKE} SOC="${SOC}" REV="${SOC_REV}" OEI=YES LPDDR_TYPE=lpddr5 flash_all
+		${MAKE} SOC="${SOC}" REV="${SOC_REV}" OEI=YES LPDDR_TYPE=lpddr5 flash_a55
 		cp --remove-destination "${MKIMAGE_SOC_DIR}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx95-dvk.bin
-		cp --remove-destination "${MKIMAGE_SOC_DIR}"/mkimage-flash_all.log "${OUTPUT_PATH}"/mkimage-ccimx95-dvk-flash_all.log
+		cp --remove-destination "${MKIMAGE_SOC_DIR}"/mkimage-flash_a55.log "${OUTPUT_PATH}"/mkimage-ccimx95-dvk-flash_a55.log
 	)
 }
 
