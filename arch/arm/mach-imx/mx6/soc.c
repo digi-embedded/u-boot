@@ -998,6 +998,8 @@ static void setup_serial_number(void)
 	env_set("serial#", serial_string);
 }
 
+extern int rng_workaround_copy_to_ocram(void);
+
 int arch_misc_init(void)
 {
 	if (IS_ENABLED(CONFIG_FSL_CAAM)) {
@@ -1018,6 +1020,11 @@ int arch_misc_init(void)
 			printf("Failed to initialize dcp rng: %d\n", ret);
 	}
 
+#ifdef CONFIG_FSL_CAAM_RNG_ERRATA
+	if(rng_workaround_copy_to_ocram()){
+		printf("copy binary failed\n");
+	}
+#endif
 	setup_serial_number();
 	return 0;
 }

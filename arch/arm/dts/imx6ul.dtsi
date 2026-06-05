@@ -205,6 +205,16 @@
 			      <0x00a06000 0x2000>;
 		};
 
+		sram0: sram@916000 {
+			compatible = "mmio-sram";
+			reg = <0 0x916000 0 0x2000>;
+		};
+
+		rng_workaround {
+			workaround-bin = /incbin/("rng_workaround.bin");
+			rng_workaround_sram = <&sram0>;
+		};
+
 		dma_apbh: dma-apbh@1804000 {
 			compatible = "fsl,imx6q-dma-apbh", "fsl,imx28-dma-apbh";
 			reg = <0x01804000 0x2000>;

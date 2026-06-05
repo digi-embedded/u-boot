@@ -457,7 +457,7 @@ OPTEE_PATCHES=""
 OEI_REPO="ssh://git@stash.digi.com/emp/imx-oei.git"
 OEI_BRANCH="dey/scarthgap/lf-6.6.52-2.2.2"
 # Tag: lf-6.6.52-2.2.2 + patches
-OEI_REV="0a1fbc5ce9c4bed08d0add95c911749e56a7d57a"
+OEI_REV="1dd57d4c97c1597dcab4b0cdba6eee188af9e33d"
 OEI_DIR="${BASEDIR}/imx-oei"
 OEI_PATCHES=""
 

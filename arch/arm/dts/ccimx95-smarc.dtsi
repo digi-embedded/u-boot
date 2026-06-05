@@ -8,6 +8,12 @@
 #include <dt-bindings/usb/pd.h>
 
 / {
+	bootcount {
+		compatible = "u-boot,bootcount-rtc";
+		rtc = <&mca_rtc>;
+		offset = <0x00b0>;
+	};
+
 	mca_gpio_uboot: mca_gpio {
 		compatible = "digi,mca-gpio";
 		#gpio-cells = <2>;
@@ -56,6 +62,11 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 	status = "okay";
+
+	mca_rtc: rtc@20 {
+		compatible = "digi,mca-rtc";
+		reg = <0x20>;
+	};
 };
 
 &lpspi1 {
