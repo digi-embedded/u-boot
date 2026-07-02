@@ -477,7 +477,7 @@ FIRMWARE_M7="imx95-m7-demo-25.09.00"
 FIRMWARE_M7_DIR="${BASEDIR}/${FIRMWARE_M7}"
 FIRMWARE_M7_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_M7}.bin"
 
-FIRMWARE_ELE="firmware-ele-imx-2.0.3.1-52f7740"
+FIRMWARE_ELE="firmware-ele-imx-2.0.6-c0b284c"
 FIRMWARE_ELE_DIR="${BASEDIR}/${FIRMWARE_ELE}"
 FIRMWARE_ELE_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_ELE}.bin"
 
