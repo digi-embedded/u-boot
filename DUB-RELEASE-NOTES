@@ -4,6 +4,12 @@ Digi U-Boot RELEASE NOTES
 
 DUB-2024.04
 -----------
+dub-2024.04-r5.3, released on 2026/07/02
+	- Update the ConnectCore 95 boot image builder to use the latest
+	  ELE firmware and stop bundling the Cortex-M7 firmware in boot images
+	  by default
+	- Fix LVDS backlight GPIO on ConnectCore 8X SBC Pro
+
 dub-2024.04-r5.2, released on 2026/05/27
 	- Based on BSP from NXP (tag 'lf-6.6.52-2.2.2')
 	- Added support for ConnectCore 95 SMARC
