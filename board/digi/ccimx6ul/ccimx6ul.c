@@ -300,7 +300,6 @@ void ldo_mode_set(int ldo_bypass)
 int ccimx6ul_init(void)
 {
 #ifdef CONFIG_HAS_TRUSTFENCE
-	hab_verification();
 #ifdef CONFIG_CAAM_ENV_ENCRYPT
 	/*
 	 * Initialize CAAM at an early stage, before the environment is first loaded,
