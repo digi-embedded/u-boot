@@ -240,7 +240,6 @@ config TARGET_CCIMX6ULSBC
 	select FSL_BLOB
 	select MISC
 	select ARCH_MISC_INIT
-	select RNG_SELF_TEST
 
 config TARGET_CCIMX6ULSTARTER
 	bool "Digi ConnectCore 6UL SBC Express"
@@ -260,7 +259,6 @@ config TARGET_CCIMX6ULSTARTER
 	select FSL_BLOB
 	select MISC
 	select ARCH_MISC_INIT
-	select RNG_SELF_TEST
 
 config TARGET_CM_FX6
 	bool "CM-FX6"
