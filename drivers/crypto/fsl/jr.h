@@ -135,6 +135,8 @@ void caam_jr_strstatus(u32 status);
 int run_descriptor_jr(uint32_t *desc);
 
 #ifdef CONFIG_RNG_SELF_TEST
+#define SW_RNG_TEST_FAILED	1
+#define SW_RNG_TEST_PASSED	2
 void rng_self_test(void);
 #endif
 #endif

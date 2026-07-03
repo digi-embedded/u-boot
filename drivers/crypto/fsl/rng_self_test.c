@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: GPL-2.0+
  */
 
+#include <command.h>
 #include <common.h>
 #include <cpu_func.h>
 #include <malloc.h>
@@ -12,6 +13,7 @@
 #include <asm/arch/clock.h>
 #include <asm/global_data.h>
 #include <asm/arch/sys_proto.h>
+#include <asm/mach-imx/hab.h>
 #include <memalign.h>
 #include <fsl_sec.h>
 #include "jobdesc.h"
@@ -19,6 +21,8 @@
 #include "jr.h"
 
 DECLARE_GLOBAL_DATA_PTR;
+
+int rng_swtest_status = 0;
 
 uint32_t rng_dsc[] = {
 	0xb0800036, 0x04800010, 0x3c85a15b, 0x50a9d0b1,
@@ -139,11 +143,16 @@ void rng_test(void)
 			printf("!!!WARNING!!!\nRNG self test failed.");
 			printf("If it keeps failing, do not perform any further crypto operations with RNG.\n");
 			printf("!!!!!!!!!!!!!\n");
+			if (imx_hab_is_enabled()) {
+				printf("Aborting secure boot.\n");
+				run_command("reset", 0);
+			}
+			rng_swtest_status = SW_RNG_TEST_FAILED;
 			goto err;
 		}
 	}
 	puts("RNG self test passed\n");
-
+	rng_swtest_status = SW_RNG_TEST_PASSED;
 err:
 	free(desc);
 	free(result);

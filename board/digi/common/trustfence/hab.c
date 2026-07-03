@@ -17,11 +17,9 @@
 #include "encryption.h"
 #include "hab.h"
 
-#define SW_RNG_TEST_FAILED	1
-#define SW_RNG_TEST_PASSED	2
-#define SW_RNG_TEST_NA		3
-
-int rng_swtest_status = 0;
+#ifdef CONFIG_RNG_SELF_TEST
+extern int rng_swtest_status;
+#endif
 
 __weak int get_dek_blob(ulong addr, u32 *size)
 {
@@ -54,13 +52,17 @@ int trustfence_status(void)
 	else if (ret == HAB_FAILURE)
 		puts("[ERRORS PRESENT!]\n");
 	else if (ret == HAB_WARNING) {
+#ifdef CONFIG_RNG_SELF_TEST
 		if (rng_swtest_status == SW_RNG_TEST_PASSED) {
 			puts("[NO ERRORS]\n");
 			puts("\n");
 			puts("Note: RNG selftest failed, but software test passed\n");
 		} else {
+#endif
 			puts("[WARNINGS PRESENT!]\n");
+#ifdef CONFIG_RNG_SELF_TEST
 		}
+#endif
 	}
 
 	return 0;
@@ -93,11 +95,15 @@ int close_device(int confirmed)
 		puts("Run 'hab_status' and check the errors.\n");
 		return CMD_RET_FAILURE;
 	} else if (ret == HAB_WARNING) {
+#ifdef CONFIG_RNG_SELF_TEST
 		if (rng_swtest_status == SW_RNG_TEST_FAILED) {
+#endif
 			puts("[WARNING]\n There are HAB warnings which could prevent the target from booting once closed.\n");
 			puts("Run 'hab_status' and check the errors.\n");
 			return CMD_RET_FAILURE;
+#ifdef CONFIG_RNG_SELF_TEST
 		}
+#endif
 	}
 
 	puts("Before closing the device DIR_BT_DIS will be burned.\n");
