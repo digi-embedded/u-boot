@@ -22,7 +22,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-int rng_swtest_status = 0;
+int rng_swtest_status = SW_RNG_TEST_NA;
 
 uint32_t rng_dsc[] = {
 	0xb0800036, 0x04800010, 0x3c85a15b, 0x50a9d0b1,
@@ -166,6 +166,11 @@ void rng_self_test(void)
 {
 	u32 cpurev;
 	cpurev = get_cpu_rev();
+
+	if (rng_swtest_status != SW_RNG_TEST_NA) {
+		return;
+	}
+
 #if defined(CONFIG_MX6QP)
 	if ((INTEGRAL(cpurev) == 1) && (FRACTIONAL(cpurev) == 1)) {
 		rng_test();
