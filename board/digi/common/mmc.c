@@ -10,5 +10,5 @@ uint mmc_get_env_part(struct mmc *mmc)
 	if (IS_SD(mmc))
 		return 0;
 	else
-		return CONFIG_SYS_MMC_ENV_PART;
+		return CONFIG_ENV_MMC_EMMC_HW_PARTITION;
 }

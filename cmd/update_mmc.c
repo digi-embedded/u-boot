@@ -141,7 +141,7 @@ static int write_firmware(char *partname, unsigned long loadaddr,
 	 * append the hardware partition where U-Boot lives.
 	 */
 	if (!strcmp(CONFIG_SYS_STORAGE_MEDIA, "mmc") &&
-	    board_has_emmc() && (mmc_dev_index == CONFIG_SYS_MMC_ENV_DEV)) {
+	    board_has_emmc() && (mmc_dev_index == CONFIG_ENV_MMC_DEVICE_INDEX)) {
 		if (!strcmp(partname, "uboot"))
 			strcat(cmd, " $mmcbootpart");
 		else if (!strcmp(partname, "uboot-redundant"))
@@ -515,7 +515,7 @@ static int do_update(struct cmd_tbl* cmdtp, int flag, int argc, char * const arg
 	 */
 	if (!strcmp(argv[1], "uboot") &&
 	    !strcmp(CONFIG_SYS_STORAGE_MEDIA, "mmc") &&
-	    board_has_emmc() && (mmc_dev_index == CONFIG_SYS_MMC_ENV_DEV)) {
+	    board_has_emmc() && (mmc_dev_index == CONFIG_ENV_MMC_DEVICE_INDEX)) {
 		ret = emmc_bootselect();
 		if (ret) {
 			printf("Error changing eMMC boot partition\n");
