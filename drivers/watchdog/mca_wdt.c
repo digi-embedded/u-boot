@@ -7,7 +7,6 @@
  *  option) any later version.
  */
 
-#include <common.h>
 #include <cpu_func.h>
 #include <dm.h>
 #include <hang.h>

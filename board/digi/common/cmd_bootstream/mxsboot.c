@@ -23,7 +23,6 @@
  * MA 02111-1307 USA
  */
 
-#include <common.h>
 #include <linux/mtd/rawnand.h>
 #include <nand.h>
 

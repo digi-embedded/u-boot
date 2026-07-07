@@ -8,7 +8,6 @@
 */
 #include <asm/global_data.h>
 #include <command.h>
-#include <common.h>
 #include <env.h>
 #ifdef CONFIG_FASTBOOT_FLASH
 #include <image-sparse.h>

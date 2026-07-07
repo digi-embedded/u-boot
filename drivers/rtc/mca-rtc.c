@@ -7,7 +7,6 @@
  *  option) any later version.
  */
 
-#include <common.h>
 #include <command.h>
 #include <dm.h>
 #include <i2c.h>

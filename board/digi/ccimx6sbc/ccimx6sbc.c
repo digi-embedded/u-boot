@@ -19,7 +19,6 @@
  * GNU General Public License for more details.
  */
 #include <command.h>
-#include <common.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/iomux.h>
 #include <asm/arch/mx6-pins.h>

@@ -6,7 +6,6 @@
 
 #include <asm/global_data.h>
 #include <fdtdec.h>
-#include <common.h>
 #include "fsl_sec.h"
 
 #define CAAM_BASE 		CFG_SYS_FSL_SEC_ADDR

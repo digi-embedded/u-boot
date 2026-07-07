@@ -4,7 +4,6 @@
  * Copyright 2022 NXP
  */
 
-#include <common.h>
 #include <env.h>
 #include <init.h>
 #include <linux/bitfield.h>

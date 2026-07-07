@@ -84,7 +84,6 @@
  * finite fields GF(2^q). In Rapport de recherche INRIA no 2829, 1996.
  */
 
-#include <common.h>
 #include <errno.h>
 #include <malloc.h>
 #include "bch.h"

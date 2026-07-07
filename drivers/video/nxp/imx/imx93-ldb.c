@@ -3,7 +3,6 @@
  * Copyright 2023 NXP
  * Copyright (C) 2026, Digi International Inc.
  */
-#include <common.h>
 #include <clk.h>
 #include <dm.h>
 #include <dm/device_compat.h>

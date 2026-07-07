@@ -3,7 +3,6 @@
  * Copyright 2024-2026, Digi International Inc
  */
 
-#include <common.h>
 #include <command.h>
 #include <cpu_func.h>
 #include <hang.h>

@@ -19,7 +19,6 @@
  * GNU General Public License for more details.
  */
 #include <command.h>
-#include <common.h>
 #include <dm.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>

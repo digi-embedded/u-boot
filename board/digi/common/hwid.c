@@ -22,7 +22,6 @@
 
 #include <cli_hush.h>
 #include <command.h>
-#include <common.h>
 #include <linux/errno.h>
 #include <fdt_support.h>
 #include <fuse.h>

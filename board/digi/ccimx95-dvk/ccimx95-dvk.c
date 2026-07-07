@@ -3,7 +3,6 @@
  * Copyright 2025 Digi International, Inc.
  */
 
-#include <common.h>
 #include <env.h>
 #include <init.h>
 #include <asm/global_data.h>

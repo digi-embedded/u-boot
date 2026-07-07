@@ -3,7 +3,6 @@
  * Copyright 2024 Digi International Inc
  */
 
-#include <common.h>
 #include <env.h>
 #include <init.h>
 #include <linux/bitfield.h>

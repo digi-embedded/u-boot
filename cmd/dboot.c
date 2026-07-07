@@ -9,7 +9,6 @@
 
 #include <asm/global_data.h>
 #include <command.h>
-#include <common.h>
 #include <env.h>
 #include <mapmem.h>
 #include <part.h>

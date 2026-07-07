@@ -5,7 +5,6 @@
  */
 
 #include <command.h>
-#include <common.h>
 #include <fuse.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/mach-imx/hab.h>

@@ -5,7 +5,6 @@
  */
 
 #include <cli_hush.h>
-#include <common.h>
 #include <fdt_support.h>
 #include <fuse.h>
 #include <linux/sizes.h>

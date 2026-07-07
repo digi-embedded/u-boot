@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: GPL-2.0+
  */
 
-#include <common.h>
 
 #ifdef CONFIG_AHAB_BOOT
 #include "ahab.h"

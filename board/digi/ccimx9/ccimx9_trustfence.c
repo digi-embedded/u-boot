@@ -5,7 +5,6 @@
  */
 
 #include <command.h>
-#include <common.h>
 #include <malloc.h>
 #include <mmc.h>
 #include <asm/io.h>

@@ -20,7 +20,6 @@
  * MA 02111-1307 USA
  */
 
-#include <common.h>
 #include <env.h>
 #include <fdt_support.h>
 #include <fuse.h>

@@ -8,7 +8,6 @@
 */
 #include <asm/global_data.h>
 #include <command.h>
-#include <common.h>
 #include <console.h>
 #include <env.h>
 #include <gzip.h>

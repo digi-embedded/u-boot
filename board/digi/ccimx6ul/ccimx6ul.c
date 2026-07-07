@@ -18,7 +18,6 @@
 #include <asm/mach-imx/mxc_i2c.h>
 #include <asm/io.h>
 #include <command.h>
-#include <common.h>
 #include <dm.h>
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>

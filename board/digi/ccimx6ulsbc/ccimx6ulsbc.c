@@ -22,7 +22,6 @@
 #include <asm/mach-imx/video.h>
 #include <asm/io.h>
 #include <bmp_layout.h>
-#include <common.h>
 #include <env.h>
 #include <fsl_esdhc_imx.h>
 #include <i2c.h>
