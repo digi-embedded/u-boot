@@ -18,6 +18,9 @@
 #include <asm/arch/clock.h>
 #include <asm/arch/imx-regs.h>
 #endif
+#ifdef CONFIG_RNG_SELF_TEST
+#include "../drivers/crypto/fsl/jr.h"
+#endif
 #endif
 
 #ifdef CONFIG_OPTEE_ENV_ENCRYPT
@@ -61,6 +64,11 @@ void setup_caam(void)
 		printf("Failed to initialize caam_jr: %d\n", ret);
 }
 
+#ifdef CONFIG_RNG_SELF_TEST
+extern int rng_swtest_status;
+int skip_sec_init = 1;
+#endif
+
 int env_crypt(env_t * env, const int enc)
 {
 	unsigned char *data = env->data;
@@ -98,8 +106,14 @@ int env_crypt(env_t * env, const int enc)
 	defined(CONFIG_ARCH_MX7ULP) || defined(CONFIG_ARCH_IMX8M)
 	hab_caam_clock_enable(1);
 	u32 out_jr_size = sec_in32(CFG_SYS_FSL_JR0_ADDR + FSL_CAAM_ORSR_JRa_OFFSET);
-	if (out_jr_size != FSL_CAAM_MAX_JR_SIZE)
-		sec_init();
+	if (out_jr_size != FSL_CAAM_MAX_JR_SIZE) {
+#ifdef CONFIG_RNG_SELF_TEST
+		if (skip_sec_init && rng_swtest_status != SW_RNG_TEST_NA)
+			skip_sec_init = 0;
+		else
+#endif
+			sec_init();
+	}
 #endif
 
 	if (enc) {
