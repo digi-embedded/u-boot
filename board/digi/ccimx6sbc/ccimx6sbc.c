@@ -25,6 +25,7 @@
 #include <asm/arch/sys_proto.h>
 #include <asm/global_data.h>
 #include <asm/gpio.h>
+#include <env.h>
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>
 #endif

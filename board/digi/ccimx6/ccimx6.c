@@ -20,6 +20,7 @@
  */
 #include <command.h>
 #include <dm.h>
+#include <env.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/imx-regs.h>
@@ -1798,7 +1799,7 @@ void pmic_bucks_synch_mode(void)
 		printf("Could not set BPERI in synchronous mode\n");
 }
 
-void generate_partition_table(void)
+static void generate_partition_table(void)
 {
 	struct mmc *mmc = find_mmc_device(0);
 	unsigned int capacity_gb = 0;

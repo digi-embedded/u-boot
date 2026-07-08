@@ -10,9 +10,10 @@
 #ifdef CONFIG_FSL_ESDHC_IMX
 #include <fsl_esdhc_imx.h>
 #endif
+#include <config.h> /* for EMMC_BOOT_PART_OFFSET */
 #include <env.h>
-#include <mmc.h>
 #include <malloc.h>
+#include <mmc.h>
 #include <otf_update.h>
 
 #define ALIGN_SUP(x, a) (((x) + (a - 1)) & ~(a - 1))

@@ -22,7 +22,9 @@
  */
 
 #include <command.h>
-#include <mmc.h>
+#include <config.h>
+#include <string.h>
+#include <vsprintf.h>
 
 extern int pmic_read_reg(int reg, unsigned char *value);
 extern int pmic_write_reg(int reg, unsigned char value);
