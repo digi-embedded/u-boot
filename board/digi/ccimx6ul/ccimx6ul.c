@@ -22,13 +22,14 @@
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>
 #endif
+#include <env.h>
 #include <i2c.h>
 #include <linux/delay.h>
 #include <linux/sizes.h>
 #include <nand.h>
 #include <power/pmic.h>
 #include <power/pfuze3000_pmic.h>
-#include "../../freescale/common/pfuze.h"
+#include "../../nxp/common/pfuze.h"
 
 #include "../common/helper.h"
 #include "../common/hwid.h"
@@ -351,7 +352,7 @@ static u32 get_boot_mode(void)
 }
 #endif
 
-void generate_ubi_volumes_script(void)
+static void generate_ubi_volumes_script(void)
 {
 	struct mtd_info *nand = get_nand_dev_by_index(0);
 	char script[CONFIG_SYS_CBSIZE] = "";
@@ -372,7 +373,7 @@ void generate_ubi_volumes_script(void)
 	env_set("ubivolscript", script);
 }
 
-void generate_partition_table(void)
+static void generate_partition_table(void)
 {
 	struct mtd_info *nand = get_nand_dev_by_index(0);
 	char script[CONFIG_SYS_CBSIZE] = "";

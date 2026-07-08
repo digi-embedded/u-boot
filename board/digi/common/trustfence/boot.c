@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: GPL-2.0+
  */
 
+#include <config.h>
 #include <env.h>
 #include <fdt_support.h>
 #include <fuse.h>

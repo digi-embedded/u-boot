@@ -45,7 +45,7 @@ static int get_trustfence_key_modifier(unsigned char keymod[KEY_MODIFIER_SIZE])
 	if (ret)
 		return ret;
 
-	md5((unsigned char *)(&hwid), sizeof(hwid), keymod);
+	md5_wd((unsigned char *)(&hwid), sizeof(hwid), keymod, MD5_DEF_CHUNK_SZ);
 
 	return ret;
 }

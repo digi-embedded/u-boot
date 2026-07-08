@@ -32,8 +32,6 @@
 #include <miiphy.h>
 #include <mmc.h>
 #include <netdev.h>
-#include <usb.h>
-#include <usb/ehci-ci.h>
 #include <command.h>
 #include "../ccimx6ul/ccimx6ul.h"
 #include "../common/carrier_board.h"
@@ -45,7 +43,7 @@
 #ifdef CONFIG_POWER
 #include <power/pmic.h>
 #include <power/pfuze3000_pmic.h>
-#include "../../freescale/common/pfuze.h"
+#include "../../nxp/common/pfuze.h"
 #endif
 
 #ifdef CONFIG_FSL_FASTBOOT

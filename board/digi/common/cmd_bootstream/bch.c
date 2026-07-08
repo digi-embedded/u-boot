@@ -85,7 +85,10 @@
  */
 
 #include <errno.h>
+#include <linux/bitops.h>
 #include <malloc.h>
+#include <stdio.h>
+
 #include "bch.h"
 
 #if defined(CONFIG_BCH_CONST_PARAMS)

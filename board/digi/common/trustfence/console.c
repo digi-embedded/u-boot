@@ -9,7 +9,10 @@
 #endif
 #ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
 #include <cyclic.h>
+#include <log.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <u-boot/sha256.h>
 #include "../helper.h"
 #endif

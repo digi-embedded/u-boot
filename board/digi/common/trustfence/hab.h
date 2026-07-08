@@ -7,6 +7,8 @@
 #ifndef TF_HAB_H
 #define TF_HAB_H
 
+#include <linux/types.h>
+
 void hab_verification(void);
 int get_dek_blob_offset(ulong addr, ulong size, u32 *offset);
 int get_dek_blob(ulong addr, u32 *size);

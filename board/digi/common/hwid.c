@@ -20,8 +20,10 @@
  * MA 02111-1307 USA
  */
 
+#include <config.h>
 #include <cli_hush.h>
 #include <command.h>
+#include <env.h>
 #include <linux/errno.h>
 #include <fdt_support.h>
 #include <fuse.h>

@@ -5,6 +5,8 @@
  */
 
 
+#include <config.h>
+
 #include "jtag.h"
 
 __weak void board_print_trustfence_jtag_mode(u32 *sjc)

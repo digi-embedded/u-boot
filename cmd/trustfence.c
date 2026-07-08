@@ -20,9 +20,13 @@
  * MA 02111-1307 USA
  */
 
+#include <config.h>
 #include <command.h>
+#include <env.h>
 #include <fuse.h>
 #include <memalign.h>
+#include <stdio.h>
+#include <vsprintf.h>
 
 #include "../board/digi/common/helper.h"
 #include "../board/digi/common/trustfence.h"

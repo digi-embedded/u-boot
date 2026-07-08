@@ -5,6 +5,7 @@
  */
 
 #include <fsl_sec.h>
+#include <string.h>
 #include <asm/mach-imx/hab.h>
 
 #include "../common/trustfence.h"
