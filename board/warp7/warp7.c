@@ -15,13 +15,12 @@
 #include <asm/mach-imx/hab.h>
 #include <asm/mach-imx/iomux-v3.h>
 #include <asm/io.h>
-#include <common.h>
 #include <env.h>
 #include <asm/arch/crm_regs.h>
 #include <netdev.h>
 #include <power/pmic.h>
 #include <power/pfuze3000_pmic.h>
-#include "../freescale/common/pfuze.h"
+#include "../nxp/common/pfuze.h"
 #include <asm/setup.h>
 #include <asm/bootm.h>
 

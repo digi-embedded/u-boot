@@ -7,7 +7,7 @@
  * Copyright (c) 2010 Albert Aribaud.
  */
 
-#include <common.h>
+#include <config.h>
 #include <i2c.h>
 #include <log.h>
 #include <asm/global_data.h>
@@ -30,9 +30,7 @@ DECLARE_GLOBAL_DATA_PTR;
  */
 
 #if !CONFIG_IS_ENABLED(DM_I2C)
-#if defined(CONFIG_ARCH_ORION5X)
-#include <asm/arch/orion5x.h>
-#elif (defined(CONFIG_ARCH_KIRKWOOD) || defined(CONFIG_ARCH_MVEBU))
+#if (defined(CONFIG_ARCH_KIRKWOOD) || defined(CONFIG_ARCH_MVEBU))
 #include <asm/arch/soc.h>
 #elif defined(CONFIG_ARCH_SUNXI)
 #include <asm/arch/i2c.h>

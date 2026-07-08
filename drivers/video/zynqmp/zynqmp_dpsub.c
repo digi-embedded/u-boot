@@ -6,12 +6,12 @@
  * Xilinx displayport(DP) Tx Subsytem driver
  */
 
-#include <common.h>
 #include <clk.h>
 #include <cpu_func.h>
 #include <dm.h>
 #include <errno.h>
 #include <generic-phy.h>
+#include <reset.h>
 #include <stdlib.h>
 #include <video.h>
 #include <wait_bit.h>
@@ -50,7 +50,7 @@ static void dma_init_video_descriptor(struct udevice *dev)
 			     DPDMA_DESCRIPTOR_ADDR_EXT_SRC_ADDR_EXT_SHIFT) |
 			     (upper_32_bits((u64)&cur_desc)));
 	cur_desc.next_desr = lower_32_bits((u64)&cur_desc);
-	cur_desc.src_addr = lower_32_bits((u64)gd->fb_base);
+	cur_desc.src_addr = lower_32_bits((u64)video_get_fb());
 }
 
 static void dma_set_descriptor_address(struct udevice *dev)
@@ -240,7 +240,6 @@ static void avbuf_video_select(struct udevice *dev, enum av_buf_video_stream vid
 static void config_gfx_pipeline(struct udevice *dev)
 {
 	struct zynqmp_dpsub_priv *dp_sub = dev_get_priv(dev);
-	u16 *csc_matrix, *offset_matrix;
 	u32 regval = 0, index = 0, *scaling_factors = NULL;
 	u16 rgb_coeffs[] = { 0x1000, 0x0000, 0x0000,
 			     0x0000, 0x1000, 0x0000,
@@ -262,19 +261,18 @@ static void config_gfx_pipeline(struct udevice *dev)
 								video->sampling_en;
 	writel(regval, dp_sub->base_addr + AVBUF_V_BLEND_LAYER1_CONTROL);
 
-	if (video->is_rgb) {
-		csc_matrix = rgb_coeffs;
-		offset_matrix = rgb_offset;
-	}
+	if (!video->is_rgb)
+		return;
+
 	/* Program Colorspace conversion coefficients */
 	for (index = 9; index < 12; index++) {
-		writel(offset_matrix[index - 9], dp_sub->base_addr +
+		writel(rgb_offset[index - 9], dp_sub->base_addr +
 		       AVBUF_V_BLEND_IN2CSC_COEFF0 + (index * 4));
 	}
 
 	/* Program Colorspace conversion matrix */
 	for (index = 0; index < 9; index++) {
-		writel(csc_matrix[index], dp_sub->base_addr +
+		writel(rgb_coeffs[index], dp_sub->base_addr +
 		       AVBUF_V_BLEND_IN2CSC_COEFF0 + (index * 4));
 	}
 }
@@ -2094,9 +2092,14 @@ static int zynqmp_dpsub_probe(struct udevice *dev)
 {
 	struct video_priv *uc_priv = dev_get_uclass_priv(dev);
 	struct zynqmp_dpsub_priv *priv = dev_get_priv(dev);
+	struct reset_ctl_bulk resets;
 	struct clk clk;
 	int ret;
 	int mode = RGBA8888;
+
+	ret = reset_get_bulk(dev, &resets);
+	if (!ret)
+		reset_deassert_bulk(&resets);
 
 	ret = clk_get_by_name(dev, "dp_apb_clk", &clk);
 	if (ret < 0) {
@@ -2135,7 +2138,6 @@ static int zynqmp_dpsub_probe(struct udevice *dev)
 	dev_dbg(dev, "BPP in bits %d, bpix %d\n",
 		priv->non_live_graphics->bpp, uc_priv->bpix);
 
-	uc_priv->fb = (void *)gd->fb_base;
 	uc_priv->xsize = vidc_video_timing_modes[priv->video_mode].video_timing.h_active;
 	uc_priv->ysize = vidc_video_timing_modes[priv->video_mode].video_timing.v_active;
 	/* Calculated by core but need it for my own setup */

@@ -14,6 +14,10 @@
 #include "j721e_spl.h"
 #endif
 
+#ifdef CONFIG_SOC_K3_J7200
+#include "j721e_spl.h"
+#endif
+
 #ifdef CONFIG_SOC_K3_J721S2
 #include "j721s2_spl.h"
 #endif
@@ -28,6 +32,18 @@
 
 #ifdef CONFIG_SOC_K3_AM62A7
 #include "am62a_spl.h"
+#endif
+
+#ifdef CONFIG_SOC_K3_J784S4
+#include "j784s4_spl.h"
+#endif
+
+#ifdef CONFIG_SOC_K3_AM62P5
+#include "am62p_spl.h"
+#endif
+
+#ifdef CONFIG_SOC_K3_J722S
+#include "j722s_spl.h"
 #endif
 
 #endif /* _ASM_ARCH_SPL_H_ */

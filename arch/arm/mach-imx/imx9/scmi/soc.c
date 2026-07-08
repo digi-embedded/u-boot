@@ -1,69 +1,62 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2023 NXP
+ * Copyright 2025-2026 NXP
  *
  * Peng Fan <peng.fan@nxp.com>
  */
 
-#include <common.h>
-#include <cpu_func.h>
-#include <init.h>
-#include <log.h>
-#include <asm/arch/imx-regs.h>
-#include <asm/global_data.h>
-#include <asm/io.h>
+#include <command.h>
 #include <asm/arch/clock.h>
-#include <asm/arch/ccm_regs.h>
+#include <asm/arch/ddr.h>
 #include <asm/arch/sys_proto.h>
-#include <asm/arch/trdc.h>
-#include <asm/mach-imx/boot_mode.h>
-#include <asm/mach-imx/syscounter.h>
 #include <asm/armv8/mmu.h>
+#include <asm/mach-imx/boot_mode.h>
+#include <asm/mach-imx/optee.h>
+#include <asm/mach-imx/ele_api.h>
+#include <asm/setup.h>
+#include <asm/system.h>
 #include <dm/uclass.h>
 #include <dm/device.h>
-#include <env.h>
+#include <dm/ofnode.h>
 #include <env_internal.h>
-#include <errno.h>
-#include <fdt_support.h>
-#include <linux/bitops.h>
-#include <linux/bitfield.h>
-#include <asm/setup.h>
-#include <asm/bootm.h>
-#include <asm/arch-imx/cpu.h>
-#include <asm/mach-imx/ele_api.h>
-#include <asm/mach-imx/optee.h>
-#include <linux/delay.h>
 #include <linux/iopoll.h>
 #include <fuse.h>
 #include <imx_thermal.h>
-#include <thermal.h>
-#include <imx_sip.h>
-#include <linux/arm-smccc.h>
-#include <asm/arch/ddr.h>
-#ifdef CONFIG_SCMI_FIRMWARE
+#include <linux/bitfield.h>
+#include <linux/iopoll.h>
+#include <linux/bitops.h>
+#include <fdt_support.h>
 #include <scmi_agent.h>
-#include <scmi_protocols.h>
 #include <scmi_nxp_protocols.h>
-#include <dt-bindings/power/fsl,imx95-power.h>
-#endif
-#include <spl.h>
-#include <mmc.h>
-#include <kaslr.h>
-
+#include "common.h"
+#include <time.h>
+#include <fdt_support.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
-rom_passover_t rom_passover_data = {0};
+static rom_passover_t rom_passover_data = {0};
 
 uint32_t scmi_get_rom_data(rom_passover_t *rom_data)
 {
 	/* Read ROM passover data */
-	struct scmi_rom_passover_get_out out;
-	struct scmi_msg msg = SCMI_MSG(SCMI_PROTOCOL_ID_MISC, SCMI_MISC_ROM_PASSOVER_GET, out);
+	struct scmi_rom_passover_get_out out = {};
+	struct scmi_msg msg = {
+		.protocol_id = SCMI_PROTOCOL_ID_IMX_MISC,
+		.message_id = SCMI_MISC_ROM_PASSOVER_GET,
+		.in_msg = (u8 *)NULL,
+		.in_msg_sz = 0,
+		.out_msg = (u8 *)&out,
+		.out_msg_sz = sizeof(out),
+	};
 	int ret;
+	struct udevice *dev;
 
-	ret = devm_scmi_process_msg(gd->arch.scmi_dev, &msg);
-	if(ret == 0 && out.status == 0) {
+	ret = uclass_get_device_by_name(UCLASS_CLK, "protocol@14", &dev);
+	if (ret)
+		return ret;
+
+	ret = devm_scmi_process_msg(dev, &msg);
+	if (ret == 0 && out.status == 0) {
 		memcpy(rom_data, (struct rom_passover_t *)out.passover, sizeof(rom_passover_t));
 	} else {
 		printf("Failed to get ROM passover data, scmi_err = %d, size_of(out) = %ld\n",
@@ -74,11 +67,102 @@ uint32_t scmi_get_rom_data(rom_passover_t *rom_data)
 	return 0;
 }
 
+int scmi_set_bbnsm_gpr(u32 gpr_id, u32 val)
+{
+	struct scmi_bbm_gpr_in in;
+	s32 status = 0;
+	struct scmi_msg msg = {
+		.protocol_id = SCMI_PROTOCOL_ID_IMX_BBM,
+		.message_id = SCMI_BBM_GPR_SET,
+		.in_msg = (u8 *)&in,
+		.in_msg_sz = sizeof(in),
+		.out_msg = (u8 *)&status,
+		.out_msg_sz = sizeof(status),
+	};
+	int ret;
+	struct udevice *dev;
+
+	in.index = gpr_id;
+	in.value = val;
+
+	ret = uclass_get_device_by_name(UCLASS_CLK, "protocol@14", &dev);
+	if (ret)
+		return ret;
+
+	ret = devm_scmi_process_msg(dev, &msg);
+	if (ret != 0 || status != 0) {
+		printf("Failed to set bbnsm GPR, scmi_err = %d\n", status);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+int scmi_get_bbnsm_gpr(u32 gpr_id, u32 *val)
+{
+	struct scmi_bbm_gpr_out out = {};
+	u32 in = gpr_id;
+	struct scmi_msg msg = {
+		.protocol_id = SCMI_PROTOCOL_ID_IMX_BBM,
+		.message_id = SCMI_BBM_GPR_GET,
+		.in_msg = (u8 *)&in,
+		.in_msg_sz = sizeof(in),
+		.out_msg = (u8 *)&out,
+		.out_msg_sz = sizeof(out),
+	};
+	int ret;
+	struct udevice *dev;
+
+	ret = uclass_get_device_by_name(UCLASS_CLK, "protocol@14", &dev);
+	if (ret)
+		return ret;
+
+	ret = devm_scmi_process_msg(dev, &msg);
+	if (ret != 0 || out.status != 0) {
+		printf("Failed to get bbnsm GPR, scmi_err = %d\n", out.status);
+		return -EINVAL;
+	}
+
+	*val = out.value;
+
+	return 0;
+}
+
+int scmi_misc_cfginfo(u32 *msel, char *cfgname)
+{
+	struct scmi_cfg_info_out out = {};
+	struct scmi_msg msg = {
+		.protocol_id = SCMI_PROTOCOL_ID_IMX_MISC,
+		.message_id = SCMI_MISC_CFG_INFO,
+		.in_msg = (u8 *)NULL,
+		.in_msg_sz = 0,
+		.out_msg = (u8 *)&out,
+		.out_msg_sz = sizeof(out),
+	};
+	int ret;
+	struct udevice *dev;
+
+	ret = uclass_get_device_by_name(UCLASS_CLK, "protocol@14", &dev);
+	if (ret)
+		return ret;
+
+	ret = devm_scmi_process_msg(dev, &msg);
+	if(ret == 0 && out.status == 0) {
+		strcpy(cfgname, (const char *)out.cfgname);
+	} else {
+		printf("Failed to get cfg name, scmi_err = %d\n",
+		       out.status);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 int scmi_misc_ddrinfo(u32 ddrc_id, struct scmi_ddr_info_out *out)
 {
 	u32 in = ddrc_id;
 	struct scmi_msg msg = {
-		.protocol_id = SCMI_PROTOCOL_ID_MISC,
+		.protocol_id = SCMI_PROTOCOL_ID_IMX_MISC,
 		.message_id = SCMI_MISC_DDR_INFO_GET,
 		.in_msg = (u8 *)&in,
 		.in_msg_sz = sizeof(in),
@@ -88,6 +172,7 @@ int scmi_misc_ddrinfo(u32 ddrc_id, struct scmi_ddr_info_out *out)
 	int ret;
 	struct udevice *dev;
 
+	memset(out, 0, sizeof(*out));
 	ret = uclass_get_device_by_name(UCLASS_CLK, "protocol@14", &dev);
 	if (ret)
 		return ret;
@@ -112,15 +197,18 @@ void disconnect_from_pc(void)
 {
 	enum boot_device bt_dev = get_boot_device();
 
-	if (bt_dev == USB_BOOT)
-		writel(0x0, USB1_BASE_ADDR + 0x140);
-	else if (bt_dev == USB2_BOOT)
+	if (bt_dev == USB_BOOT) {
+		if (is_imx952())
+			writel(0x0, USB1_BASE_ADDR + 0x140);
+		else
+			clrbits_le32(USB1_BASE_ADDR + 0xc704, (1 << 31));
+	} else if (bt_dev == USB2_BOOT)
 		writel(0x0, USB2_BASE_ADDR + 0x140);
 
 	return;
 }
 
-#ifdef CONFIG_ENV_IS_IN_MMC
+#if IS_ENABLED(CONFIG_ENV_IS_IN_MMC)
 __weak int board_mmc_get_env_dev(int devno)
 {
 	return devno;
@@ -132,22 +220,24 @@ int mmc_get_env_dev(void)
 	u16 boot_type;
 	u8 boot_instance;
 
-	volatile gd_t *pgd = gd;
+	gd_t *pgd = gd;
 	rom_passover_t *rdata;
-#ifdef CONFIG_SPL_BUILD
+
+#if IS_ENABLED(CONFIG_XPL_BUILD)
 	rdata = &rom_passover_data;
 #else
 	rom_passover_t rom_data = {0};
-	if (!pgd->reloc_off) {
+
+	if (!pgd->reloc_off)
 		rdata = &rom_data;
-	} else
+	else
 		rdata = &rom_passover_data;
 #endif
 	if (rdata->tag == 0) {
 		ret = scmi_get_rom_data(rdata);
 		if (ret != 0) {
 			puts("SCMI: failure at rom_boot_info\n");
-			return CONFIG_SYS_MMC_ENV_DEV;
+			return CONFIG_ENV_MMC_DEVICE_INDEX;
 		}
 	}
 	boot_type = rdata->boot_dev_type;
@@ -158,11 +248,25 @@ int mmc_get_env_dev(void)
 
 	/* If not boot from sd/mmc, use default value */
 	if (boot_type != BOOT_TYPE_SD && boot_type != BOOT_TYPE_MMC)
-		return env_get_ulong("mmcdev", 10, CONFIG_SYS_MMC_ENV_DEV);
+		return env_get_ulong("mmcdev", 10, CONFIG_ENV_MMC_DEVICE_INDEX);
 
 	return board_mmc_get_env_dev(boot_instance);
 }
 #endif
+
+int power_on_hsio(void)
+{
+	int ret;
+	struct udevice *dev;
+
+	ret = uclass_get_device_by_name(UCLASS_CLK, "protocol@14", &dev);
+	if (ret)
+		return ret;
+
+	ret = scmi_pwd_state_set(dev, 0, SCMI_PD(HSIO_TOP), 0);
+
+	return ret;
+}
 
 #ifdef CONFIG_USB_PORT_AUTO
 int board_usb_gadget_port_auto(void)
@@ -188,7 +292,7 @@ u32 get_cpu_speed_grade_hz(void)
 	word = 17;
 	offset = 14;
 
-	ret = fuse_read((word / 8), (word % 8), &val);
+	ret = fuse_read(word / 8, word % 8, &val);
 	if (ret)
 		val = 0; /* If read fuse failed, return as blank fuse */
 
@@ -200,6 +304,8 @@ u32 get_cpu_speed_grade_hz(void)
 
 	if (is_imx95())
 		max_speed = 2000000000;
+	if (is_imx952())
+		max_speed = 1700000000;
 
 	/* In case the fuse of speed grade not programmed */
 	if (speed > max_speed)
@@ -216,7 +322,7 @@ u32 get_cpu_temp_grade(int *minc, int *maxc)
 	word = 17;
 	offset = 12;
 
-	ret = fuse_read((word / 8), (word % 8), &val);
+	ret = fuse_read(word / 8, word % 8, &val);
 	if (ret)
 		val = 0; /* If read fuse failed, return as blank fuse */
 
@@ -253,15 +359,16 @@ u32 get_cpu_rev(void)
 {
 	u32 rev = (gd->arch.soc_rev >> 24) - 0xa0;
 
-	return (MXC_CPU_IMX95 << 12) | (CHIP_REV_1_0 + rev);
+	return (SCMI_CPU << 12) | (CHIP_REV_1_0 + rev);
 }
 
-#define UNLOCK_WORD 0xD928C520 /* unlock word */
-#define REFRESH_WORD 0xB480A602 /* refresh word */
+#define UNLOCK_WORD 0xD928C520
+#define REFRESH_WORD 0xB480A602
 
 static void disable_wdog(void __iomem *wdog_base)
 {
 	u32 val_cs = readl(wdog_base + 0x00);
+	int ret = 0;
 
 	if (!(val_cs & 0x80))
 		return;
@@ -278,8 +385,9 @@ static void disable_wdog(void __iomem *wdog_base)
 	writel(0x400, (wdog_base + 0x08)); /* Set timeout to default 0x400 */
 	writel(0x2120, (wdog_base + 0x00)); /* Disable it and set update */
 
-	while (!(readl(wdog_base + 0x00) & 0x400))
-		;
+	ret = readl_poll_timeout(wdog_base, val_cs, val_cs & 0x400, 100000);
+	if (ret < 0)
+		debug("%s timeout\n", __func__);
 }
 
 static struct mm_region imx9_mem_map[] = {
@@ -292,6 +400,37 @@ static struct mm_region imx9_mem_map[] = {
 			 PTE_BLOCK_NON_SHARE |
 			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
 	},
+#ifdef CONFIG_IMX94
+	{
+		/* M71 TCM */
+		.virt = 0x202c0000UL,
+		.phys = 0x202c0000UL,
+		.size = 0x80000UL,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
+			 PTE_BLOCK_NON_SHARE |
+			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
+	},
+	{
+		/* M33S TCM */
+		.virt = 0x209c0000UL,
+		.phys = 0x209c0000UL,
+		.size = 0x80000UL,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
+			 PTE_BLOCK_NON_SHARE |
+			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
+	},
+	/* 644K netc ocram for rpmsg buffer */
+	{
+		/* M33S NETC OCRAM */
+		.virt = 0x20800000UL,
+		.phys = 0x20800000UL,
+		.size = 0xa1000UL,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
+			 PTE_BLOCK_NON_SHARE |
+			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
+	},
+#endif
+#if IS_ENABLED(CONFIG_XPL_BUILD)
 	{
 		/* OCRAM */
 		.virt = 0x20480000UL,
@@ -299,7 +438,9 @@ static struct mm_region imx9_mem_map[] = {
 		.size = 0xA0000UL,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
 			 PTE_BLOCK_OUTER_SHARE
-	}, {
+	},
+#endif
+	{
 		/* AIPS */
 		.virt = 0x40000000UL,
 		.phys = 0x40000000UL,
@@ -322,9 +463,9 @@ static struct mm_region imx9_mem_map[] = {
 		.size = PHYS_SDRAM_SIZE,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
 #ifdef CONFIG_IMX_TRUSTY_OS
-			 PTE_BLOCK_INNER_SHARE
+				 PTE_BLOCK_INNER_SHARE
 #else
-			 PTE_BLOCK_OUTER_SHARE
+				 PTE_BLOCK_OUTER_SHARE
 #endif
 	}, {
 #ifdef PHYS_SDRAM_2_SIZE
@@ -336,6 +477,48 @@ static struct mm_region imx9_mem_map[] = {
 			 PTE_BLOCK_OUTER_SHARE
 	}, {
 #endif
+#if defined(CFG_SYS_SECURE_SDRAM_SIZE) && IS_ENABLED(CONFIG_XPL_BUILD)
+		/* DRAM2 */
+		.virt = CFG_SYS_SECURE_SDRAM_BASE,
+		.phys = CFG_SYS_SECURE_SDRAM_BASE,
+		.size = CFG_SYS_SECURE_SDRAM_SIZE,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
+			 PTE_BLOCK_OUTER_SHARE
+	}, {
+#endif
+		/* PCIE2 ECAM */
+		.virt = 0x880000000UL,
+		.phys = 0x880000000UL,
+		.size = 0x10000000UL,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
+			 PTE_BLOCK_NON_SHARE |
+			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
+	}, {
+		/* PCIE1 Outbound */
+		.virt = 0x900000000UL,
+		.phys = 0x900000000UL,
+		.size = 0x100000000UL,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
+			 PTE_BLOCK_NON_SHARE |
+			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
+	}, {
+		/* PCIE2 Outbound */
+		.virt = 0xA00000000UL,
+		.phys = 0xA00000000UL,
+		.size = 0x100000000UL,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
+			 PTE_BLOCK_NON_SHARE |
+			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
+	}, {
+#if IS_ENABLED(CONFIG_IMX_SNPS_DDR_PHY_QB_GEN)
+		/* QB data */
+		.virt = CONFIG_SAVED_QB_STATE_BASE,
+		.phys = CONFIG_SAVED_QB_STATE_BASE,
+		.size = 0x200000UL,	/* 2M */
+		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
+			 PTE_BLOCK_OUTER_SHARE
+	}, {
+#endif /* CONFIG_IMX_SNPS_DDR_PHY_QB_GEN */
 		/* empty entry to split table entry 5 if needed when TEEs are used */
 		0,
 	}, {
@@ -386,6 +569,34 @@ void enable_caches(void)
 
 	icache_enable();
 	dcache_enable();
+}
+
+/*
+ * Initialize the MMU and activate cache in SPL stage
+ */
+static void spl_enable_caches(void)
+{
+	u64 pgtable_size;
+
+	if (!IS_ENABLED(CONFIG_XPL_BUILD))
+		return;
+
+	if (CONFIG_IS_ENABLED(SYS_ICACHE_OFF) || CONFIG_IS_ENABLED(SYS_DCACHE_OFF))
+		return;
+
+	pgtable_size = PGTABLE_SIZE;
+	if (pgtable_size > SZ_2M) /* Only first 2MB avaliable for SPL */
+		return;
+
+	gd->arch.tlb_size = pgtable_size;
+	gd->arch.tlb_addr = (unsigned long)CFG_SYS_SECURE_SDRAM_BASE;
+
+	dcache_enable();
+}
+
+void spl_board_prepare_for_boot(void)
+{
+	dcache_disable();
 }
 
 __weak int board_phys_sdram_size(phys_size_t *size)
@@ -442,7 +653,7 @@ int dram_init(void)
 		return ret;
 
 	/* rom_pointer[1] contains the size of TEE occupies */
-	if (rom_pointer[1] && (PHYS_SDRAM < (phys_addr_t)rom_pointer[0]))
+	if (rom_pointer[1] && PHYS_SDRAM < (phys_addr_t)rom_pointer[0])
 		gd->ram_size = sdram_size - rom_pointer[1];
 	else
 		gd->ram_size = sdram_size;
@@ -471,7 +682,7 @@ int dram_init_banksize(void)
 	}
 
 	gd->bd->bi_dram[bank].start = PHYS_SDRAM;
-	if (rom_pointer[1] && (PHYS_SDRAM < (phys_addr_t)rom_pointer[0])) {
+	if (rom_pointer[1] && PHYS_SDRAM < (phys_addr_t)rom_pointer[0]) {
 		phys_addr_t optee_start = (phys_addr_t)rom_pointer[0];
 		phys_size_t optee_size = (size_t)rom_pointer[1];
 
@@ -507,14 +718,14 @@ phys_size_t get_effective_memsize(void)
 	int ret;
 	phys_size_t sdram_size;
 	phys_size_t sdram_b1_size;
+
 	ret = board_phys_sdram_size(&sdram_size);
 	if (!ret) {
 		/* Bank 1 can't cross over 4GB space */
-		if (sdram_size > 0x80000000) {
+		if (sdram_size > 0x80000000)
 			sdram_b1_size = 0x100000000UL - PHYS_SDRAM;
-		} else {
+		else
 			sdram_b1_size = sdram_size;
-		}
 
 		if (rom_pointer[1]) {
 			/* We will relocate u-boot to Top of dram1. Tee position has three cases:
@@ -532,16 +743,49 @@ phys_size_t get_effective_memsize(void)
 	}
 }
 
+static inline u64 ether_addr_to_u64(const u8 *addr)
+{
+	u64 u = 0;
+	int i;
+
+	for (i = 0; i < 6; i++)
+		u = u << 8 | addr[i];
+
+	return u;
+}
+
+static inline void u64_to_ether_addr(u64 u, u8 *addr)
+{
+	int i;
+
+	for (i = 6 - 1; i >= 0; i--) {
+		addr[i] = u & 0xff;
+		u = u >> 8;
+	}
+}
+
+static inline void eth_addr_add(u8 *addr, long offset)
+{
+	u64 u = ether_addr_to_u64(addr);
+
+	u += offset;
+	u64_to_ether_addr(u, addr);
+}
+
 void imx_get_mac_from_fuse(int dev_id, unsigned char *mac)
 {
 	u32 val[2] = {};
 	int ret, num_of_macs;
+	u32 bank = 40;
 
-	ret = fuse_read(40, 5, &val[0]);
+	if (is_imx94())
+		bank = 66;
+
+	ret = fuse_read(bank, 5, &val[0]);
 	if (ret)
 		goto err;
 
-	ret = fuse_read(40, 6, &val[1]);
+	ret = fuse_read(bank, 6, &val[1]);
 	if (ret)
 		goto err;
 
@@ -557,13 +801,46 @@ void imx_get_mac_from_fuse(int dev_id, unsigned char *mac)
 	mac[3] = (val[0] >> 24) & 0xff;
 	mac[4] = val[1] & 0xff;
 	mac[5] = (val[1] >> 8) & 0xff;
-	if (dev_id == 1)
-		mac[5] = mac[5] + 3;
-	if (dev_id == 2)
-		mac[5] = mac[5] + 6;
 
-	debug("%s: MAC%d: %02x.%02x.%02x.%02x.%02x.%02x\n",
-	      __func__, dev_id, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	if (is_imx94()) {
+		/*
+		 * i.MX94 uses the following mac address offset list:
+		 * | No.    | Module      | Mac address user          |
+		 * |--------|-------------|---------------------------|
+		 * | 0 ~ 1  | ethercat    | port0/port1               |
+		 * | 2      | netc switch | internal enetc3 mac/swp0  |
+		 * | 3 ~ 6  |             | enetc3 vf1~3/swp1         |
+		 * | 7      | enetc mac   | enetc0 pf                 |
+		 * | 8      |             | enetc1 pf                 |
+		 * | 9      |             | enetc2 pf                 |
+		 * | 10     | netc switch | swp2                      |
+		 */
+		if (dev_id == 0)
+			eth_addr_add(mac, 2); /* enetc3 mac/swp0 */
+		if (dev_id == 1)
+			eth_addr_add(mac, 8); /* enetc1 */
+		if (dev_id == 2)
+			eth_addr_add(mac, 9); /* enetc2 */
+	} else if (is_imx952()) {
+		/*
+		* i.MX952 uses the following mac address offset list:
+		* | No. | Mac address user	|
+		* |-----|-------------------|
+		* | 0	| enetc mac pf0 	|
+		* | 1	| enetc mac vf0 	|
+		* | 2	| enetc mac pf1 	|
+		* | 3	| enetc mac vf1 	|
+		*/
+		if (dev_id == 1)
+			eth_addr_add(mac, 2);
+	} else {
+		if (dev_id == 1)
+			eth_addr_add(mac, 3);
+		if (dev_id == 2)
+			eth_addr_add(mac, 6);
+	}
+
+	debug("%s: MAC%d: %pM\n", __func__, dev_id, mac);
 	return;
 err:
 	memset(mac, 0, 6);
@@ -588,8 +865,32 @@ static char *rst_string[32] = {
 	"cm33_exc",
 	"bbm",
 	"sw",
+	"sm_err", "fusa_sreco", "pmic", "unused", "unused", "unused",
 	"unused", "unused", "unused", "unused", "unused", "unused",
-	"unused", "unused", "unused", "unused", "unused", "unused",
+	"unused", "unused",
+	"por"
+};
+
+static char *rst_string_imx94[32] = {
+	"cm33_lockup",
+	"cm33_swreq",
+	"cm70_lockup",
+	"cm70_swreq",
+	"fccu",
+	"jtag_sw",
+	"ele",
+	"tempsense",
+	"wdog1",
+	"wdog2",
+	"wdog3",
+	"wdog4",
+	"wdog5",
+	"jtag",
+	"wdog6",
+	"wdog7",
+	"wdog8",
+	"wo_netc", "cm33s_lockup", "cm33s_swreq", "cm71_lockup", "cm71_swreq", "cm33_exc",
+	"bbm", "sw", "sm_err", "fusa_sreco", "pmic", "unused",
 	"unused", "unused",
 	"por"
 };
@@ -601,13 +902,30 @@ int get_reset_reason(bool sys, bool lm)
 	};
 
 	struct scmi_imx_misc_reset_reason_out out = { 0 };
-	struct scmi_msg msg = SCMI_MSG_IN(SCMI_IMX_PROTOCOL_ID_MISC,
-					  SCMI_IMX_MISC_RESET_REASON,
-					  in, out);
+	struct scmi_msg msg = {
+		.protocol_id = SCMI_PROTOCOL_ID_IMX_MISC,
+		.message_id = SCMI_IMX_MISC_RESET_REASON,
+		.in_msg = (u8 *)&in,
+		.in_msg_sz = sizeof(in),
+		.out_msg = (u8 *)&out,
+		.out_msg_sz = sizeof(out),
+	};
 	int ret;
 
+	struct udevice *dev;
+	char **rst;
+
+	if (is_imx94())
+		rst = rst_string_imx94;
+	else
+		rst = rst_string;
+
+	ret = uclass_get_device_by_name(UCLASS_CLK, "protocol@14", &dev);
+	if (ret)
+		return ret;
+
 	if (sys) {
-		ret = devm_scmi_process_msg(gd->arch.scmi_dev, &msg);
+		ret = devm_scmi_process_msg(dev, &msg);
 		if (out.status) {
 			printf("%s:%d for SYS\n", __func__, out.status);
 			return ret;
@@ -615,20 +933,20 @@ int get_reset_reason(bool sys, bool lm)
 
 		if (out.bootflags & MISC_BOOT_FLAG_VLD) {
 			printf("SYS Boot reason: %s, origin: %ld, errid: %ld\n",
-			       rst_string[out.bootflags & MISC_BOOT_FLAG_REASON],
+			       rst[out.bootflags & MISC_BOOT_FLAG_REASON],
 			       out.bootflags & MISC_BOOT_FLAG_ORG_VLD ?
 			       FIELD_GET(MISC_BOOT_FLAG_ORIGIN, out.bootflags) : -1,
 			       out.bootflags & MISC_BOOT_FLAG_ERR_VLD ?
 			       FIELD_GET(MISC_BOOT_FLAG_ERR_ID, out.bootflags) : -1
 			       );
 		}
-		if (out.bootflags & MISC_SHUTDOWN_FLAG_VLD) {
+		if (out.shutdownflags & MISC_SHUTDOWN_FLAG_VLD) {
 			printf("SYS shutdown reason: %s, origin: %ld, errid: %ld\n",
-			       rst_string[out.bootflags & MISC_SHUTDOWN_FLAG_REASON],
-			       out.bootflags & MISC_SHUTDOWN_FLAG_ORG_VLD ?
-			       FIELD_GET(MISC_SHUTDOWN_FLAG_ORIGIN, out.bootflags) : -1,
-			       out.bootflags & MISC_SHUTDOWN_FLAG_ERR_VLD ?
-			       FIELD_GET(MISC_SHUTDOWN_FLAG_ERR_ID, out.bootflags) : -1
+			       rst[out.shutdownflags & MISC_SHUTDOWN_FLAG_REASON],
+			       out.shutdownflags & MISC_SHUTDOWN_FLAG_ORG_VLD ?
+			       FIELD_GET(MISC_SHUTDOWN_FLAG_ORIGIN, out.shutdownflags) : -1,
+			       out.shutdownflags & MISC_SHUTDOWN_FLAG_ERR_VLD ?
+			       FIELD_GET(MISC_SHUTDOWN_FLAG_ERR_ID, out.shutdownflags) : -1
 			       );
 		}
 	}
@@ -637,7 +955,7 @@ int get_reset_reason(bool sys, bool lm)
 		in.flags = 0;
 		memset(&out, 0, sizeof(struct scmi_imx_misc_reset_reason_out));
 
-		ret = devm_scmi_process_msg(gd->arch.scmi_dev, &msg);
+		ret = devm_scmi_process_msg(dev, &msg);
 		if (out.status) {
 			printf("%s:%d for LM\n", __func__, out.status);
 			return ret;
@@ -645,7 +963,7 @@ int get_reset_reason(bool sys, bool lm)
 
 		if (out.bootflags & MISC_BOOT_FLAG_VLD) {
 			printf("LM Boot reason: %s, origin: %ld, errid: %ld\n",
-			       rst_string[out.bootflags & MISC_BOOT_FLAG_REASON],
+			       rst[out.bootflags & MISC_BOOT_FLAG_REASON],
 			       out.bootflags & MISC_BOOT_FLAG_ORG_VLD ?
 			       FIELD_GET(MISC_BOOT_FLAG_ORIGIN, out.bootflags) : -1,
 			       out.bootflags & MISC_BOOT_FLAG_ERR_VLD ?
@@ -653,13 +971,13 @@ int get_reset_reason(bool sys, bool lm)
 			       );
 		}
 
-		if (out.bootflags & MISC_SHUTDOWN_FLAG_VLD) {
+		if (out.shutdownflags & MISC_SHUTDOWN_FLAG_VLD) {
 			printf("LM shutdown reason: %s, origin: %ld, errid: %ld\n",
-			       rst_string[out.bootflags & MISC_SHUTDOWN_FLAG_REASON],
-			       out.bootflags & MISC_SHUTDOWN_FLAG_ORG_VLD ?
-			       FIELD_GET(MISC_SHUTDOWN_FLAG_ORIGIN, out.bootflags) : -1,
-			       out.bootflags & MISC_SHUTDOWN_FLAG_ERR_VLD ?
-			       FIELD_GET(MISC_SHUTDOWN_FLAG_ERR_ID, out.bootflags) : -1
+			       rst[out.shutdownflags & MISC_SHUTDOWN_FLAG_REASON],
+			       out.shutdownflags & MISC_SHUTDOWN_FLAG_ORG_VLD ?
+			       FIELD_GET(MISC_SHUTDOWN_FLAG_ORIGIN, out.shutdownflags) : -1,
+			       out.shutdownflags & MISC_SHUTDOWN_FLAG_ERR_VLD ?
+			       FIELD_GET(MISC_SHUTDOWN_FLAG_ERR_ID, out.shutdownflags) : -1
 			       );
 		}
 	}
@@ -671,11 +989,22 @@ int get_reset_reason(bool sys, bool lm)
 int power_on_m7(char *name)
 {
 	struct scmi_imx_misc_cfg_info_out out = { 0 };
-	struct scmi_msg msg = SCMI_MSG(SCMI_IMX_PROTOCOL_ID_MISC,
-				       SCMI_IMX_MISC_CFG_INFO, out);
+	struct scmi_msg msg = {
+		.protocol_id = SCMI_PROTOCOL_ID_IMX_MISC,
+		.message_id = SCMI_IMX_MISC_CFG_INFO,
+		.in_msg = (u8 *)NULL,
+		.in_msg_sz = 0,
+		.out_msg = (u8 *)&out,
+		.out_msg_sz = sizeof(out),
+	};
 	int ret;
+	struct udevice *dev;
 
-	ret = devm_scmi_process_msg(gd->arch.scmi_dev, &msg);
+	ret = uclass_get_device_by_name(UCLASS_CLK, "protocol@14", &dev);
+	if (ret)
+		return ret;
+
+	ret = devm_scmi_process_msg(dev, &msg);
 	if (out.status) {
 		printf("%s:%d fail\n", __func__, out.status);
 		return ret;
@@ -686,90 +1015,202 @@ int power_on_m7(char *name)
 		return -EINVAL;
 	}
 
-	/* Power up M7MIX */
-	ret = scmi_pwd_state_set(gd->arch.scmi_dev, 0, IMX95_PD_M7, 0);
+	if (!arch_auxiliary_core_check_up(1)) {
+		/* Power up M7MIX */
+		ret = scmi_pwd_state_set(dev, 0, SCMI_PD(M70), 0);
+		if (ret) {
+			printf("Power M7 failed\n");
+			return -EIO;
+		}
+
+		/* In case OEI not init ECC, do it here */
+		memset_io((void *)0x203c0000, 0, 0x40000);
+		memset_io((void *)0x20400000, 0, 0x40000);
+	}
+
+#ifdef CONFIG_IMX94
+	if (!arch_auxiliary_core_check_up(7)) {
+		ret = scmi_pwd_state_set(dev, 0, SCMI_PD(M71), 0);
+		if (ret) {
+			printf("Power M71 failed\n");
+			return -EIO;
+		}
+
+		memset_io((void *)0x202c0000, 0, 0x40000);
+		memset_io((void *)0x20300000, 0, 0x40000);
+	}
+
+	if (!arch_auxiliary_core_check_up(8)) {
+		ret = scmi_pwd_state_set(dev, 0, SCMI_PD(NETC), 0);
+		if (ret) {
+			printf("Power M33S failed\n");
+			return -EIO;
+		}
+
+		memset_io((void *)0x209c0000, 0, 0x40000);
+		memset_io((void *)0x20A00000, 0, 0x40000);
+		memset_io((void *)0x20800000, 0, 0xa1000);
+	}
+#endif
+
+	return 0;
+}
+
+#if IS_ENABLED(CONFIG_IMX952)
+int set_combo_phy_mode(struct udevice *dev, u32 mode)
+{
+	struct scmi_imx_misc_control_set_in in = { 0 };
+	s32 status = 0;
+	struct scmi_msg msg = {
+		.protocol_id = SCMI_PROTOCOL_ID_IMX_MISC,
+		.message_id = SCMI_IMX_MISC_CONTROL_SET,
+		.in_msg = (u8 *)&in,
+		.in_msg_sz = sizeof(in),
+		.out_msg = (u8 *)&status,
+		.out_msg_sz = sizeof(status),
+	};
+	int ret;
+
+	in.ctrlid = SCMI_MISC_CTRL_ID_COMBO_PHY;
+	in.numval = 1;
+
+	if (mode > 4)
+		return -EINVAL;
+	in.val[0] = mode;
+
+	ret = devm_scmi_process_msg(dev, &msg);
+	if (ret != 0 || status != 0) {
+		printf("Failed to comphy mod, scmi_err = %d, mode=%u\n", status, mode);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int do_comphy_mode(struct cmd_tbl *cmdtp, int flag, int argc,
+			  char *const argv[])
+{
+	struct udevice *dev;
+	u32 mode = 0;
+	int ret;
+
+	if (argc != 2)
+		return CMD_RET_USAGE;
+
+	mode = simple_strtoul(argv[1], NULL, 10);
+	if (mode > 4)
+		return CMD_RET_USAGE;
+
+	ret = uclass_get_device_by_name(UCLASS_CLK, "protocol@14", &dev);
+	if (ret)
+		return ret;
+
+	ret = scmi_pwd_state_set(dev, 0, SCMI_PD(HSIO_TOP), 0);
 	if (ret) {
-		printf("Power M7 failed\n");
+		printf("Poweroff HSIO failed\n");
 		return -EIO;
 	}
 
-	/* In case OEI not init ECC, do it here */
-	memset_io((void *)0x203c0000, 0, 0x40000);
-	memset_io((void *)0x20400000, 0, 0x40000);
+	set_combo_phy_mode(dev, mode);
+
+	ret = scmi_pwd_state_set(dev, 0, SCMI_PD(HSIO_TOP), 1);
+	if (ret) {
+		printf("Poweron HSIO failed\n");
+		return -EIO;
+	}
 
 	return 0;
 }
 
-const char *get_imx_type(u32 imxtype)
-{
-	switch (imxtype) {
-	case MXC_CPU_IMX95:
-		return "95";/* iMX95 FULL */
-	default:
-		return "??";
-	}
-}
-
-int print_cpuinfo(void)
-{
-	u32 cpurev, max_freq;
-	int minc, maxc;
-
-	cpurev = get_cpu_rev();
-
-	printf("CPU:   i.MX%s rev%d.%d",
-		get_imx_type((cpurev & 0x1FF000) >> 12),
-		(cpurev & 0x000F0) >> 4, (cpurev & 0x0000F) >> 0);
-
-	max_freq = get_cpu_speed_grade_hz();
-	if (!max_freq || max_freq == mxc_get_clock(MXC_ARM_CLK)) {
-		printf(" at %dMHz\n", mxc_get_clock(MXC_ARM_CLK) / 1000000);
-	} else {
-		printf(" %d MHz (running at %d MHz)\n", max_freq / 1000000,
-		       mxc_get_clock(MXC_ARM_CLK) / 1000000);
-	}
-
-	puts("CPU:   ");
-	switch (get_cpu_temp_grade(&minc, &maxc)) {
-	case TEMP_AUTOMOTIVE:
-		puts("Automotive temperature grade ");
-		break;
-	case TEMP_INDUSTRIAL:
-		puts("Industrial temperature grade ");
-		break;
-	case TEMP_EXTCOMMERCIAL:
-		puts("Extended Industrial temperature grade ");
-		break;
-	default:
-		puts("Consumer temperature grade ");
-		break;
-	}
-	printf("(%dC to %dC)", minc, maxc);
-
-#if defined(CONFIG_DM_THERMAL)
-	struct udevice *udev;
-	int ret, temp;
-
-	if (IS_ENABLED(CONFIG_IMX_TMU))
-		ret = uclass_get_device_by_name(UCLASS_THERMAL, "cpu-thermal", &udev);
-	else
-		ret = uclass_get_device(UCLASS_THERMAL, 0, &udev);
-	if (!ret) {
-		ret = thermal_get_temp(udev, &temp);
-
-		if (!ret)
-			printf(" at %dC", temp / 100);
-		else
-			debug(" - invalid sensor data\n");
-	} else {
-		debug(" - invalid sensor device\n");
-	}
+U_BOOT_CMD(
+	comphymod, CONFIG_SYS_MAXARGS, 1, do_comphy_mode,
+	"set comphy mode",
+	"\n"
+	" - set comphymod pcie[0,1,2], netc(3,4) (default 0)\n"
+);
 #endif
-	puts("\n");
 
-	get_reset_reason(false, true);
+const char *get_cpu_variant_type_name(u32 type)
+{
+	u32 val, core_num, part_num;
+	int ret;
 
-	return 0;
+	ret = fuse_read(2, 1, &val);
+	if (ret)
+		return NULL;
+
+	/* Get part num */
+	part_num = (val >> 4) & 0xff;
+	if (!part_num)
+		return NULL;
+
+	if (type == MXC_CPU_IMX95 || type == MXC_CPU_IMX952) {
+		u32 segment;
+		static char name[8] = "95294";
+		char pn[2];
+
+		core_num = part_num & 0x3;
+		segment = (part_num >> 2) & 0xf;
+
+		switch (segment) {
+		case 0xa:
+			pn[0] = 'T';
+			break;
+		case 0xb:
+			pn[0] = 'V';
+			break;
+		case 0xc:
+			pn[0] = 'C';
+			break;
+		case 0xd:
+			pn[0] = 'G';
+			break;
+		case 0xe:
+			pn[0] = 'I';
+			break;
+		case 0xf:
+			pn[0] = 'N';
+			break;
+		default:
+			pn[0] = segment + '0';
+			break;
+		}
+
+		pn[1] = core_num * 2 + '0';
+
+		if (type == MXC_CPU_IMX95)
+			sprintf(name, "95%c%c", pn[0], pn[1]);
+		else
+			sprintf(name, "952%c%c", pn[0], pn[1]);
+
+		return name;
+	} else if (type == MXC_CPU_IMX94) {
+		static char *name = "94398";
+		core_num = 8;
+
+		ret = fuse_read(2, 2, &val);
+		if (ret)
+			return NULL;
+
+		if (part_num > 30) { /* 943 */
+			/* A55 2 & 3 disabled */
+			if ((val & 0x18) == 0x18)
+				core_num = 6;
+		} else if (part_num > 20) { /* 942 */
+			core_num = 5;
+
+			/* m7_0 disabled */
+			if ((val & 0x200) == 0x200)
+				core_num = 4;
+		} else if (part_num > 10) { /* 941 */
+			core_num = 5;
+		}
+		sprintf(name, "94%u%u", part_num, core_num);
+
+		return name;
+	}
+
+	return NULL;
 }
 
 void build_info(void)
@@ -777,12 +1218,23 @@ void build_info(void)
 	u32 fw_version, sha1, res = 0, status;
 	int ret;
 	struct scmi_imx_misc_build_info_out out = { 0 };
-	struct scmi_msg msg = SCMI_MSG(SCMI_IMX_PROTOCOL_ID_MISC,
-				       SCMI_IMX_MISC_BUILD_INFO, out);
+	struct scmi_msg msg = {
+		.protocol_id = SCMI_PROTOCOL_ID_IMX_MISC,
+		.message_id = SCMI_IMX_MISC_BUILD_INFO,
+		.in_msg = (u8 *)NULL,
+		.in_msg_sz = 0,
+		.out_msg = (u8 *)&out,
+		.out_msg_sz = sizeof(out),
+	};
+	struct udevice *dev;
+
+	ret = uclass_get_device_by_name(UCLASS_CLK, "protocol@14", &dev);
+	if (ret)
+		return;
 
 	printf("\nBuildInfo:\n");
 
-	ret = devm_scmi_process_msg(gd->arch.scmi_dev, &msg);
+	ret = devm_scmi_process_msg(dev, &msg);
 	if (ret || out.status)
 		printf("%s:%d:%d fail to get build info\n", __func__, ret, out.status);
 	else
@@ -811,6 +1263,8 @@ void build_info(void)
 
 int arch_misc_init(void)
 {
+	get_reset_reason(false, true);
+
 	build_info();
 	return 0;
 }
@@ -840,6 +1294,48 @@ static int delete_fdt_nodes(void *blob, const char *const nodes_path[], int size
 	return 0;
 }
 
+static int disable_fdt_nodes(void *blob, const char *const nodes_path[], int size_array,
+	const char *prop, const char *value)
+{
+	int i = 0;
+	int rc;
+	int nodeoff;
+	const char *status = "disabled";
+
+	for (i = 0; i < size_array; i++) {
+		nodeoff = fdt_path_offset(blob, nodes_path[i]);
+		if (nodeoff < 0)
+			continue; /* Not found, skip it */
+
+		debug("Found %s node\n", nodes_path[i]);
+
+		if (prop && value) {
+			const char *prop_str;
+			prop_str = fdt_stringlist_get(blob, nodeoff, prop, 0, NULL);
+
+			if (!prop_str || strcmp(prop_str, value))
+				continue;
+		}
+
+add_status:
+		rc = fdt_setprop(blob, nodeoff, "status", status, strlen(status) + 1);
+		if (rc) {
+			if (rc == -FDT_ERR_NOSPACE) {
+				rc = fdt_increase_size(blob, 512);
+				if (!rc)
+					goto add_status;
+			}
+			printf("Unable to update property %s:%s, err=%s\n",
+			       nodes_path[i], "status", fdt_strerror(rc));
+		} else {
+			debug("Modify %s:%s disabled\n",
+			       nodes_path[i], "status");
+		}
+	}
+
+	return 0;
+}
+
 static int get_cooling_device_list(void * blob, u32 nodeoff, const char *const path, u32* cooling_dev, int max_cnt)
 {
 		int cnt, j;
@@ -861,12 +1357,14 @@ static int get_cooling_device_list(void * blob, u32 nodeoff, const char *const p
 static void disable_thermal_vpu_node(void *blob, u32 disabled_cores, u32 gpu_disabled)
 {
 	static const char * const thermal_path[] = {
-		"/thermal-zones/ana/cooling-maps/map0"
+		"/thermal-zones/ana/cooling-maps/map0",
+		"/thermal-zones/ana-thermal/cooling-maps/map0",
 	};
-	u32 cooling_dev[24 - (disabled_cores * 3) - (gpu_disabled * 3)];
-	u32 array_cnt = 24 - (disabled_cores * 3) - (gpu_disabled * 3);
+	int num_cpus = (is_imx94() || is_imx952()) ? 4: 6;
+	u32 array_cnt = (num_cpus + 2) * 3 - (disabled_cores * 3) - (gpu_disabled * 3);
+	u32 cooling_dev[array_cnt];
 
-	int nodeoff, ret, i;
+	int nodeoff, ret, i, cnt;
 
 	for (i = 0; i < ARRAY_SIZE(thermal_path); i++) {
 		nodeoff = fdt_path_offset(blob, thermal_path[i]);
@@ -874,7 +1372,11 @@ static void disable_thermal_vpu_node(void *blob, u32 disabled_cores, u32 gpu_dis
 			printf("path not found %s\n", thermal_path[i]);
 			continue; /* Not found, skip it */
 		}
-		get_cooling_device_list(blob, nodeoff, thermal_path[i], cooling_dev, array_cnt);
+
+		cnt = get_cooling_device_list(blob, nodeoff, thermal_path[i], cooling_dev, array_cnt);
+		/* VPU map does not exist in cooling dev*/
+		if (cnt <= ((num_cpus - disabled_cores) * 3 + (gpu_disabled ? 0 : 3)))
+			continue;
 
 		/* Remove  VPU it the last two nodes in the fdt ana blob */
 		ret = fdt_setprop(blob, nodeoff, "cooling-device", &cooling_dev,
@@ -894,10 +1396,12 @@ static void disable_thermal_gpu_node(void *blob, u32 disabled_cores)
 {
 	static const char * const thermal_path[] = {
 		"/thermal-zones/ana/cooling-maps/map0",
+		"/thermal-zones/ana-thermal/cooling-maps/map0",
 	};
-	u32 cooling_dev[24 - (disabled_cores * 3)];
-	u32 array_cnt = 24 - (disabled_cores * 3);
-	int nodeoff, ret, i;
+	int num_cpus = (is_imx94() || is_imx952()) ? 4: 6;
+	u32 array_cnt = (num_cpus + 2) * 3 - (disabled_cores * 3);
+	u32 cooling_dev[array_cnt];
+	int nodeoff, ret, i, cnt;
 
 	for (i = 0; i < ARRAY_SIZE(thermal_path); i++) {
 		nodeoff = fdt_path_offset(blob, thermal_path[i]);
@@ -905,7 +1409,10 @@ static void disable_thermal_gpu_node(void *blob, u32 disabled_cores)
 			printf("path not found %s\n", thermal_path[i]);
 			continue; /* Not found, skip it */
 		}
-		get_cooling_device_list(blob, nodeoff, thermal_path[i], cooling_dev, array_cnt);
+
+		cnt = get_cooling_device_list(blob, nodeoff, thermal_path[i], cooling_dev, array_cnt);
+		if (cnt <= (num_cpus - disabled_cores) * 3) /* GPU map does not exist in cooling dev*/
+			continue;
 
 		/* Remove GPU and VPU as these are the last two nodes in the fdt ana blob */
 		ret = fdt_setprop(blob, nodeoff, "cooling-device", &cooling_dev,
@@ -917,14 +1424,16 @@ static void disable_thermal_gpu_node(void *blob, u32 disabled_cores)
 			continue;
 		}
 
-		/* Add VPU node back to ana thermal-zone. */
-		ret = fdt_appendprop(blob, nodeoff, "cooling-device", &cooling_dev[array_cnt - 3],
-				  sizeof(u32) * 3);
+		if (cnt == array_cnt) {
+			/* Add VPU node back to ana thermal-zone. */
+			ret = fdt_appendprop(blob, nodeoff, "cooling-device", &cooling_dev[array_cnt - 3],
+					  sizeof(u32) * 3);
 
-		if (ret < 0) {
-			printf("Warning: %s, cooling-device appendprop failed %d\n",
-			       thermal_path[i], ret);
-			continue;
+			if (ret < 0) {
+				printf("Warning: %s, cooling-device appendprop failed %d\n",
+				       thermal_path[i], ret);
+				continue;
+			}
 		}
 
 		printf("Update node %s, cooling-device prop\n", thermal_path[i]);
@@ -937,10 +1446,12 @@ static void disable_thermal_cpu_nodes(void *blob, u32 disabled_cores)
 		"/thermal-zones/pf53_arm/cooling-maps/map0",
 		"/thermal-zones/ana/cooling-maps/map0",
 		"/thermal-zones/a55/cooling-maps/map0",
+		"/thermal-zones/a55-thermal/cooling-maps/map0",
+		"/thermal-zones/ana-thermal/cooling-maps/map0",
 	};
 	u32 cooling_dev[24];
-
 	int nodeoff, ret, i, cnt;
+	int prop_size = 3 * ((is_imx94() || is_imx952()) ? 4: 6);
 
 	for (i = 0; i < ARRAY_SIZE(thermal_path); i++) {
 		nodeoff = fdt_path_offset(blob, thermal_path[i]);
@@ -951,7 +1462,7 @@ static void disable_thermal_cpu_nodes(void *blob, u32 disabled_cores)
 		cnt = get_cooling_device_list(blob, nodeoff, thermal_path[i], cooling_dev, 24);
 
 		ret = fdt_setprop(blob, nodeoff, "cooling-device", &cooling_dev,
-				  sizeof(u32) * (18 - disabled_cores * 3));
+				  sizeof(u32) * (prop_size - disabled_cores * 3));
 
 		if (ret < 0) {
 			printf("Warning: %s, cooling-device setprop failed %d\n",
@@ -960,9 +1471,9 @@ static void disable_thermal_cpu_nodes(void *blob, u32 disabled_cores)
 		}
 
 		/* Add GPU and VPU nodes back to ana thermal-zone. */
-		if (cnt > 18)
-			ret = fdt_appendprop(blob, nodeoff, "cooling-device", &cooling_dev[18],
-					  sizeof(u32) * 6);
+		if (cnt > prop_size)
+			ret = fdt_appendprop(blob, nodeoff, "cooling-device", &cooling_dev[prop_size],
+					  sizeof(u32) * (cnt - prop_size));
 
 		if (ret < 0) {
 			printf("Warning: %s, cooling-device appendprop failed %d\n",
@@ -974,11 +1485,26 @@ static void disable_thermal_cpu_nodes(void *blob, u32 disabled_cores)
 	}
 }
 
+static int disable_ld_node(void *blob)
+{
+	static const char * const nodes_path_ld[] = {
+		"/remoteproc",
+		"/disp-mu",
+		"/soc/syscon@4b070000",
+		"/soc/mailbox@4b080000",
+		"/soc/mailbox@4b090000",
+	};
+
+	return delete_fdt_nodes(blob, nodes_path_ld, ARRAY_SIZE(nodes_path_ld));
+}
+
 static int disable_npu_node(void *blob)
 {
 	static const char * const nodes_path_npu[] = {
 		"/soc/imx95-neutron-remoteproc@4ab00000",
 		"/soc/imx95-neutron@4ab00004",
+		"/soc/neutron-remoteproc@4ab00000",
+		"/soc/neutron@4ab00004",
 	};
 
 	return delete_fdt_nodes(blob, nodes_path_npu, ARRAY_SIZE(nodes_path_npu));
@@ -990,9 +1516,9 @@ static int disable_arm_cpu_nodes(void *blob, u32 disabled_cores)
 	int rc;
 	int nodeoff;
 	char nodes_path[32];
+	int num_cpus = (is_imx94() || is_imx952()) ? 4: 6;
 
-	printf("disable_arm_cpu_nodes, num_disabled_cores = %d\n", disabled_cores);
-	for (i = 6; i > (6 - disabled_cores); i--) {
+	for (i = num_cpus; i > (num_cpus - disabled_cores); i--) {
 
 		sprintf(nodes_path, "/cpus/cpu@%u00", i - 1);
 
@@ -1008,6 +1534,17 @@ static int disable_arm_cpu_nodes(void *blob, u32 disabled_cores)
 			       nodes_path, fdt_strerror(rc));
 		} else {
 			printf("Delete node %s\n", nodes_path);
+
+			/* Remove node from cpu-map/cluster0 */
+			sprintf(nodes_path, "/cpus/cpu-map/cluster0/core%u", i - 1);
+			nodeoff = fdt_path_offset(blob, nodes_path);
+			if (nodeoff < 0)
+				continue; /* Not found, skip it */
+
+			rc = fdt_del_node(blob, nodeoff);
+			if (rc < 0)
+				printf("Unable to delete node %s, err=%s\n",
+			       nodes_path, fdt_strerror(rc));
 		}
 	}
 
@@ -1067,20 +1604,52 @@ static int disable_vpu_node(void *blob, u32 num_a55_cores_disabled, u32 gpu_disa
 {
 	uint32_t ret = 0;
 
-	printf("Disable VPU nodes\n");
 	static const char * const nodes_path_vpu[] = {
 		"/soc/vpu-ctrl@4c4c0000",
+		"/soc/vpu-ctrl@4c4f0000",
 		"/soc/vpu@4c480000",
 		"/soc/vpu@4c490000",
 		"/soc/vpu@4c4a0000",
 		"/soc/vpu@4c4b0000",
+		"/soc/vpu@4c4c0000",
+		"/soc/vpu@4c4d0000",
+		"/soc/vpu@4c4e0000",
 		"/soc/jpegdec@4c500000",
 		"/soc/jpegenc@4c550000",
+		"/soc/vpuenc@4c460000",
 		"/soc/syscon@4c410000"
 	};
 
 	ret = delete_fdt_nodes(blob, nodes_path_vpu, ARRAY_SIZE(nodes_path_vpu));
 	disable_thermal_vpu_node(blob, num_a55_cores_disabled, gpu_disabled);
+	return ret;
+}
+
+static int disable_vpuenc_node(void *blob)
+{
+	uint32_t ret = 0;
+
+	static const char * const nodes_path_vpuenc[] = {
+		"/soc/vpuenc@4c460000",
+	};
+
+	ret = delete_fdt_nodes(blob, nodes_path_vpuenc, ARRAY_SIZE(nodes_path_vpuenc));
+	return ret;
+}
+
+static int disable_vpuwave511_node(void *blob)
+{
+	uint32_t ret = 0;
+
+	static const char * const nodes_path_vpu511[] = {
+		"/soc/vpu-ctrl@4c4f0000",
+		"/soc/vpu@4c4b0000",
+		"/soc/vpu@4c4c0000",
+		"/soc/vpu@4c4d0000",
+		"/soc/vpu@4c4e0000",
+	};
+
+	ret = delete_fdt_nodes(blob, nodes_path_vpu511, ARRAY_SIZE(nodes_path_vpu511));
 	return ret;
 }
 
@@ -1106,7 +1675,8 @@ static int disable_gpu_node(void *blob, uint32_t num_a55_cores_disabled)
 static int disable_pciea_node(void *blob)
 {
 	static const char * const nodes_path_pciea[] = {
-		"/soc/pcie@4c300000"
+		"/soc/pcie@4c300000",
+		"/soc/pcie-ep@4c300000"
 	};
 
 	return delete_fdt_nodes(blob, nodes_path_pciea, ARRAY_SIZE(nodes_path_pciea));
@@ -1115,45 +1685,135 @@ static int disable_pciea_node(void *blob)
 static int disable_pcieb_node(void *blob)
 {
 	static const char * const nodes_path_pcieb[] = {
-		"/soc/pcie@4c380000"
+		"/soc/pcie@4c380000",
+		"/soc/pcie-ep@4c380000"
 	};
 
 	return delete_fdt_nodes(blob, nodes_path_pcieb, ARRAY_SIZE(nodes_path_pcieb));
 }
 
-static int disable_m7_node(void *blob)
+int disable_enet10g_node(void *blob)
 {
-	static const char * const nodes_path_m7[] = {
-		"/imx95-cm7"
+	static const char * const nodes_path_enet10g[] = {
+		"/pcie@4ca00000/ethernet@10,0",
+		"/soc/pcie@4ca00000/ethernet@10,0",
+		"/soc/syscon@4ca00000/ethernet@10,0",
+		"/soc/netc-blk-ctrl@4cde0000/pcie@4ca00000/ethernet@10,0",
 	};
 
-	return delete_fdt_nodes(blob, nodes_path_m7, ARRAY_SIZE(nodes_path_m7));
+	return disable_fdt_nodes(blob, nodes_path_enet10g, ARRAY_SIZE(nodes_path_enet10g),
+		NULL, NULL);
 }
 
-static bool is_m7_off(void)
+int disable_enet25g_node(void *blob)
 {
-	u32 state = 0;
-	int ret;
-	ret = scmi_pwd_state_get(gd->arch.scmi_dev, IMX95_PD_M7, &state);
-	if (ret)
-		printf("scmi_pwd_state_get Failed %d for M7\n", ret);
+	static const char * const nodes_path_enet25g[] = {
+		"/soc/system-controller@4ceb0000/pcie@4ca00000/ethernet-switch@0,2/ports/port@0",
+		"/soc/system-controller@4ceb0000/pcie@4ca00000/ethernet-switch@0,2/ports/port@1",
+	};
 
-	if (state == BIT(30))
-		return true;
-	else
-		return false;
+	return disable_fdt_nodes(blob, nodes_path_enet25g, ARRAY_SIZE(nodes_path_enet25g),
+		"phy-mode", "sgmii");
+}
+
+int disable_mipidsi_node(void *blob)
+{
+	static const char * const nodes_path_mipidsi[] = {
+		"/soc/dsi@4acf0000",
+		"/soc/syscon@4acf0000",
+		"/soc/dsi@4b060000",
+		"/soc/phy@4b110000",
+	};
+
+	return delete_fdt_nodes(blob, nodes_path_mipidsi, ARRAY_SIZE(nodes_path_mipidsi));
+}
+
+int disable_dpu_node(void *blob)
+{
+	static const char * const nodes_path_dpu[] = {
+		"/soc/bridge@4b0d0000/channel@0/port@0/endpoint",
+		"/soc/bridge@4b0d0000/channel@0/port@1/endpoint",
+		"/soc/bridge@4b0d0000/channel@1/port@0/endpoint",
+		"/soc/bridge@4b0d0000/channel@1/port@1/endpoint",
+		"/soc/display-controller@4b400000/ports/port@0/endpoint",
+		"/soc/display-controller@4b400000/ports/port@1/endpoint",
+		"/soc/display-controller@4b400000",
+		"/soc/syscon@4b010000/bridge@8/ports/port@0/endpoint",
+		"/soc/syscon@4b010000/bridge@8/ports/port@1/endpoint",
+		"/soc/syscon@4b010000/bridge@8/ports/port@2/endpoint@0",
+		"/soc/syscon@4b010000/bridge@8/ports/port@2/endpoint@1",
+		"/soc/syscon@4b010000/bridge@8/ports/port@3/endpoint@0",
+		"/soc/syscon@4b010000/bridge@8/ports/port@3/endpoint@1",
+		"/soc/syscon@4b010000/bridge@8",
+		"/soc/syscon@4b010000",
+		"/soc/syscon@4b0a0000",
+		"/soc/interrupt-controller@4b0b0000",
+		"/soc/bridge@4b0d0000"
+	};
+
+	return delete_fdt_nodes(blob, nodes_path_dpu, ARRAY_SIZE(nodes_path_dpu));
+}
+
+int disable_lvds_node(void *blob)
+{
+	static const char * const nodes_path_lvds[] = {
+		"/soc/syscon@4b0c0000/ldb@4/channel@0",
+		"/soc/syscon@4b0c0000/phy@8",
+		"/soc/syscon@4b0c0000/ldb@4/channel@1",
+		"/soc/syscon@4b0c0000/phy@c",
+		"/soc/syscon@4b0c0000"
+	};
+
+	return delete_fdt_nodes(blob, nodes_path_lvds, ARRAY_SIZE(nodes_path_lvds));
+}
+
+int disable_cm70_node(void *blob)
+{
+	static const char * const nodes_path_cm70[] = {
+		"/reserved-memory/vdev0vring0@82000000",
+		"/reserved-memory/vdev0vring1@82008000",
+		"/reserved-memory/vdev1vring0@82010000",
+		"/reserved-memory/vdev1vring1@82018000",
+		"/reserved-memory/rsc-table@82220000",
+		"/reserved-memory/vdevbuffer@82020000",
+		"/imx943-cm70",
+	};
+
+	return delete_fdt_nodes(blob, nodes_path_cm70, ARRAY_SIZE(nodes_path_cm70));
+}
+
+int disable_cm71_node(void *blob)
+{
+	static const char * const nodes_path_cm71[] = {
+		"/reserved-memory/vdev0vring0@84000000",
+		"/reserved-memory/vdev0vring1@84008000",
+		"/reserved-memory/vdev1vring0@84010000",
+		"/reserved-memory/vdev1vring1@84018000",
+		"/reserved-memory/rsc-table@84220000",
+		"/reserved-memory/vdevbuffer@84020000",
+		"/imx943-cm71",
+	};
+
+	return delete_fdt_nodes(blob, nodes_path_cm71, ARRAY_SIZE(nodes_path_cm71));
 }
 
 static int disable_smmu_node(void *blob)
 {
 	struct scmi_imx_misc_cfg_info_out out = { 0 };
-	struct scmi_msg msg = SCMI_MSG(SCMI_IMX_PROTOCOL_ID_MISC,
+	struct scmi_msg msg = SCMI_MSG(SCMI_PROTOCOL_ID_IMX_MISC,
 				       SCMI_IMX_MISC_CFG_INFO, out);
 	int ret, nodeoff;
 	bool disable_smmu_node = false;
 	const char *status = "disabled";
+	struct udevice *dev;
 
-	ret = devm_scmi_process_msg(gd->arch.scmi_dev, &msg);
+	ret = uclass_get_device_by_name(UCLASS_CLK, "protocol@14", &dev);
+	if (ret) {
+		printf("%s:%d fail to get protocol@14\n", __func__, ret);
+		return ret;
+	}
+
+	ret = devm_scmi_process_msg(dev, &msg);
 	if (out.status) {
 		printf("%s:%d fail\n", __func__, out.status);
 		return ret;
@@ -1188,119 +1848,108 @@ static int disable_smmu_node(void *blob)
 	return 0;
 }
 
-int disable_enet10g_node(void *blob)
-{
-	static const char * const nodes_path_enet10g[] = {
-		"/pcie@4ca00000/ethernet@10,0",
-		"/soc/pcie@4ca00000/ethernet@10,0",
-		"/soc/syscon@4ca00000/ethernet@10,0",
-	};
-
-	return delete_fdt_nodes(blob, nodes_path_enet10g, ARRAY_SIZE(nodes_path_enet10g));
-}
-
-
-int disable_mipidsi_node(void *blob)
-{
-	static const char * const nodes_path_mipidsi[] = {
-		"/soc/dsi@4acf0000",
-		"/soc/syscon@4acf0000",
-	};
-
-	return delete_fdt_nodes(blob, nodes_path_mipidsi, ARRAY_SIZE(nodes_path_mipidsi));
-}
-
-
-int disable_lvds_node(void *blob)
-{
-	static const char * const nodes_path_lvds[] = {
-		"/soc/syscon@4b0c0000/ldb@4/channel@0",
-		"/soc/syscon@4b0c0000/phy@8",
-		"/soc/syscon@4b0c0000/ldb@4/channel@1",
-		"/soc/syscon@4b0c0000/phy@c",
-	};
-
-	return delete_fdt_nodes(blob, nodes_path_lvds, ARRAY_SIZE(nodes_path_lvds));
-}
-
-
 int ft_system_setup(void *blob, struct bd_info *bd)
 {
 	u32 val = 0;
-	int ret = 0;
 	int num_a55_cores_disabled = 0;
 	int gpu_disabled = 0;
 
-	if (is_imx95()) {
-		fuse_read(2, 2, &val);
+	val = 0;
+	fuse_read(2, 1, &val);
 
-		if (val & BIT(0)) /* NPU */
-			disable_npu_node(blob);
+	if (val & BIT(30)) /* local dimming */
+		disable_ld_node(blob);
 
-		if (val & BIT(3)) /* A55C4 */
-			num_a55_cores_disabled++;
+	val = 0;
+	fuse_read(2, 2, &val);
 
-		if (val & BIT(4)) /* A55C5 */
-			num_a55_cores_disabled++;
+	if (val & BIT(0)) /* NPU */
+		disable_npu_node(blob);
 
-		if (val & BIT(5)) /* A55C4 */
-			num_a55_cores_disabled++;
+	if (val & BIT(2)) /* A55C1 */
+		num_a55_cores_disabled++;
 
-		if (val & BIT(6)) /* A55C5 */
-			num_a55_cores_disabled++;
+	if (val & BIT(3)) /* A55C2 */
+		num_a55_cores_disabled++;
 
-		if (num_a55_cores_disabled > 0)
-			disable_arm_cpu_nodes(blob, num_a55_cores_disabled);
+	if (val & BIT(4)) /* A55C3 */
+		num_a55_cores_disabled++;
 
-		if (val & BIT(27)) /* LVDS */
-			disable_lvds_node(blob);
+	if (val & BIT(5)) /* A55C4 */
+		num_a55_cores_disabled++;
 
-		if (val & BIT(29)) /* ISP */
-			disable_isp_node(blob);
+	if (val & BIT(6)) /* A55C5 */
+		num_a55_cores_disabled++;
 
-		/* Disable devices based on fuse*/
-		val = 0x0;
+	if (num_a55_cores_disabled > 0)
+		disable_arm_cpu_nodes(blob, num_a55_cores_disabled);
 
-		fuse_read(2, 3, &val);
+	if (val & BIT(9))
+		disable_cm70_node(blob);
 
-		if (val & BIT(6)) /* PCIE A */
-			disable_pciea_node(blob);
-		if (val & BIT(7)) /* PCIE B */
-			disable_pcieb_node(blob);
+	if (is_imx94()) {
+		if (val & BIT(17)) /* Fuse only for iMX94 */
+			disable_cm71_node(blob);
+	}
 
-		if (val & BIT(17)) { /* GPU MIX */
-			disable_gpu_node(blob, num_a55_cores_disabled);
-			gpu_disabled = 1;
-		}
-		if (val & BIT(18)) /* VPU MIX */
-			disable_vpu_node(blob, num_a55_cores_disabled, gpu_disabled);
-		if (val & BIT(19)) /* JPEGDEC disable */
-			disable_jpegenc_node(blob);
-		if (val & BIT(20)) /* JPEGENC disable */
-			disable_jpegdec_node(blob);
+	if (val & BIT(22)) /* Display */
+		disable_dpu_node(blob);
 
-		if (val & BIT(22)) /* MIPI-CSI0 */
-			disable_mipicsi0_node(blob);
-		if (val & BIT(23)) /* MIPI-CSI1 */
-			disable_mipicsi1_node(blob);
-		if (val & BIT(24)) /* MIPI-DSI MIX */
-			disable_mipidsi_node(blob);
+	if (val & BIT(27)) /* LVDS */
+		disable_lvds_node(blob);
 
-		val = 0x0;
-		fuse_read(2, 4, &val);
+	if (val & BIT(29)) /* ISP */
+		disable_isp_node(blob);
 
-		if (val & BIT(12)) /* Disable 10G */
+	/* Disable devices based on fuse*/
+	val = 0x0;
+	fuse_read(2, 3, &val);
+
+	if (val & BIT(6)) /* PCIE A */
+		disable_pciea_node(blob);
+	if (val & BIT(7)) /* PCIE B */
+		disable_pcieb_node(blob);
+
+	if (val & BIT(17)) { /* GPU MIX */
+		disable_gpu_node(blob, num_a55_cores_disabled);
+		gpu_disabled = 1;
+	}
+	if (val & BIT(18)) /* VPU MIX */
+		disable_vpu_node(blob, num_a55_cores_disabled, gpu_disabled);
+
+	if (val & BIT(19)) /* JPEGDEC disable */
+		disable_jpegenc_node(blob);
+	if (val & BIT(20)) /* JPEGENC disable */
+		disable_jpegdec_node(blob);
+
+	if (val & BIT(22)) /* MIPI-CSI0 */
+		disable_mipicsi0_node(blob);
+	if (val & BIT(23)) /* MIPI-CSI1 */
+		disable_mipicsi1_node(blob);
+
+	if (val & BIT(24)) /* MIPI-DSI MIX */
+		disable_mipidsi_node(blob);
+
+	if (val & BIT(26)) /* VPUENC CODA980 */
+		disable_vpuenc_node(blob);
+	if (val & BIT(27)) /* VPU WAVE511 */
+		disable_vpuwave511_node(blob);
+
+	val = 0x0;
+	fuse_read(2, 4, &val);
+
+	if (val & BIT(12)) { /* Disable 10G */
+		if (is_imx95())
 			disable_enet10g_node(blob);
+		else if (is_imx94())
+			disable_enet25g_node(blob);
+	}
 
+	if (is_imx95())
 		disable_smmu_node(blob);
-	}
 
-	if (is_imx95() && is_m7_off()) {
-		disable_m7_node(blob);
-	}
-
-	if (IS_ENABLED(CONFIG_KASLR)) {
-		ret = do_generate_kaslr(blob);
+	if (IS_ENABLED(CONFIG_DM_RNG) && !IS_ENABLED(CONFIG_IMX_ANDROID_GBL)) {
+		int ret = fdt_kaslrseed(blob, true);
 		if (ret)
 			printf("Unable to set property %s, err=%s\n",
 				"kaslr-seed", fdt_strerror(ret));
@@ -1316,11 +1965,17 @@ int board_fix_fdt_fuse(void *fdt)
 
 	fuse_read(2, 2, &val);
 
+	if (val & BIT(22)) /* Display */
+		disable_dpu_node(fdt);
+
 	if (val & BIT(27)) /* LVDS */
 		disable_lvds_node(fdt);
 
 	val = 0x0;
 	fuse_read(2, 3, &val);
+
+	if (val & BIT(7)) /* PCIE B */
+		disable_pcieb_node(fdt);
 
 	if (val & BIT(24)) /* MIPI-DSI MIX */
 		disable_mipidsi_node(fdt);
@@ -1328,8 +1983,13 @@ int board_fix_fdt_fuse(void *fdt)
 	val = 0x0;
 	fuse_read(2, 4, &val);
 
-	if (val & BIT(12)) /* Disable 10G */
-		disable_enet10g_node(fdt);
+	if (val & BIT(12)) { /* Disable 10G */
+		if (is_imx95())
+			disable_enet10g_node(fdt);
+		else if (is_imx94())
+			disable_enet25g_node(fdt);
+	}
+
 	return 0;
 }
 
@@ -1353,18 +2013,40 @@ static void gpio_reset(ulong gpio_base)
 	writel(0, gpio_base + 0x1c);
 }
 
+static int gpio_available(const char *nodes_path)
+{
+	ofnode gpio_node = ofnode_path(nodes_path);
+	const char *status;
+
+	if (!ofnode_valid(gpio_node))
+		return false;
+
+	status = ofnode_read_string(gpio_node, "status");
+
+	if (status && !strcmp(status, "disabled"))
+		return false;
+
+	return true;
+}
+
 int arch_cpu_init(void)
 {
-	if (IS_ENABLED(CONFIG_SPL_BUILD)) {
+	if (IS_ENABLED(CONFIG_XPL_BUILD)) {
 		disable_wdog((void __iomem *)WDG3_BASE_ADDR);
 		disable_wdog((void __iomem *)WDG4_BASE_ADDR);
 
-		clock_init_early();
+		if (gpio_available("/soc/gpio@43810000"))
+			gpio_reset(GPIO2_BASE_ADDR);
 
-		gpio_reset(GPIO2_BASE_ADDR);
 		gpio_reset(GPIO3_BASE_ADDR);
 		gpio_reset(GPIO4_BASE_ADDR);
 		gpio_reset(GPIO5_BASE_ADDR);
+#ifdef CONFIG_IMX94
+		gpio_reset(GPIO6_BASE_ADDR);
+		gpio_reset(GPIO7_BASE_ADDR);
+#endif
+
+		spl_enable_caches();
 	}
 
 	return 0;
@@ -1389,13 +2071,11 @@ int imx9_probe_mu(void)
 	if (ret)
 		return ret;
 
-	gd->arch.scmi_dev = dev;
-
 	ret = uclass_get_device_by_name(UCLASS_PINCTRL, "protocol@19", &dev);
 	if (ret)
 		return ret;
 
-#if defined(CONFIG_SPL_BUILD)
+#if defined(CONFIG_XPL_BUILD)
 	ret = uclass_get_device_by_name(UCLASS_MISC, "mailbox@47530000", &dev);
 #else
 	ret = uclass_get_device_by_name(UCLASS_MISC, "mailbox@47550000", &dev);
@@ -1414,10 +2094,11 @@ int imx9_probe_mu(void)
 
 	return 0;
 }
+
 EVENT_SPY_SIMPLE(EVT_DM_POST_INIT_F, imx9_probe_mu);
 EVENT_SPY_SIMPLE(EVT_DM_POST_INIT_R, imx9_probe_mu);
 
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 int disable_smmuv3(void)
 {
 	/*
@@ -1469,22 +2150,23 @@ int timer_init(void)
 	gd->arch.tbl = 0;
 	gd->arch.tbu = 0;
 
-#ifdef CONFIG_SPL_BUILD
-	unsigned long freq = 24000000;
-	asm volatile("msr cntfrq_el0, %0" : : "r" (freq) : "memory");
+	if (IS_ENABLED(CONFIG_XPL_BUILD)) {
+		unsigned long freq = 24000000;
 
-	/* Clear the compare frame interrupt */
-	unsigned long sctr_cmpcr_addr = SYSCNT_CMP_BASE_ADDR + 0x2c;
-	unsigned long sctr_cmpcr = readl(sctr_cmpcr_addr);
+		asm volatile("msr cntfrq_el0, %0" : : "r" (freq) : "memory");
 
-	sctr_cmpcr &= ~0x1;
-	writel(sctr_cmpcr, sctr_cmpcr_addr);
-#endif
+		/* Clear the compare frame interrupt */
+		unsigned long sctr_cmpcr_addr = SYSCNT_CMP_BASE_ADDR + 0x2c;
+		unsigned long sctr_cmpcr = readl(sctr_cmpcr_addr);
+
+		sctr_cmpcr &= ~0x1;
+		writel(sctr_cmpcr, sctr_cmpcr_addr);
+	}
 
 	return 0;
 }
 
-__weak enum env_location env_get_location(enum env_operation op, int prio)
+enum env_location arch_env_get_location(enum env_operation op, int prio)
 {
 	enum boot_device dev = get_boot_device();
 	enum env_location env_loc = ENVL_UNKNOWN;
@@ -1493,26 +2175,26 @@ __weak enum env_location env_get_location(enum env_operation op, int prio)
 		return env_loc;
 
 	switch (dev) {
-#if defined(CONFIG_ENV_IS_IN_SPI_FLASH)
 	case QSPI_BOOT:
-		env_loc = ENVL_SPI_FLASH;
+		if (IS_ENABLED(CONFIG_ENV_IS_IN_SPI_FLASH))
+			env_loc = ENVL_SPI_FLASH;
 		break;
-#endif
-#if defined(CONFIG_ENV_IS_IN_MMC)
 	case SD1_BOOT:
 	case SD2_BOOT:
 	case SD3_BOOT:
 	case MMC1_BOOT:
 	case MMC2_BOOT:
 	case MMC3_BOOT:
-	case FLEXSPI_NAND_BOOT:
-		env_loc =  ENVL_MMC;
+		if (IS_ENABLED(CONFIG_ENV_IS_IN_MMC))
+			env_loc =  ENVL_MMC;
 		break;
-#endif
 	default:
-#if defined(CONFIG_ENV_IS_NOWHERE)
-		env_loc = ENVL_NOWHERE;
-#endif
+		if (IS_ENABLED(CONFIG_ENV_IS_NOWHERE))
+			env_loc = ENVL_NOWHERE;
+		else if (IS_ENABLED(CONFIG_ENV_IS_IN_SPI_FLASH))
+			env_loc = ENVL_SPI_FLASH;
+		else if (IS_ENABLED(CONFIG_ENV_IS_IN_MMC))
+			env_loc = ENVL_MMC;
 		break;
 	}
 
@@ -1541,14 +2223,14 @@ enum imx9_soc_voltage_mode soc_target_voltage_mode(void)
 #if IS_ENABLED(CONFIG_SCMI_FIRMWARE)
 enum boot_device get_boot_device(void)
 {
-	volatile gd_t *pgd = gd;
+	gd_t *pgd = gd;
 	int ret;
 	u16 boot_type;
 	u8 boot_instance;
 	enum boot_device boot_dev = 0;
 	rom_passover_t *rdata;
 
-#ifdef CONFIG_SPL_BUILD
+#if IS_ENABLED(CONFIG_XPL_BUILD)
 	rdata = &rom_passover_data;
 #else
 	rom_passover_t rom_data = {0};
@@ -1585,10 +2267,8 @@ enum boot_device get_boot_device(void)
 		break;
 	case BT_DEV_TYPE_USB:
 		boot_dev = boot_instance + USB_BOOT;
-#ifdef CONFIG_IMX95
-        if (is_imx95_a0())
+		if (is_imx95() && (soc_rev() < CHIP_REV_2_0))
 			boot_dev -= 3; //iMX95 usb instance start at 3
-#endif
 		break;
 	default:
 		break;
@@ -1598,47 +2278,26 @@ enum boot_device get_boot_device(void)
 }
 #endif
 
-ulong h_spl_load_read(struct spl_load_info *load, ulong off,
-		      ulong size, void *buf)
+bool arch_check_dst_in_secure(void *start, ulong size)
 {
-	struct blk_desc *bd = load->priv;
-	lbaint_t sector = off >> bd->log2blksz;
-	lbaint_t count = size >> bd->log2blksz;
-	ulong trampoline_sz = SZ_16M;
-	void *trampoline = (void *)((ulong)CFG_SYS_SDRAM_BASE + PHYS_SDRAM_SIZE - trampoline_sz);
-	ulong ns_ddr_end = CFG_SYS_SDRAM_BASE + PHYS_SDRAM_SIZE;
-	ulong read_count, trampoline_cnt = trampoline_sz >> bd->log2blksz, actual, total;
+	ulong ns_end;
+	phys_size_t dram_size;
 
-#ifdef PHYS_SDRAM_2_SIZE
-	ns_ddr_end += PHYS_SDRAM_2_SIZE;
-#endif
+	board_phys_sdram_size(&dram_size);
+	ns_end = CFG_SYS_SDRAM_BASE + dram_size;
 
-	/* Check if the buf is in non-secure world, otherwise copy from trampoline */
-	if ((ulong)buf < CFG_SYS_SDRAM_BASE || (ulong)buf + (count << bd->log2blksz) > ns_ddr_end) {
-		total = 0;
-		while (count) {
-			read_count = trampoline_cnt > count ? count : trampoline_cnt;
-			actual = blk_dread(bd, sector, read_count, trampoline);
-			if (actual != read_count) {
-				printf("Error in blk_dread, %lu, %lu\n", read_count, actual);
-				return 0;
-			}
-			memcpy(buf, trampoline, actual * 512);
-			buf += actual * 512;
-			sector += actual;
-			total += actual;
-			count -= actual;
-		}
+	if ((ulong)start < CFG_SYS_SDRAM_BASE || (ulong)start + size > ns_end)
+		return true;
 
-		return total << bd->log2blksz;
-	}
-
-	return blk_dread(bd, sector, count, buf) << bd->log2blksz;
+	return false;
 }
 
-#ifdef CONFIG_IMX95
-u32 container_hdr_alignment(void)
+void *arch_get_container_trampoline(void)
 {
-	return is_imx95_a0() ? 0x400: 0x4000;
+	phys_size_t size;
+	board_phys_sdram_size(&size);
+
+	size = (size > PHYS_SDRAM_SIZE) ? PHYS_SDRAM_SIZE : size;
+
+	return (void *)((ulong)CFG_SYS_SDRAM_BASE + size - SZ_16M);
 }
-#endif

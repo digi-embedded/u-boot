@@ -7,7 +7,7 @@
  * Copyright (C) 2011, Texas Instruments, Incorporated - https://www.ti.com/
  */
 
-#include <common.h>
+#include <config.h>
 #include <dm.h>
 #include <env.h>
 #include <errno.h>
@@ -283,7 +283,7 @@ const struct dpll_params *get_dpll_ddr_params(void)
 
 static u8 bone_not_connected_to_ac_power(void)
 {
-	if (board_is_bone()) {
+	if (IS_ENABLED(CONFIG_PMIC_TPS65217) && board_is_bone()) {
 		uchar pmic_status_reg;
 		if (tps65217_reg_read(TPS65217_STATUS,
 				      &pmic_status_reg))
@@ -307,6 +307,9 @@ const struct dpll_params *get_dpll_mpu_params(void)
 	if (board_is_pb() || board_is_bone_lt())
 		freq = MPUPLL_M_1000;
 
+	if (board_is_bbge())
+		freq = MPUPLL_M_600;
+
 	switch (freq) {
 	case MPUPLL_M_1000:
 		return &dpll_mpu_opp[ind][5];
@@ -329,6 +332,9 @@ static void scale_vcores_bone(int freq)
 {
 	int usb_cur_lim, mpu_vdd;
 
+	if (!IS_ENABLED(CONFIG_PMIC_TPS65217))
+		return;
+
 	/*
 	 * Only perform PMIC configurations if board rev > A1
 	 * on Beaglebone White
@@ -338,7 +344,6 @@ static void scale_vcores_bone(int freq)
 
 	if (power_tps65217_init(0))
 		return;
-
 
 	/*
 	 * On Beaglebone White we need to ensure we have AC power
@@ -423,6 +428,9 @@ static void scale_vcores_bone(int freq)
 void scale_vcores_generic(int freq)
 {
 	int sil_rev, mpu_vdd;
+
+	if (!IS_ENABLED(CONFIG_SPL_POWER_TPS65910))
+		return;
 
 	/*
 	 * The GP EVM, IDK and EVM SK use a TPS65910 PMIC.  For all
@@ -570,8 +578,8 @@ void sdram_init(void)
 }
 #endif
 
-#if defined(CONFIG_CLOCK_SYNTHESIZER) && (!defined(CONFIG_SPL_BUILD) || \
-	(defined(CONFIG_SPL_ETH) && defined(CONFIG_SPL_BUILD)))
+#if defined(CONFIG_CLOCK_SYNTHESIZER) && (!defined(CONFIG_XPL_BUILD) || \
+	(defined(CONFIG_SPL_ETH) && defined(CONFIG_XPL_BUILD)))
 static void request_and_set_gpio(int gpio, char *name, int val)
 {
 	int ret;
@@ -708,8 +716,8 @@ int board_init(void)
 	gpmc_init();
 #endif
 
-#if defined(CONFIG_CLOCK_SYNTHESIZER) && (!defined(CONFIG_SPL_BUILD) || \
-	(defined(CONFIG_SPL_ETH) && defined(CONFIG_SPL_BUILD)))
+#if defined(CONFIG_CLOCK_SYNTHESIZER) && (!defined(CONFIG_XPL_BUILD) || \
+	(defined(CONFIG_SPL_ETH) && defined(CONFIG_XPL_BUILD)))
 	if (board_is_icev2()) {
 		int rv;
 		u32 reg;
@@ -799,7 +807,7 @@ int board_init(void)
 int board_late_init(void)
 {
 	struct udevice *dev;
-#if !defined(CONFIG_SPL_BUILD)
+#if !defined(CONFIG_XPL_BUILD)
 	uint8_t mac_addr[6];
 	uint32_t mac_hi, mac_lo;
 #endif
@@ -824,6 +832,8 @@ int board_late_init(void)
 
 	if (board_is_bbg1())
 		name = "BBG1";
+	if (board_is_bbge())
+		name = "BBGE";
 	if (board_is_bben()) {
 		char subtype_id = board_ti_get_config()[1];
 
@@ -848,7 +858,7 @@ int board_late_init(void)
 		env_set("boot_fit", "1");
 #endif
 
-#if !defined(CONFIG_SPL_BUILD)
+#if !defined(CONFIG_XPL_BUILD)
 	/* try reading mac address from efuse */
 	mac_lo = readl(&cdev->macid0l);
 	mac_hi = readl(&cdev->macid0h);
@@ -901,7 +911,8 @@ int board_late_init(void)
 #endif
 
 /* CPSW plat */
-#if CONFIG_IS_ENABLED(NET) && !CONFIG_IS_ENABLED(OF_CONTROL)
+#if (CONFIG_IS_ENABLED(NET) || CONFIG_IS_ENABLED(NET_LWIP)) && \
+    !CONFIG_IS_ENABLED(OF_CONTROL)
 struct cpsw_slave_data slave_data[] = {
 	{
 		.slave_reg_ofs  = CPSW_SLAVE0_OFFSET,
@@ -955,13 +966,16 @@ int board_fit_config_name_match(const char *name)
 		return 0;
 	else if (board_is_bone() && !strcmp(name, "am335x-bone"))
 		return 0;
-	else if (board_is_bone_lt() && !strcmp(name, "am335x-boneblack"))
+	else if (board_is_bone_lt() && !board_is_bbg1() && !board_is_bbge() &&
+		 !strcmp(name, "am335x-boneblack"))
 		return 0;
 	else if (board_is_pb() && !strcmp(name, "am335x-pocketbeagle"))
 		return 0;
 	else if (board_is_evm_sk() && !strcmp(name, "am335x-evmsk"))
 		return 0;
 	else if (board_is_bbg1() && !strcmp(name, "am335x-bonegreen"))
+		return 0;
+	else if (board_is_bbge() && !strcmp(name, "am335x-bonegreen-eco"))
 		return 0;
 	else if (board_is_icev2() && !strcmp(name, "am335x-icev2"))
 		return 0;

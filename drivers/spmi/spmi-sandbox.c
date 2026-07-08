@@ -7,7 +7,6 @@
  * (C) Copyright 2015 Mateusz Kulikowski <mateusz.kulikowski@gmail.com>
  */
 
-#include <common.h>
 #include <dm.h>
 #include <errno.h>
 #include <spmi/spmi.h>
@@ -145,7 +144,7 @@ static const struct udevice_id sandbox_spmi_ids[] = {
 	{ }
 };
 
-U_BOOT_DRIVER(msm_spmi) = {
+U_BOOT_DRIVER(sandbox_spmi) = {
 	.name = "sandbox_spmi",
 	.id = UCLASS_SPMI,
 	.of_match = sandbox_spmi_ids,

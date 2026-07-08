@@ -3,7 +3,6 @@
  * Copyright (C) 2021 Sean Anderson <sean.anderson@seco.com>
  */
 
-#include <common.h>
 #include <dm.h>
 #include <log.h>
 #include <sysinfo.h>
@@ -39,7 +38,7 @@ static int sysinfo_gpio_get_int(struct udevice *dev, int id, int *val)
 	struct sysinfo_gpio_priv *priv = dev_get_priv(dev);
 
 	switch (id) {
-	case SYSINFO_ID_BOARD_MODEL:
+	case SYSID_BOARD_MODEL:
 		*val = priv->revision;
 		return 0;
 	default:
@@ -52,7 +51,7 @@ static int sysinfo_gpio_get_str(struct udevice *dev, int id, size_t size, char *
 	struct sysinfo_gpio_priv *priv = dev_get_priv(dev);
 
 	switch (id) {
-	case SYSINFO_ID_BOARD_MODEL: {
+	case SYSID_BOARD_MODEL: {
 		const char *name = NULL;
 		int i, ret;
 		u32 revision;

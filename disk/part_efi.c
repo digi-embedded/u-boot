@@ -12,17 +12,15 @@
 
 #define LOG_CATEGORY LOGC_FS
 
-#include <common.h>
 #include <blk.h>
 #include <log.h>
 #include <part.h>
-#include <uuid.h>
+#include <u-boot/uuid.h>
 #include <asm/cache.h>
 #include <asm/global_data.h>
 #include <asm/unaligned.h>
 #include <command.h>
 #include <fdtdec.h>
-#include <ide.h>
 #include <malloc.h>
 #include <memalign.h>
 #include <part_efi.h>
@@ -236,7 +234,39 @@ int get_disk_guid(struct blk_desc *desc, char *guid)
 	return 0;
 }
 
-void part_print_efi(struct blk_desc *desc)
+int part_get_gpt_pte(struct blk_desc *desc, int part, gpt_entry *gpt_e)
+{
+	ALLOC_CACHE_ALIGN_BUFFER_PAD(gpt_header, gpt_head, 1, desc->blksz);
+	gpt_entry *gpt_pte = NULL;
+
+	/* "part" argument must be at least 1 */
+	if (part < 1) {
+		log_debug("Invalid Argument(s)\n");
+		return -EINVAL;
+	}
+
+	/* This function validates AND fills in the GPT header and PTE */
+	if (find_valid_gpt(desc, gpt_head, &gpt_pte) != 1)
+		return -EINVAL;
+
+	if (part > le32_to_cpu(gpt_head->num_partition_entries) ||
+	    !is_pte_valid(&gpt_pte[part - 1])) {
+		log_debug("Invalid partition number %d\n", part);
+#if !(defined(CONFIG_DUAL_BOOTLOADER) || defined(CONFIG_IMX_TRUSTY_OS)) || !defined(CONFIG_SPL_BUILD)
+		free(gpt_pte);
+#endif
+		return -EPERM;
+	}
+
+	memcpy(gpt_e, &gpt_pte[part - 1], sizeof(*gpt_e));
+
+#if !(defined(CONFIG_DUAL_BOOTLOADER) || defined(CONFIG_IMX_TRUSTY_OS)) || !defined(CONFIG_SPL_BUILD)
+	free(gpt_pte);
+#endif
+	return 0;
+}
+
+static void __maybe_unused part_print_efi(struct blk_desc *desc)
 {
 	ALLOC_CACHE_ALIGN_BUFFER_PAD(gpt_header, gpt_head, 1, desc->blksz);
 	gpt_entry *gpt_pte = NULL;
@@ -280,49 +310,35 @@ void part_print_efi(struct blk_desc *desc)
 	return;
 }
 
-int part_get_info_efi(struct blk_desc *desc, int part,
-		      struct disk_partition *info)
+static int __maybe_unused part_get_info_efi(struct blk_desc *desc, int part,
+					    struct disk_partition *info)
 {
-	ALLOC_CACHE_ALIGN_BUFFER_PAD(gpt_header, gpt_head, 1, desc->blksz);
-	gpt_entry *gpt_pte = NULL;
+	gpt_entry gpt_pte = {};
+	int ret;
 
-	/* "part" argument must be at least 1 */
-	if (part < 1) {
-		log_debug("Invalid Argument(s)\n");
-		return -EINVAL;
-	}
-
-	/* This function validates AND fills in the GPT header and PTE */
-	if (find_valid_gpt(desc, gpt_head, &gpt_pte) != 1)
-		return -EINVAL;
-
-	if (part > le32_to_cpu(gpt_head->num_partition_entries) ||
-	    !is_pte_valid(&gpt_pte[part - 1])) {
-		log_debug("Invalid partition number %d\n", part);
-#if !(defined(CONFIG_DUAL_BOOTLOADER) || defined(CONFIG_IMX_TRUSTY_OS)) || !defined(CONFIG_SPL_BUILD)
-		free(gpt_pte);
-#endif
-		return -EPERM;
-	}
+	ret = part_get_gpt_pte(desc, part, &gpt_pte);
+	if (ret)
+		return ret;
 
 	/* The 'lbaint_t' casting may limit the maximum disk size to 2 TB */
-	info->start = (lbaint_t)le64_to_cpu(gpt_pte[part - 1].starting_lba);
+	info->start = (lbaint_t)le64_to_cpu(gpt_pte.starting_lba);
 	/* The ending LBA is inclusive, to calculate size, add 1 to it */
-	info->size = (lbaint_t)le64_to_cpu(gpt_pte[part - 1].ending_lba) + 1
+	info->size = (lbaint_t)le64_to_cpu(gpt_pte.ending_lba) + 1
 		     - info->start;
 	info->blksz = desc->blksz;
 
 	snprintf((char *)info->name, sizeof(info->name), "%s",
-		 print_efiname(&gpt_pte[part - 1]));
+		 print_efiname(&gpt_pte));
 	strcpy((char *)info->type, "U-Boot");
-	info->bootable = get_bootable(&gpt_pte[part - 1]);
+	info->bootable = get_bootable(&gpt_pte);
+	info->type_flags = gpt_pte.attributes.fields.type_guid_specific;
 	if (CONFIG_IS_ENABLED(PARTITION_UUIDS)) {
-		uuid_bin_to_str(gpt_pte[part - 1].unique_partition_guid.b,
+		uuid_bin_to_str(gpt_pte.unique_partition_guid.b,
 				(char *)disk_partition_uuid(info),
 				UUID_STR_FORMAT_GUID);
 	}
 	if (IS_ENABLED(CONFIG_PARTITION_TYPE_GUID)) {
-		uuid_bin_to_str(gpt_pte[part - 1].partition_type_guid.b,
+		uuid_bin_to_str(gpt_pte.partition_type_guid.b,
 				(char *)disk_partition_type_guid(info),
 				UUID_STR_FORMAT_GUID);
 	}
@@ -330,14 +346,6 @@ int part_get_info_efi(struct blk_desc *desc, int part,
 	log_debug("start 0x" LBAF ", size 0x" LBAF ", name %s\n", info->start,
 		  info->size, info->name);
 
-#if !(defined(CONFIG_DUAL_BOOTLOADER) || defined(CONFIG_IMX_TRUSTY_OS)) || !defined(CONFIG_SPL_BUILD)
-	/* Heap memory is very limited in SPL, if the dual bootloader is
-	 * enabled, just load pte to dram instead of oc-ram. In such case,
-	 * this part of  memory shouldn't be freed. But in common routine,
-	 * don't forget to free the memory after use.
-	 */
-	free(gpt_pte);
-#endif
 	return 0;
 }
 
@@ -404,6 +412,17 @@ static int part_test_efi(struct blk_desc *desc)
 	/* Read legacy MBR from block 0 and validate it */
 	if ((blk_dread(desc, 0, 1, (ulong *)legacymbr) != 1)
 		|| (is_pmbr_valid(legacymbr) != 1)) {
+		/*
+		 * TegraPT is compatible with EFI part, but it
+		 * cannot pass the Protective MBR check. Skip it
+		 * if CONFIG_TEGRA_PARTITION is enabled and the
+		 * device in question is eMMC.
+		 */
+		if (IS_ENABLED(CONFIG_TEGRA_PARTITION))
+			if (!is_pmbr_valid(legacymbr) &&
+			    desc->uclass_id == UCLASS_MMC &&
+			    !desc->devnum)
+				return 0;
 		return -1;
 	}
 	return 0;

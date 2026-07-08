@@ -101,6 +101,10 @@ static void usage(const char *msg)
 		"          -d ==> use image data from 'datafile'\n"
 		"          -x ==> set XIP (execute in place)\n"
 		"          -s ==> create an image with no data\n"
+		"          -y ==> append TFA BL31 file to the image\n"
+		"          -Y ==> set TFA BL31 file load and entry point address\n"
+		"          -z ==> append raw TEE file to the image\n"
+		"          -Z ==> set raw TEE file load and entry point address\n"
 		"          -v ==> verbose\n",
 		params.cmdname);
 	fprintf(stderr,
@@ -160,7 +164,7 @@ static int add_content(int type, const char *fname)
 }
 
 static const char optstring[] =
-	"a:A:b:B:c:C:d:D:e:Ef:Fg:G:i:k:K:ln:N:o:O:p:qrR:stT:vVx";
+	"a:A:b:B:c:C:d:D:e:Ef:Fg:G:i:k:K:ln:N:o:O:p:qrR:stT:vVxy:Y:z:Z:";
 
 static const struct option longopts[] = {
 	{ "load-address", required_argument, NULL, 'a' },
@@ -196,6 +200,11 @@ static const struct option longopts[] = {
 	{ "verbose", no_argument, NULL, 'v' },
 	{ "version", no_argument, NULL, 'V' },
 	{ "xip", no_argument, NULL, 'x' },
+	{ "tfa-bl31-file", no_argument, NULL, 'y' },
+	{ "tfa-bl31-addr", no_argument, NULL, 'Y' },
+	{ "tee-file", no_argument, NULL, 'z' },
+	{ "tee-addr", no_argument, NULL, 'Z' },
+	{ /* sentinel */ },
 };
 
 static void process_args(int argc, char **argv)
@@ -366,6 +375,28 @@ static void process_args(int argc, char **argv)
 		case 'x':
 			params.xflag++;
 			break;
+		case 'y':
+			params.fit_tfa_bl31 = optarg;
+			break;
+		case 'Y':
+			params.fit_tfa_bl31_addr = strtoull(optarg, &ptr, 16);
+			if (*ptr) {
+				fprintf(stderr, "%s: invalid TFA BL31 address %s\n",
+					params.cmdname, optarg);
+				exit(EXIT_FAILURE);
+			}
+			break;
+		case 'z':
+			params.fit_tee = optarg;
+			break;
+		case 'Z':
+			params.fit_tee_addr = strtoull(optarg, &ptr, 16);
+			if (*ptr) {
+				fprintf(stderr, "%s: invalid TEE address %s\n",
+					params.cmdname, optarg);
+				exit(EXIT_FAILURE);
+			}
+			break;
 		default:
 			usage("Invalid option");
 		}
@@ -444,7 +475,7 @@ static void verify_image(const struct image_type_params *tparams)
 	(void)close(ifd);
 }
 
-void copy_datafile(int ifd, char *file)
+static void copy_datafile(int ifd, char *file)
 {
 	if (!file)
 		return;
@@ -518,8 +549,13 @@ int main(int argc, char **argv)
 			 */
 			retval = tparams->fflag_handle(&params);
 
-		if (retval != EXIT_SUCCESS)
+		if (retval != EXIT_SUCCESS) {
+			if (retval == FDT_ERR_NOTFOUND) {
+				// Already printed error, exit cleanly
+				exit(EXIT_FAILURE);
+			}
 			usage("Bad parameters for FIT image type");
+		}
 	}
 
 	if (params.lflag || params.fflag) {

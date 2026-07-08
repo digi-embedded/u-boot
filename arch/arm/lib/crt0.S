@@ -100,10 +100,8 @@ ENTRY(_main)
  * Set up initial C runtime environment and call board_init_f(0).
  */
 
-#if defined(CONFIG_TPL_BUILD) && defined(CONFIG_TPL_NEEDS_SEPARATE_STACK)
-	ldr	r0, =(CONFIG_TPL_STACK)
-#elif defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_STACK)
-	ldr	r0, =(CONFIG_SPL_STACK)
+#if CONFIG_IS_ENABLED(HAVE_INIT_STACK)
+	ldr	r0, =CONFIG_VAL(STACK)
 #else
 	ldr	r0, =(SYS_INIT_SP_ADDR)
 #endif
@@ -119,14 +117,14 @@ ENTRY(_main)
 	bl	debug_uart_init
 #endif
 
-#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_EARLY_BSS)
+#if defined(CONFIG_XPL_BUILD) && defined(CONFIG_SPL_EARLY_BSS)
 	CLEAR_BSS
 #endif
 
 	mov	r0, #0
 	bl	board_init_f
 
-#if ! defined(CONFIG_SPL_BUILD)
+#if ! defined(CONFIG_XPL_BUILD)
 
 /*
  * Set up intermediate environment (new sp and gd) and call
@@ -147,7 +145,7 @@ ENTRY(_main)
 	ldr	r1, =CONFIG_TEXT_BASE
 	sub	r1, r0
 	add	lr, r1
-#if defined(CONFIG_SYS_RELOC_GD_ENV_ADDR)
+#if defined(CONFIG_ENV_RELOC_GD_ENV_ADDR)
 	ldr	r0, [r9, #GD_ENV_ADDR]		/* r0 = gd->env_addr */
 	add	r0, r0, r1
 	str	r0, [r9, #GD_ENV_ADDR]
@@ -171,13 +169,13 @@ here:
 
 	bl	c_runtime_cpu_setup	/* we still call old routine here */
 #endif
-#if !defined(CONFIG_SPL_BUILD) || CONFIG_IS_ENABLED(FRAMEWORK)
+#if !defined(CONFIG_XPL_BUILD) || CONFIG_IS_ENABLED(FRAMEWORK)
 
-#if !defined(CONFIG_SPL_BUILD) || !defined(CONFIG_SPL_EARLY_BSS)
+#if !defined(CONFIG_XPL_BUILD) || !defined(CONFIG_SPL_EARLY_BSS)
 	CLEAR_BSS
 #endif
 
-# ifdef CONFIG_SPL_BUILD
+# ifdef CONFIG_XPL_BUILD
 	/* Use a DRAM stack for the rest of SPL, if requested */
 	bl	spl_relocate_stack_gd
 	cmp	r0, #0
@@ -185,10 +183,6 @@ here:
 	movne	r9, r0
 # endif
 
-#if ! defined(CONFIG_SPL_BUILD)
-	bl coloured_LED_init
-	bl red_led_on
-#endif
 	/* call board_init_r(gd_t *id, ulong dest_addr) */
 	mov     r0, r9                  /* gd_t */
 	ldr	r1, [r9, #GD_RELOCADDR]	/* dest_addr */

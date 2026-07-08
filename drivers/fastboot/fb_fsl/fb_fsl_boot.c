@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2019 NXP
+ * Copyright 2019,2025 NXP
  */
 
 #include <asm/mach-imx/sys_proto.h>
@@ -50,6 +50,11 @@
 #endif
 
 #include "fb_fsl_common.h"
+
+#ifdef CONFIG_IMX_ANDROID_GBL
+#include <fs.h>
+#include <../lib/avb/fsl/fsl_gbl.h>
+#endif
 
 /* max kernel image size, used for compressed kernel image */
 #define MAX_KERNEL_LEN (96 * 1024 * 1024)
@@ -187,7 +192,7 @@ U_BOOT_CMD(
 #endif
 
 #ifdef CONFIG_FLASH_MCUFIRMWARE_SUPPORT
-#if defined (CONFIG_IMX95) || defined(CONFIG_ARCH_IMX8M)
+#if defined (CONFIG_IMX95) || defined (CONFIG_IMX952) || defined(CONFIG_ARCH_IMX8M)
 static int do_bootmcu(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
 	int ret;
@@ -228,6 +233,8 @@ U_BOOT_CMD(
 #endif
 
 #ifdef CONFIG_CMD_BOOTA
+
+char* slot_suffixes[2] = {"_a", "_b"};
 
 /* Section for Android bootimage format support */
 
@@ -294,7 +301,6 @@ static int sha256_concatenation(uint8_t *hash_buf, uint8_t *vbh, uint8_t *image_
  */
 static int vbh_bootloader(uint8_t *image_hash)
 {
-	char* slot_suffixes[2] = {"_a", "_b"};
 	char partition_name[20];
 	AvbABData ab_data;
 	uint8_t *image_buf = NULL;
@@ -434,16 +440,17 @@ int trusty_setbootparameter(uint32_t os_version,
 	}
 #else
 	uint8_t public_key_buf[AVB_MAX_BUFFER_LENGTH];
+	uint32_t public_key_size = sizeof(public_key_buf);
 #ifdef CONFIG_LOAD_KEY_FROM_RPMB
 	if (trusty_read_vbmeta_public_key(public_key_buf,
-						AVB_MAX_BUFFER_LENGTH) != 0) {
+						&public_key_size) != 0) {
 		printf("ERROR - failed to read public key for keymaster\n");
 		memset(boot_key_hash, '\0', AVB_SHA256_DIGEST_SIZE);
 	} else
 #else
 	memcpy(public_key_buf, fsl_public_key, AVB_SHA256_DIGEST_SIZE);
 #endif
-		sha256_csum_wd((unsigned char *)public_key_buf, AVB_SHA256_DIGEST_SIZE,
+		sha256_csum_wd((unsigned char *)public_key_buf, public_key_size,
 				(unsigned char *)boot_key_hash, CHUNKSZ_SHA256);
 #endif
 
@@ -591,10 +598,14 @@ end:
 
 #if defined(CONFIG_AVB_SUPPORT) && defined(CONFIG_MMC)
 /* we can use avb to verify Trusty if we want */
+#ifdef CONFIG_INCLUDE_DTB_TO_VENDOR_BOOT
+const char *requested_partitions_boot[] = {"boot", "vendor_boot", "init_boot", NULL};
+#else
 const char *requested_partitions_boot[] = {"boot", "dtbo", "vendor_boot", "init_boot", NULL};
+#endif
 const char *requested_partitions_recovery[] = {"recovery", NULL};
 
-static int get_boot_header_version(void)
+int get_boot_header_version(void)
 {
 	size_t size;
 	struct andr_boot_img_hdr_v0 hdr;
@@ -603,7 +614,6 @@ static int get_boot_header_version(void)
 #ifdef CONFIG_ANDROID_AB_SUPPORT
 	int target_slot;
 	struct bootloader_control ab_data;
-	char* slot_suffixes[2] = {"_a", "_b"};
 
 	if (fsl_avb_ab_ops.read_ab_metadata(&fsl_avb_ab_ops, &ab_data) !=
 					    AVB_IO_RESULT_OK) {
@@ -627,7 +637,7 @@ static int get_boot_header_version(void)
 	return hdr.header_version;
 }
 
-static int find_partition_data_by_name(char* part_name,
+int find_partition_data_by_name(char* part_name,
 		AvbSlotVerifyData* avb_out_data, AvbPartitionData** avb_loadpart)
 {
 	int num = 0;
@@ -654,6 +664,81 @@ bool __weak is_power_key_pressed(void) {
 	return false;
 }
 
+#ifdef CONFIG_IMX_ANDROID_GBL
+
+static int do_boota(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]) {
+	gbl_metadata *metadata = NULL;
+	uint8_t *gbl = NULL;
+	uint8_t *metadata_buf = NULL;
+	loff_t gbl_size = 0;
+	loff_t metadata_size = 0;
+	char part_name[24];
+	char command[64];
+	int slot = 0;
+	int ret = 0;
+
+	slot = current_slot();
+	if (slot == -1) {
+		printf("failed to get current slot!\n");
+		return -1;
+	}
+	snprintf(part_name, sizeof(part_name), "android_esp%s", slot_suffixes[slot]);
+
+	/* Load GBL image */
+	ret = load_file_from_android_esp(part_name, GBL_EFI_PATH, &gbl, &gbl_size);
+	if (ret != 0) {
+		printf("Failed to load GBL from android_esp!\n");
+		goto fail;
+	}
+
+	/* Load GBL metadata and signature image */
+	ret = load_file_from_android_esp(part_name, GBL_METADATA_PATH, &metadata_buf, &metadata_size);
+	if (ret != 0) {
+		printf("Failed to load GBL metadata from android_esp!\n");
+		goto fail;
+	}
+
+	/* Only verify the GBL image when Trusty OS is enabled */
+#ifdef CONFIG_IMX_TRUSTY_OS
+	ret = verify_gbl(gbl, (uint32_t)gbl_size, metadata_buf, (uint32_t)metadata_size);
+	if (ret != 0) {
+		/* GBL signature verify fail, but we still
+		 * allow boot when the device is unlocked.
+		 */
+		FbLockState lock = fastboot_get_lock_stat();
+		if (lock != FASTBOOT_UNLOCK) {
+			printf("GBL verify fail and device is locked.\n");
+			goto fail;
+		}
+		printf("GBL verify fail but device is unlocked, continue boot.\n");
+	}
+#endif
+
+	metadata = (gbl_metadata *)metadata_buf;
+	if (metadata->original_gbl_size == 0 ||
+	    metadata->original_gbl_size != (uint32_t)gbl_size) {
+		printf("Invalid gbl metadata: size mismatch!\n");
+		goto fail;
+	}
+
+	/* kick GBL image */
+	snprintf(command, sizeof(command), "bootefi 0x%p:%x",
+		 gbl, metadata->original_gbl_size);
+	printf("Booting GBL with command %s\n", command);
+	run_command(command, 0);
+
+fail:
+	if (gbl)
+		free(gbl);
+	if (metadata_buf)
+		free(metadata_buf);
+
+	printf("boota: failed to load GBL!\n");
+	do_reset(NULL, 0, 0, NULL);
+
+	return 1;
+}
+#else
 int do_boota(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]) {
 
 	u32 avb_metric;
@@ -725,7 +810,7 @@ int do_boota(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]) {
 #ifdef CONFIG_DUAL_BOOTLOADER
 	/* We will only verify single one slot which has been selected in SPL */
 	avb_result = avb_flow_dual_uboot(&fsl_avb_ab_ops, requested_partitions_boot, allow_fail,
-			AVB_HASHTREE_ERROR_MODE_RESTART_AND_INVALIDATE, &avb_out_data);
+			AVB_HASHTREE_ERROR_MODE_RESTART, &avb_out_data);
 
 	/* Reboot if current slot is not bootable. */
 	if (avb_result == AVB_AB_FLOW_RESULT_ERROR_NO_BOOTABLE_SLOTS) {
@@ -736,7 +821,7 @@ int do_boota(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]) {
 #ifdef CONFIG_ANDROID_AB_SUPPORT
 	/* we can use avb to verify Trusty if we want */
 	avb_result = avb_ab_flow_fast(&fsl_avb_ab_ops, requested_partitions_boot, allow_fail,
-			AVB_HASHTREE_ERROR_MODE_RESTART_AND_INVALIDATE, &avb_out_data);
+			AVB_HASHTREE_ERROR_MODE_RESTART, &avb_out_data);
 #else /* CONFIG_ANDROID_AB_SUPPORT */
 	/* For imx6/7 devices. */
 	if (is_recovery_mode) {
@@ -875,7 +960,7 @@ int do_boota(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]) {
 				(void *)((ulong)hdr_v4 + 4096), hdr_v4->kernel_size);
 		} else if (IS_ENABLED(CONFIG_LZ4)) {
 			size_t lz4_len = MAX_KERNEL_LEN;
-			if (ulz4fn((void *)((ulong)hdr_v4 + 4096),
+			if (ulz4fn_auto((void *)((ulong)hdr_v4 + 4096),
 				hdr_v4->kernel_size, (void *)kernel_addr, &lz4_len) != 0) {
 				printf("Decompress kernel fail!\n");
 				goto fail;
@@ -891,7 +976,7 @@ int do_boota(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]) {
 				(void *)((ulong)hdr_v3 + 4096), hdr_v3->kernel_size);
 		} else if (IS_ENABLED(CONFIG_LZ4)) {
 			size_t lz4_len = MAX_KERNEL_LEN;
-			if (ulz4fn((void *)((ulong)hdr_v3 + 4096),
+			if (ulz4fn_auto((void *)((ulong)hdr_v3 + 4096),
 				hdr_v3->kernel_size, (void *)kernel_addr, &lz4_len) != 0) {
 				printf("Decompress kernel fail!\n");
 				goto fail;
@@ -908,7 +993,7 @@ int do_boota(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]) {
 				(void *)((ulong)hdr + hdr->page_size), hdr->kernel_size);
 		} else if (IS_ENABLED(CONFIG_LZ4)) {
 			size_t lz4_len = MAX_KERNEL_LEN;
-			if (ulz4fn((void *)((ulong)hdr + hdr->page_size),
+			if (ulz4fn_auto((void *)((ulong)hdr + hdr->page_size),
 				hdr->kernel_size, (void *)kernel_addr, &lz4_len) != 0) {
 				printf("Decompress kernel fail!\n");
 				goto fail;
@@ -946,12 +1031,24 @@ int do_boota(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]) {
 	}
 
 #ifdef CONFIG_SYSTEM_RAMDISK_SUPPORT
+#ifdef CONFIG_INCLUDE_DTB_TO_VENDOR_BOOT
+	/* The dtb image is included to the vendor_boot partition */
+	if (boot_header_version != 4) {
+		printf("Unsupported boot header version: %d\n", boot_header_version);
+		goto fail;
+	}
+
+	dt_img = (struct dt_table_header *)((void *)(ulong)vendor_boot_hdr_v4 + \
+			ALIGN(sizeof(struct vendor_boot_img_hdr_v4), vendor_boot_hdr_v4->page_size) + \
+			ALIGN(vendor_boot_hdr_v4->vendor_ramdisk_size, vendor_boot_hdr_v4->page_size));
+#else /* CONFIG_INCLUDE_DTB_TO_VENDOR_BOOT */
 	/* It means boot.img(recovery) do not include dtb, it need load dtb from partition */
 	if (find_partition_data_by_name("dtbo",
 				avb_out_data, &avb_loadpart)) {
 		goto fail;
 	} else
 		dt_img = (struct dt_table_header *)avb_loadpart->data;
+#endif /* CONFIG_INCLUDE_DTB_TO_VENDOR_BOOT */
 #else
 	/* recovery.img include dts while boot.img use dtbo */
 	if (is_recovery_mode) {
@@ -987,8 +1084,31 @@ int do_boota(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]) {
 	fdt_size = fdt_totalsize((void *)(ulong)fdt_addr);
 #else
 	struct dt_table_entry *dt_entry;
+#ifdef CONFIG_INCLUDE_DTB_TO_VENDOR_BOOT
+	/* The first fdt contains the Id<-->Name mapping, parse expected
+	 * dt id from it.
+	 */
+	dt_entry = (struct dt_table_entry *)((ulong)dt_img + \
+			be32_to_cpu(dt_img->dt_entries_offset));
+	int fdt_id = get_imx_android_fdt_id((void *)((ulong)dt_img +
+						be32_to_cpu(dt_entry->dt_offset)));
+	if (fdt_id < 0) {
+		printf("Failed to select device tree!\n");
+		goto fail;
+	}
+
+	dt_entry = (struct dt_table_entry *)((ulong)dt_img + \
+			be32_to_cpu(dt_img->dt_entries_offset) + \
+			fdt_id * be32_to_cpu(dt_img->dt_entry_size));
+	/* Double check the id */
+	if (fdt_id != be32_to_cpu(dt_entry->id)) {
+		printf("Wrong dtb id found, expect: %d, found: %d\n", fdt_id, be32_to_cpu(dt_entry->id));
+		goto fail;
+	}
+#else /* CONFIG_INCLUDE_DTB_TO_VENDOR_BOOT */
 	dt_entry = (struct dt_table_entry *)((ulong)dt_img +
 			be32_to_cpu(dt_img->dt_entries_offset));
+#endif /* CONFIG_INCLUDE_DTB_TO_VENDOR_BOOT */
 	fdt_size = be32_to_cpu(dt_entry->dt_size);
 	memcpy((void *)(ulong)fdt_addr, (void *)((ulong)dt_img +
 			be32_to_cpu(dt_entry->dt_offset)), fdt_size);
@@ -1002,7 +1122,8 @@ int do_boota(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]) {
 	 */
 	/* Check if we have overlap between ramdisk, kernel and dtb */
 	if ((ramdisk_addr >= kernel_addr) && (ramdisk_addr < ALIGN(fdt_addr + fdt_size, 4096))) {
-		ulong ramdisk_addr_relocate = (ulong)ALIGN(fdt_addr + fdt_size, 4096);
+		/* Put ramdisk after the fdt, leave 1MB space for possible fdt runtime adjustment. */
+		ulong ramdisk_addr_relocate = (ulong)ALIGN(fdt_addr + fdt_size + (1024 * 1024), 4096);
 
 		printf("boota: ramdisk overlap detected!!! ");
 		printf("redirecting ramdisk from 0x%08x to 0x%08x\n", (uint32_t)ramdisk_addr, (uint32_t)ramdisk_addr_relocate);
@@ -1080,9 +1201,10 @@ int do_boota(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]) {
 	/* Combine cmdline */
 	if (boot_header_version == 4) {
 		android_image_get_kernel_v3((struct boot_img_hdr_v3 *)hdr_v4,
-						(struct vendor_boot_img_hdr_v3 *)vendor_boot_hdr_v4, true);
+					    (struct vendor_boot_img_hdr_v3 *)vendor_boot_hdr_v4,
+					    (void *)(ulong)fdt_addr, true);
 	} else if (boot_header_version == 3) {
-		android_image_get_kernel_v3(hdr_v3, vendor_boot_hdr_v3, false);
+		android_image_get_kernel_v3(hdr_v3, vendor_boot_hdr_v3, (void *)(ulong)fdt_addr, false);
 	} else {
 		if (check_image_arm64) {
 			android_image_get_kernel(hdr, NULL, 0, NULL, NULL);
@@ -1124,9 +1246,15 @@ int do_boota(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]) {
 	/* lock the boot status and rollback_idx preventing Linux modify it */
 	trusty_lock_boot_state();
 
-#if 0
-	/* populate secretkeeper public key */
-	trusty_populate_sk_key((void *)(ulong)fdt_addr);
+	/* set deprivilege state to stop NS access */
+	if (hwbcc_ns_deprivilege())
+		goto fail;
+
+#ifdef CONFIG_IMX_SUPPORT_SRM
+	char *keystore = env_get("keystore");
+	if ((keystore != NULL) && (!strcmp(keystore, "trusty"))) {
+		hwcrypto_load_srm();
+	}
 #endif
 #endif
 
@@ -1194,6 +1322,7 @@ fail:
 
 	return run_command("fastboot 0", 0);
 }
+#endif /* CONFIG_IMX_ANDROID_GBL */
 
 U_BOOT_CMD(
 	boota,	2,	1,	do_boota,

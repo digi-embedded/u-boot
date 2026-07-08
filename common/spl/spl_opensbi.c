@@ -5,7 +5,6 @@
  *
  * Based on common/spl/spl_atf.c
  */
-#include <common.h>
 #include <cpu_func.h>
 #include <errno.h>
 #include <hang.h>
@@ -55,6 +54,11 @@ void __noreturn spl_invoke_opensbi(struct spl_image_info *spl_image)
 
 	if (!spl_image->fdt_addr) {
 		pr_err("No device tree specified in SPL image\n");
+		hang();
+	}
+
+	if (!IS_ALIGNED((uintptr_t)spl_image->fdt_addr, 8)) {
+		pr_err("SPL image loaded an improperly-aligned device tree\n");
 		hang();
 	}
 

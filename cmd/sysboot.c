@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0+
 
-#include <common.h>
 #include <command.h>
 #include <env.h>
 #include <fs.h>
 #include <pxe_utils.h>
+#include <vsprintf.h>
 
 /**
  * struct sysboot_info - useful information for sysboot helpers
@@ -23,7 +23,8 @@ struct sysboot_info {
 };
 
 static int sysboot_read_file(struct pxe_context *ctx, const char *file_path,
-			     char *file_addr, ulong *sizep)
+			     char *file_addr, enum bootflow_img_t type,
+			     ulong *sizep)
 {
 	struct sysboot_info *info = ctx->userdata;
 	loff_t len_read;
@@ -77,6 +78,10 @@ static int do_sysboot(struct cmd_tbl *cmdtp, int flag, int argc,
 
 	if (argc < 6) {
 		filename = env_get("bootfile");
+		if (!filename) {
+			printf("Specify a filename or set the ${bootfile} environment variable\n");
+			return 1;
+		}
 	} else {
 		filename = argv[5];
 		env_set("bootfile", filename);
@@ -101,12 +106,13 @@ static int do_sysboot(struct cmd_tbl *cmdtp, int flag, int argc,
 	}
 
 	if (pxe_setup_ctx(&ctx, cmdtp, sysboot_read_file, &info, true,
-			  filename, false)) {
+			  filename, false, false)) {
 		printf("Out of memory\n");
 		return CMD_RET_FAILURE;
 	}
 
-	if (get_pxe_file(&ctx, filename, pxefile_addr_r) < 0) {
+	if (get_pxe_file(&ctx, filename, pxefile_addr_r)
+	    < 0) {
 		printf("Error reading config file\n");
 		pxe_destroy_ctx(&ctx);
 		return 1;

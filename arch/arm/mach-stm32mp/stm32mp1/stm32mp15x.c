@@ -5,7 +5,6 @@
 
 #define LOG_CATEGORY LOGC_ARCH
 
-#include <common.h>
 #include <env.h>
 #include <log.h>
 #include <asm/io.h>
@@ -14,6 +13,7 @@
 #include <asm/arch/sys_proto.h>
 #include <dm/device.h>
 #include <dm/uclass.h>
+#include <linux/bitfield.h>
 
 /* RCC register */
 #define RCC_TZCR		(STM32_RCC_BASE + 0x00)
@@ -41,6 +41,9 @@
 #define TZC_REGION_ID_ACCESS0	(STM32_TZC_BASE + 0x114)
 
 #define TAMP_CR1		(STM32_TAMP_BASE + 0x00)
+#define TAMP_SMCR		(STM32_TAMP_BASE + 0x20)
+#define TAMP_SMCR_BKPRWDPROT	GENMASK(7, 0)
+#define TAMP_SMCR_BKPWDPROT	GENMASK(23, 16)
 
 #define PWR_CR1			(STM32_PWR_BASE + 0x00)
 #define PWR_MCUCR		(STM32_PWR_BASE + 0x14)
@@ -61,10 +64,9 @@
  * - boot instance = bit 31:16
  * - boot device = bit 15:0
  */
-#define BOOTROM_PARAM_ADDR	0x2FFC0078
 #define BOOTROM_MODE_MASK	GENMASK(15, 0)
 #define BOOTROM_MODE_SHIFT	0
-#define BOOTROM_INSTANCE_MASK	 GENMASK(31, 16)
+#define BOOTROM_INSTANCE_MASK	GENMASK(31, 16)
 #define BOOTROM_INSTANCE_SHIFT	16
 
 /* Device Part Number (RPN) = OTP_DATA1 lower 8 bits */
@@ -136,6 +138,18 @@ static void security_init(void)
 	 */
 	writel(0x0, TAMP_CR1);
 
+	/*
+	 * TAMP: Configure non-zero secure protection settings. This is
+	 * checked by BootROM function 35ac on OTP-CLOSED device during
+	 * CPU core 1 release from endless loop. If secure protection
+	 * fields are zero, the core 1 is not released from endless
+	 * loop on second SGI0.
+	 */
+	clrsetbits_le32(TAMP_SMCR,
+			TAMP_SMCR_BKPRWDPROT | TAMP_SMCR_BKPWDPROT,
+			FIELD_PREP(TAMP_SMCR_BKPRWDPROT, 0x0A) |
+			FIELD_PREP(TAMP_SMCR_BKPWDPROT, 0x0F));
+
 	/* GPIOZ: deactivate the security */
 	writel(BIT(0), RCC_MP_AHB5ENSETR);
 	writel(0x0, GPIOZ_SECCFGR);
@@ -174,7 +188,7 @@ void spl_board_init(void)
 static void update_bootmode(void)
 {
 	u32 boot_mode;
-	u32 bootrom_itf = readl(BOOTROM_PARAM_ADDR);
+	u32 bootrom_itf = readl(get_stm32mp_rom_api_table());
 	u32 bootrom_device, bootrom_instance;
 
 	/* enable TAMP clock = RTCAPBEN */
@@ -199,13 +213,13 @@ static void update_bootmode(void)
 /* weak function: STM32MP15x mach init for boot without TFA */
 void stm32mp_cpu_init(void)
 {
-	if (IS_ENABLED(CONFIG_SPL_BUILD)) {
+	if (IS_ENABLED(CONFIG_XPL_BUILD)) {
 		security_init();
 		update_bootmode();
 	}
 
 	/* reset copro state in SPL, when used, or in U-Boot */
-	if (!IS_ENABLED(CONFIG_SPL) || IS_ENABLED(CONFIG_SPL_BUILD)) {
+	if (!IS_ENABLED(CONFIG_SPL) || IS_ENABLED(CONFIG_XPL_BUILD)) {
 		/* Reset Coprocessor state unless it wakes up from Standby power mode */
 		if (!(readl(PWR_MCUCR) & PWR_MCUCR_SBF)) {
 			writel(TAMP_COPRO_STATE_OFF, TAMP_COPRO_STATE);
@@ -322,8 +336,23 @@ void get_soc_name(char name[SOC_NAME_SIZE])
 
 	get_cpu_string_offsets(&type, &pkg, &rev);
 
-	snprintf(name, SOC_NAME_SIZE, "STM32MP%s%s Rev.%s",
-		 soc_type[type], soc_pkg[pkg], soc_rev[rev]);
+	if (bsec_dbgswenable()) {
+		snprintf(name, SOC_NAME_SIZE, "STM32MP%s%s Rev.%s",
+			 soc_type[type], soc_pkg[pkg], soc_rev[rev]);
+	} else {
+		/*
+		 * SoC revision is only accessible via DBUMCU IDC register,
+		 * which requires BSEC.DENABLE DBGSWENABLE bit to be set to
+		 * make the register accessible, otherwise an access to the
+		 * register triggers bus fault. As BSEC.DBGSWENABLE is zero
+		 * in case of an OTP-CLOSED system, do NOT set DBGSWENABLE
+		 * bit as this might open a brief window for timing attacks.
+		 * Instead, report that this system is OTP-CLOSED and do not
+		 * report any SoC revision to avoid confusing users.
+		 */
+		snprintf(name, SOC_NAME_SIZE, "STM32MP%s%s SEC/C",
+			 soc_type[type], soc_pkg[pkg]);
+	}
 }
 
 static void setup_soc_type_pkg_rev(void)

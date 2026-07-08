@@ -6,7 +6,6 @@
  * Haikun Wang (haikun.wang@freescale.com)
  */
 
-#include <common.h>
 #include <display_options.h>
 #include <dm.h>
 #include <errno.h>
@@ -139,11 +138,11 @@ static int spi_dataflash_erase(struct udevice *dev, u32 offset, size_t len)
 	memset(dataflash->command, 0 , sizeof(dataflash->command));
 	command = dataflash->command;
 
-	debug("%s: erase addr=0x%x len 0x%lx\n", dev->name, offset, len);
+	debug("%s: erase addr=0x%x len 0x%zx\n", dev->name, offset, len);
 
 	div_u64_rem(len, spi_flash->page_size, &rem);
 	if (rem) {
-		printf("%s: len(0x%lx) isn't the multiple of page size(0x%x)\n",
+		printf("%s: len(0x%zx) isn't the multiple of page size(0x%x)\n",
 		       dev->name, len, spi_flash->page_size);
 		return -EINVAL;
 	}
@@ -230,7 +229,7 @@ static int spi_dataflash_read(struct udevice *dev, u32 offset, size_t len,
 	memset(dataflash->command, 0 , sizeof(dataflash->command));
 	command = dataflash->command;
 
-	debug("%s: erase addr=0x%x len 0x%lx\n", dev->name, offset, len);
+	debug("%s: erase addr=0x%x len 0x%zx\n", dev->name, offset, len);
 	debug("READ: (%x) %x %x %x\n",
 	      command[0], command[1], command[2], command[3]);
 
@@ -288,7 +287,7 @@ int spi_dataflash_write(struct udevice *dev, u32 offset, size_t len,
 	memset(dataflash->command, 0 , sizeof(dataflash->command));
 	command = dataflash->command;
 
-	debug("%s: write 0x%x..0x%lx\n", dev->name, offset, (offset + len));
+	debug("%s: write 0x%x..0x%zx\n", dev->name, offset, (offset + len));
 
 	pageaddr = ((unsigned)offset / spi_flash->page_size);
 	to = ((unsigned)offset % spi_flash->page_size);
@@ -439,7 +438,7 @@ static int add_dataflash(struct udevice *dev, char *name, int nr_pages,
 	spi_flash->size = nr_pages * pagesize;
 	spi_flash->erase_size = pagesize;
 
-#ifndef CONFIG_SPL_BUILD
+#ifndef CONFIG_XPL_BUILD
 	printf("SPI DataFlash: Detected %s with page size ", spi_flash->name);
 	print_size(spi_flash->page_size, ", erase size ");
 	print_size(spi_flash->erase_size, ", total ");

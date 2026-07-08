@@ -3,15 +3,17 @@
  * Copyright (C) 2016 The Android Open Source Project
  */
 
-#include <common.h>
 #include <env.h>
 #include <fastboot.h>
 #include <fastboot-internal.h>
 #include <fb_mmc.h>
+#include <fb_block.h>
 #include <fb_nand.h>
+#include <fb_spi_flash.h>
 #include <fs.h>
 #include <part.h>
 #include <version.h>
+#include <vsprintf.h>
 #include <linux/printk.h>
 
 static void getvar_version(char *var_parameter, char *response);
@@ -114,7 +116,12 @@ static int getvar_get_part_info(const char *part_name, char *response,
 	struct disk_partition disk_part;
 	struct part_info *part_info;
 
-	if (IS_ENABLED(CONFIG_FASTBOOT_FLASH_MMC)) {
+	if (IS_ENABLED(CONFIG_FASTBOOT_FLASH_BLOCK)) {
+		r = fastboot_block_get_part_info(part_name, &dev_desc, &disk_part,
+						 response);
+		if (r >= 0 && size)
+			*size = disk_part.size * disk_part.blksz;
+	} else if (IS_ENABLED(CONFIG_FASTBOOT_FLASH_MMC)) {
 		r = fastboot_mmc_get_part_info(part_name, &dev_desc, &disk_part,
 					       response);
 		if (r >= 0 && size)
@@ -123,6 +130,11 @@ static int getvar_get_part_info(const char *part_name, char *response,
 		r = fastboot_nand_get_part_info(part_name, &part_info, response);
 		if (r >= 0 && size)
 			*size = part_info->size;
+	} else if (IS_ENABLED(CONFIG_FASTBOOT_FLASH_SPI)) {
+		r = fastboot_spi_flash_get_part_info(part_name, &disk_part,
+						     response);
+		if (r >= 0 && size)
+			*size = disk_part.size * disk_part.blksz;
 	} else {
 		fastboot_fail("this storage is not supported in bootloader", response);
 		r = -ENODEV;
@@ -230,7 +242,8 @@ static void __maybe_unused getvar_partition_type(char *part_name, char *response
 	if (r >= 0) {
 		r = fs_set_blk_dev_with_part(dev_desc, r);
 		if (r < 0)
-			fastboot_fail("failed to set partition", response);
+			/* If we don't know then just default to raw */
+			fastboot_okay("raw", response);
 		else
 			fastboot_okay(fs_get_type_name(), response);
 	}

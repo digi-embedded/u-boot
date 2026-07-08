@@ -10,13 +10,14 @@
  * Copied from FADS ROM, Dan Malek (dmalek@jlc.net)
  */
 
-#include <common.h>
 #include <console.h>
 #include <bootretry.h>
 #include <cli.h>
 #include <command.h>
+#include <compiler.h>
 #include <console.h>
 #include <display_options.h>
+#include <env.h>
 #ifdef CONFIG_MTD_NOR_FLASH
 #include <flash.h>
 #endif
@@ -24,6 +25,7 @@
 #include <log.h>
 #include <mapmem.h>
 #include <rand.h>
+#include <time.h>
 #include <watchdog.h>
 #include <asm/global_data.h>
 #include <asm/io.h>
@@ -245,7 +247,7 @@ static int do_mem_cmp(struct cmd_tbl *cmdtp, int flag, int argc,
 	int	size;
 	int     rcode = 0;
 	const char *type;
-	const void *buf1, *buf2, *base;
+	const void *buf1, *buf2, *base, *ptr1, *ptr2;
 	ulong word1, word2;  /* 64-bit if MEM_SUPPORT_64BIT_DATA */
 
 	if (argc != 4)
@@ -270,22 +272,22 @@ static int do_mem_cmp(struct cmd_tbl *cmdtp, int flag, int argc,
 	bytes = size * count;
 	base = buf1 = map_sysmem(addr1, bytes);
 	buf2 = map_sysmem(addr2, bytes);
-	for (ngood = 0; ngood < count; ++ngood) {
+	for (ngood = 0, ptr1 = buf1, ptr2 = buf2; ngood < count; ++ngood) {
 		if (size == 4) {
-			word1 = *(u32 *)buf1;
-			word2 = *(u32 *)buf2;
+			word1 = *(u32 *)ptr1;
+			word2 = *(u32 *)ptr2;
 		} else if (MEM_SUPPORT_64BIT_DATA && size == 8) {
-			word1 = *(ulong *)buf1;
-			word2 = *(ulong *)buf2;
+			word1 = *(ulong *)ptr1;
+			word2 = *(ulong *)ptr2;
 		} else if (size == 2) {
-			word1 = *(u16 *)buf1;
-			word2 = *(u16 *)buf2;
+			word1 = *(u16 *)ptr1;
+			word2 = *(u16 *)ptr2;
 		} else {
-			word1 = *(u8 *)buf1;
-			word2 = *(u8 *)buf2;
+			word1 = *(u8 *)ptr1;
+			word2 = *(u8 *)ptr2;
 		}
 		if (word1 != word2) {
-			ulong offset = buf1 - base;
+			ulong offset = ptr1 - base;
 			printf("%s at 0x%08lx (%#0*lx) != %s at 0x%08lx (%#0*lx)\n",
 				type, (ulong)(addr1 + offset), size, word1,
 				type, (ulong)(addr2 + offset), size, word2);
@@ -293,8 +295,8 @@ static int do_mem_cmp(struct cmd_tbl *cmdtp, int flag, int argc,
 			break;
 		}
 
-		buf1 += size;
-		buf2 += size;
+		ptr1 += size;
+		ptr2 += size;
 
 		/* reset watchdog from time to time */
 		if ((ngood % (64 << 10)) == 0)
@@ -710,19 +712,16 @@ static int do_mem_loopw(struct cmd_tbl *cmdtp, int flag, int argc,
 #endif /* CONFIG_LOOPW */
 
 #ifdef CONFIG_CMD_MEMTEST
-static ulong mem_test_alt(vu_long *buf, ulong start_addr, ulong end_addr,
-			  vu_long *dummy)
+static ulong mem_test_alt(volatile ulong *buf, ulong start_addr, ulong end_addr,
+			  volatile ulong *dummy)
 {
-	vu_long *addr;
+	volatile ulong *addr;
 	ulong errs = 0;
 	ulong val, readback;
 	int j;
-	vu_long offset;
-	vu_long test_offset;
-	vu_long pattern;
-	vu_long temp;
-	vu_long anti_pattern;
-	vu_long num_words;
+	ulong offset, test_offset;
+	ulong pattern, anti_pattern;
+	ulong temp, num_words;
 	static const ulong bitpattern[] = {
 		0x00000001,	/* single bit */
 		0x00000003,	/* two adjacent bits */
@@ -733,8 +732,10 @@ static ulong mem_test_alt(vu_long *buf, ulong start_addr, ulong end_addr,
 		0x00000055,	/* four non-adjacent bits */
 		0xaaaaaaaa,	/* alternating 1/0 */
 	};
+	/* Rate-limit schedule() calls to one for every 256 words. */
+	u8 count = 0;
 
-	num_words = (end_addr - start_addr) / sizeof(vu_long);
+	num_words = (end_addr - start_addr) / sizeof(ulong);
 
 	/*
 	 * Data line test: write a pattern to the first
@@ -816,8 +817,8 @@ static ulong mem_test_alt(vu_long *buf, ulong start_addr, ulong end_addr,
 	 *
 	 * Returns:     0 if the test succeeds, 1 if the test fails.
 	 */
-	pattern = (vu_long)0xaaaaaaaaaaaaaaaa;
-	anti_pattern = (vu_long)0x5555555555555555;
+	pattern = (ulong)0xaaaaaaaaaaaaaaaa;
+	anti_pattern = (ulong)0x5555555555555555;
 
 	debug("%s:%d: length = 0x%.8lx\n", __func__, __LINE__, num_words);
 	/*
@@ -838,7 +839,7 @@ static ulong mem_test_alt(vu_long *buf, ulong start_addr, ulong end_addr,
 		if (temp != pattern) {
 			printf("\nFAILURE: Address bit stuck high @ 0x%.8lx:"
 				" expected 0x%.8lx, actual 0x%.8lx\n",
-				start_addr + offset*sizeof(vu_long),
+				start_addr + offset*sizeof(ulong),
 				pattern, temp);
 			errs++;
 			if (ctrlc())
@@ -860,7 +861,7 @@ static ulong mem_test_alt(vu_long *buf, ulong start_addr, ulong end_addr,
 				printf("\nFAILURE: Address bit stuck low or"
 					" shorted @ 0x%.8lx: expected 0x%.8lx,"
 					" actual 0x%.8lx\n",
-					start_addr + offset*sizeof(vu_long),
+					start_addr + offset*sizeof(ulong),
 					pattern, temp);
 				errs++;
 				if (ctrlc())
@@ -888,7 +889,8 @@ static ulong mem_test_alt(vu_long *buf, ulong start_addr, ulong end_addr,
 	 * Fill memory with a known pattern.
 	 */
 	for (pattern = 1, offset = 0; offset < num_words; pattern++, offset++) {
-		schedule();
+		if (!count++)
+			schedule();
 		addr[offset] = pattern;
 	}
 
@@ -896,12 +898,13 @@ static ulong mem_test_alt(vu_long *buf, ulong start_addr, ulong end_addr,
 	 * Check each location and invert it for the second pass.
 	 */
 	for (pattern = 1, offset = 0; offset < num_words; pattern++, offset++) {
-		schedule();
+		if (!count++)
+			schedule();
 		temp = addr[offset];
 		if (temp != pattern) {
 			printf("\nFAILURE (read/write) @ 0x%.8lx:"
 				" expected 0x%.8lx, actual 0x%.8lx)\n",
-				start_addr + offset*sizeof(vu_long),
+				start_addr + offset*sizeof(ulong),
 				pattern, temp);
 			errs++;
 			if (ctrlc())
@@ -916,13 +919,14 @@ static ulong mem_test_alt(vu_long *buf, ulong start_addr, ulong end_addr,
 	 * Check each location for the inverted pattern and zero it.
 	 */
 	for (pattern = 1, offset = 0; offset < num_words; pattern++, offset++) {
-		schedule();
+		if (!count++)
+			schedule();
 		anti_pattern = ~pattern;
 		temp = addr[offset];
 		if (temp != anti_pattern) {
 			printf("\nFAILURE (read/write): @ 0x%.8lx:"
 				" expected 0x%.8lx, actual 0x%.8lx)\n",
-				start_addr + offset*sizeof(vu_long),
+				start_addr + offset*sizeof(ulong),
 				anti_pattern, temp);
 			errs++;
 			if (ctrlc())
@@ -1316,13 +1320,11 @@ U_BOOT_CMD(
 	"[.b, .w, .l" HELP_Q "] address [# of objects]"
 );
 
-
 U_BOOT_CMD(
 	mm,	2,	1,	do_mem_mm,
 	"memory modify (auto-incrementing address)",
 	"[.b, .w, .l" HELP_Q "] address"
 );
-
 
 U_BOOT_CMD(
 	nm,	2,	1,	do_mem_nm,
@@ -1381,17 +1383,6 @@ U_BOOT_CMD(
 
 #endif
 
-#ifdef CONFIG_CMD_MEMINFO
-static int do_mem_info(struct cmd_tbl *cmdtp, int flag, int argc,
-		       char *const argv[])
-{
-	puts("DRAM:  ");
-	print_size(gd->ram_size, "\n");
-
-	return 0;
-}
-#endif
-
 U_BOOT_CMD(
 	base,	2,	1,	do_mem_base,
 	"print or set address offset",
@@ -1434,14 +1425,6 @@ U_BOOT_CMD(
 	"[.b, .w, .l" HELP_Q "] address value delay(ms)"
 );
 #endif /* CONFIG_CMD_MX_CYCLIC */
-
-#ifdef CONFIG_CMD_MEMINFO
-U_BOOT_CMD(
-	meminfo,	3,	1,	do_mem_info,
-	"display memory information",
-	""
-);
-#endif
 
 #ifdef CONFIG_CMD_RANDOM
 U_BOOT_CMD(

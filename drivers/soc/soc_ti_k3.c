@@ -4,7 +4,6 @@
  *	Dave Gerlach <d-gerlach@ti.com>
  */
 
-#include <common.h>
 #include <dm.h>
 #include <soc.h>
 
@@ -19,32 +18,53 @@ struct soc_ti_k3_plat {
 static const char *get_family_string(u32 idreg)
 {
 	const char *family;
+	u32 jtag_dev_id;
+	u32 pkg;
 	u32 soc;
+
+	jtag_dev_id = readl(CTRLMMR_WKUP_JTAG_DEVICE_ID);
 
 	soc = (idreg & JTAG_ID_PARTNO_MASK) >> JTAG_ID_PARTNO_SHIFT;
 
 	switch (soc) {
-	case JTAG_ID_PARTNO_AM65X:
-		family = "AM65X";
-		break;
-	case JTAG_ID_PARTNO_J721E:
-		family = "J721E";
-		break;
-	case JTAG_ID_PARTNO_J7200:
-		family = "J7200";
-		break;
-	case JTAG_ID_PARTNO_AM64X:
-		family = "AM64X";
-		break;
-	case JTAG_ID_PARTNO_J721S2:
-		family = "J721S2";
-		break;
 	case JTAG_ID_PARTNO_AM62X:
 		family = "AM62X";
 		break;
 	case JTAG_ID_PARTNO_AM62AX:
 		family = "AM62AX";
 		break;
+	case JTAG_ID_PARTNO_AM62PX:
+		family = "AM62PX";
+		break;
+	case JTAG_ID_PARTNO_AM64X:
+		family = "AM64X";
+		break;
+	case JTAG_ID_PARTNO_AM65X:
+		family = "AM65X";
+		break;
+	case JTAG_ID_PARTNO_J7200:
+		family = "J7200";
+		break;
+	case JTAG_ID_PARTNO_J721E:
+		family = "J721E";
+		break;
+	case JTAG_ID_PARTNO_J721S2:
+		family = "J721S2";
+		break;
+	case JTAG_ID_PARTNO_J722S:
+		family = "J722S";
+		break;
+	case JTAG_ID_PARTNO_J784S4:
+		{
+			/* Keep default family as J784S4 */
+			family = "J784S4";
+
+			pkg = (jtag_dev_id & JTAG_DEV_J742S2_PKG_MASK) >> JTAG_DEV_J742S2_PKG_SHIFT;
+			if (pkg == JTAG_ID_PKG_J742S2)
+				family = "J742S2";
+
+			break;
+		}
 	default:
 		family = "Unknown Silicon";
 	};
@@ -53,7 +73,7 @@ static const char *get_family_string(u32 idreg)
 }
 
 static char *j721e_rev_string_map[] = {
-	"1.0", "1.1",
+	"1.0", "1.1", "2.0",
 };
 
 static char *typical_rev_string_map[] = {

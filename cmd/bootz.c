@@ -4,7 +4,6 @@
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  */
 
-#include <common.h>
 #include <bootm.h>
 #include <command.h>
 #include <image.h>
@@ -29,6 +28,7 @@ static int bootz_start(struct cmd_tbl *cmdtp, int flag, int argc,
 {
 	ulong zi_start, zi_end;
 	struct bootm_info bmi;
+	phys_addr_t ep_addr;
 	int ret;
 
 	bootm_init(&bmi);
@@ -57,7 +57,14 @@ static int bootz_start(struct cmd_tbl *cmdtp, int flag, int argc,
 	if (ret != 0)
 		return 1;
 
-	lmb_reserve(&images->lmb, images->ep, zi_end - zi_start);
+	ep_addr = (phys_addr_t)images->ep;
+	ret = lmb_alloc_mem(LMB_MEM_ALLOC_ADDR, 0, &ep_addr, zi_end - zi_start,
+			    LMB_NONE);
+	if (ret) {
+		printf("Failed to allocate memory for the image at %#llx\n",
+		       (unsigned long long)images->ep);
+		return 1;
+	}
 
 	/*
 	 * Handle the BOOTM_STATE_FINDOTHER state ourselves as we do not

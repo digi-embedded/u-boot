@@ -10,8 +10,7 @@
 #define CFG_SYS_INIT_RAM_SIZE	OCRAM_SIZE
 
 #define CFG_PRAM			((CONFIG_KM_PNVRAM + \
-					  CONFIG_KM_PHRAM + \
-					  CONFIG_KM_RESERVED_PRAM) >> 10)
+					  CONFIG_KM_PHRAM) >> 10)
 
 #define PHYS_SDRAM			0x80000000
 #define PHYS_SDRAM_SIZE			(1u * 1024 * 1024 * 1024)
@@ -144,19 +143,6 @@
  * Serial Port
  */
 #define CFG_SYS_NS16550_CLK		get_serial_clock()
-
-/*
- * I2C
- */
-
-#define CFG_SYS_I2C_MAX_HOPS		1
-#define CFG_SYS_NUM_I2C_BUSES	3
-#define I2C_MUX_PCA_ADDR		0x70
-#define I2C_MUX_CH_DEFAULT		0x0
-#define CFG_SYS_I2C_BUSES	{	{0, {I2C_NULL_HOP} }, \
-					{0, {{I2C_MUX_PCA9547, 0x70, 1 } } }, \
-					{1, {I2C_NULL_HOP}                 }, \
-				}
 
 #define CFG_SMP_PEN_ADDR		0x01ee0200
 

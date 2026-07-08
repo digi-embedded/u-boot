@@ -11,13 +11,13 @@
  *  Xilinx FPGA support
  */
 
-#include <common.h>
 #include <fpga.h>
 #include <log.h>
 #include <virtex2.h>
 #include <spartan2.h>
 #include <spartan3.h>
 #include <zynqpl.h>
+#include <linux/string.h>
 
 /* Local Static Functions */
 static int xilinx_validate(xilinx_desc *desc, char *fn);
@@ -49,7 +49,10 @@ int fpga_loadbitstream(int devnum, char *fpgadata, size_t size,
 
 	dataptr = (unsigned char *)fpgadata;
 	/* Find out fpga_description */
-	desc = fpga_validate(devnum, dataptr, 0, (char *)__func__);
+	desc = fpga_validate(devnum, dataptr, 0);
+	if (!desc)
+		return FPGA_FAIL;
+
 	/* Assign xilinx device description */
 	xdesc = desc->devdesc;
 

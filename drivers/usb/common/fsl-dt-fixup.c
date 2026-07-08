@@ -7,7 +7,6 @@
  * Author: Tor Krill tor@excito.com
  */
 
-#include <common.h>
 #include <log.h>
 #include <usb.h>
 #include <asm/io.h>
@@ -100,7 +99,7 @@ static int fsl_fdt_fixup_usb_erratum(void *blob, const char *prop_erratum,
 	else
 		node_name = node_type;
 	if (strcmp(node_name, controller_type))
-		return err;
+		return -EINVAL;
 
 	err = fdt_setprop(blob, node_offset, prop_erratum, NULL, 0);
 	if (err < 0) {

@@ -7,9 +7,9 @@
 /*
  * Diagnostics support
  */
-#include <common.h>
 #include <command.h>
 #include <post.h>
+#include <linux/string.h>
 
 int do_diag(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {

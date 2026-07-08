@@ -5,7 +5,6 @@ choice
 
 config TARGET_CHROMEBOOK_BOB
 	bool "Asus Flip C101PA Chromebook (RK3399)"
-	select HAS_ROM
 	select ROCKCHIP_SPI_IMAGE
 	help
 	  Bob is a small RK3299-based device similar in apperance to Minnie.
@@ -16,7 +15,6 @@ config TARGET_CHROMEBOOK_BOB
 
 config TARGET_CHROMEBOOK_KEVIN
 	bool "Samsung Chromebook Plus (RK3399)"
-	select HAS_ROM
 	select ROCKCHIP_SPI_IMAGE
 	help
 	  Kevin is a RK3399-based convertible chromebook. It has two USB 3.0
@@ -89,6 +87,11 @@ config TARGET_ROCK960_RK3399
 	   * 2x USB 3.0 type A, 2x USB 2.0 type A (host mode only),
 	     1x USB 3.0 type C OTG
 
+config TARGET_ROCKPI4_RK3399
+	bool "Radxa ROCK Pi 4 board"
+	help
+	  Support for ROCK Pi 4 board family by Radxa.
+
 config TARGET_ROCKPRO64_RK3399
 	bool "Pine64 Rockpro64 board"
 	help
@@ -138,15 +141,6 @@ config ROCKCHIP_STIMER_BASE
 config SYS_SOC
 	default "rk3399"
 
-config SYS_MALLOC_F_LEN
-	default 0x4000
-
-config SPL_LIBCOMMON_SUPPORT
-	default y
-
-config SPL_LIBGENERIC_SUPPORT
-	default y
-
 config TPL_LDSCRIPT
 	default "arch/arm/mach-rockchip/u-boot-tpl-v8.lds"
 
@@ -155,9 +149,6 @@ config TPL_STACK
 
 config TPL_TEXT_BASE
         default 0xff8c2000
-
-config SPL_STACK_R_ADDR
-	default 0x04000000
 
 if BOOTCOUNT_LIMIT
 
@@ -174,6 +165,7 @@ source "board/google/gru/Kconfig"
 source "board/pine64/pinebook-pro-rk3399/Kconfig"
 source "board/pine64/pinephone-pro-rk3399/Kconfig"
 source "board/pine64/rockpro64_rk3399/Kconfig"
+source "board/radxa/rockpi4-rk3399/Kconfig"
 source "board/rockchip/evb_rk3399/Kconfig"
 source "board/theobroma-systems/puma_rk3399/Kconfig"
 source "board/vamrs/rock960_rk3399/Kconfig"

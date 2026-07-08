@@ -154,6 +154,15 @@ enum event_t {
 	EVT_MAIN_LOOP,
 
 	/**
+	 * @EVT_OF_LIVE_BUILT:
+	 * This event is triggered immediately after the live device tree has been
+	 * built. This allows for machine specific fixups to be done to the live tree
+	 * (like disabling known-unsupported devices) before it is used. This
+	 * event is only available if OF_LIVE is enabled and is only used after relocation.
+	 */
+	EVT_OF_LIVE_BUILT,
+
+	/**
 	 * @EVT_COUNT:
 	 * This constants holds the maximum event number + 1 and is used when
 	 * looping over all event classes.
@@ -203,6 +212,15 @@ union event_data {
 		oftree tree;
 		struct bootm_headers *images;
 	} ft_fixup;
+
+	/**
+	 * struct event_of_live_built - livetree has been built
+	 *
+	 * @root: The root node of the live device tree
+	 */
+	struct event_of_live_built {
+		struct device_node *root;
+	} of_live_built;
 };
 
 /**
@@ -316,7 +334,7 @@ static inline const char *event_spy_id(struct evspy_info *spy)
 	__used ll_entry_declare(struct evspy_info, _type ## _3_ ## _func, \
 		evspy_info) = _ESPY_REC(_type, _func)
 
-/* Simple spy with no function arguemnts */
+/* Simple spy with no function arguments */
 #define EVENT_SPY_SIMPLE(_type, _func) \
 	__used ll_entry_declare(struct evspy_info_simple, \
 		_type ## _3_ ## _func, \
@@ -385,7 +403,7 @@ static inline int event_notify_null(enum event_t type)
 int event_uninit(void);
 
 /**
- * event_uninit() - Set up dynamic events
+ * event_init() - Set up dynamic events
  *
  * Init a list of dynamic event handlers, so that these can be added as
  * needed

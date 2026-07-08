@@ -9,9 +9,105 @@
 #ifndef __EXYNOS_CLK_H
 #define __EXYNOS_CLK_H
 
+#include <clk.h>
 #include <errno.h>
 #include <linux/clk-provider.h>
 #include "clk-pll.h"
+
+int samsung_clk_request(struct clk *clk);
+
+#define _SAMSUNG_CLK_OPS(_name, _cmu)					\
+static int _name##_of_xlate(struct clk *clk,				\
+			    struct ofnode_phandle_args *args)		\
+{									\
+	if (args->args_count > 1) {					\
+		debug("Invalid args_count: %d\n", args->args_count);	\
+		return -EINVAL;						\
+	}								\
+									\
+	if (args->args_count)						\
+		clk->id = SAMSUNG_TO_CLK_ID(_cmu, args->args[0]);	\
+	else								\
+		clk->id = 0;						\
+									\
+	return 0;							\
+}									\
+									\
+static const struct clk_ops _name##_clk_ops = {				\
+	.set_rate = ccf_clk_set_rate,					\
+	.get_rate = ccf_clk_get_rate,					\
+	.set_parent = ccf_clk_set_parent,				\
+	.enable = ccf_clk_enable,					\
+	.disable = ccf_clk_disable,					\
+	.of_xlate = _name##_of_xlate,					\
+	.request = samsung_clk_request,					\
+}
+
+/**
+ * SAMSUNG_CLK_OPS - Define clock operations structure for specified CMU.
+ * @name: name of generated structure
+ * @cmu: CMU index
+ *
+ * Like ccf_clk_ops, but with custom .of_xlate callback.
+ */
+#define SAMSUNG_CLK_OPS(name, cmu) _SAMSUNG_CLK_OPS(name, cmu)
+
+/**
+ * SAMSUNG_TO_CLK_ID - Calculate a global clock index.
+ * @_cmu: CMU index
+ * @_id: local clock index (unique across @_cmu)
+ *
+ * Return: A global clock index unique across all CMUs.
+ * Keeps a range of 256 available clocks for every CMU.
+ */
+#define SAMSUNG_TO_CLK_ID(_cmu, _id)	(((_cmu) << 8) | ((_id) & 0xff))
+
+/**
+ * struct samsung_fixed_rate_clock - information about fixed-rate clock
+ * @id: platform specific id of the clock
+ * @name: name of this fixed-rate clock
+ * @fixed_rate: fixed clock rate of this clock
+ */
+struct samsung_fixed_rate_clock {
+	unsigned int		id;
+	const char		*name;
+	unsigned long		fixed_rate;
+};
+
+#define FRATE(_id, cname, frate)			\
+	{						\
+		.id		= _id,			\
+		.name		= cname,		\
+		.fixed_rate	= frate,		\
+	}
+
+/**
+ * struct samsung_fixed_factor_clock - information about fixed-factor clock
+ * @id: platform specific id of the clock
+ * @name: name of this fixed-factor clock
+ * @parent_name: parent clock name
+ * @mult: fixed multiplication factor
+ * @div: fixed division factor
+ * @flags: optional fixed-factor clock flags
+ */
+struct samsung_fixed_factor_clock {
+	unsigned int		id;
+	const char		*name;
+	const char		*parent_name;
+	unsigned long		mult;
+	unsigned long		div;
+	unsigned long		flags;
+};
+
+#define FFACTOR(_id, cname, pname, m, d, f)		\
+	{						\
+		.id		= _id,			\
+		.name		= cname,		\
+		.parent_name	= pname,		\
+		.mult		= m,			\
+		.div		= d,			\
+		.flags		= f,			\
+	}
 
 /**
  * struct samsung_mux_clock - information about mux clock
@@ -161,6 +257,8 @@ struct samsung_pll_clock {
 	}
 
 enum samsung_clock_type {
+	S_CLK_FRATE,
+	S_CLK_FFACTOR,
 	S_CLK_MUX,
 	S_CLK_DIV,
 	S_CLK_GATE,
@@ -179,29 +277,14 @@ struct samsung_clk_group {
 	unsigned int nr_clk;
 };
 
-void samsung_clk_register_mux(void __iomem *base,
-			      const struct samsung_mux_clock *clk_list,
-			      unsigned int nr_clk);
-void samsung_clk_register_div(void __iomem *base,
-			      const struct samsung_div_clock *clk_list,
-			      unsigned int nr_clk);
-void samsung_clk_register_gate(void __iomem *base,
-			       const struct samsung_gate_clock *clk_list,
-			       unsigned int nr_clk);
-void samsung_clk_register_pll(void __iomem *base,
-			      const struct samsung_pll_clock *clk_list,
-			      unsigned int nr_clk);
-
-void samsung_cmu_register_clocks(void __iomem *base,
-				 const struct samsung_clk_group *clk_groups,
-				 unsigned int nr_groups);
-int samsung_cmu_register_one(struct udevice *dev,
+int samsung_cmu_register_one(struct udevice *dev, unsigned int cmu_id,
 			     const struct samsung_clk_group *clk_groups,
 			     unsigned int nr_groups);
 
 /**
  * samsung_register_cmu - Register CMU clocks ensuring parent CMU is present
  * @dev: CMU device
+ * @cmu_id: CMU index number
  * @clk_groups: list of CMU clock groups
  * @parent_drv: name of parent CMU driver
  *
@@ -210,7 +293,7 @@ int samsung_cmu_register_one(struct udevice *dev,
  *
  * Return: 0 on success or negative value on error.
  */
-#define samsung_register_cmu(dev, clk_groups, parent_drv)		\
+#define samsung_register_cmu(dev, cmu_id, clk_groups, parent_drv)	\
 ({									\
 	struct udevice *__parent;					\
 	int __ret;							\
@@ -220,8 +303,8 @@ int samsung_cmu_register_one(struct udevice *dev,
 	if (__ret || !__parent)						\
 		__ret = -ENOENT;					\
 	else								\
-		__ret = samsung_cmu_register_one(dev, clk_groups,	\
-			ARRAY_SIZE(clk_groups));			\
+		__ret = samsung_cmu_register_one(dev, cmu_id,		\
+			clk_groups, ARRAY_SIZE(clk_groups));		\
 	__ret;								\
 })
 

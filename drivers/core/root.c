@@ -8,7 +8,6 @@
 
 #define LOG_CATEGORY UCLASS_ROOT
 
-#include <common.h>
 #include <errno.h>
 #include <fdtdec.h>
 #include <log.h>
@@ -33,7 +32,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-static struct driver_info root_info = {
+static const struct driver_info root_info = {
 	.name		= "root_driver",
 };
 
@@ -148,6 +147,13 @@ int dm_remove_devices_flags(uint flags)
 
 	return 0;
 }
+
+void dm_remove_devices_active(void)
+{
+	/* Remove non-vital devices first */
+	device_remove(dm_root(), DM_REMOVE_ACTIVE_ALL | DM_REMOVE_NON_VITAL);
+	device_remove(dm_root(), DM_REMOVE_ACTIVE_ALL);
+}
 #endif
 
 int dm_scan_plat(bool pre_reloc_only)
@@ -208,7 +214,7 @@ static int dm_scan_fdt_node(struct udevice *parent, ofnode parent_node,
 		err = lists_bind_fdt(parent, node, NULL, NULL, pre_reloc_only);
 		if (err && !ret) {
 			ret = err;
-			debug("%s: ret=%d\n", node_name, ret);
+			dm_warn("%s: ret=%d\n", node_name, ret);
 		}
 	}
 
@@ -244,12 +250,13 @@ int dm_extended_scan(bool pre_reloc_only)
 	const char * const nodes[] = {
 		"/chosen",
 		"/clocks",
-		"/firmware"
+		"/firmware",
+		"/reserved-memory",
 	};
 
 	ret = dm_scan_fdt(pre_reloc_only);
 	if (ret) {
-		debug("dm_scan_fdt() failed: %d\n", ret);
+		dm_warn("dm_scan_fdt() failed: %d\n", ret);
 		return ret;
 	}
 
@@ -257,8 +264,8 @@ int dm_extended_scan(bool pre_reloc_only)
 	for (i = 0; i < ARRAY_SIZE(nodes); i++) {
 		ret = dm_scan_fdt_ofnode_path(nodes[i], pre_reloc_only);
 		if (ret) {
-			debug("dm_scan_fdt() scan for %s failed: %d\n",
-			      nodes[i], ret);
+			dm_warn("dm_scan_fdt() scan for %s failed: %d\n",
+				nodes[i], ret);
 			return ret;
 		}
 	}
@@ -281,6 +288,16 @@ void *dm_priv_to_rw(void *priv)
 }
 #endif
 
+/**
+ * dm_probe_devices() - Check whether to probe a device and all children
+ *
+ * Probes the device if DM_FLAG_PROBE_AFTER_BIND is enabled for it. Then scans
+ * all its children recursively to do the same.
+ *
+ * @dev: Device to (maybe) probe
+ * @pre_reloc_only: Probe only devices marked with the DM_FLAG_PRE_RELOC flag
+ * Return 0 if OK, -ve on error
+ */
 static int dm_probe_devices(struct udevice *dev, bool pre_reloc_only)
 {
 	ofnode node = dev_ofnode(dev);
@@ -305,6 +322,17 @@ probe_children:
 	return 0;
 }
 
+int dm_autoprobe(void)
+{
+	int ret;
+
+	ret = dm_probe_devices(gd->dm_root, !(gd->flags & GD_FLG_RELOC));
+	if (ret)
+		return log_msg_ret("pro", ret);
+
+	return 0;
+}
+
 /**
  * dm_scan() - Scan tables to bind devices
  *
@@ -321,14 +349,14 @@ static int dm_scan(bool pre_reloc_only)
 
 	ret = dm_scan_plat(pre_reloc_only);
 	if (ret) {
-		debug("dm_scan_plat() failed: %d\n", ret);
+		dm_warn("dm_scan_plat() failed: %d\n", ret);
 		return ret;
 	}
 
 	if (CONFIG_IS_ENABLED(OF_REAL)) {
 		ret = dm_extended_scan(pre_reloc_only);
 		if (ret) {
-			debug("dm_extended_scan() failed: %d\n", ret);
+			dm_warn("dm_extended_scan() failed: %d\n", ret);
 			return ret;
 		}
 	}
@@ -337,7 +365,7 @@ static int dm_scan(bool pre_reloc_only)
 	if (ret)
 		return ret;
 
-	return dm_probe_devices(gd->dm_root, pre_reloc_only);
+	return 0;
 }
 
 int dm_init_and_scan(bool pre_reloc_only)
@@ -346,7 +374,7 @@ int dm_init_and_scan(bool pre_reloc_only)
 
 	ret = dm_init(CONFIG_IS_ENABLED(OF_LIVE));
 	if (ret) {
-		debug("dm_init() failed: %d\n", ret);
+		dm_warn("dm_init() failed: %d\n", ret);
 		return ret;
 	}
 	if (!CONFIG_IS_ENABLED(OF_PLATDATA_INST)) {

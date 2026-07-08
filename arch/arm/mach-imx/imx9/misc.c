@@ -4,7 +4,6 @@
  *
  */
 
-#include <common.h>
 #include <command.h>
 #include <cpu_func.h>
 #include <init.h>
@@ -17,6 +16,7 @@
 #include <asm/mach-imx/ele_api.h>
 #include <asm/arch/sys_proto.h>
 #include <linux/delay.h>
+#include <linux/sizes.h>
 #include <display_options.h>
 
 static int do_v2x_status(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
@@ -25,7 +25,7 @@ static int do_v2x_status(struct cmd_tbl *cmdtp, int flag, int argc, char *const 
 	u32 resp = 0;
 	struct v2x_get_state state;
 
-	if (!is_imx95()) {
+	if (!(is_imx95() || is_imx94() || is_imx952())) {
 		printf("No V2X supported\n");
 		return CMD_RET_FAILURE;
 	}

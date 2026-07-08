@@ -132,6 +132,17 @@ void nand_wait_ready(struct mtd_info *mtd);
 #define NAND_DATA_IFACE_CHECK_ONLY	-1
 
 /*
+ * There are different places where the manufacturer stores the factory bad
+ * block markers.
+ *
+ * Position within the block: Each of these pages needs to be checked for a
+ * bad block marking pattern.
+ */
+#define NAND_BBM_FIRSTPAGE	BIT(24)
+#define NAND_BBM_SECONDPAGE	BIT(25)
+#define NAND_BBM_LASTPAGE	BIT(26)
+
+/*
  * Constants for ECC_MODES
  */
 typedef enum {
@@ -176,7 +187,6 @@ enum nand_ecc_algo {
 
 /* Bit mask for flags passed to do_nand_read_ecc */
 #define NAND_GET_DEVICE		0x80
-
 
 /*
  * Option constants for bizarre disfunctionality and real
@@ -248,6 +258,18 @@ enum nand_ecc_algo {
  * kmap'ed, vmalloc'ed highmem buffers being passed from upper layers
  */
 #define NAND_USE_BOUNCE_BUFFER	0x00100000
+/*
+ * Whether the NAND chip is a boot medium. Drivers might use this information
+ * to select ECC algorithms supported by the boot ROM or similar restrictions.
+ */
+#define NAND_IS_BOOT_MEDIUM	0x00400000
+
+/*
+ * Do not try to tweak the timings at runtime. This is needed when the
+ * controller initializes the timings on itself or when it relies on
+ * configuration done by the bootloader.
+ */
+#define NAND_KEEP_TIMINGS	0x00800000
 
 /* Options set by nand scan */
 /* bbt has already been read */
@@ -924,7 +946,6 @@ struct nand_chip {
 	int (*setup_data_interface)(struct mtd_info *mtd, int chipnr,
 				    const struct nand_data_interface *conf);
 
-
 	int chip_delay;
 	unsigned int options;
 	unsigned int bbt_options;
@@ -971,6 +992,7 @@ struct nand_chip {
 	struct nand_bbt_descr *bbt_md;
 
 	struct nand_bbt_descr *badblock_pattern;
+	int cur_cs;
 
 	void *priv;
 

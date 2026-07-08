@@ -5,7 +5,6 @@
  * liuhao  <liuhao@phytium.com.cn>
  */
 
-#include <common.h>
 #include <command.h>
 #include <cpu_func.h>
 #include <event.h>
@@ -35,11 +34,6 @@ int dram_init_banksize(void)
 	gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
 	gd->bd->bi_dram[0].size =  PHYS_SDRAM_1_SIZE;
 
-	return 0;
-}
-
-int board_init(void)
-{
 	return 0;
 }
 

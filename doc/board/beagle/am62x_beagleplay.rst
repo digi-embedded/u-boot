@@ -23,7 +23,7 @@ Boot Flow:
 ----------
 Below is the pictorial representation of boot flow:
 
-.. image:: ../ti/img/boot_diagram_k3_current.svg
+.. image:: ../ti/img/boot_diagram_am62.svg
   :alt: Boot flow diagram
 
 - On this platform, 'TI Foundational Security' (TIFS) functions as the
@@ -37,6 +37,10 @@ Sources:
 .. include::  ../ti/k3.rst
     :start-after: .. k3_rst_include_start_boot_sources
     :end-before: .. k3_rst_include_end_boot_sources
+
+.. include::  ../ti/k3.rst
+    :start-after: .. k3_rst_include_start_boot_firmwares
+    :end-before: .. k3_rst_include_end_tifsstub
 
 Build procedure:
 ----------------
@@ -63,7 +67,8 @@ Set the variables corresponding to this platform:
   # we dont use any extra TFA parameters
   unset TFA_EXTRA_ARGS
   export OPTEE_PLATFORM=k3-am62x
-  export OPTEE_EXTRA_ARGS="CFG_WITH_SOFTWARE_PRNG=y"
+  # we dont use any extra OPTEE parameters
+  unset OPTEE_EXTRA_ARGS
 
 .. include::  ../ti/am62x_sk.rst
     :start-after: .. am62x_evm_rst_include_start_build_steps
@@ -71,11 +76,10 @@ Set the variables corresponding to this platform:
 
 Target Images
 -------------
-Copy the below images to an SD card and boot:
+Copy these images to an SD card and boot:
 
-* tiboot3-am62x-gp-evm.bin from R5 build as tiboot3.bin
-* tispl.bin_unsigned from Cortex-A build as tispl.bin
-* u-boot.img_unsigned from Cortex-A build as u-boot.img
+* tiboot3.bin from Cortex-R5 build.
+* tispl.bin and u-boot.img from Cortex-A build
 
 Image formats
 -------------
@@ -87,7 +91,7 @@ Image formats
 
 - tispl.bin
 
-.. image:: ../ti/img/dm_tispl.bin.svg
+.. image:: ../ti/img/tifsstub_dm_tispl.bin.svg
   :alt: tispl.bin image format
 
 Additional hardware for U-Boot development
@@ -268,7 +272,19 @@ for details.
      - USB Device Firmware Upgrade (DFU) mode
 
 To switch to SD card boot mode, hold the USR button while powering on
-with Type-C power supply, then release when power LED lights up.
+with a USB type C power supply, then release when power LED lights up.
+
+DFU based boot
+--------------
+
+To boot the board over DFU, ensure there is no SD card inserted with a
+bootloader. Hold the USR switch while plugging into the type C to boot into DFU
+mode. After power-on the build artifacts needs to be uploaded one by one with a
+tool like dfu-util.
+
+.. include::  ../ti/am62x_sk.rst
+    :start-after: .. am62x_evm_rst_include_start_dfu_boot
+    :end-before: .. am62x_evm_rst_include_end_dfu_boot
 
 Debugging U-Boot
 ----------------

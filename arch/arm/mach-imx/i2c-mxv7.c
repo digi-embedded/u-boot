@@ -4,8 +4,8 @@
  * Copyright (C) 2014-2016 Freescale Semiconductor, Inc.
  * Copyright 2018 NXP
  */
-#include <common.h>
 #include <malloc.h>
+#include <time.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/imx-regs.h>
 #include <linux/delay.h>

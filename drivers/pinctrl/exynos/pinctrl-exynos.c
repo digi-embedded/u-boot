@@ -6,8 +6,8 @@
  */
 
 #include <log.h>
-#include <common.h>
 #include <dm.h>
+#include <dm/lists.h>
 #include <errno.h>
 #include <asm/io.h>
 #include "pinctrl-exynos.h"
@@ -115,8 +115,8 @@ static void exynos_pinctrl_set_pincfg(unsigned long reg_base, u32 pin_num,
 int exynos_pinctrl_set_state(struct udevice *dev, struct udevice *config)
 {
 	struct exynos_pinctrl_priv *priv = dev_get_priv(dev);
-	unsigned int count, idx;
-	unsigned int pinvals[PINCFG_TYPE_NUM];
+	int count;
+	unsigned int idx, pinvals[PINCFG_TYPE_NUM];
 
 	/*
 	 * refer to the following document for the pinctrl bindings
@@ -178,4 +178,14 @@ int exynos_pinctrl_probe(struct udevice *dev)
 				dev_seq(dev);
 
 	return 0;
+}
+
+int exynos_pinctrl_bind(struct udevice *dev)
+{
+	/*
+	 * Attempt to bind the Exynos GPIO driver. The GPIOs and
+	 * pin controller descriptors are found in the same OF node.
+	 */
+	return device_bind_driver_to_node(dev, "gpio_exynos", "gpio-banks",
+					  dev_ofnode(dev), NULL);
 }

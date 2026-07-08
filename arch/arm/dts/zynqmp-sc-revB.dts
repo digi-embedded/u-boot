@@ -3,7 +3,7 @@
  * dts file for Xilinx ZynqMP Generic System Controller
  *
  * (C) Copyright 2021 - 2022, Xilinx, Inc.
- * (C) Copyright 2022 - 2023, Advanced Micro Devices, Inc.
+ * (C) Copyright 2022 - 2024, Advanced Micro Devices, Inc.
  *
  * Michal Simek <michal.simek@amd.com>
  */
@@ -49,7 +49,7 @@
 	gpio-keys {
 		compatible = "gpio-keys";
 		autorepeat;
-		fwuen {
+		key-fwuen {
 			label = "sw16";
 			gpios = <&gpio 12 GPIO_ACTIVE_LOW>;
 			linux,code = <BTN_MISC>;
@@ -80,7 +80,7 @@
 	pwm-fan {
 		compatible = "pwm-fan";
 		status = "okay";
-		pwms = <&ttc0 2 40000 1>;
+		pwms = <&ttc0 2 40000 0>;
 	};
 };
 
@@ -104,7 +104,7 @@
 		"", "", "ETH_RESET_B", /* 75 - 77, MIO end and EMIO start */
 		"", "", /* 78 - 79 */
 		"", "", "", "", "", /* 80 - 84 */
-		"", "", "", "", "", /* 85 -89 */
+		"", "", "", "", "", /* 85 - 89 */
 		"", "", "", "", "", /* 90 - 94 */
 		"", "", "", "", "", /* 95 - 99 */
 		"", "", "", "", "", /* 100 - 104 */
@@ -175,6 +175,7 @@
 	/* Use for storing information about SC board */
 	eeprom: eeprom@54 { /* u34 - m24128 16kB */
 		compatible = "st,24c128", "atmel,24c128";
+		label = "eeprom_cc";
 		reg = <0x54>; /* & 0x5c */
 		bootph-all;
 	};
@@ -192,7 +193,7 @@
 	status = "okay";
 	/* QSPI should also have PINCTRL setup */
 	flash@0 {
-		compatible = "mt25qu512a", "m25p80", "jedec,spi-nor"; /* mt25qu512abb8e12 512Mib */
+		compatible = "m25p80", "jedec,spi-nor"; /* mt25qu512abb8e12 512Mib */
 		#address-cells = <1>;
 		#size-cells = <1>;
 		reg = <0>;
@@ -221,35 +222,35 @@
 		};
 		partition@140000 {
 			label = "Open_1";
-			reg = <0x140000 0xC0000>; /* 768KB */
+			reg = <0x140000 0xc0000>; /* 768KB */
 		};
 		partition@200000 {
 			label = "Image A (FSBL, PMU, ATF, U-Boot)";
-			reg = <0x200000 0xD00000>; /* 13MB */
+			reg = <0x200000 0xd00000>; /* 13MB */
 		};
 		partition@f00000 {
 			label = "ImgSel Image A Catch";
-			reg = <0xF00000 0x80000>; /* 512KB */
+			reg = <0xf00000 0x80000>; /* 512KB */
 			read-only;
 			lock;
 		};
 		partition@f80000 {
 			label = "Image B (FSBL, PMU, ATF, U-Boot)";
-			reg = <0xF80000 0xD00000>; /* 13MB */
+			reg = <0xf80000 0xd00000>; /* 13MB */
 		};
 		partition@1c80000 {
 			label = "ImgSel Image B Catch";
-			reg = <0x1C80000 0x80000>; /* 512KB */
+			reg = <0x1c80000 0x80000>; /* 512KB */
 			read-only;
 			lock;
 		};
 		partition@1d00000 {
 			label = "Open_2";
-			reg = <0x1D00000 0x100000>; /* 1MB */
+			reg = <0x1d00000 0x100000>; /* 1MB */
 		};
 		partition@1e00000 {
 			label = "Recovery Image";
-			reg = <0x1E00000 0x200000>; /* 2MB */
+			reg = <0x1e00000 0x200000>; /* 2MB */
 			read-only;
 			lock;
 		};
@@ -277,9 +278,9 @@
 			label = "Secure OS Storage";
 			reg = <0x2280000 0x20000>; /* 128KB */
 		};
-		partition@22A0000 {
+		partition@22a0000 {
 			label = "User";
-			reg = <0x22A0000 0x1d60000>; /* 29.375 MB */
+			reg = <0x22a0000 0x1d60000>; /* 29.375 MB */
 		};
 	};
 };
@@ -288,6 +289,9 @@
 	status = "okay";
 	non-removable;
 	disable-wp;
+	no-sd;
+	no-sdio;
+	cap-mmc-hw-reset;
 	bus-width = <8>;
 	xlnx,mio-bank = <0>;
 };
@@ -405,7 +409,7 @@
 
 		conf-tx {
 			pins = "MIO38", "MIO39", "MIO40",
-				"MIO41", "MIO42", "MIO43";
+			       "MIO41", "MIO42", "MIO43";
 			bias-disable;
 			low-power-enable;
 		};

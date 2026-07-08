@@ -177,7 +177,9 @@ static int gpio_dwapb_bind(struct udevice *dev)
 
 		plat->base = (void *)base;
 		plat->bank = bank;
-		plat->pins = ofnode_read_u32_default(node, "snps,nr-gpios", 0);
+
+		if (ofnode_read_u32(node, "ngpios", &plat->pins))
+			plat->pins = ofnode_read_u32_default(node, "snps,nr-gpios", 0);
 
 		if (ofnode_read_string_index(node, "bank-name", 0,
 					     &plat->name)) {
@@ -191,7 +193,7 @@ static int gpio_dwapb_bind(struct udevice *dev)
 				 ofnode_get_name(node));
 			plat->name = strdup(name);
 			if (!plat->name) {
-				kfree(plat);
+				devm_kfree(dev, plat);
 				return -ENOMEM;
 			}
 		}

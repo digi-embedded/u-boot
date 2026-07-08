@@ -44,6 +44,7 @@ config TARGET_IMX8ULP_EVK
 	select IMX8ULP
 	select SUPPORT_SPL
 	select IMX8ULP_DRAM
+	imply OF_UPSTREAM
 	select FSL_CAAM
 	select FSL_BLOB
 	select ARCH_MISC_INIT
@@ -54,6 +55,7 @@ config TARGET_IMX8ULP_9X9_EVK
 	select IMX8ULP
 	select SUPPORT_SPL
 	select IMX8ULP_DRAM
+	imply OF_UPSTREAM
 	select FSL_CAAM
 	select FSL_BLOB
 	select MISC
@@ -72,7 +74,7 @@ config TARGET_IMX8ULP_WATCH
 
 endchoice
 
-source "board/freescale/imx8ulp_evk/Kconfig"
-source "board/freescale/imx8ulp_watch/Kconfig"
+source "board/nxp/imx8ulp_evk/Kconfig"
+source "board/nxp/imx8ulp_watch/Kconfig"
 
 endif

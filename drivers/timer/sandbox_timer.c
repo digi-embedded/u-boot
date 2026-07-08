@@ -3,7 +3,6 @@
  * Copyright (C) 2015 Thomas Chou <thomas@wytron.com.tw>
  */
 
-#include <common.h>
 #include <dm.h>
 #include <errno.h>
 #include <timer.h>
@@ -18,6 +17,11 @@ void timer_test_add_offset(unsigned long offset)
 {
 	sandbox_timer_offset += offset;
 }
+
+ulong timer_test_get_offset(void)
+{
+	return sandbox_timer_offset;
+};
 
 u64 notrace timer_early_get_count(void)
 {

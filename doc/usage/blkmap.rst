@@ -39,7 +39,7 @@ network. Getting the image to the target is easy enough:
 
    dhcp ${ramdisk_addr_r} rootfs.ext4
 
-But now we are faced with a predicament: how to we extract the kernel
+But now we are faced with a predicament: how do we extract the kernel
 image? Block maps to the rescue!
 
 We start by creating a new device:
@@ -54,7 +54,7 @@ downloaded file, in blocks:
 ::
 
    setexpr fileblks ${filesize} + 0x1ff
-   setexpr fileblks ${filesize} / 0x200
+   setexpr fileblks ${fileblks} / 0x200
 
 Then we can add a mapping to the start of our device, backed by the
 memory at `${loadaddr}`:

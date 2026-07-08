@@ -5,7 +5,6 @@
  * (C) Copyright 2016
  *     Texas Instruments Incorporated, <www.ti.com>
  */
-#include <common.h>
 #include <command.h>
 #include <console.h>
 #include <dm.h>
@@ -87,6 +86,7 @@ static int ti_musb_of_to_plat(struct udevice *dev)
 	int phys;
 	int ctrl_mod;
 	int usb_index;
+	int ret;
 	struct musb_hdrc_config *musb_config;
 
 	plat->base = devfdt_get_addr_index_ptr(dev, 1);
@@ -109,35 +109,40 @@ static int ti_musb_of_to_plat(struct udevice *dev)
 	musb_config = malloc(sizeof(struct musb_hdrc_config));
 	memset(musb_config, 0, sizeof(struct musb_hdrc_config));
 
-	musb_config->multipoint = fdtdec_get_int(fdt, node,
-						 "mentor,multipoint", -1);
-	if (musb_config->multipoint < 0) {
+	ret = fdtdec_get_int(fdt, node, "mentor,multipoint", -1);
+	if (ret < 0) {
 		pr_err("MUSB multipoint DT entry missing\n");
 		return -ENOENT;
+	} else {
+		musb_config->multipoint = ret;
 	}
 
 	musb_config->dyn_fifo = 1;
 
-	musb_config->num_eps = fdtdec_get_int(fdt, node, "mentor,num-eps",
-					      -1);
-	if (musb_config->num_eps < 0) {
+	ret = fdtdec_get_int(fdt, node, "mentor,num-eps", -1);
+	if (ret < 0) {
 		pr_err("MUSB num-eps DT entry missing\n");
 		return -ENOENT;
+	} else {
+		musb_config->num_eps = ret;
 	}
 
-	musb_config->ram_bits = fdtdec_get_int(fdt, node, "mentor,ram-bits",
-					       -1);
-	if (musb_config->ram_bits < 0) {
+	ret = fdtdec_get_int(fdt, node, "mentor,ram-bits", -1);
+	if (ret < 0) {
 		pr_err("MUSB ram-bits DT entry missing\n");
 		return -ENOENT;
+	} else {
+		musb_config->ram_bits = ret;
 	}
 
 	plat->plat.config = musb_config;
 
-	plat->plat.power = fdtdec_get_int(fdt, node, "mentor,power", -1);
-	if (plat->plat.power < 0) {
+	ret = fdtdec_get_int(fdt, node, "mentor,power", -1);
+	if (ret < 0) {
 		pr_err("MUSB mentor,power DT entry missing\n");
 		return -ENOENT;
+	} else {
+		plat->plat.power = ret;
 	}
 
 	plat->plat.platform_ops = &musb_dsps_ops;
@@ -234,15 +239,6 @@ static int ti_musb_peripheral_of_to_plat(struct udevice *dev)
 }
 #endif
 
-static int ti_musb_peripheral_handle_interrupts(struct udevice *dev)
-{
-	struct ti_musb_peripheral *priv = dev_get_priv(dev);
-
-	priv->periph->isr(0, priv->periph);
-
-	return 0;
-}
-
 static int ti_musb_peripheral_probe(struct udevice *dev)
 {
 	struct ti_musb_peripheral *priv = dev_get_priv(dev);
@@ -270,16 +266,28 @@ static int ti_musb_peripheral_remove(struct udevice *dev)
 	return 0;
 }
 
+static int ti_musb_gadget_handle_interrupts(struct udevice *dev)
+{
+	struct ti_musb_peripheral *priv = dev_get_priv(dev);
+
+	priv->periph->isr(0, priv->periph);
+
+	return 0;
+}
+
+static const struct usb_gadget_generic_ops ti_musb_gadget_ops = {
+	.handle_interrupts	= ti_musb_gadget_handle_interrupts,
+};
+
 U_BOOT_DRIVER(ti_musb_peripheral) = {
 	.name	= "ti-musb-peripheral",
 	.id	= UCLASS_USB_GADGET_GENERIC,
 #if CONFIG_IS_ENABLED(OF_CONTROL)
 	.of_to_plat = ti_musb_peripheral_of_to_plat,
 #endif
+	.ops	= &ti_musb_gadget_ops,
 	.probe = ti_musb_peripheral_probe,
 	.remove = ti_musb_peripheral_remove,
-	.ops	= &musb_usb_ops,
-	.handle_interrupts = ti_musb_peripheral_handle_interrupts,
 	.plat_auto	= sizeof(struct ti_musb_plat),
 	.priv_auto	= sizeof(struct ti_musb_peripheral),
 	.flags = DM_FLAG_PRE_RELOC,

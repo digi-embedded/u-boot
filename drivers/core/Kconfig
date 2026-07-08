@@ -56,7 +56,7 @@ config DM_WARN
 	  out - it will do nothing when called.
 
 config SPL_DM_WARN
-	bool "Enable warnings in driver model wuth SPL"
+	bool "Enable warnings in driver model in SPL"
 	depends on SPL_DM
 	help
 	  Enable this to see warnings related to driver model in SPL
@@ -113,7 +113,7 @@ config DM_EVENT
 	select EVENT
 	help
 	  This enables support for generating events related to driver model
-	  operations, such as prbing or removing a device. Subsystems can
+	  operations, such as probing or removing a device. Subsystems can
 	  register a 'spy' function that is called when the event occurs. Such
 	  subsystems must select this option.
 
@@ -146,6 +146,15 @@ config DM_SEQ_ALIAS
 config SPL_DM_SEQ_ALIAS
 	bool "Support numbered aliases in device tree in SPL"
 	depends on SPL_DM
+	select SPL_STRTO
+	help
+	  Most boards will have a '/aliases' node containing the path to
+	  numbered devices (e.g. serial0 = &serial0). This feature can be
+	  disabled if it is not required, to save code space in SPL.
+
+config TPL_DM_SEQ_ALIAS
+	bool "Support numbered aliases in device tree in TPL"
+	depends on TPL_DM
 	help
 	  Most boards will have a '/aliases' node containing the path to
 	  numbered devices (e.g. serial0 = &serial0). This feature can be
@@ -188,6 +197,7 @@ config DM_DMA
 config REGMAP
 	bool "Support register maps"
 	depends on DM
+	select DEVRES
 	help
 	  Hardware peripherals tend to have one or more sets of registers
 	  which can be accessed to control the hardware. A register map
@@ -262,16 +272,17 @@ config VPL_SYSCON
 	  assigning a unique number to each.
 
 config DEVRES
-	bool "Managed device resources"
+	bool
 	depends on DM
 	help
 	  This option enables the Managed device resources core support.
 	  Device resources managed by the devres framework are automatically
 	  released whether initialization fails half-way or the device gets
-	  detached.
+	  detached. This is most often used via devm_kmalloc and family and
+	  is expected to work in a manner analogous to the Linux Kernel.
 
-	  If this option is disabled, devres functions fall back to
-	  non-managed variants.  For example, devres_alloc() to kzalloc(),
+	  This option is disabled in xPL phases and devres functions fall back
+	  to non-managed variants. For example, devres_alloc() to kzalloc(),
 	  devm_kmalloc() to kmalloc(), etc.
 
 config DEBUG_DEVRES

@@ -7,7 +7,6 @@
  * Andreas Heppel <aheppel@sysgo.de>
  */
 
-#include <common.h>
 #include <bootstage.h>
 #include <command.h>
 #include <env.h>
@@ -17,6 +16,7 @@
 #include <asm/global_data.h>
 #include <linux/printk.h>
 #include <linux/stddef.h>
+#include <mapmem.h>
 #include <search.h>
 #include <errno.h>
 #include <malloc.h>
@@ -64,7 +64,7 @@ int env_do_env_set(int flag, int argc, char *const argv[], int env_flag)
 
 	debug("Initial value for argc=%d\n", argc);
 
-#if !IS_ENABLED(CONFIG_SPL_BUILD) && IS_ENABLED(CONFIG_CMD_NVEDIT_EFI)
+#if !IS_ENABLED(CONFIG_XPL_BUILD) && IS_ENABLED(CONFIG_CMD_NVEDIT_EFI)
 	if (argc > 1 && argv[1][0] == '-' && argv[1][1] == 'e')
 		return do_env_set_efi(NULL, flag, --argc, ++argv);
 #endif
@@ -84,6 +84,10 @@ int env_do_env_set(int flag, int argc, char *const argv[], int env_flag)
 		}
 	}
 	debug("Final value for argc=%d\n", argc);
+	/* Exit early if we don't have an env to apply */
+	if (argc < 2)
+		return 0;
+
 	name = argv[1];
 
 	if (strchr(name, '=')) {
@@ -371,6 +375,18 @@ int env_get_default_into(const char *name, char *buf, unsigned int len)
 	return env_get_from_linear(default_environment, name, buf, len);
 }
 
+static int env_update_fdt_addr_from_bloblist(void)
+{
+	/*
+	 * fdt_addr is by default used by booti, bootm and bootefi,
+	 * thus set it to point to the fdt embedded in a bloblist if it exists.
+	 */
+	if (!CONFIG_IS_ENABLED(BLOBLIST) || gd->fdt_src != FDTSRC_BLOBLIST)
+		return 0;
+
+	return env_set_hex("fdt_addr", (uintptr_t)map_to_sysmem(gd->fdt_blob));
+}
+
 __weak void platform_default_environment(void)
 {
 	return;
@@ -403,8 +419,11 @@ void env_set_default(const char *s, int flags)
 
 	gd->flags |= GD_FLG_ENV_READY;
 	gd->flags |= GD_FLG_ENV_DEFAULT;
-}
 
+	/* This has to be done after GD_FLG_ENV_READY is set */
+	if (env_update_fdt_addr_from_bloblist())
+		pr_err("Failed to set fdt_addr to point at DTB\n");
+}
 
 /* [re]set individual variables to their value in the default environment */
 int env_set_default_vars(int nvars, char * const vars[], int flags)
@@ -413,7 +432,15 @@ int env_set_default_vars(int nvars, char * const vars[], int flags)
 	 * Special use-case: import from default environment
 	 * (and use \0 as a separator)
 	 */
-	flags |= H_NOCLEAR | H_DEFAULT;
+
+	/*
+	 * When vars are passed remove variables that are not in
+	 * the default environment.
+	 */
+	if (!nvars)
+		flags |= H_NOCLEAR;
+
+	flags |= H_DEFAULT;
 	return himport_r(&env_htab, default_environment,
 				sizeof(default_environment), '\0',
 				flags, 0, nvars, vars);
@@ -458,7 +485,9 @@ int env_import(const char *buf, int check, int flags)
 	if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE, '\0', flags, 0,
 			0, NULL)) {
 		gd->flags |= GD_FLG_ENV_READY;
-		return 0;
+
+		/* This has to be done after GD_FLG_ENV_READY is set */
+		return env_update_fdt_addr_from_bloblist();
 	}
 
 	pr_err("Cannot import environment: errno = %d\n", errno);
@@ -468,17 +497,27 @@ int env_import(const char *buf, int check, int flags)
 	return -EIO;
 }
 
-#ifdef CONFIG_SYS_REDUNDAND_ENVIRONMENT
+#ifdef CONFIG_ENV_REDUNDANT
 static unsigned char env_flags;
+
+#define ENV_SINGLE_HEADER_SIZE	(sizeof(uint32_t))
+#define ENV_SINGLE_SIZE		(CONFIG_ENV_SIZE - ENV_SINGLE_HEADER_SIZE)
+
+typedef struct {
+	uint32_t	crc;			/* CRC32 over data bytes */
+	unsigned char	data[ENV_SINGLE_SIZE];	/* Environment data */
+} env_single_t;
 
 int env_check_redund(const char *buf1, int buf1_read_fail,
 		     const char *buf2, int buf2_read_fail)
 {
-	int crc1_ok = 0, crc2_ok = 0;
+	int crc1_ok = 0, crc2_ok = 0, i;
 	env_t *tmp_env1, *tmp_env2;
+	env_single_t *tmp_envs;
 
 	tmp_env1 = (env_t *)buf1;
 	tmp_env2 = (env_t *)buf2;
+	tmp_envs = (env_single_t *)buf1;
 
 	if (buf1_read_fail && buf2_read_fail) {
 		puts("*** Error - No Valid Environment Area found\n");
@@ -496,6 +535,25 @@ int env_check_redund(const char *buf1, int buf1_read_fail,
 				tmp_env2->crc;
 
 	if (!crc1_ok && !crc2_ok) {
+		/*
+		 * Upgrade single-copy environment to redundant environment.
+		 * In case CRC checks on both environment copies fail, try
+		 * one more CRC check on the primary environment copy and
+		 * treat it as single-copy environment. If that check does
+		 * pass, rewrite the single-copy environment into redundant
+		 * environment format and indicate the environment is valid.
+		 * The follow up calls will import the environment as if it
+		 * was a redundant environment. Follow up 'env save' will
+		 * then store two environment copies.
+		 */
+		if (CONFIG_IS_ENABLED(ENV_REDUNDANT_UPGRADE) && !buf1_read_fail &&
+		    crc32(0, tmp_envs->data, ENV_SINGLE_SIZE) == tmp_envs->crc) {
+			for (i = ENV_SIZE - 1; i >= 0; i--)
+				tmp_env1->data[i] = tmp_envs->data[i];
+			tmp_env1->flags = 0;
+			gd->env_valid = ENV_VALID;
+			return 0;
+		}
 		gd->env_valid = ENV_INVALID;
 		return -ENOMSG; /* needed for env_load() */
 	} else if (crc1_ok && !crc2_ok) {
@@ -557,7 +615,7 @@ int env_import_redund(const char *buf1, int buf1_read_fail,
 
 	return env_import((char *)ep, 0, flags);
 }
-#endif /* CONFIG_SYS_REDUNDAND_ENVIRONMENT */
+#endif /* CONFIG_ENV_REDUNDANT */
 
 /* Export the environment and generate CRC for it. */
 int env_export(env_t *env_out)
@@ -580,7 +638,7 @@ int env_export(env_t *env_out)
 
 	env_out->crc = crc32(0, env_out->data, ENV_SIZE);
 
-#ifdef CONFIG_SYS_REDUNDAND_ENVIRONMENT
+#ifdef CONFIG_ENV_REDUNDANT
 	env_out->flags = ++env_flags; /* increase the serial */
 #endif
 
@@ -590,7 +648,7 @@ int env_export(env_t *env_out)
 void env_relocate(void)
 {
 	if (gd->env_valid == ENV_INVALID) {
-#if defined(CONFIG_ENV_IS_NOWHERE) || defined(CONFIG_SPL_BUILD)
+#if defined(CONFIG_ENV_IS_NOWHERE) || defined(CONFIG_XPL_BUILD)
 		/* Environment not changable */
 		env_set_default(NULL, 0);
 #else
@@ -633,7 +691,6 @@ int env_complete(char *var, int maxv, char *cmdv[], int bufsz, char *buf,
 	idx = 0;
 	found = 0;
 	cmdv[0] = NULL;
-
 
 	while ((idx = hmatch_r(var, idx, &match, &env_htab))) {
 		int vallen = strlen(match->key) + 1;

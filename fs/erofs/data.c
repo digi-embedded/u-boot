@@ -313,18 +313,21 @@ static int z_erofs_read_data(struct erofs_inode *inode, char *buffer,
 		}
 
 		if (!(map.m_flags & EROFS_MAP_MAPPED)) {
-			memset(buffer + end - offset, 0, length);
+			memset(buffer + end - offset, 0, length - skip);
 			end = map.m_la;
 			continue;
 		}
 
 		if (map.m_plen > bufsize) {
+			char *tmp;
+
 			bufsize = map.m_plen;
-			raw = realloc(raw, bufsize);
-			if (!raw) {
+			tmp = realloc(raw, bufsize);
+			if (!tmp) {
 				ret = -ENOMEM;
 				break;
 			}
+			raw = tmp;
 		}
 
 		ret = z_erofs_read_one_data(inode, &map, raw,

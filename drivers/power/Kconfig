@@ -15,6 +15,7 @@ if POWER
 
 config POWER_LEGACY
 	bool "Legacy power support"
+	depends on !DM_PMIC
 	help
 	  Note: This is a legacy option. Use DM_PMIC instead.
 
@@ -57,6 +58,7 @@ choice
 	default AXP209_POWER if MACH_SUN4I || MACH_SUN5I || MACH_SUN7I
 	default AXP221_POWER if MACH_SUN6I || MACH_SUN8I_A23 || MACH_SUN8I_A33 || MACH_SUN8I_R40
 	default AXP818_POWER if MACH_SUN8I_A83T
+	default AXP318W_POWER if MACH_SUN60I_A733
 	default SUNXI_NO_PMIC if MACH_SUNXI_H3_H5 || MACH_SUN50I || MACH_SUN8I_V3S
 
 config SUNXI_NO_PMIC
@@ -109,6 +111,19 @@ config AXP313_POWER
 	Select this to enable support for the AXP313 PMIC found on some
 	H616 boards.
 
+config AXP717_POWER
+	bool "axp717 pmic support"
+	select AXP_PMIC_BUS
+	select CMD_POWEROFF
+	---help---
+	Select this to enable support for the AXP717 PMIC found on some boards.
+
+config AXP803_POWER
+	bool "AXP803 PMIC support"
+	select AXP_PMIC_BUS
+	---help---
+	Select this to enable support for the AXP803 PMIC found on some boards.
+
 config AXP809_POWER
 	bool "axp809 pmic support"
 	depends on MACH_SUN9I
@@ -126,6 +141,14 @@ config AXP818_POWER
 	Say y here to enable support for the axp818 pmic found on
 	A83T dev board.
 
+config AXP318W_POWER
+	bool "axp318w pmic support"
+	select AXP_PMIC_BUS
+	select CMD_POWEROFF
+	---help---
+	Select this to enable support for the AXP318W PMIC found on some
+	A733 boards.
+
 config SY8106A_POWER
 	bool "SY8106A pmic support"
 	depends on MACH_SUNXI_H3_H5
@@ -135,10 +158,21 @@ config SY8106A_POWER
 
 endchoice
 
+config AXP_I2C_ADDRESS
+	hex "AXP PMIC I2C address"
+	depends on ARCH_SUNXI && !SUNXI_NO_PMIC
+	default 0x36 if AXP305_POWER
+	default 0x36 if AXP313_POWER
+	default 0x36 if AXP318W_POWER
+	default 0x30 if AXP152_POWER
+	default 0x34
+	---help---
+	I2C address of the AXP PMIC, used for the SPL only.
+
 config AXP_DCDC1_VOLT
 	int "axp pmic dcdc1 voltage"
-	depends on AXP221_POWER || AXP809_POWER || AXP818_POWER
-	default 3300 if AXP818_POWER || MACH_SUN8I_R40
+	depends on AXP221_POWER || AXP809_POWER || AXP818_POWER || AXP803_POWER
+	default 3300 if AXP818_POWER || MACH_SUN8I_R40 || AXP803_POWER
 	default 3000 if MACH_SUN6I || MACH_SUN8I || MACH_SUN9I
 	---help---
 	Set the voltage (mV) to program the axp pmic dcdc1 at, set to 0 to
@@ -151,10 +185,12 @@ config AXP_DCDC1_VOLT
 
 config AXP_DCDC2_VOLT
 	int "axp pmic dcdc2 voltage"
-	depends on AXP152_POWER || AXP209_POWER || AXP221_POWER || AXP809_POWER || AXP818_POWER || AXP313_POWER
+	depends on AXP152_POWER || AXP209_POWER || AXP221_POWER || AXP809_POWER || AXP818_POWER || AXP313_POWER || AXP717_POWER || AXP803_POWER
 	default 900 if AXP818_POWER
 	default 1400 if AXP152_POWER || AXP209_POWER
 	default 1000 if AXP313_POWER
+	default 1000 if AXP717_POWER
+	default 1000 if AXP803_POWER
 	default 1200 if MACH_SUN6I
 	default 1100 if MACH_SUN8I
 	default 0 if MACH_SUN9I
@@ -167,11 +203,11 @@ config AXP_DCDC2_VOLT
 	On A80 boards dcdc2 powers the GPU and can be left off.
 	On A83T boards dcdc2 is used for VDD-CPUA(cluster 0) and should be 0.9V.
 	On R40 boards dcdc2 is VDD-CPU and should be 1.1V
-	On boards using the AXP313 it's often VDD-CPU.
+	On boards using the AXP313 or AXP717 it's often VDD-CPU.
 
 config AXP_DCDC3_VOLT
 	int "axp pmic dcdc3 voltage"
-	depends on AXP152_POWER || AXP209_POWER || AXP221_POWER || AXP809_POWER || AXP818_POWER || AXP313_POWER
+	depends on AXP152_POWER || AXP209_POWER || AXP221_POWER || AXP809_POWER || AXP818_POWER || AXP313_POWER || AXP717_POWER
 	default 900 if AXP809_POWER || AXP818_POWER
 	default 1500 if AXP152_POWER
 	default 1250 if AXP209_POWER
@@ -188,7 +224,8 @@ config AXP_DCDC3_VOLT
 	On A80 boards dcdc3 is used for VDD-CPUA(cluster 0) and should be 0.9V.
 	On A83T boards dcdc3 is used for VDD-CPUB(cluster 1) and should be 0.9V.
 	On R40 boards dcdc3 is VDD-SYS and VDD-GPU and should be 1.1V.
-	On boards using the AXP313 it's often VDD-DRAM and should be 1.1V for LPDDR4.
+	On boards using the AXP313 or AXP717 it's often VDD-DRAM and should
+	be 1.1V for LPDDR4.
 
 config AXP_DCDC4_VOLT
 	int "axp pmic dcdc4 voltage"
@@ -210,7 +247,7 @@ config AXP_DCDC4_VOLT
 
 config AXP_DCDC5_VOLT
 	int "axp pmic dcdc5 voltage"
-	depends on AXP221_POWER || AXP809_POWER || AXP818_POWER
+	depends on AXP221_POWER || AXP809_POWER || AXP818_POWER || AXP803_POWER
 	default 1500 if MACH_SUN6I || MACH_SUN8I || MACH_SUN9I
 	---help---
 	Set the voltage (mV) to program the axp pmic dcdc5 at, set to 0 to
@@ -434,12 +471,9 @@ config TWL4030_POWER
 	The TWL4030 in a combination audio CODEC/power management with
 	GPIO and it is commonly used with the OMAP3 family of processors
 
-config TWL6030_POWER
-	depends on OMAP44XX
-	bool "Enable driver for TI TWL6030 power management chip"
-
 config POWER_MT6323
 	bool "Poweroff driver for mediatek mt6323"
+	depends on ARCH_MEDIATEK
 	select CMD_POWEROFF
 	help
 	  This adds poweroff driver for mt6323

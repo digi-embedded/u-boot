@@ -24,7 +24,7 @@ config SYS_SOC
 	default "mxs"
 
 source "board/olimex/mx23_olinuxino/Kconfig"
-source "board/freescale/mx23evk/Kconfig"
+source "board/nxp/mx23evk/Kconfig"
 
 endif
 
@@ -37,6 +37,11 @@ config MX28
 choice
 	prompt "MX28 board select"
 	optional
+
+config TARGET_BTT
+	bool "Support BTT"
+	select PL01X_SERIAL
+	imply OF_UPSTREAM
 
 config TARGET_MX28EVK
 	bool "Support mx28evk"
@@ -69,7 +74,8 @@ config SPL_MXS_PMU_ENABLE_4P2_LINEAR_REGULATOR
 	  This option enables the 4P2 linear regulator (derived
 	  from VDD5V) - so the VDD4P2 power source is operational.
 
-source "board/freescale/mx28evk/Kconfig"
+source "board/nxp/mx28evk/Kconfig"
+source "board/liebherr/btt/Kconfig"
 source "board/liebherr/xea/Kconfig"
 
 endif

@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright 2020-2023 NXP
+ * Copyright 2020 NXP
  */
 
-#include <common.h>
 #include <console.h>
 #include <errno.h>
 #include <fuse.h>
@@ -86,8 +85,8 @@ struct ele_map_entry ele_api_mapping_table[] = {
 };
 #elif defined(CONFIG_ARCH_IMX9)
 #define FSB_OTP_SHADOW	0x8000
-#define IS_FSB_ALLOWED (!IS_ENABLED(CONFIG_SCMI_FIRMWARE) \
-	&& !(readl(BLK_CTRL_NS_ANOMIX_BASE_ADDR + 0x28) & BIT(0)))
+#define IS_FSB_ALLOWED (!IS_ENABLED(CONFIG_SCMI_FIRMWARE) && \
+	!(readl(BLK_CTRL_NS_ANOMIX_BASE_ADDR + 0x28) & BIT(0)))
 
 struct fsb_map_entry fsb_mapping_table[] = {
 	{ 0, 8 },
@@ -126,7 +125,10 @@ struct fsb_map_entry fsb_mapping_table[] = {
 };
 
 struct ele_map_entry ele_api_mapping_table[] = {
-	{ 7, 1, 7, 63 },
+	{ 6, 1, 7 },
+	{ 7, 5, },
+	{ 7, 2, 6, },
+	{ 12, 1, 1, },
 	{ 16, 8, },
 	{ 17, 8, },
 	{ 22, 1, 6 },

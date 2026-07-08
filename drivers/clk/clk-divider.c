@@ -11,7 +11,6 @@
 
 #define LOG_CATEGORY UCLASS_CLK
 
-#include <common.h>
 #include <asm/io.h>
 #include <malloc.h>
 #include <clk-uclass.h>
@@ -184,7 +183,7 @@ const struct clk_ops clk_divider_ops = {
 	.set_rate = clk_divider_set_rate,
 };
 
-static struct clk *_register_divider(struct device *dev, const char *name,
+static struct clk *_register_divider(struct udevice *dev, const char *name,
 		const char *parent_name, unsigned long flags,
 		void __iomem *reg, u8 shift, u8 width,
 		u8 clk_divider_flags, const struct clk_div_table *table)
@@ -219,7 +218,8 @@ static struct clk *_register_divider(struct device *dev, const char *name,
 	clk = &div->clk;
 	clk->flags = flags;
 
-	ret = clk_register(clk, UBOOT_DM_CLK_CCF_DIVIDER, name, parent_name);
+	ret = clk_register(clk, UBOOT_DM_CLK_CCF_DIVIDER, name,
+			   clk_resolve_parent_clk(dev, parent_name));
 	if (ret) {
 		kfree(div);
 		return ERR_PTR(ret);
@@ -228,7 +228,7 @@ static struct clk *_register_divider(struct device *dev, const char *name,
 	return clk;
 }
 
-struct clk *clk_register_divider(struct device *dev, const char *name,
+struct clk *clk_register_divider(struct udevice *dev, const char *name,
 		const char *parent_name, unsigned long flags,
 		void __iomem *reg, u8 shift, u8 width,
 		u8 clk_divider_flags)

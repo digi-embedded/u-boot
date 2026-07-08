@@ -3,7 +3,7 @@
  * Copyright (C) 2016 Stefan Roese <sr@denx.de>
  */
 
-#include <common.h>
+#include <config.h>
 #include <dm.h>
 #include <dm/device-internal.h>
 #include <env.h>
@@ -20,6 +20,7 @@
 #include <asm/arch/cpu.h>
 #include <asm/arch/soc.h>
 #include <linux/delay.h>
+#include <linux/if_ether.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 

@@ -3,6 +3,7 @@
  *  EFI application disk support
  *
  *  Copyright (c) 2016 Alexander Graf
+ *  Copyright 2026 NXP
  */
 
 #define LOG_CATEGORY LOGC_EFI
@@ -11,13 +12,16 @@
 #include <dm.h>
 #include <dm/device-internal.h>
 #include <dm/tag.h>
+#include <efi_device_path.h>
 #include <event.h>
 #include <efi_driver.h>
 #include <efi_loader.h>
+#include <efi_erase_block.h>
 #include <fs.h>
 #include <log.h>
 #include <part.h>
 #include <malloc.h>
+#include <mmc.h>
 
 struct efi_system_partition efi_system_partition = {
 	.uclass_id = UCLASS_INVALID,
@@ -25,6 +29,10 @@ struct efi_system_partition efi_system_partition = {
 
 const efi_guid_t efi_block_io_guid = EFI_BLOCK_IO_PROTOCOL_GUID;
 const efi_guid_t efi_system_partition_guid = PARTITION_SYSTEM_GUID;
+const efi_guid_t efi_partition_info_guid = EFI_PARTITION_INFO_PROTOCOL_GUID;
+#ifdef CONFIG_EFI_ERASE_BLOCK
+const efi_guid_t efi_erase_block_protocol_guid = EFI_ERASE_BLOCK_PROTOCOL_GUID;
+#endif
 
 /**
  * struct efi_disk_obj - EFI disk object
@@ -34,6 +42,7 @@ const efi_guid_t efi_system_partition_guid = PARTITION_SYSTEM_GUID;
  * @media:	block I/O media information
  * @dp:		device path to the block device
  * @volume:	simple file system protocol of the partition
+ * @info:	EFI partition info protocol interface
  */
 struct efi_disk_obj {
 	struct efi_object header;
@@ -41,6 +50,10 @@ struct efi_disk_obj {
 	struct efi_block_io_media media;
 	struct efi_device_path *dp;
 	struct efi_simple_file_system_protocol *volume;
+	struct efi_partition_info info;
+#ifdef CONFIG_EFI_ERASE_BLOCK
+	struct efi_erase_block_protocol erase_ops;
+#endif
 };
 
 /**
@@ -300,7 +313,94 @@ static efi_status_t EFIAPI efi_disk_flush_blocks(struct efi_block_io *this)
 	return EFI_EXIT(EFI_SUCCESS);
 }
 
+#ifdef CONFIG_EFI_ERASE_BLOCK
+static efi_status_t EFIAPI efi_disk_erase_blocks(
+	struct efi_erase_block_protocol *this,
+	u32 media_id,
+	u64 lba,
+	struct efi_erase_block_token *token,
+	efi_uintn_t size)
+{
+	struct efi_disk_obj *diskobj;
+	lbaint_t blkcnt;
+	long erased;
+
+	EFI_ENTRY("%p, %x, %llx, %p, %zx", this, media_id, lba, token, size);
+
+	if (!this)
+		return EFI_EXIT(EFI_INVALID_PARAMETER);
+
+	diskobj = container_of(this, struct efi_disk_obj, erase_ops);
+
+	if (media_id != diskobj->media.media_id)
+		return EFI_EXIT(EFI_MEDIA_CHANGED);
+
+	if (!diskobj->media.media_present)
+		return EFI_EXIT(EFI_NO_MEDIA);
+
+	if (diskobj->media.read_only)
+		return EFI_EXIT(EFI_WRITE_PROTECTED);
+
+	if (size == 0)
+		return EFI_EXIT(EFI_SUCCESS);
+
+	if (size % diskobj->media.block_size != 0)
+		return EFI_EXIT(EFI_INVALID_PARAMETER);
+
+	blkcnt = size / diskobj->media.block_size;
+
+	if (lba + blkcnt - 1 > diskobj->media.last_block)
+		return EFI_EXIT(EFI_INVALID_PARAMETER);
+
+	log_info("Erasing blocks %llu to %llu due to alignment.\n", lba, lba + blkcnt);
+	if (CONFIG_IS_ENABLED(PARTITIONS) &&
+	    device_get_uclass_id(diskobj->header.dev) == UCLASS_PARTITION) {
+		erased = disk_blk_erase(diskobj->header.dev, lba, blkcnt);
+	} else {
+		struct blk_desc *desc = dev_get_uclass_plat(diskobj->header.dev);
+
+		if (!desc)
+			return EFI_EXIT(EFI_DEVICE_ERROR);
+		erased = blk_derase(desc, lba, blkcnt);
+	}
+	log_info("........ erased %lu bytes.\n", erased * diskobj->media.block_size);
+
+	efi_timer_check();
+
+	if (token) {
+		token->transaction_status = (erased == blkcnt) ?
+			EFI_SUCCESS : EFI_DEVICE_ERROR;
+		if (token->event)
+			efi_signal_event(token->event);
+	}
+
+	if (erased != blkcnt)
+		return EFI_EXIT(EFI_DEVICE_ERROR);
+
+	return EFI_EXIT(EFI_SUCCESS);
+}
+
+static u32 efi_disk_get_erase_grp_size(struct blk_desc *desc)
+{
+	struct mmc *mmc;
+
+	/* Default for non-MMC device */
+	if (!desc || desc->uclass_id != UCLASS_MMC)
+		return 1;
+
+	mmc = find_mmc_device(desc->devnum);
+	if (!mmc || mmc->erase_grp_size == 0)
+		return 1;
+
+	return mmc->erase_grp_size;
+}
+#endif
+
 static const struct efi_block_io block_io_disk_template = {
+	/* Bump the revision to make the GBL happy */
+#ifdef CONFIG_IMX_ANDROID_GBL
+	.revision = EFI_BLOCK_IO_PROTOCOL_REVISION3,
+#endif
 	.reset = &efi_disk_reset,
 	.read_blocks = &efi_disk_read_blocks,
 	.write_blocks = &efi_disk_write_blocks,
@@ -425,6 +525,7 @@ static efi_status_t efi_disk_add_dev(
 	/* Fill in object data */
 	if (part_info) {
 		struct efi_device_path *node = efi_dp_part_node(desc, part);
+		struct efi_partition_info *info = &diskobj->info;
 		struct efi_handler *handler;
 		void *protocol_interface;
 
@@ -453,18 +554,48 @@ static efi_status_t efi_disk_add_dev(
 			goto error;
 		}
 
+		info->revision = EFI_PARTITION_INFO_PROTOCOL_REVISION;
+
+		switch (desc->part_type) {
+#if CONFIG_IS_ENABLED(EFI_PARTITION)
+		case PART_TYPE_EFI:
+			info->type = PARTITION_TYPE_GPT;
+			ret = part_get_gpt_pte(desc, part, &info->info.gpt);
+			if (ret) {
+				log_debug("get PTE for part %d failed %ld\n",
+					  part, ret);
+				goto error;
+			}
+			break;
+#endif
+#if CONFIG_IS_ENABLED(DOS_PARTITION)
+		case PART_TYPE_DOS:
+			info->type = PARTITION_TYPE_MBR;
+
+			/* TODO: implement support for MBR partition types */
+			log_debug("EFI_PARTITION_INFO_PROTOCOL doesn't support MBR\n");
+			break;
+#endif
+		default:
+			info->type = PARTITION_TYPE_OTHER;
+			break;
+		}
+
 		diskobj->dp = efi_dp_append_node(dp_parent, node);
 		efi_free_pool(node);
 		diskobj->media.last_block = part_info->size - 1;
-		if (part_info->bootable & PART_EFI_SYSTEM_PARTITION)
+		if (part_info->bootable & PART_EFI_SYSTEM_PARTITION) {
 			esp_guid = &efi_system_partition_guid;
+			info->system = 1;
+		}
+
 	} else {
 		diskobj->dp = efi_dp_from_part(desc, part);
 		diskobj->media.last_block = desc->lba - 1;
 	}
 
 	/*
-	 * Install the device path and the block IO protocol.
+	 * Install the device path, the block IO and partition info protocols.
 	 *
 	 * InstallMultipleProtocolInterfaces() checks if the device path is
 	 * already installed on an other handle and returns EFI_ALREADY_STARTED
@@ -475,6 +606,7 @@ static efi_status_t efi_disk_add_dev(
 					&handle,
 					&efi_guid_device_path, diskobj->dp,
 					&efi_block_io_guid, &diskobj->ops,
+					&efi_partition_info_guid, &diskobj->info,
 					/*
 					 * esp_guid must be last entry as it
 					 * can be NULL. Its interface is NULL.
@@ -505,6 +637,18 @@ static efi_status_t efi_disk_add_dev(
 	}
 	diskobj->ops = block_io_disk_template;
 
+#ifdef CONFIG_EFI_ERASE_BLOCK
+	diskobj->erase_ops.revision = EFI_ERASE_BLOCK_PROTOCOL_REVISION;
+	diskobj->erase_ops.erase_length_granularity = efi_disk_get_erase_grp_size(desc);
+	diskobj->erase_ops.erase_blocks = efi_disk_erase_blocks;
+
+	ret = efi_add_protocol(&diskobj->header,
+			       &efi_erase_block_protocol_guid,
+			       &diskobj->erase_ops);
+	if (ret != EFI_SUCCESS)
+		goto error;
+#endif
+
 	/* Fill in EFI IO Media info (for read/write callbacks) */
 	diskobj->media.removable_media = desc->removable;
 	diskobj->media.media_present = 1;
@@ -531,7 +675,8 @@ static efi_status_t efi_disk_add_dev(
 
 	/* Store first EFI system partition */
 	if (part && efi_system_partition.uclass_id == UCLASS_INVALID) {
-		if (part_info->bootable & PART_EFI_SYSTEM_PARTITION) {
+		if (part_info &&
+		    part_info->bootable & PART_EFI_SYSTEM_PARTITION) {
 			efi_system_partition.uclass_id = desc->uclass_id;
 			efi_system_partition.devnum = desc->devnum;
 			efi_system_partition.part = part;
@@ -561,11 +706,9 @@ static int efi_disk_create_raw(struct udevice *dev, efi_handle_t agent_handle)
 {
 	struct efi_disk_obj *disk;
 	struct blk_desc *desc;
-	int diskid;
 	efi_status_t ret;
 
 	desc = dev_get_uclass_plat(dev);
-	diskid = desc->devnum;
 
 	ret = efi_disk_add_dev(NULL, NULL, desc,
 			       NULL, 0, &disk, agent_handle);
@@ -608,7 +751,6 @@ static int efi_disk_create_part(struct udevice *dev, efi_handle_t agent_handle)
 	struct disk_part *part_data;
 	struct disk_partition *info;
 	unsigned int part;
-	int diskid;
 	struct efi_handler *handler;
 	struct efi_device_path *dp_parent;
 	struct efi_disk_obj *disk;
@@ -618,7 +760,6 @@ static int efi_disk_create_part(struct udevice *dev, efi_handle_t agent_handle)
 		return -1;
 
 	desc = dev_get_uclass_plat(dev_get_parent(dev));
-	diskid = desc->devnum;
 
 	part_data = dev_get_uclass_plat(dev);
 	part = part_data->partnum;
@@ -681,6 +822,18 @@ int efi_disk_probe(void *ctx, struct event *event)
 	 * has already created an efi_disk at this moment.
 	 */
 	desc = dev_get_uclass_plat(dev);
+
+	/* Android supports booting from both eMMC and SD card, so valid
+	 * gpt maybe present in both devices. We don't want the partitions
+	 * be populated to the GBL unless they are in the boot device.
+	 */
+#ifdef CONFIG_IMX_ANDROID_GBL
+	if (desc->uclass_id == UCLASS_MMC && \
+		desc->devnum != mmc_get_env_dev()) {
+		return 0;
+	}
+#endif
+
 	if (desc->uclass_id != UCLASS_EFI_LOADER) {
 		ret = efi_disk_create_raw(dev, agent_handle);
 		if (ret)

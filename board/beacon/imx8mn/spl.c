@@ -3,7 +3,6 @@
  * Copyright 2020 Compass Electronics Group, LLC
  */
 
-#include <common.h>
 #include <hang.h>
 #include <image.h>
 #include <init.h>
@@ -111,8 +110,6 @@ int board_early_init_f(void)
 {
 	/* Claiming pwm pins prevents LCD flicker during startup*/
 	imx_iomux_v3_setup_multiple_pads(pwm_pads, ARRAY_SIZE(pwm_pads));
-
-	init_uart_clk(1);
 
 	return 0;
 }

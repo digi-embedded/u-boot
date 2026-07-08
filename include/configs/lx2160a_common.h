@@ -37,7 +37,6 @@
  * will be udpated later when get_bus_freq(0) is available.
  */
 
-
 /* Serial Port */
 #define CFG_PL011_CLOCK		(get_bus_freq(0) / 4)
 #define CFG_SYS_SERIAL0		0x21c0000
@@ -150,7 +149,7 @@
 	"kernelhdr_addr_sd=0x3000\0"            \
 	"kernel_size_sd=0x14000\0"              \
 	"kernelhdr_size_sd=0x20\0"              \
-	"console=ttyAMA0,38400n8\0"		\
+	"console=ttyAMA0,115200\0"		\
 	BOOTENV					\
 	"mcmemsize=0x70000000\0"		\
 	XSPI_MC_INIT_CMD				\

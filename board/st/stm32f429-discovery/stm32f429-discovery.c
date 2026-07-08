@@ -10,7 +10,6 @@
  * Kamil Lulko, <kamil.lulko@gmail.com>
  */
 
-#include <common.h>
 #include <dm.h>
 #include <env.h>
 #include <init.h>
@@ -43,11 +42,6 @@ int dram_init_banksize(void)
 {
 	fdtdec_setup_memory_banksize();
 
-	return 0;
-}
-
-int board_init(void)
-{
 	return 0;
 }
 

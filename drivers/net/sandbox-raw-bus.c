@@ -4,7 +4,6 @@
  * Copyright (c) 2018 Joe Hershberger <joe.hershberger@ni.com>
  */
 
-#include <common.h>
 #include <asm/eth-raw-os.h>
 #include <dm.h>
 #include <errno.h>
@@ -43,7 +42,7 @@ static int eth_raw_bus_post_bind(struct udevice *dev)
 		device_probe(child);
 		priv = dev_get_priv(child);
 		if (priv) {
-			strcpy(priv->host_ifname, i->if_name);
+			strlcpy(priv->host_ifname, i->if_name, IFNAMSIZ);
 			priv->host_ifindex = i->if_index;
 			priv->local = local;
 		}

@@ -4,7 +4,6 @@
  * Author: Teresa Remmet <t.remmet@phytec.de>
  */
 
-#include <common.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/ddr.h>
 #include <asm/arch/imx8mm_pins.h>
@@ -18,7 +17,12 @@
 #include <log.h>
 #include <spl.h>
 
+#include "../common/imx8m_som_detection.h"
+
 DECLARE_GLOBAL_DATA_PTR;
+
+#define EEPROM_ADDR		0x51
+#define EEPROM_ADDR_FALLBACK	0x59
 
 int spl_board_boot_device(enum boot_device boot_dev_spl)
 {
@@ -40,6 +44,18 @@ int spl_board_boot_device(enum boot_device boot_dev_spl)
 
 static void spl_dram_init(void)
 {
+	int ret;
+
+	ret = phytec_eeprom_data_setup_fallback(NULL, 0, EEPROM_ADDR,
+			EEPROM_ADDR_FALLBACK);
+	if (ret)
+		goto out;
+
+	ret = phytec_imx8m_detect(NULL);
+	if (!ret)
+		phytec_print_som_info(NULL);
+
+out:
 	ddr_init(&dram_timing);
 }
 

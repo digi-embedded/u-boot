@@ -30,7 +30,7 @@ config X86_RUN_32BIT
 	  arch_phys_memset() can be used for basic access to other memory.
 
 config X86_RUN_64BIT
-	bool "64-bit"
+	bool "32-bit SPL followed by 64-bit U-Boot"
 	select X86_64
 	select SPL if !EFI_APP
 	select SPL_SEPARATE_BSS if !EFI_APP
@@ -40,10 +40,19 @@ config X86_RUN_64BIT
 	  runs through the 16-bit and 32-bit init, then switches to 64-bit
 	  mode and jumps to U-Boot proper.
 
+config X86_RUN_64BIT_NO_SPL
+	bool "64-bit"
+	select X86_64
+	help
+          Build U-Boot as a 64-bit binary without SPL. As U-Boot enters
+          in 64-bit mode, the assumption is that the silicon is fully
+          initialized (MP, page tables, etc.).
+
 endchoice
 
 config X86_64
 	bool
+	select 64BIT
 
 config SPL_X86_64
 	bool
@@ -123,9 +132,6 @@ source "arch/x86/cpu/tangier/Kconfig"
 
 config AHCI
 	default y
-
-config SYS_MALLOC_F_LEN
-	default 0x800
 
 config RAMBASE
 	hex
@@ -359,7 +365,7 @@ config USE_HOB
 
 config HAVE_FSP
 	bool "Add an Firmware Support Package binary"
-	depends on !EFI
+	depends on !EFI_CLIENT
 	select USE_HOB
 	select HAS_ROM
 	help
@@ -381,6 +387,7 @@ config USE_CAR
 choice
 	prompt "FSP version"
 	depends on HAVE_FSP
+	default FSP_VERSION2 if INTEL_APOLLOLAKE
 	default FSP_VERSION1
 	help
 	  Selects the FSP version to use. Intel has published several versions
@@ -507,7 +514,7 @@ config FSP_BROKEN_HOB
 
 config ENABLE_MRC_CACHE
 	bool "Enable MRC cache"
-	depends on !EFI && !SYS_COREBOOT
+	depends on !EFI_CLIENT && !SYS_COREBOOT
 	help
 	  Enable this feature to cause MRC data to be cached in NV storage
 	  to be used for speeding up boot time on future reboots and/or
@@ -723,6 +730,14 @@ config ROM_TABLE_SIZE
 	hex
 	default 0x10000
 
+config X86_HARDFP
+	bool "Support hardware floating point"
+	help
+	  U-Boot generally does not make use of floating point. Where this is
+	  needed, it can be enabled using this option. This adjusts the
+	  start-up code for 64-bit mode and changes the compiler options for
+	  64-bit to enable SSE.
+
 config HAVE_ITSS
 	bool "Enable ITSS"
 	help
@@ -738,7 +753,7 @@ config HAVE_P2SB
 	  devices.
 
 menu "System tables"
-	depends on !EFI && !SYS_COREBOOT
+	depends on !EFI_CLIENT && !SYS_COREBOOT
 
 config GENERATE_PIRQ_TABLE
 	bool "Generate a PIRQ table"
@@ -1052,5 +1067,13 @@ config SPL_COREBOOT_SYSINFO
 	  various pieces of information about the running system, including
 	  display, memory and build information. It is stored in
 	  struct sysinfo_t after parsing by get_coreboot_info().
+
+config ZBOOT
+	bool "Support the zImage format"
+	default y
+	help
+	  Enable this to support booting the x86-specific zImage format. This
+	  uses a special, binary format containing information about the Linux
+	  format to boot.
 
 endmenu

@@ -29,11 +29,6 @@
  * 0x1F00000 - 0x2000000 : SPI.factory  (1MiB)
  */
 
-/* Below values are "dummy" - only to avoid build break */
-#define CFG_SYS_SPI_KERNEL_OFFS      0x150000
-#define CFG_SYS_SPI_ARGS_OFFS        0x140000
-#define CFG_SYS_SPI_ARGS_SIZE        0x10000
-
 #define CFG_MXC_UART_BASE		UART5_BASE
 
 /* MMC Configs */
@@ -119,7 +114,6 @@
 	"run tftp_mmc_rootfs;" \
 	"run tftp_mmc_rootfs_bkp;" \
 
-
 #define TFTP_UPDATE_RECOVERY_SWU_KERNEL \
 	"tftp_sf_fitImg_SWU=" \
 	    "if tftp ${loadaddr} ${kernel_file}; then " \
@@ -171,7 +165,6 @@
 	"display=tianma-tm070-800x480\0" \
 	"board=display5\0" \
 	"mmcdev=0\0" \
-	"altbootcmd=run recovery\0" \
 	"bootdelay=1\0" \
 	"baudrate=115200\0" \
 	"ethact=FEC\0" \
@@ -182,7 +175,6 @@
 	"fdtaddr=0x12800000\0" \
 	"console=ttymxc4,115200 quiet cma=256M\0" \
 	"fdtfile=imx6q-display5.dtb\0" \
-	"fdt_high=0xffffffff\0" \
 	"initrd_high=0xffffffff\0" \
 	"kernel_file=fitImage\0" \
 	"fitImg_fw_sz=0x2200\0" \
@@ -288,5 +280,4 @@
 /* The 0x120000 value corresponds to above SPI-NOR memory MAP */
 #endif
 
-#define CFG_MXC_USB_PORTSC           (PORT_PTS_UTMI | PORT_PTS_PTW)
 #endif /* __CONFIG_H */

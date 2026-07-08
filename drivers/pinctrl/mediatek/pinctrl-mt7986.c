@@ -415,7 +415,7 @@ static const struct mtk_pin_field_calc mt7986_pin_r1_range[] = {
 	PIN_FIELD_BASE(66, 68, IOCFG_LB_BASE, 0x60, 0x10, 2, 1),
 };
 
-static const struct mtk_pin_reg_calc mt7986_reg_cals[] = {
+static const struct mtk_pin_reg_calc mt7986_reg_cals[PINCTRL_PIN_REG_MAX] = {
 	[PINCTRL_PIN_REG_MODE] = MTK_RANGE(mt7986_pin_mode_range),
 	[PINCTRL_PIN_REG_DIR] = MTK_RANGE(mt7986_pin_dir_range),
 	[PINCTRL_PIN_REG_DI] = MTK_RANGE(mt7986_pin_di_range),
@@ -773,6 +773,7 @@ U_BOOT_DRIVER(mt7986_pinctrl) = {
 	.id = UCLASS_PINCTRL,
 	.of_match = mt7986_pctrl_match,
 	.ops = &mtk_pinctrl_ops,
+	.bind = mtk_pinctrl_common_bind,
 	.probe = mtk_pinctrl_mt7986_probe,
 	.priv_auto = sizeof(struct mtk_pinctrl_priv),
 };

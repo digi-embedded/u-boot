@@ -47,9 +47,8 @@
 #include "address.h"
 #include "API_AFE.h"
 #include "util.h"
-#ifndef __UBOOT__
 #include <stdio.h>
-#endif
+#include <log.h>
 
 void afe_write(unsigned int offset, unsigned short val)
 {

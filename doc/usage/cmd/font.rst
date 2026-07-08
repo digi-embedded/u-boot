@@ -13,7 +13,7 @@ Synopsis
 
     font list
     font select <name> [<size>]
-    font size <size>
+    font size [<size>]
 
 Description
 -----------
@@ -34,7 +34,7 @@ This selects a new font and optionally changes the size.
 font size
 ~~~~~~~~~
 
-This changes the font size only.
+This changes the font size only. With no argument it shows the current size.
 
 Examples
 --------
@@ -44,6 +44,8 @@ Examples
     => font list
     nimbus_sans_l_regular
     cantoraone_regular
+    => font size
+    30
     => font size 40
     => font select cantoraone_regular 20
     =>
@@ -52,9 +54,3 @@ Configuration
 -------------
 
 The command is only available if CONFIG_CONSOLE_TRUETYPE=y.
-
-Return value
-------------
-
-The return value $? is 0 (true) if the command completes.
-The return value is 1 (false) if the command fails.

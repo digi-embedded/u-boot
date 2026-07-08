@@ -5,7 +5,6 @@
 
 /* Tegra30 high-level function multiplexing */
 
-#include <common.h>
 #include <log.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/funcmux.h>
@@ -31,6 +30,22 @@ int funcmux_select(enum periph_id id, int config)
 			pinmux_tristate_disable(PMUX_PINGRP_ULPI_DATA1_PO2);
 			pinmux_tristate_disable(PMUX_PINGRP_ULPI_DATA2_PO3);
 			pinmux_tristate_disable(PMUX_PINGRP_ULPI_DATA3_PO4);
+			break;
+		}
+		break;
+	case PERIPH_ID_UART5:
+		switch (config) {
+		case FUNCMUX_UART5_SDMMC1:
+			pinmux_set_func(PMUX_PINGRP_SDMMC1_DAT3_PY4,
+					PMUX_FUNC_UARTE);
+			pinmux_set_func(PMUX_PINGRP_SDMMC1_DAT2_PY5,
+					PMUX_FUNC_UARTE);
+
+			pinmux_set_io(PMUX_PINGRP_SDMMC1_DAT3_PY4, PMUX_PIN_OUTPUT);
+			pinmux_set_io(PMUX_PINGRP_SDMMC1_DAT2_PY5, PMUX_PIN_INPUT);
+
+			pinmux_tristate_disable(PMUX_PINGRP_SDMMC1_DAT3_PY4);
+			pinmux_tristate_disable(PMUX_PINGRP_SDMMC1_DAT2_PY5);
 			break;
 		}
 		break;

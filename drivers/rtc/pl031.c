@@ -6,7 +6,6 @@
  * reference linux-2.6.20.6/drivers/rtc/rtc-pl031.c
  */
 
-#include <common.h>
 #include <command.h>
 #include <dm.h>
 #include <errno.h>
@@ -40,11 +39,11 @@ static inline u32 pl031_read_reg(struct udevice *dev, int reg)
 	return readl(pdata->base + reg);
 }
 
-static inline u32 pl031_write_reg(struct udevice *dev, int reg, u32 value)
+static inline void pl031_write_reg(struct udevice *dev, int reg, u32 value)
 {
 	struct pl031_plat *pdata = dev_get_plat(dev);
 
-	return writel(value, pdata->base + reg);
+	writel(value, pdata->base + reg);
 }
 
 /*

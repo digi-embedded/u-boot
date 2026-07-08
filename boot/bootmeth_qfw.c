@@ -8,7 +8,6 @@
 
 #define LOG_CATEGORY UCLASS_BOOTSTD
 
-#include <common.h>
 #include <command.h>
 #include <bootdev.h>
 #include <bootflow.h>
@@ -53,7 +52,8 @@ static int qfw_read_bootflow(struct udevice *dev, struct bootflow *bflow)
 }
 
 static int qfw_read_file(struct udevice *dev, struct bootflow *bflow,
-			 const char *file_path, ulong addr, ulong *sizep)
+			 const char *file_path, ulong addr,
+			 enum bootflow_img_t type, ulong *sizep)
 {
 	return -ENOSYS;
 }
@@ -89,7 +89,7 @@ static struct bootmeth_ops qfw_bootmeth_ops = {
 };
 
 static const struct udevice_id qfw_bootmeth_ids[] = {
-	{ .compatible = "u-boot,qfw-extlinux" },
+	{ .compatible = "u-boot,qfw-bootmeth" },
 	{ }
 };
 

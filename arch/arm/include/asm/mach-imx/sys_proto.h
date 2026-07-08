@@ -2,7 +2,7 @@
 /*
  * (C) Copyright 2009
  * Stefano Babic, DENX Software Engineering, sbabic@denx.de.
- * Copyright 2018-2023 NXP
+ * Copyright 2018-2020 NXP
  */
 
 #ifndef _SYS_PROTO_H_
@@ -115,14 +115,15 @@ struct bd_info;
 #define is_imx9302() (is_cpu_type(MXC_CPU_IMX9302))
 #define is_imx9301() (is_cpu_type(MXC_CPU_IMX9301))
 
+#define is_imx94() (is_cpu_type(MXC_CPU_IMX94))
+#define is_imx95() (is_cpu_type(MXC_CPU_IMX95))
+#define is_imx952() (is_cpu_type(MXC_CPU_IMX952))
+
 #define is_imx9121() (is_cpu_type(MXC_CPU_IMX9121))
 #define is_imx9111() (is_cpu_type(MXC_CPU_IMX9111))
 #define is_imx9101() (is_cpu_type(MXC_CPU_IMX9101))
 #define is_imx91() (is_cpu_type(MXC_CPU_IMX91) || is_cpu_type(MXC_CPU_IMX9111) || \
 	is_cpu_type(MXC_CPU_IMX9101) || is_cpu_type(MXC_CPU_IMX9121))
-
-#define is_imx95() (is_cpu_type(MXC_CPU_IMX95))
-#define is_imx95_a0() (is_imx95() && (soc_rev() < CHIP_REV_2_0))
 
 #define is_imxrt1020() (is_cpu_type(MXC_CPU_IMXRT1020))
 #define is_imxrt1050() (is_cpu_type(MXC_CPU_IMXRT1050))
@@ -241,30 +242,29 @@ ulong spl_romapi_get_uboot_base(u32 image_offset, u32 rom_bt_dev, u32 pagesize);
 u32 rom_api_download_image(u8 *dest, u32 offset, u32 size);
 u32 rom_api_query_boot_infor(u32 info_type, u32 *info);
 
-#ifdef CONFIG_SCMI_FIRMWARE
-typedef struct rom_passover
-{
-    uint16_t tag;                   //!< Tag
-    uint8_t  len;                   //!< Fixed value of 0x80
-    uint8_t  ver;                   //!< Version
-    uint32_t boot_mode;             //!< Boot mode
-    uint32_t card_addr_mode;        //!< SD card address mode
-    uint32_t bad_blks_of_img_set0;  //!< NAND bad block count skipped 1
-    uint32_t ap_mu_id;              //!< AP MU ID
-    uint32_t bad_blks_of_img_set1;  //!< NAND bad block count skipped 1
-    uint8_t  boot_stage;            //!< Boot stage
-    uint8_t  img_set_sel;           //!< Image set booted from
-    uint8_t  rsv0[2];               //!< Reserved
-    uint32_t img_set_end;           //!< Offset of Image End
-    uint32_t rom_version;           //!< ROM version
-    uint8_t  boot_dev_state;        //!< Boot device state
-    uint8_t  boot_dev_inst;         //!< Boot device type
-    uint8_t  boot_dev_type;         //!< Boot device instance
-    uint8_t  rsv1;                  //!< Reserved
-    uint32_t dev_page_size;         //!< Boot device page size
-    uint32_t cnt_header_ofs;        //!< Container header offset
-    uint32_t img_ofs;               //!< Image offset
-}  __attribute__ ((packed)) rom_passover_t;
+#if IS_ENABLED(CONFIG_SCMI_FIRMWARE)
+typedef struct rom_passover {
+	u16 tag;                   // Tag
+	u8  len;                   // Fixed value of 0x80
+	u8  ver;                   // Version
+	u32 boot_mode;             // Boot mode
+	u32 card_addr_mode;        // SD card address mode
+	u32 bad_blks_of_img_set0;  // NAND bad block count skipped 1
+	u32 ap_mu_id;              // AP MU ID
+	u32 bad_blks_of_img_set1;  // NAND bad block count skipped 1
+	u8  boot_stage;            // Boot stage
+	u8  img_set_sel;           // Image set booted from
+	u8  rsv0[2];               // Reserved
+	u32 img_set_end;           // Offset of Image End
+	u32 rom_version;           // ROM version
+	u8  boot_dev_state;        // Boot device state
+	u8  boot_dev_inst;         // Boot device type
+	u8  boot_dev_type;         // Boot device instance
+	u8  rsv1;                  // Reserved
+	u32 dev_page_size;         // Boot device page size
+	u32 cnt_header_ofs;        // Container header offset
+	u32 img_ofs;               // Image offset
+}  __packed rom_passover_t;
 
 /**
  * struct scmi_rom_passover_out - Response payload for ROM_PASSOVER_GET command
@@ -295,6 +295,20 @@ struct scmi_ddr_info_out {
 	u32 endhigh;
 };
 
+struct scmi_bbm_gpr_in {
+	u32 index;
+	u32 value;
+};
+
+struct scmi_bbm_gpr_out {
+	s32 status;
+	u32 value;
+};
+
+uint32_t scmi_get_rom_data(rom_passover_t *rom_data);
+int scmi_set_bbnsm_gpr(u32 gpr_id, u32 val);
+int scmi_get_bbnsm_gpr(u32 gpr_id, u32 *val);
+int scmi_misc_cfginfo(u32 *msel, char *cfgname);
 #endif
 
 /* For i.MX ULP */
@@ -369,6 +383,9 @@ void enable_ca7_smp(void);
 
 enum boot_device get_boot_device(void);
 
+int disable_cpu_nodes(void *blob, const char * const *nodes_path,
+		      u32 num_disabled_cores, u32 max_cores);
+int fixup_thermal_trips(void *blob, const char *name);
 int add_res_mem_dt_node(void *fdt, const char *name, phys_addr_t pa,
 			size_t size);
 int add_dt_path_subnode(void *fdt, const char *path, const char *subnode);
@@ -376,4 +393,6 @@ void configure_tzc380(void);
 
 /* Generate dek blob, return 0 if success, non 0 if fail. */
 int generate_dek_blob(char *data, uint32_t *data_size);
+
+int do_board_reboot(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]);
 #endif

@@ -3,7 +3,6 @@
  * Copyright (C) 2017 NXP
  */
 
-#include <common.h>
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/io.h>
@@ -24,7 +23,7 @@ int mmc_get_env_dev(void)
 
 	/* If not boot from sd/mmc, use default value */
 	if ((boot_type != BOOT_TYPE_SD) && (boot_type != BOOT_TYPE_MMC))
-		return env_get_ulong("mmcdev", 10, CONFIG_SYS_MMC_ENV_DEV);
+		return env_get_ulong("mmcdev", 10, CONFIG_ENV_MMC_DEVICE_INDEX);
 
 	return board_mmc_get_env_dev(devno);
 }

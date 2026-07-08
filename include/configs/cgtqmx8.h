@@ -11,7 +11,7 @@
 #include <linux/sizes.h>
 #include <asm/arch/imx-regs.h>
 
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 #define CFG_MALLOC_F_ADDR		0x00120000
 
 #endif
@@ -64,7 +64,7 @@
 	"fdt_addr=0x83000000\0"			\
 	"boot_fdt=try\0" \
 	"fdt_file=imx8qm-cgt-qmx8.dtb\0" \
-	"mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV) "\0" \
+	"mmcdev=" __stringify(CONFIG_ENV_MMC_DEVICE_INDEX) "\0" \
 	"mmcpart=1\0" \
 	"mmcroot=/dev/mmcblk1p2 rootwait rw\0" \
 	"mmcautodetect=yes\0" \

@@ -4,10 +4,10 @@
  * Copyright 2022 Linaro
  */
 
-#include <common.h>
 #include <dwc3-uboot.h>
 #include <efi.h>
 #include <efi_loader.h>
+#include <env.h>
 #include <errno.h>
 #include <miiphy.h>
 #include <netdev.h>
@@ -59,7 +59,6 @@ struct efi_capsule_update_info update_info = {
 };
 
 #endif /* EFI_HAVE_CAPSULE_SUPPORT */
-
 
 int board_early_init_f(void)
 {
@@ -191,7 +190,7 @@ int board_late_init(void)
 	return 0;
 }
 
-#ifdef CONFIG_SPL_MMC
+#ifdef CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
 #define UBOOT_RAW_SECTOR_OFFSET 0x40
 unsigned long board_spl_mmc_get_uboot_raw_sector(struct mmc *mmc,
 					   unsigned long raw_sector)
@@ -205,4 +204,4 @@ unsigned long board_spl_mmc_get_uboot_raw_sector(struct mmc *mmc,
 		return CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR;
 	}
 }
-#endif /* CONFIG_SPL_MMC */
+#endif /* CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR */

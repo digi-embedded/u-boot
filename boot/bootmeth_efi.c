@@ -8,13 +8,15 @@
 
 #define LOG_CATEGORY UCLASS_BOOTSTD
 
-#include <common.h>
 #include <bootdev.h>
 #include <bootflow.h>
 #include <bootmeth.h>
 #include <command.h>
 #include <dm.h>
+#include <efi.h>
 #include <efi_loader.h>
+#include <env.h>
+#include <extension_board.h>
 #include <fs.h>
 #include <malloc.h>
 #include <mapmem.h>
@@ -23,70 +25,13 @@
 #include <pxe_utils.h>
 #include <linux/sizes.h>
 
-#define EFI_DIRNAME	"efi/boot/"
-
-/**
- * get_efi_leafname() - Get the leaf name for the EFI file we expect
- *
- * @str: Place to put leaf name for this architecture, e.g. "bootaa64.efi".
- *	Must have at least 16 bytes of space
- * @max_len: Length of @str, must be >=16
- */
-static int get_efi_leafname(char *str, int max_len)
-{
-	const char *base;
-
-	if (max_len < 16)
-		return log_msg_ret("spc", -ENOSPC);
-	if (IS_ENABLED(CONFIG_ARM64))
-		base = "bootaa64";
-	else if (IS_ENABLED(CONFIG_ARM))
-		base = "bootarm";
-	else if (IS_ENABLED(CONFIG_X86_RUN_32BIT))
-		base = "bootia32";
-	else if (IS_ENABLED(CONFIG_X86_RUN_64BIT))
-		base = "bootx64";
-	else if (IS_ENABLED(CONFIG_ARCH_RV32I))
-		base = "bootriscv32";
-	else if (IS_ENABLED(CONFIG_ARCH_RV64I))
-		base = "bootriscv64";
-	else if (IS_ENABLED(CONFIG_SANDBOX))
-		base = "bootsbox";
-	else
-		return -EINVAL;
-
-	strcpy(str, base);
-	strcat(str, ".efi");
-
-	return 0;
-}
-
-static int get_efi_pxe_arch(void)
-{
-	/* http://www.iana.org/assignments/dhcpv6-parameters/dhcpv6-parameters.xml */
-	if (IS_ENABLED(CONFIG_ARM64))
-		return 0xb;
-	else if (IS_ENABLED(CONFIG_ARM))
-		return 0xa;
-	else if (IS_ENABLED(CONFIG_X86_64))
-		return 0x6;
-	else if (IS_ENABLED(CONFIG_X86))
-		return 0x7;
-	else if (IS_ENABLED(CONFIG_ARCH_RV32I))
-		return 0x19;
-	else if (IS_ENABLED(CONFIG_ARCH_RV64I))
-		return 0x1b;
-	else if (IS_ENABLED(CONFIG_SANDBOX))
-		return 0;	/* not used */
-
-	return -EINVAL;
-}
+#define EFI_DIRNAME	"/EFI/BOOT/"
 
 static int get_efi_pxe_vci(char *str, int max_len)
 {
 	int ret;
 
-	ret = get_efi_pxe_arch();
+	ret = efi_get_pxe_arch();
 	if (ret < 0)
 		return ret;
 
@@ -109,59 +54,21 @@ static bool bootmeth_uses_network(struct bootflow *bflow)
 	    device_get_uclass_id(media) == UCLASS_ETH;
 }
 
-static void set_efi_bootdev(struct blk_desc *desc, struct bootflow *bflow)
-{
-	const struct udevice *media_dev;
-	int size = bflow->size;
-	const char *dev_name;
-	char devnum_str[9];
-	char dirname[200];
-	char *last_slash;
-
-	/*
-	 * This is a horrible hack to tell EFI about this boot device. Once we
-	 * unify EFI with the rest of U-Boot we can clean this up. The same hack
-	 * exists in multiple places, e.g. in the fs, tftp and load commands.
-	 *
-	 * Once we can clean up the EFI code to make proper use of driver model,
-	 * this can go away.
-	 */
-	media_dev = dev_get_parent(bflow->dev);
-	snprintf(devnum_str, sizeof(devnum_str), "%x:%x",
-		 desc ? desc->devnum : dev_seq(media_dev),
-		 bflow->part);
-
-	strlcpy(dirname, bflow->fname, sizeof(dirname));
-	last_slash = strrchr(dirname, '/');
-	if (last_slash)
-		*last_slash = '\0';
-
-	log_debug("setting bootdev %s, %s, %s, %p, %x\n",
-		  dev_get_uclass_name(media_dev), devnum_str, bflow->fname,
-		  bflow->buf, size);
-	dev_name = device_get_uclass_id(media_dev) == UCLASS_MASS_STORAGE ?
-		 "usb" : dev_get_uclass_name(media_dev);
-	efi_set_bootdev(dev_name, devnum_str, bflow->fname, bflow->buf, size);
-}
-
 static int efiload_read_file(struct bootflow *bflow, ulong addr)
 {
 	struct blk_desc *desc = NULL;
-	loff_t bytes_read;
+	ulong size;
 	int ret;
 
 	if (bflow->blk)
 		 desc = dev_get_uclass_plat(bflow->blk);
-	ret = bootmeth_setup_fs(bflow, desc);
-	if (ret)
-		return log_msg_ret("set", ret);
 
-	ret = fs_read(bflow->fname, addr, 0, bflow->size, &bytes_read);
+	size = SZ_1G;
+	ret = bootmeth_common_read_file(bflow->method, bflow, bflow->fname,
+					addr, BFI_EFI, &size);
 	if (ret)
-		return log_msg_ret("read", ret);
+		return log_msg_ret("rdf", ret);
 	bflow->buf = map_sysmem(addr, bflow->size);
-
-	set_efi_bootdev(desc, bflow);
 
 	return 0;
 }
@@ -175,62 +82,6 @@ static int distro_efi_check(struct udevice *dev, struct bootflow_iter *iter)
 	/* This works on block devices and network devices */
 	if (iter->method_flags & BOOTFLOW_METHF_PXE_ONLY)
 		return log_msg_ret("pxe", -ENOTSUPP);
-
-	return 0;
-}
-
-/**
- * distro_efi_get_fdt_name() - Get the filename for reading the .dtb file
- *
- * @fname: Place to put filename
- * @size: Max size of filename
- * @seq: Sequence number, to cycle through options (0=first)
- * Returns: 0 on success, -ENOENT if the "fdtfile" env var does not exist,
- * -EINVAL if there are no more options, -EALREADY if the control FDT should be
- * used
- */
-static int distro_efi_get_fdt_name(char *fname, int size, int seq)
-{
-	const char *fdt_fname;
-	const char *prefix;
-
-	/* select the prefix */
-	switch (seq) {
-	case 0:
-		/* this is the default */
-		prefix = "/dtb";
-		break;
-	case 1:
-		prefix = "";
-		break;
-	case 2:
-		prefix = "/dtb/current";
-		break;
-	default:
-		return log_msg_ret("pref", -EINVAL);
-	}
-
-	fdt_fname = env_get("fdtfile");
-	if (fdt_fname) {
-		snprintf(fname, size, "%s/%s", prefix, fdt_fname);
-		log_debug("Using device tree: %s\n", fname);
-	} else if (IS_ENABLED(CONFIG_OF_HAS_PRIOR_STAGE)) {
-		strcpy(fname, "<prior>");
-		return log_msg_ret("pref", -EALREADY);
-	/* Use this fallback only for 32-bit ARM */
-	} else if (IS_ENABLED(CONFIG_ARM) && !IS_ENABLED(CONFIG_ARM64)) {
-		const char *soc = env_get("soc");
-		const char *board = env_get("board");
-		const char *boardver = env_get("boardver");
-
-		/* cf the code in label_boot() which seems very complex */
-		snprintf(fname, size, "%s/%s%s%s%s.dtb", prefix,
-			 soc ? soc : "", soc ? "-" : "", board ? board : "",
-			 boardver ? boardver : "");
-		log_debug("Using default device tree: %s\n", fname);
-	} else {
-		return log_msg_ret("env", -ENOENT);
-	}
 
 	return 0;
 }
@@ -249,26 +100,30 @@ static int distro_efi_get_fdt_name(char *fname, int size, int seq)
 static int distro_efi_try_bootflow_files(struct udevice *dev,
 					 struct bootflow *bflow)
 {
+	ulong fdt_addr, size, overlay_addr;
+	const struct extension *extension;
+	struct fdt_header *working_fdt;
 	struct blk_desc *desc = NULL;
-	ulong fdt_addr, size;
+	struct alist *extension_list;
 	char fname[256];
 	int ret, seq;
 
 	/* We require a partition table */
-	if (!bflow->part)
+	if (!bflow->part) {
+		log_debug("no partitions\n");
 		return -ENOENT;
+	}
 
 	strcpy(fname, EFI_DIRNAME);
-	ret = get_efi_leafname(fname + strlen(fname),
-			       sizeof(fname) - strlen(fname));
-	if (ret)
-		return log_msg_ret("leaf", ret);
+	strcat(fname, efi_get_basename());
 
 	if (bflow->blk)
 		 desc = dev_get_uclass_plat(bflow->blk);
 	ret = bootmeth_try_file(bflow, desc, NULL, fname);
-	if (ret)
+	if (ret) {
+		log_debug("File '%s' not found\n", fname);
 		return log_msg_ret("try", ret);
+	}
 
 	/* Since we can access the file, let's call it ready */
 	bflow->state = BOOTFLOWST_READY;
@@ -279,14 +134,15 @@ static int distro_efi_try_bootflow_files(struct udevice *dev,
 	ret = -ENOENT;
 	*fname = '\0';
 	for (seq = 0; ret == -ENOENT; seq++) {
-		ret = distro_efi_get_fdt_name(fname, sizeof(fname), seq);
+		ret = efi_get_distro_fdt_name(fname, sizeof(fname), seq);
 		if (ret == -EALREADY)
 			bflow->flags = BOOTFLOWF_USE_PRIOR_FDT;
 		if (!ret) {
 			/* Limit FDT files to 4MB */
 			size = SZ_4M;
 			ret = bootmeth_common_read_file(dev, bflow, fname,
-							fdt_addr, &size);
+				fdt_addr, (enum bootflow_img_t)IH_TYPE_FLATDT,
+				&size);
 		}
 	}
 
@@ -296,23 +152,66 @@ static int distro_efi_try_bootflow_files(struct udevice *dev,
 			return log_msg_ret("fil", -ENOMEM);
 	}
 
-	if (!ret) {
-		bflow->fdt_size = size;
-		bflow->fdt_addr = fdt_addr;
-
-		/*
-		 * TODO: Apply extension overlay
-		 *
-		 * Here we need to load and apply the extension overlay. This is
-		 * not implemented. See do_extension_apply(). The extension
-		 * stuff needs an implementation in boot/extension.c so it is
-		 * separate from the command code. Really the extension stuff
-		 * should use the device tree and a uclass / driver interface
-		 * rather than implementing its own list
-		 */
-	} else {
+	if (ret) {
 		log_debug("No device tree available\n");
 		bflow->flags |= BOOTFLOWF_USE_BUILTIN_FDT;
+		return 0;
+	}
+
+	bflow->fdt_size = size;
+	bflow->fdt_addr = fdt_addr;
+
+	if (!CONFIG_IS_ENABLED(SUPPORT_EXTENSION_SCAN))
+		return 0;
+
+	ret = extension_scan();
+	if (ret < 0)
+		return 0;
+
+	extension_list = extension_get_list();
+	if (!extension_list)
+		return 0;
+
+	working_fdt = map_sysmem(fdt_addr, 0);
+	if (fdt_check_header(working_fdt))
+		return 0;
+
+	overlay_addr = env_get_hex("extension_overlay_addr", 0);
+	if (!overlay_addr) {
+		log_debug("Environment extension_overlay_addr is missing\n");
+		return 0;
+	}
+
+	alist_for_each(extension, extension_list) {
+		char *overlay_file;
+		int len;
+
+		len = sizeof(EFI_DIRNAME) + strlen(extension->overlay);
+		overlay_file = calloc(1, len);
+		if (!overlay_file)
+			return -ENOMEM;
+
+		snprintf(overlay_file, len, "%s%s", EFI_DIRNAME,
+			 extension->overlay);
+
+		ret = bootmeth_common_read_file(dev, bflow, overlay_file,
+						overlay_addr,
+						(enum bootflow_img_t)IH_TYPE_FLATDT,
+						&size);
+		if (ret) {
+			log_debug("Failed loading overlay %s\n", overlay_file);
+			free(overlay_file);
+			continue;
+		}
+
+		ret = extension_apply(working_fdt, size);
+		if (ret) {
+			log_debug("Failed applying overlay %s\n", overlay_file);
+			free(overlay_file);
+			continue;
+		}
+		bflow->fdt_size += size;
+		free(overlay_file);
 	}
 
 	return 0;
@@ -331,7 +230,7 @@ static int distro_efi_read_bootflow_net(struct bootflow *bflow)
 	ret = get_efi_pxe_vci(str, sizeof(str));
 	if (ret)
 		return log_msg_ret("vci", ret);
-	ret = get_efi_pxe_arch();
+	ret = efi_get_pxe_arch();
 	if (ret < 0)
 		return log_msg_ret("arc", ret);
 	arch = ret;
@@ -359,16 +258,15 @@ static int distro_efi_read_bootflow_net(struct bootflow *bflow)
 	if (size <= 0)
 		return log_msg_ret("sz", -EINVAL);
 	bflow->size = size;
+	bflow->buf = map_sysmem(addr, size);
 
-    /* bootfile should be setup by dhcp*/
+	/* bootfile should be setup by dhcp */
 	bootfile_name = env_get("bootfile");
 	if (!bootfile_name)
 		return log_msg_ret("bootfile_name", ret);
 	bflow->fname = strdup(bootfile_name);
-
-	/* do the hideous EFI hack */
-	efi_set_bootdev("Net", "", bflow->fname, map_sysmem(addr, 0),
-			bflow->size);
+	if (!bflow->fname)
+		return log_msg_ret("fi0", -ENOMEM);
 
 	/* read the DT file also */
 	fdt_addr_str = env_get("fdt_addr_r");
@@ -378,7 +276,7 @@ static int distro_efi_read_bootflow_net(struct bootflow *bflow)
 	sprintf(file_addr, "%lx", fdt_addr);
 
 	/* We only allow the first prefix with PXE */
-	ret = distro_efi_get_fdt_name(fname, sizeof(fname), 0);
+	ret = efi_get_distro_fdt_name(fname, sizeof(fname), 0);
 	if (ret)
 		return log_msg_ret("nam", ret);
 
@@ -402,6 +300,8 @@ static int distro_efi_read_bootflow_net(struct bootflow *bflow)
 static int distro_efi_read_bootflow(struct udevice *dev, struct bootflow *bflow)
 {
 	int ret;
+
+	log_debug("dev='%s', part=%d\n", bflow->dev->name, bflow->part);
 
 	/*
 	 * bootmeth_efi doesn't allocate any buffer neither for blk nor net device
@@ -428,6 +328,7 @@ static int distro_efi_boot(struct udevice *dev, struct bootflow *bflow)
 	ulong kernel, fdt;
 	int ret;
 
+	log_debug("distro EFI boot\n");
 	kernel = env_get_hex("kernel_addr_r", 0);
 	if (!bootmeth_uses_network(bflow)) {
 		ret = efiload_read_file(bflow, kernel);
@@ -440,29 +341,10 @@ static int distro_efi_boot(struct udevice *dev, struct bootflow *bflow)
 		if (bflow->flags & ~BOOTFLOWF_USE_BUILTIN_FDT)
 			fdt = bflow->fdt_addr;
 
-	} else {
-		/*
-		 * This doesn't actually work for network devices:
-		 *
-		 * do_bootefi_image() No UEFI binary known at 0x02080000
-		 *
-		 * But this is the same behaviour for distro boot, so it can be
-		 * fixed here.
-		 */
-		fdt = env_get_hex("fdt_addr_r", 0);
 	}
 
-	if (bflow->flags & BOOTFLOWF_USE_BUILTIN_FDT) {
-		log_debug("Booting with built-in fdt\n");
-		if (efi_binary_run(map_sysmem(kernel, 0), bflow->size,
-				   EFI_FDT_USE_INTERNAL))
-			return log_msg_ret("run", -EINVAL);
-	} else {
-		log_debug("Booting with external fdt\n");
-		if (efi_binary_run(map_sysmem(kernel, 0), bflow->size,
-				   map_sysmem(fdt, 0)))
-			return log_msg_ret("run", -EINVAL);
-	}
+	if (efi_bootflow_run(bflow))
+		return log_msg_ret("run", -EINVAL);
 
 	return 0;
 }
@@ -489,7 +371,8 @@ static const struct udevice_id distro_efi_bootmeth_ids[] = {
 	{ }
 };
 
-U_BOOT_DRIVER(bootmeth_efi) = {
+/* Put a number before 'efi' to provide a default ordering */
+U_BOOT_DRIVER(bootmeth_4efi) = {
 	.name		= "bootmeth_efi",
 	.id		= UCLASS_BOOTMETH,
 	.of_match	= distro_efi_bootmeth_ids,

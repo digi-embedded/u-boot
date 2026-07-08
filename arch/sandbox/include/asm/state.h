@@ -53,10 +53,13 @@ struct sandbox_wdt_info {
  * be returned, just as it would for a normal sandbox address.
  *
  * @tag: Address tag (a value which U-Boot uses to refer to the address)
+ * @refcnt: Number of references to this tag
  * @ptr: Associated pointer for that tag
+ * @sibling_node: Next node
  */
 struct sandbox_mapmem_entry {
 	ulong tag;
+	uint refcnt;
 	void *ptr;
 	struct list_head sibling_node;
 };
@@ -72,6 +75,7 @@ struct sandbox_state {
 	char **argv;			/* Command line arguments */
 	const char *jumped_fname;	/* Jumped from previous U-Boot */
 	const char *prog_fname;		/* U-Boot executable filename */
+	uint8_t *mmap_addr;		/* Memory allocated via mmap */
 	uint8_t *ram_buf;		/* Emulated RAM buffer */
 	unsigned long ram_size;		/* Size of RAM buffer */
 	const char *ram_buf_fname;	/* Filename to use for RAM buffer */
@@ -97,6 +101,8 @@ struct sandbox_state {
 	bool autoboot_keyed;		/* Use keyed-autoboot feature */
 	bool disable_eth;		/* Disable Ethernet devices */
 	bool disable_sf_bootdevs;	/* Don't bind SPI flash bootdevs */
+	bool upl;			/* Enable Universal Payload (UPL) */
+	bool native;			/* Adjust to reflect host arch */
 
 	/* Pointer to information for each SPI bus/cs */
 	struct sandbox_spi_info spi[CONFIG_SANDBOX_SPI_MAX_BUS]

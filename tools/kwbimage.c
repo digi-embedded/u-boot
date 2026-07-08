@@ -804,7 +804,6 @@ static int kwb_sign_and_verify(RSA *key, void *data, int datasz,
 	return 0;
 }
 
-
 static int kwb_dump_fuse_cmds_38x(FILE *out, struct secure_hdr_v1 *sec_hdr)
 {
 	struct hash_v1 kak_pub_hash;
@@ -1654,6 +1653,12 @@ static int image_create_config_parse_oneline(char *line,
 	char *unknown_msg = "Ignoring unknown line '%s'\n";
 
 	keyword = strtok_r(line, delimiters, &saveptr);
+
+	if (!keyword) {
+		fprintf(stderr, "Parameter missing in line '%s'\n", line);
+		return -1;
+	}
+
 	keyword_id = recognize_keyword(keyword);
 
 	if (!keyword_id) {

@@ -4,7 +4,6 @@
  * Jean-Jacques Hiblot <jjhiblot@ti.com>
  */
 
-#include <common.h>
 #include <clk-uclass.h>
 #include <dm.h>
 #include <dm/device_compat.h>
@@ -76,6 +75,7 @@ enum wiz_typec_master_lane {
 
 static const struct reg_field por_en = REG_FIELD(WIZ_SERDES_CTRL, 31, 31);
 static const struct reg_field phy_reset_n = REG_FIELD(WIZ_SERDES_RST, 31, 31);
+static const struct reg_field phy_en_refclk = REG_FIELD(WIZ_SERDES_RST, 30, 30);
 static const struct reg_field pll1_refclk_mux_sel =
 					REG_FIELD(WIZ_SERDES_RST, 29, 29);
 static const struct reg_field pll1_refclk_mux_sel_2 =
@@ -535,9 +535,43 @@ static int wiz_clk_of_xlate(struct clk *clk, struct ofnode_phandle_args *args)
 	return 0;
 }
 
+static int wiz_phy_en_refclk_enable(struct clk *clk)
+{
+	struct udevice *dev = clk->dev;
+	struct wiz_clk *priv = dev_get_priv(dev);
+	struct wiz *wiz = priv->wiz;
+	int id;
+
+	id = clk->id >> 10;
+	if (id != TI_WIZ_PHY_EN_REFCLK)
+		return 0;
+
+	regmap_field_write(wiz->phy_en_refclk, 1);
+
+	return 0;
+}
+
+static int wiz_phy_en_refclk_disable(struct clk *clk)
+{
+	struct udevice *dev = clk->dev;
+	struct wiz_clk *priv = dev_get_priv(dev);
+	struct wiz *wiz = priv->wiz;
+	int id;
+
+	id = clk->id >> 10;
+	if (id != TI_WIZ_PHY_EN_REFCLK)
+		return 0;
+
+	regmap_field_write(wiz->phy_en_refclk, 0);
+
+	return 0;
+}
+
 static const struct clk_ops wiz_clk_ops = {
 	.set_parent = wiz_clk_set_parent,
 	.of_xlate = wiz_clk_of_xlate,
+	.enable = wiz_phy_en_refclk_enable,
+	.disable = wiz_phy_en_refclk_disable,
 };
 
 int wiz_clk_probe(struct udevice *dev)
@@ -819,6 +853,12 @@ static int wiz_regfield_init(struct wiz *wiz)
 		return PTR_ERR(wiz->phy_reset_n);
 	}
 
+	wiz->phy_en_refclk = devm_regmap_field_alloc(dev, regmap, phy_en_refclk);
+	if (IS_ERR(wiz->phy_en_refclk)) {
+		dev_err(dev, "PHY_EN_REFCLK reg field init failed\n");
+		return PTR_ERR(wiz->phy_en_refclk);
+	}
+
 	wiz->pma_cmn_refclk_int_mode =
 		devm_regmap_field_alloc(dev, regmap, pma_cmn_refclk_int_mode);
 	if (IS_ERR(wiz->pma_cmn_refclk_int_mode)) {
@@ -1043,6 +1083,11 @@ static int j721e_wiz_bind_clocks(struct wiz *wiz)
 		}
 	}
 
+	rc = device_bind(dev, wiz_clk_drv, "phy-en-refclk",
+			 NULL, dev_ofnode(dev), NULL);
+	if (rc)
+		dev_err(dev, "cannot bind driver for clock phy-en-refclk\n");
+
 	return 0;
 }
 
@@ -1181,6 +1226,7 @@ static int j721e_wiz_probe(struct udevice *dev)
 	ofnode node;
 	struct regmap *regmap;
 	u32 num_lanes;
+	bool already_configured = false;
 
 	node = get_child_by_name(dev, "serdes");
 
@@ -1202,6 +1248,7 @@ static int j721e_wiz_probe(struct udevice *dev)
 
 	if (num_lanes > WIZ_MAX_LANES) {
 		dev_err(dev, "Cannot support %d lanes\n", num_lanes);
+		rc = -EINVAL;
 		goto err_addr_to_resource;
 	}
 
@@ -1243,15 +1290,6 @@ static int j721e_wiz_probe(struct udevice *dev)
 		goto err_addr_to_resource;
 	}
 
-	for (i = 0; i < wiz->num_lanes; i++) {
-		regmap_field_read(wiz->p_enable[i], &val);
-		if (val & (P_ENABLE | P_ENABLE_FORCE)) {
-			dev_err(dev, "SERDES already configured\n");
-			rc = -EBUSY;
-			goto err_addr_to_resource;
-		}
-	}
-
 	rc = j721e_wiz_bind_of_clocks(wiz);
 	if (rc) {
 		dev_err(dev, "Failed to bind clocks\n");
@@ -1270,10 +1308,21 @@ static int j721e_wiz_probe(struct udevice *dev)
 		goto err_addr_to_resource;
 	}
 
-	rc = wiz_init(wiz);
-	if (rc) {
-		dev_err(dev, "WIZ initialization failed\n");
-		goto err_addr_to_resource;
+	for (i = 0; i < wiz->num_lanes; i++) {
+		regmap_field_read(wiz->p_enable[i], &val);
+		if (val & (P_ENABLE | P_ENABLE_FORCE)) {
+			dev_info(dev, "SERDES already configured, skipping wiz initialization\n");
+			already_configured = true;
+			break;
+		}
+	}
+
+	if (!already_configured) {
+		rc = wiz_init(wiz);
+		if (rc) {
+			dev_err(dev, "WIZ initialization failed\n");
+			goto err_addr_to_resource;
+		}
 	}
 
 	return 0;

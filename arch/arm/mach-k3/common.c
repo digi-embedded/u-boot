@@ -24,32 +24,22 @@
 #include <asm/io.h>
 #include <fs_loader.h>
 #include <fs.h>
+#include <efi_loader.h>
 #include <env.h>
 #include <elf.h>
 #include <soc.h>
+#include <dm/uclass-internal.h>
+#include <dm/device-internal.h>
+#include <asm/armv8/mmu.h>
+#include <mach/k3-common-fdt.h>
+#include <mach/k3-ddr.h>
+
+#define PROC_BOOT_CTRL_FLAG_R5_CORE_HALT	0x00000001
+#define PROC_BOOT_STATUS_FLAG_R5_WFI		0x00000002
+#define PROC_ID_MCU_R5FSS0_CORE1		0x02
+#define PROC_BOOT_CFG_FLAG_R5_LOCKSTEP		0x00000100
 
 #include <asm/arch/k3-qos.h>
-
-#if IS_ENABLED(CONFIG_SYS_K3_SPL_ATF)
-enum {
-	IMAGE_ID_ATF,
-	IMAGE_ID_OPTEE,
-	IMAGE_ID_SPL,
-	IMAGE_ID_DM_FW,
-	IMAGE_AMT,
-};
-
-#if CONFIG_IS_ENABLED(FIT_IMAGE_POST_PROCESS)
-static const char *image_os_match[IMAGE_AMT] = {
-	"arm-trusted-firmware",
-	"tee",
-	"U-Boot",
-	"DM",
-};
-#endif
-
-static struct image_info fit_image_info[IMAGE_AMT];
-#endif
 
 struct ti_sci_handle *get_ti_sci_handle(void)
 {
@@ -84,6 +74,35 @@ void k3_sysfw_print_ver(void)
 	printf("SYSFW ABI: %d.%d (firmware rev 0x%04x '%s')\n",
 	       ti_sci->version.abi_major, ti_sci->version.abi_minor,
 	       ti_sci->version.firmware_revision, fw_desc);
+}
+
+void __maybe_unused k3_dm_print_ver(void)
+{
+	struct ti_sci_handle *ti_sci = get_ti_sci_handle();
+	struct ti_sci_firmware_ops *fw_ops = &ti_sci->ops.fw_ops;
+	struct ti_sci_dm_version_info dm_info = {0};
+	u64 fw_caps;
+	int ret;
+
+	ret = fw_ops->query_dm_cap(ti_sci, &fw_caps);
+	if (ret) {
+		printf("Failed to query DM firmware capability %d\n", ret);
+		return;
+	}
+
+	if (!(fw_caps & TI_SCI_MSG_FLAG_FW_CAP_DM))
+		return;
+
+	ret = fw_ops->get_dm_version(ti_sci, &dm_info);
+	if (ret) {
+		printf("Failed to fetch DM firmware version %d\n", ret);
+		return;
+	}
+
+	printf("DM ABI: %d.%d (firmware ver 0x%04x '%s--%s' "
+	       "patch_ver: %d)\n", dm_info.abi_major, dm_info.abi_minor,
+	       dm_info.dm_ver, dm_info.sci_server_version,
+	       dm_info.rm_pm_hal_version, dm_info.patch_ver);
 }
 
 void mmr_unlock(uintptr_t base, u32 partition)
@@ -124,239 +143,18 @@ int early_console_init(void)
 
 	gd->cur_serial_dev = dev;
 	gd->flags |= GD_FLG_SERIAL_READY;
-	gd->have_console = 1;
+	gd->flags |= GD_FLG_HAVE_CONSOLE;
 
 	return 0;
 }
 #endif
 
-#if IS_ENABLED(CONFIG_SYS_K3_SPL_ATF)
-
-void init_env(void)
-{
-#ifdef CONFIG_SPL_ENV_SUPPORT
-	char *part;
-
-	env_init();
-	env_relocate();
-	switch (spl_boot_device()) {
-	case BOOT_DEVICE_MMC2:
-		part = env_get("bootpart");
-		env_set("storage_interface", "mmc");
-		env_set("fw_dev_part", part);
-		break;
-	case BOOT_DEVICE_SPI:
-		env_set("storage_interface", "ubi");
-		env_set("fw_ubi_mtdpart", "UBI");
-		env_set("fw_ubi_volume", "UBI0");
-		break;
-	default:
-		printf("%s from device %u not supported!\n",
-		       __func__, spl_boot_device());
-		return;
-	}
-#endif
-}
-
-int load_firmware(char *name_fw, char *name_loadaddr, u32 *loadaddr)
-{
-	struct udevice *fsdev;
-	char *name = NULL;
-	int size = 0;
-
-	if (!IS_ENABLED(CONFIG_FS_LOADER))
-		return 0;
-
-	*loadaddr = 0;
-#ifdef CONFIG_SPL_ENV_SUPPORT
-	switch (spl_boot_device()) {
-	case BOOT_DEVICE_MMC2:
-		name = env_get(name_fw);
-		*loadaddr = env_get_hex(name_loadaddr, *loadaddr);
-		break;
-	default:
-		printf("Loading rproc fw image from device %u not supported!\n",
-		       spl_boot_device());
-		return 0;
-	}
-#endif
-	if (!*loadaddr)
-		return 0;
-
-	if (!get_fs_loader(&fsdev)) {
-		size = request_firmware_into_buf(fsdev, name, (void *)*loadaddr,
-						 0, 0);
-	}
-
-	return size;
-}
-
-void release_resources_for_core_shutdown(void)
-{
-	struct ti_sci_handle *ti_sci = get_ti_sci_handle();
-	struct ti_sci_dev_ops *dev_ops = &ti_sci->ops.dev_ops;
-	struct ti_sci_proc_ops *proc_ops = &ti_sci->ops.proc_ops;
-	int ret;
-	u32 i;
-
-	/* Iterate through list of devices to put (shutdown) */
-	for (i = 0; i < ARRAY_SIZE(put_device_ids); i++) {
-		u32 id = put_device_ids[i];
-
-		ret = dev_ops->put_device(ti_sci, id);
-		if (ret)
-			panic("Failed to put device %u (%d)\n", id, ret);
-	}
-
-	/* Iterate through list of cores to put (shutdown) */
-	for (i = 0; i < ARRAY_SIZE(put_core_ids); i++) {
-		u32 id = put_core_ids[i];
-
-		/*
-		 * Queue up the core shutdown request. Note that this call
-		 * needs to be followed up by an actual invocation of an WFE
-		 * or WFI CPU instruction.
-		 */
-		ret = proc_ops->proc_shutdown_no_wait(ti_sci, id);
-		if (ret)
-			panic("Failed sending core %u shutdown message (%d)\n",
-			      id, ret);
-	}
-}
-
-void __noreturn jump_to_image_no_args(struct spl_image_info *spl_image)
-{
-	typedef void __noreturn (*image_entry_noargs_t)(void);
-	struct ti_sci_handle *ti_sci = get_ti_sci_handle();
-	u32 loadaddr = 0;
-	int ret, size = 0, shut_cpu = 0;
-
-	/* Release all the exclusive devices held by SPL before starting ATF */
-	ti_sci->ops.dev_ops.release_exclusive_devices(ti_sci);
-
-	ret = rproc_init();
-	if (ret)
-		panic("rproc failed to be initialized (%d)\n", ret);
-
-	init_env();
-
-	if (!fit_image_info[IMAGE_ID_DM_FW].image_start) {
-		size = load_firmware("name_mcur5f0_0fw", "addr_mcur5f0_0load",
-				     &loadaddr);
-	}
-
-	/*
-	 * It is assumed that remoteproc device 1 is the corresponding
-	 * Cortex-A core which runs ATF. Make sure DT reflects the same.
-	 */
-	if (!fit_image_info[IMAGE_ID_ATF].image_start)
-		fit_image_info[IMAGE_ID_ATF].image_start =
-			spl_image->entry_point;
-
-	ret = rproc_load(1, fit_image_info[IMAGE_ID_ATF].image_start, 0x200);
-	if (ret)
-		panic("%s: ATF failed to load on rproc (%d)\n", __func__, ret);
-
-#if (CONFIG_IS_ENABLED(FIT_IMAGE_POST_PROCESS) && IS_ENABLED(CONFIG_SYS_K3_SPL_ATF))
-	/* Authenticate ATF */
-	void *image_addr = (void *)fit_image_info[IMAGE_ID_ATF].image_start;
-
-	debug("%s: Authenticating image: addr=%lx, size=%ld, os=%s\n", __func__,
-	      fit_image_info[IMAGE_ID_ATF].image_start,
-	      fit_image_info[IMAGE_ID_ATF].image_len,
-	      image_os_match[IMAGE_ID_ATF]);
-
-	ti_secure_image_post_process(&image_addr,
-				     (size_t *)&fit_image_info[IMAGE_ID_ATF].image_len);
-
-	/* Authenticate OPTEE */
-	image_addr = (void *)fit_image_info[IMAGE_ID_OPTEE].image_start;
-
-	debug("%s: Authenticating image: addr=%lx, size=%ld, os=%s\n", __func__,
-	      fit_image_info[IMAGE_ID_OPTEE].image_start,
-	      fit_image_info[IMAGE_ID_OPTEE].image_len,
-	      image_os_match[IMAGE_ID_OPTEE]);
-
-	ti_secure_image_post_process(&image_addr,
-				     (size_t *)&fit_image_info[IMAGE_ID_OPTEE].image_len);
-
-#endif
-
-	if (!fit_image_info[IMAGE_ID_DM_FW].image_len &&
-	    !(size > 0 && valid_elf_image(loadaddr))) {
-		shut_cpu = 1;
-		goto start_arm64;
-	}
-
-	if (!fit_image_info[IMAGE_ID_DM_FW].image_start) {
-		loadaddr = load_elf_image_phdr(loadaddr);
-	} else {
-		loadaddr = fit_image_info[IMAGE_ID_DM_FW].image_start;
-		if (valid_elf_image(loadaddr))
-			loadaddr = load_elf_image_phdr(loadaddr);
-	}
-
-	debug("%s: jumping to address %x\n", __func__, loadaddr);
-
-start_arm64:
-	/* Add an extra newline to differentiate the ATF logs from SPL */
-	printf("Starting ATF on ARM64 core...\n\n");
-
-	ret = rproc_start(1);
-	if (ret)
-		panic("%s: ATF failed to start on rproc (%d)\n", __func__, ret);
-
-	if (shut_cpu) {
-		debug("Shutting down...\n");
-		release_resources_for_core_shutdown();
-
-		while (1)
-			asm volatile("wfe");
-	}
-	image_entry_noargs_t image_entry = (image_entry_noargs_t)loadaddr;
-
-	image_entry();
-}
-#endif
-
-#if CONFIG_IS_ENABLED(FIT_IMAGE_POST_PROCESS)
+#if CONFIG_IS_ENABLED(FIT_IMAGE_POST_PROCESS) && !IS_ENABLED(CONFIG_SYS_K3_SPL_ATF)
 void board_fit_image_post_process(const void *fit, int node, void **p_image,
 				  size_t *p_size)
 {
-#if IS_ENABLED(CONFIG_SYS_K3_SPL_ATF)
-	int len;
-	int i;
-	const char *os;
-	u32 addr;
-
-	os = fdt_getprop(fit, node, "os", &len);
-	addr = fdt_getprop_u32_default_node(fit, node, 0, "entry", -1);
-
-	debug("%s: processing image: addr=%x, size=%d, os=%s\n", __func__,
-	      addr, *p_size, os);
-
-	for (i = 0; i < IMAGE_AMT; i++) {
-		if (!strcmp(os, image_os_match[i])) {
-			fit_image_info[i].image_start = addr;
-			fit_image_info[i].image_len = *p_size;
-			debug("%s: matched image for ID %d\n", __func__, i);
-			break;
-		}
-	}
-	/*
-	 * Only DM and the DTBs are being authenticated here,
-	 * rest will be authenticated when A72 cluster is up
-	 */
-	if ((i != IMAGE_ID_ATF) && (i != IMAGE_ID_OPTEE))
-#endif
-	{
-		ti_secure_image_check_binary(p_image, p_size);
-		ti_secure_image_post_process(p_image, p_size);
-	}
-#if IS_ENABLED(CONFIG_SYS_K3_SPL_ATF)
-	else
-		ti_secure_image_check_binary(p_image, p_size);
-#endif
+	ti_secure_image_check_binary(p_image, p_size);
+	ti_secure_image_post_process(p_image, p_size);
 }
 #endif
 
@@ -414,11 +212,17 @@ static const char *get_device_type_name(void)
 	}
 }
 
+__weak const char *get_reset_reason(void)
+{
+	return NULL;
+}
+
 int print_cpuinfo(void)
 {
 	struct udevice *soc;
 	char name[64];
 	int ret;
+	const char *reset_reason;
 
 	printf("SoC:   ");
 
@@ -440,6 +244,10 @@ int print_cpuinfo(void)
 
 	printf("%s\n", get_device_type_name());
 
+	reset_reason = get_reset_reason();
+	if (reset_reason)
+		printf("Reset reason: %s\n", reset_reason);
+
 	return 0;
 }
 #endif
@@ -453,75 +261,155 @@ void board_prep_linux(struct bootm_headers *images)
 				 ROUND(images->os.end,
 				       CONFIG_SYS_CACHELINE_SIZE));
 }
-#endif
 
-#ifdef CONFIG_CPU_V7R
-void disable_linefill_optimization(void)
+void enable_caches(void)
 {
-	u32 actlr;
+	void *fdt = (void *)gd->fdt_blob;
+	int ret;
 
-	/*
-	 * On K3 devices there are 2 conditions where R5F can deadlock:
-	 * 1.When software is performing series of store operations to
-	 *   cacheable write back/write allocate memory region and later
-	 *   on software execute barrier operation (DSB or DMB). R5F may
-	 *   hang at the barrier instruction.
-	 * 2.When software is performing a mix of load and store operations
-	 *   within a tight loop and store operations are all writing to
-	 *   cacheable write back/write allocates memory regions, R5F may
-	 *   hang at one of the load instruction.
-	 *
-	 * To avoid the above two conditions disable linefill optimization
-	 * inside Cortex R5F.
-	 */
-	asm("mrc p15, 0, %0, c1, c0, 1" : "=r" (actlr));
-	actlr |= (1 << 13); /* Set DLFO bit  */
-	asm("mcr p15, 0, %0, c1, c0, 1" : : "r" (actlr));
+	ret = mem_map_from_dram_banks(K3_MEM_MAP_FIRST_BANK_IDX, K3_MEM_MAP_LEN,
+				     PTE_BLOCK_MEMTYPE(MT_NORMAL) |
+					     PTE_BLOCK_INNER_SHARE);
+	if (ret)
+		debug("%s: Failed to setup dram banks\n", __func__);
+
+	ret = fdt_fixup_reserved(fdt);
+	if (ret)
+		printf("%s: Failed to perform reserved-memory fixups (%s)\n",
+		       __func__, fdt_strerror(ret));
+
+	mmu_setup();
+
+	if (CONFIG_K3_ATF_LOAD_ADDR >= CFG_SYS_SDRAM_BASE) {
+		ret = mmu_unmap_reserved_mem("tfa", true);
+		if (ret)
+			printf("%s: Failed to unmap tfa reserved mem (%d)\n",
+			       __func__, ret);
+	}
+
+	if (CONFIG_K3_OPTEE_LOAD_ADDR >= CFG_SYS_SDRAM_BASE) {
+		ret = mmu_unmap_reserved_mem("optee", true);
+		if (ret)
+			printf("%s: Failed to unmap optee reserved mem (%d)\n",
+			       __func__, ret);
+	}
+
+	icache_enable();
+	dcache_enable();
 }
 #endif
 
-static void remove_fwl_regions(struct fwl_data fwl_data, size_t num_regions,
-			       enum k3_firewall_region_type fwl_type)
+__weak char k3_get_speed_grade(void)
 {
-	struct ti_sci_fwl_ops *fwl_ops;
-	struct ti_sci_handle *ti_sci;
-	struct ti_sci_msg_fwl_region region;
-	size_t j;
+	return K3_SPEED_GRADE_UNKNOWN;
+}
 
-	ti_sci = get_ti_sci_handle();
-	fwl_ops = &ti_sci->ops.fwl_ops;
+__weak const struct k3_speed_grade_map *k3_get_speed_grade_map(void)
+{
+	return NULL;
+}
 
-	for (j = 0; j < fwl_data.regions; j++) {
-		region.fwl_id = fwl_data.fwl_id;
-		region.region = j;
-		region.n_permission_regs = 3;
+static int k3_fdt_set_assigned_clk_rate(const char *path, const char *clk_name,
+					unsigned int new_clk_rate)
+{
+	int size, clk_name_index, phandle_count;
+	struct ofnode_phandle_args phandle_args;
+	unsigned int dev_id, clock_id, i;
+	ofnode node = ofnode_path(path);
+	u32 *clk_rates;
+	int ret;
 
-		fwl_ops->get_fwl_region(ti_sci, &region);
+	debug("%s: Setting clock '%s' frequency of '%s' to %u\n", __func__,
+	      path, clk_name, new_clk_rate);
 
-		/* Don't disable the background regions */
-		if (region.control != 0 &&
-		    ((region.control >> K3_FIREWALL_BACKGROUND_BIT) & 1) == fwl_type) {
-			pr_debug("Attempting to disable firewall %5d (%25s)\n",
-				 region.fwl_id, fwl_data.name);
-			region.control = 0;
+	clk_name_index =
+		ofnode_stringlist_search(node, "clock-names", clk_name);
+	if (clk_name_index < 0)
+		return clk_name_index;
 
-			if (fwl_ops->set_fwl_region(ti_sci, &region))
-				pr_err("Could not disable firewall %5d (%25s)\n",
-				       region.fwl_id, fwl_data.name);
+	ret = ofnode_parse_phandle_with_args(node, "clocks", "#clock-cells", 0,
+					     clk_name_index, &phandle_args);
+
+	if (ret || phandle_args.args_count != 2)
+		return -EINVAL;
+
+	dev_id = phandle_args.args[0];
+	clock_id = phandle_args.args[1];
+
+	debug("%s: Found dev_id: %u, clock_id: %u\n", __func__, dev_id,
+	      clock_id);
+
+	phandle_count = ofnode_count_phandle_with_args(node, "assigned-clocks",
+						       "#clock-cells", 0);
+
+	for (i = 0; i < phandle_count; i++) {
+		ret = ofnode_parse_phandle_with_args(node, "assigned-clocks",
+						     "#clock-cells", 0, i,
+						     &phandle_args);
+
+		if (ret || phandle_args.args_count != 2)
+			continue;
+
+		if (phandle_args.args[0] == dev_id &&
+		    phandle_args.args[1] == clock_id) {
+			clk_rates = (u32 *)ofnode_read_prop(node,
+				"assigned-clock-rates", &size);
+
+			if (i >= (size / sizeof(u32)))
+				return -EOVERFLOW;
+
+			clk_rates[i] = cpu_to_fdt32(new_clk_rate);
+			return 0;
 		}
 	}
+
+	return -EINVAL;
 }
 
-void remove_fwl_configs(struct fwl_data *fwl_data, size_t fwl_data_size)
+static u32 k3_get_a_core_frequency(char speed_grade)
 {
-	size_t i;
+	const struct k3_speed_grade_map *map = k3_get_speed_grade_map();
+	unsigned int i;
 
-	for (i = 0; i < fwl_data_size; i++) {
-		remove_fwl_regions(fwl_data[i], fwl_data[i].regions,
-				   K3_FIREWALL_REGION_FOREGROUND);
-		remove_fwl_regions(fwl_data[i], fwl_data[i].regions,
-				   K3_FIREWALL_REGION_BACKGROUND);
+	if (!map)
+		return 0;
+
+	for (i = 0; map[i].speed_grade != 0; i++) {
+		if (map[i].speed_grade == speed_grade)
+			return map[i].a_core_frequency;
 	}
+
+	return 0;
+}
+
+void k3_fix_rproc_clock(const char *path)
+{
+	u32 a_core_frequency;
+	char speed_grade;
+	int ret;
+
+	if (IS_ENABLED(CONFIG_ARM64))
+		return;
+
+	speed_grade = k3_get_speed_grade();
+	a_core_frequency = k3_get_a_core_frequency(speed_grade);
+
+	if (!a_core_frequency) {
+		printf("%s: Failed to get speed grade frequency\n", __func__);
+		return;
+	}
+
+	ret = k3_fdt_set_assigned_clk_rate(path, "core", a_core_frequency);
+	if (ret)
+		printf("Failed to set clock rates for '%s': %d\n", path, ret);
+	else
+		printf("Set clock rates for '%s', CPU: %dMHz at Speed Grade '%c'\n",
+		       path, a_core_frequency / 1000000, speed_grade);
+}
+
+__weak phys_addr_t board_get_usable_ram_top(phys_size_t total_size)
+{
+	return gd->ram_top;
 }
 
 void spl_enable_cache(void)
@@ -531,15 +419,13 @@ void spl_enable_cache(void)
 	int ret = 0;
 
 	dram_init();
+	dram_init_banksize();
 
 	/* reserve TLB table */
 	gd->arch.tlb_size = PGTABLE_SIZE;
 
 	gd->ram_top += get_effective_memsize();
-	/* keep ram_top in the 32-bit address space */
-	if (gd->ram_top >= 0x100000000)
-		gd->ram_top = (phys_addr_t)0x100000000;
-
+	gd->ram_top = board_get_usable_ram_top(0);
 	gd->relocaddr = gd->ram_top;
 
 	ret = spl_reserve_video_from_ram_top();
@@ -556,12 +442,50 @@ void spl_enable_cache(void)
 #endif
 }
 
-#if !(defined(CONFIG_SYS_ICACHE_OFF) && defined(CONFIG_SYS_DCACHE_OFF))
-void spl_board_prepare_for_boot(void)
+static __maybe_unused void k3_dma_remove(void)
 {
-	dcache_disable();
+	struct udevice *dev;
+	int rc;
+
+	rc = uclass_find_device(UCLASS_DMA, 0, &dev);
+	if (!rc && dev) {
+		rc = device_remove(dev, DM_REMOVE_NORMAL);
+		if (rc)
+			pr_warn("Cannot remove dma device '%s' (err=%d)\n",
+				dev->name, rc);
+	} else
+		pr_warn("DMA Device not found (err=%d)\n", rc);
 }
 
+void spl_perform_arch_fixups(struct spl_image_info *spl_image)
+{
+	void *fdt = spl_image_fdt_addr(spl_image);
+
+	if (!fdt)
+		return;
+
+	fdt_fixup_reserved(fdt);
+}
+
+void spl_board_prepare_for_boot(void)
+{
+#if IS_ENABLED(CONFIG_SPL_OS_BOOT_SECURE) && !IS_ENABLED(CONFIG_ARM64)
+	int ret;
+
+	ret = k3_r5_falcon_prep();
+	if (ret)
+		panic("%s: Failed to boot in falcon mode: %d\n", __func__, ret);
+#endif /* falcon mode on R5 SPL */
+
+#if !(defined(CONFIG_SYS_ICACHE_OFF) && defined(CONFIG_SYS_DCACHE_OFF))
+	dcache_disable();
+#endif
+#if IS_ENABLED(CONFIG_SPL_DMA) && IS_ENABLED(CONFIG_SPL_DM_DEVICE_REMOVE)
+	k3_dma_remove();
+#endif
+}
+
+#if !(defined(CONFIG_SYS_ICACHE_OFF) && defined(CONFIG_SYS_DCACHE_OFF))
 void spl_board_prepare_for_linux(void)
 {
 	dcache_disable();
@@ -570,20 +494,22 @@ void spl_board_prepare_for_linux(void)
 
 int misc_init_r(void)
 {
-	if (IS_ENABLED(CONFIG_TI_AM65_CPSW_NUSS)) {
+	if (IS_ENABLED(CONFIG_TI_ICSSG_PRUETH)) {
 		struct udevice *dev;
 		int ret;
 
 		ret = uclass_get_device_by_driver(UCLASS_MISC,
-						  DM_DRIVER_GET(am65_cpsw_nuss),
+						  DM_DRIVER_GET(prueth),
 						  &dev);
 		if (ret)
-			printf("Failed to probe am65_cpsw_nuss driver\n");
+			printf("Failed to probe prueth driver\n");
 	}
 
 	/* Default FIT boot on HS-SE devices */
-	if (get_device_type() == K3_DEVICE_TYPE_HS_SE)
+	if (get_device_type() == K3_DEVICE_TYPE_HS_SE) {
 		env_set("boot_fit", "1");
+		env_set("secure_rprocs", "1");
+	}
 
 	return 0;
 }
@@ -605,5 +531,77 @@ void setup_qos(void)
 
 	for (i = 0; i < qos_count; i++)
 		writel(qos_data[i].val, (uintptr_t)qos_data[i].reg);
+}
+#endif
+
+int __maybe_unused shutdown_mcu_r5_core1(void)
+{
+	struct ti_sci_handle *ti_sci = get_ti_sci_handle();
+	struct ti_sci_dev_ops *dev_ops = &ti_sci->ops.dev_ops;
+	struct ti_sci_proc_ops *proc_ops = &ti_sci->ops.proc_ops;
+	u32 dev_id_mcu_r5_core1 = put_core_ids[0];
+	u64 boot_vector;
+	u32 cfg, ctrl, sts, halted;
+	int cluster_mode_lockstep, ret;
+	bool r_state = false, c_state = false;
+
+	ret = proc_ops->proc_request(ti_sci, PROC_ID_MCU_R5FSS0_CORE1);
+	if (ret) {
+		printf("Unable to request processor control for MCU1_1 core, %d\n",
+		       ret);
+		return ret;
+	}
+
+	ret = dev_ops->is_on(ti_sci, dev_id_mcu_r5_core1, &r_state, &c_state);
+	if (ret) {
+		printf("Unable to get device status for MCU1_1 core, %d\n", ret);
+		return ret;
+	}
+
+	ret = proc_ops->get_proc_boot_status(ti_sci, PROC_ID_MCU_R5FSS0_CORE1,
+					     &boot_vector, &cfg, &ctrl, &sts);
+	if (ret) {
+		printf("Unable to get Processor boot status for MCU1_1 core, %d\n",
+		       ret);
+		goto release_proc_ctrl;
+	}
+
+	halted = !!(sts & PROC_BOOT_STATUS_FLAG_R5_WFI);
+	cluster_mode_lockstep = !!(cfg & PROC_BOOT_CFG_FLAG_R5_LOCKSTEP);
+
+	/*
+	 * Shutdown MCU R5F Core 1 only if:
+	 *	- cluster is booted in SplitMode
+	 *	- core is powered on
+	 *	- core is in WFI (halted)
+	 */
+	if (cluster_mode_lockstep || !c_state || !halted) {
+		ret = -EINVAL;
+		goto release_proc_ctrl;
+	}
+
+	ret = proc_ops->set_proc_boot_ctrl(ti_sci, PROC_ID_MCU_R5FSS0_CORE1,
+					   PROC_BOOT_CTRL_FLAG_R5_CORE_HALT, 0);
+	if (ret) {
+		printf("Unable to Halt MCU1_1 core, %d\n", ret);
+		goto release_proc_ctrl;
+	}
+
+	ret = dev_ops->put_device(ti_sci, dev_id_mcu_r5_core1);
+	if (ret) {
+		printf("Unable to assert reset on MCU1_1 core, %d\n", ret);
+		return ret;
+	}
+
+release_proc_ctrl:
+	proc_ops->proc_release(ti_sci, PROC_ID_MCU_R5FSS0_CORE1);
+	return ret;
+}
+
+#if IS_ENABLED(CONFIG_ARM64) && IS_ENABLED(CONFIG_SPL_OS_BOOT_SECURE)
+int spl_start_uboot(void)
+{
+	/* Always boot to linux on Cortex-A SPL with CONFIG_SPL_OS_BOOT set */
+	return 0;
 }
 #endif

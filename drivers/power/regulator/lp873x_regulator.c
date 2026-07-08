@@ -6,7 +6,6 @@
  * Keerthy <j-keerthy@ti.com>
  */
 
-#include <common.h>
 #include <fdtdec.h>
 #include <errno.h>
 #include <dm.h>
@@ -84,8 +83,8 @@ static int lp873x_buck_hex2volt(int hex)
 
 static int lp873x_buck_val(struct udevice *dev, int op, int *uV)
 {
-	unsigned int hex, adr;
-	int ret;
+	unsigned int adr;
+	int hex, ret;
 	struct dm_regulator_uclass_plat *uc_pdata;
 
 	uc_pdata = dev_get_uclass_plat(dev);
@@ -178,8 +177,8 @@ static int lp873x_ldo_hex2volt(int hex)
 
 static int lp873x_ldo_val(struct udevice *dev, int op, int *uV)
 {
-	unsigned int hex, adr;
-	int ret;
+	unsigned int adr;
+	int hex, ret;
 
 	struct dm_regulator_uclass_plat *uc_pdata;
 
@@ -310,7 +309,6 @@ static int buck_get_enable(struct udevice *dev)
 {
 	bool enable = false;
 	int ret;
-
 
 	ret = lp873x_buck_enable(dev, PMIC_OP_GET, &enable);
 	if (ret)

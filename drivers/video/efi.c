@@ -7,7 +7,6 @@
 
 #define LOG_CATEGORY LOGC_EFI
 
-#include <common.h>
 #include <dm.h>
 #include <efi_api.h>
 #include <log.h>
@@ -105,7 +104,7 @@ static int get_mode_info(struct vesa_mode_info *vesa, u64 *fbp,
 static int get_mode_from_entry(struct vesa_mode_info *vesa, u64 *fbp,
 			       struct efi_gop_mode_info **infop)
 {
-	struct efi_gop_mode *mode;
+	struct efi_entry_gopmode *mode;
 	int size;
 	int ret;
 

@@ -3,7 +3,6 @@
  * Copyright (C) 2016 Cadence Design Systems - https://www.cadence.com/
  * Copyright 2019 NXP
  */
-#include <common.h>
 #include <malloc.h>
 #include <asm/dma-mapping.h>
 #include <asm/io.h>
@@ -1935,7 +1934,7 @@ static int usb_ss_init_ep(struct usb_ss_dev *usb_ss)
 			continue;
 
 		/* create empty endpoint object */
-		usb_ss_ep = devm_kzalloc(&usb_ss->dev, sizeof(*usb_ss_ep),
+		usb_ss_ep = devm_kzalloc(usb_ss->sysdev, sizeof(*usb_ss_ep),
 					 GFP_KERNEL);
 		if (!usb_ss_ep)
 			return -ENOMEM;
@@ -1993,7 +1992,7 @@ static int usb_ss_init_ep0(struct usb_ss_dev *usb_ss)
 	struct usb_ss_endpoint *ep0;
 
 	dev_dbg(&usb_ss->dev, "Initializing EP0\n");
-	ep0 = devm_kzalloc(&usb_ss->dev, sizeof(struct usb_ss_endpoint),
+	ep0 = devm_kzalloc(usb_ss->sysdev, sizeof(struct usb_ss_endpoint),
 			   GFP_KERNEL);
 
 	if (!ep0)

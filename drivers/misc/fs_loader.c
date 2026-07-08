@@ -6,7 +6,6 @@
 
 #define LOG_CATEGORY UCLASS_FS_FIRMWARE_LOADER
 
-#include <common.h>
 #include <dm.h>
 #include <env.h>
 #include <errno.h>
@@ -149,7 +148,7 @@ static int _request_firmware_prepare(struct udevice *dev,
  */
 static int fw_get_filesystem_firmware(struct udevice *dev)
 {
-	loff_t actread;
+	loff_t actread = 0;
 	char *storage_interface, *dev_part, *ubi_mtdpart, *ubi_volume;
 	int ret;
 

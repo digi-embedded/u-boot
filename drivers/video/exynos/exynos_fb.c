@@ -7,7 +7,6 @@
  */
 
 #include <config.h>
-#include <common.h>
 #include <display.h>
 #include <div64.h>
 #include <dm.h>
@@ -351,7 +350,7 @@ void exynos_fimd_window_off(struct exynos_fb_priv *priv, unsigned int win_id)
 void exynos_fimd_disable_sysmmu(void)
 {
 	u32 *sysmmufimd;
-	unsigned int node;
+	int node;
 	int node_list[2];
 	int count;
 	int i;

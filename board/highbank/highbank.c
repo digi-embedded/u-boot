@@ -3,7 +3,6 @@
  * Copyright 2010-2011 Calxeda, Inc.
  */
 
-#include <common.h>
 #include <ahci.h>
 #include <cpu_func.h>
 #include <env.h>
@@ -98,15 +97,16 @@ int ft_board_setup(void *fdt, struct bd_info *bd)
 }
 #endif
 
-void *board_fdt_blob_setup(int *err)
+int board_fdt_blob_setup(void **fdtp)
 {
-	*err = 0;
 	/*
 	 * The ECME management processor loads the DTB from NOR flash
 	 * into DRAM (at 4KB), where it gets patched to contain the
 	 * detected memory size.
 	 */
-	return (void *)0x1000;
+	*fdtp = (void *)0x1000;
+
+	return 0;
 }
 
 static int is_highbank(void)

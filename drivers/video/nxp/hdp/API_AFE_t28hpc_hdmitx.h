@@ -51,7 +51,6 @@
 #include <assert.h>
 #include <stdint.h>
 #else
-#include <common.h>
 #endif
 #include "vic_table.h"
 #include "API_AFE.h"

@@ -67,11 +67,16 @@ Boot Configuration Files
 ------------------------
 
 The standard format for boot configuration files is that of extlinux.conf, as
-handled by U-Boot's "syslinux" (disk) or "pxe boot" (network). This is roughly
-as specified at `Boot Loader Specification`_:
+handled by U-Boot's "syslinux" (disk) or "pxe boot" (network). This format is
+not formally standardized and documented in a single location. However, other
+implementations do document it and we attempt to be as compatible as possible.
 
+* The UAPI Group Specifications `Boot Loader Specification`_
 
-... with the exceptions that the Boot Loader Specification document:
+* The Syslinux Project documents both `PXELINUX`_ and `SYSLINUX`_ files and is
+  the originator of the format.
+
+That said, we have some differences to these documents, namely:
 
 * Prescribes a separate configuration per boot menu option, whereas U-Boot
   lumps all options into a single extlinux.conf file. Hence, U-Boot searches
@@ -80,6 +85,19 @@ as specified at `Boot Loader Specification`_:
 
 * Does not document the fdtdir option, which automatically selects the DTB to
   pass to the kernel.
+
+* If no fdt/fdtdir is provided, the U-Boot will pass its own currently used
+  device tree.
+
+* If ``-`` is passed as fdt argument and ``CONFIG_SUPPORT_PASSING_ATAGS`` is
+  enabled, then no device tree will be used (legacy booting / pre-dtb kernel).
+
+* The ``append`` string may use environment variables. For example, an
+  A/B boot setup could use ``append root=PARTLABEL=root_${bootslot}``
+  to set the root filesystem to the right one for the selected slot,
+  assuming the ``bootslot`` environment variable is set before the
+  extlinux.conf file is processed, and the partition is labeled to
+  match.
 
 See also doc/README.pxe under 'pxe file format'.
 
@@ -183,7 +201,7 @@ TO BE UPDATED:
 
 In your board configuration file, include the following::
 
-    #ifndef CONFIG_SPL_BUILD
+    #ifndef CONFIG_XPL_BUILD
     #include <config_distro_bootcmd.h>
     #endif
 
@@ -310,7 +328,7 @@ that it supports the correct set of possible boot device types. To provide this
 configuration, simply define macro BOOT_TARGET_DEVICES prior to including
 <config_distro_bootcmd.h>. For example::
 
-    #ifndef CONFIG_SPL_BUILD
+    #ifndef CONFIG_XPL_BUILD
     #define BOOT_TARGET_DEVICES(func) \
             func(MMC, mmc, 1) \
             func(MMC, mmc, 0) \
@@ -434,7 +452,9 @@ way in future u-boot versions.  In particular the <device type>_boot
 variables (e.g. mmc_boot, usb_boot) are a strictly internal implementation
 detail and must not be used as a public interface.
 
-.. _`Boot Loader Specification`: https://systemd.io/BOOT_LOADER_SPECIFICATION/
+.. _`Boot Loader Specification`: https://uapi-group.org/specifications/specs/boot_loader_specification/
+.. _`PXELINUX`: https://wiki.syslinux.org/wiki/index.php?title=PXELINUX
+.. _`SYSLINUX`: https://wiki.syslinux.org/wiki/index.php?title=SYSLINUX
 
 .. sectionauthor:: (C) Copyright 2014 Red Hat Inc.
 .. sectionauthor:: Copyright (c) 2014-2015, NVIDIA CORPORATION.  All rights reserved.

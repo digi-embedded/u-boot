@@ -3,7 +3,6 @@
  * Copyright (C) 2019 NXP
  */
 
-#include <common.h>
 #include <clk.h>
 #include <dm.h>
 #include <generic-phy.h>
@@ -104,6 +103,10 @@ static const struct udevice_id cdns3_generic_peripheral_ids[] = {
 	{},
 };
 
+static const struct usb_gadget_generic_ops cdns3_gadget_ops = {
+	.handle_interrupts	= cdns3_generic_handle_interrupts,
+};
+
 U_BOOT_DRIVER(cdns3_generic_peripheral) = {
 	.name	= "cdns3-generic-peripheral",
 	.id	= UCLASS_USB_GADGET_GENERIC,
@@ -111,6 +114,6 @@ U_BOOT_DRIVER(cdns3_generic_peripheral) = {
 	.of_to_plat = cdns3_generic_peripheral_ofdata_to_platdata,
 	.probe = cdns3_generic_peripheral_probe,
 	.remove = cdns3_generic_peripheral_remove,
-	.handle_interrupts = cdns3_generic_handle_interrupts,
+	.ops	= &cdns3_gadget_ops,
 	.priv_auto = sizeof(struct cdns3_generic_peripheral),
 };

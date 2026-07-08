@@ -5,22 +5,28 @@
  * Copyright (c) 2016 Alexander Graf
  */
 
+#define LOG_CATEGORY LOGC_EFI
+
 #include <bootm.h>
 #include <div64.h>
 #include <dm/device.h>
 #include <dm/root.h>
+#include <efi_device_path.h>
 #include <efi_loader.h>
 #include <irq_func.h>
 #include <log.h>
 #include <malloc.h>
+#include <net-common.h>
 #include <pe.h>
 #include <time.h>
 #include <u-boot/crc.h>
 #include <usb.h>
 #include <watchdog.h>
 #include <asm/global_data.h>
-#include <asm/setjmp.h>
 #include <linux/libfdt_env.h>
+#include <video_link.h>
+#include <trusty/libtipc.h>
+#include <trusty/hwcrypto.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -55,12 +61,12 @@ static efi_handle_t current_image;
  * restriction so we need to manually swap its and our view of that register on
  * EFI callback entry/exit.
  */
-static volatile gd_t *efi_gd, *app_gd;
+static gd_t *efi_gd, *app_gd;
 #endif
 
-static efi_status_t efi_uninstall_protocol
-			(efi_handle_t handle, const efi_guid_t *protocol,
-			 void *protocol_interface, bool preserve);
+efi_status_t efi_uninstall_protocol
+		(efi_handle_t handle, const efi_guid_t *protocol,
+		 void *protocol_interface, bool preserve);
 
 /* 1 if inside U-Boot code, 0 if inside EFI payload code */
 static int entry_count = 1;
@@ -98,12 +104,11 @@ const efi_guid_t efi_guid_load_file2_protocol = EFI_LOAD_FILE2_PROTOCOL_GUID;
 /* GUID of the SMBIOS table */
 const efi_guid_t smbios_guid = SMBIOS_TABLE_GUID;
 
-static efi_status_t EFIAPI efi_disconnect_controller(
+efi_status_t EFIAPI efi_disconnect_controller(
 					efi_handle_t controller_handle,
 					efi_handle_t driver_image_handle,
 					efi_handle_t child_handle);
 
-static
 efi_status_t EFIAPI efi_connect_controller(efi_handle_t controller_handle,
 					   efi_handle_t *driver_image_handle,
 					   struct efi_device_path *remain_device_path,
@@ -1037,7 +1042,7 @@ static efi_status_t EFIAPI efi_signal_event_ext(struct efi_event *event)
  *
  * Return: status code
  */
-static efi_status_t EFIAPI efi_close_event(struct efi_event *event)
+efi_status_t EFIAPI efi_close_event(struct efi_event *event)
 {
 	struct efi_register_notify_event *item, *next;
 
@@ -1378,9 +1383,9 @@ static efi_status_t efi_disconnect_all_drivers
  *
  * Return: status code
  */
-static efi_status_t efi_uninstall_protocol
-			(efi_handle_t handle, const efi_guid_t *protocol,
-			 void *protocol_interface, bool preserve)
+efi_status_t efi_uninstall_protocol
+		(efi_handle_t handle, const efi_guid_t *protocol,
+			void *protocol_interface, bool preserve)
 {
 	struct efi_handler *handler;
 	struct efi_open_protocol_info_item *item;
@@ -1816,7 +1821,7 @@ efi_status_t efi_setup_loaded_image(struct efi_device_path *device_path,
 	if (device_path) {
 		info->device_handle = efi_dp_find_obj(device_path, NULL, NULL);
 
-		dp = efi_dp_concat(device_path, file_path, false);
+		dp = efi_dp_concat(device_path, file_path, 0);
 		if (!dp) {
 			ret = EFI_OUT_OF_RESOURCES;
 			goto failure;
@@ -1996,7 +2001,6 @@ error:
  * @size:		size of the loaded image
  * Return:		status code
  */
-static
 efi_status_t efi_load_image_from_path(bool boot_policy,
 				      struct efi_device_path *file_path,
 				      void **buffer, efi_uintn_t *size)
@@ -2095,8 +2099,12 @@ efi_status_t EFIAPI efi_load_image(bool boot_policy,
 	EFI_ENTRY("%d, %p, %pD, %p, %zu, %p", boot_policy, parent_image,
 		  file_path, source_buffer, source_size, image_handle);
 
-	if (!image_handle || (!source_buffer && !file_path) ||
-	    !efi_search_obj(parent_image) ||
+	if (!source_buffer && !file_path) {
+		ret = EFI_NOT_FOUND;
+		goto error;
+	}
+
+	if (!image_handle || !efi_search_obj(parent_image) ||
 	    /* The parent image handle must refer to a loaded image */
 	    !parent_image->type) {
 		ret = EFI_INVALID_PARAMETER;
@@ -2129,6 +2137,11 @@ efi_status_t EFIAPI efi_load_image(bool boot_policy,
 		*image_handle = NULL;
 		free(info);
 	}
+
+	if (IS_ENABLED(CONFIG_EFI_DEBUG_SUPPORT) && *image_handle)
+		efi_core_new_debug_image_info_entry(EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL,
+						    info,
+						    *image_handle);
 error:
 	return EFI_EXIT(ret);
 }
@@ -2232,10 +2245,19 @@ static efi_status_t EFIAPI efi_exit_boot_services(efi_handle_t image_handle,
 
 	if (!efi_st_keep_devices) {
 		bootm_disable_interrupts();
-		if (IS_ENABLED(CONFIG_USB_DEVICE))
-			udc_disconnect();
+		if (IS_ENABLED(CONFIG_DM_ETH))
+			eth_halt();
+		if (IS_ENABLED(CONFIG_VIDEO_LINK) && IS_ENABLED(CONFIG_IMX_ANDROID_GBL))
+			video_link_shut_down();
+		if (IS_ENABLED(CONFIG_IMX_TRUSTY_OS) && IS_ENABLED(CONFIG_IMX_ANDROID_GBL)) {
+			/* lock the boot state so linux can't use some hwcrypto commands. */
+			hwcrypto_lock_boot_state();
+			/* put ql-tipc to release resource for Linux */
+			trusty_ipc_shutdown();
+		}
 		board_quiesce_devices();
-		dm_remove_devices_flags(DM_REMOVE_ACTIVE_ALL);
+		if (!IS_ENABLED(CONFIG_POWER_DOMAIN) || !IS_ENABLED(CONFIG_IMX_ANDROID_GBL))
+			dm_remove_devices_active();
 	}
 
 	/* Patch out unsupported runtime function */
@@ -2510,16 +2532,12 @@ static efi_status_t EFIAPI efi_protocols_per_handle(
 		return EFI_EXIT(EFI_INVALID_PARAMETER);
 
 	*protocol_buffer = NULL;
-	*protocol_buffer_count = 0;
 
 	efiobj = efi_search_obj(handle);
 	if (!efiobj)
 		return EFI_EXIT(EFI_INVALID_PARAMETER);
 
-	/* Count protocols */
-	list_for_each(protocol_handle, &efiobj->protocols) {
-		++*protocol_buffer_count;
-	}
+	*protocol_buffer_count = list_count_nodes(&efiobj->protocols);
 
 	/* Copy GUIDs */
 	if (*protocol_buffer_count) {
@@ -3199,10 +3217,10 @@ efi_status_t EFIAPI efi_start_image(efi_handle_t image_handle,
 	struct efi_loaded_image_obj *image_obj =
 		(struct efi_loaded_image_obj *)image_handle;
 	efi_status_t ret;
-	void *info;
+	struct efi_loaded_image *info;
 	efi_handle_t parent_image = current_image;
 	efi_status_t exit_status;
-	struct jmp_buf_data exit_jmp;
+	jmp_buf exit_jmp;
 
 	EFI_ENTRY("%p, %p, %p", image_handle, exit_data_size, exit_data);
 
@@ -3217,7 +3235,7 @@ efi_status_t EFIAPI efi_start_image(efi_handle_t image_handle,
 		return EFI_EXIT(EFI_SECURITY_VIOLATION);
 
 	ret = EFI_CALL(efi_open_protocol(image_handle, &efi_guid_loaded_image,
-					 &info, NULL, NULL,
+					 (void **)&info, NULL, NULL,
 					 EFI_OPEN_PROTOCOL_GET_PROTOCOL));
 	if (ret != EFI_SUCCESS)
 		return EFI_EXIT(EFI_INVALID_PARAMETER);
@@ -3241,7 +3259,7 @@ efi_status_t EFIAPI efi_start_image(efi_handle_t image_handle,
 	}
 
 	/* call the image! */
-	if (setjmp(&exit_jmp)) {
+	if (setjmp(exit_jmp)) {
 		/*
 		 * We called the entry point of the child image with EFI_CALL
 		 * in the lines below. The child image called the Exit() boot
@@ -3261,17 +3279,17 @@ efi_status_t EFIAPI efi_start_image(efi_handle_t image_handle,
 		 * To get ready to call EFI_EXIT below we have to execute the
 		 * missed out steps of EFI_CALL.
 		 */
-		assert(__efi_entry_check());
-		EFI_PRINT("%lu returned by started image\n",
-			  (unsigned long)((uintptr_t)exit_status &
-			  ~EFI_ERROR_MASK));
+		EFI_RETURN(exit_status);
+
 		current_image = parent_image;
+
 		return EFI_EXIT(exit_status);
 	}
 
 	current_image = image_handle;
 	image_obj->header.type = EFI_OBJECT_TYPE_STARTED_IMAGE;
-	EFI_PRINT("Jumping into 0x%p\n", image_obj->entry);
+	EFI_PRINT("Starting image loaded at 0x%p, entry point 0x%p\n",
+		  info->image_base, image_obj->entry);
 	ret = EFI_CALL(image_obj->entry(image_handle, &systab));
 
 	/*
@@ -3363,6 +3381,8 @@ efi_status_t EFIAPI efi_unload_image(efi_handle_t image_handle)
 		ret = EFI_INVALID_PARAMETER;
 		goto out;
 	}
+	if (IS_ENABLED(CONFIG_EFI_DEBUG_SUPPORT))
+		efi_core_remove_debug_image_info_entry(image_handle);
 	switch (efiobj->type) {
 	case EFI_OBJECT_TYPE_STARTED_IMAGE:
 		/* Call the unload function */
@@ -3448,7 +3468,7 @@ static efi_status_t EFIAPI efi_exit(efi_handle_t image_handle,
 	struct efi_loaded_image *loaded_image_protocol;
 	struct efi_loaded_image_obj *image_obj =
 		(struct efi_loaded_image_obj *)image_handle;
-	struct jmp_buf_data *exit_jmp;
+	jmp_buf *exit_jmp;
 
 	EFI_ENTRY("%p, %ld, %zu, %p", image_handle, exit_status,
 		  exit_data_size, exit_data);
@@ -3490,22 +3510,22 @@ static efi_status_t EFIAPI efi_exit(efi_handle_t image_handle,
 		if (ret != EFI_SUCCESS)
 			EFI_PRINT("%s: out of memory\n", __func__);
 	}
+
+	if (IS_ENABLED(CONFIG_EFI_TCG2_PROTOCOL)) {
+		if (image_obj->image_type == IMAGE_SUBSYSTEM_EFI_APPLICATION) {
+			ret = efi_tcg2_measure_efi_app_exit();
+			if (ret != EFI_SUCCESS)
+				log_debug("tcg2 measurement fails (0x%lx)\n",
+					  ret);
+		}
+	}
+
 	/* efi_delete_image() frees image_obj. Copy before the call. */
 	exit_jmp = image_obj->exit_jmp;
 	*image_obj->exit_status = exit_status;
 	if (image_obj->image_type == IMAGE_SUBSYSTEM_EFI_APPLICATION ||
 	    exit_status != EFI_SUCCESS)
 		efi_delete_image(image_obj, loaded_image_protocol);
-
-	if (IS_ENABLED(CONFIG_EFI_TCG2_PROTOCOL)) {
-		if (image_obj->image_type == IMAGE_SUBSYSTEM_EFI_APPLICATION) {
-			ret = efi_tcg2_measure_efi_app_exit();
-			if (ret != EFI_SUCCESS) {
-				log_warning("tcg2 measurement fails(0x%lx)\n",
-					    ret);
-			}
-		}
-	}
 
 	/* Make sure entry/exit counts for EFI world cross-overs match */
 	EFI_EXIT(exit_status);
@@ -3516,7 +3536,7 @@ static efi_status_t EFIAPI efi_exit(efi_handle_t image_handle,
 	 */
 	efi_restore_gd();
 
-	longjmp(exit_jmp, 1);
+	longjmp(*exit_jmp, 1);
 
 	panic("EFI application exited");
 out:
@@ -3670,7 +3690,7 @@ static efi_status_t efi_connect_single_controller(
  *
  * Return: status code
  */
-static efi_status_t EFIAPI efi_connect_controller(
+efi_status_t EFIAPI efi_connect_controller(
 			efi_handle_t controller_handle,
 			efi_handle_t *driver_image_handle,
 			struct efi_device_path *remain_device_path,
@@ -3738,7 +3758,7 @@ out:
  *
  * Return: status code
  */
-static efi_status_t EFIAPI efi_reinstall_protocol_interface(
+efi_status_t EFIAPI efi_reinstall_protocol_interface(
 			efi_handle_t handle, const efi_guid_t *protocol,
 			void *old_interface, void *new_interface)
 {
@@ -3849,7 +3869,7 @@ static efi_status_t efi_get_child_controllers(
  *
  * Return: status code
  */
-static efi_status_t EFIAPI efi_disconnect_controller(
+efi_status_t EFIAPI efi_disconnect_controller(
 				efi_handle_t controller_handle,
 				efi_handle_t driver_image_handle,
 				efi_handle_t child_handle)

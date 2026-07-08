@@ -5,7 +5,8 @@
 
 /dts-v1/;
 
-#include "imx8ulp-9x9-evk.dts"
+#include "../dts/upstream/src/arm64/freescale/imx8ulp-9x9-evk.dts"
+#include "imx8ulp-9x9-evk-u-boot.dtsi"
 
 &fec {
 	status = "disabled";

@@ -3,7 +3,7 @@
  * Copyright 2019 NXP
  *
  */
-#include <common.h>
+
 #include <dm.h>
 #include <dm/device_compat.h>
 #include <env.h>

@@ -4,7 +4,6 @@
  * Eddie James <eajames@linux.ibm.com>
  */
 
-#include <common.h>
 #include <clk.h>
 #include <dm.h>
 #include <malloc.h>
@@ -93,7 +92,6 @@ U_BOOT_DRIVER(aspeed_sdhci_drv) = {
 	.priv_auto	= sizeof(struct sdhci_host),
 	.plat_auto	= sizeof(struct aspeed_sdhci_plat),
 };
-
 
 static int aspeed_sdc_probe(struct udevice *parent)
 {

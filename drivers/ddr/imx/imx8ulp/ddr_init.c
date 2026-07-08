@@ -2,11 +2,11 @@
 /*
  * Copyright 2021 NXP
  */
-#include <common.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/ddr.h>
 #include <asm/arch/imx-regs.h>
+#include <vsprintf.h>
 
 #define DENALI_CTL_00		(DDR_CTL_BASE_ADDR + 4 * 0)
 #define CTL_START		0x1

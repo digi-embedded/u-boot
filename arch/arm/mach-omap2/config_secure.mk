@@ -4,7 +4,7 @@
 quiet_cmd_mkomapsecimg = SECURE  $@
 ifneq ($(TI_SECURE_DEV_PKG),)
 ifneq ($(wildcard $(TI_SECURE_DEV_PKG)/scripts/create-boot-image.sh),)
-ifneq ($(CONFIG_SPL_BUILD),)
+ifneq ($(CONFIG_XPL_BUILD),)
 cmd_mkomapsecimg = $(TI_SECURE_DEV_PKG)/scripts/create-boot-image.sh \
 	$(patsubst u-boot-spl_HS_%,%,$(@F)) $< $@ $(CONFIG_SPL_TEXT_BASE) \
 	$(if $(KBUILD_VERBOSE:1=), >/dev/null)
@@ -84,7 +84,7 @@ u-boot-spl_HS_SPI_X-LOADER: $(obj)/u-boot-spl.bin FORCE
 # file, not an SPL. This will work for all boot devices, other than SPI
 # flash. On Keystone devices when booting from an SD card FAT partition this
 # file must be called "MLO"
-u-boot_HS_MLO: $(obj)/u-boot.bin
+u-boot_HS_MLO: $(obj)/u-boot.bin FORCE
 	$(call if_changed,mkomapsecimg)
 	@if [ -f $@ ]; then \
 		cp -f $@ MLO; \

@@ -18,12 +18,8 @@
 #define UTIL_H_
 
 #include "API_General.h"
-#ifndef __UBOOT__
 #include <stdarg.h>
 #include <stdint.h>
-#else
-#include <common.h>
-#endif
 /**
  * \addtogroup UTILS
  * \{

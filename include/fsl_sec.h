@@ -405,6 +405,15 @@ int sec_init(void);
 
 u8 caam_get_era(void);
 
+int derive_blob_kek(u8 *bkek_buf, u8 *key_mod, u32 key_sz);
+
+int hwrng_generate(u8 *dst, u32 len);
+
+int aesecb_decrypt(u8 *key, u32 key_len, u8 *src, u8 *dst, u32 len);
+
+int tag_black_obj(u8 *black_obj, size_t black_obj_len, size_t key_len, size_t black_max_len);
+#endif
+
 /**
  * blob_decap() - Decapsulate the data from a blob
  * @key_mod:    - Key modifier address
@@ -436,15 +445,6 @@ int blob_decap(u8 *key_mod, u8 *src, u8 *dst, u32 len, u8 keycolor);
  * Returns zero on success, negative on error.
  */
 int blob_encap(u8 *key_mod, u8 *src, u8 *dst, u32 len, u8 keycolor);
-
-int derive_blob_kek(u8 *bkek_buf, u8 *key_mod, u32 key_sz);
-
-int hwrng_generate(u8 *dst, u32 len);
-
-int aesecb_decrypt(u8 *key, u32 key_len, u8 *src, u8 *dst, u32 len);
-
-int tag_black_obj(u8 *black_obj, size_t black_obj_len, size_t key_len, size_t black_max_len);
-#endif
 
 #ifdef CONFIG_FSL_CAAM_RNG_ERRATA
 int rng_workaround_copy_to_ocram(void);

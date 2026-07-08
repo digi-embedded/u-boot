@@ -3,7 +3,8 @@
   * Copyright 2020 NXP
   */
 
-#include "imx8mp-evk.dts"
+#include "../dts/upstream/src/arm64/freescale/imx8mp-evk.dts"
+#include "imx8mp-evk-u-boot.dtsi"
 
 / {
 	model = "NXP i.MX8MPlus DDR4 EVK board";

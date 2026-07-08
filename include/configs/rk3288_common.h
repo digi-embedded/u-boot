@@ -6,7 +6,6 @@
 #ifndef __CONFIG_RK3288_COMMON_H
 #define __CONFIG_RK3288_COMMON_H
 
-#include <asm/arch-rockchip/hardware.h>
 #include "rockchip-common.h"
 
 #define CFG_SYS_HZ_CLOCK		24000000
@@ -19,7 +18,8 @@
 #define ENV_MEM_LAYOUT_SETTINGS \
 	"scriptaddr=0x00000000\0" \
 	"pxefile_addr_r=0x00100000\0" \
-	"fdt_addr_r=0x01f00000\0" \
+	"fdt_addr_r=0x01e00000\0" \
+	"fdtoverlay_addr_r=0x01f00000\0" \
 	"kernel_addr_r=0x02000000\0" \
 	"ramdisk_addr_r=0x04000000\0"
 

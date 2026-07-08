@@ -6,7 +6,6 @@
  */
 
 #include <blk.h>
-#include <common.h>
 #include <cpu_func.h>
 #include <dm.h>
 #include <env.h>
@@ -77,11 +76,6 @@ static struct mm_region corstone1000_mem_map[] = {
 };
 
 struct mm_region *mem_map = corstone1000_mem_map;
-
-int board_init(void)
-{
-	return 0;
-}
 
 int dram_init(void)
 {

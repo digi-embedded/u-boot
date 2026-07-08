@@ -7,9 +7,10 @@
  */
 
 #include <clk.h>
-#include <common.h>
+#include <config.h>
 #include <div64.h>
 #include <dm.h>
+#include <dm/device.h>
 #include <dm/device_compat.h>
 #include <errno.h>
 #include <log.h>
@@ -29,16 +30,23 @@ struct mtk_serial_regs {
 	u32 mcr;
 	u32 lsr;
 	u32 msr;
-	u32 spr;
-	u32 mdr1;
+	u32 scr;
+	u32 autobaud_en;
 	u32 highspeed;
 	u32 sample_count;
 	u32 sample_point;
+	u32 autobaud_reg;
+	u32 ratefix_ad;
+	u32 autobaud_sample;
+	u32 guard;
+	u32 escape_dat;
+	u32 escape_en;
+	u32 sleep_en;
+	u32 dma_en;
+	u32 rxtri_ad;
 	u32 fracdiv_l;
 	u32 fracdiv_m;
-	u32 escape_en;
-	u32 guard;
-	u32 rx_sel;
+	u32 fcr_rd;
 };
 
 #define thr rbr
@@ -76,21 +84,33 @@ struct mtk_serial_regs {
  *				driver
  * @regs:			Register base of the serial port
  * @clk:			The baud clock device
+ * @clk_bus:			The bus clock device
  * @fixed_clk_rate:		Fallback fixed baud clock rate if baud clock
  *				device is not specified
  * @force_highspeed:		Force using high-speed mode
+ * @upstream_highspeed_logic:	Apply upstream high-speed logic
  */
 struct mtk_serial_priv {
 	struct mtk_serial_regs __iomem *regs;
 	struct clk clk;
+	struct clk clk_bus;
 	u32 fixed_clk_rate;
 	bool force_highspeed;
+	bool upstream_highspeed_logic;
+};
+
+static const unsigned short fraction_l_mapping[] = {
+	0, 1, 0x5, 0x15, 0x55, 0x57, 0x57, 0x77, 0x7F, 0xFF, 0xFF
+};
+
+static const unsigned short fraction_m_mapping[] = {
+	0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 3
 };
 
 static void _mtk_serial_setbrg(struct mtk_serial_priv *priv, int baud,
 			       uint clk_rate)
 {
-	u32 quot, realbaud, samplecount = 1;
+	u32 quot, realbaud, samplecount = 1, fraction, frac_l = 0, frac_m = 0;
 
 	/* Special case for low baud clock */
 	if (baud <= 115200 && clk_rate == 12000000) {
@@ -111,7 +131,12 @@ static void _mtk_serial_setbrg(struct mtk_serial_priv *priv, int baud,
 		goto set_baud;
 	}
 
-	if (priv->force_highspeed)
+	/*
+	 * Upstream linux use highspeed for anything >= 115200 and lowspeed
+	 * for < 115200. Simulate this if we are using the upstream compatible.
+	 */
+	if (priv->force_highspeed ||
+	    (priv->upstream_highspeed_logic && baud >= 115200))
 		goto use_hs3;
 
 	if (baud <= 115200) {
@@ -130,7 +155,13 @@ use_hs3:
 		writel(3, &priv->regs->highspeed);
 
 		quot = DIV_ROUND_UP(clk_rate, 256 * baud);
-		samplecount = DIV_ROUND_CLOSEST(clk_rate, quot * baud);
+		samplecount = clk_rate / (quot * baud);
+
+		fraction = ((clk_rate * 100) / quot / baud) % 100;
+		fraction = DIV_ROUND_CLOSEST(fraction, 10);
+
+		frac_l = fraction_l_mapping[fraction];
+		frac_m = fraction_m_mapping[fraction];
 	}
 
 set_baud:
@@ -142,7 +173,11 @@ set_baud:
 
 	/* set highspeed mode sample count & point */
 	writel(samplecount - 1, &priv->regs->sample_count);
-	writel((samplecount - 2) >> 1, &priv->regs->sample_point);
+	writel((samplecount >> 1) - 1, &priv->regs->sample_point);
+
+	/* set baudrate fraction compensation */
+	writel(frac_l, &priv->regs->fracdiv_l);
+	writel(frac_m, &priv->regs->fracdiv_m);
 }
 
 static int _mtk_serial_putc(struct mtk_serial_priv *priv, const char ch)
@@ -220,6 +255,10 @@ static int mtk_serial_probe(struct udevice *dev)
 	writel(UART_MCRVAL, &priv->regs->mcr);
 	writel(UART_FCRVAL, &priv->regs->fcr);
 
+	clk_enable(&priv->clk);
+	if (priv->clk_bus.dev)
+		clk_enable(&priv->clk_bus);
+
 	return 0;
 }
 
@@ -250,7 +289,11 @@ static int mtk_serial_of_to_plat(struct udevice *dev)
 		}
 	}
 
+	clk_get_by_name(dev, "bus", &priv->clk_bus);
+
 	priv->force_highspeed = dev_read_bool(dev, "mediatek,force-highspeed");
+	priv->upstream_highspeed_logic =
+		device_is_compatible(dev, "mediatek,mt6577-uart");
 
 	return 0;
 }

@@ -73,7 +73,7 @@ int console_record_reset_enable(void);
  * @str: Place to put string
  * @maxlen: Maximum length of @str including nul terminator
  * Return: length of string returned, or -ENOSPC if the console buffer was
- *	overflowed by the output
+ *	overflowed by the output, or -ENOENT if there was nothing to read
  */
 int console_record_readline(char *str, int maxlen);
 
@@ -170,6 +170,21 @@ int console_announce_r(void);
 void console_puts_select_stderr(bool serial_only, const char *s);
 
 /**
+ * console_printf_select_stderr() - Output a formatted string to selected devs
+ *
+ * This writes to stderr only. It is useful for outputting errors. Note that it
+ * uses its own buffer, separate from the print buffer, to allow printing
+ * messages within console/stdio code
+ *
+ * @serial_only: true to output only to serial, false to output to everything
+ *	else
+ * @fmt: Printf format string, followed by format arguments
+ * Return: number of characters written
+ */
+int console_printf_select_stderr(bool serial_only, const char *fmt, ...)
+		__attribute__ ((format (__printf__, 2, 3)));
+
+/**
  * console_clear() - Clear the console
  *
  * Uses an ANSI sequence to clear the display, failing back to clearing the
@@ -178,6 +193,14 @@ void console_puts_select_stderr(bool serial_only, const char *s);
  * Return: 0 if OK, -ve on error
  */
 int console_clear(void);
+
+/**
+ * console_remove_by_name() - Remove a console by its stdio name
+ *
+ * This must only be used in tests. It removes any use of the named stdio device
+ * from the console tables.
+ */
+int console_remove_by_name(const char *name);
 
 /*
  * CONSOLE multiplexing.

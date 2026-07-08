@@ -6,7 +6,6 @@
  */
 
 #include <config.h>
-#include <common.h>
 #include <div64.h>
 #include <fuse.h>
 #include <log.h>
@@ -224,7 +223,7 @@ int imx_thermal_get_temp(struct udevice *dev, int *temp)
 		cpu_tmp = read_cpu_temperature(dev);
 	}
 
-	*temp = cpu_tmp;
+	*temp = cpu_tmp * 1000;
 
 	return 0;
 }

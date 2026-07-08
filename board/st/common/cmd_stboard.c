@@ -9,7 +9,7 @@
  * - "Commercial Product Name" (CPN): type of product board (DKX, EVX)
  *   associated to the board ID "MBxxxx"
  * - "Finished Good" or "Finish Good" (FG):
- *   effective content of the product without chip STM32MP1xx (LCD, Wifi,…)
+ *   effective content of the product without chip STM32MP1xx (LCD, Wifi,...)
  * - BOM: cost variant for same FG (for example, several provider of the same
  *   component)
  *
@@ -29,8 +29,7 @@
  *   Board: MB<Board> Var<VarCPN>.<VarFG> Rev.<Revision>-<BOM>
  */
 
-#ifndef CONFIG_SPL_BUILD
-#include <common.h>
+#ifndef CONFIG_XPL_BUILD
 #include <command.h>
 #include <console.h>
 #include <misc.h>
@@ -52,6 +51,7 @@ static bool check_stboard(u16 board)
 		0x1605, /* stm32mp25xx-dk */
 		0x1635,
 		0x1936, /* stm32mp25xx-ev1 */
+		0x2059, /* stm32mp21xx-dk */
 	};
 
 	for (i = 0; i < ARRAY_SIZE(st_board_id); i++)
@@ -91,6 +91,11 @@ static int do_stboard(struct cmd_tbl *cmdtp, int flag, int argc,
 	ret = uclass_get_device_by_driver(UCLASS_MISC,
 					  DM_DRIVER_GET(stm32mp_bsec),
 					  &dev);
+
+	if (ret) {
+		puts("Can't get BSEC device\n");
+		return CMD_RET_FAILURE;
+	}
 
 	ret = misc_read(dev, STM32_BSEC_OTP(BSEC_OTP_BOARD),
 			&otp, sizeof(otp));

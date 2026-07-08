@@ -2,13 +2,13 @@
 /*
  * Copyright 2020 NXP
  */
-#include <common.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/mach-imx/optee.h>
 #include <errno.h>
 #include <fdt_support.h>
+#include <linux/sizes.h>
+#include <env.h>
 #include <fdtdec.h>
-
 
 #ifdef CONFIG_OF_SYSTEM_SETUP
 int ft_add_optee_node(void *fdt, struct bd_info *bd)
@@ -31,16 +31,19 @@ int ft_add_optee_node(void *fdt, struct bd_info *bd)
 
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
 	if (rom_pointer[2]) {
-		debug("OP-TEE: applying overlay on 0x%lx\n",rom_pointer[2]);
-		ret = fdt_check_header((void*)rom_pointer[2]);
-		if (ret == 0) {
-			/* Copy the fdt overlay to next 1M and use copied overlay */
-			memcpy((void *)(rom_pointer[2] + SZ_1M), (void *)rom_pointer[2],
-				fdt_totalsize((void*)rom_pointer[2]));
-			ret = fdt_overlay_apply_verbose(fdt, (void*)(rom_pointer[2] + SZ_1M));
+		/* Only bypass overlay when opteeoverlay is no */
+		if (env_get_yesno("opteeoverlay") != 0) {
+			debug("OP-TEE: applying overlay on 0x%lx\n",rom_pointer[2]);
+			ret = fdt_check_header((void*)rom_pointer[2]);
 			if (ret == 0) {
-				debug("Overlay applied with success");
-				return 0;
+				/* Copy the fdt overlay to next 1M and use copied overlay */
+				memcpy((void *)(rom_pointer[2] + SZ_1M), (void *)rom_pointer[2],
+					fdt_totalsize((void*)rom_pointer[2]));
+				ret = fdt_overlay_apply_verbose(fdt, (void*)(rom_pointer[2] + SZ_1M));
+				if (ret == 0) {
+					debug("Overlay applied with success");
+					return 0;
+				}
 			}
 		}
 	}
@@ -64,17 +67,15 @@ int ft_add_optee_node(void *fdt, struct bd_info *bd)
 			return -1;
 	}
 
-	if (fdt_path_offset(fdt, "/firmware/optee") < 0) {
-		subpath = "optee";
-		offs = fdt_add_subnode(fdt, offs, subpath);
-		if (offs < 0) {
-			printf("Could not create %s node.\n", subpath);
-			return -1;
-		}
-
-		fdt_setprop_string(fdt, offs, "compatible", "linaro,optee-tz");
-		fdt_setprop_string(fdt, offs, "method", "smc");
+	subpath = "optee";
+	offs = fdt_find_or_add_subnode(fdt, offs, subpath);
+	if (offs < 0) {
+		printf("Could not create %s node.\n", subpath);
+		return -1;
 	}
+
+	fdt_setprop_string(fdt, offs, "compatible", "linaro,optee-tz");
+	fdt_setprop_string(fdt, offs, "method", "smc");
 
 	unsigned long flags = FDTDEC_RESERVED_MEMORY_NO_MAP;
 	struct fdt_memory carveout = {

@@ -4,7 +4,6 @@
  *
  */
 
-#include <common.h>
 #include <command.h>
 #include <linux/errno.h>
 
@@ -13,6 +12,7 @@
 #include <dm/device-internal.h>
 #include <dm/ofnode.h>
 #include <dm/read.h>
+#include <dm/ofnode_graph.h>
 #include <video.h>
 #include <panel.h>
 #include <env.h>
@@ -37,6 +37,7 @@ struct video_link temp_stack;
 ulong video_links_num = 0;
 ulong curr_video_link = 0;
 bool video_off = false;
+bool video_retain = false;
 
 ofnode ofnode_get_child_by_name(ofnode parent, const char *name)
 {
@@ -121,110 +122,6 @@ ofnode ofnode_graph_get_next_endpoint(ofnode parent,
 #define for_each_endpoint_of_node(parent, child) \
 	for (child = ofnode_graph_get_next_endpoint(parent, ofnode_null()); ofnode_valid(child); \
 	     child = ofnode_graph_get_next_endpoint(parent, child))
-
-
-int ofnode_graph_get_endpoint_count(ofnode node)
-{
-	ofnode endpoint;
-	int num = 0;
-
-	for_each_endpoint_of_node(node, endpoint)
-		num++;
-
-	return num;
-}
-
-int ofnode_graph_parse_endpoint(ofnode node,
-			    struct of_endpoint *endpoint)
-{
-	ofnode port_node = ofnode_get_parent(node);
-
-	memset(endpoint, 0, sizeof(*endpoint));
-
-	endpoint->local_node = node;
-	/*
-	 * It doesn't matter whether the two calls below succeed.
-	 * If they don't then the default value 0 is used.
-	 */
-	ofnode_read_u32(port_node, "reg", &endpoint->port);
-	ofnode_read_u32(node, "reg", &endpoint->id);
-
-	return 0;
-}
-
-ofnode ofnode_graph_get_endpoint_by_regs(
-	const ofnode parent, int port_reg, int reg)
-{
-	struct of_endpoint endpoint;
-	ofnode node;
-
-	for_each_endpoint_of_node(parent, node) {
-		ofnode_graph_parse_endpoint(node, &endpoint);
-		if (((port_reg == -1) || (endpoint.port == port_reg)) &&
-			((reg == -1) || (endpoint.id == reg))) {
-			debug("get node %s\n", ofnode_get_name(node));
-
-			return node;
-		}
-	}
-
-	return ofnode_null();
-}
-
-ofnode ofnode_graph_get_remote_endpoint(ofnode node)
-{
-	ofnode remote;
-	u32 phandle;
-	int ret;
-
-	ret = ofnode_read_u32(node, "remote-endpoint", &phandle);
-	if (ret) {
-		printf("required remote-endpoint property isn't provided\n");
-		return ofnode_null();
-	}
-
-	remote = ofnode_get_by_phandle(phandle);
-	if (!ofnode_valid(remote)) {
-		printf("failed to find remote-endpoint\n");
-		return ofnode_null();
-	}
-
-	return remote;
-}
-
-ofnode ofnode_graph_get_port_parent(ofnode node)
-{
-	unsigned int depth;
-
-	if (!ofnode_valid(node))
-		return ofnode_null();
-
-	/*
-	 * Preserve usecount for passed in node as of_get_next_parent()
-	 * will do of_node_put() on it.
-	 */
-
-	/* Walk 3 levels up only if there is 'ports' node. */
-	for (depth = 3; depth && ofnode_valid(node); depth--) {
-		node = ofnode_get_parent(node);
-		const char *name = ofnode_get_name(node);
-		if (depth == 2 && strcmp(name, "ports"))
-			break;
-	}
-	return node;
-}
-
-ofnode ofnode_graph_get_remote_port_parent(ofnode node)
-{
-	ofnode np, pp;
-
-	/* Get remote endpoint node. */
-	np = ofnode_graph_get_remote_endpoint(node);
-
-	pp = ofnode_graph_get_port_parent(np);
-
-	return pp;
-}
 
 int find_device_by_ofnode(ofnode node, struct udevice **pdev)
 {
@@ -532,7 +429,7 @@ int video_link_init(void)
 {
 	struct udevice *dev;
 	ulong env_id;
-	int off;
+	int off, retain;
 	memset(&video_links, 0, sizeof(video_links));
 	memset(&temp_stack, 0, sizeof(temp_stack));
 
@@ -559,6 +456,10 @@ int video_link_init(void)
 	if (env_id < video_links_num)
 		curr_video_link = env_id;
 
+	retain = env_get_yesno("video_retain");
+	if (retain == 1)
+		video_retain = true;
+
 	list_videolink(true);
 
 	return 0;
@@ -568,7 +469,7 @@ int video_link_shut_down(void)
 {
 	struct udevice *video_dev = video_link_get_video_device();
 
-	if (video_dev)
+	if (video_dev && !video_retain)
 		device_remove(video_dev, DM_REMOVE_NORMAL);
 
 	return 0;

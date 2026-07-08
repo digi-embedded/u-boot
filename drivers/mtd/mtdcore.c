@@ -172,7 +172,6 @@ bool mtd_dev_list_updated(void)
 #ifndef __UBOOT__
 static LIST_HEAD(mtd_notifiers);
 
-
 #define MTD_DEVT(index) MKDEV(MTD_CHAR_MAJOR, (index)*2)
 
 /* REVISIT once MTD uses the driver model better, whoever allocates
@@ -747,7 +746,6 @@ out:
 }
 EXPORT_SYMBOL_GPL(get_mtd_device);
 
-
 int __get_mtd_device(struct mtd_info *mtd)
 {
 	int err;
@@ -1125,6 +1123,28 @@ int mtd_read_oob(struct mtd_info *mtd, loff_t from, struct mtd_oob_ops *ops)
 	return ret_code >= mtd->bitflip_threshold ? -EUCLEAN : 0;
 }
 EXPORT_SYMBOL_GPL(mtd_read_oob);
+
+/* This is a bare copy of mtd_read_oob returning the actual number of bitflips */
+int mtd_read_oob_bf(struct mtd_info *mtd, loff_t from, struct mtd_oob_ops *ops)
+{
+	int ret_code;
+	ops->retlen = ops->oobretlen = 0;
+	if (!mtd->_read_oob)
+		return -EOPNOTSUPP;
+	/*
+	 * In cases where ops->datbuf != NULL, mtd->_read_oob() has semantics
+	 * similar to mtd->_read(), returning a non-negative integer
+	 * representing max bitflips. In other cases, mtd->_read_oob() may
+	 * return -EUCLEAN. In all cases, perform similar logic to mtd_read().
+	 */
+	ret_code = mtd->_read_oob(mtd, from, ops);
+	if (unlikely(ret_code < 0))
+		return ret_code;
+	if (mtd->ecc_strength == 0)
+		return 0;	/* device lacks ecc */
+	return ret_code;
+}
+EXPORT_SYMBOL_GPL(mtd_read_oob_bf);
 
 int mtd_write_oob(struct mtd_info *mtd, loff_t to,
 				struct mtd_oob_ops *ops)

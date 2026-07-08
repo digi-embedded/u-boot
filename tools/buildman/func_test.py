@@ -2,8 +2,10 @@
 # Copyright (c) 2014 Google, Inc
 #
 
+import io
 import os
 from pathlib import Path
+import re
 import shutil
 import sys
 import tempfile
@@ -16,8 +18,8 @@ from buildman import bsettings
 from buildman import cmdline
 from buildman import control
 from buildman import toolchain
-from patman import gitutil
 from u_boot_pylib import command
+from u_boot_pylib import gitutil
 from u_boot_pylib import terminal
 from u_boot_pylib import test_util
 from u_boot_pylib import tools
@@ -185,7 +187,7 @@ class TestFunctional(unittest.TestCase):
         self._git_dir = os.path.join(self._base_dir, 'src')
         self._buildman_pathname = sys.argv[0]
         self._buildman_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
-        command.test_result = self._HandleCommand
+        command.TEST_RESULT = self._HandleCommand
         bsettings.setup(None)
         bsettings.add_file(settings_data)
         self.setupToolchains()
@@ -230,8 +232,8 @@ class TestFunctional(unittest.TestCase):
         self._toolchains.Add('gcc', test=False)
 
     def _RunBuildman(self, *args):
-        return command.run_pipe([[self._buildman_pathname] + list(args)],
-                capture=True, capture_stderr=True)
+        all_args = [self._buildman_pathname] + list(args)
+        return command.run_one(*all_args, capture=True, capture_stderr=True)
 
     def _RunControl(self, *args, brds=False, clean_dir=False,
                     test_thread_exceptions=False, get_builder=True):
@@ -264,7 +266,7 @@ class TestFunctional(unittest.TestCase):
         return result
 
     def testFullHelp(self):
-        command.test_result = None
+        command.TEST_RESULT = None
         result = self._RunBuildman('-H')
         help_file = os.path.join(self._buildman_dir, 'README.rst')
         # Remove possible extraneous strings
@@ -275,7 +277,7 @@ class TestFunctional(unittest.TestCase):
         self.assertEqual(0, result.return_code)
 
     def testHelp(self):
-        command.test_result = None
+        command.TEST_RESULT = None
         result = self._RunBuildman('-h')
         help_file = os.path.join(self._buildman_dir, 'README.rst')
         self.assertTrue(len(result.stdout) > 1000)
@@ -284,13 +286,13 @@ class TestFunctional(unittest.TestCase):
 
     def testGitSetup(self):
         """Test gitutils.Setup(), from outside the module itself"""
-        command.test_result = command.CommandResult(return_code=1)
+        command.TEST_RESULT = command.CommandResult(return_code=1)
         gitutil.setup()
-        self.assertEqual(gitutil.use_no_decorate, False)
+        self.assertEqual(gitutil.USE_NO_DECORATE, False)
 
-        command.test_result = command.CommandResult(return_code=0)
+        command.TEST_RESULT = command.CommandResult(return_code=0)
         gitutil.setup()
-        self.assertEqual(gitutil.use_no_decorate, True)
+        self.assertEqual(gitutil.USE_NO_DECORATE, True)
 
     def _HandleCommandGitLog(self, args):
         if args[-1] == '--':
@@ -373,6 +375,22 @@ class TestFunctional(unittest.TestCase):
     def _HandleCommandSize(self, args):
         return command.CommandResult(return_code=0)
 
+    def _HandleCommandCpp(self, args):
+        # args ['-nostdinc', '-P', '-I', '/tmp/tmp7f17xk_o/src', '-undef',
+        # '-x', 'assembler-with-cpp', fname]
+        fname = args[7]
+        buf = io.StringIO()
+        for line in tools.read_file(fname, False).splitlines():
+            if line.startswith('#include'):
+                # Example: #include <configs/renesas_rcar2.config>
+                m_incfname = re.match('#include <(.*)>', line)
+                data = tools.read_file(m_incfname.group(1), False)
+                for line in data.splitlines():
+                    print(line, file=buf)
+            else:
+                print(line, file=buf)
+        return command.CommandResult(stdout=buf.getvalue(), return_code=0)
+
     def _HandleCommand(self, **kwargs):
         """Handle a command execution.
 
@@ -406,6 +424,8 @@ class TestFunctional(unittest.TestCase):
             return self._HandleCommandObjcopy(args)
         elif cmd.endswith( 'size'):
             return self._HandleCommandSize(args)
+        elif cmd.endswith( 'cpp'):
+            return self._HandleCommandCpp(args)
 
         if not result:
             # Not handled, so abort
@@ -425,7 +445,7 @@ class TestFunctional(unittest.TestCase):
             stage: Stage that we are at (mrproper, config, build)
             cwd: Directory where make should be run
             args: Arguments to pass to make
-            kwargs: Arguments to pass to command.run_pipe()
+            kwargs: Arguments to pass to command.run_one()
         """
         self._make_calls += 1
         out_dir = ''
@@ -650,7 +670,7 @@ Some images are invalid'''
 
     def testThreadExceptions(self):
         """Test that exceptions in threads are reported"""
-        with test_util.capture_sys_output() as (stdout, stderr):
+        with terminal.capture() as (stdout, stderr):
             self.assertEqual(102, self._RunControl('-o', self._output_dir,
                                                    test_thread_exceptions=True))
         self.assertIn(
@@ -788,7 +808,7 @@ Some images are invalid'''
 # CONFIG_LOCALVERSION_AUTO is not set
 ''', cfg_data)
 
-        with test_util.capture_sys_output() as (stdout, stderr):
+        with terminal.capture() as (stdout, stderr):
             lines, cfg_data = self.check_command('-r', '-a', 'LOCALVERSION')
         self.assertIn(b'SOURCE_DATE_EPOCH=0', lines[0])
 
@@ -807,27 +827,27 @@ CONFIG_LOCALVERSION=y
         params, warnings = self._boards.scan_defconfigs(src, src)
 
         # We should get two boards
-        self.assertEquals(2, len(params))
+        self.assertEqual(2, len(params))
         self.assertFalse(warnings)
         first = 0 if params[0]['target'] == 'board0' else 1
         board0 = params[first]
         board2 = params[1 - first]
 
-        self.assertEquals('arm', board0['arch'])
-        self.assertEquals('armv7', board0['cpu'])
-        self.assertEquals('-', board0['soc'])
-        self.assertEquals('Tester', board0['vendor'])
-        self.assertEquals('ARM Board 0', board0['board'])
-        self.assertEquals('config0', board0['config'])
-        self.assertEquals('board0', board0['target'])
+        self.assertEqual('arm', board0['arch'])
+        self.assertEqual('armv7', board0['cpu'])
+        self.assertEqual('-', board0['soc'])
+        self.assertEqual('Tester', board0['vendor'])
+        self.assertEqual('ARM Board 0', board0['board'])
+        self.assertEqual('config0', board0['config'])
+        self.assertEqual('board0', board0['target'])
 
-        self.assertEquals('powerpc', board2['arch'])
-        self.assertEquals('ppc', board2['cpu'])
-        self.assertEquals('mpc85xx', board2['soc'])
-        self.assertEquals('Tester', board2['vendor'])
-        self.assertEquals('PowerPC board 1', board2['board'])
-        self.assertEquals('config2', board2['config'])
-        self.assertEquals('board2', board2['target'])
+        self.assertEqual('powerpc', board2['arch'])
+        self.assertEqual('ppc', board2['cpu'])
+        self.assertEqual('mpc85xx', board2['soc'])
+        self.assertEqual('Tester', board2['vendor'])
+        self.assertEqual('PowerPC board 1', board2['board'])
+        self.assertEqual('config2', board2['config'])
+        self.assertEqual('board2', board2['target'])
 
     def test_output_is_new(self):
         """Test detecting new changes to Kconfig"""
@@ -898,7 +918,7 @@ Active  aarch64     armv8 - armltd total_compute board2
         params_list, warnings = self._boards.build_board_list(config_dir, src)
 
         # There should be two boards no warnings
-        self.assertEquals(2, len(params_list))
+        self.assertEqual(2, len(params_list))
         self.assertFalse(warnings)
 
         # Set an invalid status line in the file
@@ -907,12 +927,12 @@ Active  aarch64     armv8 - armltd total_compute board2
                   for line in orig_data.splitlines(keepends=True)]
         tools.write_file(main, ''.join(lines), binary=False)
         params_list, warnings = self._boards.build_board_list(config_dir, src)
-        self.assertEquals(2, len(params_list))
+        self.assertEqual(2, len(params_list))
         params = params_list[0]
         if params['target'] == 'board2':
             params = params_list[1]
-        self.assertEquals('-', params['status'])
-        self.assertEquals(["WARNING: Other: unknown status for 'board0'"],
+        self.assertEqual('-', params['status'])
+        self.assertEqual(["WARNING: Other: unknown status for 'board0'"],
                           warnings)
 
         # Remove the status line (S:) from a file
@@ -920,39 +940,39 @@ Active  aarch64     armv8 - armltd total_compute board2
                  if not line.startswith('S:')]
         tools.write_file(main, ''.join(lines), binary=False)
         params_list, warnings = self._boards.build_board_list(config_dir, src)
-        self.assertEquals(2, len(params_list))
-        self.assertEquals(["WARNING: -: unknown status for 'board0'"], warnings)
+        self.assertEqual(2, len(params_list))
+        self.assertEqual(["WARNING: -: unknown status for 'board0'"], warnings)
 
         # Remove the configs/ line (F:) from a file - this is the last line
         data = ''.join(orig_data.splitlines(keepends=True)[:-1])
         tools.write_file(main, data, binary=False)
         params_list, warnings = self._boards.build_board_list(config_dir, src)
-        self.assertEquals(2, len(params_list))
-        self.assertEquals(["WARNING: no maintainers for 'board0'"], warnings)
+        self.assertEqual(2, len(params_list))
+        self.assertEqual(["WARNING: no maintainers for 'board0'"], warnings)
 
         # Mark a board as orphaned - this should give a warning
         lines = ['S: Orphaned' if line.startswith('S') else line
                  for line in orig_data.splitlines(keepends=True)]
         tools.write_file(main, ''.join(lines), binary=False)
         params_list, warnings = self._boards.build_board_list(config_dir, src)
-        self.assertEquals(2, len(params_list))
-        self.assertEquals(["WARNING: no maintainers for 'board0'"], warnings)
+        self.assertEqual(2, len(params_list))
+        self.assertEqual(["WARNING: no maintainers for 'board0'"], warnings)
 
         # Change the maintainer to '-' - this should give a warning
         lines = ['M: -' if line.startswith('M') else line
                  for line in orig_data.splitlines(keepends=True)]
         tools.write_file(main, ''.join(lines), binary=False)
         params_list, warnings = self._boards.build_board_list(config_dir, src)
-        self.assertEquals(2, len(params_list))
-        self.assertEquals(["WARNING: -: unknown status for 'board0'"], warnings)
+        self.assertEqual(2, len(params_list))
+        self.assertEqual(["WARNING: -: unknown status for 'board0'"], warnings)
 
         # Remove the maintainer line (M:) from a file
         lines = [line for line in orig_data.splitlines(keepends=True)
                  if not line.startswith('M:')]
         tools.write_file(main, ''.join(lines), binary=False)
         params_list, warnings = self._boards.build_board_list(config_dir, src)
-        self.assertEquals(2, len(params_list))
-        self.assertEquals(["WARNING: no maintainers for 'board0'"], warnings)
+        self.assertEqual(2, len(params_list))
+        self.assertEqual(["WARNING: no maintainers for 'board0'"], warnings)
 
         # Move the contents of the second file into this one, removing the
         # second file, to check multiple records in a single file.
@@ -960,14 +980,14 @@ Active  aarch64     armv8 - armltd total_compute board2
         tools.write_file(main, both_data, binary=False)
         os.remove(other)
         params_list, warnings = self._boards.build_board_list(config_dir, src)
-        self.assertEquals(2, len(params_list))
+        self.assertEqual(2, len(params_list))
         self.assertFalse(warnings)
 
         # Add another record, this should be ignored with a warning
         extra = '\n\nAnother\nM: Fred\nF: configs/board9_defconfig\nS: other\n'
         tools.write_file(main, both_data + extra, binary=False)
         params_list, warnings = self._boards.build_board_list(config_dir, src)
-        self.assertEquals(2, len(params_list))
+        self.assertEqual(2, len(params_list))
         self.assertFalse(warnings)
 
         # Add another TARGET to the Kconfig
@@ -983,8 +1003,8 @@ endif
         tools.write_file(kc_file, orig_kc_data + extra)
         params_list, warnings = self._boards.build_board_list(config_dir, src,
                                                               warn_targets=True)
-        self.assertEquals(2, len(params_list))
-        self.assertEquals(
+        self.assertEqual(2, len(params_list))
+        self.assertEqual(
             ['WARNING: board2_defconfig: Duplicate TARGET_xxx: board2 and other'],
              warnings)
 
@@ -994,8 +1014,8 @@ endif
         tools.write_file(kc_file, b''.join(lines))
         params_list, warnings = self._boards.build_board_list(config_dir, src,
                                                               warn_targets=True)
-        self.assertEquals(2, len(params_list))
-        self.assertEquals(
+        self.assertEqual(2, len(params_list))
+        self.assertEqual(
             ['WARNING: board2_defconfig: No TARGET_BOARD2 enabled'],
              warnings)
         tools.write_file(kc_file, orig_kc_data)
@@ -1004,7 +1024,7 @@ endif
         data = ''.join(both_data.splitlines(keepends=True)[:-1])
         tools.write_file(main, data + 'N: oa.*2\n', binary=False)
         params_list, warnings = self._boards.build_board_list(config_dir, src)
-        self.assertEquals(2, len(params_list))
+        self.assertEqual(2, len(params_list))
         self.assertFalse(warnings)
 
     def testRegenBoards(self):
@@ -1012,14 +1032,14 @@ endif
         outfile = os.path.join(self._output_dir, 'test-boards.cfg')
         if os.path.exists(outfile):
             os.remove(outfile)
-        with test_util.capture_sys_output() as (stdout, stderr):
+        with terminal.capture() as (stdout, stderr):
             result = self._RunControl('-R', outfile, brds=None,
                                       get_builder=False)
         self.assertTrue(os.path.exists(outfile))
 
     def test_print_prefix(self):
         """Test that we can print the toolchain prefix"""
-        with test_util.capture_sys_output() as (stdout, stderr):
+        with terminal.capture() as (stdout, stderr):
             result = self._RunControl('-A', 'board0')
         self.assertEqual('arm-\n', stdout.getvalue())
         self.assertEqual('', stderr.getvalue())
@@ -1063,7 +1083,82 @@ endif
 
     def test_print_arch(self):
         """Test that we can print the board architecture"""
-        with test_util.capture_sys_output() as (stdout, stderr):
+        with terminal.capture() as (stdout, stderr):
             result = self._RunControl('--print-arch', 'board0')
         self.assertEqual('arm\n', stdout.getvalue())
         self.assertEqual('', stderr.getvalue())
+
+    def test_kconfig_scanner(self):
+        """Test using the kconfig scanner to determine important values
+
+        Note that there is already a test_scan_defconfigs() which checks the
+        higher-level scan_defconfigs() function. This test checks just the
+        scanner itself
+        """
+        src = self._git_dir
+        scanner = boards.KconfigScanner(src)
+
+        # First do a simple sanity check
+        norm = os.path.join(src, 'board0_defconfig')
+        tools.write_file(norm, 'CONFIG_TARGET_BOARD0=y', False)
+        res = scanner.scan(norm, True)
+        self.assertEqual(({
+            'arch': 'arm',
+            'cpu': 'armv7',
+            'soc': '-',
+            'vendor': 'Tester',
+            'board': 'ARM Board 0',
+            'config': 'config0',
+            'target': 'board0'}, []), res)
+
+        # Check that the SoC cannot be changed and the filename does not affect
+        # the resulting board
+        tools.write_file(norm, '''CONFIG_TARGET_BOARD2=y
+CONFIG_SOC="fred"
+''', False)
+        res = scanner.scan(norm, True)
+        self.assertEqual(({
+            'arch': 'powerpc',
+            'cpu': 'ppc',
+            'soc': 'mpc85xx',
+            'vendor': 'Tester',
+            'board': 'PowerPC board 1',
+            'config': 'config2',
+            'target': 'board0'}, []), res)
+
+        # Check handling of missing information
+        tools.write_file(norm, '', False)
+        res = scanner.scan(norm, True)
+        self.assertEqual(({
+            'arch': '-',
+            'cpu': '-',
+            'soc': '-',
+            'vendor': '-',
+            'board': '-',
+            'config': '-',
+            'target': 'board0'},
+            ['WARNING: board0_defconfig: No TARGET_BOARD0 enabled']), res)
+
+        # check handling of #include files; see _HandleCommandCpp()
+        inc = os.path.join(src, 'common')
+        tools.write_file(inc, b'CONFIG_TARGET_BOARD0=y\n')
+        tools.write_file(norm, f'#include <{inc}>', False)
+        res = scanner.scan(norm, True)
+        self.assertEqual(({
+            'arch': 'arm',
+            'cpu': 'armv7',
+            'soc': '-',
+            'vendor': 'Tester',
+            'board': 'ARM Board 0',
+            'config': 'config0',
+            'target': 'board0'}, []), res)
+
+    def testTarget(self):
+        """Test that the --target flag works"""
+        lines = self.check_command('--target', 'u-boot.dtb')[0]
+
+        # It should not affect the defconfig line
+        self.assertNotIn(b'u-boot.dtb', lines[0])
+
+        # It should appear at the end of the build line
+        self.assertEqual(b'u-boot.dtb', lines[1].split()[-1])

@@ -19,7 +19,6 @@
 #include <string.h>
 #include <stdio.h>
 #else
-#include <common.h>
 #include <asm/io.h>
 #include <linux/delay.h>
 

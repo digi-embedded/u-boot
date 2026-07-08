@@ -11,7 +11,7 @@
 };
 
 &binman {
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 	u-boot-spl-ddr {
 		align = <4>;
 		align-size = <4>;
@@ -121,6 +121,7 @@
 		};
 	};
 
+#ifdef CONFIG_XPL_BUILD
 	imx-boot {
 		filename = "flash.bin";
 		pad-byte = <0x00>;
@@ -131,5 +132,6 @@
 			type = "blob-ext";
 		};
 	};
+#endif
 };
 #endif

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0+
 
-#include <common.h>
 #include <dm.h>
 #include <malloc.h>
 #include <efi.h>
@@ -49,11 +48,6 @@ struct efi_capsule_update_info update_info = {
 int board_early_init_f(void)
 {
 	fsl_lsch3_early_init_f();
-	return 0;
-}
-
-int board_init(void)
-{
 	return 0;
 }
 
@@ -157,7 +151,8 @@ int fsl_board_late_init(void)
 	 * If the watchdog isn't enabled at reset (which is a configuration
 	 * option) disabling it doesn't hurt either.
 	 */
-	if (!IS_ENABLED(CONFIG_WATCHDOG_AUTOSTART))
+	if (IS_ENABLED(CONFIG_WDT_SL28CPLD) &&
+	    !IS_ENABLED(CONFIG_WATCHDOG_AUTOSTART))
 		stop_recovery_watchdog();
 
 	return 0;

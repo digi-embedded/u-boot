@@ -4,11 +4,11 @@
  * Copyright 2020 Linaro
  */
 
-#include <common.h>
 #include <efi.h>
 #include <efi_loader.h>
 #include <env.h>
 #include <extension_board.h>
+#include <fdt_support.h>
 #include <hang.h>
 #include <i2c.h>
 #include <init.h>
@@ -30,6 +30,8 @@
 #include "ddr/ddr.h"
 
 DECLARE_GLOBAL_DATA_PTR;
+
+static int fec_phyaddr = -1;
 
 #if IS_ENABLED(CONFIG_EFI_HAVE_CAPSULE_SUPPORT)
 struct efi_fw_image fw_images[] = {
@@ -110,10 +112,72 @@ static int setup_fec(void)
 	return 0;
 }
 
+#define FDT_PHYADDR "/soc@0/bus@30800000/ethernet@30be0000/mdio/ethernet-phy@0"
+#define FLIP_32B(val) (((val >> 24) & 0xff) | ((val << 8) & 0xff0000) | ((val >> 8) & 0xff00) | ((val << 24) & 0xff000000))
+static int fdt_set_fec_phy_addr(void *blob)
+{
+	u32 val;
+
+	if (fec_phyaddr < 0)
+		return -EINVAL;
+
+	val = FLIP_32B(fec_phyaddr);
+	return fdt_find_and_setprop(blob, FDT_PHYADDR, "reg", (const void *)&val,
+				    sizeof(val), 0);
+}
+
+int ft_board_setup(void *blob, struct bd_info *bd)
+{
+	fdt_set_fec_phy_addr(blob);
+	return 0;
+}
+
+/*
+ * These are specific ID, purposed to distiguish between PHY vendors.
+ * These values are not equal to real vendors' OUI (half of MAC address)
+ */
+#define OUI_PHY_ATHEROS 0x1374
+#define OUI_PHY_REALTEK 0x0732
+
 int board_phy_config(struct phy_device *phydev)
 {
-	if (IS_ENABLED(CONFIG_FEC_MXC)) {
+	unsigned int model, rev, oui;
+	int phyid1, phyid2;
+	unsigned int reg;
+
+	if (!IS_ENABLED(CONFIG_FEC_MXC))
+		return 0;
+
+	phyid1 = phy_read(phydev, MDIO_DEVAD_NONE, MII_PHYSID1);
+	if (phyid1 < 0) {
+		printf("%s: PHYID1 registry read fail %i\n", __func__, phyid1);
+		return phyid1;
+	}
+
+	phyid2 = phy_read(phydev, MDIO_DEVAD_NONE, MII_PHYSID2);
+	if (phyid2 < 0) {
+		printf("%s: PHYID2 registry read fail %i\n", __func__, phyid2);
+		return phyid2;
+	}
+
+	reg = phyid2 | phyid1 << 16;
+	if (reg == 0xffff) {
+		printf("%s: There is no device @%i\n", __func__, phydev->addr);
+		return -ENODEV;
+	}
+
+	rev = reg & 0xf;
+	reg >>= 4;
+	model = reg & 0x3f;
+	reg >>= 6;
+	oui = reg;
+	debug("%s: PHY @0x%x OUI 0x%06x model 0x%x rev 0x%x\n",
+	      __func__, phydev->addr, oui, model, rev);
+
+	switch (oui) {
+	case OUI_PHY_ATHEROS:
 		/* enable rgmii rxc skew and phy mode select to RGMII copper */
+		printf("phy: AR803x@%x\t", phydev->addr);
 		phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x1f);
 		phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x8);
 
@@ -121,10 +185,45 @@ int board_phy_config(struct phy_device *phydev)
 		phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x82ee);
 		phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x05);
 		phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x100);
+		break;
+	case OUI_PHY_REALTEK:
+		printf("phy: RTL8211E@%x\t", phydev->addr);
+		/* RTL8211E-VB-CG - add TX and RX delay */
+		unsigned short val;
 
-		if (phydev->drv->config)
-			phydev->drv->config(phydev);
+		phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x07);
+		phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0xa4);
+		val = phy_read(phydev, MDIO_DEVAD_NONE, 0x1c);
+		val |= (0x1 << 13) | (0x1 << 12) | (0x1 << 11);
+		phy_write(phydev, MDIO_DEVAD_NONE, 0x1c, val);
+		/* LEDs: set to extension page */
+		phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0007);
+		/* extension Page44 */
+		phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x002c);
+		phy_write(phydev, MDIO_DEVAD_NONE, 0x1c, 0x0430);//LCR
+		phy_write(phydev, MDIO_DEVAD_NONE, 0x1a, 0x0010);//LACR
+		/*
+		 * To disable EEE LED mode (blinking .4s/2s)
+		 * Extension Page5
+		 */
+		phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0005);
+		phy_write(phydev, MDIO_DEVAD_NONE, 0x05, 0x8b82);//magic const
+		phy_write(phydev, MDIO_DEVAD_NONE, 0x06, 0x052b);//magic const
+
+		phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x00);// Back to Page0
+
+		break;
+	default:
+		printf("%s: ERROR: unknown PHY @0x%x OUI 0x%06x model 0x%x rev 0x%x\n",
+		       __func__, phydev->addr, oui, model, rev);
+		return -ENOSYS;
 	}
+
+	fec_phyaddr = phydev->addr;
+
+	if (phydev->drv->config)
+		phydev->drv->config(phydev);
+
 	return 0;
 }
 
@@ -149,6 +248,8 @@ int board_mmc_get_env_dev(int devno)
 #define IOT_GATE_IMX8_EXT_I2C_ADDR_EEPROM_POEV2 0x51
 #define IOT_GATE_IMX8_EXT_I2C_ADDR_GPIO 0x22 /* I2C address of the GPIO
 						extender */
+
+#if !IS_ENABLED(CONFIG_XPL_BUILD)
 
 static int iot_gate_imx8_ext_id = IOT_GATE_EXT_EMPTY; /* Extension board ID */
 static int iot_gate_imx8_ext_ied_id [3] = {
@@ -335,9 +436,10 @@ static int iot_gate_imx8_update_ext_ied(void)
 	return 0;
 }
 
-int extension_board_scan(struct list_head *extension_list)
+static int iot_gate_imx8_extension_board_scan(struct udevice *dev,
+					      struct alist *extension_list)
 {
-	struct extension *extension = NULL;
+	struct extension extension = {0};
 	int i;
 	int ret = 0;
 
@@ -347,25 +449,21 @@ int extension_board_scan(struct list_head *extension_list)
 	case IOT_GATE_EXT_EMPTY:
 		break;
 	case IOT_GATE_EXT_CAN:
-		extension = calloc(1, sizeof(struct extension));
-		snprintf(extension->name, sizeof(extension->name),
+		snprintf(extension.name, sizeof(extension.name),
 			 "IOT_GATE_EXT_CAN");
 		break;
 	case IOT_GATE_EXT_IED:
-		extension = calloc(1, sizeof(struct extension));
-		snprintf(extension->name, sizeof(extension->name),
+		snprintf(extension.name, sizeof(extension.name),
 			 "IOT_GATE_EXT_IED");
-		snprintf(extension->overlay, sizeof(extension->overlay),
+		snprintf(extension.overlay, sizeof(extension.overlay),
 			 "imx8mm-cl-iot-gate-ied.dtbo");
 		break;
 	case IOT_GATE_EXT_POE:
-		extension = calloc(1, sizeof(struct extension));
-		snprintf(extension->name, sizeof(extension->name),
+		snprintf(extension.name, sizeof(extension.name),
 			 "IOT_GATE_EXT_POE");
 		break;
 	case IOT_GATE_EXT_POEV2:
-		extension = calloc(1, sizeof(struct extension));
-		snprintf(extension->name, sizeof(extension->name),
+		snprintf(extension.name, sizeof(extension.name),
 			 "IOT_GATE_EXT_POEV2");
 		break;
 	default:
@@ -373,10 +471,11 @@ int extension_board_scan(struct list_head *extension_list)
 		break;
 	}
 
-	if (extension) {
-		snprintf(extension->owner, sizeof(extension->owner),
+	if (extension.name[0]) {
+		snprintf(extension.owner, sizeof(extension.owner),
 			 "Compulab");
-		list_add_tail(&extension->list, extension_list);
+		if (!alist_add(extension_list, extension))
+			return -ENOMEM;
 		ret = 1;
 	} else
 		return ret;
@@ -385,44 +484,38 @@ int extension_board_scan(struct list_head *extension_list)
 
 	iot_gate_imx8_update_ext_ied();
 	for (i=0; i<ARRAY_SIZE(iot_gate_imx8_ext_ied_id); i++) {
-		extension = NULL;
+		memset(&extension, 0, sizeof(extension));
 		switch (iot_gate_imx8_ext_ied_id[i]) {
 		case IOT_GATE_IMX8_CARD_ID_EMPTY:
 			break;
 		case IOT_GATE_IMX8_CARD_ID_RS_485:
-			extension = calloc(1, sizeof(struct extension));
-			snprintf(extension->name, sizeof(extension->name),
+			snprintf(extension.name, sizeof(extension.name),
 				 "IOT_GATE_IMX8_CARD_ID_RS_485");
 			break;
 		case IOT_GATE_IMX8_CARD_ID_RS_232:
-			extension = calloc(1, sizeof(struct extension));
-			snprintf(extension->name, sizeof(extension->name),
+			snprintf(extension.name, sizeof(extension.name),
 				 "IOT_GATE_IMX8_CARD_ID_RS_232");
 			break;
 		case IOT_GATE_IMX8_CARD_ID_CAN:
-			extension = calloc(1, sizeof(struct extension));
-			snprintf(extension->name, sizeof(extension->name),
+			snprintf(extension.name, sizeof(extension.name),
 				 "IOT_GATE_IMX8_CARD_ID_CAN");
-			snprintf(extension->overlay, sizeof(extension->overlay),
+			snprintf(extension.overlay, sizeof(extension.overlay),
 				 "imx8mm-cl-iot-gate-ied-can%d.dtbo", i);
 			break;
 		case IOT_GATE_IMX8_CARD_ID_TPM:
-			extension = calloc(1, sizeof(struct extension));
-			snprintf(extension->name, sizeof(extension->name),
+			snprintf(extension.name, sizeof(extension.name),
 				 "IOT_GATE_IMX8_CARD_ID_TPM");
-			snprintf(extension->overlay, sizeof(extension->overlay),
+			snprintf(extension.overlay, sizeof(extension.overlay),
 				 "imx8mm-cl-iot-gate-ied-tpm%d.dtbo", i);
 			break;
 		case IOT_GATE_IMX8_CARD_ID_CL420:
-			extension = calloc(1, sizeof(struct extension));
-			snprintf(extension->name, sizeof(extension->name),
+			snprintf(extension.name, sizeof(extension.name),
 				 "IOT_GATE_IMX8_CARD_ID_CL420");
-			snprintf(extension->overlay, sizeof(extension->overlay),
+			snprintf(extension.overlay, sizeof(extension.overlay),
 				 "imx8mm-cl-iot-gate-ied-can%d.dtbo", i);
 			break;
 		case IOT_GATE_IMX8_CARD_ID_DI4O4:
-			extension = calloc(1, sizeof(struct extension));
-			snprintf(extension->name, sizeof(extension->name),
+			snprintf(extension.name, sizeof(extension.name),
 				 "IOT_GATE_IMX8_CARD_ID_DI4O4");
 			break;
 		default:
@@ -430,18 +523,26 @@ int extension_board_scan(struct list_head *extension_list)
 			       __func__, i, iot_gate_imx8_ext_ied_id[i]);
 			break;
 		}
-		if (extension) {
-			snprintf(extension->owner, sizeof(extension->owner),
+		if (extension.name[0]) {
+			snprintf(extension.owner, sizeof(extension.owner),
 				 "Compulab");
-			snprintf(extension->other, sizeof(extension->other),
+			snprintf(extension.other, sizeof(extension.other),
 				 "On slot %d", i);
-			list_add_tail(&extension->list, extension_list);
+			if (!alist_add(extension_list, extension))
+				return -ENOMEM;
 			ret = ret + 1;
 		}
 	}
 
         return ret;
 }
+
+U_BOOT_EXTENSION(iot_gate_imx8_extension, iot_gate_imx8_extension_board_scan);
+
+U_BOOT_DRVINFO(iot_gate_imx8_extension) = {
+	.name = "iot_gate_imx8_extension",
+};
+#endif
 
 static int setup_mac_address(void)
 {

@@ -3,7 +3,6 @@
  * Copyright (C) 2016 Stefan Roese <sr@denx.de>
  */
 
-#include <common.h>
 #include <altera.h>
 #include <log.h>
 #include <spi.h>
@@ -49,7 +48,7 @@ int stratixv_load(Altera_desc *desc, const void *rbf_data, size_t rbf_size)
 	int spi_dev;
 	int ret = 0;
 
-	if ((u32)rbf_data & 0x3) {
+	if ((size_t)rbf_data & 0x3) {
 		puts("FPGA: Unaligned data, realign to 32bit boundary.\n");
 		return -EINVAL;
 	}

@@ -10,9 +10,9 @@
 
 #define LOG_CATEGORY LOGC_ACPI
 
-#include <common.h>
 #include <cpu.h>
 #include <dm.h>
+#include <intel_gnvs.h>
 #include <log.h>
 #include <p2sb.h>
 #include <pci.h>
@@ -21,7 +21,6 @@
 #include <asm/acpi_table.h>
 #include <asm/cpu_common.h>
 #include <asm/intel_acpi.h>
-#include <asm/intel_gnvs.h>
 #include <asm/intel_pinctrl.h>
 #include <asm/intel_pinctrl_defs.h>
 #include <asm/intel_regs.h>
@@ -129,8 +128,10 @@ int arch_madt_sci_irq_polarity(int sci)
 	return MP_IRQ_POLARITY_LOW;
 }
 
-void fill_fadt(struct acpi_fadt *fadt)
+void acpi_fill_fadt(struct acpi_fadt *fadt)
 {
+	intel_acpi_fill_fadt(fadt);
+
 	fadt->pm_tmr_blk = IOMAP_ACPI_BASE + PM1_TMR;
 
 	fadt->p_lvl2_lat = ACPI_FADT_C2_NOT_SUPPORTED;
@@ -144,23 +145,9 @@ void fill_fadt(struct acpi_fadt *fadt)
 	fadt->x_pm_tmr_blk.space_id = 1;
 	fadt->x_pm_tmr_blk.bit_width = fadt->pm_tmr_len * 8;
 	fadt->x_pm_tmr_blk.addrl = IOMAP_ACPI_BASE + PM1_TMR;
+
+	fadt->preferred_pm_profile = ACPI_PM_MOBILE;
 }
-
-static int apl_write_fadt(struct acpi_ctx *ctx, const struct acpi_writer *entry)
-{
-	struct acpi_table_header *header;
-	struct acpi_fadt *fadt;
-
-	fadt = ctx->current;
-	acpi_fadt_common(fadt, ctx->facs, ctx->dsdt);
-	intel_acpi_fill_fadt(fadt);
-	fill_fadt(fadt);
-	header = &fadt->header;
-	header->checksum = table_compute_checksum(fadt, header->length);
-
-	return acpi_add_fadt(ctx, fadt);
-}
-ACPI_WRITER(5fadt, "FADT", apl_write_fadt, 0);
 
 int apl_acpi_fill_dmar(struct acpi_ctx *ctx)
 {

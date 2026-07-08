@@ -16,6 +16,7 @@ config ARM_PSCI_FW
 config TI_SCI_PROTOCOL
 	tristate "TI System Control Interface (TISCI) Message Protocol"
 	depends on K3_SEC_PROXY
+	select DEVRES
 	select FIRMWARE
 	select SPL_FIRMWARE if SPL
 	help
@@ -29,6 +30,7 @@ config TI_SCI_PROTOCOL
 
 config ZYNQMP_FIRMWARE
 	bool "ZynqMP Firmware interface"
+	depends on ARCH_ZYNQMP || ARCH_VERSAL || ARCH_VERSAL_NET || ARCH_VERSAL2
 	select FIRMWARE
 	help
 	  Firmware interface driver is used by different

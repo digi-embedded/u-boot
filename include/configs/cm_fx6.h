@@ -31,7 +31,6 @@
 /* Environment */
 
 #define CFG_EXTRA_ENV_SETTINGS \
-	"fdt_high=0xffffffff\0" \
 	"initrd_high=0xffffffff\0" \
 	"fdt_addr_r=0x18000000\0" \
 	"ramdisk_addr_r=0x13000000\0" \
@@ -133,10 +132,6 @@
 
 /* Ethernet */
 #define CFG_FEC_MXC_PHYADDR		0
-
-/* USB */
-#define CFG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
-#define CFG_MXC_USB_FLAGS		0
 
 /* Boot */
 #define CFG_SYS_BOOTMAPSZ	        (8 << 20)

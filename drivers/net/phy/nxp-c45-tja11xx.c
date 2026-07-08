@@ -5,7 +5,6 @@
  * Copyright 2021 NXP
  * Author: Radu Pirea <radu-nicolae.pirea@oss.nxp.com>
  */
-#include <common.h>
 #include <dm.h>
 #include <dm/devres.h>
 #include <linux/delay.h>
@@ -344,7 +343,7 @@ static int nxp_c45_probe(struct phy_device *phydev)
 {
 	struct nxp_c45_phy *priv;
 
-	priv = devm_kzalloc(phydev->priv, sizeof(*priv), GFP_KERNEL);
+	priv = kzalloc(sizeof(*priv), GFP_KERNEL);
 	if (!priv)
 		return -ENOMEM;
 

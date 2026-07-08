@@ -23,7 +23,6 @@
  * SOFTWARE.
  */
 
-#include <common.h>
 #include <trusty/avb.h>
 #include <trusty/hwcrypto.h>
 #include <trusty/keymaster.h>
@@ -35,9 +34,8 @@
 #include <env.h>
 #include <trusty/imx_snvs.h>
 #include <trusty/matter.h>
-#if 0
 #include <trusty/secretkeeper.h>
-#endif
+#include <trusty/hwbcc.h>
 
 #define LOCAL_LOG 0
 
@@ -51,15 +49,23 @@ bool rpmbkey_is_set(void);
 void rpmb_storage_put_ctx(void *dev);
 void trusty_ipc_shutdown(void)
 {
+    /**
+     * Trusty OS is not well initialized when the rpmb
+     * key is not set, skip ipc shut down to avoid panic.
+     */
+#ifndef CONFIG_IMX_MATTER_TRUSTY
+    if (!rpmbkey_is_set()) {
+        return;
+    }
+#endif
+
     (void)rpmb_storage_proxy_shutdown(_ipc_dev);
     (void)rpmb_storage_put_ctx(rpmb_ctx);
 
 #ifndef CONFIG_IMX_MATTER_TRUSTY
     (void)avb_tipc_shutdown(_ipc_dev);
     (void)km_tipc_shutdown(_ipc_dev);
-#if 0
     (void)secretkeeper_tipc_shutdown();
-#endif
 #endif
 
 #ifdef CONFIG_IMX_MATTER_TRUSTY
@@ -144,14 +150,19 @@ int trusty_ipc_init(void)
             return rc;
         }
 
-#if 0
         trusty_info("Initializing Trusty SecretKeeper client\n");
         rc = secretkeeper_tipc_init(_ipc_dev);
         if (rc != 0) {
             trusty_error("Initlializing Trusty SecretKeeper client failed (%d)\n", rc);
             return rc;
         }
-#endif
+
+        trusty_info("Initializing Trusty Hwbcc client\n");
+        rc = hwbcc_tipc_init(_ipc_dev);
+        if (rc != 0) {
+            trusty_error("Initlializing Trusty Hwbcc client failed (%d)\n", rc);
+            return rc;
+        }
     } else
         use_keystore = false;
 

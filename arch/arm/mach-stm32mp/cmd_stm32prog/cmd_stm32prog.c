@@ -3,10 +3,10 @@
  * Copyright (C) 2020, STMicroelectronics - All Rights Reserved
  */
 
-#include <common.h>
 #include <bootm.h>
 #include <command.h>
 #include <dfu.h>
+#include <env.h>
 #include <image.h>
 #include <asm/arch/stm32prog.h>
 #include <linux/printk.h>
@@ -187,12 +187,3 @@ U_BOOT_CMD(stm32prog, 5, 0, do_stm32prog,
 	   "  <addr> = address of flashlayout\n"
 	   "  <size> = size of flashlayout (optional for image with STM32 header)\n"
 );
-
-
-bool stm32prog_get_fsbl_nor(void)
-{
-	if (stm32prog_data)
-		return stm32prog_data->fsbl_nor_detected;
-
-	return false;
-}

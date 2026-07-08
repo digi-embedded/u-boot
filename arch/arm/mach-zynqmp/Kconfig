@@ -1,29 +1,5 @@
 if ARCH_ZYNQMP
 
-config SPL_FS_FAT
-	default y
-
-config SPL_LIBCOMMON_SUPPORT
-	default y
-
-config SPL_LIBDISK_SUPPORT
-	default y
-
-config SPL_LIBGENERIC_SUPPORT
-	default y
-
-config SPL_MMC
-	default y if MMC_SDHCI_ZYNQ
-
-config SPL_SERIAL
-	default y
-
-config SPL_SPI_FLASH_SUPPORT
-	default y if ZYNQ_QSPI
-
-config SPL_SPI
-	default y if ZYNQ_QSPI
-
 config SYS_BOARD
 	string "Board name"
 	default "zynqmp"
@@ -34,14 +10,6 @@ config SYS_VENDOR
 
 config SYS_SOC
 	default "zynqmp"
-
-config SYS_CONFIG_NAME
-	string "Board configuration name"
-	default "xilinx_zynqmp"
-	help
-	  This option contains information about board configuration name.
-	  Based on this option include/configs/<CONFIG_SYS_CONFIG_NAME>.h header
-	  will be used for board configuration.
 
 config SYS_MEM_RSVD_FOR_MMU
 	bool "Reserve memory for MMU Table"
@@ -125,9 +93,6 @@ config SPL_ZYNQMP_DRAM_BANK2_LEN
 	help
 	  Size in bytes of the DRAM ECC bank2. A null size takes no action.
 
-config SYS_MALLOC_F_LEN
-	default 0x600
-
 config DEFINE_TCM_OCM_MMAP
 	bool "Define TCM and OCM memory in MMU Table"
 	default y if MP
@@ -143,7 +108,8 @@ config ZYNQMP_PSU_INIT_ENABLED
 
 config SPL_ZYNQMP_PSU_INIT_ENABLED
 	bool "Include psu_init in SPL"
-	default y if SPL
+	depends on SPL
+	default y
 	select BOARD_EARLY_INIT_F
 	help
 	  Include psu_init by default in SPL.
@@ -162,6 +128,20 @@ config SPL_ZYNQMP_RESTORE_JTAG
 	  Booting SPL in secure mode causes the CSU to disable the JTAG interface
 	  even if no eFuses were burnt. This option restores the interface if
 	  possible.
+
+config BL31_LOAD_ADDR
+	hex "Load address of BL31 image (mostly TF-A)"
+	default 0xfffea000
+	help
+	  The load address for the BL31 image. This value is used to build the
+	  FIT image header that places BL31 in memory where it will run.
+
+config BL32_LOAD_ADDR
+	hex "Load address of BL32 image (mostly secure OS)"
+	default 0x60000000
+	help
+	  The load address for the BL32 image. This value is used to build the
+	  FIT image header that places BL32 in memory where it will run.
 
 config ZYNQ_SDHCI_MAX_FREQ
 	default 200000000
@@ -220,7 +200,18 @@ config SD1_LSHFT_MODE
 
 endchoice
 
+config CMD_ZYNQMP
+	bool "Enable ZynqMP specific commands"
+	depends on ZYNQMP_FIRMWARE
+	default y
+	help
+	  Enable ZynqMP specific commands like "zynqmp secure"
+	  which is used for zynqmp secure image verification.
+	  The secure image is a xilinx specific BOOT.BIN with
+	  either authentication or encryption or both encryption
+	  and authentication feature enabled while generating
+	  BOOT.BIN using Xilinx bootgen tool.
+
 source "board/xilinx/Kconfig"
-source "board/xilinx/zynqmp/Kconfig"
 
 endif

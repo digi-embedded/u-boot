@@ -10,7 +10,6 @@
  */
 
 #include <circbuf.h>
-#include <common.h>
 #include <console.h>
 #include <errno.h>
 #include <g_dnl.h>
@@ -239,18 +238,21 @@ static int acm_bind(struct usb_configuration *c, struct usb_function *f)
 		return -ENODEV;
 
 	f_acm->ep_in = ep;
+	ep->driver_data = c->cdev; /* claim */
 
 	ep = usb_ep_autoconfig(gadget, &acm_fs_out_desc);
 	if (!ep)
 		return -ENODEV;
 
 	f_acm->ep_out = ep;
+	ep->driver_data = c->cdev; /* claim */
 
 	ep = usb_ep_autoconfig(gadget, &acm_fs_notify_desc);
 	if (!ep)
 		return -ENODEV;
 
 	f_acm->ep_notify = ep;
+	ep->driver_data = c->cdev; /* claim */
 
 	if (gadget_is_dualspeed(gadget)) {
 		/* Assume endpoint addresses are the same for both speeds */
@@ -623,11 +625,20 @@ static void acm_stdio_puts(struct stdio_dev *dev, const char *str)
 
 static int acm_stdio_start(struct stdio_dev *dev)
 {
+	struct udevice *udc;
 	int ret;
 
 	if (dev->priv) { /* function already exist */
 		return 0;
 	}
+
+	ret = udc_device_get_by_index(0, &udc);
+	if (ret) {
+		pr_err("USB init failed: %d\n", ret);
+		return ret;
+	}
+
+	g_dnl_clear_detach();
 
 	ret = g_dnl_register("usb_serial_acm");
 	if (ret)
@@ -652,6 +663,7 @@ static int acm_stdio_stop(struct stdio_dev *dev)
 {
 	g_dnl_unregister();
 	g_dnl_clear_detach();
+	dev->priv = NULL;
 
 	return 0;
 }

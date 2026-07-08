@@ -4,8 +4,8 @@
  * Support for the "SEAttle iMAge" SEAMA NAND image format
  */
 
-#include <common.h>
 #include <command.h>
+#include <env.h>
 #include <nand.h>
 
 /*

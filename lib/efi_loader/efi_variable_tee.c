@@ -10,6 +10,8 @@
  *    Abdellatif El Khlifi <abdellatif.elkhlifi@arm.com>
  */
 
+#define LOG_CATEGORY LOGC_EFI
+
 #if CONFIG_IS_ENABLED(ARM_FFA_TRANSPORT)
 #include <arm_ffa.h>
 #endif
@@ -39,6 +41,7 @@ static u16 mm_sp_id;
 extern struct efi_var_file __efi_runtime_data *efi_var_buf;
 static efi_uintn_t max_buffer_size;	/* comm + var + func + data */
 static efi_uintn_t max_payload_size;	/* func + data */
+static const u16 __efi_runtime_rodata pk[] = u"PK";
 
 struct mm_connection {
 	struct udevice *tee;
@@ -861,7 +864,7 @@ efi_status_t efi_set_variable_int(const u16 *variable_name,
 	if (alt_ret != EFI_SUCCESS)
 		goto out;
 
-	if (!u16_strcmp(variable_name, u"PK"))
+	if (!u16_strcmp(variable_name, pk))
 		alt_ret = efi_init_secure_state();
 out:
 	free(comm_buf);
@@ -877,6 +880,11 @@ efi_status_t efi_query_variable_info_int(u32 attributes,
 	efi_uintn_t payload_size;
 	efi_status_t ret;
 	u8 *comm_buf;
+
+	if (!max_variable_storage_size ||
+	    !remain_variable_storage_size ||
+	    !max_variable_size || !attributes)
+		return EFI_INVALID_PARAMETER;
 
 	payload_size = sizeof(*mm_query_info);
 	comm_buf = setup_mm_hdr((void **)&mm_query_info, payload_size,
@@ -964,11 +972,6 @@ void efi_variables_boot_exit_notify(void)
 		log_err("Unable to notify the MM partition for ExitBootServices\n");
 	free(comm_buf);
 
-	/*
-	 * Populate the list for runtime variables.
-	 * asking EFI_VARIABLE_RUNTIME_ACCESS is redundant, since
-	 * efi_var_mem_notify_exit_boot_services will clean those, but that's fine
-	 */
 	ret = efi_var_collect(&var_buf, &len, EFI_VARIABLE_RUNTIME_ACCESS);
 	if (ret != EFI_SUCCESS)
 		log_err("Can't populate EFI variables. No runtime variables will be available\n");

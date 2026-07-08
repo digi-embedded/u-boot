@@ -12,6 +12,7 @@
 #include <linux/ctype.h>
 #include <linux/kernel.h>
 #include <asm/io.h>
+#include <stdio.h>
 #include <vsprintf.h>
 
 char *display_options_get_banner_priv(bool newlines, const char *build_tag,
@@ -235,7 +236,7 @@ int print_buffer(ulong addr, const void *data, uint width, uint count,
 		addr += thislinelen * width;
 		count -= thislinelen;
 
-		if (!IS_ENABLED(CONFIG_SPL_BUILD) && ctrlc())
+		if (!IS_ENABLED(CONFIG_XPL_BUILD) && ctrlc())
 			return -EINTR;
 	}
 

@@ -30,20 +30,16 @@
 /* UART */
 #define CFG_MXC_UART_BASE		UART1_BASE
 
-/* USB Configs */
-#define CFG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
-#define CFG_MXC_USB_FLAGS		0
-
 /* USB Gadget (DFU, UMS) */
 #if defined(CONFIG_CMD_DFU) || defined(CONFIG_CMD_USB_MASS_STORAGE)
 #define DFU_DEFAULT_POLL_TIMEOUT	300
 #endif
 
 #define CFG_EXTRA_ENV_SETTINGS	\
+	"bootm_size=0x10000000\0"	\
 	"console=ttymxc0,115200\0"	\
+	"dfu_alt_info=sf 0:0=flash-bin raw 0 0x200000\0"	\
 	"fdt_addr=0x18000000\0"		\
-	"fdt_high=0xffffffff\0"		\
-	"initrd_high=0xffffffff\0"	\
 	"kernel_addr_r=0x10008000\0"	\
 	"fdt_addr_r=0x13000000\0"	\
 	"ramdisk_addr_r=0x18000000\0"	\
@@ -58,6 +54,7 @@
 	func(MMC, mmc, 0) \
 	func(MMC, mmc, 1) \
 	func(MMC, mmc, 2) \
+	func(USB, usb, 0) \
 	func(USB, usb, 1) \
 	func(SATA, sata, 0) \
 	func(DHCP, dhcp, na)

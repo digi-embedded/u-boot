@@ -1,18 +1,18 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0 OR BSD-3-Clause
 /*
  * Copyright (C) 2020 Intel Corporation <www.intel.com>
- *
+ * Copyright (C) 2025 Altera Corporation <www.altera.com>
  */
 
+#include <log.h>
+#include <malloc.h>
 #include <asm/arch/mailbox_s10.h>
 #include <asm/arch/secure_vab.h>
 #include <asm/arch/smc_api.h>
 #include <asm/unaligned.h>
-#include <common.h>
-#include <exports.h>
+#include <linux/delay.h>
 #include <linux/errno.h>
 #include <linux/intel-smc.h>
-#include <log.h>
 
 #define CHUNKSZ_PER_WD_RESET		(256 * SZ_1K)
 
@@ -121,7 +121,7 @@ int socfpga_vendor_authentication(void **p_image, size_t *p_size)
 	debug("mbox_relocate_data_addr = 0x%p\n", mbox_relocate_data_addr);
 
 	do {
-		if (!IS_ENABLED(CONFIG_SPL_BUILD) && IS_ENABLED(CONFIG_SPL_ATF)) {
+		if (!IS_ENABLED(CONFIG_XPL_BUILD) && IS_ENABLED(CONFIG_SPL_ATF)) {
 			/* Invoke SMC call to ATF to send the VAB certificate to SDM */
 			ret  = smc_send_mailbox(MBOX_VAB_SRC_CERT, mbox_data_sz,
 						(u32 *)mbox_relocate_data_addr, 0, &resp_len,

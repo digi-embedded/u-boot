@@ -6,11 +6,11 @@
  * (C) Copyright 2009 Freescale Semiconductor, Inc.
  */
 
-#include <common.h>
 #include <command.h>
 #include <log.h>
 #include <asm/io.h>
 #include <linux/errno.h>
+#include <linux/string.h>
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/crm_regs.h>
 #include <asm/arch/clock.h>
@@ -941,7 +941,7 @@ void mxc_set_sata_internal_clock(void)
 }
 #endif
 
-#ifndef CONFIG_SPL_BUILD
+#ifndef CONFIG_XPL_BUILD
 /*
  * Dump some core clockes.
  */

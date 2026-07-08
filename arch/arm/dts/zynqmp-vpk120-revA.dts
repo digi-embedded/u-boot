@@ -47,7 +47,7 @@
 	gpio-keys {
 		compatible = "gpio-keys";
 		autorepeat;
-		sw16 {
+		button-16 {
 			label = "sw16";
 			gpios = <&gpio 10 GPIO_ACTIVE_HIGH>;
 			linux,code = <BTN_MISC>;
@@ -105,6 +105,9 @@
 	status = "okay";
 	non-removable;
 	disable-wp;
+	no-sd;
+	no-sdio;
+	cap-mmc-hw-reset;
 	bus-width = <8>;
 	xlnx,mio-bank = <0>;
 };
@@ -118,7 +121,6 @@
 	status = "okay";
 	phy-handle = <&phy0>;
 	phy-mode = "sgmii"; /* DTG generates this properly 1512 */
-	is-internal-pcspma;
 	/* phys = <&psgtr 0 PHY_TYPE_SGMII 0 0>; */
 	mdio: mdio {
 		#address-cells = <1>;
@@ -373,7 +375,6 @@
 				clock-frequency = <100000000>;
 				clock-output-names = "fmc_si570";
 			};
-
 		};
 		/* 7 unused */
 	};

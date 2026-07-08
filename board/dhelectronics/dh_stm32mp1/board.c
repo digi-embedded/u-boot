@@ -3,7 +3,6 @@
  * Copyright (C) 2018, STMicroelectronics - All Rights Reserved
  */
 
-#include <common.h>
 #include <adc.h>
 #include <log.h>
 #include <net.h>
@@ -28,7 +27,6 @@
 #include <led.h>
 #include <memalign.h>
 #include <misc.h>
-#include <mtd.h>
 #include <mtd_node.h>
 #include <netdev.h>
 #include <phy.h>
@@ -38,6 +36,7 @@
 #include <power/regulator.h>
 #include <remoteproc.h>
 #include <reset.h>
+#include <spl.h>
 #include <syscon.h>
 #include <usb.h>
 #include <usb/dwc2_udc.h>
@@ -48,12 +47,10 @@
 
 /* SYSCFG registers */
 #define SYSCFG_BOOTR		0x00
-#define SYSCFG_PMCSETR		0x04
 #define SYSCFG_IOCTRLSETR	0x18
 #define SYSCFG_ICNR		0x1C
 #define SYSCFG_CMPCR		0x20
 #define SYSCFG_CMPENSETR	0x24
-#define SYSCFG_PMCCLRR		0x44
 
 #define SYSCFG_BOOTR_BOOT_MASK		GENMASK(2, 0)
 #define SYSCFG_BOOTR_BOOTPD_SHIFT	4
@@ -69,16 +66,6 @@
 
 #define SYSCFG_CMPENSETR_MPU_EN		BIT(0)
 
-#define SYSCFG_PMCSETR_ETH_CLK_SEL	BIT(16)
-#define SYSCFG_PMCSETR_ETH_REF_CLK_SEL	BIT(17)
-
-#define SYSCFG_PMCSETR_ETH_SELMII	BIT(20)
-
-#define SYSCFG_PMCSETR_ETH_SEL_MASK	GENMASK(23, 21)
-#define SYSCFG_PMCSETR_ETH_SEL_GMII_MII	0
-#define SYSCFG_PMCSETR_ETH_SEL_RGMII	BIT(21)
-#define SYSCFG_PMCSETR_ETH_SEL_RMII	BIT(23)
-
 #define KS_CCR		0x08
 #define KS_CCR_EEPROM	BIT(9)
 #define KS_BE0		BIT(12)
@@ -88,14 +75,25 @@
 
 static bool dh_stm32_mac_is_in_ks8851(void)
 {
-	ofnode node;
+	struct udevice *udev;
 	u32 reg, cider, ccr;
+	char path[256];
+	ofnode node;
+	int ret;
 
 	node = ofnode_path("ethernet1");
 	if (!ofnode_valid(node))
 		return false;
 
-	if (ofnode_device_is_compatible(node, "micrel,ks8851-mll"))
+	if (!ofnode_device_is_compatible(node, "micrel,ks8851-mll"))
+		return false;
+
+	ret = ofnode_get_path(node, path, sizeof(path));
+	if (ret)
+		return false;
+
+	ret = uclass_get_device_by_of_path(UCLASS_ETH, path, &udev);
+	if (ret)
 		return false;
 
 	/*
@@ -121,43 +119,111 @@ static bool dh_stm32_mac_is_in_ks8851(void)
 	return false;
 }
 
-static int dh_stm32_setup_ethaddr(void)
+static int dh_stm32_get_mac_from_fuse(unsigned char *enetaddr, int index)
+{
+	struct udevice *dev;
+	u8 otp[12];
+	int ret;
+
+	ret = uclass_get_device_by_driver(UCLASS_MISC,
+					  DM_DRIVER_GET(stm32mp_bsec),
+					  &dev);
+	if (ret)
+		return ret;
+
+	ret = misc_read(dev, STM32_BSEC_SHADOW(BSEC_OTP_MAC), otp, sizeof(otp));
+	if (ret < 0)
+		return ret;
+
+	memcpy(enetaddr, otp + ARP_HLEN * index, ARP_HLEN);
+	if (!is_valid_ethaddr(enetaddr))
+		return -EINVAL;
+
+	return 0;
+}
+
+static int dh_stm32_setup_ethaddr(struct eeprom_id_page *eip)
 {
 	unsigned char enetaddr[6];
 
 	if (dh_mac_is_in_env("ethaddr"))
 		return 0;
 
+	if (dh_get_mac_is_enabled("ethernet0"))
+		return 0;
+
+	if (!dh_stm32_get_mac_from_fuse(enetaddr, 0))
+		goto out;
+
+	if (!dh_get_value_from_eeprom_buffer(DH_MAC0, enetaddr, sizeof(enetaddr), eip))
+		goto out;
+
 	if (!dh_get_mac_from_eeprom(enetaddr, "eeprom0"))
-		return eth_env_set_enetaddr("ethaddr", enetaddr);
+		goto out;
 
 	return -ENXIO;
+
+out:
+	return eth_env_set_enetaddr("ethaddr", enetaddr);
 }
 
-static int dh_stm32_setup_eth1addr(void)
+static int dh_stm32_setup_eth1addr(struct eeprom_id_page *eip)
 {
 	unsigned char enetaddr[6];
 
 	if (dh_mac_is_in_env("eth1addr"))
 		return 0;
 
+	if (dh_get_mac_is_enabled("ethernet1"))
+		return 0;
+
 	if (dh_stm32_mac_is_in_ks8851())
 		return 0;
 
-	if (!dh_get_mac_from_eeprom(enetaddr, "eeprom0")) {
-		enetaddr[5]++;
-		return eth_env_set_enetaddr("eth1addr", enetaddr);
-	}
+	if (!dh_stm32_get_mac_from_fuse(enetaddr, 1))
+		goto out;
+
+	if (!dh_get_value_from_eeprom_buffer(DH_MAC1, enetaddr, sizeof(enetaddr), eip))
+		goto out;
+
+	if (!dh_get_mac_from_eeprom(enetaddr, "eeprom0"))
+		goto increment_out;
 
 	return -ENXIO;
+
+increment_out:
+	enetaddr[5]++;
+
+out:
+	return eth_env_set_enetaddr("eth1addr", enetaddr);
 }
 
 int setup_mac_address(void)
 {
-	if (dh_stm32_setup_ethaddr())
+	u8 eeprom_buffer[DH_EEPROM_ID_PAGE_MAX_SIZE] = { 0 };
+	struct eeprom_id_page *eip = (struct eeprom_id_page *)eeprom_buffer;
+	int ret;
+
+	ret = dh_read_eeprom_id_page(eeprom_buffer, "eeprom0wl");
+	if (ret) {
+		/*
+		 * The EEPROM ID page is available on SoM rev. 200 and greater.
+		 * For SoM rev. 100 the return value will be -ENODEV. Suppress
+		 * the error message for that, because the absence cannot be
+		 * treated as an error.
+		 */
+		if (ret != -ENODEV)
+			printf("%s: Cannot read valid data from EEPROM ID page! ret = %d\n",
+			       __func__, ret);
+		eip = NULL;
+	} else {
+		dh_add_item_number_and_serial_to_env(eip);
+	}
+
+	if (dh_stm32_setup_ethaddr(eip))
 		log_err("%s: Unable to setup ethaddr!\n", __func__);
 
-	if (dh_stm32_setup_eth1addr())
+	if (dh_stm32_setup_eth1addr(eip))
 		log_err("%s: Unable to setup eth1addr!\n", __func__);
 
 	return 0;
@@ -238,30 +304,42 @@ static void board_get_coding_straps(void)
 int board_stm32mp1_ddr_config_name_match(struct udevice *dev,
 					 const char *name)
 {
-	if (ddr3code == 1 &&
-	    !strcmp(name, "st,ddr3l-dhsom-1066-888-bin-g-2x1gb-533mhz"))
-		return 0;
+	if (IS_ENABLED(CONFIG_TARGET_DH_STM32MP13X)) {
+		if (ddr3code == 1 &&
+		    !strcmp(name, "st,ddr3l-dhsom-1066-888-bin-g-1x2gb-533mhz"))
+			return 0;
 
-	if (ddr3code == 2 &&
-	    !strcmp(name, "st,ddr3l-dhsom-1066-888-bin-g-2x2gb-533mhz"))
-		return 0;
+		if (ddr3code == 2 &&
+		    !strcmp(name, "st,ddr3l-dhsom-1066-888-bin-g-1x4gb-533mhz"))
+			return 0;
+	}
 
-	if (ddr3code == 3 &&
-	    !strcmp(name, "st,ddr3l-dhsom-1066-888-bin-g-2x4gb-533mhz"))
-		return 0;
+	if (IS_ENABLED(CONFIG_STM32MP15X)) {
+		if (ddr3code == 1 &&
+		    !strcmp(name, "st,ddr3l-dhsom-1066-888-bin-g-2x1gb-533mhz"))
+			return 0;
+
+		if (ddr3code == 2 &&
+		    !strcmp(name, "st,ddr3l-dhsom-1066-888-bin-g-2x2gb-533mhz"))
+			return 0;
+
+		if (ddr3code == 3 &&
+		    !strcmp(name, "st,ddr3l-dhsom-1066-888-bin-g-2x4gb-533mhz"))
+			return 0;
+	}
 
 	return -EINVAL;
 }
 
 void board_vddcore_init(u32 voltage_mv)
 {
-	if (IS_ENABLED(CONFIG_SPL_BUILD))
+	if (IS_ENABLED(CONFIG_XPL_BUILD))
 		opp_voltage_mv = voltage_mv;
 }
 
 int board_early_init_f(void)
 {
-	if (IS_ENABLED(CONFIG_SPL_BUILD))
+	if (IS_ENABLED(CONFIG_XPL_BUILD))
 		stpmic1_init(opp_voltage_mv);
 	board_get_coding_straps();
 
@@ -271,15 +349,26 @@ int board_early_init_f(void)
 #ifdef CONFIG_SPL_LOAD_FIT
 int board_fit_config_name_match(const char *name)
 {
+	char *cdevice, *ndevice;
 	const char *compat;
-	char test[128];
 
 	compat = ofnode_get_property(ofnode_root(), "compatible", NULL);
+	if (!compat)
+		return -EINVAL;
 
-	snprintf(test, sizeof(test), "%s_somrev%d_boardrev%d",
-		compat, somcode, brdcode);
+	cdevice = strchr(compat, ',');
+	if (!cdevice)
+		return -ENODEV;
 
-	if (!strcmp(name, test))
+	cdevice++;	/* Move past the comma right after vendor prefix. */
+
+	ndevice = strchr(name, '/');
+	if (!ndevice)
+		return -ENODEV;
+
+	ndevice++;	/* Move past the last slash in DT path */
+
+	if (!strcmp(cdevice, ndevice))
 		return 0;
 
 	return -EINVAL;
@@ -617,8 +706,6 @@ static void board_init_regulator_av96(void)
 static void board_init_regulator(void)
 {
 	board_init_regulator_av96();
-
-	regulators_enable_boot_on(_DEBUG);
 }
 #else
 static inline int board_get_regulator_buck3_nvm_uv_av96(int *uv)
@@ -679,74 +766,87 @@ void board_quiesce_devices(void)
 #endif
 }
 
-/* eth init function : weak called in eqos driver */
-int board_interface_eth_init(struct udevice *dev,
-			     phy_interface_t interface_type)
+#ifdef CONFIG_TARGET_DH_STM32MP13X
+enum env_location env_get_location(enum env_operation op, int prio)
 {
-	u8 *syscfg;
-	u32 value;
-	bool eth_clk_sel_reg = false;
-	bool eth_ref_clk_sel_reg = false;
+	u32 bootmode = get_bootmode();
 
-	/* Gigabit Ethernet 125MHz clock selection. */
-	eth_clk_sel_reg = dev_read_bool(dev, "st,eth-clk-sel");
+	if (prio)
+		return ENVL_UNKNOWN;
 
-	/* Ethernet 50Mhz RMII clock selection */
-	eth_ref_clk_sel_reg =
-		dev_read_bool(dev, "st,eth-ref-clk-sel");
-
-	syscfg = (u8 *)syscon_get_first_range(STM32MP_SYSCON_SYSCFG);
-
-	if (!syscfg)
-		return -ENODEV;
-
-	switch (interface_type) {
-	case PHY_INTERFACE_MODE_MII:
-		value = SYSCFG_PMCSETR_ETH_SEL_GMII_MII |
-			SYSCFG_PMCSETR_ETH_REF_CLK_SEL;
-		debug("%s: PHY_INTERFACE_MODE_MII\n", __func__);
-		break;
-	case PHY_INTERFACE_MODE_GMII:
-		if (eth_clk_sel_reg)
-			value = SYSCFG_PMCSETR_ETH_SEL_GMII_MII |
-				SYSCFG_PMCSETR_ETH_CLK_SEL;
+	switch (bootmode & TAMP_BOOT_DEVICE_MASK) {
+	case BOOT_FLASH_SD:
+	case BOOT_FLASH_EMMC:
+		if (CONFIG_IS_ENABLED(ENV_IS_IN_MMC))
+			return ENVL_MMC;
 		else
-			value = SYSCFG_PMCSETR_ETH_SEL_GMII_MII;
-		debug("%s: PHY_INTERFACE_MODE_GMII\n", __func__);
-		break;
-	case PHY_INTERFACE_MODE_RMII:
-		if (eth_ref_clk_sel_reg)
-			value = SYSCFG_PMCSETR_ETH_SEL_RMII |
-				SYSCFG_PMCSETR_ETH_REF_CLK_SEL;
+			return ENVL_NOWHERE;
+
+	case BOOT_FLASH_NOR:
+		if (CONFIG_IS_ENABLED(ENV_IS_IN_SPI_FLASH))
+			return ENVL_SPI_FLASH;
 		else
-			value = SYSCFG_PMCSETR_ETH_SEL_RMII;
-		debug("%s: PHY_INTERFACE_MODE_RMII\n", __func__);
-		break;
-	case PHY_INTERFACE_MODE_RGMII:
-	case PHY_INTERFACE_MODE_RGMII_ID:
-	case PHY_INTERFACE_MODE_RGMII_RXID:
-	case PHY_INTERFACE_MODE_RGMII_TXID:
-		if (eth_clk_sel_reg)
-			value = SYSCFG_PMCSETR_ETH_SEL_RGMII |
-				SYSCFG_PMCSETR_ETH_CLK_SEL;
-		else
-			value = SYSCFG_PMCSETR_ETH_SEL_RGMII;
-		debug("%s: PHY_INTERFACE_MODE_RGMII\n", __func__);
-		break;
+			return ENVL_NOWHERE;
+
 	default:
-		debug("%s: Do not manage %d interface\n",
-		      __func__, interface_type);
-		/* Do not manage others interfaces */
-		return -EINVAL;
+		return ENVL_NOWHERE;
+	}
+}
+#endif
+
+static void dh_stm32_ks8851_fixup(void *blob)
+{
+	struct gpio_desc ks8851intrn;
+	bool compatible = false;
+	int ks8851intrn_value;
+	const char *prop;
+	ofnode node;
+	int idx = 0;
+	int offset;
+	int ret;
+
+	/* Do nothing if not STM32MP15xx DHCOM SoM */
+	while ((prop = fdt_stringlist_get(blob, 0, "compatible", idx++, NULL))) {
+		if (!strstr(prop, "dhcom-som"))
+			continue;
+		compatible = true;
+		break;
 	}
 
-	/* clear and set ETH configuration bits */
-	writel(SYSCFG_PMCSETR_ETH_SEL_MASK | SYSCFG_PMCSETR_ETH_SELMII |
-	       SYSCFG_PMCSETR_ETH_REF_CLK_SEL | SYSCFG_PMCSETR_ETH_CLK_SEL,
-	       syscfg + SYSCFG_PMCCLRR);
-	writel(value, syscfg + SYSCFG_PMCSETR);
+	if (!compatible)
+		return;
 
-	return 0;
+	/*
+	 * Read state of INTRN pull up resistor, if this pull up is populated,
+	 * KS8851-16MLL is populated as well and should be enabled, otherwise
+	 * it should be disabled.
+	 */
+	node = ofnode_path("/config");
+	if (!ofnode_valid(node))
+		return;
+
+	ret = gpio_request_by_name_nodev(node, "dh,mac-coding-gpios", 0,
+					 &ks8851intrn, GPIOD_IS_IN);
+	if (ret)
+		return;
+
+	ks8851intrn_value = dm_gpio_get_value(&ks8851intrn);
+
+	dm_gpio_free(NULL, &ks8851intrn);
+
+	/* Set the 'status' property into KS8851-16MLL DT node. */
+	offset = fdt_path_offset(blob, "ethernet1");
+	ret = fdt_node_check_compatible(blob, offset, "micrel,ks8851-mll");
+	if (ret)	/* Not compatible */
+		return;
+
+	/* Add a bit of extra space for new 'status' property */
+	ret = fdt_shrink_to_minimum(blob, 4096);
+	if (!ret)
+		return;
+
+	fdt_setprop_string(blob, offset, "status",
+			   ks8851intrn_value ? "okay" : "disabled");
 }
 
 #if defined(CONFIG_OF_BOARD_SETUP)
@@ -754,6 +854,8 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	const char *buck3path = "/soc/i2c@5c002000/stpmic@33/regulators/buck3";
 	int buck3off, ret, uv;
+
+	dh_stm32_ks8851_fixup(blob);
 
 	ret = board_get_regulator_buck3_nvm_uv_av96(&uv);
 	if (ret)	/* Not Avenger96 board, do not patch Buck3 in DT. */
@@ -772,6 +874,13 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 		return ret;
 
 	return 0;
+}
+#endif
+
+#if defined(CONFIG_XPL_BUILD)
+void spl_perform_board_fixups(struct spl_image_info *spl_image)
+{
+	dh_stm32_ks8851_fixup(spl_image_fdt_addr(spl_image));
 }
 #endif
 

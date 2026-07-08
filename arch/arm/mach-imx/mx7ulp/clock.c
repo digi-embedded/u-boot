@@ -4,7 +4,7 @@
  * Copyright 2017-2018 NXP
  */
 
-#include <common.h>
+#include <config.h>
 #include <clock_legacy.h>
 #include <command.h>
 #include <div64.h>
@@ -452,8 +452,7 @@ void mxs_set_lcdclk(uint32_t base_addr, uint32_t freq_in_khz)
 	pcc_clock_enable(PER_CLK_LCDIF, true);
 }
 
-
-#ifndef CONFIG_SPL_BUILD
+#ifndef CONFIG_XPL_BUILD
 /*
  * Dump some core clockes.
  */

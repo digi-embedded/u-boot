@@ -5,7 +5,6 @@
  * Modified to support C structur SoC access by
  * Andreas Bießmann <biessmann@corscience.de>
  */
-#include <common.h>
 #include <clk.h>
 #include <dm.h>
 #include <errno.h>
@@ -19,10 +18,12 @@
 
 #include <asm/io.h>
 #if CONFIG_IS_ENABLED(DM_SERIAL)
-#include <asm/arch/atmel_serial.h>
+#include <dm/platform_data/atmel_serial.h>
 #endif
+#if IS_ENABLED(CONFIG_ARCH_AT91)
 #include <asm/arch/clk.h>
 #include <asm/arch/hardware.h>
+#endif
 
 #include "atmel_usart.h"
 
@@ -219,7 +220,7 @@ static const struct dm_serial_ops atmel_serial_ops = {
 	.setbrg = atmel_serial_setbrg,
 };
 
-#if defined(CONFIG_SPL_BUILD) && !defined(CONFIG_SPL_CLK)
+#if defined(CONFIG_XPL_BUILD) && !defined(CONFIG_SPL_CLK)
 static int atmel_serial_enable_clk(struct udevice *dev)
 {
 	struct atmel_serial_priv *priv = dev_get_priv(dev);
@@ -316,6 +317,9 @@ U_BOOT_DRIVER(serial_atmel) = {
 static inline void _debug_uart_init(void)
 {
 	atmel_usart3_t *usart = (atmel_usart3_t *)CONFIG_VAL(DEBUG_UART_BASE);
+
+	if (IS_ENABLED(CONFIG_DEBUG_UART_SKIP_INIT))
+		return;
 
 	_atmel_serial_init(usart, CONFIG_DEBUG_UART_CLOCK, CONFIG_BAUDRATE);
 }

@@ -12,7 +12,6 @@
 #include <asm/io.h>
 #include <linux/arm-smccc.h>
 #include <scsi.h>
-#include <asm/u-boot.h>
 #include "cpu.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -48,11 +47,6 @@ int dram_init_banksize(void)
 	gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
 	gd->bd->bi_dram[0].size = PHYS_SDRAM_1_SIZE;
 
-	return 0;
-}
-
-int board_init(void)
-{
 	return 0;
 }
 

@@ -1,155 +1,219 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
-#ifndef _LINUX_LMB_H
-#define _LINUX_LMB_H
-#ifdef __KERNEL__
-
-#include <asm/types.h>
-#include <asm/u-boot.h>
-
 /*
  * Logical memory blocks.
  *
  * Copyright (C) 2001 Peter Bergner, IBM Corp.
  */
 
+#ifndef _LINUX_LMB_H
+#define _LINUX_LMB_H
+
+#ifdef __KERNEL__
+
+#include <alist.h>
+#include <asm/types.h>
+#include <asm/u-boot.h>
+#include <linux/bitops.h>
+
+#define LMB_ALLOC_ANYWHERE	0
+#define LMB_ALIST_INITIAL_SIZE	4
+
 /**
- * enum lmb_flags - definition of memory region attributes
- * @LMB_NONE: no special request
- * @LMB_NOMAP: don't add to mmu configuration
+ * DOC: Memory region attribute flags.
+ *
+ * %LMB_NONE: No special request
+ * %LMB_NOMAP: Don't add to MMU configuration
+ * %LMB_NOOVERWRITE: The memory region cannot be overwritten/re-reserved
+ * %LMB_NONOTIFY: Do not notify other modules of changes to this memory region
  */
-enum lmb_flags {
-	LMB_NONE		= 0x0,
-	LMB_NOMAP		= 0x4,
+#define LMB_NONE 0
+#define LMB_NOMAP BIT(1)
+#define LMB_NOOVERWRITE BIT(2)
+#define LMB_NONOTIFY BIT(3)
+
+/**
+ * enum lmb_mem_type - type of memory allocation request
+ * @LMB_MEM_ALLOC_ADDR:	request for a particular region of memory
+ * @LMB_MEM_ALLOC_ANY:	allocate any available memory region
+ * @LMB_MEM_ALLOC_MAX:	allocate memory below a particular address
+ */
+enum lmb_mem_type {
+	LMB_MEM_ALLOC_ADDR = 1,
+	LMB_MEM_ALLOC_ANY,
+	LMB_MEM_ALLOC_MAX,
 };
 
 /**
- * struct lmb_property - Description of one region.
- *
- * @base:	Base address of the region.
- * @size:	Size of the region
- * @flags:	memory region attributes
+ * enum lmb_map_op - memory map operation
  */
-struct lmb_property {
-	phys_addr_t base;
-	phys_size_t size;
-	enum lmb_flags flags;
+enum lmb_map_op {
+	/** @LMB_MAP_OP_RESERVE:	reserve memory */
+	LMB_MAP_OP_RESERVE = 1,
+	/** @LMB_MAP_OP_FREE:		free memory */
+	LMB_MAP_OP_FREE,
+	/** @LMB_MAP_OP_ADD:		add memory */
+	LMB_MAP_OP_ADD,
 };
 
-/*
- * For regions size management, see LMB configuration in KConfig
- * all the #if test are done with CONFIG_LMB_USE_MAX_REGIONS (boolean)
- *
- * case 1. CONFIG_LMB_USE_MAX_REGIONS is defined (legacy mode)
- *         => CONFIG_LMB_MAX_REGIONS is used to configure the region size,
- *         directly in the array lmb_region.region[], with the same
- *         configuration for memory and reserved regions.
- *
- * case 2. CONFIG_LMB_USE_MAX_REGIONS is not defined, the size of each
- *         region is configurated *independently* with
- *         => CONFIG_LMB_MEMORY_REGIONS: struct lmb.memory_regions
- *         => CONFIG_LMB_RESERVED_REGIONS: struct lmb.reserved_regions
- *         lmb_region.region is only a pointer to the correct buffer,
- *         initialized in lmb_init(). This configuration is useful to manage
- *         more reserved memory regions with CONFIG_LMB_RESERVED_REGIONS.
- */
-
 /**
- * struct lmb_region - Description of a set of region.
- *
- * @cnt: Number of regions.
- * @max: Size of the region array, max value of cnt.
- * @region: Array of the region properties
+ * struct lmb_region - Description of one region
+ * @base: Base address of the region
+ * @size: Size of the region
+ * @flags: Memory region attributes
  */
 struct lmb_region {
-	unsigned long cnt;
-	unsigned long max;
-#if IS_ENABLED(CONFIG_LMB_USE_MAX_REGIONS)
-	struct lmb_property region[CONFIG_LMB_MAX_REGIONS];
-#else
-	struct lmb_property *region;
-#endif
+	phys_addr_t base;
+	phys_size_t size;
+	u32 flags;
 };
 
 /**
- * struct lmb - Logical memory block handle.
- *
- * Clients provide storage for Logical memory block (lmb) handles.
- * The content of the structure is managed by the lmb library.
- * A lmb struct is  initialized by lmb_init() functions.
- * The lmb struct is passed to all other lmb APIs.
- *
- * @memory: Description of memory regions.
- * @reserved: Description of reserved regions.
- * @memory_regions: Array of the memory regions (statically allocated)
- * @reserved_regions: Array of the reserved regions (statically allocated)
+ * struct lmb - The LMB structure
+ * @available_mem: List of memory available to LMB
+ * @used_mem: List of used/reserved memory regions
+ * @test: Is structure being used for LMB tests
  */
 struct lmb {
-	struct lmb_region memory;
-	struct lmb_region reserved;
-#if !IS_ENABLED(CONFIG_LMB_USE_MAX_REGIONS)
-	struct lmb_property memory_regions[CONFIG_LMB_MEMORY_REGIONS];
-	struct lmb_property reserved_regions[CONFIG_LMB_RESERVED_REGIONS];
-#endif
+	struct alist available_mem;
+	struct alist used_mem;
+	bool test;
 };
 
-void lmb_init(struct lmb *lmb);
-void lmb_init_and_reserve(struct lmb *lmb, struct bd_info *bd, void *fdt_blob);
-void lmb_init_and_reserve_range(struct lmb *lmb, phys_addr_t base,
-				phys_size_t size, void *fdt_blob);
-long lmb_add(struct lmb *lmb, phys_addr_t base, phys_size_t size);
-long lmb_reserve(struct lmb *lmb, phys_addr_t base, phys_size_t size);
-long lmb_reserve_nonoverlap(struct lmb *lmb, phys_addr_t base, phys_size_t size);
 /**
- * lmb_reserve_flags - Reserve one region with a specific flags bitfield.
+ * lmb_alloc_mem() - Request LMB memory
+ * @type:		Type of memory allocation request
+ * @align:		Alignment of the memory region requested(0 for none)
+ * @addr:		Base address of the allocated memory region
+ * @size:		Size in bytes of the allocation request
+ * @flags:		Memory region attributes to be set
  *
- * @lmb:	the logical memory block struct
- * @base:	base address of the memory region
- * @size:	size of the memory region
- * @flags:	flags for the memory region
- * Return:	0 if OK, > 0 for coalesced region or a negative error code.
+ * Allocate a region of memory where the allocation is based on the parameters
+ * that have been passed to the function.The first parameter specifies the
+ * type of allocation that is being requested. The second parameter, @align
+ * is used to specify if the allocation is to be made with a particular
+ * alignment. Use 0 for no alignment requirements.
+ *
+ * The allocated address is returned through the @addr parameter when @type
+ * is @LMB_MEM_ALLOC_ANY or @LMB_MEM_ALLOC_MAX. If @type is
+ * @LMB_MEM_ALLOC_ADDR the @addr parameter would contain the address being
+ * requested.
+ *
+ * The flags parameter is used to specify the memory attributes of the
+ * requested region.
+ *
+ * Return: 0 on success, -ve value on failure
+ *
+ * When the allocation is of type @LMB_MEM_ALLOC_ADDR, the return value can
+ * be -EINVAL if the requested memory region is not part of the LMB memory
+ * map, and -EEXIST if the requested region is already allocated.
  */
-long lmb_reserve_flags(struct lmb *lmb, phys_addr_t base,
-		       phys_size_t size, enum lmb_flags flags);
-phys_addr_t lmb_alloc(struct lmb *lmb, phys_size_t size, ulong align);
-phys_addr_t lmb_alloc_base(struct lmb *lmb, phys_size_t size, ulong align,
-			   phys_addr_t max_addr);
-phys_addr_t __lmb_alloc_base(struct lmb *lmb, phys_size_t size, ulong align,
-			     phys_addr_t max_addr);
-phys_addr_t lmb_alloc_addr(struct lmb *lmb, phys_addr_t base, phys_size_t size);
-phys_size_t lmb_get_free_size(struct lmb *lmb, phys_addr_t addr);
+int lmb_alloc_mem(enum lmb_mem_type type, u64 align, phys_addr_t *addr,
+		  phys_size_t size, u32 flags);
 
 /**
- * lmb_is_reserved() - test if address is in reserved region
+ * lmb_init() - Initialise the LMB module.
  *
- * The function checks if a reserved region comprising @addr exists.
+ * Return: 0 on success, negative error code on failure.
  *
- * @lmb:	the logical memory block struct
- * @addr:	address to be tested
- * Return:	1 if reservation exists, 0 otherwise
+ * Initialise the LMB lists needed for keeping the memory map. There
+ * are two lists, in form of allocated list data structure. One for the
+ * available memory, and one for the used memory. Initialise the two
+ * lists as part of board init. Add memory to the available memory
+ * list and reserve common areas by adding them to the used memory
+ * list.
  */
-int lmb_is_reserved(struct lmb *lmb, phys_addr_t addr);
+int lmb_init(void);
+
+long lmb_add(phys_addr_t base, phys_size_t size);
+
+phys_size_t lmb_get_free_size(phys_addr_t addr);
 
 /**
- * lmb_is_reserved_flags() - test if address is in reserved region with flag bits set
+ * lmb_is_reserved_flags() - Test if address is in reserved region with flag
+ *			     bits set
+ * @addr: Address to be tested
+ * @flags: Bitmap with bits to be tested
  *
  * The function checks if a reserved region comprising @addr exists which has
  * all flag bits set which are set in @flags.
  *
- * @lmb:	the logical memory block struct
- * @addr:	address to be tested
- * @flags:	bitmap with bits to be tested
- * Return:	1 if matching reservation exists, 0 otherwise
+ * Return: 1 if matching reservation exists, 0 otherwise.
  */
-int lmb_is_reserved_flags(struct lmb *lmb, phys_addr_t addr, int flags);
+int lmb_is_reserved_flags(phys_addr_t addr, int flags);
 
-long lmb_free(struct lmb *lmb, phys_addr_t base, phys_size_t size);
+/**
+ * lmb_free() - Free up a region of memory
+ * @base: Base Address of region to be freed
+ * @size: Size of the region to be freed
+ * @flags: Memory region attributes
+ *
+ * Return: 0 on success, negative error code on failure.
+ */
+long lmb_free(phys_addr_t base, phys_size_t size, u32 flags);
 
-void lmb_dump_all(struct lmb *lmb);
-void lmb_dump_all_force(struct lmb *lmb);
+void lmb_dump_all(void);
+void lmb_dump_all_force(void);
 
-void board_lmb_reserve(struct lmb *lmb);
-void arch_lmb_reserve(struct lmb *lmb);
-void arch_lmb_reserve_generic(struct lmb *lmb, ulong sp, ulong end, ulong align);
+void lmb_arch_add_memory(void);
+
+struct lmb *lmb_get(void);
+int lmb_push(struct lmb *store);
+void lmb_pop(struct lmb *store);
+
+static inline int lmb_read_check(phys_addr_t addr, phys_size_t len)
+{
+	return lmb_alloc_mem(LMB_MEM_ALLOC_ADDR, 0, &addr, len, LMB_NONE);
+}
+
+/**
+ * io_lmb_setup() - Initialize LMB struct
+ * @io_lmb: IO LMB to initialize
+ *
+ * Return: 0 on success, negative error code on failure.
+ */
+int io_lmb_setup(struct lmb *io_lmb);
+
+/**
+ * io_lmb_teardown() - Tear LMB struct down
+ * @io_lmb: IO LMB to teardown
+ */
+void io_lmb_teardown(struct lmb *io_lmb);
+
+/**
+ * io_lmb_add() - Add an IOVA range for allocations
+ * @io_lmb: LMB to add the space to
+ * @base: Base Address of region to add
+ * @size: Size of the region to add
+ *
+ * Add the IOVA space [base, base + size] to be managed by io_lmb.
+ *
+ * Return: 0 on success, negative error code on failure.
+ */
+long io_lmb_add(struct lmb *io_lmb, phys_addr_t base, phys_size_t size);
+
+/**
+ * io_lmb_alloc() - Allocate specified IO memory address with specified
+ *		    alignment
+ * @io_lmb: LMB to alloc from
+ * @size: Size of the region requested
+ * @align: Required address and size alignment
+ *
+ * Allocate a region of IO memory. The base parameter is used to specify the
+ * base address of the requested region.
+ *
+ * Return: Base IO address on success, 0 on error.
+ */
+phys_addr_t io_lmb_alloc(struct lmb *io_lmb, phys_size_t size, ulong align);
+
+/**
+ * io_lmb_free() - Free up a region of IOVA space
+ * @io_lmb: LMB to return the IO address space to
+ * @base: Base Address of region to be freed
+ * @size: Size of the region to be freed
+ *
+ * Return: 0 on success, negative error code on failure.
+ */
+long io_lmb_free(struct lmb *io_lmb, phys_addr_t base, phys_size_t size);
 
 #endif /* __KERNEL__ */
 

@@ -373,12 +373,13 @@ void state_reset_for_test(struct sandbox_state *state)
 	memset(state->spi, '\0', sizeof(state->spi));
 
 	/*
-	 * Set up the memory tag list. Use the top of emulated SDRAM for the
-	 * first tag number, since that address offset is outside the legal
-	 * range, and can be assumed to be a tag.
+	 * Set up the memory tag list. We could use the top of emulated SDRAM
+	 * for the first tag number, since that address offset is outside the
+	 * legal SDRAM range, but PCI can have address there. So use a very
+	 * large address instead
 	 */
 	INIT_LIST_HEAD(&state->mapmem_head);
-	state->next_tag = state->ram_size;
+	state->next_tag = 0xff000000;
 }
 
 bool autoboot_keyed(void)
@@ -479,7 +480,9 @@ int state_init(void)
 	state = &main_state;
 
 	state->ram_size = CFG_SYS_SDRAM_SIZE;
-	state->ram_buf = os_malloc(state->ram_size);
+	state->mmap_addr = os_malloc(state->ram_size + SB_SDRAM_ALIGN);
+	state->ram_buf = (uint8_t *)ALIGN((uintptr_t)state->mmap_addr,
+					  SB_SDRAM_ALIGN);
 	if (!state->ram_buf) {
 		printf("Out of memory\n");
 		os_exit(1);
@@ -532,7 +535,7 @@ int state_uninit(void)
 		trace_set_enabled(0);
 
 	os_free(state->state_fdt);
-	os_free(state->ram_buf);
+	os_free(state->mmap_addr);
 	memset(state, '\0', sizeof(*state));
 
 	return 0;

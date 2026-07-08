@@ -16,10 +16,12 @@
 #include <linux/libfdt.h>
 #include <u-boot/crc.h>
 #include <linux/kconfig.h>
+
+/* C11 standard function for aligned allocations */
+extern void *aligned_alloc(size_t alignment, size_t size);
 #else
 #include <linux/compiler.h>
 #include <linux/sizes.h>
-#include <common.h>
 #include <errno.h>
 #include <log.h>
 #include <mapmem.h>
@@ -31,17 +33,16 @@
 #include <dm.h>
 #include <u-boot/hash.h>
 #endif
+#define aligned_alloc(a, s)	memalign((a), (s))
+
 DECLARE_GLOBAL_DATA_PTR;
 #endif /* !USE_HOSTCC*/
 
 #include <bootm.h>
 #include <image.h>
 #include <bootstage.h>
+#include <upl.h>
 #include <u-boot/crc.h>
-#include <u-boot/md5.h>
-#include <u-boot/sha1.h>
-#include <u-boot/sha256.h>
-#include <u-boot/sha512.h>
 
 /*****************************************************************************/
 /* New uImage format routines */
@@ -327,6 +328,17 @@ static void fit_conf_print(const void *fit, int noffset, const char *p)
 		printf("%s\n", uname);
 	}
 
+	for (fdt_index = 0;
+	     uname = fdt_stringlist_get(fit, noffset, FIT_COMPAT_PROP,
+					fdt_index, NULL), uname;
+	     fdt_index++) {
+		if (fdt_index == 0)
+			printf("%s  Compatible:   ", p);
+		else
+			printf("%s                ", p);
+		printf("%s\n", uname);
+	}
+
 	uname = fdt_getprop(fit, noffset, FIT_FPGA_PROP, NULL);
 	if (uname)
 		printf("%s  FPGA:         %s\n", p, uname);
@@ -513,7 +525,7 @@ void fit_image_print(const void *fit, int image_noffset, const char *p)
 	fit_image_get_comp(fit, image_noffset, &comp);
 	printf("%s  Compression:  %s\n", p, genimg_get_comp_name(comp));
 
-	ret = fit_image_get_data_and_size(fit, image_noffset, &data, &size);
+	ret = fit_image_get_data(fit, image_noffset, &data, &size);
 
 	if (!tools_build()) {
 		printf("%s  Data Start:   ", p);
@@ -869,7 +881,7 @@ static int fit_image_get_address(const void *fit, int noffset, char *name,
  * fit_image_get_load() - get load addr property for given component image node
  * @fit: pointer to the FIT format image header
  * @noffset: component image node offset
- * @load: pointer to the uint32_t, will hold load address
+ * @load: pointer to the ulong, will hold load address
  *
  * fit_image_get_load() finds load address property in a given component
  * image node. If the property is found, its value is returned to the caller.
@@ -887,7 +899,7 @@ int fit_image_get_load(const void *fit, int noffset, ulong *load)
  * fit_image_get_entry() - get entry point address property
  * @fit: pointer to the FIT format image header
  * @noffset: component image node offset
- * @entry: pointer to the uint32_t, will hold entry point address
+ * @entry: pointer to the ulong, will hold entry point address
  *
  * This gets the entry point address property for a given component image
  * node.
@@ -906,13 +918,13 @@ int fit_image_get_entry(const void *fit, int noffset, ulong *entry)
 }
 
 /**
- * fit_image_get_data - get data property and its size for a given component image node
+ * fit_image_get_emb_data - get data property and its size for a given component image node
  * @fit: pointer to the FIT format image header
  * @noffset: component image node offset
  * @data: double pointer to void, will hold data property's data address
  * @size: pointer to size_t, will hold data property's data size
  *
- * fit_image_get_data() finds data property in a given component image node.
+ * fit_image_get_emb_data() finds data property in a given component image node.
  * If the property is found its data start address and size are returned to
  * the caller.
  *
@@ -920,8 +932,8 @@ int fit_image_get_entry(const void *fit, int noffset, ulong *entry)
  *     0, on success
  *     -1, on failure
  */
-int fit_image_get_data(const void *fit, int noffset,
-		const void **data, size_t *size)
+int fit_image_get_emb_data(const void *fit, int noffset, const void **data,
+			   size_t *size)
 {
 	int len;
 
@@ -1035,14 +1047,14 @@ int fit_image_get_data_size_unciphered(const void *fit, int noffset,
 }
 
 /**
- * fit_image_get_data_and_size - get data and its size including
+ * fit_image_get_data - get data and its size including
  *				 both embedded and external data
  * @fit: pointer to the FIT format image header
  * @noffset: component image node offset
  * @data: double pointer to void, will hold data property's data address
  * @size: pointer to size_t, will hold data property's data size
  *
- * fit_image_get_data_and_size() finds data and its size including
+ * fit_image_get_data() finds data and its size including
  * both embedded and external data. If the property is found
  * its data start address and size are returned to the caller.
  *
@@ -1050,8 +1062,8 @@ int fit_image_get_data_size_unciphered(const void *fit, int noffset,
  *     0, on success
  *     otherwise, on failure
  */
-int fit_image_get_data_and_size(const void *fit, int noffset,
-				const void **data, size_t *size)
+int fit_image_get_data(const void *fit, int noffset, const void **data,
+		       size_t *size)
 {
 	bool external_data = false;
 	int offset;
@@ -1078,7 +1090,7 @@ int fit_image_get_data_and_size(const void *fit, int noffset,
 			*size = len;
 		}
 	} else {
-		ret = fit_image_get_data(fit, noffset, data, size);
+		ret = fit_image_get_emb_data(fit, noffset, data, size);
 	}
 
 	return ret;
@@ -1427,7 +1439,7 @@ int fit_image_verify(const void *fit, int image_noffset)
 	char		*err_msg = "";
 
 	/* Get image data and data length */
-	if (fit_image_get_data_and_size(fit, image_noffset, &data, &size)) {
+	if (fit_image_get_data(fit, image_noffset, &data, &size)) {
 		err_msg = "Can't get image data/size";
 		goto err;
 	}
@@ -1657,7 +1669,7 @@ int fit_check_format(const void *fit, ulong size)
 
 	if (CONFIG_IS_ENABLED(FIT_FULL_CHECK)) {
 		/*
-		 * If we are not given the size, make do wtih calculating it.
+		 * If we are not given the size, make do with calculating it.
 		 * This is not as secure, so we should consider a flag to
 		 * control this.
 		 */
@@ -1724,13 +1736,13 @@ int fit_conf_find_compat(const void *fit, const void *fdt)
 	images_noffset = fdt_path_offset(fit, FIT_IMAGES_PATH);
 	if (confs_noffset < 0 || images_noffset < 0) {
 		debug("Can't find configurations or images nodes.\n");
-		return -1;
+		return -EINVAL;
 	}
 
 	fdt_compat = fdt_getprop(fdt, 0, "compatible", &fdt_compat_len);
 	if (!fdt_compat) {
 		debug("Fdt for comparison has no \"compatible\" property.\n");
-		return -1;
+		return -ENXIO;
 	}
 
 	/*
@@ -1751,11 +1763,11 @@ int fit_conf_find_compat(const void *fit, const void *fdt)
 			continue;
 
 		/* If there's a compat property in the config node, use that. */
-		if (fdt_getprop(fit, noffset, "compatible", NULL)) {
+		if (fdt_getprop(fit, noffset, FIT_COMPAT_PROP, NULL)) {
 			fdt = fit;		  /* search in FIT image */
 			compat_noffset = noffset; /* search under config node */
 		} else {	/* Otherwise extract it from the kernel FDT. */
-			kfdt_name = fdt_getprop(fit, noffset, "fdt", &len);
+			kfdt_name = fdt_getprop(fit, noffset, FIT_FDT_PROP, &len);
 			if (!kfdt_name) {
 				debug("No fdt property found.\n");
 				continue;
@@ -1776,8 +1788,7 @@ int fit_conf_find_compat(const void *fit, const void *fdt)
 			}
 
 			/* search in this config's kernel FDT */
-			if (fit_image_get_data_and_size(fit, kfdt_noffset,
-							&fdt, &sz)) {
+			if (fit_image_get_data(fit, kfdt_noffset, &fdt, &sz)) {
 				debug("Failed to get fdt \"%s\".\n", kfdt_name);
 				continue;
 			}
@@ -1807,7 +1818,7 @@ int fit_conf_find_compat(const void *fit, const void *fdt)
 	}
 	if (!best_match_offset) {
 		debug("No match found.\n");
-		return -1;
+		return -ENOENT;
 	}
 
 	return best_match_offset;
@@ -1903,24 +1914,30 @@ int fit_conf_get_prop_node(const void *fit, int noffset, const char *prop_name,
 	count = fit_conf_get_prop_node_count(fit, noffset, prop_name);
 	if (count < 0)
 		return count;
+	log_debug("looking for %s (%s, image-count %d):\n", prop_name,
+		  genimg_get_phase_name(image_ph_phase(sel_phase)), count);
 
 	/* check each image in the list */
 	for (i = 0; i < count; i++) {
-		enum image_phase_t phase;
+		enum image_phase_t phase = IH_PHASE_NONE;
 		int ret, node;
 
 		node = fit_conf_get_prop_node_index(fit, noffset, prop_name, i);
 		ret = fit_image_get_phase(fit, node, &phase);
+		log_debug("- %s (%s): ", fdt_get_name(fit, node, NULL),
+			  genimg_get_phase_name(phase));
 
 		/* if the image is for any phase, let's use it */
-		if (ret == -ENOENT)
+		if (ret == -ENOENT || phase == sel_phase) {
+			log_debug("found\n");
 			return node;
-		else if (ret < 0)
+		} else if (ret < 0) {
+			log_debug("err=%d\n", ret);
 			return ret;
-
-		if (phase == sel_phase)
-			return node;
+		}
+		log_debug("no match\n");
 	}
+	log_debug("- not found\n");
 
 	return -ENOENT;
 }
@@ -1936,7 +1953,7 @@ static int fit_get_data_tail(const void *fit, int noffset,
 	if (!fit_image_verify(fit, noffset))
 		return -EINVAL;
 
-	if (fit_image_get_data_and_size(fit, noffset, data, size))
+	if (fit_image_get_data(fit, noffset, data, size))
 		return -ENOENT;
 
 	if (!fit_get_desc(fit, noffset, &desc))
@@ -2008,13 +2025,15 @@ int fit_get_node_from_config(struct bootm_headers *images,
 }
 
 /**
- * fit_get_image_type_property() - get property name for IH_TYPE_...
+ * fit_get_image_type_property() - get property name for sel_phase
  *
  * Return: the properly name where we expect to find the image in the
  * config node
  */
-static const char *fit_get_image_type_property(int type)
+static const char *fit_get_image_type_property(int ph_type)
 {
+	int type = image_ph_type(ph_type);
+
 	/*
 	 * This is sort-of available in the uimage_type[] table in image.c
 	 * but we don't have access to the short name, and "fdt" is different
@@ -2066,8 +2085,9 @@ int fit_image_load(struct bootm_headers *images, ulong addr,
 	fit_uname = fit_unamep ? *fit_unamep : NULL;
 	fit_uname_config = fit_uname_configp ? *fit_uname_configp : NULL;
 	fit_base_uname_config = NULL;
-	prop_name = fit_get_image_type_property(image_type);
-	printf("## Loading %s from FIT Image at %08lx ...\n", prop_name, addr);
+	prop_name = fit_get_image_type_property(ph_type);
+	printf("## Loading %s (%s) from FIT Image at %08lx ...\n",
+	       prop_name, genimg_get_phase_name(image_ph_phase(ph_type)), addr);
 
 	bootstage_mark(bootstage_id + BOOTSTAGE_SUB_FORMAT);
 	ret = fit_check_format(fit, IMAGE_SIZE_INVAL);
@@ -2090,17 +2110,19 @@ int fit_image_load(struct bootm_headers *images, ulong addr,
 		 * fit_conf_get_node() will try to find default config node
 		 */
 		bootstage_mark(bootstage_id + BOOTSTAGE_SUB_NO_UNIT_NAME);
-		if (IS_ENABLED(CONFIG_FIT_BEST_MATCH) && !fit_uname_config) {
-			cfg_noffset = fit_conf_find_compat(fit, gd_fdt_blob());
-		} else {
-			cfg_noffset = fit_conf_get_node(fit, fit_uname_config);
-		}
-		if (cfg_noffset < 0) {
-			puts("Could not find configuration node\n");
+		ret = -ENXIO;
+		if (IS_ENABLED(CONFIG_FIT_BEST_MATCH) && !fit_uname_config)
+			ret = fit_conf_find_compat(fit, gd_fdt_blob());
+		if (ret < 0 && ret != -EINVAL)
+			ret = fit_conf_get_node(fit, fit_uname_config);
+		if (ret < 0) {
+			printf("Could not find configuration node '%s'\n",
+			       fit_uname_config ? fit_uname_config : "(null)");
 			bootstage_error(bootstage_id +
 					BOOTSTAGE_SUB_NO_UNIT_NAME);
 			return -ENOENT;
 		}
+		cfg_noffset = ret;
 
 		fit_base_uname_config = fdt_get_name(fit, cfg_noffset, NULL);
 		printf("   Using '%s' configuration\n", fit_base_uname_config);
@@ -2123,13 +2145,15 @@ int fit_image_load(struct bootm_headers *images, ulong addr,
 
 		noffset = fit_conf_get_prop_node(fit, cfg_noffset, prop_name,
 						 image_ph_phase(ph_type));
-		fit_uname = fit_get_name(fit, noffset, NULL);
 	}
 	if (noffset < 0) {
 		printf("Could not find subimage node type '%s'\n", prop_name);
 		bootstage_error(bootstage_id + BOOTSTAGE_SUB_SUBNODE);
 		return -ENOENT;
 	}
+
+	if (!fit_uname)
+		fit_uname = fit_get_name(fit, noffset, NULL);
 
 	printf("   Trying '%s' %s subimage\n", fit_uname, prop_name);
 
@@ -2161,6 +2185,7 @@ int fit_image_load(struct bootm_headers *images, ulong addr,
 	type_ok = fit_image_check_type(fit, noffset, image_type) ||
 		  fit_image_check_type(fit, noffset, IH_TYPE_FIRMWARE) ||
 		  fit_image_check_type(fit, noffset, IH_TYPE_TEE) ||
+		  fit_image_check_type(fit, noffset, IH_TYPE_TFA_BL31) ||
 		  (image_type == IH_TYPE_KERNEL &&
 		   fit_image_check_type(fit, noffset, IH_TYPE_KERNEL_NOLOAD));
 
@@ -2171,7 +2196,8 @@ int fit_image_load(struct bootm_headers *images, ulong addr,
 		fit_image_check_os(fit, noffset, IH_OS_TEE) ||
 		fit_image_check_os(fit, noffset, IH_OS_OPENRTOS) ||
 		fit_image_check_os(fit, noffset, IH_OS_EFI) ||
-		fit_image_check_os(fit, noffset, IH_OS_VXWORKS);
+		fit_image_check_os(fit, noffset, IH_OS_VXWORKS) ||
+		fit_image_check_os(fit, noffset, IH_OS_ELF);
 
 	/*
 	 * If either of the checks fail, we should report an error, but
@@ -2191,8 +2217,7 @@ int fit_image_load(struct bootm_headers *images, ulong addr,
 	bootstage_mark(bootstage_id + BOOTSTAGE_SUB_CHECK_ALL_OK);
 
 	/* get image data address and length */
-	if (fit_image_get_data_and_size(fit, noffset,
-					(const void **)&buf, &size)) {
+	if (fit_image_get_data(fit, noffset, (const void **)&buf, &size)) {
 		printf("Could not find %s subimage data!\n", prop_name);
 		bootstage_error(bootstage_id + BOOTSTAGE_SUB_GET_DATA);
 		return -ENOENT;
@@ -2219,6 +2244,7 @@ int fit_image_load(struct bootm_headers *images, ulong addr,
 	data = map_to_sysmem(buf);
 	load = data;
 	if (load_op == FIT_LOAD_IGNORED) {
+		log_debug("load_op: not loading\n");
 		/* Don't load */
 	} else if (fit_image_get_load(fit, noffset, &load)) {
 		if (load_op == FIT_LOAD_REQUIRED) {
@@ -2255,12 +2281,15 @@ int fit_image_load(struct bootm_headers *images, ulong addr,
 	/* Kernel images get decompressed later in bootm_load_os(). */
 	if (!fit_image_get_comp(fit, noffset, &comp) &&
 	    comp != IH_COMP_NONE &&
+	    load_op != FIT_LOAD_IGNORED &&
 	    !(image_type == IH_TYPE_KERNEL ||
 	      image_type == IH_TYPE_KERNEL_NOLOAD ||
 	      image_type == IH_TYPE_RAMDISK)) {
 		ulong max_decomp_len = len * 20;
+
+		log_debug("decompressing image\n");
 		if (load == data) {
-			loadbuf = malloc(max_decomp_len);
+			loadbuf = aligned_alloc(8, max_decomp_len);
 			load = map_to_sysmem(loadbuf);
 		} else {
 			loadbuf = map_sysmem(load, max_decomp_len);
@@ -2272,7 +2301,13 @@ int fit_image_load(struct bootm_headers *images, ulong addr,
 			return -ENOEXEC;
 		}
 		len = load_end - load;
+	} else if (load_op != FIT_LOAD_IGNORED && image_type == IH_TYPE_FLATDT &&
+		   ((uintptr_t)buf & 7)) {
+		loadbuf = aligned_alloc(8, len);
+		load = map_to_sysmem(loadbuf);
+		memcpy(loadbuf, buf, len);
 	} else if (load != data) {
+		log_debug("copying\n");
 		loadbuf = map_sysmem(load, len);
 		memcpy(loadbuf, buf, len);
 	}
@@ -2282,12 +2317,15 @@ int fit_image_load(struct bootm_headers *images, ulong addr,
 		     " please fix your .its file!\n");
 
 	/* verify that image data is a proper FDT blob */
-	if (image_type == IH_TYPE_FLATDT && fdt_check_header(loadbuf)) {
-		puts("Subimage data is not a FDT");
+	if (load_op != FIT_LOAD_IGNORED && image_type == IH_TYPE_FLATDT &&
+	    fdt_check_header(loadbuf)) {
+		puts("Subimage data is not a FDT\n");
 		return -ENOEXEC;
 	}
 
 	bootstage_mark(bootstage_id + BOOTSTAGE_SUB_LOAD);
+
+	upl_add_image(fit, noffset, load, len);
 
 	*datap = load;
 	*lenp = len;
@@ -2321,6 +2359,79 @@ int boot_get_setup_fit(struct bootm_headers *images, uint8_t arch,
 }
 
 #ifndef USE_HOSTCC
+#ifdef CONFIG_OF_LIBFDT_OVERLAY
+static int boot_get_fdt_fit_into_buffer(const void *src, ulong srclen,
+					ulong extra, ulong min_dstlen,
+					void **fdtdstbuf, ulong *fdtdstlenp)
+{
+	const void *fdtsrcbuf;
+	void *tmp = NULL;
+	void *dstbuf, *newdstbuf = NULL;
+	ulong dstlen, newdstlen;
+	int err = 0;
+
+	/* Make sure the source FDT/DTO is 8-byte aligned for libfdt. */
+	fdtsrcbuf = src;
+	if (!IS_ALIGNED((uintptr_t)src, 8)) {
+		tmp = memalign(8, srclen);
+		if (!tmp)
+			return -ENOMEM;
+
+		memcpy(tmp, src, srclen);
+		fdtsrcbuf = tmp;
+	}
+
+	/*
+	 * Source data comes from FIT payload. Validate the blob against
+	 * payload length before fdt_open_into() trusts header offsets/sizes.
+	 */
+	err = fdt_check_full(fdtsrcbuf, srclen);
+	if (err < 0)
+		goto out;
+
+	newdstlen = ALIGN(fdt_totalsize(fdtsrcbuf) + extra, SZ_4K);
+	min_dstlen = ALIGN(min_dstlen, SZ_4K);
+	if (newdstlen < min_dstlen)
+		newdstlen = min_dstlen;
+
+	dstbuf = *fdtdstbuf;
+	dstlen = dstbuf ? *fdtdstlenp : 0;
+
+	/*
+	 * If the caller already provided a large enough writable buffer,
+	 * and we're not moving the FDT, nothing to do.
+	 */
+	if (dstlen >= newdstlen && dstbuf == fdtsrcbuf)
+		goto out;
+
+	/* Try to reuse existing destination buffer if it is large enough. */
+	if (dstbuf && dstlen >= newdstlen) {
+		err = fdt_open_into(fdtsrcbuf, dstbuf, dstlen);
+		goto out;
+	}
+
+	newdstbuf = memalign(8, newdstlen);
+	if (!newdstbuf) {
+		err = -ENOMEM;
+		goto out;
+	}
+
+	err = fdt_open_into(fdtsrcbuf, newdstbuf, newdstlen);
+	if (err < 0)
+		goto out;
+
+	free(dstbuf);
+	*fdtdstbuf = newdstbuf;
+	*fdtdstlenp = newdstlen;
+	newdstbuf = NULL;
+
+out:
+	free(newdstbuf);
+	free(tmp);
+	return err;
+}
+#endif
+
 int boot_get_fdt_fit(struct bootm_headers *images, ulong addr,
 		     const char **fit_unamep, const char **fit_uname_configp,
 		     int arch, ulong *datap, ulong *lenp)
@@ -2333,11 +2444,12 @@ int boot_get_fdt_fit(struct bootm_headers *images, ulong addr,
 	char *next_config = NULL;
 	ulong load, len;
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
-	ulong image_start, image_end;
-	ulong ovload, ovlen, ovcopylen;
+	ulong ovload, ovlen, ovcopylen, need;
 	const char *uconfig;
 	const char *uname;
-	void *base, *ov, *ovcopy = NULL;
+	void *ovcopy = NULL;
+	void *base_buf = NULL;
+	ulong base_buf_size = 0;
 	int i, err, noffset, ov_noffset;
 #endif
 
@@ -2380,17 +2492,31 @@ int boot_get_fdt_fit(struct bootm_headers *images, ulong addr,
 	/* we need to apply overlays */
 
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
-	image_start = addr;
-	image_end = addr + fit_get_size(fit);
-	/* verify that relocation took place by load address not being in fit */
-	if (load >= image_start && load < image_end) {
-		/* check is simplified; fit load checks for overlaps */
-		printf("Overlayed FDT requires relocation\n");
-		fdt_noffset = -EBADF;
+	/*
+	 * Make a writable copy of the base FDT for applying overlays.
+	 *
+	 * Do not use boot_relocate_fdt() here: it allocates from the bootm map and
+	 * may overlap with the FIT buffer (still needed to load the kernel /
+	 * ramdisk) when the FIT is loaded into RAM.
+	 */
+	err = boot_get_fdt_fit_into_buffer(map_sysmem(load, len), len,
+					   CONFIG_SYS_FDT_PAD, 0, &base_buf,
+					   &base_buf_size);
+	if (err < 0) {
+		if (err != -ENOMEM)
+			printf("Required FDT copy for applying DTOs failed: %s\n",
+			       fdt_strerror(err));
+		fdt_noffset = err;
 		goto out;
 	}
 
-	base = map_sysmem(load, len);
+	/*
+	 * Track packed DTB data size (same as libfdt internal fdt_data_size_()).
+	 * fdt_off_dt_strings() is an offset from the blob start, so this includes
+	 * headers/reserve map/struct blocks. Do not use fdt_totalsize() here since
+	 * it includes free space and would overestimate growth requirements.
+	 */
+	len = fdt_off_dt_strings(base_buf) + fdt_size_dt_strings(base_buf);
 
 	/* apply extra configs in FIT first, followed by args */
 	for (i = 1; ; i++) {
@@ -2434,46 +2560,61 @@ int boot_get_fdt_fit(struct bootm_headers *images, ulong addr,
 		}
 		debug("%s loaded at 0x%08lx len=0x%08lx\n",
 				uname, ovload, ovlen);
-		ov = map_sysmem(ovload, ovlen);
-
-		ovcopylen = ALIGN(fdt_totalsize(ov), SZ_4K);
-		ovcopy = malloc(ovcopylen);
-		if (!ovcopy) {
-			printf("failed to duplicate DTO before application\n");
-			fdt_noffset = -ENOMEM;
-			goto out;
-		}
-
-		err = fdt_open_into(ov, ovcopy, ovcopylen);
+		err = boot_get_fdt_fit_into_buffer(map_sysmem(ovload, ovlen),
+						   ovlen, 0, 0, &ovcopy,
+						   &ovcopylen);
 		if (err < 0) {
-			printf("failed on fdt_open_into for DTO\n");
+			if (err != -ENOMEM)
+				printf("failed on fdt_open_into for DTO: %s\n",
+				       fdt_strerror(err));
 			fdt_noffset = err;
 			goto out;
 		}
 
-		base = map_sysmem(load, len + ovlen);
-		err = fdt_open_into(base, base, len + ovlen);
+		/*
+		 * Ensure the base FDT buffer is open and has enough room for
+		 * the overlay. Grow it on demand.
+		 */
+		need = len + ovcopylen + CONFIG_SYS_FDT_PAD;
+		err = boot_get_fdt_fit_into_buffer(base_buf, base_buf_size, 0,
+						   need, &base_buf,
+						   &base_buf_size);
 		if (err < 0) {
-			printf("failed on fdt_open_into\n");
+			if (err != -ENOMEM)
+				printf("failed to expand FDT for DTO application: %s\n",
+				       fdt_strerror(err));
 			fdt_noffset = err;
 			goto out;
 		}
 
 		/* the verbose method prints out messages on error */
-		err = fdt_overlay_apply_verbose(base, ovcopy);
+		err = fdt_overlay_apply_verbose(base_buf, ovcopy);
 		if (err < 0) {
 			fdt_noffset = err;
 			goto out;
 		}
-		fdt_pack(base);
-		len = fdt_totalsize(base);
+		len = fdt_off_dt_strings(base_buf) + fdt_size_dt_strings(base_buf);
+
+		free(ovcopy);
+		ovcopy = NULL;
 	}
+
+	err = fdt_pack(base_buf);
+	if (err < 0) {
+		fdt_noffset = err;
+		goto out;
+	}
+	len = fdt_totalsize(base_buf);
 #else
 	printf("config with overlays but CONFIG_OF_LIBFDT_OVERLAY not set\n");
 	fdt_noffset = -EBADF;
 #endif
 
 out:
+#ifdef CONFIG_OF_LIBFDT_OVERLAY
+	if (fdt_noffset >= 0 && base_buf)
+		load = map_to_sysmem(base_buf);
+#endif
 	if (datap)
 		*datap = load;
 	if (lenp)
@@ -2484,6 +2625,8 @@ out:
 		*fit_uname_configp = fit_uname_config;
 
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
+	if (fdt_noffset < 0)
+		free(base_buf);
 	free(ovcopy);
 #endif
 	free(fit_uname_config_copy);

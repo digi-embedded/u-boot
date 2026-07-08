@@ -164,7 +164,6 @@ struct static_tree_desc_s {int dummy;}; /* for buggy compilers */
  */
 #define UPDATE_HASH(s,h,c) (h = (((h)<<s->hash_shift) ^ (c)) & s->hash_mask)
 
-
 /* ===========================================================================
  * Insert string str in the dictionary and set match_head to the previous head
  * of the hash chain (the most recent string with same hash key). Return
@@ -196,37 +195,30 @@ struct static_tree_desc_s {int dummy;}; /* for buggy compilers */
     zmemzero((Bytef *)s->head, (unsigned)(s->hash_size-1)*sizeof(*s->head));
 
 /* ========================================================================= */
-int ZEXPORT deflateInit_(strm, level, version, stream_size)
+int ZEXPORT deflateInit_(strm, level, stream_size)
     z_streamp strm;
     int level;
-    const char *version;
     int stream_size;
 {
     return deflateInit2_(strm, level, Z_DEFLATED, MAX_WBITS, DEF_MEM_LEVEL,
-                         Z_DEFAULT_STRATEGY, version, stream_size);
+                         Z_DEFAULT_STRATEGY, stream_size);
     /* To do: ignore strm->next_in if we use it as window */
 }
 
 /* ========================================================================= */
 int ZEXPORT deflateInit2_(strm, level, method, windowBits, memLevel, strategy,
-                  version, stream_size)
+                  stream_size)
     z_streamp strm;
     int  level;
     int  method;
     int  windowBits;
     int  memLevel;
     int  strategy;
-    const char *version;
     int stream_size;
 {
     deflate_state *s;
     int wrap = 1;
-    static const char my_version[] = ZLIB_VERSION;
 
-    if (version == Z_NULL || version[0] != my_version[0] ||
-        stream_size != sizeof(z_stream)) {
-        return Z_VERSION_ERROR;
-    }
     if (strm == Z_NULL) return Z_STREAM_ERROR;
 
     strm->msg = Z_NULL;
@@ -972,7 +964,6 @@ int ZEXPORT deflateCopy (dest, source)
 #else
     deflate_state *ds;
     deflate_state *ss;
-
 
     if (source == Z_NULL || dest == Z_NULL || source->state == Z_NULL) {
         return Z_STREAM_ERROR;

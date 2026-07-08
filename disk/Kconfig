@@ -49,6 +49,16 @@ config SPL_MAC_PARTITION
 	default y if MAC_PARTITION
 	select SPL_PARTITIONS
 
+config TEGRA_PARTITION
+	bool "Enable Nvidia Tegra partition table"
+	select PARTITIONS
+	select EFI_PARTITION
+	help
+	  Say Y here if you would like to use U-Boot on a device that
+	  is using the Nvidia Tegra partition table and cannot alter it.
+
+	  If unsure, say N.
+
 config DOS_PARTITION
 	bool "Enable MS Dos partition table"
 	default y if BOOT_DEFAULTS
@@ -116,7 +126,7 @@ config EFI_PARTITION_ENTRIES_NUMBERS
 	  number.
 
 config EFI_PARTITION_ENTRIES_OFF
-        int "Offset (in bytes) of the EFI partition entries"
+	int "Offset (in bytes) of the EFI partition entries"
 	depends on EFI_PARTITION
 	default 0
 	help
@@ -132,6 +142,7 @@ config SPL_EFI_PARTITION
 	bool "Enable EFI GPT partition table for SPL"
 	depends on  SPL
 	default n if ARCH_MVEBU
+	default n if ARCH_SOCFPGA
 	default n if ARCH_SUNXI
 	default y if EFI_PARTITION
 	select SPL_PARTITIONS

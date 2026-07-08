@@ -24,7 +24,9 @@ endif
 
 include include/config/auto.conf
 
-include scripts/Kbuild.include
+# include scripts/Kbuild.include
+include scripts/Kbuild.uboot
+include scripts/Makefile.compiler
 
 # Need to define CC and CPP again here in case the top Makefile did not
 # include config.mk.  Some architectures expect CROSS_COMPILE to be defined
@@ -36,7 +38,7 @@ include config.mk
 
 UBOOTINCLUDE    := \
 		-Iinclude \
-		$(if $(KBUILD_SRC), -I$(srctree)/include) \
+		$(if $(building_out_of_srctree), -I$(srctree)/include) \
 		-I$(srctree)/arch/$(ARCH)/include \
 		-include $(srctree)/include/linux/kconfig.h
 
@@ -45,7 +47,7 @@ c_flags := $(KBUILD_CFLAGS) $(KBUILD_CPPFLAGS) $(PLATFORM_CPPFLAGS) \
 
 quiet_cmd_autoconf_dep = GEN     $@
       cmd_autoconf_dep = $(CC) -x c -DDO_DEPS_ONLY -M -MP $(c_flags) \
-	-MQ include/config/auto.conf $(srctree)/include/common.h > $@ || {	\
+	-MQ include/config/auto.conf include/config.h > $@ || {	\
 		rm $@; false;							\
 	}
 include/autoconf.mk.dep: include/config.h FORCE
@@ -70,7 +72,7 @@ quiet_cmd_autoconf = GEN     $@
 
 quiet_cmd_u_boot_cfg = CFG     $@
       cmd_u_boot_cfg = \
-	$(CPP) $(c_flags) $2 -DDO_DEPS_ONLY -dM $(srctree)/include/common.h > $@.tmp && { \
+	$(CPP) $(c_flags) $2 -DDO_DEPS_ONLY -dM include/config.h > $@.tmp && { \
 		grep 'define CONFIG_' $@.tmp | \
 			sed '/define CONFIG_IS_ENABLED(/d;/define CONFIG_IF_ENABLED_INT(/d;/define CONFIG_VAL(/d;' > $@; \
 		rm $@.tmp;						\
@@ -83,15 +85,15 @@ u-boot.cfg: include/config.h FORCE
 
 spl/u-boot.cfg: include/config.h FORCE
 	$(Q)mkdir -p $(dir $@)
-	$(call cmd,u_boot_cfg,-DCONFIG_SPL_BUILD)
+	$(call cmd,u_boot_cfg,-DCONFIG_XPL_BUILD -DCONFIG_SPL_BUILD)
 
 tpl/u-boot.cfg: include/config.h FORCE
 	$(Q)mkdir -p $(dir $@)
-	$(call cmd,u_boot_cfg,-DCONFIG_SPL_BUILD -DCONFIG_TPL_BUILD)
+	$(call cmd,u_boot_cfg,-DCONFIG_XPL_BUILD -DCONFIG_TPL_BUILD)
 
 vpl/u-boot.cfg: include/config.h FORCE
 	$(Q)mkdir -p $(dir $@)
-	$(call cmd,u_boot_cfg,-DCONFIG_SPL_BUILD -DCONFIG_VPL_BUILD)
+	$(call cmd,u_boot_cfg,-DCONFIG_XPL_BUILD -DCONFIG_VPL_BUILD)
 
 include/autoconf.mk: u-boot.cfg
 	$(call cmd,autoconf)
@@ -113,7 +115,7 @@ vpl/include/autoconf.mk: vpl/u-boot.cfg
 define filechk_config_h
 	(echo "/* Automatically generated - do not edit */";		\
 	echo \#define CFG_BOARDDIR board/$(if $(VENDOR),$(VENDOR)/)$(BOARD);\
-	echo \#include \<configs/$(CONFIG_SYS_CONFIG_NAME).h\>;		\
+	$(if $(CONFIG_SYS_CONFIG_NAME),echo \#include \<configs/$(CONFIG_SYS_CONFIG_NAME).h\> ;) \
 	echo \#include \<asm/config.h\>;				\
 	echo \#include \<linux/kconfig.h\>;				\
 	echo \#include \<config_fallbacks.h\>;)
@@ -129,14 +131,14 @@ include/config.h: scripts/Makefile.autoconf create_symlink FORCE
 PHONY += create_symlink
 create_symlink:
 ifdef CONFIG_CREATE_ARCH_SYMLINK
-ifneq ($(KBUILD_SRC),)
+ifdef building_out_of_srctree
 	$(Q)mkdir -p include/asm
-	$(Q)if [ -d $(KBUILD_SRC)/arch/$(ARCH)/mach-$(SOC)/include/mach ]; then	\
+	$(Q)if [ -d $(srctree)/arch/$(ARCH)/mach-$(SOC)/include/mach ]; then	\
 		dest=arch/$(ARCH)/mach-$(SOC)/include/mach;			\
 	else									\
 		dest=arch/$(ARCH)/include/asm/arch-$(if $(SOC),$(SOC),$(CPU));	\
 	fi;									\
-	ln -fsn $(KBUILD_SRC)/$$dest include/asm/arch
+	ln -fsn $(abs_srctree)/$$dest include/asm/arch
 else
 	$(Q)if [ -d arch/$(ARCH)/mach-$(SOC)/include/mach ]; then	\
 		dest=../../mach-$(SOC)/include/mach;			\

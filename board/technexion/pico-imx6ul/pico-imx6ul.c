@@ -17,14 +17,13 @@
 #include <asm/gpio.h>
 #include <asm/mach-imx/iomux-v3.h>
 #include <asm/io.h>
-#include <common.h>
 #include <miiphy.h>
 #include <linux/delay.h>
 #include <linux/sizes.h>
 #include <usb.h>
 #include <power/pmic.h>
 #include <power/pfuze3000_pmic.h>
-#include "../../freescale/common/pfuze.h"
+#include "../../nxp/common/pfuze.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 

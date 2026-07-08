@@ -46,10 +46,6 @@
 #define CFG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
 #define CFG_SYS_INIT_RAM_SIZE	IRAM_SIZE
 
-/* USB Configs */
-#define CFG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
-#define CFG_MXC_USB_FLAGS		0
-
 #define ENV_MMC \
 	"mmcdev=" __stringify(MMC_ROOTFS_DEV) "\0" \
 	"mmcpart=" __stringify(MMC_ROOTFS_PART) "\0" \
@@ -69,7 +65,6 @@
 
 /* Default environment */
 #define CFG_EXTRA_ENV_SETTINGS \
-	"fdt_high=0xffffffff\0" \
 	"console=ttymxc0,115200n8\0" \
 	"addcon=setenv bootargs ${bootargs} console=${console},${baudrate}\0" \
 	"fit_addr=0x82000000\0" \

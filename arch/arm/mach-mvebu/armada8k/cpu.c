@@ -3,7 +3,6 @@
  * Copyright (C) 2016 Stefan Roese <sr@denx.de>
  */
 
-#include <common.h>
 #include <cpu_func.h>
 #include <dm.h>
 #include <fdtdec.h>
@@ -110,5 +109,5 @@ int mmc_get_env_dev(void)
 		return 1;
 	}
 
-	return CONFIG_SYS_MMC_ENV_DEV;
+	return CONFIG_ENV_MMC_DEVICE_INDEX;
 }

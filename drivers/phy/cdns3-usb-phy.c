@@ -7,7 +7,6 @@
  * Author: Sherry Sun <sherry.sun@nxp.com>
  */
 
-#include <common.h>
 #include <clk.h>
 #include <dm.h>
 #include <generic-phy.h>

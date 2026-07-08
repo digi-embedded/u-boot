@@ -8,14 +8,12 @@
  */
 
 #include <config.h>
-#include <common.h>
 #include <log.h>
 #include <memalign.h>
 #include <mmc.h>
-#include <sdhci.h>
+#include <asm/byteorder.h>
 #include <u-boot/sha256.h>
 #include "mmc_private.h"
-#include <linux/delay.h>
 
 /* Request codes */
 #define RPMB_REQ_KEY		1
@@ -74,7 +72,6 @@ int mmc_rpmb_request(struct mmc *mmc, const struct s_rpmb *s,
 {
 	struct mmc_cmd cmd = {0};
 	struct mmc_data data;
-	struct sdhci_host *host = mmc->priv;
 	int timeout_ms = 1000;
 	int ret;
 
@@ -89,9 +86,6 @@ int mmc_rpmb_request(struct mmc *mmc, const struct s_rpmb *s,
 	cmd.cmdidx = MMC_CMD_WRITE_MULTIPLE_BLOCK;
 	cmd.cmdarg = 0;
 	cmd.resp_type = MMC_RSP_R1;
-
-	if (host->quirks & SDHCI_QUIRK_BROKEN_R1B)
-		cmd.resp_type = MMC_RSP_R1;
 
 	data.src = (const char *)s;
 	data.blocks = count;
@@ -146,11 +140,6 @@ int mmc_rpmb_response(struct mmc *mmc, struct s_rpmb *s,
 #endif
 		return -1;
 	}
-
-#ifdef CONFIG_IMX95
-	udelay(100);
-#endif
-
 	/* Check the response and the status */
 	if (expected && be16_to_cpu(s->request) != expected) {
 #ifdef CONFIG_MMC_RPMB_TRACE

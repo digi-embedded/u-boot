@@ -5,7 +5,6 @@
  * Written-by: Prafulla Wadaskar <prafulla@marvell.com>
  */
 
-#include <common.h>
 #include <log.h>
 #include <asm/global_data.h>
 #include <asm/io.h>
@@ -18,8 +17,6 @@
 
 #if defined(CONFIG_ARCH_KIRKWOOD)
 #include <asm/arch/soc.h>
-#elif defined(CONFIG_ARCH_ORION5X)
-#include <asm/arch/orion5x.h>
 #endif
 
 DECLARE_GLOBAL_DATA_PTR;

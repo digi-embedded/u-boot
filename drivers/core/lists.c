@@ -8,7 +8,7 @@
 
 #define LOG_CATEGORY LOGC_DM
 
-#include <common.h>
+#include <debug_uart.h>
 #include <errno.h>
 #include <log.h>
 #include <dm/device.h>
@@ -51,6 +51,21 @@ struct uclass_driver *lists_uclass_lookup(enum uclass_id id)
 	return NULL;
 }
 
+/**
+ * bind_drivers_pass() - Perform a pass of driver binding
+ *
+ * Work through the driver_info records binding a driver for each one. If the
+ * binding fails, continue binding others, but return the error.
+ *
+ * For OF_PLATDATA we must bind parent devices before their children. So only
+ * children of bound parents are bound on each call to this function. When a
+ * child is left unbound, -EAGAIN is returned, indicating that this function
+ * should be called again
+ *
+ * @parent: Parent device to use when binding each child device
+ * Return: 0 if OK, -EAGAIN if unbound children exist, -ENOENT if there is no
+ * driver for one of the devices, other -ve on other error
+ */
 static int bind_drivers_pass(struct udevice *parent, bool pre_reloc_only)
 {
 	struct driver_info *info =
@@ -145,7 +160,7 @@ int device_bind_driver_to_node(struct udevice *parent, const char *drv_name,
 
 	drv = lists_driver_lookup_name(drv_name);
 	if (!drv) {
-		debug("Cannot find driver '%s'\n", drv_name);
+		dm_warn("Cannot find driver '%s'\n", drv_name);
 		return -ENOENT;
 	}
 	ret = device_bind_with_driver_data(parent, drv, dev_name, 0 /* data */,
@@ -189,10 +204,8 @@ int lists_bind_fdt(struct udevice *parent, ofnode node, struct udevice **devp,
 	const struct udevice_id *id;
 	struct driver *entry;
 	struct udevice *dev;
-	bool found = false;
 	const char *name, *compat_list, *compat;
 	int compat_length, i;
-	int result = 0;
 	int ret = 0;
 
 	if (devp)
@@ -222,56 +235,56 @@ int lists_bind_fdt(struct udevice *parent, ofnode node, struct udevice **devp,
 		log_debug("   - attempt to match compatible string '%s'\n",
 			  compat);
 
-		id = NULL;
 		for (entry = driver; entry != driver + n_ents; entry++) {
+			/* Search for drivers with matching drv or existing of_match */
 			if (drv) {
 				if (drv != entry)
 					continue;
-				if (!entry->of_match)
-					break;
+			} else if (!entry->of_match) {
+				continue;
 			}
-			ret = driver_check_compatible(entry->of_match, &id,
-						      compat);
-			if (!ret)
-				break;
-		}
-		if (entry == driver + n_ents)
-			continue;
 
-		if (pre_reloc_only) {
-			if (!ofnode_pre_reloc(node) &&
-			    !(entry->flags & DM_FLAG_PRE_RELOC)) {
-				log_debug("Skipping device pre-relocation\n");
-				return 0;
+			id = NULL;
+			if (entry->of_match) {
+				ret = driver_check_compatible(entry->of_match, &id,
+							      compat);
+				if (ret)
+					continue;
+				log_debug("   - found match at driver '%s' for '%s'\n",
+					  entry->name, id->compatible);
 			}
-		}
 
-		if (entry->of_match)
-			log_debug("   - found match at '%s': '%s' matches '%s'\n",
-				  entry->name, entry->of_match->compatible,
-				  id->compatible);
-		ret = device_bind_with_driver_data(parent, entry, name,
-						   id ? id->data : 0, node,
-						   &dev);
-		if (ret == -ENODEV) {
-			log_debug("Driver '%s' refuses to bind\n", entry->name);
-			continue;
-		}
-		if (ret) {
-			dm_warn("Error binding driver '%s': %d\n", entry->name,
-				ret);
-			return log_msg_ret("bind", ret);
-		} else {
-			found = true;
+			if (pre_reloc_only) {
+				if (!ofnode_pre_reloc(node) &&
+				    !(entry->flags & DM_FLAG_PRE_RELOC)) {
+					log_debug("Skipping device pre-relocation\n");
+					return 0;
+				}
+			}
+
+			ret = device_bind_with_driver_data(parent, entry, name,
+							   id ? id->data : 0, node,
+							   &dev);
+			if (!drv && ret == -ENODEV) {
+				log_debug("   - Driver '%s' refuses to bind\n", entry->name);
+				continue;
+			}
+			if (ret) {
+				dm_warn("Error binding driver '%s': %d\n", entry->name,
+					ret);
+				return log_msg_ret("bind", ret);
+			}
+
 			if (devp)
 				*devp = dev;
+
+			return 0;
 		}
-		break;
 	}
 
-	if (!found && !result && ret != -ENODEV)
+	if (ret != -ENODEV)
 		log_debug("No match for node '%s'\n", name);
 
-	return result;
+	return 0;
 }
 #endif

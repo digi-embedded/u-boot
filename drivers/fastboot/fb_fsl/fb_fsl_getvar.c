@@ -3,7 +3,6 @@
  * Copyright 2019 NXP
  */
 
-#include <common.h>
 #include <asm/mach-imx/sys_proto.h>
 #include <fb_fsl.h>
 #include <fastboot.h>
@@ -54,17 +53,30 @@
 #define FASTBOOT_VAR_YES    "yes"
 #define FASTBOOT_VAR_NO     "no"
 
+/* logical partitions list */
+char *logical_partition[] = {
+	"product",
+	"system",
+	"system_dlkm",
+	"system_ext",
+	"vendor",
+	"vendor_dlkm",
+	NULL,
+};
+
 /* common variables of fastboot getvar command */
 char *fastboot_common_var[] = {
-	"version",
+#ifndef CONFIG_IMX_ANDROID_GBL
+	"max-download-size",
 	"version-bootloader",
+	"unlocked",
+#endif
+	"version",
 	"version-baseband",
 	"product",
 	"secure",
-	"max-download-size",
 	"erase-block-size",
 	"logical-block-size",
-	"unlocked",
 	"off-mode-charge",
 	"battery-voltage",
 	"variant",
@@ -75,12 +87,16 @@ char *fastboot_common_var[] = {
 #endif
 	"tee_enabled",
 	"soc_rev",
+#ifdef CONFIG_INCLUDE_DTB_TO_VENDOR_BOOT
+	"fdt_name",
+#endif
+	NULL,
 };
 
 /* at-vboot-state variable list */
 #ifdef CONFIG_AVB_ATX
 #define AT_VBOOT_STATE_VAR_NUM 6
-extern struct imx_sec_config_fuse_t const imx_sec_config_fuse;
+extern struct imx_fuse const imx_sec_config_fuse;
 extern int fuse_read(u32 bank, u32 word, u32 *val);
 
 char *fastboot_at_vboot_state_var[AT_VBOOT_STATE_VAR_NUM] = {
@@ -147,7 +163,7 @@ static void uuid_hex2string(uint8_t *uuid, char* buf, uint32_t uuid_len, uint32_
 int get_imx8m_baseboard_id(void);
 #endif
 
-static int get_single_var(char *cmd, char *response)
+int get_single_var(char *cmd, char *response)
 {
 	char *str = cmd;
 	int chars_left;
@@ -183,14 +199,18 @@ static int get_single_var(char *cmd, char *response)
 			strncat(response, fb_part->fstype, chars_left);
 		}
 	} else if ((str = strstr(cmd, "is-logical:"))) {
+		int i = 0;
+
 		str +=strlen("is-logical:");
-		struct fastboot_ptentry* fb_part;
-		fb_part = fastboot_flash_find_ptn(str);
-		if (!fb_part) {
-			return -1;
-		} else {
-			snprintf(response + strlen(response), chars_left, "no");
+		for (i = 0; logical_partition[i] != NULL; i++) {
+			if (!strcmp_l1(str, logical_partition[i]))
+				break;
 		}
+
+		if (logical_partition[i] == NULL) {
+			snprintf(response + strlen(response), chars_left, "no");
+		} else
+			snprintf(response + strlen(response), chars_left, "yes");
 	} else if (!strcmp_l1("version-baseband", cmd)) {
 		strncat(response, "N/A", chars_left);
 	} else if (!strcmp_l1("version-bootloader", cmd) ||
@@ -298,8 +318,8 @@ static int get_single_var(char *cmd, char *response)
 	else if (!strcmp_l1("bootloader-locked", cmd)) {
 
 		/* Below is basically copied from is_hab_enabled() */
-		struct imx_sec_config_fuse_t *fuse =
-			(struct imx_sec_config_fuse_t *)&imx_sec_config_fuse;
+		struct imx_fuse *fuse =
+			(struct imx_fuse *)&imx_sec_config_fuse;
 		uint32_t reg;
 		int ret;
 
@@ -447,6 +467,12 @@ static int get_single_var(char *cmd, char *response)
 		strncat(response, FASTBOOT_VAR_NO, chars_left);
 #endif
 	}
+#ifdef CONFIG_INCLUDE_DTB_TO_VENDOR_BOOT
+	else if (!strcmp_l1("fdt_name", cmd)) {
+		char *fdt_name = env_get("fdt_name");
+		strncat(response, fdt_name ? fdt_name : "N/A", chars_left);
+	}
+#endif
 	else {
 		char envstr[32];
 
@@ -484,7 +510,7 @@ void fastboot_getvar(char *cmd, char *response)
 
 
 		/* get common variables */
-		for (n = 0; n < sizeof(fastboot_common_var)/sizeof(char *); n++) {
+		for (n = 0; fastboot_common_var[n] != NULL; n++) {
 			snprintf(response, FASTBOOT_RESPONSE_LEN, "INFO%s:", fastboot_common_var[n]);
 			get_single_var(fastboot_common_var[n], response);
 			fastboot_tx_write_more(response);

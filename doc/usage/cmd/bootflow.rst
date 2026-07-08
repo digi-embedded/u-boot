@@ -18,7 +18,7 @@ Synopsis
     bootflow read
     bootflow boot
     bootflow cmdline [set|get|clear|delete|auto] <param> [<value>]
-    bootfloe menu [-t]
+    bootflow menu [-t]
 
 Description
 -----------
@@ -26,7 +26,7 @@ Description
 The `bootflow` command is used to manage bootflows. It can scan bootdevs to
 locate bootflows, list them and boot them.
 
-See :doc:`../../develop/bootstd` for more information.
+See :doc:`/develop/bootstd/index` for more information.
 
 Note that `CONFIG_BOOTSTD_FULL` (which enables `CONFIG_CMD_BOOTFLOW_FULL) must
 be enabled to obtain full functionality with this command. Otherwise, it only

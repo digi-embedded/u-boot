@@ -5,7 +5,6 @@
 
 #define LOG_CATEGORY UCLASS_IOMMU
 
-#include <common.h>
 #include <dm.h>
 #include <iommu.h>
 #include <malloc.h>
@@ -79,6 +78,9 @@ int dev_iommu_enable(struct udevice *dev)
 	struct udevice *dev_iommu;
 	const struct iommu_ops *ops;
 	int i, count, ret = 0;
+
+	if (!dev_has_ofnode(dev))
+		return 0;
 
 	count = dev_count_phandle_with_args(dev, "iommus",
 					    "#iommu-cells", 0);

@@ -16,7 +16,6 @@
 #include <asm/global_data.h>
 #include <asm/gpio.h>
 #include <asm/io.h>
-#include <common.h>
 #include <clk.h>
 #include <dm.h>
 #include <fdt_support.h>
@@ -58,10 +57,9 @@
 #define TX_TOTAL_BUFSIZE	(CFG_ETH_BUFSIZE * CFG_TX_DESCR_NUM)
 #define RX_TOTAL_BUFSIZE	(CFG_ETH_BUFSIZE * CFG_RX_DESCR_NUM)
 
-#define H3_EPHY_DEFAULT_VALUE	0x58000
-#define H3_EPHY_DEFAULT_MASK	GENMASK(31, 15)
 #define H3_EPHY_ADDR_SHIFT	20
 #define REG_PHY_ADDR_MASK	GENMASK(4, 0)
+#define H3_EPHY_CLK_SEL		BIT(18) /* 1: 24MHz, 0: 25MHz */
 #define H3_EPHY_LED_POL		BIT(17)	/* 1: active low, 0: active high */
 #define H3_EPHY_SHUTDOWN	BIT(16)	/* 1: shutdown, 0: power up */
 #define H3_EPHY_SELECT		BIT(15) /* 1: internal PHY, 0: external PHY */
@@ -172,14 +170,13 @@ struct emac_eth_dev {
 	struct udevice *phy_reg;
 };
 
-
 struct sun8i_eth_pdata {
 	struct eth_pdata eth_pdata;
 	u32 reset_delays[3];
 	int tx_delay_ps;
 	int rx_delay_ps;
+	bool leds_active_low;
 };
-
 
 static int sun8i_mdio_read(struct mii_dev *bus, int addr, int devad, int reg)
 {
@@ -290,34 +287,24 @@ static void sun8i_adjust_link(struct emac_eth_dev *priv,
 	writel(v, priv->mac_reg + EMAC_CTL0);
 }
 
-static u32 sun8i_emac_set_syscon_ephy(struct emac_eth_dev *priv, u32 reg)
+static int sun8i_emac_set_syscon(struct sun8i_eth_pdata *pdata,
+				 struct emac_eth_dev *priv)
 {
+	u32 reg = 0;
+
 	if (priv->use_internal_phy) {
 		/* H3 based SoC's that has an Internal 100MBit PHY
 		 * needs to be configured and powered up before use
 		*/
-		reg &= ~H3_EPHY_DEFAULT_MASK;
-		reg |=  H3_EPHY_DEFAULT_VALUE;
 		reg |= priv->phyaddr << H3_EPHY_ADDR_SHIFT;
-		reg &= ~H3_EPHY_SHUTDOWN;
-		return reg | H3_EPHY_SELECT;
+		reg |= H3_EPHY_CLK_SEL;
+		reg |= H3_EPHY_SELECT;
+
+		if (pdata->leds_active_low)
+			reg |= H3_EPHY_LED_POL;
+	} else {
+		reg |= H3_EPHY_SHUTDOWN;
 	}
-
-	/* This is to select External Gigabit PHY on those boards with
-	 * an internal PHY. Does not hurt on other SoCs. Linux does
-	 * it as well.
-	 */
-	return reg & ~H3_EPHY_SELECT;
-}
-
-static int sun8i_emac_set_syscon(struct sun8i_eth_pdata *pdata,
-				 struct emac_eth_dev *priv)
-{
-	u32 reg;
-
-	reg = readl(priv->sysctl_reg);
-
-	reg = sun8i_emac_set_syscon_ephy(priv, reg);
 
 	reg &= ~(SC_ETCS_MASK | SC_EPIT);
 	if (priv->variant->support_rmii)
@@ -338,6 +325,7 @@ static int sun8i_emac_set_syscon(struct sun8i_eth_pdata *pdata,
 			reg |= SC_RMII_EN | SC_ETCS_EXT_GMII;
 			break;
 		}
+		fallthrough;
 	default:
 		debug("%s: Invalid PHY interface\n", __func__);
 		return -EINVAL;
@@ -861,6 +849,10 @@ static int sun8i_emac_eth_of_to_plat(struct udevice *dev)
 		printf("%s: Invalid RX delay value %d\n", __func__,
 		       sun8i_pdata->rx_delay_ps);
 
+	sun8i_pdata->leds_active_low =
+		fdtdec_get_bool(gd->fdt_blob, dev_of_offset(dev),
+				"allwinner,leds-active-low");
+
 	if (fdtdec_get_bool(gd->fdt_blob, dev_of_offset(dev),
 			    "snps,reset-active-low"))
 		reset_flags |= GPIOD_ACTIVE_LOW;
@@ -893,6 +885,11 @@ static const struct emac_variant emac_variant_r40 = {
 	.syscon_offset		= 0x164,
 };
 
+static const struct emac_variant emac_variant_v3s = {
+	.syscon_offset		= 0x30,
+	.soc_has_internal_phy	= true,
+};
+
 static const struct emac_variant emac_variant_a64 = {
 	.syscon_offset		= 0x30,
 	.support_rmii		= true,
@@ -910,6 +907,8 @@ static const struct udevice_id sun8i_emac_eth_ids[] = {
 	  .data = (ulong)&emac_variant_h3 },
 	{ .compatible = "allwinner,sun8i-r40-gmac",
 	  .data = (ulong)&emac_variant_r40 },
+	{ .compatible = "allwinner,sun8i-v3s-emac",
+	  .data = (ulong)&emac_variant_v3s },
 	{ .compatible = "allwinner,sun50i-a64-emac",
 	  .data = (ulong)&emac_variant_a64 },
 	{ .compatible = "allwinner,sun50i-h6-emac",

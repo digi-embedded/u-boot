@@ -4,7 +4,7 @@
  * SPDX-License-Identifier:     GPL-2.0+
  *
  */
-#include <common.h>
+#include <config.h>
 #include <stdlib.h>
 #include <fuse.h>
 #include <mmc.h>
@@ -69,12 +69,12 @@ int spl_get_mmc_dev(void)
 }
 #endif
 
-#ifdef AVB_RPMB
-static u8 __attribute__((unused)) skeymod[] = {
+u8 skeymod[16] = {
 	0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08,
 	0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00
 };
 
+#ifdef AVB_RPMB
 struct mmc *get_mmc(void) {
 	int mmc_dev_no;
 	struct mmc *mmc;
@@ -211,8 +211,16 @@ bool rpmbkey_is_set(void)
 #if !CONFIG_IS_ENABLED(BLK)
 	original_part = mmc->block_dev.hwpart;
 	desc = blk_get_dev("mmc", mmcc);
+	if (NULL == desc) {
+		printf("** Block device MMC %d not supported\n", mmcc);
+		return -1;
+	}
 #else
 	desc = mmc_get_blk_desc(mmc);
+	if (NULL == desc) {
+		printf("** Block device MMC %d not supported\n", mmcc);
+		return -1;
+	}
 	original_part = desc->hwpart;
 #endif
 
@@ -592,26 +600,78 @@ int rpmb_init(void) {
 	if (!memcmp(hdr.magic, AVB_KBLB_MAGIC, AVB_KBLB_MAGIC_LEN))
 		return 0;
 	else
+#ifdef CONFIG_IMX_ROLLBACK_BLOB
+#ifdef CONFIG_RPMB_INIT_ALLOW
+		printf("RPMB magic not match, still bootup\n");
+#else
+	{
+		printf("RPMB magic not match\n");
+		return -1;
+	}
+#endif
+#endif
 		printf("initialize rollback index...\n");
 	/* init rollback index */
 #if defined(CONFIG_SPL_BUILD) && defined(CONFIG_IMX_TRUSTY_OS)
 	offset = BOOTLOADER_RBIDX_START;
-	rbidx_len = BOOTLOADER_RBIDX_LEN;
-	rbidx = malloc(rbidx_len);
+	rbidx = (uint8_t *)memalign(ARCH_DMA_MINALIGN, BOOTLOADER_RBIDX_LEN);
 	if (rbidx == NULL) {
 		ERR("failed to allocate memory!\n");
 		return -1;
 	}
-	memset(rbidx, 0, rbidx_len);
+
+	memset(rbidx, 0, BOOTLOADER_RBIDX_LEN);
 	*(uint64_t *)rbidx = BOOTLOADER_RBIDX_INITVAL;
+
 	tag = &hdr.bootloader_rbk_tags;
 	tag->offset = offset;
-	tag->len = rbidx_len;
-	if (rpmb_write(mmc_dev, rbidx, tag->len, tag->offset) != 0) {
-		ERR("write RBKIDX RPMB error\n");
+
+#if defined(CONFIG_IMX_ROLLBACK_BLOB)
+	rbidx_len = BLOB_SIZE(BOOTLOADER_RBIDX_LEN);
+
+	uint8_t *rbidx_blob;
+	rbidx_blob = (uint8_t *)memalign(ARCH_DMA_MINALIGN, rbidx_len);
+	uint8_t *keymod = (uint8_t *)memalign(ARCH_DMA_MINALIGN, sizeof(skeymod));
+
+	if (!rbidx_blob || !keymod) {
+		ERR("Memory malloc failed because not enough memory\n");
 		free(rbidx);
+		free(rbidx_blob);
+		free(keymod);
 		return -1;
 	}
+	memset(rbidx_blob, 0, rbidx_len);
+	memcpy(keymod, skeymod, sizeof(skeymod));
+
+	if (blob_encap(keymod, rbidx, rbidx_blob, BOOTLOADER_RBIDX_LEN, 0)) {
+		ERR("gen rollback index blob error\n");
+		free(rbidx);
+		free(rbidx_blob);
+		free(keymod);
+		return -1;
+	}
+
+	free(keymod);
+
+	tag->len = BLOB_SIZE(BOOTLOADER_RBIDX_LEN);
+	if (rpmb_write(mmc_dev, rbidx_blob, tag->len, tag->offset) != 0) {
+		free(rbidx_blob);
+		free(rbidx);
+		ERR("write RBKIDX RPMB error\n");
+		return -1;
+	}
+	if (rbidx_blob != NULL)
+		free(rbidx_blob);
+#else
+	rbidx_len = BOOTLOADER_RBIDX_LEN;
+
+	tag->len = rbidx_len;
+	if (rpmb_write(mmc_dev, rbidx, tag->len, tag->offset) != 0) {
+		free(rbidx);
+		ERR("write RBKIDX RPMB error\n");
+		return -1;
+	}
+#endif
 	if (rbidx != NULL)
 		free(rbidx);
 #else /* CONFIG_SPL_BUILD && CONFIG_IMX_TRUSTY_OS */
@@ -705,15 +765,18 @@ int gen_rpmb_key(struct keyslot_package *kp) {
 #if !CONFIG_IS_ENABLED(BLK)
 	original_part = mmc->block_dev.hwpart;
 	dev_desc = blk_get_dev("mmc", mmcc);
-#else
-	dev_desc = mmc_get_blk_desc(mmc);
-	original_part = dev_desc->hwpart;
-#endif
 	if (NULL == dev_desc) {
 		printf("** Block device MMC %d not supported\n", mmcc);
-		goto fail;
+		return -1;
 	}
-
+#else
+	dev_desc = mmc_get_blk_desc(mmc);
+	if (NULL == dev_desc) {
+		printf("** Block device MMC %d not supported\n", mmcc);
+		return -1;
+	}
+	original_part = dev_desc->hwpart;
+#endif
 	blksz = dev_desc->blksz;
 	fill = (unsigned char *)memalign(ALIGN_BYTES, blksz);
 
@@ -1267,7 +1330,7 @@ int at_disable_vboot_unlock(void)
 
 #if defined(CONFIG_IMX_TRUSTY_OS) && !defined(CONFIG_AVB_ATX)
 
-extern struct imx_sec_config_fuse_t const imx_sec_config_fuse;
+extern struct imx_fuse const imx_sec_config_fuse;
 #define HAB_ENABLED_BIT (is_soc_type(MXC_SOC_IMX8M)? 0x2000000 : 0x2)
 
 /* Check hab status, this is basically copied from imx_hab_is_enabled() */
@@ -1292,8 +1355,8 @@ bool hab_is_enabled(void)
 
 	if (lc != 0x20)
 #elif CONFIG_ARCH_IMX8M
-	struct imx_sec_config_fuse_t *fuse =
-		(struct imx_sec_config_fuse_t *)&imx_sec_config_fuse;
+	struct imx_fuse *fuse =
+		(struct imx_fuse *)&imx_sec_config_fuse;
 	uint32_t reg;
 	int ret;
 
@@ -1340,6 +1403,10 @@ int do_rpmb_key_set(uint8_t *key, uint32_t key_size)
 		return -1;
 	}
 	desc = mmc_get_blk_desc(mmc);
+	if (NULL == desc) {
+		printf("** Block device MMC %d not supported\n", mmcc);
+		return -1;
+	}
 	original_part = desc->hwpart;
 
 	/* Switch to the RPMB partition */
@@ -1350,13 +1417,6 @@ int do_rpmb_key_set(uint8_t *key, uint32_t key_size)
 		}
 		desc->hwpart = MMC_PART_RPMB;
 	}
-
-	if (mmc_rpmb_set_key(mmc, rpmb_key)) {
-		printf("ERROR - Key already programmed ?\n");
-		ret = -1;
-		goto fail;
-	} else
-		printf("RPMB key programed successfully!\n");
 
 	/* Generate keyblob with CAAM. */
 	memset((void *)&kp, 0, sizeof(struct keyslot_package));
@@ -1371,6 +1431,13 @@ int do_rpmb_key_set(uint8_t *key, uint32_t key_size)
 		printf("RPMB key blob generated!\n");
 
 	memcpy(kp.rpmb_keyblob, blob, kp.rpmb_keyblob_len);
+
+	if (mmc_rpmb_set_key(mmc, rpmb_key)) {
+		printf("ERROR - Key already programmed ?\n");
+		ret = -1;
+		goto fail;
+	} else
+		printf("RPMB key programed successfully!\n");
 
 	/* Reset key after use */
 	memset(rpmb_key, 0, RPMBKEY_LENGTH);
@@ -1435,6 +1502,21 @@ int avb_set_public_key(uint8_t *staged_buffer, uint32_t size) {
 		return -1;
 	} else
 		printf("Set vbmeta public key successfully!\n");
+
+	return 0;
+}
+
+int avb_set_gbl_public_key(uint8_t *staged_buffer, uint32_t size) {
+
+	if ((staged_buffer == NULL) || (size <= 0)) {
+		ERR("Error. Get null staged_buffer\n");
+		return -1;
+	}
+	if (trusty_write_gbl_public_key(staged_buffer, size)) {
+		ERR("Error. Failed to write gbl public key into secure storage\n");
+		return -1;
+	} else
+		printf("Set gbl public key successfully!\n");
 
 	return 0;
 }

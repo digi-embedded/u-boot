@@ -3,31 +3,42 @@
  * Copyright 2022 NXP
  */
 
-#include <phy_interface.h>
+#include <asm/gpio.h>
+#include <clk.h>
 #include <linux/bitops.h>
+#include <phy_interface.h>
+#include <reset.h>
 
 /* Core registers */
 
 #define EQOS_MAC_REGS_BASE 0x000
 struct eqos_mac_regs {
 	u32 configuration;				/* 0x000 */
-	u32 unused_004[(0x070 - 0x004) / 4];	/* 0x004 */
+	u32 ext_configuration;				/* 0x004 */
+	u32 packet_filter;				/* 0x008 */
+	u32 watchdog_timeout;				/* 0x00c */
+	u32 unused_010[(0x070 - 0x010) / 4];	/* 0x010 */
 	u32 q0_tx_flow_ctrl;			/* 0x070 */
-	u32 unused_070[(0x090 - 0x074) / 4];	/* 0x074 */
+	u32 unused_074[(0x090 - 0x074) / 4];	/* 0x074 */
 	u32 rx_flow_ctrl;				/* 0x090 */
-	u32 unused_094;				/* 0x094 */
+	u32 rxq_ctrl4;				/* 0x094 */
 	u32 txq_prty_map0;				/* 0x098 */
-	u32 unused_09c;				/* 0x09c */
+	u32 txq_prty_map1;				/* 0x09c */
 	u32 rxq_ctrl0;				/* 0x0a0 */
-	u32 unused_0a4;				/* 0x0a4 */
+	u32 rxq_ctrl1;				/* 0x0a4 */
 	u32 rxq_ctrl2;				/* 0x0a8 */
-	u32 unused_0ac[(0x0dc - 0x0ac) / 4];	/* 0x0ac */
+	u32 rxq_ctrl3;				/* 0x0ac */
+	u32 unused_0b0[(0x0dc - 0x0b0) / 4];	/* 0x0b0 */
 	u32 us_tic_counter;			/* 0x0dc */
-	u32 unused_0e0[(0x11c - 0x0e0) / 4];	/* 0x0e0 */
+	u32 unused_0e0[(0x110 - 0x0e0) / 4];	/* 0x0e0 */
+	u32 version;					/* 0x110 */
+	u32 debug;					/* 0x114 */
+	u32 unused_118;					/* 0x118 */
 	u32 hw_feature0;				/* 0x11c */
 	u32 hw_feature1;				/* 0x120 */
 	u32 hw_feature2;				/* 0x124 */
-	u32 unused_128[(0x200 - 0x128) / 4];	/* 0x128 */
+	u32 hw_feature3;				/* 0x128 */
+	u32 unused_12c[(0x200 - 0x12c) / 4];	/* 0x12c */
 	u32 mdio_address;				/* 0x200 */
 	u32 mdio_data;				/* 0x204 */
 	u32 unused_208[(0x300 - 0x208) / 4];	/* 0x208 */
@@ -48,6 +59,8 @@ struct eqos_mac_regs {
 #define EQOS_MAC_CONFIGURATION_TE			BIT(1)
 #define EQOS_MAC_CONFIGURATION_RE			BIT(0)
 
+#define EQOS_MAC_PACKET_FILTER_PR			BIT(0)
+
 #define EQOS_MAC_Q0_TX_FLOW_CTRL_PT_SHIFT		16
 #define EQOS_MAC_Q0_TX_FLOW_CTRL_PT_MASK		0xffff
 #define EQOS_MAC_Q0_TX_FLOW_CTRL_TFE			BIT(1)
@@ -62,6 +75,8 @@ struct eqos_mac_regs {
 #define EQOS_MAC_RXQ_CTRL0_RXQ0EN_NOT_ENABLED		0
 #define EQOS_MAC_RXQ_CTRL0_RXQ0EN_ENABLED_DCB		2
 #define EQOS_MAC_RXQ_CTRL0_RXQ0EN_ENABLED_AV		1
+
+#define EQOS_MAC_RXQ_CTRL1_MCBCQEN			BIT(20)
 
 #define EQOS_MAC_RXQ_CTRL2_PSRQ0_SHIFT			0
 #define EQOS_MAC_RXQ_CTRL2_PSRQ0_MASK			0xff
@@ -79,19 +94,21 @@ struct eqos_mac_regs {
 #define EQOS_MAC_HW_FEATURE3_ASP_SHIFT			28
 #define EQOS_MAC_HW_FEATURE3_ASP_MASK			0x3
 
-#define EQOS_MAC_MDIO_ADDRESS_PA_SHIFT			21
-#define EQOS_MAC_MDIO_ADDRESS_RDA_SHIFT			16
-#define EQOS_MAC_MDIO_ADDRESS_CR_SHIFT			8
+#define EQOS_MAC_MDIO_ADDRESS_PA_MASK			GENMASK(25, 21)
+#define EQOS_MAC_MDIO_ADDRESS_RDA_MASK			GENMASK(20, 16)
+#define EQOS_MAC_MDIO_ADDRESS_CR_MASK			GENMASK(11, 8)
 #define EQOS_MAC_MDIO_ADDRESS_CR_100_150		1
 #define EQOS_MAC_MDIO_ADDRESS_CR_20_35			2
+#define EQOS_MAC_MDIO_ADDRESS_CR_150_250		4
 #define EQOS_MAC_MDIO_ADDRESS_CR_250_300		5
 #define EQOS_MAC_MDIO_ADDRESS_SKAP			BIT(4)
-#define EQOS_MAC_MDIO_ADDRESS_GOC_SHIFT			2
+#define EQOS_MAC_MDIO_ADDRESS_GOC_MASK			GENMASK(3, 2)
 #define EQOS_MAC_MDIO_ADDRESS_GOC_READ			3
 #define EQOS_MAC_MDIO_ADDRESS_GOC_WRITE			1
 #define EQOS_MAC_MDIO_ADDRESS_C45E			BIT(1)
 #define EQOS_MAC_MDIO_ADDRESS_GB			BIT(0)
 
+#define EQOS_MAC_MDIO_DATA_RA_MASK			GENMASK(31, 16)
 #define EQOS_MAC_MDIO_DATA_GD_MASK			0xffff
 
 #define EQOS_MTL_REGS_BASE 0xd00
@@ -244,6 +261,7 @@ struct eqos_ops {
 	int (*eqos_set_tx_clk_speed)(struct udevice *dev);
 	int (*eqos_get_enetaddr)(struct udevice *dev);
 	ulong (*eqos_get_tick_clk_rate)(struct udevice *dev);
+	void (*eqos_fix_soc_reset)(struct udevice *dev);
 };
 
 struct eqos_priv {
@@ -285,9 +303,16 @@ void eqos_inval_desc_generic(void *desc);
 void eqos_flush_desc_generic(void *desc);
 void eqos_inval_buffer_generic(void *buf, size_t size);
 void eqos_flush_buffer_generic(void *buf, size_t size);
+int eqos_get_base_addr_dt(struct udevice *dev);
+int eqos_get_base_addr_pci(struct udevice *dev);
 int eqos_null_ops(struct udevice *dev);
+void *eqos_get_driver_data(struct udevice *dev);
 
 extern struct eqos_config eqos_imx_config;
 extern struct eqos_config eqos_rockchip_config;
 extern struct eqos_config eqos_qcom_config;
+extern struct eqos_config eqos_stm32mp13_config;
+extern struct eqos_config eqos_stm32mp15_config;
+extern struct eqos_config eqos_stm32mp25_config;
 extern struct eqos_config eqos_jh7110_config;
+extern struct eqos_config eqos_adi_config;

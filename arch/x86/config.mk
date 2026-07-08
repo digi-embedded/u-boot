@@ -10,7 +10,7 @@ PF_CPPFLAGS_X86   := $(call cc-option, -fno-toplevel-reorder, \
 PLATFORM_CPPFLAGS += $(PF_CPPFLAGS_X86)
 PLATFORM_CPPFLAGS += -fno-dwarf2-cfi-asm
 
-ifdef CONFIG_SPL_BUILD
+ifdef CONFIG_XPL_BUILD
 IS_32BIT := y
 else
 ifndef CONFIG_X86_64
@@ -26,9 +26,13 @@ endif
 ifeq ($(IS_32BIT),y)
 PLATFORM_CPPFLAGS += -march=i386 -m32
 else
-PLATFORM_CPPFLAGS += $(if $(CONFIG_SPL_BUILD),,-fpic) -fno-common -march=core2 -m64
+PLATFORM_CPPFLAGS += $(if $(CONFIG_XPL_BUILD),,-fpic) -fno-common -march=core2 -m64
+
+ifndef CONFIG_X86_HARDFP
 PLATFORM_CPPFLAGS += -mno-mmx -mno-sse
 endif
+
+endif # IS_32BIT
 
 PLATFORM_RELFLAGS += -fdata-sections -ffunction-sections -fvisibility=hidden
 
@@ -65,7 +69,7 @@ endif
 
 LDSCRIPT_EFI := $(srctree)/arch/x86/lib/elf_$(EFIARCH)_efi.lds
 EFISTUB := crt0_$(EFIARCH)_efi.o reloc_$(EFIARCH)_efi.o
-OBJCOPYFLAGS_EFI += --target=efi-app-$(EFIARCH)
+OBJCOPYFLAGS_EFI += --output-target=efi-app-$(EFIARCH)
 
 CPPFLAGS_REMOVE_crt0-efi-$(EFIARCH).o += $(CFLAGS_NON_EFI)
 CPPFLAGS_crt0-efi-$(EFIARCH).o += $(CFLAGS_EFI)
@@ -82,12 +86,12 @@ ifeq ($(IS_32BIT),y)
 PLATFORM_CPPFLAGS += -mregparm=3
 endif
 KBUILD_LDFLAGS += --emit-relocs
-LDFLAGS_FINAL += --gc-sections $(if $(CONFIG_SPL_BUILD),,-pie)
+LDFLAGS_FINAL += --gc-sections $(if $(CONFIG_XPL_BUILD),,-pie)
 
 endif
 
 ifdef CONFIG_X86_64
-ifndef CONFIG_SPL_BUILD
+ifndef CONFIG_XPL_BUILD
 PLATFORM_CPPFLAGS += -D__x86_64__
 else
 PLATFORM_CPPFLAGS += -D__I386__
@@ -123,7 +127,7 @@ endif
 endif
 
 ifdef CONFIG_X86_64
-EFI_TARGET := --target=efi-app-x86_64
+EFI_TARGET := --output-target=efi-app-x86_64
 else
-EFI_TARGET := --target=efi-app-ia32
+EFI_TARGET := --output-target=efi-app-ia32
 endif

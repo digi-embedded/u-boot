@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- * Renesas RCar Gen3 RPC HyperFlash driver
+ * Renesas R-Car Gen3 RPC HyperFlash driver
  *
  * Copyright (C) 2016 Renesas Electronics Corporation
  * Copyright (C) 2016 Cogent Embedded, Inc.
  * Copyright (C) 2017 Marek Vasut <marek.vasut@gmail.com>
  */
 
-#include <common.h>
 #include <malloc.h>
 #include <asm/io.h>
 #include <clk.h>
@@ -17,7 +16,6 @@
 #include <errno.h>
 #include <fdt_support.h>
 #include <flash.h>
-#include <mtd.h>
 #include <wait_bit.h>
 #include <linux/bitops.h>
 #include <mtd/cfi_flash.h>
@@ -362,7 +360,6 @@ static int rpc_hf_probe(struct udevice *dev)
 	if (addrc != 2 || sizec != 2)
 		return -EINVAL;
 
-
 	ret = clk_get_by_index(dev, 0, &clk);
 	if (ret < 0) {
 		dev_err(dev, "Failed to get RPC clock\n");
@@ -389,6 +386,7 @@ static int rpc_hf_probe(struct udevice *dev)
 static const struct udevice_id rpc_hf_ids[] = {
 	{ .compatible = "renesas,r7s72100-rpc-if" },
 	{ .compatible = "renesas,rcar-gen3-rpc-if" },
+	{ .compatible = "renesas,rcar-gen4-rpc-if" },
 	{}
 };
 

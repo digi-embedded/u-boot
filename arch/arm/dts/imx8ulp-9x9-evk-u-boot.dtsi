@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: (GPL-2.0 OR MIT)
+/*
+ * Copyright 2021 NXP
+ */
+
+#include "imx8ulp-evk-u-boot.dtsi"
+
+&{/soc@0/bus@2d800000/dsi@2db00000/panel@0} {
+	reset-gpios = <&gpiof 21 GPIO_ACTIVE_LOW>;
+};
+
+&pinctrl_dsi {
+	fsl,pins = <
+		MX8ULP_PAD_PTF21__PTF21		0x3
+	>;
+};

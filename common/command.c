@@ -8,7 +8,7 @@
  *  Command Processor Table
  */
 
-#include <common.h>
+#include <config.h>
 #include <compiler.h>
 #include <command.h>
 #include <console.h>
@@ -16,6 +16,7 @@
 #include <image.h>
 #include <log.h>
 #include <mapmem.h>
+#include <time.h>
 #include <asm/global_data.h>
 #include <linux/ctype.h>
 
@@ -483,7 +484,7 @@ int cmd_get_data_size(const char *arg, int default_size)
 		case 'q':
 			if (MEM_SUPPORT_64BIT_DATA)
 				return 8;
-			/* no break */
+			fallthrough;
 		default:
 			return CMD_DATA_SIZE_ERR;
 		}

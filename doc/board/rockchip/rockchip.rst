@@ -54,20 +54,27 @@ List of mainline supported Rockchip boards:
      - Amarula Vyasa-RK3288 (vyasa-rk3288)
 * rk3308
      - Radxa ROCK Pi S (rock-pi-s-rk3308)
+     - Radxa ROCK S0 (rock-s0-rk3308)
      - Rockchip Evb-RK3308 (evb-rk3308)
      - Roc-cc-RK3308 (roc-cc-rk3308)
 * rk3326
      - ODROID-GO Advance (odroid-go2)
 * rk3328
      - Rockchip Evb-RK3328 (evb-rk3328)
+     - Firefly ROC-RK3328-CC (roc-cc-rk3328)
+     - FriendlyElec NanoPi R2C (nanopi-r2c-rk3328)
+     - FriendlyElec NanoPi R2C Plus (nanopi-r2c-plus-rk3328)
+     - FriendlyElec NanoPi R2S (nanopi-r2s-rk3328)
+     - FriendlyElec NanoPi R2S Plus (nanopi-r2s-plus-rk3328)
+     - Generic RK3328 (generic-rk3328)
      - Pine64 Rock64 (rock64-rk3328)
-     - Firefly-RK3328 (roc-cc-rk3328)
-     - Radxa Rockpi E (rock-pi-e-rk3328)
+     - Radxa ROCK Pi E (rock-pi-e-rk3328)
+     - Xunlong Orange Pi R1 Plus (orangepi-r1-plus-rk3328)
+     - Xunlong Orange Pi R1 Plus LTS (orangepi-r1-plus-lts-rk3328)
 * rk3368
      - GeekBox (geekbox)
      - PX5 EVB (evb-px5)
      - Rockchip Sheep (sheep-rk3368)
-     - Theobroma Systems RK3368-uQ7 SoM - Lion (lion-rk3368)
 * rk3399
      - 96boards RK3399 Ficus (ficus-rk3399)
      - 96boards Rock960 (rock960-rk3399)
@@ -77,6 +84,7 @@ List of mainline supported Rockchip boards:
      - FriendlyElec NanoPi M4 (nanopi-m4-rk3399)
      - FriendlyElec NanoPi M4B (nanopi-m4b-rk3399)
      - FriendlyARM NanoPi NEO4 (nanopi-neo4-rk3399)
+     - Generic RK3399 (generic-rk3399)
      - Google Bob (chromebook_bob)
      - Google Kevin (chromebook_kevin)
      - Khadas Edge (khadas-edge-rk3399)
@@ -91,14 +99,28 @@ List of mainline supported Rockchip boards:
      - Rockchip Evb-RK3399 (evb_rk3399)
      - Theobroma Systems RK3399-Q7 SoM - Puma (puma_rk3399)
 
+* rk3528
+     - ArmSoM Sige1 (sige1-rk3528)
+     - Generic RK3528 (generic-rk3528)
+     - Radxa E20C (radxa-e20c-rk3528)
+     - Radxa ROCK 2A/2F (rock-2-rk3528)
+
 * rk3566
      - Anbernic RGxx3 (anbernic-rgxx3-rk3566)
+     - FriendlyElec NanoPi R3S (nanopi-r3s-rk3566)
+     - Hardkernel ODROID-M1S (odroid-m1s-rk3566)
+     - LCKFB TaishanPi (lckfb-tspi-rk3566)
+     - Pine64 PineTab2 (pinetab2-rk3566)
      - Pine64 Quartz64-A Board (quartz64-a-rk3566)
      - Pine64 Quartz64-B Board (quartz64-b-rk3566)
      - Pine64 SOQuartz on Blade (soquartz-blade-rk3566)
      - Pine64 SOQuartz on CM4-IO (soquartz-cm4-rk3566)
      - Pine64 SOQuartz on Model A (soquartz-model-a-rk3566)
+     - Powkiddy X55 (powkiddy-x55-rk3566)
      - Radxa CM3 IO Board (radxa-cm3-io-rk3566)
+     - Radxa ROCK 3C (rock-3c-rk3566)
+     - Radxa ZERO 3W/3E (radxa-zero-3-rk3566)
+     - Xunlong Orange Pi 3B (orangepi-3b-rk3566)
 
 * rk3568
      - Rockchip Evb-RK3568 (evb-rk3568)
@@ -108,20 +130,51 @@ List of mainline supported Rockchip boards:
      - FriendlyElec NanoPi R5S (nanopi-r5s-rk3568)
      - Generic RK3566/RK3568 (generic-rk3568)
      - Hardkernel ODROID-M1 (odroid-m1-rk3568)
+     - Lunzn FastRhino R66S (fastrhino-r66s-rk3568)
+     - QNAP TS-433 (qnap-ts433-rk3568)
      - Radxa E25 Carrier Board (radxa-e25-rk3568)
-     - Radxa ROCK 3 Model A (rock-3a-rk3568)
+     - Radxa ROCK 3A (rock-3a-rk3568)
+     - Radxa ROCK 3B (rock-3b-rk3568)
+
+* rk3576
+     - ArmSoM Sige5 (sige5-rk3576)
+     - Firefly ROC-RK3576-PC (roc-pc-rk3576)
+     - FriendlyElec NanoPi M5 (nanopi-m5-rk3576)
+     - Generic RK3576 (generic-rk3576)
+     - Luckfox Omni3576 (omni3576-rk3576)
+     - Radxa ROCK 4D (rock-4d-rk3576)
 
 * rk3588
+     - ArmSoM Sige7 (sige7-rk3588)
      - Rockchip EVB (evb-rk3588)
      - Edgeble Neural Compute Module 6A SoM - Neu6a (neu6a-io-rk3588)
      - Edgeble Neural Compute Module 6B SoM - Neu6b (neu6b-io-rk3588)
+     - FriendlyElec CM3588 NAS (cm3588-nas-rk3588)
      - FriendlyElec NanoPC-T6 (nanopc-t6-rk3588)
+     - FriendlyElec NanoPi R6C (nanopi-r6c-rk3588s)
+     - FriendlyElec NanoPi R6S (nanopi-r6s-rk3588s)
+     - GameForce Ace (gameforce-ace-rk3588s)
+     - Generic RK3588S/RK3588 (generic-rk3588)
+     - Hardkernel ODROID-M2 (odroid-m2-rk3588s)
+     - Indiedroid Nova (nova-rk3588s)
+     - Khadas Edge2 (khadas-edge2-rk3588s)
+     - MNT Reform2 (mnt-reform2-rk3588)
      - Pine64 QuartzPro64 (quartzpro64-rk3588)
-     - Turing Machines RK1 (turing-rk1-rk3588)
+     - Radxa ROCK 5 ITX (rock-5-itx-rk3588)
      - Radxa ROCK 5A (rock5a-rk3588s)
-     - Radxa ROCK 5B (rock5b-rk3588)
+     - Radxa ROCK 5B/5B+/5T (rock5b-rk3588)
+     - Radxa ROCK 5C (rock-5c-rk3588s)
+     - Rockchip Toybrick TB-RK3588X (toybrick-rk3588)
+     - Theobroma Systems RK3588-SBC Jaguar (jaguar-rk3588)
+     - Theobroma Systems SOM-RK3588-Q7 - Tiger (tiger-rk3588)
+     - Turing Machines RK1 (turing-rk1-rk3588)
      - Xunlong Orange Pi 5 (orangepi-5-rk3588s)
+     - Xunlong Orange Pi 5 Max (orangepi-5-max-rk3588)
      - Xunlong Orange Pi 5 Plus (orangepi-5-plus-rk3588)
+     - Xunlong Orange Pi 5 Ultra (orangepi-5-ultra-rk3588)
+     - Yanyi Tech CoolPi 4 Model B (coolpi-4b-rk3588s)
+     - Yanyi Tech CoolPi CM5 EVB (coolpi-cm5-evb-rk3588)
+     - Yanyi Tech CoolPi CM5 GenBook (coolpi-cm5-genbook-rk3588)
 
 * rv1108
      - Rockchip Evb-rv1108 (evb-rv1108)
@@ -143,8 +196,8 @@ To build TF-A:
 
 .. code-block:: bash
 
-        git clone --depth 1 https://github.com/ARM-software/arm-trusted-firmware.git
-        cd arm-trusted-firmware
+        git clone --depth 1 https://github.com/TrustedFirmware-A/trusted-firmware-a.git
+        cd trusted-firmware-a
         make realclean
         make CROSS_COMPILE=aarch64-linux-gnu- PLAT=rk3399
         cd ..
@@ -176,7 +229,7 @@ To build px30 boards:
 
 .. code-block:: bash
 
-        export BL31=../arm-trusted-firmware/build/px30/release/bl31/bl31.elf
+        export BL31=../trusted-firmware-a/build/px30/release/bl31/bl31.elf
         make evb-px30_defconfig
         make CROSS_COMPILE=aarch64-linux-gnu-
 
@@ -207,7 +260,7 @@ To build rk3328 boards:
 
 .. code-block:: bash
 
-        export BL31=../arm-trusted-firmware/build/rk3328/release/bl31/bl31.elf
+        export BL31=../trusted-firmware-a/build/rk3328/release/bl31/bl31.elf
         make evb-rk3328_defconfig
         make CROSS_COMPILE=aarch64-linux-gnu-
 
@@ -215,7 +268,7 @@ To build rk3368 boards:
 
 .. code-block:: bash
 
-        export BL31=../arm-trusted-firmware/build/rk3368/release/bl31/bl31.elf
+        export BL31=../trusted-firmware-a/build/rk3368/release/bl31/bl31.elf
         make evb-px5_defconfig
         make CROSS_COMPILE=aarch64-linux-gnu-
 
@@ -223,18 +276,36 @@ To build rk3399 boards:
 
 .. code-block:: bash
 
-        export BL31=../arm-trusted-firmware/build/rk3399/release/bl31/bl31.elf
+        export BL31=../trusted-firmware-a/build/rk3399/release/bl31/bl31.elf
         make evb-rk3399_defconfig
+        make CROSS_COMPILE=aarch64-linux-gnu-
+
+To build rk3528 boards:
+
+.. code-block:: bash
+
+        export BL31=../rkbin/bin/rk35/rk3528_bl31_v1.18.elf
+        export ROCKCHIP_TPL=../rkbin/bin/rk35/rk3528_ddr_1056MHz_v1.10.bin
+        make generic-rk3528_defconfig
         make CROSS_COMPILE=aarch64-linux-gnu-
 
 To build rk3568 boards:
 
 .. code-block:: bash
 
-        export BL31=../arm-trusted-firmware/build/rk3568/release/bl31/bl31.elf
+        export BL31=../trusted-firmware-a/build/rk3568/release/bl31/bl31.elf
         [or]export BL31=../rkbin/bin/rk35/rk3568_bl31_v1.34.elf
         export ROCKCHIP_TPL=../rkbin/bin/rk35/rk3568_ddr_1560MHz_v1.13.bin
         make evb-rk3568_defconfig
+        make CROSS_COMPILE=aarch64-linux-gnu-
+
+To build rk3576 boards:
+
+.. code-block:: bash
+
+        export BL31=../rkbin/bin/rk35/rk3576_bl31_v1.04.elf
+        export ROCKCHIP_TPL=../rkbin/bin/rk35/rk3576_ddr_lp4_2112MHz_lp5_2736MHz_v1.03.bin
+        make roc-pc-rk3576_defconfig
         make CROSS_COMPILE=aarch64-linux-gnu-
 
 To build rk3588 boards:

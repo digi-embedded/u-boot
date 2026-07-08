@@ -44,7 +44,6 @@
 #define SC_RPC_SVC_SECO         9U
 #define SC_RPC_SVC_ABORT        10U
 
-
 /* Types */
 
 struct sc_rpc_msg_s {
@@ -231,5 +230,8 @@ struct sc_rpc_msg_s {
 #define TIMER_FUNC_SET_SYSCTR_ALARM 16U /* Index for sc_timer_set_sysctr_alarm() RPC call */
 #define TIMER_FUNC_SET_SYSCTR_PERIODIC_ALARM 17U /* Index for sc_timer_set_sysctr_periodic_alarm() RPC call */
 #define TIMER_FUNC_CANCEL_SYSCTR_ALARM 18U /* Index for sc_timer_cancel_sysctr_alarm() RPC call */
+
+/* Siemens specific API extension */
+#define TIMER_FUNC_CTRL_SIEMENS_PMIC_WDOG 20U  /*!< Index for sc_timer_ctrl_pmic_wdog() RPC call */
 
 #endif /* SC_RPC_H */

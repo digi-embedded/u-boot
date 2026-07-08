@@ -4,7 +4,6 @@
  * With help from the common/soft_spi and arch/powerpc/cpu/mpc8260 drivers
  */
 
-#include <common.h>
 #include <clk.h>
 #include <dm.h>
 #include <errno.h>
@@ -114,7 +113,7 @@ static void mpc8xxx_spi_cs_activate(struct udevice *dev)
 	struct mpc8xxx_priv *priv = dev_get_priv(dev->parent);
 	struct dm_spi_slave_plat *plat = dev_get_parent_plat(dev);
 
-	dm_gpio_set_value(&priv->gpios[plat->cs], 1);
+	dm_gpio_set_value(&priv->gpios[plat->cs[0]], 1);
 }
 
 static void mpc8xxx_spi_cs_deactivate(struct udevice *dev)
@@ -122,7 +121,7 @@ static void mpc8xxx_spi_cs_deactivate(struct udevice *dev)
 	struct mpc8xxx_priv *priv = dev_get_priv(dev->parent);
 	struct dm_spi_slave_plat *plat = dev_get_parent_plat(dev);
 
-	dm_gpio_set_value(&priv->gpios[plat->cs], 0);
+	dm_gpio_set_value(&priv->gpios[plat->cs[0]], 0);
 }
 
 static int mpc8xxx_spi_xfer(struct udevice *dev, uint bitlen,
@@ -138,10 +137,10 @@ static int mpc8xxx_spi_xfer(struct udevice *dev, uint bitlen,
 	ulong type = dev_get_driver_data(bus);
 
 	debug("%s: slave %s:%u dout %08X din %08X bitlen %u\n", __func__,
-	      bus->name, plat->cs, (uint)dout, (uint)din, bitlen);
-	if (plat->cs >= priv->cs_count) {
+	      bus->name, plat->cs[0], (uint)dout, (uint)din, bitlen);
+	if (plat->cs[0] >= priv->cs_count) {
 		dev_err(dev, "chip select index %d too large (cs_count=%d)\n",
-			plat->cs, priv->cs_count);
+			plat->cs[0], priv->cs_count);
 		return -EINVAL;
 	}
 	if (bitlen % 8) {

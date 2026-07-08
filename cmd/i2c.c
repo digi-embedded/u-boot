@@ -64,7 +64,6 @@
  * Adapted from cmd_mem.c which is copyright Wolfgang Denk (wd@denx.de).
  */
 
-#include <common.h>
 #include <bootretry.h>
 #include <cli.h>
 #include <command.h>
@@ -300,7 +299,8 @@ static int do_i2c_write(struct cmd_tbl *cmdtp, int flag, int argc,
 			char *const argv[])
 {
 	uint	chip;
-	uint	devaddr, length;
+	uint	devaddr;
+	int length;
 	int alen;
 	u_char  *memaddr;
 	int ret;
@@ -918,9 +918,9 @@ static int do_i2c_probe(struct cmd_tbl *cmdtp, int flag, int argc,
 #endif	/* NOPROBES */
 	int ret;
 #if CONFIG_IS_ENABLED(DM_I2C)
-	struct udevice *bus, *dev;
+	struct udevice *cur_bus, *dev;
 
-	if (i2c_get_cur_bus(&bus))
+	if (i2c_get_cur_bus(&cur_bus))
 		return CMD_RET_FAILURE;
 #endif
 
@@ -944,7 +944,7 @@ static int do_i2c_probe(struct cmd_tbl *cmdtp, int flag, int argc,
 			continue;
 #endif
 #if CONFIG_IS_ENABLED(DM_I2C)
-		ret = dm_i2c_probe(bus, j, 0, &dev);
+		ret = dm_i2c_probe(cur_bus, j, 0, &dev);
 #else
 		ret = i2c_probe(j);
 #endif
@@ -1699,18 +1699,6 @@ static int do_i2c_show_bus(struct cmd_tbl *cmdtp, int flag, int argc,
 
 		for (i = 0; i < CFG_SYS_NUM_I2C_BUSES; i++) {
 			printf("Bus %d:\t%s", i, I2C_ADAP_NR(i)->name);
-#ifndef CFG_SYS_I2C_DIRECT_BUS
-			int j;
-
-			for (j = 0; j < CFG_SYS_I2C_MAX_HOPS; j++) {
-				if (i2c_bus[i].next_hop[j].chip == 0)
-					break;
-				printf("->%s@0x%2x:%d",
-				       i2c_bus[i].next_hop[j].mux.name,
-				       i2c_bus[i].next_hop[j].chip,
-				       i2c_bus[i].next_hop[j].channel);
-			}
-#endif
 			printf("\n");
 		}
 #endif
@@ -1735,17 +1723,6 @@ static int do_i2c_show_bus(struct cmd_tbl *cmdtp, int flag, int argc,
 			return -1;
 		}
 		printf("Bus %d:\t%s", i, I2C_ADAP_NR(i)->name);
-#ifndef CFG_SYS_I2C_DIRECT_BUS
-			int j;
-			for (j = 0; j < CFG_SYS_I2C_MAX_HOPS; j++) {
-				if (i2c_bus[i].next_hop[j].chip == 0)
-					break;
-				printf("->%s@0x%2x:%d",
-				       i2c_bus[i].next_hop[j].mux.name,
-				       i2c_bus[i].next_hop[j].chip,
-				       i2c_bus[i].next_hop[j].channel);
-			}
-#endif
 		printf("\n");
 #endif
 	}

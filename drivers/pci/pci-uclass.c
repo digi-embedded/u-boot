@@ -6,7 +6,6 @@
 
 #define LOG_CATEGORY UCLASS_PCI
 
-#include <common.h>
 #include <dm.h>
 #include <errno.h>
 #include <init.h>
@@ -386,8 +385,10 @@ static int pci_read_config(pci_dev_t bdf, int offset, unsigned long *valuep,
 	int ret;
 
 	ret = pci_get_bus(PCI_BUS(bdf), &bus);
-	if (ret)
+	if (ret) {
+		*valuep = 0xffffffff;
 		return ret;
+	}
 
 	return pci_bus_read_config(bus, bdf, offset, valuep, size);
 }
@@ -409,8 +410,10 @@ int pci_read_config32(pci_dev_t bdf, int offset, u32 *valuep)
 	int ret;
 
 	ret = pci_read_config(bdf, offset, &value, PCI_SIZE_32);
-	if (ret)
+	if (ret) {
+		*valuep = 0xffffffff;
 		return ret;
+	}
 	*valuep = value;
 
 	return 0;
@@ -422,8 +425,10 @@ int pci_read_config16(pci_dev_t bdf, int offset, u16 *valuep)
 	int ret;
 
 	ret = pci_read_config(bdf, offset, &value, PCI_SIZE_16);
-	if (ret)
+	if (ret) {
+		*valuep = 0xffff;
 		return ret;
+	}
 	*valuep = value;
 
 	return 0;
@@ -435,8 +440,10 @@ int pci_read_config8(pci_dev_t bdf, int offset, u8 *valuep)
 	int ret;
 
 	ret = pci_read_config(bdf, offset, &value, PCI_SIZE_8);
-	if (ret)
+	if (ret) {
+		*valuep = 0xff;
 		return ret;
+	}
 	*valuep = value;
 
 	return 0;
@@ -448,8 +455,10 @@ int dm_pci_read_config8(const struct udevice *dev, int offset, u8 *valuep)
 	int ret;
 
 	ret = dm_pci_read_config(dev, offset, &value, PCI_SIZE_8);
-	if (ret)
+	if (ret) {
+		*valuep = 0xff;
 		return ret;
+	}
 	*valuep = value;
 
 	return 0;
@@ -461,8 +470,10 @@ int dm_pci_read_config16(const struct udevice *dev, int offset, u16 *valuep)
 	int ret;
 
 	ret = dm_pci_read_config(dev, offset, &value, PCI_SIZE_16);
-	if (ret)
+	if (ret) {
+		*valuep = 0xffff;
 		return ret;
+	}
 	*valuep = value;
 
 	return 0;
@@ -474,8 +485,10 @@ int dm_pci_read_config32(const struct udevice *dev, int offset, u32 *valuep)
 	int ret;
 
 	ret = dm_pci_read_config(dev, offset, &value, PCI_SIZE_32);
-	if (ret)
+	if (ret) {
+		*valuep = 0xffffffff;
 		return ret;
+	}
 	*valuep = value;
 
 	return 0;
@@ -723,7 +736,7 @@ static bool pci_need_device_pre_reloc(struct udevice *bus, uint vendor,
 	u32 vendev;
 	int index;
 
-	if (spl_phase() == PHASE_SPL && CONFIG_IS_ENABLED(PCI_PNP))
+	if (xpl_phase() == PHASE_SPL && CONFIG_IS_ENABLED(PCI_PNP))
 		return true;
 
 	for (index = 0;
@@ -799,7 +812,7 @@ static int pci_find_and_bind_driver(struct udevice *parent,
 			if (!(gd->flags & GD_FLG_RELOC) &&
 			    !(drv->flags & DM_FLAG_PRE_RELOC) &&
 			    (!CONFIG_IS_ENABLED(PCI_PNP) ||
-			     spl_phase() != PHASE_SPL))
+			     xpl_phase() != PHASE_SPL))
 				return log_msg_ret("pre", -EPERM);
 
 			/*
@@ -859,6 +872,38 @@ __weak extern void board_pci_fixup_dev(struct udevice *bus, struct udevice *dev)
 {
 }
 
+static int only_one_child(struct udevice *bus)
+{
+	int pos;
+
+	if (!dev_get_parent_plat(bus))
+		return 0;
+
+	/*
+	 * A PCIe Downstream Port normally leads to a Link with only Device
+	 * 0 on it (PCIe spec r3.1, sec 7.3.1).  As an optimization, scan
+	 * only for Device 0 in that situation.
+	 */
+	pos = dm_pci_find_capability(bus, PCI_CAP_ID_EXP);
+	if (pos) {
+		ulong reg;
+		ulong pcie_type;
+
+		dm_pci_read_config(bus, pos + PCI_EXP_FLAGS,
+				   &reg, PCI_SIZE_16);
+
+		pcie_type = (reg & PCI_EXP_FLAGS_TYPE) >> 4;
+
+		if (pcie_type == PCI_EXP_TYPE_ROOT_PORT ||
+		    pcie_type == PCI_EXP_TYPE_DOWNSTREAM ||
+		    pcie_type == PCI_EXP_TYPE_PCIE_BRIDGE) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 int pci_bind_bus_devices(struct udevice *bus)
 {
 	ulong vendor, device;
@@ -880,6 +925,9 @@ int pci_bind_bus_devices(struct udevice *bus)
 		if (!PCI_FUNC(bdf))
 			found_multi = false;
 		if (PCI_FUNC(bdf) && !found_multi)
+			continue;
+
+		if (only_one_child(bus) && (PCI_MASK_BUS(bdf) > 0))
 			continue;
 
 		/* Check only the first access, we don't expect problems */

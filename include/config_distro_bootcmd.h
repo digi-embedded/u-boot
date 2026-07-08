@@ -63,7 +63,7 @@
 #define BOOTENV_SHARED_MMC	BOOTENV_SHARED_BLKDEV(mmc)
 #define BOOTENV_DEV_MMC		BOOTENV_DEV_BLKDEV
 #define BOOTENV_DEV_NAME_MMC	BOOTENV_DEV_NAME_BLKDEV
-#elif defined(CONFIG_SPL_BUILD)
+#elif defined(CONFIG_XPL_BUILD)
 #define BOOTENV_SHARED_MMC
 #define BOOTENV_DEV_MMC		BOOTENV_DEV_BLKDEV_NONE
 #define BOOTENV_DEV_NAME_MMC	BOOTENV_DEV_NAME_BLKDEV_NONE
@@ -112,7 +112,7 @@
 #define BOOTEFI_NAME "bootarm.efi"
 #elif defined(CONFIG_X86_RUN_32BIT)
 #define BOOTEFI_NAME "bootia32.efi"
-#elif defined(CONFIG_X86_RUN_64BIT)
+#elif defined(CONFIG_X86_64)
 #define BOOTEFI_NAME "bootx64.efi"
 #elif defined(CONFIG_ARCH_RV32I)
 #define BOOTEFI_NAME "bootriscv32.efi"
@@ -194,11 +194,16 @@
 #define SCAN_DEV_FOR_EFI
 #endif
 
+#ifndef SCAN_DEV_FOR_BOOT_PARTS
+#define SCAN_DEV_FOR_BOOT_PARTS \
+	"part list ${devtype} ${devnum} -bootable devplist; "
+#endif
+
 #ifdef CONFIG_SATA
 #define BOOTENV_SHARED_SATA	BOOTENV_SHARED_BLKDEV(sata)
 #define BOOTENV_DEV_SATA	BOOTENV_DEV_BLKDEV
 #define BOOTENV_DEV_NAME_SATA	BOOTENV_DEV_NAME_BLKDEV
-#elif defined(CONFIG_SPL_BUILD)
+#elif defined(CONFIG_XPL_BUILD)
 #define BOOTENV_SHARED_SATA
 #define BOOTENV_DEV_SATA	BOOTENV_DEV_BLKDEV_NONE
 #define BOOTENV_DEV_NAME_SATA	BOOTENV_DEV_NAME_BLKDEV_NONE
@@ -305,7 +310,7 @@
 		BOOTENV_SHARED_BLKDEV_BODY(usb)
 #define BOOTENV_DEV_USB		BOOTENV_DEV_BLKDEV
 #define BOOTENV_DEV_NAME_USB	BOOTENV_DEV_NAME_BLKDEV
-#elif defined(CONFIG_SPL_BUILD)
+#elif defined(CONFIG_XPL_BUILD)
 #define BOOTENV_RUN_NET_USB_START
 #define BOOTENV_SHARED_USB
 #define BOOTENV_DEV_USB		BOOTENV_DEV_BLKDEV_NONE
@@ -412,7 +417,7 @@
 		"\0"
 #define BOOTENV_DEV_NAME_DHCP(devtypeu, devtypel, instance) \
 	"dhcp "
-#elif defined(CONFIG_SPL_BUILD)
+#elif defined(CONFIG_XPL_BUILD)
 #define BOOTENV_DEV_DHCP	BOOTENV_DEV_BLKDEV_NONE
 #define BOOTENV_DEV_NAME_DHCP	BOOTENV_DEV_NAME_BLKDEV_NONE
 #else
@@ -433,7 +438,7 @@
 		"fi\0"
 #define BOOTENV_DEV_NAME_PXE(devtypeu, devtypel, instance) \
 	"pxe "
-#elif defined(CONFIG_SPL_BUILD)
+#elif defined(CONFIG_XPL_BUILD)
 #define BOOTENV_DEV_PXE		BOOTENV_DEV_BLKDEV_NONE
 #define BOOTENV_DEV_NAME_PXE	BOOTENV_DEV_NAME_BLKDEV_NONE
 #else
@@ -538,7 +543,7 @@
 		"\0"                                                      \
 	\
 	"scan_dev_for_boot_part="                                         \
-		"part list ${devtype} ${devnum} -bootable devplist; "     \
+		SCAN_DEV_FOR_BOOT_PARTS                                   \
 		"env exists devplist || setenv devplist 1; "              \
 		"for distro_bootpart in ${devplist}; do "                 \
 			"if fstype ${devtype} "                           \

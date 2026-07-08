@@ -10,6 +10,7 @@
 #include <tpm_api.h>
 #include <tpm-common.h>
 #include <tpm-v2.h>
+#include <tpm_tcg2.h>
 #include <u-boot/sha1.h>
 #include <u-boot/sha256.h>
 #include <u-boot/sha512.h>
@@ -22,689 +23,155 @@
 
 #include "tpm-utils.h"
 
-const enum tpm2_algorithms tpm2_supported_algorithms[4] = {
-	TPM2_ALG_SHA1,
-	TPM2_ALG_SHA256,
-	TPM2_ALG_SHA384,
-	TPM2_ALG_SHA512,
-};
-
-int tcg2_get_active_pcr_banks(struct udevice *dev, u32 *active_pcr_banks)
+static int tpm2_update_active_banks(struct udevice *dev)
 {
-	u32 supported = 0;
-	u32 pcr_banks = 0;
+	struct tpm_chip_priv *priv = dev_get_uclass_priv(dev);
+	struct tpml_pcr_selection pcrs;
+	int ret, i;
+
+	ret = tpm2_get_pcr_info(dev, &pcrs);
+	if (ret)
+		return ret;
+
+	priv->active_bank_count = 0;
+	for (i = 0; i < pcrs.count; i++) {
+		if (!tpm2_is_active_bank(&pcrs.selection[i]))
+			continue;
+		priv->active_banks[priv->active_bank_count] = pcrs.selection[i].hash;
+		priv->active_bank_count++;
+	}
+
+	return 0;
+}
+
+static void tpm2_print_selected_algorithm_name(u32 selected)
+{
+	size_t i;
+	const char *str;
+
+	for (i = 0; i < ARRAY_SIZE(hash_algo_list); i++) {
+		const struct digest_info *algo = &hash_algo_list[i];
+
+		if (!(selected & algo->hash_mask))
+			continue;
+
+		str = tpm2_algorithm_name(algo->hash_alg);
+		if (str)
+			log_info("%s\n", str);
+	}
+}
+
+int tpm2_scan_masks(struct udevice *dev, u32 log_active, u32 *mask)
+{
+	struct tpml_pcr_selection pcrs;
 	u32 active = 0;
-	int rc;
+	u32 supported = 0;
+	int rc, i;
 
-	rc = tpm2_get_pcr_info(dev, &supported, &active, &pcr_banks);
+	*mask = 0;
+
+	rc = tpm2_get_pcr_info(dev, &pcrs);
 	if (rc)
 		return rc;
 
-	*active_pcr_banks = active;
+	for (i = 0; i < pcrs.count; i++) {
+		struct tpms_pcr_selection *sel = &pcrs.selection[i];
+		size_t j;
+		u32 hash_mask = 0;
 
-	return 0;
-}
-
-u32 tcg2_event_get_size(struct tpml_digest_values *digest_list)
-{
-	u32 len;
-	size_t i;
-
-	len = offsetof(struct tcg_pcr_event2, digests);
-	len += offsetof(struct tpml_digest_values, digests);
-	for (i = 0; i < digest_list->count; ++i) {
-		u16 l = tpm2_algorithm_to_len(digest_list->digests[i].hash_alg);
-
-		if (!l)
-			continue;
-
-		len += l + offsetof(struct tpmt_ha, digest);
-	}
-	len += sizeof(u32);
-
-	return len;
-}
-
-int tcg2_create_digest(struct udevice *dev, const u8 *input, u32 length,
-		       struct tpml_digest_values *digest_list)
-{
-	u8 final[sizeof(union tpmu_ha)];
-	sha256_context ctx_256;
-	sha512_context ctx_512;
-	sha1_context ctx;
-	u32 active;
-	size_t i;
-	u32 len;
-	int rc;
-
-	rc = tcg2_get_active_pcr_banks(dev, &active);
-	if (rc)
-		return rc;
-
-	digest_list->count = 0;
-	for (i = 0; i < ARRAY_SIZE(tpm2_supported_algorithms); ++i) {
-		u32 mask =
-			tpm2_algorithm_to_mask(tpm2_supported_algorithms[i]);
-
-		if (!(active & mask))
-			continue;
-
-		switch (tpm2_supported_algorithms[i]) {
-		case TPM2_ALG_SHA1:
-			sha1_starts(&ctx);
-			sha1_update(&ctx, input, length);
-			sha1_finish(&ctx, final);
-			len = TPM2_SHA1_DIGEST_SIZE;
-			break;
-		case TPM2_ALG_SHA256:
-			sha256_starts(&ctx_256);
-			sha256_update(&ctx_256, input, length);
-			sha256_finish(&ctx_256, final);
-			len = TPM2_SHA256_DIGEST_SIZE;
-			break;
-		case TPM2_ALG_SHA384:
-			sha384_starts(&ctx_512);
-			sha384_update(&ctx_512, input, length);
-			sha384_finish(&ctx_512, final);
-			len = TPM2_SHA384_DIGEST_SIZE;
-			break;
-		case TPM2_ALG_SHA512:
-			sha512_starts(&ctx_512);
-			sha512_update(&ctx_512, input, length);
-			sha512_finish(&ctx_512, final);
-			len = TPM2_SHA512_DIGEST_SIZE;
-			break;
-		default:
-			printf("%s: unsupported algorithm %x\n", __func__,
-			       tpm2_supported_algorithms[i]);
-			continue;
+		for (j = 0; j < ARRAY_SIZE(hash_algo_list); j++) {
+			if (hash_algo_list[j].hash_alg == sel->hash)
+				hash_mask = hash_algo_list[j].hash_mask;
 		}
 
-		digest_list->digests[digest_list->count].hash_alg =
-			tpm2_supported_algorithms[i];
-		memcpy(&digest_list->digests[digest_list->count].digest, final,
-		       len);
-		digest_list->count++;
+		if (tpm2_algorithm_supported(sel->hash))
+			supported |= hash_mask;
+
+		if (tpm2_is_active_bank(sel))
+			active |= hash_mask;
 	}
 
-	return 0;
-}
-
-void tcg2_log_append(u32 pcr_index, u32 event_type,
-		     struct tpml_digest_values *digest_list, u32 size,
-		     const u8 *event, u8 *log)
-{
-	size_t len;
-	size_t pos;
-	u32 i;
-
-	pos = offsetof(struct tcg_pcr_event2, pcr_index);
-	put_unaligned_le32(pcr_index, log);
-	pos = offsetof(struct tcg_pcr_event2, event_type);
-	put_unaligned_le32(event_type, log + pos);
-	pos = offsetof(struct tcg_pcr_event2, digests) +
-		offsetof(struct tpml_digest_values, count);
-	put_unaligned_le32(digest_list->count, log + pos);
-
-	pos = offsetof(struct tcg_pcr_event2, digests) +
-		offsetof(struct tpml_digest_values, digests);
-	for (i = 0; i < digest_list->count; ++i) {
-		u16 hash_alg = digest_list->digests[i].hash_alg;
-
-		len = tpm2_algorithm_to_len(hash_alg);
-		if (!len)
-			continue;
-
-		pos += offsetof(struct tpmt_ha, hash_alg);
-		put_unaligned_le16(hash_alg, log + pos);
-		pos += offsetof(struct tpmt_ha, digest);
-		memcpy(log + pos, (u8 *)&digest_list->digests[i].digest, len);
-		pos += len;
+	/* All eventlog algorithm(s) must be supported */
+	if (log_active & ~supported) {
+		log_err("EventLog contains U-Boot unsupported algorithm(s)\n");
+		tpm2_print_selected_algorithm_name(log_active & ~supported);
+		rc = -1;
+	}
+	if (log_active && active & ~log_active) {
+		log_warning("TPM active algorithm(s) not exist in eventlog\n");
+		tpm2_print_selected_algorithm_name(active & ~log_active);
+		*mask = log_active;
 	}
 
-	put_unaligned_le32(size, log + pos);
-	pos += sizeof(u32);
-	memcpy(log + pos, event, size);
-}
-
-static int tcg2_log_append_check(struct tcg2_event_log *elog, u32 pcr_index,
-				 u32 event_type,
-				 struct tpml_digest_values *digest_list,
-				 u32 size, const u8 *event)
-{
-	u32 event_size;
-	u8 *log;
-
-	event_size = size + tcg2_event_get_size(digest_list);
-	if (elog->log_position + event_size > elog->log_size) {
-		printf("%s: log too large: %u + %u > %u\n", __func__,
-		       elog->log_position, event_size, elog->log_size);
-		return -ENOBUFS;
+	/* Any active algorithm(s) which are not supported must be removed */
+	if (active & ~supported) {
+		log_warning("TPM active algorithm(s) unsupported by u-boot\n");
+		tpm2_print_selected_algorithm_name(active & ~supported);
+		if (*mask)
+			*mask = active & supported & *mask;
+		else
+			*mask = active & supported;
 	}
-
-	log = elog->log + elog->log_position;
-	elog->log_position += event_size;
-
-	tcg2_log_append(pcr_index, event_type, digest_list, size, event, log);
-
-	return 0;
-}
-
-static int tcg2_log_init(struct udevice *dev, struct tcg2_event_log *elog)
-{
-	struct tcg_efi_spec_id_event *ev;
-	struct tcg_pcr_event *log;
-	u32 event_size;
-	u32 count = 0;
-	u32 log_size;
-	u32 active;
-	u32 mask;
-	size_t i;
-	u16 len;
-	int rc;
-
-	rc = tcg2_get_active_pcr_banks(dev, &active);
-	if (rc)
-		return rc;
-
-	event_size = offsetof(struct tcg_efi_spec_id_event, digest_sizes);
-	for (i = 0; i < ARRAY_SIZE(tpm2_supported_algorithms); ++i) {
-		mask = tpm2_algorithm_to_mask(tpm2_supported_algorithms[i]);
-
-		if (!(active & mask))
-			continue;
-
-		switch (tpm2_supported_algorithms[i]) {
-		case TPM2_ALG_SHA1:
-		case TPM2_ALG_SHA256:
-		case TPM2_ALG_SHA384:
-		case TPM2_ALG_SHA512:
-			count++;
-			break;
-		default:
-			continue;
-		}
-	}
-
-	event_size += 1 +
-		(sizeof(struct tcg_efi_spec_id_event_algorithm_size) * count);
-	log_size = offsetof(struct tcg_pcr_event, event) + event_size;
-
-	if (log_size > elog->log_size) {
-		printf("%s: log too large: %u > %u\n", __func__, log_size,
-		       elog->log_size);
-		return -ENOBUFS;
-	}
-
-	log = (struct tcg_pcr_event *)elog->log;
-	put_unaligned_le32(0, &log->pcr_index);
-	put_unaligned_le32(EV_NO_ACTION, &log->event_type);
-	memset(&log->digest, 0, sizeof(log->digest));
-	put_unaligned_le32(event_size, &log->event_size);
-
-	ev = (struct tcg_efi_spec_id_event *)log->event;
-	strlcpy((char *)ev->signature, TCG_EFI_SPEC_ID_EVENT_SIGNATURE_03,
-		sizeof(ev->signature));
-	put_unaligned_le32(0, &ev->platform_class);
-	ev->spec_version_minor = TCG_EFI_SPEC_ID_EVENT_SPEC_VERSION_MINOR_TPM2;
-	ev->spec_version_major = TCG_EFI_SPEC_ID_EVENT_SPEC_VERSION_MAJOR_TPM2;
-	ev->spec_errata = TCG_EFI_SPEC_ID_EVENT_SPEC_VERSION_ERRATA_TPM2;
-	ev->uintn_size = sizeof(size_t) / sizeof(u32);
-	put_unaligned_le32(count, &ev->number_of_algorithms);
-
-	count = 0;
-	for (i = 0; i < ARRAY_SIZE(tpm2_supported_algorithms); ++i) {
-		mask = tpm2_algorithm_to_mask(tpm2_supported_algorithms[i]);
-
-		if (!(active & mask))
-			continue;
-
-		len = tpm2_algorithm_to_len(tpm2_supported_algorithms[i]);
-		if (!len)
-			continue;
-
-		put_unaligned_le16(tpm2_supported_algorithms[i],
-				   &ev->digest_sizes[count].algorithm_id);
-		put_unaligned_le16(len, &ev->digest_sizes[count].digest_size);
-		count++;
-	}
-
-	*((u8 *)ev + (event_size - 1)) = 0;
-	elog->log_position = log_size;
-
-	return 0;
-}
-
-static int tcg2_replay_eventlog(struct tcg2_event_log *elog,
-				struct udevice *dev,
-				struct tpml_digest_values *digest_list,
-				u32 log_position)
-{
-	const u32 offset = offsetof(struct tcg_pcr_event2, digests) +
-		offsetof(struct tpml_digest_values, digests);
-	u32 event_size;
-	u32 count;
-	u16 algo;
-	u32 pcr;
-	u32 pos;
-	u16 len;
-	u8 *log;
-	int rc;
-	u32 i;
-
-	while (log_position + offset < elog->log_size) {
-		log = elog->log + log_position;
-
-		pos = offsetof(struct tcg_pcr_event2, pcr_index);
-		pcr = get_unaligned_le32(log + pos);
-		pos = offsetof(struct tcg_pcr_event2, event_type);
-		if (!get_unaligned_le32(log + pos))
-			return 0;
-
-		pos = offsetof(struct tcg_pcr_event2, digests) +
-			offsetof(struct tpml_digest_values, count);
-		count = get_unaligned_le32(log + pos);
-		if (count > ARRAY_SIZE(tpm2_supported_algorithms) ||
-		    (digest_list->count && digest_list->count != count))
-			return 0;
-
-		pos = offsetof(struct tcg_pcr_event2, digests) +
-			offsetof(struct tpml_digest_values, digests);
-		for (i = 0; i < count; ++i) {
-			pos += offsetof(struct tpmt_ha, hash_alg);
-			if (log_position + pos + sizeof(u16) >= elog->log_size)
-				return 0;
-
-			algo = get_unaligned_le16(log + pos);
-			pos += offsetof(struct tpmt_ha, digest);
-			switch (algo) {
-			case TPM2_ALG_SHA1:
-			case TPM2_ALG_SHA256:
-			case TPM2_ALG_SHA384:
-			case TPM2_ALG_SHA512:
-				len = tpm2_algorithm_to_len(algo);
-				break;
-			default:
-				return 0;
-			}
-
-			if (digest_list->count) {
-				if (algo != digest_list->digests[i].hash_alg ||
-				    log_position + pos + len >= elog->log_size)
-					return 0;
-
-				memcpy(digest_list->digests[i].digest.sha512,
-				       log + pos, len);
-			}
-
-			pos += len;
-		}
-
-		if (log_position + pos + sizeof(u32) >= elog->log_size)
-			return 0;
-
-		event_size = get_unaligned_le32(log + pos);
-		pos += event_size + sizeof(u32);
-		if (log_position + pos > elog->log_size)
-			return 0;
-
-		if (digest_list->count) {
-			rc = tcg2_pcr_extend(dev, pcr, digest_list);
-			if (rc)
-				return rc;
-		}
-
-		log_position += pos;
-	}
-
-	elog->log_position = log_position;
-	elog->found = true;
-	return 0;
-}
-
-static int tcg2_log_parse(struct udevice *dev, struct tcg2_event_log *elog)
-{
-	struct tpml_digest_values digest_list;
-	struct tcg_efi_spec_id_event *event;
-	struct tcg_pcr_event *log;
-	u32 log_active;
-	u32 calc_size;
-	u32 active;
-	u32 count;
-	u32 evsz;
-	u32 mask;
-	u16 algo;
-	u16 len;
-	int rc;
-	u32 i;
-	u16 j;
-
-	if (elog->log_size <= offsetof(struct tcg_pcr_event, event))
-		return 0;
-
-	log = (struct tcg_pcr_event *)elog->log;
-	if (get_unaligned_le32(&log->pcr_index) != 0 ||
-	    get_unaligned_le32(&log->event_type) != EV_NO_ACTION)
-		return 0;
-
-	for (i = 0; i < sizeof(log->digest); i++) {
-		if (log->digest[i])
-			return 0;
-	}
-
-	evsz = get_unaligned_le32(&log->event_size);
-	if (evsz < offsetof(struct tcg_efi_spec_id_event, digest_sizes) ||
-	    evsz + offsetof(struct tcg_pcr_event, event) > elog->log_size)
-		return 0;
-
-	event = (struct tcg_efi_spec_id_event *)log->event;
-	if (memcmp(event->signature, TCG_EFI_SPEC_ID_EVENT_SIGNATURE_03,
-		   sizeof(TCG_EFI_SPEC_ID_EVENT_SIGNATURE_03)))
-		return 0;
-
-	if (event->spec_version_minor != TCG_EFI_SPEC_ID_EVENT_SPEC_VERSION_MINOR_TPM2 ||
-	    event->spec_version_major != TCG_EFI_SPEC_ID_EVENT_SPEC_VERSION_MAJOR_TPM2)
-		return 0;
-
-	count = get_unaligned_le32(&event->number_of_algorithms);
-	if (count > ARRAY_SIZE(tpm2_supported_algorithms))
-		return 0;
-
-	calc_size = offsetof(struct tcg_efi_spec_id_event, digest_sizes) +
-		(sizeof(struct tcg_efi_spec_id_event_algorithm_size) * count) +
-		1;
-	if (evsz != calc_size)
-		return 0;
-
-	rc = tcg2_get_active_pcr_banks(dev, &active);
-	if (rc)
-		return rc;
-
-	digest_list.count = 0;
-	log_active = 0;
-
-	for (i = 0; i < count; ++i) {
-		algo = get_unaligned_le16(&event->digest_sizes[i].algorithm_id);
-		mask = tpm2_algorithm_to_mask(algo);
-
-		if (!(active & mask))
-			return 0;
-
-		switch (algo) {
-		case TPM2_ALG_SHA1:
-		case TPM2_ALG_SHA256:
-		case TPM2_ALG_SHA384:
-		case TPM2_ALG_SHA512:
-			len = get_unaligned_le16(&event->digest_sizes[i].digest_size);
-			if (tpm2_algorithm_to_len(algo) != len)
-				return 0;
-			digest_list.digests[digest_list.count++].hash_alg = algo;
-			break;
-		default:
-			return 0;
-		}
-
-		log_active |= mask;
-	}
-
-	/* Ensure the previous firmware extended all the PCRs. */
-	if (log_active != active)
-		return 0;
-
-	/* Read PCR0 to check if previous firmware extended the PCRs or not. */
-	rc = tcg2_pcr_read(dev, 0, &digest_list);
-	if (rc)
-		return rc;
-
-	for (i = 0; i < digest_list.count; ++i) {
-		len = tpm2_algorithm_to_len(digest_list.digests[i].hash_alg);
-		for (j = 0; j < len; ++j) {
-			if (digest_list.digests[i].digest.sha512[j])
-				break;
-		}
-
-		/* PCR is non-zero; it has been extended, so skip extending. */
-		if (j != len) {
-			digest_list.count = 0;
-			break;
-		}
-	}
-
-	return tcg2_replay_eventlog(elog, dev, &digest_list,
-				    offsetof(struct tcg_pcr_event, event) +
-				    evsz);
-}
-
-int tcg2_pcr_extend(struct udevice *dev, u32 pcr_index,
-		    struct tpml_digest_values *digest_list)
-{
-	u32 rc;
-	u32 i;
-
-	for (i = 0; i < digest_list->count; i++) {
-		u32 alg = digest_list->digests[i].hash_alg;
-
-		rc = tpm2_pcr_extend(dev, pcr_index, alg,
-				     (u8 *)&digest_list->digests[i].digest,
-				     tpm2_algorithm_to_len(alg));
-		if (rc) {
-			printf("%s: error pcr:%u alg:%08x\n", __func__,
-			       pcr_index, alg);
-			return rc;
-		}
-	}
-
-	return 0;
-}
-
-int tcg2_pcr_read(struct udevice *dev, u32 pcr_index,
-		  struct tpml_digest_values *digest_list)
-{
-	struct tpm_chip_priv *priv;
-	u32 rc;
-	u32 i;
-
-	priv = dev_get_uclass_priv(dev);
-	if (!priv)
-		return -ENODEV;
-
-	for (i = 0; i < digest_list->count; i++) {
-		u32 alg = digest_list->digests[i].hash_alg;
-		u8 *digest = (u8 *)&digest_list->digests[i].digest;
-
-		rc = tpm2_pcr_read(dev, pcr_index, priv->pcr_select_min, alg,
-				   digest, tpm2_algorithm_to_len(alg), NULL);
-		if (rc) {
-			printf("%s: error pcr:%u alg:%08x\n", __func__,
-			       pcr_index, alg);
-			return rc;
-		}
-	}
-
-	return 0;
-}
-
-int tcg2_measure_data(struct udevice *dev, struct tcg2_event_log *elog,
-		      u32 pcr_index, u32 size, const u8 *data, u32 event_type,
-		      u32 event_size, const u8 *event)
-{
-	struct tpml_digest_values digest_list;
-	int rc;
-
-	if (data)
-		rc = tcg2_create_digest(dev, data, size, &digest_list);
-	else
-		rc = tcg2_create_digest(dev, event, event_size, &digest_list);
-	if (rc)
-		return rc;
-
-	rc = tcg2_pcr_extend(dev, pcr_index, &digest_list);
-	if (rc)
-		return rc;
-
-	return tcg2_log_append_check(elog, pcr_index, event_type, &digest_list,
-				     event_size, event);
-}
-
-int tcg2_log_prepare_buffer(struct udevice *dev, struct tcg2_event_log *elog,
-			    bool ignore_existing_log)
-{
-	struct tcg2_event_log log;
-	int rc;
-
-	elog->log_position = 0;
-	elog->found = false;
-
-	rc = tcg2_platform_get_log(dev, (void **)&log.log, &log.log_size);
-	if (!rc) {
-		log.log_position = 0;
-		log.found = false;
-
-		if (!ignore_existing_log) {
-			rc = tcg2_log_parse(dev, &log);
-			if (rc)
-				return rc;
-		}
-
-		if (elog->log_size) {
-			if (log.found) {
-				if (elog->log_size < log.log_position)
-					return -ENOSPC;
-
-				/*
-				 * Copy the discovered log into the user buffer
-				 * if there's enough space.
-				 */
-				memcpy(elog->log, log.log, log.log_position);
-			}
-
-			unmap_physmem(log.log, MAP_NOCACHE);
-		} else {
-			elog->log = log.log;
-			elog->log_size = log.log_size;
-		}
-
-		elog->log_position = log.log_position;
-		elog->found = log.found;
-	}
-
-	/*
-	 * Initialize the log buffer if no log was discovered and the buffer is
-	 * valid. User's can pass in their own buffer as a fallback if no
-	 * memory region is found.
-	 */
-	if (!elog->found && elog->log_size)
-		rc = tcg2_log_init(dev, elog);
 
 	return rc;
 }
 
-int tcg2_measurement_init(struct udevice **dev, struct tcg2_event_log *elog,
-			  bool ignore_existing_log)
+static int tpm2_pcr_allocate(struct udevice *dev, u32 algo_mask)
 {
+	struct tpml_pcr_selection pcr = { 0 };
+	u32 pcr_len = 0;
 	int rc;
 
-	rc = tcg2_platform_get_tpm2(dev);
+	rc = tpm2_get_pcr_info(dev, &pcr);
 	if (rc)
 		return rc;
 
-	rc = tpm_auto_start(*dev);
+	rc = tpm2_pcr_config_algo(dev, algo_mask, &pcr, &pcr_len);
 	if (rc)
 		return rc;
 
-	rc = tcg2_log_prepare_buffer(*dev, elog, ignore_existing_log);
-	if (rc) {
-		tcg2_measurement_term(*dev, elog, true);
+	/* Assume no password */
+	rc = tpm2_send_pcr_allocate(dev, NULL, 0, &pcr, pcr_len);
+	if (rc)
 		return rc;
-	}
 
-	rc = tcg2_measure_event(*dev, elog, 0, EV_S_CRTM_VERSION,
-				strlen(version_string) + 1,
-				(u8 *)version_string);
-	if (rc) {
-		tcg2_measurement_term(*dev, elog, true);
+	/* Send TPM2_Shutdown, assume mode = TPM2_SU_CLEAR */
+	return tpm2_startup(dev, false, TPM2_SU_CLEAR);
+}
+
+int tpm2_activate_banks(struct udevice *dev, u32 log_active)
+{
+	u32 algo_mask = 0;
+	int rc;
+
+	rc = tpm2_scan_masks(dev, log_active, &algo_mask);
+	if (rc)
 		return rc;
+
+	if (algo_mask) {
+		if (!IS_ENABLED(CONFIG_TPM_PCR_ALLOCATE))
+			return -1;
+
+		rc = tpm2_pcr_allocate(dev, algo_mask);
+		if (rc)
+			return rc;
+
+		log_info("PCR allocate done, shutdown TPM and reboot\n");
+		do_reset(NULL, 0, 0, NULL);
+		log_err("reset does not work!\n");
+		return -1;
 	}
 
 	return 0;
 }
 
-void tcg2_measurement_term(struct udevice *dev, struct tcg2_event_log *elog,
-			   bool error)
+u32 tpm2_startup(struct udevice *dev, bool bon, enum tpm2_startup_types mode)
 {
-	u32 event = error ? 0x1 : 0xffffffff;
-	int i;
-
-	for (i = 0; i < 8; ++i)
-		tcg2_measure_event(dev, elog, i, EV_SEPARATOR, sizeof(event),
-				   (const u8 *)&event);
-
-	if (elog->log)
-		unmap_physmem(elog->log, MAP_NOCACHE);
-}
-
-__weak int tcg2_platform_get_log(struct udevice *dev, void **addr, u32 *size)
-{
-	const __be32 *addr_prop;
-	const __be32 *size_prop;
-	int asize;
-	int ssize;
-
-	*addr = NULL;
-	*size = 0;
-
-	addr_prop = dev_read_prop(dev, "tpm_event_log_addr", &asize);
-	if (!addr_prop)
-		addr_prop = dev_read_prop(dev, "linux,sml-base", &asize);
-
-	size_prop = dev_read_prop(dev, "tpm_event_log_size", &ssize);
-	if (!size_prop)
-		size_prop = dev_read_prop(dev, "linux,sml-size", &ssize);
-
-	if (addr_prop && size_prop) {
-		u64 a = of_read_number(addr_prop, asize / sizeof(__be32));
-		u64 s = of_read_number(size_prop, ssize / sizeof(__be32));
-
-		*addr = map_physmem(a, s, MAP_NOCACHE);
-		*size = (u32)s;
-	} else {
-		struct ofnode_phandle_args args;
-		phys_addr_t a;
-		fdt_size_t s;
-
-		if (dev_read_phandle_with_args(dev, "memory-region", NULL, 0,
-					       0, &args))
-			return -ENODEV;
-
-		a = ofnode_get_addr_size(args.node, "reg", &s);
-		if (a == FDT_ADDR_T_NONE)
-			return -ENOMEM;
-
-		*addr = map_physmem(a, s, MAP_NOCACHE);
-		*size = (u32)s;
-	}
-
-	return 0;
-}
-
-__weak int tcg2_platform_get_tpm2(struct udevice **dev)
-{
-	for_each_tpm_device(*dev) {
-		if (tpm_get_version(*dev) == TPM_V2)
-			return 0;
-	}
-
-	return -ENODEV;
-}
-
-__weak void tcg2_platform_startup_error(struct udevice *dev, int rc) {}
-
-u32 tpm2_startup(struct udevice *dev, enum tpm2_startup_types mode)
-{
+	int op = bon ? TPM2_CC_STARTUP : TPM2_CC_SHUTDOWN;
 	const u8 command_v2[12] = {
 		tpm_u16(TPM2_ST_NO_SESSIONS),
 		tpm_u32(12),
-		tpm_u32(TPM2_CC_STARTUP),
+		tpm_u32(op),
 		tpm_u16(mode),
 	};
 	int ret;
@@ -714,10 +181,10 @@ u32 tpm2_startup(struct udevice *dev, enum tpm2_startup_types mode)
 	 * but will return RC_INITIALIZE otherwise.
 	 */
 	ret = tpm_sendrecv_command(dev, command_v2, NULL, NULL);
-	if (ret && ret != TPM2_RC_INITIALIZE)
+	if ((ret && ret != TPM2_RC_INITIALIZE) || !bon)
 		return ret;
 
-	return 0;
+	return tpm2_update_active_banks(dev);
 }
 
 u32 tpm2_self_test(struct udevice *dev, enum tpm2_yes_no full_test)
@@ -739,14 +206,16 @@ u32 tpm2_auto_start(struct udevice *dev)
 	rc = tpm2_self_test(dev, TPMI_YES);
 
 	if (rc == TPM2_RC_INITIALIZE) {
-		rc = tpm2_startup(dev, TPM2_SU_CLEAR);
+		rc = tpm2_startup(dev, true, TPM2_SU_CLEAR);
 		if (rc)
 			return rc;
 
 		rc = tpm2_self_test(dev, TPMI_YES);
 	}
+	if (rc)
+		return rc;
 
-	return rc;
+	return tpm2_update_active_banks(dev);
 }
 
 u32 tpm2_clear(struct udevice *dev, u32 handle, const char *pw,
@@ -872,6 +341,14 @@ u32 tpm2_pcr_extend(struct udevice *dev, u32 index, u32 algorithm,
 
 	if (!digest)
 		return -EINVAL;
+
+	if (!tpm2_check_active_banks(dev)) {
+		log_err("Cannot extend PCRs if all the TPM enabled algorithms are not supported\n");
+
+		ret = tpm2_pcr_allocate(dev, 0);
+		if (ret)
+			return -EINVAL;
+	}
 	/*
 	 * Fill the command structure starting from the first buffer:
 	 *     - the digest
@@ -1047,6 +524,130 @@ u32 tpm2_get_capability(struct udevice *dev, u32 capability, u32 property,
 	return 0;
 }
 
+u32 tpm2_pcr_config_algo(struct udevice *dev, u32 algo_mask,
+			 struct tpml_pcr_selection *pcr, u32 *pcr_len)
+{
+	int i;
+
+	if (pcr->count > TPM2_NUM_PCR_BANKS)
+		return TPM_LIB_ERROR;
+
+	*pcr_len = sizeof(pcr->count);
+
+	for (i = 0; i < pcr->count; i++) {
+		struct tpms_pcr_selection *sel = &pcr->selection[i];
+		u8 pad = 0;
+		int j;
+
+		if (sel->size_of_select > TPM2_PCR_SELECT_MAX)
+			return TPM_LIB_ERROR;
+
+		/*
+		 * Found the algorithm (bank) that matches, and enable all PCR
+		 * bits.
+		 * TODO: only select the bits needed
+		 */
+		for (j = 0; j < ARRAY_SIZE(hash_algo_list); j++) {
+			if (hash_algo_list[j].hash_alg != sel->hash)
+				continue;
+
+			if (algo_mask & hash_algo_list[j].hash_mask)
+				pad = 0xff;
+		}
+
+		for (j = 0; j < sel->size_of_select; j++)
+			sel->pcr_select[j] = pad;
+
+		log_info("set bank[%d] %s %s\n", i,
+			 tpm2_algorithm_name(sel->hash),
+			 tpm2_is_active_bank(sel) ? "on" : "off");
+
+		*pcr_len += sizeof(sel->hash) + sizeof(sel->size_of_select) +
+			    sel->size_of_select;
+	}
+
+	return 0;
+}
+
+u32 tpm2_send_pcr_allocate(struct udevice *dev, const char *pw,
+			   const ssize_t pw_sz, struct tpml_pcr_selection *pcr,
+			   u32 pcr_len)
+{
+	/* Length of the message header, up to start of password */
+	uint offset = 27;
+	u8 command_v2[COMMAND_BUFFER_SIZE] = {
+		tpm_u16(TPM2_ST_SESSIONS),   /* TAG */
+		tpm_u32(offset + pw_sz + pcr_len), /* Length */
+		tpm_u32(TPM2_CC_PCR_ALLOCATE),  /* Command code */
+
+		/* handles 4 bytes */
+		tpm_u32(TPM2_RH_PLATFORM),	/* Primary platform seed */
+
+		/* AUTH_SESSION */
+		tpm_u32(9 + pw_sz),		/* Authorization size */
+		tpm_u32(TPM2_RS_PW),		/* Session handle */
+		tpm_u16(0),			/* Size of <nonce> */
+						/* <nonce> (if any) */
+		0,				/* Attributes: Cont/Excl/Rst */
+		tpm_u16(pw_sz),			/* Size of <hmac/password> */
+		/* STRING(pw)			   <hmac/password> (if any) */
+
+		/* TPML_PCR_SELECTION */
+	};
+	u8 response[COMMAND_BUFFER_SIZE];
+	size_t response_len = COMMAND_BUFFER_SIZE;
+	u32 i;
+	int ret;
+
+	/*
+	 * Fill the command structure starting from the first buffer:
+	 * the password (if any)
+	 */
+	if (pack_byte_string(command_v2, sizeof(command_v2), "s", offset, pw,
+			     pw_sz))
+		return TPM_LIB_ERROR;
+
+	offset += pw_sz;
+
+	/* Pack the count field */
+	if (pack_byte_string(command_v2, sizeof(command_v2), "d", offset, pcr->count))
+		return TPM_LIB_ERROR;
+
+	offset += sizeof(pcr->count);
+
+	/* Pack each tpms_pcr_selection */
+	for (i = 0; i < pcr->count; i++) {
+		struct tpms_pcr_selection *sel = &pcr->selection[i];
+
+		/* Pack hash (16-bit) */
+		if (pack_byte_string(command_v2, sizeof(command_v2), "w", offset,
+				     sel->hash))
+			return TPM_LIB_ERROR;
+
+		offset += sizeof(sel->hash);
+
+		/* Pack size_of_select (8-bit) */
+		if (pack_byte_string(command_v2, sizeof(command_v2), "b", offset,
+				     sel->size_of_select))
+			return TPM_LIB_ERROR;
+
+		offset += sizeof(sel->size_of_select);
+
+		/* Pack pcr_select array */
+		if (pack_byte_string(command_v2, sizeof(command_v2), "s", offset,
+				     sel->pcr_select, sel->size_of_select))
+			return TPM_LIB_ERROR;
+
+		offset += sel->size_of_select;
+	}
+
+	ret = tpm_sendrecv_command(dev, command_v2, response, &response_len);
+	if (!ret)
+		tpm_init(dev);
+
+	return ret;
+}
+
 static int tpm2_get_num_pcr(struct udevice *dev, u32 *num_pcr)
 {
 	u8 response[(sizeof(struct tpms_capability_data) -
@@ -1071,48 +672,25 @@ static int tpm2_get_num_pcr(struct udevice *dev, u32 *num_pcr)
 	return 0;
 }
 
-static bool tpm2_is_active_pcr(struct tpms_pcr_selection *selection)
-{
-	int i;
-
-	/*
-	 * check the pcr_select. If at least one of the PCRs supports the
-	 * algorithm add it on the active ones
-	 */
-	for (i = 0; i < selection->size_of_select; i++) {
-		if (selection->pcr_select[i])
-			return true;
-	}
-
-	return false;
-}
-
-int tpm2_get_pcr_info(struct udevice *dev, u32 *supported_pcr, u32 *active_pcr,
-		      u32 *pcr_banks)
+int tpm2_get_pcr_info(struct udevice *dev, struct tpml_pcr_selection *pcrs)
 {
 	u8 response[(sizeof(struct tpms_capability_data) -
 		offsetof(struct tpms_capability_data, data))];
-	struct tpml_pcr_selection pcrs;
 	u32 num_pcr;
 	size_t i;
 	u32 ret;
 
-	*supported_pcr = 0;
-	*active_pcr = 0;
-	*pcr_banks = 0;
-	memset(response, 0, sizeof(response));
 	ret = tpm2_get_capability(dev, TPM2_CAP_PCRS, 0, response, 1);
 	if (ret)
 		return ret;
 
-	pcrs.count = get_unaligned_be32(response);
+	pcrs->count = get_unaligned_be32(response);
 	/*
-	 * We only support 5 algorithms for now so check against that
+	 * check against the supported algorithms in hash_algo_list,
 	 * instead of TPM2_NUM_PCR_BANKS
 	 */
-	if (pcrs.count > ARRAY_SIZE(tpm2_supported_algorithms) ||
-	    pcrs.count < 1) {
-		printf("%s: too many pcrs: %u\n", __func__, pcrs.count);
+	if (pcrs->count > ARRAY_SIZE(hash_algo_list) || pcrs->count < 1) {
+		printf("%s: too many pcrs: %u\n", __func__, pcrs->count);
 		return -EMSGSIZE;
 	}
 
@@ -1120,7 +698,7 @@ int tpm2_get_pcr_info(struct udevice *dev, u32 *supported_pcr, u32 *active_pcr,
 	if (ret)
 		return ret;
 
-	for (i = 0; i < pcrs.count; i++) {
+	for (i = 0; i < pcrs->count; i++) {
 		/*
 		 * Definition of TPMS_PCR_SELECTION Structure
 		 * hash: u16
@@ -1140,34 +718,19 @@ int tpm2_get_pcr_info(struct udevice *dev, u32 *supported_pcr, u32 *active_pcr,
 			hash_offset + offsetof(struct tpms_pcr_selection,
 					       pcr_select);
 
-		pcrs.selection[i].hash =
+		pcrs->selection[i].hash =
 			get_unaligned_be16(response + hash_offset);
-		pcrs.selection[i].size_of_select =
+		pcrs->selection[i].size_of_select =
 			__get_unaligned_be(response + size_select_offset);
-		if (pcrs.selection[i].size_of_select > TPM2_PCR_SELECT_MAX) {
+		if (pcrs->selection[i].size_of_select > TPM2_PCR_SELECT_MAX) {
 			printf("%s: pcrs selection too large: %u\n", __func__,
-			       pcrs.selection[i].size_of_select);
+			       pcrs->selection[i].size_of_select);
 			return -ENOBUFS;
 		}
 		/* copy the array of pcr_select */
-		memcpy(pcrs.selection[i].pcr_select, response + pcr_select_offset,
-		       pcrs.selection[i].size_of_select);
+		memcpy(pcrs->selection[i].pcr_select, response + pcr_select_offset,
+		       pcrs->selection[i].size_of_select);
 	}
-
-	for (i = 0; i < pcrs.count; i++) {
-		u32 hash_mask = tpm2_algorithm_to_mask(pcrs.selection[i].hash);
-
-		if (hash_mask) {
-			*supported_pcr |= hash_mask;
-			if (tpm2_is_active_pcr(&pcrs.selection[i]))
-				*active_pcr |= hash_mask;
-		} else {
-			printf("%s: unknown algorithm %x\n", __func__,
-			       pcrs.selection[i].hash);
-		}
-	}
-
-	*pcr_banks = pcrs.count;
 
 	return 0;
 }
@@ -1530,7 +1093,7 @@ u32 tpm2_report_state(struct udevice *dev, uint vendor_cmd, uint vendor_subcmd,
 	if (*recv_size < 12)
 		return -ENODATA;
 	*recv_size -= 12;
-	memcpy(recvbuf, recvbuf + 12, *recv_size);
+	memmove(recvbuf, recvbuf + 12, *recv_size);
 
 	return 0;
 }
@@ -1554,4 +1117,107 @@ u32 tpm2_enable_nvcommits(struct udevice *dev, uint vendor_cmd,
 		return ret;
 
 	return 0;
+}
+
+bool tpm2_is_active_bank(struct tpms_pcr_selection *selection)
+{
+	int i;
+
+	for (i = 0; i < selection->size_of_select; i++) {
+		if (selection->pcr_select[i])
+			return true;
+	}
+
+	return false;
+}
+
+enum tpm2_algorithms tpm2_name_to_algorithm(const char *name)
+{
+	size_t i;
+
+	for (i = 0; i < ARRAY_SIZE(hash_algo_list); ++i) {
+		if (!strcasecmp(name, hash_algo_list[i].hash_name))
+			return hash_algo_list[i].hash_alg;
+	}
+	printf("%s: unsupported algorithm %s\n", __func__, name);
+
+	return TPM2_ALG_INVAL;
+}
+
+const char *tpm2_algorithm_name(enum tpm2_algorithms algo)
+{
+	size_t i;
+
+	for (i = 0; i < ARRAY_SIZE(hash_algo_list); ++i) {
+		if (hash_algo_list[i].hash_alg == algo)
+			return hash_algo_list[i].hash_name;
+	}
+
+	return "";
+}
+
+bool tpm2_algorithm_supported(enum tpm2_algorithms algo)
+{
+	size_t i;
+
+	for (i = 0; i < ARRAY_SIZE(hash_algo_list); ++i) {
+		if (hash_algo_list[i].hash_alg == algo)
+			return hash_algo_list[i].supported;
+	}
+
+	return false;
+}
+
+u16 tpm2_algorithm_to_len(enum tpm2_algorithms algo)
+{
+	size_t i;
+
+	for (i = 0; i < ARRAY_SIZE(hash_algo_list); ++i) {
+		if (hash_algo_list[i].hash_alg == algo)
+			return hash_algo_list[i].hash_len;
+	}
+
+	return 0;
+}
+
+bool tpm2_check_active_banks(struct udevice *dev)
+{
+	struct tpml_pcr_selection pcrs;
+	size_t i;
+	int rc;
+
+	rc = tpm2_get_pcr_info(dev, &pcrs);
+	if (rc)
+		return false;
+
+	for (i = 0; i < pcrs.count; i++) {
+		if (tpm2_is_active_bank(&pcrs.selection[i]) &&
+		    !tpm2_algorithm_supported(pcrs.selection[i].hash))
+			return false;
+	}
+
+	return true;
+}
+
+void tpm2_print_active_banks(struct udevice *dev)
+{
+	struct tpml_pcr_selection pcrs;
+	size_t i;
+	int rc;
+
+	rc = tpm2_get_pcr_info(dev, &pcrs);
+	if (rc) {
+		log_err("Can't retrieve active PCRs\n");
+		return;
+	}
+
+	for (i = 0; i < pcrs.count; i++) {
+		if (tpm2_is_active_bank(&pcrs.selection[i])) {
+			const char *str;
+
+			str = tpm2_algorithm_name(pcrs.selection[i].hash);
+			if (str)
+				log_info("%s\n", str);
+		}
+	}
 }

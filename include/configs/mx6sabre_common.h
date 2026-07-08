@@ -11,7 +11,7 @@
 
 #include <linux/stringify.h>
 #include "mx6_common.h"
-#include "imx_env.h"
+#include <env/nxp/imx_env.h>
 
 /* MMC Configs */
 #define CFG_SYS_FSL_ESDHC_ADDR      0
@@ -75,7 +75,6 @@
 	TEE_ENV \
 	"fdt_addr=0x18000000\0" \
 	"tee_addr=0x20000000\0" \
-	"fdt_high=0xffffffff\0"	  \
 	"splashimage=0x28000000\0" \
 	"console=" CONSOLE_DEV "\0" \
 	"bootargs=console=" CONSOLE_DEV ",115200 ubi.mtd=nandrootfs "  \
@@ -99,7 +98,6 @@
 		"image=zImage\0" \
 		"fdt_file=undefined\0" \
 		"fdt_addr=0x18000000\0" \
-		"fdt_high=0xffffffff\0"   \
 		"splashimage=0x28000000\0" \
 		"tee_addr=0x20000000\0" \
 		"tee_file=undefined\0" \
@@ -172,10 +170,9 @@
 	"dfu_alt_info_spl=spl raw 0x400\0" \
 	"dfu_alt_info_img=u-boot raw 0x10000\0" \
 	"dfu_alt_info=spl raw 0x400\0" \
-	"fdt_high=0xffffffff\0"	  \
 	"initrd_high=0xffffffff\0" \
 	"splashimage=0x28000000\0" \
-	"mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV) "\0" \
+	"mmcdev=" __stringify(CONFIG_ENV_MMC_DEVICE_INDEX) "\0" \
 	"mmcpart=1\0" \
 	"finduuid=part uuid mmc ${mmcdev}:2 uuid\0" \
 	"mmcroot=/dev/mmcblk2p2 rootwait rw\0" \

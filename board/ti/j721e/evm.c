@@ -7,6 +7,8 @@
  *
  */
 
+#include <efi_loader.h>
+#include <env.h>
 #include <generic-phy.h>
 #include <image.h>
 #include <net.h>
@@ -14,6 +16,7 @@
 #include <asm/gpio.h>
 #include <spl.h>
 #include <dm.h>
+#include <asm/arch/k3-ddr.h>
 
 #include "../common/board_detect.h"
 #include "../common/fdt_ops.h"
@@ -32,21 +35,36 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-int board_init(void)
-{
-	return 0;
-}
+struct efi_fw_image fw_images[] = {
+	{
+		.image_type_id = J721E_SK_TIBOOT3_IMAGE_GUID,
+		.fw_name = u"J721E_SK_TIBOOT3",
+		.image_index = 1,
+	},
+	{
+		.image_type_id = J721E_SK_SPL_IMAGE_GUID,
+		.fw_name = u"J721E_SK_SPL",
+		.image_index = 2,
+	},
+	{
+		.image_type_id = J721E_SK_UBOOT_IMAGE_GUID,
+		.fw_name = u"J721E_SK_UBOOT",
+		.image_index = 3,
+	},
+	{
+		.image_type_id = J721E_SK_SYSFW_IMAGE_GUID,
+		.fw_name = u"J721E_SK_SYSFW",
+		.image_index = 4,
+	}
+};
 
-int dram_init(void)
-{
-#ifdef CONFIG_PHYS_64BIT
-	gd->ram_size = 0x100000000;
-#else
-	gd->ram_size = 0x80000000;
-#endif
-
-	return 0;
-}
+struct efi_capsule_update_info update_info = {
+	.dfu_string = "sf 0:0=tiboot3.bin raw 0 80000;"
+	"tispl.bin raw 80000 200000;u-boot.img raw 280000 400000;"
+	"sysfw.itb raw 6C0000 100000",
+	.num_images = ARRAY_SIZE(fw_images),
+	.images = fw_images,
+};
 
 phys_addr_t board_get_usable_ram_top(phys_size_t total_size)
 {
@@ -57,23 +75,6 @@ phys_addr_t board_get_usable_ram_top(phys_size_t total_size)
 #endif
 
 	return gd->ram_top;
-}
-
-int dram_init_banksize(void)
-{
-	/* Bank 0 declares the memory available in the DDR low region */
-	gd->bd->bi_dram[0].start = 0x80000000;
-	gd->bd->bi_dram[0].size = 0x80000000;
-	gd->ram_size = 0x80000000;
-
-#ifdef CONFIG_PHYS_64BIT
-	/* Bank 1 declares the memory available in the DDR high region */
-	gd->bd->bi_dram[1].start = 0x880000000;
-	gd->bd->bi_dram[1].size = 0x80000000;
-	gd->ram_size = 0x100000000;
-#endif
-
-	return 0;
 }
 
 #ifdef CONFIG_SPL_LOAD_FIT
@@ -124,9 +125,9 @@ static void __maybe_unused detect_enable_hyperflash(void *blob)
 }
 #endif
 
-#if defined(CONFIG_SPL_BUILD) && (defined(CONFIG_TARGET_J7200_A72_EVM) || defined(CONFIG_TARGET_J7200_R5_EVM) || \
+#if defined(CONFIG_XPL_BUILD) && (defined(CONFIG_TARGET_J7200_A72_EVM) || defined(CONFIG_TARGET_J7200_R5_EVM) || \
 					defined(CONFIG_TARGET_J721E_A72_EVM) || defined(CONFIG_TARGET_J721E_R5_EVM))
-void spl_perform_fixups(struct spl_image_info *spl_image)
+void spl_perform_board_fixups(struct spl_image_info *spl_image)
 {
 	detect_enable_hyperflash(spl_image->fdt_addr);
 }
@@ -300,7 +301,7 @@ static int probe_daughtercards(void)
 		printf("Detected: %s rev %s\n", ep.name, ep.version);
 		daughter_card_detect_flags[i] = true;
 
-		if (!IS_ENABLED(CONFIG_SPL_BUILD)) {
+		if (!IS_ENABLED(CONFIG_XPL_BUILD)) {
 			int j;
 			/*
 			 * Populate any MAC addresses from daughtercard into the U-Boot
@@ -319,7 +320,7 @@ static int probe_daughtercards(void)
 		}
 	}
 
-	if (!IS_ENABLED(CONFIG_SPL_BUILD)) {
+	if (!IS_ENABLED(CONFIG_XPL_BUILD)) {
 		char name_overlays[1024] = { 0 };
 
 		for (i = 0; i < ARRAY_SIZE(ext_cards); i++) {
@@ -355,14 +356,14 @@ static int probe_daughtercards(void)
 
 #ifdef CONFIG_BOARD_LATE_INIT
 static struct ti_fdt_map ti_j721e_evm_fdt_map[] = {
-	{"j721e", "k3-j721e-common-proc-board.dtb"},
-	{"j721e-sk", "k3-j721e-sk.dtb"},
-	{"j7200", "k3-j7200-common-proc-board.dtb"},
+	{"j721e", "ti/k3-j721e-common-proc-board.dtb"},
+	{"j721e-sk", "ti/k3-j721e-sk.dtb"},
+	{"j7200", "ti/k3-j7200-common-proc-board.dtb"},
 	{ /* Sentinel. */ }
 };
 static void setup_board_eeprom_env(void)
 {
-	char *name = "j721e";
+	char *name = NULL;
 
 	if (do_board_detect())
 		goto invalid_eeprom;
@@ -402,6 +403,19 @@ static void setup_serial(void)
 	env_set("serial#", serial_string);
 }
 
+static void qsgmii_daughtercard_env_update(void)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(ext_cards); i++) {
+		if (!strcmp(ext_cards[i].card_name, "J7X-VSC8514-ETH") &&
+		    daughter_card_detect_flags[i]) {
+			env_set("do_main_cpsw0_qsgmii_phyinit", "1");
+			return;
+		}
+	}
+}
+
 int board_late_init(void)
 {
 	if (IS_ENABLED(CONFIG_TI_I2C_BOARD_DETECT)) {
@@ -411,6 +425,9 @@ int board_late_init(void)
 		/* Check for and probe any plugged-in daughtercards */
 		if (board_is_j721e_som() || board_is_j7200_som())
 			probe_daughtercards();
+
+		/* Update env for power-on-reset of the QSGMII Daughtercard */
+		qsgmii_daughtercard_env_update();
 	}
 
 	return 0;
@@ -465,10 +482,13 @@ void spl_board_init(void)
 	}
 
 	if (IS_ENABLED(CONFIG_ESM_K3)) {
-		ret = uclass_get_device_by_driver(UCLASS_MISC,
-						  DM_DRIVER_GET(k3_esm), &dev);
+		ret = uclass_get_device_by_name(UCLASS_MISC, "esm@700000", &dev);
 		if (ret)
-			printf("ESM init failed: %d\n", ret);
+			printf("MISC init for esm@700000 failed: %d\n", ret);
+
+		ret = uclass_get_device_by_name(UCLASS_MISC, "esm@40800000", &dev);
+		if (ret)
+			printf("MISC init for esm@40800000 failed: %d\n", ret);
 	}
 
 	if (IS_ENABLED(CONFIG_ESM_PMIC)) {

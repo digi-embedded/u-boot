@@ -19,8 +19,9 @@
 #include <linux/kmod.h>
 #endif
 
-#include <common.h>
 #include <malloc.h>
+#include <memalign.h>
+#include <part.h>
 #include <linux/bug.h>
 #include <linux/errno.h>
 #include <linux/compat.h>
@@ -211,7 +212,7 @@ int mtd_parse_partitions(struct mtd_info *parent, const char **_mtdparts,
 {
 	struct mtd_partition partition = {}, *parts;
 	const char *mtdparts = *_mtdparts;
-	uint64_t cur_off = 0, cur_sz = 0;
+	uint64_t cur_off = 0;
 	int nparts = 0;
 	int ret, idx;
 	u64 sz;
@@ -239,9 +240,12 @@ int mtd_parse_partitions(struct mtd_info *parent, const char **_mtdparts,
 		if (ret)
 			return ret;
 
+		if (parts[idx].offset == MTD_OFFSET_NOT_SPECIFIED)
+			parts[idx].offset = cur_off;
+		cur_off += parts[idx].size;
+
 		if (parts[idx].size == MTD_SIZE_REMAINING)
-			parts[idx].size = parent->size - cur_sz;
-		cur_sz += parts[idx].size;
+			parts[idx].size = parent->size - parts[idx].offset;
 
 		sz = parts[idx].size;
 		if (sz < parent->writesize || do_div(sz, parent->writesize)) {
@@ -249,10 +253,6 @@ int mtd_parse_partitions(struct mtd_info *parent, const char **_mtdparts,
 			       parent->writesize);
 			return -EINVAL;
 		}
-
-		if (parts[idx].offset == MTD_OFFSET_NOT_SPECIFIED)
-			parts[idx].offset = cur_off;
-		cur_off += parts[idx].size;
 
 		parts[idx].ecclayout = parent->ecclayout;
 	}
@@ -913,11 +913,13 @@ int add_mtd_partitions_of(struct mtd_info *master)
 			continue;
 
 		offset = ofnode_get_addr_size_index_notrans(child, 0, &size);
-		if (offset == FDT_ADDR_T_NONE || !size) {
-			debug("Missing partition offset/size on \"%s\" partition\n",
+		if (offset == FDT_ADDR_T_NONE) {
+			debug("Missing partition offset on \"%s\" partition\n",
 			      master->name);
 			continue;
 		}
+		if (size == MTDPART_SIZ_FULL)
+			size = master->size - offset;
 
 		part.name = ofnode_read_string(child, "label");
 		if (!part.name)
@@ -1059,3 +1061,78 @@ uint64_t mtd_get_device_size(const struct mtd_info *mtd)
 	return mtd->size;
 }
 EXPORT_SYMBOL_GPL(mtd_get_device_size);
+
+static struct mtd_info *mtd_get_partition_by_index(struct mtd_info *mtd, int index)
+{
+	struct mtd_info *part;
+	int i = 1;
+
+	/* partition indexes starts from 1 */
+	list_for_each_entry(part, &mtd->partitions, node)
+		if (i++ == index)
+			return part;
+
+	return NULL;
+}
+
+static int __maybe_unused part_get_info_mtd(struct blk_desc *dev_desc, int part_idx,
+					    struct disk_partition *info)
+{
+	struct mtd_info *master = blk_desc_to_mtd(dev_desc);
+	struct mtd_info *part;
+
+	if (!master) {
+		debug("MTD device is NULL\n");
+		return -EINVAL;
+	}
+
+	part = mtd_get_partition_by_index(master, part_idx);
+	if (!part) {
+		debug("Failed to find partition with idx=%d on MTD device %s\n",
+		      part_idx, master->name);
+		return -EINVAL;
+	}
+
+	snprintf(info->name, PART_NAME_LEN, part->name);
+	info->start = part->offset / dev_desc->blksz;
+	info->size = part->size / dev_desc->blksz;
+	info->blksz = dev_desc->blksz;
+
+	return 0;
+}
+
+static void __maybe_unused part_print_mtd(struct blk_desc *dev_desc)
+{
+	struct mtd_info *master = blk_desc_to_mtd(dev_desc);
+	struct mtd_info *part;
+
+	if (!master)
+		return;
+
+	list_for_each_entry(part, &master->partitions, node)
+		printf("- 0x%012llx-0x%012llx : \"%s\"\n",
+		       part->offset, part->offset + part->size, part->name);
+}
+
+static int part_test_mtd(struct blk_desc *dev_desc)
+{
+	struct mtd_info *master = blk_desc_to_mtd(dev_desc);
+	ALLOC_CACHE_ALIGN_BUFFER(unsigned char, buffer, dev_desc->blksz);
+
+	if (!master)
+		return -1;
+
+	if (blk_dread(dev_desc, 0, 1, (ulong *)buffer) != 1)
+		return -1;
+
+	return 0;
+}
+
+U_BOOT_PART_TYPE(mtd) = {
+	.name		= "MTD",
+	.part_type	= PART_TYPE_MTD,
+	.max_entries	= MTD_ENTRY_NUMBERS,
+	.get_info	= part_get_info_ptr(part_get_info_mtd),
+	.print		= part_print_ptr(part_print_mtd),
+	.test		= part_test_mtd,
+};

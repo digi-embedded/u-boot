@@ -44,6 +44,10 @@
 		};
 	};
 
+	bsev@6001b000 {
+		status = "okay";
+	};
+
 	pinmux@70000868 {
 		pinctrl-names = "default";
 		pinctrl-0 = <&state_default>;
@@ -828,6 +832,12 @@
 			label = "Volume Down";
 			gpios = <&gpio TEGRA_GPIO(Q, 3) GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_DOWN>;
+		};
+
+		switch-hall-sensor {
+			label = "Lid";
+			gpios = <&gpio TEGRA_GPIO(S, 6) GPIO_ACTIVE_LOW>;
+			linux,code = <SW_LID>;
 		};
 	};
 

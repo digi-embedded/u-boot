@@ -10,7 +10,6 @@
  * (C) Copyright 2013 Oliver Schinagl <oliver@schinagl.nl>
  */
 
-#include <common.h>
 #include <command.h>
 #include <errno.h>
 #include <asm/arch/pmic_bus.h>
@@ -249,8 +248,6 @@ int axp_init(void)
 
 	if (!(axp_chip_id == 0x51))
 		return -ENODEV;
-	else
-		return ret;
 
 	return 0;
 }

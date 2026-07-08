@@ -9,8 +9,7 @@
 
 #if defined(CONFIG_AT91RM9200)
 # include <asm/arch/at91rm9200.h>
-#elif defined(CONFIG_AT91SAM9260) || defined(CONFIG_AT91SAM9G20) || \
-	defined(CONFIG_AT91SAM9XE)
+#elif defined(CONFIG_AT91SAM9260) || defined(CONFIG_AT91SAM9G20)
 # include <asm/arch/at91sam9260.h>
 #elif defined(CONFIG_AT91SAM9261) || defined(CONFIG_AT91SAM9G10)
 # include <asm/arch/at91sam9261.h>
@@ -24,8 +23,12 @@
 # include <asm/arch/at91sam9x5.h>
 #elif defined(CONFIG_SAM9X60)
 # include <asm/arch/sam9x60.h>
+#elif defined(CONFIG_SAM9X7)
+# include <asm/arch/sam9x7.h>
 #elif defined(CONFIG_SAMA7G5)
 # include <asm/arch/sama7g5.h>
+#elif defined(CONFIG_SAMA7D65)
+# include <asm/arch/sama7d65.h>
 #elif defined(CONFIG_SAMA5D2)
 # include <asm/arch/sama5d2.h>
 #elif defined(CONFIG_SAMA5D3)

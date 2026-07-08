@@ -4,7 +4,6 @@
  */
 
 /* Tegra20 high-level function multiplexing */
-#include <common.h>
 #include <log.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/funcmux.h>
@@ -32,7 +31,6 @@ static const struct pmux_pingrp_config disp1_default[] = {
 	PINMUX(LVS,   DISPA,      NORMAL,    NORMAL),
 	PINMUX(SLXD,  SPDIF,      NORMAL,    NORMAL),
 };
-
 
 int funcmux_select(enum periph_id id, int config)
 {
@@ -64,8 +62,15 @@ int funcmux_select(enum periph_id id, int config)
 			pinmux_tristate_disable(PMUX_PINGRP_SDIO1);
 			bad_config = 0;
 			break;
+		case FUNCMUX_UART1_SDB_SDD:
+			pinmux_set_func(PMUX_PINGRP_SDB, PMUX_FUNC_UARTA);
+			pinmux_set_func(PMUX_PINGRP_SDD, PMUX_FUNC_UARTA);
+			pinmux_tristate_disable(PMUX_PINGRP_SDB);
+			pinmux_tristate_disable(PMUX_PINGRP_SDD);
+			bad_config = 0;
+			break;
 		}
-		if (!bad_config) {
+		if (!bad_config && config != FUNCMUX_UART1_SDB_SDD) {
 			/*
 			 * Tegra appears to boot with function UARTA pre-
 			 * selected on mux group SDB. If two mux groups are

@@ -6,7 +6,6 @@
  * author: Lukasz Majewski <l.majewski@samsung.com>
  */
 
-#include <common.h>
 #include <log.h>
 #include <malloc.h>
 #include <errno.h>
@@ -118,7 +117,7 @@ static int mmc_file_op(enum dfu_op op, struct dfu_entity *dfu,
 		return -1;
 	}
 
-	snprintf(dev_part_str, sizeof(dev_part_str), "%d:%d",
+	snprintf(dev_part_str, sizeof(dev_part_str), "%d:%x",
 		 dfu->data.mmc.dev, dfu->data.mmc.part);
 
 	ret = fs_set_blk_dev("mmc", dev_part_str, fstype);
@@ -233,7 +232,8 @@ int dfu_flush_medium_mmc(struct dfu_entity *dfu)
 		break;
 	case DFU_SCRIPT:
 		/* script may have changed the dfu_alt_info */
-		dfu_reinit_needed = true;
+		if (dfu_alt_info_changed)
+			dfu_reinit_needed = true;
 		break;
 	case DFU_RAW_ADDR:
 	case DFU_SKIP:
@@ -269,7 +269,6 @@ int dfu_get_medium_size_mmc(struct dfu_entity *dfu, u64 *size)
 		return -1;
 	}
 }
-
 
 static int mmc_file_buf_read(struct dfu_entity *dfu, u64 offset, void *buf,
 			     long *len)

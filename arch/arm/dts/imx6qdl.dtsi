@@ -51,7 +51,7 @@
 		usb3 = &usbh3;
 		usbphy0 = &usbphy1;
 		usbphy1 = &usbphy2;
-		usbgadget0 = &usbg1;
+		usb_gadget0 = &usbg1;
 		pci0 = &pcie;
 	};
 

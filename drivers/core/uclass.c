@@ -8,7 +8,6 @@
 
 #define LOG_CATEGORY LOGC_DM
 
-#include <common.h>
 #include <dm.h>
 #include <errno.h>
 #include <log.h>
@@ -17,6 +16,7 @@
 #include <dm/device.h>
 #include <dm/device-internal.h>
 #include <dm/lists.h>
+#include <dm/ofnode_graph.h>
 #include <dm/uclass.h>
 #include <dm/uclass-internal.h>
 #include <dm/util.h>
@@ -60,8 +60,8 @@ static int uclass_add(enum uclass_id id, struct uclass **ucp)
 	*ucp = NULL;
 	uc_drv = lists_uclass_lookup(id);
 	if (!uc_drv) {
-		debug("Cannot find uclass for id %d: please add the UCLASS_DRIVER() declaration for this UCLASS_... id\n",
-		      id);
+		dm_warn("Cannot find uclass for id %d: please add the UCLASS_DRIVER() declaration for this UCLASS_... id\n",
+			id);
 		/*
 		 * Use a strange error to make this case easier to find. When
 		 * a uclass is not available it can prevent driver model from
@@ -261,17 +261,14 @@ int uclass_find_first_device(enum uclass_id id, struct udevice **devp)
 	return 0;
 }
 
-int uclass_find_next_device(struct udevice **devp)
+void uclass_find_next_device(struct udevice **devp)
 {
 	struct udevice *dev = *devp;
 
 	*devp = NULL;
-	if (list_is_last(&dev->uclass_node, &dev->uclass->dev_head))
-		return 0;
-
-	*devp = list_entry(dev->uclass_node.next, struct udevice, uclass_node);
-
-	return 0;
+	if (!list_is_last(&dev->uclass_node, &dev->uclass->dev_head))
+		*devp = list_entry(dev->uclass_node.next, struct udevice,
+				   uclass_node);
 }
 
 int uclass_find_device_by_namelen(enum uclass_id id, const char *name, int len,
@@ -303,6 +300,17 @@ int uclass_find_device_by_name(enum uclass_id id, const char *name,
 			       struct udevice **devp)
 {
 	return uclass_find_device_by_namelen(id, name, strlen(name), devp);
+}
+
+struct udevice *uclass_try_first_device(enum uclass_id id)
+{
+	struct uclass *uc;
+
+	uc = uclass_find(id);
+	if (!uc || list_empty(&uc->dev_head))
+		return NULL;
+
+	return list_first_entry(&uc->dev_head, struct udevice, uclass_node);
 }
 
 int uclass_find_next_free_seq(struct uclass *uc)
@@ -572,6 +580,24 @@ int uclass_get_device_by_phandle(enum uclass_id id, struct udevice *parent,
 	ret = uclass_find_device_by_phandle(id, parent, name, &dev);
 	return uclass_get_device_tail(dev, ret, devp);
 }
+
+int uclass_get_device_by_endpoint(enum uclass_id class_id, struct udevice *dev,
+				  int port_idx, int ep_idx, struct udevice **devp)
+{
+	ofnode node_source = dev_ofnode(dev);
+	ofnode node_dest = ofnode_graph_get_remote_node(node_source, port_idx, ep_idx);
+	struct udevice *target = NULL;
+	int ret;
+
+	if (!ofnode_valid(node_dest))
+		return -EINVAL;
+
+	ret = uclass_find_device_by_ofnode(class_id, node_dest, &target);
+	if (ret)
+		return -ENODEV;
+
+	return uclass_get_device_tail(target, 0, devp);
+}
 #endif
 
 /*
@@ -646,11 +672,8 @@ int uclass_first_device_check(enum uclass_id id, struct udevice **devp)
 
 int uclass_next_device_check(struct udevice **devp)
 {
-	int ret;
+	uclass_find_next_device(devp);
 
-	ret = uclass_find_next_device(devp);
-	if (ret)
-		return ret;
 	if (!*devp)
 		return 0;
 

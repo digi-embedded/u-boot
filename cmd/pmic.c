@@ -3,7 +3,6 @@
  * Copyright (C) 2014-2015 Samsung Electronics
  * Przemyslaw Marczak <p.marczak@samsung.com>
  */
-#include <common.h>
 #include <command.h>
 #include <errno.h>
 #include <dm.h>
@@ -35,6 +34,7 @@ static int do_dev(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 			printf("Can't get PMIC: %s!\n", name);
 			return failure(ret);
 		}
+		fallthrough;
 	case 1:
 		if (!currdev) {
 			printf("PMIC device is not set!\n\n");
@@ -225,6 +225,6 @@ U_BOOT_CMD(pmic, CONFIG_SYS_MAXARGS, 1, do_pmic,
 	"list          - list pmic devices\n"
 	"pmic dev [name]    - show or [set] operating PMIC device\n"
 	"pmic dump          - dump registers\n"
-	"pmic read address  - read byte of register at address\n"
-	"pmic write address - write byte to register at address\n"
+	"pmic read <reg>    - read byte of 'reg' register\n"
+	"pmic write <reg> <byte> - write 'byte' byte to 'reg' register\n"
 );

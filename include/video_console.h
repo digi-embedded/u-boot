@@ -6,6 +6,7 @@
 #ifndef __video_console_h
 #define __video_console_h
 
+#include <alist.h>
 #include <video.h>
 
 struct abuf;
@@ -27,6 +28,14 @@ enum {
  * Drivers must set up @rows, @cols, @x_charsize, @y_charsize in their probe()
  * method. Drivers may set up @xstart_frac if desired.
  *
+ * Note that these values relate to the rotated console, so that an 80x25
+ * console which is rotated 90 degrees will have rows=80 and cols=25
+ *
+ * The xcur_frac and ycur values refer to the unrotated coordinates, that is
+ * xcur_frac always advances with each character, even if its limit might be
+ * vid_priv->ysize instead of vid_priv->xsize if the console is rotated 90 or
+ * 270 degrees.
+ *
  * @sdev:		stdio device, acting as an output sink
  * @xcur_frac:		Current X position, in fractional units (VID_TO_POS(x))
  * @ycur:		Current Y position in pixels (0=top)
@@ -43,6 +52,8 @@ enum {
  * @col_saved:		Saved X position, in fractional units (VID_TO_POS(x))
  * @row_saved:		Saved Y position in pixels (0=top)
  * @escape_buf:		Buffer to accumulate escape sequence
+ * @utf8_buf:		Buffer to accumulate UTF-8 byte sequence
+ * @quiet:		Suppress all output from stdio
  */
 struct vidconsole_priv {
 	struct stdio_dev sdev;
@@ -66,6 +77,8 @@ struct vidconsole_priv {
 	int row_saved;
 	int col_saved;
 	char escape_buf[32];
+	char utf8_buf[5];
+	bool quiet;
 };
 
 /**
@@ -110,6 +123,19 @@ struct vidconsole_bbox {
 };
 
 /**
+ * vidconsole_mline - Holds information about a line of measured text
+ *
+ * @bbox: Bounding box of the line, assuming it starts at 0,0
+ * @start: String index of the first character in the line
+ * @len: Number of characters in the line
+ */
+struct vidconsole_mline {
+	struct vidconsole_bbox bbox;
+	int start;
+	int len;
+};
+
+/**
  * struct vidconsole_ops - Video console operations
  *
  * These operations work on either an absolute console position (measured
@@ -124,12 +150,12 @@ struct vidconsole_ops {
 	 * @x_frac:	Fractional pixel X position (0=left-most pixel) which
 	 *		is the X position multipled by VID_FRAC_DIV.
 	 * @y:		Pixel Y position (0=top-most pixel)
-	 * @ch:		Character to write
+	 * @cp:		UTF-32 code point to write
 	 * @return number of fractional pixels that the cursor should move,
 	 * if all is OK, -EAGAIN if we ran out of space on this line, other -ve
 	 * on error
 	 */
-	int (*putc_xy)(struct udevice *dev, uint x_frac, uint y, char ch);
+	int (*putc_xy)(struct udevice *dev, uint x_frac, uint y, int cp);
 
 	/**
 	 * move_rows() - Move text rows from one place to another
@@ -218,18 +244,26 @@ struct vidconsole_ops {
 	int (*select_font)(struct udevice *dev, const char *name, uint size);
 
 	/**
-	 * measure() - Measure the bounds of some text
+	 * measure() - Measure the bounding box of some text
 	 *
-	 * @dev:	Device to adjust
+	 * The text can include newlines
+	 *
+	 * @dev:	Console device to use
 	 * @name:	Font name to use (NULL to use default)
 	 * @size:	Font size to use (0 to use default)
 	 * @text:	Text to measure
+	 * @limit:	Width limit for each line, or -1 if none
 	 * @bbox:	Returns bounding box of text, assuming it is positioned
 	 *		at 0,0
+	 * @lines:	If non-NULL, this must be an alist of
+	 *		struct vidconsole_mline inited by caller. A separate
+	 *		record is added for each line of text
+	 *
 	 * Returns: 0 on success, -ENOENT if no such font
 	 */
 	int (*measure)(struct udevice *dev, const char *name, uint size,
-		       const char *text, struct vidconsole_bbox *bbox);
+		       const char *text, int limit,
+		       struct vidconsole_bbox *bbox, struct alist *lines);
 
 	/**
 	 * nominal() - Measure the expected width of a line of text
@@ -310,19 +344,27 @@ int vidconsole_get_font(struct udevice *dev, int seq,
  */
 int vidconsole_select_font(struct udevice *dev, const char *name, uint size);
 
-/*
- * vidconsole_measure() - Measuring the bounding box of some text
+/**
+ * vidconsole_measure() - Measure the bounding box of some text
  *
- * @dev: Console device to use
- * @name: Font name, NULL for default
- * @size: Font size, ignored if @name is NULL
- * @text: Text to measure
- * @bbox: Returns nounding box of text
- * Returns: 0 if OK, -ve on error
+ * The text can include newlines
+ *
+ * @dev:	Device to adjust
+ * @name:	Font name to use (NULL to use default)
+ * @size:	Font size to use (0 to use default)
+ * @text:	Text to measure
+ * @limit:	Width limit for each line, or -1 if none
+ * @bbox:	Returns bounding box of text, assuming it is positioned
+ *		at 0,0
+ * @lines:	If non-NULL, this must be an alist of
+ *		struct vidconsole_mline inited by caller. The list is emptied
+ *		and then a separate record is added for each line of text
+ *
+ * Returns: 0 on success, -ENOENT if no such font
  */
 int vidconsole_measure(struct udevice *dev, const char *name, uint size,
-		       const char *text, struct vidconsole_bbox *bbox);
-
+		       const char *text, int limit,
+		       struct vidconsole_bbox *bbox, struct alist *lines);
 /**
  * vidconsole_nominal() - Measure the expected width of a line of text
  *
@@ -403,12 +445,12 @@ void vidconsole_pop_colour(struct udevice *dev, struct vidconsole_colour *old);
  * @x_frac:	Fractional pixel X position (0=left-most pixel) which
  *		is the X position multipled by VID_FRAC_DIV.
  * @y:		Pixel Y position (0=top-most pixel)
- * @ch:		Character to write
+ * @cp:		UTF-32 code point to write
  * Return: number of fractional pixels that the cursor should move,
  * if all is OK, -EAGAIN if we ran out of space on this line, other -ve
  * on error
  */
-int vidconsole_putc_xy(struct udevice *dev, uint x, uint y, char ch);
+int vidconsole_putc_xy(struct udevice *dev, uint x, uint y, int cp);
 
 /**
  * vidconsole_move_rows() - Move text rows from one place to another
@@ -458,6 +500,23 @@ int vidconsole_entry_start(struct udevice *dev);
  * Return: 0 if OK, -ve on error
  */
 int vidconsole_put_char(struct udevice *dev, char ch);
+
+/**
+ * vidconsole_put_stringn() - Output part of a string to the current console pos
+ *
+ * Outputs part of a string to the console and advances the cursor. This
+ * function handles wrapping to new lines and scrolling the console. Special
+ * characters are handled also: \n, \r, \b and \t.
+ *
+ * The device always starts with the cursor at position 0,0 (top left). It
+ * can be adjusted manually using vidconsole_position_cursor().
+ *
+ * @dev:	Device to adjust
+ * @str:	String to write
+ * @maxlen:	Maximum chars to output, or -1 for all
+ * Return: 0 if OK, -ve on error
+ */
+int vidconsole_put_stringn(struct udevice *dev, const char *str, int maxlen);
 
 /**
  * vidconsole_put_string() - Output a string to the current console position
@@ -527,56 +586,12 @@ void vidconsole_list_fonts(struct udevice *dev);
  */
 int vidconsole_get_font_size(struct udevice *dev, const char **name, uint *sizep);
 
-#ifdef CONFIG_VIDEO_COPY
 /**
- * vidconsole_sync_copy() - Sync back to the copy framebuffer
+ * vidconsole_set_quiet() - Select whether the console should output stdio
  *
- * This ensures that the copy framebuffer has the same data as the framebuffer
- * for a particular region. It should be called after the framebuffer is updated
- *
- * @from and @to can be in either order. The region between them is synced.
- *
- * @dev: Vidconsole device being updated
- * @from: Start/end address within the framebuffer (->fb)
- * @to: Other address within the frame buffer
- * Return: 0 if OK, -EFAULT if the start address is before the start of the
- *	frame buffer start
+ * @dev: vidconsole device
+ * @quiet: true to suppress stdout/stderr output, false to enable it
  */
-int vidconsole_sync_copy(struct udevice *dev, void *from, void *to);
-
-/**
- * vidconsole_memmove() - Perform a memmove() within the frame buffer
- *
- * This handles a memmove(), e.g. for scrolling. It also updates the copy
- * framebuffer.
- *
- * @dev: Vidconsole device being updated
- * @dst: Destination address within the framebuffer (->fb)
- * @src: Source address within the framebuffer (->fb)
- * @size: Number of bytes to transfer
- * Return: 0 if OK, -EFAULT if the start address is before the start of the
- *	frame buffer start
- */
-int vidconsole_memmove(struct udevice *dev, void *dst, const void *src,
-		       int size);
-#else
-
-#include <string.h>
-
-static inline int vidconsole_sync_copy(struct udevice *dev, void *from,
-				       void *to)
-{
-	return 0;
-}
-
-static inline int vidconsole_memmove(struct udevice *dev, void *dst,
-				     const void *src, int size)
-{
-	memmove(dst, src, size);
-
-	return 0;
-}
-
-#endif
+void vidconsole_set_quiet(struct udevice *dev, bool quiet);
 
 #endif

@@ -3,6 +3,8 @@
  * Copyright 2021 NXP
  */
 
+#include "imx8ulp-u-boot.dtsi"
+
 / {
 	mu@27020000 {
 		compatible = "fsl,imx8ulp-mu";
@@ -12,7 +14,15 @@
 	};
 
 	aliases {
-		usbgadget0 = &usbg1;
+		spi0 = &flexspi0;
+		spi2 = &flexspi2;
+		i2c0 = &lpi2c0;
+		i2c7 = &lpi2c7;
+		usbphy0 = &usbphy1;
+		usb0 = &usbotg1;
+		usbphy1 = &usbphy2;
+		usb1 = &usbotg2;
+		usb_gadget0 = &usbg1;
 	};
 
 	usbg1: usbg1 {
@@ -26,11 +36,18 @@
 		compatible = "northwest,mipi-dsi";
 		status = "okay";
 	};
+
+	reg_5v: regulator-5v {
+		compatible = "regulator-fixed";
+		regulator-name = "5V";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-always-on;
+	};
 };
 
 &soc {
 	bootph-all;
-	bootph-pre-ram;
 };
 
 &{/firmware} {
@@ -47,7 +64,14 @@
 
 &per_bridge3 {
 	bootph-all;
-	bootph-pre-ram;
+};
+
+&mu {
+	status = "disabled";
+};
+
+&wdog3 {
+	status = "disabled";
 };
 
 &per_bridge4 {
@@ -57,18 +81,20 @@
 
 &iomuxc1 {
 	bootph-all;
-	bootph-pre-ram;
-	fsl,mux_mask = <0xf00>;
+
+	pinctrl_dsi: dsigrp {
+		fsl,pins = <
+			MX8ULP_PAD_PTF8__PTF8		0x3
+		>;
+	};
 };
 
 &pinctrl_lpuart5 {
 	bootph-all;
-	bootph-pre-ram;
 };
 
 &lpuart5 {
 	bootph-all;
-	bootph-pre-ram;
 };
 
 &usdhc0 {
@@ -87,6 +113,7 @@
 
 &sec_jr0 {
 	bootph-pre-ram;
+	status = "disabled";
 };
 
 &sec_jr1 {
@@ -101,15 +128,52 @@
 	bootph-pre-ram;
 };
 
+&usbotg1 {
+	compatible = "fsl,imx8ulp-usb", "fsl,imx7ulp-usb", "fsl,imx27-usb";
+};
+
 &scmi_buf {
 	reg = <0x0 0x1000>; /* Align page size */
 };
 
 &dsi {
 	data-lanes-num = <4>;
+	status = "okay";
+
+	panel@0 {
+		compatible = "usmp,rm67162";
+		reg = <0>;
+		dsi-lanes = <1>;
+		reset,otherway;
+		vcc-supply = <&reg_5v>;
+		iovcc-supply = <&reg_5v>;
+
+		port {
+			panel_in: endpoint {
+				remote-endpoint = <&mipi_dsi_out>;
+			};
+		};
+	};
+
+	ports {
+		port@1 {
+			reg = <1>;
+
+			mipi_dsi_out: endpoint {
+				remote-endpoint = <&panel_in>;
+			};
+		};
+	};
 };
 
-&usbotg1 {
-	compatible = "fsl,imx8ulp-usb", "fsl,imx7ulp-usb", "fsl,imx27-usb";
-	fsl,usbphy = <&usbphy1>;
+&dcnano {
+	status = "okay";
+};
+
+&dphy {
+	status = "okay";
+};
+
+&usbotg2 {
+        status = "disabled";
 };

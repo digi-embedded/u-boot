@@ -57,8 +57,6 @@
 #define CFG_FEC_MXC_PHYADDR		0x0
 #endif
 
-#define CFG_SYS_RTC_BUS_NUM		1 /* I2C2 */
-
 /*
  * RTC
  */
@@ -70,8 +68,6 @@
  * USB
  */
 #ifdef CONFIG_CMD_USB
-#define CFG_MXC_USB_PORT		1
-#define CFG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
 #define CFG_MXC_USB_FLAGS		0
 #endif
 
@@ -97,13 +93,6 @@
 	"splashfile=boot/usplash.bmp.gz\0"				\
 	"splashimage=0x88000000\0"					\
 	"splashpos=m,m\0"						\
-	"altbootcmd="							\
-		"if test ${mmcpart} -eq 1 ; then "			\
-			"setenv mmcpart 2 ; "				\
-		"else "							\
-			"setenv mmcpart 1 ; "				\
-		"fi ; "							\
-		"boot\0"						\
 	"stdout=serial,vidconsole\0"					\
 	"stderr=serial,vidconsole\0"					\
 	"addcons="							\
@@ -119,7 +108,7 @@
 	"addargs=run addcons addmisc addmtd\0"				\
 	"mmcload="							\
 		"mmc rescan || reset ; load mmc ${mmcdev}:${mmcpart} "	\
-		"${kernel_addr_r} ${bootfile} || reset\0"		\
+		"${kernel_addr_r} boot/${bootfile} || reset\0"		\
 	"miscargs=nohlt panic=1\0"					\
 	"mmcargs=setenv bootargs root=/dev/mmcblk0p${mmcpart} rw "	\
 		"rootwait\0"						\

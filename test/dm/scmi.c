@@ -12,14 +12,13 @@
  * unknown SCMI protocol ID.
  */
 
-#include <common.h>
 #include <clk.h>
 #include <dm.h>
 #include <reset.h>
 #include <scmi_agent.h>
 #include <scmi_agent-uclass.h>
 #include <scmi_protocols.h>
-#include <vsprintf.h>
+#include <stdio.h>
 #include <asm/scmi_test.h>
 #include <dm/device-internal.h>
 #include <dm/test.h>
@@ -96,7 +95,7 @@ static int dm_test_scmi_sandbox_agent(struct unit_test_state *uts)
 
 	return ret;
 }
-DM_TEST(dm_test_scmi_sandbox_agent, UT_TESTF_SCAN_FDT);
+DM_TEST(dm_test_scmi_sandbox_agent, UTF_SCAN_FDT);
 
 static int dm_test_scmi_base(struct unit_test_state *uts)
 {
@@ -203,8 +202,7 @@ static int dm_test_scmi_base(struct unit_test_state *uts)
 
 	return 0;
 }
-
-DM_TEST(dm_test_scmi_base, UT_TESTF_SCAN_FDT);
+DM_TEST(dm_test_scmi_base, UTF_SCAN_FDT);
 
 static int dm_test_scmi_cmd(struct unit_test_state *uts)
 {
@@ -283,8 +281,7 @@ static int dm_test_scmi_cmd(struct unit_test_state *uts)
 
 	return 0;
 }
-
-DM_TEST(dm_test_scmi_cmd, UT_TESTF_SCAN_FDT);
+DM_TEST(dm_test_scmi_cmd, UTF_SCAN_FDT | UTF_CONSOLE);
 
 static int dm_test_scmi_power_domains(struct unit_test_state *uts)
 {
@@ -389,8 +386,7 @@ static int dm_test_scmi_power_domains(struct unit_test_state *uts)
 
 	return release_sandbox_scmi_test_devices(uts, dev);
 }
-
-DM_TEST(dm_test_scmi_power_domains, UT_TESTF_SCAN_FDT);
+DM_TEST(dm_test_scmi_power_domains, UTF_SCAN_FDT);
 
 static int dm_test_scmi_clocks(struct unit_test_state *uts)
 {
@@ -459,7 +455,7 @@ static int dm_test_scmi_clocks(struct unit_test_state *uts)
 
 	return release_sandbox_scmi_test_devices(uts, dev);
 }
-DM_TEST(dm_test_scmi_clocks, UT_TESTF_SCAN_FDT);
+DM_TEST(dm_test_scmi_clocks, UTF_SCAN_FDT);
 
 static int dm_test_scmi_resets(struct unit_test_state *uts)
 {
@@ -497,7 +493,7 @@ static int dm_test_scmi_resets(struct unit_test_state *uts)
 
 	return release_sandbox_scmi_test_devices(uts, dev);
 }
-DM_TEST(dm_test_scmi_resets, UT_TESTF_SCAN_FDT);
+DM_TEST(dm_test_scmi_resets, UTF_SCAN_FDT);
 
 static int dm_test_scmi_voltage_domains(struct unit_test_state *uts)
 {
@@ -552,4 +548,4 @@ static int dm_test_scmi_voltage_domains(struct unit_test_state *uts)
 
 	return release_sandbox_scmi_test_devices(uts, dev);
 }
-DM_TEST(dm_test_scmi_voltage_domains, UT_TESTF_SCAN_FDT);
+DM_TEST(dm_test_scmi_voltage_domains, UTF_SCAN_FDT);

@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * ENETC ethernet controller driver
- * Copyright 2019 NXP
- * Copyright 2023 NXP
+ * Copyright 2019-2025 NXP
  */
 
-#include <common.h>
 #include <dm.h>
 #include <errno.h>
 #include <pci.h>
@@ -13,15 +11,20 @@
 #include <asm/io.h>
 #include <asm/processor.h>
 #include <miiphy.h>
+#include <linux/delay.h>
 #include <power/regulator.h>
 
-#ifdef CONFIG_ARCH_IMX9
-#include "fsl_enetc4.h"
-#else
 #include "fsl_enetc.h"
-#endif
-#include <linux/delay.h>
 
+static u32 enetc_read(struct enetc_mdio_priv *priv, u32 off)
+{
+	return readl(priv->regs_base + off);
+}
+
+static void enetc_write(struct enetc_mdio_priv *priv, u32 off, u32 val)
+{
+	writel(val, priv->regs_base + off);
+}
 
 static void enetc_mdio_wait_bsy(struct enetc_mdio_priv *priv)
 {
@@ -134,7 +137,9 @@ static int enetc_mdio_bind(struct udevice *dev)
 
 static int enetc_mdio_probe(struct udevice *dev)
 {
+	struct pci_child_plat *pplat = dev_get_parent_plat(dev);
 	struct enetc_mdio_priv *priv = dev_get_priv(dev);
+	u16 cmd = PCI_COMMAND_MEMORY;
 	int ret;
 	struct udevice *supply = NULL;
 
@@ -151,12 +156,11 @@ static int enetc_mdio_probe(struct udevice *dev)
 						  &supply);
 		if (ret && ret != -ENOENT) {
 			printf("%s: device_get_supply_regulator failed: %d\n",
-			      __func__, ret);
+			       __func__, ret);
 			return ret;
 		}
 
 		if (supply) {
-
 			regulator_set_enable(supply, false);
 			mdelay(100);
 
@@ -168,37 +172,26 @@ static int enetc_mdio_probe(struct udevice *dev)
 		}
 	}
 
+	if (pplat->vendor == PCI_VENDOR_ID_PHILIPS)	/* i.MX95 */
+		cmd |= PCI_COMMAND_MASTER;
 
-#ifdef CONFIG_ARCH_IMX9
-	dm_pci_clrset_config16(dev, PCI_COMMAND, 0, PCI_COMMAND_MEMORY | PCI_COMMAND_MASTER);
-#else
-	dm_pci_clrset_config16(dev, PCI_COMMAND, 0, PCI_COMMAND_MEMORY);
-#endif
+	dm_pci_clrset_config16(dev, PCI_COMMAND, 0, cmd);
 
 	return 0;
 }
 
-static const struct udevice_id enetc_mdio_of_match[] = {
-	{ .compatible = "fsl,enetc4-mdio" },
-	{ }
-};
-
 U_BOOT_DRIVER(enetc_mdio) = {
 	.name	= "enetc_mdio",
 	.id	= UCLASS_MDIO,
-	.of_match	= enetc_mdio_of_match,
 	.bind	= enetc_mdio_bind,
 	.probe	= enetc_mdio_probe,
 	.ops	= &enetc_mdio_ops,
 	.priv_auto	= sizeof(struct enetc_mdio_priv),
-	.plat_auto	= sizeof(struct mdio_perdev_priv),
 };
 
 static struct pci_device_id enetc_mdio_ids[] = {
 	{ PCI_DEVICE(PCI_VENDOR_ID_FREESCALE, PCI_DEVICE_ID_ENETC_MDIO) },
-#ifdef CONFIG_ARCH_IMX9
-	{ PCI_DEVICE(PCI_VENDOR_ID_NXP, PCI_DEVICE_ID_EMDIO) },
-#endif
+	{ PCI_DEVICE(PCI_VENDOR_ID_PHILIPS, PCI_DEVICE_ID_ENETC4_EMDIO) },
 	{ }
 };
 

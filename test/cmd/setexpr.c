@@ -6,17 +6,16 @@
  * Written by Simon Glass <sjg@chromium.org>
  */
 
-#include <common.h>
 #include <console.h>
+#include <env.h>
 #include <mapmem.h>
 #include <dm/test.h>
-#include <test/suites.h>
 #include <test/ut.h>
 
 #define BUF_SIZE	0x100
 
 /* Declare a new setexpr test */
-#define SETEXPR_TEST(_name, _flags)	UNIT_TEST(_name, _flags, setexpr_test)
+#define SETEXPR_TEST(_name, _flags)	UNIT_TEST(_name, _flags, setexpr)
 
 /* Test 'setexpr' command with simply setting integers */
 static int setexpr_test_int(struct unit_test_state *uts)
@@ -64,7 +63,7 @@ static int setexpr_test_int(struct unit_test_state *uts)
 
 	return 0;
 }
-SETEXPR_TEST(setexpr_test_int, UT_TESTF_CONSOLE_REC);
+SETEXPR_TEST(setexpr_test_int, UTF_CONSOLE);
 
 /* Test 'setexpr' command with + operator */
 static int setexpr_test_plus(struct unit_test_state *uts)
@@ -106,7 +105,7 @@ static int setexpr_test_plus(struct unit_test_state *uts)
 
 	return 0;
 }
-SETEXPR_TEST(setexpr_test_plus, UT_TESTF_CONSOLE_REC);
+SETEXPR_TEST(setexpr_test_plus, UTF_CONSOLE);
 
 /* Test 'setexpr' command with other operators */
 static int setexpr_test_oper(struct unit_test_state *uts)
@@ -149,7 +148,7 @@ static int setexpr_test_oper(struct unit_test_state *uts)
 
 	return 0;
 }
-SETEXPR_TEST(setexpr_test_oper, UT_TESTF_CONSOLE_REC);
+SETEXPR_TEST(setexpr_test_oper, UTF_CONSOLE);
 
 /* Test 'setexpr' command with regex */
 static int setexpr_test_regex(struct unit_test_state *uts)
@@ -179,11 +178,21 @@ static int setexpr_test_regex(struct unit_test_state *uts)
 	val = env_get("mary");
 	ut_asserteq_str("this is a test", val);
 
+	/* No match */
+	ut_assertok(run_command("setenv fred 'this is a test'", 0));
+	ut_assertok(run_command("setenv mary ''", 0));
+	ut_assertok(run_command("setexpr fred gsub us is \"${fred}\"", 0));
+	ut_assertok(run_command("setexpr mary gsub us is \"${fred}\"", 0));
+	val = env_get("fred");
+	ut_asserteq_str("this is a test", val);
+	val = env_get("mary");
+	ut_asserteq_str("this is a test", val);
+
 	unmap_sysmem(buf);
 
 	return 0;
 }
-SETEXPR_TEST(setexpr_test_regex, UT_TESTF_CONSOLE_REC);
+SETEXPR_TEST(setexpr_test_regex, UTF_CONSOLE);
 
 /* Test 'setexpr' command with regex replacement that expands the string */
 static int setexpr_test_regex_inc(struct unit_test_state *uts)
@@ -200,7 +209,7 @@ static int setexpr_test_regex_inc(struct unit_test_state *uts)
 
 	return 0;
 }
-SETEXPR_TEST(setexpr_test_regex_inc, UT_TESTF_CONSOLE_REC);
+SETEXPR_TEST(setexpr_test_regex_inc, UTF_CONSOLE);
 
 /* Test setexpr_regex_sub() directly to check buffer usage */
 static int setexpr_test_sub(struct unit_test_state *uts)
@@ -240,7 +249,7 @@ static int setexpr_test_sub(struct unit_test_state *uts)
 
 	return 0;
 }
-SETEXPR_TEST(setexpr_test_sub, UT_TESTF_CONSOLE_REC);
+SETEXPR_TEST(setexpr_test_sub, UTF_CONSOLE);
 
 /* Test setexpr_regex_sub() with back references */
 static int setexpr_test_backref(struct unit_test_state *uts)
@@ -283,92 +292,58 @@ static int setexpr_test_backref(struct unit_test_state *uts)
 
 	return 0;
 }
-SETEXPR_TEST(setexpr_test_backref, UT_TESTF_CONSOLE_REC);
+SETEXPR_TEST(setexpr_test_backref, UTF_CONSOLE);
 
 /* Test 'setexpr' command with setting strings */
 static int setexpr_test_str(struct unit_test_state *uts)
 {
-	ulong start_mem;
 	char *buf;
 
 	buf = map_sysmem(0, BUF_SIZE);
 	memset(buf, '\xff', BUF_SIZE);
 
-	/*
-	 * Set 'fred' to the same length as we expect to get below, to avoid a
-	 * new allocation in 'setexpr'. That way we can check for memory leaks.
-	 */
 	ut_assertok(env_set("fred", "x"));
-	start_mem = ut_check_free();
-	strcpy(buf, "hello");
-	ut_asserteq(1, run_command("setexpr.s fred 0", 0));
-	ut_assertok(ut_check_delta(start_mem));
+	ut_asserteq(0, run_command("setexpr.s fred 0", 0));
+	ut_asserteq_str("0", env_get("fred"));
 
+	strcpy(buf, "hello");
 	ut_assertok(env_set("fred", "12345"));
-	start_mem = ut_check_free();
 	ut_assertok(run_command("setexpr.s fred *0", 0));
 	ut_asserteq_str("hello", env_get("fred"));
-	/*
-	 * This fails in CI at present.
-	 *
-	 * ut_assertok(ut_check_delta(start_mem));
-	 */
 
 	unmap_sysmem(buf);
 
 	return 0;
 }
-SETEXPR_TEST(setexpr_test_str, UT_TESTF_CONSOLE_REC);
-
+SETEXPR_TEST(setexpr_test_str, UTF_CONSOLE);
 
 /* Test 'setexpr' command with concatenating strings */
 static int setexpr_test_str_oper(struct unit_test_state *uts)
 {
-	ulong start_mem;
 	char *buf;
+
+	/* Test concatenation of strings */
+	ut_assertok(run_command("setexpr.s fred '1' + '3'", 0));
+	ut_asserteq_str("13", env_get("fred"));
 
 	buf = map_sysmem(0, BUF_SIZE);
 	memset(buf, '\xff', BUF_SIZE);
 	strcpy(buf, "hello");
 	strcpy(buf + 0x10, " there");
 
-	ut_assertok(console_record_reset_enable());
-	start_mem = ut_check_free();
 	ut_asserteq(1, run_command("setexpr.s fred *0 * *10", 0));
-	ut_assertok(ut_check_delta(start_mem));
 	ut_assert_nextline("invalid op");
 	ut_assert_console_end();
 
-	/*
-	 * Set 'fred' to the same length as we expect to get below, to avoid a
-	 * new allocation in 'setexpr'. That way we can check for memory leaks.
-	 */
 	ut_assertok(env_set("fred", "12345012345"));
-	start_mem = ut_check_free();
 	ut_assertok(run_command("setexpr.s fred *0 + *10", 0));
 	ut_asserteq_str("hello there", env_get("fred"));
-
-	/*
-	 * This check does not work with sandbox_flattree, apparently due to
-	 * memory allocations in env_set().
-	 *
-	 * The truetype console produces lots of memory allocations even though
-	 * the LCD display is not visible. But even without these, it does not
-	 * work.
-	 *
-	 * A better test would be for dlmalloc to record the allocs and frees
-	 * for a particular caller, but that is not supported.
-	 *
-	 * For now, drop this test.
-	 *
-	 * ut_assertok(ut_check_delta(start_mem));
-	 */
 
 	unmap_sysmem(buf);
 
 	return 0;
 }
-SETEXPR_TEST(setexpr_test_str_oper, UT_TESTF_CONSOLE_REC);
+SETEXPR_TEST(setexpr_test_str_oper, UTF_CONSOLE);
 
 /* Test 'setexpr' command with a string that is too long */
 static int setexpr_test_str_long(struct unit_test_state *uts)
@@ -388,7 +363,7 @@ static int setexpr_test_str_long(struct unit_test_state *uts)
 
 	return 0;
 }
-SETEXPR_TEST(setexpr_test_str_long, UT_TESTF_CONSOLE_REC);
+SETEXPR_TEST(setexpr_test_str_long, UTF_CONSOLE);
 
 #ifdef CONFIG_CMD_SETEXPR_FMT
 /* Test 'setexpr' command with simply setting integers */
@@ -470,15 +445,5 @@ static int setexpr_test_fmt(struct unit_test_state *uts)
 
 	return 0;
 }
-
-SETEXPR_TEST(setexpr_test_fmt, UT_TESTF_CONSOLE_REC);
+SETEXPR_TEST(setexpr_test_fmt, UTF_CONSOLE);
 #endif
-
-int do_ut_setexpr(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
-{
-	struct unit_test *tests = UNIT_TEST_SUITE_START(setexpr_test);
-	const int n_ents = UNIT_TEST_SUITE_COUNT(setexpr_test);
-
-	return cmd_ut_category("cmd_setexpr", "setexpr_test_", tests, n_ents,
-			       argc, argv);
-}

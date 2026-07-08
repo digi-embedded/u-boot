@@ -6,7 +6,6 @@
  * Author: Chen Zhong <chen.zhong@mediatek.com>
  */
 
-#include <common.h>
 #include <dm.h>
 #include <asm/io.h>
 #include <dt-bindings/clock/mt8512-clk.h>
@@ -60,6 +59,9 @@ static const struct mtk_pll_data apmixed_plls[] = {
 };
 
 /* topckgen */
+#define FIXED_CLK0(_id, _rate)			\
+	FIXED_CLK(_id, CLK_XTAL, CLK_PARENT_XTAL, _rate)
+
 #define FACTOR0(_id, _parent, _mult, _div)	\
 	FACTOR(_id, _parent, _mult, _div, CLK_PARENT_APMIXED)
 
@@ -70,8 +72,8 @@ static const struct mtk_pll_data apmixed_plls[] = {
 	FACTOR(_id, _parent, _mult, _div, 0)
 
 static const struct mtk_fixed_clk top_fixed_clks[] = {
-	FIXED_CLK(CLK_TOP_CLK_NULL, CLK_XTAL, 26000000),
-	FIXED_CLK(CLK_TOP_CLK32K, CLK_XTAL, 32000),
+	FIXED_CLK0(CLK_TOP_CLK_NULL, 26000000),
+	FIXED_CLK0(CLK_TOP_CLK32K, 32000),
 };
 
 static const struct mtk_fixed_factor top_fixed_divs[] = {
@@ -791,6 +793,10 @@ static const struct mtk_clk_tree mt8512_clk_tree = {
 	.fclks = top_fixed_clks,
 	.fdivs = top_fixed_divs,
 	.muxes = top_muxes,
+	.num_plls = ARRAY_SIZE(apmixed_plls),
+	.num_fclks = ARRAY_SIZE(top_fixed_clks),
+	.num_fdivs = ARRAY_SIZE(top_fixed_divs),
+	.num_muxes = ARRAY_SIZE(top_muxes),
 };
 
 static int mt8512_apmixedsys_probe(struct udevice *dev)
@@ -805,12 +811,14 @@ static int mt8512_topckgen_probe(struct udevice *dev)
 
 static int mt8512_topckgen_cg_probe(struct udevice *dev)
 {
-	return mtk_common_clk_gate_init(dev, &mt8512_clk_tree, top_clks);
+	return mtk_common_clk_gate_init(dev, &mt8512_clk_tree, top_clks,
+					ARRAY_SIZE(top_clks), 0);
 }
 
 static int mt8512_infracfg_probe(struct udevice *dev)
 {
-	return mtk_common_clk_gate_init(dev, &mt8512_clk_tree, infra_clks);
+	return mtk_common_clk_gate_init(dev, &mt8512_clk_tree, infra_clks,
+					ARRAY_SIZE(infra_clks), 0);
 }
 
 static const struct udevice_id mt8512_apmixed_compat[] = {

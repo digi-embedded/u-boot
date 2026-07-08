@@ -2,7 +2,6 @@
 /*
  * Copyright 2021-2022 NXP
  */
-#include <common.h>
 #include <errno.h>
 #include <fdt_support.h>
 #include <linux/sizes.h>

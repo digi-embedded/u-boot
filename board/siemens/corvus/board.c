@@ -10,7 +10,7 @@
  * Lead Tech Design <www.leadtechdesign.com>
  */
 
-#include <common.h>
+#include <config.h>
 #include <dm.h>
 #include <init.h>
 #include <log.h>
@@ -20,7 +20,7 @@
 #include <asm/arch/at91sam9_smc.h>
 #include <asm/arch/at91_common.h>
 #include <asm/arch/at91_rstc.h>
-#include <asm/arch/atmel_serial.h>
+#include <dm/platform_data/atmel_serial.h>
 #include <asm/arch/gpio.h>
 #include <asm/gpio.h>
 #include <asm/arch/clk.h>
@@ -52,28 +52,6 @@ static void corvus_request_gpio(void)
 	gpio_request(AT91_PIN_PD3, "USB1");
 	gpio_request(AT91_PIN_PB18, "SPICS1");
 	gpio_request(AT91_PIN_PB3, "SPICS0");
-	gpio_request(AT91_PIN_PD31, "red led"); /* this is the user1 led */
-	gpio_request(AT91_PIN_PD0, "green led"); /* this is the user2 led */
-}
-
-void red_led_on(void)
-{
-	gpio_set_value(AT91_PIN_PD31, 1);
-}
-
-void red_led_off(void)
-{
-	gpio_set_value(AT91_PIN_PD31, 0);
-}
-
-void green_led_on(void)
-{
-	gpio_set_value(AT91_PIN_PD0, 0);
-}
-
-void green_led_off(void)
-{
-	gpio_set_value(AT91_PIN_PD0, 1);
 }
 
 static void corvus_nand_hw_init(void)
@@ -114,7 +92,7 @@ static void corvus_nand_hw_init(void)
 	at91_set_gpio_input(CFG_SYS_NAND_READY_PIN, 1);
 }
 
-#if defined(CONFIG_SPL_BUILD)
+#if defined(CONFIG_XPL_BUILD)
 #include <spl.h>
 #include <nand.h>
 
@@ -187,7 +165,7 @@ static void ddr2_conf(struct atmel_mpddrc_config *ddr2)
 		      2 << ATMEL_MPDDRC_TPR2_TXARD_OFFSET);
 }
 
-void mem_init(void)
+void at91_mem_init(void)
 {
 	struct atmel_mpddrc_config ddr2;
 

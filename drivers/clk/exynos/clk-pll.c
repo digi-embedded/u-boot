@@ -117,6 +117,7 @@ static struct clk *_samsung_clk_register_pll(void __iomem *base,
 
 	switch (pll_clk->type) {
 	case pll_0822x:
+	case pll_1417x:
 		drv_name = UBOOT_DM_CLK_SAMSUNG_PLL0822X;
 		break;
 	case pll_0831x:
@@ -136,7 +137,8 @@ static struct clk *_samsung_clk_register_pll(void __iomem *base,
 	return clk;
 }
 
-void samsung_clk_register_pll(void __iomem *base,
+void samsung_clk_register_pll(struct udevice *dev, void __iomem *base,
+			      unsigned int cmu_id,
 			      const struct samsung_pll_clock *clk_list,
 			      unsigned int nr_clk)
 {
@@ -145,10 +147,12 @@ void samsung_clk_register_pll(void __iomem *base,
 	for (cnt = 0; cnt < nr_clk; cnt++) {
 		struct clk *clk;
 		const struct samsung_pll_clock *pll_clk;
+		unsigned long clk_id;
 
 		pll_clk = &clk_list[cnt];
 		clk = _samsung_clk_register_pll(base, pll_clk);
-		clk_dm(pll_clk->id, clk);
+		clk_id = SAMSUNG_TO_CLK_ID(cmu_id, pll_clk->id);
+		clk_dm(clk_id, clk);
 	}
 }
 

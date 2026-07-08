@@ -7,7 +7,6 @@
 /*
  * Boot support
  */
-#include <common.h>
 #include <bootm.h>
 #include <command.h>
 #include <env.h>
@@ -330,7 +329,6 @@ U_BOOT_CMD(
 
 #endif
 
-
 /*******************************************************************/
 /* iminfo - print header info for a requested image */
 /*******************************************************************/
@@ -434,7 +432,6 @@ U_BOOT_CMD(
 	"      image contents (magic number, header and payload checksums)"
 );
 #endif
-
 
 /*******************************************************************/
 /* imls - list all images found in flash */
@@ -648,7 +645,7 @@ static int do_imls(struct cmd_tbl *cmdtp, int flag, int argc,
 	if (ret_nand)
 		return ret_nand;
 
-	return (0);
+	return 0;
 }
 
 U_BOOT_CMD(

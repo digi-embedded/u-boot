@@ -4,11 +4,11 @@
  * Roger Knecht <rknecht@pm.de>
  */
 
-#include <common.h>
 #include <command.h>
 #include <fs.h>
 #include <malloc.h>
 #include <mapmem.h>
+#include <linux/errno.h>
 
 static int do_cat(struct cmd_tbl *cmdtp, int flag, int argc,
 		  char *const argv[])

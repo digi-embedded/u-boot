@@ -4,7 +4,6 @@
  * Written by Simon Glass <sjg@chromium.org>
  */
 
-#include <common.h>
 #include <debug_uart.h>
 #include <dm.h>
 #include <efi.h>
@@ -34,7 +33,7 @@ int serial_efi_setbrg(struct udevice *dev, int baudrate)
 
 static int serial_efi_get_key(struct serial_efi_priv *priv)
 {
-	int ret;
+	efi_status_t ret;
 
 	if (priv->have_key)
 		return 0;

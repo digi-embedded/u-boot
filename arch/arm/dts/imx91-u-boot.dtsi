@@ -7,6 +7,124 @@
 	binman: binman {
 		multiple-images;
 	};
+
+	aliases {
+		ethernet0 = &fec;
+		ethernet1 = &eqos;
+		spi0 = &flexspi1;
+		usb0 = &usbotg1;
+		usb1 = &usbotg2;
+	};
+
+	thermal_zones: thermal-zones {
+		cpu-thermal {
+			polling-delay-passive = <250>;
+			polling-delay = <2000>;
+			thermal-sensors = <&tempsense0>;
+			trips {
+				cpu_alert0: trip0 {
+					temperature = <80000>;
+					hysteresis = <2000>;
+					type = "passive";
+				};
+
+				cpu_crit0: trip1 {
+					temperature = <90000>;
+					hysteresis = <2000>;
+					type = "critical";
+				};
+			};
+
+			cooling-maps {
+				map0 {
+					trip = <&cpu_alert0>;
+					cooling-device =
+					<&A55_0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+				};
+			};
+		};
+	};
+
+	display-subsystem {
+		compatible = "fsl,imx-display-subsystem";
+		ports = <&lcdif_disp>;
+	};
+};
+
+&A55_0 {
+	clocks = <&clk IMX93_CLK_A55_SEL>;
+};
+
+&media_blk_ctrl {
+	reg = <0x4ac10000 0x70>;
+	status = "okay";
+
+	parallel_disp_fmt: dpi {
+		compatible = "fsl,imx93-parallel-display-format";
+		power-domains = <&mediamix>;
+		status = "disabled";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				dpi_to_lcdif: endpoint {
+					remote-endpoint = <&lcdif_to_dpi>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+				endpoint {
+				};
+			};
+		};
+	};
+};
+
+&{/soc@0} {
+	lcdif: lcd-controller@4ae30000 {
+		compatible = "fsl,imx93-lcdif";
+		reg = <0x4ae30000 0x10000>;
+		interrupts = <GIC_SPI 176 IRQ_TYPE_LEVEL_HIGH>;
+		fsl,gpr = <&media_blk_ctrl>;
+		clocks = <&clk IMX93_CLK_MEDIA_DISP_PIX>,
+			 <&clk IMX93_CLK_MEDIA_AXI>,
+			 <&clk IMX93_CLK_LCDIF_GATE>;
+		clock-names = "pix", "disp-axi", "disp-apb";
+		assigned-clocks = <&clk IMX93_CLK_VIDEO_PLL>,
+				  <&clk IMX93_CLK_MEDIA_DISP_PIX>,
+				  <&clk IMX93_CLK_MEDIA_AXI>,
+				  <&clk IMX93_CLK_MEDIA_APB>;
+		assigned-clock-parents = <&clk IMX93_CLK_24M>,
+					 <&clk IMX93_CLK_VIDEO_PLL>,
+					 <&clk IMX93_CLK_SYS_PLL_PFD0>,
+					 <&clk IMX93_CLK_SYS_PLL_PFD0_DIV2>;
+		power-domains = <&media_blk_ctrl IMX93_MEDIABLK_PD_LCDIF>;
+		status = "disabled";
+
+		lcdif_disp: port {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			lcdif_to_dpi: endpoint@2 {
+				reg = <2>;
+				remote-endpoint = <&dpi_to_lcdif>;
+			};
+		};
+	};
+};
+
+&aips1 {
+	tempsense0: thermal-sensor@44482000 {
+		compatible = "fsl,imx91-tmu";
+		reg = <0x44482000 0x1000>;
+		#thermal-sensor-cells = <0>;
+		clocks = <&clk IMX93_CLK_TMC_GATE>;
+	};
 };
 
 &binman {
@@ -50,7 +168,7 @@
 		filename = "spl.bin";
 
 		mkimage {
-			args = "-n spl/u-boot-spl.cfgout -T imx8image -e 0x2049A000";
+			args = "-n spl/u-boot-spl.cfgout -T imx8image -e 0x204A0000";
 
 			blob {
 				filename = "u-boot-spl-ddr.bin";

@@ -98,7 +98,7 @@
 #define CFG_SYS_NAND_U_BOOT_SIZE	(832 << 10)
 #define CFG_SYS_NAND_U_BOOT_DST	(0x11000000)
 #define CFG_SYS_NAND_U_BOOT_START	(0x11000000)
-#elif defined(CONFIG_SPL_BUILD)
+#elif defined(CONFIG_XPL_BUILD)
 #define CFG_SYS_NAND_U_BOOT_SIZE	(128 << 10)
 #define CFG_SYS_NAND_U_BOOT_DST	0xf8f80000
 #define CFG_SYS_NAND_U_BOOT_START	0xf8f80000
@@ -280,7 +280,7 @@
 /*
  * Config the L2 Cache as L2 SRAM
 */
-#if defined(CONFIG_SPL_BUILD)
+#if defined(CONFIG_XPL_BUILD)
 #if defined(CONFIG_SDCARD) || defined(CONFIG_SPIFLASH)
 #define CFG_SYS_INIT_L2_ADDR		0xf8f80000
 #define CFG_SYS_INIT_L2_ADDR_PHYS	CFG_SYS_INIT_L2_ADDR
@@ -302,7 +302,6 @@
  * open - index 2
  * shorted - index 1
  */
-#define CFG_SYS_NS16550_CLK		get_bus_freq(0)
 
 #define CFG_SYS_BAUDRATE_TABLE	\
 	{300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200}

@@ -3,7 +3,13 @@
  * Copyright 2021 NXP
  */
 
+#include "imx8ulp-u-boot.dtsi"
+
 / {
+	chosen {
+		bootargs = "console=ttyLP1,115200 earlycon";
+	};
+
 	mu@27020000 {
 		compatible = "fsl,imx8ulp-mu";
 		reg = <0 0x27020000 0 0x10000>;
@@ -12,8 +18,16 @@
 	};
 
 	aliases {
-		usbgadget0 = &usbg1;
-		usbgadget1 = &usbg2;
+		spi0 = &flexspi0;
+		spi2 = &flexspi2;
+		i2c0 = &lpi2c0;
+		i2c7 = &lpi2c7;
+		usbphy0 = &usbphy1;
+		usb0 = &usbotg1;
+		usbphy1 = &usbphy2;
+		usb1 = &usbotg2;
+		usb_gadget0 = &usbg1;
+		usb_gadget1 = &usbg2;
 	};
 
 	usbg1: usbg1 {
@@ -34,11 +48,18 @@
 		compatible = "northwest,mipi-dsi";
 		status = "okay";
 	};
+
+	reg_5v: regulator-5v {
+		compatible = "regulator-fixed";
+		regulator-name = "5V";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-always-on;
+	};
 };
 
 &soc {
 	bootph-all;
-	bootph-pre-ram;
 };
 
 &{/firmware} {
@@ -55,7 +76,14 @@
 
 &per_bridge3 {
 	bootph-all;
-	bootph-pre-ram;
+};
+
+&mu {
+	status = "disabled";
+};
+
+&wdog3 {
+	status = "disabled";
 };
 
 &per_bridge4 {
@@ -65,18 +93,20 @@
 
 &iomuxc1 {
 	bootph-all;
-	bootph-pre-ram;
-	fsl,mux_mask = <0xf00>;
+
+	pinctrl_dsi: dsigrp {
+		fsl,pins = <
+			MX8ULP_PAD_PTF8__PTF8		0x3
+		>;
+	};
 };
 
 &pinctrl_lpuart5 {
 	bootph-all;
-	bootph-pre-ram;
 };
 
 &lpuart5 {
 	bootph-all;
-	bootph-pre-ram;
 };
 
 &usdhc0 {
@@ -95,6 +125,7 @@
 
 &sec_jr0 {
 	bootph-pre-ram;
+	status = "disabled";
 };
 
 &sec_jr1 {
@@ -123,18 +154,74 @@
 	};
 };
 
-&scmi_buf {
-	reg = <0x0 0x1000>; /* Align page size */
-};
-
-&dsi {
-	data-lanes-num = <4>;
-};
-
 &usbotg1 {
 	compatible = "fsl,imx8ulp-usb", "fsl,imx7ulp-usb", "fsl,imx27-usb";
 };
 
 &usbotg2 {
 	compatible = "fsl,imx8ulp-usb", "fsl,imx7ulp-usb", "fsl,imx27-usb";
+};
+
+&pcal6408 {
+	compatible = "nxp,pcal9554b", "ti,tca6408";
+};
+
+&fec {
+	phy-reset-gpios = <&pcal6408 4 GPIO_ACTIVE_LOW>;
+};
+
+&scmi_buf {
+	reg = <0x0 0x1000>; /* Align page size */
+};
+
+&flexspi0 {
+	status = "okay";
+
+	flash0: atxp032@0 {
+		reg = <0>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "jedec,spi-nor";
+		spi-max-frequency = <66000000>;
+	};
+};
+
+&dsi {
+	data-lanes-num = <4>;
+	status = "okay";
+
+	panel@0 {
+		compatible = "rocktech,hx8394f";
+		reg = <0>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_dsi>;
+		himax,dsi-lanes = <2>;
+		reset-gpios = <&gpiof 8 GPIO_ACTIVE_LOW>;
+		vcc-supply = <&reg_5v>;
+		iovcc-supply = <&reg_5v>;
+
+		port {
+			panel_in: endpoint {
+				remote-endpoint = <&mipi_dsi_out>;
+			};
+		};
+	};
+
+	ports {
+		port@1 {
+			reg = <1>;
+
+			mipi_dsi_out: endpoint {
+				remote-endpoint = <&panel_in>;
+			};
+		};
+	};
+};
+
+&dcnano {
+	status = "okay";
+};
+
+&dphy {
+	status = "okay";
 };

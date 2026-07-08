@@ -5,11 +5,11 @@
 
 #define LOG_CATEGORY UCLASS_RESET
 
-#include <common.h>
 #include <dm.h>
 #include <errno.h>
 #include <reset-uclass.h>
 #include <scmi_agent.h>
+#include <scmi_agent-uclass.h>
 #include <scmi_protocols.h>
 #include <asm/types.h>
 
@@ -82,3 +82,10 @@ U_BOOT_DRIVER(scmi_reset_domain) = {
 	.ops = &scmi_reset_domain_ops,
 	.probe = scmi_reset_probe,
 };
+
+static struct scmi_proto_match match[] = {
+	{ .proto_id = SCMI_PROTOCOL_ID_RESET_DOMAIN },
+	{ /* Sentinel */ }
+};
+
+U_BOOT_SCMI_PROTO_DRIVER(scmi_reset_domain, match);

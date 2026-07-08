@@ -27,7 +27,7 @@
  *     to activate workaround for bug #41 or this driver will NOT work!
  */
 
-#include <common.h>
+#include <config.h>
 #include <cpu_func.h>
 #include <asm/byteorder.h>
 #include <dm.h>
@@ -1040,9 +1040,11 @@ static void dl_transfer_length(td_t *td)
 static void check_status(td_t *td_list)
 {
 	urb_priv_t *lurb_priv = td_list->ed->purb;
-	int	   urb_len    = lurb_priv->length;
 	__u32      *phwHeadP  = &td_list->ed->hwHeadP;
-	int	   cc;
+	int	   cc, urb_len;
+
+	if (lurb_priv)
+		urb_len = lurb_priv->length;
 
 	cc = TD_CC_GET(m32_swap(td_list->hwINFO));
 	if (cc) {
@@ -1361,7 +1363,8 @@ pkt_print(ohci, NULL, dev, pipe, buffer, transfer_len,
 						wLength));
 				databuf = root_hub_str_index1;
 				OK(len);
-		}
+			}
+			fallthrough;
 		default:
 			stat = USB_ST_STALLED;
 		}

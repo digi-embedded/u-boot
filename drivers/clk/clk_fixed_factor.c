@@ -7,7 +7,6 @@
 
 #define LOG_CATEGORY UCLASS_CLK
 
-#include <common.h>
 #include <clk-uclass.h>
 #include <div64.h>
 #include <dm.h>
@@ -65,6 +64,19 @@ static int clk_fixed_factor_of_to_plat(struct udevice *dev)
 	return 0;
 }
 
+static int clk_fixed_factor_bind(struct udevice *dev)
+{
+	if (CONFIG_IS_ENABLED(OF_REAL)) {
+		const char *clk_name;
+
+		clk_name = dev_read_string(dev, "clock-output-names");
+		if (clk_name)
+			device_set_name(dev, clk_name);
+	}
+
+	return 0;
+}
+
 static const struct udevice_id clk_fixed_factor_match[] = {
 	{
 		.compatible = "fixed-factor-clock",
@@ -78,5 +90,6 @@ U_BOOT_DRIVER(clk_fixed_factor) = {
 	.of_match = clk_fixed_factor_match,
 	.of_to_plat = clk_fixed_factor_of_to_plat,
 	.plat_auto	= sizeof(struct clk_fixed_factor),
+	.bind = clk_fixed_factor_bind,
 	.ops = &clk_fixed_factor_ops,
 };

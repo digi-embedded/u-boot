@@ -58,7 +58,7 @@ op
     ======== ======================
 
 Examples
-========
+--------
 
 The itest command sets the result variable $? to true (0) or false (1):
 
@@ -85,6 +85,8 @@ Numbers will be truncated according to the postfix before comparing:
 
 Postfix .s causes a string compare. The string '0xa1234' is alphabetically
 smaller than '0xb'.
+
+::
 
     => if itest.s 0xa1234 < 0xb; then echo true; else echo false; fi
     true

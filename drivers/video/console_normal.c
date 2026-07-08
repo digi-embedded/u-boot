@@ -6,7 +6,7 @@
  * (C) Copyright 2023 Dzmitry Sankouski <dsankouski@gmail.com>
  */
 
-#include <common.h>
+#include <charset.h>
 #include <dm.h>
 #include <video.h>
 #include <video_console.h>
@@ -35,9 +35,11 @@ static int console_set_row(struct udevice *dev, uint row, int clr)
 		fill_pixel_and_goto_next(&dst, clr, pbytes, pbytes);
 	end = dst;
 
-	ret = vidconsole_sync_copy(dev, line, end);
-	if (ret)
-		return ret;
+	video_damage(dev->parent,
+		     0,
+		     fontdata->height * row,
+		     vid_priv->xsize,
+		     fontdata->height);
 
 	return 0;
 }
@@ -51,19 +53,22 @@ static int console_move_rows(struct udevice *dev, uint rowdst,
 	void *dst;
 	void *src;
 	int size;
-	int ret;
 
 	dst = vid_priv->fb + rowdst * fontdata->height * vid_priv->line_length;
 	src = vid_priv->fb + rowsrc * fontdata->height * vid_priv->line_length;
 	size = fontdata->height * vid_priv->line_length * count;
-	ret = vidconsole_memmove(dev, dst, src, size);
-	if (ret)
-		return ret;
+	memmove(dst, src, size);
+
+	video_damage(dev->parent,
+		     0,
+		     fontdata->height * rowdst,
+		     vid_priv->xsize,
+		     fontdata->height * count);
 
 	return 0;
 }
 
-static int console_putc_xy(struct udevice *dev, uint x_frac, uint y, char ch)
+static int console_putc_xy(struct udevice *dev, uint x_frac, uint y, int cp)
 {
 	struct vidconsole_priv *vc_priv = dev_get_uclass_priv(dev);
 	struct udevice *vid = dev->parent;
@@ -73,8 +78,9 @@ static int console_putc_xy(struct udevice *dev, uint x_frac, uint y, char ch)
 	int pbytes = VNBYTES(vid_priv->bpix);
 	int x, linenum, ret;
 	void *start, *line;
+	u8 ch = console_utf_to_cp437(cp);
 	uchar *pfont = fontdata->video_fontdata +
-			(u8)ch * fontdata->char_pixel_bytes;
+			ch * fontdata->char_pixel_bytes;
 
 	if (x_frac + VID_TO_POS(vc_priv->x_charsize) > vc_priv->xsize_frac)
 		return -EAGAIN;
@@ -90,9 +96,11 @@ static int console_putc_xy(struct udevice *dev, uint x_frac, uint y, char ch)
 	if (ret)
 		return ret;
 
-	ret = vidconsole_sync_copy(dev, start, line);
-	if (ret)
-		return ret;
+	video_damage(dev->parent,
+		     x,
+		     y,
+		     fontdata->width,
+		     fontdata->height);
 
 	return VID_TO_POS(fontdata->width);
 }

@@ -7,7 +7,7 @@
 #ifndef IMX_RDC_H
 #define IMX_RDC_H
 
-#include <common.h>
+#include <config.h>
 
 #define IMX_RDC_BASE	UL(0x303D0000)
 

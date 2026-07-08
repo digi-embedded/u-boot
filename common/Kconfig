@@ -26,7 +26,7 @@ config CONSOLE_RECORD_INIT_F
 config CONSOLE_RECORD_OUT_SIZE
 	hex "Output buffer size"
 	depends on CONSOLE_RECORD
-	default 0x400 if CONSOLE_RECORD
+	default 0x20000
 	help
 	  Set the size of the console recording output buffer. When this fills
 	  up, no more data will be recorded until some is removed. The buffer
@@ -231,7 +231,7 @@ config PRE_CON_BUF_ADDR
 	default 0x2f000000 if ARCH_SUNXI && MACH_SUN9I
 	default 0x4f000000 if ARCH_SUNXI && !MACH_SUN9I
 	default 0x0f000000 if ROCKCHIP_RK3288
-	default 0x0f200000 if ROCKCHIP_RK3399
+	default 0x0f200000 if ROCKCHIP_RK3399 || ROCKCHIP_RK3328
 	help
 	  This sets the start address of the pre-console buffer. This must
 	  be in available memory and is accessed before relocation and
@@ -280,6 +280,7 @@ config SYS_CONSOLE_IS_IN_ENV
 
 config SYS_CONSOLE_OVERWRITE_ROUTINE
 	bool "Allow board control over console overwriting"
+	depends on !COMPILE_TEST
 	help
 	  If this is enabled, and the board-specific function
 	  overwrite_console() returns 1, the stdin, stderr and stdout are
@@ -424,7 +425,7 @@ config LOGF_FUNC_PAD
 
 config LOG_SYSLOG
 	bool "Log output to syslog server"
-	depends on NET
+	depends on NET || NET_LWIP
 	help
 	  Enables a log driver which broadcasts log records via UDP port 514
 	  to syslog servers.
@@ -626,9 +627,18 @@ config CYCLIC
 
 if CYCLIC
 
+config SPL_CYCLIC
+	bool "General-purpose cyclic execution mechanism (SPL)"
+	help
+	  This enables a general-purpose cyclic execution infrastructure in SPL,
+	  to allow "small" (run-time wise) functions to be executed at
+	  a specified frequency. Things like LED blinking or watchdog
+	  triggering are examples for such tasks.
+
 config CYCLIC_MAX_CPU_TIME_US
 	int "Sets the max allowed time for a cyclic function in us"
-	default 1000
+	default 100000 if SANDBOX  # sandbox video is quite slow
+	default 5000
 	help
 	  The max allowed time for a cyclic function in us. If a functions
 	  takes longer than this duration this function will get unregistered
@@ -695,8 +705,9 @@ config ARCH_EARLY_INIT_R
 	  enabled. This can be used to set up architecture-specific devices.
 
 config ARCH_MISC_INIT
-	bool "Call arch-specific init after relocation, when console is ready"
+	bool
 	help
+	  Call arch-specific init after relocation, when console is ready.
 	  With this option U-Boot will call arch_misc_init() after
 	  relocation to allow miscellaneous arch-dependent initialisation
 	  to be performed. This function should be defined by the board
@@ -704,6 +715,7 @@ config ARCH_MISC_INIT
 
 config BOARD_EARLY_INIT_F
 	bool "Call board-specific init before relocation"
+	depends on !COMPILE_TEST
 	help
 	  Some boards need to perform initialisation as soon as possible
 	  after boot. With this option, U-Boot calls board_early_init_f()
@@ -713,13 +725,23 @@ config BOARD_EARLY_INIT_F
 
 config BOARD_EARLY_INIT_R
 	bool "Call board-specific init after relocation"
+	depends on !COMPILE_TEST
 	help
 	  Some boards need to perform initialisation as directly after
 	  relocation. With this option, U-Boot calls board_early_init_r()
 	  in the post-relocation init sequence.
 
+config BOARD_INIT
+	bool "Call board-specific init board_init() during init-calls"
+	depends on !COMPILE_TEST
+	default y if ARM || RISCV || SANDBOX
+	help
+	  Some boards need an board_init() function called during the initcall
+	  phase of startup.
+
 config BOARD_POSTCLK_INIT
 	bool "Call board_postclk_init"
+	depends on !COMPILE_TEST
 	help
 	  Some boards need this to initialize select items, after clocks /
 	  timebase and before env / serial.
@@ -763,6 +785,7 @@ config LAST_STAGE_INIT
 
 config MISC_INIT_R
 	bool "Execute Misc Init"
+	depends on !COMPILE_TEST
 	default y if ARCH_KEYSTONE || ARCH_SUNXI || MPC85xx
 	default y if ARCH_OMAP2PLUS && !AM33XX
 	help
@@ -816,8 +839,16 @@ config PCI_INIT_R
 	  case of DM PCI-based Ethernet devices, which will not be detected
 	  without having the enumeration performed earlier.
 
+config SYS_EARLY_PCI_INIT
+	bool "Enumerate PCI buses early during init"
+	depends on PCI
+	help
+	  Do early PCI configuration before the eMMC gets initialised,
+	  because PCI resources are crucial for eMMC access on some boards.
+
 config RESET_PHY_R
 	bool "Reset ethernet PHY during init"
+	depends on !COMPILE_TEST
 	help
 	  Implement reset_phy() in board code if required to reset the ethernet
 	  PHY.
@@ -836,11 +867,20 @@ config HASH
 	  and the algorithms it supports are defined in common/hash.c. See
 	  also CMD_HASH for command-line access.
 
+config HASH_CRC8
+	bool "Make crc8 available via the hash API"
+	depends on HASH && CRC8
+	help
+	  Most times, the crc8() function is called directly. To make it also
+	  available via the hash API, e.g. in hash_block(), enable this
+	  option.
+
 config AVB_VERIFY
 	bool "Build Android Verified Boot operations"
 	depends on LIBAVB
 	depends on MMC
 	depends on PARTITION_UUIDS
+	depends on FASTBOOT
 	help
 	  This option enables compilation of bootloader-dependent operations,
 	  used by Android Verified Boot 2.0 library (libavb). Includes:
@@ -896,6 +936,20 @@ config STACKPROTECTOR
 	  Enable stack smash detection through compiler's stack-protector
 	  canary logic
 
+config MMU_PGPROT
+	bool "Enable RO, RW and RX mappings"
+	depends on !SANDBOX
+	help
+	  U-Boot maps all pages as RWX. If selected pages will
+	  be marked as RO(.rodata), RX(.text), RW(.data) right after
+	  we relocate. Since code sections needs to be page aligned
+	  the final binary size will increase. The mappings can be dumped
+	  using the 'meminfo' command.
+
+	  Enabling this feature can expose bugs in U-Boot where we have
+	  code that violates read-only permissions for example. Use this
+	  feature with caution.
+
 config SPL_STACKPROTECTOR
 	bool "Stack Protector buffer overflow detection for SPL"
 	depends on STACKPROTECTOR && SPL
@@ -906,6 +960,7 @@ config TPL_STACKPROTECTOR
 
 config BOARD_RNG_SEED
 	bool "Provide /chosen/rng-seed property to the linux kernel"
+	depends on !COMPILE_TEST
 	help
 	  Selecting this option requires the board to define a
 	  board_rng_seed() function, which should return a buffer
@@ -918,6 +973,9 @@ config BOARD_RNG_SEED
 	  new seed for use on subsequent boots, and whether or not the
 	  kernel should account any entropy from the given seed.
 
+	  Default seed size (64 bytes) can be overridden by a decimal
+	  environment variable rng_seed_size.
+
 endmenu
 
 menu "Update support"
@@ -925,6 +983,7 @@ menu "Update support"
 config UPDATE_COMMON
 	bool
 	select DFU_WRITE_ALT
+	imply CMD_TFTPBOOT
 
 config UPDATE_TFTP
 	bool "Auto-update using fitImage via TFTP"
@@ -977,7 +1036,8 @@ config ANDROID_AB_BACKUP_OFFSET
 	help
 	  If non-zero, a backup bootloader message starting at this offset in
 	  the partition will tried in the event that the primary one (starting
-	  at offset 0) fails its checksum.
+	  at offset 0) fails its checksum. The offset is in bytes and must be
+	  multiple of the block size.
 
 endmenu
 
@@ -1024,14 +1084,16 @@ if BLOBLIST
 
 choice
 	prompt "Bloblist location"
+	default BLOBLIST_FIXED if SANDBOX
+	default BLOBLIST_ALLOC
 	help
 	  Select the location of the bloblist, via various means.
 
 config BLOBLIST_FIXED
 	bool "Place bloblist at a fixed address in memory"
 	help
-	  Select this to used a fixed memory address for the bloblist. If the
-	  bloblist exists at this address from a previous phase, it used as is.
+	  Select this to use a fixed memory address for the bloblist. If the
+	  bloblist exists at this address from a previous phase, it is used as is.
 	  If not it is created at this address in U-Boot.
 
 config BLOBLIST_ALLOC
@@ -1041,11 +1103,21 @@ config BLOBLIST_ALLOC
 	  specify a fixed address on systems where this is unknown or can
 	  change at runtime.
 
+config BLOBLIST_PASSAGE_MANDATORY
+	bool "Use bloblist in-place mandatorily"
+	help
+	  By default U-Boot will use a bloblist in the incoming standard passage.
+	  This option controls whether U-Boot tries to load a static bloblist or
+	  allocate one if a valid incoming bloblist does not exist.
+	  Select this option to mark incoming standard passage as mandatory and
+	  U-Boot will report an error when a valid incoming bloblist does not
+	  exist.
+
 endchoice
 
 config BLOBLIST_ADDR
 	hex "Address of bloblist"
-	default 0xb000 if SANDBOX
+	default 0x100 if SANDBOX
 	depends on BLOBLIST_FIXED
 	help
 	  Sets the address of the bloblist, set up by the first part of U-Boot
@@ -1055,17 +1127,18 @@ config BLOBLIST_ADDR
 
 config BLOBLIST_SIZE
 	hex "Size of bloblist"
+	default 0x0 if BLOBLIST_PASSAGE_MANDATORY
 	default 0x400
 	help
 	  Sets the size of the bloblist in bytes. This must include all
 	  overhead (alignment, bloblist header, record header). The bloblist
 	  is set up in the first part of U-Boot to run (TPL, SPL or U-Boot
-	  proper), and this sane bloblist is used for subsequent phases.
+	  proper), and this same bloblist is used for subsequent phases.
 
 config BLOBLIST_SIZE_RELOC
 	hex "Size of bloblist after relocation"
-	default BLOBLIST_SIZE if BLOBLIST_FIXED || BLOBLIST_ALLOC
-	default 0x0 if BLOBLIST_PASSAGE
+	default BLOBLIST_SIZE if BLOBLIST_FIXED
+	default 0x20000
 	help
 	  Sets the size of the bloblist in bytes after relocation. Since U-Boot
 	  has a lot more memory available then, it is possible to use a larger
@@ -1191,11 +1264,13 @@ config VPL_IMAGE_SIGN_INFO
 endif
 
 config IO_TRACE
-	bool
-
-config KASLR
-	bool "Enable KASLR feature in kernel"
+	bool "Intercept and checksum all I/O accesses"
+	depends on ARM || SANDBOX
+	default y if SANDBOX
 	help
-	 Fixing up device-tree with random u64 value in kaslr-seed property
-	 of chosen node at kernel entry for randomizing the virtual address
-	 at which the kernel image is loaded.
+	  When enabled, U-Boot intercepts all I/O accesses and can checksum
+	  them or write a list of them out to memory. See the 'iotrace' command
+	  for details. This is useful for testing device drivers since it can
+	  confirm that the driver behaves the same way before and after a code
+	  change. To add support for your architecture, add '#include
+	  <iotrace.h>' to the bottom of arch/<arch>/include/asm/io.h and test.

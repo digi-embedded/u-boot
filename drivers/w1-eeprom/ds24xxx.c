@@ -7,7 +7,6 @@
  *
  */
 
-#include <common.h>
 #include <linux/err.h>
 #include <dm.h>
 #include <w1-eeprom.h>
@@ -54,7 +53,7 @@ U_BOOT_DRIVER(ds24xxx) = {
 	.probe		= ds24xxx_probe,
 };
 
-u8 family_supported[] = {
+static u8 family_supported[] = {
 	W1_FAMILY_DS24B33,
 	W1_FAMILY_DS2431,
 };

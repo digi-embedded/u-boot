@@ -87,10 +87,14 @@ struct arch_global_data {
 #if defined(CONFIG_LWMON5)
 	unsigned long kbd_status;
 #endif
+	/** @pci_clk: PCI clock rate in Hz */
+	unsigned long pci_clk;
 };
 
 #include <asm-generic/global_data.h>
 
-#define DECLARE_GLOBAL_DATA_PTR     register volatile gd_t *gd asm ("r2")
+#define DECLARE_GLOBAL_DATA_PTR     register gd_t *gd asm ("r2")
+
+#include <asm/u-boot.h>
 
 #endif /* __ASM_GBL_DATA_H */

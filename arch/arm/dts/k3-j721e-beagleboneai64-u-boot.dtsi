@@ -64,6 +64,10 @@
 	bootph-all;
 };
 
+&chipid {
+	bootph-all;
+};
+
 &mcu_ringacc {
 	reg = <0x0 0x2b800000 0x0 0x400000>,
 		<0x0 0x2b000000 0x0 0x400000>,
@@ -92,10 +96,6 @@
 
 &dmsc {
 	bootph-all;
-	k3_sysreset: sysreset-controller {
-		compatible = "ti,sci-sysreset";
-		bootph-all;
-	};
 };
 
 &k3_pds {
@@ -165,7 +165,6 @@
 
 &serdes_ln_ctrl {
 	bootph-all;
-	u-boot,mux-autoprobe;
 };
 
 &serdes2_usb_link {
@@ -174,7 +173,6 @@
 
 &usb_serdes_mux {
 	bootph-all;
-	u-boot,mux-autoprobe;
 };
 
 &serdes_wiz2 {
@@ -208,19 +206,12 @@
 #ifdef CONFIG_TARGET_J721E_A72_BEAGLEBONEAI64
 
 #define SPL_NODTB "spl/u-boot-spl-nodtb.bin"
-#define SPL_J721E_BBAI64_DTB "spl/dts/k3-j721e-beagleboneai64.dtb"
+#define SPL_J721E_BBAI64_DTB "spl/dts/ti/k3-j721e-beagleboneai64.dtb"
 
 #define UBOOT_NODTB "u-boot-nodtb.bin"
-#define J721E_BBAI64_DTB "arch/arm/dts/k3-j721e-beagleboneai64.dtb"
+#define J721E_BBAI64_DTB "dts/upstream/src/arm64/ti/k3-j721e-beagleboneai64.dtb"
 
 &binman {
-	ti-dm {
-		filename = "ti-dm.bin";
-		blob-ext {
-			filename = "ti-dm/j721e/ipc_echo_testb_mcu1_0_release_strip.xer5f";
-		};
-	};
-
 	ti-spl_unsigned {
 		filename = "tispl.bin_unsigned";
 		pad-byte = <0xff>;
@@ -250,8 +241,8 @@
 					arch = "arm64";
 					compression = "none";
 					os = "tee";
-					load = <0x9e800000>;
-					entry = <0x9e800000>;
+					load = <CONFIG_K3_OPTEE_LOAD_ADDR>;
+					entry = <CONFIG_K3_OPTEE_LOAD_ADDR>;
 					tee-os {
 						filename = "tee-raw.bin";
 					};
@@ -265,8 +256,8 @@
 					os = "DM";
 					load = <0x89000000>;
 					entry = <0x89000000>;
-					blob-ext {
-						filename = "ti-dm.bin";
+					ti-dm {
+						filename = "ti-dm/j721e/ipc_echo_testb_mcu1_0_release_strip.xer5f";
 					};
 				};
 
@@ -357,4 +348,27 @@
 		};
 	};
 };
+
+#include "k3-binman-capsule.dtsi"
+
+// Capsule update GUIDs in string form.  See beagleboneai64.h
+#define BEAGLEBONEAI64_SPL_IMAGE_GUID_STR "83447222-1e26-40cd-a395-b7de0957e875"
+#define BEAGLEBONEAI64_UBOOT_IMAGE_GUID_STR "4249ff77-c17d-4eb7-a1db-45aa9887d49e"
+
+&capsule_tispl {
+	efi-capsule {
+		image-guid = BEAGLEBONEAI64_SPL_IMAGE_GUID_STR;
+
+		blob {
+			filename = "tispl.bin_unsigned";
+		};
+	};
+};
+
+&capsule_uboot {
+	efi-capsule {
+		image-guid = BEAGLEBONEAI64_UBOOT_IMAGE_GUID_STR;
+	};
+};
+
 #endif

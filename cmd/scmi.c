@@ -29,6 +29,7 @@ struct {
 	{SCMI_PROTOCOL_ID_SENSOR, "Sensor management"},
 	{SCMI_PROTOCOL_ID_RESET_DOMAIN, "Reset domain management"},
 	{SCMI_PROTOCOL_ID_VOLTAGE_DOMAIN, "Voltage domain management"},
+	{SCMI_PROTOCOL_ID_PINCTRL, "Pin control management"},
 };
 
 /**
@@ -369,7 +370,7 @@ static int do_scmi(struct cmd_tbl *cmdtp, int flag,
 	return cp->cmd(cmdtp, flag, argc, argv);
 }
 
-static char scmi_help_text[] =
+U_BOOT_LONGHELP(scmi,
 	" - SCMI utility\n"
 	" info - get the info of SCMI services\n"
 	" perm_dev <agent-id in hex> <device-id in hex> <flags in hex>\n"
@@ -377,8 +378,7 @@ static char scmi_help_text[] =
 	" perm_proto <agent-id in hex> <device-id in hex> <protocol-id in hex> <flags in hex>\n"
 	"   - set protocol permission to device\n"
 	" reset <agent-id in hex> <flags in hex>\n"
-	"   - reset platform resource settings\n"
-	"";
+	"   - reset platform resource settings\n");
 
 U_BOOT_CMD(scmi, CONFIG_SYS_MAXARGS, 0, do_scmi, "SCMI utility",
 	   scmi_help_text);

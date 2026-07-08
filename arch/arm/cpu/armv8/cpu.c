@@ -10,7 +10,6 @@
  * Gary Jennejohn, DENX Software Engineering, <garyj@denx.de>
  */
 
-#include <common.h>
 #include <command.h>
 #include <cpu_func.h>
 #include <irq_func.h>
@@ -95,3 +94,8 @@ void armv8_setup_psci(void)
 	secure_ram_addr(psci_arch_init)();
 }
 #endif
+
+void allow_unaligned(void)
+{
+	set_sctlr(get_sctlr() & ~CR_A);
+}

@@ -3,7 +3,6 @@
  * Copyright (C) 2021 Marek Vasut <marek.vasut+renesas@gmail.com>
  */
 
-#include <common.h>
 #include <dm.h>
 #include <i2c_eeprom.h>
 #include <log.h>
@@ -47,7 +46,7 @@ static int sysinfo_rcar_get_str(struct udevice *dev, int id, size_t size, char *
 	struct sysinfo_rcar_priv *priv = dev_get_priv(dev);
 
 	switch (id) {
-	case SYSINFO_ID_BOARD_MODEL:
+	case SYSID_BOARD_MODEL:
 		strncpy(val, priv->boardmodel, size);
 		val[size - 1] = '\0';
 		return 0;

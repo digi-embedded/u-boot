@@ -5,7 +5,7 @@
 
 #define LOG_CATEGORY LOGC_ARCH
 
-#include <common.h>
+#include <config.h>
 #include <cpu_func.h>
 #include <dm.h>
 #include <hang.h>
@@ -18,6 +18,7 @@
 #include <asm/io.h>
 #include <asm/arch/sys_proto.h>
 #include <mach/tzc.h>
+#include <mach/stm32mp.h>
 #include <linux/libfdt.h>
 
 u32 spl_boot_device(void)
@@ -110,22 +111,6 @@ uint32_t stm32mp_get_dram_size(void)
 	return ram.size;
 }
 
-static int optee_get_reserved_memory(uint32_t *start, uint32_t *size)
-{
-	fdt_addr_t fdt_mem_size;
-	fdt_addr_t fdt_start;
-	ofnode node;
-
-	node = ofnode_path("/reserved-memory/optee");
-	if (!ofnode_valid(node))
-		return 0;
-
-	fdt_start = ofnode_get_addr_size(node, "reg", &fdt_mem_size);
-	*start = fdt_start;
-	*size = fdt_mem_size;
-	return (fdt_start < 0) ? fdt_start : 0;
-}
-
 #define CFG_SHMEM_SIZE			0x200000
 #define STM32_TZC_NSID_ALL		0xffff
 #define STM32_TZC_FILTER_ALL		3
@@ -134,7 +119,7 @@ void stm32_init_tzc_for_optee(void)
 {
 	const uint32_t dram_size = stm32mp_get_dram_size();
 	const uintptr_t dram_top = STM32_DDR_BASE + (dram_size - 1);
-	uint32_t optee_base, optee_size, tee_shmem_base;
+	u32 optee_base = 0, optee_size = 0, tee_shmem_base;
 	const uintptr_t tzc = STM32_TZC_BASE;
 	int ret;
 
@@ -235,10 +220,11 @@ void board_init_f(ulong dummy)
 	 * activate cache on DDR only when DDR is fully initialized
 	 * to avoid speculative access and issue in get_ram_size()
 	 */
-	if (!CONFIG_IS_ENABLED(SYS_DCACHE_OFF))
+	if (!CONFIG_IS_ENABLED(SYS_DCACHE_OFF) && !IS_ENABLED(CONFIG_STM32MP13X)) {
 		mmu_set_region_dcache_behaviour(STM32_DDR_BASE,
 						CONFIG_DDR_CACHEABLE_SIZE,
 						DCACHE_DEFAULT_OPTION);
+	}
 }
 
 void spl_board_prepare_for_boot(void)

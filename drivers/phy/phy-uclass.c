@@ -6,7 +6,6 @@
 
 #define LOG_CATEGORY UCLASS_PHY
 
-#include <common.h>
 #include <dm.h>
 #include <dm/device_compat.h>
 #include <dm/devres.h>
@@ -275,7 +274,7 @@ int generic_phy_exit(struct phy *phy)
 {
 	struct phy_counts *counts;
 	struct phy_ops const *ops;
-	int ret;
+	int ret = 0;
 
 	if (!generic_phy_valid(phy))
 		return 0;
@@ -293,12 +292,11 @@ int generic_phy_exit(struct phy *phy)
 		if (ret) {
 			dev_err(phy->dev, "PHY: Failed to exit %s: %d.\n",
 				phy->dev->name, ret);
-			return ret;
 		}
 	}
 	counts->init_count = 0;
 
-	return 0;
+	return ret;
 }
 
 int generic_phy_power_on(struct phy *phy)
@@ -416,7 +414,7 @@ int generic_phy_get_bulk(struct udevice *dev, struct phy_bulk *bulk)
 	if (!dev_read_prop(dev, "phys", NULL)) {
 		phydev = dev->parent;
 		if (!dev_read_prop(phydev, "phys", NULL)) {
-			pr_err("%s : no phys property\n", __func__);
+			pr_debug("%s : no phys property\n", __func__);
 			return 0;
 		}
 	}
@@ -509,7 +507,8 @@ int generic_phy_power_off_bulk(struct phy_bulk *bulk)
 	return ret;
 }
 
-int generic_setup_phy(struct udevice *dev, struct phy *phy, int index)
+int generic_setup_phy(struct udevice *dev, struct phy *phy, int index,
+		      enum phy_mode mode, int submode)
 {
 	int ret;
 
@@ -521,10 +520,18 @@ int generic_setup_phy(struct udevice *dev, struct phy *phy, int index)
 	if (ret)
 		return ret;
 
+	ret = generic_phy_set_mode(phy, mode, submode);
+	if (ret)
+		goto phys_mode_err;
+
 	ret = generic_phy_power_on(phy);
 	if (ret)
-		generic_phy_exit(phy);
+		goto phys_mode_err;
 
+	return 0;
+
+phys_mode_err:
+	generic_phy_exit(phy);
 	return ret;
 }
 

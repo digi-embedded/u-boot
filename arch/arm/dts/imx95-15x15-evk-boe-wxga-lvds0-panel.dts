@@ -3,7 +3,7 @@
  * Copyright 2024 NXP
  */
 
-#include "imx95-15x15-evk.dts"
+#include "../dts/upstream/src/arm64/freescale/imx95-15x15-evk.dts"
 #include "imx95-15x15-evk-u-boot.dtsi"
 
 / {

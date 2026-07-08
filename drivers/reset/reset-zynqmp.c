@@ -5,7 +5,6 @@
 
 #define LOG_CATEGORY UCLASS_RESET
 
-#include <common.h>
 #include <dm.h>
 #include <dm/device_compat.h>
 #include <reset-uclass.h>
@@ -23,7 +22,7 @@ static int zynqmp_pm_reset_assert(const u32 reset,
 				  const enum zynqmp_pm_reset_action assert_flag)
 {
 	return xilinx_pm_request(PM_RESET_ASSERT, reset, assert_flag, 0, 0,
-				 NULL);
+				 0, 0, NULL);
 }
 
 static int zynqmp_reset_assert(struct reset_ctl *rst)

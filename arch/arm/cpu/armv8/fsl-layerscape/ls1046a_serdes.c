@@ -4,7 +4,7 @@
  * Copyright 2019 NXP
  */
 
-#include <common.h>
+#include <config.h>
 #include <asm/arch/fsl_serdes.h>
 #include <asm/arch/immap_lsch2.h>
 
@@ -40,6 +40,7 @@ static struct serdes_config serdes1_cfg_tbl[] = {
 
 static struct serdes_config serdes2_cfg_tbl[] = {
 	/* SerDes 2 */
+	{0x7777, {PCIE1, PCIE1, PCIE3, PCIE3} },
 	{0x8888, {PCIE1, PCIE1, PCIE1, PCIE1} },
 	{0x5559, {PCIE1, PCIE2, PCIE3, SATA1} },
 	{0x5577, {PCIE1, PCIE2, PCIE3, PCIE3} },

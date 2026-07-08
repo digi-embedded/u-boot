@@ -1568,7 +1568,7 @@
 		status = "disabled";
 	};
 
-	lpspi0: lpspi@5a000000 {
+	lpspi0: spi@5a000000 {
 		compatible = "fsl,imx7ulp-spi";
 		reg = <0x0 0x5a000000 0x0 0x10000>;
 		interrupts = <GIC_SPI 216 IRQ_TYPE_LEVEL_HIGH>;
@@ -1584,7 +1584,7 @@
 		status = "disabled";
 	};
 
-	lpspi3: lpspi@5a030000 {
+	lpspi3: spi@5a030000 {
 		compatible = "fsl,imx7ulp-spi";
 		reg = <0x0 0x5a030000 0x0 0x10000>;
 		interrupts = <GIC_SPI 219 IRQ_TYPE_LEVEL_HIGH>;
@@ -2124,7 +2124,7 @@
 		interrupts = <GIC_SPI 131 IRQ_TYPE_LEVEL_HIGH>;
 	};
 
-	flexspi0: flexspi@05d120000 {
+	flexspi0: spi@05d120000 {
 		#address-cells = <1>;
 		#size-cells = <0>;
 		compatible = "nxp,imx8qxp-fspi";

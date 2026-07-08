@@ -45,7 +45,6 @@
 *		Jason ported this file to u-boot to run the ATI video card
 *		BIOS in u-boot.
 ****************************************************************************/
-#include <common.h>
 #include <compiler.h>
 #include <bios_emul.h>
 #include <errno.h>
@@ -100,7 +99,7 @@ static int atibios_debug_mode(BE_VGAInfo *vga_info, RMREGS *regs,
 	regs->e.edi = buffer_adr;
 	info = buffer;
 	memset(info, '\0', sizeof(*info));
-	strcpy(info->signature, "VBE2");
+	memcpy(info->signature, "VBE2", 4);
 	BE_int86(0x10, regs, regs);
 	if (regs->e.eax != 0x4f) {
 		debug("VESA_GET_INFO: error %x\n", regs->e.eax);

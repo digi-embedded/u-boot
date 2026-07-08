@@ -4,12 +4,13 @@
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  */
 
-#include <common.h>
+#include <stdio.h>
 #include <bootretry.h>
 #include <cli.h>
 #include <env.h>
 #include <errno.h>
 #include <time.h>
+#include <vsprintf.h>
 #include <watchdog.h>
 
 static uint64_t endtime;  /* must be set, default is instant timeout */
@@ -36,6 +37,8 @@ void bootretry_init_cmd_timeout(void)
  */
 void bootretry_reset_cmd_timeout(void)
 {
+	/* Parse changes to bootretry */
+	bootretry_init_cmd_timeout();
 	endtime = endtick(retry_time);
 }
 

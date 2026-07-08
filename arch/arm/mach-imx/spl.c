@@ -6,7 +6,7 @@
  * Author: Tim Harvey <tharvey@gateworks.com>
  */
 
-#include <common.h>
+#include <config.h>
 #include <hang.h>
 #include <init.h>
 #include <log.h>
@@ -20,12 +20,12 @@
 #include <asm/mach-imx/boot_mode.h>
 #include <g_dnl.h>
 #include <linux/libfdt.h>
-#include <u-boot/lz4.h>
-#include <image.h>
-#include <asm/sections.h>
 #include <asm/setup.h>
 #include <asm/bootm.h>
 #include <mmc.h>
+#include <u-boot/lz4.h>
+#include <image.h>
+#include <asm/sections.h>
 #include <u-boot/lz4.h>
 #include <image.h>
 
@@ -291,7 +291,7 @@ u32 spl_mmc_boot_mode(struct mmc *mmc, const u32 boot_device)
  * +------------+ + CSF_PAD_SIZE
  */
 
-__weak void __noreturn jump_to_image_no_args(struct spl_image_info *spl_image)
+__weak void __noreturn jump_to_image(struct spl_image_info *spl_image)
 {
 	typedef void __noreturn (*image_entry_noargs_t)(void);
 	uint32_t offset;

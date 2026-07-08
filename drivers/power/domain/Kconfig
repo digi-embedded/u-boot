@@ -18,6 +18,14 @@ config APPLE_PMGR_POWER_DOMAIN
 	  This driver is needed to power on parts of the SoC that have
 	  not been powered on by previous boot stages.
 
+config AGILEX5_PMGR_POWER_DOMAIN
+	bool "Enable the Agilex5 PMGR power domain driver"
+	depends on SPL_POWER_DOMAIN && TARGET_SOCFPGA_SOC64
+	help
+	  Enable support for power gating peripherals' SRAM specified in
+	  the handoff data values obtained from the bitstream to reduce
+	  power consumption.
+
 config BCM6328_POWER_DOMAIN
 	bool "Enable the BCM6328 power domain driver"
 	depends on POWER_DOMAIN && ARCH_BMIPS
@@ -52,6 +60,13 @@ config IMX8MP_HSIOMIX_BLKCTRL
 	select CLK
 	help
 	  Enable support for manipulating NXP i.MX8MP on-SoC HSIOMIX block controller.
+
+config IMX8MP_MEDIAMIX_BLKCTRL
+	bool "Enable i.MX8MP MEDIAMIX domain driver"
+	depends on POWER_DOMAIN && IMX8MP
+	select CLK
+	help
+	  Enable support for manipulating NXP i.MX8MP on-SoC MEDIAMIX block controller.
 
 config IMX93_BLK_CTRL
 	bool "Enable i.MX93 block control driver"
@@ -121,6 +136,14 @@ config TI_POWER_DOMAIN
 	depends on POWER_DOMAIN && ARCH_K3
 	help
 	  Generic power domain implementation for TI K3 devices.
+
+config TI_OMAP_PRM_POWER_DOMAIN
+	bool "Enable the TI OMAP PRM power domain driver"
+	depends on POWER_DOMAIN && ARCH_OMAP2PLUS
+	help
+	  Enable support for TI OMAP Power and Reset Manager (PRM) power domains.
+	  The driver is currently a stub to be able to probe devices that
+	  require this type of power domain device.
 
 config ZYNQMP_POWER_DOMAIN
 	bool "Enable the Xilinx ZynqMP Power domain driver"

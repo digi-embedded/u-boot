@@ -7,7 +7,6 @@
 
 #define LOG_CATEGORY UCLASS_MMC
 
-#include <common.h>
 #include <bootdev.h>
 #include <log.h>
 #include <mmc.h>
@@ -84,6 +83,19 @@ int mmc_wait_dat0(struct mmc *mmc, int state, int timeout_us)
 	return dm_mmc_wait_dat0(mmc->dev, state, timeout_us);
 }
 
+void dm_mmc_send_init_stream(struct udevice *dev)
+{
+	struct dm_mmc_ops *ops = mmc_get_ops(dev);
+
+	if (ops->send_init_stream)
+		ops->send_init_stream(dev);
+}
+
+void mmc_send_init_stream(struct mmc *mmc)
+{
+	dm_mmc_send_init_stream(mmc->dev);
+}
+
 static int dm_mmc_get_wp(struct udevice *dev)
 {
 	struct dm_mmc_ops *ops = mmc_get_ops(dev);
@@ -112,7 +124,7 @@ int mmc_getcd(struct mmc *mmc)
 	return dm_mmc_get_cd(mmc->dev);
 }
 
-#ifdef MMC_SUPPORTS_TUNING
+#if CONFIG_IS_ENABLED(MMC_SUPPORTS_TUNING)
 static int dm_mmc_execute_tuning(struct udevice *dev, uint opcode)
 {
 	struct dm_mmc_ops *ops = mmc_get_ops(dev);
@@ -124,7 +136,13 @@ static int dm_mmc_execute_tuning(struct udevice *dev, uint opcode)
 
 int mmc_execute_tuning(struct mmc *mmc, uint opcode)
 {
-	return dm_mmc_execute_tuning(mmc->dev, opcode);
+	int ret;
+
+	mmc->tuning = true;
+	ret = dm_mmc_execute_tuning(mmc->dev, opcode);
+	mmc->tuning = false;
+
+	return ret;
 }
 #endif
 
@@ -225,8 +243,12 @@ int mmc_of_parse(struct udevice *dev, struct mmc_config *cfg)
 		return -EINVAL;
 	}
 
-	/* f_max is obtained from the optional "max-frequency" property */
-	dev_read_u32(dev, "max-frequency", &cfg->f_max);
+	/*
+	 * Maximum frequency is obtained from the optional "max-frequency" DT property.
+	 * Use dev_read_u32_default() to preserve the driver-set f_max value when
+	 * "max-frequency" is not present, ensuring the controller's default is used.
+	 */
+	cfg->f_max = dev_read_u32_default(dev, "max-frequency", cfg->f_max);
 
 	if (dev_read_bool(dev, "cap-sd-highspeed"))
 		cfg->host_caps |= MMC_CAP(SD_HS);
@@ -251,11 +273,14 @@ int mmc_of_parse(struct udevice *dev, struct mmc_config *cfg)
 	if (dev_read_bool(dev, "mmc-hs200-1_2v"))
 		cfg->host_caps |= MMC_CAP(MMC_HS_200);
 	if (dev_read_bool(dev, "mmc-hs400-1_8v"))
-		cfg->host_caps |= MMC_CAP(MMC_HS_400);
+		cfg->host_caps |= MMC_CAP(MMC_HS_400) | MMC_CAP(MMC_HS_200);
 	if (dev_read_bool(dev, "mmc-hs400-1_2v"))
-		cfg->host_caps |= MMC_CAP(MMC_HS_400);
+		cfg->host_caps |= MMC_CAP(MMC_HS_400) | MMC_CAP(MMC_HS_200);
 	if (dev_read_bool(dev, "mmc-hs400-enhanced-strobe"))
 		cfg->host_caps |= MMC_CAP(MMC_HS_400_ES);
+	if (dev_read_bool(dev, "no-mmc-hs400"))
+		cfg->host_caps &= ~(MMC_CAP(MMC_HS_400) |
+				    MMC_CAP(MMC_HS_400_ES));
 
 	if (dev_read_bool(dev, "non-removable")) {
 		cfg->host_caps |= MMC_CAP_NONREMOVABLE;
@@ -293,7 +318,7 @@ struct mmc *find_mmc_device(int dev_num)
 	ret = blk_find_device(UCLASS_MMC, dev_num, &dev);
 
 	if (ret) {
-#if !defined(CONFIG_SPL_BUILD) || defined(CONFIG_SPL_LIBCOMMON_SUPPORT)
+#if !defined(CONFIG_XPL_BUILD) || defined(CONFIG_SPL_LIBCOMMON_SUPPORT)
 		printf("MMC Device %d not found\n", dev_num);
 #endif
 		return NULL;
@@ -365,7 +390,7 @@ void mmc_do_preinit(void)
 	}
 }
 
-#if !defined(CONFIG_SPL_BUILD) || defined(CONFIG_SPL_LIBCOMMON_SUPPORT)
+#if !defined(CONFIG_XPL_BUILD) || defined(CONFIG_SPL_LIBCOMMON_SUPPORT)
 void print_mmc_devices(char separator)
 {
 	struct udevice *dev;
@@ -490,33 +515,16 @@ static int mmc_blk_probe(struct udevice *dev)
 		return ret;
 	}
 
-	ret = device_probe(dev);
-	if (ret) {
-		debug("Probing %s failed (err=%d)\n", dev->name, ret);
-
-		if (CONFIG_IS_ENABLED(MMC_UHS_SUPPORT) ||
-		    CONFIG_IS_ENABLED(MMC_HS200_SUPPORT) ||
-		    CONFIG_IS_ENABLED(MMC_HS400_SUPPORT))
-			mmc_deinit(mmc);
-
-		return ret;
-	}
-
 	return 0;
 }
 
-#if CONFIG_IS_ENABLED(MMC_UHS_SUPPORT) || \
-    CONFIG_IS_ENABLED(MMC_HS200_SUPPORT) || \
-    CONFIG_IS_ENABLED(MMC_HS400_SUPPORT)
-static int mmc_blk_remove(struct udevice *dev)
+static int mmc_remove(struct udevice *dev)
 {
-	struct udevice *mmc_dev = dev_get_parent(dev);
-	struct mmc_uclass_priv *upriv = dev_get_uclass_priv(mmc_dev);
+	struct mmc_uclass_priv *upriv = dev_get_uclass_priv(dev);
 	struct mmc *mmc = upriv->mmc;
 
 	return mmc_deinit(mmc);
 }
-#endif
 
 static const struct blk_ops mmc_blk_ops = {
 	.read	= mmc_bread,
@@ -532,19 +540,14 @@ U_BOOT_DRIVER(mmc_blk) = {
 	.id		= UCLASS_BLK,
 	.ops		= &mmc_blk_ops,
 	.probe		= mmc_blk_probe,
-#if CONFIG_IS_ENABLED(MMC_UHS_SUPPORT) || \
-    CONFIG_IS_ENABLED(MMC_HS200_SUPPORT) || \
-    CONFIG_IS_ENABLED(MMC_HS400_SUPPORT)
-	.remove		= mmc_blk_remove,
 	.flags		= DM_FLAG_OS_PREPARE,
-#endif
 };
 #endif /* CONFIG_BLK */
-
 
 UCLASS_DRIVER(mmc) = {
 	.id		= UCLASS_MMC,
 	.name		= "mmc",
 	.flags		= DM_UC_FLAG_SEQ_ALIAS,
 	.per_device_auto	= sizeof(struct mmc_uclass_priv),
+	.pre_remove	= mmc_remove,
 };

@@ -26,7 +26,6 @@
 #include <trusty/trusty_dev.h>
 #include <trusty/util.h>
 
-#include <common.h>
 #include <memalign.h>
 #include <mmc.h>
 #include <env.h>

@@ -22,9 +22,8 @@
 		     "xlnx,zynqmp-sk-kd240", "xlnx,zynqmp";
 	model = "ZynqMP KD240 revA/B/1";
 
-	ina260-u3 {
-		compatible = "iio-hwmon";
-		io-channels = <&u3 0>, <&u3 1>, <&u3 2>;
+	aliases {
+		ethernet0 = "/axi/ethernet@ff0c0000"; /* &gem1 */
 	};
 
 	clk_26: clock2 { /* u17 - USB */
@@ -63,7 +62,6 @@
 
 	u3: ina260@40 { /* u3 */
 		compatible = "ti,ina260";
-		#io-channel-cells = <1>;
 		label = "ina260-u14";
 		reg = <0x40>;
 	};
@@ -80,7 +78,10 @@
 				  "", "";
 	};
 
-	/* usb5744@2d */
+	hub: usb-hub@2d { /* u36 */
+		compatible = "microchip,usb5744";
+		reg = <0x2d>;
+	};
 };
 
 /* USB 3.0 */
@@ -99,18 +100,6 @@
 	phys = <&psgtr 2 PHY_TYPE_USB3 0 2>;
 	reset-gpios = <&slg7xl45106 0 GPIO_ACTIVE_LOW>;
 	assigned-clock-rates = <250000000>, <20000000>;
-#if 0
-	usbhub0: usb-hub { /* u36 */
-		i2c-bus = <&i2c1>;
-		compatible = "microchip,usb5744";
-		reset-gpios = <&slg7xl45106 3 GPIO_ACTIVE_LOW>;
-	};
-
-	usb2244: usb-sd { /* u41 */
-		compatible = "microchip,usb2244";
-		reset-gpios = <&slg7xl45106 2 GPIO_ACTIVE_LOW>;
-	};
-#endif
 };
 
 &dwc3_0 {
@@ -118,6 +107,26 @@
 	dr_mode = "host";
 	snps,usb3_lpm_capable;
 	maximum-speed = "super-speed";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	/* 2.0 hub on port 1 */
+	hub_2_0: hub@1 {
+		compatible = "usb424,2744";
+		reg = <1>;
+		peer-hub = <&hub_3_0>;
+		i2c-bus = <&hub>;
+		reset-gpios = <&slg7xl45106 3 GPIO_ACTIVE_LOW>;
+	};
+
+	/* 3.0 hub on port 2 */
+	hub_3_0: hub@2 {
+		compatible = "usb424,5744";
+		reg = <2>;
+		peer-hub = <&hub_2_0>;
+		i2c-bus = <&hub>;
+		reset-gpios = <&slg7xl45106 3 GPIO_ACTIVE_LOW>;
+	};
 };
 
 &gem1 { /* mdio mio50/51 */
@@ -356,6 +365,9 @@
 
 &uart0 {
 	status = "okay";
+	rts-gpios = <&gpio 72 GPIO_ACTIVE_HIGH>;
+	linux,rs485-enabled-at-boot-time;
+	rs485-rts-delay = <10 10>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart0_default>;
 	assigned-clock-rates = <100000000>;

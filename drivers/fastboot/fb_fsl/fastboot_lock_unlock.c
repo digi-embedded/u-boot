@@ -2,7 +2,7 @@
 /*
  * Copyright (c) 2016, Freescale Semiconductor, Inc.
  */
-#include <common.h>
+#include <config.h>
 #include <env.h>
 #include <mapmem.h>
 #include <linux/types.h>
@@ -12,6 +12,7 @@
 #include <ext_common.h>
 #include <stdio_dev.h>
 #include <stdlib.h>
+#include <vsprintf.h>
 #include "fastboot_lock_unlock.h"
 #include <fb_fsl.h>
 #include <memalign.h>

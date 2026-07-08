@@ -1,8 +1,8 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  *	Copied from LiMon - BOOTP.
  *
  *	Copyright 1994, 1995, 2000 Neil Russell.
- *	(See License)
  *	Copyright 2000 Paolo Scaffardi
  */
 
@@ -42,7 +42,7 @@ static inline void srand_mac(void)
 	struct udevice *devp;
 	u32 randv = 0;
 
-	if (IS_ENABLED(CONFIG_DM_RNG)) {
+	if (CONFIG_IS_ENABLED(DM_RNG)) {
 		ret = uclass_get_device(UCLASS_RNG, 0, &devp);
 		if (ret) {
 			ret = dm_rng_read(devp, &randv, sizeof(randv));

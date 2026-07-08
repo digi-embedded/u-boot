@@ -122,7 +122,7 @@ static int rsa_engine_get_pub_key(const char *keydir, const char *name,
 				fprintf(stderr, "WARNING: Legacy URI specified. Please add '%s'.\n", pkcs11_schema);
 			}
 
-			if (strstr(keydir, "object="))
+			if (strstr(keydir, "object=") || strstr(keydir, "id="))
 				snprintf(key_id, sizeof(key_id),
 					 "%s%s;type=public",
 					 pkcs11_uri_prepend, keydir);
@@ -253,7 +253,7 @@ static int rsa_engine_get_priv_key(const char *keydir, const char *name,
 				fprintf(stderr, "WARNING: Legacy URI specified. Please add '%s'.\n", pkcs11_schema);
 			}
 
-			if (strstr(keydir, "object="))
+			if (strstr(keydir, "object=") || strstr(keydir, "id="))
 				snprintf(key_id, sizeof(key_id),
 					 "%s%s;type=private",
 					 pkcs11_uri_prepend, keydir);
@@ -421,11 +421,20 @@ static int rsa_sign_with_key(EVP_PKEY *pkey, struct padding_algo *padding_algo,
 		goto err_sign;
 	}
 
-	if (CONFIG_IS_ENABLED(FIT_RSASSA_PSS) && padding_algo &&
+	if (CONFIG_IS_ENABLED(RSASSA_PSS) && padding_algo &&
 	    !strcmp(padding_algo->name, "pss")) {
 		if (EVP_PKEY_CTX_set_rsa_padding(ckey,
 						 RSA_PKCS1_PSS_PADDING) <= 0) {
 			ret = rsa_err("Signer padding setup failed");
+			goto err_sign;
+		}
+
+		/* Per RFC 3447 (and convention) the Typical salt length is the
+		 * length of the output of the digest algorithm.
+		 */
+		if (EVP_PKEY_CTX_set_rsa_pss_saltlen(ckey,
+						     checksum_algo->checksum_len) <= 0) {
+			ret = rsa_err("Signer salt length setup failed");
 			goto err_sign;
 		}
 	}

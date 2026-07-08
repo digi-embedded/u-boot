@@ -11,7 +11,6 @@
 
 #include <asm/processor.h>
 #include <clk-uclass.h>
-#include <common.h>
 #include <div64.h>
 #include <dm.h>
 #include <linux/clk-provider.h>
@@ -38,7 +37,7 @@
 
 #define PMC_MCR_ID(x)		((x) & PMC_MCR_ID_MSK)
 
-#define MASTER_MAX_ID		4
+#define MASTER_MAX_ID		10
 
 struct clk_master {
 	void __iomem *base;
@@ -336,8 +335,8 @@ struct clk *at91_clk_sama7g5_register_master(void __iomem *base,
 {
 	struct clk_master *master;
 	struct clk *clk;
-	u32 val, index;
-	int ret;
+	u32 val;
+	int ret, index;
 
 	if (!base || !name || !num_parents || !parent_names ||
 	    !mux_table || !clk_mux_table || id > MASTER_MAX_ID)

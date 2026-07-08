@@ -7,7 +7,6 @@
  */
 
 #include <bouncebuf.h>
-#include <common.h>
 #include <dm.h>
 #include <errno.h>
 #include <log.h>
@@ -80,7 +79,6 @@ static void tegra_mmc_prepare_data(struct tegra_mmc_priv *priv,
 				   struct bounce_buffer *bbstate)
 {
 	unsigned char ctrl;
-
 
 	debug("buf: %p (%p), data->blocks: %u, data->blocksize: %u\n",
 		bbstate->bounce_buffer, bbstate->user_buffer, data->blocks,

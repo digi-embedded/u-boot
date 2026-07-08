@@ -3,7 +3,7 @@
  * Copyright 2022 Toradex
  */
 
-#include <common.h>
+#include <config.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/imx8mp_pins.h>
 #include <asm/arch/sys_proto.h>
@@ -90,7 +90,7 @@ static void select_dt_from_module_version(void)
 	else
 		strlcpy(&variant[0], "nonwifi", sizeof(variant));
 
-	if (strcmp(variant, env_variant)) {
+	if (!env_variant || strcmp(variant, env_variant)) {
 		printf("Setting variant to %s\n", variant);
 		env_set("variant", variant);
 	}

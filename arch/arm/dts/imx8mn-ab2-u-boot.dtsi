@@ -10,3 +10,7 @@
 	phy-reset-post-delay = <150>;
 	phy-reset-duration = <15>;
 };
+
+&usbotg1 {
+	extcon = <&ptn5150>;
+};

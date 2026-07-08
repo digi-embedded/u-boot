@@ -21,11 +21,6 @@ extern void mx27_uart1_init_pins(void);
 extern void mx27_fec_init_pins(void);
 #endif /* CONFIG_FEC_MXC */
 
-#ifdef CONFIG_MMC_MXC
-extern void mx27_sd1_init_pins(void);
-extern void mx27_sd2_init_pins(void);
-#endif /* CONFIG_MMC_MXC */
-
 /* AIPI */
 struct aipi_regs {
 	u32 psr0;
@@ -235,7 +230,6 @@ struct fuse_bank0_regs {
 #define SLCDC_SEL	(1 << 2)
 #define SDCS1_SEL	(1 << 1)
 #define SDCS0_SEL	(1 << 0)
-
 
 /* important definition of some bits of WCR */
 #define WCR_WDE 0x04

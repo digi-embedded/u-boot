@@ -4,7 +4,6 @@
  *
  */
 
-#include <common.h>
 #include <clk.h>
 #include <dm.h>
 #include <display.h>

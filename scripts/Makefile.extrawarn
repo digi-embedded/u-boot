@@ -13,8 +13,20 @@
 
 KBUILD_CFLAGS += $(call cc-disable-warning, packed-not-aligned)
 
+# backward compatibility
+KBUILD_EXTRA_WARN ?= $(KBUILD_ENABLE_EXTRA_GCC_CHECKS)
+
 ifeq ("$(origin W)", "command line")
-  export KBUILD_ENABLE_EXTRA_GCC_CHECKS := $(W)
+  KBUILD_EXTRA_WARN := $(W)
+endif
+
+export KBUILD_EXTRA_WARN
+
+KBUILD_CPPFLAGS-$(CONFIG_WERROR) += -Werror
+KBUILD_CPPFLAGS += $(KBUILD_CPPFLAGS-y)
+
+ifeq ("$(origin W)", "command line")
+  KBUILD_EXTRA_WARN := $(W)
 endif
 
 ifdef KBUILD_ENABLE_EXTRA_GCC_CHECKS
@@ -64,5 +76,14 @@ ifeq ("$(strip $(warning))","")
 endif
 
 KBUILD_CFLAGS += $(warning)
+else
 
+ifdef CONFIG_CC_IS_CLANG
+KBUILD_CFLAGS += $(call cc-disable-warning, initializer-overrides)
+KBUILD_CFLAGS += $(call cc-disable-warning, unused-value)
+KBUILD_CFLAGS += $(call cc-disable-warning, format)
+KBUILD_CFLAGS += $(call cc-disable-warning, sign-compare)
+KBUILD_CFLAGS += $(call cc-disable-warning, format-zero-length)
+KBUILD_CFLAGS += $(call cc-disable-warning, uninitialized)
+endif
 endif

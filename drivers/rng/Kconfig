@@ -6,6 +6,13 @@ config DM_RNG
 	  This interface is used to initialise the rng device and to
 	  read the random seed from the device.
 
+config SPL_DM_RNG
+	bool "Driver support for Random Number Generator devices in SPL"
+	depends on SPL_DM
+	help
+	  This option is an SPL-variant of the DM_RNG option.
+	  See the help of DM_RNG for details.
+
 if DM_RNG
 
 config RNG_MESON
@@ -33,7 +40,7 @@ config RNG_MSM
 
 config RNG_NPCM
 	bool "Nuvoton NPCM SoCs Random Number Generator support"
-	depends on DM_RNG
+	depends on DM_RNG && !LIB_RAND
 	help
 	  Enable random number generator on NPCM SoCs.
 	  This unit can provide 750 to 1000 random bits per second
@@ -112,6 +119,19 @@ config RNG_TURRIS_RWTM
 	  Use TRNG in Turris Mox Secure Processor Firmware. Can be used
 	  on other Armada-3700 devices (like EspressoBin) if Secure
 	  Firmware from CZ.NIC is used.
+
+config RNG_EXYNOS
+	bool "Samsung Exynos True Random Number Generator support"
+	depends on DM_RNG && ARM
+	help
+	  Enable support for True Random Number Generator (TRNG) available on
+	  Exynos SoCs.
+
+	  On some chips (like Exynos850) TRNG registers are protected with TZPC
+	  (TrustZone Protection Control). For such chips the driver provides an
+	  implementation based on SMC calls to EL3 monitor program. In that
+	  case the LDFW (Loadable Firmware) has to be loaded first, as it
+	  actually implements TRNG SMC calls.
 
 config IMX_ELE_RNG
 	bool "Enable RNG driver for EdgeLock Enclave"

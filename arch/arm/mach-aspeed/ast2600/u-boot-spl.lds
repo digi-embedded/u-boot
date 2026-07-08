@@ -22,9 +22,9 @@ SECTIONS
 	. = 0x00000000;
 
 	. = ALIGN(4);
+	__image_copy_start = ADDR(.text);
 	.text :
 	{
-		__image_copy_start = .;
 		*(.vectors)
 		CPUDIR/start.o (.text*)
 		*(.text*)
@@ -49,23 +49,18 @@ SECTIONS
 		__binman_sym_start = .;
 		KEEP(*(SORT(.binman_sym*)));
 		__binman_sym_end = .;
+		. = ALIGN(8);
 	} > .nor
 
-	. = ALIGN(4);
+	/*
+	 * These platforms enable CONFIG_POSITION_INDEPENDENT and so need
+	 * these names. The always however hold the same value.
+	 */
+	__rel_dyn_start = .;
+	__rel_dyn_end = .;
 
 	__image_copy_end = .;
-
-	.rel.dyn : {
-		__rel_dyn_start = .;
-		*(.rel*)
-		__rel_dyn_end = .;
-	} > .nor
-
-	.end :
-	{
-		*(.__end)
-	} > .nor
-
+	_end = .;
 	_image_binary_end = .;
 
 	.bss : {
@@ -82,6 +77,9 @@ SECTIONS
 ASSERT(__image_copy_end - __image_copy_start <= (IMAGE_MAX_SIZE), \
 	"SPL image too big");
 #endif
+
+ASSERT(_image_binary_end % 8 == 0, \
+       "_image_binary_end must be 8-byte aligned for device tree");
 
 #if defined(CONFIG_SPL_BSS_MAX_SIZE)
 ASSERT(__bss_end - __bss_start <= (CONFIG_SPL_BSS_MAX_SIZE), \

@@ -3,7 +3,6 @@
  * (C) Copyright 2021 Rockchip Electronics Co., Ltd
  */
 
-#include <common.h>
 #include <dm.h>
 #include <dm/pinctrl.h>
 #include <regmap.h>
@@ -325,7 +324,6 @@ static struct rockchip_pin_bank rk3588_pin_banks[] = {
 static const struct rockchip_pin_ctrl rk3588_pin_ctrl = {
 	.pin_banks		= rk3588_pin_banks,
 	.nr_banks		= ARRAY_SIZE(rk3588_pin_banks),
-	.nr_pins		= 160,
 	.set_mux		= rk3588_set_mux,
 	.set_pull		= rk3588_set_pull,
 	.set_drive		= rk3588_set_drive,

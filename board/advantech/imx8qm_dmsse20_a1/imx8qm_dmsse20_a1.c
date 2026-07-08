@@ -4,7 +4,7 @@
  * Copyright 2019-2023 Kococonnector GmbH
  */
 
-#include <common.h>
+#include <env.h>
 #include <errno.h>
 #include <linux/libfdt.h>
 #include <asm/io.h>
@@ -134,17 +134,6 @@ void board_quiesce_devices(void)
 void detail_board_ddr_info(void)
 {
 	puts("\nDDR    ");
-}
-
-/*
- * Board specific reset that is system reset.
- */
-void reset_cpu(void)
-{
-	puts("SCI reboot request");
-
-	while (1)
-		putc('.');
 }
 
 #ifdef CONFIG_OF_BOARD_SETUP

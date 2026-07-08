@@ -9,7 +9,6 @@
  */
 
 #include <config.h>
-#include <common.h>
 #include <dm.h>
 #include <errno.h>
 #include <log.h>
@@ -363,9 +362,6 @@ int stdio_add_devices(void)
 
 	drv_system_init();
 	serial_stdio_init();
-#ifdef CONFIG_USB_TTY
-	drv_usbtty_init();
-#endif
 #ifdef CONFIG_USB_FUNCTION_ACM
 	drv_usbacm_init ();
 #endif

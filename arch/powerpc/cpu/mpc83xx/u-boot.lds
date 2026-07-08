@@ -43,7 +43,8 @@ SECTIONS
 
   . = ALIGN(4);
   __u_boot_list : {
-	KEEP(*(SORT(__u_boot_list*)));
+    KEEP(*(SORT(__u_boot_list*)));
+    . = ALIGN(8);
   }
 
 
@@ -77,3 +78,5 @@ SECTIONS
   PROVIDE (end = .);
 }
 ENTRY(_start)
+
+ASSERT(_end % 8 == 0, "_end must be 8-byte aligned for device tree");

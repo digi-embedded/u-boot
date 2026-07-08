@@ -9,8 +9,8 @@
 
 #define LOG_CATEGORY UCLASS_VIDEO_CONSOLE
 
-#include <common.h>
 #include <abuf.h>
+#include <charset.h>
 #include <command.h>
 #include <console.h>
 #include <log.h>
@@ -20,7 +20,7 @@
 #include <video_font.h>		/* Bitmap font for code page 437 */
 #include <linux/ctype.h>
 
-int vidconsole_putc_xy(struct udevice *dev, uint x, uint y, char ch)
+int vidconsole_putc_xy(struct udevice *dev, uint x, uint y, int ch)
 {
 	struct vidconsole_ops *ops = vidconsole_get_ops(dev);
 
@@ -94,7 +94,9 @@ static void vidconsole_newline(struct udevice *dev)
 	priv->ycur += priv->y_charsize;
 
 	/* Check if we need to scroll the terminal */
-	if ((priv->ycur + priv->y_charsize) / priv->y_charsize > priv->rows) {
+	if (vid_priv->rot % 2 ?
+	    priv->ycur + priv->x_charsize > vid_priv->xsize :
+	    priv->ycur + priv->y_charsize > vid_priv->ysize) {
 		vidconsole_move_rows(dev, 0, rows, priv->rows - rows);
 		for (i = 0; i < rows; i++)
 			vidconsole_set_row(dev, priv->rows - i - 1,
@@ -125,6 +127,10 @@ void vidconsole_set_cursor_pos(struct udevice *dev, int x, int y)
 	priv->xcur_frac = VID_TO_POS(x);
 	priv->xstart_frac = priv->xcur_frac;
 	priv->ycur = y;
+
+	/* make sure not to kern against the previous character */
+	priv->last_ch = 0;
+	vidconsole_entry_start(dev);
 }
 
 /**
@@ -134,8 +140,10 @@ void vidconsole_set_cursor_pos(struct udevice *dev, int x, int y)
  * @row:	new row
  * @col:	new column
  */
-static void set_cursor_position(struct vidconsole_priv *priv, int row, int col)
+static void set_cursor_position(struct udevice *dev, int row, int col)
 {
+	struct vidconsole_priv *priv = dev_get_uclass_priv(dev);
+
 	/*
 	 * Ensure we stay in the bounds of the screen.
 	 */
@@ -144,9 +152,7 @@ static void set_cursor_position(struct vidconsole_priv *priv, int row, int col)
 	if (col >= priv->cols)
 		col = priv->cols - 1;
 
-	priv->ycur = row * priv->y_charsize;
-	priv->xcur_frac = priv->xstart_frac +
-			  VID_TO_POS(col * priv->x_charsize);
+	vidconsole_position_cursor(dev, col, row);
 }
 
 /**
@@ -193,7 +199,7 @@ static void vidconsole_escape_char(struct udevice *dev, char ch)
 			int row = priv->row_saved;
 			int col = priv->col_saved;
 
-			set_cursor_position(priv, row, col);
+			set_cursor_position(dev, row, col);
 			priv->escape = 0;
 			return;
 		}
@@ -255,7 +261,7 @@ static void vidconsole_escape_char(struct udevice *dev, char ch)
 		if (row < 0)
 			row = 0;
 		/* Right and bottom overflows are handled in the callee. */
-		set_cursor_position(priv, row, col);
+		set_cursor_position(dev, row, col);
 		break;
 	}
 	case 'H':
@@ -279,7 +285,7 @@ static void vidconsole_escape_char(struct udevice *dev, char ch)
 		if (col)
 			--col;
 
-		set_cursor_position(priv, row, col);
+		set_cursor_position(dev, row, col);
 
 		break;
 	}
@@ -426,8 +432,8 @@ error:
 	priv->escape = 0;
 }
 
-/* Put that actual character on the screen (using the CP437 code page). */
-static int vidconsole_output_glyph(struct udevice *dev, char ch)
+/* Put that actual character on the screen (using the UTF-32 code points). */
+static int vidconsole_output_glyph(struct udevice *dev, int ch)
 {
 	struct vidconsole_priv *priv = dev_get_uclass_priv(dev);
 	int ret;
@@ -455,7 +461,7 @@ static int vidconsole_output_glyph(struct udevice *dev, char ch)
 int vidconsole_put_char(struct udevice *dev, char ch)
 {
 	struct vidconsole_priv *priv = dev_get_uclass_priv(dev);
-	int ret;
+	int cp, ret;
 
 	if (priv->escape) {
 		vidconsole_escape_char(dev, ch);
@@ -489,7 +495,14 @@ int vidconsole_put_char(struct udevice *dev, char ch)
 		priv->last_ch = 0;
 		break;
 	default:
-		ret = vidconsole_output_glyph(dev, ch);
+		if (CONFIG_IS_ENABLED(CHARSET)) {
+			cp = utf8_to_utf32_stream(ch, priv->utf8_buf);
+			if (cp == 0)
+				return 0;
+		} else {
+			cp = ch;
+		}
+		ret = vidconsole_output_glyph(dev, cp);
 		if (ret < 0)
 			return ret;
 		break;
@@ -498,12 +511,14 @@ int vidconsole_put_char(struct udevice *dev, char ch)
 	return 0;
 }
 
-int vidconsole_put_string(struct udevice *dev, const char *str)
+int vidconsole_put_stringn(struct udevice *dev, const char *str, int maxlen)
 {
-	const char *s;
+	const char *s, *end = NULL;
 	int ret;
 
-	for (s = str; *s; s++) {
+	if (maxlen != -1)
+		end = str + maxlen;
+	for (s = str; *s && (maxlen == -1 || s < end); s++) {
 		ret = vidconsole_put_char(dev, *s);
 		if (ret)
 			return ret;
@@ -512,11 +527,19 @@ int vidconsole_put_string(struct udevice *dev, const char *str)
 	return 0;
 }
 
+int vidconsole_put_string(struct udevice *dev, const char *str)
+{
+	return vidconsole_put_stringn(dev, str, -1);
+}
+
 static void vidconsole_putc(struct stdio_dev *sdev, const char ch)
 {
 	struct udevice *dev = sdev->priv;
+	struct vidconsole_priv *priv = dev_get_uclass_priv(dev);
 	int ret;
 
+	if (priv->quiet)
+		return;
 	ret = vidconsole_put_char(dev, ch);
 	if (ret) {
 #ifdef DEBUG
@@ -534,8 +557,11 @@ static void vidconsole_putc(struct stdio_dev *sdev, const char ch)
 static void vidconsole_puts(struct stdio_dev *sdev, const char *s)
 {
 	struct udevice *dev = sdev->priv;
+	struct vidconsole_priv *priv = dev_get_uclass_priv(dev);
 	int ret;
 
+	if (priv->quiet)
+		return;
 	ret = vidconsole_put_string(dev, s);
 	if (ret) {
 #ifdef DEBUG
@@ -598,14 +624,17 @@ int vidconsole_select_font(struct udevice *dev, const char *name, uint size)
 }
 
 int vidconsole_measure(struct udevice *dev, const char *name, uint size,
-		       const char *text, struct vidconsole_bbox *bbox)
+		       const char *text, int limit,
+		       struct vidconsole_bbox *bbox, struct alist *lines)
 {
 	struct vidconsole_priv *priv = dev_get_uclass_priv(dev);
 	struct vidconsole_ops *ops = vidconsole_get_ops(dev);
 	int ret;
 
 	if (ops->measure) {
-		ret = ops->measure(dev, name, size, text, bbox);
+		if (lines)
+			alist_empty(lines);
+		ret = ops->measure(dev, name, size, text, limit, bbox, lines);
 		if (ret != -ENOSYS)
 			return ret;
 	}
@@ -751,22 +780,6 @@ UCLASS_DRIVER(vidconsole) = {
 	.per_device_auto	= sizeof(struct vidconsole_priv),
 };
 
-#ifdef CONFIG_VIDEO_COPY
-int vidconsole_sync_copy(struct udevice *dev, void *from, void *to)
-{
-	struct udevice *vid = dev_get_parent(dev);
-
-	return video_sync_copy(vid, from, to);
-}
-
-int vidconsole_memmove(struct udevice *dev, void *dst, const void *src,
-		       int size)
-{
-	memmove(dst, src, size);
-	return vidconsole_sync_copy(dev, dst, dst + size);
-}
-#endif
-
 int vidconsole_clear_and_reset(struct udevice *dev)
 {
 	int ret;
@@ -789,4 +802,11 @@ void vidconsole_position_cursor(struct udevice *dev, unsigned col, unsigned row)
 	x = min_t(short, col * priv->x_charsize, vid_priv->xsize - 1);
 	y = min_t(short, row * priv->y_charsize, vid_priv->ysize - 1);
 	vidconsole_set_cursor_pos(dev, x, y);
+}
+
+void vidconsole_set_quiet(struct udevice *dev, bool quiet)
+{
+	struct vidconsole_priv *priv = dev_get_uclass_priv(dev);
+
+	priv->quiet = quiet;
 }

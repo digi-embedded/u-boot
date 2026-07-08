@@ -35,6 +35,14 @@ config IMX_TMU
 	  The boot is hold to the cool device to throttle CPUs when the
 	  passive trip is crossed
 
+config RCAR_GEN3_THERMAL
+	bool "Renesas R-Car Gen3/Gen4 and RZ/G2 thermal driver"
+	depends on ARCH_RENESAS
+	depends on RCAR_64
+	help
+	  Enable this to plug the R-Car Gen3/Gen4 or RZ/G2 thermal sensor
+	  driver into the U-Boot thermal framework.
+
 config IMX91_TMU
     bool "Temperature sensor driver for NXP i.MX91"
     depends on IMX91
@@ -46,13 +54,6 @@ config IMX91_TMU
 	  Additionally, it provides status registers for indicating the
 	  end of measurement and threshold violation events.
 
-config IMX_PMC_TEMPERATURE
-	bool "PMC Temperature Sensor driver for NXP i.MX8ULP"
-	depends on ARCH_IMX8ULP
-	help
-	  Enable PMC Temperature Sensor on NXP i.MX8ULP. The driver supports
-	  reading CPU temperature.
-
 config SCMI_THERMAL
 	bool "SCMI Sensor based thermal driver"
 	select SCMI_FIRMWARE
@@ -63,6 +64,12 @@ config TI_DRA7_THERMAL
         bool "Temperature sensor driver for TI dra7xx SOCs"
         help
 	 Enable thermal support for for the Texas Instruments DRA752 SoC family.
+	 The driver supports reading CPU temperature.
+
+config TI_LM74_THERMAL
+        bool "Temperature sensor driver for TI LM74 chip"
+        help
+	 Enable thermal support for the Texas Instruments LM74 chip.
 	 The driver supports reading CPU temperature.
 
 endif # if DM_THERMAL

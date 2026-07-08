@@ -13,11 +13,11 @@
  *	    Vikas Sajjan <vikas.sajjan@samsung.com>
  */
 
-#include <common.h>
 #include <cpu_func.h>
 #include <log.h>
 #include <asm/byteorder.h>
 #include <usb.h>
+#include <watchdog.h>
 #include <asm/unaligned.h>
 #include <linux/bug.h>
 #include <linux/errno.h>
@@ -523,17 +523,15 @@ static void reset_ep(struct usb_device *udev, int ep_index)
 	field = le32_to_cpu(event->trans_event.flags);
 	BUG_ON(TRB_TO_SLOT_ID(field) != udev->slot_id);
 	xhci_acknowledge_event(ctrl);
-
-	addr = xhci_trb_virt_to_dma(ring->enq_seg,
-		(void *)((uintptr_t)ring->enqueue | ring->cycle_state));
+	addr = xhci_trb_virt_to_dma(ring->enq_seg, ring->enqueue) |
+		ring->cycle_state;
 	xhci_queue_command(ctrl, addr, udev->slot_id, ep_index, TRB_SET_DEQ);
 	event = xhci_wait_for_event(ctrl, TRB_COMPLETION);
 	if (!event)
 		return;
 
-	BUG_ON(TRB_TO_SLOT_ID(le32_to_cpu(event->event_cmd.flags))
-		!= udev->slot_id || GET_COMP_CODE(le32_to_cpu(
-		event->event_cmd.status)) != COMP_SUCCESS);
+	BUG_ON(TRB_TO_SLOT_ID(le32_to_cpu(event->event_cmd.flags)) != udev->slot_id ||
+	       GET_COMP_CODE(le32_to_cpu(event->event_cmd.status)) != COMP_SUCCESS);
 	xhci_acknowledge_event(ctrl);
 }
 
@@ -566,8 +564,7 @@ static void abort_td(struct usb_device *udev, int ep_index)
 		field = le32_to_cpu(event->trans_event.flags);
 		BUG_ON(TRB_TO_SLOT_ID(field) != udev->slot_id);
 		BUG_ON(TRB_TO_EP_INDEX(field) != ep_index);
-		BUG_ON(GET_COMP_CODE(le32_to_cpu(event->trans_event.transfer_len
-			!= COMP_STOP)));
+		BUG_ON(GET_COMP_CODE(le32_to_cpu(event->trans_event.transfer_len != COMP_STOP)));
 		xhci_acknowledge_event(ctrl);
 
 		event = xhci_wait_for_event(ctrl, TRB_COMPLETION);
@@ -581,21 +578,18 @@ static void abort_td(struct usb_device *udev, int ep_index)
 
 	comp = GET_COMP_CODE(le32_to_cpu(event->event_cmd.status));
 	BUG_ON(type != TRB_COMPLETION ||
-		TRB_TO_SLOT_ID(le32_to_cpu(event->event_cmd.flags))
-		!= udev->slot_id || (comp != COMP_SUCCESS && comp
-		!= COMP_CTX_STATE));
+		TRB_TO_SLOT_ID(le32_to_cpu(event->event_cmd.flags)) != udev->slot_id ||
+		(comp != COMP_SUCCESS && comp != COMP_CTX_STATE));
 	xhci_acknowledge_event(ctrl);
-
-	addr = xhci_trb_virt_to_dma(ring->enq_seg,
-		(void *)((uintptr_t)ring->enqueue | ring->cycle_state));
+	addr = xhci_trb_virt_to_dma(ring->enq_seg, ring->enqueue) |
+		ring->cycle_state;
 	xhci_queue_command(ctrl, addr, udev->slot_id, ep_index, TRB_SET_DEQ);
 	event = xhci_wait_for_event(ctrl, TRB_COMPLETION);
 	if (!event)
 		return;
 
-	BUG_ON(TRB_TO_SLOT_ID(le32_to_cpu(event->event_cmd.flags))
-		!= udev->slot_id || GET_COMP_CODE(le32_to_cpu(
-		event->event_cmd.status)) != COMP_SUCCESS);
+	BUG_ON(TRB_TO_SLOT_ID(le32_to_cpu(event->event_cmd.flags)) != udev->slot_id ||
+	       GET_COMP_CODE(le32_to_cpu(event->event_cmd.status)) != COMP_SUCCESS);
 	xhci_acknowledge_event(ctrl);
 }
 
@@ -685,6 +679,9 @@ int xhci_bulk_tx(struct usb_device *udev, unsigned long pipe,
 		reset_ep(udev, ep_index);
 
 	ring = virt_dev->eps[ep_index].ring;
+	if (!ring)
+		return -EINVAL;
+
 	/*
 	 * How much data is (potentially) left before the 64KB boundary?
 	 * XHCI Spec puts restriction( TABLE 49 and 6.4.1 section of XHCI Spec)
@@ -798,6 +795,8 @@ int xhci_bulk_tx(struct usb_device *udev, unsigned long pipe,
 		/* Calculate length for next transfer */
 		addr += trb_buff_len;
 		trb_buff_len = min((length - running_total), TRB_MAX_BUFF_SIZE);
+
+		schedule();
 	} while (running_total < length);
 
 	giveback_first_trb(udev, ep_index, start_cycle, start_trb);
@@ -871,6 +870,8 @@ int xhci_ctrl_tx(struct usb_device *udev, unsigned long pipe,
 	ep_index = usb_pipe_ep_index(pipe);
 
 	ep_ring = virt_dev->eps[ep_index].ring;
+	if (!ep_ring)
+		return -EINVAL;
 
 	/*
 	 * Check to see if the max packet size for the default control

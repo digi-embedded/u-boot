@@ -87,8 +87,17 @@ settings. For example::
 
    #include <env/ti/mmc.env>
 
-If CONFIG_ENV_SOURCE_FILE is empty and the default filename is not present, then
-the old-style C environment is used instead. See below.
+Quotes are not suppressed, for example::
+
+    fdtfile=CONFIG_DEFAULT_DEVICE_TREE.dtb
+    # produces: fdtfile="sun7i-a20-pcduino3.dtb"
+
+For this particular issue you can use ``DEFAULT_DEVICE_TREE`` instead::
+
+    fdtfile=DEFAULT_DEVICE_TREE.dtb
+    # produces: fdtfile=sun7i-a20-pcduino3.dtb
+
+There is no general way to remove quotes.
 
 Old-style C environment
 -----------------------
@@ -100,8 +109,11 @@ to add environment variables.
 
 Board maintainers are encouraged to migrate to the text-based environment as it
 is easier to maintain. The distro-board script still requires the old-style
-environments, so use :doc:`../develop/bootstd` instead.
+environments, so use :doc:`/develop/bootstd/index` instead.
 
+If both the text-based environment file and the old-style C environment are
+defined, the variables from the old-style C environment will override those set
+in the text-based environment file.
 
 List of environment variables
 -----------------------------
@@ -201,7 +213,7 @@ updatefile
 
 autoload
     if set to "no" (any string beginning with 'n'),
-    "bootp" and "dhcp" will just load perform a lookup of the
+    "bootp" and "dhcp" will just perform a lookup of the
     configuration from the BOOTP server, but not try to
     load any image.
 
@@ -323,6 +335,20 @@ netretry
     Useful on scripts which control the retry operation
     themselves.
 
+phy_aneg_timeout
+    If set, the specified value will override CONFIG_PHY_ANEG_TIMEOUT.
+    This variable has the same base and unit as CONFIG_PHY_ANEG_TIMEOUT
+    which is "decimal" and "millisecond" respectively. The default value
+    of CONFIG_PHY_ANEG_TIMEOUT may be sufficient for most use-cases, but
+    certain link-partners may require a larger timeout due to the Ethernet
+    PHY they use. Alternatively, the timeout can be reduced as well if the
+    use-case demands it.
+
+rng_seed_size
+    Size of random value added to device-tree node /chosen/rng-seed.
+    This variable is given as a decimal number.
+    If unset, 64 bytes is used as the default.
+
 silent_linux
     If set then Linux will be told to boot silently, by
     adding 'console=' to its command line. If "yes" it will be
@@ -365,6 +391,19 @@ tftpwindowsize
     window size as described by RFC 7440.
     This means the count of blocks we can receive before
     sending ack to server.
+
+usb_ignorelist
+    Ignore USB devices to prevent binding them to an USB device driver. This can
+    be used to ignore devices are for some reason undesirable or causes crashes
+    u-boot's USB stack.
+    An example for undesired behavior is the keyboard emulation of security keys
+    like Yubikeys. U-boot currently supports only a single USB keyboard device
+    so try to probe an useful keyboard device. The default environment blocks
+    Yubico devices as common devices emulating keyboards.
+    Devices are matched by idVendor and idProduct. The variable contains a comma
+    separated list of idVendor:idProduct pairs as hexadecimal numbers joined
+    by a colon. '*' functions as a wildcard for idProduct to block all devices
+    with the specified idVendor.
 
 vlan
     When set to a value < 4095 the traffic over
@@ -481,12 +520,12 @@ Automatically updated variables
 -------------------------------
 
 The following environment variables may be used and automatically
-updated by the network boot commands ("bootp" and "rarpboot"),
+updated by the network boot commands ("bootp", "dhcp" and "rarpboot"),
 depending the information provided by your boot server:
 
-=========  ===================================================
+========== ===================================================================
 Variable   Notes
-=========  ===================================================
+========== ===================================================================
 bootfile   see above
 dnsip      IP address of your Domain Name Server
 dnsip2     IP address of your secondary Domain Name Server
@@ -496,7 +535,10 @@ ipaddr     See above
 netmask    Subnet Mask
 rootpath   Pathname of the root filesystem on the NFS server
 serverip   see above
-=========  ===================================================
+ipaddrN    IP address for interface N (>0) (NET_LWIP dhcp only)
+netmaskN   Subnet mask for interface N (>0) (NET_LWIP dhcp only)
+gatewayipN IP address of the Gateway for interface N (>0) (NET_LWIP dhcp only)
+========== ===================================================================
 
 
 Special environment variables
@@ -529,8 +571,8 @@ only effect after the next boot (yes, that's just like Windows).
 External environment file
 -------------------------
 
-The `CONFIG_USE_DEFAULT_ENV_FILE` option provides a way to bypass the
-environment generation in U-Boot. If enabled, then `CONFIG_DEFAULT_ENV_FILE`
+The `CONFIG_ENV_USE_DEFAULT_ENV_TEXT_FILE` option provides a way to bypass the
+environment generation in U-Boot. If enabled, then `CONFIG_ENV_DEFAULT_ENV_TEXT_FILE`
 provides the name of a file which is converted into the environment,
 completely bypassing the standard environment variables in `env_default.h`.
 
@@ -545,5 +587,5 @@ Implementation
 
 See :doc:`../develop/environment` for internal development details.
 
-.. _`Booting ARM Linux`: https://www.kernel.org/doc/html/latest/arm/booting.html
-.. _`Booting AArch64 Linux`: https://www.kernel.org/doc/html/latest/arm64/booting.html
+.. _`Booting ARM Linux`: https://www.kernel.org/doc/html/latest/arch/arm/booting.html
+.. _`Booting AArch64 Linux`: https://www.kernel.org/doc/html/latest/arch/arm64/booting.html

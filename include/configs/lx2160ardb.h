@@ -8,9 +8,6 @@
 
 #include "lx2160a_common.h"
 
-/* RTC */
-#define CFG_SYS_RTC_BUS_NUM		4
-
 #if defined(CONFIG_FSL_MC_ENET)
 #define AQR113C_PHY_ADDR1		0x0
 #define AQR113C_PHY_ADDR2		0x08
@@ -35,6 +32,11 @@
 
 /* Initial environment variables */
 #define CFG_EXTRA_ENV_SETTINGS		\
+	"board=lx2160ardb\0"		\
+	"fdtfile=fsl-lx2160a-rdb.dtb\0"			\
+	"image=Image\0"				\
+	"extra_bootargs=pci=pcie_bus_perf\0"	\
+	"console_dbg=earlycon=pl011,mmio32,0x21c0000\0"		\
 	EXTRA_ENV_SETTINGS			\
 	"boot_scripts=lx2160ardb_boot.scr\0"	\
 	"boot_script_hdr=hdr_lx2160ardb_bs.out\0"	\

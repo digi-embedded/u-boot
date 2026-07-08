@@ -7,9 +7,9 @@
 
 #define LOG_CATEGORY	UCLASS_TPM
 
-#include <common.h>
 #include <tpm-v1.h>
 #include <tpm-v2.h>
+#include <linux/string.h>
 #include <asm/unaligned.h>
 #include "sandbox_common.h"
 

@@ -6,9 +6,7 @@
  * Written by Simon Glass <sjg@chromium.org>
  */
 
-#include <common.h>
 #include <image.h>
-#include <test/suites.h>
 #include <test/ut.h>
 #include "bootstd_common.h"
 

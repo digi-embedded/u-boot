@@ -6,13 +6,13 @@
  * Michal Simek <michal.simek@amd.com>
  */
 
-#include <common.h>
 #include <cpu_func.h>
 #include <fdtdec.h>
 #include <init.h>
 #include <env_internal.h>
 #include <log.h>
 #include <malloc.h>
+#include <spi.h>
 #include <time.h>
 #include <asm/cache.h>
 #include <asm/global_data.h>
@@ -21,6 +21,8 @@
 #include <asm/arch/sys_proto.h>
 #include <dm/device.h>
 #include <dm/uclass.h>
+#include <zynqmp_firmware.h>
+#include <versalpl.h>
 #include "../common/board.h"
 
 #include <linux/bitfield.h>
@@ -29,10 +31,21 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#if defined(CONFIG_FPGA_VERSALPL)
+static xilinx_desc versalpl = {
+	xilinx_versal_net, csu_dma, 1, &versal_op, 0, &versal_op, NULL,
+	FPGA_LEGACY
+};
+#endif
+
 int board_init(void)
 {
 	printf("EL Level:\tEL%d\n", current_el());
 
+#if defined(CONFIG_FPGA_VERSALPL)
+	fpga_init();
+	fpga_add(fpga_xilinx, &versalpl);
+#endif
 	return 0;
 }
 
@@ -184,7 +197,11 @@ static u8 versal_net_get_bootmode(void)
 	u8 bootmode;
 	u32 reg = 0;
 
-	reg = readl(&crp_base->boot_mode_usr);
+	if (IS_ENABLED(CONFIG_ZYNQMP_FIRMWARE) && current_el() != 3) {
+		reg = zynqmp_pm_get_bootmode_reg();
+	} else {
+		reg = readl(&crp_base->boot_mode_usr);
+	}
 
 	if (reg >> BOOT_MODE_ALT_SHIFT)
 		reg >>= BOOT_MODE_ALT_SHIFT;
@@ -192,6 +209,47 @@ static u8 versal_net_get_bootmode(void)
 	bootmode = reg & BOOT_MODES_MASK;
 
 	return bootmode;
+}
+
+int spi_get_env_dev(void)
+{
+	struct udevice *dev;
+	int bootseq = -1;
+
+	switch (versal_net_get_bootmode()) {
+	case QSPI_MODE_24BIT:
+		puts("QSPI_MODE_24\n");
+		if (uclass_get_device_by_name(UCLASS_SPI,
+					      "spi@f1030000", &dev)) {
+			debug("QSPI driver for QSPI device is not present\n");
+			break;
+		}
+		bootseq = dev_seq(dev);
+		break;
+	case QSPI_MODE_32BIT:
+		puts("QSPI_MODE_32\n");
+		if (uclass_get_device_by_name(UCLASS_SPI,
+					      "spi@f1030000", &dev)) {
+			debug("QSPI driver for QSPI device is not present\n");
+			break;
+		}
+		bootseq = dev_seq(dev);
+		break;
+	case OSPI_MODE:
+		puts("OSPI_MODE\n");
+		if (uclass_get_device_by_name(UCLASS_SPI,
+					      "spi@f1010000", &dev)) {
+			debug("OSPI driver for OSPI device is not present\n");
+			break;
+		}
+		bootseq = dev_seq(dev);
+		break;
+	default:
+		break;
+	}
+
+	debug("bootseq %d\n", bootseq);
+	return bootseq;
 }
 
 static int boot_targets_setup(void)
@@ -371,3 +429,35 @@ int dram_init(void)
 void reset_cpu(void)
 {
 }
+
+#if defined(CONFIG_ENV_IS_NOWHERE)
+enum env_location env_get_location(enum env_operation op, int prio)
+{
+	u8 bootmode = versal_net_get_bootmode();
+
+	if (prio)
+		return ENVL_UNKNOWN;
+
+	switch (bootmode) {
+	case EMMC_MODE:
+	case SD_MODE:
+	case SD1_LSHFT_MODE:
+	case SD_MODE1:
+		if (IS_ENABLED(CONFIG_ENV_IS_IN_FAT))
+			return ENVL_FAT;
+		if (IS_ENABLED(CONFIG_ENV_IS_IN_EXT4))
+			return ENVL_EXT4;
+		return ENVL_NOWHERE;
+	case OSPI_MODE:
+	case QSPI_MODE_24BIT:
+	case QSPI_MODE_32BIT:
+		if (IS_ENABLED(CONFIG_ENV_IS_IN_SPI_FLASH))
+			return ENVL_SPI_FLASH;
+		return ENVL_NOWHERE;
+	case JTAG_MODE:
+	case SELECTMAP_MODE:
+	default:
+		return ENVL_NOWHERE;
+	}
+}
+#endif

@@ -61,8 +61,8 @@
 		usb2 = &usbh;
 		usbphy0 = &usbphy1;
 		usbphy1 = &usbphy2;
-		usbgadget0 = &usbg1;
-		usbgadget1 = &usbg2;
+		usb_gadget0 = &usbg1;
+		usb_gadget1 = &usbg2;
 	};
 
 	cpus {

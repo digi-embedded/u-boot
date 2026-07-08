@@ -4,7 +4,6 @@
  * David Feng <fenghua@phytium.com.cn>
  */
 
-#include <common.h>
 #include <asm/esr.h>
 #include <asm/global_data.h>
 #include <asm/ptrace.h>
@@ -198,6 +197,13 @@ void do_sync(struct pt_regs *pt_regs)
 	if (CONFIG_IS_ENABLED(SEMIHOSTING_FALLBACK) &&
 	    smh_emulate_trap(pt_regs))
 		return;
+
+	if ((ESR_ELx_EC(pt_regs->esr) == ESR_ELx_EC_SVC64) &&
+	   (ESR_ELx_ISS(pt_regs->esr) == 0xDBDB)) {
+		printf("\"EDK2 CpuBreakpoint\" call, esr 0x%08lx\n", pt_regs->esr);
+		return;
+	}
+
 	efi_restore_gd();
 	printf("\"Synchronous Abort\" handler, esr 0x%08lx", pt_regs->esr);
 	dump_far(pt_regs->esr);

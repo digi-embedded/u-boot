@@ -7,7 +7,6 @@
  */
 
 #ifndef USE_HOSTCC
-#include <common.h>
 #include <env.h>
 #include <display_options.h>
 #include <init.h>
@@ -26,8 +25,6 @@
 #endif
 
 #include <asm/global_data.h>
-#include <u-boot/md5.h>
-#include <u-boot/sha1.h>
 #include <linux/errno.h>
 #include <asm/io.h>
 
@@ -133,7 +130,10 @@ static const table_entry_t uimage_os[] = {
 	{	IH_OS_OPENRTOS,	"openrtos",	"OpenRTOS",		},
 #endif
 	{	IH_OS_OPENSBI,	"opensbi",	"RISC-V OpenSBI",	},
-	{	IH_OS_EFI,	"efi",		"EFI Firmware" },
+	{	IH_OS_EFI,	"efi",		"EFI Firmware"		},
+#ifdef CONFIG_BOOTM_ELF
+	{	IH_OS_ELF,	"elf",		"ELF Image"		},
+#endif
 
 	{	-1,		"",		"",			},
 };
@@ -183,6 +183,9 @@ static const table_entry_t uimage_type[] = {
 	{	IH_TYPE_FDT_LEGACY, "fdt_legacy", "legacy Image with Flat Device Tree ", },
 	{	IH_TYPE_RENESAS_SPKG, "spkgimage", "Renesas SPKG Image" },
 	{	IH_TYPE_STARFIVE_SPL, "sfspl", "StarFive SPL Image" },
+	{	IH_TYPE_TFA_BL31, "tfa-bl31",  "TFA BL31 Image", },
+	{	IH_TYPE_STM32IMAGE_V2, "stm32imagev2", "STMicroelectronics STM32 Image V2.0" },
+	{	IH_TYPE_AMLIMAGE,   "amlimage",   "Amlogic Boot Image" },
 	{	-1,		    "",		  "",			},
 };
 
@@ -531,10 +534,10 @@ int image_decomp(int comp, ulong load, ulong image_start, int type,
 		printf("Unimplemented compression type %d\n", comp);
 		return ret;
 	}
-	if (ret)
-		return ret;
 
 	*load_end = load + image_len;
+	if (ret)
+		return ret;
 
 	return 0;
 }

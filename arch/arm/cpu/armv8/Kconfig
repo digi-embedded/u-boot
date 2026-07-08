@@ -4,6 +4,14 @@ config CMO_BY_VA_ONLY
 	bool "Force cache maintenance to be exclusively by VA"
 	depends on !SYS_DISABLE_DCACHE_OPS
 
+config ARMV8_CNTFRQ_BROKEN
+	bool "Fix broken ARMv8 generic timer"
+	depends on SYS_ARCH_TIMER
+	help
+	  Say Y here if U-Boot depends on a prior stage bootloader, which
+	  does not set the CNTFRQ_EL0 frequency, and its not possible to
+	  set it from U-Boot either.
+
 config ARMV8_SPL_EXCEPTION_VECTORS
 	bool "Install crash dump exception vectors"
 	depends on SPL
@@ -190,6 +198,14 @@ config ARMV8_EA_EL3_FIRST
 	help
 	  Exception handling at all exception levels for External Abort and
 	  SError interrupt exception are taken in EL3.
+
+config ARMV8_UDELAY_EVENT_STREAM
+	bool "Use the event stream for udelay"
+	default y if ARCH_VEXPRESS64
+	help
+	  Use the event stream provided by the AArch64 architectural timer for
+	  delays. This is more efficient than the default polling
+	  implementation.
 
 menuconfig ARMV8_CRYPTO
 	bool "ARM64 Accelerated Cryptographic Algorithms"

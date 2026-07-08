@@ -8,7 +8,7 @@
 
 #include <asm/io.h>
 #include <asm/types.h>
-#include <asm/arch/ddr.h>
+#include <asm/arch/imx-regs.h>
 
 #define DDRC_DDR_SS_GPR0		0x3d000000
 #define DDRC_IPS_BASE_ADDR_0		0x3f400000
@@ -746,8 +746,5 @@ static inline void reg32setbit(unsigned long addr, u32 bit)
 	reg32_write(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + ddrphy_addr_remap(addr), data)
 #define dwc_ddrphy_apb_rd(addr) \
 	reg32_read(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + ddrphy_addr_remap(addr))
-
-extern struct dram_cfg_param ddrphy_trained_csr[];
-extern uint32_t ddrphy_trained_csr_num;
 
 #endif

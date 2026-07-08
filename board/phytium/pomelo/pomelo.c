@@ -14,7 +14,6 @@
 #include <linux/arm-smccc.h>
 #include <scsi.h>
 #include <init.h>
-#include <asm/u-boot.h>
 #include "cpu.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -30,11 +29,6 @@ int dram_init(void)
 	sec_init();
 	debug("PBF relocate done\n");
 
-	return 0;
-}
-
-int board_init(void)
-{
 	return 0;
 }
 

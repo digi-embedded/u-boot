@@ -37,6 +37,7 @@ config OF_REAL
 
 config OF_BOARD_FIXUP
 	bool "Board-specific manipulation of Device Tree"
+	depends on !COMPILE_TEST
 	help
 	  In certain circumstances it is necessary to be able to modify
 	  U-Boot's device tree (e.g. to delete device from it). This option
@@ -85,6 +86,65 @@ config OF_LIVE
 	  enables a live tree which is available after relocation,
 	  and can be adjusted as needed.
 
+config OF_UPSTREAM
+	bool "Enable use of devicetree imported from Linux kernel release"
+	depends on !COMPILE_TEST
+	help
+	  Traditionally, U-Boot platforms used to have their custom devicetree
+	  files or copy devicetree files from Linux kernel which are hard to
+	  maintain and can usually get out-of-sync from Linux kernel. This
+	  option enables platforms to migrate to devicetree-rebasing repo where
+	  a regular sync will be maintained every major Linux kernel release
+	  cycle. However, platforms can still have some custom u-boot specific
+	  bits maintained as part of *-u-boot.dtsi files.
+
+	  Note: This option should be set in Kconfig, for the SoC as a whole.
+	  However, newer boards whose devicetree source files haven't landed in
+	  the dts/upstream subtree, they can override this option to have the
+	  DT build from existing U-Boot tree location instead.
+
+config OF_UPSTREAM_BUILD_VENDOR
+	bool "Build all devicetree files for a particular vendor"
+	depends on OF_UPSTREAM
+	help
+	  Enable building all devicetree files for a particular vendor. This
+	  is useful for generic U-Boot configurations where many boards can
+	  be supported with a single binary.
+
+	  This is only available for platforms using upstream devicetree.
+
+config OF_UPSTREAM_VENDOR
+	string "Vendor to build all upstream devicetree files for"
+	depends on OF_UPSTREAM_BUILD_VENDOR
+	default "qcom" if ARCH_SNAPDRAGON
+	default "rockchip" if ARCH_ROCKCHIP
+	default "amlogic" if ARCH_MESON
+	default "allwinner" if ARCH_SUNXI
+	default "mediatek" if ARCH_MEDIATEK
+	default "marvell" if ARCH_MVEBU || ARCH_KIRKWOOD
+	default "xilinx" if ARCH_VERSAL || ARCH_ZYNQ
+	default "nvidia" if ARCH_TEGRA
+	default "samsung" if ARCH_EXYNOS && 32BIT
+	default "exynos" if ARCH_EXYNOS && ARM64
+	help
+	  Select the vendor to build all devicetree files for.
+
+config OF_UPSTREAM_INCLUDE_LOCAL_FALLBACK_DTBOS
+	bool "Build local DTBOs as fallback for DTBOs missing upstream"
+	default n
+	depends on OF_UPSTREAM
+	help
+	  Enable building DTBOs from arch/$(ARCH)/dts as a fallback for
+	  DTBOs which are not part of Linux kernel upstream yet. This is
+	  a stopgap measure to expedite OF_UPSTREAM switch for platforms
+	  which already have main DT in Linux kernel upstream, but still
+	  have leftover DTBOs in U-Boot tree.
+
+	  Do not use this option, upstream your DTs and DTBOs instead.
+	  If the upstreaming is in progress, use with utmost caution.
+
+	  If unsure, say N.
+
 choice
 	prompt "Provider of DTB for DT control"
 	depends on OF_CONTROL
@@ -104,6 +164,12 @@ config OF_EMBED
 	  Boards in the mainline U-Boot tree should not use it.
 
 endchoice
+
+config OF_INITIAL_DTB_READONLY
+	bool "Initial DTB for DT control is read-only"
+	help
+	  If initial DTB for DT control is read-only (e.g. points to
+	  memory-mapped flash memory), then set this option.
 
 config OF_BOARD
 	bool "Provided by the board (e.g a previous loader) at runtime"
@@ -151,6 +217,7 @@ config OF_OMIT_DTB
 config DEFAULT_DEVICE_TREE
 	string "Default Device Tree for DT control"
 	depends on OF_CONTROL
+	default "sandbox" if SANDBOX
 	help
 	  This option specifies the default Device Tree used for DT control.
 	  It can be overridden from the command line:
@@ -179,11 +246,11 @@ config OF_LIST
 
 config OF_OVERLAY_LIST
 	string "List of device tree overlays to include for DT control"
-	depends on SPL_LOAD_FIT_APPLY_OVERLAY
 	help
 	  This option specifies a list of device tree overlays to use for DT
 	  control. This option can then be used by a FIT generator to include
-	  the overlays in the FIT image.
+	  the overlays in the FIT image or by binman when assembling an image
+	  that uses overlays during DT fixup.
 
 choice
 	prompt "OF LIST compression"
@@ -244,6 +311,7 @@ config MULTI_DTB_FIT_USER_DEF_ADDR
 
 config DTB_RESELECT
 	bool "Support swapping dtbs at a later point in boot"
+	depends on !COMPILE_TEST
 	depends on MULTI_DTB_FIT
 	help
 	  It is possible during initial boot you may need to use a generic
@@ -341,16 +409,6 @@ config SPL_MULTI_DTB_FIT_USER_DEF_ADDR
 	   the FIT image containing the DTBs is uncompressed in an area defined
 	   at compilation time. This is the address of this area. It must be
 	   aligned on 2-byte boundary.
-
-config OF_TAG_MIGRATE
-	bool "Ease migration from old device trees with u-boot,dm- tags"
-	default y
-	help
-	  U-Boot moved over to use new tags to mark device tree nodes which need
-	  to be processed in SPL, before relocation, etc. Enable this option to
-	  detect old tags and handle them.
-
-	  Note: This option will be removed after the 2023.07 release.
 
 config OF_SPL_REMOVE_PROPS
 	string "List of device tree properties to drop for SPL"

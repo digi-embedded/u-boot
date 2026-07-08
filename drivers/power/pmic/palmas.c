@@ -4,7 +4,6 @@
  * Keerthy <j-keerthy@ti.com>
  */
 
-#include <common.h>
 #include <fdtdec.h>
 #include <errno.h>
 #include <dm.h>
@@ -50,8 +49,9 @@ static int palmas_bind(struct udevice *dev)
 	int children, ret;
 
 	if (IS_ENABLED(CONFIG_SYSRESET_PALMAS)) {
-		ret = device_bind_driver(dev, PALMAS_RST_DRIVER,
-					 "sysreset", NULL);
+		ret = device_bind_driver_to_node(dev, PALMAS_RST_DRIVER,
+						 "sysreset", dev_ofnode(dev),
+						 NULL);
 		if (ret) {
 			log_err("cannot bind SYSRESET (ret = %d)\n", ret);
 			return ret;

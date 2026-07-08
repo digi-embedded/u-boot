@@ -5,7 +5,6 @@
  * SPDX-License-Identifier:      GPL-2.0+
  */
 
-#include <common.h>
 #include <errno.h>
 #include <i2c.h>
 #include <power/pmic.h>

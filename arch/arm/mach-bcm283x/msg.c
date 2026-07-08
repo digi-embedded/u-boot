@@ -3,11 +3,11 @@
  * (C) Copyright 2012 Stephen Warren
  */
 
-#include <common.h>
 #include <memalign.h>
 #include <phys2bus.h>
 #include <asm/arch/mbox.h>
 #include <linux/delay.h>
+#include <linux/errno.h>
 
 struct msg_set_power_state {
 	struct bcm2835_mbox_hdr hdr;

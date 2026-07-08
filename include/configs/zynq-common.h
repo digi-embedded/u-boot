@@ -44,9 +44,12 @@
 
 /* Boot configuration */
 
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 #define BOOTENV
-#else
+#endif
+
+/* Only use this section if no BOOTENV has been configured yet */
+#ifndef BOOTENV
 
 #ifdef CONFIG_CMD_MMC
 #define BOOT_TARGET_DEVICES_MMC(func) func(MMC, mmc, 0) func(MMC, mmc, 1)
@@ -167,7 +170,8 @@
 	BOOT_TARGET_DEVICES_DHCP(func)
 
 #include <config_distro_bootcmd.h>
-#endif /* CONFIG_SPL_BUILD */
+
+#endif /* BOOTENV */
 
 /* Default environment */
 #ifndef CFG_EXTRA_ENV_SETTINGS
@@ -185,20 +189,11 @@
 #define CFG_SYS_INIT_RAM_ADDR	0xFFFF0000
 #define CFG_SYS_INIT_RAM_SIZE	0x2000
 
-
 /* Extend size of kernel image for uncompression */
 
 /* Address in RAM where the parameters must be copied by SPL. */
 
 /* Not using MMC raw mode - just for compilation purpose */
-
-/* qspi mode is working fine */
-#ifdef CONFIG_ZYNQ_QSPI
-#define CFG_SYS_SPI_ARGS_OFFS	0x200000
-#define CFG_SYS_SPI_ARGS_SIZE	0x80000
-#define CFG_SYS_SPI_KERNEL_OFFS	(CFG_SYS_SPI_ARGS_OFFS + \
-					CFG_SYS_SPI_ARGS_SIZE)
-#endif
 
 /* SP location before relocation, must use scratch RAM */
 

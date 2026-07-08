@@ -4,16 +4,16 @@
  * Copyright (c) 2014, NVIDIA CORPORATION.  All rights reserved.
  */
 
-#include <common.h>
 #include <command.h>
+#include <env.h>
 #include <fs.h>
 #include <net.h>
 #include <net6.h>
 #include <malloc.h>
+#include <vsprintf.h>
 
 #include "pxe_utils.h"
 
-#ifdef CONFIG_CMD_NET
 const char *pxe_default_paths[] = {
 #ifdef CONFIG_SYS_SOC
 #ifdef CONFIG_SYS_BOARD
@@ -27,7 +27,7 @@ const char *pxe_default_paths[] = {
 };
 
 static int do_get_tftp(struct pxe_context *ctx, const char *file_path,
-		       char *file_addr, ulong *sizep)
+		       char *file_addr, enum bootflow_img_t type, ulong *sizep)
 {
 	char *tftp_argv[] = {"tftp", NULL, NULL, NULL};
 	int ret;
@@ -65,6 +65,8 @@ static int pxe_dhcp_option_path(struct pxe_context *ctx, unsigned long pxefile_a
 	int ret = get_pxe_file(ctx, pxelinux_configfile, pxefile_addr_r);
 
 	free(pxelinux_configfile);
+	/* set to NULL to avoid double-free if DHCP is tried again */
+	pxelinux_configfile = NULL;
 
 	return ret;
 }
@@ -138,7 +140,7 @@ int pxe_get(ulong pxefile_addr_r, char **bootdirp, ulong *sizep, bool use_ipv6)
 	int i;
 
 	if (pxe_setup_ctx(&ctx, cmdtp, do_get_tftp, NULL, false,
-			  env_get("bootfile"), use_ipv6))
+			  env_get("bootfile"), use_ipv6, false))
 		return -ENOMEM;
 
 	if (IS_ENABLED(CONFIG_BOOTP_PXE_DHCP_OPTION) &&
@@ -288,7 +290,7 @@ do_pxe_boot(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 	}
 
 	if (pxe_setup_ctx(&ctx, cmdtp, do_get_tftp, NULL, false,
-			  env_get("bootfile"), use_ipv6)) {
+			  env_get("bootfile"), use_ipv6, false)) {
 		printf("Out of memory\n");
 		return CMD_RET_FAILURE;
 	}
@@ -331,5 +333,3 @@ U_BOOT_CMD(pxe, 4, 1, do_pxe,
 	   "get [" USE_IP6_CMD_PARAM "] - try to retrieve a pxe file using tftp\n"
 	   "pxe boot [pxefile_addr_r] [-ipv6] - boot from the pxe file at pxefile_addr_r\n"
 );
-
-#endif /* CONFIG_CMD_NET */

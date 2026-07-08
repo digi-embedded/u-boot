@@ -3,7 +3,7 @@
  * (C) Copyright 2014, Cavium Inc.
 **/
 
-#include <common.h>
+#include <config.h>
 #include <cpu_func.h>
 #include <dm.h>
 #include <init.h>
@@ -71,11 +71,6 @@ static struct mm_region thunderx_mem_map[] = {
 };
 
 struct mm_region *mem_map = thunderx_mem_map;
-
-int board_init(void)
-{
-	return 0;
-}
 
 int timer_init(void)
 {

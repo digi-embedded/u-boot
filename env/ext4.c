@@ -18,11 +18,11 @@
  * Manjunatha C Achar <a.manjunatha@samsung.com>
  */
 
-#include <common.h>
 #include <part.h>
 
 #include <command.h>
 #include <env.h>
+#include <init.h>
 #include <env_internal.h>
 #include <linux/stddef.h>
 #include <malloc.h>
@@ -31,7 +31,9 @@
 #include <errno.h>
 #include <ext4fs.h>
 #include <mmc.h>
+#include <nvme.h>
 #include <scsi.h>
+#include <virtio.h>
 #include <asm/global_data.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -151,7 +153,19 @@ static int env_ext4_load(void)
 	if (!strcmp(ifname, "scsi"))
 		scsi_scan(true);
 #endif
+#if defined(CONFIG_VIRTIO)
+	if (!strcmp(ifname, "virtio"))
+		virtio_init();
+#endif
 
+#if defined(CONFIG_NVME)
+	if (!strcmp(ifname, "nvme")) {
+		if (IS_ENABLED(CONFIG_PCI))
+			pci_init();
+
+		nvme_scan_namespace();
+	}
+#endif
 	part = blk_get_device_part_str(ifname, dev_and_part,
 				       &dev_desc, &info, 1);
 	if (part < 0)

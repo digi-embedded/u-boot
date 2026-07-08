@@ -6,9 +6,9 @@
  */
 
 #include <charset.h>
-#include <common.h>
 #include <command.h>
 #include <dm/device.h>
+#include <efi_device_path.h>
 #include <efi_dt_fixup.h>
 #include <efi_load_initrd.h>
 #include <efi_loader.h>
@@ -512,6 +512,27 @@ static int do_efi_show_images(struct cmd_tbl *cmdtp, int flag,
 	return CMD_RET_SUCCESS;
 }
 
+/**
+ * do_efi_show_defaults() - show UEFI default filename and PXE architecture
+ *
+ * @cmdtp:	Command table
+ * @flag:	Command flag
+ * @argc:	Number of arguments
+ * @argv:	Argument array
+ * Return:	CMD_RET_SUCCESS on success, CMD_RET_RET_FAILURE on failure
+ *
+ * Implement efidebug "defaults" sub-command.
+ * Shows the default EFI filename and PXE architecture
+ */
+static int do_efi_show_defaults(struct cmd_tbl *cmdtp, int flag,
+				int argc, char *const argv[])
+{
+	printf("Default boot path: EFI\\BOOT\\%s\n", efi_get_basename());
+	printf("PXE arch: 0x%02x\n", efi_get_pxe_arch());
+
+	return CMD_RET_SUCCESS;
+}
+
 static const char * const efi_mem_type_string[] = {
 	[EFI_RESERVED_MEMORY_TYPE] = "RESERVED",
 	[EFI_LOADER_CODE] = "LOADER CODE",
@@ -535,18 +556,19 @@ static const struct efi_mem_attrs {
 	const char *text;
 } efi_mem_attrs[] = {
 	{EFI_MEMORY_UC, "UC"},
-	{EFI_MEMORY_UC, "UC"},
 	{EFI_MEMORY_WC, "WC"},
 	{EFI_MEMORY_WT, "WT"},
 	{EFI_MEMORY_WB, "WB"},
 	{EFI_MEMORY_UCE, "UCE"},
 	{EFI_MEMORY_WP, "WP"},
 	{EFI_MEMORY_RP, "RP"},
-	{EFI_MEMORY_XP, "WP"},
+	{EFI_MEMORY_XP, "XP"},
 	{EFI_MEMORY_NV, "NV"},
 	{EFI_MEMORY_MORE_RELIABLE, "REL"},
 	{EFI_MEMORY_RO, "RO"},
 	{EFI_MEMORY_SP, "SP"},
+	{EFI_MEMORY_CPU_CRYPTO, "CRYPT"},
+	{EFI_MEMORY_HOT_PLUGGABLE, "HOTPL"},
 	{EFI_MEMORY_RUNTIME, "RT"},
 };
 
@@ -654,37 +676,79 @@ static int do_efi_show_tables(struct cmd_tbl *cmdtp, int flag,
 }
 
 /**
- * create_initrd_dp() - create a special device for our Boot### option
+ * enum efi_lo_dp_part - part of device path in load option
+ */
+enum efi_lo_dp_part {
+	/** @EFI_LO_DP_PART_BINARY: binary */
+	EFI_LO_DP_PART_BINARY,
+	/** @EFI_LO_DP_PART_INITRD: initial RAM disk */
+	EFI_LO_DP_PART_INITRD,
+	/** @EFI_LP_DP_PART_FDT: device-tree */
+	EFI_LP_DP_PART_FDT,
+};
+
+/**
+ * create_lo_dp_part() - create a special device path for our Boot### option
  *
  * @dev:	device
  * @part:	disk partition
  * @file:	filename
  * @shortform:	create short form device path
+ * @type:	part of device path to be created
  * Return:	pointer to the device path or ERR_PTR
  */
 static
-struct efi_device_path *create_initrd_dp(const char *dev, const char *part,
-					 const char *file, int shortform)
+struct efi_device_path *create_lo_dp_part(const char *dev, const char *part,
+					  const char *file, bool shortform,
+					  enum efi_lo_dp_part type)
 
 {
 	struct efi_device_path *tmp_dp = NULL, *tmp_fp = NULL, *short_fp = NULL;
-	struct efi_device_path *initrd_dp = NULL;
+	struct efi_device_path *dp = NULL;
+	const struct efi_device_path *dp_prefix;
 	efi_status_t ret;
-	const struct efi_initrd_dp id_dp = {
+	const struct efi_lo_dp_prefix fdt_dp = {
 		.vendor = {
 			{
 			DEVICE_PATH_TYPE_MEDIA_DEVICE,
 			DEVICE_PATH_SUB_TYPE_VENDOR_PATH,
-			sizeof(id_dp.vendor),
+			sizeof(fdt_dp.vendor),
+			},
+			EFI_FDT_GUID,
+		},
+		.end = {
+			DEVICE_PATH_TYPE_END,
+			DEVICE_PATH_SUB_TYPE_END,
+			sizeof(fdt_dp.end),
+		}
+	};
+	const struct efi_lo_dp_prefix initrd_dp = {
+		.vendor = {
+			{
+			DEVICE_PATH_TYPE_MEDIA_DEVICE,
+			DEVICE_PATH_SUB_TYPE_VENDOR_PATH,
+			sizeof(initrd_dp.vendor),
 			},
 			EFI_INITRD_MEDIA_GUID,
 		},
 		.end = {
 			DEVICE_PATH_TYPE_END,
 			DEVICE_PATH_SUB_TYPE_END,
-			sizeof(id_dp.end),
+			sizeof(initrd_dp.end),
 		}
 	};
+
+	switch (type) {
+	case EFI_LO_DP_PART_INITRD:
+		dp_prefix = &initrd_dp.vendor.dp;
+		break;
+	case EFI_LP_DP_PART_FDT:
+		dp_prefix = &fdt_dp.vendor.dp;
+		break;
+	default:
+		dp_prefix = NULL;
+		break;
+	}
 
 	ret = efi_dp_from_name(dev, part, file, &tmp_dp, &tmp_fp);
 	if (ret != EFI_SUCCESS) {
@@ -696,13 +760,12 @@ struct efi_device_path *create_initrd_dp(const char *dev, const char *part,
 	if (!short_fp)
 		short_fp = tmp_fp;
 
-	initrd_dp = efi_dp_concat((const struct efi_device_path *)&id_dp,
-				  short_fp, false);
+	dp = efi_dp_concat(dp_prefix, short_fp, 0);
 
 out:
 	efi_free_pool(tmp_dp);
 	efi_free_pool(tmp_fp);
-	return initrd_dp;
+	return dp;
 }
 
 /**
@@ -750,7 +813,7 @@ static int efi_boot_add_uri(int argc, char *const argv[], u16 *var_name16,
 	lo->label = label;
 
 	uridp_len = sizeof(struct efi_device_path) + strlen(argv[3]) + 1;
-	uridp = efi_alloc(uridp_len + sizeof(END));
+	uridp = efi_alloc(uridp_len + sizeof(EFI_DP_END));
 	if (!uridp) {
 		log_err("Out of memory\n");
 		return CMD_RET_FAILURE;
@@ -760,10 +823,10 @@ static int efi_boot_add_uri(int argc, char *const argv[], u16 *var_name16,
 	uridp->dp.length = uridp_len;
 	strcpy(uridp->uri, argv[3]);
 	pos = (char *)uridp + uridp_len;
-	memcpy(pos, &END, sizeof(END));
+	memcpy(pos, &EFI_DP_END, sizeof(EFI_DP_END));
 
 	*file_path = &uridp->dp;
-	*fp_size += uridp_len + sizeof(END);
+	*fp_size += uridp_len + sizeof(EFI_DP_END);
 
 	return CMD_RET_SUCCESS;
 }
@@ -793,9 +856,8 @@ static int do_efi_boot_add(struct cmd_tbl *cmdtp, int flag,
 	efi_guid_t guid;
 	u16 *label;
 	struct efi_device_path *file_path = NULL;
-	struct efi_device_path *fp_free = NULL;
-	struct efi_device_path *final_fp = NULL;
 	struct efi_device_path *initrd_dp = NULL;
+	struct efi_device_path *fdt_dp = NULL;
 	struct efi_load_option lo;
 	void *data = NULL;
 	efi_uintn_t size;
@@ -843,22 +905,31 @@ static int do_efi_boot_add(struct cmd_tbl *cmdtp, int flag,
 			lo.label = label; /* label will be changed below */
 
 			/* file path */
-			ret = efi_dp_from_name(argv[3], argv[4], argv[5],
-					       NULL, &fp_free);
-			if (ret != EFI_SUCCESS) {
-				printf("Cannot create device path for \"%s %s\"\n",
-				       argv[3], argv[4]);
+			file_path = create_lo_dp_part(argv[3], argv[4], argv[5],
+						      shortform,
+						      EFI_LO_DP_PART_BINARY);
+			argc -= 5;
+			argv += 5;
+			break;
+		case 'd':
+			shortform = 1;
+			fallthrough;
+		case 'D':
+			if (argc < 3 || fdt_dp) {
+				r = CMD_RET_USAGE;
+				goto out;
+			}
+
+			fdt_dp = create_lo_dp_part(argv[1], argv[2], argv[3],
+						   shortform,
+						   EFI_LP_DP_PART_FDT);
+			if (!fdt_dp) {
+				printf("Cannot add a device-tree\n");
 				r = CMD_RET_FAILURE;
 				goto out;
 			}
-			if (shortform)
-				file_path = efi_dp_shorten(fp_free);
-			if (!file_path)
-				file_path = fp_free;
-			fp_size += efi_dp_size(file_path) +
-				sizeof(struct efi_device_path);
-			argc -= 5;
-			argv += 5;
+			argc -= 3;
+			argv += 3;
 			break;
 		case 'i':
 			shortform = 1;
@@ -869,8 +940,9 @@ static int do_efi_boot_add(struct cmd_tbl *cmdtp, int flag,
 				goto out;
 			}
 
-			initrd_dp = create_initrd_dp(argv[1], argv[2], argv[3],
-						     shortform);
+			initrd_dp = create_lo_dp_part(argv[1], argv[2], argv[3],
+						      shortform,
+						      EFI_LO_DP_PART_INITRD);
 			if (!initrd_dp) {
 				printf("Cannot add an initrd\n");
 				r = CMD_RET_FAILURE;
@@ -878,8 +950,6 @@ static int do_efi_boot_add(struct cmd_tbl *cmdtp, int flag,
 			}
 			argc -= 3;
 			argv += 3;
-			fp_size += efi_dp_size(initrd_dp) +
-				sizeof(struct efi_device_path);
 			break;
 		case 's':
 			if (argc < 1 || lo.optional_data) {
@@ -897,7 +967,6 @@ static int do_efi_boot_add(struct cmd_tbl *cmdtp, int flag,
 						     &file_path, &fp_size);
 				if (r != CMD_RET_SUCCESS)
 					goto out;
-				fp_free = file_path;
 				argc -= 3;
 				argv += 3;
 			} else{
@@ -917,14 +986,14 @@ static int do_efi_boot_add(struct cmd_tbl *cmdtp, int flag,
 		goto out;
 	}
 
-	final_fp = efi_dp_concat(file_path, initrd_dp, true);
-	if (!final_fp) {
+	ret = efi_load_option_dp_join(&file_path, &fp_size, initrd_dp, fdt_dp);
+	if (ret != EFI_SUCCESS) {
 		printf("Cannot create final device path\n");
 		r = CMD_RET_FAILURE;
 		goto out;
 	}
 
-	lo.file_path = final_fp;
+	lo.file_path = file_path;
 	lo.file_path_length = fp_size;
 
 	size = efi_serialize_load_option(&lo, (u8 **)&data);
@@ -945,9 +1014,9 @@ static int do_efi_boot_add(struct cmd_tbl *cmdtp, int flag,
 
 out:
 	free(data);
-	efi_free_pool(final_fp);
 	efi_free_pool(initrd_dp);
-	efi_free_pool(fp_free);
+	efi_free_pool(fdt_dp);
+	efi_free_pool(file_path);
 	free(lo.label);
 
 	return r;
@@ -1009,7 +1078,8 @@ static int do_efi_boot_rm(struct cmd_tbl *cmdtp, int flag,
  */
 static void show_efi_boot_opt_data(u16 *varname16, void *data, size_t *size)
 {
-	struct efi_device_path *initrd_path = NULL;
+	struct efi_device_path *fdt_path;
+	struct efi_device_path *initrd_path;
 	struct efi_load_option lo;
 	efi_status_t ret;
 
@@ -1036,6 +1106,12 @@ static void show_efi_boot_opt_data(u16 *varname16, void *data, size_t *size)
 	if (initrd_path) {
 		printf("  initrd_path: %pD\n", initrd_path);
 		efi_free_pool(initrd_path);
+	}
+
+	fdt_path = efi_dp_from_lo(&lo, &efi_guid_fdt);
+	if (fdt_path) {
+		printf("  device-tree path: %pD\n", fdt_path);
+		efi_free_pool(fdt_path);
 	}
 
 	printf("  data:\n");
@@ -1074,7 +1150,7 @@ static void show_efi_boot_opt(u16 *varname16)
 }
 
 /**
- * show_efi_boot_dump() - dump all UEFI load options
+ * do_efi_boot_dump() - dump all UEFI load options
  *
  * @cmdtp:	Command table
  * @flag:	Command flag
@@ -1397,14 +1473,14 @@ static __maybe_unused int do_efi_test_bootmgr(struct cmd_tbl *cmdtp, int flag,
 
 	ret = efi_bootmgr_load(&image, &load_options);
 	printf("efi_bootmgr_load() returned: %ld\n", ret & ~EFI_ERROR_MASK);
+	if (ret != EFI_SUCCESS)
+		return CMD_RET_SUCCESS;
 
 	/* We call efi_start_image() even if error for test purpose. */
 	ret = EFI_CALL(efi_start_image(image, &exit_data_size, &exit_data));
 	printf("efi_start_image() returned: %ld\n", ret & ~EFI_ERROR_MASK);
 	if (ret && exit_data)
 		efi_free_pool(exit_data);
-
-	efi_restore_gd();
 
 	free(load_options);
 	return CMD_RET_SUCCESS;
@@ -1508,6 +1584,8 @@ static struct cmd_tbl cmd_efidebug_sub[] = {
 			 "", ""),
 	U_BOOT_CMD_MKENT(dh, CONFIG_SYS_MAXARGS, 1, do_efi_show_handles,
 			 "", ""),
+	U_BOOT_CMD_MKENT(defaults, CONFIG_SYS_MAXARGS, 1, do_efi_show_defaults,
+			 "", ""),
 	U_BOOT_CMD_MKENT(images, CONFIG_SYS_MAXARGS, 1, do_efi_show_images,
 			 "", ""),
 	U_BOOT_CMD_MKENT(memmap, CONFIG_SYS_MAXARGS, 1, do_efi_show_memmap,
@@ -1565,8 +1643,9 @@ U_BOOT_LONGHELP(efidebug,
 	"\n"
 	"efidebug boot add - set UEFI BootXXXX variable\n"
 	"  -b|-B <bootid> <label> <interface> <devnum>[:<part>] <file path>\n"
+	"  -d|-D <interface> <devnum>[:<part>] <device-tree file path>\n"
 	"  -i|-I <interface> <devnum>[:<part>] <initrd file path>\n"
-	"  (-b, -i for short form device path)\n"
+	"  (-b, -d, -i for short form device path)\n"
 #if (IS_ENABLED(CONFIG_EFI_HTTP_BOOT))
 	"  -u <bootid> <label> <uri>\n"
 #endif
@@ -1599,6 +1678,8 @@ U_BOOT_LONGHELP(efidebug,
 	"  - show UEFI drivers\n"
 	"efidebug dh\n"
 	"  - show UEFI handles\n"
+	"efidebug defaults\n"
+	"  - show default EFI filename and PXE architecture\n"
 	"efidebug images\n"
 	"  - show loaded images\n"
 	"efidebug memmap\n"

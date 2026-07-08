@@ -4,7 +4,7 @@
  */
 
 #include <dm.h>
-#include <common.h>
+#include <config.h>
 #include <env.h>
 #include <g_dnl.h>
 #include <init.h>
@@ -179,6 +179,18 @@ static int settings_r(void)
 		eth_env_set_enetaddr("eth1addr", ethaddr);
 	}
 
+	if (IS_ENABLED(CONFIG_TARGET_TORADEX_SMARC_IMX95) &&
+	    !eth_env_get_enetaddr("eth2addr", ethaddr)) {
+		/*
+		 * Third MAC address is allocated from block
+		 * 0x100000 higher then the first MAC address.
+		 * The same as the default for the secondary MAC.
+		 */
+		memcpy(ethaddr, &tdx_eth_addr, 6);
+		ethaddr[3] += 0x10;
+		eth_env_set_enetaddr("eth2addr", ethaddr);
+	}
+
 	return 0;
 }
 EVENT_SPY_SIMPLE(EVT_SETTINGS_R, settings_r);
@@ -191,13 +203,16 @@ static int tdx_detect(struct udevice *dev)
 static int tdx_get_str(struct udevice *dev, int id, size_t size, char *val)
 {
 	int ret = -ENOTSUPP;
+	int idx;
 
 	switch (id) {
-	case SYSINFO_ID_BOARD_MODEL:
+	case SYSID_BOARD_MODEL:
+		idx = get_toradex_modules_idx(tdx_hw_tag.prodid);
+
 		snprintf(val, size,
 			 "Toradex %04d %s %s",
 			 tdx_hw_tag.prodid,
-			 toradex_modules[tdx_hw_tag.prodid].name,
+			 toradex_modules[idx].name,
 			 tdx_board_rev_str);
 
 		ret = 0;

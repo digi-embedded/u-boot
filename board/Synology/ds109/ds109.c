@@ -5,7 +5,7 @@
  * Luka Perkov <luka@openwrt.org>
  */
 
-#include <common.h>
+#include <config.h>
 #include <init.h>
 #include <miiphy.h>
 #include <net.h>
@@ -95,24 +95,6 @@ int board_init(void)
 	gd->bd->bi_boot_params = mvebu_sdram_bar(0) + 0x100;
 
 	return 0;
-}
-
-/* Synology reset uses UART */
-#include <ns16550.h>
-#define SOFTWARE_SHUTDOWN   0x31
-#define SOFTWARE_REBOOT     0x43
-#define CFG_SYS_NS16550_COM2		KW_UART1_BASE
-void reset_misc(void)
-{
-	int b_d;
-	printf("Synology reset...");
-	udelay(50000);
-
-	b_d = ns16550_calc_divisor((struct ns16550 *)CFG_SYS_NS16550_COM2,
-				   CFG_SYS_NS16550_CLK, 9600);
-	ns16550_init((struct ns16550 *)CFG_SYS_NS16550_COM2, b_d);
-	ns16550_putc((struct ns16550 *)CFG_SYS_NS16550_COM2,
-		     SOFTWARE_REBOOT);
 }
 
 #ifdef CONFIG_RESET_PHY_R

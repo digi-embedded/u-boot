@@ -3,7 +3,6 @@
  * Copyright (C) 2016 Cadence Design Systems - https://www.cadence.com/
  * Copyright 2019 NXP
  */
-#include <common.h>
 #include <malloc.h>
 #include <wait_bit.h>
 #include <asm/dma-mapping.h>

@@ -3,7 +3,6 @@
  * Copyright (C) 2015 Google, Inc
  */
 
-#include <common.h>
 #include <blk.h>
 #include <dm.h>
 #include <part.h>
@@ -44,7 +43,7 @@ static int dm_test_blk_base(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_blk_base, UT_TESTF_SCAN_PDATA | UT_TESTF_SCAN_FDT);
+DM_TEST(dm_test_blk_base, UTF_SCAN_PDATA | UTF_SCAN_FDT);
 
 static int count_blk_devices(void)
 {
@@ -93,7 +92,7 @@ static int dm_test_blk_usb(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_blk_usb, UT_TESTF_SCAN_PDATA | UT_TESTF_SCAN_FDT);
+DM_TEST(dm_test_blk_usb, UTF_SCAN_PDATA | UTF_SCAN_FDT);
 
 /* Test that we can find block devices without probing them */
 static int dm_test_blk_find(struct unit_test_state *uts)
@@ -115,7 +114,7 @@ static int dm_test_blk_find(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_blk_find, UT_TESTF_SCAN_PDATA | UT_TESTF_SCAN_FDT);
+DM_TEST(dm_test_blk_find, UTF_SCAN_PDATA | UTF_SCAN_FDT);
 
 /* Test that block device numbering works as expected */
 static int dm_test_blk_devnum(struct unit_test_state *uts)
@@ -150,7 +149,7 @@ static int dm_test_blk_devnum(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_blk_devnum, UT_TESTF_SCAN_PDATA | UT_TESTF_SCAN_FDT);
+DM_TEST(dm_test_blk_devnum, UTF_SCAN_PDATA | UTF_SCAN_FDT);
 
 /* Test that we can get a block from its parent */
 static int dm_test_blk_get_from_parent(struct unit_test_state *uts)
@@ -168,7 +167,7 @@ static int dm_test_blk_get_from_parent(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_blk_get_from_parent, UT_TESTF_SCAN_PDATA | UT_TESTF_SCAN_FDT);
+DM_TEST(dm_test_blk_get_from_parent, UTF_SCAN_PDATA | UTF_SCAN_FDT);
 
 /* Test iteration through block devices */
 static int dm_test_blk_iter(struct unit_test_state *uts)
@@ -223,37 +222,14 @@ static int dm_test_blk_iter(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_blk_iter, UT_TESTF_SCAN_PDATA | UT_TESTF_SCAN_FDT);
+DM_TEST(dm_test_blk_iter, UTF_SCAN_PDATA | UTF_SCAN_FDT);
 
 /* Test finding fixed/removable block devices */
 static int dm_test_blk_flags(struct unit_test_state *uts)
 {
 	struct udevice *dev;
 
-	/* Iterate through devices without probing them */
-	ut_assertok(blk_find_first(BLKF_BOTH, &dev));
-	ut_assertnonnull(dev);
-	ut_asserteq_str("mmc2.blk", dev->name);
-
-	ut_assertok(blk_find_next(BLKF_BOTH, &dev));
-	ut_assertnonnull(dev);
-	ut_asserteq_str("mmc1.blk", dev->name);
-
-	ut_assertok(blk_find_next(BLKF_BOTH, &dev));
-	ut_assertnonnull(dev);
-	ut_asserteq_str("mmc0.blk", dev->name);
-
-	ut_asserteq(-ENODEV, blk_find_next(BLKF_BOTH, &dev));
-	ut_assertnull(dev);
-
-	/* All devices are removable until probed */
-	ut_asserteq(-ENODEV, blk_find_first(BLKF_FIXED, &dev));
-
-	ut_assertok(blk_find_first(BLKF_REMOVABLE, &dev));
-	ut_assertnonnull(dev);
-	ut_asserteq_str("mmc2.blk", dev->name);
-
-	/* Now probe them and iterate again */
+	/* Probe and look through block devices */
 	ut_assertok(blk_first_device_err(BLKF_BOTH, &dev));
 	ut_assertnonnull(dev);
 	ut_asserteq_str("mmc2.blk", dev->name);
@@ -288,32 +264,15 @@ static int dm_test_blk_flags(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_blk_flags, UT_TESTF_SCAN_PDATA | UT_TESTF_SCAN_FDT);
+DM_TEST(dm_test_blk_flags, UTF_SCAN_PDATA | UTF_SCAN_FDT);
 
-/* Test blk_foreach() and friend */
+/* Test blk_foreach_probe() */
 static int dm_test_blk_foreach(struct unit_test_state *uts)
 {
 	struct udevice *dev;
 	int found;
 
-	/* Test blk_foreach() - use the 3rd bytes of the name (0/1/2) */
-	found = 0;
-	blk_foreach(BLKF_BOTH, dev)
-		found |= 1 << dectoul(&dev->name[3], NULL);
-	ut_asserteq(7, found);
-
-	/* All devices are removable until probed */
-	found = 0;
-	blk_foreach(BLKF_FIXED, dev)
-		found |= 1 << dectoul(&dev->name[3], NULL);
-	ut_asserteq(0, found);
-
-	found = 0;
-	blk_foreach(BLKF_REMOVABLE, dev)
-		found |= 1 << dectoul(&dev->name[3], NULL);
-	ut_asserteq(7, found);
-
-	/* Now try again with the probing functions */
+	/* The test device tree has two fixed and one removable block device(s) */
 	found = 0;
 	blk_foreach_probe(BLKF_BOTH, dev)
 		found |= 1 << dectoul(&dev->name[3], NULL);
@@ -334,4 +293,4 @@ static int dm_test_blk_foreach(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_blk_foreach, UT_TESTF_SCAN_PDATA | UT_TESTF_SCAN_FDT);
+DM_TEST(dm_test_blk_foreach, UTF_SCAN_PDATA | UTF_SCAN_FDT);

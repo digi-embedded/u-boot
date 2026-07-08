@@ -57,15 +57,6 @@ own subnode under the /images node, which should then be referenced from one or
 multiple /configurations subnodes. The required images must be enumerated in
 the "loadables" property as a list of strings.
 
-If a platform specific image source file (.its) is shipped with the U-Boot
-source, it can be specified using the CONFIG_SPL_FIT_SOURCE Kconfig symbol.
-In this case it will be automatically used by U-Boot's Makefile to generate
-the image.
-If a static source file is not flexible enough, CONFIG_SPL_FIT_GENERATOR
-can point to a script which generates this image source file during
-the build process. It gets passed a list of device tree files (taken from the
-CONFIG_OF_LIST symbol).
-
 The SPL also records to a DT all additional images (called loadables) which are
 loaded. The information about loadables locations is passed via the DT node with
 fit-images name.
@@ -166,7 +157,7 @@ development host is to be booted old-style (non-FDT) by U-Boot on an embedded
 target. Assume that the outcome of the build is vmlinux.bin.gz, a file which
 contains a gzip-compressed PPC Linux kernel (the only data file in this case).
 The uImage can be produced using the image source file
-doc/uImage.FIT/kernel.its (note that kernel.its assumes that vmlinux.bin.gz is
+doc/usage/fit/kernel.rst (note that kernel.its assumes that vmlinux.bin.gz is
 in the current working directory; if desired, an alternative path can be
 specified in the kernel.its file). Here's how to create the image and inspect
 its contents:
@@ -278,7 +269,7 @@ Example 2 -- new-style (FDT) kernel booting
 Consider another simple scenario, where a PPC Linux kernel is to be booted
 new-style, i.e., with a FDT blob. In this case there are two prerequisite data
 files: vmlinux.bin.gz (Linux kernel) and target.dtb (FDT blob). The uImage can
-be produced using image source file doc/uImage.FIT/kernel_fdt.its like this
+be produced using image source file doc/usage/fit/kernel_fdt.rst like this
 (note again, that both prerequisite data files are assumed to be present in
 the current working directory -- image source file kernel_fdt.its can be
 modified to take the files from some other location if needed):

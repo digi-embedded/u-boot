@@ -3,11 +3,10 @@
  * Copyright (C) 2015  Beckhoff Automation GmbH & Co. KG
  * Patrick Bruenn <p.bruenn@beckhoff.com>
  *
- * Based on <u-boot>/board/freescale/mx53loco/mx53loco_video.c
+ * Based on <u-boot>/board/nxp/mx53loco/mx53loco_video.c
  * Copyright (C) 2012 Freescale Semiconductor, Inc.
  */
 
-#include <common.h>
 #include <asm/arch/iomux-mx53.h>
 #include <asm/gpio.h>
 #include <asm/mach-imx/video.h>

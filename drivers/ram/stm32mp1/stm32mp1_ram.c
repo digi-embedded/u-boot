@@ -5,7 +5,6 @@
 
 #define LOG_CATEGORY UCLASS_RAM
 
-#include <common.h>
 #include <clk.h>
 #include <dm.h>
 #include <init.h>
@@ -34,6 +33,7 @@ static const char *const clkname[] = {
 
 int stm32mp1_ddr_clk_enable(struct ddr_info *priv, uint32_t mem_speed)
 {
+	bool is_mp13 = is_stm32mp13_ddrc(priv);
 	unsigned long ddrphy_clk;
 	unsigned long ddr_clk;
 	struct clk clk;
@@ -41,6 +41,10 @@ int stm32mp1_ddr_clk_enable(struct ddr_info *priv, uint32_t mem_speed)
 	unsigned int idx;
 
 	for (idx = 0; idx < ARRAY_SIZE(clkname); idx++) {
+		/* DDRC2 clock are available only on STM32MP15xx */
+		if (is_mp13 && !strcmp(clkname[idx], "ddrc2"))
+			continue;
+
 		ret = clk_get_by_name(priv->dev, clkname[idx], &clk);
 
 		if (!ret)
@@ -372,7 +376,7 @@ static int stm32mp1_ddr_probe(struct udevice *dev)
 
 	priv->info.base = STM32_DDR_BASE;
 
-	if (IS_ENABLED(CONFIG_SPL_BUILD)) {
+	if (IS_ENABLED(CONFIG_XPL_BUILD)) {
 		priv->info.size = 0;
 		ret = stm32mp1_ddr_setup(dev);
 

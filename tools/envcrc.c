@@ -40,14 +40,13 @@
 # endif
 #endif	/* CONFIG_ENV_IS_IN_FLASH */
 
-#ifdef CONFIG_SYS_REDUNDAND_ENVIRONMENT
+#ifdef CONFIG_ENV_REDUNDANT
 # define ENV_HEADER_SIZE	(sizeof(uint32_t) + 1)
 #else
 # define ENV_HEADER_SIZE	(sizeof(uint32_t))
 #endif
 
 #define ENV_SIZE (CONFIG_ENV_SIZE - ENV_HEADER_SIZE)
-
 
 #ifdef ENV_IS_EMBEDDED
 # include <env_internal.h>

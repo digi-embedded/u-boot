@@ -3,11 +3,12 @@
 
 /* Console version of the game "2048" for GNU/Linux */
 
-#include <common.h>
 #include <cli.h>
 #include <command.h>
 #include <rand.h>
+#include <vsprintf.h>
 #include <linux/delay.h>
+#include <linux/string.h>
 
 #define SIZE 4
 static uint score;

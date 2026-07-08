@@ -395,9 +395,6 @@ more details, with real examples.
 	These three flags apply only to the kbuild makefile in which they
 	are assigned. They are used for all the normal cc, as and ld
 	invocations happening during a recursive build.
-	Note: Flags with the same behaviour were previously named:
-	EXTRA_CFLAGS, EXTRA_AFLAGS and EXTRA_LDFLAGS.
-	They are still supported but their usage is deprecated.
 
 	ccflags-y specifies options for compiling with $(CC).
 
@@ -1430,10 +1427,13 @@ When kbuild executes, the following steps are followed (roughly):
 	A central rule exists to create `$(obj)/%.dtb` from `$(src)/%.dts`;
 	architecture Makefiles do no need to explicitly write out that rule.
 
+        The device tree can now be padded by the specified number of bytes
+        by setting CONFIG_SYS_DTC_PAD_BYTES instead of explicitly setting
+        DTC_FLAGS with the -p option.
+
 	Example::
 
 		targets += $(dtb-y)
-		DTC_FLAGS ?= -p 1024
 
 7.9 Preprocessing linker scripts
 --------------------------------

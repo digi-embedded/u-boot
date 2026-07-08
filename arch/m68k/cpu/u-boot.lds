@@ -83,12 +83,12 @@ SECTIONS
 	}
 	__rel_dyn_end = .;
 
-	. = ALIGN(4);
-	__dyn_sym_start = .;
-	.dynsym : {
+	.dynsym ALIGN(4) : {
+		__dyn_sym_start = .;
 		*(.dynsym)
+		__dyn_sym_end = .;
+		. = ALIGN(8);
 	}
-	__dyn_sym_end = .;
 
 	_end = .;
 
@@ -105,3 +105,5 @@ SECTIONS
 	__bss_end = . ;
 	PROVIDE (end = .);
 }
+
+ASSERT(_end % 8 == 0, "_end must be 8-byte aligned for device tree");

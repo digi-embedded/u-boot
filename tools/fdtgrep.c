@@ -102,7 +102,6 @@ static void print_ansi_colour(FILE *fout, int col)
 		fprintf(fout, "\033[1;%dm", col + 30);
 }
 
-
 /**
  * value_add() - Add a new value to our list of things to grep for
  *
@@ -1041,7 +1040,7 @@ static const char * const usage_opts_help[] = {
 #define util_getopt_long() getopt_long(argc, argv, usage_short_opts, \
 				       usage_long_opts, NULL)
 
-void util_usage(const char *errmsg, const char *synopsis,
+static void util_usage(const char *errmsg, const char *synopsis,
 		const char *short_opts, struct option const long_opts[],
 		const char * const opts_help[])
 {
@@ -1110,7 +1109,7 @@ void util_usage(const char *errmsg, const char *synopsis,
 	util_usage(errmsg, usage_synopsis, usage_short_opts, \
 		   usage_long_opts, usage_opts_help)
 
-void util_version(void)
+static void util_version(void)
 {
 	printf("Version: %s\n", "(U-Boot)");
 	exit(0);

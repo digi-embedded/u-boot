@@ -11,19 +11,11 @@
 
 #include <linux/bitops.h>
 #include <linux/list.h>
-#include <linux/sizes.h>
-#include <linux/compiler.h>
 #include <linux/dma-direction.h>
+#include <cyclic.h>
 #include <part.h>
 
 struct bd_info;
-
-#if CONFIG_IS_ENABLED(MMC_HS200_SUPPORT)
-#define MMC_SUPPORTS_TUNING
-#endif
-#if CONFIG_IS_ENABLED(MMC_UHS_SUPPORT)
-#define MMC_SUPPORTS_TUNING
-#endif
 
 /* SD/MMC version bits; 8 flags, 8 major, 8 minor, 8 change */
 #define SD_VERSION_SD	(1U << 31)
@@ -62,6 +54,7 @@ struct bd_info;
 #define MMC_VERSION_4_5		MAKE_MMC_VERSION(4, 5, 0)
 #define MMC_VERSION_5_0		MAKE_MMC_VERSION(5, 0, 0)
 #define MMC_VERSION_5_1		MAKE_MMC_VERSION(5, 1, 0)
+#define MMC_VERSION_5_1B	MAKE_MMC_VERSION(5, 1, 0xB)
 
 #define MMC_CAP(mode)		(1 << mode)
 #define MMC_MODE_HS		(MMC_CAP(MMC_HS) | MMC_CAP(SD_HS))
@@ -80,11 +73,14 @@ struct bd_info;
 #define MMC_MODE_1BIT		BIT(28)
 #define MMC_MODE_SPI		BIT(27)
 
-
 #define SD_DATA_4BIT	0x00040000
 
 #define IS_SD(x)	((x)->version & SD_VERSION_SD)
 #define IS_MMC(x)	((x)->version & MMC_VERSION_MMC)
+
+#define CID_MANFID_MICRON       0x13
+#define CID_MANFID_SAMSUNG      0x15
+#define CID_MANFID_SANDISK      0x45
 
 #define MMC_DATA_READ		1
 #define MMC_DATA_WRITE		2
@@ -119,7 +115,7 @@ struct bd_info;
 
 #define MMC_CMD62_ARG1			0xefac62ec
 #define MMC_CMD62_ARG2			0xcbaea7
-
+#define MMC_CMD62_ARG_SANDISK		0x254ddec4
 
 #define SD_CMD_SEND_RELATIVE_ADDR	3
 #define SD_CMD_SWITCH_FUNC		6
@@ -213,6 +209,7 @@ static inline bool mmc_is_tuning_cmd(uint cmdidx)
 /*
  * EXT_CSD fields
  */
+#define EXT_CSD_BOOT_SIZE_MULT_MICRON	125	/* R/W, vendor specific field */
 #define EXT_CSD_ENH_START_ADDR		136	/* R/W */
 #define EXT_CSD_ENH_SIZE_MULT		140	/* R/W */
 #define EXT_CSD_GP_SIZE_MULT		143	/* R/W */
@@ -383,6 +380,32 @@ enum mmc_voltage {
 #define MMC_TIMING_MMC_HS200	9
 #define MMC_TIMING_MMC_HS400	10
 
+/* emmc PARTITION_CONFIG BOOT_PARTITION_ENABLE values */
+enum emmc_boot_part {
+	EMMC_BOOT_PART_DEFAULT = 0,
+	EMMC_BOOT_PART_BOOT1 = 1,
+	EMMC_BOOT_PART_BOOT2 = 2,
+	EMMC_BOOT_PART_USER = 7,
+};
+
+/* emmc PARTITION_CONFIG BOOT_PARTITION_ENABLE names */
+extern const char *emmc_boot_part_names[8];
+
+/* emmc PARTITION_CONFIG ACCESS_ENABLE values */
+enum emmc_hwpart {
+	EMMC_HWPART_DEFAULT = 0, /* user */
+	EMMC_HWPART_BOOT1 = 1,
+	EMMC_HWPART_BOOT2 = 2,
+	EMMC_HWPART_RPMB = 3,
+	EMMC_HWPART_GP1 = 4,
+	EMMC_HWPART_GP2 = 5,
+	EMMC_HWPART_GP3 = 6,
+	EMMC_HWPART_GP4 = 7,
+};
+
+/* emmc PARTITION_CONFIG ACCESS_ENABLE names */
+extern const char *emmc_hwpart_names[8];
+
 /* Driver model support */
 
 /**
@@ -415,7 +438,7 @@ struct mmc_cid {
 };
 
 struct mmc_cmd {
-	ushort cmdidx;
+	uint cmdidx;
 	uint resp_type;
 	uint cmdarg;
 	uint response[4];
@@ -472,6 +495,14 @@ struct dm_mmc_ops {
 	int (*set_ios)(struct udevice *dev);
 
 	/**
+	 * send_init_stream() - send the initialization stream: 74 clock cycles
+	 * This is used after power up before sending the first command
+	 *
+	 * @dev:	Device to update
+	 */
+	void (*send_init_stream)(struct udevice *dev);
+
+	/**
 	 * get_cd() - See whether a card is present
 	 *
 	 * @dev:	Device to check
@@ -487,7 +518,7 @@ struct dm_mmc_ops {
 	 */
 	int (*get_wp)(struct udevice *dev);
 
-#ifdef MMC_SUPPORTS_TUNING
+#if CONFIG_IS_ENABLED(MMC_SUPPORTS_TUNING)
 	/**
 	 * execute_tuning() - Start the tuning process
 	 *
@@ -550,6 +581,7 @@ struct dm_mmc_ops {
 
 /* Transition functions for compatibility */
 int mmc_set_ios(struct mmc *mmc);
+void mmc_send_init_stream(struct mmc *mmc);
 int mmc_getcd(struct mmc *mmc);
 int mmc_getwp(struct mmc *mmc);
 int mmc_execute_tuning(struct mmc *mmc, uint opcode);
@@ -592,7 +624,7 @@ struct mmc_config {
 	uint f_max;
 	uint b_max;
 	unsigned char part_type;
-#ifdef CONFIG_MMC_PWRSEQ
+#if CONFIG_IS_ENABLED(MMC_PWRSEQ)
 	struct udevice *pwr_dev;
 #endif
 };
@@ -710,7 +742,7 @@ struct mmc {
 	u64 capacity_boot;
 	u64 capacity_rpmb;
 	u64 capacity_gp[4];
-#ifndef CONFIG_SPL_BUILD
+#ifndef CONFIG_XPL_BUILD
 	u64 enh_user_start;
 	u64 enh_user_size;
 #endif
@@ -730,6 +762,9 @@ struct mmc {
 #endif
 	u8 *ext_csd;
 	u32 cardtype;		/* cardtype read from the MMC */
+#if CONFIG_IS_ENABLED(MMC_UHS_SUPPORT)
+	u32 sd3_bus_mode;	/* Supported UHS-I bus speed modes */
+#endif
 	enum mmc_voltage current_voltage;
 	enum bus_mode selected_mode; /* mode currently used */
 	enum bus_mode best_mode; /* best mode is the supported mode with the
@@ -738,9 +773,16 @@ struct mmc {
 				  * accessing the boot partitions
 				  */
 	u32 quirks;
-	u8 hs400_tuning;
+	bool tuning:1;
+	bool hs400_tuning:1;
 
 	enum bus_mode user_speed_mode; /* input speed mode from user */
+
+	/*
+	 * If CONFIG_CYCLIC is not set, struct cyclic_info is
+	 * zero-size structure and does not add any space here.
+	 */
+	struct cyclic_info cyclic;
 };
 
 #if CONFIG_IS_ENABLED(DM_MMC)
@@ -797,7 +839,7 @@ int mmc_unbind(struct udevice *dev);
 int mmc_initialize(struct bd_info *bis);
 int mmc_init_device(int num);
 int mmc_init(struct mmc *mmc);
-int mmc_send_tuning(struct mmc *mmc, u32 opcode, int *cmd_error);
+int mmc_send_tuning(struct mmc *mmc, u32 opcode);
 int mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data);
 int mmc_deinit(struct mmc *mmc);
 
@@ -810,7 +852,7 @@ int mmc_deinit(struct mmc *mmc);
  */
 int mmc_of_parse(struct udevice *dev, struct mmc_config *cfg);
 
-#ifdef CONFIG_MMC_PWRSEQ
+#if CONFIG_IS_ENABLED(MMC_PWRSEQ)
 /**
  * mmc_pwrseq_get_power() - get a power device from device tree
  *
@@ -985,7 +1027,7 @@ void board_mmc_power_init(void);
 int board_mmc_init(struct bd_info *bis);
 int cpu_mmc_init(struct bd_info *bis);
 int mmc_get_env_addr(struct mmc *mmc, int copy, u32 *env_addr);
-# ifdef CONFIG_SYS_MMC_ENV_PART
+# ifdef CONFIG_ENV_MMC_EMMC_HW_PARTITION
 extern uint mmc_get_env_part(struct mmc *mmc);
 # endif
 int mmc_get_env_dev(void);

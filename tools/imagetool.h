@@ -99,6 +99,10 @@ struct image_tool_params {
 	const char *engine_id;	/* Engine to use for signing */
 	bool reset_timestamp;	/* Reset the timestamp on an existing image */
 	struct image_summary summary;	/* results of signing process */
+	char *fit_tfa_bl31;	/* TFA BL31 file to include */
+	unsigned int fit_tfa_bl31_addr;	/* TFA BL31 load and entry point address */
+	char *fit_tee;		/* TEE file to include */
+	unsigned int fit_tee_addr;	/* TEE load and entry point address */
 };
 
 /*
@@ -255,7 +259,6 @@ time_t imagetool_get_source_date(
  * There is a c file associated with supported image type low level code
  * for ex. default_image.c, fit_image.c
  */
-
 
 void pbl_load_uboot(int fd, struct image_tool_params *mparams);
 int zynqmpbif_copy_image(int fd, struct image_tool_params *mparams);

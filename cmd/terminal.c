@@ -7,7 +7,6 @@
 /*
  * Boot support
  */
-#include <common.h>
 #include <command.h>
 #include <stdio_dev.h>
 #include <serial.h>
@@ -25,7 +24,7 @@ int do_terminal(struct cmd_tbl *cmd, int flag, int argc, char *const argv[])
 	if (!dev)
 		return -1;
 
-	if (IS_ENABLED(CONFIG_SERIAL))
+	if (IS_ENABLED(CONFIG_SERIAL) && !IS_ENABLED(CONFIG_DM_SERIAL))
 		serial_reinit_all();
 
 	printf("Entering terminal mode for port %s\n", dev->name);
@@ -66,7 +65,6 @@ int do_terminal(struct cmd_tbl *cmd, int flag, int argc, char *const argv[])
 	}
 	return 0;
 }
-
 
 /***************************************************/
 

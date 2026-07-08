@@ -3,7 +3,6 @@
  * Copyright 2023 NXP
  */
 
-#include <common.h>
 #include <dm.h>
 #include <malloc.h>
 #include <power-domain-uclass.h>

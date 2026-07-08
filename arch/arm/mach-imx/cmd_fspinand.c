@@ -3,7 +3,6 @@
  * Copyright (C) 2023 NXP
  */
 
-#include <common.h>
 #include <command.h>
 #include <dm.h>
 #include <mapmem.h>
@@ -226,7 +225,7 @@ static void fspinand_prep_dft_config(struct fspi_nand *f)
 	config->mem_config.dataHoldTime = 3;
 	config->mem_config.dataSetupTime = 3;
 	config->mem_config.columnAddressWidth = mtd->writesize_shift + 1;
-	config->mem_config.deviceType = 3; //Micron
+	config->mem_config.deviceType = 2; //spi-nand device
 	config->mem_config.commandInterval = 100;
 
 	config->page_data_size = mtd->writesize;

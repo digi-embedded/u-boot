@@ -5,7 +5,6 @@
  */
 #include <dm.h>
 #include <dm/device_compat.h>
-#include <common.h>
 #include <video.h>
 #include <linux/list.h>
 #include <linux/err.h>
@@ -503,7 +502,6 @@ static int epdc_video_probe(struct udevice *dev)
 	mmu_set_region_dcache_behaviour(fb_start, fb_end - fb_start,
 					DCACHE_WRITEBACK);
 	video_set_flush_dcache(dev, true);
-	gd->fb_base = plat->base;
 
 	return 0;
 }

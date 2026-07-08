@@ -423,7 +423,7 @@ static void process_flash_sf(const char *cmdbuf, void *download_buffer,
 	}
 }
 
-#if defined(CONFIG_ARCH_IMX8M) || defined(CONFIG_IMX95)
+#ifdef CONFIG_ARCH_IMX8M
 /* Check if the mcu image is built for running from TCM */
 static bool is_tcm_image(unsigned char *image_addr)
 {
@@ -467,9 +467,11 @@ void fastboot_process_flash(const char *cmdbuf, void *download_buffer,
 			process_flash_sf(cmdbuf, download_buffer,
 				download_bytes, response);
 			break;
-#if defined(CONFIG_ARCH_IMX8M) || defined(CONFIG_IMX95)
+#if defined(CONFIG_ARCH_IMX8M) || defined(CONFIG_IMX95) || defined(CONFIG_IMX952)
 		case DEV_MMC:
+#ifdef CONFIG_ARCH_IMX8M
 			if (is_tcm_image(download_buffer))
+#endif
 				process_flash_blkdev(cmdbuf, download_buffer,
 					download_bytes, response);
 			break;

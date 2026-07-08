@@ -6,6 +6,14 @@
 
 #include "rk356x-u-boot.dtsi"
 
+/ {
+	leds {
+		led-0 {
+			default-state = "on";
+		};
+	};
+};
+
 &pcie3x2 {
 	pinctrl-0 = <&pcie3x2_reset_h>;
 };
@@ -26,18 +34,12 @@
 };
 
 &sfc {
-	bootph-pre-ram;
-	u-boot,spl-sfc-no-dma;
-	#address-cells = <1>;
-	#size-cells = <0>;
-	status = "okay";
-
 	flash@0 {
 		bootph-pre-ram;
-		compatible = "jedec,spi-nor";
-		reg = <0>;
-		spi-max-frequency = <24000000>;
-		spi-rx-bus-width = <4>;
-		spi-tx-bus-width = <1>;
+		bootph-some-ram;
 	};
+};
+
+&usb_host0_ohci {
+	status = "disabled";
 };

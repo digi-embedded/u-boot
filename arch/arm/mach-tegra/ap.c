@@ -6,7 +6,7 @@
 
 /* Tegra AP (Application Processor) code */
 
-#include <common.h>
+#include <config.h>
 #include <log.h>
 #include <linux/bug.h>
 #include <asm/io.h>
@@ -32,9 +32,17 @@ int tegra_get_chip(void)
 	 * Tegra30, 0x35 for T114, and 0x40 for Tegra124.
 	 */
 	rev = (readl(&gp->hidrev) & HIDREV_CHIPID_MASK) >> HIDREV_CHIPID_SHIFT;
-	debug("%s: CHIPID is 0x%02X\n", __func__, rev);
+	debug("%s: CHIPID is 0x%02x\n", __func__, rev);
 
 	return rev;
+}
+
+u32 tegra_get_major_version(void)
+{
+	struct apb_misc_gp_ctlr *gp =
+		(struct apb_misc_gp_ctlr *)NV_PA_APB_MISC_GP_BASE;
+
+	return (readl(&gp->hidrev) & HIDREV_MAJORPREV_MASK) >> HIDREV_MAJORPREV_SHIFT;
 }
 
 int tegra_get_sku_info(void)
@@ -43,7 +51,7 @@ int tegra_get_sku_info(void)
 	struct fuse_regs *fuse = (struct fuse_regs *)NV_PA_FUSE_BASE;
 
 	sku_id = readl(&fuse->sku_info) & 0xff;
-	debug("%s: SKU info byte is 0x%02X\n", __func__, sku_id);
+	debug("%s: SKU info byte is 0x%02x\n", __func__, sku_id);
 
 	return sku_id;
 }
@@ -58,8 +66,9 @@ int tegra_get_chip_sku(void)
 	switch (chip_id) {
 	case CHIPID_TEGRA20:
 		switch (sku_id) {
-		case SKU_ID_T20_7:
+		case SKU_ID_AP20:
 		case SKU_ID_T20:
+		case SKU_ID_AP20H:
 			return TEGRA_SOC_T20;
 		case SKU_ID_T25SE:
 		case SKU_ID_AP25:
@@ -103,8 +112,8 @@ int tegra_get_chip_sku(void)
 	}
 
 	/* unknown chip/sku id */
-	printf("%s: ERROR: UNKNOWN CHIP/SKU ID COMBO (0x%02X/0x%02X)\n",
-		__func__, chip_id, sku_id);
+	printf("%s: ERROR: UNKNOWN CHIP/SKU ID COMBO (0x%02x/0x%02x)\n",
+	       __func__, chip_id, sku_id);
 	return TEGRA_SOC_UNKNOWN;
 }
 

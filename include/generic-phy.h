@@ -52,7 +52,7 @@ struct phy {
 };
 
 /*
- * struct udevice_ops - set of function pointers for phy operations
+ * struct phy_ops - set of function pointers for phy operations
  * @init: operation to be performed for initializing phy (optional)
  * @exit: operation to be performed while exiting (optional)
  * @reset: reset the phy (optional).
@@ -415,10 +415,13 @@ int generic_phy_power_off_bulk(struct phy_bulk *bulk);
  * @dev:	The consumer device.
  * @phy:	A pointer to the PHY port
  * @index:	The index in the list of available PHYs
+ * @mode:	PHY mode
+ * @submode:	PHY submode
  *
  * Return: 0 if OK, or negative error code.
  */
-int generic_setup_phy(struct udevice *dev, struct phy *phy, int index);
+int generic_setup_phy(struct udevice *dev, struct phy *phy, int index,
+		      enum phy_mode mode, int submode);
 
 /**
  * generic_shutdown_phy() - Power off and de-initialize phy.
@@ -509,7 +512,8 @@ static inline int generic_phy_power_off_bulk(struct phy_bulk *bulk)
 	return 0;
 }
 
-static inline int generic_setup_phy(struct udevice *dev, struct phy *phy, int index)
+static inline int generic_setup_phy(struct udevice *dev, struct phy *phy, int index,
+				    enum phy_mode mode, int submode)
 {
 	return 0;
 }

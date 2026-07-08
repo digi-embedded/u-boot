@@ -18,7 +18,7 @@
 		spi4 = &ecspi4;
 		ethernet1 = &fec2;
 		usb1 = &usbotg2;
-		usbgadget1 = &usbg2;
+		usb_gadget1 = &usbg2;
 	};
 
 	cpus {

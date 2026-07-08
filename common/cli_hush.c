@@ -75,7 +75,6 @@
 
 #define __U_BOOT__
 #ifdef __U_BOOT__
-#include <common.h>         /* readline */
 #include <env.h>
 #include <malloc.h>         /* malloc, free, realloc*/
 #include <linux/ctype.h>    /* isalpha, isdigit */
@@ -733,7 +732,6 @@ static int builtin_jobs(struct child_prog *child)
 	return EXIT_SUCCESS;
 }
 
-
 /* built-in 'pwd' handler */
 static int builtin_pwd(struct child_prog *dummy)
 {
@@ -784,7 +782,6 @@ static int builtin_set(struct child_prog *child)
 
 		return EXIT_SUCCESS;
 }
-
 
 /* Built-in 'shift' handler */
 static int builtin_shift(struct child_prog *child)
@@ -1031,8 +1028,10 @@ static void get_user_input(struct in_str *i)
 	  puts("\nTimeout waiting for command\n");
 #  ifdef CONFIG_RESET_TO_RETRY
 	  do_reset(NULL, 0, 0, NULL);
-#  else
-#	error "This currently only works with CONFIG_RESET_TO_RETRY enabled"
+#  elif IS_ENABLED(CONFIG_RETRY_BOOTCMD)
+	strcpy(console_buffer, "run bootcmd\n");
+# else
+#	error "This only works with CONFIG_RESET_TO_RETRY or CONFIG_BOOT_RETRY_COMMAND enabled"
 #  endif
 	}
 #endif
@@ -1732,7 +1731,6 @@ static int run_pipe_real(struct pipe *pi)
 
 			pseudo_exec(child);
 		}
-
 
 		/* put our child in the process group whose leader is the
 		   first process in this pipe */
@@ -3410,7 +3408,6 @@ int hush_main(int argc, char * const *argv)
 
 	last_return_code=EXIT_SUCCESS;
 
-
 	if (argv[0] && argv[0][0] == '-') {
 		debug_printf("\nsourcing /etc/profile\n");
 		if ((input = fopen("/etc/profile", "r")) != NULL) {
@@ -3631,7 +3628,13 @@ static char *make_string(char **inp, int *nonnull)
 		noeval = 1;
 	for (n = 0; inp[n]; n++) {
 		p = insert_var_value_sub(inp[n], noeval);
-		str = xrealloc(str, (len + strlen(p) + (2 * nonnull[n])));
+		char *new_str = xrealloc(str, (len + strlen(p) + (2 * nonnull[n])));
+		if (!new_str) {
+			free(str);
+			if (p != inp[n]) free(p);
+			return NULL;
+		}
+		str = new_str;
 		if (n) {
 			strcat(str, " ");
 		} else {

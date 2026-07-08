@@ -7,7 +7,7 @@
  * Holger Brunck, Keymile GmbH Hannover, holger.brunck@keymile.com
  */
 
-#include <common.h>
+#include <config.h>
 #include <env.h>
 #include <ioports.h>
 #include <command.h>
@@ -53,7 +53,7 @@ int set_km_env(void)
 	char *p;
 
 	pnvramaddr = CFG_SYS_SDRAM_BASE + gd->ram_size -
-		CONFIG_KM_RESERVED_PRAM - CONFIG_KM_PHRAM - CONFIG_KM_PNVRAM;
+		CONFIG_KM_PHRAM - CONFIG_KM_PNVRAM;
 	sprintf(envval, "0x%x", pnvramaddr);
 	env_set("pnvramaddr", envval);
 
@@ -61,12 +61,10 @@ int set_km_env(void)
 	p = env_get("rootfssize");
 	if (p)
 		strict_strtoul(p, 16, &rootfssize);
-	pram = (rootfssize + CONFIG_KM_RESERVED_PRAM + CONFIG_KM_PHRAM +
-		CONFIG_KM_PNVRAM) / 0x400;
+	pram = (rootfssize + CONFIG_KM_PHRAM + CONFIG_KM_PNVRAM) / 0x400;
 	env_set_ulong("pram", pram);
 
-	varaddr = CFG_SYS_SDRAM_BASE + gd->ram_size -
-		CONFIG_KM_RESERVED_PRAM - CONFIG_KM_PHRAM;
+	varaddr = CFG_SYS_SDRAM_BASE + gd->ram_size - CONFIG_KM_PHRAM;
 	env_set_hex("varaddr", varaddr);
 	sprintf(envval, "0x%x", varaddr);
 	env_set("varaddr", envval);
@@ -129,7 +127,6 @@ void check_for_uboot_update(void)
 }
 #endif
 
-#if defined(CONFIG_SYS_I2C_INIT_BOARD)
 static void i2c_write_start_seq(void)
 {
 	set_sda(1);
@@ -186,17 +183,6 @@ int i2c_make_abort(void)
 
 	return ret;
 }
-
-/**
- * i2c_init_board - reset i2c bus. When the board is powercycled during a
- * bus transfer it might hang; for details see doc/I2C_Edge_Conditions.
- */
-void i2c_init_board(void)
-{
-	/* Now run the AbortSequence() */
-	i2c_make_abort();
-}
-#endif
 
 #if defined(CONFIG_KM_COMMON_ETH_INIT)
 int board_eth_init(struct bd_info *bis)

@@ -21,11 +21,21 @@ from subprocess import check_output
 # Get Sphinx version
 major, minor, patch = sphinx.version_info[:3]
 
+# Set canonical URL from the Read the Docs Domain
+html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "")
+
+# Tell Jinja2 templates the build is running on Read the Docs
+if os.environ.get("READTHEDOCS", "") == "True":
+    html_context = {
+        'READTHEDOCS' : True,
+    }
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath('sphinx'))
+sys.path.append(os.path.abspath('../test/py/tests'))
+sys.path.append(os.path.abspath('../test/py'))
 from load_config import loadConfig
 
 # -- General configuration ------------------------------------------------
@@ -39,7 +49,8 @@ needs_sphinx = '2.4.4'
 extensions = ['kerneldoc', 'rstFlatTable', 'kernel_include',
               'kfigure', 'sphinx.ext.ifconfig', # 'automarkup',
               'maintainers_include', 'sphinx.ext.autosectionlabel',
-              'kernel_abi', 'kernel_feat', 'sphinx-prompt']
+              'kernel_abi', 'kernel_feat', 'sphinx-prompt',
+              'sphinx_reredirects', 'sphinx.ext.autodoc' ]
 
 #
 # cdomain is badly broken in Sphinx 3+.  Leaving it out generates *most*
@@ -139,6 +150,11 @@ master_doc = 'index'
 project = 'Das U-Boot'
 copyright = 'The U-Boot development community'
 author = 'The U-Boot development community'
+
+# Pages we have moved after being heavily referenced externally
+redirects = {
+    "develop/py_testing": "pytest/usage.html"
+}
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -552,13 +568,9 @@ epub_exclude_files = ['search.html']
 # Grouping the document tree into PDF files. List of tuples
 # (source start file, target name, title, author, options).
 #
-# See the Sphinx chapter of https://ralsina.me/static/manual.pdf
-#
-# FIXME: Do not add the index file here; the result will be too big. Adding
-# multiple PDF files here actually tries to get the cross-referencing right
-# *between* PDF files.
+# See https://rst2pdf.org/static/manual.html#sphinx
 pdf_documents = [
-    ('uboot-documentation', u'U-Boot', u'U-Boot', u'J. Random Bozo'),
+    ('index', u'U-Boot', u'Das U-Boot', u'The U-Boot development community'),
 ]
 
 # kernel-doc extension configuration for running Sphinx directly (e.g. by Read

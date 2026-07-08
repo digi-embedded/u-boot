@@ -7,6 +7,8 @@
 #ifndef __GZIP_H
 #define __GZIP_H
 
+#include <linux/types.h>
+
 struct blk_desc;
 
 /**
@@ -26,7 +28,8 @@ int gzip_parse_header(const unsigned char *src, unsigned long len);
  * @dst: Destination for uncompressed data
  * @dstlen: Size of destination buffer
  * @src: Source data to decompress
- * @lenp: Returns length of uncompressed data
+ * @lenp: On entry, length of data at @src. On exit, number of bytes used from
+ * @src
  * Return: 0 if OK, -1 on error
  */
 int gunzip(void *dst, int dstlen, unsigned char *src, unsigned long *lenp);
@@ -37,7 +40,8 @@ int gunzip(void *dst, int dstlen, unsigned char *src, unsigned long *lenp);
  * @dst: Destination for uncompressed data
  * @dstlen: Size of destination buffer
  * @src: Source data to decompress
- * @lenp: On entry, length data at @src. On exit, number of bytes used from @src
+ * @lenp: On entry, length of data at @src. On exit, number of bytes used from
+ * @src
  * @stoponerr: 0 to continue when a decode error is found, 1 to stop
  * @offset: start offset within the src buffer
  * Return: 0 if OK, -1 on error
@@ -54,11 +58,11 @@ int zunzip(void *dst, int dstlen, unsigned char *src, unsigned long *lenp,
  *	gzwrite_progress_finish called at end of loop to
  *		indicate success (retcode=0) or failure
  */
-void gzwrite_progress_init(ulong expected_size);
+void gzwrite_progress_init(size_t expected_size);
 
-void gzwrite_progress(int iteration, ulong bytes_written, ulong total_bytes);
+void gzwrite_progress(int iteration, ulong bytes_written, size_t total_bytes);
 
-void gzwrite_progress_finish(int retcode, ulong totalwritten, ulong totalsize,
+void gzwrite_progress_finish(int retcode, ulong totalwritten, size_t totalsize,
 			     u32 expected_crc, u32 calculated_crc);
 
 /**
@@ -73,8 +77,8 @@ void gzwrite_progress_finish(int retcode, ulong totalwritten, ulong totalsize,
  *		for files under 4GiB
  * Return: 0 if OK, -1 on error
  */
-int gzwrite(unsigned char *src, int len, struct blk_desc *dev, ulong szwritebuf,
-	    ulong startoffs, ulong szexpected);
+int gzwrite(unsigned char *src, size_t len, struct blk_desc *dev,
+	    size_t szwritebuf, off_t startoffs, size_t szexpected);
 
 /**
  * gzip()- Compress data into a buffer using the gzip algorithm

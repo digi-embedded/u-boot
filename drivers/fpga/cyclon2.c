@@ -7,8 +7,9 @@
 
 #define LOG_CATEGORY UCLASS_FPGA
 
-#include <common.h>		/* core U-Boot definitions */
+#include <config.h>		/* core U-Boot definitions */
 #include <log.h>
+#include <time.h>
 #include <altera.h>
 #include <ACEX1K.h>		/* ACEX device family */
 #include <linux/delay.h>
@@ -173,10 +174,7 @@ static int CYC2_ps_load(Altera_desc *desc, const void *buf, size_t bsize)
 		ret_val = FPGA_SUCCESS;
 
 #ifdef CONFIG_SYS_FPGA_PROG_FEEDBACK
-		if (ret_val == FPGA_SUCCESS)
-			puts("Done.\n");
-		else
-			puts("Fail.\n");
+		puts("Done.\n");
 #endif
 
 		/*

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.1+
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright (C) 2021 Sean Anderson <seanga2@gmail.com>
  * Copyright (C) 2011-2021 Free Software Foundation, Inc.
@@ -6,7 +6,6 @@
  * These tests adapted from glibc's string/test-strncat.c
  */
 
-#include <common.h>
 #include <test/lib.h>
 #include <test/test.h>
 #include <test/ut.h>

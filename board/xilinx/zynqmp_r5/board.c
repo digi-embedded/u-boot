@@ -3,14 +3,9 @@
  * (C) Copyright 2018 Xilinx, Inc. (Michal Simek)
  */
 
-#include <common.h>
 #include <fdtdec.h>
 #include <init.h>
-
-int board_init(void)
-{
-	return 0;
-}
+#include <linux/errno.h>
 
 int dram_init_banksize(void)
 {

@@ -10,6 +10,8 @@
 #ifndef _BOARD_H_
 #define _BOARD_H_
 
+#include <linux/string.h>
+
 /**
  * AM335X (EMIF_4D) EMIF REG_COS_COUNT_1, REG_COS_COUNT_2, and
  * REG_PR_OLD_COUNT values to avoid LCDC DMA FIFO underflows and Frame
@@ -41,6 +43,11 @@ static inline int board_is_pb(void)
 static inline int board_is_bbg1(void)
 {
 	return board_is_bone_lt() && !strncmp(board_ti_get_rev(), "BBG1", 4);
+}
+
+static inline int board_is_bbge(void)
+{
+	return board_is_bone_lt() && !strncmp(board_ti_get_rev(), "BBGE", 4);
 }
 
 static inline int board_is_bben(void)

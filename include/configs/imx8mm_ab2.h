@@ -9,32 +9,20 @@
 #include <linux/sizes.h>
 #include <linux/stringify.h>
 #include <asm/arch/imx-regs.h>
-#include "imx_env.h"
+#include <env/nxp/imx_env.h>
+
 #define CFG_SYS_UBOOT_BASE	\
 	(QSPI0_AMBA_BASE + CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512)
 
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 /* malloc f used before GD_FLG_FULL_MALLOC_INIT set */
 #define CFG_MALLOC_F_ADDR		0x930000
 /* For RAW image gives a error info not panic */
 
 #endif
 
-#define PHY_ANEG_TIMEOUT 20000
-
 #ifdef CONFIG_NAND_BOOT
 #define MFG_NAND_PARTITION "mtdparts=gpmi-nand:64m(nandboot),16m(nandfit),64m(nandkernel),16m(nanddtb),8m(nandtee),-(nandrootfs)"
-#endif
-
-#ifdef CONFIG_DISTRO_DEFAULTS
-#define BOOT_TARGET_DEVICES(func) \
-	func(USB, usb, 0) \
-	func(MMC, mmc, 1) \
-	func(MMC, mmc, 2)
-
-#include <config_distro_bootcmd.h>
-#else
-#define BOOTENV
 #endif
 
 /*
@@ -103,7 +91,6 @@
 	"splashimage=0x50000000\0" \
 	"fdt_addr_r=0x43000000\0"			\
 	"fdt_addr=0x43000000\0"			\
-	"fdt_high=0xffffffffffffffff\0" \
 	"mtdparts=" MFG_NAND_PARTITION "\0" \
 	"console=ttymxc1,115200 earlycon=ec_imx6q,0x30890000,115200\0" \
 	"bootargs=console=ttymxc1,115200 earlycon=ec_imx6q,0x30890000,115200 ubi.mtd=nandrootfs "  \
@@ -117,7 +104,6 @@
 #else
 #define CFG_EXTRA_ENV_SETTINGS		\
 	CFG_MFG_ENV_SETTINGS \
-	BOOTENV \
 	JAILHOUSE_ENV \
 	M4_BOOT_ENV \
 	"scriptaddr=0x43500000\0" \
@@ -128,11 +114,10 @@
 	"console=ttymxc1,115200\0" \
 	"fdt_addr_r=0x43000000\0"			\
 	"fdt_addr=0x43000000\0"			\
-	"fdt_high=0xffffffffffffffff\0"		\
 	"boot_fit=no\0" \
 	"fdtfile=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"bootm_size=0x10000000\0" \
-	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
+	"mmcdev="__stringify(CONFIG_ENV_MMC_DEVICE_INDEX)"\0" \
 	"mmcpart=1\0" \
 	"mmcroot=/dev/mmcblk1p2 rootwait rw\0" \
 	"mmcautodetect=yes\0" \

@@ -286,13 +286,14 @@
 					arch = "arm64";
 					compression = "none";
 					os = "tee";
-					load = <0x9e800000>;
-					entry = <0x9e800000>;
+					load = <CONFIG_K3_OPTEE_LOAD_ADDR>;
+					entry = <CONFIG_K3_OPTEE_LOAD_ADDR>;
 					ti-secure {
 						content = <&tee>;
 						keyfile = "custMpk.pem";
 					};
 					tee: tee-os {
+						optional;
 					};
 				};
 
@@ -356,10 +357,11 @@
 					arch = "arm64";
 					compression = "none";
 					os = "tee";
-					load = <0x9e800000>;
-					entry = <0x9e800000>;
+					load = <CONFIG_K3_OPTEE_LOAD_ADDR>;
+					entry = <CONFIG_K3_OPTEE_LOAD_ADDR>;
 					tee-os {
 						filename = "tee-raw.bin";
+						optional;
 					};
 				};
 
@@ -474,8 +476,8 @@
 		permissions = <((FWPRIVID_ARMV8 << FWPRIVID_SHIFT) |
 						FWPERM_SECURE_PRIV_RWCD |
 						FWPERM_SECURE_USER_RWCD)>;
-		start_address = <0x0 0x70000000>;
-		end_address = <0x0 0x7001ffff>;
+		start_address = <0x0 CONFIG_K3_ATF_LOAD_ADDR>;
+		end_address = <0x0 (CONFIG_K3_ATF_LOAD_ADDR + 0x1ffff)>;
 	};
 	firewall_armv8_optee_fg: template-8 {
 		control = <(FWCTRL_EN | FWCTRL_LOCK |
@@ -483,8 +485,62 @@
 		permissions = <((FWPRIVID_ARMV8 << FWPRIVID_SHIFT) |
 						FWPERM_SECURE_PRIV_RWCD |
 						FWPERM_SECURE_USER_RWCD)>;
-		start_address = <0x0 0x9e800000>;
-		end_address = <0x0 0x9fffffff>;
+		start_address = <0x0 CONFIG_K3_OPTEE_LOAD_ADDR>;
+		end_address = <0x0 (CONFIG_K3_OPTEE_LOAD_ADDR + 0x17fffff)>;
+	};
+
+	ti_falcon_template: template-9 {
+		filename = "tifalcon.bin";
+		pad-byte = <0xff>;
+
+		fit {
+			description = "Configuration for falcon boot";
+			#address-cells = <1>;
+
+			images {
+				atf {
+					description = "ARM Trusted Firmware";
+					type = "firmware";
+					arch = "arm64";
+					compression = "none";
+					os = "arm-trusted-firmware";
+					load = <CONFIG_K3_ATF_LOAD_ADDR>;
+					entry = <CONFIG_K3_ATF_LOAD_ADDR>;
+					ti-secure {
+						content = <&atf_falcon>;
+						keyfile = "custMpk.pem";
+					};
+					atf_falcon: atf-bl31 {
+					};
+				};
+				tee {
+					description = "OP-TEE";
+					type = "tee";
+					arch = "arm64";
+					compression = "none";
+					os = "tee";
+					load = <CONFIG_K3_OPTEE_LOAD_ADDR>;
+					entry = <CONFIG_K3_OPTEE_LOAD_ADDR>;
+					ti-secure {
+						content = <&tee_falcon>;
+						keyfile = "custMpk.pem";
+					};
+					tee_falcon: tee-os {
+						optional;
+					};
+				};
+				dm {
+					description = "DM binary";
+					type = "firmware";
+					arch = "arm32";
+					compression = "none";
+					os = "DM";
+					load = <0x89000000>;
+					entry = <0x89000000>;
+				};
+
+			};
+		};
 	};
 
 };

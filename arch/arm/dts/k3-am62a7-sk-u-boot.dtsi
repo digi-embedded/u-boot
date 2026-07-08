@@ -9,16 +9,11 @@
 / {
 	chosen {
 		stdout-path = "serial2:115200n8";
-		tick-timer = &main_timer0;
 	};
 
 	memory@80000000 {
 		bootph-all;
 	};
-};
-
-&main_timer0 {
-	bootph-all;
 };
 
 &cbass_main {
@@ -105,6 +100,10 @@
 	bootph-all;
 };
 
+&sdhci0 {
+	bootph-all;
+};
+
 &sdhci1 {
 	bootph-all;
 };
@@ -119,10 +118,6 @@
 
 &dmsc {
 	bootph-all;
-	k3_sysreset: sysreset-controller {
-		compatible = "ti,sci-sysreset";
-		bootph-all;
-	};
 };
 
 &vdd_mmc1 {

@@ -21,7 +21,6 @@
 #include <stdint.h>
 
 #else
-#include <common.h>
 #endif
 /**
  * \addtogroup UTILS

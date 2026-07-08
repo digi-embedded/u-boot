@@ -8,7 +8,6 @@
  * This file provides a shell like 'expr' function to return.
  */
 
-#include <common.h>
 #include <config.h>
 #include <command.h>
 #include <ctype.h>
@@ -16,6 +15,8 @@
 #include <log.h>
 #include <malloc.h>
 #include <mapmem.h>
+#include <vsprintf.h>
+#include <linux/errno.h>
 #include <linux/sizes.h>
 #include "printf.h"
 
@@ -34,9 +35,37 @@ struct expr_arg {
 	};
 };
 
+/**
+ * arg_set_str() - copy string to expression argument
+ *
+ * The string is truncated to 64 KiB plus NUL terminator.
+ *
+ * @p:		pointer to string
+ * @argp:	pointer to expression argument
+ * Return:	0 on success, -ENOMEM if out of memory
+ */
+static int arg_set_str(void *p, struct expr_arg *argp)
+{
+	int len;
+	char *str;
+
+	/* Maximum string length of 64 KiB plus NUL terminator */
+	len = strnlen((char *)p, SZ_64K) + 1;
+	str = malloc(len);
+	if (!str) {
+		printf("Out of memory\n");
+		return -ENOMEM;
+	}
+	memcpy(str, p, len);
+	str[len - 1] = '\0';
+	argp->sval = str;
+	return 0;
+}
+
 static int get_arg(char *s, int w, struct expr_arg *argp)
 {
 	struct expr_arg arg;
+	int ret;
 
 	/*
 	 * If the parameter starts with a '*' then assume it is a pointer to
@@ -46,8 +75,6 @@ static int get_arg(char *s, int w, struct expr_arg *argp)
 		ulong *p;
 		ulong addr;
 		ulong val;
-		int len;
-		char *str;
 
 		addr = hextoul(&s[1], NULL);
 		switch (w) {
@@ -65,18 +92,10 @@ static int get_arg(char *s, int w, struct expr_arg *argp)
 			break;
 		case CMD_DATA_SIZE_STR:
 			p = map_sysmem(addr, SZ_64K);
-
-			/* Maximum string length of 64KB plus terminator */
-			len = strnlen((char *)p, SZ_64K) + 1;
-			str = malloc(len);
-			if (!str) {
-				printf("Out of memory\n");
-				return -ENOMEM;
-			}
-			memcpy(str, p, len);
-			str[len - 1] = '\0';
+			ret = arg_set_str(p, &arg);
 			unmap_sysmem(p);
-			arg.sval = str;
+			if (ret)
+				return ret;
 			break;
 		case 4:
 			p = map_sysmem(addr, sizeof(u32));
@@ -92,9 +111,13 @@ static int get_arg(char *s, int w, struct expr_arg *argp)
 			break;
 		}
 	} else {
-		if (w == CMD_DATA_SIZE_STR)
-			return -EINVAL;
-		arg.ival = hextoul(s, NULL);
+		if (w == CMD_DATA_SIZE_STR) {
+			ret = arg_set_str(s, &arg);
+			if (ret)
+				return ret;
+		} else {
+			arg.ival = hextoul(s, NULL);
+		}
 	}
 	*argp = arg;
 
@@ -216,13 +239,11 @@ int setexpr_regex_sub(char *data, uint data_size, char *nbuf, uint nbuf_size,
 		if (res == 0) {
 			if (loop == 0) {
 				debug("%s: No match\n", data);
-				return 1;
 			} else {
-				break;
+				debug("## MATCH ## %s\n", data);
 			}
+			break;
 		}
-
-		debug("## MATCH ## %s\n", data);
 
 		if (!s)
 			return 1;
@@ -540,7 +561,8 @@ U_BOOT_CMD(
 	"    - For each substring matching the regular expression <r> in the\n"
 	"      string <t>, substitute the string <s>.  The result is\n"
 	"      assigned to <name>.  If <t> is not supplied, use the old\n"
-	"      value of <name>\n"
+	"      value of <name>. If no substring matching <r> is found in <t>,\n"
+	"      assign <t> to <name>.\n"
 	"setexpr name sub r s [t]\n"
 	"    - Just like gsub(), but replace only the first matching substring"
 #endif

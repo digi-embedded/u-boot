@@ -10,7 +10,7 @@ obj-y	= iomux-v3.o
 endif
 
 ifeq ($(SOC),$(filter $(SOC),imx8m))
-ifneq ($(CONFIG_SPL_BUILD),y)
+ifneq ($(CONFIG_XPL_BUILD),y)
 obj-$(CONFIG_IMX_BOOTAUX) += imx_bootaux.o
 obj-$(CONFIG_CMD_PROVISION_KEY) += cmd_prov_key.o
 endif
@@ -20,6 +20,12 @@ obj-$(CONFIG_DWC_ETH_QOS) += mac.o
 obj-$(CONFIG_SYS_I2C_MXC) += i2c-mxv7.o
 obj-$(CONFIG_IMX_HAB) += hab.o
 obj-y += cpu.o
+endif
+
+ifeq ($(SOC),$(filter $(SOC),imx8m imx9))
+ifneq ($(CONFIG_XPL_BUILD),y)
+obj-y += fdt.o
+endif
 endif
 
 ifeq ($(SOC),$(filter $(SOC),mx5 mx6))
@@ -33,7 +39,7 @@ endif
 ifeq ($(SOC),$(filter $(SOC),mx7 mx6 mxs mx7ulp imx8m imx8 imx8ulp imx9 imxrt))
 obj-y	+= misc.o
 obj-$(CONFIG_CMD_PRIBLOB) += priblob.o
-obj-$(CONFIG_SPL_BUILD)	+= spl.o
+obj-$(CONFIG_XPL_BUILD)	+= spl.o
 endif
 ifeq ($(SOC),$(filter $(SOC),imx8m imx8 imx8ulp imx9))
 obj-y	+= dt_optee.o
@@ -44,7 +50,7 @@ obj-$(CONFIG_SYS_I2C_MXC) += i2c-mxv7.o
 obj-y += mmc_env.o
 endif
 ifeq ($(SOC),$(filter $(SOC),mx7 imx8m imx8))
-ifneq ($(CONFIG_SPL_BUILD),y)
+ifneq ($(CONFIG_XPL_BUILD),y)
 obj-$(CONFIG_FSL_MFGPROT) += cmd_mfgprot.o
 endif
 endif
@@ -55,10 +61,10 @@ ifeq ($(SOC),$(filter $(SOC),mx6 mx7))
 obj-y	+= cache.o init.o
 obj-$(CONFIG_FEC_MXC) += mac.o
 obj-$(CONFIG_IMX_RDC) += rdc-sema.o
-ifneq ($(CONFIG_SPL_BUILD),y)
+ifneq ($(CONFIG_XPL_BUILD),y)
 obj-$(CONFIG_IMX_BOOTAUX) += imx_bootaux.o
 endif
-obj-$(CONFIG_$(SPL_)SATA) += sata.o
+obj-$(CONFIG_$(PHASE_)SATA) += sata.o
 obj-$(CONFIG_IMX_HAB)    += hab.o
 obj-$(CONFIG_SYSCOUNTER_TIMER) += syscounter.o
 obj-$(CONFIG_IMX_TRUSTY_OS) += trusty.o
@@ -72,26 +78,27 @@ obj-y += ddrmc-vf610.o
 obj-$(CONFIG_DDRMC_VF610_CALIBRATION) += ddrmc-vf610-calibration.o
 endif
 ifeq ($(SOC),$(filter $(SOC),imx8))
-ifneq ($(CONFIG_SPL_BUILD),y)
+ifneq ($(CONFIG_XPL_BUILD),y)
 obj-$(CONFIG_IMX_BOOTAUX) += imx_bootaux.o
 endif
 endif
-ifneq ($(CONFIG_SPL_BUILD),y)
+ifneq ($(CONFIG_XPL_BUILD),y)
 obj-$(CONFIG_CMD_BMODE) += cmd_bmode.o
 obj-$(CONFIG_CMD_HDMIDETECT) += cmd_hdmidet.o
 obj-$(CONFIG_CMD_DEKBLOB) += cmd_dek.o
 obj-$(CONFIG_CMD_NANDBCB) += cmd_nandbcb.o
+obj-$(CONFIG_CMD_IMX_QB) += cmd_qb.o
 obj-$(CONFIG_CMD_QSPIHDR) += cmd_qspihdr.o
 obj-$(CONFIG_CMD_FSPINAND) += cmd_fspinand.o
-obj-$(CONFIG_CMD_QB) += cmd_qb.o
 obj-$(CONFIG_IMX_VSERVICE) += imx_vservice.o
 endif
 
-ifeq ($(CONFIG_SPL_BUILD),y)
+ifeq ($(CONFIG_XPL_BUILD),y)
 obj-$(CONFIG_SPL_LOAD_IMX_CONTAINER) += image-container.o
 endif
 
 ifeq ($(SOC),$(filter $(SOC),imx8ulp imx9))
+obj-y += ele_message.o
 obj-$(CONFIG_AHAB_BOOT) += ele_ahab.o
 endif
 
@@ -131,14 +138,14 @@ container.cfg: $(IMX_CONTAINER_CFG) FORCE
 ifeq ($(CONFIG_ARCH_IMX8), y)
 CNTR_DEPFILES := $(srctree)/tools/imx_cntr_image.sh
 IMAGE_TYPE := imx8image
-ifeq ($(CONFIG_SPL_BUILD),y)
+ifeq ($(CONFIG_XPL_BUILD),y)
 SPL_DEPFILE_EXISTS := $(shell $(CPP) $(cpp_flags) -x c -o spl/u-boot-spl.cfgout $(srctree)/$(IMX_CONFIG); if [ -f spl/u-boot-spl.cfgout ]; then $(CNTR_DEPFILES) spl/u-boot-spl.cfgout; echo $$?; fi)
 endif
 DEPFILE_EXISTS := $(shell $(CPP) $(cpp_flags) -x c -o u-boot-dtb.cfgout $(srctree)/$(IMX_CONFIG); if [ -f u-boot-dtb.cfgout ]; then $(CNTR_DEPFILES) u-boot-dtb.cfgout; echo $$?; fi)
 else ifeq ($(CONFIG_ARCH_IMX8M), y)
 IMAGE_TYPE := imx8mimage
 DEPFILE_EXISTS := 0
-else ifeq ($(CONFIG_ARCH_IMX9), y)
+else ifeq ($(CONFIG_ARCH_IMX9)$(CONFIG_ARCH_IMX8ULP), y)
 IMAGE_TYPE := imx8image
 DEPFILE_EXISTS := 0
 else
@@ -273,10 +280,17 @@ flash.bin: spl/u-boot-spl.bin FORCE
 endif
 endif
 
-ifeq ($(CONFIG_ARCH_IMX9), y)
+ifeq ($(CONFIG_ARCH_IMX9)$(CONFIG_ARCH_IMX8ULP), y)
 
-quiet_cmd_imx9_check = CHECK    $@
-cmd_imx9_check = $(srctree)/tools/imx9_image.sh $@
+ifneq ($(and $(CONFIG_BINMAN),$(or $(CONFIG_IMX95),$(CONFIG_IMX94))),)
+SPL: spl/u-boot-spl.bin FORCE
+	$(call if_changed,mkimage)
+
+flash.bin: spl/u-boot-spl.bin FORCE
+	$(call if_changed,mkimage)
+else
+quiet_cmd_cpp_cfg_imx9_check = CHECK    $@
+cmd_cpp_cfg_imx9_check = $(CPP) $(cpp_flags) -D__ASSEMBLY__ -x c -o $@ $< && $(srctree)/tools/imx9_image.sh $@
 
 SPL: spl/u-boot-spl.bin spl/u-boot-spl.cfgout u-boot-container.cfgout FORCE
 
@@ -285,18 +299,17 @@ flash.bin: MKIMAGEOUTPUT = flash.log
 
 spl/u-boot-spl.cfgout: $(IMX_CONFIG) FORCE
 	$(Q)mkdir -p $(dir $@)
-	$(call if_changed_dep,cpp_cfg)
-	$(call if_changed,imx9_check)
+	$(call if_changed_dep,cpp_cfg_imx9_check)
 
 spl/u-boot-spl-ddr.bin: spl/u-boot-spl.bin spl/u-boot-spl.cfgout FORCE
 
 u-boot-container.cfgout: $(IMX_CONTAINER_CFG) FORCE
 	$(Q)mkdir -p $(dir $@)
-	$(call if_changed_dep,cpp_cfg)
-	$(call if_changed,imx9_check)
+	$(call if_changed_dep,cpp_cfg_imx9_check)
 
 flash.bin: spl/u-boot-spl-ddr.bin container.cfgout FORCE
 	$(call if_changed,mkimage)
+endif
 endif
 
 else
@@ -347,3 +360,5 @@ obj-$(CONFIG_ARCH_IMXRT) += imxrt/
 
 obj-$(CONFIG_SPL_BOOTROM_SUPPORT) += spl_imx_romapi.o
 obj-$(CONFIG_IMX8_ROMAPI) += romapi.o
+
+obj-$(CONFIG_MX7)$(CONFIG_IMX8M) += snvs.o

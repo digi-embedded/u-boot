@@ -43,6 +43,7 @@
 
 &gem1 {
 	status = "okay";
+	phy-mode = "rgmii-id";
 	mdio {
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -92,7 +93,7 @@
 		};
 		partition@620000 { /* for testing purpose */
 			label = "qspi-rootfs";
-			reg = <0x620000 0x5E0000>;
+			reg = <0x620000 0x5e0000>;
 		};
 	};
 };

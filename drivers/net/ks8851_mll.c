@@ -6,7 +6,6 @@
 
 #include <log.h>
 #include <asm/io.h>
-#include <common.h>
 #include <command.h>
 #include <malloc.h>
 #include <net.h>
@@ -347,11 +346,6 @@ static int ks8851_mll_detect_chip(struct ks_net *ks)
 	}
 
 	debug("Read back KS8851 id 0x%x\n", val);
-
-	if ((val & 0xfff0) != CIDER_ID) {
-		printf(DRIVERNAME ": Unknown chip ID %04x\n", val);
-		return -1;
-	}
 
 	return 0;
 }

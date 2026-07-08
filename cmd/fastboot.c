@@ -6,7 +6,6 @@
  * (C) Copyright 2014 Linaro, Ltd.
  * Rob Herring <robh@kernel.org>
  */
-#include <common.h>
 #include <command.h>
 #include <console.h>
 #include <g_dnl.h>
@@ -17,6 +16,7 @@
 #include <linux/printk.h>
 #include <linux/stringify.h>
 
+#if CONFIG_IS_ENABLED(NET)
 static int do_fastboot_udp(int argc, char *const argv[],
 			   uintptr_t buf_addr, size_t buf_size)
 {
@@ -56,6 +56,7 @@ static int do_fastboot_tcp(int argc, char *const argv[],
 
 	return CMD_RET_SUCCESS;
 }
+#endif
 
 static int do_fastboot_usb(int argc, char *const argv[],
 			   uintptr_t buf_addr, size_t buf_size)
@@ -173,10 +174,12 @@ NXTARG:
 
 	fastboot_init((void *)buf_addr, buf_size);
 
+#if CONFIG_IS_ENABLED(NET)
 	if (!strcmp(argv[1], "udp"))
 		return do_fastboot_udp(argc, argv, buf_addr, buf_size);
 	if (!strcmp(argv[1], "tcp"))
 		return do_fastboot_tcp(argc, argv, buf_addr, buf_size);
+#endif
 	if (!strcmp(argv[1], "usb")) {
 		argv++;
 		argc--;

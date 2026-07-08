@@ -3,14 +3,8 @@
  * Copyright (C) 2019 BayLibre SAS
  */
 
-#include <common.h>
 #include <dm.h>
 #include <net.h>
-
-int board_init(void)
-{
-	return 0;
-}
 
 int board_late_init(void)
 {

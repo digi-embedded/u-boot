@@ -54,8 +54,6 @@ enum {
 	PCA9450_REG_NUM,
 };
 
-#define PCA9450_REG_PWRCTRL_TOFF_DEB    BIT(5)
-
 int power_pca9450_init(unsigned char bus, unsigned char addr);
 
 enum {
@@ -74,5 +72,12 @@ enum {
 #define PCA9450_PMIC_RESET_WDOG_B_CFG_MASK		0xc0
 #define PCA9450_PMIC_RESET_WDOG_B_CFG_WARM		0x40
 #define PCA9450_PMIC_RESET_WDOG_B_CFG_COLD_LDO12	0x80
+
+#define PCA9450_PWRON_STAT_PWRON_MASK		0x80
+#define PCA9450_PWRON_STAT_WDOG_MASK		0x40
+#define PCA9450_PWRON_STAT_SW_RST_MASK		0x20
+#define PCA9450_PWRON_STAT_PMIC_RST_MASK		0x10
+
+#define PCA9450_SW_RST_COLD_RST		0x14
 
 #endif

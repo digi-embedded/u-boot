@@ -5,8 +5,8 @@
  * Copyright (c) 2020, Heinrich Schuchardt <xypron.glpk@gmx.de>
  */
 
-#include <common.h>
 #include <command.h>
+#include <env.h>
 
 static int do_sigsegv(struct cmd_tbl *cmdtp, int flag, int argc,
 		      char *const argv[])
@@ -20,7 +20,11 @@ static int do_sigsegv(struct cmd_tbl *cmdtp, int flag, int argc,
 static int do_undefined(struct cmd_tbl *cmdtp, int flag, int argc,
 			char *const argv[])
 {
+#ifdef __powerpc__
+	asm volatile (".long 0xffffffff\n");
+#else
 	asm volatile (".word 0xffff\n");
+#endif
 	return CMD_RET_FAILURE;
 }
 

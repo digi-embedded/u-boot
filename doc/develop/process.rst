@@ -23,9 +23,8 @@ Management Summary
 Phases of the Development Process
 ---------------------------------
 
-U-Boot development takes place in `Release Cycles
-<https://www.denx.de/wiki/U-Boot/ReleaseCycle>`_.  A Release Cycle lasts
-normally for three months.
+U-Boot development takes place in a :doc:`release_cycle`. A Release Cycle
+lasts normally for three months.
 
 The first three weeks of each Release Cycle are called *Merge Window*.
 
@@ -34,7 +33,7 @@ It is followed by a *Stabilization Period*.
 The end of a Release Cycle is marked by the release of a new U-Boot version.
 
 Merge Window
-------------
+^^^^^^^^^^^^
 
 The Merge Window is the period when new patches get submitted (and hopefully
 accepted) for inclusion into U-Boot mainline. This period lasts for 21 days (3
@@ -44,7 +43,7 @@ This is the only time when new code (like support for new processors or new
 boards, or other new features or reorganization of code) is accepted.
 
 Twilight Time
--------------
+^^^^^^^^^^^^^
 
 Usually patches do not get accepted as they are - the peer review that takes
 place will usually require changes and resubmissions of the patches before they
@@ -65,13 +64,13 @@ the Merge Window does not preclude patches that were already posted from being
 merged for the upcoming release.
 
 Stabilization Period
---------------------
+^^^^^^^^^^^^^^^^^^^^
 
 During the Stabilization Period only patches containing bug fixes get
 applied.
 
 Corner Cases
-------------
+^^^^^^^^^^^^
 
 Sometimes it is not clear if a patch contains a bug fix or not.
 For example, changes that remove dead code, unused macros etc. or
@@ -108,26 +107,18 @@ Differences to the Linux Development Process
   In U-Boot, ``"-rc1"`` will only be released after all (or at least most of
   the) patches that were submitted during the merge window have been applied.
 
-.. _custodians:
+Resyncing of the device tree subtree
+------------------------------------
 
-Custodians
-----------
+As explained in :doc:`devicetree/control` some platforms make use of device tree
+files which come from a git subtree that mirrors the Linux Kernel sources
+itself. For our purposes, we only track releases and not release candidates for
+merging in our tree. These merges follow the normal merge window rules.
 
-The Custodians take responsibility for some area of the U-Boot code.  The
-in-tree ``MAINTAINERS`` files list who is responsible for which areas.
-
-It is their responsibility to pick up patches from the mailing list
-that fall into their responsibility, and to process these.
-
-A very important responsibility of each custodian is to provide
-feedback to the submitter of a patch about what is going on: if the
-patch was accepted, or if it was rejected (which exact list of
-reasons), if it needs to be reworked (with respective review
-comments). Even a "I have no time now, will look into it later"
-message is better than nothing. Also, if there are remarks to a
-patch, these should leave no doubt if they were just comments and the
-patch will be accepted anyway, or if the patch should be
-reworked/resubmitted, or if it was rejected.
+In the case of specific changes, such as bug fixes or new platform support,
+these can be "cherry-picked" and are subject to the normal merge rules. For
+example, a bug fix can come in later in the window but a full re-sync only
+happens within the merge window itself.
 
 Review Process, Git Tags
 ------------------------
@@ -148,8 +139,7 @@ document.
   message by which the signer certifies that they were involved in the development
   of the patch and that they accept the `Developer Certificate of Origin
   <https://developercertificate.org/>`_. Following this and adding a
-  ``Signed-off-by:`` line that contains the developer's name and email address
-  is required.
+  ``Signed-off-by:`` line using a known identity and email address is required.
 
    * Please note that in U-Boot, we do not add a ``Signed-off-by`` tag if we
      just pass on a patch without any changes.
@@ -200,8 +190,78 @@ document.
   For example, when your change affects a specific board or driver, then makes
   a lot of sense to put the respective maintainer of this code on Cc:
 
+.. _custodians:
+
+Custodians
+----------
+
+The Custodians take responsibility for some area of the U-Boot code.  The
+in-tree ``MAINTAINERS`` files list who is responsible for which areas.
+
+It is their responsibility to pick up patches from the mailing list
+that fall into their responsibility, and to process these.
+
+A very important responsibility of each custodian is to provide
+feedback to the submitter of a patch about what is going on:
+
+  * If the patch was accepted, or if it was rejected (with exact list
+    of reasons), if it needs to be reworked (with respective review
+    comments). Even a "I have no time now, will look into it later"
+    message is better than nothing. Also, if there are remarks to a
+    patch, these should leave no doubt if they were just comments and
+    the patch will be accepted anyway, or if the patch should be
+    reworked/resubmitted, or if it was rejected. However, if a submitter
+    feels it has been too long since posting their patch and not
+    received any feedback, it is OK to follow-up and ask.
+
+    * A custodian may make changes suggested by :doc:`checkpatch.pl
+      <checkpatch>`. They must also in turn amend the commit message noting
+      their change, for example ``[trini: Fix typos]``, and add their own
+      :ref:`Signed-off-by <dco>` tag. All other changes must be handled by
+      another iteration of the patch, or follow-up patch.
+
+  * If the patch itself can still be applied to the tree. The custodian
+    is expected to put in a "best effort" if a patch does not apply
+    cleanly, but can be made to apply still. It is up to the custodian
+    to decide how recent of a commit the patch must be against. It is
+    acceptable to request patches against the last officially released
+    version of U-Boot or newer. Of course a custodian can also accept
+    patches against older code. It can be difficult to find the correct
+    balance between putting too much work on the custodian or too much
+    work on an individual submitting a patch when something does not
+    apply cleanly.
+
+Tooling
+^^^^^^^
+
+There are a number of tools available to help custodians and
+contributors alike with their contributions. As a project we make use of
+the Patchwork project hosted at `OzLabs <http://patchwork.ozlabs.org/>`__
+and more discussion on how it is used from both a contributor as well as
+custodian point of view can be found :ref:`here <patchwork>`.
+
+Another useful tool is `b4 <https://b4.docs.kernel.org/en/latest/>`__
+and is documented from a contributor point of view :ref:`here
+<b4_contrib>`. It also has a number of useful features from a custodian
+point of view:
+
+* `Integration with patchwork
+  <https://b4.docs.kernel.org/en/latest/config.html#patchwork-integration-settings>`__
+  which allows for automatic state tracking.
+
+* `"am" and "shazam"
+  <https://b4.docs.kernel.org/en/latest/maintainer/am-shazam.html>`__
+  for applying a patch or series of patches. Of note is that with
+  ``shazam`` review tags can be applied automatically and cover letters
+  can be integrated as part of merging a series.
+
+* `"ty" <https://b4.docs.kernel.org/en/latest/maintainer/ty.html>`__ for
+  automatically sending emails once patches have been applied. It is
+  strongly encouraged to keep the default ``${summary}`` in the template
+  as that shows what the git commit hash is for a particular patch.
+
 Work flow of a Custodian
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 The normal flow of work in the U-Boot development process will look
 like this:
@@ -222,15 +282,8 @@ like this:
 
    #. U-Boot Philosophy, as documented in :doc:`designprinciples`.
 
-   #. Applies cleanly to the source tree.  The custodian is expected to put in
-      a "best effort" if a patch does not apply cleanly, but can be made to apply
-      still.  It is up to the custodian to decide how recent of a commit the
-      patch must be against.  It is acceptable to request patches against the
-      last officially released version of U-Boot or newer.  Of course a
-      custodian can also accept patches against older code.  It can be
-      difficult to find the correct balance between putting too much work on
-      the custodian or too much work on an individual submitting a patch when
-      something does not apply cleanly.
+   #. Can be applied easily to the source tree, as documented in the
+      :ref:`custodians` section.
 
    #. Passes :doc:`ci_testing` as this checks for new warnings and other issues.
 

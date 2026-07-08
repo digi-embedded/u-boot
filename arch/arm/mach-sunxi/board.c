@@ -35,6 +35,9 @@ struct fel_stash {
 	uint32_t cpsr;
 	uint32_t sctlr;
 	uint32_t vbar;
+	uint32_t sp_irq;
+	uint32_t icc_pmr;
+	uint32_t icc_igrpen1;
 };
 
 struct fel_stash fel_stash __section(".data");
@@ -74,7 +77,7 @@ phys_addr_t board_get_usable_ram_top(phys_size_t total_size)
 }
 #endif /* CONFIG_ARM64 */
 
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 static int gpio_init(void)
 {
 	__maybe_unused uint val;
@@ -134,6 +137,14 @@ static int gpio_init(void)
 	sunxi_gpio_set_cfgpin(SUNXI_GPH(0), SUN50I_H616_GPH_UART0);
 	sunxi_gpio_set_cfgpin(SUNXI_GPH(1), SUN50I_H616_GPH_UART0);
 	sunxi_gpio_set_pull(SUNXI_GPH(1), SUNXI_GPIO_PULL_UP);
+#elif CONFIG_CONS_INDEX == 1 && defined(CONFIG_MACH_SUN50I_A133)
+	sunxi_gpio_set_cfgpin(SUNXI_GPB(9), SUN50I_H616_GPH_UART0);
+	sunxi_gpio_set_cfgpin(SUNXI_GPB(10), SUN50I_H616_GPH_UART0);
+	sunxi_gpio_set_pull(SUNXI_GPB(10), SUNXI_GPIO_PULL_UP);
+#elif CONFIG_CONS_INDEX == 1 && defined(CONFIG_MACH_SUN55I_A523)
+	sunxi_gpio_set_cfgpin(SUNXI_GPB(9), 2);
+	sunxi_gpio_set_cfgpin(SUNXI_GPB(10), 2);
+	sunxi_gpio_set_pull(SUNXI_GPB(10), SUNXI_GPIO_PULL_UP);
 #elif CONFIG_CONS_INDEX == 1 && defined(CONFIG_MACH_SUN8I_A83T)
 	sunxi_gpio_set_cfgpin(SUNXI_GPB(9), SUN8I_A83T_GPB_UART0);
 	sunxi_gpio_set_cfgpin(SUNXI_GPB(10), SUN8I_A83T_GPB_UART0);
@@ -190,6 +201,7 @@ static int gpio_init(void)
 	if (IS_ENABLED(CONFIG_SUN50I_GEN_H6) ||
 	    IS_ENABLED(CONFIG_SUN50I_GEN_NCAT2)) {
 		val = readl(SUNXI_PIO_BASE + SUN50I_H6_GPIO_POW_MOD_VAL);
+		/* TODO: A523: keep only the lower two bits? */
 		writel(val, SUNXI_PIO_BASE + SUN50I_H6_GPIO_POW_MOD_SEL);
 	}
 	if (IS_ENABLED(CONFIG_SUN50I_GEN_H6)) {
@@ -209,7 +221,7 @@ static int spl_board_load_image(struct spl_image_info *spl_image,
 	return 0;
 }
 SPL_LOAD_IMAGE_METHOD("FEL", 0, BOOT_DEVICE_BOARD, spl_board_load_image);
-#endif /* CONFIG_SPL_BUILD */
+#endif /* CONFIG_XPL_BUILD */
 
 #define SUNXI_INVALID_BOOT_SOURCE	-1
 
@@ -258,7 +270,7 @@ static int sunxi_get_boot_source(void)
 	 * proper, just return MMC0 as a placeholder, for now.
 	 */
 	if (IS_ENABLED(CONFIG_MACH_SUNIV) &&
-	    !IS_ENABLED(CONFIG_SPL_BUILD))
+	    !IS_ENABLED(CONFIG_XPL_BUILD))
 		return SUNXI_BOOTED_FROM_MMC0;
 
 	if (IS_ENABLED(CONFIG_MACH_SUNIV))
@@ -314,7 +326,7 @@ uint32_t sunxi_get_boot_device(void)
 	return -1;		/* Never reached */
 }
 
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 uint32_t sunxi_get_spl_size(void)
 {
 	struct boot_file_head *egon_head = (void *)SPL_ADDR;
@@ -333,7 +345,8 @@ uint32_t sunxi_get_spl_size(void)
  * The eGON SPL image can be located at 8KB or at 128KB into an SD card or
  * an eMMC device. The boot source has bit 4 set in the latter case.
  * By adding 120KB to the normal offset when booting from a "high" location
- * we can support both cases.
+ * we can support both cases. The H616 has the alternative location
+ * moved up to 256 KB instead of 128KB, so cater for that, too.
  * Also U-Boot proper is located at least 32KB after the SPL, but will
  * immediately follow the SPL if that is bigger than that.
  */
@@ -349,6 +362,8 @@ unsigned long board_spl_mmc_get_uboot_raw_sector(struct mmc *mmc,
 	case SUNXI_BOOTED_FROM_MMC0_HIGH:
 	case SUNXI_BOOTED_FROM_MMC2_HIGH:
 		sector += (128 - 8) * 2;
+		if (IS_ENABLED(CONFIG_MACH_SUN50I_H616))
+			sector += 128 * 2;
 		break;
 	}
 
@@ -396,7 +411,7 @@ static bool sunxi_valid_emmc_boot(struct mmc *mmc)
 		return false;
 
 	/* Partition 0 is the user data partition, bootpart must be 1 or 2. */
-	if (bootpart != 1 && bootpart != 2)
+	if (bootpart != EMMC_BOOT_PART_BOOT1 && bootpart != EMMC_BOOT_PART_BOOT2)
 		return false;
 
 	/* Failure to switch to the boot partition is fatal. */
@@ -458,13 +473,11 @@ void board_init_f(ulong dummy)
 {
 	sunxi_sram_init();
 
-#if defined CONFIG_MACH_SUN6I || defined CONFIG_MACH_SUN8I_H3
 	/* Enable non-secure access to some peripherals */
 	tzpc_init();
-#endif
 
-	clock_init();
 	timer_init();
+	clock_init();
 	gpio_init();
 
 	spl_init();
@@ -477,7 +490,7 @@ void board_init_f(ulong dummy)
 #endif
 	sunxi_board_init();
 }
-#endif /* CONFIG_SPL_BUILD */
+#endif /* CONFIG_XPL_BUILD */
 
 #if !CONFIG_IS_ENABLED(SYSRESET)
 void reset_cpu(void)
@@ -494,6 +507,12 @@ void reset_cpu(void)
 		/* sun5i sometimes gets stuck without this */
 		writel(WDT_MODE_RESET_EN | WDT_MODE_EN, &wdog->mode);
 	}
+#elif defined(CONFIG_MACH_SUN55I_A523)
+	static const void *wdog = (void *)SUNXI_TIMER_BASE;
+
+	writel(WDT_CTRL_KEY | WDT_CTRL_RESTART, wdog + WDT_SRST_REG);
+	while (1)
+		;
 #elif defined(CONFIG_SUNXI_GEN_SUN6I) || defined(CONFIG_SUN50I_GEN_H6) || defined(CONFIG_SUNXI_GEN_NCAT2)
 #if defined(CONFIG_MACH_SUN50I_H6)
 	/* WDOG is broken for some H6 rev. use the R_WDOG instead */

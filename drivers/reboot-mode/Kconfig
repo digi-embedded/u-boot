@@ -9,6 +9,7 @@ menu "Reboot Mode Support"
 config DM_REBOOT_MODE
 	bool "Enable reboot mode using Driver Model"
 	depends on DM
+	select DEVRES
 	help
 		Enable support for reboot mode control. This will allow users to
 		adjust the boot process based on reboot mode parameter
@@ -24,6 +25,7 @@ config DM_REBOOT_MODE_GPIO
 
 config DM_REBOOT_MODE_RTC
 	bool "Use RTC as reboot mode backend"
+	depends on DM_RTC
 	depends on DM_REBOOT_MODE
 	help
 		Use RTC non volatile memory to control the reboot mode. This will allow users to boot

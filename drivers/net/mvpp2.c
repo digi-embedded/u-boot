@@ -13,7 +13,6 @@
  * warranty of any kind, whether express or implied.
  */
 
-#include <common.h>
 #include <cpu_func.h>
 #include <dm.h>
 #include <asm/cache.h>
@@ -1723,8 +1722,7 @@ static struct mvpp2_prs_entry *mvpp2_prs_flow_find(struct mvpp2 *priv, int flow)
 }
 
 /* Return first free tcam index, seeking from start to end */
-static int mvpp2_prs_tcam_first_free(struct mvpp2 *priv, unsigned char start,
-				     unsigned char end)
+static int mvpp2_prs_tcam_first_free(struct mvpp2 *priv, int start, int end)
 {
 	int tid;
 
@@ -2331,7 +2329,7 @@ static int mvpp2_prs_mac_da_accept(struct mvpp2 *priv, int port,
 
 		pe = kzalloc(sizeof(*pe), GFP_KERNEL);
 		if (!pe)
-			return -1;
+			return -ENOMEM;
 		mvpp2_prs_tcam_lu_set(pe, MVPP2_PRS_LU_MAC);
 		pe->index = tid;
 
@@ -3877,7 +3875,6 @@ mvpp2_rxq_next_desc_get(struct mvpp2_rx_queue *rxq)
 	int rx_desc = rxq->next_desc_to_proc;
 
 	rxq->next_desc_to_proc = MVPP2_QUEUE_NEXT_DESC(rxq, rx_desc);
-	prefetch(rxq->descs + rxq->next_desc_to_proc);
 	return rxq->descs + rx_desc;
 }
 
@@ -4703,7 +4700,6 @@ static int mvpp2_port_init(struct udevice *dev, struct mvpp2_port *port)
 		port->rxqs[queue] = rxq;
 	}
 
-
 	/* Create Rx descriptor rings */
 	for (queue = 0; queue < rxq_number; queue++) {
 		struct mvpp2_rx_queue *rxq = port->rxqs[queue];
@@ -4738,7 +4734,7 @@ static int phy_info_parse(struct udevice *dev, struct mvpp2_port *port)
 	int port_node = dev_of_offset(dev);
 	int phy_node;
 	u32 id;
-	u32 phyaddr = 0;
+	int phyaddr = 0;
 	int fixed_link = 0;
 	int ret;
 
@@ -5357,7 +5353,7 @@ static int mvpp2_probe(struct udevice *dev)
 	} else {
 		port->gop_id = fdtdec_get_int(gd->fdt_blob, dev_of_offset(dev),
 					      "gop-port-id", -1);
-		if (port->id == -1) {
+		if (port->gop_id == -1) {
 			dev_err(dev, "missing gop-port-id value\n");
 			return -EINVAL;
 		}

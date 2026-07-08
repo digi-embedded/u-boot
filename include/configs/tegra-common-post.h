@@ -7,33 +7,7 @@
 #ifndef __TEGRA_COMMON_POST_H
 #define __TEGRA_COMMON_POST_H
 
-#if IS_ENABLED(CONFIG_CMD_USB)
-#define BOOT_TARGET_USB(func) func(USB, usb, 0)
-#else
-#define BOOT_TARGET_USB(func)
-#endif
-
-#if CONFIG_IS_ENABLED(CMD_DHCP) && CONFIG_IS_ENABLED(CMD_PXE)
-#define BOOT_TARGET_PXE(func) func(PXE, pxe, na)
-#else
-#define BOOT_TARGET_PXE(func)
-#endif
-
-#if CONFIG_IS_ENABLED(CMD_DHCP)
-#define BOOT_TARGET_DHCP(func) func(DHCP, dhcp, na)
-#else
-#define BOOT_TARGET_DHCP(func)
-#endif
-
-#ifndef BOOT_TARGET_DEVICES
-#define BOOT_TARGET_DEVICES(func) \
-	func(MMC, mmc, 1) \
-	func(MMC, mmc, 0) \
-	BOOT_TARGET_USB(func) \
-	BOOT_TARGET_PXE(func) \
-	BOOT_TARGET_DHCP(func)
-#endif
-#include <config_distro_bootcmd.h>
+#define BOOT_TARGETS	"usb mmc1 mmc0 pxe dhcp"
 
 #ifdef CONFIG_TEGRA_KEYBOARD
 #define STDIN_KBD_KBC ",tegra-kbc"
@@ -76,19 +50,16 @@
 #endif
 
 #ifdef CONFIG_ARM64
-#define FDT_HIGH "ffffffffffffffff"
 #define INITRD_HIGH "ffffffffffffffff"
 #else
-#define FDT_HIGH "ffffffff"
 #define INITRD_HIGH "ffffffff"
 #endif
 
 #define CFG_EXTRA_ENV_SETTINGS \
 	TEGRA_DEVICE_SETTINGS \
 	MEM_LAYOUT_ENV_SETTINGS \
-	"fdt_high=" FDT_HIGH "\0" \
 	"initrd_high=" INITRD_HIGH "\0" \
-	BOOTENV \
+	"boot_targets=" BOOT_TARGETS "\0" \
 	BOARD_EXTRA_ENV_SETTINGS
 
 #endif /* __TEGRA_COMMON_POST_H */

@@ -13,17 +13,19 @@
 
 MEMORY { .sram : ORIGIN = IMAGE_TEXT_BASE,
 		LENGTH = IMAGE_MAX_SIZE }
+#ifdef CONFIG_SPL_SEPARATE_BSS
 MEMORY { .sdram : ORIGIN = CONFIG_SPL_BSS_START_ADDR,
 		LENGTH = CONFIG_SPL_BSS_MAX_SIZE }
+#endif
 
 OUTPUT_FORMAT("elf64-littleaarch64", "elf64-littleaarch64", "elf64-littleaarch64")
 OUTPUT_ARCH(aarch64)
 ENTRY(_start)
 SECTIONS
 {
+	__image_copy_start = ADDR(.text);
 	.text : {
 		. = ALIGN(8);
-		__image_copy_start = .;
 		CPUDIR/start.o (.text*)
 		*(.text*)
 	} >.sram
@@ -35,6 +37,7 @@ SECTIONS
 
 	.data : {
 		. = ALIGN(8);
+		*(.__data_start)
 		*(.data*)
 	} >.sram
 
@@ -46,36 +49,40 @@ SECTIONS
 	} >.sram
 #endif
 
+	.binman_sym_table : {
+		. = ALIGN(8);
+		__binman_sym_start = .;
+		KEEP(*(SORT(.binman_sym*)));
+		__binman_sym_end = .;
+		. = ALIGN(8);
+	} > .sram
+
 	__u_boot_list : {
 		. = ALIGN(8);
 		KEEP(*(SORT(__u_boot_list*)));
-	} >.sram
-
-	.image_copy_end : {
 		. = ALIGN(8);
-		*(.__image_copy_end)
 	} >.sram
 
-	.end : {
-		. = ALIGN(8);
-		*(.__end)
-	} >.sram
-
+	__image_copy_end = .;
+	_end = .;
 	_image_binary_end = .;
 
-	.bss_start (NOLOAD) : {
+#ifdef CONFIG_SPL_SEPARATE_BSS
+	.bss : {
+		__bss_start = .;
+		*(.bss*)
 		. = ALIGN(8);
-		KEEP(*(.__bss_start));
+		__bss_end = .;
 	} >.sdram
-
-	.bss (NOLOAD) : {
+#else
+	.bss _image_binary_end (OVERLAY) : {
+		__bss_start = .;
 		*(.bss*)
 		 . = ALIGN(8);
-	} >.sdram
-
-	.bss_end (NOLOAD) : {
-		KEEP(*(.__bss_end));
-	} >.sdram
+		__bss_end = .;
+	} >.sram
+#endif
+	__bss_size = __bss_end - __bss_start;
 
 	/DISCARD/ : { *(.rela*) }
 	/DISCARD/ : { *(.dynsym) }
@@ -89,3 +96,9 @@ SECTIONS
 #include "linux-kernel-image-header-vars.h"
 #endif
 }
+
+ASSERT(_image_binary_end % 8 == 0, \
+       "_image_binary_end must be 8-byte aligned for device tree");
+
+ASSERT(ADDR(.bss) % 8 == 0, \
+       ".bss must be 8-byte aligned");

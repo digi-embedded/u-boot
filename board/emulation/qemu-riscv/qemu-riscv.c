@@ -3,7 +3,6 @@
  * Copyright (C) 2018, Bin Meng <bmeng.cn@gmail.com>
  */
 
-#include <common.h>
 #include <dm.h>
 #include <dm/ofnode.h>
 #include <env.h>
@@ -29,22 +28,17 @@ int is_flash_available(void)
 }
 #endif
 
-int board_init(void)
-{
-	/*
-	 * Make sure virtio bus is enumerated so that peripherals
-	 * on the virtio bus can be discovered by their drivers
-	 */
-	virtio_init();
-
-	return 0;
-}
-
 int board_late_init(void)
 {
 	/* start usb so that usb keyboard can be used as input device */
 	if (CONFIG_IS_ENABLED(USB_KEYBOARD))
 		usb_init();
+
+	/*
+	 * Make sure virtio bus is enumerated so that peripherals
+	 * on the virtio bus can be discovered by their drivers
+	 */
+	virtio_init();
 
 	return 0;
 }
@@ -64,10 +58,3 @@ int board_fit_config_name_match(const char *name)
 	return 0;
 }
 #endif
-
-void *board_fdt_blob_setup(int *err)
-{
-	*err = 0;
-	/* Stored the DTB address there during our init */
-	return (void *)(ulong)gd->arch.firmware_fdt_addr;
-}

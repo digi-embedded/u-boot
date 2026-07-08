@@ -5,7 +5,6 @@
  * MVEBU USB HOST xHCI Controller
  */
 
-#include <common.h>
 #include <dm.h>
 #include <fdtdec.h>
 #include <log.h>
@@ -88,7 +87,7 @@ static const struct udevice_id xhci_usb_ids[] = {
 	{ }
 };
 
-U_BOOT_DRIVER(usb_xhci) = {
+U_BOOT_DRIVER(xhci_mvebu) = {
 	.name	= "xhci_mvebu",
 	.id	= UCLASS_USB,
 	.of_match = xhci_usb_ids,

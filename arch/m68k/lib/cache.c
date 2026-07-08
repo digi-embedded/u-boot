@@ -8,6 +8,7 @@
 #include <cpu_func.h>
 #include <asm/immap.h>
 #include <asm/cache.h>
+#include <linux/errno.h>
 
 volatile int *cf_icache_status = (int *)ICACHE_STATUS;
 volatile int *cf_dcache_status = (int *)DCACHE_STATUS;
@@ -29,7 +30,7 @@ int dcache_status(void)
 
 void icache_enable(void)
 {
-	icache_invalid();
+	invalidate_icache_all();
 
 	*cf_icache_status = 1;
 
@@ -53,7 +54,7 @@ void icache_disable(void)
 	u32 temp = 0;
 
 	*cf_icache_status = 0;
-	icache_invalid();
+	invalidate_icache_all();
 
 #if defined(CONFIG_CF_V4) || defined(CFG_CF_V4E)
 	__asm__ __volatile__("movec %0, %%acr2"::"r"(temp));
@@ -68,7 +69,7 @@ void icache_disable(void)
 #endif
 }
 
-void icache_invalid(void)
+void invalidate_icache_all(void)
 {
 	u32 temp;
 
@@ -134,6 +135,15 @@ void dcache_invalid(void)
 #endif
 }
 
+/*
+ * Default implementation:
+ * do a range flush for the entire range
+ */
+__weak void flush_dcache_all(void)
+{
+	flush_dcache_range(0, ~0);
+}
+
 __weak void invalidate_dcache_range(unsigned long start, unsigned long stop)
 {
 	/* An empty stub, real implementation should be in platform code */
@@ -141,4 +151,9 @@ __weak void invalidate_dcache_range(unsigned long start, unsigned long stop)
 __weak void flush_dcache_range(unsigned long start, unsigned long stop)
 {
 	/* An empty stub, real implementation should be in platform code */
+}
+
+int __weak pgprot_set_attrs(phys_addr_t addr, size_t size, enum pgprot_attrs perm)
+{
+	return -ENOSYS;
 }

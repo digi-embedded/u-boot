@@ -3,7 +3,6 @@
  * Copyright 2020 Toradex
  */
 
-#include <common.h>
 #include <command.h>
 #include <image.h>
 #include <init.h>
@@ -54,7 +53,9 @@ void spl_dram_init(void)
 
 void spl_board_init(void)
 {
+#if IS_ENABLED(CONFIG_ARCH_MISC_INIT)
 	arch_misc_init();
+#endif
 }
 
 #ifdef CONFIG_SPL_LOAD_FIT

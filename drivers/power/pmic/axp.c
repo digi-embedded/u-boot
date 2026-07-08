@@ -51,6 +51,7 @@ static const struct pmic_child_info axp_pmic_child_info[] = {
 	{ "cldo",	"axp_regulator" },
 	{ "dc",		"axp_regulator" },
 	{ "dldo",	"axp_regulator" },
+	{ "drivevbus",	"axp_drivevbus" },
 	{ "eldo",	"axp_regulator" },
 	{ "fldo",	"axp_regulator" },
 	{ "ldo",	"axp_regulator" },
@@ -88,10 +89,13 @@ static const struct udevice_id axp_pmic_ids[] = {
 	{ .compatible = "x-powers,axp221", .data = AXP221_ID },
 	{ .compatible = "x-powers,axp223", .data = AXP223_ID },
 	{ .compatible = "x-powers,axp313a", .data = AXP313_ID },
+	{ .compatible = "x-powers,axp323", .data = AXP323_ID },
+	{ .compatible = "x-powers,axp717", .data = AXP717_ID },
 	{ .compatible = "x-powers,axp803", .data = AXP803_ID },
 	{ .compatible = "x-powers,axp806", .data = AXP806_ID },
 	{ .compatible = "x-powers,axp809", .data = AXP809_ID },
 	{ .compatible = "x-powers,axp813", .data = AXP813_ID },
+	{ .compatible = "x-powers,axp318w", .data = AXP318_ID },
 	{ }
 };
 

@@ -10,7 +10,6 @@
 
 #define LOG_CATEGORY	LOGC_FS
 
-#include <common.h>
 #include <blk.h>
 #include <config.h>
 #include <exports.h>
@@ -22,6 +21,7 @@
 #include <part.h>
 #include <malloc.h>
 #include <memalign.h>
+#include <rtc.h>
 #include <asm/cache.h>
 #include <linux/compiler.h>
 #include <linux/ctype.h>
@@ -215,6 +215,11 @@ static __u32 get_fatent(fsdata *mydata, __u32 entry)
 		/* Write back the fatbuf to the disk */
 		if (flush_dirty_fat_buffer(mydata) < 0)
 			return -1;
+
+		if (getsize > FATBUFBLOCKS) {
+			debug("getsize is too large for bufptr\n");
+			getsize = FATBUFBLOCKS;
+		}
 
 		if (disk_read(startblock, getsize, bufptr) < 0) {
 			debug("Error reading FAT blocks\n");
@@ -1254,7 +1259,7 @@ out:
 static void __maybe_unused fat2rtc(u16 date, u16 time, struct rtc_time *tm)
 {
 	tm->tm_mday = date & 0x1f;
-	tm->tm_mon = (date & 0x1e0) >> 4;
+	tm->tm_mon = (date & 0x1e0) >> 5;
 	tm->tm_year = (date >> 9) + 1980;
 
 	tm->tm_sec = (time & 0x1f) << 1;

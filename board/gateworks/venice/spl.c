@@ -3,7 +3,6 @@
  * Copyright 2021 Gateworks Corporation
  */
 
-#include <common.h>
 #include <cpu_func.h>
 #include <hang.h>
 #include <i2c.h>
@@ -33,69 +32,6 @@
 
 #define PCIE_RSTN IMX_GPIO_NR(4, 6)
 
-static void spl_dram_init(int size)
-{
-	struct dram_timing_info *dram_timing;
-
-	switch (size) {
-#ifdef CONFIG_IMX8MM
-	case 512:
-		dram_timing = &dram_timing_512mb;
-		break;
-	case 1024:
-		dram_timing = &dram_timing_1gb;
-		break;
-	case 2048:
-		dram_timing = &dram_timing_2gb;
-		break;
-	case 4096:
-		dram_timing = &dram_timing_4gb;
-		break;
-	default:
-		printf("Unknown DDR configuration: %d MiB\n", size);
-		dram_timing = &dram_timing_1gb;
-		size = 1024;
-#elif CONFIG_IMX8MN
-	case 1024:
-		dram_timing = &dram_timing_1gb_single_die;
-		break;
-	case 2048:
-		if (!strcmp(eeprom_get_model(), "GW7902-SP466-A") ||
-		    !strcmp(eeprom_get_model(), "GW7902-SP466-B")) {
-			dram_timing = &dram_timing_2gb_dual_die;
-		} else {
-			dram_timing = &dram_timing_2gb_single_die;
-		}
-		break;
-	default:
-		printf("Unknown DDR configuration: %d MiB\n", size);
-		dram_timing = &dram_timing_2gb_dual_die;
-		size = 2048;
-#elif CONFIG_IMX8MP
-	case 1024:
-		dram_timing = &dram_timing_1gb_single_die;
-		break;
-	case 4096:
-		dram_timing = &dram_timing_4gb_dual_die;
-		break;
-	default:
-		printf("Unknown DDR configuration: %d GiB\n", size);
-		dram_timing = &dram_timing_4gb_dual_die;
-		size = 4096;
-#endif
-	}
-
-	printf("DRAM    : LPDDR4 ");
-	if (size > 512)
-		printf("%d GiB", size / 1024);
-	else
-		printf("%d MiB", size);
-	printf(" %dMT/s %dMHz\n",
-	       dram_timing->fsp_msg[0].drate,
-	       dram_timing->fsp_msg[0].drate / 2);
-	ddr_init(dram_timing);
-}
-
 /*
  * Model specific PMIC adjustments necessary prior to DRAM init
  *
@@ -119,17 +55,32 @@ static int dm_i2c_clrsetbits(struct udevice *dev, uint reg, uint clr, uint set)
 	return dm_i2c_write(dev, reg, &val, 1);
 }
 
-static int power_init_board(void)
+static int power_init_board(const char *model, struct udevice *gsc)
 {
-	const char *model = eeprom_get_model();
+	const char *som = eeprom_get_som_model();
 	struct udevice *bus;
 	struct udevice *dev;
 	int ret;
 
-	if ((!strncmp(model, "GW71", 4)) ||
-	    (!strncmp(model, "GW72", 4)) ||
-	    (!strncmp(model, "GW73", 4)) ||
-	    (!strncmp(model, "GW7905", 6))) {
+	/* Enable GSC voltage supervisor only for newew board models */
+	if ((!strncmp(model, "GW7100", 6) && model[10] < 'E') ||
+	    (!strncmp(model, "GW7101", 6) && model[10] < 'E') ||
+	    (!strncmp(model, "GW7200", 6) && model[10] < 'F') ||
+	    (!strncmp(model, "GW7201", 6) && model[10] < 'F') ||
+	    (!strncmp(model, "GW7300", 6) && model[10] < 'F') ||
+	    (!strncmp(model, "GW7301", 6) && model[10] < 'F') ||
+	    (!strncmp(model, "GW740", 5) && model[7] < 'C')) {
+		printf("GSC     : voltage supervisor disabled\n");
+	} else {
+		u8 ver;
+
+		if (!dm_i2c_read(gsc, 14, &ver, 1) && ver > 62) {
+			printf("GSC     : enabling voltage supervisor\n");
+			dm_i2c_clrsetbits(gsc, 25, 0, BIT(1));
+		}
+	}
+
+	if (!strncmp(som, "GW70", 4)) {
 		ret = uclass_get_device_by_seq(UCLASS_I2C, 0, &bus);
 		if (ret) {
 			printf("PMIC    : failed I2C1 probe: %d\n", ret);
@@ -236,9 +187,12 @@ static int power_init_board(void)
 
 void board_init_f(ulong dummy)
 {
+	struct dram_timing_info *dram_timing;
+	struct venice_board_info *eeprom;
 	struct udevice *bus, *dev;
+	const char *model;
+	char dram_desc[32];
 	int i, ret;
-	int dram_sz;
 
 	arch_cpu_init();
 
@@ -287,6 +241,7 @@ void board_init_f(ulong dummy)
 				mdelay(10);
 			}
 			pinctrl_select_state(bus, "default");
+			mdelay(10);
 		}
 	}
 	/* Wait indefiniately until the GSC probes */
@@ -295,13 +250,89 @@ void board_init_f(ulong dummy)
 			break;
 		mdelay(1);
 	}
-	dram_sz = venice_eeprom_init(0);
+	eeprom = venice_eeprom_init(0);
+	model = eeprom_get_model();
 
 	/* PMIC */
-	power_init_board();
+	power_init_board(model, dev);
 
 	/* DDR initialization */
-	spl_dram_init(dram_sz);
+	dram_desc[0] = 0;
+	dram_timing = spl_dram_init(model, eeprom, dram_desc, sizeof(dram_desc));
+	if (dram_timing) {
+		int dram_szmb = (16 << eeprom->sdram_size);
+
+		printf("DRAM    : LPDDR4 ");
+		if (dram_szmb > 512)
+			printf("%d GiB", dram_szmb / 1024);
+		else
+			printf("%d MiB", dram_szmb);
+		printf(" %dMT/s %dMHz %s",
+		       dram_timing->fsp_msg[0].drate,
+		       dram_timing->fsp_msg[0].drate / 2,
+		       dram_desc[0] ? dram_desc : "");
+
+#ifdef DEBUG
+		u8 mr[9] = { 0 };
+		/* Read MR5-MR8 to obtain details about DRAM part (and verify DRAM working) */
+		for (i = 5; i < 9; i++)
+			mr[i] = lpddr4_mr_read(0xf, i) & 0xff;
+
+		printf(" (0x%02x%02x%02x%02x", mr[5], mr[6], mr[7], mr[8]);
+		/* MR5 MFG_ID */
+		switch (mr[5]) {
+		case 0xff:
+			printf(" Micron");
+			break;
+		default:
+			break;
+		}
+		/* MR8 OP[7:6] Width */
+		i = 0;
+		switch ((mr[8] >> 6) & 0x3) {
+		case 0:
+			i = 16;
+			break;
+		case 1:
+			i = 8;
+			break;
+		}
+		if (i)
+			printf(" x%d", i);
+		/* MR8 OP[5:2] Density */
+		i = 0;
+		switch ((mr[8] >> 2) & 0xf) {
+		case 0:
+			i = 4;
+			break;
+		case 1:
+			i = 6;
+			break;
+		case 2:
+			i = 8;
+			break;
+		case 3:
+			i = 12;
+			break;
+		case 4:
+			i = 16;
+			break;
+		case 5:
+			i = 24;
+			break;
+		case 6:
+			i = 32;
+			break;
+		default:
+			break;
+		}
+		if (i)
+			printf(" %dGb per die", i);
+#endif
+		puts(")\n");
+	} else {
+		hang();
+	}
 
 	board_init_r(NULL, 0);
 }
@@ -350,8 +381,8 @@ unsigned long board_spl_mmc_get_uboot_raw_sector(struct mmc *mmc, unsigned long 
 {
 	if (!IS_SD(mmc)) {
 		switch (EXT_CSD_EXTRACT_BOOT_PART(mmc->part_config)) {
-		case 1:
-		case 2:
+		case EMMC_BOOT_PART_BOOT1:
+		case EMMC_BOOT_PART_BOOT2:
 			if (IS_ENABLED(CONFIG_IMX8MN) || IS_ENABLED(CONFIG_IMX8MP))
 				raw_sect -= 32 * 2;
 			break;
@@ -363,16 +394,24 @@ unsigned long board_spl_mmc_get_uboot_raw_sector(struct mmc *mmc, unsigned long 
 
 const char *spl_board_loader_name(u32 boot_device)
 {
+	static char name[16];
+	struct mmc *mmc;
+
 	switch (boot_device) {
 	/* SDHC2 */
 	case BOOT_DEVICE_MMC1:
-		return "eMMC";
+		mmc_init_device(0);
+		mmc = find_mmc_device(0);
+		mmc_init(mmc);
+		snprintf(name, sizeof(name), "eMMC %s", emmc_hwpart_names[EXT_CSD_EXTRACT_BOOT_PART(mmc->part_config)]);
+		return name;
 	/* SDHC3 */
 	case BOOT_DEVICE_MMC2:
-		return "SD card";
-	default:
-		return NULL;
+		sprintf(name, "SD card");
+		return name;
 	}
+
+	return NULL;
 }
 
 void spl_board_init(void)

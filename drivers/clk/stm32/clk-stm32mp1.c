@@ -5,7 +5,6 @@
 
 #define LOG_CATEGORY UCLASS_CLK
 
-#include <common.h>
 #include <clk-uclass.h>
 #include <div64.h>
 #include <dm.h>
@@ -27,7 +26,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#if defined(CONFIG_SPL_BUILD)
+#if defined(CONFIG_XPL_BUILD)
 /* activate clock tree initialization in the driver */
 #define STM32MP1_CLOCK_TREE_INIT
 #endif
@@ -118,7 +117,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define RCC_DSICKSELR		0x924
 #define RCC_ADCCKSELR		0x928
 #define RCC_MP_APB1ENSETR	0xA00
-#define RCC_MP_APB2ENSETR	0XA08
+#define RCC_MP_APB2ENSETR	0xA08
 #define RCC_MP_APB3ENSETR	0xA10
 #define RCC_MP_AHB2ENSETR	0xA18
 #define RCC_MP_AHB3ENSETR	0xA20
@@ -552,6 +551,7 @@ static const struct stm32mp1_clk_gate stm32mp1_clk_gate[] = {
 	STM32MP1_CLK_SET_CLR_F(RCC_MP_APB4ENSETR, 0, LTDC_PX, _PLL4_Q),
 	STM32MP1_CLK_SET_CLR_F(RCC_MP_APB4ENSETR, 4, DSI_PX, _PLL4_Q),
 	STM32MP1_CLK_SET_CLR(RCC_MP_APB4ENSETR, 4, DSI_K, _DSI_SEL),
+	STM32MP1_CLK_SET_CLR(RCC_MP_APB4ENSETR, 4, DSI, _DSI_SEL),
 	STM32MP1_CLK_SET_CLR(RCC_MP_APB4ENSETR, 8, DDRPERFM, _UNKNOWN_SEL),
 	STM32MP1_CLK_SET_CLR(RCC_MP_APB4ENSETR, 15, IWDG2, _UNKNOWN_SEL),
 	STM32MP1_CLK_SET_CLR(RCC_MP_APB4ENSETR, 16, USBPHY_K, _USBPHY_SEL),
@@ -2280,7 +2280,7 @@ static int stm32mp1_clk_probe(struct udevice *dev)
 		dev_err(dev, "clock tree initialization failed (%d)\n", result);
 #endif
 
-#ifndef CONFIG_SPL_BUILD
+#ifndef CONFIG_XPL_BUILD
 #if defined(VERBOSE_DEBUG)
 	/* display debug information for probe after relocation */
 	if (gd->flags & GD_FLG_RELOC)
@@ -2315,7 +2315,7 @@ static const struct clk_ops stm32mp1_clk_ops = {
 	.disable = stm32mp1_clk_disable,
 	.get_rate = stm32mp1_clk_get_rate,
 	.set_rate = stm32mp1_clk_set_rate,
-#if IS_ENABLED(CONFIG_CMD_CLK) && !IS_ENABLED(CONFIG_SPL_BUILD)
+#if IS_ENABLED(CONFIG_CMD_CLK) && !IS_ENABLED(CONFIG_XPL_BUILD)
 	.dump = stm32mp1_clk_dump,
 #endif
 };

@@ -9,8 +9,8 @@
  * (C) Copyright 2013 Oliver Schinagl <oliver@schinagl.nl>
  */
 
-#include <common.h>
 #include <command.h>
+#include <env.h>
 #include <errno.h>
 #include <asm/arch/pmic_bus.h>
 #include <axp_pmic.h>

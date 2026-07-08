@@ -12,10 +12,6 @@
 		eeprom2 = &eeprom_display_adapter;
 	};
 
-	chosen {
-		tick-timer = &main_timer0;
-	};
-
 	memory@80000000 {
 		bootph-all;
 	};
@@ -23,10 +19,6 @@
 	sysinfo {
 		compatible = "toradex,sysinfo";
 	};
-};
-
-&main_timer0 {
-	clock-frequency = <25000000>;
 };
 
 &main_bcdma {
@@ -85,19 +77,20 @@
 	bootph-all;
 };
 
-&dmsc {
-	k3_sysreset: sysreset-controller {
-		compatible = "ti,sci-sysreset";
-		bootph-all;
-	};
-};
-
 &fss {
 	bootph-all;
 };
 
 &main_gpio0 {
 	bootph-all;
+
+	ctrl-sleep-moci-hog {
+		bootph-all;
+		gpio-hog;
+		gpios = <31 GPIO_ACTIVE_HIGH>;
+		line-name = "CTRL_SLEEP_MOCI#";
+		output-high;
+	};
 };
 
 /* On-module I2C - PMIC_I2C */
@@ -172,8 +165,15 @@
 	status = "disabled";
 };
 
-&verdin_ctrl_sleep_moci {
-	bootph-all;
+&usb0 {
+	dr_mode = "peripheral";
+	/* Since role switching is not supported in U-Boot */
+	/delete-property/ extcon;
+	bootph-pre-ram;
+};
+
+&usbss0 {
+	bootph-pre-ram;
 };
 
 /* Verdin UART_2 */

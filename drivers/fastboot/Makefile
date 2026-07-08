@@ -4,8 +4,11 @@ obj-y += fb_common.o
 ifndef CONFIG_FSL_FASTBOOT
 obj-y += fb_command.o
 obj-y += fb_getvar.o
-obj-$(CONFIG_FASTBOOT_FLASH_MMC) += fb_mmc.o
+obj-$(CONFIG_FASTBOOT_FLASH_BLOCK) += fb_block.o
+# MMC reuses block implementation
+obj-$(CONFIG_FASTBOOT_FLASH_MMC) += fb_block.o fb_mmc.o
 obj-$(CONFIG_FASTBOOT_FLASH_NAND) += fb_nand.o
+obj-$(CONFIG_FASTBOOT_FLASH_SPI) += fb_spi_flash.o
 else
 obj-y += fb_fsl/
 endif

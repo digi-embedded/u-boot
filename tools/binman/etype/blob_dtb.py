@@ -8,6 +8,8 @@
 from binman.entry import Entry
 from binman.etype.blob import Entry_blob
 from dtoc import fdt_util
+import errno
+import os
 import struct
 
 # This is imported if needed
@@ -39,14 +41,21 @@ class Entry_blob_dtb(Entry_blob):
                        (self._node.name, self.prepend))
 
     def ObtainContents(self, fake_size=0):
-        """Get the device-tree from the list held by the 'state' module"""
+        """Get the device-tree from the list held by the 'state' module
+
+        Raises:
+            FileNotFoundError: If the device-tree blob is not found.
+        """
         self._filename = self.GetDefaultFilename()
-        self._pathname, _ = state.GetFdtContents(self.GetFdtEtype())
+        self._pathname, _ = self.FdtContents(self.GetFdtEtype())
+        if self._pathname is None:
+            raise FileNotFoundError(errno.ENOENT, # pragma: no cover
+                                    os.strerror(errno.ENOENT), self._filename)
         return super().ReadBlobContents()
 
     def ProcessContents(self):
         """Re-read the DTB contents so that we get any calculated properties"""
-        _, indata = state.GetFdtContents(self.GetFdtEtype())
+        _, indata = self.FdtContents(self.GetFdtEtype())
 
         if self.compress == 'zstd' and self.prepend != 'length':
             self.Raise('The zstd compression requires a length header')
@@ -57,7 +66,9 @@ class Entry_blob_dtb(Entry_blob):
     def GetFdtEtype(self):
         """Get the entry type of this device tree
 
-        This can be 'u-boot-dtb', 'u-boot-spl-dtb' or 'u-boot-tpl-dtb'
+        This can be 'u-boot-dtb', 'u-boot-spl-dtb', 'u-boot-tpl-dtb' or
+        'u-boot-vpl-dtb'
+
         Returns:
             Entry type if any, e.g. 'u-boot-dtb'
         """

@@ -52,10 +52,8 @@
 #endif
 #include "apb_cfg.h"
 #include "opcodes.h"
-#ifndef __UBOOT__
 #include <stdio.h>
 
-#endif
 state_struct state;
 
 int cdn_bus_read(unsigned int addr, unsigned int *value)

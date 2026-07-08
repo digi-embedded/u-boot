@@ -5,7 +5,6 @@
  */
 
 #include <config.h>
-#include <common.h>
 #include <command.h>
 #include <env.h>
 #include <image.h>
@@ -186,7 +185,7 @@ static int mmc_burn_image(size_t image_size)
 	lbaint_t	blk_count;
 	ulong		blk_written;
 	int		err;
-	const u8	mmc_dev_num = CONFIG_SYS_MMC_ENV_DEV;
+	const u8	mmc_dev_num = CONFIG_ENV_MMC_DEVICE_INDEX;
 #ifdef CONFIG_BLK
 	struct blk_desc *blk_desc;
 #endif
@@ -224,8 +223,8 @@ static int mmc_burn_image(size_t image_size)
 #endif
 
 	part = EXT_CSD_EXTRACT_BOOT_PART(mmc->part_config);
-	if (part == 7)
-		part = 0;
+	if (part == EMMC_BOOT_PART_USER)
+		part = EMMC_HWPART_DEFAULT;
 
 #ifdef CONFIG_BLK
 	err = blk_dselect_hwpart(blk_desc, part);
@@ -291,7 +290,7 @@ static size_t mmc_read_file(const char *file_name)
 	loff_t		act_read = 0;
 	int		rc;
 	struct mmc	*mmc;
-	const u8	mmc_dev_num = CONFIG_SYS_MMC_ENV_DEV;
+	const u8	mmc_dev_num = CONFIG_ENV_MMC_DEVICE_INDEX;
 
 	mmc = find_mmc_device(mmc_dev_num);
 	if (!mmc) {
@@ -662,7 +661,7 @@ static size_t tftp_read_file(const char *file_name)
 	 */
 	image_load_addr = get_load_addr();
 	ret = net_loop(TFTPGET);
-	return ret > 0 ? ret : 0;
+	return ret > 0 ? net_boot_file_size : 0;
 }
 
 static int is_tftp_active(void)
@@ -932,7 +931,7 @@ static int check_image_header(void)
 	size = le32_to_cpu(hdr->blocksize);
 
 	if (hdr->blockid == 0x78) { /* SATA id */
-		struct blk_desc *blk_dev = IS_ENABLED(BLK) ? blk_get_devnum_by_uclass_id(UCLASS_SCSI, 0) : NULL;
+		struct blk_desc *blk_dev = IS_ENABLED(CONFIG_BLK) ? blk_get_devnum_by_uclass_id(UCLASS_SCSI, 0) : NULL;
 		unsigned long blksz = blk_dev ? blk_dev->blksz : 512;
 		offset *= blksz;
 	}

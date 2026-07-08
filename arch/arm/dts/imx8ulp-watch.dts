@@ -48,15 +48,6 @@
 		clock-output-names = "ext_ts_clk";
 		#clock-cells = <0>;
 	};
-
-	reg_5v: regulator-5v {
-		compatible = "regulator-fixed";
-		regulator-name = "5V";
-		regulator-min-microvolt = <5000000>;
-		regulator-max-microvolt = <5000000>;
-		regulator-always-on;
-	};
-
 };
 
 &lpuart5 {
@@ -68,9 +59,8 @@
 };
 
 &usbotg1 {
-	pinctrl-names = "default", "sleep";
-	pinctrl-0 = <&pinctrl_otgid1>;
-	pinctrl-1 = <&pinctrl_otgid1>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usb1>;
 	dr_mode = "otg";
 	hnp-disable;
 	srp-disable;
@@ -80,6 +70,7 @@
 };
 
 &usbphy1 {
+	fsl,tx-d-cal = <110>;
 	status = "okay";
 };
 
@@ -106,9 +97,9 @@
 		>;
 	};
 
-	pinctrl_otgid1: usb1grp {
+	pinctrl_usb1: usb1grp {
 		fsl,pins = <
-			MX8ULP_PAD_PTE16__USB0_ID       0x10003
+                        MX8ULP_PAD_PTE16__USB0_ID       0x10003
 		>;
 	};
 
@@ -127,45 +118,4 @@
 			MX8ULP_PAD_PTD11__SDHC0_DQS	0x10002
 		>;
 	};
-};
-
-&dsi {
-	status = "okay";
-
-	panel@0 {
-		compatible = "usmp,rm67162";
-		reg = <0>;
-		dsi-lanes = <1>;
-		reset,otherway;
-		vcc-supply = <&reg_5v>;
-		iovcc-supply = <&reg_5v>;
-
-		port {
-			panel_in: endpoint {
-				remote-endpoint = <&mipi_dsi_out>;
-			};
-		};
-	};
-
-	ports {
-		port@1 {
-			reg = <1>;
-
-			mipi_dsi_out: endpoint {
-				remote-endpoint = <&panel_in>;
-			};
-		};
-	};
-};
-
-&dcnano {
-	status = "okay";
-};
-
-&dphy {
-	status = "okay";
-};
-
-&usbotg2 {
-	status = "disabled";
 };

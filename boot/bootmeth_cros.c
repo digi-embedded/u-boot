@@ -8,7 +8,6 @@
 
 #define LOG_CATEGORY UCLASS_BOOTSTD
 
-#include <common.h>
 #include <blk.h>
 #include <bootdev.h>
 #include <bootflow.h>
@@ -148,7 +147,7 @@ static int scan_part(struct udevice *blk, int partnum,
 {
 	struct blk_desc *desc = dev_get_uclass_plat(blk);
 	struct vb2_keyblock *hdr;
-	struct uuid type;
+	efi_guid_t type;
 	ulong num_blks;
 	int ret;
 
@@ -161,10 +160,10 @@ static int scan_part(struct udevice *blk, int partnum,
 
 	/* Check for kernel partition type */
 	log_debug("part %x: type=%s\n", partnum, info->type_guid);
-	if (uuid_str_to_bin(info->type_guid, (u8 *)&type, UUID_STR_FORMAT_GUID))
+	if (uuid_str_to_bin(info->type_guid, type.b, UUID_STR_FORMAT_GUID))
 		return log_msg_ret("typ", -EINVAL);
 
-	if (memcmp(&cros_kern_type, &type, sizeof(type)))
+	if (guidcmp(&cros_kern_type, &type))
 		return log_msg_ret("typ", -ENOEXEC);
 
 	/* Make a buffer for the header information */
@@ -244,7 +243,16 @@ static int cros_read_buf(struct bootflow *bflow, void *buf, ulong size,
 	ret = copy_cmdline(map_sysmem(cmdline, 0), uuid, &bflow->cmdline);
 	if (ret)
 		return log_msg_ret("cmd", ret);
+
+	if (!bootflow_img_add(bflow, "setup",
+			      (enum bootflow_img_t)IH_TYPE_X86_SETUP,
+			      setup, 0x3000))
+		return log_msg_ret("cri", -ENOMEM);
+
 	bflow->x86_setup = map_sysmem(setup, 0);
+
+	if (!bootflow_img_add(bflow, "cmdline", BFI_CMDLINE, cmdline, 0x1000))
+		return log_msg_ret("crc", -ENOMEM);
 
 	return 0;
 }
@@ -306,6 +314,11 @@ static int cros_read_info(struct bootflow *bflow, const char *uuid,
 		return log_msg_ret("pro", ret);
 	}
 	priv->info_buf = buf;
+
+	if (!bootflow_img_add(bflow, "kernel",
+			      (enum bootflow_img_t)IH_TYPE_KERNEL, 0,
+			      priv->body_size))
+		return log_msg_ret("crk", -ENOMEM);
 
 	return 0;
 }
@@ -401,7 +414,8 @@ static int cros_read_bootflow(struct udevice *dev, struct bootflow *bflow)
 }
 
 static int cros_read_file(struct udevice *dev, struct bootflow *bflow,
-			 const char *file_path, ulong addr, ulong *sizep)
+			 const char *file_path, ulong addr,
+			  enum bootflow_img_t type, ulong *sizep)
 {
 	return -ENOSYS;
 }
@@ -432,9 +446,9 @@ static int cros_boot(struct udevice *dev, struct bootflow *bflow)
 	}
 
 	if (IS_ENABLED(CONFIG_X86)) {
-		ret = zboot_start(map_to_sysmem(bflow->buf), bflow->size, 0, 0,
-				  map_to_sysmem(bflow->x86_setup),
-				  bflow->cmdline);
+		ret = zboot_run(map_to_sysmem(bflow->buf), bflow->size, 0, 0,
+				map_to_sysmem(bflow->x86_setup),
+				bflow->cmdline);
 	} else {
 		ret = bootm_boot_start(map_to_sysmem(bflow->buf),
 				       bflow->cmdline);

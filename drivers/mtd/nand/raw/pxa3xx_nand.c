@@ -6,7 +6,6 @@
  * Copyright © 2006 Marvell International Ltd.
  */
 
-#include <common.h>
 #include <malloc.h>
 #include <fdtdec.h>
 #include <nand.h>
@@ -800,6 +799,11 @@ static void prepare_start_command(struct pxa3xx_nand_info *info, int command)
 	info->ecc_err_cnt	= 0;
 	info->ndcb3		= 0;
 	info->need_wait		= 0;
+	/*
+	 * Reset max_bitflips to zero. Once command is complete,
+	 * max_bitflips for this READ is returned in ecc.read_page()
+	 */
+	info->max_bitflips	= 0;
 
 	switch (command) {
 	case NAND_CMD_READ0:
@@ -1761,6 +1765,7 @@ static int pxa3xx_nand_probe_dt(struct udevice *dev, struct pxa3xx_nand_info *in
 	pdata->num_cs = dev_read_u32_default(dev, "num-cs", 1);
 	if (pdata->num_cs != 1) {
 		pr_err("pxa3xx driver supports single CS only\n");
+		kfree(pdata);
 		return -EINVAL;
 	}
 

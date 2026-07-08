@@ -1,39 +1,27 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2023 NXP
+ * Copyright 2023-2025 NXP
  */
 
-#include <common.h>
 #include <env.h>
 #include <init.h>
-#include <asm/global_data.h>
-#include <asm/arch-imx9/ccm_regs.h>
-#include <asm/arch/clock.h>
 #include <fdt_support.h>
+#include <asm/arch/clock.h>
 #include <usb.h>
-#include "../../freescale/common/tcpc.h"
+#include "../../nxp/common/tcpc.h"
 #include <dwc3-uboot.h>
-#include <asm/io.h>
 #include <linux/bitfield.h>
 #include <linux/bitops.h>
 #include <linux/delay.h>
-#include <miiphy.h>
-#include <netdev.h>
 #include <asm/gpio.h>
+#include <power/regulator.h>
+#include <scmi_agent.h>
+#include "../dts/upstream/src/arm64/freescale/imx95-power.h"
 #include <asm/arch/sys_proto.h>
-#include <i2c.h>
 #include <dm/uclass.h>
 #include <dm/uclass-internal.h>
 #include <power/regulator.h>
 
-#ifdef CONFIG_SCMI_FIRMWARE
-#include <scmi_agent.h>
-#include <scmi_protocols.h>
-#include <dt-bindings/clock/fsl,imx95-clock.h>
-#include <dt-bindings/power/fsl,imx95-power.h>
-#endif
-
-DECLARE_GLOBAL_DATA_PTR;
 extern int board_fix_fdt_fuse(void *fdt);
 
 int board_early_init_f(void)
@@ -52,6 +40,7 @@ struct tcpc_port_config port_config = {
 	.port_type = TYPEC_PORT_DRP,
 	.disable_pd = true,
 };
+
 ulong tca_base;
 
 void tca_mux_select(enum typec_cc_polarity pol)
@@ -61,20 +50,10 @@ void tca_mux_select(enum typec_cc_polarity pol)
 	if (!tca_base)
 		return;
 
-	/* reset XBar block */
-	setbits_le32(tca_base, BIT(9));
-
 	/* Set OP mode to System configure Mode */
 	clrbits_le32(tca_base + 0x10, 0x3);
 
 	val = readl(tca_base + 0x30);
-
-	WARN_ON((val & GENMASK(1, 0)) != 0x3);
-	WARN_ON((val & BIT(2)) != 0);
-	WARN_ON((val & BIT(3)) != 0);
-	WARN_ON((val & BIT(4)) != 0);
-
-	printf("tca pstate 0x%x\n", val);
 
 	setbits_le32(tca_base + 0x18, BIT(3));
 	udelay(1);
@@ -103,91 +82,16 @@ static void setup_typec(void)
 }
 #endif
 
-#ifdef CONFIG_USB_DWC3
-
-#define PHY_CTRL0			0xF0040
-#define PHY_CTRL0_REF_SSP_EN		BIT(2)
-#define PHY_CTRL0_FSEL_MASK		GENMASK(10, 5)
-#define PHY_CTRL0_FSEL_24M		0x2a
-#define PHY_CTRL0_FSEL_100M		0x27
-#define PHY_CTRL0_SSC_RANGE_MASK	GENMASK(23, 21)
-#define PHY_CTRL0_SSC_RANGE_4003PPM	(0x2 << 21)
-
-#define PHY_CTRL1			0xF0044
-#define PHY_CTRL1_RESET			BIT(0)
-#define PHY_CTRL1_COMMONONN		BIT(1)
-#define PHY_CTRL1_ATERESET		BIT(3)
-#define PHY_CTRL1_DCDENB		BIT(17)
-#define PHY_CTRL1_CHRGSEL		BIT(18)
-#define PHY_CTRL1_VDATSRCENB0		BIT(19)
-#define PHY_CTRL1_VDATDETENB0		BIT(20)
-
-#define PHY_CTRL2			0xF0048
-#define PHY_CTRL2_TXENABLEN0		BIT(8)
-#define PHY_CTRL2_OTG_DISABLE		BIT(9)
-
-#define PHY_CTRL6			0xF0058
-#define PHY_CTRL6_RXTERM_OVERRIDE_SEL	BIT(29)
-#define PHY_CTRL6_ALT_CLK_EN		BIT(1)
-#define PHY_CTRL6_ALT_CLK_SEL		BIT(0)
-
-static struct dwc3_device dwc3_device_data = {
-#ifdef CONFIG_SPL_BUILD
-	.maximum_speed = USB_SPEED_HIGH,
-#else
-	.maximum_speed = USB_SPEED_SUPER,
-#endif
-	.base = USB1_BASE_ADDR,
-	.dr_mode = USB_DR_MODE_PERIPHERAL,
-	.index = 0,
-	.power_down_scale = 2,
-};
-
-int dm_usb_gadget_handle_interrupts(struct udevice *dev)
-{
-	dwc3_uboot_handle_interrupt(dev);
-	return 0;
-}
-
-static void dwc3_nxp_usb_phy_init(struct dwc3_device *dwc3)
-{
-	u32 value;
-
-	/* USB3.0 PHY signal fsel for 24M ref */
-	value = readl(dwc3->base + PHY_CTRL0);
-	value &= ~PHY_CTRL0_FSEL_MASK;
-	value |= FIELD_PREP(PHY_CTRL0_FSEL_MASK, PHY_CTRL0_FSEL_24M);
-	writel(value, dwc3->base + PHY_CTRL0);
-
-	/* Disable alt_clk_en and use internal MPLL clocks */
-	value = readl(dwc3->base + PHY_CTRL6);
-	value &= ~(PHY_CTRL6_ALT_CLK_SEL | PHY_CTRL6_ALT_CLK_EN);
-	writel(value, dwc3->base + PHY_CTRL6);
-
-	value = readl(dwc3->base + PHY_CTRL1);
-	value &= ~(PHY_CTRL1_VDATSRCENB0 | PHY_CTRL1_VDATDETENB0);
-	value |= PHY_CTRL1_RESET | PHY_CTRL1_ATERESET;
-	writel(value, dwc3->base + PHY_CTRL1);
-
-	value = readl(dwc3->base + PHY_CTRL0);
-	value |= PHY_CTRL0_REF_SSP_EN;
-	writel(value, dwc3->base + PHY_CTRL0);
-
-	value = readl(dwc3->base + PHY_CTRL2);
-	value |= PHY_CTRL2_TXENABLEN0 | PHY_CTRL2_OTG_DISABLE;
-	writel(value, dwc3->base + PHY_CTRL2);
-
-	udelay(10);
-
-	value = readl(dwc3->base + PHY_CTRL1);
-	value &= ~(PHY_CTRL1_RESET | PHY_CTRL1_ATERESET);
-	writel(value, dwc3->base + PHY_CTRL1);
-}
-#endif
-
 static int imx9_scmi_power_domain_enable(u32 domain, bool enable)
 {
-	return scmi_pwd_state_set(gd->arch.scmi_dev, 0, domain, enable ? 0 : BIT(30));
+	struct udevice *dev;
+	int ret;
+
+	ret = uclass_get_device_by_name(UCLASS_CLK, "protocol@14", &dev);
+	if (ret)
+		return ret;
+
+	return scmi_pwd_state_set(dev, 0, domain, enable ? 0 : BIT(30));
 }
 
 int board_usb_init(int index, enum usb_init_type init)
@@ -195,22 +99,10 @@ int board_usb_init(int index, enum usb_init_type init)
 	int ret = 0;
 
 	if (index == 0 && init == USB_INIT_DEVICE) {
-		ret = imx9_scmi_power_domain_enable(IMX95_PD_HSIO_TOP, true);
-		if (ret) {
-			printf("SCMI_POWWER_STATE_SET Failed for USB\n");
-			return ret;
-		}
-
-#ifdef CONFIG_USB_DWC3
-		dwc3_nxp_usb_phy_init(&dwc3_device_data);
-#endif
 #ifdef CONFIG_USB_TCPC
 		ret = tcpc_setup_ufp_mode(&port);
 		if (ret)
 			return ret;
-#endif
-#ifdef CONFIG_USB_DWC3
-		return dwc3_uboot_init(&dwc3_device_data);
 #endif
 	} else if (index == 0 && init == USB_INIT_HOST) {
 #ifdef CONFIG_USB_TCPC
@@ -225,11 +117,7 @@ int board_usb_init(int index, enum usb_init_type init)
 int board_usb_cleanup(int index, enum usb_init_type init)
 {
 	int ret = 0;
-	if (index == 0 && init == USB_INIT_DEVICE) {
-#ifdef CONFIG_USB_DWC3
-		dwc3_uboot_exit(index);
-#endif
-	} else if (index == 0 && init == USB_INIT_HOST) {
+	if (index == 0 && init == USB_INIT_HOST) {
 #ifdef CONFIG_USB_TCPC
 		ret = tcpc_disable_src_vbus(&port);
 #endif
@@ -296,8 +184,6 @@ void netc_init(void)
 		return;
 	}
 
-	set_clk_netc(ENET_125MHZ);
-
 	netc_phy_rst();
 
 	/* Enable in SW count */
@@ -314,18 +200,7 @@ void netc_init(void)
 	udelay(10000);
 	netc_regulator_enable("regulator-aqr-stby", true);
 
-	pci_init();
 }
-
-#if CONFIG_IS_ENABLED(NET)
-int board_phy_config(struct phy_device *phydev)
-{
-	if (phydev->drv->config)
-		phydev->drv->config(phydev);
-	return 0;
-}
-#endif
-
 int board_init(void)
 {
 	int ret;
@@ -339,18 +214,19 @@ int board_init(void)
 	setup_typec();
 #endif
 
+	netc_regulator_enable("regulator-m2-pwr", true);
+
 	netc_init();
 
-	power_on_m7("mx95alt");
+	power_on_m7("mx95evkrpmsg");
 
 	return 0;
 }
 
 int board_late_init(void)
 {
-#ifdef CONFIG_ENV_IS_IN_MMC
-	board_late_mmc_env_init();
-#endif
+	if (IS_ENABLED(CONFIG_ENV_IS_IN_MMC))
+		board_late_mmc_env_init();
 
 	env_set("sec_boot", "no");
 #ifdef CONFIG_AHAB_BOOT
@@ -363,6 +239,40 @@ int board_late_init(void)
 #ifdef CONFIG_OF_BOARD_SETUP
 int ft_board_setup(void *blob, struct bd_info *bd)
 {
+	char *p, *b, *s;
+	char *token = NULL;
+	int i, ret = 0;
+	u64 base[CONFIG_NR_DRAM_BANKS] = {0};
+	u64 size[CONFIG_NR_DRAM_BANKS] = {0};
+
+	p = env_get("jh_root_mem");
+	if (!p)
+		return 0;
+
+	i = 0;
+	token = strtok(p, ",");
+	while (token) {
+		if (i >= CONFIG_NR_DRAM_BANKS) {
+			printf("Error: The number of size@base exceeds CONFIG_NR_DRAM_BANKS.\n");
+			return -EINVAL;
+		}
+
+		b = token;
+		s = strsep(&b, "@");
+		if (!s) {
+			printf("The format of jh_root_mem is size@base[,size@base...].\n");
+			return -EINVAL;
+		}
+		base[i] = simple_strtoull(b, NULL, 16);
+		size[i] = simple_strtoull(s, NULL, 16);
+		token = strtok(NULL, ",");
+		i++;
+	}
+
+	ret = fdt_fixup_memory_banks(blob, base, size, CONFIG_NR_DRAM_BANKS);
+	if (ret)
+		return ret;
+
 	return 0;
 }
 #endif
@@ -376,13 +286,6 @@ int board_fix_fdt(void *fdt)
 	return 0;
 }
 #endif
-
-int board_phys_sdram_size(phys_size_t *size)
-{
-	*size = PHYS_SDRAM_SIZE + PHYS_SDRAM_2_SIZE;
-
-	return 0;
-}
 
 void board_quiesce_devices(void)
 {

@@ -37,7 +37,7 @@ SECTIONS
 		KEEP(*(SORT(__u_boot_list*)));
 	}
 
-	. = ALIGN(4);
+	. = ALIGN(8);
 	__image_copy_end = .;
 	__init_end = .;
 
@@ -54,9 +54,9 @@ SECTIONS
 		LONG(0xFFFFFFFF);
 		FILL(0);
 		. += CONFIG_MIPS_RELOCATION_TABLE_SIZE - 4;
+		. = ALIGN(8);
 	}
 
-	. = ALIGN(4);
 	_end = .;
 
 	.bss __rel_start (OVERLAY) : {
@@ -64,7 +64,7 @@ SECTIONS
 		*(.sbss.*)
 		*(.bss.*)
 		*(COMMON)
-		. = ALIGN(4);
+		. = ALIGN(8);
 		__bss_end = .;
 	}
 
@@ -140,3 +140,5 @@ SECTIONS
 		*(.eh_frame)
 	}
 }
+
+ASSERT(_end % 8 == 0, "_end must be 8-byte aligned for device tree");

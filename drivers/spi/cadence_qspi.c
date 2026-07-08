@@ -4,7 +4,6 @@
  * Altera Corporation <www.altera.com>
  */
 
-#include <common.h>
 #include <clk.h>
 #include <log.h>
 #include <dm.h>
@@ -21,12 +20,15 @@
 #include <linux/time.h>
 #include <zynqmp_firmware.h>
 #include "cadence_qspi.h"
-#include <dt-bindings/power/xlnx-versal-power.h>
 
 #define CQSPI_STIG_READ			0
 #define CQSPI_STIG_WRITE		1
 #define CQSPI_READ			2
 #define CQSPI_WRITE			3
+
+/* Quirks */
+#define CQSPI_DISABLE_STIG_MODE		BIT(0)
+#define CQSPI_DMA_MODE			BIT(1)
 
 __weak int cadence_qspi_apb_dma_read(struct cadence_spi_priv *priv,
 				     const struct spi_mem_op *op)
@@ -34,7 +36,12 @@ __weak int cadence_qspi_apb_dma_read(struct cadence_spi_priv *priv,
 	return 0;
 }
 
-__weak int cadence_qspi_versal_flash_reset(struct udevice *dev)
+__weak int cadence_device_reset(struct udevice *dev)
+{
+	return 0;
+}
+
+__weak int cadence_qspi_flash_reset(struct udevice *dev)
 {
 	return 0;
 }
@@ -135,7 +142,7 @@ static int spi_calibration(struct udevice *bus, uint hz)
 
 	if (range_lo == -1) {
 		puts("SF: Calibration failed (low range)\n");
-		return err;
+		return -EIO;
 	}
 
 	/* Disable QSPI for subsequent initialization */
@@ -203,7 +210,6 @@ static int cadence_spi_probe(struct udevice *bus)
 
 	priv->regbase		= plat->regbase;
 	priv->ahbbase		= plat->ahbbase;
-	priv->is_dma		= plat->is_dma;
 	priv->is_decoded_cs	= plat->is_decoded_cs;
 	priv->fifo_depth	= plat->fifo_depth;
 	priv->fifo_width	= plat->fifo_width;
@@ -218,11 +224,17 @@ static int cadence_spi_probe(struct udevice *bus)
 	priv->tsd2d_ns		= plat->tsd2d_ns;
 	priv->tchsh_ns		= plat->tchsh_ns;
 	priv->tslch_ns		= plat->tslch_ns;
+	priv->quirks		= plat->quirks;
+
+	if (priv->quirks & CQSPI_DMA_MODE) {
+		priv->is_dma = true;
+		debug("Cadence QSPI: DMA mode enabled\n");
+	}
 
 	if (IS_ENABLED(CONFIG_ZYNQMP_FIRMWARE))
 		xilinx_pm_request(PM_REQUEST_NODE, PM_DEV_OSPI,
 				  ZYNQMP_PM_CAPABILITY_ACCESS, ZYNQMP_PM_MAX_QOS,
-				  ZYNQMP_PM_REQUEST_ACK_NO, NULL);
+				  ZYNQMP_PM_REQUEST_ACK_NO, 0, 0, NULL);
 
 	if (priv->ref_clk_hz == 0) {
 		ret = clk_get_by_index(bus, 0, &clk);
@@ -252,14 +264,11 @@ static int cadence_spi_probe(struct udevice *bus)
 
 	priv->wr_delay = 50 * DIV_ROUND_UP(NSEC_PER_SEC, priv->ref_clk_hz);
 
-	/* Versal and Versal-NET use spi calibration to set read delay */
-	if (CONFIG_IS_ENABLED(ARCH_VERSAL) ||
-	    CONFIG_IS_ENABLED(ARCH_VERSAL_NET))
-		if (priv->read_delay >= 0)
-			priv->read_delay = -1;
+	if (device_is_compatible(bus, "amd,versal2-ospi"))
+		return cadence_device_reset(bus);
 
 	/* Reset ospi flash device */
-	return cadence_qspi_versal_flash_reset(bus);
+	return cadence_qspi_flash_reset(bus);
 }
 
 static int cadence_spi_remove(struct udevice *dev)
@@ -312,12 +321,16 @@ static int cadence_spi_mem_exec_op(struct spi_slave *spi,
 		 * which is unsupported on some flash devices during register
 		 * reads, prefer STIG mode for such small reads.
 		 */
-		if (op->data.nbytes <= CQSPI_STIG_DATA_LEN_MAX)
+		if (!op->addr.nbytes ||
+		    (op->data.nbytes <= CQSPI_STIG_DATA_LEN_MAX &&
+		     !(priv->quirks & CQSPI_DISABLE_STIG_MODE)))
 			mode = CQSPI_STIG_READ;
 		else
 			mode = CQSPI_READ;
 	} else {
-		if (op->data.nbytes <= CQSPI_STIG_DATA_LEN_MAX)
+		if (!op->addr.nbytes || !op->data.buf.out ||
+		    (op->data.nbytes <= CQSPI_STIG_DATA_LEN_MAX &&
+		     !(priv->quirks & CQSPI_DISABLE_STIG_MODE)))
 			mode = CQSPI_STIG_WRITE;
 		else
 			mode = CQSPI_WRITE;
@@ -401,8 +414,6 @@ static int cadence_spi_of_to_plat(struct udevice *bus)
 	if (plat->ahbsize >= SZ_8M)
 		priv->use_dac_mode = true;
 
-	plat->is_dma = dev_read_bool(bus, "cdns,is-dma");
-
 	/* All other parameters are embedded in the child node */
 	subnode = cadence_qspi_get_subnode(bus);
 	if (!ofnode_valid(subnode)) {
@@ -432,6 +443,10 @@ static int cadence_spi_of_to_plat(struct udevice *bus)
 	plat->read_delay = ofnode_read_s32_default(subnode, "cdns,read-delay",
 						   -1);
 
+	const struct cqspi_driver_platdata *drvdata =
+		(struct cqspi_driver_platdata *)dev_get_driver_data(bus);
+	plat->quirks = drvdata->quirks;
+
 	debug("%s: regbase=%p ahbbase=%p max-frequency=%d page-size=%d\n",
 	      __func__, plat->regbase, plat->ahbbase, plat->max_hz,
 	      plat->page_size);
@@ -454,9 +469,30 @@ static const struct dm_spi_ops cadence_spi_ops = {
 	 */
 };
 
+static const struct cqspi_driver_platdata cdns_qspi = {
+	.quirks = CQSPI_DISABLE_STIG_MODE,
+};
+
+static const struct cqspi_driver_platdata cdns_xilinx_qspi = {
+	.quirks = CQSPI_DMA_MODE,
+};
+
 static const struct udevice_id cadence_spi_ids[] = {
-	{ .compatible = "cdns,qspi-nor" },
-	{ .compatible = "ti,am654-ospi" },
+	{
+		.compatible = "cdns,qspi-nor",
+		.data = (ulong)&cdns_qspi,
+	},
+	{
+		.compatible = "ti,am654-ospi"
+	},
+	{
+		.compatible = "amd,versal2-ospi",
+		.data = (ulong)&cdns_xilinx_qspi,
+	},
+	{
+		.compatible = "xlnx,versal-ospi-1.0",
+		.data = (ulong)&cdns_xilinx_qspi,
+	},
 	{ }
 };
 

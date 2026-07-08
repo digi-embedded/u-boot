@@ -6,134 +6,52 @@
  */
 
 #include <button.h>
-#include <common.h>
 #include <cpu_func.h>
 #include <dm.h>
+#include <dm/pinctrl.h>
 #include <env.h>
 #include <init.h>
+#include <mmc.h>
 #include <net.h>
 #include <usb.h>
 #include <asm/cache.h>
 #include <asm/global_data.h>
 #include <asm/gpio.h>
 #include <fdt_support.h>
-#include <asm/arch/dram.h>
-#include <asm/arch/misc.h>
 #include <linux/delay.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
-int dram_init(void)
+static u32 msm_board_serial(void)
 {
-	gd->ram_size = PHYS_SDRAM_1_SIZE;
+	struct mmc *mmc_dev;
 
-	return 0;
+	mmc_dev = find_mmc_device(0);
+	if (!mmc_dev)
+		return 0;
+
+	if (mmc_init(mmc_dev))
+		return 0;
+
+	/* MMC serial number */
+	return mmc_dev->cid[2] << 16 | mmc_dev->cid[3] >> 16;
 }
 
-int dram_init_banksize(void)
+static void msm_generate_mac_addr(u8 *mac)
 {
-	gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
-	gd->bd->bi_dram[0].size = PHYS_SDRAM_1_SIZE;
+	/* use locally adminstrated pool */
+	mac[0] = 0x02;
+	mac[1] = 0x00;
 
-	return 0;
+	/*
+	 * Put the 32-bit serial number in the last 32-bit of the MAC address.
+	 * Use big endian order so it is consistent with the serial number
+	 * written as a hexadecimal string, e.g. 0x1234abcd -> 02:00:12:34:ab:cd
+	 */
+	put_unaligned_be32(msm_board_serial(), &mac[2]);
 }
 
-int board_usb_init(int index, enum usb_init_type init)
-{
-	static struct udevice *pmic_gpio;
-	static struct gpio_desc hub_reset, usb_sel;
-	int ret = 0, node;
-
-	if (!pmic_gpio) {
-		ret = uclass_get_device_by_name(UCLASS_GPIO,
-						"pm8916_gpios@c000",
-						&pmic_gpio);
-		if (ret < 0) {
-			printf("Failed to find pm8916_gpios@c000 node.\n");
-			return ret;
-		}
-	}
-
-	/* Try to request gpios needed to start usb host on dragonboard */
-	if (!dm_gpio_is_valid(&hub_reset)) {
-		node = fdt_subnode_offset(gd->fdt_blob,
-					  dev_of_offset(pmic_gpio),
-					  "usb_hub_reset_pm");
-		if (node < 0) {
-			printf("Failed to find usb_hub_reset_pm dt node.\n");
-			return node;
-		}
-		ret = gpio_request_by_name_nodev(offset_to_ofnode(node),
-						 "gpios", 0, &hub_reset, 0);
-		if (ret < 0) {
-			printf("Failed to request usb_hub_reset_pm gpio.\n");
-			return ret;
-		}
-	}
-
-	if (!dm_gpio_is_valid(&usb_sel)) {
-		node = fdt_subnode_offset(gd->fdt_blob,
-					  dev_of_offset(pmic_gpio),
-					  "usb_sw_sel_pm");
-		if (node < 0) {
-			printf("Failed to find usb_sw_sel_pm dt node.\n");
-			return 0;
-		}
-		ret = gpio_request_by_name_nodev(offset_to_ofnode(node),
-						 "gpios", 0, &usb_sel, 0);
-		if (ret < 0) {
-			printf("Failed to request usb_sw_sel_pm gpio.\n");
-			return ret;
-		}
-	}
-
-	if (init == USB_INIT_HOST) {
-		/* Start USB Hub */
-		dm_gpio_set_dir_flags(&hub_reset,
-				      GPIOD_IS_OUT | GPIOD_IS_OUT_ACTIVE);
-		mdelay(100);
-		/* Switch usb to host connectors */
-		dm_gpio_set_dir_flags(&usb_sel,
-				      GPIOD_IS_OUT | GPIOD_IS_OUT_ACTIVE);
-		mdelay(100);
-	} else { /* Device */
-		/* Disable hub */
-		dm_gpio_set_dir_flags(&hub_reset, GPIOD_IS_OUT);
-		/* Switch back to device connector */
-		dm_gpio_set_dir_flags(&usb_sel, GPIOD_IS_OUT);
-	}
-
-	return 0;
-}
-
-/* Check for vol- button - if pressed - stop autoboot */
-int misc_init_r(void)
-{
-	struct udevice *btn;
-	int ret;
-	enum button_state_t state;
-
-	ret = button_get_by_label("vol_down", &btn);
-	if (ret < 0) {
-		printf("Couldn't find power button!\n");
-		return ret;
-	}
-
-	state = button_get_state(btn);
-	if (state == BUTTON_ON) {
-		env_set("preboot", "setenv preboot; fastboot 0");
-		printf("vol_down pressed - Starting fastboot.\n");
-	}
-
-	return 0;
-}
-
-int board_init(void)
-{
-	return 0;
-}
-
-int board_late_init(void)
+int qcom_late_init(void)
 {
 	char serial[16];
 
@@ -143,9 +61,9 @@ int board_late_init(void)
 	return 0;
 }
 
-/* Fixup of DTB for Linux Kernel
- * 1. Fixup installed DRAM.
- * 2. Fixup WLAN/BT Mac address:
+/*
+ * Fixup of DTB for Linux Kernel
+ * 1. Fixup WLAN/BT Mac address:
  *	First, check if MAC addresses for WLAN/BT exists as environemnt
  *	variables wlanaddr,btaddr. if not, generate a unique address.
  */
@@ -153,8 +71,7 @@ int board_late_init(void)
 int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	u8 mac[ARP_HLEN];
-
-	msm_fixup_memory(blob);
+	int i;
 
 	if (!eth_env_get_enetaddr("wlanaddr", mac)) {
 		msm_generate_mac_addr(mac);
@@ -163,22 +80,28 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 	do_fixup_by_compat(blob, "qcom,wcnss-wlan",
 			   "local-mac-address", mac, ARP_HLEN, 1);
 
-
 	if (!eth_env_get_enetaddr("btaddr", mac)) {
 		msm_generate_mac_addr(mac);
 
-/* The BD address is same as WLAN MAC address but with
- * least significant bit flipped.
- */
-		mac[0] ^= 0x01;
+		/*
+		 * The BD address is same as WLAN MAC address but with
+		 * least significant bit flipped.
+		 */
+		mac[ARP_HLEN - 1] ^= 0x01;
 	};
+
+	/*
+	 * Reverse array since local-bd-address is formatted with least
+	 * significant byte first (little endian).
+	 */
+	for (i = 0; i < ARP_HLEN / 2; ++i) {
+		u8 tmp = mac[i];
+
+		mac[i] = mac[ARP_HLEN - 1 - i];
+		mac[ARP_HLEN - 1 - i] = tmp;
+	}
 
 	do_fixup_by_compat(blob, "qcom,wcnss-bt",
 			   "local-bd-address", mac, ARP_HLEN, 1);
 	return 0;
-}
-
-void reset_cpu(void)
-{
-	psci_system_reset();
 }

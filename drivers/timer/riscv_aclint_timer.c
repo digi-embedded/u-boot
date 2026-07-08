@@ -4,7 +4,7 @@
  * Copyright (C) 2018, Bin Meng <bmeng.cn@gmail.com>
  */
 
-#include <common.h>
+#include <config.h>
 #include <clk.h>
 #include <div64.h>
 #include <dm.h>
@@ -83,6 +83,7 @@ static int riscv_aclint_timer_probe(struct udevice *dev)
 static const struct udevice_id riscv_aclint_timer_ids[] = {
 	{ .compatible = "riscv,clint0", .data = CLINT_MTIME_OFFSET },
 	{ .compatible = "sifive,clint0", .data = CLINT_MTIME_OFFSET },
+	{ .compatible = "sifive,clint2", .data = CLINT_MTIME_OFFSET },
 	{ .compatible = "riscv,aclint-mtimer", .data = ACLINT_MTIME_OFFSET },
 	{ }
 };

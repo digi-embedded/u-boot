@@ -1,44 +1,21 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2023 NXP
+ * Copyright 2023-2025 NXP
  */
 
-#include <common.h>
-#include <command.h>
-#include <cpu_func.h>
-#include <clk.h>
-#include <hang.h>
-#include <image.h>
-#include <init.h>
-#include <log.h>
-#include <spl.h>
-#include <asm/global_data.h>
-#include <asm/io.h>
-#include <asm/arch/clock.h>
 #include <asm/arch/sys_proto.h>
-#include <asm/mach-imx/boot_mode.h>
-#include <asm/mach-imx/syscounter.h>
-#include <asm/mach-imx/ele_api.h>
-#include <asm/sections.h>
-#include <dm/uclass.h>
-#include <dm/device.h>
-#include <dm/uclass-internal.h>
-#include <dm/device-internal.h>
-#include <linux/delay.h>
-#include <linux/iopoll.h>
 #include <asm/arch/clock.h>
-#include <asm/arch/ccm_regs.h>
+#include <asm/arch/mu.h>
+#include <asm/mach-imx/boot_mode.h>
+#include <asm/sections.h>
+#include <hang.h>
+#include <init.h>
+#include <spl.h>
+#include <asm/mach-imx/ele_api.h>
 #include <asm/gpio.h>
-#ifdef CONFIG_SCMI_FIRMWARE
-#include <scmi_agent.h>
-#include <scmi_protocols.h>
-#include <dt-bindings/clock/fsl,imx95-clock.h>
-#include <dt-bindings/power/fsl,imx95-power.h>
-#endif
+#include <linux/delay.h>
 
 DECLARE_GLOBAL_DATA_PTR;
-
-static struct udevice *scmi_dev __maybe_unused;
 
 int spl_board_boot_device(enum boot_device boot_dev_spl)
 {
@@ -61,12 +38,20 @@ int spl_board_boot_device(enum boot_device boot_dev_spl)
 void spl_board_init(void)
 {
 	int ret;
+	u32 bd;
 
 	puts("Normal Boot\n");
 
 	ret = ele_start_rng();
 	if (ret)
 		printf("Fail to start RNG: %d\n", ret);
+
+	bd = spl_boot_device();
+	if (bd == BOOT_DEVICE_BOARD) { /* USB */
+		ret = power_on_hsio();
+		if (ret)
+			printf("power on hsio is failed\n");
+	}
 }
 
 static void flexspi_nor_reset(void)
@@ -92,20 +77,16 @@ static void flexspi_nor_reset(void)
 	dm_gpio_set_value(&desc, 0); /* deassert the XSPI_RST_B */
 }
 
-extern int imx9_probe_mu(void);
-
 void board_init_f(ulong dummy)
 {
 	int ret;
-	bool ddrmix_power = false;
 
 	/* Clear the BSS. */
 	memset(__bss_start, 0, __bss_end - __bss_start);
 
 #ifdef CONFIG_SPL_RECOVER_DATA_SECTION
-	if (IS_ENABLED(CONFIG_SPL_BUILD)) {
+	if (IS_ENABLED(CONFIG_SPL_BUILD))
 		spl_save_restore_data();
-	}
 #endif
 
 	timer_init();
@@ -124,29 +105,12 @@ void board_init_f(ulong dummy)
 
 	preloader_console_init();
 
-	printf("SOC: 0x%x\n", gd->arch.soc_rev);
-	printf("LC: 0x%x\n", gd->arch.lifecycle);
+	debug("SOC: 0x%x\n", gd->arch.soc_rev);
+	debug("LC: 0x%x\n", gd->arch.lifecycle);
 
 	get_reset_reason(true, false);
 
 	disable_smmuv3();
-
-	/* Will set ARM freq to max rate */
-	clock_init_late();
-
-	/* Check is DDR MIX is already powered up. */
-	u32 state = 0;
-	ret = scmi_pwd_state_get(gd->arch.scmi_dev, IMX95_PD_DDR, &state);
-	if (ret) {
-		printf("scmi_pwd_state_get Failed %d for DDRMIX\n", ret);
-	} else {
-		if (state == BIT(30)) {
-			panic("DDRMIX is powered OFF, Please initialize DDR with OEI \n");
-		} else {
-			printf("DDRMIX is powered UP \n");
-			ddrmix_power = true;
-		}
-	}
 
 	flexspi_nor_reset();
 

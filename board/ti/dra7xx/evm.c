@@ -9,7 +9,7 @@
  * Aneesh V       <aneesh@ti.com>
  * Steve Sakoman  <steve@sakoman.com>
  */
-#include <common.h>
+#include <config.h>
 #include <env.h>
 #include <fdt_support.h>
 #include <fastboot.h>
@@ -38,6 +38,7 @@
 
 #include "mux_data.h"
 #include "../common/board_detect.h"
+#include "../common/fdt_ops.h"
 
 #define board_is_dra76x_evm()		board_ti_is("DRA76/7x")
 #define board_is_dra74x_evm()		board_ti_is("5777xCPU")
@@ -665,6 +666,15 @@ static int device_okay(const char *path)
 }
 #endif
 
+static struct ti_fdt_map ti_omap_dra7_evm_fdt_map[] = {
+	{"omap5_uevm", "ti/omap/omap5-uevm.dtb"},
+	{"dra7xx", "ti/omap/dra7-evm.dtb"},
+	{"dra72x-revc", "ti/omap/dra72-evm-revc.dtb"},
+	{"dra72x", "ti/omap/dra72-evm.dtb"},
+	{"dra71x", "ti/omap/dra71-evm.dtb"},
+	{"dra76x_acd", "ti/omap/dra76-evm.dtb"},
+};
+
 int board_late_init(void)
 {
 #ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
@@ -686,6 +696,7 @@ int board_late_init(void)
 	}
 
 	set_board_info_env(name);
+	ti_set_fdt_env(name, ti_omap_dra7_evm_fdt_map);
 
 	/*
 	 * Default FIT boot on HS devices. Non FIT images are not allowed
@@ -713,7 +724,7 @@ int board_late_init(void)
 	return 0;
 }
 
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 void do_board_detect(void)
 {
 	int rc;
@@ -756,7 +767,7 @@ void do_board_detect(void)
 		snprintf(sysinfo.board_string, SYSINFO_BOARD_NAME_MAX_LEN,
 			 "Board: %s REV %s\n", bname, board_ti_get_rev());
 }
-#endif	/* CONFIG_SPL_BUILD */
+#endif	/* CONFIG_XPL_BUILD */
 
 void vcores_init(void)
 {
@@ -972,7 +983,7 @@ const struct mmc_platform_fixups *platform_fixups_mmc(uint32_t addr)
 }
 #endif
 
-#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_OS_BOOT)
+#if defined(CONFIG_XPL_BUILD) && defined(CONFIG_SPL_OS_BOOT)
 int spl_start_uboot(void)
 {
 	/* break into full u-boot on 'c' */

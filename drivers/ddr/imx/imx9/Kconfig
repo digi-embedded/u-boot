@@ -19,7 +19,6 @@ config IMX9_DRAM_PM_COUNTER
 
 config IMX9_DRAM_INLINE_ECC
 	bool "Enable DDR INLINE ECC feature"
-	default n
 	help
 	  Select to enable DDR INLINE ECC feature
 

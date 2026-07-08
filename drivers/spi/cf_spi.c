@@ -13,7 +13,6 @@
  * TODO: fsl_dspi.c should work as a driver for the DSPI module.
  */
 
-#include <common.h>
 #include <dm.h>
 #include <log.h>
 #include <asm/global_data.h>
@@ -124,7 +123,7 @@ static int coldfire_spi_claim_bus(struct udevice *dev)
 	/* Clear FIFO and resume transfer */
 	clrbits_be32(&dspi->mcr, DSPI_MCR_CTXF | DSPI_MCR_CRXF);
 
-	dspi_chip_select(slave_plat->cs);
+	dspi_chip_select(slave_plat->cs[0]);
 
 	return 0;
 }
@@ -140,7 +139,7 @@ static int coldfire_spi_release_bus(struct udevice *dev)
 	/* Clear FIFO */
 	clrbits_be32(&dspi->mcr, DSPI_MCR_CTXF | DSPI_MCR_CRXF);
 
-	dspi_chip_unselect(slave_plat->cs);
+	dspi_chip_unselect(slave_plat->cs[0]);
 
 	return 0;
 }
@@ -169,7 +168,7 @@ static int coldfire_spi_xfer(struct udevice *dev, unsigned int bitlen,
 	if ((flags & SPI_XFER_BEGIN) == SPI_XFER_BEGIN)
 		ctrl |= DSPI_TFR_CONT;
 
-	ctrl = setup_ctrl(ctrl, slave_plat->cs);
+	ctrl = setup_ctrl(ctrl, slave_plat->cs[0]);
 
 	if (len > 1) {
 		int tmp_len = len - 1;

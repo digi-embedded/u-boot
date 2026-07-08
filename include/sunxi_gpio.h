@@ -82,7 +82,6 @@ enum sunxi_gpio_number {
 	SUNXI_GPIO_L_START = 352,
 	SUNXI_GPIO_M_START = SUNXI_GPIO_NEXT(SUNXI_GPIO_L),
 	SUNXI_GPIO_N_START = SUNXI_GPIO_NEXT(SUNXI_GPIO_M),
-	SUNXI_GPIO_AXP0_START = 1024,
 };
 
 /* SUNXI GPIO number definitions */
@@ -98,8 +97,6 @@ enum sunxi_gpio_number {
 #define SUNXI_GPL(_nr)	(SUNXI_GPIO_L_START + (_nr))
 #define SUNXI_GPM(_nr)	(SUNXI_GPIO_M_START + (_nr))
 #define SUNXI_GPN(_nr)	(SUNXI_GPIO_N_START + (_nr))
-
-#define SUNXI_GPAXP0(_nr)	(SUNXI_GPIO_AXP0_START + (_nr))
 
 /* GPIO pin function config */
 #define SUNXI_GPIO_INPUT	0
@@ -185,11 +182,6 @@ enum sunxi_gpio_number {
 #define SUNXI_GPIO_PULL_UP	1
 #define SUNXI_GPIO_PULL_DOWN	2
 
-/* Virtual AXP0 GPIOs */
-#define SUNXI_GPIO_AXP0_PREFIX "AXP0-"
-#define SUNXI_GPIO_AXP0_VBUS_ENABLE	5
-#define SUNXI_GPIO_AXP0_GPIO_COUNT	6
-
 struct sunxi_gpio_plat {
 	void			*regs;
 	char			bank_name[3];
@@ -206,7 +198,7 @@ void sunxi_gpio_set_pull(u32 pin, u32 val);
 void sunxi_gpio_set_pull_bank(void *bank_base, int pin_offset, u32 val);
 int sunxi_name_to_gpio(const char *name);
 
-#if !defined CONFIG_SPL_BUILD && defined CONFIG_AXP_GPIO
+#if !defined CONFIG_XPL_BUILD && defined CONFIG_AXP_GPIO
 int axp_gpio_init(void);
 #else
 static inline int axp_gpio_init(void) { return 0; }

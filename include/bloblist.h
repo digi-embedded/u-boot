@@ -78,6 +78,11 @@ enum {
 	BLOBLIST_VERSION	= 1,
 	BLOBLIST_MAGIC		= 0x4a0fb10b,
 
+	BLOBLIST_REGCONV_SHIFT_64 = 32,
+	BLOBLIST_REGCONV_SHIFT_32 = 24,
+	BLOBLIST_REGCONV_MASK = 0xff,
+	BLOBLIST_REGCONV_VER = 1,
+
 	BLOBLIST_BLOB_ALIGN_LOG2 = 3,
 	BLOBLIST_BLOB_ALIGN	 = 1 << BLOBLIST_BLOB_ALIGN_LOG2,
 
@@ -105,6 +110,7 @@ enum bloblist_tag_t {
 	BLOBLISTT_ACPI_TABLES = 4,
 	BLOBLISTT_TPM_EVLOG = 5,
 	BLOBLISTT_TPM_CRB_BASE = 6,
+	BLOBLISTT_ACPI_PP = 7,
 
 	/* Standard area to allocate blobs used across firmware components */
 	BLOBLISTT_AREA_FIRMWARE = 0x10,
@@ -244,6 +250,24 @@ static inline void *bloblist_check_magic(ulong addr)
 	return ptr;
 }
 
+#if CONFIG_IS_ENABLED(BLOBLIST)
+/**
+ * bloblist_get_blob() - Find a blob and get the size of it
+ *
+ * Searches the bloblist and returns the blob with the matching tag
+ *
+ * @tag:	Tag to search for (enum bloblist_tag_t)
+ * @sizep:	Size of the blob found
+ * Return: pointer to bloblist if found, or NULL if not found
+ */
+void *bloblist_get_blob(uint tag, int *sizep);
+#else
+static inline void *bloblist_get_blob(uint tag, int *sizep)
+{
+	return NULL;
+}
+#endif
+
 /**
  * bloblist_find() - Find a blob
  *
@@ -341,15 +365,17 @@ int bloblist_new(ulong addr, uint size, uint flags, uint align_log2);
  * bloblist_check() - Check if a bloblist exists
  *
  * @addr: Address of bloblist
- * @size: Expected size of blobsize, or 0 to detect the size
+ * @size: Reserved space size for blobsize, or 0 to use the total size
  * Return: 0 if OK, -ENOENT if the magic number doesn't match (indicating that
- * there problem is no bloblist at the given address), -EPROTONOSUPPORT
+ * there problem is no bloblist at the given address) or any fields for header
+ * size, used size and total size do not match, -EPROTONOSUPPORT
  * if the version does not match, -EIO if the checksum does not match,
- * -EFBIG if the expected size does not match the detected size, -ENOSPC
- * if the size is not large enough to hold the headers
+ * -EFBIG if the reserved space size is small than the total size or total size
+ * is 0
  */
 int bloblist_check(ulong addr, uint size);
 
+#if CONFIG_IS_ENABLED(BLOBLIST)
 /**
  * bloblist_finish() - Set up the bloblist for the next U-Boot part
  *
@@ -359,6 +385,12 @@ int bloblist_check(ulong addr, uint size);
  * Return: 0
  */
 int bloblist_finish(void);
+#else
+static inline int bloblist_finish(void)
+{
+	return 0;
+}
+#endif /* BLOBLIST */
 
 /**
  * bloblist_get_stats() - Get information about the bloblist
@@ -418,11 +450,11 @@ const char *bloblist_tag_name(enum bloblist_tag_t tag);
  * bloblist_reloc() - Relocate the bloblist and optionally resize it
  *
  * @to: Pointer to new bloblist location (must not overlap old location)
- * @to_size: New size for bloblist (must be larger than from_size)
- * @from: Pointer to bloblist to relocate
- * @from_size: Size of bloblist to relocate
+ * @to_size: New size for bloblist
+ * Return: 0 if OK, -ENOSPC if the new size is small than the bloblist total
+ *	   size.
  */
-void bloblist_reloc(void *to, uint to_size, void *from, uint from_size);
+int bloblist_reloc(void *to, uint to_size);
 
 /**
  * bloblist_init() - Init the bloblist system with a single bloblist
@@ -435,9 +467,8 @@ void bloblist_reloc(void *to, uint to_size, void *from, uint from_size);
  * If CONFIG_BLOBLIST_ALLOC is selected, it allocates memory for a bloblist of
  * size CONFIG_BLOBLIST_SIZE.
  *
- * If CONFIG_BLOBLIST_PASSAGE is selected, it uses the bloblist in the incoming
- * standard passage. The size is detected automatically so CONFIG_BLOBLIST_SIZE
- * can be 0.
+ * If CONFIG_BLOBLIST_PASSAGE_MANDATORY is selected, bloblist in the incoming
+ * standard passage is mandatorily required.
  *
  * Sets GD_FLG_BLOBLIST_READY in global_data flags on success
  *
@@ -449,7 +480,7 @@ int bloblist_init(void);
 /**
  * bloblist_maybe_init() - Init the bloblist system if not already done
  *
- * Calls bloblist_init() if the GD_FLG_BLOBLIST_READY flag is not et
+ * Calls bloblist_init() if the GD_FLG_BLOBLIST_READY flag is not set
  *
  * Return: 0 if OK, -ve on error
  */
@@ -460,5 +491,27 @@ static inline int bloblist_maybe_init(void)
 	return 0;
 }
 #endif /* BLOBLIST */
+
+/**
+ * bloblist_check_reg_conv() - Check whether the bloblist is compliant to
+ *			       the register conventions according to the
+ *			       Firmware Handoff spec.
+ *
+ * @rfdt:  Register that holds the FDT base address.
+ * @rzero: Register that must be zero.
+ * @rsig:  Register that holds signature and register conventions version.
+ * @xlist: Register that holds the transfer list.
+ * Return: 0 if OK, -EIO if the bloblist is not compliant to the register
+ *	   conventions.
+ */
+int bloblist_check_reg_conv(ulong rfdt, ulong rzero, ulong rsig, ulong xlist);
+
+/**
+ * xferlist_from_boot_arg() - Get bloblist from the boot args.
+ *
+ * @addr: Address of the bloblist
+ * Return: 0 if OK, else on error
+ */
+int xferlist_from_boot_arg(ulong *addr);
 
 #endif /* __BLOBLIST_H */

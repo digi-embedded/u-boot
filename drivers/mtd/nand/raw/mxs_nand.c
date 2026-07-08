@@ -13,7 +13,6 @@
  * Copyright 2017-2019 NXP
  */
 
-#include <common.h>
 #include <clk.h>
 #include <cpu_func.h>
 #include <dm.h>
@@ -277,7 +276,6 @@ static inline int mxs_nand_calc_ecc_for_large_oob(struct bch_geometry *geo,
 			/ (geo->gf_len * geo->ecc_chunk_count);
 	max_ecc = min(round_down(max_ecc, 2),
 				nand_info->max_ecc_strength_supported);
-
 
 	/* search a supported ecc strength that makes bbm */
 	/* located in data chunk  */
@@ -1505,7 +1503,17 @@ static void mxs_compute_timings(struct nand_chip *chip,
 	writel(GPMI_CTRL1_CLEAR_MASK, &nand_info->gpmi_regs->hw_gpmi_ctrl1_clr);
 	writel(ctrl1n, &nand_info->gpmi_regs->hw_gpmi_ctrl1_set);
 
+	/* Clock dividers do NOT guarantee a clean clock signal on its output
+	 * during the change of the divide factor on i.MX6Q/UL/SX. On i.MX7/8,
+	 * all clock dividers provide these guarantee.
+	 */
+	if (IS_ENABLED(CONFIG_MX6ULL))
+		clk_disable(nand_info->gpmi_clk);
+
 	clk_set_rate(nand_info->gpmi_clk, clk_rate);
+
+	if (IS_ENABLED(CONFIG_MX6ULL))
+		clk_enable(nand_info->gpmi_clk);
 
 	/* Wait 64 clock cycles before using the GPMI after enabling the DLL */
 	dll_wait_time_us = USEC_PER_SEC / clk_rate * 64;
@@ -1630,10 +1638,12 @@ int mxs_nand_init_ctrl(struct mxs_nand_info *nand_info)
 		nand->setup_data_interface = mxs_nand_setup_interface;
 
 	/* first scan to find the device and get the page size */
-	if (nand_scan_ident(mtd, CONFIG_SYS_MAX_NAND_DEVICE, NULL))
+	err = nand_scan_ident(mtd, CONFIG_SYS_MAX_NAND_DEVICE, NULL);
+	if (err)
 		goto err_free_buffers;
 
-	if (mxs_nand_setup_ecc(mtd))
+	err = mxs_nand_setup_ecc(mtd);
+	if (err)
 		goto err_free_buffers;
 
 	nand->ecc.read_page	= mxs_nand_ecc_read_page;

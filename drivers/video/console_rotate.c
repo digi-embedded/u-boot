@@ -6,7 +6,7 @@
  * (C) Copyright 2023 Dzmitry Sankouski <dsankouski@gmail.com>
  */
 
-#include <common.h>
+#include <charset.h>
 #include <dm.h>
 #include <video.h>
 #include <video_console.h>
@@ -21,7 +21,6 @@ static int console_set_row_1(struct udevice *dev, uint row, int clr)
 	int pbytes = VNBYTES(vid_priv->bpix);
 	void *start, *dst, *line;
 	int i, j;
-	int ret;
 
 	start = vid_priv->fb + vid_priv->line_length -
 		(row + 1) * fontdata->height * pbytes;
@@ -32,9 +31,12 @@ static int console_set_row_1(struct udevice *dev, uint row, int clr)
 			fill_pixel_and_goto_next(&dst, clr, pbytes, pbytes);
 		line += vid_priv->line_length;
 	}
-	ret = vidconsole_sync_copy(dev, start, line);
-	if (ret)
-		return ret;
+
+	video_damage(dev->parent,
+		     vid_priv->xsize - ((row + 1) * fontdata->height),
+		     0,
+		     fontdata->height,
+		     vid_priv->ysize);
 
 	return 0;
 }
@@ -48,7 +50,7 @@ static int console_move_rows_1(struct udevice *dev, uint rowdst, uint rowsrc,
 	int pbytes = VNBYTES(vid_priv->bpix);
 	void *dst;
 	void *src;
-	int j, ret;
+	int j;
 
 	dst = vid_priv->fb + vid_priv->line_length -
 		(rowdst + count) * fontdata->height * pbytes;
@@ -56,18 +58,21 @@ static int console_move_rows_1(struct udevice *dev, uint rowdst, uint rowsrc,
 		(rowsrc + count) * fontdata->height * pbytes;
 
 	for (j = 0; j < vid_priv->ysize; j++) {
-		ret = vidconsole_memmove(dev, dst, src,
-					fontdata->height * pbytes * count);
-		if (ret)
-			return ret;
+		memmove(dst, src, fontdata->height * pbytes * count);
 		src += vid_priv->line_length;
 		dst += vid_priv->line_length;
 	}
 
+	video_damage(dev->parent,
+		     vid_priv->xsize - ((rowdst + count) * fontdata->height),
+		     0,
+		     count * fontdata->height,
+		     vid_priv->ysize);
+
 	return 0;
 }
 
-static int console_putc_xy_1(struct udevice *dev, uint x_frac, uint y, char ch)
+static int console_putc_xy_1(struct udevice *dev, uint x_frac, uint y, int cp)
 {
 	struct vidconsole_priv *vc_priv = dev_get_uclass_priv(dev);
 	struct udevice *vid = dev->parent;
@@ -77,8 +82,9 @@ static int console_putc_xy_1(struct udevice *dev, uint x_frac, uint y, char ch)
 	int pbytes = VNBYTES(vid_priv->bpix);
 	int x, linenum, ret;
 	void *start, *line;
+	u8 ch = console_utf_to_cp437(cp);
 	uchar *pfont = fontdata->video_fontdata +
-			(u8)ch * fontdata->char_pixel_bytes;
+			ch * fontdata->char_pixel_bytes;
 
 	if (x_frac + VID_TO_POS(vc_priv->x_charsize) > vc_priv->xsize_frac)
 		return -EAGAIN;
@@ -92,13 +98,14 @@ static int console_putc_xy_1(struct udevice *dev, uint x_frac, uint y, char ch)
 		return ret;
 
 	/* We draw backwards from 'start, so account for the first line */
-	ret = vidconsole_sync_copy(dev, start - vid_priv->line_length, line);
-	if (ret)
-		return ret;
+	video_damage(dev->parent,
+		     vid_priv->xsize - y - fontdata->height,
+		     linenum - 1,
+		     fontdata->height,
+		     fontdata->width);
 
 	return VID_TO_POS(fontdata->width);
 }
-
 
 static int console_set_row_2(struct udevice *dev, uint row, int clr)
 {
@@ -107,7 +114,7 @@ static int console_set_row_2(struct udevice *dev, uint row, int clr)
 	struct video_fontdata *fontdata = priv->fontdata;
 	void *start, *line, *dst, *end;
 	int pixels = fontdata->height * vid_priv->xsize;
-	int i, ret;
+	int i;
 	int pbytes = VNBYTES(vid_priv->bpix);
 
 	start = vid_priv->fb + vid_priv->ysize * vid_priv->line_length -
@@ -117,9 +124,12 @@ static int console_set_row_2(struct udevice *dev, uint row, int clr)
 	for (i = 0; i < pixels; i++)
 		fill_pixel_and_goto_next(&dst, clr, pbytes, pbytes);
 	end = dst;
-	ret = vidconsole_sync_copy(dev, start, end);
-	if (ret)
-		return ret;
+
+	video_damage(dev->parent,
+		     0,
+		     vid_priv->ysize - (row + 1) * fontdata->height,
+		     vid_priv->xsize,
+		     fontdata->height);
 
 	return 0;
 }
@@ -139,13 +149,18 @@ static int console_move_rows_2(struct udevice *dev, uint rowdst, uint rowsrc,
 		vid_priv->line_length;
 	src = end - (rowsrc + count) * fontdata->height *
 		vid_priv->line_length;
-	vidconsole_memmove(dev, dst, src,
-			   fontdata->height * vid_priv->line_length * count);
+	memmove(dst, src, fontdata->height * vid_priv->line_length * count);
+
+	video_damage(dev->parent,
+		     0,
+		     vid_priv->ysize - (rowdst + count) * fontdata->height,
+		     vid_priv->xsize,
+		     count * fontdata->height);
 
 	return 0;
 }
 
-static int console_putc_xy_2(struct udevice *dev, uint x_frac, uint y, char ch)
+static int console_putc_xy_2(struct udevice *dev, uint x_frac, uint y, int cp)
 {
 	struct vidconsole_priv *vc_priv = dev_get_uclass_priv(dev);
 	struct udevice *vid = dev->parent;
@@ -155,8 +170,9 @@ static int console_putc_xy_2(struct udevice *dev, uint x_frac, uint y, char ch)
 	int pbytes = VNBYTES(vid_priv->bpix);
 	int linenum, x, ret;
 	void *start, *line;
+	u8 ch = console_utf_to_cp437(cp);
 	uchar *pfont = fontdata->video_fontdata +
-			(u8)ch * fontdata->char_pixel_bytes;
+			ch * fontdata->char_pixel_bytes;
 
 	if (x_frac + VID_TO_POS(vc_priv->x_charsize) > vc_priv->xsize_frac)
 		return -EAGAIN;
@@ -169,10 +185,11 @@ static int console_putc_xy_2(struct udevice *dev, uint x_frac, uint y, char ch)
 	if (ret)
 		return ret;
 
-	/* Add 4 bytes to allow for the first pixel writen */
-	ret = vidconsole_sync_copy(dev, start + 4, line);
-	if (ret)
-		return ret;
+	video_damage(dev->parent,
+		     x - fontdata->width + 1,
+		     linenum - fontdata->height + 1,
+		     fontdata->width,
+		     fontdata->height);
 
 	return VID_TO_POS(fontdata->width);
 }
@@ -184,7 +201,7 @@ static int console_set_row_3(struct udevice *dev, uint row, int clr)
 	struct video_fontdata *fontdata = priv->fontdata;
 	int pbytes = VNBYTES(vid_priv->bpix);
 	void *start, *dst, *line;
-	int i, j, ret;
+	int i, j;
 
 	start = vid_priv->fb + row * fontdata->height * pbytes;
 	line = start;
@@ -194,9 +211,12 @@ static int console_set_row_3(struct udevice *dev, uint row, int clr)
 			fill_pixel_and_goto_next(&dst, clr, pbytes, pbytes);
 		line += vid_priv->line_length;
 	}
-	ret = vidconsole_sync_copy(dev, start, line);
-	if (ret)
-		return ret;
+
+	video_damage(dev->parent,
+		     row * fontdata->height,
+		     0,
+		     fontdata->height,
+		     vid_priv->ysize);
 
 	return 0;
 }
@@ -210,24 +230,27 @@ static int console_move_rows_3(struct udevice *dev, uint rowdst, uint rowsrc,
 	int pbytes = VNBYTES(vid_priv->bpix);
 	void *dst;
 	void *src;
-	int j, ret;
+	int j;
 
 	dst = vid_priv->fb + rowdst * fontdata->height * pbytes;
 	src = vid_priv->fb + rowsrc * fontdata->height * pbytes;
 
 	for (j = 0; j < vid_priv->ysize; j++) {
-		ret = vidconsole_memmove(dev, dst, src,
-					fontdata->height * pbytes * count);
-		if (ret)
-			return ret;
+		memmove(dst, src, fontdata->height * pbytes * count);
 		src += vid_priv->line_length;
 		dst += vid_priv->line_length;
 	}
 
+	video_damage(dev->parent,
+		     rowdst * fontdata->height,
+		     0,
+		     count * fontdata->height,
+		     vid_priv->ysize);
+
 	return 0;
 }
 
-static int console_putc_xy_3(struct udevice *dev, uint x_frac, uint y, char ch)
+static int console_putc_xy_3(struct udevice *dev, uint x_frac, uint y, int cp)
 {
 	struct vidconsole_priv *vc_priv = dev_get_uclass_priv(dev);
 	struct udevice *vid = dev->parent;
@@ -237,8 +260,9 @@ static int console_putc_xy_3(struct udevice *dev, uint x_frac, uint y, char ch)
 	int pbytes = VNBYTES(vid_priv->bpix);
 	int linenum, x, ret;
 	void *start, *line;
+	u8 ch = console_utf_to_cp437(cp);
 	uchar *pfont = fontdata->video_fontdata +
-			(u8)ch * fontdata->char_pixel_bytes;
+			ch * fontdata->char_pixel_bytes;
 
 	if (x_frac + VID_TO_POS(vc_priv->x_charsize) > vc_priv->xsize_frac)
 		return -EAGAIN;
@@ -250,10 +274,12 @@ static int console_putc_xy_3(struct udevice *dev, uint x_frac, uint y, char ch)
 	ret = fill_char_horizontally(pfont, &line, vid_priv, fontdata, NORMAL_DIRECTION);
 	if (ret)
 		return ret;
-	/* Add a line to allow for the first pixels writen */
-	ret = vidconsole_sync_copy(dev, start + vid_priv->line_length, line);
-	if (ret)
-		return ret;
+
+	video_damage(dev->parent,
+		     y,
+		     linenum - fontdata->width + 1,
+		     fontdata->height,
+		     fontdata->width);
 
 	return VID_TO_POS(fontdata->width);
 }

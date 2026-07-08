@@ -9,7 +9,6 @@
  * Synced from Linux v4.19
  */
 
-#include <common.h>
 #include <log.h>
 #include <dm/device_compat.h>
 #include <linux/err.h>
@@ -220,6 +219,7 @@ static inline int set_4byte(struct spi_nor *nor, const struct flash_info *info,
 	case SNOR_MFR_MICRON:
 		/* Some Micron need WREN command; all will accept it */
 		need_wren = true;
+		fallthrough;
 	case SNOR_MFR_MACRONIX:
 	case SNOR_MFR_WINBOND:
 		if (need_wren)

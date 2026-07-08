@@ -17,13 +17,6 @@ config MX7D
 	select ROM_UNIFIED_SECTIONS
 	imply CMD_FUSE
 
-config TEXT_BASE
-	default 0x87800000
-
-config SPL_TEXT_BASE
-	depends on SPL
-	default 0x00912000
-
 config IMX_TAMPER
 	bool "Enable commands for SNVS tamper pin configuration and test"
 	help
@@ -133,6 +126,7 @@ config TARGET_WARP7
 	select DM_THERMAL
 	select MX7D
 	imply CMD_DM
+	imply OF_UPSTREAM
 
 config TARGET_COLIBRI_IMX7
 	bool "Support Colibri iMX7S/iMX7D modules"
@@ -149,11 +143,11 @@ config SYS_SOC
 
 source "board/compulab/cl-som-imx7/Kconfig"
 source "board/ronetix/imx7-cm/Kconfig"
-source "board/freescale/mx7dsabresd/Kconfig"
-source "board/freescale/mx7d_12x12_lpddr3_val/Kconfig"
-source "board/freescale/mx7d_12x12_ddr3_val/Kconfig"
-source "board/freescale/mx7d_19x19_ddr3_val/Kconfig"
-source "board/freescale/mx7d_19x19_lpddr3_val/Kconfig"
+source "board/nxp/mx7dsabresd/Kconfig"
+source "board/nxp/mx7d_12x12_lpddr3_val/Kconfig"
+source "board/nxp/mx7d_12x12_ddr3_val/Kconfig"
+source "board/nxp/mx7d_19x19_ddr3_val/Kconfig"
+source "board/nxp/mx7d_19x19_lpddr3_val/Kconfig"
 source "board/novtech/meerkat96/Kconfig"
 source "board/storopack/smegw01/Kconfig"
 source "board/technexion/pico-imx7d/Kconfig"

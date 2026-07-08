@@ -7,7 +7,6 @@
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 
 obj-y	+= board.o
-obj-y	+= clock.o
 obj-y	+= cpu_info.o
 obj-y	+= dram_helpers.o
 obj-$(CONFIG_SUN6I_PRCM)	+= prcm.o
@@ -30,7 +29,8 @@ ifndef CONFIG_ARM64
 obj-y	+= timer.o
 endif
 
-ifdef CONFIG_SPL_BUILD
+ifdef CONFIG_XPL_BUILD
+obj-y				+= clock.o
 obj-$(CONFIG_MACH_SUNIV)	+= dram_suniv.o
 obj-$(CONFIG_DRAM_SUN4I)	+= dram_sun4i.o
 obj-$(CONFIG_DRAM_SUN6I)	+= dram_sun6i.o
@@ -41,8 +41,12 @@ obj-$(CONFIG_DRAM_SUN9I)	+= dram_sun9i.o
 obj-$(CONFIG_SPL_SPI_SUNXI)	+= spl_spi_sunxi.o
 obj-$(CONFIG_SUNXI_DRAM_DW)	+= dram_sunxi_dw.o
 obj-$(CONFIG_SUNXI_DRAM_DW)	+= dram_timings/
-obj-$(CONFIG_DRAM_SUN50I_H6)	+= dram_sun50i_h6.o
+obj-$(CONFIG_DRAM_SUN50I_H6)	+= dram_sun50i_h6.o dram_dw_helpers.o
 obj-$(CONFIG_DRAM_SUN50I_H6)	+= dram_timings/
-obj-$(CONFIG_DRAM_SUN50I_H616)	+= dram_sun50i_h616.o
+obj-$(CONFIG_DRAM_SUN50I_H616)	+= dram_sun50i_h616.o dram_dw_helpers.o
 obj-$(CONFIG_DRAM_SUN50I_H616)	+= dram_timings/
+obj-$(CONFIG_DRAM_SUN50I_A133)	+= dram_sun50i_a133.o
+obj-$(CONFIG_DRAM_SUN50I_A133)	+= dram_timings/
+obj-$(CONFIG_MACH_SUN55I_A523)	+= dram_sun55i_a523.o dram_dw_helpers.o
+obj-$(CONFIG_DRAM_SUN55I_A523)	+= dram_timings/
 endif

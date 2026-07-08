@@ -5,7 +5,6 @@
 
 #define LOG_CATEGORY UCLASS_SCMI_AGENT
 
-#include <common.h>
 #include <dm.h>
 #include <errno.h>
 #include <mailbox.h>
@@ -17,7 +16,7 @@
 
 #include "smt.h"
 
-#define TIMEOUT_US_10MS			10000
+#define TIMEOUT_30MS			30
 
 /**
  * struct scmi_mbox_channel - Description of an SCMI mailbox transport
@@ -74,6 +73,7 @@ out:
 
 static int setup_channel(struct udevice *dev, struct scmi_mbox_channel *chan)
 {
+	struct scmi_mbox_channel *base_chan = dev_get_plat(dev);
 	int ret;
 
 	ret = mbox_get_by_index(dev, 0, &chan->mbox);
@@ -88,7 +88,7 @@ static int setup_channel(struct udevice *dev, struct scmi_mbox_channel *chan)
 		return ret;
 	}
 
-	chan->timeout_us = TIMEOUT_US_10MS;
+	chan->timeout_us = base_chan->timeout_us;
 
 	return 0;
 }
@@ -101,7 +101,7 @@ static int scmi_mbox_get_channel(struct udevice *dev,
 	struct scmi_mbox_channel *chan;
 	int ret;
 
-	if (!dev_read_prop(protocol, "shmem", NULL)) {
+	if (!dev_has_ofnode(protocol) || !dev_read_prop(protocol, "shmem", NULL)) {
 		/* Uses agent base channel */
 		*channel = container_of(base_chan, struct scmi_channel, ref);
 
@@ -128,6 +128,9 @@ int scmi_mbox_of_to_plat(struct udevice *dev)
 {
 	struct scmi_mbox_channel *chan = dev_get_plat(dev);
 
+	chan->timeout_us = dev_read_u32_default(dev, "arm,max-rx-timeout-ms",
+						TIMEOUT_30MS) * 1000;
+
 	return setup_channel(dev, chan);
 }
 
@@ -148,5 +151,4 @@ U_BOOT_DRIVER(scmi_mbox) = {
 	.plat_auto	= sizeof(struct scmi_mbox_channel),
 	.of_to_plat	= scmi_mbox_of_to_plat,
 	.ops		= &scmi_mbox_ops,
-	.flags		= DM_FLAG_PRE_RELOC,
 };

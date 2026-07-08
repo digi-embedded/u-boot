@@ -4,6 +4,7 @@
  * NVIDIA Corporation <www.nvidia.com>
  */
 #include <asm/types.h>
+#include <asm/arch-tegra/tegra.h>
 
 /* Stabilization delays, in usec */
 #define PLL_STABILIZATION_DELAY	(300)
@@ -52,6 +53,13 @@ int tegra_get_chip_sku(void);
  * Return:	SOC ID - see CHIPID_TEGRAxx...
  */
 int tegra_get_chip(void);
+
+/**
+ * Returns the pure SOC major version from the HIDREV register
+ *
+ * Return:	SOC major version
+ */
+u32 tegra_get_major_version(void);
 
 /**
  * Returns the SKU ID from the sku_info register

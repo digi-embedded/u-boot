@@ -83,6 +83,7 @@ int imx91_tmu_get_temp(struct udevice *dev, int *temp)
 {
 	struct imx91_tmu *tmu = dev_get_priv(dev);
 	u32 val;
+	s16 data;
 	int ret;
 
 	ret = readl_poll_sleep_timeout(tmu->iobase + STAT0, val,
@@ -90,9 +91,9 @@ int imx91_tmu_get_temp(struct udevice *dev, int *temp)
 	if (ret)
 		return -EAGAIN;
 
-	val = readl_relaxed(tmu->iobase + DATA0) & 0xffffU;
-	*temp = (int)val * 1000LL / 64LL / 1000LL;
-	if (*temp < TMU_TEMP_LOW_LIMIT || *temp > TMU_TEMP_HIGH_LIMIT)
+	data = readw_relaxed(tmu->iobase + DATA0);
+	*temp = data * 1000 / 64;
+	if (*temp < TMU_TEMP_LOW_LIMIT * 1000 || *temp > TMU_TEMP_HIGH_LIMIT * 1000)
 		return -EAGAIN;
 
 	return 0;
@@ -195,7 +196,7 @@ static int imx91_tmu_default_setup(struct imx91_tmu *tmu)
 	 * 10b - Periodic oneshot measurement
 	 */
 	writel_relaxed(FIELD_PREP(CTRL1_MEAS_MODE_MASK, 0x3), tmu->iobase + CTRL1_CLR);
-	writel_relaxed(FIELD_PREP(CTRL1_MEAS_MODE_MASK, 0x1), tmu->iobase + CTRL1_SET);
+	writel_relaxed(FIELD_PREP(CTRL1_MEAS_MODE_MASK, 0x2), tmu->iobase + CTRL1_SET);
 
 	/*
 	 * Set Periodic Measurement Frequency to 25Hz:

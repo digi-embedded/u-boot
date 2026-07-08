@@ -10,7 +10,7 @@
 #define __MX7D_SABRESD_CONFIG_H
 
 #include "mx7_common.h"
-#include "imx_env.h"
+#include <env/nxp/imx_env.h>
 
 #define PHYS_SDRAM_SIZE			SZ_1G
 
@@ -68,7 +68,6 @@
 	TEE_ENV \
 	"fdt_addr=0x83000000\0" \
 	"tee_addr=0x84000000\0" \
-	"fdt_high=0xffffffff\0"	  \
 	"console=ttymxc0\0" \
 	"bootargs=console=ttymxc0,115200 ubi.mtd=nandrootfs "  \
 		"root=ubi0:nandrootfs rootfstype=ubifs "		     \
@@ -92,7 +91,6 @@
 	"script=boot.scr\0" \
 	"image=zImage\0" \
 	"console=ttymxc0\0" \
-	"fdt_high=0xffffffff\0" \
 	"initrd_high=0xffffffff\0" \
 	"fdt_file=undefined\0" \
 	"fdt_addr=0x83000000\0" \
@@ -100,8 +98,8 @@
 	"tee_file=uTee-7dsdb\0" \
 	"boot_fdt=try\0" \
 	"ip_dyn=yes\0" \
+	"mmcdev="__stringify(CONFIG_ENV_MMC_DEVICE_INDEX)"\0" \
 	"splashimage=0x8c000000\0" \
-	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=1\0" \
 	"mmcroot=/dev/mmcblk0p2 rootwait rw\0" \
 	"mmcautodetect=yes\0" \
@@ -196,8 +194,5 @@
 
 /* DMA stuff, needed for GPMI/MXS NAND support */
 #endif
-
-/* USB Configs */
-#define CFG_MXC_USB_PORTSC  (PORT_PTS_UTMI | PORT_PTS_PTW)
 
 #endif	/* __CONFIG_H */

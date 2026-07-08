@@ -22,6 +22,7 @@ def add_upto_m(parser):
 
     This is split out to avoid having too many statements in one function
     """
+    # Available JqzZ
     parser.add_argument('-a', '--adjust-cfg', type=str, action='append',
           help='Adjust the Kconfig settings in .config before building')
     parser.add_argument('-A', '--print-prefix', action='store_true',
@@ -46,6 +47,8 @@ def add_upto_m(parser):
           help='Show detailed size delta for each board in the -S summary')
     parser.add_argument('-D', '--debug', action='store_true',
         help='Enabling debugging (provides a full traceback on error)')
+    parser.add_argument('--dtc-skip', action='store_true', default=False,
+          help='Skip building of dtc and use the system version')
     parser.add_argument('-e', '--show_errors', action='store_true',
           default=False, help='Show errors and warnings')
     parser.add_argument('-E', '--warnings-as-errors', action='store_true',
@@ -90,7 +93,9 @@ def add_upto_m(parser):
     parser.add_argument('--list-tool-chains', action='store_true', default=False,
           help='List available tool chains (use -v to see probing detail)')
     parser.add_argument('-m', '--mrproper', action='store_true',
-          default=False, help="Run 'make mrproper before reconfiguring")
+          default=False, help="Run 'make mrproper' before reconfiguring")
+    parser.add_argument('--fallback-mrproper', action='store_true',
+          default=False, help="Run 'make mrproper' and retry on build failure")
     parser.add_argument(
           '-M', '--allow-missing', action='store_true', default=False,
           help='Tell binman to allow missing blobs and generate fake ones as needed')
@@ -127,6 +132,8 @@ def add_after_m(parser):
           default=False, help="Use an O= (output) directory per board rather than per thread")
     parser.add_argument('--print-arch', action='store_true',
           default=False, help="Print the architecture for a board (ARCH=)")
+    parser.add_argument('--process-limit', type=int,
+          default=0, help='Limit to number of buildmans running at once')
     parser.add_argument('-r', '--reproducible-builds', action='store_true',
           help='Set SOURCE_DATE_EPOCH=0 to suuport a reproducible build')
     parser.add_argument('-R', '--regen-board-list', type=str,
@@ -147,6 +154,8 @@ def add_after_m(parser):
     parser.add_argument('-T', '--threads', type=int,
           default=None,
           help='Number of builder threads to use (0=single-thread)')
+    parser.add_argument('--target', type=str,
+          default=None, help='Build target to use')
     parser.add_argument('-u', '--show_unknown', action='store_true',
           default=False, help='Show boards with unknown build result')
     parser.add_argument('-U', '--show-environment', action='store_true',

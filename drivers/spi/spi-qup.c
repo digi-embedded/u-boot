@@ -15,7 +15,6 @@
 #include <asm/gpio.h>
 #include <asm/io.h>
 #include <clk.h>
-#include <common.h>
 #include <dm.h>
 #include <errno.h>
 #include <linux/delay.h>
@@ -719,7 +718,7 @@ static int qup_spi_xfer(struct udevice *dev, unsigned int bitlen,
 		if (ret != 0)
 			return ret;
 
-		ret = qup_spi_set_cs(bus, slave_plat->cs, false);
+		ret = qup_spi_set_cs(bus, slave_plat->cs[0], false);
 		if (ret != 0)
 			return ret;
 	}
@@ -737,7 +736,7 @@ static int qup_spi_xfer(struct udevice *dev, unsigned int bitlen,
 	}
 
 	if (flags & SPI_XFER_END) {
-		ret = qup_spi_set_cs(bus, slave_plat->cs, true);
+		ret = qup_spi_set_cs(bus, slave_plat->cs[0], true);
 		if (ret != 0)
 			return ret;
 	}

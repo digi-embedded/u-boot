@@ -9,6 +9,7 @@
 
 #include <linux/types.h>
 #include <asm/regdef.h>
+#include <asm/u-boot.h>
 
 struct octeon_eeprom_mac_addr {
 	u8 mac_addr_base[6];
@@ -43,6 +44,6 @@ struct arch_global_data {
 
 #include <asm-generic/global_data.h>
 
-#define DECLARE_GLOBAL_DATA_PTR     register volatile gd_t *gd asm ("k0")
+#define DECLARE_GLOBAL_DATA_PTR     register gd_t *gd asm ("k0")
 
 #endif /* __ASM_GBL_DATA_H */

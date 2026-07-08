@@ -12,7 +12,6 @@
  * Maxime Ripard <maxime.ripard@free-electrons.com>
  */
 
-#include <common.h>
 #include <dm.h>
 #include <log.h>
 #include <malloc.h>
@@ -24,6 +23,7 @@
 #include <linux/bitops.h>
 #include <linux/io.h>
 #include <linux/sizes.h>
+#include <linux/kconfig.h>
 
 #define BANK_INCREMENT		4
 #define NR_BANKS		8
@@ -47,7 +47,7 @@ struct socfpga_reset_data {
  */
 static bool socfpga_reset_keep_enabled(void)
 {
-#if !defined(CONFIG_SPL_BUILD) || CONFIG_IS_ENABLED(ENV_SUPPORT)
+#if !defined(CONFIG_XPL_BUILD) || CONFIG_IS_ENABLED(ENV_SUPPORT)
 	const char *env_str;
 	long val;
 
@@ -115,6 +115,8 @@ static int socfpga_reset_remove(struct udevice *dev)
 	if (socfpga_reset_keep_enabled()) {
 		puts("Deasserting all peripheral resets\n");
 		writel(0, data->modrst_base + 4);
+		if (IS_ENABLED(CONFIG_TARGET_SOCFPGA_ARRIA10))
+			writel(0, data->modrst_base + 8);
 	}
 
 	return 0;

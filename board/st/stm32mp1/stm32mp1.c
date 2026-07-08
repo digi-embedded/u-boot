@@ -5,9 +5,9 @@
 
 #define LOG_CATEGORY LOGC_BOARD
 
-#include <common.h>
 #include <adc.h>
 #include <bootm.h>
+#include <button.h>
 #include <clk.h>
 #include <config.h>
 #include <dm.h>
@@ -38,6 +38,7 @@
 #include <asm/gpio.h>
 #include <asm/arch/stm32.h>
 #include <asm/arch/sys_proto.h>
+#include <dm/device-internal.h>
 #include <dm/ofnode.h>
 #include <jffs2/load_kernel.h>
 #include <linux/bitops.h>
@@ -52,12 +53,10 @@
 
 /* SYSCFG registers */
 #define SYSCFG_BOOTR		0x00
-#define SYSCFG_PMCSETR		0x04
 #define SYSCFG_IOCTRLSETR	0x18
 #define SYSCFG_ICNR		0x1C
 #define SYSCFG_CMPCR		0x20
 #define SYSCFG_CMPENSETR	0x24
-#define SYSCFG_PMCCLRR		0x44
 
 #define SYSCFG_BOOTR_BOOT_MASK		GENMASK(2, 0)
 #define SYSCFG_BOOTR_BOOTPD_SHIFT	4
@@ -72,16 +71,6 @@
 #define SYSCFG_CMPCR_READY		BIT(8)
 
 #define SYSCFG_CMPENSETR_MPU_EN		BIT(0)
-
-#define SYSCFG_PMCSETR_ETH_CLK_SEL	BIT(16)
-#define SYSCFG_PMCSETR_ETH_REF_CLK_SEL	BIT(17)
-
-#define SYSCFG_PMCSETR_ETH_SELMII	BIT(20)
-
-#define SYSCFG_PMCSETR_ETH_SEL_MASK	GENMASK(23, 21)
-#define SYSCFG_PMCSETR_ETH_SEL_GMII_MII	0
-#define SYSCFG_PMCSETR_ETH_SEL_RGMII	BIT(21)
-#define SYSCFG_PMCSETR_ETH_SEL_RMII	BIT(23)
 
 #define USB_LOW_THRESHOLD_UV		200000
 #define USB_WARNING_LOW_THRESHOLD_UV	660000
@@ -150,45 +139,55 @@ int checkboard(void)
 
 static void board_key_check(void)
 {
-	ofnode node;
-	struct gpio_desc gpio;
+	struct udevice *button1 = NULL, *button2 = NULL;
 	enum forced_boot_mode boot_mode = BOOT_NORMAL;
+	int ret;
+
+	if (!IS_ENABLED(CONFIG_BUTTON))
+		return;
 
 	if (!IS_ENABLED(CONFIG_FASTBOOT) && !IS_ENABLED(CONFIG_CMD_STM32PROG))
 		return;
 
-	node = ofnode_path("/config");
-	if (!ofnode_valid(node)) {
-		log_debug("no /config node?\n");
-		return;
-	}
-	if (IS_ENABLED(CONFIG_FASTBOOT)) {
-		if (gpio_request_by_name_nodev(node, "st,fastboot-gpios", 0,
-					       &gpio, GPIOD_IS_IN)) {
-			log_debug("could not find a /config/st,fastboot-gpios\n");
-		} else {
-			udelay(20);
-			if (dm_gpio_get_value(&gpio)) {
-				log_notice("Fastboot key pressed, ");
-				boot_mode = BOOT_FASTBOOT;
-			}
+	if (IS_ENABLED(CONFIG_CMD_STM32PROG))
+		button_get_by_label("User-1", &button1);
 
-			dm_gpio_free(NULL, &gpio);
+	if (IS_ENABLED(CONFIG_FASTBOOT))
+		button_get_by_label("User-2", &button2);
+
+	if (!button1 && !button2)
+		return;
+
+	if (button2) {
+		if (button_get_state(button2) == BUTTON_ON) {
+			log_notice("Fastboot key pressed, ");
+			boot_mode = BOOT_FASTBOOT;
 		}
+		/*
+		 * On some boards, same gpio is shared betwwen gpio-keys and
+		 * leds, remove the button device to free the gpio for led
+		 * usage
+		 */
+		ret = device_remove(button2, DM_REMOVE_NORMAL);
+		if (ret)
+			log_err("Can't remove button2 (%d)\n", ret);
 	}
-	if (IS_ENABLED(CONFIG_CMD_STM32PROG)) {
-		if (gpio_request_by_name_nodev(node, "st,stm32prog-gpios", 0,
-					       &gpio, GPIOD_IS_IN)) {
-			log_debug("could not find a /config/st,stm32prog-gpios\n");
-		} else {
-			udelay(20);
-			if (dm_gpio_get_value(&gpio)) {
-				log_notice("STM32Programmer key pressed, ");
-				boot_mode = BOOT_STM32PROG;
-			}
-			dm_gpio_free(NULL, &gpio);
+
+	if (button1) {
+		if (button_get_state(button1) == BUTTON_ON) {
+			log_notice("STM32Programmer key pressed, ");
+			boot_mode = BOOT_STM32PROG;
 		}
+		/*
+		 * On some boards, same gpio is shared betwwen gpio-keys and
+		 * leds, remove the button device to free the gpio for led
+		 * usage
+		 */
+		ret = device_remove(button1, DM_REMOVE_NORMAL);
+		if (ret)
+			log_err("Can't remove button1 (%d)\n", ret);
 	}
+
 	if (boot_mode != BOOT_NORMAL) {
 		log_notice("entering download mode...\n");
 		clrsetbits_le32(TAMP_BOOT_CONTEXT,
@@ -248,41 +247,6 @@ int g_dnl_bind_fixup(struct usb_device_descriptor *dev, const char *name)
 }
 #endif /* CONFIG_USB_GADGET_DOWNLOAD */
 
-static int get_led(struct udevice **dev, char *led_string)
-{
-	const char *led_name;
-	int ret;
-
-	led_name = ofnode_conf_read_str(led_string);
-	if (!led_name) {
-		log_debug("could not find %s config string\n", led_string);
-		return -ENOENT;
-	}
-	ret = led_get_by_label(led_name, dev);
-	if (ret) {
-		log_debug("get=%d\n", ret);
-		return ret;
-	}
-
-	return 0;
-}
-
-static int setup_led(enum led_state_t cmd)
-{
-	struct udevice *dev;
-	int ret;
-
-	if (!CONFIG_IS_ENABLED(LED))
-		return 0;
-
-	ret = get_led(&dev, "u-boot,boot-led");
-	if (ret)
-		return ret;
-
-	ret = led_set_state(dev, cmd);
-	return ret;
-}
-
 static void __maybe_unused led_error_blink(u32 nb_blink)
 {
 	int ret;
@@ -293,9 +257,9 @@ static void __maybe_unused led_error_blink(u32 nb_blink)
 		return;
 
 	if (CONFIG_IS_ENABLED(LED)) {
-		ret = get_led(&led, "u-boot,error-led");
+		ret = led_get_by_label("red:status", &led);
 		if (!ret) {
-			/* make u-boot,error-led blinking */
+			/* make led "red:status" blinking */
 			/* if U32_MAX and 125ms interval, for 17.02 years */
 			for (i = 0; i < 2 * nb_blink; i++) {
 				led_set_state(led, LEDST_TOGGLE);
@@ -419,7 +383,7 @@ static int board_check_usb_power(void)
 	 * If highest and lowest value are either both below
 	 * USB_LOW_THRESHOLD_UV or both above USB_LOW_THRESHOLD_UV, that
 	 * means USB TYPE-C is in unattached mode, this is an issue, make
-	 * u-boot,error-led blinking and stop boot process.
+	 * led "red:status" blinking and stop boot process.
 	 */
 	if ((max_uV > USB_LOW_THRESHOLD_UV &&
 	     min_uV > USB_LOW_THRESHOLD_UV) ||
@@ -666,16 +630,12 @@ int board_init(void)
 	if (board_is_stm32mp15x_dk2())
 		board_stm32mp15x_dk2_init();
 
-	regulators_enable_boot_on(_DEBUG);
-
 	/*
 	 * sysconf initialisation done only when U-Boot is running in secure
 	 * done in TF-A for TFABOOT.
 	 */
 	if (IS_ENABLED(CONFIG_ARMV7_NONSEC))
 		sysconf_init();
-
-	setup_led(LEDST_ON);
 
 #if IS_ENABLED(CONFIG_EFI_HAVE_CAPSULE_SUPPORT)
 	efi_guid_t image_type_guid = STM32MP_FIP_IMAGE_GUID;
@@ -739,77 +699,7 @@ int board_late_init(void)
 
 void board_quiesce_devices(void)
 {
-	setup_led(LEDST_OFF);
-}
-
-/* eth init function : weak called in eqos driver */
-int board_interface_eth_init(struct udevice *dev,
-			     phy_interface_t interface_type)
-{
-	u8 *syscfg;
-	u32 value;
-	bool eth_clk_sel_reg = false;
-	bool eth_ref_clk_sel_reg = false;
-
-	/* Gigabit Ethernet 125MHz clock selection. */
-	eth_clk_sel_reg = dev_read_bool(dev, "st,eth-clk-sel");
-
-	/* Ethernet 50Mhz RMII clock selection */
-	eth_ref_clk_sel_reg =
-		dev_read_bool(dev, "st,eth-ref-clk-sel");
-
-	syscfg = (u8 *)syscon_get_first_range(STM32MP_SYSCON_SYSCFG);
-
-	if (!syscfg)
-		return -ENODEV;
-
-	switch (interface_type) {
-	case PHY_INTERFACE_MODE_MII:
-		value = SYSCFG_PMCSETR_ETH_SEL_GMII_MII |
-			SYSCFG_PMCSETR_ETH_REF_CLK_SEL;
-		log_debug("PHY_INTERFACE_MODE_MII\n");
-		break;
-	case PHY_INTERFACE_MODE_GMII:
-		if (eth_clk_sel_reg)
-			value = SYSCFG_PMCSETR_ETH_SEL_GMII_MII |
-				SYSCFG_PMCSETR_ETH_CLK_SEL;
-		else
-			value = SYSCFG_PMCSETR_ETH_SEL_GMII_MII;
-		log_debug("PHY_INTERFACE_MODE_GMII\n");
-		break;
-	case PHY_INTERFACE_MODE_RMII:
-		if (eth_ref_clk_sel_reg)
-			value = SYSCFG_PMCSETR_ETH_SEL_RMII |
-				SYSCFG_PMCSETR_ETH_REF_CLK_SEL;
-		else
-			value = SYSCFG_PMCSETR_ETH_SEL_RMII;
-		log_debug("PHY_INTERFACE_MODE_RMII\n");
-		break;
-	case PHY_INTERFACE_MODE_RGMII:
-	case PHY_INTERFACE_MODE_RGMII_ID:
-	case PHY_INTERFACE_MODE_RGMII_RXID:
-	case PHY_INTERFACE_MODE_RGMII_TXID:
-		if (eth_clk_sel_reg)
-			value = SYSCFG_PMCSETR_ETH_SEL_RGMII |
-				SYSCFG_PMCSETR_ETH_CLK_SEL;
-		else
-			value = SYSCFG_PMCSETR_ETH_SEL_RGMII;
-		log_debug("PHY_INTERFACE_MODE_RGMII\n");
-		break;
-	default:
-		log_debug("Do not manage %d interface\n",
-			  interface_type);
-		/* Do not manage others interfaces */
-		return -EINVAL;
-	}
-
-	/* clear and set ETH configuration bits */
-	writel(SYSCFG_PMCSETR_ETH_SEL_MASK | SYSCFG_PMCSETR_ETH_SELMII |
-	       SYSCFG_PMCSETR_ETH_REF_CLK_SEL | SYSCFG_PMCSETR_ETH_CLK_SEL,
-	       syscfg + SYSCFG_PMCCLRR);
-	writel(value, syscfg + SYSCFG_PMCSETR);
-
-	return 0;
+	led_boot_off();
 }
 
 enum env_location env_get_location(enum env_operation op, int prio)
@@ -903,7 +793,7 @@ const char *env_ext4_get_dev_part(void)
 
 int mmc_get_env_dev(void)
 {
-	const int mmc_env_dev = CONFIG_IS_ENABLED(ENV_IS_IN_MMC, (CONFIG_SYS_MMC_ENV_DEV), (-1));
+	const int mmc_env_dev = CONFIG_IS_ENABLED(ENV_IS_IN_MMC, (CONFIG_ENV_MMC_DEVICE_INDEX), (-1));
 
 	if (mmc_env_dev >= 0)
 		return mmc_env_dev;

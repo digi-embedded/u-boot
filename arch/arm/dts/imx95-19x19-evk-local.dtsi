@@ -1,0 +1,72 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright 2025 NXP
+ */
+
+#include <dt-bindings/usb/pd.h>
+
+/ {
+	aliases {
+		ethernet1 = &enetc_port2;
+		spi0 = &flexspi1;
+		usb0 = &usb3_dwc3;
+		usb1 = &usb2;
+	};
+
+	chosen {
+		bootargs = "console=ttyLP0,115200 earlycon";
+	};
+
+	reg_aqr_stby: regulator-aqr-stby {
+		compatible = "regulator-fixed";
+		regulator-name = "aqr-stby";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&i2c5_pcal6408 1 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
+	reg_aqr_en: regulator-aqr-en {
+		compatible = "regulator-fixed";
+		regulator-name = "aqr-en";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		vin-supply = <&reg_aqr_stby>;
+		gpio = <&i2c5_pcal6408 0 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
+	reg_serdes_stby: regulator-mac-stby {
+		compatible = "regulator-fixed";
+		regulator-name = "mac-stby";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&i2c7_pcal6524 13 GPIO_ACTIVE_LOW>;
+	};
+
+	reg_serdes_en: regulator-mac-en {
+		compatible = "regulator-fixed";
+		regulator-name = "mac-en";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		vin-supply = <&reg_serdes_stby>;
+		gpio = <&i2c5_pcal6408 3 GPIO_ACTIVE_LOW>;
+	};
+};
+
+&enetc_port2 {
+	phy-handle = <&ethphy2>;
+	phy-mode = "10gbase-r";
+	serdes-supply = <&reg_serdes_en>;
+	managed = "in-band-status";
+	status = "okay";
+};
+
+&netc_emdio {
+	phy-supply = <&reg_aqr_en>;
+
+	ethphy2: ethernet-phy@8 {
+		compatible = "ethernet-phy-ieee802.3-c45";
+		reg = <8>;
+	};
+};

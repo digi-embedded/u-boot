@@ -15,7 +15,7 @@
  * DENX Software Engineering GmbH
  */
 
-#include <common.h>
+#include <config.h>
 #include <dm.h>
 #include <init.h>
 #include <net.h>
@@ -25,7 +25,7 @@
 #include <asm/arch/at91sam9260_matrix.h>
 #include <asm/arch/at91sam9_smc.h>
 #include <asm/arch/at91_common.h>
-#include <asm/arch/atmel_serial.h>
+#include <dm/platform_data/atmel_serial.h>
 #include <asm/arch/at91_spi.h>
 #include <spi.h>
 #include <asm/arch/clk.h>
@@ -191,7 +191,7 @@ int board_eth_init(struct bd_info *bis)
 #endif /* CONFIG_MACB */
 #endif
 
-#if defined(CONFIG_SPL_BUILD)
+#if defined(CONFIG_XPL_BUILD)
 #include <spl.h>
 #include <nand.h>
 #include <spi_flash.h>
@@ -238,7 +238,7 @@ void at91_spl_board_init(void)
 			 | AT91_SDRAMC_TRP_VAL(2) | AT91_SDRAMC_TRCD_VAL(2) \
 			 | AT91_SDRAMC_TRAS_VAL(5) | AT91_SDRAMC_TXSR_VAL(8))
 
-void mem_init(void)
+void at91_mem_init(void)
 {
 	struct at91_matrix *ma = (struct at91_matrix *)ATMEL_BASE_MATRIX;
 	struct at91_port *port = (struct at91_port *)ATMEL_BASE_PIOC;

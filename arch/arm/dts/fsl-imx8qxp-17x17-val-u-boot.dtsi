@@ -5,7 +5,7 @@
 
 / {
 	aliases {
-		usbgadget0 = &usbg1;
+		usb_gadget0 = &usbg1;
 	};
 
 	usbg1: usbg1 {

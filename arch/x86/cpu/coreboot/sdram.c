@@ -5,7 +5,6 @@
  * Graeme Russ, <graeme.russ@gmail.com>
  */
 
-#include <common.h>
 #include <init.h>
 #include <asm/e820.h>
 #include <asm/cb_sysinfo.h>
@@ -43,6 +42,8 @@ phys_addr_t board_get_usable_ram_top(phys_size_t total_size)
 			continue;
 
 		/* Filter memory over 4GB. */
+		if (start > 0xffffffffULL)
+			continue;
 		if (end > 0xffffffffULL)
 			end = 0x100000000ULL;
 		/* Skip this region if it's too small. */

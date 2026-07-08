@@ -66,11 +66,16 @@
 
 /* RTC */
 #define CFG_SYS_I2C_RTC_ADDR		0x51  /* Channel 0 I2C bus 0*/
-#define CFG_SYS_RTC_BUS_NUM			0
 
 /*
  * Environment
  */
+#ifndef SPL_NO_MISC
+/* Initial environment variables */
+#define CFG_EXTRA_ENV_SETTINGS      \
+	EXTRA_ENV_SETTINGS
+#endif
+
 #define CFG_SYS_FSL_QSPI_BASE	0x40000000
 
 #undef BOOT_TARGET_DEVICES

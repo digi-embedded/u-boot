@@ -4,7 +4,6 @@
  * Copyright 2023 NXP
  */
 
-#include <common.h>
 #include <clk.h>
 #include <dm.h>
 #include <dm/device_compat.h>

@@ -7,7 +7,6 @@
 
 #define LOG_CATEGORY UCLASS_CROS_EC
 
-#include <common.h>
 #include <cros_ec.h>
 #include <dm.h>
 #include <ec_commands.h>
@@ -16,7 +15,7 @@
 #include <log.h>
 #include <os.h>
 #include <u-boot/sha256.h>
-#include <spi.h>
+#include <time.h>
 #include <asm/malloc.h>
 #include <asm/state.h>
 #include <asm/sdl.h>
@@ -541,7 +540,7 @@ static int process_cmd(struct ec_state *ec,
 		const struct ec_params_vstore_write *req = req_data;
 		struct vstore_slot *slot;
 
-		if (req->slot >= EC_VSTORE_SLOT_MAX)
+		if (req->slot >= VSTORE_SLOT_COUNT)
 			return -EINVAL;
 		slot = &ec->slot[req->slot];
 		slot->locked = true;
@@ -554,7 +553,7 @@ static int process_cmd(struct ec_state *ec,
 		struct ec_response_vstore_read *resp = resp_data;
 		struct vstore_slot *slot;
 
-		if (req->slot >= EC_VSTORE_SLOT_MAX)
+		if (req->slot >= VSTORE_SLOT_COUNT)
 			return -EINVAL;
 		slot = &ec->slot[req->slot];
 		memcpy(resp->data, slot->data, EC_VSTORE_SLOT_SIZE);

@@ -6,6 +6,10 @@
 #include "imx93-u-boot.dtsi"
 
 / {
+	chosen {
+		bootargs = "console=ttyLP0,115200";
+	};
+
 	wdt-reboot {
 		compatible = "wdt-reboot";
 		wdt = <&wdog3>;
@@ -14,7 +18,7 @@
 	};
 
 	aliases {
-		usbgadget0 = &usbg1;
+		usb_gadget0 = &usbg1;
 	};
 
 	usbg1: usbg1 {
@@ -28,6 +32,30 @@
 		optee {
 			compatible = "linaro,optee-tz";
 			method = "smc";
+		};
+	};
+
+	dsi_host: dsi-host {
+		compatible = "synopsys,dw-mipi-dsi";
+		status = "okay";
+	};
+
+	rm67199_panel {
+		compatible = "raydium,rm67199";
+		reset-gpio = <&pcal6524_2 4 GPIO_ACTIVE_LOW>;
+		dsi-lanes = <4>;
+		video-mode = <2>;	/* 0: burst mode
+					 * 1: non-burst mode with sync event
+					 * 2: non-burst mode with sync pulse
+					 */
+		width-mm = <68>;
+		height-mm = <121>;
+		status = "okay";
+
+		port {
+			panel_in: endpoint {
+				remote-endpoint = <&dsi_out>;
+			};
 		};
 	};
 };
@@ -63,6 +91,17 @@
 &iomuxc {
 	bootph-pre-ram;
 	bootph-some-ram;
+
+	pinctrl_flexspi: flexspigrp {
+		fsl,pins = <
+			MX93_PAD_SD3_CMD__FLEXSPI1_A_SS0_B	0x3fe
+			MX93_PAD_SD3_CLK__FLEXSPI1_A_SCLK	0x3fe
+			MX93_PAD_SD3_DATA0__FLEXSPI1_A_DATA00	0x3fe
+			MX93_PAD_SD3_DATA1__FLEXSPI1_A_DATA01	0x3fe
+			MX93_PAD_SD3_DATA2__FLEXSPI1_A_DATA02	0x3fe
+			MX93_PAD_SD3_DATA3__FLEXSPI1_A_DATA03	0x3fe
+		>;
+	};
 };
 
 &reg_usdhc2_vmmc {
@@ -127,10 +166,107 @@
 
 &lpi2c1 {
 	bootph-pre-ram;
+
+	adv7535: hdmi@3d {
+		compatible = "adi,adv7535";
+		reg = <0x3d>;
+		adi,addr-cec = <0x3c>;
+		adi,dsi-lanes = <4>;
+		status = "okay";
+
+		port {
+			adv7535_to_dsi: endpoint {
+				remote-endpoint = <&dsi_to_adv7535>;
+			};
+		};
+	};
 };
 
 &lpi2c2 {
 	bootph-pre-ram;
+
+	pmic@25 {
+		compatible = "nxp,pca9452";
+		reg = <0x25>;
+		interrupt-parent = <&pcal6524>;
+		interrupts = <11 IRQ_TYPE_EDGE_FALLING>;
+
+		regulators {
+			buck1: BUCK1 {
+				regulator-name = "BUCK1";
+				regulator-min-microvolt = <650000>;
+				regulator-max-microvolt = <2237500>;
+				regulator-boot-on;
+				regulator-always-on;
+				regulator-ramp-delay = <3125>;
+			};
+
+			buck2: BUCK2 {
+				regulator-name = "BUCK2";
+				regulator-min-microvolt = <600000>;
+				regulator-max-microvolt = <2187500>;
+				regulator-boot-on;
+				regulator-always-on;
+				regulator-ramp-delay = <3125>;
+			};
+
+			buck4: BUCK4{
+				regulator-name = "BUCK4";
+				regulator-min-microvolt = <600000>;
+				regulator-max-microvolt = <3400000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			buck5: BUCK5{
+				regulator-name = "BUCK5";
+				regulator-min-microvolt = <600000>;
+				regulator-max-microvolt = <3400000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			buck6: BUCK6 {
+				regulator-name = "BUCK6";
+				regulator-min-microvolt = <600000>;
+				regulator-max-microvolt = <3400000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			ldo1: LDO1 {
+				regulator-name = "LDO1";
+				regulator-min-microvolt = <1600000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			ldo3: LDO3 {
+				regulator-name = "LDO3";
+				regulator-min-microvolt = <800000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			ldo4: LDO4 {
+				regulator-name = "LDO4";
+				regulator-min-microvolt = <800000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			ldo5: LDO5 {
+				regulator-name = "LDO5";
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+		};
+	};
 };
 
 &lpi2c3 {
@@ -200,8 +336,47 @@
 	bootph-pre-ram;
 };
 
+&flexspi1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_flexspi>;
+	assigned-clock-rates = <80000000>;
+	status = "okay";
+
+	flash0: flash@0 {
+		reg = <0>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "jedec,spi-nor";
+		spi-max-frequency = <80000000>;
+		spi-tx-bus-width = <4>;
+		spi-rx-bus-width = <4>;
+	};
+};
 &lcdif {
 	assigned-clocks = <&clk IMX93_CLK_MEDIA_AXI>, <&clk IMX93_CLK_MEDIA_APB>;
 	assigned-clock-parents = <&clk IMX93_CLK_SYS_PLL_PFD1>, <&clk IMX93_CLK_SYS_PLL_PFD1_DIV2>;
 	assigned-clock-rates = <400000000>, <133333334>;
+	status = "okay";
+};
+
+&dphy {
+	status = "okay";
+};
+
+&dsi {
+	status = "okay";
+
+	ports {
+		port@1 {
+			dsi_to_adv7535: endpoint {
+				remote-endpoint = <&adv7535_to_dsi>;
+			};
+		};
+
+		port@2 {
+			dsi_out: endpoint {
+				remote-endpoint = <&panel_in>;
+			};
+		};
+	};
 };

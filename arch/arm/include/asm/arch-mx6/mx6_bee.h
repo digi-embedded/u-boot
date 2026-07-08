@@ -4,8 +4,6 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
-#include <common.h>
-
 #define GPR0           0x0
 #define GPR1           0x4
 #define GPR2           0x8

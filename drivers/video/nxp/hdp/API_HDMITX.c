@@ -47,10 +47,8 @@
 #include "API_HDMITX.h"
 #include "util.h"
 #include "opcodes.h"
-#ifndef __UBOOT__
 #include "string.h"
 #include "stdio.h"
-#endif
 #include "mhl_hdtx_top.h"
 #include "source_phy.h"
 #include "address.h"

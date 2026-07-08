@@ -3,7 +3,6 @@
  * Copyright 2022 NXP
  */
 
-#include <common.h>
 #include <backlight.h>
 #include <dm.h>
 #include <mipi_dsi.h>

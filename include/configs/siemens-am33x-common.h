@@ -40,7 +40,6 @@
 #define CFG_SYS_NS16550_COM1		0x44e09000
 #define CFG_SYS_NS16550_COM4		0x481a6000
 
-
 /* I2C Configuration */
 
 /* Defines for SPL */
@@ -129,7 +128,6 @@
 	"verify=no \0" \
 	"project_dir=targetdir\0" \
 	"upgrade_available=0\0" \
-	"altbootcmd=run bootcmd\0" \
 	"partitionset_active=A\0" \
 	"loadaddr=0x82000000\0" \
 	"kloadaddr=0x81000000\0" \

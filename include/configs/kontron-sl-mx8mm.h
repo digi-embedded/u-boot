@@ -10,7 +10,7 @@
 #include <asm/arch/imx-regs.h>
 #include <linux/sizes.h>
 
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 #include <config.h>
 #endif
 
@@ -24,31 +24,14 @@
 
 /* Board and environment settings */
 
-#ifdef CONFIG_USB_EHCI_HCD
-#define CFG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
-#define CFG_MXC_USB_FLAGS		0
-#endif
-
 /* GUID for capsule updatable firmware image */
 #define KONTRON_SL_MX8MM_FIT_IMAGE_GUID \
 	EFI_GUID(0xd488e45a, 0x4929, 0x4b55, 0x8c, 0x14, \
 		 0x86, 0xce, 0xa2, 0xcd, 0x66, 0x29)
 
-#define BOOT_TARGET_DEVICES(func) \
-	func(MMC, mmc, 1) \
-	func(MMC, mmc, 0) \
-	func(USB, usb, 0) \
-	func(PXE, pxe, na)
-#include <config_distro_bootcmd.h>
-/* Do not try to probe USB net adapters for net boot */
-#undef BOOTENV_RUN_NET_USB_START
-#define BOOTENV_RUN_NET_USB_START
-
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 /* malloc f used before GD_FLG_FULL_MALLOC_INIT set */
 #define CFG_MALLOC_F_ADDR		0x930000
 #endif
-
-#define CFG_EXTRA_ENV_SETTINGS BOOTENV
 
 #endif /* __KONTRON_MX8MM_CONFIG_H */

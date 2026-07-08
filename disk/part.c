@@ -4,16 +4,15 @@
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  */
 
-#include <common.h>
 #include <blk.h>
 #include <command.h>
 #include <env.h>
 #include <errno.h>
-#include <ide.h>
 #include <log.h>
 #include <malloc.h>
 #include <part.h>
 #include <ubifs_uboot.h>
+#include <dm/uclass.h>
 
 #undef	PART_DEBUG
 
@@ -48,23 +47,7 @@ static struct part_driver *part_driver_get_type(int part_type)
 	return NULL;
 }
 
-/**
- * part_driver_lookup_type() - Look up the partition driver for a blk device
- *
- * If @desc->part_type is PART_TYPE_UNKNOWN, this checks each parition driver
- * against the blk device to see if there is a valid partition table acceptable
- * to that driver.
- *
- * If @desc->part_type is already set, it just returns the driver for that
- * type, without testing if the driver can find a valid partition on the
- * descriptor.
- *
- * On success it updates @desc->part_type if set to PART_TYPE_UNKNOWN on entry
- *
- * @dev_desc: Device descriptor
- * Return: Driver found, or NULL if none
- */
-static struct part_driver *part_driver_lookup_type(struct blk_desc *desc)
+struct part_driver *part_driver_lookup_type(struct blk_desc *desc)
 {
 	struct part_driver *drv =
 		ll_entry_start(struct part_driver, part_driver);
@@ -87,6 +70,28 @@ static struct part_driver *part_driver_lookup_type(struct blk_desc *desc)
 
 	/* Not found */
 	return NULL;
+}
+
+static void disk_partition_clr(struct disk_partition *info)
+{
+	/* The common case is no UUID support */
+	disk_partition_clr_uuid(info);
+	disk_partition_clr_type_guid(info);
+	info->name[0] = '\0';
+	info->type[0] = '\0';
+}
+
+int part_driver_get_info(struct part_driver *drv, struct blk_desc *desc, int part,
+			 struct disk_partition *info)
+{
+	if (!drv->get_info) {
+		log_debug("## Driver %s does not have the get_info() method\n",
+			  drv->name);
+		return -ENOSYS;
+	}
+
+	disk_partition_clr(info);
+	return drv->get_info(desc, part, info);
 }
 
 int part_get_type_by_name(const char *name)
@@ -285,6 +290,13 @@ void part_init(struct blk_desc *desc)
 
 	blkcache_invalidate(desc->uclass_id, desc->devnum);
 
+	if (desc->part_type != PART_TYPE_UNKNOWN) {
+		for (entry = drv; entry != drv + n_ents; entry++) {
+			if (entry->part_type == desc->part_type && !entry->test(desc))
+				return;
+		}
+	}
+
 	desc->part_type = PART_TYPE_UNKNOWN;
 	for (entry = drv; entry != drv + n_ents; entry++) {
 		int ret;
@@ -304,51 +316,10 @@ static void print_part_header(const char *type, struct blk_desc *desc)
 	CONFIG_IS_ENABLED(DOS_PARTITION) || \
 	CONFIG_IS_ENABLED(ISO_PARTITION) || \
 	CONFIG_IS_ENABLED(AMIGA_PARTITION) || \
-	CONFIG_IS_ENABLED(EFI_PARTITION)
-	puts ("\nPartition Map for ");
-	switch (desc->uclass_id) {
-	case UCLASS_IDE:
-		puts ("IDE");
-		break;
-	case UCLASS_AHCI:
-		puts ("SATA");
-		break;
-	case UCLASS_SCSI:
-		puts ("SCSI");
-		break;
-	case UCLASS_USB:
-		puts ("USB");
-		break;
-	case UCLASS_MMC:
-		puts ("MMC");
-		break;
-	case UCLASS_HOST:
-		puts ("HOST");
-		break;
-	case UCLASS_NVME:
-		puts ("NVMe");
-		break;
-	case UCLASS_PVBLOCK:
-		puts("PV BLOCK");
-		break;
-	case UCLASS_RKMTD:
-		puts("RKMTD");
-		break;
-	case UCLASS_VIRTIO:
-		puts("VirtIO");
-		break;
-	case UCLASS_EFI_MEDIA:
-		puts("EFI");
-		break;
-	case UCLASS_BLKMAP:
-		puts("BLKMAP");
-		break;
-	default:
-		printf("UNKNOWN(%d)", desc->uclass_id);
-		break;
-	}
-	printf (" device %d  --   Partition Type: %s\n\n",
-			desc->devnum, type);
+	CONFIG_IS_ENABLED(EFI_PARTITION) || \
+	CONFIG_IS_ENABLED(MTD_PARTITIONS)
+	printf("\nPartition Map for %s device %d  --   Partition Type: %s\n\n",
+	       uclass_get_name(desc->uclass_id), desc->devnum, type);
 #endif /* any CONFIG_..._PARTITION */
 }
 
@@ -373,12 +344,9 @@ int part_get_info_by_type(struct blk_desc *desc, int part, int part_type,
 			  struct disk_partition *info)
 {
 	struct part_driver *drv;
+	int ret = -ENOENT;
 
 	if (blk_enabled()) {
-		/* The common case is no UUID support */
-		disk_partition_clr_uuid(info);
-		disk_partition_clr_type_guid(info);
-
 		if (part_type == PART_TYPE_UNKNOWN) {
 			drv = part_driver_lookup_type(desc);
 		} else {
@@ -390,18 +358,16 @@ int part_get_info_by_type(struct blk_desc *desc, int part, int part_type,
 			      desc->part_type);
 			return -EPROTONOSUPPORT;
 		}
-		if (!drv->get_info) {
-			PRINTF("## Driver %s does not have the get_info() method\n",
-			       drv->name);
-			return -ENOSYS;
-		}
-		if (drv->get_info(desc, part, info) == 0) {
+
+		ret = part_driver_get_info(drv, desc, part, info);
+		if (ret && ret != -ENOSYS) {
+			ret = -ENOENT;
+		} else {
 			PRINTF("## Valid %s partition found ##\n", drv->name);
-			return 0;
 		}
 	}
 
-	return -ENOENT;
+	return ret;
 }
 
 int part_get_info(struct blk_desc *desc, int part,
@@ -516,7 +482,7 @@ int blk_get_device_part_str(const char *ifname, const char *dev_part_str,
 	}
 #endif
 
-#if IS_ENABLED(CONFIG_CMD_UBIFS) && !IS_ENABLED(CONFIG_SPL_BUILD)
+#if IS_ENABLED(CONFIG_CMD_UBIFS) && !IS_ENABLED(CONFIG_XPL_BUILD)
 	/*
 	 * Special-case ubi, ubi goes through a mtd, rather than through
 	 * a regular block device.
@@ -708,19 +674,55 @@ int part_get_info_by_name(struct blk_desc *desc, const char *name,
 	if (!part_drv)
 		return -1;
 
-	if (!part_drv->get_info) {
-		log_debug("## Driver %s does not have the get_info() method\n",
-			  part_drv->name);
-		return -ENOSYS;
-	}
-
-	for (i = 1; i < part_drv->max_entries; i++) {
-		ret = part_drv->get_info(desc, i, info);
+	for (i = 1; i <= part_drv->max_entries; i++) {
+		ret = part_driver_get_info(part_drv, desc, i, info);
 		if (ret != 0) {
-			/* no more entries in table */
-			break;
+			/* -ENOSYS means no ->get_info method. */
+			if (ret == -ENOSYS)
+				return ret;
+			/*
+			 * Partition with this index can't be obtained, but
+			 * further partitions might be, so keep checking.
+			 */
+			continue;
 		}
 		if (strcmp(name, (const char *)info->name) == 0) {
+			/* matched */
+			return i;
+		}
+	}
+
+	return -ENOENT;
+}
+
+int part_get_info_by_uuid(struct blk_desc *desc, const char *uuid,
+			  struct disk_partition *info)
+{
+	struct part_driver *part_drv;
+	int ret;
+	int i;
+
+	if (!CONFIG_IS_ENABLED(PARTITION_UUIDS))
+		return -ENOENT;
+
+	part_drv = part_driver_lookup_type(desc);
+	if (!part_drv)
+		return -1;
+
+	for (i = 1; i <= part_drv->max_entries; i++) {
+		ret = part_driver_get_info(part_drv, desc, i, info);
+		if (ret != 0) {
+			/* -ENOSYS means no ->get_info method. */
+			if (ret == -ENOSYS)
+				return ret;
+			/*
+			 * Partition with this index can't be obtained, but
+			 * further partitions might be, so keep checking.
+			 */
+			continue;
+		}
+
+		if (!strncasecmp(uuid, disk_partition_uuid(info), UUID_STR_LEN)) {
 			/* matched */
 			return i;
 		}

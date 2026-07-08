@@ -194,7 +194,7 @@ config TPL_DM_SERIAL
 
 config VPL_DM_SERIAL
 	bool "Enable Driver Model for serial drivers in VPL"
-	depends on DM_SERIAL
+	depends on DM_SERIAL && VPL_DM
 	default y if VPL && DM_SERIAL
 	help
 	  Enable driver model for serial in VPL. This replaces
@@ -319,8 +319,16 @@ config DEBUG_UART_S5P
 	  will need to provide parameters to make this work. The driver will
 	  be available until the real driver-model serial is running.
 
+config DEBUG_UART_MSM
+	bool "Qualcomm QUP UART debug"
+	depends on ARCH_SNAPDRAGON || ARCH_IPQ40XX
+	help
+	  Select this to enable a debug UART using the serial_msm driver. You
+	  will need to provide parameters to make this work. The driver will
+	  be available until the real driver-model serial is running.
+
 config DEBUG_UART_MSM_GENI
-	bool "Qualcomm snapdragon"
+	bool "Qualcomm GENI UART debug"
 	depends on ARCH_SNAPDRAGON
 	help
 	  Select this to enable a debug UART using the serial_msm driver. You
@@ -493,6 +501,15 @@ config DEBUG_UART_MT7620
 	  driver will be available until the real driver model serial is
 	  running.
 
+config DEBUG_UART_XTENSA_SEMIHOSTING
+	bool "Xtensa semihosting"
+	depends on XTENSA_SEMIHOSTING_SERIAL
+	help
+	  Select this to enable the debug UART using the Xtensa semihosting driver.
+	  This provides basic serial output from the console without needing to
+	  start up driver model. The driver will be available until the real
+	  driver model serial is running.
+
 endchoice
 
 config DEBUG_UART_BASE
@@ -502,6 +519,8 @@ config DEBUG_UART_BASE
 	default 0x0 if DEBUG_UART_SANDBOX
 	default 0xff000000 if DEBUG_UART_ZYNQ && ARCH_ZYNQMP
 	default 0xe0000000 if DEBUG_UART_ZYNQ && ARCH_ZYNQ
+	default 0xff000000 if DEBUG_UART_PL011 && ARCH_VERSAL
+	default 0xf1920000 if DEBUG_UART_PL011 && (ARCH_VERSAL_NET || ARCH_VERSAL2)
 	help
 	  This is the base address of your UART for memory-mapped UARTs.
 
@@ -522,6 +541,13 @@ config TPL_DEBUG_UART_BASE
 	help
 	  This is the base address of your UART for memory-mapped UARTs for TPL.
 
+config VPL_DEBUG_UART_BASE
+	hex "Base address of UART for VPL"
+	depends on VPL && DEBUG_UART
+	default DEBUG_UART_BASE
+	help
+	  This is the base address of your UART for memory-mapped UARTs for VPL.
+
 config DEBUG_UART_CLOCK
 	int "UART input clock"
 	depends on DEBUG_UART
@@ -530,6 +556,7 @@ config DEBUG_UART_CLOCK
 	default 0 if DEBUG_MVEBU_A3700_UART
 	default 100000000 if DEBUG_UART_ZYNQ && ARCH_ZYNQMP
 	default 50000000 if DEBUG_UART_ZYNQ && ARCH_ZYNQ
+	default 100000000 if DEBUG_UART_PL011 && (ARCH_VERSAL || ARCH_VERSAL_NET || ARCH_VERSAL2)
 	help
 	  The UART input clock determines the speed of the internal UART
 	  circuitry. The baud rate is derived from this by dividing the input
@@ -638,6 +665,7 @@ config ARM_DCC
 
 config ATMEL_USART
 	bool "Atmel USART support"
+	depends on ARCH_AT91
 	help
 	  Select this to enable USART support for Atmel SoCs. It can be
 	  configured in the device tree, and input clock frequency can
@@ -676,8 +704,8 @@ config BCM6345_SERIAL
 
 config COREBOOT_SERIAL
 	bool "Coreboot UART support"
-	depends on DM_SERIAL
-	default y if SYS_COREBOOT
+	depends on DM_SERIAL && SYS_COREBOOT
+	default y
 	select SYS_NS16550
 	help
 	  Select this to enable a ns16550-style UART where the platform data
@@ -697,20 +725,14 @@ config COREBOOT_SERIAL_FROM_DBG2
 
 config CORTINA_UART
 	bool "Cortina UART support"
-	depends on DM_SERIAL
+	depends on DM_SERIAL && TARGET_PRESIDIO_ASIC
 	help
 	  Select this to enable UART support for Cortina-Access UART devices
 	  found on CAxxxx SoCs.
 
-config FSL_LINFLEXUART
-	bool "Freescale Linflex UART support"
-	depends on DM_SERIAL
-	help
-	  Select this to enable the Linflex serial module found on some
-	  NXP SoCs like S32V234.
-
 config FSL_LPUART
 	bool "Freescale LPUART support"
+	depends on MACH_IMX || ARCH_LS1021A || ARCH_LS1028A
 	help
 	  Select this to enable a Low Power UART for Freescale VF610 and
 	  QorIQ Layerscape devices.
@@ -721,12 +743,14 @@ config LPUART
 
 config MVEBU_A3700_UART
 	bool "UART support for Armada 3700"
+	depends on ARCH_MVEBU
 	help
 	  Choose this option to add support for UART driver on the Marvell
 	  Armada 3700 SoC. The base address is configured via DT.
 
 config MCFUART
 	bool "Freescale ColdFire UART support"
+	depends on M68K
         help
           Choose this option to add support for UART driver on the ColdFire
           SoC's family. The serial communication channel provides a full-duplex
@@ -735,7 +759,7 @@ config MCFUART
 
 config MXC_UART
 	bool "IMX serial port support"
-	depends on ARCH_MX31 || MX5 || MX6 || MX7 || IMX8M
+	depends on MX5 || MX6 || MX7 || IMX8M
 	help
 	  If you have a machine based on a Motorola IMX CPU you
 	  can enable its onboard serial port by enabling this option.
@@ -763,6 +787,12 @@ config SPL_SYS_NS16550_SERIAL
 	bool "NS16550 UART or compatible legacy driver in SPL"
 	depends on SPL && !SPL_DM_SERIAL
 	default y if SYS_NS16550_SERIAL || ARCH_SUNXI || ARCH_OMAP2PLUS
+	select SYS_NS16550
+
+config TPL_SYS_NS16550_SERIAL
+	bool "NS16550 UART or compatible legacy driver in TPL"
+	depends on TPL && !TPL_DM_SERIAL
+	default y if SPL_SYS_NS16550_SERIAL
 	select SYS_NS16550
 
 config SYS_NS16550
@@ -846,7 +876,7 @@ config PL01X_SERIAL
 
 config ROCKCHIP_SERIAL
 	bool "Rockchip on-chip UART support"
-	depends on DM_SERIAL
+	depends on DM_SERIAL && ARCH_ROCKCHIP
 	select SYS_NS16550
 	help
 	  Select this to enable a debug UART for Rockchip devices when using
@@ -896,7 +926,7 @@ config SCIF_CONSOLE
 	depends on SH || ARCH_RENESAS
 	help
 	  Select this to enable Renesas SCIF UART. To operate serial ports
-	  on systems with RCar or SH SoCs, say Y to this option. If unsure,
+	  on systems with R-Car or SH SoCs, say Y to this option. If unsure,
 	  say N.
 
 choice
@@ -928,7 +958,6 @@ config SH_SCIF_CLK_FREQ
 config SEMIHOSTING_SERIAL
 	bool "Semihosting UART support"
 	depends on SEMIHOSTING && !SERIAL_RX_BUFFER
-	imply SERIAL_PUTS
 	help
 	  Select this to enable a serial UART using semihosting. Special halt
 	  instructions will be issued which an external debugger (such as a
@@ -972,6 +1001,7 @@ config MSM_SERIAL
 
 config MSM_GENI_SERIAL
 	bool "Qualcomm on-chip GENI UART"
+	depends on QCOM_GENI
 	help
 	  Support UART based on Generic Interface (GENI) Serial Engine (SE),
 	  used on Qualcomm Snapdragon SoCs. Should support all qualcomm SOCs
@@ -1078,7 +1108,7 @@ config MTK_SERIAL
 
 config MT7620_SERIAL
 	bool "UART driver for MediaTek MT7620 and earlier SoCs"
-	depends on DM_SERIAL
+	depends on DM_SERIAL && SOC_MT7620
 	help
 	  Select this to enable UART support for MediaTek MT7620 and earlier
 	  SoCs. This driver uses driver model and requires a device tree
@@ -1106,6 +1136,14 @@ config XEN_SERIAL
 	help
 	  If built without DM support, then requires Xen
 	  to be built with CONFIG_VERBOSE_DEBUG.
+
+config XTENSA_SEMIHOSTING_SERIAL
+	bool "Xtensa Semihosting UART support"
+	depends on DM_SERIAL
+	depends on XTENSA_SEMIHOSTING
+	imply SERIAL_PUTS
+	help
+	  Select this to enable a serial UART using Xtensa semihosting.
 
 choice
 	prompt "Console port"
@@ -1154,5 +1192,13 @@ config SYS_SDMR
 	hex "SDMR Value"
 	depends on MPC8XX_CONS
 	default 0x0
+
+config SERIAL_GOLDFISH
+	bool "Goldfish TTY support"
+	depends on DM_SERIAL
+	help
+	  Select this to enable support for the Goldfish TTY serial port.
+	  This virtual device is commonly used by QEMU virtual machines
+	  (e.g. m68k virt) for console output.
 
 endif

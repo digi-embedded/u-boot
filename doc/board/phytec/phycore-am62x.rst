@@ -30,6 +30,10 @@ Sources
     :start-after: .. k3_rst_include_start_boot_sources
     :end-before: .. k3_rst_include_end_boot_sources
 
+.. include::  ../ti/k3.rst
+    :start-after: .. k3_rst_include_start_boot_firmwares
+    :end-before: .. k3_rst_include_end_tifsstub
+
 Build procedure
 ---------------
 
@@ -56,7 +60,8 @@ Set the variables corresponding to this platform:
  $ # we don't use any extra TFA parameters
  $ unset TFA_EXTRA_ARGS
  $ export OPTEE_PLATFORM=k3-am62x
- $ export OPTEE_EXTRA_ARGS="CFG_WITH_SOFTWARE_PRNG=y"
+ $ # we dont use any extra OPTEE parameters
+ $ unset OPTEE_EXTRA_ARGS
 
 .. include::  ../ti/am62x_sk.rst
     :start-after: .. am62x_evm_rst_include_start_build_steps
@@ -110,14 +115,31 @@ tiboot3.bin, tispl.bin and u-boot.img are stored on the uSD card.
 
 .. code-block:: bash
 
-  sf probe
+  mtd list
   fatload mmc 1 ${loadaddr} tiboot3.bin
-  sf update $loadaddr 0x0 $filesize
+  mtd write ospi.tiboot3 ${loadaddr} 0 ${filesize}
   fatload mmc 1 ${loadaddr} tispl.bin
-  sf update $loadaddr 0x80000 $filesize
+  mtd write ospi.tispl ${loadaddr} 0 ${filesize}
   fatload mmc 1 ${loadaddr} u-boot.img
-  sf update $loadaddr 0x280000 $filesize
+  mtd write ospi.u-boot ${loadaddr} 0 ${filesize}
 
+UART based boot
+---------------
+
+To boot the board via UART, set the switches to UART mode and connect to the
+micro USB port labeled as "Debug UART". After power-on the build artifacts
+needs to be uploaded one by one with a tool like sz.
+
+Example bash script sequence for running on a Linux host PC feeding all boot
+artifacts needed to the device. Assuming the host uses /dev/ttyUSB0 as
+the main domain serial port:
+
+.. prompt:: bash $
+
+  stty -F /dev/ttyUSB0 115200
+  sb --xmodem tiboot3.bin > /dev/ttyUSB0 < /dev/ttyUSB0
+  sb --ymodem tispl.bin > /dev/ttyUSB0 < /dev/ttyUSB0
+  sb --ymodem u-boot.img > /dev/ttyUSB0 < /dev/ttyUSB0
 
 Boot Modes
 ----------
@@ -151,8 +173,14 @@ Boot switches should be changed with power off.
      - 11011100
      - 00000000
 
+   * - USB DFU
+     - 11001010
+     - 00100000
+
+.. include:: k3-common.rst
+
 Further Information
 -------------------
 
 Please see :doc:`../ti/am62x_sk` chapter for further AM62 SoC related documentation
-and https://docs.phytec.com/phycore-am62x for vendor documentation.
+and https://docs.phytec.com/projects/yocto-phycore-am62x/en/latest/ for vendor documentation.

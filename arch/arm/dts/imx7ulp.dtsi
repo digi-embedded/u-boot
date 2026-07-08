@@ -32,7 +32,7 @@
 		serial3 = &lpuart7;
 		usbphy0 = &usbphy1;
 		usb0 = &usbotg1;
-		usbgadget0 = &usbg1;
+		usb_gadget0 = &usbg1;
 		i2c4 = &lpi2c4;
 		i2c5 = &lpi2c5;
 		i2c6 = &lpi2c6;
@@ -643,7 +643,7 @@
 			reg = <0x410a3000 0x1000>;
 		};
 
-		qspi1: qspi@410A5000 {
+		qspi1: spi@410A5000 {
 			#address-cells = <1>;
 			#size-cells = <0>;
 			compatible = "fsl,imx7ulp-qspi";

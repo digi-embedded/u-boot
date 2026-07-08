@@ -7,9 +7,9 @@
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  */
 
-#include <common.h>
 #include <command.h>
 #include <hash.h>
+#include <linux/string.h>
 #include <u-boot/sha1.h>
 
 int do_sha1sum(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])

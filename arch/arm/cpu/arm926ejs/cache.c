@@ -5,8 +5,8 @@
  */
 #include <cpu_func.h>
 #include <asm/cache.h>
+#include <linux/errno.h>
 #include <linux/types.h>
-#include <common.h>
 
 #if !CONFIG_IS_ENABLED(SYS_DCACHE_OFF)
 void invalidate_dcache_all(void)
@@ -88,4 +88,9 @@ void enable_caches(void)
 #if !CONFIG_IS_ENABLED(SYS_DCACHE_OFF)
 	dcache_enable();
 #endif
+}
+
+int __weak pgprot_set_attrs(phys_addr_t addr, size_t size, enum pgprot_attrs perm)
+{
+	return -ENOSYS;
 }

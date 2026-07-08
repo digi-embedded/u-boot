@@ -3,7 +3,7 @@
  * Copyright 2024 NXP
  */
 
-#include "imx95-19x19-evk.dts"
+#include "../dts/upstream/src/arm64/freescale/imx95-19x19-evk.dts"
 #include "imx95-19x19-evk-u-boot.dtsi"
 
 / {
@@ -52,7 +52,7 @@
 
 	lvds_backlight: backlight {
 		compatible = "gpio-backlight";
-		gpios = <&adp5585gpio 3 GPIO_ACTIVE_HIGH>;
+		gpios = <&adp5585 3 GPIO_ACTIVE_HIGH>;
 	};
 };
 

@@ -35,26 +35,20 @@ SECTIONS
 	. = 0x00000000;
 
 	. = ALIGN(4);
+	__image_copy_start = ADDR(.text);
 	.text :
 	{
-		*(.__image_copy_start)
 		*(.vectors)
 		CPUDIR/start.o (.text*)
 	}
 
 	/* This needs to come before *(.text*) */
-	.__efi_runtime_start : {
-		*(.__efi_runtime_start)
-	}
-
 	.efi_runtime : {
+		__efi_runtime_start = .;
 		*(.text.efi_runtime*)
 		*(.rodata.efi_runtime*)
 		*(.data.efi_runtime*)
-	}
-
-	.__efi_runtime_stop : {
-		*(.__efi_runtime_stop)
+		__efi_runtime_stop = .;
 	}
 
 	.text_rest :
@@ -152,29 +146,15 @@ SECTIONS
 		KEEP(*(SORT(__u_boot_list*)));
 	}
 
-	. = ALIGN(4);
-
-	.efi_runtime_rel_start :
-	{
-		*(.__efi_runtime_rel_start)
-	}
-
 	.efi_runtime_rel : {
+		__efi_runtime_rel_start = .;
 		*(.rel*.efi_runtime)
 		*(.rel*.efi_runtime.*)
+		__efi_runtime_rel_stop = .;
 	}
 
-	.efi_runtime_rel_stop :
-	{
-		*(.__efi_runtime_rel_stop)
-	}
-
-	. = ALIGN(4);
-
-	.image_copy_end :
-	{
-		*(.__image_copy_end)
-	}
+	. = ALIGN(8);
+	__image_copy_end = .;
 
 #ifdef CONFIG_IMX_M4_BIND
 	.firmware_image_start : {
@@ -192,64 +172,43 @@ SECTIONS
 	. = ALIGN(4);
 #endif
 
-	.rel_dyn_start :
-	{
-		*(.__rel_dyn_start)
-	}
-
-	.rel.dyn : {
+	/*
+	 * if CONFIG_USE_ARCH_MEMSET is not selected __bss_end - __bss_start
+	 * needs to be a multiple of 8 and we overlay .bss with .rel.dyn
+	 */
+	.rel.dyn ALIGN(8) : {
+		__rel_dyn_start = .;
 		*(.rel*)
+		__rel_dyn_end = .;
+		. = ALIGN(8);
 	}
 
-	.rel_dyn_end :
-	{
-		*(.__rel_dyn_end)
-	}
-
-	.end :
-	{
-		*(.__end)
-	}
-
+	_end = .;
 	_image_binary_end = .;
 
-	/*
-	 * Deprecated: this MMU section is used by pxa at present but
-	 * should not be used by new boards/CPUs.
-	 */
-	. = ALIGN(4096);
-	.mmutable : {
-		*(.mmutable)
-	}
-
 /*
- * Compiler-generated __bss_start and __bss_end, see arch/arm/lib/bss.c
- * __bss_base and __bss_limit are for linker only (overlay ordering)
+ * These sections occupy the same memory, but their lifetimes do
+ * not overlap: U-Boot initializes .bss only after applying dynamic
+ * relocations and therefore after it doesn't need .rel.dyn any more.
  */
-
-	.bss_start __rel_dyn_start (OVERLAY) : {
-		KEEP(*(.__bss_start));
-		__bss_base = .;
-	}
-
-	.bss __bss_base (OVERLAY) : {
+	.bss ADDR(.rel.dyn) (OVERLAY): {
+		__bss_start = .;
 		*(.bss*)
-		 . = ALIGN(4);
-		 __bss_limit = .;
+		. = ALIGN(4);
+		__bss_end = .;
 	}
 
-	.bss_end __bss_limit (OVERLAY) : {
-		KEEP(*(.__bss_end));
-	}
-
-	.dynsym _image_binary_end : { *(.dynsym) }
-	.dynbss : { *(.dynbss) }
-	.dynstr : { *(.dynstr*) }
-	.dynamic : { *(.dynamic*) }
-	.plt : { *(.plt*) }
-	.interp : { *(.interp*) }
-	.gnu.hash : { *(.gnu.hash) }
-	.gnu : { *(.gnu*) }
-	.ARM.exidx : { *(.ARM.exidx*) }
-	.gnu.linkonce.armexidx : { *(.gnu.linkonce.armexidx.*) }
+	/DISCARD/ : { *(.dynsym) }
+	/DISCARD/ : { *(.dynbss) }
+	/DISCARD/ : { *(.dynstr*) }
+	/DISCARD/ : { *(.dynamic*) }
+	/DISCARD/ : { *(.plt*) }
+	/DISCARD/ : { *(.interp*) }
+	/DISCARD/ : { *(.gnu.hash) }
+	/DISCARD/ : { *(.gnu*) }
+	/DISCARD/ : { *(.ARM.exidx*) }
+	/DISCARD/ : { *(.gnu.linkonce.armexidx.*) }
 }
+
+ASSERT(_image_binary_end % 8 == 0, \
+       "_image_binary_end must be 8-byte aligned for device tree");

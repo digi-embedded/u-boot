@@ -15,9 +15,17 @@
 
 #include <linux/clk-provider.h>
 
+struct samsung_pll_clock;
+
 enum samsung_pll_type {
 	pll_0822x,
 	pll_0831x,
+	pll_1417x,
 };
+
+void samsung_clk_register_pll(struct udevice *dev, void __iomem *base,
+			      unsigned int cmu_id,
+			      const struct samsung_pll_clock *clk_list,
+			      unsigned int nr_clk);
 
 #endif /* __EXYNOS_CLK_PLL_H */

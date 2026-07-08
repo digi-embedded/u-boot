@@ -5,7 +5,6 @@
  * Peng Fan <peng.fan@nxp.com>
  */
 
-#include <common.h>
 #include <command.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/imx-regs.h>
@@ -132,7 +131,7 @@ static int fracpll_configure(enum pll_clocks pll, u32 freq)
 	return 0;
 }
 
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 void dram_pll_init(ulong pll_val)
 {
 	fracpll_configure(ANATOP_DRAM_PLL, pll_val);
@@ -184,10 +183,19 @@ void dram_disable_bypass(void)
 }
 #endif
 
-int intpll_configure(enum pll_clocks pll, ulong freq)
+__weak int board_imx_intpll_override(enum pll_clocks pll, ulong *freq)
+{
+	return 0;
+}
+
+static int intpll_configure(enum pll_clocks pll, ulong freq)
 {
 	void __iomem *pll_gnrl_ctl, __iomem *pll_div_ctl;
 	u32 pll_div_ctl_val, pll_clke_masks;
+	int ret = board_imx_intpll_override(pll, &freq);
+
+	if (ret)
+		return ret;
 
 	switch (pll) {
 	case ANATOP_SYSTEM_PLL1:
@@ -1217,7 +1225,7 @@ void enable_usboh3_clk(unsigned char enable)
 /*
  * Dump some clockes.
  */
-#ifndef CONFIG_SPL_BUILD
+#ifndef CONFIG_XPL_BUILD
 int do_mscale_showclocks(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
 	u32 freq;

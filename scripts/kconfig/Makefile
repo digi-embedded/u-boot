@@ -93,7 +93,8 @@ endif
 endif
 
 %_defconfig: $(obj)/conf
-	$(Q)$(CPP) -nostdinc -I $(srctree) -undef -x assembler-with-cpp $(srctree)/arch/$(SRCARCH)/configs/$@ -o generated_defconfig
+	$(Q)$(CPP) -nostdinc -P -I $(srctree) -undef -x assembler-with-cpp $(srctree)/arch/$(SRCARCH)/configs/$@ -o generated_defconfig
+	$(Q)sed -i -e 's/^[[:space:]]//' generated_defconfig
 	$(Q)$< $(silent) --defconfig=generated_defconfig $(Kconfig)
 
 # Added for U-Boot (backward compatibility)
@@ -127,7 +128,7 @@ testconfig: $(obj)/conf
 	$(PYTHON3) -B -m pytest $(srctree)/$(src)/tests \
 	-o cache_dir=$(abspath $(obj)/tests/.cache) \
 	$(if $(findstring 1,$(KBUILD_VERBOSE)),--capture=no)
-clean-dirs += tests/.cache
+clean-files += tests/.cache
 
 # Help text used by make help
 help:
@@ -161,7 +162,7 @@ help:
 
 conf-objs	:= conf.o  zconf.tab.o
 
-hostprogs-y := conf
+hostprogs += conf
 
 targets		+= zconf.lex.c
 
@@ -170,7 +171,7 @@ HOSTCFLAGS_zconf.lex.o	:= -I$(src)
 HOSTCFLAGS_zconf.tab.o	:= -I$(src)
 
 # nconf: Used for the nconfig target based on ncurses
-hostprogs-y	+= nconf
+hostprogs	+= nconf
 nconf-objs	:= nconf.o zconf.tab.o nconf.gui.o
 
 HOSTLDLIBS_nconf	= $(shell . $(obj)/.nconf-cfg && echo $$libs)
@@ -180,7 +181,7 @@ HOSTCFLAGS_nconf.gui.o	= $(shell . $(obj)/.nconf-cfg && echo $$cflags)
 $(obj)/nconf.o $(obj)/nconf.gui.o: $(obj)/.nconf-cfg
 
 # mconf: Used for the menuconfig target based on lxdialog
-hostprogs-y	+= mconf
+hostprogs	+= mconf
 lxdialog	:= checklist.o inputbox.o menubox.o textbox.o util.o yesno.o
 mconf-objs	:= mconf.o zconf.tab.o $(addprefix lxdialog/, $(lxdialog))
 
@@ -192,7 +193,7 @@ $(obj)/mconf.o: $(obj)/.mconf-cfg
 $(addprefix $(obj)/lxdialog/, $(lxdialog)): $(obj)/.mconf-cfg
 
 # qconf: Used for the xconfig target based on Qt
-hostprogs-y	+= qconf
+hostprogs	+= qconf
 qconf-cxxobjs	:= qconf.o
 qconf-objs	:= zconf.tab.o
 
@@ -208,7 +209,7 @@ $(obj)/%.moc: $(src)/%.h $(obj)/.qconf-cfg
 	$(call cmd,moc)
 
 # gconf: Used for the gconfig target based on GTK+
-hostprogs-y	+= gconf
+hostprogs	+= gconf
 gconf-objs	:= gconf.o zconf.tab.o
 
 HOSTLDLIBS_gconf = $(shell . $(obj)/.gconf-cfg && echo $$libs)
@@ -219,9 +220,7 @@ $(obj)/gconf.o: $(obj)/.gconf-cfg
 $(obj)/zconf.tab.o: $(obj)/zconf.lex.c
 
 # check if necessary packages are available, and configure build flags
-define filechk_conf_cfg
-	$(CONFIG_SHELL) $<
-endef
+filechk_conf_cfg = $(CONFIG_SHELL) $<
 
 $(obj)/.%conf-cfg: $(src)/%conf-cfg.sh FORCE
 	$(call filechk,conf_cfg)

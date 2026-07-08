@@ -4,7 +4,6 @@
  * Minkyu Kang <mk7.kang@samsung.com>
  */
 
-#include <common.h>
 #include <dm.h>
 #include <errno.h>
 #include <fdtdec.h>
@@ -93,7 +92,7 @@ static void s5p_gpio_set_value(struct s5p_gpio_bank *bank, int gpio, int en)
 	writel(value, &bank->dat);
 }
 
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 /* Common GPIO API - SPL does not support driver model yet */
 int gpio_set_value(unsigned gpio, int value)
 {
@@ -119,7 +118,7 @@ static unsigned int s5p_gpio_get_value(struct s5p_gpio_bank *bank, int gpio)
 	value = readl(&bank->dat);
 	return !!(value & DAT_MASK(gpio));
 }
-#endif /* CONFIG_SPL_BUILD */
+#endif /* CONFIG_XPL_BUILD */
 
 static void s5p_gpio_set_pull(struct s5p_gpio_bank *bank, int gpio, int mode)
 {
@@ -186,7 +185,7 @@ int s5p_gpio_get_pin(unsigned gpio)
 }
 
 /* Driver model interface */
-#ifndef CONFIG_SPL_BUILD
+#ifndef CONFIG_XPL_BUILD
 /* set GPIO pin 'gpio' as an input */
 static int exynos_gpio_direction_input(struct udevice *dev, unsigned offset)
 {
@@ -231,7 +230,7 @@ static int exynos_gpio_set_value(struct udevice *dev, unsigned offset,
 
 	return 0;
 }
-#endif /* nCONFIG_SPL_BUILD */
+#endif /* nCONFIG_XPL_BUILD */
 
 /*
  * There is no common GPIO API for pull, drv, pin, rate (yet). These
@@ -261,7 +260,7 @@ void gpio_set_rate(int gpio, int mode)
 			  s5p_gpio_get_pin(gpio), mode);
 }
 
-#ifndef CONFIG_SPL_BUILD
+#ifndef CONFIG_XPL_BUILD
 static int exynos_gpio_get_function(struct udevice *dev, unsigned offset)
 {
 	struct exynos_bank_info *state = dev_get_priv(dev);
@@ -320,7 +319,7 @@ static int gpio_exynos_bind(struct udevice *parent)
 	base = dev_read_addr_ptr(parent);
 	for (node = fdt_first_subnode(blob, dev_of_offset(parent)), bank = base;
 	     node > 0;
-	     node = fdt_next_subnode(blob, node), bank++) {
+	     node = fdt_next_subnode(blob, node)) {
 		struct exynos_gpio_plat *plat;
 		struct udevice *dev;
 		fdt_addr_t reg;
@@ -342,9 +341,8 @@ static int gpio_exynos_bind(struct udevice *parent)
 		if (reg != FDT_ADDR_T_NONE)
 			bank = (struct s5p_gpio_bank *)((ulong)base + reg);
 
-		plat->bank = bank;
-
 		debug("dev at %p: %s\n", bank, plat->bank_name);
+		plat->bank = bank++;
 	}
 
 	return 0;

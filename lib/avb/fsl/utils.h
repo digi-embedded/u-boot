@@ -7,8 +7,6 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
-#include <common.h>
-
 #define ALIGN_BYTES 64 /*mmc block read/write need 64 bytes aligned */
 
 struct margin_pos {

@@ -1,10 +1,12 @@
-// SPDX-License-Identifier: GPL-2.0+
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * Copyright (C) 2012 Freescale Semiconductor, Inc.
  * Author: Fabio Estevam <fabio.estevam@freescale.com>
  *
- * Copyright (C) 2013, 2014 TQ-Systems (ported SabreSD to TQMa6x)
- * Author: Markus Niebel <markus.niebel@tq-group.com>
+ * ported SabreSD to TQMa6x
+ * Copyright (c) 2013-2014 TQ-Systems GmbH <u-boot@ew.tq-group.com>,
+ * D-82229 Seefeld, Germany.
+ * Author: Markus Niebel
  */
 
 #include <init.h>
@@ -20,7 +22,6 @@
 #include <asm/gpio.h>
 #include <asm/mach-imx/mxc_i2c.h>
 
-#include <common.h>
 #include <fsl_esdhc_imx.h>
 #include <linux/libfdt.h>
 #include <malloc.h>
@@ -31,28 +32,6 @@
 #include <netdev.h>
 
 #include "tqma6_bb.h"
-
-#define UART_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED | \
-	PAD_CTL_DSE_80ohm   | PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
-
-#define USDHC_CLK_PAD_CTRL (PAD_CTL_PUS_47K_UP  | PAD_CTL_SPEED_LOW | \
-	PAD_CTL_DSE_40ohm   | PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
-
-#define USDHC_PAD_CTRL (PAD_CTL_PUS_47K_UP  | PAD_CTL_SPEED_LOW | \
-	PAD_CTL_DSE_80ohm   | PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
-
-#define GPIO_OUT_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_LOW | \
-	PAD_CTL_DSE_40ohm   | PAD_CTL_HYS)
-
-#define GPIO_IN_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_LOW | \
-	PAD_CTL_DSE_40ohm   | PAD_CTL_HYS)
-
-#define SPI_PAD_CTRL (PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED | \
-	PAD_CTL_DSE_80ohm | PAD_CTL_SRE_FAST | PAD_CTL_HYS)
-
-#define I2C_PAD_CTRL	(PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED | \
-	PAD_CTL_DSE_80ohm | PAD_CTL_HYS |			\
-	PAD_CTL_ODE | PAD_CTL_SRE_FAST)
 
 #if defined(CONFIG_TQMA6Q)
 
@@ -90,17 +69,6 @@ static void mba6_setup_iomuxc_enet(void)
 		     (void *)IOMUX_SW_PAD_CTRL_GRP_DDR_TYPE_RGMII);
 }
 
-static iomux_v3_cfg_t const mba6_uart2_pads[] = {
-	NEW_PAD_CTRL(MX6_PAD_SD4_DAT4__UART2_RX_DATA, UART_PAD_CTRL),
-	NEW_PAD_CTRL(MX6_PAD_SD4_DAT7__UART2_TX_DATA, UART_PAD_CTRL),
-};
-
-static void mba6_setup_iomuxc_uart(void)
-{
-	imx_iomux_v3_setup_multiple_pads(mba6_uart2_pads,
-					 ARRAY_SIZE(mba6_uart2_pads));
-}
-
 int board_mmc_get_env_dev(int devno)
 {
 	/*
@@ -108,7 +76,7 @@ int board_mmc_get_env_dev(int devno)
 	 * the boot device first ...
 	 * Note: SDHC3 == idx2
 	 */
-	return (2 == devno) ? 0 : 1;
+	return (devno == 2) ? 0 : 1;
 }
 
 int board_phy_config(struct phy_device *phydev)
@@ -160,8 +128,6 @@ int board_phy_config(struct phy_device *phydev)
 
 int tqma6_bb_board_early_init_f(void)
 {
-	mba6_setup_iomuxc_uart();
-
 	return 0;
 }
 

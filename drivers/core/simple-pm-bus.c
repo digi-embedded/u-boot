@@ -3,7 +3,6 @@
  * Copyright (C) 2020 Sean Anderson <seanga2@gmail.com>
  */
 
-#include <common.h>
 #include <clk.h>
 #include <dm.h>
 
@@ -17,7 +16,7 @@ static int simple_pm_bus_probe(struct udevice *dev)
 	struct clk_bulk *bulk = dev_get_priv(dev);
 
 	ret = clk_get_bulk(dev, bulk);
-	if (ret)
+	if (ret && ret != -ENOENT)
 		return ret;
 
 	ret = clk_enable_bulk(bulk);

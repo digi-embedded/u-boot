@@ -4,12 +4,12 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
-#include <common.h>
 #include <command.h>
 #include <asm/global_data.h>
 
 #include "API_General.h"
 #include "scfw_utils.h"
+#include <env.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 

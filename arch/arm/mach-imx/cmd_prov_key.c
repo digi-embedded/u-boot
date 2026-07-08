@@ -37,7 +37,7 @@
  *        The file must have a size of 112 bytes (0x70 bytes).
  */
 
-#include <common.h>
+#include <vsprintf.h>
 #include <cpu_func.h>
 #include <command.h>
 #include <malloc.h>

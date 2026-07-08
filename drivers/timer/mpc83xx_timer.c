@@ -4,12 +4,11 @@
  * Mario Six, Guntermann & Drunck GmbH, mario.six@gdsys.cc
  */
 
-#include <common.h>
+#include <config.h>
 #include <clk.h>
 #include <dm.h>
 #include <irq_func.h>
 #include <log.h>
-#include <status_led.h>
 #include <sysinfo.h>
 #include <time.h>
 #include <timer.h>
@@ -178,10 +177,6 @@ void timer_interrupt(struct pt_regs *regs)
 	if (CFG_SYS_WATCHDOG_FREQ && (priv->timestamp % (CFG_SYS_WATCHDOG_FREQ)) == 0)
 		schedule();
 #endif    /* CONFIG_WATCHDOG || CONFIG_HW_WATCHDOG */
-
-#ifdef CONFIG_LED_STATUS
-	status_led_tick(priv->timestamp);
-#endif /* CONFIG_LED_STATUS */
 }
 
 void wait_ticks(ulong ticks)
@@ -206,7 +201,7 @@ static u64 mpc83xx_timer_get_count(struct udevice *dev)
 		tbl = mftb();
 	} while (tbu != mftbu());
 
-	return (tbu * 0x10000ULL) + tbl;
+	return (uint64_t)tbu << 32 | tbl;
 }
 
 static int mpc83xx_timer_probe(struct udevice *dev)

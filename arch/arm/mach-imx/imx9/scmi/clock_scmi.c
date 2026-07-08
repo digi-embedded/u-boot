@@ -1,43 +1,31 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2023 NXP
+ * Copyright 2025 NXP
  *
  * Peng Fan <peng.fan@nxp.com>
  */
 
-#include <common.h>
-#include <command.h>
-#include <errno.h>
-#include <asm/arch/clock.h>
-#include <asm/arch/imx-regs.h>
-#include <asm/arch/ccm_regs.h>
-#include <asm/mach-imx/sys_proto.h>
-#include <asm/global_data.h>
 #include <dm/uclass.h>
-#include <dm/uclass-internal.h>
-#include <dm/device.h>
-#include <dm/device-internal.h>
-#include <dt-bindings/clock/fsl,imx95-clock.h>
-#include <linux/clk-provider.h>
 #include <scmi_agent.h>
-#include <scmi_protocols.h>
-
-DECLARE_GLOBAL_DATA_PTR;
-
 
 int imx_clk_scmi_enable(u32 clock_id, bool enable)
 {
-	struct scmi_clk_state_in in = {
+	struct scmi_clk_state_in_v1 in = {
 		.clock_id = clock_id,
-		.attributes = (enable) ? 1 : 0,
+		.attributes = !!enable,
 	};
 	struct scmi_clk_state_out out;
 	struct scmi_msg msg = SCMI_MSG_IN(SCMI_PROTOCOL_ID_CLOCK,
 					  SCMI_CLOCK_CONFIG_SET,
 					  in, out);
 	int ret;
+	struct udevice *dev;
 
-	ret = devm_scmi_process_msg(gd->arch.scmi_dev, &msg);
+	ret = uclass_get_device_by_name(UCLASS_CLK, "protocol@14", &dev);
+	if (ret)
+		return ret;
+
+	ret = devm_scmi_process_msg(dev, &msg);
 	if (ret)
 		return ret;
 
@@ -57,8 +45,13 @@ ulong imx_clk_scmi_set_rate(u32 clock_id, ulong rate)
 					  SCMI_CLOCK_RATE_SET,
 					  in, out);
 	int ret;
+	struct udevice *dev;
 
-	ret = devm_scmi_process_msg(gd->arch.scmi_dev, &msg);
+	ret = uclass_get_device_by_name(UCLASS_CLK, "protocol@14", &dev);
+	if (ret)
+		return ret;
+
+	ret = devm_scmi_process_msg(dev, &msg);
 	if (ret < 0)
 		return ret;
 
@@ -73,7 +66,7 @@ ulong imx_clk_scmi_set_rate(u32 clock_id, ulong rate)
 
 	msg = SCMI_MSG_IN(SCMI_PROTOCOL_ID_CLOCK, SCMI_CLOCK_RATE_GET, in_rate, out_rate);
 
-	ret = devm_scmi_process_msg(gd->arch.scmi_dev, &msg);
+	ret = devm_scmi_process_msg(dev, &msg);
 	if (ret < 0)
 		return ret;
 
@@ -94,8 +87,13 @@ ulong imx_clk_scmi_get_rate(u32 clock_id)
 					  SCMI_CLOCK_RATE_GET,
 					  in, out);
 	int ret;
+	struct udevice *dev;
 
-	ret = devm_scmi_process_msg(gd->arch.scmi_dev, &msg);
+	ret = uclass_get_device_by_name(UCLASS_CLK, "protocol@14", &dev);
+	if (ret)
+		return ret;
+
+	ret = devm_scmi_process_msg(dev, &msg);
 	if (ret < 0)
 		return ret;
 
@@ -117,8 +115,13 @@ int imx_clk_scmi_set_parent(u32 clock_id, u32 parent_id)
 					  SCMI_CLOCK_PARENT_SET,
 					  in, out);
 	int ret;
+	struct udevice *dev;
 
-	ret = devm_scmi_process_msg(gd->arch.scmi_dev, &msg);
+	ret = uclass_get_device_by_name(UCLASS_CLK, "protocol@14", &dev);
+	if (ret)
+		return ret;
+
+	ret = devm_scmi_process_msg(dev, &msg);
 	if (ret < 0)
 		return ret;
 

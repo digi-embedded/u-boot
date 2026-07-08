@@ -129,15 +129,13 @@
 /* MT29F64G08AECDBJ4-6 */
 &nand0 {
 	status = "okay";
-	arasan,has-mdma;
 	num-cs = <2>;
 
 	nand@0 {
 		reg = <0x0>;
 		#address-cells = <0x2>;
 		#size-cells = <0x1>;
-		nand-ecc-mode = "soft";
-		nand-ecc-algo = "bch";
+		nand-ecc-mode = "hw";
 		nand-rb = <0>;
 		label = "main-storage-0";
 		nand-ecc-step-size = <1024>;
@@ -158,7 +156,7 @@
 		};
 		partition@3 {	/* for testing purpose */
 			label = "nand-rootfs";
-			reg = <0x0 0x1C00000 0x1400000>;
+			reg = <0x0 0x1c00000 0x1400000>;
 		};
 		partition@4 {	/* for testing purpose */
 			label = "nand-bitstream";
@@ -166,15 +164,14 @@
 		};
 		partition@5 {	/* for testing purpose */
 			label = "nand-misc";
-			reg = <0x0 0x3400000 0xFCC00000>;
+			reg = <0x0 0x3400000 0xfcc00000>;
 		};
 	};
 	nand@1 {
 		reg = <0x1>;
 		#address-cells = <0x2>;
 		#size-cells = <0x1>;
-		nand-ecc-mode = "soft";
-		nand-ecc-algo = "bch";
+		nand-ecc-mode = "hw";
 		nand-rb = <0>;
 		label = "main-storage-1";
 		nand-ecc-step-size = <1024>;
@@ -195,7 +192,7 @@
 		};
 		partition@3 {	/* for testing purpose */
 			label = "nand1-rootfs";
-			reg = <0x0 0x1C00000 0x1400000>;
+			reg = <0x0 0x1c00000 0x1400000>;
 		};
 		partition@4 {	/* for testing purpose */
 			label = "nand1-bitstream";
@@ -203,7 +200,7 @@
 		};
 		partition@5 {	/* for testing purpose */
 			label = "nand1-misc";
-			reg = <0x0 0x3400000 0xFCC00000>;
+			reg = <0x0 0x3400000 0xfcc00000>;
 		};
 	};
 };

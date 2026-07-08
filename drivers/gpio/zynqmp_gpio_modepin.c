@@ -5,7 +5,6 @@
  * Copyright (C) 2021 Xilinx, Inc.
  */
 
-#include <common.h>
 #include <errno.h>
 #include <asm/io.h>
 #include <asm/gpio.h>
@@ -24,14 +23,14 @@
 static int get_gpio_modepin(u32 *ret_payload)
 {
 	return xilinx_pm_request(PM_MMIO_READ, ZYNQMP_CRL_APB_BOOT_PIN_CTRL,
-				 0, 0, 0, ret_payload);
+				 0, 0, 0, 0, 0, ret_payload);
 }
 
 static int set_gpio_modepin(int val)
 {
 	return xilinx_pm_request(PM_MMIO_WRITE, ZYNQMP_CRL_APB_BOOT_PIN_CTRL,
 				 ZYNQMP_CRL_APB_BOOTPIN_CTRL_MASK,
-				 val, 0, NULL);
+				 val, 0, 0, 0, NULL);
 }
 
 static int modepin_gpio_direction_input(struct udevice *dev,

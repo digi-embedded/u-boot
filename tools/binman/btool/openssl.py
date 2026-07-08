@@ -153,7 +153,7 @@ numFirewallRegions = INTEGER:{firewall_cert_data['num_firewalls']}
 
     def x509_cert_rom(self, cert_fname, input_fname, key_fname, sw_rev,
                   config_fname, req_dist_name_dict, cert_type, bootcore,
-                  bootcore_opts, load_addr, sha):
+                  bootcore_opts, load_addr, sha, debug):
         """Create a certificate
 
         Args:
@@ -221,9 +221,13 @@ emailAddress           = {req_dist_name_dict['emailAddress']}
 # iterationCnt = INTEGER:TEST_IMAGE_KEY_DERIVE_INDEX
 # salt = FORMAT:HEX,OCT:TEST_IMAGE_KEY_DERIVE_SALT
 
+ # When debugging low level boot firmware it can be useful to have ROM or TIFS
+ # unlock JTAG access to the misbehaving CPUs. However in a production setting
+ # this can lead to code modification by outside parties after it's been
+ # authenticated. To gain JTAG access add the 'debug' flag to the binman config
  [ debug ]
  debugUID = FORMAT:HEX,OCT:0000000000000000000000000000000000000000000000000000000000000000
- debugType = INTEGER:4
+ debugType = INTEGER:{ "4" if debug else "0" }
  coreDbgEn = INTEGER:0
  coreDbgSecEn = INTEGER:0
 ''', file=outf)
@@ -238,7 +242,7 @@ emailAddress           = {req_dist_name_dict['emailAddress']}
                   imagesize_sbl, hashval_sbl, load_addr_sysfw, imagesize_sysfw,
                   hashval_sysfw, load_addr_sysfw_data, imagesize_sysfw_data,
                   hashval_sysfw_data, sysfw_inner_cert_ext_boot_block,
-                  dm_data_ext_boot_block, bootcore_opts):
+                  dm_data_ext_boot_block, bootcore_opts, debug):
         """Create a certificate
 
         Args:
@@ -283,6 +287,7 @@ emailAddress           = {req_dist_name_dict['emailAddress']}
 basicConstraints = CA:true
 1.3.6.1.4.1.294.1.3=ASN1:SEQUENCE:swrv
 1.3.6.1.4.1.294.1.9=ASN1:SEQUENCE:ext_boot_info
+1.3.6.1.4.1.294.1.8=ASN1:SEQUENCE:debug
 
 [swrv]
 swrv=INTEGER:{sw_rev}
@@ -322,6 +327,16 @@ destAddr = FORMAT:HEX,OCT:{load_addr_sysfw_data:08x}
 compSize = INTEGER:{imagesize_sysfw_data}
 shaType  = OID:{sha_type}
 shaValue = FORMAT:HEX,OCT:{hashval_sysfw_data}
+
+# When debugging low level boot firmware it can be useful to have ROM or TIFS
+# unlock JTAG access to the misbehaving CPUs. However in a production setting
+# this can lead to code modification by outside parties after it's been
+# authenticated. To gain JTAG access add the 'debug' flag to the binman config
+[ debug ]
+debugUID = FORMAT:HEX,OCT:0000000000000000000000000000000000000000000000000000000000000000
+debugType = INTEGER:{ "4" if debug else "0" }
+coreDbgEn = INTEGER:0
+coreDbgSecEn = INTEGER:0
 
 {sysfw_inner_cert_ext_boot_block}
 

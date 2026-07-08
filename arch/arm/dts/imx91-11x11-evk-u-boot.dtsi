@@ -4,6 +4,7 @@
  */
 
 #include "imx91-u-boot.dtsi"
+#include "imx91-11x11-evk-tianma-wvga-panel.dtsi"
 
 / {
 	wdt-reboot {
@@ -14,8 +15,9 @@
 	};
 
 	aliases {
-		usbgadget0 = &usbg1;
-		usbgadget1 = &usbg2;
+		usb_gadget0 = &usbg1;
+		usb_gadget1 = &usbg2;
+		rtc0 = &pcf2131;
 	};
 
 	usbg1: usbg1 {
@@ -38,10 +40,25 @@
 			method = "smc";
 		};
 	};
-};
 
-&A55_0 {
-	clocks = <&clk IMX91_CLK_A55_SEL>;
+	reg_vrpi_3v3: regulator-vrpi-3v3 {
+		compatible = "regulator-fixed";
+		regulator-max-microvolt = <3300000>;
+		regulator-min-microvolt = <3300000>;
+		regulator-name = "VRPI_3V3";
+		vin-supply = <&buck4>;
+		gpio = <&pcal6524 2 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
+	reg_vrpi_5v: regulator-vrpi-5v {
+		compatible = "regulator-fixed";
+		regulator-max-microvolt = <5000000>;
+		regulator-min-microvolt = <5000000>;
+		regulator-name = "VRPI_5V";
+		gpio = <&pcal6524 8 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
 };
 
 &{/soc@0} {
@@ -67,11 +84,30 @@
 &iomuxc {
 	bootph-pre-ram;
 	bootph-some-ram;
+
+	pinctrl_flexspi: flexspigrp {
+		fsl,pins = <
+			MX91_PAD_SD3_CMD__FLEXSPI1_A_SS0_B      0x3fe
+			MX91_PAD_SD3_CLK__FLEXSPI1_A_SCLK       0x3fe
+			MX91_PAD_SD3_DATA0__FLEXSPI1_A_DATA0   0x3fe
+			MX91_PAD_SD3_DATA1__FLEXSPI1_A_DATA1   0x3fe
+			MX91_PAD_SD3_DATA2__FLEXSPI1_A_DATA2   0x3fe
+			MX91_PAD_SD3_DATA3__FLEXSPI1_A_DATA3   0x3fe
+		>;
+	};
+
+	pinctrl_lpi2c3_gpio: lpi2c3gpiogrp {
+		fsl,pins = <
+			MX91_PAD_GPIO_IO28__GPIO2_IO28		0x31e
+			MX91_PAD_GPIO_IO29__GPIO2_IO29		0x31e
+		>;
+	};
 };
 
 &reg_usdhc2_vmmc {
 	u-boot,off-on-delay-us = <20000>;
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pinctrl_reg_usdhc2_vmmc {
@@ -85,14 +121,17 @@
 
 &pinctrl_usdhc1 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pinctrl_usdhc2_gpio {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pinctrl_usdhc2 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &gpio1 {
@@ -122,43 +161,66 @@
 
 &usdhc1 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &usdhc2 {
 	bootph-pre-ram;
+	bootph-some-ram;
 	fsl,signal-voltage-switch-extra-delay-ms = <8>;
 };
 
 &lpi2c1 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &lpi2c2 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &lpi2c3 {
 	bootph-pre-ram;
+	bootph-some-ram;
+	pinctrl-names = "default", "gpio";
+	pinctrl-0 = <&pinctrl_lpi2c3>;
+	pinctrl-1 = <&pinctrl_lpi2c3_gpio>;
+	gpios = <&gpio2 28 GPIO_ACTIVE_LOW>,
+		<&gpio2 29 GPIO_ACTIVE_LOW>;
+
+	pcf2131: rtc@53 {
+		compatible = "nxp,pcf2131";
+		reg = <0x53>;
+		interrupt-parent = <&pcal6524>;
+		interrupts = <1 IRQ_TYPE_LEVEL_LOW>;
+		status = "okay";
+	};
 };
 
 &{/soc@0/bus@44000000/i2c@44350000/pmic@25} {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &{/soc@0/bus@44000000/i2c@44350000/pmic@25/regulators} {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pinctrl_lpi2c1 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pinctrl_lpi2c2 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pinctrl_lpi2c3 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &fec {
@@ -213,12 +275,33 @@
 	bootph-pre-ram;
 };
 
+&flexspi1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_flexspi>;
+	assigned-clock-rates = <80000000>;
+	status = "okay";
+
+	flash0: flash@0 {
+		reg = <0>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "jedec,spi-nor";
+		spi-max-frequency = <80000000>;
+		spi-tx-bus-width = <4>;
+		spi-rx-bus-width = <4>;
+	};
+};
+
 &lcdif {
-	assigned-clocks = <&clk IMX91_CLK_MEDIA_AXI>, <&clk IMX91_CLK_MEDIA_APB>;
-	assigned-clock-parents = <&clk IMX91_CLK_SYS_PLL_PFD0>, <&clk IMX91_CLK_SYS_PLL_PFD1_DIV2>;
-	assigned-clock-rates = <333333334>, <133333334>;
+	assigned-clocks = <&clk IMX93_CLK_MEDIA_AXI>, <&clk IMX93_CLK_MEDIA_APB>;
+	assigned-clock-parents = <&clk IMX93_CLK_SYS_PLL_PFD0>, <&clk IMX93_CLK_SYS_PLL_PFD0_DIV2>;
+	assigned-clock-rates = <333333334>, <125000000>;
 };
 
 &parallel_disp_fmt {
 	/delete-property/ power-domains;
 };
+
+#ifdef CONFIG_MTD_SPI_NAND
+#include "imx91-11x11-evk-spinand.dtsi"
+#endif

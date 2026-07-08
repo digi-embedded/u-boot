@@ -5,7 +5,8 @@
  * Based on Tag object in drivers/crypto/caam in Linux
  */
 
-#include <common.h>
+#include <linux/errno.h>
+#include <string.h>
 #include "tag_object.h"
 
 /**

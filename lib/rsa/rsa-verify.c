@@ -89,7 +89,7 @@ U_BOOT_PADDING_ALGO(pkcs_15) = {
 };
 #endif
 
-#if CONFIG_IS_ENABLED(FIT_RSASSA_PSS)
+#if CONFIG_IS_ENABLED(RSASSA_PSS)
 static void u32_i2osp(uint32_t val, uint8_t *buf)
 {
 	buf[0] = (uint8_t)((val >> 24) & 0xff);
@@ -310,7 +310,7 @@ U_BOOT_PADDING_ALGO(pss) = {
 /**
  * rsa_verify_key() - Verify a signature against some data using RSA Key
  *
- * Verify a RSA PKCS1.5 signature against an expected hash using
+ * Verify a RSA PKCS1.5/PSS signature against an expected hash using
  * the RSA Key properties in prop structure.
  *
  * @info:	Specifies key and FIT information
@@ -342,7 +342,7 @@ static int rsa_verify_key(struct image_sign_info *info,
 		return -EINVAL;
 	}
 
-	debug("Checksum algorithm: %s", checksum->name);
+	debug("Checksum algorithm: %s\n", checksum->name);
 
 	/* Sanity check for stack size */
 	if (sig_len > RSA_MAX_SIG_BITS / 8) {
@@ -388,7 +388,7 @@ static int rsa_verify_key(struct image_sign_info *info,
  * @sig_len:	Number of bytes in signature
  *
  * Parse a RSA public key blob in DER format pointed to in @info and fill
- * a key_prop structure with properties of the key. Then verify a RSA PKCS1.5
+ * a key_prop structure with properties of the key. Then verify a RSA PKCS1.5/PSS
  * signature against an expected hash using the calculated properties.
  *
  * Return	0 if verified, -ve on error
@@ -423,7 +423,7 @@ int rsa_verify_with_pkey(struct image_sign_info *info,
  * information in node with prperties of RSA Key like modulus, exponent etc.
  *
  * Parse sign-node and fill a key_prop structure with properties of the
- * key.  Verify a RSA PKCS1.5 signature against an expected hash using
+ * key.  Verify a RSA PKCS1.5/PSS signature against an expected hash using
  * the properties parsed
  *
  * @info:	Specifies key and FIT information
@@ -444,13 +444,18 @@ static int rsa_verify_with_keynode(struct image_sign_info *info,
 	const char *algo;
 
 	if (node < 0) {
-		debug("%s: Skipping invalid node", __func__);
+		debug("%s: Skipping invalid node\n", __func__);
 		return -EBADF;
 	}
 
-	algo = fdt_getprop(blob, node, "algo", NULL);
+	algo = fdt_getprop(blob, node, FIT_ALGO_PROP, NULL);
+	if (!algo) {
+		debug("%s: Missing 'algo' property\n", __func__);
+		return -EFAULT;
+	}
+
 	if (strcmp(info->name, algo)) {
-		debug("%s: Wrong algo: have %s, expected %s", __func__,
+		debug("%s: Wrong algo: have %s, expected %s\n", __func__,
 		      info->name, algo);
 		return -EFAULT;
 	}
@@ -470,7 +475,7 @@ static int rsa_verify_with_keynode(struct image_sign_info *info,
 	prop.rr = fdt_getprop(blob, node, "rsa,r-squared", NULL);
 
 	if (!prop.num_bits || !prop.modulus || !prop.rr) {
-		debug("%s: Missing RSA key info", __func__);
+		debug("%s: Missing RSA key info\n", __func__);
 		return -EFAULT;
 	}
 
@@ -564,6 +569,11 @@ int rsa_verify(struct image_sign_info *info,
 	/* Reserve memory for maximum checksum-length */
 	uint8_t hash[info->crypto->key_len];
 	int ret;
+
+#if defined(USE_HOSTCC) && CONFIG_IS_ENABLED(LIBCRYPTO)
+	if (!info->fdt_blob)
+		return rsa_verify_openssl(info, region, region_count, sig, sig_len);
+#endif
 
 	/*
 	 * Verify that the checksum-length does not exceed the

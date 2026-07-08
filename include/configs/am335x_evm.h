@@ -75,7 +75,7 @@
 
 #include <config_distro_bootcmd.h>
 
-#ifndef CONFIG_SPL_BUILD
+#ifndef CONFIG_XPL_BUILD
 #include <env/ti/dfu.h>
 
 #define CFG_EXTRA_ENV_SETTINGS \
@@ -126,6 +126,8 @@
 			"setenv fdtfile am335x-bonegreen.dtb; fi; " \
 		"if test $board_name = BBGW; then " \
 			"setenv fdtfile am335x-bonegreen-wireless.dtb; fi; " \
+		"if test $board_name = BBGE; then " \
+			"setenv fdtfile am335x-bonegreen-eco.dtb; fi; " \
 		"if test $board_name = BBBL; then " \
 			"setenv fdtfile am335x-boneblue.dtb; fi; " \
 		"if test $board_name = BBEN; then " \
@@ -138,11 +140,10 @@
 			"setenv fdtfile am335x-evm.dtb; fi; " \
 		"if test $board_name = A335X_SK; then " \
 			"setenv fdtfile am335x-evmsk.dtb; fi; " \
-		"if test $board_name = A335_ICE; then " \
-			"setenv fdtfile am335x-icev2.dtb; " \
-			"if test $ice_mii = mii; then " \
-				"setenv pxe_label_override Pruss; fi;" \
-		"fi; " \
+		"if test $board_name = A335_ICE && test $ice_mii = rmii; then " \
+			"setenv fdtfile am335x-icev2.dtb; fi; " \
+		"if test $board_name = A335_ICE && test $ice_mii = mii; then " \
+			"setenv fdtfile am335x-icev2-prueth.dtb; fi; " \
 		"if test $fdtfile = undefined; then " \
 			"echo WARNING: Could not determine device tree to use; fi; \0" \
 	"init_console=" \
@@ -181,7 +182,7 @@
 #endif /* !CONFIG_MTD_RAW_NAND */
 
 /* USB Device Firmware Update support */
-#ifndef CONFIG_SPL_BUILD
+#ifndef CONFIG_XPL_BUILD
 #define DFUARGS \
 	DFU_ALT_INFO_EMMC \
 	DFU_ALT_INFO_MMC \

@@ -5,7 +5,7 @@
  * Author: Nicolas Ferre <nicolas.ferre@microcihp.com>
  */
 
-#include <common.h>
+#include <config.h>
 #include <debug_uart.h>
 #include <init.h>
 #include <asm/global_data.h>
@@ -65,7 +65,7 @@ int board_early_init_f(void)
 int board_init(void)
 {
 	/* address of boot parameters */
-	gd->bd->bi_boot_params = CFG_SYS_SDRAM_BASE + 0x100;
+	gd->bd->bi_boot_params = gd->bd->bi_dram[0].start + 0x100;
 
 	rgb_leds_init();
 
@@ -82,15 +82,18 @@ int misc_init_r(void)
 }
 #endif
 
+int dram_init_banksize(void)
+{
+	return fdtdec_setup_memory_banksize();
+}
+
 int dram_init(void)
 {
-	gd->ram_size = get_ram_size((void *)CFG_SYS_SDRAM_BASE,
-				    CFG_SYS_SDRAM_SIZE);
-	return 0;
+	return fdtdec_setup_mem_size_base();
 }
 
 /* SPL */
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 
 static void board_leds_init(void)
 {
@@ -208,7 +211,7 @@ static void ddrc_conf(struct atmel_mpddrc_config *ddrc)
 	ddrc->cal_mr4 |= ATMEL_MPDDRC_CAL_MR4_MR4R(0xFFFE);
 }
 
-void mem_init(void)
+void at91_mem_init(void)
 {
 	struct at91_pmc *pmc = (struct at91_pmc *)ATMEL_BASE_PMC;
 	struct atmel_mpddr *mpddrc = (struct atmel_mpddr *)ATMEL_BASE_MPDDRC;

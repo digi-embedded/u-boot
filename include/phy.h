@@ -9,6 +9,7 @@
 #ifndef _PHY_H
 #define _PHY_H
 
+#include <asm-generic/gpio.h>
 #include <log.h>
 #include <phy_interface.h>
 #include <dm/ofnode.h>
@@ -57,11 +58,6 @@ struct udevice;
 #define PHY_10G_FEATURES	(PHY_GBIT_FEATURES | \
 				SUPPORTED_10000baseT_Full)
 
-#ifndef PHY_ANEG_TIMEOUT
-#define PHY_ANEG_TIMEOUT	4000
-#endif
-
-
 struct phy_device;
 
 #define MDIO_NAME_LEN 32
@@ -76,6 +72,12 @@ struct mii_dev {
 	int (*reset)(struct mii_dev *bus);
 	struct phy_device *phymap[PHY_MAX_ADDR];
 	u32 phy_mask;
+	/** @reset_delay_us: Bus GPIO reset pulse width in microseconds */
+	int reset_delay_us;
+	/** @reset_post_delay_us: Bus GPIO reset deassert delay in microseconds */
+	int reset_post_delay_us;
+	/** @reset_gpiod: Bus Reset GPIO descriptor pointer */
+	struct gpio_desc reset_gpiod;
 };
 
 /* struct phy_driver: a structure which defines PHY behavior
@@ -120,6 +122,11 @@ struct phy_driver {
 	/* Phy specific driver override for writing a MMD register */
 	int (*write_mmd)(struct phy_device *phydev, int devad, int reg,
 			 u16 val);
+
+	/** @read_page: Return the current PHY register page number */
+	int (*read_page)(struct phy_device *phydev);
+	/** @write_page: Set the current PHY register page number */
+	int (*write_page)(struct phy_device *phydev, int page);
 
 	/* driver private data */
 	ulong data;
@@ -175,6 +182,15 @@ struct fixed_link {
  * @return: 0 if OK, -ve on error
  */
 int phy_reset(struct phy_device *phydev);
+
+/**
+ * phy_gpio_reset() - Resets the specified PHY using GPIO reset
+ * Toggles the optional PHY reset GPIO
+ *
+ * @dev:	PHY udevice to reset
+ * @return: 0 if OK, -ve on error
+ */
+int phy_gpio_reset(struct udevice *dev);
 
 /**
  * phy_find_by_mask() - Searches for a PHY on the specified MDIO bus
@@ -303,6 +319,9 @@ int phy_modify_mmd_changed(struct phy_device *phydev, int devad, u32 regnum,
 			   u16 mask, u16 set);
 int phy_modify_mmd(struct phy_device *phydev, int devad, u32 regnum,
 		   u16 mask, u16 set);
+int phy_save_page(struct phy_device *phydev);
+int phy_select_page(struct phy_device *phydev, int page);
+int phy_restore_page(struct phy_device *phydev, int oldpage, int ret);
 
 int phy_startup(struct phy_device *phydev);
 int phy_config(struct phy_device *phydev);
@@ -321,6 +340,30 @@ int gen10g_config(struct phy_device *phydev);
 int gen10g_startup(struct phy_device *phydev);
 int gen10g_shutdown(struct phy_device *phydev);
 int gen10g_discover_mmds(struct phy_device *phydev);
+
+/**
+ * phy_set_bits - Convenience function for setting bits in a PHY register
+ * @phydev: the phy_device struct
+ * @devad: The MMD to read from
+ * @regnum: register number to write
+ * @val: bits to set
+ */
+static inline int phy_set_bits(struct phy_device *phydev, int devad, u32 regnum, u16 val)
+{
+	return phy_modify(phydev, devad, regnum, 0, val);
+}
+
+/**
+ * phy_clear_bits - Convenience function for clearing bits in a PHY register
+ * @phydev: the phy_device struct
+ * @devad: The MMD to write to
+ * @regnum: register number to write
+ * @val: bits to clear
+ */
+static inline int phy_clear_bits(struct phy_device *phydev, int devad, u32 regnum, u16 val)
+{
+	return phy_modify(phydev, devad, regnum, val, 0);
+}
 
 /**
  * U_BOOT_PHY_DRIVER() - Declare a new U-Boot driver

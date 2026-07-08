@@ -3,10 +3,11 @@
  * (C) Copyright 2010
  * ISEE 2007 SL, <www.iseebcn.com>
  */
-#include <common.h>
+#include <config.h>
 #include <env.h>
 #include <init.h>
 #include <malloc.h>
+#include <mtd.h>
 #include <net.h>
 #include <status_led.h>
 #include <dm.h>
@@ -28,18 +29,6 @@
 #include <mtd_node.h>
 #include <fdt_support.h>
 #include "igep00x0.h"
-
-static const struct ns16550_plat igep_serial = {
-	.base = OMAP34XX_UART3,
-	.reg_shift = 2,
-	.clock = V_NS16550_CLK,
-	.fcr = UART_FCR_DEFVAL,
-};
-
-U_BOOT_DRVINFO(igep_uart) = {
-	"ns16550_serial",
-	&igep_serial
-};
 
 /*
  * Routine: get_board_revision

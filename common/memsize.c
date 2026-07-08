@@ -4,7 +4,7 @@
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  */
 
-#include <common.h>
+#include <config.h>
 #include <init.h>
 #include <asm/global_data.h>
 #include <cpu_func.h>
@@ -52,7 +52,10 @@ long get_ram_size(long *base, long maxsize)
 	long           val;
 	long           size;
 	int            i = 0;
-	int            dcache_en = dcache_status();
+	int            dcache_en = 0;
+
+	if (!CONFIG_IS_ENABLED(SYS_DCACHE_OFF))
+		dcache_en = dcache_status();
 
 	for (cnt = (maxsize / sizeof(long)) >> 1; cnt > 0; cnt >>= 1) {
 		addr = base + cnt;	/* pointer arith! */
@@ -82,6 +85,8 @@ long get_ram_size(long *base, long maxsize)
 			addr  = base + cnt;
 			sync();
 			*addr = save[--i];
+			if (dcache_en)
+				dcache_flush_invalidate(addr);
 		}
 		return (0);
 	}
@@ -90,6 +95,8 @@ long get_ram_size(long *base, long maxsize)
 		addr = base + cnt;	/* pointer arith! */
 		val = *addr;
 		*addr = save[--i];
+		if (dcache_en)
+			dcache_flush_invalidate(addr);
 		if (val != ~cnt) {
 			size = cnt * sizeof(long);
 			/*
@@ -101,6 +108,8 @@ long get_ram_size(long *base, long maxsize)
 			     cnt <<= 1) {
 				addr  = base + cnt;
 				*addr = save[--i];
+				if (dcache_en)
+					dcache_flush_invalidate(addr);
 			}
 			/* warning: don't restore save_base in this case,
 			 * it is already done in the loop because
@@ -112,6 +121,8 @@ long get_ram_size(long *base, long maxsize)
 		}
 	}
 	*base = save_base;
+	if (dcache_en)
+		dcache_flush_invalidate(base);
 
 	return (maxsize);
 }

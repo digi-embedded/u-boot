@@ -32,34 +32,18 @@
 gd_t *gd;
 
 #if IS_ENABLED(CONFIG_EFI_HAVE_CAPSULE_SUPPORT)
-/* GUIDs for capsule updatable firmware images */
-#define SANDBOX_UBOOT_IMAGE_GUID \
-	EFI_GUID(0x09d7cf52, 0x0720, 0x4710, 0x91, 0xd1, \
-		 0x08, 0x46, 0x9b, 0x7f, 0xe9, 0xc8)
-
-#define SANDBOX_UBOOT_ENV_IMAGE_GUID \
-	EFI_GUID(0x5a7021f5, 0xfef2, 0x48b4, 0xaa, 0xba, \
-		 0x83, 0x2e, 0x77, 0x74, 0x18, 0xc0)
-
-#define SANDBOX_FIT_IMAGE_GUID \
-	EFI_GUID(0x3673b45d, 0x6a7c, 0x46f3, 0x9e, 0x60, \
-		 0xad, 0xab, 0xb0, 0x3f, 0x79, 0x37)
-
 struct efi_fw_image fw_images[] = {
 #if defined(CONFIG_EFI_CAPSULE_FIRMWARE_RAW)
 	{
-		.image_type_id = SANDBOX_UBOOT_IMAGE_GUID,
 		.fw_name = u"SANDBOX-UBOOT",
 		.image_index = 1,
 	},
 	{
-		.image_type_id = SANDBOX_UBOOT_ENV_IMAGE_GUID,
 		.fw_name = u"SANDBOX-UBOOT-ENV",
 		.image_index = 2,
 	},
 #elif defined(CONFIG_EFI_CAPSULE_FIRMWARE_FIT)
 	{
-		.image_type_id = SANDBOX_FIT_IMAGE_GUID,
 		.fw_name = u"SANDBOX-FIT",
 		.image_index = 1,
 	},
@@ -105,6 +89,7 @@ static enum env_location env_locations[] = {
 	ENVL_NOWHERE,
 	ENVL_EXT4,
 	ENVL_FAT,
+	ENVL_SPI_FLASH,
 };
 
 enum env_location env_get_location(enum env_operation op, int prio)
@@ -117,12 +102,6 @@ enum env_location env_get_location(enum env_operation op, int prio)
 
 int dram_init(void)
 {
-	gd->ram_size = CFG_SYS_SDRAM_SIZE;
-	return 0;
-}
-
-int board_init(void)
-{
 	return 0;
 }
 
@@ -132,24 +111,33 @@ int ft_board_setup(void *fdt, struct bd_info *bd)
 	return fdt_add_mem_rsv(fdt, 0x00d02000, 0x4000);
 }
 
-#ifdef CONFIG_CMD_EXTENSION
-int extension_board_scan(struct list_head *extension_list)
+#if CONFIG_IS_ENABLED(SUPPORT_EXTENSION_SCAN) && \
+	!CONFIG_IS_ENABLED(XPL_BUILD)
+static int sandbox_extension_board_scan(struct udevice *dev,
+					struct alist *extension_list)
 {
-	struct extension *extension;
 	int i;
 
 	for (i = 0; i < 2; i++) {
-		extension = calloc(1, sizeof(struct extension));
-		snprintf(extension->overlay, sizeof(extension->overlay), "overlay%d.dtbo", i);
-		snprintf(extension->name, sizeof(extension->name), "extension board %d", i);
-		snprintf(extension->owner, sizeof(extension->owner), "sandbox");
-		snprintf(extension->version, sizeof(extension->version), "1.1");
-		snprintf(extension->other, sizeof(extension->other), "Fictional extension board");
-		list_add_tail(&extension->list, extension_list);
+		struct extension extension = {0};
+
+		snprintf(extension.overlay, sizeof(extension.overlay), "overlay%d.dtbo", i);
+		snprintf(extension.name, sizeof(extension.name), "extension board %d", i);
+		snprintf(extension.owner, sizeof(extension.owner), "sandbox");
+		snprintf(extension.version, sizeof(extension.version), "1.1");
+		snprintf(extension.other, sizeof(extension.other), "Fictional extension board");
+		if (!alist_add(extension_list, extension))
+			return -ENOMEM;
 	}
 
 	return i;
 }
+
+U_BOOT_EXTENSION(sandbox_extension, sandbox_extension_board_scan);
+
+U_BOOT_DRVINFO(sandbox_extension) = {
+	.name = "sandbox_extension",
+};
 #endif
 
 #ifdef CONFIG_BOARD_LATE_INIT

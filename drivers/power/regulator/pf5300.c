@@ -4,7 +4,6 @@
  * Copyright 2023 NXP
  */
 
-#include <common.h>
 #include <dm.h>
 #include <log.h>
 #include <linux/bitops.h>

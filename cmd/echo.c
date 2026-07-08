@@ -4,8 +4,8 @@
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  */
 
-#include <common.h>
 #include <command.h>
+#include <linux/string.h>
 
 static int do_echo(struct cmd_tbl *cmdtp, int flag, int argc,
 		   char *const argv[])

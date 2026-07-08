@@ -67,6 +67,7 @@ config PCI_CONFIG_HOST_BRIDGE
 config PCI_MAP_SYSTEM_MEMORY
 	bool "Map local system memory from a virtual base address"
 	depends on MIPS
+	default y if !ARCH_MAP_SYSMEM
 	help
 	  Say Y if base address of system memory is being used as a virtual address
 	  instead of a physical address (e.g. on MIPS). The PCI core will then remap
@@ -74,6 +75,15 @@ config PCI_MAP_SYSTEM_MEMORY
 	  region of type PCI_REGION_SYS_MEMORY.
 	  This should only be required on MIPS where CFG_SYS_SDRAM_BASE is still
 	  being used as virtual address.
+
+config PCI_BRIDGE_MEM_ALIGNMENT
+	hex "Alignment boundary of PCI memory resource allocation"
+	default 0x10000 if TARGET_BOSTON
+	default 0x100000
+	help
+	  Specify a boundary for alignment of PCI memory resource allocation,
+	  this is normally 0x100000 (1MB) but can be reduced to accommodate
+	  hardware with tight bridge range if hardware allows.
 
 config PCI_SRIOV
 	bool "Enable Single Root I/O Virtualization support for PCI"
@@ -121,6 +131,7 @@ config PCIE_APPLE
 	bool "Enable Apple PCIe driver"
 	depends on ARCH_APPLE
 	imply PCI_INIT_R
+	select DEVRES
 	select SYS_PCI_64BIT
 	default y
 	help
@@ -136,6 +147,12 @@ config PCI_FTPCI100
 config PCI_GT64120
 	bool "GT64120 PCI support"
 	depends on MIPS
+
+config PCIE_CDNS_TI
+	bool "TI K3 PCIe support"
+	help
+	  Say Y here to enable support for the Cadence PCIe Controller
+	  on TI's K3 SoCs.
 
 config PCI_PHYTIUM
 	bool "Phytium PCIe support"
@@ -167,6 +184,7 @@ config SYS_FSL_PCI_VER_3_X
 config PCIE_FSL
 	bool "FSL PowerPC PCIe support"
 	select SYS_FSL_PCI_VER_3_X if ARCH_T2080 || ARCH_T4240
+	depends on PPC
 	help
 	  Say Y here if you want to enable PCIe controller support on FSL
 	  PowerPC MPC85xx, MPC86xx, B series, P series and T series SoCs.
@@ -174,6 +192,7 @@ config PCIE_FSL
 
 config PCI_MPC85XX
 	bool "MPC85XX PowerPC PCI support"
+	depends on MPC85xx
 	help
 	  Say Y here if you want to enable PCI controller support on FSL
 	  PowerPC MPC85xx SoC.
@@ -183,19 +202,19 @@ config PCI_MSC01
 	depends on TARGET_MALTA
 
 config PCI_RCAR_GEN2
-	bool "Renesas RCar Gen2 PCIe driver"
+	bool "Renesas R-Car Gen2 PCIe driver"
 	depends on RCAR_32
 	help
 	  Say Y here if you want to enable PCIe controller support on
-	  Renesas RCar Gen2 SoCs. The PCIe controller on RCar Gen2 is
+	  Renesas R-Car Gen2 SoCs. The PCIe controller on R-Car Gen2 is
 	  also used to access EHCI USB controller on the SoC.
 
 config PCI_RCAR_GEN3
-	bool "Renesas RCar Gen3 PCIe driver"
+	bool "Renesas R-Car Gen3 PCIe driver"
 	depends on RCAR_GEN3
 	help
 	  Say Y here if you want to enable PCIe controller support on
-	  Renesas RCar Gen3 SoCs.
+	  Renesas R-Car Gen3 SoCs.
 
 config PCI_SANDBOX
 	bool "Sandbox PCI support"
@@ -246,9 +265,11 @@ config PCI_XILINX
 
 config PCIE_LAYERSCAPE
 	bool
+	select DEVRES
 
 config PCIE_LAYERSCAPE_RC
 	bool "Layerscape PCIe Root Complex mode support"
+	depends on ARM
 	select PCIE_LAYERSCAPE
 	help
 	  Enable Layerscape PCIe Root Complex mode driver support. The Layerscape
@@ -270,6 +291,7 @@ config PCI_IOMMU_EXTRA_MAPPINGS
 
 config PCIE_LAYERSCAPE_EP
 	bool "Layerscape PCIe Endpoint mode support"
+	depends on ARM
 	select PCIE_LAYERSCAPE
 	select PCI_ENDPOINT
 	help
@@ -280,6 +302,7 @@ config PCIE_LAYERSCAPE_EP
 
 config PCIE_LAYERSCAPE_GEN4
 	bool "Layerscape Gen4 PCIe support"
+	depends on ARM
 	help
 	  Support PCIe Gen4 on NXP Layerscape SoCs, which may have one or
 	  several PCIe controllers. The PCIe controller can work in RC or
@@ -312,12 +335,6 @@ config PCIE_IMX
 	bool "i.MX PCIe support"
 	depends on ARCH_MX6 || ARCH_IMX8
 
-config PCIE_INTEL_FPGA
-	bool "Intel FPGA PCIe support"
-	help
-	  Say Y here if you want to enable PCIe controller support on Intel
-	  FPGA, example Stratix 10.
-
 config PCIE_IPROC
 	bool "Iproc PCIe support"
 	help
@@ -346,9 +363,17 @@ config PCI_KEYSTONE
 config PCIE_MEDIATEK
 	bool "MediaTek PCIe Gen2 controller"
 	depends on ARCH_MEDIATEK
+	select DEVRES
 	help
 	  Say Y here if you want to enable Gen2 PCIe controller,
 	  which could be found on MT7623 SoC family.
+
+config PCIE_MEDIATEK_GEN3
+	bool "MediaTek PCIe Gen3 controller"
+	depends on ARCH_MEDIATEK
+	help
+	  Say Y here if you want to enable Gen3 PCIe controller,
+	  which could be found on the Mediatek Filogic SoC family.
 
 config PCIE_DW_MESON
 	bool "Amlogic Meson DesignWare based PCIe controller"
@@ -357,6 +382,24 @@ config PCIE_DW_MESON
 	help
 	  Say Y here if you want to enable DW PCIe controller support on
 	  Amlogic SoCs.
+
+config PCIE_DW_QCOM
+	bool "Qualcomm DesignWare based PCIe controller"
+	depends on ARCH_SNAPDRAGON
+	select PCIE_DW_COMMON
+	help
+	  Say Y here if you want to enable DW PCIe controller support on
+	  Qualcomm SoCs.
+
+config PCI_RCAR_GEN4
+	bool "Renesas R-Car Gen4 PCIe driver"
+	depends on RCAR_GEN4
+	select DM_RESET
+	select DM_GPIO
+	select PCIE_DW_COMMON
+	help
+	  Say Y here if you want to enable PCIe controller support on
+	  Renesas R-Car Gen4 SoCs.
 
 config PCIE_ROCKCHIP
 	bool "Enable Rockchip PCIe driver"
@@ -412,5 +455,16 @@ config PCIE_STARFIVE_JH7110
 	help
 	  Say Y here if you want to enable PLDA XpressRich PCIe controller
 	  support on StarFive JH7110 SoC.
+
+config PCIE_DW_IMX
+	bool "i.MX DW PCIe controller support"
+	depends on ARCH_IMX8M || ARCH_IMX9
+	select PCIE_DW_COMMON
+	select DM_REGULATOR
+	select REGMAP
+	select SYSCON
+	help
+	  Say Y here if you want to enable DW PCIe controller support on
+	  iMX SoCs.
 
 endif

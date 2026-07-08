@@ -606,7 +606,7 @@ static const struct mtk_pin_field_calc mt7988_pin_r1_range[] = {
 	PIN_FIELD_BASE(83, 83, IOCFG_TR_BASE, 0x90, 0x10, 15, 1),
 };
 
-static const struct mtk_pin_reg_calc mt7988_reg_cals[] = {
+static const struct mtk_pin_reg_calc mt7988_reg_cals[PINCTRL_PIN_REG_MAX] = {
 	[PINCTRL_PIN_REG_MODE] = MTK_RANGE(mt7988_pin_mode_range),
 	[PINCTRL_PIN_REG_DIR] = MTK_RANGE(mt7988_pin_dir_range),
 	[PINCTRL_PIN_REG_DI] = MTK_RANGE(mt7988_pin_di_range),
@@ -1233,8 +1233,7 @@ static const struct mtk_function_desc mt7988_functions[] = {
 };
 
 static const char *const mt7988_pinctrl_register_base_names[] = {
-	"gpio_base", "iocfg_tr_base", "iocfg_br_base", "iocfg_rb_base",
-	"iocfg_lb_base", "iocfg_tl_base",
+	"gpio", "iocfg_tr", "iocfg_br", "iocfg_rb", "iocfg_lb", "iocfg_tl",
 };
 
 static const struct mtk_pinctrl_soc mt7988_data = {
@@ -1269,6 +1268,7 @@ U_BOOT_DRIVER(mt7988_pinctrl) = {
 	.id = UCLASS_PINCTRL,
 	.of_match = mt7988_pctrl_match,
 	.ops = &mtk_pinctrl_ops,
+	.bind = mtk_pinctrl_common_bind,
 	.probe = mtk_pinctrl_mt7988_probe,
 	.priv_auto = sizeof(struct mtk_pinctrl_priv),
 };

@@ -18,7 +18,6 @@
  * 2. Support Polarity Inversion
  */
 
-#include <common.h>
 #include <errno.h>
 #include <dm.h>
 #include <fdtdec.h>
@@ -39,7 +38,6 @@
 #define PCA957X_OUTPUT          5
 #define PCA957X_INVERT          1
 #define PCA957X_DIRECTION       4
-
 
 #define PCA_GPIO_MASK           0x00FF
 #define PCA_INT                 0x0100
@@ -395,6 +393,8 @@ static const struct udevice_id pca953x_ids[] = {
 	{ .compatible = "nxp,pca9575", .data = OF_957X(16, PCA_INT), },
 	{ .compatible = "nxp,pca9698", .data = OF_953X(40, 0), },
 
+	{ .compatible = "nxp,pcal6408", .data = OF_953X(8, PCA_LATCH_INT), },
+	{ .compatible = "nxp,pcal6416", .data = OF_953X(16, PCA_LATCH_INT), },
 	{ .compatible = "nxp,pcal6524", .data = OF_953X(24, PCA_LATCH_INT), },
 
 	{ .compatible = "maxim,max7310", .data = OF_953X(8, 0), },

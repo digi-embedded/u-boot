@@ -78,6 +78,7 @@ Boot Documentation
 
    boot-flow
    pre-generated-fip
+   spl
 
 Board Documentation
 -------------------
@@ -85,6 +86,8 @@ Board Documentation
 .. toctree::
    :maxdepth: 1
 
+   aml-a311d-cc
+   aml-s905d3-cc
    bananapi-cm4io
    bananapi-m2pro
    bananapi-m2s

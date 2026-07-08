@@ -64,7 +64,6 @@ struct eth_mac_regs {
 #define MII_REGMSK		(0x1F << 6)
 #define MII_ADDRMSK		(0x1F << 11)
 
-
 struct eth_dma_regs {
 	u32 busmode;		/* 0x00 */
 	u32 txpolldemand;	/* 0x04 */
@@ -230,7 +229,11 @@ struct dw_eth_dev {
 	u32 max_speed;
 	u32 tx_currdescnum;
 	u32 rx_currdescnum;
-
+#if IS_ENABLED(CONFIG_BITBANGMII) && IS_ENABLED(CONFIG_DM_GPIO)
+	u32 bb_delay;
+	struct gpio_desc mdc_gpio;
+	struct gpio_desc mdio_gpio;
+#endif
 	struct eth_mac_regs *mac_regs_p;
 	struct eth_dma_regs *dma_regs_p;
 #if CONFIG_IS_ENABLED(DM_GPIO)

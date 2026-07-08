@@ -45,6 +45,8 @@
 #define CQSPI_REG_CONFIG_CLK_POL                BIT(1)
 #define CQSPI_REG_CONFIG_CLK_PHA                BIT(2)
 #define CQSPI_REG_CONFIG_PHY_ENABLE_MASK        BIT(3)
+#define CQSPI_REG_CONFIG_RESET_PIN_FLD_MASK	BIT(5)
+#define CQSPI_REG_CONFIG_RESET_CFG_FLD_MASK	BIT(6)
 #define CQSPI_REG_CONFIG_DIRECT                 BIT(7)
 #define CQSPI_REG_CONFIG_DECODE                 BIT(9)
 #define CQSPI_REG_CONFIG_ENBL_DMA               BIT(15)
@@ -220,8 +222,7 @@ struct cadence_spi_plat {
 	u32		tsd2d_ns;
 	u32		tchsh_ns;
 	u32		tslch_ns;
-
-	bool            is_dma;
+	u32		quirks;
 };
 
 struct cadence_spi_priv {
@@ -251,6 +252,7 @@ struct cadence_spi_priv {
 	u32		tsd2d_ns;
 	u32		tchsh_ns;
 	u32		tslch_ns;
+	u32		quirks;
 	u8              edge_mode;
 	u8              dll_mode;
 	bool		extra_dummy;
@@ -264,6 +266,11 @@ struct cadence_spi_priv {
 	u8		addr_width;
 	u8		data_width;
 	bool		dtr;
+};
+
+struct cqspi_driver_platdata {
+	u32 hwcaps_mask;
+	u32 quirks;
 };
 
 /* Functions call declaration */
@@ -307,8 +314,11 @@ int cadence_qspi_apb_dma_read(struct cadence_spi_priv *priv,
 			      const struct spi_mem_op *op);
 int cadence_qspi_apb_wait_for_dma_cmplt(struct cadence_spi_priv *priv);
 int cadence_qspi_apb_exec_flash_cmd(void *reg_base, unsigned int reg);
-int cadence_qspi_versal_flash_reset(struct udevice *dev);
+int cadence_qspi_flash_reset(struct udevice *dev);
 ofnode cadence_qspi_get_subnode(struct udevice *dev);
 void cadence_qspi_apb_enable_linear_mode(bool enable);
-
+int cadence_device_reset(struct udevice *dev);
+int cadence_qspi_setup_opcode_ext(struct cadence_spi_priv *priv,
+				  const struct spi_mem_op *op,
+				  unsigned int shift);
 #endif /* __CADENCE_QSPI_H__ */

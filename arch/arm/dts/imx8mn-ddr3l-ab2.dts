@@ -3,7 +3,7 @@
   * Copyright 2021 NXP
   */
 
-#include "imx8mn-ddr3l-evk.dts"
+#include "../dts/upstream/src/arm64/freescale/imx8mn-ddr3l-evk.dts"
 #include "imx8mn-ab2.dtsi"
 
 / {

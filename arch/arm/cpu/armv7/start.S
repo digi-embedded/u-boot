@@ -152,8 +152,39 @@ ENDPROC(c_runtime_cpu_setup)
  *
  *************************************************************************/
 WEAK(save_boot_params)
+#if (IS_ENABLED(CONFIG_BLOBLIST))
+	/* Calculate the PC-relative address of saved_args */
+	adr	r12, saved_args_offset
+	ldr	r13, saved_args_offset
+	add	r12, r12, r13
+
+	/*
+	 * Intentionally swapping r0 with r2 in order to simplify the C
+	 * function we use later.
+	 */
+	str	r2, [r12]
+	str	r1, [r12, #4]
+	str	r0, [r12, #8]
+	str	r3, [r12, #12]
+#endif
 	b	save_boot_params_ret		@ back to my caller
 ENDPROC(save_boot_params)
+
+#if (IS_ENABLED(CONFIG_BLOBLIST))
+saved_args_offset:
+	.long	saved_args - .	/* offset from current code to save_args */
+
+	.section .data
+	.align 2
+	.global saved_args
+saved_args:
+	.rept 4
+	.word 0
+	.endr
+END(saved_args)
+
+	.section .text
+#endif
 
 #ifdef CONFIG_ARMV7_LPAE
 WEAK(switch_to_hypervisor)
@@ -250,8 +281,8 @@ ENTRY(cpu_init_cp15)
 	orr	r2, r4, r2		@ r2 has combined CPU variant + revision
 
 /* Early stack for ERRATA that needs into call C code */
-#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_STACK)
-	ldr	r0, =(CONFIG_SPL_STACK)
+#if CONFIG_IS_ENABLED(HAVE_INIT_STACK)
+	ldr	r0, =CONFIG_VAL(STACK)
 #else
 	ldr	r0, =(SYS_INIT_SP_ADDR)
 #endif

@@ -3,7 +3,7 @@
  * Copyright (C) 2016 Freescale Semiconductor, Inc.
  */
 
-#include <common.h>
+#include <config.h>
 #include <div64.h>
 #include <log.h>
 #include <asm/io.h>
@@ -427,7 +427,6 @@ static u32 scg_nic_get_rate(enum scg_clk clk)
 	clk_debug("scg_nic_get_rate NIC1 bus rate %u\n", rate);
 	return rate;
 }
-
 
 static enum scg_clk scg_scs_array[4] = {
 	SCG_SOSC_CLK, SCG_SIRC_CLK, SCG_FIRC_CLK, SCG_ROSC_CLK,
@@ -861,7 +860,6 @@ int scg_enable_usb_pll(bool usb_control)
 
 	return 0;
 }
-
 
 /* A7 domain system clock source is SPLL */
 #define SCG1_RCCR_SCS_NUM	((SCG_SCS_SYS_PLL) << SCG_CCR_SCS_SHIFT)

@@ -4,7 +4,6 @@
  *
  */
 
-#include <common.h>
 #include <asm/io.h>
 #include <dm.h>
 #include <dm/lists.h>
@@ -15,6 +14,7 @@
 #include <asm/mach-imx/imx_vservice.h>
 #include <imx_m4_mu.h>
 #include <malloc.h>
+#include <time.h>
 
 static LIST_HEAD(vservice_channels);
 

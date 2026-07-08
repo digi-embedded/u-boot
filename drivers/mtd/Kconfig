@@ -2,6 +2,7 @@ menu "MTD Support"
 
 config MTD_PARTITIONS
 	bool
+	select PARTITIONS
 
 config MTD
 	bool "Enable MTD layer"
@@ -31,8 +32,16 @@ config MTD_CONCAT
 	  into a single logical device. The larger logical device can then
 	  be partitioned.
 
+config MTD_BLOCK
+	bool "Enable block device access to MTD devices"
+	select BLK
+	help
+	  Enable support for block device access to MTD devices
+	  using blk_ops abstraction.
+
 config SYS_MTDPARTS_RUNTIME
 	bool "Allow MTDPARTS to be configured at runtime"
+	depends on !COMPILE_TEST
 	help
 	  This option allows to call the function board_mtdparts_default to
 	  dynamically build the variables mtdids and mtdparts at runtime.
@@ -158,7 +167,7 @@ config SYS_FLASH_QUIET_TEST
 
 config SYS_FLASH_CHECKSUM
 	bool "Compute and print flash CRC if 'flashchecksum' is set in the environment"
-	depends on MTD_NOR_FLASH
+	depends on (FLASH_CFI_DRIVER && !CFI_FLASH)
 	help
 	  If the variable flashchecksum is set in the environment, perform a CRC
 	  of the flash and print the value to console.
@@ -177,7 +186,7 @@ config FLASH_VERIFY
 
 config ALTERA_QSPI
 	bool "Altera Generic Quad SPI Controller"
-	depends on DM_MTD
+	depends on DM_MTD && !FLASH_CFI_DRIVER
 	select USE_SYS_MAX_FLASH_BANKS
 	help
 	  This enables access to Altera EPCQ/EPCS flash chips using the
@@ -186,15 +195,15 @@ config ALTERA_QSPI
 	  "Embedded Peripherals IP User Guide" of Altera.
 
 config RENESAS_RPC_HF
-	bool "Renesas RCar Gen3 RPC HyperFlash driver"
+	bool "Renesas R-Car Gen3 RPC HyperFlash driver"
 	depends on RCAR_GEN3 && DM_MTD
 	help
 	  This enables access to HyperFlash memory through the Renesas
-	  RCar Gen3 RPC controller.
+	  R-Car Gen3 RPC controller.
 
 config HBMC_AM654
 	bool "HyperBus controller driver for AM65x SoC"
-	depends on SYSCON
+	depends on MULTIPLEXER && (MUX_MMIO || SPL_MUX_MMIO)
 	help
 	 This is the driver for HyperBus controller on TI's AM65x and
 	 other SoCs
@@ -208,12 +217,13 @@ config STM32_FLASH
 	 STM32 MCU.
 
 config SYS_MAX_FLASH_SECT
-	int "Maximumm number of sectors on a flash chip"
+	int "Maximum number of sectors on a flash chip"
 	depends on MTD_NOR_FLASH || FLASH_CFI_DRIVER
 	default 512
 
 config SAMSUNG_ONENAND
 	bool "Samsung OneNAND driver support"
+	depends on S5P
 
 config USE_SYS_MAX_FLASH_BANKS
 	bool "Enable Max number of Flash memory banks"

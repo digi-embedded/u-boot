@@ -8,7 +8,7 @@
 #define __LS1046A_COMMON_H
 
 /* SPL build */
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 #define SPL_NO_QBMAN
 #define SPL_NO_FMAN
 #define SPL_NO_ENV
@@ -17,11 +17,11 @@
 #define SPL_NO_USB
 #define SPL_NO_SATA
 #endif
-#if defined(CONFIG_SPL_BUILD) && \
+#if defined(CONFIG_XPL_BUILD) && \
 	(defined(CONFIG_NAND_BOOT) || defined(CONFIG_QSPI_BOOT))
 #define SPL_NO_MMC
 #endif
-#if defined(CONFIG_SPL_BUILD)
+#if defined(CONFIG_XPL_BUILD)
 #define SPL_NO_IFC
 #endif
 
@@ -83,7 +83,7 @@
 #endif
 #ifndef SPL_NO_MISC
 /* Initial environment variables */
-#define CFG_EXTRA_ENV_SETTINGS		\
+#define EXTRA_ENV_SETTINGS         \
 	"hwconfig=fsl_ddr:bank_intlv=auto\0"	\
 	"ramdisk_addr=0x800000\0"		\
 	"ramdisk_size=0x2000000\0"		\

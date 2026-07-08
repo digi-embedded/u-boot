@@ -38,7 +38,6 @@
  *   This improvement can disable/enable through PWM_ASPEED_CTRL_DUTY_SYNC_DISABLE.
  */
 
-#include <common.h>
 #include <div64.h>
 #include <dm.h>
 #include <pwm.h>
@@ -47,6 +46,7 @@
 #include <regmap.h>
 #include <syscon.h>
 #include <dm/device_compat.h>
+#include <linux/log2.h>
 #include <linux/math64.h>
 #include <linux/bitfield.h>
 #include <linux/time.h>
@@ -211,8 +211,7 @@ static int aspeed_pwm_probe(struct udevice *dev)
 	}
 	ret = reset_deassert(&priv->reset);
 	if (ret) {
-		dev_err(dev, "cannot deassert reset control: %pe\n",
-			ERR_PTR(ret));
+		dev_err(dev, "cannot deassert reset control: %d\n", ret);
 		return ret;
 	}
 

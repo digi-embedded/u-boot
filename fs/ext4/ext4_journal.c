@@ -13,7 +13,6 @@
  * Copyright 1998-2000 Red Hat, Inc --- All Rights Reserved
  */
 
-#include <common.h>
 #include <blk.h>
 #include <ext4fs.h>
 #include <log.h>
@@ -132,6 +131,13 @@ int ext4fs_log_gdt(char *gd_table)
 	struct ext_filesystem *fs = get_fs();
 	short i;
 	long int var = fs->gdtable_blkno;
+
+	/* Make sure there is enough journal entries */
+	if (fs->no_blk_pergdt > MAX_JOURNAL_ENTRIES) {
+		log_err("*** Not enough journal entries allocated\n");
+		return -ENOMEM;
+	}
+
 	for (i = 0; i < fs->no_blk_pergdt; i++) {
 		journal_ptr[gindex]->buf = zalloc(fs->blksz);
 		if (!journal_ptr[gindex]->buf)
@@ -250,8 +256,10 @@ void ext4fs_push_revoke_blk(char *buffer)
 	}
 
 	node->content = zalloc(fs->blksz);
-	if (node->content == NULL)
+	if (!node->content) {
+		free(node);
 		return;
+	}
 	memcpy(node->content, buffer, fs->blksz);
 
 	if (first_node == true) {
@@ -430,7 +438,7 @@ int ext4fs_check_journal_state(int recovery_flag)
 			printf("Recovery required\n");
 	} else {
 		if (recovery_flag == RECOVER)
-			printf("File System is consistent\n");
+			log_debug("File System is consistent\n");
 		goto end;
 	}
 

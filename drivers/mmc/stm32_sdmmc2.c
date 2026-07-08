@@ -6,7 +6,6 @@
 
 #define LOG_CATEGORY UCLASS_MMC
 
-#include <common.h>
 #include <clk.h>
 #include <cpu_func.h>
 #include <dm.h>
@@ -220,9 +219,9 @@ static void stm32_sdmmc2_start_data(struct udevice *dev,
 
 	if (data->flags & MMC_DATA_READ) {
 		data_ctrl |= SDMMC_DCTRL_DTDIR;
-		idmabase0 = (u32)data->dest;
+		idmabase0 = (u32)(long)data->dest;
 	} else {
-		idmabase0 = (u32)data->src;
+		idmabase0 = (u32)(long)data->src;
 	}
 
 	/* Set the SDMMC DataLength value */
@@ -386,15 +385,29 @@ static int stm32_sdmmc2_end_data(struct udevice *dev,
 	u32 mask = SDMMC_STA_DCRCFAIL | SDMMC_STA_DTIMEOUT |
 		   SDMMC_STA_IDMATE | SDMMC_STA_DATAEND;
 	u32 status;
+	unsigned long timeout_msecs = ctx->data_length >> 8;
+	unsigned long start_timeout;
+
+	/* At least, a timeout of 2 seconds is set */
+	if (timeout_msecs < 2000)
+		timeout_msecs = 2000;
 
 	if (data->flags & MMC_DATA_READ)
 		mask |= SDMMC_STA_RXOVERR;
 	else
 		mask |= SDMMC_STA_TXUNDERR;
 
+	start_timeout = get_timer(0);
 	status = readl(plat->base + SDMMC_STA);
-	while (!(status & mask))
+	while (!(status & mask)) {
+		if (get_timer(start_timeout) > timeout_msecs) {
+			ctx->dpsm_abort = true;
+			return -ETIMEDOUT;
+		}
+
+		schedule();
 		status = readl(plat->base + SDMMC_STA);
+	}
 
 	/*
 	 * Need invalidate the dcache again to avoid any
@@ -463,8 +476,8 @@ retry_cmd:
 
 	stm32_sdmmc2_start_cmd(dev, cmd, cmdat, &ctx);
 
-	dev_dbg(dev, "send cmd %d data: 0x%x @ 0x%x\n",
-		cmd->cmdidx, data ? ctx.data_length : 0, (unsigned int)data);
+	dev_dbg(dev, "send cmd %d data: 0x%x @ 0x%p\n",
+		cmd->cmdidx, data ? ctx.data_length : 0, data);
 
 	ret = stm32_sdmmc2_end_cmd(dev, cmd, &ctx);
 
@@ -789,6 +802,7 @@ static int stm32_sdmmc2_bind(struct udevice *dev)
 
 static const struct udevice_id stm32_sdmmc2_ids[] = {
 	{ .compatible = "st,stm32-sdmmc2" },
+	{ .compatible = "st,stm32mp25-sdmmc2" },
 	{ }
 };
 

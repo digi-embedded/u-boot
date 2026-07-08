@@ -9,7 +9,6 @@
  * Stefan Herbrechtsmeier <stefan.herbrechtsmeier@weidmueller.com>
  */
 
-#include <common.h>
 #include <dm.h>
 #include <dm/device_compat.h>
 #include <asm/cache.h>
@@ -44,6 +43,8 @@ enum {
 	ZYNQMP_VARIANT_DR = BIT(3),
 	ZYNQMP_VARIANT_DR_SE = BIT(4),
 	ZYNQMP_VARIANT_EG_SE = BIT(5),
+	ZYNQMP_VARIANT_TEG = BIT(6),
+	ZYNQMP_VARIANT_EG_LR = BIT(7),
 };
 
 struct zynqmp_device {
@@ -62,7 +63,12 @@ static const struct zynqmp_device zynqmp_devices[] = {
 	{
 		.id = 0x04688093,
 		.device = 1,
-		.variants = ZYNQMP_VARIANT_EG,
+		.variants = ZYNQMP_VARIANT_EG | ZYNQMP_VARIANT_CG,
+	},
+	{
+		.id = 0x04689093,
+		.device = 1,
+		.variants = ZYNQMP_VARIANT_EG_LR,
 	},
 	{
 		.id = 0x04711093,
@@ -73,6 +79,11 @@ static const struct zynqmp_device zynqmp_devices[] = {
 		.id = 0x04710093,
 		.device = 3,
 		.variants = ZYNQMP_VARIANT_EG | ZYNQMP_VARIANT_CG,
+	},
+	{
+		.id = 0x04718093,
+		.device = 3,
+		.variants = ZYNQMP_VARIANT_TEG,
 	},
 	{
 		.id = 0x04721093,
@@ -295,10 +306,14 @@ static int soc_xilinx_zynqmp_detect_machine(struct udevice *dev, u32 idcode,
 		strlcat(priv->machine, "eg", sizeof(priv->machine));
 	} else if (device->variants & ZYNQMP_VARIANT_EG_SE) {
 		strlcat(priv->machine, "eg_SE", sizeof(priv->machine));
+	} else if (device->variants & ZYNQMP_VARIANT_EG_LR) {
+		strlcat(priv->machine, "eg_LR", sizeof(priv->machine));
 	} else if (device->variants & ZYNQMP_VARIANT_DR) {
 		strlcat(priv->machine, "dr", sizeof(priv->machine));
 	} else if (device->variants & ZYNQMP_VARIANT_DR_SE) {
 		strlcat(priv->machine, "dr_SE", sizeof(priv->machine));
+	} else if (device->variants & ZYNQMP_VARIANT_TEG) {
+		strlcat(priv->machine, "teg", sizeof(priv->machine));
 	}
 
 	return 0;
@@ -347,7 +362,7 @@ static int soc_xilinx_zynqmp_probe(struct udevice *dev)
 		ret = zynqmp_mmio_read(ZYNQMP_PS_VERSION, &ret_payload[2]);
 	else
 		ret = xilinx_pm_request(PM_GET_CHIPID, 0, 0, 0, 0,
-					ret_payload);
+					0, 0, ret_payload);
 	if (ret < 0)
 		return ret;
 

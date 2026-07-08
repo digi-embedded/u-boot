@@ -4,7 +4,6 @@
  *
  * Copyright (C) 2011-2013 Marek Vasut <marex@denx.de>
  */
-#include <common.h>
 #include <clk.h>
 #include <dm.h>
 #include <env.h>
@@ -175,7 +174,7 @@ static void mxs_lcd_init(struct udevice *dev, u32 fb_addr,
 		vdctrl0 |= LCDIF_VDCTRL0_HSYNC_POL;
 	if(flags & DISPLAY_FLAGS_VSYNC_HIGH)
 		vdctrl0 |= LCDIF_VDCTRL0_VSYNC_POL;
-	if(flags & DISPLAY_FLAGS_PIXDATA_NEGEDGE)
+	if (flags & DISPLAY_FLAGS_PIXDATA_POSEDGE)
 		vdctrl0 |= LCDIF_VDCTRL0_DOTCLK_POL;
 	if(flags & DISPLAY_FLAGS_DE_HIGH)
 		vdctrl0 |= LCDIF_VDCTRL0_ENABLE_POL;
@@ -426,7 +425,6 @@ static int mxs_video_probe(struct udevice *dev)
 	mmu_set_region_dcache_behaviour(fb_start, fb_end - fb_start,
 					DCACHE_WRITEBACK);
 	video_set_flush_dcache(dev, true);
-	gd->fb_base = plat->base;
 
 	return ret;
 }

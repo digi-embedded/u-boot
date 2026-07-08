@@ -108,6 +108,7 @@
 #define  SFC_VER_3			0x3
 #define  SFC_VER_4			0x4
 #define  SFC_VER_5			0x5
+#define  SFC_VER_8			0x8
 
 /* Delay line controller resiter */
 #define SFC_DLL_CTRL0			0x3C
@@ -229,7 +230,7 @@ static int rockchip_sfc_ofdata_to_platdata(struct udevice *bus)
 	sfc->regbase = dev_read_addr_ptr(bus);
 	sfc->use_dma = !dev_read_bool(bus, "rockchip,sfc-no-dma");
 
-	if (IS_ENABLED(CONFIG_SPL_BUILD) && sfc->use_dma)
+	if (IS_ENABLED(CONFIG_XPL_BUILD) && sfc->use_dma)
 		sfc->use_dma = !dev_read_bool(bus, "u-boot,spl-sfc-no-dma");
 
 #if CONFIG_IS_ENABLED(CLK)
@@ -409,7 +410,7 @@ static int rockchip_sfc_xfer_setup(struct rockchip_sfc *sfc,
 
 	/* set the Controller */
 	ctrl |= SFC_CTRL_PHASE_SEL_NEGETIVE;
-	cmd |= plat->cs << SFC_CMD_CS_SHIFT;
+	cmd |= plat->cs[0] << SFC_CMD_CS_SHIFT;
 
 	dev_dbg(sfc->dev, "sfc addr.nbytes=%x(x%d) dummy.nbytes=%x(x%d)\n",
 		op->addr.nbytes, op->addr.buswidth,
@@ -589,6 +590,16 @@ static int rockchip_sfc_adjust_op_size(struct spi_slave *mem, struct spi_mem_op 
 	return 0;
 }
 
+#if CONFIG_IS_ENABLED(CLK)
+static int rockchip_sfc_clk_set_rate(struct rockchip_sfc *sfc, uint speed)
+{
+	if (sfc->version >= SFC_VER_8)
+		return clk_set_rate(&sfc->clk, speed * 2);
+	else
+		return clk_set_rate(&sfc->clk, speed);
+}
+#endif
+
 static int rockchip_sfc_set_speed(struct udevice *bus, uint speed)
 {
 	struct rockchip_sfc *sfc = dev_get_plat(bus);
@@ -600,7 +611,7 @@ static int rockchip_sfc_set_speed(struct udevice *bus, uint speed)
 		return 0;
 
 #if CONFIG_IS_ENABLED(CLK)
-	int ret = clk_set_rate(&sfc->clk, speed);
+	int ret = rockchip_sfc_clk_set_rate(sfc, speed);
 
 	if (ret < 0) {
 		dev_err(sfc->dev, "set_freq=%dHz fail, check if it's the cru support level\n",

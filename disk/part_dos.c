@@ -13,11 +13,10 @@
  * http://developer.apple.com/techpubs/mac/Devices/Devices-126.html#MARKER-14-92
  */
 
-#include <common.h>
 #include <blk.h>
 #include <command.h>
-#include <ide.h>
 #include <memalign.h>
+#include <vsprintf.h>
 #include <asm/unaligned.h>
 #include <linux/compiler.h>
 #include "part_dos.h"
@@ -100,7 +99,7 @@ static int test_block_type(unsigned char *buffer)
 
 static int part_test_dos(struct blk_desc *desc)
 {
-#ifndef CONFIG_SPL_BUILD
+#ifndef CONFIG_XPL_BUILD
 	ALLOC_CACHE_ALIGN_BUFFER(legacy_mbr, mbr,
 			DIV_ROUND_UP(desc->blksz, sizeof(legacy_mbr)));
 
@@ -196,7 +195,6 @@ static void print_partition_extended(struct blk_desc *desc,
 
 	return;
 }
-
 
 /*  Print a partition that is relative to its Extended partition table
  */
@@ -423,7 +421,7 @@ int write_mbr_partitions(struct blk_desc *dev,
 
 		/* write EBR */
 		if (blk_dwrite(dev, ext_part_sect, 1, buffer) != 1) {
-			printf("%s: failed writing 'EBR' (1 blks at 0x%lx)\n",
+			printf("%s: failed writing 'EBR' (1 blks at 0x" LBAF ")\n",
 			       __func__, ext_part_sect);
 			return -1;
 		}

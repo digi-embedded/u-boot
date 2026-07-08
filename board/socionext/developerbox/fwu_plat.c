@@ -4,6 +4,7 @@
  */
 
 #include <efi_loader.h>
+#include <env.h>
 #include <fwu.h>
 #include <fwu_mdata.h>
 #include <memalign.h>
@@ -18,7 +19,7 @@ void set_dfu_alt_info(char *interface, char *devstr)
 	struct mtd_info *mtd;
 	int ret;
 
-	memset(buf, 0, sizeof(buf));
+	memset(buf, 0, DFU_ALT_BUF_LEN);
 
 	mtd_probe_devices();
 
@@ -34,4 +35,35 @@ void set_dfu_alt_info(char *interface, char *devstr)
 	log_debug("Make dfu_alt_info: '%s'\n", buf);
 
 	env_set("dfu_alt_info", buf);
+}
+
+/**
+ * fwu_plat_get_bootidx() - Get the value of the boot index
+ * @boot_idx: Boot index value
+ *
+ * Get the value of the bank(partition) from which the platform
+ * has booted. This value is passed to U-Boot from the earlier
+ * stage bootloader which loads and boots all the relevant
+ * firmware images
+ */
+void fwu_plat_get_bootidx(uint *boot_idx)
+{
+	int ret;
+	u32 buf;
+	size_t readlen;
+	struct mtd_info *mtd;
+
+	*boot_idx = 0;
+
+	mtd_probe_devices();
+	mtd = get_mtd_device_nm("nor1");
+	if (IS_ERR_OR_NULL(mtd))
+		return;
+
+	ret = mtd_read(mtd, SCB_PLAT_METADATA_OFFSET, sizeof(buf),
+		       &readlen, (u_char *)&buf);
+	if (ret < 0)
+		return;
+
+	*boot_idx = buf;
 }

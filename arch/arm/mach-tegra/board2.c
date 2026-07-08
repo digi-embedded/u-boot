@@ -4,8 +4,9 @@
  *  NVIDIA Corporation <www.nvidia.com>
  */
 
-#include <common.h>
+#include <config.h>
 #include <dm.h>
+#include <dm/root.h>
 #include <env.h>
 #include <errno.h>
 #include <init.h>
@@ -46,7 +47,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 /* TODO(sjg@chromium.org): Remove once SPL supports device tree */
 U_BOOT_DRVINFO(tegra_gpios) = {
 	"gpio_tegra"
@@ -95,7 +96,7 @@ int checkboard(void)
 {
 	int board_id = tegra_board_id();
 
-	printf("Board: %s", CFG_TEGRA_BOARD_STRING);
+	printf("Board: %s", CONFIG_TEGRA_BOARD_STRING);
 	if (board_id != -1)
 		printf(", ID: %d\n", board_id);
 	printf("\n");
@@ -187,9 +188,6 @@ int board_init(void)
 	warmboot_prepare_code(TEGRA_LP0_ADDR, TEGRA_LP0_SIZE);
 #endif
 
-	/* Set up boot-on regulators */
-	regulators_enable_boot_on(_DEBUG);
-
 	return nvidia_board_init();
 }
 
@@ -228,31 +226,6 @@ int board_early_init_f(void)
 #  endif
 		arch_timer_init();
 #endif
-
-#if defined(CONFIG_DISABLE_SDMMC1_EARLY)
-	/*
-	 * Turn off (reset/disable) SDMMC1 on Nano here, before GPIO INIT.
-	 * We do this because earlier bootloaders have enabled power to
-	 * SDMMC1 on Nano, and toggling power-gpio (PZ3) in pinmux_init()
-	 * results in power being back-driven into the SD-card and SDMMC1
-	 * HW, which is 'bad' as per the HW team.
-	 *
-	 * From the HW team: "LDO2 from the PMIC has already been set to 3.3v in
-	 * nvtboot/CBoot on Nano (for SD-card boot). So when U-Boot's GPIO_INIT
-	 * table sets PZ3 to OUT0 as per the pinmux spreadsheet, it turns off
-	 * the loadswitch. When PZ3 is 0 and not driving, essentially the SDCard
-	 * voltage turns off. Since the SDCard voltage is no longer there, the
-	 * SDMMC CLK/DAT lines are backdriving into what essentially is a
-	 * powered-off SDCard, that's why the voltage drops from 3.3V to ~1.6V"
-	 *
-	 * Note that this can probably be removed when we change over to storing
-	 * all BL components on QSPI on Nano, and U-Boot then becomes the first
-	 * one to turn on SDMMC1 power. Another fix would be to have CBoot
-	 * disable power/gate SDMMC1 off before handing off to U-Boot/kernel.
-	 */
-	reset_set_enable(PERIPH_ID_SDMMC1, 1);
-	clock_set_enable(PERIPH_ID_SDMMC1, 0);
-#endif	/* CONFIG_DISABLE_SDMMC1_EARLY */
 
 	pinmux_init();
 	board_init_uart_f();
@@ -423,10 +396,6 @@ int dram_init_banksize(void)
 	gd->bd->bi_dram[0].start = CFG_SYS_SDRAM_BASE;
 	gd->bd->bi_dram[0].size = usable_ram_size_below_4g();
 
-#ifdef CONFIG_PCI
-	gd->pci_ram_top = gd->bd->bi_dram[0].start + gd->bd->bi_dram[0].size;
-#endif
-
 #ifdef CONFIG_PHYS_64BIT
 	if (gd->ram_size > SZ_2G) {
 		gd->bd->bi_dram[1].start = 0x100000000;
@@ -464,3 +433,18 @@ phys_addr_t board_get_usable_ram_top(phys_size_t total_size)
 
 	return CFG_SYS_SDRAM_BASE + usable_ram_size_below_4g();
 }
+
+#if IS_ENABLED(CONFIG_DTB_RESELECT)
+int embedded_dtb_select(void)
+{
+	int ret, rescan;
+
+	ret = fdtdec_resetup(&rescan);
+	if (!ret && rescan) {
+		dm_uninit();
+		dm_init_and_scan(true);
+	}
+
+	return 0;
+}
+#endif

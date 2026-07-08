@@ -6,7 +6,6 @@
  * (C) Copyright 2012
  * Ilya Yanok <ilya.yanok@gmail.com>
  */
-#include <common.h>
 #include <env.h>
 #include <errno.h>
 #include <image.h>
@@ -48,8 +47,7 @@ static int spl_net_load_image(struct spl_image_info *spl_image,
 		return rv;
 	}
 
-	spl_set_bl_len(&load, 1);
-	load.read = spl_net_load_read;
+	spl_load_init(&load, spl_net_load_read, NULL, 1);
 	return spl_load(spl_image, bootdev, &load, 0, 0);
 }
 #endif

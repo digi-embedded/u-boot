@@ -7,8 +7,8 @@
 
 #include <ansi.h>
 #include <cli.h>
-#include <common.h>
 #include <charset.h>
+#include <efi_device_path.h>
 #include <efi_loader.h>
 #include <efi_load_initrd.h>
 #include <efi_config.h>
@@ -35,6 +35,7 @@ static int avail_row;
 
 #define EFICONFIG_DESCRIPTION_MAX 32
 #define EFICONFIG_OPTIONAL_DATA_MAX 64
+#define EFICONFIG_URI_MAX 512
 #define EFICONFIG_MENU_HEADER_ROW_NUM 3
 #define EFICONFIG_MENU_DESC_ROW_NUM 5
 
@@ -62,6 +63,7 @@ struct eficonfig_filepath_info {
 struct eficonfig_boot_option {
 	struct eficonfig_select_file_info file_info;
 	struct eficonfig_select_file_info initrd_info;
+	struct eficonfig_select_file_info fdt_info;
 	unsigned int boot_index;
 	u16 *description;
 	u16 *optional_data;
@@ -443,7 +445,7 @@ efi_status_t eficonfig_process_common(struct efimenu *efi_menu,
 		efi_menu->menu_desc = menu_desc;
 
 	menu = menu_create(NULL, 0, 1, display_statusline, item_data_print,
-			   item_choice, efi_menu);
+			   item_choice, NULL, efi_menu);
 	if (!menu)
 		return EFI_INVALID_PARAMETER;
 
@@ -514,7 +516,7 @@ struct efi_device_path *eficonfig_create_device_path(struct efi_device_path *dp_
 	struct efi_device_path_file_path *fp;
 
 	fp_size = sizeof(struct efi_device_path) + u16_strsize(current_path);
-	buf = calloc(1, fp_size + sizeof(END));
+	buf = calloc(1, fp_size + sizeof(EFI_DP_END));
 	if (!buf)
 		return NULL;
 
@@ -526,15 +528,49 @@ struct efi_device_path *eficonfig_create_device_path(struct efi_device_path *dp_
 
 	p = buf;
 	p += fp_size;
-	*((struct efi_device_path *)p) = END;
+	*((struct efi_device_path *)p) = EFI_DP_END;
 
 	dp = efi_dp_shorten(dp_volume);
 	if (!dp)
 		dp = dp_volume;
-	dp = efi_dp_concat(dp, &fp->dp, false);
+	dp = efi_dp_concat(dp, &fp->dp, 0);
 	free(buf);
 
 	return dp;
+}
+
+/**
+ * eficonfig_create_uri_device_path() - Create an URI based device path
+ * @uri_str:	URI string to be added to the device path
+ *
+ * Take the u16 string, convert it to a u8 string, and create a URI
+ * device path. This will be used for the EFI HTTP boot.
+ *
+ * Return: pointer to the URI device path on success, NULL on failure
+ */
+static struct efi_device_path *eficonfig_create_uri_device_path(u16 *uri_str)
+{
+	char *pos, *p;
+	u32 len = 0;
+	efi_uintn_t uridp_len;
+	struct efi_device_path_uri *uridp;
+
+	len = utf16_utf8_strlen(uri_str);
+
+	uridp_len = sizeof(struct efi_device_path) + len + 1;
+	uridp = efi_alloc(uridp_len + sizeof(EFI_DP_END));
+	if (!uridp)
+		return NULL;
+
+	uridp->dp.type = DEVICE_PATH_TYPE_MESSAGING_DEVICE;
+	uridp->dp.sub_type = DEVICE_PATH_SUB_TYPE_MSG_URI;
+	uridp->dp.length = uridp_len;
+	p = (char *)&uridp->uri;
+	utf16_utf8_strcpy(&p, uri_str);
+	pos = (char *)uridp + uridp_len;
+	memcpy(pos, &EFI_DP_END, sizeof(EFI_DP_END));
+
+	return &uridp->dp;
 }
 
 /**
@@ -938,6 +974,8 @@ static efi_status_t handle_user_input(u16 *buf, int buf_size,
 	if (!tmp)
 		return EFI_OUT_OF_RESOURCES;
 
+	/* Populate tmp so user can edit existing string */
+	u16_strcpy(tmp, buf);
 	ret = efi_console_get_u16_string(cin, tmp, buf_size, NULL, 4, cursor_col);
 	if (ret == EFI_SUCCESS)
 		u16_strcpy(buf, tmp);
@@ -963,7 +1001,7 @@ static efi_status_t eficonfig_boot_add_enter_description(void *data)
 	return handle_user_input(bo->description, EFICONFIG_DESCRIPTION_MAX, 22,
 				 "\n  ** Edit Description **\n"
 				 "\n"
-				 "  enter description: ");
+				 "  Enter description: ");
 }
 
 /**
@@ -983,6 +1021,22 @@ static efi_status_t eficonfig_boot_add_optional_data(void *data)
 }
 
 /**
+ * eficonfig_boot_add_uri() - handle user input for HTTP Boot URI
+ *
+ * @data:	pointer to the internal boot option structure
+ * Return:	status code
+ */
+static efi_status_t eficonfig_boot_add_uri(void *data)
+{
+	struct eficonfig_select_file_info *file_info = data;
+
+	return handle_user_input(file_info->uri, EFICONFIG_URI_MAX, 24,
+				 "\n  ** Edit URI **\n"
+				 "\n"
+				 "  enter HTTP Boot URI:");
+}
+
+/**
  * eficonfig_boot_edit_save() - handler to save the boot option
  *
  * @data:	pointer to the internal boot option structure
@@ -997,7 +1051,8 @@ static efi_status_t eficonfig_boot_edit_save(void *data)
 		bo->edit_completed = false;
 		return EFI_NOT_READY;
 	}
-	if (u16_strlen(bo->file_info.current_path) == 0) {
+	if (u16_strlen(bo->file_info.current_path) == 0 &&
+	    u16_strlen(bo->file_info.uri) == 0) {
 		eficonfig_print_msg("File is not selected!");
 		bo->edit_completed = false;
 		return EFI_NOT_READY;
@@ -1023,8 +1078,18 @@ efi_status_t eficonfig_process_clear_file_selection(void *data)
 	file_info->current_path[0] = u'\0';
 	file_info->dp_volume = NULL;
 
+	if (file_info->uri)
+		file_info->uri[0] = u'\0';
+
 	return EFI_ABORTED;
 }
+
+static struct eficonfig_item select_boot_file_menu_items[] = {
+	{"Select File", eficonfig_process_select_file},
+	{"Enter URI", eficonfig_boot_add_uri},
+	{"Clear", eficonfig_process_clear_file_selection},
+	{"Quit", eficonfig_process_quit},
+};
 
 static struct eficonfig_item select_file_menu_items[] = {
 	{"Select File", eficonfig_process_select_file},
@@ -1041,16 +1106,30 @@ static struct eficonfig_item select_file_menu_items[] = {
 efi_status_t eficonfig_process_show_file_option(void *data)
 {
 	efi_status_t ret;
+	unsigned int menu_count;
 	struct efimenu *efi_menu;
+	struct eficonfig_item *menu_items;
+	struct eficonfig_select_file_info *file_info = data;
 
-	select_file_menu_items[0].data = data;
-	select_file_menu_items[1].data = data;
-	efi_menu = eficonfig_create_fixed_menu(select_file_menu_items,
-					       ARRAY_SIZE(select_file_menu_items));
+	menu_items = file_info->uri ? select_boot_file_menu_items :
+		select_file_menu_items;
+
+	menu_count = file_info->uri ?
+		ARRAY_SIZE(select_boot_file_menu_items) :
+		ARRAY_SIZE(select_file_menu_items);
+
+	menu_items[0].data = data;
+	menu_items[1].data = data;
+	menu_items[2].data = data;
+
+	efi_menu = eficonfig_create_fixed_menu(menu_items, menu_count);
 	if (!efi_menu)
 		return EFI_OUT_OF_RESOURCES;
 
-	ret = eficonfig_process_common(efi_menu, "  ** Update File **",
+	ret = eficonfig_process_common(efi_menu,
+				       file_info->uri ?
+				       "  ** Update File/URI **" :
+				       "  ** Update File **",
 				       eficonfig_menu_desc,
 				       eficonfig_display_statusline,
 				       eficonfig_print_entry,
@@ -1120,6 +1199,14 @@ out:
 		file_info->current_path[len] = u'\0';
 		file_info->current_volume = tmp->current_volume;
 		file_info->dp_volume = tmp->dp_volume;
+
+		/*
+		 * File being selected, set the URI string to
+		 * null so that the file gets picked as the
+		 * boot image.
+		 */
+		if (file_info->uri)
+			file_info->uri[0] = u'\0';
 	}
 
 	list_for_each_safe(pos, n, &tmp->filepath_list) {
@@ -1223,6 +1310,12 @@ static efi_status_t prepare_file_selection_entry(struct efimenu *efi_menu, char 
 	efi_handle_t handle;
 	char *devname;
 
+	/* Check for URI based boot file */
+	if (file_info->uri && utf16_utf8_strlen(file_info->uri))
+		return create_boot_option_entry(efi_menu, title, file_info->uri,
+						eficonfig_process_show_file_option,
+						file_info);
+
 	devname = calloc(1, EFICONFIG_VOLUME_PATH_MAX + 1);
 	if (!devname)
 		return EFI_OUT_OF_RESOURCES;
@@ -1308,6 +1401,10 @@ static efi_status_t eficonfig_show_boot_option(struct eficonfig_boot_option *bo,
 	if (ret != EFI_SUCCESS)
 		goto out;
 
+	ret = prepare_file_selection_entry(efi_menu, "Fdt File: ", &bo->fdt_info);
+	if (ret != EFI_SUCCESS)
+		goto out;
+
 	ret = create_boot_option_entry(efi_menu, "Optional Data: ", bo->optional_data,
 				       eficonfig_boot_add_optional_data, bo);
 	if (ret != EFI_SUCCESS)
@@ -1333,6 +1430,27 @@ out:
 	eficonfig_destroy(efi_menu);
 
 	return ret;
+}
+
+/**
+ * fill_dp_uri() - copy the URI string in the device path
+ * @dp:		pointer to the URI device path
+ * @uri_str:	URI string to be copied
+ *
+ * Copy the passed URI string to the URI device path. This
+ * requires utf8_utf16_strcpy() to copy the u16 string to
+ * the u8 array in the device path structure.
+ *
+ * Return: None
+ */
+static void fill_dp_uri(struct efi_device_path *dp, u16 **uri_str)
+{
+	u16 *p = *uri_str;
+	struct efi_device_path_uri *uridp;
+
+	uridp = (struct efi_device_path_uri *)dp;
+
+	utf8_utf16_strcpy(&p, uridp->uri);
 }
 
 /**
@@ -1387,28 +1505,48 @@ static efi_status_t eficonfig_edit_boot_option(u16 *varname, struct eficonfig_bo
 	size_t len;
 	efi_status_t ret;
 	char *tmp = NULL, *p;
+	u16 *current_path = NULL;
 	struct efi_load_option lo = {0};
-	efi_uintn_t final_dp_size;
+	efi_uintn_t dp_size;
 	struct efi_device_path *dp = NULL;
 	efi_uintn_t size = load_option_size;
-	struct efi_device_path *final_dp = NULL;
+	struct efi_device_path *dp_volume = NULL;
+	struct efi_device_path *uri_dp = NULL;
 	struct efi_device_path *device_dp = NULL;
 	struct efi_device_path *initrd_dp = NULL;
+	struct efi_device_path *fdt_dp = NULL;
 	struct efi_device_path *initrd_device_dp = NULL;
+	struct efi_device_path *fdt_device_dp = NULL;
 
-	const struct efi_initrd_dp id_dp = {
+	const struct efi_lo_dp_prefix initrd_prefix = {
 		.vendor = {
 			{
 			DEVICE_PATH_TYPE_MEDIA_DEVICE,
 			DEVICE_PATH_SUB_TYPE_VENDOR_PATH,
-			sizeof(id_dp.vendor),
+			sizeof(initrd_prefix.vendor),
 			},
 			EFI_INITRD_MEDIA_GUID,
 		},
 		.end = {
 			DEVICE_PATH_TYPE_END,
 			DEVICE_PATH_SUB_TYPE_END,
-			sizeof(id_dp.end),
+			sizeof(initrd_prefix.end),
+		}
+	};
+
+	const struct efi_lo_dp_prefix fdt_prefix = {
+		.vendor = {
+			{
+			DEVICE_PATH_TYPE_MEDIA_DEVICE,
+			DEVICE_PATH_SUB_TYPE_VENDOR_PATH,
+			sizeof(fdt_prefix.vendor),
+			},
+			EFI_FDT_GUID,
+		},
+		.end = {
+			DEVICE_PATH_TYPE_END,
+			DEVICE_PATH_SUB_TYPE_END,
+			sizeof(initrd_prefix.end),
 		}
 	};
 
@@ -1419,7 +1557,13 @@ static efi_status_t eficonfig_edit_boot_option(u16 *varname, struct eficonfig_bo
 	}
 
 	bo->initrd_info.current_path = calloc(1, EFICONFIG_FILE_PATH_BUF_SIZE);
-	if (!bo->file_info.current_path) {
+	if (!bo->initrd_info.current_path) {
+		ret =  EFI_OUT_OF_RESOURCES;
+		goto out;
+	}
+
+	bo->fdt_info.current_path = calloc(1, EFICONFIG_FILE_PATH_BUF_SIZE);
+	if (!bo->fdt_info.current_path) {
 		ret =  EFI_OUT_OF_RESOURCES;
 		goto out;
 	}
@@ -1432,6 +1576,12 @@ static efi_status_t eficonfig_edit_boot_option(u16 *varname, struct eficonfig_bo
 
 	bo->optional_data = calloc(1, EFICONFIG_OPTIONAL_DATA_MAX * sizeof(u16));
 	if (!bo->optional_data) {
+		ret =  EFI_OUT_OF_RESOURCES;
+		goto out;
+	}
+
+	bo->file_info.uri = calloc(1, EFICONFIG_URI_MAX * sizeof(u16));
+	if (!bo->file_info.uri) {
 		ret =  EFI_OUT_OF_RESOURCES;
 		goto out;
 	}
@@ -1453,14 +1603,24 @@ static efi_status_t eficonfig_edit_boot_option(u16 *varname, struct eficonfig_bo
 		u16_strcpy(bo->description, lo.label);
 
 		/* EFI image file path is a first instance */
-		if (lo.file_path)
+		if (lo.file_path && EFI_DP_TYPE(lo.file_path, MESSAGING_DEVICE,
+						MSG_URI))
+			fill_dp_uri(lo.file_path, &bo->file_info.uri);
+		else if (lo.file_path)
 			fill_file_info(lo.file_path, &bo->file_info, device_dp);
 
-		/* Initrd file path(optional) is placed at second instance. */
+		/* Initrd file path (optional) is placed at second instance. */
 		initrd_dp = efi_dp_from_lo(&lo, &efi_lf2_initrd_guid);
 		if (initrd_dp) {
 			fill_file_info(initrd_dp, &bo->initrd_info, initrd_device_dp);
 			efi_free_pool(initrd_dp);
+		}
+
+		/* Fdt file path (optional) is placed as third instance. */
+		fdt_dp = efi_dp_from_lo(&lo, &efi_guid_fdt);
+		if (fdt_dp) {
+			fill_file_info(fdt_dp, &bo->fdt_info, fdt_device_dp);
+			efi_free_pool(fdt_dp);
 		}
 
 		if (size > 0)
@@ -1477,6 +1637,9 @@ static efi_status_t eficonfig_edit_boot_option(u16 *varname, struct eficonfig_bo
 			goto out;
 	}
 
+	if (utf16_utf8_strlen(bo->file_info.uri))
+		uri_dp = eficonfig_create_uri_device_path(bo->file_info.uri);
+
 	if (bo->initrd_info.dp_volume) {
 		dp = eficonfig_create_device_path(bo->initrd_info.dp_volume,
 						 bo->initrd_info.current_path);
@@ -1484,26 +1647,34 @@ static efi_status_t eficonfig_edit_boot_option(u16 *varname, struct eficonfig_bo
 			ret = EFI_OUT_OF_RESOURCES;
 			goto out;
 		}
-		initrd_dp = efi_dp_concat((const struct efi_device_path *)&id_dp,
-					  dp, false);
+		initrd_dp = efi_dp_concat((const struct efi_device_path *)&initrd_prefix,
+					  dp, 0);
 		efi_free_pool(dp);
 	}
 
-	dp = eficonfig_create_device_path(bo->file_info.dp_volume, bo->file_info.current_path);
+	if (bo->fdt_info.dp_volume) {
+		dp = eficonfig_create_device_path(bo->fdt_info.dp_volume,
+						  bo->fdt_info.current_path);
+		if (!dp) {
+			ret = EFI_OUT_OF_RESOURCES;
+			goto out;
+		}
+		fdt_dp = efi_dp_concat((const struct efi_device_path *)&fdt_prefix,
+				       dp, 0);
+		efi_free_pool(dp);
+	}
+
+	dp_volume = bo->file_info.dp_volume;
+	current_path = bo->file_info.current_path;
+	dp = uri_dp ?
+		uri_dp : eficonfig_create_device_path(dp_volume, current_path);
 	if (!dp) {
 		ret = EFI_OUT_OF_RESOURCES;
 		goto out;
 	}
-	final_dp_size = efi_dp_size(dp) + sizeof(END);
-	if (initrd_dp) {
-		final_dp = efi_dp_concat(dp, initrd_dp, true);
-		final_dp_size += efi_dp_size(initrd_dp) + sizeof(END);
-	} else {
-		final_dp = efi_dp_dup(dp);
-	}
-	efi_free_pool(dp);
 
-	if (!final_dp)
+	ret = efi_load_option_dp_join(&dp, &dp_size, initrd_dp, fdt_dp);
+	if (ret != EFI_SUCCESS)
 		goto out;
 
 	if (utf16_utf8_strlen(bo->optional_data)) {
@@ -1515,17 +1686,21 @@ static efi_status_t eficonfig_edit_boot_option(u16 *varname, struct eficonfig_bo
 		utf16_utf8_strncpy(&p, bo->optional_data, u16_strlen(bo->optional_data));
 	}
 
-	ret = eficonfig_set_boot_option(varname, final_dp, final_dp_size, bo->description, tmp);
+	ret = eficonfig_set_boot_option(varname, dp, dp_size, bo->description, tmp);
 out:
 	free(tmp);
 	free(bo->optional_data);
 	free(bo->description);
+	free(bo->file_info.uri);
 	free(bo->file_info.current_path);
 	free(bo->initrd_info.current_path);
+	free(bo->fdt_info.current_path);
 	efi_free_pool(device_dp);
 	efi_free_pool(initrd_device_dp);
 	efi_free_pool(initrd_dp);
-	efi_free_pool(final_dp);
+	efi_free_pool(fdt_device_dp);
+	efi_free_pool(fdt_dp);
+	efi_free_pool(dp);
 
 	return ret;
 }
@@ -2241,26 +2416,11 @@ static efi_status_t eficonfig_init(void)
 {
 	efi_status_t ret = EFI_SUCCESS;
 	static bool init;
-	struct efi_handler *handler;
 	unsigned long columns, rows;
 
 	if (!init) {
-		ret = efi_search_protocol(efi_root, &efi_guid_text_input_protocol, &handler);
-		if (ret != EFI_SUCCESS)
-			return ret;
-
-		ret = efi_protocol_open(handler, (void **)&cin, efi_root, NULL,
-					EFI_OPEN_PROTOCOL_GET_PROTOCOL);
-		if (ret != EFI_SUCCESS)
-			return ret;
-		ret = efi_search_protocol(efi_root, &efi_guid_text_output_protocol, &handler);
-		if (ret != EFI_SUCCESS)
-			return ret;
-
-		ret = efi_protocol_open(handler, (void **)&cout, efi_root, NULL,
-					EFI_OPEN_PROTOCOL_GET_PROTOCOL);
-		if (ret != EFI_SUCCESS)
-			return ret;
+		cout = systab.con_out;
+		cin = systab.con_in;
 
 		cout->query_mode(cout, cout->mode->mode, &columns, &rows);
 		avail_row = rows - (EFICONFIG_MENU_HEADER_ROW_NUM +

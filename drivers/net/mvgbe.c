@@ -11,7 +11,6 @@
  * Copyright (C) 2002 rabeeh@galileo.co.il
  */
 
-#include <common.h>
 #include <dm.h>
 #include <log.h>
 #include <net.h>
@@ -26,12 +25,7 @@
 #include <asm/system.h>
 #include <asm/byteorder.h>
 #include <asm/arch/cpu.h>
-
-#if defined(CONFIG_ARCH_KIRKWOOD)
 #include <asm/arch/soc.h>
-#elif defined(CONFIG_ARCH_ORION5X)
-#include <asm/arch/orion5x.h>
-#endif
 
 #include "mvgbe.h"
 

@@ -21,7 +21,6 @@
 #define CFG_MXC_UART_BASE		UART1_BASE_ADDR
 
 /* PHY needs a longer autonegotiation timeout after reset */
-#define PHY_ANEG_TIMEOUT		20000
 #define FEC_QUIRK_ENET_MAC
 
 /* USDHC */
@@ -29,7 +28,6 @@
 #define CFG_SYS_FSL_ESDHC_ADDR	0
 
 #define CFG_EXTRA_ENV_SETTINGS						\
-	"altbootcmd=run bootcmd ; reset\0"				\
 	"bootlimit=3\0"							\
 	"dfu_alt_info="							\
 		/* RAM block at DRAM offset 256..768 MiB */		\

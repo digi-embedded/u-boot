@@ -3,7 +3,6 @@
  * (C) Copyright 2019 Rockchip Electronics Co., Ltd
  */
 
-#include <common.h>
 #include <dm.h>
 #include <log.h>
 #include <dm/pinctrl.h>
@@ -153,7 +152,7 @@ static struct rockchip_pin_bank rk3368_pin_banks[] = {
 	PIN_BANK(3, 32, "gpio3"),
 };
 
-static struct rockchip_pin_ctrl rk3368_pin_ctrl = {
+static const struct rockchip_pin_ctrl rk3368_pin_ctrl = {
 	.pin_banks		= rk3368_pin_banks,
 	.nr_banks		= ARRAY_SIZE(rk3368_pin_banks),
 	.grf_mux_offset		= 0x0,

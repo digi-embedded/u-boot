@@ -184,7 +184,7 @@ static const struct mtk_pin_field_calc mt8516_pin_drv_range[] = {
 	PIN_FIELD(117, 120, 0xd70, 0x10, 0, 4),
 };
 
-static const struct mtk_pin_reg_calc mt8516_reg_cals[] = {
+static const struct mtk_pin_reg_calc mt8516_reg_cals[PINCTRL_PIN_REG_MAX] = {
 	[PINCTRL_PIN_REG_MODE] = MTK_RANGE(mt8516_pin_mode_range),
 	[PINCTRL_PIN_REG_DIR] = MTK_RANGE(mt8516_pin_dir_range),
 	[PINCTRL_PIN_REG_DI] = MTK_RANGE(mt8516_pin_di_range),
@@ -388,6 +388,7 @@ U_BOOT_DRIVER(mt8516_pinctrl) = {
 	.id = UCLASS_PINCTRL,
 	.of_match = mt8516_pctrl_match,
 	.ops = &mtk_pinctrl_ops,
+	.bind = mtk_pinctrl_common_bind,
 	.probe = mtk_pinctrl_mt8516_probe,
 	.priv_auto	= sizeof(struct mtk_pinctrl_priv),
 };

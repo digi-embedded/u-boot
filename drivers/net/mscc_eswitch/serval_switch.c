@@ -3,7 +3,6 @@
  * Copyright (c) 2019 Microsemi Corporation
  */
 
-#include <common.h>
 #include <config.h>
 #include <dm.h>
 #include <log.h>
@@ -112,7 +111,6 @@
 #define CPU_PORT		11
 #define INTERNAL_PORT_MSK	0xFF
 #define IFH_LEN			4
-#define ETH_ALEN		6
 #define PGID_BROADCAST		13
 #define PGID_UNICAST		14
 

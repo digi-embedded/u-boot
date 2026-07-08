@@ -9,7 +9,7 @@
  * Stefan Roese, DENX Software Engineering, sr@denx.de.
  */
 
-#include <common.h>
+#include <config.h>
 #include <nand.h>
 #include <system-constants.h>
 #include <asm/io.h>
@@ -24,7 +24,6 @@ static struct nand_chip nand_chip;
 #define ECCSTEPS	(CONFIG_SYS_NAND_PAGE_SIZE / \
 					CFG_SYS_NAND_ECCSIZE)
 #define ECCTOTAL	(ECCSTEPS * CFG_SYS_NAND_ECCBYTES)
-
 
 /*
  * NAND command for large page NAND devices (2k)
@@ -86,7 +85,6 @@ static int nand_command(int block, int page, uint32_t offs,
 	}
 
 	hwctrl(mtd, NAND_CMD_NONE, NAND_NCE | NAND_CTRL_CHANGE);
-
 
 	/*
 	 * Program and erase have their own busy handlers status, sequential
@@ -213,6 +211,8 @@ void nand_init(void)
 
 	if (nand_chip.select_chip)
 		nand_chip.select_chip(mtd, 0);
+
+	mtd->writesize = CONFIG_SYS_NAND_PAGE_SIZE;
 
 	/* NAND chip may require reset after power-on */
 	nand_command(0, 0, 0, NAND_CMD_RESET);

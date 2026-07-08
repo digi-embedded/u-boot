@@ -264,7 +264,7 @@
 		#gpio-cells = <2>;
 	};
 
-	typec_ptn5110: typec@50 {
+	typec_ptn5110: typec@51 {
 		compatible = "usb,tcpci";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_typec>;

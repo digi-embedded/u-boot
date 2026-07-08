@@ -1,11 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2017-2023 NXP
- *
- * SPDX-License-Identifier: GPL-2.0
+ * Copyright 2025 NXP
  */
 
 #include <asm/io.h>
-#include <common.h>
 #include <dm.h>
 #include <dm/device_compat.h>
 #include <mailbox-uclass.h>
@@ -130,7 +128,7 @@ static int imx_mu_check_channel(struct mbox_chan *chan)
 {
 	struct imx_mu *plat = dev_get_plat(chan->dev);
 
-	if (plat->channels[chan->id] != NULL) {
+	if (plat->channels[chan->id]) {
 		/* if reserved check that caller owns */
 		if (plat->channels[chan->id] == chan)
 			return 1; /* caller owns the channel */
@@ -176,7 +174,6 @@ static int imx_mu_chan_request(struct mbox_chan *chan)
 		break;
 	}
 
-
 	return 0;
 }
 
@@ -216,7 +213,7 @@ static int imx_mu_send(struct mbox_chan *chan, const void *data)
 	struct imx_mu *plat = dev_get_plat(chan->dev);
 	struct imx_mu_con_priv *cp = chan->con_priv;
 
-	if (imx_mu_check_channel(chan) < 1) /* return if channel isnt owned */
+	if (imx_mu_check_channel(chan) < 1) /* return if channel isn't owned */
 		return -EPERM;
 
 	return plat->dcfg->tx(plat, cp, data);
@@ -228,7 +225,7 @@ static int imx_mu_recv(struct mbox_chan *chan, void *data)
 	struct imx_mu_con_priv *cp = chan->con_priv;
 	u32 ctrl, val;
 
-	if (imx_mu_check_channel(chan) < 1) /* return if channel isnt owned */
+	if (imx_mu_check_channel(chan) < 1) /* return if channel isn't owned */
 		return -EPERM;
 
 	switch (cp->type) {
@@ -236,7 +233,7 @@ static int imx_mu_recv(struct mbox_chan *chan, void *data)
 	case IMX_MU_TYPE_RXDB:
 		/* check if GSR[GIRn] bit is set */
 		if (readx_poll_timeout(ioread32, plat->base + plat->dcfg->xSR[IMX_MU_GSR],
-		    val, val & BIT(cp->idx), 1000000) < 0)
+			val, val & BIT(cp->idx), 1000000) < 0)
 			return -EBUSY;
 
 		ctrl = imx_mu_read(plat, plat->dcfg->xCR[IMX_MU_GIER]);
@@ -342,6 +339,30 @@ static int imx_mu_generic_rxdb(struct imx_mu *plat, struct imx_mu_con_priv *cp)
 	return 0;
 }
 
+static const struct imx_mu_dcfg imx_mu_cfg_imx6sx = {
+	.tx	= imx_mu_generic_tx,
+	.rxdb	= imx_mu_generic_rxdb,
+	.init	= imx_mu_init_generic,
+	.of_xlate = imx_mu_generic_of_xlate,
+	.type	= IMX_MU_V1,
+	.xTR	= 0x0,
+	.xRR	= 0x10,
+	.xSR	= {0x20, 0x20, 0x20, 0x20},
+	.xCR	= {0x24, 0x24, 0x24, 0x24, 0x24},
+};
+
+static const struct imx_mu_dcfg imx_mu_cfg_imx7ulp = {
+	.tx	= imx_mu_generic_tx,
+	.rxdb	= imx_mu_generic_rxdb,
+	.init	= imx_mu_init_generic,
+	.of_xlate = imx_mu_generic_of_xlate,
+	.type	= IMX_MU_V1,
+	.xTR	= 0x20,
+	.xRR	= 0x40,
+	.xSR	= {0x60, 0x60, 0x60, 0x60},
+	.xCR	= {0x64, 0x64, 0x64, 0x64, 0x64},
+};
+
 static const struct imx_mu_dcfg imx_mu_cfg_imx95 = {
 	.tx	= imx_mu_generic_tx,
 	.rxdb	= imx_mu_generic_rxdb,
@@ -355,6 +376,8 @@ static const struct imx_mu_dcfg imx_mu_cfg_imx95 = {
 };
 
 static const struct udevice_id ids[] = {
+	{ .compatible = "fsl,imx6sx-mu", .data = (ulong)&imx_mu_cfg_imx6sx },
+	{ .compatible = "fsl,imx7ulp-mu", .data = (ulong)&imx_mu_cfg_imx7ulp },
 	{ .compatible = "fsl,imx95-mu", .data = (ulong)&imx_mu_cfg_imx95 },
 	{ }
 };

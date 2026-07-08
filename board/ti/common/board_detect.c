@@ -7,10 +7,9 @@
  *	Steve Kipisz
  */
 
-#include <common.h>
-#include <eeprom.h>
 #include <log.h>
 #include <net.h>
+#include <linux/types.h>
 #include <asm/arch/hardware.h>
 #include <asm/omap_common.h>
 #include <dm/uclass.h>
@@ -305,7 +304,7 @@ int __maybe_unused ti_i2c_eeprom_am_get(int bus_addr, int dev_addr)
 	struct ti_common_eeprom *ep;
 
 	ep = TI_EEPROM_DATA;
-#ifndef CONFIG_SPL_BUILD
+#ifndef CONFIG_XPL_BUILD
 	if (ep->header == TI_EEPROM_HEADER_MAGIC)
 		return 0; /* EEPROM has already been read */
 #endif
@@ -351,7 +350,7 @@ int __maybe_unused ti_i2c_eeprom_dra7_get(int bus_addr, int dev_addr)
 	struct ti_common_eeprom *ep;
 
 	ep = TI_EEPROM_DATA;
-#ifndef CONFIG_SPL_BUILD
+#ifndef CONFIG_XPL_BUILD
 	if (ep->header == DRA7_EEPROM_HEADER_MAGIC)
 		return 0; /* EEPROM has already been read */
 #endif
@@ -564,7 +563,7 @@ int __maybe_unused ti_i2c_eeprom_am6_get_base(int bus_addr, int dev_addr)
 	 * Always execute EEPROM read by not allowing to bypass it during the
 	 * first invocation of SPL which happens on the R5 core.
 	 */
-#if !(defined(CONFIG_SPL_BUILD) && defined(CONFIG_CPU_V7R))
+#if !(defined(CONFIG_XPL_BUILD) && defined(CONFIG_CPU_V7R))
 	if (ep->header == TI_EEPROM_HEADER_MAGIC) {
 		debug("%s: EEPROM has already been read\n", __func__);
 		return 0;
@@ -825,3 +824,46 @@ bool __maybe_unused board_ti_was_eeprom_read(void)
 	else
 		return false;
 }
+
+#if IS_ENABLED(CONFIG_TI_I2C_BOARD_DETECT)
+int do_board_detect_am6(void)
+{
+	int ret;
+
+	ret = ti_i2c_eeprom_am6_get_base(CONFIG_EEPROM_BUS_ADDRESS,
+					 CONFIG_EEPROM_CHIP_ADDRESS);
+	if (ret) {
+		printf("EEPROM not available at 0x%02x, trying to read at 0x%02x\n",
+		       CONFIG_EEPROM_CHIP_ADDRESS,
+		       CONFIG_EEPROM_CHIP_ADDRESS + 1);
+		ret = ti_i2c_eeprom_am6_get_base(CONFIG_EEPROM_BUS_ADDRESS,
+						 CONFIG_EEPROM_CHIP_ADDRESS +
+							 1);
+		if (ret)
+			pr_err("Reading on-board EEPROM at 0x%02x failed %d\n",
+			       CONFIG_EEPROM_CHIP_ADDRESS + 1, ret);
+	}
+
+	return ret;
+}
+
+void setup_serial_am6(void)
+{
+	struct ti_am6_eeprom *ep = TI_AM6_EEPROM_DATA;
+	unsigned long board_serial;
+	char *endp;
+	char serial_string[17] = { 0 };
+
+	if (env_get("serial#"))
+		return;
+
+	board_serial = simple_strtoul(ep->serial, &endp, 16);
+	if (*endp != '\0') {
+		pr_err("Error: Can't set serial# to %s\n", ep->serial);
+		return;
+	}
+
+	snprintf(serial_string, sizeof(serial_string), "%016lx", board_serial);
+	env_set("serial#", serial_string);
+}
+#endif

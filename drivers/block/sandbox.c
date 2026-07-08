@@ -3,7 +3,6 @@
  * Copyright (C) 2013 Henrik Nordstrom <henrik@henriknordstrom.net>
  */
 
-#include <common.h>
 #include <blk.h>
 #include <dm.h>
 #include <fdtdec.h>
@@ -19,15 +18,15 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 static unsigned long host_block_read(struct udevice *dev,
-				     unsigned long start, lbaint_t blkcnt,
+				     lbaint_t start, lbaint_t blkcnt,
 				     void *buffer)
 {
 	struct blk_desc *desc = dev_get_uclass_plat(dev);
 	struct udevice *host_dev = dev_get_parent(dev);
 	struct host_sb_plat *plat = dev_get_plat(host_dev);
 
-	if (os_lseek(plat->fd, start * desc->blksz, OS_SEEK_SET) == -1) {
-		printf("ERROR: Invalid block %lx\n", start);
+	if (os_lseek(plat->fd, start * desc->blksz, OS_SEEK_SET) < 0) {
+		printf("ERROR: Invalid block " LBAF "\n", start);
 		return -1;
 	}
 	ssize_t len = os_read(plat->fd, buffer, blkcnt * desc->blksz);
@@ -38,15 +37,15 @@ static unsigned long host_block_read(struct udevice *dev,
 }
 
 static unsigned long host_block_write(struct udevice *dev,
-				      unsigned long start, lbaint_t blkcnt,
+				      lbaint_t start, lbaint_t blkcnt,
 				      const void *buffer)
 {
 	struct blk_desc *desc = dev_get_uclass_plat(dev);
 	struct udevice *host_dev = dev_get_parent(dev);
 	struct host_sb_plat *plat = dev_get_plat(host_dev);
 
-	if (os_lseek(plat->fd, start * desc->blksz, OS_SEEK_SET) == -1) {
-		printf("ERROR: Invalid block %lx\n", start);
+	if (os_lseek(plat->fd, start * desc->blksz, OS_SEEK_SET) < 0) {
+		printf("ERROR: Invalid block " LBAF "\n", start);
 		return -1;
 	}
 	ssize_t len = os_write(plat->fd, buffer, blkcnt * desc->blksz);

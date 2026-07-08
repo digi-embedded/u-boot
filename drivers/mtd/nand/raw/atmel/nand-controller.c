@@ -568,12 +568,9 @@ static void atmel_nfc_copy_to_sram(struct nand_chip *chip, const u8 *buf,
 	struct mtd_info *mtd = nand_to_mtd(chip);
 	struct atmel_nand *nand = to_atmel_nand(chip);
 	struct atmel_hsmc_nand_controller *nc;
-	int ret = -EIO;
 
 	nc = to_hsmc_nand_controller(nand->controller);
-
-	if (ret)
-		memcpy_toio(nc->sram.virt, buf, mtd->writesize);
+	memcpy_toio(nc->sram.virt, buf, mtd->writesize);
 
 	if (oob_required)
 		memcpy_toio(nc->sram.virt + mtd->writesize, chip->oob_poi,
@@ -586,12 +583,9 @@ static void atmel_nfc_copy_from_sram(struct nand_chip *chip, u8 *buf,
 	struct mtd_info *mtd = nand_to_mtd(chip);
 	struct atmel_nand *nand = to_atmel_nand(chip);
 	struct atmel_hsmc_nand_controller *nc;
-	int ret = -EIO;
 
 	nc = to_hsmc_nand_controller(nand->controller);
-
-	if (ret)
-		memcpy_fromio(buf, nc->sram.virt, mtd->writesize);
+	memcpy_fromio(buf, nc->sram.virt, mtd->writesize);
 
 	if (oob_required)
 		memcpy_fromio(chip->oob_poi, nc->sram.virt + mtd->writesize,
@@ -1016,10 +1010,10 @@ static int atmel_nand_pmecc_init(struct nand_chip *chip)
 	if (nc->caps->legacy_of_bindings) {
 		u32 val;
 
-		if (!ofnode_read_u32(nc->dev->node_, "atmel,pmecc-cap", &val))
+		if (!ofnode_read_u32(dev_ofnode(nc->dev), "atmel,pmecc-cap", &val))
 			chip->ecc.strength = val;
 
-		if (!ofnode_read_u32(nc->dev->node_,
+		if (!ofnode_read_u32(dev_ofnode(nc->dev),
 				     "atmel,pmecc-sector-size",
 				     &val))
 			chip->ecc.size = val;
@@ -1029,11 +1023,15 @@ static int atmel_nand_pmecc_init(struct nand_chip *chip)
 		req.ecc.strength = ATMEL_PMECC_MAXIMIZE_ECC_STRENGTH;
 	else if (chip->ecc.strength)
 		req.ecc.strength = chip->ecc.strength;
+	else if (chip->ecc_strength_ds)
+		req.ecc.strength = chip->ecc_strength_ds;
 	else
 		req.ecc.strength = ATMEL_PMECC_MAXIMIZE_ECC_STRENGTH;
 
 	if (chip->ecc.size)
 		req.ecc.sectorsize = chip->ecc.size;
+	else if (chip->ecc_step_ds)
+		req.ecc.sectorsize = chip->ecc_step_ds;
 	else
 		req.ecc.sectorsize = ATMEL_PMECC_SECTOR_SIZE_AUTO;
 
@@ -1129,7 +1127,7 @@ static int atmel_smc_nand_prepare_smcconf(struct atmel_nand *nand,
 					  const struct nand_data_interface *conf,
 					  struct atmel_smc_cs_conf *smcconf)
 {
-	u32 ncycles, totalcycles, timeps, mckperiodps;
+	u32 ncycles, totalcycles, timeps, mckperiodps, pulse;
 	struct atmel_nand_controller *nc;
 	int ret;
 
@@ -1255,11 +1253,16 @@ static int atmel_smc_nand_prepare_smcconf(struct atmel_nand *nand,
 			 ATMEL_SMC_MODE_TDFMODE_OPTIMIZED;
 
 	/*
-	 * Read pulse timing directly matches tRP:
+	 * Read pulse timing would directly match tRP,
+	 * but some NAND flash chips (S34ML01G2 and W29N02KVxxAF)
+	 * do not work properly in timing mode 3.
+	 * The workaround is to extend the SMC NRD pulse to meet tREA
+	 * timing.
 	 *
-	 * NRD_PULSE = tRP
+	 * NRD_PULSE = max(tRP, tREA)
 	 */
-	ncycles = DIV_ROUND_UP(conf->timings.sdr.tRP_min, mckperiodps);
+	pulse = max(conf->timings.sdr.tRP_min, conf->timings.sdr.tREA_max);
+	ncycles = DIV_ROUND_UP(pulse, mckperiodps);
 	totalcycles += ncycles;
 	ret = atmel_smc_cs_conf_set_pulse(smcconf, ATMEL_SMC_NRD_SHIFT,
 					  ncycles);
@@ -1267,7 +1270,7 @@ static int atmel_smc_nand_prepare_smcconf(struct atmel_nand *nand,
 		return ret;
 
 	/*
-	 * The write cycle timing is directly matching tWC, but is also
+	 * The read cycle timing is directly matching tRC, but is also
 	 * dependent on the setup and hold timings we calculated earlier,
 	 * which gives:
 	 *
@@ -1428,8 +1431,6 @@ static int atmel_nand_setup_data_interface(struct mtd_info *mtd, int csline,
 
 	return nc->caps->ops->setup_data_interface(nand, csline, conf);
 }
-
-#define NAND_KEEP_TIMINGS       0x00800000
 
 static void atmel_nand_init(struct atmel_nand_controller *nc,
 			    struct atmel_nand *nand)
@@ -1670,7 +1671,7 @@ static int atmel_nand_controller_add_nands(struct atmel_nand_controller *nc)
 	 * Add support for legacy nands
 	 */
 
-	np = nc->dev->node_;
+	np = dev_ofnode(nc->dev);
 
 	ret = ofnode_read_u32(np, "#address-cells", &val);
 	if (ret) {
@@ -1790,7 +1791,7 @@ static int atmel_nand_attach_chip(struct nand_chip *chip)
 	if (ret)
 		return ret;
 
-	if (nc->caps->legacy_of_bindings || !ofnode_valid(nc->dev->node_)) {
+	if (nc->caps->legacy_of_bindings || !ofnode_valid(dev_ofnode(nc->dev))) {
 		/*
 		 * We keep the MTD name unchanged to avoid breaking platforms
 		 * where the MTD cmdline parser is used and the bootloader
@@ -1854,7 +1855,7 @@ atmel_nand_controller_init(struct atmel_nand_controller *nc,
 		return PTR_ERR(nc->mck);
 	}
 
-	ret = ofnode_parse_phandle_with_args(dev->parent->node_,
+	ret = ofnode_parse_phandle_with_args(dev_ofnode(dev->parent),
 					     "atmel,smc", NULL, 0, 0, &args);
 	if (ret) {
 		dev_err(dev, "Missing or invalid atmel,smc property\n");
@@ -1886,7 +1887,7 @@ atmel_smc_nand_controller_init(struct atmel_smc_nand_controller *nc)
 	if (nc->base.caps->legacy_of_bindings)
 		return 0;
 
-	ret = ofnode_parse_phandle_with_args(dev->parent->node_,
+	ret = ofnode_parse_phandle_with_args(dev_ofnode(dev->parent),
 					     nc->base.caps->ebi_csa_regmap_name,
 					     NULL, 0, 0, &args);
 	if (ret) {
@@ -1932,7 +1933,7 @@ static int atmel_hsmc_nand_controller_init(struct atmel_hsmc_nand_controller *nc
 	int ret;
 	u32 addr;
 
-	ret = ofnode_parse_phandle_with_args(dev->parent->node_,
+	ret = ofnode_parse_phandle_with_args(dev_ofnode(dev->parent),
 					     "atmel,smc", NULL, 0, 0, &args);
 	if (ret) {
 		dev_err(dev, "Missing or invalid atmel,smc property\n");
@@ -1956,7 +1957,7 @@ static int atmel_hsmc_nand_controller_init(struct atmel_hsmc_nand_controller *nc
 	if (ret)
 		return ret;
 
-	ret = ofnode_parse_phandle_with_args(dev->node_,
+	ret = ofnode_parse_phandle_with_args(dev_ofnode(dev),
 					     "atmel,nfc-io", NULL, 0, 0, &args);
 	if (ret) {
 		dev_err(dev, "Missing or invalid atmel,nfc-io property\n");
@@ -1970,7 +1971,7 @@ static int atmel_hsmc_nand_controller_init(struct atmel_hsmc_nand_controller *nc
 		return ret;
 	}
 
-	ret = ofnode_parse_phandle_with_args(dev->node_,
+	ret = ofnode_parse_phandle_with_args(dev_ofnode(dev),
 					     "atmel,nfc-sram", NULL, 0, 0, &args);
 	if (ret) {
 		dev_err(dev, "Missing or invalid atmel,nfc-sram property\n");
@@ -2203,17 +2204,10 @@ static const struct udevice_id atmel_nand_controller_of_ids[] = {
 static int atmel_nand_controller_probe(struct udevice *dev)
 {
 	const struct atmel_nand_controller_caps *caps;
-	struct udevice *pmecc_dev;
 
 	caps = (struct atmel_nand_controller_caps *)dev_get_driver_data(dev);
 	if (!caps) {
 		printf("Could not retrieve NFC caps\n");
-		return -EINVAL;
-	}
-
-	/* Probe pmecc driver */
-	if (uclass_get_device(UCLASS_MTD, 1, &pmecc_dev)) {
-		printf("%s: get device fail\n", __func__);
 		return -EINVAL;
 	}
 

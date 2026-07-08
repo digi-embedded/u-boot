@@ -40,7 +40,7 @@
 		s2mps11_pmic@66 {
 			compatible = "samsung,s2mps11-pmic";
 			reg = <0x66>;
-			voltage-regulators {
+			regulators {
 				ldo1_reg: LDO1 {
 					regulator-name = "vdd_ldo1";
 					regulator-min-microvolt = <1000000>;
@@ -280,11 +280,11 @@
 	};
 
 	mmc@12200000 {
-		fifoth_val = <0x201f0020>;
+		fifo-depth = <0x40>;
 	};
 
 	mmc@12220000 {
-		fifoth_val = <0x201f0020>;
+		fifo-depth = <0x40>;
 	};
 
 	emmc-reset {

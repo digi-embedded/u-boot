@@ -179,6 +179,7 @@ struct usb_ep {
 	const struct usb_ep_ops	*ops;
 	struct list_head	ep_list;
 	struct usb_ep_caps	caps;
+	bool			enabled;
 	unsigned		maxpacket:16;
 	unsigned		maxpacket_limit:16;
 	unsigned		max_streams:16;
@@ -230,7 +231,18 @@ static inline void usb_ep_set_maxpacket_limit(struct usb_ep *ep,
 static inline int usb_ep_enable(struct usb_ep *ep,
 				const struct usb_endpoint_descriptor *desc)
 {
-	return ep->ops->enable(ep, desc);
+	int ret;
+
+	if (ep->enabled)
+		return 0;
+
+	ret = ep->ops->enable(ep, desc);
+	if (ret)
+		return ret;
+
+	ep->enabled = true;
+
+	return 0;
 }
 
 /**
@@ -247,7 +259,18 @@ static inline int usb_ep_enable(struct usb_ep *ep,
  */
 static inline int usb_ep_disable(struct usb_ep *ep)
 {
-	return ep->ops->disable(ep);
+	int ret;
+
+	if (!ep->enabled)
+		return 0;
+
+	ret = ep->ops->disable(ep);
+	if (ret)
+		return ret;
+
+	ep->enabled = false;
+
+	return 0;
 }
 
 /**
@@ -446,7 +469,6 @@ static inline void usb_ep_fifo_flush(struct usb_ep *ep)
 		ep->ops->fifo_flush(ep);
 }
 
-
 /*-------------------------------------------------------------------------*/
 
 struct usb_dcd_config_params {
@@ -566,7 +588,6 @@ static inline struct usb_gadget *dev_to_usb_gadget(struct device *dev)
 /* iterates the non-control endpoints; 'tmp' is a struct usb_ep pointer */
 #define gadget_for_each_ep(tmp, gadget) \
 	list_for_each_entry(tmp, &(gadget)->ep_list, ep_list)
-
 
 /**
  * gadget_is_dualspeed - return true iff the hardware handles high speed
@@ -769,7 +790,6 @@ static inline int usb_gadget_disconnect(struct usb_gadget *gadget)
 	return gadget->ops->pullup(gadget, 0);
 }
 
-
 /*-------------------------------------------------------------------------*/
 
 /**
@@ -855,7 +875,6 @@ struct usb_gadget_driver {
 	void			(*resume)(struct usb_gadget *);
 	void			(*reset)(struct usb_gadget *);
 };
-
 
 /*-------------------------------------------------------------------------*/
 
@@ -969,6 +988,14 @@ extern struct usb_ep *usb_ep_autoconfig(struct usb_gadget *,
 extern void usb_ep_autoconfig_reset(struct usb_gadget *);
 
 extern int dm_usb_gadget_handle_interrupts(struct udevice *);
+
+/**
+ * struct usb_gadget_generic_ops - The functions that a gadget driver must implement.
+ * @handle_interrupts: Handle UDC interrupts.
+ */
+struct usb_gadget_generic_ops {
+	int (*handle_interrupts)(struct udevice *udevice);
+};
 
 /**
  * udc_device_get_by_index() - Get UDC udevice by index

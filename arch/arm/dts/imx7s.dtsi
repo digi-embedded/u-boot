@@ -50,7 +50,7 @@
 		usb0 = &usbotg1;
 		usb1 = &usbh;
 		ethernet0 = &fec1;
-		usbgadget0 = &usbg1;
+		usb_gadget0 = &usbg1;
 		video0 = &lcdif;
 	};
 

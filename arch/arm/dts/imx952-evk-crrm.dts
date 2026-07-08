@@ -1,0 +1,11 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright 2025 NXP
+ */
+
+#include "imx952-evk-rm692c9-adv7535.dts"
+
+&xspi1 {
+	/delete-property/ nxp,xspi-gmid;
+	nxp,xspi-env = <1>;
+};

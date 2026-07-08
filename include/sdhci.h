@@ -11,6 +11,7 @@
 
 #include <linux/bitops.h>
 #include <linux/types.h>
+#include <linux/kernel.h>
 #include <asm/io.h>
 #include <mmc.h>
 #include <asm/gpio.h>
@@ -142,7 +143,7 @@
 #define  SDHCI_INT_CMD_MASK	(SDHCI_INT_RESPONSE | SDHCI_INT_TIMEOUT | \
 		SDHCI_INT_CRC | SDHCI_INT_END_BIT | SDHCI_INT_INDEX)
 #define  SDHCI_INT_DATA_MASK	(SDHCI_INT_DATA_END | SDHCI_INT_DMA_END | \
-		SDHCI_INT_DATA_AVAIL | SDHCI_INT_SPACE_AVAIL | \
+		SDHCI_INT_SPACE_AVAIL | SDHCI_INT_DATA_AVAIL | \
 		SDHCI_INT_DATA_TIMEOUT | SDHCI_INT_DATA_CRC | \
 		SDHCI_INT_DATA_END_BIT | SDHCI_INT_ADMA_ERROR)
 #define SDHCI_INT_ALL_MASK	((unsigned int)-1)
@@ -222,6 +223,9 @@
 #define   SDHCI_SPEC_100	0
 #define   SDHCI_SPEC_200	1
 #define   SDHCI_SPEC_300	2
+#define   SDHCI_SPEC_400	3
+#define   SDHCI_SPEC_410	4
+#define   SDHCI_SPEC_420	5
 
 #define SDHCI_GET_VERSION(x) (x->version & SDHCI_SPEC_VER_MASK)
 
@@ -291,16 +295,21 @@ struct sdhci_ops {
 	 * Return: 0 if successful, -ve on error
 	 */
 	int	(*set_enhanced_strobe)(struct sdhci_host *host);
+
+#ifdef CONFIG_MMC_SDHCI_ADMA_HELPERS
+	void	(*adma_write_desc)(struct sdhci_host *host, void **desc,
+				   dma_addr_t addr, int len, bool end);
+#endif
 };
 
 #define ADMA_MAX_LEN	65532
-#ifdef CONFIG_DMA_ADDR_T_64BIT
-#define ADMA_DESC_LEN	16
+#ifdef CONFIG_MMC_SDHCI_ADMA_64BIT
+#define ADMA_DESC_LEN	12
 #else
 #define ADMA_DESC_LEN	8
 #endif
-#define ADMA_TABLE_NO_ENTRIES (CONFIG_SYS_MMC_MAX_BLK_COUNT * \
-			       MMC_MAX_BLOCK_LEN) / ADMA_MAX_LEN
+#define ADMA_TABLE_NO_ENTRIES DIV_ROUND_UP(CONFIG_SYS_MMC_MAX_BLK_COUNT * \
+			      MMC_MAX_BLOCK_LEN, ADMA_MAX_LEN)
 
 #define ADMA_TABLE_SZ (ADMA_TABLE_NO_ENTRIES * ADMA_DESC_LEN)
 
@@ -319,7 +328,7 @@ struct sdhci_adma_desc {
 	u8 reserved;
 	u16 len;
 	u32 addr_lo;
-#ifdef CONFIG_DMA_ADDR_T_64BIT
+#ifdef CONFIG_MMC_SDHCI_ADMA_64BIT
 	u32 addr_hi;
 #endif
 } __packed;
@@ -512,6 +521,7 @@ void sdhci_set_uhs_timing(struct sdhci_host *host);
 /* Export the operations to drivers */
 int sdhci_probe(struct udevice *dev);
 int sdhci_set_clock(struct mmc *mmc, unsigned int clock);
+void sdhci_set_voltage(struct sdhci_host *host);
 
 /**
  * sdhci_set_control_reg - Set control registers
@@ -526,8 +536,11 @@ extern const struct dm_mmc_ops sdhci_ops;
 #else
 #endif
 
+void sdhci_adma_write_desc(struct sdhci_host *host, void **next_desc,
+			   dma_addr_t addr, int len, bool end);
 struct sdhci_adma_desc *sdhci_adma_init(void);
-void sdhci_prepare_adma_table(struct sdhci_adma_desc *table,
-			      struct mmc_data *data, dma_addr_t addr);
+void sdhci_prepare_adma_table(struct sdhci_host *host,
+			      struct sdhci_adma_desc *table,
+			      struct mmc_data *data, dma_addr_t start_addr);
 
 #endif /* __SDHCI_HW_H */

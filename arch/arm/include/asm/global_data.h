@@ -12,6 +12,7 @@
 #include <config.h>
 
 #include <linux/types.h>
+#include <asm/u-boot.h>
 
 /* Architecture-specific global data */
 struct arch_global_data {
@@ -107,9 +108,6 @@ struct arch_global_data {
 #ifdef CONFIG_SMBIOS
 	ulong smbios_start;		/* Start address of SMBIOS table */
 #endif
-#if defined(CONFIG_SCMI_FIRMWARE) && defined(CONFIG_IMX9)
-	struct udevice *scmi_dev;
-#endif
 };
 
 #include <asm-generic/global_data.h>
@@ -135,13 +133,13 @@ static inline gd_t *get_gd(void)
 #else
 
 #ifdef CONFIG_ARM64
-#define DECLARE_GLOBAL_DATA_PTR		register volatile gd_t *gd asm ("x18")
+#define DECLARE_GLOBAL_DATA_PTR		register gd_t *gd asm ("x18")
 #else
-#define DECLARE_GLOBAL_DATA_PTR		register volatile gd_t *gd asm ("r9")
+#define DECLARE_GLOBAL_DATA_PTR		register gd_t *gd asm ("r9")
 #endif
 #endif
 
-static inline void set_gd(volatile gd_t *gd_ptr)
+static inline void set_gd(gd_t *gd_ptr)
 {
 #ifdef CONFIG_ARM64
 	__asm__ volatile("ldr x18, %0\n" : : "m"(gd_ptr));

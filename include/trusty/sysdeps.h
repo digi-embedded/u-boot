@@ -29,7 +29,7 @@
  * types available in a normal C runtime. At least things like uint64_t,
  * uintptr_t, and bool (with |false|, |true| keywords) must be present.
  */
-#include <common.h>
+#include <config.h>
 #include <compiler.h>
 #include <irq_func.h>
 

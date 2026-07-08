@@ -14,6 +14,7 @@ config RCAR_64
 	imply CMD_GPT
 	imply CMD_MMC_SWRITE if MMC
 	imply CMD_UUID
+	imply OF_UPSTREAM
 	imply SUPPORT_EMMC_RPMB if MMC
 
 choice
@@ -45,6 +46,11 @@ config RCAR_GEN4
 	select RCAR_64
 	select PINCTRL_PFC
 
+config RCAR_GEN5
+	bool "Renesas ARM SoCs R-Car Gen5 (64bit)"
+	select RCAR_64
+	select PINCTRL_PFC
+
 config RZA1
 	prompt "Renesas ARM SoCs RZ/A1 (32bit)"
 	select CPU_V7A
@@ -73,8 +79,8 @@ config RZG2L
 	select RCAR_64
 	imply CLK_RZG2L
 	imply MULTI_DTB_FIT
-	imply MULTI_DTB_FIT_USER_DEFINED_AREA
 	imply PINCTRL_RZG2L
+	imply RENESAS_RAVB
 	imply RENESAS_SDHI
 	imply RZG2L_GPIO
 	imply SCIF_CONSOLE

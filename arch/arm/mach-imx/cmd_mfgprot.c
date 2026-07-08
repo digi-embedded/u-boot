@@ -8,17 +8,19 @@
  */
 
 #include <command.h>
-#include <common.h>
+#include <config.h>
 #include <env.h>
+#include <linux/errno.h>
 #include <mapmem.h>
 #include <memalign.h>
+#include <vsprintf.h>
 #ifdef CONFIG_IMX_CAAM_MFG_PROT
 #include <asm/arch/clock.h>
 #include <fsl_sec.h>
 #endif
 #ifdef CONFIG_IMX_SECO_MFG_PROT
 #include <asm/io.h>
-#include <asm/arch/sci/sci.h>
+#include <firmware/imx/sci/sci.h>
 #endif
 
 /**
@@ -255,15 +257,15 @@ free_m:
 #endif /* CONFIG_IMX_SECO_MFG_PROT */
 
 /***************************************************/
-static char mfgprot_help_text[] =
+U_BOOT_LONGHELP(mfgprot,
 	"Usage:\n"
 	 "Print the public key for Manufacturing Protection\n"
 	 "\tmfgprot pubk\n"
 	 "Generates a Manufacturing Protection signature\n"
-	 "\tmfgprot sign <data_addr> <size>";
+	 "\tmfgprot sign <data_addr> <size>\n");
 
 U_BOOT_CMD(
 	mfgprot, 4, 1, do_mfgprot,
-	"Manufacturing Protection\n",
+	"Manufacturing Protection",
 	mfgprot_help_text
 );

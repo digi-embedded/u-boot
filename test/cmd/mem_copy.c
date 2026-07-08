@@ -4,6 +4,7 @@
  */
 
 #include <command.h>
+#include <compiler.h>
 #include <console.h>
 #include <mapmem.h>
 #include <dm/test.h>
@@ -12,7 +13,7 @@
 #define BUF_SIZE	256
 
 /* Declare a new mem test */
-#define MEM_TEST(_name)	UNIT_TEST(_name, 0, mem_test)
+#define MEM_TEST(_name)	UNIT_TEST(_name, 0, mem)
 
 struct param {
 	int d, s, count;
@@ -21,7 +22,7 @@ struct param {
 static int do_test(struct unit_test_state *uts,
 		   const char *suffix, int d, int s, int count)
 {
-	const long addr = 0x1000;
+	const long addr = CONFIG_SYS_LOAD_ADDR + 0x1000;
 	u8 shadow[BUF_SIZE];
 	u8 *buf;
 	int i, w, bytes;

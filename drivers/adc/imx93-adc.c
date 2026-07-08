@@ -6,7 +6,6 @@
  * Originally based on NXP linux-imx kernel v5.15 drivers/iio/adc/imx93_adc.c
  */
 
-#include <common.h>
 #include <errno.h>
 #include <dm.h>
 #include <linux/bitfield.h>
@@ -222,7 +221,7 @@ static int imx93_adc_stop(struct udevice *dev)
 static int imx93_adc_probe(struct udevice *dev)
 {
 	struct imx93_adc_priv *adc = dev_get_priv(dev);
-	unsigned int ret;
+	int ret;
 
 	ret = imx93_adc_calibration(adc);
 	if (ret < 0)
@@ -239,7 +238,7 @@ static int imx93_adc_of_to_plat(struct udevice *dev)
 {
 	struct adc_uclass_plat *uc_pdata = dev_get_uclass_plat(dev);
 	struct imx93_adc_priv *adc = dev_get_priv(dev);
-	unsigned int ret;
+	int ret;
 
 	adc->regs = dev_read_addr_ptr(dev);
 	if (adc->regs == (struct imx93_adc *)FDT_ADDR_T_NONE) {

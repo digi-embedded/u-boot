@@ -2,12 +2,11 @@
 #
 # Copyright (C) 2011 Samsung Electronics
 
-ifdef CONFIG_SPL_BUILD
-# necessary to create built-in.o
-obj- := __dummy__.o
+ifdef CONFIG_XPL_BUILD
+# necessary to create built-in.a
+obj- := __dummy__.a
 
-hostprogs-y := tools/mkorigenspl
-always := $(hostprogs-y)
+hostprogs-always-y += tools/mkorigenspl
 
 # omit -O2 option to suppress
 #   warning: dereferencing type-punned pointer will break strict-aliasing rules

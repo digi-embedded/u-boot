@@ -6,7 +6,6 @@
  * Author: Rick Chen (rick@andestech.com)
  */
 
-#include <common.h>
 #include <clk.h>
 #include <log.h>
 #include <malloc.h>
@@ -187,7 +186,6 @@ static int __nspi_espi_rx(struct nds_spi_slave *ns, void *din, unsigned int byte
 	return bytes;
 }
 
-
 static int __atcspi200_spi_xfer(struct nds_spi_slave *ns,
 		unsigned int bitlen,  const void *data_out, void *data_in,
 		unsigned long flags)
@@ -321,7 +319,7 @@ static int atcspi200_spi_claim_bus(struct udevice *dev)
 	struct udevice *bus = dev->parent;
 	struct nds_spi_slave *ns = dev_get_priv(bus);
 
-	if (slave_plat->cs >= ns->num_cs) {
+	if (slave_plat->cs[0] >= ns->num_cs) {
 		printf("Invalid SPI chipselect\n");
 		return -EINVAL;
 	}

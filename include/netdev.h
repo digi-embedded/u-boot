@@ -10,9 +10,12 @@
 
 #ifndef _NETDEV_H_
 #define _NETDEV_H_
+
+#include <linux/types.h>
 #include <phy_interface.h>
 
 struct udevice;
+struct bd_info;
 
 /*
  * Board and CPU-specific initialization functions
@@ -119,7 +122,7 @@ static inline int pci_eth_init(struct bd_info *bis)
 	return num;
 }
 
-struct mii_dev *fec_get_miibus(ulong base_addr, int dev_id);
+struct mii_dev *fec_get_miibus(struct udevice *dev, ulong base_addr, int dev_id);
 
 #ifdef CONFIG_PHYLIB
 struct phy_device;

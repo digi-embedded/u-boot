@@ -4,7 +4,7 @@
  */
 
 #include <altera.h>
-#include <common.h>
+#include <config.h>
 #include <errno.h>
 #include <fdtdec.h>
 #include <init.h>
@@ -58,7 +58,7 @@ static Altera_desc altera_fpga[] = {
 	},
 };
 
-#if defined(CONFIG_SPL_BUILD)
+#if defined(CONFIG_XPL_BUILD)
 static struct pl310_regs *const pl310 =
 	(struct pl310_regs *)CFG_SYS_PL310_BASE;
 static const struct socfpga_noc_fw_ocram *noc_fw_ocram_base =
@@ -214,10 +214,7 @@ int qspi_flash_software_reset(void)
 	/* Get the flash info */
 	ret = spi_flash_probe_bus_cs(CONFIG_SF_DEFAULT_BUS,
 				     CONFIG_SF_DEFAULT_CS,
-				     CONFIG_SF_DEFAULT_SPEED,
-				     CONFIG_SF_DEFAULT_MODE,
 				     &flash);
-
 	if (ret) {
 		debug("Failed to initialize SPI flash at ");
 		debug("%u:%u (error %d)\n", CONFIG_SF_DEFAULT_BUS,

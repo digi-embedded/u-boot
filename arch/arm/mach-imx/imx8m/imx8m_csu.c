@@ -5,7 +5,7 @@
  */
 
 #include <asm/io.h>
-#include <common.h>
+#include <config.h>
 #include <asm/arch/imx8m_csu.h>
 
 void imx_csu_init(const struct imx_csu_cfg *csu_cfg)

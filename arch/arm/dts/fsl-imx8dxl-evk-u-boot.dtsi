@@ -5,8 +5,8 @@
 
 / {
 	aliases {
-		usbgadget0 = &usbg1;
-		usbgadget1 = &usbg2;
+		usb_gadget0 = &usbg1;
+		usb_gadget1 = &usbg2;
 		gpio8 = &pca6416_a;
 		gpio9 = &pca6416_b;
 	};

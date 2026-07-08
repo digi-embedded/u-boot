@@ -4,7 +4,6 @@
  * Author: Jagan Teki <jagan@amarulasolutions.com>
  */
 
-#include <common.h>
 #include <clk-uclass.h>
 #include <dm.h>
 #include <errno.h>
@@ -20,6 +19,8 @@ static struct ccu_clk_gate h6_gates[] = {
 
 	[CLK_DE]		= GATE(0x600, BIT(31)),
 	[CLK_BUS_DE]		= GATE(0x60c, BIT(0)),
+
+	[CLK_MBUS_NAND]		= GATE(0x804, BIT(5)),
 
 	[CLK_NAND0]		= GATE(0x810, BIT(31)),
 	[CLK_NAND1]		= GATE(0x814, BIT(31)),

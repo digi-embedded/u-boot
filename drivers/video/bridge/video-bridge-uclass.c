@@ -6,7 +6,6 @@
 
 #define LOG_CATEGORY UCLASS_VIDEO_BRIDGE
 
-#include <common.h>
 #include <dm.h>
 #include <errno.h>
 #include <edid.h>
@@ -32,6 +31,17 @@ int video_bridge_attach(struct udevice *dev)
 		return -ENOSYS;
 
 	return ops->attach(dev);
+}
+
+int video_bridge_get_display_timing(struct udevice *dev,
+				    struct display_timing *timings)
+{
+	struct video_bridge_ops *ops = video_bridge_get_ops(dev);
+
+	if (!ops->get_display_timing)
+		return -ENOSYS;
+
+	return ops->get_display_timing(dev, timings);
 }
 
 int video_bridge_check_attached(struct udevice *dev)

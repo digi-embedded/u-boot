@@ -7,11 +7,11 @@
  */
 
 #include <config.h>
-#include <common.h>
 #include <cpu_func.h>
 #include <display_options.h>
 #include <dm.h>
 #include <dm/device_compat.h>
+#include <env.h>
 #include <log.h>
 #include <net.h>
 #include <malloc.h>
@@ -344,6 +344,8 @@ static int axiemac_phy_init(struct udevice *dev)
 
 static int pcs_pma_startup(struct axidma_priv *priv)
 {
+	u32 aneg_timeout = env_get_ulong("phy_aneg_timeout", 10,
+					 CONFIG_PHY_ANEG_TIMEOUT);
 	u32 rc, retry_cnt = 0;
 	u16 mii_reg;
 
@@ -362,7 +364,7 @@ static int pcs_pma_startup(struct axidma_priv *priv)
 	 * and the external PHY is not obtained.
 	 */
 	debug("axiemac: waiting for link status of the PCS/PMA PHY");
-	while (retry_cnt * 10 < PHY_ANEG_TIMEOUT) {
+	while (retry_cnt * 10 < aneg_timeout) {
 		rc = phyread(priv, priv->pcsaddr, MII_BMSR, &mii_reg);
 		if ((mii_reg & BMSR_LSTATUS) && mii_reg != 0xffff && !rc) {
 			debug(".Done\n");
@@ -556,7 +558,7 @@ static int axiemac_write_hwaddr(struct udevice *dev)
 /* Reset DMA engine */
 static void axi_dma_init(struct axidma_priv *priv)
 {
-	u32 timeout = 500;
+	int timeout = 500;
 
 	/* Reset the engine so the hardware starts from a known state */
 	writel(XAXIDMA_CR_RESET_MASK, &priv->dmatx->control);
@@ -569,11 +571,11 @@ static void axi_dma_init(struct axidma_priv *priv)
 		if (!((readl(&priv->dmatx->control) |
 				readl(&priv->dmarx->control))
 						& XAXIDMA_CR_RESET_MASK)) {
-			break;
+			return;
 		}
 	}
-	if (!timeout)
-		printf("%s: Timeout\n", __func__);
+
+	printf("%s: Timeout\n", __func__);
 }
 
 static int axiemac_start(struct udevice *dev)
@@ -617,11 +619,11 @@ static int axiemac_start(struct udevice *dev)
 #endif
 	rx_bd.cntrl = sizeof(rxframe);
 	/* Flush the last BD so DMA core could see the updates */
-	flush_cache((phys_addr_t)&rx_bd, sizeof(rx_bd));
+	flush_cache((phys_addr_t)(uintptr_t)&rx_bd, sizeof(rx_bd));
 
 	/* It is necessary to flush rxframe because if you don't do it
 	 * then cache can contain uninitialized data */
-	flush_cache((phys_addr_t)&rxframe, sizeof(rxframe));
+	flush_cache((phys_addr_t)(uintptr_t)&rxframe, sizeof(rxframe));
 
 	/* Start the hardware */
 	temp = readl(&priv->dmarx->control);
@@ -673,7 +675,7 @@ static int axiemac_send(struct udevice *dev, void *ptr, int len)
 	}
 
 	/* Flush packet to main memory to be trasfered by DMA */
-	flush_cache((phys_addr_t)ptr, len);
+	flush_cache((phys_addr_t)(uintptr_t)ptr, len);
 
 	/* Setup Tx BD */
 	memset(&tx_bd, 0, sizeof(tx_bd));
@@ -689,7 +691,7 @@ static int axiemac_send(struct udevice *dev, void *ptr, int len)
 						XAXIDMA_BD_CTRL_TXEOF_MASK;
 
 	/* Flush the last BD so DMA core could see the updates */
-	flush_cache((phys_addr_t)&tx_bd, sizeof(tx_bd));
+	flush_cache((phys_addr_t)(uintptr_t)&tx_bd, sizeof(tx_bd));
 
 	if (readl(&priv->dmatx->status) & XAXIDMA_HALTED_MASK) {
 		u32 temp;
@@ -789,11 +791,11 @@ static int axiemac_free_pkt(struct udevice *dev, uchar *packet, int length)
 	rx_bd.cntrl = sizeof(rxframe);
 
 	/* Write bd to HW */
-	flush_cache((phys_addr_t)&rx_bd, sizeof(rx_bd));
+	flush_cache((phys_addr_t)(uintptr_t)&rx_bd, sizeof(rx_bd));
 
 	/* It is necessary to flush rxframe because if you don't do it
 	 * then cache will contain previous packet */
-	flush_cache((phys_addr_t)&rxframe, sizeof(rxframe));
+	flush_cache((phys_addr_t)(uintptr_t)&rxframe, sizeof(rxframe));
 
 	/* Rx BD is ready - start again */
 	axienet_dma_write(&rx_bd, &priv->dmarx->tail);
@@ -829,10 +831,10 @@ static int axi_emac_probe(struct udevice *dev)
 	struct axidma_priv *priv = dev_get_priv(dev);
 	int ret;
 
-	priv->iobase = (struct axi_regs *)pdata->iobase;
+	priv->iobase = (struct axi_regs *)(uintptr_t)pdata->iobase;
 	priv->dmatx = plat->dmatx;
 	/* RX channel offset is 0x30 */
-	priv->dmarx = (struct axidma_reg *)((phys_addr_t)priv->dmatx + 0x30);
+	priv->dmarx = (struct axidma_reg *)((uintptr_t)priv->dmatx + 0x30);
 	priv->mactype = plat->mactype;
 
 	if (priv->mactype == EMAC_1G) {

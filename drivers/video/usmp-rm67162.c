@@ -4,7 +4,7 @@
  *
  */
 
-#include <common.h>
+#include <config.h>
 #include <dm.h>
 #include <dm/device_compat.h>
 #include <mipi_dsi.h>

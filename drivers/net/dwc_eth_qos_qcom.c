@@ -5,7 +5,6 @@
  * Qcom DWMAC specific glue layer
  */
 
-#include <common.h>
 #include <asm/global_data.h>
 #include <asm/gpio.h>
 #include <asm/io.h>
@@ -522,6 +521,12 @@ static int eqos_probe_resources_qcom(struct udevice *dev)
 	int ret;
 
 	debug("%s(dev=%p):\n", __func__, dev);
+
+	ret = eqos_get_base_addr_dt(dev);
+	if (ret) {
+		pr_err("eqos_get_base_addr_dt failed: %d\n", ret);
+		return ret;
+	}
 
 	interface = eqos->config->interface(dev);
 

@@ -3,7 +3,6 @@
  * Copyright 2022 NXP
  */
 
-#include <common.h>
 #include <clk.h>
 #include <dm.h>
 #include <dm/device_compat.h>

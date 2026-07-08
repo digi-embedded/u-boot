@@ -2,7 +2,6 @@
 /*
  * (C) Copyright 2019 Rockchip Electronics Co., Ltd
  */
-#include <common.h>
 #include <dm.h>
 #include <hang.h>
 #include <init.h>
@@ -10,7 +9,6 @@
 #include <log.h>
 #include <syscon.h>
 #include <asm/global_data.h>
-#include <asm/io.h>
 #include <asm/arch-rockchip/bootrom.h>
 #include <asm/arch-rockchip/clock.h>
 #include <asm/arch-rockchip/grf_rk3188.h>
@@ -53,7 +51,7 @@ void board_debug_uart_init(void)
 }
 #endif
 
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 int arch_cpu_init(void)
 {
 	struct rk3188_grf *grf;
@@ -107,39 +105,3 @@ int rk_board_late_init(void)
 
 	return rk3188_board_late_init();
 }
-
-#ifdef CONFIG_SPL_BUILD
-static int setup_led(void)
-{
-#ifdef CONFIG_SPL_LED
-	struct udevice *dev;
-	char *led_name;
-	int ret;
-
-	led_name = ofnode_conf_read_str("u-boot,boot-led");
-	if (!led_name)
-		return 0;
-	ret = led_get_by_label(led_name, &dev);
-	if (ret) {
-		debug("%s: get=%d\n", __func__, ret);
-		return ret;
-	}
-	ret = led_set_state(dev, LEDST_ON);
-	if (ret)
-		return ret;
-#endif
-
-	return 0;
-}
-
-void spl_board_init(void)
-{
-	int ret;
-
-	ret = setup_led();
-	if (ret) {
-		debug("LED ret=%d\n", ret);
-		hang();
-	}
-}
-#endif

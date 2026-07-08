@@ -7,7 +7,7 @@
 #ifndef IMX_CSU_H
 #define IMX_CSU_H
 
-#include <common.h>
+#include <config.h>
 
 #define CSU_SEC_LEVEL_0		0xff
 #define CSU_SEC_LEVEL_1		0xbb

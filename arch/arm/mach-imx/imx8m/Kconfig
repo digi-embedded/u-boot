@@ -7,6 +7,9 @@ config IMX8M
 	select LTO
 	select ROM_UNIFIED_SECTIONS
 	select ARMV8_CRYPTO
+	imply CPU
+	imply CPU_IMX
+	imply IMX_TMU
 
 config IMX8MQ
 	bool
@@ -39,6 +42,16 @@ config SYS_HAS_ARMV8_SECURE_BASE
 	  If enabled, please also define the value for ARMV8_SECURE_BASE,
 	  for i.MX8M, it could be some address in OCRAM.
 
+config IMX8M_OPTEE_LOAD_ADDR
+	hex "Load address of OPTEE image"
+	default 0xbe000000 if IMX8MM
+	default 0xbe000000 if IMX8MN
+	default 0x56000000 if IMX8MP
+	default 0xfe000000 if IMX8MQ
+	help
+	  The load and entry address for the OPTEE image. This value defaults to
+	  the one defined in tf-a if not provided in the board defconfig file.
+
 config SECONDARY_BOOT_SECTOR_OFFSET
 	hex "SD/MMC sector offset used for ROM secondary boot"
 	default 0x0
@@ -70,6 +83,30 @@ choice
 	prompt "NXP i.MX8M board select"
 	optional
 
+config TARGET_CCIMX8MM_DVK
+	bool "Digi ConnectCore 8M Mini Development Kit"
+	select IMX8MM
+	select CC8M
+	select MCA
+	select SUPPORT_SPL
+	select IMX8M_LPDDR4
+	select FSL_CAAM
+	select FSL_BLOB
+	select ARCH_MISC_INIT
+	select SPL_CRYPTO if SPL
+
+config TARGET_CCIMX8MN_DVK
+	bool "Digi ConnectCore 8M Nano Development Kit"
+	select IMX8MN
+	select CC8M
+	select MCA
+	select SUPPORT_SPL
+	select IMX8M_LPDDR4
+	select FSL_CAAM
+	select FSL_BLOB
+	select ARCH_MISC_INIT
+	select SPL_CRYPTO if SPL
+
 config TARGET_IMX8MQ_CM
 	bool "Ronetix iMX8MQ-CM SoM"
 	select IMX8MQ
@@ -83,6 +120,13 @@ config TARGET_IMX8MQ_EVK
 	select FSL_BLOB
 	select ARCH_MISC_INIT
 	select SPL_CRYPTO if SPL
+	select CMD_REMOTEPROC
+	select REMOTEPROC_IMX
+	select REGMAP
+	select SYSCON
+	imply OF_UPSTREAM
+	imply BOOTSTD_FULL
+	imply BOOTSTD_BOOTCOMMAND
 
 config TARGET_IMX8MQ_PHANBELL
 	bool "imx8mq_phanbell"
@@ -109,6 +153,13 @@ config TARGET_IMX8MM_EVK
 	select FSL_BLOB
 	select ARCH_MISC_INIT
 	select SPL_CRYPTO if SPL
+	select CMD_REMOTEPROC
+	select REMOTEPROC_IMX
+	select REGMAP
+	select SYSCON
+	imply BOOTSTD_FULL
+	imply BOOTSTD_BOOTCOMMAND
+	imply OF_UPSTREAM
 
 config TARGET_IMX8MM_DDR4_EVK
 	bool "imx8mm DDR4 EVK board"
@@ -119,6 +170,9 @@ config TARGET_IMX8MM_DDR4_EVK
 	select FSL_BLOB
 	select ARCH_MISC_INIT
 	select SPL_CRYPTO if SPL
+	imply OF_UPSTREAM
+	imply BOOTSTD_FULL
+	imply BOOTSTD_BOOTCOMMAND
 
 config TARGET_IMX8MM_AB2
 	bool "imx8mm LPDDR4 Audio board 2.0"
@@ -128,6 +182,8 @@ config TARGET_IMX8MM_AB2
 	select FSL_CAAM
 	select FSL_BLOB
 	select SPL_CRYPTO if SPL
+	imply BOOTSTD_FULL
+	imply BOOTSTD_BOOTCOMMAND
 
 config TARGET_IMX8MM_DDR4_AB2
 	bool "imx8mm DDR4 Audio board 2.0"
@@ -137,6 +193,8 @@ config TARGET_IMX8MM_DDR4_AB2
 	select FSL_CAAM
 	select FSL_BLOB
 	select SPL_CRYPTO if SPL
+	imply BOOTSTD_FULL
+	imply BOOTSTD_BOOTCOMMAND
 
 config TARGET_IMX8MM_ICORE_MX8MM
 	bool "Engicam i.Core MX8M Mini SOM"
@@ -178,6 +236,7 @@ config TARGET_IMX8MM_VENICE
 	select FSL_CAAM
 	select ARCH_MISC_INIT
 	select SPL_CRYPTO if SPL
+	imply OF_UPSTREAM
 
 config TARGET_KONTRON_MX8MM
 	bool "Kontron Electronics N80xx"
@@ -188,17 +247,32 @@ config TARGET_KONTRON_MX8MM
 	select ARCH_MISC_INIT
 	select SPL_CRYPTO if SPL
 
+config TARGET_KONTRON_MX8MP
+	bool "Kontron OSM-S/BL i.MX8MP"
+	select BINMAN
+	select IMX8MP
+	select SUPPORT_SPL
+	select IMX8M_LPDDR4
+	select FSL_CAAM
+	select ARCH_MISC_INIT
+	select SPL_CRYPTO if SPL
+	help
+	  Kontron Electronics BL i.MX8MP using SoM module conformant to OSM
+	  standard 1.1 size S.
+
 config TARGET_IMX8MN_BSH_SMM_S2
 	bool "imx8mn-bsh-smm-s2"
 	select IMX8MN
 	select SUPPORT_SPL
 	select IMX8M_DDR3L
+	imply OF_UPSTREAM
 
 config TARGET_IMX8MN_BSH_SMM_S2PRO
 	bool "imx8mn-bsh-smm-s2pro"
 	select IMX8MN
 	select SUPPORT_SPL
 	select IMX8M_DDR3L
+	imply OF_UPSTREAM
 
 config TARGET_IMX8MN_EVK
 	bool "imx8mn LPDDR4 EVK board"
@@ -208,6 +282,13 @@ config TARGET_IMX8MN_EVK
 	select FSL_CAAM
 	select FSL_BLOB
 	select SPL_CRYPTO if SPL
+	select CMD_REMOTEPROC
+	select REMOTEPROC_IMX
+	select REGMAP
+	select SYSCON
+	imply OF_UPSTREAM
+	imply BOOTSTD_FULL
+	imply BOOTSTD_BOOTCOMMAND
 
 config TARGET_IMX8MN_DDR4_EVK
 	bool "imx8mn DDR4 EVK board"
@@ -217,6 +298,13 @@ config TARGET_IMX8MN_DDR4_EVK
 	select FSL_CAAM
 	select FSL_BLOB
 	select SPL_CRYPTO if SPL
+	select CMD_REMOTEPROC
+	select REMOTEPROC_IMX
+	select REGMAP
+	select SYSCON
+	imply OF_UPSTREAM
+	imply BOOTSTD_FULL
+	imply BOOTSTD_BOOTCOMMAND
 
 config TARGET_IMX8MN_DDR3_EVK
 	bool "imx8mn 11x11 DDR3 EVK board"
@@ -226,6 +314,9 @@ config TARGET_IMX8MN_DDR3_EVK
 	select FSL_CAAM
 	select FSL_BLOB
 	select SPL_CRYPTO if SPL
+	imply OF_UPSTREAM
+	imply BOOTSTD_FULL
+	imply BOOTSTD_BOOTCOMMAND
 
 config TARGET_IMX8MN_AB2
 	bool "imx8mn LPDDR4 Audio board 2.0"
@@ -235,6 +326,8 @@ config TARGET_IMX8MN_AB2
 	select FSL_CAAM
 	select FSL_BLOB
 	select SPL_CRYPTO if SPL
+	imply BOOTSTD_FULL
+	imply BOOTSTD_BOOTCOMMAND
 
 config TARGET_IMX8MN_DDR4_AB2
 	bool "imx8mn DDR4 Audio board 2.0"
@@ -244,6 +337,8 @@ config TARGET_IMX8MN_DDR4_AB2
 	select FSL_CAAM
 	select FSL_BLOB
 	select SPL_CRYPTO if SPL
+	imply BOOTSTD_FULL
+	imply BOOTSTD_BOOTCOMMAND
 
 config TARGET_IMX8MN_DDR3L_AB2
 	bool "imx8mn DDR3L Audio board 2.0"
@@ -253,30 +348,8 @@ config TARGET_IMX8MN_DDR3L_AB2
 	select FSL_CAAM
 	select FSL_BLOB
 	select SPL_CRYPTO if SPL
-
-config TARGET_CCIMX8MM_DVK
-	bool "Digi ConnectCore 8M Mini Development Kit"
-	select IMX8MM
-	select CC8M
-	select MCA
-	select SUPPORT_SPL
-	select IMX8M_LPDDR4
-	select FSL_CAAM
-	select FSL_BLOB
-	select ARCH_MISC_INIT
-	select SPL_CRYPTO if SPL
-
-config TARGET_CCIMX8MN_DVK
-	bool "Digi ConnectCore 8M Nano Development Kit"
-	select IMX8MN
-	select CC8M
-	select MCA
-	select SUPPORT_SPL
-	select IMX8M_LPDDR4
-	select FSL_CAAM
-	select FSL_BLOB
-	select ARCH_MISC_INIT
-	select SPL_CRYPTO if SPL
+	imply BOOTSTD_FULL
+	imply BOOTSTD_BOOTCOMMAND
 
 config TARGET_IMX8MN_VENICE
 	bool "Support Gateworks Venice iMX8M Nano module"
@@ -288,6 +361,7 @@ config TARGET_IMX8MN_VENICE
 	select FSL_CAAM
 	select ARCH_MISC_INIT
 	select SPL_CRYPTO if SPL
+	imply OF_UPSTREAM
 
 config TARGET_IMX8MP_DATA_MODUL_EDM_SBC
 	bool "Data Modul eDM SBC i.MX8M Plus"
@@ -301,14 +375,17 @@ config TARGET_IMX8MP_BEACON
 	select SUPPORT_SPL
 	select IMX8M_LPDDR4
 	select FSL_CAAM
+	select FSL_BLOB
 	select ARCH_MISC_INIT
 	select SPL_CRYPTO if SPL
+	imply OF_UPSTREAM
 
 config TARGET_IMX8MP_DEBIX_MODEL_A
 	bool "Polyhex i.MX8M Plus Debix Model A SBC"
 	select IMX8MP
 	select IMX8M_LPDDR4
 	select SUPPORT_SPL
+	imply OF_UPSTREAM
 
 config TARGET_IMX8MP_DH_DHCOM_PDK2
 	bool "DH electronics DHCOM Premium Developer Kit (2) i.MX8M Plus"
@@ -338,6 +415,33 @@ config TARGET_IMX8MP_EVK
 	select FSL_BLOB
 	select ARCH_MISC_INIT
 	select SPL_CRYPTO if SPL
+	select CMD_REMOTEPROC
+	select REMOTEPROC_IMX
+	select REGMAP
+	select SYSCON
+	imply OF_UPSTREAM
+	imply BOOTSTD_FULL
+	imply BOOTSTD_BOOTCOMMAND
+
+config TARGET_IMX8MP_FRDM
+	bool "imx8mp LPDDR4 frdm board"
+	select IMX8MP
+	select SUPPORT_SPL
+	select IMX8M_LPDDR4
+	select FSL_CAAM
+	select FSL_BLOB
+	select ARCH_MISC_INIT
+	select SPL_CRYPTO if SPL
+	imply BOOTSTD_FULL
+	imply BOOTSTD_BOOTCOMMAND
+
+config TARGET_IMX8MP_NAVQP
+	bool "Emcraft Systems i.MX8M Plus NavQ+ board"
+	select IMX8MP
+	select IMX8M_LPDDR4
+	select SUPPORT_SPL
+	select ARCH_MISC_INIT
+	imply OF_UPSTREAM
 
 config TARGET_IMX8MP_VENICE
 	bool "Support Gateworks Venice iMX8M Plus module"
@@ -349,6 +453,7 @@ config TARGET_IMX8MP_VENICE
 	select FSL_CAAM
 	select ARCH_MISC_INIT
 	select SPL_CRYPTO if SPL
+	imply OF_UPSTREAM
 
 config TARGET_IMX8MP_DDR4_EVK
 	bool "imx8mp DDR4 EVK board"
@@ -359,21 +464,13 @@ config TARGET_IMX8MP_DDR4_EVK
 	select FSL_BLOB
 	select ARCH_MISC_INIT
 	select SPL_CRYPTO if SPL
+	imply BOOTSTD_FULL
+	imply BOOTSTD_BOOTCOMMAND
 
 config TARGET_PICO_IMX8MQ
 	bool "Support Technexion Pico iMX8MQ"
 	select IMX8MQ
 	select IMX8M_LPDDR4
-
-config TARGET_NAVQPLUS
-	bool "imx8mp DDR4 NAVQPlus board"
-	select IMX8MP
-	select SUPPORT_SPL
-	select IMX8M_LPDDR4
-	select FSL_CAAM
-	select FSL_BLOB
-	select ARCH_MISC_INIT
-	select SPL_CRYPTO if SPL
 
 config TARGET_IMX8MN_VAR_SOM
 	bool "Variscite imx8mn_var_som"
@@ -384,23 +481,33 @@ config TARGET_IMX8MN_VAR_SOM
 	select I2C_EEPROM
 	select DM_ETH_PHY
 	select NVMEM
+	imply OF_UPSTREAM
 
 config TARGET_KONTRON_PITX_IMX8M
 	bool "Support Kontron pITX-imx8m"
 	select IMX8MQ
 	select IMX8M_LPDDR4
 
+config TARGET_TORADEX_SMARC_IMX8MP
+	bool "Support Toradex SMARC iMX8M Plus module"
+	select IMX8MP
+	select SUPPORT_SPL
+	select IMX8M_LPDDR4
+	imply OF_UPSTREAM
+
 config TARGET_VERDIN_IMX8MM
 	bool "Support Toradex Verdin iMX8M Mini module"
 	select IMX8MM
 	select SUPPORT_SPL
 	select IMX8M_LPDDR4
+	imply OF_UPSTREAM
 
 config TARGET_VERDIN_IMX8MP
 	bool "Support Toradex Verdin iMX8M Plus module"
 	select IMX8MP
 	select SUPPORT_SPL
 	select IMX8M_LPDDR4
+	imply OF_UPSTREAM
 
 config TARGET_IMX8MM_BEACON
 	bool "imx8mm Beacon Embedded devkit"
@@ -410,6 +517,7 @@ config TARGET_IMX8MM_BEACON
 	select FSL_CAAM
 	select ARCH_MISC_INIT
 	select SPL_CRYPTO if SPL
+	imply OF_UPSTREAM
 
 config TARGET_IMX8MN_BEACON
 	bool "imx8mn Beacon Embedded devkit"
@@ -419,18 +527,30 @@ config TARGET_IMX8MN_BEACON
 	select FSL_CAAM
 	select ARCH_MISC_INIT
 	select SPL_CRYPTO if SPL
+	imply OF_UPSTREAM
 
 config TARGET_PHYCORE_IMX8MM
 	bool "PHYTEC PHYCORE i.MX8MM"
 	select IMX8MM
 	select SUPPORT_SPL
 	select IMX8M_LPDDR4
+	imply OF_UPSTREAM
 
 config TARGET_PHYCORE_IMX8MP
 	bool "PHYTEC PHYCORE i.MX8MP"
 	select IMX8MP
 	select SUPPORT_SPL
 	select IMX8M_LPDDR4
+	imply OF_UPSTREAM
+
+config TARGET_IMX8MP_LIBRA_FPSC
+	bool "PHYTEC Libra i.MX 8M Plus FPSC"
+	select IMX8MP
+	select SUPPORT_SPL
+	select IMX8M_LPDDR4
+	imply OF_UPSTREAM
+	help
+	  Libra i.MX8M Plus FPSC is an SBC based on the NXP i.MX 8M Plus SoC.
 
 config TARGET_IMX8MM_CL_IOT_GATE
 	bool "CompuLab iot-gate-imx8"
@@ -484,20 +604,24 @@ source "board/compulab/imx8mm-cl-iot-gate/Kconfig"
 source "board/data_modul/imx8mm_edm_sbc/Kconfig"
 source "board/data_modul/imx8mp_edm_sbc/Kconfig"
 source "board/dhelectronics/dh_imx8mp/Kconfig"
+source "board/emcraft/imx8mp_navqp/Kconfig"
 source "board/engicam/imx8mm/Kconfig"
 source "board/engicam/imx8mp/Kconfig"
-source "board/freescale/imx8mq_evk/Kconfig"
-source "board/freescale/imx8mm_ab2/Kconfig"
-source "board/freescale/imx8mm_evk/Kconfig"
-source "board/freescale/imx8mn_evk/Kconfig"
-source "board/freescale/imx8mp_evk/Kconfig"
+source "board/nxp/imx8mq_evk/Kconfig"
+source "board/nxp/imx8mm_ab2/Kconfig"
+source "board/nxp/imx8mm_evk/Kconfig"
+source "board/nxp/imx8mn_evk/Kconfig"
+source "board/nxp/imx8mp_evk/Kconfig"
+source "board/nxp/imx8mp_frdm/Kconfig"
 source "board/gateworks/venice/Kconfig"
 source "board/google/imx8mq_phanbell/Kconfig"
+source "board/kontron/osm-s-mx8mp/Kconfig"
 source "board/kontron/pitx_imx8m/Kconfig"
 source "board/kontron/sl-mx8mm/Kconfig"
 source "board/menlo/mx8menlo/Kconfig"
 source "board/msc/sm2s_imx8mp/Kconfig"
 source "board/mntre/imx8mq_reform2/Kconfig"
+source "board/phytec/imx8mp-libra-fpsc/Kconfig"
 source "board/phytec/phycore_imx8mm/Kconfig"
 source "board/phytec/phycore_imx8mp/Kconfig"
 source "board/polyhex/imx8mp_debix_model_a/Kconfig"
@@ -505,8 +629,8 @@ source "board/purism/librem5/Kconfig"
 source "board/ronetix/imx8mq-cm/Kconfig"
 source "board/technexion/pico-imx8mq/Kconfig"
 source "board/variscite/imx8mn_var_som/Kconfig"
+source "board/toradex/smarc-imx8mp/Kconfig"
 source "board/toradex/verdin-imx8mm/Kconfig"
 source "board/toradex/verdin-imx8mp/Kconfig"
-source "board/voxelbotics/navqp/Kconfig"
 
 endif

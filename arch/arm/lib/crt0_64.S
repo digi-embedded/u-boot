@@ -69,10 +69,8 @@ ENTRY(_main)
 /*
  * Set up initial C runtime environment and call board_init_f(0).
  */
-#if defined(CONFIG_TPL_BUILD) && defined(CONFIG_TPL_NEEDS_SEPARATE_STACK)
-	ldr	x0, =(CONFIG_TPL_STACK)
-#elif defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_STACK)
-	ldr	x0, =(CONFIG_SPL_STACK)
+#if CONFIG_IS_ENABLED(HAVE_INIT_STACK)
+	ldr	x0, =CONFIG_VAL(STACK)
 #elif defined(CONFIG_INIT_SP_RELATIVE)
 #if CONFIG_POSITION_INDEPENDENT
 	adrp	x0, __bss_start     /* x0 <- Runtime &__bss_start */
@@ -99,7 +97,7 @@ ENTRY(_main)
 	mov	x0, #0
 	bl	board_init_f
 
-#if !defined(CONFIG_SPL_BUILD)
+#if !defined(CONFIG_XPL_BUILD)
 /*
  * Set up intermediate environment (new sp and gd) and call
  * relocate_code(addr_moni). Trick here is that we'll return
@@ -121,7 +119,7 @@ ENTRY(_main)
 	ldr	x9, _TEXT_BASE		/* x9 <- Linked value of _start */
 	sub	x9, x9, x0		/* x9 <- Run-vs-link offset */
 	add	lr, lr, x9
-#if defined(CONFIG_SYS_RELOC_GD_ENV_ADDR)
+#if defined(CONFIG_ENV_RELOC_GD_ENV_ADDR)
 	ldr	x0, [x18, #GD_ENV_ADDR]	/* x0 <- gd->env_addr */
 	add	x0, x0, x9
 	str	x0, [x18, #GD_ENV_ADDR]
@@ -139,9 +137,9 @@ relocation_return:
  * Set up final (full) environment
  */
 	bl	c_runtime_cpu_setup		/* still call old routine */
-#endif /* !CONFIG_SPL_BUILD */
-#if !defined(CONFIG_SPL_BUILD) || CONFIG_IS_ENABLED(FRAMEWORK)
-#if defined(CONFIG_SPL_BUILD)
+#endif /* !CONFIG_XPL_BUILD */
+#if !defined(CONFIG_XPL_BUILD) || CONFIG_IS_ENABLED(FRAMEWORK)
+#if defined(CONFIG_XPL_BUILD)
 	bl	spl_relocate_stack_gd           /* may return NULL */
 	/* set up gd here, outside any C code, if new stack is returned */
 	cmp	x0, #0
@@ -160,8 +158,10 @@ relocation_return:
 /*
  * Clear BSS section
  */
-	ldr	x0, =__bss_start		/* this is auto-relocated! */
-	ldr	x1, =__bss_end			/* this is auto-relocated! */
+	adrp	x0, __bss_start
+	add	x0, x0, #:lo12:__bss_start
+	adrp	x1, __bss_end
+	add	x1, x1, #:lo12:__bss_end
 clear_loop:
 	str	xzr, [x0], #8
 	cmp	x0, x1

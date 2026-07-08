@@ -80,7 +80,7 @@ static const struct mtk_pin_field_calc mt7629_pin_drv_range[] = {
 	PIN_FIELD(70, 78, 0x7600, 0x10, 0, 4),
 };
 
-static const struct mtk_pin_reg_calc mt7629_reg_cals[] = {
+static const struct mtk_pin_reg_calc mt7629_reg_cals[PINCTRL_PIN_REG_MAX] = {
 	[PINCTRL_PIN_REG_MODE] = MTK_RANGE(mt7629_pin_mode_range),
 	[PINCTRL_PIN_REG_DIR] = MTK_RANGE(mt7629_pin_dir_range),
 	[PINCTRL_PIN_REG_DI] = MTK_RANGE(mt7629_pin_di_range),
@@ -413,6 +413,7 @@ U_BOOT_DRIVER(mt7629_pinctrl) = {
 	.id = UCLASS_PINCTRL,
 	.of_match = mt7629_pctrl_match,
 	.ops = &mtk_pinctrl_ops,
+	.bind = mtk_pinctrl_common_bind,
 	.probe = mtk_pinctrl_mt7629_probe,
 	.priv_auto	= sizeof(struct mtk_pinctrl_priv),
 };

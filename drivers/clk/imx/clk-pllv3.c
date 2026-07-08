@@ -4,7 +4,6 @@
  * Lukasz Majewski, DENX Software Engineering, lukma@denx.de
  */
 
-#include <common.h>
 #include <asm/io.h>
 #include <div64.h>
 #include <malloc.h>
@@ -282,9 +281,9 @@ static const struct clk_ops clk_pllv3_enet_ops = {
 	.get_rate	= clk_pllv3_enet_get_rate,
 };
 
-struct clk *imx_clk_pllv3(enum imx_pllv3_type type, const char *name,
-			  const char *parent_name, void __iomem *base,
-			  u32 div_mask)
+struct clk *imx_clk_pllv3(struct udevice *dev, enum imx_pllv3_type type,
+			  const char *name, const char *parent_name,
+			  void __iomem *base, u32 div_mask)
 {
 	struct clk_pllv3 *pll;
 	struct clk *clk;
@@ -340,7 +339,8 @@ struct clk *imx_clk_pllv3(enum imx_pllv3_type type, const char *name,
 	pll->div_mask = div_mask;
 	clk = &pll->clk;
 
-	ret = clk_register(clk, drv_name, name, parent_name);
+	ret = clk_register(clk, drv_name, name,
+			   clk_resolve_parent_clk(dev, parent_name));
 	if (ret) {
 		kfree(pll);
 		return ERR_PTR(ret);

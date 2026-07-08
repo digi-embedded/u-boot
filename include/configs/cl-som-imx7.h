@@ -35,7 +35,6 @@
 	"storagebootcmd=echo Booting from ${storagetype} ...; run ${storagetype}args; run doboot;\0" \
 	"kernel=zImage\0" \
 	"console=ttymxc0\0" \
-	"fdt_high=0xffffffff\0" \
 	"initrd_high=0xffffffff\0" \
 	"fdtfile=imx7d-sbc-imx7.dtb\0" \
 	"fdtaddr=0x83000000\0" \
@@ -94,9 +93,5 @@
 
 #define CFG_SYS_FSL_USDHC_NUM	2
 #endif
-
-/* USB Configs */
-#define CFG_MXC_USB_PORTSC  (PORT_PTS_UTMI | PORT_PTS_PTW)
-#define CFG_MXC_USB_FLAGS   0
 
 #endif	/* __CONFIG_H */

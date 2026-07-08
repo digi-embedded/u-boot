@@ -274,7 +274,7 @@ into memory, then written to NAND.
 Falcon Mode
 -----------
 
-The default build includes "Falcon Mode" (see doc/README.falcon) via NAND,
+The default build includes :ref:`falcon-mode` via NAND,
 eMMC (or raw SD cards) and FAT SD cards.  Our default behavior currently is
 to read a 'c' on the console while in SPL at any point prior to loading the
 OS payload (so as soon as possible) to opt to booting full U-Boot.  Also
@@ -353,6 +353,16 @@ first.
 
 Falcon Mode: FAT SD cards
 -------------------------
+
+Compile with additional changes in config variables in menuconfig:
+
+::
+
+   CONFIG_SPL_LEGACY_IMAGE_FORMAT=y # to support non-FIT images
+   CONFIG_LEGACY_IMAGE_FORMAT=y # if commented then SPL Legacy support stops
+   # CONFIG_SPL_ENV_IS_NOWHERE is not set
+   CONFIG_SPL_ENV_IS_IN_FAT=y
+
 
 In this case the additional file is written to the filesystem.  In this
 example we assume that the uImage and device tree to be used are already on

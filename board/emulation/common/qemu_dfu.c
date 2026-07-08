@@ -3,11 +3,11 @@
  * Copyright (c) 2020 Linaro Limited
  */
 
-#include <common.h>
 #include <dfu.h>
 #include <env.h>
 #include <memalign.h>
 #include <mtd.h>
+#include <linux/sizes.h>
 
 #define DFU_ALT_BUF_LEN		SZ_1K
 

@@ -6,7 +6,6 @@
  * Author: Clark Wang (xiaoning.wang@nxp.com)
  */
 
-#include <common.h>
 #include <clk.h>
 #include <errno.h>
 #include <asm/io.h>

@@ -4,7 +4,7 @@
  * Stefan Roese, DENX Software Engineering, sr@denx.de.
  */
 
-#include <common.h>
+#include <config.h>
 #include <nand.h>
 #include <system-constants.h>
 #include <asm/io.h>
@@ -18,7 +18,6 @@ static struct nand_chip nand_chip;
 #define ECCSTEPS	(CONFIG_SYS_NAND_PAGE_SIZE / \
 					CFG_SYS_NAND_ECCSIZE)
 #define ECCTOTAL	(ECCSTEPS * CFG_SYS_NAND_ECCBYTES)
-
 
 #if (CONFIG_SYS_NAND_PAGE_SIZE <= 512)
 /*
@@ -152,7 +151,6 @@ static int nand_read_page(int block, int page, uchar *dst)
 	/* Pick the ECC bytes out of the oob data */
 	for (i = 0; i < ECCTOTAL; i++)
 		ecc_code[i] = oob_data[nand_ecc_pos[i]];
-
 
 	for (i = 0; eccsteps; eccsteps--, i += eccbytes, p += eccsize) {
 		this->ecc.hwctl(mtd, NAND_ECC_READ);

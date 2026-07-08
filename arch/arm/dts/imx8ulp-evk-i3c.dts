@@ -5,7 +5,7 @@
 
 /dts-v1/;
 
-#include "imx8ulp-evk.dts"
+#include "../dts/upstream/src/arm64/freescale/imx8ulp-evk.dts"
 #include "imx8ulp-evk-u-boot.dtsi"
 
 &fec {

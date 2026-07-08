@@ -8,7 +8,6 @@
 
 #define LOG_CATEGORY UCLASS_CLK
 
-#include <common.h>
 #include <clk.h>
 #include <clk-uclass.h>
 #include <dm.h>
@@ -35,6 +34,11 @@ struct clk *dev_get_clk_ptr(struct udevice *dev)
 	return (struct clk *)dev_get_uclass_priv(dev);
 }
 
+ulong clk_get_id(const struct clk *clk)
+{
+	return (ulong)(clk->id & CLK_ID_MSK);
+}
+
 #if CONFIG_IS_ENABLED(OF_PLATDATA)
 int clk_get_by_phandle(struct udevice *dev, const struct phandle_1_arg *cells,
 		       struct clk *clk)
@@ -44,7 +48,7 @@ int clk_get_by_phandle(struct udevice *dev, const struct phandle_1_arg *cells,
 	ret = device_get_by_ofplat_idx(cells->idx, &clk->dev);
 	if (ret)
 		return ret;
-	clk->id = cells->arg[0];
+	clk->id = CLK_ID(dev, cells->arg[0]);
 
 	return 0;
 }
@@ -62,7 +66,7 @@ static int clk_of_xlate_default(struct clk *clk,
 	}
 
 	if (args->args_count)
-		clk->id = args->args[0];
+		clk->id = CLK_ID(clk->dev, args->args[0]);
 	else
 		clk->id = 0;
 
@@ -118,7 +122,8 @@ static int clk_get_by_indexed_prop(struct udevice *dev, const char *prop_name,
 	int ret;
 	struct ofnode_phandle_args args;
 
-	debug("%s(dev=%p, index=%d, clk=%p)\n", __func__, dev, index, clk);
+	debug("%s(dev=%s, index=%d, clk=%p)\n", __func__, dev_read_name(dev),
+	      index, clk);
 
 	assert(clk);
 	clk->dev = NULL;
@@ -130,7 +135,6 @@ static int clk_get_by_indexed_prop(struct udevice *dev, const char *prop_name,
 		      __func__, ret);
 		return log_ret(ret);
 	}
-
 
 	return clk_get_by_index_tail(ret, dev_ofnode(dev), &args, "clocks",
 				     index, clk);
@@ -180,8 +184,8 @@ int clk_get_bulk(struct udevice *dev, struct clk_bulk *bulk)
 bulk_get_err:
 	err = clk_release_all(bulk->clks, bulk->count);
 	if (err)
-		debug("%s: could release all clocks for %p\n",
-		      __func__, dev);
+		debug("%s: could not release all clocks for %s\n",
+		      __func__, dev_read_name(dev));
 
 	return ret;
 }
@@ -214,8 +218,8 @@ static int clk_set_default_parents(struct udevice *dev,
 	num_parents = dev_count_phandle_with_args(dev, "assigned-clock-parents",
 						  "#clock-cells", 0);
 	if (num_parents < 0) {
-		debug("%s: could not read assigned-clock-parents for %p\n",
-		      __func__, dev);
+		debug("%s: could not read assigned-clock-parents for %s\n",
+		      __func__, dev_read_name(dev));
 		return 0;
 	}
 
@@ -335,7 +339,7 @@ static int clk_set_default_rates(struct udevice *dev,
 				continue;
 			}
 
-			return ret;
+			goto fail;
 		}
 
 		/* This is clk provider device trying to program itself
@@ -355,7 +359,7 @@ static int clk_set_default_rates(struct udevice *dev,
 
 		ret = clk_set_rate(c, rates[index]);
 
-		if (ret < 0) {
+		if (IS_ERR_VALUE(ret)) {
 			dev_warn(dev,
 				 "failed to set rate on clock index %d (%ld) (error = %d)\n",
 				 index, clk.id, ret);
@@ -380,7 +384,7 @@ int clk_set_defaults(struct udevice *dev, enum clk_defaults_stage stage)
 	 * However, still set them for SPL. And still set them if explicitly
 	 * asked.
 	 */
-	if (!(IS_ENABLED(CONFIG_SPL_BUILD) || (gd->flags & GD_FLG_RELOC)))
+	if (!(IS_ENABLED(CONFIG_XPL_BUILD) || (gd->flags & GD_FLG_RELOC)))
 		if (stage != CLK_DEFAULTS_POST_FORCE)
 			return 0;
 
@@ -407,7 +411,7 @@ int clk_get_by_name_nodev(ofnode node, const char *name, struct clk *clk)
 {
 	int index = 0;
 
-	debug("%s(node=%p, name=%s, clk=%p)\n", __func__,
+	debug("%s(node=%s, name=%s, clk=%p)\n", __func__,
 		ofnode_get_name(node), name, clk);
 	clk->dev = NULL;
 
@@ -420,6 +424,24 @@ int clk_get_by_name_nodev(ofnode node, const char *name, struct clk *clk)
 	}
 
 	return clk_get_by_index_nodev(node, index, clk);
+}
+
+const char *
+clk_resolve_parent_clk(struct udevice *dev, const char *name)
+{
+	struct udevice *parent;
+	struct clk clk;
+	int ret;
+
+	ret = uclass_get_device_by_name(UCLASS_CLK, name, &parent);
+	if (!ret)
+		return name;
+
+	ret = clk_get_by_name(dev, name, &clk);
+	if (!clk.dev)
+		return name;
+
+	return clk.dev->name;
 }
 
 int clk_release_all(struct clk *clk, unsigned int count)
@@ -446,7 +468,7 @@ int clk_request(struct udevice *dev, struct clk *clk)
 {
 	const struct clk_ops *ops;
 
-	debug("%s(dev=%p, clk=%p)\n", __func__, dev, clk);
+	debug("%s(dev=%s, clk=%p)\n", __func__, dev_read_name(dev), clk);
 	if (!clk)
 		return 0;
 	ops = clk_dev_ops(dev);
@@ -556,6 +578,9 @@ static void clk_clean_rate_cache(struct clk *clk)
 	clk->rate = 0;
 
 	list_for_each_entry(child_dev, &clk->dev->child_head, sibling_node) {
+		if (device_get_uclass_id(child_dev) != UCLASS_CLK)
+			continue;
+
 		clkp = dev_get_clk_ptr(child_dev);
 		clk_clean_rate_cache(clkp);
 	}
@@ -570,12 +595,24 @@ ulong clk_set_rate(struct clk *clk, ulong rate)
 	if (!clk_valid(clk))
 		return 0;
 	ops = clk_dev_ops(clk->dev);
-
-	if (!ops->set_rate)
-		return -ENOSYS;
-
-	/* get private clock struct used for cache */
 	clk_get_priv(clk, &clkp);
+
+	/* Try to find parents which can set rate */
+	while (!ops->set_rate) {
+		struct clk *parent;
+
+		if (!(clkp->flags & CLK_SET_RATE_PARENT))
+			return -ENOSYS;
+
+		parent = clk_get_parent(clk);
+		if (IS_ERR_OR_NULL(parent) || !clk_valid(parent))
+			return -ENODEV;
+
+		clk = parent;
+		ops = clk_dev_ops(clk->dev);
+		clk_get_priv(clk, &clkp);
+	}
+
 	/* Clean up cached rates for us and all child clocks */
 	clk_clean_rate_cache(clkp);
 
@@ -595,14 +632,29 @@ int clk_set_parent(struct clk *clk, struct clk *parent)
 	if (!ops->set_parent)
 		return -ENOSYS;
 
+	if (clk->enable_count) {
+		ret = clk_enable(parent);
+		if (ret && ret != -ENOSYS) {
+			printf("Cannot enable parent %s\n", parent->dev->name);
+			return ret;
+		}
+	}
+
 	ret = ops->set_parent(clk, parent);
-	if (ret)
+	if (ret) {
+		clk_disable(parent);
 		return ret;
+	}
 
-	if (CONFIG_IS_ENABLED(CLK_CCF))
+	if (CONFIG_IS_ENABLED(CLK_CCF)) {
 		ret = device_reparent(clk->dev, parent->dev);
+		if (ret) {
+			clk_disable(parent);
+			return ret;
+		}
+	}
 
-	return ret;
+	return 0;
 }
 
 int clk_enable(struct clk *clk)
@@ -611,7 +663,7 @@ int clk_enable(struct clk *clk)
 	struct clk *clkp = NULL;
 	int ret;
 
-	debug("%s(clk=%p)\n", __func__, clk);
+	debug("%s(clk=%p name=%s)\n", __func__, clk, clk ? clk->dev->name : "NULL");
 	if (!clk_valid(clk))
 		return 0;
 	ops = clk_dev_ops(clk->dev);
@@ -672,7 +724,7 @@ int clk_disable(struct clk *clk)
 	struct clk *clkp = NULL;
 	int ret;
 
-	debug("%s(clk=%p)\n", __func__, clk);
+	debug("%s(clk=%p name=%s)\n", __func__, clk, clk ? clk->dev->name : "NULL");
 	if (!clk_valid(clk))
 		return 0;
 	ops = clk_dev_ops(clk->dev);

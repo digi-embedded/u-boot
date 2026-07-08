@@ -6,7 +6,7 @@
 /dts-v1/;
 
 #include <dt-bindings/usb/pd.h>
-#include "imx91.dtsi"
+#include "../dts/upstream/src/arm64/freescale/imx91.dtsi"
 
 / {
 	model = "NXP i.MX91 9x9 Quick Start Board";
@@ -311,36 +311,6 @@
 	status = "disabled";
 };
 
-&micfil {
-	#sound-dai-cells = <0>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_pdm>;
-	pinctrl-assert-gpios = <&pcal6524 17 GPIO_ACTIVE_LOW>;
-	assigned-clocks = <&clk IMX91_CLK_PDM>;
-	assigned-clock-parents = <&clk IMX91_CLK_AUDIO_PLL>;
-	assigned-clock-rates = <49152000>;
-	status = "okay";
-};
-
-&mu1 {
-	status = "okay";
-};
-
-&mu2 {
-	status = "okay";
-};
-
-&sai1 {
-	#sound-dai-cells = <0>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_sai1>;
-	assigned-clocks = <&clk IMX91_CLK_SAI1>;
-	assigned-clock-parents = <&clk IMX91_CLK_AUDIO_PLL>;
-	assigned-clock-rates = <12288000>;
-	fsl,sai-mclk-direction-output;
-	status = "okay";
-};
-
 &usbotg1 {
 	dr_mode = "otg";
 	hnp-disable;
@@ -404,10 +374,6 @@
 		interrupts = <5 IRQ_TYPE_EDGE_FALLING>;
 		interrupt-names = "host-wake";
 	};
-};
-
-&tempsense0 {
-	status = "okay";
 };
 
 &iomuxc {

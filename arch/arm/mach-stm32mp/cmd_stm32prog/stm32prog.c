@@ -10,9 +10,11 @@
 #include <malloc.h>
 #include <misc.h>
 #include <mmc.h>
+#include <mtd.h>
 #include <part.h>
 #include <tee.h>
 #include <asm/arch/stm32mp1_smc.h>
+#include <asm/arch/sys_proto.h>
 #include <asm/global_data.h>
 #include <dm/device_compat.h>
 #include <dm/uclass.h>
@@ -790,8 +792,8 @@ static int init_device(struct stm32prog_data *data,
 			last_addr = (u64)(block_dev->lba - GPT_HEADER_SZ - 1) *
 				    block_dev->blksz;
 		}
-		log_debug("MMC %d: lba=%ld blksz=%ld\n", dev->dev_id,
-			  block_dev->lba, block_dev->blksz);
+		log_debug("MMC %d: lba=%lld blksz=%ld\n", dev->dev_id,
+			  (u64)block_dev->lba, block_dev->blksz);
 		log_debug(" available address = 0x%llx..0x%llx\n",
 			  first_addr, last_addr);
 		log_debug(" full_update = %d\n", dev->full_update);
@@ -1008,7 +1010,6 @@ static int treat_partition_list(struct stm32prog_data *data)
 		INIT_LIST_HEAD(&data->dev[j].part_list);
 	}
 
-	data->fsbl_nor_detected = false;
 	for (i = 0; i < data->part_nb; i++) {
 		part = &data->part_array[i];
 		part->alt_id = -1;
@@ -1052,15 +1053,6 @@ static int treat_partition_list(struct stm32prog_data *data)
 		if (j == STM32PROG_MAX_DEV) {
 			stm32prog_err("Layout: too many device");
 			return -EINVAL;
-		}
-		switch (part->target)  {
-		case STM32PROG_NOR:
-			if (!data->fsbl_nor_detected &&
-			    !strncmp(part->name, "fsbl", 4))
-				data->fsbl_nor_detected = true;
-			/* fallthrough */
-		default:
-			break;
 		}
 		part->dev = &data->dev[j];
 		if (!IS_SELECT(part))
@@ -1156,7 +1148,8 @@ static int create_gpt_partitions(struct stm32prog_data *data)
 
 			/* partition UUID */
 			uuid_bin = NULL;
-			if (!rootfs_found && !strcmp(part->name, "rootfs")) {
+			if (!rootfs_found && (!strcmp(part->name, "rootfs") ||
+					      !strcmp(part->name, "rootfs-a"))) {
 				mmc_id = part->dev_id;
 				rootfs_found = true;
 				if (mmc_id < ARRAY_SIZE(uuid_mmc))
@@ -1229,7 +1222,10 @@ static int stm32prog_alt_add(struct stm32prog_data *data,
 	char multiplier,  type;
 
 	/* max 3 digit for sector size */
-	if (part->size > SZ_1M) {
+	if (part->size > SZ_1G) {
+		size = (u32)(part->size / SZ_1G);
+		multiplier = 'G';
+	} else if (part->size > SZ_1M) {
 		size = (u32)(part->size / SZ_1M);
 		multiplier = 'M';
 	} else if (part->size > SZ_1K) {
@@ -1354,7 +1350,7 @@ static int dfu_init_entities(struct stm32prog_data *data)
 
 	alt_nb = 1; /* number of virtual = CMD*/
 
-	if (IS_ENABLED(CONFIG_CMD_STM32PROG_OTP)) {
+	if (IS_ENABLED(CONFIG_CMD_STM32PROG_OTP) && !stm32mp_is_closed()) {
 		/* OTP_SIZE_SMC = 0 if SMC is not supported */
 		otp_size = OTP_SIZE_SMC;
 		/* check if PTA BSEC is supported */

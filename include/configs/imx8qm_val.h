@@ -9,9 +9,9 @@
 #include <linux/sizes.h>
 #include <linux/stringify.h>
 #include <asm/arch/imx-regs.h>
-#include "imx_env.h"
+#include <env/nxp/imx_env.h>
 
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 #define CFG_MALLOC_F_ADDR		0x00138000
 
 /*
@@ -22,8 +22,6 @@
 #define CFG_SYS_UBOOT_BASE 0x08281000
 
 #endif
-
-#define PHY_ANEG_TIMEOUT 20000
 
 #ifdef CONFIG_AHAB_BOOT
 #define AHAB_ENV "sec_boot=yes\0"
@@ -100,7 +98,7 @@
 	"cntr_file=os_cntr_signed.bin\0" \
 	"boot_fdt=try\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
-	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
+	"mmcdev="__stringify(CONFIG_ENV_MMC_DEVICE_INDEX)"\0" \
 	"mmcpart=1\0" \
 	"mmcroot=" CFG_MMCROOT " rootwait rw\0" \
 	"mmcautodetect=yes\0" \

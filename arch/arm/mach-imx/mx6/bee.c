@@ -9,7 +9,6 @@
 #include <asm/arch/mx6_bee.h>
 #include <linux/errno.h>
 #include <asm/system.h>
-#include <common.h>
 #include <command.h>
 #include <fuse.h>
 #include <asm/arch/sys_proto.h>

@@ -21,9 +21,9 @@ SECTIONS
 	. = 0x00000000;
 
 	. = ALIGN(8);
+	__image_copy_start = ADDR(.text);
 	.text :
 	{
-		*(.__image_copy_start)
 		CPUDIR/start.o (.text*)
 	}
 
@@ -36,9 +36,18 @@ SECTIONS
                 __efi_runtime_stop = .;
 	}
 
+#ifdef CONFIG_MMU_PGPROT
+	.text_rest ALIGN(CONSTANT(COMMONPAGESIZE)) :
+#else
 	.text_rest :
+#endif
 	{
+		__text_start = .;
 		*(.text*)
+#ifdef CONFIG_MMU_PGPROT
+		. = ALIGN(CONSTANT(COMMONPAGESIZE));
+#endif
+		__text_end = .;
 	}
 
 #ifdef CONFIG_ARMV8_PSCI
@@ -97,26 +106,6 @@ SECTIONS
 		LONG(0x1d1071c);	/* Must output something to reset LMA */
 	}
 #endif
-
-	. = ALIGN(8);
-	.rodata : { *(SORT_BY_ALIGNMENT(SORT_BY_NAME(.rodata*))) }
-
-	. = ALIGN(8);
-	.data : {
-		*(.data*)
-	}
-
-	. = ALIGN(8);
-
-	. = .;
-
-	. = ALIGN(8);
-	__u_boot_list : {
-		KEEP(*(SORT(__u_boot_list*)));
-	}
-
-	. = ALIGN(8);
-
 	.efi_runtime_rel : {
                 __efi_runtime_rel_start = .;
 		*(.rel*.efi_runtime)
@@ -124,44 +113,56 @@ SECTIONS
                 __efi_runtime_rel_stop = .;
 	}
 
-	. = ALIGN(8);
+#ifdef CONFIG_MMU_PGPROT
+	.rodata ALIGN(CONSTANT(COMMONPAGESIZE)): {
+#else
+	.rodata ALIGN(8) : {
+#endif
+		__start_rodata = .;
+		*(SORT_BY_ALIGNMENT(SORT_BY_NAME(.rodata*)))
+	}
 
-	.image_copy_end :
-	{
-		*(.__image_copy_end)
+	__u_boot_list ALIGN(8) : {
+		KEEP(*(SORT(__u_boot_list*)));
+#ifdef CONFIG_MMU_PGPROT
+		. = ALIGN(CONSTANT(COMMONPAGESIZE));
+#endif
+		__end_rodata = .;
+	}
+
+#ifdef CONFIG_MMU_PGPROT
+	.data ALIGN(CONSTANT(COMMONPAGESIZE)) : {
+#else
+	.data ALIGN(8) : {
+#endif
+	    __start_data = .;
+		*(.data*)
 	}
 
 	. = ALIGN(8);
+	__image_copy_end = .;
 
-	.rel_dyn_start :
-	{
-		*(.__rel_dyn_start)
-	}
-
-	.rela.dyn : {
+	.rela.dyn ALIGN(8) : {
+		__rel_dyn_start = .;
 		*(.rela*)
-	}
-
-	.rel_dyn_end :
-	{
-		*(.__rel_dyn_end)
+		__rel_dyn_end = .;
+		. = ALIGN(8);
 	}
 
 	_end = .;
 
-	. = ALIGN(8);
-
-	.bss_start : {
-		KEEP(*(.__bss_start));
-	}
-
-	.bss : {
+	/*
+	 * arch/arm/lib/crt0_64.S assumes __bss_start - __bss_end % 8 == 0
+	 */
+	.bss ADDR(.rela.dyn) (OVERLAY) : {
+		__bss_start = .;
 		*(.bss*)
-		 . = ALIGN(8);
-	}
-
-	.bss_end : {
-		KEEP(*(.__bss_end));
+		. = ALIGN(8);
+		__bss_end = .;
+#ifdef CONFIG_MMU_PGPROT
+		. = ALIGN(CONSTANT(COMMONPAGESIZE));
+#endif
+		__end_data = .;
 	}
 
 	/DISCARD/ : { *(.dynsym) }
@@ -175,3 +176,5 @@ SECTIONS
 #include "linux-kernel-image-header-vars.h"
 #endif
 }
+
+ASSERT(_end % 8 == 0, "_end must be 8-byte aligned for device tree");

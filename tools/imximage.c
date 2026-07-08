@@ -783,6 +783,7 @@ static uint32_t parse_cfg_file(struct imx_header *imxhdr, char *name)
 	}
 
 	(*set_dcd_rst)(imxhdr, dcd_len, name, lineno);
+	free(line);
 	fclose(fd);
 
 	/* Exit if there is no BOOT_FROM field specifying the flash_offset */
@@ -792,7 +793,6 @@ static uint32_t parse_cfg_file(struct imx_header *imxhdr, char *name)
 	}
 	return dcd_len;
 }
-
 
 static int imximage_check_image_types(uint8_t type)
 {
@@ -1056,7 +1056,6 @@ static int imximage_generate(struct image_tool_params *params,
 
 	return pad_len;
 }
-
 
 /*
  * imximage parameters

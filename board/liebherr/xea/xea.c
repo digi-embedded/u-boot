@@ -13,7 +13,7 @@
  *
  */
 
-#include <common.h>
+#include <env.h>
 #include <fdt_support.h>
 #include <init.h>
 #include <log.h>
@@ -38,7 +38,7 @@
 #include <spi.h>
 #include <spi_flash.h>
 
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 #include <spl.h>
 #endif
 
@@ -63,7 +63,7 @@ static void init_clocks(void)
 	mxs_set_sspclk(MXC_SSPCLK3, 96000, 0);
 }
 
-#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_FRAMEWORK)
+#if defined(CONFIG_XPL_BUILD) && defined(CONFIG_SPL_FRAMEWORK)
 void board_init_f(ulong arg)
 {
 	init_clocks();
@@ -216,6 +216,34 @@ int spl_start_uboot(void)
 	return !boot_tiva0 || !boot_tiva1;
 }
 #else
+/*
+ * Reading the HW ID number for XEA SoM module
+ *
+ * GPIOs from Port 1 (GPIO1_15, GPIO1_16, GPIO1_17 and GPIO1_18)
+ * are used to store HW revision information.
+ * Reading of GPIOs values is performed before the Device Model is
+ * bring up as the proper DTB needs to be chosen first.
+ *
+ * Moreover, this approach is required as "single binary" configuration
+ * of U-Boot (imx28_xea_sb_defconfig) is NOT using SPL framework, so
+ * only minimal subset of functionality is provided when ID is read.
+ *
+ * Hence, the direct registers' access.
+ */
+#define XEA_SOM_HW_ID_GPIO_PORT (MXS_PINCTRL_BASE + (0x0900 + ((1) * 0x10)))
+#define XEA_SOM_REV_MASK GENMASK(18, 15)
+#define XEA_SOM_REV_SHIFT 15
+
+static u8 get_som_rev(void)
+{
+	struct mxs_register_32 *reg =
+		(struct mxs_register_32 *)XEA_SOM_HW_ID_GPIO_PORT;
+
+	u32 tmp = ~readl(&reg->reg);
+	u8 id = (tmp & XEA_SOM_REV_MASK) >> XEA_SOM_REV_SHIFT;
+
+	return id;
+}
 
 int board_early_init_f(void)
 {
@@ -252,6 +280,27 @@ int board_init(void)
 
 	return 0;
 }
+
+#if defined(CONFIG_BOARD_LATE_INIT)
+int board_late_init(void)
+{
+	int ret = env_set_ulong("board_som_rev", get_som_rev());
+
+	if (ret)
+		printf("Cannot set XEA's SoM revision env variable!\n");
+
+	return 0;
+}
+#endif
+
+#if defined(CONFIG_DISPLAY_BOARDINFO)
+int checkboard(void)
+{
+	printf("Board: LWE XEA SoM HW rev %d\n", get_som_rev());
+
+	return 0;
+}
+#endif
 
 int dram_init(void)
 {
@@ -307,4 +356,4 @@ U_BOOT_DRIVER(fsl_imx28_clkctrl) = {
 	.id             = UCLASS_CLK,
 	.of_match       = imx28_clk_ids,
 };
-#endif	/* CONFIG_SPL_BUILD */
+#endif	/* CONFIG_XPL_BUILD */

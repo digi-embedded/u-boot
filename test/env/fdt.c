@@ -1,5 +1,5 @@
-#include <common.h>
 #include <command.h>
+#include <env.h>
 #include <env_attr.h>
 #include <test/env.h>
 #include <test/ut.h>

@@ -74,8 +74,8 @@ struct ci_udc {
 #define CTRL_TXR	(1 << 22)
 #define CTRL_RXE	(1 << 7)
 #define CTRL_RXR	(1 << 6)
-#define CTRL_TXT_BULK	(2 << 18)
-#define CTRL_RXT_BULK	(2 << 2)
+#define CTRL_TXT(t)	((t) << 18)
+#define CTRL_RXT(t)	((t) << 2)
 
 struct ci_req {
 	struct usb_request	req;
@@ -105,6 +105,7 @@ struct ci_drv {
 	struct ept_queue_head		*epts;
 	uint8_t				*items_mem;
 	struct ci_ep			ep[NUM_ENDPOINTS];
+	u8				next_device_address;
 };
 
 struct ept_queue_head {

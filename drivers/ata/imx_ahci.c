@@ -3,7 +3,6 @@
  * Copyright 2019 NXP
  */
 
-#include <common.h>
 #include <dm.h>
 #include <ahci.h>
 #include <scsi.h>

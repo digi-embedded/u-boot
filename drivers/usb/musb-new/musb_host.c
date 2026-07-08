@@ -21,7 +21,6 @@
 #include <linux/list.h>
 #include <linux/dma-mapping.h>
 #else
-#include <common.h>
 #include <dm.h>
 #include <dm/device_compat.h>
 #include <usb.h>
@@ -32,7 +31,6 @@
 
 #include "musb_core.h"
 #include "musb_host.h"
-
 
 /* MUSB HOST status 22-mar-2006
  *
@@ -68,7 +66,6 @@
  *   although ARP RX wins.  (That test was done with a full speed link.)
  */
 
-
 /*
  * NOTE on endpoint usage:
  *
@@ -82,7 +79,6 @@
  * "claimed" until its software queue is no longer refilled.  No multiplexing
  * of transfers between endpoints, or anything clever.
  */
-
 
 static void musb_ep_program(struct musb *musb, u8 epnum,
 			struct urb *urb, int is_out,
@@ -885,7 +881,6 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 	}
 }
 
-
 /*
  * Service the default endpoint (ep0) as host.
  * Return true until it's time to start the status stage.
@@ -1085,7 +1080,6 @@ irqreturn_t musb_h_ep0_irq(struct musb *musb)
 done:
 	return retval;
 }
-
 
 #ifdef CONFIG_USB_INVENTRA_DMA
 
@@ -1344,7 +1338,6 @@ void musb_host_tx(struct musb *musb, u8 epnum)
 	musb_writew(epio, MUSB_TXCSR,
 			MUSB_TXCSR_H_WZC_BITS | MUSB_TXCSR_TXPKTRDY);
 }
-
 
 #ifdef CONFIG_USB_INVENTRA_DMA
 
@@ -1869,7 +1862,7 @@ static int musb_schedule(
 			head = &musb->out_bulk;
 
 		/* Enable bulk RX NAK timeout scheme when bulk requests are
-		 * multiplexed.  This scheme doen't work in high speed to full
+		 * multiplexed.  This scheme doesn't work in high speed to full
 		 * speed scenario as NAK interrupts are not coming from a
 		 * full speed device connected to a high speed device.
 		 * NAK timeout interval is 8 (128 uframe or 16ms) for HS and

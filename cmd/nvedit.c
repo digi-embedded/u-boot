@@ -23,7 +23,7 @@
  * environment. After that, we use a hash table.
  */
 
-#include <common.h>
+#include <config.h>
 #include <cli.h>
 #include <command.h>
 #include <console.h>
@@ -49,7 +49,7 @@ DECLARE_GLOBAL_DATA_PTR;
  */
 #define	MAX_ENV_SIZE	(1 << 20)	/* 1 MiB */
 
-#ifndef CONFIG_SPL_BUILD
+#ifndef CONFIG_XPL_BUILD
 /*
  * Command interface: print one or all environment variables
  *
@@ -182,9 +182,9 @@ DONE:
 	return 0;
 }
 #endif
-#endif /* CONFIG_SPL_BUILD */
+#endif /* CONFIG_XPL_BUILD */
 
-#ifndef CONFIG_SPL_BUILD
+#ifndef CONFIG_XPL_BUILD
 static int do_env_set(struct cmd_tbl *cmdtp, int flag, int argc,
 		      char *const argv[])
 {
@@ -198,7 +198,7 @@ static int do_env_set(struct cmd_tbl *cmdtp, int flag, int argc,
  * Prompt for environment variable
  */
 #if defined(CONFIG_CMD_ASKENV)
-int do_env_ask(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+static int do_env_ask(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
 	char message[CONFIG_SYS_CBSIZE];
 	int i, len, pos, size;
@@ -312,8 +312,8 @@ static int print_active_callback(struct env_entry *entry)
 /*
  * Print the callbacks available and what they are bound to
  */
-int do_env_callback(struct cmd_tbl *cmdtp, int flag, int argc,
-		    char *const argv[])
+static int do_env_callback(struct cmd_tbl *cmdtp, int flag, int argc,
+			   char *const argv[])
 {
 	struct env_clbk_tbl *clbkp;
 	int i;
@@ -381,7 +381,7 @@ static int print_active_flags(struct env_entry *entry)
 /*
  * Print the flags available and what variables have flags
  */
-int do_env_flags(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+static int do_env_flags(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
 	/* Print the available variable types */
 	printf("Available variable type flags (position %d):\n",
@@ -499,13 +499,16 @@ static int do_env_load(struct cmd_tbl *cmdtp, int flag, int argc,
 static int do_env_select(struct cmd_tbl *cmdtp, int flag, int argc,
 			 char *const argv[])
 {
+	if (argc < 2)
+		return CMD_RET_USAGE;
+
 	return env_select(argv[1]) ? 1 : 0;
 }
 #endif
 
-#endif /* CONFIG_SPL_BUILD */
+#endif /* CONFIG_XPL_BUILD */
 
-#ifndef CONFIG_SPL_BUILD
+#ifndef CONFIG_XPL_BUILD
 static int do_env_default(struct cmd_tbl *cmdtp, int flag,
 			  int argc, char *const argv[])
 {
@@ -522,6 +525,9 @@ static int do_env_default(struct cmd_tbl *cmdtp, int flag,
 				break;
 			case 'f':		/* force */
 				env_flag |= H_FORCE;
+				break;
+			case 'k':
+				env_flag |= H_NOCLEAR;
 				break;
 			default:
 				return cmd_usage(cmdtp);
@@ -1133,8 +1139,9 @@ U_BOOT_LONGHELP(env,
 #if defined(CONFIG_CMD_ENV_CALLBACK)
 	"callbacks - print callbacks and their associated variables\nenv "
 #endif
-	"default [-f] -a - [forcibly] reset default environment\n"
-	"env default [-f] var [...] - [forcibly] reset variable(s) to their default values\n"
+	"default [-k] [-f] -a - [forcibly] reset default environment\n"
+	"env default [-k] [-f] var [...] - [forcibly] reset variable(s) to their default values\n"
+	"      \"-k\": keep variables not defined in default environment\n"
 	"env delete [-f] var [...] - [forcibly] delete variable(s)\n"
 #if defined(CONFIG_CMD_EDITENV)
 	"env edit name - edit environment variable\n"
@@ -1259,7 +1266,7 @@ U_BOOT_CMD_COMPLETE(
 	"      \"-rt\": set runtime attribute\n"
 	"      \"-at\": set time-based authentication attribute\n"
 	"      \"-a\": append-write\n"
-	"      \"-i addr,size\": use <addr,size> as variable's value\n"
+	"      \"-i addr:size\": use <addr,size> as variable's value\n"
 	"      \"-v\": verbose message\n"
 	"    - delete UEFI variable 'name' if 'value' not specified\n"
 #endif
@@ -1289,4 +1296,4 @@ U_BOOT_CMD_COMPLETE(
 	var_complete
 );
 #endif
-#endif /* CONFIG_SPL_BUILD */
+#endif /* CONFIG_XPL_BUILD */

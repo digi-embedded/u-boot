@@ -48,9 +48,53 @@
 	};
 };
 
+/ {
+	chosen {
+		bootargs = "console=ttymxc1,115200 earlycon=ec_imx6q,0x30890000,115200";
+	};
+
+	/delete-node/ hdmi-connector;
+
+	dsi_host: dsi-host {
+		compatible = "samsung,sec-mipi-dsi";
+		status = "okay";
+	};
+
+	rm67199_panel {
+		compatible = "raydium,rm67199";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_mipi_dsi_en>;
+		reset-gpio = <&gpio1 8 GPIO_ACTIVE_LOW>;
+		dsi-lanes = <4>;
+		video-mode = <2>;	/* 0: burst mode
+					 * 1: non-burst mode with sync event
+					 * 2: non-burst mode with sync pulse
+					 */
+		panel-width-mm = <68>;
+		panel-height-mm = <121>;
+		status = "okay";
+
+		port {
+			rm67191_from_dsim: endpoint {
+				remote-endpoint = <&dsim_to_rm67191>;
+			};
+		};
+	};
+};
+
+&{/gpio-leds} {
+	/delete-node/ status;
+
+	led-0 {
+		label = "yellow:status";
+		gpios = <&gpio3 16 GPIO_ACTIVE_HIGH>;
+		default-state = "on";
+	};
+};
+
 &reg_usdhc2_vmmc {
 	bootph-pre-ram;
-	u-boot,off-on-delay-us = <20000>;
+	off-on-delay-us = <20000>;
 };
 
 &pinctrl_reg_usdhc2_vmmc {
@@ -101,22 +145,6 @@
 	bootph-pre-ram;
 };
 
-&crypto {
-	bootph-pre-ram;
-};
-
-&sec_jr0 {
-	bootph-pre-ram;
-};
-
-&sec_jr1 {
-	bootph-pre-ram;
-};
-
-&sec_jr2 {
-	bootph-pre-ram;
-};
-
 &usdhc1 {
 	bootph-pre-ram;
 	assigned-clocks = <&clk IMX8MN_CLK_USDHC1>;
@@ -147,6 +175,10 @@
 };
 
 &i2c1 {
+	pinctrl-names = "default", "gpio";
+	pinctrl-1 = <&pinctrl_i2c1_gpio>;
+	scl-gpios = <&gpio5 14 GPIO_ACTIVE_HIGH>;
+	sda-gpios = <&gpio5 15 GPIO_ACTIVE_HIGH>;
 	bootph-pre-ram;
 };
 
@@ -162,21 +194,14 @@
 	bootph-pre-ram;
 };
 
-&pinctrl_i2c1_gpio {
-	bootph-pre-ram;
-};
-
 &pinctrl_pmic {
 	bootph-pre-ram;
 };
 
-&fec1 {
-	phy-reset-gpios = <&gpio4 22 GPIO_ACTIVE_LOW>;
-	phy-reset-duration = <15>;
-	phy-reset-post-delay = <100>;
-};
-
 &ethphy0 {
+	reset-assert-us = <15000>;
+	reset-deassert-us = <100000>;
+
 	vddio0: vddio-regulator {
 		regulator-name = "VDDIO";
 		regulator-min-microvolt = <1800000>;
@@ -184,8 +209,80 @@
 	};
 };
 
+&flash0 {
+	spi-tx-bus-width = <1>;
+};
+
+&i2c2 {
+	/delete-node/ hdmi@3d;
+
+	adv_bridge: adv7535@3d {
+		compatible = "adi,adv7535";
+		reg = <0x3d>;
+		adi,addr-cec = <0x3c>;
+		adi,dsi-lanes = <4>;
+		status = "okay";
+
+		port {
+			adv7535_from_dsim: endpoint {
+				remote-endpoint = <&dsim_to_adv7535>;
+			};
+		};
+	};
+};
+
+&lcdif {
+	display = <&display0>;
+	status = "okay";
+
+	display0: display@0 {
+		bits-per-pixel = <24>;
+		bus-width = <24>;
+	};
+};
+
 &mipi_dsi {
 	/delete-property/ assigned-clocks;
 	/delete-property/ assigned-clock-parents;
 	/delete-property/ assigned-clock-rates;
+	status = "okay";
+
+	ports {
+		port@1 {
+			dsim_to_adv7535: endpoint {
+				remote-endpoint = <&adv7535_from_dsim>;
+			};
+		};
+
+		port@2 {
+			dsim_to_rm67191: endpoint {
+				remote-endpoint = <&rm67191_from_dsim>;
+			};
+		};
+	};
+};
+
+&usbotg1 {
+	clock-names = "usb1_ctrl_root_clk";
+	assigned-clocks = <&clk IMX8MN_CLK_USB_BUS>,
+			<&clk IMX8MN_CLK_USB_CORE_REF>;
+	assigned-clock-parents = <&clk IMX8MN_SYS_PLL2_500M>,
+			<&clk IMX8MN_SYS_PLL1_100M>;
+	extcon = <&ptn5110>;
+};
+
+&iomuxc {
+	pinctrl_i2c1_gpio: i2c1gpiogrp {
+		bootph-pre-ram;
+		fsl,pins = <
+			MX8MN_IOMUXC_I2C1_SCL_GPIO5_IO14        	0x1c3
+			MX8MN_IOMUXC_I2C1_SDA_GPIO5_IO15        	0x1c3
+		>;
+	};
+
+	pinctrl_mipi_dsi_en: mipidsiengrp {
+		fsl,pins = <
+			MX8MN_IOMUXC_GPIO1_IO08_GPIO1_IO8		0x16
+		>;
+	};
 };

@@ -4,7 +4,6 @@
  * Written by Jean-Jacques Hiblot  <jjhiblot@ti.com>
  */
 
-#include <common.h>
 #include <dm.h>
 #include <log.h>
 #include <dm/device.h>
@@ -42,7 +41,7 @@ static int keystone_usb_init(struct phy *phy)
 	rc = psc_enable_module(keystone->psc_domain);
 	if (rc) {
 		debug("Cannot enable USB module");
-		return -rc;
+		return rc;
 	}
 	mdelay(10);
 

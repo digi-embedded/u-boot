@@ -4,7 +4,6 @@
  * Author(s): Dillon Min <dillon.minfei@gmail.com>
  */
 
-#include <common.h>
 #include <dm.h>
 #include <init.h>
 #include <log.h>
@@ -42,11 +41,6 @@ int board_early_init_f(void)
 }
 
 int board_late_init(void)
-{
-	return 0;
-}
-
-int board_init(void)
 {
 	return 0;
 }

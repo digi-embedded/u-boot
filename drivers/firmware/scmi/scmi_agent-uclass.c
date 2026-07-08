@@ -5,7 +5,6 @@
 
 #define LOG_CATEGORY UCLASS_SCMI_AGENT
 
-#include <common.h>
 #include <dm.h>
 #include <errno.h>
 #include <scmi_agent.h>
@@ -38,6 +37,7 @@ static const struct error_code scmi_linux_errmap[] = {
 	{ .scmi = SCMI_GENERIC_ERROR, .errno = -EIO, .string = "SCMI_GENERIC_ERROR" },
 	{ .scmi = SCMI_HARDWARE_ERROR, .errno = -EREMOTEIO, .string = "SCMI_HARDWARE_ERROR" },
 	{ .scmi = SCMI_PROTOCOL_ERROR, .errno = -EPROTO, .string = "SCMI_PROTOCOL_ERROR" },
+	{ .scmi = SCMI_IN_USE, .errno = -EADDRINUSE, .string = "SCMI_IN_USE_ERROR" },
 };
 
 /**
@@ -88,24 +88,46 @@ struct udevice *scmi_get_protocol(struct udevice *dev,
 	case SCMI_PROTOCOL_ID_BASE:
 		proto = priv->base_dev;
 		break;
+#if IS_ENABLED(CONFIG_SCMI_POWER_DOMAIN)
 	case SCMI_PROTOCOL_ID_POWER_DOMAIN:
 		proto = priv->pwdom_dev;
 		break;
+#endif
+#if IS_ENABLED(CONFIG_CLK_SCMI)
 	case SCMI_PROTOCOL_ID_CLOCK:
 		proto = priv->clock_dev;
 		break;
+#endif
+#if IS_ENABLED(CONFIG_RESET_SCMI)
 	case SCMI_PROTOCOL_ID_RESET_DOMAIN:
 		proto = priv->resetdom_dev;
 		break;
+#endif
+#if IS_ENABLED(CONFIG_DM_REGULATOR_SCMI)
 	case SCMI_PROTOCOL_ID_VOLTAGE_DOMAIN:
 		proto = priv->voltagedom_dev;
 		break;
-	case SCMI_PROTOCOL_ID_SENSOR:
-		proto = priv->sensor_dev;
-		break;
+#endif
+#if IS_ENABLED(CONFIG_PINCTRL_IMX_SCMI)
 	case SCMI_PROTOCOL_ID_PINCTRL:
 		proto = priv->pinctrl_dev;
 		break;
+#endif
+#if IS_ENABLED(CONFIG_SCMI_ID_VENDOR_80)
+	case SCMI_PROTOCOL_ID_VENDOR_80:
+		proto = priv->vendor_dev_80;
+		break;
+#endif
+#if IS_ENABLED(CONFIG_SCMI_ID_VENDOR_82)
+	case SCMI_PROTOCOL_ID_VENDOR_82:
+		proto = priv->vendor_dev_82;
+		break;
+#endif
+#if IS_ENABLED(CONFIG_SCMI_THERMAL)
+	case SCMI_PROTOCOL_ID_SENSOR:
+		proto = priv->sensor_dev;
+		break;
+#endif
 	default:
 		dev_err(dev, "Protocol not supported\n");
 		proto = NULL;
@@ -144,24 +166,46 @@ static int scmi_add_protocol(struct udevice *dev,
 	case SCMI_PROTOCOL_ID_BASE:
 		priv->base_dev = proto;
 		break;
+#if IS_ENABLED(CONFIG_SCMI_POWER_DOMAIN)
 	case SCMI_PROTOCOL_ID_POWER_DOMAIN:
 		priv->pwdom_dev = proto;
 		break;
+#endif
+#if IS_ENABLED(CONFIG_CLK_SCMI)
 	case SCMI_PROTOCOL_ID_CLOCK:
 		priv->clock_dev = proto;
 		break;
+#endif
+#if IS_ENABLED(CONFIG_RESET_SCMI)
 	case SCMI_PROTOCOL_ID_RESET_DOMAIN:
 		priv->resetdom_dev = proto;
 		break;
+#endif
+#if IS_ENABLED(CONFIG_DM_REGULATOR_SCMI)
 	case SCMI_PROTOCOL_ID_VOLTAGE_DOMAIN:
 		priv->voltagedom_dev = proto;
 		break;
-	case SCMI_PROTOCOL_ID_SENSOR:
-		priv->sensor_dev = proto;
-		break;
+#endif
+#if IS_ENABLED(CONFIG_PINCTRL_IMX_SCMI)
 	case SCMI_PROTOCOL_ID_PINCTRL:
 		priv->pinctrl_dev = proto;
 		break;
+#endif
+#if IS_ENABLED(CONFIG_SCMI_ID_VENDOR_80)
+	case SCMI_PROTOCOL_ID_VENDOR_80:
+		priv->vendor_dev_80 = proto;
+		break;
+#endif
+#if IS_ENABLED(CONFIG_SCMI_ID_VENDOR_82)
+	case SCMI_PROTOCOL_ID_VENDOR_82:
+		priv->vendor_dev_82 = proto;
+		break;
+#endif
+#if IS_ENABLED(CONFIG_SCMI_THERMAL)
+	case SCMI_PROTOCOL_ID_SENSOR:
+		priv->sensor_dev = proto;
+		break;
+#endif
 	default:
 		dev_err(dev, "Protocol not supported\n");
 		return -EPROTO;
@@ -369,6 +413,22 @@ static int scmi_fill_base_info(struct udevice *agent, struct udevice *dev)
 	return 0;
 }
 
+static struct driver *scmi_proto_driver_get(unsigned int proto_id)
+{
+	struct scmi_proto_driver *start, *entry;
+	int n_ents;
+
+	start = ll_entry_start(struct scmi_proto_driver, scmi_proto_driver);
+	n_ents = ll_entry_count(struct scmi_proto_driver, scmi_proto_driver);
+
+	for (entry = start; entry != start + n_ents; entry++) {
+		if (entry->match->proto_id == proto_id)
+			return entry->driver;
+	}
+
+	return NULL;
+}
+
 /*
  * SCMI agent devices binds devices of various uclasses depending on
  * the FDT description. scmi_bind_protocol() is a generic bind sequence
@@ -426,47 +486,11 @@ static int scmi_bind_protocols(struct udevice *dev)
 
 		drv = NULL;
 		name = ofnode_get_name(node);
-		switch (protocol_id) {
-		case SCMI_PROTOCOL_ID_POWER_DOMAIN:
-			if (CONFIG_IS_ENABLED(SCMI_POWER_DOMAIN) &&
-			    scmi_protocol_is_supported(dev, protocol_id))
-				drv = DM_DRIVER_GET(scmi_power_domain);
-			break;
-		case SCMI_PROTOCOL_ID_CLOCK:
-			if (CONFIG_IS_ENABLED(CLK_SCMI) &&
-			    scmi_protocol_is_supported(dev, protocol_id))
-				drv = DM_DRIVER_GET(scmi_clock);
-			break;
-		case SCMI_PROTOCOL_ID_RESET_DOMAIN:
-			if (IS_ENABLED(CONFIG_RESET_SCMI) &&
-			    scmi_protocol_is_supported(dev, protocol_id))
-				drv = DM_DRIVER_GET(scmi_reset_domain);
-			break;
-		case SCMI_PROTOCOL_ID_VOLTAGE_DOMAIN:
-			if (IS_ENABLED(CONFIG_DM_REGULATOR_SCMI) &&
-			    scmi_protocol_is_supported(dev, protocol_id)) {
-				node = ofnode_find_subnode(node, "regulators");
-				if (!ofnode_valid(node)) {
-					dev_err(dev, "no regulators node\n");
-					return -ENXIO;
-				}
-				drv = DM_DRIVER_GET(scmi_voltage_domain);
-			}
-			break;
-		case SCMI_PROTOCOL_ID_SENSOR:
-			if (IS_ENABLED(CONFIG_DM_THERMAL) &&
-				scmi_protocol_is_supported(dev, protocol_id))
-				drv = DM_DRIVER_GET(scmi_thermal);
-			break;
-		case SCMI_PROTOCOL_ID_PINCTRL:
-			if (IS_ENABLED(CONFIG_PINCTRL_IMX_SCMI) &&
-				scmi_protocol_is_supported(dev, protocol_id))
-				drv = DM_DRIVER_GET(scmi_pinctrl_imx);
-			break;
-		default:
-			break;
-		}
 
+		if (!scmi_protocol_is_supported(dev, protocol_id))
+			continue;
+
+		drv = scmi_proto_driver_get(protocol_id);
 		if (!drv) {
 			dev_dbg(dev, "Ignore unsupported SCMI protocol %#x\n",
 				protocol_id);

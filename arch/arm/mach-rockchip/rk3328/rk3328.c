@@ -3,14 +3,12 @@
  * Copyright (c) 2016 Rockchip Electronics Co., Ltd
  */
 
-#include <common.h>
 #include <init.h>
 #include <asm/arch-rockchip/bootrom.h>
 #include <asm/arch-rockchip/hardware.h>
 #include <asm/arch-rockchip/grf_rk3328.h>
 #include <asm/arch-rockchip/uart.h>
 #include <asm/armv8/mmu.h>
-#include <asm/io.h>
 
 #define CRU_BASE		0xFF440000
 #define GRF_BASE		0xFF100000
@@ -36,6 +34,7 @@
 
 const char * const boot_devices[BROM_LAST_BOOTSOURCE + 1] = {
 	[BROM_BOOTSOURCE_EMMC] = "/mmc@ff520000",
+	[BROM_BOOTSOURCE_SPINOR] = "/spi@ff190000/flash@0",
 	[BROM_BOOTSOURCE_SD] = "/mmc@ff500000",
 };
 
@@ -63,7 +62,7 @@ struct mm_region *mem_map = rk3328_mem_map;
 
 int arch_cpu_init(void)
 {
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 	u32 reg;
 
 	/* We do some SoC one time setting here. */

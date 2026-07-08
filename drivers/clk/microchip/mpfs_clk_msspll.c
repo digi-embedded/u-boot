@@ -2,7 +2,6 @@
 /*
  * Copyright (C) 2022 Microchip Technology Inc.
  */
-#include <common.h>
 #include <clk.h>
 #include <clk-uclass.h>
 #include <asm/io.h>
@@ -100,7 +99,7 @@ int mpfs_clk_register_msspll(void __iomem *base, struct clk *parent)
 	name = mpfs_msspll_clks[0].name;
 	ret = clk_register(hw, MPFS_MSSPLL_CLOCK, name, parent->dev->name);
 	if (ret)
-		ERR_PTR(ret);
+		return ret;
 	id = mpfs_msspll_clks[0].id;
 	clk_dm(id, hw);
 

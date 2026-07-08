@@ -11,7 +11,6 @@
 
 #include <asm/global_data.h>
 #include <linux/math64.h>
-#include <common.h>
 #include <dm.h>
 #include <errno.h>
 #include <log.h>
@@ -124,8 +123,10 @@ static uint dspi_read32(uint flags, uint *addr)
 
 static void dspi_write32(uint flags, uint *addr, uint val)
 {
-	flags & DSPI_FLAG_REGMAP_ENDIAN_BIG ?
-		out_be32(addr, val) : out_le32(addr, val);
+	if (flags & DSPI_FLAG_REGMAP_ENDIAN_BIG)
+		out_be32(addr, val);
+	else
+		out_le32(addr, val);
 }
 
 static void dspi_halt(struct fsl_dspi_priv *priv, u8 halt)
@@ -453,9 +454,9 @@ static int fsl_dspi_child_pre_probe(struct udevice *dev)
 	unsigned char pcssck = 0, cssck = 0;
 	unsigned char pasc = 0, asc = 0;
 
-	if (slave_plat->cs >= priv->num_chipselect) {
+	if (slave_plat->cs[0] >= priv->num_chipselect) {
 		debug("DSPI invalid chipselect number %d(max %d)!\n",
-		      slave_plat->cs, priv->num_chipselect - 1);
+		      slave_plat->cs[0], priv->num_chipselect - 1);
 		return -EINVAL;
 	}
 
@@ -470,12 +471,14 @@ static int fsl_dspi_child_pre_probe(struct udevice *dev)
 	/* Set After SCK delay scale values */
 	ns_delay_scale(&pasc, &asc, sck_cs_delay, priv->bus_clk);
 
-	priv->ctar_val[slave_plat->cs] = DSPI_CTAR_DEFAULT_VALUE |
+	priv->ctar_val[slave_plat->cs[0]] = DSPI_CTAR_DEFAULT_VALUE |
 					 DSPI_CTAR_PCSSCK(pcssck) |
-					 DSPI_CTAR_PASC(pasc);
+					 DSPI_CTAR_CSSCK(cssck) |
+					 DSPI_CTAR_PASC(pasc) |
+					 DSPI_CTAR_ASC(asc);
 
 	debug("DSPI pre_probe slave device on CS %u, max_hz %u, mode 0x%x.\n",
-	      slave_plat->cs, slave_plat->max_hz, slave_plat->mode);
+	      slave_plat->cs[0], slave_plat->max_hz, slave_plat->mode);
 
 	return 0;
 }
@@ -528,13 +531,13 @@ static int fsl_dspi_claim_bus(struct udevice *dev)
 	priv = dev_get_priv(bus);
 
 	/* processor special preparation work */
-	cpu_dspi_claim_bus(dev_seq(bus), slave_plat->cs);
+	cpu_dspi_claim_bus(dev_seq(bus), slave_plat->cs[0]);
 
 	/* configure transfer mode */
-	fsl_dspi_cfg_ctar_mode(priv, slave_plat->cs, priv->mode);
+	fsl_dspi_cfg_ctar_mode(priv, slave_plat->cs[0], priv->mode);
 
 	/* configure active state of CSX */
-	fsl_dspi_cfg_cs_active_state(priv, slave_plat->cs,
+	fsl_dspi_cfg_cs_active_state(priv, slave_plat->cs[0],
 				     priv->mode);
 
 	fsl_dspi_clr_fifo(priv);
@@ -560,7 +563,7 @@ static int fsl_dspi_release_bus(struct udevice *dev)
 	dspi_halt(priv, 1);
 
 	/* processor special release work */
-	cpu_dspi_release_bus(dev_seq(bus), slave_plat->cs);
+	cpu_dspi_release_bus(dev_seq(bus), slave_plat->cs[0]);
 
 	return 0;
 }
@@ -616,7 +619,7 @@ static int fsl_dspi_xfer(struct udevice *dev, unsigned int bitlen,
 	bus = dev->parent;
 	priv = dev_get_priv(bus);
 
-	return dspi_xfer(priv, slave_plat->cs, bitlen, dout, din, flags);
+	return dspi_xfer(priv, slave_plat->cs[0], bitlen, dout, din, flags);
 }
 
 static int fsl_dspi_set_speed(struct udevice *bus, uint speed)

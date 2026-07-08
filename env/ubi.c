@@ -4,7 +4,6 @@
  *        Joe Hershberger <joe.hershberger@ni.com>
  */
 
-#include <common.h>
 #include <asm/global_data.h>
 
 #include <command.h>
@@ -28,14 +27,14 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#if CONFIG_SYS_REDUNDAND_ENVIRONMENT
+#if CONFIG_ENV_REDUNDANT
 #define ENV_UBI_VOLUME_REDUND CONFIG_ENV_UBI_VOLUME_REDUND
 #else
 #define ENV_UBI_VOLUME_REDUND "invalid"
 #endif
 
 #ifdef CONFIG_CMD_SAVEENV
-#ifdef CONFIG_SYS_REDUNDAND_ENVIRONMENT
+#ifdef CONFIG_ENV_REDUNDANT
 static int env_ubi_save(void)
 {
 	ALLOC_CACHE_ALIGN_BUFFER(env_t, env_new, 1);
@@ -54,7 +53,7 @@ static int env_ubi_save(void)
 	if (gd->env_valid == ENV_VALID) {
 		puts("Writing to redundant UBI... ");
 		if (ubi_volume_write(CONFIG_ENV_UBI_VOLUME_REDUND,
-				     (void *)env_new, CONFIG_ENV_SIZE)) {
+				     (void *)env_new, 0, CONFIG_ENV_SIZE)) {
 			printf("\n** Unable to write env to %s:%s **\n",
 			       CONFIG_ENV_UBI_PART,
 			       CONFIG_ENV_UBI_VOLUME_REDUND);
@@ -63,7 +62,7 @@ static int env_ubi_save(void)
 	} else {
 		puts("Writing to UBI... ");
 		if (ubi_volume_write(CONFIG_ENV_UBI_VOLUME,
-				     (void *)env_new, CONFIG_ENV_SIZE)) {
+				     (void *)env_new, 0, CONFIG_ENV_SIZE)) {
 			printf("\n** Unable to write env to %s:%s **\n",
 			       CONFIG_ENV_UBI_PART,
 			       CONFIG_ENV_UBI_VOLUME);
@@ -73,11 +72,11 @@ static int env_ubi_save(void)
 
 	puts("done\n");
 
-	gd->env_valid = gd->env_valid == ENV_REDUND ? ENV_VALID : ENV_REDUND;
+	gd->env_valid = gd->env_valid == ENV_VALID ? ENV_REDUND : ENV_VALID;
 
 	return 0;
 }
-#else /* ! CONFIG_SYS_REDUNDAND_ENVIRONMENT */
+#else /* ! CONFIG_ENV_REDUNDANT */
 static int env_ubi_save(void)
 {
 	ALLOC_CACHE_ALIGN_BUFFER(env_t, env_new, 1);
@@ -93,7 +92,7 @@ static int env_ubi_save(void)
 		return 1;
 	}
 
-	if (ubi_volume_write(CONFIG_ENV_UBI_VOLUME, (void *)env_new,
+	if (ubi_volume_write(CONFIG_ENV_UBI_VOLUME, (void *)env_new, 0,
 			     CONFIG_ENV_SIZE)) {
 		printf("\n** Unable to write env to %s:%s **\n",
 		       CONFIG_ENV_UBI_PART, CONFIG_ENV_UBI_VOLUME);
@@ -103,10 +102,10 @@ static int env_ubi_save(void)
 	puts("done\n");
 	return 0;
 }
-#endif /* CONFIG_SYS_REDUNDAND_ENVIRONMENT */
+#endif /* CONFIG_ENV_REDUNDANT */
 #endif /* CONFIG_CMD_SAVEENV */
 
-#ifdef CONFIG_SYS_REDUNDAND_ENVIRONMENT
+#ifdef CONFIG_ENV_REDUNDANT
 static int env_ubi_load(void)
 {
 	ALLOC_CACHE_ALIGN_BUFFER(char, env1_buf, CONFIG_ENV_SIZE);
@@ -135,14 +134,14 @@ static int env_ubi_load(void)
 		return -EIO;
 	}
 
-	read1_fail = ubi_volume_read(CONFIG_ENV_UBI_VOLUME, (void *)tmp_env1,
+	read1_fail = ubi_volume_read(CONFIG_ENV_UBI_VOLUME, (void *)tmp_env1, 0,
 				     CONFIG_ENV_SIZE);
 	if (read1_fail)
 		printf("\n** Unable to read env from %s:%s **\n",
 		       CONFIG_ENV_UBI_PART, CONFIG_ENV_UBI_VOLUME);
 
 	read2_fail = ubi_volume_read(CONFIG_ENV_UBI_VOLUME_REDUND,
-				     (void *)tmp_env2, CONFIG_ENV_SIZE);
+				     (void *)tmp_env2, 0, CONFIG_ENV_SIZE);
 	if (read2_fail)
 		printf("\n** Unable to read redundant env from %s:%s **\n",
 		       CONFIG_ENV_UBI_PART, CONFIG_ENV_UBI_VOLUME_REDUND);
@@ -150,7 +149,7 @@ static int env_ubi_load(void)
 	return env_import_redund((char *)tmp_env1, read1_fail, (char *)tmp_env2,
 				 read2_fail, H_EXTERNAL);
 }
-#else /* ! CONFIG_SYS_REDUNDAND_ENVIRONMENT */
+#else /* ! CONFIG_ENV_REDUNDANT */
 static int env_ubi_load(void)
 {
 	ALLOC_CACHE_ALIGN_BUFFER(char, buf, CONFIG_ENV_SIZE);
@@ -172,7 +171,7 @@ static int env_ubi_load(void)
 		return -EIO;
 	}
 
-	if (ubi_volume_read(CONFIG_ENV_UBI_VOLUME, buf, CONFIG_ENV_SIZE)) {
+	if (ubi_volume_read(CONFIG_ENV_UBI_VOLUME, buf, 0, CONFIG_ENV_SIZE)) {
 		printf("\n** Unable to read env from %s:%s **\n",
 		       CONFIG_ENV_UBI_PART, CONFIG_ENV_UBI_VOLUME);
 		env_set_default(NULL, 0);
@@ -181,7 +180,7 @@ static int env_ubi_load(void)
 
 	return env_import(buf, 1, H_EXTERNAL);
 }
-#endif /* CONFIG_SYS_REDUNDAND_ENVIRONMENT */
+#endif /* CONFIG_ENV_REDUNDANT */
 
 static int env_ubi_erase(void)
 {
@@ -197,15 +196,15 @@ static int env_ubi_erase(void)
 	memset(env_buf, 0x0, CONFIG_ENV_SIZE);
 
 	if (ubi_volume_write(CONFIG_ENV_UBI_VOLUME,
-			     (void *)env_buf, CONFIG_ENV_SIZE)) {
+			     (void *)env_buf, 0, CONFIG_ENV_SIZE)) {
 		printf("\n** Unable to erase env to %s:%s **\n",
 		       CONFIG_ENV_UBI_PART,
 		       CONFIG_ENV_UBI_VOLUME);
 		ret = 1;
 	}
-	if (IS_ENABLED(CONFIG_SYS_REDUNDAND_ENVIRONMENT)) {
+	if (IS_ENABLED(CONFIG_ENV_REDUNDANT)) {
 		if (ubi_volume_write(ENV_UBI_VOLUME_REDUND,
-				     (void *)env_buf, CONFIG_ENV_SIZE)) {
+				     (void *)env_buf, 0, CONFIG_ENV_SIZE)) {
 			printf("\n** Unable to erase env to %s:%s **\n",
 			       CONFIG_ENV_UBI_PART,
 			       ENV_UBI_VOLUME_REDUND);

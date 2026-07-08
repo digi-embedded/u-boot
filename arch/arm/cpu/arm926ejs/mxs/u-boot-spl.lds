@@ -33,27 +33,15 @@ SECTIONS
 		*(.data*)
 	}
 
-	. = ALIGN(4);
-
-	.rel.dyn : {
-		__rel_dyn_start = .;
-		*(.rel*)
-		__rel_dyn_end = .;
-	}
-
 	.bss : {
 		. = ALIGN(4);
 		__bss_start = .;
 		*(.bss*)
-		. = ALIGN(4);
+		. = ALIGN(8);
 		__bss_end = .;
 	}
 
-	.end :
-	{
-		*(.__end)
-	}
-
+	_end = .;
 	_image_binary_end = .;
 
 	.dynsym _image_binary_end : { *(.dynsym) }
@@ -66,3 +54,6 @@ SECTIONS
 	.gnu : { *(.gnu*) }
 	.ARM.exidx : { *(.ARM.exidx*) }
 }
+
+ASSERT(_image_binary_end % 8 == 0, \
+       "_image_binary_end must be 8-byte aligned for device tree");

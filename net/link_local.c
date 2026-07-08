@@ -11,7 +11,6 @@
  * Licensed under the GPL v2 or later
  */
 
-#include <common.h>
 #include <env.h>
 #include <log.h>
 #include <net.h>
@@ -107,7 +106,7 @@ static void configure_wait(void)
 
 void link_local_start(void)
 {
-	ip = env_get_ip("llipaddr");
+	ip = string_to_ip(env_get("llipaddr"));
 	if (ip.s_addr != 0 &&
 	    (ntohl(ip.s_addr) & IN_CLASSB_NET) != LINKLOCAL_ADDR) {
 		puts("invalid link address");

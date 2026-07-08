@@ -3,7 +3,6 @@
  * Copyright 2019 NXP
  */
 
-#include <common.h>
 #include <malloc.h>
 #include <video.h>
 #include <video_bridge.h>
@@ -415,7 +414,6 @@ static int lcdifv3_video_probe(struct udevice *dev)
 	mmu_set_region_dcache_behaviour(fb_start, fb_end - fb_start,
 					DCACHE_WRITEBACK);
 	video_set_flush_dcache(dev, true);
-	gd->fb_base = plat->base;
 
 	return ret;
 }

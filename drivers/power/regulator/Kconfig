@@ -57,6 +57,13 @@ config SPL_REGULATOR_AXP
 	  Enable support in SPL for the regulators (DCDCs, LDOs) in the
 	  X-Powers AXP152, AXP2xx, and AXP8xx PMICs.
 
+config REGULATOR_AXP_DRIVEVBUS
+	bool "Enable driver for X-Powers AXP PMIC drivevbus"
+	depends on DM_REGULATOR && PMIC_AXP
+	help
+	  Enable support for sensing or driving the USB VBUS on
+	  X-Powers AXP2xx and AXP8xx PMICs.
+
 config REGULATOR_AXP_USB_POWER
 	bool "Enable driver for X-Powers AXP PMIC USB power supply"
 	depends on DM_REGULATOR && PMIC_AXP
@@ -171,7 +178,7 @@ config DM_REGULATOR_PFUZE100
 
 config REGULATOR_PWM
 	bool "Enable driver for PWM regulators"
-	depends on DM_REGULATOR
+	depends on DM_REGULATOR && DM_PWM
 	---help---
 	Enable support for the PWM regulator functions which voltage are
 	controlled by PWM duty ratio. Some of Rockchip board using this kind
@@ -179,12 +186,14 @@ config REGULATOR_PWM
 	This driver is controlled by a device tree node
 	which includes voltage limits.
 
-config SPL_REGULATOR_PWM
-	bool "Enable Driver for PWM regulators in SPL"
-	depends on REGULATOR_PWM && SPL
-	help
-	  This config enables implementation of driver-model regulator uclass
-	  features for PWM regulators in SPL.
+config DM_REGULATOR_MAX8907
+	bool "Enable Driver Model for REGULATOR MAX8907"
+	depends on DM_REGULATOR && DM_PMIC_MAX8907
+	---help---
+	This config enables implementation of driver-model regulator uclass
+	features for REGULATOR MAX8907. The driver supports both DC-to-DC
+	Step-Down (SD) Regulators and Low-Dropout Linear (LDO) Regulators
+	found in MAX8907 PMIC and implements get/set api for value and enable.
 
 config DM_REGULATOR_MAX77663
 	bool "Enable Driver Model for REGULATOR MAX77663"
@@ -261,9 +270,25 @@ config DM_REGULATOR_GPIO
 	features for gpio regulators. The driver implements get/set for
 	voltage value.
 
+config DM_REGULATOR_QCOM_RPMH
+	bool "Enable driver model for Qualcomm RPMh regulator"
+	depends on DM_REGULATOR && QCOM_RPMH
+	select DEVRES
+	---help---
+	  Enable support for the Qualcomm RPMh regulator. The driver
+	  implements get/set api for a limited set of regulators used
+	  by u-boot.
+
+config DM_REGULATOR_QCOM_USB_VBUS
+	bool "Enable driver model for Qualcomm USB vbus regulator"
+	depends on DM_REGULATOR && DM_PMIC
+	---help---
+	  Enable support for the Qualcomm USB Vbus regulator. The driver
+	  implements get/set api for the regulator to be used by u-boot.
+
 config SPL_DM_REGULATOR_GPIO
 	bool "Enable Driver Model for GPIO REGULATOR in SPL"
-	depends on DM_REGULATOR_GPIO && SPL_GPIO
+	depends on DM_REGULATOR_GPIO && SPL_DM_GPIO
 	select SPL_DM_REGULATOR_COMMON
 	---help---
 	This config enables implementation of driver-model regulator uclass
@@ -277,6 +302,15 @@ config REGULATOR_RK8XX
 	driver implements get/set api for the various BUCKS and LDOs supported
 	by the PMIC device. This driver is controlled by a device tree node
 	which includes voltage limits.
+
+config SPL_REGULATOR_RK8XX
+	bool "Enable driver for RK8XX regulators in SPL"
+	depends on SPL_DM_REGULATOR && SPL_PMIC_RK8XX
+	help
+	  Enable support for the regulator functions of the RK8XX PMIC in SPL. The
+	  driver implements get/set api for the various BUCKS and LDOs supported
+	  by the PMIC device. This driver is controlled by a device tree node
+	  which includes voltage limits.
 
 config DM_REGULATOR_S2MPS11
 	bool "Enable driver for S2MPS11 regulator"
@@ -420,6 +454,15 @@ config DM_REGULATOR_TPS80031
 	features for TPS80031/TPS80032 PMICs. The driver implements
 	get/set api for: value and enable.
 
+config DM_REGULATOR_TPS6287X
+	bool "Enable driver for TPS6287x Power Regulator"
+	depends on DM_REGULATOR
+	help
+	The TPS6287X is a step down converter with a fast transient
+	response. This driver supports all four variants of the chip
+	(TPS62870, TPS62871, TPS62872, TPS62873). It implements the
+	get/set api for value only, as the power line is always on.
+
 config DM_REGULATOR_STPMIC1
 	bool "Enable driver for STPMIC1 regulators"
 	depends on DM_REGULATOR && PMIC_STPMIC1
@@ -438,6 +481,15 @@ config DM_REGULATOR_ANATOP
 	Enable support for the Freescale i.MX on-chip ANATOP LDO
 	regulators. It is recommended that this option be enabled on
 	i.MX6 platform.
+
+config SPL_DM_REGULATOR_TPS6287X
+	bool "Enable driver for TPS6287x Power Regulator"
+	depends on SPL_DM_REGULATOR
+	help
+	The TPS6287X is a step down converter with a fast transient
+	response. This driver supports all four variants of the chip
+	(TPS62870, TPS62871, TPS62872, TPS62873). It implements the
+	get/set api for value only, as the power line is always on.
 
 config SPL_DM_REGULATOR_STPMIC1
 	bool "Enable driver for STPMIC1 regulators in SPL"
@@ -497,3 +549,20 @@ config DM_REGULATOR_TPS65219
 	features for REGULATOR TPS65219 and the family of TPS65219 PMICs.
 	TPS65219 series of PMICs have 3 single phase BUCKs & 4 LDOs.
 	The driver implements get/set api for value and enable.
+
+config REGULATOR_RZG2L_USBPHY
+	bool "Enable driver for RZ/G2L USB PHY VBUS supply"
+	depends on DM_REGULATOR
+	help
+	  Enable this option to support controlling the VBUS supply in
+	  the USB PHY peripheral of the Renesas RZ/G2L SoC. This option
+	  is required in order to use the USB OTG port.
+
+config DM_REGULATOR_CPCAP
+	bool "Enable driver for CPCAP PMIC regulators"
+	depends on DM_REGULATOR && DM_PMIC_CPCAP
+	---help---
+	Enable implementation of driver-model regulator uclass features for
+	REGULATOR CPCAP. The driver supports both DC-to-DC Step-Down Switching
+	(SW) Regulators and Low-Dropout Linear (LDO) Regulators	found in CPCAP
+	PMIC and implements get/set api for voltage and state.

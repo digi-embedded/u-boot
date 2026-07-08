@@ -11,7 +11,6 @@
 
 #include <linux/sizes.h>
 
-#define CFG_SYS_SDRAM_BASE		0x80000000
 
 #define RISCV_MMODE_TIMERBASE		0x2000000
 #define RISCV_MMODE_TIMEROFF		0xbff8
@@ -38,7 +37,6 @@
 	"name=system,size=-,bootable,type=${type_guid_gpt_system};"
 
 #define CFG_EXTRA_ENV_SETTINGS \
-	"fdt_high=0xffffffffffffffff\0" \
 	"initrd_high=0xffffffffffffffff\0" \
 	"kernel_addr_r=0x84000000\0" \
 	"kernel_comp_addr_r=0x88000000\0" \

@@ -9,7 +9,6 @@
  * Author: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
  */
 
-#include <common.h>
 #include <clk-uclass.h>
 #include <dm.h>
 #include <generic-phy.h>
@@ -83,7 +82,8 @@
 
 /* Reference clock selection parameters */
 #define L0_Ln_REF_CLK_SEL(n)		(0x2860 + (n) * 4)
-#define L0_REF_CLK_SEL_MASK		0x8f
+#define L0_REF_CLK_LCL_SEL		BIT(7)
+#define L0_REF_CLK_SEL_MASK		0x9f
 
 /* Calibration digital logic parameters */
 #define L3_TM_CALIB_DIG19		0xec4c
@@ -139,6 +139,7 @@
 #define PROT_BUS_WIDTH_40		0x2
 #define PROT_BUS_WIDTH_MASK		0x3
 #define PROT_BUS_WIDTH_SHIFT		2
+#define GEM_CLK_CTRL_WIDTH_SHIFT	5
 
 /* Number of GT lanes */
 #define NUM_LANES			4
@@ -148,24 +149,6 @@
 
 /* Total number of controllers */
 #define CONTROLLERS_PER_LANE		5
-
-/* Protocol Type parameters */
-enum {
-	XPSGTR_TYPE_USB0 = 0, /* USB controller 0 */
-	XPSGTR_TYPE_USB1 = 1, /* USB controller 1 */
-	XPSGTR_TYPE_SATA_0 = 2, /* SATA controller lane 0 */
-	XPSGTR_TYPE_SATA_1 = 3, /* SATA controller lane 1 */
-	XPSGTR_TYPE_PCIE_0 = 4, /* PCIe controller lane 0 */
-	XPSGTR_TYPE_PCIE_1 = 5, /* PCIe controller lane 1 */
-	XPSGTR_TYPE_PCIE_2 = 6, /* PCIe controller lane 2 */
-	XPSGTR_TYPE_PCIE_3 = 7, /* PCIe controller lane 3 */
-	XPSGTR_TYPE_DP_0 = 8, /* Display Port controller lane 0 */
-	XPSGTR_TYPE_DP_1 = 9, /* Display Port controller lane 1 */
-	XPSGTR_TYPE_SGMII0 = 10, /* Ethernet SGMII controller 0 */
-	XPSGTR_TYPE_SGMII1 = 11, /* Ethernet SGMII controller 1 */
-	XPSGTR_TYPE_SGMII2 = 12, /* Ethernet SGMII controller 2 */
-	XPSGTR_TYPE_SGMII3 = 13, /* Ethernet SGMII controller 3 */
-};
 
 /* Timeout values */
 #define TIMEOUT_US			10000
@@ -195,14 +178,15 @@ struct xpsgtr_ssc {
  * struct xpsgtr_phy - representation of a lane
  * @dev: pointer to the xpsgtr_dev instance
  * @refclk: reference clock index
- * @type: controller which uses this lane
+ * @instance: instance of the protocol type (such as the lane within a
+ *            protocol, or the USB/Ethernet controller)
  * @lane: lane number
  * @protocol: protocol in which the lane operates
  */
 struct xpsgtr_phy {
 	struct xpsgtr_dev *dev;
 	unsigned int refclk;
-	u8 type;
+	u8 instance;
 	u8 lane;
 	u8 protocol;
 };
@@ -303,11 +287,12 @@ static void xpsgtr_configure_pll(struct xpsgtr_phy *gtr_phy)
 		       PLL_FREQ_MASK, ssc->pll_ref_clk);
 
 	/* Enable lane clock sharing, if required */
-	if (gtr_phy->refclk != gtr_phy->lane) {
-		/* Lane3 Ref Clock Selection Register */
+	if (gtr_phy->refclk == gtr_phy->lane)
+		xpsgtr_clr_set(gtr_phy->dev, L0_Ln_REF_CLK_SEL(gtr_phy->lane),
+			       L0_REF_CLK_SEL_MASK, L0_REF_CLK_LCL_SEL);
+	else
 		xpsgtr_clr_set(gtr_phy->dev, L0_Ln_REF_CLK_SEL(gtr_phy->lane),
 			       L0_REF_CLK_SEL_MASK, 1 << gtr_phy->refclk);
-	}
 
 	/* SSC step size [7:0] */
 	xpsgtr_clr_set_phy(gtr_phy, L0_PLL_SS_STEP_SIZE_0_LSB,
@@ -401,6 +386,7 @@ static void xpsgtr_phy_init_sgmii(struct xpsgtr_phy *gtr_phy)
 {
 	struct xpsgtr_dev *gtr_dev = gtr_phy->dev;
 	u32 shift = gtr_phy->lane * PROT_BUS_WIDTH_SHIFT;
+	u32 clk_ctrl_shift = gtr_phy->lane * GEM_CLK_CTRL_WIDTH_SHIFT;
 
 	/* Set SGMII protocol TX and RX bus width to 10 bits. */
 	xpsgtr_clr_set(gtr_dev, TX_PROT_BUS_WIDTH, PROT_BUS_WIDTH_MASK << shift,
@@ -418,9 +404,9 @@ static void xpsgtr_phy_init_sgmii(struct xpsgtr_phy *gtr_phy)
 	 */
 	/* GEM I/O Clock Control */
 	clrsetbits_le32(ZYNQMP_IOU_SLCR_BASEADDR + IOU_SLCR_GEM_CLK_CTRL,
-			0xf << shift,
+			0xf << clk_ctrl_shift,
 			(GEM_CTRL_GEM_SGMII_MODE | GEM_CTRL_GEM_REF_SRC_SEL) <<
-			shift);
+			clk_ctrl_shift);
 
 	/* Setup signal detect */
 	clrsetbits_le32(ZYNQMP_IOU_SLCR_BASEADDR + IOU_SLCR_GEM_CTRL,
@@ -458,8 +444,8 @@ static int xpsgtr_init(struct phy *x)
 		break;
 	}
 
-	dev_dbg(gtr_dev->dev, "lane %u (type %u, protocol %u): init done\n",
-		gtr_phy->lane, gtr_phy->type, gtr_phy->protocol);
+	dev_dbg(gtr_dev->dev, "lane %u (protocol %u, instance %u): init done\n",
+		gtr_phy->lane, gtr_phy->protocol, gtr_phy->instance);
 
 	return 0;
 }
@@ -468,15 +454,32 @@ static int xpsgtr_init(struct phy *x)
 static int xpsgtr_wait_pll_lock(struct phy *phy)
 {
 	struct xpsgtr_dev *gtr_dev = dev_get_priv(phy->dev);
-	struct xpsgtr_phy *gtr_phy;
-	u32 phy_lane = phy->id;
-	int ret = 0;
+	struct xpsgtr_phy *gtr_phy = &gtr_dev->phys[phy->id];
 	unsigned int timeout = TIMEOUT_US;
-
-	gtr_phy = &gtr_dev->phys[phy_lane];
+	u8 protocol = gtr_phy->protocol;
+	int ret = 0;
 
 	dev_dbg(gtr_dev->dev, "Waiting for PLL lock\n");
 
+	/*
+	 * For DP and PCIe, only the instance 0 PLL is used. Switch to that phy
+	 * so we wait on the right PLL.
+	 */
+	if ((protocol == ICM_PROTOCOL_DP || protocol == ICM_PROTOCOL_PCIE) &&
+	    gtr_phy->instance) {
+		int i;
+
+		for (i = 0; i < NUM_LANES; i++) {
+			gtr_phy = &gtr_dev->phys[i];
+
+			if (gtr_phy->protocol == protocol && !gtr_phy->instance)
+				goto got_phy;
+		}
+
+		return -EBUSY;
+	}
+
+got_phy:
 	while (1) {
 		u32 reg = xpsgtr_read_phy(gtr_phy, L0_PLL_STATUS_READ_1);
 
@@ -495,104 +498,48 @@ static int xpsgtr_wait_pll_lock(struct phy *phy)
 
 	if (ret == -ETIMEDOUT)
 		dev_err(gtr_dev->dev,
-			"lane %u (type %u, protocol %u): PLL lock timeout\n",
-			gtr_phy->lane, gtr_phy->type, gtr_phy->protocol);
+			"lane %u (protocol %u, instance %u): PLL lock timeout\n",
+			gtr_phy->lane, gtr_phy->protocol, gtr_phy->protocol);
 
 	return ret;
 }
 
 static int xpsgtr_power_on(struct phy *phy)
 {
-	struct xpsgtr_dev *gtr_dev = dev_get_priv(phy->dev);
-	struct xpsgtr_phy *gtr_phy;
-	u32 phy_lane = phy->id;
-	int ret = 0;
-
-	gtr_phy = &gtr_dev->phys[phy_lane];
-
-	/*
-	 * Wait for the PLL to lock. For DP, only wait on DP0 to avoid
-	 * cumulating waits for both lanes. The user is expected to initialize
-	 * lane 0 last.
-	 */
-	if (gtr_phy->protocol != ICM_PROTOCOL_DP ||
-	    gtr_phy->type == XPSGTR_TYPE_DP_0)
-		ret = xpsgtr_wait_pll_lock(phy);
-
-	return ret;
+	return xpsgtr_wait_pll_lock(phy);
 }
 
 /*
  * OF Xlate Support
  */
 
-/* Set the lane type and protocol based on the PHY type and instance number. */
+/* Set the lane protocol and instance based on the PHY type and instance number. */
 static int xpsgtr_set_lane_type(struct xpsgtr_phy *gtr_phy, u8 phy_type,
 				unsigned int phy_instance)
 {
 	unsigned int num_phy_types;
-	const int *phy_types;
 
 	switch (phy_type) {
-	case PHY_TYPE_SATA: {
-		static const int types[] = {
-			XPSGTR_TYPE_SATA_0,
-			XPSGTR_TYPE_SATA_1,
-		};
-
-		phy_types = types;
-		num_phy_types = ARRAY_SIZE(types);
+	case PHY_TYPE_SATA:
+		num_phy_types = 2;
 		gtr_phy->protocol = ICM_PROTOCOL_SATA;
 		break;
-	}
-	case PHY_TYPE_USB3: {
-		static const int types[] = {
-			XPSGTR_TYPE_USB0,
-			XPSGTR_TYPE_USB1,
-		};
-
-		phy_types = types;
-		num_phy_types = ARRAY_SIZE(types);
+	case PHY_TYPE_USB3:
+		num_phy_types = 2;
 		gtr_phy->protocol = ICM_PROTOCOL_USB;
 		break;
-	}
-	case PHY_TYPE_DP: {
-		static const int types[] = {
-			XPSGTR_TYPE_DP_0,
-			XPSGTR_TYPE_DP_1,
-		};
-
-		phy_types = types;
-		num_phy_types = ARRAY_SIZE(types);
+	case PHY_TYPE_DP:
+		num_phy_types = 2;
 		gtr_phy->protocol = ICM_PROTOCOL_DP;
 		break;
-	}
-	case PHY_TYPE_PCIE: {
-		static const int types[] = {
-			XPSGTR_TYPE_PCIE_0,
-			XPSGTR_TYPE_PCIE_1,
-			XPSGTR_TYPE_PCIE_2,
-			XPSGTR_TYPE_PCIE_3,
-		};
-
-		phy_types = types;
-		num_phy_types = ARRAY_SIZE(types);
+	case PHY_TYPE_PCIE:
+		num_phy_types = 4;
 		gtr_phy->protocol = ICM_PROTOCOL_PCIE;
 		break;
-	}
-	case PHY_TYPE_SGMII: {
-		static const int types[] = {
-			XPSGTR_TYPE_SGMII0,
-			XPSGTR_TYPE_SGMII1,
-			XPSGTR_TYPE_SGMII2,
-			XPSGTR_TYPE_SGMII3,
-		};
-
-		phy_types = types;
-		num_phy_types = ARRAY_SIZE(types);
+	case PHY_TYPE_SGMII:
+		num_phy_types = 4;
 		gtr_phy->protocol = ICM_PROTOCOL_SGMII;
 		break;
-	}
 	default:
 		return -EINVAL;
 	}
@@ -600,22 +547,25 @@ static int xpsgtr_set_lane_type(struct xpsgtr_phy *gtr_phy, u8 phy_type,
 	if (phy_instance >= num_phy_types)
 		return -EINVAL;
 
-	gtr_phy->type = phy_types[phy_instance];
+	gtr_phy->instance = phy_instance;
 	return 0;
 }
 
 /*
- * Valid combinations of controllers and lanes (Interconnect Matrix).
+ * Valid combinations of controllers and lanes (Interconnect Matrix). Each
+ * "instance" represents one controller for a lane. For PCIe and DP, the
+ * "instance" is the logical lane in the link. For SATA, USB, and SGMII,
+ * the instance is the index of the controller.
+ *
+ * This information is only used to validate the devicetree reference, and is
+ * not used when programming the hardware.
  */
 static const unsigned int icm_matrix[NUM_LANES][CONTROLLERS_PER_LANE] = {
-	{ XPSGTR_TYPE_PCIE_0, XPSGTR_TYPE_SATA_0, XPSGTR_TYPE_USB0,
-		XPSGTR_TYPE_DP_1, XPSGTR_TYPE_SGMII0 },
-	{ XPSGTR_TYPE_PCIE_1, XPSGTR_TYPE_SATA_1, XPSGTR_TYPE_USB0,
-		XPSGTR_TYPE_DP_0, XPSGTR_TYPE_SGMII1 },
-	{ XPSGTR_TYPE_PCIE_2, XPSGTR_TYPE_SATA_0, XPSGTR_TYPE_USB0,
-		XPSGTR_TYPE_DP_1, XPSGTR_TYPE_SGMII2 },
-	{ XPSGTR_TYPE_PCIE_3, XPSGTR_TYPE_SATA_1, XPSGTR_TYPE_USB1,
-		XPSGTR_TYPE_DP_0, XPSGTR_TYPE_SGMII3 }
+	/* PCIe, SATA, USB, DP, SGMII */
+	{ 0, 0, 0, 1, 0 }, /* Lane 0 */
+	{ 1, 1, 0, 0, 1 }, /* Lane 1 */
+	{ 2, 0, 0, 1, 2 }, /* Lane 2 */
+	{ 3, 1, 1, 0, 3 }, /* Lane 3 */
 };
 
 /* Translate OF phandle and args to PHY instance. */
@@ -675,7 +625,7 @@ static int xpsgtr_of_xlate(struct phy *x,
 	 * is allowed to operate on the lane.
 	 */
 	for (i = 0; i < CONTROLLERS_PER_LANE; i++) {
-		if (icm_matrix[phy_lane][i] == gtr_phy->type) {
+		if (icm_matrix[phy_lane][i] == gtr_phy->instance) {
 			x->id = phy_lane;
 			return 0;
 		}
@@ -724,7 +674,10 @@ static int xpsgtr_get_ref_clocks(struct udevice *dev)
 		}
 
 		for (i = 0 ; i < ARRAY_SIZE(ssc_lookup); i++) {
-			if (rate == ssc_lookup[i].refclk_rate) {
+			/* Allow an error of 100 ppm */
+			unsigned long error = ssc_lookup[i].refclk_rate / 10000;
+
+			if (abs(rate - ssc_lookup[i].refclk_rate) < error) {
 				gtr_dev->refclk_sscs[refclk] = &ssc_lookup[i];
 				dev_dbg(dev, "Found rate %d\n", i);
 				break;

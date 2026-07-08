@@ -41,20 +41,19 @@
 	status = "okay";
 };
 
-&eth {
+&eth0 {
 	status = "okay";
-	mediatek,gmac-id = <0>;
 	phy-mode = "usxgmii";
 	mediatek,switch = "mt7988";
 
 	fixed-link {
-		speed = <1000>;
+		speed = <10000>;
 		full-duplex;
 		pause;
 	};
 };
 
-&pinctrl {
+&pio {
 	i2c1_pins: i2c1-pins {
 		mux {
 			function = "i2c";
@@ -87,10 +86,12 @@
 			pins = "SPI2_CSB", "SPI2_MISO", "SPI2_MOSI",
 			       "SPI2_CLK", "SPI2_HOLD";
 			input-enable;
+			drive-strength = <MTK_DRIVE_4mA>;
 		};
 
 		conf-clk {
 			pins = "SPI2_WP";
+			drive-strength = <MTK_DRIVE_4mA>;
 		};
 	};
 };
@@ -107,7 +108,6 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 	status = "okay";
-	must_tx;
 	enhance_timing;
 	dma_ext;
 	ipm_design;

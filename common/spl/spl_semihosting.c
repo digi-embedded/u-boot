@@ -3,7 +3,6 @@
  * Copyright (C) 2022 Sean Anderson <sean.anderson@seco.com>
  */
 
-#include <common.h>
 #include <image.h>
 #include <log.h>
 #include <semihosting.h>
@@ -44,9 +43,7 @@ static int spl_smh_load_image(struct spl_image_info *spl_image,
 	}
 	len = ret;
 
-	load.read = smh_fit_read;
-	spl_set_bl_len(&load, 1);
-	load.priv = &fd;
+	spl_load_init(&load, smh_fit_read, &fd, 1);
 	ret = spl_load(spl_image, bootdev, &load, len, 0);
 	if (ret)
 		log_debug("could not read %s: %d\n", filename, ret);

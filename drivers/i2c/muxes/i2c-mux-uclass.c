@@ -6,7 +6,6 @@
 
 #define LOG_CATEGORY UCLASS_I2C_MUX
 
-#include <common.h>
 #include <dm.h>
 #include <errno.h>
 #include <i2c.h>
@@ -40,6 +39,11 @@ static int i2c_mux_child_post_bind(struct udevice *dev)
 {
 	struct i2c_mux_bus *plat = dev_get_parent_plat(dev);
 	int channel;
+
+	ofnode node = dev_ofnode(dev);
+
+	if (!ofnode_has_property(node, "reg"))
+		return 0;
 
 	channel = dev_read_u32_default(dev, "reg", -1);
 	if (channel < 0)
@@ -126,7 +130,7 @@ static int i2c_mux_post_probe(struct udevice *mux)
 	return 0;
 }
 
-int i2c_mux_select(struct udevice *dev)
+static int i2c_mux_select(struct udevice *dev)
 {
 	struct i2c_mux_bus *plat = dev_get_parent_plat(dev);
 	struct udevice *mux = dev->parent;
@@ -138,7 +142,7 @@ int i2c_mux_select(struct udevice *dev)
 	return ops->select(mux, dev, plat->channel);
 }
 
-int i2c_mux_deselect(struct udevice *dev)
+static int i2c_mux_deselect(struct udevice *dev)
 {
 	struct i2c_mux_bus *plat = dev_get_parent_plat(dev);
 	struct udevice *mux = dev->parent;

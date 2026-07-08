@@ -8,7 +8,6 @@
 
 #define LOG_CATEGORY LOGC_EXPO
 
-#include <common.h>
 #include <abuf.h>
 #include <cedit.h>
 #include <cli.h>
@@ -21,6 +20,7 @@
 #include <video.h>
 #include <linux/delay.h>
 #include "scene_internal.h"
+#include <u-boot/schedule.h>
 
 enum {
 	CMOS_MAX_BITS	= 2048,
@@ -52,10 +52,11 @@ struct cedit_iter_priv {
 
 int cedit_arange(struct expo *exp, struct video_priv *vpriv, uint scene_id)
 {
+	struct expo_arrange_info arr;
 	struct scene_obj_txt *txt;
 	struct scene_obj *obj;
 	struct scene *scn;
-	int y;
+	int y, ret;
 
 	scn = expo_lookup_scene_id(exp, scene_id);
 	if (!scn)
@@ -69,21 +70,29 @@ int cedit_arange(struct expo *exp, struct video_priv *vpriv, uint scene_id)
 	if (txt)
 		scene_obj_set_pos(scn, txt->obj.id, 200, 10);
 
+	memset(&arr, '\0', sizeof(arr));
+	ret = scene_calc_arrange(scn, &arr);
+	if (ret < 0)
+		return log_msg_ret("arr", ret);
+
 	y = 100;
 	list_for_each_entry(obj, &scn->obj_head, sibling) {
 		switch (obj->type) {
 		case SCENEOBJT_NONE:
 		case SCENEOBJT_IMAGE:
 		case SCENEOBJT_TEXT:
+		case SCENEOBJT_BOX:
+		case SCENEOBJT_TEXTEDIT:
 			break;
 		case SCENEOBJT_MENU:
 			scene_obj_set_pos(scn, obj->id, 50, y);
-			scene_menu_arrange(scn, (struct scene_obj_menu *)obj);
+			scene_menu_arrange(scn, &arr,
+					   (struct scene_obj_menu *)obj);
 			y += 50;
 			break;
 		case SCENEOBJT_TEXTLINE:
 			scene_obj_set_pos(scn, obj->id, 50, y);
-			scene_textline_arrange(scn,
+			scene_textline_arrange(scn, &arr,
 					(struct scene_obj_textline *)obj);
 			y += 50;
 			break;
@@ -93,19 +102,16 @@ int cedit_arange(struct expo *exp, struct video_priv *vpriv, uint scene_id)
 	return 0;
 }
 
-int cedit_prepare(struct expo *exp, struct video_priv **vid_privp,
+int cedit_prepare(struct expo *exp, struct udevice *vid_dev,
 		  struct scene **scnp)
 {
+	struct udevice *dev = vid_dev;
 	struct video_priv *vid_priv;
-	struct udevice *dev;
 	struct scene *scn;
 	uint scene_id;
 	int ret;
 
 	/* For now we only support a video console */
-	ret = uclass_first_device_err(UCLASS_VIDEO, &dev);
-	if (ret)
-		return log_msg_ret("vid", ret);
 	ret = expo_set_display(exp, dev);
 	if (ret)
 		return log_msg_ret("dis", ret);
@@ -120,6 +126,7 @@ int cedit_prepare(struct expo *exp, struct video_priv **vid_privp,
 		return log_msg_ret("sid", ret);
 
 	exp->popup = true;
+	exp->show_highlight = true;
 
 	/* This is not supported for now */
 	if (0)
@@ -136,93 +143,97 @@ int cedit_prepare(struct expo *exp, struct video_priv **vid_privp,
 	if (ret)
 		return log_msg_ret("dim", ret);
 
-	*vid_privp = vid_priv;
 	*scnp = scn;
 
 	return scene_id;
 }
 
-int cedit_run(struct expo *exp)
+int cedit_do_action(struct expo *exp, struct scene *scn,
+		    struct video_priv *vid_priv, struct expo_action *act)
 {
-	struct cli_ch_state s_cch, *cch = &s_cch;
-	struct video_priv *vid_priv;
-	uint scene_id;
-	struct scene *scn;
-	bool done;
 	int ret;
 
-	cli_ch_init(cch);
-	ret = cedit_prepare(exp, &vid_priv, &scn);
+	switch (act->type) {
+	case EXPOACT_NONE:
+		return -EAGAIN;
+	case EXPOACT_POINT_ITEM:
+		ret = scene_menu_select_item(scn, scn->highlight_id,
+					     act->select.id);
+		if (ret)
+			return log_msg_ret("cdp", ret);
+		break;
+	case EXPOACT_POINT_OBJ:
+		scene_set_highlight_id(scn, act->select.id);
+		cedit_arange(exp, vid_priv, scn->id);
+		break;
+	case EXPOACT_OPEN:
+		scene_set_open(scn, act->select.id, true);
+		cedit_arange(exp, vid_priv, scn->id);
+		switch (scn->highlight_id) {
+		case EXPOID_SAVE:
+			exp->done = true;
+			exp->save = true;
+			break;
+		case EXPOID_DISCARD:
+			exp->done = true;
+			break;
+		}
+		break;
+	case EXPOACT_CLOSE:
+		scene_set_open(scn, act->select.id, false);
+		cedit_arange(exp, vid_priv, scn->id);
+		break;
+	case EXPOACT_SELECT:
+		scene_set_open(scn, scn->highlight_id, false);
+		cedit_arange(exp, vid_priv, scn->id);
+		break;
+	case EXPOACT_QUIT:
+		log_debug("quitting\n");
+		exp->done = true;
+		break;
+	}
+
+	return 0;
+}
+
+int cedit_run(struct expo *exp)
+{
+	struct video_priv *vid_priv;
+	struct udevice *dev;
+	struct scene *scn;
+	uint scene_id;
+	int ret;
+
+	ret = uclass_first_device_err(UCLASS_VIDEO, &dev);
+	if (ret)
+		return log_msg_ret("vid", ret);
+	vid_priv = dev_get_uclass_priv(dev);
+
+	ret = cedit_prepare(exp, dev, &scn);
 	if (ret < 0)
 		return log_msg_ret("prep", ret);
 	scene_id = ret;
 
-	done = false;
+	exp->done = false;
+	exp->save = false;
 	do {
 		struct expo_action act;
-		int ichar, key;
 
 		ret = expo_render(exp);
 		if (ret)
-			break;
+			return log_msg_ret("cer", ret);
 
-		ichar = cli_ch_process(cch, 0);
-		if (!ichar) {
-			while (!ichar && !tstc()) {
-				schedule();
-				mdelay(2);
-				ichar = cli_ch_process(cch, -ETIMEDOUT);
-			}
-			if (!ichar) {
-				ichar = getchar();
-				ichar = cli_ch_process(cch, ichar);
-			}
-		}
-
-		key = 0;
-		if (ichar) {
-			key = bootmenu_conv_key(ichar);
-			if (key == BKEY_NONE || key >= BKEY_FIRST_EXTRA)
-				key = ichar;
-		}
-		if (!key)
-			continue;
-
-		ret = expo_send_key(exp, key);
-		if (ret)
-			break;
-
-		ret = expo_action_get(exp, &act);
-		if (!ret) {
-			switch (act.type) {
-			case EXPOACT_POINT_OBJ:
-				scene_set_highlight_id(scn, act.select.id);
-				cedit_arange(exp, vid_priv, scene_id);
-				break;
-			case EXPOACT_OPEN:
-				scene_set_open(scn, act.select.id, true);
-				cedit_arange(exp, vid_priv, scene_id);
-				break;
-			case EXPOACT_CLOSE:
-				scene_set_open(scn, act.select.id, false);
-				cedit_arange(exp, vid_priv, scene_id);
-				break;
-			case EXPOACT_SELECT:
-				scene_set_open(scn, scn->highlight_id, false);
-				cedit_arange(exp, vid_priv, scene_id);
-				break;
-			case EXPOACT_QUIT:
-				log_debug("quitting\n");
-				done = true;
-				break;
-			default:
-				break;
-			}
-		}
-	} while (!done);
+		ret = expo_poll(exp, &act);
+		if (!ret)
+			cedit_do_action(exp, scn, vid_priv, &act);
+		else if (ret != -EAGAIN)
+			return log_msg_ret("cep", ret);
+	} while (!exp->done);
 
 	if (ret)
 		return log_msg_ret("end", ret);
+	if (!exp->save)
+		return -EACCES;
 
 	return 0;
 }
@@ -267,7 +278,7 @@ static int get_cur_menuitem_text(const struct scene_obj_menu *menu,
 	if (!txt)
 		return log_msg_ret("txt", -ENOENT);
 
-	str = expo_get_str(scn->expo, txt->str_id);
+	str = expo_get_str(scn->expo, txt->gen.str_id);
 	if (!str)
 		return log_msg_ret("str", -ENOENT);
 	*strp = str;
@@ -275,14 +286,84 @@ static int get_cur_menuitem_text(const struct scene_obj_menu *menu,
 	return 0;
 }
 
+/**
+ * get_cur_menuitem_val() - Get the value of a menu's current item
+ *
+ * Obtains the value of the current item in the menu. If no value, then
+ * enumerates the items of a menu (0, 1, 2) and returns the sequence number of
+ * the currently selected item. If the first item is selected, this returns 0;
+ * if the second, 1; etc.
+ *
+ * @menu: Menu to check
+ * @valp: Returns current-item value / sequence number
+ * Return: 0 on success, else -ve error value
+ */
+static int get_cur_menuitem_val(const struct scene_obj_menu *menu, int *valp)
+{
+	const struct scene_menitem *mi;
+	int seq;
+
+	seq = 0;
+	list_for_each_entry(mi, &menu->item_head, sibling) {
+		if (mi->id == menu->cur_item_id) {
+			*valp = mi->value == INT_MAX ? seq : mi->value;
+			return 0;
+		}
+		seq++;
+	}
+
+	return log_msg_ret("nf", -ENOENT);
+}
+
+/**
+ * write_dt_string() - Write a string to the devicetree, expanding if needed
+ *
+ * If this fails, it tries again after expanding the devicetree a little
+ *
+ * @buf: Buffer containing the devicetree
+ * @name: Property name to use
+ * @str: String value
+ * Return: 0 if OK, -EFAULT if something went horribly wrong
+ */
 static int write_dt_string(struct abuf *buf, const char *name, const char *str)
+{
+	int ret, i;
+
+	ret = -EAGAIN;
+	for (i = 0; ret && i < 2; i++) {
+		ret = fdt_property_string(abuf_data(buf), name, str);
+		if (!i) {
+			ret = check_space(ret, buf);
+			if (ret)
+				return log_msg_ret("rs2", -ENOMEM);
+		}
+	}
+
+	/* this should not happen */
+	if (ret)
+		return log_msg_ret("str", -EFAULT);
+
+	return 0;
+}
+
+/**
+ * write_dt_u32() - Write an int to the devicetree, expanding if needed
+ *
+ * If this fails, it tries again after expanding the devicetree a little
+ *
+ * @buf: Buffer containing the devicetree
+ * @name: Property name to use
+ * @lva: Integer value
+ * Return: 0 if OK, -EFAULT if something went horribly wrong
+ */
+static int write_dt_u32(struct abuf *buf, const char *name, uint val)
 {
 	int ret, i;
 
 	/* write the text of the current item */
 	ret = -EAGAIN;
 	for (i = 0; ret && i < 2; i++) {
-		ret = fdt_property_string(abuf_data(buf), name, str);
+		ret = fdt_property_u32(abuf_data(buf), name, val);
 		if (!i) {
 			ret = check_space(ret, buf);
 			if (ret)
@@ -307,6 +388,8 @@ static int h_write_settings(struct scene_obj *obj, void *vpriv)
 	case SCENEOBJT_NONE:
 	case SCENEOBJT_IMAGE:
 	case SCENEOBJT_TEXT:
+	case SCENEOBJT_BOX:
+	case SCENEOBJT_TEXTEDIT:
 		break;
 	case SCENEOBJT_TEXTLINE: {
 		const struct scene_obj_textline *tline;
@@ -321,23 +404,21 @@ static int h_write_settings(struct scene_obj *obj, void *vpriv)
 		const struct scene_obj_menu *menu;
 		const char *str;
 		char name[80];
-		int i;
+		int val;
 
 		/* write the ID of the current item */
 		menu = (struct scene_obj_menu *)obj;
-		ret = -EAGAIN;
-		for (i = 0; ret && i < 2; i++) {
-			ret = fdt_property_u32(abuf_data(buf), obj->name,
-					       menu->cur_item_id);
-			if (!i) {
-				ret = check_space(ret, buf);
-				if (ret)
-					return log_msg_ret("res", -ENOMEM);
-			}
-		}
-		/* this should not happen */
+		ret = write_dt_u32(buf, obj->name, menu->cur_item_id);
 		if (ret)
-			return log_msg_ret("wrt", -EFAULT);
+			return log_msg_ret("wrt", ret);
+
+		snprintf(name, sizeof(name), "%s-value", obj->name);
+		ret = get_cur_menuitem_val(menu, &val);
+		if (ret < 0)
+			return log_msg_ret("cur", ret);
+		ret = write_dt_u32(buf, name, val);
+		if (ret)
+			return log_msg_ret("wr2", ret);
 
 		ret = get_cur_menuitem_text(menu, &str);
 		if (ret)
@@ -362,8 +443,7 @@ int cedit_write_settings(struct expo *exp, struct abuf *buf)
 	void *fdt;
 	int ret;
 
-	abuf_init(buf);
-	if (!abuf_realloc(buf, CEDIT_SIZE_INC))
+	if (!abuf_init_size(buf, CEDIT_SIZE_INC))
 		return log_msg_ret("buf", -ENOMEM);
 
 	fdt = abuf_data(buf);
@@ -409,6 +489,8 @@ static int h_read_settings(struct scene_obj *obj, void *vpriv)
 	case SCENEOBJT_NONE:
 	case SCENEOBJT_IMAGE:
 	case SCENEOBJT_TEXT:
+	case SCENEOBJT_BOX:
+	case SCENEOBJT_TEXTEDIT:
 		break;
 	case SCENEOBJT_TEXTLINE: {
 		const struct scene_obj_textline *tline;
@@ -471,12 +553,17 @@ static int h_write_settings_env(struct scene_obj *obj, void *vpriv)
 	const char *str;
 	int val, ret;
 
+	if (obj->id < EXPOID_BASE_ID)
+		return 0;
+
 	snprintf(var, sizeof(var), "c.%s", obj->name);
 
 	switch (obj->type) {
 	case SCENEOBJT_NONE:
 	case SCENEOBJT_IMAGE:
 	case SCENEOBJT_TEXT:
+	case SCENEOBJT_BOX:
+	case SCENEOBJT_TEXTEDIT:
 		break;
 	case SCENEOBJT_MENU:
 		menu = (struct scene_obj_menu *)obj;
@@ -500,6 +587,14 @@ static int h_write_settings_env(struct scene_obj *obj, void *vpriv)
 		ret = env_set(name, str);
 		if (ret)
 			return log_msg_ret("st2", ret);
+
+		ret = get_cur_menuitem_val(menu, &val);
+		if (ret < 0)
+			return log_msg_ret("cur", ret);
+		snprintf(name, sizeof(name), "c.%s-value", obj->name);
+		if (priv->verbose)
+			printf("%s=%d\n", name, val);
+
 		break;
 	case SCENEOBJT_TEXTLINE: {
 		const struct scene_obj_textline *tline;
@@ -543,12 +638,17 @@ static int h_read_settings_env(struct scene_obj *obj, void *vpriv)
 	char var[60];
 	int val;
 
+	if (obj->id < EXPOID_BASE_ID)
+		return 0;
+
 	snprintf(var, sizeof(var), "c.%s", obj->name);
 
 	switch (obj->type) {
 	case SCENEOBJT_NONE:
 	case SCENEOBJT_IMAGE:
 	case SCENEOBJT_TEXT:
+	case SCENEOBJT_BOX:
+	case SCENEOBJT_TEXTEDIT:
 		break;
 	case SCENEOBJT_MENU:
 		menu = (struct scene_obj_menu *)obj;
@@ -560,7 +660,7 @@ static int h_read_settings_env(struct scene_obj *obj, void *vpriv)
 
 		/*
 		 * note that no validation is done here, to make sure the ID is
-		 * valid * and actually points to a menu item
+		 * valid and actually points to a menu item
 		 */
 		menu->cur_item_id = val;
 		break;
@@ -600,55 +700,23 @@ int cedit_read_settings_env(struct expo *exp, bool verbose)
 	return 0;
 }
 
-/**
- * get_cur_menuitem_seq() - Get the sequence number of a menu's current item
- *
- * Enumerates the items of a menu (0, 1, 2) and returns the sequence number of
- * the currently selected item. If the first item is selected, this returns 0;
- * if the second, 1; etc.
- *
- * @menu: Menu to check
- * Return: Sequence number on success, else -ve error value
- */
-static int get_cur_menuitem_seq(const struct scene_obj_menu *menu)
-{
-	const struct scene_menitem *mi;
-	int seq, found;
-
-	seq = 0;
-	found = -1;
-	list_for_each_entry(mi, &menu->item_head, sibling) {
-		if (mi->id == menu->cur_item_id) {
-			found = seq;
-			break;
-		}
-		seq++;
-	}
-
-	if (found == -1)
-		return log_msg_ret("nf", -ENOENT);
-
-	return found;
-}
-
 static int h_write_settings_cmos(struct scene_obj *obj, void *vpriv)
 {
 	const struct scene_obj_menu *menu;
 	struct cedit_iter_priv *priv = vpriv;
 	int val, ret;
-	uint i, seq;
+	uint i;
 
-	if (obj->type != SCENEOBJT_MENU)
+	if (obj->type != SCENEOBJT_MENU || obj->id < EXPOID_BASE_ID)
 		return 0;
 
 	menu = (struct scene_obj_menu *)obj;
 	val = menu->cur_item_id;
 
-	ret = get_cur_menuitem_seq(menu);
+	ret = get_cur_menuitem_val(menu, &val);
 	if (ret < 0)
 		return log_msg_ret("cur", ret);
-	seq = ret;
-	log_debug("%s: seq=%d\n", menu->obj.name, seq);
+	log_debug("%s: val=%d\n", menu->obj.name, val);
 
 	/* figure out where to place this item */
 	if (!obj->bit_length)
@@ -656,11 +724,11 @@ static int h_write_settings_cmos(struct scene_obj *obj, void *vpriv)
 	if (obj->start_bit + obj->bit_length > CMOS_MAX_BITS)
 		return log_msg_ret("bit", -E2BIG);
 
-	for (i = 0; i < obj->bit_length; i++, seq >>= 1) {
+	for (i = 0; i < obj->bit_length; i++, val >>= 1) {
 		uint bitnum = obj->start_bit + i;
 
 		priv->mask[CMOS_BYTE(bitnum)] |= 1 << CMOS_BIT(bitnum);
-		if (seq & 1)
+		if (val & 1)
 			priv->value[CMOS_BYTE(bitnum)] |= BIT(CMOS_BIT(bitnum));
 		log_debug("bit %x %x %x\n", bitnum,
 			  priv->mask[CMOS_BYTE(bitnum)],
@@ -694,6 +762,7 @@ int cedit_write_settings_cmos(struct expo *exp, struct udevice *dev,
 	}
 
 	/* write the data to the RTC */
+	log_debug("Writing CMOS\n");
 	first = CMOS_MAX_BYTES;
 	last = -1;
 	for (i = 0, count = 0; i < CMOS_MAX_BYTES; i++) {
@@ -728,7 +797,7 @@ static int h_read_settings_cmos(struct scene_obj *obj, void *vpriv)
 	int val, ret;
 	uint i;
 
-	if (obj->type != SCENEOBJT_MENU)
+	if (obj->type != SCENEOBJT_MENU || obj->id < EXPOID_BASE_ID)
 		return 0;
 
 	menu = (struct scene_obj_menu *)obj;
@@ -761,7 +830,8 @@ static int h_read_settings_cmos(struct scene_obj *obj, void *vpriv)
 	}
 
 	/* update the current item */
-	mi = scene_menuitem_find_seq(menu, val);
+	log_debug("look for menuitem value %d in menu %d\n", val, menu->obj.id);
+	mi = scene_menuitem_find_val(menu, val);
 	if (!mi)
 		return log_msg_ret("seq", -ENOENT);
 
@@ -795,7 +865,7 @@ int cedit_read_settings_cmos(struct expo *exp, struct udevice *dev,
 		goto done;
 	}
 
-	/* read the data to the RTC */
+	/* indicate what bytes were read from the RTC */
 	first = CMOS_MAX_BYTES;
 	last = -1;
 	for (i = 0, count = 0; i < CMOS_MAX_BYTES; i++) {

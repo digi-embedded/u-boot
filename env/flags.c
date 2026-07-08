@@ -8,9 +8,9 @@
 #include <linux/string.h>
 #include <linux/ctype.h>
 
+#include <stdio.h>
 #ifdef USE_HOSTCC /* Eliminate "ANSI does not permit..." warnings */
 #include <stdint.h>
-#include <stdio.h>
 #include "fw_env_private.h"
 #include "fw_env.h"
 #include <env_attr.h>
@@ -18,11 +18,11 @@
 #define env_get fw_getenv
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 #else
-#include <common.h>
+#include <linux/kernel.h>
 #include <env_internal.h>
 #endif
 
-#ifdef CONFIG_NET
+#if CONFIG_IS_ENABLED(NET) || CONFIG_IS_ENABLED(NET_LWIP)
 #define ENV_FLAGS_NET_VARTYPE_REPS "im"
 #else
 #define ENV_FLAGS_NET_VARTYPE_REPS ""
@@ -57,7 +57,7 @@ static const char * const env_flags_vartype_names[] = {
 	"decimal",
 	"hexadecimal",
 	"boolean",
-#ifdef CONFIG_NET
+#if CONFIG_IS_ENABLED(NET) || CONFIG_IS_ENABLED(NET_LWIP)
 	"IP address",
 	"MAC address",
 #endif
@@ -211,7 +211,7 @@ static void skip_num(int hex, const char *value, const char **end,
 		*end = value;
 }
 
-#ifdef CONFIG_NET
+#if CONFIG_IS_ENABLED(NET) || CONFIG_IS_ENABLED(NET_LWIP)
 int eth_validate_ethaddr_str(const char *addr)
 {
 	const char *end;
@@ -244,7 +244,7 @@ static int _env_flags_validate_type(const char *value,
 	enum env_flags_vartype type)
 {
 	const char *end;
-#ifdef CONFIG_NET
+#if CONFIG_IS_ENABLED(NET) || CONFIG_IS_ENABLED(NET_LWIP)
 	const char *cur;
 	int i;
 #endif
@@ -273,7 +273,7 @@ static int _env_flags_validate_type(const char *value,
 		if (value[1] != '\0')
 			return -1;
 		break;
-#ifdef CONFIG_NET
+#if CONFIG_IS_ENABLED(NET) || CONFIG_IS_ENABLED(NET_LWIP)
 	case env_flags_vartype_ipaddr:
 		cur = value;
 		for (i = 0; i < 4; i++) {

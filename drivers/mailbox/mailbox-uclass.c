@@ -5,7 +5,6 @@
 
 #define LOG_CATEGORY UCLASS_MAILBOX
 
-#include <common.h>
 #include <dm.h>
 #include <log.h>
 #include <mailbox.h>
@@ -118,27 +117,10 @@ int mbox_free(struct mbox_chan *chan)
 int mbox_send(struct mbox_chan *chan, const void *data)
 {
 	struct mbox_ops *ops = mbox_dev_ops(chan->dev);
-	ulong start_time, timeout_us;
-	int ret;
 
 	debug("%s(chan=%p, data=%p)\n", __func__, chan, data);
 
-	start_time = timer_get_us();
-	timeout_us = chan->tx_timeout_us;
-	/*
-	 * Account for partial us ticks, but if timeout_us is 0, ensure we
-	 * still don't wait at all.
-	 */
-	if (timeout_us)
-		timeout_us++;
-
-	for (;;) {
-		ret = ops->send(chan, data);
-		if (ret != -EBUSY)
-			return ret;
-		if ((timer_get_us() - start_time) >= timeout_us)
-			return -ETIMEDOUT;
-	}
+	return ops->send(chan, data);
 }
 
 int mbox_recv(struct mbox_chan *chan, void *data, ulong timeout_us)
@@ -149,6 +131,15 @@ int mbox_recv(struct mbox_chan *chan, void *data, ulong timeout_us)
 
 	debug("%s(chan=%p, data=%p, timeout_us=%ld)\n", __func__, chan, data,
 	      timeout_us);
+
+	/*
+	 * Some shared memory mailboxes may have empty receive operation,
+	 * because the data are polled by upper layers directly from the
+	 * shared memory region, and there is no completion interrupt or
+	 * bit of any sort.
+	 */
+	if (!ops->recv)
+		return 0;
 
 	start_time = timer_get_us();
 	/*

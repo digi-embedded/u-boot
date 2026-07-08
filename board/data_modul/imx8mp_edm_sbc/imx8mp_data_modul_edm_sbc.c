@@ -3,7 +3,6 @@
  * Copyright 2022 Marek Vasut <marex@denx.de>
  */
 
-#include <common.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/imx8mp_pins.h>
 #include <asm/io.h>
@@ -45,11 +44,6 @@ enum env_location env_get_location(enum env_operation op, int prio)
 {
 	/* Environment is always in eMMC boot partitions */
 	return prio ? ENVL_UNKNOWN : ENVL_MMC;
-}
-
-int board_init(void)
-{
-	return 0;
 }
 
 int board_late_init(void)

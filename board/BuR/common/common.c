@@ -10,7 +10,6 @@
  */
 #include <log.h>
 #include <version.h>
-#include <common.h>
 #include <env.h>
 #include <fdtdec.h>
 #include <i2c.h>
@@ -69,7 +68,7 @@ int brdefaultip_setup(int bus, int chip)
 			 "if test -r ${ipaddr}; then; else setenv ipaddr 192.168.60.%d; setenv serverip 192.168.60.254; setenv gatewayip 192.168.60.254; setenv netmask 255.255.255.0; fi;",
 			 u8buf);
 	else
-		strncpy(defip,
+		strlcpy(defip,
 			"if test -r ${ipaddr}; then; else setenv ipaddr 192.168.60.1; setenv serverip 192.168.60.254; setenv gatewayip 192.168.60.254; setenv netmask 255.255.255.0; fi;",
 			sizeof(defip));
 
@@ -84,7 +83,7 @@ int overwrite_console(void)
 	return 1;
 }
 
-#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_AM33XX)
+#if defined(CONFIG_XPL_BUILD) && defined(CONFIG_AM33XX)
 #include <asm/arch/hardware.h>
 #include <asm/arch/omap.h>
 #include <asm/arch/clock.h>
@@ -176,4 +175,4 @@ void set_mux_conf_regs(void)
 	enable_board_pin_mux();
 }
 
-#endif /* CONFIG_SPL_BUILD && CONFIG_AM33XX */
+#endif /* CONFIG_XPL_BUILD && CONFIG_AM33XX */

@@ -6,13 +6,14 @@
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  */
 
-#include <common.h>
+#include <config.h>
 #include <clock_legacy.h>
 #include <env.h>
 #include <log.h>
 #include <time.h>
 #include <asm/global_data.h>
 #include <linux/libfdt.h>
+#include <linux/sizes.h>
 #include <fdt_support.h>
 #include <asm/processor.h>
 #include <linux/ctype.h>
@@ -427,7 +428,6 @@ static inline void ft_fixup_cache(void *blob)
 
 	ft_fixup_l2cache(blob);
 }
-
 
 void fdt_add_enet_stashing(void *fdt)
 {

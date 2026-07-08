@@ -36,16 +36,13 @@ SECTIONS
 	.data : { *(SORT_BY_ALIGNMENT(.data*)) } >.sram
 
 	. = ALIGN(4);
-	__u_boot_list : { KEEP(*(SORT(__u_boot_list*))) } > .sram
+	__u_boot_list : {
+		KEEP(*(SORT(__u_boot_list*)))
+		. = ALIGN(8);
+	} > .sram
 
-	. = ALIGN(4);
 	__image_copy_end = .;
-
-	.end :
-	{
-		*(.__end)
-	} >.sram
-
+	_end = .;
 	_image_binary_end = .;
 
 	.bss :
@@ -57,3 +54,6 @@ SECTIONS
 		__bss_end = .;
 	} >.sdram
 }
+
+ASSERT(_image_binary_end % 8 == 0, \
+       "_image_binary_end must be 8-byte aligned for device tree");

@@ -7,7 +7,7 @@
  * Based on board/ti/dra7xx/evm.c
  */
 
-#include <common.h>
+#include <config.h>
 #include <env.h>
 #include <fastboot.h>
 #include <fdt_support.h>
@@ -42,6 +42,7 @@
 
 #include "../common/board_detect.h"
 #include "../common/cape_detect.h"
+#include "../common/fdt_ops.h"
 #include "mux_data.h"
 
 #ifdef CONFIG_SUPPORT_EMMC_BOOT
@@ -515,8 +516,7 @@ int get_voltrail_opp(int rail_offset)
 	return opp;
 }
 
-
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 /* No env to setup for SPL */
 static inline void setup_board_eeprom_env(void) { }
 
@@ -539,7 +539,7 @@ void do_board_detect(void)
 #endif
 }
 
-#else	/* CONFIG_SPL_BUILD */
+#else	/* CONFIG_XPL_BUILD */
 
 /* Override function to read eeprom information: actual i2c read done by SPL*/
 void do_board_detect(void)
@@ -578,6 +578,18 @@ void do_board_detect(void)
 			 "Board: %s REV %s\n", bname, board_ti_get_rev());
 }
 
+static struct ti_fdt_map ti_omap_am57_evm_fdt_map[] = {
+	{"beagle_x15", "ti/omap/am57xx-beagle-x15.dtb"},
+	{"beagle_x15_revb1", "ti/omap/am57xx-beagle-x15-revb1.dtb"},
+	{"beagle_x15_revc", "ti/omap/am57xx-beagle-x15-revc.dtb"},
+	{"am5729_beagleboneai", "ti/omap/am5729-beagleboneai.dtb"},
+	{"am572x_idk", "ti/omap/am572x-idk.dtb"},
+	{"am574x_idk", "ti/omap/am574x-idk.dtb"},
+	{"am57xx_evm", "ti/omap/am57xx-beagle-x15.dtb"},
+	{"am57xx_evm_reva3", "ti/omap/am57xx-beagle-x15.dtb"},
+	{"am571x_idk", "ti/omap/am571x-idk.dtb"},
+};
+
 static void setup_board_eeprom_env(void)
 {
 	char *name = "beagle_x15";
@@ -615,9 +627,10 @@ static void setup_board_eeprom_env(void)
 
 invalid_eeprom:
 	set_board_info_env(name);
+	ti_set_fdt_env(name, ti_omap_am57_evm_fdt_map);
 }
 
-#endif	/* CONFIG_SPL_BUILD */
+#endif	/* CONFIG_XPL_BUILD */
 
 void vcores_init(void)
 {
@@ -784,7 +797,7 @@ int board_late_init(void)
 	if (board_is_bbai())
 		env_set("console", "ttyS0,115200n8");
 
-#if !defined(CONFIG_SPL_BUILD)
+#if !defined(CONFIG_XPL_BUILD)
 	board_ti_set_ethaddr(2);
 #endif
 
@@ -936,7 +949,7 @@ const struct mmc_platform_fixups *platform_fixups_mmc(uint32_t addr)
 }
 #endif
 
-#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_OS_BOOT)
+#if defined(CONFIG_XPL_BUILD) && defined(CONFIG_SPL_OS_BOOT)
 int spl_start_uboot(void)
 {
 	/* break into full u-boot on 'c' */

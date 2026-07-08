@@ -4,10 +4,8 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
-#include <common.h>
 #include <command.h>
 #include <asm/mach-imx/video.h>
-#include <asm/arch/video_common.h>
 #include <imx8_hdmi.h>
 
 int do_hdp(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])

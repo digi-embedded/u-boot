@@ -3,7 +3,7 @@
  * Copyright (C) 2019-20 Sean Anderson <seanga2@gmail.com>
  */
 
-#include <common.h>
+#include <config.h>
 #include <clk.h>
 #include <dm.h>
 #include <fdt_support.h>
@@ -42,9 +42,4 @@ static int sram_init(void)
 int board_early_init_f(void)
 {
 	return sram_init();
-}
-
-int board_init(void)
-{
-	return 0;
 }

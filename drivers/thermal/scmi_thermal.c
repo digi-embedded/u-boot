@@ -3,22 +3,33 @@
  * Copyright 2022 NXP
  */
 
-#include <common.h>
 #include <dm.h>
 #include <dm/device_compat.h>
 #include <thermal.h>
 #include <scmi_agent.h>
+#include <scmi_agent-uclass.h>
 #include <scmi_protocols.h>
 #include <asm/types.h>
+#include <asm/unaligned.h>
 #include <dm/device-internal.h>
 #include <dm/device.h>
+#include <linux/math64.h>
 
 struct scmi_thermal_priv {
 	s16 num_sensors;
 	s16 thermal_id;
+	int exponent;
 	struct scmi_sensor_descrition_get_p2a *desc_buf;
 	size_t desc_buf_size;
 };
+
+static inline unsigned int pow10(int a)
+{
+	if (a == 0)
+		return 1;
+	else
+		return 10 * pow10(a - 1);
+}
 
 static int scmi_thermal_get_temp(struct udevice *dev, int *temp)
 {
@@ -34,6 +45,8 @@ static int scmi_thermal_get_temp(struct udevice *dev, int *temp)
 		.out_msg_sz = sizeof(out),
 	};
 	int ret;
+	int scale = 3;
+	u64 f, val;
 
 	ret = devm_scmi_process_msg(dev, &msg);
 	if (ret)
@@ -43,7 +56,16 @@ static int scmi_thermal_get_temp(struct udevice *dev, int *temp)
 	if (ret < 0)
 		return ret;
 
-	*temp = out.val.value_low;
+	val = get_unaligned_le64(&out.val.value_low);
+	scale = scale + priv->exponent;
+
+	f = pow10(abs(scale));
+	if (scale > 0)
+		val *= f;
+	else
+		val = div64_u64(val, f);
+
+	*temp = (int)val;
 
 	return ret;
 }
@@ -198,6 +220,8 @@ static int scmi_thermal_probe(struct udevice *dev)
 			desc = &priv->desc_buf->desc[cnt];
 			if ((desc->attr_high & 0xff) == 0x2) {
 				priv->thermal_id = desc->id; /* Only get one thermal sensor */
+				priv->exponent = (desc->attr_high >> 11) & 0x1f;
+				priv->exponent = (priv->exponent << 27) >> 27;
 				dev_dbg(dev, "thermal id %u\n", priv->thermal_id);
 				find = true;
 				break;
@@ -227,3 +251,10 @@ U_BOOT_DRIVER(scmi_thermal) = {
 	.flags = DM_FLAG_PRE_RELOC,
 	.priv_auto	= sizeof(struct scmi_thermal_priv),
 };
+
+static struct scmi_proto_match match[] = {
+	{ .proto_id = SCMI_PROTOCOL_ID_SENSOR },
+	{ /* Sentinel */ }
+};
+
+U_BOOT_SCMI_PROTO_DRIVER(scmi_thermal, match);

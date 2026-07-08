@@ -3,14 +3,8 @@
  * Copyright 2021 Collabora Ltd.
  */
 
-#include <common.h>
 #include <asm/arch/sys_proto.h>
 #include <env.h>
-
-int board_init(void)
-{
-	return 0;
-}
 
 int board_late_init(void)
 {

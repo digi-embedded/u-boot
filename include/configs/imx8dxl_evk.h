@@ -9,9 +9,9 @@
 #include <linux/sizes.h>
 #include <asm/arch/imx-regs.h>
 
-#include "imx_env.h"
+#include <env/nxp/imx_env.h>
 
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 #define CFG_MALLOC_F_ADDR		0x82200000
 
 /*
@@ -112,7 +112,7 @@
 	"cntr_file=os_cntr_signed.bin\0" \
 	"boot_fdt=try\0" \
 	"fdt_file=undefined\0" \
-	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
+	"mmcdev="__stringify(CONFIG_ENV_MMC_DEVICE_INDEX)"\0" \
 	"mmcpart=1\0" \
 	"mmcroot=/dev/mmcblk1p2 rootwait rw\0" \
 	"mmcautodetect=yes\0" \
@@ -184,7 +184,4 @@
 
 /* NAND stuff */
 #define CFG_SYS_NAND_BASE           0x40000000
-
-#define PHY_ANEG_TIMEOUT 20000
-
 #endif /* __IMX8DXL_EVK_H */

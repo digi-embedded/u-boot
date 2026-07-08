@@ -29,7 +29,6 @@
 		ti_sci_enc: ti-fs-enc.bin {
 			filename = "ti-sysfw/ti-sci-firmware-am64x_sr2-hs-enc.bin";
 			type = "blob-ext";
-			optional;
 		};
 		combined_sysfw_cfg: combined-sysfw-cfg.bin {
 			filename = "combined-sysfw-cfg.bin";
@@ -38,7 +37,6 @@
 		sysfw_inner_cert: sysfw-inner-cert {
 			filename = "ti-sysfw/ti-sci-firmware-am64x_sr2-hs-cert.bin";
 			type = "blob-ext";
-			optional;
 		};
 
 	};
@@ -69,7 +67,6 @@
 		ti_sci_enc_fs: ti-fs-enc.bin {
 			filename = "ti-sysfw/ti-sci-firmware-am64x_sr2-hs-fs-enc.bin";
 			type = "blob-ext";
-			optional;
 		};
 		combined_sysfw_cfg_fs: combined-sysfw-cfg.bin {
 			filename = "combined-sysfw-cfg.bin";
@@ -78,7 +75,6 @@
 		sysfw_inner_cert_fs: sysfw-inner-cert {
 			filename = "ti-sysfw/ti-sci-firmware-am64x_sr2-hs-fs-cert.bin";
 			type = "blob-ext";
-			optional;
 		};
 
 	};
@@ -105,7 +101,6 @@
 		ti_sci_gp: ti-sci-gp.bin {
 			filename = "ti-sysfw/ti-sci-firmware-am64x-gp.bin";
 			type = "blob-ext";
-			optional;
 		};
 		combined_sysfw_cfg_gp: combined-sysfw-cfg-gp.bin {
 			filename = "combined-sysfw-cfg.bin";
@@ -114,15 +109,26 @@
 	};
 };
 
+#include "k3-binman-capsule-r5.dtsi"
+
+// Capsule update GUIDs in string form.  See am64x_evm.h
+#define AM64X_SK_TIBOOT3_IMAGE_GUID_STR "ede0a0d5-9116-4bfb-aa54-09e97b5afe1a"
+
+&capsule_tiboot3 {
+	efi-capsule {
+		image-guid = AM64X_SK_TIBOOT3_IMAGE_GUID_STR;
+	};
+};
+
 #endif
 
 #ifdef CONFIG_TARGET_AM642_A53_EVM
 
-#define SPL_AM642_EVM_DTB "spl/dts/k3-am642-evm.dtb"
-#define SPL_AM642_SK_DTB "spl/dts/k3-am642-sk.dtb"
+#define SPL_AM642_EVM_DTB "spl/dts/ti/k3-am642-evm.dtb"
+#define SPL_AM642_SK_DTB "spl/dts/ti/k3-am642-sk.dtb"
 
 #define AM642_EVM_DTB "u-boot.dtb"
-#define AM642_SK_DTB "arch/arm/dts/k3-am642-sk.dtb"
+#define AM642_SK_DTB "dts/upstream/src/arm64/ti/k3-am642-sk.dtb"
 
 &binman {
 	ti-spl {
@@ -133,6 +139,37 @@
 			#address-cells = <1>;
 
 			images {
+				atf {
+					ti-secure {
+						auth-in-place = <0xa02>;
+
+						firewall-24-5 {
+							insert-template = <&firewall_armv8_atf_fg>;
+							id = <24>;
+							region = <5>;
+						};
+					};
+				};
+
+				tee {
+					ti-secure {
+						auth-in-place = <0xa02>;
+
+						firewall-1-0 {
+							insert-template = <&firewall_bg_3>;
+							id = <1>;
+							region = <0>;
+						};
+
+
+						firewall-1-1 {
+							insert-template = <&firewall_armv8_optee_fg>;
+							id = <1>;
+							region = <1>;
+						};
+					};
+				};
+
 				dm {
 					blob-ext {
 						filename = "/dev/null";
@@ -373,4 +410,23 @@
 		};
 	};
 };
+
+#include "k3-binman-capsule.dtsi"
+
+// Capsule update GUIDs in string form.  See am64x_evm.h
+#define AM64X_SK_SPL_IMAGE_GUID_STR "77678f5c-64d4-4910-ad75-52c9d95cdb1d"
+#define AM64X_SK_UBOOT_IMAGE_GUID_STR "c6ad43a9-7d31-4f5d-83e9-b8efecae05bf"
+
+&capsule_tispl {
+	efi-capsule {
+		image-guid = AM64X_SK_SPL_IMAGE_GUID_STR;
+	};
+};
+
+&capsule_uboot {
+	efi-capsule {
+		image-guid = AM64X_SK_UBOOT_IMAGE_GUID_STR;
+	};
+};
+
 #endif

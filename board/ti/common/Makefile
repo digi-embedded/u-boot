@@ -2,5 +2,7 @@
 # Copyright (C) 2015-2016 Texas Instruments Incorporated - https://www.ti.com/
 
 obj-${CONFIG_TI_I2C_BOARD_DETECT} += board_detect.o
-obj-${CONFIG_CMD_EXTENSION} += cape_detect.o
+obj-${CONFIG_$(PHASE_)SUPPORT_EXTENSION_SCAN} += cape_detect.o
 obj-${CONFIG_OF_LIBFDT} += fdt_ops.o
+obj-${CONFIG_ARCH_K3} += k3-ddr.o
+obj-${CONFIG_TI_K3_BOARD_LFOSC} += k3_32k_lfosc.o

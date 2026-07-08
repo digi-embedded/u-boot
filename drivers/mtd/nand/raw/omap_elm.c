@@ -12,7 +12,6 @@
  *    sets in uboot
  */
 
-#include <common.h>
 #include <asm/io.h>
 #include <linux/errno.h>
 #include <asm/arch/hardware.h>
@@ -134,7 +133,6 @@ int elm_check_error(u8 *syndrome, enum bch_level bch_type, u32 *error_count,
 
 	return 0;
 }
-
 
 /**
  * elm_config - Configure ELM module

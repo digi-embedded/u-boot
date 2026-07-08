@@ -5,8 +5,8 @@
  */
 
 #include <android_image.h>
-#include <common.h>
 #include <command.h>
+#include <env.h>
 #include <image.h>
 #include <mapmem.h>
 
@@ -15,6 +15,7 @@
 
 /* Please use abootimg_addr() macro to obtain the boot image address */
 static ulong _abootimg_addr = -1;
+static ulong _ainit_bootimg_addr = -1;
 static ulong _avendor_bootimg_addr = -1;
 
 ulong get_abootimg_addr(void)
@@ -22,9 +23,24 @@ ulong get_abootimg_addr(void)
 	return (_abootimg_addr == -1 ? image_load_addr : _abootimg_addr);
 }
 
+void set_abootimg_addr(ulong addr)
+{
+	_abootimg_addr = addr;
+}
+
+ulong get_ainit_bootimg_addr(void)
+{
+	return _ainit_bootimg_addr;
+}
+
 ulong get_avendor_bootimg_addr(void)
 {
 	return _avendor_bootimg_addr;
+}
+
+void set_avendor_bootimg_addr(ulong addr)
+{
+	_avendor_bootimg_addr = addr;
 }
 
 static int abootimg_get_ver(int argc, char *const argv[])
@@ -76,26 +92,18 @@ static int abootimg_get_recovery_dtbo(int argc, char *const argv[])
 
 static int abootimg_get_dtb_load_addr(int argc, char *const argv[])
 {
+	struct andr_image_data img_data = {0};
+	const void *vendor_boot_hdr = NULL;
+
 	if (argc > 1)
 		return CMD_RET_USAGE;
-	struct andr_image_data img_data = {0};
-	const struct andr_boot_img_hdr_v0 *hdr;
-	const struct andr_vnd_boot_img_hdr *vhdr;
 
-	hdr = map_sysmem(abootimg_addr(), sizeof(*hdr));
 	if (get_avendor_bootimg_addr() != -1)
-		vhdr = map_sysmem(get_avendor_bootimg_addr(), sizeof(*vhdr));
+		vendor_boot_hdr = (const void *)get_avendor_bootimg_addr();
 
-	if (!android_image_get_data(hdr, vhdr, &img_data)) {
-		if (get_avendor_bootimg_addr() != -1)
-			unmap_sysmem(vhdr);
-		unmap_sysmem(hdr);
+	if (!android_image_get_data((const void *)abootimg_addr(),
+				    vendor_boot_hdr, &img_data))
 		return CMD_RET_FAILURE;
-	}
-
-	if (get_avendor_bootimg_addr() != -1)
-		unmap_sysmem(vhdr);
-	unmap_sysmem(hdr);
 
 	if (img_data.header_version < 2) {
 		printf("Error: header_version must be >= 2 for this\n");
@@ -180,7 +188,7 @@ static int do_abootimg_addr(struct cmd_tbl *cmdtp, int flag, int argc,
 	char *endp;
 	ulong img_addr;
 
-	if (argc < 2 || argc > 3)
+	if (argc < 2 || argc > 4)
 		return CMD_RET_USAGE;
 
 	img_addr = hextoul(argv[1], &endp);
@@ -191,14 +199,51 @@ static int do_abootimg_addr(struct cmd_tbl *cmdtp, int flag, int argc,
 
 	_abootimg_addr = img_addr;
 
-	if (argc == 3) {
+	if (argc > 2) {
 		img_addr = simple_strtoul(argv[2], &endp, 16);
 		if (*endp != '\0') {
-			printf("Error: Wrong vendor image address\n");
+			printf("Error: Wrong vendor_boot image address\n");
 			return CMD_RET_FAILURE;
 		}
 
 		_avendor_bootimg_addr = img_addr;
+	}
+
+	if (argc == 4) {
+		img_addr = simple_strtoul(argv[3], &endp, 16);
+		if (*endp != '\0') {
+			printf("Error: Wrong init_boot image address\n");
+			return CMD_RET_FAILURE;
+		}
+
+		_ainit_bootimg_addr = img_addr;
+	}
+
+	return CMD_RET_SUCCESS;
+}
+
+static int abootimg_get_ramdisk(int argc, char *const argv[])
+{
+	ulong rd_data, rd_len;
+
+	if (argc > 2)
+		return CMD_RET_USAGE;
+
+	/*
+	 * Call android_image_get_ramdisk with UNMAPPED addresses
+	 * The function will do its own mapping internally as needed
+	 */
+	if (android_image_get_ramdisk((void *)abootimg_addr(),
+				      (void *)get_avendor_bootimg_addr(),
+				      &rd_data, &rd_len))
+		return CMD_RET_FAILURE;
+
+	if (argc == 0) {
+		printf("%lx\n", rd_data);
+	} else {
+		env_set_hex(argv[0], rd_data);
+		if (argc == 2)
+			env_set_hex(argv[1], rd_len);
 	}
 
 	return CMD_RET_SUCCESS;
@@ -223,6 +268,8 @@ static int do_abootimg_get(struct cmd_tbl *cmdtp, int flag, int argc,
 		return abootimg_get_dtb_load_addr(argc, argv);
 	else if (!strcmp(param, "dtb"))
 		return abootimg_get_dtb(argc, argv);
+	else if (!strcmp(param, "ramdisk"))
+		return abootimg_get_ramdisk(argc, argv);
 
 	return CMD_RET_USAGE;
 }
@@ -244,7 +291,7 @@ static int do_abootimg_dump(struct cmd_tbl *cmdtp, int flag, int argc,
 }
 
 static struct cmd_tbl cmd_abootimg_sub[] = {
-	U_BOOT_CMD_MKENT(addr, 3, 1, do_abootimg_addr, "", ""),
+	U_BOOT_CMD_MKENT(addr, 4, 1, do_abootimg_addr, "", ""),
 	U_BOOT_CMD_MKENT(dump, 2, 1, do_abootimg_dump, "", ""),
 	U_BOOT_CMD_MKENT(get, 5, 1, do_abootimg_get, "", ""),
 };
@@ -272,7 +319,7 @@ static int do_abootimg(struct cmd_tbl *cmdtp, int flag, int argc,
 U_BOOT_CMD(
 	abootimg, CONFIG_SYS_MAXARGS, 0, do_abootimg,
 	"manipulate Android Boot Image",
-	"addr <boot_img_addr> [<vendor_boot_img_addr>]>\n"
+	"addr <boot_img_addr> [<vendor_boot_img_addr> [<init_boot_img_addr>]]\n"
 	"    - set the address in RAM where boot image is located\n"
 	"      ($loadaddr is used by default)\n"
 	"abootimg dump dtb\n"
@@ -289,5 +336,9 @@ U_BOOT_CMD(
 	"    - get address and size (hex) of DT blob in the image by index\n"
 	"      <num>: index number of desired DT blob in DTB area\n"
 	"      [addr_var]: variable name to contain DT blob address\n"
-	"      [size_var]: variable name to contain DT blob size"
+	"      [size_var]: variable name to contain DT blob size\n"
+	"abootimg get ramdisk [addr_var [size_var]]\n"
+	"    - get address and size (hex) of ramdisk in the image\n"
+	"      [addr_var]: variable name to contain ramdisk address\n"
+	"      [size_var]: variable name to contain ramdisk size"
 );

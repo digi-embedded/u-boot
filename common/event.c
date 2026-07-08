@@ -9,13 +9,13 @@
 
 #define LOG_CATEGORY	LOGC_EVENT
 
-#include <common.h>
 #include <event.h>
 #include <event_internal.h>
 #include <log.h>
 #include <linker_lists.h>
 #include <malloc.h>
 #include <asm/global_data.h>
+#include <linux/errno.h>
 #include <linux/list.h>
 #include <relocate.h>
 
@@ -48,6 +48,9 @@ const char *const type_name[] = {
 
 	/* main loop events */
 	"main_loop",
+
+	/* livetree has been built */
+	"of_live_init",
 };
 
 _Static_assert(ARRAY_SIZE(type_name) == EVT_COUNT, "event type_name size");

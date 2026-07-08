@@ -1,125 +1,50 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2024 NXP
+ * Copyright 2025 NXP
  */
 
-&{/soc@0} {
-	bootph-all;
-	bootph-pre-ram;
+#include "imx95-u-boot.dtsi"
+
+/ {
+	chosen {
+		bootargs = "console=ttyLP0,115200 earlycon";
+	};
+
+	aliases {
+		pci0 = &netc_bus0;
+		pci1 = &netc_bus1;
+		usb0 = &usb3_dwc3;
+		usb1 = &usb2;
+		usb_gadget0 = &usb3_dwc3;
+		usb_gadget1 = &usbg2;
+	};
+
+	usbg2: usbg2 {
+		compatible = "fsl,imx27-usb-gadget";
+		dr_mode = "peripheral";
+		chipidea,usb = <&usb2>;
+		bootph-pre-ram;
+		status = "okay";
+	};
 };
 
-&aips1 {
-	bootph-all;
-	bootph-pre-ram;
+&{/binman/m33-oei-ddrfw/imx-lpddr/imx-lpddr-imem} {
+	filename = "lpddr4x_imem_v202409.bin";
 };
 
-&aips2 {
-	bootph-all;
-	bootph-pre-ram;
+&{/binman/m33-oei-ddrfw/imx-lpddr/imx-lpddr-dmem} {
+	filename = "lpddr4x_dmem_v202409.bin";
 };
 
-&aips3 {
-	bootph-pre-ram;
+&{/binman/m33-oei-ddrfw/imx-lpddr-qb/imx-lpddr-imem-qb} {
+	filename = "lpddr4x_imem_qb_v202409.bin";
 };
 
-&gpio1 {
-	reg = <0 0x47400000 0 0x1000>, <0 0x47400040 0 0x40>;
+&{/binman/m33-oei-ddrfw/imx-lpddr-qb/imx-lpddr-dmem-qb} {
+	filename = "lpddr4x_dmem_qb_v202409.bin";
 };
 
-&gpio2 {
-	reg = <0 0x43810000 0 0x1000>, <0 0x43810040 0 0x40>;
-	bootph-pre-ram;
-};
-
-&gpio3 {
-	reg = <0 0x43820000 0 0x1000>, <0 0x43820040 0 0x40>;
-	bootph-pre-ram;
-};
-
-&gpio4 {
-	reg = <0 0x43840000 0 0x1000>, <0 0x43840040 0 0x40>;
-	bootph-pre-ram;
-};
-
-&gpio5 {
-	reg = <0 0x43850000 0 0x1000>, <0 0x43850040 0 0x40>;
-	bootph-pre-ram;
-};
-
-&lpuart1 {
-	clocks = <&scmi_clk IMX95_CLK_LPUART1>, <&scmi_clk IMX95_CLK_LPUART1>;
-	clock-names = "ipg", "per";
-	bootph-pre-ram;
-};
-
-&mu2 {
-	bootph-all;
-	bootph-pre-ram;
-};
-
-&dummy {
-	bootph-all;
-	bootph-pre-ram;
-};
-
-&osc_24m {
-	bootph-all;
-	bootph-pre-ram;
-};
-
-&clk_ext1 {
-	bootph-all;
-	bootph-pre-ram;
-};
-
-&sram0 {
-	bootph-all;
-	bootph-pre-ram;
-};
-
-&scmi_buf0 {
-	bootph-all;
-	bootph-pre-ram;
-};
-
-&scmi_buf1 {
-	bootph-all;
-	bootph-pre-ram;
-};
-
-&{/firmware} {
-	bootph-all;
-        bootph-pre-ram;
-};
-
-&{/firmware/scmi} {
-	bootph-all;
-        bootph-pre-ram;
-};
-
-&{/firmware/scmi/protocol@11} {
-	bootph-all;
-        bootph-pre-ram;
-};
-
-&{/firmware/scmi/protocol@13} {
-	bootph-all;
-        bootph-pre-ram;
-};
-
-&{/firmware/scmi/protocol@14} {
-	bootph-all;
-        bootph-pre-ram;
-};
-
-&{/firmware/scmi/protocol@15} {
-	bootph-all;
-};
-
-&{/firmware/scmi/protocol@19} {
-	bootph-all;
-	bootph-pre-ram;
-
+&scmi_iomuxc {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_hog>;
 
@@ -129,17 +54,45 @@
 
 		fsl,pins = <
 			IMX95_PAD_XSPI1_SCLK__GPIO5_IO_BIT9			0x3fe
-			IMX95_PAD_CCM_CLKO1__GPIO3_IO_BIT26			0x3fe
-			IMX95_PAD_CCM_CLKO2__GPIO3_IO_BIT27			0x3fe
+			IMX95_PAD_CCM_CLKO1__GPIO3_IO_BIT26			0x30e
+			IMX95_PAD_CCM_CLKO2__GPIO3_IO_BIT27			0x30e
+		>;
+	};
+
+	pinctrl_flexspi1: flexspi1grp {
+		fsl,pins = <
+			IMX95_PAD_SD3_CMD__FLEXSPI1_A_SS0_B			0x3fe
+			IMX95_PAD_XSPI1_SCLK__GPIO5_IO_BIT9			0x3fe
+			IMX95_PAD_SD3_CLK__FLEXSPI1_A_SCLK			0x3fe
+			IMX95_PAD_SD3_DATA0__FLEXSPI1_A_DATA_BIT0		0x3fe
+			IMX95_PAD_SD3_DATA1__FLEXSPI1_A_DATA_BIT1		0x3fe
+			IMX95_PAD_SD3_DATA2__FLEXSPI1_A_DATA_BIT2		0x3fe
+			IMX95_PAD_SD3_DATA3__FLEXSPI1_A_DATA_BIT3		0x3fe
 		>;
 	};
 };
 
-&pinctrl_uart1 {
+&lpuart1 {
+	bootph-pre-ram;
+};
+
+&reg_usdhc2_vmmc {
 	bootph-pre-ram;
 };
 
 &usdhc1 {
+	bootph-pre-ram;
+};
+
+&usdhc2 {
+	bootph-pre-ram;
+};
+
+&wdog3 {
+	status = "disabled";
+};
+
+&pinctrl_uart1 {
 	bootph-pre-ram;
 };
 
@@ -152,10 +105,6 @@
 };
 
 &pinctrl_usdhc1_200mhz {
-	bootph-pre-ram;
-};
-
-&usdhc2 {
 	bootph-pre-ram;
 };
 
@@ -175,10 +124,6 @@
 	bootph-pre-ram;
 };
 
-&reg_usdhc2_vmmc {
-	bootph-pre-ram;
-};
-
 &pinctrl_reg_usdhc2_vmmc {
 	bootph-pre-ram;
 };
@@ -186,26 +131,50 @@
 &usb2 {
 	compatible = "fsl,imx8mm-usb", "fsl,imx7d-usb";
 	/delete-property/power-domains;
+	bootph-pre-ram;
+};
+
+&usbmisc {
+	bootph-pre-ram;
+};
+
+&usbphynop {
+	bootph-pre-ram;
+};
+
+&usb3_phy {
+	bootph-pre-ram;
 };
 
 &usb3 {
+	clocks = <&scmi_clk IMX95_CLK_HSIO>,
+			 <&scmi_clk IMX95_CLK_24M>,
+			 <&scmi_clk IMX95_CLK_32K>;
+	clock-names = "hsio", "ref", "suspend";
+
 	/delete-property/power-domains;
+	bootph-pre-ram;
 };
 
 &usb3_dwc3 {
-	compatible = "fsl,imx95a-dwc3", "fsl,imx8mq-dwc3", "snps,dwc3";
-};
-
-&elemu1 {
-	status = "okay";
-	bootph-all;
 	bootph-pre-ram;
 };
 
-&elemu3 {
+&flexspi1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_flexspi1>;
+	assigned-clock-rates = <80000000>;
 	status = "okay";
-	bootph-all;
-	bootph-pre-ram;
+
+	flash0: flash@0 {
+		reg = <0>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "jedec,spi-nor";
+		spi-max-frequency = <80000000>;
+		spi-tx-bus-width = <4>;
+		spi-rx-bus-width = <4>;
+	};
 };
 
 &dispmix_csr {

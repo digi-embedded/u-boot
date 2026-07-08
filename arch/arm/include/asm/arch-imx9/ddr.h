@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
- * Copyright 2022 NXP
+ * Copyright 2022-2025 NXP
  */
 
 #ifndef __ASM_ARCH_IMX8M_DDR_H
@@ -20,6 +20,7 @@
 #define REG_DDR_TIMING_CFG_0	(DDR_CTL_BASE + 0x104)
 #define REG_DDR_SDRAM_CFG		(DDR_CTL_BASE + 0x110)
 #define REG_DDR_SDRAM_CFG2		(DDR_CTL_BASE + 0x114)
+#define REG_DDR_SDRAM_INTERVAL	(DDR_CTL_BASE + 0x124)
 #define REG_DDR_TIMING_CFG_4	(DDR_CTL_BASE + 0x160)
 #define REG_DDR_DEBUG_19		(DDR_CTL_BASE + 0xF48)
 #define REG_DDR_SDRAM_CFG_3	(DDR_CTL_BASE + 0x260)
@@ -27,6 +28,7 @@
 #define REG_DDR_SDRAM_MD_CNTL_2	(DDR_CTL_BASE + 0x270)
 #define REG_DDR_SDRAM_MPR4	(DDR_CTL_BASE + 0x28C)
 #define REG_DDR_SDRAM_MPR5	(DDR_CTL_BASE + 0x290)
+#define REG_DDR_SDRAM_REF_RATE	(DDR_CTL_BASE + 0x2C0)
 
 #define REG_DDR_ERR_EN		(DDR_CTL_BASE + 0x1000)
 
@@ -101,8 +103,8 @@ struct dram_timing_info {
 
 extern struct dram_timing_info dram_timing;
 
-#if defined(CONFIG_IMX93) || defined(CONFIG_IMX91)	/* CONFIG_IMX93 or CONFIG_IMX91 */
-#if (defined(CONFIG_IMX_SNPS_DDR_PHY_QB_GEN) || defined(CONFIG_IMX_SNPS_DDR_PHY_QB))
+#if IS_ENABLED(CONFIG_IMX93) || IS_ENABLED(CONFIG_IMX91)	/* CONFIG_IMX93 or CONFIG_IMX91 */
+#if (IS_ENABLED(CONFIG_IMX_SNPS_DDR_PHY_QB_GEN) || IS_ENABLED(CONFIG_IMX_SNPS_DDR_PHY_QB))
 #define DDRPHY_QB_FSP_SIZE	3
 #define DDRPHY_QB_ERR_SIZE	6
 #define DDRPHY_QB_CSR_SIZE	1792
@@ -127,17 +129,23 @@ int ddrphy_qb_save(void);
 int ddr_cfg_phy_qb(struct dram_timing_info *timing_info, int fsp_id);
 #endif
 #endif
-#elif defined(CONFIG_IMX95)	|| defined(CONFIG_IMX94) /* CONFIG_IMX95 || CONFIG_IMX94 */
-#if   defined(CONFIG_IMX_SNPS_DDR_PHY_QB_GEN)
+
+#elif IS_ENABLED(CONFIG_IMX95) || IS_ENABLED(CONFIG_IMX94) || IS_ENABLED(CONFIG_IMX952) /* iMX95, iMX94, iMX952 */
+#if IS_ENABLED(CONFIG_IMX_SNPS_DDR_PHY_QB_GEN)
 /* Quick Boot related */
 #define DDRPHY_QB_CSR_SIZE	5168
 #define DDRPHY_QB_ACSM_SIZE	4 * 1024
 #define DDRPHY_QB_MSB_SIZE	0x200
 #define DDRPHY_QB_PSTATES	0
 #define DDRPHY_QB_PST_SIZE	DDRPHY_QB_PSTATES * 4 * 1024
+
+/**
+ * This structure needs to be aligned with the one in OEI.
+ */
 struct ddrphy_qb_state {
-#define MAC_LENGTH              8 /** 256 bits, 32-bit aligned */
-	uint32_t mac[MAC_LENGTH];     /** For 95A0/1 use mac[0] to keep CRC32 value */
+	u32 crc;		  /* Used for ensuring integrity in DRAM */
+#define MAC_LENGTH              8 /* 256 bits, 32-bit aligned */
+	u32 mac[MAC_LENGTH];	  /* For 95A0/1 use mac[0] to keep CRC32 value */
 	u8 TrainedVREFCA_A0;
 	u8 TrainedVREFCA_A1;
 	u8 TrainedVREFCA_B0;
@@ -171,8 +179,8 @@ struct ddrphy_qb_state {
 };
 #elif  defined(CONFIG_IMX_SNPS_DDR_PHY_QB)
 	#error "Quick Boot flow not supported in SPL for iMX95, please use DDR OEI!"
-#endif /* #if   defined(CONFIG_IMX_SNPS_DDR_PHY_QB_GEN)  */
-#endif /* #elif defined(CONFIG_IMX95) */
+#endif /* #if IS_ENABLED(CONFIG_IMX_SNPS_DDR_PHY_QB_GEN)  */
+#endif /* #if IS_ENABLED(CONFIG_IMX95) || IS_ENABLED(CONFIG_IMX94) */
 
 void ddr_load_train_firmware(enum fw_type type);
 int ddr_init(struct dram_timing_info *timing_info);
@@ -192,6 +200,7 @@ void ddrphy_init_set_dfi_clk(unsigned int drate);
 void ddrphy_init_read_msg_block(enum fw_type type);
 
 void get_trained_CDD(unsigned int fsp);
+u32 lpddr4_mr_read(u32 mr_rank, u32 mr_addr);
 
 ulong ddrphy_addr_remap(u32 paddr_apb_from_ctlr);
 
@@ -214,8 +223,5 @@ static inline void reg32setbit(unsigned long addr, u32 bit)
 	reg32_write(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + ddrphy_addr_remap(addr), data)
 #define dwc_ddrphy_apb_rd(addr) \
 	reg32_read(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + ddrphy_addr_remap(addr))
-
-extern struct dram_cfg_param ddrphy_trained_csr[];
-extern u32 ddrphy_trained_csr_num;
 
 #endif

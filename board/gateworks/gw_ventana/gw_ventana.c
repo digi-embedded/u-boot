@@ -6,7 +6,7 @@
  */
 
 #include <command.h>
-#include <common.h>
+#include <env.h>
 #include <fdt_support.h>
 #include <gsc.h>
 #include <hwconfig.h>

@@ -7,7 +7,7 @@ config DFU
 config DFU_OVER_USB
 	bool
 	select HASH
-	depends on USB_GADGET
+	depends on USB_GADGET_DOWNLOAD
 
 config DFU_OVER_TFTP
 	bool
@@ -20,6 +20,7 @@ config DFU_WRITE_ALT
 config DFU_TFTP
 	bool "DFU via TFTP"
 	depends on NETDEVICES
+	depends on !NET_LWIP
 	select UPDATE_COMMON
 	select DFU_OVER_TFTP
 	help
@@ -68,6 +69,7 @@ config DFU_RAM
 
 config DFU_SF
 	bool "SPI flash back end for DFU"
+	depends on SPI_FLASH || DM_SPI_FLASH
 	help
 	  This option enables using DFU to read and write to SPI flash based
 	  storage.
@@ -87,8 +89,16 @@ config DFU_VIRT
 	  used at board level to manage specific behavior
 	  (OTP update for example).
 
+config DFU_SCSI
+	bool "SCSI flash back end for DFU"
+	help
+	  This option enables using DFU to read and write to SCSI devices
+	  used at board level to manage specific behavior
+	  (OTP update for example).
+
 config SET_DFU_ALT_INFO
 	bool "Dynamic set of DFU alternate information"
+	depends on !COMPILE_TEST
 	help
 	  This option allows to call the function set_dfu_alt_info to
 	  dynamically build dfu_alt_info in board.

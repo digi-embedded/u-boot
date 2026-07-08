@@ -9,9 +9,43 @@
 #ifndef __SCENE_INTERNAL_H
 #define __SCENE_INTERNAL_H
 
+#include <linux/types.h>
+
+struct expo;
+struct expo_action;
+struct expo_arrange_info;
+struct expo_theme;
+struct scene_obj;
+struct scene_obj_menu;
+struct scene_obj_textline;
+struct scene_obj_txtedit;
+struct scene_txt_generic;
 struct vidconsole_bbox;
 
+enum scene_obj_t;
+
 typedef int (*expo_scene_obj_iterator)(struct scene_obj *obj, void *priv);
+
+/**
+ * enum scene_bbox_t - Parts of an object which can have a bounding box
+ *
+ * Objects can provide any or all of these bounding boxes
+ *
+ * @SCENEBB_label: Menu-item label
+ * @SCENEBB_key: Menu-item key label
+ * @SCENEBB_desc: Menu-item Description
+ * @SCENEBB_curitem: Current item (pointed to)
+ * @SCENEBB_all: All the above objects combined
+ */
+enum scene_bbox_t {
+	SCENEBB_label,
+	SCENEBB_key,
+	SCENEBB_desc,
+	SCENEBB_curitem,
+	SCENEBB_all,
+
+	SCENEBB_count,
+};
 
 /**
  * expo_lookup_scene_id() - Look up a scene ID
@@ -96,10 +130,12 @@ int scene_calc_dims(struct scene *scn, bool do_menus);
  * if not already done
  *
  * @scn: Scene to update
+ * @arr: Arrangement information
  * @menu: Menu to process
  * Returns: 0 if OK, -ve on error
  */
-int scene_menu_arrange(struct scene *scn, struct scene_obj_menu *menu);
+int scene_menu_arrange(struct scene *scn, struct expo_arrange_info *arr,
+		       struct scene_obj_menu *menu);
 
 /**
  * scene_textline_arrange() - Set the position of things in a textline
@@ -108,10 +144,12 @@ int scene_menu_arrange(struct scene *scn, struct scene_obj_menu *menu);
  * positioned correctly relative to the textline.
  *
  * @scn: Scene to update
+ * @arr: Arrangement information
  * @tline: textline to process
  * Returns: 0 if OK, -ve on error
  */
-int scene_textline_arrange(struct scene *scn, struct scene_obj_textline *tline);
+int scene_textline_arrange(struct scene *scn, struct expo_arrange_info *arr,
+			   struct scene_obj_textline *tline);
 
 /**
  * scene_apply_theme() - Apply a theme to a scene
@@ -278,6 +316,29 @@ struct scene_menitem *scene_menuitem_find_seq(const struct scene_obj_menu *menu,
 					      uint seq);
 
 /**
+ * scene_menuitem_find_val() - Find the menu item with a given value
+ *
+ * @menu: Menu to check
+ * @find_val: Value to look for
+ * Return: menu item if found, else NULL
+ */
+struct scene_menitem *scene_menuitem_find_val(const struct scene_obj_menu *menu,
+					      int val);
+
+/**
+ * scene_bbox_join() - update bouding box with a given src box
+ *
+ * Updates @dst so that it encompasses the bounding box @src
+ *
+ * @src: Input bounding box
+ * @inset: Amount of inset to use for width
+ * @dst: Bounding box to update
+ * Return: 0 if OK, -ve on error
+ */
+int scene_bbox_join(const struct vidconsole_bbox *src, int inset,
+		    struct vidconsole_bbox *dst);
+
+/**
  * scene_bbox_union() - update bouding box with the demensions of an object
  *
  * Updates @bbox so that it encompasses the bounding box of object @id
@@ -305,13 +366,11 @@ int scene_textline_calc_dims(struct scene_obj_textline *tline);
  * scene_menu_calc_bbox() - Calculate bounding boxes for the menu
  *
  * @menu: Menu to process
- * @bbox: Returns bounding box of menu including prompts
- * @label_bbox: Returns bounding box of labels
+ * @bbox: List of bounding box to fill in
  * Return: 0 if OK, -ve on error
  */
 void scene_menu_calc_bbox(struct scene_obj_menu *menu,
-			  struct vidconsole_bbox *bbox,
-			  struct vidconsole_bbox *label_bbox);
+			  struct vidconsole_bbox *bbox);
 
 /**
  * scene_textline_calc_bbox() - Calculate bounding box for the textline
@@ -329,12 +388,10 @@ void scene_textline_calc_bbox(struct scene_obj_textline *menu,
  * scene_obj_calc_bbox() - Calculate bounding boxes for an object
  *
  * @obj: Object to process
- * @bbox: Returns bounding box of object including prompts
- * @label_bbox: Returns bounding box of labels (active area)
+ * @bbox: Returns bounding boxes for object
  * Return: 0 if OK, -ve on error
  */
-int scene_obj_calc_bbox(struct scene_obj *obj, struct vidconsole_bbox *bbox,
-			struct vidconsole_bbox *label_bbox);
+int scene_obj_calc_bbox(struct scene_obj *obj, struct vidconsole_bbox *bbox);
 
 /**
  * scene_textline_open() - Open a textline object
@@ -357,5 +414,29 @@ int scene_textline_open(struct scene *scn, struct scene_obj_textline *tline);
  * Return: 0 if OK, -ve on error
  */
 int scene_textline_close(struct scene *scn, struct scene_obj_textline *tline);
+
+/**
+ * scene_calc_arrange() - Calculate sizes needed to arrange a scene
+ *
+ * Checks the size of some objects and stores this info to help with a later
+ * scene arrangement
+ *
+ * @scn: Scene to check
+ * @arr: Place to put scene-arrangement info
+ * Returns: 0 if OK, -ve on error
+ */
+int scene_calc_arrange(struct scene *scn, struct expo_arrange_info *arr);
+
+/**
+ * scene_txt_generic_init() - Set up the generic part of a text object
+ *
+ * @exp: Expo containing the object
+ * @gen: Generic text info
+ * @name: Object name
+ * @str_id: String ID for the text
+ * @str: Initial text string for the object, or NULL to just use str_id
+ */
+int scene_txt_generic_init(struct expo *exp, struct scene_txt_generic *gen,
+			   const char *name, uint str_id, const char *str);
 
 #endif /* __SCENE_INTERNAL_H */

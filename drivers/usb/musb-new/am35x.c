@@ -24,7 +24,6 @@
 
 #include <plat/usb.h>
 #else
-#include <common.h>
 #include <asm/omap_musb.h>
 #include <linux/bug.h>
 #include <linux/delay.h>
@@ -403,7 +402,7 @@ static int am35x_musb_init(struct musb *musb)
 #endif
 
 	/* Reset the musb */
-	if (data->reset)
+	if (data && data->reset)
 		data->reset(data->dev);
 
 	/* Reset the controller */
@@ -418,7 +417,7 @@ static int am35x_musb_init(struct musb *musb)
 	musb->isr = am35x_musb_interrupt;
 
 	/* clear level interrupt */
-	if (data->clear_irq)
+	if (data && data->clear_irq)
 		data->clear_irq(data->dev);
 
 	return 0;

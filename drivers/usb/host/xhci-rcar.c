@@ -2,10 +2,9 @@
 /*
  * Copyright (C) 2017 Marek Vasut <marek.vasut@gmail.com>
  *
- * Renesas RCar USB HOST xHCI Controller
+ * Renesas R-Car USB HOST xHCI Controller
  */
 
-#include <common.h>
 #include <clk.h>
 #include <dm.h>
 #include <fdtdec.h>
@@ -150,7 +149,7 @@ static const struct udevice_id xhci_rcar_ids[] = {
 	{ }
 };
 
-U_BOOT_DRIVER(usb_xhci) = {
+U_BOOT_DRIVER(xhci_rcar) = {
 	.name		= "xhci_rcar",
 	.id		= UCLASS_USB,
 	.probe		= xhci_rcar_probe,

@@ -5,11 +5,11 @@
  * Rockchip SD Host Controller Interface
  */
 
-#include <common.h>
 #include <clk.h>
 #include <dm.h>
 #include <dm/ofnode.h>
 #include <dt-structs.h>
+#include <linux/bitfield.h>
 #include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/libfdt.h>
@@ -51,6 +51,10 @@
 #define DWCMSHC_EMMC_EMMC_CTRL		0x52c
 #define DWCMSHC_CARD_IS_EMMC		BIT(0)
 #define DWCMSHC_ENHANCED_STROBE		BIT(8)
+#define DWCMSHC_EMMC_AT_CTRL		0x540
+#define EMMC_AT_CTRL_TUNE_CLK_STOP_EN	BIT(16)
+#define EMMC_AT_CTRL_PRE_CHANGE_DLY	17
+#define EMMC_AT_CTRL_POST_CHANGE_DLY	19
 #define DWCMSHC_EMMC_DLL_CTRL		0x800
 #define DWCMSHC_EMMC_DLL_CTRL_RESET	BIT(1)
 #define DWCMSHC_EMMC_DLL_RXCLK		0x804
@@ -83,6 +87,9 @@
 #define DLL_CMDOUT_SRC_CLK_NEG		BIT(28)
 #define DLL_CMDOUT_EN_SRC_CLK_NEG	BIT(29)
 #define DLL_CMDOUT_BOTH_CLK_EDGE	BIT(30)
+#define DLL_TAPVALUE_FROM_SW		BIT(25)
+#define DLL_TAP_VALUE_PREP(x)		FIELD_PREP(GENMASK(15, 8), (x))
+#define DLL_LOCK_VALUE_GET(x)		FIELD_GET(GENMASK(7, 0), (x))
 
 #define DLL_LOCK_WO_TMOUT(x) \
 	((((x) & DWCMSHC_EMMC_DLL_LOCKED) == DWCMSHC_EMMC_DLL_LOCKED) && \
@@ -90,6 +97,7 @@
 #define ROCKCHIP_MAX_CLKS		3
 
 #define FLAG_INVERTER_FLAG_IN_RXCLK	BIT(0)
+#define FLAG_TAPVALUE_FROM_SW		BIT(1)
 
 struct rockchip_sdhc_plat {
 	struct mmc_config cfg;
@@ -157,6 +165,9 @@ struct sdhci_data {
 	u32 flags;
 	u8 hs200_txclk_tapnum;
 	u8 hs400_txclk_tapnum;
+	u8 hs400_cmdout_tapnum;
+	u8 hs400_strbin_tapnum;
+	u8 ddr50_strbin_delay_num;
 };
 
 static void rk3399_emmc_phy_power_on(struct rockchip_emmc_phy *phy, u32 clock)
@@ -231,7 +242,7 @@ static int rk3399_emmc_get_phy(struct udevice *dev)
 
 	grf_base = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
 	if (IS_ERR_OR_NULL(grf_base)) {
-		printf("%s Get syscon grf failed", __func__);
+		printf("%s: Get syscon grf failed\n", __func__);
 		return -ENODEV;
 	}
 	grf_phy_offset = ofnode_read_u32_default(phy_node, "reg", 0);
@@ -311,7 +322,7 @@ static int rk3568_sdhci_config_dll(struct sdhci_host *host, u32 clock, bool enab
 	struct sdhci_data *data = (struct sdhci_data *)dev_get_driver_data(priv->dev);
 	struct mmc *mmc = host->mmc;
 	int val, ret;
-	u32 extra, txclk_tapnum;
+	u32 extra, txclk_tapnum, dll_tap_value;
 
 	if (!enable) {
 		sdhci_writel(host, 0, DWCMSHC_EMMC_DLL_CTRL);
@@ -323,6 +334,11 @@ static int rk3568_sdhci_config_dll(struct sdhci_host *host, u32 clock, bool enab
 		sdhci_writel(host, DWCMSHC_EMMC_DLL_CTRL_RESET, DWCMSHC_EMMC_DLL_CTRL);
 		udelay(1);
 		sdhci_writel(host, 0, DWCMSHC_EMMC_DLL_CTRL);
+
+		extra = 0x3 << EMMC_AT_CTRL_POST_CHANGE_DLY |
+			0x3 << EMMC_AT_CTRL_PRE_CHANGE_DLY |
+			EMMC_AT_CTRL_TUNE_CLK_STOP_EN;
+		sdhci_writel(host, extra, DWCMSHC_EMMC_AT_CTRL);
 
 		/* Init DLL settings */
 		extra = DWCMSHC_EMMC_DLL_START_DEFAULT << DWCMSHC_EMMC_DLL_START_POINT |
@@ -336,7 +352,15 @@ static int rk3568_sdhci_config_dll(struct sdhci_host *host, u32 clock, bool enab
 		if (ret)
 			return ret;
 
-		extra = DWCMSHC_EMMC_DLL_DLYENA | DLL_RXCLK_ORI_GATE;
+		if (data->flags & FLAG_TAPVALUE_FROM_SW)
+			dll_tap_value = DLL_TAPVALUE_FROM_SW |
+					DLL_TAP_VALUE_PREP(DLL_LOCK_VALUE_GET(val) * 2);
+		else
+			dll_tap_value = 0;
+
+		extra = DWCMSHC_EMMC_DLL_DLYENA |
+			DLL_RXCLK_ORI_GATE |
+			dll_tap_value;
 		if (data->flags & FLAG_INVERTER_FLAG_IN_RXCLK)
 			extra |= DLL_RXCLK_NO_INVERTER;
 		sdhci_writel(host, extra, DWCMSHC_EMMC_DLL_RXCLK);
@@ -349,20 +373,23 @@ static int rk3568_sdhci_config_dll(struct sdhci_host *host, u32 clock, bool enab
 			extra = DLL_CMDOUT_SRC_CLK_NEG |
 				DLL_CMDOUT_BOTH_CLK_EDGE |
 				DWCMSHC_EMMC_DLL_DLYENA |
-				DLL_CMDOUT_TAPNUM_90_DEGREES |
-				DLL_CMDOUT_TAPNUM_FROM_SW;
+				data->hs400_cmdout_tapnum |
+				DLL_CMDOUT_TAPNUM_FROM_SW |
+				dll_tap_value;
 			sdhci_writel(host, extra, DWCMSHC_EMMC_DLL_CMDOUT);
 		}
 
 		extra = DWCMSHC_EMMC_DLL_DLYENA |
 			DLL_TXCLK_TAPNUM_FROM_SW |
 			DLL_TXCLK_NO_INVERTER |
-			txclk_tapnum;
+			txclk_tapnum |
+			dll_tap_value;
 		sdhci_writel(host, extra, DWCMSHC_EMMC_DLL_TXCLK);
 
 		extra = DWCMSHC_EMMC_DLL_DLYENA |
-			DLL_STRBIN_TAPNUM_DEFAULT |
-			DLL_STRBIN_TAPNUM_FROM_SW;
+			data->hs400_strbin_tapnum |
+			DLL_STRBIN_TAPNUM_FROM_SW |
+			dll_tap_value;
 		sdhci_writel(host, extra, DWCMSHC_EMMC_DLL_STRBIN);
 	} else {
 		/*
@@ -381,7 +408,7 @@ static int rk3568_sdhci_config_dll(struct sdhci_host *host, u32 clock, bool enab
 		 */
 		extra = DWCMSHC_EMMC_DLL_DLYENA |
 			DLL_STRBIN_DELAY_NUM_SEL |
-			DLL_STRBIN_DELAY_NUM_DEFAULT << DLL_STRBIN_DELAY_NUM_OFFSET;
+			data->ddr50_strbin_delay_num << DLL_STRBIN_DELAY_NUM_OFFSET;
 		sdhci_writel(host, extra, DWCMSHC_EMMC_DLL_STRBIN);
 	}
 
@@ -391,6 +418,8 @@ static int rk3568_sdhci_config_dll(struct sdhci_host *host, u32 clock, bool enab
 static int rk3568_sdhci_set_ios_post(struct sdhci_host *host)
 {
 	struct mmc *mmc = host->mmc;
+	struct rockchip_sdhc_plat *plat = dev_get_plat(mmc->dev);
+	struct mmc_config *cfg = &plat->cfg;
 	u32 reg;
 
 	reg = sdhci_readw(host, SDHCI_HOST_CONTROL2);
@@ -437,6 +466,20 @@ static int rk3568_sdhci_set_ios_post(struct sdhci_host *host)
 
 	sdhci_writew(host, reg, DWCMSHC_EMMC_EMMC_CTRL);
 
+	/*
+	 * Reading more than 4 blocks with a single CMD18 command in PIO mode
+	 * triggers Data End Bit Error using a slower mode than HS200. Limit to
+	 * reading max 4 blocks in one command when using PIO mode.
+	 */
+	if (!(host->flags & USE_DMA)) {
+		if (mmc->selected_mode == MMC_HS_200 ||
+		    mmc->selected_mode == MMC_HS_400 ||
+		    mmc->selected_mode == MMC_HS_400_ES)
+			cfg->b_max = CONFIG_SYS_MMC_MAX_BLK_COUNT;
+		else
+			cfg->b_max = 4;
+	}
+
 	return 0;
 }
 
@@ -473,7 +516,7 @@ static int rockchip_sdhci_execute_tuning(struct mmc *mmc, u8 opcode)
 {
 	struct rockchip_sdhc *priv = dev_get_priv(mmc->dev);
 	struct sdhci_host *host = &priv->host;
-	char tuning_loop_counter = SDHCI_TUNING_LOOP_COUNT;
+	s8 tuning_loop_counter = SDHCI_TUNING_LOOP_COUNT;
 	struct mmc_cmd cmd;
 	u32 ctrl, blk_size;
 	int ret;
@@ -556,20 +599,19 @@ static int rockchip_sdhci_probe(struct udevice *dev)
 	struct rockchip_sdhc *priv = dev_get_priv(dev);
 	struct mmc_config *cfg = &plat->cfg;
 	struct sdhci_host *host = &priv->host;
-	struct clk clk;
+	struct clk *clk = &priv->emmc_clk;
 	int ret;
 
 	host->max_clk = cfg->f_max;
-	ret = clk_get_by_index(dev, 0, &clk);
+	ret = clk_get_by_index(dev, 0, clk);
 	if (!ret) {
-		ret = clk_set_rate(&clk, host->max_clk);
+		ret = clk_set_rate(clk, host->max_clk);
 		if (IS_ERR_VALUE(ret))
 			printf("%s clk set rate fail!\n", __func__);
-	} else {
+	} else if (ret != -ENOSYS) {
 		printf("%s fail to get clk\n", __func__);
 	}
 
-	priv->emmc_clk = clk;
 	priv->dev = dev;
 
 	if (data->get_phy) {
@@ -594,19 +636,9 @@ static int rockchip_sdhci_probe(struct udevice *dev)
 	 * Disable use of DMA and force use of PIO mode in SPL to fix an issue
 	 * where loading part of TF-A into SRAM using DMA silently fails.
 	 */
-	if (IS_ENABLED(CONFIG_SPL_BUILD) &&
+	if (IS_ENABLED(CONFIG_XPL_BUILD) &&
 	    dev_read_bool(dev, "u-boot,spl-fifo-mode"))
 		host->flags &= ~USE_DMA;
-
-	/*
-	 * Reading more than 4 blocks with a single CMD18 command in PIO mode
-	 * triggers Data End Bit Error on RK3568 and RK3588. Limit to reading
-	 * max 4 blocks in one command when using PIO mode.
-	 */
-	if (!(host->flags & USE_DMA) &&
-	    (device_is_compatible(dev, "rockchip,rk3568-dwcmshc") ||
-	     device_is_compatible(dev, "rockchip,rk3588-dwcmshc")))
-		cfg->b_max = 4;
 
 	return sdhci_probe(dev);
 }
@@ -643,6 +675,18 @@ static const struct sdhci_data rk3399_data = {
 	.set_enhanced_strobe = rk3399_sdhci_set_enhanced_strobe,
 };
 
+static const struct sdhci_data rk3528_data = {
+	.set_ios_post = rk3568_sdhci_set_ios_post,
+	.set_clock = rk3568_sdhci_set_clock,
+	.config_dll = rk3568_sdhci_config_dll,
+	.flags = FLAG_TAPVALUE_FROM_SW,
+	.hs200_txclk_tapnum = 0xc,
+	.hs400_txclk_tapnum = 0x6,
+	.hs400_cmdout_tapnum = 0x6,
+	.hs400_strbin_tapnum = 0x3,
+	.ddr50_strbin_delay_num = 0xa,
+};
+
 static const struct sdhci_data rk3568_data = {
 	.set_ios_post = rk3568_sdhci_set_ios_post,
 	.set_clock = rk3568_sdhci_set_clock,
@@ -650,6 +694,20 @@ static const struct sdhci_data rk3568_data = {
 	.flags = FLAG_INVERTER_FLAG_IN_RXCLK,
 	.hs200_txclk_tapnum = DLL_TXCLK_TAPNUM_DEFAULT,
 	.hs400_txclk_tapnum = 0x8,
+	.hs400_cmdout_tapnum = DLL_CMDOUT_TAPNUM_90_DEGREES,
+	.hs400_strbin_tapnum = DLL_STRBIN_TAPNUM_DEFAULT,
+	.ddr50_strbin_delay_num = DLL_STRBIN_DELAY_NUM_DEFAULT,
+};
+
+static const struct sdhci_data rk3576_data = {
+	.set_ios_post = rk3568_sdhci_set_ios_post,
+	.set_clock = rk3568_sdhci_set_clock,
+	.config_dll = rk3568_sdhci_config_dll,
+	.hs200_txclk_tapnum = DLL_TXCLK_TAPNUM_DEFAULT,
+	.hs400_txclk_tapnum = 0x7,
+	.hs400_cmdout_tapnum = 0x7,
+	.hs400_strbin_tapnum = 0x5,
+	.ddr50_strbin_delay_num = 0xa,
 };
 
 static const struct sdhci_data rk3588_data = {
@@ -658,6 +716,9 @@ static const struct sdhci_data rk3588_data = {
 	.config_dll = rk3568_sdhci_config_dll,
 	.hs200_txclk_tapnum = DLL_TXCLK_TAPNUM_DEFAULT,
 	.hs400_txclk_tapnum = 0x9,
+	.hs400_cmdout_tapnum = DLL_CMDOUT_TAPNUM_90_DEGREES,
+	.hs400_strbin_tapnum = DLL_STRBIN_TAPNUM_DEFAULT,
+	.ddr50_strbin_delay_num = DLL_STRBIN_DELAY_NUM_DEFAULT,
 };
 
 static const struct udevice_id sdhci_ids[] = {
@@ -666,8 +727,16 @@ static const struct udevice_id sdhci_ids[] = {
 		.data = (ulong)&rk3399_data,
 	},
 	{
+		.compatible = "rockchip,rk3528-dwcmshc",
+		.data = (ulong)&rk3528_data,
+	},
+	{
 		.compatible = "rockchip,rk3568-dwcmshc",
 		.data = (ulong)&rk3568_data,
+	},
+	{
+		.compatible = "rockchip,rk3576-dwcmshc",
+		.data = (ulong)&rk3576_data,
 	},
 	{
 		.compatible = "rockchip,rk3588-dwcmshc",

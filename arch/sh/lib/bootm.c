@@ -7,7 +7,7 @@
  * (c) Copyright 2008 Renesas Solutions Corp.
  */
 
-#include <common.h>
+#include <config.h>
 #include <bootm.h>
 #include <command.h>
 #include <env.h>
@@ -100,17 +100,4 @@ int do_bootm_linux(int flag, struct bootm_info *bmi)
 
 	/* does not return */
 	return 1;
-}
-
-static ulong get_sp(void)
-{
-	ulong ret;
-
-	asm("mov r15, %0" : "=r"(ret) : );
-	return ret;
-}
-
-void arch_lmb_reserve(struct lmb *lmb)
-{
-	arch_lmb_reserve_generic(lmb, get_sp(), gd->ram_top, 4096);
 }

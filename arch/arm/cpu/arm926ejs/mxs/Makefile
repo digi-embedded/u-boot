@@ -3,11 +3,11 @@
 # (C) Copyright 2000-2006
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 
-extra-$(CONFIG_SPL_BUILD) := start.o
+extra-$(CONFIG_XPL_BUILD) := start.o
 
 obj-y	= clock.o mxs.o iomux.o timer.o
 
-ifdef	CONFIG_SPL_BUILD
+ifdef	CONFIG_XPL_BUILD
 obj-y	+= spl_boot.o spl_lradc_init.o spl_mem_init.o spl_power_init.o
 endif
 
@@ -53,23 +53,23 @@ quiet_cmd_mkcst_mxs = MXSCST  $@
 cmd_mkcst_mxs = cst -o $@ < $^						\
 	$(if $(KBUILD_VERBOSE:1=), >/dev/null)
 
-spl/u-boot-spl.ivt: spl/u-boot-spl.bin
+spl/u-boot-spl.ivt: spl/u-boot-spl.bin FORCE
 	$(call if_changed,mkalign_mxs)
 	$(call if_changed,mkivt_mxs,$(CONFIG_SPL_TEXT_BASE),\
 		0x00008000,0x00008040)
 
-u-boot.ivt: u-boot.bin
+u-boot.ivt: u-boot.bin FORCE
 	$(call if_changed,mkalign_mxs)
 	$(call if_changed,mkivt_mxs,$(CONFIG_TEXT_BASE),\
 		0x40001000,0x40001040)
 
-spl/u-boot-spl.csf: spl/u-boot-spl.ivt spl/u-boot-spl.bin board/$(VENDOR)/$(BOARD)/sign/u-boot-spl.csf
+spl/u-boot-spl.csf: spl/u-boot-spl.ivt spl/u-boot-spl.bin board/$(VENDOR)/$(BOARD)/sign/u-boot-spl.csf FORCE
 	$(call if_changed,mkcsfreq_mxs,$(CONFIG_SPL_TEXT_BASE),0x8000)
 
-u-boot.csf: u-boot.ivt u-boot.bin board/$(VENDOR)/$(BOARD)/sign/u-boot.csf
+u-boot.csf: u-boot.ivt u-boot.bin board/$(VENDOR)/$(BOARD)/sign/u-boot.csf FORCE
 	$(call if_changed,mkcsfreq_mxs,$(CONFIG_TEXT_BASE),0x40001000)
 
-%.sig: %.csf
+%.sig: %.csf FORCE
 	$(call if_changed,mkcst_mxs)
 
 MKIMAGEFLAGS_u-boot.sb = -n $< -T mxsimage

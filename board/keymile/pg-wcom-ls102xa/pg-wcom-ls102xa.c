@@ -5,7 +5,6 @@
 
 #include <config.h>
 #include <event.h>
-#include <i2c.h>
 #include <asm/io.h>
 #include <asm/arch/immap_ls102xa.h>
 #include <asm/arch/clock.h>
@@ -39,7 +38,7 @@ static uchar ivm_content[CONFIG_SYS_IVM_EEPROM_MAX_LEN];
 int checkboard(void)
 {
 	show_qrio();
-
+	i2c_deblock_gpio_cfg();
 	return 0;
 }
 
@@ -97,8 +96,6 @@ int board_early_init_f(void)
 	qrio_prstcfg(KM_DBG_ETH_RST, PRSTCFG_POWUP_UNIT_CORE_RST);
 	qrio_prst(KM_DBG_ETH_RST, !qrio_get_pgy_pres_pin(), false);
 
-	i2c_deblock_gpio_cfg();
-
 	/* enable the Unit LED (red) & Boot LED (on) */
 	qrio_set_leds();
 
@@ -106,6 +103,13 @@ int board_early_init_f(void)
 	qrio_enable_app_buffer();
 
 	arch_soc_init();
+
+	/*
+	 * Reset I2C bus. When the board is powercycled during a bus
+	 * transfer it might hang; for details see doc/I2C_Edge_Conditions.
+	 * Now run the AbortSequence()
+	 */
+	i2c_make_abort();
 
 	return 0;
 }

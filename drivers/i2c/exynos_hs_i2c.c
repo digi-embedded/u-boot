@@ -6,15 +6,18 @@
  * David Mueller, ELSOFT AG, d.mueller@elsoft.ch
  */
 
-#include <common.h>
 #include <dm.h>
 #include <i2c.h>
 #include <log.h>
+#if IS_ENABLED(CONFIG_ARCH_EXYNOS4) || IS_ENABLED(CONFIG_ARCH_EXYNOS5)
 #include <asm/arch/clk.h>
 #include <asm/arch/cpu.h>
 #include <asm/arch/pinmux.h>
+#endif
 #include <asm/global_data.h>
+#include <asm/io.h>
 #include <linux/delay.h>
+#include <clk.h>
 #include "s3c24x0_i2c.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -51,6 +54,17 @@ DECLARE_GLOBAL_DATA_PTR;
 				 HSI2C_RX_OVERRUN_EN  |\
 				 HSI2C_INT_TRAILING_EN)
 
+#define HSI2C_INT_TRANS_DONE		(1u << 7)
+#define HSI2C_INT_TRANS_ABORT		(1u << 8)
+#define HSI2C_INT_NO_DEV_ACK		(1u << 9)
+#define HSI2C_INT_NO_DEV		(1u << 10)
+#define HSI2C_INT_TIMEOUT_AUTO		(1u << 11)
+#define HSI2C_INT_I2C_TRANS_EN		(HSI2C_INT_TRANS_DONE  |\
+					 HSI2C_INT_TRANS_ABORT |\
+					 HSI2C_INT_NO_DEV_ACK  |\
+					 HSI2C_INT_NO_DEV      |\
+					 HSI2C_INT_TIMEOUT_AUTO)
+
 /* I2C_CONF Register bits */
 #define HSI2C_AUTO_MODE			(1u << 31)
 #define HSI2C_10BIT_ADDR_MODE		(1u << 30)
@@ -77,7 +91,6 @@ DECLARE_GLOBAL_DATA_PTR;
 				 HSI2C_TRANS_ABORT)
 #define HSI2C_TRANS_FINISHED_MASK (HSI2C_TRANS_ERROR_MASK | HSI2C_TRANS_SUCCESS)
 
-
 /* I2C_FIFO_STAT Register bits */
 #define HSI2C_RX_FIFO_EMPTY		(1u << 24)
 #define HSI2C_RX_FIFO_FULL		(1u << 23)
@@ -97,24 +110,32 @@ DECLARE_GLOBAL_DATA_PTR;
  * bit to be set, which indicates copletion of a transaction.
  *
  * @param i2c: pointer to the appropriate register bank
+ * @param variant: hardware variant of the i2c device
  *
  * @return: I2C_OK in case of successful completion, I2C_NOK_TIMEOUT in case
  *          the status bits do not get set in time, or an approrpiate error
  *          value in case of transfer errors.
  */
-static int hsi2c_wait_for_trx(struct exynos5_hsi2c *i2c)
+static int hsi2c_wait_for_trx(struct exynos5_hsi2c *i2c,
+			      enum s3c24x0_i2c_variant variant)
 {
 	int i = HSI2C_TIMEOUT_US;
 
 	while (i-- > 0) {
 		u32 int_status = readl(&i2c->usi_int_stat);
+		u32 trans_status;
 
-		if (int_status & HSI2C_INT_I2C_EN) {
-			u32 trans_status = readl(&i2c->usi_trans_status);
+		/* Deassert pending interrupt. */
+		writel(int_status, &i2c->usi_int_stat);
 
-			/* Deassert pending interrupt. */
-			writel(int_status, &i2c->usi_int_stat);
+		switch (variant) {
+		case VARIANT_HSI2C_EXYNOS5:
+			trans_status = readl(&i2c->usi_trans_status);
 
+			if (!(int_status & HSI2C_INT_I2C_EN)) {
+				udelay(1);
+				continue;
+			}
 			if (trans_status & HSI2C_NO_DEV_ACK) {
 				debug("%s: no ACK from device\n", __func__);
 				return I2C_NACK;
@@ -132,25 +153,56 @@ static int hsi2c_wait_for_trx(struct exynos5_hsi2c *i2c)
 				return I2C_NOK_TOUT;
 			}
 			return I2C_OK;
+		case VARIANT_HSI2C_EXYNOS7:
+			if (int_status & HSI2C_INT_TRANS_DONE)
+				return I2C_OK;
+
+			if (int_status & HSI2C_INT_TRANS_ABORT) {
+				debug("%s: arbitration lost\n", __func__);
+				return I2C_NOK_LA;
+			}
+			if (int_status & HSI2C_NO_DEV_ACK) {
+				debug("%s: no ACK from device\n", __func__);
+				return I2C_NACK;
+			}
+			if (int_status & HSI2C_NO_DEV) {
+				debug("%s: no device\n", __func__);
+				return I2C_NOK;
+			}
+			if (int_status & HSI2C_TIMEOUT_AUTO) {
+				debug("%s: device timed out\n", __func__);
+				return I2C_NOK_TOUT;
+			}
+			udelay(1);
+			continue;
+		default:
+			debug("%s: unknown variant\n", __func__);
+			return I2C_NOK;
 		}
-		udelay(1);
 	}
 	debug("%s: transaction timeout!\n", __func__);
 	return I2C_NOK_TOUT;
 }
 
-static int hsi2c_get_clk_details(struct s3c24x0_i2c_bus *i2c_bus)
+static int hsi2c_get_clk_details(struct udevice *dev)
 {
+	struct s3c24x0_i2c_bus *i2c_bus = dev_get_priv(dev);
 	struct exynos5_hsi2c *hsregs = i2c_bus->hsregs;
 	ulong clkin;
 	unsigned int op_clk = i2c_bus->clock_frequency;
 	unsigned int i = 0, utemp0 = 0, utemp1 = 0;
 	unsigned int t_ftl_cycle;
 
-#if defined(CONFIG_ARCH_EXYNOS4) || defined(CONFIG_ARCH_EXYNOS5)
+#if IS_ENABLED(CONFIG_ARCH_EXYNOS4) || IS_ENABLED(CONFIG_ARCH_EXYNOS5)
 	clkin = get_i2c_clk();
 #else
-	clkin = get_PCLK();
+	struct clk clk;
+	int ret;
+
+	ret = clk_get_by_name(dev, "hsi2c", &clk);
+	if (ret < 0)
+		return ret;
+	clkin = clk_get_rate(&clk);
 #endif
 	/* FPCLK / FI2C =
 	 * (CLK_DIV + 1) * (TSCLK_L + TSCLK_H + 2) + 8 + 2 * FLT_CYCLE
@@ -211,7 +263,16 @@ static void hsi2c_ch_init(struct s3c24x0_i2c_bus *i2c_bus)
 	writel(readl(&hsregs->usi_conf) | HSI2C_AUTO_MODE, &hsregs->usi_conf);
 
 	/* Enable completion conditions' reporting. */
-	writel(HSI2C_INT_I2C_EN, &hsregs->usi_int_en);
+	switch (i2c_bus->variant) {
+	case VARIANT_HSI2C_EXYNOS5:
+		writel(HSI2C_INT_I2C_EN, &hsregs->usi_int_en);
+		break;
+	case VARIANT_HSI2C_EXYNOS7:
+		writel(HSI2C_INT_I2C_TRANS_EN, &hsregs->usi_int_en);
+		break;
+	default:
+		debug("%s: unknown variant\n", __func__);
+	}
 
 	/* Enable FIFOs */
 	writel(HSI2C_RXFIFO_EN | HSI2C_TXFIFO_EN, &hsregs->usi_fifo_ctl);
@@ -300,6 +361,7 @@ static unsigned hsi2c_poll_fifo(struct exynos5_hsi2c *i2c, bool rx_transfer)
  * @param rx_transfer: set to true for receive transactions
  * @param: issue_stop: set to true if i2c stop condition should be generated
  *         after this transaction.
+ * @param variant: hardware variant of the i2c device
  * @return: I2C_NOK_TOUT in case the bus remained busy for HSI2C_TIMEOUT_US,
  *          I2C_OK otherwise.
  */
@@ -307,7 +369,8 @@ static int hsi2c_prepare_transaction(struct exynos5_hsi2c *i2c,
 				     u8 chip,
 				     u16 len,
 				     bool rx_transfer,
-				     bool issue_stop)
+				     bool issue_stop,
+				     enum s3c24x0_i2c_variant variant)
 {
 	u32 conf;
 
@@ -339,7 +402,17 @@ static int hsi2c_prepare_transaction(struct exynos5_hsi2c *i2c,
 	}
 
 	/* Reset all pending interrupt status bits we care about, if any */
-	writel(HSI2C_INT_I2C_EN, &i2c->usi_int_stat);
+	switch (variant) {
+	case VARIANT_HSI2C_EXYNOS5:
+		writel(HSI2C_INT_I2C_EN, &i2c->usi_int_stat);
+		break;
+	case VARIANT_HSI2C_EXYNOS7:
+		writel(HSI2C_INT_I2C_TRANS_EN, &i2c->usi_int_stat);
+		break;
+	default:
+		debug("%s: unknown variant\n", __func__);
+		return I2C_NOK;
+	}
 
 	return I2C_OK;
 }
@@ -367,7 +440,8 @@ static int hsi2c_write(struct exynos5_hsi2c *i2c,
 		       unsigned char alen,
 		       unsigned char data[],
 		       unsigned short len,
-		       bool issue_stop)
+		       bool issue_stop,
+		       enum s3c24x0_i2c_variant variant)
 {
 	int i, rv = 0;
 
@@ -378,7 +452,7 @@ static int hsi2c_write(struct exynos5_hsi2c *i2c,
 	}
 
 	rv = hsi2c_prepare_transaction
-		(i2c, chip, len + alen, false, issue_stop);
+		(i2c, chip, len + alen, false, issue_stop, variant);
 	if (rv != I2C_OK)
 		return rv;
 
@@ -401,7 +475,7 @@ static int hsi2c_write(struct exynos5_hsi2c *i2c,
 		writel(data[i], &i2c->usi_txdata);
 	}
 
-	rv = hsi2c_wait_for_trx(i2c);
+	rv = hsi2c_wait_for_trx(i2c, variant);
 
  write_error:
 	if (issue_stop) {
@@ -419,7 +493,8 @@ static int hsi2c_read(struct exynos5_hsi2c *i2c,
 		      unsigned char addr[],
 		      unsigned char alen,
 		      unsigned char data[],
-		      unsigned short len)
+		      unsigned short len,
+		      enum s3c24x0_i2c_variant variant)
 {
 	int i, rv, tmp_ret;
 	bool drop_data = false;
@@ -433,12 +508,12 @@ static int hsi2c_read(struct exynos5_hsi2c *i2c,
 
 	if (alen) {
 		/* Internal register adress needs to be written first. */
-		rv = hsi2c_write(i2c, chip, addr, alen, NULL, 0, false);
+		rv = hsi2c_write(i2c, chip, addr, alen, NULL, 0, false, variant);
 		if (rv != I2C_OK)
 			return rv;
 	}
 
-	rv = hsi2c_prepare_transaction(i2c, chip, len, true, true);
+	rv = hsi2c_prepare_transaction(i2c, chip, len, true, true, variant);
 
 	if (rv != I2C_OK)
 		return rv;
@@ -452,7 +527,7 @@ static int hsi2c_read(struct exynos5_hsi2c *i2c,
 		data[i] = readl(&i2c->usi_rxdata);
 	}
 
-	rv = hsi2c_wait_for_trx(i2c);
+	rv = hsi2c_wait_for_trx(i2c, variant);
 
  read_err:
 	tmp_ret = hsi2c_wait_while_busy(i2c);
@@ -468,15 +543,16 @@ static int exynos_hs_i2c_xfer(struct udevice *dev, struct i2c_msg *msg,
 {
 	struct s3c24x0_i2c_bus *i2c_bus = dev_get_priv(dev);
 	struct exynos5_hsi2c *hsregs = i2c_bus->hsregs;
+	enum s3c24x0_i2c_variant variant = i2c_bus->variant;
 	int ret;
 
 	for (; nmsgs > 0; nmsgs--, msg++) {
 		if (msg->flags & I2C_M_RD) {
 			ret = hsi2c_read(hsregs, msg->addr, 0, 0, msg->buf,
-					 msg->len);
+					 msg->len, variant);
 		} else {
 			ret = hsi2c_write(hsregs, msg->addr, 0, 0, msg->buf,
-					  msg->len, true);
+					  msg->len, true, variant);
 		}
 		if (ret) {
 			exynos5_i2c_reset(i2c_bus);
@@ -493,7 +569,7 @@ static int s3c24x0_i2c_set_bus_speed(struct udevice *dev, unsigned int speed)
 
 	i2c_bus->clock_frequency = speed;
 
-	if (hsi2c_get_clk_details(i2c_bus))
+	if (hsi2c_get_clk_details(dev))
 		return -EFAULT;
 	hsi2c_ch_init(i2c_bus);
 
@@ -513,14 +589,16 @@ static int s3c24x0_i2c_probe(struct udevice *dev, uint chip, uint chip_flags)
 	 * address was <ACK>ed (i.e. there was a chip at that address which
 	 * drove the data line low).
 	 */
-	ret = hsi2c_read(i2c_bus->hsregs, chip, 0, 0, buf, 1);
+	ret = hsi2c_read(i2c_bus->hsregs, chip, 0, 0, buf, 1, i2c_bus->variant);
 
 	return ret != I2C_OK;
 }
 
 static int s3c_i2c_of_to_plat(struct udevice *dev)
 {
+#if IS_ENABLED(CONFIG_ARCH_EXYNOS4) || IS_ENABLED(CONFIG_ARCH_EXYNOS5)
 	const void *blob = gd->fdt_blob;
+#endif
 	struct s3c24x0_i2c_bus *i2c_bus = dev_get_priv(dev);
 	int node;
 
@@ -528,7 +606,9 @@ static int s3c_i2c_of_to_plat(struct udevice *dev)
 
 	i2c_bus->hsregs = dev_read_addr_ptr(dev);
 
+#if IS_ENABLED(CONFIG_ARCH_EXYNOS4) || IS_ENABLED(CONFIG_ARCH_EXYNOS5)
 	i2c_bus->id = pinmux_decode_periph_id(blob, node);
+#endif
 
 	i2c_bus->clock_frequency =
 		dev_read_u32_default(dev, "clock-frequency",
@@ -536,9 +616,12 @@ static int s3c_i2c_of_to_plat(struct udevice *dev)
 	i2c_bus->node = node;
 	i2c_bus->bus_num = dev_seq(dev);
 
+#if IS_ENABLED(CONFIG_ARCH_EXYNOS4) || IS_ENABLED(CONFIG_ARCH_EXYNOS5)
 	exynos_pinmux_config(i2c_bus->id, PINMUX_FLAG_HS_MODE);
+#endif
 
 	i2c_bus->active = true;
+	i2c_bus->variant = dev_get_driver_data(dev);
 
 	return 0;
 }
@@ -550,7 +633,8 @@ static const struct dm_i2c_ops exynos_hs_i2c_ops = {
 };
 
 static const struct udevice_id exynos_hs_i2c_ids[] = {
-	{ .compatible = "samsung,exynos5-hsi2c" },
+	{ .compatible = "samsung,exynos5-hsi2c", .data = VARIANT_HSI2C_EXYNOS5 },
+	{ .compatible = "samsung,exynos7-hsi2c", .data = VARIANT_HSI2C_EXYNOS7 },
 	{ }
 };
 

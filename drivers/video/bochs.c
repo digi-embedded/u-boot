@@ -5,7 +5,6 @@
 
 #define LOG_CATEGORY	UCLASS_VIDEO
 
-#include <common.h>
 #include <dm.h>
 #include <log.h>
 #include <pci.h>
@@ -65,6 +64,7 @@ static int bochs_init_fb(struct udevice *dev)
 	uc_priv->xsize = xsize;
 	uc_priv->ysize = ysize;
 	uc_priv->bpix = VIDEO_BPP32;
+	uc_priv->format = VIDEO_X8B8G8R8;
 
 	/* setup video mode */
 	bochs_write(mmio, INDEX_ENABLE,  0);

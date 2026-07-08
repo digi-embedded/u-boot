@@ -8,7 +8,6 @@
 
 #define LOG_CATEGORY UCLASS_PINCTRL
 
-#include <common.h>
 #include <dm.h>
 #include <log.h>
 #include <i2c.h>
@@ -88,7 +87,7 @@ static int stmfx_read_reg(struct udevice *dev, u8 reg_base, uint offset)
 	if (ret < 0)
 		return ret;
 
-	return ret < 0 ? ret : !!(ret & mask);
+	return !!(ret & mask);
 }
 
 static int stmfx_write_reg(struct udevice *dev, u8 reg_base, uint offset,

@@ -1,0 +1,134 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright 2025 NXP
+ */
+
+/ {
+	aliases {
+		gpio1 = &gpio2;
+		gpio2 = &gpio3;
+		gpio3 = &gpio4;
+		gpio4 = &gpio5;
+		gpio5 = &gpio6;
+		gpio6 = &gpio7;
+		usb0 = &usb3_dwc3;
+		usb1 = &usb2;
+		usb_gadget0 = &usb3_dwc3;
+		usb_gadget1 = &usbg2;
+		pci0 = &netc_bus0;
+		pci1 = &netc_bus1;
+	};
+
+	usbg2: usbg2 {
+		compatible = "fsl,imx27-usb-gadget";
+		dr_mode = "peripheral";
+		chipidea,usb = <&usb2>;
+		status = "okay";
+	};
+};
+
+&dispmix_csr {
+	/delete-property/ assigned-clocks;
+	/delete-property/ assigned-clock-rates;
+	/delete-property/ assigned-clock-parents;
+};
+
+&lpuart1 {
+	bootph-pre-ram;
+};
+
+&pinctrl_reg_usdhc2_vmmc {
+	bootph-pre-ram;
+};
+
+&pinctrl_uart1 {
+	bootph-pre-ram;
+};
+
+&pinctrl_usdhc1_100mhz {
+	bootph-pre-ram;
+};
+
+&pinctrl_usdhc1_200mhz {
+	bootph-pre-ram;
+};
+
+&pinctrl_usdhc1 {
+	bootph-pre-ram;
+};
+
+&pinctrl_usdhc2 {
+	bootph-pre-ram;
+};
+
+&pinctrl_usdhc2_100mhz {
+	bootph-pre-ram;
+};
+
+&pinctrl_usdhc2_200mhz {
+	bootph-pre-ram;
+};
+
+&pinctrl_usdhc2_gpio {
+	bootph-pre-ram;
+};
+
+&pinctrl_xspi1 {
+	bootph-pre-ram;
+};
+
+&reg_usdhc2_vmmc {
+	bootph-pre-ram;
+};
+
+&usb2 {
+	compatible = "fsl,imx8mm-usb", "fsl,imx7d-usb";
+	/delete-property/power-domains;
+};
+
+&usb3_phy {
+	bootph-pre-ram;
+};
+
+&usb3 {
+	clocks = <&scmi_clk IMX94_CLK_HSIO>,
+		 <&scmi_clk IMX94_CLK_24M>,
+		 <&scmi_clk IMX94_CLK_32K>;
+	clock-names = "hsio", "ref", "suspend";
+
+	/delete-property/power-domains;
+	bootph-pre-ram;
+};
+
+&usb3_dwc3 {
+	bootph-pre-ram;
+};
+
+&usdhc1 {
+	bootph-pre-ram;
+};
+
+&usdhc2 {
+	bootph-pre-ram;
+};
+
+&xspi1 {
+	bootph-pre-ram;
+};
+
+&mt35xu512aba {
+	bootph-pre-ram;
+};
+
+&pcal6408 {
+	compatible = "ti,tca6408";
+	label = "pcal6408";
+};
+
+&pcal6524 {
+	label = "pcal6524";
+};
+
+&pca9670_i2c3 {
+	u-boot,i2c-offset-len = <0>;
+};

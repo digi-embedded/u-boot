@@ -6,20 +6,11 @@
 	config {
 		u-boot,mmc-env-offset = <0x5000>;      /* @  20KB */
 		u-boot,efi-partition-entries-offset = <0x200000>; /* 2MB */
-		u-boot,boot-led = "module_led";
 	};
 
 	chosen {
 		stdout-path = "serial0:115200n8";
 		u-boot,spl-boot-order = "same-as-spl", &emmc, &sdmmc;
-	};
-};
-
-&binman {
-	simple-bin {
-		fit {
-			offset = <((CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR - 64) * 512)>;
-		};
 	};
 };
 

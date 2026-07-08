@@ -5,7 +5,6 @@
  * Thomas Abraham <thomas.ab@samsung.com>
  */
 
-#include <common.h>
 #include <dm.h>
 #include <errno.h>
 #include <clk-uclass.h>
@@ -193,7 +192,7 @@ static int exynos7420_clk_top0_probe(struct udevice *dev)
 static ulong exynos7420_peric1_get_rate(struct clk *clk)
 {
 	struct clk in_clk;
-	unsigned int ret;
+	int ret;
 	unsigned long freq = 0;
 
 	switch (clk->id) {

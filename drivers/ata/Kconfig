@@ -1,6 +1,7 @@
 config AHCI
 	bool "Support SATA controllers with driver model"
 	depends on DM
+	select BLK
 	help
 	  This enables a uclass for disk controllers in U-Boot. Various driver
 	  types can use this, such as AHCI/SATA. It does not provide any standard
@@ -9,6 +10,7 @@ config AHCI
 
 config SATA
 	bool "Support SATA controllers"
+	select BLK
 	help
 	  This enables support for SATA (Serial Advanced Technology
 	  Attachment), a serial bus standard for connecting to hard drives and
@@ -70,7 +72,6 @@ config IMX_AHCI
 config DWC_AHSATA
 	bool "Enable DWC AHSATA driver support"
 	select LIBATA
-	depends on BLK
 	help
 	  Enable this driver to support the DWC AHSATA SATA controller found
 	  in i.MX5 and i.MX6 SoCs.
@@ -88,14 +89,16 @@ config MTK_AHCI
 	  Enable this driver to support Sata devices through
 	  Mediatek AHCI controller (e.g. MT7622).
 
-config AHCI_MVEBU
-	bool "Marvell EBU AHCI SATA support"
-	depends on ARCH_MVEBU || ARCH_OCTEON
+config AHCI_GENERIC
+	bool "Generic AHCI SATA support"
+	depends on OF_CONTROL
 	select SCSI_AHCI
 	select SCSI
 	help
-	  This option enables support for the Marvell EBU SoC's
-	  onboard AHCI SATA.
+	  This option enables support for generic onboard AHCI SATA controller
+	  that do not need platform specific quirks, like emulated devices,
+	  Marvell EBU SoC's onboard AHCI SATA controllers or Cavium's Octeon
+	  7130 AHCI controllers.
 
 	  If unsure, say N.
 
@@ -137,6 +140,7 @@ config FSL_SATA_V2
 
 config SATA_MV
 	bool "Enable Marvell SATA controller driver support"
+	depends on ARCH_KIRKWOOD || ARCH_MVEBU
 	select AHCI
 	select LIBATA
 	help
@@ -154,7 +158,7 @@ config SATA_SIL
 
 config SYS_SATA_MAX_DEVICE
 	int "Maximum number of SATA devices"
-	depends on !AHCI || FSL_SATA || SATA_MV
+	depends on !AHCI || FSL_SATA || SATA_MV || API
 	help
 	  Sets the maximum number of SATA devices which can be supported
 	  by U-Boot.

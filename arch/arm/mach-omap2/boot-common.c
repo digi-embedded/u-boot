@@ -7,7 +7,6 @@
  * Copyright (C) 2011, Texas Instruments, Incorporated - https://www.ti.com/
  */
 
-#include <common.h>
 #include <ahci.h>
 #include <log.h>
 #include <dm/uclass.h>
@@ -174,7 +173,7 @@ void save_omap_boot_params(void)
 #endif
 }
 
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 u32 spl_boot_device(void)
 {
 	return gd->arch.omap_boot_device;
@@ -190,7 +189,7 @@ int load_firmware(char *name_fw, u32 *loadaddr)
 	struct udevice *fsdev;
 	int size = 0;
 
-	if (!IS_ENABLED(CONFIG_FS_LOADER))
+	if (!CONFIG_IS_ENABLED(FS_LOADER))
 		return 0;
 
 	if (!*loadaddr)
@@ -209,7 +208,7 @@ void spl_boot_ipu(void)
 	int ret, size;
 	u32 loadaddr = IPU1_LOAD_ADDR;
 
-	if (!IS_ENABLED(CONFIG_SPL_BUILD) ||
+	if (!IS_ENABLED(CONFIG_XPL_BUILD) ||
 	    !IS_ENABLED(CONFIG_REMOTEPROC_TI_IPU))
 		return;
 
@@ -270,7 +269,7 @@ skip_ipu1:
 		debug("%s: IPU2 failed to start (%d)\n", __func__, ret);
 }
 
-void spl_board_init(void)
+void spl_soc_init(void)
 {
 	/* Prepare console output */
 	preloader_console_init();
@@ -287,15 +286,12 @@ void spl_board_init(void)
 #if defined(CONFIG_HW_WATCHDOG) || defined(CONFIG_WATCHDOG)
 	hw_watchdog_init();
 #endif
-#ifdef CONFIG_AM33XX
-	am33xx_spl_board_init();
-#endif
-	if (IS_ENABLED(CONFIG_SPL_BUILD) &&
+	if (IS_ENABLED(CONFIG_XPL_BUILD) &&
 	    IS_ENABLED(CONFIG_REMOTEPROC_TI_IPU))
 		spl_boot_ipu();
 }
 
-void __noreturn jump_to_image_no_args(struct spl_image_info *spl_image)
+void __noreturn jump_to_image(struct spl_image_info *spl_image)
 {
 	typedef void __noreturn (*image_entry_noargs_t)(u32 *);
 	image_entry_noargs_t image_entry =

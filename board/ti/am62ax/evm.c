@@ -12,23 +12,28 @@
 #include <env.h>
 #include <fdt_support.h>
 #include <spl.h>
+#include <asm/arch/k3-ddr.h>
 
 #include "../common/fdt_ops.h"
+#include "../common/k3_32k_lfosc.h"
 
-int board_init(void)
+#if defined(CONFIG_XPL_BUILD)
+void spl_perform_board_fixups(struct spl_image_info *spl_image)
 {
-	return 0;
+	if (IS_ENABLED(CONFIG_K3_DDRSS)) {
+		if (IS_ENABLED(CONFIG_K3_INLINE_ECC))
+			fixup_ddr_driver_for_ecc(spl_image);
+	} else {
+		fixup_memory_node(spl_image);
+	}
 }
 
-int dram_init(void)
+void spl_board_init(void)
 {
-	return fdtdec_setup_mem_size_base();
+	if (IS_ENABLED(CONFIG_TI_K3_BOARD_LFOSC))
+		enable_32k_lfosc();
 }
-
-int dram_init_banksize(void)
-{
-	return fdtdec_setup_memory_banksize();
-}
+#endif
 
 #ifdef CONFIG_BOARD_LATE_INIT
 int board_late_init(void)

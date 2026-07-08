@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0+
 
-#include <common.h>
 #include <jffs2/jffs2.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
 #include <linux/string.h>
-#include <mtd.h>
 
 static int get_part(const char *partname, int *idx, loff_t *off, loff_t *size,
 	     loff_t *maxsize, int devtype)

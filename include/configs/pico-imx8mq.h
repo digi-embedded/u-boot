@@ -9,7 +9,7 @@
 #include <linux/sizes.h>
 #include <asm/arch/imx-regs.h>
 
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 /*#define CONFIG_ENABLE_DDR_TRAINING_DEBUG*/
 
 /* malloc f used before GD_FLG_FULL_MALLOC_INIT set */
@@ -29,11 +29,10 @@
 	"image=Image\0"							\
 	"console=ttymxc0,115200\0"					\
 	"fdt_addr=0x43000000\0"						\
-	"fdt_high=0xffffffffffffffff\0"					\
 	"fdt_file=imx8mq-pico-pi.dtb\0"					\
 	"initrd_addr=0x43800000\0"					\
 	"initrd_high=0xffffffffffffffff\0"				\
-	"mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV) "\0"		\
+	"mmcdev=" __stringify(CONFIG_ENV_MMC_DEVICE_INDEX) "\0"		\
 	"mmcpart=1\0"	\
 	"mmcroot=/dev/mmcblk1p2 rootwait rw\0"			\
 	"mmcautodetect=yes\0"						\
@@ -64,7 +63,6 @@
 
 #define CFG_SYS_INIT_RAM_ADDR	0x40000000
 #define CFG_SYS_INIT_RAM_SIZE	0x80000
-
 
 #define CFG_SYS_SDRAM_BASE		0x40000000
 #define PHYS_SDRAM			0x40000000

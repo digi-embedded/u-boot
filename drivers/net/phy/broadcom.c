@@ -5,7 +5,6 @@
  * Copyright 2010-2011 Freescale Semiconductor, Inc.
  * author Andy Fleming
  */
-#include <common.h>
 #include <phy.h>
 #include <linux/delay.h>
 
@@ -41,6 +40,12 @@
 
 #define BCM54810_SHD_CLK_CTL				0x3
 #define BCM54810_SHD_CLK_CTL_GTXCLK_EN			BIT(9)
+
+#define BCM54XX_SHD_LEDS1		0x0d
+#define BCM_LED_SRC_LINKSPD2		0x1
+#define BCM_LED_SRC_ACTIVITYLED		0x3
+#define BCM54XX_SHD_LEDS1_LED3(src)	(((src) & 0xf) << 4)
+#define BCM54XX_SHD_LEDS1_LED1(src)	(((src) & 0xf) << 0)
 
 static int bcm54xx_auxctl_read(struct phy_device *phydev, u16 regnum)
 {
@@ -129,6 +134,33 @@ static void bcm_phy_write_misc(struct phy_device *phydev,
 	phy_write(phydev, MDIO_DEVAD_NONE, MIIM_BCM54XX_EXP_DATA, value);
 }
 
+/* Broadcom BCM54612E */
+static int bcm54612e_config(struct phy_device *phydev)
+{
+	u32 reg = 0;
+
+	genphy_config_aneg(phydev);
+
+	phy_reset(phydev);
+
+	/* 125Mhz Clock Output Enable */
+	reg = phy_read(phydev, MDIO_DEVAD_NONE, MIIM_BCM54XX_EXP_SEL);
+	reg |= 0xD34;
+	phy_write(phydev, MDIO_DEVAD_NONE, MIIM_BCM54XX_EXP_SEL, reg);
+
+	reg = phy_read(phydev, MDIO_DEVAD_NONE, MIIM_BCM54XX_EXP_DATA);
+	reg |= (1 << 1);
+	phy_write(phydev, MDIO_DEVAD_NONE, MIIM_BCM54XX_EXP_DATA, reg);
+
+	reg = phy_read(phydev, MDIO_DEVAD_NONE, MIIM_BCM54XX_EXP_SEL);
+	reg &= 0xfffff000;
+	phy_write(phydev, MDIO_DEVAD_NONE, MIIM_BCM54XX_EXP_SEL, reg);
+
+	genphy_restart_aneg(phydev);
+
+	return 0;
+}
+
 /* Broadcom BCM5461S */
 static int bcm5461_config(struct phy_device *phydev)
 {
@@ -144,11 +176,20 @@ static int bcm54210e_config(struct phy_device *phydev)
 {
 	int ret;
 
+	ret = bcm5461_config(phydev);
+	if (ret < 0)
+		return ret;
+
 	ret = bcm54xx_config_clock_delay(phydev);
 	if (ret < 0)
 		return ret;
 
-	return bcm5461_config(phydev);
+	/* Configure LEDs to blink. */
+	bcm_phy_write_shadow(phydev, BCM54XX_SHD_LEDS1,
+			     BCM54XX_SHD_LEDS1_LED1(BCM_LED_SRC_ACTIVITYLED) |
+			     BCM54XX_SHD_LEDS1_LED3(BCM_LED_SRC_LINKSPD2));
+
+	return 0;
 }
 
 static int bcm54xx_parse_status(struct phy_device *phydev)
@@ -416,6 +457,16 @@ U_BOOT_PHY_DRIVER(bcm5461s) = {
 	.mask = 0xfffff0,
 	.features = PHY_GBIT_FEATURES,
 	.config = &bcm5461_config,
+	.startup = &bcm54xx_startup,
+	.shutdown = &genphy_shutdown,
+};
+
+U_BOOT_PHY_DRIVER(bcm54612e) = {
+	.name = "Broadcom BCM54612E",
+	.uid = 0x03625e6a,
+	.mask = 0xfffff0,
+	.features = PHY_GBIT_FEATURES,
+	.config = &bcm54612e_config,
 	.startup = &bcm54xx_startup,
 	.shutdown = &genphy_shutdown,
 };

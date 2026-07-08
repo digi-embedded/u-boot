@@ -6,13 +6,11 @@
  * Written by Simon Glass <sjg@chromium.org>
  */
 
-#include <common.h>
 #include <bootmeth.h>
 #include <dm.h>
 #include <image.h>
 #include <of_live.h>
 #include <vbe.h>
-#include <test/suites.h>
 #include <test/ut.h>
 #include "bootstd_common.h"
 
@@ -33,9 +31,6 @@ static int vbe_simple_test_base(struct unit_test_state *uts)
 	int node_ofs;
 	ofnode node;
 	u32 vernum;
-
-	/* Set up the VBE info */
-	ut_assertok(bootstd_setup_for_tests());
 
 	/* Read the version back */
 	ut_assertok(vbe_find_by_any("firmware0", &dev));
@@ -86,4 +81,4 @@ static int vbe_simple_test_base(struct unit_test_state *uts)
 
 	return 0;
 }
-BOOTSTD_TEST(vbe_simple_test_base, UT_TESTF_DM | UT_TESTF_SCAN_FDT);
+BOOTSTD_TEST(vbe_simple_test_base, UTF_DM | UTF_SCAN_FDT);

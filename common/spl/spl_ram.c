@@ -9,7 +9,6 @@
  * Michal Simek <michal.simek@amd.com>
  * Stefan Agner <stefan.agner@toradex.com>
  */
-#include <common.h>
 #include <binman_sym.h>
 #include <image.h>
 #include <log.h>
@@ -24,6 +23,11 @@ unsigned long __weak spl_ram_get_uboot_base(void)
 	if (IS_ENABLED(CONFIG_SPL_LOAD_FIT)) {
 		addr = IF_ENABLED_INT(CONFIG_SPL_LOAD_FIT,
 				      CONFIG_SPL_LOAD_FIT_ADDRESS);
+
+#ifdef	CONFIG_SPL_PCI_DFU
+		if (spl_boot_device() == BOOT_DEVICE_PCIE)
+			addr = CONFIG_SPL_PCI_DFU_SPL_LOAD_FIT_ADDRESS;
+#endif
 	}
 
 	return addr;
@@ -63,21 +67,22 @@ static int spl_ram_load_image(struct spl_image_info *spl_image,
 		spl_dfu_cmd(0, "dfu_alt_info_ram", "ram", "0");
 #endif
 
+#if CONFIG_IS_ENABLED(PCI_DFU)
+	if (bootdev->boot_device == BOOT_DEVICE_PCIE)
+		spl_dfu_cmd(0, "dfu_alt_info_ram", "ram", "0");
+#endif
+
 	if (IS_ENABLED(CONFIG_SPL_LOAD_FIT) &&
 	    image_get_magic(header) == FDT_MAGIC) {
 		struct spl_load_info load;
 
 		debug("Found FIT\n");
-		spl_set_bl_len(&load, 1);
-		load.read = spl_ram_load_read;
+		spl_load_init(&load, spl_ram_load_read, NULL, 1);
 		ret = spl_load_simple_fit(spl_image, &load, (ulong)header, header);
 	} else if (IS_ENABLED(CONFIG_SPL_LOAD_IMX_CONTAINER)) {
 		struct spl_load_info load;
 
-		memset(&load, 0, sizeof(load));
-		load.bl_len = 1;
-		load.read = spl_ram_load_read;
-
+		spl_load_init(&load, spl_ram_load_read, NULL, 1);
 		ret = spl_load_imx_container(spl_image, &load, (ulong)header);
 	} else {
 		ulong u_boot_pos = spl_get_image_pos();
@@ -109,4 +114,7 @@ SPL_LOAD_IMAGE_METHOD("RAM", 0, BOOT_DEVICE_RAM, spl_ram_load_image);
 #endif
 #if CONFIG_IS_ENABLED(DFU)
 SPL_LOAD_IMAGE_METHOD("DFU", 0, BOOT_DEVICE_DFU, spl_ram_load_image);
+#endif
+#if CONFIG_IS_ENABLED(PCI_DFU)
+SPL_LOAD_IMAGE_METHOD("PCIE", 0, BOOT_DEVICE_PCIE, spl_ram_load_image);
 #endif

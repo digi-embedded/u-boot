@@ -7,7 +7,7 @@
 
 	aliases {
 		usbhost1 = &usbh3;
-		usbgadget0 = &usbg1;
+		usb_gadget0 = &usbg1;
 	};
 
 	usbh3: usbh3 {

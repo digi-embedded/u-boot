@@ -23,14 +23,14 @@ cmd_prodzip =					\
 	zip -9 -r $@ misc/* >/dev/null $<
 
 ifeq ($(hw-platform-y),brppt2)
-ifneq ($(CONFIG_SPL_BUILD),y)
+ifneq ($(CONFIG_XPL_BUILD),y)
 INPUTS-y += $(hw-platform-y)_prog.bin
 INPUTS-y += $(hw-platform-y)_prod.zip
 endif
 endif
 
-$(hw-platform-y)_prog.bin: u-boot-dtb.img spl SPL
+$(hw-platform-y)_prog.bin: u-boot-dtb.img spl SPL FORCE
 	$(call if_changed,prodbin)
 
-$(hw-platform-y)_prod.zip: $(hw-platform-y)_prog.bin
+$(hw-platform-y)_prod.zip: $(hw-platform-y)_prog.bin FORCE
 	$(call if_changed,prodzip)

@@ -20,7 +20,7 @@
 #ifndef __UBOOT__
 #include <stdint.h>
 #else
-#include <common.h>
+#include <compiler.h>
 #endif
 
 #define GENERAL_TEST_ECHO_MAX_PAYLOAD 100

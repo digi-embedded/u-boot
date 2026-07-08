@@ -26,7 +26,7 @@
 
 #include <asm/system.h>
 #include <command.h>
-#include <common.h>
+#include <config.h>
 #include <linux/string.h>
 #include <malloc.h>
 

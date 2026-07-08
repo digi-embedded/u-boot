@@ -1,6 +1,8 @@
 config MACH_IMX
 	bool
 
+if MACH_IMX
+
 config HAS_CAAM
 	bool
 
@@ -103,12 +105,25 @@ config CSF_SIZE
 	  Define the maximum size for Command Sequence File (CSF) binary
 	  this information is used to define the image boot data.
 
-config CMD_QB
+config SPL_IMX_QB
+	bool "Run qb save during SPL"
+	depends on SPL && IMX_SNPS_DDR_PHY_QB_GEN && (IMX95 || IMX94)
+	help
+	  Automatically save DDR training data (Quickboot data)
+	  to current boot device when needed (when OEI runs Training
+	  flow and saves qb data to volatile memory).
+
+config CMD_IMX_QB
 	bool "Support the 'qb' command"
 	default y
-	depends on IMX_SNPS_DDR_PHY_QB_GEN && (IMX95 || IMX94)
+	imply USE_PREBOOT
+	depends on IMX_SNPS_DDR_PHY_QB_GEN && (IMX95 || IMX94 || IMX952)
 	help
-	  Enable qb command to write DDR quick boot training data to boot device.
+	  Enable qb command to write/erase DDR quick boot training
+	  data to/from a chosen boot device. Using 'qb save/erase'
+	  without args implies using the current boot device. For
+	  use in uuu scripts, the boot device must be specified
+	  explicitly.
 
 config CMD_BMODE
 	bool "Support the 'bmode' command"
@@ -262,7 +277,7 @@ config NXP_BOARD_REVISION
 
 config FLASH_MCUFIRMWARE_SUPPORT
 	bool "Enable mcu firmware flash support"
-	depends on ARCH_MX7ULP || ARCH_IMX8M || IMX95
+	depends on ARCH_MX7ULP || ARCH_IMX8M || IMX95 || IMX952
 	help
 	  This enables the mcu firmware flash support for some SOCs.
 
@@ -279,9 +294,8 @@ config DDRMC_VF610_CALIBRATION
 	  the ddrmc_cr_setting on relevant board file.
 
 config IMX8_ROMAPI
-	bool "Enable i.MX ROMAPI"
-	default y
-	depends on IMX8MN || IMX8MP || IMX8ULP || IMX9
+	def_bool y
+	depends on IMX8MN || IMX8MP || IMX8ULP || IMX91 || IMX93
 
 config SPL_IMX_ROMAPI_LOADADDR
 	hex "Default load address to load image through ROM API"
@@ -362,6 +376,28 @@ config ANDROID_AB_SUPPORT
 config SYSTEM_RAMDISK_SUPPORT
 	bool "Support build ramdisk in system image"
 	default n
+
+config IMX_ANDROID_GBL
+	bool "Support Android Generic Bootloader (GBL)"
+	depends on ANDROID_SUPPORT || ANDROID_AUTO_SUPPORT
+	default n
+	select RSA
+	select SPL_RSA
+	select RSA_VERIFY_WITH_PKEY
+	select IMAGE_SIGN_INFO
+	select EFI_GBL_AVB
+	select EFI_GBL_OS_CONFIGURATION
+	select EFI_GBL_BOOT_CONTROL
+	select EFI_GBL_BOOT_MEMORY
+	select EFI_GBL_FASTBOOT_TRANSPORT
+	select EFI_GBL_FASTBOOT
+	select EFI_GBL_VENDOR_PARTITION
+	select INCLUDE_DTB_TO_VENDOR_BOOT
+	select EFI_GBL_TIMESTAMP
+	select EFI_ERASE_BLOCK
+	help
+	  Load and boot the Android image by Android Generic Bootloader (GBL),
+	  which is an UEFI application distributed by Google.
 
 menu "TRUSTY OS Support"
 
@@ -445,16 +481,55 @@ config AUTO_SET_RPMB_KEY
 
 config VPU_SECURE_HEAP
 	bool "Memory need by WIDEVINE_L1"
-	depends on IMX_TRUSTY_OS && (IMX8QM)
+	depends on IMX_TRUSTY_OS && (IMX8QM || IMX8QXP)
 	help
-	  if enable widevine L1 on imx8qm, need to pass secure memory and vpu memory
+	  if enable widevine L1 on imx8q, need to pass secure memory and vpu memory
 	  to linux. It is only used by imx8qm.
 	default n
+
+config IMX_SUPPORT_SRM
+	bool "Support SRM feature"
+	help
+	  Let trusty to load srm before loading kernel.
+	default n
+
+config IMX_ROLLBACK_BLOB
+	bool "Encapsulate the bootloader rollback index as a blob"
+	help
+	  To avoid disclosure of plaintext data in rpmb, this encapsulates
+	  the bootloader rollback index as a blob then keep in rpmb.
+
+config RPMB_INIT_ALLOW
+	bool "Do RPMB initilization even though magic number not matched"
+	help
+	  uboot will determine if rpmb has finished initializing by checking
+	  the magic number at the beginning of the rpmb. If the
+	  "CONFIG_IMX_ROLLBACK_BLOB" be set, uboot reject to boot if rpmb hasn't
+	  finished initializing or RPMB magic number not matched.
+	  This allow boot and RPMB initializing even though the RPMB magic not
+	  matched. This config should only be set for production then it should
+	  be disabled for release.
 
 endmenu
 
 config APPEND_BOOTARGS
-	bool "Append bootargs support"
+	bool "Append bootargs and/or bootconfig support"
+	help
+	  Allow appending user-defined parameters to bootargs and/or bootconfig
+	  which are then passed to the kernel.
+
+	  When enabled, the parameters defined in 'append_bootargs' environment
+	  variable will be appended to 'bootargs' (kernel command line). The
+	  parameters defined in 'append_bootconfig' will be appended to the
+	  kernel bootconfig structure, which is parsed by the kernel at early
+	  boot and subsequently read by the Android init process.
+
+	  IMPORTANT: Use the ":=" operator to override an existing key in
+	  bootconfig. Using "=" for duplicate keys will cause the kernel to
+	  fail parsing bootconfig with a "Value is redefined" error, potentially
+	  preventing system boot.
+
+	  This is a debug option and should always be disabled in production builds.
 
 config DUAL_BOOTLOADER
 	bool "Enable dual bootloader support"
@@ -470,13 +545,19 @@ config VIRTUAL_AB_SUPPORT
 	bool "Support virtual AB update"
 	select ANDROID_DYNAMIC_PARTITION
 
-config BOOTLOADER_MENU
-	bool "Enable bootloader menu for android device"
-	help
-	bootloader menu feature for android device.
+config INCLUDE_DTB_TO_VENDOR_BOOT
+	bool "Include the dtb into vendor_boot image"
+	default n
 
 config PSCI_BOARD_REBOOT
 	bool "Enable psci board reboot command"
 	depends on ARM_PSCI_FW
 	help
 	  This is a optional command used to trigger system board reboot on imx8q and imx95.
+
+config BOOTLOADER_MENU
+	bool "Enable bootloader menu for android device"
+	help
+	bootloader menu feature for android device.
+
+endif

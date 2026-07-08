@@ -197,7 +197,6 @@ static inline void blkcache_free(void) {}
 
 #endif
 
-#if CONFIG_IS_ENABLED(BLK)
 struct udevice;
 
 /* Operations on block devices */
@@ -278,6 +277,8 @@ struct blk_ops {
 #endif	/* CONFIG_BOUNCE_BUFFER */
 };
 
+#if CONFIG_IS_ENABLED(BLK)
+
 /*
  * These functions should take struct udevice instead of struct blk_desc,
  * but this is convenient for migration to driver model. Add a 'd' prefix
@@ -290,6 +291,8 @@ unsigned long blk_dwrite(struct blk_desc *block_dev, lbaint_t start,
 			 lbaint_t blkcnt, const void *buffer);
 unsigned long blk_derase(struct blk_desc *block_dev, lbaint_t start,
 			 lbaint_t blkcnt);
+
+#endif /* BLK */
 
 /**
  * blk_read() - Read from a block device
@@ -375,23 +378,6 @@ int blk_first_device(int uclass_id, struct udevice **devp);
  * Return: 0 if found, -ENODEV if no device, or other -ve error value
  */
 int blk_next_device(struct udevice **devp);
-
-/**
- * blk_create_device() - Create a new block device
- *
- * @parent:	Parent of the new device
- * @drv_name:	Driver name to use for the block device
- * @name:	Name for the device
- * @uclass_id:	Interface type (enum uclass_id_t)
- * @devnum:	Device number, specific to the interface type, or -1 to
- *		allocate the next available number
- * @blksz:	Block size of the device in bytes (typically 512)
- * @lba:	Total number of blocks of the device
- * @devp:	the new device (which has not been probed)
- */
-int blk_create_device(struct udevice *parent, const char *drv_name,
-		      const char *name, int uclass_id, int devnum, int blksz,
-		      lbaint_t lba, struct udevice **devp);
 
 /**
  * blk_create_devicef() - Create a new named block device
@@ -528,8 +514,10 @@ struct blk_desc *blk_get_by_device(struct udevice *dev);
  */
 int blk_get_desc(enum uclass_id uclass_id, int devnum, struct blk_desc **descp);
 
-#else
+#if !CONFIG_IS_ENABLED(BLK)
+
 #include <errno.h>
+
 /*
  * These functions should take struct udevice instead of struct blk_desc,
  * but this is convenient for migration to driver model. Add a 'd' prefix
@@ -650,7 +638,7 @@ struct blk_driver *blk_driver_lookup_type(int uclass_id);
 struct blk_desc *blk_get_devnum_by_uclass_id(enum uclass_id uclass_id, int devnum);
 
 /**
- * blk_get_devnum_by_uclass_id() - Get a block device by type name, and number
+ * blk_get_devnum_by_uclass_idname() - Get block device by type name and number
  *
  * This looks up the block device type based on @uclass_idname, then calls
  * blk_get_devnum_by_uclass_id().
@@ -660,7 +648,7 @@ struct blk_desc *blk_get_devnum_by_uclass_id(enum uclass_id uclass_id, int devnu
  * Return: point to block device descriptor, or NULL if not found
  */
 struct blk_desc *blk_get_devnum_by_uclass_idname(const char *uclass_idname,
-					    int devnum);
+						 int devnum);
 
 /**
  * blk_dselect_hwpart() - select a hardware partition
@@ -792,51 +780,6 @@ int blk_first_device_err(enum blk_flag_t flags, struct udevice **devp);
  * Return: 0 if found, -ENODEV if not found, other -ve on error
  */
 int blk_next_device_err(enum blk_flag_t flags, struct udevice **devp);
-
-/**
- * blk_find_first() - Return the first matching block device
- * @flags: Indicates type of device to return
- * @devp:	Returns pointer to device, or NULL on error
- *
- * The device is not prepared for use - this is an internal function.
- * The function uclass_get_device_tail() can be used to probe the device.
- *
- * Note that some devices are considered removable until they have been probed
- *
- * @return 0 if found, -ENODEV if not found
- */
-int blk_find_first(enum blk_flag_t flags, struct udevice **devp);
-
-/**
- * blk_find_next() - Return the next matching block device
- * @flags: Indicates type of device to return
- * @devp: On entry, pointer to device to lookup. On exit, returns pointer
- * to the next device in the same uclass, or NULL if none
- *
- * The device is not prepared for use - this is an internal function.
- * The function uclass_get_device_tail() can be used to probe the device.
- *
- * Note that some devices are considered removable until they have been probed
- *
- * @return 0 if found, -ENODEV if not found
- */
-int blk_find_next(enum blk_flag_t flags, struct udevice **devp);
-
-/**
- * blk_foreach() - iterate through block devices
- *
- * This creates a for() loop which works through the available block devices in
- * order from start to end.
- *
- * If for some reason the uclass cannot be found, this does nothing.
- *
- * @_flags: Indicates type of device to return
- * @_pos: struct udevice * to hold the current device. Set to NULL when there
- * are no more devices.
- */
-#define blk_foreach(_flags, _pos) \
-	for (int _ret = blk_find_first(_flags, &_pos); !_ret && _pos; \
-	     _ret = blk_find_next(_flags, &_pos))
 
 /**
  * blk_foreach_probe() - Helper function to iteration through block devices

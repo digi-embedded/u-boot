@@ -3,15 +3,17 @@
  * Copyright (c) 2022 Svyatoslav Ryhel <clamor95@gmail.com>
  */
 
-#include <common.h>
 #include <clk.h>
 #include <dm.h>
+#include <dm/ofnode_graph.h>
 #include <log.h>
 #include <misc.h>
 #include <mipi_display.h>
 #include <mipi_dsi.h>
 #include <backlight.h>
+#include <video_bridge.h>
 #include <panel.h>
+#include <power/regulator.h>
 #include <spi.h>
 #include <linux/delay.h>
 #include <linux/err.h>
@@ -107,6 +109,10 @@
 #define SSD2825_LP_MIN_CLK		5000 /* KHz */
 #define SSD2825_REF_MIN_CLK		2000 /* KHz */
 
+static const char * const ssd2825_supplies[] = {
+	"dvdd-supply", "avdd-supply", "vddio-supply"
+};
+
 struct ssd2825_bridge_priv {
 	struct mipi_dsi_host host;
 	struct mipi_dsi_device device;
@@ -114,12 +120,16 @@ struct ssd2825_bridge_priv {
 	struct udevice *panel;
 	struct display_timing timing;
 
+	struct udevice *supplies[ARRAY_SIZE(ssd2825_supplies)];
+
 	struct gpio_desc power_gpio;
-	struct gpio_desc reset_gpio;
 
 	struct clk *tx_clk;
 
 	u32 pll_freq_kbps;	/* PLL in kbps */
+
+	u32 hzd;		/* HS Zero Delay in ns */
+	u32 hpd;		/* HS Prepare Delay is ns */
 };
 
 static int ssd2825_spi_write(struct udevice *dev, int reg,
@@ -232,7 +242,6 @@ static ssize_t ssd2825_bridge_transfer(struct mipi_dsi_host *host,
 				       const struct mipi_dsi_msg *msg)
 {
 	struct udevice *dev = (struct udevice *)host->dev;
-	u8 buf = *(u8 *)msg->tx_buf;
 	u16 config;
 	int ret;
 
@@ -260,15 +269,6 @@ static ssize_t ssd2825_bridge_transfer(struct mipi_dsi_host *host,
 	ssd2825_write_register(dev, SSD2825_CONFIGURATION_REG, config);
 	ssd2825_write_register(dev, SSD2825_VC_CTRL_REG, 0x0000);
 	ssd2825_write_dsi(dev, msg->tx_buf, msg->tx_len);
-
-	if (buf == MIPI_DCS_SET_DISPLAY_ON) {
-		ssd2825_write_register(dev, SSD2825_CONFIGURATION_REG,
-				SSD2825_CONF_REG_HS | SSD2825_CONF_REG_VEN |
-				SSD2825_CONF_REG_DCS | SSD2825_CONF_REG_ECD |
-				SSD2825_CONF_REG_EOT);
-		ssd2825_write_register(dev, SSD2825_PLL_CTRL_REG, 0x0001);
-		ssd2825_write_register(dev, SSD2825_VC_CTRL_REG, 0x0000);
-	}
 
 	return 0;
 }
@@ -313,9 +313,14 @@ static void ssd2825_setup_pll(struct udevice *dev)
 	struct mipi_dsi_device *device = &priv->device;
 	struct display_timing *dt = &priv->timing;
 	u16 pll_config, lp_div;
+	u32 nibble_delay, nibble_freq_khz;
 	u32 pclk_mult, tx_freq_khz, pd_lines;
+	u8 hzd, hpd;
 
 	tx_freq_khz = clk_get_rate(priv->tx_clk) / 1000;
+	if (!tx_freq_khz || tx_freq_khz < 0)
+		tx_freq_khz = SSD2825_REF_MIN_CLK;
+
 	pd_lines = mipi_dsi_pixel_format_to_bpp(device->format);
 	pclk_mult = pd_lines / device->lanes + 1;
 
@@ -325,12 +330,19 @@ static void ssd2825_setup_pll(struct udevice *dev)
 
 	lp_div = priv->pll_freq_kbps / (SSD2825_LP_MIN_CLK * 8);
 
+	/* nibble_delay in nanoseconds */
+	nibble_freq_khz = priv->pll_freq_kbps / 4;
+	nibble_delay = 1000 * 1000 / nibble_freq_khz;
+
+	hzd = priv->hzd / nibble_delay;
+	hpd = (priv->hpd - 4 * nibble_delay) / nibble_delay;
+
 	/* Disable PLL */
 	ssd2825_write_register(dev, SSD2825_PLL_CTRL_REG, 0x0000);
 	ssd2825_write_register(dev, SSD2825_LINE_CTRL_REG, 0x0001);
 
 	/* Set delays */
-	ssd2825_write_register(dev, SSD2825_DELAY_ADJ_REG_1, 0x2103);
+	ssd2825_write_register(dev, SSD2825_DELAY_ADJ_REG_1, (hzd << 8) | hpd);
 
 	/* Set PLL coeficients */
 	ssd2825_write_register(dev, SSD2825_PLL_CONFIGURATION_REG, pll_config);
@@ -344,44 +356,30 @@ static void ssd2825_setup_pll(struct udevice *dev)
 	ssd2825_write_register(dev, SSD2825_VC_CTRL_REG, 0x0000);
 }
 
-static int ssd2825_bridge_enable_panel(struct udevice *dev)
+static int ssd2825_bridge_attach(struct udevice *dev)
 {
 	struct ssd2825_bridge_priv *priv = dev_get_priv(dev);
 	struct mipi_dsi_device *device = &priv->device;
 	struct display_timing *dt = &priv->timing;
+	u8 pixel_format;
 	int ret;
 
-	ret = clk_prepare_enable(priv->tx_clk);
-	if (ret) {
-		log_err("error enabling tx_clk (%d)\n", ret);
-		return ret;
+	/* Set pixel format */
+	switch (device->format) {
+	case MIPI_DSI_FMT_RGB565:
+		pixel_format = 0x00;
+		break;
+	case MIPI_DSI_FMT_RGB666_PACKED:
+		pixel_format = 0x01;
+		break;
+	case MIPI_DSI_FMT_RGB666:
+		pixel_format = 0x02;
+		break;
+	case MIPI_DSI_FMT_RGB888:
+	default:
+		pixel_format = 0x03;
+		break;
 	}
-
-	ret = dm_gpio_set_value(&priv->power_gpio, 1);
-	if (ret) {
-		log_err("error changing power-gpios (%d)\n", ret);
-		return ret;
-	}
-	mdelay(10);
-
-	ret = dm_gpio_set_value(&priv->reset_gpio, 0);
-	if (ret) {
-		log_err("error changing reset-gpios (%d)\n", ret);
-		return ret;
-	}
-	mdelay(10);
-
-	ret = dm_gpio_set_value(&priv->reset_gpio, 1);
-	if (ret) {
-		log_err("error changing reset-gpios (%d)\n", ret);
-		return ret;
-	}
-	mdelay(10);
-
-	/* Perform panel HW setup */
-	ret = panel_enable_backlight(priv->panel);
-	if (ret)
-		return ret;
 
 	/* Perform SW reset */
 	ssd2825_write_register(dev, SSD2825_OPERATION_CTRL_REG, 0x0100);
@@ -401,7 +399,7 @@ static int ssd2825_bridge_enable_panel(struct udevice *dev)
 	ssd2825_write_register(dev, SSD2825_RGB_INTERFACE_CTRL_REG_6,
 			       SSD2825_HSYNC_HIGH | SSD2825_VSYNC_HIGH |
 			       SSD2825_PCKL_HIGH | SSD2825_NON_BURST |
-			       (3 - device->format));
+			       pixel_format);
 	ssd2825_write_register(dev, SSD2825_LANE_CONFIGURATION_REG,
 			       device->lanes - 1);
 	ssd2825_write_register(dev, SSD2825_TEST_REG, 0x0004);
@@ -417,17 +415,26 @@ static int ssd2825_bridge_enable_panel(struct udevice *dev)
 			       SSD2825_CONF_REG_ECD | SSD2825_CONF_REG_EOT);
 	ssd2825_write_register(dev, SSD2825_VC_CTRL_REG, 0x0000);
 
-	/* Set up SW panel configuration */
-	ret = panel_set_backlight(priv->panel, BACKLIGHT_DEFAULT);
+	/* Perform panel setup */
+	ret = panel_enable_backlight(priv->panel);
 	if (ret)
 		return ret;
+
+	ssd2825_write_register(dev, SSD2825_CONFIGURATION_REG,
+			       SSD2825_CONF_REG_HS | SSD2825_CONF_REG_VEN |
+			       SSD2825_CONF_REG_DCS | SSD2825_CONF_REG_ECD |
+			       SSD2825_CONF_REG_EOT);
+	ssd2825_write_register(dev, SSD2825_PLL_CTRL_REG, 0x0001);
+	ssd2825_write_register(dev, SSD2825_VC_CTRL_REG, 0x0000);
 
 	return 0;
 }
 
 static int ssd2825_bridge_set_panel(struct udevice *dev, int percent)
 {
-	return 0;
+	struct ssd2825_bridge_priv *priv = dev_get_priv(dev);
+
+	return panel_set_backlight(priv->panel, percent);
 }
 
 static int ssd2825_bridge_panel_timings(struct udevice *dev,
@@ -440,13 +447,76 @@ static int ssd2825_bridge_panel_timings(struct udevice *dev,
 	return 0;
 }
 
+static int ssd2825_bridge_hw_init(struct udevice *dev)
+{
+	struct ssd2825_bridge_priv *priv = dev_get_priv(dev);
+	struct video_bridge_priv *uc_priv = dev_get_uclass_priv(dev);
+	int i, ret;
+
+	ret = clk_prepare_enable(priv->tx_clk);
+	if (ret) {
+		log_debug("%s: error enabling tx_clk (%d)\n",
+			  __func__, ret);
+		return ret;
+	}
+
+	/* enable supplies */
+	for (i = 0; i < ARRAY_SIZE(ssd2825_supplies); i++) {
+		ret = regulator_set_enable_if_allowed(priv->supplies[i], 1);
+		if (ret) {
+			log_debug("%s: cannot enable %s %d\n", __func__,
+				  ssd2825_supplies[i], ret);
+			return ret;
+		}
+	}
+	mdelay(10);
+
+	ret = dm_gpio_set_value(&uc_priv->reset, 1);
+	if (ret) {
+		log_debug("%s: error entering reset (%d)\n",
+			  __func__, ret);
+		return ret;
+	}
+	mdelay(10);
+
+	ret = dm_gpio_set_value(&uc_priv->reset, 0);
+	if (ret) {
+		log_debug("%s: error exiting reset (%d)\n",
+			  __func__, ret);
+		return ret;
+	}
+	mdelay(10);
+
+	return 0;
+}
+
+static int ssd2825_bridge_get_panel(struct udevice *dev)
+{
+	struct ssd2825_bridge_priv *priv = dev_get_priv(dev);
+	int i, ret;
+
+	u32 num = ofnode_graph_get_port_count(dev_ofnode(dev));
+
+	for (i = 0; i < num; i++) {
+		ofnode remote = ofnode_graph_get_remote_node(dev_ofnode(dev), i, -1);
+
+		ret = uclass_get_device_by_ofnode(UCLASS_PANEL, remote,
+						  &priv->panel);
+		if (!ret)
+			return 0;
+	}
+
+	/* If this point is reached, no panels were found */
+	return -ENODEV;
+}
+
 static int ssd2825_bridge_probe(struct udevice *dev)
 {
 	struct ssd2825_bridge_priv *priv = dev_get_priv(dev);
 	struct spi_slave *slave = dev_get_parent_priv(dev);
 	struct mipi_dsi_device *device = &priv->device;
 	struct mipi_dsi_panel_plat *mipi_plat;
-	int ret;
+	int i, ret;
 
 	ret = spi_claim_bus(slave);
 	if (ret) {
@@ -454,10 +524,9 @@ static int ssd2825_bridge_probe(struct udevice *dev)
 		return ret;
 	}
 
-	ret = uclass_get_device_by_phandle(UCLASS_PANEL, dev,
-					   "panel", &priv->panel);
+	ret = ssd2825_bridge_get_panel(dev);
 	if (ret) {
-		log_err("cannot get panel: ret=%d\n", ret);
+		log_debug("%s: panel not found, ret %d\n", __func__, ret);
 		return ret;
 	}
 
@@ -474,33 +543,33 @@ static int ssd2825_bridge_probe(struct udevice *dev)
 	device->format = mipi_plat->format;
 	device->mode_flags = mipi_plat->mode_flags;
 
-	/* get panel gpios */
-	ret = gpio_request_by_name(dev, "power-gpios", 0,
-				   &priv->power_gpio, GPIOD_IS_OUT);
-	if (ret) {
-		log_err("could not decode power-gpios (%d)\n", ret);
-		return ret;
-	}
-
-	ret = gpio_request_by_name(dev, "reset-gpios", 0,
-				   &priv->reset_gpio, GPIOD_IS_OUT);
-	if (ret) {
-		log_err("could not decode reset-gpios (%d)\n", ret);
-		return ret;
+	/* get supplies */
+	for (i = 0; i < ARRAY_SIZE(ssd2825_supplies); i++) {
+		ret = device_get_supply_regulator(dev, ssd2825_supplies[i],
+						  &priv->supplies[i]);
+		if (ret) {
+			log_debug("%s: cannot get %s %d\n", __func__,
+				  ssd2825_supplies[i], ret);
+			if (ret != -ENOENT)
+				return log_ret(ret);
+		}
 	}
 
 	/* get clk */
-	priv->tx_clk = devm_clk_get(dev, "tx_clk");
+	priv->tx_clk = devm_clk_get_optional(dev, NULL);
 	if (IS_ERR(priv->tx_clk)) {
 		log_err("cannot get tx_clk: %ld\n", PTR_ERR(priv->tx_clk));
 		return PTR_ERR(priv->tx_clk);
 	}
 
-	return 0;
+	priv->hzd = dev_read_u32_default(dev, "solomon,hs-zero-delay-ns", 133);
+	priv->hpd = dev_read_u32_default(dev, "solomon,hs-prep-delay-ns", 40);
+
+	return ssd2825_bridge_hw_init(dev);
 }
 
-static const struct panel_ops ssd2825_bridge_ops = {
-	.enable_backlight	= ssd2825_bridge_enable_panel,
+static const struct video_bridge_ops ssd2825_bridge_ops = {
+	.attach			= ssd2825_bridge_attach,
 	.set_backlight		= ssd2825_bridge_set_panel,
 	.get_display_timing	= ssd2825_bridge_panel_timings,
 };
@@ -512,9 +581,10 @@ static const struct udevice_id ssd2825_bridge_ids[] = {
 
 U_BOOT_DRIVER(ssd2825) = {
 	.name		= "ssd2825",
-	.id		= UCLASS_PANEL,
+	.id		= UCLASS_VIDEO_BRIDGE,
 	.of_match	= ssd2825_bridge_ids,
 	.ops		= &ssd2825_bridge_ops,
+	.bind		= dm_scan_fdt_dev,
 	.probe		= ssd2825_bridge_probe,
 	.priv_auto	= sizeof(struct ssd2825_bridge_priv),
 };

@@ -3,7 +3,6 @@
  * Copyright (C) 2016-2017 Intel Corporation
  */
 
-#include <common.h>
 #include <fdtdec.h>
 #include <malloc.h>
 #include <asm/io.h>
@@ -13,7 +12,7 @@
 #include <asm/arch/clock_manager.h>
 #include <linux/delay.h>
 
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 
 void sdelay(unsigned long loops);
 u32 wait_on_value(u32 read_bit_mask, u32 match_value, void *read_addr,

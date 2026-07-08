@@ -14,9 +14,6 @@
 /* MMC Configs */
 #define CFG_SYS_FSL_ESDHC_ADDR	USDHC2_BASE_ADDR
 
-/* USB */
-#define CFG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
-
 /* Command definition */
 
 #define CFG_MXC_UART_BASE	UART1_BASE
@@ -36,7 +33,7 @@
 	"ip_dyn=yes\0" \
 	"console=ttymxc0\0" \
 	"bootm_size=0x10000000\0" \
-	"mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV) "\0" \
+	"mmcdev=" __stringify(CONFIG_ENV_MMC_DEVICE_INDEX) "\0" \
 	"finduuid=part uuid mmc 1:1 uuid\0" \
 	"update_sd_firmware=" \
 		"if test ${ip_dyn} = yes; then " \

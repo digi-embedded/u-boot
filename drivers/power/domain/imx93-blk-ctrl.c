@@ -3,7 +3,6 @@
  * Copyright 2022 NXP
  */
 
-#include <common.h>
 #include <dm.h>
 #include <malloc.h>
 #include <power-domain-uclass.h>
@@ -38,7 +37,7 @@ struct imx93_blk_ctrl_domain_data {
 };
 
 struct imx93_blk_ctrl_data {
-	int max_reg;
+	u32 skip_mask;
 	const struct imx93_blk_ctrl_domain_data *domains;
 	const struct imx93_blk_ctrl_domain_data *bus;
 	int num_domains;
@@ -164,6 +163,9 @@ static int imx93_blk_ctrl_probe(struct udevice *dev)
 	}
 
 	for (j = 0; j < drv_data->num_domains; j++) {
+		if (drv_data->skip_mask & BIT(j))
+			continue;
+
 		for (i = 0; i < drv_data->domains[j].num_clks; i++) {
 			ret = clk_get_by_name(dev, drv_data->domains[j].clk_names[i], &priv->domains[j].clks[i]);
 			if (ret) {
@@ -229,14 +231,23 @@ static const struct imx93_blk_ctrl_domain_data imx93_media_blk_ctl_domain_data[]
 };
 
 static const struct imx93_blk_ctrl_data imx93_media_blk_ctl_dev_data = {
-	.max_reg = 0x8,
+	.skip_mask = 0x0,
 	.domains = imx93_media_blk_ctl_domain_data,
 	.bus = &imx93_media_blk_ctl_bus_data,
 	.num_domains = ARRAY_SIZE(imx93_media_blk_ctl_domain_data),
 };
 
+static const struct imx93_blk_ctrl_data imx91_media_blk_ctl_dev_data = {
+	.skip_mask = BIT(IMX93_MEDIABLK_PD_MIPI_DSI) | BIT(IMX93_MEDIABLK_PD_PXP),
+	.domains = imx93_media_blk_ctl_domain_data,
+	.bus = &imx93_media_blk_ctl_bus_data,
+	.num_domains = ARRAY_SIZE(imx93_media_blk_ctl_domain_data),
+};
+
+
 static const struct udevice_id imx93_blk_ctrl_ids[] = {
 	{ .compatible = "fsl,imx93-media-blk-ctrl", .data = (ulong)&imx93_media_blk_ctl_dev_data },
+	{ .compatible = "fsl,imx91-media-blk-ctrl", .data = (ulong)&imx91_media_blk_ctl_dev_data },
 	{ }
 };
 

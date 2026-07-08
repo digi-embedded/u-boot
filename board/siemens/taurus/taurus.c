@@ -12,7 +12,7 @@
  */
 
 #include <command.h>
-#include <common.h>
+#include <config.h>
 #include <dm.h>
 #include <env.h>
 #include <init.h>
@@ -24,7 +24,7 @@
 #include <asm/arch/at91_rstc.h>
 #include <asm/arch/gpio.h>
 #include <asm/arch/at91sam9_sdramc.h>
-#include <asm/arch/atmel_serial.h>
+#include <dm/platform_data/atmel_serial.h>
 #include <asm/arch/clk.h>
 #include <asm/gpio.h>
 #include <linux/mtd/rawnand.h>
@@ -79,7 +79,7 @@ static void taurus_nand_hw_init(void)
 	at91_set_gpio_output(CFG_SYS_NAND_ENABLE_PIN, 1);
 }
 
-#if defined(CONFIG_SPL_BUILD)
+#if defined(CONFIG_XPL_BUILD)
 #include <spl.h>
 #include <nand.h>
 #include <spi_flash.h>
@@ -177,7 +177,7 @@ void sdramc_configure(unsigned int mask)
 	sdramc_initialize(ATMEL_BASE_CS1, &setting);
 }
 
-void mem_init(void)
+void at91_mem_init(void)
 {
 	unsigned int ram_size = 0;
 
@@ -331,7 +331,7 @@ int dram_init(void)
 	return 0;
 }
 
-#if !defined(CONFIG_SPL_BUILD)
+#if !defined(CONFIG_XPL_BUILD)
 #if defined(CONFIG_BOARD_AXM)
 /*
  * Booting the Fallback Image.

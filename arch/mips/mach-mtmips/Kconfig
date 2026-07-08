@@ -80,9 +80,11 @@ config SOC_MT7621
 	bool "MT7621"
 	select MIPS_CM
 	select MIPS_L2_CACHE
+	select MMC_SUPPORTS_TUNING
 	select SYS_CACHE_SHIFT_5
 	select SYS_MIPS_CACHE_INIT_RAM_LOAD
 	select PINCTRL_MT7621
+	select PINCONF
 	select MTK_SERIAL
 	select REGMAP
 	select SYSCON
@@ -100,9 +102,8 @@ config SOC_MT7628
 	select MIPS_SRAM_INIT
 	select SYS_MIPS_CACHE_INIT_RAM_LOAD
 	select PINCTRL_MT7628
+	select PINCONF
 	select MTK_SERIAL
-	select SYSRESET
-	select SYSRESET_RESETCTL
 	select SPL_SEPARATE_BSS if SPL
 	select SPL_INIT_STACK_WITHOUT_MALLOC_F if SPL
 	select SPL_LOADER_SUPPORT if SPL
@@ -110,7 +111,6 @@ config SOC_MT7628
 	select SPL_SIMPLE_BUS if SPL_DM
 	select SPL_DM_SERIAL if SPL_DM
 	select SPL_CLK if SPL_DM && SPL_SERIAL
-	select SPL_SYSRESET if SPL_DM
 	select SPL_OF_LIBFDT if SPL_OF_CONTROL
 	help
 	  This supports MediaTek MT7628/MT7688.

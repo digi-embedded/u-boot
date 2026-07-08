@@ -7,7 +7,6 @@
 #include <fb_fsl.h>
 #include <linux/stat.h>
 #include <linux/types.h>
-#include <common.h>
 #include <g_dnl.h>
 #include <mmc.h>
 #include "bcb.h"

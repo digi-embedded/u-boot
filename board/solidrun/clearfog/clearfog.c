@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Stefan Roese <sr@denx.de>
  */
 
-#include <common.h>
+#include <config.h>
 #include <env.h>
 #include <i2c.h>
 #include <init.h>
@@ -161,7 +161,7 @@ static struct mv_ddr_topology_map board_topology_map = {
 	{0},				/* timing parameters */
 	{ {0} },			/* electrical configuration */
 	{0,},				/* electrical parameters */
-	0,				/* ODT configuration */
+	0x30000,			/* ODT configuration */
 	0x3,				/* clock enable mask */
 };
 

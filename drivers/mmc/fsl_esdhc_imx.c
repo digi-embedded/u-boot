@@ -11,7 +11,6 @@
  */
 
 #include <config.h>
-#include <common.h>
 #include <command.h>
 #include <clk.h>
 #include <cpu_func.h>
@@ -42,12 +41,6 @@
 #include <linux/dma-mapping.h>
 #if CONFIG_IS_ENABLED(IMX_MODULE_FUSE)
 #include <asm/mach-imx/sys_proto.h>
-#endif
-
-#ifndef ESDHCI_QUIRK_BROKEN_TIMEOUT_VALUE
-#ifdef CONFIG_FSL_USDHC
-#define ESDHCI_QUIRK_BROKEN_TIMEOUT_VALUE	1
-#endif
 #endif
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -112,6 +105,33 @@ struct fsl_esdhc {
 	uint    scr;		/* eSDHC control register */
 };
 
+struct fsl_esdhc_cq {
+	uint cqver;
+	uint cqcap;
+	uint cqcfg;
+	uint cqctl;
+	uint cqis;
+	uint cqiste;
+	uint cqisge;
+	uint cqic;
+	uint cqtdlba;
+	uint cqtdlbau;
+	uint cqtdbr;
+	uint cqtcn;
+	uint cqdqs;
+	uint cqdpt;
+	uint cqtclr;
+	uint reserved1;
+	uint cqssc1;
+	uint cqssc2;
+	uint cqcrdct;
+	uint reserved2;
+	uint cqrmem;
+	uint cqterri;
+	uint cqcri;
+	uint cqcra;
+};
+
 struct fsl_esdhc_plat {
 #if CONFIG_IS_ENABLED(OF_PLATDATA)
 	/* Put this first since driver model will copy the data here */
@@ -152,8 +172,7 @@ struct fsl_esdhc_priv {
 	struct fsl_esdhc *esdhc_regs;
 	unsigned int sdhc_clk;
 	struct clk per_clk;
-	struct clk ipg_clk;
-	struct clk ahb_clk;
+	struct clk_bulk clk_bulk;
 	unsigned int clock;
 	unsigned int mode;
 #if !CONFIG_IS_ENABLED(DM_MMC)
@@ -381,7 +400,7 @@ static int esdhc_setup_data(struct fsl_esdhc_priv *priv, struct mmc *mmc,
 	    (timeout == 4 || timeout == 8 || timeout == 12))
 		timeout++;
 
-	if (IS_ENABLED(ESDHCI_QUIRK_BROKEN_TIMEOUT_VALUE))
+	if (IS_ENABLED(CONFIG_ESDHCI_QUIRK_BROKEN_TIMEOUT_VALUE))
 		timeout = 0xE;
 
 	esdhc_clrsetbits32(&regs->sysctl, SYSCTL_TIMEOUT_MASK, timeout << 16);
@@ -645,7 +664,7 @@ static void set_sysctl(struct fsl_esdhc_priv *priv, struct mmc *mmc, uint clock)
 	priv->clock = clock;
 }
 
-#ifdef MMC_SUPPORTS_TUNING
+#if CONFIG_IS_ENABLED(MMC_SUPPORTS_TUNING)
 static int esdhc_change_pinstate(struct udevice *dev)
 {
 	struct fsl_esdhc_priv *priv = dev_get_priv(dev);
@@ -777,7 +796,7 @@ static int esdhc_set_voltage(struct mmc *mmc)
 			ret = regulator_set_value(priv->vqmmc_dev,
 						  3300000);
 			if (ret) {
-				printf("Setting to 3.3V error");
+				printf("Setting to 3.3V error: %d\n", ret);
 				return -EIO;
 			}
 			mdelay(5);
@@ -795,7 +814,7 @@ static int esdhc_set_voltage(struct mmc *mmc)
 			ret = regulator_set_value(priv->vqmmc_dev,
 						  1800000);
 			if (ret) {
-				printf("Setting to 1.8V error");
+				printf("Setting to 1.8V error: %d\n", ret);
 				return -EIO;
 			}
 		}
@@ -892,7 +911,7 @@ static int fsl_esdhc_execute_tuning(struct udevice *dev, uint32_t opcode)
 		esdhc_write32(&regs->mixctrl, val);
 
 		/* We are using STD tuning, no need to check return value */
-		mmc_send_tuning(mmc, opcode, NULL);
+		mmc_send_tuning(mmc, opcode);
 
 		ctrl = esdhc_read32(&regs->autoc12err);
 		if ((!(ctrl & MIX_CTRL_EXE_TUNE)) &&
@@ -923,7 +942,7 @@ static int esdhc_set_ios_common(struct fsl_esdhc_priv *priv, struct mmc *mmc)
 	int ret __maybe_unused;
 	u32 clock;
 
-#ifdef MMC_SUPPORTS_TUNING
+#if CONFIG_IS_ENABLED(MMC_SUPPORTS_TUNING)
 	/*
 	 * call esdhc_set_timing() before update the clock rate,
 	 * This is because current we support DDR and SDR mode,
@@ -961,7 +980,7 @@ static int esdhc_set_ios_common(struct fsl_esdhc_priv *priv, struct mmc *mmc)
 			esdhc_setbits32(&regs->sysctl, SYSCTL_PEREN | SYSCTL_CKEN);
 	}
 
-#ifdef MMC_SUPPORTS_TUNING
+#if CONFIG_IS_ENABLED(MMC_SUPPORTS_TUNING)
 	/*
 	 * For HS400/HS400ES mode, make sure set the strobe dll in the
 	 * target clock rate. So call esdhc_set_strobe_dll() after the
@@ -1100,6 +1119,35 @@ static int esdhc_wait_dat0_common(struct fsl_esdhc_priv *priv, int state,
 	return ret;
 }
 
+#define CQHCI_HALT_TIMEOUT 20000 /*us*/
+#define CQHCI_CLEAR_TIMEOUT 20000
+
+static void esdhc_cq_reset(struct fsl_esdhc *regs)
+{
+	int err;
+	u32 tmp;
+	struct fsl_esdhc_cq *cq_regs = (void *)regs + 0x100;
+
+	tmp = esdhc_read32(&cq_regs->cqcfg);
+	if (tmp & CQCFG_CQUE) {
+		/* When CQ is enabled, firstly halt the CQ, then clear all tasks on host */
+		esdhc_setbits32(&cq_regs->cqctl, CQCTL_HALT);
+		err = readx_poll_timeout(esdhc_read32, &cq_regs->cqctl,
+					 tmp, tmp & CQCTL_HALT, CQHCI_HALT_TIMEOUT);
+		if (err)
+			pr_warn("cq halt timeout.\n");
+
+		esdhc_setbits32(&cq_regs->cqctl, CQCTL_CLEAR);
+		err = readx_poll_timeout(esdhc_read32, &cq_regs->cqctl,
+					 tmp, !(tmp & CQCTL_CLEAR), CQHCI_CLEAR_TIMEOUT);
+		if (err)
+			pr_warn("cq clear all tasks timeout.\n");
+
+		/* Disable the CQ */
+		esdhc_write32(&cq_regs->cqcfg, 0);
+	}
+}
+
 static int esdhc_reset(struct fsl_esdhc *regs)
 {
 	ulong start;
@@ -1177,6 +1225,10 @@ static int fsl_esdhc_init(struct fsl_esdhc_priv *priv,
 		return -EINVAL;
 
 	regs = priv->esdhc_regs;
+
+	/* Reset Command Queue Engine before esdhc reset */
+	if (priv->flags & ESDHC_FLAG_CQHCI)
+		esdhc_cq_reset(regs);
 
 	/* First reset the eSDHC controller */
 	ret = esdhc_reset(regs);
@@ -1415,8 +1467,7 @@ static int fsl_esdhc_of_to_plat(struct udevice *dev)
 	struct udevice *vqmmc_dev;
 	int ret;
 
-	const void *fdt = gd->fdt_blob;
-	int node = dev_of_offset(dev);
+	ofnode node = dev_ofnode(dev);
 	fdt_addr_t addr;
 	unsigned int val;
 
@@ -1438,15 +1489,15 @@ static int fsl_esdhc_of_to_plat(struct udevice *dev)
 	priv->dev = dev;
 	priv->mode = -1;
 
-	val = fdtdec_get_int(fdt, node, "fsl,tuning-step", 1);
+	val = ofnode_read_u32_default(node, "fsl,tuning-step", 1);
 	priv->tuning_step = val;
-	val = fdtdec_get_int(fdt, node, "fsl,tuning-start-tap",
-			     ESDHC_TUNING_START_TAP_DEFAULT);
+	val = ofnode_read_u32_default(node, "fsl,tuning-start-tap",
+				      ESDHC_TUNING_START_TAP_DEFAULT);
 	priv->tuning_start_tap = val;
-	val = fdtdec_get_int(fdt, node, "fsl,strobe-dll-delay-target",
-			     ESDHC_STROBE_DLL_CTRL_SLV_DLY_TARGET_DEFAULT);
+	val = ofnode_read_u32_default(node, "fsl,strobe-dll-delay-target",
+				      ESDHC_STROBE_DLL_CTRL_SLV_DLY_TARGET_DEFAULT);
 	priv->strobe_dll_delay_target = val;
-	val = fdtdec_get_int(fdt, node, "fsl,signal-voltage-switch-extra-delay-ms", 0);
+	val = ofnode_read_u32_default(node, "fsl,signal-voltage-switch-extra-delay-ms", 0);
 	priv->signal_voltage_switch_extra_delay_ms = val;
 
 	if (dev_read_bool(dev, "broken-cd"))
@@ -1552,32 +1603,21 @@ static int fsl_esdhc_probe(struct udevice *dev)
 
 #if CONFIG_IS_ENABLED(CLK)
 	/* Assigned clock already set clock */
-	ret = clk_get_by_name(dev, "ipg", &priv->ipg_clk);
-	if (!ret) {
-		ret = clk_enable(&priv->ipg_clk);
-		if (ret) {
-			printf("Failed to enable ipg_clk\n");
-			return ret;
-		}
+	ret = clk_get_bulk(dev, &priv->clk_bulk);
+	if (ret) {
+		dev_err(dev, "Failed to get clks: %d\n", ret);
+		return ret;
 	}
 
-	ret = clk_get_by_name(dev, "ahb", &priv->ahb_clk);
-	if (!ret) {
-		ret = clk_enable(&priv->ahb_clk);
-		if (ret) {
-			printf("Failed to enable ahb_clk\n");
-			return ret;
-		}
+	ret = clk_enable_bulk(&priv->clk_bulk);
+	if (ret) {
+		dev_err(dev, "Failed to enable clks: %d\n", ret);
+		return ret;
 	}
 
 	ret = clk_get_by_name(dev, "per", &priv->per_clk);
 	if (ret) {
 		printf("Failed to get per_clk\n");
-		return ret;
-	}
-	ret = clk_enable(&priv->per_clk);
-	if (ret) {
-		printf("Failed to enable per_clk\n");
 		return ret;
 	}
 
@@ -1586,7 +1626,7 @@ static int fsl_esdhc_probe(struct udevice *dev)
 	init_clk_usdhc(dev_seq(dev));
 
 	priv->sdhc_clk = mxc_get_clock(MXC_ESDHC_CLK + dev_seq(dev));
-	if (priv->sdhc_clk <= 0) {
+	if (!priv->sdhc_clk || IS_ERR_VALUE(priv->sdhc_clk)) {
 		dev_err(dev, "Unable to get clk for %s\n", dev->name);
 		return -EINVAL;
 	}
@@ -1674,7 +1714,7 @@ static const struct dm_mmc_ops fsl_esdhc_ops = {
 	.get_cd		= fsl_esdhc_get_cd,
 	.send_cmd	= fsl_esdhc_send_cmd,
 	.set_ios	= fsl_esdhc_set_ios,
-#ifdef MMC_SUPPORTS_TUNING
+#if CONFIG_IS_ENABLED(MMC_SUPPORTS_TUNING)
 	.execute_tuning	= fsl_esdhc_execute_tuning,
 #endif
 #if CONFIG_IS_ENABLED(MMC_HS400_ES_SUPPORT)
@@ -1702,6 +1742,13 @@ static struct esdhc_soc_data usdhc_imx8qm_data = {
 		ESDHC_FLAG_HS400 | ESDHC_FLAG_HS400_ES,
 };
 
+static struct esdhc_soc_data usdhc_imx952_data = {
+	.flags = ESDHC_FLAG_USDHC | ESDHC_FLAG_STD_TUNING |
+		ESDHC_FLAG_HAVE_CAP1 | ESDHC_FLAG_HS200 |
+		ESDHC_FLAG_HS400 | ESDHC_FLAG_HS400_ES |
+		ESDHC_FLAG_CQHCI,
+};
+
 static const struct udevice_id fsl_esdhc_ids[] = {
 	{ .compatible = "fsl,imx51-esdhc", },
 	{ .compatible = "fsl,imx53-esdhc", },
@@ -1716,6 +1763,7 @@ static const struct udevice_id fsl_esdhc_ids[] = {
 	{ .compatible = "fsl,imx8mn-usdhc", .data = (ulong)&usdhc_imx8qm_data,},
 	{ .compatible = "fsl,imx8mp-usdhc", .data = (ulong)&usdhc_imx8qm_data,},
 	{ .compatible = "fsl,imx8mq-usdhc", .data = (ulong)&usdhc_imx8qm_data,},
+	{ .compatible = "fsl,imx952-usdhc", .data = (ulong)&usdhc_imx952_data,},
 	{ .compatible = "fsl,imxrt-usdhc", },
 	{ .compatible = "fsl,esdhc", },
 	{ /* sentinel */ }

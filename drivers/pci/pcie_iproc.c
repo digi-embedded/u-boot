@@ -4,7 +4,6 @@
  *
  */
 
-#include <common.h>
 #include <dm.h>
 #include <errno.h>
 #include <generic-phy.h>
@@ -14,6 +13,7 @@
 #include <dm/device_compat.h>
 #include <linux/delay.h>
 #include <linux/log2.h>
+#include <linux/sizes.h>
 
 #define EP_PERST_SOURCE_SELECT_SHIFT 2
 #define EP_PERST_SOURCE_SELECT       BIT(EP_PERST_SOURCE_SELECT_SHIFT)

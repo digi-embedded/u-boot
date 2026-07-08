@@ -103,8 +103,8 @@ static const struct mtk_pin_field_calc mt7981_pin_ies_range[] = {
 	PIN_FIELD_BASE(6, 6, 4, 0x20, 0x10, 3, 1),
 	PIN_FIELD_BASE(7, 7, 4, 0x20, 0x10, 0, 1),
 	PIN_FIELD_BASE(8, 8, 4, 0x20, 0x10, 4, 1),
-	PIN_FIELD_BASE(9, 9, 4, 0x20, 0x10, 9, 1),
 
+	PIN_FIELD_BASE(9, 9, 5, 0x20, 0x10, 9, 1),
 	PIN_FIELD_BASE(10, 10, 5, 0x20, 0x10, 8, 1),
 	PIN_FIELD_BASE(11, 11, 5, 0x40, 0x10, 10, 1),
 	PIN_FIELD_BASE(12, 12, 5, 0x20, 0x10, 7, 1),
@@ -172,8 +172,8 @@ static const struct mtk_pin_field_calc mt7981_pin_smt_range[] = {
 	PIN_FIELD_BASE(6, 6, 4, 0x80, 0x10, 3, 1),
 	PIN_FIELD_BASE(7, 7, 4, 0x80, 0x10, 0, 1),
 	PIN_FIELD_BASE(8, 8, 4, 0x80, 0x10, 4, 1),
-	PIN_FIELD_BASE(9, 9, 4, 0x80, 0x10, 9, 1),
 
+	PIN_FIELD_BASE(9, 9, 5, 0x90, 0x10, 9, 1),
 	PIN_FIELD_BASE(10, 10, 5, 0x90, 0x10, 8, 1),
 	PIN_FIELD_BASE(11, 11, 5, 0x90, 0x10, 10, 1),
 	PIN_FIELD_BASE(12, 12, 5, 0x90, 0x10, 7, 1),
@@ -285,8 +285,8 @@ static const struct mtk_pin_field_calc mt7981_pin_drv_range[] = {
 	PIN_FIELD_BASE(6, 6, 4, 0x00, 0x10, 9, 3),
 	PIN_FIELD_BASE(7, 7, 4, 0x00, 0x10, 0, 3),
 	PIN_FIELD_BASE(8, 8, 4, 0x00, 0x10, 12, 3),
-	PIN_FIELD_BASE(9, 9, 4, 0x00, 0x10, 27, 3),
 
+	PIN_FIELD_BASE(9, 9, 5, 0x00, 0x10, 27, 3),
 	PIN_FIELD_BASE(10, 10, 5, 0x00, 0x10, 24, 3),
 	PIN_FIELD_BASE(11, 11, 5, 0x00, 0x10, 0, 3),
 	PIN_FIELD_BASE(12, 12, 5, 0x00, 0x10, 21, 3),
@@ -354,8 +354,8 @@ static const struct mtk_pin_field_calc mt7981_pin_pupd_range[] = {
 	PIN_FIELD_BASE(6, 6, 4, 0x30, 0x10, 3, 1),
 	PIN_FIELD_BASE(7, 7, 4, 0x30, 0x10, 0, 1),
 	PIN_FIELD_BASE(8, 8, 4, 0x30, 0x10, 4, 1),
-	PIN_FIELD_BASE(9, 9, 4, 0x30, 0x10, 9, 1),
 
+	PIN_FIELD_BASE(9, 9, 5, 0x30, 0x10, 9, 1),
 	PIN_FIELD_BASE(10, 10, 5, 0x30, 0x10, 8, 1),
 	PIN_FIELD_BASE(11, 11, 5, 0x30, 0x10, 10, 1),
 	PIN_FIELD_BASE(12, 12, 5, 0x30, 0x10, 7, 1),
@@ -404,8 +404,8 @@ static const struct mtk_pin_field_calc mt7981_pin_r0_range[] = {
 	PIN_FIELD_BASE(6, 6, 4, 0x40, 0x10, 3, 1),
 	PIN_FIELD_BASE(7, 7, 4, 0x40, 0x10, 0, 1),
 	PIN_FIELD_BASE(8, 8, 4, 0x40, 0x10, 4, 1),
-	PIN_FIELD_BASE(9, 9, 4, 0x40, 0x10, 9, 1),
 
+	PIN_FIELD_BASE(9, 9, 5, 0x40, 0x10, 9, 1),
 	PIN_FIELD_BASE(10, 10, 5, 0x40, 0x10, 8, 1),
 	PIN_FIELD_BASE(11, 11, 5, 0x40, 0x10, 10, 1),
 	PIN_FIELD_BASE(12, 12, 5, 0x40, 0x10, 7, 1),
@@ -454,8 +454,8 @@ static const struct mtk_pin_field_calc mt7981_pin_r1_range[] = {
 	PIN_FIELD_BASE(6, 6, 4, 0x50, 0x10, 3, 1),
 	PIN_FIELD_BASE(7, 7, 4, 0x50, 0x10, 0, 1),
 	PIN_FIELD_BASE(8, 8, 4, 0x50, 0x10, 4, 1),
-	PIN_FIELD_BASE(9, 9, 4, 0x50, 0x10, 9, 1),
 
+	PIN_FIELD_BASE(9, 9, 5, 0x50, 0x10, 9, 1),
 	PIN_FIELD_BASE(10, 10, 5, 0x50, 0x10, 8, 1),
 	PIN_FIELD_BASE(11, 11, 5, 0x50, 0x10, 10, 1),
 	PIN_FIELD_BASE(12, 12, 5, 0x50, 0x10, 7, 1),
@@ -494,7 +494,7 @@ static const struct mtk_pin_field_calc mt7981_pin_r1_range[] = {
 	PIN_FIELD_BASE(39, 39, 3, 0x40, 0x10, 1, 1),
 };
 
-static const struct mtk_pin_reg_calc mt7981_reg_cals[] = {
+static const struct mtk_pin_reg_calc mt7981_reg_cals[PINCTRL_PIN_REG_MAX] = {
 	[PINCTRL_PIN_REG_MODE] = MTK_RANGE(mt7981_pin_mode_range),
 	[PINCTRL_PIN_REG_DIR] = MTK_RANGE(mt7981_pin_dir_range),
 	[PINCTRL_PIN_REG_DI] = MTK_RANGE(mt7981_pin_di_range),
@@ -569,6 +569,11 @@ static const struct mtk_pin_desc mt7981_pins[] = {
 	MT7981_TYPE1_PIN(56, "WF_HB10"),
 };
 
+/* List all groups consisting of these pins dedicated to the enablement of
+ * certain hardware block and the corresponding mode for all of the pins.
+ * The hardware probably has multiple combinations of these pinouts.
+ */
+
 /* WA_AICE */
 static const int mt7981_wa_aice1_pins[] = { 0, 1, };
 static const int mt7981_wa_aice1_funcs[] = { 2, 2, };
@@ -631,6 +636,9 @@ static const int mt7981_wo0_jtag_1_funcs[] = { 5, 5, 5, 5, 5, };
 /* UART2 */
 static const int mt7981_uart2_0_pins[] = { 4, 5, 6, 7, };
 static const int mt7981_uart2_0_funcs[] = { 3, 3, 3, 3, };
+
+static const int mt7981_uart2_0_tx_rx_pins[] = { 4, 5, };
+static const int mt7981_uart2_0_tx_rx_funcs[] = { 3, 3, };
 
 /* GBE_LED0 */
 static const int mt7981_gbe_led0_pins[] = { 8, };
@@ -718,6 +726,17 @@ static const int mt7981_drv_vbus_pins[] = { 14, };
 static const int mt7981_drv_vbus_funcs[] = { 1, };
 
 /* EMMC */
+static const int mt7981_emmc_reset_pins[] = { 15, };
+static const int mt7981_emmc_reset_funcs[] = { 2, };
+
+static const int mt7981_emmc_4_pins[] = { 16, 17, 18, 19, 24, 25, };
+static const int mt7981_emmc_4_funcs[] = { 2, 2, 2, 2, 2, 2, };
+
+static const int mt7981_emmc_8_pins[] = {
+	16, 17, 18, 19, 20, 21, 22, 23, 24, 25, };
+static const int mt7981_emmc_8_funcs[] = {
+	2, 2, 2, 2, 2, 2, 2, 2, 2, 2, };
+
 static const int mt7981_emmc_45_pins[] = {
 	15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, };
 static const int mt7981_emmc_45_funcs[] = {
@@ -753,6 +772,12 @@ static const int mt7981_uart1_0_funcs[] = { 4, 4, 4, 4, };
 
 static const int mt7981_uart1_1_pins[] = { 26, 27, 28, 29, };
 static const int mt7981_uart1_1_funcs[] = { 2, 2, 2, 2, };
+
+static const int mt7981_uart1_2_pins[] = { 9, 10, };
+static const int mt7981_uart1_2_funcs[] = { 2, 2, };
+
+static const int mt7981_uart1_3_pins[] = { 26, 27, };
+static const int mt7981_uart1_3_funcs[] = { 2, 2, };
 
 /* UART2 */
 static const int mt7981_uart2_1_pins[] = { 22, 23, 24, 25, };
@@ -832,6 +857,8 @@ static const struct mtk_group_desc mt7981_groups[] = {
 	PINCTRL_PIN_GROUP("wo0_jtag_0", mt7981_wo0_jtag_0),
 	/* @GPIO(4,7) WM_JTAG(3) */
 	PINCTRL_PIN_GROUP("uart2_0", mt7981_uart2_0),
+	/* @GPIO(4,5) WM_JTAG(4) */
+	PINCTRL_PIN_GROUP("uart2_0_tx_rx", mt7981_uart2_0_tx_rx),
 	/* @GPIO(8) GBE_LED0(3) */
 	PINCTRL_PIN_GROUP("gbe_led0", mt7981_gbe_led0),
 	/* @GPIO(4,6) PTA_EXT(4) */
@@ -844,7 +871,7 @@ static const struct mtk_group_desc mt7981_groups[] = {
 	PINCTRL_PIN_GROUP("spi1_0", mt7981_spi1_0),
 	/* @GPIO(6,7) I2C(5) */
 	PINCTRL_PIN_GROUP("i2c0_0", mt7981_i2c0_0),
-	/* @GPIO(8): DFD_NTRST(6) */
+	/* @GPIO(0,1,4,5): DFD_NTRST(6) */
 	PINCTRL_PIN_GROUP("dfd_ntrst", mt7981_dfd_ntrst),
 	/* @GPIO(9,10): WM_AICE(2) */
 	PINCTRL_PIN_GROUP("wm_aice1", mt7981_wm_aice1),
@@ -870,6 +897,12 @@ static const struct mtk_group_desc mt7981_groups[] = {
 	PINCTRL_PIN_GROUP("udi", mt7981_udi),
 	/* @GPIO(14) DRV_VBUS(1) */
 	PINCTRL_PIN_GROUP("drv_vbus", mt7981_drv_vbus),
+	/* @GPIO(15): EMMC_RSTB(2) */
+	PINCTRL_PIN_GROUP("emmc_reset", mt7981_emmc_reset),
+	/* @GPIO(16,17,18,19,24,25): EMMC_DATx, EMMC_CLK, EMMC_CMD */
+	PINCTRL_PIN_GROUP("emmc_4", mt7981_emmc_4),
+	/* @GPIO(16,17,18,19,20,21,22,23,24,25): EMMC_DATx, EMMC_CLK, EMMC_CMD */
+	PINCTRL_PIN_GROUP("emmc_8", mt7981_emmc_8),
 	/* @GPIO(15,25): EMMC(2) */
 	PINCTRL_PIN_GROUP("emmc_45", mt7981_emmc_45),
 	/* @GPIO(16,21): SNFI(3) */
@@ -888,8 +921,12 @@ static const struct mtk_group_desc mt7981_groups[] = {
 	PINCTRL_PIN_GROUP("uart1_0", mt7981_uart1_0),
 	/* @GPIO(26,29): UART1(2) */
 	PINCTRL_PIN_GROUP("uart1_1", mt7981_uart1_1),
+	/* @GPIO(9,10): UART1(2) */
+	PINCTRL_PIN_GROUP("uart1_2", mt7981_uart1_2),
+	/* @GPIO(26,27): UART1(2) */
+	PINCTRL_PIN_GROUP("uart1_3", mt7981_uart1_3),
 	/* @GPIO(22,25): UART2(3) */
-	PINCTRL_PIN_GROUP("uart2_0", mt7981_uart2_1),
+	PINCTRL_PIN_GROUP("uart2_1", mt7981_uart2_1),
 	/* @GPIO(22,24) PTA_EXT(4) */
 	PINCTRL_PIN_GROUP("pta_ext_1", mt7981_pta_ext_1),
 	/* @GPIO(20,21): WM_UART(4) */
@@ -964,9 +1001,10 @@ static const struct mtk_io_type_desc mt7981_io_type_desc[] = {
  */
 static const char *const mt7981_wa_aice_groups[] = { "wa_aice1", "wa_aice2",
 	"wm_aice1_1", "wa_aice3", "wm_aice1_2", };
-static const char *const mt7981_uart_groups[] = { "wm_uart_0", "uart2_0",
-	"net_wo0_uart_txd_0", "net_wo0_uart_txd_1", "net_wo0_uart_txd_2",
-	"uart1_0", "uart1_1", "uart2_0", "wm_aurt_1", "wm_aurt_2", "uart0", };
+static const char *const mt7981_uart_groups[] = { "net_wo0_uart_txd_0",
+	"net_wo0_uart_txd_1", "net_wo0_uart_txd_2", "uart0", "uart1_0",
+	"uart1_1", "uart1_2", "uart1_3", "uart2_0", "uart2_0_tx_rx", "uart2_1",
+	"wm_uart_0", "wm_aurt_1", "wm_aurt_2", };
 static const char *const mt7981_dfd_groups[] = { "dfd", "dfd_ntrst", };
 static const char *const mt7981_wdt_groups[] = { "watchdog", "watchdog1", };
 static const char *const mt7981_pcie_groups[] = { "pcie_pereset", "pcie_clk",
@@ -986,7 +1024,8 @@ static const char *const mt7981_i2c_groups[] = { "i2c0_0", "i2c0_1",
 static const char *const mt7981_pcm_groups[] = { "pcm", };
 static const char *const mt7981_udi_groups[] = { "udi", };
 static const char *const mt7981_usb_groups[] = { "drv_vbus", };
-static const char *const mt7981_flash_groups[] = { "emmc_45", "snfi", };
+static const char *const mt7981_flash_groups[] = { "emmc_reset", "emmc_4",
+	"emmc_8", "emmc_45", "snfi", };
 static const char *const mt7981_ethernet_groups[] = { "smi_mdc_mdio",
 	"gbe_ext_mdc_mdio", "wf0_mode1", "wf0_mode3", "mt7531_int", };
 static const char *const mt7981_ant_groups[] = { "ant_sel", };
@@ -1012,8 +1051,9 @@ static const struct mtk_function_desc mt7981_functions[] = {
 };
 
 static const char *const mt7981_pinctrl_register_base_names[] = {
-	"gpio_base", "iocfg_rt_base", "iocfg_rm_base", "iocfg_rb_base",
-	"iocfg_lb_base", "iocfg_bl_base", "iocfg_tm_base", "iocfg_tl_base",
+	"gpio", "iocfg_rt", "iocfg_rm", "iocfg_rb",
+	"iocfg_lb", "iocfg_bl", "iocfg_tm", "iocfg_tl",
+	"eint",
 };
 
 static const struct mtk_pinctrl_soc mt7981_data = {
@@ -1048,6 +1088,8 @@ U_BOOT_DRIVER(mt7981_pinctrl) = {
 	.id = UCLASS_PINCTRL,
 	.of_match = mt7981_pctrl_match,
 	.ops = &mtk_pinctrl_ops,
+	.bind = mtk_pinctrl_common_bind,
 	.probe = mtk_pinctrl_mt7981_probe,
 	.priv_auto = sizeof(struct mtk_pinctrl_priv),
+	.flags = DM_FLAG_PRE_RELOC,
 };

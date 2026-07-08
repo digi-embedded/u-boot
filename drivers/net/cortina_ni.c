@@ -7,7 +7,6 @@
  * Ethernet MAC Driver for all supported CAxxxx SoCs
  */
 
-#include <common.h>
 #include <command.h>
 #include <malloc.h>
 #include <net.h>
@@ -500,7 +499,7 @@ static int ca_phy_probe(struct udevice *dev)
 				 dev, priv->phy_interface);
 	if (ext_phydev) {
 		ext_phydev->supported &= PHY_GBIT_FEATURES;
-		ext_phydev->advertising = int_phydev->supported;
+		ext_phydev->advertising = ext_phydev->supported;
 		phy_config(ext_phydev);
 	} else {
 		printf("CA NI %s: There is no external phy device\n", __func__);

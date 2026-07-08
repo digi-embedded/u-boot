@@ -3,6 +3,7 @@
  * Copyright 2020-2021 NXP
  */
 
+#include <env.h>
 #include <net/dsa.h>
 #include <dm/test.h>
 #include <test/ut.h>
@@ -56,27 +57,25 @@ static int dm_test_dsa_probe(struct unit_test_state *uts)
 
 	return 0;
 }
-
-DM_TEST(dm_test_dsa_probe, UT_TESTF_SCAN_FDT);
+DM_TEST(dm_test_dsa_probe, UTF_SCAN_FDT);
 
 /* This test sends ping requests with the local address through each DSA port
  * via the sandbox DSA master Eth.
  */
 static int dm_test_dsa(struct unit_test_state *uts)
 {
-	net_ping_ip = string_to_ip("1.2.3.5");
+	char *argv[] = { "ping", "1.1.2.2" };
 
 	env_set("ethact", "eth2");
-	ut_assertok(net_loop(PING));
+	ut_assertok(do_ping(NULL, 0, ARRAY_SIZE(argv), argv));
 
 	env_set("ethact", "lan0");
-	ut_assertok(net_loop(PING));
+	ut_assertok(do_ping(NULL, 0, ARRAY_SIZE(argv), argv));
 	env_set("ethact", "lan1");
-	ut_assertok(net_loop(PING));
+	ut_assertok(do_ping(NULL, 0, ARRAY_SIZE(argv), argv));
 
 	env_set("ethact", "");
 
 	return 0;
 }
-
-DM_TEST(dm_test_dsa, UT_TESTF_SCAN_FDT);
+DM_TEST(dm_test_dsa, UTF_SCAN_FDT);

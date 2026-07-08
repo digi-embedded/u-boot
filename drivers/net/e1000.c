@@ -7,9 +7,7 @@ tested on both gig copper and gig fiber boards
 ***************************************************************************/
 /*******************************************************************************
 
-
   Copyright(c) 1999 - 2002 Intel Corporation. All rights reserved.
-
 
   Contact Information:
   Linux NICS <linux.nics@intel.com>
@@ -29,7 +27,6 @@ tested on both gig copper and gig fiber boards
  *  Copyright 2011 Freescale Semiconductor, Inc.
  */
 
-#include <common.h>
 #include <command.h>
 #include <cpu_func.h>
 #include <dm.h>
@@ -108,6 +105,12 @@ static struct pci_device_id e1000_supported[] = {
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_80003ES2LAN_SERDES_DPT) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_80003ES2LAN_COPPER_SPT) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_80003ES2LAN_SERDES_SPT) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_I226_K) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_I226_LMVP) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_I226_LM) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_I226_V) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_I226_IT) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_I226_UNPROGRAMMED) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_I210_UNPROGRAMMED) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_I211_UNPROGRAMMED) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_I210_COPPER) },
@@ -116,6 +119,9 @@ static struct pci_device_id e1000_supported[] = {
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_I210_SERDES) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_I210_SERDES_FLASHLESS) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_I210_1000BASEKX) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_I225_UNPROGRAMMED) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_I225_IT) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_I225_V) },
 
 	{}
 };
@@ -1567,6 +1573,12 @@ e1000_set_mac_type(struct e1000_hw *hw)
 	case E1000_DEV_ID_ICH8_IGP_M:
 		hw->mac_type = e1000_ich8lan;
 		break;
+	case PCI_DEVICE_ID_INTEL_I226_K:
+	case PCI_DEVICE_ID_INTEL_I226_LMVP:
+	case PCI_DEVICE_ID_INTEL_I226_LM:
+	case PCI_DEVICE_ID_INTEL_I226_V:
+	case PCI_DEVICE_ID_INTEL_I226_IT:
+	case PCI_DEVICE_ID_INTEL_I226_UNPROGRAMMED:
 	case PCI_DEVICE_ID_INTEL_I210_UNPROGRAMMED:
 	case PCI_DEVICE_ID_INTEL_I211_UNPROGRAMMED:
 	case PCI_DEVICE_ID_INTEL_I210_COPPER:
@@ -1575,6 +1587,9 @@ e1000_set_mac_type(struct e1000_hw *hw)
 	case PCI_DEVICE_ID_INTEL_I210_SERDES:
 	case PCI_DEVICE_ID_INTEL_I210_SERDES_FLASHLESS:
 	case PCI_DEVICE_ID_INTEL_I210_1000BASEKX:
+	case PCI_DEVICE_ID_INTEL_I225_UNPROGRAMMED:
+	case PCI_DEVICE_ID_INTEL_I225_IT:
+	case PCI_DEVICE_ID_INTEL_I225_V:
 		hw->mac_type = e1000_igb;
 		break;
 	default:
@@ -1726,7 +1741,6 @@ e1000_initialize_hardware_bits(struct e1000_hw *hw)
 		reg_txdctl1 = E1000_READ_REG(hw, TXDCTL1);
 		reg_txdctl1 |= E1000_TXDCTL_COUNT_DESC;
 		E1000_WRITE_REG(hw, TXDCTL1, reg_txdctl1);
-
 
 		switch (hw->mac_type) {
 		case e1000_igb:			/* IGB is cool */
@@ -2579,7 +2593,6 @@ e1000_set_d0_lplu_state(struct e1000_hw *hw, bool active)
 				return ret_val;
 		}
 
-
 	} else {
 
 		if (hw->mac_type == e1000_ich8lan) {
@@ -3258,7 +3271,8 @@ e1000_setup_copper_link(struct e1000_hw *hw)
 		if (ret_val)
 			return ret_val;
 	} else if (hw->phy_type == e1000_phy_m88 ||
-		hw->phy_type == e1000_phy_igb) {
+		hw->phy_type == e1000_phy_igb ||
+		hw->phy_type == e1000_phy_igc) {
 		ret_val = e1000_copper_link_mgp_setup(hw);
 		if (ret_val)
 			return ret_val;
@@ -4531,6 +4545,8 @@ e1000_get_phy_cfg_done(struct e1000_hw *hw)
 	case e1000_igb:
 		while (timeout) {
 			if (hw->mac_type == e1000_igb) {
+				if (hw->phy_type == e1000_phy_igc)
+					break;
 				if (E1000_READ_REG(hw, I210_EEMNGCTL) & cfg_mask)
 					break;
 			} else {
@@ -4773,6 +4789,7 @@ e1000_phy_reset(struct e1000_hw *hw)
 	case e1000_phy_igp_3:
 	case e1000_phy_ife:
 	case e1000_phy_igb:
+	case e1000_phy_igc:
 		ret_val = e1000_phy_hw_reset(hw);
 		if (ret_val)
 			return ret_val;
@@ -4819,6 +4836,7 @@ static int e1000_set_phy_type (struct e1000_hw *hw)
 			hw->phy_type = e1000_phy_igp;
 			break;
 		}
+		fallthrough;
 	case IGP03E1000_E_PHY_ID:
 		hw->phy_type = e1000_phy_igp_3;
 		break;
@@ -4832,11 +4850,18 @@ static int e1000_set_phy_type (struct e1000_hw *hw)
 			hw->phy_type = e1000_phy_gg82563;
 			break;
 		}
+		fallthrough;
 	case BME1000_E_PHY_ID:
 		hw->phy_type = e1000_phy_bm;
 		break;
 	case I210_I_PHY_ID:
 		hw->phy_type = e1000_phy_igb;
+		break;
+	case I225_I_PHY_ID:
+	case I225_V_PHY_ID:
+	case I226_LM_PHY_ID:
+	case I226_I_PHY_ID:
+		hw->phy_type = e1000_phy_igc;
 		break;
 		/* Fall Through */
 	default:
@@ -4944,6 +4969,14 @@ e1000_detect_gig_phy(struct e1000_hw *hw)
 		break;
 	case e1000_igb:
 		if (hw->phy_id == I210_I_PHY_ID)
+			match = true;
+		if (hw->phy_id == I225_I_PHY_ID)
+			match = true;
+		if (hw->phy_id == I225_V_PHY_ID)
+			match = true;
+		if (hw->phy_id == I226_LM_PHY_ID)
+			match = true;
+		if (hw->phy_id == I226_I_PHY_ID)
 			match = true;
 		break;
 	default:
@@ -5190,7 +5223,6 @@ e1000_configure_tx(struct e1000_hw *hw)
 		E1000_WRITE_REG(hw, TARC1, tarc);
 	}
 
-
 	e1000_config_collision_dist(hw);
 	/* Setup Transmit Descriptor Settings for eop descriptor */
 	hw->txd_cmd = E1000_TXD_CMD_EOP | E1000_TXD_CMD_IFCS;
@@ -5200,7 +5232,6 @@ e1000_configure_tx(struct e1000_hw *hw)
 		hw->txd_cmd |= E1000_TXD_CMD_RPS;
 	else
 		hw->txd_cmd |= E1000_TXD_CMD_RS;
-
 
 	if (hw->mac_type == e1000_igb) {
 		E1000_WRITE_REG(hw, TCTL_EXT, 0x42 << 10);

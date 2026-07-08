@@ -13,15 +13,9 @@
 #include <linux/stringify.h>
 #include "mx6_common.h"
 #include <asm/mach-imx/gpio.h>
-#include "imx_env.h"
+#include <env/nxp/imx_env.h>
 
 #define is_mx6ul_9x9_evk()	IS_ENABLED(CONFIG_TARGET_MX6UL_9X9_EVK)
-
-#ifdef CONFIG_TARGET_MX6UL_9X9_EVK
-#define BOOTARGS_CMA_SIZE   "cma=96M "
-#else
-#define BOOTARGS_CMA_SIZE   ""
-#endif
 
 #define CFG_MXC_UART_BASE		UART1_BASE
 
@@ -60,12 +54,10 @@
 	TEE_ENV \
 	"splashimage=0x8c000000\0" \
 	"fdt_addr=0x83000000\0" \
-	"fdt_high=0xffffffff\0"	  \
 	"tee_addr=0x84000000\0" \
 	"console=ttymxc0\0" \
 	"bootargs=console=ttymxc0,115200 ubi.mtd=nandrootfs "  \
 		"root=ubi0:rootfs rootfstype=ubifs "		     \
-		BOOTARGS_CMA_SIZE \
 		MFG_NAND_PARTITION \
 		"\0" \
 	"bootcmd=nand read ${loadaddr} 0x4000000 0xc00000;"\
@@ -84,7 +76,6 @@
 	"script=boot.scr\0" \
 	"image=zImage\0" \
 	"console=ttymxc0\0" \
-	"fdt_high=0xffffffff\0" \
 	"initrd_high=0xffffffff\0" \
 	"fdt_file=undefined\0" \
 	"fdt_addr=0x83000000\0" \
@@ -93,12 +84,11 @@
 	"boot_fdt=try\0" \
 	"ip_dyn=yes\0" \
 	"splashimage=0x8c000000\0" \
-	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
+	"mmcdev="__stringify(CONFIG_ENV_MMC_DEVICE_INDEX)"\0" \
 	"mmcpart=1\0" \
 	"mmcroot=/dev/mmcblk1p2 rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} " \
-		BOOTARGS_CMA_SIZE \
 		"root=${mmcroot}\0" \
 	"loadbootscript=" \
 		"fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
@@ -127,7 +117,6 @@
 			"fi; " \
 		"fi;\0" \
 	"netargs=setenv bootargs console=${console},${baudrate} " \
-		BOOTARGS_CMA_SIZE \
 		"root=/dev/nfs " \
 	"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
 		"netboot=echo Booting from net ...; " \
@@ -188,14 +177,7 @@
 #define CFG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
 #define CFG_SYS_INIT_RAM_SIZE	IRAM_SIZE
 
-/* environment organization */
-
 /* NAND stuff */
 #define CFG_SYS_NAND_BASE		0x40000000
 
-/* USB Configs */
-#ifdef CONFIG_CMD_USB
-#define CFG_MXC_USB_PORTSC  (PORT_PTS_UTMI | PORT_PTS_PTW)
-#define CFG_MXC_USB_FLAGS   0
-#endif
 #endif

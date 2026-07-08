@@ -4,11 +4,11 @@
  * Author: Yanhong Wang<yanhong.wang@starfivetech.com>
  */
 
-#include <common.h>
 #include <cpu_func.h>
 #include <dm.h>
 #include <fdt_support.h>
 #include <env.h>
+#include <log.h>
 #include <asm/arch/eeprom.h>
 #include <asm/io.h>
 #include <asm/sections.h>
@@ -17,10 +17,6 @@
 DECLARE_GLOBAL_DATA_PTR;
 #define JH7110_L2_PREFETCHER_BASE_ADDR		0x2030000
 #define JH7110_L2_PREFETCHER_HART_OFFSET	0x2000
-#define FDTFILE_VISIONFIVE2_1_2A \
-	"starfive/jh7110-starfive-visionfive-2-v1.2a.dtb"
-#define FDTFILE_VISIONFIVE2_1_3B \
-	"starfive/jh7110-starfive-visionfive-2-v1.3b.dtb"
 
 /* enable U74-mc hart1~hart4 prefetcher */
 static void enable_prefetcher(void)
@@ -42,26 +38,41 @@ static void enable_prefetcher(void)
 }
 
 /**
- * set_fdtfile() - set the $fdtfile variable based on the board revision
+ * set_fdtfile() - set the $fdtfile variable based on product data in EEPROM
  */
 static void set_fdtfile(void)
 {
-	u8 version;
 	const char *fdtfile;
 
-	version = get_pcb_revision_from_eeprom();
-	switch (version) {
-	case 'a':
-	case 'A':
-		fdtfile = FDTFILE_VISIONFIVE2_1_2A;
-	        break;
+	fdtfile = env_get("fdtfile");
+	if (fdtfile)
+		return;
 
-	case 'b':
-	case 'B':
-	default:
-		fdtfile = FDTFILE_VISIONFIVE2_1_3B;
-	        break;
-	};
+	if (!get_product_id_from_eeprom()) {
+		log_err("Can't read EEPROM\n");
+		return;
+	}
+
+	if (!strncmp(get_product_id_from_eeprom(), "FML13V01", 8)) {
+		fdtfile = "starfive/jh7110-deepcomputing-fml13v01.dtb";
+	} else if (!strncmp(get_product_id_from_eeprom(), "MARS", 4)) {
+		fdtfile = "starfive/jh7110-milkv-mars.dtb";
+	} else if (!strncmp(get_product_id_from_eeprom(), "MARC", 4)) {
+		if (get_mmc_size_from_eeprom()) {
+			fdtfile = "starfive/jh7110-milkv-marscm-emmc.dtb";
+		} else {
+			fdtfile = "starfive/jh7110-milkv-marscm-lite.dtb";
+		}
+	} else if (!strncmp(get_product_id_from_eeprom(), "STAR64", 6)) {
+		fdtfile = "starfive/jh7110-pine64-star64.dtb";
+	} else if (!strncmp(get_product_id_from_eeprom(), "VF7110A", 7)) {
+		fdtfile = "starfive/jh7110-starfive-visionfive-2-v1.2a.dtb";
+	} else if (!strncmp(get_product_id_from_eeprom(), "VF7110B", 7)) {
+		fdtfile = "starfive/jh7110-starfive-visionfive-2-v1.3b.dtb";
+	} else {
+		log_err("Unknown product\n");
+		return;
+	}
 
 	env_set("fdtfile", fdtfile);
 }
@@ -80,17 +91,6 @@ int board_late_init(void)
 		set_fdtfile();
 
 	return 0;
-}
-
-void *board_fdt_blob_setup(int *err)
-{
-	*err = 0;
-	if (IS_ENABLED(CONFIG_OF_SEPARATE) || IS_ENABLED(CONFIG_OF_BOARD)) {
-		if (gd->arch.firmware_fdt_addr)
-			return (ulong *)(uintptr_t)gd->arch.firmware_fdt_addr;
-	}
-
-	return (ulong *)_end;
 }
 
 int ft_board_setup(void *blob, struct bd_info *bd)

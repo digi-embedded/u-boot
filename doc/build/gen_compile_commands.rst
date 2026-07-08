@@ -39,10 +39,10 @@ course) to have an up-to-date database.
 
 The database will be in the root of the repository. No further modifications are
 needed for it to be usable by the LSP, unless you set a name for the database
-other than it's default one (compile_commands.json).
+other than the default one (compile_commands.json).
 
 Compatible IDEs
-===============
+---------------
 
 Several popular integrated development environments (IDEs) support the use
 of JSON compilation databases for C/C++ development, making it easier to
@@ -73,7 +73,7 @@ compile_commands.json in the root of the repository should suffice to enable
 code navigation.
 
 Usage
-=====
+-----
 
 For further details on the script's options, please refer to its help message,
 as in the example below.

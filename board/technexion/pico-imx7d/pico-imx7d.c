@@ -3,6 +3,7 @@
  * Copyright (C) 2017 NXP Semiconductors
  */
 
+#include <env.h>
 #include <init.h>
 #include <net.h>
 #include <asm/arch/clock.h>
@@ -15,11 +16,10 @@
 #include <asm/mach-imx/iomux-v3.h>
 #include <asm/mach-imx/boot_mode.h>
 #include <asm/io.h>
-#include <common.h>
 #include <miiphy.h>
 #include <power/pmic.h>
 #include <power/pfuze3000_pmic.h>
-#include "../../freescale/common/pfuze.h"
+#include "../../nxp/common/pfuze.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 

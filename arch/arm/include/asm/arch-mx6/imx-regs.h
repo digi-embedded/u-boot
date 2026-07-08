@@ -439,7 +439,6 @@
 
 #define MXS_LCDIF_BASE LCDIF1_BASE_ADDR
 
-
 extern void imx_get_mac_from_fuse(int dev_id, unsigned char *mac);
 
 #define SRC_SCR_CORE_1_RESET_OFFSET     14

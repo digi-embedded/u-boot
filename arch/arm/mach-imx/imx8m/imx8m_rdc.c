@@ -5,7 +5,7 @@
  */
 
 #include <asm/io.h>
-#include <common.h>
+#include <config.h>
 #include <asm/arch/imx8m_rdc.h>
 
 void imx_rdc_init(const struct imx_rdc_cfg *rdc_cfg)

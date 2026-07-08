@@ -7,7 +7,6 @@
  * (C) Copyright 2019 Stefan Bosch <stefan_b@posteo.net>
  */
 
-#include <common.h>
 #include <dm.h>
 #include <errno.h>
 #include <asm/global_data.h>
@@ -131,7 +130,8 @@ static int is_pin_alive(const char *name)
 static int s5pxx18_pinctrl_set_state(struct udevice *dev,
 				     struct udevice *config)
 {
-	unsigned int count, idx, pin;
+	u32 pin;
+	int count, idx;
 	unsigned int pinfunc, pinpud, pindrv;
 	unsigned long reg;
 	const char *name;

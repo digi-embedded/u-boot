@@ -20,8 +20,6 @@
  * ext4write : Based on generic ext4 protocol.
  */
 
-
-#include <common.h>
 #include <blk.h>
 #include <log.h>
 #include <malloc.h>
@@ -110,7 +108,13 @@ int ext4fs_get_bgdtable(void)
 {
 	int status;
 	struct ext_filesystem *fs = get_fs();
-	int gdsize_total = ROUND(fs->no_blkgrp * fs->gdsize, fs->blksz);
+	size_t alloc;
+	size_t gdsize_total;
+
+	if (__builtin_mul_overflow(fs->no_blkgrp, fs->gdsize, &alloc))
+		return -1;
+
+	gdsize_total = ROUND(alloc, fs->blksz);
 	fs->no_blk_pergdt = gdsize_total / fs->blksz;
 
 	/* allocate memory for gdtable */
@@ -207,7 +211,7 @@ static void delete_double_indirect_block(struct ext2_inode *inode)
 		di_buffer = zalloc(fs->blksz);
 		if (!di_buffer) {
 			printf("No memory\n");
-			return;
+			goto fail;
 		}
 		dib_start_addr = di_buffer;
 		blknr = le32_to_cpu(inode->b.blocks.double_indir_block);
@@ -306,7 +310,7 @@ static void delete_triple_indirect_block(struct ext2_inode *inode)
 		tigp_buffer = zalloc(fs->blksz);
 		if (!tigp_buffer) {
 			printf("No memory\n");
-			return;
+			goto fail;
 		}
 		tib_start_addr = tigp_buffer;
 		blknr = le32_to_cpu(inode->b.blocks.triple_indir_block);
@@ -747,7 +751,6 @@ void ext4fs_deinit(void)
 		fs->inode_bmaps = NULL;
 	}
 
-
 	free(fs->gdtable);
 	fs->gdtable = NULL;
 	/*
@@ -847,6 +850,7 @@ int ext4fs_write(const char *fname, const char *buffer,
 {
 	int ret = 0;
 	struct ext2_inode *file_inode = NULL;
+	struct ext2_inode *existing_file_inode = NULL;
 	unsigned char *inode_buffer = NULL;
 	int parent_inodeno;
 	int inodeno;
@@ -868,6 +872,7 @@ int ext4fs_write(const char *fname, const char *buffer,
 	ALLOC_CACHE_ALIGN_BUFFER(char, filename, 256);
 	bool store_link_in_inode = false;
 	memset(filename, 0x00, 256);
+	int missing_feat;
 
 	if (type != FILETYPE_REG && type != FILETYPE_SYMLINK)
 		return -1;
@@ -878,12 +883,20 @@ int ext4fs_write(const char *fname, const char *buffer,
 
 	if (ext4fs_init() != 0) {
 		printf("error in File System init\n");
-		return -1;
+		/* Skip ext4fs_deinit since ext4fs_init() already done that */
+		goto fail_init;
 	}
 
-	if (le32_to_cpu(fs->sb->feature_ro_compat) & EXT4_FEATURE_RO_COMPAT_METADATA_CSUM) {
-		printf("Unsupported feature metadata_csum found, not writing.\n");
-		return -1;
+	missing_feat = le32_to_cpu(fs->sb->feature_incompat) & ~EXT4_FEATURE_INCOMPAT_SUPP;
+	if (missing_feat) {
+		log_err("Unsupported features found %08x, not writing.\n", missing_feat);
+		goto fail;
+	}
+
+	missing_feat = le32_to_cpu(fs->sb->feature_ro_compat) & ~EXT4_FEATURE_RO_COMPAT_SUPP;
+	if (missing_feat) {
+		log_err("Unsupported RO compat features found %08x, not writing.\n", missing_feat);
+		goto fail;
 	}
 
 	inodes_per_block = fs->blksz / fs->inodesz;
@@ -900,6 +913,15 @@ int ext4fs_write(const char *fname, const char *buffer,
 	/* check if the filename is already present in root */
 	existing_file_inodeno = ext4fs_filename_unlink(filename);
 	if (existing_file_inodeno != -1) {
+		existing_file_inode = (struct ext2_inode *)zalloc(fs->inodesz);
+		if (!existing_file_inode)
+			goto fail;
+		ret = ext4fs_iget(existing_file_inodeno, existing_file_inode);
+		if (ret) {
+			free(existing_file_inode);
+			goto fail;
+		}
+
 		ret = ext4fs_delete_file(existing_file_inodeno);
 		fs->first_pass_bbmap = 0;
 		fs->curr_blkno = 0;
@@ -948,9 +970,15 @@ int ext4fs_write(const char *fname, const char *buffer,
 			sizebytes = 0;
 		}
 	} else {
-		file_inode->mode = cpu_to_le16(S_IFREG | S_IRWXU | S_IRGRP |
-					       S_IROTH | S_IXGRP | S_IXOTH);
+		if (existing_file_inode) {
+			file_inode->mode = existing_file_inode->mode;
+		} else {
+			file_inode->mode = cpu_to_le16(S_IFREG | S_IRWXU | S_IRGRP |
+						       S_IROTH | S_IXGRP | S_IXOTH);
+		}
 	}
+	if (existing_file_inode)
+		free(existing_file_inode);
 	/* ToDo: Update correct time */
 	file_inode->mtime = cpu_to_le32(timestamp);
 	file_inode->atime = cpu_to_le32(timestamp);
@@ -1029,6 +1057,7 @@ int ext4fs_write(const char *fname, const char *buffer,
 	return 0;
 fail:
 	ext4fs_deinit();
+fail_init:
 	free(inode_buffer);
 	free(g_parent_inode);
 	free(temp_ptr);

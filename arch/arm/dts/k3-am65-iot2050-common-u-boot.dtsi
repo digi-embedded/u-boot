@@ -14,6 +14,24 @@
 		spi0 = &ospi0;
 	};
 
+	sysinfo {
+		compatible = "siemens,sysinfo-iot2050";
+		/* TI_SRAM_SCRATCH_BOARD_EEPROM_START */
+		offset = <0x40280000>;
+		bootph-all;
+
+		smbios {
+			system {
+				manufacturer = "SIEMENS AG";
+				product = "SIMATIC IOT2050";
+			};
+
+			baseboard {
+				manufacturer = "SIEMENS AG";
+			};
+		};
+	};
+
 	leds {
 		bootph-all;
 		status-led-red {
@@ -99,10 +117,6 @@
 
 &dmsc {
 	bootph-all;
-	k3_sysreset: sysreset-controller {
-		compatible = "ti,sci-sysreset";
-		bootph-all;
-	};
 };
 
 &k3_pds {

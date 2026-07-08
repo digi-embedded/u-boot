@@ -5,7 +5,6 @@
  * Copyright (C) 2021 Rockchip Electronics Co., Ltd
  */
 
-#include <common.h>
 #include <clk.h>
 #include <dm.h>
 #include <dm/device_compat.h>
@@ -21,7 +20,7 @@
 #include <reset.h>
 #include <syscon.h>
 #include <asm/arch-rockchip/clock.h>
-
+#include <dt-bindings/phy/phy.h>
 #include <linux/usb/phy-rockchip-usbdp.h>
 
 #define BIT_WRITEABLE_SHIFT	16
@@ -74,6 +73,8 @@ struct udphy_grf_cfg {
 struct rockchip_udphy;
 
 struct rockchip_udphy_cfg {
+	unsigned int num_phys;
+	unsigned int phy_ids[2];
 	/* resets to be requested */
 	const char * const *rst_list;
 	int num_rsts;
@@ -95,9 +96,7 @@ struct rockchip_udphy {
 
 	/* PHY status management */
 	bool flip;
-	bool mode_change;
 	u8 mode;
-	u8 status;
 
 	/* utilized for USB */
 	bool hs; /* flag for high-speed */
@@ -524,69 +523,26 @@ static int udphy_parse_dt(struct rockchip_udphy *udphy, struct udevice *dev)
 	return 0;
 }
 
-static int udphy_power_on(struct rockchip_udphy *udphy, u8 mode)
+static int rockchip_u3phy_of_xlate(struct phy *phy,
+				   struct ofnode_phandle_args *args)
 {
-	int ret;
+	struct rockchip_udphy *udphy = dev_get_priv(phy->dev);
 
-	if (!(udphy->mode & mode)) {
-		dev_info(udphy->dev, "mode 0x%02x is not support\n", mode);
-		return 0;
-	}
+	if (args->args_count == 0)
+		return -EINVAL;
 
-	if (udphy->status == UDPHY_MODE_NONE) {
-		udphy->mode_change = false;
-		ret = udphy_setup(udphy);
-		if (ret)
-			return ret;
+	if (args->args[0] != PHY_TYPE_USB3)
+		return -EINVAL;
 
-		if (udphy->mode & UDPHY_MODE_USB)
-			udphy_u3_port_disable(udphy, false);
-	} else if (udphy->mode_change) {
-		udphy->mode_change = false;
-		udphy->status = UDPHY_MODE_NONE;
-		if (udphy->mode == UDPHY_MODE_DP)
-			udphy_u3_port_disable(udphy, true);
-
-		ret = udphy_disable(udphy);
-		if (ret)
-			return ret;
-		ret = udphy_setup(udphy);
-		if (ret)
-			return ret;
-	}
-
-	udphy->status |= mode;
-
-	return 0;
-}
-
-static int udphy_power_off(struct rockchip_udphy *udphy, u8 mode)
-{
-	int ret;
-
-	if (!(udphy->mode & mode)) {
-		dev_info(udphy->dev, "mode 0x%02x is not supported\n", mode);
-		return 0;
-	}
-
-	if (!udphy->status)
-		return 0;
-
-	udphy->status &= ~mode;
-
-	if (udphy->status == UDPHY_MODE_NONE) {
-		ret = udphy_disable(udphy);
-		if (ret)
-			return ret;
-	}
+	phy->id = udphy->id;
 
 	return 0;
 }
 
 static int rockchip_u3phy_init(struct phy *phy)
 {
-	struct udevice *parent = phy->dev->parent;
-	struct rockchip_udphy *udphy = dev_get_priv(parent);
+	struct rockchip_udphy *udphy = dev_get_priv(phy->dev);
+	int ret;
 
 	/* DP only or high-speed, disable U3 port */
 	if (!(udphy->mode & UDPHY_MODE_USB) || udphy->hs) {
@@ -594,63 +550,52 @@ static int rockchip_u3phy_init(struct phy *phy)
 		return 0;
 	}
 
-	return udphy_power_on(udphy, UDPHY_MODE_USB);
+	ret = udphy_setup(udphy);
+	if (ret)
+		return ret;
+
+	udphy_u3_port_disable(udphy, false);
+	return 0;
 }
 
 static int rockchip_u3phy_exit(struct phy *phy)
 {
-	struct udevice *parent = phy->dev->parent;
-	struct rockchip_udphy *udphy = dev_get_priv(parent);
+	struct rockchip_udphy *udphy = dev_get_priv(phy->dev);
 
 	/* DP only or high-speed */
 	if (!(udphy->mode & UDPHY_MODE_USB) || udphy->hs)
 		return 0;
 
-	return udphy_power_off(udphy, UDPHY_MODE_USB);
+	return udphy_disable(udphy);
 }
 
 static const struct phy_ops rockchip_u3phy_ops = {
+	.of_xlate	= rockchip_u3phy_of_xlate,
 	.init		= rockchip_u3phy_init,
 	.exit		= rockchip_u3phy_exit,
 };
 
-int rockchip_u3phy_uboot_init(void)
-{
-	struct udevice *udev;
-	struct rockchip_udphy *udphy;
-	int ret;
-
-	ret = uclass_get_device_by_driver(UCLASS_PHY,
-					  DM_DRIVER_GET(rockchip_udphy_u3_port),
-					  &udev);
-	if (ret) {
-		pr_err("%s: get u3-port failed: %d\n", __func__, ret);
-		return ret;
-	}
-
-	/* DP only or high-speed, disable U3 port */
-	udphy = dev_get_priv(udev->parent);
-	if (!(udphy->mode & UDPHY_MODE_USB) || udphy->hs) {
-		udphy_u3_port_disable(udphy, true);
-		return 0;
-	}
-
-	return udphy_power_on(udphy, UDPHY_MODE_USB);
-}
-
 static int rockchip_udphy_probe(struct udevice *dev)
 {
-	const struct device_node *np = ofnode_to_np(dev_ofnode(dev));
 	struct rockchip_udphy *udphy = dev_get_priv(dev);
 	const struct rockchip_udphy_cfg *phy_cfgs;
+	unsigned int reg;
 	int id, ret;
 
 	udphy->dev = dev;
 
-	id = of_alias_get_id(np, "usbdp");
-	if (id < 0)
-		id = 0;
-	udphy->id = id;
+	ret = ofnode_read_u32_index(dev_ofnode(dev), "reg", 0, &reg);
+	if (ret) {
+		dev_err(dev, "failed to read reg[0] property\n");
+		return ret;
+	}
+	if (reg == 0 && dev_read_addr_cells(dev) == 2) {
+		ret = ofnode_read_u32_index(dev_ofnode(dev), "reg", 1, &reg);
+		if (ret) {
+			dev_err(dev, "failed to read reg[1] property\n");
+			return ret;
+		}
+	}
 
 	phy_cfgs = (const struct rockchip_udphy_cfg *)dev_get_driver_data(dev);
 	if (!phy_cfgs) {
@@ -658,6 +603,20 @@ static int rockchip_udphy_probe(struct udevice *dev)
 		return -EINVAL;
 	}
 	udphy->cfgs = phy_cfgs;
+
+	/* find the phy-id from the io address */
+	udphy->id = -ENODEV;
+	for (id = 0; id < udphy->cfgs->num_phys; id++) {
+		if (reg == udphy->cfgs->phy_ids[id]) {
+			udphy->id = id;
+			break;
+		}
+	}
+
+	if (udphy->id < 0) {
+		dev_err(dev, "no matching device found\n");
+		return -ENODEV;
+	}
 
 	ret = regmap_init_mem(dev_ofnode(dev), &udphy->pma_regmap);
 	if (ret)
@@ -667,40 +626,6 @@ static int rockchip_udphy_probe(struct udevice *dev)
 	ret = udphy_parse_dt(udphy, dev);
 	if (ret)
 		return ret;
-
-	return 0;
-}
-
-static int rockchip_udphy_bind(struct udevice *parent)
-{
-	struct udevice *child;
-	ofnode subnode;
-	const char *node_name;
-	int ret;
-
-	dev_for_each_subnode(subnode, parent) {
-		if (!ofnode_valid(subnode)) {
-			printf("%s: no subnode for %s", __func__, parent->name);
-			return -ENXIO;
-		}
-
-		node_name = ofnode_get_name(subnode);
-		debug("%s: subnode %s\n", __func__, node_name);
-
-		/* if there is no match, continue */
-		if (strcasecmp(node_name, "usb3-port"))
-			continue;
-
-		/* node name is usb3-port */
-		ret = device_bind_driver_to_node(parent,
-						 "rockchip_udphy_u3_port",
-						 node_name, subnode, &child);
-		if (ret) {
-			printf("%s: '%s' cannot bind its driver\n",
-			       __func__, node_name);
-			return ret;
-		}
-	}
 
 	return 0;
 }
@@ -837,7 +762,34 @@ static const char * const rk3588_udphy_rst_l[] = {
 	"init", "cmn", "lane", "pcs_apb", "pma_apb"
 };
 
+static const struct rockchip_udphy_cfg rk3576_udphy_cfgs = {
+	.num_phys = 1,
+	.phy_ids = {
+		0x2b010000,
+	},
+	.num_rsts = ARRAY_SIZE(rk3588_udphy_rst_l),
+	.rst_list = rk3588_udphy_rst_l,
+	.grfcfg	= {
+		/* u2phy-grf */
+		.bvalid_phy_con		= { 0x0010, 1, 0, 0x2, 0x3 },
+		.bvalid_grf_con		= { 0x0000, 15, 14, 0x1, 0x3 },
+
+		/* usb-grf */
+		.usb3otg0_cfg		= { 0x0030, 15, 0, 0x1100, 0x0188 },
+
+		/* usbdpphy-grf */
+		.low_pwrn		= { 0x0004, 13, 13, 0, 1 },
+		.rx_lfps		= { 0x0004, 14, 14, 0, 1 },
+	},
+	.combophy_init = rk3588_udphy_init,
+};
+
 static const struct rockchip_udphy_cfg rk3588_udphy_cfgs = {
+	.num_phys = 2,
+	.phy_ids = {
+		0xfed80000,
+		0xfed90000,
+	},
 	.num_rsts = ARRAY_SIZE(rk3588_udphy_rst_l),
 	.rst_list = rk3588_udphy_rst_l,
 	.grfcfg	= {
@@ -858,16 +810,14 @@ static const struct rockchip_udphy_cfg rk3588_udphy_cfgs = {
 
 static const struct udevice_id rockchip_udphy_dt_match[] = {
 	{
+		.compatible = "rockchip,rk3576-usbdp-phy",
+		.data = (ulong)&rk3576_udphy_cfgs
+	},
+	{
 		.compatible = "rockchip,rk3588-usbdp-phy",
 		.data = (ulong)&rk3588_udphy_cfgs
 	},
 	{ /* sentinel */ }
-};
-
-U_BOOT_DRIVER(rockchip_udphy_u3_port) = {
-	.name		= "rockchip_udphy_u3_port",
-	.id		= UCLASS_PHY,
-	.ops		= &rockchip_u3phy_ops,
 };
 
 U_BOOT_DRIVER(rockchip_udphy) = {
@@ -875,6 +825,6 @@ U_BOOT_DRIVER(rockchip_udphy) = {
 	.id		= UCLASS_PHY,
 	.of_match	= rockchip_udphy_dt_match,
 	.probe		= rockchip_udphy_probe,
-	.bind		= rockchip_udphy_bind,
+	.ops		= &rockchip_u3phy_ops,
 	.priv_auto	= sizeof(struct rockchip_udphy),
 };

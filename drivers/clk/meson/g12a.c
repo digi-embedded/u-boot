@@ -5,7 +5,6 @@
  * Author: Neil Armstrong <narmstrong@baylibre.com>
  */
 
-#include <common.h>
 #include <log.h>
 #include <asm/arch/clock-g12a.h>
 #include <asm/io.h>
@@ -917,8 +916,6 @@ static ulong meson_clk_set_rate_by_id(struct clk *clk, unsigned long id,
 			return -EINVAL;
 	case CLKID_PCIE_PLL:
 		return meson_pcie_pll_set_rate(clk, rate);
-
-		return 0;
 	case CLKID_VPU:
 		return meson_clk_set_rate_by_id(clk,
 				meson_mux_get_parent(clk, CLKID_VPU), rate,

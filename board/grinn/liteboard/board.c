@@ -4,7 +4,6 @@
  * Copyright (C) 2016 Grinn
  */
 
-#include <common.h>
 #include <command.h>
 #include <init.h>
 #include <asm/arch/clock.h>
@@ -85,7 +84,7 @@ static int mmc_get_env_devno(void)
 
 	/* If not boot from sd/mmc, use default value */
 	if (bootsel != 1)
-		return CONFIG_SYS_MMC_ENV_DEV;
+		return CONFIG_ENV_MMC_DEVICE_INDEX;
 
 	/* BOOT_CFG2[3] and BOOT_CFG2[4] */
 	dev_no = (soc_sbmr & 0x00001800) >> 11;
@@ -230,7 +229,7 @@ int checkboard(void)
 	return 0;
 }
 
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 void board_boot_order(u32 *spl_boot_list)
 {
 	struct src *psrc = (struct src *)SRC_BASE_ADDR;

@@ -3,7 +3,6 @@
  * Copyright (c) 2022 Svyatoslav Ryhel <clamor95@gmail.com>
  */
 
-#include <common.h>
 #include <backlight.h>
 #include <dm.h>
 #include <panel.h>
@@ -57,61 +56,8 @@ static void dcs_write_one(struct mipi_dsi_device *dsi, u8 cmd, u8 data)
 
 static int endeavoru_panel_enable_backlight(struct udevice *dev)
 {
-	struct endeavoru_panel_priv *priv = dev_get_priv(dev);
-	int ret;
-
-	ret = dm_gpio_set_value(&priv->reset_gpio, 1);
-	if (ret) {
-		log_err("error changing reset-gpios (%d)\n", ret);
-		return ret;
-	}
-	mdelay(5);
-
-	ret = regulator_set_enable_if_allowed(priv->vddio, 1);
-	if (ret) {
-		log_err("error enabling iovcc-supply (%d)\n", ret);
-		return ret;
-	}
-	mdelay(1);
-
-	ret = regulator_set_enable_if_allowed(priv->vdd, 1);
-	if (ret) {
-		log_err("error enabling vcc-supply (%d)\n", ret);
-		return ret;
-	}
-	mdelay(20);
-
-	ret = dm_gpio_set_value(&priv->reset_gpio, 0);
-	if (ret) {
-		log_err("error changing reset-gpios (%d)\n", ret);
-		return ret;
-	}
-	mdelay(2);
-
-	/* Reset panel */
-	ret = dm_gpio_set_value(&priv->reset_gpio, 1);
-	if (ret) {
-		log_err("error changing reset-gpios (%d)\n", ret);
-		return ret;
-	}
-	mdelay(1);
-
-	ret = dm_gpio_set_value(&priv->reset_gpio, 0);
-	if (ret) {
-		log_err("error changing reset-gpios (%d)\n", ret);
-		return ret;
-	}
-	mdelay(25);
-
-	return 0;
-}
-
-static int endeavoru_panel_set_backlight(struct udevice *dev, int percent)
-{
-	struct endeavoru_panel_priv *priv = dev_get_priv(dev);
 	struct mipi_dsi_panel_plat *plat = dev_get_plat(dev);
 	struct mipi_dsi_device *dsi = plat->device;
-	int ret;
 
 	dcs_write_one(dsi, 0xc2, 0x08);
 
@@ -160,18 +106,34 @@ static int endeavoru_panel_set_backlight(struct udevice *dev, int percent)
 	dcs_write_one(dsi, 0x55, 0x80);
 	dcs_write_one(dsi, 0x5e, 0x06);
 
+	/* Set backlight */
+	dcs_write_one(dsi, 0x51, 0x96);
+
+	return 0;
+}
+
+static int endeavoru_panel_set_backlight(struct udevice *dev, int percent)
+{
+	struct endeavoru_panel_priv *priv = dev_get_priv(dev);
+	int ret;
+
+	/*
+	 * Due to the use of the Tegra DC backlight feature, backlight
+	 * requests MUST NOT be made during probe or earlier. This is
+	 * because it creates a loop, as the backlight is a DC child.
+	 */
+	ret = uclass_get_device_by_phandle(UCLASS_PANEL_BACKLIGHT, dev,
+					   "backlight", &priv->backlight);
+	if (ret) {
+		log_err("cannot get backlight: ret = %d\n", ret);
+		return ret;
+	}
+
 	ret = backlight_enable(priv->backlight);
 	if (ret)
 		return ret;
 
-	/* Set backlight */
-	dcs_write_one(dsi, 0x51, 0x96);
-
-	ret = backlight_set_brightness(priv->backlight, percent);
-	if (ret)
-		return ret;
-
-	return 0;
+	return backlight_set_brightness(priv->backlight, percent);
 }
 
 static int endeavoru_panel_timings(struct udevice *dev,
@@ -185,13 +147,6 @@ static int endeavoru_panel_of_to_plat(struct udevice *dev)
 {
 	struct endeavoru_panel_priv *priv = dev_get_priv(dev);
 	int ret;
-
-	ret = uclass_get_device_by_phandle(UCLASS_PANEL_BACKLIGHT, dev,
-					   "backlight", &priv->backlight);
-	if (ret) {
-		log_err("cannot get backlight: ret = %d\n", ret);
-		return ret;
-	}
 
 	ret = uclass_get_device_by_phandle(UCLASS_REGULATOR, dev,
 					   "vdd-supply", &priv->vdd);
@@ -217,6 +172,63 @@ static int endeavoru_panel_of_to_plat(struct udevice *dev)
 	return 0;
 }
 
+static int endeavoru_panel_hw_init(struct udevice *dev)
+{
+	struct endeavoru_panel_priv *priv = dev_get_priv(dev);
+	int ret;
+
+	ret = dm_gpio_set_value(&priv->reset_gpio, 1);
+	if (ret) {
+		log_debug("%s: error changing reset-gpios (%d)\n",
+			  __func__, ret);
+		return ret;
+	}
+	mdelay(5);
+
+	ret = regulator_set_enable_if_allowed(priv->vddio, 1);
+	if (ret) {
+		log_debug("%s: error enabling iovcc-supply (%d)\n",
+			  __func__, ret);
+		return ret;
+	}
+	mdelay(1);
+
+	ret = regulator_set_enable_if_allowed(priv->vdd, 1);
+	if (ret) {
+		log_debug("%s: error enabling vcc-supply (%d)\n",
+			  __func__, ret);
+		return ret;
+	}
+	mdelay(20);
+
+	ret = dm_gpio_set_value(&priv->reset_gpio, 0);
+	if (ret) {
+		log_debug("%s: error changing reset-gpios (%d)\n",
+			  __func__, ret);
+		return ret;
+	}
+	mdelay(2);
+
+	/* Reset panel */
+	ret = dm_gpio_set_value(&priv->reset_gpio, 1);
+	if (ret) {
+		log_debug("%s: error changing reset-gpios (%d)\n",
+			  __func__, ret);
+		return ret;
+	}
+	mdelay(1);
+
+	ret = dm_gpio_set_value(&priv->reset_gpio, 0);
+	if (ret) {
+		log_debug("%s: error changing reset-gpios (%d)\n",
+			  __func__, ret);
+		return ret;
+	}
+	mdelay(25);
+
+	return 0;
+}
+
 static int endeavoru_panel_probe(struct udevice *dev)
 {
 	struct mipi_dsi_panel_plat *plat = dev_get_plat(dev);
@@ -224,9 +236,9 @@ static int endeavoru_panel_probe(struct udevice *dev)
 	/* fill characteristics of DSI data link */
 	plat->lanes = 2;
 	plat->format = MIPI_DSI_FMT_RGB888;
-	plat->mode_flags = MIPI_DSI_MODE_VIDEO;
+	plat->mode_flags = MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_LPM;
 
-	return 0;
+	return endeavoru_panel_hw_init(dev);
 }
 
 static const struct panel_ops endeavoru_panel_ops = {

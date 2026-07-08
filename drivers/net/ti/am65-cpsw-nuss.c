@@ -6,7 +6,6 @@
  *
  */
 
-#include <common.h>
 #include <malloc.h>
 #include <asm/cache.h>
 #include <asm/gpio.h>
@@ -30,8 +29,6 @@
 #include <linux/delay.h>
 #include <linux/printk.h>
 #include <linux/soc/ti/ti-udma.h>
-
-#include "cpsw_mdio.h"
 
 #define AM65_CPSW_CPSWNU_MAX_PORTS 9
 
@@ -113,7 +110,6 @@ struct am65_cpsw_common {
 	struct udevice		*dev;
 	fdt_addr_t		ss_base;
 	fdt_addr_t		cpsw_base;
-	fdt_addr_t		mdio_base;
 	fdt_addr_t		ale_base;
 
 	struct clk		fclk;
@@ -122,12 +118,7 @@ struct am65_cpsw_common {
 	u32			port_num;
 	struct am65_cpsw_port	ports[AM65_CPSW_CPSWNU_MAX_PORTS];
 
-	struct mii_dev		*bus;
 	u32			bus_freq;
-
-	struct gpio_desc	mdio_gpio_reset;
-	u32			reset_delay_us;
-	u32			reset_post_delay_us;
 
 	struct dma		dma_tx;
 	struct dma		dma_rx;
@@ -140,13 +131,7 @@ struct am65_cpsw_priv {
 	struct udevice		*dev;
 	struct am65_cpsw_common	*cpsw_common;
 	u32			port_id;
-
 	struct phy_device	*phydev;
-	bool			has_phy;
-	ofnode			phy_node;
-	u32			phy_addr;
-
-	bool			mdio_manual_mode;
 };
 
 #ifdef PKTSIZE_ALIGN
@@ -249,14 +234,11 @@ out:
 #define AM65_GMII_SEL_MODE_RGMII	2
 #define AM65_GMII_SEL_MODE_SGMII	3
 
-#define AM65_GMII_SEL_RGMII_IDMODE	BIT(4)
-
 static int am65_cpsw_gmii_sel_k3(struct am65_cpsw_priv *priv,
 				 phy_interface_t phy_mode)
 {
 	struct udevice *dev = priv->dev;
 	u32 offset, reg, phandle;
-	bool rgmii_id = false;
 	fdt_addr_t gmii_sel;
 	u32 mode = 0;
 	ofnode node;
@@ -293,12 +275,6 @@ static int am65_cpsw_gmii_sel_k3(struct am65_cpsw_priv *priv,
 		mode = AM65_GMII_SEL_MODE_RGMII;
 		break;
 
-	case PHY_INTERFACE_MODE_RGMII_ID:
-	case PHY_INTERFACE_MODE_RGMII_TXID:
-		mode = AM65_GMII_SEL_MODE_RGMII;
-		rgmii_id = true;
-		break;
-
 	case PHY_INTERFACE_MODE_SGMII:
 		mode = AM65_GMII_SEL_MODE_SGMII;
 		break;
@@ -312,9 +288,6 @@ static int am65_cpsw_gmii_sel_k3(struct am65_cpsw_priv *priv,
 		mode = AM65_GMII_SEL_MODE_MII;
 		break;
 	};
-
-	if (rgmii_id)
-		mode |= AM65_GMII_SEL_RGMII_IDMODE;
 
 	reg = mode;
 	dev_dbg(dev, "gmii_sel PHY mode: %u, new gmii_sel: %08x\n",
@@ -341,6 +314,9 @@ static int am65_cpsw_start(struct udevice *dev)
 	struct am65_cpsw_port *port0 = &common->ports[0];
 	struct ti_udma_drv_chan_cfg_data *dma_rx_cfg_data;
 	int ret, i;
+
+	if (common->started)
+		return 0;
 
 	ret = power_domain_on(&common->pwrdmn);
 	if (ret) {
@@ -373,7 +349,7 @@ static int am65_cpsw_start(struct udevice *dev)
 					  UDMA_RX_BUF_SIZE);
 		if (ret) {
 			dev_err(dev, "RX dma add buf failed %d\n", ret);
-			goto err_free_tx;
+			goto err_free_rx;
 		}
 	}
 
@@ -450,6 +426,12 @@ static int am65_cpsw_start(struct udevice *dev)
 		       port->port_sgmii_base + AM65_CPSW_SGMII_CONTROL_REG);
 	}
 
+	ret = phy_config(priv->phydev);
+	if (ret < 0) {
+		dev_err(dev, "phy_config failed: %d", ret);
+		goto err_dis_rx;
+	}
+
 	ret = phy_startup(priv->phydev);
 	if (ret) {
 		dev_err(dev, "phy_startup failed\n");
@@ -502,6 +484,9 @@ static int am65_cpsw_send(struct udevice *dev, void *packet, int length)
 	struct ti_udma_drv_packet_data packet_data;
 	int ret;
 
+	if (!common->started)
+		return -ENETDOWN;
+
 	packet_data.pkt_type = AM65_CPSW_CPPI_PKT_TYPE;
 	packet_data.dest_tag = priv->port_id;
 	ret = dma_send(&common->dma_tx, packet, length, &packet_data);
@@ -517,6 +502,9 @@ static int am65_cpsw_recv(struct udevice *dev, int flags, uchar **packetp)
 {
 	struct am65_cpsw_priv *priv = dev_get_priv(dev);
 	struct am65_cpsw_common	*common = priv->cpsw_common;
+
+	if (!common->started)
+		return -ENETDOWN;
 
 	/* try to receive a new packet */
 	return dma_receive(&common->dma_rx, (void **)packetp, NULL);
@@ -622,111 +610,15 @@ static const struct eth_ops am65_cpsw_ops = {
 	.read_rom_hwaddr = am65_cpsw_read_rom_hwaddr,
 };
 
-static const struct soc_attr k3_mdio_soc_data[] = {
-	{ .family = "AM62X", .revision = "SR1.0" },
-	{ .family = "AM64X", .revision = "SR1.0" },
-	{ .family = "AM64X", .revision = "SR2.0" },
-	{ .family = "AM65X", .revision = "SR1.0" },
-	{ .family = "AM65X", .revision = "SR2.0" },
-	{ .family = "J7200", .revision = "SR1.0" },
-	{ .family = "J7200", .revision = "SR2.0" },
-	{ .family = "J721E", .revision = "SR1.0" },
-	{ .family = "J721E", .revision = "SR1.1" },
-	{ .family = "J721S2", .revision = "SR1.0" },
-	{ /* sentinel */ },
-};
-
-static ofnode am65_cpsw_find_mdio(ofnode parent)
-{
-	ofnode node;
-
-	ofnode_for_each_subnode(node, parent)
-		if (ofnode_device_is_compatible(node, "ti,cpsw-mdio"))
-			return node;
-
-	return ofnode_null();
-}
-
-static int am65_cpsw_mdio_setup(struct udevice *dev)
-{
-	struct am65_cpsw_priv *priv = dev_get_priv(dev);
-	struct am65_cpsw_common	*cpsw_common = priv->cpsw_common;
-	struct udevice *mdio_dev;
-	ofnode mdio;
-	int ret;
-
-	mdio = am65_cpsw_find_mdio(dev_ofnode(cpsw_common->dev));
-	if (!ofnode_valid(mdio))
-		return 0;
-
-	/*
-	 * The MDIO controller is represented in the DT binding by a
-	 * subnode of the MAC controller.
-	 *
-	 * We don't have a DM driver for the MDIO device yet, and thus any
-	 * pinctrl setting on its node will be ignored.
-	 *
-	 * However, we do need to make sure the pins states tied to the
-	 * MDIO node are configured properly. Fortunately, the core DM
-	 * does that for use when we get a device, so we can work around
-	 * that whole issue by just requesting a dummy MDIO driver to
-	 * probe, and our pins will get muxed.
-	 */
-	ret = uclass_get_device_by_ofnode(UCLASS_MDIO, mdio, &mdio_dev);
-	if (ret)
-		return ret;
-
-	return 0;
-}
-
-static int am65_cpsw_mdio_init(struct udevice *dev)
-{
-	struct am65_cpsw_priv *priv = dev_get_priv(dev);
-	struct am65_cpsw_common	*cpsw_common = priv->cpsw_common;
-	int ret;
-
-	if (!priv->has_phy || cpsw_common->bus)
-		return 0;
-
-	if (IS_ENABLED(CONFIG_DM_GPIO)) {
-		if (dm_gpio_is_valid(&cpsw_common->mdio_gpio_reset)) {
-			dm_gpio_set_value(&cpsw_common->mdio_gpio_reset, 1);
-			udelay(cpsw_common->reset_delay_us);
-			dm_gpio_set_value(&cpsw_common->mdio_gpio_reset, 0);
-			if (cpsw_common->reset_post_delay_us > 0)
-				udelay(cpsw_common->reset_post_delay_us);
-		}
-	}
-
-	ret = am65_cpsw_mdio_setup(dev);
-	if (ret)
-		return ret;
-
-	cpsw_common->bus = cpsw_mdio_init(dev->name,
-					  cpsw_common->mdio_base,
-					  cpsw_common->bus_freq,
-					  clk_get_rate(&cpsw_common->fclk),
-					  priv->mdio_manual_mode);
-	if (!cpsw_common->bus)
-		return -EFAULT;
-
-	return 0;
-}
-
 static int am65_cpsw_phy_init(struct udevice *dev)
 {
 	struct am65_cpsw_priv *priv = dev_get_priv(dev);
-	struct am65_cpsw_common *cpsw_common = priv->cpsw_common;
 	struct eth_pdata *pdata = dev_get_plat(dev);
 	struct phy_device *phydev;
 	u32 supported = PHY_GBIT_FEATURES;
-	int ret;
+	int ret = 0;
 
-	phydev = phy_connect(cpsw_common->bus,
-			     priv->phy_addr,
-			     priv->dev,
-			     pdata->phy_interface);
-
+	phydev = dm_eth_phy_connect_interface(dev, pdata->phy_interface);
 	if (!phydev) {
 		dev_err(dev, "phy_connect() failed\n");
 		return -ENODEV;
@@ -740,13 +632,7 @@ static int am65_cpsw_phy_init(struct udevice *dev)
 	}
 	phydev->advertising = phydev->supported;
 
-	if (ofnode_valid(priv->phy_node))
-		phydev->node = priv->phy_node;
-
 	priv->phydev = phydev;
-	ret = phy_config(phydev);
-	if (ret < 0)
-		pr_err("phy_config() failed: %d", ret);
 
 	return ret;
 }
@@ -755,44 +641,40 @@ static int am65_cpsw_ofdata_parse_phy(struct udevice *dev)
 {
 	struct eth_pdata *pdata = dev_get_plat(dev);
 	struct am65_cpsw_priv *priv = dev_get_priv(dev);
-	struct ofnode_phandle_args out_args;
-	int ret = 0;
 
 	dev_read_u32(dev, "reg", &priv->port_id);
 
 	pdata->phy_interface = dev_read_phy_mode(dev);
-	if (pdata->phy_interface == PHY_INTERFACE_MODE_NA) {
+
+	/* CPSW controllers supported by this driver have a fixed internal TX
+	 * delay in RGMII mode. Fix up PHY mode to account for this and warn
+	 * about Device Trees that claim to have a TX delay on the PCB.
+	 */
+	switch (pdata->phy_interface) {
+	case PHY_INTERFACE_MODE_RGMII_ID:
+		pdata->phy_interface = PHY_INTERFACE_MODE_RGMII_RXID;
+		break;
+	case PHY_INTERFACE_MODE_RGMII_TXID:
+		pdata->phy_interface = PHY_INTERFACE_MODE_RGMII;
+		break;
+	case PHY_INTERFACE_MODE_RGMII:
+	case PHY_INTERFACE_MODE_RGMII_RXID:
+		dev_warn(dev,
+			 "RGMII mode without internal TX delay unsupported; please fix your Device Tree\n");
+		break;
+	case PHY_INTERFACE_MODE_NA:
 		dev_err(dev, "Invalid PHY mode, port %u\n", priv->port_id);
 		return -EINVAL;
+	default:
+		break;
 	}
 
 	dev_read_u32(dev, "max-speed", (u32 *)&pdata->max_speed);
 	if (pdata->max_speed)
-		dev_err(dev, "Port %u speed froced to %uMbit\n",
+		dev_err(dev, "Port %u speed forced to %uMbit\n",
 			priv->port_id, pdata->max_speed);
 
-	priv->has_phy  = true;
-	ret = ofnode_parse_phandle_with_args(dev_ofnode(dev), "phy-handle",
-					     NULL, 0, 0, &out_args);
-	if (ret) {
-		dev_err(dev, "can't parse phy-handle port %u (%d)\n",
-			priv->port_id, ret);
-		priv->has_phy  = false;
-		ret = 0;
-	}
-
-	priv->phy_node = out_args.node;
-	if (priv->has_phy) {
-		ret = ofnode_read_u32(priv->phy_node, "reg", &priv->phy_addr);
-		if (ret) {
-			dev_err(dev, "failed to get phy_addr port %u (%d)\n",
-				priv->port_id, ret);
-			goto out;
-		}
-	}
-
-out:
-	return ret;
+	return 0;
 }
 
 static int am65_cpsw_port_probe(struct udevice *dev)
@@ -800,7 +682,7 @@ static int am65_cpsw_port_probe(struct udevice *dev)
 	struct am65_cpsw_priv *priv = dev_get_priv(dev);
 	struct eth_pdata *pdata = dev_get_plat(dev);
 	struct am65_cpsw_common *cpsw_common;
-	char portname[15];
+	char portname[32];
 	int ret;
 
 	priv->dev = dev;
@@ -808,12 +690,8 @@ static int am65_cpsw_port_probe(struct udevice *dev)
 	cpsw_common = dev_get_priv(dev->parent);
 	priv->cpsw_common = cpsw_common;
 
-	sprintf(portname, "%s%s", dev->parent->name, dev->name);
+	snprintf(portname, sizeof(portname), "%s%s", dev->parent->name, dev->name);
 	device_set_name(dev, portname);
-
-	priv->mdio_manual_mode = false;
-	if (soc_device_match(k3_mdio_soc_data))
-		priv->mdio_manual_mode = true;
 
 	ret = am65_cpsw_ofdata_parse_phy(dev);
 	if (ret)
@@ -823,13 +701,8 @@ static int am65_cpsw_port_probe(struct udevice *dev)
 	if (ret)
 		goto out;
 
-	ret = am65_cpsw_mdio_init(dev);
-	if (ret)
-		goto out;
-
 	ret = am65_cpsw_phy_init(dev);
-	if (ret)
-		goto out;
+
 out:
 	return ret;
 }
@@ -837,9 +710,8 @@ out:
 static int am65_cpsw_probe_nuss(struct udevice *dev)
 {
 	struct am65_cpsw_common *cpsw_common = dev_get_priv(dev);
-	ofnode ports_np, node, mdio_np;
+	ofnode ports_np, node;
 	int ret, i;
-	struct udevice *port_dev;
 
 	cpsw_common->dev = dev;
 	cpsw_common->ss_base = dev_read_addr(dev);
@@ -862,29 +734,11 @@ static int am65_cpsw_probe_nuss(struct udevice *dev)
 	cpsw_common->cpsw_base = cpsw_common->ss_base + AM65_CPSW_CPSW_NU_BASE;
 	cpsw_common->ale_base = cpsw_common->cpsw_base +
 				AM65_CPSW_CPSW_NU_ALE_BASE;
-	cpsw_common->mdio_base = cpsw_common->ss_base + AM65_CPSW_MDIO_BASE;
-
-	if (IS_ENABLED(CONFIG_DM_GPIO)) {
-		/* get bus level PHY reset GPIO details */
-		mdio_np = dev_read_subnode(dev, "mdio");
-		if (!ofnode_valid(mdio_np)) {
-			ret = -ENOENT;
-			goto out;
-		}
-
-		cpsw_common->reset_delay_us = ofnode_read_u32_default(mdio_np, "reset-delay-us",
-								      DEFAULT_GPIO_RESET_DELAY);
-		cpsw_common->reset_post_delay_us = ofnode_read_u32_default(mdio_np,
-									   "reset-post-delay-us",
-									   0);
-		ret = gpio_request_by_name_nodev(mdio_np, "reset-gpios", 0,
-						 &cpsw_common->mdio_gpio_reset,
-						 GPIOD_IS_OUT | GPIOD_IS_OUT_ACTIVE);
-	}
 
 	ports_np = dev_read_subnode(dev, "ethernet-ports");
 	if (!ofnode_valid(ports_np)) {
 		ret = -ENOENT;
+		dev_err(dev, "Invalid device tree node %d\n", ret);
 		goto out;
 	}
 
@@ -916,12 +770,6 @@ static int am65_cpsw_probe_nuss(struct udevice *dev)
 			continue;
 
 		cpsw_common->ports[port_id].disabled = disabled;
-		if (disabled)
-			continue;
-
-		ret = device_bind_driver_to_node(dev, "am65_cpsw_nuss_port", ofnode_get_name(node), node, &port_dev);
-		if (ret)
-			dev_err(dev, "Failed to bind to %s node\n", ofnode_get_name(node));
 	}
 
 	for (i = 0; i < AM65_CPSW_CPSWNU_MAX_PORTS; i++) {
@@ -940,15 +788,49 @@ static int am65_cpsw_probe_nuss(struct udevice *dev)
 			dev_read_u32_default(dev, "bus_freq",
 					     AM65_CPSW_MDIO_BUS_FREQ_DEF);
 
-	dev_info(dev, "K3 CPSW: nuss_ver: 0x%08X cpsw_ver: 0x%08X ale_ver: 0x%08X Ports:%u mdio_freq:%u\n",
+	dev_info(dev, "K3 CPSW: nuss_ver: 0x%08X cpsw_ver: 0x%08X ale_ver: 0x%08X Ports:%u\n",
 		 readl(cpsw_common->ss_base),
 		 readl(cpsw_common->cpsw_base),
 		 readl(cpsw_common->ale_base),
-		 cpsw_common->port_num,
-		 cpsw_common->bus_freq);
+		 cpsw_common->port_num);
 
 out:
 	power_domain_free(&cpsw_common->pwrdmn);
+	return ret;
+}
+
+static int am65_cpsw_nuss_bind(struct udevice *dev)
+{
+	struct uclass_driver *drv;
+	struct udevice *port_dev;
+	ofnode ports_np, node;
+	int ret;
+
+	drv = lists_uclass_lookup(UCLASS_ETH);
+	if (!drv) {
+		puts("Cannot find eth driver");
+		return -ENOENT;
+	}
+
+	ports_np = dev_read_subnode(dev, "ethernet-ports");
+	if (!ofnode_valid(ports_np))
+		return -ENOENT;
+
+	ofnode_for_each_subnode(node, ports_np) {
+		const char *node_name;
+
+		/* Ignore disabled ports */
+		if (!ofnode_is_enabled(node))
+			continue;
+
+		node_name = ofnode_get_name(node);
+
+		ret = device_bind_driver_to_node(dev, "am65_cpsw_nuss_port", node_name, node,
+						 &port_dev);
+		if (ret)
+			dev_err(dev, "Failed to bind to %s node\n", node_name);
+	}
+
 	return ret;
 }
 
@@ -963,6 +845,7 @@ U_BOOT_DRIVER(am65_cpsw_nuss) = {
 	.name	= "am65_cpsw_nuss",
 	.id	= UCLASS_MISC,
 	.of_match = am65_cpsw_nuss_ids,
+	.bind	= am65_cpsw_nuss_bind,
 	.probe	= am65_cpsw_probe_nuss,
 	.priv_auto = sizeof(struct am65_cpsw_common),
 };
@@ -975,15 +858,4 @@ U_BOOT_DRIVER(am65_cpsw_nuss_port) = {
 	.priv_auto	= sizeof(struct am65_cpsw_priv),
 	.plat_auto	= sizeof(struct eth_pdata),
 	.flags = DM_FLAG_ALLOC_PRIV_DMA | DM_FLAG_OS_PREPARE,
-};
-
-static const struct udevice_id am65_cpsw_mdio_ids[] = {
-	{ .compatible = "ti,cpsw-mdio" },
-	{ }
-};
-
-U_BOOT_DRIVER(am65_cpsw_mdio) = {
-	.name		= "am65_cpsw_mdio",
-	.id		= UCLASS_MDIO,
-	.of_match	= am65_cpsw_mdio_ids,
 };

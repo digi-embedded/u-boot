@@ -4,7 +4,7 @@
  * Copyright (c) 2012, Google Inc.
  */
 
-#include <common.h>
+#include <stdio.h>
 #include <fs.h>
 #include <malloc.h>
 #include <os.h>
@@ -35,7 +35,7 @@ static int smh_fs_read_at(const char *filename, loff_t pos, void *buffer,
 	}
 	if (!maxsize) {
 		size = smh_flen(fd);
-		if (ret < 0) {
+		if (size < 0) {
 			smh_close(fd);
 			return size;
 		}

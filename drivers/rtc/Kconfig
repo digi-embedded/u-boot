@@ -104,6 +104,13 @@ config RTC_DS1374
 	  Support for Dallas Semiconductor (now Maxim) DS1374 and compatible
 	  Real Time Clock devices.
 
+config RTC_DS1672
+	bool "Enable DS1672 driver"
+	depends on DM_RTC
+	help
+	  Support for Dallas Semiconductor (now Maxim) DS1672 compatible
+	  Real Time Clock devices.
+
 config RTC_DS3231
 	bool "Enable DS3231 driver"
 	help
@@ -164,8 +171,16 @@ config RTC_MAX313XX
 	  - Temperature sensor
 	  - CLKOUT generation
 
+config RTC_PCF85063
+	bool "Enable PCF85063 driver"
+	depends on DM_I2C
+	depends on DM_RTC
+	help
+	  If you say yes here you get support for the NXP PCF85063 RTC
+	  and compatible chips.
+
 config RTC_PCF8563
-	tristate "Philips PCF8563"
+	bool "Philips PCF8563"
 	help
 	  If you say yes here you get support for the Philips PCF8563 RTC
 	  and compatible chips.
@@ -188,6 +203,13 @@ config RTC_RV3029
 
 	  This driver supports reading and writing the RTC/calendar and the
 	  battery-baced SRAM section.
+
+config RTC_RV3032
+	bool "Enable RV3032 driver"
+	depends on DM_RTC
+	help
+	  If you say yes here you get support for the Micro Crystal RV3032
+	  RTC.
 
 config RTC_RV8803
 	bool "Enable RV8803 driver"
@@ -213,6 +235,7 @@ config RTC_RX8025
 
 config RTC_PL031
 	bool "Enable ARM AMBA PL031 RTC driver"
+	depends on DM_RTC
 	help
 	  The ARM PrimeCell Real Time Clock (PL031) is an optional SoC
 	  peripheral based on the Advanced Microcontroller Bus Architecture
@@ -220,7 +243,7 @@ config RTC_PL031
 
 config RTC_MV
 	bool "Enable Marvell RTC driver"
-	depends on DM_RTC
+	depends on DM_RTC && ARCH_KIRKWOOD
 	help
 	  Enable Marvell RTC driver. This driver supports the rtc that is present
 	  on some Marvell SoCs.
@@ -310,7 +333,7 @@ config RTC_DAVINCI
 
 config RTC_ZYNQMP
 	bool "Enable ZynqMP RTC driver"
-	depends on ARCH_ZYNQMP
+	depends on DM_RTC && (ARCH_ZYNQMP || ARCH_VERSAL || ARCH_VERSAL_NET || ARCH_VERSAL2)
 	help
 	  Say "yes" here to support the on chip real time clock
 	  present on Xilinx ZynqMP SoC.

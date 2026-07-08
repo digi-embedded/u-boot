@@ -2,11 +2,10 @@
 /*
  * Copyright (c) 2009 Daniel Mack <daniel@caiaq.de>
  * Copyright (C) 2010 Freescale Semiconductor, Inc.
- * Copyright 2017-2023 NXP
+ * Copyright 2017 NXP
  *
  */
 
-#include <common.h>
 #include <clk.h>
 #include <log.h>
 #include <usb.h>
@@ -277,8 +276,8 @@ static int mx6_init_after_reset(struct ehci_ctrl *dev)
 	if (priv->vbus_supply) {
 		int ret;
 		ret = regulator_set_enable_if_allowed(priv->vbus_supply,
-					   (type == USB_INIT_DEVICE) ?
-					   false : true);
+						      (type == USB_INIT_DEVICE) ?
+						      false : true);
 		if (ret) {
 			printf("Error enabling VBUS supply (ret=%i)\n", ret);
 			return ret;
@@ -578,7 +577,7 @@ static int ehci_usb_probe(struct udevice *dev)
 #if !CONFIG_IS_ENABLED(PHY) || defined(CONFIG_IMX8)
 	ehci_mx6_phy_init(ehci, &priv->phy_data, priv->portnr);
 #else
-	ret = generic_setup_phy(dev, &priv->phy, 0);
+	ret = generic_setup_phy(dev, &priv->phy, 0, PHY_MODE_USB_HOST, 0);
 	if (ret)
 		goto err_clk;
 #endif

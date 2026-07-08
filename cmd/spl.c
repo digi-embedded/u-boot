@@ -4,7 +4,6 @@
  * Corscience GmbH & Co. KG - Simon Schwarz <schwarz@corscience.de>
  */
 
-#include <common.h>
 #include <command.h>
 #include <cmd_spl.h>
 #include <env.h>
@@ -31,19 +30,6 @@ static const char **subcmd_list[] = {
 #endif
 		NULL,
 	},
-	[SPL_EXPORT_ATAGS] = (const char * []) {
-#ifdef CONFIG_SUPPORT_PASSING_ATAGS
-		"start",
-		"loados",
-#ifdef CONFIG_SYS_BOOT_RAMDISK_HIGH
-		"ramdisk",
-#endif
-		"cmdline",
-		"bdt",
-		"prep",
-#endif
-		NULL,
-	},
 	NULL
 };
 
@@ -61,12 +47,13 @@ static int call_bootm(int argc, char *const argv[], const char *subcommand[])
 	switch (argc) {
 	case 3:
 		bootm_argv[4] = argv[2]; /* fdt addr */
+		fallthrough;
 	case 2:
 		bootm_argv[3] = argv[1]; /* initrd addr */
+		fallthrough;
 	case 1:
 		bootm_argv[2] = argv[0]; /* kernel addr */
 	}
-
 
 	/*
 	 * - do the work -
@@ -96,7 +83,6 @@ static int call_bootm(int argc, char *const argv[], const char *subcommand[])
 
 static struct cmd_tbl cmd_spl_export_sub[] = {
 	U_BOOT_CMD_MKENT(fdt, 0, 1, (void *)SPL_EXPORT_FDT, "", ""),
-	U_BOOT_CMD_MKENT(atags, 0, 1, (void *)SPL_EXPORT_ATAGS, "", ""),
 };
 
 static int spl_export(struct cmd_tbl *cmdtp, int flag, int argc,
@@ -128,10 +114,6 @@ static int spl_export(struct cmd_tbl *cmdtp, int flag, int argc,
 #endif
 			break;
 #endif
-		case SPL_EXPORT_ATAGS:
-			printf("Argument image is now in RAM at: 0x%p\n",
-				(void *)gd->bd->bi_boot_params);
-			break;
 		}
 	} else {
 		/* Unrecognized command */
@@ -176,11 +158,10 @@ static int do_spl(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 
 U_BOOT_CMD(
 	spl, 6 , 1, do_spl, "SPL configuration",
-	"export <img=atags|fdt> [kernel_addr] [initrd_addr] [fdt_addr]\n"
-	"\timg\t\t\"atags\" or \"fdt\"\n"
+	"export fdt [kernel_addr] [initrd_addr] [fdt_addr]\n"
 	"\tkernel_addr\taddress where a kernel image is stored.\n"
 	"\t\t\tkernel is loaded as part of the boot process, but it is not started.\n"
 	"\tinitrd_addr\taddress of initial ramdisk\n"
 	"\t\t\tcan be set to \"-\" if fdt_addr without initrd_addr is used.\n"
-	"\tfdt_addr\tin case of fdt, the address of the device tree.\n"
+	"\tfdt_addr\tthe address of the device tree.\n"
 	);

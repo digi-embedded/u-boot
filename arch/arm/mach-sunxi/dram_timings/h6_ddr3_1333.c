@@ -19,7 +19,6 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
-#include <common.h>
 #include <asm/arch/dram.h>
 #include <asm/arch/cpu.h>
 
@@ -38,7 +37,7 @@ static u32 mr_ddr3[7] = {
 };
 
 /* TODO: flexible timing */
-void mctl_set_timing_params(struct dram_para *para)
+void mctl_set_timing_params(void)
 {
 	struct sunxi_mctl_ctl_reg * const mctl_ctl =
 			(struct sunxi_mctl_ctl_reg *)SUNXI_DRAM_CTL0_BASE;

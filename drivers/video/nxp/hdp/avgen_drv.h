@@ -50,7 +50,6 @@
 #ifndef __UBOOT__
 # include <stdint.h>
 #else
-#include <common.h>
 #endif
 
 # include "vic_table.h"

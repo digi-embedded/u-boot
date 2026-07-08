@@ -69,10 +69,13 @@ static int rzg2l_cpg_clk_set(struct clk *clk, bool enable)
 
 	dev_dbg(clk->dev, "%s %s clock %u\n", enable ? "enable" : "disable",
 		is_mod_clk(clk->id) ? "module" : "core", cpg_clk_id);
-	if (!is_mod_clk(clk->id)) {
-		dev_err(clk->dev, "ID %lu is not a module clock\n", clk->id);
-		return -EINVAL;
-	}
+
+	/*
+	 * Non-module clocks are always on. Ignore attempts to enable or disable
+	 * them.
+	 */
+	if (!is_mod_clk(clk->id))
+		return 0;
 
 	for (i = 0; i < data->info->num_mod_clks; i++) {
 		if (data->info->mod_clks[i].id == cpg_clk_id) {
@@ -313,9 +316,9 @@ static ulong rzg2l_sdhi_clk_set_rate(struct udevice *dev, const struct cpg_core_
 
 	/*
 	 * As per the HW manual, we should not directly switch from 533 MHz to
-	 * 400 MHz and vice versa. To change the setting from 2’b01 (533 MHz)
-	 * to 2’b10 (400 MHz) or vice versa, Switch to 2’b11 (266 MHz) first,
-	 * and then switch to the target setting (2’b01 (533 MHz) or 2’b10
+	 * 400 MHz and vice versa. To change the setting from 2'b01 (533 MHz)
+	 * to 2'b10 (400 MHz) or vice versa, Switch to 2'b11 (266 MHz) first,
+	 * and then switch to the target setting (2'b01 (533 MHz) or 2'b10
 	 * (400 MHz)).
 	 */
 	if (new_sel != SEL_SDHI_266MHz && prev_sel != SEL_SDHI_266MHz) {

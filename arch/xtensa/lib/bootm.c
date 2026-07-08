@@ -4,7 +4,6 @@
  * (C) Copyright 2014 Cadence Design Systems Inc.
  */
 
-#include <common.h>
 #include <bootm.h>
 #include <bootstage.h>
 #include <command.h>
@@ -197,17 +196,4 @@ int do_bootm_linux(int flag, struct bootm_info *bmi)
 	/* Does not return */
 
 	return 1;
-}
-
-static ulong get_sp(void)
-{
-	ulong ret;
-
-	asm("mov %0, a1" : "=r"(ret) : );
-	return ret;
-}
-
-void arch_lmb_reserve(struct lmb *lmb)
-{
-	arch_lmb_reserve_generic(lmb, get_sp(), gd->ram_top, 4096);
 }

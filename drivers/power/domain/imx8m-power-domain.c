@@ -3,7 +3,6 @@
  * Copyright 2017 NXP
  */
 
-#include <common.h>
 #include <clk.h>
 #include <dm.h>
 #include <malloc.h>
@@ -99,7 +98,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define IMX8MN_MIPI_SW_Pxx_REQ			BIT(0)
 
 #define IMX8MP_HSIOMIX_Pxx_REQ			BIT(17)
-#define IMX8MP_MEDIMIX_Pxx_REQ			BIT(10)
+#define IMX8MP_MEDIAMIX_Pxx_REQ                 BIT(10)
 #define IMX8MP_USB2_PHY_Pxx_REQ			BIT(3)
 #define IMX8MP_USB1_PHY_Pxx_REQ			BIT(2)
 #define IMX8MP_PCIE_PHY_SW_Pxx_REQ		BIT(1)
@@ -132,6 +131,9 @@ DECLARE_GLOBAL_DATA_PTR;
 #define IMX8MP_HSIOMIX_PWRDNACKN		BIT(28)
 #define IMX8MP_MEDIAMIX_PWRDNREQN		BIT(14)
 #define IMX8MP_HSIOMIX_PWRDNREQN		BIT(12)
+
+#define IMX8MP_MEDIAMIX_PWRDNACKN		BIT(30)
+#define IMX8MP_MEDIAMIX_PWRDNREQN		BIT(14)
 
 /*
  * The PGC offset values in Reference Manual
@@ -478,7 +480,7 @@ static const struct imx_pgc_domain imx8mp_pgc_domains[19] = {
 
 	[IMX8MP_POWER_DOMAIN_MEDIAMIX] = {
 		.bits = {
-			.pxx = IMX8MP_MEDIMIX_Pxx_REQ,
+			.pxx = IMX8MP_MEDIAMIX_Pxx_REQ,
 			.map = IMX8MP_MEDIAMIX_A53_DOMAIN,
 			.hskreq = IMX8MP_MEDIAMIX_PWRDNREQN,
 			.hskack = IMX8MP_MEDIAMIX_PWRDNACKN,
@@ -661,30 +663,29 @@ out_clk_disable:
 static int imx8m_power_domain_of_xlate(struct power_domain *power_domain,
 				      struct ofnode_phandle_args *args)
 {
+	power_domain->id = 0;
+
 	return 0;
 }
 
 static int imx8m_power_domain_bind(struct udevice *dev)
 {
-	int offset;
+	ofnode subnode;
 	const char *name;
 	int ret = 0;
 
-	offset = dev_of_offset(dev);
-	for (offset = fdt_first_subnode(gd->fdt_blob, offset); offset > 0;
-	     offset = fdt_next_subnode(gd->fdt_blob, offset)) {
+	ofnode_for_each_subnode(subnode, dev_ofnode(dev)) {
 		/* Bind the subnode to this driver */
-		name = fdt_get_name(gd->fdt_blob, offset, NULL);
+		name = ofnode_get_name(subnode);
 
 		/* Descend into 'pgc' subnode */
 		if (!strstr(name, "power-domain")) {
-			offset = fdt_first_subnode(gd->fdt_blob, offset);
-			name = fdt_get_name(gd->fdt_blob, offset, NULL);
+			subnode = ofnode_first_subnode(subnode);
+			name = ofnode_get_name(subnode);
 		}
-
 		ret = device_bind_with_driver_data(dev, dev->driver, name,
 						   dev->driver_data,
-						   offset_to_ofnode(offset),
+						   subnode,
 						   NULL);
 
 		if (ret == -ENODEV)
@@ -702,7 +703,11 @@ static int imx8m_power_domain_bind(struct udevice *dev)
 static int imx8m_power_domain_probe(struct udevice *dev)
 {
 	struct imx8m_power_domain_plat *pdata = dev_get_plat(dev);
+	struct power_domain_plat *plat = dev_get_uclass_plat(dev);
 	int ret;
+
+	/* Every subdomain has its own device node */
+	plat->subdomains = 1;
 
 	/* Nothing to do for non-"power-domain" driver instances. */
 	if (!strstr(dev->name, "power-domain"))
@@ -724,8 +729,7 @@ static int imx8m_power_domain_of_to_plat(struct udevice *dev)
 	struct imx_pgc_domain_data *domain_data =
 		(struct imx_pgc_domain_data *)dev_get_driver_data(dev);
 
-	pdata->resource_id = fdtdec_get_int(gd->fdt_blob, dev_of_offset(dev),
-					    "reg", -1);
+	pdata->resource_id = ofnode_read_u32_default(dev_ofnode(dev), "reg", -1);
 	pdata->domain = &domain_data->domains[pdata->resource_id];
 	pdata->regs = domain_data->pgc_regs;
 	pdata->base = dev_read_addr_ptr(dev->parent);
