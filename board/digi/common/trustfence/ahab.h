@@ -7,6 +7,8 @@
 #ifndef TF_AHAB_H
 #define TF_AHAB_H
 
+#include <linux/types.h>
+
 #define AHAB_BLOB_HDR_TAG	0x81
 #define AHAB_BLOB_HDR_VER	0x00
 #define AHAB_CNTR_HDR_TAG	0x87

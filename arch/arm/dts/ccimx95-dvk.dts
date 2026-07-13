@@ -5,16 +5,17 @@
 
 /dts-v1/;
 
-#include <dt-bindings/phy/phy-imx8-pcie.h>
 #include <dt-bindings/regulator/nxp,pf09-regulator.h>
 #include <dt-bindings/pwm/pwm.h>
 #include <dt-bindings/usb/pd.h>
 /* i.MX95 CPU */
-#include "imx95.dtsi"
+#include "../dts/upstream/src/arm64/freescale/imx95.dtsi"
 /* Digi ConnectCore 95 (SOM) */
 #include "ccimx95.dtsi"
 /* Digi ConnectCore 95 SMARC card for SOM */
 #include "ccimx95-smarc.dtsi"
+
+#include "ccimx95-dvk-u-boot.dtsi"
 
 / {
 	model = "Digi International ConnectCore 95 DVK";
@@ -22,8 +23,31 @@
 	digi,machine,name = "ccimx95-dvk";
 
 	aliases {
-		ethernet0 = &enetc_port0;
-		ethernet1 = &enetc_port1;
+		gpio0 = &gpio1;
+		gpio1 = &gpio2;
+		gpio2 = &gpio3;
+		gpio3 = &gpio4;
+		gpio4 = &gpio5;
+		i2c0 = &lpi2c1;
+		i2c1 = &lpi2c2;
+		i2c2 = &lpi2c3;
+		i2c3 = &lpi2c4;
+		i2c4 = &lpi2c5;
+		i2c5 = &lpi2c6;
+		i2c6 = &lpi2c7;
+		i2c7 = &lpi2c8;
+		mmc0 = &usdhc1;
+		mmc1 = &usdhc2;
+		mmc2 = &usdhc3;
+		serial0 = &lpuart1;
+		serial1 = &lpuart2;
+		serial2 = &lpuart3;
+		serial3 = &lpuart4;
+		serial4 = &lpuart5;
+		serial5 = &lpuart6;
+		serial6 = &lpuart7;
+		serial7 = &lpuart8;
+		spi0 = &flexspi1;
 	};
 
 	chosen {
@@ -317,12 +341,6 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_ptn5110>;
 
-		port {
-			typec_dr_sw: endpoint {
-				remote-endpoint = <&usb3_drd_sw>;
-			};
-		};
-
 		typec_con: connector {
 			compatible = "usb-c-connector";
 			label = "USB-C";
@@ -338,8 +356,17 @@
 				#address-cells = <1>;
 				#size-cells = <0>;
 
+				port@0 {
+					reg = <0>;
+
+					typec_con_hs: endpoint {
+						remote-endpoint = <&usb3_data_hs>;
+					};
+				};
+
 				port@1 {
 					reg = <1>;
+
 					typec_con_ss: endpoint {
 						remote-endpoint = <&usb3_data_ss>;
 					};
@@ -451,24 +478,25 @@
 	srp-disable;
 	adp-disable;
 	usb-role-switch;
-	role-switch-default-mode = "host";
+	role-switch-default-mode = "peripheral";
 	snps,dis-u1-entry-quirk;
 	snps,dis-u2-entry-quirk;
 	status = "okay";
 
 	port {
-		usb3_drd_sw: endpoint {
-			remote-endpoint = <&typec_dr_sw>;
+		usb3_data_hs: endpoint {
+			remote-endpoint = <&typec_con_hs>;
 		};
 	};
 };
 
 &usb3_phy {
-	vbus-supply = <&reg_5v_board>;
 	fsl,phy-pcs-tx-deemph-3p5db-attenuation-db = <17>;
 	fsl,phy-pcs-tx-swing-full-percent = <100>;
 	fsl,phy-tx-preemp-amp-tune-microamp = <600>;
 	fsl,phy-tx-vboost-level-microvolt = <1156>;
+	fsl,phy-tx-vref-tune-percent = <100>;
+	orientation-switch;
 	status = "okay";
 
 	port {
@@ -486,6 +514,7 @@
 };
 
 &wdog3 {
+	fsl,ext-reset-output;
 	status = "okay";
 };
 

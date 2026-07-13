@@ -4,12 +4,13 @@
  * SPDX-License-Identifier: GPL-2.0+
  */
 
-#include <command.h>
-#include <malloc.h>
-#include <mmc.h>
+#include <asm/arch/imx-regs.h>
 #include <asm/io.h>
 #include <asm/mach-imx/ele_api.h>
+#include <command.h>
 #include <imx_container.h>
+#include <malloc.h>
+#include <mmc.h>
 
 #include "../common/trustfence.h"
 
@@ -101,7 +102,6 @@ int get_srk_revoke_mask(u32 *mask)
 	u32 buf_size, offset;
 	u8 *buf, part;
 	int ret = CMD_RET_SUCCESS;
-	u16 ctnr_hdr_align = container_hdr_alignment();
 
 	/* Container Header can only be read from the storage media */
 	if (is_usb_boot()) {
@@ -131,7 +131,7 @@ int get_srk_revoke_mask(u32 *mask)
 	}
 
 	/* Add 80 bytes to make room for DEK blob if there is one */
-	buf_size = roundup(ctnr_hdr_align + 80, mmc->read_bl_len);
+	buf_size = roundup(CONTAINER_HDR_ALIGNMENT + 80, mmc->read_bl_len);
 	buf = malloc(buf_size);
 	if (!buf)
 		return CMD_RET_FAILURE;
@@ -144,7 +144,7 @@ int get_srk_revoke_mask(u32 *mask)
 		goto sanitize;
 	}
 
-	hdr = (struct container_hdr *)(buf + ctnr_hdr_align);
+	hdr = (struct container_hdr *)(buf + CONTAINER_HDR_ALIGNMENT);
 	if (hdr->tag != 0x87 || hdr->version != 0x0) {
 		printf("Error: wrong container header.\n");
 		ret = CMD_RET_FAILURE;

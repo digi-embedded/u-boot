@@ -111,6 +111,8 @@ config TARGET_CCIMX95_DVK
 	bool "Digi ConnectCore 95 Development Kit"
 	select IMX95
 	select CC9
+	imply BOOTSTD_BOOTCOMMAND
+	imply BOOTSTD_FULL
 
 config TARGET_IMX91_11X11_EVK
 	bool "imx91_11x11_evk"

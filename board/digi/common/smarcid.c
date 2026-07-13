@@ -5,9 +5,11 @@
 
 #include <cli_hush.h>
 #include <command.h>
-#include <linux/errno.h>
+#include <config.h>
+#include <env.h>
 #include <fdt_support.h>
 #include <fuse.h>
+#include <linux/errno.h>
 #include <log.h>
 
 #include "helper.h"

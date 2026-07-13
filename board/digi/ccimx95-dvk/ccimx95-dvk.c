@@ -5,51 +5,31 @@
 
 #include <env.h>
 #include <init.h>
-#include <asm/global_data.h>
-#include <asm/arch-imx9/ccm_regs.h>
-#include <asm/arch/clock.h>
 #include <fdt_support.h>
+#include <asm/gpio.h>
+#include <asm/arch/clock.h>
 #include <usb.h>
-#include "../../freescale/common/tcpc.h"
+#include "../../nxp/common/tcpc.h"
 #include <dwc3-uboot.h>
-#include <asm/io.h>
 #include <linux/bitfield.h>
 #include <linux/bitops.h>
 #include <linux/delay.h>
-#include <miiphy.h>
-#include <netdev.h>
-#include <asm/gpio.h>
-#include <asm/arch/sys_proto.h>
+#include <power/regulator.h>
+#include <scmi_agent.h>
+#include "../dts/upstream/src/arm64/freescale/imx95-power.h"
 #include <i2c.h>
+#include <asm/arch/sys_proto.h>
 #include <dm/uclass.h>
 #include <dm/uclass-internal.h>
-#include <power/regulator.h>
 
 #include "../ccimx9/ccimx9.h"
 #include "../common/carrier_board.h"
 #include "../common/trustfence.h"
 
-#ifdef CONFIG_SCMI_FIRMWARE
-#include <scmi_agent.h>
-#include <scmi_protocols.h>
-#include <dt-bindings/clock/fsl,imx95-clock.h>
-#include <dt-bindings/power/fsl,imx95-power.h>
-#endif
-
-DECLARE_GLOBAL_DATA_PTR;
+extern int board_fix_fdt_fuse(void *fdt);
 
 unsigned int board_version = CARRIERBOARD_VERSION_UNDEFINED;
 unsigned int board_id = CARRIERBOARD_ID_UNDEFINED;
-
-extern int board_fix_fdt_fuse(void *fdt);
-
-int board_early_init_f(void)
-{
-	/* UART1: A55, UART2: M33, UART3: M7 */
-	init_uart_clk(0);
-
-	return 0;
-}
 
 #ifdef CONFIG_USB_TCPC
 struct tcpc_port port;
@@ -69,20 +49,10 @@ void tca_mux_select(enum typec_cc_polarity pol)
 	if (!tca_base)
 		return;
 
-	/* reset XBar block */
-	setbits_le32(tca_base, BIT(9));
-
 	/* Set OP mode to System configure Mode */
 	clrbits_le32(tca_base + 0x10, 0x3);
 
 	val = readl(tca_base + 0x30);
-
-	WARN_ON((val & GENMASK(1, 0)) != 0x3);
-	WARN_ON((val & BIT(2)) != 0);
-	WARN_ON((val & BIT(3)) != 0);
-	WARN_ON((val & BIT(4)) != 0);
-
-	printf("tca pstate 0x%x\n", val);
 
 	setbits_le32(tca_base + 0x18, BIT(3));
 	udelay(1);
@@ -111,87 +81,16 @@ static void setup_typec(void)
 }
 #endif
 
-#ifdef CONFIG_USB_DWC3
-
-#define PHY_CTRL0			0xF0040
-#define PHY_CTRL0_REF_SSP_EN		BIT(2)
-#define PHY_CTRL0_FSEL_MASK		GENMASK(10, 5)
-#define PHY_CTRL0_FSEL_24M		0x2a
-#define PHY_CTRL0_FSEL_100M		0x27
-#define PHY_CTRL0_SSC_RANGE_MASK	GENMASK(23, 21)
-#define PHY_CTRL0_SSC_RANGE_4003PPM	(0x2 << 21)
-
-#define PHY_CTRL1			0xF0044
-#define PHY_CTRL1_RESET			BIT(0)
-#define PHY_CTRL1_COMMONONN		BIT(1)
-#define PHY_CTRL1_ATERESET		BIT(3)
-#define PHY_CTRL1_DCDENB		BIT(17)
-#define PHY_CTRL1_CHRGSEL		BIT(18)
-#define PHY_CTRL1_VDATSRCENB0		BIT(19)
-#define PHY_CTRL1_VDATDETENB0		BIT(20)
-
-#define PHY_CTRL2			0xF0048
-#define PHY_CTRL2_TXENABLEN0		BIT(8)
-#define PHY_CTRL2_OTG_DISABLE		BIT(9)
-
-#define PHY_CTRL6			0xF0058
-#define PHY_CTRL6_RXTERM_OVERRIDE_SEL	BIT(29)
-#define PHY_CTRL6_ALT_CLK_EN		BIT(1)
-#define PHY_CTRL6_ALT_CLK_SEL		BIT(0)
-
-static struct dwc3_device dwc3_device_data = {
-	.maximum_speed = USB_SPEED_HIGH,
-	.base = USB1_BASE_ADDR,
-	.dr_mode = USB_DR_MODE_PERIPHERAL,
-	.index = 0,
-	.power_down_scale = 2,
-};
-
-int dm_usb_gadget_handle_interrupts(struct udevice *dev)
-{
-	dwc3_uboot_handle_interrupt(dev);
-	return 0;
-}
-
-static void dwc3_nxp_usb_phy_init(struct dwc3_device *dwc3)
-{
-	u32 value;
-
-	/* USB3.0 PHY signal fsel for 24M ref */
-	value = readl(dwc3->base + PHY_CTRL0);
-	value &= ~PHY_CTRL0_FSEL_MASK;
-	value |= FIELD_PREP(PHY_CTRL0_FSEL_MASK, PHY_CTRL0_FSEL_24M);
-	writel(value, dwc3->base + PHY_CTRL0);
-
-	/* Disable alt_clk_en and use internal MPLL clocks */
-	value = readl(dwc3->base + PHY_CTRL6);
-	value &= ~(PHY_CTRL6_ALT_CLK_SEL | PHY_CTRL6_ALT_CLK_EN);
-	writel(value, dwc3->base + PHY_CTRL6);
-
-	value = readl(dwc3->base + PHY_CTRL1);
-	value &= ~(PHY_CTRL1_VDATSRCENB0 | PHY_CTRL1_VDATDETENB0);
-	value |= PHY_CTRL1_RESET | PHY_CTRL1_ATERESET;
-	writel(value, dwc3->base + PHY_CTRL1);
-
-	value = readl(dwc3->base + PHY_CTRL0);
-	value |= PHY_CTRL0_REF_SSP_EN;
-	writel(value, dwc3->base + PHY_CTRL0);
-
-	value = readl(dwc3->base + PHY_CTRL2);
-	value |= PHY_CTRL2_TXENABLEN0 | PHY_CTRL2_OTG_DISABLE;
-	writel(value, dwc3->base + PHY_CTRL2);
-
-	udelay(10);
-
-	value = readl(dwc3->base + PHY_CTRL1);
-	value &= ~(PHY_CTRL1_RESET | PHY_CTRL1_ATERESET);
-	writel(value, dwc3->base + PHY_CTRL1);
-}
-#endif
-
 static int imx9_scmi_power_domain_enable(u32 domain, bool enable)
 {
-	return scmi_pwd_state_set(gd->arch.scmi_dev, 0, domain, enable ? 0 : BIT(30));
+	struct udevice *dev;
+	int ret;
+
+	ret = uclass_get_device_by_name(UCLASS_CLK, "protocol@14", &dev);
+	if (ret)
+		return ret;
+
+	return scmi_pwd_state_set(dev, 0, domain, enable ? 0 : BIT(30));
 }
 
 int board_usb_init(int index, enum usb_init_type init)
@@ -199,22 +98,10 @@ int board_usb_init(int index, enum usb_init_type init)
 	int ret = 0;
 
 	if (index == 0 && init == USB_INIT_DEVICE) {
-		ret = imx9_scmi_power_domain_enable(IMX95_PD_HSIO_TOP, true);
-		if (ret) {
-			printf("SCMI_POWWER_STATE_SET Failed for USB\n");
-			return ret;
-		}
-
-#ifdef CONFIG_USB_DWC3
-		dwc3_nxp_usb_phy_init(&dwc3_device_data);
-#endif
 #ifdef CONFIG_USB_TCPC
 		ret = tcpc_setup_ufp_mode(&port);
 		if (ret)
 			return ret;
-#endif
-#ifdef CONFIG_USB_DWC3
-		return dwc3_uboot_init(&dwc3_device_data);
 #endif
 	} else if (index == 0 && init == USB_INIT_HOST) {
 #ifdef CONFIG_USB_TCPC
@@ -229,11 +116,7 @@ int board_usb_init(int index, enum usb_init_type init)
 int board_usb_cleanup(int index, enum usb_init_type init)
 {
 	int ret = 0;
-	if (index == 0 && init == USB_INIT_DEVICE) {
-#ifdef CONFIG_USB_DWC3
-		dwc3_uboot_exit(index);
-#endif
-	} else if (index == 0 && init == USB_INIT_HOST) {
+	if (index == 0 && init == USB_INIT_HOST) {
 #ifdef CONFIG_USB_TCPC
 		ret = tcpc_disable_src_vbus(&port);
 #endif
@@ -255,10 +138,6 @@ void netc_init(void)
 		printf("SCMI_POWWER_STATE_SET Failed for NETC MIX\n");
 		return;
 	}
-
-	set_clk_netc(ENET_125MHZ);
-
-	pci_init();
 }
 
 static void flexspi_nor_steup(void)
@@ -308,15 +187,6 @@ static void flexspi_nor_steup(void)
 	dm_gpio_set_value(&desc, 1);
 }
 
-#if CONFIG_IS_ENABLED(NET)
-int board_phy_config(struct phy_device *phydev)
-{
-	if (phydev->drv->config)
-		phydev->drv->config(phydev);
-	return 0;
-}
-#endif
-
 void lvds_backlight_on(void)
 {
 	struct udevice *dev;
@@ -364,7 +234,7 @@ int board_init(void)
 
 	flexspi_nor_steup();
 
-	power_on_m7("mx95alt");
+	power_on_m7("mx95evkrpmsg");
 
 	lvds_backlight_on();
 
@@ -515,35 +385,15 @@ static int board_fix_15x15_evk(void *fdt)
 }
 
 #else
-
-static int imx9_scmi_misc_cfginfo(u32 *msel, char *cfgname)
-{
-	struct scmi_cfg_info_out out;
-	struct scmi_msg msg = SCMI_MSG(SCMI_PROTOCOL_ID_MISC, SCMI_MISC_CFG_INFO, out);
-	int ret;
-
-	ret = devm_scmi_process_msg(gd->arch.scmi_dev, &msg);
-	if(ret == 0 && out.status == 0) {
-		strcpy(cfgname, (const char *)out.cfgname);
-	} else {
-		printf("Failed to get cfg name, scmi_err = %d\n",
-		       out.status);
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
 static void disable_fdt_resources(void *fdt)
 {
 	int i = 0;
 	int nodeoff, ret;
 	const char *status = "disabled";
 	static const char * const dsi_nodes[] = {
-		"/soc@0/bus@42000000/i2c@426b0000",
-		"/soc@0/bus@42000000/i2c@426d0000",
-		"/pcie@4ca00000",
-		"/pcie@4cb00000"
+		"/soc/bus@42000000/i2c@426b0000",
+		"/soc/bus@42000000/i2c@426d0000",
+		"/soc/system-controller@4cde0000"
 	};
 
 	for (i = 0; i < ARRAY_SIZE(dsi_nodes); i++) {
@@ -568,7 +418,7 @@ static int board_fix_19x19_evk(void *fdt)
 	int ret;
 	const char *netcfg = "mx95netc";
 
-	ret = imx9_scmi_misc_cfginfo(&msel, cfgname);
+	ret = scmi_misc_cfginfo(&msel, cfgname);
 	if (!ret) {
 		debug("SM: %s\n", cfgname);
 		if (!strcmp(netcfg, cfgname))
