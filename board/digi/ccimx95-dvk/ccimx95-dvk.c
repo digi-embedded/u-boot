@@ -140,76 +140,6 @@ void netc_init(void)
 	}
 }
 
-static void flexspi_nor_steup(void)
-{
-	struct gpio_desc desc;
-	int ret;
-
-	if (!IS_ENABLED(CONFIG_TARGET_IMX95_15X15_EVK))
-		return;
-
-	/* Power cycle the M2 3V3 */
-	ret = dm_gpio_lookup_name("gpio@22_10", &desc);
-	if (ret)
-		return;
-
-	ret = dm_gpio_request(&desc, "M2_PWREN");
-	if (ret)
-		return;
-
-	dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT);
-	dm_gpio_set_value(&desc, 0);
-	udelay(100000);
-	dm_gpio_set_value(&desc, 1);
-
-	/* Enable 1.8V LDO */
-	ret = dm_gpio_lookup_name("gpio@22_11", &desc);
-	if (ret)
-		return;
-
-	ret = dm_gpio_request(&desc, "M2_DIS1");
-	if (ret)
-		return;
-
-	dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT);
-	dm_gpio_set_value(&desc, 1);
-
-	/* Deassert M2_SD3_nRST */
-	ret = dm_gpio_lookup_name("GPIO5_9", &desc);
-	if (ret)
-		return;
-
-	ret = dm_gpio_request(&desc, "M2_SD3_nRST");
-	if (ret)
-		return;
-
-	dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT);
-	dm_gpio_set_value(&desc, 1);
-}
-
-void lvds_backlight_on(void)
-{
-	struct udevice *dev;
-	int ret;
-	u8 reg;
-
-	if (!IS_ENABLED(CONFIG_TARGET_IMX95_15X15_EVK))
-		return;
-
-	ret = i2c_get_chip_for_busnum(2, 0x62, 1, &dev);
-	if (ret) {
-		printf("%s: Cannot find pca9632 led dev\n",
-		       __func__);
-		return;
-	}
-
-	reg = 1;
-	dm_i2c_write(dev, 0x1, &reg, 1);
-
-	reg = 5;
-	dm_i2c_write(dev, 0x8, &reg, 1);
-}
-
 int board_init(void)
 {
 	int ret;
@@ -232,11 +162,11 @@ int board_init(void)
 
 	netc_init();
 
-	flexspi_nor_steup();
-
-	power_on_m7("mx95evkrpmsg");
-
-	lvds_backlight_on();
+	/*
+	 * We are not building that hardcoded SM configuration, so comment
+	 * the code to avoid a warning message on boot.
+	 */
+	// power_on_m7("mx95evkrpmsg");
 
 	return 0;
 }
@@ -336,109 +266,10 @@ void board_quiesce_devices(void)
 }
 
 #if IS_ENABLED(CONFIG_OF_BOARD_FIXUP)
-
-#if IS_ENABLED(CONFIG_TARGET_IMX95_15X15_EVK)
-static void change_fdt_mido_pins(void *fdt)
-{
-	int nodeoff, ret;
-	u32 enet1_pins[12] = { 0x00B8, 0x02BC, 0x0424, 0x00, 0x00, 0x57e,
-		0x00BC, 0x02C0, 0x0428, 0x00, 0x00, 0x97e};
-
-	nodeoff = fdt_path_offset(fdt, "/firmware/scmi/protocol@19/emdiogrp");
-	if (nodeoff > 0) {
-
-		int i;
-		for (i = 0; i < 12; i++) {
-			enet1_pins[i] = cpu_to_fdt32(enet1_pins[i]);
-		}
-
-		ret = fdt_setprop(fdt, nodeoff, "fsl,pins", enet1_pins, 12 * sizeof(u32));
-		if (ret)
-			printf("fdt_setprop fsl,pins error %d\n", ret);
-		else
-			debug("Update MDIO pins ok\n");
-	}
-}
-
-static int board_fix_15x15_evk(void *fdt)
-{
-	int ret;
-	struct udevice *bus;
-	struct udevice *i2c_dev = NULL;
-
-	ret = uclass_get_device_by_seq(UCLASS_I2C, 2, &bus);
-	if (ret) {
-		printf("%s: Can't find I2C bus 2\n", __func__);
-		return 0;
-	}
-
-	ret = dm_i2c_probe(bus, 0x50, 0, &i2c_dev);
-	if (ret) {
-		ret = dm_i2c_probe(bus, 0x20, 0, &i2c_dev);
-		if (!ret) {
-			debug("Find Audio board\n");
-			change_fdt_mido_pins(fdt);
-		}
-	}
-
-	return 0;
-}
-
-#else
-static void disable_fdt_resources(void *fdt)
-{
-	int i = 0;
-	int nodeoff, ret;
-	const char *status = "disabled";
-	static const char * const dsi_nodes[] = {
-		"/soc/bus@42000000/i2c@426b0000",
-		"/soc/bus@42000000/i2c@426d0000",
-		"/soc/system-controller@4cde0000"
-	};
-
-	for (i = 0; i < ARRAY_SIZE(dsi_nodes); i++) {
-		nodeoff = fdt_path_offset(fdt, dsi_nodes[i]);
-		if (nodeoff > 0) {
-set_status:
-			ret = fdt_setprop(fdt, nodeoff, "status", status,
-					  strlen(status) + 1);
-			if (ret == -FDT_ERR_NOSPACE) {
-				ret = fdt_increase_size(fdt, 512);
-				if (!ret)
-					goto set_status;
-			}
-		}
-	}
-}
-
-static int board_fix_19x19_evk(void *fdt)
-{
-	char cfgname[SCMI_MISC_MAX_CFGNAME];
-	u32 msel;
-	int ret;
-	const char *netcfg = "mx95netc";
-
-	ret = scmi_misc_cfginfo(&msel, cfgname);
-	if (!ret) {
-		debug("SM: %s\n", cfgname);
-		if (!strcmp(netcfg, cfgname))
-			disable_fdt_resources(fdt);
-	}
-
-	return 0;
-}
-#endif
-
 int board_fix_fdt(void *fdt)
 {
 	/* Remove nodes based on fuses. */
-	board_fix_fdt_fuse(fdt);
-
-#if IS_ENABLED(CONFIG_TARGET_IMX95_15X15_EVK)
-	return board_fix_15x15_evk(fdt);
-#else
-	return board_fix_19x19_evk(fdt);
-#endif
+	return board_fix_fdt_fuse(fdt);
 }
 #endif
 
