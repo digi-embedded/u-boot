@@ -201,7 +201,7 @@ patch_oei_repo()
 build_oei()
 {
 	OEI_SOC_REV="${SOC_REV}"
-	# OEI_MAKE_ARGS="DDR_CONFIG=lpddr5_timing_2G"
+	# OEI_MAKE_ARGS="DDR_CONFIG=lpddr5_timing_8G"
 	if [ "${OEI_SOC_REV#A}" != "${OEI_SOC_REV}" ]; then
 		OEI_SOC_REV="A0"
 		OEI_MAKE_ARGS="DDR_CONFIG=lpddr5_timing_a1"
@@ -387,7 +387,7 @@ copy_artifacts_mkimage_folder()
 	# cp --remove-destination "${FIRMWARE_M7_DIR}"/imx95-19x19-evk_m7_TCM_power_mode_switch.bin "${MKIMAGE_SOC_DIR}"/m7_image.bin
 
 	# AHAB container, OEI, SM, ATF and Optee binaries
-	cp --remove-destination "${FIRMWARE_ELE_DIR}"/mx95??-ahab-container.img "${MKIMAGE_SOC_DIR}"
+	cp --remove-destination "${FIRMWARE_ELE_DIR}"/mx95b0-ahab-container.img "${MKIMAGE_SOC_DIR}"
 	cp --remove-destination "${OEI_DIR}"/build/"${OEI_BOARD}"/*/oei-m33-*.bin "${MKIMAGE_SOC_DIR}"
 	cp --remove-destination "${SM_DIR}"/build/"${SM_PLAT}"/m33_image.bin "${MKIMAGE_SOC_DIR}"
 	cp --remove-destination "${ATF_DIR}"/build/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_SOC_DIR}"/bl31-imx95.bin
@@ -432,52 +432,52 @@ build_imxboot()
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
-MKIMAGE_BRANCH="lf-6.6.52_2.2.1"
-# Tag: lf-6.6.52-2.2.2
-MKIMAGE_REV="81fca6434be0610f3f9216a762aadc4dc3e8d8db"
+MKIMAGE_BRANCH="lf-6.18.20_2.0.0"
+# Tag: lf-6.18.20-2.0.0
+MKIMAGE_REV="1b577853ae1afe1f26cdef27548da52fb424af48"
 MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
 MKIMAGE_SOC_DIR="${MKIMAGE_DIR}/iMX95"
 MKIMAGE_PATCHES=""
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
-ATF_BRANCH="lf_v2.10_6.6.52_2.2.x"
-# Tag: lf-6.6.52-2.2.2
-ATF_REV="8ec7e38031f8c022a9760a8da77bdc6e1938db8c"
+ATF_BRANCH="lf_v2.14"
+# Tag: lf-6.18.20-2.0.0
+ATF_REV="0779f89a5475a03193f7707f3bbb50cec11707c0"
 ATF_DIR="${BASEDIR}/imx-atf"
 ATF_PATCHES=""
 
 OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
-OPTEE_BRANCH="lf-6.6.52_2.2.0"
-# Tag: lf-6.6.52-2.2.2
-OPTEE_REV="ecea75b7fee5a3c8a2d9b99769ba78c4390c0e8b"
+OPTEE_BRANCH="lf-6.18.20_2.0.0"
+# Tag: lf-6.18.20-2.0.0
+OPTEE_REV="37c7fbf84c40eb9e5828532972ffb133b4917390"
 OPTEE_DIR="${BASEDIR}/imx-optee-os"
 OPTEE_PATCHES=""
 
 # Optional Executable Image running on the Cortex M33
 OEI_REPO="ssh://git@stash.digi.com/emp/imx-oei.git"
-OEI_BRANCH="dey/scarthgap/lf-6.6.52-2.2.2"
-# Tag: lf-6.6.52-2.2.2 + patches
-OEI_REV="1dd57d4c97c1597dcab4b0cdba6eee188af9e33d"
+OEI_BRANCH="dey-6.0/master"
+# Tag: lf-6.18.20-2.0.0 (merged)
+OEI_REV="bd5fcd0b5ec4e2078e4fe7db326fe43c0c419a5f"
 OEI_DIR="${BASEDIR}/imx-oei"
 OEI_PATCHES=""
 
 # System Manager running on the Cortex M33
 SM_REPO="ssh://git@stash.digi.com/emp/imx-sm.git"
-SM_BRANCH="dey/scarthgap/lf-6.6.52-2.2.2"
-# Tag: lf-6.6.52-2.2.2 + patches
-SM_REV="ecd89d0bc35687c7e1e19b47cf6bcdefc3a3fe68"
+SM_BRANCH="dey-6.0/master"
+# Tag: lf-6.18.20-2.0.0 (merged)
+SM_REV="67336077b21fab7ba52a5277feb53db4cd64a65b"
 SM_DIR="${BASEDIR}/imx-sm"
 SM_PATCHES=""
 
-FIRMWARE_IMX="firmware-imx-8.26.1-410be01"
+FIRMWARE_IMX="firmware-imx-8.32-1991416"
 FIRMWARE_IMX_DIR="${BASEDIR}/${FIRMWARE_IMX}"
 FIRMWARE_IMX_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_IMX}.bin"
 
-FIRMWARE_M7="imx95-m7-demo-25.09.00"
+FIRMWARE_M7="imx95-m7-demo-26.06.00"
 FIRMWARE_M7_DIR="${BASEDIR}/${FIRMWARE_M7}"
 FIRMWARE_M7_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_M7}.bin"
 
-FIRMWARE_ELE="firmware-ele-imx-2.0.3.1-52f7740"
+FIRMWARE_ELE="firmware-ele-imx-2.0.6-c0b284c"
 FIRMWARE_ELE_DIR="${BASEDIR}/${FIRMWARE_ELE}"
 FIRMWARE_ELE_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_ELE}.bin"
 

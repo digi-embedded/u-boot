@@ -13,10 +13,10 @@ Signed-off-by: Gabriel Valcazar <gabriel.valcazar@digi.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/plat/imx/imx8m/imx8mm/platform.mk b/plat/imx/imx8m/imx8mm/platform.mk
-index 41fc3507f796..1de30f40f397 100644
+index 7dc80524b27c..5a3f3a86fb70 100644
 --- a/plat/imx/imx8m/imx8mm/platform.mk
 +++ b/plat/imx/imx8m/imx8mm/platform.mk
-@@ -172,7 +172,7 @@ $(eval $(call add_define,BL32_BASE))
+@@ -185,7 +185,7 @@ $(eval $(call add_define,BL32_BASE))
  BL32_SIZE		?=	0x2000000
  $(eval $(call add_define,BL32_SIZE))
  

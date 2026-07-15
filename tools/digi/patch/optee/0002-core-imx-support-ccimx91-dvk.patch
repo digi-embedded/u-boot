@@ -11,18 +11,18 @@ Signed-off-by: Javier Viguera <javier.viguera@digi.com>
  2 files changed, 7 insertions(+)
 
 diff --git a/core/arch/arm/plat-imx/conf.mk b/core/arch/arm/plat-imx/conf.mk
-index 62cc51b61063..c65e383edf38 100644
+index c488ea206c1a..62dfdfd30b7e 100644
 --- a/core/arch/arm/plat-imx/conf.mk
 +++ b/core/arch/arm/plat-imx/conf.mk
-@@ -96,6 +96,7 @@ mx95-flavorlist = \
+@@ -107,6 +107,7 @@ mx95-flavorlist = \
  	mx95evk \
  
  mx91-flavorlist = \
 +	ccimx91dvk \
  	mx91evk \
  
- ifneq (,$(filter $(PLATFORM_FLAVOR),$(mx6ul-flavorlist)))
-@@ -504,6 +505,11 @@ CFG_DDR_SIZE ?= 0x80000000
+ mx943-flavorlist = \
+@@ -612,6 +613,11 @@ CFG_DDR_SIZE ?= 0x80000000
  CFG_UART_BASE ?= UART1_BASE
  endif
  
@@ -31,11 +31,11 @@ index 62cc51b61063..c65e383edf38 100644
 +CFG_UART_BASE ?= UART6_BASE
 +endif
 +
- ifneq (,$(filter $(PLATFORM_FLAVOR),mx95evk))
+ ifneq (,$(filter $(PLATFORM_FLAVOR),mx95evk mx943evk mx952evk))
  CFG_DDR_SIZE ?= 0x80000000
  CFG_UART_BASE ?= UART1_BASE
 diff --git a/core/arch/arm/plat-imx/registers/imx93.h b/core/arch/arm/plat-imx/registers/imx93.h
-index 21080da82d04..17f4d8f5755e 100644
+index 9f82f90feb3e..51ffbc4539f5 100644
 --- a/core/arch/arm/plat-imx/registers/imx93.h
 +++ b/core/arch/arm/plat-imx/registers/imx93.h
 @@ -9,6 +9,7 @@

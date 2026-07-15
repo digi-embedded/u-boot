@@ -14,7 +14,7 @@ Signed-off-by: Javier Viguera <javier.viguera@digi.com>
  2 files changed, 14 insertions(+)
 
 diff --git a/plat/imx/imx93/imx93_psci.c b/plat/imx/imx93/imx93_psci.c
-index 526c876e7333..33d9cb6daf07 100644
+index 453ec5f4f7fb..e8461c761eae 100644
 --- a/plat/imx/imx93/imx93_psci.c
 +++ b/plat/imx/imx93/imx93_psci.c
 @@ -755,6 +755,11 @@ void imx_pwr_domain_suspend(const psci_power_state_t *target_state)
@@ -42,10 +42,10 @@ index 526c876e7333..33d9cb6daf07 100644
  
  	/* do core level */
 diff --git a/plat/imx/imx93/platform.mk b/plat/imx/imx93/platform.mk
-index a43d3c4f5a9f..d69f7e2de058 100644
+index 9db734be46c7..b73bdacd48a2 100644
 --- a/plat/imx/imx93/platform.mk
 +++ b/plat/imx/imx93/platform.mk
-@@ -61,3 +61,7 @@ BL32_BASE               ?=      0x96000000
+@@ -62,3 +62,7 @@ BL32_BASE               ?=      0x96000000
  BL32_SIZE               ?=      0x02000000
  $(eval $(call add_define,BL32_BASE))
  $(eval $(call add_define,BL32_SIZE))

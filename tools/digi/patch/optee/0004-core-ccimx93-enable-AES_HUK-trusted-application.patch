@@ -26,10 +26,10 @@ Signed-off-by: Javier Viguera <javier.viguera@digi.com>
  create mode 100644 ta/aes_huk/user_ta_header_defines.h
 
 diff --git a/core/arch/arm/plat-imx/conf.mk b/core/arch/arm/plat-imx/conf.mk
-index ee0b6d6a0463..916b6b6a1fbb 100644
+index f1cadd2ed917..2eeec9fcc976 100644
 --- a/core/arch/arm/plat-imx/conf.mk
 +++ b/core/arch/arm/plat-imx/conf.mk
-@@ -515,12 +515,14 @@ endif
+@@ -623,12 +623,14 @@ endif
  ifneq (,$(filter $(PLATFORM_FLAVOR),ccimx93dvk))
  CFG_DDR_SIZE ?= 0x40000000
  CFG_UART_BASE ?= UART6_BASE
@@ -43,7 +43,7 @@ index ee0b6d6a0463..916b6b6a1fbb 100644
 +CFG_IN_TREE_EARLY_TAS += aes_huk/c2fad363-5d9f-4fc4-a417-555841e05745
  endif
  
- ifneq (,$(filter $(PLATFORM_FLAVOR),mx95evk))
+ ifneq (,$(filter $(PLATFORM_FLAVOR),mx95evk mx943evk mx952evk))
 diff --git a/ta/aes_huk/Android.mk b/ta/aes_huk/Android.mk
 new file mode 100644
 index 000000000000..931f8e4065c9

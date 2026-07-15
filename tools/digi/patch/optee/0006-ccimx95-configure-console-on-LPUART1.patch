@@ -15,10 +15,10 @@ https://onedigi.atlassian.net/browse/DEL-9915
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/core/arch/arm/plat-imx/conf.mk b/core/arch/arm/plat-imx/conf.mk
-index 55f4c21d0321..7c674e6f99a2 100644
+index cb52bb055d42..19e24065625e 100644
 --- a/core/arch/arm/plat-imx/conf.mk
 +++ b/core/arch/arm/plat-imx/conf.mk
-@@ -528,7 +528,7 @@ endif
+@@ -636,7 +636,7 @@ endif
  
  ifneq (,$(filter $(PLATFORM_FLAVOR),ccimx95dvk))
  CFG_DDR_SIZE ?= 0x80000000

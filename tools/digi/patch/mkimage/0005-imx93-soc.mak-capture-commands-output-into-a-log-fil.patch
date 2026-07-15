@@ -13,7 +13,7 @@ Signed-off-by: Javier Viguera <javier.viguera@digi.com>
  1 file changed, 4 insertions(+), 3 deletions(-)
 
 diff --git a/iMX93/soc.mak b/iMX93/soc.mak
-index 4ea92e3fa3f4..bb4042c1262f 100644
+index ebe3d0111482..961063a1d9ff 100644
 --- a/iMX93/soc.mak
 +++ b/iMX93/soc.mak
 @@ -1,4 +1,5 @@
@@ -40,7 +40,7 @@ index 4ea92e3fa3f4..bb4042c1262f 100644
  
  u-boot-atf-container-spinand.img: bl31.bin u-boot-hash.bin
  	if [ -f $(TEE) ]; then \
-@@ -214,7 +215,7 @@ endif
+@@ -215,7 +216,7 @@ endif
  
  
  flash_singleboot: $(MKIMG) $(AHAB_IMG) $(SPL_A55_IMG) u-boot-atf-container.img

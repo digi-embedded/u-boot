@@ -10,10 +10,10 @@ Signed-off-by: Javier Viguera <javier.viguera@digi.com>
  1 file changed, 4 insertions(+)
 
 diff --git a/iMX93/soc.mak b/iMX93/soc.mak
-index bb4042c1262f..1a50aa940b98 100644
+index 961063a1d9ff..e79e794a6267 100644
 --- a/iMX93/soc.mak
 +++ b/iMX93/soc.mak
-@@ -218,6 +218,10 @@ flash_singleboot: $(MKIMG) $(AHAB_IMG) $(SPL_A55_IMG) u-boot-atf-container.img
+@@ -219,6 +219,10 @@ flash_singleboot: $(MKIMG) $(AHAB_IMG) $(SPL_A55_IMG) u-boot-atf-container.img
  	./$(MKIMG) -soc IMX9 -append $(AHAB_IMG) -c -ap $(SPL_A55_IMG) a55 $(SPL_LOAD_ADDR) -out flash.bin | tee -a $(MKIMAGE_LOG)
  	$(call append_container,u-boot-atf-container.img,1)
  

@@ -13,7 +13,7 @@ Signed-off-by: Javier Viguera <javier.viguera@digi.com>
  1 file changed, 4 insertions(+), 3 deletions(-)
 
 diff --git a/iMX8M/soc.mak b/iMX8M/soc.mak
-index e7c762b748a1..3b0b6b603cd5 100644
+index 80d69a87531a..3f89feedbb3c 100644
 --- a/iMX8M/soc.mak
 +++ b/iMX8M/soc.mak
 @@ -1,5 +1,6 @@
@@ -23,7 +23,7 @@ index e7c762b748a1..3b0b6b603cd5 100644
  
  CC ?= gcc
  CFLAGS ?= -O2 -Wall -std=c99 -static
-@@ -281,7 +282,7 @@ endif
+@@ -282,7 +283,7 @@ endif
  
  
  flash_evk_no_hdmi: $(MKIMG) u-boot-spl-ddr.bin u-boot.itb
@@ -32,7 +32,7 @@ index e7c762b748a1..3b0b6b603cd5 100644
  
  flash_evk_no_hdmi_dual_bootloader: $(MKIMG) u-boot-spl-ddr.bin u-boot.itb
  	./mkimage_imx8 -version $(VERSION) -fit -loader u-boot-spl-ddr.bin $(SPL_LOAD_ADDR) -out $(OUTIMG)
-@@ -325,10 +326,10 @@ flash_dp_spl_uboot: flash_dp_evk
+@@ -326,10 +327,10 @@ flash_dp_spl_uboot: flash_dp_evk
  flash_spl_uboot: flash_evk_no_hdmi
  
  print_fit_hab: u-boot-nodtb.bin bl31.bin $(dtb) $(supp_dtbs)

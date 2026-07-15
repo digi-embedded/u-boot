@@ -8,16 +8,17 @@ Upstream-Status: Inappropriate [DEY specific]
 
 Signed-off-by: Arturo Buzarra <arturo.buzarra@digi.com>
 Signed-off-by: Gabriel Valcazar <gabriel.valcazar@digi.com>
+Signed-off-by: Hector Palacios <hector.palacios@digi.com>
 ---
- plat/imx/imx8m/imx8mn/imx8mn_bl31_setup.c | 2 +-
+ plat/imx/imx8m/imx8mn/imx8mn_bl31_setup.c | 4 ++--
  plat/imx/imx8m/imx8mn/platform.mk         | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ 2 files changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/plat/imx/imx8m/imx8mn/imx8mn_bl31_setup.c b/plat/imx/imx8m/imx8mn/imx8mn_bl31_setup.c
-index 312eb32d1cb5..9a82be010e49 100644
+index 68505188509c..ca16d3561f1d 100644
 --- a/plat/imx/imx8m/imx8mn/imx8mn_bl31_setup.c
 +++ b/plat/imx/imx8m/imx8mn/imx8mn_bl31_setup.c
-@@ -110,7 +110,7 @@ static const struct imx_rdc_cfg rdc[] = {
+@@ -63,7 +63,7 @@ static struct imx_rdc_cfg rdc[] = {
  
  	/* peripherals domain permission */
  	RDC_PDAPn(RDC_PDAP_UART4, D1R | D1W),
@@ -26,11 +27,20 @@ index 312eb32d1cb5..9a82be010e49 100644
  	RDC_PDAPn(RDC_PDAP_RDC, D0R | D0W | D1R),
  
  	/* memory region */
+@@ -110,7 +110,7 @@ static struct imx_rdc_cfg rdc[] = {
+ 	RDC_MDAn(RDC_MDA_M7, DID1),
+ 
+ 	/* peripherals domain permission */
+-	RDC_PDAPn(RDC_PDAP_UART1, D0R | D0W | D1R | D1W | D2R | D2W | D3R | D3W),
++	RDC_PDAPn(RDC_PDAP_UART1, D0R | D0W),
+ 	RDC_PDAPn(RDC_PDAP_UART2, D0R | D0W),
+ 	RDC_PDAPn(RDC_PDAP_UART3, D0R | D0W | D1R | D1W | D2R | D2W | D3R | D3W),
+ 	RDC_PDAPn(RDC_PDAP_UART4, D1R | D1W),
 diff --git a/plat/imx/imx8m/imx8mn/platform.mk b/plat/imx/imx8m/imx8mn/platform.mk
-index 84519426c68a..964ed9e5c2d1 100644
+index de5b0e43f881..55f5b61240c4 100644
 --- a/plat/imx/imx8m/imx8mn/platform.mk
 +++ b/plat/imx/imx8m/imx8mn/platform.mk
-@@ -77,7 +77,7 @@ $(eval $(call add_define,BL32_BASE))
+@@ -90,7 +90,7 @@ $(eval $(call add_define,BL32_BASE))
  BL32_SIZE		?=	0x2000000
  $(eval $(call add_define,BL32_SIZE))
  
