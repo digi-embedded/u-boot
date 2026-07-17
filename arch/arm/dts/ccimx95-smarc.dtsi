@@ -116,6 +116,14 @@
 	status = "okay";
 };
 
+&netc_blk_ctrl {
+	status = "okay";
+};
+
+&netc_timer {
+	status = "okay";
+};
+
 &netc_emdio {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_emdio>;
@@ -138,6 +146,10 @@
 		// interrupts = <? IRQ_TYPE_LEVEL_LOW>;
 		status = "okay";
 	};
+};
+
+&netcmix_blk_ctrl {
+	status = "okay";
 };
 
 &usdhc2 {
