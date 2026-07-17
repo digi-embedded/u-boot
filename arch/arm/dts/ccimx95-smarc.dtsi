@@ -57,8 +57,8 @@
 
 &lpi2c8 {
 	pinctrl-names = "default", "sleep";
-	pinctrl-0 = <&pinctrl_lpi2c8>, <&pinctrl_mca>;
-	pinctrl-1 = <&pinctrl_lpi2c8_sleep>, <&pinctrl_mca>;
+	pinctrl-0 = <&pinctrl_lpi2c8>;
+	pinctrl-1 = <&pinctrl_lpi2c8_sleep>;
 	#address-cells = <1>;
 	#size-cells = <0>;
 	status = "okay";
@@ -354,13 +354,6 @@
 			IMX95_PAD_SAI1_TXD0__AONMIX_TOP_GPIO1_IO_BIT13		0x200
 			IMX95_PAD_SAI1_RXD0__AONMIX_TOP_GPIO1_IO_BIT14		0x200
 			IMX95_PAD_SAI1_TXC__AONMIX_TOP_GPIO1_IO_BIT12		0x200
-		>;
-	};
-
-	pinctrl_mca: mcagrp {
-		fsl,pins = <
-			/* MCA/PMIC interrupt */
-			IMX95_PAD_PDM_BIT_STREAM1__AONMIX_TOP_GPIO1_IO_BIT10	0x31e
 		>;
 	};
 
