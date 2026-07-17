@@ -1,49 +1,29 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright 2022 Digi International Inc
- * Copyright 2022 NXP
  */
 
 #include <env.h>
 #include <init.h>
 #include <linux/bitfield.h>
 #include <linux/delay.h>
-#include <miiphy.h>
-#include <netdev.h>
-#include <asm/global_data.h>
-#include <asm/arch-imx9/ccm_regs.h>
 #include <asm/arch/sys_proto.h>
-#include <asm/arch-imx9/imx93_pins.h>
-#include <asm/arch/clock.h>
-#include <configs/digi_common.h>
-#include <power/pmic.h>
-#include "../../freescale/common/tcpc.h"
+#include "../../nxp/common/tcpc.h"
 #include <dm/device.h>
 #include <dm/uclass.h>
 #include <usb.h>
-#include <dwc3-uboot.h>
+#include <asm/gpio.h>
+#include <i2c.h>
 
 #include "../ccimx9/ccimx9.h"
 #include "../common/carrier_board.h"
 #include "../common/trustfence.h"
 
-DECLARE_GLOBAL_DATA_PTR;
-
 unsigned int board_version = CARRIERBOARD_VERSION_UNDEFINED;
 unsigned int board_id = CARRIERBOARD_ID_UNDEFINED;
 
-#define UART_PAD_CTRL	(PAD_CTL_DSE(6) | PAD_CTL_FSEL2)
-#define WDOG_PAD_CTRL	(PAD_CTL_DSE(6) | PAD_CTL_ODE | PAD_CTL_PUE | PAD_CTL_PE)
-
-static iomux_v3_cfg_t const uart_pads[] = {
-	MX93_PAD_GPIO_IO05__LPUART6_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
-	MX93_PAD_GPIO_IO04__LPUART6_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
-};
-
 int board_early_init_f(void)
 {
-	imx_iomux_v3_setup_multiple_pads(uart_pads, ARRAY_SIZE(uart_pads));
-
 	if (IS_ENABLED(CONFIG_CONSOLE_DISABLE))
 		gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
 
@@ -190,9 +170,9 @@ int board_usb_init(int index, enum usb_init_type init)
 		port_ptr = &port2;
 
 	if (init == USB_INIT_HOST)
-		tcpc_setup_dfp_mode(port_ptr);
+		ret = tcpc_setup_dfp_mode(port_ptr);
 	else
-		tcpc_setup_ufp_mode(port_ptr);
+		ret = tcpc_setup_ufp_mode(port_ptr);
 
 	return ret;
 }
@@ -240,19 +220,6 @@ int board_ehci_usb_phy_mode(struct udevice *dev)
 	return USB_INIT_DEVICE;
 }
 #endif
-
-static int setup_fec(void)
-{
-	return set_clk_enet(ENET_125MHZ);
-}
-
-int board_phy_config(struct phy_device *phydev)
-{
-	if (phydev->drv->config)
-		phydev->drv->config(phydev);
-
-	return 0;
-}
 
 /*
  * RV-3028-C7 application manual
@@ -338,15 +305,12 @@ restore_eerd:
 
 int board_init(void)
 {
-#ifdef CONFIG_USB_TCPC
+#if IS_ENABLED(CONFIG_USB_TCPC)
 	setup_typec();
 #endif
 
 	/* SOM init */
 	ccimx9_init();
-
-	if (IS_ENABLED(CONFIG_FEC_MXC))
-		setup_fec();
 
 	if (IS_ENABLED(CONFIG_RTC_RV3028))
 		setup_rv3028();

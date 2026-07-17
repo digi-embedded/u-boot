@@ -20,8 +20,8 @@
 	};
 
 	aliases {
-		usbgadget0 = &usbg1;
-		usbgadget1 = &usbg2;
+		usb_gadget0 = &usbg1;
+		usb_gadget1 = &usbg2;
 #if defined(CONFIG_DWC_ETH_QOS)
 		ethernet0 = &eqos;
 		ethernet1 = &fec;
@@ -47,6 +47,11 @@
 			compatible = "linaro,optee-tz";
 			method = "smc";
 		};
+	};
+
+	dsi_host: dsi-host {
+		compatible = "synopsys,dw-mipi-dsi";
+		status = "okay";
 	};
 };
 
@@ -81,6 +86,17 @@
 &iomuxc {
 	bootph-pre-ram;
 	bootph-some-ram;
+
+	pinctrl_flexspi: flexspigrp {
+		fsl,pins = <
+			MX93_PAD_SD3_CMD__FLEXSPI1_A_SS0_B	0x3fe
+			MX93_PAD_SD3_CLK__FLEXSPI1_A_SCLK	0x3fe
+			MX93_PAD_SD3_DATA0__FLEXSPI1_A_DATA00	0x3fe
+			MX93_PAD_SD3_DATA1__FLEXSPI1_A_DATA01	0x3fe
+			MX93_PAD_SD3_DATA2__FLEXSPI1_A_DATA02	0x3fe
+			MX93_PAD_SD3_DATA3__FLEXSPI1_A_DATA03	0x3fe
+		>;
+	};
 };
 
 &pinctrl_uart6 {
@@ -101,21 +117,29 @@
 };
 
 &gpio1 {
+	compatible = "fsl,imx93-gpio", "fsl,imx7ulp-gpio";
+	reg = <0x47400080 0x1000>, <0x47400040 0x40>;
 	bootph-pre-ram;
 	bootph-some-ram;
 };
 
 &gpio2 {
+	compatible = "fsl,imx93-gpio", "fsl,imx7ulp-gpio";
+	reg = <0x43810080 0x1000>, <0x43810040 0x40>;
 	bootph-pre-ram;
 	bootph-some-ram;
 };
 
 &gpio3 {
+	compatible = "fsl,imx93-gpio", "fsl,imx7ulp-gpio";
+	reg = <0x43820080 0x1000>, <0x43820040 0x40>;
 	bootph-pre-ram;
 	bootph-some-ram;
 };
 
 &gpio4 {
+	compatible = "fsl,imx93-gpio", "fsl,imx7ulp-gpio";
+	reg = <0x43830080 0x1000>, <0x43830040 0x40>;
 	bootph-pre-ram;
 	bootph-some-ram;
 };
@@ -204,4 +228,77 @@
 &clk_ext1 {
 	bootph-all;
 	bootph-pre-ram;
+};
+
+&flexspi1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_flexspi>;
+	assigned-clock-rates = <80000000>;
+	status = "okay";
+
+	flash0: flash@0 {
+		reg = <0>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "jedec,spi-nor";
+		spi-max-frequency = <80000000>;
+		spi-tx-bus-width = <4>;
+		spi-rx-bus-width = <4>;
+	};
+};
+
+&wdog3 {
+	status = "okay";
+};
+
+&lcdif {
+	status = "okay";
+	/* HDMI clock rates */
+	assigned-clock-rates = <484000000>, <121000000>, <400000000>, <133333333>;
+	/* LVDS clock rates */
+	/*assigned-clock-rates = <498000000>, <71142857>, <400000000>, <133333333>;*/
+};
+
+/*
+ * To have LVDS display:
+ * - Disable nodes `dphy`, `dsi`, `lt_bridge`
+ * - Enable nodes `backlight`, lvds_panel`, `ldb_phy`, `ldb`, `lvds-channel@0`
+ * - Replace `lcdif` node assigned-clock-rates with the LVDS values
+ */
+&ldb_phy {
+	status = "disabled";
+};
+
+&ldb {
+	status = "disabled";
+
+	lvds-channel@0 {
+		fsl,data-mapping = "jeida";
+		fsl,data-width = <24>;
+		status = "disabled";
+
+		port@1 {
+			reg = <1>;
+
+			lvds_out: endpoint {
+				remote-endpoint = <&panel_lvds_in>;
+			};
+		};
+	};
+};
+
+&dphy {
+	status = "okay";
+};
+
+&dsi {
+	status = "okay";
+
+	ports {
+		port@1 {
+			mipi_dsi_hdmi_out: endpoint {
+				remote-endpoint = <&lt8912_1_in>;
+			};
+		};
+	};
 };

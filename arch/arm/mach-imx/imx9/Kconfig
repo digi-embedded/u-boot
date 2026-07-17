@@ -99,13 +99,23 @@ choice
 
 config TARGET_CCIMX91_DVK
 	bool "Digi ConnectCore 91 Development Kit"
+	select OF_BOARD_FIXUP
 	select IMX91
 	select CC9
+	imply BOOTSTD_FULL
+	imply BOOTSTD_BOOTCOMMAND
 
 config TARGET_CCIMX93_DVK
 	bool "Digi ConnectCore 93 Development Kit"
+	select OF_BOARD_FIXUP
 	select IMX93
 	select CC9
+	imply BOOTSTD_FULL
+	imply BOOTSTD_BOOTCOMMAND
+	select CMD_REMOTEPROC
+	select REMOTEPROC_IMX
+	select REGMAP
+	select SYSCON
 
 config TARGET_CCIMX95_DVK
 	bool "Digi ConnectCore 95 Development Kit"

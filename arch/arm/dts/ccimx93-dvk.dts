@@ -91,11 +91,6 @@
 		regulator-max-microvolt = <1800000>;
 	};
 
-	dsi_host: dsi-host {
-		compatible = "synopsys,dw-mipi-dsi";
-		status = "okay";
-	};
-
 	regulators {
 		compatible = "simple-bus";
 		#address-cells = <1>;
@@ -136,22 +131,6 @@
 &adc1 {
 	vref-supply = <&reg_vref_1v8>;
 	status = "okay";
-};
-
-&dphy {
-	status = "okay";
-};
-
-&dsi {
-	status = "okay";
-
-	ports {
-		port@1 {
-			mipi_dsi_hdmi_out: endpoint {
-				remote-endpoint = <&lt8912_1_in>;
-			};
-		};
-	};
 };
 
 &mu1 {
@@ -206,42 +185,6 @@
 	};
 };
 #endif
-
-&lcdif {
-	status = "okay";
-	/* HDMI clock rates */
-	assigned-clock-rates = <484000000>, <121000000>, <400000000>, <133333333>;
-	/* LVDS clock rates */
-	/*assigned-clock-rates = <498000000>, <71142857>, <400000000>, <133333333>;*/
-};
-
-/*
- * To have LVDS display:
- * - Disable nodes `dphy`, `dsi`, `lt_bridge`
- * - Enable nodes `backlight`, lvds_panel`, `ldb_phy`, `ldb`, `lvds-channel@0`
- * - Replace `lcdif` node assigned-clock-rates with the LVDS values
- */
-&ldb_phy {
-	status = "disabled";
-};
-
-&ldb {
-	status = "disabled";
-
-	lvds-channel@0 {
-		fsl,data-mapping = "jeida";
-		fsl,data-width = <24>;
-		status = "disabled";
-
-		port@1 {
-			reg = <1>;
-
-			lvds_out: endpoint {
-				remote-endpoint = <&panel_lvds_in>;
-			};
-		};
-	};
-};
 
 &lpi2c1 {
 	#address-cells = <1>;
@@ -468,27 +411,6 @@
 	status = "okay";
 };
 
-&flexspi1 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_flexspi>;
-	assigned-clock-rates = <80000000>;
-	status = "okay";
-
-	flash0: flash@0 {
-		reg = <0>;
-		#address-cells = <1>;
-		#size-cells = <1>;
-		compatible = "jedec,spi-nor";
-		spi-max-frequency = <80000000>;
-		spi-tx-bus-width = <4>;
-		spi-rx-bus-width = <4>;
-	};
-};
-
-&wdog3 {
-	status = "okay";
-};
-
 &iomuxc {
 	pinctrl_flexcan2: flexcan2grp {
 		fsl,pins = <
@@ -513,17 +435,6 @@
 			MX93_PAD_ENET1_TD3__ENET_QOS_RGMII_TD3			0x57e
 			MX93_PAD_ENET1_TXC__CCM_ENET_QOS_CLOCK_GENERATE_TX_CLK	0x5fe
 			MX93_PAD_ENET1_TX_CTL__ENET_QOS_RGMII_TX_CTL		0x57e
-		>;
-	};
-
-	pinctrl_flexspi: flexspigrp {
-		fsl,pins = <
-			MX93_PAD_SD3_CMD__FLEXSPI1_A_SS0_B	0x3fe
-			MX93_PAD_SD3_CLK__FLEXSPI1_A_SCLK	0x3fe
-			MX93_PAD_SD3_DATA0__FLEXSPI1_A_DATA00	0x3fe
-			MX93_PAD_SD3_DATA1__FLEXSPI1_A_DATA01	0x3fe
-			MX93_PAD_SD3_DATA2__FLEXSPI1_A_DATA02	0x3fe
-			MX93_PAD_SD3_DATA3__FLEXSPI1_A_DATA03	0x3fe
 		>;
 	};
 
