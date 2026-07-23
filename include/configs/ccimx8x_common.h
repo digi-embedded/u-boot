@@ -109,6 +109,8 @@
 	"wlan1addr:mc,"			\
 	"wlan2addr:mc,"			\
 	"wlan3addr:mc,"			\
+	"wlan4addr:mc,"			\
+	"wlan5addr:mc,"			\
 	"btaddr:mc,"			\
 	"bootargs_once:sr,"		\
 	"board_version:so,"		\

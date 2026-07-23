@@ -526,6 +526,8 @@ void fdt_fixup_ccimx6ul(void *fdt)
 		fdt_fixup_mac(fdt, "wlan1addr", "/wireless", "mac-address1");
 		fdt_fixup_mac(fdt, "wlan2addr", "/wireless", "mac-address2");
 		fdt_fixup_mac(fdt, "wlan3addr", "/wireless", "mac-address3");
+		fdt_fixup_mac(fdt, "wlan4addr", "/wireless", "mac-address4");
+		fdt_fixup_mac(fdt, "wlan5addr", "/wireless", "mac-address5");
 
 		/* Regulatory domain */
 		fdt_fixup_regulatory(fdt);
