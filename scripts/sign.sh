@@ -17,8 +17,6 @@
 #    The following Kconfig entries are used:
 #      CONFIG_SIGN_KEYS_PATH: (mandatory) path to the CST folder by NXP with keys generated.
 #      CONFIG_KEY_INDEX: (optional) key index to use for signing. Default is 0.
-#      CONFIG_UNLOCK_SRK_REVOKE: (optional) instruct HAB not to protect the SRK_REVOKE OTP
-#				  field so that key revocation is possible in closed devices.
 #      SRK_REVOKE_MASK: (optional, AHAB only) set bitmask of the revoked SRKs.
 #      ENABLE_USB_SIGN: (optional) if defined, signed images could be used to boot via USB.
 #      CONFIG_IS_CC6: (optional) needed to determine how USB images are signed.
@@ -279,13 +277,11 @@ if [ "${CONFIG_SIGN_MODE}" = "HAB" ]; then
 		${SCRIPT_PATH}/csf_templates/sign_uboot > csf_descriptor
 	fi
 
-	# If requested, instruct HAB not to protect the SRK_REVOKE OTP field
-	if [ -n "${CONFIG_UNLOCK_SRK_REVOKE}" ]; then
-		echo "" >> csf_descriptor
-		echo "[Unlock]" >> csf_descriptor
-		echo "    Engine = OCOTP" >> csf_descriptor
-		echo "    Features = SRK REVOKE" >> csf_descriptor
-	fi
+	# Instruct HAB not to protect the SRK_REVOKE OTP field
+	echo "" >> csf_descriptor
+	echo "[Unlock]" >> csf_descriptor
+	echo "    Engine = OCOTP" >> csf_descriptor
+	echo "    Features = SRK REVOKE" >> csf_descriptor
 else
 	[ -z "${SRK_REVOKE_MASK}" ] && SRK_REVOKE_MASK="0x0"
 	if [ "$((SRK_REVOKE_MASK & 0x8))" != 0 ]; then

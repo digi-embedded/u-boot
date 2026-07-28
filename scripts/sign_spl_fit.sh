@@ -17,8 +17,6 @@
 #    The following Kconfig entries are used:
 #      CONFIG_SIGN_KEYS_PATH: (mandatory) path to the CST folder by NXP with keys generated.
 #      CONFIG_KEY_INDEX: (optional) key index to use for signing. Default is 0.
-#      CONFIG_UNLOCK_SRK_REVOKE: (optional) instruct HAB not to protect the SRK_REVOKE OTP
-#				  field so that key revocation is possible in closed devices.
 #      ENABLE_ENCRYPTION: (optional) enable encryption of the images.
 #      CONFIG_DEK_PATH: (mandatory if ENCRYPT is defined) path to a Data Encryption Key.
 #                       If defined, the signed U-Boot image is encrypted with the
@@ -305,17 +303,15 @@ else
 	"${SCRIPT_PATH}/csf_templates/sign_uboot_fit" > csf_fit.txt
 fi
 
-# If requested, instruct HAB not to protect the SRK_REVOKE OTP field
-if [ -n "${CONFIG_UNLOCK_SRK_REVOKE}" ]; then
-	SIGN_CSF="csf_spl.txt"
-	[ "${ENCRYPT}" = "true" ] && SIGN_CSF="csf_spl_sign_enc.txt"
-	{
-		echo ""
-		echo "[Unlock]"
-		echo "    Engine = OCOTP"
-		echo "    Features = SRK REVOKE"
-	} >> ${SIGN_CSF}
-fi
+# Instruct HAB not to protect the SRK_REVOKE OTP field
+SIGN_CSF="csf_spl.txt"
+[ "${ENCRYPT}" = "true" ] && SIGN_CSF="csf_spl_sign_enc.txt"
+{
+	echo ""
+	echo "[Unlock]"
+	echo "    Engine = OCOTP"
+	echo "    Features = SRK REVOKE"
+} >> ${SIGN_CSF}
 
 # Generate SRK tables
 if ! srktool --hab_ver 4 --certs "${SRK_KEYS}" --table "${SRK_TABLE}" --efuses "${SRK_EFUSES}" --digest sha256; then
