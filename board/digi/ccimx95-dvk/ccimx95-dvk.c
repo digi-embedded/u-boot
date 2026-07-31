@@ -299,3 +299,16 @@ int is_recovery_key_pressing(void)
 }
 #endif /*CONFIG_ANDROID_RECOVERY*/
 #endif /*CONFIG_FSL_FASTBOOT*/
+
+int board_early_init_f(void)
+{
+	if (IS_ENABLED(CONFIG_CONSOLE_DISABLE))
+		gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+
+#if defined(CONFIG_CONSOLE_ENABLE_GPIO) && !defined(CONFIG_SPL_BUILD)
+	if (console_enable_gpio(CONFIG_CONSOLE_ENABLE_GPIO_NAME))
+		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#endif
+
+	return 0;
+}
