@@ -20,8 +20,8 @@
 	};
 
 	aliases {
-		usbgadget0 = &usbg1;
-		usbgadget1 = &usbg2;
+		usb_gadget0 = &usbg1;
+		usb_gadget1 = &usbg2;
 #if defined(CONFIG_DWC_ETH_QOS)
 		ethernet0 = &eqos;
 		ethernet1 = &fec;
@@ -48,10 +48,6 @@
 			method = "smc";
 		};
 	};
-};
-
-&A55_0 {
-	clocks = <&clk IMX91_CLK_A55_SEL>;
 };
 
 &{/soc@0} {
@@ -86,14 +82,17 @@
 
 &pinctrl_usdhc1 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pinctrl_usdhc2_gpio {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pinctrl_usdhc2 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &gpio1 {
@@ -123,39 +122,48 @@
 
 &usdhc1 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &usdhc2 {
 	bootph-pre-ram;
+	bootph-some-ram;
 	fsl,signal-voltage-switch-extra-delay-ms = <8>;
 };
 
 &lpi2c1 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &lpi2c2 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &lpi2c3 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &{/soc@0/bus@44000000/i2c@44340000/pmic@25} {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &{/soc@0/bus@44000000/i2c@44340000/pmic@25/regulators} {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pinctrl_lpi2c1 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pinctrl_lpi2c3 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &usbotg1 {

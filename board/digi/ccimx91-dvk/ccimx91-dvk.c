@@ -7,26 +7,19 @@
 #include <init.h>
 #include <linux/bitfield.h>
 #include <linux/delay.h>
-#include <miiphy.h>
-#include <netdev.h>
-#include <asm/global_data.h>
 #include <asm/arch-imx9/ccm_regs.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/arch-imx9/imx91_pins.h>
+#include <asm/arch/imx-regs.h>
 #include <asm/arch/clock.h>
-#include <configs/digi_common.h>
-#include <power/pmic.h>
-#include "../../freescale/common/tcpc.h"
-#include <dm/device.h>
-#include <dm/uclass.h>
+#include <i2c.h>
+#include "../../nxp/common/tcpc.h"
 #include <usb.h>
-#include <dwc3-uboot.h>
+#include <asm/gpio.h>
 
 #include "../ccimx9/ccimx9.h"
 #include "../common/carrier_board.h"
 #include "../common/trustfence.h"
-
-DECLARE_GLOBAL_DATA_PTR;
 
 unsigned int board_version = CARRIERBOARD_VERSION_UNDEFINED;
 unsigned int board_id = CARRIERBOARD_ID_UNDEFINED;
@@ -190,9 +183,9 @@ int board_usb_init(int index, enum usb_init_type init)
 		port_ptr = &port2;
 
 	if (init == USB_INIT_HOST)
-		tcpc_setup_dfp_mode(port_ptr);
+		ret = tcpc_setup_dfp_mode(port_ptr);
 	else
-		tcpc_setup_ufp_mode(port_ptr);
+		ret = tcpc_setup_ufp_mode(port_ptr);
 
 	return ret;
 }
@@ -240,19 +233,6 @@ int board_ehci_usb_phy_mode(struct udevice *dev)
 	return USB_INIT_DEVICE;
 }
 #endif
-
-static int setup_fec(void)
-{
-	return set_clk_enet(ENET_125MHZ);
-}
-
-int board_phy_config(struct phy_device *phydev)
-{
-	if (phydev->drv->config)
-		phydev->drv->config(phydev);
-
-	return 0;
-}
 
 static int setup_eqos(void)
 {
@@ -351,15 +331,12 @@ restore_eerd:
 
 int board_init(void)
 {
-#ifdef CONFIG_USB_TCPC
+#if IS_ENABLED(CONFIG_USB_TCPC)
 	setup_typec();
 #endif
 
 	/* SOM init */
 	ccimx9_init();
-
-	if (IS_ENABLED(CONFIG_FEC_MXC))
-		setup_fec();
 
 	if (IS_ENABLED(CONFIG_DWC_ETH_QOS))
 		setup_eqos();

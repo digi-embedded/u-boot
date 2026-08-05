@@ -40,7 +40,7 @@ clone_atf_repo()
 	fi
 
 	(
-		cd "${ATF_DIR}" || exit 1
+		cd "${ATF_DIR}" || { echo "clone_atf_repo: ATF_DIR not found"; exit 1; }
 		git clean -ffdx && git restore .
 		echo "- Update imx-atf repository:"
 		git fetch "$(git remote)"
@@ -93,7 +93,7 @@ clone_optee_repo()
 	fi
 
 	(
-		cd "${OPTEE_DIR}" || { echo "build_atf: OPTEE_DIR not found"; exit 1; }
+		cd "${OPTEE_DIR}" || { echo "clone_optee_repo: OPTEE_DIR not found"; exit 1; }
 		git clean -ffdx && git restore .
 		echo "- Update imx-optee-os repository:"
 		git fetch "$(git remote)"
@@ -309,32 +309,32 @@ sign_imxboot()
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
-MKIMAGE_BRANCH="lf-6.6.52_2.2.1"
-# Tag: lf-6.6.52-2.2.2
-MKIMAGE_REV="81fca6434be0610f3f9216a762aadc4dc3e8d8db"
+MKIMAGE_BRANCH="lf-6.18.20_2.0.0"
+# Tag: lf-6.18.20-2.0.0
+MKIMAGE_REV="1b577853ae1afe1f26cdef27548da52fb424af48"
 MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
 MKIMAGE_SOC_DIR="${MKIMAGE_DIR}/iMX91"
 MKIMAGE_PATCHES=""
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
-ATF_BRANCH="lf_v2.10_6.6.52_2.2.x"
-# Tag: lf-6.6.52-2.2.2
-ATF_REV="8ec7e38031f8c022a9760a8da77bdc6e1938db8c"
+ATF_BRANCH="lf_v2.14"
+# Tag: lf-6.18.20-2.0.0
+ATF_REV="0779f89a5475a03193f7707f3bbb50cec11707c0"
 ATF_DIR="${BASEDIR}/imx-atf"
 ATF_PATCHES=""
 
 OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
-OPTEE_BRANCH="lf-6.6.52_2.2.0"
-# Tag: lf-6.6.52-2.2.2
-OPTEE_REV="ecea75b7fee5a3c8a2d9b99769ba78c4390c0e8b"
+OPTEE_BRANCH="lf-6.18.20_2.0.0"
+# Tag: lf-6.18.20-2.0.0
+OPTEE_REV="37c7fbf84c40eb9e5828532972ffb133b4917390"
 OPTEE_DIR="${BASEDIR}/imx-optee-os"
 OPTEE_PATCHES=""
 
-FIRMWARE_IMX="firmware-imx-8.26.1-410be01"
+FIRMWARE_IMX="firmware-imx-8.32-1991416"
 FIRMWARE_IMX_DIR="${BASEDIR}/${FIRMWARE_IMX}"
 FIRMWARE_IMX_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_IMX}.bin"
 
-FIRMWARE_ELE="firmware-ele-imx-2.0.3.1-52f7740"
+FIRMWARE_ELE="firmware-ele-imx-2.0.6-c0b284c"
 FIRMWARE_ELE_DIR="${BASEDIR}/${FIRMWARE_ELE}"
 FIRMWARE_ELE_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_ELE}.bin"
 
