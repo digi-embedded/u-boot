@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2021-2025 Digi International Inc.
+ * Copyright 2021-2026 Digi International Inc.
  */
 
 #include "imx8mm-u-boot.dtsi"
@@ -13,7 +13,8 @@
 	};
 
 	aliases {
-		usbgadget0 = &usbg1;
+		usb_gadget0 = &usbg1;
+		video0 = &lcdif;
 	};
 
 	usbg1: usbg1 {

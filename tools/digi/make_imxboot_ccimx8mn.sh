@@ -1,4 +1,8 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-2.0+
+#
+# Copyright 2026 Digi International Inc.
+#
 
 set -e
 
@@ -40,7 +44,7 @@ clone_atf_repo()
 	fi
 
 	(
-		cd "${ATF_DIR}" || exit 1
+		cd "${ATF_DIR}" || { echo "clone_atf_repo: ATF_DIR not found"; exit 1; }
 		git clean -ffdx && git restore .
 		echo "- Update imx-atf repository:"
 		git fetch "$(git remote)"
@@ -78,10 +82,10 @@ build_atf()
 	echo "- Build ATF binary for: ${SOC}"
 	(
 		cd "${ATF_DIR}" || { echo "build_atf: ATF_DIR not found"; exit 1; }
-		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld.bfd CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" realclean
-		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld.bfd CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" bl31
-		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld.bfd CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" BUILD_BASE=build-optee realclean
-		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld.bfd CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" BUILD_BASE=build-optee SPD=opteed bl31
+		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" realclean
+		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" bl31
+		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" BUILD_BASE=build-optee realclean
+		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" BUILD_BASE=build-optee SPD=opteed bl31
 	)
 }
 
@@ -136,8 +140,8 @@ build_optee()
 	(
 		cd "${OPTEE_DIR}" || { echo "build_optee: OPTEE_DIR not found"; exit 1; }
 		${MAKE} PLATFORM=imx-mx8mnevk \
-			CROSS_COMPILE=${CROSS_COMPILE} \
-			CROSS_COMPILE64=${CROSS_COMPILE} \
+			CROSS_COMPILE="${CROSS_COMPILE}" \
+			CROSS_COMPILE64="${CROSS_COMPILE}" \
 			CFG_TEE_TA_LOG_LEVEL=0 \
 			CFG_TEE_CORE_LOG_LEVEL=0 \
 			COMPILER=gcc \
@@ -296,28 +300,28 @@ sign_imxboot()
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
-MKIMAGE_BRANCH="lf-6.6.52_2.2.1"
-# Tag: lf-6.6.52-2.2.2
-MKIMAGE_REV="81fca6434be0610f3f9216a762aadc4dc3e8d8db"
+MKIMAGE_BRANCH="lf-6.18.20_2.0.0"
+# Tag: lf-6.18.20-2.0.0
+MKIMAGE_REV="1b577853ae1afe1f26cdef27548da52fb424af48"
 MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
 MKIMAGE_SOC_DIR="${MKIMAGE_DIR}/iMX8M"
 MKIMAGE_PATCHES=""
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
-ATF_BRANCH="lf_v2.10_6.6.52_2.2.x"
-# Tag: lf-6.6.52-2.2.2
-ATF_REV="8ec7e38031f8c022a9760a8da77bdc6e1938db8c"
+ATF_BRANCH="lf_v2.14"
+# Tag: lf-6.18.20-2.0.0
+ATF_REV="0779f89a5475a03193f7707f3bbb50cec11707c0"
 ATF_DIR="${BASEDIR}/imx-atf"
 ATF_PATCHES=""
 
 OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
-OPTEE_BRANCH="lf-6.6.52_2.2.0"
-# Tag: lf-6.6.52-2.2.2
-OPTEE_REV="ecea75b7fee5a3c8a2d9b99769ba78c4390c0e8b"
+OPTEE_BRANCH="lf-6.18.20_2.0.0"
+# Tag: lf-6.18.20-2.0.0
+OPTEE_REV="37c7fbf84c40eb9e5828532972ffb133b4917390"
 OPTEE_DIR="${BASEDIR}/imx-optee-os"
 OPTEE_PATCHES=""
 
-FIRMWARE_IMX="firmware-imx-8.26.1-410be01"
+FIRMWARE_IMX="firmware-imx-8.32-1991416"
 FIRMWARE_IMX_DIR="${BASEDIR}/${FIRMWARE_IMX}"
 FIRMWARE_IMX_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_IMX}.bin"
 
@@ -334,7 +338,6 @@ while [ "${1}" != "" ]; do
 		-h|--help) usage; exit 0;;
 		*) echo "[ERROR] Unknown option"; usage; exit 1;;
 	esac
-	shift
 done
 
 CPUS="$(echo /sys/devices/system/cpu/cpu[0-9]* | wc -w)"

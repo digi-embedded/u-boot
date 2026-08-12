@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2020-2025 Digi International Inc.
+ * Copyright 2020-2026 Digi International Inc.
  */
 
 #include "imx8mn-u-boot.dtsi"
@@ -55,7 +55,7 @@
 };
 
 &pinctrl_uart1 {
-        bootph-pre-ram;
+	bootph-pre-ram;
 };
 
 &pinctrl_usdhc2_gpio {

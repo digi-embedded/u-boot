@@ -1,11 +1,12 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright (C) 2024-2025, Digi International Inc.
- *
- * SPDX-License-Identifier: GPL-2.0+
+ * Copyright 2024-2026 Digi International Inc.
  */
 
 #include <asm/byteorder.h>
 #include <asm/mach-imx/hab.h>
+#include <linux/errno.h>
+#include <string.h>
 
 #include "../common/trustfence.h"
 

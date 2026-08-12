@@ -928,8 +928,6 @@ dtb-$(CONFIG_ARCH_IMX8) += \
 	imx8-capricorn-cxg3.dtb \
 
 dtb-$(CONFIG_ARCH_IMX8M) += \
-	ccimx8mm-dvk.dtb \
-	ccimx8mn-dvk.dtb \
 	imx8mm-data-modul-edm-sbc.dtb \
 	imx8mm-ddr4-ab2.dtb \
 	imx8mm-ab2.dtb \

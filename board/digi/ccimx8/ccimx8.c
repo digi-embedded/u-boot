@@ -1,10 +1,11 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright (C) 2019-2026 Digi International, Inc.
- *
- * SPDX-License-Identifier:	GPL-2.0+
  */
+
 #include <command.h>
 #include <display_options.h>
+#include <env.h>
 #include <fsl_esdhc_imx.h>
 #include <i2c.h>
 #include <linux/ctype.h>

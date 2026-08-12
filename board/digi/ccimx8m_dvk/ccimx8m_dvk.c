@@ -1,45 +1,24 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2019-2021 Digi International Inc
- * Copyright 2018 NXP
- *
- * SPDX-License-Identifier:	GPL-2.0+
+ * Copyright 2019-2026 Digi International Inc.
  */
 
+#include <config.h>
 #include <led.h>
-#include <malloc.h>
-#include <errno.h>
-#include <asm/io.h>
-#include <miiphy.h>
-#include <netdev.h>
-#include <asm/mach-imx/iomux-v3.h>
-#include <asm-generic/gpio.h>
-#include <fsl_esdhc_imx.h>
-#include <mmc.h>
+#include <phy.h>
+#include <usb.h>
+
 #ifdef CONFIG_IMX8MM
 #include <asm/arch/imx8mm_pins.h>
 #elif defined CONFIG_IMX8MN
 #include <asm/arch/imx8mn_pins.h>
 #endif
+#include <asm/arch/clock.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/global_data.h>
-#include <asm/mach-imx/boot_mode.h>
-#include <asm/mach-imx/gpio.h>
-#include <asm/mach-imx/mxc_i2c.h>
-#include <asm/arch/clock.h>
-#include <spl.h>
-#include <asm/mach-imx/dma.h>
-#include <power/pmic.h>
-#include "../../freescale/common/tcpc.h"
-#include <usb.h>
-#include <linux/ctype.h>
-#include <linux/delay.h>
 
 #include "../ccimx8/ccimx8.h"
 #include "../common/carrier_board.h"
-#include "../common/helper.h"
-#include "../common/mca_registers.h"
-#include "../common/mca.h"
-#include "../common/tamper.h"
 #include "../common/trustfence.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -130,28 +109,16 @@ int board_late_init(void)
 	return 0;
 }
 
-#ifdef CONFIG_FEC_MXC
-static void enet_device_phy_reset(void)
+#if IS_ENABLED(CONFIG_FEC_MXC)
+static int setup_fec(void)
 {
-	struct gpio_desc desc;
-	struct udevice *dev = NULL;
-	int ret;
+	struct iomuxc_gpr_base_regs *gpr =
+		(struct iomuxc_gpr_base_regs *)IOMUXC_GPR_BASE_ADDR;
 
-	ret = dm_gpio_lookup_name("gpio5_3", &desc);
-	if (ret)
-		return;
+	/* Use 125M anatop REF_CLK1 for ENET1, not from external */
+	clrsetbits_le32(&gpr->gpr[1], 0x2000, 0);
 
-	ret = dm_gpio_request(&desc, "fec1_reset");
-	if (ret)
-		return;
-
-	dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT);
-	dm_gpio_set_value(&desc, 0);
-	udelay(50);
-	dm_gpio_set_value(&desc, 1);
-	dm_gpio_free(dev, &desc);
-
-	udelay(10);
+	return 0;
 }
 
 int board_phy_config(struct phy_device *phydev)
@@ -174,35 +141,6 @@ int board_phy_config(struct phy_device *phydev)
 #endif
 
 	return 0;
-}
-
-static int setup_fec(void)
-{
-	struct iomuxc_gpr_base_regs *const iomuxc_gpr_regs
-		= (struct iomuxc_gpr_base_regs *) IOMUXC_GPR_BASE_ADDR;
-	struct gpio_desc enet_pwr;
-	int ret;
-
-	/* Power up the PHY */
-	ret = dm_gpio_lookup_name("gpio5_4", &enet_pwr);
-	if (ret)
-		return -1;
-
-	ret = dm_gpio_request(&enet_pwr, "fec1_pwr");
-	if (ret)
-		return -1;
-
-	dm_gpio_set_dir_flags(&enet_pwr, GPIOD_IS_OUT);
-	dm_gpio_set_value(&enet_pwr, 1);
-	mdelay(1);	/* PHY power up time */
-
-	/* Reset the PHY */
-	enet_device_phy_reset();
-
-	/* Use 125M anatop REF_CLK1 for ENET1, not from external */
-	clrsetbits_le32(&iomuxc_gpr_regs->gpr[1],
-			IOMUXC_GPR_GPR1_GPR_ENET1_TX_CLK_SEL, 0);
-	return set_clk_enet(ENET_125MHZ);
 }
 #endif
 
@@ -251,13 +189,8 @@ int board_init(void)
 
 	board_power_led_init();
 
-#ifdef CONFIG_MXC_SPI
-	setup_spi();
-#endif
-
-#ifdef CONFIG_FEC_MXC
-	setup_fec();
-#endif
+	if (IS_ENABLED(CONFIG_FEC_MXC))
+		setup_fec();
 
 	return 0;
 }
