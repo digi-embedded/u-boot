@@ -1237,7 +1237,7 @@ static int do_mmc_reg(struct cmd_tbl *cmdtp, int flag,
 }
 #endif
 
-#ifdef CONFIG_SUPPORT_MMC_ECSD
+#if IS_ENABLED(CONFIG_SUPPORT_MMC_ECSD)
 static int do_mmcecsd_dump(struct cmd_tbl *cmdtp, int flag,
 			   int argc, char *const argv[])
 {
@@ -1392,7 +1392,7 @@ static struct cmd_tbl cmd_mmc[] = {
 #if CONFIG_IS_ENABLED(CMD_MMC_REG)
 	U_BOOT_CMD_MKENT(reg, 5, 0, do_mmc_reg, "", ""),
 #endif
-#ifdef CONFIG_SUPPORT_MMC_ECSD
+#if IS_ENABLED(CONFIG_SUPPORT_MMC_ECSD)
 	U_BOOT_CMD_MKENT(ecsd, CONFIG_SYS_MAXARGS, 1, do_mmcecsd, "", ""),
 #endif
 };
@@ -1490,7 +1490,7 @@ U_BOOT_CMD(
 	" - reg: cid/csd/dsr/ocr/rca/extcsd\n"
 	" - offset: for cid/csd [0..3], for extcsd [0..511,all]\n"
 #endif
-#ifdef CONFIG_SUPPORT_MMC_ECSD
+#if IS_ENABLED(CONFIG_SUPPORT_MMC_ECSD)
 	"mmc ecsd dump - dump ECSD values\n"
 	"mmc ecsd read offset - read ECSD value at offset\n"
 	"mmc ecsd write offset value - write ECSD value at offset\n"
