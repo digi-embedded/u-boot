@@ -6,3 +6,5 @@
 0006-ccimx93-use-UART6-for-the-default-console.patch
 0007-imx93-bring-back-ELE-clock-workaround-for-soc-revisi.patch
 0008-ccimx91-use-UART6-for-the-default-console.patch
+0009-ccimx95-split-GPIO1-lines-for-Linux-and-SM.patch
+0010-ccimx95-reserve-gpio1_15-for-SM-secure-to-handle-WDO.patch

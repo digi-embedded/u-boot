@@ -464,8 +464,8 @@ OEI_PATCHES=""
 # System Manager running on the Cortex M33
 SM_REPO="ssh://git@stash.digi.com/emp/imx-sm.git"
 SM_BRANCH="dey-6.0/master"
-# Tag: lf-6.18.20-2.0.0 (merged)
-SM_REV="67336077b21fab7ba52a5277feb53db4cd64a65b"
+# NXP's 'lf-6.18.20-2.0.0' release + patches
+SM_REV="d3d9dd4d20121cd9a9670270cd9962b0ff7ceaa1"
 SM_DIR="${BASEDIR}/imx-sm"
 SM_PATCHES=""
 

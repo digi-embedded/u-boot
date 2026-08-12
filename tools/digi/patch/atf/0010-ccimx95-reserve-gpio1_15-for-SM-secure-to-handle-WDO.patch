@@ -1,0 +1,34 @@
+From: Hector Bujanda <hector.bujanda@digi.com>
+Date: Tue, 11 Aug 2026 09:39:41 +0200
+Subject: [PATCH] ccimx95: reserve gpio1_15 for SM (secure) to handle
+ WDOG_ANY
+
+https://onedigi.atlassian.net/browse/DEL-10136
+
+Upstream-Status: Inappropriate [DEY specific]
+
+Signed-off-by: Hector Bujanda <hector.bujanda@digi.com>
+---
+ plat/imx/imx9/common/imx9_bl31_setup.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/plat/imx/imx9/common/imx9_bl31_setup.c b/plat/imx/imx9/common/imx9_bl31_setup.c
+index 55bd95cea..445c40749 100644
+--- a/plat/imx/imx9/common/imx9_bl31_setup.c
++++ b/plat/imx/imx9/common/imx9_bl31_setup.c
+@@ -115,10 +115,10 @@ void bl31_plat_arch_setup(void)
+ #if defined(PLAT_imx95)
+ 	/*
+ 	 * The code above does not handle GPIO1.
+-	 * Assign all the GPIO1 pins but GPIO1_10 to non-secure world
++	 * Assign all the GPIO1 pins but GPIO1_10 and GPIO1_15 to non-secure world
+ 	 */
+-	mmio_write_32(GPIO1_BASE + 0x18, 0xfffffbff);
+-	mmio_write_32(GPIO1_BASE + 0x10, 0xfffffbff);
++	mmio_write_32(GPIO1_BASE + 0x18, 0xffff7bff);
++	mmio_write_32(GPIO1_BASE + 0x10, 0xffff7bff);
+ 
+ 	/*
+ 	 * Route GPIO1 interrupt lines as follows:
+
+

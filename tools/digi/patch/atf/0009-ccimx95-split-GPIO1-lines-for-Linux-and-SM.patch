@@ -1,0 +1,58 @@
+From: Hector Bujanda <hector.bujanda@digi.com>
+Date: Tue, 14 Jul 2026 10:48:28 +0200
+Subject: [PATCH] ccimx95: split GPIO1 lines for Linux and SM
+
+gpio1_10 is reserved for SM (secure) to proccess pmic interrupts through
+pf09_int_b. It will make use of GPIO1 interrupt output 1.
+
+Rest of gpio1 pins are reserved for linux (non secure) and will make use of
+GPIO1 interrupt output 0.
+
+Upstream-Status: Inappropriate [DEY specific]
+
+Signed-off-by: Hector Bujanda <hector.bujanda@digi.com>
+---
+ plat/imx/imx9/common/imx9_bl31_setup.c | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+
+diff --git a/plat/imx/imx9/common/imx9_bl31_setup.c b/plat/imx/imx9/common/imx9_bl31_setup.c
+index 5ac95d7d8..55bd95cea 100644
+--- a/plat/imx/imx9/common/imx9_bl31_setup.c
++++ b/plat/imx/imx9/common/imx9_bl31_setup.c
+@@ -31,6 +31,9 @@
+ 
+ #define TRUSTY_PARAMS_LEN_BYTES      (4096*2)
+ 
++#define GPIO_INT0_NSEC_INT1_SEC      0x1U
++#define GPIO_INT0_UNPRIV_INT1_PRIV   0x1U
++
+ extern gicv3_driver_data_t gic_data;
+ 
+ static entry_point_info_t bl32_image_ep_info;
+@@ -108,6 +111,24 @@ void bl31_plat_arch_setup(void)
+ 		mmio_write_32(gpio_base[i] + 0x1c, 0x3);
+ 	}
+ 
++	/* GPIO1 customization for ccimx95 */
++#if defined(PLAT_imx95)
++	/*
++	 * The code above does not handle GPIO1.
++	 * Assign all the GPIO1 pins but GPIO1_10 to non-secure world
++	 */
++	mmio_write_32(GPIO1_BASE + 0x18, 0xfffffbff);
++	mmio_write_32(GPIO1_BASE + 0x10, 0xfffffbff);
++
++	/*
++	 * Route GPIO1 interrupt lines as follows:
++	 *  - line 0: non-secure for Linux
++	 *  - line 1: secure for the System Manager (SM)
++	 */
++	mmio_write_32(GPIO1_BASE + 0x14, GPIO_INT0_NSEC_INT1_SEC);
++	mmio_write_32(GPIO1_BASE + 0x1c, GPIO_INT0_UNPRIV_INT1_PRIV);
++#endif
++
+ 	mmap_add_region(BL31_BASE, BL31_BASE, (BL31_LIMIT - BL31_BASE),
+ 		MT_MEMORY | MT_RW | MT_SECURE);
+ 	mmap_add_region(BL_CODE_BASE, BL_CODE_BASE, (BL_CODE_END - BL_CODE_BASE),
+
+
