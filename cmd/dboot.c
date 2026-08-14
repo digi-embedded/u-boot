@@ -7,22 +7,19 @@
  *  the Free Software Foundation.
 */
 
-#include <asm/global_data.h>
 #include <command.h>
+#include <config.h>
 #include <env.h>
-#include <mapmem.h>
-#include <part.h>
-#ifdef CONFIG_OF_LIBFDT_OVERLAY
-#include <stdlib.h>
+#ifdef CONFIG_AUTH_DISCRETE_ARTIFACTS
+#include <image.h>
 #endif
 #include <linux/libfdt.h>
+#include <stdlib.h>
+
 #include "../board/digi/common/helper.h"
 #include "../board/digi/common/trustfence.h"
-#include <image.h>
 
 #define DELIM_OV_FILE		","
-
-DECLARE_GLOBAL_DATA_PTR;
 
 enum {
 	OS_UNDEFINED = -1,
