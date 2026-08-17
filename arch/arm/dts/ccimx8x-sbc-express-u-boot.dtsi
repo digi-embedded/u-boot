@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2020 Digi International Inc.
+ * Copyright 2020-2026 Digi International Inc.
  */
 
 / {
@@ -11,7 +11,7 @@
 	};
 
 	aliases {
-		usbgadget0 = &usbg1;
+		usb_gadget0 = &usbg1;
 		usbhost1 = &usbh3;
 	};
 
@@ -27,10 +27,8 @@
 		dr_mode = "peripheral";
 		chipidea,usb = <&usbotg1>;
 		status = "okay";
-		bootph-some-ram;
 		bootph-pre-ram;
 	};
-
 };
 
 /*
@@ -56,48 +54,57 @@
 	bootph-pre-ram;
 };
 
-&pd_lsio {
+&{/regulators} {
+	bootph-pre-ram;
+};
+
+&{/mu@5d1c0000/iomuxc/ccimx8x} {
 	bootph-some-ram;
+	bootph-pre-ram;
+};
+
+&pinctrl_usdhc2_gpio {
+	bootph-pre-ram;
+};
+
+&pinctrl_usdhc2 {
+	bootph-pre-ram;
+};
+
+&pinctrl_lpuart2 {
+	bootph-some-ram;
+	bootph-pre-ram;
+};
+
+&pinctrl_usdhc1 {
+	bootph-pre-ram;
+};
+
+&pd_lsio {
 	bootph-pre-ram;
 };
 
 &pd_lsio_gpio0 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
 &pd_lsio_gpio1 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
 &pd_lsio_gpio2 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
 &pd_lsio_gpio3 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
 &pd_lsio_gpio4 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
 &pd_lsio_gpio5 {
-	bootph-some-ram;
-	bootph-pre-ram;
-};
-
-&pd_dma {
-	bootph-some-ram;
-	bootph-pre-ram;
-};
-
-&pd_dma_lpuart2 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
@@ -117,53 +124,57 @@
 	bootph-pre-ram;
 };
 
-&pd_caam {
+&pd_dma {
 	bootph-some-ram;
+	bootph-pre-ram;
+};
+
+&pd_dma_lpuart2 {
+	bootph-some-ram;
+	bootph-pre-ram;
+};
+
+&pd_caam {
 	bootph-pre-ram;
 };
 
 &pd_caam_jr1 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
 &pd_caam_jr2 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
 &pd_caam_jr3 {
-	bootph-some-ram;
+	bootph-pre-ram;
+};
+
+&pd_lsio_flexspi0 {
 	bootph-pre-ram;
 };
 
 &gpio0 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
 &gpio1 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
 &gpio2 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
 &gpio3 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
 &gpio4 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
 &gpio5 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
@@ -182,8 +193,6 @@
 
 &usbotg1 {
 	bootph-pre-ram;
-	pinctrl-names = "default";
-	pinctrl-0 = <>;
 };
 
 &usbotg3 {
@@ -200,28 +209,24 @@
 
 &usdhc1 {
 	bootph-pre-ram;
-	bootph-some-ram;
 };
 
 &usdhc2 {
 	bootph-pre-ram;
-	bootph-some-ram;
 };
 
 &crypto {
+	bootph-pre-ram;
 };
 
 &sec_jr1 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
 &sec_jr2 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };
 
 &sec_jr3 {
-	bootph-some-ram;
 	bootph-pre-ram;
 };

@@ -14,14 +14,14 @@
 #define DIGI_IMX_FAMILY
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 8X"
 
-#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_XPL_BUILD
 #define CFG_MALLOC_F_ADDR		0x00138000
 /*
  * 0x08081000 - 0x08180FFF is for m4_0 xip image,
  * So 3rd container image may start from 0x8181000
  */
 #define CFG_SYS_UBOOT_BASE 0x08181000
-#endif /* CONFIG_SPL_BUILD */
+#endif
 
 /* Physical Memory Map */
 #define CFG_SYS_SDRAM_BASE		0x80000000
@@ -96,10 +96,6 @@
 #define EMMC_BOOT_PART_OFFSET_A0	(33 * SZ_1K)
 #define EMMC_BOOT_PART_OFFSET		(32 * SZ_1K)
 
-/* Extra network settings for second Ethernet */
-#define CONFIG_EXTRA_NETWORK_SETTINGS \
-	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"
-
 /* protected environment variables (besides ethaddr and serial#) */
 #undef CFG_ENV_FLAGS_LIST_STATIC
 #define CFG_ENV_FLAGS_LIST_STATIC	\
@@ -164,43 +160,6 @@
 	DIGICMD_UPDATEFILE_NET_ARGS_HELP "\n" \
 	DIGICMD_UPDATEFILE_BLOCK_ARGS_HELP "\n" \
 	DIGICMD_UPDATEFILE_RAM_ARGS_HELP
-
-#undef CONFIG_CMD_EXPORTENV
-#undef CONFIG_CMD_IMPORTENV
-#undef CONFIG_CMD_IMLS
-#undef CONFIG_CMD_CRC32
-#undef CONFIG_BOOTM_NETBSD
-
-/* Generic Timer Definitions */
-#define COUNTER_FREQUENCY		8000000	/* 8MHz */
-
-#define ALTBOOTCMD	\
-	"altbootcmd=" \
-		"if test \"${dualboot}\" = yes; then " \
-			"if test \"${active_system}\" = linux_a; then " \
-				"setenv active_system linux_b;" \
-			"else " \
-				"setenv active_system linux_a;" \
-			"fi;" \
-			"saveenv;" \
-			"echo \"## System boot failed; Switching active partitions bank to ${active_system}...\";" \
-		"fi;" \
-		"bootcount reset;" \
-		"reset;\0"
-
-/* Pool of randomly generated UUIDs at host machine */
-#define RANDOM_UUIDS	\
-	"uuid_disk=075e2a9b-6af6-448c-a52a-3a6e69f0afff\0" \
-	"part1_uuid=43f1961b-ce4c-4e6c-8f22-2230c5d532bd\0" \
-	"part2_uuid=f241b915-4241-47fd-b4de-ab5af832a0f6\0" \
-	"part3_uuid=1c606ef5-f1ac-43b9-9bb5-d5c578580b6b\0" \
-	"part4_uuid=c7d8648b-76f7-4e2b-b829-e95a83cc7b32\0" \
-	"part5_uuid=ebae5694-6e56-497c-83c6-c4455e12d727\0" \
-	"part6_uuid=3845c9fc-e581-49f3-999f-86c9bab515ef\0" \
-	"part7_uuid=3fcf7bf1-b6fe-419d-9a14-f87950727bc0\0" \
-	"part8_uuid=12c08a28-fb40-430a-a5bc-7b4f015b0b3c\0" \
-	"part9_uuid=dc83dea8-c467-45dc-84eb-5e913daec17e\0" \
-	"part10_uuid=df0dba76-d5e0-11e8-9f8b-f2801f1b9fd1\0"
 
 #define LINUX_4GB_PARTITION_TABLE \
 	"\"uuid_disk=${uuid_disk};" \
@@ -297,9 +256,6 @@
 	"name=safe2,size=16MiB,type=linux,uuid=${part6_uuid};" \
 	"name=data,size=-,type=linux,uuid=${part7_uuid};" \
 	"\""
-
-/* Partition defines */
-#define RECOVERY_PARTITION	"2"
 
 #define FSL_FASTBOOT_FB_DEV "mmc"
 

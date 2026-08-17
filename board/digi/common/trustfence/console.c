@@ -1,11 +1,10 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright (C) 2024, 2025, Digi International Inc.
- *
- * SPDX-License-Identifier: GPL-2.0+
+ * Copyright 2024-2026 Digi International Inc.
  */
 
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
-#include <asm/gpio.h>
+#include <asm-generic/gpio.h>
 #endif
 #ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
 #include <cyclic.h>

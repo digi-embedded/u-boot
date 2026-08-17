@@ -1,10 +1,11 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright (C) 2024, Digi International Inc.
- *
- * SPDX-License-Identifier: GPL-2.0+
+ * Copyright 2024-2026 Digi International Inc.
  */
 
 #include <command.h>
+#include <config.h>
+#include <env.h>
 #include <fuse.h>
 #include <part.h>
 #include <stdlib.h>
@@ -73,10 +74,11 @@ int close_device(int confirmed_close)
 int revoke_keys(void)
 {
 	int err;
+	u32 info = 0x10;
 
-	err = seco_commit(-1, 0x10);
+	err = sc_seco_commit(-1, &info);
 	if (err != SC_ERR_NONE) {
-		printf("%s: Error in seco_commit\n", __func__);
+		printf("%s: Error in sc_seco_commit\n", __func__);
 		return -EIO;
 	}
 
@@ -138,7 +140,6 @@ int get_srk_revoke_mask(u32 *mask)
 	char *buffer = NULL;
 	struct container_hdr *second_cont;
 	u32 buffer_size = 0;
-	u16 ctnr_hdr_align = container_hdr_alignment();
 
 	/* Container Header can only be read from the storage media */
 	if (is_usb_boot())
@@ -186,7 +187,7 @@ int get_srk_revoke_mask(u32 *mask)
 	}
 
 	/* Read mask from the Second Container Header Flags (11:8) */
-	second_cont = (struct container_hdr *)(buffer+ctnr_hdr_align);
+	second_cont = (struct container_hdr *)(buffer + CONTAINER_HDR_ALIGNMENT);
 	*mask = (second_cont->flags>>8) & 0xF;
 
 sanitize:

@@ -1,4 +1,8 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-2.0+
+#
+# Copyright 2026 Digi International Inc.
+#
 
 set -e
 
@@ -40,7 +44,7 @@ clone_atf_repo()
 	fi
 
 	(
-		cd "${ATF_DIR}" || exit 1
+		cd "${ATF_DIR}" || { echo "clone_atf_repo: ATF_DIR not found"; exit 1; }
 		git clean -ffdx && git restore .
 		echo "- Update imx-atf repository:"
 		git fetch "$(git remote)"
@@ -78,8 +82,8 @@ build_atf()
 	echo "- Build ATF binary for: ${SOC}"
 	(
 		cd "${ATF_DIR}" || { echo "build_atf: ATF_DIR not found"; exit 1; }
-		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld.bfd CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" realclean
-		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld.bfd CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" bl31
+		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" realclean
+		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" bl31
 	)
 }
 
@@ -200,9 +204,7 @@ build_imxboot()
 
 sign_imxboot()
 {
-	if [ -z "${CONFIG_SIGN_KEYS_PATH}" ]; then
-		return
-	fi
+	[ -z "${CONFIG_SIGN_KEYS_PATH}" ] && return
 
 	# Signing environment
 	TF_SIGN_BASE_ENV="CONFIG_SIGN_KEYS_PATH=${CONFIG_SIGN_KEYS_PATH}"
@@ -221,7 +223,6 @@ sign_imxboot()
 			env ${TF_SIGN_ENV} ${TF_ENC_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8x-sbc-${SBC}-${rev}.bin imx-boot-encrypted-ccimx8x-sbc-${SBC}-${rev}.bin
 		done
 	)
-
 }
 
 ##### Main
@@ -229,16 +230,16 @@ BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 SCRIPTNAME="$(basename "${0}")"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
-MKIMAGE_BRANCH="lf-6.6.52_2.2.1"
-# Tag: lf-6.6.52-2.2.2
-MKIMAGE_REV="81fca6434be0610f3f9216a762aadc4dc3e8d8db"
+MKIMAGE_BRANCH="lf-6.18.20_2.0.0"
+# Tag: lf-6.18.20-2.0.0
+MKIMAGE_REV="1b577853ae1afe1f26cdef27548da52fb424af48"
 MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
 MKIMAGE_PATCHES=""
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
-ATF_BRANCH="lf_v2.10_6.6.52_2.2.x"
-# Tag: lf-6.6.52-2.2.2
-ATF_REV="8ec7e38031f8c022a9760a8da77bdc6e1938db8c"
+ATF_BRANCH="lf_v2.14"
+# Tag: lf-6.18.20-2.0.0
+ATF_REV="0779f89a5475a03193f7707f3bbb50cec11707c0"
 ATF_DIR="${BASEDIR}/imx-atf"
 ATF_PATCHES=""
 
@@ -266,7 +267,6 @@ while [ "${1}" != "" ]; do
 		-h|--help) usage; exit 0;;
 		*) echo "[ERROR] Unknown option"; usage; exit 1;;
 	esac
-	shift
 done
 
 CPUS="$(echo /sys/devices/system/cpu/cpu[0-9]* | wc -w)"

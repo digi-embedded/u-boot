@@ -1,6 +1,6 @@
-# (C) Copyright 2018-2019 Digi International, Inc.
+# SPDX-License-Identifier: GPL-2.0+
 #
-# SPDX-License-Identifier:	GPL-2.0+
+# Copyright 2018-2026 Digi International Inc
 #
 
 obj-y += ccimx8x_sbc_express.o
@@ -10,7 +10,7 @@ ifdef CONFIG_HAS_HWID
 obj-y += ../ccimx8/ccimx8_hwid.o
 endif
 
-ifdef CONFIG_SPL_BUILD
+ifdef CONFIG_XPL_BUILD
 obj-y += ../ccimx8x/spl.o
 else
 obj-$(CONFIG_HAS_TRUSTFENCE) += ../ccimx8x/ccimx8x_trustfence.o

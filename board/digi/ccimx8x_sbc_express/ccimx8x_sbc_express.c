@@ -1,9 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright (C) 2018-2020 Digi International, Inc.
- * Copyright 2017 NXP
- *
- * SPDX-License-Identifier:	GPL-2.0+
+ * Copyright 2018-2026 Digi International Inc.
  */
+
 #include <fsl_esdhc_imx.h>
 
 #include <asm/global_data.h>
@@ -15,7 +14,7 @@
 #include <asm/arch/snvs_security_sc.h>
 #include <asm/arch/sys_proto.h>
 #include <power-domain.h>
-#include "../../freescale/common/tcpc.h"
+#include "../../nxp/common/tcpc.h"
 
 #include "../ccimx8/ccimx8.h"
 #include "../common/carrier_board.h"

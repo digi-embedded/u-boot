@@ -903,8 +903,6 @@ dtb-$(CONFIG_ARCH_MX7ULP) += imx7ulp-com.dtb \
 dtb-$(CONFIG_ARCH_HIGHBANK) += highbank.dtb
 
 dtb-$(CONFIG_ARCH_IMX8) += \
-	ccimx8x-sbc-express.dtb \
-	ccimx8x-sbc-pro.dtb \
 	fsl-imx8qm-apalis.dtb \
 	fsl-imx8qm-mek.dtb \
 	fsl-imx8qm-ddr4-val.dtb \
