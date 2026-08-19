@@ -12,14 +12,6 @@
 
 	aliases {
 		usb_gadget0 = &usbg1;
-		usbhost1 = &usbh3;
-	};
-
-	usbh3: usbh3 {
-		compatible = "Cadence,usb3-host";
-		dr_mode = "host";
-		cdns3,usb = <&usbotg3>;
-		status = "okay";
 	};
 
 	usbg1: usbg1 {
