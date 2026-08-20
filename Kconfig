@@ -44,17 +44,20 @@ config CONSOLE_ENABLE_GPIO_NAME
 	depends on CONSOLE_ENABLE_GPIO
 	default "GPIOA5" if TARGET_CCMP13_DVK
 	default "GPIOB6" if TARGET_CCMP15_DVK
+	default "GPIOF10" if TARGET_CCMP25_DVK
 	default "0"
 	help
 	  Use the GPIO line available on the board to enable the console port:
 	    On the ConnectCore MP15 DVK GPIOA5, on J31
 	    On the ConnectCore MP13 DVK GPIOB6, on J31
+	    On the ConnectCore MP25 DVK GPIOF10, on USER1 button
 	  Use any GPIO line available on the SOM by name.
 
 config CONSOLE_ENABLE_GPIO_ACTIVE_LOW
 	bool "Console enable GPIO is active low"
 	depends on CONSOLE_ENABLE_GPIO
 	default y if CC9
+	default y if TARGET_CCMP25_DVK
 	help
 	  Enable this option when the GPIO to enable the console is active low.
 

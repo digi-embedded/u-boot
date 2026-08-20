@@ -131,14 +131,22 @@
 #define DUALBOOT_ENV_SETTINGS \
 	"active_system=linux_a\0"
 
+#ifdef CONFIG_CONSOLE_DISABLE
+#define ENV_SILENT_CONSOLE \
+	"silent=yes\0" \
+	"silent_linux=yes\0"
+#else
+#define ENV_SILENT_CONSOLE
+#endif
+
 #include <config_distro_bootcmd.h>
 #define CFG_EXTRA_ENV_SETTINGS \
 	RANDOM_UUIDS \
 	CONFIG_COMMON_ENV \
 	DUALBOOT_ENV_SETTINGS \
 	STM32MP_MEM_LAYOUT \
-	BOOTENV
-
+	BOOTENV \
+	ENV_SILENT_CONSOLE
 
 #undef CONFIG_BOOTCOMMAND
 #define CONFIG_BOOTCOMMAND \

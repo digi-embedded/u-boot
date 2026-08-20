@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR BSD-3-Clause
 /*
  * Copyright (C) 2022, STMicroelectronics - All Rights Reserved
- * Copyright (C) 2024, Digi International Inc - All Rights Reserved
+ * Copyright (C) 2024-2026, Digi International Inc - All Rights Reserved
  */
 
 #define LOG_CATEGORY LOGC_BOARD
@@ -72,6 +72,24 @@ u8 num_image_type_guids = ARRAY_SIZE(fw_images);
  * Get a global data pointer
  */
 DECLARE_GLOBAL_DATA_PTR;
+
+int board_early_init_f(void)
+{
+	/* Silence console */
+	if (IS_ENABLED(CONFIG_CONSOLE_DISABLE)) {
+		gd->flags |= GD_FLG_SILENT;
+		if (!IS_ENABLED(CONFIG_AUTOBOOT_STOP_STR_ENABLE))
+			gd->flags |= GD_FLG_DISABLE_CONSOLE;
+	}
+
+	/* Enabling console through GPIO */
+#if defined(CONFIG_CONSOLE_ENABLE_GPIO) && !defined(CONFIG_SPL_BUILD)
+	if (console_enable_gpio(CONFIG_CONSOLE_ENABLE_GPIO_NAME))
+		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#endif
+
+	return 0;
+}
 
 int checkboard(void)
 {
