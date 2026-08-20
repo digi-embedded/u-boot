@@ -33,3 +33,6 @@ obj-$(CONFIG_AUTH_ARTIFACTS) += auth.o
 endif
 obj-$(CONFIG_HAS_HWID) += hwid.o
 obj-y += env.o
+ifdef CONFIG_HAS_TRUSTFENCE
+obj-$(CONFIG_CONSOLE_DISABLE) += trustfence/console.o
+endif

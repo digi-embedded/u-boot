@@ -51,6 +51,13 @@ config CONSOLE_ENABLE_GPIO_NAME
 	    On the ConnectCore MP13 DVK GPIOB6, on J31
 	  Use any GPIO line available on the SOM by name.
 
+config CONSOLE_ENABLE_GPIO_ACTIVE_LOW
+	bool "Console enable GPIO is active low"
+	depends on CONSOLE_ENABLE_GPIO
+	default y if CC9
+	help
+	  Enable this option when the GPIO to enable the console is active low.
+
 config CONSOLE_ENABLE_PASSPHRASE
 	bool "Passphrase console enable support"
 	depends on CONSOLE_DISABLE
