@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
 /*
  * Copyright (C) 2018, STMicroelectronics - All Rights Reserved
- * Copyright (C) 2022-2025, Digi International Inc - All Rights Reserved
+ * Copyright (C) 2022-2026, Digi International Inc - All Rights Reserved
  */
 
 #define LOG_CATEGORY LOGC_BOARD
@@ -96,7 +96,19 @@ DECLARE_GLOBAL_DATA_PTR;
 
 int board_early_init_f(void)
 {
-	/* nothing to do, only used in SPL */
+	/* Silence console */
+	if (IS_ENABLED(CONFIG_CONSOLE_DISABLE)) {
+		gd->flags |= GD_FLG_SILENT;
+		if (!IS_ENABLED(CONFIG_AUTOBOOT_STOP_STR_ENABLE))
+			gd->flags |= GD_FLG_DISABLE_CONSOLE;
+	}
+
+	/* Enabling console through GPIO */
+#if defined(CONFIG_CONSOLE_ENABLE_GPIO) && !defined(CONFIG_SPL_BUILD)
+	if (console_enable_gpio(CONFIG_CONSOLE_ENABLE_GPIO_NAME))
+		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#endif
+
 	return 0;
 }
 
@@ -318,32 +330,6 @@ int board_init(void)
 	/* SOM init */
 	ccmp1_init();
 
-#ifdef CONFIG_CONSOLE_ENABLE_GPIO
-	struct gpio_desc desc;
-        const char *ext_gpio_name = CONFIG_CONSOLE_ENABLE_GPIO_NAME;
-
-	ret = -1;
-
-	if (dm_gpio_lookup_name(ext_gpio_name, &desc))
-		goto error;
-
-	if (dm_gpio_request(&desc, "Console enable"))
-		goto error_free;
-
-	if (dm_gpio_set_dir_flags(&desc, GPIOD_IS_IN))
-		goto error_free;
-
-	ret = dm_gpio_get_value(&desc);
-	if ( ret )
-		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
-
-	ret = 0;
-
-error_free:
-	dm_gpio_free(NULL, &desc);
-error:
-	return ret;
-#endif /* CONFIG_CONSOLE_ENABLE_GPIO */
 	return 0;
 }
 
