@@ -80,6 +80,9 @@ static int on_silent(const char *name, const char *value, enum env_op op,
 		if ((flags & H_INTERACTIVE) == 0)
 			return 0;
 
+	if (!(gd->flags & GD_FLG_DISABLE_CONSOLE))
+		return 0;
+
 	if (value != NULL)
 		gd->flags |= GD_FLG_SILENT;
 	else
@@ -974,6 +977,9 @@ static bool console_update_silent(void)
 		gd->flags |= GD_FLG_SILENT;
 		return false;
 	}
+
+	if (!(gd->flags & GD_FLG_DISABLE_CONSOLE))
+		return 0;
 
 	if (env_get("silent")) {
 		gd->flags |= GD_FLG_SILENT;
