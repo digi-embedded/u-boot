@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
 /*
- * Copyright (C) 2023-2025 Digi International Inc - All Rights Reserved
+ * Copyright (C) 2023-2026 Digi International Inc - All Rights Reserved
  */
 
 #include <common.h>
@@ -30,6 +30,7 @@ struct stm32key {
 	u16 start;
 	u8 size;
 	int (*post_process)(struct udevice *dev, const struct stm32key *key);
+	u32 (*key_format)(u32 value);
 };
 
 #define STM32MP1_OTP_CLOSE_ID			0
