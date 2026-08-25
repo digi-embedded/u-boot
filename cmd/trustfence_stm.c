@@ -59,6 +59,10 @@ struct stm32key {
 #define EDMK2_KEY_NAME		"EDMK2"
 #define FIP_EDMK_KEY_NAME	"FIP-EDMK"
 #define RPROC_EDMK_KEY_NAME	"RPROC-FW-ENC-KEY"
+#define FSBLM_M33_PKH_KEY_NAME	"FSBLM-M33-FW-PKH"
+#define FSBLM_DDR_PKH_KEY_NAME	"FSBLM-DDR-FW-PKH"
+#define FSBLM_A35_PKH_KEY_NAME	"FSBLM-A35-FW-PKH"
+#define TFM_IAK_KEY_NAME	"TFM-IAK"
 #endif /* CONFIG_STM32MP25X */
 
 enum jtag_status {
@@ -125,6 +129,10 @@ static const struct tf_key tf_keys[] = {
 	{ EDMK2_KEY_NAME,      false },
 	{ RPROC_PKH_KEY_NAME,  true },
 	{ RPROC_EDMK_KEY_NAME, false },
+	{ FSBLM_M33_PKH_KEY_NAME, true },
+	{ FSBLM_DDR_PKH_KEY_NAME, true },
+	{ FSBLM_A35_PKH_KEY_NAME, true },
+	{ TFM_IAK_KEY_NAME, true },
 #endif
 #endif
 };
