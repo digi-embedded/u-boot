@@ -465,7 +465,7 @@ OEI_PATCHES=""
 SM_REPO="ssh://git@stash.digi.com/emp/imx-sm.git"
 SM_BRANCH="dey-6.0/master"
 # NXP's 'lf-6.18.20-2.0.0' release + patches
-SM_REV="d3d9dd4d20121cd9a9670270cd9962b0ff7ceaa1"
+SM_REV="7961e1e47ec7658ae9ae4559f93f5e74d6a7b856"
 SM_DIR="${BASEDIR}/imx-sm"
 SM_PATCHES=""
 

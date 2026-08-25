@@ -1,0 +1,36 @@
+From: Hector Bujanda <hector.bujanda@digi.com>
+Date: Thu, 20 Aug 2026 16:34:06 +0200
+Subject: [PATCH] ccimx95: do a full SoC shutdown, not just of the LM
+
+Linux poweroff goes through PSCI, and that calls PSCI_SYSTEM_OFF.
+On i.MX95, TF-A handles that in but sends SCMI_SYS_PWR_SHUTDOWN (0x0),
+which SM interprets as LM shutdown, not full SoC shutdown.
+The rest of LM (such as the System Manager) remain on and
+so does the PMIC which keeps running. This is a flexible
+approach but does not really take the system to a power off
+state where it can really save power, since the PMIC is
+still on.
+
+With this change, the TF-A sens SCMI_SYS_STATE_FULL_SHUTDOWN (0x1)
+which SM interprets as full SoC shutdown.
+
+Signed-off-by: Hector Palacios <hector.palacios@digi.com>
+Signed-off-by: Hector Bujanda <hector.bujanda@digi.com>
+---
+ plat/imx/imx9/imx95/platform.mk | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/plat/imx/imx9/imx95/platform.mk b/plat/imx/imx9/imx95/platform.mk
+index 386ffdc4b..45e274348 100644
+--- a/plat/imx/imx9/imx95/platform.mk
++++ b/plat/imx/imx9/imx95/platform.mk
+@@ -57,7 +57,7 @@ PROGRAMMABLE_RESET_ADDRESS := 1
+ COLD_BOOT_SINGLE_CPU := 1
+ ERRATA_A55_1530923 := 1
+ 
+-SYS_PWR_FULL_CTRL ?= 0
++SYS_PWR_FULL_CTRL ?= 1
+ $(eval $(call add_define,SYS_PWR_FULL_CTRL))
+ 
+ BL32_BASE               ?=      0x8C000000
+

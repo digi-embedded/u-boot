@@ -8,3 +8,4 @@
 0008-ccimx91-use-UART6-for-the-default-console.patch
 0009-ccimx95-split-GPIO1-lines-for-Linux-and-SM.patch
 0010-ccimx95-reserve-gpio1_15-for-SM-secure-to-handle-WDO.patch
+0011-ccimx95-do-a-full-SoC-shutdown-not-just-of-the-LM.patch
