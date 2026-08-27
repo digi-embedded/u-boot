@@ -1,7 +1,6 @@
 From: Hector Bujanda <hector.bujanda@digi.com>
 Date: Tue, 11 Aug 2026 09:39:41 +0200
-Subject: [PATCH] ccimx95: reserve gpio1_15 for SM (secure) to handle
- WDOG_ANY
+Subject: [PATCH] ccimx95: reserve gpio1_15 for SM (secure) to handle WDOG_ANY
 
 https://onedigi.atlassian.net/browse/DEL-10136
 
@@ -13,7 +12,7 @@ Signed-off-by: Hector Bujanda <hector.bujanda@digi.com>
  1 file changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/plat/imx/imx9/common/imx9_bl31_setup.c b/plat/imx/imx9/common/imx9_bl31_setup.c
-index 55bd95cea..445c40749 100644
+index 55bd95ceaa94..445c4074990a 100644
 --- a/plat/imx/imx9/common/imx9_bl31_setup.c
 +++ b/plat/imx/imx9/common/imx9_bl31_setup.c
 @@ -115,10 +115,10 @@ void bl31_plat_arch_setup(void)
@@ -30,5 +29,3 @@ index 55bd95cea..445c40749 100644
  
  	/*
  	 * Route GPIO1 interrupt lines as follows:
-
-

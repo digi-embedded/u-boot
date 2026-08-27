@@ -16,7 +16,7 @@ Signed-off-by: Hector Bujanda <hector.bujanda@digi.com>
  1 file changed, 21 insertions(+)
 
 diff --git a/plat/imx/imx9/common/imx9_bl31_setup.c b/plat/imx/imx9/common/imx9_bl31_setup.c
-index 5ac95d7d8..55bd95cea 100644
+index 5ac95d7d842c..55bd95ceaa94 100644
 --- a/plat/imx/imx9/common/imx9_bl31_setup.c
 +++ b/plat/imx/imx9/common/imx9_bl31_setup.c
 @@ -31,6 +31,9 @@
@@ -54,5 +54,3 @@ index 5ac95d7d8..55bd95cea 100644
  	mmap_add_region(BL31_BASE, BL31_BASE, (BL31_LIMIT - BL31_BASE),
  		MT_MEMORY | MT_RW | MT_SECURE);
  	mmap_add_region(BL_CODE_BASE, BL_CODE_BASE, (BL_CODE_END - BL_CODE_BASE),
-
-

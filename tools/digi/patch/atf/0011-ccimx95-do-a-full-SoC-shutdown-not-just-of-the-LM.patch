@@ -14,6 +14,8 @@ still on.
 With this change, the TF-A sens SCMI_SYS_STATE_FULL_SHUTDOWN (0x1)
 which SM interprets as full SoC shutdown.
 
+Upstream-Status: Inappropriate [DEY specific]
+
 Signed-off-by: Hector Palacios <hector.palacios@digi.com>
 Signed-off-by: Hector Bujanda <hector.bujanda@digi.com>
 ---
@@ -21,7 +23,7 @@ Signed-off-by: Hector Bujanda <hector.bujanda@digi.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/plat/imx/imx9/imx95/platform.mk b/plat/imx/imx9/imx95/platform.mk
-index 386ffdc4b..45e274348 100644
+index 386ffdc4b19b..45e2743485c6 100644
 --- a/plat/imx/imx9/imx95/platform.mk
 +++ b/plat/imx/imx9/imx95/platform.mk
 @@ -57,7 +57,7 @@ PROGRAMMABLE_RESET_ADDRESS := 1
@@ -33,4 +35,3 @@ index 386ffdc4b..45e274348 100644
  $(eval $(call add_define,SYS_PWR_FULL_CTRL))
  
  BL32_BASE               ?=      0x8C000000
-
