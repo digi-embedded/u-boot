@@ -212,8 +212,11 @@ static int do_dboot(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv
 		printf("Error reading SQUASHFS root file system\n");
 		return CMD_RET_FAILURE;
 	}
-
-	if (digi_auth_image(&rootfs_auth_addr, squashfs_raw_size) != 0){
+#ifdef CONFIG_AUTH_FIT_ARTIFACT
+	if (digi_auth_image(rootfs_auth_addr) != 0) {
+#else
+	if (digi_auth_image(&rootfs_auth_addr, squashfs_raw_size) != 0) {
+#endif /* CONFIG_AUTH_FIT_ARTIFACT */
 		printf("Failed to authenticate rootfs image\n");
 		return CMD_RET_FAILURE;
 	}
