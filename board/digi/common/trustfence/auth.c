@@ -32,7 +32,52 @@ extern int authenticate_image(uint32_t ddr_start, uint32_t raw_image_size);
 #endif
 #include "auth.h"
 
-#if defined(CONFIG_AUTH_DISCRETE_ARTIFACTS) || defined(CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS)
+#if defined(CONFIG_AUTH_FIT_ARTIFACT)
+#ifdef CONFIG_AHAB_BOOT
+/*
+ * Authenticate an image in RAM.
+ *
+ * Alternative implementation that moves the image to the container
+ * address (cntr_addr) before authentication.
+ *
+ * So far, only supports AHAB based authentication.
+ */
+int digi_auth_image(ulong addr)
+{
+	ulong cntr_addr = 0;
+	ulong dek_addr = 0;
+
+	cntr_addr = env_get_hex("cntr_addr", 0);
+	if (!cntr_addr) {
+		printf("Not valid cntr_addr, Please check\n");
+		return -1;
+	}
+
+	if (cntr_addr != addr) {
+		int cntr_size = get_os_container_size(addr);
+		printf("Moving Image from 0x%lx to 0x%lx, end=%lx\n", addr,
+		       cntr_addr, cntr_addr + cntr_size);
+		memmove((void *)cntr_addr, (void *)addr, cntr_size);
+	}
+
+	if (is_container_encrypted(cntr_addr, &dek_addr) && dek_addr) {
+		struct generate_key_blob_hdr *blob_hdr;
+
+		blob_hdr = (struct generate_key_blob_hdr *)dek_addr;
+		if (blob_hdr->tag != AHAB_BLOB_HDR_TAG
+		    || blob_hdr->version != AHAB_BLOB_HDR_VER) {
+			/* No DEK blob on container. Get one from u-boot */
+			if (!get_dek_blob(dek_addr, NULL))
+				printf("   Using current U-Boot DEK\n");
+			else
+				printf("   ERROR: Current U-Boot does not contain a DEK\n");
+		}
+	}
+
+	return authenticate_os_container(cntr_addr);
+}
+#endif /* CONFIG_AHAB_BOOT */
+#else
 /*
  * Authenticate an image in RAM.
  *
@@ -89,49 +134,4 @@ int digi_auth_image(ulong *ddr_start, ulong raw_image_size)
 
 	return ret;
 }
-#elif defined(CONFIG_AUTH_FIT_ARTIFACT)
-#ifdef CONFIG_AHAB_BOOT
-/*
- * Authenticate an image in RAM.
- *
- * Alternative implementation that moves the image to the container
- * address (cntr_addr) before authentication.
- *
- * So far, only supports AHAB based authentication.
- */
-int digi_auth_image(ulong addr)
-{
-	ulong cntr_addr = 0;
-	ulong dek_addr = 0;
-
-	cntr_addr = env_get_hex("cntr_addr", 0);
-	if (!cntr_addr) {
-		printf("Not valid cntr_addr, Please check\n");
-		return -1;
-	}
-
-	if (cntr_addr != addr) {
-		int cntr_size = get_os_container_size(addr);
-		printf("Moving Image from 0x%lx to 0x%lx, end=%lx\n", addr,
-		       cntr_addr, cntr_addr + cntr_size);
-		memmove((void *)cntr_addr, (void *)addr, cntr_size);
-	}
-
-	if (is_container_encrypted(cntr_addr, &dek_addr) && dek_addr) {
-		struct generate_key_blob_hdr *blob_hdr;
-
-		blob_hdr = (struct generate_key_blob_hdr *)dek_addr;
-		if (blob_hdr->tag != AHAB_BLOB_HDR_TAG
-		    || blob_hdr->version != AHAB_BLOB_HDR_VER) {
-			/* No DEK blob on container. Get one from u-boot */
-			if (!get_dek_blob(dek_addr, NULL))
-				printf("   Using current U-Boot DEK\n");
-			else
-				printf("   ERROR: Current U-Boot does not contain a DEK\n");
-		}
-	}
-
-	return authenticate_os_container(cntr_addr);
-}
-#endif
-#endif
+#endif /* CONFIG_AUTH_FIT_ARTIFACT */
