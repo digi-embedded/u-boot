@@ -202,6 +202,7 @@ build_oei()
 {
 	OEI_SOC_REV="${SOC_REV}"
 	# OEI_MAKE_ARGS="DDR_CONFIG=lpddr5_timing_8G"
+	OEI_MAKE_ARGS="DDR_DYNAMIC_INIT=1"
 	if [ "${OEI_SOC_REV#A}" != "${OEI_SOC_REV}" ]; then
 		OEI_SOC_REV="A0"
 		OEI_MAKE_ARGS="DDR_CONFIG=lpddr5_timing_a1"
@@ -209,12 +210,10 @@ build_oei()
 	echo "- Build OEI binary for: ${OEI_BOARD}"
 	(
 		cd "${OEI_DIR}" || { echo "build_oei: OEI_DIR not found"; exit 1; }
-		for oei_config in ddr tcm; do
-			# shellcheck disable=SC2086 # allow splitting OEI_MAKE_ARGS
-			${MAKE} board="${OEI_BOARD}" d=1 OEI_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" oei="${oei_config}" r="${OEI_SOC_REV}" ${OEI_MAKE_ARGS} clean
-			# shellcheck disable=SC2086 # allow splitting OEI_MAKE_ARGS
-			${MAKE} board="${OEI_BOARD}" d=1 OEI_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" oei="${oei_config}" r="${OEI_SOC_REV}" ${OEI_MAKE_ARGS}
-		done
+		# shellcheck disable=SC2086 # allow splitting OEI_MAKE_ARGS
+		${MAKE} board="${OEI_BOARD}" d=1 OEI_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" oei=ddr r="${OEI_SOC_REV}" ${OEI_MAKE_ARGS} clean
+		# shellcheck disable=SC2086 # allow splitting OEI_MAKE_ARGS
+		${MAKE} board="${OEI_BOARD}" d=1 OEI_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" oei=ddr r="${OEI_SOC_REV}" ${OEI_MAKE_ARGS}
 	)
 	unset OEI_SOC_REV OEI_MAKE_ARGS
 }
@@ -457,7 +456,7 @@ OPTEE_PATCHES=""
 OEI_REPO="ssh://git@stash.digi.com/emp/imx-oei.git"
 OEI_BRANCH="dey-6.0/master"
 # Tag: lf-6.18.20-2.0.0 (merged)
-OEI_REV="bd5fcd0b5ec4e2078e4fe7db326fe43c0c419a5f"
+OEI_REV="2560ec7945d9c65b7d8495b108dfcb20cefbf84f"
 OEI_DIR="${BASEDIR}/imx-oei"
 OEI_PATCHES=""
 
