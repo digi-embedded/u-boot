@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Digi International Inc
+ * Copyright 2024,2026 Digi International Inc
  *
  * SPDX-License-Identifier: GPL-2.0+
  */
@@ -30,8 +30,7 @@ static ulong get_next_container_addr(ulong addr)
 	}
 
 	phdr = (struct container_hdr *)(addr);
-	if (!phdr || phdr->tag != AHAB_CNTR_HDR_TAG
-	    || phdr->version != AHAB_CNTR_HDR_VER) {
+	if (!valid_container_hdr(phdr)) {
 		printf("%s: wrong base container header\n", __func__);
 		return 0;
 	}
@@ -42,8 +41,7 @@ static ulong get_next_container_addr(ulong addr)
 	    (struct container_hdr *)(addr + ROUND(img_entry->offset +
 						  img_entry->size,
 						  CONTAINER_HDR_ALIGNMENT));
-	if (!phdr || phdr->tag != AHAB_CNTR_HDR_TAG
-	    || phdr->version != AHAB_CNTR_HDR_VER) {
+	if (!valid_container_hdr(phdr)) {
 		printf("%s: wrong next container header\n", __func__);
 		return 0;
 	}
@@ -68,8 +66,7 @@ static ulong get_blob_addr_from_container(ulong addr)
 	}
 
 	phdr = (struct container_hdr *)(addr);
-	if (!phdr || phdr->tag != AHAB_CNTR_HDR_TAG
-	    || phdr->version != AHAB_CNTR_HDR_VER) {
+	if (!valid_container_hdr(phdr)) {
 		printf("Error: wrong container header\n");
 		return 0;
 	}
@@ -229,8 +226,7 @@ int get_os_container_img_offset(ulong addr)
 	struct container_hdr *phdr;
 
 	phdr = (struct container_hdr *)addr;
-	if (phdr->tag != AHAB_CNTR_HDR_TAG
-	    || phdr->version != AHAB_CNTR_HDR_VER) {
+	if (!valid_container_hdr(phdr)) {
 		printf("Error: Wrong container header\n");
 		return -1;
 	}
@@ -248,8 +244,7 @@ int get_os_container_size(ulong addr)
 	u32 len;
 
 	phdr = (struct container_hdr *)addr;
-	if (phdr->tag != AHAB_CNTR_HDR_TAG
-	    || phdr->version != AHAB_CNTR_HDR_VER) {
+	if (!valid_container_hdr(phdr)) {
 		printf("Error: Wrong container header\n");
 		return -1;
 	}
@@ -268,9 +263,10 @@ bool is_container_encrypted(ulong addr, ulong *dek_addr)
 	bool is_encrypted = false;
 
 	phdr = (struct container_hdr *)(addr);
-	if (phdr->tag != AHAB_CNTR_HDR_TAG
-	    || phdr->version != AHAB_CNTR_HDR_VER)
+	if (!valid_container_hdr(phdr)) {
+		printf("Error: Wrong container header\n");
 		goto err_out;
+	}
 
 	sign_hdr =
 	    (struct signature_block_hdr *)((ulong)phdr + phdr->sig_blk_offset);
