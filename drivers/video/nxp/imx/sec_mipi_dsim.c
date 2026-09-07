@@ -1281,9 +1281,9 @@ static int sec_mipi_dsim_host_attach(struct mipi_dsi_host *host,
 		return -EINVAL;
 	}
 
-	if (!(device->mode_flags & MIPI_DSI_MODE_VIDEO)		||
-	    !((device->mode_flags & MIPI_DSI_MODE_VIDEO_BURST)	||
-	      (device->mode_flags & MIPI_DSI_MODE_VIDEO_SYNC_PULSE))) {
+	if (device->mode_flags & MIPI_DSI_MODE_VIDEO &&
+	    device->mode_flags & MIPI_DSI_MODE_VIDEO_BURST &&
+	    device->mode_flags & MIPI_DSI_MODE_VIDEO_SYNC_PULSE) {
 		printf("unsupported dsi mode\n");
 		return -EINVAL;
 	}
