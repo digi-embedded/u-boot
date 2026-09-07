@@ -42,6 +42,7 @@
 			regulator-name = "5v_board";
 			regulator-min-microvolt = <5000000>;
 			regulator-max-microvolt = <5000000>;
+			regulator-boot-on;
 			gpio = <&gpio1 6 GPIO_ACTIVE_HIGH>;
 			enable-active-high;
 		};
@@ -485,18 +486,25 @@
 	status = "okay";
 
 	lt_bridge: lt8912@48 {
-		compatible = "lontium,lt8912";
+		compatible = "lontium,lt8912b";
 		reg = <0x48>;
-		adi,dsi-lanes = <4>;
-		vdd1-supply = <&reg_5v_board>;
+		reset-gpio = <&gpio3 7 GPIO_ACTIVE_LOW>;
 		status = "okay";
 
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_lt8912>;
 
-		port {
-			lt8912_1_in: endpoint {
-				remote-endpoint = <&mipi_dsi_hdmi_out>;
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				lt8912_1_in: endpoint {
+					data-lanes = <1 2 3 4>;
+					remote-endpoint = <&mipi_dsi_hdmi_out>;
+				};
 			};
 		};
 	};
@@ -587,9 +595,11 @@
 &mipi_dsi {
 	status = "okay";
 
-	port@1 {
-		mipi_dsi_hdmi_out: endpoint {
-			remote-endpoint = <&lt8912_1_in>;
+	ports {
+		port@1 {
+			mipi_dsi_hdmi_out: endpoint {
+				remote-endpoint = <&lt8912_1_in>;
+			};
 		};
 	};
 };
