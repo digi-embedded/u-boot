@@ -202,8 +202,8 @@
 		"if load usb 0 ${loadaddr} install_linux_fw_usb.scr;then " \
 			"source ${loadaddr};" \
 		"fi;\0" \
-	"linux_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
-	"rootfs_file=dey-image-qt-x11-" CONFIG_SYS_BOARD ".ubifs\0" \
+	"linux_file=dey-image-qt-xwayland-" CONFIG_SYS_BOARD ".boot.ubifs\0" \
+	"rootfs_file=dey-image-qt-xwayland-" CONFIG_SYS_BOARD ".ubifs\0" \
 	""	/* end line */
 #else
 #define CFG_EXTRA_ENV_SETTINGS \
