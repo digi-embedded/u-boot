@@ -10,12 +10,11 @@
 #include <dt-bindings/usb/pd.h>
 /* i.MX95 CPU */
 #include "../dts/upstream/src/arm64/freescale/imx95.dtsi"
+#include "imx95-u-boot.dtsi"
 /* Digi ConnectCore 95 (SOM) */
 #include "ccimx95.dtsi"
 /* Digi ConnectCore 95 SMARC card for SOM */
 #include "ccimx95-smarc.dtsi"
-
-#include "ccimx95-dvk-u-boot.dtsi"
 
 / {
 	model = "Digi International ConnectCore 95 DVK";

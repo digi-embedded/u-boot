@@ -3,8 +3,6 @@
  * Copyright 2025,2026 Digi International Inc.
  */
 
-#include "imx95-u-boot.dtsi"
-
 / {
 	aliases {
 		ethernet0 = &enetc_port0;
