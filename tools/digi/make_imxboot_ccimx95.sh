@@ -438,7 +438,7 @@ OPTEE_PATCHES=""
 OEI_REPO="ssh://git@stash.digi.com/emp/imx-oei.git"
 OEI_BRANCH="dey-6.0/master"
 # Tag: lf-6.18.20-2.0.0 (merged)
-OEI_REV="2560ec7945d9c65b7d8495b108dfcb20cefbf84f"
+OEI_REV="f3f7b02bdfbf4632dfacd69aea20eacc6c183040"
 OEI_DIR="${BASEDIR}/imx-oei"
 OEI_PATCHES=""
 
