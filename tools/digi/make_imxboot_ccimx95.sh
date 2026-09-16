@@ -91,9 +91,7 @@ build_atf()
 	(
 		cd "${ATF_DIR}" || { echo "build_atf: ATF_DIR not found"; exit 1; }
 		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" realclean
-		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" bl31
-		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" BUILD_BASE=build-optee realclean
-		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" BUILD_BASE=build-optee SPD=opteed bl31
+		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" SPD=opteed bl31
 	)
 }
 
@@ -389,9 +387,8 @@ copy_artifacts_mkimage_folder()
 	cp --remove-destination "${FIRMWARE_ELE_DIR}"/mx95b0-ahab-container.img "${MKIMAGE_SOC_DIR}"
 	cp --remove-destination "${OEI_DIR}"/build/"${OEI_BOARD}"/*/oei-m33-*.bin "${MKIMAGE_SOC_DIR}"
 	cp --remove-destination "${SM_DIR}"/build/"${SM_PLAT}"/m33_image.bin "${MKIMAGE_SOC_DIR}"
-	cp --remove-destination "${ATF_DIR}"/build/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_SOC_DIR}"/bl31-imx95.bin
-	cp --remove-destination "${ATF_DIR}"/build-optee/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_SOC_DIR}"/bl31-imx95.bin-optee
-	cp --remove-destination "${OPTEE_DIR}"/build/core/tee-raw.bin "${MKIMAGE_SOC_DIR}"
+	cp --remove-destination "${ATF_DIR}"/build/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_SOC_DIR}"
+	cp --remove-destination "${OPTEE_DIR}"/build/core/tee-raw.bin "${MKIMAGE_SOC_DIR}"/tee.bin
 }
 
 #
@@ -401,27 +398,12 @@ copy_artifacts_mkimage_folder()
 #
 build_imxboot()
 {
-	cd "${MKIMAGE_DIR}" || exit 1
-	mkdir -p "${OUTPUT_PATH}"
-
+	echo "- Build imx-boot binary for: ${SOC}"
 	(
-		BL31_BIN="bl31-imx95.bin"
-		TEE_BIN="tee-raw.bin"
-
-		echo "- Build imx-boot (NO-OPTEE) binary for: ${SOC}"
+		cd "${MKIMAGE_DIR}" || { echo "build_imxboot: MKIMAGE_DIR not found"; exit 1; }
 		${MAKE} SOC="${SOC}" clean
-		rm -f "${MKIMAGE_SOC_DIR}"/tee.bin "${MKIMAGE_SOC_DIR}"/bl31.bin
-		[ -f "${MKIMAGE_SOC_DIR}"/${BL31_BIN} ] && ln -sf ${BL31_BIN} "${MKIMAGE_SOC_DIR}"/bl31.bin
 		${MAKE} SOC="${SOC}" REV="${SOC_REV}" OEI=YES LPDDR_TYPE=lpddr5 flash_a55
-		cp --remove-destination "${MKIMAGE_SOC_DIR}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx95-dvk-nooptee.bin
-		cp --remove-destination "${MKIMAGE_SOC_DIR}"/mkimage-flash_a55.log "${OUTPUT_PATH}"/mkimage-ccimx95-dvk-nooptee-flash_a55.log
-
-		echo "- Build imx-boot (OPTEE) binary for: ${SOC}"
-		${MAKE} SOC="${SOC}" clean
-		rm -f "${MKIMAGE_SOC_DIR}"/tee.bin "${MKIMAGE_SOC_DIR}"/bl31.bin
-		[ -f "${MKIMAGE_SOC_DIR}"/${BL31_BIN}-optee ] && ln -sf ${BL31_BIN}-optee "${MKIMAGE_SOC_DIR}"/bl31.bin
-		[ -f "${MKIMAGE_SOC_DIR}"/${TEE_BIN} ] && ln -sf ${TEE_BIN} "${MKIMAGE_SOC_DIR}"/tee.bin
-		${MAKE} SOC="${SOC}" REV="${SOC_REV}" OEI=YES LPDDR_TYPE=lpddr5 flash_a55
+		mkdir -p "${OUTPUT_PATH}"
 		cp --remove-destination "${MKIMAGE_SOC_DIR}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx95-dvk.bin
 		cp --remove-destination "${MKIMAGE_SOC_DIR}"/mkimage-flash_a55.log "${OUTPUT_PATH}"/mkimage-ccimx95-dvk-flash_a55.log
 	)
