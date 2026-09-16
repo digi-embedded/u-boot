@@ -200,18 +200,28 @@ build_oei()
 {
 	OEI_SOC_REV="${SOC_REV}"
 	# OEI_MAKE_ARGS="DDR_CONFIG=lpddr5_timing_8G"
-	OEI_MAKE_ARGS="DDR_DYNAMIC_INIT=1"
+	# OEI_MAKE_ARGS="DDR_DYNAMIC_INIT=1"
 	if [ "${OEI_SOC_REV#A}" != "${OEI_SOC_REV}" ]; then
 		OEI_SOC_REV="A0"
 		OEI_MAKE_ARGS="DDR_CONFIG=lpddr5_timing_a1"
 	fi
+	# Default values if not provided
+	OEI_MAKE_ARGS="${OEI_MAKE_ARGS:-DDR_CONFIG=lpddr5_timing_2G DDR_CONFIG=lpddr5_timing_4G DDR_CONFIG=lpddr5_timing_8G DDR_DYNAMIC_INIT=1}"
 	echo "- Build OEI binary for: ${OEI_BOARD}"
 	(
 		cd "${OEI_DIR}" || { echo "build_oei: OEI_DIR not found"; exit 1; }
-		# shellcheck disable=SC2086 # allow splitting OEI_MAKE_ARGS
-		${MAKE} board="${OEI_BOARD}" d=1 OEI_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" oei=ddr r="${OEI_SOC_REV}" ${OEI_MAKE_ARGS} clean
-		# shellcheck disable=SC2086 # allow splitting OEI_MAKE_ARGS
-		${MAKE} board="${OEI_BOARD}" d=1 OEI_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" oei=ddr r="${OEI_SOC_REV}" ${OEI_MAKE_ARGS}
+		for oei_make_arg in ${OEI_MAKE_ARGS}; do
+			oei_ddr_size=""
+			if echo "${oei_make_arg}" | grep -qs '^DDR_CONFIG='; then
+				oei_ddr_size="${oei_make_arg##*_}"
+			fi
+			echo "  - OEI configuration: ${oei_make_arg}"
+			# shellcheck disable=SC2086 # allow OEI_MAKE_ARGS entries to be make arguments
+			${MAKE} board="${OEI_BOARD}" d=1 OEI_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" oei=ddr r="${OEI_SOC_REV}" ${oei_make_arg} really-clean
+			# shellcheck disable=SC2086 # allow OEI_MAKE_ARGS entries to be make arguments
+			${MAKE} board="${OEI_BOARD}" d=1 OEI_CROSS_COMPILE="${CORTEX_M_CROSS_COMPILE}" oei=ddr r="${OEI_SOC_REV}" ${oei_make_arg}
+			cp --remove-destination build/"${OEI_BOARD}"/ddr/oei-m33-ddr.bin oei-m33-ddr${oei_ddr_size:+-${oei_ddr_size}}.bin
+		done
 	)
 	unset OEI_SOC_REV OEI_MAKE_ARGS
 }
@@ -385,7 +395,7 @@ copy_artifacts_mkimage_folder()
 
 	# AHAB container, OEI, SM, ATF and Optee binaries
 	cp --remove-destination "${FIRMWARE_ELE_DIR}"/mx95b0-ahab-container.img "${MKIMAGE_SOC_DIR}"
-	cp --remove-destination "${OEI_DIR}"/build/"${OEI_BOARD}"/*/oei-m33-*.bin "${MKIMAGE_SOC_DIR}"
+	cp --remove-destination "${OEI_DIR}"/oei-m33-ddr*.bin "${MKIMAGE_SOC_DIR}"
 	cp --remove-destination "${SM_DIR}"/build/"${SM_PLAT}"/m33_image.bin "${MKIMAGE_SOC_DIR}"
 	cp --remove-destination "${ATF_DIR}"/build/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_SOC_DIR}"
 	cp --remove-destination "${OPTEE_DIR}"/build/core/tee-raw.bin "${MKIMAGE_SOC_DIR}"/tee.bin
@@ -401,11 +411,17 @@ build_imxboot()
 	echo "- Build imx-boot binary for: ${SOC}"
 	(
 		cd "${MKIMAGE_DIR}" || { echo "build_imxboot: MKIMAGE_DIR not found"; exit 1; }
-		${MAKE} SOC="${SOC}" clean
-		${MAKE} SOC="${SOC}" REV="${SOC_REV}" OEI=YES LPDDR_TYPE=lpddr5 flash_a55
 		mkdir -p "${OUTPUT_PATH}"
-		cp --remove-destination "${MKIMAGE_SOC_DIR}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx95-dvk.bin
-		cp --remove-destination "${MKIMAGE_SOC_DIR}"/mkimage-flash_a55.log "${OUTPUT_PATH}"/mkimage-ccimx95-dvk-flash_a55.log
+		for oei_bin in "${MKIMAGE_SOC_DIR}"/oei-m33-ddr*.bin; do
+			oei_bin="$(basename "${oei_bin}")"
+			oei_ddr="${oei_bin#oei-m33-ddr}"
+			oei_ddr="${oei_ddr%.bin}"
+			echo "  - OEI binary: ${oei_bin}"
+			${MAKE} SOC="${SOC}" clean
+			${MAKE} SOC="${SOC}" REV="${SOC_REV}" OEI=YES OEI_M33_DDR_IMG="${oei_bin}" LPDDR_TYPE=lpddr5 flash_a55
+			cp --remove-destination "${MKIMAGE_SOC_DIR}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx95-dvk"${oei_ddr}".bin
+			cp --remove-destination "${MKIMAGE_SOC_DIR}"/mkimage-flash_a55.log "${OUTPUT_PATH}"/mkimage-ccimx95-dvk"${oei_ddr}"-flash_a55.log
+		done
 	)
 }
 
