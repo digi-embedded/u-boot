@@ -19,6 +19,7 @@
 #include "../common/helper.h"
 #include "../common/hwid.h"
 #include "../common/mca.h"
+#include "../common/mca_registers.h"
 #if IS_ENABLED(CONFIG_SMARCID)
 #include "../common/smarcid.h"
 #endif
@@ -29,6 +30,12 @@ static struct digi_hwid my_hwid;
 static struct digi_smarcid my_smarcid;
 #endif
 static u32 soc_rev;
+
+enum mca_mode {
+	MCA_MODE_ERROR = -1,
+	MCA_MODE_SMARC = 0,
+	MCA_MODE_SMARC_BYPASS,
+};
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -171,6 +178,18 @@ static void ccimx9_mca_somver_update(void)
 
 	mca_somver_update(hv);
 }
+
+static enum mca_mode mca_get_bootmode(void)
+{
+	unsigned char cfg0;
+	enum mca_mode current_mca_mode = MCA_MODE_ERROR;
+
+	if (!mca_read_reg(MCA_REG_CFG0, &cfg0))
+		current_mca_mode = cfg0 & (1 << MCA_SMARC_BYPASS_SHIFT) ?
+						   MCA_MODE_SMARC_BYPASS : MCA_MODE_SMARC;
+
+	return current_mca_mode;
+}
 #endif /* CONFIG_MCA */
 
 int ccimx9_init(void)
@@ -217,8 +236,18 @@ void som_loaded_environment(void)
 #endif
 
 #if IS_ENABLED(CONFIG_MCA)
-	if (board_has_mca())
+	if (board_has_mca()) {
+		int mca_bootmode;
+
 		ccimx9_mca_somver_update();
+
+		mca_bootmode = mca_get_bootmode();
+		if (mca_bootmode < 0)
+			printf("ERROR: Cannot read MCA_REG_CFG0\n");
+		else
+			env_set("mca_boot_mode", (mca_bootmode == MCA_MODE_SMARC_BYPASS) ?
+				    "SMARCBP" : "BOP");
+	}
 #endif
 }
 
