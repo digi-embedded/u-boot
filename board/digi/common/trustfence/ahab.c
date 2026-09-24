@@ -161,10 +161,6 @@ int get_dek_blob(ulong addr, u32 *size)
 		return -1;
 	}
 
-	offset = CONTAINER_HDR_EMMC_OFFSET;
-	/* imx8qxp B0 has a different offset */
-	if ((is_imx8qxp() || is_imx8dx()) && is_soc_rev(CHIP_REV_B))
-		offset = CONTAINER_HDR_MMCSD_OFFSET;
 	part = EXT_CSD_EXTRACT_BOOT_PART(mmc->part_config);
 	/* Fail if booting from user partition */
 	if (part == 7) {
@@ -178,11 +174,17 @@ int get_dek_blob(ulong addr, u32 *size)
 	}
 
 	/*
-	 * Read 4KB to be sure we get the DEK blob:
-	 *
-	 * container_hdr_alignment (1KB) + extra 3KB of header info
+	 * The DEK blob lives in the signature block of the second
+	 * AHAB container, so read directly the second container from
+	 * the EMMC.
 	 */
-	buf_size = roundup(SZ_4K, mmc->read_bl_len);
+	offset = CONTAINER_HDR_EMMC_OFFSET;
+	/* imx8qxp B0 has a different offset */
+	if ((is_imx8qxp() || is_imx8dx()) && is_soc_rev(CHIP_REV_B))
+		offset = CONTAINER_HDR_MMCSD_OFFSET;
+	offset += CONTAINER_HDR_ALIGNMENT;
+
+	buf_size = roundup(CONTAINER_HDR_ALIGNMENT, mmc->read_bl_len);
 	buf = malloc(buf_size);
 	if (!buf)
 		return -1;
@@ -196,8 +198,7 @@ int get_dek_blob(ulong addr, u32 *size)
 	}
 
 	/* Recover the DEK blob and copy to 'addr' */
-	dek_blob_addr =
-	    get_blob_addr_from_container((ulong) buf + CONTAINER_HDR_ALIGNMENT);
+	dek_blob_addr = get_blob_addr_from_container((ulong)buf);
 	if (!dek_blob_addr) {
 		printf("Failed to get DEK Blob address.\n");
 		ret = -1;
