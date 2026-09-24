@@ -145,7 +145,7 @@ int get_srk_revoke_mask(u32 *mask)
 	}
 
 	hdr = (struct container_hdr *)(buf + CONTAINER_HDR_ALIGNMENT);
-	if (hdr->tag != 0x87 || hdr->version != 0x0) {
+	if (!valid_container_hdr(hdr)) {
 		printf("Error: wrong container header.\n");
 		ret = CMD_RET_FAILURE;
 		goto sanitize;
