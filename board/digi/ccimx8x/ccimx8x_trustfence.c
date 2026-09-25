@@ -3,21 +3,13 @@
  * Copyright 2024-2026 Digi International Inc.
  */
 
-#include <command.h>
 #include <config.h>
-#include <env.h>
-#include <fuse.h>
-#include <part.h>
-#include <stdlib.h>
-#include <asm/mach-imx/ahab.h>
 #include <firmware/imx/sci/sci.h>
+#include <fuse.h>
 
 #include "../common/trustfence.h"
 
 int confirm_close(void);
-extern void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
-				     struct disk_partition *info);
-extern int mmc_get_bootdevindex(void);
 
 bool trustfence_is_closed(void)
 {
@@ -127,74 +119,4 @@ int sense_key_status(u32 *val)
 		CONFIG_TRUSTFENCE_SRK_REVOKE_MASK;
 
 	return 0;
-}
-
-/* Read the SRK Revoke mask from the Container header */
-int get_srk_revoke_mask(u32 *mask)
-{
-	int ret = CMD_RET_SUCCESS;
-	int mmc_dev_index, mmc_part;
-	struct disk_partition info;
-	struct blk_desc *mmc_dev;
-	uint blk_cnt, blk_start;
-	char *buffer = NULL;
-	struct container_hdr *second_cont;
-	u32 buffer_size = 0;
-
-	/* Container Header can only be read from the storage media */
-	if (is_usb_boot())
-		return CMD_RET_FAILURE;
-
-	/* Obtain storage media settings */
-	mmc_dev_index = env_get_ulong("mmcbootdev", 0, mmc_get_bootdevindex());
-	if (mmc_dev_index == EMMC_BOOT_DEV) {
-		mmc_part = env_get_ulong("mmcbootpart", 0, EMMC_BOOT_PART);
-	} else {
-		/*
-		 * When booting from an SD card there is
-		 * a unique hardware partition: 0
-		 */
-		mmc_part = 0;
-	}
-	mmc_dev = blk_get_devnum_by_uclass_id(UCLASS_MMC, mmc_dev_index);
-	if (NULL == mmc_dev) {
-		debug("Cannot determine sys storage device\n");
-		return CMD_RET_FAILURE;
-	}
-	calculate_uboot_update_settings(mmc_dev, &info);
-	blk_start = info.start;
-	/* Second Container Header is set with a 1KB padding + 3KB Header info */
-	buffer_size = SZ_4K;
-	blk_cnt = buffer_size / mmc_dev->blksz;
-
-	/* Initialize boot partition */
-	ret = blk_select_hwpart_devnum(UCLASS_MMC, mmc_dev_index, mmc_part);
-	if (ret != 0) {
-		debug("Error to switch to partition %d on dev %d (%d)\n",
-			  mmc_part, mmc_dev_index, ret);
-		return CMD_RET_FAILURE;
-	}
-
-	/* Read from boot media */
-	buffer = malloc(roundup(buffer_size, mmc_dev->blksz));
-	if (!buffer)
-		return -ENOMEM;
-	debug("MMC read: dev # %u, block # %u, count %u ...\n",
-	       mmc_dev_index, blk_start, blk_cnt);
-	if (!blk_dread(mmc_dev, blk_start, blk_cnt, buffer)) {
-		ret = CMD_RET_FAILURE;
-		goto sanitize;
-	}
-
-	/* Read mask from the Second Container Header Flags (11:8) */
-	second_cont = (struct container_hdr *)(buffer + CONTAINER_HDR_ALIGNMENT);
-	*mask = (second_cont->flags>>8) & 0xF;
-
-sanitize:
-	/* Sanitize memory */
-	memset(buffer, '\0', sizeof(buffer));
-	free(buffer);
-	buffer = NULL;
-
-	return ret;
 }

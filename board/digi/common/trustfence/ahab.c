@@ -288,7 +288,76 @@ __weak int revoke_keys(void)
 	return -1;
 }
 
-__weak int get_srk_revoke_mask(u32 *mask)
+int get_srk_revoke_mask(u32 *mask)
 {
-	return -1;
+	struct container_hdr *hdr;
+	struct mmc *mmc;
+	u32 buf_size, offset;
+	u8 *buf, part;
+	int ret = 0;
+
+	/* Container Header can only be read from the storage media */
+	if (is_usb_boot()) {
+		printf
+		    ("Reading revoke mask is not supported booting from USB.\n");
+		return -1;
+	}
+
+	mmc = find_mmc_device(mmc_get_bootdevindex());
+	if (!mmc) {
+		printf("Failed to get mmc device.\n");
+		return -1;
+	}
+
+	/*
+	 * The SRK mask is in the flags field (bits [11:8]) of second and third
+	 * containers, so read directly the second container from the EMMC
+	 */
+	offset = CONTAINER_HDR_EMMC_OFFSET;
+	/* imx8qxp B0 has a different offset for bootX partitions */
+	if ((is_imx8qxp() || is_imx8dx()) && is_soc_rev(CHIP_REV_B))
+		offset = CONTAINER_HDR_MMCSD_OFFSET;
+
+	part = EXT_CSD_EXTRACT_BOOT_PART(mmc->part_config);
+	/* Reset if booting from SD */
+	if (part == 7) {
+		offset = CONTAINER_HDR_MMCSD_OFFSET;
+		part = 0;
+	}
+	offset += CONTAINER_HDR_ALIGNMENT;
+
+	ret = blk_select_hwpart(mmc_get_blk_desc(mmc)->bdev, part);
+	if (ret) {
+		printf("Failed to switch to boot partition %d.\n", part);
+		return -1;
+	}
+
+	buf_size = roundup(CONTAINER_HDR_ALIGNMENT, mmc->read_bl_len);
+	buf = malloc(buf_size);
+	if (!buf)
+		return -1;
+
+	if (!blk_dread
+	    (mmc_get_blk_desc(mmc), offset / mmc->read_bl_len,
+	     buf_size / mmc->read_bl_len, buf)) {
+		printf("Read container image from MMC/SD failed.\n");
+		ret = -1;
+		goto sanitize;
+	}
+
+	hdr = (struct container_hdr *)buf;
+	if (!valid_container_hdr(hdr)) {
+		printf("Error: wrong container header.\n");
+		ret = -1;
+		goto sanitize;
+	}
+	*mask = (hdr->flags >> 8) & 0xf;
+	debug("SRK mask = 0x%x\n", *mask);
+
+sanitize:
+	memset(buf, 0, buf_size);
+	free(buf);
+	buf = NULL;
+
+	return ret;
 }

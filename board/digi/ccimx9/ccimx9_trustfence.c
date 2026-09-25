@@ -7,10 +7,7 @@
 #include <asm/arch/imx-regs.h>
 #include <asm/io.h>
 #include <asm/mach-imx/ele_api.h>
-#include <command.h>
-#include <imx_container.h>
-#include <malloc.h>
-#include <mmc.h>
+#include <linux/errno.h>
 
 #include "../common/trustfence.h"
 
@@ -90,74 +87,6 @@ int trustfence_status(void)
 		puts("[ERRORS PRESENT!]\n");
 
 	return 0;
-}
-
-extern int mmc_get_bootdevindex(void);
-
-/* Read the SRK Revoke mask from the Container header*/
-int get_srk_revoke_mask(u32 *mask)
-{
-	struct container_hdr *hdr;
-	struct mmc *mmc;
-	u32 buf_size, offset;
-	u8 *buf, part;
-	int ret = CMD_RET_SUCCESS;
-
-	/* Container Header can only be read from the storage media */
-	if (is_usb_boot()) {
-		printf
-		    ("Reading revoke mask is not supported booting from USB.\n");
-		return CMD_RET_FAILURE;
-	}
-
-	mmc = find_mmc_device(mmc_get_bootdevindex());
-	if (!mmc) {
-		printf("Failed to get mmc device.\n");
-		return CMD_RET_FAILURE;
-	}
-
-	offset = CONTAINER_HDR_EMMC_OFFSET;
-	part = EXT_CSD_EXTRACT_BOOT_PART(mmc->part_config);
-	/* Reset if booting from SD */
-	if (part == 7) {
-		offset = CONTAINER_HDR_MMCSD_OFFSET;
-		part = 0;
-	}
-
-	ret = blk_select_hwpart(mmc_get_blk_desc(mmc)->bdev, part);
-	if (ret) {
-		printf("Failed to switch to boot partition %d.\n", part);
-		return CMD_RET_FAILURE;
-	}
-
-	/* Add 80 bytes to make room for DEK blob if there is one */
-	buf_size = roundup(CONTAINER_HDR_ALIGNMENT + 80, mmc->read_bl_len);
-	buf = malloc(buf_size);
-	if (!buf)
-		return CMD_RET_FAILURE;
-
-	if (!blk_dread
-	    (mmc_get_blk_desc(mmc), offset / mmc->read_bl_len,
-	     buf_size / mmc->read_bl_len, buf)) {
-		printf("Read container image from MMC/SD failed.\n");
-		ret = CMD_RET_FAILURE;
-		goto sanitize;
-	}
-
-	hdr = (struct container_hdr *)(buf + CONTAINER_HDR_ALIGNMENT);
-	if (!valid_container_hdr(hdr)) {
-		printf("Error: wrong container header.\n");
-		ret = CMD_RET_FAILURE;
-		goto sanitize;
-	}
-	*mask = (hdr->flags >> 8) & 0xf;
-
-sanitize:
-	memset(buf, 0, buf_size);
-	free(buf);
-	buf = NULL;
-
-	return ret;
 }
 
 int revoke_keys(void)
