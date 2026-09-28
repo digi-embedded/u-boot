@@ -219,7 +219,9 @@ sign_imxboot()
 		for rev in B0 C0; do
 			echo "- Sign and encrypt imx-boot binary for: ${SOC} (${rev})"
 			TF_SIGN_ENV="${TF_SIGN_BASE_ENV} CONFIG_MKIMAGE_LOG_PATH=mkimage-ccimx8x-sbc-${SBC}-${rev}-flash_spl.log"
+			# shellcheck disable=SC2086 # allow word splitting of TF_SIGN_ENV
 			env ${TF_SIGN_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8x-sbc-${SBC}-${rev}.bin imx-boot-signed-ccimx8x-sbc-${SBC}-${rev}.bin
+			# shellcheck disable=SC2086 # allow word splitting of TF_SIGN_ENV
 			env ${TF_SIGN_ENV} ${TF_ENC_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8x-sbc-${SBC}-${rev}.bin imx-boot-encrypted-ccimx8x-sbc-${SBC}-${rev}.bin
 		done
 	)

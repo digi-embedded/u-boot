@@ -78,12 +78,12 @@ build_atf()
 	echo "- Build ATF binary for: ${SOC}"
 	(
 		cd "${ATF_DIR}" || { echo "build_atf: ATF_DIR not found"; exit 1; }
-		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld.bfd CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" realclean
-		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld.bfd CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" SPD=opteed bl31
+		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" realclean
+		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" SPD=opteed bl31
 
 		# Build ATF with workaround for SOC revision A0
-		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld.bfd CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" SOC_REV_A0=1 BUILD_BASE=build-A0 realclean
-		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld.bfd CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" SOC_REV_A0=1 BUILD_BASE=build-A0 SPD=opteed bl31
+		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" SOC_REV_A0=1 BUILD_BASE=build-A0 realclean
+		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" SOC_REV_A0=1 BUILD_BASE=build-A0 SPD=opteed bl31
 	)
 }
 
@@ -138,8 +138,8 @@ build_optee()
 	(
 		cd "${OPTEE_DIR}" || { echo "build_optee: OPTEE_DIR not found"; exit 1; }
 		${MAKE} PLATFORM=imx-ccimx93dvk \
-			CROSS_COMPILE=${CROSS_COMPILE} \
-			CROSS_COMPILE64=${CROSS_COMPILE} \
+			CROSS_COMPILE="${CROSS_COMPILE}" \
+			CROSS_COMPILE64="${CROSS_COMPILE}" \
 			CFG_TEE_TA_LOG_LEVEL=0 \
 			CFG_TEE_CORE_LOG_LEVEL=0 \
 			COMPILER=gcc \
@@ -147,8 +147,8 @@ build_optee()
 
 		# Build OPTEE for SOC revision A0
 		${MAKE} PLATFORM=imx-ccimx93dvk_a0 \
-			CROSS_COMPILE=${CROSS_COMPILE} \
-			CROSS_COMPILE64=${CROSS_COMPILE} \
+			CROSS_COMPILE="${CROSS_COMPILE}" \
+			CROSS_COMPILE64="${CROSS_COMPILE}" \
 			CFG_TEE_TA_LOG_LEVEL=0 \
 			CFG_TEE_CORE_LOG_LEVEL=0 \
 			COMPILER=gcc \
@@ -323,7 +323,9 @@ sign_imxboot()
 		for rev in A0 A1; do
 			echo "- Sign and encrypt imx-boot binary for: ${SOC} (${rev})"
 			TF_SIGN_ENV="${TF_SIGN_BASE_ENV} CONFIG_MKIMAGE_LOG_PATH=mkimage-ccimx93-dvk-${rev}-flash_singleboot.log"
+			# shellcheck disable=SC2086 # allow word splitting of TF_SIGN_ENV
 			env ${TF_SIGN_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx93-dvk-${rev}.bin imx-boot-signed-ccimx93-dvk-${rev}.bin
+			# shellcheck disable=SC2086 # allow word splitting of TF_SIGN_ENV
 			env ${TF_SIGN_ENV} ${TF_ENC_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx93-dvk-${rev}.bin imx-boot-encrypted-ccimx93-dvk-${rev}.bin
 		done
 	)

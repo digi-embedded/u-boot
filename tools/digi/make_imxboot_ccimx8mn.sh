@@ -271,7 +271,9 @@ sign_imxboot()
 
 		echo "- Sign and encrypt imx-boot binary for: ${SOC}"
 		TF_SIGN_ENV="${TF_SIGN_BASE_ENV} CONFIG_MKIMAGE_LOG_PATH=mkimage-ccimx8mn_dvk-flash_evk.log CONFIG_FIT_HAB_LOG_PATH=mkimage-ccimx8mn_dvk-print_fit_hab.log"
+		# shellcheck disable=SC2086 # allow word splitting of TF_SIGN_ENV
 		env ${TF_SIGN_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8mn_dvk.bin imx-boot-signed-ccimx8mn_dvk.bin
+		# shellcheck disable=SC2086 # allow word splitting of TF_SIGN_ENV
 		env ${TF_SIGN_ENV} ${TF_ENC_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8mn_dvk.bin imx-boot-encrypted-ccimx8mn_dvk.bin
 	)
 }
