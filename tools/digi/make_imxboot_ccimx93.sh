@@ -79,15 +79,11 @@ build_atf()
 	(
 		cd "${ATF_DIR}" || { echo "build_atf: ATF_DIR not found"; exit 1; }
 		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld.bfd CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" realclean
-		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld.bfd CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" bl31
-		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld.bfd CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" BUILD_BASE=build-optee realclean
-		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld.bfd CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" BUILD_BASE=build-optee SPD=opteed bl31
+		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld.bfd CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" SPD=opteed bl31
 
 		# Build ATF with workaround for SOC revision A0
 		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld.bfd CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" SOC_REV_A0=1 BUILD_BASE=build-A0 realclean
-		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld.bfd CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" SOC_REV_A0=1 BUILD_BASE=build-A0 bl31
-		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld.bfd CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" SOC_REV_A0=1 BUILD_BASE=build-A0-optee realclean
-		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld.bfd CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" SOC_REV_A0=1 BUILD_BASE=build-A0-optee SPD=opteed bl31
+		${MAKE} CROSS_COMPILE=${CROSS_COMPILE} LD=${CROSS_COMPILE}ld.bfd CC=${CROSS_COMPILE}gcc PLAT="${ATF_PLAT}" SOC_REV_A0=1 BUILD_BASE=build-A0 SPD=opteed bl31
 	)
 }
 
@@ -274,9 +270,7 @@ copy_artifacts_mkimage_folder()
 
 	# ATF
 	cp --remove-destination "${ATF_DIR}"/build/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_DIR}"/"${SOC}"/bl31-imx93.bin
-	cp --remove-destination "${ATF_DIR}"/build-optee/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_DIR}"/"${SOC}"/bl31-imx93.bin-optee
 	cp --remove-destination "${ATF_DIR}"/build-A0/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_DIR}"/"${SOC}"/bl31-imx93-A0.bin
-	cp --remove-destination "${ATF_DIR}"/build-A0-optee/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_DIR}"/"${SOC}"/bl31-imx93-A0.bin-optee
 
 	# OPTEE binary
 	cp --remove-destination "${OPTEE_DIR}"/build/core/tee-raw.bin "${MKIMAGE_DIR}"/"${SOC}"
@@ -297,18 +291,10 @@ build_imxboot()
 				TEE_BIN="tee-raw-A0.bin"
 			fi
 
-			echo "- Build imx-boot (NO-OPTEE) binary for: ${SOC} (${rev})"
+			echo "- Build imx-boot binary for: ${SOC} (${rev})"
 			${MAKE} SOC="${SOC}" REV="${rev}" clean
 			rm -f "${SOC}"/tee.bin "${SOC}"/bl31.bin
 			[ -f "${SOC}"/${BL31_BIN} ] && ln -sf ${BL31_BIN} "${SOC}"/bl31.bin
-			${MAKE} SOC="${SOC}" REV="${rev}" flash_singleboot
-			cp --remove-destination "${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx93-dvk-${rev}-nooptee.bin
-			cp --remove-destination "${SOC}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-ccimx93-dvk-${rev}-nooptee-flash_singleboot.log
-
-			echo "- Build imx-boot (OPTEE) binary for: ${SOC} (${rev})"
-			${MAKE} SOC="${SOC}" REV="${rev}" clean
-			rm -f "${SOC}"/tee.bin "${SOC}"/bl31.bin
-			[ -f "${SOC}"/${BL31_BIN}-optee ] && ln -sf ${BL31_BIN}-optee "${SOC}"/bl31.bin
 			[ -f "${SOC}"/${TEE_BIN} ] && ln -sf ${TEE_BIN} "${SOC}"/tee.bin
 			${MAKE} SOC="${SOC}" REV="${rev}" flash_singleboot
 			cp --remove-destination "${MKIMAGE_DIR}"/"${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx93-dvk-${rev}.bin
@@ -335,12 +321,7 @@ sign_imxboot()
 		cd "${OUTPUT_PATH}" || exit 1
 
 		for rev in A0 A1; do
-			echo "- Sign and encrypt imx-boot (NO-OPTEE) binary for: ${SOC} (${rev})"
-			TF_SIGN_ENV="${TF_SIGN_BASE_ENV} CONFIG_MKIMAGE_LOG_PATH=mkimage-ccimx93-dvk-${rev}-nooptee-flash_singleboot.log"
-			env ${TF_SIGN_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx93-dvk-${rev}-nooptee.bin imx-boot-signed-ccimx93-dvk-${rev}-nooptee.bin
-			env ${TF_SIGN_ENV} ${TF_ENC_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx93-dvk-${rev}-nooptee.bin imx-boot-encrypted-ccimx93-dvk-${rev}-nooptee.bin
-
-			echo "- Sign and encrypt imx-boot (OPTEE) binary for: ${SOC} (${rev})"
+			echo "- Sign and encrypt imx-boot binary for: ${SOC} (${rev})"
 			TF_SIGN_ENV="${TF_SIGN_BASE_ENV} CONFIG_MKIMAGE_LOG_PATH=mkimage-ccimx93-dvk-${rev}-flash_singleboot.log"
 			env ${TF_SIGN_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx93-dvk-${rev}.bin imx-boot-signed-ccimx93-dvk-${rev}.bin
 			env ${TF_SIGN_ENV} ${TF_ENC_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx93-dvk-${rev}.bin imx-boot-encrypted-ccimx93-dvk-${rev}.bin

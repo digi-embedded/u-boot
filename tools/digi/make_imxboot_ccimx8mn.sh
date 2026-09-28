@@ -83,9 +83,7 @@ build_atf()
 	(
 		cd "${ATF_DIR}" || { echo "build_atf: ATF_DIR not found"; exit 1; }
 		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" realclean
-		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" bl31
-		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" BUILD_BASE=build-optee realclean
-		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" BUILD_BASE=build-optee SPD=opteed bl31
+		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" SPD=opteed bl31
 	)
 }
 
@@ -232,11 +230,10 @@ copy_artifacts_mkimage_folder()
 	)
 
 	# ATF
-	cp --remove-destination "${ATF_DIR}"/build/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_SOC_DIR}"/bl31-imx8mn.bin
-	cp --remove-destination "${ATF_DIR}"/build-optee/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_SOC_DIR}"/bl31-imx8mn.bin-optee
+	cp --remove-destination "${ATF_DIR}"/build/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_SOC_DIR}"
 
 	# OPTEE binary
-	cp --remove-destination "${OPTEE_DIR}"/build/core/tee-raw.bin "${MKIMAGE_SOC_DIR}"
+	cp --remove-destination "${OPTEE_DIR}"/build/core/tee-raw.bin "${MKIMAGE_SOC_DIR}"/tee.bin
 
 	# Create dummy DEK blob to support building an encrypted imx-boot
 	dd if=/dev/zero of="${MKIMAGE_SOC_DIR}"/dek_blob_fit_dummy.bin bs=96 count=1 oflag=sync
@@ -248,20 +245,8 @@ build_imxboot()
 	mkdir -p "${OUTPUT_PATH}"
 
 	(
-		echo "- Build imx-boot (NO-OPTEE) binary for: ${SOC}"
+		echo "- Build imx-boot binary for: ${SOC}"
 		${MAKE} SOC="${SOC}" clean
-		[ -f "${MKIMAGE_SOC_DIR}"/bl31-imx8mn.bin ] && ln -sf bl31-imx8mn.bin "${MKIMAGE_SOC_DIR}"/bl31.bin
-		rm -f "${MKIMAGE_SOC_DIR}"/tee.bin
-		${MAKE} SOC="${SOC}" dtbs=ccimx8mn-dvk.dtb flash_evk
-		${MAKE} SOC="${SOC}" dtbs=ccimx8mn-dvk.dtb print_fit_hab
-		cp --remove-destination "${MKIMAGE_SOC_DIR}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx8mn_dvk-nooptee.bin
-		cp --remove-destination "${MKIMAGE_SOC_DIR}"/mkimage-flash_evk.log "${OUTPUT_PATH}"/mkimage-ccimx8mn_dvk-nooptee-flash_evk.log
-		cp --remove-destination "${MKIMAGE_SOC_DIR}"/mkimage-print_fit_hab.log "${OUTPUT_PATH}"/mkimage-ccimx8mn_dvk-nooptee-print_fit_hab.log
-
-		echo "- Build imx-boot (OPTEE) binary for: ${SOC}"
-		${MAKE} SOC="${SOC}" clean
-		[ -f "${MKIMAGE_SOC_DIR}"/bl31-imx8mn.bin-optee ] && ln -sf bl31-imx8mn.bin-optee "${MKIMAGE_SOC_DIR}"/bl31.bin
-		[ -f "${MKIMAGE_SOC_DIR}"/tee-raw.bin ] && ln -sf tee-raw.bin "${MKIMAGE_SOC_DIR}"/tee.bin
 		${MAKE} SOC="${SOC}" dtbs=ccimx8mn-dvk.dtb flash_evk
 		${MAKE} SOC="${SOC}" dtbs=ccimx8mn-dvk.dtb print_fit_hab
 		cp --remove-destination "${MKIMAGE_SOC_DIR}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx8mn_dvk.bin
@@ -284,12 +269,7 @@ sign_imxboot()
 	(
 		cd "${OUTPUT_PATH}" || exit 1
 
-		echo "- Sign and encrypt imx-boot (NO-OPTEE) binary for: ${SOC}"
-		TF_SIGN_ENV="${TF_SIGN_BASE_ENV} CONFIG_MKIMAGE_LOG_PATH=mkimage-ccimx8mn_dvk-nooptee-flash_evk.log CONFIG_FIT_HAB_LOG_PATH=mkimage-ccimx8mn_dvk-nooptee-print_fit_hab.log"
-		env ${TF_SIGN_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8mn_dvk-nooptee.bin imx-boot-signed-ccimx8mn_dvk-nooptee.bin
-		env ${TF_SIGN_ENV} ${TF_ENC_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8mn_dvk-nooptee.bin imx-boot-encrypted-ccimx8mn_dvk-nooptee.bin
-
-		echo "- Sign and encrypt imx-boot (OPTEE) binary for: ${SOC}"
+		echo "- Sign and encrypt imx-boot binary for: ${SOC}"
 		TF_SIGN_ENV="${TF_SIGN_BASE_ENV} CONFIG_MKIMAGE_LOG_PATH=mkimage-ccimx8mn_dvk-flash_evk.log CONFIG_FIT_HAB_LOG_PATH=mkimage-ccimx8mn_dvk-print_fit_hab.log"
 		env ${TF_SIGN_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8mn_dvk.bin imx-boot-signed-ccimx8mn_dvk.bin
 		env ${TF_SIGN_ENV} ${TF_ENC_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8mn_dvk.bin imx-boot-encrypted-ccimx8mn_dvk.bin

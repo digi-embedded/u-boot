@@ -79,9 +79,7 @@ build_atf()
 	(
 		cd "${ATF_DIR}" || { echo "build_atf: ATF_DIR not found"; exit 1; }
 		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" realclean
-		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" bl31
-		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" BUILD_BASE=build-optee realclean
-		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" BUILD_BASE=build-optee SPD=opteed bl31
+		${MAKE} CROSS_COMPILE="${CROSS_COMPILE}" LD="${CROSS_COMPILE}ld.bfd" CC="${CROSS_COMPILE}gcc" PLAT="${ATF_PLAT}" SPD=opteed bl31
 	)
 }
 
@@ -243,9 +241,8 @@ copy_artifacts_mkimage_folder()
 
 	# AHAB container, ATF and Optee binaries
 	cp --remove-destination "${FIRMWARE_ELE_DIR}"/mx91a0-ahab-container.img "${MKIMAGE_SOC_DIR}"
-	cp --remove-destination "${ATF_DIR}"/build/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_SOC_DIR}"/bl31-imx91.bin
-	cp --remove-destination "${ATF_DIR}"/build-optee/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_SOC_DIR}"/bl31-imx91.bin-optee
-	cp --remove-destination "${OPTEE_DIR}"/build/core/tee-raw.bin "${MKIMAGE_SOC_DIR}"
+	cp --remove-destination "${ATF_DIR}"/build/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_SOC_DIR}"
+	cp --remove-destination "${OPTEE_DIR}"/build/core/tee-raw.bin "${MKIMAGE_SOC_DIR}"/tee.bin
 }
 
 build_imxboot()
@@ -254,22 +251,8 @@ build_imxboot()
 	mkdir -p "${OUTPUT_PATH}"
 
 	(
-		BL31_BIN="bl31-imx91.bin"
-		TEE_BIN="tee-raw.bin"
-
-		echo "- Build imx-boot (NO-OPTEE) binary for: ${SOC}"
+		echo "- Build imx-boot binary for: ${SOC}"
 		${MAKE} SOC="${SOC}" clean
-		rm -f "${MKIMAGE_SOC_DIR}"/tee.bin "${MKIMAGE_SOC_DIR}"/bl31.bin
-		[ -f "${MKIMAGE_SOC_DIR}"/${BL31_BIN} ] && ln -sf ${BL31_BIN} "${MKIMAGE_SOC_DIR}"/bl31.bin
-		${MAKE} SOC="${SOC}" flash_singleboot
-		cp --remove-destination "${MKIMAGE_SOC_DIR}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx91-dvk-nooptee.bin
-		cp --remove-destination "${MKIMAGE_SOC_DIR}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-ccimx91-dvk-nooptee-flash_singleboot.log
-
-		echo "- Build imx-boot (OPTEE) binary for: ${SOC}"
-		${MAKE} SOC="${SOC}" clean
-		rm -f "${MKIMAGE_SOC_DIR}"/tee.bin "${MKIMAGE_SOC_DIR}"/bl31.bin
-		[ -f "${MKIMAGE_SOC_DIR}"/${BL31_BIN}-optee ] && ln -sf ${BL31_BIN}-optee "${MKIMAGE_SOC_DIR}"/bl31.bin
-		[ -f "${MKIMAGE_SOC_DIR}"/${TEE_BIN} ] && ln -sf ${TEE_BIN} "${MKIMAGE_SOC_DIR}"/tee.bin
 		${MAKE} SOC="${SOC}" flash_singleboot
 		cp --remove-destination "${MKIMAGE_SOC_DIR}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx91-dvk.bin
 		cp --remove-destination "${MKIMAGE_SOC_DIR}"/mkimage-flash_singleboot.log "${OUTPUT_PATH}"/mkimage-ccimx91-dvk-flash_singleboot.log
@@ -293,12 +276,7 @@ sign_imxboot()
 	(
 		cd "${OUTPUT_PATH}" || exit 1
 
-		echo "- Sign and encrypt imx-boot (NO-OPTEE) binary for: ${SOC}"
-		TF_SIGN_ENV="${TF_SIGN_BASE_ENV} CONFIG_MKIMAGE_LOG_PATH=mkimage-ccimx91-dvk-nooptee-flash_singleboot.log"
-		env ${TF_SIGN_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx91-dvk-nooptee.bin imx-boot-signed-ccimx91-dvk-nooptee.bin
-		env ${TF_SIGN_ENV} ${TF_ENC_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx91-dvk-nooptee.bin imx-boot-encrypted-ccimx91-dvk-nooptee.bin
-
-		echo "- Sign and encrypt imx-boot (OPTEE) binary for: ${SOC}"
+		echo "- Sign and encrypt imx-boot binary for: ${SOC}"
 		TF_SIGN_ENV="${TF_SIGN_BASE_ENV} CONFIG_MKIMAGE_LOG_PATH=mkimage-ccimx91-dvk-flash_singleboot.log"
 		env ${TF_SIGN_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx91-dvk.bin imx-boot-signed-ccimx91-dvk.bin
 		env ${TF_SIGN_ENV} ${TF_ENC_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx91-dvk.bin imx-boot-encrypted-ccimx91-dvk.bin
