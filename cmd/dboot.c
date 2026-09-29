@@ -203,6 +203,8 @@ static int do_dboot(struct cmd_tbl* cmdtp, int flag, int argc, char * const argv
 	printf("## Loading squashfs: \n");
 	/* Authenticate SQUASHFS rootfs */
 #ifdef CONFIG_AHAB_BOOT
+	/* Reload Fitimage */
+	env_set("temp-fitimg-loaded", "");
 	rootfs_auth_addr = CONFIG_AUTH_SQUASHFS_ADDR;
 #else
 	rootfs_auth_addr = env_get_ulong("initrd_addr", 16, ~0UL);
