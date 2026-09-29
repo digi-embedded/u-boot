@@ -144,10 +144,6 @@
 		"bootcount reset;" \
 		"reset;\0" \
 
-/* Extra network settings for second Ethernet */
-#define CONFIG_EXTRA_NETWORK_SETTINGS \
-	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"
-
 /* protected environment variables (besides ethaddr and serial#) */
 #undef CFG_ENV_FLAGS_LIST_STATIC
 #define CFG_ENV_FLAGS_LIST_STATIC	\
