@@ -48,7 +48,6 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-static int phy_addr;
 unsigned int board_version = CARRIERBOARD_VERSION_UNDEFINED;
 unsigned int board_id = CARRIERBOARD_ID_UNDEFINED;
 
@@ -145,11 +144,6 @@ int setup_pmic_voltages_carrierboard(void)
 	return 0;
 }
 #endif /* CONFIG_SYS_I2C_MXC */
-
-int board_get_enet_phy_addr(void)
-{
-	return phy_addr;
-}
 
 static int mx6_rgmii_rework(struct phy_device *phydev)
 {

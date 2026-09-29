@@ -31,11 +31,6 @@ int board_interface_eth_init(struct udevice *dev,
 			     phy_interface_t interface_type);
 int cpu_eth_init(struct bd_info *bis);
 
-/* Board functions to determine PHY transceiver type and address */
-#ifndef CONFIG_FEC_MXC_PHYADDR
-int board_get_enet_phy_addr(void);
-#endif
-
 /* Driver initialization prototypes */
 int ax88180_initialize(struct bd_info *bis);
 int bcm_sf2_eth_register(struct bd_info *bis, u8 dev_num);
