@@ -85,7 +85,8 @@ config AUTHENTICATE_SQUASHFS_ROOTFS
 	default n
 
 config AUTH_SQUASHFS_ADDR
-	default 0x90000000 if AHAB_BOOT
+	default 0x90000000 if AHAB_BOOT && !CC9
+	default 0x98000000 if CC9
 	default 0x0
 	hex "Authenticate Squashfs address"
 	help
