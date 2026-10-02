@@ -58,13 +58,6 @@
 #define EMMC_BOOT_PART			1
 #define EMMC_BOOT_PART_OFFSET		(32 * SZ_1K)
 
-#define CONFIG_TRUSTFENCE_SRK_BANK			16
-#define CONFIG_TRUSTFENCE_SRK_WORDS			8
-#define CONFIG_TRUSTFENCE_SRK_WORDS_PER_BANK		8
-#define CONFIG_TRUSTFENCE_SRK_WORDS_OFFSET		0
-
-#define CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS		3
-
 /* Pool of randomly generated UUIDs at host machine */
 #define RANDOM_UUIDS	\
 	"uuid_disk=075e2a9b-6af6-448c-a52a-3a6e69f0afff\0" \

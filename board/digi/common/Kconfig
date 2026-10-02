@@ -153,44 +153,9 @@ config DIGI_FAMILY_ID
 config HAS_TRUSTFENCE
 	bool
 
-config TRUSTFENCE_UPDATE
-	bool
-	depends on HAS_TRUSTFENCE
-	default y if CC6UL
-	default y if CC8M
-	default y if CC8X
-	default y if CC9
-	default y if CC6
-
-config TRUSTFENCE_JTAG
-	bool
-	depends on HAS_TRUSTFENCE
-	default y if CC6UL
-
-config ENV_ENCRYPT
-	bool "Encrypt u-boot environment using the hardware unique key (HUK)"
-	select MD5
-	help
-	  Implementation uses CAAM or Optee depending on the platform.
-
-	  This setting only has an effect on closed devices (those that can
-	  only boot signed U-Boot images). It has no effect on open devices.
-
-config CAAM_ENV_ENCRYPT
-	bool
-	depends on ENV_ENCRYPT
-	depends on HAS_CAAM && !CC9
-	default ENV_ENCRYPT
-	help
-	  Encrypt U-Boot environment using CAAM
-
-config OPTEE_ENV_ENCRYPT
-	bool
-	depends on ENV_ENCRYPT
-	depends on CC9
-	default ENV_ENCRYPT
-	help
-	  Encrypt U-Boot environment using Optee
+if HAS_TRUSTFENCE
+source "board/digi/common/Kconfig.trustfence"
+endif
 
 config REDUNDANT_BOOTLOADER
 	bool

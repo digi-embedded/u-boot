@@ -1,0 +1,102 @@
+config TRUSTFENCE_SRK_N_REVOKE_KEYS
+	int
+	default 3
+
+config TRUSTFENCE_SRK_BANK
+	int
+	default 16 if CC9
+	default 6 if CC8M
+	default 3 if CC6UL || CC6
+	default 0 if CC8X
+
+config TRUSTFENCE_SRK_WORDS
+	int
+	default 16 if CC8X
+	default 8 if CC9 || CC8M || CC6UL || CC6
+
+config TRUSTFENCE_SRK_WORDS_PER_BANK
+	int
+	default 16 if CC8X
+	default 4 if CC8M
+	default 8 if CC9 || CC6UL || CC6
+
+config TRUSTFENCE_SRK_WORDS_OFFSET
+	int
+	default 730 if CC8X
+	default 0 if CC9 || CC8M || CC6UL || CC6
+
+if CC6 || CC6UL || CC8M || CC8X
+
+config TRUSTFENCE_SRK_REVOKE_BANK
+	int
+	default 9 if CC8M
+	default 5 if CC6 || CC6UL
+	default 0 if CC8X
+
+config TRUSTFENCE_SRK_REVOKE_WORD
+	int
+	default 11 if CC8X
+	default 3 if CC8M
+	default 7 if CC6 || CC6UL
+
+config TRUSTFENCE_SRK_REVOKE_MASK
+	hex
+	default 0xf if CC8X
+	default 0x7 if CC6 || CC6UL || CC8M
+
+config TRUSTFENCE_SRK_REVOKE_OFFSET
+	int
+	default 8 if CC8X
+	default 0 if CC6 || CC6UL || CC8M
+
+endif
+
+if CC6 || CC6UL || CC8M
+
+config TRUSTFENCE_SRK_OTP_LOCK_BANK
+	int
+	default 0
+
+config TRUSTFENCE_SRK_OTP_LOCK_WORD
+	int
+	default 0
+
+config TRUSTFENCE_SRK_OTP_LOCK_OFFSET
+	int
+	default 9 if CC8M
+	default 14 if CC6 || CC6UL
+
+endif
+
+config TRUSTFENCE_UPDATE
+	bool
+	default y if CC6 || CC6UL || CC8M || CC8X || CC9
+
+config TRUSTFENCE_JTAG
+	bool
+	default y if CC6UL
+
+config ENV_ENCRYPT
+	bool "Encrypt u-boot environment using the hardware unique key (HUK)"
+	select MD5
+	help
+	  Implementation uses CAAM or Optee depending on the platform.
+
+	  This setting only has an effect on closed devices (those that can
+	  only boot signed U-Boot images). It has no effect on open devices.
+
+config CAAM_ENV_ENCRYPT
+	bool
+	depends on ENV_ENCRYPT
+	depends on HAS_CAAM && !CC9
+	default ENV_ENCRYPT
+	help
+	  Encrypt U-Boot environment using CAAM
+
+config OPTEE_ENV_ENCRYPT
+	bool
+	depends on ENV_ENCRYPT
+	depends on CC9
+	default ENV_ENCRYPT
+	help
+	  Encrypt U-Boot environment using Optee
