@@ -56,6 +56,17 @@ static int do_trustfence_status(struct cmd_tbl *cmdtp, int flag, int argc, char 
 		puts("[ERROR]\n");
 	}
 
+#if defined(CONFIG_IMX95) && defined(CONFIG_IMX_PQC_SUPPORT)
+	printf("* PQC SRK fuses:\t");
+	ret = fuse_check_pqc_srk();
+	if (ret > 0)
+		puts("[NOT PROGRAMMED]\n");
+	else if (ret == 0)
+		puts("[PROGRAMMED]\n");
+	else
+		puts("[ERROR]\n");
+#endif
+
 	printf("* Secure boot:\t\t%s", trustfence_is_closed() ?
 		"[CLOSED]\n" : "[OPEN]\n");
 	trustfence_status();
@@ -63,10 +74,11 @@ static int do_trustfence_status(struct cmd_tbl *cmdtp, int flag, int argc, char 
 	return CMD_RET_SUCCESS;
 }
 
-static int do_trustfence_prog_srk(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+static int prog_srk_hash(int argc, char *const argv[], int (*check_srk)(void),
+			 int (*prog_srk)(u32, u32), const char *name)
 {
 	int confirmed = argc >= 2 && !strcmp(argv[1], "-y");
-	u32 val[2], addr;
+	u32 size, addr;
 	int ret = -1;
 
 	argc -= 1 + confirmed;
@@ -78,9 +90,9 @@ static int do_trustfence_prog_srk(struct cmd_tbl *cmdtp, int flag, int argc, cha
 	if (!confirmed && !confirm_prog())
 		return CMD_RET_FAILURE;
 
-	ret = fuse_check_srk();
+	ret = check_srk();
 	if (ret == 0) {
-		puts("SRK efuses are already burned!\n");
+		printf("%s efuses are already burned!\n", name);
 		return CMD_RET_FAILURE;
 	} else if (ret < 0) {
 		goto err_prog_srk;
@@ -89,11 +101,11 @@ static int do_trustfence_prog_srk(struct cmd_tbl *cmdtp, int flag, int argc, cha
 	if (strtou32(argv[0], 16, &addr))
 		return CMD_RET_USAGE;
 
-	if (strtou32(argv[1], 16, &val[0]))
+	if (strtou32(argv[1], 16, &size))
 		return CMD_RET_USAGE;
 
-	puts("Programming SRK efuses... ");
-	ret = fuse_prog_srk(addr, val[0]);
+	printf("Programming %s efuses... ", name);
+	ret = prog_srk(addr, size);
 	if (ret)
 		goto err_prog_srk;
 	puts("[OK]\n");
@@ -103,6 +115,21 @@ err_prog_srk:
 	puts("[ERROR]\n");
 	return CMD_RET_FAILURE;
 }
+
+static int do_trustfence_prog_srk(struct cmd_tbl *cmdtp, int flag, int argc,
+				  char *const argv[])
+{
+	return prog_srk_hash(argc, argv, fuse_check_srk, fuse_prog_srk, "SRK");
+}
+
+#if defined(CONFIG_IMX95) && defined(CONFIG_IMX_PQC_SUPPORT)
+static int do_trustfence_prog_pqc_srk(struct cmd_tbl *cmdtp, int flag, int argc,
+				      char *const argv[])
+{
+	return prog_srk_hash(argc, argv, fuse_check_pqc_srk,
+			     fuse_prog_pqc_srk, "PQC SRK");
+}
+#endif
 
 static int do_trustfence_close(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
@@ -583,6 +610,9 @@ U_BOOT_CMD_WITH_SUBCMDS(trustfence, "Digi Trustfence(TM) command",
 	"\r-- SECURE BOOT --\n"
 	"trustfence status - show secure boot configuration status\n"
 	"trustfence prog_srk [-y] <ram addr> <size in bytes> - burn SRK efuses (PERMANENT)\n"
+#if defined(CONFIG_IMX95) && defined(CONFIG_IMX_PQC_SUPPORT)
+	"trustfence prog_pqc_srk [-y] <ram addr> <size in bytes> - burn PQC SRK efuses (PERMANENT)\n"
+#endif
 	"trustfence close [-y] - close the device so that it can only boot "
 			      "signed images (PERMANENT)\n"
 #if defined(CONFIG_IMX_HAB)
@@ -642,6 +672,9 @@ U_BOOT_CMD_WITH_SUBCMDS(trustfence, "Digi Trustfence(TM) command",
 	,
 	U_BOOT_SUBCMD_MKENT(status, 1, 0, do_trustfence_status),
 	U_BOOT_SUBCMD_MKENT(prog_srk, 4, 0, do_trustfence_prog_srk),
+#if defined(CONFIG_IMX95) && defined(CONFIG_IMX_PQC_SUPPORT)
+	U_BOOT_SUBCMD_MKENT(prog_pqc_srk, 4, 0, do_trustfence_prog_pqc_srk),
+#endif
 	U_BOOT_SUBCMD_MKENT(close, 2, 0, do_trustfence_close),
 #if defined(CONFIG_IMX_HAB) || defined (CONFIG_AHAB_BOOT)
 	U_BOOT_SUBCMD_MKENT(revoke, 3, 0, do_trustfence_revoke),

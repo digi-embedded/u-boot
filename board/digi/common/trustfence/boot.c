@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Digi International Inc.
+ * Copyright (C) 2024-2026, Digi International Inc.
  *
  * SPDX-License-Identifier: GPL-2.0+
  */
@@ -20,18 +20,17 @@
  * i+1 if SRK word i is not burned
  * <0 on error
  */
-__weak int fuse_check_srk(void)
+static int check_srk_fuses(int first_bank, int words, int words_per_bank,
+			   int words_offset)
 {
 	int i;
 	u32 val;
 	int bank, word;
 
-	for (i = 0; i < CONFIG_TRUSTFENCE_SRK_WORDS; i++) {
-		bank = CONFIG_TRUSTFENCE_SRK_BANK +
-		       (i / CONFIG_TRUSTFENCE_SRK_WORDS_PER_BANK);
-		word = i % CONFIG_TRUSTFENCE_SRK_WORDS_PER_BANK;
-		if (fuse_sense(bank, word+CONFIG_TRUSTFENCE_SRK_WORDS_OFFSET,
-			       &val))
+	for (i = 0; i < words; i++) {
+		bank = first_bank + (i / words_per_bank);
+		word = i % words_per_bank;
+		if (fuse_sense(bank, word + words_offset, &val))
 			return -1;
 		if (val == 0)
 			return i + 1;
@@ -40,38 +39,71 @@ __weak int fuse_check_srk(void)
 	return 0;
 }
 
-__weak int fuse_prog_srk(u32 addr, u32 size)
+int fuse_check_srk(void)
+{
+	return check_srk_fuses(CONFIG_TRUSTFENCE_SRK_BANK,
+			       CONFIG_TRUSTFENCE_SRK_WORDS,
+			       CONFIG_TRUSTFENCE_SRK_WORDS_PER_BANK,
+			       CONFIG_TRUSTFENCE_SRK_WORDS_OFFSET);
+}
+
+static int prog_srk_fuses(int first_bank, int words, int words_per_bank,
+			  int words_offset, u32 addr, u32 size)
 {
 	int i;
 	int ret;
 	int bank, word;
-	uint32_t *src_addr = map_sysmem(addr, size);
+	u32 *src_addr;
 
-	if (size != CONFIG_TRUSTFENCE_SRK_WORDS * 4) {
+	if (size != words * 4) {
 		puts("Bad size\n");
 		return -1;
 	}
 
-#ifdef CONFIG_CC8X
-	env_set("force_prog_ecc", "yes");
-#endif
+	src_addr = map_sysmem(addr, size);
 
-	for (i = 0; i < CONFIG_TRUSTFENCE_SRK_WORDS; i++) {
-		bank = CONFIG_TRUSTFENCE_SRK_BANK +
-		       (i / CONFIG_TRUSTFENCE_SRK_WORDS_PER_BANK);
-		word = i % CONFIG_TRUSTFENCE_SRK_WORDS_PER_BANK;
-		ret = fuse_prog(bank, word+CONFIG_TRUSTFENCE_SRK_WORDS_OFFSET,
-				src_addr[i]);
+	if (IS_ENABLED(CONFIG_CC8X))
+		env_set("force_prog_ecc", "yes");
+
+	for (i = 0; i < words; i++) {
+		bank = first_bank + i / words_per_bank;
+		word = i % words_per_bank;
+		ret = fuse_prog(bank, word + words_offset, src_addr[i]);
 		if (ret)
 			break;
 	}
 
-#ifdef CONFIG_CC8X
-	env_set("force_prog_ecc", NULL);
-#endif
+	if (IS_ENABLED(CONFIG_CC8X))
+		env_set("force_prog_ecc", NULL);
 
 	return ret;
 }
+
+int fuse_prog_srk(u32 addr, u32 size)
+{
+	return prog_srk_fuses(CONFIG_TRUSTFENCE_SRK_BANK,
+			      CONFIG_TRUSTFENCE_SRK_WORDS,
+			      CONFIG_TRUSTFENCE_SRK_WORDS_PER_BANK,
+			      CONFIG_TRUSTFENCE_SRK_WORDS_OFFSET, addr, size);
+}
+
+#if defined(CONFIG_IMX95) && defined(CONFIG_IMX_PQC_SUPPORT)
+int fuse_check_pqc_srk(void)
+{
+	return check_srk_fuses(CONFIG_TRUSTFENCE_PQC_SRK_BANK,
+			       CONFIG_TRUSTFENCE_PQC_SRK_WORDS,
+			       CONFIG_TRUSTFENCE_PQC_SRK_WORDS_PER_BANK,
+			       CONFIG_TRUSTFENCE_PQC_SRK_WORDS_OFFSET);
+}
+
+int fuse_prog_pqc_srk(u32 addr, u32 size)
+{
+	return prog_srk_fuses(CONFIG_TRUSTFENCE_PQC_SRK_BANK,
+			      CONFIG_TRUSTFENCE_PQC_SRK_WORDS,
+			      CONFIG_TRUSTFENCE_PQC_SRK_WORDS_PER_BANK,
+			      CONFIG_TRUSTFENCE_PQC_SRK_WORDS_OFFSET, addr, size);
+}
+#endif
 
 void fdt_fixup_trustfence(void *fdt)
 {
