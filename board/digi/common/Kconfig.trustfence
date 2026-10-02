@@ -12,6 +12,7 @@ config TRUSTFENCE_SRK_BANK
 config TRUSTFENCE_SRK_WORDS
 	int
 	default 16 if CC8X
+	default 16 if CC9 && IMX95
 	default 8 if CC9 || CC8M || CC6UL || CC6
 
 config TRUSTFENCE_SRK_WORDS_PER_BANK
