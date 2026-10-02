@@ -26,6 +26,26 @@ config TRUSTFENCE_SRK_WORDS_OFFSET
 	default 730 if CC8X
 	default 0 if CC9 || CC8M || CC6UL || CC6
 
+config TRUSTFENCE_PQC_SRK_BANK
+	int
+	depends on IMX_PQC_SUPPORT
+	default 56 if CC9 && IMX95
+
+config TRUSTFENCE_PQC_SRK_WORDS
+	int
+	depends on IMX_PQC_SUPPORT
+	default 16 if CC9 && IMX95
+
+config TRUSTFENCE_PQC_SRK_WORDS_PER_BANK
+	int
+	depends on IMX_PQC_SUPPORT
+	default 8 if CC9 && IMX95
+
+config TRUSTFENCE_PQC_SRK_WORDS_OFFSET
+	int
+	depends on IMX_PQC_SUPPORT
+	default 0 if CC9 && IMX95
+
 if CC6 || CC6UL || CC8M || CC8X
 
 config TRUSTFENCE_SRK_REVOKE_BANK
