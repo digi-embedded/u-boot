@@ -241,7 +241,7 @@ static void fastboot_complete(struct usb_ep *ep, struct usb_request *req)
 	int status = req->status;
 	if (!status)
 		return;
-	fprintf(stderr, "status: %d ep '%s' trans: %d\n", status, ep->name, req->actual);
+	printf("status: %d ep '%s' trans: %d\n", status, ep->name, req->actual);
 }
 
 static int fastboot_bind(struct usb_configuration *c, struct usb_function *f)
@@ -378,7 +378,7 @@ static int fastboot_set_alt(struct usb_function *f,
 	struct f_fastboot *f_fb = func_to_fastboot(f);
 	const struct usb_endpoint_descriptor *d;
 
-	fprintf(stderr, "%s: func: %s intf: %d alt: %d\n",
+	debug("%s: func: %s intf: %d alt: %d\n",
 	      __func__, f->name, interface, alt);
 
 	d = fb_ep_desc(gadget, &fs_ep_out, &hs_ep_out, &ss_ep_out);
@@ -426,7 +426,7 @@ static int fastboot_add(struct usb_configuration *c)
 	struct f_fastboot *f_fb = fastboot_func;
 	int status;
 
-	fprintf(stderr, "%s: cdev: 0x%p\n", __func__, c->cdev);
+	debug("%s: cdev: 0x%p\n", __func__, c->cdev);
 
 	if (!f_fb) {
 		f_fb = memalign(CONFIG_SYS_CACHELINE_SIZE, sizeof(*f_fb));
