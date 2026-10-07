@@ -108,6 +108,9 @@ void board_init_f(ulong dummy)
 
 	timer_init();
 
+	/* Needed to configure trustfence silent console */
+	board_early_init_f();
+
 	/* Need dm_init() to run before any SCMI calls can be made. */
 	spl_early_init();
 

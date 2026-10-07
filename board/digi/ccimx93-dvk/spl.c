@@ -156,6 +156,9 @@ void board_init_f(ulong dummy)
 
 	arch_cpu_init();
 
+	/* Needed to configure trustfence silent console */
+	board_early_init_f();
+
 	spl_early_init();
 
 	preloader_console_init();
