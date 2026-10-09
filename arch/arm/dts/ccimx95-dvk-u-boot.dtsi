@@ -24,6 +24,26 @@
 	};
 };
 
+&gpio1 {
+	bootph-all;
+};
+
+&gpio2 {
+	bootph-all;
+};
+
+&gpio3 {
+	bootph-all;
+};
+
+&gpio4 {
+	bootph-all;
+};
+
+&gpio5 {
+	bootph-all;
+};
+
 &lpuart1 {
 	bootph-pre-ram;
 };
