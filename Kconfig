@@ -38,7 +38,7 @@ config CONSOLE_ENABLE_GPIO_NAME
 	default "GPIO4_21" if TARGET_CCIMX8X_SBC_PRO
 	default "GPIO1_10" if CC8M
 	default "GPIO3_7" if (TARGET_CCIMX91_DVK || TARGET_CCIMX93_DVK)
-	default "mca-gpio2" if TARGET_CCIMX95_DVK
+	default "GPIO4_29" if TARGET_CCIMX95_DVK
 	help
 	  Use any board GPIO line (by name) to enable the console.
 
@@ -50,7 +50,7 @@ config CONSOLE_ENABLE_GPIO_NAME
 	    GPIO4_21 on the ConnectCore 8X SBC Pro
 	    GPIO1_10 on the ConnectCore 8M DVK
 	    GPIO3_7 on the ConnectCore 93 DVK (USER1 button)
-	    mca-gpio2 on the ConnectCore 95 DVK (U_BUTTON)
+	    GPIO4_29 on the ConnectCore 95 DVK
 
 config CONSOLE_ENABLE_GPIO_ACTIVE_LOW
 	bool "Console enable GPIO is active low"
