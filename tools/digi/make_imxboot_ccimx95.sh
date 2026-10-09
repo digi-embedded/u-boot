@@ -425,6 +425,31 @@ build_imxboot()
 	)
 }
 
+sign_imxboot()
+{
+	[ -z "${CONFIG_SIGN_KEYS_PATH}" ] && return
+
+	# Signing environment
+	TF_SIGN_BASE_ENV="CONFIG_SIGN_KEYS_PATH=${CONFIG_SIGN_KEYS_PATH}"
+	[ -n "${CONFIG_KEY_INDEX}" ] && TF_SIGN_BASE_ENV="${TF_SIGN_BASE_ENV} CONFIG_KEY_INDEX=${CONFIG_KEY_INDEX}"
+	[ -n "${SRK_REVOKE_MASK}" ] && TF_SIGN_BASE_ENV="${TF_SIGN_BASE_ENV} SRK_REVOKE_MASK=${SRK_REVOKE_MASK}"
+
+	(
+		cd "${OUTPUT_PATH}" || exit 1
+
+		for oei_bin in "${MKIMAGE_SOC_DIR}"/oei-m33-ddr*.bin; do
+			oei_bin="$(basename "${oei_bin}")"
+			oei_ddr="${oei_bin#oei-m33-ddr}"
+			oei_ddr="${oei_ddr%.bin}"
+			echo "- Sign imx-boot binary for: ${SOC} (${oei_ddr})"
+			# shellcheck disable=SC2086 # allow word splitting of TF_SIGN_BASE_ENV
+			env ${TF_SIGN_BASE_ENV} "${SIGN_SCRIPT}" \
+				"imx-boot-ccimx95-dvk${oei_ddr}.bin" \
+				"imx-boot-signed-ccimx95-dvk${oei_ddr}.bin"
+		done
+	)
+}
+
 ##### Main
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -486,6 +511,7 @@ SM_PLAT="ccimx95dvk"
 
 OUTPUT_PATH="${BASEDIR}/output"
 UBOOT_DIR="${UBOOT_DIR:-$(realpath "${BASEDIR}"/../..)}"
+SIGN_SCRIPT="${UBOOT_DIR}/scripts/sign_spsdk_ahab.sh"
 
 # Parse command line arguments
 while [ "${1}" != "" ]; do
@@ -519,3 +545,4 @@ clone_mkimage_repo
 patch_mkimage_repo
 copy_artifacts_mkimage_folder
 build_imxboot
+sign_imxboot
