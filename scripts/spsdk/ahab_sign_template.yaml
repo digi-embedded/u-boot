@@ -1,0 +1,30 @@
+# i.MX95 AHAB signing configuration, based on:
+# nxpimage ahab get-template -f mimx9596 -s
+family: mimx9596
+revision: latest
+srk_set: oem
+used_srk_id: @KEY_INDEX@
+srk_revoke_mask: @REVOKE_MASK@
+gdet_runtime_behavior: disabled
+check_all_signatures: check_all_signatures
+fast_boot: disabled
+fuse_version: 0
+sw_version: 0
+signer: @CLASSIC_SIGNER@
+signer_#2: @PQC_SIGNER@
+srk_table:
+  flag_ca: false
+  hash_algorithm: default
+  srk_array:
+    - @CLASSIC_PUB_0@
+    - @CLASSIC_PUB_1@
+    - @CLASSIC_PUB_2@
+    - @CLASSIC_PUB_3@
+  srk_table_#2:
+    flag_ca: false
+    hash_algorithm: default
+    srk_array:
+      - @PQC_PUB_0@
+      - @PQC_PUB_1@
+      - @PQC_PUB_2@
+      - @PQC_PUB_3@
