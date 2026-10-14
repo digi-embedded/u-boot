@@ -133,9 +133,6 @@ int env_crypt(env_t * env, const int enc)
 	uint8_t *key_mod;
 	int ret = 0;
 
-	if (!trustfence_is_closed())
-		return 0;
-
 	key_mod = memalign(ARCH_DMA_MINALIGN, KEY_MODIFIER_SIZE);
 	if (!key_mod) {
 		debug("Not enough memory for key modifier\n");
