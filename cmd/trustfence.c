@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2024, Digi International Inc.
+ * Copyright (C) 2016-2026 Digi International Inc.
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -69,6 +69,18 @@ static int do_trustfence_status(struct cmd_tbl *cmdtp, int flag, int argc, char 
 
 	printf("* Secure boot:\t\t%s", trustfence_is_closed() ?
 		"[CLOSED]\n" : "[OPEN]\n");
+
+	printf("* Encrypted environment:");
+	if (IS_ENABLED(CONFIG_ENV_ENCRYPT)) {
+		if (IS_ENABLED(CONFIG_OPTEE_ENV_ENCRYPT) ||
+		    trustfence_is_closed())
+			puts("[ENABLED]\n");
+		else
+			puts("[DISABLED]\n");
+	} else {
+		puts("[DISABLED]\n");
+	}
+
 	trustfence_status();
 
 	return CMD_RET_SUCCESS;
@@ -606,7 +618,7 @@ err_jtag:
 }
 #endif /* CONFIG_TRUSTFENCE_JTAG */
 
-U_BOOT_CMD_WITH_SUBCMDS(trustfence, "Digi Trustfence(TM) command", 
+U_BOOT_CMD_WITH_SUBCMDS(trustfence, "Digi Trustfence(TM) command",
 	"\r-- SECURE BOOT --\n"
 	"trustfence status - show secure boot configuration status\n"
 	"trustfence prog_srk [-y] <ram addr> <size in bytes> - burn SRK efuses (PERMANENT)\n"
