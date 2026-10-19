@@ -37,8 +37,6 @@
 #define DEFAULT_MAC_ETHADDR1	"00:04:f3:ff:ff:fd"
 #define CONFIG_NO_MAC_FROM_OTP
 
-#undef CONFIG_ENV_OVERWRITE
-#define CONFIG_OVERWRITE_ETHADDR_ONCE
 #define CONFIG_DEFAULT_NETWORK_SETTINGS	\
 	"ethaddr=" DEFAULT_MAC_ETHADDR "\0" \
 	"wlanaddr=" DEFAULT_MAC_WLANADDR "\0" \
@@ -47,13 +45,35 @@
 	"serverip=192.168.42.1\0" \
 	"netmask=255.255.0.0\0"
 
+/* protected environment variables (besides ethaddr and serial#) */
+#define CFG_ENV_FLAGS_LIST_STATIC	\
+	"board_id:so,"			\
+	"board_version:so,"		\
+	"bootargs_once:sr,"		\
+	"btaddr:mc,"			\
+	"drm_ic:so,"			\
+	"eth1addr:mc,"			\
+	"hwid_0:so,"			\
+	"hwid_1:so,"			\
+	"hwid_2:so,"			\
+	"hwid_3:so,"			\
+	"mmcbootdev:so,"		\
+	"smarc_serial#:so,"		\
+	"smarcid_0:so,"			\
+	"smarcid_1:so,"			\
+	"wlan1addr:mc,"			\
+	"wlan2addr:mc,"			\
+	"wlan3addr:mc,"			\
+	"wlan4addr:mc,"			\
+	"wlan5addr:mc,"			\
+	"wlanaddr:mc,"
+
 #define CONFIG_ROOTPATH		"/exports/nfsroot-" CONFIG_SYS_BOARD
 
 #define CARRIERBOARD_VERSION_UNDEFINED	0
 #define CARRIERBOARD_ID_UNDEFINED	0
 
 /* ********** misc stuff ********** */
-#define CONFIG_CMD_ENV_FLAGS
 #undef CONFIG_SYS_MAXARGS
 #define CONFIG_SYS_MAXARGS	256			/* max number of command args */
 #define CONFIG_SYS_BARGSIZE	CONFIG_SYS_CBSIZE	/* Boot Argument Buffer Size */

@@ -77,23 +77,6 @@
 #define CONFIG_EXTRA_NETWORK_SETTINGS \
 	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"
 
-#undef CFG_ENV_FLAGS_LIST_STATIC
-#define CFG_ENV_FLAGS_LIST_STATIC	\
-	"eth1addr:mc,"			\
-	"wlanaddr:mc,"			\
-	"wlan1addr:mc,"			\
-	"wlan2addr:mc,"			\
-	"wlan3addr:mc,"			\
-	"wlan4addr:mc,"			\
-	"wlan5addr:mc,"			\
-	"btaddr:mc,"			\
-	"bootargs_once:sr,"		\
-	"board_version:so,"		\
-	"board_id:so,"			\
-	"hwid_0:so,"			\
-	"hwid_1:so,"			\
-	"drm_ic:so,"
-
 /* I2C configs */
 #define CONFIG_I2C_MULTI_BUS
 #define CONFIG_SYS_I2C_SPEED		100000

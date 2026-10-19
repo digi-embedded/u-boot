@@ -85,27 +85,6 @@
 #define EMMC_BOOT_PART_OFFSET_A0	(33 * SZ_1K)
 #define EMMC_BOOT_PART_OFFSET		(32 * SZ_1K)
 
-/* protected environment variables (besides ethaddr and serial#) */
-#undef CFG_ENV_FLAGS_LIST_STATIC
-#define CFG_ENV_FLAGS_LIST_STATIC	\
-	"eth1addr:mc,"			\
-	"wlanaddr:mc,"			\
-	"wlan1addr:mc,"			\
-	"wlan2addr:mc,"			\
-	"wlan3addr:mc,"			\
-	"wlan4addr:mc,"			\
-	"wlan5addr:mc,"			\
-	"btaddr:mc,"			\
-	"bootargs_once:sr,"		\
-	"board_version:so,"		\
-	"board_id:so,"			\
-	"mmcbootdev:so,"		\
-	"hwid_0:so,"			\
-	"hwid_1:so,"			\
-	"hwid_2:so,"			\
-	"hwid_3:so,"			\
-	"drm_ic:so,"
-
 /* Environment */
 /* On CC8X, USDHC1 is for eMMC, USDHC2 is for SD on SBC Express */
 #define CFG_SYS_FSL_USDHC_NUM	2

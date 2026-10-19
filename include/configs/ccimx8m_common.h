@@ -204,25 +204,6 @@
 	"name=data,size=-,type=linux,uuid=${part7_uuid};" \
 	"\""
 
-/* protected environment variables (besides ethaddr and serial#) */
-#undef CFG_ENV_FLAGS_LIST_STATIC
-#define CFG_ENV_FLAGS_LIST_STATIC	\
-	"wlanaddr:mc,"			\
-	"wlan1addr:mc,"			\
-	"wlan2addr:mc,"			\
-	"wlan3addr:mc,"			\
-	"wlan4addr:mc,"			\
-	"wlan5addr:mc,"			\
-	"btaddr:mc,"			\
-	"bootargs_once:sr,"		\
-	"board_version:so,"		\
-	"board_id:so,"			\
-	"mmcbootdev:so,"		\
-	"hwid_0:so,"			\
-	"hwid_1:so,"			\
-	"hwid_2:so,"			\
-	"drm_ic:so,"
-
 #define FSL_FASTBOOT_FB_DEV "mmc"
 
 /*

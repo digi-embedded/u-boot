@@ -137,27 +137,6 @@
 		"bootcount reset;" \
 		"reset;\0" \
 
-/* protected environment variables (besides ethaddr and serial#) */
-#undef CFG_ENV_FLAGS_LIST_STATIC
-#define CFG_ENV_FLAGS_LIST_STATIC	\
-	"eth1addr:mc,"			\
-	"wlanaddr:mc,"			\
-	"wlan1addr:mc,"			\
-	"wlan2addr:mc,"			\
-	"wlan3addr:mc,"			\
-	"btaddr:mc,"			\
-	"bootargs_once:sr,"		\
-	"board_version:so,"		\
-	"board_id:so,"			\
-	"mmcbootdev:so,"		\
-	"hwid_0:so,"			\
-	"hwid_1:so,"			\
-	"hwid_2:so,"			\
-	"drm_ic:so,"			\
-	"smarcid_0:so,"			\
-	"smarcid_1:so,"			\
-	"smarc_serial#:so,"
-
 /*
  * 'update' command will ask for confirmation before updating any partition
  * in this comma-separated list

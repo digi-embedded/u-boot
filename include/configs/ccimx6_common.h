@@ -84,24 +84,6 @@
 #define EMMC_BOOT_PART			1
 #define EMMC_BOOT_PART_OFFSET		SZ_1K
 
-/* protected environment variables (besides ethaddr and serial#) */
-#undef CFG_ENV_FLAGS_LIST_STATIC
-#define CFG_ENV_FLAGS_LIST_STATIC	\
-	"wlanaddr:mc,"			\
-	"wlan1addr:mc,"			\
-	"wlan2addr:mc,"			\
-	"wlan3addr:mc,"			\
-	"wlan4addr:mc,"			\
-	"wlan5addr:mc,"			\
-	"btaddr:mc,"			\
-	"bootargs_once:sr,"		\
-	"board_version:so,"		\
-	"board_id:so,"			\
-	"mmcbootdev:so,"		\
-	"hwid_0:so,"			\
-	"hwid_1:so,"			\
-	"drm_ic:so,"
-
 /* PMIC */
 #define CONFIG_PMIC_I2C_BUS		1	/* DA9063 PMIC i2c bus */
 #define CONFIG_PMIC_I2C_ADDR		0x58	/* DA9063 PMIC i2c address */
