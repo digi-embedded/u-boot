@@ -1,14 +1,15 @@
 From: Javier Viguera <javier.viguera@digi.com>
 Date: Tue, 14 May 2024 15:33:17 +0200
-Subject: [PATCH] core: ccimx93: enable AES_HUK trusted application
+Subject: [PATCH] core: ccimx9: enable AES_HUK trusted application
 
 This provides the support for u-boot environment encryption.
 
 Upstream-Status: Inappropriate [DEY specific]
 
 Signed-off-by: Javier Viguera <javier.viguera@digi.com>
+Signed-off-by: Hector Palacios <hector.palacios@digi.com>
 ---
- core/arch/arm/plat-imx/conf.mk      |   2 +
+ core/arch/arm/plat-imx/conf.mk      |   4 +
  ta/aes_huk/Android.mk               |   4 +
  ta/aes_huk/Makefile                 |  13 +
  ta/aes_huk/aes_ta.c                 | 477 ++++++++++++++++++++++++++++
@@ -16,7 +17,7 @@ Signed-off-by: Javier Viguera <javier.viguera@digi.com>
  ta/aes_huk/sub.mk                   |   3 +
  ta/aes_huk/user_ta.mk               |   1 +
  ta/aes_huk/user_ta_header_defines.h |  48 +++
- 8 files changed, 630 insertions(+)
+ 8 files changed, 632 insertions(+)
  create mode 100644 ta/aes_huk/Android.mk
  create mode 100644 ta/aes_huk/Makefile
  create mode 100644 ta/aes_huk/aes_ta.c
@@ -26,10 +27,16 @@ Signed-off-by: Javier Viguera <javier.viguera@digi.com>
  create mode 100644 ta/aes_huk/user_ta_header_defines.h
 
 diff --git a/core/arch/arm/plat-imx/conf.mk b/core/arch/arm/plat-imx/conf.mk
-index f1cadd2ed917..2eeec9fcc976 100644
+index 9daaa6a58b07..7f0b155f38e8 100644
 --- a/core/arch/arm/plat-imx/conf.mk
 +++ b/core/arch/arm/plat-imx/conf.mk
-@@ -623,12 +623,14 @@ endif
+@@ -619,17 +619,20 @@ endif
+ ifneq (,$(filter $(PLATFORM_FLAVOR),ccimx91dvk))
+ CFG_DDR_SIZE ?= 0x20000000
+ CFG_UART_BASE ?= UART6_BASE
++CFG_IN_TREE_EARLY_TAS += aes_huk/c2fad363-5d9f-4fc4-a417-555841e05745
+ endif
+ 
  ifneq (,$(filter $(PLATFORM_FLAVOR),ccimx93dvk))
  CFG_DDR_SIZE ?= 0x40000000
  CFG_UART_BASE ?= UART6_BASE
@@ -40,6 +47,14 @@ index f1cadd2ed917..2eeec9fcc976 100644
  CFG_DDR_SIZE ?= 0x40000000
  CFG_UART_BASE ?= UART6_BASE
  $(call force,CFG_SOC_REV_A0,y)
++CFG_IN_TREE_EARLY_TAS += aes_huk/c2fad363-5d9f-4fc4-a417-555841e05745
+ endif
+ 
+ ifneq (,$(filter $(PLATFORM_FLAVOR),ccimx95dvk))
+@@ -638,6 +641,7 @@ CFG_UART_BASE ?= UART1_BASE
+ CFG_NSEC_DDR_1_BASE ?= 0x100000000UL
+ CFG_NSEC_DDR_1_SIZE ?= 0x180000000UL
+ CFG_CORE_ARM64_PA_BITS ?= 40
 +CFG_IN_TREE_EARLY_TAS += aes_huk/c2fad363-5d9f-4fc4-a417-555841e05745
  endif
  
