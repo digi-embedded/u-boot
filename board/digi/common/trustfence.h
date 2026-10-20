@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016-2025, Digi International Inc.
+ *  Copyright (C) 2016-2026 Digi International Inc.
  *  All rights reserved.
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -13,6 +13,9 @@
 #ifdef CONFIG_HAS_TRUSTFENCE
 #include "trustfence/boot.h"
 #include "trustfence/encryption.h"
+
+/* Label alignment for 'status' command */
+#define TF_STATUS_ALIGN		23
 
 #if defined(CONFIG_AUTH_ARTIFACTS) || defined(CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS)
 #include "trustfence/auth.h"

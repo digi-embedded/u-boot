@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025, Digi International Inc.
+ * Copyright (C) 2024-2026 Digi International Inc.
  *
  * SPDX-License-Identifier: GPL-2.0+
  */
@@ -129,9 +129,9 @@ int trustfence_status(void)
 	enum hab_state state = 0;
 	int ret;
 
-	printf("* Encrypted U-Boot:\t%s\n", is_uboot_encrypted() ?
-			"[YES]" : "[NO]");
-	puts("* HAB events:\t\t");
+	printf("* %-*s%s\n", TF_STATUS_ALIGN, "Encrypted U-Boot:",
+		is_uboot_encrypted() ? "[YES]" : "[NO]");
+	printf("* %-*s", TF_STATUS_ALIGN, "HAB events:");
 	ret = hab_report_status(&config, &state);
 	if (ret == HAB_SUCCESS)
 		puts("[NO ERRORS]\n");

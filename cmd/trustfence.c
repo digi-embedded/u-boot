@@ -39,16 +39,19 @@ static int do_trustfence_status(struct cmd_tbl *cmdtp, int flag, int argc, char 
 	u32 val[2];
 	int ret = -1;
 
-	printf("* SRK fuses:\t\t");
+	printf("* %-*s", TF_STATUS_ALIGN, "SRK fuses:");
 	ret = fuse_check_srk();
 	if (ret > 0) {
 		printf("[NOT PROGRAMMED]\n");
 	} else if (ret == 0) {
-		puts("[PROGRAMMED]\n");
+		printf("[PROGRAMMED]\n");
 		/* Only show revocation status if the SRK fuses are programmed */
 		if (!sense_key_status(&val[0])) {
 			for (int i = 0; i <= CONFIG_TRUSTFENCE_SRK_N_REVOKE_KEYS; i++) {
-				printf("   Key %d:\t\t", i);
+				char label[10];
+
+				snprintf(label, sizeof(label), "Key %d:", i);
+				printf("   %-*s", TF_STATUS_ALIGN - 1, label);
 				printf((val[0] & (1 << i) ? "[REVOKED]\n" : "[OK]\n"));
 			}
 		}
@@ -57,7 +60,7 @@ static int do_trustfence_status(struct cmd_tbl *cmdtp, int flag, int argc, char 
 	}
 
 #if defined(CONFIG_IMX95) && defined(CONFIG_IMX_PQC_SUPPORT)
-	printf("* PQC SRK fuses:\t");
+	printf("* %-*s", TF_STATUS_ALIGN, "PQC SRK fuses:");
 	ret = fuse_check_pqc_srk();
 	if (ret > 0)
 		puts("[NOT PROGRAMMED]\n");
@@ -67,18 +70,18 @@ static int do_trustfence_status(struct cmd_tbl *cmdtp, int flag, int argc, char 
 		puts("[ERROR]\n");
 #endif
 
-	printf("* Secure boot:\t\t%s", trustfence_is_closed() ?
-		"[CLOSED]\n" : "[OPEN]\n");
+	printf("* %-*s%s\n", TF_STATUS_ALIGN, "Secure boot:",
+		trustfence_is_closed() ? "[CLOSED]" : "[OPEN]");
 
-	printf("* Encrypted environment:");
+	printf("* %-*s", TF_STATUS_ALIGN, "Encrypted environment:");
 	if (IS_ENABLED(CONFIG_ENV_ENCRYPT)) {
 		if (IS_ENABLED(CONFIG_OPTEE_ENV_ENCRYPT) ||
 		    trustfence_is_closed())
-			puts("[ENABLED]\n");
+			printf("[ENABLED]\n");
 		else
-			puts("[DISABLED]\n");
+			printf("[DISABLED]\n");
 	} else {
-		puts("[DISABLED]\n");
+		printf("[DISABLED]\n");
 	}
 
 	trustfence_status();

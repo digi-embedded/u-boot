@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Digi International Inc
+ * Copyright 2023-2026 Digi International Inc
  *
  * SPDX-License-Identifier: GPL-2.0+
  */
@@ -75,9 +75,9 @@ int trustfence_status(void)
 	int ret;
 
 	if (!is_usb_boot())
-		printf("* Encrypted U-Boot:\t%s\n", is_uboot_encrypted()?
-		       "[YES]" : "[NO]");
-	puts("* AHAB events:\t\t");
+		printf("* %-*s%s\n", TF_STATUS_ALIGN, "Encrypted U-Boot:",
+			is_uboot_encrypted() ? "[YES]" : "[NO]");
+	printf("* %-*s", TF_STATUS_ALIGN, "AHAB events:");
 	ret = ele_get_events(events, &cnt, NULL);
 	if (ret)
 		puts("[GET EVENTS FAILURE]\n");
