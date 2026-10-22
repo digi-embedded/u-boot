@@ -107,27 +107,20 @@ int fuse_prog_pqc_srk(u32 addr, u32 size)
 
 void fdt_fixup_trustfence(void *fdt)
 {
-	if (IS_ENABLED(CONFIG_ENV_ENCRYPT)) {
-		/* Platforms using OPTEE encrypt always */
-		if (IS_ENABLED(CONFIG_OPTEE_ENV_ENCRYPT)) {
-			do_fixup_by_path(fdt, "/", "digi,uboot-env,encrypted",
-					 NULL, 0, 1);
-			do_fixup_by_path(fdt, "/",
-					 "digi,uboot-env,encrypted-optee",
-					 NULL, 0, 1);
-		} else {
-			/* Platforms using CAAM only encrypt when closed */
-			if (trustfence_is_closed())
-				do_fixup_by_path(fdt, "/",
-						 "digi,uboot-env,encrypted",
-						 NULL, 0, 1);
-		}
+	/* Environment encryption is not enabled on open devices */
+	if (!trustfence_is_closed()) {
+		do_fixup_by_path(fdt, "/", "digi,tf-open", NULL, 0, 1);
+		return;
 	}
 
-	if (trustfence_is_closed())
-		do_fixup_by_path(fdt, "/", "digi,tf-closed", NULL, 0, 1);
-	else
-		do_fixup_by_path(fdt, "/", "digi,tf-open", NULL, 0, 1);
+	if (IS_ENABLED(CONFIG_ENV_ENCRYPT))
+		do_fixup_by_path(fdt, "/", "digi,uboot-env,encrypted", NULL, 0,
+				 1);
+	if (IS_ENABLED(CONFIG_OPTEE_ENV_ENCRYPT))
+		do_fixup_by_path(fdt, "/", "digi,uboot-env,encrypted-optee",
+				 NULL, 0, 1);
+
+	do_fixup_by_path(fdt, "/", "digi,tf-closed", NULL, 0, 1);
 }
 
 __weak int sense_key_status(u32 * val) { return -1; }
