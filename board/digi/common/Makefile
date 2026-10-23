@@ -1,5 +1,5 @@
 #
-# Copyright 2015-2026, Digi International Inc.
+# Copyright 2015-2026 Digi International Inc.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -23,6 +23,7 @@ obj-$(CONFIG_CMD_BOOTSTREAM) += cmd_bootstream/bch.o \
 				cmd_bootstream/cmd_bootstream.o \
 				cmd_bootstream/mxsboot.o
 obj-y += carrier_board.o
+obj-$(CONFIG_ENV_ENCRYPT) += helper.o
 obj-$(CONFIG_AUTO_BOOTSCRIPT) += helper.o
 obj-$(CONFIG_CMD_UPDATE_MMC) += helper.o helper_mmc.o
 obj-$(CONFIG_CMD_UPDATE_NAND) += helper.o

@@ -22,6 +22,7 @@
 
 #ifdef CONFIG_OPTEE_ENV_ENCRYPT
 #include "aes_tee.h"
+#include "../helper.h"
 #endif
 
 #include "../hwid.h"
@@ -131,6 +132,7 @@ int env_crypt(env_t * env, const int enc)
 {
 	uint8_t *data = env->data;
 	uint8_t *key_mod;
+	uint8_t *plain = NULL;
 	int ret = 0;
 
 	if (!trustfence_is_closed())
@@ -145,10 +147,28 @@ int env_crypt(env_t * env, const int enc)
 	if (ret)
 		goto freekm;
 
+	if (!enc) {
+		/* Preserve the stored data for plaintext fallback on failure. */
+		plain = malloc(ENV_SIZE);
+		if (!plain) {
+			ret = -ENOMEM;
+			goto freekm;
+		}
+		memcpy(plain, data, ENV_SIZE);
+	}
+
 	printf("%s", enc ? "Encrypting... " : "Decrypting... ");
-	ret = optee_crypt_data(enc, key_mod, data, ENV_SIZE);
+	ret = optee_crypt_data(enc, key_mod, enc ? data : plain, ENV_SIZE);
+	if (!ret && !enc) {
+		/* Sanity-check the expected ethaddr entry in the plaintext. */
+		if (!env_plaintext_valid(plain, ENV_SIZE))
+			ret = -ENOMSG;
+		else
+			memcpy(data, plain, ENV_SIZE);
+	}
 
 freekm:
+	free(plain);
 	free(key_mod);
 
 	return ret;

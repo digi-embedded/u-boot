@@ -52,6 +52,11 @@ struct load_fw {
 #define UBIFS_MAGIC		0x06101831
 #define SQUASHFS_MAGIC		0x73717368
 
+#ifdef CONFIG_ENV_ENCRYPT
+/* Require an ethaddr entry in colon-separated MAC address format. */
+bool env_plaintext_valid(const unsigned char *data, size_t size);
+#endif
+
 int confirm_msg(char *msg);
 int get_source(int argc, char * const argv[], struct load_fw *fwinfo);
 bool is_image_compressed(void);

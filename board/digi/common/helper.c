@@ -10,6 +10,7 @@
 #include <command.h>
 #include <console.h>
 #include <env.h>
+#include <env_flags.h>
 #include <gzip.h>
 #include <linux/errno.h>
 #include <malloc.h>
@@ -75,6 +76,28 @@ extern int tftp_timeout_count_max;
 extern unsigned long net_start_again_timeout;
 int DownloadingAutoScript = 0;
 int RunningAutoScript = 0;
+#endif
+
+#ifdef CONFIG_ENV_ENCRYPT
+/* Assume ethaddr is always present; check its format, not the entire payload. */
+bool env_plaintext_valid(const unsigned char *data, size_t size)
+{
+	const unsigned char *end = data + size;
+
+	while (data < end && *data) {
+		const unsigned char *nul = memchr(data, '\0', end - data);
+		size_t len;
+
+		if (!nul)
+			return false;
+		len = nul - data;
+		if (len >= 8 && !memcmp(data, "ethaddr=", 8))
+			return eth_validate_ethaddr_str((const char *)data + 8) == 0;
+		data = nul + 1;
+	}
+
+	return false;
+}
 #endif
 
 int confirm_msg(char *msg)
