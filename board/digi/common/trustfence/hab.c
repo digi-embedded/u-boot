@@ -15,6 +15,7 @@
 #endif
 
 #include "../helper.h"
+#include "../trustfence.h"
 #include "encryption.h"
 #include "hab.h"
 
