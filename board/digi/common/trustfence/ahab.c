@@ -184,7 +184,11 @@ int get_dek_blob(ulong addr, u32 *size)
 		offset = CONTAINER_HDR_MMCSD_OFFSET;
 	offset += CONTAINER_HDR_ALIGNMENT;
 
-	buf_size = roundup(CONTAINER_HDR_ALIGNMENT, mmc->read_bl_len);
+	/*
+	 * On AHAB platforms with 0x400 header alignment, the signature block
+	 * and DEK blob can extend beyond that boundary.
+	 */
+	buf_size = roundup(max(SZ_4K, CONTAINER_HDR_ALIGNMENT), mmc->read_bl_len);
 	buf = malloc(buf_size);
 	if (!buf)
 		return -1;
