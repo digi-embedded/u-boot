@@ -163,6 +163,20 @@ static int do_trustfence_close(struct cmd_tbl *cmdtp, int flag, int argc, char *
 		puts("[OK]\n\n");
 	}
 
+#if defined(CONFIG_IMX95) && defined(CONFIG_IMX_PQC_SUPPORT)
+	puts("Checking PQC SRK bank...\n");
+	ret = fuse_check_pqc_srk();
+	if (ret > 0) {
+		puts("[ERROR] Burn the PQC SRK OTP bits before "
+			"closing the device.\n");
+		return CMD_RET_FAILURE;
+	} else if (ret < 0) {
+		goto err_close;
+	} else {
+		puts("[OK]\n\n");
+	}
+#endif
+
 	if (close_device(confirmed))
 		goto err_close;
 	puts("[OK]\n");

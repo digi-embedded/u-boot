@@ -13,6 +13,15 @@
 
 /* see arch/arm/mach-imx/ele_ahab.c */
 #define AHAB_MAX_EVENTS 8
+#if IS_ENABLED(CONFIG_IMX95)
+#define FSB_LC_OFFSET 0x414
+#define LC_OEM_OPEN 0x10
+#define LC_OEM_CLOSED 0x40
+#else
+#define FSB_LC_OFFSET 0x41c
+#define LC_OEM_OPEN 0x8
+#define LC_OEM_CLOSED 0x20
+#endif
 int confirm_close(void);
 
 /*
@@ -29,10 +38,10 @@ int close_device(int confirmed_close)
 	if (!confirmed_close && !confirm_close())
 		return -EACCES;
 
-	lc = readl(FSB_BASE_ADDR + 0x41c);
+	lc = readl(FSB_BASE_ADDR + FSB_LC_OFFSET);
 	lc &= 0x3ff;
 
-	if (lc != 0x8) {
+	if (lc != LC_OEM_OPEN) {
 		printf
 		    ("Current lifecycle is NOT OEM open, can't move to OEM closed (0x%x)\n",
 		     lc);
@@ -57,15 +66,9 @@ int close_device(int confirmed_close)
 
 bool trustfence_is_closed(void)
 {
-	uint32_t lc;
+	u32 lc = readl(FSB_BASE_ADDR + FSB_LC_OFFSET) & 0x3ff;
 
-	lc = readl(FSB_BASE_ADDR + 0x41c);
-	lc &= 0x3f;
-
-	if (lc != 0x20)
-		return false;
-	else
-		return true;
+	return lc == LC_OEM_CLOSED;
 }
 
 int trustfence_status(void)
