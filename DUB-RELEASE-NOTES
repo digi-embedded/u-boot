@@ -2,6 +2,17 @@
 Digi U-Boot RELEASE NOTES
 -------------------------
 
+DUB-2026.04
+-----------
+dub-2026.04-r1.1, released on 2026/11/02
+	- Based on BSP from NXP (tag 'lf-6.18.20-2.0.0')
+	- Added support for ConnectCore 95
+	- Added support for ConnectCore 93
+	- Added support for ConnectCore 91
+	- Added support for ConnectCore 6UL
+	- Added TrustFence support for ConnectCore 95
+
+
 DUB-2024.04
 -----------
 dub-2024.04-r5.2, released on 2026/05/27
