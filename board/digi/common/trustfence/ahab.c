@@ -313,10 +313,7 @@ int get_srk_revoke_mask(u32 *mask)
 		return -1;
 	}
 
-	/*
-	 * The SRK mask is in the flags field (bits [11:8]) of second and third
-	 * containers, so read directly the second container from the EMMC
-	 */
+	/* The SRK mask is in bits [11:8] of the OEM container flags. */
 	offset = CONTAINER_HDR_EMMC_OFFSET;
 	/* imx8qxp B0 has a different offset for bootX partitions */
 	if ((is_imx8qxp() || is_imx8dx()) && is_soc_rev(CHIP_REV_B))
@@ -329,6 +326,9 @@ int get_srk_revoke_mask(u32 *mask)
 		part = 0;
 	}
 	offset += CONTAINER_HDR_ALIGNMENT;
+	/* i.MX95 has ELE and V2X containers before the OEM container. */
+	if (IS_ENABLED(CONFIG_IMX95))
+		offset += CONTAINER_HDR_ALIGNMENT;
 
 	ret = blk_select_hwpart(mmc_get_blk_desc(mmc)->bdev, part);
 	if (ret) {
